@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
-from app.models.enums import DataQuality, PropertyCategory
+from app.models.enums import BetterDirection, DataQuality, PropertyCategory
 
 
 class PropertyValueOut(BaseModel):
@@ -47,3 +47,42 @@ class PropertyGroup(BaseModel):
 
     category: PropertyCategory
     properties: list[PropertyValueOut]
+
+
+class PropertyDefinitionIn(BaseModel):
+    """Payload to create or update a property definition.
+
+    ``slug`` is optional on input; when omitted it is derived from ``name``.
+    ``canonical_unit`` and ``physical_dimension`` are Pint-parsable strings; the
+    service validates them before persisting.
+    """
+
+    name: str = Field(min_length=1, max_length=160)
+    slug: Optional[str] = Field(default=None, max_length=160)
+    symbol: Optional[str] = Field(default=None, max_length=32)
+    description: Optional[str] = Field(default=None, max_length=500)
+    category: PropertyCategory
+    physical_dimension: str = Field(default="", max_length=120)
+    canonical_unit: str = Field(min_length=1, max_length=60)
+    accepted_units: list[str] = Field(default_factory=list)
+    is_interval: bool = False
+    better_direction: BetterDirection = BetterDirection.NEUTRAL
+    allows_log_scale: bool = True
+
+
+class PropertyDefinitionOut(BaseModel):
+    """A property definition as returned by the API."""
+
+    id: int
+    name: str
+    slug: str
+    symbol: Optional[str] = None
+    description: Optional[str] = None
+    category: PropertyCategory
+    physical_dimension: str
+    canonical_unit: str
+    accepted_units: list[str]
+    is_interval: bool
+    better_direction: BetterDirection
+    allows_log_scale: bool
+    value_count: int = 0

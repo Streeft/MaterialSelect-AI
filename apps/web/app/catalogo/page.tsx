@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { listMaterials } from "@/lib/api";
@@ -28,9 +29,17 @@ export default function CatalogPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-baseline justify-between">
+      <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold text-slate-900">{ptBR.catalog.title}</h1>
-        {data && <span className="text-sm text-slate-500">{ptBR.catalog.count(data.length)}</span>}
+        <div className="flex items-center gap-3">
+          {data && <span className="text-sm text-slate-500">{ptBR.catalog.count(data.length)}</span>}
+          <Link
+            href="/materiais/novo"
+            className="rounded-lg bg-brand-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-700"
+          >
+            + {ptBR.actions.new}
+          </Link>
+        </div>
       </div>
 
       <SearchBar value={search} onChange={setSearch} />

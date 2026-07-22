@@ -14,6 +14,7 @@ expensive and breaks unit identity comparisons).
 
 from __future__ import annotations
 
+import math
 import re
 
 from pint import UnitRegistry
@@ -27,9 +28,13 @@ class UnitError(ValueError):
     """Raised for any unit-related problem (unknown unit or wrong dimension)."""
 
 
-# Matches an optional sign, digits with optional decimal comma/point, and an
-# optional scientific-notation exponent. Used to normalise "69,5" and "1,2e3".
-_NUMBER_RE = re.compile(r"^[+-]?\d{1,3}(?:[.\s]\d{3})*(?:[.,]\d+)?(?:[eE][+-]?\d+)?$")
+# Matches an optional sign, then either a plain digit run ("1500") or a
+# thousands-grouped integer part ("1.234" / "1 234"), an optional decimal part
+# (comma or point) and an optional scientific-notation exponent. The plain-run
+# alternative is required so ungrouped integers >= 1000 are accepted.
+_NUMBER_RE = re.compile(
+    r"^[+-]?(?:\d+|\d{1,3}(?:[.\s]\d{3})+)(?:[.,]\d+)?(?:[eE][+-]?\d+)?$"
+)
 
 
 def parse_decimal_comma(raw: str | float | int) -> float:
@@ -97,9 +102,13 @@ def to_canonical(
     unchanged with an ``"identity"`` method.
 
     Raises:
-        UnitError: if either unit is unknown or the two units are dimensionally
-            incompatible (e.g. converting a length into a pressure).
+        UnitError: if either unit is unknown, the two units are dimensionally
+            incompatible (e.g. converting a length into a pressure), or the
+            value is not finite (inf/NaN) — a non-finite ``normalized_value``
+            would silently corrupt every downstream calculation and chart.
     """
+    if not math.isfinite(value):
+        raise UnitError(f"Valor não finito não é permitido: {value!r}")
     if from_unit == canonical_unit:
         return value, f"identity:{canonical_unit}"
     try:
@@ -110,4 +119,9 @@ def to_canonical(
         raise UnitError(
             f"Unidades incompatíveis: {from_unit!r} não pode ser convertido para {canonical_unit!r}"
         ) from exc
-    return float(converted.magnitude), f"pint:{from_unit}->{canonical_unit}"
+    result = float(converted.magnitude)
+    if not math.isfinite(result):
+        raise UnitError(
+            f"Conversão produziu valor não finito: {value!r} {from_unit!r} -> {canonical_unit!r}"
+        )
+    return result, f"pint:{from_unit}->{canonical_unit}"

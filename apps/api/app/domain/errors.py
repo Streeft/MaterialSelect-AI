@@ -1,0 +1,23 @@
+"""Domain-level exceptions, mapped to HTTP status codes in ``app.main``.
+
+Keeping these framework-agnostic lets services raise meaningful errors without
+importing FastAPI, and lets the HTTP layer translate them consistently.
+"""
+
+from __future__ import annotations
+
+
+class DomainError(Exception):
+    """Base class for expected, user-facing domain errors."""
+
+
+class NotFoundError(DomainError):
+    """An entity referenced by id/slug does not exist. -> HTTP 404."""
+
+
+class ValidationError(DomainError):
+    """Input is structurally valid but violates a domain rule. -> HTTP 400."""
+
+
+class ConflictError(DomainError):
+    """The operation conflicts with current state (duplicate, in use). -> HTTP 409."""

@@ -51,6 +51,20 @@ def test_inverted_interval_raises():
         build_interval_value(60.0, 40.0, "MPa", "Pa")
 
 
+def test_typical_outside_interval_raises():
+    # The typical is the representative chart point; out-of-range typicals
+    # would silently misplace the material on property maps.
+    with pytest.raises(ValueError):
+        build_interval_value(100.0, 200.0, "MPa", "Pa", value_typical=5000.0)
+    with pytest.raises(ValueError):
+        build_interval_value(100.0, 200.0, "MPa", "Pa", value_typical=50.0)
+
+
+def test_typical_at_interval_bounds_is_accepted():
+    nv = build_interval_value(100.0, 200.0, "MPa", "Pa", value_typical=200.0)
+    assert nv.value_typical == 200.0
+
+
 def test_missing_value_skips_conversion():
     # A missing value must not attempt any unit conversion.
     nv = missing_value()

@@ -86,3 +86,27 @@ def test_parse_decimal_comma_invalid():
 def test_conversion_is_finite():
     value, _ = to_canonical(1.0, "g/cm**3", "kg/m**3")
     assert math.isfinite(value)
+
+
+def test_nonfinite_input_raises():
+    with pytest.raises(UnitError):
+        to_canonical(math.inf, "GPa", "Pa")
+    with pytest.raises(UnitError):
+        to_canonical(math.nan, "GPa", "Pa")
+    with pytest.raises(UnitError):
+        to_canonical(math.inf, "Pa", "Pa")  # identity path is guarded too
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("1500", 1500.0),
+        ("1234", 1234.0),
+        ("12345", 12345.0),
+        ("10000,5", 10000.5),
+    ],
+)
+def test_parse_plain_integers_with_four_plus_digits(raw, expected):
+    # Regression: the old regex capped the ungrouped integer part at 3 digits,
+    # rejecting common values like "1500".
+    assert parse_decimal_comma(raw) == pytest.approx(expected)

@@ -70,11 +70,18 @@ def build_interval_value(
     stored as ``normalized_value`` so charts have a single representative point.
 
     Raises:
-        ValueError: if the interval is inverted (min > max).
+        ValueError: if the interval is inverted (min > max) or the provided
+            typical value falls outside [min, max] — the typical is the single
+            representative point used on charts, so an out-of-range typical
+            would silently misplace the material.
     """
     if value_min > value_max:
         raise ValueError(
             f"Intervalo invertido: min ({value_min}) maior que max ({value_max})"
+        )
+    if value_typical is not None and not (value_min <= value_typical <= value_max):
+        raise ValueError(
+            f"Valor típico ({value_typical}) fora do intervalo [{value_min}, {value_max}]"
         )
     typical = value_typical if value_typical is not None else (value_min + value_max) / 2.0
     normalized, method = to_canonical(typical, original_unit, canonical_unit)

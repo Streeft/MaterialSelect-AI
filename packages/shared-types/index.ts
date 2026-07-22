@@ -12,6 +12,10 @@ export type PropertyCategory =
 
 export type DataQuality = "MEDIDO" | "IMPORTADO" | "ESTIMADO";
 
+export type BetterDirection = "HIGHER" | "LOWER" | "NEUTRAL";
+
+export type ValueKind = "scalar" | "interval" | "missing";
+
 export interface PropertyValueOut {
   property_slug: string;
   property_name: string;
@@ -51,12 +55,94 @@ export interface MaterialListItem {
 export interface MaterialDetail {
   id: number;
   name: string;
+  class_id: number;
   class_name: string;
   subclass: string | null;
   description: string | null;
   is_demo: boolean;
+  is_active: boolean;
   keywords: string[];
   property_groups: PropertyGroup[];
+}
+
+export interface MaterialClass {
+  id: number;
+  name: string;
+  slug: string;
+  parent_id: number | null;
+  description: string | null;
+  material_count: number;
+}
+
+export interface PropertyDefinition {
+  id: number;
+  name: string;
+  slug: string;
+  symbol: string | null;
+  description: string | null;
+  category: PropertyCategory;
+  physical_dimension: string;
+  canonical_unit: string;
+  accepted_units: string[];
+  is_interval: boolean;
+  better_direction: BetterDirection;
+  allows_log_scale: boolean;
+  value_count: number;
+}
+
+export interface PropertyValueIn {
+  property_slug: string;
+  kind: ValueKind;
+  value?: number | null;
+  value_min?: number | null;
+  value_max?: number | null;
+  value_typical?: number | null;
+  unit?: string | null;
+  uncertainty?: number | null;
+  measurement_condition?: string | null;
+  notes?: string | null;
+  source_label?: string | null;
+  data_quality: DataQuality;
+}
+
+export interface MaterialCreate {
+  name: string;
+  class_id: number;
+  subclass?: string | null;
+  description?: string | null;
+  keywords: string[];
+  is_demo: boolean;
+  values: PropertyValueIn[];
+}
+
+export interface MaterialUpdate {
+  name?: string;
+  class_id?: number;
+  subclass?: string | null;
+  description?: string | null;
+  keywords?: string[];
+  is_active?: boolean;
+}
+
+export interface MaterialClassIn {
+  name: string;
+  slug?: string | null;
+  parent_id?: number | null;
+  description?: string | null;
+}
+
+export interface PropertyDefinitionIn {
+  name: string;
+  slug?: string | null;
+  symbol?: string | null;
+  description?: string | null;
+  category: PropertyCategory;
+  physical_dimension: string;
+  canonical_unit: string;
+  accepted_units: string[];
+  is_interval: boolean;
+  better_direction: BetterDirection;
+  allows_log_scale: boolean;
 }
 
 export interface ChartPoint {

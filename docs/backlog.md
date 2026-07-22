@@ -52,6 +52,12 @@ As fases abaixo seguem a ordem recomendada de implementação.
   + `transpilePackages` (hoje espelhado manualmente).
 - Busca por palavra-chave via LIKE sobre JSON → migrar para tabela de associação
   ou índice textual quando a base crescer.
+- Adicionar `UniqueConstraint(material_id, property_id)` em
+  `material_property_value` (hoje a unicidade é garantida por validação de
+  payload no service; a constraint de banco exige nova migration).
+- Troca de unidade canônica de propriedade em uso é bloqueada (409); uma
+  ferramenta futura de re-normalização em massa poderia permitir a troca
+  recalculando todos os `normalized_value` na mesma transação.
 - Entidades ainda não modeladas: User, Project, ImportJob/Template/Error,
   SelectionStudy, PerformanceIndex, RankingCriterion, SavedChart,
   GeneratedReport, AuditEvent.
