@@ -12,6 +12,9 @@ venv/
 *.sqlite
 *.sqlite3
 
+# Uploaded files kept while an import job is open
+apps/api/var/
+
 # Environment / secrets
 .env
 .env.local

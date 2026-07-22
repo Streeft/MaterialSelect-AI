@@ -6,8 +6,6 @@ HTTP status codes by the exception handlers registered in ``app.main``.
 
 from __future__ import annotations
 
-from typing import Optional
-
 from fastapi import APIRouter, Depends, Query, Response, status
 from sqlalchemy.orm import Session
 
@@ -27,7 +25,7 @@ router = APIRouter(prefix="/materials", tags=["materials"])
 
 @router.get("", response_model=list[MaterialListItem])
 def list_materials(
-    search: Optional[str] = Query(default=None, description="Termo de busca por nome, classe ou palavra-chave"),
+    search: str | None = Query(default=None, description="Termo de busca por nome, classe ou palavra-chave"),
     db: Session = Depends(get_db),
 ) -> list[MaterialListItem]:
     """List active materials, optionally filtered by a search term."""

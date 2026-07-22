@@ -3,6 +3,10 @@
 
 import type {
   ChartData,
+  CommitResult,
+  ImportJobOut,
+  ImportMapping,
+  ImportTemplate,
   MaterialClass,
   MaterialClassIn,
   MaterialCreate,
@@ -12,6 +16,8 @@ import type {
   PropertyDefinition,
   PropertyDefinitionIn,
   PropertyValueIn,
+  UploadResult,
+  ValidationReport,
 } from "./types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -144,4 +150,69 @@ export function updateProperty(
 
 export function deleteProperty(id: number): Promise<void> {
   return request<void>(`/api/properties/${id}`, { method: "DELETE" });
+}
+
+// --- Imports ----------------------------------------------------------------
+
+export async function uploadImportFile(file: File): Promise<UploadResult> {
+  // FormData: the browser sets the multipart Content-Type (with boundary)
+  // itself, so this request must NOT go through the JSON `request` helper.
+  const form = new FormData();
+  form.append("file", file);
+  const res = await fetch(`${API_URL}/api/imports/upload`, {
+    method: "POST",
+    body: form,
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new ApiError(await errorMessage(res, "Falha no envio do arquivo"), res.status);
+  }
+  return (await res.json()) as UploadResult;
+}
+
+export function previewImportSheet(jobId: number, sheetName: string): Promise<UploadResult> {
+  return request<UploadResult>(`/api/imports/${jobId}/preview`, {
+    method: "POST",
+    body: JSON.stringify({ sheet_name: sheetName }),
+  });
+}
+
+export function validateImport(
+  jobId: number,
+  mapping: ImportMapping,
+): Promise<ValidationReport> {
+  return request<ValidationReport>(`/api/imports/${jobId}/validate`, {
+    method: "POST",
+    body: JSON.stringify({ mapping }),
+  });
+}
+
+export function commitImport(jobId: number): Promise<CommitResult> {
+  return request<CommitResult>(`/api/imports/${jobId}/commit`, { method: "POST" });
+}
+
+export function cancelImport(jobId: number): Promise<ImportJobOut> {
+  return request<ImportJobOut>(`/api/imports/${jobId}/cancel`, { method: "POST" });
+}
+
+export function rollbackImport(jobId: number): Promise<ImportJobOut> {
+  return request<ImportJobOut>(`/api/imports/${jobId}/rollback`, { method: "POST" });
+}
+
+export function listImports(): Promise<ImportJobOut[]> {
+  return request<ImportJobOut[]>(`/api/imports`);
+}
+
+export function listImportTemplates(): Promise<ImportTemplate[]> {
+  return request<ImportTemplate[]>(`/api/import-templates`);
+}
+
+export function createImportTemplate(
+  name: string,
+  mapping: ImportMapping,
+): Promise<ImportTemplate> {
+  return request<ImportTemplate>(`/api/import-templates`, {
+    method: "POST",
+    body: JSON.stringify({ name, mapping }),
+  });
 }

@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
 from sqlalchemy import Boolean, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -22,9 +20,9 @@ class Source(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     label: Mapped[str] = mapped_column(String(160), unique=True, nullable=False)
-    reference: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)
+    reference: Mapped[str | None] = mapped_column(String(1000), nullable=True)
     is_demo: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
-    values: Mapped[list["MaterialPropertyValue"]] = relationship(  # noqa: F821
+    values: Mapped[list[MaterialPropertyValue]] = relationship(  # noqa: F821
         back_populates="source"
     )

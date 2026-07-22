@@ -9,16 +9,12 @@ As fases abaixo seguem a ordem recomendada de implementação.
 - Associação de processos de fabricação, aplicações e referências.
 - Pesquisa avançada (múltiplos filtros de texto/classe).
 
-## Fase 3 — Importação
-- Assistente CSV/XLSX/JSON: upload, seleção de aba, detecção de cabeçalhos,
-  amostra, **mapeamento de colunas → propriedades**, identificação de unidades,
-  validação de tipos, detecção de duplicidades, relatório de erros.
-- Importar apenas registros válidos ou cancelar tudo; histórico e rollback
-  lógico; templates de mapeamento reutilizáveis.
-- Formatos de propriedade: valor único, min/max, típico, valor+unidade na
-  célula, vírgula decimal, notação científica, "N/A".
-- Segurança: validação de upload, limite de tamanho, sanitização de nomes,
-  proteção contra fórmulas perigosas em planilhas.
+## Fase 3 — Importação ✅ (concluída; ver docs/06-importacao.md)
+- Entregue: assistente CSV/XLSX (upload, abas, cabeçalhos, amostra, mapeamento
+  com sugestões, validação linha a linha, duplicidades, commit só de linhas
+  válidas, histórico, rollback lógico, templates, segurança de upload/fórmulas).
+- Restante para fases futuras: importação JSON e de bancos SQLite; detecção
+  automática de encoding além de UTF-8/Latin-1; perfis estatísticos de coluna.
 
 ## Fase 4 — Seleção determinística
 - Filtros e restrições (>, ≥, <, ≤, faixa, existe/não existe, classe, texto)

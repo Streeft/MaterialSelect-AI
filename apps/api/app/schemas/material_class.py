@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
 from pydantic import BaseModel, Field
 
 
@@ -15,9 +13,9 @@ class MaterialClassIn(BaseModel):
     """
 
     name: str = Field(min_length=1, max_length=120)
-    slug: Optional[str] = Field(default=None, max_length=120)
-    parent_id: Optional[int] = None
-    description: Optional[str] = Field(default=None, max_length=500)
+    slug: str | None = Field(default=None, max_length=120)
+    parent_id: int | None = None
+    description: str | None = Field(default=None, max_length=500)
 
 
 class MaterialClassOut(BaseModel):
@@ -26,6 +24,6 @@ class MaterialClassOut(BaseModel):
     id: int
     name: str
     slug: str
-    parent_id: Optional[int] = None
-    description: Optional[str] = None
+    parent_id: int | None = None
+    description: str | None = None
     material_count: int = 0

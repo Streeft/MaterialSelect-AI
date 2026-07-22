@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -30,15 +30,15 @@ class PropertyValueIn(BaseModel):
     kind: ValueKind
     # allow_inf_nan=False: non-finite numbers (inf/NaN) must be rejected at the
     # boundary — they would corrupt normalized values and chart scaling.
-    value: Optional[float] = Field(default=None, allow_inf_nan=False)
-    value_min: Optional[float] = Field(default=None, allow_inf_nan=False)
-    value_max: Optional[float] = Field(default=None, allow_inf_nan=False)
-    value_typical: Optional[float] = Field(default=None, allow_inf_nan=False)
-    unit: Optional[str] = None
-    uncertainty: Optional[float] = Field(default=None, ge=0, allow_inf_nan=False)
-    measurement_condition: Optional[str] = Field(default=None, max_length=200)
-    notes: Optional[str] = Field(default=None, max_length=500)
-    source_label: Optional[str] = Field(default=None, max_length=160)
+    value: float | None = Field(default=None, allow_inf_nan=False)
+    value_min: float | None = Field(default=None, allow_inf_nan=False)
+    value_max: float | None = Field(default=None, allow_inf_nan=False)
+    value_typical: float | None = Field(default=None, allow_inf_nan=False)
+    unit: str | None = None
+    uncertainty: float | None = Field(default=None, ge=0, allow_inf_nan=False)
+    measurement_condition: str | None = Field(default=None, max_length=200)
+    notes: str | None = Field(default=None, max_length=500)
+    source_label: str | None = Field(default=None, max_length=160)
     data_quality: DataQuality = DataQuality.ESTIMADO
 
 
@@ -47,8 +47,8 @@ class MaterialCreate(BaseModel):
 
     name: str = Field(min_length=1, max_length=200)
     class_id: int
-    subclass: Optional[str] = Field(default=None, max_length=200)
-    description: Optional[str] = Field(default=None, max_length=1000)
+    subclass: str | None = Field(default=None, max_length=200)
+    description: str | None = Field(default=None, max_length=1000)
     keywords: list[str] = Field(default_factory=list)
     # User-created data is not demonstration data by default.
     is_demo: bool = False
@@ -62,12 +62,12 @@ class MaterialUpdate(BaseModel):
     replaced through a dedicated endpoint, not here.
     """
 
-    name: Optional[str] = Field(default=None, min_length=1, max_length=200)
-    class_id: Optional[int] = None
-    subclass: Optional[str] = Field(default=None, max_length=200)
-    description: Optional[str] = Field(default=None, max_length=1000)
-    keywords: Optional[list[str]] = None
-    is_active: Optional[bool] = None
+    name: str | None = Field(default=None, min_length=1, max_length=200)
+    class_id: int | None = None
+    subclass: str | None = Field(default=None, max_length=200)
+    description: str | None = Field(default=None, max_length=1000)
+    keywords: list[str] | None = None
+    is_active: bool | None = None
 
 
 class MaterialListItem(BaseModel):
@@ -76,7 +76,7 @@ class MaterialListItem(BaseModel):
     id: int
     name: str
     class_name: str
-    subclass: Optional[str] = None
+    subclass: str | None = None
     is_demo: bool
     keywords: list[str] = []
 
@@ -88,8 +88,8 @@ class MaterialDetail(BaseModel):
     name: str
     class_id: int
     class_name: str
-    subclass: Optional[str] = None
-    description: Optional[str] = None
+    subclass: str | None = None
+    description: str | None = None
     is_demo: bool
     is_active: bool = True
     keywords: list[str] = []

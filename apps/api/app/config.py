@@ -31,6 +31,15 @@ class Settings(BaseSettings):
     app_name: str = "MaterialSelect AI"
     environment: str = "development"
 
+    # --- Import uploads ---------------------------------------------------
+    # Directory where uploaded files are kept while an import job is open.
+    upload_dir: str = "var/uploads"
+    # Hard limit on uploaded file size (bytes). 5 MiB is generous for the
+    # expected property spreadsheets while bounding memory/disk usage.
+    max_upload_bytes: int = 5 * 1024 * 1024
+    # Hard limit on data rows per import, to bound validation/commit time.
+    max_import_rows: int = 5000
+
     @property
     def cors_origins_list(self) -> list[str]:
         """Return the configured CORS origins as a clean list."""

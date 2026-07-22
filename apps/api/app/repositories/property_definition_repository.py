@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -30,15 +28,15 @@ class PropertyDefinitionRepository:
         )
         return [(row[0], row[1]) for row in self.db.execute(stmt).all()]
 
-    def get(self, property_id: int) -> Optional[PropertyDefinition]:
+    def get(self, property_id: int) -> PropertyDefinition | None:
         return self.db.get(PropertyDefinition, property_id)
 
-    def get_by_slug(self, slug: str) -> Optional[PropertyDefinition]:
+    def get_by_slug(self, slug: str) -> PropertyDefinition | None:
         return self.db.execute(
             select(PropertyDefinition).where(PropertyDefinition.slug == slug)
         ).scalars().one_or_none()
 
-    def slug_exists(self, slug: str, exclude_id: Optional[int] = None) -> bool:
+    def slug_exists(self, slug: str, exclude_id: int | None = None) -> bool:
         stmt = select(PropertyDefinition.id).where(PropertyDefinition.slug == slug)
         if exclude_id is not None:
             stmt = stmt.where(PropertyDefinition.id != exclude_id)

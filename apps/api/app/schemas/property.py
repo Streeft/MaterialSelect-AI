@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
 from pydantic import BaseModel, Field
 
 from app.models.enums import BetterDirection, DataQuality, PropertyCategory
@@ -18,28 +16,28 @@ class PropertyValueOut(BaseModel):
 
     property_slug: str
     property_name: str
-    symbol: Optional[str] = None
+    symbol: str | None = None
     category: PropertyCategory
 
     is_missing: bool
     is_interval: bool
 
-    value_scalar: Optional[float] = None
-    value_min: Optional[float] = None
-    value_max: Optional[float] = None
-    value_typical: Optional[float] = None
+    value_scalar: float | None = None
+    value_min: float | None = None
+    value_max: float | None = None
+    value_typical: float | None = None
 
-    original_unit: Optional[str] = None
-    normalized_value: Optional[float] = None
-    canonical_unit: Optional[str] = None
-    conversion_method: Optional[str] = None
+    original_unit: str | None = None
+    normalized_value: float | None = None
+    canonical_unit: str | None = None
+    conversion_method: str | None = None
 
-    uncertainty: Optional[float] = None
-    measurement_condition: Optional[str] = None
-    notes: Optional[str] = None
+    uncertainty: float | None = None
+    measurement_condition: str | None = None
+    notes: str | None = None
 
     data_quality: DataQuality
-    source_label: Optional[str] = None
+    source_label: str | None = None
 
 
 class PropertyGroup(BaseModel):
@@ -58,9 +56,9 @@ class PropertyDefinitionIn(BaseModel):
     """
 
     name: str = Field(min_length=1, max_length=160)
-    slug: Optional[str] = Field(default=None, max_length=160)
-    symbol: Optional[str] = Field(default=None, max_length=32)
-    description: Optional[str] = Field(default=None, max_length=500)
+    slug: str | None = Field(default=None, max_length=160)
+    symbol: str | None = Field(default=None, max_length=32)
+    description: str | None = Field(default=None, max_length=500)
     category: PropertyCategory
     physical_dimension: str = Field(default="", max_length=120)
     canonical_unit: str = Field(min_length=1, max_length=60)
@@ -76,8 +74,8 @@ class PropertyDefinitionOut(BaseModel):
     id: int
     name: str
     slug: str
-    symbol: Optional[str] = None
-    description: Optional[str] = None
+    symbol: str | None = None
+    description: str | None = None
     category: PropertyCategory
     physical_dimension: str
     canonical_unit: str

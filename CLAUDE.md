@@ -65,8 +65,9 @@ npm run typecheck; npm run test; npm run build
 
 ## Estado atual
 
-Fase 1 (Fundação) + fatia vertical do catálogo concluídas. Próximas fases em
-`docs/backlog.md`. Débitos técnicos conhecidos:
+Fases 1 (Fundação), 2 (CRUD do catálogo) e 3 (Importação CSV/XLSX com
+mapeamento, validação, rollback e templates — ver docs/06-importacao.md)
+concluídas. Próximas fases em `docs/backlog.md`. Débitos técnicos conhecidos:
 
 - `apps/web/lib/types.ts` espelha `packages/shared-types` (duplicação
   consciente); unificar via workspaces + `transpilePackages` depois.

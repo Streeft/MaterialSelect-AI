@@ -6,8 +6,6 @@ and preserving the missing-data and unit-provenance information end to end.
 
 from __future__ import annotations
 
-from typing import Optional
-
 from sqlalchemy.orm import Session
 
 from app.calculations.units import UnitError
@@ -49,7 +47,7 @@ class MaterialService:
     def __init__(self, db: Session) -> None:
         self.repo = MaterialRepository(db)
 
-    def list_materials(self, search: Optional[str] = None) -> list[MaterialListItem]:
+    def list_materials(self, search: str | None = None) -> list[MaterialListItem]:
         materials = self.repo.list_materials(search)
         return [
             MaterialListItem(

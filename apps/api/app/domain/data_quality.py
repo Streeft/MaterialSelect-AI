@@ -8,7 +8,6 @@ rule cannot be bypassed by accident.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
 
 from app.calculations.units import to_canonical
 from app.models.enums import DataQuality
@@ -23,14 +22,14 @@ class NormalizedValue:
     """
 
     is_missing: bool
-    value_scalar: Optional[float] = None
-    value_min: Optional[float] = None
-    value_max: Optional[float] = None
-    value_typical: Optional[float] = None
-    original_unit: Optional[str] = None
-    normalized_value: Optional[float] = None
-    canonical_unit: Optional[str] = None
-    conversion_method: Optional[str] = None
+    value_scalar: float | None = None
+    value_min: float | None = None
+    value_max: float | None = None
+    value_typical: float | None = None
+    original_unit: str | None = None
+    normalized_value: float | None = None
+    canonical_unit: str | None = None
+    conversion_method: str | None = None
 
 
 def missing_value() -> NormalizedValue:
@@ -62,7 +61,7 @@ def build_interval_value(
     value_max: float,
     original_unit: str,
     canonical_unit: str,
-    value_typical: Optional[float] = None,
+    value_typical: float | None = None,
 ) -> NormalizedValue:
     """Build a normalised interval value.
 

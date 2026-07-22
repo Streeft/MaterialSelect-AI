@@ -145,6 +145,103 @@ export interface PropertyDefinitionIn {
   allows_log_scale: boolean;
 }
 
+// --- Import wizard --------------------------------------------------------
+
+export type ImportStatus = "PENDENTE" | "VALIDADO" | "IMPORTADO" | "CANCELADO" | "REVERTIDO";
+
+export type ColumnRole = "value" | "min" | "max" | "typical";
+
+export interface ColumnMapping {
+  column: string;
+  property_slug: string;
+  role: ColumnRole;
+  unit?: string | null;
+}
+
+export interface ImportMapping {
+  name_column: string;
+  class_column?: string | null;
+  default_class_id?: number | null;
+  subclass_column?: string | null;
+  description_column?: string | null;
+  keywords_column?: string | null;
+  source_label?: string | null;
+  columns: ColumnMapping[];
+}
+
+export interface ColumnSuggestion {
+  column: string;
+  suggested_target: string | null;
+  suggested_property_slug: string | null;
+  suggested_role: ColumnRole;
+  suggested_unit: string | null;
+}
+
+export interface UploadResult {
+  job_id: number;
+  filename: string;
+  file_format: string;
+  sheet_names: string[];
+  sheet_name: string | null;
+  headers: string[];
+  sample_rows: (string | null)[][];
+  row_count: number;
+  suggestions: ColumnSuggestion[];
+}
+
+export interface RowIssue {
+  column: string | null;
+  message: string;
+}
+
+export interface RowReport {
+  row_number: number;
+  name: string | null;
+  status: "ok" | "error" | "duplicate";
+  issues: RowIssue[];
+  warnings: string[];
+}
+
+export interface ValidationReport {
+  job_id: number;
+  status: ImportStatus;
+  row_count: number;
+  valid_count: number;
+  error_count: number;
+  duplicate_count: number;
+  rows: RowReport[];
+}
+
+export interface CommitResult {
+  job_id: number;
+  status: ImportStatus;
+  imported_count: number;
+  skipped_count: number;
+}
+
+export interface ImportJobOut {
+  id: number;
+  filename: string;
+  file_format: string;
+  sheet_name: string | null;
+  status: ImportStatus;
+  row_count: number;
+  valid_count: number;
+  error_count: number;
+  duplicate_count: number;
+  imported_count: number;
+  created_at: string;
+  committed_at: string | null;
+}
+
+export interface ImportTemplate {
+  id: number;
+  name: string;
+  description: string | null;
+  mapping: ImportMapping;
+  created_at: string;
+}
+
 export interface ChartPoint {
   material_id: number;
   material_name: string;

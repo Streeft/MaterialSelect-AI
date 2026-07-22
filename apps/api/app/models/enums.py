@@ -42,3 +42,20 @@ class DataQuality(str, enum.Enum):
     MEDIDO = "MEDIDO"
     IMPORTADO = "IMPORTADO"
     ESTIMADO = "ESTIMADO"
+
+
+class ImportStatus(str, enum.Enum):
+    """Lifecycle of an import job.
+
+    PENDENTE  -> file uploaded, awaiting mapping/validation;
+    VALIDADO  -> mapping applied, per-row report produced, nothing written;
+    IMPORTADO -> valid rows committed to the catalogue;
+    CANCELADO -> abandoned before commit;
+    REVERTIDO -> committed materials were rolled back (removed).
+    """
+
+    PENDENTE = "PENDENTE"
+    VALIDADO = "VALIDADO"
+    IMPORTADO = "IMPORTADO"
+    CANCELADO = "CANCELADO"
+    REVERTIDO = "REVERTIDO"

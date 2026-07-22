@@ -27,6 +27,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   <Link href="/catalogo" className="text-slate-600 hover:text-brand-600">
                     {ptBR.nav.catalog}
                   </Link>
+                  <Link href="/importar" className="text-slate-600 hover:text-brand-600">
+                    {ptBR.nav.imports}
+                  </Link>
                   <Link href="/admin/classes" className="text-slate-600 hover:text-brand-600">
                     {ptBR.nav.classes}
                   </Link>

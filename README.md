@@ -110,12 +110,14 @@ npm run test
 npm run build
 ```
 
-## Importar a base do professor (futuro)
+## Importar planilhas (Fase 3 — disponível)
 
-O sistema foi desenhado para **não** depender do formato da planilha do
-orientador. A camada de importação (Fase 3) trará um assistente de mapeamento de
-colunas → propriedades, com detecção de unidades e validação. Enquanto isso,
-`sample-data/materials_demo.csv` documenta o formato de referência esperado.
+Acesse **Importar** no menu (`/importar`): envie um CSV ou XLSX, mapeie as
+colunas para propriedades (com sugestões automáticas de unidade a partir do
+cabeçalho), valide linha a linha e importe apenas os registros válidos. Cada
+importação fica no histórico e pode ser **revertida** como uma unidade. Detalhes
+e formatos aceitos em [`docs/06-importacao.md`](docs/06-importacao.md);
+`sample-data/materials_demo.csv` serve como arquivo de exemplo.
 
 ## Documentação
 
@@ -124,5 +126,6 @@ colunas → propriedades, com detecção de unidades e validação. Enquanto iss
 - [`docs/03-modelo-de-dados.md`](docs/03-modelo-de-dados.md) — modelo de dados (ER).
 - [`docs/04-metodologia-selecao.md`](docs/04-metodologia-selecao.md) — metodologia Ashby (roadmap).
 - [`docs/05-tratamento-unidades.md`](docs/05-tratamento-unidades.md) — unidades e rastreabilidade.
+- [`docs/06-importacao.md`](docs/06-importacao.md) — fluxo de importação e segurança.
 - [`docs/adr/`](docs/adr/) — registros de decisão arquitetural.
 - [`docs/backlog.md`](docs/backlog.md) — backlog priorizado das próximas fases.

@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -27,21 +25,21 @@ class MaterialClassRepository:
         )
         return [(row[0], row[1]) for row in self.db.execute(stmt).all()]
 
-    def get(self, class_id: int) -> Optional[MaterialClass]:
+    def get(self, class_id: int) -> MaterialClass | None:
         return self.db.get(MaterialClass, class_id)
 
-    def get_by_slug(self, slug: str) -> Optional[MaterialClass]:
+    def get_by_slug(self, slug: str) -> MaterialClass | None:
         return self.db.execute(
             select(MaterialClass).where(MaterialClass.slug == slug)
         ).scalars().one_or_none()
 
-    def slug_exists(self, slug: str, exclude_id: Optional[int] = None) -> bool:
+    def slug_exists(self, slug: str, exclude_id: int | None = None) -> bool:
         stmt = select(MaterialClass.id).where(MaterialClass.slug == slug)
         if exclude_id is not None:
             stmt = stmt.where(MaterialClass.id != exclude_id)
         return self.db.execute(stmt).first() is not None
 
-    def name_exists(self, name: str, exclude_id: Optional[int] = None) -> bool:
+    def name_exists(self, name: str, exclude_id: int | None = None) -> bool:
         """True if another class already uses ``name`` (case-insensitive).
 
         ``material_class.name`` has a UNIQUE constraint; checking here turns what

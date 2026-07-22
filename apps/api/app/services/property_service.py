@@ -8,10 +8,10 @@ from app.calculations.units import UnitError, validate_dimension
 from app.domain.errors import ConflictError, NotFoundError, ValidationError
 from app.domain.slug import slugify
 from app.models.property_definition import PropertyDefinition
-from app.schemas.property import PropertyDefinitionIn, PropertyDefinitionOut
 from app.repositories.property_definition_repository import (
     PropertyDefinitionRepository,
 )
+from app.schemas.property import PropertyDefinitionIn, PropertyDefinitionOut
 
 
 class PropertyService:

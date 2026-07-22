@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
 from sqlalchemy import String, delete, func, or_, select
 from sqlalchemy.orm import Session, joinedload
 
@@ -20,7 +18,7 @@ class MaterialRepository:
     def __init__(self, db: Session) -> None:
         self.db = db
 
-    def list_materials(self, search: Optional[str] = None) -> list[Material]:
+    def list_materials(self, search: str | None = None) -> list[Material]:
         """Return active materials, optionally filtered by a search term.
 
         The search is case-insensitive and matches the material name, its class
@@ -60,7 +58,7 @@ class MaterialRepository:
 
         return list(self.db.execute(stmt).scalars().unique().all())
 
-    def get_material(self, material_id: int) -> Optional[Material]:
+    def get_material(self, material_id: int) -> Material | None:
         """Return one material with its class, property values and definitions.
 
         ``populate_existing`` forces the ORM to overwrite any already-loaded
@@ -85,7 +83,7 @@ class MaterialRepository:
         )
         return self.db.execute(stmt).scalars().unique().one_or_none()
 
-    def get_property_by_slug(self, slug: str) -> Optional[PropertyDefinition]:
+    def get_property_by_slug(self, slug: str) -> PropertyDefinition | None:
         """Return a property definition by slug, or None."""
         stmt = select(PropertyDefinition).where(PropertyDefinition.slug == slug)
         return self.db.execute(stmt).scalars().one_or_none()
@@ -114,11 +112,11 @@ class MaterialRepository:
 
     # --- write helpers ----------------------------------------------------
 
-    def get_class(self, class_id: int) -> Optional[MaterialClass]:
+    def get_class(self, class_id: int) -> MaterialClass | None:
         """Return a material class by id, or None."""
         return self.db.get(MaterialClass, class_id)
 
-    def name_exists(self, name: str, exclude_id: Optional[int] = None) -> bool:
+    def name_exists(self, name: str, exclude_id: int | None = None) -> bool:
         """Return True if another material already uses ``name`` (case-insensitive)."""
         stmt = select(Material.id).where(func.lower(Material.name) == name.strip().lower())
         if exclude_id is not None:

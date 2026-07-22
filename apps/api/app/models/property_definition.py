@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
 from sqlalchemy import JSON, Boolean, Enum, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -25,8 +23,8 @@ class PropertyDefinition(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(160), nullable=False)
     slug: Mapped[str] = mapped_column(String(160), unique=True, nullable=False)
-    symbol: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
-    description: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    symbol: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    description: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
     category: Mapped[PropertyCategory] = mapped_column(
         Enum(PropertyCategory, native_enum=False, length=20), nullable=False
@@ -46,6 +44,6 @@ class PropertyDefinition(Base):
     )
     allows_log_scale: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
-    values: Mapped[list["MaterialPropertyValue"]] = relationship(  # noqa: F821
+    values: Mapped[list[MaterialPropertyValue]] = relationship(  # noqa: F821
         back_populates="property_definition"
     )
