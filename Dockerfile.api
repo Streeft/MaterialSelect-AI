@@ -1,0 +1,14 @@
+# SCAFFOLD — imagem da API para produção futura (não usada no MVP local).
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# psycopg (binary) needs no build deps; keep the image slim.
+COPY pyproject.toml requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+EXPOSE 8000
+# Migrations should run as a separate step in production; here we just serve.
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

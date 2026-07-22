@@ -1,0 +1,41 @@
+# SCAFFOLD para produção futura — NÃO é necessário para rodar o MVP.
+# O MVP roda localmente sem Docker (ver README). Este compose documenta o alvo
+# de produção (PostgreSQL + API + Web) e pode ser evoluído nas próximas fases.
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: materialselect
+      POSTGRES_PASSWORD: materialselect
+      POSTGRES_DB: materialselect
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: ../../Dockerfile.api
+    environment:
+      DATABASE_URL: postgresql+psycopg://materialselect:materialselect@db:5432/materialselect
+      CORS_ORIGINS: http://localhost:3000
+      ENVIRONMENT: production
+    depends_on:
+      - db
+    ports:
+      - "8000:8000"
+
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: ../../Dockerfile.web
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+    depends_on:
+      - api
+    ports:
+      - "3000:3000"
+
+volumes:
+  db_data:
