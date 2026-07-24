@@ -9,7 +9,9 @@ from app.models.import_job import ImportJob, ImportMappingTemplate
 from app.models.material import Material
 from app.models.material_class import MaterialClass
 from app.models.material_property_value import MaterialPropertyValue
+from app.models.performance_index import PerformanceIndex
 from app.models.property_definition import PropertyDefinition
+from app.models.selection import RankingCriterion, SelectionConstraint, SelectionStudy
 from app.models.source import Source
 
 __all__ = [
@@ -21,7 +23,11 @@ __all__ = [
     "Material",
     "MaterialClass",
     "MaterialPropertyValue",
+    "PerformanceIndex",
     "PropertyCategory",
     "PropertyDefinition",
+    "RankingCriterion",
+    "SelectionConstraint",
+    "SelectionStudy",
     "Source",
 ]

@@ -16,15 +16,16 @@ As fases abaixo seguem a ordem recomendada de implementação.
 - Restante para fases futuras: importação JSON e de bancos SQLite; detecção
   automática de encoding além de UTF-8/Latin-1; perfis estatísticos de coluna.
 
-## Fase 4 — Seleção determinística
-- Filtros e restrições (>, ≥, <, ≤, faixa, existe/não existe, classe, texto)
-  com AND/OR e contagem de candidatos restantes.
-- Índices de desempenho: catálogo pronto + **parser seguro de expressões**
-  (sem `eval`) com validação dimensional.
-- Wizard Função → Restrições → Objetivo → Variáveis livres.
-- Ranking multicritério (soma ponderada normalizada; arquitetura para
-  TOPSIS/AHP/PROMETHEE) com análise de sensibilidade.
-- Projetos salvos (SelectionStudy, SelectionConstraint, RankingCriterion).
+## Fase 4 — Seleção determinística ✅ (concluída; ver docs/07-selecao-deterministica.md)
+- Entregue: filtros/restrições (>, ≥, <, ≤, faixa, existe/não existe, classe,
+  texto) com AND/OR e funil de contagem; parser seguro de índices (AST, sem
+  `eval`) com validação dimensional e catálogo de índices clássicos; wizard
+  Função → Restrições → Objetivo → Resultados; ranking por soma ponderada
+  normalizada (min-máx/vetorial) com contribuições, exclusão explícita de dados
+  ausentes e análise de sensibilidade; estudos salvos reexecutáveis.
+- Restante para fases futuras: métodos TOPSIS/AHP/PROMETHEE; combinação de
+  grupos de restrições aninhados (parênteses lógicos); filtros compartilháveis
+  por URL.
 
 ## Fase 5 — Visualização
 - Mapas de propriedades avançados: envelopes por classe, barras de erro,

@@ -260,3 +260,184 @@ export interface ChartData {
   points: ChartPoint[];
   excluded_material_ids: number[];
 }
+// --- Deterministic selection ----------------------------------------------
+
+export type ConstraintOperator =
+  | "gt" | "gte" | "lt" | "lte" | "between" | "outside"
+  | "exists" | "not_exists" | "in_class" | "not_in_class" | "text_contains";
+
+export type Goal = "maximize" | "minimize";
+export type CriterionDirection = "max" | "min";
+export type NormalizationMethod = "minmax" | "vector";
+export type Combinator = "AND" | "OR";
+
+export interface ConstraintIn {
+  operator: ConstraintOperator;
+  label?: string | null;
+  property_slug?: string | null;
+  value?: number | null;
+  value_min?: number | null;
+  value_max?: number | null;
+  unit?: string | null;
+  class_slugs?: string[];
+  text?: string | null;
+}
+
+export interface IndexIn {
+  name?: string | null;
+  expression: string;
+  goal: Goal;
+}
+
+export interface CriterionIn {
+  key: string;
+  label?: string | null;
+  direction?: CriterionDirection | null;
+  weight: number;
+}
+
+export interface RankingIn {
+  normalization: NormalizationMethod;
+  criteria: CriterionIn[];
+  run_sensitivity?: boolean;
+}
+
+export interface RunRequest {
+  combinator: Combinator;
+  constraints: ConstraintIn[];
+  index?: IndexIn | null;
+  ranking?: RankingIn | null;
+}
+
+export interface FunnelStep {
+  label: string;
+  operator: string;
+  passed: number;
+  remaining: number;
+}
+
+export interface Candidate {
+  material_id: number;
+  name: string;
+  class_name: string;
+  index_value: number | null;
+  score: number | null;
+  rank: number | null;
+}
+
+export interface IndexValue {
+  material_id: number;
+  name: string;
+  class_name: string;
+  value: number | null;
+  undefined_reason: string | null;
+}
+
+export interface IndexResult {
+  name: string | null;
+  expression: string;
+  goal: string;
+  dimension: string;
+  variables: string[];
+  values: IndexValue[];
+  defined_count: number;
+  undefined_count: number;
+}
+
+export interface Contribution {
+  key: string;
+  label: string;
+  raw: number;
+  normalized: number;
+  weight: number;
+  contribution: number;
+}
+
+export interface RankedMaterial {
+  material_id: number;
+  name: string;
+  score: number;
+  rank: number;
+  contributions: Contribution[];
+}
+
+export interface ExcludedMaterial {
+  material_id: number;
+  name: string;
+  missing_keys: string[];
+}
+
+export interface SensitivityScenario {
+  description: string;
+  weights: Record<string, number>;
+  top_material_id: number | null;
+  top_material_name: string | null;
+  changed: boolean;
+}
+
+export interface RankingResult {
+  normalization: string;
+  criteria: string[];
+  ranked: RankedMaterial[];
+  excluded: ExcludedMaterial[];
+  sensitivity: SensitivityScenario[];
+}
+
+export interface RunResult {
+  initial_count: number;
+  combinator: string;
+  final_count: number;
+  funnel: FunnelStep[];
+  candidates: Candidate[];
+  index: IndexResult | null;
+  ranking: RankingResult | null;
+}
+
+export interface PerformanceIndex {
+  id: number;
+  name: string;
+  slug: string;
+  expression: string;
+  goal: Goal;
+  description: string | null;
+  assumptions: Record<string, string> | null;
+  dimension: string | null;
+  is_demo: boolean;
+}
+
+export interface StudySummary {
+  id: number;
+  name: string;
+  description: string | null;
+  created_at: string;
+  constraint_count: number;
+  criterion_count: number;
+}
+
+export interface StudyDetail {
+  id: number;
+  name: string;
+  description: string | null;
+  function_text: string | null;
+  objective_text: string | null;
+  free_variables: string[];
+  combinator: Combinator;
+  constraints: ConstraintIn[];
+  index: IndexIn | null;
+  normalization: NormalizationMethod;
+  criteria: CriterionIn[];
+  created_at: string;
+}
+
+export interface StudyIn {
+  name: string;
+  description?: string | null;
+  function_text?: string | null;
+  objective_text?: string | null;
+  free_variables: string[];
+  combinator: Combinator;
+  constraints: ConstraintIn[];
+  index?: IndexIn | null;
+  normalization: NormalizationMethod;
+  criteria: CriterionIn[];
+}

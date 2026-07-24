@@ -7,15 +7,22 @@ import type {
   ImportJobOut,
   ImportMapping,
   ImportTemplate,
+  IndexResult,
   MaterialClass,
   MaterialClassIn,
   MaterialCreate,
   MaterialDetail,
   MaterialListItem,
   MaterialUpdate,
+  PerformanceIndex,
   PropertyDefinition,
   PropertyDefinitionIn,
   PropertyValueIn,
+  RunRequest,
+  RunResult,
+  StudyDetail,
+  StudyIn,
+  StudySummary,
   UploadResult,
   ValidationReport,
 } from "./types";
@@ -215,4 +222,47 @@ export function createImportTemplate(
     method: "POST",
     body: JSON.stringify({ name, mapping }),
   });
+}
+
+// --- Selection --------------------------------------------------------------
+
+export function runSelection(payload: RunRequest): Promise<RunResult> {
+  return request<RunResult>(`/api/selection/run`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function evaluateIndex(expression: string, goal: "maximize" | "minimize"): Promise<IndexResult> {
+  return request<IndexResult>(`/api/selection/index`, {
+    method: "POST",
+    body: JSON.stringify({ expression, goal }),
+  });
+}
+
+export function listPerformanceIndices(): Promise<PerformanceIndex[]> {
+  return request<PerformanceIndex[]>(`/api/performance-indices`);
+}
+
+export function listStudies(): Promise<StudySummary[]> {
+  return request<StudySummary[]>(`/api/selection/studies`);
+}
+
+export function getStudy(id: number): Promise<StudyDetail> {
+  return request<StudyDetail>(`/api/selection/studies/${id}`);
+}
+
+export function createStudy(payload: StudyIn): Promise<StudyDetail> {
+  return request<StudyDetail>(`/api/selection/studies`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteStudy(id: number): Promise<void> {
+  return request<void>(`/api/selection/studies/${id}`, { method: "DELETE" });
+}
+
+export function runStudy(id: number): Promise<RunResult> {
+  return request<RunResult>(`/api/selection/studies/${id}/run`, { method: "POST" });
 }

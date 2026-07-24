@@ -65,8 +65,9 @@ npm run typecheck; npm run test; npm run build
 
 ## Estado atual
 
-Fases 1 (Fundação), 2 (CRUD do catálogo) e 3 (Importação CSV/XLSX com
-mapeamento, validação, rollback e templates — ver docs/06-importacao.md)
+Fases 1 (Fundação), 2 (CRUD do catálogo), 3 (Importação CSV/XLSX) e 4 (Seleção
+determinística: filtros, índices de desempenho com parser seguro, ranking
+multicritério e estudos salvos — ver docs/07-selecao-deterministica.md)
 concluídas. Próximas fases em `docs/backlog.md`. Débitos técnicos conhecidos:
 
 - `apps/web/lib/types.ts` espelha `packages/shared-types` (duplicação

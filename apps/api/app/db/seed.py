@@ -27,6 +27,7 @@ from app.models.enums import BetterDirection, DataQuality, PropertyCategory
 from app.models.material import Material
 from app.models.material_class import MaterialClass
 from app.models.material_property_value import MaterialPropertyValue
+from app.models.performance_index import PerformanceIndex
 from app.models.property_definition import PropertyDefinition
 from app.models.source import Source
 
@@ -137,6 +138,81 @@ PROPERTIES = [
 # --- Sources --------------------------------------------------------------
 SOURCES = [
     {"label": "Dataset Demo MaterialSelect", "reference": DEMO_WARNING, "is_demo": True},
+]
+
+# --- Performance indices (classic Ashby merit indices) --------------------
+# Expressions reference property slugs; the safe parser validates them.
+PERFORMANCE_INDICES = [
+    {
+        "name": "Rigidez específica",
+        "slug": "rigidez-especifica",
+        "expression": "modulo_young / densidade",
+        "goal": "maximize",
+        "description": "Módulo de Young por unidade de massa (E/ρ).",
+        "assumptions": {
+            "funcao": "Componente sob rigidez",
+            "geometria": "Livre",
+            "objetivo": "Minimizar massa",
+            "restricao": "Rigidez especificada",
+            "referencia": "Ashby, Material Selection in Mechanical Design",
+        },
+    },
+    {
+        "name": "Resistência específica",
+        "slug": "resistencia-especifica",
+        "expression": "resistencia_tracao / densidade",
+        "goal": "maximize",
+        "description": "Resistência à tração por unidade de massa (σ/ρ).",
+        "assumptions": {
+            "funcao": "Tirante sob tração",
+            "geometria": "Área livre",
+            "objetivo": "Minimizar massa",
+            "restricao": "Resistência especificada",
+            "referencia": "Ashby, Material Selection in Mechanical Design",
+        },
+    },
+    {
+        "name": "Viga leve limitada por rigidez",
+        "slug": "viga-leve-rigidez",
+        "expression": "sqrt(modulo_young) / densidade",
+        "goal": "maximize",
+        "description": "Índice E^(1/2)/ρ para vigas leves e rígidas.",
+        "assumptions": {
+            "funcao": "Viga em flexão",
+            "geometria": "Seção livre, comprimento fixo",
+            "objetivo": "Minimizar massa",
+            "restricao": "Rigidez à flexão especificada",
+            "referencia": "Ashby, Material Selection in Mechanical Design",
+        },
+    },
+    {
+        "name": "Placa leve limitada por rigidez",
+        "slug": "placa-leve-rigidez",
+        "expression": "cbrt(modulo_young) / densidade",
+        "goal": "maximize",
+        "description": "Índice E^(1/3)/ρ para placas leves e rígidas.",
+        "assumptions": {
+            "funcao": "Placa em flexão",
+            "geometria": "Espessura livre, área fixa",
+            "objetivo": "Minimizar massa",
+            "restricao": "Rigidez à flexão especificada",
+            "referencia": "Ashby, Material Selection in Mechanical Design",
+        },
+    },
+    {
+        "name": "Componente leve limitado por escoamento",
+        "slug": "componente-leve-escoamento",
+        "expression": "limite_escoamento / densidade",
+        "goal": "maximize",
+        "description": "Limite de escoamento por unidade de massa (σy/ρ).",
+        "assumptions": {
+            "funcao": "Componente sob carga axial",
+            "geometria": "Área livre",
+            "objetivo": "Minimizar massa",
+            "restricao": "Escoamento especificado",
+            "referencia": "Ashby, Material Selection in Mechanical Design",
+        },
+    },
 ]
 
 
@@ -311,10 +387,30 @@ def _build_value_row(
     )
 
 
-def seed(db: Session) -> dict[str, int]:
-    """Populate taxonomy, properties, sources and demo materials idempotently.
+def _get_or_create_index(db: Session, spec: dict) -> PerformanceIndex:
+    existing = db.execute(
+        select(PerformanceIndex).where(PerformanceIndex.slug == spec["slug"])
+    ).scalars().one_or_none()
+    if existing:
+        return existing
+    obj = PerformanceIndex(
+        name=spec["name"],
+        slug=spec["slug"],
+        expression=spec["expression"],
+        goal=spec.get("goal", "maximize"),
+        description=spec.get("description"),
+        assumptions=spec.get("assumptions"),
+        is_demo=True,
+    )
+    db.add(obj)
+    db.flush()
+    return obj
 
-    Returns a small summary dict for logging/tests.
+
+def seed(db: Session) -> dict[str, int]:
+    """Populate taxonomy, properties, sources, indices and demo materials.
+
+    Idempotent. Returns a small summary dict for logging/tests.
     """
     for spec in CLASSES:
         _get_or_create_class(db, spec["name"], spec["slug"])
@@ -323,6 +419,8 @@ def seed(db: Session) -> dict[str, int]:
     demo_source = None
     for spec in SOURCES:
         demo_source = _get_or_create_source(db, spec)
+    for spec in PERFORMANCE_INDICES:
+        _get_or_create_index(db, spec)
     db.flush()
 
     prop_by_slug = {
@@ -360,6 +458,7 @@ def seed(db: Session) -> dict[str, int]:
     return {
         "classes": len(CLASSES),
         "properties": len(PROPERTIES),
+        "indices": len(PERFORMANCE_INDICES),
         "materials_created": created_materials,
     }
 

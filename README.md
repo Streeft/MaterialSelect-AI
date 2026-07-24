@@ -110,6 +110,16 @@ npm run test
 npm run build
 ```
 
+## Seleção de materiais (Fase 4 — disponível)
+
+Acesse **Seleção** no menu (`/selecao`): um assistente **Função → Restrições →
+Objetivo → Resultados**. Aplique restrições (com contagem de candidatos em tempo
+real), escolha um índice de desempenho (E/ρ, σ/ρ, E^(1/2)/ρ… ou uma expressão
+sua, validada por um parser seguro sem `eval`), defina critérios de ranking com
+pesos e veja o funil, o ranking com contribuições, os excluídos por dados
+ausentes e a análise de sensibilidade. Análises podem ser **salvas e
+reexecutadas**. Detalhes em [`docs/07-selecao-deterministica.md`](docs/07-selecao-deterministica.md).
+
 ## Importar planilhas (Fase 3 — disponível)
 
 Acesse **Importar** no menu (`/importar`): envie um CSV ou XLSX, mapeie as
@@ -127,5 +137,6 @@ e formatos aceitos em [`docs/06-importacao.md`](docs/06-importacao.md);
 - [`docs/04-metodologia-selecao.md`](docs/04-metodologia-selecao.md) — metodologia Ashby (roadmap).
 - [`docs/05-tratamento-unidades.md`](docs/05-tratamento-unidades.md) — unidades e rastreabilidade.
 - [`docs/06-importacao.md`](docs/06-importacao.md) — fluxo de importação e segurança.
+- [`docs/07-selecao-deterministica.md`](docs/07-selecao-deterministica.md) — filtros, índices, ranking.
 - [`docs/adr/`](docs/adr/) — registros de decisão arquitetural.
 - [`docs/backlog.md`](docs/backlog.md) — backlog priorizado das próximas fases.
