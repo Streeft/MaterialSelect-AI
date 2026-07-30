@@ -389,21 +389,29 @@ class ChartService:
         Index lines live on the positive quadrant (a power law with a fractional
         exponent has no real branch elsewhere), so the span is taken over the
         positive plotted coordinates only.
+
+        Each orientation needs only the span it actually spends: an oblique line
+        is sampled at the two extreme abscissas, while a vertical one takes its
+        abscissa from the level itself and needs only somewhere on the y axis to
+        stretch between.
         """
         x_span = cls._span([p.x for p in points])
         y_span = cls._span([p.y for p in points])
-        if x_span is None or y_span is None:
+        if y_span is None:
+            return []
+        is_vertical = line.orientation == "vertical"
+        if not is_vertical and x_span is None:
             return []
 
         drawn: list[IndexLevelOut] = []
         for value, material_id, material_name in levels:
-            if line.orientation == "vertical":
+            if is_vertical:
                 x = line.x_for_level(value)
                 if x is None:
                     continue
                 segment = [[x, y_span[0]], [x, y_span[1]]]
             else:
-                ends = [line.y_for_x(value, x) for x in x_span]
+                ends = [line.y_for_x(value, x) for x in x_span]  # type: ignore[union-attr]
                 if any(end is None for end in ends):
                     continue
                 segment = [[x_span[i], ends[i]] for i in range(2)]  # type: ignore[list-item]

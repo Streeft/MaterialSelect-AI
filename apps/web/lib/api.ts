@@ -2,10 +2,13 @@
 // Base URL comes from NEXT_PUBLIC_API_URL (default: http://localhost:8000).
 
 import type {
+  AIStatus,
   ChartData,
   CommitResult,
   Comparison,
   ComparisonRequest,
+  Explanation,
+  Interpretation,
   ImportJobOut,
   ImportMapping,
   ImportTemplate,
@@ -284,5 +287,25 @@ export function getComparison(payload: ComparisonRequest): Promise<Comparison> {
   return request<Comparison>(`/api/charts/compare`, {
     method: "POST",
     body: JSON.stringify(payload),
+  });
+}
+
+// --- Optional AI layer ------------------------------------------------------
+
+export function getAIStatus(): Promise<AIStatus> {
+  return request<AIStatus>(`/api/ai/status`);
+}
+
+export function interpretStatement(statement: string): Promise<Interpretation> {
+  return request<Interpretation>(`/api/ai/interpret`, {
+    method: "POST",
+    body: JSON.stringify({ statement }),
+  });
+}
+
+export function explainStudy(studyId: number): Promise<Explanation> {
+  return request<Explanation>(`/api/ai/explain`, {
+    method: "POST",
+    body: JSON.stringify({ study_id: studyId }),
   });
 }

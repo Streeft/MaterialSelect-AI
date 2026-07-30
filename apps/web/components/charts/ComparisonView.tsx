@@ -6,7 +6,13 @@ import type { Data, Layout } from "plotly.js";
 import type { CompareCell, CompareMaterial, Comparison } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { formatNumber, prettyUnit } from "@/lib/format";
-import { chartFileName, classColors, downloadPlotImage } from "@/lib/charts";
+import {
+  axisLabels as buildAxisLabels,
+  chartFileName,
+  classColors,
+  downloadPlotImage,
+  escapeHover,
+} from "@/lib/charts";
 
 const Plot = dynamic(() => import("react-plotly.js"), { ssr: false });
 
@@ -88,7 +94,9 @@ export function ComparisonView({ comparison, mode }: ComparisonViewProps) {
   const incomplete = materials.filter((m) => !m.complete);
 
   const figure = useMemo<{ data: Data[]; layout: Partial<Layout> } | null>(() => {
-    const axisLabels = properties.map((p) => p.symbol ?? p.property_name);
+    // Symbols only when unambiguous: two identical labels would collapse into
+    // one categorical column and silently merge the two series.
+    const axisLabels = buildAxisLabels(properties);
     const baseLayout: Partial<Layout> = {
       autosize: true,
       height: 480,
@@ -106,7 +114,7 @@ export function ComparisonView({ comparison, mode }: ComparisonViewProps) {
           x: axisLabels,
           y: properties.map((p) => normalizedOf(material.material_id, p.property_slug)),
           marker: { color: colors[material.class_slug] },
-          hovertemplate: `<b>${material.name}</b><br>%{x}: %{y:.3f}<extra></extra>`,
+          hovertemplate: `<b>${escapeHover(material.name)}</b><br>%{x}: %{y:.3f}<extra></extra>`,
         })),
         layout: {
           ...baseLayout,
@@ -125,17 +133,16 @@ export function ComparisonView({ comparison, mode }: ComparisonViewProps) {
           const values = properties.map(
             (p) => normalizedOf(material.material_id, p.property_slug) ?? 0,
           );
-          const labels = properties.map((p) => p.symbol ?? p.property_name);
           return {
             type: "scatterpolar",
             name: material.name,
             // Repeat the first vertex so the outline closes.
             r: [...values, values[0] ?? 0],
-            theta: [...labels, labels[0] ?? ""],
+            theta: [...axisLabels, axisLabels[0] ?? ""],
             fill: "toself",
             opacity: 0.35,
             line: { color: colors[material.class_slug] },
-            hovertemplate: `<b>${material.name}</b><br>%{theta}: %{r:.3f}<extra></extra>`,
+            hovertemplate: `<b>${escapeHover(material.name)}</b><br>%{theta}: %{r:.3f}<extra></extra>`,
           } as Data;
         }),
         layout: {
@@ -159,7 +166,7 @@ export function ComparisonView({ comparison, mode }: ComparisonViewProps) {
           connectgaps: false,
           line: { color: colors[material.class_slug], width: 2 },
           marker: { size: 8 },
-          hovertemplate: `<b>${material.name}</b><br>%{x}: %{y:.3f}<extra></extra>`,
+          hovertemplate: `<b>${escapeHover(material.name)}</b><br>%{x}: %{y:.3f}<extra></extra>`,
         })),
         layout: {
           ...baseLayout,

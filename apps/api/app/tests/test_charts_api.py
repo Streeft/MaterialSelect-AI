@@ -287,6 +287,67 @@ class TestIndexOverlay:
         )
         assert response.status_code == 400
 
+    def test_index_independent_of_y_draws_a_vertical_line(self, client: TestClient) -> None:
+        # 1/rho does not involve the y axis, so its contour is a vertical line.
+        data = _map(
+            client,
+            index={"expression": "1 / densidade", "goal": "maximize"},
+            index_levels=[1 / 2700],
+        )
+        overlay = data["index"]
+        assert overlay["available"] is True
+        assert overlay["orientation"] == "vertical"
+        assert overlay["slope"] is None
+
+        (x1, y1), (x2, y2) = overlay["levels"][0]["points"]
+        assert x1 == pytest.approx(2700.0)
+        assert x2 == pytest.approx(2700.0)
+        assert y1 != y2  # the segment spans the plotted ordinates
+
+    def test_vertical_line_survives_a_non_positive_abscissa(self, client: TestClient) -> None:
+        # Regression: a vertical contour takes its abscissa from the level, not
+        # from the plotted x range, so it must still be drawn when no plotted x
+        # is positive (only the y span is actually needed).
+        created = client.post(
+            "/api/materials",
+            json={
+                "name": "Material Origem Zero",
+                "class_id": 1,
+                "keywords": [],
+                "values": [
+                    {
+                        "property_slug": "densidade",
+                        "kind": "scalar",
+                        "value": 0.0,
+                        "unit": "kg/m**3",
+                        "data_quality": "ESTIMADO",
+                    },
+                    {
+                        "property_slug": "modulo_young",
+                        "kind": "scalar",
+                        "value": 10.0,
+                        "unit": "GPa",
+                        "data_quality": "ESTIMADO",
+                    },
+                ],
+            },
+        )
+        assert created.status_code == 201, created.text
+        material_id = created.json()["id"]
+
+        data = _map(
+            client,
+            scale="linear",
+            material_ids=[material_id],
+            index={"expression": "1 / densidade", "goal": "maximize"},
+            index_levels=[1e-3],
+        )
+        assert data["plotted_count"] == 1
+        assert data["x_axis"]["max_value"] == 0.0  # nothing positive on the x axis
+        level = data["index"]["levels"][0]
+        assert level["points"][0][0] == pytest.approx(1000.0)
+        assert level["points"][1][0] == pytest.approx(1000.0)
+
     def test_level_for_a_material_outside_the_map_is_reported(self, client: TestClient) -> None:
         data = _map(
             client,

@@ -28,6 +28,44 @@ export const HIGHLIGHT_COLOR = "#dc2626";
 const COMBINING_MARKS = /[\u0300-\u036f]/g;
 
 /**
+ * Escape text before interpolating it into a Plotly hover string.
+ *
+ * Plotly renders `hovertext`/`hovertemplate` as rich text, interpreting a
+ * subset of HTML tags. Material and class names reach us from the catalogue
+ * and from imported spreadsheets \u2014 that is untrusted input, and a name
+ * containing markup would otherwise be interpreted rather than displayed. The
+ * markup we add ourselves (`<b>`, `<br>`) is written outside these calls.
+ */
+export function escapeHover(text: string): string {
+  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+/**
+ * Pick a short label per property, falling back to the full name when a symbol
+ * is shared.
+ *
+ * Two properties may legitimately carry the same symbol (\u03c3 for yield and for
+ * tensile strength, say). On a categorical Plotly axis, two identical labels
+ * collapse into one column and the series silently merge \u2014 so an ambiguous
+ * symbol must give way to the unambiguous name.
+ */
+export function axisLabels(
+  properties: { symbol: string | null; property_name: string }[],
+): string[] {
+  const counts = new Map<string, number>();
+  for (const property of properties) {
+    if (property.symbol) {
+      counts.set(property.symbol, (counts.get(property.symbol) ?? 0) + 1);
+    }
+  }
+  return properties.map((property) =>
+    property.symbol && counts.get(property.symbol) === 1
+      ? property.symbol
+      : property.property_name,
+  );
+}
+
+/**
  * Assign one palette entry per class, deterministically.
  *
  * Classes are user-editable, so colours cannot be hard-coded per slug: sorting

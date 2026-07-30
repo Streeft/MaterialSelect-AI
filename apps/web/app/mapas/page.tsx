@@ -40,7 +40,9 @@ function MapsPageContent() {
   const [indexMode, setIndexMode] = useState("none"); // "none" | slug | "custom"
   const [customExpression, setCustomExpression] = useState("");
   const [indexGoal, setIndexGoal] = useState<Goal>("maximize");
-  const [levelMaterialId, setLevelMaterialId] = useState<number | null>(null);
+  const [levelMaterialIds, setLevelMaterialIds] = useState<number[]>([]);
+  const [numericLevels, setNumericLevels] = useState<number[]>([]);
+  const [levelDraft, setLevelDraft] = useState("");
 
   // Materials carried over from a selection run, so a study can be read on the map.
   const restrictedIds = useMemo(() => parseIds(params.get("materiais")), [params]);
@@ -82,11 +84,14 @@ function MapsPageContent() {
       scale,
       class_slugs: selectedClasses,
       material_ids: restrictedIds.length > 0 ? restrictedIds : null,
-      include_envelopes: showEnvelopes,
+      // Always requested; hiding them is a display choice handled in the
+      // component, so ticking the box must not cost a round trip.
+      include_envelopes: true,
       index: activeIndex,
-      index_level_material_ids: levelMaterialId === null ? [] : [levelMaterialId],
+      index_level_material_ids: levelMaterialIds,
+      index_levels: numericLevels,
     }),
-    [x, y, scale, selectedClasses, restrictedIds, showEnvelopes, activeIndex, levelMaterialId],
+    [x, y, scale, selectedClasses, restrictedIds, activeIndex, levelMaterialIds, numericLevels],
   );
 
   const map = useQuery({
@@ -103,6 +108,22 @@ function MapsPageContent() {
     setSelectedClasses((current) =>
       current.includes(slug) ? current.filter((s) => s !== slug) : [...current, slug],
     );
+  }
+
+  /** Add a free M level typed by the user (pt-BR decimal comma accepted). */
+  function addNumericLevel() {
+    const value = Number(levelDraft.replace(",", "."));
+    if (!Number.isFinite(value) || numericLevels.includes(value)) return;
+    setNumericLevels([...numericLevels, value]);
+    setLevelDraft("");
+  }
+
+  function removeLevel(materialId: number | null, value: number) {
+    if (materialId === null) {
+      setNumericLevels(numericLevels.filter((v) => v !== value));
+    } else {
+      setLevelMaterialIds(levelMaterialIds.filter((id) => id !== materialId));
+    }
   }
 
   return (
@@ -258,25 +279,56 @@ function MapsPageContent() {
           )}
 
           {activeIndex && (
-            <label className="text-sm text-slate-600">
-              {t.levelThrough}
-              <select
-                className={`${inputClass} mt-1 block`}
-                value={levelMaterialId ?? ""}
-                onChange={(e) =>
-                  setLevelMaterialId(e.target.value ? Number(e.target.value) : null)
-                }
+            <>
+              <label className="text-sm text-slate-600">
+                {t.levelThrough}
+                <select
+                  className={`${inputClass} mt-1 block`}
+                  value=""
+                  onChange={(e) => {
+                    const id = Number(e.target.value);
+                    if (Number.isInteger(id) && !levelMaterialIds.includes(id)) {
+                      setLevelMaterialIds([...levelMaterialIds, id]);
+                    }
+                  }}
+                >
+                  <option value="">{t.levelNone}</option>
+                  {(map.data?.points ?? [])
+                    .filter(
+                      (p) => p.index_value !== null && !levelMaterialIds.includes(p.material_id),
+                    )
+                    .map((p) => (
+                      <option key={p.material_id} value={p.material_id}>
+                        {p.material_name}
+                      </option>
+                    ))}
+                </select>
+              </label>
+
+              <label className="text-sm text-slate-600">
+                {t.levelValue}
+                <input
+                  className={`${inputClass} mt-1 block w-40`}
+                  value={levelDraft}
+                  inputMode="decimal"
+                  onChange={(e) => setLevelDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      addNumericLevel();
+                    }
+                  }}
+                />
+              </label>
+              <button
+                type="button"
+                onClick={addNumericLevel}
+                disabled={!Number.isFinite(Number(levelDraft.replace(",", ".")))}
+                className="rounded border border-slate-300 px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50 disabled:opacity-50"
               >
-                <option value="">{t.levelNone}</option>
-                {(map.data?.points ?? [])
-                  .filter((p) => p.index_value !== null)
-                  .map((p) => (
-                    <option key={p.material_id} value={p.material_id}>
-                      {p.material_name}
-                    </option>
-                  ))}
-              </select>
-            </label>
+                {t.levelAdd}
+              </button>
+            </>
           )}
         </div>
 
@@ -299,13 +351,30 @@ function MapsPageContent() {
                 <strong>{t.indexUnavailable}:</strong> {overlay.unavailable_reason}
               </p>
             )}
-            {overlay.levels.map((level) => (
-              <p key={`${level.value}-${level.material_id ?? "n"}`} className="text-slate-500">
-                M = {formatNumber(level.value)}
-                {level.material_name ? ` (${level.material_name})` : ""} —{" "}
-                {t.superior(level.superior_material_ids.length)}
-              </p>
-            ))}
+            {overlay.levels.length > 0 && (
+              <ul className="space-y-1 pt-1">
+                {overlay.levels.map((level) => (
+                  <li
+                    key={`${level.value}-${level.material_id ?? "n"}`}
+                    className="flex items-center gap-2 text-slate-500"
+                  >
+                    <span>
+                      M = {formatNumber(level.value)}
+                      {level.material_name ? ` (${level.material_name})` : ""} —{" "}
+                      {t.superior(level.superior_material_ids.length)}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => removeLevel(level.material_id, level.value)}
+                      className="rounded border border-slate-300 px-1.5 py-0.5 text-[11px] text-slate-500 hover:bg-slate-50"
+                      aria-label={`${ptBR.actions.remove}: M = ${formatNumber(level.value)}`}
+                    >
+                      {ptBR.actions.remove}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         )}
       </section>

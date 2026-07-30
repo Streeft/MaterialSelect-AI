@@ -33,8 +33,14 @@ Fluxo: `routers` (HTTP fino) → `services` (regras/orquestração) →
 Regras puras em `domain`; cálculo determinístico em `calculations`. **Sem lógica
 de negócio nos routers.** Contratos de entrada/saída em `schemas` (Pydantic v2).
 
-Pastas `importers/`, `ai/`, `exporters/` são stubs das fases futuras (só
-`__init__.py` documentando a intenção).
+`importers/` (Fase 3) e `ai/` (Fase 6) estão implementadas; `exporters/` segue
+como stub documentado.
+
+Na camada `ai/`, o provedor recebe só o catálogo e o texto — nunca uma sessão de
+banco ou o avaliador de expressões — e **toda** saída passa por
+`app/ai/guardrails.py` antes de chegar ao usuário. Ao mexer ali, não afrouxe a
+ancoragem numérica: todo número de uma restrição proposta tem de aparecer no
+enunciado do usuário, inclusive quando uma conversão estaria correta.
 
 ## Convenções
 
@@ -45,8 +51,13 @@ Pastas `importers/`, `ai/`, `exporters/` são stubs das fases futuras (só
 - Migrations: Alembic é a fonte de verdade do schema. Gere com
   `alembic revision --autogenerate` após alterar models; nunca edite o banco à
   mão. `Base.metadata.create_all` só é usado como conveniência no seed/testes.
-- Testes: todo cálculo (unidades, dado ausente, futuros índices/ranking) precisa
-  de teste. Backend usa SQLite em memória; frontend usa Vitest.
+- Testes: todo cálculo (unidades, dado ausente, índices, ranking, geometria)
+  precisa de teste. Backend usa SQLite em memória; frontend usa Vitest.
+- **Não altere o tratamento de BEGIN em `app/tests/conftest.py`.** O pysqlite
+  emite BEGIN sozinho, e só antes de DML — nunca antes de SAVEPOINT. Sem os
+  listeners que tiram o BEGIN do driver, um teste cuja *primeira* instrução seja
+  uma escrita escapa do rollback e vaza para todos os testes seguintes.
+  `app/tests/test_isolation.py` é o canário que protege isso.
 
 ## Comandos rápidos
 
@@ -71,8 +82,10 @@ multicritério e estudos salvos — ver docs/07-selecao-deterministica.md) e 5
 (Visualização: mapas de Ashby com envelopes por classe, barras de erro e linhas
 de índice com inclinação derivada da expressão; comparador com tabela, barras,
 radar, coordenadas paralelas e heatmap; exportação PNG/SVG — ver
-docs/08-visualizacao.md) concluídas. Próxima: Fase 6 (camada de IA opcional).
-Backlog completo em `docs/backlog.md`.
+docs/08-visualizacao.md) e 6 (camada de IA opcional, desacoplada, com provedor
+simulado determinístico e guardrails executáveis — ver docs/09-camada-ia.md)
+concluídas. Próxima: Fase 7 (relatórios e qualidade). Backlog completo em
+`docs/backlog.md`.
 
 **Geometria de gráficos é cálculo, não apresentação.** Inclinação de linha de
 índice, envelopes e escores normalizados são computados no backend e enviados em

@@ -11,6 +11,7 @@ import {
   chartFileName,
   classColors,
   downloadPlotImage,
+  escapeHover,
   toClosedRing,
   toXY,
   withAlpha,
@@ -51,11 +52,13 @@ function errorBar(
 function hoverFor(point: MapPoint, map: PropertyMap): string {
   const xUnit = prettyUnit(map.x_axis.unit);
   const yUnit = prettyUnit(map.y_axis.unit);
+  // Names and property labels are catalogue/import data: escape before they
+  // enter Plotly's rich-text pipeline.
   const lines = [
-    `<b>${point.material_name}</b>`,
-    point.class_name,
-    `${map.x_axis.property_name}: ${formatNumber(point.x)} ${xUnit}`,
-    `${map.y_axis.property_name}: ${formatNumber(point.y)} ${yUnit}`,
+    `<b>${escapeHover(point.material_name)}</b>`,
+    escapeHover(point.class_name),
+    `${escapeHover(map.x_axis.property_name)}: ${formatNumber(point.x)} ${xUnit}`,
+    `${escapeHover(map.y_axis.property_name)}: ${formatNumber(point.y)} ${yUnit}`,
   ];
   if (point.x_min !== null && point.x_max !== null) {
     lines.push(
@@ -79,7 +82,7 @@ function hoverFor(point: MapPoint, map: PropertyMap): string {
   if (map.index) {
     lines.push(
       point.index_value === null
-        ? `${t.indexValue}: ${point.index_undefined_reason ?? t.undefinedIndex}`
+        ? `${t.indexValue}: ${escapeHover(point.index_undefined_reason ?? t.undefinedIndex)}`
         : `${t.indexValue}: ${formatNumber(point.index_value)}`,
     );
   }
@@ -202,7 +205,7 @@ export function AshbyMap({
         const { xs, ys } = toXY(level.points);
         if (xs.length < 2) return;
         const label = level.material_name
-          ? `M = ${formatNumber(level.value)} (${level.material_name})`
+          ? `M = ${formatNumber(level.value)} (${escapeHover(level.material_name)})`
           : `M = ${formatNumber(level.value)}`;
         result.push({
           x: xs,

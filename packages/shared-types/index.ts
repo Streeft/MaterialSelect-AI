@@ -603,3 +603,70 @@ export interface Comparison {
   materials: CompareMaterial[];
   notes: string[];
 }
+
+// --- Optional AI layer (Fase 6) --------------------------------------------
+// Everything below is a *proposal*. The API never applies any of it, and no
+// numeric property value ever appears here — see app/ai/guardrails.py.
+
+export interface AIStatus {
+  enabled: boolean;
+  provider: string;
+  simulated: boolean;
+  disclaimer: string;
+}
+
+export interface SuggestedConstraint {
+  constraint: ConstraintIn;
+  /** The fragment of the user's own text this reading came from. */
+  evidence: string;
+  rationale: string;
+}
+
+export interface SuggestedIndex {
+  slug: string;
+  name: string;
+  expression: string;
+  goal: Goal;
+  rationale: string;
+}
+
+export interface SuggestedProperty {
+  slug: string;
+  name: string;
+  rationale: string;
+}
+
+export interface SuggestedChart {
+  x: string;
+  y: string;
+  scale: ChartScale;
+  rationale: string;
+}
+
+export interface Interpretation {
+  statement: string;
+  function_text: string | null;
+  objective_text: string | null;
+  free_variables: string[];
+  constraints: SuggestedConstraint[];
+  properties: SuggestedProperty[];
+  indices: SuggestedIndex[];
+  chart: SuggestedChart | null;
+  open_questions: string[];
+  /** Suggestions the guardrails refused, with the reason. */
+  rejected: string[];
+  provider: string;
+  simulated: boolean;
+  disclaimer: string;
+}
+
+export interface Explanation {
+  study_id: number;
+  study_name: string;
+  summary: string;
+  paragraphs: string[];
+  caveats: string[];
+  provider: string;
+  simulated: boolean;
+  disclaimer: string;
+}

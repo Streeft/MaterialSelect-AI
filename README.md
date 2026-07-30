@@ -8,10 +8,10 @@ Projeto de Trabalho de Conclusão de Curso em Engenharia de Materiais (UFRGS).
 > Os materiais e valores incluídos são fictícios, criados apenas para exercitar
 > o sistema.
 
-Estão concluídas as **Fases 1 a 5**: fundação, catálogo, importação de planilhas,
-seleção determinística (filtros, índices de desempenho, ranking multicritério) e
-visualização (mapas de Ashby e comparador). As fases restantes — camada de IA
-opcional e relatórios — estão descritas em
+Estão concluídas as **Fases 1 a 6**: fundação, catálogo, importação de planilhas,
+seleção determinística (filtros, índices de desempenho, ranking multicritério),
+visualização (mapas de Ashby e comparador) e a camada de IA opcional. A fase
+restante — relatórios e qualidade — está descrita em
 [`docs/backlog.md`](docs/backlog.md).
 
 ## Arquitetura (resumo)
@@ -112,6 +112,25 @@ npm run test
 npm run build
 ```
 
+## Camada de IA (Fase 6 — opcional, ligada por padrão em modo simulado)
+
+Na etapa 1 de **Seleção**, o painel *Interpretar enunciado* lê um problema em
+português e propõe função, objetivo, restrições e índices **já cadastrados** —
+cada item marcável, com o trecho do enunciado que o originou, e nada aplicado
+sem a sua confirmação. Estudos salvos ganham um botão *Explicar resultado*.
+
+A garantia central não é uma promessa, é código: **todo número de uma restrição
+proposta precisa aparecer no seu enunciado**, e a regra recusa até conversões
+corretas (“300 °C” é aceito; “573,15 K” não), porque converter e registrar a
+trilha é trabalho do backend. Entidades inexistentes, unidades incompatíveis e
+prosa que cite cifras não calculadas também são recusadas — e o que foi recusado
+aparece na tela, com o motivo.
+
+O provedor padrão é **simulado**: regras determinísticas locais, sem chave e sem
+rede. Defina `AI_PROVIDER=` (vazio) para desligar a camada por completo; nada no
+resto do sistema depende dela. Detalhes em
+[`docs/09-camada-ia.md`](docs/09-camada-ia.md).
+
 ## Mapas e comparação (Fase 5 — disponível)
 
 Acesse **Mapas** (`/mapas`): um mapa de Ashby com escala linear/logarítmica,
@@ -155,5 +174,6 @@ e formatos aceitos em [`docs/06-importacao.md`](docs/06-importacao.md);
 - [`docs/06-importacao.md`](docs/06-importacao.md) — fluxo de importação e segurança.
 - [`docs/07-selecao-deterministica.md`](docs/07-selecao-deterministica.md) — filtros, índices, ranking.
 - [`docs/08-visualizacao.md`](docs/08-visualizacao.md) — mapas de Ashby, linhas de índice, comparador.
+- [`docs/09-camada-ia.md`](docs/09-camada-ia.md) — limites da IA, guardrails, provedor simulado.
 - [`docs/adr/`](docs/adr/) — registros de decisão arquitetural.
 - [`docs/backlog.md`](docs/backlog.md) — backlog priorizado das próximas fases.
