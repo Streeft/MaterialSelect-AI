@@ -65,12 +65,25 @@ npm run typecheck; npm run test; npm run build
 
 ## Estado atual
 
-Fases 1 (Fundação), 2 (CRUD do catálogo), 3 (Importação CSV/XLSX) e 4 (Seleção
+Fases 1 (Fundação), 2 (CRUD do catálogo), 3 (Importação CSV/XLSX), 4 (Seleção
 determinística: filtros, índices de desempenho com parser seguro, ranking
-multicritério e estudos salvos — ver docs/07-selecao-deterministica.md)
-concluídas. Próximas fases em `docs/backlog.md`. Débitos técnicos conhecidos:
+multicritério e estudos salvos — ver docs/07-selecao-deterministica.md) e 5
+(Visualização: mapas de Ashby com envelopes por classe, barras de erro e linhas
+de índice com inclinação derivada da expressão; comparador com tabela, barras,
+radar, coordenadas paralelas e heatmap; exportação PNG/SVG — ver
+docs/08-visualizacao.md) concluídas. Próxima: Fase 6 (camada de IA opcional).
+Backlog completo em `docs/backlog.md`.
+
+**Geometria de gráficos é cálculo, não apresentação.** Inclinação de linha de
+índice, envelopes e escores normalizados são computados no backend e enviados em
+coordenadas de dados; o frontend só desenha (ADR 0004). Nunca calcule uma dessas
+grandezas em componente React.
+
+Débitos técnicos conhecidos:
 
 - `apps/web/lib/types.ts` espelha `packages/shared-types` (duplicação
   consciente); unificar via workspaces + `transpilePackages` depois.
 - Busca por palavra-chave usa LIKE sobre JSON; migrar para tabela de
   associação/índice textual quando a base crescer.
+- `black --check` falha em arquivos anteriores à Fase 5 (o repositório nunca foi
+  formatado por inteiro); arquivos novos já saem formatados.

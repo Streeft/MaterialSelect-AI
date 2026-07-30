@@ -4,6 +4,8 @@
 import type {
   ChartData,
   CommitResult,
+  Comparison,
+  ComparisonRequest,
   ImportJobOut,
   ImportMapping,
   ImportTemplate,
@@ -17,6 +19,8 @@ import type {
   PerformanceIndex,
   PropertyDefinition,
   PropertyDefinitionIn,
+  PropertyMap,
+  PropertyMapRequest,
   PropertyValueIn,
   RunRequest,
   RunResult,
@@ -265,4 +269,20 @@ export function deleteStudy(id: number): Promise<void> {
 
 export function runStudy(id: number): Promise<RunResult> {
   return request<RunResult>(`/api/selection/studies/${id}/run`, { method: "POST" });
+}
+
+// --- Visualisation ----------------------------------------------------------
+
+export function getPropertyMap(payload: PropertyMapRequest): Promise<PropertyMap> {
+  return request<PropertyMap>(`/api/charts/property-map`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function getComparison(payload: ComparisonRequest): Promise<Comparison> {
+  return request<Comparison>(`/api/charts/compare`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 }

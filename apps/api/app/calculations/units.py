@@ -125,3 +125,21 @@ def to_canonical(
             f"Conversão produziu valor não finito: {value!r} {from_unit!r} -> {canonical_unit!r}"
         )
     return result, f"pint:{from_unit}->{canonical_unit}"
+
+
+def to_canonical_delta(delta: float, from_unit: str, canonical_unit: str) -> float:
+    """Convert a *difference* (tolerance, uncertainty, interval width) between units.
+
+    A difference must not be converted like an absolute value when the units are
+    related by an offset: ±5 °C is ±5 K, not ±278.15 K. Converting both ends of
+    the difference and subtracting gives the correct result for any affine
+    conversion (``y = m·x + c``), reducing to ``|m·delta|`` and therefore staying
+    exact for the ordinary multiplicative case as well.
+
+    Raises:
+        UnitError: propagated from :func:`to_canonical` (unknown or
+            dimensionally incompatible unit, non-finite input).
+    """
+    origin, _ = to_canonical(0.0, from_unit, canonical_unit)
+    shifted, _ = to_canonical(delta, from_unit, canonical_unit)
+    return abs(shifted - origin)

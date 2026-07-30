@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { RunResult } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { formatNumber, prettyUnit } from "@/lib/format";
@@ -7,6 +8,11 @@ const t = ptBR.selection;
 export function ResultsView({ result }: { result: RunResult }) {
   const { funnel, candidates, index, ranking } = result;
   const rankedById = new Map(ranking?.ranked.map((r) => [r.material_id, r]) ?? []);
+
+  // Carry the surviving candidates over to the visual surfaces. The top-ranked
+  // material is highlighted on the map so the two views tell the same story.
+  const candidateIds = candidates.map((c) => c.material_id).join(",");
+  const topId = ranking?.ranked.find((r) => r.rank === 1)?.material_id;
 
   return (
     <div className="space-y-6">
@@ -34,6 +40,23 @@ export function ResultsView({ result }: { result: RunResult }) {
 
       {candidates.length === 0 && (
         <p className="rounded-md bg-amber-50 px-4 py-3 text-sm text-amber-800">{t.emptyResults}</p>
+      )}
+
+      {candidates.length > 0 && (
+        <div className="flex flex-wrap gap-3">
+          <Link
+            href={`/mapas?materiais=${candidateIds}${topId ? `&destaque=${topId}` : ""}`}
+            className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-brand-700 hover:bg-slate-50"
+          >
+            {t.viewOnMap} →
+          </Link>
+          <Link
+            href={`/comparar?materiais=${candidateIds}`}
+            className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-brand-700 hover:bg-slate-50"
+          >
+            {t.compareCandidates} →
+          </Link>
+        </div>
       )}
 
       {/* Candidates + ranking */}

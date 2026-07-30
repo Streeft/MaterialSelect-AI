@@ -8,10 +8,10 @@ Projeto de Trabalho de Conclusão de Curso em Engenharia de Materiais (UFRGS).
 > Os materiais e valores incluídos são fictícios, criados apenas para exercitar
 > o sistema.
 
-Este repositório está na **Fase 1 (Fundação) + primeira fatia vertical**:
-catálogo de materiais funcionando de ponta a ponta (banco → API → interface →
-gráfico → testes). As demais fases (importador, mapas Ashby completos, índices de
-desempenho, ranking multicritério, IA e relatórios) estão descritas em
+Estão concluídas as **Fases 1 a 5**: fundação, catálogo, importação de planilhas,
+seleção determinística (filtros, índices de desempenho, ranking multicritério) e
+visualização (mapas de Ashby e comparador). As fases restantes — camada de IA
+opcional e relatórios — estão descritas em
 [`docs/backlog.md`](docs/backlog.md).
 
 ## Arquitetura (resumo)
@@ -97,9 +97,11 @@ pytest
 ```
 
 Cobre: conversão de unidades (GPa→Pa, g/cm³→kg/m³, vírgula decimal, notação
-científica, unidade incompatível, intervalo invertido), a regra de **dado
-ausente nunca vira zero**, e os endpoints do catálogo (lista, busca, detalhe,
-gráfico, 404).
+científica, unidade incompatível, intervalo invertido, conversão de diferenças
+em unidades com offset), a regra de **dado ausente nunca vira zero**, o parser
+seguro de expressões, filtros e ranking, a **inclinação das linhas de índice**
+(`E/ρ`, `E^(1/2)/ρ`, `E^(1/3)/ρ`), o fecho convexo dos envelopes e os endpoints
+do catálogo, da importação, da seleção e dos gráficos.
 
 **Frontend** (Vitest + typecheck + build):
 
@@ -109,6 +111,20 @@ npm run typecheck
 npm run test
 npm run build
 ```
+
+## Mapas e comparação (Fase 5 — disponível)
+
+Acesse **Mapas** (`/mapas`): um mapa de Ashby com escala linear/logarítmica,
+filtro por classe, **envelopes por classe**, barras de erro para intervalos e
+incertezas e **linhas de índice cuja inclinação é derivada da própria expressão**
+no backend (`E/ρ` → 1, `E^(1/2)/ρ` → 2, `E^(1/3)/ρ` → 3). Escolha um material
+para que a reta passe exatamente por ele e veja quantos candidatos ficam no lado
+favorável. Materiais que não podem ser plotados aparecem listados com o motivo.
+
+Acesse **Comparar** (`/comparar`): tabela com proveniência completa, barras,
+radar, coordenadas paralelas e heatmap sobre valores normalizados no backend —
+dados ausentes ficam como lacuna, nunca como zero. Todos os gráficos exportam em
+**PNG e SVG**. Detalhes em [`docs/08-visualizacao.md`](docs/08-visualizacao.md).
 
 ## Seleção de materiais (Fase 4 — disponível)
 
@@ -138,5 +154,6 @@ e formatos aceitos em [`docs/06-importacao.md`](docs/06-importacao.md);
 - [`docs/05-tratamento-unidades.md`](docs/05-tratamento-unidades.md) — unidades e rastreabilidade.
 - [`docs/06-importacao.md`](docs/06-importacao.md) — fluxo de importação e segurança.
 - [`docs/07-selecao-deterministica.md`](docs/07-selecao-deterministica.md) — filtros, índices, ranking.
+- [`docs/08-visualizacao.md`](docs/08-visualizacao.md) — mapas de Ashby, linhas de índice, comparador.
 - [`docs/adr/`](docs/adr/) — registros de decisão arquitetural.
 - [`docs/backlog.md`](docs/backlog.md) — backlog priorizado das próximas fases.

@@ -441,3 +441,165 @@ export interface StudyIn {
   normalization: NormalizationMethod;
   criteria: CriterionIn[];
 }
+
+// --- Visualisation: property maps and comparison (Fase 5) ------------------
+// Every number below is computed by the backend in canonical units — including
+// the index-line slope and endpoints. The client only draws what it receives.
+
+export type ChartScale = "linear" | "log";
+
+/** A pair of data coordinates, as returned by the API (`[x, y]`). */
+export type CoordinatePair = number[];
+
+export interface PropertyMapRequest {
+  x: string;
+  y: string;
+  scale: ChartScale;
+  class_slugs?: string[];
+  material_ids?: number[] | null;
+  highlight_material_ids?: number[];
+  include_envelopes?: boolean;
+  index?: IndexIn | null;
+  index_levels?: number[];
+  index_level_material_ids?: number[];
+}
+
+export interface MapAxis {
+  property_slug: string;
+  property_name: string;
+  symbol: string | null;
+  unit: string;
+  category: PropertyCategory;
+  better_direction: BetterDirection;
+  allows_log_scale: boolean;
+  min_value: number | null;
+  max_value: number | null;
+}
+
+export interface MapPoint {
+  material_id: number;
+  material_name: string;
+  class_name: string;
+  class_slug: string;
+  is_demo: boolean;
+  x: number;
+  y: number;
+  /** Interval bounds, already converted to the axis' canonical unit. */
+  x_min: number | null;
+  x_max: number | null;
+  y_min: number | null;
+  y_max: number | null;
+  /** Converted as a difference, so ±5 °C stays ±5 K. */
+  x_uncertainty: number | null;
+  y_uncertainty: number | null;
+  x_is_interval: boolean;
+  y_is_interval: boolean;
+  x_quality: DataQuality;
+  y_quality: DataQuality;
+  index_value: number | null;
+  index_undefined_reason: string | null;
+}
+
+export interface ClassEnvelope {
+  class_slug: string;
+  class_name: string;
+  point_count: number;
+  /** Convex hull vertices; 1 or 2 entries in degenerate cases. */
+  polygon: CoordinatePair[];
+}
+
+export interface ExcludedPoint {
+  material_id: number;
+  name: string;
+  reason: string;
+}
+
+export interface IndexLevel {
+  value: number;
+  material_id: number | null;
+  material_name: string | null;
+  points: CoordinatePair[];
+  superior_material_ids: number[];
+}
+
+export interface IndexOverlay {
+  name: string | null;
+  expression: string;
+  goal: string;
+  dimension: string;
+  /** False when the index has no straight-line contour on these two axes. */
+  available: boolean;
+  unavailable_reason: string | null;
+  orientation: "oblique" | "vertical" | null;
+  slope: number | null;
+  levels: IndexLevel[];
+  defined_count: number;
+  undefined_count: number;
+}
+
+export interface PropertyMap {
+  scale: ChartScale;
+  x_axis: MapAxis;
+  y_axis: MapAxis;
+  points: MapPoint[];
+  envelopes: ClassEnvelope[];
+  excluded: ExcludedPoint[];
+  index: IndexOverlay | null;
+  considered_count: number;
+  plotted_count: number;
+  notes: string[];
+}
+
+export interface ComparisonRequest {
+  material_ids: number[];
+  property_slugs: string[];
+  normalization: NormalizationMethod;
+}
+
+export interface CompareAxis {
+  property_slug: string;
+  property_name: string;
+  symbol: string | null;
+  unit: string;
+  category: PropertyCategory;
+  better_direction: BetterDirection;
+  allows_log_scale: boolean;
+  min_value: number | null;
+  max_value: number | null;
+  present_count: number;
+  missing_material_ids: number[];
+}
+
+export interface CompareCell {
+  property_slug: string;
+  is_missing: boolean;
+  value: number | null;
+  /** Null whenever the value is missing — a gap, never a zero. */
+  normalized: number | null;
+  value_min: number | null;
+  value_max: number | null;
+  original_value: number | null;
+  original_unit: string | null;
+  conversion_method: string | null;
+  uncertainty: number | null;
+  data_quality: DataQuality | null;
+  source_label: string | null;
+  measurement_condition: string | null;
+}
+
+export interface CompareMaterial {
+  material_id: number;
+  name: string;
+  class_name: string;
+  class_slug: string;
+  is_demo: boolean;
+  cells: CompareCell[];
+  complete: boolean;
+}
+
+export interface Comparison {
+  normalization: string;
+  properties: CompareAxis[];
+  materials: CompareMaterial[];
+  notes: string[];
+}

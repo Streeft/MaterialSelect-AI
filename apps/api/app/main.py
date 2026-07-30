@@ -19,7 +19,7 @@ from sqlalchemy.exc import IntegrityError
 from app import __version__
 from app.config import settings
 from app.domain.errors import ConflictError, NotFoundError, ValidationError
-from app.routers import classes, health, imports, materials, properties, selection
+from app.routers import charts, classes, health, imports, materials, properties, selection
 
 app = FastAPI(
     title=settings.app_name,
@@ -92,6 +92,7 @@ app.include_router(imports.router, prefix="/api")
 app.include_router(imports.templates_router, prefix="/api")
 app.include_router(selection.router, prefix="/api")
 app.include_router(selection.indices_router, prefix="/api")
+app.include_router(charts.router, prefix="/api")
 
 
 @app.get("/", tags=["root"])
