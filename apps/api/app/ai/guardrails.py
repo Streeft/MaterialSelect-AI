@@ -148,6 +148,11 @@ def ungrounded_numbers(text: str, allowed: set[float]) -> list[float]:
     return sorted(invented)
 
 
+def _is_dimensionless(canonical_unit: str) -> bool:
+    """True when a property carries no unit, so a threshold needs none either."""
+    return canonical_unit.strip().lower() in {"", "dimensionless"}
+
+
 def units_compatible(unit: str, canonical_unit: str) -> bool:
     """True when a threshold's unit can be converted to the canonical one."""
     try:
@@ -220,6 +225,21 @@ def check_constraint(constraint, statement: str, catalogue: Catalogue) -> str | 
         return f"Operador não reconhecido: '{operator}'."
 
     canonical = catalogue.properties[slug]
+
+    # A dimensioned threshold must name its unit. Downstream, an absent unit
+    # means "already in the canonical unit", and for an offset scale that reads
+    # the user's own words backwards: "no mínimo 300 °C" would become ≥ 300 K,
+    # which is −173 °C and therefore no constraint at all. Refusing to guess is
+    # the only safe reading — the same rule that stops the layer converting.
+    if not constraint.unit and not _is_dimensionless(canonical):
+        return (
+            f"A restrição sobre '{slug}' não indica a unidade do valor "
+            f"{constraint.value if constraint.value is not None else constraint.value_min}. "
+            "Sem unidade explícita ela seria lida na unidade canônica "
+            f"('{canonical}'), o que pode inverter o sentido do enunciado; "
+            "escreva a unidade no texto ou defina a restrição manualmente."
+        )
+
     unit = constraint.unit or canonical
     if not units_compatible(unit, canonical):
         return (
