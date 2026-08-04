@@ -38,9 +38,12 @@ como stub documentado.
 
 Na camada `ai/`, o provedor recebe só o catálogo e o texto — nunca uma sessão de
 banco ou o avaliador de expressões — e **toda** saída passa por
-`app/ai/guardrails.py` antes de chegar ao usuário. Ao mexer ali, não afrouxe a
-ancoragem numérica: todo número de uma restrição proposta tem de aparecer no
-enunciado do usuário, inclusive quando uma conversão estaria correta.
+`app/ai/guardrails.py` antes de chegar ao usuário. Ao mexer ali, não afrouxe duas
+regras: **ancoragem numérica** (todo número de uma restrição proposta tem de
+aparecer no enunciado do usuário, inclusive quando uma conversão estaria correta)
+e **unidade explícita** (limiar sobre propriedade dimensionada não pode omitir a
+unidade — unidade ausente vira a canônica e, numa escala com offset, inverte o
+sentido do enunciado).
 
 ## Convenções
 

@@ -59,7 +59,25 @@ enunciado não diz qual, então as duas leituras ancoram.
 O limiar tem de converter para a unidade canônica da propriedade, via Pint. Uma
 temperatura “no mínimo 300 GPa” é recusada.
 
-### 4. Prosa não pode introduzir números
+### 4. Limiar dimensionado precisa declarar a unidade
+
+Uma restrição numérica sobre propriedade com dimensão **não pode** omitir a
+unidade. A jusante, unidade ausente significa “já está na unidade canônica”, e
+numa escala com offset isso lê o enunciado ao contrário: “no mínimo 300 °C”
+viraria ≥ 300 K, ou seja −173 °C — nenhuma restrição. Propriedades adimensionais
+(dureza, custo por massa) são isentas, porque ali não há o que confundir.
+
+O provedor simulado coopera com a regra em vez de esbarrar nela: quando lê um
+limite mas não identifica a unidade, ele **não propõe** a restrição e devolve
+uma pergunta aberta citando a cláusula. Recusar-se a adivinhar é a mesma
+disciplina que impede a camada de converter.
+
+> Esta regra nasceu de um defeito real, encontrado ao demonstrar a fase: “no
+> mínimo 300 graus C” era proposto com `unit: null` e virava 300 K em silêncio.
+> As regras 1 a 3 não o pegavam — o número estava ancorado e kelvin é compatível
+> com a propriedade.
+
+### 5. Prosa não pode introduzir números
 
 Uma explicação só pode citar cifras que o pipeline determinístico produziu. A
 verificação é por *token escrito*: uma figura só é invenção quando **nenhuma**
