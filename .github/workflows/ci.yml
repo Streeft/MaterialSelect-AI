@@ -1,0 +1,106 @@
+# Integração contínua do MaterialSelect AI.
+#
+# O portão reproduz exatamente os comandos documentados no README e no
+# CLAUDE.md, para que "passou na minha máquina" e "passou na CI" signifiquem a
+# mesma coisa. Nenhum passo é informativo: se um falha, o merge não acontece.
+#
+# A alegação de reprodutibilidade do trabalho depende de os cálculos
+# determinísticos serem verificados a cada mudança — é isso que esta pipeline
+# protege.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Um push novo na mesma branch cancela a execução anterior: só o último commit
+# interessa, e a fila não cresce.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      # Sem fail-fast: se a 3.11 quebrar e a 3.12 não, queremos ver as duas.
+      fail-fast: false
+      matrix:
+        # 3.11 é o piso declarado em pyproject.toml; 3.12 é o ambiente de
+        # desenvolvimento. As duas precisam passar.
+        python-version: ["3.11", "3.12"]
+    defaults:
+      run:
+        working-directory: apps/api
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Preparar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: apps/api/pyproject.toml
+
+      - name: Instalar dependências
+        run: pip install -e ".[dev]"
+
+      - name: Lint (ruff)
+        run: ruff check app
+
+      - name: Formatação (black)
+        run: black --check app
+
+      - name: Testes
+        run: pytest
+
+      - name: Migrações aplicam e o seed roda
+        # Os testes usam SQLite em memória com create_all, então nunca exercitam
+        # o Alembic. Este passo garante que as migrações versionadas — a fonte de
+        # verdade do schema — realmente aplicam do zero, e que o seed de dados
+        # demonstrativos funciona sobre elas.
+        env:
+          DATABASE_URL: sqlite:///./ci-check.db
+        run: |
+          python -m alembic upgrade head
+          python -m app.db.seed
+
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Preparar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Instalar dependências
+        # `npm ci` respeita o lockfile e falha se ele estiver dessincronizado do
+        # package.json — o que é a verificação que queremos.
+        run: npm ci
+
+      - name: Tipos (modo estrito)
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Testes
+        run: npm run test
+
+      - name: Build de produção
+        run: npm run build

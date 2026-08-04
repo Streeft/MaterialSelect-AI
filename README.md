@@ -1,5 +1,7 @@
 # MaterialSelect AI
 
+[![CI](https://github.com/Streeft/MaterialSelect-AI/actions/workflows/ci.yml/badge.svg)](https://github.com/Streeft/MaterialSelect-AI/actions/workflows/ci.yml)
+
 Plataforma web de apoio à **seleção de materiais de engenharia** inspirada na
 metodologia de Michael Ashby (mapas de propriedades e índices de desempenho).
 Projeto de Trabalho de Conclusão de Curso em Engenharia de Materiais (UFRGS).
@@ -111,6 +113,15 @@ npm run typecheck
 npm run test
 npm run build
 ```
+
+### Integração contínua
+
+Todo push para `main` e todo pull request passam por
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml), que roda os mesmos
+comandos desta seção — `ruff`, `black --check`, `pytest` (em Python 3.11 e
+3.12), `typecheck`, `lint`, `test` e `build` — e ainda aplica as migrações do
+Alembic num banco limpo, verificando que o schema versionado realmente sobe do
+zero. Nenhum passo é informativo: qualquer falha bloqueia o merge.
 
 ## Camada de IA (Fase 6 — opcional, ligada por padrão em modo simulado)
 

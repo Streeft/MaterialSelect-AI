@@ -74,6 +74,21 @@ npm run dev
 npm run typecheck; npm run test; npm run build
 ```
 
+## Integração contínua
+
+`.github/workflows/ci.yml` roda em todo push para `main` e em todo PR. O portão
+é exatamente o conjunto de comandos acima — se um deles falha localmente, falha
+na CI:
+
+- **Backend** (Python 3.11 e 3.12): `ruff check app`, `black --check app`,
+  `pytest`, e `alembic upgrade head` + `app.db.seed` num banco limpo. Este
+  último existe porque os testes usam SQLite em memória com `create_all` e
+  nunca exercitam as migrações — que são a fonte de verdade do schema.
+- **Frontend**: `npm ci`, `typecheck`, `lint`, `test`, `build`.
+
+Antes de abrir um PR, rode os dois conjuntos localmente; nenhum passo da CI é
+meramente informativo.
+
 ## Estado atual
 
 Fases 1 (Fundação), 2 (CRUD do catálogo), 3 (Importação CSV/XLSX), 4 (Seleção
@@ -98,5 +113,5 @@ Débitos técnicos conhecidos:
   consciente); unificar via workspaces + `transpilePackages` depois.
 - Busca por palavra-chave usa LIKE sobre JSON; migrar para tabela de
   associação/índice textual quando a base crescer.
-- `black --check` falha em arquivos anteriores à Fase 5 (o repositório nunca foi
-  formatado por inteiro); arquivos novos já saem formatados.
+- (quitado) A formatação do backend foi normalizada antes da Fase 7; `black
+  --check app` agora é portão de CI e precisa passar.
