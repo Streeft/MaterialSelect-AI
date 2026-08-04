@@ -14,6 +14,7 @@ import {
   listStudies,
   runSelection,
   runStudy,
+  studyExportUrl,
 } from "@/lib/api";
 import type {
   ConstraintIn,
@@ -36,6 +37,7 @@ import {
 import { ResultsView } from "@/components/selection/ResultsView";
 import { AIAssistPanel, type AcceptedSuggestions } from "@/components/ai/AIAssistPanel";
 import { StudyExplanation } from "@/components/ai/StudyExplanation";
+import { ExportButtons } from "@/components/ExportButtons";
 
 const t = ptBR.selection;
 type Step = "function" | "constraints" | "objective" | "results";
@@ -490,6 +492,12 @@ export default function SelectionPage() {
                   <tr key={s.id}>
                     <td className="px-3 py-2 font-medium text-slate-700">
                       {s.name}
+                      <div className="mt-1">
+                        <ExportButtons
+                          urlFor={(format) => studyExportUrl(s.id, format)}
+                          label={ptBR.exports.study}
+                        />
+                      </div>
                       <StudyExplanation studyId={s.id} />
                     </td>
                     <td className="px-3 py-2 align-top text-xs text-slate-400">

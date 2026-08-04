@@ -142,6 +142,19 @@ rede. Defina `AI_PROVIDER=` (vazio) para desligar a camada por completo; nada no
 resto do sistema depende dela. Detalhes em
 [`docs/09-camada-ia.md`](docs/09-camada-ia.md).
 
+## Relatórios e exportação (Fase 7 — em andamento)
+
+No **Catálogo** e em cada estudo salvo há botões **CSV** e **XLSX**. O relatório
+de um estudo reexecuta o pipeline determinístico e traz problema, funil de
+eliminação, índice com dimensão derivada, contribuições por critério, excluídos
+por dado ausente, análise de sensibilidade e a **proveniência de cada número**
+(valor original, unidade original, método de conversão, qualidade, fonte).
+
+Todo arquivo exportado carrega o aviso de que a ferramenta apoia ensino e
+triagem preliminar e não substitui validação experimental — e o aviso de dados
+demonstrativos quando aplicável. Células são protegidas contra injeção de
+fórmula. Detalhes em [`docs/10-relatorios.md`](docs/10-relatorios.md).
+
 ## Mapas e comparação (Fase 5 — disponível)
 
 Acesse **Mapas** (`/mapas`): um mapa de Ashby com escala linear/logarítmica,
@@ -185,6 +198,8 @@ e formatos aceitos em [`docs/06-importacao.md`](docs/06-importacao.md);
 - [`docs/06-importacao.md`](docs/06-importacao.md) — fluxo de importação e segurança.
 - [`docs/07-selecao-deterministica.md`](docs/07-selecao-deterministica.md) — filtros, índices, ranking.
 - [`docs/08-visualizacao.md`](docs/08-visualizacao.md) — mapas de Ashby, linhas de índice, comparador.
+- [`docs/09-camada-ia.md`](docs/09-camada-ia.md) — camada de IA opcional e seus guardrails.
+- [`docs/10-relatorios.md`](docs/10-relatorios.md) — exportação, relatório de seleção e proveniência.
 - [`docs/09-camada-ia.md`](docs/09-camada-ia.md) — limites da IA, guardrails, provedor simulado.
 - [`docs/adr/`](docs/adr/) — registros de decisão arquitetural.
 - [`docs/backlog.md`](docs/backlog.md) — backlog priorizado das próximas fases.

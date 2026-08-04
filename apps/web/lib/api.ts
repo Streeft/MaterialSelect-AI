@@ -309,3 +309,17 @@ export function explainStudy(studyId: number): Promise<Explanation> {
     body: JSON.stringify({ study_id: studyId }),
   });
 }
+
+// --- Exports ----------------------------------------------------------------
+// Downloads are plain links rather than fetch calls: the browser then handles
+// the Content-Disposition filename and the save dialog natively.
+
+export type ExportFormat = "csv" | "xlsx";
+
+export function catalogueExportUrl(format: ExportFormat): string {
+  return `${API_URL}/api/exports/catalogo.${format}`;
+}
+
+export function studyExportUrl(studyId: number, format: ExportFormat): string {
+  return `${API_URL}/api/exports/estudos/${studyId}.${format}`;
+}

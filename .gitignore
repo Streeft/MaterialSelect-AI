@@ -37,3 +37,6 @@ yarn-error.log*
 .idea/
 .DS_Store
 Thumbs.db
+
+# Configuração pessoal do Claude Code (não versionada)
+.claude/settings.local.json
