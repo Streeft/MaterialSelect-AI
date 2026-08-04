@@ -159,9 +159,7 @@ class MaterialService:
 
         # Build (and validate) the new rows before deleting the old ones, so a
         # validation error leaves the existing data untouched.
-        new_rows = [
-            self._build_value_from_input(v, is_demo=material.is_demo) for v in values
-        ]
+        new_rows = [self._build_value_from_input(v, is_demo=material.is_demo) for v in values]
         self.repo.delete_values_for_material(material_id)
         for row in new_rows:
             row.material_id = material_id
@@ -179,9 +177,7 @@ class MaterialService:
         slugs = [v.property_slug for v in values]
         duplicates = sorted({s for s in slugs if slugs.count(s) > 1})
         if duplicates:
-            raise ValidationError(
-                f"Propriedades repetidas no payload: {', '.join(duplicates)}"
-            )
+            raise ValidationError(f"Propriedades repetidas no payload: {', '.join(duplicates)}")
 
     def _build_value_from_input(
         self, payload: PropertyValueIn, is_demo: bool

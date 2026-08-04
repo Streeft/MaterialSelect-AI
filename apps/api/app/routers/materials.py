@@ -25,7 +25,9 @@ router = APIRouter(prefix="/materials", tags=["materials"])
 
 @router.get("", response_model=list[MaterialListItem])
 def list_materials(
-    search: str | None = Query(default=None, description="Termo de busca por nome, classe ou palavra-chave"),
+    search: str | None = Query(
+        default=None, description="Termo de busca por nome, classe ou palavra-chave"
+    ),
     db: Session = Depends(get_db),
 ) -> list[MaterialListItem]:
     """List active materials, optionally filtered by a search term."""

@@ -32,9 +32,7 @@ class UnitError(ValueError):
 # thousands-grouped integer part ("1.234" / "1 234"), an optional decimal part
 # (comma or point) and an optional scientific-notation exponent. The plain-run
 # alternative is required so ungrouped integers >= 1000 are accepted.
-_NUMBER_RE = re.compile(
-    r"^[+-]?(?:\d+|\d{1,3}(?:[.\s]\d{3})+)(?:[.,]\d+)?(?:[eE][+-]?\d+)?$"
-)
+_NUMBER_RE = re.compile(r"^[+-]?(?:\d+|\d{1,3}(?:[.\s]\d{3})+)(?:[.,]\d+)?(?:[eE][+-]?\d+)?$")
 
 
 def parse_decimal_comma(raw: str | float | int) -> float:
@@ -63,7 +61,9 @@ def parse_decimal_comma(raw: str | float | int) -> float:
     # explicitly in a later phase.
     text = text.replace(" ", "")
     if "," in text:
-        text = text.replace(".", "") if text.count(".") and text.rfind(",") > text.rfind(".") else text
+        text = (
+            text.replace(".", "") if text.count(".") and text.rfind(",") > text.rfind(".") else text
+        )
         text = text.replace(",", ".")
     try:
         return float(text)
@@ -91,9 +91,7 @@ def validate_dimension(unit: str, expected_dimension: str) -> bool:
     return quantity.check(expected_dimension)
 
 
-def to_canonical(
-    value: float, from_unit: str, canonical_unit: str
-) -> tuple[float, str]:
+def to_canonical(value: float, from_unit: str, canonical_unit: str) -> tuple[float, str]:
     """Convert ``value`` from ``from_unit`` to ``canonical_unit``.
 
     Returns a ``(normalized_value, conversion_method)`` tuple, where
@@ -114,7 +112,9 @@ def to_canonical(
     try:
         converted = ureg.Quantity(value, from_unit).to(canonical_unit)
     except (UndefinedUnitError, ValueError) as exc:
-        raise UnitError(f"Unidade desconhecida em conversão {from_unit!r}->{canonical_unit!r}") from exc
+        raise UnitError(
+            f"Unidade desconhecida em conversão {from_unit!r}->{canonical_unit!r}"
+        ) from exc
     except DimensionalityError as exc:
         raise UnitError(
             f"Unidades incompatíveis: {from_unit!r} não pode ser convertido para {canonical_unit!r}"

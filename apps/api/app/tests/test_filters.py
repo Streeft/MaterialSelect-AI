@@ -13,8 +13,12 @@ from app.domain.filters import (
 
 def _snap(id_, name, class_slug, values, keywords=None):
     return MaterialSnapshot(
-        id=id_, name=name, class_name=class_slug.title(), class_slug=class_slug,
-        keywords=keywords or [], values=values,
+        id=id_,
+        name=name,
+        class_name=class_slug.title(),
+        class_slug=class_slug,
+        keywords=keywords or [],
+        values=values,
     )
 
 
@@ -38,10 +42,14 @@ def test_numeric_constraint_excludes_missing_property():
 
 
 def test_between_and_outside():
-    inside = Constraint(operator=Operator.BETWEEN, property_slug="densidade", value_min=2000.0, value_max=3000.0)
+    inside = Constraint(
+        operator=Operator.BETWEEN, property_slug="densidade", value_min=2000.0, value_max=3000.0
+    )
     assert evaluate_constraint(inside, MATERIALS[0]) is True
     assert evaluate_constraint(inside, MATERIALS[1]) is False
-    outside = Constraint(operator=Operator.OUTSIDE, property_slug="densidade", value_min=2000.0, value_max=3000.0)
+    outside = Constraint(
+        operator=Operator.OUTSIDE, property_slug="densidade", value_min=2000.0, value_max=3000.0
+    )
     assert evaluate_constraint(outside, MATERIALS[1]) is True
 
 
@@ -66,7 +74,9 @@ def test_text_contains_searches_name_and_keywords():
 
 def test_and_funnel_is_cumulative():
     constraints = [
-        Constraint(operator=Operator.LTE, label="ρ ≤ 3000", property_slug="densidade", value=3000.0),
+        Constraint(
+            operator=Operator.LTE, label="ρ ≤ 3000", property_slug="densidade", value=3000.0
+        ),
         Constraint(operator=Operator.EXISTS, label="E definido", property_slug="modulo_young"),
     ]
     result = apply_constraints(MATERIALS, constraints, "AND")

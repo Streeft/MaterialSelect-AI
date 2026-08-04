@@ -8,8 +8,17 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 OperatorLiteral = Literal[
-    "gt", "gte", "lt", "lte", "between", "outside",
-    "exists", "not_exists", "in_class", "not_in_class", "text_contains",
+    "gt",
+    "gte",
+    "lt",
+    "lte",
+    "between",
+    "outside",
+    "exists",
+    "not_exists",
+    "in_class",
+    "not_in_class",
+    "text_contains",
 ]
 GoalLiteral = Literal["maximize", "minimize"]
 DirectionLiteral = Literal["max", "min"]
@@ -18,6 +27,7 @@ CombinatorLiteral = Literal["AND", "OR"]
 
 
 # --- Inputs ----------------------------------------------------------------
+
 
 class ConstraintIn(BaseModel):
     """One constraint. Numeric thresholds are in ``unit`` (converted server-side)."""
@@ -74,6 +84,7 @@ class RunRequest(BaseModel):
 
 
 # --- Outputs ---------------------------------------------------------------
+
 
 class FunnelStepOut(BaseModel):
     label: str
@@ -169,6 +180,7 @@ class RunResultOut(BaseModel):
 
 # --- Performance-index catalogue -------------------------------------------
 
+
 class PerformanceIndexIn(BaseModel):
     name: str = Field(min_length=1, max_length=160)
     expression: str = Field(min_length=1, max_length=500)
@@ -190,6 +202,7 @@ class PerformanceIndexOut(BaseModel):
 
 
 # --- Saved studies ---------------------------------------------------------
+
 
 class StudyIn(BaseModel):
     name: str = Field(min_length=1, max_length=200)

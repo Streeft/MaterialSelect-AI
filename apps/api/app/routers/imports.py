@@ -25,9 +25,7 @@ templates_router = APIRouter(prefix="/import-templates", tags=["imports"])
 
 
 @router.post("/upload", response_model=UploadResult)
-async def upload_file(
-    file: UploadFile = File(...), db: Session = Depends(get_db)
-) -> UploadResult:
+async def upload_file(file: UploadFile = File(...), db: Session = Depends(get_db)) -> UploadResult:
     """Receive a CSV/XLSX file and open an import job."""
     # Read at most limit+1 bytes: enough to detect an oversized file without
     # ever buffering an arbitrarily large upload in memory.
