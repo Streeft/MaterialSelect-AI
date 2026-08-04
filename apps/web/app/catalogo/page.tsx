@@ -7,6 +7,8 @@ import { listMaterials } from "@/lib/api";
 import { ptBR } from "@/lib/i18n";
 import { SearchBar } from "@/components/SearchBar";
 import { MaterialTable } from "@/components/MaterialTable";
+import { ExportButtons } from "@/components/ExportButtons";
+import { catalogueExportUrl } from "@/lib/api";
 
 /** Debounce a rapidly-changing value (used for the search box). */
 function useDebounced<T>(value: T, delayMs: number): T {
@@ -43,6 +45,8 @@ export default function CatalogPage() {
       </div>
 
       <SearchBar value={search} onChange={setSearch} />
+
+      <ExportButtons urlFor={catalogueExportUrl} label={ptBR.exports.catalogue} />
 
       {isLoading && <p className="py-8 text-center text-sm text-slate-500">{ptBR.catalog.loading}</p>}
       {isError && <p className="py-8 text-center text-sm text-red-600">{ptBR.catalog.error}</p>}

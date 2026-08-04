@@ -33,8 +33,13 @@ Fluxo: `routers` (HTTP fino) → `services` (regras/orquestração) →
 Regras puras em `domain`; cálculo determinístico em `calculations`. **Sem lógica
 de negócio nos routers.** Contratos de entrada/saída em `schemas` (Pydantic v2).
 
-`importers/` (Fase 3) e `ai/` (Fase 6) estão implementadas; `exporters/` segue
-como stub documentado.
+`importers/` (Fase 3), `ai/` (Fase 6) e `exporters/` (Fase 7) estão
+implementadas.
+
+Em `exporters/`, **todo arquivo exportado carrega o aviso de limitação de uso**
+(compromisso do item 5 da proposta) e passa por `cells.py`, que neutraliza
+injeção de fórmula. O escape é visível — apóstrofo à frente — e nunca
+destrutivo; números negativos saem como célula numérica de propósito.
 
 Na camada `ai/`, o provedor recebe só o catálogo e o texto — nunca uma sessão de
 banco ou o avaliador de expressões — e **toda** saída passa por
