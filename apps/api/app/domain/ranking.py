@@ -95,7 +95,9 @@ class RankingResult:
 MaterialValues = tuple[int, str, dict[str, float | None]]
 
 
-def normalize_column(values: list[float], direction: Direction, method: Normalization) -> list[float]:
+def normalize_column(
+    values: list[float], direction: Direction, method: Normalization
+) -> list[float]:
     """Map a column of raw values to [0, 1] where higher is always better.
 
     Public because the comparison charts (radar, parallel coordinates, heatmap)

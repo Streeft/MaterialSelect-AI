@@ -10,6 +10,7 @@ def _metais_class_id(client) -> int:
 
 # --- Classes --------------------------------------------------------------
 
+
 def test_list_classes_has_counts(client):
     resp = client.get("/api/classes")
     assert resp.status_code == 200
@@ -48,9 +49,7 @@ def test_delete_unused_class_succeeds(client):
 
 def test_class_cycle_is_rejected(client):
     a = client.post("/api/classes", json={"name": "Classe A Demo"}).json()
-    b = client.post(
-        "/api/classes", json={"name": "Classe B Demo", "parent_id": a["id"]}
-    ).json()
+    b = client.post("/api/classes", json={"name": "Classe B Demo", "parent_id": a["id"]}).json()
     # Making A a child of B would create a cycle (B is already a child of A).
     resp = client.put(
         f"/api/classes/{a['id']}", json={"name": "Classe A Demo", "parent_id": b["id"]}
@@ -67,6 +66,7 @@ def test_class_cannot_be_its_own_parent(client):
 
 
 # --- Properties -----------------------------------------------------------
+
 
 def test_list_properties_has_counts(client):
     resp = client.get("/api/properties")
@@ -117,6 +117,7 @@ def test_delete_property_in_use_conflicts(client):
 
 
 # --- Materials (create / update / values / deactivate) --------------------
+
 
 def _new_material_payload(client, **overrides):
     payload = {
@@ -202,9 +203,7 @@ def test_create_material_is_atomic_on_invalid_value(client):
     payload = _new_material_payload(
         client,
         name="Material Atômico Demo",
-        values=[
-            {"property_slug": "densidade", "kind": "scalar", "value": 1.0, "unit": "meter"}
-        ],
+        values=[{"property_slug": "densidade", "kind": "scalar", "value": 1.0, "unit": "meter"}],
     )
     assert client.post("/api/materials", json=payload).status_code == 400
     after = len(client.get("/api/materials").json())
@@ -227,7 +226,9 @@ def test_replace_values(client):
     created = client.post("/api/materials", json=_new_material_payload(client)).json()
     resp = client.put(
         f"/api/materials/{created['id']}/values",
-        json=[{"property_slug": "dureza", "kind": "scalar", "value": 300.0, "unit": "dimensionless"}],
+        json=[
+            {"property_slug": "dureza", "kind": "scalar", "value": 300.0, "unit": "dimensionless"}
+        ],
     )
     assert resp.status_code == 200
     all_props = [p for g in resp.json()["property_groups"] for p in g["properties"]]
@@ -248,6 +249,7 @@ def test_deactivate_removes_from_catalogue(client):
 
 # --- Regressions from the Phase 2 adversarial review -----------------------
 
+
 def test_replace_values_response_reflects_new_values(client):
     """PUT /values must return the NEW values, not a stale cached collection.
 
@@ -263,7 +265,7 @@ def test_replace_values_response_reflects_new_values(client):
     assert resp.status_code == 200
     all_props = [p for g in resp.json()["property_groups"] for p in g["properties"]]
     modulo = next(p for p in all_props if p["property_slug"] == "modulo_young")
-    assert modulo["value_scalar"] == 999.0          # new, not the old 70.0
+    assert modulo["value_scalar"] == 999.0  # new, not the old 70.0
     assert abs(modulo["normalized_value"] - 999e9) < 1e-3
 
 
@@ -320,7 +322,7 @@ def test_update_property_name_only_with_values_succeeds(client):
         "slug": densidade["slug"],
         "category": densidade["category"],
         "physical_dimension": densidade["physical_dimension"],
-        "canonical_unit": densidade["canonical_unit"],   # unchanged
+        "canonical_unit": densidade["canonical_unit"],  # unchanged
         "accepted_units": densidade["accepted_units"],
         "is_interval": densidade["is_interval"],
         "better_direction": densidade["better_direction"],
@@ -377,9 +379,7 @@ def test_nonfinite_value_rejected_at_schema_boundary(client):
         ],
     )
     raw = json.dumps(payload).replace('"__INF__"', "Infinity")
-    resp = client.post(
-        "/api/materials", content=raw, headers={"Content-Type": "application/json"}
-    )
+    resp = client.post("/api/materials", content=raw, headers={"Content-Type": "application/json"})
     assert resp.status_code == 422  # rejected by Pydantic (allow_inf_nan=False)
 
 

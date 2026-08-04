@@ -40,6 +40,7 @@ def test_safe_variable_maps_hyphens():
 
 # --- security: dangerous constructs must be rejected ----------------------
 
+
 @pytest.mark.parametrize(
     "expr",
     [
@@ -51,11 +52,11 @@ def test_safe_variable_maps_hyphens():
         "lambda: 1",
         "E if rho else 1",
         "E; rho",
-        "min(E, rho)",          # non-whitelisted function
-        "E & rho",              # bitwise operator
-        "E[0]",                 # subscript
-        "'string'",             # string constant
-        "E = 1",                # assignment (syntax error in eval mode)
+        "min(E, rho)",  # non-whitelisted function
+        "E & rho",  # bitwise operator
+        "E[0]",  # subscript
+        "'string'",  # string constant
+        "E = 1",  # assignment (syntax error in eval mode)
     ],
 )
 def test_dangerous_expressions_rejected(expr):
@@ -85,6 +86,7 @@ def test_empty_expression_rejected():
 
 
 # --- dimensional analysis -------------------------------------------------
+
 
 def test_specific_stiffness_dimension():
     # E [Pa] / rho [kg/m^3]  ->  m^2 / s^2 in base SI
