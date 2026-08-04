@@ -125,6 +125,26 @@ class TestInterpretation:
         assert response.status_code == 200, response.text
         assert response.json()["final_count"] >= 0
 
+    def test_unreadable_unit_becomes_a_question_not_a_constraint(self, client: TestClient) -> None:
+        # "300" with no unit must not silently become 300 K. The clause is
+        # reported instead of proposed.
+        body = _interpret(client, "Viga leve. A temperatura de serviço deve ser no mínimo 300.")
+        slugs = {c["constraint"]["property_slug"] for c in body["constraints"]}
+        assert "temp_max_servico" not in slugs
+        assert any("não foi possível identificar a unidade" in q for q in body["open_questions"])
+
+    def test_temperature_written_in_words_is_understood(self, client: TestClient) -> None:
+        body = _interpret(
+            client, "Viga leve. A temperatura de serviço deve ser no mínimo 300 graus C."
+        )
+        temperature = next(
+            c["constraint"]
+            for c in body["constraints"]
+            if c["constraint"]["property_slug"] == "temp_max_servico"
+        )
+        assert temperature["value"] == 300.0
+        assert temperature["unit"] == "degC"
+
     def test_reports_what_it_could_not_read(self, client: TestClient) -> None:
         body = _interpret(client, "Preciso de um material bom.")
         assert body["open_questions"]
