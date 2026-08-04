@@ -288,6 +288,15 @@ export const ptBR = {
     explainError: "Não foi possível gerar a explicação.",
     close: "Fechar",
   },
+  exports: {
+    title: "Exportar",
+    csv: "CSV",
+    xlsx: "XLSX",
+    catalogue: "Exportar catálogo",
+    study: "Exportar relatório",
+    hint:
+      "O relatório traz restrições, funil, índice, ranking, excluídos por dado ausente, sensibilidade e a proveniência de cada número — com o aviso de limitação exigido.",
+  },
   catalog: {
     title: "Catálogo de materiais",
     searchPlaceholder: "Buscar por nome, classe ou palavra-chave…",
