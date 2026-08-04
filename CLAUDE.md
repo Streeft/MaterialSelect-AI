@@ -1,13 +1,21 @@
 # CLAUDE.md — Convenções do projeto MaterialSelect AI
 
-Instruções para agentes/contribuidores trabalhando neste repositório.
+Instruções para agentes/contribuidores trabalhando neste repositório. Esta é a
+**versão curta**, carregada automaticamente.
+
+> **Novo por aqui?** Comece por [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md)
+> (estado do projeto) e leia [`docs/CLAUDE.md`](docs/CLAUDE.md) — o guia
+> completo, com as armadilhas que já causaram bug, a nomenclatura e as decisões
+> que não devem ser alteradas. Arquitetura em
+> [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md); o que fazer a seguir em
+> [`docs/TODO.md`](docs/TODO.md).
 
 ## Princípios inegociáveis (metodologia)
 
 1. **Não inventar propriedades de materiais.** Só existem valores explicitamente
    cadastrados ou importados.
 2. **Todo cálculo numérico é determinístico e vive no backend** (camadas
-   `calculations` / `domain`). A futura camada de IA **nunca** produz valores
+   `calculations` / `domain`). A camada de IA **nunca** produz valores
    numéricos — apenas interpreta, sugere e explica.
 3. **Dado ausente nunca vira zero.** Use `is_missing=True` com campos numéricos
    `NULL`. A regra está centralizada em `app/domain/data_quality.py`.
@@ -99,27 +107,18 @@ meramente informativo.
 
 ## Estado atual
 
-Fases 1 (Fundação), 2 (CRUD do catálogo), 3 (Importação CSV/XLSX), 4 (Seleção
-determinística: filtros, índices de desempenho com parser seguro, ranking
-multicritério e estudos salvos — ver docs/07-selecao-deterministica.md) e 5
-(Visualização: mapas de Ashby com envelopes por classe, barras de erro e linhas
-de índice com inclinação derivada da expressão; comparador com tabela, barras,
-radar, coordenadas paralelas e heatmap; exportação PNG/SVG — ver
-docs/08-visualizacao.md) e 6 (camada de IA opcional, desacoplada, com provedor
-simulado determinístico e guardrails executáveis — ver docs/09-camada-ia.md)
-concluídas. Próxima: Fase 7 (relatórios e qualidade). Backlog completo em
-`docs/backlog.md`.
+Fases 1 a 6 concluídas; **Fase 7 (relatórios e qualidade) em andamento** — a
+exportação CSV/XLSX com relatório auditável já saiu; faltam PDF/HTML imprimível,
+testes end-to-end, autenticação e auditoria.
+
+362 testes de backend e 44 de frontend, todos verdes. CI no GitHub Actions roda
+em todo PR e push para `main`.
+
+**Estado detalhado, decisões, backlog e histórico da última sessão estão em
+`docs/`** — ver PROJECT_CONTEXT.md, DECISIONS.md, TODO.md e
+CHANGELOG_SESSION.md. Não duplique esse conteúdo aqui.
 
 **Geometria de gráficos é cálculo, não apresentação.** Inclinação de linha de
 índice, envelopes e escores normalizados são computados no backend e enviados em
-coordenadas de dados; o frontend só desenha (ADR 0004). Nunca calcule uma dessas
-grandezas em componente React.
-
-Débitos técnicos conhecidos:
-
-- `apps/web/lib/types.ts` espelha `packages/shared-types` (duplicação
-  consciente); unificar via workspaces + `transpilePackages` depois.
-- Busca por palavra-chave usa LIKE sobre JSON; migrar para tabela de
-  associação/índice textual quando a base crescer.
-- (quitado) A formatação do backend foi normalizada antes da Fase 7; `black
-  --check app` agora é portão de CI e precisa passar.
+coordenadas de dados (ADR 0004). Nunca calcule uma dessas grandezas em
+componente React.
