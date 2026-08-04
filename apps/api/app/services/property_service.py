@@ -21,9 +21,7 @@ class PropertyService:
         self.repo = PropertyDefinitionRepository(db)
 
     def list_properties(self) -> list[PropertyDefinitionOut]:
-        return [
-            self._to_out(prop, count) for prop, count in self.repo.list_with_counts()
-        ]
+        return [self._to_out(prop, count) for prop, count in self.repo.list_with_counts()]
 
     def create_property(self, payload: PropertyDefinitionIn) -> PropertyDefinitionOut:
         slug = self._resolve_slug(payload)
@@ -93,9 +91,7 @@ class PropertyService:
         if obj is None:
             raise NotFoundError(f"Propriedade não encontrada: {property_id}")
         if self.repo.value_count(property_id) > 0:
-            raise ConflictError(
-                "Não é possível excluir uma propriedade com valores cadastrados."
-            )
+            raise ConflictError("Não é possível excluir uma propriedade com valores cadastrados.")
         self.repo.delete(obj)
         self.repo.commit()
 

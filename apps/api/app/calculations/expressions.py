@@ -41,7 +41,7 @@ class ExpressionError(ValueError):
 
 
 def _sqrt(x):  # works on float and pint.Quantity
-    return x ** 0.5
+    return x**0.5
 
 
 def _cbrt(x):
@@ -172,7 +172,7 @@ def _walk(node: ast.AST, variables: dict):
             return left * right
         if isinstance(node.op, ast.Div):
             return left / right
-        return left ** right  # Pow (only remaining whitelisted op)
+        return left**right  # Pow (only remaining whitelisted op)
     if isinstance(node, ast.Call):  # pragma: no branch - validated by _check
         return _FUNCTIONS[node.func.id](_walk(node.args[0], variables))
     raise ExpressionError("Construção não permitida.")  # pragma: no cover

@@ -45,7 +45,9 @@ def test_filter_threshold_in_non_canonical_unit(client):
     resp = client.post("/api/selection/filter", json=payload)
     assert resp.status_code == 200
     assert _names(resp.json()["candidates"]) == {
-        "Liga Alumínio Demo A", "Polímero Demo C", "Compósito Demo E"
+        "Liga Alumínio Demo A",
+        "Polímero Demo C",
+        "Compósito Demo E",
     }
 
 
@@ -62,7 +64,13 @@ def test_filter_incompatible_unit_rejected(client):
 def test_filter_inverted_range_rejected(client):
     payload = {
         "constraints": [
-            {"operator": "between", "property_slug": "densidade", "value_min": 3000, "value_max": 1000, "unit": "kg/m**3"},
+            {
+                "operator": "between",
+                "property_slug": "densidade",
+                "value_min": 3000,
+                "value_max": 1000,
+                "unit": "kg/m**3",
+            },
         ]
     }
     resp = client.post("/api/selection/filter", json=payload)
@@ -103,9 +111,7 @@ def test_index_unknown_variable_rejected(client):
 
 
 def test_index_dangerous_expression_rejected(client):
-    resp = client.post(
-        "/api/selection/index", json={"expression": "__import__('os').getcwd()"}
-    )
+    resp = client.post("/api/selection/index", json={"expression": "__import__('os').getcwd()"})
     assert resp.status_code == 400
 
 
@@ -115,7 +121,11 @@ def test_run_full_pipeline(client):
         "constraints": [
             {"operator": "lte", "property_slug": "densidade", "value": 5, "unit": "g/cm**3"},
         ],
-        "index": {"name": "Rigidez específica", "expression": "modulo_young / densidade", "goal": "maximize"},
+        "index": {
+            "name": "Rigidez específica",
+            "expression": "modulo_young / densidade",
+            "goal": "maximize",
+        },
         "ranking": {
             "normalization": "minmax",
             "criteria": [
@@ -171,7 +181,11 @@ def test_study_crud_and_run(client):
         "constraints": [
             {"operator": "lte", "property_slug": "densidade", "value": 5, "unit": "g/cm**3"},
         ],
-        "index": {"name": "Rigidez específica", "expression": "modulo_young / densidade", "goal": "maximize"},
+        "index": {
+            "name": "Rigidez específica",
+            "expression": "modulo_young / densidade",
+            "goal": "maximize",
+        },
         "normalization": "minmax",
         "criteria": [{"key": "__index__", "weight": 1.0}],
     }

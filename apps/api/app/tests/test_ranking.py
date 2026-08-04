@@ -52,7 +52,11 @@ def test_missing_data_excludes_material_not_zero_filled():
         (1, "A", {"x": 5.0, "y": 1.0}),
         (2, "B", {"x": 3.0, "y": None}),  # missing y
     ]
-    result = rank(materials, [_crit("x", Direction.MAX, 1.0), _crit("y", Direction.MAX, 1.0)], run_sensitivity=False)
+    result = rank(
+        materials,
+        [_crit("x", Direction.MAX, 1.0), _crit("y", Direction.MAX, 1.0)],
+        run_sensitivity=False,
+    )
     assert [r.name for r in result.ranked] == ["A"]
     assert len(result.excluded) == 1
     assert result.excluded[0].name == "B"

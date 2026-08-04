@@ -34,9 +34,7 @@ class MaterialPropertyValue(Base):
     material_id: Mapped[int] = mapped_column(
         ForeignKey("material.id", ondelete="CASCADE"), nullable=False
     )
-    property_id: Mapped[int] = mapped_column(
-        ForeignKey("property_definition.id"), nullable=False
-    )
+    property_id: Mapped[int] = mapped_column(ForeignKey("property_definition.id"), nullable=False)
 
     # Scalar OR interval representation. All nullable so "missing" is representable
     # without inventing a zero.
@@ -64,9 +62,7 @@ class MaterialPropertyValue(Base):
     is_missing: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
 
-    material: Mapped[Material] = relationship(  # noqa: F821
-        back_populates="property_values"
-    )
+    material: Mapped[Material] = relationship(back_populates="property_values")  # noqa: F821
     property_definition: Mapped[PropertyDefinition] = relationship(  # noqa: F821
         back_populates="values"
     )

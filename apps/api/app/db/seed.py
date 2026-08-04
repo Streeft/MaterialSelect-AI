@@ -235,11 +235,42 @@ DEMO_MATERIALS = [
         "keywords": ["leve", "aeroespacial", "demo"],
         "values": [
             # densidade given in g/cm**3 -> converts to kg/m**3
-            {"slug": "densidade", "kind": "scalar", "value": 2.70, "unit": "g/cm**3", "quality": DataQuality.ESTIMADO},
-            {"slug": "modulo_young", "kind": "scalar", "value": 69.0, "unit": "GPa", "quality": DataQuality.ESTIMADO},
-            {"slug": "limite_escoamento", "kind": "interval", "min": 240.0, "max": 300.0, "unit": "MPa", "quality": DataQuality.ESTIMADO},
-            {"slug": "temp_max_servico", "kind": "scalar", "value": 150.0, "unit": "degC", "quality": DataQuality.ESTIMADO},
-            {"slug": "custo_massa", "kind": "scalar", "value": 3.5, "unit": "dimensionless", "quality": DataQuality.ESTIMADO},
+            {
+                "slug": "densidade",
+                "kind": "scalar",
+                "value": 2.70,
+                "unit": "g/cm**3",
+                "quality": DataQuality.ESTIMADO,
+            },
+            {
+                "slug": "modulo_young",
+                "kind": "scalar",
+                "value": 69.0,
+                "unit": "GPa",
+                "quality": DataQuality.ESTIMADO,
+            },
+            {
+                "slug": "limite_escoamento",
+                "kind": "interval",
+                "min": 240.0,
+                "max": 300.0,
+                "unit": "MPa",
+                "quality": DataQuality.ESTIMADO,
+            },
+            {
+                "slug": "temp_max_servico",
+                "kind": "scalar",
+                "value": 150.0,
+                "unit": "degC",
+                "quality": DataQuality.ESTIMADO,
+            },
+            {
+                "slug": "custo_massa",
+                "kind": "scalar",
+                "value": 3.5,
+                "unit": "dimensionless",
+                "quality": DataQuality.ESTIMADO,
+            },
         ],
     },
     {
@@ -249,11 +280,41 @@ DEMO_MATERIALS = [
         "description": "Aço sintético de alta rigidez para demonstração.",
         "keywords": ["estrutural", "rígido", "demo"],
         "values": [
-            {"slug": "densidade", "kind": "scalar", "value": 7850.0, "unit": "kg/m**3", "quality": DataQuality.ESTIMADO},
-            {"slug": "modulo_young", "kind": "scalar", "value": 210.0, "unit": "GPa", "quality": DataQuality.ESTIMADO},
-            {"slug": "resistencia_tracao", "kind": "scalar", "value": 500.0, "unit": "MPa", "quality": DataQuality.ESTIMADO},
-            {"slug": "dureza", "kind": "scalar", "value": 200.0, "unit": "dimensionless", "quality": DataQuality.ESTIMADO},
-            {"slug": "temp_max_servico", "kind": "scalar", "value": 450.0, "unit": "degC", "quality": DataQuality.ESTIMADO},
+            {
+                "slug": "densidade",
+                "kind": "scalar",
+                "value": 7850.0,
+                "unit": "kg/m**3",
+                "quality": DataQuality.ESTIMADO,
+            },
+            {
+                "slug": "modulo_young",
+                "kind": "scalar",
+                "value": 210.0,
+                "unit": "GPa",
+                "quality": DataQuality.ESTIMADO,
+            },
+            {
+                "slug": "resistencia_tracao",
+                "kind": "scalar",
+                "value": 500.0,
+                "unit": "MPa",
+                "quality": DataQuality.ESTIMADO,
+            },
+            {
+                "slug": "dureza",
+                "kind": "scalar",
+                "value": 200.0,
+                "unit": "dimensionless",
+                "quality": DataQuality.ESTIMADO,
+            },
+            {
+                "slug": "temp_max_servico",
+                "kind": "scalar",
+                "value": 450.0,
+                "unit": "degC",
+                "quality": DataQuality.ESTIMADO,
+            },
         ],
     },
     {
@@ -263,11 +324,37 @@ DEMO_MATERIALS = [
         "description": "Polímero sintético com faixa de escoamento para demonstração.",
         "keywords": ["leve", "isolante", "demo"],
         "values": [
-            {"slug": "densidade", "kind": "scalar", "value": 1.05, "unit": "g/cm**3", "quality": DataQuality.ESTIMADO},
-            {"slug": "modulo_young", "kind": "scalar", "value": 2.5, "unit": "GPa", "quality": DataQuality.ESTIMADO},
+            {
+                "slug": "densidade",
+                "kind": "scalar",
+                "value": 1.05,
+                "unit": "g/cm**3",
+                "quality": DataQuality.ESTIMADO,
+            },
+            {
+                "slug": "modulo_young",
+                "kind": "scalar",
+                "value": 2.5,
+                "unit": "GPa",
+                "quality": DataQuality.ESTIMADO,
+            },
             # interval value with explicit typical inside the range
-            {"slug": "limite_escoamento", "kind": "interval", "min": 40.0, "max": 60.0, "typical": 48.0, "unit": "MPa", "quality": DataQuality.ESTIMADO},
-            {"slug": "temp_max_servico", "kind": "scalar", "value": 90.0, "unit": "degC", "quality": DataQuality.ESTIMADO},
+            {
+                "slug": "limite_escoamento",
+                "kind": "interval",
+                "min": 40.0,
+                "max": 60.0,
+                "typical": 48.0,
+                "unit": "MPa",
+                "quality": DataQuality.ESTIMADO,
+            },
+            {
+                "slug": "temp_max_servico",
+                "kind": "scalar",
+                "value": 90.0,
+                "unit": "degC",
+                "quality": DataQuality.ESTIMADO,
+            },
         ],
     },
     {
@@ -277,12 +364,40 @@ DEMO_MATERIALS = [
         "description": "Cerâmica sintética; condutividade térmica não disponível (demo de dado ausente).",
         "keywords": ["rígido", "refratário", "demo"],
         "values": [
-            {"slug": "densidade", "kind": "scalar", "value": 3.9, "unit": "g/cm**3", "quality": DataQuality.ESTIMADO},
-            {"slug": "modulo_young", "kind": "scalar", "value": 380.0, "unit": "GPa", "quality": DataQuality.ESTIMADO},
-            {"slug": "dureza", "kind": "scalar", "value": 1500.0, "unit": "dimensionless", "quality": DataQuality.ESTIMADO},
-            {"slug": "temp_max_servico", "kind": "scalar", "value": 1600.0, "unit": "degC", "quality": DataQuality.ESTIMADO},
+            {
+                "slug": "densidade",
+                "kind": "scalar",
+                "value": 3.9,
+                "unit": "g/cm**3",
+                "quality": DataQuality.ESTIMADO,
+            },
+            {
+                "slug": "modulo_young",
+                "kind": "scalar",
+                "value": 380.0,
+                "unit": "GPa",
+                "quality": DataQuality.ESTIMADO,
+            },
+            {
+                "slug": "dureza",
+                "kind": "scalar",
+                "value": 1500.0,
+                "unit": "dimensionless",
+                "quality": DataQuality.ESTIMADO,
+            },
+            {
+                "slug": "temp_max_servico",
+                "kind": "scalar",
+                "value": 1600.0,
+                "unit": "degC",
+                "quality": DataQuality.ESTIMADO,
+            },
             # explicitly missing — must render as "ausente", never 0
-            {"slug": "condutividade_termica", "kind": "missing", "notes": "Não disponível no dataset demo."},
+            {
+                "slug": "condutividade_termica",
+                "kind": "missing",
+                "notes": "Não disponível no dataset demo.",
+            },
         ],
     },
     {
@@ -292,20 +407,45 @@ DEMO_MATERIALS = [
         "description": "Compósito sintético com custo incerto para demonstração.",
         "keywords": ["leve", "anisotrópico", "alto desempenho", "demo"],
         "values": [
-            {"slug": "densidade", "kind": "scalar", "value": 1.6, "unit": "g/cm**3", "quality": DataQuality.ESTIMADO},
-            {"slug": "modulo_young", "kind": "scalar", "value": 120.0, "unit": "GPa", "quality": DataQuality.ESTIMADO},
-            {"slug": "resistencia_tracao", "kind": "scalar", "value": 1500.0, "unit": "MPa", "quality": DataQuality.ESTIMADO},
+            {
+                "slug": "densidade",
+                "kind": "scalar",
+                "value": 1.6,
+                "unit": "g/cm**3",
+                "quality": DataQuality.ESTIMADO,
+            },
+            {
+                "slug": "modulo_young",
+                "kind": "scalar",
+                "value": 120.0,
+                "unit": "GPa",
+                "quality": DataQuality.ESTIMADO,
+            },
+            {
+                "slug": "resistencia_tracao",
+                "kind": "scalar",
+                "value": 1500.0,
+                "unit": "MPa",
+                "quality": DataQuality.ESTIMADO,
+            },
             # value carrying uncertainty
-            {"slug": "custo_massa", "kind": "scalar", "value": 40.0, "unit": "dimensionless", "uncertainty": 8.0, "quality": DataQuality.ESTIMADO},
+            {
+                "slug": "custo_massa",
+                "kind": "scalar",
+                "value": 40.0,
+                "unit": "dimensionless",
+                "uncertainty": 8.0,
+                "quality": DataQuality.ESTIMADO,
+            },
         ],
     },
 ]
 
 
 def _get_or_create_class(db: Session, name: str, slug: str) -> MaterialClass:
-    existing = db.execute(
-        select(MaterialClass).where(MaterialClass.slug == slug)
-    ).scalars().one_or_none()
+    existing = (
+        db.execute(select(MaterialClass).where(MaterialClass.slug == slug)).scalars().one_or_none()
+    )
     if existing:
         return existing
     obj = MaterialClass(name=name, slug=slug)
@@ -315,9 +455,11 @@ def _get_or_create_class(db: Session, name: str, slug: str) -> MaterialClass:
 
 
 def _get_or_create_property(db: Session, spec: dict) -> PropertyDefinition:
-    existing = db.execute(
-        select(PropertyDefinition).where(PropertyDefinition.slug == spec["slug"])
-    ).scalars().one_or_none()
+    existing = (
+        db.execute(select(PropertyDefinition).where(PropertyDefinition.slug == spec["slug"]))
+        .scalars()
+        .one_or_none()
+    )
     if existing:
         return existing
     obj = PropertyDefinition(
@@ -338,12 +480,14 @@ def _get_or_create_property(db: Session, spec: dict) -> PropertyDefinition:
 
 
 def _get_or_create_source(db: Session, spec: dict) -> Source:
-    existing = db.execute(
-        select(Source).where(Source.label == spec["label"])
-    ).scalars().one_or_none()
+    existing = (
+        db.execute(select(Source).where(Source.label == spec["label"])).scalars().one_or_none()
+    )
     if existing:
         return existing
-    obj = Source(label=spec["label"], reference=spec.get("reference"), is_demo=spec.get("is_demo", False))
+    obj = Source(
+        label=spec["label"], reference=spec.get("reference"), is_demo=spec.get("is_demo", False)
+    )
     db.add(obj)
     db.flush()
     return obj
@@ -362,7 +506,10 @@ def _build_value_row(
         nv = build_scalar_value(spec["value"], spec["unit"], prop.canonical_unit)
     elif kind == "interval":
         nv = build_interval_value(
-            spec["min"], spec["max"], spec["unit"], prop.canonical_unit,
+            spec["min"],
+            spec["max"],
+            spec["unit"],
+            prop.canonical_unit,
             value_typical=spec.get("typical"),
         )
     else:  # pragma: no cover - guarded by seed authoring
@@ -388,9 +535,11 @@ def _build_value_row(
 
 
 def _get_or_create_index(db: Session, spec: dict) -> PerformanceIndex:
-    existing = db.execute(
-        select(PerformanceIndex).where(PerformanceIndex.slug == spec["slug"])
-    ).scalars().one_or_none()
+    existing = (
+        db.execute(select(PerformanceIndex).where(PerformanceIndex.slug == spec["slug"]))
+        .scalars()
+        .one_or_none()
+    )
     if existing:
         return existing
     obj = PerformanceIndex(
@@ -423,15 +572,15 @@ def seed(db: Session) -> dict[str, int]:
         _get_or_create_index(db, spec)
     db.flush()
 
-    prop_by_slug = {
-        p.slug: p for p in db.execute(select(PropertyDefinition)).scalars().all()
-    }
+    prop_by_slug = {p.slug: p for p in db.execute(select(PropertyDefinition)).scalars().all()}
 
     created_materials = 0
     for mat_spec in DEMO_MATERIALS:
-        existing = db.execute(
-            select(Material).where(Material.name == mat_spec["name"])
-        ).scalars().one_or_none()
+        existing = (
+            db.execute(select(Material).where(Material.name == mat_spec["name"]))
+            .scalars()
+            .one_or_none()
+        )
         if existing:
             continue
         material_class = _get_or_create_class(

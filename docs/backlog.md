@@ -75,9 +75,9 @@ As fases abaixo seguem a ordem recomendada de implementação.
 - Entidades ainda não modeladas: User, Project, ImportJob/Template/Error,
   SelectionStudy, PerformanceIndex, RankingCriterion, SavedChart,
   GeneratedReport, AuditEvent.
-- `black --check` falha em arquivos anteriores à Fase 5 (o repositório nunca foi
-  formatado por inteiro). Rodar `black app` de uma vez, em commit próprio, para
-  que a verificação passe a valer como portão de CI.
+- ~~`black --check` falha em arquivos anteriores à Fase 5~~ — quitado antes da
+  Fase 7: o backend inteiro foi formatado em commit próprio e `black --check`
+  passou a ser portão de CI.
 - Isolamento dos testes: corrigido na revisão da Fase 5. O pysqlite emitia BEGIN
   por conta própria e nunca antes de SAVEPOINT, então um teste que começasse por
   uma escrita escapava do rollback. Os listeners de `connect`/`begin` em

@@ -45,6 +45,7 @@ def run_selection(payload: RunRequest, db: Session = Depends(get_db)) -> RunResu
 
 # --- saved studies ---------------------------------------------------------
 
+
 @router.get("/studies", response_model=list[StudySummaryOut])
 def list_studies(db: Session = Depends(get_db)) -> list[StudySummaryOut]:
     return SelectionService(db).list_studies()
@@ -72,6 +73,7 @@ def run_study(study_id: int, db: Session = Depends(get_db)) -> RunResultOut:
 
 
 # --- performance-index catalogue -------------------------------------------
+
 
 @indices_router.get("", response_model=list[PerformanceIndexOut])
 def list_indices(db: Session = Depends(get_db)) -> list[PerformanceIndexOut]:

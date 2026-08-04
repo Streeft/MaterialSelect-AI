@@ -57,7 +57,12 @@ from app.schemas.selection import (
 
 INDEX_KEY = "__index__"
 _NUMERIC_OPS = {
-    Operator.GT, Operator.GTE, Operator.LT, Operator.LTE, Operator.BETWEEN, Operator.OUTSIDE,
+    Operator.GT,
+    Operator.GTE,
+    Operator.LT,
+    Operator.LTE,
+    Operator.BETWEEN,
+    Operator.OUTSIDE,
 }
 
 
@@ -135,8 +140,12 @@ class SelectionService:
             elif value is None:
                 raise ValidationError(f"O operador '{op.value}' requer um valor.")
             return Constraint(
-                operator=op, label=label, property_slug=payload.property_slug,
-                value=value, value_min=vmin, value_max=vmax,
+                operator=op,
+                label=label,
+                property_slug=payload.property_slug,
+                value=value,
+                value_min=vmin,
+                value_max=vmax,
             )
 
         if op in (Operator.EXISTS, Operator.NOT_EXISTS):
@@ -162,8 +171,12 @@ class SelectionService:
         prop = self._props.get(payload.property_slug) if payload.property_slug else None
         prop_name = prop.name if prop else (payload.property_slug or "")
         symbols = {
-            "gt": ">", "gte": "≥", "lt": "<", "lte": "≤",
-            "between": "∈", "outside": "∉",
+            "gt": ">",
+            "gte": "≥",
+            "lt": "<",
+            "lte": "≤",
+            "between": "∈",
+            "outside": "∉",
         }
         if payload.operator in symbols:
             if payload.operator in ("between", "outside"):
@@ -193,7 +206,12 @@ class SelectionService:
             initial_count=result.initial_count,
             combinator=result.combinator,
             final_count=result.final_count,
-            steps=[FunnelStepOut(label=s.label, operator=s.operator, passed=s.passed, remaining=s.remaining) for s in result.steps],
+            steps=[
+                FunnelStepOut(
+                    label=s.label, operator=s.operator, passed=s.passed, remaining=s.remaining
+                )
+                for s in result.steps
+            ],
             candidates=candidates,
         )
 
@@ -204,9 +222,7 @@ class SelectionService:
         var_to_slug = {safe_variable(slug): slug for slug in self._props}
         try:
             used = validate_names(expression, set(var_to_slug))
-            canonical_units = {
-                var: self._props[var_to_slug[var]].canonical_unit for var in used
-            }
+            canonical_units = {var: self._props[var_to_slug[var]].canonical_unit for var in used}
             dimension = result_dimension(expression, canonical_units)
         except ExpressionError as exc:
             raise ValidationError(str(exc)) from exc
@@ -221,19 +237,29 @@ class SelectionService:
         for m in snapshots:
             variables = {safe_variable(slug): val for slug, val in m.values.items()}
             evaluation = evaluate_index(expression, used, variables)
-            values.append(IndexValueOut(
-                material_id=m.id, name=m.name, class_name=m.class_name,
-                value=evaluation.value, undefined_reason=evaluation.undefined_reason,
-            ))
+            values.append(
+                IndexValueOut(
+                    material_id=m.id,
+                    name=m.name,
+                    class_name=m.class_name,
+                    value=evaluation.value,
+                    undefined_reason=evaluation.undefined_reason,
+                )
+            )
             if evaluation.is_defined:
                 defined += 1
         # Sort: defined first, by goal; undefined last.
         reverse = goal == "maximize"
         values.sort(key=lambda v: (v.value is None, -(v.value or 0) if reverse else (v.value or 0)))
         return IndexResultOut(
-            name=name, expression=expression, goal=goal, dimension=dimension,
-            variables=sorted(used), values=values,
-            defined_count=defined, undefined_count=len(snapshots) - defined,
+            name=name,
+            expression=expression,
+            goal=goal,
+            dimension=dimension,
+            variables=sorted(used),
+            values=values,
+            defined_count=defined,
+            undefined_count=len(snapshots) - defined,
         )
 
     def evaluate_index(self, request: IndexRequest) -> IndexResultOut:
@@ -242,9 +268,7 @@ class SelectionService:
 
     # --- ranking ----------------------------------------------------------
 
-    def _build_criteria(
-        self, ranking: RankingIn, index: IndexIn | None
-    ) -> list[Criterion]:
+    def _build_criteria(self, ranking: RankingIn, index: IndexIn | None) -> list[Criterion]:
         criteria: list[Criterion] = []
         for c in ranking.criteria:
             if c.key == INDEX_KEY:
@@ -294,25 +318,39 @@ class SelectionService:
             criteria=result.criteria,
             ranked=[
                 RankedMaterialOut(
-                    material_id=r.material_id, name=r.name, score=r.score, rank=r.rank,
+                    material_id=r.material_id,
+                    name=r.name,
+                    score=r.score,
+                    rank=r.rank,
                     contributions=[
                         ContributionOut(
-                            key=c.key, label=c.label, raw=c.raw, normalized=c.normalized,
-                            weight=c.weight, contribution=c.contribution,
-                        ) for c in r.contributions
+                            key=c.key,
+                            label=c.label,
+                            raw=c.raw,
+                            normalized=c.normalized,
+                            weight=c.weight,
+                            contribution=c.contribution,
+                        )
+                        for c in r.contributions
                     ],
-                ) for r in result.ranked
+                )
+                for r in result.ranked
             ],
             excluded=[
-                ExcludedMaterialOut(material_id=e.material_id, name=e.name, missing_keys=e.missing_keys)
+                ExcludedMaterialOut(
+                    material_id=e.material_id, name=e.name, missing_keys=e.missing_keys
+                )
                 for e in result.excluded
             ],
             sensitivity=[
                 SensitivityScenarioOut(
-                    description=s.description, weights=s.weights,
-                    top_material_id=s.top_material_id, top_material_name=s.top_material_name,
+                    description=s.description,
+                    weights=s.weights,
+                    top_material_id=s.top_material_id,
+                    top_material_name=s.top_material_name,
                     changed=s.changed,
-                ) for s in result.sensitivity
+                )
+                for s in result.sensitivity
             ],
         )
 
@@ -344,9 +382,12 @@ class SelectionService:
 
         candidates = [
             CandidateOut(
-                material_id=m.id, name=m.name, class_name=m.class_name,
+                material_id=m.id,
+                name=m.name,
+                class_name=m.class_name,
                 index_value=index_value_by_id.get(m.id),
-                rank=rank_by_id.get(m.id), score=score_by_id.get(m.id),
+                rank=rank_by_id.get(m.id),
+                score=score_by_id.get(m.id),
             )
             for m in candidate_snaps
         ]
@@ -355,7 +396,12 @@ class SelectionService:
             candidates.sort(key=lambda c: (c.rank is None, c.rank or 0, c.name))
         elif index_out is not None:
             reverse = request.index.goal == "maximize"  # type: ignore[union-attr]
-            candidates.sort(key=lambda c: (c.index_value is None, -(c.index_value or 0) if reverse else (c.index_value or 0)))
+            candidates.sort(
+                key=lambda c: (
+                    c.index_value is None,
+                    -(c.index_value or 0) if reverse else (c.index_value or 0),
+                )
+            )
         else:
             candidates.sort(key=lambda c: c.name)
 
@@ -363,7 +409,12 @@ class SelectionService:
             initial_count=filtered.initial_count,
             combinator=filtered.combinator,
             final_count=filtered.final_count,
-            funnel=[FunnelStepOut(label=s.label, operator=s.operator, passed=s.passed, remaining=s.remaining) for s in filtered.steps],
+            funnel=[
+                FunnelStepOut(
+                    label=s.label, operator=s.operator, passed=s.passed, remaining=s.remaining
+                )
+                for s in filtered.steps
+            ],
             candidates=candidates,
             index=index_out,
             ranking=ranking_out,
@@ -381,9 +432,15 @@ class SelectionService:
         except ValidationError:
             dimension = None  # a seeded index referencing a since-deleted property
         return PerformanceIndexOut(
-            id=index.id, name=index.name, slug=index.slug, expression=index.expression,
-            goal=index.goal, description=index.description, assumptions=index.assumptions,
-            dimension=dimension, is_demo=index.is_demo,
+            id=index.id,
+            name=index.name,
+            slug=index.slug,
+            expression=index.expression,
+            goal=index.goal,
+            description=index.description,
+            assumptions=index.assumptions,
+            dimension=dimension,
+            is_demo=index.is_demo,
         )
 
     def create_index(self, payload) -> PerformanceIndexOut:
@@ -393,8 +450,12 @@ class SelectionService:
         if not slug or self.repo.index_slug_exists(slug):
             raise ValidationError("Nome de índice inválido ou já existente.")
         index = PerformanceIndex(
-            name=payload.name.strip(), slug=slug, expression=payload.expression,
-            goal=payload.goal, description=payload.description, assumptions=payload.assumptions,
+            name=payload.name.strip(),
+            slug=slug,
+            expression=payload.expression,
+            goal=payload.goal,
+            description=payload.description,
+            assumptions=payload.assumptions,
             is_demo=False,
         )
         self.repo.add(index)
@@ -406,8 +467,12 @@ class SelectionService:
     def list_studies(self) -> list[StudySummaryOut]:
         return [
             StudySummaryOut(
-                id=s.id, name=s.name, description=s.description, created_at=s.created_at,
-                constraint_count=len(s.constraints), criterion_count=len(s.criteria),
+                id=s.id,
+                name=s.name,
+                description=s.description,
+                created_at=s.created_at,
+                constraint_count=len(s.constraints),
+                criterion_count=len(s.criteria),
             )
             for s in self.repo.list_studies()
         ]
@@ -422,25 +487,42 @@ class SelectionService:
         if self.repo.study_name_exists(payload.name):
             raise ConflictError(f"Já existe um estudo com o nome: {payload.name}")
         study = SelectionStudy(
-            name=payload.name.strip(), description=payload.description,
-            function_text=payload.function_text, objective_text=payload.objective_text,
-            free_variables=payload.free_variables, combinator=payload.combinator,
+            name=payload.name.strip(),
+            description=payload.description,
+            function_text=payload.function_text,
+            objective_text=payload.objective_text,
+            free_variables=payload.free_variables,
+            combinator=payload.combinator,
             index_name=payload.index.name if payload.index else None,
             index_expression=payload.index.expression if payload.index else None,
             index_goal=payload.index.goal if payload.index else None,
             normalization=payload.normalization,
         )
         for position, c in enumerate(payload.constraints):
-            study.constraints.append(SelectionConstraint(
-                position=position, operator=c.operator, property_slug=c.property_slug,
-                value=c.value, value_min=c.value_min, value_max=c.value_max, unit=c.unit,
-                class_slugs=c.class_slugs, text=c.text, label=c.label,
-            ))
+            study.constraints.append(
+                SelectionConstraint(
+                    position=position,
+                    operator=c.operator,
+                    property_slug=c.property_slug,
+                    value=c.value,
+                    value_min=c.value_min,
+                    value_max=c.value_max,
+                    unit=c.unit,
+                    class_slugs=c.class_slugs,
+                    text=c.text,
+                    label=c.label,
+                )
+            )
         for position, cr in enumerate(payload.criteria):
-            study.criteria.append(RankingCriterion(
-                position=position, key=cr.key, label=cr.label or cr.key,
-                direction=cr.direction or "max", weight=cr.weight,
-            ))
+            study.criteria.append(
+                RankingCriterion(
+                    position=position,
+                    key=cr.key,
+                    label=cr.label or cr.key,
+                    direction=cr.direction or "max",
+                    weight=cr.weight,
+                )
+            )
         self.repo.add(study)
         self.repo.commit()
         return self._study_to_out(study)
@@ -462,15 +544,21 @@ class SelectionService:
         index = None
         if study.index_expression:
             index = IndexIn(
-                name=study.index_name, expression=study.index_expression,
+                name=study.index_name,
+                expression=study.index_expression,
                 goal=study.index_goal or "maximize",
             )
         return StudyOut(
-            id=study.id, name=study.name, description=study.description,
-            function_text=study.function_text, objective_text=study.objective_text,
-            free_variables=list(study.free_variables or []), combinator=study.combinator,
+            id=study.id,
+            name=study.name,
+            description=study.description,
+            function_text=study.function_text,
+            objective_text=study.objective_text,
+            free_variables=list(study.free_variables or []),
+            combinator=study.combinator,
             constraints=[self._constraint_to_in(c) for c in study.constraints],
-            index=index, normalization=study.normalization,
+            index=index,
+            normalization=study.normalization,
             criteria=[self._criterion_to_in(c) for c in study.criteria],
             created_at=study.created_at,
         )
@@ -479,7 +567,8 @@ class SelectionService:
         index = None
         if study.index_expression:
             index = IndexIn(
-                name=study.index_name, expression=study.index_expression,
+                name=study.index_name,
+                expression=study.index_expression,
                 goal=study.index_goal or "maximize",
             )
         ranking = None
@@ -491,15 +580,22 @@ class SelectionService:
         return RunRequest(
             combinator=study.combinator,
             constraints=[self._constraint_to_in(c) for c in study.constraints],
-            index=index, ranking=ranking,
+            index=index,
+            ranking=ranking,
         )
 
     @staticmethod
     def _constraint_to_in(c: SelectionConstraint) -> ConstraintIn:
         return ConstraintIn(
-            operator=c.operator, label=c.label, property_slug=c.property_slug,
-            value=c.value, value_min=c.value_min, value_max=c.value_max, unit=c.unit,
-            class_slugs=list(c.class_slugs or []), text=c.text,
+            operator=c.operator,
+            label=c.label,
+            property_slug=c.property_slug,
+            value=c.value,
+            value_min=c.value_min,
+            value_max=c.value_max,
+            unit=c.unit,
+            class_slugs=list(c.class_slugs or []),
+            text=c.text,
         )
 
     @staticmethod
