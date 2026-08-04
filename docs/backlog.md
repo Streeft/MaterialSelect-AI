@@ -55,9 +55,15 @@ As fases abaixo seguem a ordem recomendada de implementação.
   extração de restrições em enunciados com sintaxe mais livre.
 - Ver [`adr/0003-ia-desacoplada-do-calculo.md`](adr/0003-ia-desacoplada-do-calculo.md).
 
-## Fase 7 — Relatórios e qualidade
-- Exportação CSV/XLSX (com proteção contra CSV injection), PDF e HTML imprimível;
-  arquitetura para PPTX. A exportação de **imagens** (PNG/SVG) já saiu na Fase 5.
+## Fase 7 — Relatórios e qualidade (em andamento)
+- Entregue: exportação CSV/XLSX do catálogo e do **relatório completo de um
+  estudo** (problema, funil, índice com dimensão derivada, contribuições,
+  excluídos por dado ausente, sensibilidade e proveniência de cada número),
+  com neutralização de injeção de fórmula nas duas pontas e os avisos
+  obrigatórios de limitação, reprodutibilidade e dados demonstrativos —
+  ver docs/10-relatorios.md.
+- Restante: PDF e HTML imprimível; arquitetura para PPTX. A exportação de
+  **imagens** (PNG/SVG) já saiu na Fase 5.
 - Testes end-to-end dos fluxos; autenticação/autorização por projeto; auditoria;
   acessibilidade e desempenho; documentação final do TCC.
 
