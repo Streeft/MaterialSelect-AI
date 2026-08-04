@@ -40,6 +40,21 @@ class Settings(BaseSettings):
     # Hard limit on data rows per import, to bound validation/commit time.
     max_import_rows: int = 5000
 
+    # --- AI layer (optional) ----------------------------------------------
+    # "" disables the layer entirely; "mock" runs the deterministic simulated
+    # provider, which needs no key and no network. A real provider would be
+    # added here as a third value. The product is fully usable with the layer
+    # off — nothing numeric depends on it.
+    ai_provider: str = "mock"
+    ai_api_key: str = ""
+    ai_model: str = ""
+    ai_timeout_seconds: float = 20.0
+
+    @property
+    def ai_enabled(self) -> bool:
+        """True when an AI provider is configured."""
+        return bool(self.ai_provider.strip())
+
     @property
     def cors_origins_list(self) -> list[str]:
         """Return the configured CORS origins as a clean list."""

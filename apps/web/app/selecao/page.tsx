@@ -34,6 +34,8 @@ import {
   toConstraintPayload,
 } from "@/components/selection/ConstraintEditor";
 import { ResultsView } from "@/components/selection/ResultsView";
+import { AIAssistPanel, type AcceptedSuggestions } from "@/components/ai/AIAssistPanel";
+import { StudyExplanation } from "@/components/ai/StudyExplanation";
 
 const t = ptBR.selection;
 type Step = "function" | "constraints" | "objective" | "results";
@@ -217,6 +219,39 @@ export default function SelectionPage() {
     onError: fail,
   });
 
+  /**
+   * Merge the suggestions the user ticked into the wizard.
+   *
+   * Constraints are appended, never substituted: an interpretation adds to what
+   * the user already wrote rather than overwriting it. The index arrives as a
+   * catalogue expression, which the objective step validates like any other.
+   */
+  function applySuggestions(accepted: AcceptedSuggestions) {
+    if (accepted.functionText) setFunctionText(accepted.functionText);
+    if (accepted.objectiveText) setObjectiveText(accepted.objectiveText);
+    if (accepted.freeVariables.length > 0) setFreeVariables(accepted.freeVariables.join(", "));
+    if (accepted.constraints.length > 0) {
+      setConstraints((current) => [
+        ...current,
+        ...accepted.constraints.map(({ constraint }) => ({
+          ...emptyConstraint(nextId()),
+          operator: constraint.operator,
+          property_slug: constraint.property_slug ?? "",
+          value: constraint.value?.toString() ?? "",
+          value_min: constraint.value_min?.toString() ?? "",
+          value_max: constraint.value_max?.toString() ?? "",
+          unit: constraint.unit ?? "",
+          class_slugs: constraint.class_slugs ?? [],
+          text: constraint.text ?? "",
+        })),
+      ]);
+    }
+    if (accepted.index) {
+      setIndexMode(accepted.index.slug);
+      setIndexGoal(accepted.index.goal);
+    }
+  }
+
   const inputClass =
     "rounded border border-slate-300 bg-white px-2 py-1 text-sm focus:border-brand-500 focus:outline-none";
 
@@ -281,6 +316,9 @@ export default function SelectionPage() {
           </button>
         </section>
       )}
+
+      {/* Optional assistance, on the step where a problem is described. */}
+      {step === "function" && <AIAssistPanel onApply={applySuggestions} />}
 
       {/* Step 2: constraints */}
       {step === "constraints" && (
@@ -450,11 +488,14 @@ export default function SelectionPage() {
               <tbody className="divide-y divide-slate-100">
                 {studies.data.map((s) => (
                   <tr key={s.id}>
-                    <td className="px-3 py-2 font-medium text-slate-700">{s.name}</td>
-                    <td className="px-3 py-2 text-xs text-slate-400">
+                    <td className="px-3 py-2 font-medium text-slate-700">
+                      {s.name}
+                      <StudyExplanation studyId={s.id} />
+                    </td>
+                    <td className="px-3 py-2 align-top text-xs text-slate-400">
                       {s.constraint_count} restrições · {s.criterion_count} critérios
                     </td>
-                    <td className="px-3 py-2 text-right">
+                    <td className="px-3 py-2 text-right align-top">
                       <div className="flex justify-end gap-2">
                         <button type="button" onClick={() => runSaved.mutate(s.id)} className="rounded border border-slate-300 px-2 py-1 text-xs text-slate-600 hover:bg-slate-50">
                           {t.runSaved}

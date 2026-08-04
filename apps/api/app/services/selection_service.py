@@ -11,11 +11,11 @@ from __future__ import annotations
 
 from app.calculations.expressions import (
     ExpressionError,
-    evaluate,
     result_dimension,
     safe_variable,
     validate_names,
 )
+from app.calculations.performance import evaluate_index
 from app.calculations.units import UnitError, to_canonical
 from app.domain.errors import ConflictError, NotFoundError, ValidationError
 from app.domain.filters import (
@@ -220,25 +220,13 @@ class SelectionService:
         defined = 0
         for m in snapshots:
             variables = {safe_variable(slug): val for slug, val in m.values.items()}
-            missing = used - set(variables)
-            if missing:
-                slugs_missing = ", ".join(sorted(v for v in missing))
-                values.append(IndexValueOut(
-                    material_id=m.id, name=m.name, class_name=m.class_name,
-                    value=None, undefined_reason=f"Dados ausentes: {slugs_missing}",
-                ))
-                continue
-            try:
-                value = evaluate(expression, {k: variables[k] for k in used})
-                values.append(IndexValueOut(
-                    material_id=m.id, name=m.name, class_name=m.class_name, value=value,
-                ))
+            evaluation = evaluate_index(expression, used, variables)
+            values.append(IndexValueOut(
+                material_id=m.id, name=m.name, class_name=m.class_name,
+                value=evaluation.value, undefined_reason=evaluation.undefined_reason,
+            ))
+            if evaluation.is_defined:
                 defined += 1
-            except ExpressionError as exc:
-                values.append(IndexValueOut(
-                    material_id=m.id, name=m.name, class_name=m.class_name,
-                    value=None, undefined_reason=str(exc),
-                ))
         # Sort: defined first, by goal; undefined last.
         reverse = goal == "maximize"
         values.sort(key=lambda v: (v.value is None, -(v.value or 0) if reverse else (v.value or 0)))

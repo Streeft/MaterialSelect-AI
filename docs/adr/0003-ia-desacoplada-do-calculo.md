@@ -1,7 +1,8 @@
 # ADR 0003 — IA desacoplada e opcional, separada do cálculo determinístico
 
-- **Status:** aceito
-- **Data:** 2026-07 (Fase 1) — camada de IA ainda não implementada
+- **Status:** aceito e **implementado na Fase 6** (ver
+  [`../09-camada-ia.md`](../09-camada-ia.md))
+- **Data:** 2026-07 (Fase 1); implementada em 2026-07 (Fase 6)
 
 ## Contexto
 
@@ -25,11 +26,25 @@ Manter a IA como uma camada **opcional e desacoplada**, atrás de uma interface
   por variáveis de ambiente.
 - Nenhum segredo em código; logs sem dados sensíveis.
 
-Nesta fase a camada existe apenas como stub documentado (`app/ai/`).
+## Como ficou (Fase 6)
+
+A decisão foi implementada com uma adição que ela não previa: **guardrails
+executáveis**. A fronteira não é sustentada por instruções ao modelo, e sim por
+regras em `app/ai/guardrails.py` pelas quais toda saída passa. A mais forte é a
+ancoragem numérica — todo número de uma restrição proposta precisa aparecer no
+enunciado do usuário, o que recusa inclusive conversões corretas, já que
+converter (e registrar a trilha) é trabalho do backend.
+
+O provedor recebe apenas o catálogo e o texto: sem sessão de banco, sem
+avaliador de expressões. A implementação simulada (`app/ai/mock.py`) é
+determinística e não exige chave nem rede.
 
 ## Consequências
 
 - **Positivas:** confiabilidade e reprodutibilidade preservadas; o núcleo
   determinístico é a fonte de verdade; a IA agrega usabilidade sem virar risco.
-- **Negativas:** exige disciplina de arquitetura (validação de saída, timeouts,
-  tratamento de falhas) quando a camada for implementada (Fase 6).
+  A fronteira virou propriedade testável, exercitada contra um provedor
+  deliberadamente mentiroso na suíte.
+- **Negativas:** os guardrails custam falsos positivos ocasionais — uma prosa
+  legítima que cite uma cifra fora do conjunto calculado é descartada por
+  inteiro. Preferiu-se recusar demais a deixar passar um número inventado.
