@@ -190,16 +190,25 @@ e formatos aceitos em [`docs/06-importacao.md`](docs/06-importacao.md);
 
 ## Documentação
 
+**Comece por [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md)** — visão
+geral, estado atual, o que falta e próximos passos.
+
+### Referência principal
+- [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md) — estado do projeto e roadmap.
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — arquitetura, módulos, dados, APIs, banco.
+- [`docs/CLAUDE.md`](docs/CLAUDE.md) — guia de desenvolvimento: padrões, convenções e o que não alterar.
+- [`docs/DECISIONS.md`](docs/DECISIONS.md) — decisões e alternativas descartadas.
+- [`docs/TODO.md`](docs/TODO.md) — backlog priorizado com impacto e dificuldade.
+- [`docs/CHANGELOG_SESSION.md`](docs/CHANGELOG_SESSION.md) — o que mudou na última sessão.
+
+### Aprofundamento por tema
 - [`docs/01-visao-geral.md`](docs/01-visao-geral.md) — visão geral e problema.
-- [`docs/02-arquitetura.md`](docs/02-arquitetura.md) — arquitetura (Mermaid).
 - [`docs/03-modelo-de-dados.md`](docs/03-modelo-de-dados.md) — modelo de dados (ER).
-- [`docs/04-metodologia-selecao.md`](docs/04-metodologia-selecao.md) — metodologia Ashby (roadmap).
+- [`docs/04-metodologia-selecao.md`](docs/04-metodologia-selecao.md) — metodologia de Ashby.
 - [`docs/05-tratamento-unidades.md`](docs/05-tratamento-unidades.md) — unidades e rastreabilidade.
-- [`docs/06-importacao.md`](docs/06-importacao.md) — fluxo de importação e segurança.
+- [`docs/06-importacao.md`](docs/06-importacao.md) — importação e segurança.
 - [`docs/07-selecao-deterministica.md`](docs/07-selecao-deterministica.md) — filtros, índices, ranking.
 - [`docs/08-visualizacao.md`](docs/08-visualizacao.md) — mapas de Ashby, linhas de índice, comparador.
-- [`docs/09-camada-ia.md`](docs/09-camada-ia.md) — camada de IA opcional e seus guardrails.
-- [`docs/10-relatorios.md`](docs/10-relatorios.md) — exportação, relatório de seleção e proveniência.
-- [`docs/09-camada-ia.md`](docs/09-camada-ia.md) — limites da IA, guardrails, provedor simulado.
-- [`docs/adr/`](docs/adr/) — registros de decisão arquitetural.
-- [`docs/backlog.md`](docs/backlog.md) — backlog priorizado das próximas fases.
+- [`docs/09-camada-ia.md`](docs/09-camada-ia.md) — camada de IA e seus guardrails.
+- [`docs/10-relatorios.md`](docs/10-relatorios.md) — exportação e proveniência.
+- [`docs/adr/`](docs/adr/) — registros de decisão arquitetural detalhados.
