@@ -27,20 +27,37 @@ As fases abaixo seguem a ordem recomendada de implementação.
   grupos de restrições aninhados (parênteses lógicos); filtros compartilháveis
   por URL.
 
-## Fase 5 — Visualização
-- Mapas de propriedades avançados: envelopes por classe, barras de erro,
-  retângulos de intervalo, linhas de índice.
-- Comparador: tabela, barras, radar, coordenadas paralelas, heatmap normalizado.
-- Dashboards e exportação de gráficos (PNG/SVG).
+## Fase 5 — Visualização ✅ (concluída; ver docs/08-visualizacao.md)
+- Entregue: mapa de Ashby (`/mapas`) com escala linear/log, filtro por classe,
+  envelopes por classe (fecho convexo calculado no espaço exibido), barras de
+  erro por intervalo e por incerteza (convertidas para a unidade canônica),
+  rótulos, destaque de candidatos e exclusões sempre justificadas; **linhas de
+  índice com inclinação derivada da expressão** (`app/calculations/powerlaw.py`)
+  e nível passando por um material escolhido, com o lado favorável reportado;
+  comparador (`/comparar`) com tabela, barras, radar, coordenadas paralelas e
+  heatmap sobre escores normalizados pelo backend; exportação PNG/SVG de todos
+  os gráficos; integração a partir dos resultados da seleção.
+- Restante para fases futuras: envelopes elípticos ajustados; dashboards
+  configuráveis; propriedades dependentes de condição como curvas; salvar um
+  gráfico como objeto reutilizável (`SavedChart`).
 
-## Fase 6 — IA (opcional)
-- Interface `AIProvider` + implementação mock; interpretação estruturada do
-  problema; sugestões; explicações; validação por schema; confirmação do usuário.
+## Fase 6 — IA (opcional) ✅ (concluída; ver docs/09-camada-ia.md)
+- Entregue: interface `AIProvider` (sem sessão de banco, sem avaliador) e
+  provedor **simulado determinístico** que dispensa chave e rede; interpretação
+  do enunciado em função/restrições/objetivo/variáveis livres com o trecho de
+  origem citado; sugestão de propriedades e índices **do catálogo**; sugestão do
+  mapa em que o índice vira reta; explicação de estudos já calculados;
+  **guardrails executáveis** (entidades existentes, números ancorados no
+  enunciado, unidades compatíveis, prosa sem cifra inventada), com o recusado
+  sempre reportado; painel de revisão item a item em `/selecao`.
+- Restante para fases futuras: um provedor externo real por trás da mesma
+  interface; sugestão de novos índices (hoje a IA só seleciona os cadastrados);
+  extração de restrições em enunciados com sintaxe mais livre.
 - Ver [`adr/0003-ia-desacoplada-do-calculo.md`](adr/0003-ia-desacoplada-do-calculo.md).
 
 ## Fase 7 — Relatórios e qualidade
 - Exportação CSV/XLSX (com proteção contra CSV injection), PDF e HTML imprimível;
-  arquitetura para PPTX.
+  arquitetura para PPTX. A exportação de **imagens** (PNG/SVG) já saiu na Fase 5.
 - Testes end-to-end dos fluxos; autenticação/autorização por projeto; auditoria;
   acessibilidade e desempenho; documentação final do TCC.
 
@@ -58,3 +75,15 @@ As fases abaixo seguem a ordem recomendada de implementação.
 - Entidades ainda não modeladas: User, Project, ImportJob/Template/Error,
   SelectionStudy, PerformanceIndex, RankingCriterion, SavedChart,
   GeneratedReport, AuditEvent.
+- `black --check` falha em arquivos anteriores à Fase 5 (o repositório nunca foi
+  formatado por inteiro). Rodar `black app` de uma vez, em commit próprio, para
+  que a verificação passe a valer como portão de CI.
+- Isolamento dos testes: corrigido na revisão da Fase 5. O pysqlite emitia BEGIN
+  por conta própria e nunca antes de SAVEPOINT, então um teste que começasse por
+  uma escrita escapava do rollback. Os listeners de `connect`/`begin` em
+  `conftest.py` devolvem o controle ao SQLAlchemy; `test_isolation.py` guarda a
+  propriedade. Se o backend passar a rodar testes contra PostgreSQL, os
+  listeners podem sair (a limitação é exclusiva do pysqlite).
+- O mapa refaz a requisição ao alternar linear ↔ log, porque os envelopes são
+  calculados no espaço exibido (ver ADR 0004). Se virar incômodo, dá para
+  devolver os dois fechos numa resposta só.

@@ -12,7 +12,7 @@ from collections.abc import Generator
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import Connection, create_engine
+from sqlalchemy import Connection, create_engine, event
 from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
@@ -30,6 +30,26 @@ _engine = create_engine(
 )
 
 
+# pysqlite drives transactions itself by default: it emits BEGIN implicitly
+# before DML and never before anything else — including SAVEPOINT. A session
+# joining the per-test transaction with ``create_savepoint`` would then emit its
+# SAVEPOINT outside any transaction, where it is inert, and the following
+# RELEASE would commit for real. The effect was subtle and order-dependent: a
+# test whose FIRST database statement was a write escaped the rollback below and
+# leaked into every later test, while the same write preceded by a read did not.
+#
+# The fix is SQLAlchemy's documented pysqlite recipe: take BEGIN away from the
+# driver and emit it ourselves, so savepoints nest inside a real transaction.
+@event.listens_for(_engine, "connect")
+def _sqlite_disable_implicit_begin(dbapi_connection, _record) -> None:
+    dbapi_connection.isolation_level = None
+
+
+@event.listens_for(_engine, "begin")
+def _sqlite_emit_begin(conn) -> None:
+    conn.exec_driver_sql("BEGIN")
+
+
 @pytest.fixture(scope="session", autouse=True)
 def _create_and_seed_schema() -> Generator[None, None, None]:
     Base.metadata.create_all(bind=_engine)
@@ -41,7 +61,11 @@ def _create_and_seed_schema() -> Generator[None, None, None]:
 
 @pytest.fixture()
 def _connection() -> Generator[Connection, None, None]:
-    """Open a connection and wrap each test in a transaction that is rolled back."""
+    """Open a connection and wrap each test in a transaction that is rolled back.
+
+    Relies on the BEGIN handling installed above; without it the rollback does
+    not hold for tests that open with a write.
+    """
     conn = _engine.connect()
     transaction = conn.begin()
     try:

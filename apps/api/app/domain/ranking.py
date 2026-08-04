@@ -95,8 +95,13 @@ class RankingResult:
 MaterialValues = tuple[int, str, dict[str, float | None]]
 
 
-def _normalize_column(values: list[float], direction: Direction, method: Normalization) -> list[float]:
-    """Map a column of raw values to [0, 1] where higher is always better."""
+def normalize_column(values: list[float], direction: Direction, method: Normalization) -> list[float]:
+    """Map a column of raw values to [0, 1] where higher is always better.
+
+    Public because the comparison charts (radar, parallel coordinates, heatmap)
+    must place a material on exactly the same normalized scale the ranking uses;
+    duplicating the formula there would let the two drift apart.
+    """
     n = len(values)
     if n == 0:
         return []
@@ -133,7 +138,7 @@ def _score(
     normalized_columns: dict[str, list[float]] = {}
     for criterion in criteria:
         raw_column = [values[criterion.key] for _, _, values in complete]  # all present
-        normalized_columns[criterion.key] = _normalize_column(
+        normalized_columns[criterion.key] = normalize_column(
             [float(v) for v in raw_column], criterion.direction, method  # type: ignore[arg-type]
         )
 
