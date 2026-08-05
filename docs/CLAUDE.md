@@ -169,7 +169,9 @@ copy .env.local.example .env.local
 npm run dev                        # http://localhost:3000
 ```
 
-Atalhos em `scripts/`: `dev-api.ps1`, `dev-web.ps1`, `seed.ps1`.
+Atalhos em `scripts/`: `dev-api.ps1`, `dev-web.ps1`, `seed.ps1`. Há ainda
+`protect-main.ps1`, que não é de desenvolvimento: aplica a *ruleset* de checks
+obrigatórios no GitHub (seção 7).
 
 ### Variáveis de ambiente relevantes
 | Variável | Padrão | Efeito |
@@ -191,7 +193,18 @@ Atalhos em `scripts/`: `dev-api.ps1`, `dev-web.ps1`, `seed.ps1`.
   testes usam `create_all` em memória e **nunca exercitam as migrações**.
 - Frontend: `npm ci`, `typecheck`, `lint`, `test`, `build`.
 
-> Os checks ainda **não são obrigatórios** no GitHub. Ver [TODO.md](TODO.md).
+Os três checks — `Backend (Python 3.11)`, `Backend (Python 3.12)` e `Frontend` —
+são **obrigatórios**: a ruleset `CI obrigatoria em main` faz o GitHub recusar o
+merge, e não há ator de exceção (vale para o dono do repositório também). A
+branch ainda precisa estar atualizada com `main` antes do merge, para que a
+combinação testada seja a combinação mesclada.
+
+> **Ao acrescentar um job ao `ci.yml`, acrescente o nome em
+> `scripts/protect-main.ps1` e rode o script.** A ruleset exige uma lista fixa de
+> nomes; um job que não esteja nela roda, aparece vermelho no PR e **não impede
+> o merge** — o pior dos mundos, porque parece um portão e não é. O inverso
+> também trava: nome exigido que nunca é reportado bloqueia todo merge para
+> sempre. Os nomes têm de bater exatamente com o `name:` de cada job.
 
 ---
 

@@ -124,9 +124,12 @@ comandos desta seção — `ruff`, `black --check`, `pytest` (em Python 3.11 e
 Alembic num banco limpo, verificando que o schema versionado realmente sobe do
 zero. Nenhum passo é informativo: uma falha reprova o pull request.
 
-> ⚠️ Os checks **ainda não são obrigatórios** nas configurações do GitHub, então
-> hoje um merge com CI vermelha tecnicamente passa. Torná-los *required status
-> checks* é o item A1 de [`docs/TODO.md`](docs/TODO.md).
+Os três checks são **obrigatórios** em `main`: o GitHub recusa o merge se
+qualquer um falhar, sem exceção para o dono do repositório, e a branch precisa
+estar atualizada com `main` antes de mesclar. A configuração vive em
+[`scripts/protect-main.ps1`](scripts/protect-main.ps1), que é idempotente —
+rode-o de novo sempre que acrescentar um job ao `ci.yml`, senão o job novo roda
+sem bloquear nada.
 
 ## Camada de IA (Fase 6 — opcional, ligada por padrão em modo simulado)
 
