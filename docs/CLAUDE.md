@@ -28,6 +28,11 @@ Nunca calcule uma dessas grandezas num componente React
 `hoverongaps: false`, coordenadas paralelas com `connectgaps: false`, radar que
 omite o material incompleto e diz quem omitiu.
 
+E não vale só para número: **nenhum campo opcional é preenchido na gravação com
+um valor plausível**, porque o palpite depois se comporta como se tivesse sido
+informado e passa à frente da fonte que ele deveria substituir
+([D-21](DECISIONS.md)).
+
 ### 1.4 Rastreabilidade de unidades
 Preserve **valor original + unidade original + valor normalizado + unidade
 canônica + método de conversão**. Conversão só via `app/calculations/units.py`.
@@ -223,6 +228,7 @@ roda localmente. Antes de qualquer exposição em rede, resolva autenticação
 | Nome de material é texto livre e não confiável | Escapar no hover do Plotly (`escapeHover`) e em planilha (`cells.py`). |
 | Fecho convexo em escala log | Calcular no espaço exibido; o fecho dos logaritmos não é o logaritmo do fecho. |
 | Dois eixos com o mesmo símbolo no comparador | `axisLabels` já desambigua; não volte a usar `symbol ?? name`. |
+| Campo opcional preenchido "por conveniência" na gravação | Deixe `NULL`. Um rótulo defaultado para a chave imprimiu `__index__` no relatório; uma direção defaultada para `"max"` inverteu o ranking de um estudo salvo ([D-21](DECISIONS.md)). |
 | `black --check` faz parte do portão | Rode `black app` antes de commitar. |
 | Testes que começam por escrita | Cobertos pelo conftest; não mexa nos listeners. |
 

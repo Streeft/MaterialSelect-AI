@@ -26,6 +26,12 @@ FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "\r")
 # Prefixed to a dangerous value so the spreadsheet reads it as literal text.
 TEXT_MARKER = "'"
 
+# Digits kept when a number is rendered as text. Twelve is far beyond the
+# precision of any measured material property (two to four, in practice) and
+# still absorbs the residue a unit conversion leaves in the last bits of a
+# double, which is the artifact readers actually notice.
+SIGNIFICANT_DIGITS = 12
+
 
 def is_dangerous(text: str) -> bool:
     """True when a spreadsheet would treat this text as a formula."""
@@ -61,9 +67,18 @@ def format_number(value: float | None, *, missing: str = "ausente") -> str:
 
     ``missing`` is a word, never ``0`` and never an empty cell that a reader
     could mistake for zero — the same rule the rest of the system follows.
+
+    The digit count is not cosmetic. A density entered as ``3.9 g/cm**3``
+    normalizes to ``3899.9999999999995 kg/m**3`` in IEEE-754, and printing all
+    seventeen digits would claim a precision the measurement never had — the
+    same fabrication this project refuses everywhere else. Rounding to
+    :data:`SIGNIFICANT_DIGITS` reports the number the user gave; it does not
+    invent one. The stored value is untouched, and :func:`safe_number` still
+    writes the full float to numeric spreadsheet cells, where a reader may do
+    arithmetic on it.
     """
     if value is None:
         return missing
     if value == int(value) and abs(value) < 1e15:
         return str(int(value))
-    return repr(value)
+    return f"{value:.{SIGNIFICANT_DIGITS}g}"

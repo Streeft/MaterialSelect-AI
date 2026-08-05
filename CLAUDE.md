@@ -118,7 +118,7 @@ Fases 1 a 6 concluídas; **Fase 7 (relatórios e qualidade) em andamento** — a
 exportações CSV/XLSX e o relatório HTML imprimível já saíram; faltam testes
 end-to-end, autenticação e auditoria.
 
-383 testes de backend e 44 de frontend, todos verdes. CI no GitHub Actions roda
+389 testes de backend e 44 de frontend, todos verdes. CI no GitHub Actions roda
 em todo PR e push para `main`.
 
 **Estado detalhado, decisões, backlog e histórico da última sessão estão em

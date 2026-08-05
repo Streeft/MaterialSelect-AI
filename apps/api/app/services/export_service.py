@@ -172,7 +172,7 @@ class ExportService:
     def _excluded_sheet(result: RunResultOut) -> Sheet:
         ranking = result.ranking
         assert ranking is not None
-        rows = [[e.name, ", ".join(e.missing_keys)] for e in ranking.excluded]
+        rows = [[e.name, ", ".join(e.missing_labels)] for e in ranking.excluded]
         return Sheet(
             name="Excluídos por dado ausente",
             header=["Material", "Critérios sem valor"],
@@ -225,9 +225,12 @@ class ExportService:
                 slugs.append(constraint.property_slug)
         return slugs
 
-    @classmethod
-    def _provenance_sheet(cls, study, result: RunResultOut, materials: dict) -> Sheet:
-        slugs = cls._relevant_slugs(study, result)
+    def _provenance_sheet(self, study, result: RunResultOut, materials: dict) -> Sheet:
+        slugs = self._relevant_slugs(study, result)
+        # A material with no row at all for a property still has to name that
+        # property the way every other row names it. Reading the name off the
+        # value would print the slug precisely for the missing case.
+        names = {p.slug: p.name for p in self.chart_repo.list_properties()}
         rows: list[list[object]] = []
 
         for candidate in result.candidates:
@@ -238,7 +241,8 @@ class ExportService:
             for slug in slugs:
                 value = by_slug.get(slug)
                 if value is None:
-                    rows.append([material.name, slug, _MISSING, _MISSING, "—", "—", "—", "—"])
+                    label = names.get(slug, slug)
+                    rows.append([material.name, label, _MISSING, _MISSING, "—", "—", "—", "—"])
                     continue
                 definition = value.property_definition
                 rows.append(

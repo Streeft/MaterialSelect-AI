@@ -92,8 +92,15 @@ class RankingCriterion(Base):
     position: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
     key: Mapped[str] = mapped_column(String(160), nullable=False)  # slug or "__index__"
-    label: Mapped[str] = mapped_column(String(200), nullable=False)
-    direction: Mapped[str] = mapped_column(String(3), default="max", nullable=False)
+
+    # Both nullable on purpose: NULL means "the user did not say", and the run
+    # derives the answer from the property or the index. Filling them in at save
+    # time would freeze a guess that then outranks the real source — a label
+    # defaulted to the key printed "__index__" in reports, and a direction
+    # defaulted to "max" silently reversed the ranking of a lower-is-better
+    # property. Absent is absent here too.
+    label: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    direction: Mapped[str | None] = mapped_column(String(3), nullable=True)
     weight: Mapped[float] = mapped_column(Float, default=1.0, nullable=False)
 
     study: Mapped[SelectionStudy] = relationship(back_populates="criteria")

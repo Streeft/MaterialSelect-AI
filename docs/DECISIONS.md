@@ -297,3 +297,43 @@ escape.
 **Corolário — sem carimbo de data/hora.** O relatório reexecuta o pipeline
 determinístico; o mesmo catálogo tem de produzir os mesmos bytes. Um relógio
 quebraria isso sem acrescentar nada ao aviso de reprodutibilidade.
+
+## D-21 — Campo opcional não preenchido continua `NULL`
+
+**Contexto.** Um critério de ranking salvo sem rótulo e sem direção guardava a
+chave e `"max"` no lugar deles. Os dois campos são derivados: sem rótulo, a
+execução usa o nome do índice ou da propriedade; sem direção, usa o
+`better_direction` cadastrado. Preencher na gravação congelava um palpite que
+depois passava à frente da fonte que ele só deveria substituir.
+
+O rótulo fabricado imprimia `__index__` e `modulo_young` no relatório. A direção
+fabricada é pior: um critério salvo como "automático" sobre densidade — em que
+menor é melhor — voltava como maximizar e **invertia o ranking** do estudo
+reexecutado. O mesmo estudo dava resultados diferentes conforme tivesse sido
+salvo, que é exatamente o que a metodologia afirma ser impossível.
+
+**Decisão.** Colunas de campo opcional são anuláveis, e `NULL` significa "o
+usuário não disse". Quem executa deriva a resposta, toda vez, da mesma fonte que
+já usava para um estudo não salvo (migration `07b420ca5122`).
+
+Isto é o princípio nº 3 — *dado ausente nunca vira zero* — aplicado onde ele não
+tinha sido notado. A regra vale para o dado numérico e vale para o resto: a
+ausência não pode ser substituída por um valor plausível que depois se comporta
+como se tivesse sido informado.
+
+**Alternativa descartada.** Resolver o rótulo na gravação, guardando o nome real
+em vez da chave. Continuaria sendo uma cópia de dado derivado, que envelhece
+quando o índice ou a propriedade é renomeado, e não resolveria a direção — para
+essa, não há nada de sensato a congelar.
+
+**Consequência aceita.** A migration repõe para `NULL` o rótulo que apenas
+repetia a chave: a chave continua na coluna `key`, então nada se perde. A
+direção **não** é tocada, porque não há como distinguir um `"max"` fabricado de
+um `"max"` escolhido, e reescrever mudaria em silêncio o resultado de estudos já
+salvos — o defeito que a decisão existe para acabar.
+
+**Corolário — chave é identificador, não palavra.** Onde um rótulo faltava, três
+superfícies imprimiam a chave crua: contribuições e sensibilidade, a tabela de
+excluídos e a linha de proveniência de uma propriedade que o material sequer
+tem. `ExcludedMaterial` passou a carregar `missing_keys` *e* `missing_labels` —
+o identificador estável para quem compara, o nome para quem lê.

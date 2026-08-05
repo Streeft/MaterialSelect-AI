@@ -268,7 +268,10 @@ def _result_context(study, result) -> ResultContext:
     """Flatten a computed run into the read-only view a provider may see."""
     ranked = [(r.name, r.rank, r.score) for r in (result.ranking.ranked if result.ranking else [])]
     excluded = [
-        (e.name, list(e.missing_keys)) for e in (result.ranking.excluded if result.ranking else [])
+        # Labels, not keys: whatever a provider quotes from here ends up in
+        # prose a person reads.
+        (e.name, list(e.missing_labels))
+        for e in (result.ranking.excluded if result.ranking else [])
     ]
     funnel = [(step.label, step.remaining) for step in result.funnel]
 

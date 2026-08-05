@@ -150,6 +150,7 @@ class ExcludedMaterialOut(BaseModel):
     material_id: int
     name: str
     missing_keys: list[str]
+    missing_labels: list[str]
 
 
 class SensitivityScenarioOut(BaseModel):

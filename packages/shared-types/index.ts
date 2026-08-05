@@ -364,7 +364,9 @@ export interface RankedMaterial {
 export interface ExcludedMaterial {
   material_id: number;
   name: string;
+  /** Stable identifiers. Show `missing_labels` to a person. */
   missing_keys: string[];
+  missing_labels: string[];
 }
 
 export interface SensitivityScenario {
