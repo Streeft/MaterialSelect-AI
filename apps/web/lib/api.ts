@@ -313,8 +313,17 @@ export function explainStudy(studyId: number): Promise<Explanation> {
 // --- Exports ----------------------------------------------------------------
 // Downloads are plain links rather than fetch calls: the browser then handles
 // the Content-Disposition filename and the save dialog natively.
+//
+// "html" is not a download: the API serves it inline so the browser renders it
+// and the user prints it to PDF. That is deliberately how the project gets a
+// PDF without taking on a PDF-generation dependency.
 
-export type ExportFormat = "csv" | "xlsx";
+export type ExportFormat = "csv" | "xlsx" | "html";
+
+/** True when the format opens in the browser instead of downloading. */
+export function opensInBrowser(format: ExportFormat): boolean {
+  return format === "html";
+}
 
 export function catalogueExportUrl(format: ExportFormat): string {
   return `${API_URL}/api/exports/catalogo.${format}`;

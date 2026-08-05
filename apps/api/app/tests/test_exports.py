@@ -1,9 +1,11 @@
 """Tests for the export layer.
 
-The central case is formula injection. A material name is free text that can
-arrive through the import wizard or the manual form; if it leaves in a CSV
-unescaped, opening that file runs it. The test therefore stores a hostile name
-through the real API and reads it back out of a real export.
+The central case is injection, and it takes a different shape per format. A
+material name is free text that can arrive through the import wizard or the
+manual form: unescaped in a CSV it runs when the file is opened, and unescaped
+in the printable HTML it runs when the page is viewed. Both tests therefore
+store a hostile name through the real API and read it back out of a real
+export, rather than asserting against a hand-built string.
 """
 
 from __future__ import annotations
@@ -16,6 +18,7 @@ from fastapi.testclient import TestClient
 from openpyxl import load_workbook
 
 from app.exporters.cells import format_number, is_dangerous, safe_number, safe_text
+from app.exporters.html import to_html
 from app.exporters.report import (
     DEMO_DATA_NOTICE,
     LIMITATION_NOTICE,
@@ -24,6 +27,7 @@ from app.exporters.report import (
     standard_notices,
 )
 from app.exporters.spreadsheet import to_csv, to_xlsx
+from app.routers.exports import HTML_CSP
 
 HOSTILE_NAMES = [
     "=cmd|'/c calc'!A1",
@@ -133,6 +137,137 @@ class TestXlsxRendering:
         assert all(not set(name) & set(":\\/?*[]") for name in workbook.sheetnames)
 
 
+class TestHtmlRendering:
+    """The printable report.
+
+    Its risk profile is not the spreadsheet's. Nothing here can run a formula,
+    but the document is served as markup on the API's own origin, so a material
+    name is a script-injection vector unless every value is escaped.
+    """
+
+    def test_markup_in_a_value_cannot_become_markup(self) -> None:
+        report = _report()
+        report.sheets[0].rows.append(["<script>alert(1)</script>", 1.0])
+        rendered = to_html(report)
+        assert "<script>" not in rendered
+        assert "&lt;script&gt;alert(1)&lt;/script&gt;" in rendered
+
+    def test_markup_in_a_heading_or_note_is_escaped_too(self) -> None:
+        report = _report()
+        report.sheets[0].name = "<img onerror=x>"
+        report.sheets[0].notes = ["<b>nota</b>"]
+        report.sheets[0].header = ["<i>coluna</i>", "Valor"]
+        rendered = to_html(report)
+        assert "<img" not in rendered
+        assert "<b>nota</b>" not in rendered
+        assert "<i>coluna</i>" not in rendered
+
+    def test_the_spreadsheet_apostrophe_does_not_leak_into_html(self) -> None:
+        # A leading "=" is inert in HTML; prefixing an apostrophe here would
+        # corrupt the exported value for no gain.
+        rendered = to_html(_report())
+        assert "&#x27;=SOMA" not in rendered
+        assert "'=SOMA" not in rendered
+        assert "=SOMA(A1)" in rendered
+
+    def test_missing_value_is_a_word_not_an_empty_cell(self) -> None:
+        # The row fixture carries a None; a blank cell would read as zero.
+        assert "<td>ausente</td>" in to_html(_report())
+
+    def test_notices_appear_before_the_data(self) -> None:
+        rendered = to_html(_report())
+        assert rendered.index(LIMITATION_NOTICE) < rendered.index("Material")
+
+    def test_demo_warning_is_singled_out(self) -> None:
+        # Assert on the class being *applied*, not on the stylesheet that
+        # defines it — the rule is present in every document either way.
+        assert 'class="notice notice-demo"' in to_html(_report())
+        without_demo = Report(
+            title="t",
+            subtitle="",
+            notices=standard_notices(includes_demo_data=False),
+            sheets=[],
+        )
+        assert 'class="notice notice-demo"' not in to_html(without_demo)
+
+    def test_document_is_self_contained(self) -> None:
+        # It has to render identically offline, from an email attachment,
+        # years from now. Any external reference breaks that.
+        rendered = to_html(_report())
+        assert "<script" not in rendered
+        assert "<link" not in rendered
+        assert "src=" not in rendered
+
+    def test_carries_print_rules(self) -> None:
+        rendered = to_html(_report())
+        assert "@media print" in rendered
+        # Repeating the header on each printed page is what keeps a table
+        # readable once it spills past the first one.
+        assert "table-header-group" in rendered
+
+    def test_render_is_deterministic(self) -> None:
+        # No timestamp, no ordering wobble: the same report is the same bytes.
+        assert to_html(_report()) == to_html(_report())
+
+    def test_sections_are_numbered_for_citation(self) -> None:
+        assert "<h2>1. Dados</h2>" in to_html(_report())
+
+
+class TestHtmlEndpoint:
+    def test_catalogue_html_opens_inline_rather_than_downloading(self, client: TestClient) -> None:
+        response = client.get("/api/exports/catalogo.html")
+        assert response.status_code == 200, response.text
+        assert response.headers["content-type"].startswith("text/html")
+        # Inline is the point: the browser renders it so the user can print it.
+        assert response.headers["content-disposition"].startswith("inline")
+
+    def test_html_is_served_under_a_no_execution_policy(self, client: TestClient) -> None:
+        response = client.get("/api/exports/catalogo.html")
+        assert response.headers["content-security-policy"] == HTML_CSP
+        assert response.headers["x-content-type-options"] == "nosniff"
+
+    def test_spreadsheet_formats_still_download(self, client: TestClient) -> None:
+        for fmt in ("csv", "xlsx"):
+            disposition = client.get(f"/api/exports/catalogo.{fmt}").headers["content-disposition"]
+            assert disposition.startswith("attachment"), fmt
+
+    def test_html_carries_the_mandatory_notices(self, client: TestClient) -> None:
+        text = client.get("/api/exports/catalogo.html").text
+        assert LIMITATION_NOTICE in text
+        assert DEMO_DATA_NOTICE in text
+
+    def test_a_hostile_material_name_cannot_escape_as_markup(self, client: TestClient) -> None:
+        created = client.post(
+            "/api/materials",
+            json={
+                "name": '<img src=x onerror="alert(1)">',
+                "class_id": 1,
+                "keywords": [],
+                "values": [
+                    {
+                        "property_slug": "densidade",
+                        "kind": "scalar",
+                        "value": 1000.0,
+                        "unit": "kg/m**3",
+                        "data_quality": "ESTIMADO",
+                    }
+                ],
+            },
+        )
+        assert created.status_code == 201, created.text
+
+        text = client.get("/api/exports/catalogo.html").text
+        assert "<img src=x" not in text
+        assert "onerror" not in text or "&quot;" in text
+        assert "&lt;img src=x" in text
+
+    def test_unknown_study_is_404(self, client: TestClient) -> None:
+        assert client.get("/api/exports/estudos/999999.html").status_code == 404
+
+    def test_unsupported_format_is_still_rejected(self, client: TestClient) -> None:
+        assert client.get("/api/exports/catalogo.pdf").status_code == 400
+
+
 class TestCatalogueExport:
     def test_csv_export_succeeds(self, client: TestClient) -> None:
         response = client.get("/api/exports/catalogo.csv")
@@ -238,6 +373,27 @@ class TestStudyExport:
             "Proveniência",
         ]:
             assert expected in names, f"faltou a aba '{expected}' em {names}"
+
+    def test_html_report_contains_every_audit_section(self, client: TestClient) -> None:
+        # Same Report, different renderer: the printable version must not be a
+        # reduced summary of what the spreadsheet carries.
+        text = client.get(f"/api/exports/estudos/{self._study_id(client)}.html").text
+        for expected in [
+            "Problema",
+            "Restrições e funil",
+            "Candidatos",
+            "Índice de desempenho",
+            "Contribuições",
+            "Excluídos por dado ausente",
+            "Sensibilidade",
+            "Proveniência",
+        ]:
+            assert expected in text, f"faltou a seção '{expected}'"
+
+    def test_html_report_states_the_derived_dimension(self, client: TestClient) -> None:
+        text = client.get(f"/api/exports/estudos/{self._study_id(client)}.html").text
+        assert "Dimensão (derivada)" in text
+        assert "[length]" in text
 
     def test_csv_report_states_the_derived_dimension(self, client: TestClient) -> None:
         text = client.get(f"/api/exports/estudos/{self._study_id(client)}.csv").text

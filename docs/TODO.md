@@ -5,6 +5,10 @@ cá.
 
 **Dificuldade:** ▁ baixa (horas) · ▃ média (1–2 dias) · ▆ alta (uma semana ou mais).
 
+Identificadores (`A1`, `M7`…) são **estáveis**: um item concluído sai da lista e
+vai para "Débitos já quitados", deixando lacuna na numeração em vez de renumerar
+os vizinhos — outros documentos citam esses códigos.
+
 ---
 
 ## Alta prioridade
@@ -26,15 +30,6 @@ cá.
   está demonstrada.
 - **Dificuldade:** ▃
 - **Dependências:** nenhuma técnica; depende de escolher o caso na literatura.
-
-### A3 — Relatório em HTML imprimível (e PDF pela impressão)
-- **Descrição:** renderizar o mesmo `Report` que já alimenta CSV e XLSX em HTML
-  com CSS de impressão. O PDF sai do "imprimir para PDF" do navegador.
-- **Impacto:** alto. É o formato que se anexa a uma monografia; CSV e XLSX não
-  servem para leitura.
-- **Dificuldade:** ▃
-- **Dependências:** nenhuma — o modelo `Report` já existe e é agnóstico de
-  formato. Evita deliberadamente uma dependência pesada de geração de PDF.
 
 ### A4 — Testes end-to-end dos fluxos
 - **Descrição:** Playwright cobrindo importar → selecionar → visualizar →
@@ -102,14 +97,6 @@ cá.
 - **Dificuldade:** ▃
 - **Dependências:** muda o schema de `SelectionConstraint` (precisa de migration).
 
-### M7 — Constraint de unicidade em `material_property_value`
-- **Descrição:** `UniqueConstraint(material_id, property_id)`. Hoje a unicidade
-  é garantida por validação de payload no service.
-- **Impacto:** médio. Uma duplicata faria pontos de gráfico dependerem da ordem
-  do SELECT — violação de determinismo.
-- **Dificuldade:** ▁
-- **Dependências:** exige migration.
-
 ---
 
 ## Baixa prioridade
@@ -173,3 +160,14 @@ Registrados para não voltarem por engano:
 - ~~Isolamento de testes quebrado com pysqlite~~ — corrigido no `conftest.py`,
   guardado por `test_isolation.py` (ver [DECISIONS.md](DECISIONS.md) D-17).
 - ~~Sem CI~~ — `.github/workflows/ci.yml` roda em todo PR e push.
+- ~~**A3** — relatório em HTML imprimível~~ — `app/exporters/html.py` renderiza o
+  mesmo `Report` que já alimentava CSV e XLSX, com folha de impressão; o PDF sai
+  do navegador e nenhuma dependência de geração de PDF entrou no projeto.
+  Escape de marcação próprio + CSP `default-src 'none'` como camada
+  independente.
+- ~~**M7** — unicidade em `material_property_value`~~ —
+  `uq_material_property_value_pair` na migration `bfeee728d230`. A migration
+  **falha e não apaga nada** se encontrar duplicatas: dizer quais são e deixar a
+  escolha com o usuário é preferível a descartar proveniência em silêncio.
+- ~~README afirmava que a CI bloqueia o merge~~ — não bloqueia enquanto A1 não
+  for feito; o texto agora diz o que é verdade e aponta para A1.

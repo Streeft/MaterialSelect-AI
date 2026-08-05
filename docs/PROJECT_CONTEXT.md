@@ -52,7 +52,7 @@ sugerir e explicar.
 | 6 | Camada de IA opcional | ✅ | [09](09-camada-ia.md) |
 | 7 | Relatórios e qualidade | 🔄 parcial | [10](10-relatorios.md) |
 
-**Saúde do código:** 362 testes de backend (Python 3.11 e 3.12) e 44 de
+**Saúde do código:** 383 testes de backend (Python 3.11 e 3.12) e 44 de
 frontend, todos verdes. `ruff` limpo, `black --check` limpo, typecheck estrito e
 build de produção sem avisos. CI no GitHub Actions rodando em todo PR e push
 para `main`.
@@ -98,15 +98,18 @@ na entrada.
 - **Guardrails executáveis** — ver [ARCHITECTURE.md §3](ARCHITECTURE.md).
 
 ### Exportação (Fase 7, parcial)
-CSV/XLSX do catálogo e o **relatório de seleção auditável** em 9 abas, incluindo
-proveniência de cada número. Neutralização de injeção de fórmula. Avisos
-obrigatórios de limitação, reprodutibilidade e dados demonstrativos.
+CSV, XLSX e **HTML imprimível** do catálogo e do **relatório de seleção
+auditável** em 9 seções, incluindo proveniência de cada número. O HTML é
+autocontido e traz folha de estilo de impressão — o PDF sai do navegador, sem
+dependência de geração de PDF ([D-20](DECISIONS.md)). Cada formato neutraliza a
+injeção que lhe cabe: fórmula na planilha, marcação no HTML. Avisos obrigatórios
+de limitação, reprodutibilidade e dados demonstrativos.
 
 ## 5. Em andamento
 
-**Fase 7** — a fatia de exportação em planilha está entregue. Falta:
-PDF e HTML imprimível, arquitetura para PPTX, testes end-to-end de interface,
-autenticação e autorização por projeto, auditoria, acessibilidade e desempenho.
+**Fase 7** — as exportações estão entregues (planilha e imprimível). Falta:
+arquitetura para PPTX, testes end-to-end de interface, autenticação e
+autorização por projeto, auditoria, acessibilidade e desempenho.
 
 ## 6. Pendências
 
@@ -126,7 +129,8 @@ Ver os diagramas em [ARCHITECTURE.md §4](ARCHITECTURE.md). Em resumo:
 - **Seleção** → filtro → índice → ranking → candidatos com justificativa.
 - **Visualização** → backend calcula geometria → frontend desenha.
 - **IA** → catálogo + texto → provedor → schema → guardrails → proposta revisável.
-- **Exportação** → reexecuta o pipeline → relatório → escape de fórmula → arquivo.
+- **Exportação** → reexecuta o pipeline → relatório → escape conforme o formato
+  (fórmula na planilha, marcação no HTML) → arquivo.
 
 ## 8. Decisões importantes
 
@@ -166,19 +170,17 @@ que mais afetam quem for mexer no código:
 | Dependência de provedor de IA | Arquitetura desacoplada com provedor simulado; funciona sem chave. |
 | Incorporação inadvertida de dado protegido | Triagem de licenciamento prevista (item 4.2 da proposta) — **ainda não implementada**, ver [TODO.md](TODO.md). |
 | Resultado não reproduzível por interferência de IA | Cálculo determinístico + guardrails executáveis + confirmação do usuário. |
-| Regressão silenciosa | CI com 362 testes; canário de isolamento de testes. |
+| Regressão silenciosa | CI com 383 testes; canário de isolamento de testes. |
 
 ## 11. Próximos passos sugeridos
 
 Na ordem em que eu atacaria:
 
 1. **Tornar os checks obrigatórios** no GitHub (5 minutos, alto retorno).
-2. **Relatório em HTML imprimível** reaproveitando o mesmo `Report` que já
-   alimenta CSV e XLSX — o PDF sai da impressão do navegador, sem dependência
-   pesada nova.
+2. **Estudo de caso didático completo**, do enunciado ao relatório — é entregável
+   explícito da proposta (item 6) e ainda não existe. O relatório imprimível, que
+   é o artefato final do caso, já está pronto.
 3. **Testes end-to-end** dos fluxos principais (Playwright).
-4. **Estudo de caso didático completo**, do enunciado ao relatório — é entregável
-   explícito da proposta (item 6) e ainda não existe.
-5. **Autenticação e projetos**, se o trabalho for exposto em rede.
+4. **Autenticação e projetos**, se o trabalho for exposto em rede.
 
 Detalhamento com impacto e dificuldade em [TODO.md](TODO.md).

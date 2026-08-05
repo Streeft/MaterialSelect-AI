@@ -32,6 +32,7 @@ diferente. O que é óbvio não precisa de registro.
 | D-17 | BEGIN explícito nos testes (pysqlite) | aceito | abaixo |
 | D-18 | Sem autenticação no MVP | aceito, com risco | abaixo |
 | D-19 | Merge commit em vez de squash | aceito | abaixo |
+| D-20 | HTML imprimível em vez de biblioteca de PDF | aceito | abaixo |
 
 ---
 
@@ -259,3 +260,40 @@ trabalho — squash as colapsaria; rebase reescreveria os hashes que os corpos d
 PR citam nominalmente.
 
 **Custo aceito.** O histórico do `main` deixou de ser estritamente linear.
+
+---
+
+## D-20 — HTML imprimível em vez de biblioteca de geração de PDF
+
+**Contexto.** O formato que se anexa a uma monografia é PDF. CSV e XLSX servem a
+planilhas, não à leitura.
+
+**Decisão.** Renderizar o mesmo `Report` em HTML autocontido com folha de estilo
+de impressão (`app/exporters/html.py`) e deixar o PDF sair do "imprimir para
+PDF" do navegador.
+
+**Alternativas descartadas.**
+- WeasyPrint: traz GTK/Pango/Cairo como dependências de sistema. Instalar o
+  projeto no Windows deixaria de ser `pip install -e .`, o que é caro demais
+  para um trabalho que precisa ser reproduzido por outra pessoa.
+- ReportLab: desenhar cada tabela em coordenadas, reimplementando paginação e
+  quebra de linha que o navegador já resolve — e um segundo layout para manter
+  em sincronia com o primeiro.
+- `wkhtmltopdf`/headless Chrome no servidor: um binário externo e um processo
+  por exportação, para produzir o mesmo PDF que o navegador do usuário já
+  produz de graça.
+
+**Consequência aceita.** O PDF depende de uma ação do usuário (Ctrl+P) e sua
+paginação exata varia com o navegador. Em troca, zero dependência nova, um único
+modelo de relatório e um artefato que abre em qualquer lugar.
+
+**Corolário — o escape é por formato, não global.** `cells.py` protege planilha
+contra fórmula; `html.py` protege documento contra marcação. Reaproveitar o
+primeiro no segundo seria errado nas duas pontas: um `=` é inerte em HTML, e o
+apóstrofo apareceria na tela como corrupção visível do dado exportado. O router
+ainda serve a página sob `default-src 'none'`, como camada independente do
+escape.
+
+**Corolário — sem carimbo de data/hora.** O relatório reexecuta o pipeline
+determinístico; o mesmo catálogo tem de produzir os mesmos bytes. Um relógio
+quebraria isso sem acrescentar nada ao aviso de reprodutibilidade.

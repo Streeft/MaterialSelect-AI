@@ -12,9 +12,10 @@ Projeto de Trabalho de Conclusão de Curso em Engenharia de Materiais (UFRGS).
 
 Estão concluídas as **Fases 1 a 6**: fundação, catálogo, importação de planilhas,
 seleção determinística (filtros, índices de desempenho, ranking multicritério),
-visualização (mapas de Ashby e comparador) e a camada de IA opcional. A fase
-restante — relatórios e qualidade — está descrita em
-[`docs/backlog.md`](docs/backlog.md).
+visualização (mapas de Ashby e comparador) e a camada de IA opcional. A **Fase 7
+— relatórios e qualidade — está em andamento**: a exportação em CSV, XLSX e HTML
+imprimível já saiu; faltam testes end-to-end, autenticação e auditoria. O
+backlog priorizado está em [`docs/TODO.md`](docs/TODO.md).
 
 ## Arquitetura (resumo)
 
@@ -121,7 +122,11 @@ Todo push para `main` e todo pull request passam por
 comandos desta seção — `ruff`, `black --check`, `pytest` (em Python 3.11 e
 3.12), `typecheck`, `lint`, `test` e `build` — e ainda aplica as migrações do
 Alembic num banco limpo, verificando que o schema versionado realmente sobe do
-zero. Nenhum passo é informativo: qualquer falha bloqueia o merge.
+zero. Nenhum passo é informativo: uma falha reprova o pull request.
+
+> ⚠️ Os checks **ainda não são obrigatórios** nas configurações do GitHub, então
+> hoje um merge com CI vermelha tecnicamente passa. Torná-los *required status
+> checks* é o item A1 de [`docs/TODO.md`](docs/TODO.md).
 
 ## Camada de IA (Fase 6 — opcional, ligada por padrão em modo simulado)
 
@@ -144,16 +149,23 @@ resto do sistema depende dela. Detalhes em
 
 ## Relatórios e exportação (Fase 7 — em andamento)
 
-No **Catálogo** e em cada estudo salvo há botões **CSV** e **XLSX**. O relatório
-de um estudo reexecuta o pipeline determinístico e traz problema, funil de
-eliminação, índice com dimensão derivada, contribuições por critério, excluídos
-por dado ausente, análise de sensibilidade e a **proveniência de cada número**
-(valor original, unidade original, método de conversão, qualidade, fonte).
+No **Catálogo** e em cada estudo salvo há botões **CSV**, **XLSX** e **HTML para
+impressão**. O relatório de um estudo reexecuta o pipeline determinístico e traz
+problema, funil de eliminação, índice com dimensão derivada, contribuições por
+critério, excluídos por dado ausente, análise de sensibilidade e a
+**proveniência de cada número** (valor original, unidade original, método de
+conversão, qualidade, fonte).
+
+O **HTML** é o formato de leitura: abre numa aba, é autocontido (sem script, sem
+requisição externa) e traz folha de estilo de impressão, de modo que o PDF que
+se anexa a uma monografia sai do próprio "imprimir" do navegador — sem que o
+projeto assuma uma dependência de geração de PDF.
 
 Todo arquivo exportado carrega o aviso de que a ferramenta apoia ensino e
 triagem preliminar e não substitui validação experimental — e o aviso de dados
-demonstrativos quando aplicável. Células são protegidas contra injeção de
-fórmula. Detalhes em [`docs/10-relatorios.md`](docs/10-relatorios.md).
+demonstrativos quando aplicável. Cada formato é protegido contra a injeção que
+lhe cabe: fórmula na planilha, marcação no HTML. Detalhes em
+[`docs/10-relatorios.md`](docs/10-relatorios.md).
 
 ## Mapas e comparação (Fase 5 — disponível)
 
