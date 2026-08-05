@@ -292,6 +292,8 @@ export const ptBR = {
     title: "Exportar",
     csv: "CSV",
     xlsx: "XLSX",
+    html: "HTML para impressão",
+    htmlTitle: "Abre em nova aba, pronto para imprimir ou salvar como PDF",
     catalogue: "Exportar catálogo",
     study: "Exportar relatório",
     hint:
