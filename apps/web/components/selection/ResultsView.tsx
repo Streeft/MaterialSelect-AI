@@ -135,7 +135,7 @@ export function ResultsView({ result }: { result: RunResult }) {
           <ul className="space-y-1 text-sm text-amber-800">
             {ranking.excluded.map((e) => (
               <li key={e.material_id}>
-                {e.name} — {t.missing}: {e.missing_keys.join(", ")}
+                {e.name} — {t.missing}: {e.missing_labels.join(", ")}
               </li>
             ))}
           </ul>

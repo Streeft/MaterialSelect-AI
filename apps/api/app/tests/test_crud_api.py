@@ -2,6 +2,11 @@
 
 from __future__ import annotations
 
+import pytest
+from sqlalchemy.exc import IntegrityError
+
+from app.models.material_property_value import MaterialPropertyValue
+
 
 def _metais_class_id(client) -> int:
     classes = client.get("/api/classes").json()
@@ -388,3 +393,45 @@ def test_search_wildcards_are_matched_literally(client):
     resp = client.get("/api/materials", params={"search": "a_o"})
     assert resp.status_code == 200
     assert resp.json() == []
+
+
+# --- Unicidade de valor por material e propriedade ------------------------
+
+
+def test_duplicate_property_in_one_payload_is_rejected(client):
+    payload = _new_material_payload(
+        client,
+        name="Material Duplicado Demo",
+        values=[
+            {"property_slug": "densidade", "kind": "scalar", "value": 1.0, "unit": "g/cm**3"},
+            {"property_slug": "densidade", "kind": "scalar", "value": 2.0, "unit": "g/cm**3"},
+        ],
+    )
+    resp = client.post("/api/materials", json=payload)
+    assert resp.status_code == 400
+    assert "densidade" in resp.json()["detail"]
+
+
+def test_database_refuses_a_second_value_for_the_same_pair(db_session):
+    """The constraint, not the service check, is what makes this impossible.
+
+    Two rows for one (material, property) would make the value that reaches a
+    chart, a filter or a ranking depend on the order the SELECT returned them —
+    the same catalogue answering twice differently. The service only sees one
+    payload at a time, so it cannot cover two requests racing.
+    """
+    existing = db_session.query(MaterialPropertyValue).first()
+    assert existing is not None
+
+    db_session.add(
+        MaterialPropertyValue(
+            material_id=existing.material_id,
+            property_id=existing.property_id,
+            value_scalar=1.0,
+            original_unit="kg/m**3",
+            normalized_value=1.0,
+            canonical_unit="kg/m**3",
+        )
+    )
+    with pytest.raises(IntegrityError):
+        db_session.flush()

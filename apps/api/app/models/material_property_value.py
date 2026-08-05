@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from sqlalchemy import Boolean, DateTime, Enum, Float, ForeignKey, String
+from sqlalchemy import Boolean, DateTime, Enum, Float, ForeignKey, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -29,6 +29,20 @@ class MaterialPropertyValue(Base):
     """A single property measurement/estimate attached to a material."""
 
     __tablename__ = "material_property_value"
+
+    # One value per material per property, enforced by the database.
+    #
+    # This is a determinism guarantee, not bookkeeping. Two rows for the same
+    # pair would make the value that reaches a chart, a filter or a ranking
+    # depend on the order the SELECT happened to return — the same catalogue
+    # could then produce two different answers, which is the one thing the
+    # methodology claims cannot happen. The services already reject duplicates
+    # within a payload; only the constraint covers two requests racing, and the
+    # paths (import commit, manual form, a future API client) that never pass
+    # through that check together.
+    __table_args__ = (
+        UniqueConstraint("material_id", "property_id", name="uq_material_property_value_pair"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     material_id: Mapped[int] = mapped_column(
