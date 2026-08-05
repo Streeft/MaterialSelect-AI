@@ -13,14 +13,6 @@ os vizinhos — outros documentos citam esses códigos.
 
 ## Alta prioridade
 
-### A1 — Tornar os checks de CI obrigatórios
-- **Descrição:** marcar `Backend (Python 3.11)`, `Backend (Python 3.12)` e
-  `Frontend` como *required status checks* para `main` em *Settings → Branches*.
-- **Impacto:** alto. Hoje a CI é verde mas não bloqueia: um merge com CI vermelha
-  ainda passa, e o portão vale como convenção, não garantia.
-- **Dificuldade:** ▁ (configuração no GitHub, não código).
-- **Dependências:** nenhuma. **É o melhor retorno por esforço do backlog.**
-
 ### A2 — Estudo de caso didático completo
 - **Descrição:** um caso com solução consolidada na literatura, do enunciado ao
   relatório exportado, verificando se os candidatos e a ordenação correspondem
@@ -38,7 +30,10 @@ os vizinhos — outros documentos citam esses códigos.
   sessão (unidade nula na IA, `prettyUnit` com expoente fracionário) só
   apareceram porque alguém abriu o navegador.
 - **Dificuldade:** ▆
-- **Dependências:** A1 é desejável antes, para que os testes bloqueiem de fato.
+- **Dependências:** nenhuma, mas **um job novo não bloqueia sozinho.** A ruleset
+  exige uma lista fixa de nomes; um job de Playwright acrescentado ao `ci.yml`
+  roda e reprova o PR na aparência, sem impedir o merge, até que o nome entre em
+  `scripts/protect-main.ps1` e o script seja rodado de novo.
 
 ### A5 — Autenticação e autorização por projeto
 - **Descrição:** usuários, sessões, e escopo de dados por projeto.
@@ -169,5 +164,15 @@ Registrados para não voltarem por engano:
   `uq_material_property_value_pair` na migration `bfeee728d230`. A migration
   **falha e não apaga nada** se encontrar duplicatas: dizer quais são e deixar a
   escolha com o usuário é preferível a descartar proveniência em silêncio.
-- ~~README afirmava que a CI bloqueia o merge~~ — não bloqueia enquanto A1 não
-  for feito; o texto agora diz o que é verdade e aponta para A1.
+- ~~README afirmava que a CI bloqueia o merge~~ — passou a ser verdade com A1;
+  antes disso o texto foi corrigido para não prometer garantia que não havia.
+- ~~**A1** — checks de CI obrigatórios~~ — ruleset `CI obrigatoria em main`
+  exigindo `Backend (Python 3.11)`, `Backend (Python 3.12)` e `Frontend`, **sem
+  ator de exceção** (vale para o dono do repositório também) e com a branch
+  obrigada a estar atualizada com `main` antes do merge. Só foi possível porque
+  o repositório passou a ser **público**: no GitHub Free a proteção de branch
+  não existe em repositório privado, e tanto `PUT /branches/main/protection`
+  quanto `POST /rulesets` respondiam
+  `403 — "Upgrade to GitHub Pro or make this repository public"`
+  (ver [DECISIONS.md](DECISIONS.md) D-22). Reaplicável e auditável por
+  `scripts/protect-main.ps1`, que é idempotente.

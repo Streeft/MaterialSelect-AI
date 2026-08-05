@@ -55,7 +55,8 @@ sugerir e explicar.
 **Saúde do código:** 389 testes de backend (Python 3.11 e 3.12) e 44 de
 frontend, todos verdes. `ruff` limpo, `black --check` limpo, typecheck estrito e
 build de produção sem avisos. CI no GitHub Actions rodando em todo PR e push
-para `main`.
+para `main`, com os três checks **obrigatórios**: o GitHub recusa o merge se
+qualquer um falhar ([D-22](DECISIONS.md)).
 
 ## 4. Funcionalidades concluídas
 
@@ -118,8 +119,9 @@ dependências. Os três itens de maior peso:
 
 1. **Não há autenticação nenhuma.** A API é aberta.
 2. **Nenhum teste end-to-end de interface.** A verificação de UI foi manual.
-3. **Checks de CI não são obrigatórios** no GitHub — um merge ainda pode passar
-   com CI vermelha. É configuração no repositório, não código.
+3. **Nenhuma triagem de licenciamento** das bases incorporadas — compromisso do
+   item 4.2 da proposta, e agora com o repositório público a aposta é maior
+   ([TODO.md](TODO.md) M1).
 
 ## 7. Principais fluxos
 
@@ -170,17 +172,21 @@ que mais afetam quem for mexer no código:
 | Dependência de provedor de IA | Arquitetura desacoplada com provedor simulado; funciona sem chave. |
 | Incorporação inadvertida de dado protegido | Triagem de licenciamento prevista (item 4.2 da proposta) — **ainda não implementada**, ver [TODO.md](TODO.md). |
 | Resultado não reproduzível por interferência de IA | Cálculo determinístico + guardrails executáveis + confirmação do usuário. |
-| Regressão silenciosa | CI com 389 testes; canário de isolamento de testes. |
+| Regressão silenciosa | CI com 389 testes, **obrigatória para o merge**; canário de isolamento de testes. |
 
 ## 11. Próximos passos sugeridos
 
 Na ordem em que eu atacaria:
 
-1. **Tornar os checks obrigatórios** no GitHub (5 minutos, alto retorno).
-2. **Estudo de caso didático completo**, do enunciado ao relatório — é entregável
+1. **Estudo de caso didático completo**, do enunciado ao relatório — é entregável
    explícito da proposta (item 6) e ainda não existe. O relatório imprimível, que
    é o artefato final do caso, já está pronto.
-3. **Testes end-to-end** dos fluxos principais (Playwright).
+2. **Testes end-to-end** dos fluxos principais (Playwright). Ao acrescentar o job
+   ao `ci.yml`, lembre de incluí-lo também em `scripts/protect-main.ps1` e rodar
+   o script: a ruleset exige uma lista fixa de nomes, e um job fora dela reprova
+   na aparência sem impedir o merge.
+3. **Triagem de licenciamento** das bases incorporadas — agora que o repositório
+   é público, incorporar dado protegido custa mais caro.
 4. **Autenticação e projetos**, se o trabalho for exposto em rede.
 
 Detalhamento com impacto e dificuldade em [TODO.md](TODO.md).

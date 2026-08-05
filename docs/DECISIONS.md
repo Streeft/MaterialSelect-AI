@@ -33,6 +33,8 @@ diferente. O que é óbvio não precisa de registro.
 | D-18 | Sem autenticação no MVP | aceito, com risco | abaixo |
 | D-19 | Merge commit em vez de squash | aceito | abaixo |
 | D-20 | HTML imprimível em vez de biblioteca de PDF | aceito | abaixo |
+| D-21 | Campo opcional não preenchido continua `NULL` | aceito | abaixo |
+| D-22 | Repositório público para o portão de CI ser real | aceito, com consequência | abaixo |
 
 ---
 
@@ -337,3 +339,48 @@ superfícies imprimiam a chave crua: contribuições e sensibilidade, a tabela d
 excluídos e a linha de proveniência de uma propriedade que o material sequer
 tem. `ExcludedMaterial` passou a carregar `missing_keys` *e* `missing_labels` —
 o identificador estável para quem compara, o nome para quem lê.
+
+---
+
+## D-22 — Repositório público para o portão de CI ser real
+
+**Contexto.** A CI existia desde a Fase 6 e rodava em todo PR, mas era
+**convenção, não portão**: um merge com CI vermelha passava. Enquanto isso, a
+alegação central do trabalho é que a seleção é reprodutível — e reprodutibilidade
+verificada por um check que ninguém é obrigado a esperar não está verificada.
+
+Tornar os checks obrigatórios esbarrou num limite de plano, não de configuração:
+**o GitHub Free não protege branch em repositório privado.** Tanto
+`PUT /repos/{owner}/{repo}/branches/main/protection` quanto
+`POST /repos/{owner}/{repo}/rulesets` respondem
+`403 — "Upgrade to GitHub Pro or make this repository public"`.
+
+**Decisão.** Tornar o repositório público, e sobre ele aplicar a ruleset
+`CI obrigatoria em main` — `Backend (Python 3.11)`, `Backend (Python 3.12)` e
+`Frontend` obrigatórios, **sem ator de exceção**, com a branch obrigada a estar
+atualizada com `main`.
+
+Não há bypass para o dono de propósito. Um portão que o autor contorna sozinho é
+o mesmo portão que não existia antes, com mais passos.
+
+**Alternativas descartadas.**
+- **GitHub Education** (Pro gratuito para estudante verificado, repositório
+  segue privado): seria a saída de menor consequência, mas a verificação leva
+  dias e o portão ficaria dependendo de aprovação de terceiro.
+- **Assinar o GitHub Pro:** resolve na hora e mantém privado, ao custo de uma
+  assinatura mensal por um repositório de TCC.
+- **Deixar como convenção:** é a opção que a decisão existe para recusar.
+
+**Consequências aceitas.** Auditadas antes de publicar: nenhum segredo, `.env`,
+banco ou chave jamais foi commitado — só os três `.env.example`. Ficam públicos
+e permanentes o e-mail do autor nos 18 commits e o número de cartão UFRGS em
+[`PROJECT_CONTEXT.md`](PROJECT_CONTEXT.md) §1, ambos com o autor ciente. O
+código já era MIT. Publicidade não se desfaz revertendo: o que for clonado ou
+indexado permanece.
+
+**Corolário — a lista de checks é fixa e tem de ser mantida.** A ruleset exige
+nomes literais. Um job acrescentado ao `ci.yml` e ausente da lista roda, aparece
+vermelho no PR e **não impede o merge**; um nome exigido que nunca é reportado
+bloqueia todo merge para sempre. Por isso a configuração é código versionado —
+`scripts/protect-main.ps1`, idempotente — e não um clique em *Settings* que
+ninguém revisa.
