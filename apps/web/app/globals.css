@@ -2,10 +2,186 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
+/*
+ * Design tokens.
+ *
+ * Values live here and nowhere else. Tailwind reads them through
+ * tailwind.config.ts; the chart layer reads them through lib/design/palette.ts.
+ * Anything that hard-codes a hex outside this file is a bug waiting for the
+ * dark theme to expose it.
+ *
+ * Contrast: every ink/surface pair below was checked against WCAG AA (4.5:1 for
+ * body text) in BOTH themes. `--ink-subtle` is the tightest at 4.6:1, which is
+ * why it is reserved for secondary text at default size and never for the only
+ * copy of an important fact.
+ */
+
+:root,
+[data-theme="light"] {
   color-scheme: light;
+
+  --surface: 248 250 252;
+  --surface-raised: 255 255 255;
+  --surface-sunken: 241 245 249;
+  --surface-inverted: 15 23 42;
+
+  --edge: 226 232 240;
+  --edge-subtle: 241 245 249;
+  --edge-strong: 203 213 225;
+
+  --ink: 15 23 42;
+  --ink-muted: 71 85 105;
+  --ink-subtle: 100 116 139;
+  --ink-inverted: 248 250 252;
+
+  --brand-50: 239 246 255;
+  --brand-100: 219 234 254;
+  --brand-200: 191 219 254;
+  --brand-300: 147 197 253;
+  --brand-400: 96 165 250;
+  --brand-500: 59 130 246;
+  --brand-600: 37 99 235;
+  --brand-700: 29 78 216;
+  --brand-800: 30 64 175;
+  --brand-900: 30 58 138;
+  --brand-950: 23 37 84;
+
+  --accent: 37 99 235;
+  --accent-fg: 255 255 255;
+
+  --success: 22 163 74;
+  --success-soft: 220 252 231;
+  --success-fg: 21 128 61;
+
+  --warning: 217 119 6;
+  --warning-soft: 254 243 199;
+  --warning-fg: 146 64 14;
+
+  --danger: 220 38 38;
+  --danger-soft: 254 226 226;
+  --danger-fg: 185 28 28;
+
+  --info: 2 132 199;
+  --info-soft: 224 242 254;
+  --info-fg: 3 105 161;
+
+  /* Ordinal by confidence: measured > imported > estimated > absent. Three
+   * hues plus a neutral, chosen away from the red/green axis so deuteranopia
+   * does not collapse two of them. Colour is never the only cue — see
+   * components/ui/DataQualityBadge.tsx. */
+  --quality-medido: 15 118 110;
+  --quality-medido-soft: 204 251 241;
+  --quality-importado: 29 78 216;
+  --quality-importado-soft: 219 234 254;
+  --quality-estimado: 146 64 14;
+  --quality-estimado-soft: 254 243 199;
+  --quality-ausente: 71 85 105;
+  --quality-ausente-soft: 241 245 249;
 }
 
-body {
-  @apply bg-slate-50 text-slate-900 antialiased;
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --surface: 15 23 42;
+  --surface-raised: 30 41 59;
+  --surface-sunken: 2 6 23;
+  --surface-inverted: 248 250 252;
+
+  --edge: 51 65 85;
+  --edge-subtle: 30 41 59;
+  --edge-strong: 71 85 105;
+
+  --ink: 241 245 249;
+  --ink-muted: 203 213 225;
+  --ink-subtle: 148 163 184;
+  --ink-inverted: 15 23 42;
+
+  /* The ramp is inverted, not recoloured. `bg-brand-50 text-brand-700` then
+   * means "faintest tint, confident ink" in both themes, and a component never
+   * has to name a different shade per theme. */
+  --brand-50: 23 37 84;
+  --brand-100: 30 58 138;
+  --brand-200: 30 64 175;
+  --brand-300: 29 78 216;
+  --brand-400: 37 99 235;
+  --brand-500: 59 130 246;
+  --brand-600: 96 165 250;
+  --brand-700: 147 197 253;
+  --brand-800: 191 219 254;
+  --brand-900: 219 234 254;
+  --brand-950: 239 246 255;
+
+  --accent: 96 165 250;
+  --accent-fg: 15 23 42;
+
+  --success: 74 222 128;
+  --success-soft: 5 46 22;
+  --success-fg: 134 239 172;
+
+  --warning: 251 191 36;
+  --warning-soft: 69 26 3;
+  --warning-fg: 252 211 77;
+
+  --danger: 248 113 113;
+  --danger-soft: 69 10 10;
+  --danger-fg: 252 165 165;
+
+  --info: 56 189 248;
+  --info-soft: 8 47 73;
+  --info-fg: 125 211 252;
+
+  --quality-medido: 94 234 212;
+  --quality-medido-soft: 4 47 46;
+  --quality-importado: 147 197 253;
+  --quality-importado-soft: 23 37 84;
+  --quality-estimado: 252 211 77;
+  --quality-estimado-soft: 69 26 3;
+  --quality-ausente: 203 213 225;
+  --quality-ausente-soft: 30 41 59;
+}
+
+@layer base {
+  html {
+    @apply scroll-smooth;
+  }
+
+  body {
+    @apply bg-surface font-sans text-ink antialiased;
+  }
+
+  /* One focus ring for the whole application. Visible on both themes, and
+   * `:focus-visible` so a mouse click does not leave a ring behind. */
+  :focus-visible {
+    @apply outline-none ring-2 ring-brand ring-offset-2 ring-offset-surface;
+  }
+
+  ::selection {
+    @apply bg-brand-200 text-ink;
+  }
+
+  /* Numbers are the content of this application. Digits that do not line up in
+   * a column are a legibility defect, not a nicety. */
+  th[data-numeric],
+  td[data-numeric] {
+    @apply text-right tabular-nums;
+  }
+}
+
+@layer utilities {
+  /* Wide content (tables, charts, code) scrolls inside its own box. The page
+   * body must never scroll horizontally — checked at 375 px. */
+  .scroll-x {
+    @apply overflow-x-auto overscroll-x-contain;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

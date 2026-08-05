@@ -35,6 +35,8 @@ diferente. O que é óbvio não precisa de registro.
 | D-20 | HTML imprimível em vez de biblioteca de PDF | aceito | abaixo |
 | D-21 | Campo opcional não preenchido continua `NULL` | aceito | abaixo |
 | D-22 | Repositório público para o portão de CI ser real | aceito, com consequência | abaixo |
+| D-23 | Sistema de design próprio, sem biblioteca de componentes | aceito | abaixo |
+| D-24 | Qualidade do dado codificada em três canais, nunca só cor | aceito | abaixo |
 
 ---
 
@@ -384,3 +386,68 @@ vermelho no PR e **não impede o merge**; um nome exigido que nunca é reportado
 bloqueia todo merge para sempre. Por isso a configuração é código versionado —
 `scripts/protect-main.ps1`, idempotente — e não um clique em *Settings* que
 ninguém revisa.
+
+---
+
+## D-23 — Sistema de design próprio, sem biblioteca de componentes
+
+**Contexto.** A Fase 8 precisava de primitivas de interface: o "botão primário"
+existia em **sete grafias diferentes**, havia 639 `className` inline em 5.014
+linhas de TSX, nenhum componente reutilizável e nenhuma escala de token além de
+cinco tons de `brand`. Alguma camada tinha de aparecer.
+
+**Decisão.** Escrever as primitivas neste repositório
+(`apps/web/components/ui/`), sobre Tailwind, com duas dependências utilitárias
+minúsculas: `clsx` e `tailwind-merge`.
+
+**Alternativas descartadas.**
+- **shadcn/ui:** copia o código para dentro do projeto, o que resolveria a
+  autoria, mas traz Radix inteiro como dependência e um vocabulário de API que
+  não é o do projeto. Seriam ~15 dependências novas para substituir 20 arquivos.
+- **MUI / Chakra:** impõem um sistema de temas concorrente ao dos tokens CSS, e
+  o tema do Plotly teria de ser derivado de um terceiro lugar.
+- **Nenhuma abstração, só disciplina:** é o estado que a fase existe para
+  corrigir. Convenção sem primitiva já falhou sete vezes, uma por botão.
+
+**Consequências aceitas.** Cobertura menor que a de uma biblioteca madura: não
+há combobox, date picker nem menu com submenu — nenhum deles é necessário aqui.
+Os padrões de teclado (foco preso no diálogo, setas nas abas, `Escape` que
+devolve o foco) são responsabilidade nossa, e por isso cada um tem teste.
+
+**Corolário — o painel do popover vive num portal.** Não é preferência de
+implementação: os gatilhos de proveniência ficam dentro de células de tabela, e
+tabela vive dentro de `overflow-x: auto`. Um painel posicionado no fluxo é
+recortado pelo próprio contêiner de rolagem — e, quando o gatilho está inline
+num parágrafo, um `<div>` dentro de `<p>` derruba a hidratação do React.
+
+---
+
+## D-24 — Qualidade do dado codificada em três canais, nunca só cor
+
+**Contexto.** A proposta compromete a ferramenta a **distinguir na interface**
+dados importados, estimados e ausentes (§3.3). O que existia era micro-texto
+cinza indiferenciado — `Qualidade: Estimado` no mesmo peso visual de `Fonte:` e
+`Condição:`, que é o peso do ruído.
+
+**Decisão.** Todo estado de qualidade é exibido com **rótulo escrito + glifo +
+cor**, nessa ordem de confiabilidade, e o rótulo permanece disponível à
+tecnologia assistiva mesmo quando ocultado visualmente. A ausência é um quarto
+estado, com borda tracejada.
+
+A paleta categórica de classes é **Okabe–Ito**, cujos pares permanecem
+distinguíveis sob deuteranopia e protanopia — o que exclui de saída o par
+vermelho/verde. Em impressão monocromática cinco matizes não se separam por
+luminância; ali quem carrega a classe é a **forma do marcador** e o rótulo
+escrito.
+
+**Alternativas descartadas.**
+- **Só cor, com legenda:** a legenda fica longe do dado, e a impressão em preto
+  e branco — o formato em que um relatório de TCC costuma ser lido — apaga a
+  distinção inteira.
+- **Uma rampa monocromática ordinal:** seria segura em escala de cinza e ruim
+  para varredura; e a ordem medido > importado > estimado sugeriria uma
+  precisão de ordenação que os três rótulos não têm.
+
+**Consequência aceita.** O badge ocupa mais espaço horizontal que uma bolinha
+colorida. Numa tabela de comparação de 12 colunas isso pesa, e é o preço de a
+distinção continuar existindo fora da tela.
