@@ -64,21 +64,21 @@ Duas consequências que costumam surpreender quem chega:
 ```
 MaterialSelect-AI/
 ├─ apps/
-│  ├─ api/                      # backend FastAPI (~12.800 linhas Python)
-│  │  ├─ alembic/versions/      # 3 migrations; fonte de verdade do schema
+│  ├─ api/                      # backend FastAPI (~13.200 linhas Python)
+│  │  ├─ alembic/versions/      # 4 migrations; fonte de verdade do schema
 │  │  ├─ app/
 │  │  │  ├─ ai/                 # camada de IA opcional (Fase 6)
 │  │  │  ├─ calculations/       # cálculo determinístico
 │  │  │  ├─ db/                 # engine, sessão, seed
 │  │  │  ├─ domain/             # regras puras, sem I/O
-│  │  │  ├─ exporters/          # CSV/XLSX e relatório (Fase 7)
+│  │  │  ├─ exporters/          # relatório em CSV/XLSX/HTML (Fase 7)
 │  │  │  ├─ importers/          # CSV/XLSX de entrada (Fase 3)
 │  │  │  ├─ models/             # SQLAlchemy 2.0
 │  │  │  ├─ repositories/       # acesso a dados, sempre parametrizado
 │  │  │  ├─ routers/            # HTTP fino, sem regra de negócio
 │  │  │  ├─ schemas/            # contratos Pydantic v2
 │  │  │  ├─ services/           # orquestração de casos de uso
-│  │  │  └─ tests/              # 362 testes
+│  │  │  └─ tests/              # 383 testes
 │  │  └─ pyproject.toml
 │  └─ web/                      # frontend Next.js 14
 │     ├─ app/                   # App Router: uma pasta por rota
@@ -157,10 +157,21 @@ o avaliador de expressões. Cinco regras em `guardrails.py`:
 
 ### `exporters/` — saída auditável
 
-`cells.py` neutraliza injeção de fórmula (`=`, `+`, `-`, `@`, TAB, CR) com
-escape **visível** (apóstrofo) e não destrutivo. Números negativos saem como
-célula numérica de propósito. `report.py` define o modelo do relatório e os
-**avisos obrigatórios**; `spreadsheet.py` renderiza para CSV e XLSX.
+`report.py` define o modelo do relatório — agnóstico de formato — e os **avisos
+obrigatórios**. Dois renderizadores consomem o mesmo `Report`: `spreadsheet.py`
+(CSV e XLSX) e `html.py` (documento imprimível, do qual sai o PDF pela impressão
+do navegador).
+
+Cada formato é protegido contra a injeção que lhe cabe, e as duas defesas são
+distintas de propósito:
+
+| Formato | Risco | Defesa |
+|---|---|---|
+| CSV/XLSX | célula executável (`=`, `+`, `-`, `@`, TAB, CR) | `cells.py`: escape **visível** (apóstrofo), não destrutivo. Número negativo sai como célula numérica de propósito. |
+| HTML | marcação executável (`<script>`) | `html.py`: `html.escape` em todo valor, cabeçalho, título e nota — **mais** `Content-Security-Policy: default-src 'none'` no router, como camada independente. |
+
+Aplicar o escape da planilha no HTML seria errado nas duas pontas: um `=` é
+inerte em marcação, e o apóstrofo apareceria na tela como corrupção do dado.
 
 ---
 
@@ -196,9 +207,11 @@ flowchart LR
 ```mermaid
 flowchart LR
   A["Estudo salvo"] --> B["SelectionService.run_study<br/>(reexecuta o pipeline)"]
-  B --> C["ExportService → Report<br/>(9 abas + avisos)"]
-  C --> D["cells: neutraliza fórmula"]
-  D --> E["CSV ou XLSX"]
+  B --> C["ExportService → Report<br/>(9 seções + avisos)"]
+  C --> D["spreadsheet + cells<br/>(neutraliza fórmula)"]
+  C --> E["html<br/>(neutraliza marcação)"]
+  D --> F["CSV ou XLSX<br/>(download)"]
+  E --> G["HTML imprimível<br/>(inline, vira PDF no navegador)"]
 ```
 
 ---
@@ -240,6 +253,14 @@ erDiagram
 > Quem for plotá-los num eixo canônico precisa converter — limites com
 > `to_canonical`, incertezas com `to_canonical_delta`.
 
+**Unicidade `(material_id, property_id)`** — uma linha por par, garantida pelo
+banco (`uq_material_property_value_pair`). É garantia de determinismo, não
+arrumação: com duas linhas para o mesmo par, o valor que chega a um gráfico, a
+um filtro ou a um ranking passaria a depender da ordem em que o SELECT devolveu
+as linhas, e o mesmo catálogo poderia responder duas coisas diferentes. Os
+serviços já recusam propriedades repetidas dentro de um payload; só a constraint
+cobre duas requisições concorrentes.
+
 ---
 
 ## 6. APIs
@@ -258,7 +279,7 @@ Todas sob `/api`. Erros de domínio são mapeados em `main.py`:
 | Seleção | `POST /selection/filter`, `/index`, `/run`; `GET/POST /selection/studies`; `GET/DELETE /selection/studies/{id}`; `POST /selection/studies/{id}/run`; `GET/POST /performance-indices` |
 | Visualização | `POST /charts/property-map`, `POST /charts/compare` |
 | IA (opcional) | `GET /ai/status`, `POST /ai/interpret`, `POST /ai/explain` |
-| Exportação | `GET /exports/catalogo.{csv,xlsx}`, `GET /exports/estudos/{id}.{csv,xlsx}` |
+| Exportação | `GET /exports/catalogo.{csv,xlsx,html}`, `GET /exports/estudos/{id}.{csv,xlsx,html}` |
 
 Visualização e comparação são **POST** porque a entrada é estruturada (par de
 eixos, filtros, conjuntos de materiais, expressão e níveis) e não caberia

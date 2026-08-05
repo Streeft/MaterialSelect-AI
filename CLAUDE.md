@@ -45,9 +45,16 @@ de negócio nos routers.** Contratos de entrada/saída em `schemas` (Pydantic v2
 implementadas.
 
 Em `exporters/`, **todo arquivo exportado carrega o aviso de limitação de uso**
-(compromisso do item 5 da proposta) e passa por `cells.py`, que neutraliza
-injeção de fórmula. O escape é visível — apóstrofo à frente — e nunca
-destrutivo; números negativos saem como célula numérica de propósito.
+(compromisso do item 5 da proposta). O modelo `Report` é agnóstico de formato e
+tem dois renderizadores: `spreadsheet.py` (CSV/XLSX) e `html.py` (imprimível).
+
+**O escape é por formato, e não intercambiável.** `cells.py` neutraliza injeção
+de fórmula na planilha com apóstrofo à frente — visível, nunca destrutivo;
+números negativos saem como célula numérica de propósito. `html.py` neutraliza
+injeção de **marcação** com `html.escape` em todo valor, cabeçalho, título e
+nota. Não reaproveite um no outro: um `=` é inerte em HTML, e o apóstrofo
+apareceria na tela como corrupção do dado. O HTML ainda é servido sob
+`Content-Security-Policy: default-src 'none'`, camada independente do escape.
 
 Na camada `ai/`, o provedor recebe só o catálogo e o texto — nunca uma sessão de
 banco ou o avaliador de expressões — e **toda** saída passa por
@@ -107,11 +114,11 @@ meramente informativo.
 
 ## Estado atual
 
-Fases 1 a 6 concluídas; **Fase 7 (relatórios e qualidade) em andamento** — a
-exportação CSV/XLSX com relatório auditável já saiu; faltam PDF/HTML imprimível,
-testes end-to-end, autenticação e auditoria.
+Fases 1 a 6 concluídas; **Fase 7 (relatórios e qualidade) em andamento** — as
+exportações CSV/XLSX e o relatório HTML imprimível já saíram; faltam testes
+end-to-end, autenticação e auditoria.
 
-362 testes de backend e 44 de frontend, todos verdes. CI no GitHub Actions roda
+383 testes de backend e 44 de frontend, todos verdes. CI no GitHub Actions roda
 em todo PR e push para `main`.
 
 **Estado detalhado, decisões, backlog e histórico da última sessão estão em
