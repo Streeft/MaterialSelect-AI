@@ -338,7 +338,10 @@ class SelectionService:
             ],
             excluded=[
                 ExcludedMaterialOut(
-                    material_id=e.material_id, name=e.name, missing_keys=e.missing_keys
+                    material_id=e.material_id,
+                    name=e.name,
+                    missing_keys=e.missing_keys,
+                    missing_labels=e.missing_labels,
                 )
                 for e in result.excluded
             ],
@@ -518,8 +521,11 @@ class SelectionService:
                 RankingCriterion(
                     position=position,
                     key=cr.key,
-                    label=cr.label or cr.key,
-                    direction=cr.direction or "max",
+                    # Stored exactly as given, including "not given". See the
+                    # model: a default here would shadow the property or index
+                    # it was supposed to stand in for.
+                    label=cr.label,
+                    direction=cr.direction,
                     weight=cr.weight,
                 )
             )

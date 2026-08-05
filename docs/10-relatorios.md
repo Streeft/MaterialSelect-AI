@@ -119,6 +119,28 @@ unidade canônica, com uma seção de proveniência completa. Dado não cadastra
 sai como `ausente` — nunca célula vazia, que um leitor poderia confundir com
 zero.
 
+## Quantos dígitos, e com que nome
+
+Duas escolhas de renderização que o relatório compartilha com CSV e XLSX, porque
+os três saem do mesmo `Report`.
+
+**Dígitos.** Uma densidade informada como `3.9 g/cm**3` normaliza para
+`3899.9999999999995 kg/m**3` — o valor exato do `double`, não um erro do
+sistema. Imprimir os dezessete dígitos afirmaria uma precisão que a medida nunca
+teve, que é a mesma fabricação recusada em todo o resto do projeto. Coluna de
+texto sai com doze dígitos significativos (`cells.SIGNIFICANT_DIGITS`), muito
+além dos dois a quatro de qualquer propriedade medida e o bastante para absorver
+o resíduo da conversão. O valor guardado não muda, e `safe_number` continua
+escrevendo o `float` inteiro na célula **numérica** da planilha, onde o leitor
+pode fazer conta com ele.
+
+**Nomes.** Chave é identificador, não palavra: `__index__` e `modulo_young`
+nunca aparecem onde cabe um nome. O rótulo de um critério vem do índice ou da
+propriedade ([D-21](DECISIONS.md)); a tabela de excluídos usa `missing_labels`,
+não `missing_keys`; e a linha de proveniência de uma propriedade que o material
+sequer possui busca o nome no catálogo, em vez de lê-lo no valor que está
+faltando.
+
 ## Detalhes que costumam passar batido
 
 - **BOM UTF-8 no CSV.** Sem ele o Excel no Windows abre o arquivo como Latin-1 e
@@ -136,11 +158,12 @@ zero.
 
 | Método | Rota | Função |
 |---|---|---|
-| GET | `/api/exports/catalogo.{csv,xlsx}` | catálogo ativo com proveniência |
-| GET | `/api/exports/estudos/{id}.{csv,xlsx}` | relatório completo de um estudo |
+| GET | `/api/exports/catalogo.{csv,xlsx,html}` | catálogo ativo com proveniência |
+| GET | `/api/exports/estudos/{id}.{csv,xlsx,html}` | relatório completo de um estudo |
+
+O `html` é o único servido `inline`; os outros dois baixam.
 
 ## Ainda fora desta fatia
 
-PDF e HTML imprimível, exportação de PPTX, testes end-to-end de interface,
-autenticação por projeto e auditoria seguem na Fase 7 e estão no
-[`backlog.md`](backlog.md).
+Exportação de PPTX, testes end-to-end de interface, autenticação por projeto e
+auditoria seguem na Fase 7 e estão no [`TODO.md`](TODO.md).

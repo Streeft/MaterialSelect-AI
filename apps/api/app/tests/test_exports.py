@@ -68,6 +68,18 @@ class TestCellSafety:
     def test_integers_render_without_a_decimal_tail(self) -> None:
         assert format_number(2700.0) == "2700"
 
+    def test_conversion_residue_does_not_reach_the_reader(self) -> None:
+        # 3.9 g/cm**3 normalizes to this exact double. Printing all seventeen
+        # digits would claim a precision the measurement never had.
+        assert format_number(3.9 * 1000) == "3900"
+        assert format_number(0.1 + 0.2) == "0.3"
+
+    def test_real_precision_survives(self) -> None:
+        # Rounding is a reporting choice, not a licence to round the datum away.
+        assert format_number(1234.56789012) == "1234.56789012"
+        assert format_number(2.5e-05) == "2.5e-05"
+        assert format_number(-40.5) == "-40.5"
+
 
 class TestNotices:
     def test_limitation_notice_is_always_present(self) -> None:
@@ -399,6 +411,46 @@ class TestStudyExport:
         text = client.get(f"/api/exports/estudos/{self._study_id(client)}.csv").text
         assert "Dimensão (derivada)" in text
         assert "[length]" in text
+
+    def test_report_never_prints_a_raw_key_where_a_name_belongs(self, client: TestClient) -> None:
+        """Slugs and "__index__" identify things; they are not words for a reader.
+
+        Three surfaces used to leak them: the criterion column of the
+        contributions table and the sensitivity scenarios (a saved study
+        defaulted its label to the key), the excluded table, and the
+        provenance row for a property a material has no entry for at all —
+        which read the name off the value that was missing.
+        """
+        study_id = client.post(
+            "/api/selection/studies",
+            json={
+                "name": "Estudo sem chaves cruas",
+                "combinator": "AND",
+                "constraints": [],
+                "index": {
+                    "name": "Viga leve",
+                    "expression": "sqrt(modulo_young) / densidade",
+                    "goal": "maximize",
+                },
+                "normalization": "minmax",
+                "criteria": [
+                    {"key": "__index__", "weight": 2.0},
+                    # Three of the five demo materials have no yield strength,
+                    # so this criterion produces both an exclusion row and a
+                    # provenance row with no value behind it.
+                    {"key": "limite_escoamento", "weight": 1.0},
+                ],
+            },
+        ).json()["id"]
+
+        text = client.get(f"/api/exports/estudos/{study_id}.html").text
+        assert "__index__" not in text
+        assert "Ênfase em Viga leve" in text
+        # The slug appears nowhere; the property's name appears instead. The
+        # index expression legitimately carries other slugs, so this asserts on
+        # the one property that is not in it.
+        assert "limite_escoamento" not in text
+        assert "Limite de escoamento" in text
 
     def test_report_records_the_funnel(self, client: TestClient) -> None:
         text = client.get(f"/api/exports/estudos/{self._study_id(client)}.csv").text

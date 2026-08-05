@@ -70,7 +70,8 @@ class RankedMaterial:
 class ExcludedMaterial:
     material_id: int
     name: str
-    missing_keys: list[str]
+    missing_keys: list[str]  # stable identifiers, for callers that match on them
+    missing_labels: list[str]  # the same criteria as a reader knows them
 
 
 @dataclass
@@ -242,9 +243,16 @@ def rank(
     complete: list[MaterialValues] = []
     excluded: list[ExcludedMaterial] = []
     for material_id, name, values in materials:
-        missing = [c.key for c in criteria if values.get(c.key) is None]
+        missing = [c for c in criteria if values.get(c.key) is None]
         if missing:
-            excluded.append(ExcludedMaterial(material_id, name, missing))
+            excluded.append(
+                ExcludedMaterial(
+                    material_id,
+                    name,
+                    [c.key for c in missing],
+                    [c.label for c in missing],
+                )
+            )
         else:
             complete.append((material_id, name, values))
 

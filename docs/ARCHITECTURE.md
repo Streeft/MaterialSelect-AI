@@ -65,7 +65,7 @@ Duas consequências que costumam surpreender quem chega:
 MaterialSelect-AI/
 ├─ apps/
 │  ├─ api/                      # backend FastAPI (~13.200 linhas Python)
-│  │  ├─ alembic/versions/      # 4 migrations; fonte de verdade do schema
+│  │  ├─ alembic/versions/      # 5 migrations; fonte de verdade do schema
 │  │  ├─ app/
 │  │  │  ├─ ai/                 # camada de IA opcional (Fase 6)
 │  │  │  ├─ calculations/       # cálculo determinístico
@@ -78,7 +78,7 @@ MaterialSelect-AI/
 │  │  │  ├─ routers/            # HTTP fino, sem regra de negócio
 │  │  │  ├─ schemas/            # contratos Pydantic v2
 │  │  │  ├─ services/           # orquestração de casos de uso
-│  │  │  └─ tests/              # 383 testes
+│  │  │  └─ tests/              # 389 testes
 │  │  └─ pyproject.toml
 │  └─ web/                      # frontend Next.js 14
 │     ├─ app/                   # App Router: uma pasta por rota
