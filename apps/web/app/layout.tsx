@@ -3,6 +3,7 @@ import Link from "next/link";
 import "./globals.css";
 import { Providers } from "./providers";
 import { ptBR } from "@/lib/i18n";
+import { THEME_BOOTSTRAP_SCRIPT } from "@/lib/theme";
 
 export const metadata: Metadata = {
   title: ptBR.appName,
@@ -11,7 +12,14 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR">
+    // The bootstrap script writes data-theme before React sees the document, so
+    // the server markup and the client's first render disagree by design.
+    <html lang="pt-BR" suppressHydrationWarning>
+      <head>
+        {/* Blocking on purpose: a theme applied after first paint is a white
+            flash for every reader who chose the dark one. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP_SCRIPT }} />
+      </head>
       <body>
         <Providers>
           <div className="min-h-screen flex flex-col">

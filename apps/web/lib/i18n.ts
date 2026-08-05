@@ -436,6 +436,138 @@ export const ptBR = {
     MEDIDO: "Medido",
     IMPORTADO: "Importado",
     ESTIMADO: "Estimado",
+    // Not a value of the backend's DataQuality enum: absence is the *lack* of a
+    // value, not a fourth kind of one. It is named here because the interface
+    // has to show it, and showing it as an empty cell is what the project's
+    // third principle forbids.
+    AUSENTE: "Ausente",
+  },
+  qualityHint: {
+    MEDIDO: "Medido diretamente, com a condição de ensaio registrada.",
+    IMPORTADO: "Veio de um conjunto de dados externo, com a fonte registrada.",
+    ESTIMADO: "Inferido, não medido. Confira antes de decidir com base nele.",
+    AUSENTE: "Nenhum valor cadastrado. O sistema não preenche a lacuna.",
+  },
+
+  ui: {
+    loading: "Carregando…",
+    errorTitle: "Algo não funcionou",
+    retry: "Tentar novamente",
+    close: "Fechar",
+    details: "Detalhes",
+    skipToContent: "Pular para o conteúdo",
+    openMenu: "Abrir menu",
+    closeMenu: "Fechar menu",
+    mainNav: "Navegação principal",
+    theme: {
+      label: "Tema",
+      light: "Claro",
+      dark: "Escuro",
+      system: "Sistema",
+    },
+  },
+
+  provenance: {
+    title: "De onde vem este valor",
+    trigger: "Ver a proveniência deste valor",
+    legendTitle: "Como ler a qualidade do dado",
+    original: "Valor original",
+    normalized: "Valor normalizado",
+    conversion: "Conversão",
+    uncertainty: "Incerteza",
+    range: "Faixa",
+    typical: "Típico",
+    condition: "Condição de medição",
+    source: "Fonte",
+    notes: "Observações",
+    unknown: "não informado",
+    missingTitle: "Sem valor cadastrado",
+    missingBody:
+      "Nenhum valor foi medido, importado ou estimado para esta propriedade neste material. O sistema não supõe um.",
+  },
+
+  // Canonical text lives in apps/api/app/exporters/report.py (LIMITATION_NOTICE).
+  // The copy below is kept byte-identical by a test — see lib/i18n.test.ts. The
+  // proposal (§3.6) requires this notice in the system *and* in every export;
+  // two surfaces saying it differently would be worse than one saying it once.
+  limitation: {
+    title: "Limite de uso desta ferramenta",
+    full:
+      "Esta ferramenta destina-se a apoio didático e à triagem preliminar de candidatos. " +
+      "Não substitui validação experimental, análise estrutural detalhada nem julgamento de engenharia.",
+    short: "Apoio didático e triagem preliminar — não substitui validação experimental.",
+  },
+
+  indexCard: {
+    title: "Índice de desempenho",
+    validity: "Condições de validade",
+    assumptionFuncao: "Função",
+    assumptionGeometria: "Geometria",
+    assumptionObjetivo: "Objetivo",
+    assumptionRestricao: "Restrição",
+    assumptionReferencia: "Referência",
+    expression: "Expressão",
+    dimension: "Dimensão do resultado",
+    goal: "Objetivo",
+    maximize: "Maximizar",
+    minimize: "Minimizar",
+    slope: "Inclinação (log-log)",
+    noAssumptions: "Este índice não declara hipóteses.",
+    noAssumptionsHint:
+      "Sem função, geometria, objetivo e restrição declarados não é possível verificar se ele se aplica ao seu problema. Ele continua calculável; a responsabilidade pela aplicação é sua.",
+    warning:
+      "Um índice só vale nas condições em que foi derivado. Confira função, geometria e restrição antes de usá-lo.",
+    selectLabel: "Escolha o índice de desempenho",
+    selected: "Selecionado",
+    select: "Selecionar",
+    none: "Nenhum índice",
+    noneHint: "O ranking usará apenas os critérios de propriedade.",
+    custom: "Expressão personalizada",
+    customHint: "Você declara a expressão e as hipóteses.",
+  },
+
+  home: {
+    lead: "Da função do componente ao relatório de seleção, com cada etapa do raciocínio à vista.",
+    methodTitle: "O método, em quatro passos",
+    methodHint:
+      "É o percurso de Ashby: descreva a função, elimine com restrições, ordene por um objetivo e leia o resultado com a proveniência de cada número.",
+    step1: "Função",
+    step1Hint: "O que o componente faz e o que se quer otimizar.",
+    step2: "Restrições",
+    step2Hint: "Cada uma elimina candidatos, e o funil mostra quantos.",
+    step3: "Objetivo",
+    step3Hint: "Um índice de mérito e os critérios de ranking.",
+    step4: "Resultados",
+    step4Hint: "Ranking, contribuições, excluídos e sensibilidade.",
+    start: "Começar um estudo",
+    browse: "Explorar o catálogo",
+    savedTitle: "Retomar um estudo",
+    savedHint: "Estudos salvos ficam disponíveis para reabrir e executar de novo.",
+    savedEmpty: "Nenhum estudo salvo ainda.",
+    exploreTitle: "Ou explore os dados",
+    catalogHint: "Materiais, propriedades e a proveniência de cada valor.",
+    mapsHint: "Mapa de Ashby com envelopes por classe e linhas de índice.",
+    compareHint: "Tabela, barras, radar e heatmap sobre valores normalizados.",
+    importHint: "Traga uma planilha CSV ou XLSX com validação linha a linha.",
+  },
+
+  styleGuide: {
+    title: "Sistema de design",
+    subtitle:
+      "Vitrine viva dos tokens e das primitivas. Serve de referência para quem continuar o trabalho e de fonte das figuras da monografia.",
+    tokens: "Tokens de cor",
+    surfaces: "Superfícies, bordas e tinta",
+    semantics: "Estados semânticos",
+    qualityScale: "Qualidade do dado",
+    classPalette: "Paleta categórica de classes",
+    classPaletteHint:
+      "Okabe–Ito: cada par permanece distinguível sob deuteranopia e protanopia. Em impressão monocromática quem separa as classes é a forma do marcador e o rótulo escrito — nunca a cor sozinha.",
+    typography: "Tipografia",
+    buttons: "Botões",
+    forms: "Formulários",
+    feedback: "Carregando, vazio e erro",
+    tables: "Tabelas",
+    overlays: "Sobreposições",
   },
 } as const;
 
