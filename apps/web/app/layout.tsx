@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import "./globals.css";
 import { Providers } from "./providers";
+import { LimitationNotice } from "@/components/LimitationNotice";
 import { ptBR } from "@/lib/i18n";
 import { THEME_BOOTSTRAP_SCRIPT } from "@/lib/theme";
 
@@ -58,8 +59,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </header>
             <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">{children}</main>
             <footer className="border-t border-slate-200 bg-white">
-              <div className="mx-auto max-w-6xl px-4 py-3 text-xs text-amber-700">
-                ⚠️ {ptBR.demoWarning}
+              <div className="mx-auto max-w-6xl space-y-2 px-4 py-3">
+                <p className="text-xs text-amber-700">⚠️ {ptBR.demoWarning}</p>
+                <LimitationNotice variant="footer" />
               </div>
             </footer>
           </div>

@@ -32,7 +32,7 @@ import {
   Tabs,
   Td,
   Th,
-  ThRow,
+  RowHeader,
   Tr,
   type Provenance,
 } from ".";
@@ -354,14 +354,14 @@ describe("acessibilidade das primitivas", () => {
             </THead>
             <TBody>
               <Tr>
-                <ThRow>Liga Alumínio Demo A</ThRow>
+                <RowHeader>Liga Alumínio Demo A</RowHeader>
                 <Td numeric>0,84</Td>
                 <Td>
                   <DataQualityBadge state="MEDIDO" />
                 </Td>
               </Tr>
               <Tr>
-                <ThRow>Cerâmica Demo D</ThRow>
+                <RowHeader>Cerâmica Demo D</RowHeader>
                 <Td numeric>
                   <MissingValue />
                 </Td>

@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { PropertyGroupCard } from "./PropertyGroup";
+import { ptBR } from "@/lib/i18n";
 import type { PropertyGroup, PropertyValueOut } from "@/lib/types";
 
 function makeValue(overrides: Partial<PropertyValueOut>): PropertyValueOut {
@@ -29,7 +31,7 @@ function makeValue(overrides: Partial<PropertyValueOut>): PropertyValueOut {
 }
 
 describe("PropertyGroupCard", () => {
-  it("renders a missing value as 'ausente', never as 0", () => {
+  it("renders a missing value as absent, never as 0 and never as a dash", () => {
     const group: PropertyGroup = {
       category: "TERMICA",
       properties: [
@@ -44,9 +46,42 @@ describe("PropertyGroupCard", () => {
 
     render(<PropertyGroupCard group={group} />);
 
-    expect(screen.getByText("ausente")).toBeInTheDocument();
-    // The critical guarantee: a missing value must not be shown as a numeric 0.
+    expect(screen.getByText(ptBR.quality.AUSENTE)).toBeInTheDocument();
+    // The critical guarantee: a missing value must not be shown as a numeric 0,
+    // nor as one of the punctuation marks that read as "nothing worth saying".
     expect(screen.queryByText("0")).not.toBeInTheDocument();
+    for (const filler of ["—", "-", "–", "N/A", "n/d"]) {
+      expect(screen.queryByText(filler)).not.toBeInTheDocument();
+    }
+  });
+
+  it("puts the provenance of a value one gesture away", async () => {
+    const user = userEvent.setup();
+    const group: PropertyGroup = {
+      category: "FISICA",
+      properties: [
+        makeValue({
+          property_slug: "densidade",
+          property_name: "Densidade",
+          category: "FISICA",
+          value_scalar: 2.7,
+          original_unit: "g/cm**3",
+          normalized_value: 2700,
+          canonical_unit: "kg/m**3",
+          conversion_method: "pint",
+          source_label: "ASM Handbook",
+        }),
+      ],
+    };
+
+    render(<PropertyGroupCard group={group} />);
+    await user.click(screen.getByRole("button", { name: ptBR.provenance.trigger }));
+
+    const panel = screen.getByRole("dialog", { name: ptBR.provenance.trigger });
+    // §3.2: the reference for a value is reachable in the interface, not only
+    // in the exported report.
+    expect(within(panel).getByText("ASM Handbook")).toBeInTheDocument();
+    expect(within(panel).getByText("pint")).toBeInTheDocument();
   });
 
   it("renders a scalar value with its original unit", () => {

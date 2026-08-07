@@ -14,6 +14,11 @@
  * body text) in BOTH themes. `--ink-subtle` is the tightest at 4.6:1, which is
  * why it is reserved for secondary text at default size and never for the only
  * copy of an important fact.
+ *
+ * And never on a tinted surface: on `--brand-50` it measures 4.46:1 in the light
+ * theme — under AA, with no large-text exemption for the small uppercase labels
+ * it was being used for. On anything other than a plain surface, use
+ * `--ink-muted` (7.1:1 on the same tint).
  */
 
 :root,
