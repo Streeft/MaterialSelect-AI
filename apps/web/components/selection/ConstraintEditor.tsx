@@ -2,6 +2,9 @@
 
 import type { ConstraintOperator, MaterialClass, PropertyDefinition } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
+import { prettyUnit } from "@/lib/format";
+import { Card, CardBody, Field, IconButton, Input, Select } from "@/components/ui";
+import { IconTrash } from "@/components/ui/icons";
 
 const t = ptBR.selection;
 
@@ -32,18 +35,18 @@ export function emptyConstraint(id: string): ConstraintRow {
   };
 }
 
-const OPERATORS: { value: ConstraintOperator; label: string }[] = [
-  { value: "gte", label: "≥" },
-  { value: "gt", label: ">" },
-  { value: "lte", label: "≤" },
-  { value: "lt", label: "<" },
-  { value: "between", label: "∈ faixa" },
-  { value: "outside", label: "∉ faixa" },
-  { value: "exists", label: "existe" },
-  { value: "not_exists", label: "não existe" },
-  { value: "in_class", label: "∈ classe" },
-  { value: "not_in_class", label: "∉ classe" },
-  { value: "text_contains", label: "texto contém" },
+const OPERATORS: ConstraintOperator[] = [
+  "gte",
+  "gt",
+  "lte",
+  "lt",
+  "between",
+  "outside",
+  "exists",
+  "not_exists",
+  "in_class",
+  "not_in_class",
+  "text_contains",
 ];
 
 const NUMERIC = new Set<ConstraintOperator>(["gt", "gte", "lt", "lte", "between", "outside"]);
@@ -60,9 +63,6 @@ interface Props {
 }
 
 export function ConstraintEditor({ rows, properties, classes, onChange }: Props) {
-  const input =
-    "rounded border border-slate-300 bg-white px-2 py-1 text-sm focus:border-brand-500 focus:outline-none";
-
   function update(id: string, patch: Partial<ConstraintRow>) {
     onChange(rows.map((r) => (r.id === id ? { ...r, ...patch } : r)));
   }
@@ -70,125 +70,150 @@ export function ConstraintEditor({ rows, properties, classes, onChange }: Props)
     onChange(rows.filter((r) => r.id !== id));
   }
 
+  if (rows.length === 0) {
+    return <p className="text-sm text-ink-muted">{t.noConstraints}</p>;
+  }
+
   return (
-    <div className="space-y-3">
-      {rows.length === 0 && <p className="text-sm text-slate-500">{t.noConstraints}</p>}
-      {rows.map((row) => {
+    <ol className="space-y-3">
+      {rows.map((row, position) => {
         const isNumeric = NUMERIC.has(row.operator);
         const isRange = row.operator === "between" || row.operator === "outside";
         const prop = properties.find((p) => p.slug === row.property_slug);
+        const rowLabel = t.constraintNumber(position + 1);
         return (
-          <div key={row.id} className="flex flex-wrap items-end gap-2 rounded-lg border border-slate-200 bg-white p-3">
-            <label className="text-xs text-slate-500">
-              {t.operator}
-              <select
-                className={`${input} mt-0.5 block`}
-                value={row.operator}
-                onChange={(e) => update(row.id, { operator: e.target.value as ConstraintOperator })}
-                aria-label={t.operator}
-              >
-                {OPERATORS.map((o) => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
-                ))}
-              </select>
-            </label>
+          <li key={row.id}>
+            <Card as="fieldset">
+              {/* The number is the row's name for a reader who cannot see that
+                  these controls are grouped in a box. A legend has to be the
+                  fieldset's first child to be read as its caption. */}
+              <legend className="sr-only">{rowLabel}</legend>
+              <CardBody className="flex flex-wrap items-end gap-3">
+                <Field label={t.operator} className="w-48">
+                  <Select
+                    value={row.operator}
+                    onChange={(e) =>
+                      update(row.id, { operator: e.target.value as ConstraintOperator })
+                    }
+                  >
+                    {OPERATORS.map((op) => (
+                      <option key={op} value={op}>
+                        {t.operators[op]}
+                      </option>
+                    ))}
+                  </Select>
+                </Field>
 
-            {NEEDS_PROPERTY.has(row.operator) && (
-              <label className="text-xs text-slate-500">
-                {t.property}
-                <select
-                  className={`${input} mt-0.5 block`}
-                  value={row.property_slug}
-                  onChange={(e) => update(row.id, { property_slug: e.target.value })}
-                  aria-label={t.property}
-                >
-                  <option value="">—</option>
-                  {properties.map((p) => (
-                    <option key={p.slug} value={p.slug}>{p.name}</option>
-                  ))}
-                </select>
-              </label>
-            )}
+                {NEEDS_PROPERTY.has(row.operator) && (
+                  <Field label={t.property} className="w-56">
+                    <Select
+                      value={row.property_slug}
+                      onChange={(e) => update(row.id, { property_slug: e.target.value })}
+                    >
+                      <option value="">{t.selectProperty}</option>
+                      {properties.map((p) => (
+                        <option key={p.slug} value={p.slug}>
+                          {p.name}
+                        </option>
+                      ))}
+                    </Select>
+                  </Field>
+                )}
 
-            {isNumeric && !isRange && (
-              <label className="text-xs text-slate-500">
-                {t.value}
-                <input
-                  className={`${input} mt-0.5 block w-24`}
-                  value={row.value}
-                  onChange={(e) => update(row.id, { value: e.target.value })}
-                  inputMode="decimal"
-                  aria-label={t.value}
+                {/* Text input with a decimal keypad, not `type="number"`: a
+                    pt-BR reader types "2,7", and a number input silently
+                    discards the value it cannot parse. The payload builder
+                    accepts both separators. */}
+                {isNumeric && !isRange && (
+                  <Field label={t.value} className="w-28">
+                    <Input
+                      inputMode="decimal"
+                      className="tabular-nums"
+                      value={row.value}
+                      onChange={(e) => update(row.id, { value: e.target.value })}
+                    />
+                  </Field>
+                )}
+                {isRange && (
+                  <>
+                    <Field label={t.valueMin} className="w-28">
+                      <Input
+                        inputMode="decimal"
+                        className="tabular-nums"
+                        value={row.value_min}
+                        onChange={(e) => update(row.id, { value_min: e.target.value })}
+                      />
+                    </Field>
+                    <Field label={t.valueMax} className="w-28">
+                      <Input
+                        inputMode="decimal"
+                        className="tabular-nums"
+                        value={row.value_max}
+                        onChange={(e) => update(row.id, { value_max: e.target.value })}
+                      />
+                    </Field>
+                  </>
+                )}
+                {isNumeric && (
+                  // The unit is not decoration: an empty box means "canonical",
+                  // and the placeholder is the only place that says which one.
+                  <Field
+                    label={t.unit}
+                    hint={prop ? prettyUnit(prop.canonical_unit) : undefined}
+                    className="w-28"
+                  >
+                    <Input
+                      value={row.unit}
+                      onChange={(e) => update(row.id, { unit: e.target.value })}
+                      placeholder={prop?.canonical_unit ?? ""}
+                    />
+                  </Field>
+                )}
+
+                {CLASS_OPS.has(row.operator) && (
+                  <Field label={t.classes} className="w-56">
+                    <Select
+                      multiple
+                      className="h-24"
+                      value={row.class_slugs}
+                      onChange={(e) =>
+                        update(row.id, {
+                          class_slugs: Array.from(e.target.selectedOptions, (o) => o.value),
+                        })
+                      }
+                    >
+                      {classes.map((c) => (
+                        <option key={c.slug} value={c.slug}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </Select>
+                  </Field>
+                )}
+
+                {row.operator === "text_contains" && (
+                  <Field label={t.text} className="w-56">
+                    <Input
+                      value={row.text}
+                      onChange={(e) => update(row.id, { text: e.target.value })}
+                    />
+                  </Field>
+                )}
+
+                <IconButton
+                  className="ml-auto"
+                  size="sm"
+                  variant="ghost"
+                  label={`${ptBR.actions.remove}: ${rowLabel}`}
+                  icon={<IconTrash />}
+                  onClick={() => remove(row.id)}
                 />
-              </label>
-            )}
-            {isRange && (
-              <>
-                <label className="text-xs text-slate-500">
-                  {t.valueMin}
-                  <input className={`${input} mt-0.5 block w-20`} value={row.value_min}
-                    onChange={(e) => update(row.id, { value_min: e.target.value })} inputMode="decimal" aria-label={t.valueMin} />
-                </label>
-                <label className="text-xs text-slate-500">
-                  {t.valueMax}
-                  <input className={`${input} mt-0.5 block w-20`} value={row.value_max}
-                    onChange={(e) => update(row.id, { value_max: e.target.value })} inputMode="decimal" aria-label={t.valueMax} />
-                </label>
-              </>
-            )}
-            {isNumeric && (
-              <label className="text-xs text-slate-500">
-                {t.unit}
-                <input
-                  className={`${input} mt-0.5 block w-24`}
-                  value={row.unit}
-                  onChange={(e) => update(row.id, { unit: e.target.value })}
-                  placeholder={prop?.canonical_unit ?? ""}
-                  aria-label={t.unit}
-                />
-              </label>
-            )}
-
-            {CLASS_OPS.has(row.operator) && (
-              <label className="text-xs text-slate-500">
-                {t.classes}
-                <select
-                  multiple
-                  className={`${input} mt-0.5 block h-20 w-40`}
-                  value={row.class_slugs}
-                  onChange={(e) =>
-                    update(row.id, {
-                      class_slugs: Array.from(e.target.selectedOptions, (o) => o.value),
-                    })
-                  }
-                  aria-label={t.classes}
-                >
-                  {classes.map((c) => (
-                    <option key={c.slug} value={c.slug}>{c.name}</option>
-                  ))}
-                </select>
-              </label>
-            )}
-
-            {row.operator === "text_contains" && (
-              <label className="text-xs text-slate-500">
-                {t.text}
-                <input className={`${input} mt-0.5 block w-40`} value={row.text}
-                  onChange={(e) => update(row.id, { text: e.target.value })} aria-label={t.text} />
-              </label>
-            )}
-
-            <button
-              type="button"
-              onClick={() => remove(row.id)}
-              className="ml-auto rounded border border-slate-300 px-2 py-1 text-xs text-slate-500 hover:bg-slate-50"
-            >
-              {ptBR.actions.remove}
-            </button>
-          </div>
+              </CardBody>
+            </Card>
+          </li>
         );
       })}
-    </div>
+    </ol>
   );
 }
 

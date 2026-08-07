@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { Contribution, RunResult } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { formatNumber, prettyUnit } from "@/lib/format";
@@ -81,7 +82,7 @@ function Contributions({
 }) {
   if (contributions.length === 0) return null;
   return (
-    <div className="mt-1.5 max-w-xs">
+    <div className="max-w-md">
       <span className="flex h-2 overflow-hidden rounded-full bg-surface-sunken" aria-hidden="true">
         {contributions.map((c, i) => (
           <span
@@ -120,9 +121,18 @@ function Contributions({
   );
 }
 
+/** One line of the provenance list, or nothing when there is nothing to say. */
+function ProvenanceItem({ term, children }: { term: string; children: ReactNode }) {
+  return (
+    <div className="flex flex-col gap-0.5 border-b border-edge-subtle py-2 last:border-b-0 sm:flex-row sm:gap-3">
+      <dt className="text-xs font-medium text-ink-muted sm:w-56 sm:shrink-0">{term}</dt>
+      <dd className="min-w-0 text-sm text-ink">{children}</dd>
+    </div>
+  );
+}
+
 export function ResultsView({ result }: { result: RunResult }) {
   const { funnel, candidates, index, ranking } = result;
-  const rankedById = new Map(ranking?.ranked.map((r) => [r.material_id, r]) ?? []);
   // Why an index came out undefined for a given material. The backend says so
   // per material, and an absence without its reason is just a hole in a table.
   const undefinedReasonById = new Map(
@@ -136,9 +146,50 @@ export function ResultsView({ result }: { result: RunResult }) {
   const candidateIds = candidates.map((c) => c.material_id).join(",");
   const topId = ranking?.ranked.find((r) => r.rank === 1)?.material_id;
 
+  const withContributions = ranking?.ranked.filter((r) => r.contributions.length > 0) ?? [];
+  // Weights are per criterion and identical across materials, so any ranked row
+  // reports them; the first one that has a breakdown at all is enough.
+  const weightRows = withContributions[0]?.contributions ?? [];
+
+  /**
+   * The blocks this screen is made of, in the order they appear.
+   *
+   * The results screen is the longest in the application and gets referenced out
+   * loud ("look at the funnel", "who got excluded"), so each block needs a title
+   * of its own and an address someone can jump to or paste into a message.
+   */
+  const sections: { id: string; label: string }[] = [
+    { id: "funil", label: t.funnel },
+    ...(candidates.length > 0 ? [{ id: "candidatos", label: t.candidates }] : []),
+    ...(withContributions.length > 0 ? [{ id: "contribuicoes", label: t.contributions }] : []),
+    ...(ranking && ranking.excluded.length > 0
+      ? [{ id: "excluidos", label: t.excludedTitle }]
+      : []),
+    ...(ranking && ranking.sensitivity.length > 0
+      ? [{ id: "sensibilidade", label: t.sensitivity }]
+      : []),
+    { id: "proveniencia", label: t.provenanceTitle },
+  ];
+
   return (
     <div className="space-y-6">
+      <nav aria-label={t.onThisPage} className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <span className="text-2xs font-semibold uppercase tracking-wide text-ink-subtle">
+          {t.onThisPage}
+        </span>
+        {sections.map((s) => (
+          <a
+            key={s.id}
+            href={`#${s.id}`}
+            className="rounded-control text-xs text-brand underline underline-offset-2 hover:text-brand-700"
+          >
+            {s.label}
+          </a>
+        ))}
+      </nav>
+
       <Section
+        id="funil"
         title={t.funnel}
         description={t.funnelHint}
         actions={
@@ -187,8 +238,8 @@ export function ResultsView({ result }: { result: RunResult }) {
 
       {/* Candidates + ranking */}
       {candidates.length > 0 && (
-        <Section title={t.ranking} description={ranking ? t.contributionsHint : undefined}>
-          <TableScroll label={t.ranking}>
+        <Section id="candidatos" title={ranking ? t.ranking : t.candidates}>
+          <TableScroll label={ranking ? t.ranking : t.candidates}>
             <Table>
               <THead>
                 <Tr>
@@ -210,7 +261,6 @@ export function ResultsView({ result }: { result: RunResult }) {
               </THead>
               <TBody>
                 {candidates.map((c) => {
-                  const ranked = rankedById.get(c.material_id);
                   const reason = undefinedReasonById.get(c.material_id);
                   return (
                     <Tr key={c.material_id} className={c.rank === 1 ? "bg-success-soft" : undefined}>
@@ -250,12 +300,6 @@ export function ResultsView({ result }: { result: RunResult }) {
                               {c.score !== null ? c.score.toFixed(3) : <MissingValue />}
                             </span>
                           </div>
-                          {ranked && ranked.score > 0 && (
-                            <Contributions
-                              contributions={ranked.contributions}
-                              score={ranked.score}
-                            />
-                          )}
                         </Td>
                       )}
                     </Tr>
@@ -267,27 +311,49 @@ export function ResultsView({ result }: { result: RunResult }) {
         </Section>
       )}
 
-      {/* Excluded for missing data */}
-      {ranking && ranking.excluded.length > 0 && (
-        <Alert tone="warning" title={t.excludedTitle}>
-          <p className="mb-2">{t.excludedHint}</p>
-          <ul className="space-y-1">
-            {ranking.excluded.map((e) => (
-              <li key={e.material_id} className="flex flex-wrap items-baseline gap-x-2">
-                <span className="font-medium">{e.name}</span>
-                <MissingValue />
-                <span className="text-2xs">
-                  {t.missing}: {e.missing_labels.join(", ")}
-                </span>
+      {/* Where each score came from. Its own block: inside the ranking table the
+          breakdown competed with the ranking for the same glance, and it is the
+          part someone actually argues about. */}
+      {withContributions.length > 0 && (
+        <Section id="contribuicoes" title={t.contributions} description={t.contributionsHint}>
+          <ul className="space-y-3">
+            {withContributions.map((r) => (
+              <li key={r.material_id} className="flex flex-col gap-1">
+                <div className="flex flex-wrap items-baseline gap-2">
+                  <span className="text-sm font-medium text-ink">{r.name}</span>
+                  <span className="text-2xs tabular-nums text-ink-subtle">
+                    {t.score}: {r.score.toFixed(3)}
+                  </span>
+                </div>
+                <Contributions contributions={r.contributions} score={r.score} />
               </li>
             ))}
           </ul>
-        </Alert>
+        </Section>
+      )}
+
+      {/* Excluded for missing data */}
+      {ranking && ranking.excluded.length > 0 && (
+        <Section id="excluidos" title={t.excludedTitle} description={t.excludedHint}>
+          <Alert tone="warning">
+            <ul className="space-y-1">
+              {ranking.excluded.map((e) => (
+                <li key={e.material_id} className="flex flex-wrap items-baseline gap-x-2">
+                  <span className="font-medium">{e.name}</span>
+                  <MissingValue />
+                  <span className="text-2xs">
+                    {t.missing}: {e.missing_labels.join(", ")}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </Alert>
+        </Section>
       )}
 
       {/* Sensitivity */}
       {ranking && ranking.sensitivity.length > 0 && (
-        <Section title={t.sensitivity} description={t.sensitivityHint}>
+        <Section id="sensibilidade" title={t.sensitivity} description={t.sensitivityHint}>
           <TableScroll label={t.sensitivity}>
             <Table>
               <THead>
@@ -316,6 +382,80 @@ export function ResultsView({ result }: { result: RunResult }) {
           </TableScroll>
         </Section>
       )}
+
+      {/* What produced these numbers. Everything here is echoed back from the
+          run itself — nothing is recomputed, and nothing is filled in when the
+          study did not use it. */}
+      <Section id="proveniencia" title={t.provenanceTitle} description={t.provenanceHint}>
+        <dl className="rounded-card border border-edge bg-surface-raised px-4 py-1">
+          <ProvenanceItem term={t.provCombinator}>{result.combinator}</ProvenanceItem>
+          <ProvenanceItem term={t.provConstraints}>
+            {funnel.length === 0 ? (
+              <span className="text-ink-muted">{t.noConstraints}</span>
+            ) : (
+              <ol className="list-decimal space-y-0.5 pl-4">
+                {funnel.map((step, i) => (
+                  <li key={i}>
+                    {step.label}{" "}
+                    <span className="tabular-nums text-ink-muted">→ {step.remaining}</span>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </ProvenanceItem>
+          <ProvenanceItem term={t.provIndexExpression}>
+            {index ? (
+              <code className="text-xs">{index.expression}</code>
+            ) : (
+              <span className="text-ink-muted">{t.provNone}</span>
+            )}
+          </ProvenanceItem>
+          {index && (
+            <>
+              <ProvenanceItem term={t.provIndexGoal}>
+                {index.goal === "minimize" ? t.minimize : t.maximize}
+              </ProvenanceItem>
+              <ProvenanceItem term={t.provIndexDimension}>
+                {prettyUnit(index.dimension)}
+              </ProvenanceItem>
+              <ProvenanceItem term={t.provIndexDefined}>
+                <span className="tabular-nums">
+                  {index.defined_count} {t.of} {index.defined_count + index.undefined_count}
+                </span>
+              </ProvenanceItem>
+            </>
+          )}
+          <ProvenanceItem term={t.normalization}>
+            {ranking ? (
+              ranking.normalization === "vector" ? (
+                t.normVector
+              ) : (
+                t.normMinmax
+              )
+            ) : (
+              <span className="text-ink-muted">{t.provNone}</span>
+            )}
+          </ProvenanceItem>
+          <ProvenanceItem term={t.provCriteria}>
+            {!ranking ? (
+              <span className="text-ink-muted">{t.provNone}</span>
+            ) : weightRows.length > 0 ? (
+              <ul className="space-y-0.5">
+                {weightRows.map((c) => (
+                  <li key={c.key}>
+                    {c.label}{" "}
+                    <span className="tabular-nums text-ink-muted">{c.weight.toFixed(2)}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              // No breakdown to read the weights off (every score came out 0).
+              // The keys the run received are still the honest answer.
+              <span>{ranking.criteria.join(", ")}</span>
+            )}
+          </ProvenanceItem>
+        </dl>
+      </Section>
 
       {/* Item 5 of the proposal: the notice belongs on the screen that produces
           a recommendation, not only on the file exported from it. */}

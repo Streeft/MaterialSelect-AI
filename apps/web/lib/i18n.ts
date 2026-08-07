@@ -93,10 +93,16 @@ export const ptBR = {
   },
   importer: {
     title: "Importar materiais",
-    stepUpload: "1. Arquivo",
-    stepMapping: "2. Mapeamento",
-    stepReport: "3. Validação",
-    stepDone: "4. Conclusão",
+    subtitle: "Arquivo → Mapeamento → Validação → Conclusão",
+    // The stepper numbers the steps itself; a "1." in the label would print twice.
+    stepUpload: "Arquivo",
+    stepMapping: "Mapeamento",
+    stepReport: "Validação",
+    stepDone: "Conclusão",
+    // Why a step cannot be opened yet. Shown at the moment someone tries.
+    blockedMapping: "Envie um arquivo para mapear as colunas.",
+    blockedReport: "Valide o mapeamento para ver o relatório.",
+    blockedDone: "Importe as linhas válidas para concluir.",
     dropHint: "Selecione um arquivo CSV ou XLSX (até 5 MB).",
     uploading: "Enviando…",
     sheet: "Aba",
@@ -122,6 +128,11 @@ export const ptBR = {
     defaultClass: "Classe padrão (quando a coluna estiver vazia)",
     noDefaultClass: "Nenhuma",
     sourceLabel: "Fonte dos dados (opcional)",
+    sourcePlaceholder: "ex.: Planilha Prof. Fulano 2026",
+    errorNoNameColumn: "Indique qual coluna contém o nome do material.",
+    errorPropertyWithoutSlug: "Há colunas de propriedade sem a propriedade selecionada.",
+    errorNoClass: "Mapeie uma coluna de classe ou escolha uma classe padrão.",
+    errorTemplateName: "Informe um nome para o template.",
     templates: "Template de mapeamento",
     applyTemplate: "Aplicar template…",
     saveTemplate: "Salvar como template",
@@ -137,6 +148,17 @@ export const ptBR = {
     statusOk: "OK",
     statusError: "Erro",
     statusDuplicate: "Duplicado",
+    columnDetails: "Detalhes",
+    // Not "Erro": the status column already says that, and a second badge with
+    // the same word says nothing about what it does to the line.
+    issueLabel: "Impede",
+    warningLabel: "Aviso",
+    rowOk: "Nada a corrigir nesta linha.",
+    // A dash in a preview is indistinguishable from a dash that is the data.
+    emptyCell: "vazia",
+    noName: "sem nome",
+    reportHint:
+      "Cada linha aparece com o que foi encontrado nela. O que está marcado como “Impede” bloqueia a importação daquela linha; avisos não.",
     commitHint:
       "Apenas as linhas válidas serão importadas. Linhas com erro ou duplicadas serão ignoradas.",
     commit: "Importar linhas válidas",
@@ -169,10 +191,15 @@ export const ptBR = {
   selection: {
     title: "Seleção de materiais",
     subtitle: "Função → Restrições → Objetivo → Ranking (determinístico, sem IA)",
-    stepFunction: "1. Função",
-    stepConstraints: "2. Restrições",
-    stepObjective: "3. Objetivo",
-    stepResults: "4. Resultados",
+    // The stepper numbers the steps itself; a "1." in the label would print twice.
+    stepFunction: "Função",
+    stepConstraints: "Restrições",
+    stepObjective: "Objetivo",
+    stepResults: "Resultados",
+    // Why a step cannot be opened yet. Shown at the moment someone tries.
+    blockedResults: "Execute a seleção para ver os resultados.",
+    back: "Voltar",
+    advance: "Avançar",
     functionTitle: "Descrição do problema",
     studyName: "Nome do estudo",
     functionText: "Função do componente",
@@ -187,6 +214,25 @@ export const ptBR = {
     noConstraints: "Nenhuma restrição — todos os materiais são candidatos.",
     property: "Propriedade",
     operator: "Operador",
+    // Symbols alone name nothing to a screen reader, and "∈ faixa" was a
+    // Portuguese string living in a component file.
+    operators: {
+      gte: "≥ maior ou igual",
+      gt: "> maior que",
+      lte: "≤ menor ou igual",
+      lt: "< menor que",
+      between: "∈ dentro da faixa",
+      outside: "∉ fora da faixa",
+      exists: "tem valor cadastrado",
+      not_exists: "não tem valor cadastrado",
+      in_class: "∈ pertence à classe",
+      not_in_class: "∉ não pertence à classe",
+      text_contains: "texto contém",
+    },
+    constraintNumber: (n: number) => `Restrição ${n}`,
+    selectProperty: "Selecione uma propriedade",
+    selectCriterion: "Selecione um critério",
+    autoDirection: "Automática (pela propriedade)",
     value: "Valor",
     valueMin: "Mínimo",
     valueMax: "Máximo",
@@ -195,6 +241,10 @@ export const ptBR = {
     text: "Texto",
     remaining: "Candidatos restantes",
     of: "de",
+    counterHint: "Atualizado a cada mudança nas restrições.",
+    counterPending: "Recalculando…",
+    counterError: "Não foi possível recontar os candidatos.",
+    actionBar: "Ações da etapa",
     objectiveTitle: "Índice de desempenho e ranking",
     objectiveHint:
       "Escolha um índice de mérito (opcional) e defina os critérios de ranking com pesos.",
@@ -248,7 +298,21 @@ export const ptBR = {
     topMaterial: "1º colocado",
     changed: "mudou",
     unchanged: "estável",
+    // The results screen is long; these are the blocks someone jumps between.
+    onThisPage: "Nesta página",
+    provenanceTitle: "Proveniência do resultado",
+    provenanceHint:
+      "O que gerou exatamente estes números. É o mesmo conteúdo que vai para o relatório exportado.",
+    provCombinator: "Combinação das restrições",
+    provConstraints: "Etapas de eliminação",
+    provIndexExpression: "Expressão do índice",
+    provIndexGoal: "Sentido do índice",
+    provIndexDimension: "Dimensão do índice",
+    provIndexDefined: "Materiais com índice definido",
+    provCriteria: "Critérios e pesos",
+    provNone: "não usado neste estudo",
     saveStudy: "Salvar estudo",
+    saveNeedsName: "Dê um nome ao estudo na etapa Função para poder salvá-lo.",
     saved: "Estudo salvo.",
     savedStudies: "Estudos salvos",
     noStudies: "Nenhum estudo salvo.",
@@ -268,6 +332,10 @@ export const ptBR = {
       "A IA lê o enunciado e propõe função, restrições e índices já cadastrados. Ela não calcula nada: todo número vem do backend e toda sugestão passa pela sua revisão.",
     disabled: "Camada de IA desativada. O sistema funciona integralmente sem ela.",
     simulatedBadge: "Provedor simulado",
+    // §3.4 da proposta: a assistência é opcional e passa pela revisão de quem
+    // usa. Isso precisa estar dito no painel, não só na documentação.
+    optionalBadge: "Opcional",
+    reviewBadge: "Nada é aplicado sem sua revisão",
     statementLabel: "Descreva o problema em português",
     statementPlaceholder:
       "Ex.: preciso de uma viga leve e rígida; a temperatura de serviço deve ser no mínimo 300 °C e a densidade no máximo 3 g/cm3.",
@@ -473,6 +541,8 @@ export const ptBR = {
     mainNav: "Navegação principal",
     steps: "Etapas",
     views: "Visualizações",
+    stepDone: "concluída",
+    stepBlocked: "bloqueada",
     theme: {
       label: "Tema",
       light: "Claro",

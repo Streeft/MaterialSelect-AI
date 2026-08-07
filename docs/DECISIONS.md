@@ -505,7 +505,7 @@ rolagem horizontal que restava fora das tabelas.
 **Administrar** (Classes, Propriedades). Cada grupo é uma `<ul>` com
 `aria-labelledby`, então o rótulo que se vê é o mesmo que o leitor de tela
 anuncia. A rota atual leva `aria-current="page"`; a cor sozinha não diz onde se
-está. Abaixo de `lg`, os mesmos grupos empilhados numa gaveta modal com foco
+está. Abaixo de `xl`, os mesmos grupos empilhados numa gaveta modal com foco
 preso, `Esc` para fechar e `aria-expanded` no gatilho.
 
 **Alternativas descartadas.**
@@ -518,9 +518,26 @@ preso, `Esc` para fechar e `aria-expanded` no gatilho.
   são a mesma atividade e Classes é outra.
 
 **Consequência aceita.** Os rótulos de grupo custam largura no cabeçalho, e por
-isso a navegação inteira só aparece a partir de `lg`. Entre 768 px e 1024 px um
-tablet vê a gaveta, não a barra — é a troca que mantém o cabeçalho legível em
-vez de espremido.
+isso a navegação inteira só aparece a partir de `xl`. Até 1280 px — tablet e
+notebook de 1024 — vê-se a gaveta, não a barra; é a troca que mantém o cabeçalho
+numa linha em vez de espremido.
+
+**Correção medida (fase 8, PR 4).** O corte era `lg` e estava errado: a marca
+(222 px), os sete links agrupados (721 px) e o controle de tema (236 px) somam
+mais do que o `max-w-6xl` do cabeçalho oferece, e entre 1024 px e 1280 px a barra
+transbordava — a página inteira voltava a rolar de lado, exatamente o defeito que
+esta decisão existia para eliminar. Três mudanças, todas verificadas com o
+navegador em 1024, 1085, 1280 e 1400 px:
+
+- o corte passou para `xl`, onde a linha de fato cabe;
+- o `ThemeToggle` ganhou `compact`, que deixa os três rótulos apenas para
+  tecnologia assistiva (`title` e nome acessível seguem lá) e devolve 124 px;
+- a linha do cabeçalho ganhou `flex-wrap` — não como layout, mas como rede: se um
+  nono link voltar a estourar, ele quebra linha em vez de empurrar o documento.
+
+A lição fica registrada porque o teste que faltava é o barato: verificar 375 px
+não diz nada sobre 1100 px, e um cabeçalho com largura fixa quebra nos dois
+extremos por motivos diferentes.
 
 **Corolário — o gatilho da gaveta não vira "Fechar".** Enquanto a gaveta está
 aberta, o botão do cabeçalho fica atrás da camada modal e a gaveta tem o próprio

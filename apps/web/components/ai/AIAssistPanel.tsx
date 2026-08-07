@@ -5,6 +5,18 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { ApiError, getAIStatus, interpretStatement } from "@/lib/api";
 import type { Interpretation, SuggestedConstraint, SuggestedIndex } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
+import {
+  Alert,
+  Badge,
+  Button,
+  Card,
+  CardBody,
+  CardHeader,
+  Checkbox,
+  Field,
+  RadioOption,
+  Textarea,
+} from "@/components/ui";
 
 const t = ptBR.ai;
 
@@ -28,6 +40,10 @@ interface AIAssistPanelProps {
  * user chooses which to keep, and only then does anything reach the wizard. The
  * suggestions the backend's guardrails refused are shown too — seeing what was
  * rejected, and why, is part of trusting what was not.
+ *
+ * Both of those properties are now stated on the panel itself. §3.4 of the
+ * proposal commits to assistance that is optional and reviewable, and a
+ * commitment that only exists in the document is one the reader never sees.
  */
 export function AIAssistPanel({ onApply }: AIAssistPanelProps) {
   const [statement, setStatement] = useState("");
@@ -71,10 +87,9 @@ export function AIAssistPanel({ onApply }: AIAssistPanelProps) {
 
   if (status.data && !status.data.enabled) {
     return (
-      <section className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-        <h2 className="text-sm font-semibold text-slate-700">{t.title}</h2>
-        <p className="mt-1 text-xs text-slate-500">{t.disabled}</p>
-      </section>
+      <Card>
+        <CardHeader title={t.title} headingLevel={2} description={t.disabled} />
+      </Card>
     );
   }
 
@@ -99,204 +114,190 @@ export function AIAssistPanel({ onApply }: AIAssistPanelProps) {
     setApplied(true);
   }
 
-  const inputClass =
-    "rounded border border-slate-300 bg-white px-2 py-1 text-sm focus:border-brand-500 focus:outline-none";
-
   return (
-    <section className="space-y-3 rounded-lg border border-violet-200 bg-violet-50/40 p-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-sm font-semibold text-slate-800">{t.title}</h2>
-        {status.data?.simulated && (
-          <span className="rounded-full bg-violet-100 px-2 py-0.5 text-xs text-violet-800">
-            {t.simulatedBadge}
-          </span>
-        )}
-      </div>
-      <p className="text-xs text-slate-600">{t.subtitle}</p>
-
-      <label className="block text-sm text-slate-600">
-        {t.statementLabel}
-        <textarea
-          className={`${inputClass} mt-1 block w-full`}
-          rows={3}
-          value={statement}
-          onChange={(e) => setStatement(e.target.value)}
-          placeholder={t.statementPlaceholder}
-        />
-      </label>
-
-      <button
-        type="button"
-        onClick={() => interpret.mutate()}
-        disabled={!statement.trim() || interpret.isPending}
-        className="rounded-lg bg-violet-700 px-4 py-2 text-sm font-medium text-white hover:bg-violet-800 disabled:opacity-50"
-      >
-        {interpret.isPending ? t.interpreting : t.interpret}
-      </button>
-
-      {error && (
-        <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
-          {error}
-        </p>
-      )}
-
-      {proposal && (
-        <div className="space-y-3 rounded-md border border-violet-200 bg-white p-3">
-          <h3 className="text-sm font-semibold text-slate-800">{t.proposalTitle}</h3>
-
-          <ul className="space-y-1.5 text-sm">
-            {proposal.function_text && (
-              <li className="flex items-start gap-2">
-                <input
-                  type="checkbox"
-                  className="mt-1"
-                  checked={useFunction}
-                  onChange={(e) => setUseFunction(e.target.checked)}
-                  aria-label={t.functionRead}
-                />
-                <span>
-                  <strong className="text-slate-600">{t.functionRead}:</strong>{" "}
-                  {proposal.function_text}
-                </span>
-              </li>
-            )}
-            {proposal.objective_text && (
-              <li className="flex items-start gap-2">
-                <input
-                  type="checkbox"
-                  className="mt-1"
-                  checked={useObjective}
-                  onChange={(e) => setUseObjective(e.target.checked)}
-                  aria-label={t.objectiveRead}
-                />
-                <span>
-                  <strong className="text-slate-600">{t.objectiveRead}:</strong>{" "}
-                  {proposal.objective_text}
-                </span>
-              </li>
-            )}
-            {proposal.free_variables.length > 0 && (
-              <li className="flex items-start gap-2">
-                <input
-                  type="checkbox"
-                  className="mt-1"
-                  checked={useFreeVariables}
-                  onChange={(e) => setUseFreeVariables(e.target.checked)}
-                  aria-label={t.freeVariablesRead}
-                />
-                <span>
-                  <strong className="text-slate-600">{t.freeVariablesRead}:</strong>{" "}
-                  {proposal.free_variables.join(", ")}
-                </span>
-              </li>
-            )}
-          </ul>
-
-          {proposal.constraints.length > 0 && (
-            <div>
-              <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                {t.constraintsRead}
-              </h4>
-              <ul className="mt-1 space-y-1.5 text-sm">
-                {proposal.constraints.map((suggestion, i) => (
-                  <li key={i} className="flex items-start gap-2">
-                    <input
-                      type="checkbox"
-                      className="mt-1"
-                      checked={acceptedConstraints.has(i)}
-                      onChange={() => toggleConstraint(i)}
-                      aria-label={suggestion.rationale}
-                    />
-                    <span>
-                      {suggestion.rationale}
-                      <span className="block text-xs text-slate-400">
-                        {t.evidence}: “{suggestion.evidence}”
-                      </span>
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {proposal.indices.length > 0 && (
-            <div>
-              <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                {t.indicesRead}
-              </h4>
-              <ul className="mt-1 space-y-1.5 text-sm">
-                {proposal.indices.map((suggestion) => (
-                  <li key={suggestion.slug} className="flex items-start gap-2">
-                    <input
-                      type="radio"
-                      name="ai-index"
-                      className="mt-1"
-                      checked={acceptedIndex === suggestion.slug}
-                      onChange={() => setAcceptedIndex(suggestion.slug)}
-                      aria-label={suggestion.name}
-                    />
-                    <span>
-                      <strong>{suggestion.name}</strong>{" "}
-                      <code className="text-xs text-slate-500">{suggestion.expression}</code>
-                      <span className="block text-xs text-slate-400">{suggestion.rationale}</span>
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {proposal.chart && (
-            <p className="text-xs text-slate-500">
-              <strong className="uppercase tracking-wide">{t.chartRead}:</strong>{" "}
-              {proposal.chart.y} × {proposal.chart.x} ({proposal.chart.scale}) —{" "}
-              {proposal.chart.rationale}
-            </p>
-          )}
-
-          <div className="flex flex-wrap items-center gap-3 border-t border-slate-100 pt-3">
-            <button
-              type="button"
-              onClick={apply}
-              disabled={selectedCount === 0}
-              className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
-            >
-              {t.apply}
-            </button>
-            {selectedCount === 0 && (
-              <span className="text-xs text-slate-500">{t.nothingToApply}</span>
-            )}
-            {applied && <span className="text-sm text-green-700">{t.applied}</span>}
+    <Card className="border-info/40">
+      <CardHeader
+        title={t.title}
+        headingLevel={2}
+        description={t.subtitle}
+        actions={
+          <div className="flex flex-wrap gap-1.5">
+            <Badge tone="info">{t.optionalBadge}</Badge>
+            <Badge tone="info">{t.reviewBadge}</Badge>
+            {status.data?.simulated && <Badge tone="warning">{t.simulatedBadge}</Badge>}
           </div>
+        }
+      />
+      <CardBody className="space-y-3">
+        <Field label={t.statementLabel}>
+          <Textarea
+            rows={3}
+            value={statement}
+            onChange={(e) => setStatement(e.target.value)}
+            placeholder={t.statementPlaceholder}
+          />
+        </Field>
 
-          {proposal.open_questions.length > 0 && (
-            <div className="rounded bg-amber-50 px-3 py-2">
-              <h4 className="text-xs font-semibold text-amber-800">{t.openQuestions}</h4>
-              <ul className="mt-1 space-y-1 text-xs text-amber-800">
-                {proposal.open_questions.map((question, i) => (
-                  <li key={i}>• {question}</li>
-                ))}
+        <Button
+          variant="primary"
+          disabled={!statement.trim()}
+          loading={interpret.isPending}
+          onClick={() => interpret.mutate()}
+        >
+          {interpret.isPending ? t.interpreting : t.interpret}
+        </Button>
+
+        {error && (
+          <Alert tone="danger" role="alert">
+            {error}
+          </Alert>
+        )}
+
+        {proposal && (
+          <Card>
+            <CardHeader title={t.proposalTitle} />
+            <CardBody className="space-y-3">
+              <ul className="space-y-1.5">
+                {proposal.function_text && (
+                  <li>
+                    <Checkbox
+                      checked={useFunction}
+                      onChange={(e) => setUseFunction(e.target.checked)}
+                      label={
+                        <>
+                          <strong className="text-ink-muted">{t.functionRead}:</strong>{" "}
+                          {proposal.function_text}
+                        </>
+                      }
+                    />
+                  </li>
+                )}
+                {proposal.objective_text && (
+                  <li>
+                    <Checkbox
+                      checked={useObjective}
+                      onChange={(e) => setUseObjective(e.target.checked)}
+                      label={
+                        <>
+                          <strong className="text-ink-muted">{t.objectiveRead}:</strong>{" "}
+                          {proposal.objective_text}
+                        </>
+                      }
+                    />
+                  </li>
+                )}
+                {proposal.free_variables.length > 0 && (
+                  <li>
+                    <Checkbox
+                      checked={useFreeVariables}
+                      onChange={(e) => setUseFreeVariables(e.target.checked)}
+                      label={
+                        <>
+                          <strong className="text-ink-muted">{t.freeVariablesRead}:</strong>{" "}
+                          {proposal.free_variables.join(", ")}
+                        </>
+                      }
+                    />
+                  </li>
+                )}
               </ul>
-            </div>
-          )}
 
-          {proposal.rejected.length > 0 && (
-            <div className="rounded bg-slate-50 px-3 py-2">
-              <h4 className="text-xs font-semibold text-slate-700">{t.rejected}</h4>
-              <p className="text-xs text-slate-500">{t.rejectedHint}</p>
-              <ul className="mt-1 space-y-1 text-xs text-slate-600">
-                {proposal.rejected.map((reason, i) => (
-                  <li key={i}>• {reason}</li>
-                ))}
-              </ul>
-            </div>
-          )}
+              {proposal.constraints.length > 0 && (
+                <div>
+                  <h4 className="text-2xs font-semibold uppercase tracking-wide text-ink-subtle">
+                    {t.constraintsRead}
+                  </h4>
+                  <ul className="mt-1 space-y-1.5">
+                    {proposal.constraints.map((suggestion, i) => (
+                      <li key={i}>
+                        <Checkbox
+                          checked={acceptedConstraints.has(i)}
+                          onChange={() => toggleConstraint(i)}
+                          label={suggestion.rationale}
+                          hint={`${t.evidence}: “${suggestion.evidence}”`}
+                        />
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
-          <p className="border-t border-slate-100 pt-2 text-xs text-slate-400">
-            {proposal.disclaimer}
-          </p>
-        </div>
-      )}
-    </section>
+              {proposal.indices.length > 0 && (
+                <fieldset>
+                  <legend className="text-2xs font-semibold uppercase tracking-wide text-ink-subtle">
+                    {t.indicesRead}
+                  </legend>
+                  <ul className="mt-1 space-y-1.5">
+                    {proposal.indices.map((suggestion) => (
+                      <li key={suggestion.slug} className="flex flex-col">
+                        <RadioOption
+                          name="ai-index"
+                          checked={acceptedIndex === suggestion.slug}
+                          onChange={() => setAcceptedIndex(suggestion.slug)}
+                          label={
+                            <>
+                              <strong>{suggestion.name}</strong>{" "}
+                              <code className="text-xs text-ink-muted">
+                                {suggestion.expression}
+                              </code>
+                            </>
+                          }
+                        />
+                        <span className="ml-6 text-2xs text-ink-subtle">
+                          {suggestion.rationale}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </fieldset>
+              )}
+
+              {proposal.chart && (
+                <p className="text-xs text-ink-muted">
+                  <strong className="uppercase tracking-wide">{t.chartRead}:</strong>{" "}
+                  {proposal.chart.y} × {proposal.chart.x} ({proposal.chart.scale}) —{" "}
+                  {proposal.chart.rationale}
+                </p>
+              )}
+
+              <div className="flex flex-wrap items-center gap-3 border-t border-edge-subtle pt-3">
+                <Button variant="primary" onClick={apply} disabled={selectedCount === 0}>
+                  {t.apply}
+                </Button>
+                {selectedCount === 0 && (
+                  <span className="text-xs text-ink-muted">{t.nothingToApply}</span>
+                )}
+                {applied && <span className="text-sm text-success-fg">{t.applied}</span>}
+              </div>
+
+              {proposal.open_questions.length > 0 && (
+                <Alert tone="warning" title={t.openQuestions}>
+                  <ul className="space-y-1">
+                    {proposal.open_questions.map((question, i) => (
+                      <li key={i}>• {question}</li>
+                    ))}
+                  </ul>
+                </Alert>
+              )}
+
+              {proposal.rejected.length > 0 && (
+                <Alert tone="info" title={t.rejected}>
+                  <p>{t.rejectedHint}</p>
+                  <ul className="mt-1 space-y-1">
+                    {proposal.rejected.map((reason, i) => (
+                      <li key={i}>• {reason}</li>
+                    ))}
+                  </ul>
+                </Alert>
+              )}
+
+              <p className="border-t border-edge-subtle pt-2 text-xs text-ink-subtle">
+                {proposal.disclaimer}
+              </p>
+            </CardBody>
+          </Card>
+        )}
+      </CardBody>
+    </Card>
   );
 }

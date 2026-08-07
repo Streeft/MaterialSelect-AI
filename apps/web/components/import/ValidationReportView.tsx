@@ -1,76 +1,116 @@
-import type { ValidationReport } from "@/lib/types";
+import type { RowReport, ValidationReport } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
+import {
+  Badge,
+  Card,
+  TBody,
+  THead,
+  Table,
+  TableScroll,
+  Td,
+  Th,
+  RowHeader,
+  Tr,
+  type BadgeTone,
+} from "@/components/ui";
 
-const STATUS_STYLES: Record<string, string> = {
-  ok: "bg-green-100 text-green-800",
-  error: "bg-red-100 text-red-800",
-  duplicate: "bg-amber-100 text-amber-800",
-};
+const t = ptBR.importer;
 
-const STATUS_LABELS: Record<string, string> = {
-  ok: ptBR.importer.statusOk,
-  error: ptBR.importer.statusError,
-  duplicate: ptBR.importer.statusDuplicate,
+/**
+ * Severity, in three cues at once.
+ *
+ * The row status used to be a coloured pill and nothing else, which meant the
+ * one thing the screen is for — telling apart a line that will import from a
+ * line that will not — lived entirely in colour. Tone, word and row tint now
+ * carry it together, and the word is the one that survives greyscale.
+ */
+const STATUS: Record<RowReport["status"], { tone: BadgeTone; label: string; row?: string }> = {
+  ok: { tone: "success", label: t.statusOk },
+  error: { tone: "danger", label: t.statusError, row: "bg-danger-soft/40" },
+  duplicate: { tone: "warning", label: t.statusDuplicate, row: "bg-warning-soft/40" },
 };
 
 /** Per-row validation report with summary counters. */
 export function ValidationReportView({ report }: { report: ValidationReport }) {
-  const counters = [
-    { label: ptBR.importer.total, value: report.row_count, style: "text-slate-700" },
-    { label: ptBR.importer.ok, value: report.valid_count, style: "text-green-700" },
-    { label: ptBR.importer.withError, value: report.error_count, style: "text-red-700" },
-    { label: ptBR.importer.duplicates, value: report.duplicate_count, style: "text-amber-700" },
+  const counters: { label: string; value: number; tone: BadgeTone }[] = [
+    { label: t.total, value: report.row_count, tone: "neutral" },
+    { label: t.ok, value: report.valid_count, tone: "success" },
+    { label: t.withError, value: report.error_count, tone: "danger" },
+    { label: t.duplicates, value: report.duplicate_count, tone: "warning" },
   ];
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {counters.map((c) => (
-          <div key={c.label} className="rounded-lg border border-slate-200 bg-white p-3 text-center">
-            <div className={`text-2xl font-semibold ${c.style}`}>{c.value}</div>
-            <div className="text-xs text-slate-500">{c.label}</div>
-          </div>
+          <Card key={c.label} className="flex flex-col items-center gap-1 px-3 py-3">
+            <dd className="text-2xl font-semibold tabular-nums text-ink">{c.value}</dd>
+            <dt>
+              <Badge tone={c.tone}>{c.label}</Badge>
+            </dt>
+          </Card>
         ))}
-      </div>
+      </dl>
 
-      <div className="max-h-96 overflow-auto rounded-lg border border-slate-200 bg-white">
-        <table className="min-w-full divide-y divide-slate-200 text-sm">
-          <thead className="sticky top-0 bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
-            <tr>
-              <th scope="col" className="px-3 py-2">{ptBR.importer.row}</th>
-              <th scope="col" className="px-3 py-2">{ptBR.catalog.columnName}</th>
-              <th scope="col" className="px-3 py-2">{ptBR.importer.columnStatus}</th>
-              <th scope="col" className="px-3 py-2">Detalhes</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {report.rows.map((row) => (
-              <tr key={row.row_number}>
-                <td className="px-3 py-2 text-slate-500">{row.row_number}</td>
-                <td className="px-3 py-2 font-medium text-slate-700">{row.name ?? "—"}</td>
-                <td className="px-3 py-2">
-                  <span
-                    className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[row.status]}`}
-                  >
-                    {STATUS_LABELS[row.status]}
-                  </span>
-                </td>
-                <td className="px-3 py-2 text-xs text-slate-600">
-                  {row.issues.map((issue, i) => (
-                    <div key={i} className="text-red-700">
-                      {issue.column ? `${issue.column}: ` : ""}
-                      {issue.message}
-                    </div>
-                  ))}
-                  {row.warnings.map((w, i) => (
-                    <div key={`w${i}`} className="text-amber-700">{w}</div>
-                  ))}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <p className="text-xs text-ink-muted">{t.reportHint}</p>
+
+      {/* A long report scrolls inside itself; the sticky header keeps the
+          column meanings on screen while it does. */}
+      <TableScroll label={t.reportTitle} className="max-h-96 overflow-y-auto">
+        <Table>
+          <THead>
+            <Tr>
+              <Th numeric>{t.row}</Th>
+              <Th>{ptBR.catalog.columnName}</Th>
+              <Th>{t.columnStatus}</Th>
+              <Th>{t.columnDetails}</Th>
+            </Tr>
+          </THead>
+          <TBody>
+            {report.rows.map((row) => {
+              const status = STATUS[row.status];
+              return (
+                <Tr key={row.row_number} className={status.row}>
+                  <Td numeric className="text-ink-subtle">
+                    {row.row_number}
+                  </Td>
+                  {/* A missing name is a fact about the file, not a dash to be
+                      confused with a name that is literally "—". */}
+                  <RowHeader>
+                    {row.name ?? <span className="font-normal italic text-ink-subtle">{t.noName}</span>}
+                  </RowHeader>
+                  <Td>
+                    <Badge tone={status.tone}>{status.label}</Badge>
+                  </Td>
+                  <Td>
+                    {row.issues.length === 0 && row.warnings.length === 0 ? (
+                      <span className="text-2xs text-ink-subtle">{t.rowOk}</span>
+                    ) : (
+                      <ul className="space-y-1">
+                        {row.issues.map((issue, i) => (
+                          <li key={i} className="flex flex-wrap items-baseline gap-1.5 text-xs">
+                            <Badge tone="danger">{t.issueLabel}</Badge>
+                            <span className="text-ink">
+                              {issue.column ? `${issue.column}: ` : ""}
+                              {issue.message}
+                            </span>
+                          </li>
+                        ))}
+                        {row.warnings.map((w, i) => (
+                          <li key={`w${i}`} className="flex flex-wrap items-baseline gap-1.5 text-xs">
+                            <Badge tone="warning">{t.warningLabel}</Badge>
+                            <span className="text-ink">{w}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </Td>
+                </Tr>
+              );
+            })}
+          </TBody>
+        </Table>
+      </TableScroll>
     </div>
   );
 }
