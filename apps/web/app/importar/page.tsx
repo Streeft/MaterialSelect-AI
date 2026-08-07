@@ -244,9 +244,11 @@ export default function ImportPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-baseline justify-between">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h1 className="text-xl font-semibold text-slate-900">{t.title}</h1>
-        <nav aria-label="Etapas" className="flex gap-2 text-xs">
+        {/* Four step labels do not fit 375 px in one line, and an unwrapped row
+            scrolls the whole document sideways. */}
+        <nav aria-label={ptBR.ui.steps} className="flex flex-wrap gap-2 text-xs">
           {steps.map((s) => (
             <span
               key={s.key}

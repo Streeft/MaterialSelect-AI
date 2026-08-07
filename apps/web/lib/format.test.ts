@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatNumber, prettyUnit } from "./format";
+import { countLabel, formatDate, formatNumber, prettyUnit } from "./format";
 
 describe("formatNumber", () => {
   it("renders zero plainly", () => {
@@ -55,5 +55,28 @@ describe("prettyUnit", () => {
 
   it("never leaves a double asterisk behind", () => {
     expect(prettyUnit("[length] ** 1.75")).not.toContain("*");
+  });
+});
+
+describe("countLabel", () => {
+  it("agrees with the number in front of it", () => {
+    expect(countLabel(1, "restrição", "restrições")).toBe("1 restrição");
+    expect(countLabel(2, "restrição", "restrições")).toBe("2 restrições");
+  });
+
+  it("treats none as plural, the way Portuguese does", () => {
+    expect(countLabel(0, "critério", "critérios")).toBe("0 critérios");
+  });
+});
+
+describe("formatDate", () => {
+  it("renders an API timestamp in pt-BR order", () => {
+    expect(formatDate("2026-03-14T10:00:00Z")).toBe("14/03/2026");
+  });
+
+  it("returns null for something that is not a date, never a placeholder", () => {
+    // The caller decides what an unknown date looks like. A dash here would be
+    // indistinguishable from a real absence in a column of real dates.
+    expect(formatDate("nao é data")).toBeNull();
   });
 });

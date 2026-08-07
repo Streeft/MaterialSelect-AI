@@ -18,6 +18,28 @@ export function formatNumber(value: number): string {
 }
 
 /**
+ * A counted noun. Portuguese agrees with the number, and "1 restrições" reads
+ * as a bug in the calculation even when the calculation is right. Both forms
+ * come from the dictionary; this only picks one.
+ */
+export function countLabel(count: number, one: string, many: string): string {
+  return `${count} ${count === 1 ? one : many}`;
+}
+
+/**
+ * A timestamp from the API as a pt-BR date.
+ *
+ * Returns `null` — never a placeholder — when the string is not a date the
+ * browser understands: a caller has to decide what an unknown date looks like,
+ * and it is never a dash in a column of real ones.
+ */
+export function formatDate(iso: string): string | null {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
+}
+
+/**
  * Render a Pint unit or dimensionality string more readably.
  *
  * Handles both compact units (`kg/m**3`) and the spaced dimensionality strings
