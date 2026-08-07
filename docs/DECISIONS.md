@@ -37,6 +37,7 @@ diferente. O que é óbvio não precisa de registro.
 | D-22 | Repositório público para o portão de CI ser real | aceito, com consequência | abaixo |
 | D-23 | Sistema de design próprio, sem biblioteca de componentes | aceito | abaixo |
 | D-24 | Qualidade do dado codificada em três canais, nunca só cor | aceito | abaixo |
+| D-25 | Hipóteses do índice antes da escolha, não depois | aceito | abaixo |
 
 ---
 
@@ -451,3 +452,40 @@ escrito.
 **Consequência aceita.** O badge ocupa mais espaço horizontal que uma bolinha
 colorida. Numa tabela de comparação de 12 colunas isso pesa, e é o preço de a
 distinção continuar existindo fora da tela.
+
+---
+
+## D-25 — As hipóteses do índice aparecem antes da escolha, não depois
+
+**Contexto.** O §3.1 da proposta compromete a ferramenta a exibir, junto de cada
+índice de desempenho, a **função**, a **geometria**, o **objetivo** e a
+**restrição** sob os quais ele foi derivado. O backend sempre devolveu esses
+campos em `assumptions`, e `docs/04-metodologia-selecao.md` já afirmava que o
+sistema os exibia. A interface os descartava: o seletor era um `<select>` cujas
+`<option>` mostravam nome e expressão, e nada mais. Um `E^(1/2)/ρ` sem "viga em
+flexão, seção livre, comprimento fixo, rigidez à flexão especificada" é
+exatamente a caixa-preta que o trabalho promete não ser.
+
+**Decisão.** Substituir o `<select>` por um grupo de cartões selecionáveis
+(`components/selection/IndexCard.tsx`), em que cada opção mostra as hipóteses
+**antes** de ser escolhida, e um cartão de validade abaixo do grupo mostra o
+conjunto completo depois da escolha — hipóteses, expressão, dimensão do
+resultado, inclinação da reta no mapa e referência bibliográfica.
+
+**Alternativas descartadas.**
+- **Manter o `<select>` e pôr as hipóteses num tooltip:** o tooltip só existe
+  depois do apontamento, não existe no toque e não sobrevive à impressão. E o
+  problema é justamente decidir antes, não conferir depois.
+- **Mostrar as hipóteses só depois da escolha:** resolve a exibição e não
+  resolve a decisão. A pergunta que o índice responde é "este se aplica ao meu
+  problema?", e ela precede a seleção.
+
+**Consequências aceitas.** O passo do objetivo ficou visualmente mais pesado:
+cinco cartões com quatro linhas cada ocupam bem mais que um `<select>` de cinco
+linhas. É o custo de a hipótese estar onde a decisão é tomada.
+
+**Corolário — nada é inventado quando não há hipótese declarada.** Uma expressão
+digitada pelo usuário não tem função nem geometria registradas, e o cartão diz
+isso com todas as letras em vez de preencher com algo plausível. Chaves de
+`assumptions` que a interface não conhece são exibidas mesmo assim, com o nome
+humanizado: escondê-las faria o cartão afirmar que o índice diz menos do que diz.

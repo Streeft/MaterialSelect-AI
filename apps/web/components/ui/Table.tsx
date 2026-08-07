@@ -110,7 +110,7 @@ export function Td({
 }
 
 /** Row header — the material's name in a wide table, so the row is nameable. */
-export function ThRow({
+export function RowHeader({
   className,
   children,
   ...rest

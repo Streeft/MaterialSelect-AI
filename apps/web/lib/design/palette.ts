@@ -29,7 +29,7 @@ export interface ClassVisual {
  * on a monochrome print. The marker *shape* carries the class there, and every
  * legend entry is written out in words. Colour is never the only cue.
  */
-const OKABE_ITO = [
+export const OKABE_ITO = [
   "#0072B2", // azul
   "#E69F00", // laranja
   "#009E73", // verde-azulado

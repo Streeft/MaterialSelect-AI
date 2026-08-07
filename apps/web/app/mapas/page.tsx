@@ -14,6 +14,13 @@ import type { ChartScale, Goal, IndexIn, PropertyMapRequest } from "@/lib/types"
 import { ptBR } from "@/lib/i18n";
 import { formatNumber, prettyUnit } from "@/lib/format";
 import { AshbyMap } from "@/components/charts/AshbyMap";
+import {
+  IndexCard,
+  IndexPicker,
+  describeCustomIndex,
+  describeIndex,
+  type IndexDescriptor,
+} from "@/components/selection/IndexCard";
 
 const t = ptBR.map;
 
@@ -75,6 +82,18 @@ function MapsPageContent() {
     return chosen
       ? { name: chosen.name, expression: chosen.expression, goal: chosen.goal }
       : null;
+  }, [indexMode, customExpression, indexGoal, indices.data]);
+
+  // Same choice as `activeIndex`, kept whole so the card can show the
+  // conditions under which the index — and its line on this map — is valid.
+  const indexDescriptor = useMemo<IndexDescriptor | null>(() => {
+    if (indexMode === "none") return null;
+    if (indexMode === "custom") {
+      const expression = customExpression.trim();
+      return expression ? describeCustomIndex(expression, indexGoal) : null;
+    }
+    const chosen = indices.data?.find((i) => i.slug === indexMode);
+    return chosen ? describeIndex(chosen) : null;
   }, [indexMode, customExpression, indexGoal, indices.data]);
 
   const request = useMemo<PropertyMapRequest>(
@@ -235,26 +254,12 @@ function MapsPageContent() {
       <section className="rounded-lg border border-slate-200 bg-white p-4">
         <h2 className="text-sm font-semibold text-slate-800">{t.indexTitle}</h2>
         <p className="mb-3 text-xs text-slate-500">{t.indexHint}</p>
-        <div className="flex flex-wrap items-end gap-3">
-          <label className="text-sm text-slate-600">
-            {t.indexTitle}
-            <select
-              className={`${inputClass} mt-1 block`}
-              value={indexMode}
-              onChange={(e) => setIndexMode(e.target.value)}
-            >
-              <option value="none">{t.indexNone}</option>
-              {(indices.data ?? []).map((i) => (
-                <option key={i.slug} value={i.slug}>
-                  {i.name} — {i.expression}
-                </option>
-              ))}
-              <option value="custom">{t.indexCustom}</option>
-            </select>
-          </label>
-
-          {indexMode === "custom" && (
-            <>
+        <IndexPicker
+          indices={indices.data ?? []}
+          value={indexMode}
+          onChange={setIndexMode}
+          customSlot={
+            <div className="flex flex-wrap items-end gap-3">
               <label className="text-sm text-slate-600">
                 {t.expression}
                 <input
@@ -275,9 +280,31 @@ function MapsPageContent() {
                   <option value="minimize">{t.minimize}</option>
                 </select>
               </label>
-            </>
-          )}
+            </div>
+          }
+        />
 
+        {/* The slope shown here is the one the backend computed for these two
+            axes — the card never derives it (ADR 0004). */}
+        {indexDescriptor && (
+          <IndexCard
+            index={indexDescriptor}
+            dimension={overlay?.dimension}
+            indexLine={
+              overlay
+                ? {
+                    available: overlay.available,
+                    orientation: overlay.orientation,
+                    slope: overlay.slope,
+                    unavailableReason: overlay.unavailable_reason,
+                  }
+                : null
+            }
+            className="mt-3"
+          />
+        )}
+
+        <div className="mt-3 flex flex-wrap items-end gap-3">
           {activeIndex && (
             <>
               <label className="text-sm text-slate-600">
@@ -332,25 +359,10 @@ function MapsPageContent() {
           )}
         </div>
 
+        {/* Slope, dimension and the reason a line is unavailable are now part of
+            the index card, next to the hypotheses they depend on. */}
         {overlay && (
           <div className="mt-3 space-y-1 text-xs">
-            {overlay.available ? (
-              <p className="text-slate-600">
-                {overlay.orientation === "vertical" ? (
-                  <strong>{t.vertical}</strong>
-                ) : (
-                  <>
-                    {t.slope}: <strong>{overlay.slope?.toFixed(3)}</strong>
-                  </>
-                )}
-                {" · "}
-                {t.dimension}: {prettyUnit(overlay.dimension)}
-              </p>
-            ) : (
-              <p className="text-amber-700">
-                <strong>{t.indexUnavailable}:</strong> {overlay.unavailable_reason}
-              </p>
-            )}
             {overlay.levels.length > 0 && (
               <ul className="space-y-1 pt-1">
                 {overlay.levels.map((level) => (

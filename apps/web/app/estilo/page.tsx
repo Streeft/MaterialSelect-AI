@@ -41,7 +41,7 @@ import {
   Td,
   Textarea,
   Th,
-  ThRow,
+  RowHeader,
   ThemeToggle,
   Tr,
   type Provenance,
@@ -387,7 +387,7 @@ export default function StyleGuidePage() {
             </THead>
             <TBody>
               <Tr>
-                <ThRow>Liga Alumínio Demo A</ThRow>
+                <RowHeader>Liga Alumínio Demo A</RowHeader>
                 <Td>
                   <ClassBadge name="Metais" color={seats[0]?.color ?? "#0072B2"} />
                 </Td>
@@ -398,7 +398,7 @@ export default function StyleGuidePage() {
                 </Td>
               </Tr>
               <Tr>
-                <ThRow>Compósito Demo E</ThRow>
+                <RowHeader>Compósito Demo E</RowHeader>
                 <Td>
                   <ClassBadge name="Compósitos" color={seats[3]?.color ?? "#CC79A7"} />
                 </Td>
@@ -409,7 +409,7 @@ export default function StyleGuidePage() {
                 </Td>
               </Tr>
               <Tr>
-                <ThRow>Cerâmica Demo D</ThRow>
+                <RowHeader>Cerâmica Demo D</RowHeader>
                 <Td>
                   <ClassBadge name="Cerâmicas" color={seats[2]?.color ?? "#009E73"} />
                 </Td>

@@ -13,6 +13,13 @@ import {
   downloadPlotImage,
   escapeHover,
 } from "@/lib/charts";
+import {
+  DataQualityBadge,
+  MissingValue,
+  ProvenancePopover,
+  provenanceOfCell,
+  qualityState,
+} from "@/components/ui";
 
 const Plot = dynamic(() => import("react-plotly.js"), { ssr: false });
 
@@ -36,31 +43,6 @@ interface ComparisonViewProps {
 /** Index a material's cells by property slug — the API guarantees one per property. */
 function cellsBySlug(material: CompareMaterial): Map<string, CompareCell> {
   return new Map(material.cells.map((cell) => [cell.property_slug, cell]));
-}
-
-/**
- * Unit suffix for inline text.
- *
- * `prettyUnit` renders a dimensionless unit as an em dash, which reads as a
- * missing value when it trails a number ("3,5 —"). Inline, no suffix is the
- * honest rendering; the column header still carries the "[—]" marker.
- */
-function unitSuffix(unit: string | null): string {
-  const pretty = prettyUnit(unit);
-  return pretty && pretty !== "—" ? ` ${pretty}` : "";
-}
-
-/** Human-readable original value with its unit, for the traceability column. */
-function originalText(cell: CompareCell): string {
-  if (cell.is_missing) return t.missing;
-  const unit = unitSuffix(cell.original_unit);
-  if (cell.value_min !== null && cell.value_max !== null) {
-    return `${formatNumber(cell.value_min)} – ${formatNumber(cell.value_max)}${unit}`;
-  }
-  if (cell.original_value === null) return "—";
-  const uncertainty =
-    cell.uncertainty !== null ? ` ± ${formatNumber(cell.uncertainty)}` : "";
-  return `${formatNumber(cell.original_value)}${uncertainty}${unit}`;
 }
 
 /**
@@ -257,20 +239,31 @@ export function ComparisonView({ comparison, mode }: ComparisonViewProps) {
                 </th>
                 {properties.map((p) => {
                   const cell = lookup.get(material.material_id)?.get(p.property_slug);
-                  if (!cell || cell.is_missing) {
+                  // No cell at all is the same fact as a cell flagged missing:
+                  // nothing was recorded. Both get the badge, never a dash.
+                  if (!cell || cell.is_missing || cell.value === null) {
                     return (
-                      <td key={p.property_slug} className="px-3 py-2 text-slate-400">
-                        {t.missing}
+                      <td key={p.property_slug} className="px-3 py-2">
+                        {cell ? (
+                          <ProvenancePopover provenance={provenanceOfCell(cell, p.unit)}>
+                            <MissingValue />
+                          </ProvenancePopover>
+                        ) : (
+                          <MissingValue />
+                        )}
                       </td>
                     );
                   }
+                  const provenance = provenanceOfCell(cell, p.unit);
                   return (
                     <td key={p.property_slug} className="px-3 py-2 text-slate-700">
-                      <span className="tabular-nums">
-                        {cell.value === null ? "—" : formatNumber(cell.value)}
-                      </span>
-                      <span className="block text-xs text-slate-400">
-                        {t.original}: {originalText(cell)}
+                      <span className="flex flex-wrap items-baseline gap-x-2">
+                        {/* §3.2: the whole chain behind the number, one click
+                            away, instead of grey micro-text nobody reads. */}
+                        <ProvenancePopover provenance={provenance}>
+                          <span className="tabular-nums">{formatNumber(cell.value)}</span>
+                        </ProvenancePopover>
+                        <DataQualityBadge state={qualityState(provenance)} showLabel={false} />
                       </span>
                       {cell.normalized !== null && (
                         <span className="mt-1 flex items-center gap-1">

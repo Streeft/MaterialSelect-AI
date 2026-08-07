@@ -25,6 +25,12 @@ comparação).
 > **objetivo** e **restrição** específicos. O sistema exibe essas hipóteses
 > junto de cada índice, com a dimensão do resultado (também derivada, via Pint) e
 > a referência bibliográfica quando cadastrada.
+>
+> Onde: `apps/web/components/selection/IndexCard.tsx`, usado em `/selecao` e em
+> `/mapas`. As hipóteses aparecem **antes** da escolha, dentro de cada cartão
+> selecionável, e o conjunto completo — com a inclinação da reta quando há mapa —
+> logo abaixo do grupo ([D-25](DECISIONS.md)). Uma expressão personalizada não
+> tem hipóteses declaradas, e o cartão diz isso em vez de supor alguma.
 
 ## Fluxo de seleção
 

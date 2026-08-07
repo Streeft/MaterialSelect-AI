@@ -34,6 +34,13 @@ import {
   emptyConstraint,
   toConstraintPayload,
 } from "@/components/selection/ConstraintEditor";
+import {
+  IndexCard,
+  IndexPicker,
+  describeCustomIndex,
+  describeIndex,
+  type IndexDescriptor,
+} from "@/components/selection/IndexCard";
 import { ResultsView } from "@/components/selection/ResultsView";
 import { AIAssistPanel, type AcceptedSuggestions } from "@/components/ai/AIAssistPanel";
 import { StudyExplanation } from "@/components/ai/StudyExplanation";
@@ -93,6 +100,19 @@ export default function SelectionPage() {
     }
     const chosen = indices.data?.find((i) => i.slug === indexMode);
     return chosen ? { name: chosen.name, expression: chosen.expression, goal: chosen.goal } : null;
+  }, [indexMode, customExpression, indexGoal, indices.data]);
+
+  // Same resolution as `activeIndex`, but keeping the fields the run payload
+  // has no use for and the reader does: the declared assumptions and the
+  // dimension of the result.
+  const indexDescriptor = useMemo<IndexDescriptor | null>(() => {
+    if (indexMode === "none") return null;
+    if (indexMode === "custom") {
+      const expression = customExpression.trim();
+      return expression ? describeCustomIndex(expression, indexGoal) : null;
+    }
+    const chosen = indices.data?.find((i) => i.slug === indexMode);
+    return chosen ? describeIndex(chosen) : null;
   }, [indexMode, customExpression, indexGoal, indices.data]);
 
   const constraintPayload = (): ConstraintIn[] => toConstraintPayload(constraints);
@@ -365,49 +385,47 @@ export default function SelectionPage() {
       {step === "objective" && (
         <section className="space-y-5">
           <div className="rounded-lg border border-slate-200 bg-white p-4">
-            <h2 className="text-sm font-semibold text-slate-800">{t.performanceIndex}</h2>
-            <p className="mb-2 text-xs text-slate-500">{t.objectiveHint}</p>
-            <div className="flex flex-wrap items-end gap-3">
-              <label className="text-sm text-slate-600">
-                {t.performanceIndex}
-                <select className={`${inputClass} mt-1 block`} value={indexMode} onChange={(e) => { setIndexMode(e.target.value); setValidation(null); }}>
-                  <option value="none">{t.noIndex}</option>
-                  {(indices.data ?? []).map((i) => (
-                    <option key={i.slug} value={i.slug}>{i.name} — {i.expression}</option>
-                  ))}
-                  <option value="custom">{t.customIndex}</option>
-                </select>
-              </label>
-              {indexMode === "custom" && (
+            <IndexPicker
+              indices={indices.data ?? []}
+              value={indexMode}
+              onChange={(next) => {
+                setIndexMode(next);
+                setValidation(null);
+              }}
+              hint={t.objectiveHint}
+              customSlot={
                 <>
-                  <label className="text-sm text-slate-600">
-                    {t.expression}
-                    <input className={`${inputClass} mt-1 block w-72`} value={customExpression} onChange={(e) => setCustomExpression(e.target.value)} placeholder="modulo_young / densidade" />
-                  </label>
-                  <label className="text-sm text-slate-600">
-                    {t.goal}
-                    <select className={`${inputClass} mt-1 block`} value={indexGoal} onChange={(e) => setIndexGoal(e.target.value as Goal)}>
-                      <option value="maximize">{t.maximize}</option>
-                      <option value="minimize">{t.minimize}</option>
-                    </select>
-                  </label>
-                  <button type="button" onClick={() => validateExpr.mutate()} className="rounded border border-slate-300 px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50">
-                    {t.validate}
-                  </button>
+                  <div className="flex flex-wrap items-end gap-3">
+                    <label className="text-sm text-slate-600">
+                      {t.expression}
+                      <input className={`${inputClass} mt-1 block w-72`} value={customExpression} onChange={(e) => setCustomExpression(e.target.value)} placeholder="modulo_young / densidade" />
+                    </label>
+                    <label className="text-sm text-slate-600">
+                      {t.goal}
+                      <select className={`${inputClass} mt-1 block`} value={indexGoal} onChange={(e) => setIndexGoal(e.target.value as Goal)}>
+                        <option value="maximize">{t.maximize}</option>
+                        <option value="minimize">{t.minimize}</option>
+                      </select>
+                    </label>
+                    <button type="button" onClick={() => validateExpr.mutate()} className="rounded border border-slate-300 px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50">
+                      {t.validate}
+                    </button>
+                  </div>
+                  <p className="mt-2 text-xs text-slate-500">
+                    {t.expressionHint}{" "}
+                    {properties.data && (
+                      <span className="text-slate-400">
+                        ({t.variablesAvailable}: {properties.data.map((p) => p.slug).join(", ")})
+                      </span>
+                    )}
+                  </p>
                 </>
-              )}
-            </div>
-            {indexMode === "custom" && (
-              <p className="mt-2 text-xs text-slate-500">
-                {t.expressionHint}{" "}
-                {properties.data && (
-                  <span className="text-slate-400">
-                    ({t.variablesAvailable}: {properties.data.map((p) => p.slug).join(", ")})
-                  </span>
-                )}
-              </p>
-            )}
+              }
+            />
             {validation && <p className="mt-1 text-xs text-slate-600">{validation}</p>}
+            {/* The conditions of validity, shown without asking for a click —
+                an index that does not fit the problem is worse than no index. */}
+            {indexDescriptor && <IndexCard index={indexDescriptor} className="mt-4" />}
           </div>
 
           <div className="rounded-lg border border-slate-200 bg-white p-4">

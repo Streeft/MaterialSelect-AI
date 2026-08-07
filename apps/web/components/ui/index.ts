@@ -57,7 +57,7 @@ export {
   TableScroll,
   Td,
   Th,
-  ThRow,
+  RowHeader,
   Tr,
 } from "./Table";
 export { TabPanel, Tabs, type TabItem } from "./Tabs";
