@@ -165,14 +165,44 @@ function makeResult(overrides: Partial<RunResult> = {}): RunResult {
   };
 }
 
+/** A results block by its anchor — the address the in-page nav links to. */
+function block(container: HTMLElement, id: string): HTMLElement {
+  const found = container.querySelector<HTMLElement>(`#${id}`);
+  if (!found) throw new Error(`Nenhum bloco com âncora #${id}`);
+  return found;
+}
+
 describe("ResultsView", () => {
   it("shows how many candidates each stage eliminated", () => {
-    render(<ResultsView result={makeResult()} />);
+    const { container } = render(<ResultsView result={makeResult()} />);
 
-    const funnel = screen.getByRole("list");
+    const funnel = block(container, "funil");
     // 10 → 6 → 3: the two stages dropped 4 and 3.
     expect(within(funnel).getByText(`−4 ${s.eliminated}`)).toBeInTheDocument();
     expect(within(funnel).getByText(`−3 ${s.eliminated}`)).toBeInTheDocument();
+  });
+
+  it("gives every block a title and an address someone can link to", () => {
+    const { container } = render(<ResultsView result={makeResult()} />);
+
+    // The screen gets referenced out loud ("look at the funnel"), and a block
+    // with no id is a block nobody can point at.
+    const nav = screen.getByRole("navigation", { name: s.onThisPage });
+    for (const id of ["funil", "candidatos", "proveniencia"]) {
+      expect(block(container, id)).toBeInTheDocument();
+      expect(nav.querySelector(`a[href="#${id}"]`)).toBeTruthy();
+    }
+  });
+
+  it("says what produced the numbers, and stays silent about what was not used", () => {
+    const { container } = render(<ResultsView result={makeResult()} />);
+
+    const provenance = block(container, "proveniencia");
+    expect(within(provenance).getByText("modulo_young / densidade")).toBeInTheDocument();
+    // No ranking in this run: the normalisation and the criteria say so instead
+    // of showing the defaults as if they had been chosen.
+    expect(within(provenance).getAllByText(s.provNone).length).toBeGreaterThan(0);
+    expect(within(provenance).queryByText(s.normMinmax)).not.toBeInTheDocument();
   });
 
   it("names an undefined index value as absent, with the backend's reason", () => {
@@ -229,12 +259,15 @@ describe("ResultsView", () => {
         sensitivity: [],
       },
     });
-    render(<ResultsView result={result} />);
+    const { container } = render(<ResultsView result={result} />);
 
-    const table = screen.getByRole("table");
-    expect(within(table).getByText("Densidade")).toBeInTheDocument();
-    expect(within(table).getByText("0.400")).toBeInTheDocument();
-    expect(within(table).getByText("Módulo de Young")).toBeInTheDocument();
-    expect(within(table).getByText("0.500")).toBeInTheDocument();
+    // The breakdown is its own block now: inside the ranking table it competed
+    // with the ranking for the same glance, and it is the part people argue
+    // about, so it gets a title and an anchor of its own.
+    const contributions = block(container, "contribuicoes");
+    expect(within(contributions).getByText("Densidade")).toBeInTheDocument();
+    expect(within(contributions).getByText("0.400")).toBeInTheDocument();
+    expect(within(contributions).getByText("Módulo de Young")).toBeInTheDocument();
+    expect(within(contributions).getByText("0.500")).toBeInTheDocument();
   });
 });

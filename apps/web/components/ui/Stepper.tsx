@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/cn";
+import { ptBR } from "@/lib/i18n";
 import { IconCheck } from "./icons";
 
 /**
@@ -87,9 +88,9 @@ export function Stepper<T extends string>({
                 {/* Status in words, for a reader who gets no colour and no shape. */}
                 <span className="sr-only">
                   {status === "done"
-                    ? " (concluída)"
+                    ? ` (${ptBR.ui.stepDone})`
                     : status === "blocked"
-                      ? ` (bloqueada: ${step.blockedReason ?? ""})`
+                      ? ` (${ptBR.ui.stepBlocked}: ${step.blockedReason ?? ""})`
                       : ""}
                 </span>
               </button>

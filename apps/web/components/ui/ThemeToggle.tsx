@@ -27,7 +27,21 @@ const OPTIONS: { id: ThemePreference; label: string; icon: React.ReactNode }[] =
  * preference, so any markup emitted there would be wrong for someone and would
  * make React complain about it during hydration.
  */
-export function ThemeToggle({ className }: { className?: string }) {
+export function ThemeToggle({
+  className,
+  compact = false,
+}: {
+  className?: string;
+  /**
+   * Icons only, with the words left for assistive technology.
+   *
+   * The three labels cost 236 px, and in the header that was 236 px the grouped
+   * navigation did not have: at 1280 the bar overflowed the page and the whole
+   * document scrolled sideways. The meaning never depended on the words being
+   * painted — every button keeps its `title` and its accessible name.
+   */
+  compact?: boolean;
+}) {
   const [preference, setPreference] = useState<ThemePreference | null>(null);
 
   useEffect(() => {
@@ -41,7 +55,7 @@ export function ThemeToggle({ className }: { className?: string }) {
 
   if (preference === null) {
     // Reserve the space so the header does not jump when this appears.
-    return <div aria-hidden className={className} style={{ width: 132, height: 30 }} />;
+    return <div aria-hidden className={className} style={{ width: compact ? 112 : 132, height: 30 }} />;
   }
 
   return (
@@ -57,7 +71,7 @@ export function ThemeToggle({ className }: { className?: string }) {
           title={option.label}
         >
           {option.icon}
-          <span className="sr-only sm:not-sr-only">{option.label}</span>
+          <span className={compact ? "sr-only" : "sr-only sm:not-sr-only"}>{option.label}</span>
         </ButtonGroupItem>
       ))}
     </ButtonGroup>

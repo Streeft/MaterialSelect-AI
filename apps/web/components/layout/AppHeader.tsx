@@ -137,7 +137,10 @@ export function AppHeader() {
 
   return (
     <header className="border-b border-edge bg-surface-raised">
-      <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3">
+      {/* `flex-wrap` is the safety net, not the layout: if a ninth link ever
+          makes the row too long again, it wraps instead of pushing the whole
+          document sideways. */}
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-3 px-4 py-3">
         <Link
           href="/"
           aria-current={pathname === "/" ? "page" : undefined}
@@ -149,10 +152,13 @@ export function AppHeader() {
           </Badge>
         </Link>
 
-        {/* Wide screens: everything visible, grouped. */}
+        {/* Wide screens: everything visible, grouped. `xl`, not `lg`: measured,
+            the brand, the seven grouped links and the theme control need
+            1079 px, which only fits inside `max-w-6xl` from 1280 up. Below that
+            the bar wrapped onto three lines. */}
         <nav
           aria-label={ptBR.ui.mainNav}
-          className="ml-auto hidden items-center gap-4 lg:flex"
+          className="ml-auto hidden items-center gap-4 xl:flex"
         >
           {GROUPS.map((group) => (
             <div key={group.id} className="flex items-center gap-1.5">
@@ -166,15 +172,15 @@ export function AppHeader() {
           ))}
         </nav>
 
-        <div className="ml-auto flex items-center gap-2 lg:ml-0">
-          <ThemeToggle />
+        <div className="ml-auto flex items-center gap-2 xl:ml-0">
+          <ThemeToggle compact />
           {/* The label does not flip to "close": while the drawer is open this
               button sits behind the overlay, and the drawer carries its own
               close control. Two buttons with the same name and the same job is
               a maze for anyone reading by name. State is on `aria-expanded`. */}
           <IconButton
             size="sm"
-            className="lg:hidden"
+            className="xl:hidden"
             label={ptBR.ui.openMenu}
             icon={<IconMenu />}
             aria-expanded={open}
@@ -187,7 +193,7 @@ export function AppHeader() {
       {/* Narrow screens: a drawer with the same groups. Rendered only while
           open — a hidden copy of every link would double the tab stops. */}
       {open && (
-        <div className="fixed inset-0 z-40 lg:hidden">
+        <div className="fixed inset-0 z-40 xl:hidden">
           <div
             aria-hidden
             onClick={() => setOpen(false)}
