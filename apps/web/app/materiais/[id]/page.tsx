@@ -61,9 +61,11 @@ export default function MaterialDetailPage() {
       {material.data && (
         <>
           <header className="rounded-lg border border-slate-200 bg-white p-5">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <div className="flex items-center gap-3">
+            {/* Wraps at 375 px: unwrapped, the action pair pushed the page 33 px
+                past the viewport and the whole document scrolled sideways. */}
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-3">
                   <h1 className="text-2xl font-semibold text-slate-900">{material.data.name}</h1>
                   {material.data.is_demo && <DemoDataBadge />}
                   {!material.data.is_active && (

@@ -181,7 +181,7 @@ function ComparePageContent() {
 
       {/* View switcher */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <nav aria-label="Visualizações" className="flex flex-wrap gap-2">
+        <nav aria-label={ptBR.ui.views} className="flex flex-wrap gap-2">
           {COMPARISON_MODES.map((option) => (
             <button
               key={option.key}

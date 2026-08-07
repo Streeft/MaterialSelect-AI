@@ -15,7 +15,13 @@ export const ptBR = {
     imports: "Importar",
     classes: "Classes",
     properties: "Propriedades",
+    // Eight links in a row said nothing about what belongs with what. The
+    // groups are the three things someone does here, in the order they do them.
+    groupStudy: "Estudar",
+    groupData: "Dados",
+    groupAdmin: "Administrar",
   },
+
   actions: {
     new: "Novo material",
     edit: "Editar",
@@ -465,6 +471,8 @@ export const ptBR = {
     openMenu: "Abrir menu",
     closeMenu: "Fechar menu",
     mainNav: "Navegação principal",
+    steps: "Etapas",
+    views: "Visualizações",
     theme: {
       label: "Tema",
       light: "Claro",
@@ -536,6 +544,9 @@ export const ptBR = {
 
   home: {
     lead: "Da função do componente ao relatório de seleção, com cada etapa do raciocínio à vista.",
+    lead2:
+      "Nenhuma propriedade é inventada: todo número na tela veio de um valor cadastrado ou de " +
+      "um cálculo determinístico, e a origem de cada um está a um gesto de distância.",
     methodTitle: "O método, em quatro passos",
     methodHint:
       "É o percurso de Ashby: descreva a função, elimine com restrições, ordene por um objetivo e leia o resultado com a proveniência de cada número.",
@@ -552,6 +563,15 @@ export const ptBR = {
     savedTitle: "Retomar um estudo",
     savedHint: "Estudos salvos ficam disponíveis para reabrir e executar de novo.",
     savedEmpty: "Nenhum estudo salvo ainda.",
+    savedEmptyHint: "O primeiro sai da tela de seleção, no botão “Salvar estudo”.",
+    savedError: "Não foi possível carregar os estudos salvos.",
+    resume: "Retomar",
+    // Counted nouns, both forms. Lowercasing another label to reuse it breaks
+    // the moment a label starts with an acronym.
+    constraintOne: "restrição",
+    constraintMany: "restrições",
+    criterionOne: "critério",
+    criterionMany: "critérios",
     exploreTitle: "Ou explore os dados",
     catalogHint: "Materiais, propriedades e a proveniência de cada valor.",
     mapsHint: "Mapa de Ashby com envelopes por classe e linhas de índice.",

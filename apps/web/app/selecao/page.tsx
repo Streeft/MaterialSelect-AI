@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ApiError,
@@ -27,7 +28,8 @@ import type {
   StudyDetail,
 } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
-import { prettyUnit } from "@/lib/format";
+import { countLabel, prettyUnit } from "@/lib/format";
+import { LoadingState } from "@/components/ui";
 import {
   ConstraintEditor,
   type ConstraintRow,
@@ -49,6 +51,20 @@ import { ExportButtons } from "@/components/ExportButtons";
 const t = ptBR.selection;
 type Step = "function" | "constraints" | "objective" | "results";
 
+/**
+ * Deep links into the wizard.
+ *
+ * The home page presents the method as four clickable steps, and a step that
+ * lands on the first screen every time is not a step. The slugs are pt-BR
+ * because the routes are; the identifiers stay English like everything else.
+ */
+const STEP_BY_SLUG: Record<string, Step> = {
+  funcao: "function",
+  restricoes: "constraints",
+  objetivo: "objective",
+  resultados: "results",
+};
+
 interface CriterionRow {
   id: string;
   key: string;
@@ -60,8 +76,19 @@ let counter = 0;
 const nextId = () => `row-${counter++}`;
 
 export default function SelectionPage() {
+  // `useSearchParams` opts the subtree out of prerendering unless it sits
+  // behind a boundary; without this, `next build` refuses the page.
+  return (
+    <Suspense fallback={<LoadingState />}>
+      <SelectionWizard />
+    </Suspense>
+  );
+}
+
+function SelectionWizard() {
   const qc = useQueryClient();
-  const [step, setStep] = useState<Step>("function");
+  const params = useSearchParams();
+  const [step, setStep] = useState<Step>(() => STEP_BY_SLUG[params.get("etapa") ?? ""] ?? "function");
 
   const [name, setName] = useState("");
   const [functionText, setFunctionText] = useState("");
@@ -241,6 +268,19 @@ export default function SelectionPage() {
     onError: fail,
   });
 
+  // `?estudo=<id>` is where the home page's "Retomar" lands. Once, on arrival:
+  // re-loading on every render would overwrite whatever the reader has typed
+  // since.
+  const requestedStudy = params.get("estudo");
+  const loadedFromUrl = useRef(false);
+  useEffect(() => {
+    if (loadedFromUrl.current || !requestedStudy) return;
+    const id = Number(requestedStudy);
+    if (!Number.isInteger(id) || id <= 0) return;
+    loadedFromUrl.current = true;
+    loadStudy.mutate(id);
+  }, [requestedStudy, loadStudy]);
+
   /**
    * Merge the suggestions the user ticked into the wizard.
    *
@@ -293,7 +333,7 @@ export default function SelectionPage() {
           <h1 className="text-xl font-semibold text-slate-900">{t.title}</h1>
           <p className="text-sm text-slate-500">{t.subtitle}</p>
         </div>
-        <nav aria-label="Etapas" className="flex flex-wrap gap-2 text-xs">
+        <nav aria-label={ptBR.ui.steps} className="flex flex-wrap gap-2 text-xs">
           {steps.map((s) => (
             <button
               key={s.key}
@@ -519,7 +559,8 @@ export default function SelectionPage() {
                       <StudyExplanation studyId={s.id} />
                     </td>
                     <td className="px-3 py-2 align-top text-xs text-slate-400">
-                      {s.constraint_count} restrições · {s.criterion_count} critérios
+                      {countLabel(s.constraint_count, ptBR.home.constraintOne, ptBR.home.constraintMany)}{" "}
+                      · {countLabel(s.criterion_count, ptBR.home.criterionOne, ptBR.home.criterionMany)}
                     </td>
                     <td className="px-3 py-2 text-right align-top">
                       <div className="flex justify-end gap-2">

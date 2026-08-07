@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import "./globals.css";
 import { Providers } from "./providers";
+import { AppHeader } from "@/components/layout/AppHeader";
 import { LimitationNotice } from "@/components/LimitationNotice";
 import { ptBR } from "@/lib/i18n";
 import { THEME_BOOTSTRAP_SCRIPT } from "@/lib/theme";
@@ -23,44 +23,22 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <Providers>
-          <div className="min-h-screen flex flex-col">
-            <header className="border-b border-slate-200 bg-white">
-              <div className="mx-auto max-w-6xl px-4 py-3 flex items-center gap-6">
-                <Link href="/" className="font-semibold text-brand-700">
-                  {ptBR.appName}
-                </Link>
-                <nav className="flex gap-4 text-sm">
-                  <Link href="/" className="text-slate-600 hover:text-brand-600">
-                    {ptBR.nav.home}
-                  </Link>
-                  <Link href="/catalogo" className="text-slate-600 hover:text-brand-600">
-                    {ptBR.nav.catalog}
-                  </Link>
-                  <Link href="/selecao" className="text-slate-600 hover:text-brand-600">
-                    {ptBR.nav.selection}
-                  </Link>
-                  <Link href="/mapas" className="text-slate-600 hover:text-brand-600">
-                    {ptBR.nav.maps}
-                  </Link>
-                  <Link href="/comparar" className="text-slate-600 hover:text-brand-600">
-                    {ptBR.nav.compare}
-                  </Link>
-                  <Link href="/importar" className="text-slate-600 hover:text-brand-600">
-                    {ptBR.nav.imports}
-                  </Link>
-                  <Link href="/admin/classes" className="text-slate-600 hover:text-brand-600">
-                    {ptBR.nav.classes}
-                  </Link>
-                  <Link href="/admin/propriedades" className="text-slate-600 hover:text-brand-600">
-                    {ptBR.nav.properties}
-                  </Link>
-                </nav>
-              </div>
-            </header>
-            <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">{children}</main>
-            <footer className="border-t border-slate-200 bg-white">
+          <div className="flex min-h-screen flex-col">
+            {/* First stop of the tab order on every page: eight navigation
+                links are eight keystrokes between the reader and the content. */}
+            <a
+              href="#conteudo"
+              className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-control focus:bg-brand focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-brand-fg"
+            >
+              {ptBR.ui.skipToContent}
+            </a>
+            <AppHeader />
+            <main id="conteudo" tabIndex={-1} className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
+              {children}
+            </main>
+            <footer className="border-t border-edge bg-surface-raised">
               <div className="mx-auto max-w-6xl space-y-2 px-4 py-3">
-                <p className="text-xs text-amber-700">⚠️ {ptBR.demoWarning}</p>
+                <p className="text-xs text-warning-fg">⚠️ {ptBR.demoWarning}</p>
                 <LimitationNotice variant="footer" />
               </div>
             </footer>

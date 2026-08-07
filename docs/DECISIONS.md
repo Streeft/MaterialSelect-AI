@@ -38,6 +38,7 @@ diferente. O que é óbvio não precisa de registro.
 | D-23 | Sistema de design próprio, sem biblioteca de componentes | aceito | abaixo |
 | D-24 | Qualidade do dado codificada em três canais, nunca só cor | aceito | abaixo |
 | D-25 | Hipóteses do índice antes da escolha, não depois | aceito | abaixo |
+| D-26 | Navegação agrupada por tarefa, sem menus suspensos | aceito | abaixo |
 
 ---
 
@@ -489,3 +490,40 @@ digitada pelo usuário não tem função nem geometria registradas, e o cartão 
 isso com todas as letras em vez de preencher com algo plausível. Chaves de
 `assumptions` que a interface não conhece são exibidas mesmo assim, com o nome
 humanizado: escondê-las faria o cartão afirmar que o índice diz menos do que diz.
+
+---
+
+## D-26 — Navegação agrupada por tarefa, e sem menu suspenso
+
+**Contexto.** O cabeçalho tinha oito links numa única linha, na ordem em que as
+rotas foram nascendo, sem nenhuma indicação de qual estava aberta. A 375 px a
+linha estourava a viewport e a página inteira rolava de lado — o único caso de
+rolagem horizontal que restava fora das tabelas.
+
+**Decisão.** Três grupos rotulados, na ordem em que o trabalho acontece:
+**Estudar** (Seleção, Mapas, Comparar), **Dados** (Catálogo, Importar) e
+**Administrar** (Classes, Propriedades). Cada grupo é uma `<ul>` com
+`aria-labelledby`, então o rótulo que se vê é o mesmo que o leitor de tela
+anuncia. A rota atual leva `aria-current="page"`; a cor sozinha não diz onde se
+está. Abaixo de `lg`, os mesmos grupos empilhados numa gaveta modal com foco
+preso, `Esc` para fechar e `aria-expanded` no gatilho.
+
+**Alternativas descartadas.**
+- **Menus suspensos por grupo:** um `menu`/`menubar` correto exige navegação por
+  setas, `Home`/`End`, digitação para busca e fechamento por foco perdido —
+  muito widget para sete links que cabem na tela. E esconde atrás de um clique o
+  que hoje se lê de uma vez.
+- **Manter a fila de oito links e só deixá-la quebrar linha:** resolve o
+  transbordo e não resolve o que estava errado — nada dizia que Mapas e Comparar
+  são a mesma atividade e Classes é outra.
+
+**Consequência aceita.** Os rótulos de grupo custam largura no cabeçalho, e por
+isso a navegação inteira só aparece a partir de `lg`. Entre 768 px e 1024 px um
+tablet vê a gaveta, não a barra — é a troca que mantém o cabeçalho legível em
+vez de espremido.
+
+**Corolário — o gatilho da gaveta não vira "Fechar".** Enquanto a gaveta está
+aberta, o botão do cabeçalho fica atrás da camada modal e a gaveta tem o próprio
+botão de fechar. Dois controles com o mesmo nome acessível e a mesma função são
+um labirinto para quem navega por nome; o estado vai em `aria-expanded`, que é
+onde ele é esperado.

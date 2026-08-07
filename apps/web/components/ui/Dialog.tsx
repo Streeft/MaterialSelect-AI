@@ -1,21 +1,19 @@
 "use client";
 
-import { useEffect, useId, useRef, type ReactNode } from "react";
+import { useId, useRef, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { ptBR } from "@/lib/i18n";
 import { IconClose } from "./icons";
 import { IconButton } from "./Button";
-
-const FOCUSABLE =
-  'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+import { useFocusTrap } from "./focusTrap";
 
 /**
  * Modal dialog.
  *
  * Written by hand rather than on top of `<dialog>` because jsdom does not
  * implement `showModal`, and a dialog that cannot be tested is a dialog whose
- * focus trap quietly rots. The three obligations are all here: focus enters the
- * dialog, cannot leave it while it is open, and returns to the trigger on close.
+ * focus trap quietly rots. The trap itself lives in `focusTrap.ts`, shared with
+ * the navigation drawer.
  */
 export function Dialog({
   open,
@@ -35,52 +33,10 @@ export function Dialog({
   children: ReactNode;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
-  const restoreTo = useRef<HTMLElement | null>(null);
   const titleId = useId();
   const descId = useId();
 
-  useEffect(() => {
-    if (!open) return;
-    restoreTo.current = document.activeElement as HTMLElement | null;
-    const panel = panelRef.current;
-    // Focus the panel itself, not its first control. The dialog's name and
-    // description get announced on entry, and the reader is not dropped onto
-    // "Fechar" — which is what happens when you focus whatever comes first in
-    // the DOM and the close button lives in the header.
-    panel?.focus();
-
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.stopPropagation();
-        onClose();
-        return;
-      }
-      if (event.key !== "Tab" || !panel) return;
-      const items = Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
-        (el) => el.offsetParent !== null || el === document.activeElement,
-      );
-      if (items.length === 0) return;
-      const first = items[0];
-      const last = items[items.length - 1];
-      if (!first || !last) return;
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-
-    document.addEventListener("keydown", onKey, true);
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKey, true);
-      document.body.style.overflow = previousOverflow;
-      restoreTo.current?.focus();
-    };
-  }, [open, onClose]);
+  useFocusTrap(open, panelRef, onClose);
 
   if (!open) return null;
 
