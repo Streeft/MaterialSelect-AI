@@ -544,3 +544,117 @@ aberta, o botão do cabeçalho fica atrás da camada modal e a gaveta tem o pró
 botão de fechar. Dois controles com o mesmo nome acessível e a mesma função são
 um labirinto para quem navega por nome; o estado vai em `aria-expanded`, que é
 onde ele é esperado.
+
+---
+
+## D-27 — A composição da qualidade do dado é contada no banco, não no navegador
+
+**Contexto.** O catálogo listava nome, classe e palavras-chave. Se os números de
+um material foram medidos, importados, estimados ou simplesmente não existem só
+aparecia na ficha — isto é, um clique depois de a lista já ter sido usada para
+montar uma seleção. O filtro "com lacunas" que a fase 8 pede não tinha como ser
+honesto: `MaterialListItem` não carregava nada sobre os valores.
+
+**Decisão.** `GET /api/materials` passou a devolver `quality`
+(`medido`/`importado`/`estimado`/`missing`) e `class_slug` por material. A soma é
+feita em `MaterialService._summarise_quality`, com `selectinload` dos valores —
+uma consulta a mais para a página inteira, não uma por linha. `missing` é contado
+à parte: um valor ausente carrega `data_quality` como qualquer outro, e somá-lo
+sob essa qualidade afirmaria que algo foi medido quando nada foi.
+
+**Alternativas descartadas.**
+- **Derivar no React a partir do que a lista já manda:** a lista não manda os
+  valores. Derivar exigiria buscar a ficha de cada material — ou inventar.
+- **Um endpoint novo de estatística:** dois pedidos para desenhar uma linha da
+  tabela, e duas respostas que podem discordar entre si.
+- **Contar no cliente depois de baixar tudo:** é cálculo em componente React,
+  proibido pela mesma razão que a geometria dos gráficos (ADR 0004) — vira uma
+  segunda resposta, divergente, para uma pergunta que o banco já responde.
+
+**Consequência aceita.** A resposta da lista cresceu. É o preço de a tela dizer
+o que sustenta cada linha antes de alguém escolher a linha.
+
+**Corolário — ausência nunca é célula vazia.** Um material sem nenhuma
+propriedade cadastrada mostra "Nenhuma propriedade cadastrada", não um espaço em
+branco; um com lacunas mostra quantas. Vazio se lê como "não sei se olhei".
+
+---
+
+## D-28 — Uma paleta só, compartilhada entre interface e gráfico
+
+**Contexto.** `lib/charts.ts` tinha o próprio mapa de cores por classe e a
+própria cor de destaque; `lib/design/palette.ts` tinha outro, nascido com o
+sistema de design. Duas paletas é como um relatório termina parecendo feito com
+duas ferramentas — e a de `charts.ts` era só cor, sem forma nem traço: nada
+sobrava num impresso monocromático.
+
+**Decisão.** `classVisual(slug)` em `lib/design/palette.ts` é a única fonte de
+cor, símbolo de marcador e padrão de traço por classe, e vale para catálogo,
+ficha, mapa, comparador e `/estilo`. `chartTheme(theme)` recebe o tema resolvido
+como argumento em vez de lê-lo: assim a figura é reconstruída quando o tema muda,
+em vez de guardar as cores da primeira pintura — e a dependência fica declarada
+de verdade no `useMemo`.
+
+**Alternativas descartadas.**
+- **Manter as duas e sincronizar na revisão:** é a mesma promessa que já falhou.
+- **Ler os tokens direto do CSS dentro do componente:** funciona no navegador e
+  falha no teste, onde não há documento para medir; e esconde do linter que a
+  cor depende do tema.
+
+**Consequência aceita.** `ClassVisual.symbol` e `.dash` são uniões literais, não
+`string` — o vocabulário do Plotly entra no tipo. Um símbolo novo exige mexer no
+array, que é exatamente onde a decisão de "como esta classe se distingue" mora.
+
+---
+
+## D-29 — Contraste medido contra a superfície mais escura em que o token é usado
+
+**Contexto.** `--ink-subtle` foi aprovado no tema claro contra `--surface`
+(4,6:1). Só que ele é usado sobre `--surface-sunken` — o cabeçalho fixo da
+tabela, o controle desabilitado, a linha em hover — onde o mesmo par mede 4,37:1,
+e sobre `--brand-50`, onde mede 4,46:1. Os dois abaixo de AA. O botão `danger`
+tinha um problema irmão: `text-white` fixo, sobre um `--danger` que no tema
+escuro é um vermelho *claro* — 2,8:1 no único botão cuja função é ser lido antes
+de ser apertado.
+
+**Decisão.** O token claro escureceu de `100 116 139` para `100 112 130`, o
+bastante para passar de 4,5:1 contra a mais escura das três superfícies —
+o que resolve as outras duas de brinde — mantendo degrau visível para
+`--ink-muted`. O botão `danger` passou a `text-ink-inverted`, que inverte junto
+com o tema. A regra que fica: um par ink/superfície se mede contra a superfície
+mais escura em que o token de fato aparece, não contra a superfície padrão.
+
+**Alternativas descartadas.**
+- **Trocar os chamadores para `--ink-muted`:** conserta as telas de hoje e deixa
+  a armadilha montada para a próxima.
+- **Usar `--danger-fg` no botão:** é o texto que vai sobre o fundo tingido
+  (`soft`), não sobre o preenchimento saturado. No tema escuro seria vermelho
+  claro sobre vermelho claro.
+
+**Consequência aceita.** A distância visual entre `--ink-subtle` e `--ink-muted`
+diminuiu. Preferível a um nível da escala que só é legível em metade das
+superfícies do próprio sistema.
+
+---
+
+## D-30 — Todo número na tela usa a convenção do pt-BR
+
+**Contexto.** A tabela do comparador mostrava a densidade como `3.900` e o escore
+normalizado ao lado como `0.00` — o mesmo glifo significando milhar numa coluna e
+decimal na seguinte. Vinha de `toFixed`, que escreve ponto sempre. No cartão do
+índice era pior: uma inclinação de 2 aparecia como `2.000`, que em português se
+lê como dois mil.
+
+**Decisão.** `formatScore(valor, casas)` em `lib/format.ts`, com
+`toLocaleString("pt-BR")` e número de casas fixo, para todo valor adimensional
+exibido — escores, pesos, contribuições, inclinação. `formatNumber` continua
+responsável pelos valores com unidade.
+
+**Alternativas descartadas.**
+- **Deixar `toFixed` e aceitar a mistura:** o público da ferramenta é brasileiro
+  e a interface inteira é em pt-BR; o número é o conteúdo, não a decoração.
+- **Casas variáveis:** numa coluna ordenada, `1` e `0,75` com larguras
+  diferentes se leem como precisões diferentes.
+
+**Consequência aceita.** Um teste que afirmava `"2.000"` passou a afirmar
+`"2,000"`. A expectativa antiga estava documentando o defeito.

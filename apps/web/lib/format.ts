@@ -18,6 +18,23 @@ export function formatNumber(value: number): string {
 }
 
 /**
+ * A dimensionless score with a fixed number of decimals, in pt-BR.
+ *
+ * `toFixed` is the obvious call and the wrong one: it always writes a period,
+ * so a comparison table ended up showing "3.900" for the density beside "0.00"
+ * for its normalised score — the same glyph meaning thousands in one column and
+ * decimals in the next. The count of decimals is fixed on purpose: these are
+ * ranked numbers, and a column where 1 and 0,75 have different widths is read
+ * as different precisions.
+ */
+export function formatScore(value: number, decimals = 2): string {
+  return value.toLocaleString("pt-BR", {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  });
+}
+
+/**
  * A counted noun. Portuguese agrees with the number, and "1 restrições" reads
  * as a bug in the calculation even when the calculation is right. Both forms
  * come from the dictionary; this only picks one.

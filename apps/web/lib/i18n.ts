@@ -381,14 +381,38 @@ export const ptBR = {
   },
   catalog: {
     title: "Catálogo de materiais",
+    subtitle: "O que existe cadastrado, e com que qualidade de dado.",
     searchPlaceholder: "Buscar por nome, classe ou palavra-chave…",
+    searchLabel: "Buscar materiais",
     columnName: "Material",
     columnClass: "Classe",
     columnKeywords: "Palavras-chave",
+    columnQuality: "Dados",
     empty: "Nenhum material encontrado.",
+    emptyHint: "Ajuste a busca ou os filtros — ou cadastre o primeiro material.",
+    emptyFiltered: "Nenhum material atende aos filtros escolhidos.",
+    clearFilters: "Limpar filtros",
     loading: "Carregando materiais…",
     error: "Não foi possível carregar os materiais.",
     count: (n: number) => `${n} ${n === 1 ? "material" : "materiais"}`,
+    showing: (shown: number, total: number) => `Mostrando ${shown} de ${total}`,
+    filters: "Filtros",
+    filterClass: "Classe",
+    allClasses: "Todas",
+    filterQuality: "Qualidade do dado",
+    // Not "sem lacunas": the catalogue only knows about properties that were
+    // recorded, so it can say a material has no gap *among the ones cadastradas*
+    // and nothing more.
+    qualityAny: "Qualquer",
+    qualityComplete: "Sem lacunas cadastradas",
+    qualityWithGaps: "Com lacunas",
+    qualityMeasured: "Tem valor medido",
+    view: "Exibição",
+    viewTable: "Tabela",
+    viewCards: "Cartões",
+    // The summary badge on a row/card. Absence is stated, never left blank.
+    qualityBreakdown: "Composição dos dados",
+    noValues: "Nenhuma propriedade cadastrada",
   },
   detail: {
     back: "← Voltar ao catálogo",
@@ -405,6 +429,18 @@ export const ptBR = {
     missing: "ausente",
     uncertainty: "incerteza",
     noProperties: "Este material ainda não possui propriedades cadastradas.",
+    inactive: "Inativo",
+    identification: "Identificação",
+    keywords: "Palavras-chave",
+    position: "Onde este material fica",
+    positionHint:
+      "Densidade × módulo de Young, os dois eixos do mapa demonstrativo. Este material aparece destacado.",
+    openInMaps: "Ver no mapa completo",
+    // The sheet is where §3.2 has to pay off: every number says where it came
+    // from, and the legend explains the vocabulary once, no matter how many
+    // properties the material has.
+    provenanceHint:
+      "Clique em um valor para ver a unidade original, a conversão aplicada e a fonte registrada.",
   },
   chart: {
     title: "Mapa de propriedades",
@@ -415,6 +451,13 @@ export const ptBR = {
       `${n} ${n === 1 ? "material foi omitido" : "materiais foram omitidos"} por não ter valor em ambos os eixos.`,
     logNote: "Escala logarítmica exige valores positivos; pontos ≤ 0 são omitidos.",
     empty: "Sem pontos suficientes para o gráfico.",
+    // Shared by every figure in the application: the map, the comparator and
+    // the thumbnail on the material sheet.
+    toolbar: "Ações do gráfico",
+    exportPng: "Exportar PNG",
+    exportSvg: "Exportar SVG",
+    exporting: "Exportando…",
+    exportError: "Não foi possível exportar a imagem.",
   },
   map: {
     title: "Mapas de propriedades",
@@ -457,10 +500,6 @@ export const ptBR = {
     excludedHint: "Nenhum material é descartado em silêncio; abaixo o motivo de cada omissão.",
     indexValue: "Índice",
     undefinedIndex: "índice indefinido",
-    exportPng: "Exportar PNG",
-    exportSvg: "Exportar SVG",
-    exporting: "Exportando…",
-    exportError: "Não foi possível exportar a imagem.",
     empty: "Nenhum material pôde ser plotado com estes eixos.",
     loading: "Calculando o mapa…",
     error: "Não foi possível montar o mapa.",
@@ -468,6 +507,18 @@ export const ptBR = {
     quality: "Qualidade",
     interval: "Faixa",
     uncertainty: "Incerteza",
+    // The control panel, named group by group. Eleven controls in one row said
+    // nothing about which of them change the question and which change only the
+    // drawing.
+    controls: "Controles do mapa",
+    groupAxes: "Eixos e escala",
+    groupClasses: "Classes exibidas",
+    groupDisplay: "O que desenhar",
+    groupIndex: "Linha de índice",
+    sameAxis: "Escolha duas propriedades diferentes para os eixos.",
+    notesTitle: "Observações sobre este mapa",
+    levelsHint: "Cada nível traçado vira uma reta paralela; o lado favorável é contado abaixo.",
+    figure: "Mapa de Ashby",
   },
   compare: {
     title: "Comparador de materiais",
@@ -498,11 +549,17 @@ export const ptBR = {
     notesTitle: "Observações sobre os dados",
     original: "Valor original",
     canonical: "Valor normalizado (unidade canônica)",
-    exportPng: "Exportar PNG",
-    exportSvg: "Exportar SVG",
     radarNeedsThree: "O radar precisa de ao menos três propriedades.",
     radarSkipsMissing:
       "Materiais sem valor em alguma propriedade não são traçados no radar; veja a tabela.",
+    controls: "O que comparar",
+    groupMaterials: "Materiais",
+    groupProperties: "Propriedades",
+    groupView: "Como ver",
+    selectedCount: (chosen: number, max: number) => `${chosen} de ${max}`,
+    limitReached: "Limite atingido. Desmarque um item para escolher outro.",
+    noMaterialsFound: "Nenhum material corresponde ao filtro.",
+    figure: "Comparação de materiais",
   },
   categories: {
     FISICA: "Física",

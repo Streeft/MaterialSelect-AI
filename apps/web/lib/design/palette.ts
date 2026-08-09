@@ -10,14 +10,25 @@
  * decides what colour and what marker shape draws them.
  */
 
+import type { Layout } from "plotly.js";
+
+/**
+ * The symbol and dash are typed as the literal unions the arrays below already
+ * guarantee, not as `string`: Plotly's own props accept only its vocabulary, and
+ * a widened type here would force a cast at every call site — which is exactly
+ * where a typo would stop being a compile error.
+ */
+export type ClassSymbol = (typeof SYMBOLS)[number];
+export type ClassDash = (typeof DASHES)[number];
+
 /** Material classes, as one shape-and-colour pair per class. */
 export interface ClassVisual {
   /** CSS colour, safe to hand to Plotly. */
   color: string;
   /** Plotly marker symbol. The greyscale- and CVD-safe half of the encoding. */
-  symbol: string;
+  symbol: ClassSymbol;
   /** Dash pattern for envelope outlines, so class survives a mono printout. */
-  dash: string;
+  dash: ClassDash;
 }
 
 /**
@@ -92,25 +103,49 @@ export function paletteSeats(): ClassVisual[] {
 
 // --- Reading the live theme -------------------------------------------------
 
-/** Fallbacks for the server render and for jsdom, which has no computed styles. */
-const FALLBACK: Record<string, string> = {
-  "--surface": "248 250 252",
-  "--surface-raised": "255 255 255",
-  "--edge": "226 232 240",
-  "--ink": "15 23 42",
-  "--ink-muted": "71 85 105",
-  "--ink-subtle": "100 116 139",
-  "--accent": "37 99 235",
+export type ResolvedTheme = "light" | "dark";
+
+/**
+ * Fallbacks for the server render and for jsdom, which has no computed styles.
+ *
+ * Both themes are listed because the fallback has to answer the same question
+ * the stylesheet would: a figure rendered before hydration under the dark theme
+ * with light-theme fallbacks flashes a white chart on a dark page.
+ */
+const FALLBACK: Record<ResolvedTheme, Record<string, string>> = {
+  light: {
+    "--surface": "248 250 252",
+    "--surface-raised": "255 255 255",
+    "--edge": "226 232 240",
+    "--edge-strong": "203 213 225",
+    "--ink": "15 23 42",
+    "--ink-muted": "71 85 105",
+    "--ink-subtle": "100 112 130",
+    "--accent": "37 99 235",
+    "--danger": "220 38 38",
+  },
+  dark: {
+    "--surface": "15 23 42",
+    "--surface-raised": "30 41 59",
+    "--edge": "51 65 85",
+    "--edge-strong": "71 85 105",
+    "--ink": "241 245 249",
+    "--ink-muted": "203 213 225",
+    "--ink-subtle": "148 163 184",
+    "--accent": "96 165 250",
+    "--danger": "248 113 113",
+  },
 };
 
 /**
  * Read a design token as a CSS colour.
  *
  * Returns `rgb(r g b)` because that is what Plotly accepts and what the token
- * already stores; callers that need alpha should use `token(name, 0.4)`.
+ * already stores; callers that need alpha pass one. `theme` only decides which
+ * fallback applies — whenever the document is available, the document wins.
  */
-export function token(name: string, alpha = 1): string {
-  let triple = FALLBACK[name] ?? "0 0 0";
+export function token(name: string, alpha = 1, theme: ResolvedTheme = "light"): string {
+  let triple = FALLBACK[theme][name] ?? FALLBACK.light[name] ?? "0 0 0";
   if (typeof window !== "undefined") {
     const read = window.getComputedStyle(document.documentElement).getPropertyValue(name).trim();
     if (read) triple = read;
@@ -118,32 +153,57 @@ export function token(name: string, alpha = 1): string {
   return alpha === 1 ? `rgb(${triple})` : `rgb(${triple} / ${alpha})`;
 }
 
+/** Everything a figure needs from the theme, read once per render. */
+export interface ChartTheme {
+  /** Plotly layout fragment. Presentation only — no range, no slope. */
+  layout: Partial<Layout>;
+  /** The colour that marks "this is the material you asked about". */
+  highlight: string;
+  /** Outline around a marker, so overlapping points stay countable. */
+  markerEdge: string;
+  /** Point labels and other secondary text drawn inside the figure. */
+  label: string;
+  /** Foreground ink, for lines the backend computed (index levels). */
+  ink: string;
+}
+
 /**
- * Plotly layout fragment that matches the current theme.
+ * The chart-side view of the current theme.
  *
- * Spread it into every figure's `layout`. It is presentation only — no axis
- * range, no slope, nothing the backend is responsible for.
+ * Takes the resolved theme rather than reading it, for two reasons: it decides
+ * the fallback when there is no document to measure, and it makes the value a
+ * real input, so a component that re-renders on theme change also rebuilds its
+ * figure instead of keeping the colours it computed on first paint.
  */
-export function chartLayoutTheme() {
-  const ink = token("--ink");
-  const muted = token("--ink-muted");
-  const grid = token("--edge");
+export function chartTheme(theme: ResolvedTheme): ChartTheme {
+  const read = (name: string, alpha = 1) => token(name, alpha, theme);
+  const ink = read("--ink");
+  const muted = read("--ink-muted");
+  const grid = read("--edge");
   return {
-    paper_bgcolor: "rgba(0,0,0,0)",
-    plot_bgcolor: "rgba(0,0,0,0)",
-    font: {
-      family:
-        "ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
-      color: ink,
-      size: 12,
-    },
-    xaxis: { gridcolor: grid, zerolinecolor: grid, linecolor: grid, tickfont: { color: muted } },
-    yaxis: { gridcolor: grid, zerolinecolor: grid, linecolor: grid, tickfont: { color: muted } },
-    legend: { font: { color: muted } },
-    hoverlabel: {
-      bgcolor: token("--surface-raised"),
-      bordercolor: token("--edge-strong"),
-      font: { color: ink },
+    highlight: read("--danger"),
+    markerEdge: read("--surface-raised"),
+    label: muted,
+    ink,
+    layout: {
+      // Transparent, so the figure sits on the card instead of punching a white
+      // rectangle through it.
+      paper_bgcolor: "rgba(0,0,0,0)",
+      plot_bgcolor: "rgba(0,0,0,0)",
+      font: {
+        family:
+          "ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+        color: ink,
+        size: 12,
+      },
+      xaxis: { gridcolor: grid, zerolinecolor: grid, linecolor: grid, tickfont: { color: muted } },
+      yaxis: { gridcolor: grid, zerolinecolor: grid, linecolor: grid, tickfont: { color: muted } },
+      legend: { font: { color: muted } },
+      hoverlabel: {
+        bgcolor: read("--surface-raised"),
+        bordercolor: read("--edge-strong"),
+        font: { color: ink },
+      },
     },
   };
 }

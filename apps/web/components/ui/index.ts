@@ -15,6 +15,7 @@ export {
   ButtonGroupItem,
   ButtonLink,
   IconButton,
+  ToggleChip,
   type ButtonProps,
   type ButtonSize,
   type ButtonVariant,

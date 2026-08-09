@@ -27,7 +27,11 @@ const VARIANTS: Record<ButtonVariant, string> = {
   secondary:
     "border border-edge bg-surface-raised text-ink shadow-card hover:border-edge-strong hover:bg-surface-sunken",
   ghost: "text-ink-muted hover:bg-surface-sunken hover:text-ink",
-  danger: "bg-danger text-white shadow-card hover:opacity-90 active:opacity-100",
+  // `ink-inverted`, not `white`: the dark theme's `--danger` is a *light* red,
+  // so white-on-danger measured 2.8:1 there — under AA on the one button whose
+  // whole job is to be read before it is pressed. `--danger-fg` is not the
+  // answer either; that is the text for the tinted `soft` background.
+  danger: "bg-danger text-ink-inverted shadow-card hover:opacity-90 active:opacity-100",
   link: "text-brand underline underline-offset-2 hover:text-brand-700",
 };
 
@@ -156,6 +160,40 @@ export function ButtonGroup({
     >
       {children}
     </div>
+  );
+}
+
+/**
+ * A standalone toggle, for filters where several can be on at once.
+ *
+ * Distinct from {@link ButtonGroupItem}, which is one seat of a mutually
+ * exclusive control: a row of chips where any number may be pressed is a
+ * different promise, and `aria-pressed` on each chip is what carries it. The
+ * three screens that filter by class each drew this by hand, with three
+ * different colours for "selected".
+ */
+export function ToggleChip({
+  selected,
+  className,
+  children,
+  ...rest
+}: ButtonHTMLAttributes<HTMLButtonElement> & { selected: boolean }) {
+  return (
+    <button
+      type="button"
+      aria-pressed={selected}
+      {...rest}
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition",
+        "disabled:cursor-not-allowed disabled:opacity-50",
+        selected
+          ? "border-brand bg-brand text-brand-fg"
+          : "border-edge bg-surface-raised text-ink-muted hover:border-edge-strong hover:text-ink",
+        className,
+      )}
+    >
+      {children}
+    </button>
   );
 }
 

@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import type { Contribution, RunResult } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
-import { formatNumber, prettyUnit } from "@/lib/format";
+import { formatNumber, formatScore, prettyUnit } from "@/lib/format";
 import { OKABE_ITO } from "@/lib/design/palette";
 import {
   Alert,
@@ -110,9 +110,9 @@ function Contributions({
             </dt>
             <dd
               className="tabular-nums text-ink-muted"
-              title={`${t.weight} ${c.weight.toFixed(2)} × ${c.normalized.toFixed(2)}`}
+              title={`${t.weight} ${formatScore(c.weight)} × ${formatScore(c.normalized)}`}
             >
-              {c.contribution.toFixed(3)}
+              {formatScore(c.contribution, 3)}
             </dd>
           </div>
         ))}
@@ -297,7 +297,7 @@ export function ResultsView({ result }: { result: RunResult }) {
                               />
                             </span>
                             <span className="tabular-nums text-ink-muted">
-                              {c.score !== null ? c.score.toFixed(3) : <MissingValue />}
+                              {c.score !== null ? formatScore(c.score, 3) : <MissingValue />}
                             </span>
                           </div>
                         </Td>
@@ -322,7 +322,7 @@ export function ResultsView({ result }: { result: RunResult }) {
                 <div className="flex flex-wrap items-baseline gap-2">
                   <span className="text-sm font-medium text-ink">{r.name}</span>
                   <span className="text-2xs tabular-nums text-ink-subtle">
-                    {t.score}: {r.score.toFixed(3)}
+                    {t.score}: {formatScore(r.score, 3)}
                   </span>
                 </div>
                 <Contributions contributions={r.contributions} score={r.score} />
@@ -444,7 +444,7 @@ export function ResultsView({ result }: { result: RunResult }) {
                 {weightRows.map((c) => (
                   <li key={c.key}>
                     {c.label}{" "}
-                    <span className="tabular-nums text-ink-muted">{c.weight.toFixed(2)}</span>
+                    <span className="tabular-nums text-ink-muted">{formatScore(c.weight)}</span>
                   </li>
                 ))}
               </ul>

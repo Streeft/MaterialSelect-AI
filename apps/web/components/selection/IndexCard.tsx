@@ -3,7 +3,7 @@
 import { useId, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { ptBR } from "@/lib/i18n";
-import { prettyUnit } from "@/lib/format";
+import { formatScore, prettyUnit } from "@/lib/format";
 import { Alert, Badge } from "@/components/ui";
 import { IconBook } from "@/components/ui/icons";
 import type { PerformanceIndex } from "@/lib/types";
@@ -155,7 +155,7 @@ function slopeText(line: IndexLineFacts): ReactNode {
   if (!line.available) return line.unavailableReason ?? t.slopeUnavailable;
   if (line.orientation === "vertical") return t.slopeVertical;
   if (line.slope === null) return t.slopeUnavailable;
-  return <span className="tabular-nums">{line.slope.toFixed(3)}</span>;
+  return <span className="tabular-nums">{formatScore(line.slope, 3)}</span>;
 }
 
 /**
