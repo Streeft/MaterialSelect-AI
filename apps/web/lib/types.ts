@@ -47,13 +47,23 @@ export interface PropertyGroup {
   properties: PropertyValueOut[];
 }
 
+/** A material's values counted by provenance. `missing` is absence, not a quality. */
+export interface DataQualitySummary {
+  medido: number;
+  importado: number;
+  estimado: number;
+  missing: number;
+}
+
 export interface MaterialListItem {
   id: number;
   name: string;
   class_name: string;
+  class_slug: string;
   subclass: string | null;
   is_demo: boolean;
   keywords: string[];
+  quality: DataQualitySummary;
 }
 
 export interface MaterialDetail {
@@ -61,6 +71,7 @@ export interface MaterialDetail {
   name: string;
   class_id: number;
   class_name: string;
+  class_slug: string;
   subclass: string | null;
   description: string | null;
   is_demo: boolean;

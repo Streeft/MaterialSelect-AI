@@ -70,15 +70,36 @@ class MaterialUpdate(BaseModel):
     is_active: bool | None = None
 
 
+class DataQualitySummary(BaseModel):
+    """How a material's recorded values break down by provenance.
+
+    Counted here rather than in the interface because it is an aggregation over
+    rows the catalogue list does not send, and because a count derived in the
+    browser would be a second, divergent answer to a question the database
+    already answers. ``missing`` is not a fourth quality: it is the number of
+    properties explicitly recorded as having no value.
+    """
+
+    medido: int = 0
+    importado: int = 0
+    estimado: int = 0
+    missing: int = 0
+
+
 class MaterialListItem(BaseModel):
     """Compact material representation for the catalogue list."""
 
     id: int
     name: str
     class_name: str
+    # The slug, not only the display name: the catalogue filters and the chart
+    # palette key on it, and a class can be renamed without becoming another
+    # class.
+    class_slug: str
     subclass: str | None = None
     is_demo: bool
     keywords: list[str] = []
+    quality: DataQualitySummary = Field(default_factory=DataQualitySummary)
 
 
 class MaterialDetail(BaseModel):
@@ -88,6 +109,10 @@ class MaterialDetail(BaseModel):
     name: str
     class_id: int
     class_name: str
+    # Same reason as on the list item: the class's colour and marker are keyed
+    # by slug, and a sheet that keyed them by id would paint the same class
+    # differently from the catalogue and the map.
+    class_slug: str
     subclass: str | None = None
     description: str | None = None
     is_demo: bool

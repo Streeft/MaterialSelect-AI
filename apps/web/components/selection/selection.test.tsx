@@ -73,7 +73,9 @@ describe("IndexCard", () => {
         indexLine={{ available: true, orientation: "oblique", slope: 2, unavailableReason: null }}
       />,
     );
-    expect(screen.getByText("2.000")).toBeInTheDocument();
+    // "2,000", not "2.000": a slope of two must not read as two thousand to the
+    // reader the interface is written for.
+    expect(screen.getByText("2,000")).toBeInTheDocument();
 
     rerender(
       <IndexCard
@@ -87,7 +89,7 @@ describe("IndexCard", () => {
       />,
     );
     expect(screen.getByText("A expressão não usa nenhum dos dois eixos.")).toBeInTheDocument();
-    expect(screen.queryByText("2.000")).not.toBeInTheDocument();
+    expect(screen.queryByText("2,000")).not.toBeInTheDocument();
   });
 });
 
@@ -266,8 +268,8 @@ describe("ResultsView", () => {
     // about, so it gets a title and an anchor of its own.
     const contributions = block(container, "contribuicoes");
     expect(within(contributions).getByText("Densidade")).toBeInTheDocument();
-    expect(within(contributions).getByText("0.400")).toBeInTheDocument();
+    expect(within(contributions).getByText("0,400")).toBeInTheDocument();
     expect(within(contributions).getByText("Módulo de Young")).toBeInTheDocument();
-    expect(within(contributions).getByText("0.500")).toBeInTheDocument();
+    expect(within(contributions).getByText("0,500")).toBeInTheDocument();
   });
 });

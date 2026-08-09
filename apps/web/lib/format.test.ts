@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { countLabel, formatDate, formatNumber, prettyUnit } from "./format";
+import { countLabel, formatDate, formatNumber, formatScore, prettyUnit } from "./format";
 
 describe("formatNumber", () => {
   it("renders zero plainly", () => {
@@ -21,6 +21,20 @@ describe("formatNumber", () => {
 
   it("keeps the sign of negative values", () => {
     expect(formatNumber(-2.5)).toBe("-2,5");
+  });
+});
+
+describe("formatScore", () => {
+  it("separates decimals the way the rest of the screen does", () => {
+    // The point of the helper: `toFixed` would write "0.75" next to a density
+    // rendered as "3.900", where the same glyph would mean thousands.
+    expect(formatScore(0.75)).toBe("0,75");
+  });
+
+  it("keeps the column width fixed so equal precisions look equal", () => {
+    expect(formatScore(1)).toBe("1,00");
+    expect(formatScore(0)).toBe("0,00");
+    expect(formatScore(0.5, 3)).toBe("0,500");
   });
 });
 

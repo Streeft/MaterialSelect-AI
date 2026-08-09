@@ -1,6 +1,18 @@
 import type { ElementType, ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
+/**
+ * The actions slot of a header, in one place because both headers use it.
+ *
+ * `shrink-0` keeps a long title from squeezing the controls into two-letter
+ * columns. On its own it also let the controls push the whole document wider
+ * than the viewport: at 375 px the catalogue's three export links stretched the
+ * page to 389 px and every route inherited the sideways scroll. `max-w-full`
+ * caps the slot at the line it sits on and `flex-wrap` gives its children a
+ * second row — the controls stay unsqueezed, and the page stops growing.
+ */
+const ACTIONS = "flex max-w-full shrink-0 flex-wrap items-center gap-2";
+
 /** A raised panel. The default container for anything that is not prose. */
 export function Card({
   as: Tag = "div",
@@ -57,7 +69,7 @@ export function CardHeader({
           <p className="mt-0.5 max-w-prose text-xs text-ink-muted">{description}</p>
         ) : null}
       </div>
-      {actions ? <div className="flex shrink-0 items-center gap-2">{actions}</div> : null}
+      {actions ? <div className={ACTIONS}>{actions}</div> : null}
     </div>
   );
 }
@@ -120,7 +132,7 @@ export function Section({
             <p className="mt-0.5 max-w-prose text-sm text-ink-muted">{description}</p>
           ) : null}
         </div>
-        {actions ? <div className="flex shrink-0 items-center gap-2">{actions}</div> : null}
+        {actions ? <div className={ACTIONS}>{actions}</div> : null}
       </div>
       {children}
     </section>
