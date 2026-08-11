@@ -32,6 +32,8 @@ export const ptBR = {
     add: "Adicionar",
     remove: "Remover",
     create: "Criar",
+    /** Header of a table column that holds buttons; usually screen-reader only. */
+    columnActions: "Ações",
     confirmDeactivate: "Desativar este material? Ele sairá do catálogo, mas poderá ser reativado.",
     confirmDelete: "Excluir definitivamente? Esta ação não pode ser desfeita.",
     saving: "Salvando…",
@@ -43,6 +45,9 @@ export const ptBR = {
     description: "Descrição",
     keywords: "Palavras-chave (separadas por vírgula)",
     selectClass: "Selecione uma classe",
+    selectProperty: "Selecione uma propriedade",
+    selectUnit: "Selecione uma unidade",
+    identification: "Identificação",
     values: "Valores de propriedade",
     property: "Propriedade",
     kind: "Tipo",
@@ -112,6 +117,16 @@ export const ptBR = {
     mappingHelp:
       "Indique o que cada coluna representa. Colunas ignoradas não serão importadas. Unidades detectadas no cabeçalho ou na célula têm prioridade.",
     columnRole: "Papel",
+    columnSource: "Coluna",
+    columnTarget: "Destino",
+    selectProperty: "Selecione uma propriedade",
+    // Each control in the mapping table repeats down the rows, so its accessible
+    // name has to say which column it belongs to — otherwise a screen reader
+    // hears "Destino" five times with nothing to tell them apart.
+    ariaTarget: (column: string) => `Destino da coluna ${column}`,
+    ariaProperty: (column: string) => `Propriedade da coluna ${column}`,
+    ariaRole: (column: string) => `Papel da coluna ${column}`,
+    ariaUnit: (column: string) => `Unidade da coluna ${column}`,
     ignore: "Ignorar",
     targetName: "Nome do material",
     targetClass: "Classe",
@@ -376,8 +391,7 @@ export const ptBR = {
     htmlTitle: "Abre em nova aba, pronto para imprimir ou salvar como PDF",
     catalogue: "Exportar catálogo",
     study: "Exportar relatório",
-    hint:
-      "O relatório traz restrições, funil, índice, ranking, excluídos por dado ausente, sensibilidade e a proveniência de cada número — com o aviso de limitação exigido.",
+    hint: "O relatório traz restrições, funil, índice, ranking, excluídos por dado ausente, sensibilidade e a proveniência de cada número — com o aviso de limitação exigido.",
   },
   catalog: {
     title: "Catálogo de materiais",

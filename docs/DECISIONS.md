@@ -778,3 +778,49 @@ elementos em `/estilo`, `/selecao`, `/materiais/1` e `/comparar` (tabela e
 figura), nenhuma reprovação. O par mais apertado do sistema é `--ink-subtle`
 sobre `--brand-50` no tema escuro, a 4,74:1 — folga maior que a do sistema azul
 que ele substitui, que fechava em 4,58:1.
+
+---
+
+## D-34 — A borda de um controle é informação, não moldura
+
+**Contexto.** A repaginação [D-33](DECISIONS.md) mediu o contraste de **texto**
+em cerca de 590 elementos e passou nos dois temas. Faltava um critério: um campo
+de formulário tem o mesmo fundo do cartão em que está (`--surface-raised`), de
+modo que a **borda é a única coisa que informa que existe um controle ali**. Isso
+não é contraste de texto, é a WCAG 1.4.11 (contraste de não-texto), e o mínimo é
+3:1. Medido no navegador, `--edge` sobre `--surface-raised` dava **1,12:1** no
+tema escuro e 1,15:1 no claro — dezessete campos por tela, todos reprovados. Nem
+`--edge-strong` resolvia: sobre o painel quase preto ele chega a 1,66:1.
+
+**Decisão.** Um token novo, `--edge-control`, separado da família de fios de
+cabelo e definido pelo requisito, não pelo gosto: `122 118 114` no claro (4,5:1
+sobre o painel) e `106 112 110` no escuro (3,81:1). Ele vale para o contorno de
+tudo que se opera — campos, seletores, áreas de texto, caixas de seleção,
+botões `secondary`, chips e as etapas do `Stepper` — e o `hover` passa a
+`--ink-subtle` em vez de `--edge-strong`, que era mais claro que o repouso e
+agora seria mais escuro.
+
+As demais bordas continuam sendo fios de cabelo. A distinção é o ponto: `--edge`
+separa dois painéis, `--edge-control` diz que algo aceita o cursor.
+
+**Alternativas descartadas.**
+- **Clarear `--edge` até 3:1:** resolveria os campos e transformaria toda linha
+  divisória da aplicação num traço grosso. O fio de cabelo é uma escolha de
+  desenho; o contorno do campo é um requisito.
+- **Preencher o campo com `--surface-sunken` e manter a borda fraca:** o
+  contraste passaria a vir do fundo, o que é legítimo — mas no tema escuro o
+  afundado (`2 4 5`) é mais escuro que a página e o campo viraria um buraco.
+- **Tratar a etapa bloqueada do `Stepper` como as outras:** ela é `disabled`, e
+  a 1.4.11 isenta componente inativo. Ficou com `--edge-strong` tracejado, que é
+  legível sem prometer interação.
+
+**Consequência aceita.** Os formulários ficaram visualmente mais marcados do que
+o pacote lumimotion desenha — lá os campos são quase invisíveis até receberem
+foco. É a troca certa para uma ferramenta em que o usuário digita valor,
+unidade e incerteza, e não uma página de apresentação.
+
+**Como se sabe que passa.** O script de tokens ganhou o par com mínimo 3:1, e a
+verificação no navegador passou a medir também a borda computada de cada
+controle habilitado contra o fundo realmente pintado. Sete rotas, dois temas:
+nenhuma reprovação de texto e nenhuma de controle; a borda mais apertada é
+3,81:1 no escuro e 4,31:1 no claro.

@@ -19,16 +19,24 @@ const TONES: Record<BadgeTone, string> = {
 export function Badge({
   tone = "neutral",
   icon,
+  title,
   className,
   children,
 }: {
   tone?: BadgeTone;
   icon?: ReactNode;
+  /**
+   * Hover text. Only ever an elaboration of the label already written in the
+   * badge — a `title` is invisible on touch and inconsistently announced, so it
+   * must never be the only place a fact appears.
+   */
+  title?: string;
   className?: string;
   children: ReactNode;
 }) {
   return (
     <span
+      title={title}
       className={cn(
         "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-2xs font-medium leading-4",
         TONES[tone],
@@ -63,9 +71,13 @@ export function ClassBadge({
         className,
       )}
     >
+      {/* `ink/20`, not a fixed black: the hairline exists so a pale seat (the
+          Okabe–Ito yellow) still reads as a disc against the badge, and on the
+          near-black surface a black hairline is the one colour that cannot do
+          that. Following the ink token flips it with the theme. */}
       <span
         aria-hidden
-        className="h-2 w-2 shrink-0 rounded-full border border-black/20"
+        className="h-2 w-2 shrink-0 rounded-full border border-ink/20"
         style={{ backgroundColor: color }}
       />
       {name}

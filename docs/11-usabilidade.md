@@ -218,6 +218,11 @@ lista, refeita a cada mudança de tela:
 - [ ] Contraste AA (4,5:1 texto normal, 3:1 texto grande) medido **contra a
       superfície mais escura em que o token aparece**, não só contra o fundo da
       página (ver D-29 em `docs/DECISIONS.md`).
+- [ ] Contraste de **não-texto** (3:1, WCAG 1.4.11): a borda de cada campo,
+      seletor, caixa de seleção e botão contornado, medida contra o fundo em que
+      o controle está. Esse contorno costuma ser a única coisa que diz que há um
+      controle ali, e é o item que passou despercebido na primeira medição —
+      dezessete campos por tela a 1,12:1 (ver [D-34](DECISIONS.md)).
 - [ ] Nenhuma rota rola horizontalmente a 375 px.
 
 ---

@@ -93,10 +93,14 @@ export function Field({
   );
 }
 
+// `border-edge-control`, not `border-edge`: the field's background is the same
+// raised surface as the card around it, so this outline carries the whole of
+// "there is a control here" and owes the reader 3:1 (WCAG 1.4.11). The hairline
+// tokens are a tenth of that.
 const CONTROL =
-  "w-full rounded-control border border-edge bg-surface-raised px-2.5 text-sm text-ink " +
+  "w-full rounded-control border border-edge-control bg-surface-raised px-2.5 text-sm text-ink " +
   "placeholder:text-ink-subtle transition " +
-  "hover:border-edge-strong " +
+  "hover:border-ink-subtle " +
   "disabled:cursor-not-allowed disabled:bg-surface-sunken disabled:text-ink-subtle " +
   "aria-[invalid=true]:border-danger";
 
@@ -190,7 +194,7 @@ export const Checkbox = forwardRef<
         type="checkbox"
         aria-describedby={hintId}
         {...rest}
-        className="mt-0.5 h-4 w-4 shrink-0 rounded border-edge-strong text-brand accent-brand"
+        className="mt-0.5 h-4 w-4 shrink-0 rounded border-edge-control text-brand accent-brand"
       />
       <div className="min-w-0">
         <label htmlFor={inputId} className="text-sm text-ink">
@@ -249,7 +253,7 @@ export const RadioOption = forwardRef<
         id={inputId}
         type="radio"
         {...rest}
-        className="h-4 w-4 border-edge-strong accent-brand"
+        className="h-4 w-4 border-edge-control accent-brand"
       />
       <label htmlFor={inputId} className="text-sm text-ink">
         {label}

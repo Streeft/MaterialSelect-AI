@@ -301,6 +301,13 @@ export default function StyleGuidePage() {
         </div>
       </Section>
 
+      {/* The specimen strings below are written inline on purpose, and are the
+          one place in the application where Portuguese sits outside lib/i18n.ts.
+          They are not product copy: they are the content a primitive is shown
+          holding, the way a type specimen needs words to be a specimen at all.
+          Routing them through the dictionary would fill it with labels no user
+          ever reads and would hide, from whoever reviews this page, that the
+          screens themselves take every string from there. */}
       <Section title={ptBR.styleGuide.forms} headingLevel={2}>
         <Card>
           <CardHeader title="Novo critério" description="Todos os campos são rotulados" />
