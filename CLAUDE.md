@@ -99,6 +99,20 @@ A interface tem um sistema de design próprio, **sem biblioteca de componentes**
   lê o mesmo token em runtime por `lib/design/palette.ts`, de modo que interface
   e figura não possam discordar (D-28). Nada de classe de paleta crua
   (`bg-slate-800`) em componente.
+- **A paleta é azul, e dois matizes estão onde estão de propósito** (D-38, que
+  substitui a paleta de D-33 sem revogar o método dela). `--info` fica no ciano
+  para que um alerta informativo não vire cromo de marca, e
+  `--quality-importado` fica no violeta porque o único matiz com que uma
+  procedência não pode ser confundida é aquele em que se clica. Ao mexer na
+  paleta, meça: o par mais apertado é `--brand-700` sobre `--brand-50` a 5,01:1,
+  e `--accent` **não** é o azul do Google (#1A73E8 dá 4,51:1 com branco). Estado
+  de hover nomeia `800`/`900`, nunca `--accent` — que *é* `--brand-700` e
+  produziria um hover invisível no tema claro. A paleta categórica de classes
+  (Okabe–Ito) não é da marca e não se mexe: ela responde a daltonismo e a
+  impressão monocromática.
+- **Forma e movimento também são token.** `rounded-card`/`rounded-control`
+  cobrem quase tudo; a classe `.pressable` (em `globals.css`) é o gesto de
+  "maleável" — 2% de `transform` na curva do Material 3, sem biblioteca.
 - **Primitivas em `components/ui/`**, importadas sempre pelo barril
   `@/components/ui` e documentadas ao vivo em `/estilo` — as figuras da
   monografia são capturas dessa rota, e por isso ela não pode envelhecer em
@@ -188,8 +202,10 @@ demonstração de que a camada é mesmo opcional e substituível.
 repaginação mais colorida e arredondada, dashboards interativos, mapas
 personalizáveis, laudo de engenharia completo). Entregues até aqui: o provedor
 `openai-compat` (D-36), o renderizador de figuras SVG do backend
-(`app/exporters/figures.py`) e a barra lateral (D-37). Falta a repaginação em si,
-os dashboards, os mapas personalizáveis e a montagem do laudo.
+(`app/exporters/figures.py`), a barra lateral (D-37) e a repaginação — paleta,
+forma e movimento (D-38). Faltam os dashboards, os mapas personalizáveis e a
+montagem do laudo. **As figuras da monografia que são capturas de `/estilo`
+precisam ser refeitas depois de D-38.**
 
 491 testes de backend e 130 de frontend, todos verdes. CI no GitHub Actions roda
 em todo PR e push para `main`.

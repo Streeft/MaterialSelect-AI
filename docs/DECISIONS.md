@@ -1034,3 +1034,111 @@ existiam. Além deles, verificação no navegador a 1440 px e a 375 px: 256/76 p
 largura com a coluna de conteúdo acompanhando, nenhum estouro horizontal, e a
 gaveta abrindo com foco no painel, travando a rolagem do corpo e devolvendo o
 foco no Esc.
+
+---
+
+## D-38 — A paleta troca de família, e o verde-limão sai com data marcada
+
+**11/08/2026.** Substitui a paleta de D-33; mantém o método dela.
+
+O pedido foi: *"Quero que de forma geral as coisas sejam mais coloridas,
+redondas e amigáveis, como se fosse um aplicativo do Google. Use os apps do
+Google como referência visual e interativa."*
+
+**Antes de recolorir, a pergunta.** "Mais colorido" tem dois sentidos opostos
+num aplicativo de dados, e escolher errado é refazer. Foram oferecidos três
+caminhos: (a) ampliar o que já significa alguma coisa — fundos tingidos, selos
+de qualidade mais presentes, zero matiz novo; (b) cor de seção, à la
+Gmail/Drive/Agenda, com roxo e rosa dizendo apenas "onde você está"; (c) trocar
+a marca. A recomendação era (a), pelo risco. **A escolha foi (c)**, com os riscos
+declarados na tela: é a maior das três, e as figuras da monografia já capturadas
+ficam desatualizadas. Esta decisão registra (c) — e registra que o preço foi
+aceito de olhos abertos.
+
+**Por que a marca sai inteira, e não só a superfície.** O verde-limão sobre
+#05080A é uma língua coerente: ela diz "instrumento". O público desta aplicação
+é aluno de graduação em Engenharia de Materiais, e a resposta certa para
+"parece duro demais" não era baixar o brilho do limão — era admitir que a
+identidade estava mirando outra pessoa.
+
+**Dois matizes tiveram de se mover, e nenhum dos dois é cosmética.**
+
+- `--info` **manteve o ciano**. Marca azul mais "informação" azul faria todo
+  alerta informativo parecer cromo de marca. Em Material 3 o `info` *é* o
+  primário; aqui isso custaria a distinção, então não se copiou.
+- `--quality-importado` **saiu do azul para o violeta**. É um de quatro matizes
+  ordinais de procedência, e o único matiz com que ele não pode ser confundido é
+  justamente aquele em que se clica — senão "importado" começa a ser lido como
+  "interativo". Violeta é o assento mais próximo que não colide com nada: nem
+  com o ciano de `info`, nem com o âmbar de `estimado`, nem com o eixo
+  vermelho/verde que a deuteranopia colapsa.
+
+O que **não** se moveu: a paleta categórica de classes (Okabe–Ito, em
+`lib/design/palette.ts`) não é da marca — ela responde a deficiência de visão de
+cores e a impressão monocromática, e trocá-la por cores do Google seria
+substituir uma escolha medida por uma escolha estética.
+
+**Contraste: a repaginação ganhou margem, não gastou.** Todo par foi medido no
+navegador nos dois temas, lendo os tokens computados. O par mais apertado da
+paleta antiga era `--ink-subtle` sobre `--brand-50` no tema escuro, a 4,74:1. O
+mais apertado agora é `--brand-700` sobre `--brand-50` no tema claro, a
+**5,01:1**; nenhum outro par de texto fica abaixo de 5,2:1, e as bordas de
+controle medem 3,68:1 (claro) e 5,19:1 (escuro) contra os 3:1 da WCAG 1.4.11.
+
+Duas medidas explicam escolhas que parecem arbitrárias no arquivo. O
+`--accent` do tema claro **não** é o #1A73E8 que o Google usa em botão: com
+branco por cima ele dá 4,51:1 — passa, com uma margem fina o bastante para um
+arredondamento futuro derrubar. #1565C0 dá 5,75:1 pela diferença que ninguém
+enxerga. E `--warning` deixou de ser o amarelo de exibição (#F9AB00, 1,7:1 sobre
+branco) porque `DEFAULT` é *traço* — borda, ícone — e portanto responde aos 3:1
+da 1.4.11; o laranja #E8710A cumpre a 3,09:1 e ainda é mais colorido.
+
+**Um defeito antigo apareceu durante a troca.** `hover:bg-brand-700` era o
+estado de hover do botão primário — e `--accent` *é* `--brand-700`, nos dois
+temas. Ou seja: no tema claro o botão principal nunca teve hover, e ninguém
+notou porque no escuro o token caía noutra casa da rampa. Agora hover é `800` e
+press é `900`, que funcionam nos dois temas justamente porque a rampa é
+espelhada: mais escuro no papel, mais claro na grafite — a direção em que
+"apertei mais" corre em cada um.
+
+**O tema escuro deixa de ser quase-preto.** #05080A é uma página sem nada atrás;
+#131314 é uma página em que um painel pode *pousar*, e é isso que faz a
+superfície elevada parecer elevada sem depender de uma sombra que o tema escuro
+mal consegue mostrar.
+
+**A forma é token, e por isso é barata.** `card` foi de 12 px para 20 px e
+`control` de 8 px para 12 px — os dois cobrem 26 dos 30 pontos arredondados da
+aplicação, de modo que a metade "mais redonda" do pedido é literalmente uma
+mudança de token. O 27º era um `rounded-[0.375rem]` cravado no segmento do
+`ButtonGroup`; virou o token `seat`, que existe porque duas formas concêntricas
+no mesmo raio parecem erro de impressão.
+
+**O movimento é uma classe, não uma biblioteca.** `.pressable`, em
+`globals.css`: cresce 2% sob o ponteiro, cede 2% sob o clique, na curva padrão
+do Material 3 (`cubic-bezier(0.2, 0, 0, 1)`). Só `transform` — nada de
+`translate`, que empurraria o vizinho. **Nenhum framework de animação**: a
+proibição do §13 do REDESIGN.md vale igual quando a animação vem bonita. Quem
+pede menos movimento no sistema operacional continua recebendo a mudança de
+estado, sem a animação, pelo bloco `prefers-reduced-motion` que já existia.
+
+**O que esta decisão não faz.** Não move cálculo nenhum para o cliente (ADR
+0004 segue de pé), não introduz biblioteca de componentes, e não torna a cor o
+único canal de nada: os selos de qualidade continuam com rótulo escrito e glifo
+antes da cor, e todo gráfico continua tendo a tabela que o originou como
+alternativa textual (D-31). D-28 — cor só via token — não só continua valendo
+como foi o que tornou esta troca viável: nenhum componente precisou ser tocado
+para mudar de cor.
+
+**O que ela custa.** As figuras da monografia que são capturas de `/estilo`
+precisam ser refeitas. `/estilo` ganhou a seção "Forma e movimento", que a
+página não tinha e sem a qual a escala de raio e o gesto ficariam documentados
+só no código.
+
+**Como se sabe que passa.** Portão do frontend inteiro verde (typecheck, lint,
+130 testes, build limpo das 13 rotas) e verificação no navegador por DOM — nesta
+máquina o painel não compõe quadros, então captura de tela não é evidência.
+Foram lidos os tokens computados nos dois temas e calculados os 17 pares de
+contraste acima; conferidos raio de cartão (20 px), de controle (12 px) e a
+curva aplicada de fato; e vistos os quatro estados de qualidade renderizando com
+dado real do backend, com "Importado" já em violeta a 7,75:1 (claro) e 6,97:1
+(escuro). Sem estouro horizontal a 375 px na rota de tabela larga.
