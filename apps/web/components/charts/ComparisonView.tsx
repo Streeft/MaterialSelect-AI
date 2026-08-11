@@ -30,6 +30,7 @@ import {
   useResolvedTheme,
 } from "@/components/ui";
 import { ChartToolbar } from "./ChartToolbar";
+import { FigureData, type FigureColumn } from "./FigureData";
 
 const Plot = dynamic(() => import("react-plotly.js"), { ssr: false });
 
@@ -199,6 +200,19 @@ export function ComparisonView({ comparison, mode }: ComparisonViewProps) {
     ...materials.map((m) => m.name).slice(0, 3),
   );
 
+  // What the four figures actually plot is the normalised score, so that — and
+  // not the raw value — is what their data table has to carry. A property with
+  // no value stays `null` all the way here and is rendered as absence.
+  const figureColumns: FigureColumn<CompareMaterial>[] = properties.map((property) => ({
+    key: property.property_slug,
+    header: property.property_name,
+    numeric: true,
+    cell: (material) => {
+      const normalized = normalizedOf(material.material_id, property.property_slug);
+      return normalized === null ? null : formatScore(normalized);
+    },
+  }));
+
   if (mode === "table") {
     return (
       <TableScroll label={t.figure}>
@@ -299,7 +313,7 @@ export function ComparisonView({ comparison, mode }: ComparisonViewProps) {
         )}
 
         {figure && (
-          <div ref={container}>
+          <div ref={container} role="img" aria-label={ptBR.chart.figureLabel(t.figure)}>
             <Plot
               data={figure.data}
               layout={figure.layout}
@@ -309,6 +323,24 @@ export function ComparisonView({ comparison, mode }: ComparisonViewProps) {
             />
           </div>
         )}
+
+        <FigureData
+          caption={`${t.figure} — ${t.normalizedScale}`}
+          rows={materials}
+          rowKey={(material) => material.material_id}
+          rowHeader={{
+            header: t.columnMaterial,
+            cell: (material) => (
+              <>
+                {material.name}
+                <span className="block text-xs font-normal text-ink-subtle">
+                  {material.class_name}
+                </span>
+              </>
+            ),
+          }}
+          columns={figureColumns}
+        />
       </CardBody>
     </Card>
   );

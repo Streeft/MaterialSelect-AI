@@ -658,3 +658,63 @@ responsável pelos valores com unidade.
 
 **Consequência aceita.** Um teste que afirmava `"2.000"` passou a afirmar
 `"2,000"`. A expectativa antiga estava documentando o defeito.
+
+---
+
+## D-31 — A alternativa textual de um gráfico é a tabela que o originou
+
+**Contexto.** A Entrega E do redesign exige "alternativa textual real" para as
+figuras. Um mapa de Ashby renderizado pelo Plotly é uma tela de `<path>` e
+rótulos de eixo: para quem usa leitor de tela, ou é silêncio, ou é um fluxo de
+números de escala sem sujeito. Um `alt` mais longo não resolve — a informação
+da figura são os pontos, e uma frase não os contém.
+
+**Decisão.** Toda figura carrega uma tabela de dados aberta a partir dela mesma
+(`components/charts/FigureData.tsx`), dentro de um `<details>`: o mapa, a
+miniatura da ficha e os quatro modos de figura do comparador. O contêiner do
+Plotly recebe `role="img"` com nome acessível, o que faz a tecnologia assistiva
+tratar a figura como um objeto só em vez de percorrer seus milhares de nós.
+
+Os números vêm prontos do cliente — são os mesmos que a figura desenha, sem
+recálculo nem resumo, o que mantém o ADR 0004 de pé. A coluna de uma célula sem
+dado devolve `null`, e é o `FigureData` que decide renderizar `<MissingValue />`:
+a regra de nunca exibir ausência como `0`, `—` ou célula vazia deixa de depender
+de cada chamador lembrar dela.
+
+**Alternativas descartadas.**
+- **`aria-hidden` na figura:** esconde junto os botões da barra de ferramentas
+  do Plotly, e conteúdo focável dentro de subárvore escondida é violação.
+- **Descrição textual gerada:** seria a camada de apresentação afirmando algo
+  sobre os dados — e, na prática, inventando um resumo.
+- **Reaproveitar a aba "Tabela" do comparador:** ela existe só ali, e é uma
+  visão irmã da figura, não uma alternativa alcançável *a partir* dela.
+
+**Consequência aceita.** A tabela repete o título da figura no `<caption>`, o que
+faz o mesmo texto aparecer duas vezes na tela — motivo pelo qual os testes de
+rota procuram o título por `role="heading"` e não por texto.
+
+---
+
+## D-32 — O painel de uma aba é filho do componente de abas
+
+**Contexto.** `Tabs` gerava os ids com `useId()` internamente e exportava um
+`TabPanel` que pedia o mesmo id como propriedade — um valor que nenhum chamador
+tinha como conhecer. O resultado é que `TabPanel` nunca foi usado em lugar
+nenhum, e todo `aria-controls` da aplicação apontava para um elemento
+inexistente. O axe sobre a rota `/comparar` foi o que revelou isso; nenhum teste
+de componente pegaria, porque a aba isolada parece correta.
+
+**Decisão.** O painel virou `children` de `Tabs`, que renderiza os dois lados e
+é dono dos dois ids. `TabPanel` deixou de existir. Só a aba selecionada declara
+`aria-controls`, porque só o painel dela está no documento.
+
+**Alternativas descartadas.**
+- **Exigir um `idBase` do chamador:** transfere para cada tela a chance de errar
+  o que o primitivo já sabe.
+- **Remover o `aria-controls`:** cala o aviso e mantém a aba sem relação
+  declarada com o que ela controla.
+
+**Consequência aceita.** O painel tem `tabIndex={0}` mesmo quando contém
+controles focáveis, acrescentando uma parada de tabulação. É o preço de um
+primitivo que também serve painéis de texto puro — e a parada anuncia ao leitor
+que as setas mudaram o conteúdo abaixo.

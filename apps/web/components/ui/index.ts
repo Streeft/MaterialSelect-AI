@@ -61,5 +61,5 @@ export {
   RowHeader,
   Tr,
 } from "./Table";
-export { TabPanel, Tabs, type TabItem } from "./Tabs";
+export { Tabs, type TabItem } from "./Tabs";
 export { ThemeToggle, useResolvedTheme } from "./ThemeToggle";

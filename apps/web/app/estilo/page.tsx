@@ -370,7 +370,12 @@ export default function StyleGuidePage() {
             { id: "barras", label: "Barras" },
             { id: "radar", label: "Radar", meta: "3+" },
           ]}
-        />
+          panelClassName="pt-3 text-sm text-ink-muted"
+        >
+          Conteúdo da aba <strong className="font-medium text-ink">{tab}</strong>. O painel é
+          filho do próprio componente: assim o <code className="font-mono">aria-controls</code> da
+          aba não tem como apontar para um elemento que não existe.
+        </Tabs>
       </Section>
 
       <Section title={ptBR.styleGuide.tables} headingLevel={2}>

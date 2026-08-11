@@ -97,6 +97,11 @@ export function CardFooter({ className, children }: { className?: string; childr
  * The results screen is long and gets referenced in class ("look at the funnel"),
  * so every block needs an id someone can link to — and a real heading, so the
  * document outline matches what the eye sees.
+ *
+ * `min-w-0` because a section is nearly always a grid or flex item, and such an
+ * item defaults to `min-width: auto`: it refuses to shrink below the widest
+ * thing inside it. One wide table then pushes the whole page past the viewport
+ * instead of scrolling inside its own box.
  */
 export function Section({
   id,
@@ -117,7 +122,7 @@ export function Section({
 }) {
   const Heading = (headingLevel === 2 ? "h2" : "h3") as ElementType;
   return (
-    <section id={id} className={cn("flex flex-col gap-3", className)}>
+    <section id={id} className={cn("flex min-w-0 flex-col gap-3", className)}>
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div className="min-w-0">
           <Heading

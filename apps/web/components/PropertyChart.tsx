@@ -4,11 +4,13 @@ import { useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import type { Layout } from "plotly.js";
 import type { ChartData } from "@/lib/types";
+import type { ChartPoint } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
-import { prettyUnit } from "@/lib/format";
+import { formatNumber, prettyUnit } from "@/lib/format";
 import { chartFileName, escapeHover } from "@/lib/charts";
 import { chartTheme } from "@/lib/design/palette";
 import {
+  Badge,
   ButtonGroup,
   ButtonGroupItem,
   Card,
@@ -18,6 +20,7 @@ import {
   useResolvedTheme,
 } from "@/components/ui";
 import { ChartToolbar } from "@/components/charts/ChartToolbar";
+import { FigureData, type FigureColumn } from "@/components/charts/FigureData";
 
 // Plotly touches the DOM/window, so it must not render on the server.
 const Plot = dynamic(() => import("react-plotly.js"), { ssr: false });
@@ -45,7 +48,8 @@ export function PropertyChart({ data, highlightMaterialId }: PropertyChartProps)
   const theme = useResolvedTheme();
   const paint = useMemo(() => chartTheme(theme), [theme]);
 
-  const { xs, ys, labels, colors, sizes, droppedForLog } = useMemo(() => {
+  const { plotted, xs, ys, labels, colors, sizes, droppedForLog } = useMemo(() => {
+    const plotted: ChartPoint[] = [];
     const xs: number[] = [];
     const ys: number[] = [];
     const labels: string[] = [];
@@ -59,6 +63,7 @@ export function PropertyChart({ data, highlightMaterialId }: PropertyChartProps)
         continue;
       }
       const isThisOne = point.material_id === highlightMaterialId;
+      plotted.push(point);
       xs.push(point.x);
       ys.push(point.y);
       labels.push(escapeHover(`${point.material_name} (${point.class_name})`));
@@ -66,8 +71,28 @@ export function PropertyChart({ data, highlightMaterialId }: PropertyChartProps)
       // Size as well as colour: the highlight has to survive a greyscale print.
       sizes.push(isThisOne ? 16 : 9);
     }
-    return { xs, ys, labels, colors, sizes, droppedForLog };
+    return { plotted, xs, ys, labels, colors, sizes, droppedForLog };
   }, [data, scale, highlightMaterialId, paint]);
+
+  // The same columns the axes are titled with, so the table reads as the figure.
+  const columns = useMemo<FigureColumn<ChartPoint>[]>(
+    () => [
+      { key: "class", header: ptBR.chart.columnClass, cell: (point) => point.class_name },
+      {
+        key: "x",
+        header: `${data.x_property_name} [${prettyUnit(data.x_unit)}]`,
+        numeric: true,
+        cell: (point) => formatNumber(point.x),
+      },
+      {
+        key: "y",
+        header: `${data.y_property_name} [${prettyUnit(data.y_unit)}]`,
+        numeric: true,
+        cell: (point) => formatNumber(point.y),
+      },
+    ],
+    [data],
+  );
 
   const layout = useMemo<Partial<Layout>>(
     () => ({
@@ -122,7 +147,7 @@ export function PropertyChart({ data, highlightMaterialId }: PropertyChartProps)
       />
       <CardBody className="flex flex-col gap-2">
         {hasPoints ? (
-          <div ref={container}>
+          <div ref={container} role="img" aria-label={t.figureLabel(ptBR.detail.position)}>
             <Plot
               data={[
                 {
@@ -144,6 +169,26 @@ export function PropertyChart({ data, highlightMaterialId }: PropertyChartProps)
         ) : (
           <EmptyState title={t.empty} />
         )}
+
+        <FigureData
+          caption={ptBR.detail.position}
+          rows={plotted}
+          rowKey={(point) => point.material_id}
+          rowHeader={{
+            header: ptBR.compare.columnMaterial,
+            cell: (point) => (
+              <span className="flex flex-wrap items-center gap-1.5">
+                {point.material_name}
+                {/* The figure marks this one by colour *and* size; in the table
+                    it has to be a word, or the distinction is lost entirely. */}
+                {point.material_id === highlightMaterialId ? (
+                  <Badge tone="brand">{t.thisMaterial}</Badge>
+                ) : null}
+              </span>
+            ),
+          }}
+          columns={columns}
+        />
 
         <div className="flex flex-col gap-0.5 text-2xs text-ink-subtle">
           {data.excluded_material_ids.length > 0 && (

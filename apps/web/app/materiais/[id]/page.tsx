@@ -142,7 +142,12 @@ export default function MaterialDetailPage() {
               )}
             </Section>
 
-            <div className="flex flex-col gap-3">
+            {/* `min-w-0`: the figure's data table is wider than a phone, and a
+                grid item defaults to `min-width: auto`. Without this the table
+                widened the column, the column widened the page, and the whole
+                sheet scrolled sideways at 375 px instead of the table scrolling
+                inside its own box. */}
+            <div className="flex min-w-0 flex-col gap-3">
               {chart.data && <PropertyChart data={chart.data} highlightMaterialId={id} />}
               {chart.data && (
                 <ButtonLink

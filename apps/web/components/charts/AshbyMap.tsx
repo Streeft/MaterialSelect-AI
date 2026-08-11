@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef } from "react";
+import { useMemo, useRef, type ReactNode } from "react";
 import dynamic from "next/dynamic";
 import type { Data, Layout } from "plotly.js";
 import type { MapPoint, PropertyMap } from "@/lib/types";
@@ -8,8 +8,17 @@ import { ptBR } from "@/lib/i18n";
 import { formatNumber, prettyUnit } from "@/lib/format";
 import { chartFileName, escapeHover, toClosedRing, toXY, withAlpha } from "@/lib/charts";
 import { chartTheme, classVisual } from "@/lib/design/palette";
-import { Card, CardBody, CardHeader, EmptyState, useResolvedTheme } from "@/components/ui";
+import {
+  Card,
+  CardBody,
+  CardHeader,
+  DataQualityBadge,
+  EmptyState,
+  MissingValue,
+  useResolvedTheme,
+} from "@/components/ui";
 import { ChartToolbar } from "./ChartToolbar";
+import { FigureData, type FigureColumn } from "./FigureData";
 
 // Plotly touches window/document, so it must never render on the server.
 const Plot = dynamic(() => import("react-plotly.js"), { ssr: false });
@@ -41,6 +50,43 @@ function errorBar(
     return { plus: uncertainty, minus: uncertainty };
   }
   return null;
+}
+
+/** `Name, symbol [unit]` — the axis title, and the header of its data column. */
+function axisTitle(name: string, symbol: string | null, unit: string): string {
+  const pretty = prettyUnit(unit);
+  const head = symbol ? `${name}, ${symbol}` : name;
+  return pretty ? `${head} [${pretty}]` : head;
+}
+
+/**
+ * One axis of one point, as the data table shows it: the value, the quality of
+ * the datum behind it, and whatever the error bar in the figure was drawing.
+ */
+function axisCell(point: MapPoint, axis: "x" | "y"): ReactNode {
+  const value = axis === "x" ? point.x : point.y;
+  const low = axis === "x" ? point.x_min : point.y_min;
+  const high = axis === "x" ? point.x_max : point.y_max;
+  const uncertainty = axis === "x" ? point.x_uncertainty : point.y_uncertainty;
+  const quality = axis === "x" ? point.x_quality : point.y_quality;
+  return (
+    <span className="flex flex-col items-end gap-0.5">
+      <span className="flex items-center gap-1.5">
+        <span className="tabular-nums">{formatNumber(value)}</span>
+        <DataQualityBadge state={quality} showLabel={false} />
+      </span>
+      {low !== null && high !== null ? (
+        <span className="whitespace-nowrap text-2xs text-ink-muted">
+          {t.interval}: {formatNumber(low)} – {formatNumber(high)}
+        </span>
+      ) : null}
+      {uncertainty !== null ? (
+        <span className="whitespace-nowrap text-2xs text-ink-muted">
+          {t.uncertainty}: ±{formatNumber(uncertainty)}
+        </span>
+      ) : null}
+    </span>
+  );
 }
 
 function hoverFor(point: MapPoint, map: PropertyMap): string {
@@ -225,15 +271,6 @@ export function AshbyMap({
   }, [map, highlighted, showEnvelopes, showIntervals, showLabels, paint]);
 
   const layout = useMemo<Partial<Layout>>(() => {
-    const axisTitle = (
-      name: string,
-      symbol: string | null,
-      unit: string,
-    ): string => {
-      const pretty = prettyUnit(unit);
-      const head = symbol ? `${name}, ${symbol}` : name;
-      return pretty ? `${head} [${pretty}]` : head;
-    };
     const base = paint.layout;
     return {
       ...base,
@@ -261,6 +298,49 @@ export function AshbyMap({
     };
   }, [map, paint]);
 
+  // The figure's own numbers, as columns. The index column only exists when the
+  // figure drew one, and a point without an index carries the backend's reason
+  // rather than a blank — the same sentence the hover already shows.
+  const columns = useMemo<FigureColumn<MapPoint>[]>(() => {
+    const result: FigureColumn<MapPoint>[] = [
+      {
+        key: "class",
+        header: ptBR.chart.columnClass,
+        cell: (point) => point.class_name,
+      },
+      {
+        key: "x",
+        header: axisTitle(map.x_axis.property_name, map.x_axis.symbol, map.x_axis.unit),
+        numeric: true,
+        cell: (point) => axisCell(point, "x"),
+      },
+      {
+        key: "y",
+        header: axisTitle(map.y_axis.property_name, map.y_axis.symbol, map.y_axis.unit),
+        numeric: true,
+        cell: (point) => axisCell(point, "y"),
+      },
+    ];
+    if (map.index) {
+      result.push({
+        key: "index",
+        header: t.indexValue,
+        numeric: true,
+        cell: (point) => {
+          if (point.index_value !== null) return formatNumber(point.index_value);
+          if (!point.index_undefined_reason) return null;
+          return (
+            <span className="flex flex-col items-end gap-0.5">
+              <MissingValue />
+              <span className="text-2xs text-ink-muted">{point.index_undefined_reason}</span>
+            </span>
+          );
+        },
+      });
+    }
+    return result;
+  }, [map]);
+
   return (
     <Card>
       <CardHeader
@@ -280,19 +360,31 @@ export function AshbyMap({
           />
         }
       />
-      <CardBody>
+      <CardBody className="flex flex-col gap-3">
         {map.points.length === 0 ? (
           <EmptyState title={t.empty} />
         ) : (
-          <div ref={container}>
-            <Plot
-              data={traces}
-              layout={layout}
-              config={{ displaylogo: false, responsive: true }}
-              style={{ width: "100%" }}
-              useResizeHandler
+          <>
+            {/* `role="img"` collapses Plotly's thousands of `<path>` and tick
+                nodes into one object for assistive technology. What replaces
+                them is the table below, not a longer label. */}
+            <div ref={container} role="img" aria-label={ptBR.chart.figureLabel(t.figure)}>
+              <Plot
+                data={traces}
+                layout={layout}
+                config={{ displaylogo: false, responsive: true }}
+                style={{ width: "100%" }}
+                useResizeHandler
+              />
+            </div>
+            <FigureData
+              caption={t.figure}
+              rows={map.points}
+              rowKey={(point) => point.material_id}
+              rowHeader={{ header: ptBR.compare.columnMaterial, cell: (point) => point.material_name }}
+              columns={columns}
             />
-          </div>
+          </>
         )}
       </CardBody>
     </Card>
