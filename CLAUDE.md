@@ -33,6 +33,9 @@ Instruções para agentes/contribuidores trabalhando neste repositório. Esta é
 - **Código (identificadores, funções, comentários):** inglês, consistente.
 - **Domínio/rotulagem de UI** pode usar termos em PT-BR quando forem o texto
   exibido (dicionário em `apps/web/lib/i18n.ts`).
+- Exceção única e deliberada, comentada no próprio arquivo: os textos de amostra
+  dentro de `apps/web/app/estilo/page.tsx`, que são conteúdo de espécime
+  tipográfico e não copy de produto.
 
 ## Arquitetura em camadas (backend)
 
@@ -64,6 +67,34 @@ aparecer no enunciado do usuário, inclusive quando uma conversão estaria corre
 e **unidade explícita** (limiar sobre propriedade dimensionada não pode omitir a
 unidade — unidade ausente vira a canônica e, numa escala com offset, inverte o
 sentido do enunciado).
+
+## Sistema de design (frontend)
+
+A interface tem um sistema de design próprio, **sem biblioteca de componentes**
+(D-23). Três regras que não são questão de gosto:
+
+- **Cor só via token.** Todo valor de cor vive em `apps/web/app/globals.css` como
+  triplo `"R G B"`; o Tailwind lê pelo `tailwind.config.ts` e a camada de gráfico
+  lê o mesmo token em runtime por `lib/design/palette.ts`, de modo que interface
+  e figura não possam discordar (D-28). Nada de classe de paleta crua
+  (`bg-slate-800`) em componente.
+- **Primitivas em `components/ui/`**, importadas sempre pelo barril
+  `@/components/ui` e documentadas ao vivo em `/estilo` — as figuras da
+  monografia são capturas dessa rota, e por isso ela não pode envelhecer em
+  relação ao código.
+- **A borda de um controle é informação, não moldura** (D-34). Um campo tem o
+  mesmo fundo do cartão em que está, então aquela borda é a única coisa que diz
+  que existe um controle ali: ela responde à WCAG 1.4.11 (3:1), e não ao
+  orçamento de fio de cabelo dos outros contornos. Use `border-edge-control` no
+  contorno do que se opera e nunca num divisor decorativo.
+
+E as proibições do §13 de [`docs/REDESIGN.md`](docs/REDESIGN.md), que continuam
+valendo depois da Fase 8: nenhuma biblioteca de componentes, **nenhum framework
+de animação** (a proibição vale igual quando a animação vem bonita), nenhum
+cálculo movido para o cliente, e **ausência nunca é renderizada como `0`, `—` ou
+célula vazia** — é o quarto estado da qualidade do dado, com rótulo escrito
+(D-24). Número na tela usa a convenção do pt-BR (D-30), e todo gráfico tem como
+alternativa textual a tabela que o originou (D-31).
 
 ## Convenções
 
@@ -114,11 +145,16 @@ meramente informativo.
 
 ## Estado atual
 
-Fases 1 a 6 concluídas; **Fase 7 (relatórios e qualidade) em andamento** — as
+Fases 1 a 6 concluídas. **Fase 7 (relatórios e qualidade) parcial** — as
 exportações CSV/XLSX e o relatório HTML imprimível já saíram; faltam testes
-end-to-end, autenticação e auditoria.
+end-to-end, autenticação e auditoria. **Fase 8 (redesign da interface)
+concluída** — sistema de design próprio, as quatro promessas da proposta
+visíveis na tela, acessibilidade medida no navegador nos dois temas e a 375 px.
+`docs/11-usabilidade.md` está instrumentado, mas **nenhuma sessão de teste com
+usuários foi realizada** — enquanto a tabela de melhorias dele estiver vazia, o
+§3.5 da proposta não foi cumprido.
 
-389 testes de backend e 44 de frontend, todos verdes. CI no GitHub Actions roda
+391 testes de backend e 123 de frontend, todos verdes. CI no GitHub Actions roda
 em todo PR e push para `main`.
 
 **Estado detalhado, decisões, backlog e histórico da última sessão estão em

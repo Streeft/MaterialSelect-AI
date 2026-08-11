@@ -40,7 +40,7 @@ sugerir e explicar.
 
 ## 3. Estado atual
 
-**Fases 1 a 6 concluídas. Fase 7 em andamento.**
+**Fases 1 a 6 e 8 concluídas. Fase 7 parcial.**
 
 | # | Fase | Estado | Documento |
 |---|---|---|---|
@@ -51,8 +51,14 @@ sugerir e explicar.
 | 5 | Visualização | ✅ | [08](08-visualizacao.md) |
 | 6 | Camada de IA opcional | ✅ | [09](09-camada-ia.md) |
 | 7 | Relatórios e qualidade | 🔄 parcial | [10](10-relatorios.md) |
+| 8 | Redesign da interface | ✅ | [REDESIGN](REDESIGN.md) · [11](11-usabilidade.md) |
 
-**Saúde do código:** 389 testes de backend (Python 3.11 e 3.12) e 44 de
+A Fase 8 vem depois da 7 na numeração e antes dela na conclusão: o redesign era
+independente do que falta na 7 (autenticação, auditoria, testes de ponta a
+ponta) e resolvia a acessibilidade, que estava listada como pendência daquela
+fase.
+
+**Saúde do código:** 391 testes de backend (Python 3.11 e 3.12) e 123 de
 frontend, todos verdes. `ruff` limpo, `black --check` limpo, typecheck estrito e
 build de produção sem avisos. CI no GitHub Actions rodando em todo PR e push
 para `main`, com os três checks **obrigatórios**: o GitHub recusa o merge se
@@ -106,22 +112,58 @@ dependência de geração de PDF ([D-20](DECISIONS.md)). Cada formato neutraliza
 injeção que lhe cabe: fórmula na planilha, marcação no HTML. Avisos obrigatórios
 de limitação, reprodutibilidade e dados demonstrativos.
 
+### Interface (Fase 8)
+- **Sistema de design próprio, sem biblioteca de componentes**: primitivas em
+  `components/ui/` sobre uma paleta de tokens única, lida também pela camada de
+  gráfico, para que interface e figura não possam discordar
+  ([D-23](DECISIONS.md), [D-28](DECISIONS.md)). A rota `/estilo` é a
+  documentação viva — as figuras da monografia são capturas dela.
+- **As quatro promessas da proposta ficaram visíveis na tela**: método de Ashby
+  explícito no assistente de seleção, proveniência de cada valor a um clique,
+  hipóteses do índice **antes** da escolha ([D-25](DECISIONS.md)) e aviso de
+  limitação permanente, nunca um modal que se fecha.
+- **Qualidade do dado em três canais** — rótulo escrito, glifo e cor, nessa
+  ordem de confiabilidade —, com a ausência como quarto estado
+  ([D-24](DECISIONS.md)).
+- **Todo gráfico tem a tabela que o originou como alternativa textual**
+  ([D-31](DECISIONS.md)). Nenhum cálculo foi para o cliente: inclinação,
+  envelopes e escores continuam vindo do backend.
+- **Acessibilidade medida no navegador, não só em teste**: contraste de texto e
+  de não-texto nos dois temas ([D-29](DECISIONS.md), [D-34](DECISIONS.md)),
+  375 px sem rolagem lateral, caminho de teclado completo com link de pular para
+  o conteúdo.
+- A repaginação visual final trocou **os tokens e só os tokens** — quatro
+  arquivos, nenhuma primitiva tocada e nenhuma camada de animação importada
+  ([D-33](DECISIONS.md)).
+
 ## 5. Em andamento
 
 **Fase 7** — as exportações estão entregues (planilha e imprimível). Falta:
 arquitetura para PPTX, testes end-to-end de interface, autenticação e
-autorização por projeto, auditoria, acessibilidade e desempenho.
+autorização por projeto, auditoria e desempenho. A acessibilidade, que estava
+nesta lista, foi entregue pela Fase 8.
+
+**Teste de usabilidade (§3.5 da proposta)** — [11-usabilidade.md](11-usabilidade.md)
+traz o roteiro, o formulário e a tabela de melhorias, prontos para aplicar.
+**Nenhuma sessão foi realizada.** Enquanto a tabela da seção 7 daquele documento
+estiver vazia, o compromisso não está cumprido — e ela só deve receber linha que
+venha de uma sessão de fato observada.
 
 ## 6. Pendências
 
 Ver [TODO.md](TODO.md) para o backlog priorizado com impacto, dificuldade e
-dependências. Os três itens de maior peso:
+dependências. Os itens de maior peso:
 
 1. **Não há autenticação nenhuma.** A API é aberta.
-2. **Nenhum teste end-to-end de interface.** A verificação de UI foi manual.
+2. **Nenhum teste end-to-end de interface.** A verificação de UI é manual — o
+   redesign foi conferido no navegador, elemento a elemento, mas nada disso está
+   automatizado.
 3. **Nenhuma triagem de licenciamento** das bases incorporadas — compromisso do
    item 4.2 da proposta, e agora com o repositório público a aposta é maior
    ([TODO.md](TODO.md) M1).
+4. **Nenhuma sessão de teste de usabilidade** — compromisso do §3.5, com o
+   instrumento pronto em [11-usabilidade.md](11-usabilidade.md) e a análise
+   cobrada como entrega pelo §4.1.
 
 ## 7. Principais fluxos
 
@@ -148,6 +190,10 @@ que mais afetam quem for mexer no código:
 | Geometria de gráfico calculada no backend | [ADR 0004](adr/0004-geometria-de-graficos-no-backend.md) |
 | Parser de expressões sem `eval` | [DECISIONS.md](DECISIONS.md) |
 | Números da IA ancorados no texto do usuário | [DECISIONS.md](DECISIONS.md) |
+| Sistema de design próprio, sem biblioteca de componentes | [D-23](DECISIONS.md) |
+| Qualidade do dado em três canais, nunca só cor | [D-24](DECISIONS.md) |
+| Uma paleta só, compartilhada entre interface e gráfico | [D-28](DECISIONS.md) |
+| A borda de um controle responde à WCAG 1.4.11 | [D-34](DECISIONS.md) |
 
 ## 9. Limitações atuais
 
@@ -172,7 +218,7 @@ que mais afetam quem for mexer no código:
 | Dependência de provedor de IA | Arquitetura desacoplada com provedor simulado; funciona sem chave. |
 | Incorporação inadvertida de dado protegido | Triagem de licenciamento prevista (item 4.2 da proposta) — **ainda não implementada**, ver [TODO.md](TODO.md). |
 | Resultado não reproduzível por interferência de IA | Cálculo determinístico + guardrails executáveis + confirmação do usuário. |
-| Regressão silenciosa | CI com 389 testes, **obrigatória para o merge**; canário de isolamento de testes. |
+| Regressão silenciosa | CI com 391 testes de backend e 123 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
 
 ## 11. Próximos passos sugeridos
 
@@ -181,12 +227,15 @@ Na ordem em que eu atacaria:
 1. **Estudo de caso didático completo**, do enunciado ao relatório — é entregável
    explícito da proposta (item 6) e ainda não existe. O relatório imprimível, que
    é o artefato final do caso, já está pronto.
-2. **Testes end-to-end** dos fluxos principais (Playwright). Ao acrescentar o job
+2. **Aplicar o teste de usabilidade** de [11-usabilidade.md](11-usabilidade.md).
+   O instrumento está pronto e a interface acabou de ser refeita; é o momento em
+   que a sessão rende mais, e o §4.1 cobra a análise e as melhorias como entrega.
+3. **Testes end-to-end** dos fluxos principais (Playwright). Ao acrescentar o job
    ao `ci.yml`, lembre de incluí-lo também em `scripts/protect-main.ps1` e rodar
    o script: a ruleset exige uma lista fixa de nomes, e um job fora dela reprova
    na aparência sem impedir o merge.
-3. **Triagem de licenciamento** das bases incorporadas — agora que o repositório
+4. **Triagem de licenciamento** das bases incorporadas — agora que o repositório
    é público, incorporar dado protegido custa mais caro.
-4. **Autenticação e projetos**, se o trabalho for exposto em rede.
+5. **Autenticação e projetos**, se o trabalho for exposto em rede.
 
 Detalhamento com impacto e dificuldade em [TODO.md](TODO.md).
