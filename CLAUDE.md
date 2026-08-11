@@ -167,7 +167,7 @@ A camada de IA da Fase 6 ganhou provedores reais (`claude-api`, `claude-cli`)
 sem que serviço, guardrails ou interface mudassem — a demonstração de que a
 camada é mesmo opcional e substituível.
 
-433 testes de backend e 123 de frontend, todos verdes. CI no GitHub Actions roda
+436 testes de backend e 123 de frontend, todos verdes. CI no GitHub Actions roda
 em todo PR e push para `main`.
 
 **Estado detalhado, decisões, backlog e histórico da última sessão estão em

@@ -58,7 +58,7 @@ independente do que falta na 7 (autenticação, auditoria, testes de ponta a
 ponta) e resolvia a acessibilidade, que estava listada como pendência daquela
 fase.
 
-**Saúde do código:** 433 testes de backend (Python 3.11 e 3.12) e 123 de
+**Saúde do código:** 436 testes de backend (Python 3.11 e 3.12) e 123 de
 frontend, todos verdes. `ruff` limpo, `black --check` limpo, typecheck estrito e
 build de produção sem avisos. CI no GitHub Actions rodando em todo PR e push
 para `main`, com os três checks **obrigatórios**: o GitHub recusa o merge se
@@ -230,7 +230,7 @@ que mais afetam quem for mexer no código:
 | Dependência de provedor de IA | Arquitetura desacoplada com provedor simulado; funciona sem chave. |
 | Incorporação inadvertida de dado protegido | Triagem de licenciamento prevista (item 4.2 da proposta) — **ainda não implementada**, ver [TODO.md](TODO.md). |
 | Resultado não reproduzível por interferência de IA | Cálculo determinístico + guardrails executáveis + confirmação do usuário. |
-| Regressão silenciosa | CI com 433 testes de backend e 123 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
+| Regressão silenciosa | CI com 436 testes de backend e 123 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
 
 ## 11. Próximos passos sugeridos
 
