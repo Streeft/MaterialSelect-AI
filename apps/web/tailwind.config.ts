@@ -140,30 +140,52 @@ const config: Config = {
       },
 
       borderRadius: {
-        card: "0.75rem",
-        control: "0.5rem",
+        // D-38. `card` is close to Material 3's extra-large step and `control`
+        // to its medium one — the shapes that make a dense data screen read as
+        // approachable without turning a button into a lozenge.
+        //
+        // These two tokens cover 26 of the 30 rounded call sites in the app, so
+        // the shape half of the retheme is genuinely a token change. `seat`
+        // exists for the one that was not: the segments inside a ButtonGroup,
+        // which sit *inside* a `control` and would look wrong at the same
+        // radius. It used to be an arbitrary `rounded-[0.375rem]`.
+        card: "1.25rem",
+        control: "0.75rem",
+        seat: "0.5rem",
       },
 
       boxShadow: {
-        // Deliberately shallow. This is an instrument, not a dashboard demo.
+        // Softer and wider than the D-33 set, which was deliberately shallow
+        // because the page behind it was #05080A. On graphite the same shadow
+        // reads as a hard line rather than as depth.
         //
-        // Black rather than slate: a slate-tinted shadow is a grey rectangle that
-        // *lightens* the area around a card once the page behind it is #05080A.
-        // Pure black at a higher alpha is the only version that reads as depth in
-        // both themes.
-        card: "0 1px 2px 0 rgb(0 0 0 / 0.20), 0 1px 3px 0 rgb(0 0 0 / 0.14)",
-        raised: "0 4px 12px -2px rgb(0 0 0 / 0.34), 0 2px 6px -2px rgb(0 0 0 / 0.22)",
-        overlay: "0 12px 32px -8px rgb(0 0 0 / 0.55)",
-        // The one exception to "deliberately shallow": the halo under the
-        // navigation item you are currently on. It reads the brand token rather
-        // than black, so it tints instead of darkening, and it exists because a
-        // filled pill alone is easy to lose against a raised panel — the glow is
-        // what makes "you are here" survive a glance in either theme.
+        // Still black rather than slate: a slate-tinted shadow is a grey
+        // rectangle that *lightens* the area around a card on any dark page.
+        card: "0 1px 2px 0 rgb(0 0 0 / 0.18), 0 1px 3px 1px rgb(0 0 0 / 0.12)",
+        raised: "0 2px 6px 2px rgb(0 0 0 / 0.18), 0 1px 2px 0 rgb(0 0 0 / 0.22)",
+        overlay: "0 8px 24px 6px rgb(0 0 0 / 0.40), 0 2px 6px 0 rgb(0 0 0 / 0.30)",
+        // What a card rises to under the pointer. Paired with `.pressable` in
+        // globals.css: the scale says "soft", the shadow says "lifted", and
+        // neither of them moves a neighbour.
+        lift: "0 4px 12px 4px rgb(0 0 0 / 0.20), 0 2px 4px 0 rgb(0 0 0 / 0.24)",
+        // The halo under the navigation item you are currently on. It reads the
+        // brand token rather than black, so it tints instead of darkening, and
+        // it exists because a filled pill alone is easy to lose against a raised
+        // panel — the glow is what makes "you are here" survive a glance in
+        // either theme.
         glow: "0 0 0 1px rgb(var(--brand-300) / 0.40), 0 4px 14px -6px rgb(var(--brand-400) / 0.55)",
       },
 
       transitionDuration: {
         DEFAULT: "150ms",
+        slow: "260ms",
+      },
+
+      transitionTimingFunction: {
+        // Material 3's standard easing: leaves fast, arrives slow. The whole
+        // "malleable" feel of D-38 is this curve plus a 2% scale — a linear
+        // ramp at the same duration reads as mechanical.
+        emphasized: "cubic-bezier(0.2, 0, 0, 1)",
       },
 
       maxWidth: {

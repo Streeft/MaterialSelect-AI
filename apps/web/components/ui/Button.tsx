@@ -17,22 +17,33 @@ export type ButtonSize = "sm" | "md";
 
 const BASE =
   "inline-flex items-center justify-center gap-1.5 rounded-control font-medium transition " +
-  "disabled:pointer-events-none disabled:opacity-50 " +
+  "ease-emphasized disabled:pointer-events-none disabled:opacity-50 " +
   // The ring is defined once globally on :focus-visible; buttons only need the
   // offset to sit against whatever surface they were dropped on.
   "focus-visible:ring-offset-surface";
 
+/**
+ * Hover and press states name shades, never `--accent`.
+ *
+ * `--accent` *is* `--brand-700` in both themes, so the old `hover:bg-brand-700`
+ * was a no-op in the light theme and only ever worked in the dark one — a hover
+ * state that half the readers never saw. `800` and `900` are correct in both,
+ * because the ramp is mirrored between themes: darker on paper, lighter on
+ * graphite, which is the direction "pressed harder" runs in each.
+ */
 const VARIANTS: Record<ButtonVariant, string> = {
-  primary: "bg-brand text-brand-fg shadow-card hover:bg-brand-700 active:bg-brand-800",
+  primary:
+    "bg-brand text-brand-fg shadow-card hover:bg-brand-800 hover:shadow-lift active:bg-brand-900",
   secondary:
-    "border border-edge-control bg-surface-raised text-ink shadow-card hover:border-ink-subtle hover:bg-surface-sunken",
+    "border border-edge-control bg-surface-raised text-ink shadow-card hover:border-ink-subtle hover:bg-surface-sunken hover:shadow-lift",
   ghost: "text-ink-muted hover:bg-surface-sunken hover:text-ink",
   // `ink-inverted`, not `white`: the dark theme's `--danger` is a *light* red,
   // so white-on-danger measured 2.8:1 there — under AA on the one button whose
   // whole job is to be read before it is pressed. `--danger-fg` is not the
   // answer either; that is the text for the tinted `soft` background.
-  danger: "bg-danger text-ink-inverted shadow-card hover:opacity-90 active:opacity-100",
-  link: "text-brand underline underline-offset-2 hover:text-brand-700",
+  danger:
+    "bg-danger text-ink-inverted shadow-card hover:opacity-90 hover:shadow-lift active:opacity-100",
+  link: "text-brand underline underline-offset-2 hover:text-brand-800",
 };
 
 const SIZES: Record<ButtonSize, string> = {
@@ -44,7 +55,15 @@ const SIZES: Record<ButtonSize, string> = {
 const LINK_SIZES: Record<ButtonSize, string> = { sm: "text-xs", md: "text-sm" };
 
 function buttonClass(variant: ButtonVariant, size: ButtonSize, className?: string) {
-  return cn(BASE, VARIANTS[variant], variant === "link" ? LINK_SIZES[size] : SIZES[size], className);
+  return cn(
+    BASE,
+    VARIANTS[variant],
+    // `pressable` (globals.css) is the D-38 gesture: grow a little under the
+    // pointer, give way under the press. Everything but `link` gets it — a run
+    // of prose that swells 2% reads as a rendering fault, not as softness.
+    variant === "link" ? LINK_SIZES[size] : cn(SIZES[size], "pressable"),
+    className,
+  );
 }
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -130,7 +149,7 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(functio
         BASE,
         VARIANTS[variant],
         size === "sm" ? "h-8 w-8" : "h-10 w-10",
-        "px-0",
+        "pressable px-0",
         className,
       )}
     >
@@ -184,10 +203,10 @@ export function ToggleChip({
       aria-pressed={selected}
       {...rest}
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition",
+        "pressable inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium",
         "disabled:cursor-not-allowed disabled:opacity-50",
         selected
-          ? "border-brand bg-brand text-brand-fg"
+          ? "border-brand bg-brand text-brand-fg shadow-card hover:border-brand-800 hover:bg-brand-800"
           : "border-edge-control bg-surface-raised text-ink-muted hover:border-ink-subtle hover:text-ink",
         className,
       )}
@@ -210,7 +229,7 @@ export function ButtonGroupItem({
       aria-pressed={selected}
       {...rest}
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-[0.375rem] px-2.5 py-1 text-xs font-medium transition",
+        "inline-flex items-center gap-1.5 rounded-seat px-2.5 py-1 text-xs font-medium transition ease-emphasized",
         selected
           ? "bg-surface-raised text-ink shadow-card"
           : "text-ink-subtle hover:text-ink",

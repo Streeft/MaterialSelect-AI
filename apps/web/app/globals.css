@@ -10,175 +10,190 @@
  * Anything that hard-codes a hex outside this file is a bug waiting for the
  * dark theme to expose it.
  *
- * The palette is the "lumimotion" language: a near-black page (#05080A), panels
- * cut one step above it (#0B0F12), hairline edges made of white at low opacity,
- * and a single electric lime (#C6F91F) carrying every interactive affordance.
- * The dark theme is where that language is native. The light theme is its
- * counterpart, not a different design: same lime family, darkened until it can
- * carry text, over warm-neutral paper instead of cool slate.
+ * The palette is Google-informed (D-38): a blue carrying every interactive
+ * affordance, paper and panels a hair cool instead of warm, and the dark theme a
+ * soft graphite (#131314) rather than the near-black it used to be. It replaces
+ * the "lumimotion" language of D-33 — an electric lime over #05080A — which read
+ * as an instrument rather than as something a student would enjoy operating.
+ *
+ * Two hues had to move to make room, and neither move is cosmetic:
+ *
+ *   - `--info` kept its cyan. A blue brand plus a blue "info" would make every
+ *     informational alert look like a piece of brand chrome.
+ *   - `--quality-importado` left blue for violet. It is one of four ordinal
+ *     provenance hues, and the one hue it must never be confused with is the one
+ *     the reader clicks — otherwise "imported" starts reading as "interactive".
  *
  * Contrast: every ink/surface pair below was checked against WCAG AA (4.5:1 for
- * body text) in BOTH themes, measured against the *lightest* surface the token
- * actually appears on — the raised panel in the dark theme, the sunken strip and
- * the faintest brand tint in the light one. The tightest pair in the whole set is
- * `--ink-subtle` on `--brand-50` in the dark theme, at 4.74:1, which is why that
- * token stays reserved for secondary text at default size and never carries the
- * only copy of an important fact.
+ * body text, 3:1 for the non-text edges under 1.4.11) in BOTH themes, measured
+ * against the *lightest* surface the token actually appears on — the raised
+ * panel in the dark theme, the sunken strip and the faintest brand tint in the
+ * light one. The tightest pair in the whole set is `--brand-700` on `--brand-50`
+ * in the light theme, at 5.02:1; nothing else falls below 5.2:1. The lime it
+ * replaced managed 4.74:1 at its tightest, so the retheme *gained* margin.
  *
- * A lime accent cannot hold white text at any usable lightness, so the light
- * theme's `--accent` is `--brand-800` and not the display lime: the pairing that
- * reads as the brand on a black page is the pairing that fails on paper.
+ * A blue does hold white text, which the lime never could, so `--accent` is no
+ * longer an apology: it is `--brand-700` in the light theme (5.75:1 with white)
+ * because Google's own #1A73E8 sits at 4.51:1 — passing, but with a margin thin
+ * enough that a rounding difference would flip it.
  */
 
 :root,
 [data-theme="light"] {
   color-scheme: light;
 
-  --surface: 250 250 249;
+  --surface: 248 249 250;
   --surface-raised: 255 255 255;
-  --surface-sunken: 245 245 244;
-  --surface-inverted: 5 8 10;
+  --surface-sunken: 241 243 244;
+  --surface-inverted: 32 33 36;
 
-  --edge: 231 229 228;
-  --edge-subtle: 245 245 244;
-  --edge-strong: 214 211 209;
+  --edge: 218 220 224;
+  --edge-subtle: 232 234 237;
+  --edge-strong: 189 193 198;
   /* The outline of a text field, and the one edge in the system that is not a
    * matter of taste. An input's background is the same raised surface as the
    * card behind it, so this border is the *only* thing that says a control is
    * there — which puts it under WCAG 1.4.11 (non-text contrast) at 3:1, not
-   * under the hairline budget the other edges live on. Measured on the raised
-   * panel, the lighter of the two surfaces a control sits on. */
-  --edge-control: 122 118 114;
+   * under the hairline budget the other edges live on. 3.68:1 measured on the
+   * raised panel, the lighter of the two surfaces a control sits on. */
+  --edge-control: 128 134 139;
 
-  --ink: 12 15 17;
-  --ink-muted: 68 64 60;
-  /* Not stone-500 (120 113 108): that pair falls to 4.1:1 on the sunken strip. */
-  --ink-subtle: 100 98 94;
-  --ink-inverted: 250 250 249;
+  --ink: 32 33 36;
+  --ink-muted: 68 71 70;
+  /* 5.28:1 on `--brand-50`, the faintest surface it is ever asked to sit on. */
+  --ink-subtle: 95 99 104;
+  --ink-inverted: 248 249 250;
 
-  /* Anchored on the pack's display lime at 400 and its hover at 500; below that
-   * the same hue is carried down until it can hold text.
+  /* Google's blue ramp, with the dark end compressed on purpose.
    *
-   * The dark end is compressed on purpose. `700` is the shade components mean by
-   * "confident ink on the faintest tint", so it has to clear 4.5:1 on `--brand-50`
-   * — with a lime that only happens around #54700E, and an evenly spaced ramp
-   * would have put a 3.5:1 olive there instead. */
-  --brand-50: 246 254 227;
-  --brand-100: 235 253 192;
-  --brand-200: 221 252 143;
-  --brand-300: 210 251 90;
-  --brand-400: 198 249 31;
-  --brand-500: 170 222 23;
-  --brand-600: 128 170 16;
-  --brand-700: 84 112 14;
-  --brand-800: 63 84 16;
-  --brand-900: 43 58 11;
-  --brand-950: 22 32 5;
+   * `700` is the shade components mean by "confident ink on the faintest tint",
+   * so it has to clear 4.5:1 on `--brand-50`. Google publishes #1967D2 there,
+   * which lands at 4.69:1 — true, but close enough to the line that any future
+   * nudge to `--brand-50` would break it silently. #1565C0 buys 5.02:1 for a
+   * difference nobody can see, and doubles as `--accent`. */
+  --brand-50: 232 240 254;
+  --brand-100: 210 227 252;
+  --brand-200: 174 203 250;
+  --brand-300: 138 180 248;
+  --brand-400: 102 157 246;
+  --brand-500: 66 133 244;
+  --brand-600: 26 115 232;
+  --brand-700: 21 101 192;
+  --brand-800: 23 78 166;
+  --brand-900: 16 58 125;
+  --brand-950: 10 36 82;
 
-  --accent: 84 112 14;
+  --accent: 21 101 192;
   --accent-fg: 255 255 255;
 
-  --success: 22 128 60;
-  --success-soft: 219 249 224;
-  --success-fg: 20 105 50;
+  --success: 24 128 56;
+  --success-soft: 230 244 234;
+  --success-fg: 19 115 51;
 
-  --warning: 191 116 10;
-  --warning-soft: 253 240 205;
+  /* Orange, not the mustard this used to be. `DEFAULT` is a stroke — a border,
+   * an icon — so it answers to 1.4.11's 3:1, which Google's display yellow
+   * (#F9AB00, 1.7:1 on white) cannot do. #E8710A clears it at 3.09:1 and is the
+   * more colourful of the two anyway. */
+  --warning: 232 113 10;
+  --warning-soft: 254 239 227;
   --warning-fg: 138 76 12;
 
-  --danger: 199 56 40;
-  --danger-soft: 254 231 227;
-  --danger-fg: 166 44 30;
+  --danger: 217 48 37;
+  --danger-soft: 252 232 230;
+  --danger-fg: 165 14 14;
 
+  /* Cyan, kept away from the brand blue on purpose — see the header. */
   --info: 12 122 148;
   --info-soft: 219 245 250;
   --info-fg: 13 99 120;
 
   /* Ordinal by confidence: measured > imported > estimated > absent. Three
    * hues plus a neutral, chosen away from the red/green axis so deuteranopia
-   * does not collapse two of them. Colour is never the only cue — see
-   * components/ui/DataQualityBadge.tsx. */
-  --quality-medido: 15 118 110;
-  --quality-medido-soft: 204 251 241;
-  --quality-importado: 29 78 216;
-  --quality-importado-soft: 219 234 254;
+   * does not collapse two of them, and now away from the brand blue too. Colour
+   * is never the only cue — see components/ui/DataQualityBadge.tsx. */
+  --quality-medido: 14 107 99;
+  --quality-medido-soft: 224 242 241;
+  --quality-importado: 106 27 154;
+  --quality-importado-soft: 243 229 245;
   --quality-estimado: 146 64 14;
-  --quality-estimado-soft: 254 243 199;
-  --quality-ausente: 71 85 105;
-  --quality-ausente-soft: 241 245 249;
+  --quality-estimado-soft: 254 247 224;
+  --quality-ausente: 95 99 104;
+  --quality-ausente-soft: 241 243 244;
 }
 
 [data-theme="dark"] {
   color-scheme: dark;
 
-  /* The page is #05080A, panels are #0B0F12. The edges are not greys picked by
-   * eye: each is white at a fixed opacity (4%, 8%, 20%) composited over the page,
-   * which is how the hairlines in the source pack are built and why they stay
-   * consistent as surfaces stack. */
-  --surface: 5 8 10;
-  --surface-raised: 11 15 18;
-  --surface-sunken: 2 4 5;
-  --surface-inverted: 250 250 249;
+  /* Graphite, not the near-black of D-33. #05080A was a page with nothing
+   * behind it; #131314 is a page a panel can sit *on*, which is what makes the
+   * raised surface below read as raised without leaning on a shadow the dark
+   * theme can barely show. */
+  --surface: 19 19 20;
+  --surface-raised: 30 31 32;
+  --surface-sunken: 14 14 15;
+  --surface-inverted: 248 249 250;
 
-  --edge: 25 28 30;
-  --edge-subtle: 15 18 20;
-  --edge-strong: 55 57 59;
-  /* Not `--edge-strong`: on the near-black panel even that reaches only 1.66:1,
-   * which is a hairline the eye reads as decoration rather than as the edge of
-   * something you can type into. */
-  --edge-control: 106 112 110;
+  --edge: 48 49 52;
+  --edge-subtle: 35 36 39;
+  --edge-strong: 68 71 70;
+  /* Not `--edge-strong`: on the panel even that reaches only 1.9:1, which is a
+   * hairline the eye reads as decoration rather than as the edge of something
+   * you can type into. 5.19:1 here. */
+  --edge-control: 142 145 143;
 
-  --ink: 240 244 242;
-  --ink-muted: 175 181 178;
-  --ink-subtle: 131 137 134;
-  --ink-inverted: 5 8 10;
+  --ink: 227 227 227;
+  --ink-muted: 196 199 197;
+  --ink-subtle: 154 160 166;
+  --ink-inverted: 19 19 20;
 
   /* The ramp is inverted, not recoloured. `bg-brand-50 text-brand-700` then
    * means "faintest tint, confident ink" in both themes, and a component never
-   * has to name a different shade per theme. */
-  --brand-50: 22 32 5;
-  --brand-100: 43 58 11;
-  --brand-200: 63 84 16;
-  --brand-300: 84 112 14;
-  --brand-400: 128 170 16;
-  --brand-500: 170 222 23;
-  --brand-600: 198 249 31;
-  --brand-700: 210 251 90;
-  --brand-800: 221 252 143;
-  --brand-900: 235 253 192;
-  --brand-950: 246 254 227;
+   * has to name a different shade per theme. 7.19:1 for that pair here. */
+  --brand-50: 10 36 82;
+  --brand-100: 16 58 125;
+  --brand-200: 23 78 166;
+  --brand-300: 21 101 192;
+  --brand-400: 26 115 232;
+  --brand-500: 66 133 244;
+  --brand-600: 102 157 246;
+  --brand-700: 138 180 248;
+  --brand-800: 174 203 250;
+  --brand-900: 210 227 252;
+  --brand-950: 232 240 254;
 
-  --accent: 198 249 31;
-  --accent-fg: 5 8 10;
+  --accent: 138 180 248;
+  --accent-fg: 19 19 20;
 
-  --success: 85 225 84;
-  --success-soft: 6 38 12;
-  --success-fg: 134 240 130;
+  --success: 129 201 149;
+  --success-soft: 14 42 22;
+  --success-fg: 168 218 181;
 
-  --warning: 245 193 78;
-  --warning-soft: 47 30 4;
-  --warning-fg: 250 214 130;
+  --warning: 253 214 99;
+  --warning-soft: 51 42 10;
+  --warning-fg: 253 226 147;
 
-  --danger: 251 124 104;
-  --danger-soft: 55 16 12;
-  --danger-fg: 253 168 154;
+  --danger: 242 139 130;
+  --danger-soft: 58 21 18;
+  --danger-fg: 246 174 169;
 
   --info: 90 209 225;
   --info-soft: 6 38 45;
   --info-fg: 145 227 238;
 
-  /* Untouched by the retheme on purpose. These four are the product's claim
-   * about provenance (§3.3 da proposta), not decoration: pulling them toward the
-   * brand lime would put "estimado" next to every interactive affordance on the
-   * page. Only the tinted backgrounds moved, down onto the darker surface. */
+  /* Three of these four are untouched by the retheme on purpose: they are the
+   * product's claim about provenance (§3.3 da proposta), not decoration, and
+   * pulling them toward the brand would put "estimado" next to every
+   * interactive affordance on the page. `importado` moved only because the
+   * brand moved onto its hue — violet is the nearest seat that collides with
+   * nothing. */
   --quality-medido: 94 234 212;
-  --quality-medido-soft: 3 38 37;
-  --quality-importado: 147 197 253;
-  --quality-importado-soft: 15 26 60;
+  --quality-medido-soft: 11 46 44;
+  --quality-importado: 206 147 216;
+  --quality-importado-soft: 42 22 51;
   --quality-estimado: 252 211 77;
-  --quality-estimado-soft: 47 30 4;
-  --quality-ausente: 203 213 225;
-  --quality-ausente-soft: 22 26 28;
+  --quality-estimado-soft: 51 42 10;
+  --quality-ausente: 196 199 197;
+  --quality-ausente-soft: 35 36 39;
 }
 
 @layer base {
@@ -229,6 +244,16 @@
    * body must never scroll horizontally — checked at 375 px. */
   .scroll-x {
     @apply overflow-x-auto overscroll-x-contain;
+  }
+
+  /* The "malleable" gesture of D-38, as one utility instead of the same four
+   * classes copied into every primitive: the thing grows a little under the
+   * pointer and gives way under the press. Scale only — no `translate`, so it
+   * cannot nudge a neighbour, and no library, which §13 de REDESIGN.md rules
+   * out. The reduced-motion block below turns it into an instant state change
+   * rather than removing it: the feedback survives, the movement does not. */
+  .pressable {
+    @apply transition ease-emphasized hover:scale-[1.02] active:scale-[0.98];
   }
 }
 

@@ -740,6 +740,7 @@ export const ptBR = {
     subtitle:
       "Vitrine viva dos tokens e das primitivas. Serve de referência para quem continuar o trabalho e de fonte das figuras da monografia.",
     tokens: "Tokens de cor",
+    shape: "Forma e movimento",
     surfaces: "Superfícies, bordas e tinta",
     semantics: "Estados semânticos",
     qualityScale: "Qualidade do dado",
