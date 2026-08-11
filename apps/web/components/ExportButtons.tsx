@@ -1,5 +1,6 @@
 import { ptBR } from "@/lib/i18n";
 import { opensInBrowser, type ExportFormat } from "@/lib/api";
+import { ButtonLink } from "@/components/ui";
 
 const t = ptBR.exports;
 
@@ -32,23 +33,25 @@ export function ExportButtons({ urlFor, label = t.title, hint }: ExportButtonsPr
   const formats: ExportFormat[] = ["csv", "xlsx", "html"];
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <span className="text-xs uppercase tracking-wide text-slate-500">{label}</span>
+      <span className="text-2xs font-semibold uppercase tracking-wide text-ink-subtle">
+        {label}
+      </span>
       {formats.map((format) => {
         const inBrowser = opensInBrowser(format);
         return (
-          <a
+          <ButtonLink
             key={format}
             href={urlFor(format)}
+            size="sm"
             {...(inBrowser
               ? { target: "_blank", rel: "noopener noreferrer", title: t.htmlTitle }
               : { download: true })}
-            className="rounded border border-slate-300 px-2.5 py-1 text-xs text-slate-600 hover:bg-slate-50"
           >
             {LABELS[format]}
-          </a>
+          </ButtonLink>
         );
       })}
-      {hint && <span className="text-xs text-slate-400">{hint}</span>}
+      {hint && <span className="text-xs text-ink-subtle">{hint}</span>}
     </div>
   );
 }

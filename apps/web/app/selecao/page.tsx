@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ApiError,
@@ -27,13 +28,41 @@ import type {
   StudyDetail,
 } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
-import { prettyUnit } from "@/lib/format";
+import { countLabel, prettyUnit } from "@/lib/format";
+import {
+  Alert,
+  Button,
+  Card,
+  CardBody,
+  EmptyState,
+  Field,
+  Input,
+  LoadingState,
+  Section,
+  Select,
+  Stepper,
+  TBody,
+  Table,
+  TableScroll,
+  Td,
+  Tr,
+  type Step as StepItem,
+  type StepStatus,
+} from "@/components/ui";
+import { IconArrowRight, IconPlus, IconTrash } from "@/components/ui/icons";
 import {
   ConstraintEditor,
   type ConstraintRow,
   emptyConstraint,
   toConstraintPayload,
 } from "@/components/selection/ConstraintEditor";
+import {
+  IndexCard,
+  IndexPicker,
+  describeCustomIndex,
+  describeIndex,
+  type IndexDescriptor,
+} from "@/components/selection/IndexCard";
 import { ResultsView } from "@/components/selection/ResultsView";
 import { AIAssistPanel, type AcceptedSuggestions } from "@/components/ai/AIAssistPanel";
 import { StudyExplanation } from "@/components/ai/StudyExplanation";
@@ -41,6 +70,27 @@ import { ExportButtons } from "@/components/ExportButtons";
 
 const t = ptBR.selection;
 type Step = "function" | "constraints" | "objective" | "results";
+
+/**
+ * Deep links into the wizard.
+ *
+ * The home page presents the method as four clickable steps, and a step that
+ * lands on the first screen every time is not a step. The slugs are pt-BR
+ * because the routes are; the identifiers stay English like everything else.
+ */
+const STEP_BY_SLUG: Record<string, Step> = {
+  funcao: "function",
+  restricoes: "constraints",
+  objetivo: "objective",
+  resultados: "results",
+};
+
+const STEPS: StepItem<Step>[] = [
+  { id: "function", label: t.stepFunction },
+  { id: "constraints", label: t.stepConstraints },
+  { id: "objective", label: t.stepObjective },
+  { id: "results", label: t.stepResults, blockedReason: t.blockedResults },
+];
 
 interface CriterionRow {
   id: string;
@@ -52,9 +102,71 @@ interface CriterionRow {
 let counter = 0;
 const nextId = () => `row-${counter++}`;
 
+/**
+ * How many candidates are still standing, at every step.
+ *
+ * It used to be a sentence next to the combinator on the constraints step, so
+ * the one number the whole method turns on disappeared the moment the reader
+ * moved on. Here it is an element, it is always present, and it says what it is
+ * doing while it recounts instead of showing a stale number as if it were fresh.
+ */
+function CandidateCounter({
+  count,
+  total,
+  pending,
+  failed,
+  className,
+}: {
+  count: number | null;
+  total: number | null;
+  pending: boolean;
+  failed: boolean;
+  className?: string;
+}) {
+  return (
+    <div
+      aria-live="polite"
+      className={
+        "flex items-baseline gap-2 rounded-control border border-edge bg-surface-sunken px-3 py-1.5 " +
+        (className ?? "")
+      }
+    >
+      <span className="text-2xs uppercase tracking-wide text-ink-muted">{t.remaining}</span>
+      {failed ? (
+        <span className="text-xs text-danger-fg">{t.counterError}</span>
+      ) : count === null || total === null ? (
+        <span className="text-xs text-ink-muted">{t.counterPending}</span>
+      ) : (
+        <>
+          <span className="text-lg font-semibold leading-none tabular-nums text-brand-700">
+            {count}
+          </span>
+          <span className="text-2xs text-ink-muted">
+            {t.of} {total}
+            {pending ? ` · ${t.counterPending}` : ""}
+          </span>
+        </>
+      )}
+    </div>
+  );
+}
+
 export default function SelectionPage() {
+  // `useSearchParams` opts the subtree out of prerendering unless it sits
+  // behind a boundary; without this, `next build` refuses the page.
+  return (
+    <Suspense fallback={<LoadingState />}>
+      <SelectionWizard />
+    </Suspense>
+  );
+}
+
+function SelectionWizard() {
   const qc = useQueryClient();
-  const [step, setStep] = useState<Step>("function");
+  const params = useSearchParams();
+  const [step, setStep] = useState<Step>(
+    () => STEP_BY_SLUG[params.get("etapa") ?? ""] ?? "function",
+  );
 
   const [name, setName] = useState("");
   const [functionText, setFunctionText] = useState("");
@@ -80,8 +192,7 @@ export default function SelectionPage() {
   const indices = useQuery({ queryKey: ["performance-indices"], queryFn: listPerformanceIndices });
   const studies = useQuery({ queryKey: ["studies"], queryFn: listStudies });
 
-  const fail = (err: unknown) =>
-    setError(err instanceof ApiError ? err.message : t.genericError);
+  const fail = (err: unknown) => setError(err instanceof ApiError ? err.message : t.genericError);
 
   // Resolve the active index (prebuilt or custom) into an IndexIn payload.
   const activeIndex = useMemo<IndexIn | null>(() => {
@@ -93,6 +204,19 @@ export default function SelectionPage() {
     }
     const chosen = indices.data?.find((i) => i.slug === indexMode);
     return chosen ? { name: chosen.name, expression: chosen.expression, goal: chosen.goal } : null;
+  }, [indexMode, customExpression, indexGoal, indices.data]);
+
+  // Same resolution as `activeIndex`, but keeping the fields the run payload
+  // has no use for and the reader does: the declared assumptions and the
+  // dimension of the result.
+  const indexDescriptor = useMemo<IndexDescriptor | null>(() => {
+    if (indexMode === "none") return null;
+    if (indexMode === "custom") {
+      const expression = customExpression.trim();
+      return expression ? describeCustomIndex(expression, indexGoal) : null;
+    }
+    const chosen = indices.data?.find((i) => i.slug === indexMode);
+    return chosen ? describeIndex(chosen) : null;
   }, [indexMode, customExpression, indexGoal, indices.data]);
 
   const constraintPayload = (): ConstraintIn[] => toConstraintPayload(constraints);
@@ -119,11 +243,16 @@ export default function SelectionPage() {
     };
   }
 
-  // Live candidate count preview on the constraints step (constraints only).
+  // The live count, on every step — not only where the constraints are edited.
+  // Constraints only: adding the index here would make the number answer a
+  // different question from the one the label asks.
   const preview = useQuery({
     queryKey: ["selection-preview", JSON.stringify({ combinator, c: constraintPayload() })],
-    queryFn: () => runSelection({ combinator, constraints: constraintPayload(), index: null, ranking: null }),
-    enabled: step === "constraints",
+    queryFn: () =>
+      runSelection({ combinator, constraints: constraintPayload(), index: null, ranking: null }),
+    // Keep the previous count on screen while the next one is in flight, so the
+    // element does not blink between every keystroke.
+    placeholderData: (previous) => previous,
   });
 
   const run = useMutation({
@@ -221,6 +350,19 @@ export default function SelectionPage() {
     onError: fail,
   });
 
+  // `?estudo=<id>` is where the home page's "Retomar" lands. Once, on arrival:
+  // re-loading on every render would overwrite whatever the reader has typed
+  // since.
+  const requestedStudy = params.get("estudo");
+  const loadedFromUrl = useRef(false);
+  useEffect(() => {
+    if (loadedFromUrl.current || !requestedStudy) return;
+    const id = Number(requestedStudy);
+    if (!Number.isInteger(id) || id <= 0) return;
+    loadedFromUrl.current = true;
+    loadStudy.mutate(id);
+  }, [requestedStudy, loadStudy]);
+
   /**
    * Merge the suggestions the user ticked into the wizard.
    *
@@ -254,244 +396,389 @@ export default function SelectionPage() {
     }
   }
 
-  const inputClass =
-    "rounded border border-slate-300 bg-white px-2 py-1 text-sm focus:border-brand-500 focus:outline-none";
-
-  const steps: { key: Step; label: string }[] = [
-    { key: "function", label: t.stepFunction },
-    { key: "constraints", label: t.stepConstraints },
-    { key: "objective", label: t.stepObjective },
-    { key: "results", label: t.stepResults },
-  ];
-
   const indexIsCriterion = criteria.some((c) => c.key === "__index__");
+  const hasConstraints = constraintPayload().length > 0;
+  const hasObjective = activeIndex !== null || criteriaPayload().length > 0;
+  const canSave = name.trim().length > 0;
+
+  /**
+   * What each step is, right now.
+   *
+   * "Done" is not "visited": it means the step produced something the run will
+   * use. Results is the only step that can be blocked, because it is the only
+   * one whose content the reader cannot create by typing.
+   */
+  function statusOf(item: StepItem<Step>): StepStatus {
+    if (item.id === step) return "current";
+    switch (item.id) {
+      case "function":
+        return name.trim() || functionText.trim() ? "done" : "upcoming";
+      case "constraints":
+        return hasConstraints ? "done" : "upcoming";
+      case "objective":
+        return hasObjective ? "done" : "upcoming";
+      case "results":
+        return result ? "done" : "blocked";
+    }
+  }
+
+  /** The one action this step is for, plus whatever supports it. */
+  function actionsForStep() {
+    switch (step) {
+      case "function":
+        return (
+          <Button
+            variant="primary"
+            icon={<IconArrowRight />}
+            onClick={() => setStep("constraints")}
+          >
+            {t.stepConstraints}
+          </Button>
+        );
+      case "constraints":
+        return (
+          <>
+            <Button
+              variant="secondary"
+              icon={<IconPlus />}
+              onClick={() => setConstraints([...constraints, emptyConstraint(nextId())])}
+            >
+              {t.addConstraint}
+            </Button>
+            <Button variant="primary" icon={<IconArrowRight />} onClick={() => setStep("objective")}>
+              {t.stepObjective}
+            </Button>
+          </>
+        );
+      case "objective":
+        return (
+          <>
+            <Button variant="secondary" onClick={() => setStep("constraints")}>
+              {t.back}
+            </Button>
+            <Button variant="primary" loading={run.isPending} onClick={() => run.mutate()}>
+              {run.isPending ? t.running : t.run}
+            </Button>
+          </>
+        );
+      case "results":
+        return (
+          <>
+            <Button variant="secondary" onClick={() => setStep("objective")}>
+              {t.back}
+            </Button>
+            <Button
+              variant="primary"
+              disabled={!canSave}
+              loading={save.isPending}
+              onClick={() => {
+                setSaveMessage(null);
+                save.mutate();
+              }}
+            >
+              {t.saveStudy}
+            </Button>
+          </>
+        );
+    }
+  }
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
+      <div className="space-y-4">
         <div>
-          <h1 className="text-xl font-semibold text-slate-900">{t.title}</h1>
-          <p className="text-sm text-slate-500">{t.subtitle}</p>
+          <h1 className="text-xl font-semibold text-ink">{t.title}</h1>
+          <p className="text-sm text-ink-muted">{t.subtitle}</p>
         </div>
-        <nav aria-label="Etapas" className="flex flex-wrap gap-2 text-xs">
-          {steps.map((s) => (
-            <button
-              key={s.key}
-              type="button"
-              onClick={() => setStep(s.key)}
-              className={
-                "rounded-full px-3 py-1 " +
-                (step === s.key ? "bg-brand-600 text-white" : "bg-slate-100 text-slate-500 hover:bg-slate-200")
-              }
-            >
-              {s.label}
-            </button>
-          ))}
-        </nav>
-      </div>
 
-      {error && <p role="alert" className="rounded-md bg-red-50 px-4 py-2 text-sm text-red-700">{error}</p>}
+        <Stepper
+          label={ptBR.ui.steps}
+          steps={STEPS}
+          statusOf={statusOf}
+          current={step}
+          onSelect={setStep}
+        />
 
-      {/* Step 1: function */}
-      {step === "function" && (
-        <section className="space-y-3 rounded-lg border border-slate-200 bg-white p-5">
-          <h2 className="text-sm font-semibold text-slate-800">{t.functionTitle}</h2>
-          <p className="text-xs text-slate-500">{t.functionHint}</p>
-          <label className="block text-sm text-slate-600">
-            {t.studyName}
-            <input className={`${inputClass} mt-1 block w-full`} value={name} onChange={(e) => setName(e.target.value)} />
-          </label>
-          <label className="block text-sm text-slate-600">
-            {t.functionText}
-            <input className={`${inputClass} mt-1 block w-full`} value={functionText} onChange={(e) => setFunctionText(e.target.value)} />
-          </label>
-          <label className="block text-sm text-slate-600">
-            {t.objectiveText}
-            <input className={`${inputClass} mt-1 block w-full`} value={objectiveText} onChange={(e) => setObjectiveText(e.target.value)} />
-          </label>
-          <label className="block text-sm text-slate-600">
-            {t.freeVariables}
-            <input className={`${inputClass} mt-1 block w-full`} value={freeVariables} onChange={(e) => setFreeVariables(e.target.value)} />
-          </label>
-          <button type="button" onClick={() => setStep("constraints")} className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">
-            {t.stepConstraints} →
-          </button>
-        </section>
-      )}
+        {error && (
+          <Alert tone="danger" role="alert">
+            {error}
+          </Alert>
+        )}
 
-      {/* Optional assistance, on the step where a problem is described. */}
-      {step === "function" && <AIAssistPanel onApply={applySuggestions} />}
+        {/* Step 1: function */}
+        {step === "function" && (
+          <Section title={t.functionTitle} description={t.functionHint}>
+            <Card>
+              <CardBody className="grid gap-3 sm:grid-cols-2">
+                <Field label={t.studyName} className="sm:col-span-2">
+                  <Input value={name} onChange={(e) => setName(e.target.value)} />
+                </Field>
+                <Field label={t.functionText}>
+                  <Input
+                    value={functionText}
+                    onChange={(e) => setFunctionText(e.target.value)}
+                  />
+                </Field>
+                <Field label={t.objectiveText}>
+                  <Input
+                    value={objectiveText}
+                    onChange={(e) => setObjectiveText(e.target.value)}
+                  />
+                </Field>
+                <Field label={t.freeVariables} className="sm:col-span-2">
+                  <Input
+                    value={freeVariables}
+                    onChange={(e) => setFreeVariables(e.target.value)}
+                  />
+                </Field>
+              </CardBody>
+            </Card>
+          </Section>
+        )}
 
-      {/* Step 2: constraints */}
-      {step === "constraints" && (
-        <section className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-sm font-semibold text-slate-800">{t.constraintsTitle}</h2>
-            <div className="flex items-center gap-3 text-sm">
-              <label className="flex items-center gap-1 text-slate-600">
-                {t.combinator}
-                <select className={inputClass} value={combinator} onChange={(e) => setCombinator(e.target.value as "AND" | "OR")}>
+        {/* Optional assistance, on the step where a problem is described. */}
+        {step === "function" && <AIAssistPanel onApply={applySuggestions} />}
+
+        {/* Step 2: constraints */}
+        {step === "constraints" && (
+          <Section
+            title={t.constraintsTitle}
+            description={t.constraintsHint}
+            actions={
+              <Field label={t.combinator} className="w-28">
+                <Select
+                  value={combinator}
+                  onChange={(e) => setCombinator(e.target.value as "AND" | "OR")}
+                >
                   <option value="AND">AND</option>
                   <option value="OR">OR</option>
-                </select>
-              </label>
-              {preview.data && (
-                <span className="text-slate-500">
-                  {t.remaining}: <strong className="text-brand-700">{preview.data.final_count}</strong> {t.of}{" "}
-                  {preview.data.initial_count}
-                </span>
-              )}
-            </div>
-          </div>
-          <p className="text-xs text-slate-500">{t.constraintsHint}</p>
-          <ConstraintEditor
-            rows={constraints}
-            properties={properties.data ?? []}
-            classes={classes.data ?? []}
-            onChange={setConstraints}
-          />
-          <div className="flex gap-3">
-            <button type="button" onClick={() => setConstraints([...constraints, emptyConstraint(nextId())])} className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50">
-              + {t.addConstraint}
-            </button>
-            <button type="button" onClick={() => setStep("objective")} className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">
-              {t.stepObjective} →
-            </button>
-          </div>
-        </section>
-      )}
+                </Select>
+              </Field>
+            }
+          >
+            <ConstraintEditor
+              rows={constraints}
+              properties={properties.data ?? []}
+              classes={classes.data ?? []}
+              onChange={setConstraints}
+            />
+          </Section>
+        )}
 
-      {/* Step 3: objective (index + ranking) */}
-      {step === "objective" && (
-        <section className="space-y-5">
-          <div className="rounded-lg border border-slate-200 bg-white p-4">
-            <h2 className="text-sm font-semibold text-slate-800">{t.performanceIndex}</h2>
-            <p className="mb-2 text-xs text-slate-500">{t.objectiveHint}</p>
-            <div className="flex flex-wrap items-end gap-3">
-              <label className="text-sm text-slate-600">
-                {t.performanceIndex}
-                <select className={`${inputClass} mt-1 block`} value={indexMode} onChange={(e) => { setIndexMode(e.target.value); setValidation(null); }}>
-                  <option value="none">{t.noIndex}</option>
-                  {(indices.data ?? []).map((i) => (
-                    <option key={i.slug} value={i.slug}>{i.name} — {i.expression}</option>
+        {/* Step 3: objective (index + ranking) */}
+        {step === "objective" && (
+          <div className="space-y-5">
+            <Section title={t.objectiveTitle}>
+              <Card>
+                <CardBody className="space-y-3">
+                  <IndexPicker
+                    indices={indices.data ?? []}
+                    value={indexMode}
+                    onChange={(next) => {
+                      setIndexMode(next);
+                      setValidation(null);
+                    }}
+                    hint={t.objectiveHint}
+                    customSlot={
+                      <>
+                        <div className="flex flex-wrap items-end gap-3">
+                          <Field label={t.expression} className="w-72">
+                            <Input
+                              value={customExpression}
+                              onChange={(e) => setCustomExpression(e.target.value)}
+                              placeholder="modulo_young / densidade"
+                            />
+                          </Field>
+                          <Field label={t.goal} className="w-40">
+                            <Select
+                              value={indexGoal}
+                              onChange={(e) => setIndexGoal(e.target.value as Goal)}
+                            >
+                              <option value="maximize">{t.maximize}</option>
+                              <option value="minimize">{t.minimize}</option>
+                            </Select>
+                          </Field>
+                          <Button onClick={() => validateExpr.mutate()} loading={validateExpr.isPending}>
+                            {t.validate}
+                          </Button>
+                        </div>
+                        <p className="mt-2 text-xs text-ink-muted">
+                          {t.expressionHint}{" "}
+                          {properties.data && (
+                            <span className="text-ink-subtle">
+                              ({t.variablesAvailable}:{" "}
+                              {properties.data.map((p) => p.slug).join(", ")})
+                            </span>
+                          )}
+                        </p>
+                      </>
+                    }
+                  />
+                  {validation && <p className="text-xs text-ink-muted">{validation}</p>}
+                  {/* The conditions of validity, shown without asking for a click —
+                      an index that does not fit the problem is worse than no index. */}
+                  {indexDescriptor && <IndexCard index={indexDescriptor} />}
+                </CardBody>
+              </Card>
+            </Section>
+
+            <Section
+              title={t.rankingTitle}
+              description={t.rankingHint}
+              actions={
+                <Field label={t.normalization} className="w-40">
+                  <Select
+                    value={normalization}
+                    onChange={(e) => setNormalization(e.target.value as NormalizationMethod)}
+                  >
+                    <option value="minmax">{t.normMinmax}</option>
+                    <option value="vector">{t.normVector}</option>
+                  </Select>
+                </Field>
+              }
+            >
+              <Card>
+                <CardBody className="space-y-3">
+                  {criteria.map((c, position) => (
+                    <fieldset key={c.id} className="flex flex-wrap items-end gap-3">
+                      <legend className="sr-only">
+                        {t.criterion} {position + 1}
+                      </legend>
+                      <Field label={t.criterion} className="w-56">
+                        <Select
+                          value={c.key}
+                          onChange={(e) =>
+                            setCriteria(
+                              criteria.map((x) =>
+                                x.id === c.id ? { ...x, key: e.target.value } : x,
+                              ),
+                            )
+                          }
+                        >
+                          <option value="">{t.selectCriterion}</option>
+                          {activeIndex && <option value="__index__">{t.useIndexCriterion}</option>}
+                          {(properties.data ?? []).map((p) => (
+                            <option key={p.slug} value={p.slug}>
+                              {p.name}
+                            </option>
+                          ))}
+                        </Select>
+                      </Field>
+                      <Field label={t.direction} className="w-52">
+                        <Select
+                          value={c.direction}
+                          onChange={(e) =>
+                            setCriteria(
+                              criteria.map((x) =>
+                                x.id === c.id
+                                  ? { ...x, direction: e.target.value as "" | "max" | "min" }
+                                  : x,
+                              ),
+                            )
+                          }
+                        >
+                          <option value="">{t.autoDirection}</option>
+                          <option value="max">{t.dirMax}</option>
+                          <option value="min">{t.dirMin}</option>
+                        </Select>
+                      </Field>
+                      <Field label={t.weight} className="w-24">
+                        <Input
+                          inputMode="decimal"
+                          className="tabular-nums"
+                          value={c.weight}
+                          onChange={(e) =>
+                            setCriteria(
+                              criteria.map((x) =>
+                                x.id === c.id ? { ...x, weight: e.target.value } : x,
+                              ),
+                            )
+                          }
+                        />
+                      </Field>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        icon={<IconTrash />}
+                        onClick={() => setCriteria(criteria.filter((x) => x.id !== c.id))}
+                      >
+                        {ptBR.actions.remove}
+                      </Button>
+                    </fieldset>
                   ))}
-                  <option value="custom">{t.customIndex}</option>
-                </select>
-              </label>
-              {indexMode === "custom" && (
-                <>
-                  <label className="text-sm text-slate-600">
-                    {t.expression}
-                    <input className={`${inputClass} mt-1 block w-72`} value={customExpression} onChange={(e) => setCustomExpression(e.target.value)} placeholder="modulo_young / densidade" />
-                  </label>
-                  <label className="text-sm text-slate-600">
-                    {t.goal}
-                    <select className={`${inputClass} mt-1 block`} value={indexGoal} onChange={(e) => setIndexGoal(e.target.value as Goal)}>
-                      <option value="maximize">{t.maximize}</option>
-                      <option value="minimize">{t.minimize}</option>
-                    </select>
-                  </label>
-                  <button type="button" onClick={() => validateExpr.mutate()} className="rounded border border-slate-300 px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50">
-                    {t.validate}
-                  </button>
-                </>
+                  <Button
+                    icon={<IconPlus />}
+                    onClick={() =>
+                      setCriteria([
+                        ...criteria,
+                        {
+                          id: nextId(),
+                          key: activeIndex && !indexIsCriterion ? "__index__" : "",
+                          direction: "",
+                          weight: "1",
+                        },
+                      ])
+                    }
+                  >
+                    {t.addCriterion}
+                  </Button>
+                </CardBody>
+              </Card>
+            </Section>
+          </div>
+        )}
+
+        {/* Step 4: results */}
+        {step === "results" && result && <ResultsView result={result} />}
+        {step === "results" && !result && (
+          <EmptyState title={t.blockedResults} description={t.emptyResults} />
+        )}
+
+        {saveMessage && (
+          <Alert tone="success" role="status">
+            {saveMessage}
+          </Alert>
+        )}
+
+        {/* The action bar.
+            Sticky rather than fixed: pinned to the bottom of the viewport while
+            the wizard is on screen, and out of the way when the reader reaches
+            the footer — where the two standing notices live and must not be
+            covered by a floating strip. */}
+        <div className="sticky bottom-0 z-20 -mx-4 border-t border-edge bg-surface-raised/95 px-4 py-3 backdrop-blur">
+          <div
+            role="group"
+            aria-label={t.actionBar}
+            className="flex flex-wrap items-center justify-between gap-3"
+          >
+            <CandidateCounter
+              count={preview.data?.final_count ?? null}
+              total={preview.data?.initial_count ?? null}
+              pending={preview.isFetching}
+              failed={preview.isError}
+            />
+            <div className="flex flex-wrap items-center gap-2">
+              {step === "results" && !canSave && (
+                <span className="text-2xs text-ink-muted">{t.saveNeedsName}</span>
               )}
+              {actionsForStep()}
             </div>
-            {indexMode === "custom" && (
-              <p className="mt-2 text-xs text-slate-500">
-                {t.expressionHint}{" "}
-                {properties.data && (
-                  <span className="text-slate-400">
-                    ({t.variablesAvailable}: {properties.data.map((p) => p.slug).join(", ")})
-                  </span>
-                )}
-              </p>
-            )}
-            {validation && <p className="mt-1 text-xs text-slate-600">{validation}</p>}
           </div>
-
-          <div className="rounded-lg border border-slate-200 bg-white p-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-slate-800">{t.rankingTitle}</h2>
-              <label className="flex items-center gap-1 text-sm text-slate-600">
-                {t.normalization}
-                <select className={inputClass} value={normalization} onChange={(e) => setNormalization(e.target.value as NormalizationMethod)}>
-                  <option value="minmax">{t.normMinmax}</option>
-                  <option value="vector">{t.normVector}</option>
-                </select>
-              </label>
-            </div>
-            <p className="mb-2 text-xs text-slate-500">{t.rankingHint}</p>
-            <div className="space-y-2">
-              {criteria.map((c) => (
-                <div key={c.id} className="flex flex-wrap items-end gap-2">
-                  <label className="text-xs text-slate-500">
-                    {t.criterion}
-                    <select className={`${inputClass} mt-0.5 block`} value={c.key}
-                      onChange={(e) => setCriteria(criteria.map((x) => (x.id === c.id ? { ...x, key: e.target.value } : x)))}>
-                      <option value="">—</option>
-                      {activeIndex && <option value="__index__">{t.useIndexCriterion}</option>}
-                      {(properties.data ?? []).map((p) => (
-                        <option key={p.slug} value={p.slug}>{p.name}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="text-xs text-slate-500">
-                    {t.direction}
-                    <select className={`${inputClass} mt-0.5 block`} value={c.direction}
-                      onChange={(e) => setCriteria(criteria.map((x) => (x.id === c.id ? { ...x, direction: e.target.value as "" | "max" | "min" } : x)))}>
-                      <option value="">auto</option>
-                      <option value="max">{t.dirMax}</option>
-                      <option value="min">{t.dirMin}</option>
-                    </select>
-                  </label>
-                  <label className="text-xs text-slate-500">
-                    {t.weight}
-                    <input className={`${inputClass} mt-0.5 block w-20`} value={c.weight} inputMode="decimal"
-                      onChange={(e) => setCriteria(criteria.map((x) => (x.id === c.id ? { ...x, weight: e.target.value } : x)))} />
-                  </label>
-                  <button type="button" onClick={() => setCriteria(criteria.filter((x) => x.id !== c.id))} className="rounded border border-slate-300 px-2 py-1 text-xs text-slate-500 hover:bg-slate-50">
-                    {ptBR.actions.remove}
-                  </button>
-                </div>
-              ))}
-            </div>
-            <button type="button"
-              onClick={() => setCriteria([...criteria, { id: nextId(), key: activeIndex && !indexIsCriterion ? "__index__" : "", direction: "", weight: "1" }])}
-              className="mt-2 rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50">
-              + {t.addCriterion}
-            </button>
-          </div>
-
-          <div className="flex flex-wrap gap-3">
-            <button type="button" onClick={() => run.mutate()} disabled={run.isPending} className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50">
-              {run.isPending ? t.running : t.run}
-            </button>
-            <button type="button" onClick={() => { setSaveMessage(null); save.mutate(); }} disabled={!name.trim() || save.isPending} className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 disabled:opacity-50">
-              {t.saveStudy}
-            </button>
-            {saveMessage && <span className="self-center text-sm text-green-700">{saveMessage}</span>}
-          </div>
-        </section>
-      )}
-
-      {/* Step 4: results */}
-      {step === "results" && result && <ResultsView result={result} />}
-      {step === "results" && !result && <p className="text-sm text-slate-500">{t.emptyResults}</p>}
+        </div>
+      </div>
 
       {/* Saved studies */}
-      <section className="space-y-2">
-        <h2 className="text-sm font-semibold text-slate-800">{t.savedStudies}</h2>
+      <Section title={t.savedStudies}>
         {!studies.data || studies.data.length === 0 ? (
-          <p className="text-sm text-slate-500">{t.noStudies}</p>
+          <p className="text-sm text-ink-muted">{t.noStudies}</p>
         ) : (
-          <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-            <table className="min-w-full divide-y divide-slate-200 text-sm">
-              <tbody className="divide-y divide-slate-100">
+          <TableScroll label={t.savedStudies}>
+            <Table>
+              <TBody>
                 {studies.data.map((s) => (
-                  <tr key={s.id}>
-                    <td className="px-3 py-2 font-medium text-slate-700">
-                      {s.name}
+                  <Tr key={s.id}>
+                    <Td>
+                      <span className="font-medium text-ink">{s.name}</span>
                       <div className="mt-1">
                         <ExportButtons
                           urlFor={(format) => studyExportUrl(s.id, format)}
@@ -499,30 +786,37 @@ export default function SelectionPage() {
                         />
                       </div>
                       <StudyExplanation studyId={s.id} />
-                    </td>
-                    <td className="px-3 py-2 align-top text-xs text-slate-400">
-                      {s.constraint_count} restrições · {s.criterion_count} critérios
-                    </td>
-                    <td className="px-3 py-2 text-right align-top">
+                    </Td>
+                    <Td className="align-top text-2xs text-ink-subtle">
+                      {countLabel(s.constraint_count, ptBR.home.constraintOne, ptBR.home.constraintMany)}{" "}
+                      · {countLabel(s.criterion_count, ptBR.home.criterionOne, ptBR.home.criterionMany)}
+                    </Td>
+                    <Td className="align-top">
                       <div className="flex justify-end gap-2">
-                        <button type="button" onClick={() => runSaved.mutate(s.id)} className="rounded border border-slate-300 px-2 py-1 text-xs text-slate-600 hover:bg-slate-50">
+                        <Button size="sm" onClick={() => runSaved.mutate(s.id)}>
                           {t.runSaved}
-                        </button>
-                        <button type="button" onClick={() => loadStudy.mutate(s.id)} className="rounded border border-slate-300 px-2 py-1 text-xs text-brand-700 hover:bg-slate-50">
+                        </Button>
+                        <Button size="sm" onClick={() => loadStudy.mutate(s.id)}>
                           {t.load}
-                        </button>
-                        <button type="button" onClick={() => { if (window.confirm(t.deleteConfirm)) removeStudy.mutate(s.id); }} className="rounded border border-slate-300 px-2 py-1 text-xs text-red-600 hover:bg-red-50">
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="danger"
+                          onClick={() => {
+                            if (window.confirm(t.deleteConfirm)) removeStudy.mutate(s.id);
+                          }}
+                        >
                           {t.delete}
-                        </button>
+                        </Button>
                       </div>
-                    </td>
-                  </tr>
+                    </Td>
+                  </Tr>
                 ))}
-              </tbody>
-            </table>
-          </div>
+              </TBody>
+            </Table>
+          </TableScroll>
         )}
-      </section>
+      </Section>
     </div>
   );
 }

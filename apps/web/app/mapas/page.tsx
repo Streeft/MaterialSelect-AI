@@ -1,7 +1,6 @@
 "use client";
 
 import { Suspense, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -14,6 +13,31 @@ import type { ChartScale, Goal, IndexIn, PropertyMapRequest } from "@/lib/types"
 import { ptBR } from "@/lib/i18n";
 import { formatNumber, prettyUnit } from "@/lib/format";
 import { AshbyMap } from "@/components/charts/AshbyMap";
+import {
+  Alert,
+  Button,
+  ButtonGroup,
+  ButtonGroupItem,
+  ButtonLink,
+  Card,
+  CardBody,
+  CardHeader,
+  Checkbox,
+  ErrorState,
+  Field,
+  Input,
+  LoadingState,
+  Section,
+  Select,
+  ToggleChip,
+} from "@/components/ui";
+import {
+  IndexCard,
+  IndexPicker,
+  describeCustomIndex,
+  describeIndex,
+  type IndexDescriptor,
+} from "@/components/selection/IndexCard";
 
 const t = ptBR.map;
 
@@ -77,6 +101,18 @@ function MapsPageContent() {
       : null;
   }, [indexMode, customExpression, indexGoal, indices.data]);
 
+  // Same choice as `activeIndex`, kept whole so the card can show the
+  // conditions under which the index — and its line on this map — is valid.
+  const indexDescriptor = useMemo<IndexDescriptor | null>(() => {
+    if (indexMode === "none") return null;
+    if (indexMode === "custom") {
+      const expression = customExpression.trim();
+      return expression ? describeCustomIndex(expression, indexGoal) : null;
+    }
+    const chosen = indices.data?.find((i) => i.slug === indexMode);
+    return chosen ? describeIndex(chosen) : null;
+  }, [indexMode, customExpression, indexGoal, indices.data]);
+
   const request = useMemo<PropertyMapRequest>(
     () => ({
       x,
@@ -94,14 +130,13 @@ function MapsPageContent() {
     [x, y, scale, selectedClasses, restrictedIds, activeIndex, levelMaterialIds, numericLevels],
   );
 
+  const sameAxis = x === y;
   const map = useQuery({
     queryKey: ["property-map", JSON.stringify(request)],
     queryFn: () => getPropertyMap(request),
-    enabled: Boolean(x && y && x !== y),
+    enabled: Boolean(x && y && !sameAxis),
   });
 
-  const inputClass =
-    "rounded border border-slate-300 bg-white px-2 py-1 text-sm focus:border-brand-500 focus:outline-none";
   const overlay = map.data?.index ?? null;
 
   function toggleClass(slug: string) {
@@ -127,268 +162,239 @@ function MapsPageContent() {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-xl font-semibold text-slate-900">{t.title}</h1>
-        <p className="text-sm text-slate-500">{t.subtitle}</p>
+        <h1 className="text-xl font-semibold text-ink">{t.title}</h1>
+        <p className="max-w-prose text-sm text-ink-muted">{t.subtitle}</p>
       </div>
 
-      {/* Axes and display options */}
-      <section className="flex flex-wrap items-end gap-4 rounded-lg border border-slate-200 bg-white p-4">
-        <label className="text-sm text-slate-600">
-          {t.axisX}
-          <select className={`${inputClass} mt-1 block`} value={x} onChange={(e) => setX(e.target.value)}>
-            {(properties.data ?? []).map((p) => (
-              <option key={p.slug} value={p.slug}>
-                {p.name} [{prettyUnit(p.canonical_unit)}]
-              </option>
-            ))}
-          </select>
-        </label>
+      {/* One panel, four named groups.
+          The eleven controls used to sit in three anonymous white boxes, in the
+          order they were implemented, so nothing said which of them change the
+          question being asked and which only change the drawing. */}
+      <Section id="controles" title={t.controls} headingLevel={2}>
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Card>
+            <CardHeader title={t.groupAxes} />
+            <CardBody className="flex flex-wrap items-end gap-4">
+              <Field label={t.axisX} className="min-w-[12rem] flex-1">
+                <Select value={x} onChange={(e) => setX(e.target.value)}>
+                  {(properties.data ?? []).map((p) => (
+                    <option key={p.slug} value={p.slug}>
+                      {p.name} [{prettyUnit(p.canonical_unit)}]
+                    </option>
+                  ))}
+                </Select>
+              </Field>
 
-        <label className="text-sm text-slate-600">
-          {t.axisY}
-          <select className={`${inputClass} mt-1 block`} value={y} onChange={(e) => setY(e.target.value)}>
-            {(properties.data ?? []).map((p) => (
-              <option key={p.slug} value={p.slug}>
-                {p.name} [{prettyUnit(p.canonical_unit)}]
-              </option>
-            ))}
-          </select>
-        </label>
+              <Field label={t.axisY} className="min-w-[12rem] flex-1">
+                <Select value={y} onChange={(e) => setY(e.target.value)}>
+                  {(properties.data ?? []).map((p) => (
+                    <option key={p.slug} value={p.slug}>
+                      {p.name} [{prettyUnit(p.canonical_unit)}]
+                    </option>
+                  ))}
+                </Select>
+              </Field>
 
-        <fieldset className="text-sm text-slate-600">
-          <legend className="mb-1">{t.scale}</legend>
-          <div className="inline-flex overflow-hidden rounded border border-slate-300">
-            {(["linear", "log"] as ChartScale[]).map((option) => (
-              <button
-                key={option}
-                type="button"
-                aria-pressed={scale === option}
-                onClick={() => setScale(option)}
-                className={
-                  "px-3 py-1 text-xs " +
-                  (scale === option ? "bg-brand-600 text-white" : "bg-white text-slate-600")
-                }
-              >
-                {option === "linear" ? t.linear : t.log}
-              </button>
-            ))}
-          </div>
-        </fieldset>
-
-        <fieldset className="text-sm text-slate-600">
-          <legend className="mb-1">{t.options}</legend>
-          <div className="flex flex-wrap gap-3 text-xs">
-            <label className="flex items-center gap-1">
-              <input type="checkbox" checked={showEnvelopes} onChange={(e) => setShowEnvelopes(e.target.checked)} />
-              {t.envelopes}
-            </label>
-            <label className="flex items-center gap-1">
-              <input type="checkbox" checked={showIntervals} onChange={(e) => setShowIntervals(e.target.checked)} />
-              {t.intervals}
-            </label>
-            <label className="flex items-center gap-1">
-              <input type="checkbox" checked={showLabels} onChange={(e) => setShowLabels(e.target.checked)} />
-              {t.labels}
-            </label>
-          </div>
-        </fieldset>
-      </section>
-
-      {/* Class filter */}
-      <section className="rounded-lg border border-slate-200 bg-white p-4">
-        <h2 className="mb-2 text-sm font-semibold text-slate-800">{t.classes}</h2>
-        <div className="flex flex-wrap gap-2 text-xs">
-          <button
-            type="button"
-            onClick={() => setSelectedClasses([])}
-            className={
-              "rounded-full px-3 py-1 " +
-              (selectedClasses.length === 0
-                ? "bg-brand-600 text-white"
-                : "bg-slate-100 text-slate-600 hover:bg-slate-200")
-            }
-          >
-            {t.allClasses}
-          </button>
-          {(classes.data ?? []).map((c) => (
-            <button
-              key={c.slug}
-              type="button"
-              aria-pressed={selectedClasses.includes(c.slug)}
-              onClick={() => toggleClass(c.slug)}
-              className={
-                "rounded-full px-3 py-1 " +
-                (selectedClasses.includes(c.slug)
-                  ? "bg-brand-600 text-white"
-                  : "bg-slate-100 text-slate-600 hover:bg-slate-200")
-              }
-            >
-              {c.name}
-            </button>
-          ))}
-        </div>
-      </section>
-
-      {/* Index line */}
-      <section className="rounded-lg border border-slate-200 bg-white p-4">
-        <h2 className="text-sm font-semibold text-slate-800">{t.indexTitle}</h2>
-        <p className="mb-3 text-xs text-slate-500">{t.indexHint}</p>
-        <div className="flex flex-wrap items-end gap-3">
-          <label className="text-sm text-slate-600">
-            {t.indexTitle}
-            <select
-              className={`${inputClass} mt-1 block`}
-              value={indexMode}
-              onChange={(e) => setIndexMode(e.target.value)}
-            >
-              <option value="none">{t.indexNone}</option>
-              {(indices.data ?? []).map((i) => (
-                <option key={i.slug} value={i.slug}>
-                  {i.name} — {i.expression}
-                </option>
-              ))}
-              <option value="custom">{t.indexCustom}</option>
-            </select>
-          </label>
-
-          {indexMode === "custom" && (
-            <>
-              <label className="text-sm text-slate-600">
-                {t.expression}
-                <input
-                  className={`${inputClass} mt-1 block w-72`}
-                  value={customExpression}
-                  onChange={(e) => setCustomExpression(e.target.value)}
-                  placeholder="modulo_young / densidade"
-                />
-              </label>
-              <label className="text-sm text-slate-600">
-                {t.goal}
-                <select
-                  className={`${inputClass} mt-1 block`}
-                  value={indexGoal}
-                  onChange={(e) => setIndexGoal(e.target.value as Goal)}
-                >
-                  <option value="maximize">{t.maximize}</option>
-                  <option value="minimize">{t.minimize}</option>
-                </select>
-              </label>
-            </>
-          )}
-
-          {activeIndex && (
-            <>
-              <label className="text-sm text-slate-600">
-                {t.levelThrough}
-                <select
-                  className={`${inputClass} mt-1 block`}
-                  value=""
-                  onChange={(e) => {
-                    const id = Number(e.target.value);
-                    if (Number.isInteger(id) && !levelMaterialIds.includes(id)) {
-                      setLevelMaterialIds([...levelMaterialIds, id]);
-                    }
-                  }}
-                >
-                  <option value="">{t.levelNone}</option>
-                  {(map.data?.points ?? [])
-                    .filter(
-                      (p) => p.index_value !== null && !levelMaterialIds.includes(p.material_id),
-                    )
-                    .map((p) => (
-                      <option key={p.material_id} value={p.material_id}>
-                        {p.material_name}
-                      </option>
-                    ))}
-                </select>
-              </label>
-
-              <label className="text-sm text-slate-600">
-                {t.levelValue}
-                <input
-                  className={`${inputClass} mt-1 block w-40`}
-                  value={levelDraft}
-                  inputMode="decimal"
-                  onChange={(e) => setLevelDraft(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      addNumericLevel();
-                    }
-                  }}
-                />
-              </label>
-              <button
-                type="button"
-                onClick={addNumericLevel}
-                disabled={!Number.isFinite(Number(levelDraft.replace(",", ".")))}
-                className="rounded border border-slate-300 px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50 disabled:opacity-50"
-              >
-                {t.levelAdd}
-              </button>
-            </>
-          )}
-        </div>
-
-        {overlay && (
-          <div className="mt-3 space-y-1 text-xs">
-            {overlay.available ? (
-              <p className="text-slate-600">
-                {overlay.orientation === "vertical" ? (
-                  <strong>{t.vertical}</strong>
-                ) : (
-                  <>
-                    {t.slope}: <strong>{overlay.slope?.toFixed(3)}</strong>
-                  </>
-                )}
-                {" · "}
-                {t.dimension}: {prettyUnit(overlay.dimension)}
-              </p>
-            ) : (
-              <p className="text-amber-700">
-                <strong>{t.indexUnavailable}:</strong> {overlay.unavailable_reason}
-              </p>
-            )}
-            {overlay.levels.length > 0 && (
-              <ul className="space-y-1 pt-1">
-                {overlay.levels.map((level) => (
-                  <li
-                    key={`${level.value}-${level.material_id ?? "n"}`}
-                    className="flex items-center gap-2 text-slate-500"
-                  >
-                    <span>
-                      M = {formatNumber(level.value)}
-                      {level.material_name ? ` (${level.material_name})` : ""} —{" "}
-                      {t.superior(level.superior_material_ids.length)}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => removeLevel(level.material_id, level.value)}
-                      className="rounded border border-slate-300 px-1.5 py-0.5 text-[11px] text-slate-500 hover:bg-slate-50"
-                      aria-label={`${ptBR.actions.remove}: M = ${formatNumber(level.value)}`}
+              <div className="flex flex-col gap-1">
+                <span className="text-xs font-medium text-ink-muted">{t.scale}</span>
+                <ButtonGroup label={t.scale}>
+                  {(["linear", "log"] as ChartScale[]).map((option) => (
+                    <ButtonGroupItem
+                      key={option}
+                      selected={scale === option}
+                      onClick={() => setScale(option)}
                     >
-                      {ptBR.actions.remove}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        )}
-      </section>
+                      {option === "linear" ? t.linear : t.log}
+                    </ButtonGroupItem>
+                  ))}
+                </ButtonGroup>
+              </div>
+            </CardBody>
+          </Card>
 
-      {x === y && (
-        <p role="alert" className="rounded-md bg-amber-50 px-4 py-2 text-sm text-amber-800">
-          Escolha duas propriedades diferentes para os eixos.
-        </p>
-      )}
-      {map.isLoading && <p className="py-8 text-center text-sm text-slate-500">{t.loading}</p>}
+          <Card>
+            <CardHeader title={t.groupDisplay} />
+            <CardBody className="flex flex-col gap-2">
+              <Checkbox
+                label={t.envelopes}
+                checked={showEnvelopes}
+                onChange={(e) => setShowEnvelopes(e.target.checked)}
+              />
+              <Checkbox
+                label={t.intervals}
+                checked={showIntervals}
+                onChange={(e) => setShowIntervals(e.target.checked)}
+              />
+              <Checkbox
+                label={t.labels}
+                checked={showLabels}
+                onChange={(e) => setShowLabels(e.target.checked)}
+              />
+            </CardBody>
+          </Card>
+
+          <Card className="lg:col-span-2">
+            <CardHeader title={t.groupClasses} />
+            <CardBody className="flex flex-wrap gap-2">
+              <ToggleChip
+                selected={selectedClasses.length === 0}
+                onClick={() => setSelectedClasses([])}
+              >
+                {t.allClasses}
+              </ToggleChip>
+              {(classes.data ?? []).map((c) => (
+                <ToggleChip
+                  key={c.slug}
+                  selected={selectedClasses.includes(c.slug)}
+                  onClick={() => toggleClass(c.slug)}
+                >
+                  {c.name}
+                </ToggleChip>
+              ))}
+            </CardBody>
+          </Card>
+
+          <Card className="lg:col-span-2">
+            <CardHeader title={t.groupIndex} description={t.indexHint} />
+            <CardBody className="flex flex-col gap-3">
+              <IndexPicker
+                indices={indices.data ?? []}
+                value={indexMode}
+                onChange={setIndexMode}
+                customSlot={
+                  <div className="flex flex-wrap items-end gap-3">
+                    <Field label={t.expression} className="min-w-[16rem] flex-1">
+                      <Input
+                        value={customExpression}
+                        onChange={(e) => setCustomExpression(e.target.value)}
+                        placeholder="modulo_young / densidade"
+                      />
+                    </Field>
+                    <Field label={t.goal}>
+                      <Select
+                        value={indexGoal}
+                        onChange={(e) => setIndexGoal(e.target.value as Goal)}
+                      >
+                        <option value="maximize">{t.maximize}</option>
+                        <option value="minimize">{t.minimize}</option>
+                      </Select>
+                    </Field>
+                  </div>
+                }
+              />
+
+              {/* The slope shown here is the one the backend computed for these
+                  two axes — the card never derives it (ADR 0004). */}
+              {indexDescriptor && (
+                <IndexCard
+                  index={indexDescriptor}
+                  dimension={overlay?.dimension}
+                  indexLine={
+                    overlay
+                      ? {
+                          available: overlay.available,
+                          orientation: overlay.orientation,
+                          slope: overlay.slope,
+                          unavailableReason: overlay.unavailable_reason,
+                        }
+                      : null
+                  }
+                />
+              )}
+
+              {activeIndex && (
+                <div className="flex flex-col gap-2">
+                  <div className="flex flex-wrap items-end gap-3">
+                    <Field label={t.levelThrough} hint={t.levelsHint} className="min-w-[14rem]">
+                      <Select
+                        value=""
+                        onChange={(e) => {
+                          const id = Number(e.target.value);
+                          if (Number.isInteger(id) && !levelMaterialIds.includes(id)) {
+                            setLevelMaterialIds([...levelMaterialIds, id]);
+                          }
+                        }}
+                      >
+                        <option value="">{t.levelNone}</option>
+                        {(map.data?.points ?? [])
+                          .filter(
+                            (p) =>
+                              p.index_value !== null && !levelMaterialIds.includes(p.material_id),
+                          )
+                          .map((p) => (
+                            <option key={p.material_id} value={p.material_id}>
+                              {p.material_name}
+                            </option>
+                          ))}
+                      </Select>
+                    </Field>
+
+                    <Field label={t.levelValue} className="w-40">
+                      {/* Text with a decimal keypad, not `type="number"`: a
+                          pt-BR reader types "2,7" and a number input drops what
+                          it cannot parse, without saying so. */}
+                      <Input
+                        value={levelDraft}
+                        inputMode="decimal"
+                        onChange={(e) => setLevelDraft(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            addNumericLevel();
+                          }
+                        }}
+                      />
+                    </Field>
+                    <Button
+                      size="sm"
+                      onClick={addNumericLevel}
+                      disabled={!Number.isFinite(Number(levelDraft.replace(",", ".")))}
+                    >
+                      {t.levelAdd}
+                    </Button>
+                  </div>
+
+                  {overlay && overlay.levels.length > 0 && (
+                    <ul className="flex flex-col gap-1">
+                      {overlay.levels.map((level) => (
+                        <li
+                          key={`${level.value}-${level.material_id ?? "n"}`}
+                          className="flex flex-wrap items-center gap-2 text-xs text-ink-muted"
+                        >
+                          <span>
+                            M = {formatNumber(level.value)}
+                            {level.material_name ? ` (${level.material_name})` : ""} —{" "}
+                            {t.superior(level.superior_material_ids.length)}
+                          </span>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => removeLevel(level.material_id, level.value)}
+                            aria-label={`${ptBR.actions.remove}: M = ${formatNumber(level.value)}`}
+                          >
+                            {ptBR.actions.remove}
+                          </Button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
+            </CardBody>
+          </Card>
+        </div>
+      </Section>
+
+      {sameAxis && <Alert tone="warning" role="alert">{t.sameAxis}</Alert>}
+      {map.isLoading && !sameAxis && <LoadingState label={t.loading} />}
       {map.isError && (
-        <p role="alert" className="rounded-md bg-red-50 px-4 py-2 text-sm text-red-700">
-          {map.error instanceof Error ? map.error.message : t.error}
-        </p>
+        <ErrorState
+          title={t.error}
+          description={map.error instanceof Error ? map.error.message : undefined}
+          onRetry={() => void map.refetch()}
+        />
       )}
 
       {map.data && (
@@ -402,34 +408,47 @@ function MapsPageContent() {
           />
 
           {map.data.notes.length > 0 && (
-            <ul className="space-y-1 rounded-md bg-slate-50 px-4 py-3 text-xs text-slate-600">
-              {map.data.notes.map((note, i) => (
-                <li key={i}>• {note}</li>
-              ))}
-            </ul>
+            <Section id="observacoes" title={t.notesTitle} headingLevel={2}>
+              <Card>
+                <CardBody>
+                  <ul className="flex flex-col gap-1 text-xs text-ink-muted">
+                    {map.data.notes.map((note, i) => (
+                      <li key={i}>• {note}</li>
+                    ))}
+                  </ul>
+                </CardBody>
+              </Card>
+            </Section>
           )}
 
+          {/* Information, not failure: a material outside the map is a fact
+              about the catalogue, and the reader needs the reason to fix it. */}
           {map.data.excluded.length > 0 && (
-            <section className="rounded-lg border border-amber-200 bg-amber-50 p-4">
-              <h2 className="text-sm font-semibold text-amber-800">{t.excludedTitle}</h2>
-              <p className="mb-2 text-xs text-amber-700">{t.excludedHint}</p>
-              <ul className="space-y-1 text-sm text-amber-800">
-                {map.data.excluded.map((e) => (
-                  <li key={e.material_id}>
-                    {e.name} — {e.reason}
-                  </li>
-                ))}
-              </ul>
-            </section>
+            <Section id="excluidos" title={t.excludedTitle} description={t.excludedHint}>
+              <Card>
+                <CardBody>
+                  <ul className="flex flex-col gap-1 text-sm text-ink">
+                    {map.data.excluded.map((e) => (
+                      <li key={e.material_id}>
+                        <span className="font-medium">{e.name}</span>{" "}
+                        <span className="text-ink-muted">— {e.reason}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </CardBody>
+              </Card>
+            </Section>
           )}
 
           {map.data.points.length > 0 && (
-            <Link
-              href={`/comparar?materiais=${map.data.points.map((p) => p.material_id).join(",")}`}
-              className="inline-block rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-brand-700 hover:bg-slate-50"
-            >
-              {t.compareSelected} →
-            </Link>
+            <div>
+              <ButtonLink
+                href={`/comparar?materiais=${map.data.points.map((p) => p.material_id).join(",")}`}
+                size="sm"
+              >
+                {t.compareSelected} →
+              </ButtonLink>
+            </div>
           )}
         </>
       )}
@@ -440,7 +459,7 @@ function MapsPageContent() {
 export default function MapsPage() {
   // useSearchParams needs a Suspense boundary during prerendering.
   return (
-    <Suspense fallback={<p className="py-8 text-center text-sm text-slate-500">{t.loading}</p>}>
+    <Suspense fallback={<LoadingState label={t.loading} />}>
       <MapsPageContent />
     </Suspense>
   );

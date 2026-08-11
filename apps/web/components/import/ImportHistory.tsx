@@ -3,19 +3,42 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { listImports, rollbackImport } from "@/lib/api";
 import { ptBR } from "@/lib/i18n";
+import {
+  Badge,
+  Button,
+  RowHeader,
+  TBody,
+  THead,
+  Table,
+  TableCaption,
+  TableScroll,
+  Td,
+  Th,
+  Tr,
+  type BadgeTone,
+} from "@/components/ui";
 
-const STATUS_STYLES: Record<string, string> = {
-  PENDENTE: "bg-slate-100 text-slate-600",
-  VALIDADO: "bg-blue-100 text-blue-800",
-  IMPORTADO: "bg-green-100 text-green-800",
-  CANCELADO: "bg-slate-100 text-slate-500",
-  REVERTIDO: "bg-amber-100 text-amber-800",
+/**
+ * Status tones, by what the state means for the catalogue rather than by
+ * temperature: only `IMPORTADO` changed the data, and only `REVERTIDO` says
+ * something was undone. The written label is what carries the state — the tone
+ * only sorts the list at a glance.
+ */
+const STATUS_TONES: Record<string, BadgeTone> = {
+  PENDENTE: "neutral",
+  VALIDADO: "info",
+  IMPORTADO: "success",
+  CANCELADO: "neutral",
+  REVERTIDO: "warning",
 };
 
 /** Past import jobs with status and a rollback action for committed ones. */
 export function ImportHistory() {
   const qc = useQueryClient();
-  const { data, isLoading } = useQuery({ queryKey: ["imports"], queryFn: listImports });
+  const { data, isLoading } = useQuery({
+    queryKey: ["imports"],
+    queryFn: listImports,
+  });
 
   const rollback = useMutation({
     mutationFn: (jobId: number) => rollbackImport(jobId),
@@ -28,65 +51,69 @@ export function ImportHistory() {
 
   if (isLoading) return null;
   if (!data || data.length === 0) {
-    return <p className="text-sm text-slate-500">{ptBR.importer.historyEmpty}</p>;
+    return <p className="text-sm text-ink-muted">{ptBR.importer.historyEmpty}</p>;
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-      <table className="min-w-full divide-y divide-slate-200 text-sm">
-        <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
-          <tr>
-            <th scope="col" className="px-3 py-2">{ptBR.importer.columnFile}</th>
-            <th scope="col" className="px-3 py-2">{ptBR.importer.columnDate}</th>
-            <th scope="col" className="px-3 py-2">{ptBR.importer.columnStatus}</th>
-            <th scope="col" className="px-3 py-2">{ptBR.importer.columnCounts}</th>
-            <th scope="col" className="px-3 py-2">{ptBR.importer.columnImported}</th>
-            <th scope="col" className="px-3 py-2" />
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-100">
+    <TableScroll label={ptBR.importer.historyTitle}>
+      <Table>
+        <TableCaption>{ptBR.importer.historyTitle}</TableCaption>
+        <THead>
+          <Tr>
+            <Th>{ptBR.importer.columnFile}</Th>
+            <Th>{ptBR.importer.columnDate}</Th>
+            <Th>{ptBR.importer.columnStatus}</Th>
+            <Th numeric>{ptBR.importer.columnCounts}</Th>
+            <Th numeric>{ptBR.importer.columnImported}</Th>
+            <Th>
+              <span className="sr-only">{ptBR.actions.columnActions}</span>
+            </Th>
+          </Tr>
+        </THead>
+        <TBody>
           {data.map((job) => (
-            <tr key={job.id}>
-              <td className="px-3 py-2 font-medium text-slate-700">
+            <Tr key={job.id}>
+              <RowHeader>
                 {job.filename}
                 {job.sheet_name ? (
-                  <span className="ml-1 text-xs text-slate-400">({job.sheet_name})</span>
+                  <span className="ml-1 text-2xs text-ink-subtle">({job.sheet_name})</span>
                 ) : null}
-              </td>
-              <td className="px-3 py-2 text-slate-500">
+              </RowHeader>
+              <Td className="whitespace-nowrap text-ink-muted">
                 {new Date(job.created_at).toLocaleString("pt-BR")}
-              </td>
-              <td className="px-3 py-2">
-                <span
-                  className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[job.status]}`}
-                >
+              </Td>
+              <Td>
+                <Badge tone={STATUS_TONES[job.status] ?? "neutral"}>
                   {ptBR.importer.status[job.status]}
-                </span>
-              </td>
-              <td className="px-3 py-2 text-slate-600">
+                </Badge>
+              </Td>
+              <Td numeric className="text-ink-muted">
                 {job.valid_count} / {job.error_count} / {job.duplicate_count}
-              </td>
-              <td className="px-3 py-2 text-slate-600">{job.imported_count}</td>
-              <td className="px-3 py-2 text-right">
+              </Td>
+              <Td numeric className="text-ink-muted">
+                {job.imported_count}
+              </Td>
+              <Td className="text-right">
                 {job.status === "IMPORTADO" && (
-                  <button
-                    type="button"
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    loading={rollback.isPending}
                     onClick={() => {
                       if (window.confirm(ptBR.importer.rollbackConfirm)) {
                         rollback.mutate(job.id);
                       }
                     }}
-                    disabled={rollback.isPending}
-                    className="rounded border border-amber-300 px-2 py-1 text-xs text-amber-700 hover:bg-amber-50 disabled:opacity-50"
+                    aria-label={`${ptBR.importer.rollback}: ${job.filename}`}
                   >
                     {ptBR.importer.rollback}
-                  </button>
+                  </Button>
                 )}
-              </td>
-            </tr>
+              </Td>
+            </Tr>
           ))}
-        </tbody>
-      </table>
-    </div>
+        </TBody>
+      </Table>
+    </TableScroll>
   );
 }

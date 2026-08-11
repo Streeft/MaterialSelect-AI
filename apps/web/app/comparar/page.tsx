@@ -12,6 +12,22 @@ import {
   ComparisonView,
   type ComparisonMode,
 } from "@/components/charts/ComparisonView";
+import {
+  Badge,
+  Button,
+  Card,
+  CardBody,
+  CardHeader,
+  EmptyState,
+  ErrorState,
+  Field,
+  Input,
+  LoadingState,
+  Section,
+  Select,
+  Tabs,
+  ToggleChip,
+} from "@/components/ui";
 
 const t = ptBR.compare;
 
@@ -99,141 +115,160 @@ function ComparePageContent() {
     );
   }
 
-  const chipClass = (active: boolean) =>
-    "rounded-full px-3 py-1 text-xs " +
-    (active ? "bg-brand-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200");
+  const materialsFull = selectedMaterials.length >= MAX_MATERIALS;
+  const propertiesFull = selectedProperties.length >= MAX_PROPERTIES;
 
   return (
-    <div className="space-y-5">
+    <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-xl font-semibold text-slate-900">{t.title}</h1>
-        <p className="text-sm text-slate-500">{t.subtitle}</p>
+        <h1 className="text-xl font-semibold text-ink">{t.title}</h1>
+        <p className="max-w-prose text-sm text-ink-muted">{t.subtitle}</p>
       </div>
 
-      {/* Material picker */}
-      <section className="rounded-lg border border-slate-200 bg-white p-4">
-        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-sm font-semibold text-slate-800">
-            {t.materials}{" "}
-            <span className="font-normal text-slate-400">
-              ({selectedMaterials.length}/{MAX_MATERIALS})
-            </span>
-          </h2>
-          <div className="flex items-center gap-2">
-            <input
-              type="search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder={t.search}
-              aria-label={t.search}
-              className="rounded border border-slate-300 px-2 py-1 text-sm focus:border-brand-500 focus:outline-none"
+      <Section id="controles" title={t.controls} headingLevel={2}>
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Card>
+            <CardHeader
+              title={t.groupMaterials}
+              description={t.pickMaterials}
+              actions={
+                <Badge tone={materialsFull ? "warning" : "neutral"}>
+                  {t.selectedCount(selectedMaterials.length, MAX_MATERIALS)}
+                </Badge>
+              }
             />
-            <button
-              type="button"
-              onClick={() => setSelectedMaterials([])}
-              className="rounded border border-slate-300 px-2 py-1 text-xs text-slate-600 hover:bg-slate-50"
-            >
-              {t.clear}
-            </button>
-          </div>
+            <CardBody className="flex flex-col gap-3">
+              <div className="flex flex-wrap items-end gap-2">
+                <Field label={t.search} className="min-w-[12rem] flex-1">
+                  <Input
+                    type="search"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder={t.search}
+                  />
+                </Field>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setSelectedMaterials([])}
+                  disabled={selectedMaterials.length === 0}
+                >
+                  {t.clear}
+                </Button>
+              </div>
+
+              {materials.isLoading && <LoadingState label={ptBR.catalog.loading} />}
+              {/* The cap is stated before it bites: a chip that simply stops
+                  responding reads as a broken button. */}
+              {materialsFull && <p className="text-2xs text-ink-subtle">{t.limitReached}</p>}
+              {!materials.isLoading && visibleMaterials.length === 0 && (
+                <p className="text-sm text-ink-muted">{t.noMaterialsFound}</p>
+              )}
+              <div className="flex flex-wrap gap-2">
+                {visibleMaterials.map((m) => {
+                  const chosen = selectedMaterials.includes(m.id);
+                  return (
+                    <ToggleChip
+                      key={m.id}
+                      selected={chosen}
+                      disabled={!chosen && materialsFull}
+                      onClick={() => toggleMaterial(m.id)}
+                    >
+                      {m.name}
+                    </ToggleChip>
+                  );
+                })}
+              </div>
+            </CardBody>
+          </Card>
+
+          <Card>
+            <CardHeader
+              title={t.groupProperties}
+              description={t.pickProperties}
+              actions={
+                <Badge tone={propertiesFull ? "warning" : "neutral"}>
+                  {t.selectedCount(selectedProperties.length, MAX_PROPERTIES)}
+                </Badge>
+              }
+            />
+            <CardBody className="flex flex-col gap-3">
+              {propertiesFull && <p className="text-2xs text-ink-subtle">{t.limitReached}</p>}
+              <div className="flex flex-wrap gap-2">
+                {(properties.data ?? []).map((p) => {
+                  const chosen = selectedProperties.includes(p.slug);
+                  return (
+                    <ToggleChip
+                      key={p.slug}
+                      selected={chosen}
+                      disabled={!chosen && propertiesFull}
+                      onClick={() => toggleProperty(p.slug)}
+                      title={`${ptBR.direction[p.better_direction]} · ${prettyUnit(p.canonical_unit)}`}
+                    >
+                      {p.name}
+                    </ToggleChip>
+                  );
+                })}
+              </div>
+            </CardBody>
+          </Card>
         </div>
-        <p className="mb-2 text-xs text-slate-500">{t.pickMaterials}</p>
-        {materials.isLoading && <p className="text-sm text-slate-500">{ptBR.catalog.loading}</p>}
-        <div className="flex flex-wrap gap-2">
-          {visibleMaterials.map((m) => (
-            <button
-              key={m.id}
-              type="button"
-              aria-pressed={selectedMaterials.includes(m.id)}
-              onClick={() => toggleMaterial(m.id)}
-              className={chipClass(selectedMaterials.includes(m.id))}
+      </Section>
+
+      <Section
+        id="visualizacao"
+        title={t.groupView}
+        actions={
+          <Field label={t.normalization}>
+            <Select
+              value={normalization}
+              onChange={(e) => setNormalization(e.target.value as NormalizationMethod)}
             >
-              {m.name}
-            </button>
-          ))}
-        </div>
-      </section>
+              <option value="minmax">{t.normMinmax}</option>
+              <option value="vector">{t.normVector}</option>
+            </Select>
+          </Field>
+        }
+      >
+        {/* Real tabs, not a row of buttons: arrows move between the five views
+            and only the selected one is in the tab order. Everything the chosen
+            view renders is the panel — including the wait and the failure, which
+            are also states of that view and not of the page. */}
+        <Tabs
+          label={ptBR.ui.views}
+          items={COMPARISON_MODES.map((m) => ({ id: m.key, label: m.label }))}
+          value={mode}
+          onChange={setMode}
+          panelClassName="flex flex-col gap-3 pt-3"
+        >
+          {!ready && <EmptyState title={t.empty} />}
+          {comparison.isLoading && ready && <LoadingState label={t.loading} />}
+          {comparison.isError && (
+            <ErrorState
+              title={t.error}
+              description={
+                comparison.error instanceof Error ? comparison.error.message : undefined
+              }
+              onRetry={() => void comparison.refetch()}
+            />
+          )}
 
-      {/* Property picker */}
-      <section className="rounded-lg border border-slate-200 bg-white p-4">
-        <h2 className="mb-2 text-sm font-semibold text-slate-800">
-          {t.properties}{" "}
-          <span className="font-normal text-slate-400">
-            ({selectedProperties.length}/{MAX_PROPERTIES})
-          </span>
-        </h2>
-        <p className="mb-2 text-xs text-slate-500">{t.pickProperties}</p>
-        <div className="flex flex-wrap gap-2">
-          {(properties.data ?? []).map((p) => (
-            <button
-              key={p.slug}
-              type="button"
-              aria-pressed={selectedProperties.includes(p.slug)}
-              onClick={() => toggleProperty(p.slug)}
-              className={chipClass(selectedProperties.includes(p.slug))}
-              title={`${ptBR.direction[p.better_direction]} · ${prettyUnit(p.canonical_unit)}`}
-            >
-              {p.name}
-            </button>
-          ))}
-        </div>
-      </section>
+          {comparison.data && <ComparisonView comparison={comparison.data} mode={mode} />}
+        </Tabs>
+      </Section>
 
-      {/* View switcher */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <nav aria-label="Visualizações" className="flex flex-wrap gap-2">
-          {COMPARISON_MODES.map((option) => (
-            <button
-              key={option.key}
-              type="button"
-              aria-pressed={mode === option.key}
-              onClick={() => setMode(option.key)}
-              className={chipClass(mode === option.key)}
-            >
-              {option.label}
-            </button>
-          ))}
-        </nav>
-        <label className="flex items-center gap-1 text-sm text-slate-600">
-          {t.normalization}
-          <select
-            className="rounded border border-slate-300 bg-white px-2 py-1 text-sm focus:border-brand-500 focus:outline-none"
-            value={normalization}
-            onChange={(e) => setNormalization(e.target.value as NormalizationMethod)}
-          >
-            <option value="minmax">{t.normMinmax}</option>
-            <option value="vector">{t.normVector}</option>
-          </select>
-        </label>
-      </div>
-
-      {!ready && <p className="py-8 text-center text-sm text-slate-500">{t.empty}</p>}
-      {comparison.isLoading && ready && (
-        <p className="py-8 text-center text-sm text-slate-500">{t.loading}</p>
-      )}
-      {comparison.isError && (
-        <p role="alert" className="rounded-md bg-red-50 px-4 py-2 text-sm text-red-700">
-          {comparison.error instanceof Error ? comparison.error.message : t.error}
-        </p>
-      )}
-
-      {comparison.data && (
-        <>
-          <ComparisonView comparison={comparison.data} mode={mode} />
-
-          {comparison.data.notes.length > 0 && (
-            <section className="rounded-md bg-slate-50 px-4 py-3">
-              <h2 className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                {t.notesTitle}
-              </h2>
-              <ul className="space-y-1 text-xs text-slate-600">
+      {comparison.data && comparison.data.notes.length > 0 && (
+        <Section id="observacoes" title={t.notesTitle} headingLevel={2}>
+          <Card>
+            <CardBody>
+              <ul className="flex flex-col gap-1 text-xs text-ink-muted">
                 {Array.from(new Set(comparison.data.notes)).map((note, i) => (
                   <li key={i}>• {note}</li>
                 ))}
               </ul>
-            </section>
-          )}
-        </>
+            </CardBody>
+          </Card>
+        </Section>
       )}
     </div>
   );
@@ -241,7 +276,7 @@ function ComparePageContent() {
 
 export default function ComparePage() {
   return (
-    <Suspense fallback={<p className="py-8 text-center text-sm text-slate-500">{t.loading}</p>}>
+    <Suspense fallback={<LoadingState label={t.loading} />}>
       <ComparePageContent />
     </Suspense>
   );
