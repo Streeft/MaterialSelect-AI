@@ -964,3 +964,73 @@ seria uma mentira de nomenclatura num repositório que trata nome como contrato.
 lado de cada sugestão passa a nomear **o host** para onde o enunciado está indo
 — nunca o caminho, que pode carregar um token. Quem decide o que digitar é quem
 precisa saber para onde aquilo vai.
+
+---
+
+## D-37 — A navegação vira barra lateral, e a barra pode recolher
+
+**Data:** 11/08/2026 · **Status:** aceita · **Fase:** 9 · **Revisa:** D-33
+
+**Contexto.** O cabeçalho da Fase 8 já era a segunda tentativa: os oito links
+tinham virado três grupos porque a fileira plana não dizia quais telas andam
+juntas e estourava a página a 375 px. Agrupar resolveu o estouro e não resolveu
+o resto — a fileira agrupada só cabia a partir de 1280 px (medido: 1079 px de
+conteúdo dentro de `max-w-6xl`), abaixo disso virava gaveta, e o agrupamento
+desaparecia exatamente na largura em que ele mais ajudaria.
+
+**Decisão.** Trocar o cabeçalho por uma barra lateral persistente a partir de
+`lg`, com gaveta modal abaixo disso, e dar a ela um controle de recolher
+(256 px ↔ 76 px).
+
+Três consequências que valem mais que a estética:
+
+1. **O agrupamento fica visível enquanto se trabalha.** É a única disposição em
+   que "Estudar / Dados / Administrar" está na tela ao mesmo tempo que a tela.
+2. **A largura passa a ser do usuário.** Num aplicativo cujo conteúdo central é
+   um mapa de propriedades, o menu tem de saber sair da frente.
+3. **A ordem do DOM e a ordem de leitura concordam nos dois eixos.** A barra é o
+   primeiro filho tanto na coluna (abaixo de `lg`) quanto na linha (acima).
+
+**Cada destino ganhou um ícone**, o que o cabeçalho não precisava. Recolhida, a
+barra não tem espaço para palavra nenhuma: o glifo *é* o rótulo. Por isso cada um
+desenha o que a tela faz — funil para o funil de seleção, pontos plotados para o
+mapa — e não um documento genérico, que deixaria os oito indistinguíveis a 18 px.
+
+**O rótulo nunca sai da árvore.** Ao recolher, o texto vira `sr-only`. Um link
+cujo texto é removido é um link sem nome acessível, e a barra recolhida viraria
+oito glifos anônimos para quem lê em voz alta. `title` entra junto, para quem
+enxerga e não adivinha o desenho.
+
+**O estado recolhido não é persistido.** Ele sobrevive a toda navegação no
+cliente — o componente vive no layout raiz e nunca desmonta — e volta a aberto
+num recarregamento. As duas formas de guardá-lo são piores: ler o `localStorage`
+durante o render discorda da marcação do servidor e faz o React reclamar na
+hidratação; aplicá-lo num efeito fecha a barra *depois* da primeira pintura, que
+é um salto de layout na cara do leitor. Se um dia valer a pena, o caminho certo é
+um cookie lido no servidor, não um `useEffect`.
+
+**Sobre o movimento — e por que D-33 não é revogada.** O pedido foi por algo
+"menos duro e mais maleável". A pílula cresce a partir da borda esquerda sob o
+ponteiro e cede sob o clique; a marca é um squircle que arredonda mais no hover;
+o item da página atual ganha um halo. São três propriedades de CSS
+(`transform`, `border-radius`, `box-shadow`) com a duração que já existia no
+tema. **Nenhuma biblioteca de animação** — a proibição do §13 do REDESIGN.md
+vale igual quando a animação vem bonita. O halo é o único `box-shadow` do sistema
+que não é preto: ele lê `--brand-300`/`--brand-400`, e portanto tinge em vez de
+escurecer, que é a única forma de ele existir nos dois temas. Continua sendo
+token, continua sendo `tailwind.config.ts`, e D-28 segue de pé.
+
+**O que esta decisão *não* faz.** Não recolore o produto. O pedido de "mais
+colorido e mais redondo, como um aplicativo do Google" é maior que a navegação e
+vai numa mudança própria, com os tokens declarados de uma vez para tabela,
+cartão, gráfico e formulário. Contrabandear três matizes decorativos para dentro
+de uma refatoração de navegação daria, num sistema onde cor significa alguma
+coisa (qualidade do dado, estado semântico), um ponto colorido ao lado de
+"Seleção" que não significa nada.
+
+**Como se sabe que passa.** 12 testes no lugar dos 5 do cabeçalho, com axe limpo
+em três estados (aberta, recolhida, gaveta aberta) — os dois últimos não
+existiam. Além deles, verificação no navegador a 1440 px e a 375 px: 256/76 px de
+largura com a coluna de conteúdo acompanhando, nenhum estouro horizontal, e a
+gaveta abrindo com foco no painel, travando a rolagem do corpo e devolvendo o
+foco no Esc.
