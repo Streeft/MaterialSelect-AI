@@ -42,6 +42,13 @@
   --edge: 231 229 228;
   --edge-subtle: 245 245 244;
   --edge-strong: 214 211 209;
+  /* The outline of a text field, and the one edge in the system that is not a
+   * matter of taste. An input's background is the same raised surface as the
+   * card behind it, so this border is the *only* thing that says a control is
+   * there — which puts it under WCAG 1.4.11 (non-text contrast) at 3:1, not
+   * under the hairline budget the other edges live on. Measured on the raised
+   * panel, the lighter of the two surfaces a control sits on. */
+  --edge-control: 122 118 114;
 
   --ink: 12 15 17;
   --ink-muted: 68 64 60;
@@ -116,6 +123,10 @@
   --edge: 25 28 30;
   --edge-subtle: 15 18 20;
   --edge-strong: 55 57 59;
+  /* Not `--edge-strong`: on the near-black panel even that reaches only 1.66:1,
+   * which is a hairline the eye reads as decoration rather than as the edge of
+   * something you can type into. */
+  --edge-control: 106 112 110;
 
   --ink: 240 244 242;
   --ink-muted: 175 181 178;

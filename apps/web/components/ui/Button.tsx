@@ -25,7 +25,7 @@ const BASE =
 const VARIANTS: Record<ButtonVariant, string> = {
   primary: "bg-brand text-brand-fg shadow-card hover:bg-brand-700 active:bg-brand-800",
   secondary:
-    "border border-edge bg-surface-raised text-ink shadow-card hover:border-edge-strong hover:bg-surface-sunken",
+    "border border-edge-control bg-surface-raised text-ink shadow-card hover:border-ink-subtle hover:bg-surface-sunken",
   ghost: "text-ink-muted hover:bg-surface-sunken hover:text-ink",
   // `ink-inverted`, not `white`: the dark theme's `--danger` is a *light* red,
   // so white-on-danger measured 2.8:1 there — under AA on the one button whose
@@ -188,7 +188,7 @@ export function ToggleChip({
         "disabled:cursor-not-allowed disabled:opacity-50",
         selected
           ? "border-brand bg-brand text-brand-fg"
-          : "border-edge bg-surface-raised text-ink-muted hover:border-edge-strong hover:text-ink",
+          : "border-edge-control bg-surface-raised text-ink-muted hover:border-ink-subtle hover:text-ink",
         className,
       )}
     >

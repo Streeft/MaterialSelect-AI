@@ -7,12 +7,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import type { MaterialClass, MaterialDetail, PropertyDefinition } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
-import {
-  ApiError,
-  createMaterial,
-  replaceMaterialValues,
-  updateMaterial,
-} from "@/lib/api";
+import { ApiError, createMaterial, replaceMaterialValues, updateMaterial } from "@/lib/api";
 import {
   emptyValueRow,
   formSchema,
@@ -21,6 +16,17 @@ import {
   toApiValues,
   type FormValues,
 } from "@/lib/materialForm";
+import {
+  Alert,
+  Button,
+  Card,
+  CardBody,
+  CardHeader,
+  Field,
+  Input,
+  Select,
+  Textarea,
+} from "@/components/ui";
 
 interface MaterialFormProps {
   classes: MaterialClass[];
@@ -106,226 +112,170 @@ export function MaterialForm({ classes, properties, initial }: MaterialFormProps
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      <section className="grid gap-4 rounded-lg border border-slate-200 bg-white p-5 sm:grid-cols-2">
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium text-slate-700">{ptBR.form.name}</span>
-          <input {...register("name")} className="rounded border border-slate-300 px-3 py-2" />
-          {errors.name && <span className="text-xs text-red-600">{errors.name.message}</span>}
-        </label>
+      <Card>
+        <CardHeader title={ptBR.form.identification} headingLevel={2} />
+        <CardBody className="grid gap-4 sm:grid-cols-2">
+          <Field label={ptBR.form.name} required error={errors.name?.message}>
+            <Input {...register("name")} />
+          </Field>
 
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium text-slate-700">{ptBR.form.class}</span>
-          <select {...register("class_id")} className="rounded border border-slate-300 px-3 py-2">
-            <option value="">{ptBR.form.selectClass}</option>
-            {classes.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-          {errors.class_id && (
-            <span className="text-xs text-red-600">{errors.class_id.message}</span>
-          )}
-        </label>
+          <Field label={ptBR.form.class} required error={errors.class_id?.message}>
+            <Select {...register("class_id")}>
+              <option value="">{ptBR.form.selectClass}</option>
+              {classes.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </Select>
+          </Field>
 
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium text-slate-700">{ptBR.form.subclass}</span>
-          <input {...register("subclass")} className="rounded border border-slate-300 px-3 py-2" />
-        </label>
+          <Field label={ptBR.form.subclass}>
+            <Input {...register("subclass")} />
+          </Field>
 
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium text-slate-700">{ptBR.form.keywords}</span>
-          <input {...register("keywords")} className="rounded border border-slate-300 px-3 py-2" />
-        </label>
+          <Field label={ptBR.form.keywords}>
+            <Input {...register("keywords")} />
+          </Field>
 
-        <label className="flex flex-col gap-1 text-sm sm:col-span-2">
-          <span className="font-medium text-slate-700">{ptBR.form.description}</span>
-          <textarea
-            {...register("description")}
-            rows={2}
-            className="rounded border border-slate-300 px-3 py-2"
-          />
-        </label>
-      </section>
+          <Field label={ptBR.form.description} className="sm:col-span-2">
+            <Textarea {...register("description")} rows={2} />
+          </Field>
+        </CardBody>
+      </Card>
 
-      <section className="rounded-lg border border-slate-200 bg-white p-5">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-slate-700">{ptBR.form.values}</h2>
-          <button
-            type="button"
-            onClick={() => append(emptyValueRow())}
-            className="rounded bg-brand-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-700"
-          >
-            + {ptBR.form.addValue}
-          </button>
-        </div>
+      <Card>
+        <CardHeader
+          title={ptBR.form.values}
+          headingLevel={2}
+          actions={
+            <Button size="sm" variant="primary" onClick={() => append(emptyValueRow())}>
+              {ptBR.form.addValue}
+            </Button>
+          }
+        />
+        <CardBody className="space-y-3">
+          {fields.length === 0 && <p className="text-sm text-ink-muted">{ptBR.form.noValues}</p>}
 
-        {fields.length === 0 && (
-          <p className="text-sm text-slate-500">{ptBR.form.noValues}</p>
-        )}
-
-        <div className="space-y-3">
           {fields.map((field, index) => {
             const kind = watchedValues?.[index]?.kind ?? "scalar";
             const slug = watchedValues?.[index]?.property_slug ?? "";
             const selectedProp = properties.find((p) => p.slug === slug);
             const unitOptions = selectedProp?.accepted_units ?? [];
             const rowErrors = errors.values?.[index];
+            // The row number is part of the remove button's accessible name.
+            // Without it a screen reader hears "Remover" N times with nothing
+            // to tell the buttons apart.
+            const position = `${ptBR.form.property} ${index + 1}`;
 
             return (
-              <div key={field.id} className="rounded border border-slate-200 p-3">
+              <div key={field.id} className="rounded-control border border-edge p-3">
                 <div className="grid gap-2 sm:grid-cols-4">
-                  <label className="flex flex-col gap-1 text-xs sm:col-span-2">
-                    <span className="text-slate-500">{ptBR.form.property}</span>
-                    <select
-                      {...register(`values.${index}.property_slug`)}
-                      className="rounded border border-slate-300 px-2 py-1.5 text-sm"
-                    >
-                      <option value="">—</option>
+                  <Field
+                    label={ptBR.form.property}
+                    className="sm:col-span-2"
+                    error={rowErrors?.property_slug?.message}
+                  >
+                    <Select {...register(`values.${index}.property_slug`)}>
+                      <option value="">{ptBR.form.selectProperty}</option>
                       {properties.map((p) => (
                         <option key={p.slug} value={p.slug}>
                           {p.name}
                         </option>
                       ))}
-                    </select>
-                    {rowErrors?.property_slug && (
-                      <span className="text-red-600">{rowErrors.property_slug.message}</span>
-                    )}
-                  </label>
+                    </Select>
+                  </Field>
 
-                  <label className="flex flex-col gap-1 text-xs">
-                    <span className="text-slate-500">{ptBR.form.kind}</span>
-                    <select
-                      {...register(`values.${index}.kind`)}
-                      className="rounded border border-slate-300 px-2 py-1.5 text-sm"
-                    >
+                  <Field label={ptBR.form.kind}>
+                    <Select {...register(`values.${index}.kind`)}>
                       <option value="scalar">{ptBR.form.kindScalar}</option>
                       <option value="interval">{ptBR.form.kindInterval}</option>
                       <option value="missing">{ptBR.form.kindMissing}</option>
-                    </select>
-                  </label>
+                    </Select>
+                  </Field>
 
-                  <label className="flex flex-col gap-1 text-xs">
-                    <span className="text-slate-500">{ptBR.form.quality}</span>
-                    <select
-                      {...register(`values.${index}.data_quality`)}
-                      className="rounded border border-slate-300 px-2 py-1.5 text-sm"
-                    >
+                  <Field label={ptBR.form.quality}>
+                    <Select {...register(`values.${index}.data_quality`)}>
                       <option value="MEDIDO">{ptBR.quality.MEDIDO}</option>
                       <option value="IMPORTADO">{ptBR.quality.IMPORTADO}</option>
                       <option value="ESTIMADO">{ptBR.quality.ESTIMADO}</option>
-                    </select>
-                  </label>
+                    </Select>
+                  </Field>
                 </div>
 
+                {/* "Ausente" is a state the author declares on purpose, so the
+                    value fields disappear instead of standing there empty and
+                    inviting a plausible guess (D-21). */}
                 {kind !== "missing" && (
                   <div className="mt-2 grid gap-2 sm:grid-cols-4">
                     {kind === "scalar" ? (
-                      <label className="flex flex-col gap-1 text-xs">
-                        <span className="text-slate-500">{ptBR.form.value}</span>
-                        <input
-                          {...register(`values.${index}.value`)}
-                          className="rounded border border-slate-300 px-2 py-1.5 text-sm"
-                        />
-                        {rowErrors?.value && (
-                          <span className="text-red-600">{rowErrors.value.message}</span>
-                        )}
-                      </label>
+                      <Field label={ptBR.form.value} error={rowErrors?.value?.message}>
+                        <Input {...register(`values.${index}.value`)} inputMode="decimal" />
+                      </Field>
                     ) : (
                       <>
-                        <label className="flex flex-col gap-1 text-xs">
-                          <span className="text-slate-500">{ptBR.form.valueMin}</span>
-                          <input
-                            {...register(`values.${index}.value_min`)}
-                            className="rounded border border-slate-300 px-2 py-1.5 text-sm"
-                          />
-                          {rowErrors?.value_min && (
-                            <span className="text-red-600">{rowErrors.value_min.message}</span>
-                          )}
-                        </label>
-                        <label className="flex flex-col gap-1 text-xs">
-                          <span className="text-slate-500">{ptBR.form.valueMax}</span>
-                          <input
-                            {...register(`values.${index}.value_max`)}
-                            className="rounded border border-slate-300 px-2 py-1.5 text-sm"
-                          />
-                          {rowErrors?.value_max && (
-                            <span className="text-red-600">{rowErrors.value_max.message}</span>
-                          )}
-                        </label>
-                        <label className="flex flex-col gap-1 text-xs">
-                          <span className="text-slate-500">{ptBR.form.valueTypical}</span>
-                          <input
+                        <Field label={ptBR.form.valueMin} error={rowErrors?.value_min?.message}>
+                          <Input {...register(`values.${index}.value_min`)} inputMode="decimal" />
+                        </Field>
+                        <Field label={ptBR.form.valueMax} error={rowErrors?.value_max?.message}>
+                          <Input {...register(`values.${index}.value_max`)} inputMode="decimal" />
+                        </Field>
+                        <Field label={ptBR.form.valueTypical}>
+                          <Input
                             {...register(`values.${index}.value_typical`)}
-                            className="rounded border border-slate-300 px-2 py-1.5 text-sm"
+                            inputMode="decimal"
                           />
-                        </label>
+                        </Field>
                       </>
                     )}
 
-                    <label className="flex flex-col gap-1 text-xs">
-                      <span className="text-slate-500">{ptBR.form.unit}</span>
+                    <Field label={ptBR.form.unit} error={rowErrors?.unit?.message}>
                       {unitOptions.length > 0 ? (
-                        <select
-                          {...register(`values.${index}.unit`)}
-                          className="rounded border border-slate-300 px-2 py-1.5 text-sm"
-                        >
-                          <option value="">—</option>
+                        <Select {...register(`values.${index}.unit`)}>
+                          <option value="">{ptBR.form.selectUnit}</option>
                           {unitOptions.map((u) => (
                             <option key={u} value={u}>
                               {u}
                             </option>
                           ))}
-                        </select>
+                        </Select>
                       ) : (
-                        <input
-                          {...register(`values.${index}.unit`)}
-                          placeholder="ex.: GPa"
-                          className="rounded border border-slate-300 px-2 py-1.5 text-sm"
-                        />
+                        <Input {...register(`values.${index}.unit`)} placeholder="ex.: GPa" />
                       )}
-                      {rowErrors?.unit && (
-                        <span className="text-red-600">{rowErrors.unit.message}</span>
-                      )}
-                    </label>
+                    </Field>
                   </div>
                 )}
 
                 <div className="mt-2 flex items-center justify-between">
-                  <span className="text-xs text-slate-400">#{index + 1}</span>
-                  <button
-                    type="button"
+                  <span className="text-2xs text-ink-subtle">{position}</span>
+                  <Button
+                    size="sm"
+                    variant="ghost"
                     onClick={() => remove(index)}
-                    className="text-xs text-red-600 hover:underline"
+                    aria-label={`${ptBR.actions.remove}: ${position}`}
                   >
                     {ptBR.actions.remove}
-                  </button>
+                  </Button>
                 </div>
               </div>
             );
           })}
-        </div>
-      </section>
+        </CardBody>
+      </Card>
 
       {submitError && (
-        <p className="rounded bg-red-50 px-4 py-2 text-sm text-red-700">{submitError}</p>
+        <Alert tone="danger" role="alert">
+          {submitError}
+        </Alert>
       )}
 
       <div className="flex items-center gap-3">
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60"
-        >
+        <Button type="submit" variant="primary" loading={isSubmitting}>
           {isSubmitting ? ptBR.actions.saving : ptBR.actions.save}
-        </button>
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50"
-        >
+        </Button>
+        <Button variant="secondary" onClick={() => router.back()}>
           {ptBR.actions.cancel}
-        </button>
+        </Button>
       </div>
     </form>
   );

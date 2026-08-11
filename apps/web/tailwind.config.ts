@@ -33,6 +33,9 @@ const config: Config = {
           DEFAULT: v("--edge"),
           subtle: v("--edge-subtle"),
           strong: v("--edge-strong"),
+          // Reserved for the outline of something the reader can operate. Using
+          // it on a decorative divider is how the distinction gets lost.
+          control: v("--edge-control"),
         },
         ink: {
           DEFAULT: v("--ink"),
