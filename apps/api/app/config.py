@@ -41,19 +41,37 @@ class Settings(BaseSettings):
     max_import_rows: int = 5000
 
     # --- AI layer (optional) ----------------------------------------------
-    # "" disables the layer entirely. Three providers exist:
-    #   mock       deterministic rules, offline, no key (the default, and the
-    #              only one the reproducibility argument can rest on);
-    #   claude-api Claude through the Anthropic Messages API, with your own key;
-    #   claude-cli Claude through the Claude Code CLI installed on the machine,
-    #              signed in as it already is — no API key needed.
+    # "" disables the layer entirely. Four providers exist:
+    #   mock          deterministic rules, offline, no key (the default, and the
+    #                 only one the reproducibility argument can rest on);
+    #   claude-api    Claude through the Anthropic Messages API, with your own key;
+    #   claude-cli    Claude through the Claude Code CLI installed on the machine,
+    #                 signed in as it already is — no API key needed;
+    #   openai-compat any server speaking OpenAI chat-completions, chosen by
+    #                 AI_BASE_URL — Groq's free plan, a local Ollama (no
+    #                 credential at all), OpenRouter, OpenAI.
     # The product is fully usable with the layer off: nothing numeric depends
     # on it.
     ai_provider: str = "mock"
-    # Only for claude-api, and optional even there: left empty, the SDK reads
-    # ANTHROPIC_API_KEY itself and the key never passes through settings.
+    # For claude-api it is optional (empty means the SDK reads ANTHROPIC_API_KEY
+    # itself, and the key never passes through settings). For openai-compat it
+    # is the bearer token, and empty is a valid configuration: a local server
+    # wants no Authorization header at all.
     ai_api_key: str = ""
     ai_model: str = "claude-opus-5"
+    # Root of an OpenAI-compatible API, ending at /v1. No default on purpose: a
+    # default would pick a vendor on the operator's behalf. Only openai-compat
+    # reads it.
+    ai_base_url: str = ""
+    # How openai-compat constrains the answer's shape:
+    #   schema  response_format=json_schema, strict — the real guarantee, and
+    #           what Groq's gpt-oss models and OpenAI support;
+    #   object  response_format=json_object — valid JSON, shape asked in words;
+    #   prompt  nothing enforced; the schema travels in the system prompt.
+    # Degrading is the operator's decision, never a silent fallback: a provider
+    # that quietly stopped enforcing the contract would look identical to one
+    # that never had it.
+    ai_json_mode: str = "schema"
     # Both real providers are slower than a local rule: the CLI has a process to
     # start before it has a model to ask.
     ai_timeout_seconds: float = 90.0
