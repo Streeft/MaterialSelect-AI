@@ -264,7 +264,9 @@ describe("Tabs", () => {
           { id: "barras", label: "Barras" },
           { id: "radar", label: "Radar" },
         ]}
-      />
+      >
+        Painel de {value}
+      </Tabs>
     );
   }
 
@@ -279,6 +281,20 @@ describe("Tabs", () => {
     expect(first).toHaveAttribute("tabindex", "-1");
     await userEvent.keyboard("{End}");
     expect(screen.getByRole("tab", { name: "Radar" })).toHaveFocus();
+  });
+
+  it("links the selected tab to a panel that exists", async () => {
+    render(<Harness />);
+
+    // The bug this pins: the panel used to be a sibling component with its own
+    // id, so `aria-controls` referred to nothing at all.
+    const panel = screen.getByRole("tabpanel", { name: "Tabela" });
+    const selected = screen.getByRole("tab", { name: "Tabela" });
+    expect(selected).toHaveAttribute("aria-controls", panel.id);
+
+    selected.focus();
+    await userEvent.keyboard("{ArrowRight}");
+    expect(screen.getByRole("tabpanel", { name: "Barras" })).toHaveTextContent("Painel de barras");
   });
 });
 

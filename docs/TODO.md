@@ -63,13 +63,16 @@ os vizinhos — outros documentos citam esses códigos.
 - **Dificuldade:** ▃
 - **Dependências:** faz mais sentido depois de A5 (sem usuários, "quem" fica vazio).
 
-### M3 — Acessibilidade e desempenho
-- **Descrição:** auditoria com axe/Lighthouse; foco em navegação por teclado nos
-  gráficos e contraste.
-- **Impacto:** médio. A proposta compromete "interface acessível" e uso didático
-  amplo.
+### M8 — Desempenho medido (Lighthouse)
+- **Descrição:** a metade de desempenho do antigo M3, que ficou de fora quando a
+  acessibilidade foi entregue. Medir peso de bundle e tempo até interativo nas
+  oito rotas; o Plotly é o suspeito óbvio, e hoje entra por `next/dynamic` sem
+  que ninguém tenha medido o quanto isso custa.
+- **Impacto:** médio. Um estudante em aula, num notebook modesto, é o público
+  descrito na proposta.
 - **Dificuldade:** ▃
-- **Dependências:** nenhuma.
+- **Dependências:** nenhuma. Se virar job de CI, vale o aviso do A4 sobre
+  `scripts/protect-main.ps1`.
 
 ### M4 — Unificar o contrato de tipos
 - **Descrição:** npm workspaces + `transpilePackages` para eliminar o espelho
@@ -164,6 +167,15 @@ Registrados para não voltarem por engano:
   `uq_material_property_value_pair` na migration `bfeee728d230`. A migration
   **falha e não apaga nada** se encontrar duplicatas: dizer quais são e deixar a
   escolha com o usuário é preferível a descartar proveniência em silêncio.
+- ~~**M3** — acessibilidade~~ — teclado, foco visível nos dois temas, link de
+  pular para o conteúdo, rótulos programáticos, contraste AA medido contra a
+  superfície mais escura em que cada token aparece ([D-29](DECISIONS.md)) e
+  **tabela de dados por figura** ([D-31](DECISIONS.md)), que é o que torna um
+  mapa de Ashby legível por leitor de tela. O axe roda sobre as primitivas e
+  sobre as telas principais dentro do `npm run test`
+  (`apps/web/app/routes.a11y.test.tsx`); a lista do que só se verifica à mão
+  está em [11-usabilidade.md](11-usabilidade.md) §6. A metade de **desempenho**
+  do item não foi feita e virou **M8**.
 - ~~README afirmava que a CI bloqueia o merge~~ — passou a ser verdade com A1;
   antes disso o texto foi corrigido para não prometer garantia que não havia.
 - ~~**A1** — checks de CI obrigatórios~~ — ruleset `CI obrigatoria em main`

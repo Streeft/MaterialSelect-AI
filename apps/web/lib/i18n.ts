@@ -458,6 +458,15 @@ export const ptBR = {
     exportSvg: "Exportar SVG",
     exporting: "Exportando…",
     exportError: "Não foi possível exportar a imagem.",
+    // A figura é uma tela de vetores: para quem usa leitor de tela ela é
+    // silêncio. A alternativa textual de verdade é a tabela que a originou,
+    // aberta a partir da própria figura.
+    dataTable: "Tabela de dados da figura",
+    dataTableHint: "Os mesmos números que a figura desenha, em texto.",
+    figureLabel: (title: string) =>
+      `${title}. Figura; a tabela de dados equivalente está logo abaixo.`,
+    columnClass: "Classe",
+    thisMaterial: "Este material",
   },
   map: {
     title: "Mapas de propriedades",

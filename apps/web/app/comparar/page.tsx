@@ -231,27 +231,30 @@ function ComparePageContent() {
         }
       >
         {/* Real tabs, not a row of buttons: arrows move between the five views
-            and only the selected one is in the tab order. */}
+            and only the selected one is in the tab order. Everything the chosen
+            view renders is the panel — including the wait and the failure, which
+            are also states of that view and not of the page. */}
         <Tabs
           label={ptBR.ui.views}
           items={COMPARISON_MODES.map((m) => ({ id: m.key, label: m.label }))}
           value={mode}
           onChange={setMode}
-        />
+          panelClassName="flex flex-col gap-3 pt-3"
+        >
+          {!ready && <EmptyState title={t.empty} />}
+          {comparison.isLoading && ready && <LoadingState label={t.loading} />}
+          {comparison.isError && (
+            <ErrorState
+              title={t.error}
+              description={
+                comparison.error instanceof Error ? comparison.error.message : undefined
+              }
+              onRetry={() => void comparison.refetch()}
+            />
+          )}
 
-        {!ready && <EmptyState title={t.empty} />}
-        {comparison.isLoading && ready && <LoadingState label={t.loading} />}
-        {comparison.isError && (
-          <ErrorState
-            title={t.error}
-            description={
-              comparison.error instanceof Error ? comparison.error.message : undefined
-            }
-            onRetry={() => void comparison.refetch()}
-          />
-        )}
-
-        {comparison.data && <ComparisonView comparison={comparison.data} mode={mode} />}
+          {comparison.data && <ComparisonView comparison={comparison.data} mode={mode} />}
+        </Tabs>
       </Section>
 
       {comparison.data && comparison.data.notes.length > 0 && (
