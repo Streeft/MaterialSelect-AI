@@ -14,6 +14,7 @@ show up in front of a user.
 from __future__ import annotations
 
 import json
+import sys
 
 import pytest
 from fastapi.testclient import TestClient
@@ -564,3 +565,50 @@ class TestAPITransport:
         with pytest.raises(AIUnavailableError) as raised:
             provider._complete("s", "u", {})
         assert "AI_MAX_OUTPUT_TOKENS" in str(raised.value)
+
+
+class TestAPITransportWithoutTheSDK:
+    """``anthropic`` is an optional extra, so absence is a supported state.
+
+    These tests run on a machine where the package *is* installed, which is
+    precisely why they are here: without them the class above passes locally
+    and fails on CI, which installs only the dev extra. ``None`` in
+    ``sys.modules`` is what CPython treats as a missing module.
+    """
+
+    def _absent(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setitem(sys.modules, "anthropic", None)
+
+    def test_an_injected_client_needs_no_sdk_at_all(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        self._absent(monkeypatch)
+        provider = ClaudeAPIProvider(
+            Settings(ai_model="claude-opus-5"),
+            client=_Client(_Response([_Block("text", '{"summary": "ok"}')])),
+        )
+        assert provider._complete("s", "u", {}) == {"summary": "ok"}
+
+    def test_without_a_client_the_error_names_the_extra_to_install(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        self._absent(monkeypatch)
+        provider = ClaudeAPIProvider(Settings())
+        with pytest.raises(AIUnavailableError) as raised:
+            provider._complete("s", "u", {})
+        assert '".[ai]"' in str(raised.value)
+
+    def test_a_failure_from_the_client_is_not_dressed_up_as_an_api_error(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """With no SDK there are no SDK exceptions, so nothing is translated."""
+        self._absent(monkeypatch)
+
+        class _Broken:
+            def create(self, **_kwargs: object) -> object:
+                raise ValueError("chamada malformada")
+
+        class _BrokenClient:
+            messages = _Broken()
+
+        provider = ClaudeAPIProvider(Settings(), client=_BrokenClient())
+        with pytest.raises(ValueError, match="malformada"):
+            provider._complete("s", "u", {})
