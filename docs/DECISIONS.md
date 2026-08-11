@@ -35,6 +35,10 @@ diferente. O que é óbvio não precisa de registro.
 | D-20 | HTML imprimível em vez de biblioteca de PDF | aceito | abaixo |
 | D-21 | Campo opcional não preenchido continua `NULL` | aceito | abaixo |
 | D-22 | Repositório público para o portão de CI ser real | aceito, com consequência | abaixo |
+| D-23 | Sistema de design próprio, sem biblioteca de componentes | aceito | abaixo |
+| D-24 | Qualidade do dado codificada em três canais, nunca só cor | aceito | abaixo |
+| D-25 | Hipóteses do índice antes da escolha, não depois | aceito | abaixo |
+| D-26 | Navegação agrupada por tarefa, sem menus suspensos | aceito | abaixo |
 
 ---
 
@@ -384,3 +388,439 @@ vermelho no PR e **não impede o merge**; um nome exigido que nunca é reportado
 bloqueia todo merge para sempre. Por isso a configuração é código versionado —
 `scripts/protect-main.ps1`, idempotente — e não um clique em *Settings* que
 ninguém revisa.
+
+---
+
+## D-23 — Sistema de design próprio, sem biblioteca de componentes
+
+**Contexto.** A Fase 8 precisava de primitivas de interface: o "botão primário"
+existia em **sete grafias diferentes**, havia 639 `className` inline em 5.014
+linhas de TSX, nenhum componente reutilizável e nenhuma escala de token além de
+cinco tons de `brand`. Alguma camada tinha de aparecer.
+
+**Decisão.** Escrever as primitivas neste repositório
+(`apps/web/components/ui/`), sobre Tailwind, com duas dependências utilitárias
+minúsculas: `clsx` e `tailwind-merge`.
+
+**Alternativas descartadas.**
+- **shadcn/ui:** copia o código para dentro do projeto, o que resolveria a
+  autoria, mas traz Radix inteiro como dependência e um vocabulário de API que
+  não é o do projeto. Seriam ~15 dependências novas para substituir 20 arquivos.
+- **MUI / Chakra:** impõem um sistema de temas concorrente ao dos tokens CSS, e
+  o tema do Plotly teria de ser derivado de um terceiro lugar.
+- **Nenhuma abstração, só disciplina:** é o estado que a fase existe para
+  corrigir. Convenção sem primitiva já falhou sete vezes, uma por botão.
+
+**Consequências aceitas.** Cobertura menor que a de uma biblioteca madura: não
+há combobox, date picker nem menu com submenu — nenhum deles é necessário aqui.
+Os padrões de teclado (foco preso no diálogo, setas nas abas, `Escape` que
+devolve o foco) são responsabilidade nossa, e por isso cada um tem teste.
+
+**Corolário — o painel do popover vive num portal.** Não é preferência de
+implementação: os gatilhos de proveniência ficam dentro de células de tabela, e
+tabela vive dentro de `overflow-x: auto`. Um painel posicionado no fluxo é
+recortado pelo próprio contêiner de rolagem — e, quando o gatilho está inline
+num parágrafo, um `<div>` dentro de `<p>` derruba a hidratação do React.
+
+---
+
+## D-24 — Qualidade do dado codificada em três canais, nunca só cor
+
+**Contexto.** A proposta compromete a ferramenta a **distinguir na interface**
+dados importados, estimados e ausentes (§3.3). O que existia era micro-texto
+cinza indiferenciado — `Qualidade: Estimado` no mesmo peso visual de `Fonte:` e
+`Condição:`, que é o peso do ruído.
+
+**Decisão.** Todo estado de qualidade é exibido com **rótulo escrito + glifo +
+cor**, nessa ordem de confiabilidade, e o rótulo permanece disponível à
+tecnologia assistiva mesmo quando ocultado visualmente. A ausência é um quarto
+estado, com borda tracejada.
+
+A paleta categórica de classes é **Okabe–Ito**, cujos pares permanecem
+distinguíveis sob deuteranopia e protanopia — o que exclui de saída o par
+vermelho/verde. Em impressão monocromática cinco matizes não se separam por
+luminância; ali quem carrega a classe é a **forma do marcador** e o rótulo
+escrito.
+
+**Alternativas descartadas.**
+- **Só cor, com legenda:** a legenda fica longe do dado, e a impressão em preto
+  e branco — o formato em que um relatório de TCC costuma ser lido — apaga a
+  distinção inteira.
+- **Uma rampa monocromática ordinal:** seria segura em escala de cinza e ruim
+  para varredura; e a ordem medido > importado > estimado sugeriria uma
+  precisão de ordenação que os três rótulos não têm.
+
+**Consequência aceita.** O badge ocupa mais espaço horizontal que uma bolinha
+colorida. Numa tabela de comparação de 12 colunas isso pesa, e é o preço de a
+distinção continuar existindo fora da tela.
+
+---
+
+## D-25 — As hipóteses do índice aparecem antes da escolha, não depois
+
+**Contexto.** O §3.1 da proposta compromete a ferramenta a exibir, junto de cada
+índice de desempenho, a **função**, a **geometria**, o **objetivo** e a
+**restrição** sob os quais ele foi derivado. O backend sempre devolveu esses
+campos em `assumptions`, e `docs/04-metodologia-selecao.md` já afirmava que o
+sistema os exibia. A interface os descartava: o seletor era um `<select>` cujas
+`<option>` mostravam nome e expressão, e nada mais. Um `E^(1/2)/ρ` sem "viga em
+flexão, seção livre, comprimento fixo, rigidez à flexão especificada" é
+exatamente a caixa-preta que o trabalho promete não ser.
+
+**Decisão.** Substituir o `<select>` por um grupo de cartões selecionáveis
+(`components/selection/IndexCard.tsx`), em que cada opção mostra as hipóteses
+**antes** de ser escolhida, e um cartão de validade abaixo do grupo mostra o
+conjunto completo depois da escolha — hipóteses, expressão, dimensão do
+resultado, inclinação da reta no mapa e referência bibliográfica.
+
+**Alternativas descartadas.**
+- **Manter o `<select>` e pôr as hipóteses num tooltip:** o tooltip só existe
+  depois do apontamento, não existe no toque e não sobrevive à impressão. E o
+  problema é justamente decidir antes, não conferir depois.
+- **Mostrar as hipóteses só depois da escolha:** resolve a exibição e não
+  resolve a decisão. A pergunta que o índice responde é "este se aplica ao meu
+  problema?", e ela precede a seleção.
+
+**Consequências aceitas.** O passo do objetivo ficou visualmente mais pesado:
+cinco cartões com quatro linhas cada ocupam bem mais que um `<select>` de cinco
+linhas. É o custo de a hipótese estar onde a decisão é tomada.
+
+**Corolário — nada é inventado quando não há hipótese declarada.** Uma expressão
+digitada pelo usuário não tem função nem geometria registradas, e o cartão diz
+isso com todas as letras em vez de preencher com algo plausível. Chaves de
+`assumptions` que a interface não conhece são exibidas mesmo assim, com o nome
+humanizado: escondê-las faria o cartão afirmar que o índice diz menos do que diz.
+
+---
+
+## D-26 — Navegação agrupada por tarefa, e sem menu suspenso
+
+**Contexto.** O cabeçalho tinha oito links numa única linha, na ordem em que as
+rotas foram nascendo, sem nenhuma indicação de qual estava aberta. A 375 px a
+linha estourava a viewport e a página inteira rolava de lado — o único caso de
+rolagem horizontal que restava fora das tabelas.
+
+**Decisão.** Três grupos rotulados, na ordem em que o trabalho acontece:
+**Estudar** (Seleção, Mapas, Comparar), **Dados** (Catálogo, Importar) e
+**Administrar** (Classes, Propriedades). Cada grupo é uma `<ul>` com
+`aria-labelledby`, então o rótulo que se vê é o mesmo que o leitor de tela
+anuncia. A rota atual leva `aria-current="page"`; a cor sozinha não diz onde se
+está. Abaixo de `xl`, os mesmos grupos empilhados numa gaveta modal com foco
+preso, `Esc` para fechar e `aria-expanded` no gatilho.
+
+**Alternativas descartadas.**
+- **Menus suspensos por grupo:** um `menu`/`menubar` correto exige navegação por
+  setas, `Home`/`End`, digitação para busca e fechamento por foco perdido —
+  muito widget para sete links que cabem na tela. E esconde atrás de um clique o
+  que hoje se lê de uma vez.
+- **Manter a fila de oito links e só deixá-la quebrar linha:** resolve o
+  transbordo e não resolve o que estava errado — nada dizia que Mapas e Comparar
+  são a mesma atividade e Classes é outra.
+
+**Consequência aceita.** Os rótulos de grupo custam largura no cabeçalho, e por
+isso a navegação inteira só aparece a partir de `xl`. Até 1280 px — tablet e
+notebook de 1024 — vê-se a gaveta, não a barra; é a troca que mantém o cabeçalho
+numa linha em vez de espremido.
+
+**Correção medida (fase 8, PR 4).** O corte era `lg` e estava errado: a marca
+(222 px), os sete links agrupados (721 px) e o controle de tema (236 px) somam
+mais do que o `max-w-6xl` do cabeçalho oferece, e entre 1024 px e 1280 px a barra
+transbordava — a página inteira voltava a rolar de lado, exatamente o defeito que
+esta decisão existia para eliminar. Três mudanças, todas verificadas com o
+navegador em 1024, 1085, 1280 e 1400 px:
+
+- o corte passou para `xl`, onde a linha de fato cabe;
+- o `ThemeToggle` ganhou `compact`, que deixa os três rótulos apenas para
+  tecnologia assistiva (`title` e nome acessível seguem lá) e devolve 124 px;
+- a linha do cabeçalho ganhou `flex-wrap` — não como layout, mas como rede: se um
+  nono link voltar a estourar, ele quebra linha em vez de empurrar o documento.
+
+A lição fica registrada porque o teste que faltava é o barato: verificar 375 px
+não diz nada sobre 1100 px, e um cabeçalho com largura fixa quebra nos dois
+extremos por motivos diferentes.
+
+**Corolário — o gatilho da gaveta não vira "Fechar".** Enquanto a gaveta está
+aberta, o botão do cabeçalho fica atrás da camada modal e a gaveta tem o próprio
+botão de fechar. Dois controles com o mesmo nome acessível e a mesma função são
+um labirinto para quem navega por nome; o estado vai em `aria-expanded`, que é
+onde ele é esperado.
+
+---
+
+## D-27 — A composição da qualidade do dado é contada no banco, não no navegador
+
+**Contexto.** O catálogo listava nome, classe e palavras-chave. Se os números de
+um material foram medidos, importados, estimados ou simplesmente não existem só
+aparecia na ficha — isto é, um clique depois de a lista já ter sido usada para
+montar uma seleção. O filtro "com lacunas" que a fase 8 pede não tinha como ser
+honesto: `MaterialListItem` não carregava nada sobre os valores.
+
+**Decisão.** `GET /api/materials` passou a devolver `quality`
+(`medido`/`importado`/`estimado`/`missing`) e `class_slug` por material. A soma é
+feita em `MaterialService._summarise_quality`, com `selectinload` dos valores —
+uma consulta a mais para a página inteira, não uma por linha. `missing` é contado
+à parte: um valor ausente carrega `data_quality` como qualquer outro, e somá-lo
+sob essa qualidade afirmaria que algo foi medido quando nada foi.
+
+**Alternativas descartadas.**
+- **Derivar no React a partir do que a lista já manda:** a lista não manda os
+  valores. Derivar exigiria buscar a ficha de cada material — ou inventar.
+- **Um endpoint novo de estatística:** dois pedidos para desenhar uma linha da
+  tabela, e duas respostas que podem discordar entre si.
+- **Contar no cliente depois de baixar tudo:** é cálculo em componente React,
+  proibido pela mesma razão que a geometria dos gráficos (ADR 0004) — vira uma
+  segunda resposta, divergente, para uma pergunta que o banco já responde.
+
+**Consequência aceita.** A resposta da lista cresceu. É o preço de a tela dizer
+o que sustenta cada linha antes de alguém escolher a linha.
+
+**Corolário — ausência nunca é célula vazia.** Um material sem nenhuma
+propriedade cadastrada mostra "Nenhuma propriedade cadastrada", não um espaço em
+branco; um com lacunas mostra quantas. Vazio se lê como "não sei se olhei".
+
+---
+
+## D-28 — Uma paleta só, compartilhada entre interface e gráfico
+
+**Contexto.** `lib/charts.ts` tinha o próprio mapa de cores por classe e a
+própria cor de destaque; `lib/design/palette.ts` tinha outro, nascido com o
+sistema de design. Duas paletas é como um relatório termina parecendo feito com
+duas ferramentas — e a de `charts.ts` era só cor, sem forma nem traço: nada
+sobrava num impresso monocromático.
+
+**Decisão.** `classVisual(slug)` em `lib/design/palette.ts` é a única fonte de
+cor, símbolo de marcador e padrão de traço por classe, e vale para catálogo,
+ficha, mapa, comparador e `/estilo`. `chartTheme(theme)` recebe o tema resolvido
+como argumento em vez de lê-lo: assim a figura é reconstruída quando o tema muda,
+em vez de guardar as cores da primeira pintura — e a dependência fica declarada
+de verdade no `useMemo`.
+
+**Alternativas descartadas.**
+- **Manter as duas e sincronizar na revisão:** é a mesma promessa que já falhou.
+- **Ler os tokens direto do CSS dentro do componente:** funciona no navegador e
+  falha no teste, onde não há documento para medir; e esconde do linter que a
+  cor depende do tema.
+
+**Consequência aceita.** `ClassVisual.symbol` e `.dash` são uniões literais, não
+`string` — o vocabulário do Plotly entra no tipo. Um símbolo novo exige mexer no
+array, que é exatamente onde a decisão de "como esta classe se distingue" mora.
+
+---
+
+## D-29 — Contraste medido contra a superfície mais escura em que o token é usado
+
+**Contexto.** `--ink-subtle` foi aprovado no tema claro contra `--surface`
+(4,6:1). Só que ele é usado sobre `--surface-sunken` — o cabeçalho fixo da
+tabela, o controle desabilitado, a linha em hover — onde o mesmo par mede 4,37:1,
+e sobre `--brand-50`, onde mede 4,46:1. Os dois abaixo de AA. O botão `danger`
+tinha um problema irmão: `text-white` fixo, sobre um `--danger` que no tema
+escuro é um vermelho *claro* — 2,8:1 no único botão cuja função é ser lido antes
+de ser apertado.
+
+**Decisão.** O token claro escureceu de `100 116 139` para `100 112 130`, o
+bastante para passar de 4,5:1 contra a mais escura das três superfícies —
+o que resolve as outras duas de brinde — mantendo degrau visível para
+`--ink-muted`. O botão `danger` passou a `text-ink-inverted`, que inverte junto
+com o tema. A regra que fica: um par ink/superfície se mede contra a superfície
+mais escura em que o token de fato aparece, não contra a superfície padrão.
+
+**Alternativas descartadas.**
+- **Trocar os chamadores para `--ink-muted`:** conserta as telas de hoje e deixa
+  a armadilha montada para a próxima.
+- **Usar `--danger-fg` no botão:** é o texto que vai sobre o fundo tingido
+  (`soft`), não sobre o preenchimento saturado. No tema escuro seria vermelho
+  claro sobre vermelho claro.
+
+**Consequência aceita.** A distância visual entre `--ink-subtle` e `--ink-muted`
+diminuiu. Preferível a um nível da escala que só é legível em metade das
+superfícies do próprio sistema.
+
+---
+
+## D-30 — Todo número na tela usa a convenção do pt-BR
+
+**Contexto.** A tabela do comparador mostrava a densidade como `3.900` e o escore
+normalizado ao lado como `0.00` — o mesmo glifo significando milhar numa coluna e
+decimal na seguinte. Vinha de `toFixed`, que escreve ponto sempre. No cartão do
+índice era pior: uma inclinação de 2 aparecia como `2.000`, que em português se
+lê como dois mil.
+
+**Decisão.** `formatScore(valor, casas)` em `lib/format.ts`, com
+`toLocaleString("pt-BR")` e número de casas fixo, para todo valor adimensional
+exibido — escores, pesos, contribuições, inclinação. `formatNumber` continua
+responsável pelos valores com unidade.
+
+**Alternativas descartadas.**
+- **Deixar `toFixed` e aceitar a mistura:** o público da ferramenta é brasileiro
+  e a interface inteira é em pt-BR; o número é o conteúdo, não a decoração.
+- **Casas variáveis:** numa coluna ordenada, `1` e `0,75` com larguras
+  diferentes se leem como precisões diferentes.
+
+**Consequência aceita.** Um teste que afirmava `"2.000"` passou a afirmar
+`"2,000"`. A expectativa antiga estava documentando o defeito.
+
+---
+
+## D-31 — A alternativa textual de um gráfico é a tabela que o originou
+
+**Contexto.** A Entrega E do redesign exige "alternativa textual real" para as
+figuras. Um mapa de Ashby renderizado pelo Plotly é uma tela de `<path>` e
+rótulos de eixo: para quem usa leitor de tela, ou é silêncio, ou é um fluxo de
+números de escala sem sujeito. Um `alt` mais longo não resolve — a informação
+da figura são os pontos, e uma frase não os contém.
+
+**Decisão.** Toda figura carrega uma tabela de dados aberta a partir dela mesma
+(`components/charts/FigureData.tsx`), dentro de um `<details>`: o mapa, a
+miniatura da ficha e os quatro modos de figura do comparador. O contêiner do
+Plotly recebe `role="img"` com nome acessível, o que faz a tecnologia assistiva
+tratar a figura como um objeto só em vez de percorrer seus milhares de nós.
+
+Os números vêm prontos do cliente — são os mesmos que a figura desenha, sem
+recálculo nem resumo, o que mantém o ADR 0004 de pé. A coluna de uma célula sem
+dado devolve `null`, e é o `FigureData` que decide renderizar `<MissingValue />`:
+a regra de nunca exibir ausência como `0`, `—` ou célula vazia deixa de depender
+de cada chamador lembrar dela.
+
+**Alternativas descartadas.**
+- **`aria-hidden` na figura:** esconde junto os botões da barra de ferramentas
+  do Plotly, e conteúdo focável dentro de subárvore escondida é violação.
+- **Descrição textual gerada:** seria a camada de apresentação afirmando algo
+  sobre os dados — e, na prática, inventando um resumo.
+- **Reaproveitar a aba "Tabela" do comparador:** ela existe só ali, e é uma
+  visão irmã da figura, não uma alternativa alcançável *a partir* dela.
+
+**Consequência aceita.** A tabela repete o título da figura no `<caption>`, o que
+faz o mesmo texto aparecer duas vezes na tela — motivo pelo qual os testes de
+rota procuram o título por `role="heading"` e não por texto.
+
+---
+
+## D-32 — O painel de uma aba é filho do componente de abas
+
+**Contexto.** `Tabs` gerava os ids com `useId()` internamente e exportava um
+`TabPanel` que pedia o mesmo id como propriedade — um valor que nenhum chamador
+tinha como conhecer. O resultado é que `TabPanel` nunca foi usado em lugar
+nenhum, e todo `aria-controls` da aplicação apontava para um elemento
+inexistente. O axe sobre a rota `/comparar` foi o que revelou isso; nenhum teste
+de componente pegaria, porque a aba isolada parece correta.
+
+**Decisão.** O painel virou `children` de `Tabs`, que renderiza os dois lados e
+é dono dos dois ids. `TabPanel` deixou de existir. Só a aba selecionada declara
+`aria-controls`, porque só o painel dela está no documento.
+
+**Alternativas descartadas.**
+- **Exigir um `idBase` do chamador:** transfere para cada tela a chance de errar
+  o que o primitivo já sabe.
+- **Remover o `aria-controls`:** cala o aviso e mantém a aba sem relação
+  declarada com o que ela controla.
+
+**Consequência aceita.** O painel tem `tabIndex={0}` mesmo quando contém
+controles focáveis, acrescentando uma parada de tabulação. É o preço de um
+primitivo que também serve painéis de texto puro — e a parada anuncia ao leitor
+que as setas mudaram o conteúdo abaixo.
+
+---
+
+## D-33 — A repaginação lumimotion troca os tokens, e só os tokens
+
+**Contexto.** O autor trouxe um pacote de design pronto (`lumimotion-ai-ui-prompt`,
+extraído do aura.build): página quase preta `#05080A`, painéis em `#0B0F12`,
+fios de borda feitos de branco a 2–8% de opacidade, um lima elétrico `#C6F91F`
+carregando toda a interação, Inter com entressilhas apertadas nos títulos.
+Junto vinham GSAP, ScrollTrigger, o SDK WebGL do Unicorn Studio e um efeito de
+lanterna que segue o cursor.
+
+**Decisão.** A linguagem visual entrou inteira; o maquinário, não. A mudança
+está confinada a `globals.css`, `tailwind.config.ts`, o espelho em
+`lib/design/palette.ts` e a carga da fonte em `app/layout.tsx`. Nenhuma
+primitiva foi tocada — elas já consumiam token, que é justamente o que torna uma
+repaginação desse tamanho uma edição de quatro arquivos.
+
+O tema escuro é onde essa linguagem é nativa. O claro é a contraparte dela: a
+mesma família de lima, escurecida até poder carregar texto, sobre papel neutro
+quente em vez do ardósia frio de antes.
+
+**O que a rampa `brand` teve de ceder.** O lima de exibição fica em `400` e o
+seu hover em `500`, como no pacote. Abaixo disso a rampa é comprimida de
+propósito: `700` é o tom que os componentes querem dizer com "tinta segura sobre
+o fundo mais fraco", e com um lima isso só acontece por volta de `#54700E`. Uma
+rampa de passos iguais teria colocado um verde-oliva de 3,5:1 nessa posição —
+medido, reprovado, refeito. Pelo mesmo motivo o `--accent` do tema claro é
+`--brand-700`, e não o lima de exibição: o par que lê como a marca numa página
+preta é exatamente o par que falha no papel.
+
+**O que não se mexeu.** Os quatro tokens `--quality-*` continuam onde estavam.
+Eles não são decoração: são a afirmação do produto sobre proveniência (§3.3 da
+proposta). Puxá-los para a família do lima colocaria "estimado" na mesma cor de
+todo botão da página. Só os fundos tingidos desceram, para assentar na
+superfície mais escura.
+
+**Alternativas descartadas.**
+- **Adotar o pacote como veio, só no escuro:** é o modo nativo dele, mas
+  descartaria o alternador de tema e metade da verificação de contraste que a
+  Entrega E acabara de fazer.
+- **Trazer GSAP, ScrollTrigger e o WebGL:** proibido pelo §13 do REDESIGN.md, e
+  a razão continua valendo — só o UMD do Unicorn Studio pesa mais que os 87 kB
+  de JS compartilhado por toda a aplicação, num público que a proposta descreve
+  como estudante num notebook modesto.
+- **Só a tipografia e os raios:** seguro e quase invisível; não é o que foi
+  pedido.
+
+**Consequência aceita.** Inter entra por `next/font` — o §5 do REDESIGN.md já a
+admitia — e isso muda o portão: `next build` passa a precisar de rede, e não
+mais só o `npm ci`. Em troca a fonte é servida por esta origem, sem terceiro em
+runtime e sem salto de layout.
+
+**Como se sabe que passa.** Os pares de token são medidos por script fora da
+árvore, e as telas são medidas no navegador: para cada elemento com texto, a cor
+computada contra o fundo pintado de verdade, nos dois temas. Cerca de 590
+elementos em `/estilo`, `/selecao`, `/materiais/1` e `/comparar` (tabela e
+figura), nenhuma reprovação. O par mais apertado do sistema é `--ink-subtle`
+sobre `--brand-50` no tema escuro, a 4,74:1 — folga maior que a do sistema azul
+que ele substitui, que fechava em 4,58:1.
+
+---
+
+## D-34 — A borda de um controle é informação, não moldura
+
+**Contexto.** A repaginação [D-33](DECISIONS.md) mediu o contraste de **texto**
+em cerca de 590 elementos e passou nos dois temas. Faltava um critério: um campo
+de formulário tem o mesmo fundo do cartão em que está (`--surface-raised`), de
+modo que a **borda é a única coisa que informa que existe um controle ali**. Isso
+não é contraste de texto, é a WCAG 1.4.11 (contraste de não-texto), e o mínimo é
+3:1. Medido no navegador, `--edge` sobre `--surface-raised` dava **1,12:1** no
+tema escuro e 1,15:1 no claro — dezessete campos por tela, todos reprovados. Nem
+`--edge-strong` resolvia: sobre o painel quase preto ele chega a 1,66:1.
+
+**Decisão.** Um token novo, `--edge-control`, separado da família de fios de
+cabelo e definido pelo requisito, não pelo gosto: `122 118 114` no claro (4,5:1
+sobre o painel) e `106 112 110` no escuro (3,81:1). Ele vale para o contorno de
+tudo que se opera — campos, seletores, áreas de texto, caixas de seleção,
+botões `secondary`, chips e as etapas do `Stepper` — e o `hover` passa a
+`--ink-subtle` em vez de `--edge-strong`, que era mais claro que o repouso e
+agora seria mais escuro.
+
+As demais bordas continuam sendo fios de cabelo. A distinção é o ponto: `--edge`
+separa dois painéis, `--edge-control` diz que algo aceita o cursor.
+
+**Alternativas descartadas.**
+- **Clarear `--edge` até 3:1:** resolveria os campos e transformaria toda linha
+  divisória da aplicação num traço grosso. O fio de cabelo é uma escolha de
+  desenho; o contorno do campo é um requisito.
+- **Preencher o campo com `--surface-sunken` e manter a borda fraca:** o
+  contraste passaria a vir do fundo, o que é legítimo — mas no tema escuro o
+  afundado (`2 4 5`) é mais escuro que a página e o campo viraria um buraco.
+- **Tratar a etapa bloqueada do `Stepper` como as outras:** ela é `disabled`, e
+  a 1.4.11 isenta componente inativo. Ficou com `--edge-strong` tracejado, que é
+  legível sem prometer interação.
+
+**Consequência aceita.** Os formulários ficaram visualmente mais marcados do que
+o pacote lumimotion desenha — lá os campos são quase invisíveis até receberem
+foco. É a troca certa para uma ferramenta em que o usuário digita valor,
+unidade e incerteza, e não uma página de apresentação.
+
+**Como se sabe que passa.** O script de tokens ganhou o par com mínimo 3:1, e a
+verificação no navegador passou a medir também a borda computada de cada
+controle habilitado contra o fundo realmente pintado. Sete rotas, dois temas:
+nenhuma reprovação de texto e nenhuma de controle; a borda mais apertada é
+3,81:1 no escuro e 4,31:1 no claro.

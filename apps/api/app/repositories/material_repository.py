@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from sqlalchemy import String, delete, func, or_, select
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.models.material import Material
 from app.models.material_class import MaterialClass
@@ -28,7 +28,13 @@ class MaterialRepository:
         stmt = (
             select(Material)
             .join(MaterialClass, Material.class_id == MaterialClass.id)
-            .options(joinedload(Material.material_class))
+            .options(
+                joinedload(Material.material_class),
+                # One extra query for the whole page, so the catalogue can state
+                # each material's data quality. Reaching the same collection
+                # lazily would be one query per row.
+                selectinload(Material.property_values),
+            )
             .where(Material.is_active.is_(True))
             .order_by(Material.name)
         )

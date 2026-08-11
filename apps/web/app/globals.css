@@ -2,10 +2,243 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
+/*
+ * Design tokens.
+ *
+ * Values live here and nowhere else. Tailwind reads them through
+ * tailwind.config.ts; the chart layer reads them through lib/design/palette.ts.
+ * Anything that hard-codes a hex outside this file is a bug waiting for the
+ * dark theme to expose it.
+ *
+ * The palette is the "lumimotion" language: a near-black page (#05080A), panels
+ * cut one step above it (#0B0F12), hairline edges made of white at low opacity,
+ * and a single electric lime (#C6F91F) carrying every interactive affordance.
+ * The dark theme is where that language is native. The light theme is its
+ * counterpart, not a different design: same lime family, darkened until it can
+ * carry text, over warm-neutral paper instead of cool slate.
+ *
+ * Contrast: every ink/surface pair below was checked against WCAG AA (4.5:1 for
+ * body text) in BOTH themes, measured against the *lightest* surface the token
+ * actually appears on — the raised panel in the dark theme, the sunken strip and
+ * the faintest brand tint in the light one. The tightest pair in the whole set is
+ * `--ink-subtle` on `--brand-50` in the dark theme, at 4.74:1, which is why that
+ * token stays reserved for secondary text at default size and never carries the
+ * only copy of an important fact.
+ *
+ * A lime accent cannot hold white text at any usable lightness, so the light
+ * theme's `--accent` is `--brand-800` and not the display lime: the pairing that
+ * reads as the brand on a black page is the pairing that fails on paper.
+ */
+
+:root,
+[data-theme="light"] {
   color-scheme: light;
+
+  --surface: 250 250 249;
+  --surface-raised: 255 255 255;
+  --surface-sunken: 245 245 244;
+  --surface-inverted: 5 8 10;
+
+  --edge: 231 229 228;
+  --edge-subtle: 245 245 244;
+  --edge-strong: 214 211 209;
+  /* The outline of a text field, and the one edge in the system that is not a
+   * matter of taste. An input's background is the same raised surface as the
+   * card behind it, so this border is the *only* thing that says a control is
+   * there — which puts it under WCAG 1.4.11 (non-text contrast) at 3:1, not
+   * under the hairline budget the other edges live on. Measured on the raised
+   * panel, the lighter of the two surfaces a control sits on. */
+  --edge-control: 122 118 114;
+
+  --ink: 12 15 17;
+  --ink-muted: 68 64 60;
+  /* Not stone-500 (120 113 108): that pair falls to 4.1:1 on the sunken strip. */
+  --ink-subtle: 100 98 94;
+  --ink-inverted: 250 250 249;
+
+  /* Anchored on the pack's display lime at 400 and its hover at 500; below that
+   * the same hue is carried down until it can hold text.
+   *
+   * The dark end is compressed on purpose. `700` is the shade components mean by
+   * "confident ink on the faintest tint", so it has to clear 4.5:1 on `--brand-50`
+   * — with a lime that only happens around #54700E, and an evenly spaced ramp
+   * would have put a 3.5:1 olive there instead. */
+  --brand-50: 246 254 227;
+  --brand-100: 235 253 192;
+  --brand-200: 221 252 143;
+  --brand-300: 210 251 90;
+  --brand-400: 198 249 31;
+  --brand-500: 170 222 23;
+  --brand-600: 128 170 16;
+  --brand-700: 84 112 14;
+  --brand-800: 63 84 16;
+  --brand-900: 43 58 11;
+  --brand-950: 22 32 5;
+
+  --accent: 84 112 14;
+  --accent-fg: 255 255 255;
+
+  --success: 22 128 60;
+  --success-soft: 219 249 224;
+  --success-fg: 20 105 50;
+
+  --warning: 191 116 10;
+  --warning-soft: 253 240 205;
+  --warning-fg: 138 76 12;
+
+  --danger: 199 56 40;
+  --danger-soft: 254 231 227;
+  --danger-fg: 166 44 30;
+
+  --info: 12 122 148;
+  --info-soft: 219 245 250;
+  --info-fg: 13 99 120;
+
+  /* Ordinal by confidence: measured > imported > estimated > absent. Three
+   * hues plus a neutral, chosen away from the red/green axis so deuteranopia
+   * does not collapse two of them. Colour is never the only cue — see
+   * components/ui/DataQualityBadge.tsx. */
+  --quality-medido: 15 118 110;
+  --quality-medido-soft: 204 251 241;
+  --quality-importado: 29 78 216;
+  --quality-importado-soft: 219 234 254;
+  --quality-estimado: 146 64 14;
+  --quality-estimado-soft: 254 243 199;
+  --quality-ausente: 71 85 105;
+  --quality-ausente-soft: 241 245 249;
 }
 
-body {
-  @apply bg-slate-50 text-slate-900 antialiased;
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* The page is #05080A, panels are #0B0F12. The edges are not greys picked by
+   * eye: each is white at a fixed opacity (4%, 8%, 20%) composited over the page,
+   * which is how the hairlines in the source pack are built and why they stay
+   * consistent as surfaces stack. */
+  --surface: 5 8 10;
+  --surface-raised: 11 15 18;
+  --surface-sunken: 2 4 5;
+  --surface-inverted: 250 250 249;
+
+  --edge: 25 28 30;
+  --edge-subtle: 15 18 20;
+  --edge-strong: 55 57 59;
+  /* Not `--edge-strong`: on the near-black panel even that reaches only 1.66:1,
+   * which is a hairline the eye reads as decoration rather than as the edge of
+   * something you can type into. */
+  --edge-control: 106 112 110;
+
+  --ink: 240 244 242;
+  --ink-muted: 175 181 178;
+  --ink-subtle: 131 137 134;
+  --ink-inverted: 5 8 10;
+
+  /* The ramp is inverted, not recoloured. `bg-brand-50 text-brand-700` then
+   * means "faintest tint, confident ink" in both themes, and a component never
+   * has to name a different shade per theme. */
+  --brand-50: 22 32 5;
+  --brand-100: 43 58 11;
+  --brand-200: 63 84 16;
+  --brand-300: 84 112 14;
+  --brand-400: 128 170 16;
+  --brand-500: 170 222 23;
+  --brand-600: 198 249 31;
+  --brand-700: 210 251 90;
+  --brand-800: 221 252 143;
+  --brand-900: 235 253 192;
+  --brand-950: 246 254 227;
+
+  --accent: 198 249 31;
+  --accent-fg: 5 8 10;
+
+  --success: 85 225 84;
+  --success-soft: 6 38 12;
+  --success-fg: 134 240 130;
+
+  --warning: 245 193 78;
+  --warning-soft: 47 30 4;
+  --warning-fg: 250 214 130;
+
+  --danger: 251 124 104;
+  --danger-soft: 55 16 12;
+  --danger-fg: 253 168 154;
+
+  --info: 90 209 225;
+  --info-soft: 6 38 45;
+  --info-fg: 145 227 238;
+
+  /* Untouched by the retheme on purpose. These four are the product's claim
+   * about provenance (§3.3 da proposta), not decoration: pulling them toward the
+   * brand lime would put "estimado" next to every interactive affordance on the
+   * page. Only the tinted backgrounds moved, down onto the darker surface. */
+  --quality-medido: 94 234 212;
+  --quality-medido-soft: 3 38 37;
+  --quality-importado: 147 197 253;
+  --quality-importado-soft: 15 26 60;
+  --quality-estimado: 252 211 77;
+  --quality-estimado-soft: 47 30 4;
+  --quality-ausente: 203 213 225;
+  --quality-ausente-soft: 22 26 28;
+}
+
+@layer base {
+  html {
+    @apply scroll-smooth;
+  }
+
+  body {
+    @apply bg-surface font-sans text-ink antialiased;
+  }
+
+  /* Headings are set tight, as in the source pack. It is not only a look: at
+   * `text-lg` and up, default tracking makes a two-word section title read as
+   * two separate labels. `text-balance` keeps a wrapped title from leaving one
+   * orphan word on the second line — a real problem at 375 px, where most
+   * titles wrap. */
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply text-balance tracking-tight;
+  }
+
+  p {
+    @apply text-pretty;
+  }
+
+  /* One focus ring for the whole application. Visible on both themes, and
+   * `:focus-visible` so a mouse click does not leave a ring behind. */
+  :focus-visible {
+    @apply outline-none ring-2 ring-brand ring-offset-2 ring-offset-surface;
+  }
+
+  ::selection {
+    @apply bg-brand-200 text-ink;
+  }
+
+  /* Numbers are the content of this application. Digits that do not line up in
+   * a column are a legibility defect, not a nicety. */
+  th[data-numeric],
+  td[data-numeric] {
+    @apply text-right tabular-nums;
+  }
+}
+
+@layer utilities {
+  /* Wide content (tables, charts, code) scrolls inside its own box. The page
+   * body must never scroll horizontally — checked at 375 px. */
+  .scroll-x {
+    @apply overflow-x-auto overscroll-x-contain;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
