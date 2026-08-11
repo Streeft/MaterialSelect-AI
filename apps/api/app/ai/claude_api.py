@@ -40,8 +40,11 @@ class ClaudeAPIProvider(ClaudeProviderBase):
     # --- transport --------------------------------------------------------
 
     def _complete(self, system: str, user: str, schema: dict) -> dict:
-        anthropic = _import_anthropic()
+        # The client comes first on purpose: it is the only step that genuinely
+        # needs the SDK, so it is where the "install the extra" error belongs.
+        # With a client injected, this method runs with anthropic absent.
         client = self._get_client()
+        anthropic = _error_types()
         try:
             response = client.messages.create(
                 model=self.settings.ai_model or "claude-opus-5",
@@ -118,12 +121,44 @@ class ClaudeAPIProvider(ClaudeProviderBase):
 def _import_anthropic() -> Any:
     try:
         import anthropic
-    except ModuleNotFoundError as exc:  # pragma: no cover - depends on the install
+    except ModuleNotFoundError as exc:
         raise AIUnavailableError(
             "O provedor 'claude-api' precisa do pacote anthropic, que não é "
             'instalado por padrão. Instale com: pip install -e ".[ai]" — ou use '
             "AI_PROVIDER=mock, que não depende de nenhum serviço."
         ) from exc
+    return anthropic
+
+
+class _Unraisable(Exception):
+    """Stand-in for an SDK exception class when the SDK is not installed.
+
+    Nothing ever raises it, so ``except _Unraisable`` is inert. It exists so the
+    translation block in ``_complete`` can be written once, against the SDK's
+    class names, and still be *reachable* when ``anthropic`` is absent — which
+    is exactly the case when a client is injected.
+    """
+
+
+class _NoSDKErrors:
+    """Every attribute is an exception class that never fires."""
+
+    def __getattr__(self, _name: str) -> type[BaseException]:
+        return _Unraisable
+
+
+def _error_types() -> Any:
+    """The SDK's exception namespace, or an inert stand-in when it is absent.
+
+    Absence is not an error here: the caller already has a working client, so
+    there is nothing to install. Catching nothing is the correct behaviour —
+    whatever the injected client raises reaches the caller unchanged instead of
+    being translated into a message about an API that was never called.
+    """
+    try:
+        import anthropic
+    except ModuleNotFoundError:
+        return _NoSDKErrors()
     return anthropic
 
 
