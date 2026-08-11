@@ -114,26 +114,26 @@ export type ResolvedTheme = "light" | "dark";
  */
 const FALLBACK: Record<ResolvedTheme, Record<string, string>> = {
   light: {
-    "--surface": "248 250 252",
+    "--surface": "250 250 249",
     "--surface-raised": "255 255 255",
-    "--edge": "226 232 240",
-    "--edge-strong": "203 213 225",
-    "--ink": "15 23 42",
-    "--ink-muted": "71 85 105",
-    "--ink-subtle": "100 112 130",
-    "--accent": "37 99 235",
-    "--danger": "220 38 38",
+    "--edge": "231 229 228",
+    "--edge-strong": "214 211 209",
+    "--ink": "12 15 17",
+    "--ink-muted": "68 64 60",
+    "--ink-subtle": "100 98 94",
+    "--accent": "84 112 14",
+    "--danger": "199 56 40",
   },
   dark: {
-    "--surface": "15 23 42",
-    "--surface-raised": "30 41 59",
-    "--edge": "51 65 85",
-    "--edge-strong": "71 85 105",
-    "--ink": "241 245 249",
-    "--ink-muted": "203 213 225",
-    "--ink-subtle": "148 163 184",
-    "--accent": "96 165 250",
-    "--danger": "248 113 113",
+    "--surface": "5 8 10",
+    "--surface-raised": "11 15 18",
+    "--edge": "25 28 30",
+    "--edge-strong": "55 57 59",
+    "--ink": "240 244 242",
+    "--ink-muted": "175 181 178",
+    "--ink-subtle": "131 137 134",
+    "--accent": "198 249 31",
+    "--danger": "251 124 104",
   },
 };
 
@@ -179,7 +179,10 @@ export function chartTheme(theme: ResolvedTheme): ChartTheme {
   const read = (name: string, alpha = 1) => token(name, alpha, theme);
   const ink = read("--ink");
   const muted = read("--ink-muted");
-  const grid = read("--edge");
+  // `--edge-strong`, not `--edge`: the hairline that separates two panels sitting
+  // side by side is not the same job as a gridline a reader has to follow across
+  // a figure. On the near-black surface the softer token disappears entirely.
+  const grid = read("--edge-strong");
   return {
     highlight: read("--danger"),
     markerEdge: read("--surface-raised"),
@@ -191,8 +194,12 @@ export function chartTheme(theme: ResolvedTheme): ChartTheme {
       paper_bgcolor: "rgba(0,0,0,0)",
       plot_bgcolor: "rgba(0,0,0,0)",
       font: {
+        // Plotly draws into an SVG and cannot resolve `var(--font-sans)`, so the
+        // family is named here. Inter first, then the same fallback chain the
+        // stylesheet uses — a figure set in a different face than the table
+        // beside it is the drift this module exists to prevent.
         family:
-          "ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+          "Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
         color: ink,
         size: 12,
       },

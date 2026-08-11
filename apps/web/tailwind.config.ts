@@ -103,9 +103,12 @@ const config: Config = {
       },
 
       fontFamily: {
-        // System stack on purpose: a webfont would either block first paint or
-        // add a build-time fetch to a CI that should not need the network.
+        // Inter, loaded by `next/font` in app/layout.tsx and reaching this file
+        // as `--font-sans`. The system stack stays behind it as the fallback that
+        // renders while the face swaps, and as the whole answer if the build ever
+        // ships without the font.
         sans: [
+          "var(--font-sans)",
           "ui-sans-serif",
           "system-ui",
           "-apple-system",
@@ -134,15 +137,20 @@ const config: Config = {
       },
 
       borderRadius: {
-        card: "0.625rem",
+        card: "0.75rem",
         control: "0.5rem",
       },
 
       boxShadow: {
         // Deliberately shallow. This is an instrument, not a dashboard demo.
-        card: "0 1px 2px 0 rgb(15 23 42 / 0.04), 0 1px 3px 0 rgb(15 23 42 / 0.06)",
-        raised: "0 4px 12px -2px rgb(15 23 42 / 0.10), 0 2px 6px -2px rgb(15 23 42 / 0.06)",
-        overlay: "0 12px 32px -8px rgb(15 23 42 / 0.24)",
+        //
+        // Black rather than slate: a slate-tinted shadow is a grey rectangle that
+        // *lightens* the area around a card once the page behind it is #05080A.
+        // Pure black at a higher alpha is the only version that reads as depth in
+        // both themes.
+        card: "0 1px 2px 0 rgb(0 0 0 / 0.20), 0 1px 3px 0 rgb(0 0 0 / 0.14)",
+        raised: "0 4px 12px -2px rgb(0 0 0 / 0.34), 0 2px 6px -2px rgb(0 0 0 / 0.22)",
+        overlay: "0 12px 32px -8px rgb(0 0 0 / 0.55)",
       },
 
       transitionDuration: {

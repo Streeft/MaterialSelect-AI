@@ -153,6 +153,9 @@ para que gráfico e interface não divirjam.
 
 - **Cor de acento:** rampa `brand` completa (50→950). Mantenha o azul atual como
   ponto de partida — é calmo e adequado a um instrumento científico.
+  > **Superado.** O acento passou a ser o lima `#C6F91F` do pacote lumimotion,
+  > sobre superfícies quase pretas. Ver [D-33](DECISIONS.md). O resto desta
+  > seção continua valendo, inclusive a rampa completa e a leitura pelo Plotly.
 - **Neutros:** rampa `slate` já usada, formalizada em tokens semânticos
   (`surface`, `surface-raised`, `border`, `text-primary`, `text-secondary`,
   `text-muted`).
