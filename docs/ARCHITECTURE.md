@@ -137,7 +137,7 @@ routers → services → repositories → models → banco
 flowchart LR
   T["Enunciado do usuário"] --> S["ai_service"]
   C["Catálogo<br/>(propriedades, índices, classes)"] --> S
-  S --> P["AIProvider<br/>(mock determinístico)"]
+  S --> P["AIProvider<br/>(mock · claude-api · claude-cli)"]
   P --> V["Validação por schema"]
   V --> G["guardrails"]
   G -->|aprovado| U["Proposta para revisão"]
@@ -154,6 +154,14 @@ o avaliador de expressões. Cinco regras em `guardrails.py`:
 4. **limiar dimensionado tem de declarar a unidade** (ausente vira canônica e,
    em escala com offset, inverte o sentido do enunciado);
 5. prosa não pode introduzir números que o cálculo não produziu.
+
+Três provedores atendem esse contrato: `mock` (padrão, determinístico, offline) e
+dois que falam com o Claude — `claude-api` pela API da Anthropic e `claude-cli`
+pelo Claude Code instalado na máquina. Os dois reais compartilham
+`claude_base.py`, que os deixa estruturalmente incapazes de duas coisas: escrever
+uma expressão de índice (o modelo devolve um slug; a expressão vem do catálogo)
+e omitir as ressalvas de uma explicação (elas são do backend, em `caveats.py`).
+Ver [D-35](DECISIONS.md).
 
 ### `exporters/` — saída auditável
 

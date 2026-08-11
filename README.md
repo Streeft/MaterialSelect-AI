@@ -131,7 +131,7 @@ estar atualizada com `main` antes de mesclar. A configuração vive em
 rode-o de novo sempre que acrescentar um job ao `ci.yml`, senão o job novo roda
 sem bloquear nada.
 
-## Camada de IA (Fase 6 — opcional, ligada por padrão em modo simulado)
+## Camada de IA (Fase 6 — opcional, simulada por padrão, Claude sob demanda)
 
 Na etapa 1 de **Seleção**, o painel *Interpretar enunciado* lê um problema em
 português e propõe função, objetivo, restrições e índices **já cadastrados** —
@@ -147,7 +147,20 @@ aparece na tela, com o motivo.
 
 O provedor padrão é **simulado**: regras determinísticas locais, sem chave e sem
 rede. Defina `AI_PROVIDER=` (vazio) para desligar a camada por completo; nada no
-resto do sistema depende dela. Detalhes em
+resto do sistema depende dela.
+
+Para usar o Claude de verdade, troque a variável — e nada mais:
+
+```powershell
+$env:AI_PROVIDER = "claude-cli"   # usa o Claude Code já instalado e autenticado
+$env:AI_PROVIDER = "claude-api"   # usa a API da Anthropic (pede ANTHROPIC_API_KEY
+                                  # e `pip install -e ".[ai]"`)
+```
+
+Serviço, guardrails e interface não mudam: é o mesmo contrato, com o mesmo filtro
+na saída. Em compensação, um provedor real **não é determinístico** — o mesmo
+enunciado pode ser lido de dois jeitos, e a ressalva na tela diz isso. O cálculo
+não varia, porque não passa por ali. Detalhes em
 [`docs/09-camada-ia.md`](docs/09-camada-ia.md).
 
 ## Relatórios e exportação (Fase 7 — em andamento)

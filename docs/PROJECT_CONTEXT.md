@@ -58,7 +58,7 @@ independente do que falta na 7 (autenticação, auditoria, testes de ponta a
 ponta) e resolvia a acessibilidade, que estava listada como pendência daquela
 fase.
 
-**Saúde do código:** 391 testes de backend (Python 3.11 e 3.12) e 123 de
+**Saúde do código:** 433 testes de backend (Python 3.11 e 3.12) e 123 de
 frontend, todos verdes. `ruff` limpo, `black --check` limpo, typecheck estrito e
 build de produção sem avisos. CI no GitHub Actions rodando em todo PR e push
 para `main`, com os três checks **obrigatórios**: o GitHub recusa o merge se
@@ -97,12 +97,19 @@ na entrada.
   heatmap. Exportação PNG/SVG.
 
 ### Camada de IA (opcional)
-- Interface `AIProvider` + **provedor simulado determinístico**, sem chave e sem
-  rede. O sistema funciona integralmente com a camada desligada.
+- Interface `AIProvider` com **três provedores**: `mock` (padrão, determinístico,
+  sem chave e sem rede), `claude-api` (API da Anthropic, chave própria) e
+  `claude-cli` (o Claude Code instalado na máquina, pela assinatura já
+  autenticada). Trocar entre eles é trocar `AI_PROVIDER`. O sistema funciona
+  integralmente com a camada desligada.
 - Interpreta o enunciado em função/restrições/objetivo/variáveis livres,
   **citando o trecho de origem**; sugere propriedades e índices **do catálogo**;
   sugere o mapa em que o índice vira reta; explica estudos já calculados.
 - **Guardrails executáveis** — ver [ARCHITECTURE.md §3](ARCHITECTURE.md).
+- Com provedor real, o modelo escolhe um índice **pelo slug** e a expressão vem
+  do catálogo; as ressalvas da explicação são escritas pelo backend
+  ([D-35](DECISIONS.md)). Só o `mock` é determinístico, e a ressalva mostrada ao
+  usuário diz isso.
 
 ### Exportação (Fase 7, parcial)
 CSV, XLSX e **HTML imprimível** do catálogo e do **relatório de seleção
@@ -194,6 +201,7 @@ que mais afetam quem for mexer no código:
 | Qualidade do dado em três canais, nunca só cor | [D-24](DECISIONS.md) |
 | Uma paleta só, compartilhada entre interface e gráfico | [D-28](DECISIONS.md) |
 | A borda de um controle responde à WCAG 1.4.11 | [D-34](DECISIONS.md) |
+| O provedor real escolhe índice por slug; expressão e ressalvas não são dele | [D-35](DECISIONS.md) |
 
 ## 9. Limitações atuais
 
@@ -208,6 +216,10 @@ que mais afetam quem for mexer no código:
   desta versão. `domain/ranking.py` foi deixado genérico para acomodá-los.
 - **Propriedades dependentes de condição** (curvas completas) fora do escopo.
 - **Busca por palavra-chave usa LIKE sobre JSON** — não escala.
+- **Com provedor de IA real, a leitura do enunciado não é reproduzível.** Só o
+  `mock` é determinístico, e é ele o padrão. O `claude-api` foi exercitado
+  contra um cliente falso nos testes, mas ainda não contra a API de verdade —
+  não há chave neste ambiente; o `claude-cli` foi verificado ao vivo.
 
 ## 10. Riscos conhecidos
 
@@ -218,7 +230,7 @@ que mais afetam quem for mexer no código:
 | Dependência de provedor de IA | Arquitetura desacoplada com provedor simulado; funciona sem chave. |
 | Incorporação inadvertida de dado protegido | Triagem de licenciamento prevista (item 4.2 da proposta) — **ainda não implementada**, ver [TODO.md](TODO.md). |
 | Resultado não reproduzível por interferência de IA | Cálculo determinístico + guardrails executáveis + confirmação do usuário. |
-| Regressão silenciosa | CI com 391 testes de backend e 123 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
+| Regressão silenciosa | CI com 433 testes de backend e 123 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
 
 ## 11. Próximos passos sugeridos
 

@@ -347,6 +347,10 @@ export const ptBR = {
       "A IA lê o enunciado e propõe função, restrições e índices já cadastrados. Ela não calcula nada: todo número vem do backend e toda sugestão passa pela sua revisão.",
     disabled: "Camada de IA desativada. O sistema funciona integralmente sem ela.",
     simulatedBadge: "Provedor simulado",
+    // Um provedor externo é a exceção, não o padrão: quem está vendo a tela
+    // precisa saber que aquela leitura veio de um modelo — e que ela pode sair
+    // diferente da próxima vez. O detalhe fica na ressalva, ao pé da proposta.
+    modelBadge: (provider: string) => `Modelo externo: ${provider}`,
     // §3.4 da proposta: a assistência é opcional e passa pela revisão de quem
     // usa. Isso precisa estar dito no painel, não só na documentação.
     optionalBadge: "Opcional",
