@@ -718,3 +718,63 @@ de componente pegaria, porque a aba isolada parece correta.
 controles focáveis, acrescentando uma parada de tabulação. É o preço de um
 primitivo que também serve painéis de texto puro — e a parada anuncia ao leitor
 que as setas mudaram o conteúdo abaixo.
+
+---
+
+## D-33 — A repaginação lumimotion troca os tokens, e só os tokens
+
+**Contexto.** O autor trouxe um pacote de design pronto (`lumimotion-ai-ui-prompt`,
+extraído do aura.build): página quase preta `#05080A`, painéis em `#0B0F12`,
+fios de borda feitos de branco a 2–8% de opacidade, um lima elétrico `#C6F91F`
+carregando toda a interação, Inter com entressilhas apertadas nos títulos.
+Junto vinham GSAP, ScrollTrigger, o SDK WebGL do Unicorn Studio e um efeito de
+lanterna que segue o cursor.
+
+**Decisão.** A linguagem visual entrou inteira; o maquinário, não. A mudança
+está confinada a `globals.css`, `tailwind.config.ts`, o espelho em
+`lib/design/palette.ts` e a carga da fonte em `app/layout.tsx`. Nenhuma
+primitiva foi tocada — elas já consumiam token, que é justamente o que torna uma
+repaginação desse tamanho uma edição de quatro arquivos.
+
+O tema escuro é onde essa linguagem é nativa. O claro é a contraparte dela: a
+mesma família de lima, escurecida até poder carregar texto, sobre papel neutro
+quente em vez do ardósia frio de antes.
+
+**O que a rampa `brand` teve de ceder.** O lima de exibição fica em `400` e o
+seu hover em `500`, como no pacote. Abaixo disso a rampa é comprimida de
+propósito: `700` é o tom que os componentes querem dizer com "tinta segura sobre
+o fundo mais fraco", e com um lima isso só acontece por volta de `#54700E`. Uma
+rampa de passos iguais teria colocado um verde-oliva de 3,5:1 nessa posição —
+medido, reprovado, refeito. Pelo mesmo motivo o `--accent` do tema claro é
+`--brand-700`, e não o lima de exibição: o par que lê como a marca numa página
+preta é exatamente o par que falha no papel.
+
+**O que não se mexeu.** Os quatro tokens `--quality-*` continuam onde estavam.
+Eles não são decoração: são a afirmação do produto sobre proveniência (§3.3 da
+proposta). Puxá-los para a família do lima colocaria "estimado" na mesma cor de
+todo botão da página. Só os fundos tingidos desceram, para assentar na
+superfície mais escura.
+
+**Alternativas descartadas.**
+- **Adotar o pacote como veio, só no escuro:** é o modo nativo dele, mas
+  descartaria o alternador de tema e metade da verificação de contraste que a
+  Entrega E acabara de fazer.
+- **Trazer GSAP, ScrollTrigger e o WebGL:** proibido pelo §13 do REDESIGN.md, e
+  a razão continua valendo — só o UMD do Unicorn Studio pesa mais que os 87 kB
+  de JS compartilhado por toda a aplicação, num público que a proposta descreve
+  como estudante num notebook modesto.
+- **Só a tipografia e os raios:** seguro e quase invisível; não é o que foi
+  pedido.
+
+**Consequência aceita.** Inter entra por `next/font` — o §5 do REDESIGN.md já a
+admitia — e isso muda o portão: `next build` passa a precisar de rede, e não
+mais só o `npm ci`. Em troca a fonte é servida por esta origem, sem terceiro em
+runtime e sem salto de layout.
+
+**Como se sabe que passa.** Os pares de token são medidos por script fora da
+árvore, e as telas são medidas no navegador: para cada elemento com texto, a cor
+computada contra o fundo pintado de verdade, nos dois temas. Cerca de 590
+elementos em `/estilo`, `/selecao`, `/materiais/1` e `/comparar` (tabela e
+figura), nenhuma reprovação. O par mais apertado do sistema é `--ink-subtle`
+sobre `--brand-50` no tema escuro, a 4,74:1 — folga maior que a do sistema azul
+que ele substitui, que fechava em 4,58:1.
