@@ -103,6 +103,11 @@ A interface tem um sistema de design próprio, **sem biblioteca de componentes**
   `@/components/ui` e documentadas ao vivo em `/estilo` — as figuras da
   monografia são capturas dessa rota, e por isso ela não pode envelhecer em
   relação ao código.
+- **A navegação é a barra lateral** (`components/layout/AppSidebar.tsx`, D-37):
+  fixa a partir de `lg`, gaveta modal abaixo, e recolhível a 76 px. Ao recolher,
+  o rótulo de um link vira `sr-only` — **nunca** é removido, ou o link fica sem
+  nome acessível. O estado recolhido não é persistido de propósito; se um dia
+  precisar ser, o caminho é um cookie lido no servidor, não um `useEffect`.
 - **A borda de um controle é informação, não moldura** (D-34). Um campo tem o
   mesmo fundo do cartão em que está, então aquela borda é a única coisa que diz
   que existe um controle ali: ela responde à WCAG 1.4.11 (3:1), e não ao
@@ -182,11 +187,11 @@ demonstração de que a camada é mesmo opcional e substituível.
 **Fase 9 em curso** — o pedido tem sete frentes (IA gratuita, sidebar,
 repaginação mais colorida e arredondada, dashboards interativos, mapas
 personalizáveis, laudo de engenharia completo). Entregues até aqui: o provedor
-`openai-compat` (D-36) e o renderizador de figuras SVG do backend
-(`app/exporters/figures.py`), que é o que falta o laudo ter mapa de seleção. O
-laudo em si, e tudo que é frontend, ainda não começou.
+`openai-compat` (D-36), o renderizador de figuras SVG do backend
+(`app/exporters/figures.py`) e a barra lateral (D-37). Falta a repaginação em si,
+os dashboards, os mapas personalizáveis e a montagem do laudo.
 
-491 testes de backend e 123 de frontend, todos verdes. CI no GitHub Actions roda
+491 testes de backend e 130 de frontend, todos verdes. CI no GitHub Actions roda
 em todo PR e push para `main`.
 
 **Estado detalhado, decisões, backlog e histórico da última sessão estão em
