@@ -10,6 +10,7 @@ from __future__ import annotations
 from app.ai.claude_api import ClaudeAPIProvider
 from app.ai.claude_cli import ClaudeCLIProvider
 from app.ai.mock import MockAIProvider
+from app.ai.openai_compat import OpenAICompatProvider
 from app.ai.provider import AIProvider, AIUnavailableError
 from app.config import Settings
 from app.config import settings as default_settings
@@ -34,6 +35,7 @@ _PROVIDERS: dict[str, type[AIProvider]] = {
     "mock": MockAIProvider,
     "claude-api": ClaudeAPIProvider,
     "claude-cli": ClaudeCLIProvider,
+    "openai-compat": OpenAICompatProvider,
 }
 
 
@@ -66,6 +68,10 @@ def disclaimer_for(provider: AIProvider) -> str:
 
     A real provider gets its own sentence rather than merely losing the
     simulated one: non-determinism is a property the reader has to be told
-    about, not one they should infer from an absence.
+    about, not one they should infer from an absence. A provider that can point
+    anywhere adds a third sentence naming where the text actually goes — the
+    user is the one deciding what to type into it, so the user is the one who
+    has to be told.
     """
-    return f"{DISCLAIMER} {SIMULATED_NOTE if provider.simulated else MODEL_NOTE}"
+    parts = [DISCLAIMER, SIMULATED_NOTE if provider.simulated else MODEL_NOTE, provider.data_note]
+    return " ".join(part for part in parts if part)

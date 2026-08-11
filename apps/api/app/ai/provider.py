@@ -107,6 +107,17 @@ class AIProvider(ABC):
     #: True when no external service is involved.
     simulated: bool = True
 
+    @property
+    def data_note(self) -> str:
+        """Where the user's text goes, when that is not evident from the name.
+
+        Empty for the providers whose destination the name already states. It is
+        a property rather than a constant because the destination of a
+        configurable provider is only known once it is configured — and a notice
+        that cannot name the recipient is not a notice.
+        """
+        return ""
+
     @classmethod
     def from_settings(cls, settings: Settings) -> AIProvider:
         """Build the provider for a configuration.
