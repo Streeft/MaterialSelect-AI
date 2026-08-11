@@ -623,6 +623,8 @@ export const ptBR = {
     openMenu: "Abrir menu",
     closeMenu: "Fechar menu",
     mainNav: "Navegação principal",
+    collapseSidebar: "Recolher a barra lateral",
+    expandSidebar: "Expandir a barra lateral",
     steps: "Etapas",
     views: "Visualizações",
     stepDone: "concluída",

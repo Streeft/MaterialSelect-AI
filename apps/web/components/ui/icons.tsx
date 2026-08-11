@@ -180,6 +180,65 @@ export const IconBook = (p: IconProps) => (
   </Svg>
 );
 
+// --- Navigation -------------------------------------------------------------
+// One glyph per destination. In a rail that collapses to icons only, the glyph
+// is the whole label, so each one draws what the screen *does* rather than a
+// generic document: a funnel for the selection funnel, plotted points for the
+// property map, two columns for the comparison.
+
+export const IconHome = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M4 10.5 12 3.5l8 7V19a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 19Z" />
+    <path d="M9.5 20.5v-6h5v6" />
+  </Svg>
+);
+
+export const IconScatter = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M4 3.5v15A1.5 1.5 0 0 0 5.5 20h15" />
+    <circle cx="8.5" cy="15.5" r="1.5" />
+    <circle cx="13" cy="11" r="1.5" />
+    <circle cx="17.5" cy="6.5" r="1.5" />
+  </Svg>
+);
+
+export const IconCompare = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="3.5" y="9" width="6.5" height="11.5" rx="1.5" />
+    <rect x="14" y="3.5" width="6.5" height="17" rx="1.5" />
+  </Svg>
+);
+
+export const IconUpload = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M12 15.5V3.5M7.5 8 12 3.5 16.5 8" />
+    <path d="M4 17.5v1A2.5 2.5 0 0 0 6.5 21h11a2.5 2.5 0 0 0 2.5-2.5v-1" />
+  </Svg>
+);
+
+export const IconLayers = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="m12 3 8.5 4.5L12 12 3.5 7.5Z" />
+    <path d="m3.5 12 8.5 4.5 8.5-4.5" />
+    <path d="m3.5 16.5 8.5 4.5 8.5-4.5" />
+  </Svg>
+);
+
+export const IconRuler = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="2.5" y="8.5" width="19" height="7" rx="1.5" />
+    <path d="M7 8.5v3M11 8.5v4.5M15 8.5v3M19 8.5v4.5" />
+  </Svg>
+);
+
+/** The collapse control: a panel with its rail marked off. */
+export const IconPanelLeft = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="3" y="4.5" width="18" height="15" rx="2" />
+    <path d="M9.5 4.5v15" />
+  </Svg>
+);
+
 // --- Data-quality marks -----------------------------------------------------
 // One glyph per state, distinguishable in monochrome and at 12 px. These carry
 // the distinction when colour cannot: print, colour-vision deficiency, or a
