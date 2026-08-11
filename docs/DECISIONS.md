@@ -884,3 +884,83 @@ copiados na unidade escrita, nenhuma recusa; e "no mínimo 300", sem unidade,
 saiu como pergunta aberta e nenhuma restrição — a regra 4 obedecida por um
 modelo que nunca a viu no código. O `claude-api` foi verificado apenas contra um
 cliente falso: não há chave de API neste ambiente.
+
+---
+
+## D-36 — A IA gratuita é um protocolo, não um fornecedor
+
+**Data:** 11/08/2026 · **Status:** aceita · **Fase:** 9
+
+**Contexto.** O pedido foi por "uma IA gratuita, uma API de IA gratuita, pode
+ser da OpenAI", com uma condição explícita: "que não dê problema de
+autenticação". A pesquisa de fornecedores desmontou a primeira metade do pedido
+e endureceu a segunda.
+
+A OpenAI **não tem camada gratuita de API**. A linha "Free" na documentação de
+limites é um teto de gasto de US$ 100/mês, não uma concessão — o nível "$5 paid"
+exibe o mesmo teto. O Brasil é atendido; a barreira é dinheiro, não geografia.
+
+Entre os que de fato são gratuitos, nenhum é estável o bastante para ser *o*
+fornecedor do trabalho:
+
+| Fornecedor | Situação em 11/08/2026 |
+|---|---|
+| **Groq** | Plano gratuito real, sem cartão, limites publicados (30 req/min, 1000 req/dia). JSON Schema estrito só em `openai/gpt-oss-20b` e `120b`. |
+| **Ollama (local)** | Gratuito para sempre, sem conta, sem rede, sem limite. |
+| **Gemini (AI Studio)** | Gratuito e permanente, sem cartão. Mas o conteúdo enviado **é usado para treinar**, revisores humanos podem lê-lo, e a isenção geográfica dos termos cobre apenas EEE, Suíça e Reino Unido — **não o Brasil**. O Google parou de publicar limites por modelo. |
+| **OpenRouter** | 15 modelos `:free`, só 4 com saída estruturada; 50 requisições/dia. |
+| **GitHub Models** | **Desligado em 30/07/2026.** |
+| **Cerebras** | Deixou de ter camada gratuita: US$ 5 de crédito que expiram em 30 dias. |
+
+**Decisão.** Não escolher um fornecedor. Implementar **um provedor por
+protocolo** — `openai-compat`, que fala `POST {AI_BASE_URL}/chat/completions` —
+e deixar a escolha em duas variáveis de ambiente. Groq, Ollama, OpenRouter,
+Together, Cloudflare, um gateway corporativo e a própria OpenAI passam a caber
+no mesmo código.
+
+`AI_BASE_URL` **não tem valor padrão**, de propósito: um padrão escolheria um
+fornecedor pelo operador. Sem ele, o erro traz as três receitas prontas — é a
+única documentação que alguém lê no momento em que precisa.
+
+**Como a condição "sem problema de autenticação" foi cumprida.** Com
+`AI_API_KEY` vazia, o cabeçalho `Authorization` não é enviado. Não é degradação:
+é o que um Ollama local espera, e mandar um bearer vazio transformaria "este
+servidor não pede credencial" em "sua credencial foi recusada". É o único
+arranjo desta camada em que a autenticação não pode falhar, porque não existe.
+
+**Alternativas descartadas.**
+
+- **Gemini como provedor recomendado**, que a pesquisa apontou primeiro. A
+  qualidade em português é a melhor do conjunto gratuito, mas o enunciado que o
+  usuário digita vira material de treino e a proteção contratual não alcança o
+  Brasil. Recomendar isso a um aluno de graduação, num trabalho que ele assina,
+  não se sustenta. Continua alcançável — o Gemini expõe endpoint compatível com
+  OpenAI —, só não é o caminho que a documentação empurra.
+- **Adicionar `httpx` como dependência.** O provedor usa `urllib.request`. A
+  camada de IA é opcional; a maneira mais barata de ligá-la também deveria ser a
+  que instala menos coisa.
+- **Cair silenciosamente para `json_object` quando o servidor recusa o schema.**
+  Um provedor que parou de exigir o contrato ficaria idêntico a um que nunca o
+  teve. `AI_JSON_MODE` é decisão do operador, e o 400 diz qual é o ajuste.
+
+**Consequência aceita.** O provedor gratuito é o mais fraco dos quatro: modelos
+menores erram mais a leitura, e o plano gratuito tem limite diário. Isso é
+sustentável porque o guardrail não distingue provedor — o que um modelo pequeno
+erra é recusado e **relatado**, exatamente como o de um modelo grande. E o
+`mock` continua o padrão (D-35): só um provedor determinístico sustenta comparar
+duas execuções do mesmo estudo.
+
+**Um subproduto para a defesa.** Em menos de um ano, o GitHub Models foi
+desligado e a Cerebras trocou camada gratuita por teste de 30 dias. É a
+evidência empírica de que manter a camada de IA opcional, substituível e com
+padrão determinístico não era conservadorismo — era a leitura certa do terreno.
+
+**Efeito colateral no código.** `claude_base.py` passou a `model_base.py` e
+`ClaudeProviderBase` a `ModelProviderBase`. As garantias de D-35 são da camada,
+não da Anthropic; um provedor da Groq herdando de uma classe chamada "Claude"
+seria uma mentira de nomenclatura num repositório que trata nome como contrato.
+
+**Aviso ao usuário.** `AIProvider` ganhou `data_note`, e a ressalva mostrada ao
+lado de cada sugestão passa a nomear **o host** para onde o enunciado está indo
+— nunca o caminho, que pode carregar um token. Quem decide o que digitar é quem
+precisa saber para onde aquilo vai.

@@ -68,14 +68,26 @@ e **unidade explícita** (limiar sobre propriedade dimensionada não pode omitir
 unidade — unidade ausente vira a canônica e, numa escala com offset, inverte o
 sentido do enunciado).
 
-Há três provedores: `mock` (padrão, determinístico, sem rede) e dois que falam
-com o Claude — `claude-api` (API da Anthropic, chave própria) e `claude-cli` (o
-Claude Code instalado na máquina, pela assinatura já autenticada). O que os dois
-reais compartilham está em `app/ai/claude_base.py`, e duas coisas ali não são
-negociáveis (D-35): **o modelo escolhe um índice pelo slug** e a expressão é lida
-do catálogo depois — não peça esse campo ao modelo — e **as ressalvas da
-explicação são do backend** (`app/ai/caveats.py`), fora do esquema enviado. Um
-provedor real não é determinístico, e é por isso que o padrão continua `mock`.
+Há quatro provedores: `mock` (padrão, determinístico, sem rede), `claude-api`
+(API da Anthropic, chave própria), `claude-cli` (o Claude Code instalado na
+máquina, pela assinatura já autenticada) e `openai-compat` (qualquer servidor que
+fale `/chat/completions`, escolhido por `AI_BASE_URL` — Groq no plano gratuito,
+Ollama local, OpenRouter, OpenAI). O que os provedores reais compartilham está em
+`app/ai/model_base.py` — **não** em um arquivo com "claude" no nome, porque as
+garantias são da camada. Duas delas não são negociáveis (D-35): **o modelo
+escolhe um índice pelo slug** e a expressão é lida do catálogo depois — não peça
+esse campo ao modelo — e **as ressalvas da explicação são do backend**
+(`app/ai/caveats.py`), fora do esquema enviado. Um provedor real não é
+determinístico, e é por isso que o padrão continua `mock`.
+
+No `openai-compat`, duas coisas parecem descuido e são decisão (D-36):
+`AI_BASE_URL` **não tem padrão** (um padrão escolheria um fornecedor pelo
+operador; sem ele, o erro traz as receitas prontas) e **chave vazia é
+configuração válida** — sem `AI_API_KEY` o cabeçalho `Authorization` não é
+enviado, que é o que um Ollama local espera. Degradar o modo JSON é decisão do
+operador via `AI_JSON_MODE`, nunca queda silenciosa. E o aviso mostrado ao
+usuário nomeia **o host** de destino, nunca o caminho — um caminho de gateway
+pode carregar token.
 
 ## Sistema de design (frontend)
 
@@ -163,11 +175,18 @@ visíveis na tela, acessibilidade medida no navegador nos dois temas e a 375 px.
 usuários foi realizada** — enquanto a tabela de melhorias dele estiver vazia, o
 §3.5 da proposta não foi cumprido.
 
-A camada de IA da Fase 6 ganhou provedores reais (`claude-api`, `claude-cli`)
-sem que serviço, guardrails ou interface mudassem — a demonstração de que a
-camada é mesmo opcional e substituível.
+A camada de IA da Fase 6 ganhou provedores reais (`claude-api`, `claude-cli`,
+`openai-compat`) sem que serviço, guardrails ou interface mudassem — a
+demonstração de que a camada é mesmo opcional e substituível.
 
-436 testes de backend e 123 de frontend, todos verdes. CI no GitHub Actions roda
+**Fase 9 em curso** — o pedido tem sete frentes (IA gratuita, sidebar,
+repaginação mais colorida e arredondada, dashboards interativos, mapas
+personalizáveis, laudo de engenharia completo). Entregues até aqui: o provedor
+`openai-compat` (D-36) e o renderizador de figuras SVG do backend
+(`app/exporters/figures.py`), que é o que falta o laudo ter mapa de seleção. O
+laudo em si, e tudo que é frontend, ainda não começou.
+
+491 testes de backend e 123 de frontend, todos verdes. CI no GitHub Actions roda
 em todo PR e push para `main`.
 
 **Estado detalhado, decisões, backlog e histórico da última sessão estão em
