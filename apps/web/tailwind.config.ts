@@ -154,6 +154,12 @@ const config: Config = {
         card: "0 1px 2px 0 rgb(0 0 0 / 0.20), 0 1px 3px 0 rgb(0 0 0 / 0.14)",
         raised: "0 4px 12px -2px rgb(0 0 0 / 0.34), 0 2px 6px -2px rgb(0 0 0 / 0.22)",
         overlay: "0 12px 32px -8px rgb(0 0 0 / 0.55)",
+        // The one exception to "deliberately shallow": the halo under the
+        // navigation item you are currently on. It reads the brand token rather
+        // than black, so it tints instead of darkening, and it exists because a
+        // filled pill alone is easy to lose against a raised panel — the glow is
+        // what makes "you are here" survive a glance in either theme.
+        glow: "0 0 0 1px rgb(var(--brand-300) / 0.40), 0 4px 14px -6px rgb(var(--brand-400) / 0.55)",
       },
 
       transitionDuration: {
