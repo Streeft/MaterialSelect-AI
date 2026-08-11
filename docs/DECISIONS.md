@@ -824,3 +824,63 @@ verificação no navegador passou a medir também a borda computada de cada
 controle habilitado contra o fundo realmente pintado. Sete rotas, dois temas:
 nenhuma reprovação de texto e nenhuma de controle; a borda mais apertada é
 3,81:1 no escuro e 4,31:1 no claro.
+
+---
+
+## D-35 — O provedor real escolhe por slug; a expressão e as ressalvas nunca são dele
+
+**Contexto.** A Fase 6 entregou a camada de IA com um único provedor, o
+simulado. Ligar um modelo de verdade reabre a pergunta que a fase inteira existe
+para responder: o que exatamente o modelo pode dizer que chega ao usuário? O
+contrato `AIProvider` devolve um dicionário, e o serviço construía a sugestão de
+índice com **os campos que o provedor mandasse** — `name`, `expression`, `goal`.
+Com o simulado isso é inofensivo, porque ele copia do catálogo. Com um modelo,
+é um caminho para uma expressão de índice escrita por IA entrar no sistema.
+
+O mesmo vale, do outro lado, para as ressalvas de uma explicação: elas vinham do
+provedor. O simulado sempre as escreve; um modelo pode simplesmente não escrever
+— e as ressalvas são justamente o que o trabalho promete que sempre aparece.
+
+**Decisão.** Dois provedores reais entram atrás do mesmo `AIProvider`, ambos
+falando com o Claude: `claude-api` (API de Mensagens da Anthropic, com chave
+própria) e `claude-cli` (o Claude Code já instalado e autenticado na máquina).
+`mock` continua o padrão. Os três compartilham `app/ai/claude_base.py`, e nele:
+
+- **O modelo devolve um slug de índice e mais nada.** Nome, expressão e objetivo
+  são lidos do catálogo depois da resposta. Não é uma checagem — é a ausência do
+  campo: por esse caminho um modelo não tem onde escrever uma expressão.
+- **As ressalvas são do backend** (`app/ai/caveats.py`), compartilhadas com o
+  simulado. O esquema JSON enviado ao modelo nem tem o campo.
+- **Slug inventado passa adiante.** Filtrá-lo ali seria mais limpo e seria pior:
+  o guardrail o recusa *e diz por quê*, e ver o que foi recusado é como o
+  usuário passa a acreditar no que não foi.
+
+**Alternativas descartadas.**
+- **Um provedor só.** "Meu próprio Claude" é ambíguo entre a assinatura que a
+  pessoa já paga e uma chave de API que ela talvez não tenha. Os dois cabem no
+  mesmo contrato e custam um módulo de transporte cada.
+- **Validar a expressão vinda do modelo em vez de ignorá-la.** Trocaria uma
+  impossibilidade estrutural por uma verificação — e verificação se afrouxa.
+- **Deixar o modelo escrever as ressalvas com uma checagem de que apareceram.**
+  Verificar presença de frase é frágil; não pedir o campo não é.
+
+**Consequência aceita.** Com um provedor real a leitura **deixa de ser
+determinística**: o mesmo enunciado pode ser lido de dois jeitos. Por isso o
+padrão continua sendo `mock`, que é o provedor sobre o qual o argumento de
+reprodutibilidade do trabalho se apoia, e por isso a ressalva mostrada ao
+usuário passou a dizer isso com todas as letras em vez de apenas omitir o aviso
+de "simulado". O que não varia é o cálculo — ele não passa por aqui.
+
+**Como se sabe que passa.** Os testes roteiram a resposta do modelo em vez de
+chamar a rede, e cobrem o caso hostil: uma conversão *correta* (300 °C → 573,15 K)
+continua recusada, uma expressão inventada é descartada pelo catálogo, e a
+explicação que cita cifra não calculada derruba a resposta inteira. O teste mais
+afiado devolve o próprio bloco de dados do prompt como prosa: se algo que o
+modelo vê não puder ser citado, o guardrail dispara sobre um texto que obedeceu.
+
+Além dos testes, as duas rotas foram exercidas ao vivo pelo `claude-cli` contra o
+catálogo semeado: o enunciado com "300 °C" e "3 g/cm3" saiu com os dois números
+copiados na unidade escrita, nenhuma recusa; e "no mínimo 300", sem unidade,
+saiu como pergunta aberta e nenhuma restrição — a regra 4 obedecida por um
+modelo que nunca a viu no código. O `claude-api` foi verificado apenas contra um
+cliente falso: não há chave de API neste ambiente.

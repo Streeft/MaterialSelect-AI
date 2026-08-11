@@ -124,7 +124,12 @@ export function AIAssistPanel({ onApply }: AIAssistPanelProps) {
           <div className="flex flex-wrap gap-1.5">
             <Badge tone="info">{t.optionalBadge}</Badge>
             <Badge tone="info">{t.reviewBadge}</Badge>
-            {status.data?.simulated && <Badge tone="warning">{t.simulatedBadge}</Badge>}
+            {status.data?.enabled &&
+              (status.data.simulated ? (
+                <Badge tone="warning">{t.simulatedBadge}</Badge>
+              ) : (
+                <Badge tone="warning">{t.modelBadge(status.data.provider)}</Badge>
+              ))}
           </div>
         }
       />

@@ -23,6 +23,12 @@ dev = [
     "ruff>=0.5",
     "black>=24.4",
 ]
+# The AI layer is optional and so is its dependency: `mock` and `claude-cli`
+# need nothing from here, and the deterministic product needs nothing at all.
+# Only AI_PROVIDER=claude-api talks to the Anthropic SDK.
+ai = [
+    "anthropic>=0.69",
+]
 
 [build-system]
 requires = ["setuptools>=68"]

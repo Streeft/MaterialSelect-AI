@@ -294,6 +294,14 @@ def _result_context(study, result) -> ResultContext:
         study.index_expression or "",
         result.index.dimension if result.index else "",
         *[c.label or "" for c in study.constraints],
+        # Material names are pipeline output as much as any label is: writing
+        # "Aço AISI 1020 lidera" quotes the catalogue, it does not invent 1020.
+        # Without this, naming the winner would be enough to have a whole
+        # explanation discarded the moment the catalogue holds a real alloy
+        # designation.
+        *[name for name, _, _ in ranked],
+        *[name for name, _ in excluded],
+        *[label for _, labels in excluded for label in labels],
     ]:
         numbers.update(numbers_in(text))
 

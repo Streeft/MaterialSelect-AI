@@ -16,6 +16,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 
 from app.ai.guardrails import Catalogue
+from app.config import Settings
 
 
 class AIUnavailableError(RuntimeError):
@@ -105,6 +106,17 @@ class AIProvider(ABC):
     name: str = "abstract"
     #: True when no external service is involved.
     simulated: bool = True
+
+    @classmethod
+    def from_settings(cls, settings: Settings) -> AIProvider:
+        """Build the provider for a configuration.
+
+        The default ignores it, which is what a provider that needs no
+        credential, no model name and no timeout should do. Overriding this is
+        the only place configuration is allowed to reach a provider: the
+        interface below still receives nothing but the catalogue and the text.
+        """
+        return cls()
 
     @abstractmethod
     def interpret(self, context: ProblemContext) -> dict:

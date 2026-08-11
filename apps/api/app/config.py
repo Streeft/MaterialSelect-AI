@@ -41,14 +41,27 @@ class Settings(BaseSettings):
     max_import_rows: int = 5000
 
     # --- AI layer (optional) ----------------------------------------------
-    # "" disables the layer entirely; "mock" runs the deterministic simulated
-    # provider, which needs no key and no network. A real provider would be
-    # added here as a third value. The product is fully usable with the layer
-    # off — nothing numeric depends on it.
+    # "" disables the layer entirely. Three providers exist:
+    #   mock       deterministic rules, offline, no key (the default, and the
+    #              only one the reproducibility argument can rest on);
+    #   claude-api Claude through the Anthropic Messages API, with your own key;
+    #   claude-cli Claude through the Claude Code CLI installed on the machine,
+    #              signed in as it already is — no API key needed.
+    # The product is fully usable with the layer off: nothing numeric depends
+    # on it.
     ai_provider: str = "mock"
+    # Only for claude-api, and optional even there: left empty, the SDK reads
+    # ANTHROPIC_API_KEY itself and the key never passes through settings.
     ai_api_key: str = ""
-    ai_model: str = ""
-    ai_timeout_seconds: float = 20.0
+    ai_model: str = "claude-opus-5"
+    # Both real providers are slower than a local rule: the CLI has a process to
+    # start before it has a model to ask.
+    ai_timeout_seconds: float = 90.0
+    # Ceiling for one answer, thinking and text together. These replies are
+    # small; the limit exists so a runaway one fails fast and says why.
+    ai_max_output_tokens: int = 16000
+    # Executable for claude-cli, resolved on PATH.
+    ai_cli_command: str = "claude"
 
     @property
     def ai_enabled(self) -> bool:

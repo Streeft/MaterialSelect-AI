@@ -51,6 +51,13 @@ Ela interpreta, sugere e explica. Ao mexer em `app/ai/`, não afrouxe:
 O provedor recebe só o catálogo e o texto. Nunca lhe passe uma sessão de banco
 nem o avaliador de expressões.
 
+Com provedor real (`claude-api`, `claude-cli`), duas coisas não são negociáveis
+e já estão estruturadas em `app/ai/claude_base.py` ([D-35](DECISIONS.md)): o
+modelo escolhe um índice **pelo slug** e a expressão vem do catálogo depois — não
+peça esse campo ao modelo; e as ressalvas da explicação vivem em
+`app/ai/caveats.py`, fora do esquema enviado. O padrão continua `mock`, o único
+determinístico.
+
 ### 1.6 Nenhum `eval`/`exec`
 Expressões passam por `ast.parse` + whitelist + interpretador manual em
 `app/calculations/expressions.py`.
@@ -178,7 +185,7 @@ obrigatórios no GitHub (seção 7).
 |---|---|---|
 | `DATABASE_URL` | `sqlite:///./materialselect.db` | Banco. |
 | `CORS_ORIGINS` | `http://localhost:3000` | Origens permitidas. |
-| `AI_PROVIDER` | `mock` | `""` desliga a camada de IA por completo. |
+| `AI_PROVIDER` | `mock` | `""` desliga a camada de IA por completo; `claude-api` ou `claude-cli` ligam o Claude ([09](09-camada-ia.md)). |
 | `NEXT_PUBLIC_API_URL` | `http://localhost:8000` | URL da API no frontend. |
 
 ---
