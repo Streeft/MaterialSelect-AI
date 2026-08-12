@@ -397,6 +397,11 @@ export const ptBR = {
     catalogue: "Exportar catálogo",
     study: "Exportar relatório",
     hint: "O relatório traz restrições, funil, índice, ranking, excluídos por dado ausente, sensibilidade e a proveniência de cada número — com o aviso de limitação exigido.",
+    laudoTitle: "Laudo de engenharia",
+    laudoButton: "Gerar laudo",
+    laudoHint: "Documento único, distinto do relatório: gráfico de ranqueamento, as mesmas tabelas de auditoria e, se a camada de IA estiver ligada, uma interpretação técnica.",
+    laudoResponsibleLabel: "Responsável técnico (opcional)",
+    laudoResponsiblePlaceholder: "Nome de quem assina a leitura",
   },
   catalog: {
     title: "Catálogo de materiais",

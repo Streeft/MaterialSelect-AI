@@ -23,7 +23,7 @@ import re
 import unicodedata
 from urllib.parse import quote
 
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy.orm import Session
 
 from app.db.base import get_db
@@ -93,6 +93,22 @@ def export_study(study_id: int, fmt: str, db: Session = Depends(get_db)) -> Resp
     """
     _require_supported(fmt)
     return _file_response(ExportService(db).study_report(study_id), fmt)
+
+
+@router.get("/estudos/{study_id}/laudo.html")
+def export_study_laudo(
+    study_id: int,
+    responsavel: str | None = Query(default=None, max_length=160),
+    db: Session = Depends(get_db),
+) -> Response:
+    """The engineering report: a document distinct from the selection report,
+    combining a ranking figure, the same audit tables, and — when the AI
+    layer is on — an interpretive narrative. HTML-only, like the printable
+    report it is built alongside: there is no spreadsheet shape for a figure
+    or a paragraph.
+    """
+    report = ExportService(db).study_laudo(study_id, responsible=responsavel)
+    return _file_response(report, "html")
 
 
 def _require_supported(fmt: str) -> None:

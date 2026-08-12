@@ -346,3 +346,15 @@ export function catalogueExportUrl(format: ExportFormat): string {
 export function studyExportUrl(studyId: number, format: ExportFormat): string {
   return `${API_URL}/api/exports/estudos/${studyId}.${format}`;
 }
+
+/**
+ * The engineering report (laudo): a document distinct from the selection
+ * report, combining a ranking figure, the same audit tables, and — when the
+ * AI layer is on — an interpretive narrative. HTML-only, and always opens
+ * inline, like the printable report it is built alongside.
+ */
+export function studyLaudoUrl(studyId: number, responsible?: string): string {
+  const trimmed = responsible?.trim();
+  const query = trimmed ? `?${new URLSearchParams({ responsavel: trimmed })}` : "";
+  return `${API_URL}/api/exports/estudos/${studyId}/laudo.html${query}`;
+}

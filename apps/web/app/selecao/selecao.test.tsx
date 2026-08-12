@@ -30,6 +30,7 @@ vi.mock("@/lib/api", () => ({
   explainStudy: () => Promise.resolve(null),
   opensInBrowser: () => true,
   studyExportUrl: () => "#",
+  studyLaudoUrl: () => "#",
 }));
 
 const searchParams = new URLSearchParams();
