@@ -690,3 +690,75 @@ export interface Explanation {
   simulated: boolean;
   disclaimer: string;
 }
+
+// --- Dashboard ---------------------------------------------------------
+//
+// The panel's vocabulary is three-valued where `DataQuality` above is not:
+// a (material, property) slot is filled, declared missing, or never recorded.
+// `QualityBucket` carries the last two states that `DataQuality` alone cannot
+// name — see apps/api/app/schemas/dashboard.py for why they stay apart.
+
+export type QualityBucket = DataQuality | "AUSENTE" | "NAO_REGISTRADO";
+
+export interface Coverage {
+  filled: number;
+  declared_missing: number;
+  not_recorded: number;
+  slots: number;
+  /** `null`, never `0`: an empty set of slots has no percentage to report. */
+  filled_pct: number | null;
+}
+
+export interface ClassCoverage {
+  slug: string;
+  name: string;
+  materials: number;
+  coverage: Coverage;
+}
+
+export interface PropertyCoverage {
+  slug: string;
+  name: string;
+  category: PropertyCategory;
+  canonical_unit: string | null;
+  coverage: Coverage;
+}
+
+export interface QualitySlice {
+  bucket: QualityBucket;
+  count: number;
+  share_pct: number | null;
+}
+
+export interface DashboardOverview {
+  materials: number;
+  demo_materials: number;
+  classes: number;
+  properties: number;
+  coverage: Coverage;
+  by_quality: QualitySlice[];
+  by_class: ClassCoverage[];
+  by_property: PropertyCoverage[];
+  gaps: PropertyCoverage[];
+}
+
+export interface DistributionBox {
+  class_slug: string;
+  class_name: string;
+  count: number;
+  minimum: number;
+  q1: number;
+  median: number;
+  q3: number;
+  maximum: number;
+}
+
+export interface PropertyDistribution {
+  property_slug: string;
+  property_name: string;
+  category: PropertyCategory;
+  canonical_unit: string | null;
+  allows_log_scale: boolean;
+  boxes: DistributionBox[];
+  classes_without_data: string[];
+}

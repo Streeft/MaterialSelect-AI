@@ -7,6 +7,7 @@ import type {
   CommitResult,
   Comparison,
   ComparisonRequest,
+  DashboardOverview,
   Explanation,
   Interpretation,
   ImportJobOut,
@@ -22,6 +23,7 @@ import type {
   PerformanceIndex,
   PropertyDefinition,
   PropertyDefinitionIn,
+  PropertyDistribution,
   PropertyMap,
   PropertyMapRequest,
   PropertyValueIn,
@@ -288,6 +290,18 @@ export function getComparison(payload: ComparisonRequest): Promise<Comparison> {
     method: "POST",
     body: JSON.stringify(payload),
   });
+}
+
+// --- Dashboard ---------------------------------------------------------------
+
+export function getDashboardOverview(): Promise<DashboardOverview> {
+  return request<DashboardOverview>(`/api/dashboard/overview`);
+}
+
+export function getDashboardDistribution(propertySlug: string): Promise<PropertyDistribution> {
+  return request<PropertyDistribution>(
+    `/api/dashboard/distribution/${encodeURIComponent(propertySlug)}`,
+  );
 }
 
 // --- Optional AI layer ------------------------------------------------------

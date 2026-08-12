@@ -23,6 +23,7 @@ from app.routers import (
     ai,
     charts,
     classes,
+    dashboard,
     exports,
     health,
     imports,
@@ -103,6 +104,7 @@ app.include_router(imports.templates_router, prefix="/api")
 app.include_router(selection.router, prefix="/api")
 app.include_router(selection.indices_router, prefix="/api")
 app.include_router(charts.router, prefix="/api")
+app.include_router(dashboard.router, prefix="/api")
 app.include_router(ai.router, prefix="/api")
 app.include_router(exports.router, prefix="/api")
 

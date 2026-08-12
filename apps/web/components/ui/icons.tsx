@@ -239,6 +239,13 @@ export const IconPanelLeft = (p: IconProps) => (
   </Svg>
 );
 
+/** Painel — three bars of uneven height, the shape a coverage bar chart makes. */
+export const IconGauge = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M4 20.5V13M12 20.5V4.5M20 20.5v-9" strokeWidth={2.25} />
+  </Svg>
+);
+
 // --- Data-quality marks -----------------------------------------------------
 // One glyph per state, distinguishable in monochrome and at 12 px. These carry
 // the distinction when colour cannot: print, colour-vision deficiency, or a
