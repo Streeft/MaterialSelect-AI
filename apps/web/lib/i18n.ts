@@ -12,6 +12,7 @@ export const ptBR = {
     selection: "Seleção",
     maps: "Mapas",
     compare: "Comparar",
+    dashboard: "Painel",
     imports: "Importar",
     classes: "Classes",
     properties: "Propriedades",
@@ -547,6 +548,60 @@ export const ptBR = {
     levelsHint: "Cada nível traçado vira uma reta paralela; o lado favorável é contado abaixo.",
     figure: "Mapa de Ashby",
   },
+  dashboard: {
+    title: "Painel do catálogo",
+    subtitle:
+      "Quanto do catálogo está preenchido, com que qualidade, e como cada propriedade se distribui entre as classes.",
+    loading: "Carregando o painel…",
+    error: "Não foi possível carregar o painel.",
+    empty: "Nenhum material cadastrado ainda.",
+    materials: "Materiais ativos",
+    demoNote: (n: number) => `${n} de demonstração`,
+    classes: "Classes",
+    properties: "Propriedades",
+    overallCoverage: "Cobertura geral",
+    coverageOf: (filled: number, slots: number) => `${filled} de ${slots} pares preenchidos`,
+    coverageEmpty: "Sem pares material×propriedade para cobrir.",
+    // A composição por qualidade.
+    qualityMixTitle: "Composição por qualidade do dado",
+    qualityMixHint: "Todo par material×propriedade do catálogo, num só lugar.",
+    qualityMixFigure: "Composição por qualidade do dado",
+    columnBucket: "Estado",
+    columnCount: "Quantidade",
+    columnShare: "Participação",
+    // A cobertura por classe.
+    classCoverageTitle: "Cobertura por classe",
+    classCoverageHint: "Percentual de pares preenchidos, por classe de material.",
+    classCoverageFigure: "Cobertura por classe",
+    columnClass: "Classe",
+    columnMaterials: "Materiais",
+    columnCoverage: "Cobertura",
+    filled: "Preenchido",
+    declaredMissing: "Declarado ausente",
+    notRecorded: "Não registrado",
+    // As lacunas.
+    gapsTitle: "Propriedades menos preenchidas",
+    gapsHint: "As propriedades com menor cobertura no catálogo — por onde começar a preencher.",
+    gapsEmpty: "Nenhuma propriedade cadastrada ainda.",
+    // A distribuição por propriedade.
+    distributionTitle: "Distribuição por propriedade",
+    distributionSubtitle:
+      "Mínimo, quartis, mediana e máximo de cada classe, calculados no backend (ADR 0004).",
+    property: "Propriedade",
+    scale: "Escala",
+    linear: "Linear",
+    log: "Logarítmica",
+    logDisabled: "Esta propriedade admite valores não positivos; a escala log não se aplica.",
+    distributionEmpty: "Nenhuma classe tem valores registrados para esta propriedade.",
+    distributionFigure: (name: string) => `Distribuição — ${name}`,
+    classesWithoutData: "Classes sem dados desta propriedade",
+    columnCountBox: "Materiais",
+    columnMin: "Mínimo",
+    columnQ1: "Q1",
+    columnMedian: "Mediana",
+    columnQ3: "Q3",
+    columnMax: "Máximo",
+  },
   compare: {
     title: "Comparador de materiais",
     subtitle:
@@ -605,12 +660,17 @@ export const ptBR = {
     // has to show it, and showing it as an empty cell is what the project's
     // third principle forbids.
     AUSENTE: "Ausente",
+    // A quinta coisa que o painel precisa nomear e o resto da interface não:
+    // nenhuma linha existe para este par material×propriedade. Diferente de
+    // AUSENTE, que é uma declaração — alguém procurou e não achou.
+    NAO_REGISTRADO: "Não registrado",
   },
   qualityHint: {
     MEDIDO: "Medido diretamente, com a condição de ensaio registrada.",
     IMPORTADO: "Veio de um conjunto de dados externo, com a fonte registrada.",
     ESTIMADO: "Inferido, não medido. Confira antes de decidir com base nele.",
     AUSENTE: "Nenhum valor cadastrado. O sistema não preenche a lacuna.",
+    NAO_REGISTRADO: "Nenhum registro para este par — ninguém preencheu ainda.",
   },
 
   ui: {

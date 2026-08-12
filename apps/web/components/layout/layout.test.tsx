@@ -145,7 +145,7 @@ describe("AppSidebar", () => {
       expect(trigger).toHaveAttribute("aria-expanded", "false");
     });
 
-    it("carries the same eight destinations as the rail", async () => {
+    it("carries the same nine destinations as the rail", async () => {
       const user = userEvent.setup();
       render(<AppSidebar />);
       await user.click(screen.getByRole("button", { name: ptBR.ui.openMenu }));
@@ -154,7 +154,7 @@ describe("AppSidebar", () => {
       for (const group of [ptBR.nav.groupStudy, ptBR.nav.groupData, ptBR.nav.groupAdmin]) {
         expect(within(drawer).getByRole("list", { name: group })).toBeInTheDocument();
       }
-      expect(within(drawer).getAllByRole("link")).toHaveLength(9); // 8 + o wordmark
+      expect(within(drawer).getAllByRole("link")).toHaveLength(10); // 9 + o wordmark
     });
 
     it("marks the current page inside the drawer too", async () => {

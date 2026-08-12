@@ -12,6 +12,7 @@ import {
   IconClose,
   IconCompare,
   IconFilter,
+  IconGauge,
   IconHome,
   IconLayers,
   IconMenu,
@@ -64,6 +65,7 @@ const GROUPS: NavGroup[] = [
     label: t.groupData,
     items: [
       { href: "/catalogo", label: t.catalog, icon: IconBook },
+      { href: "/painel", label: t.dashboard, icon: IconGauge },
       { href: "/importar", label: t.imports, icon: IconUpload },
     ],
   },

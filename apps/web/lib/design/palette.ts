@@ -123,6 +123,10 @@ const FALLBACK: Record<ResolvedTheme, Record<string, string>> = {
     "--ink-subtle": "95 99 104",
     "--accent": "21 101 192",
     "--danger": "217 48 37",
+    "--quality-medido": "14 107 99",
+    "--quality-importado": "106 27 154",
+    "--quality-estimado": "146 64 14",
+    "--quality-ausente": "95 99 104",
   },
   dark: {
     "--surface": "19 19 20",
@@ -134,6 +138,10 @@ const FALLBACK: Record<ResolvedTheme, Record<string, string>> = {
     "--ink-subtle": "154 160 166",
     "--accent": "138 180 248",
     "--danger": "242 139 130",
+    "--quality-medido": "94 234 212",
+    "--quality-importado": "206 147 216",
+    "--quality-estimado": "252 211 77",
+    "--quality-ausente": "196 199 197",
   },
 };
 
@@ -151,6 +159,30 @@ export function token(name: string, alpha = 1, theme: ResolvedTheme = "light"): 
     if (read) triple = read;
   }
   return alpha === 1 ? `rgb(${triple})` : `rgb(${triple} / ${alpha})`;
+}
+
+/**
+ * The dashboard's five-bucket vocabulary, as a colour.
+ *
+ * Four buckets reuse the same tokens `DataQualityBadge` paints with, so a
+ * segment in the panel's chart and the badge on a material sheet cannot
+ * disagree about what "estimado" looks like. `NAO_REGISTRADO` is not a quality
+ * at all — it is a slot with no row behind it — so it borrows `--edge-strong`,
+ * a neutral already used for structure rather than for data, instead of a
+ * sixth quality token invented just for this one chart.
+ */
+export function qualityBucketColor(
+  bucket: "MEDIDO" | "IMPORTADO" | "ESTIMADO" | "AUSENTE" | "NAO_REGISTRADO",
+  theme: ResolvedTheme,
+): string {
+  const names: Record<typeof bucket, string> = {
+    MEDIDO: "--quality-medido",
+    IMPORTADO: "--quality-importado",
+    ESTIMADO: "--quality-estimado",
+    AUSENTE: "--quality-ausente",
+    NAO_REGISTRADO: "--edge-strong",
+  };
+  return token(names[bucket], 1, theme);
 }
 
 /** Everything a figure needs from the theme, read once per render. */
