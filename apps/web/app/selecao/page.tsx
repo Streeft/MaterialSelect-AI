@@ -67,6 +67,7 @@ import { ResultsView } from "@/components/selection/ResultsView";
 import { AIAssistPanel, type AcceptedSuggestions } from "@/components/ai/AIAssistPanel";
 import { StudyExplanation } from "@/components/ai/StudyExplanation";
 import { ExportButtons } from "@/components/ExportButtons";
+import { EngineeringReportLink } from "@/components/EngineeringReportLink";
 
 const t = ptBR.selection;
 type Step = "function" | "constraints" | "objective" | "results";
@@ -784,6 +785,9 @@ function SelectionWizard() {
                           urlFor={(format) => studyExportUrl(s.id, format)}
                           label={ptBR.exports.study}
                         />
+                      </div>
+                      <div className="mt-2">
+                        <EngineeringReportLink studyId={s.id} />
                       </div>
                       <StudyExplanation studyId={s.id} />
                     </Td>

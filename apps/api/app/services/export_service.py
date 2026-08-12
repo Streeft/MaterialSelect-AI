@@ -13,12 +13,15 @@ someone else can check.
 
 from __future__ import annotations
 
-from app.domain.errors import NotFoundError
+from app.ai.provider import AIUnavailableError
+from app.domain.errors import NotFoundError, ValidationError
 from app.exporters.cells import format_number
+from app.exporters.figures import Bar, BarFigure, render_bars
 from app.exporters.report import Report, Sheet, standard_notices
 from app.repositories.chart_repository import ChartRepository
 from app.repositories.selection_repository import SelectionRepository
 from app.schemas.selection import RunResultOut
+from app.services.ai_service import AIService
 from app.services.selection_service import INDEX_KEY, SelectionService
 
 _MISSING = "ausente"
@@ -34,7 +37,12 @@ class ExportService:
 
     # --- selection study --------------------------------------------------
 
-    def study_report(self, study_id: int) -> Report:
+    def _run(self, study_id: int):
+        """Re-run the study and load the materials its candidates named.
+
+        Shared by the selection report and the laudo, so both describe the
+        same execution of the deterministic pipeline rather than two.
+        """
         study = self.selection_repo.get_study(study_id)
         if study is None:
             raise NotFoundError(f"Estudo não encontrado: {study_id}")
@@ -44,7 +52,9 @@ class ExportService:
         materials = {
             m.id: m for m in self.chart_repo.list_materials(material_ids=candidate_ids or [-1])
         }
+        return study, result, materials
 
+    def _sheets(self, study, result: RunResultOut, materials: dict) -> list[Sheet]:
         sheets = [
             self._problem_sheet(study, result),
             self._funnel_sheet(result),
@@ -57,13 +67,79 @@ class ExportService:
             sheets.append(self._excluded_sheet(result))
             sheets.append(self._sensitivity_sheet(result))
         sheets.append(self._provenance_sheet(study, result, materials))
+        return sheets
 
+    def study_report(self, study_id: int) -> Report:
+        study, result, materials = self._run(study_id)
         return Report(
             title=f"Relatório de seleção — {study.name}",
             subtitle=study.description or "",
             notices=standard_notices(includes_demo_data=any(m.is_demo for m in materials.values())),
-            sheets=sheets,
+            sheets=self._sheets(study, result, materials),
         )
+
+    def study_laudo(self, study_id: int, *, responsible: str | None = None) -> Report:
+        """The engineering report: the selection report plus a figure and,
+        when the AI layer is on, an interpretive narrative.
+
+        A document distinct from ``study_report`` on purpose — it is meant to
+        be attached on its own, not read as a reduced version of the
+        spreadsheet-oriented tables.
+        """
+        study, result, materials = self._run(study_id)
+        narrative, caveats, note = self._narrative(study_id)
+        return Report(
+            title=f"Laudo de engenharia — {study.name}",
+            subtitle=study.description or "",
+            notices=standard_notices(includes_demo_data=any(m.is_demo for m in materials.values())),
+            sheets=self._sheets(study, result, materials),
+            responsible=(responsible or "").strip() or None,
+            figure=self._ranking_figure(result),
+            narrative=narrative,
+            narrative_caveats=caveats,
+            narrative_note=note,
+        )
+
+    @staticmethod
+    def _ranking_figure(result: RunResultOut) -> str | None:
+        """A bar chart of the ranked candidates — omitted when no one ranked.
+
+        Built from ``result.ranking`` rather than from the index/property
+        pair, so it draws for every study regardless of how many variables
+        the index expression involves.
+        """
+        if result.ranking is None or not result.ranking.ranked:
+            return None
+        ranked = sorted(result.ranking.ranked, key=lambda r: r.rank)
+        bars = [Bar(label=r.name, value=r.score, highlighted=r.rank == 1) for r in ranked]
+        return render_bars(
+            BarFigure(
+                title="Candidatos ranqueados",
+                value_label="Pontuação (normalizada)",
+                bars=bars,
+                caption=("Pontuação após normalização e ponderação dos critérios do estudo."),
+                description=(
+                    "Gráfico de barras com a pontuação de cada candidato ranqueado, "
+                    "do maior para o menor."
+                ),
+            )
+        )
+
+    def _narrative(self, study_id: int) -> tuple[list[str] | None, list[str] | None, str | None]:
+        """Ask the AI layer to write about this same run, or say why it can't.
+
+        The layer is optional everywhere else in the project, and the laudo
+        keeps that: a provider that is off, misconfigured, or momentarily
+        unreachable degrades this one section instead of failing the whole
+        document.
+        """
+        try:
+            explanation = AIService(self.db).explain(study_id)
+        except (ValidationError, AIUnavailableError) as exc:
+            return None, None, f"Interpretação por IA não disponível: {exc}"
+
+        paragraphs = [explanation.summary, *explanation.paragraphs]
+        return paragraphs, explanation.caveats, explanation.disclaimer
 
     @staticmethod
     def _problem_sheet(study, result: RunResultOut) -> Sheet:
