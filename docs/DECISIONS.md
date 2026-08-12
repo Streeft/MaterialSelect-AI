@@ -1219,3 +1219,92 @@ percentuais por classe, ranking de lacunas, quartis do box-plot em pt-BR), a
 alternância linear/log de fato trocando `yaxis.type`, e o estouro de 375 px
 acima — encontrado e corrigido nesta mesma verificação, não pelos testes de
 unidade, que não exercitam largura de viewport real.
+
+---
+
+## D-40 — Um eixo do mapa pode ser um índice, não só uma propriedade — e as duas linhas de índice (overlay e eixo) são mutuamente exclusivas
+
+**11/08/2026.** Quinta das seis frentes da Fase 9: os mapas personalizáveis.
+"Personalizável" tinha quatro leituras possíveis e nenhuma delas estava
+escrita em lugar nenhum — mapa compartilhável por URL, presets nomeados, um
+eixo virar índice, ou outra coisa. Perguntado, o autor escolheu a terceira: um
+eixo (X ou Y) passa a poder ser uma propriedade cadastrada *ou* um índice de
+desempenho — do catálogo ou expressão personalizada — e não só a linha de
+índice que já existia sobre dois eixos de propriedade.
+
+**Backend: o mesmo caminho de avaliação, três consumidores.**
+`evaluate_index()` (`app/calculations/performance.py`) já era a única rota
+para o valor de um índice — usada pela seleção e pela linha sobreposta. Um
+eixo-índice passou a ser o terceiro consumidor, sem duplicar a lógica: novo
+`ChartService._resolve_axis()` devolve `(metadata, rótulo, getter)` tanto para
+uma propriedade quanto para um índice, e o loop por material que monta
+`MapPointOut` não sabe qual dos dois está por trás do getter. A garantia do
+D-35 — um estudo salvo e um gráfico têm de concordar sobre o valor de um
+índice para um material — se estende de graça: `_material_variables()` é o
+mesmo snapshot do catálogo usado tanto pela avaliação do eixo-índice quanto
+pela linha sobreposta, calculado uma vez por requisição.
+
+**Overlay e eixo-índice são incompatíveis por desenho, não por acidente.** A
+linha de índice sobreposta (`index` do request) só existe traçada sobre dois
+eixos de *propriedade* — a inclinação log-log parte de duas dimensões
+conhecidas do catálogo, e um eixo que já é ele mesmo um índice não tem essa
+dimensão fixa para a reta atravessar. `ChartService.property_map` rejeita a
+combinação com um `ValidationError` explícito em vez de tentar desenhar uma
+linha sem sentido; o frontend replica a regra antes da requisição (esconde o
+grupo "Linha de índice" e mostra o motivo, em vez de deixar o usuário
+descobrir pelo erro 422).
+
+**Ausência continua sem virar zero, agora também para uma variável que falta
+numa expressão.** Um material sem `dureza`, por exemplo, é excluído do mapa
+com um motivo nomeado pelo rótulo do eixo — "Sem valor para: Rigidez
+específica." — em vez de cair do gráfico em silêncio ou entrar como zero. É a
+regra 1.3 aplicada ao mesmo lugar de sempre (`ExcludedPointOut`), só que agora
+a causa pode ser uma variável de expressão, não só uma propriedade ausente.
+
+**Qualidade de dado deixa de fazer sentido para um eixo-índice, e o schema diz
+isso em vez de inventar um valor.** `MapPointOut.x_quality`/`y_quality` viraram
+opcionais: um índice é derivado de várias propriedades, cada uma com sua
+própria proveniência, e atribuir uma quality única ao eixo inventaria um fato
+que o catálogo nunca declarou. `AshbyMap.tsx` omite o selo e o trecho da
+qualidade no hover quando é `null` — não um selo com valor forçado, e não
+`AUSENTE` (que já significa outra coisa: um dado que existe na tabela e foi
+declarado como faltante). O mesmo raciocínio vale para `property_slug`/
+`category` em `MapAxisOut`, que só existem num eixo de propriedade; `is_index`
+é o campo que um leitor deve checar primeiro, porque nenhum dos dois pares
+sozinho desambigua "isto é um índice" de "esta propriedade genuinamente não
+tem categoria".
+
+**Compatibilidade retroativa por desenho do schema, não por acaso.** `x`/`y`
+viraram `str | None` e ganharam os irmãos `x_index`/`y_index: IndexIn | None`,
+em vez de um tipo de união que quebraria todo payload existente. A validação
+"exatamente um dos dois, nunca os dois, nunca nenhum" mora no serviço
+(`ChartService.property_map`), não num `model_validator` do Pydantic — o
+projeto já não usa `model_validator` em nenhum schema, e esta decisão manteve
+o padrão em vez de abrir uma exceção. Resultado prático: os 48 testes
+pré-existentes de `test_charts_api.py` passaram sem alteração depois do
+refactor.
+
+**Frontend: cada eixo ganha seu próprio estado de "propriedade ou índice", sem
+herdar o `IndexPicker` de cartões do overlay.** O seletor de eixo usa um
+`<select>` compacto (predefinido ou "Expressão personalizada") em vez da grade
+de cartões do overlay — o overlay é uma decisão exploratória que já ocupava
+uma seção inteira; replicá-la duas vezes ao lado dos outros dez controles do
+mapa teria custado a legibilidade que D-39 acabou de consertar. O `IndexCard`
+com as condições de validade continua aparecendo assim que um índice é
+escolhido — a garantia de "nenhum índice é caixa-preta" não muda pela via de
+entrada.
+
+**Como se sabe que passa.** Backend: `black --check`, `ruff check` e `pytest`
+verdes (541 testes — 10 novos em `TestIndexAxis`, cobrindo valor correto,
+qualidade/bounds nulos em eixo-índice, nome derivado da expressão quando o
+índice é anônimo, direção derivada do objetivo, os dois eixos como índice ao
+mesmo tempo, exclusão por material com rótulo do eixo, e as quatro
+combinações rejeitadas). Frontend: `typecheck`, `lint`, 138 testes e `build`
+verdes. Verificação ao vivo no navegador (por DOM, não por captura — mesma
+ressalva desta máquina): eixo X trocado para "Rigidez específica" plotou 5/5
+materiais com o eixo lendo o valor computado e sem selo de qualidade na
+coluna do índice; os dois eixos como o mesmo índice mostrou a mensagem de
+conflito sem disparar requisição; os dois eixos como índices diferentes
+plotou 2/5 materiais com os três ausentes listados por "Sem valor para:
+Resistência específica." — a mesma frase do rótulo do eixo, não um texto
+genérico.
