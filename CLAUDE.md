@@ -203,14 +203,17 @@ repaginação mais colorida e arredondada, dashboards interativos, mapas
 personalizáveis, laudo de engenharia completo). Entregues até aqui: o provedor
 `openai-compat` (D-36), o renderizador de figuras SVG do backend
 (`app/exporters/figures.py`), a barra lateral (D-37), a repaginação — paleta,
-forma e movimento (D-38) — e o painel de indicadores em `/painel` (D-39):
+forma e movimento (D-38) —, o painel de indicadores em `/painel` (D-39):
 cobertura geral, composição por tipo de evidência, cobertura por classe,
 ranking de lacunas e distribuição por propriedade com box-plot, tudo sobre
-quartis e percentuais computados no backend (ADR 0004). Faltam os mapas
-personalizáveis e a montagem do laudo. **As figuras da monografia que são
-capturas de `/estilo` precisam ser refeitas depois de D-38.**
+quartis e percentuais computados no backend (ADR 0004); e os mapas
+personalizáveis (D-40): um eixo do mapa em `/mapas` agora pode ser um índice de
+desempenho — do catálogo ou expressão personalizada —, não só uma propriedade
+cadastrada, com a linha de índice sobreposta e o eixo-índice mutuamente
+exclusivos por desenho. Falta a montagem do laudo. **As figuras da monografia
+que são capturas de `/estilo` precisam ser refeitas depois de D-38.**
 
-531 testes de backend e 138 de frontend, todos verdes. CI no GitHub Actions roda
+541 testes de backend e 138 de frontend, todos verdes. CI no GitHub Actions roda
 em todo PR e push para `main`.
 
 **Estado detalhado, decisões, backlog e histórico da última sessão estão em
