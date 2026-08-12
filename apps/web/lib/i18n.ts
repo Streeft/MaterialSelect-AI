@@ -493,6 +493,14 @@ export const ptBR = {
       "Mapa de Ashby: dois eixos, envelopes por classe e linhas de índice com inclinação calculada no backend.",
     axisX: "Eixo X",
     axisY: "Eixo Y",
+    axisTypeProperty: "Propriedade",
+    axisTypeIndex: "Índice",
+    axisIndexChoose: "Selecione um índice",
+    axisIndexHint:
+      "Um eixo em índice mostra um valor calculado — do catálogo ou uma expressão sua — em vez de uma propriedade cadastrada.",
+    sameExpressionAxis: "Escolha duas expressões diferentes para os eixos.",
+    indexAxisConflict:
+      "A linha de índice sobreposta exige dois eixos de propriedade; ela some enquanto um eixo for um índice.",
     scale: "Escala",
     linear: "Linear",
     log: "Logarítmica",

@@ -131,8 +131,10 @@ const indices: PerformanceIndex[] = [
 const propertyMap: PropertyMap = {
   scale: "log",
   x_axis: {
+    is_index: false,
     property_slug: "densidade",
     property_name: "Densidade",
+    expression: null,
     symbol: "ρ",
     unit: "kg/m**3",
     category: "FISICA",
@@ -142,8 +144,10 @@ const propertyMap: PropertyMap = {
     max_value: 7850,
   },
   y_axis: {
+    is_index: false,
     property_slug: "modulo_young",
     property_name: "Módulo de Young",
+    expression: null,
     symbol: "E",
     unit: "Pa",
     category: "MECANICA",
