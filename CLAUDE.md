@@ -198,22 +198,29 @@ A camada de IA da Fase 6 ganhou provedores reais (`claude-api`, `claude-cli`,
 `openai-compat`) sem que serviço, guardrails ou interface mudassem — a
 demonstração de que a camada é mesmo opcional e substituível.
 
-**Fase 9 em curso** — o pedido tem seis frentes (IA gratuita, sidebar,
+**Fase 9 concluída** — o pedido tinha seis frentes (IA gratuita, sidebar,
 repaginação mais colorida e arredondada, dashboards interativos, mapas
-personalizáveis, laudo de engenharia completo). Entregues até aqui: o provedor
-`openai-compat` (D-36), o renderizador de figuras SVG do backend
+personalizáveis, laudo de engenharia completo), e as seis foram entregues: o
+provedor `openai-compat` (D-36), o renderizador de figuras SVG do backend
 (`app/exporters/figures.py`), a barra lateral (D-37), a repaginação — paleta,
 forma e movimento (D-38) —, o painel de indicadores em `/painel` (D-39):
 cobertura geral, composição por tipo de evidência, cobertura por classe,
 ranking de lacunas e distribuição por propriedade com box-plot, tudo sobre
-quartis e percentuais computados no backend (ADR 0004); e os mapas
+quartis e percentuais computados no backend (ADR 0004); os mapas
 personalizáveis (D-40): um eixo do mapa em `/mapas` agora pode ser um índice de
 desempenho — do catálogo ou expressão personalizada —, não só uma propriedade
 cadastrada, com a linha de índice sobreposta e o eixo-índice mutuamente
-exclusivos por desenho. Falta a montagem do laudo. **As figuras da monografia
-que são capturas de `/estilo` precisam ser refeitas depois de D-38.**
+exclusivos por desenho; e o laudo de engenharia (D-41):
+`GET /api/exports/estudos/{id}/laudo.html`, um documento distinto do
+relatório de seleção da Fase 7 — a mesma reexecução determinística e as
+mesmas oito seções de auditoria, mais o gráfico de barras do ranking
+(`figures.py`, agora exercitado fora de teste) e, quando a camada de IA está
+ligada, a interpretação de `AIService.explain()`. Ausência de IA é
+declarada, nunca silenciosa; responsável técnico é texto livre, nunca
+validado. **As figuras da monografia que são capturas de `/estilo` precisam
+ser refeitas depois de D-38.**
 
-541 testes de backend e 138 de frontend, todos verdes. CI no GitHub Actions roda
+558 testes de backend e 138 de frontend, todos verdes. CI no GitHub Actions roda
 em todo PR e push para `main`.
 
 **Estado detalhado, decisões, backlog e histórico da última sessão estão em

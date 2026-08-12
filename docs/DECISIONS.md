@@ -1308,3 +1308,82 @@ conflito sem disparar requisição; os dois eixos como índices diferentes
 plotou 2/5 materiais com os três ausentes listados por "Sem valor para:
 Resistência específica." — a mesma frase do rótulo do eixo, não um texto
 genérico.
+
+## D-41 — O laudo de engenharia é um documento à parte, montado a partir de peças que já existiam
+
+**12/08/2026.** Sexta e última das seis frentes da Fase 9. "Laudo de
+engenharia completo" não tinha elaboração em lugar nenhum — nem na proposta
+original, nem em `DECISIONS.md`, `TODO.md`, `backlog.md` ou
+`10-relatorios.md` — a mesma situação de D-40 antes de perguntar. A única
+pista era a própria frase deste arquivo de "falta a montagem do laudo",
+escolhida sem querer, mas reveladora: sugeria montagem, não invenção.
+Perguntado, o autor escolheu a interpretação de maior escopo entre as três
+oferecidas: um **documento novo e dedicado**
+(`GET /api/exports/estudos/{id}/laudo.html`), distinto do relatório de
+seleção da Fase 7 — pensado para ser anexado sozinho à monografia, não lido
+como um resumo das tabelas voltadas a planilha.
+
+**"Montagem" era literal.** Nada do que o laudo precisa foi escrito do zero:
+`app/exporters/figures.py` (a renderização SVG de Fase 9, até então só
+exercitada em teste) desenha o gráfico; `ExportService._sheets()` — extraído
+de `study_report()` sem mudar uma linha de conteúdo — fornece as oito seções
+de auditoria; e `AIService.explain()` (Fase 6) escreve a interpretação. O
+serviço do laudo (`ExportService.study_laudo()`) só reexecuta o estudo uma
+vez (`_run()`, também compartilhado com `study_report()`) e arruma o que os
+três já produzem — a mesma disciplina de "o serviço nunca calcula" que já
+regia o relatório de seleção.
+
+**A figura é um gráfico de barras do ranking, não o mapa de propriedades.**
+Um mapa X-Y exigiria decidir quais duas propriedades plotar a partir de uma
+expressão de índice arbitrária — o `mock.py` da IA já faz isso, mas só para
+monômios de duas variáveis; a maioria dos índices do catálogo tem mais. O
+gráfico de barras de `result.ranking.ranked` não tem essa limitação: desenha
+para qualquer estudo com ranking, com a mesma regra de ausência do resto do
+projeto (um candidato sem pontuação não é uma barra de zero — é omitido do
+gráfico e listado à parte na tabela de excluídos, que já existia).
+
+**A interpretação por IA é opcional no laudo porque é opcional em todo o
+resto do sistema (regra 1.5), e a ausência é declarada, não silenciosa.**
+`ExportService._narrative()` chama `AIService.explain()` e captura
+`ValidationError`/`AIUnavailableError` — desligada, mal configurada ou uma
+falha de rede momentânea do provedor real degradam só esta seção, nunca o
+documento inteiro. A seção "Interpretação técnica (IA)" **sempre aparece**;
+quando não há narrativa, ela mostra "Interpretação por IA não disponível: —"
+em vez de desaparecer, porque um leitor que não visse a seção não saberia se
+ela nunca existiu ou se foi omitida por acidente. É a mesma disciplina da
+regra 1.3 (ausência nunca é silêncio), estendida de uma célula de tabela para
+uma seção de documento.
+
+**O responsável técnico é texto declarado, nunca validado contra nada** — um
+parâmetro de consulta opcional (`?responsavel=`) que só é escapado, do mesmo
+jeito que um nome de material hostil já era. Não há campo de assinatura
+digital nem carimbo de data: o laudo herda a mesma razão do relatório de
+seleção para não ter data — o pipeline é determinístico, então o mesmo
+catálogo tem de produzir os mesmos bytes.
+
+**`Report` ganhou três campos opcionais em vez de o laudo virar um renderizador
+paralelo.** `responsible`, `figure` e `narrative*` (`app/exporters/report.py`)
+são lidos só por `to_html()`; `to_csv()`/`to_xlsx()` continuam iterando
+apenas `sheets` e nem sabem que os campos existem — o relatório de seleção
+existente não muda uma linha de saída. A alternativa (um módulo de
+renderização HTML paralelo só para o laudo) duplicaria 150 linhas de CSS e
+escape só para reaproveitar o resto; a extensão do dataclass é retrocompatível
+por não ter default diferente de `None` em lugar nenhum.
+
+**Como se sabe que passa.** Backend: `black --check`, `ruff check` e `pytest`
+verdes (558 testes — 17 novos: 11 em `TestStudyLaudo`, cobrindo as oito
+seções de auditoria, a figura embutida, a narrativa presente por padrão
+(`AI_PROVIDER=mock`), a narrativa declaradamente ausente com a IA desligada,
+o responsável presente/ausente, o nome hostil escapado, a política de
+execução e o 404 de estudo inexistente; 6 em `TestHtmlRendering`, cobrindo o
+escape do responsável, a marcação confiável da figura própria, o escape da
+narrativa com sua numeração após as seções, e a seção de ausência declarada).
+Frontend: `typecheck`, `lint`, 138 testes e `build` verdes — sem teste novo
+dedicado, mesmo padrão de `ExportButtons`/`StudyExplanation`, componentes de
+ligação cobertos pela verificação ao vivo em vez de um arquivo próprio.
+Verificação ao vivo no navegador (por DOM, não por captura): um estudo criado
+via API, o campo "Responsável técnico" preenchido atualizando o `href` a cada
+tecla, o documento aberto mostrando as nove seções na ordem esperada — a
+figura de barras com a primeira colocada destacada na cor de realce, e a
+seção 9 com a prosa determinística do provedor simulado, ressalvas e
+disclaimer.
