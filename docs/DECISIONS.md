@@ -1142,3 +1142,80 @@ contraste acima; conferidos raio de cartão (20 px), de controle (12 px) e a
 curva aplicada de fato; e vistos os quatro estados de qualidade renderizando com
 dado real do backend, com "Importado" já em violeta a 7,75:1 (claro) e 6,97:1
 (escuro). Sem estouro horizontal a 375 px na rota de tabela larga.
+
+---
+
+## D-39 — O painel separa "que tipo de evidência é essa" de "o campo existe", com duas paletas que não se confundem
+
+**11/08/2026.** Quarta das seis frentes da Fase 9: os dashboards
+interativos, sobre um backend (`app/services/dashboard_service.py`,
+`app/calculations/statistics.py`) já concluído numa sessão anterior. Esta
+decisão é só do frontend — cinco componentes novos e a rota `/painel`.
+
+**A cobertura de um par (material, propriedade) tem três estados, não dois.**
+`filled` / `declared_missing` / `not_recorded` é a regra 1.3 — dado ausente
+nunca vira zero — aplicada um nível abaixo de onde ela já vale: não só "este
+valor está nulo" tem rótulo escrito, como "não existe linha nenhuma para este
+par" precisa de um rótulo *diferente* de "existe linha e ela diz que falta".
+Sem os três estados, o gráfico de cobertura por classe somaria as duas coisas
+num "não preenchido" só, e a leitura mudaria — um catálogo com metade das
+propriedades nunca importadas pareceria ter o mesmo problema que um catálogo
+que documentou a ausência de metade delas.
+
+**`NAO_REGISTRADO` é um quinto estado, não uma variação de `AUSENTE`.** O selo
+de qualidade da Fase 6 (`MEDIDO`/`IMPORTADO`/`ESTIMADO`/`AUSENTE`) continua com
+quatro valores em todo lugar que já existia — `DataQualityBadge` não mudou.
+Só o `QualityMixChart` do painel estende esse vocabulário para cinco, porque é
+o único lugar que precisa responder "de todo par possível no catálogo, quantos
+têm cada tipo de evidência" — e "não têm linha" é uma resposta a essa pergunta
+que `AUSENTE` não cobre (`AUSENTE` é `is_missing=True`: alguém registrou a
+ausência; `NAO_REGISTRADO` é a ausência da própria linha).
+
+**Duas visualizações de cobertura, duas paletas, de propósito.**
+`QualityMixChart` reaproveita os tokens de qualidade existentes via
+`qualityBucketColor` (`lib/design/palette.ts`), porque a pergunta que ele
+responde é "que tipo de evidência é essa" — a mesma pergunta que o selo já
+responde em todo o resto da interface. `ClassCoverageChart` usa tokens neutros
+(`--success`, `--quality-ausente`, `--edge-strong`) para os mesmos três
+estados de cobertura, porque a pergunta ali é mais grossa — "o campo está
+preenchido, foi declarado ausente, ou nunca chegou a existir" — e reaproveitar
+a paleta de qualidade faria uma cor (o âmbar de `ESTIMADO`, por exemplo)
+significar duas perguntas diferentes na mesma tela. As duas paletas nunca
+aparecem juntas no mesmo gráfico, então a ambiguidade não chega a existir na
+prática — mas existiria se fosse só uma paleta para as duas perguntas.
+
+**Todo gráfico novo carrega a tabela que o originou (D-31), sem exceção.** Os
+cinco componentes — `CoverageSummary`, `QualityMixChart`, `ClassCoverageChart`,
+`GapsList`, `PropertyDistributionPanel` — têm `FigureData` pareada, exceto
+`GapsList`, que já nasce tabela (os dados chegam pré-ranqueados do backend, não
+há geometria para desenhar). O box-plot de distribuição por propriedade segue
+o ADR 0004 à risca: `PropertyDistributionPanel` nunca deriva um quartil — recebe
+mínimo/Q1/mediana/Q3/máximo já calculados e só entrega ao traço `box` do Plotly
+via `q1`/`median`/`q3`/`lowerfence`/`upperfence`, o modo "quartis
+precomputados" que existe exatamente para isto.
+
+**Um defeito de layout conhecido reapareceu.** O wrapper novo
+`<div className="grid gap-4 xl:grid-cols-2">` empurrou a página inteira para
+907 px de largura a 375 px, porque um item de grid/flex por padrão não encolhe
+abaixo da largura intrínseca do que tem dentro — o comentário do próprio
+`Section` em `Card.tsx` já avisa disso, e mesmo assim o SVG do Plotly
+(`.main-svg`) achou a brecha de novo. Corrigido com `min-w-0` no `Card` de
+`QualityMixChart` e `ClassCoverageChart`; verificado depois por
+`getBoundingClientRect` que `scrollWidth` voltou a bater com `clientWidth`.
+
+**O que esta decisão não faz.** Não move geometria nenhuma para o cliente (ADR
+0004 segue de pé — quartis, percentuais de cobertura e participação são todos
+computados em `statistics.py`/`dashboard_service.py`), não introduz biblioteca
+de componentes ou de animação, e não renderiza ausência como `0`, `—` ou
+célula vazia em lugar nenhum das cinco visualizações novas.
+
+**Como se sabe que passa.** Portão do frontend inteiro verde (typecheck, lint,
+138 testes — 8 novos em `painel.test.tsx`, mais o ajuste ao teste da gaveta
+para o nono link da barra lateral —, build limpo) e o backend da sessão
+anterior intacto (`pytest`, `ruff`, `black`, sem alteração). Verificação no
+navegador por DOM, não por captura (nesta máquina o painel não compõe
+quadros): dado real do seed renderizando (55,0% de cobertura, 22/40 pares,
+percentuais por classe, ranking de lacunas, quartis do box-plot em pt-BR), a
+alternância linear/log de fato trocando `yaxis.type`, e o estouro de 375 px
+acima — encontrado e corrigido nesta mesma verificação, não pelos testes de
+unidade, que não exercitam largura de viewport real.
