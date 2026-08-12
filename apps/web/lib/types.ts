@@ -472,24 +472,32 @@ export type ChartScale = "linear" | "log";
 export type CoordinatePair = number[];
 
 export interface PropertyMapRequest {
-  x: string;
-  y: string;
+  /** Exactly one of `x`/`x_index` must be set — same for `y`/`y_index`. */
+  x?: string | null;
+  y?: string | null;
+  x_index?: IndexIn | null;
+  y_index?: IndexIn | null;
   scale: ChartScale;
   class_slugs?: string[];
   material_ids?: number[] | null;
   highlight_material_ids?: number[];
   include_envelopes?: boolean;
+  /** Incompatible with `x_index`/`y_index`: only two property axes can carry a third, overlaid index. */
   index?: IndexIn | null;
   index_levels?: number[];
   index_level_material_ids?: number[];
 }
 
 export interface MapAxis {
-  property_slug: string;
+  is_index: boolean;
+  /** Set only when `is_index` is false. */
+  property_slug: string | null;
   property_name: string;
+  /** Set only when `is_index` is true. */
+  expression: string | null;
   symbol: string | null;
   unit: string;
-  category: PropertyCategory;
+  category: PropertyCategory | null;
   better_direction: BetterDirection;
   allows_log_scale: boolean;
   min_value: number | null;
@@ -514,8 +522,10 @@ export interface MapPoint {
   y_uncertainty: number | null;
   x_is_interval: boolean;
   y_is_interval: boolean;
-  x_quality: DataQuality;
-  y_quality: DataQuality;
+  /** Null exactly when that axis is an index: a computed index has no single
+   * provenance of its own to badge. */
+  x_quality: DataQuality | null;
+  y_quality: DataQuality | null;
   index_value: number | null;
   index_undefined_reason: string | null;
 }
