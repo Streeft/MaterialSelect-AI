@@ -21,6 +21,7 @@ without reshaping the inputs.
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from enum import Enum
 
@@ -110,7 +111,15 @@ def normalize_column(
         return []
 
     if method is Normalization.VECTOR:
-        norm = sum(v * v for v in values) ** 0.5
+        # ``math.hypot`` and not ``sum(v * v for v in values) ** 0.5``: the sum of
+        # squares overflows to +inf at ~1e154, less than half the exponent range
+        # of a float, and every material then normalizes to 0.0 — the column
+        # stops telling them apart and the ranking ties silently, with no
+        # exception raised. A performance index is a product of powers of
+        # properties (E**(1/2)/rho and its relatives), which is precisely how a
+        # column of ordinary numbers becomes 1e200. hypot rescales internally and
+        # is exact in the same cases the naive form was.
+        norm = math.hypot(*values)
         if norm == 0:
             return [1.0] * n
         base = [v / norm for v in values]
