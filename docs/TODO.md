@@ -65,12 +65,14 @@ os vizinhos — outros documentos citam esses códigos.
 
 ### M8 — Desempenho medido (Lighthouse)
 - **Descrição:** a metade de desempenho do antigo M3, que ficou de fora quando a
-  acessibilidade foi entregue. Medir peso de bundle e tempo até interativo nas
-  oito rotas; o Plotly é o suspeito óbvio, e hoje entra por `next/dynamic` sem
-  que ninguém tenha medido o quanto isso custa.
+  acessibilidade foi entregue. **A parte de peso de bundle já foi feita** na
+  varredura da Fase 9: o Plotly era mesmo o suspeito — 4,5 MB, 79% de todo o JS —
+  e passou a ser montado à la carte, derrubando o maior *chunk* para 981 KB
+  (`PROJECT_CONTEXT.md §12`). O que resta é o que nunca foi medido: **tempo até
+  interativo** em todas as rotas, com Lighthouse ou equivalente.
 - **Impacto:** médio. Um estudante em aula, num notebook modesto, é o público
   descrito na proposta.
-- **Dificuldade:** ▃
+- **Dificuldade:** ▁ (o que sobrou), antes ▃
 - **Dependências:** nenhuma. Se virar job de CI, vale o aviso do A4 sobre
   `scripts/protect-main.ps1`.
 
