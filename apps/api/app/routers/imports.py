@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, File, UploadFile
+from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -26,14 +27,23 @@ templates_router = APIRouter(prefix="/import-templates", tags=["imports"])
 
 @router.post("/upload", response_model=UploadResult)
 async def upload_file(file: UploadFile = File(...), db: Session = Depends(get_db)) -> UploadResult:
-    """Receive a CSV/XLSX file and open an import job."""
+    """Receive a CSV/XLSX file and open an import job.
+
+    This is the only ``async`` endpoint in the application — it has to be, to
+    ``await`` the upload stream — and that makes it the only one that can stall
+    everyone else. ``ImportService.upload`` parses the workbook and writes to the
+    database, seconds of blocking work for a large XLSX; run inline it would hold
+    the event loop and freeze *every* request in the process, not just this one.
+    ``run_in_threadpool`` puts it exactly where FastAPI already runs every other
+    (synchronous) endpoint of this router.
+    """
     # Read at most limit+1 bytes: enough to detect an oversized file without
     # ever buffering an arbitrarily large upload in memory.
     data = await file.read(settings.max_upload_bytes + 1)
     if len(data) > settings.max_upload_bytes:
         limit_mb = settings.max_upload_bytes / (1024 * 1024)
         raise ValidationError(f"Arquivo excede o limite de {limit_mb:.0f} MB.")
-    return ImportService(db).upload(file.filename or "arquivo", data)
+    return await run_in_threadpool(ImportService(db).upload, file.filename or "arquivo", data)
 
 
 class PreviewRequest(BaseModel):
