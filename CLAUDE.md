@@ -198,10 +198,12 @@ meramente informativo.
 ## Estado atual
 
 Fases 1 a 6 concluídas. **Fase 7 (relatórios e qualidade) parcial** — as
-exportações CSV/XLSX e o relatório HTML imprimível já saíram; faltam testes
-end-to-end, autenticação e auditoria. **Fase 8 (redesign da interface)
-concluída** — sistema de design próprio, as quatro promessas da proposta
-visíveis na tela, acessibilidade medida no navegador nos dois temas e a 375 px.
+exportações CSV/XLSX, o relatório HTML imprimível e os testes end-to-end de
+interface (A4, Playwright em `apps/web/e2e/`) já saíram; faltam autenticação
+(A5) e auditoria (M2) — a segunda depende da primeira. **Fase 8 (redesign da
+interface) concluída** — sistema de design próprio, as quatro promessas da
+proposta visíveis na tela, acessibilidade medida no navegador nos dois temas e
+a 375 px.
 `docs/11-usabilidade.md` está instrumentado, mas **nenhuma sessão de teste com
 usuários foi realizada** — enquanto a tabela de melhorias dele estiver vazia, o
 §3.5 da proposta não foi cumprido.
