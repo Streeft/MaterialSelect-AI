@@ -144,7 +144,12 @@ class ImportService:
 
     def _suggest(self, headers: list[str]) -> list[ColumnSuggestion]:
         """Heuristic mapping suggestions from header names (UI pre-fill only)."""
-        properties = {p.slug: p for p in self.repo.list_properties()}
+        # Keyed by `slugify(p.slug)`, not `p.slug` itself: a stored slug like
+        # "modulo_young" uses underscores, but `slugify(prop_base)` below always
+        # produces hyphens — comparing the two forms directly meant every
+        # property whose slug has more than one word (most of them) could never
+        # be auto-suggested from a header, however the header spelled it.
+        properties = {slugify(p.slug): p for p in self.repo.list_properties()}
         suggestions: list[ColumnSuggestion] = []
         for header in headers:
             base = header_without_unit(header).strip().lower()
