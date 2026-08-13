@@ -1,18 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { ptBR } from "@/lib/i18n";
 import { describeViolations, findA11yViolations } from "@/lib/testing/axe";
 import type {
+  AIStatus,
   ChartData,
   Comparison,
+  DashboardOverview,
   MaterialClass,
   MaterialDetail,
   MaterialListItem,
   PerformanceIndex,
   PropertyDefinition,
+  PropertyDistribution,
   PropertyMap,
   StudySummary,
 } from "@/lib/types";
@@ -373,7 +376,99 @@ const studies: StudySummary[] = [
   },
 ];
 
-vi.mock("@/lib/api", () => ({
+// The panel is the screen with the most numbers per square centimetre, so the
+// fixture keeps every state its components have to render differently: a class
+// with full coverage and one with a gap, a `filled_pct` of `null` (which is
+// absence, never `0`), and a property whose distribution has boxes.
+const overview: DashboardOverview = {
+  materials: 3,
+  demo_materials: 3,
+  classes: 2,
+  properties: 2,
+  coverage: { filled: 4, declared_missing: 1, not_recorded: 1, slots: 6, filled_pct: 66.7 },
+  by_quality: [
+    { bucket: "MEDIDO", count: 2, share_pct: 33.3 },
+    { bucket: "IMPORTADO", count: 2, share_pct: 33.3 },
+    { bucket: "AUSENTE", count: 1, share_pct: 16.7 },
+    { bucket: "NAO_REGISTRADO", count: 1, share_pct: 16.7 },
+  ],
+  by_class: [
+    {
+      slug: "metais",
+      name: "Metais",
+      materials: 2,
+      coverage: { filled: 4, declared_missing: 0, not_recorded: 0, slots: 4, filled_pct: 100 },
+    },
+    {
+      slug: "ceramicas",
+      name: "Cerâmicas",
+      materials: 1,
+      coverage: { filled: 0, declared_missing: 1, not_recorded: 1, slots: 2, filled_pct: null },
+    },
+  ],
+  by_property: [
+    {
+      slug: "modulo_young",
+      name: "Módulo de Young",
+      category: "MECANICA",
+      canonical_unit: "Pa",
+      coverage: { filled: 3, declared_missing: 0, not_recorded: 0, slots: 3, filled_pct: 100 },
+    },
+    {
+      slug: "densidade",
+      name: "Densidade",
+      category: "FISICA",
+      canonical_unit: "kg/m**3",
+      coverage: { filled: 1, declared_missing: 1, not_recorded: 1, slots: 3, filled_pct: 33.3 },
+    },
+  ],
+  gaps: [
+    {
+      slug: "densidade",
+      name: "Densidade",
+      category: "FISICA",
+      canonical_unit: "kg/m**3",
+      coverage: { filled: 1, declared_missing: 1, not_recorded: 1, slots: 3, filled_pct: 33.3 },
+    },
+  ],
+};
+
+const distribution: PropertyDistribution = {
+  property_slug: "densidade",
+  property_name: "Densidade",
+  category: "FISICA",
+  canonical_unit: "kg/m**3",
+  allows_log_scale: true,
+  boxes: [
+    {
+      class_slug: "metais",
+      class_name: "Metais",
+      count: 2,
+      minimum: 2700,
+      q1: 3500,
+      median: 4900,
+      q3: 6800,
+      maximum: 7850,
+    },
+  ],
+  // A class the panel must *name* as having no data, rather than draw as zero.
+  classes_without_data: ["Cerâmicas"],
+};
+
+// `enabled: true` on purpose. The selection screen embeds the AI panel, and a
+// disabled layer collapses it to a single heading — the audit would then pass
+// over a card that is not the one shipped to a user with the layer on.
+const aiStatus: AIStatus = {
+  enabled: true,
+  provider: "mock",
+  simulated: true,
+  disclaimer: "Sugestões simuladas, sem chamada a modelo externo.",
+};
+
+// `ApiError` comes from the real module: the pages narrow on it with
+// `instanceof`, and a look-alike declared here would silently never match.
+vi.mock("@/lib/api", async (importOriginal) => ({
+  ApiError: (await importOriginal<typeof import("@/lib/api")>()).ApiError,
   listMaterials: () => Promise.resolve(materials),
   listClasses: () => Promise.resolve(classes),
   listProperties: () => Promise.resolve(properties),
@@ -383,10 +478,46 @@ vi.mock("@/lib/api", () => ({
   getMaterial: () => Promise.resolve(materialDetail),
   getChart: () => Promise.resolve(chart),
   listStudies: () => Promise.resolve(studies),
+  getDashboardOverview: () => Promise.resolve(overview),
+  getDashboardDistribution: () => Promise.resolve(distribution),
   deactivateMaterial: () => Promise.resolve(),
+  // The selection wizard and the import wizard start empty and only reach these
+  // on a user action; they exist so the module's shape is complete.
+  getStudy: () => Promise.resolve(null),
+  createStudy: () => Promise.resolve(studies[0]),
+  deleteStudy: () => Promise.resolve(),
+  evaluateIndex: () => Promise.resolve(null),
+  runSelection: () => Promise.resolve(null),
+  runStudy: () => Promise.resolve(null),
+  getAIStatus: () => Promise.resolve(aiStatus),
+  interpretStatement: () => Promise.resolve(null),
+  explainStudy: () => Promise.resolve(null),
+  listImports: () => Promise.resolve([]),
+  listImportTemplates: () => Promise.resolve([]),
+  createImportTemplate: () => Promise.resolve(null),
+  uploadImportFile: () => Promise.resolve(null),
+  previewImportSheet: () => Promise.resolve(null),
+  validateImport: () => Promise.resolve(null),
+  commitImport: () => Promise.resolve(null),
+  cancelImport: () => Promise.resolve(null),
+  rollbackImport: () => Promise.resolve(null),
   catalogueExportUrl: (format: string) => `#${format}`,
   studyExportUrl: (id: number, format: string) => `#${id}-${format}`,
+  studyLaudoUrl: (id: number) => `#${id}-laudo`,
   opensInBrowser: (format: string) => format === "html",
+  // The write side of the catalogue. No audit below mounts a form that calls
+  // any of it, and it is here anyway: a Vitest mock fails on *property access*,
+  // not on call, so an export left out does not fail where it is used — it
+  // throws mid-render of whatever component merely imported it.
+  createMaterial: () => Promise.resolve(materialDetail),
+  updateMaterial: () => Promise.resolve(materialDetail),
+  replaceMaterialValues: () => Promise.resolve(materialDetail),
+  createClass: () => Promise.resolve(classes[0]),
+  updateClass: () => Promise.resolve(classes[0]),
+  deleteClass: () => Promise.resolve(),
+  createProperty: () => Promise.resolve(properties[0]),
+  updateProperty: () => Promise.resolve(properties[0]),
+  deleteProperty: () => Promise.resolve(),
 }));
 
 // Imported after the mocks so each page picks them up.
@@ -396,9 +527,15 @@ const { default: MapsPage } = await import("./mapas/page");
 const { default: ComparePage } = await import("./comparar/page");
 const { default: MaterialPage } = await import("./materiais/[id]/page");
 const { default: StylePage } = await import("./estilo/page");
+const { default: DashboardPage } = await import("./painel/page");
+const { default: SelectionPage } = await import("./selecao/page");
+const { default: ImportPage } = await import("./importar/page");
 
-function wrap(node: ReactNode) {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+function makeClient() {
+  return new QueryClient({ defaultOptions: { queries: { retry: false } } });
+}
+
+function wrap(node: ReactNode, client: QueryClient) {
   return <QueryClientProvider client={client}>{node}</QueryClientProvider>;
 }
 
@@ -411,8 +548,14 @@ function wrap(node: ReactNode) {
  * twice on exactly the screens this file exists to check.
  */
 async function auditRoute(node: ReactNode, settled: RegExp | string) {
-  const { container } = render(wrap(node));
+  const client = makeClient();
+  const { container } = render(wrap(node, client));
   await screen.findByRole("heading", { name: settled });
+  // The marker proves the screen rendered; it does not prove every request
+  // behind it has landed. The import wizard keeps three in flight whose data
+  // only reaches the DOM in a later step, so they were still resolving when the
+  // test ended — React said so, and axe had audited a screen mid-settle.
+  await waitFor(() => expect(client.isFetching()).toBe(0));
   await expectClean(container);
 }
 
@@ -443,7 +586,7 @@ describe("acessibilidade das telas principais", () => {
     // screen worth auditing.
     nav.query = "materiais=1,2";
     const user = userEvent.setup();
-    const { container } = render(wrap(<ComparePage />));
+    const { container } = render(wrap(<ComparePage />, makeClient()));
 
     await screen.findByRole("rowheader", { name: /Aço 1020/ });
     await expectClean(container);
@@ -460,5 +603,21 @@ describe("acessibilidade das telas principais", () => {
 
   it("sistema de design", async () => {
     await auditRoute(<StylePage />, ptBR.styleGuide.title);
+  });
+
+  // The three screens below were outside this file until the sweep that added
+  // them, which is precisely why they are here: the panel is the densest page
+  // in the product, and the selection and import wizards are the two longest
+  // keyboard paths a reader has to walk.
+  it("painel", async () => {
+    await auditRoute(<DashboardPage />, ptBR.dashboard.title);
+  });
+
+  it("seleção", async () => {
+    await auditRoute(<SelectionPage />, ptBR.selection.title);
+  });
+
+  it("importação", async () => {
+    await auditRoute(<ImportPage />, ptBR.importer.title);
   });
 });
