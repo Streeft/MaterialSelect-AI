@@ -157,8 +157,8 @@ cd apps\web; npm run typecheck; npm run lint; npm run test; npm run build
 **End-to-end (A4):** `cd apps\web; npm run test:e2e` roda o Playwright
 (`apps/web/e2e/`) — importar → selecionar → visualizar → exportar, contra API e
 banco próprios (`apps/api/scripts/e2e_server.py`), em portas isoladas das de
-desenvolvimento (8811/3011). Não está no `ci.yml` ainda ([B11](TODO.md)); rode à
-mão antes de um PR que mexa nesses fluxos.
+desenvolvimento (8811/3011). É check obrigatório de CI (`E2E (Playwright)` em
+`ci.yml`); rode localmente antes do PR para não descobrir uma falha só lá.
 
 ---
 
@@ -222,12 +222,16 @@ A lista completa, com as receitas prontas de cada provedor, está em
   `alembic upgrade head` + seed num banco limpo. Este último existe porque os
   testes usam `create_all` em memória e **nunca exercitam as migrações**.
 - Frontend: `npm ci`, `typecheck`, `lint`, `test`, `build`.
+- E2E: Playwright (`apps/web/e2e/`) contra API e banco próprios da suíte —
+  Python + Node no mesmo runner, Chromium via `--with-deps`. Relatório HTML
+  publicado como artefato quando falha.
 
-Os três checks — `Backend (Python 3.11)`, `Backend (Python 3.12)` e `Frontend` —
-são **obrigatórios**: a ruleset `CI obrigatoria em main` faz o GitHub recusar o
-merge, e não há ator de exceção (vale para o dono do repositório também). A
-branch ainda precisa estar atualizada com `main` antes do merge, para que a
-combinação testada seja a combinação mesclada.
+Os quatro checks — `Backend (Python 3.11)`, `Backend (Python 3.12)`,
+`Frontend` e `E2E (Playwright)` — são **obrigatórios**: a ruleset
+`CI obrigatoria em main` faz o GitHub recusar o merge, e não há ator de
+exceção (vale para o dono do repositório também). A branch ainda precisa
+estar atualizada com `main` antes do merge, para que a combinação testada
+seja a combinação mesclada.
 
 > **Ao acrescentar um job ao `ci.yml`, acrescente o nome em
 > `scripts/protect-main.ps1` e rode o script.** A ruleset exige uma lista fixa de
