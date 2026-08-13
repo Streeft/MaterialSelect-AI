@@ -130,18 +130,6 @@ os vizinhos — outros documentos citam esses códigos.
 - **Descrição:** `StarletteDeprecationWarning` sugere `httpx2` no TestClient.
 - **Impacto:** baixo, cosmético. **Dificuldade:** ▁ · **Dependências:** upstream.
 
-### B11 — Tornar o Playwright (A4) um check obrigatório de CI
-- **Descrição:** hoje a suíte (`apps/web/e2e/`) só roda localmente
-  (`npm run test:e2e`), fora do `ci.yml`. Acrescentá-la como job é uma decisão
-  separada de tê-la escrito.
-- **Impacto:** médio: sem isso, uma regressão de interface só aparece se alguém
-  rodar a suíte à mão.
-- **Dificuldade:** ▁ · **Dependências:** **um job novo não bloqueia sozinho.** A
-  ruleset exige uma lista fixa de nomes (`scripts/protect-main.ps1`); um job de
-  Playwright acrescentado ao `ci.yml` roda e reprova o PR na aparência, sem
-  impedir o merge, até que o nome entre no script e ele seja rodado de novo
-  contra o GitHub.
-
 ---
 
 ## Entidades ainda não modeladas
@@ -166,8 +154,16 @@ Registrados para não voltarem por engano:
   **toda propriedade de nome composto** ("Módulo de Young", "Limite de
   escoamento" etc.) nunca era sugerida automaticamente, e só "Densidade"
   (palavra única) por coincidência funcionava. Corrigido comparando os dois
-  lados já normalizados; regressão coberta em `test_imports_api.py`. Levar essa
-  suíte para o CI como check obrigatório é a **B11**, decisão separada.
+  lados já normalizados; regressão coberta em `test_imports_api.py`.
+- ~~**B11** — Playwright (A4) como check obrigatório de CI~~ — job
+  `E2E (Playwright)` em `ci.yml`: Python + Node no mesmo runner, Chromium via
+  `--with-deps`, `npm run test:e2e`, relatório HTML publicado como artefato
+  quando falha. `playwright.config.ts` resolvia o Python fixo em
+  `.venv/Scripts/python.exe` (layout Windows) — não existe no runner Ubuntu;
+  agora `E2E_API_PYTHON` sobrepõe o caminho, e o workflow passa
+  `E2E_API_PYTHON=python`, o que o `setup-python` já deixa no PATH.
+  `scripts/protect-main.ps1` ganhou o nome do check e foi rodado contra o
+  repositório.
 - ~~`black --check` falhava em arquivos anteriores à Fase 5~~ — backend formatado
   por inteiro em commit próprio; `black --check` virou portão de CI.
 - ~~Isolamento de testes quebrado com pysqlite~~ — corrigido no `conftest.py`,
