@@ -29,7 +29,7 @@
  * against the *lightest* surface the token actually appears on — the raised
  * panel in the dark theme, the sunken strip and the faintest brand tint in the
  * light one. The tightest pair in the whole set is `--brand-700` on `--brand-50`
- * in the light theme, at 5.02:1; nothing else falls below 5.2:1. The lime it
+ * in the light theme, at 5.01:1; nothing else falls below 5.2:1. The lime it
  * replaced managed 4.74:1 at its tightest, so the retheme *gained* margin.
  *
  * A blue does hold white text, which the lime never could, so `--accent` is no
@@ -68,8 +68,8 @@
    *
    * `700` is the shade components mean by "confident ink on the faintest tint",
    * so it has to clear 4.5:1 on `--brand-50`. Google publishes #1967D2 there,
-   * which lands at 4.69:1 — true, but close enough to the line that any future
-   * nudge to `--brand-50` would break it silently. #1565C0 buys 5.02:1 for a
+   * which lands at 4.68:1 — true, but close enough to the line that any future
+   * nudge to `--brand-50` would break it silently. #1565C0 buys 5.01:1 for a
    * difference nobody can see, and doubles as `--accent`. */
   --brand-50: 232 240 254;
   --brand-100: 210 227 252;

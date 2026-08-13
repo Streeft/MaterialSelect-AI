@@ -64,26 +64,31 @@ Duas consequências que costumam surpreender quem chega:
 ```
 MaterialSelect-AI/
 ├─ apps/
-│  ├─ api/                      # backend FastAPI (~13.200 linhas Python)
-│  │  ├─ alembic/versions/      # 5 migrations; fonte de verdade do schema
+│  ├─ api/                      # backend FastAPI (~18.300 linhas Python)
+│  │  ├─ alembic/versions/      # 6 migrations; fonte de verdade do schema
 │  │  ├─ app/
-│  │  │  ├─ ai/                 # camada de IA opcional (Fase 6)
-│  │  │  ├─ calculations/       # cálculo determinístico
+│  │  │  ├─ ai/                 # camada de IA opcional (Fase 6; 4 provedores)
+│  │  │  ├─ calculations/       # cálculo determinístico: units, expressions,
+│  │  │  │                      #   performance, powerlaw, statistics
 │  │  │  ├─ db/                 # engine, sessão, seed
 │  │  │  ├─ domain/             # regras puras, sem I/O
-│  │  │  ├─ exporters/          # relatório em CSV/XLSX/HTML (Fase 7)
+│  │  │  ├─ exporters/          # report/spreadsheet/html/cells + figures (SVG)
 │  │  │  ├─ importers/          # CSV/XLSX de entrada (Fase 3)
 │  │  │  ├─ models/             # SQLAlchemy 2.0
 │  │  │  ├─ repositories/       # acesso a dados, sempre parametrizado
 │  │  │  ├─ routers/            # HTTP fino, sem regra de negócio
 │  │  │  ├─ schemas/            # contratos Pydantic v2
 │  │  │  ├─ services/           # orquestração de casos de uso
-│  │  │  └─ tests/              # 389 testes
+│  │  │  └─ tests/              # 25 arquivos, 591 testes
 │  │  └─ pyproject.toml
 │  └─ web/                      # frontend Next.js 14
-│     ├─ app/                   # App Router: uma pasta por rota
-│     ├─ components/            # componentes por domínio
-│     ├─ lib/                   # api.ts, types.ts, i18n.ts, format.ts, charts.ts
+│     ├─ app/                   # App Router: uma pasta por rota — catalogo,
+│     │                         #   materiais, mapas, comparar, selecao,
+│     │                         #   importar, painel, admin, estilo
+│     ├─ components/            # componentes por domínio (ui/, charts/,
+│     │                         #   dashboard/, selection/, layout/, ai/, ...)
+│     ├─ lib/                   # api.ts, types.ts, i18n.ts, format.ts,
+│     │                         #   charts.ts, plotly-custom.ts, design/
 │     └─ types/                 # declarações de módulos sem tipos
 ├─ packages/shared-types/       # contrato canônico (espelhado em web/lib/types.ts)
 ├─ docs/                        # esta documentação
@@ -120,6 +125,7 @@ routers → services → repositories → models → banco
 | `expressions.py` | Parser **seguro sem `eval`**: AST com whitelist + interpretador manual. Roda em `float` e em `Quantity` do Pint. | A dimensão do índice é **derivada**, não declarada. |
 | `powerlaw.py` | Reescreve o índice como monômio `C·Πp^e`; **deriva** a inclinação log-log `−a/b`. | É o que torna a linha de índice testável em vez de presumida. |
 | `performance.py` | Avalia um índice para um material. | Compartilhado entre seleção e mapas — impede que discordem. |
+| `statistics.py` | Quartis, mínimo, mediana, máximo e percentuais de cobertura do painel. | Um box-plot é geometria, e geometria é cálculo ([ADR 0004](adr/0004-geometria-de-graficos-no-backend.md)): o navegador recebe os cinco números prontos, nunca a amostra para quantilizar. |
 
 ### `domain/` — regras puras
 
@@ -155,13 +161,17 @@ o avaliador de expressões. Cinco regras em `guardrails.py`:
    em escala com offset, inverte o sentido do enunciado);
 5. prosa não pode introduzir números que o cálculo não produziu.
 
-Três provedores atendem esse contrato: `mock` (padrão, determinístico, offline) e
-dois que falam com o Claude — `claude-api` pela API da Anthropic e `claude-cli`
-pelo Claude Code instalado na máquina. Os dois reais compartilham
-`claude_base.py`, que os deixa estruturalmente incapazes de duas coisas: escrever
-uma expressão de índice (o modelo devolve um slug; a expressão vem do catálogo)
-e omitir as ressalvas de uma explicação (elas são do backend, em `caveats.py`).
-Ver [D-35](DECISIONS.md).
+Quatro provedores atendem esse contrato: `mock` (padrão, determinístico,
+offline), `claude-api` (API da Anthropic, chave própria), `claude-cli` (o Claude
+Code instalado na máquina, pela assinatura já autenticada) e `openai-compat`
+(qualquer servidor que fale `/chat/completions`, escolhido por `AI_BASE_URL` —
+Groq no plano gratuito, Ollama local, OpenRouter, OpenAI). Os três reais
+compartilham `model_base.py` — **não** um arquivo com "claude" no nome, porque as
+garantias são da camada e não de um fornecedor ([D-36](DECISIONS.md)) —, que os
+deixa estruturalmente incapazes de duas coisas: escrever uma expressão de índice
+(o modelo devolve um slug; a expressão vem do catálogo) e omitir as ressalvas de
+uma explicação (elas são do backend, em `caveats.py`). Ver
+[D-35](DECISIONS.md).
 
 ### `exporters/` — saída auditável
 
@@ -222,6 +232,36 @@ flowchart LR
   E --> G["HTML imprimível<br/>(inline, vira PDF no navegador)"]
 ```
 
+### Laudo de engenharia (Fase 9)
+
+Documento **distinto** do relatório de seleção acima, e não uma variante dele
+([D-41](DECISIONS.md)): o relatório acompanha uma tela, o laudo é feito para ser
+anexado sozinho à monografia. Reaproveita a mesma reexecução determinística e as
+mesmas seções de auditoria, e acrescenta duas coisas.
+
+```mermaid
+flowchart LR
+  A["Estudo salvo"] --> B["SelectionService.run_study<br/>(reexecuta o pipeline)"]
+  B --> C["ExportService.study_laudo"]
+  C --> D["exporters/figures.py<br/>(barras do ranking, SVG no backend)"]
+  C --> E["AIService.explain<br/>(quando a camada está ligada)"]
+  C --> F["GET /api/exports/estudos/{id}/laudo.html"]
+```
+
+`figures.py` desenha o SVG **no backend**, pela mesma razão de sempre: a figura
+de um documento auditável não pode depender de um navegador ter executado
+JavaScript. E a ausência de IA é **declarada** no próprio laudo, nunca silenciosa
+— um documento que omitisse a interpretação sem dizer que ela não existe faria o
+leitor supor que ela não era necessária.
+
+### Painel de indicadores (Fase 9)
+
+`/painel` lê `DashboardService`, que emite **7 consultas agregadas** e nenhum
+laço por material — verificado em perfil. Cobertura geral, composição por tipo
+de evidência, cobertura por classe, ranking de lacunas e distribuição por
+propriedade com box-plot, tudo sobre quartis e percentuais computados em
+`calculations/statistics.py` ([D-39](DECISIONS.md), [ADR 0004](adr/0004-geometria-de-graficos-no-backend.md)).
+
 ---
 
 ## 5. Banco de dados
@@ -269,6 +309,22 @@ as linhas, e o mesmo catálogo poderia responder duas coisas diferentes. Os
 serviços já recusam propriedades repetidas dentro de um payload; só a constraint
 cobre duas requisições concorrentes.
 
+**Índices.** Além das unicidades acima, toda chave estrangeira que aparece em
+junção ou em filtro de tela é indexada: `material.class_id`,
+`material.import_job_id`, `material_property_value.property_id`,
+`material_property_value.source_id` e o `study_id` de restrições e critérios.
+`material_property_value.material_id` fica **de fora de propósito** — é a
+primeira coluna de `uq_material_property_value_pair`, que já atende qualquer
+busca por material; `property_id`, sendo a segunda, não é alcançável por ele.
+
+O ganho foi medido sobre um catálogo sintético de 5 000 materiais e 60 000
+valores: −22% na distribuição do painel, −35% numa busca por classe, +10% de
+tamanho do arquivo. O `overview` não muda e não poderia — são três junções
+**agregadas sobre o catálogo inteiro**, e um índice não abrevia uma varredura
+que precisa ler tudo. **Não rode `ANALYZE`**: com estatísticas disponíveis o
+planejador do SQLite passa a escolher um plano indexado para esse agregado e ele
+fica 85% mais lento.
+
 ---
 
 ## 6. APIs
@@ -286,8 +342,10 @@ Todas sob `/api`. Erros de domínio são mapeados em `main.py`:
 | Importação | `POST /imports/upload`, `/{id}/preview`, `/{id}/validate`, `/{id}/commit`, `/{id}/cancel`, `/{id}/rollback`; `GET /imports`, `/{id}/report`; `GET/POST /import-templates` |
 | Seleção | `POST /selection/filter`, `/index`, `/run`; `GET/POST /selection/studies`; `GET/DELETE /selection/studies/{id}`; `POST /selection/studies/{id}/run`; `GET/POST /performance-indices` |
 | Visualização | `POST /charts/property-map`, `POST /charts/compare` |
+| Painel | `GET /dashboard/overview`, `GET /dashboard/distribution/{property_slug}` |
 | IA (opcional) | `GET /ai/status`, `POST /ai/interpret`, `POST /ai/explain` |
 | Exportação | `GET /exports/catalogo.{csv,xlsx,html}`, `GET /exports/estudos/{id}.{csv,xlsx,html}` |
+| Laudo de engenharia | `GET /exports/estudos/{id}/laudo.html` |
 
 Visualização e comparação são **POST** porque a entrada é estruturada (par de
 eixos, filtros, conjuntos de materiais, expressão e níveis) e não caberia

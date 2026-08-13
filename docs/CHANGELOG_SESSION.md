@@ -2,7 +2,7 @@
 
 Uma seção por sessão de trabalho, **da mais recente para a mais antiga**. O
 arquivo respondia a "o que mudou na última sessão" enquanto houve uma só; com
-três, guardar apenas a última apagaria justamente o que explica por que o
+quatro, guardar apenas a última apagaria justamente o que explica por que o
 código está como está.
 
 As sessões 1 e 2 foram escritas ao vivo. A seção da **sessão 2 foi reconstruída
@@ -11,9 +11,72 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [4](#sessão-4--110826-a-120826--fase-9-e-a-varredura-que-a-fechou) | 11 e 12/08/2026 | Fase 9 (seis frentes) e a varredura de fechamento | 436 → 591 | 123 → 141 |
 | [3](#sessão-3--110826--os-provedores-reais-da-camada-de-ia) | 11/08/2026 | Fase 6: provedores reais de IA | 391 → 436 | 123 |
 | [2](#sessão-2--050826-a-100826--fase-7-parcial-ci-obrigatória-e-fase-8) | 05/08 a 10/08/2026 | Fase 7 (relatório HTML), CI obrigatória, Fase 8 (redesign) | 362 → 391 | 44 → 123 |
 | [1](#sessão-1--300726-a-040826--fases-5-a-7) | 30/07 a 04/08/2026 | Fases 5, 6 e 7 (exportação) | 169 → 362 | 13 → 44 |
+
+---
+
+# Sessão 4 — 11/08/26 a 12/08/26 — Fase 9 e a varredura que a fechou
+
+Ponto de partida: `7c1d59f` (Fase 6 com provedores reais). **61 arquivos
+alterados, +6.512 / −771** nos commits da Fase 9, mais a varredura de
+fechamento. Testes de backend: 436 → 591. Testes de frontend: 123 → 141.
+
+O pedido da Fase 9 tinha **seis frentes** — IA gratuita, barra lateral,
+repaginação mais colorida e arredondada, painéis interativos, mapas
+personalizáveis e laudo de engenharia completo. As seis saíram. Depois veio um
+segundo pedido, de natureza diferente: *"verifique todas as fases, quero tudo
+redondo, sem travar e consumindo menos máquina"* — uma varredura, não uma
+funcionalidade.
+
+## 1. A Fase 9
+
+| Frente | O que entrou | Decisão |
+|---|---|---|
+| IA gratuita | provedor `openai-compat` (Groq, Ollama, OpenRouter, OpenAI) | [D-36](DECISIONS.md) |
+| Barra lateral | `AppSidebar`, fixa em `lg`, gaveta abaixo, recolhível a 76 px | [D-37](DECISIONS.md) |
+| Repaginação | paleta azul, forma e movimento como token | [D-38](DECISIONS.md) |
+| Painel | cobertura, composição, ranking de lacunas, box-plot | [D-39](DECISIONS.md) |
+| Mapas personalizáveis | um eixo do mapa pode ser um índice, não só uma propriedade | [D-40](DECISIONS.md) |
+| Laudo | documento à parte, com figura do backend e interpretação da IA | [D-41](DECISIONS.md) |
+
+Duas escolhas se repetem nessas seis e valem por si: **o backend passou a
+desenhar figuras** (`app/exporters/figures.py`), porque um laudo que abre
+offline anos depois não pode depender de uma captura de tela; e **quartis,
+percentuais e escores continuaram no backend** (ADR 0004), mesmo quando o
+consumidor é um gráfico.
+
+## 2. A varredura de fechamento
+
+Ela encontrou três defeitos de travamento, e nenhum deles aparecia nos testes:
+
+| O que | Sintoma | Correção |
+|---|---|---|
+| `normalize_column` vetorial | acima de ~1e154 a soma de quadrados estourava e **todo material virava 0,0** — um empate silencioso, não um erro | `math.hypot`, que reescalona internamente |
+| `to_canonical` | um erro de digitação comum (`"m**"`, `"(m"`, `"$"`) escapava do pint como `AssertionError`/`TokenError` e virava **HTTP 500** | as três exceções passaram a ser tratadas juntas — elas não têm base comum |
+| Unidade patológica | `'m**9**9**9'`, dez caracteres, **prende um núcleo indefinidamente**: o pint interpreta unidade *avaliando* aritmética | guarda por forma nas duas portas de entrada; nem limite de tamanho nem de expoente sozinho resolvem, e `^` também é potência |
+
+E dois de desempenho, ambos medidos antes e depois — os números estão em
+[PROJECT_CONTEXT.md §12](PROJECT_CONTEXT.md): o Plotly completo (4,5 MB, 79% de
+todo o JS) virou um bundle à la carte de cinco traços, e `parse()` de expressão
+passou a ser memoizada, o que tirou 80% do custo de avaliar um índice por
+material.
+
+**O que a auditoria alegou e a medição desmentiu** importa tanto quanto o que
+ela acertou: `ANALYZE` deixa o `overview` 85% **mais lento**; índices de
+cobertura mais largos rendiam 13% por +33% de arquivo; o `DashboardService` não
+tinha N+1 nenhum; e o `.env.example` já estava completo. Nada disso foi
+aplicado, e o motivo ficou escrito para ninguém tentar de novo.
+
+## 3. O que continua em aberto
+
+Da Fase 7: PPTX, testes end-to-end, autenticação e auditoria. Do §3.5 da
+proposta: **nenhuma sessão de teste com usuários foi realizada** — o
+`11-usabilidade.md` está instrumentado e a tabela de melhorias dele continua
+vazia. E as figuras da monografia que são capturas de `/estilo` precisam ser
+refeitas depois de D-38.
 
 ---
 

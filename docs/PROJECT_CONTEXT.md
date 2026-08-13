@@ -40,7 +40,7 @@ sugerir e explicar.
 
 ## 3. Estado atual
 
-**Fases 1 a 6 e 8 concluídas. Fase 7 parcial.**
+**Fases 1 a 6, 8 e 9 concluídas. Fase 7 parcial.**
 
 | # | Fase | Estado | Documento |
 |---|---|---|---|
@@ -52,13 +52,21 @@ sugerir e explicar.
 | 6 | Camada de IA opcional | ✅ | [09](09-camada-ia.md) |
 | 7 | Relatórios e qualidade | 🔄 parcial | [10](10-relatorios.md) |
 | 8 | Redesign da interface | ✅ | [REDESIGN](REDESIGN.md) · [11](11-usabilidade.md) |
+| 9 | IA gratuita, painel, mapas personalizáveis e laudo | ✅ | [D-36 a D-41](DECISIONS.md) |
 
 A Fase 8 vem depois da 7 na numeração e antes dela na conclusão: o redesign era
 independente do que falta na 7 (autenticação, auditoria, testes de ponta a
 ponta) e resolvia a acessibilidade, que estava listada como pendência daquela
-fase.
+fase. A Fase 9 seguiu o mesmo raciocínio.
 
-**Saúde do código:** 436 testes de backend (Python 3.11 e 3.12) e 123 de
+**O que continua faltando é apenas o da Fase 7**, e está na seção 6 — nenhuma
+das outras fases tem pendência aberta. Duas dessas faltas não são de código e
+não podem ser fechadas por quem programa sozinho: a sessão de teste com usuários
+do §3.5 da proposta (`11-usabilidade.md` está instrumentado, mas **nenhuma
+sessão foi realizada** — enquanto a tabela de melhorias dele estiver vazia, o
+§3.5 não foi cumprido) e o estudo de caso didático.
+
+**Saúde do código:** 591 testes de backend (Python 3.11 e 3.12) e 141 de
 frontend, todos verdes. `ruff` limpo, `black --check` limpo, typecheck estrito e
 build de produção sem avisos. CI no GitHub Actions rodando em todo PR e push
 para `main`, com os três checks **obrigatórios**: o GitHub recusa o merge se
@@ -97,11 +105,13 @@ na entrada.
   heatmap. Exportação PNG/SVG.
 
 ### Camada de IA (opcional)
-- Interface `AIProvider` com **três provedores**: `mock` (padrão, determinístico,
-  sem chave e sem rede), `claude-api` (API da Anthropic, chave própria) e
-  `claude-cli` (o Claude Code instalado na máquina, pela assinatura já
-  autenticada). Trocar entre eles é trocar `AI_PROVIDER`. O sistema funciona
-  integralmente com a camada desligada.
+- Interface `AIProvider` com **quatro provedores**: `mock` (padrão,
+  determinístico, sem chave e sem rede), `claude-api` (API da Anthropic, chave
+  própria), `claude-cli` (o Claude Code instalado na máquina, pela assinatura já
+  autenticada) e `openai-compat` (qualquer servidor que fale
+  `/chat/completions`, escolhido por `AI_BASE_URL` — Groq no plano gratuito,
+  Ollama local, OpenRouter, OpenAI). Trocar entre eles é trocar `AI_PROVIDER`. O
+  sistema funciona integralmente com a camada desligada.
 - Interpreta o enunciado em função/restrições/objetivo/variáveis livres,
   **citando o trecho de origem**; sugere propriedades e índices **do catálogo**;
   sugere o mapa em que o índice vira reta; explica estudos já calculados.
@@ -141,14 +151,51 @@ de limitação, reprodutibilidade e dados demonstrativos.
   o conteúdo.
 - A repaginação visual final trocou **os tokens e só os tokens** — quatro
   arquivos, nenhuma primitiva tocada e nenhuma camada de animação importada
-  ([D-33](DECISIONS.md)).
+  ([D-33](DECISIONS.md), depois substituída por [D-38](DECISIONS.md), que trocou
+  a família da paleta mantendo o método).
+
+### Fase 9 — IA gratuita, painel, mapas personalizáveis e laudo
+O pedido tinha seis frentes, e as seis foram entregues:
+
+- **IA gratuita** — o provedor `openai-compat` ([D-36](DECISIONS.md)) é um
+  *protocolo*, não um fornecedor: o mesmo código atende Groq no plano gratuito,
+  um Ollama local (sem credencial nenhuma), OpenRouter ou a OpenAI. `AI_BASE_URL`
+  não tem padrão de propósito, e chave vazia é configuração válida. Serviço,
+  guardrails e interface não mudaram para acomodá-lo — a demonstração de que a
+  camada é mesmo opcional e substituível.
+- **Barra lateral** ([D-37](DECISIONS.md)) — fixa a partir de `lg`, gaveta modal
+  abaixo, recolhível a 76 px. Ao recolher, o rótulo vira `sr-only` e **nunca** é
+  removido, ou o link ficaria sem nome acessível.
+- **Repaginação mais colorida e arredondada** ([D-38](DECISIONS.md)) — paleta,
+  forma e movimento, tudo por token. O par mais apertado é `--brand-700` sobre
+  `--brand-50` a 5,01:1. A paleta categórica de classes (Okabe–Ito) não é da
+  marca e não se mexe: responde a daltonismo e a impressão monocromática.
+- **Painel de indicadores** em `/painel` ([D-39](DECISIONS.md)) — cobertura
+  geral, composição por tipo de evidência, cobertura por classe, ranking de
+  lacunas e distribuição por propriedade com box-plot, tudo sobre quartis e
+  percentuais computados no backend ([ADR 0004](adr/0004-geometria-de-graficos-no-backend.md)).
+- **Mapas personalizáveis** ([D-40](DECISIONS.md)) — um eixo de `/mapas` pode
+  ser um índice de desempenho (do catálogo ou expressão personalizada), não só
+  uma propriedade cadastrada. A linha de índice sobreposta e o eixo-índice são
+  mutuamente exclusivos por desenho.
+- **Laudo de engenharia** ([D-41](DECISIONS.md)) —
+  `GET /api/exports/estudos/{id}/laudo.html`, documento **distinto** do
+  relatório de seleção da Fase 7: a mesma reexecução determinística e as mesmas
+  oito seções de auditoria, mais o gráfico de barras do ranking renderizado em
+  SVG no backend (`exporters/figures.py`) e, quando a camada de IA está ligada,
+  a interpretação de `AIService.explain()`. Ausência de IA é declarada, nunca
+  silenciosa; responsável técnico é texto livre, nunca validado.
+
+> **As figuras da monografia que são capturas de `/estilo` precisam ser refeitas
+> depois de D-38.**
 
 ## 5. Em andamento
 
 **Fase 7** — as exportações estão entregues (planilha e imprimível). Falta:
 arquitetura para PPTX, testes end-to-end de interface, autenticação e
-autorização por projeto, auditoria e desempenho. A acessibilidade, que estava
-nesta lista, foi entregue pela Fase 8.
+autorização por projeto, e auditoria. A acessibilidade, que estava nesta lista,
+foi entregue pela Fase 8; o **desempenho**, que também estava, foi medido e
+tratado (seção 12).
 
 **Teste de usabilidade (§3.5 da proposta)** — [11-usabilidade.md](11-usabilidade.md)
 traz o roteiro, o formulário e a tabela de melhorias, prontos para aplicar.
@@ -202,6 +249,9 @@ que mais afetam quem for mexer no código:
 | Uma paleta só, compartilhada entre interface e gráfico | [D-28](DECISIONS.md) |
 | A borda de um controle responde à WCAG 1.4.11 | [D-34](DECISIONS.md) |
 | O provedor real escolhe índice por slug; expressão e ressalvas não são dele | [D-35](DECISIONS.md) |
+| A IA gratuita é um protocolo, não um fornecedor | [D-36](DECISIONS.md) |
+| A navegação é a barra lateral, e o rótulo recolhido vira `sr-only` | [D-37](DECISIONS.md) |
+| O laudo de engenharia é um documento à parte do relatório de seleção | [D-41](DECISIONS.md) |
 
 ## 9. Limitações atuais
 
@@ -230,7 +280,7 @@ que mais afetam quem for mexer no código:
 | Dependência de provedor de IA | Arquitetura desacoplada com provedor simulado; funciona sem chave. |
 | Incorporação inadvertida de dado protegido | Triagem de licenciamento prevista (item 4.2 da proposta) — **ainda não implementada**, ver [TODO.md](TODO.md). |
 | Resultado não reproduzível por interferência de IA | Cálculo determinístico + guardrails executáveis + confirmação do usuário. |
-| Regressão silenciosa | CI com 436 testes de backend e 123 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
+| Regressão silenciosa | CI com 591 testes de backend e 141 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
 
 ## 11. Próximos passos sugeridos
 
@@ -251,3 +301,53 @@ Na ordem em que eu atacaria:
 5. **Autenticação e projetos**, se o trabalho for exposto em rede.
 
 Detalhamento com impacto e dificuldade em [TODO.md](TODO.md).
+
+## 12. Desempenho — o que foi medido
+
+Números obtidos nesta base, não estimados. A distinção importa: quase toda
+suspeita de lentidão que a auditoria levantou não se confirmou na medição, e uma
+das "otimizações" candidatas piorava as coisas.
+
+| O que | Antes | Depois | Como foi medido |
+|---|---|---|---|
+| Maior *chunk* de JavaScript | 4,5 MB | **984 KB** (−78%) | `next build`; o Plotly completo era 79% de todo o JS da aplicação. |
+| Total de `.next/static/chunks` | 5,7 MB | **2,3 MB** (−60%) | idem. |
+| `GET /dashboard/distribution` | 43,0 ms | 33,4 ms (−22%) | catálogo sintético de 5 000 materiais e 60 000 valores. |
+| Busca de materiais por classe | 0,83 ms | 0,54 ms (−35%) | idem. |
+| `GET /dashboard/overview` | 183 ms | 183 ms | idem — **e não há o que otimizar com índice**: são três junções agregadas sobre o catálogo inteiro. |
+| Avaliar um índice para um material | 33,7 µs | **6,7 µs** (−80%) | 20 000 avaliações de `sqrt(modulo_young) / densidade`; a análise sintática era 17,5 µs disso. |
+| Índice sobre 5 000 materiais | 168 ms | **33 ms** | consequência do anterior: um mapa com eixo-índice avalia a mesma expressão uma vez por ponto. |
+
+**A causa do bundle** era `react-plotly.js` exigir `plotly.js/dist/plotly`, a
+build completa com 3D, WebGL, mapbox e geo, para as **cinco** famílias de traço
+que estas figuras usam. `lib/plotly-custom.ts` monta o Plotly à la carte e o
+`webpack.resolve.alias` do `next.config.mjs` aponta a exigência para lá — a
+dependência continua original e atualizável. O alias vale **só para o cliente**:
+toda figura carrega por `next/dynamic` com `ssr: false`, e aplicá-lo ao grafo do
+servidor quebra o runtime de desenvolvimento com um erro que **não reproduz em
+`next build`**.
+
+**A expressão do índice** era reanalisada uma vez por material — `ast.parse`
+mais a checagem da lista branca, a cada ponto de um mapa. `parse()` passou a ser
+memoizada (`lru_cache`), o que só é seguro porque nenhum dos quatro chamadores
+muta a árvore, porque `lru_cache` não guarda exceções (uma expressão recusada é
+recusada sempre, nunca lembrada como aceita) e porque o cache é limitado —
+expressões vêm do usuário, e um cache sem teto indexado por entrada do usuário
+seria um vetor de memória, não uma otimização. As três invariantes têm teste em
+`test_expressions.py`.
+
+**O que foi medido e recusado:** índices de cobertura mais largos (13% no
+`overview` por +33% de tamanho de arquivo), `ANALYZE` (deixa o `overview` **85%
+mais lento**, porque o planejador passa a escolher um plano indexado para um
+agregado que precisa varrer tudo) e **eliminar a dupla execução do pipeline no
+laudo** — `AIService.explain()` recomputa o estudo em vez de aceitar um
+resultado pronto, o que custa 10,3 ms dos 30,4 ms do documento. É o preço da
+ancoragem numérica: um parâmetro de resultado é exatamente a porta pela qual
+números fabricados chegariam já abençoados. Com um provedor real de IA, essa
+segunda execução some abaixo de 1% da espera.
+
+**O que foi medido e inocentado:** o `DashboardService` emite 7 consultas e
+nenhum laço por material — o custo é do banco, não do serviço. O `.env.example`
+já documentava todas as variáveis da camada de IA.
+
+Ver também as correções de travamento em [CHANGELOG_SESSION.md](CHANGELOG_SESSION.md).

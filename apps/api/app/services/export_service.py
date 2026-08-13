@@ -132,6 +132,16 @@ class ExportService:
         keeps that: a provider that is off, misconfigured, or momentarily
         unreachable degrades this one section instead of failing the whole
         document.
+
+        This re-runs the deterministic pipeline: ``AIService.explain`` computes
+        its own result and will not accept one from a caller, so assembling the
+        laudo executes the study twice. Measured at 10.3 ms of a 30.4 ms
+        document on the seeded catalogue — a third of it, and deliberate.
+        Handing our result over is what the numeric anchoring depends on not
+        happening: the prose is checked against numbers *that call* produced,
+        and a parameter is exactly the door through which fabricated numbers
+        would arrive already blessed. With a real provider the second run is
+        under one percent of the wait, which is the case that matters.
         """
         try:
             explanation = AIService(self.db).explain(study_id)

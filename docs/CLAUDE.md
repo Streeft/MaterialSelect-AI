@@ -51,8 +51,10 @@ Ela interpreta, sugere e explica. Ao mexer em `app/ai/`, não afrouxe:
 O provedor recebe só o catálogo e o texto. Nunca lhe passe uma sessão de banco
 nem o avaliador de expressões.
 
-Com provedor real (`claude-api`, `claude-cli`), duas coisas não são negociáveis
-e já estão estruturadas em `app/ai/claude_base.py` ([D-35](DECISIONS.md)): o
+Com provedor real (`claude-api`, `claude-cli`, `openai-compat`), duas coisas não
+são negociáveis e já estão estruturadas em `app/ai/model_base.py`
+([D-35](DECISIONS.md)) — o nome do arquivo não traz "claude" de propósito, porque
+as garantias são da camada e não de um fornecedor ([D-36](DECISIONS.md)): o
 modelo escolhe um índice **pelo slug** e a expressão vem do catálogo depois — não
 peça esse campo ao modelo; e as ressalvas da explicação vivem em
 `app/ai/caveats.py`, fora do esquema enviado. O padrão continua `mock`, o único
@@ -181,11 +183,26 @@ Atalhos em `scripts/`: `dev-api.ps1`, `dev-web.ps1`, `seed.ps1`. Há ainda
 obrigatórios no GitHub (seção 7).
 
 ### Variáveis de ambiente relevantes
+A lista completa, com as receitas prontas de cada provedor, está em
+`apps/api/.env.example` — ele é a fonte, esta tabela é o resumo.
+
 | Variável | Padrão | Efeito |
 |---|---|---|
 | `DATABASE_URL` | `sqlite:///./materialselect.db` | Banco. |
 | `CORS_ORIGINS` | `http://localhost:3000` | Origens permitidas. |
-| `AI_PROVIDER` | `mock` | `""` desliga a camada de IA por completo; `claude-api` ou `claude-cli` ligam o Claude ([09](09-camada-ia.md)). |
+| `ENVIRONMENT` | `development` | Rótulo livre de ambiente. |
+| `APP_NAME` | `MaterialSelect AI` | Nome exibido nos metadados da API. |
+| `UPLOAD_DIR` | `var/uploads` | Onde o arquivo espera enquanto o job de importação está aberto. |
+| `MAX_UPLOAD_BYTES` | `5242880` (5 MiB) | Teto de um arquivo enviado. |
+| `MAX_IMPORT_ROWS` | `5000` | Teto de linhas por importação; limita o tempo de validação e commit. |
+| `AI_PROVIDER` | `mock` | `""` desliga a camada de IA por completo; `claude-api`, `claude-cli` e `openai-compat` ligam um modelo real ([09](09-camada-ia.md)). |
+| `AI_API_KEY` | vazio | Token do `openai-compat`; no `claude-api` prefira exportar `ANTHROPIC_API_KEY`. Vazio é configuração válida (Ollama local). |
+| `AI_MODEL` | `claude-opus-5` | O valor certo depende do provedor. |
+| `AI_BASE_URL` | vazio, **sem padrão** | Raiz da API compatível com OpenAI, terminando em `/v1`. Sem padrão de propósito ([D-36](DECISIONS.md)). |
+| `AI_JSON_MODE` | `schema` | `schema`/`object`/`prompt`. Degradar é decisão do operador, nunca queda silenciosa. |
+| `AI_TIMEOUT_SECONDS` | `90` | O provedor de CLI precisa da ponta alta: ele sobe um processo antes de perguntar. |
+| `AI_MAX_OUTPUT_TOKENS` | `16000` | Teto de uma resposta, pensamento e texto juntos. |
+| `AI_CLI_COMMAND` | `claude` | Executável do `claude-cli`, resolvido no PATH. |
 | `NEXT_PUBLIC_API_URL` | `http://localhost:8000` | URL da API no frontend. |
 
 ---

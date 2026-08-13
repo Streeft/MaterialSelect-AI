@@ -136,6 +136,18 @@ célula vazia** — é o quarto estado da qualidade do dado, com rótulo escrito
 (D-24). Número na tela usa a convenção do pt-BR (D-30), e todo gráfico tem como
 alternativa textual a tabela que o originou (D-31).
 
+**O Plotly é montado à la carte.** `apps/web/lib/plotly-custom.ts` registra
+exatamente as cinco famílias de traço que as figuras usam (`bar`, `box`,
+`heatmap`, `scatter`, `scatterpolar`), e o `webpack.resolve.alias` do
+`next.config.mjs` aponta para lá o `plotly.js/dist/plotly` que o
+`react-plotly.js` exige — a build completa custava 4,5 MB, 79% de todo o
+JavaScript da aplicação. Duas consequências que não são opcionais: **um sexto
+tipo de traço tem de ser registrado ali**, ou o Plotly falha em runtime com
+"Trace type not found" — o verificador de tipos não pega isso —, e o alias vale
+**só para o cliente** (`if (!isServer)`), porque aplicá-lo ao grafo do servidor
+quebra o runtime de desenvolvimento com um erro que **não reproduz em
+`next build`** e só aparece quando alguém abre a aplicação.
+
 ## Convenções
 
 - Python: SQLAlchemy 2.0 style (`Mapped[...]`/`mapped_column`), Pydantic v2,
@@ -220,8 +232,16 @@ declarada, nunca silenciosa; responsável técnico é texto livre, nunca
 validado. **As figuras da monografia que são capturas de `/estilo` precisam
 ser refeitas depois de D-38.**
 
-558 testes de backend e 138 de frontend, todos verdes. CI no GitHub Actions roda
+591 testes de backend e 141 de frontend, todos verdes. CI no GitHub Actions roda
 em todo PR e push para `main`.
+
+**Desempenho medido**, com os números em `docs/PROJECT_CONTEXT.md §12`: o maior
+*chunk* de JavaScript caiu de 4,5 MB para 984 KB (o Plotly completo era 79% de
+todo o JS), as chaves estrangeiras ganharam índice, e o `upload` — único endpoint
+`async` da aplicação — passou a rodar o serviço em *threadpool*, porque inline
+ele congelava o event loop inteiro e não só a própria requisição. Duas
+"otimizações" foram medidas e **recusadas** (índices de cobertura e `ANALYZE`,
+este último 85% mais lento no `overview`).
 
 **Estado detalhado, decisões, backlog e histórico da última sessão estão em
 `docs/`** — ver PROJECT_CONTEXT.md, DECISIONS.md, TODO.md e

@@ -39,6 +39,21 @@ diferente. O que é óbvio não precisa de registro.
 | D-24 | Qualidade do dado codificada em três canais, nunca só cor | aceito | abaixo |
 | D-25 | Hipóteses do índice antes da escolha, não depois | aceito | abaixo |
 | D-26 | Navegação agrupada por tarefa, sem menus suspensos | aceito | abaixo |
+| D-27 | Composição da qualidade contada no banco, não no navegador | aceito | abaixo |
+| D-28 | Uma paleta só, compartilhada entre interface e gráfico | aceito | abaixo |
+| D-29 | Contraste medido contra a superfície mais escura em que o token é usado | aceito | abaixo |
+| D-30 | Todo número na tela usa a convenção do pt-BR | aceito | abaixo |
+| D-31 | A alternativa textual de um gráfico é a tabela que o originou | aceito | abaixo |
+| D-32 | O painel de uma aba é filho do componente de abas | aceito | abaixo |
+| D-33 | A repaginação lumimotion troca os tokens, e só os tokens | **superado por D-38** (o método permanece) | abaixo |
+| D-34 | A borda de um controle é informação, não moldura | aceito | abaixo |
+| D-35 | O provedor real escolhe índice por slug; expressão e ressalvas não são dele | aceito | abaixo |
+| D-36 | A IA gratuita é um protocolo, não um fornecedor | aceito | abaixo |
+| D-37 | A navegação vira barra lateral, e a barra pode recolher | aceito | abaixo |
+| D-38 | A paleta troca de família, e o verde-limão sai com data marcada | aceito | abaixo |
+| D-39 | O painel separa tipo de evidência de existência do campo, com duas paletas | aceito | abaixo |
+| D-40 | Um eixo do mapa pode ser um índice; overlay e eixo-índice são exclusivos | aceito | abaixo |
+| D-41 | O laudo de engenharia é um documento à parte | aceito | abaixo |
 
 ---
 
