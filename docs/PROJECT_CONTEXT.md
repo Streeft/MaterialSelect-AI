@@ -310,8 +310,8 @@ das "otimizações" candidatas piorava as coisas.
 
 | O que | Antes | Depois | Como foi medido |
 |---|---|---|---|
-| Maior *chunk* de JavaScript | 4,5 MB | **984 KB** (−78%) | `next build`; o Plotly completo era 79% de todo o JS da aplicação. |
-| Total de `.next/static/chunks` | 5,7 MB | **2,3 MB** (−60%) | idem. |
+| Maior *chunk* de JavaScript | 4,5 MB | **981 KB** (−79%) | `next build`; o Plotly completo era 79% de todo o JS da aplicação. |
+| Total de `.next/static/chunks` | 5,7 MB | **2,2 MB** (−61%) | idem. |
 | `GET /dashboard/distribution` | 43,0 ms | 33,4 ms (−22%) | catálogo sintético de 5 000 materiais e 60 000 valores. |
 | Busca de materiais por classe | 0,83 ms | 0,54 ms (−35%) | idem. |
 | `GET /dashboard/overview` | 183 ms | 183 ms | idem — **e não há o que otimizar com índice**: são três junções agregadas sobre o catálogo inteiro. |

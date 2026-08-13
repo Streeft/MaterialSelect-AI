@@ -236,7 +236,7 @@ ser refeitas depois de D-38.**
 em todo PR e push para `main`.
 
 **Desempenho medido**, com os números em `docs/PROJECT_CONTEXT.md §12`: o maior
-*chunk* de JavaScript caiu de 4,5 MB para 984 KB (o Plotly completo era 79% de
+*chunk* de JavaScript caiu de 4,5 MB para 981 KB (o Plotly completo era 79% de
 todo o JS), as chaves estrangeiras ganharam índice, e o `upload` — único endpoint
 `async` da aplicação — passou a rodar o serviço em *threadpool*, porque inline
 ele congelava o event loop inteiro e não só a própria requisição. Duas
