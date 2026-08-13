@@ -23,18 +23,6 @@ os vizinhos — outros documentos citam esses códigos.
 - **Dificuldade:** ▃
 - **Dependências:** nenhuma técnica; depende de escolher o caso na literatura.
 
-### A4 — Testes end-to-end dos fluxos
-- **Descrição:** Playwright cobrindo importar → selecionar → visualizar →
-  exportar.
-- **Impacto:** alto. Toda a verificação de interface foi manual. Dois bugs desta
-  sessão (unidade nula na IA, `prettyUnit` com expoente fracionário) só
-  apareceram porque alguém abriu o navegador.
-- **Dificuldade:** ▆
-- **Dependências:** nenhuma, mas **um job novo não bloqueia sozinho.** A ruleset
-  exige uma lista fixa de nomes; um job de Playwright acrescentado ao `ci.yml`
-  roda e reprova o PR na aparência, sem impedir o merge, até que o nome entre em
-  `scripts/protect-main.ps1` e o script seja rodado de novo.
-
 ### A5 — Autenticação e autorização por projeto
 - **Descrição:** usuários, sessões, e escopo de dados por projeto.
 - **Impacto:** alto **se** o sistema for exposto em rede. Hoje a API é
@@ -142,6 +130,18 @@ os vizinhos — outros documentos citam esses códigos.
 - **Descrição:** `StarletteDeprecationWarning` sugere `httpx2` no TestClient.
 - **Impacto:** baixo, cosmético. **Dificuldade:** ▁ · **Dependências:** upstream.
 
+### B11 — Tornar o Playwright (A4) um check obrigatório de CI
+- **Descrição:** hoje a suíte (`apps/web/e2e/`) só roda localmente
+  (`npm run test:e2e`), fora do `ci.yml`. Acrescentá-la como job é uma decisão
+  separada de tê-la escrito.
+- **Impacto:** médio: sem isso, uma regressão de interface só aparece se alguém
+  rodar a suíte à mão.
+- **Dificuldade:** ▁ · **Dependências:** **um job novo não bloqueia sozinho.** A
+  ruleset exige uma lista fixa de nomes (`scripts/protect-main.ps1`); um job de
+  Playwright acrescentado ao `ci.yml` roda e reprova o PR na aparência, sem
+  impedir o merge, até que o nome entre no script e ele seja rodado de novo
+  contra o GitHub.
+
 ---
 
 ## Entidades ainda não modeladas
@@ -155,6 +155,19 @@ depende de um item acima (A5, M2, B7) — não crie tabela sem o caso de uso.
 
 Registrados para não voltarem por engano:
 
+- ~~**A4** — testes end-to-end dos fluxos~~ — Playwright cobre importar →
+  selecionar → visualizar → exportar como uma sessão contínua no navegador,
+  contra API e banco (SQLite, descartável) próprios, em portas isoladas das de
+  desenvolvimento (`apps/web/e2e/`, `apps/web/playwright.config.ts`,
+  `apps/api/scripts/e2e_server.py`; `npm run test:e2e`). Achou um bug real de
+  produção antes de ir ao ar: a sugestão automática de coluna na importação
+  (`_suggest`, `app/importers/service.py`) comparava um slug hifenizado
+  (`slugify()` sempre usa `-`) contra o slug armazenado, que usa `_` — então
+  **toda propriedade de nome composto** ("Módulo de Young", "Limite de
+  escoamento" etc.) nunca era sugerida automaticamente, e só "Densidade"
+  (palavra única) por coincidência funcionava. Corrigido comparando os dois
+  lados já normalizados; regressão coberta em `test_imports_api.py`. Levar essa
+  suíte para o CI como check obrigatório é a **B11**, decisão separada.
 - ~~`black --check` falhava em arquivos anteriores à Fase 5~~ — backend formatado
   por inteiro em commit próprio; `black --check` virou portão de CI.
 - ~~Isolamento de testes quebrado com pysqlite~~ — corrigido no `conftest.py`,

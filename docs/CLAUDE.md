@@ -154,6 +154,12 @@ cd apps\api; .\.venv\Scripts\Activate.ps1; pytest
 cd apps\web; npm run typecheck; npm run lint; npm run test; npm run build
 ```
 
+**End-to-end (A4):** `cd apps\web; npm run test:e2e` roda o Playwright
+(`apps/web/e2e/`) — importar → selecionar → visualizar → exportar, contra API e
+banco próprios (`apps/api/scripts/e2e_server.py`), em portas isoladas das de
+desenvolvimento (8811/3011). Não está no `ci.yml` ainda ([B11](TODO.md)); rode à
+mão antes de um PR que mexa nesses fluxos.
+
 ---
 
 ## 6. Como executar
