@@ -7,6 +7,12 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const nextConfig = {
   reactStrictMode: true,
 
+  // The Playwright suite builds and serves its own instance of this app
+  // (`e2e/playwright.config.ts`) so it can run alongside `npm run dev` without
+  // the corruption a build and a dev server sharing one `.next` already caused
+  // once. `PLAYWRIGHT_E2E` is set only by that config, never by a developer.
+  distDir: process.env.PLAYWRIGHT_E2E ? ".next-e2e" : ".next",
+
   // `react-plotly.js` hard-codes `require("plotly.js/dist/plotly")` — the
   // complete Plotly build, 4.5 MB of it, for the five trace types these figures
   // use. The alias points that request at `lib/plotly-custom.ts`, which
