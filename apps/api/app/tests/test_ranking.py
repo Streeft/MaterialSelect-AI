@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from app.domain.errors import ValidationError
-from app.domain.ranking import Criterion, Direction, Normalization, rank
+from app.domain.ranking import Criterion, Direction, Normalization, normalize_column, rank
 
 
 def _crit(key, direction, weight, label=None):
@@ -97,3 +97,23 @@ def test_ties_share_rank():
     materials = [(1, "A", {"x": 5.0}), (2, "B", {"x": 5.0})]
     result = rank(materials, [_crit("x", Direction.MAX, 1.0)], run_sensitivity=False)
     assert result.ranked[0].rank == result.ranked[1].rank == 1
+
+
+# The Euclidean norm computed as sum(v*v) ** 0.5 overflows to +inf long before
+# any single value does: squaring reaches the float ceiling at ~1e154, while the
+# values themselves only reach it at ~1e308. Dividing by inf gives 0.0 for every
+# material, so the column stops distinguishing anything and the ranking silently
+# ties — no exception, no warning, a wrong answer. A performance index is a
+# product of powers of properties (E**(1/2)/rho and friends), which is exactly
+# how a column of ordinary numbers turns into 1e200.
+def test_vector_normalisation_survives_huge_values():
+    scaled = normalize_column([1e200, 2e200, 3e200], Direction.MAX, Normalization.VECTOR)
+    plain = normalize_column([1.0, 2.0, 3.0], Direction.MAX, Normalization.VECTOR)
+    # Scale-invariance is the defining property of the Euclidean norm; the two
+    # columns describe the same materials in different units.
+    assert scaled == pytest.approx(plain)
+    assert scaled[0] < scaled[1] < scaled[2]
+
+
+def test_vector_normalisation_all_zero_column_is_a_tie():
+    assert normalize_column([0.0, 0.0], Direction.MAX, Normalization.VECTOR) == [1.0, 1.0]
