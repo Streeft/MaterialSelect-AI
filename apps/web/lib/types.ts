@@ -4,7 +4,7 @@
 // the backend Pydantic schemas in apps/api/app/schemas. They are duplicated here
 // (rather than imported cross-package) to keep the Next.js build simple for the
 // MVP. TECH DEBT: unify via npm workspaces + transpilePackages once the monorepo
-// tooling is set up. See docs/backlog.md.
+// tooling is set up. See docs/TODO.md.
 
 export type PropertyCategory =
   | "FISICA"

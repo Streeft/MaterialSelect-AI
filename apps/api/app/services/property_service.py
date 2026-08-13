@@ -61,7 +61,7 @@ class PropertyService:
         # Changing the canonical unit or dimension would desynchronise every
         # stored normalized_value from the definition (a chart labelled g/cm³
         # plotting values still in kg/m³). Block while values exist; a future
-        # migration tool may re-normalise instead (see docs/backlog.md).
+        # migration tool may re-normalise instead (see docs/TODO.md).
         unit_changed = (
             payload.canonical_unit != obj.canonical_unit
             or payload.physical_dimension != obj.physical_dimension
