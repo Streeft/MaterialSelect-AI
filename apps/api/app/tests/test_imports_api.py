@@ -60,6 +60,15 @@ def test_upload_returns_headers_sample_and_suggestions(client):
     assert dens["suggested_property_slug"] == "densidade"
     assert dens["suggested_unit"] == "g/cm**3"
 
+    # A slug with more than one word ("modulo_young") joins its words with an
+    # underscore, but `slugify()` on the header text always produces a hyphen —
+    # the suggestion lookup has to bridge that or every multi-word property
+    # silently never gets suggested, however the header spells it.
+    modulo = by_column["modulo_young [GPa]"]
+    assert modulo["suggested_target"] == "property"
+    assert modulo["suggested_property_slug"] == "modulo_young"
+    assert modulo["suggested_unit"] == "GPa"
+
 
 def test_upload_rejects_wrong_extension(client):
     resp = _upload(client, filename="materiais.exe")
