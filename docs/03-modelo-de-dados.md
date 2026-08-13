@@ -1,8 +1,13 @@
 # Modelo de dados
 
-Modelo relacional normalizado. Nesta fase estão implementadas as entidades do
-catálogo; as demais (Project, SelectionStudy, PerformanceIndex, etc.) constam do
-[`backlog.md`](backlog.md) e não impedem sua inclusão futura.
+Modelo relacional normalizado. Este documento descreve **as entidades do
+catálogo**, que são a Fase 1 e a base de tudo o que veio depois.
+
+> `PerformanceIndex`, `SelectionStudy`, `SelectionConstraint`, `RankingCriterion`,
+> `ImportJob` e `ImportTemplate` foram implementadas nas Fases 3 e 4 e **não**
+> estão no diagrama abaixo; elas estão em
+> [`ARCHITECTURE.md`](ARCHITECTURE.md). `Project` continua sem existir — ver
+> [`TODO.md`](TODO.md), onde ele é pré-requisito da autenticação.
 
 ## Diagrama entidade-relacionamento
 
