@@ -63,7 +63,7 @@ class SelectionConstraint(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     study_id: Mapped[int] = mapped_column(
-        ForeignKey("selection_study.id", ondelete="CASCADE"), nullable=False
+        ForeignKey("selection_study.id", ondelete="CASCADE"), nullable=False, index=True
     )
     position: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
@@ -87,7 +87,7 @@ class RankingCriterion(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     study_id: Mapped[int] = mapped_column(
-        ForeignKey("selection_study.id", ondelete="CASCADE"), nullable=False
+        ForeignKey("selection_study.id", ondelete="CASCADE"), nullable=False, index=True
     )
     position: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
