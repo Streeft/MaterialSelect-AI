@@ -48,7 +48,13 @@ class MaterialPropertyValue(Base):
     material_id: Mapped[int] = mapped_column(
         ForeignKey("material.id", ondelete="CASCADE"), nullable=False
     )
-    property_id: Mapped[int] = mapped_column(ForeignKey("property_definition.id"), nullable=False)
+    # material_id is deliberately *not* indexed on its own: it is the leading
+    # column of uq_material_property_value_pair above, and that index already
+    # serves every lookup by material. property_id gets its own — as the second
+    # column of the pair it is unreachable through it.
+    property_id: Mapped[int] = mapped_column(
+        ForeignKey("property_definition.id"), nullable=False, index=True
+    )
 
     # Scalar OR interval representation. All nullable so "missing" is representable
     # without inventing a zero.
@@ -67,7 +73,9 @@ class MaterialPropertyValue(Base):
     measurement_condition: Mapped[str | None] = mapped_column(String(200), nullable=True)
     notes: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
-    source_id: Mapped[int | None] = mapped_column(ForeignKey("source.id"), nullable=True)
+    source_id: Mapped[int | None] = mapped_column(
+        ForeignKey("source.id"), nullable=True, index=True
+    )
     data_quality: Mapped[DataQuality] = mapped_column(
         Enum(DataQuality, native_enum=False, length=12),
         default=DataQuality.IMPORTADO,
