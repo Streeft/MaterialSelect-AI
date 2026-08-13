@@ -2,5 +2,5 @@
 
 Will host the CSV/XLSX/JSON import wizard: header detection, column mapping,
 unit identification, validation, duplicate detection, import reports and
-reusable mapping templates. See docs/backlog.md.
+reusable mapping templates. See docs/TODO.md.
 """
