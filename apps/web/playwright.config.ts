@@ -19,7 +19,11 @@ const API_URL = `http://127.0.0.1:${API_PORT}`;
 const WEB_URL = `http://127.0.0.1:${WEB_PORT}`;
 
 const apiDir = path.resolve(__dirname, "../api");
-const apiPython = path.join(apiDir, ".venv", "Scripts", "python.exe");
+// Local dev runs this against the project's own `.venv` (Windows layout); CI
+// has no venv — `setup-python` puts the right interpreter on PATH directly —
+// so the workflow overrides this with `E2E_API_PYTHON=python`.
+const apiPython =
+  process.env.E2E_API_PYTHON ?? path.join(apiDir, ".venv", "Scripts", "python.exe");
 const e2eRoot = path.join(os.tmpdir(), "materialselect-e2e");
 
 export default defineConfig({
@@ -34,9 +38,9 @@ export default defineConfig({
   // The golden path walks four routes end to end against `next dev`, which
   // compiles each one on first visit — a heavy route like `/mapas` (the full
   // Plotly bundle) alone can take several seconds. The default 30s budget is
-  // tuned for compiled apps, not this.
-  timeout: 90_000,
-  reporter: process.env.CI ? "github" : "list",
+  // tuned for compiled apps, not this; a shared CI runner is slower still.
+  timeout: 120_000,
+  reporter: process.env.CI ? [["github"], ["html", { open: "never" }]] : "list",
   use: {
     baseURL: WEB_URL,
     trace: "retain-on-failure",
@@ -48,7 +52,7 @@ export default defineConfig({
       command: `"${apiPython}" scripts/e2e_server.py`,
       cwd: apiDir,
       url: `${API_URL}/api/health`,
-      timeout: 60_000,
+      timeout: 90_000,
       reuseExistingServer: false,
       env: {
         DATABASE_URL: `sqlite:///${path.join(e2eRoot, "e2e.db")}`,
@@ -62,7 +66,7 @@ export default defineConfig({
       command: `npx next dev -p ${WEB_PORT}`,
       cwd: __dirname,
       url: WEB_URL,
-      timeout: 60_000,
+      timeout: 90_000,
       reuseExistingServer: false,
       env: {
         PLAYWRIGHT_E2E: "1",
