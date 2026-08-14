@@ -1,6 +1,16 @@
 import "@testing-library/jest-dom/vitest";
 
 /**
+ * jsdom's `ElementInternals` only implements the ARIA-reflection half of the
+ * spec (no `setFormValue`/`setValidity`/`checkValidity`/...) — every
+ * form-associated @material/web element (button, checkbox, radio, select,
+ * text-field) throws on construction without this. The package's own
+ * feature-detection (instantiate + probe, not a bare `typeof` check)
+ * correctly identifies jsdom's implementation as incomplete and patches it.
+ */
+import "element-internals-polyfill";
+
+/**
  * jsdom ships no media-query engine, so `window.matchMedia` is simply absent
  * and anything that asks the OS about the colour scheme throws on mount.
  *
