@@ -23,3 +23,13 @@ export const MdFilledButton = createComponent({
   elementClass: MdFilledButtonElement,
   displayName: "MdFilledButton",
 });
+
+import "@material/web/progress/circular-progress.js";
+import { MdCircularProgress as MdCircularProgressElement } from "@material/web/progress/circular-progress.js";
+
+export const MdCircularProgress = createComponent({
+  react: React,
+  tagName: "md-circular-progress",
+  elementClass: MdCircularProgressElement,
+  displayName: "MdCircularProgress",
+});
