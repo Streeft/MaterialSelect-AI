@@ -23,14 +23,6 @@ os vizinhos — outros documentos citam esses códigos.
 - **Dificuldade:** ▃
 - **Dependências:** nenhuma técnica; depende de escolher o caso na literatura.
 
-### A5 — Autenticação e autorização por projeto
-- **Descrição:** usuários, sessões, e escopo de dados por projeto.
-- **Impacto:** alto **se** o sistema for exposto em rede. Hoje a API é
-  totalmente aberta, incluindo escrita e exclusão (ver [DECISIONS.md](DECISIONS.md) D-18).
-- **Dificuldade:** ▆
-- **Dependências:** exige modelar `User` e `Project` e revisar toda consulta para
-  filtrar por escopo. Não comece sem decidir se o trabalho será hospedado.
-
 ---
 
 ## Média prioridade
@@ -49,7 +41,8 @@ os vizinhos — outros documentos citam esses códigos.
 - **Impacto:** médio. Sustenta a alegação de rastreabilidade no nível do
   *processo*, não só do dado.
 - **Dificuldade:** ▃
-- **Dependências:** faz mais sentido depois de A5 (sem usuários, "quem" fica vazio).
+- **Dependências:** nenhuma mais — A5 quitou o "quem" (há `User` desde o login
+  com Google). Ainda não implementado.
 
 ### M8 — Desempenho medido (Lighthouse)
 - **Descrição:** a metade de desempenho do antigo M3, que ficou de fora quando a
@@ -134,8 +127,9 @@ os vizinhos — outros documentos citam esses códigos.
 
 ## Entidades ainda não modeladas
 
-`User`, `Project`, `AuditEvent`, `SavedChart`, `GeneratedReport`. Cada uma
-depende de um item acima (A5, M2, B7) — não crie tabela sem o caso de uso.
+`AuditEvent`, `SavedChart`, `GeneratedReport`. Cada uma depende de um item
+acima (M2, B7) — não crie tabela sem o caso de uso. (`User` e `Project` saíram
+desta lista com A5.)
 
 ---
 
@@ -143,6 +137,16 @@ depende de um item acima (A5, M2, B7) — não crie tabela sem o caso de uso.
 
 Registrados para não voltarem por engano:
 
+- ~~**A5** — Autenticação e autorização por projeto~~ — login exclusivamente
+  por terceiros (Google, OAuth 2.0; sem senha em lugar nenhum), sessão em
+  cookie `httpOnly` (`UserSession` é linha de banco, não JWT — logout revoga
+  de verdade), catálogo global compartilhado entre usuários autenticados, um
+  `Project` por `User` criado no primeiro login, `SelectionStudy` escopado por
+  `project_id` (ver [D-42](DECISIONS.md), [ARCHITECTURE.md §7](ARCHITECTURE.md)).
+  O Playwright (A4/B11) não passa pelo Google: `app/db/seed.py` grava uma
+  sessão fixa só quando `ENVIRONMENT=development` **e** `E2E_SESSION_TOKEN`
+  está no ambiente, e a suíte injeta esse token como cookie antes da primeira
+  navegação — sem nenhuma rota de bypass exposta pela API. Destrava M2.
 - ~~**A4** — testes end-to-end dos fluxos~~ — Playwright cobre importar →
   selecionar → visualizar → exportar como uma sessão contínua no navegador,
   contra API e banco (SQLite, descartável) próprios, em portas isoladas das de

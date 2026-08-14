@@ -77,6 +77,13 @@ Compromisso do item 5 da proposta. Sem opção de desligar.
 ### 1.9 Sem segredos versionados
 Configuração por variáveis de ambiente. Há `.env.example`.
 
+### 1.10 Login é só por terceiros (Google). Nunca senha
+Nenhum formulário de e-mail/senha, nenhum hash de senha para gerenciar. A
+sessão é uma linha de banco (`UserSession`), não um JWT — logout precisa
+revogar de verdade. O catálogo continua compartilhado entre todo usuário
+autenticado; só `SelectionStudy` é escopado por `Project`. Ver
+[D-42](DECISIONS.md).
+
 ---
 
 ## 2. Idiomas
@@ -160,6 +167,14 @@ banco próprios (`apps/api/scripts/e2e_server.py`), em portas isoladas das de
 desenvolvimento (8811/3011). É check obrigatório de CI (`E2E (Playwright)` em
 `ci.yml`); rode localmente antes do PR para não descobrir uma falha só lá.
 
+Toda rota exceto `/entrar` exige login (A5) — sem cliente OAuth de teste
+utilizável em CI, a suíte não passa pelo Google: `playwright.config.ts` passa
+`E2E_SESSION_TOKEN` para o processo da API, `app/db/seed.py`
+(`seed_e2e_session`) grava uma sessão fixa com esse token só quando
+`ENVIRONMENT=development`, e `apps/web/e2e/session.ts` injeta o mesmo token
+como cookie `msai_session` no navegador antes da primeira navegação de cada
+spec. Nenhuma rota de bypass é exposta pela API.
+
 ---
 
 ## 6. Como executar
@@ -210,6 +225,13 @@ A lista completa, com as receitas prontas de cada provedor, está em
 | `AI_MAX_OUTPUT_TOKENS` | `16000` | Teto de uma resposta, pensamento e texto juntos. |
 | `AI_CLI_COMMAND` | `claude` | Executável do `claude-cli`, resolvido no PATH. |
 | `NEXT_PUBLIC_API_URL` | `http://localhost:8000` | URL da API no frontend. |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | vazio | Login desligado (503) sem os dois. Sem padrão de propósito — não existe cliente OAuth que sirva para todo mundo ([D-42](DECISIONS.md)). |
+| `GOOGLE_ALLOWED_DOMAIN` | vazio | Vazio permite qualquer conta Google; setado, restringe por sufixo de e-mail (ex.: antes de hospedar para uma turma). |
+| `BACKEND_BASE_URL` | `http://localhost:8000` | Monta o `redirect_uri` exato que o Google exige pré-registrado (`{BACKEND_BASE_URL}/api/auth/google/callback`). |
+| `FRONTEND_URL` | `http://localhost:3000` | Para onde o navegador volta após o login. |
+| `SESSION_COOKIE_SECURE` | `true` | Seguro por padrão (só HTTPS); dev local em HTTP precisa `false` explicitamente. |
+| `SESSION_TTL_HOURS` | `336` (14 dias) | Vida fixa da sessão desde a criação, sem renovação deslizante. |
+| `OAUTH_STATE_TTL_SECONDS` | `600` | Janela entre o redirect ao Google e o callback voltar. |
 
 ---
 
@@ -246,8 +268,12 @@ seja a combinação mesclada.
 
 **Não há deploy.** `docker-compose.yml` e os `Dockerfile.*` são scaffold
 documentado do alvo de produção (PostgreSQL + API + Web), não exercitados. O MVP
-roda localmente. Antes de qualquer exposição em rede, resolva autenticação
-(seção "Alta prioridade" do [TODO.md](TODO.md)).
+roda localmente. Autenticação já está resolvida (A5, [D-42](DECISIONS.md)) —
+antes de qualquer exposição em rede, registre um cliente OAuth no Google Cloud
+Console (`GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`, redirect URI
+`{BACKEND_BASE_URL}/api/auth/google/callback`, ver `.env.example`) e confirme
+`SESSION_COOKIE_SECURE=true` (o padrão) e `CORS_ORIGINS` apontando só para o
+domínio real do frontend.
 
 ---
 

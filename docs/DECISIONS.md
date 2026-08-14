@@ -30,7 +30,7 @@ diferente. O que é óbvio não precisa de registro.
 | D-15 | stdlib `csv` + `openpyxl` em vez de pandas | aceito | abaixo |
 | D-16 | Contrato de tipos duplicado conscientemente | aceito, com débito | abaixo |
 | D-17 | BEGIN explícito nos testes (pysqlite) | aceito | abaixo |
-| D-18 | Sem autenticação no MVP | aceito, com risco | abaixo |
+| D-18 | Sem autenticação no MVP | **superado por D-42** | abaixo |
 | D-19 | Merge commit em vez de squash | aceito | abaixo |
 | D-20 | HTML imprimível em vez de biblioteca de PDF | aceito | abaixo |
 | D-21 | Campo opcional não preenchido continua `NULL` | aceito | abaixo |
@@ -54,6 +54,7 @@ diferente. O que é óbvio não precisa de registro.
 | D-39 | O painel separa tipo de evidência de existência do campo, com duas paletas | aceito | abaixo |
 | D-40 | Um eixo do mapa pode ser um índice; overlay e eixo-índice são exclusivos | aceito | abaixo |
 | D-41 | O laudo de engenharia é um documento à parte | aceito | abaixo |
+| D-42 | Login só por terceiros (Google); catálogo compartilhado; um projeto por usuário no v1 | aceito | abaixo |
 
 ---
 
@@ -258,17 +259,19 @@ disciplina humana para uma propriedade que a máquina pode garantir.
 
 ---
 
-## D-18 — Sem autenticação no MVP
+## D-18 — Sem autenticação no MVP (superado por D-42)
 
-**Decisão.** Nenhuma autenticação, autorização, sessão ou usuário.
+**Decisão original.** Nenhuma autenticação, autorização, sessão ou usuário.
 
-**Por quê.** O MVP roda localmente, para um trabalho acadêmico, com dados
+**Por quê.** O MVP rodava localmente, para um trabalho acadêmico, com dados
 fictícios. Autenticação seria escopo grande sem servir à contribuição
-metodológica.
+metodológica — enquanto o risco (API totalmente aberta, incluindo escrita e
+exclusão) ficasse contido a rodar só localmente.
 
-**Risco explícito.** A API é totalmente aberta, incluindo escrita e exclusão.
-**Não exponha em rede sem resolver isso.** É o primeiro item de alta prioridade
-do [TODO.md](TODO.md).
+**Por que deixou de valer.** O sistema **vai ser hospedado**, o que torna a API
+aberta o maior risco pendente do projeto — a própria decisão já dizia isso.
+[D-42](#d-42--login-só-por-terceiros-google-catálogo-compartilhado-entre-usuários-um-projeto-por-usuário-no-v1)
+resolve isso com login Google e projetos isolados; ver lá.
 
 ---
 
@@ -1402,3 +1405,95 @@ tecla, o documento aberto mostrando as nove seções na ordem esperada — a
 figura de barras com a primeira colocada destacada na cor de realce, e a
 seção 9 com a prosa determinística do provedor simulado, ressalvas e
 disclaimer.
+
+---
+
+## D-42 — Login só por terceiros (Google); catálogo compartilhado entre usuários; um projeto por usuário no v1
+
+**Contexto.** [D-18](#d-18--sem-autenticação-no-mvp-superado-por-d-42) aceitava
+a API aberta enquanto o sistema rodasse só localmente. O usuário confirmou que
+o sistema **vai ser hospedado**, o que torna a API aberta (escrita e exclusão
+inclusas) o maior risco pendente do projeto. Isto implementa A5 do
+[TODO.md](TODO.md), o que também destrava M2 (auditoria), que depende de
+"quem" existir.
+
+**Decisão.**
+- **Login exclusivamente por terceiros — Google, via OAuth 2.0.** Sem
+  cadastro com senha, sem formulário de e-mail/senha, sem hash de senha para
+  gerenciar. `User.google_sub` (o `sub` do ID token, estável mesmo que o
+  e-mail mude) é o identificador; `google_client_id`/`google_client_secret`
+  vazios desligam o login com 503, mesmo padrão de `AI_BASE_URL` sem valor
+  padrão perigoso ([D-36](#d-36--a-ia-gratuita-é-um-protocolo-não-um-fornecedor)).
+- **Sessão em cookie `httpOnly`**, não token JWT client-side: `UserSession` é
+  uma linha de banco (`app/models/user.py`), não algo assinado e stateless —
+  logout precisa revogar de verdade, e só uma linha que pode ser apagada torna
+  isso verdade. 14 dias fixos na criação, sem renovação deslizante.
+- **O catálogo (materiais, classes, propriedades) continua global e
+  compartilhado** entre todo usuário autenticado, escrita inclusa — a mesma
+  curadoria compartilhada que já existia implicitamente, agora exigindo login
+  em vez de estar aberta a qualquer um na internet. Só `SelectionStudy` é
+  privado, escopado por `Project`. Introduzir papéis (admin vs. colaborador)
+  ficou fora deste escopo — não é pedido por A5 nem pelo TODO.
+- **Um `Project` por `User`, criado automaticamente no primeiro login**
+  ("Meu projeto"), dono único, sem colaboração multiusuário. Dá ao esquema um
+  `Project` real (pronto para múltiplos projetos por usuário no futuro) sem
+  exigir hoje uma tela de troca de projeto — não há UI nenhuma para isso
+  ainda, e construí-la antes de haver dois projetos por usuário para trocar
+  entre si seria antecipar um caso de uso que não existe.
+
+**Alternativas descartadas.**
+- Login com e-mail/senha: exigiria hash, recuperação de senha, verificação de
+  e-mail — infraestrutura inteira só para autenticação, quando o produto não é
+  sobre isso.
+- JWT stateless em vez de sessão em banco: logout deixaria de revogar de
+  verdade (o token continuaria válido até expirar) ou exigiria uma lista de
+  revogação — que é, na prática, reinventar a tabela `user_session`.
+- `Project` isolando também o catálogo: cada usuário passaria a ter seu
+  próprio conjunto de materiais/classes/propriedades, duplicando dado de
+  referência que é o mesmo para todo mundo — contradiz o princípio de não
+  inventar/duplicar propriedade de material.
+- Papéis (admin/colaborador) desde já: nenhum caso de uso concreto os pede
+  ainda; a tabela de sessão e o dependency `get_current_user` já dão o ponto
+  de extensão quando pedirem.
+
+**Como funciona.** `AuthService` (`app/services/auth_service.py`) monta a URL
+de autorização do Google com um `state` de CSRF num cookie efêmero próprio
+(`msai_oauth_state`) — não no `SessionMiddleware`/Authlib, para não ter duas
+noções de sessão concorrentes e manter a comparação sensível visível no código
+do projeto. No callback: troca `code` por tokens, verifica o `id_token`
+localmente com `google-auth` (assinatura, `aud`, `iss`, `exp` — sem round-trip
+ao endpoint `tokeninfo`, que o próprio Google desaconselha para produção),
+rejeita `email_verified=False`, aplica `google_allowed_domain` se configurado
+(pensado para travar login a um domínio antes de hospedar para uma turma), faz
+upsert do `User` por `google_sub`, garante o `Project` padrão, cria a
+`UserSession` e seta o cookie `msai_session` (`HttpOnly`, `SameSite=Lax`,
+`Secure` conforme `session_cookie_secure`). `get_current_user`
+(`app/dependencies.py`) é o único ponto de verdade de "quem está logado" — todo
+router depende dele, exceto os três públicos de `auth.py` e `/health`. Acesso
+de um usuário a um estudo de outro projeto não vira um erro novo: o
+repositório, filtrado por `project_id`, simplesmente não encontra a linha, e
+`NotFoundError` (404) já cobre isso — não vale revelar que o id existe.
+
+**Consequência que muda comportamento existente.** A unicidade de nome de
+estudo, antes global, passa a ser **por projeto** — dois usuários podem ter um
+estudo chamado "Estudo 1" cada um.
+
+**E o Playwright?** A suíte (`apps/web/e2e/`) não tem cliente OAuth de teste
+utilizável em CI. Em vez de um endpoint de bypass no backend — superfície de
+ataque real, difícil de travar com segurança total —, `app/db/seed.py` só
+grava um `User`/`Project`/`UserSession` fixos quando `ENVIRONMENT=development`
+**e** `E2E_SESSION_TOKEN` está no ambiente (`seed_e2e_session`); a suíte injeta
+esse token direto no navegador como cookie `msai_session`
+(`apps/web/e2e/session.ts`, via `context.addCookies`) antes da primeira
+navegação. O navegador chega "logado" sem passar pelo Google e sem nenhuma
+rota de bypass exposta pela API.
+
+**Como se sabe que passa.** Backend: `pytest`, `ruff check` e `black --check`
+verdes, incluindo `test_auth_service.py` (upsert, criação do projeto padrão,
+rejeição por domínio e por `email_verified=False`, com a verificação do
+`id_token` injetada — sem chamada de rede real) e a extensão de
+`test_selection_api.py` (um usuário não vê/apaga o estudo de outro; dois
+projetos podem repetir nome de estudo). Frontend: `typecheck`, `lint`,
+`test` e `build` verdes, com `AuthGate` e a página `/entrar` cobertos por
+teste. Playwright (`npm run test:e2e`): os dois specs passam com a sessão
+injetada, sem tocar o Google.

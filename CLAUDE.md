@@ -198,9 +198,15 @@ meramente informativo.
 ## Estado atual
 
 Fases 1 a 6 concluídas. **Fase 7 (relatórios e qualidade) parcial** — as
-exportações CSV/XLSX, o relatório HTML imprimível e os testes end-to-end de
-interface (A4, Playwright em `apps/web/e2e/`) já saíram; faltam autenticação
-(A5) e auditoria (M2) — a segunda depende da primeira. **Fase 8 (redesign da
+exportações CSV/XLSX, o relatório HTML imprimível, os testes end-to-end de
+interface (A4, Playwright em `apps/web/e2e/`) e a autenticação (A5) já saíram;
+falta só auditoria (M2), que A5 destravou (havia "quem" fica vazio como
+dependência, agora há `User`). **A5** deu login exclusivamente por terceiros
+(Google, OAuth 2.0 — sem senha em lugar nenhum do sistema), sessão em cookie
+`httpOnly` que é linha de banco e não JWT, catálogo compartilhado entre todo
+usuário autenticado e um `Project` por usuário isolando `SelectionStudy`
+([D-42](docs/DECISIONS.md)); o Playwright injeta uma sessão fixa por cookie em
+vez de passar pelo Google, sem expor bypass nenhum na API. **Fase 8 (redesign da
 interface) concluída** — sistema de design próprio, as quatro promessas da
 proposta visíveis na tela, acessibilidade medida no navegador nos dois temas e
 a 375 px.
@@ -234,7 +240,7 @@ declarada, nunca silenciosa; responsável técnico é texto livre, nunca
 validado. **As figuras da monografia que são capturas de `/estilo` precisam
 ser refeitas depois de D-38.**
 
-591 testes de backend e 141 de frontend, todos verdes. CI no GitHub Actions roda
+617 testes de backend e 148 de frontend, todos verdes. CI no GitHub Actions roda
 em todo PR e push para `main`.
 
 **Desempenho medido**, com os números em `docs/PROJECT_CONTEXT.md §12`: o maior
