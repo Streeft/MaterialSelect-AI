@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from sqlalchemy import JSON, DateTime, Float, ForeignKey, Integer, String
+from sqlalchemy import JSON, DateTime, Float, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -24,9 +24,17 @@ class SelectionStudy(Base):
     """A saved Function → Constraints → Objective → Ranking analysis."""
 
     __tablename__ = "selection_study"
+    __table_args__ = (
+        UniqueConstraint("project_id", "name", name="uq_selection_study_project_name"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String(200), unique=True, nullable=False)
+    # Uniqueness on `name` is enforced per project, not globally — see the
+    # composite constraint on the table and SelectionRepository.study_name_exists.
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    project_id: Mapped[int] = mapped_column(
+        ForeignKey("project.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     description: Mapped[str | None] = mapped_column(String(1000), nullable=True)
 
     function_text: Mapped[str | None] = mapped_column(String(1000), nullable=True)

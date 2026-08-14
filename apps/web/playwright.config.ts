@@ -1,6 +1,7 @@
 import path from "node:path";
 import os from "node:os";
 import { defineConfig, devices } from "@playwright/test";
+import { E2E_SESSION_TOKEN } from "./e2e/session";
 
 /**
  * End-to-end suite (Fase 7 / A4): the flows a component test cannot reach —
@@ -60,6 +61,12 @@ export default defineConfig({
         CORS_ORIGINS: WEB_URL,
         AI_PROVIDER: "mock",
         E2E_API_PORT: String(API_PORT),
+        // Login is Google-only (A5) and CI has no OAuth client to run a real
+        // flow with — the seed step writes a fixed session under this token
+        // instead (see `app/db/seed.py`), and `e2e/session.ts` injects it as
+        // the `msai_session` cookie before each spec's first navigation.
+        ENVIRONMENT: "development",
+        E2E_SESSION_TOKEN,
       },
     },
     {

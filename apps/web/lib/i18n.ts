@@ -808,6 +808,16 @@ export const ptBR = {
     importHint: "Traga uma planilha CSV ou XLSX com validação linha a linha.",
   },
 
+  auth: {
+    loginTitle: "Entrar",
+    loginSubtitle: "Entre com sua conta Google para usar o MaterialSelect AI.",
+    loginButton: "Entrar com Google",
+    loginHint: "Usamos apenas seu nome, e-mail e foto do Google para identificar sua sessão.",
+    checkingSession: "Verificando sessão…",
+    logout: "Sair",
+    loggingOut: "Saindo…",
+  },
+
   styleGuide: {
     title: "Sistema de design",
     subtitle:

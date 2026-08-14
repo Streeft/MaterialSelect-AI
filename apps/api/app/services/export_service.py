@@ -37,17 +37,17 @@ class ExportService:
 
     # --- selection study --------------------------------------------------
 
-    def _run(self, study_id: int):
+    def _run(self, study_id: int, project_id: int):
         """Re-run the study and load the materials its candidates named.
 
         Shared by the selection report and the laudo, so both describe the
         same execution of the deterministic pipeline rather than two.
         """
-        study = self.selection_repo.get_study(study_id)
+        study = self.selection_repo.get_study(study_id, project_id)
         if study is None:
             raise NotFoundError(f"Estudo não encontrado: {study_id}")
 
-        result = SelectionService(self.db).run_study(study_id)
+        result = SelectionService(self.db, project_id).run_study(study_id)
         candidate_ids = [c.material_id for c in result.candidates]
         materials = {
             m.id: m for m in self.chart_repo.list_materials(material_ids=candidate_ids or [-1])
@@ -69,8 +69,8 @@ class ExportService:
         sheets.append(self._provenance_sheet(study, result, materials))
         return sheets
 
-    def study_report(self, study_id: int) -> Report:
-        study, result, materials = self._run(study_id)
+    def study_report(self, study_id: int, project_id: int) -> Report:
+        study, result, materials = self._run(study_id, project_id)
         return Report(
             title=f"Relatório de seleção — {study.name}",
             subtitle=study.description or "",
@@ -78,7 +78,9 @@ class ExportService:
             sheets=self._sheets(study, result, materials),
         )
 
-    def study_laudo(self, study_id: int, *, responsible: str | None = None) -> Report:
+    def study_laudo(
+        self, study_id: int, project_id: int, *, responsible: str | None = None
+    ) -> Report:
         """The engineering report: the selection report plus a figure and,
         when the AI layer is on, an interpretive narrative.
 
@@ -86,8 +88,8 @@ class ExportService:
         be attached on its own, not read as a reduced version of the
         spreadsheet-oriented tables.
         """
-        study, result, materials = self._run(study_id)
-        narrative, caveats, note = self._narrative(study_id)
+        study, result, materials = self._run(study_id, project_id)
+        narrative, caveats, note = self._narrative(study_id, project_id)
         return Report(
             title=f"Laudo de engenharia — {study.name}",
             subtitle=study.description or "",
@@ -125,7 +127,9 @@ class ExportService:
             )
         )
 
-    def _narrative(self, study_id: int) -> tuple[list[str] | None, list[str] | None, str | None]:
+    def _narrative(
+        self, study_id: int, project_id: int
+    ) -> tuple[list[str] | None, list[str] | None, str | None]:
         """Ask the AI layer to write about this same run, or say why it can't.
 
         The layer is optional everywhere else in the project, and the laudo
@@ -144,7 +148,7 @@ class ExportService:
         under one percent of the wait, which is the case that matters.
         """
         try:
-            explanation = AIService(self.db).explain(study_id)
+            explanation = AIService(self.db).explain(study_id, project_id)
         except (ValidationError, AIUnavailableError) as exc:
             return None, None, f"Interpretação por IA não disponível: {exc}"
 

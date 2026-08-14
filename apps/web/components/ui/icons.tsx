@@ -246,6 +246,14 @@ export const IconGauge = (p: IconProps) => (
   </Svg>
 );
 
+/** Sair — a door with an arrow leaving through it. */
+export const IconLogout = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M9 4.5H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h3" />
+    <path d="M14 8.5 18 12l-4 3.5M18 12H9" />
+  </Svg>
+);
+
 // --- Data-quality marks -----------------------------------------------------
 // One glyph per state, distinguishable in monochrome and at 12 px. These carry
 // the distinction when colour cannot: print, colour-vision deficiency, or a

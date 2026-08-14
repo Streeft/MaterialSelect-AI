@@ -81,6 +81,37 @@ class Settings(BaseSettings):
     # Executable for claude-cli, resolved on PATH.
     ai_cli_command: str = "claude"
 
+    # --- Auth (A5): login with Google, project-scoped studies -------------
+    # Empty client id/secret means OAuth is off: the login endpoint answers
+    # 503 with a clear reason instead of crashing into Google with bad
+    # credentials. There is no "default" client id, same reasoning as
+    # AI_BASE_URL having none — it would pick whose Google Cloud project logs
+    # everyone in.
+    google_client_id: str = ""
+    google_client_secret: str = ""
+    # Empty allows any Google account. Set to restrict logins to one email
+    # domain (e.g. a university) before hosting for a class.
+    google_allowed_domain: str = ""
+    # Used to build the exact redirect_uri Google requires pre-registered.
+    backend_base_url: str = "http://localhost:8000"
+    # Where the browser lands after a successful login.
+    frontend_url: str = "http://localhost:3000"
+    # Secure by default (the cookie is only sent over HTTPS); local dev over
+    # plain HTTP must opt out explicitly rather than the reverse, so a
+    # deployment can never silently forget to turn this on.
+    session_cookie_secure: bool = True
+    # 14 days, fixed at creation — no sliding renewal, so a session's
+    # lifetime is exactly what it says, nothing to keep alive by polling.
+    session_ttl_hours: int = 336
+    # How long the CSRF `state` cookie survives between the redirect to
+    # Google and the callback coming back.
+    oauth_state_ttl_seconds: int = 600
+
+    @property
+    def google_oauth_enabled(self) -> bool:
+        """True when a Google OAuth client is configured."""
+        return bool(self.google_client_id.strip() and self.google_client_secret.strip())
+
     @property
     def ai_enabled(self) -> bool:
         """True when an AI provider is configured."""

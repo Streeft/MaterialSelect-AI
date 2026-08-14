@@ -1,5 +1,6 @@
 import path from "node:path";
-import { test, expect, type Page } from "@playwright/test";
+import type { Page } from "@playwright/test";
+import { test, expect } from "./session";
 
 /**
  * A4 (Fase 7): the one flow no unit or component test can reach on its own —

@@ -766,3 +766,13 @@ export interface PropertyDistribution {
   boxes: DistributionBox[];
   classes_without_data: string[];
 }
+
+// --- Auth (login com Google) ------------------------------------------------
+
+export interface CurrentUser {
+  id: number;
+  email: string;
+  name: string;
+  avatar_url: string | null;
+  project_id: number;
+}

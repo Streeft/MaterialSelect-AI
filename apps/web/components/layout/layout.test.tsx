@@ -1,19 +1,49 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AppSidebar } from "./AppSidebar";
 import { ptBR } from "@/lib/i18n";
+import type { CurrentUser } from "@/lib/types";
 import { findA11yViolations, describeViolations } from "@/lib/testing/axe";
 
 // The sidebar reads the route to say where the reader is; nothing else about
 // Next's router matters here.
 const route = { pathname: "/" };
+const routerReplace = vi.fn();
 vi.mock("next/navigation", () => ({
   usePathname: () => route.pathname,
+  useRouter: () => ({ replace: routerReplace }),
 }));
+
+const user: CurrentUser = {
+  id: 1,
+  email: "pesquisador@example.com",
+  name: "Usuária de teste",
+  avatar_url: null,
+  project_id: 1,
+};
+const getCurrentUser = vi.fn(() => Promise.resolve(user));
+const logoutMock = vi.fn(() => Promise.resolve());
+vi.mock("@/lib/api", () => ({
+  getCurrentUser: () => getCurrentUser(),
+  logout: () => logoutMock(),
+}));
+
+function renderSidebar() {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(
+    <QueryClientProvider client={client}>
+      <AppSidebar />
+    </QueryClientProvider>,
+  );
+}
 
 beforeEach(() => {
   route.pathname = "/";
+  routerReplace.mockClear();
+  getCurrentUser.mockClear();
+  logoutMock.mockClear();
 });
 
 /** The rail's own navigation. The drawer's is a second, unnamed one. */
@@ -21,7 +51,7 @@ const rail = () => screen.getByRole("navigation", { name: ptBR.ui.mainNav });
 
 describe("AppSidebar", () => {
   it("groups the eight links under what someone came here to do", () => {
-    render(<AppSidebar />);
+    renderSidebar();
     const nav = rail();
 
     for (const group of [ptBR.nav.groupStudy, ptBR.nav.groupData, ptBR.nav.groupAdmin]) {
@@ -36,7 +66,7 @@ describe("AppSidebar", () => {
 
   it("announces the current page, and only that one", () => {
     route.pathname = "/mapas";
-    render(<AppSidebar />);
+    renderSidebar();
     const nav = rail();
 
     expect(within(nav).getByRole("link", { name: ptBR.nav.maps })).toHaveAttribute(
@@ -50,7 +80,7 @@ describe("AppSidebar", () => {
 
   it("keeps a nested route inside the section it belongs to", () => {
     route.pathname = "/admin/classes";
-    render(<AppSidebar />);
+    renderSidebar();
 
     expect(within(rail()).getByRole("link", { name: ptBR.nav.classes })).toHaveAttribute(
       "aria-current",
@@ -61,7 +91,7 @@ describe("AppSidebar", () => {
   it("does not mark the home link on every route", () => {
     // `/` matches only itself; `startsWith("/")` would light it up everywhere.
     route.pathname = "/catalogo";
-    render(<AppSidebar />);
+    renderSidebar();
 
     expect(within(rail()).getByRole("link", { name: ptBR.nav.home })).not.toHaveAttribute(
       "aria-current",
@@ -74,7 +104,7 @@ describe("AppSidebar", () => {
       // link with no accessible name, and the rail would become eight unnamed
       // glyphs for anyone reading it aloud.
       const user = userEvent.setup();
-      render(<AppSidebar />);
+      renderSidebar();
 
       const toggle = screen.getByRole("button", { name: ptBR.ui.collapseSidebar });
       expect(toggle).toHaveAttribute("aria-expanded", "true");
@@ -91,7 +121,7 @@ describe("AppSidebar", () => {
 
     it("flips the control's own name and state", async () => {
       const user = userEvent.setup();
-      render(<AppSidebar />);
+      renderSidebar();
 
       await user.click(screen.getByRole("button", { name: ptBR.ui.collapseSidebar }));
 
@@ -104,7 +134,7 @@ describe("AppSidebar", () => {
 
     it("gives the collapsed links a tooltip, since the glyph is all that is painted", async () => {
       const user = userEvent.setup();
-      render(<AppSidebar />);
+      renderSidebar();
       await user.click(screen.getByRole("button", { name: ptBR.ui.collapseSidebar }));
 
       expect(within(rail()).getByRole("link", { name: ptBR.nav.maps })).toHaveAttribute(
@@ -115,7 +145,7 @@ describe("AppSidebar", () => {
 
     it("has no accessibility violations while collapsed", async () => {
       const user = userEvent.setup();
-      const { container } = render(<AppSidebar />);
+      const { container } = renderSidebar();
       await user.click(screen.getByRole("button", { name: ptBR.ui.collapseSidebar }));
 
       const violations = await findA11yViolations(container);
@@ -126,7 +156,7 @@ describe("AppSidebar", () => {
   describe("the drawer, on a narrow screen", () => {
     it("opens, closes with Esc and gives the focus back", async () => {
       const user = userEvent.setup();
-      render(<AppSidebar />);
+      renderSidebar();
 
       const trigger = screen.getByRole("button", { name: ptBR.ui.openMenu });
       expect(trigger).toHaveAttribute("aria-expanded", "false");
@@ -147,7 +177,7 @@ describe("AppSidebar", () => {
 
     it("carries the same nine destinations as the rail", async () => {
       const user = userEvent.setup();
-      render(<AppSidebar />);
+      renderSidebar();
       await user.click(screen.getByRole("button", { name: ptBR.ui.openMenu }));
 
       const drawer = screen.getByRole("dialog", { name: ptBR.ui.mainNav });
@@ -160,7 +190,7 @@ describe("AppSidebar", () => {
     it("marks the current page inside the drawer too", async () => {
       route.pathname = "/importar";
       const user = userEvent.setup();
-      render(<AppSidebar />);
+      renderSidebar();
       await user.click(screen.getByRole("button", { name: ptBR.ui.openMenu }));
 
       const drawer = screen.getByRole("dialog", { name: ptBR.ui.mainNav });
@@ -173,7 +203,7 @@ describe("AppSidebar", () => {
 
   it("has no accessibility violations, drawer open or closed", async () => {
     const user = userEvent.setup();
-    const { container } = render(<AppSidebar />);
+    const { container } = renderSidebar();
 
     let violations = await findA11yViolations(container);
     expect(violations, describeViolations(violations)).toEqual([]);
@@ -181,5 +211,23 @@ describe("AppSidebar", () => {
     await user.click(screen.getByRole("button", { name: ptBR.ui.openMenu }));
     violations = await findA11yViolations(container);
     expect(violations, describeViolations(violations)).toEqual([]);
+  });
+
+  describe("the signed-in user's footer", () => {
+    it("names the logged-in user once /auth/me resolves", async () => {
+      renderSidebar();
+      expect(await screen.findByText(user.name)).toBeInTheDocument();
+    });
+
+    it("logs out, clears the cached session and leaves for /entrar", async () => {
+      const eventUser = userEvent.setup();
+      renderSidebar();
+      await screen.findByText(user.name);
+
+      await eventUser.click(screen.getByRole("button", { name: ptBR.auth.logout }));
+
+      expect(logoutMock).toHaveBeenCalledTimes(1);
+      expect(routerReplace).toHaveBeenCalledWith("/entrar");
+    });
   });
 });

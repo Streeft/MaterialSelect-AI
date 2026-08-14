@@ -8,6 +8,10 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
     setupFiles: ["./vitest.setup.ts"],
+    // Playwright owns e2e/**/*.spec.ts (npm run test:e2e); Vitest's default
+    // include pattern matches *.spec.ts too and collides with Playwright's
+    // own test() global if it collects them here.
+    exclude: ["**/node_modules/**", "e2e/**"],
   },
   resolve: {
     alias: {

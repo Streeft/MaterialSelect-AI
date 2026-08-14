@@ -58,31 +58,33 @@ class SelectionRepository:
 
     # --- saved studies ----------------------------------------------------
 
-    def list_studies(self) -> list[SelectionStudy]:
+    def list_studies(self, project_id: int) -> list[SelectionStudy]:
         stmt = (
             select(SelectionStudy)
             .options(
                 joinedload(SelectionStudy.constraints),
                 joinedload(SelectionStudy.criteria),
             )
+            .where(SelectionStudy.project_id == project_id)
             .order_by(SelectionStudy.created_at.desc(), SelectionStudy.id.desc())
         )
         return list(self.db.execute(stmt).scalars().unique().all())
 
-    def get_study(self, study_id: int) -> SelectionStudy | None:
+    def get_study(self, study_id: int, project_id: int) -> SelectionStudy | None:
         stmt = (
             select(SelectionStudy)
             .options(
                 joinedload(SelectionStudy.constraints),
                 joinedload(SelectionStudy.criteria),
             )
-            .where(SelectionStudy.id == study_id)
+            .where(SelectionStudy.id == study_id, SelectionStudy.project_id == project_id)
         )
         return self.db.execute(stmt).scalars().unique().one_or_none()
 
-    def study_name_exists(self, name: str, exclude_id: int | None = None) -> bool:
+    def study_name_exists(self, name: str, project_id: int, exclude_id: int | None = None) -> bool:
         stmt = select(SelectionStudy.id).where(
-            func.lower(SelectionStudy.name) == name.strip().lower()
+            func.lower(SelectionStudy.name) == name.strip().lower(),
+            SelectionStudy.project_id == project_id,
         )
         if exclude_id is not None:
             stmt = stmt.where(SelectionStudy.id != exclude_id)
