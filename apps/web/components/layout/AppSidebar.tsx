@@ -2,7 +2,10 @@
 
 import { useEffect, useRef, useState, type ComponentType, type SVGProps } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
+import { logout } from "@/lib/api";
+import { useCurrentUser } from "@/lib/auth";
 import { cn } from "@/lib/cn";
 import { ptBR } from "@/lib/i18n";
 import { Badge, IconButton, ThemeToggle } from "@/components/ui";
@@ -15,6 +18,7 @@ import {
   IconGauge,
   IconHome,
   IconLayers,
+  IconLogout,
   IconMenu,
   IconPanelLeft,
   IconRuler,
@@ -195,6 +199,67 @@ function BrandLink({ pathname, collapsed = false }: { pathname: string; collapse
 }
 
 /**
+ * The signed-in user, and the one way out.
+ *
+ * Renders nothing while `/auth/me` is still resolving or has no user — the
+ * layout's `AuthGate` already covers that wait, so this footer only has to
+ * cover the case where a user is loaded.
+ */
+function UserFooter({ collapsed = false }: { collapsed?: boolean }) {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const { data: user } = useCurrentUser();
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  if (!user) return null;
+
+  async function handleLogout() {
+    setLoggingOut(true);
+    try {
+      await logout();
+    } finally {
+      queryClient.setQueryData(["me"], undefined);
+      router.replace("/entrar");
+    }
+  }
+
+  return (
+    <div className={cn("flex items-center gap-2", collapsed ? "flex-col" : "justify-between")}>
+      <div
+        className={cn("flex min-w-0 items-center gap-2", collapsed && "flex-col")}
+        title={collapsed ? user.name : undefined}
+      >
+        {user.avatar_url ? (
+          // A third-party avatar URL, not a local asset next/image can optimise.
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={user.avatar_url}
+            alt=""
+            className="h-7 w-7 shrink-0 rounded-full"
+            referrerPolicy="no-referrer"
+          />
+        ) : (
+          <span
+            aria-hidden
+            className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-brand-50 text-xs font-semibold text-brand-700"
+          >
+            {user.name.charAt(0).toUpperCase()}
+          </span>
+        )}
+        {!collapsed && <span className="truncate text-xs font-medium text-ink">{user.name}</span>}
+      </div>
+      <IconButton
+        size="sm"
+        label={ptBR.auth.logout}
+        icon={<IconLogout />}
+        onClick={handleLogout}
+        disabled={loggingOut}
+      />
+    </div>
+  );
+}
+
+/**
  * The application's navigation: a persistent rail from `lg` up, a modal drawer
  * below it.
  *
@@ -289,22 +354,25 @@ export function AppSidebar() {
           ))}
         </nav>
 
-        <div
-          className={cn(
-            "mt-auto flex items-center gap-2 border-t border-edge pt-3",
-            collapsed ? "flex-col" : "justify-between",
-          )}
-        >
-          {!collapsed && <ThemeToggle compact />}
-          <IconButton
-            size="sm"
-            label={collapseLabel}
-            title={collapseLabel}
-            icon={<IconPanelLeft className={cn("transition-transform", collapsed && "rotate-180")} />}
-            aria-expanded={!collapsed}
-            aria-controls="navegacao-lateral"
-            onClick={() => setCollapsed((value) => !value)}
-          />
+        <div className="mt-auto flex flex-col gap-2 border-t border-edge pt-3">
+          <UserFooter collapsed={collapsed} />
+          <div
+            className={cn(
+              "flex items-center gap-2",
+              collapsed ? "flex-col" : "justify-between",
+            )}
+          >
+            {!collapsed && <ThemeToggle compact />}
+            <IconButton
+              size="sm"
+              label={collapseLabel}
+              title={collapseLabel}
+              icon={<IconPanelLeft className={cn("transition-transform", collapsed && "rotate-180")} />}
+              aria-expanded={!collapsed}
+              aria-controls="navegacao-lateral"
+              onClick={() => setCollapsed((value) => !value)}
+            />
+          </div>
         </div>
       </aside>
 
@@ -350,7 +418,8 @@ export function AppSidebar() {
                 />
               ))}
             </nav>
-            <div className="mt-auto border-t border-edge pt-3">
+            <div className="mt-auto flex flex-col gap-2 border-t border-edge pt-3">
+              <UserFooter />
               <ThemeToggle compact />
             </div>
           </div>

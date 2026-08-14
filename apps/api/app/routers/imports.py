@@ -1,4 +1,8 @@
-"""Import wizard endpoints (thin HTTP layer over ImportService)."""
+"""Import wizard endpoints (thin HTTP layer over ImportService).
+
+Requires login but not project scoping — imported materials join the shared
+catalogue, not a project (see ``app.dependencies``).
+"""
 
 from __future__ import annotations
 
@@ -9,8 +13,10 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.db.base import get_db
+from app.dependencies import get_current_user
 from app.domain.errors import ValidationError
 from app.importers.service import ImportService
+from app.models.user import User
 from app.schemas.imports import (
     CommitResult,
     ImportJobOut,
@@ -26,7 +32,11 @@ templates_router = APIRouter(prefix="/import-templates", tags=["imports"])
 
 
 @router.post("/upload", response_model=UploadResult)
-async def upload_file(file: UploadFile = File(...), db: Session = Depends(get_db)) -> UploadResult:
+async def upload_file(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> UploadResult:
     """Receive a CSV/XLSX file and open an import job.
 
     This is the only ``async`` endpoint in the application — it has to be, to
@@ -51,7 +61,12 @@ class PreviewRequest(BaseModel):
 
 
 @router.post("/{job_id}/preview", response_model=UploadResult)
-def preview(job_id: int, payload: PreviewRequest, db: Session = Depends(get_db)) -> UploadResult:
+def preview(
+    job_id: int,
+    payload: PreviewRequest,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> UploadResult:
     """Switch sheet (XLSX) and re-read headers + sample."""
     return ImportService(db).preview_sheet(job_id, payload.sheet_name)
 
@@ -63,44 +78,63 @@ class ValidateRequest(BaseModel):
 
 @router.post("/{job_id}/validate", response_model=ValidationReport)
 def validate(
-    job_id: int, payload: ValidateRequest, db: Session = Depends(get_db)
+    job_id: int,
+    payload: ValidateRequest,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> ValidationReport:
     """Dry-run the mapping and return the per-row report (writes nothing)."""
     return ImportService(db).validate(job_id, payload.mapping, payload.sheet_name)
 
 
 @router.post("/{job_id}/commit", response_model=CommitResult)
-def commit(job_id: int, db: Session = Depends(get_db)) -> CommitResult:
+def commit(
+    job_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)
+) -> CommitResult:
     """Import every valid row in one transaction."""
     return ImportService(db).commit(job_id)
 
 
 @router.post("/{job_id}/cancel", response_model=ImportJobOut)
-def cancel(job_id: int, db: Session = Depends(get_db)) -> ImportJobOut:
+def cancel(
+    job_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)
+) -> ImportJobOut:
     return ImportService(db).cancel(job_id)
 
 
 @router.post("/{job_id}/rollback", response_model=ImportJobOut)
-def rollback(job_id: int, db: Session = Depends(get_db)) -> ImportJobOut:
+def rollback(
+    job_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)
+) -> ImportJobOut:
     """Logically roll back a committed import (removes its materials)."""
     return ImportService(db).rollback(job_id)
 
 
 @router.get("", response_model=list[ImportJobOut])
-def list_jobs(db: Session = Depends(get_db)) -> list[ImportJobOut]:
+def list_jobs(
+    db: Session = Depends(get_db), user: User = Depends(get_current_user)
+) -> list[ImportJobOut]:
     return ImportService(db).list_jobs()
 
 
 @router.get("/{job_id}/report", response_model=ValidationReport)
-def get_report(job_id: int, db: Session = Depends(get_db)) -> ValidationReport:
+def get_report(
+    job_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)
+) -> ValidationReport:
     return ImportService(db).get_report(job_id)
 
 
 @templates_router.get("", response_model=list[TemplateOut])
-def list_templates(db: Session = Depends(get_db)) -> list[TemplateOut]:
+def list_templates(
+    db: Session = Depends(get_db), user: User = Depends(get_current_user)
+) -> list[TemplateOut]:
     return ImportService(db).list_templates()
 
 
 @templates_router.post("", response_model=TemplateOut, status_code=201)
-def create_template(payload: TemplateIn, db: Session = Depends(get_db)) -> TemplateOut:
+def create_template(
+    payload: TemplateIn,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> TemplateOut:
     return ImportService(db).create_template(payload)

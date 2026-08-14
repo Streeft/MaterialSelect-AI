@@ -1,5 +1,5 @@
 import path from "node:path";
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./session";
 
 /**
  * A4 (Fase 7): the row-level validation path — a row that never becomes a

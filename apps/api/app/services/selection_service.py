@@ -67,10 +67,17 @@ _NUMERIC_OPS = {
 
 
 class SelectionService:
-    """Orchestrates the deterministic selection endpoints."""
+    """Orchestrates the deterministic selection endpoints.
 
-    def __init__(self, db) -> None:
+    ``project_id`` scopes every saved-study method (list/get/create/delete/run
+    by id) to one Project — the catalogue-only methods (filter, index, run,
+    performance-index catalogue) ignore it, since the catalogue is shared
+    across every logged-in user, not owned by a project.
+    """
+
+    def __init__(self, db, project_id: int) -> None:
         self.repo = SelectionRepository(db)
+        self.project_id = project_id
         self._snapshots: list[MaterialSnapshot] | None = None
         self._props: dict = {}
 
@@ -477,20 +484,21 @@ class SelectionService:
                 constraint_count=len(s.constraints),
                 criterion_count=len(s.criteria),
             )
-            for s in self.repo.list_studies()
+            for s in self.repo.list_studies(self.project_id)
         ]
 
     def get_study(self, study_id: int) -> StudyOut:
-        study = self.repo.get_study(study_id)
+        study = self.repo.get_study(study_id, self.project_id)
         if study is None:
             raise NotFoundError(f"Estudo não encontrado: {study_id}")
         return self._study_to_out(study)
 
     def create_study(self, payload: StudyIn) -> StudyOut:
-        if self.repo.study_name_exists(payload.name):
+        if self.repo.study_name_exists(payload.name, self.project_id):
             raise ConflictError(f"Já existe um estudo com o nome: {payload.name}")
         study = SelectionStudy(
             name=payload.name.strip(),
+            project_id=self.project_id,
             description=payload.description,
             function_text=payload.function_text,
             objective_text=payload.objective_text,
@@ -534,14 +542,14 @@ class SelectionService:
         return self._study_to_out(study)
 
     def delete_study(self, study_id: int) -> None:
-        study = self.repo.get_study(study_id)
+        study = self.repo.get_study(study_id, self.project_id)
         if study is None:
             raise NotFoundError(f"Estudo não encontrado: {study_id}")
         self.repo.delete(study)
         self.repo.commit()
 
     def run_study(self, study_id: int) -> RunResultOut:
-        study = self.repo.get_study(study_id)
+        study = self.repo.get_study(study_id, self.project_id)
         if study is None:
             raise NotFoundError(f"Estudo não encontrado: {study_id}")
         return self.run(self._study_to_run_request(study))

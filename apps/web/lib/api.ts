@@ -7,6 +7,7 @@ import type {
   CommitResult,
   Comparison,
   ComparisonRequest,
+  CurrentUser,
   DashboardOverview,
   Explanation,
   Interpretation,
@@ -63,6 +64,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     ...init,
     headers: { Accept: "application/json", "Content-Type": "application/json", ...init?.headers },
+    credentials: "include",
     cache: "no-store",
   });
   if (!res.ok) {
@@ -70,6 +72,21 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   }
   if (res.status === 204) return undefined as T;
   return (await res.json()) as T;
+}
+
+// --- Auth -------------------------------------------------------------------
+
+export function getCurrentUser(): Promise<CurrentUser> {
+  return request<CurrentUser>(`/api/auth/me`);
+}
+
+export function logout(): Promise<void> {
+  return request<void>(`/api/auth/logout`, { method: "POST" });
+}
+
+/** For a plain `<a href>` — a full-page redirect into Google, not a fetch. */
+export function googleLoginUrl(): string {
+  return `${API_URL}/api/auth/google/login`;
 }
 
 // --- Materials ------------------------------------------------------------
@@ -178,6 +195,7 @@ export async function uploadImportFile(file: File): Promise<UploadResult> {
   const res = await fetch(`${API_URL}/api/imports/upload`, {
     method: "POST",
     body: form,
+    credentials: "include",
     cache: "no-store",
   });
   if (!res.ok) {
