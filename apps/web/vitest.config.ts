@@ -12,6 +12,11 @@ export default defineConfig({
     // include pattern matches *.spec.ts too and collides with Playwright's
     // own test() global if it collects them here.
     exclude: ["**/node_modules/**", "e2e/**"],
+    server: {
+      deps: {
+        inline: ["@material/material-color-utilities"],
+      },
+    },
   },
   resolve: {
     alias: {
