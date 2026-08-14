@@ -65,7 +65,7 @@ Duas consequências que costumam surpreender quem chega:
 MaterialSelect-AI/
 ├─ apps/
 │  ├─ api/                      # backend FastAPI (~18.300 linhas Python)
-│  │  ├─ alembic/versions/      # 6 migrations; fonte de verdade do schema
+│  │  ├─ alembic/versions/      # 7 migrations; fonte de verdade do schema
 │  │  ├─ app/
 │  │  │  ├─ ai/                 # camada de IA opcional (Fase 6; 4 provedores)
 │  │  │  ├─ calculations/       # cálculo determinístico: units, expressions,
@@ -79,7 +79,7 @@ MaterialSelect-AI/
 │  │  │  ├─ routers/            # HTTP fino, sem regra de negócio
 │  │  │  ├─ schemas/            # contratos Pydantic v2
 │  │  │  ├─ services/           # orquestração de casos de uso
-│  │  │  └─ tests/              # 25 arquivos, 591 testes
+│  │  │  └─ tests/              # 25 arquivos, 617 testes
 │  │  └─ pyproject.toml
 │  └─ web/                      # frontend Next.js 14
 │     ├─ app/                   # App Router: uma pasta por rota — catalogo,
@@ -276,6 +276,9 @@ erDiagram
   PropertyDefinition ||--o{ MaterialPropertyValue : define
   Source ||--o{ MaterialPropertyValue : origina
   ImportJob ||--o{ Material : criou
+  User ||--o{ Project : possui
+  User ||--o{ UserSession : loga
+  Project ||--o{ SelectionStudy : escopa
   SelectionStudy ||--o{ SelectionConstraint : tem
   SelectionStudy ||--o{ RankingCriterion : tem
 ```
@@ -289,7 +292,10 @@ erDiagram
 | `source` | Rótulo de origem do dado. |
 | `import_job`, `import_mapping_template` | Ciclo da importação e rollback lógico. |
 | `performance_index` | Índices clássicos de Ashby com hipóteses. |
-| `selection_study`, `selection_constraint`, `ranking_criterion` | Estudos reexecutáveis. |
+| `user` | Identidade Google (`google_sub` único), sem senha ([D-42](DECISIONS.md)). |
+| `project` | Container de estudos de um dono; um por `user` no v1. |
+| `user_session` | Sessão de login; `id` é o próprio valor do cookie. |
+| `selection_study`, `selection_constraint`, `ranking_criterion` | Estudos reexecutáveis, escopados por `project_id`. |
 
 **Campos de proveniência em `material_property_value`** — o coração do modelo:
 `value_scalar`/`value_min`/`value_max`/`value_typical` (unidade **original**),
@@ -336,6 +342,7 @@ Todas sob `/api`. Erros de domínio são mapeados em `main.py`:
 | Área | Rotas |
 |---|---|
 | Saúde | `GET /health` |
+| Autenticação | `GET /auth/google/login`, `GET /auth/google/callback`, `POST /auth/logout`, `GET /auth/me` — os únicos, com `/health`, sem login exigido ([D-42](DECISIONS.md)) |
 | Catálogo | `GET/POST /materials`, `GET/PATCH/DELETE /materials/{id}`, `PUT /materials/{id}/values`, `GET /materials/chart` |
 | Taxonomia | `GET/POST /classes`, `PUT/DELETE /classes/{id}` |
 | Propriedades | `GET/POST /properties`, `PUT/DELETE /properties/{id}` |
@@ -355,10 +362,50 @@ legivelmente numa query string.
 
 ## 7. Autenticação
 
-**Não existe.** A API é aberta e não há usuários, sessões nem autorização. É uma
-decisão consciente para o MVP de um trabalho acadêmico rodando localmente, e a
-principal pendência antes de qualquer exposição em rede — ver
-[TODO.md](TODO.md) e [DECISIONS.md](DECISIONS.md).
+Login é **só por terceiros — Google, via OAuth 2.0** ([D-42](DECISIONS.md)).
+Sem senha em lugar nenhum do sistema.
+
+```mermaid
+flowchart LR
+  Nav["Navegador"] -- "GET /auth/google/login" --> R["routers/auth.py"]
+  R -- "redirect + cookie state efêmero" --> G["Google"]
+  G -- "code" --> CB["/auth/google/callback"]
+  CB --> AS["AuthService"]
+  AS -- "troca code por tokens,<br/>verifica id_token localmente" --> G
+  AS -- "upsert User + Project padrão<br/>+ nova UserSession" --> DB[("users · projects ·<br/>user_sessions")]
+  AS -- "cookie msai_session<br/>HttpOnly, SameSite=Lax" --> Nav
+  Nav -- "toda outra requisição" --> Dep["get_current_user<br/>(dependencies.py)"]
+  Dep -- "resolve via UserSession" --> DB
+```
+
+`get_current_user` é o único ponto de verdade de "quem está logado" — todo
+router depende dele, exceto os três públicos de `auth.py`
+(`/google/login`, `/google/callback`, `/logout`) e `/health`. A verificação do
+`id_token` é local, via `google-auth` (assinatura, `aud`, `iss`, `exp`), sem
+round-trip ao endpoint `tokeninfo` que o próprio Google desaconselha para
+produção.
+
+**Escopo por `Project`, não por usuário.** O catálogo (materiais, classes,
+propriedades) continua **global e compartilhado** entre todo usuário
+autenticado — é dado de referência, não trabalho autoral de um usuário. Só
+`SelectionStudy` é privado, filtrado por `project_id` em todo repositório e
+serviço que o toca. Cada `User` ganha um `Project` único no primeiro login
+("Meu projeto"); não há colaboração multiusuário nem troca de projeto na
+interface no v1.
+
+**Sessão é uma linha de banco, não um JWT.** `UserSession.id` é o próprio valor
+opaco do cookie (`secrets.token_urlsafe`) — logout apaga a linha, o que revoga
+de verdade, ao contrário de um token assinado que continuaria válido até
+expirar. Sem renovação deslizante: 14 dias fixos desde a criação
+(`session_ttl_hours`).
+
+**Acesso ao estudo de outro projeto não é um erro novo.** O repositório,
+filtrado por `project_id`, simplesmente não encontra a linha —
+`NotFoundError` (404) já cobre isso; não vale revelar que o id existe.
+
+Ver [D-42](DECISIONS.md) para o histórico completo (alternativas descartadas,
+o que muda em relação a antes, e como o Playwright loga sem passar pelo
+Google).
 
 ---
 
