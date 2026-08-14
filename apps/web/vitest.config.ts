@@ -22,5 +22,14 @@ export default defineConfig({
     alias: {
       "@": fileURLToPath(new URL("./", import.meta.url)),
     },
+    // Vitest resolves node_modules through Vite's SSR pipeline, which favours
+    // the "node" export condition. lit-html ships a separate `node/` build
+    // behind that condition with `isServer` hardcoded true — which silently
+    // disables @material/web's aria-delegation mixin (it early-returns on
+    // isServer) and produces a "Fechar" aria-label that axe then flags as
+    // prohibited on the host's implicit role. The "browser" condition picks
+    // the same build Next.js ships to the client, matching what was already
+    // verified live in the preview browser.
+    conditions: ["browser"],
   },
 });

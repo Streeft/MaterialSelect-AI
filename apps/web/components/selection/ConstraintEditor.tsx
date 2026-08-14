@@ -203,7 +203,6 @@ export function ConstraintEditor({ rows, properties, classes, onChange }: Props)
                 <IconButton
                   className="ml-auto"
                   size="sm"
-                  variant="ghost"
                   label={`${ptBR.actions.remove}: ${rowLabel}`}
                   icon={<IconTrash />}
                   onClick={() => remove(row.id)}

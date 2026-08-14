@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { render, waitFor } from "@testing-library/react";
+// See the note in components/layout/layout.test.tsx: MWC button roles live
+// inside a shadow root, invisible to plain @testing-library/react queries.
+import { screen, within } from "shadow-dom-testing-library";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
@@ -170,16 +173,16 @@ describe("painel", () => {
   it("lists coverage per class in a table a screen reader can follow", async () => {
     await renderDashboard();
 
-    const table = screen.getByRole("table", { name: t.classCoverageFigure });
-    expect(within(table).getByRole("rowheader", { name: "Metais" })).toBeInTheDocument();
-    expect(within(table).getByRole("rowheader", { name: "Cerâmicas" })).toBeInTheDocument();
+    const table = screen.getByShadowRole("table", { name: t.classCoverageFigure });
+    expect(within(table).getByShadowRole("rowheader", { name: "Metais" })).toBeInTheDocument();
+    expect(within(table).getByShadowRole("rowheader", { name: "Cerâmicas" })).toBeInTheDocument();
   });
 
   it("ranks the least-filled property first among the gaps", async () => {
     await renderDashboard();
 
-    const table = screen.getByRole("table", { name: t.gapsTitle });
-    expect(within(table).getByRole("rowheader", { name: "Módulo de Young" })).toBeInTheDocument();
+    const table = screen.getByShadowRole("table", { name: t.gapsTitle });
+    expect(within(table).getByShadowRole("rowheader", { name: "Módulo de Young" })).toBeInTheDocument();
   });
 
   it("defaults the distribution panel to the worst-covered property", async () => {
@@ -221,11 +224,11 @@ describe("painel", () => {
 
     render(wrap(<DashboardPage />));
 
-    expect(await screen.findByRole("alert")).toHaveTextContent(t.error);
+    expect(await screen.findByShadowRole("alert")).toHaveTextContent(t.error);
     getDashboardOverview.mockResolvedValueOnce(overview);
-    await user.click(screen.getByRole("button", { name: ptBR.ui.retry }));
+    await user.click(screen.getByShadowRole("button", { name: ptBR.ui.retry }));
 
     expect(await screen.findByText(t.demoNote(5))).toBeInTheDocument();
-    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.queryByShadowRole("alert")).not.toBeInTheDocument();
   });
 });
