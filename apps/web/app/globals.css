@@ -370,6 +370,48 @@
   .pressable {
     @apply transition ease-emphasized hover:scale-[1.02] active:scale-[0.98];
   }
+
+  /* Compact density for md-*-button hosts: this version of @material/web
+   * ships one default size (~40px) with no built-in "small" variant. Custom
+   * properties inherit through the shadow boundary the same way
+   * --md-sys-color-* does, so a light-DOM class reaches each component's
+   * private tokens directly. Unused variant-prefixed properties are simply
+   * ignored by whichever element doesn't read them, so one class can cover
+   * every button variant without knowing which one a given instance is. */
+  .md-btn-sm {
+    --md-filled-button-container-height: 2rem;
+    --md-filled-button-label-text-size: 0.75rem;
+    --md-filled-button-icon-size: 1rem;
+    --md-outlined-button-container-height: 2rem;
+    --md-outlined-button-label-text-size: 0.75rem;
+    --md-outlined-button-icon-size: 1rem;
+    --md-text-button-container-height: 2rem;
+    --md-text-button-label-text-size: 0.75rem;
+    --md-text-button-icon-size: 1rem;
+  }
+
+  .md-icon-btn-sm {
+    --md-icon-button-state-layer-height: 2rem;
+    --md-icon-button-state-layer-width: 2rem;
+    --md-icon-button-icon-size: 1.125rem;
+  }
+
+  /* M3 has no destructive button role. --danger/--ink-inverted (not
+   * --md-sys-color-error/-on-error, reserved for Etapa 4's form validation
+   * states) stand in on exactly the tokens a filled button paints with. */
+  .md-btn-danger {
+    --md-filled-button-container-color: rgb(var(--danger));
+    --md-filled-button-label-text-color: rgb(var(--ink-inverted));
+    --md-filled-button-hover-label-text-color: rgb(var(--ink-inverted));
+    --md-filled-button-focus-label-text-color: rgb(var(--ink-inverted));
+    --md-filled-button-pressed-label-text-color: rgb(var(--ink-inverted));
+    --md-filled-button-hover-state-layer-color: rgb(var(--ink-inverted));
+    --md-filled-button-pressed-state-layer-color: rgb(var(--ink-inverted));
+    --md-filled-button-icon-color: rgb(var(--ink-inverted));
+    --md-filled-button-hover-icon-color: rgb(var(--ink-inverted));
+    --md-filled-button-focus-icon-color: rgb(var(--ink-inverted));
+    --md-filled-button-pressed-icon-color: rgb(var(--ink-inverted));
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -24,6 +24,36 @@ export const MdFilledButton = createComponent({
   displayName: "MdFilledButton",
 });
 
+import "@material/web/button/outlined-button.js";
+import { MdOutlinedButton as MdOutlinedButtonElement } from "@material/web/button/outlined-button.js";
+
+export const MdOutlinedButton = createComponent({
+  react: React,
+  tagName: "md-outlined-button",
+  elementClass: MdOutlinedButtonElement,
+  displayName: "MdOutlinedButton",
+});
+
+import "@material/web/button/text-button.js";
+import { MdTextButton as MdTextButtonElement } from "@material/web/button/text-button.js";
+
+export const MdTextButton = createComponent({
+  react: React,
+  tagName: "md-text-button",
+  elementClass: MdTextButtonElement,
+  displayName: "MdTextButton",
+});
+
+import "@material/web/iconbutton/icon-button.js";
+import { MdIconButton as MdIconButtonElement } from "@material/web/iconbutton/icon-button.js";
+
+export const MdIconButton = createComponent({
+  react: React,
+  tagName: "md-icon-button",
+  elementClass: MdIconButtonElement,
+  displayName: "MdIconButton",
+});
+
 import "@material/web/progress/circular-progress.js";
 import { MdCircularProgress as MdCircularProgressElement } from "@material/web/progress/circular-progress.js";
 

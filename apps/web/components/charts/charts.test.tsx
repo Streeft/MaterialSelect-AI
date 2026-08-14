@@ -1,6 +1,9 @@
 import { createRef } from "react";
 import { describe, expect, it, vi } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { render } from "@testing-library/react";
+// See the note in components/layout/layout.test.tsx: MWC button roles live
+// inside a shadow root, invisible to plain @testing-library/react queries.
+import { screen, within } from "shadow-dom-testing-library";
 import userEvent from "@testing-library/user-event";
 import { ChartToolbar } from "./ChartToolbar";
 import { ComparisonView } from "./ComparisonView";
@@ -32,21 +35,21 @@ describe("ChartToolbar", () => {
       </>,
     );
 
-    await user.click(screen.getByRole("button", { name: t.exportPng }));
+    await user.click(await screen.findByShadowRole("button", { name: t.exportPng }));
 
-    expect(await screen.findByRole("alert")).toHaveTextContent(t.exportError);
+    expect(await screen.findByShadowRole("alert")).toHaveTextContent(t.exportError);
   });
 
-  it("offers both formats under one labelled group", () => {
+  it("offers both formats under one labelled group", async () => {
     const target = createRef<HTMLDivElement>();
     render(<ChartToolbar target={target} fileName="mapa" disabled />);
 
-    const group = screen.getByRole("group", { name: t.toolbar });
+    const group = screen.getByShadowRole("group", { name: t.toolbar });
     expect(group).toBeInTheDocument();
     // Disabled while the figure is empty: a button that can only fail is worse
     // than no button.
     for (const name of [t.exportPng, t.exportSvg]) {
-      expect(screen.getByRole("button", { name })).toBeDisabled();
+      expect(await screen.findByShadowRole("button", { name })).toBeDisabled();
     }
   });
 });
@@ -90,15 +93,15 @@ describe("FigureData", () => {
     // partir da figura" has to mean for a keyboard reader.
     await user.click(screen.getByText(t.dataTable));
 
-    const table = screen.getByRole("table", { name: "Densidade × módulo" });
-    expect(within(table).getByRole("rowheader", { name: "Aço 1020" })).toBeInTheDocument();
+    const table = screen.getByShadowRole("table", { name: "Densidade × módulo" });
+    expect(within(table).getByShadowRole("rowheader", { name: "Aço 1020" })).toBeInTheDocument();
     expect(within(table).getByText("7.85")).toBeInTheDocument();
   });
 
   it("renders a gap as absence, never as an empty cell", () => {
     renderFigureData();
 
-    const row = screen.getByRole("rowheader", { name: "Alumina" }).closest("tr");
+    const row = screen.getByShadowRole("rowheader", { name: "Alumina" }).closest("tr");
     expect(row).not.toBeNull();
     expect(within(row as HTMLElement).getByText(ptBR.quality.AUSENTE)).toBeInTheDocument();
   });
@@ -185,10 +188,10 @@ describe("ComparisonView, chart modes", () => {
     await user.click(screen.getByText(t.dataTable));
 
     const caption = `${ptBR.compare.figure} — ${ptBR.compare.normalizedScale}`;
-    const table = screen.getByRole("table", { name: caption });
+    const table = screen.getByShadowRole("table", { name: caption });
     expect(within(table).getByText("0,75")).toBeInTheDocument();
     // The material the figure could not plot is in the table all the same.
-    const row = within(table).getByRole("rowheader", { name: /Alumina/ }).closest("tr");
+    const row = within(table).getByShadowRole("rowheader", { name: /Alumina/ }).closest("tr");
     expect(within(row as HTMLElement).getByText(ptBR.quality.AUSENTE)).toBeInTheDocument();
   });
 
@@ -196,7 +199,7 @@ describe("ComparisonView, chart modes", () => {
     render(<ComparisonView comparison={makeComparison()} mode="radar" />);
 
     expect(
-      screen.getByRole("img", { name: t.figureLabel(ptBR.compare.figure) }),
+      screen.getByShadowRole("img", { name: t.figureLabel(ptBR.compare.figure) }),
     ).toBeInTheDocument();
   });
 });

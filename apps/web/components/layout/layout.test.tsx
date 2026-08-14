@@ -1,5 +1,11 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { render } from "@testing-library/react";
+// @material/web's button family exposes its `role="button"` on a <button>
+// inside a shadow root — plain @testing-library/react's screen/within can't
+// see past that boundary (see the M3 migration plan's "Testes" section).
+// shadow-dom-testing-library's screen/within are supersets of the originals
+// (light-DOM-only queries still work) plus the Shadow-prefixed variants.
+import { screen, within } from "shadow-dom-testing-library";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AppSidebar } from "./AppSidebar";
@@ -47,7 +53,7 @@ beforeEach(() => {
 });
 
 /** The rail's own navigation. The drawer's is a second, unnamed one. */
-const rail = () => screen.getByRole("navigation", { name: ptBR.ui.mainNav });
+const rail = () => screen.getByShadowRole("navigation", { name: ptBR.ui.mainNav });
 
 describe("AppSidebar", () => {
   it("groups the eight links under what someone came here to do", () => {
@@ -55,13 +61,13 @@ describe("AppSidebar", () => {
     const nav = rail();
 
     for (const group of [ptBR.nav.groupStudy, ptBR.nav.groupData, ptBR.nav.groupAdmin]) {
-      expect(within(nav).getByRole("list", { name: group })).toBeInTheDocument();
+      expect(within(nav).getByShadowRole("list", { name: group })).toBeInTheDocument();
     }
 
-    const study = within(nav).getByRole("list", { name: ptBR.nav.groupStudy });
-    expect(within(study).getByRole("link", { name: ptBR.nav.selection })).toBeInTheDocument();
-    expect(within(study).getByRole("link", { name: ptBR.nav.maps })).toBeInTheDocument();
-    expect(within(study).getByRole("link", { name: ptBR.nav.compare })).toBeInTheDocument();
+    const study = within(nav).getByShadowRole("list", { name: ptBR.nav.groupStudy });
+    expect(within(study).getByShadowRole("link", { name: ptBR.nav.selection })).toBeInTheDocument();
+    expect(within(study).getByShadowRole("link", { name: ptBR.nav.maps })).toBeInTheDocument();
+    expect(within(study).getByShadowRole("link", { name: ptBR.nav.compare })).toBeInTheDocument();
   });
 
   it("announces the current page, and only that one", () => {
@@ -69,11 +75,11 @@ describe("AppSidebar", () => {
     renderSidebar();
     const nav = rail();
 
-    expect(within(nav).getByRole("link", { name: ptBR.nav.maps })).toHaveAttribute(
+    expect(within(nav).getByShadowRole("link", { name: ptBR.nav.maps })).toHaveAttribute(
       "aria-current",
       "page",
     );
-    expect(within(nav).getByRole("link", { name: ptBR.nav.catalog })).not.toHaveAttribute(
+    expect(within(nav).getByShadowRole("link", { name: ptBR.nav.catalog })).not.toHaveAttribute(
       "aria-current",
     );
   });
@@ -82,7 +88,7 @@ describe("AppSidebar", () => {
     route.pathname = "/admin/classes";
     renderSidebar();
 
-    expect(within(rail()).getByRole("link", { name: ptBR.nav.classes })).toHaveAttribute(
+    expect(within(rail()).getByShadowRole("link", { name: ptBR.nav.classes })).toHaveAttribute(
       "aria-current",
       "page",
     );
@@ -93,7 +99,7 @@ describe("AppSidebar", () => {
     route.pathname = "/catalogo";
     renderSidebar();
 
-    expect(within(rail()).getByRole("link", { name: ptBR.nav.home })).not.toHaveAttribute(
+    expect(within(rail()).getByShadowRole("link", { name: ptBR.nav.home })).not.toHaveAttribute(
       "aria-current",
     );
   });
@@ -106,38 +112,38 @@ describe("AppSidebar", () => {
       const user = userEvent.setup();
       renderSidebar();
 
-      const toggle = screen.getByRole("button", { name: ptBR.ui.collapseSidebar });
+      const toggle = await screen.findByShadowRole("button", { name: ptBR.ui.collapseSidebar });
       expect(toggle).toHaveAttribute("aria-expanded", "true");
 
       await user.click(toggle);
 
       const nav = rail();
       for (const label of [ptBR.nav.selection, ptBR.nav.maps, ptBR.nav.catalog, ptBR.nav.classes]) {
-        expect(within(nav).getByRole("link", { name: label })).toBeInTheDocument();
+        expect(within(nav).getByShadowRole("link", { name: label })).toBeInTheDocument();
       }
       // The groups still name their lists, so the structure survives too.
-      expect(within(nav).getByRole("list", { name: ptBR.nav.groupStudy })).toBeInTheDocument();
+      expect(within(nav).getByShadowRole("list", { name: ptBR.nav.groupStudy })).toBeInTheDocument();
     });
 
     it("flips the control's own name and state", async () => {
       const user = userEvent.setup();
       renderSidebar();
 
-      await user.click(screen.getByRole("button", { name: ptBR.ui.collapseSidebar }));
+      await user.click(await screen.findByShadowRole("button", { name: ptBR.ui.collapseSidebar }));
 
-      const toggle = screen.getByRole("button", { name: ptBR.ui.expandSidebar });
+      const toggle = screen.getByShadowRole("button", { name: ptBR.ui.expandSidebar });
       expect(toggle).toHaveAttribute("aria-expanded", "false");
 
       await user.click(toggle);
-      expect(screen.getByRole("button", { name: ptBR.ui.collapseSidebar })).toBeInTheDocument();
+      expect(screen.getByShadowRole("button", { name: ptBR.ui.collapseSidebar })).toBeInTheDocument();
     });
 
     it("gives the collapsed links a tooltip, since the glyph is all that is painted", async () => {
       const user = userEvent.setup();
       renderSidebar();
-      await user.click(screen.getByRole("button", { name: ptBR.ui.collapseSidebar }));
+      await user.click(await screen.findByShadowRole("button", { name: ptBR.ui.collapseSidebar }));
 
-      expect(within(rail()).getByRole("link", { name: ptBR.nav.maps })).toHaveAttribute(
+      expect(within(rail()).getByShadowRole("link", { name: ptBR.nav.maps })).toHaveAttribute(
         "title",
         ptBR.nav.maps,
       );
@@ -146,7 +152,7 @@ describe("AppSidebar", () => {
     it("has no accessibility violations while collapsed", async () => {
       const user = userEvent.setup();
       const { container } = renderSidebar();
-      await user.click(screen.getByRole("button", { name: ptBR.ui.collapseSidebar }));
+      await user.click(await screen.findByShadowRole("button", { name: ptBR.ui.collapseSidebar }));
 
       const violations = await findA11yViolations(container);
       expect(violations, describeViolations(violations)).toEqual([]);
@@ -158,43 +164,47 @@ describe("AppSidebar", () => {
       const user = userEvent.setup();
       renderSidebar();
 
-      const trigger = screen.getByRole("button", { name: ptBR.ui.openMenu });
+      const trigger = await screen.findByShadowRole("button", { name: ptBR.ui.openMenu });
+      // jsdom doesn't implement shadow DOM focus delegation, so Tab/focus lands
+      // on the host custom element, not the shadow-internal <button> that
+      // findByShadowRole resolves to — see Button.tsx's tabIndex note.
+      const triggerHost = (trigger.getRootNode() as ShadowRoot).host as HTMLElement;
       expect(trigger).toHaveAttribute("aria-expanded", "false");
 
       await user.click(trigger);
-      const drawer = screen.getByRole("dialog", { name: ptBR.ui.mainNav });
-      expect(within(drawer).getByRole("link", { name: ptBR.nav.home })).toBeInTheDocument();
+      const drawer = screen.getByShadowRole("dialog", { name: ptBR.ui.mainNav });
+      expect(within(drawer).getByShadowRole("link", { name: ptBR.nav.home })).toBeInTheDocument();
       expect(trigger).toHaveAttribute("aria-expanded", "true");
-      expect(within(drawer).getByRole("button", { name: ptBR.ui.closeMenu })).toBeInTheDocument();
+      expect(within(drawer).getByShadowRole("button", { name: ptBR.ui.closeMenu })).toBeInTheDocument();
 
       await user.keyboard("{Escape}");
-      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(screen.queryByShadowRole("dialog")).not.toBeInTheDocument();
       // The reader pressed Esc; the focus has to come back to what they opened,
       // not to the top of the document.
-      expect(trigger).toHaveFocus();
+      expect(triggerHost).toHaveFocus();
       expect(trigger).toHaveAttribute("aria-expanded", "false");
     });
 
     it("carries the same nine destinations as the rail", async () => {
       const user = userEvent.setup();
       renderSidebar();
-      await user.click(screen.getByRole("button", { name: ptBR.ui.openMenu }));
+      await user.click(await screen.findByShadowRole("button", { name: ptBR.ui.openMenu }));
 
-      const drawer = screen.getByRole("dialog", { name: ptBR.ui.mainNav });
+      const drawer = screen.getByShadowRole("dialog", { name: ptBR.ui.mainNav });
       for (const group of [ptBR.nav.groupStudy, ptBR.nav.groupData, ptBR.nav.groupAdmin]) {
-        expect(within(drawer).getByRole("list", { name: group })).toBeInTheDocument();
+        expect(within(drawer).getByShadowRole("list", { name: group })).toBeInTheDocument();
       }
-      expect(within(drawer).getAllByRole("link")).toHaveLength(10); // 9 + o wordmark
+      expect(within(drawer).getAllByShadowRole("link")).toHaveLength(10); // 9 + o wordmark
     });
 
     it("marks the current page inside the drawer too", async () => {
       route.pathname = "/importar";
       const user = userEvent.setup();
       renderSidebar();
-      await user.click(screen.getByRole("button", { name: ptBR.ui.openMenu }));
+      await user.click(await screen.findByShadowRole("button", { name: ptBR.ui.openMenu }));
 
-      const drawer = screen.getByRole("dialog", { name: ptBR.ui.mainNav });
-      expect(within(drawer).getByRole("link", { name: ptBR.nav.imports })).toHaveAttribute(
+      const drawer = screen.getByShadowRole("dialog", { name: ptBR.ui.mainNav });
+      expect(within(drawer).getByShadowRole("link", { name: ptBR.nav.imports })).toHaveAttribute(
         "aria-current",
         "page",
       );
@@ -208,7 +218,7 @@ describe("AppSidebar", () => {
     let violations = await findA11yViolations(container);
     expect(violations, describeViolations(violations)).toEqual([]);
 
-    await user.click(screen.getByRole("button", { name: ptBR.ui.openMenu }));
+    await user.click(await screen.findByShadowRole("button", { name: ptBR.ui.openMenu }));
     violations = await findA11yViolations(container);
     expect(violations, describeViolations(violations)).toEqual([]);
   });
@@ -224,7 +234,7 @@ describe("AppSidebar", () => {
       renderSidebar();
       await screen.findByText(user.name);
 
-      await eventUser.click(screen.getByRole("button", { name: ptBR.auth.logout }));
+      await eventUser.click(screen.getByShadowRole("button", { name: ptBR.auth.logout }));
 
       expect(logoutMock).toHaveBeenCalledTimes(1);
       expect(routerReplace).toHaveBeenCalledWith("/entrar");
