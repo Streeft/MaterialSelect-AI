@@ -12,29 +12,6 @@ import axe, { type RunOptions } from "axe-core";
  * roles. They cannot tell whether the focus order makes sense.
  */
 
-/**
- * `md-radio` (and any other form-associated Material Web element) sets its
- * ARIA role via `ElementInternals` — `this[internals].role = 'radio'` in
- * `@material/web/radio/internal/radio.js` — never as a `role` attribute and
- * never on a node inside the shadow DOM (the shadow root there is
- * `aria-hidden`). axe-core's role computation ignores `ElementInternals`
- * unless this flag is set (see `axe.js`'s `elementInternals` getter, gated on
- * `axe._enableElementInternals`), so by default it sees an element with no
- * known role and reports `aria-prohibited-attr` on its `aria-label` —
- * confirmed a false positive by reading the real accessibility tree via CDP
- * (`Accessibility.getFullAXTree`) in an actual Chromium: `md-radio` there is
- * `role="radio"` with the correct accessible name and checked state, in both
- * jsdom and a real browser. Undocumented (`axe.d.ts` has no type for it,
- * `_`-prefixed), but it is what `axe.js` itself checks before reading
- * `vNode.elementInternals.role` — no public config API does the same for a
- * same-realm run (the public `getElementInternals` callback in
- * `externalAPIs` exists for cross-realm cases, e.g. a browser extension,
- * which this is not). Revisit if an axe-core upgrade removes it — the two
- * a11y suites (`app/routes.a11y.test.tsx`, `components/ui/ui.test.tsx`) will
- * fail loudly with the same `aria-prohibited-attr` node if it does.
- */
-(axe as unknown as { _enableElementInternals: boolean })._enableElementInternals = true;
-
 const DEFAULTS: RunOptions = {
   rules: {
     // jsdom has no layout engine, so every colour is computed as transparent and
