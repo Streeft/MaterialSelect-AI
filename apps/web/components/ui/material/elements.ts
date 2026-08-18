@@ -9,6 +9,17 @@
  *
  * One file per stage, grown incrementally as each primitive migrates — not a
  * single big-bang import of every @material/web module.
+ *
+ * `onClick` needs no `events` config below — React's SimpleEventPlugin maps
+ * `click` → `onClick` generically for any host tag. `onChange`/`onInput` do
+ * NOT get that treatment: React's ChangeEventPlugin only synthesizes them
+ * for tags it recognizes as form controls (`input`/`select`/`textarea`/
+ * checkbox or radio `type`), so on a custom element the prop is silently
+ * dropped — the real `change`/`input` event fires, nothing calls the
+ * handler. Confirmed empirically: without `events: {onChange: "change"}`
+ * here, `md-outlined-select`'s value updated but the app's `onChange` never
+ * ran, in tests or in a real browser. Every element below whose call sites
+ * pass `onChange`/`onInput` must declare it in `events`.
  */
 
 import { createComponent } from "@lit/react";
@@ -95,4 +106,58 @@ export const MdOutlinedSegmentedButtonSet = createComponent({
   tagName: "md-outlined-segmented-button-set",
   elementClass: MdOutlinedSegmentedButtonSetElement,
   displayName: "MdOutlinedSegmentedButtonSet",
+});
+
+import "@material/web/textfield/outlined-text-field.js";
+import { MdOutlinedTextField as MdOutlinedTextFieldElement } from "@material/web/textfield/outlined-text-field.js";
+
+export const MdOutlinedTextField = createComponent({
+  react: React,
+  tagName: "md-outlined-text-field",
+  elementClass: MdOutlinedTextFieldElement,
+  events: { onInput: "input", onChange: "change" },
+  displayName: "MdOutlinedTextField",
+});
+
+import "@material/web/select/outlined-select.js";
+import { MdOutlinedSelect as MdOutlinedSelectElement } from "@material/web/select/outlined-select.js";
+
+export const MdOutlinedSelect = createComponent({
+  react: React,
+  tagName: "md-outlined-select",
+  elementClass: MdOutlinedSelectElement,
+  events: { onChange: "change" },
+  displayName: "MdOutlinedSelect",
+});
+
+import "@material/web/select/select-option.js";
+import { MdSelectOption as MdSelectOptionElement } from "@material/web/select/select-option.js";
+
+export const MdSelectOption = createComponent({
+  react: React,
+  tagName: "md-select-option",
+  elementClass: MdSelectOptionElement,
+  displayName: "MdSelectOption",
+});
+
+import "@material/web/checkbox/checkbox.js";
+import { MdCheckbox as MdCheckboxElement } from "@material/web/checkbox/checkbox.js";
+
+export const MdCheckbox = createComponent({
+  react: React,
+  tagName: "md-checkbox",
+  elementClass: MdCheckboxElement,
+  events: { onChange: "change" },
+  displayName: "MdCheckbox",
+});
+
+import "@material/web/radio/radio.js";
+import { MdRadio as MdRadioElement } from "@material/web/radio/radio.js";
+
+export const MdRadio = createComponent({
+  react: React,
+  tagName: "md-radio",
+  elementClass: MdRadioElement,
+  events: { onChange: "change" },
+  displayName: "MdRadio",
 });

@@ -6,6 +6,7 @@ import {
   Input,
   RowHeader,
   Select,
+  SelectOption,
   TBody,
   THead,
   Table,
@@ -86,9 +87,9 @@ export function MappingEditor({ columns, properties, onChange }: MappingEditorPr
                     onChange={(e) => update(i, { target: e.target.value as ColumnTarget })}
                   >
                     {TARGET_OPTIONS.map((o) => (
-                      <option key={o.value} value={o.value}>
+                      <SelectOption key={o.value} value={o.value}>
                         {o.label}
-                      </option>
+                      </SelectOption>
                     ))}
                   </Select>
                 </Td>
@@ -99,11 +100,11 @@ export function MappingEditor({ columns, properties, onChange }: MappingEditorPr
                       value={col.propertySlug}
                       onChange={(e) => update(i, { propertySlug: e.target.value })}
                     >
-                      <option value="">{ptBR.importer.selectProperty}</option>
+                      <SelectOption value="">{ptBR.importer.selectProperty}</SelectOption>
                       {properties.map((p) => (
-                        <option key={p.slug} value={p.slug}>
+                        <SelectOption key={p.slug} value={p.slug}>
                           {p.name}
-                        </option>
+                        </SelectOption>
                       ))}
                     </Select>
                   )}
@@ -116,9 +117,9 @@ export function MappingEditor({ columns, properties, onChange }: MappingEditorPr
                       onChange={(e) => update(i, { role: e.target.value as ColumnRole })}
                     >
                       {ROLE_OPTIONS.map((o) => (
-                        <option key={o.value} value={o.value}>
+                        <SelectOption key={o.value} value={o.value}>
                           {o.label}
-                        </option>
+                        </SelectOption>
                       ))}
                     </Select>
                   )}

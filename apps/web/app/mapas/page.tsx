@@ -31,11 +31,11 @@ import {
   CardHeader,
   Checkbox,
   ErrorState,
-  Field,
   Input,
   LoadingState,
   Section,
   Select,
+  SelectOption,
   ToggleChip,
 } from "@/components/ui";
 import {
@@ -128,54 +128,53 @@ function AxisControl({
       </ButtonGroup>
 
       {axis.mode === "property" ? (
-        <Field label={label} className="min-w-0">
-          <Select
-            value={axis.property}
-            onChange={(e) => onChange({ ...axis, property: e.target.value })}
-          >
-            {properties.map((p) => (
-              <option key={p.slug} value={p.slug}>
-                {p.name} [{prettyUnit(p.canonical_unit)}]
-              </option>
-            ))}
-          </Select>
-        </Field>
+        <Select
+          label={label}
+          className="min-w-0"
+          value={axis.property}
+          onChange={(e) => onChange({ ...axis, property: e.target.value })}
+        >
+          {properties.map((p) => (
+            <SelectOption key={p.slug} value={p.slug}>
+              {p.name} [{prettyUnit(p.canonical_unit)}]
+            </SelectOption>
+          ))}
+        </Select>
       ) : (
         <div className="flex flex-col gap-2">
           <p className="text-2xs text-ink-muted">{t.axisIndexHint}</p>
-          <Field label={label} className="min-w-0">
-            <Select
-              value={axis.indexSlug}
-              onChange={(e) => onChange({ ...axis, indexSlug: e.target.value })}
-            >
-              <option value="">{t.axisIndexChoose}</option>
-              {indices.map((i) => (
-                <option key={i.slug} value={i.slug}>
-                  {i.name}
-                </option>
-              ))}
-              <option value="custom">{t.indexCustom}</option>
-            </Select>
-          </Field>
+          <Select
+            label={label}
+            className="min-w-0"
+            value={axis.indexSlug}
+            onChange={(e) => onChange({ ...axis, indexSlug: e.target.value })}
+          >
+            <SelectOption value="">{t.axisIndexChoose}</SelectOption>
+            {indices.map((i) => (
+              <SelectOption key={i.slug} value={i.slug}>
+                {i.name}
+              </SelectOption>
+            ))}
+            <SelectOption value="custom">{t.indexCustom}</SelectOption>
+          </Select>
 
           {axis.indexSlug === "custom" && (
             <div className="flex flex-wrap items-end gap-2">
-              <Field label={t.expression} className="min-w-[12rem] flex-1">
-                <Input
-                  value={axis.customExpression}
-                  onChange={(e) => onChange({ ...axis, customExpression: e.target.value })}
-                  placeholder="modulo_young / densidade"
-                />
-              </Field>
-              <Field label={t.goal}>
-                <Select
-                  value={axis.goal}
-                  onChange={(e) => onChange({ ...axis, goal: e.target.value as Goal })}
-                >
-                  <option value="maximize">{t.maximize}</option>
-                  <option value="minimize">{t.minimize}</option>
-                </Select>
-              </Field>
+              <Input
+                label={t.expression}
+                className="min-w-[12rem] flex-1"
+                value={axis.customExpression}
+                onChange={(e) => onChange({ ...axis, customExpression: e.target.value })}
+                placeholder="modulo_young / densidade"
+              />
+              <Select
+                label={t.goal}
+                value={axis.goal}
+                onChange={(e) => onChange({ ...axis, goal: e.target.value as Goal })}
+              >
+                <SelectOption value="maximize">{t.maximize}</SelectOption>
+                <SelectOption value="minimize">{t.minimize}</SelectOption>
+              </Select>
             </div>
           )}
 
@@ -460,22 +459,21 @@ function MapsPageContent() {
                     onChange={setIndexMode}
                     customSlot={
                       <div className="flex flex-wrap items-end gap-3">
-                        <Field label={t.expression} className="min-w-[16rem] flex-1">
-                          <Input
-                            value={customExpression}
-                            onChange={(e) => setCustomExpression(e.target.value)}
-                            placeholder="modulo_young / densidade"
-                          />
-                        </Field>
-                        <Field label={t.goal}>
-                          <Select
-                            value={indexGoal}
-                            onChange={(e) => setIndexGoal(e.target.value as Goal)}
-                          >
-                            <option value="maximize">{t.maximize}</option>
-                            <option value="minimize">{t.minimize}</option>
-                          </Select>
-                        </Field>
+                        <Input
+                          label={t.expression}
+                          className="min-w-[16rem] flex-1"
+                          value={customExpression}
+                          onChange={(e) => setCustomExpression(e.target.value)}
+                          placeholder="modulo_young / densidade"
+                        />
+                        <Select
+                          label={t.goal}
+                          value={indexGoal}
+                          onChange={(e) => setIndexGoal(e.target.value as Goal)}
+                        >
+                          <SelectOption value="maximize">{t.maximize}</SelectOption>
+                          <SelectOption value="minimize">{t.minimize}</SelectOption>
+                        </Select>
                       </div>
                     }
                   />
@@ -502,47 +500,48 @@ function MapsPageContent() {
                   {activeIndex && (
                     <div className="flex flex-col gap-2">
                       <div className="flex flex-wrap items-end gap-3">
-                        <Field label={t.levelThrough} hint={t.levelsHint} className="min-w-[14rem]">
-                          <Select
-                            value=""
-                            onChange={(e) => {
-                              const id = Number(e.target.value);
-                              if (Number.isInteger(id) && !levelMaterialIds.includes(id)) {
-                                setLevelMaterialIds([...levelMaterialIds, id]);
-                              }
-                            }}
-                          >
-                            <option value="">{t.levelNone}</option>
-                            {(map.data?.points ?? [])
-                              .filter(
-                                (p) =>
-                                  p.index_value !== null &&
-                                  !levelMaterialIds.includes(p.material_id),
-                              )
-                              .map((p) => (
-                                <option key={p.material_id} value={p.material_id}>
-                                  {p.material_name}
-                                </option>
-                              ))}
-                          </Select>
-                        </Field>
+                        <Select
+                          label={t.levelThrough}
+                          hint={t.levelsHint}
+                          className="min-w-[14rem]"
+                          value=""
+                          onChange={(e) => {
+                            const id = Number(e.target.value);
+                            if (Number.isInteger(id) && !levelMaterialIds.includes(id)) {
+                              setLevelMaterialIds([...levelMaterialIds, id]);
+                            }
+                          }}
+                        >
+                          <SelectOption value="">{t.levelNone}</SelectOption>
+                          {(map.data?.points ?? [])
+                            .filter(
+                              (p) =>
+                                p.index_value !== null &&
+                                !levelMaterialIds.includes(p.material_id),
+                            )
+                            .map((p) => (
+                              <SelectOption key={p.material_id} value={String(p.material_id)}>
+                                {p.material_name}
+                              </SelectOption>
+                            ))}
+                        </Select>
 
-                        <Field label={t.levelValue} className="w-40">
-                          {/* Text with a decimal keypad, not `type="number"`: a
-                              pt-BR reader types "2,7" and a number input drops what
-                              it cannot parse, without saying so. */}
-                          <Input
-                            value={levelDraft}
-                            inputMode="decimal"
-                            onChange={(e) => setLevelDraft(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                e.preventDefault();
-                                addNumericLevel();
-                              }
-                            }}
-                          />
-                        </Field>
+                        {/* Text with a decimal keypad, not `type="number"`: a
+                            pt-BR reader types "2,7" and a number input drops what
+                            it cannot parse, without saying so. */}
+                        <Input
+                          label={t.levelValue}
+                          className="w-40"
+                          value={levelDraft}
+                          inputMode="decimal"
+                          onChange={(e) => setLevelDraft(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              addNumericLevel();
+                            }
+                          }}
+                        />
                         <Button
                           size="sm"
                           onClick={addNumericLevel}
