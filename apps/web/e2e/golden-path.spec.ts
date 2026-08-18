@@ -1,6 +1,7 @@
 import path from "node:path";
 import type { Page } from "@playwright/test";
 import { test, expect } from "./session";
+import { selectMwcOption } from "./mwc";
 
 /**
  * A4 (Fase 7): the one flow no unit or component test can reach on its own —
@@ -38,9 +39,7 @@ test("importar, selecionar, visualizar e exportar um estudo", async ({ page }) =
   // unit the backend already recognises) except the class, which the fixture
   // has no column for — that one needs a default.
   await expect(page.getByRole("heading", { name: "Mapeie as colunas" })).toBeVisible();
-  await page
-    .getByLabel("Classe padrão (quando a coluna estiver vazia)")
-    .selectOption({ label: "Metais" });
+  await selectMwcOption(page, "Classe padrão (quando a coluna estiver vazia)", "Metais");
 
   await page.getByRole("button", { name: "Validar", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Relatório de validação" })).toBeVisible();
@@ -50,7 +49,10 @@ test("importar, selecionar, visualizar e exportar um estudo", async ({ page }) =
   await expect(doneAlert).toContainText("2 materiais importados; 0 linhas ignoradas.");
 
   await page.getByRole("link", { name: "Ver no catálogo" }).click();
-  await expect(page).toHaveURL(/\/catalogo/);
+  // Same reasoning as the /mapas wait below: this is the first visit to
+  // /catalogo in a fresh `next dev` process, which compiles the route on
+  // demand — past the default 5s expect timeout on a shared CI runner.
+  await page.waitForURL(/\/catalogo/, { timeout: 20_000 });
   await expect(page.getByText(MATERIAL_RIGIDO)).toBeVisible();
   await expect(page.getByText(MATERIAL_FLEXIVEL)).toBeVisible();
 
