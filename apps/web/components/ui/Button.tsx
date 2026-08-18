@@ -17,6 +17,9 @@ import {
   MdTextButton,
   MdIconButton,
   MdCircularProgress,
+  MdFilterChip,
+  MdOutlinedSegmentedButton,
+  MdOutlinedSegmentedButtonSet,
 } from "./material/elements";
 
 /**
@@ -183,6 +186,13 @@ export interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement>
  */
 const IconButtonElement = MdIconButton as ElementType;
 
+// Same widening as IconButtonElement above: ButtonHTMLAttributes' handler
+// types (e.g. onCopy: ClipboardEventHandler<HTMLButtonElement>) don't match
+// these classes' own element type, and no call site in this app reads a ref
+// off either, so the precision isn't worth carrying.
+const FilterChipElement = MdFilterChip as ElementType;
+const SegmentedButtonElement = MdOutlinedSegmentedButton as ElementType;
+
 export const IconButton = forwardRef<HTMLElement, IconButtonProps>(function IconButton(
   { size = "md", label, icon, className, disabled, ...rest },
   ref,
@@ -204,7 +214,21 @@ export const IconButton = forwardRef<HTMLElement, IconButtonProps>(function Icon
   );
 });
 
-/** Segmented control for mutually exclusive views (table/cards, light/dark…). */
+/**
+ * Segmented control for mutually exclusive views (table/cards, linear/log…).
+ *
+ * `labs/segmentedbuttonset` (experimental, accepted despite the stability
+ * risk — see the M3 migration plan). Its `role="group"` wrapper takes the
+ * label as `aria-label`, not visible text, so nothing here paints one.
+ *
+ * The set toggles a button's `selected` itself on click before this ever
+ * re-renders (it listens for its children's `segmented-button-interaction`
+ * and mutates `buttons[index].selected` imperatively) — harmless, because
+ * every {@link ButtonGroupItem} passes `selected` as a controlled prop and
+ * the next render (from the caller's own `onClick`-driven state change)
+ * reasserts the true value. Same "uncontrolled-but-externally-settable"
+ * tolerance already accepted for `md-filter-chip`'s own auto-toggle.
+ */
 export function ButtonGroup({
   label,
   className,
@@ -215,16 +239,9 @@ export function ButtonGroup({
   children: ReactNode;
 }) {
   return (
-    <div
-      role="group"
-      aria-label={label}
-      className={cn(
-        "inline-flex items-center gap-0.5 rounded-control border border-edge bg-surface-sunken p-0.5",
-        className,
-      )}
-    >
+    <MdOutlinedSegmentedButtonSet aria-label={label} className={className}>
       {children}
-    </div>
+    </MdOutlinedSegmentedButtonSet>
   );
 }
 
@@ -233,56 +250,67 @@ export function ButtonGroup({
  *
  * Distinct from {@link ButtonGroupItem}, which is one seat of a mutually
  * exclusive control: a row of chips where any number may be pressed is a
- * different promise, and `aria-pressed` on each chip is what carries it. The
- * three screens that filter by class each drew this by hand, with three
- * different colours for "selected".
+ * different promise. `md-filter-chip` carries that with its own `selected`
+ * — set here as a controlled prop, same tolerance as {@link ButtonGroup}
+ * above: the chip auto-toggles on click internally, and the next
+ * caller-driven render reasserts the true value.
  */
 export function ToggleChip({
   selected,
   className,
+  disabled,
   children,
   ...rest
 }: ButtonHTMLAttributes<HTMLButtonElement> & { selected: boolean }) {
   return (
-    <button
-      type="button"
-      aria-pressed={selected}
+    <FilterChipElement
+      selected={selected}
+      disabled={disabled}
+      // See Button's matching comment: jsdom doesn't implement delegatesFocus,
+      // which Chip's shadowRootOptions also declare.
+      tabIndex={disabled ? -1 : 0}
       {...rest}
-      className={cn(
-        "pressable inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium",
-        "disabled:cursor-not-allowed disabled:opacity-50",
-        selected
-          ? "border-brand bg-brand text-brand-fg shadow-card hover:border-brand-800 hover:bg-brand-800"
-          : "border-edge-control bg-surface-raised text-ink-muted hover:border-ink-subtle hover:text-ink",
-        className,
-      )}
+      className={cn("pressable", className)}
     >
       {children}
-    </button>
+    </FilterChipElement>
   );
 }
 
-/** One seat in a {@link ButtonGroup}. Selection is announced, not just painted. */
+/**
+ * One seat in a {@link ButtonGroup}.
+ *
+ * `md-outlined-segmented-button` has no unnamed slot — light-DOM children
+ * are simply dropped. Visible/accessible text can only reach it through the
+ * `label` string property (never a slot), and a decorative icon only
+ * through `slot="icon"` (always `aria-hidden` internally, by the component's
+ * own template). So, unlike every other primitive in this file, `children`
+ * is not what gets shown: `label` is required and carries the meaning
+ * (mirrors `IconButtonProps.label`), `icon` is optional and decorative.
+ */
 export function ButtonGroupItem({
   selected,
+  label,
+  icon,
   className,
-  children,
+  disabled,
   ...rest
-}: ButtonHTMLAttributes<HTMLButtonElement> & { selected: boolean }) {
+}: ButtonHTMLAttributes<HTMLButtonElement> & {
+  selected: boolean;
+  label: string;
+  icon?: ReactNode;
+}) {
   return (
-    <button
-      type="button"
-      aria-pressed={selected}
+    <SegmentedButtonElement
+      selected={selected}
+      label={label}
+      disabled={disabled}
+      // See Button's matching comment: jsdom doesn't implement delegatesFocus.
+      tabIndex={disabled ? -1 : 0}
       {...rest}
-      className={cn(
-        "inline-flex items-center gap-1.5 rounded-seat px-2.5 py-1 text-xs font-medium transition ease-emphasized",
-        selected
-          ? "bg-surface-raised text-ink shadow-card"
-          : "text-ink-subtle hover:text-ink",
-        className,
-      )}
+      className={className}
     >
-      {children}
-    </button>
+      {icon ? withIconSlot(icon) : null}
+    </SegmentedButtonElement>
   );
 }

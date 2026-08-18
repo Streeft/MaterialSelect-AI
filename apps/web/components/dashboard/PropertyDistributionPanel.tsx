@@ -163,11 +163,10 @@ export function PropertyDistributionPanel({
                 <ButtonGroupItem
                   key={option}
                   selected={scale === option}
+                  label={option === "linear" ? t.linear : t.log}
                   disabled={option === "log" && distribution?.allows_log_scale === false}
                   onClick={() => onScaleChange(option)}
-                >
-                  {option === "linear" ? t.linear : t.log}
-                </ButtonGroupItem>
+                />
               ))}
             </ButtonGroup>
           </div>

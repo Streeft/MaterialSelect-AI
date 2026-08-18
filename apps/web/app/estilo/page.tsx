@@ -325,14 +325,18 @@ export default function StyleGuidePage() {
           </Button>
         </div>
         <ButtonGroup label="Visualização">
-          <ButtonGroupItem selected={view === "table"} onClick={() => setView("table")}>
-            <IconTable className="h-3.5 w-3.5" />
-            Tabela
-          </ButtonGroupItem>
-          <ButtonGroupItem selected={view === "cards"} onClick={() => setView("cards")}>
-            <IconGrid className="h-3.5 w-3.5" />
-            Cartões
-          </ButtonGroupItem>
+          <ButtonGroupItem
+            selected={view === "table"}
+            label="Tabela"
+            icon={<IconTable className="h-3.5 w-3.5" />}
+            onClick={() => setView("table")}
+          />
+          <ButtonGroupItem
+            selected={view === "cards"}
+            label="Cartões"
+            icon={<IconGrid className="h-3.5 w-3.5" />}
+            onClick={() => setView("cards")}
+          />
         </ButtonGroup>
         <div className="flex flex-wrap gap-2">
           <Badge>neutro</Badge>

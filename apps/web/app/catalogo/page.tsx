@@ -103,12 +103,16 @@ export default function CatalogPage() {
           title={t.filters}
           actions={
             <ButtonGroup label={t.view}>
-              <ButtonGroupItem selected={view === "table"} onClick={() => setView("table")}>
-                {t.viewTable}
-              </ButtonGroupItem>
-              <ButtonGroupItem selected={view === "cards"} onClick={() => setView("cards")}>
-                {t.viewCards}
-              </ButtonGroupItem>
+              <ButtonGroupItem
+                selected={view === "table"}
+                label={t.viewTable}
+                onClick={() => setView("table")}
+              />
+              <ButtonGroupItem
+                selected={view === "cards"}
+                label={t.viewCards}
+                onClick={() => setView("cards")}
+              />
             </ButtonGroup>
           }
         />
