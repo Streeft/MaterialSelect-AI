@@ -78,7 +78,11 @@ test("importar, selecionar, visualizar e exportar um estudo", async ({ page }) =
 
   // --- Save, then visualize on the map ------------------------------------
   await actionBar.getByRole("button", { name: "Salvar estudo" }).click();
-  await expect(page.getByText("Estudo salvo.")).toBeVisible();
+  // Without `exact`, getByText substring-matches "Nenhum estudo salvo." too —
+  // the empty-state text for the saved-studies list, visible on the same
+  // page — so plain `getByText("Estudo salvo.")` is a strict-mode violation
+  // whenever both happen to be in the DOM at once.
+  await expect(page.getByText("Estudo salvo.", { exact: true })).toBeVisible();
 
   // First visit to /mapas in a fresh `next dev` process compiles that route
   // on demand — several seconds, well past a default expect timeout — before
