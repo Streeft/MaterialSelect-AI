@@ -21,7 +21,6 @@ import {
   Disclosure,
   EmptyState,
   ErrorState,
-  Field,
   Input,
   LoadingState,
   MissingValue,
@@ -31,6 +30,7 @@ import {
   RadioOption,
   Section,
   Select,
+  SelectOption,
   Skeleton,
   Stepper,
   TBody,
@@ -359,26 +359,25 @@ export default function StyleGuidePage() {
         <Card>
           <CardHeader title="Novo critério" description="Todos os campos são rotulados" />
           <CardBody className="grid gap-4 sm:grid-cols-2">
-            <Field label="Nome do estudo" hint="Aparece na lista de estudos salvos" required>
-              <Input placeholder="Viga leve para bicicleta" />
-            </Field>
-            <Field label="Peso" hint="Renormalizado para somar 1">
-              <NumberInput defaultValue={0.5} />
-            </Field>
-            <Field label="Propriedade">
-              <Select defaultValue="densidade">
-                <option value="densidade">Densidade</option>
-                <option value="modulo_young">Módulo de Young</option>
-              </Select>
-            </Field>
-            <Field label="Valor" error="Informe um número." required>
-              <Input defaultValue="abc" />
-            </Field>
-            <Field label="Observações" className="sm:col-span-2">
-              <Textarea placeholder="Contexto do estudo…" />
-            </Field>
+            <Input
+              label="Nome do estudo"
+              hint="Aparece na lista de estudos salvos"
+              required
+              placeholder="Viga leve para bicicleta"
+            />
+            <NumberInput label="Peso" hint="Renormalizado para somar 1" value={0.5} />
+            <Select label="Propriedade" value="densidade">
+              <SelectOption value="densidade">Densidade</SelectOption>
+              <SelectOption value="modulo_young">Módulo de Young</SelectOption>
+            </Select>
+            <Input label="Valor" error="Informe um número." required value="abc" />
+            <Textarea
+              label="Observações"
+              className="sm:col-span-2"
+              placeholder="Contexto do estudo…"
+            />
             <RadioGroup legend="Objetivo" className="sm:col-span-2">
-              <RadioOption name="demo-goal" label="Maximizar" defaultChecked />
+              <RadioOption name="demo-goal" label="Maximizar" checked />
               <RadioOption name="demo-goal" label="Minimizar" />
             </RadioGroup>
             <Checkbox

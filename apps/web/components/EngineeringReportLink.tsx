@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { ptBR } from "@/lib/i18n";
 import { studyLaudoUrl } from "@/lib/api";
-import { ButtonLink, Field, Input } from "@/components/ui";
+import { ButtonLink, Input } from "@/components/ui";
 
 const t = ptBR.exports;
 
@@ -21,14 +21,14 @@ export function EngineeringReportLink({ studyId }: { studyId: number }) {
 
   return (
     <div className="flex flex-wrap items-end gap-2">
-      <Field label={t.laudoResponsibleLabel} className="w-56">
-        <Input
-          value={responsible}
-          onChange={(e) => setResponsible(e.target.value)}
-          placeholder={t.laudoResponsiblePlaceholder}
-          maxLength={160}
-        />
-      </Field>
+      <Input
+        label={t.laudoResponsibleLabel}
+        className="w-56"
+        value={responsible}
+        onChange={(e) => setResponsible(e.target.value)}
+        placeholder={t.laudoResponsiblePlaceholder}
+        maxLength={160}
+      />
       <ButtonLink
         href={studyLaudoUrl(studyId, responsible)}
         size="sm"

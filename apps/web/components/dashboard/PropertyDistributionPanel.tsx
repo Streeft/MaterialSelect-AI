@@ -16,9 +16,9 @@ import {
   CardHeader,
   EmptyState,
   ErrorState,
-  Field,
   LoadingState,
   Select,
+  SelectOption,
   useResolvedTheme,
 } from "@/components/ui";
 import { ChartToolbar } from "../charts/ChartToolbar";
@@ -147,15 +147,18 @@ export function PropertyDistributionPanel({
       />
       <CardBody className="flex flex-col gap-4">
         <div className="flex flex-wrap items-end gap-4">
-          <Field label={t.property} className="min-w-[14rem] flex-1">
-            <Select value={selected} onChange={(e) => onSelect(e.target.value)}>
-              {sortedProperties.map((p) => (
-                <option key={p.slug} value={p.slug}>
-                  {p.name}
-                </option>
-              ))}
-            </Select>
-          </Field>
+          <Select
+            label={t.property}
+            className="min-w-[14rem] flex-1"
+            value={selected}
+            onChange={(e) => onSelect(e.target.value)}
+          >
+            {sortedProperties.map((p) => (
+              <SelectOption key={p.slug} value={p.slug}>
+                {p.name}
+              </SelectOption>
+            ))}
+          </Select>
           <div className="flex flex-col gap-1">
             <span className="text-xs font-medium text-ink-muted">{t.scale}</span>
             <ButtonGroup label={t.scale}>

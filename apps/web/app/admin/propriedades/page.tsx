@@ -13,11 +13,11 @@ import {
   CardFooter,
   Checkbox,
   ErrorState,
-  Field,
   Input,
   LoadingState,
   RowHeader,
   Select,
+  SelectOption,
   TBody,
   THead,
   Table,
@@ -99,43 +99,37 @@ export default function PropertiesAdminPage() {
       >
         <Card>
           <CardBody className="grid gap-3 sm:grid-cols-3">
-            <Field label={ptBR.form.name} required>
-              <Input value={name} onChange={(e) => setName(e.target.value)} required />
-            </Field>
-            <Field label={ptBR.admin.category}>
-              <Select
-                value={category}
-                onChange={(e) => setCategory(e.target.value as PropertyCategory)}
-              >
-                {CATEGORIES.map((c) => (
-                  <option key={c} value={c}>
-                    {ptBR.categories[c]}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-            <Field label={ptBR.admin.canonicalUnit} required>
-              <Input
-                value={canonicalUnit}
-                onChange={(e) => setCanonicalUnit(e.target.value)}
-                required
-                placeholder="ex.: Pa"
-              />
-            </Field>
-            <Field label={ptBR.admin.physicalDimension}>
-              <Input
-                value={physicalDimension}
-                onChange={(e) => setPhysicalDimension(e.target.value)}
-                placeholder="ex.: [mass] / [length] / [time] ** 2"
-              />
-            </Field>
-            <Field label={ptBR.admin.acceptedUnits}>
-              <Input
-                value={acceptedUnits}
-                onChange={(e) => setAcceptedUnits(e.target.value)}
-                placeholder="Pa, MPa, GPa"
-              />
-            </Field>
+            <Input label={ptBR.form.name} value={name} onChange={(e) => setName(e.target.value)} required />
+            <Select
+              label={ptBR.admin.category}
+              value={category}
+              onChange={(e) => setCategory(e.target.value as PropertyCategory)}
+            >
+              {CATEGORIES.map((c) => (
+                <SelectOption key={c} value={c}>
+                  {ptBR.categories[c]}
+                </SelectOption>
+              ))}
+            </Select>
+            <Input
+              label={ptBR.admin.canonicalUnit}
+              value={canonicalUnit}
+              onChange={(e) => setCanonicalUnit(e.target.value)}
+              required
+              placeholder="ex.: Pa"
+            />
+            <Input
+              label={ptBR.admin.physicalDimension}
+              value={physicalDimension}
+              onChange={(e) => setPhysicalDimension(e.target.value)}
+              placeholder="ex.: [mass] / [length] / [time] ** 2"
+            />
+            <Input
+              label={ptBR.admin.acceptedUnits}
+              value={acceptedUnits}
+              onChange={(e) => setAcceptedUnits(e.target.value)}
+              placeholder="Pa, MPa, GPa"
+            />
             <Checkbox
               label={ptBR.admin.isInterval}
               checked={isInterval}

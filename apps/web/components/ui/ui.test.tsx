@@ -5,6 +5,7 @@ import { render } from "@testing-library/react";
 import { screen, within } from "shadow-dom-testing-library";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
+import type { InputHTMLAttributes } from "react";
 import { cn } from "@/lib/cn";
 import { ptBR } from "@/lib/i18n";
 import { describeViolations, findA11yViolations } from "@/lib/testing/axe";
@@ -27,7 +28,9 @@ import {
   RadioOption,
   Section,
   Select,
+  SelectOption,
   Stepper,
+  useWiring,
   TBody,
   THead,
   Table,
@@ -90,11 +93,28 @@ describe("Button", () => {
   });
 });
 
+// `Field` now only wraps the two native-control call sites MWC has no
+// equivalent for (a multi-`<select>` and a file `<input>`) — every other
+// control carries its own `label`/`hint`/`error` directly, and Field itself
+// went from cloning props onto its child to a context (`useWiring`) the
+// child opts into, same as `ConstraintEditor.tsx`'s `ClassMultiSelect`.
+function WiredInput(props: InputHTMLAttributes<HTMLInputElement>) {
+  const w = useWiring();
+  return (
+    <input
+      id={w.id}
+      aria-describedby={w.describedBy}
+      aria-invalid={w.invalid || undefined}
+      {...props}
+    />
+  );
+}
+
 describe("Field", () => {
   it("wires label, hint and error to the control without the call site doing it", () => {
     render(
       <Field label="Densidade" hint="Em g/cm³" error="Campo obrigatório.">
-        <Input />
+        <WiredInput />
       </Field>,
     );
     const input = screen.getByLabelText(/densidade/i);
@@ -111,7 +131,7 @@ describe("Field", () => {
   it("does not claim invalid when there is no error", () => {
     render(
       <Field label="Nome">
-        <Input />
+        <WiredInput />
       </Field>,
     );
     expect(screen.getByLabelText("Nome")).not.toHaveAttribute("aria-invalid");
@@ -358,17 +378,13 @@ describe("acessibilidade das primitivas", () => {
           <Card>
             <CardHeader title="Candidatos" description="Após as restrições" />
             <CardBody>
-              <Field label="Nome do estudo" hint="Usado ao salvar">
-                <Input />
-              </Field>
-              <Field label="Normalização">
-                <Select>
-                  <option value="minmax">Min-máx</option>
-                  <option value="vector">Vetorial</option>
-                </Select>
-              </Field>
+              <Input label="Nome do estudo" hint="Usado ao salvar" />
+              <Select label="Normalização">
+                <SelectOption value="minmax">Min-máx</SelectOption>
+                <SelectOption value="vector">Vetorial</SelectOption>
+              </Select>
               <RadioGroup legend="Objetivo">
-                <RadioOption name="goal" label="Maximizar" defaultChecked />
+                <RadioOption name="goal" label="Maximizar" checked />
                 <RadioOption name="goal" label="Minimizar" />
               </RadioGroup>
               <Button variant="primary">Executar seleção</Button>

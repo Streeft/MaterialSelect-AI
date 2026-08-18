@@ -13,11 +13,11 @@ import {
   CardBody,
   CardFooter,
   ErrorState,
-  Field,
   Input,
   LoadingState,
   RowHeader,
   Select,
+  SelectOption,
   TBody,
   THead,
   Table,
@@ -77,22 +77,21 @@ export default function ClassesAdminPage() {
       >
         <Card>
           <CardBody className="grid gap-3 sm:grid-cols-4">
-            <Field label={ptBR.form.name} required>
-              <Input value={name} onChange={(e) => setName(e.target.value)} required />
-            </Field>
-            <Field label={ptBR.admin.parent}>
-              <Select value={parentId} onChange={(e) => setParentId(e.target.value)}>
-                <option value="">{ptBR.admin.noParent}</option>
-                {classes.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-            <Field label={ptBR.form.description} className="sm:col-span-2">
-              <Input value={description} onChange={(e) => setDescription(e.target.value)} />
-            </Field>
+            <Input label={ptBR.form.name} value={name} onChange={(e) => setName(e.target.value)} required />
+            <Select label={ptBR.admin.parent} value={parentId} onChange={(e) => setParentId(e.target.value)}>
+              <SelectOption value="">{ptBR.admin.noParent}</SelectOption>
+              {classes.map((c) => (
+                <SelectOption key={c.id} value={String(c.id)}>
+                  {c.name}
+                </SelectOption>
+              ))}
+            </Select>
+            <Input
+              label={ptBR.form.description}
+              className="sm:col-span-2"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
           </CardBody>
           <CardFooter>
             <Button type="submit" variant="primary" loading={create.isPending}>

@@ -8,6 +8,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { ptBR } from "@/lib/i18n";
 import type { DashboardOverview, PropertyDistribution } from "@/lib/types";
+import { selectMwcOption } from "@/lib/testing/mwc";
 
 const t = ptBR.dashboard;
 
@@ -193,10 +194,9 @@ describe("painel", () => {
   });
 
   it("fetches a new distribution when the reader picks a different property", async () => {
-    const user = userEvent.setup();
     await renderDashboard();
 
-    await user.selectOptions(screen.getByLabelText(t.property), "densidade");
+    selectMwcOption(screen.getByShadowRole("combobox", { name: t.property }), "densidade");
 
     await waitFor(() => expect(getDashboardDistribution).toHaveBeenCalledWith("densidade"));
     expect(await screen.findByText(t.distributionFigure("Densidade"))).toBeInTheDocument();
