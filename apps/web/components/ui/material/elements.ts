@@ -63,3 +63,36 @@ export const MdCircularProgress = createComponent({
   elementClass: MdCircularProgressElement,
   displayName: "MdCircularProgress",
 });
+
+import "@material/web/chips/filter-chip.js";
+import { MdFilterChip as MdFilterChipElement } from "@material/web/chips/filter-chip.js";
+
+export const MdFilterChip = createComponent({
+  react: React,
+  tagName: "md-filter-chip",
+  elementClass: MdFilterChipElement,
+  displayName: "MdFilterChip",
+});
+
+// labs/ — experimental, accepted despite the stability risk (see the M3
+// migration plan). Only an "outlined" segmented button exists in this
+// version of @material/web, no filled variant.
+import "@material/web/labs/segmentedbutton/outlined-segmented-button.js";
+import { MdOutlinedSegmentedButton as MdOutlinedSegmentedButtonElement } from "@material/web/labs/segmentedbutton/outlined-segmented-button.js";
+
+export const MdOutlinedSegmentedButton = createComponent({
+  react: React,
+  tagName: "md-outlined-segmented-button",
+  elementClass: MdOutlinedSegmentedButtonElement,
+  displayName: "MdOutlinedSegmentedButton",
+});
+
+import "@material/web/labs/segmentedbuttonset/outlined-segmented-button-set.js";
+import { MdOutlinedSegmentedButtonSet as MdOutlinedSegmentedButtonSetElement } from "@material/web/labs/segmentedbuttonset/outlined-segmented-button-set.js";
+
+export const MdOutlinedSegmentedButtonSet = createComponent({
+  react: React,
+  tagName: "md-outlined-segmented-button-set",
+  elementClass: MdOutlinedSegmentedButtonSetElement,
+  displayName: "MdOutlinedSegmentedButtonSet",
+});

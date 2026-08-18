@@ -117,16 +117,14 @@ function AxisControl({
       <ButtonGroup label={`${label} — ${t.axisTypeProperty.toLowerCase()}/${t.axisTypeIndex.toLowerCase()}`}>
         <ButtonGroupItem
           selected={axis.mode === "property"}
+          label={t.axisTypeProperty}
           onClick={() => onChange({ ...axis, mode: "property" })}
-        >
-          {t.axisTypeProperty}
-        </ButtonGroupItem>
+        />
         <ButtonGroupItem
           selected={axis.mode === "index"}
+          label={t.axisTypeIndex}
           onClick={() => onChange({ ...axis, mode: "index" })}
-        >
-          {t.axisTypeIndex}
-        </ButtonGroupItem>
+        />
       </ButtonGroup>
 
       {axis.mode === "property" ? (
@@ -398,10 +396,9 @@ function MapsPageContent() {
                     <ButtonGroupItem
                       key={option}
                       selected={scale === option}
+                      label={option === "linear" ? t.linear : t.log}
                       onClick={() => setScale(option)}
-                    >
-                      {option === "linear" ? t.linear : t.log}
-                    </ButtonGroupItem>
+                    />
                   ))}
                 </ButtonGroup>
               </div>
