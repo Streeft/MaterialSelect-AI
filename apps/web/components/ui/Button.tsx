@@ -127,12 +127,28 @@ export const Button = forwardRef<HTMLElement, ButtonProps>(function Button(
  * interactive element instead of Link's default `<a>`: it clones `ref`,
  * `href`, `onClick`, `onMouseEnter` and `onTouchStart` onto its one child (see
  * `next/dist/client/link.js`) rather than wrapping it in a second anchor, so
- * there's no nested-`<a>` problem. Its click handler already contains the
- * modifier-key/target guard this needs and defers to a plain hard-navigation
- * when no app router is mounted — unlike calling `useRouter()` directly,
- * which throws outside one, this renders correctly in every existing test
- * that mounts a page without a router provider. Prefetch-on-visible comes
- * from the same mechanism, unchanged from the component this replaces.
+ * there's no nested-`<a>` problem. Prefetch-on-visible comes from the same
+ * mechanism, unchanged from the component this replaces.
+ *
+ * That wiring is only correct for same-tab, in-app navigation, though: Link's
+ * `linkClicked` decides whether to defer to the browser (new tab, download)
+ * or hijack the click into `router.push` by checking
+ * `e.currentTarget.nodeName === "A"` — and `e.currentTarget` is the light-DOM
+ * host it attached the listener to, i.e. `<md-outlined-button>`, never `"A"`,
+ * because the real anchor `@material/web` renders lives inside that host's
+ * shadow root where Link's own click guard can't see it. So Link always
+ * hijacks these clicks into a same-tab `router.push`, silently discarding
+ * `target="_blank"` — confirmed live: `page.waitForEvent("popup")` never
+ * fired for an outlined "Gerar laudo" `target="_blank"` link because the
+ * click force-navigated the current tab instead of opening one. A `download`
+ * link degrades less visibly (Chromium still triggers the browser's download
+ * UI off a same-tab navigation to a `Content-Disposition: attachment`
+ * response, so nothing user-visible breaks there), but it isn't native
+ * `download`-attribute handling and shouldn't be relied on either. Any link
+ * that must not stay in the SPA — `target` other than `_self`/unset, or
+ * `download` — skips `next/link` entirely and renders the bare element, so
+ * the click never reaches Link's guard and the browser handles it natively,
+ * exactly as a plain `<a target="_blank">`/`<a download>` would.
  */
 export function ButtonLink({
   href,
@@ -142,6 +158,7 @@ export function ButtonLink({
   className,
   children,
   target,
+  download,
   ...rest
 }: {
   href: string;
@@ -151,12 +168,32 @@ export function ButtonLink({
   className?: string;
   children: ReactNode;
   target?: "_blank" | "_parent" | "_self" | "_top";
+  download?: boolean | string;
 } & Omit<ButtonHTMLAttributes<HTMLButtonElement>, "type" | "target">) {
   const Element = VARIANT_ELEMENT[variant];
+  const opensOutsideSpa = (target != null && target !== "_self") || Boolean(download);
+
+  if (opensOutsideSpa) {
+    return (
+      <Element
+        href={href}
+        target={target}
+        download={download}
+        // See the matching comment on Button above: makes this a Tab stop
+        // under jsdom, harmless alongside the real delegatesFocus behavior.
+        tabIndex={0}
+        {...rest}
+        className={variantClassName(variant, size, className)}
+      >
+        {icon ? withIconSlot(icon) : null}
+        {children}
+      </Element>
+    );
+  }
+
   return (
     <Link href={href} passHref legacyBehavior>
       <Element
-        target={target}
         // See the matching comment on Button above: makes this a Tab stop
         // under jsdom, harmless alongside the real delegatesFocus behavior.
         tabIndex={0}
