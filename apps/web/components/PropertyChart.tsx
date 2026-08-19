@@ -127,9 +127,12 @@ export function PropertyChart({ data, highlightMaterialId }: PropertyChartProps)
           <div className="flex flex-wrap items-center gap-2">
             <ButtonGroup label={t.scale}>
               {(["linear", "log"] as Scale[]).map((s) => (
-                <ButtonGroupItem key={s} selected={scale === s} onClick={() => setScale(s)}>
-                  {s === "linear" ? t.linear : t.log}
-                </ButtonGroupItem>
+                <ButtonGroupItem
+                  key={s}
+                  selected={scale === s}
+                  label={s === "linear" ? t.linear : t.log}
+                  onClick={() => setScale(s)}
+                />
               ))}
             </ButtonGroup>
             <ChartToolbar

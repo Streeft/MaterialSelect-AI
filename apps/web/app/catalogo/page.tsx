@@ -18,11 +18,11 @@ import {
   DataQualityLegend,
   EmptyState,
   ErrorState,
-  Field,
   Input,
   LoadingState,
   Section,
   Select,
+  SelectOption,
 } from "@/components/ui";
 
 const t = ptBR.catalog;
@@ -103,47 +103,54 @@ export default function CatalogPage() {
           title={t.filters}
           actions={
             <ButtonGroup label={t.view}>
-              <ButtonGroupItem selected={view === "table"} onClick={() => setView("table")}>
-                {t.viewTable}
-              </ButtonGroupItem>
-              <ButtonGroupItem selected={view === "cards"} onClick={() => setView("cards")}>
-                {t.viewCards}
-              </ButtonGroupItem>
+              <ButtonGroupItem
+                selected={view === "table"}
+                label={t.viewTable}
+                onClick={() => setView("table")}
+              />
+              <ButtonGroupItem
+                selected={view === "cards"}
+                label={t.viewCards}
+                onClick={() => setView("cards")}
+              />
             </ButtonGroup>
           }
         />
         <CardBody className="flex flex-wrap items-end gap-4">
-          <Field label={t.searchLabel} className="min-w-[14rem] flex-1">
-            <Input
-              type="search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder={t.searchPlaceholder}
-            />
-          </Field>
+          <Input
+            label={t.searchLabel}
+            className="min-w-[14rem] flex-1"
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={t.searchPlaceholder}
+          />
 
-          <Field label={t.filterClass} className="min-w-[10rem]">
-            <Select value={classSlug} onChange={(e) => setClassSlug(e.target.value)}>
-              <option value="">{t.allClasses}</option>
-              {(classes.data ?? []).map((c) => (
-                <option key={c.slug} value={c.slug}>
-                  {c.name}
-                </option>
-              ))}
-            </Select>
-          </Field>
+          <Select
+            label={t.filterClass}
+            className="min-w-[10rem]"
+            value={classSlug}
+            onChange={(e) => setClassSlug(e.target.value)}
+          >
+            <SelectOption value="">{t.allClasses}</SelectOption>
+            {(classes.data ?? []).map((c) => (
+              <SelectOption key={c.slug} value={c.slug}>
+                {c.name}
+              </SelectOption>
+            ))}
+          </Select>
 
-          <Field label={t.filterQuality} className="min-w-[13rem]">
-            <Select
-              value={quality}
-              onChange={(e) => setQuality(e.target.value as QualityFilter)}
-            >
-              <option value="any">{t.qualityAny}</option>
-              <option value="complete">{t.qualityComplete}</option>
-              <option value="gaps">{t.qualityWithGaps}</option>
-              <option value="measured">{t.qualityMeasured}</option>
-            </Select>
-          </Field>
+          <Select
+            label={t.filterQuality}
+            className="min-w-[13rem]"
+            value={quality}
+            onChange={(e) => setQuality(e.target.value as QualityFilter)}
+          >
+            <SelectOption value="any">{t.qualityAny}</SelectOption>
+            <SelectOption value="complete">{t.qualityComplete}</SelectOption>
+            <SelectOption value="gaps">{t.qualityWithGaps}</SelectOption>
+            <SelectOption value="measured">{t.qualityMeasured}</SelectOption>
+          </Select>
 
           <Button
             variant="ghost"

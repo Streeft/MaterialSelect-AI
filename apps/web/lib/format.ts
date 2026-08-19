@@ -35,6 +35,20 @@ export function formatScore(value: number, decimals = 2): string {
 }
 
 /**
+ * A percentage already computed by the backend (0–100), in pt-BR.
+ *
+ * Takes the number as-is rather than dividing by 100 itself: `share()` in
+ * `app/calculations/statistics.py` already rounds to one decimal, and a second
+ * rounding here could show a figure and its data table disagreeing by 0,1 pp.
+ */
+export function formatPercent(value: number, decimals = 1): string {
+  return `${value.toLocaleString("pt-BR", {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  })}%`;
+}
+
+/**
  * A counted noun. Portuguese agrees with the number, and "1 restrições" reads
  * as a bug in the calculation even when the calculation is right. Both forms
  * come from the dictionary; this only picks one.

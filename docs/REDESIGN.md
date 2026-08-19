@@ -153,9 +153,14 @@ para que gráfico e interface não divirjam.
 
 - **Cor de acento:** rampa `brand` completa (50→950). Mantenha o azul atual como
   ponto de partida — é calmo e adequado a um instrumento científico.
-  > **Superado.** O acento passou a ser o lima `#C6F91F` do pacote lumimotion,
-  > sobre superfícies quase pretas. Ver [D-33](DECISIONS.md). O resto desta
-  > seção continua valendo, inclusive a rampa completa e a leitura pelo Plotly.
+  > **Superado duas vezes, e o azul voltou.** Primeiro o acento passou ao lima
+  > `#C6F91F` do pacote lumimotion, sobre superfícies quase pretas
+  > ([D-33](DECISIONS.md)). Depois a Fase 9 trocou a família de novo e o
+  > verde-limão saiu com data marcada: o acento **é** `--brand-700`, azul, e
+  > `--accent` não é o azul do Google (`#1A73E8` dá 4,51:1 com branco) — ver
+  > [D-38](DECISIONS.md), que substitui a paleta de D-33 sem revogar o método
+  > dela. O resto desta seção continua valendo, inclusive a rampa completa e a
+  > leitura pelo Plotly.
 - **Neutros:** rampa `slate` já usada, formalizada em tokens semânticos
   (`surface`, `surface-raised`, `border`, `text-primary`, `text-secondary`,
   `text-muted`).

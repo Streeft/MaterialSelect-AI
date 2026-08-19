@@ -14,14 +14,26 @@ dependencies = [
     "python-dotenv>=1.0",
     "python-multipart>=0.0.9",
     "openpyxl>=3.1",
+    # Auth (A5): httpx trades the Google authorization code for tokens;
+    # google-auth verifies the ID token's signature locally against Google's
+    # published keys, which is what Google's own docs recommend over calling
+    # the `tokeninfo` endpoint on every login (that endpoint is rate-limited
+    # and meant for debugging, not production traffic).
+    "httpx>=0.27",
+    "google-auth>=2.29",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=8.2",
-    "httpx>=0.27",
     "ruff>=0.5",
     "black>=24.4",
+]
+# The AI layer is optional and so is its dependency: `mock` and `claude-cli`
+# need nothing from here, and the deterministic product needs nothing at all.
+# Only AI_PROVIDER=claude-api talks to the Anthropic SDK.
+ai = [
+    "anthropic>=0.69",
 ]
 
 [build-system]
@@ -44,8 +56,11 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 # Depends()/File() in defaults is the idiomatic FastAPI dependency-injection
-# pattern; B008 is a known false positive for routers.
+# pattern; B008 is a known false positive for routers. app/dependencies.py
+# chains Depends() the same way (get_current_project depends on
+# get_current_user), so it gets the same exemption.
 "app/routers/*" = ["B008"]
+"app/dependencies.py" = ["B008"]
 
 [tool.black]
 line-length = 100

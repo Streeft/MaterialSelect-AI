@@ -30,7 +30,7 @@ diferente. O que é óbvio não precisa de registro.
 | D-15 | stdlib `csv` + `openpyxl` em vez de pandas | aceito | abaixo |
 | D-16 | Contrato de tipos duplicado conscientemente | aceito, com débito | abaixo |
 | D-17 | BEGIN explícito nos testes (pysqlite) | aceito | abaixo |
-| D-18 | Sem autenticação no MVP | aceito, com risco | abaixo |
+| D-18 | Sem autenticação no MVP | **superado por D-42** | abaixo |
 | D-19 | Merge commit em vez de squash | aceito | abaixo |
 | D-20 | HTML imprimível em vez de biblioteca de PDF | aceito | abaixo |
 | D-21 | Campo opcional não preenchido continua `NULL` | aceito | abaixo |
@@ -39,6 +39,22 @@ diferente. O que é óbvio não precisa de registro.
 | D-24 | Qualidade do dado codificada em três canais, nunca só cor | aceito | abaixo |
 | D-25 | Hipóteses do índice antes da escolha, não depois | aceito | abaixo |
 | D-26 | Navegação agrupada por tarefa, sem menus suspensos | aceito | abaixo |
+| D-27 | Composição da qualidade contada no banco, não no navegador | aceito | abaixo |
+| D-28 | Uma paleta só, compartilhada entre interface e gráfico | aceito | abaixo |
+| D-29 | Contraste medido contra a superfície mais escura em que o token é usado | aceito | abaixo |
+| D-30 | Todo número na tela usa a convenção do pt-BR | aceito | abaixo |
+| D-31 | A alternativa textual de um gráfico é a tabela que o originou | aceito | abaixo |
+| D-32 | O painel de uma aba é filho do componente de abas | aceito | abaixo |
+| D-33 | A repaginação lumimotion troca os tokens, e só os tokens | **superado por D-38** (o método permanece) | abaixo |
+| D-34 | A borda de um controle é informação, não moldura | aceito | abaixo |
+| D-35 | O provedor real escolhe índice por slug; expressão e ressalvas não são dele | aceito | abaixo |
+| D-36 | A IA gratuita é um protocolo, não um fornecedor | aceito | abaixo |
+| D-37 | A navegação vira barra lateral, e a barra pode recolher | aceito | abaixo |
+| D-38 | A paleta troca de família, e o verde-limão sai com data marcada | aceito | abaixo |
+| D-39 | O painel separa tipo de evidência de existência do campo, com duas paletas | aceito | abaixo |
+| D-40 | Um eixo do mapa pode ser um índice; overlay e eixo-índice são exclusivos | aceito | abaixo |
+| D-41 | O laudo de engenharia é um documento à parte | aceito | abaixo |
+| D-42 | Login só por terceiros (Google); catálogo compartilhado; um projeto por usuário no v1 | aceito | abaixo |
 
 ---
 
@@ -243,17 +259,19 @@ disciplina humana para uma propriedade que a máquina pode garantir.
 
 ---
 
-## D-18 — Sem autenticação no MVP
+## D-18 — Sem autenticação no MVP (superado por D-42)
 
-**Decisão.** Nenhuma autenticação, autorização, sessão ou usuário.
+**Decisão original.** Nenhuma autenticação, autorização, sessão ou usuário.
 
-**Por quê.** O MVP roda localmente, para um trabalho acadêmico, com dados
+**Por quê.** O MVP rodava localmente, para um trabalho acadêmico, com dados
 fictícios. Autenticação seria escopo grande sem servir à contribuição
-metodológica.
+metodológica — enquanto o risco (API totalmente aberta, incluindo escrita e
+exclusão) ficasse contido a rodar só localmente.
 
-**Risco explícito.** A API é totalmente aberta, incluindo escrita e exclusão.
-**Não exponha em rede sem resolver isso.** É o primeiro item de alta prioridade
-do [TODO.md](TODO.md).
+**Por que deixou de valer.** O sistema **vai ser hospedado**, o que torna a API
+aberta o maior risco pendente do projeto — a própria decisão já dizia isso.
+[D-42](#d-42--login-só-por-terceiros-google-catálogo-compartilhado-entre-usuários-um-projeto-por-usuário-no-v1)
+resolve isso com login Google e projetos isolados; ver lá.
 
 ---
 
@@ -824,3 +842,658 @@ verificação no navegador passou a medir também a borda computada de cada
 controle habilitado contra o fundo realmente pintado. Sete rotas, dois temas:
 nenhuma reprovação de texto e nenhuma de controle; a borda mais apertada é
 3,81:1 no escuro e 4,31:1 no claro.
+
+---
+
+## D-35 — O provedor real escolhe por slug; a expressão e as ressalvas nunca são dele
+
+**Contexto.** A Fase 6 entregou a camada de IA com um único provedor, o
+simulado. Ligar um modelo de verdade reabre a pergunta que a fase inteira existe
+para responder: o que exatamente o modelo pode dizer que chega ao usuário? O
+contrato `AIProvider` devolve um dicionário, e o serviço construía a sugestão de
+índice com **os campos que o provedor mandasse** — `name`, `expression`, `goal`.
+Com o simulado isso é inofensivo, porque ele copia do catálogo. Com um modelo,
+é um caminho para uma expressão de índice escrita por IA entrar no sistema.
+
+O mesmo vale, do outro lado, para as ressalvas de uma explicação: elas vinham do
+provedor. O simulado sempre as escreve; um modelo pode simplesmente não escrever
+— e as ressalvas são justamente o que o trabalho promete que sempre aparece.
+
+**Decisão.** Dois provedores reais entram atrás do mesmo `AIProvider`, ambos
+falando com o Claude: `claude-api` (API de Mensagens da Anthropic, com chave
+própria) e `claude-cli` (o Claude Code já instalado e autenticado na máquina).
+`mock` continua o padrão. Os três compartilham `app/ai/claude_base.py`, e nele:
+
+- **O modelo devolve um slug de índice e mais nada.** Nome, expressão e objetivo
+  são lidos do catálogo depois da resposta. Não é uma checagem — é a ausência do
+  campo: por esse caminho um modelo não tem onde escrever uma expressão.
+- **As ressalvas são do backend** (`app/ai/caveats.py`), compartilhadas com o
+  simulado. O esquema JSON enviado ao modelo nem tem o campo.
+- **Slug inventado passa adiante.** Filtrá-lo ali seria mais limpo e seria pior:
+  o guardrail o recusa *e diz por quê*, e ver o que foi recusado é como o
+  usuário passa a acreditar no que não foi.
+
+**Alternativas descartadas.**
+- **Um provedor só.** "Meu próprio Claude" é ambíguo entre a assinatura que a
+  pessoa já paga e uma chave de API que ela talvez não tenha. Os dois cabem no
+  mesmo contrato e custam um módulo de transporte cada.
+- **Validar a expressão vinda do modelo em vez de ignorá-la.** Trocaria uma
+  impossibilidade estrutural por uma verificação — e verificação se afrouxa.
+- **Deixar o modelo escrever as ressalvas com uma checagem de que apareceram.**
+  Verificar presença de frase é frágil; não pedir o campo não é.
+
+**Consequência aceita.** Com um provedor real a leitura **deixa de ser
+determinística**: o mesmo enunciado pode ser lido de dois jeitos. Por isso o
+padrão continua sendo `mock`, que é o provedor sobre o qual o argumento de
+reprodutibilidade do trabalho se apoia, e por isso a ressalva mostrada ao
+usuário passou a dizer isso com todas as letras em vez de apenas omitir o aviso
+de "simulado". O que não varia é o cálculo — ele não passa por aqui.
+
+**Como se sabe que passa.** Os testes roteiram a resposta do modelo em vez de
+chamar a rede, e cobrem o caso hostil: uma conversão *correta* (300 °C → 573,15 K)
+continua recusada, uma expressão inventada é descartada pelo catálogo, e a
+explicação que cita cifra não calculada derruba a resposta inteira. O teste mais
+afiado devolve o próprio bloco de dados do prompt como prosa: se algo que o
+modelo vê não puder ser citado, o guardrail dispara sobre um texto que obedeceu.
+
+Além dos testes, as duas rotas foram exercidas ao vivo pelo `claude-cli` contra o
+catálogo semeado: o enunciado com "300 °C" e "3 g/cm3" saiu com os dois números
+copiados na unidade escrita, nenhuma recusa; e "no mínimo 300", sem unidade,
+saiu como pergunta aberta e nenhuma restrição — a regra 4 obedecida por um
+modelo que nunca a viu no código. O `claude-api` foi verificado apenas contra um
+cliente falso: não há chave de API neste ambiente.
+
+---
+
+## D-36 — A IA gratuita é um protocolo, não um fornecedor
+
+**Data:** 11/08/2026 · **Status:** aceita · **Fase:** 9
+
+**Contexto.** O pedido foi por "uma IA gratuita, uma API de IA gratuita, pode
+ser da OpenAI", com uma condição explícita: "que não dê problema de
+autenticação". A pesquisa de fornecedores desmontou a primeira metade do pedido
+e endureceu a segunda.
+
+A OpenAI **não tem camada gratuita de API**. A linha "Free" na documentação de
+limites é um teto de gasto de US$ 100/mês, não uma concessão — o nível "$5 paid"
+exibe o mesmo teto. O Brasil é atendido; a barreira é dinheiro, não geografia.
+
+Entre os que de fato são gratuitos, nenhum é estável o bastante para ser *o*
+fornecedor do trabalho:
+
+| Fornecedor | Situação em 11/08/2026 |
+|---|---|
+| **Groq** | Plano gratuito real, sem cartão, limites publicados (30 req/min, 1000 req/dia). JSON Schema estrito só em `openai/gpt-oss-20b` e `120b`. |
+| **Ollama (local)** | Gratuito para sempre, sem conta, sem rede, sem limite. |
+| **Gemini (AI Studio)** | Gratuito e permanente, sem cartão. Mas o conteúdo enviado **é usado para treinar**, revisores humanos podem lê-lo, e a isenção geográfica dos termos cobre apenas EEE, Suíça e Reino Unido — **não o Brasil**. O Google parou de publicar limites por modelo. |
+| **OpenRouter** | 15 modelos `:free`, só 4 com saída estruturada; 50 requisições/dia. |
+| **GitHub Models** | **Desligado em 30/07/2026.** |
+| **Cerebras** | Deixou de ter camada gratuita: US$ 5 de crédito que expiram em 30 dias. |
+
+**Decisão.** Não escolher um fornecedor. Implementar **um provedor por
+protocolo** — `openai-compat`, que fala `POST {AI_BASE_URL}/chat/completions` —
+e deixar a escolha em duas variáveis de ambiente. Groq, Ollama, OpenRouter,
+Together, Cloudflare, um gateway corporativo e a própria OpenAI passam a caber
+no mesmo código.
+
+`AI_BASE_URL` **não tem valor padrão**, de propósito: um padrão escolheria um
+fornecedor pelo operador. Sem ele, o erro traz as três receitas prontas — é a
+única documentação que alguém lê no momento em que precisa.
+
+**Como a condição "sem problema de autenticação" foi cumprida.** Com
+`AI_API_KEY` vazia, o cabeçalho `Authorization` não é enviado. Não é degradação:
+é o que um Ollama local espera, e mandar um bearer vazio transformaria "este
+servidor não pede credencial" em "sua credencial foi recusada". É o único
+arranjo desta camada em que a autenticação não pode falhar, porque não existe.
+
+**Alternativas descartadas.**
+
+- **Gemini como provedor recomendado**, que a pesquisa apontou primeiro. A
+  qualidade em português é a melhor do conjunto gratuito, mas o enunciado que o
+  usuário digita vira material de treino e a proteção contratual não alcança o
+  Brasil. Recomendar isso a um aluno de graduação, num trabalho que ele assina,
+  não se sustenta. Continua alcançável — o Gemini expõe endpoint compatível com
+  OpenAI —, só não é o caminho que a documentação empurra.
+- **Adicionar `httpx` como dependência.** O provedor usa `urllib.request`. A
+  camada de IA é opcional; a maneira mais barata de ligá-la também deveria ser a
+  que instala menos coisa.
+- **Cair silenciosamente para `json_object` quando o servidor recusa o schema.**
+  Um provedor que parou de exigir o contrato ficaria idêntico a um que nunca o
+  teve. `AI_JSON_MODE` é decisão do operador, e o 400 diz qual é o ajuste.
+
+**Consequência aceita.** O provedor gratuito é o mais fraco dos quatro: modelos
+menores erram mais a leitura, e o plano gratuito tem limite diário. Isso é
+sustentável porque o guardrail não distingue provedor — o que um modelo pequeno
+erra é recusado e **relatado**, exatamente como o de um modelo grande. E o
+`mock` continua o padrão (D-35): só um provedor determinístico sustenta comparar
+duas execuções do mesmo estudo.
+
+**Um subproduto para a defesa.** Em menos de um ano, o GitHub Models foi
+desligado e a Cerebras trocou camada gratuita por teste de 30 dias. É a
+evidência empírica de que manter a camada de IA opcional, substituível e com
+padrão determinístico não era conservadorismo — era a leitura certa do terreno.
+
+**Efeito colateral no código.** `claude_base.py` passou a `model_base.py` e
+`ClaudeProviderBase` a `ModelProviderBase`. As garantias de D-35 são da camada,
+não da Anthropic; um provedor da Groq herdando de uma classe chamada "Claude"
+seria uma mentira de nomenclatura num repositório que trata nome como contrato.
+
+**Aviso ao usuário.** `AIProvider` ganhou `data_note`, e a ressalva mostrada ao
+lado de cada sugestão passa a nomear **o host** para onde o enunciado está indo
+— nunca o caminho, que pode carregar um token. Quem decide o que digitar é quem
+precisa saber para onde aquilo vai.
+
+---
+
+## D-37 — A navegação vira barra lateral, e a barra pode recolher
+
+**Data:** 11/08/2026 · **Status:** aceita · **Fase:** 9 · **Revisa:** D-33
+
+**Contexto.** O cabeçalho da Fase 8 já era a segunda tentativa: os oito links
+tinham virado três grupos porque a fileira plana não dizia quais telas andam
+juntas e estourava a página a 375 px. Agrupar resolveu o estouro e não resolveu
+o resto — a fileira agrupada só cabia a partir de 1280 px (medido: 1079 px de
+conteúdo dentro de `max-w-6xl`), abaixo disso virava gaveta, e o agrupamento
+desaparecia exatamente na largura em que ele mais ajudaria.
+
+**Decisão.** Trocar o cabeçalho por uma barra lateral persistente a partir de
+`lg`, com gaveta modal abaixo disso, e dar a ela um controle de recolher
+(256 px ↔ 76 px).
+
+Três consequências que valem mais que a estética:
+
+1. **O agrupamento fica visível enquanto se trabalha.** É a única disposição em
+   que "Estudar / Dados / Administrar" está na tela ao mesmo tempo que a tela.
+2. **A largura passa a ser do usuário.** Num aplicativo cujo conteúdo central é
+   um mapa de propriedades, o menu tem de saber sair da frente.
+3. **A ordem do DOM e a ordem de leitura concordam nos dois eixos.** A barra é o
+   primeiro filho tanto na coluna (abaixo de `lg`) quanto na linha (acima).
+
+**Cada destino ganhou um ícone**, o que o cabeçalho não precisava. Recolhida, a
+barra não tem espaço para palavra nenhuma: o glifo *é* o rótulo. Por isso cada um
+desenha o que a tela faz — funil para o funil de seleção, pontos plotados para o
+mapa — e não um documento genérico, que deixaria os oito indistinguíveis a 18 px.
+
+**O rótulo nunca sai da árvore.** Ao recolher, o texto vira `sr-only`. Um link
+cujo texto é removido é um link sem nome acessível, e a barra recolhida viraria
+oito glifos anônimos para quem lê em voz alta. `title` entra junto, para quem
+enxerga e não adivinha o desenho.
+
+**O estado recolhido não é persistido.** Ele sobrevive a toda navegação no
+cliente — o componente vive no layout raiz e nunca desmonta — e volta a aberto
+num recarregamento. As duas formas de guardá-lo são piores: ler o `localStorage`
+durante o render discorda da marcação do servidor e faz o React reclamar na
+hidratação; aplicá-lo num efeito fecha a barra *depois* da primeira pintura, que
+é um salto de layout na cara do leitor. Se um dia valer a pena, o caminho certo é
+um cookie lido no servidor, não um `useEffect`.
+
+**Sobre o movimento — e por que D-33 não é revogada.** O pedido foi por algo
+"menos duro e mais maleável". A pílula cresce a partir da borda esquerda sob o
+ponteiro e cede sob o clique; a marca é um squircle que arredonda mais no hover;
+o item da página atual ganha um halo. São três propriedades de CSS
+(`transform`, `border-radius`, `box-shadow`) com a duração que já existia no
+tema. **Nenhuma biblioteca de animação** — a proibição do §13 do REDESIGN.md
+vale igual quando a animação vem bonita. O halo é o único `box-shadow` do sistema
+que não é preto: ele lê `--brand-300`/`--brand-400`, e portanto tinge em vez de
+escurecer, que é a única forma de ele existir nos dois temas. Continua sendo
+token, continua sendo `tailwind.config.ts`, e D-28 segue de pé.
+
+**O que esta decisão *não* faz.** Não recolore o produto. O pedido de "mais
+colorido e mais redondo, como um aplicativo do Google" é maior que a navegação e
+vai numa mudança própria, com os tokens declarados de uma vez para tabela,
+cartão, gráfico e formulário. Contrabandear três matizes decorativos para dentro
+de uma refatoração de navegação daria, num sistema onde cor significa alguma
+coisa (qualidade do dado, estado semântico), um ponto colorido ao lado de
+"Seleção" que não significa nada.
+
+**Como se sabe que passa.** 12 testes no lugar dos 5 do cabeçalho, com axe limpo
+em três estados (aberta, recolhida, gaveta aberta) — os dois últimos não
+existiam. Além deles, verificação no navegador a 1440 px e a 375 px: 256/76 px de
+largura com a coluna de conteúdo acompanhando, nenhum estouro horizontal, e a
+gaveta abrindo com foco no painel, travando a rolagem do corpo e devolvendo o
+foco no Esc.
+
+---
+
+## D-38 — A paleta troca de família, e o verde-limão sai com data marcada
+
+**11/08/2026.** Substitui a paleta de D-33; mantém o método dela.
+
+O pedido foi: *"Quero que de forma geral as coisas sejam mais coloridas,
+redondas e amigáveis, como se fosse um aplicativo do Google. Use os apps do
+Google como referência visual e interativa."*
+
+**Antes de recolorir, a pergunta.** "Mais colorido" tem dois sentidos opostos
+num aplicativo de dados, e escolher errado é refazer. Foram oferecidos três
+caminhos: (a) ampliar o que já significa alguma coisa — fundos tingidos, selos
+de qualidade mais presentes, zero matiz novo; (b) cor de seção, à la
+Gmail/Drive/Agenda, com roxo e rosa dizendo apenas "onde você está"; (c) trocar
+a marca. A recomendação era (a), pelo risco. **A escolha foi (c)**, com os riscos
+declarados na tela: é a maior das três, e as figuras da monografia já capturadas
+ficam desatualizadas. Esta decisão registra (c) — e registra que o preço foi
+aceito de olhos abertos.
+
+**Por que a marca sai inteira, e não só a superfície.** O verde-limão sobre
+#05080A é uma língua coerente: ela diz "instrumento". O público desta aplicação
+é aluno de graduação em Engenharia de Materiais, e a resposta certa para
+"parece duro demais" não era baixar o brilho do limão — era admitir que a
+identidade estava mirando outra pessoa.
+
+**Dois matizes tiveram de se mover, e nenhum dos dois é cosmética.**
+
+- `--info` **manteve o ciano**. Marca azul mais "informação" azul faria todo
+  alerta informativo parecer cromo de marca. Em Material 3 o `info` *é* o
+  primário; aqui isso custaria a distinção, então não se copiou.
+- `--quality-importado` **saiu do azul para o violeta**. É um de quatro matizes
+  ordinais de procedência, e o único matiz com que ele não pode ser confundido é
+  justamente aquele em que se clica — senão "importado" começa a ser lido como
+  "interativo". Violeta é o assento mais próximo que não colide com nada: nem
+  com o ciano de `info`, nem com o âmbar de `estimado`, nem com o eixo
+  vermelho/verde que a deuteranopia colapsa.
+
+O que **não** se moveu: a paleta categórica de classes (Okabe–Ito, em
+`lib/design/palette.ts`) não é da marca — ela responde a deficiência de visão de
+cores e a impressão monocromática, e trocá-la por cores do Google seria
+substituir uma escolha medida por uma escolha estética.
+
+**Contraste: a repaginação ganhou margem, não gastou.** Todo par foi medido no
+navegador nos dois temas, lendo os tokens computados. O par mais apertado da
+paleta antiga era `--ink-subtle` sobre `--brand-50` no tema escuro, a 4,74:1. O
+mais apertado agora é `--brand-700` sobre `--brand-50` no tema claro, a
+**5,01:1**; nenhum outro par de texto fica abaixo de 5,2:1, e as bordas de
+controle medem 3,68:1 (claro) e 5,19:1 (escuro) contra os 3:1 da WCAG 1.4.11.
+
+Duas medidas explicam escolhas que parecem arbitrárias no arquivo. O
+`--accent` do tema claro **não** é o #1A73E8 que o Google usa em botão: com
+branco por cima ele dá 4,51:1 — passa, com uma margem fina o bastante para um
+arredondamento futuro derrubar. #1565C0 dá 5,75:1 pela diferença que ninguém
+enxerga. E `--warning` deixou de ser o amarelo de exibição (#F9AB00, 1,7:1 sobre
+branco) porque `DEFAULT` é *traço* — borda, ícone — e portanto responde aos 3:1
+da 1.4.11; o laranja #E8710A cumpre a 3,09:1 e ainda é mais colorido.
+
+**Um defeito antigo apareceu durante a troca.** `hover:bg-brand-700` era o
+estado de hover do botão primário — e `--accent` *é* `--brand-700`, nos dois
+temas. Ou seja: no tema claro o botão principal nunca teve hover, e ninguém
+notou porque no escuro o token caía noutra casa da rampa. Agora hover é `800` e
+press é `900`, que funcionam nos dois temas justamente porque a rampa é
+espelhada: mais escuro no papel, mais claro na grafite — a direção em que
+"apertei mais" corre em cada um.
+
+**O tema escuro deixa de ser quase-preto.** #05080A é uma página sem nada atrás;
+#131314 é uma página em que um painel pode *pousar*, e é isso que faz a
+superfície elevada parecer elevada sem depender de uma sombra que o tema escuro
+mal consegue mostrar.
+
+**A forma é token, e por isso é barata.** `card` foi de 12 px para 20 px e
+`control` de 8 px para 12 px — os dois cobrem 26 dos 30 pontos arredondados da
+aplicação, de modo que a metade "mais redonda" do pedido é literalmente uma
+mudança de token. O 27º era um `rounded-[0.375rem]` cravado no segmento do
+`ButtonGroup`; virou o token `seat`, que existe porque duas formas concêntricas
+no mesmo raio parecem erro de impressão.
+
+**O movimento é uma classe, não uma biblioteca.** `.pressable`, em
+`globals.css`: cresce 2% sob o ponteiro, cede 2% sob o clique, na curva padrão
+do Material 3 (`cubic-bezier(0.2, 0, 0, 1)`). Só `transform` — nada de
+`translate`, que empurraria o vizinho. **Nenhum framework de animação**: a
+proibição do §13 do REDESIGN.md vale igual quando a animação vem bonita. Quem
+pede menos movimento no sistema operacional continua recebendo a mudança de
+estado, sem a animação, pelo bloco `prefers-reduced-motion` que já existia.
+
+**O que esta decisão não faz.** Não move cálculo nenhum para o cliente (ADR
+0004 segue de pé), não introduz biblioteca de componentes, e não torna a cor o
+único canal de nada: os selos de qualidade continuam com rótulo escrito e glifo
+antes da cor, e todo gráfico continua tendo a tabela que o originou como
+alternativa textual (D-31). D-28 — cor só via token — não só continua valendo
+como foi o que tornou esta troca viável: nenhum componente precisou ser tocado
+para mudar de cor.
+
+**O que ela custa.** As figuras da monografia que são capturas de `/estilo`
+precisam ser refeitas. `/estilo` ganhou a seção "Forma e movimento", que a
+página não tinha e sem a qual a escala de raio e o gesto ficariam documentados
+só no código.
+
+**Como se sabe que passa.** Portão do frontend inteiro verde (typecheck, lint,
+130 testes, build limpo das 13 rotas) e verificação no navegador por DOM — nesta
+máquina o painel não compõe quadros, então captura de tela não é evidência.
+Foram lidos os tokens computados nos dois temas e calculados os 17 pares de
+contraste acima; conferidos raio de cartão (20 px), de controle (12 px) e a
+curva aplicada de fato; e vistos os quatro estados de qualidade renderizando com
+dado real do backend, com "Importado" já em violeta a 7,75:1 (claro) e 6,97:1
+(escuro). Sem estouro horizontal a 375 px na rota de tabela larga.
+
+---
+
+## D-39 — O painel separa "que tipo de evidência é essa" de "o campo existe", com duas paletas que não se confundem
+
+**11/08/2026.** Quarta das seis frentes da Fase 9: os dashboards
+interativos, sobre um backend (`app/services/dashboard_service.py`,
+`app/calculations/statistics.py`) já concluído numa sessão anterior. Esta
+decisão é só do frontend — cinco componentes novos e a rota `/painel`.
+
+**A cobertura de um par (material, propriedade) tem três estados, não dois.**
+`filled` / `declared_missing` / `not_recorded` é a regra 1.3 — dado ausente
+nunca vira zero — aplicada um nível abaixo de onde ela já vale: não só "este
+valor está nulo" tem rótulo escrito, como "não existe linha nenhuma para este
+par" precisa de um rótulo *diferente* de "existe linha e ela diz que falta".
+Sem os três estados, o gráfico de cobertura por classe somaria as duas coisas
+num "não preenchido" só, e a leitura mudaria — um catálogo com metade das
+propriedades nunca importadas pareceria ter o mesmo problema que um catálogo
+que documentou a ausência de metade delas.
+
+**`NAO_REGISTRADO` é um quinto estado, não uma variação de `AUSENTE`.** O selo
+de qualidade da Fase 6 (`MEDIDO`/`IMPORTADO`/`ESTIMADO`/`AUSENTE`) continua com
+quatro valores em todo lugar que já existia — `DataQualityBadge` não mudou.
+Só o `QualityMixChart` do painel estende esse vocabulário para cinco, porque é
+o único lugar que precisa responder "de todo par possível no catálogo, quantos
+têm cada tipo de evidência" — e "não têm linha" é uma resposta a essa pergunta
+que `AUSENTE` não cobre (`AUSENTE` é `is_missing=True`: alguém registrou a
+ausência; `NAO_REGISTRADO` é a ausência da própria linha).
+
+**Duas visualizações de cobertura, duas paletas, de propósito.**
+`QualityMixChart` reaproveita os tokens de qualidade existentes via
+`qualityBucketColor` (`lib/design/palette.ts`), porque a pergunta que ele
+responde é "que tipo de evidência é essa" — a mesma pergunta que o selo já
+responde em todo o resto da interface. `ClassCoverageChart` usa tokens neutros
+(`--success`, `--quality-ausente`, `--edge-strong`) para os mesmos três
+estados de cobertura, porque a pergunta ali é mais grossa — "o campo está
+preenchido, foi declarado ausente, ou nunca chegou a existir" — e reaproveitar
+a paleta de qualidade faria uma cor (o âmbar de `ESTIMADO`, por exemplo)
+significar duas perguntas diferentes na mesma tela. As duas paletas nunca
+aparecem juntas no mesmo gráfico, então a ambiguidade não chega a existir na
+prática — mas existiria se fosse só uma paleta para as duas perguntas.
+
+**Todo gráfico novo carrega a tabela que o originou (D-31), sem exceção.** Os
+cinco componentes — `CoverageSummary`, `QualityMixChart`, `ClassCoverageChart`,
+`GapsList`, `PropertyDistributionPanel` — têm `FigureData` pareada, exceto
+`GapsList`, que já nasce tabela (os dados chegam pré-ranqueados do backend, não
+há geometria para desenhar). O box-plot de distribuição por propriedade segue
+o ADR 0004 à risca: `PropertyDistributionPanel` nunca deriva um quartil — recebe
+mínimo/Q1/mediana/Q3/máximo já calculados e só entrega ao traço `box` do Plotly
+via `q1`/`median`/`q3`/`lowerfence`/`upperfence`, o modo "quartis
+precomputados" que existe exatamente para isto.
+
+**Um defeito de layout conhecido reapareceu.** O wrapper novo
+`<div className="grid gap-4 xl:grid-cols-2">` empurrou a página inteira para
+907 px de largura a 375 px, porque um item de grid/flex por padrão não encolhe
+abaixo da largura intrínseca do que tem dentro — o comentário do próprio
+`Section` em `Card.tsx` já avisa disso, e mesmo assim o SVG do Plotly
+(`.main-svg`) achou a brecha de novo. Corrigido com `min-w-0` no `Card` de
+`QualityMixChart` e `ClassCoverageChart`; verificado depois por
+`getBoundingClientRect` que `scrollWidth` voltou a bater com `clientWidth`.
+
+**O que esta decisão não faz.** Não move geometria nenhuma para o cliente (ADR
+0004 segue de pé — quartis, percentuais de cobertura e participação são todos
+computados em `statistics.py`/`dashboard_service.py`), não introduz biblioteca
+de componentes ou de animação, e não renderiza ausência como `0`, `—` ou
+célula vazia em lugar nenhum das cinco visualizações novas.
+
+**Como se sabe que passa.** Portão do frontend inteiro verde (typecheck, lint,
+138 testes — 8 novos em `painel.test.tsx`, mais o ajuste ao teste da gaveta
+para o nono link da barra lateral —, build limpo) e o backend da sessão
+anterior intacto (`pytest`, `ruff`, `black`, sem alteração). Verificação no
+navegador por DOM, não por captura (nesta máquina o painel não compõe
+quadros): dado real do seed renderizando (55,0% de cobertura, 22/40 pares,
+percentuais por classe, ranking de lacunas, quartis do box-plot em pt-BR), a
+alternância linear/log de fato trocando `yaxis.type`, e o estouro de 375 px
+acima — encontrado e corrigido nesta mesma verificação, não pelos testes de
+unidade, que não exercitam largura de viewport real.
+
+---
+
+## D-40 — Um eixo do mapa pode ser um índice, não só uma propriedade — e as duas linhas de índice (overlay e eixo) são mutuamente exclusivas
+
+**11/08/2026.** Quinta das seis frentes da Fase 9: os mapas personalizáveis.
+"Personalizável" tinha quatro leituras possíveis e nenhuma delas estava
+escrita em lugar nenhum — mapa compartilhável por URL, presets nomeados, um
+eixo virar índice, ou outra coisa. Perguntado, o autor escolheu a terceira: um
+eixo (X ou Y) passa a poder ser uma propriedade cadastrada *ou* um índice de
+desempenho — do catálogo ou expressão personalizada — e não só a linha de
+índice que já existia sobre dois eixos de propriedade.
+
+**Backend: o mesmo caminho de avaliação, três consumidores.**
+`evaluate_index()` (`app/calculations/performance.py`) já era a única rota
+para o valor de um índice — usada pela seleção e pela linha sobreposta. Um
+eixo-índice passou a ser o terceiro consumidor, sem duplicar a lógica: novo
+`ChartService._resolve_axis()` devolve `(metadata, rótulo, getter)` tanto para
+uma propriedade quanto para um índice, e o loop por material que monta
+`MapPointOut` não sabe qual dos dois está por trás do getter. A garantia do
+D-35 — um estudo salvo e um gráfico têm de concordar sobre o valor de um
+índice para um material — se estende de graça: `_material_variables()` é o
+mesmo snapshot do catálogo usado tanto pela avaliação do eixo-índice quanto
+pela linha sobreposta, calculado uma vez por requisição.
+
+**Overlay e eixo-índice são incompatíveis por desenho, não por acidente.** A
+linha de índice sobreposta (`index` do request) só existe traçada sobre dois
+eixos de *propriedade* — a inclinação log-log parte de duas dimensões
+conhecidas do catálogo, e um eixo que já é ele mesmo um índice não tem essa
+dimensão fixa para a reta atravessar. `ChartService.property_map` rejeita a
+combinação com um `ValidationError` explícito em vez de tentar desenhar uma
+linha sem sentido; o frontend replica a regra antes da requisição (esconde o
+grupo "Linha de índice" e mostra o motivo, em vez de deixar o usuário
+descobrir pelo erro 422).
+
+**Ausência continua sem virar zero, agora também para uma variável que falta
+numa expressão.** Um material sem `dureza`, por exemplo, é excluído do mapa
+com um motivo nomeado pelo rótulo do eixo — "Sem valor para: Rigidez
+específica." — em vez de cair do gráfico em silêncio ou entrar como zero. É a
+regra 1.3 aplicada ao mesmo lugar de sempre (`ExcludedPointOut`), só que agora
+a causa pode ser uma variável de expressão, não só uma propriedade ausente.
+
+**Qualidade de dado deixa de fazer sentido para um eixo-índice, e o schema diz
+isso em vez de inventar um valor.** `MapPointOut.x_quality`/`y_quality` viraram
+opcionais: um índice é derivado de várias propriedades, cada uma com sua
+própria proveniência, e atribuir uma quality única ao eixo inventaria um fato
+que o catálogo nunca declarou. `AshbyMap.tsx` omite o selo e o trecho da
+qualidade no hover quando é `null` — não um selo com valor forçado, e não
+`AUSENTE` (que já significa outra coisa: um dado que existe na tabela e foi
+declarado como faltante). O mesmo raciocínio vale para `property_slug`/
+`category` em `MapAxisOut`, que só existem num eixo de propriedade; `is_index`
+é o campo que um leitor deve checar primeiro, porque nenhum dos dois pares
+sozinho desambigua "isto é um índice" de "esta propriedade genuinamente não
+tem categoria".
+
+**Compatibilidade retroativa por desenho do schema, não por acaso.** `x`/`y`
+viraram `str | None` e ganharam os irmãos `x_index`/`y_index: IndexIn | None`,
+em vez de um tipo de união que quebraria todo payload existente. A validação
+"exatamente um dos dois, nunca os dois, nunca nenhum" mora no serviço
+(`ChartService.property_map`), não num `model_validator` do Pydantic — o
+projeto já não usa `model_validator` em nenhum schema, e esta decisão manteve
+o padrão em vez de abrir uma exceção. Resultado prático: os 48 testes
+pré-existentes de `test_charts_api.py` passaram sem alteração depois do
+refactor.
+
+**Frontend: cada eixo ganha seu próprio estado de "propriedade ou índice", sem
+herdar o `IndexPicker` de cartões do overlay.** O seletor de eixo usa um
+`<select>` compacto (predefinido ou "Expressão personalizada") em vez da grade
+de cartões do overlay — o overlay é uma decisão exploratória que já ocupava
+uma seção inteira; replicá-la duas vezes ao lado dos outros dez controles do
+mapa teria custado a legibilidade que D-39 acabou de consertar. O `IndexCard`
+com as condições de validade continua aparecendo assim que um índice é
+escolhido — a garantia de "nenhum índice é caixa-preta" não muda pela via de
+entrada.
+
+**Como se sabe que passa.** Backend: `black --check`, `ruff check` e `pytest`
+verdes (541 testes — 10 novos em `TestIndexAxis`, cobrindo valor correto,
+qualidade/bounds nulos em eixo-índice, nome derivado da expressão quando o
+índice é anônimo, direção derivada do objetivo, os dois eixos como índice ao
+mesmo tempo, exclusão por material com rótulo do eixo, e as quatro
+combinações rejeitadas). Frontend: `typecheck`, `lint`, 138 testes e `build`
+verdes. Verificação ao vivo no navegador (por DOM, não por captura — mesma
+ressalva desta máquina): eixo X trocado para "Rigidez específica" plotou 5/5
+materiais com o eixo lendo o valor computado e sem selo de qualidade na
+coluna do índice; os dois eixos como o mesmo índice mostrou a mensagem de
+conflito sem disparar requisição; os dois eixos como índices diferentes
+plotou 2/5 materiais com os três ausentes listados por "Sem valor para:
+Resistência específica." — a mesma frase do rótulo do eixo, não um texto
+genérico.
+
+## D-41 — O laudo de engenharia é um documento à parte, montado a partir de peças que já existiam
+
+**12/08/2026.** Sexta e última das seis frentes da Fase 9. "Laudo de
+engenharia completo" não tinha elaboração em lugar nenhum — nem na proposta
+original, nem em `DECISIONS.md`, `TODO.md`, `backlog.md` ou
+`10-relatorios.md` — a mesma situação de D-40 antes de perguntar. A única
+pista era a própria frase deste arquivo de "falta a montagem do laudo",
+escolhida sem querer, mas reveladora: sugeria montagem, não invenção.
+Perguntado, o autor escolheu a interpretação de maior escopo entre as três
+oferecidas: um **documento novo e dedicado**
+(`GET /api/exports/estudos/{id}/laudo.html`), distinto do relatório de
+seleção da Fase 7 — pensado para ser anexado sozinho à monografia, não lido
+como um resumo das tabelas voltadas a planilha.
+
+**"Montagem" era literal.** Nada do que o laudo precisa foi escrito do zero:
+`app/exporters/figures.py` (a renderização SVG de Fase 9, até então só
+exercitada em teste) desenha o gráfico; `ExportService._sheets()` — extraído
+de `study_report()` sem mudar uma linha de conteúdo — fornece as oito seções
+de auditoria; e `AIService.explain()` (Fase 6) escreve a interpretação. O
+serviço do laudo (`ExportService.study_laudo()`) só reexecuta o estudo uma
+vez (`_run()`, também compartilhado com `study_report()`) e arruma o que os
+três já produzem — a mesma disciplina de "o serviço nunca calcula" que já
+regia o relatório de seleção.
+
+**A figura é um gráfico de barras do ranking, não o mapa de propriedades.**
+Um mapa X-Y exigiria decidir quais duas propriedades plotar a partir de uma
+expressão de índice arbitrária — o `mock.py` da IA já faz isso, mas só para
+monômios de duas variáveis; a maioria dos índices do catálogo tem mais. O
+gráfico de barras de `result.ranking.ranked` não tem essa limitação: desenha
+para qualquer estudo com ranking, com a mesma regra de ausência do resto do
+projeto (um candidato sem pontuação não é uma barra de zero — é omitido do
+gráfico e listado à parte na tabela de excluídos, que já existia).
+
+**A interpretação por IA é opcional no laudo porque é opcional em todo o
+resto do sistema (regra 1.5), e a ausência é declarada, não silenciosa.**
+`ExportService._narrative()` chama `AIService.explain()` e captura
+`ValidationError`/`AIUnavailableError` — desligada, mal configurada ou uma
+falha de rede momentânea do provedor real degradam só esta seção, nunca o
+documento inteiro. A seção "Interpretação técnica (IA)" **sempre aparece**;
+quando não há narrativa, ela mostra "Interpretação por IA não disponível: —"
+em vez de desaparecer, porque um leitor que não visse a seção não saberia se
+ela nunca existiu ou se foi omitida por acidente. É a mesma disciplina da
+regra 1.3 (ausência nunca é silêncio), estendida de uma célula de tabela para
+uma seção de documento.
+
+**O responsável técnico é texto declarado, nunca validado contra nada** — um
+parâmetro de consulta opcional (`?responsavel=`) que só é escapado, do mesmo
+jeito que um nome de material hostil já era. Não há campo de assinatura
+digital nem carimbo de data: o laudo herda a mesma razão do relatório de
+seleção para não ter data — o pipeline é determinístico, então o mesmo
+catálogo tem de produzir os mesmos bytes.
+
+**`Report` ganhou três campos opcionais em vez de o laudo virar um renderizador
+paralelo.** `responsible`, `figure` e `narrative*` (`app/exporters/report.py`)
+são lidos só por `to_html()`; `to_csv()`/`to_xlsx()` continuam iterando
+apenas `sheets` e nem sabem que os campos existem — o relatório de seleção
+existente não muda uma linha de saída. A alternativa (um módulo de
+renderização HTML paralelo só para o laudo) duplicaria 150 linhas de CSS e
+escape só para reaproveitar o resto; a extensão do dataclass é retrocompatível
+por não ter default diferente de `None` em lugar nenhum.
+
+**Como se sabe que passa.** Backend: `black --check`, `ruff check` e `pytest`
+verdes (558 testes — 17 novos: 11 em `TestStudyLaudo`, cobrindo as oito
+seções de auditoria, a figura embutida, a narrativa presente por padrão
+(`AI_PROVIDER=mock`), a narrativa declaradamente ausente com a IA desligada,
+o responsável presente/ausente, o nome hostil escapado, a política de
+execução e o 404 de estudo inexistente; 6 em `TestHtmlRendering`, cobrindo o
+escape do responsável, a marcação confiável da figura própria, o escape da
+narrativa com sua numeração após as seções, e a seção de ausência declarada).
+Frontend: `typecheck`, `lint`, 138 testes e `build` verdes — sem teste novo
+dedicado, mesmo padrão de `ExportButtons`/`StudyExplanation`, componentes de
+ligação cobertos pela verificação ao vivo em vez de um arquivo próprio.
+Verificação ao vivo no navegador (por DOM, não por captura): um estudo criado
+via API, o campo "Responsável técnico" preenchido atualizando o `href` a cada
+tecla, o documento aberto mostrando as nove seções na ordem esperada — a
+figura de barras com a primeira colocada destacada na cor de realce, e a
+seção 9 com a prosa determinística do provedor simulado, ressalvas e
+disclaimer.
+
+---
+
+## D-42 — Login só por terceiros (Google); catálogo compartilhado entre usuários; um projeto por usuário no v1
+
+**Contexto.** [D-18](#d-18--sem-autenticação-no-mvp-superado-por-d-42) aceitava
+a API aberta enquanto o sistema rodasse só localmente. O usuário confirmou que
+o sistema **vai ser hospedado**, o que torna a API aberta (escrita e exclusão
+inclusas) o maior risco pendente do projeto. Isto implementa A5 do
+[TODO.md](TODO.md), o que também destrava M2 (auditoria), que depende de
+"quem" existir.
+
+**Decisão.**
+- **Login exclusivamente por terceiros — Google, via OAuth 2.0.** Sem
+  cadastro com senha, sem formulário de e-mail/senha, sem hash de senha para
+  gerenciar. `User.google_sub` (o `sub` do ID token, estável mesmo que o
+  e-mail mude) é o identificador; `google_client_id`/`google_client_secret`
+  vazios desligam o login com 503, mesmo padrão de `AI_BASE_URL` sem valor
+  padrão perigoso ([D-36](#d-36--a-ia-gratuita-é-um-protocolo-não-um-fornecedor)).
+- **Sessão em cookie `httpOnly`**, não token JWT client-side: `UserSession` é
+  uma linha de banco (`app/models/user.py`), não algo assinado e stateless —
+  logout precisa revogar de verdade, e só uma linha que pode ser apagada torna
+  isso verdade. 14 dias fixos na criação, sem renovação deslizante.
+- **O catálogo (materiais, classes, propriedades) continua global e
+  compartilhado** entre todo usuário autenticado, escrita inclusa — a mesma
+  curadoria compartilhada que já existia implicitamente, agora exigindo login
+  em vez de estar aberta a qualquer um na internet. Só `SelectionStudy` é
+  privado, escopado por `Project`. Introduzir papéis (admin vs. colaborador)
+  ficou fora deste escopo — não é pedido por A5 nem pelo TODO.
+- **Um `Project` por `User`, criado automaticamente no primeiro login**
+  ("Meu projeto"), dono único, sem colaboração multiusuário. Dá ao esquema um
+  `Project` real (pronto para múltiplos projetos por usuário no futuro) sem
+  exigir hoje uma tela de troca de projeto — não há UI nenhuma para isso
+  ainda, e construí-la antes de haver dois projetos por usuário para trocar
+  entre si seria antecipar um caso de uso que não existe.
+
+**Alternativas descartadas.**
+- Login com e-mail/senha: exigiria hash, recuperação de senha, verificação de
+  e-mail — infraestrutura inteira só para autenticação, quando o produto não é
+  sobre isso.
+- JWT stateless em vez de sessão em banco: logout deixaria de revogar de
+  verdade (o token continuaria válido até expirar) ou exigiria uma lista de
+  revogação — que é, na prática, reinventar a tabela `user_session`.
+- `Project` isolando também o catálogo: cada usuário passaria a ter seu
+  próprio conjunto de materiais/classes/propriedades, duplicando dado de
+  referência que é o mesmo para todo mundo — contradiz o princípio de não
+  inventar/duplicar propriedade de material.
+- Papéis (admin/colaborador) desde já: nenhum caso de uso concreto os pede
+  ainda; a tabela de sessão e o dependency `get_current_user` já dão o ponto
+  de extensão quando pedirem.
+
+**Como funciona.** `AuthService` (`app/services/auth_service.py`) monta a URL
+de autorização do Google com um `state` de CSRF num cookie efêmero próprio
+(`msai_oauth_state`) — não no `SessionMiddleware`/Authlib, para não ter duas
+noções de sessão concorrentes e manter a comparação sensível visível no código
+do projeto. No callback: troca `code` por tokens, verifica o `id_token`
+localmente com `google-auth` (assinatura, `aud`, `iss`, `exp` — sem round-trip
+ao endpoint `tokeninfo`, que o próprio Google desaconselha para produção),
+rejeita `email_verified=False`, aplica `google_allowed_domain` se configurado
+(pensado para travar login a um domínio antes de hospedar para uma turma), faz
+upsert do `User` por `google_sub`, garante o `Project` padrão, cria a
+`UserSession` e seta o cookie `msai_session` (`HttpOnly`, `SameSite=Lax`,
+`Secure` conforme `session_cookie_secure`). `get_current_user`
+(`app/dependencies.py`) é o único ponto de verdade de "quem está logado" — todo
+router depende dele, exceto os três públicos de `auth.py` e `/health`. Acesso
+de um usuário a um estudo de outro projeto não vira um erro novo: o
+repositório, filtrado por `project_id`, simplesmente não encontra a linha, e
+`NotFoundError` (404) já cobre isso — não vale revelar que o id existe.
+
+**Consequência que muda comportamento existente.** A unicidade de nome de
+estudo, antes global, passa a ser **por projeto** — dois usuários podem ter um
+estudo chamado "Estudo 1" cada um.
+
+**E o Playwright?** A suíte (`apps/web/e2e/`) não tem cliente OAuth de teste
+utilizável em CI. Em vez de um endpoint de bypass no backend — superfície de
+ataque real, difícil de travar com segurança total —, `app/db/seed.py` só
+grava um `User`/`Project`/`UserSession` fixos quando `ENVIRONMENT=development`
+**e** `E2E_SESSION_TOKEN` está no ambiente (`seed_e2e_session`); a suíte injeta
+esse token direto no navegador como cookie `msai_session`
+(`apps/web/e2e/session.ts`, via `context.addCookies`) antes da primeira
+navegação. O navegador chega "logado" sem passar pelo Google e sem nenhuma
+rota de bypass exposta pela API.
+
+**Como se sabe que passa.** Backend: `pytest`, `ruff check` e `black --check`
+verdes, incluindo `test_auth_service.py` (upsert, criação do projeto padrão,
+rejeição por domínio e por `email_verified=False`, com a verificação do
+`id_token` injetada — sem chamada de rede real) e a extensão de
+`test_selection_api.py` (um usuário não vê/apaga o estudo de outro; dois
+projetos podem repetir nome de estudo). Frontend: `typecheck`, `lint`,
+`test` e `build` verdes, com `AuthGate` e a página `/entrar` cobertos por
+teste. Playwright (`npm run test:e2e`): os dois specs passam com a sessão
+injetada, sem tocar o Google.

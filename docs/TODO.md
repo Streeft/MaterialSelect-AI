@@ -23,26 +23,6 @@ os vizinhos — outros documentos citam esses códigos.
 - **Dificuldade:** ▃
 - **Dependências:** nenhuma técnica; depende de escolher o caso na literatura.
 
-### A4 — Testes end-to-end dos fluxos
-- **Descrição:** Playwright cobrindo importar → selecionar → visualizar →
-  exportar.
-- **Impacto:** alto. Toda a verificação de interface foi manual. Dois bugs desta
-  sessão (unidade nula na IA, `prettyUnit` com expoente fracionário) só
-  apareceram porque alguém abriu o navegador.
-- **Dificuldade:** ▆
-- **Dependências:** nenhuma, mas **um job novo não bloqueia sozinho.** A ruleset
-  exige uma lista fixa de nomes; um job de Playwright acrescentado ao `ci.yml`
-  roda e reprova o PR na aparência, sem impedir o merge, até que o nome entre em
-  `scripts/protect-main.ps1` e o script seja rodado de novo.
-
-### A5 — Autenticação e autorização por projeto
-- **Descrição:** usuários, sessões, e escopo de dados por projeto.
-- **Impacto:** alto **se** o sistema for exposto em rede. Hoje a API é
-  totalmente aberta, incluindo escrita e exclusão (ver [DECISIONS.md](DECISIONS.md) D-18).
-- **Dificuldade:** ▆
-- **Dependências:** exige modelar `User` e `Project` e revisar toda consulta para
-  filtrar por escopo. Não comece sem decidir se o trabalho será hospedado.
-
 ---
 
 ## Média prioridade
@@ -61,16 +41,19 @@ os vizinhos — outros documentos citam esses códigos.
 - **Impacto:** médio. Sustenta a alegação de rastreabilidade no nível do
   *processo*, não só do dado.
 - **Dificuldade:** ▃
-- **Dependências:** faz mais sentido depois de A5 (sem usuários, "quem" fica vazio).
+- **Dependências:** nenhuma mais — A5 quitou o "quem" (há `User` desde o login
+  com Google). Ainda não implementado.
 
 ### M8 — Desempenho medido (Lighthouse)
 - **Descrição:** a metade de desempenho do antigo M3, que ficou de fora quando a
-  acessibilidade foi entregue. Medir peso de bundle e tempo até interativo nas
-  oito rotas; o Plotly é o suspeito óbvio, e hoje entra por `next/dynamic` sem
-  que ninguém tenha medido o quanto isso custa.
+  acessibilidade foi entregue. **A parte de peso de bundle já foi feita** na
+  varredura da Fase 9: o Plotly era mesmo o suspeito — 4,5 MB, 79% de todo o JS —
+  e passou a ser montado à la carte, derrubando o maior *chunk* para 981 KB
+  (`PROJECT_CONTEXT.md §12`). O que resta é o que nunca foi medido: **tempo até
+  interativo** em todas as rotas, com Lighthouse ou equivalente.
 - **Impacto:** médio. Um estudante em aula, num notebook modesto, é o público
   descrito na proposta.
-- **Dificuldade:** ▃
+- **Dificuldade:** ▁ (o que sobrou), antes ▃
 - **Dependências:** nenhuma. Se virar job de CI, vale o aviso do A4 sobre
   `scripts/protect-main.ps1`.
 
@@ -144,8 +127,9 @@ os vizinhos — outros documentos citam esses códigos.
 
 ## Entidades ainda não modeladas
 
-`User`, `Project`, `AuditEvent`, `SavedChart`, `GeneratedReport`. Cada uma
-depende de um item acima (A5, M2, B7) — não crie tabela sem o caso de uso.
+`AuditEvent`, `SavedChart`, `GeneratedReport`. Cada uma depende de um item
+acima (M2, B7) — não crie tabela sem o caso de uso. (`User` e `Project` saíram
+desta lista com A5.)
 
 ---
 
@@ -153,6 +137,37 @@ depende de um item acima (A5, M2, B7) — não crie tabela sem o caso de uso.
 
 Registrados para não voltarem por engano:
 
+- ~~**A5** — Autenticação e autorização por projeto~~ — login exclusivamente
+  por terceiros (Google, OAuth 2.0; sem senha em lugar nenhum), sessão em
+  cookie `httpOnly` (`UserSession` é linha de banco, não JWT — logout revoga
+  de verdade), catálogo global compartilhado entre usuários autenticados, um
+  `Project` por `User` criado no primeiro login, `SelectionStudy` escopado por
+  `project_id` (ver [D-42](DECISIONS.md), [ARCHITECTURE.md §7](ARCHITECTURE.md)).
+  O Playwright (A4/B11) não passa pelo Google: `app/db/seed.py` grava uma
+  sessão fixa só quando `ENVIRONMENT=development` **e** `E2E_SESSION_TOKEN`
+  está no ambiente, e a suíte injeta esse token como cookie antes da primeira
+  navegação — sem nenhuma rota de bypass exposta pela API. Destrava M2.
+- ~~**A4** — testes end-to-end dos fluxos~~ — Playwright cobre importar →
+  selecionar → visualizar → exportar como uma sessão contínua no navegador,
+  contra API e banco (SQLite, descartável) próprios, em portas isoladas das de
+  desenvolvimento (`apps/web/e2e/`, `apps/web/playwright.config.ts`,
+  `apps/api/scripts/e2e_server.py`; `npm run test:e2e`). Achou um bug real de
+  produção antes de ir ao ar: a sugestão automática de coluna na importação
+  (`_suggest`, `app/importers/service.py`) comparava um slug hifenizado
+  (`slugify()` sempre usa `-`) contra o slug armazenado, que usa `_` — então
+  **toda propriedade de nome composto** ("Módulo de Young", "Limite de
+  escoamento" etc.) nunca era sugerida automaticamente, e só "Densidade"
+  (palavra única) por coincidência funcionava. Corrigido comparando os dois
+  lados já normalizados; regressão coberta em `test_imports_api.py`.
+- ~~**B11** — Playwright (A4) como check obrigatório de CI~~ — job
+  `E2E (Playwright)` em `ci.yml`: Python + Node no mesmo runner, Chromium via
+  `--with-deps`, `npm run test:e2e`, relatório HTML publicado como artefato
+  quando falha. `playwright.config.ts` resolvia o Python fixo em
+  `.venv/Scripts/python.exe` (layout Windows) — não existe no runner Ubuntu;
+  agora `E2E_API_PYTHON` sobrepõe o caminho, e o workflow passa
+  `E2E_API_PYTHON=python`, o que o `setup-python` já deixa no PATH.
+  `scripts/protect-main.ps1` ganhou o nome do check e foi rodado contra o
+  repositório.
 - ~~`black --check` falhava em arquivos anteriores à Fase 5~~ — backend formatado
   por inteiro em commit próprio; `black --check` virou portão de CI.
 - ~~Isolamento de testes quebrado com pysqlite~~ — corrigido no `conftest.py`,

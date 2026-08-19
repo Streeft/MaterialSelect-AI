@@ -296,3 +296,31 @@ def test_run_no_criteria_has_no_ranking(client):
     body = resp.json()
     assert body["ranking"] is None
     assert body["final_count"] == 5
+
+
+def test_studies_endpoints_require_login(anon_client):
+    assert anon_client.get("/api/selection/studies").status_code == 401
+    assert anon_client.post("/api/selection/filter", json={"constraints": []}).status_code == 401
+
+
+def test_user_cannot_see_or_delete_another_users_study(client, other_user, login_as):
+    study_id = client.post(
+        "/api/selection/studies", json=_viga_leve_payload([], "Estudo A5")
+    ).json()["id"]
+
+    with login_as(other_user):
+        assert client.get(f"/api/selection/studies/{study_id}").status_code == 404
+        assert client.delete(f"/api/selection/studies/{study_id}").status_code == 404
+        assert client.get("/api/selection/studies").json() == []
+
+    # The owner's session still sees it after the impersonated block ends.
+    assert client.get(f"/api/selection/studies/{study_id}").status_code == 200
+
+
+def test_two_projects_can_reuse_the_same_study_name(client, other_user, login_as):
+    payload = _viga_leve_payload([], "Estudo repetido")
+    assert client.post("/api/selection/studies", json=payload).status_code == 201
+
+    with login_as(other_user):
+        # Same name, different project: not a conflict.
+        assert client.post("/api/selection/studies", json=payload).status_code == 201

@@ -28,10 +28,27 @@ MAX_INDEX_LEVELS = 10
 
 
 class PropertyMapRequest(BaseModel):
-    """Everything needed to draw one Ashby-style map of ``y`` against ``x``."""
+    """Everything needed to draw one Ashby-style map of ``y`` against ``x``.
 
-    x: str = Field(min_length=1, max_length=160, description="Slug da propriedade do eixo X")
-    y: str = Field(min_length=1, max_length=160, description="Slug da propriedade do eixo Y")
+    Each axis is *either* a catalogued property (``x``/``y``, a slug) *or* a
+    computed index (``x_index``/``y_index``) — never both, never neither.
+    ``ChartService.property_map`` enforces that, not this schema, matching how
+    every other cross-field rule in this service already lives there rather
+    than in a Pydantic validator.
+    """
+
+    x: str | None = Field(
+        default=None, min_length=1, max_length=160, description="Slug da propriedade do eixo X"
+    )
+    y: str | None = Field(
+        default=None, min_length=1, max_length=160, description="Slug da propriedade do eixo Y"
+    )
+    x_index: IndexIn | None = Field(
+        default=None, description="Índice no eixo X, em vez de uma propriedade"
+    )
+    y_index: IndexIn | None = Field(
+        default=None, description="Índice no eixo Y, em vez de uma propriedade"
+    )
     # The scale is part of the *request* because the class envelopes are convex
     # hulls, and a hull computed in linear space is not the hull seen in log
     # space. Computing it for the scale actually displayed keeps the drawing
@@ -46,7 +63,10 @@ class PropertyMapRequest(BaseModel):
     )
     highlight_material_ids: list[int] = Field(default_factory=list)
     include_envelopes: bool = True
-    index: IndexIn | None = Field(default=None, description="Índice a sobrepor como linha")
+    index: IndexIn | None = Field(
+        default=None,
+        description="Índice a sobrepor como linha (incompatível com x_index/y_index)",
+    )
     index_levels: list[float] = Field(
         default_factory=list, max_length=MAX_INDEX_LEVELS, description="Valores de M das linhas"
     )
@@ -58,13 +78,21 @@ class PropertyMapRequest(BaseModel):
 
 
 class MapAxisOut(BaseModel):
-    """Metadata of one plotted axis."""
+    """Metadata of one plotted axis — a catalogued property, or a computed index.
 
-    property_slug: str
+    ``property_slug``/``category`` only exist for a property axis; ``expression``
+    only for an index axis. ``is_index`` is what a reader should branch on —
+    this schema has no state for "a property genuinely has no category", so a
+    null check on either field would be ambiguous with "this axis is an index".
+    """
+
+    is_index: bool = False
+    property_slug: str | None = None
     property_name: str
+    expression: str | None = None
     symbol: str | None = None
     unit: str
-    category: PropertyCategory
+    category: PropertyCategory | None = None
     better_direction: BetterDirection
     allows_log_scale: bool
     min_value: float | None = None
@@ -96,8 +124,12 @@ class MapPointOut(BaseModel):
     y_uncertainty: float | None = None
     x_is_interval: bool = False
     y_is_interval: bool = False
-    x_quality: DataQuality
-    y_quality: DataQuality
+    # None exactly when that axis is an index: a computed index has no single
+    # provenance of its own to badge — it is derived from several properties,
+    # each with its own quality, and attributing one to the whole would invent
+    # a fact the catalogue never stated.
+    x_quality: DataQuality | None = None
+    y_quality: DataQuality | None = None
 
     index_value: float | None = None
     index_undefined_reason: str | None = None

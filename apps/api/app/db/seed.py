@@ -14,9 +14,13 @@ Run with::
 
 from __future__ import annotations
 
+import os
+from datetime import UTC, datetime, timedelta
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.db.base import Base, SessionLocal, engine
 from app.domain.data_quality import (
     build_interval_value,
@@ -28,10 +32,16 @@ from app.models.material import Material
 from app.models.material_class import MaterialClass
 from app.models.material_property_value import MaterialPropertyValue
 from app.models.performance_index import PerformanceIndex
+from app.models.project import Project
 from app.models.property_definition import PropertyDefinition
 from app.models.source import Source
+from app.models.user import User, UserSession
 
 DEMO_WARNING = "Dados exclusivamente demonstrativos. Não utilizar em projetos reais."
+
+# Stable, fictitious Google `sub` for the E2E fixture user — never a real
+# Google identity, since this row is never reached through the OAuth flow.
+E2E_USER_GOOGLE_SUB = "e2e-fixture-user"
 
 # --- Taxonomy -------------------------------------------------------------
 CLASSES = [
@@ -612,6 +622,48 @@ def seed(db: Session) -> dict[str, int]:
     }
 
 
+def seed_e2e_session(db: Session) -> None:
+    """Write a fixed logged-in session for the Playwright suite.
+
+    Only runs when ``ENVIRONMENT=development`` *and* ``E2E_SESSION_TOKEN`` is
+    set — never in production, and a no-op for a developer running
+    ``python -m app.db.seed`` locally without that variable. Login is
+    Google-only (A5) and CI has no OAuth client to run a real flow with;
+    ``playwright.config.ts`` passes this token to the API process, and
+    ``e2e/session.ts`` injects it straight into the browser as the
+    ``msai_session`` cookie, skipping Google entirely without exposing any
+    bypass route from the API itself.
+    """
+    token = os.environ.get("E2E_SESSION_TOKEN")
+    if not token or settings.environment != "development":
+        return
+
+    user = (
+        db.execute(select(User).where(User.google_sub == E2E_USER_GOOGLE_SUB))
+        .scalars()
+        .one_or_none()
+    )
+    if user is None:
+        user = User(
+            google_sub=E2E_USER_GOOGLE_SUB,
+            email="e2e@example.com",
+            name="Usuária E2E",
+        )
+        db.add(user)
+        db.flush()
+        db.add(Project(name="Meu projeto", owner_id=user.id))
+
+    if db.get(UserSession, token) is None:
+        db.add(
+            UserSession(
+                id=token,
+                user_id=user.id,
+                expires_at=datetime.now(UTC) + timedelta(hours=settings.session_ttl_hours),
+            )
+        )
+    db.commit()
+
+
 def main() -> None:
     """CLI entry point: create tables if missing, then seed."""
     # create_all is a convenience for the SQLite dev flow; migrations remain the
@@ -619,6 +671,7 @@ def main() -> None:
     Base.metadata.create_all(bind=engine)
     with SessionLocal() as db:
         summary = seed(db)
+        seed_e2e_session(db)
     print(f"[seed] {DEMO_WARNING}")
     print(f"[seed] Concluído: {summary}")
 

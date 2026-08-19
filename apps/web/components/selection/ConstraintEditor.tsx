@@ -1,12 +1,50 @@
 "use client";
 
+import type { ReactNode } from "react";
 import type { ConstraintOperator, MaterialClass, PropertyDefinition } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { prettyUnit } from "@/lib/format";
-import { Card, CardBody, Field, IconButton, Input, Select } from "@/components/ui";
+import { CONTROL, Card, CardBody, Field, IconButton, Input, Select, SelectOption, useWiring } from "@/components/ui";
 import { IconTrash } from "@/components/ui/icons";
+import { cn } from "@/lib/cn";
 
 const t = ptBR.selection;
+
+/**
+ * `md-outlined-select` never grew a multi-selection mode (confirmed reading
+ * `select.js`: "md-select only supports single selection") — the class
+ * filter below is the one control in the app that needs it, so it stays on
+ * the native `<select multiple>` this whole file used to build everything
+ * from. An explicit exception, not a silent gap — see the M3 migration plan.
+ */
+function ClassMultiSelect({
+  id,
+  value,
+  onChange,
+  className,
+  children,
+}: {
+  id?: string;
+  value: string[];
+  onChange: (values: string[]) => void;
+  className?: string;
+  children: ReactNode;
+}) {
+  const w = useWiring(id);
+  return (
+    <select
+      id={w.id}
+      multiple
+      aria-describedby={w.describedBy}
+      aria-invalid={w.invalid || undefined}
+      value={value}
+      onChange={(e) => onChange(Array.from(e.target.selectedOptions, (o) => o.value))}
+      className={cn(CONTROL, "h-24", className)}
+    >
+      {children}
+    </select>
+  );
+}
 
 /** Local editable shape for one constraint (values kept as strings for inputs). */
 export interface ConstraintRow {
@@ -89,35 +127,35 @@ export function ConstraintEditor({ rows, properties, classes, onChange }: Props)
                   fieldset's first child to be read as its caption. */}
               <legend className="sr-only">{rowLabel}</legend>
               <CardBody className="flex flex-wrap items-end gap-3">
-                <Field label={t.operator} className="w-48">
-                  <Select
-                    value={row.operator}
-                    onChange={(e) =>
-                      update(row.id, { operator: e.target.value as ConstraintOperator })
-                    }
-                  >
-                    {OPERATORS.map((op) => (
-                      <option key={op} value={op}>
-                        {t.operators[op]}
-                      </option>
-                    ))}
-                  </Select>
-                </Field>
+                <Select
+                  label={t.operator}
+                  className="w-48"
+                  value={row.operator}
+                  onChange={(e) =>
+                    update(row.id, { operator: e.target.value as ConstraintOperator })
+                  }
+                >
+                  {OPERATORS.map((op) => (
+                    <SelectOption key={op} value={op}>
+                      {t.operators[op]}
+                    </SelectOption>
+                  ))}
+                </Select>
 
                 {NEEDS_PROPERTY.has(row.operator) && (
-                  <Field label={t.property} className="w-56">
-                    <Select
-                      value={row.property_slug}
-                      onChange={(e) => update(row.id, { property_slug: e.target.value })}
-                    >
-                      <option value="">{t.selectProperty}</option>
-                      {properties.map((p) => (
-                        <option key={p.slug} value={p.slug}>
-                          {p.name}
-                        </option>
-                      ))}
-                    </Select>
-                  </Field>
+                  <Select
+                    label={t.property}
+                    className="w-56"
+                    value={row.property_slug}
+                    onChange={(e) => update(row.id, { property_slug: e.target.value })}
+                  >
+                    <SelectOption value="">{t.selectProperty}</SelectOption>
+                    {properties.map((p) => (
+                      <SelectOption key={p.slug} value={p.slug}>
+                        {p.name}
+                      </SelectOption>
+                    ))}
+                  </Select>
                 )}
 
                 {/* Text input with a decimal keypad, not `type="number"`: a
@@ -125,85 +163,72 @@ export function ConstraintEditor({ rows, properties, classes, onChange }: Props)
                     discards the value it cannot parse. The payload builder
                     accepts both separators. */}
                 {isNumeric && !isRange && (
-                  <Field label={t.value} className="w-28">
-                    <Input
-                      inputMode="decimal"
-                      className="tabular-nums"
-                      value={row.value}
-                      onChange={(e) => update(row.id, { value: e.target.value })}
-                    />
-                  </Field>
+                  <Input
+                    label={t.value}
+                    className="w-28 tabular-nums"
+                    inputMode="decimal"
+                    value={row.value}
+                    onChange={(e) => update(row.id, { value: e.target.value })}
+                  />
                 )}
                 {isRange && (
                   <>
-                    <Field label={t.valueMin} className="w-28">
-                      <Input
-                        inputMode="decimal"
-                        className="tabular-nums"
-                        value={row.value_min}
-                        onChange={(e) => update(row.id, { value_min: e.target.value })}
-                      />
-                    </Field>
-                    <Field label={t.valueMax} className="w-28">
-                      <Input
-                        inputMode="decimal"
-                        className="tabular-nums"
-                        value={row.value_max}
-                        onChange={(e) => update(row.id, { value_max: e.target.value })}
-                      />
-                    </Field>
+                    <Input
+                      label={t.valueMin}
+                      className="w-28 tabular-nums"
+                      inputMode="decimal"
+                      value={row.value_min}
+                      onChange={(e) => update(row.id, { value_min: e.target.value })}
+                    />
+                    <Input
+                      label={t.valueMax}
+                      className="w-28 tabular-nums"
+                      inputMode="decimal"
+                      value={row.value_max}
+                      onChange={(e) => update(row.id, { value_max: e.target.value })}
+                    />
                   </>
                 )}
                 {isNumeric && (
                   // The unit is not decoration: an empty box means "canonical",
                   // and the placeholder is the only place that says which one.
-                  <Field
+                  <Input
                     label={t.unit}
                     hint={prop ? prettyUnit(prop.canonical_unit) : undefined}
                     className="w-28"
-                  >
-                    <Input
-                      value={row.unit}
-                      onChange={(e) => update(row.id, { unit: e.target.value })}
-                      placeholder={prop?.canonical_unit ?? ""}
-                    />
-                  </Field>
+                    value={row.unit}
+                    onChange={(e) => update(row.id, { unit: e.target.value })}
+                    placeholder={prop?.canonical_unit ?? ""}
+                  />
                 )}
 
                 {CLASS_OPS.has(row.operator) && (
                   <Field label={t.classes} className="w-56">
-                    <Select
-                      multiple
-                      className="h-24"
+                    <ClassMultiSelect
                       value={row.class_slugs}
-                      onChange={(e) =>
-                        update(row.id, {
-                          class_slugs: Array.from(e.target.selectedOptions, (o) => o.value),
-                        })
-                      }
+                      onChange={(values) => update(row.id, { class_slugs: values })}
                     >
                       {classes.map((c) => (
                         <option key={c.slug} value={c.slug}>
                           {c.name}
                         </option>
                       ))}
-                    </Select>
+                    </ClassMultiSelect>
                   </Field>
                 )}
 
                 {row.operator === "text_contains" && (
-                  <Field label={t.text} className="w-56">
-                    <Input
-                      value={row.text}
-                      onChange={(e) => update(row.id, { text: e.target.value })}
-                    />
-                  </Field>
+                  <Input
+                    label={t.text}
+                    className="w-56"
+                    value={row.text}
+                    onChange={(e) => update(row.id, { text: e.target.value })}
+                  />
                 )}
 
                 <IconButton
                   className="ml-auto"
                   size="sm"
-                  variant="ghost"
                   label={`${ptBR.actions.remove}: ${rowLabel}`}
                   icon={<IconTrash />}
                   onClick={() => remove(row.id)}

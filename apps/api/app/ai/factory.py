@@ -7,7 +7,10 @@ configuration.
 
 from __future__ import annotations
 
+from app.ai.claude_api import ClaudeAPIProvider
+from app.ai.claude_cli import ClaudeCLIProvider
 from app.ai.mock import MockAIProvider
+from app.ai.openai_compat import OpenAICompatProvider
 from app.ai.provider import AIProvider, AIUnavailableError
 from app.config import Settings
 from app.config import settings as default_settings
@@ -23,8 +26,16 @@ SIMULATED_NOTE = (
     "nenhum serviço externo."
 )
 
+MODEL_NOTE = (
+    "Provedor externo: a leitura vem de um modelo de linguagem e pode variar entre "
+    "execuções com o mesmo enunciado. O cálculo não varia — ele não passa por aqui."
+)
+
 _PROVIDERS: dict[str, type[AIProvider]] = {
     "mock": MockAIProvider,
+    "claude-api": ClaudeAPIProvider,
+    "claude-cli": ClaudeCLIProvider,
+    "openai-compat": OpenAICompatProvider,
 }
 
 
@@ -49,9 +60,18 @@ def get_provider(settings: Settings = default_settings) -> AIProvider:
             f"Provedor de IA desconhecido: '{settings.ai_provider}'. "
             f"Disponíveis: {', '.join(sorted(_PROVIDERS))}."
         )
-    return provider_class()
+    return provider_class.from_settings(settings)
 
 
 def disclaimer_for(provider: AIProvider) -> str:
-    """The notice shown alongside every AI output."""
-    return f"{DISCLAIMER} {SIMULATED_NOTE}" if provider.simulated else DISCLAIMER
+    """The notice shown alongside every AI output.
+
+    A real provider gets its own sentence rather than merely losing the
+    simulated one: non-determinism is a property the reader has to be told
+    about, not one they should infer from an absence. A provider that can point
+    anywhere adds a third sentence naming where the text actually goes — the
+    user is the one deciding what to type into it, so the user is the one who
+    has to be told.
+    """
+    parts = [DISCLAIMER, SIMULATED_NOTE if provider.simulated else MODEL_NOTE, provider.data_note]
+    return " ".join(part for part in parts if part)

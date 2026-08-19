@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
-import { AppHeader } from "@/components/layout/AppHeader";
+import { AuthGate } from "@/components/auth/AuthGate";
+import { AppSidebar } from "@/components/layout/AppSidebar";
 import { LimitationNotice } from "@/components/LimitationNotice";
 import { ptBR } from "@/lib/i18n";
 import { THEME_BOOTSTRAP_SCRIPT } from "@/lib/theme";
@@ -40,26 +41,39 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <Providers>
-          <div className="flex min-h-screen flex-col">
-            {/* First stop of the tab order on every page: eight navigation
-                links are eight keystrokes between the reader and the content. */}
-            <a
-              href="#conteudo"
-              className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-control focus:bg-brand focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-brand-fg"
-            >
-              {ptBR.ui.skipToContent}
-            </a>
-            <AppHeader />
-            <main id="conteudo" tabIndex={-1} className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
-              {children}
-            </main>
-            <footer className="border-t border-edge bg-surface-raised">
-              <div className="mx-auto max-w-6xl space-y-2 px-4 py-3">
-                <p className="text-xs text-warning-fg">⚠️ {ptBR.demoWarning}</p>
-                <LimitationNotice variant="footer" />
+          <AuthGate>
+            {/* A column below `lg` (slim bar, then content) and a row above it
+                (rail beside content). The rail is the first child either way, so
+                the DOM order and the reading order agree in both. */}
+            <div className="flex min-h-screen flex-col lg:flex-row">
+              {/* First stop of the tab order on every page: eight navigation
+                  links are eight keystrokes between the reader and the content. */}
+              <a
+                href="#conteudo"
+                className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-control focus:bg-brand focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-brand-fg"
+              >
+                {ptBR.ui.skipToContent}
+              </a>
+              <AppSidebar />
+              {/* `min-w-0` is load-bearing: without it a wide table inside a flex
+                  child refuses to shrink and pushes the whole page sideways. */}
+              <div className="flex min-w-0 flex-1 flex-col">
+                <main
+                  id="conteudo"
+                  tabIndex={-1}
+                  className="mx-auto w-full max-w-6xl flex-1 px-4 py-6"
+                >
+                  {children}
+                </main>
+                <footer className="border-t border-edge bg-surface-raised">
+                  <div className="mx-auto max-w-6xl space-y-2 px-4 py-3">
+                    <p className="text-xs text-warning-fg">⚠️ {ptBR.demoWarning}</p>
+                    <LimitationNotice variant="footer" />
+                  </div>
+                </footer>
               </div>
-            </footer>
-          </div>
+            </div>
+          </AuthGate>
         </Providers>
       </body>
     </html>
