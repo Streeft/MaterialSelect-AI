@@ -35,6 +35,12 @@ dev = [
 ai = [
     "anthropic>=0.69",
 ]
+# A cobrança é opcional como a camada de IA: sem STRIPE_API_KEY configurada
+# nada importa o SDK de verdade (ver app/services/billing_service.py), e os
+# testes usam sempre um cliente falso — CI nunca precisa deste extra.
+billing = [
+    "stripe>=10",
+]
 
 [build-system]
 requires = ["setuptools>=68"]

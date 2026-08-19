@@ -107,10 +107,33 @@ class Settings(BaseSettings):
     # Google and the callback coming back.
     oauth_state_ttl_seconds: int = 600
 
+    # --- Billing (Stripe) --------------------------------------------------
+    # Vazio desliga a cobrança: toda rota de /billing responde 503, mesmo
+    # padrão do Google OAuth quando faltam as credenciais. Sem default por
+    # propósito, mesma razão de AI_BASE_URL — não existe chave que sirva
+    # para o Stripe de outra pessoa.
+    stripe_api_key: str = ""
+    # Verifica a assinatura HMAC do cabeçalho Stripe-Signature no webhook;
+    # sem ele, o endpoint recusa todo evento em vez de confiar num payload
+    # não verificado.
+    stripe_webhook_secret: str = ""
+    # O preço/plano que o checkout usa — um único plano no v1, sem seletor
+    # na interface.
+    stripe_price_id: str = ""
+
     @property
     def google_oauth_enabled(self) -> bool:
         """True when a Google OAuth client is configured."""
         return bool(self.google_client_id.strip() and self.google_client_secret.strip())
+
+    @property
+    def stripe_enabled(self) -> bool:
+        """True when Stripe is fully configured (key, webhook secret, and price)."""
+        return bool(
+            self.stripe_api_key.strip()
+            and self.stripe_webhook_secret.strip()
+            and self.stripe_price_id.strip()
+        )
 
     @property
     def ai_enabled(self) -> bool:
