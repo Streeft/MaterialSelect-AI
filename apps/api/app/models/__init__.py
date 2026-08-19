@@ -10,9 +10,11 @@ from app.models.material import Material
 from app.models.material_class import MaterialClass
 from app.models.material_property_value import MaterialPropertyValue
 from app.models.performance_index import PerformanceIndex
+from app.models.project import Project
 from app.models.property_definition import PropertyDefinition
 from app.models.selection import RankingCriterion, SelectionConstraint, SelectionStudy
 from app.models.source import Source
+from app.models.user import User, UserSession
 
 __all__ = [
     "BetterDirection",
@@ -24,10 +26,13 @@ __all__ = [
     "MaterialClass",
     "MaterialPropertyValue",
     "PerformanceIndex",
+    "Project",
     "PropertyCategory",
     "PropertyDefinition",
     "RankingCriterion",
     "SelectionConstraint",
     "SelectionStudy",
     "Source",
+    "User",
+    "UserSession",
 ]

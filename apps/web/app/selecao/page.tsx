@@ -35,11 +35,11 @@ import {
   Card,
   CardBody,
   EmptyState,
-  Field,
   Input,
   LoadingState,
   Section,
   Select,
+  SelectOption,
   Stepper,
   TBody,
   Table,
@@ -67,6 +67,7 @@ import { ResultsView } from "@/components/selection/ResultsView";
 import { AIAssistPanel, type AcceptedSuggestions } from "@/components/ai/AIAssistPanel";
 import { StudyExplanation } from "@/components/ai/StudyExplanation";
 import { ExportButtons } from "@/components/ExportButtons";
+import { EngineeringReportLink } from "@/components/EngineeringReportLink";
 
 const t = ptBR.selection;
 type Step = "function" | "constraints" | "objective" | "results";
@@ -510,27 +511,28 @@ function SelectionWizard() {
           <Section title={t.functionTitle} description={t.functionHint}>
             <Card>
               <CardBody className="grid gap-3 sm:grid-cols-2">
-                <Field label={t.studyName} className="sm:col-span-2">
-                  <Input value={name} onChange={(e) => setName(e.target.value)} />
-                </Field>
-                <Field label={t.functionText}>
-                  <Input
-                    value={functionText}
-                    onChange={(e) => setFunctionText(e.target.value)}
-                  />
-                </Field>
-                <Field label={t.objectiveText}>
-                  <Input
-                    value={objectiveText}
-                    onChange={(e) => setObjectiveText(e.target.value)}
-                  />
-                </Field>
-                <Field label={t.freeVariables} className="sm:col-span-2">
-                  <Input
-                    value={freeVariables}
-                    onChange={(e) => setFreeVariables(e.target.value)}
-                  />
-                </Field>
+                <Input
+                  label={t.studyName}
+                  className="sm:col-span-2"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
+                <Input
+                  label={t.functionText}
+                  value={functionText}
+                  onChange={(e) => setFunctionText(e.target.value)}
+                />
+                <Input
+                  label={t.objectiveText}
+                  value={objectiveText}
+                  onChange={(e) => setObjectiveText(e.target.value)}
+                />
+                <Input
+                  label={t.freeVariables}
+                  className="sm:col-span-2"
+                  value={freeVariables}
+                  onChange={(e) => setFreeVariables(e.target.value)}
+                />
               </CardBody>
             </Card>
           </Section>
@@ -545,15 +547,15 @@ function SelectionWizard() {
             title={t.constraintsTitle}
             description={t.constraintsHint}
             actions={
-              <Field label={t.combinator} className="w-28">
-                <Select
-                  value={combinator}
-                  onChange={(e) => setCombinator(e.target.value as "AND" | "OR")}
-                >
-                  <option value="AND">AND</option>
-                  <option value="OR">OR</option>
-                </Select>
-              </Field>
+              <Select
+                label={t.combinator}
+                className="w-28"
+                value={combinator}
+                onChange={(e) => setCombinator(e.target.value as "AND" | "OR")}
+              >
+                <SelectOption value="AND">AND</SelectOption>
+                <SelectOption value="OR">OR</SelectOption>
+              </Select>
             }
           >
             <ConstraintEditor
@@ -582,22 +584,22 @@ function SelectionWizard() {
                     customSlot={
                       <>
                         <div className="flex flex-wrap items-end gap-3">
-                          <Field label={t.expression} className="w-72">
-                            <Input
-                              value={customExpression}
-                              onChange={(e) => setCustomExpression(e.target.value)}
-                              placeholder="modulo_young / densidade"
-                            />
-                          </Field>
-                          <Field label={t.goal} className="w-40">
-                            <Select
-                              value={indexGoal}
-                              onChange={(e) => setIndexGoal(e.target.value as Goal)}
-                            >
-                              <option value="maximize">{t.maximize}</option>
-                              <option value="minimize">{t.minimize}</option>
-                            </Select>
-                          </Field>
+                          <Input
+                            label={t.expression}
+                            className="w-72"
+                            value={customExpression}
+                            onChange={(e) => setCustomExpression(e.target.value)}
+                            placeholder="modulo_young / densidade"
+                          />
+                          <Select
+                            label={t.goal}
+                            className="w-40"
+                            value={indexGoal}
+                            onChange={(e) => setIndexGoal(e.target.value as Goal)}
+                          >
+                            <SelectOption value="maximize">{t.maximize}</SelectOption>
+                            <SelectOption value="minimize">{t.minimize}</SelectOption>
+                          </Select>
                           <Button onClick={() => validateExpr.mutate()} loading={validateExpr.isPending}>
                             {t.validate}
                           </Button>
@@ -626,15 +628,15 @@ function SelectionWizard() {
               title={t.rankingTitle}
               description={t.rankingHint}
               actions={
-                <Field label={t.normalization} className="w-40">
-                  <Select
-                    value={normalization}
-                    onChange={(e) => setNormalization(e.target.value as NormalizationMethod)}
-                  >
-                    <option value="minmax">{t.normMinmax}</option>
-                    <option value="vector">{t.normVector}</option>
-                  </Select>
-                </Field>
+                <Select
+                  label={t.normalization}
+                  className="w-40"
+                  value={normalization}
+                  onChange={(e) => setNormalization(e.target.value as NormalizationMethod)}
+                >
+                  <SelectOption value="minmax">{t.normMinmax}</SelectOption>
+                  <SelectOption value="vector">{t.normVector}</SelectOption>
+                </Select>
               }
             >
               <Card>
@@ -644,58 +646,59 @@ function SelectionWizard() {
                       <legend className="sr-only">
                         {t.criterion} {position + 1}
                       </legend>
-                      <Field label={t.criterion} className="w-56">
-                        <Select
-                          value={c.key}
-                          onChange={(e) =>
-                            setCriteria(
-                              criteria.map((x) =>
-                                x.id === c.id ? { ...x, key: e.target.value } : x,
-                              ),
-                            )
-                          }
-                        >
-                          <option value="">{t.selectCriterion}</option>
-                          {activeIndex && <option value="__index__">{t.useIndexCriterion}</option>}
-                          {(properties.data ?? []).map((p) => (
-                            <option key={p.slug} value={p.slug}>
-                              {p.name}
-                            </option>
-                          ))}
-                        </Select>
-                      </Field>
-                      <Field label={t.direction} className="w-52">
-                        <Select
-                          value={c.direction}
-                          onChange={(e) =>
-                            setCriteria(
-                              criteria.map((x) =>
-                                x.id === c.id
-                                  ? { ...x, direction: e.target.value as "" | "max" | "min" }
-                                  : x,
-                              ),
-                            )
-                          }
-                        >
-                          <option value="">{t.autoDirection}</option>
-                          <option value="max">{t.dirMax}</option>
-                          <option value="min">{t.dirMin}</option>
-                        </Select>
-                      </Field>
-                      <Field label={t.weight} className="w-24">
-                        <Input
-                          inputMode="decimal"
-                          className="tabular-nums"
-                          value={c.weight}
-                          onChange={(e) =>
-                            setCriteria(
-                              criteria.map((x) =>
-                                x.id === c.id ? { ...x, weight: e.target.value } : x,
-                              ),
-                            )
-                          }
-                        />
-                      </Field>
+                      <Select
+                        label={t.criterion}
+                        className="w-56"
+                        value={c.key}
+                        onChange={(e) =>
+                          setCriteria(
+                            criteria.map((x) =>
+                              x.id === c.id ? { ...x, key: e.target.value } : x,
+                            ),
+                          )
+                        }
+                      >
+                        <SelectOption value="">{t.selectCriterion}</SelectOption>
+                        {activeIndex && (
+                          <SelectOption value="__index__">{t.useIndexCriterion}</SelectOption>
+                        )}
+                        {(properties.data ?? []).map((p) => (
+                          <SelectOption key={p.slug} value={p.slug}>
+                            {p.name}
+                          </SelectOption>
+                        ))}
+                      </Select>
+                      <Select
+                        label={t.direction}
+                        className="w-52"
+                        value={c.direction}
+                        onChange={(e) =>
+                          setCriteria(
+                            criteria.map((x) =>
+                              x.id === c.id
+                                ? { ...x, direction: e.target.value as "" | "max" | "min" }
+                                : x,
+                            ),
+                          )
+                        }
+                      >
+                        <SelectOption value="">{t.autoDirection}</SelectOption>
+                        <SelectOption value="max">{t.dirMax}</SelectOption>
+                        <SelectOption value="min">{t.dirMin}</SelectOption>
+                      </Select>
+                      <Input
+                        label={t.weight}
+                        className="w-24 tabular-nums"
+                        inputMode="decimal"
+                        value={c.weight}
+                        onChange={(e) =>
+                          setCriteria(
+                            criteria.map((x) =>
+                              x.id === c.id ? { ...x, weight: e.target.value } : x,
+                            ),
+                          )
+                        }
+                      />
                       <Button
                         size="sm"
                         variant="ghost"
@@ -784,6 +787,9 @@ function SelectionWizard() {
                           urlFor={(format) => studyExportUrl(s.id, format)}
                           label={ptBR.exports.study}
                         />
+                      </div>
+                      <div className="mt-2">
+                        <EngineeringReportLink studyId={s.id} />
                       </div>
                       <StudyExplanation studyId={s.id} />
                     </Td>

@@ -22,9 +22,9 @@ import {
   Card,
   CardBody,
   CardHeader,
-  Field,
   Input,
   Select,
+  SelectOption,
   Textarea,
 } from "@/components/ui";
 
@@ -115,32 +115,37 @@ export function MaterialForm({ classes, properties, initial }: MaterialFormProps
       <Card>
         <CardHeader title={ptBR.form.identification} headingLevel={2} />
         <CardBody className="grid gap-4 sm:grid-cols-2">
-          <Field label={ptBR.form.name} required error={errors.name?.message}>
-            <Input {...register("name")} />
-          </Field>
+          <Input
+            label={ptBR.form.name}
+            required
+            error={errors.name?.message}
+            {...register("name")}
+          />
 
-          <Field label={ptBR.form.class} required error={errors.class_id?.message}>
-            <Select {...register("class_id")}>
-              <option value="">{ptBR.form.selectClass}</option>
-              {classes.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </Select>
-          </Field>
+          <Select
+            label={ptBR.form.class}
+            required
+            error={errors.class_id?.message}
+            {...register("class_id")}
+          >
+            <SelectOption value="">{ptBR.form.selectClass}</SelectOption>
+            {classes.map((c) => (
+              <SelectOption key={c.id} value={String(c.id)}>
+                {c.name}
+              </SelectOption>
+            ))}
+          </Select>
 
-          <Field label={ptBR.form.subclass}>
-            <Input {...register("subclass")} />
-          </Field>
+          <Input label={ptBR.form.subclass} {...register("subclass")} />
 
-          <Field label={ptBR.form.keywords}>
-            <Input {...register("keywords")} />
-          </Field>
+          <Input label={ptBR.form.keywords} {...register("keywords")} />
 
-          <Field label={ptBR.form.description} className="sm:col-span-2">
-            <Textarea {...register("description")} rows={2} />
-          </Field>
+          <Textarea
+            label={ptBR.form.description}
+            className="sm:col-span-2"
+            rows={2}
+            {...register("description")}
+          />
         </CardBody>
       </Card>
 
@@ -171,36 +176,31 @@ export function MaterialForm({ classes, properties, initial }: MaterialFormProps
             return (
               <div key={field.id} className="rounded-control border border-edge p-3">
                 <div className="grid gap-2 sm:grid-cols-4">
-                  <Field
+                  <Select
                     label={ptBR.form.property}
                     className="sm:col-span-2"
                     error={rowErrors?.property_slug?.message}
+                    {...register(`values.${index}.property_slug`)}
                   >
-                    <Select {...register(`values.${index}.property_slug`)}>
-                      <option value="">{ptBR.form.selectProperty}</option>
-                      {properties.map((p) => (
-                        <option key={p.slug} value={p.slug}>
-                          {p.name}
-                        </option>
-                      ))}
-                    </Select>
-                  </Field>
+                    <SelectOption value="">{ptBR.form.selectProperty}</SelectOption>
+                    {properties.map((p) => (
+                      <SelectOption key={p.slug} value={p.slug}>
+                        {p.name}
+                      </SelectOption>
+                    ))}
+                  </Select>
 
-                  <Field label={ptBR.form.kind}>
-                    <Select {...register(`values.${index}.kind`)}>
-                      <option value="scalar">{ptBR.form.kindScalar}</option>
-                      <option value="interval">{ptBR.form.kindInterval}</option>
-                      <option value="missing">{ptBR.form.kindMissing}</option>
-                    </Select>
-                  </Field>
+                  <Select label={ptBR.form.kind} {...register(`values.${index}.kind`)}>
+                    <SelectOption value="scalar">{ptBR.form.kindScalar}</SelectOption>
+                    <SelectOption value="interval">{ptBR.form.kindInterval}</SelectOption>
+                    <SelectOption value="missing">{ptBR.form.kindMissing}</SelectOption>
+                  </Select>
 
-                  <Field label={ptBR.form.quality}>
-                    <Select {...register(`values.${index}.data_quality`)}>
-                      <option value="MEDIDO">{ptBR.quality.MEDIDO}</option>
-                      <option value="IMPORTADO">{ptBR.quality.IMPORTADO}</option>
-                      <option value="ESTIMADO">{ptBR.quality.ESTIMADO}</option>
-                    </Select>
-                  </Field>
+                  <Select label={ptBR.form.quality} {...register(`values.${index}.data_quality`)}>
+                    <SelectOption value="MEDIDO">{ptBR.quality.MEDIDO}</SelectOption>
+                    <SelectOption value="IMPORTADO">{ptBR.quality.IMPORTADO}</SelectOption>
+                    <SelectOption value="ESTIMADO">{ptBR.quality.ESTIMADO}</SelectOption>
+                  </Select>
                 </div>
 
                 {/* "Ausente" is a state the author declares on purpose, so the
@@ -209,40 +209,55 @@ export function MaterialForm({ classes, properties, initial }: MaterialFormProps
                 {kind !== "missing" && (
                   <div className="mt-2 grid gap-2 sm:grid-cols-4">
                     {kind === "scalar" ? (
-                      <Field label={ptBR.form.value} error={rowErrors?.value?.message}>
-                        <Input {...register(`values.${index}.value`)} inputMode="decimal" />
-                      </Field>
+                      <Input
+                        label={ptBR.form.value}
+                        error={rowErrors?.value?.message}
+                        inputMode="decimal"
+                        {...register(`values.${index}.value`)}
+                      />
                     ) : (
                       <>
-                        <Field label={ptBR.form.valueMin} error={rowErrors?.value_min?.message}>
-                          <Input {...register(`values.${index}.value_min`)} inputMode="decimal" />
-                        </Field>
-                        <Field label={ptBR.form.valueMax} error={rowErrors?.value_max?.message}>
-                          <Input {...register(`values.${index}.value_max`)} inputMode="decimal" />
-                        </Field>
-                        <Field label={ptBR.form.valueTypical}>
-                          <Input
-                            {...register(`values.${index}.value_typical`)}
-                            inputMode="decimal"
-                          />
-                        </Field>
+                        <Input
+                          label={ptBR.form.valueMin}
+                          error={rowErrors?.value_min?.message}
+                          inputMode="decimal"
+                          {...register(`values.${index}.value_min`)}
+                        />
+                        <Input
+                          label={ptBR.form.valueMax}
+                          error={rowErrors?.value_max?.message}
+                          inputMode="decimal"
+                          {...register(`values.${index}.value_max`)}
+                        />
+                        <Input
+                          label={ptBR.form.valueTypical}
+                          inputMode="decimal"
+                          {...register(`values.${index}.value_typical`)}
+                        />
                       </>
                     )}
 
-                    <Field label={ptBR.form.unit} error={rowErrors?.unit?.message}>
-                      {unitOptions.length > 0 ? (
-                        <Select {...register(`values.${index}.unit`)}>
-                          <option value="">{ptBR.form.selectUnit}</option>
-                          {unitOptions.map((u) => (
-                            <option key={u} value={u}>
-                              {u}
-                            </option>
-                          ))}
-                        </Select>
-                      ) : (
-                        <Input {...register(`values.${index}.unit`)} placeholder="ex.: GPa" />
-                      )}
-                    </Field>
+                    {unitOptions.length > 0 ? (
+                      <Select
+                        label={ptBR.form.unit}
+                        error={rowErrors?.unit?.message}
+                        {...register(`values.${index}.unit`)}
+                      >
+                        <SelectOption value="">{ptBR.form.selectUnit}</SelectOption>
+                        {unitOptions.map((u) => (
+                          <SelectOption key={u} value={u}>
+                            {u}
+                          </SelectOption>
+                        ))}
+                      </Select>
+                    ) : (
+                      <Input
+                        label={ptBR.form.unit}
+                        error={rowErrors?.unit?.message}
+                        placeholder="ex.: GPa"
+                        {...register(`values.${index}.unit`)}
+                      />
+                    )}
                   </div>
                 )}
 

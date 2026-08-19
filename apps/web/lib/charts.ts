@@ -109,8 +109,9 @@ export function chartFileName(...parts: (string | null | undefined)[]): string {
 /**
  * Export the Plotly figure inside `container` as a PNG or SVG download.
  *
- * Uses the very Plotly instance `react-plotly.js` already loaded, so no second
- * copy of the library is pulled into the bundle. PNG is rendered at 2× for
+ * Imports the same custom bundle `react-plotly.js` is aliased to in
+ * `next.config.mjs`, so this is the very instance that drew the figure and no
+ * second copy of the library is pulled in. PNG is rendered at 2× for
  * legibility in printed reports; SVG is resolution-independent and is the right
  * choice for the monograph.
  */
@@ -124,7 +125,7 @@ export async function downloadPlotImage(
   // shows `ptBR.chart.exportError`, which is where the pt-BR sentence lives.
   if (!graph) throw new Error("Plot not rendered yet.");
 
-  const plotly = (await import("plotly.js/dist/plotly")).default;
+  const plotly = (await import("@/lib/plotly-custom")).default;
   const dataUrl = await plotly.toImage(graph, {
     format,
     width: graph.clientWidth || 1100,

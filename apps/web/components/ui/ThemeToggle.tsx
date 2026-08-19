@@ -64,15 +64,21 @@ export function ThemeToggle({
         <ButtonGroupItem
           key={option.id}
           selected={preference === option.id}
+          // `md-outlined-segmented-button` has no unnamed slot and no `part`
+          // on its label text — there is no CSS hook to hide the label below
+          // `sm` the way the old hand-rolled button did. `compact` still has
+          // to win: an icon-only button here (label="") plus an explicit
+          // `aria-label` keeps the accessible name regardless of what's
+          // visible, same as `IconButton`.
+          label={compact ? "" : option.label}
+          aria-label={option.label}
+          icon={option.icon}
           onClick={() => {
             setPreference(option.id);
             applyPreference(option.id);
           }}
           title={option.label}
-        >
-          {option.icon}
-          <span className={compact ? "sr-only" : "sr-only sm:not-sr-only"}>{option.label}</span>
-        </ButtonGroupItem>
+        />
       ))}
     </ButtonGroup>
   );

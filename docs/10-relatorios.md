@@ -112,6 +112,30 @@ A folha de impressão repete o cabeçalho da tabela a cada página
 legível. As seções são numeradas para que se possa citar "seção 4" sem depender
 da paginação, que é do navegador e não nossa.
 
+## O laudo de engenharia (Fase 9)
+
+`GET /api/exports/estudos/{id}/laudo.html` é **um documento distinto**, não uma
+variante do anterior. A mesma reexecução determinística e as mesmas oito seções
+de auditoria, mais três coisas que o relatório de seleção não tem: o gráfico de
+barras do ranking (SVG do backend, por `app/exporters/figures.py`), um campo de
+responsável técnico, e — quando a camada de IA está ligada — a interpretação de
+`AIService.explain()` como nona seção.
+
+O que isso obriga:
+
+- **A figura é do backend.** Um SVG montado em `figures.py`, não uma imagem
+  capturada da tela: o laudo tem de abrir offline, anos depois, e uma captura
+  não é reproduzível a partir do catálogo ([ADR 0004](adr/0004-geometria-de-graficos-no-backend.md)).
+- **Ausência de IA é declarada.** Provedor desligado, mal configurado ou fora do
+  ar degrada **aquela seção**, com o motivo escrito, e não o documento. O que
+  não pode acontecer é a seção sumir em silêncio e o laudo parecer completo.
+- **Responsável técnico é texto livre e nunca validado.** O sistema não sabe
+  quem é engenheiro registrado, e fingir que sabe seria pior do que não
+  perguntar. Ele é escapado como todo o resto.
+- **O pipeline roda duas vezes**, de propósito: `AIService.explain()` recomputa
+  o estudo em vez de aceitar o resultado que o exportador já tem. Ver
+  [D-41](DECISIONS.md) e a medição em [PROJECT_CONTEXT.md §12](PROJECT_CONTEXT.md).
+
 ## Catálogo
 
 `GET /api/exports/catalogo.{csv|xlsx|html}` exporta todos os materiais ativos em
@@ -160,10 +184,15 @@ faltando.
 |---|---|---|
 | GET | `/api/exports/catalogo.{csv,xlsx,html}` | catálogo ativo com proveniência |
 | GET | `/api/exports/estudos/{id}.{csv,xlsx,html}` | relatório completo de um estudo |
+| GET | `/api/exports/estudos/{id}/laudo.html` | laudo de engenharia (figura, responsável, IA) |
 
-O `html` é o único servido `inline`; os outros dois baixam.
+O `html` é o único servido `inline`; os outros dois baixam. O laudo aceita
+`?responsavel=` — texto livre, escapado, opcional.
 
 ## Ainda fora desta fatia
 
-Exportação de PPTX, testes end-to-end de interface, autenticação por projeto e
-auditoria seguem na Fase 7 e estão no [`TODO.md`](TODO.md).
+Exportação de PPTX (B2), autenticação por projeto (A5) e auditoria (M2) seguem
+na Fase 7 e estão no [`TODO.md`](TODO.md). Os testes end-to-end de interface
+(A4) já saíram — Playwright cobrindo importar → selecionar → visualizar →
+exportar, `apps/web/e2e/`, e a suíte já é check obrigatório de CI
+(`E2E (Playwright)` em `ci.yml`); ver "Débitos já quitados" no `TODO.md`.

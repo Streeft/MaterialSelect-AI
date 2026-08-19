@@ -4,7 +4,7 @@
 // the backend Pydantic schemas in apps/api/app/schemas. They are duplicated here
 // (rather than imported cross-package) to keep the Next.js build simple for the
 // MVP. TECH DEBT: unify via npm workspaces + transpilePackages once the monorepo
-// tooling is set up. See docs/backlog.md.
+// tooling is set up. See docs/TODO.md.
 
 export type PropertyCategory =
   | "FISICA"
@@ -472,24 +472,32 @@ export type ChartScale = "linear" | "log";
 export type CoordinatePair = number[];
 
 export interface PropertyMapRequest {
-  x: string;
-  y: string;
+  /** Exactly one of `x`/`x_index` must be set — same for `y`/`y_index`. */
+  x?: string | null;
+  y?: string | null;
+  x_index?: IndexIn | null;
+  y_index?: IndexIn | null;
   scale: ChartScale;
   class_slugs?: string[];
   material_ids?: number[] | null;
   highlight_material_ids?: number[];
   include_envelopes?: boolean;
+  /** Incompatible with `x_index`/`y_index`: only two property axes can carry a third, overlaid index. */
   index?: IndexIn | null;
   index_levels?: number[];
   index_level_material_ids?: number[];
 }
 
 export interface MapAxis {
-  property_slug: string;
+  is_index: boolean;
+  /** Set only when `is_index` is false. */
+  property_slug: string | null;
   property_name: string;
+  /** Set only when `is_index` is true. */
+  expression: string | null;
   symbol: string | null;
   unit: string;
-  category: PropertyCategory;
+  category: PropertyCategory | null;
   better_direction: BetterDirection;
   allows_log_scale: boolean;
   min_value: number | null;
@@ -514,8 +522,10 @@ export interface MapPoint {
   y_uncertainty: number | null;
   x_is_interval: boolean;
   y_is_interval: boolean;
-  x_quality: DataQuality;
-  y_quality: DataQuality;
+  /** Null exactly when that axis is an index: a computed index has no single
+   * provenance of its own to badge. */
+  x_quality: DataQuality | null;
+  y_quality: DataQuality | null;
   index_value: number | null;
   index_undefined_reason: string | null;
 }
@@ -689,4 +699,86 @@ export interface Explanation {
   provider: string;
   simulated: boolean;
   disclaimer: string;
+}
+
+// --- Dashboard ---------------------------------------------------------
+//
+// The panel's vocabulary is three-valued where `DataQuality` above is not:
+// a (material, property) slot is filled, declared missing, or never recorded.
+// `QualityBucket` carries the last two states that `DataQuality` alone cannot
+// name — see apps/api/app/schemas/dashboard.py for why they stay apart.
+
+export type QualityBucket = DataQuality | "AUSENTE" | "NAO_REGISTRADO";
+
+export interface Coverage {
+  filled: number;
+  declared_missing: number;
+  not_recorded: number;
+  slots: number;
+  /** `null`, never `0`: an empty set of slots has no percentage to report. */
+  filled_pct: number | null;
+}
+
+export interface ClassCoverage {
+  slug: string;
+  name: string;
+  materials: number;
+  coverage: Coverage;
+}
+
+export interface PropertyCoverage {
+  slug: string;
+  name: string;
+  category: PropertyCategory;
+  canonical_unit: string | null;
+  coverage: Coverage;
+}
+
+export interface QualitySlice {
+  bucket: QualityBucket;
+  count: number;
+  share_pct: number | null;
+}
+
+export interface DashboardOverview {
+  materials: number;
+  demo_materials: number;
+  classes: number;
+  properties: number;
+  coverage: Coverage;
+  by_quality: QualitySlice[];
+  by_class: ClassCoverage[];
+  by_property: PropertyCoverage[];
+  gaps: PropertyCoverage[];
+}
+
+export interface DistributionBox {
+  class_slug: string;
+  class_name: string;
+  count: number;
+  minimum: number;
+  q1: number;
+  median: number;
+  q3: number;
+  maximum: number;
+}
+
+export interface PropertyDistribution {
+  property_slug: string;
+  property_name: string;
+  category: PropertyCategory;
+  canonical_unit: string | null;
+  allows_log_scale: boolean;
+  boxes: DistributionBox[];
+  classes_without_data: string[];
+}
+
+// --- Auth (login com Google) ------------------------------------------------
+
+export interface CurrentUser {
+  id: number;
+  email: string;
+  name: string;
+  avatar_url: string | null;
+  project_id: number;
 }
