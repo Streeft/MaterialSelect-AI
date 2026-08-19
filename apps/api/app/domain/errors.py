@@ -27,6 +27,10 @@ class AuthenticationError(DomainError):
     """No session, or the session cookie is missing/invalid/expired. -> HTTP 401."""
 
 
+class SubscriptionRequiredError(DomainError):
+    """Raised when a route needs an active subscription and the user has none."""
+
+
 class ServiceUnavailableError(DomainError):
     """A required external dependency is not configured. -> HTTP 503.
 

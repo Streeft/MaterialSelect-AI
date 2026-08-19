@@ -23,6 +23,7 @@ from app.domain.errors import (
     ConflictError,
     NotFoundError,
     ServiceUnavailableError,
+    SubscriptionRequiredError,
     ValidationError,
 )
 from app.routers import (
@@ -77,6 +78,11 @@ async def _handle_conflict(_: Request, exc: ConflictError) -> JSONResponse:
 @app.exception_handler(AuthenticationError)
 async def _handle_authentication(_: Request, exc: AuthenticationError) -> JSONResponse:
     return _error_response(401, str(exc))
+
+
+@app.exception_handler(SubscriptionRequiredError)
+async def _handle_subscription_required(_: Request, exc: SubscriptionRequiredError) -> JSONResponse:
+    return _error_response(403, str(exc))
 
 
 @app.exception_handler(ServiceUnavailableError)
