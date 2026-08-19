@@ -14,6 +14,7 @@ from app.models.project import Project
 from app.models.property_definition import PropertyDefinition
 from app.models.selection import RankingCriterion, SelectionConstraint, SelectionStudy
 from app.models.source import Source
+from app.models.subscription import Subscription
 from app.models.user import User, UserSession
 
 __all__ = [
@@ -33,6 +34,7 @@ __all__ = [
     "SelectionConstraint",
     "SelectionStudy",
     "Source",
+    "Subscription",
     "User",
     "UserSession",
 ]
