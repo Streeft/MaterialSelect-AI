@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from sqlalchemy import Boolean, DateTime, Enum, Float, ForeignKey, String
+from sqlalchemy import Boolean, DateTime, Enum, Float, ForeignKey, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -30,12 +30,30 @@ class MaterialPropertyValue(Base):
 
     __tablename__ = "material_property_value"
 
+    # One value per material per property, enforced by the database.
+    #
+    # This is a determinism guarantee, not bookkeeping. Two rows for the same
+    # pair would make the value that reaches a chart, a filter or a ranking
+    # depend on the order the SELECT happened to return — the same catalogue
+    # could then produce two different answers, which is the one thing the
+    # methodology claims cannot happen. The services already reject duplicates
+    # within a payload; only the constraint covers two requests racing, and the
+    # paths (import commit, manual form, a future API client) that never pass
+    # through that check together.
+    __table_args__ = (
+        UniqueConstraint("material_id", "property_id", name="uq_material_property_value_pair"),
+    )
+
     id: Mapped[int] = mapped_column(primary_key=True)
     material_id: Mapped[int] = mapped_column(
         ForeignKey("material.id", ondelete="CASCADE"), nullable=False
     )
+    # material_id is deliberately *not* indexed on its own: it is the leading
+    # column of uq_material_property_value_pair above, and that index already
+    # serves every lookup by material. property_id gets its own — as the second
+    # column of the pair it is unreachable through it.
     property_id: Mapped[int] = mapped_column(
-        ForeignKey("property_definition.id"), nullable=False
+        ForeignKey("property_definition.id"), nullable=False, index=True
     )
 
     # Scalar OR interval representation. All nullable so "missing" is representable
@@ -55,7 +73,9 @@ class MaterialPropertyValue(Base):
     measurement_condition: Mapped[str | None] = mapped_column(String(200), nullable=True)
     notes: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
-    source_id: Mapped[int | None] = mapped_column(ForeignKey("source.id"), nullable=True)
+    source_id: Mapped[int | None] = mapped_column(
+        ForeignKey("source.id"), nullable=True, index=True
+    )
     data_quality: Mapped[DataQuality] = mapped_column(
         Enum(DataQuality, native_enum=False, length=12),
         default=DataQuality.IMPORTADO,
@@ -64,9 +84,7 @@ class MaterialPropertyValue(Base):
     is_missing: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
 
-    material: Mapped[Material] = relationship(  # noqa: F821
-        back_populates="property_values"
-    )
+    material: Mapped[Material] = relationship(back_populates="property_values")  # noqa: F821
     property_definition: Mapped[PropertyDefinition] = relationship(  # noqa: F821
         back_populates="values"
     )

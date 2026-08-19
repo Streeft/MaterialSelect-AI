@@ -21,6 +21,7 @@ without reshaping the inputs.
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from enum import Enum
 
@@ -70,7 +71,8 @@ class RankedMaterial:
 class ExcludedMaterial:
     material_id: int
     name: str
-    missing_keys: list[str]
+    missing_keys: list[str]  # stable identifiers, for callers that match on them
+    missing_labels: list[str]  # the same criteria as a reader knows them
 
 
 @dataclass
@@ -95,7 +97,9 @@ class RankingResult:
 MaterialValues = tuple[int, str, dict[str, float | None]]
 
 
-def normalize_column(values: list[float], direction: Direction, method: Normalization) -> list[float]:
+def normalize_column(
+    values: list[float], direction: Direction, method: Normalization
+) -> list[float]:
     """Map a column of raw values to [0, 1] where higher is always better.
 
     Public because the comparison charts (radar, parallel coordinates, heatmap)
@@ -107,7 +111,15 @@ def normalize_column(values: list[float], direction: Direction, method: Normaliz
         return []
 
     if method is Normalization.VECTOR:
-        norm = sum(v * v for v in values) ** 0.5
+        # ``math.hypot`` and not ``sum(v * v for v in values) ** 0.5``: the sum of
+        # squares overflows to +inf at ~1e154, less than half the exponent range
+        # of a float, and every material then normalizes to 0.0 — the column
+        # stops telling them apart and the ranking ties silently, with no
+        # exception raised. A performance index is a product of powers of
+        # properties (E**(1/2)/rho and its relatives), which is precisely how a
+        # column of ordinary numbers becomes 1e200. hypot rescales internally and
+        # is exact in the same cases the naive form was.
+        norm = math.hypot(*values)
         if norm == 0:
             return [1.0] * n
         base = [v / norm for v in values]
@@ -240,9 +252,16 @@ def rank(
     complete: list[MaterialValues] = []
     excluded: list[ExcludedMaterial] = []
     for material_id, name, values in materials:
-        missing = [c.key for c in criteria if values.get(c.key) is None]
+        missing = [c for c in criteria if values.get(c.key) is None]
         if missing:
-            excluded.append(ExcludedMaterial(material_id, name, missing))
+            excluded.append(
+                ExcludedMaterial(
+                    material_id,
+                    name,
+                    [c.key for c in missing],
+                    [c.label for c in missing],
+                )
+            )
         else:
             complete.append((material_id, name, values))
 

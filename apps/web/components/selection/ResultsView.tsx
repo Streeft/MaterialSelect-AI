@@ -1,181 +1,465 @@
-import Link from "next/link";
-import type { RunResult } from "@/lib/types";
+import type { ReactNode } from "react";
+import type { Contribution, RunResult } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
-import { formatNumber, prettyUnit } from "@/lib/format";
+import { formatNumber, formatScore, prettyUnit } from "@/lib/format";
+import { OKABE_ITO } from "@/lib/design/palette";
+import {
+  Alert,
+  Badge,
+  ButtonLink,
+  MissingValue,
+  Section,
+  TBody,
+  THead,
+  Table,
+  TableScroll,
+  Td,
+  Th,
+  RowHeader,
+  Tr,
+} from "@/components/ui";
+import { LimitationNotice } from "@/components/LimitationNotice";
 
 const t = ptBR.selection;
 
+/**
+ * Bar widths on this screen are proportions of numbers the backend already
+ * computed — how many survived out of how many started, how much of a score
+ * came from one criterion. Nothing here derives a new quantity; the ratio only
+ * decides how wide an element is (ADR 0004).
+ */
+function percent(part: number, whole: number): number {
+  if (!Number.isFinite(part) || !Number.isFinite(whole) || whole <= 0) return 0;
+  return Math.min(100, Math.max(0, (part / whole) * 100));
+}
+
+/** One stage of the elimination: a bar, what it kept, and what it dropped. */
+function FunnelRow({
+  label,
+  remaining,
+  initial,
+  eliminated,
+  tone = "brand",
+}: {
+  label: string;
+  remaining: number;
+  initial: number;
+  eliminated: number | null;
+  tone?: "brand" | "neutral";
+}) {
+  return (
+    <li className="grid grid-cols-[minmax(5rem,9rem)_1fr_auto] items-center gap-3">
+      <span className="truncate text-xs text-ink-muted" title={label}>
+        {label}
+      </span>
+      <span className="h-2.5 overflow-hidden rounded-full bg-surface-sunken">
+        <span
+          className={
+            "block h-full rounded-full " + (tone === "brand" ? "bg-brand" : "bg-ink-subtle")
+          }
+          style={{ width: `${percent(remaining, initial)}%` }}
+        />
+      </span>
+      <span className="text-xs tabular-nums text-ink">
+        <strong>{remaining}</strong>
+        {eliminated !== null && eliminated > 0 ? (
+          <span className="ml-1.5 text-2xs font-normal text-ink-subtle">
+            −{eliminated} {t.eliminated}
+          </span>
+        ) : null}
+      </span>
+    </li>
+  );
+}
+
+/** The score broken into its criteria, as widths and as written numbers. */
+function Contributions({
+  contributions,
+  score,
+}: {
+  contributions: Contribution[];
+  score: number;
+}) {
+  if (contributions.length === 0) return null;
+  return (
+    <div className="max-w-md">
+      <span className="flex h-2 overflow-hidden rounded-full bg-surface-sunken" aria-hidden="true">
+        {contributions.map((c, i) => (
+          <span
+            key={c.key}
+            className="block h-full"
+            style={{
+              width: `${percent(c.contribution, score)}%`,
+              backgroundColor: OKABE_ITO[i % OKABE_ITO.length],
+            }}
+          />
+        ))}
+      </span>
+      {/* The bar is decoration; this list is the encoding. Colour alone would
+          put the whole breakdown in the channel that fails first (D-24). */}
+      <dl className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
+        {contributions.map((c, i) => (
+          <div key={c.key} className="flex items-baseline gap-1 text-2xs">
+            <dt className="flex items-center gap-1 text-ink-muted">
+              <span
+                aria-hidden="true"
+                className="inline-block h-2 w-2 rounded-full"
+                style={{ backgroundColor: OKABE_ITO[i % OKABE_ITO.length] }}
+              />
+              {c.label}
+            </dt>
+            <dd
+              className="tabular-nums text-ink-muted"
+              title={`${t.weight} ${formatScore(c.weight)} × ${formatScore(c.normalized)}`}
+            >
+              {formatScore(c.contribution, 3)}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  );
+}
+
+/** One line of the provenance list, or nothing when there is nothing to say. */
+function ProvenanceItem({ term, children }: { term: string; children: ReactNode }) {
+  return (
+    <div className="flex flex-col gap-0.5 border-b border-edge-subtle py-2 last:border-b-0 sm:flex-row sm:gap-3">
+      <dt className="text-xs font-medium text-ink-muted sm:w-56 sm:shrink-0">{term}</dt>
+      <dd className="min-w-0 text-sm text-ink">{children}</dd>
+    </div>
+  );
+}
+
 export function ResultsView({ result }: { result: RunResult }) {
   const { funnel, candidates, index, ranking } = result;
-  const rankedById = new Map(ranking?.ranked.map((r) => [r.material_id, r]) ?? []);
+  // Why an index came out undefined for a given material. The backend says so
+  // per material, and an absence without its reason is just a hole in a table.
+  const undefinedReasonById = new Map(
+    index?.values
+      .filter((v) => v.value === null)
+      .map((v) => [v.material_id, v.undefined_reason] as const) ?? [],
+  );
 
   // Carry the surviving candidates over to the visual surfaces. The top-ranked
   // material is highlighted on the map so the two views tell the same story.
   const candidateIds = candidates.map((c) => c.material_id).join(",");
   const topId = ranking?.ranked.find((r) => r.rank === 1)?.material_id;
 
+  const withContributions = ranking?.ranked.filter((r) => r.contributions.length > 0) ?? [];
+  // Weights are per criterion and identical across materials, so any ranked row
+  // reports them; the first one that has a breakdown at all is enough.
+  const weightRows = withContributions[0]?.contributions ?? [];
+
+  /**
+   * The blocks this screen is made of, in the order they appear.
+   *
+   * The results screen is the longest in the application and gets referenced out
+   * loud ("look at the funnel", "who got excluded"), so each block needs a title
+   * of its own and an address someone can jump to or paste into a message.
+   */
+  const sections: { id: string; label: string }[] = [
+    { id: "funil", label: t.funnel },
+    ...(candidates.length > 0 ? [{ id: "candidatos", label: t.candidates }] : []),
+    ...(withContributions.length > 0 ? [{ id: "contribuicoes", label: t.contributions }] : []),
+    ...(ranking && ranking.excluded.length > 0
+      ? [{ id: "excluidos", label: t.excludedTitle }]
+      : []),
+    ...(ranking && ranking.sensitivity.length > 0
+      ? [{ id: "sensibilidade", label: t.sensitivity }]
+      : []),
+    { id: "proveniencia", label: t.provenanceTitle },
+  ];
+
   return (
     <div className="space-y-6">
-      {/* Funnel */}
-      <section className="rounded-lg border border-slate-200 bg-white p-4">
-        <h3 className="mb-2 text-sm font-semibold text-slate-700">{t.funnel}</h3>
-        <div className="flex flex-wrap items-center gap-2 text-sm">
-          <span className="rounded bg-slate-100 px-2 py-1 text-slate-600">
-            {t.initial}: <strong>{result.initial_count}</strong>
-          </span>
-          {funnel.map((step, i) => (
-            <span key={i} className="flex items-center gap-2">
-              <span className="text-slate-400">→</span>
-              <span className="rounded bg-slate-100 px-2 py-1 text-slate-600" title={`${t.passed}: ${step.passed}`}>
-                {step.label}: <strong>{step.remaining}</strong>
-              </span>
-            </span>
-          ))}
-          <span className="ml-auto text-slate-500">
+      <nav aria-label={t.onThisPage} className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <span className="text-2xs font-semibold uppercase tracking-wide text-ink-subtle">
+          {t.onThisPage}
+        </span>
+        {sections.map((s) => (
+          <a
+            key={s.id}
+            href={`#${s.id}`}
+            className="rounded-control text-xs text-brand underline underline-offset-2 hover:text-brand-700"
+          >
+            {s.label}
+          </a>
+        ))}
+      </nav>
+
+      <Section
+        id="funil"
+        title={t.funnel}
+        description={t.funnelHint}
+        actions={
+          <span className="text-xs text-ink-muted">
             {t.candidates}: <strong className="text-brand-700">{result.final_count}</strong> {t.of}{" "}
             {result.initial_count}
           </span>
-        </div>
-      </section>
+        }
+      >
+        <ol className="space-y-2">
+          <FunnelRow
+            label={t.initial}
+            remaining={result.initial_count}
+            initial={result.initial_count}
+            eliminated={null}
+            tone="neutral"
+          />
+          {funnel.map((step, i) => (
+            <FunnelRow
+              key={i}
+              label={step.label}
+              remaining={step.remaining}
+              initial={result.initial_count}
+              // What this stage removed, from the counts the backend sent.
+              eliminated={(funnel[i - 1]?.remaining ?? result.initial_count) - step.remaining}
+            />
+          ))}
+        </ol>
+      </Section>
 
-      {candidates.length === 0 && (
-        <p className="rounded-md bg-amber-50 px-4 py-3 text-sm text-amber-800">{t.emptyResults}</p>
-      )}
+      {candidates.length === 0 && <Alert tone="warning">{t.emptyResults}</Alert>}
 
       {candidates.length > 0 && (
         <div className="flex flex-wrap gap-3">
-          <Link
+          <ButtonLink
             href={`/mapas?materiais=${candidateIds}${topId ? `&destaque=${topId}` : ""}`}
-            className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-brand-700 hover:bg-slate-50"
+            variant="secondary"
           >
-            {t.viewOnMap} →
-          </Link>
-          <Link
-            href={`/comparar?materiais=${candidateIds}`}
-            className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-brand-700 hover:bg-slate-50"
-          >
-            {t.compareCandidates} →
-          </Link>
+            {t.viewOnMap}
+          </ButtonLink>
+          <ButtonLink href={`/comparar?materiais=${candidateIds}`} variant="secondary">
+            {t.compareCandidates}
+          </ButtonLink>
         </div>
       )}
 
       {/* Candidates + ranking */}
       {candidates.length > 0 && (
-        <section className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-          <table className="min-w-full divide-y divide-slate-200 text-sm">
-            <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
-              <tr>
-                {ranking && <th className="px-3 py-2">{t.rank}</th>}
-                <th className="px-3 py-2">{ptBR.catalog.columnName}</th>
-                <th className="px-3 py-2">{ptBR.catalog.columnClass}</th>
-                {index && (
-                  <th className="px-3 py-2">
-                    {t.indexValue}
-                    {index.dimension && index.dimension !== "dimensionless" && (
-                      <span className="ml-1 font-normal normal-case text-slate-400">
-                        [{prettyUnit(index.dimension)}]
-                      </span>
-                    )}
-                  </th>
-                )}
-                {ranking && <th className="px-3 py-2">{t.score}</th>}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {candidates.map((c) => {
-                const ranked = rankedById.get(c.material_id);
-                return (
-                  <tr key={c.material_id} className={c.rank === 1 ? "bg-green-50" : undefined}>
-                    {ranking && <td className="px-3 py-2 font-semibold text-slate-700">{c.rank ?? "—"}</td>}
-                    <td className="px-3 py-2 font-medium text-brand-700">{c.name}</td>
-                    <td className="px-3 py-2 text-slate-600">{c.class_name}</td>
-                    {index && (
-                      <td className="px-3 py-2 text-slate-700">
-                        {c.index_value === null ? (
-                          <span className="text-slate-400">indefinido</span>
-                        ) : (
-                          formatNumber(c.index_value)
-                        )}
-                      </td>
-                    )}
-                    {ranking && (
-                      <td className="px-3 py-2">
-                        <div className="flex items-center gap-2">
-                          <div className="h-2 w-24 overflow-hidden rounded bg-slate-100">
-                            <div className="h-full bg-brand-500" style={{ width: `${(c.score ?? 0) * 100}%` }} />
+        <Section id="candidatos" title={ranking ? t.ranking : t.candidates}>
+          <TableScroll label={ranking ? t.ranking : t.candidates}>
+            <Table>
+              <THead>
+                <Tr>
+                  {ranking && <Th numeric>{t.rank}</Th>}
+                  <Th>{ptBR.catalog.columnName}</Th>
+                  <Th>{ptBR.catalog.columnClass}</Th>
+                  {index && (
+                    <Th numeric>
+                      {t.indexValue}
+                      {index.dimension && index.dimension !== "dimensionless" && (
+                        <span className="ml-1 font-normal normal-case text-ink-subtle">
+                          [{prettyUnit(index.dimension)}]
+                        </span>
+                      )}
+                    </Th>
+                  )}
+                  {ranking && <Th>{t.score}</Th>}
+                </Tr>
+              </THead>
+              <TBody>
+                {candidates.map((c) => {
+                  const reason = undefinedReasonById.get(c.material_id);
+                  return (
+                    <Tr key={c.material_id} className={c.rank === 1 ? "bg-success-soft" : undefined}>
+                      {ranking && (
+                        <Td numeric className="font-semibold">
+                          {c.rank ?? <MissingValue />}
+                        </Td>
+                      )}
+                      <RowHeader className="text-brand-700">{c.name}</RowHeader>
+                      <Td className="text-ink-muted">{c.class_name}</Td>
+                      {index && (
+                        <Td numeric>
+                          {c.index_value === null ? (
+                            <span className="inline-flex flex-col items-end gap-0.5">
+                              <MissingValue />
+                              {reason ? (
+                                <span className="text-2xs font-normal text-ink-muted">
+                                  {reason}
+                                </span>
+                              ) : null}
+                            </span>
+                          ) : (
+                            formatNumber(c.index_value)
+                          )}
+                        </Td>
+                      )}
+                      {ranking && (
+                        <Td>
+                          <div className="flex items-center gap-2">
+                            <span className="h-2 w-24 overflow-hidden rounded-full bg-surface-sunken">
+                              <span
+                                className="block h-full rounded-full bg-brand"
+                                style={{ width: `${percent(c.score ?? 0, 1)}%` }}
+                              />
+                            </span>
+                            <span className="tabular-nums text-ink-muted">
+                              {c.score !== null ? formatScore(c.score, 3) : <MissingValue />}
+                            </span>
                           </div>
-                          <span className="tabular-nums text-slate-600">
-                            {c.score !== null ? c.score.toFixed(3) : "—"}
-                          </span>
-                        </div>
-                        {ranked && (
-                          <div className="mt-1 flex flex-wrap gap-x-2 text-xs text-slate-400">
-                            {ranked.contributions.map((ct) => (
-                              <span key={ct.key} title={`${t.weight} ${ct.weight.toFixed(2)} × ${ct.normalized.toFixed(2)}`}>
-                                {ct.label}: {ct.contribution.toFixed(3)}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </td>
-                    )}
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </section>
+                        </Td>
+                      )}
+                    </Tr>
+                  );
+                })}
+              </TBody>
+            </Table>
+          </TableScroll>
+        </Section>
+      )}
+
+      {/* Where each score came from. Its own block: inside the ranking table the
+          breakdown competed with the ranking for the same glance, and it is the
+          part someone actually argues about. */}
+      {withContributions.length > 0 && (
+        <Section id="contribuicoes" title={t.contributions} description={t.contributionsHint}>
+          <ul className="space-y-3">
+            {withContributions.map((r) => (
+              <li key={r.material_id} className="flex flex-col gap-1">
+                <div className="flex flex-wrap items-baseline gap-2">
+                  <span className="text-sm font-medium text-ink">{r.name}</span>
+                  <span className="text-2xs tabular-nums text-ink-subtle">
+                    {t.score}: {formatScore(r.score, 3)}
+                  </span>
+                </div>
+                <Contributions contributions={r.contributions} score={r.score} />
+              </li>
+            ))}
+          </ul>
+        </Section>
       )}
 
       {/* Excluded for missing data */}
       {ranking && ranking.excluded.length > 0 && (
-        <section className="rounded-lg border border-amber-200 bg-amber-50 p-4">
-          <h3 className="text-sm font-semibold text-amber-800">{t.excludedTitle}</h3>
-          <p className="mb-2 text-xs text-amber-700">{t.excludedHint}</p>
-          <ul className="space-y-1 text-sm text-amber-800">
-            {ranking.excluded.map((e) => (
-              <li key={e.material_id}>
-                {e.name} — {t.missing}: {e.missing_keys.join(", ")}
-              </li>
-            ))}
-          </ul>
-        </section>
+        <Section id="excluidos" title={t.excludedTitle} description={t.excludedHint}>
+          <Alert tone="warning">
+            <ul className="space-y-1">
+              {ranking.excluded.map((e) => (
+                <li key={e.material_id} className="flex flex-wrap items-baseline gap-x-2">
+                  <span className="font-medium">{e.name}</span>
+                  <MissingValue />
+                  <span className="text-2xs">
+                    {t.missing}: {e.missing_labels.join(", ")}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </Alert>
+        </Section>
       )}
 
       {/* Sensitivity */}
       {ranking && ranking.sensitivity.length > 0 && (
-        <section className="rounded-lg border border-slate-200 bg-white p-4">
-          <h3 className="text-sm font-semibold text-slate-700">{t.sensitivity}</h3>
-          <p className="mb-2 text-xs text-slate-500">{t.sensitivityHint}</p>
-          <table className="min-w-full text-sm">
-            <thead className="text-left text-xs uppercase tracking-wide text-slate-500">
-              <tr>
-                <th className="px-2 py-1">{t.scenario}</th>
-                <th className="px-2 py-1">{t.topMaterial}</th>
-                <th className="px-2 py-1"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {ranking.sensitivity.map((s, i) => (
-                <tr key={i} className="border-t border-slate-100">
-                  <td className="px-2 py-1 text-slate-600">{s.description}</td>
-                  <td className="px-2 py-1 text-slate-700">{s.top_material_name ?? "—"}</td>
-                  <td className="px-2 py-1">
-                    <span
-                      className={
-                        "rounded-full px-2 py-0.5 text-xs " +
-                        (s.changed ? "bg-amber-100 text-amber-800" : "bg-green-100 text-green-800")
-                      }
-                    >
-                      {s.changed ? t.changed : t.unchanged}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </section>
+        <Section id="sensibilidade" title={t.sensitivity} description={t.sensitivityHint}>
+          <TableScroll label={t.sensitivity}>
+            <Table>
+              <THead>
+                <Tr>
+                  <Th>{t.scenario}</Th>
+                  <Th>{t.topMaterial}</Th>
+                  <Th>
+                    <span className="sr-only">{t.changed}</span>
+                  </Th>
+                </Tr>
+              </THead>
+              <TBody>
+                {ranking.sensitivity.map((s, i) => (
+                  <Tr key={i}>
+                    <Td className="text-ink-muted">{s.description}</Td>
+                    <Td>{s.top_material_name ?? <MissingValue />}</Td>
+                    <Td>
+                      <Badge tone={s.changed ? "warning" : "success"}>
+                        {s.changed ? t.changed : t.unchanged}
+                      </Badge>
+                    </Td>
+                  </Tr>
+                ))}
+              </TBody>
+            </Table>
+          </TableScroll>
+        </Section>
       )}
+
+      {/* What produced these numbers. Everything here is echoed back from the
+          run itself — nothing is recomputed, and nothing is filled in when the
+          study did not use it. */}
+      <Section id="proveniencia" title={t.provenanceTitle} description={t.provenanceHint}>
+        <dl className="rounded-card border border-edge bg-surface-raised px-4 py-1">
+          <ProvenanceItem term={t.provCombinator}>{result.combinator}</ProvenanceItem>
+          <ProvenanceItem term={t.provConstraints}>
+            {funnel.length === 0 ? (
+              <span className="text-ink-muted">{t.noConstraints}</span>
+            ) : (
+              <ol className="list-decimal space-y-0.5 pl-4">
+                {funnel.map((step, i) => (
+                  <li key={i}>
+                    {step.label}{" "}
+                    <span className="tabular-nums text-ink-muted">→ {step.remaining}</span>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </ProvenanceItem>
+          <ProvenanceItem term={t.provIndexExpression}>
+            {index ? (
+              <code className="text-xs">{index.expression}</code>
+            ) : (
+              <span className="text-ink-muted">{t.provNone}</span>
+            )}
+          </ProvenanceItem>
+          {index && (
+            <>
+              <ProvenanceItem term={t.provIndexGoal}>
+                {index.goal === "minimize" ? t.minimize : t.maximize}
+              </ProvenanceItem>
+              <ProvenanceItem term={t.provIndexDimension}>
+                {prettyUnit(index.dimension)}
+              </ProvenanceItem>
+              <ProvenanceItem term={t.provIndexDefined}>
+                <span className="tabular-nums">
+                  {index.defined_count} {t.of} {index.defined_count + index.undefined_count}
+                </span>
+              </ProvenanceItem>
+            </>
+          )}
+          <ProvenanceItem term={t.normalization}>
+            {ranking ? (
+              ranking.normalization === "vector" ? (
+                t.normVector
+              ) : (
+                t.normMinmax
+              )
+            ) : (
+              <span className="text-ink-muted">{t.provNone}</span>
+            )}
+          </ProvenanceItem>
+          <ProvenanceItem term={t.provCriteria}>
+            {!ranking ? (
+              <span className="text-ink-muted">{t.provNone}</span>
+            ) : weightRows.length > 0 ? (
+              <ul className="space-y-0.5">
+                {weightRows.map((c) => (
+                  <li key={c.key}>
+                    {c.label}{" "}
+                    <span className="tabular-nums text-ink-muted">{formatScore(c.weight)}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              // No breakdown to read the weights off (every score came out 0).
+              // The keys the run received are still the honest answer.
+              <span>{ranking.criteria.join(", ")}</span>
+            )}
+          </ProvenanceItem>
+        </dl>
+      </Section>
+
+      {/* Item 5 of the proposal: the notice belongs on the screen that produces
+          a recommendation, not only on the file exported from it. */}
+      <LimitationNotice />
     </div>
   );
 }

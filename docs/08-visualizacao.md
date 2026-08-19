@@ -145,16 +145,52 @@ PNG sai em 2× para leitura impressa; SVG é vetorial e é a escolha certa para 
 monografia. O nome do arquivo descreve a figura
 (`mapa-modulo-de-young-densidade-log.svg`).
 
+## Um eixo que é um índice (Fase 9, [D-40](DECISIONS.md))
+
+Um eixo do mapa deixou de precisar ser uma propriedade cadastrada: ele pode ser
+um **índice de desempenho** — do catálogo, pelo slug, ou uma expressão
+personalizada avaliada pelo mesmo interpretador sem `eval`. É o que permite ler
+"índice × custo" em vez de só "módulo × densidade".
+
+Duas consequências que não são detalhe de implementação:
+
+- **A linha de índice sobreposta e o eixo-índice são mutuamente exclusivos**,
+  por desenho. Um contorno de índice constante sobre um eixo que já *é* aquele
+  índice seria uma reta trivial se dizendo informativa — a interface impede a
+  combinação em vez de desenhá-la.
+- **Um material sem valor para alguma variável da expressão não vira ponto**,
+  entra em `excluded` com o motivo escrito. É a mesma regra de dado ausente do
+  resto do sistema: a lacuna é nomeada, nunca preenchida.
+
+## O painel de indicadores (Fase 9, [D-39](DECISIONS.md))
+
+`/painel` responde "quanto do catálogo está preenchido, e com que qualidade" em
+cinco figuras: cobertura geral, composição por tipo de evidência, cobertura por
+classe, ranking de lacunas e distribuição por propriedade com **box-plot**.
+
+Quartis, medianas, extremos e percentuais são computados no backend
+(`app/calculations/statistics.py`), como manda o [ADR 0004](adr/0004-geometria-de-graficos-no-backend.md)
+— um quartil é cálculo, e um quartil calculado no navegador poderia discordar do
+que a exportação diz. E as **duas paletas não se confundem**: a ordinal de
+qualidade do dado (medido → importado → estimado → ausente) não é a categórica
+de classes (Okabe–Ito), porque uma responde a confiança e a outra a identidade.
+
+Uma classe sem nenhum valor registrado para a propriedade escolhida é
+**nomeada em texto**, não desenhada como caixa de altura zero.
+
 ## Endpoints
 
 | Método | Rota | Função |
 |---|---|---|
 | POST | `/api/charts/property-map` | pontos, envelopes, exclusões e linha de índice |
 | POST | `/api/charts/compare` | matriz normalizada para as cinco visualizações |
+| GET | `/api/dashboard/overview` | cobertura geral, por classe e por propriedade |
+| GET | `/api/dashboard/distribution/{property_slug}` | quartis por classe para uma propriedade |
 
-Ambos são POST porque a entrada é estruturada (par de eixos, filtro de classes,
-conjuntos de materiais, expressão do índice e níveis) e não caberia legivelmente
-numa query string.
+Os dois primeiros são POST porque a entrada é estruturada (par de eixos, filtro
+de classes, conjuntos de materiais, expressão do índice e níveis) e não caberia
+legivelmente numa query string. Os dois do painel são GET porque a entrada é um
+slug ou nada.
 
 ## Interface
 

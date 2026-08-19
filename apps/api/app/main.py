@@ -18,8 +18,26 @@ from sqlalchemy.exc import IntegrityError
 
 from app import __version__
 from app.config import settings
-from app.domain.errors import ConflictError, NotFoundError, ValidationError
-from app.routers import ai, charts, classes, health, imports, materials, properties, selection
+from app.domain.errors import (
+    AuthenticationError,
+    ConflictError,
+    NotFoundError,
+    ServiceUnavailableError,
+    ValidationError,
+)
+from app.routers import (
+    ai,
+    auth,
+    charts,
+    classes,
+    dashboard,
+    exports,
+    health,
+    imports,
+    materials,
+    properties,
+    selection,
+)
 
 app = FastAPI(
     title=settings.app_name,
@@ -56,6 +74,16 @@ async def _handle_conflict(_: Request, exc: ConflictError) -> JSONResponse:
     return _error_response(409, str(exc))
 
 
+@app.exception_handler(AuthenticationError)
+async def _handle_authentication(_: Request, exc: AuthenticationError) -> JSONResponse:
+    return _error_response(401, str(exc))
+
+
+@app.exception_handler(ServiceUnavailableError)
+async def _handle_service_unavailable(_: Request, exc: ServiceUnavailableError) -> JSONResponse:
+    return _error_response(503, str(exc))
+
+
 @app.exception_handler(IntegrityError)
 async def _handle_integrity(_: Request, exc: IntegrityError) -> JSONResponse:
     # Safety net: services pre-check uniqueness, but any constraint violation
@@ -85,6 +113,7 @@ async def _handle_request_validation(_: Request, exc: RequestValidationError) ->
 
 
 app.include_router(health.router, prefix="/api")
+app.include_router(auth.router, prefix="/api")
 app.include_router(materials.router, prefix="/api")
 app.include_router(classes.router, prefix="/api")
 app.include_router(properties.router, prefix="/api")
@@ -93,7 +122,9 @@ app.include_router(imports.templates_router, prefix="/api")
 app.include_router(selection.router, prefix="/api")
 app.include_router(selection.indices_router, prefix="/api")
 app.include_router(charts.router, prefix="/api")
+app.include_router(dashboard.router, prefix="/api")
 app.include_router(ai.router, prefix="/api")
+app.include_router(exports.router, prefix="/api")
 
 
 @app.get("/", tags=["root"])

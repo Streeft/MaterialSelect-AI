@@ -25,6 +25,7 @@ from __future__ import annotations
 import ast
 import math
 import re
+from functools import lru_cache
 
 from pint.errors import DimensionalityError, OffsetUnitCalculusError
 
@@ -41,7 +42,7 @@ class ExpressionError(ValueError):
 
 
 def _sqrt(x):  # works on float and pint.Quantity
-    return x ** 0.5
+    return x**0.5
 
 
 def _cbrt(x):
@@ -64,8 +65,27 @@ def safe_variable(slug: str) -> str:
     return name
 
 
+@lru_cache(maxsize=256)
 def parse(expression: str) -> ast.Expression:
     """Parse and validate an expression, returning its AST.
+
+    Memoised, because an index is evaluated once per material and parsing the
+    same string again dominated the work: 17.5 µs of the 33.7 µs it takes to
+    evaluate ``sqrt(modulo_young) / densidade``, or 87 ms of pure re-parsing on
+    a five-thousand-material map.
+
+    Three things make the cache safe, and all three have to stay true:
+
+    * **Nobody mutates the tree.** All four callers only read it — the two
+      walkers here and the two in ``powerlaw``. A memoised parser handing out a
+      shared tree that someone rewrites in place would corrupt every later
+      evaluation of that expression, and silently.
+    * **Failures are not cached.** ``lru_cache`` stores return values, never
+      exceptions, so a rejected expression is re-validated on every attempt and
+      can never be remembered as accepted.
+    * **The cache is bounded.** Expressions are user-authored (the custom index
+      on the map screen), and an unbounded cache keyed by user input is a
+      memory vector rather than an optimisation.
 
     Raises:
         ExpressionError: on empty/oversized input, syntax errors, or any node
@@ -172,7 +192,7 @@ def _walk(node: ast.AST, variables: dict):
             return left * right
         if isinstance(node.op, ast.Div):
             return left / right
-        return left ** right  # Pow (only remaining whitelisted op)
+        return left**right  # Pow (only remaining whitelisted op)
     if isinstance(node, ast.Call):  # pragma: no branch - validated by _check
         return _FUNCTIONS[node.func.id](_walk(node.args[0], variables))
     raise ExpressionError("Construção não permitida.")  # pragma: no cover

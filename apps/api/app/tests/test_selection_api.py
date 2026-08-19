@@ -45,7 +45,9 @@ def test_filter_threshold_in_non_canonical_unit(client):
     resp = client.post("/api/selection/filter", json=payload)
     assert resp.status_code == 200
     assert _names(resp.json()["candidates"]) == {
-        "Liga Alumínio Demo A", "Polímero Demo C", "Compósito Demo E"
+        "Liga Alumínio Demo A",
+        "Polímero Demo C",
+        "Compósito Demo E",
     }
 
 
@@ -62,7 +64,13 @@ def test_filter_incompatible_unit_rejected(client):
 def test_filter_inverted_range_rejected(client):
     payload = {
         "constraints": [
-            {"operator": "between", "property_slug": "densidade", "value_min": 3000, "value_max": 1000, "unit": "kg/m**3"},
+            {
+                "operator": "between",
+                "property_slug": "densidade",
+                "value_min": 3000,
+                "value_max": 1000,
+                "unit": "kg/m**3",
+            },
         ]
     }
     resp = client.post("/api/selection/filter", json=payload)
@@ -103,9 +111,7 @@ def test_index_unknown_variable_rejected(client):
 
 
 def test_index_dangerous_expression_rejected(client):
-    resp = client.post(
-        "/api/selection/index", json={"expression": "__import__('os').getcwd()"}
-    )
+    resp = client.post("/api/selection/index", json={"expression": "__import__('os').getcwd()"})
     assert resp.status_code == 400
 
 
@@ -115,7 +121,11 @@ def test_run_full_pipeline(client):
         "constraints": [
             {"operator": "lte", "property_slug": "densidade", "value": 5, "unit": "g/cm**3"},
         ],
-        "index": {"name": "Rigidez específica", "expression": "modulo_young / densidade", "goal": "maximize"},
+        "index": {
+            "name": "Rigidez específica",
+            "expression": "modulo_young / densidade",
+            "goal": "maximize",
+        },
         "ranking": {
             "normalization": "minmax",
             "criteria": [
@@ -152,6 +162,9 @@ def test_run_ranking_excludes_missing_data(client):
     # Only 2 materials have limite_escoamento; the other 3 are excluded, not zero-filled.
     assert len(body["ranking"]["ranked"]) == 2
     assert len(body["ranking"]["excluded"]) == 3
+    # The key stays for callers that match on it; the label is what a reader sees.
+    assert body["ranking"]["excluded"][0]["missing_keys"] == ["limite_escoamento"]
+    assert body["ranking"]["excluded"][0]["missing_labels"] == ["Limite de escoamento"]
 
 
 def test_ranking_criterion_zero_weight_rejected_by_schema(client):
@@ -171,7 +184,11 @@ def test_study_crud_and_run(client):
         "constraints": [
             {"operator": "lte", "property_slug": "densidade", "value": 5, "unit": "g/cm**3"},
         ],
-        "index": {"name": "Rigidez específica", "expression": "modulo_young / densidade", "goal": "maximize"},
+        "index": {
+            "name": "Rigidez específica",
+            "expression": "modulo_young / densidade",
+            "goal": "maximize",
+        },
         "normalization": "minmax",
         "criteria": [{"key": "__index__", "weight": 1.0}],
     }
@@ -198,9 +215,112 @@ def test_study_crud_and_run(client):
     assert client.get(f"/api/selection/studies/{study_id}").status_code == 404
 
 
+def _viga_leve_payload(criteria: list[dict], name: str = "Viga leve") -> dict:
+    return {
+        "name": name,
+        "combinator": "AND",
+        "constraints": [],
+        "index": {
+            "name": "Viga leve",
+            "expression": "modulo_young / densidade",
+            "goal": "maximize",
+        },
+        "normalization": "minmax",
+        "criteria": criteria,
+    }
+
+
+def test_saved_study_reports_the_derived_label_not_the_raw_key(client):
+    """A criterion saved without a label must not print its own key.
+
+    Saving used to default the label to the key, and that fabricated value then
+    outranked the real name on every re-run: the report read "__index__" in the
+    contributions table and "Ênfase em __index__" in the sensitivity section.
+    """
+    payload = _viga_leve_payload(
+        [{"key": "__index__", "weight": 2.0}, {"key": "densidade", "weight": 1.0}]
+    )
+    study_id = client.post("/api/selection/studies", json=payload).json()["id"]
+
+    stored = client.get(f"/api/selection/studies/{study_id}").json()
+    assert stored["criteria"][0]["label"] is None  # absent stayed absent
+
+    body = client.post(f"/api/selection/studies/{study_id}/run").json()
+    labels = {c["label"] for r in body["ranking"]["ranked"] for c in r["contributions"]}
+    assert labels == {"Viga leve", "Densidade"}
+
+    descriptions = [s["description"] for s in body["ranking"]["sensitivity"]]
+    assert any("Ênfase em Viga leve" in d for d in descriptions)
+    assert not any("__index__" in d for d in descriptions)
+
+
+def test_saved_study_keeps_a_label_the_user_actually_wrote(client):
+    payload = _viga_leve_payload([{"key": "densidade", "label": "Peso próprio", "weight": 1.0}])
+    study_id = client.post("/api/selection/studies", json=payload).json()["id"]
+
+    body = client.post(f"/api/selection/studies/{study_id}/run").json()
+    labels = {c["label"] for r in body["ranking"]["ranked"] for c in r["contributions"]}
+    assert labels == {"Peso próprio"}
+
+
+def test_saved_study_does_not_flip_a_lower_is_better_criterion(client):
+    """Saving a study must not change what it computes.
+
+    An omitted direction used to be persisted as "max", which silently reversed
+    a criterion whose property is better when lower — density here. The saved
+    study then ranked the heaviest material first while the same criteria run
+    directly ranked the lightest first.
+    """
+    criteria = [{"key": "densidade", "weight": 1.0}]
+    direct = client.post(
+        "/api/selection/run",
+        json={"ranking": {"criteria": criteria, "run_sensitivity": False}},
+    ).json()
+
+    study_id = client.post(
+        "/api/selection/studies", json=_viga_leve_payload(criteria, name="Só densidade")
+    ).json()["id"]
+
+    stored = client.get(f"/api/selection/studies/{study_id}").json()
+    assert stored["criteria"][0]["direction"] is None
+
+    saved = client.post(f"/api/selection/studies/{study_id}/run").json()
+    assert [r["name"] for r in saved["ranking"]["ranked"]] == [
+        r["name"] for r in direct["ranking"]["ranked"]
+    ]
+
+
 def test_run_no_criteria_has_no_ranking(client):
     resp = client.post("/api/selection/run", json={"constraints": []})
     assert resp.status_code == 200
     body = resp.json()
     assert body["ranking"] is None
     assert body["final_count"] == 5
+
+
+def test_studies_endpoints_require_login(anon_client):
+    assert anon_client.get("/api/selection/studies").status_code == 401
+    assert anon_client.post("/api/selection/filter", json={"constraints": []}).status_code == 401
+
+
+def test_user_cannot_see_or_delete_another_users_study(client, other_user, login_as):
+    study_id = client.post(
+        "/api/selection/studies", json=_viga_leve_payload([], "Estudo A5")
+    ).json()["id"]
+
+    with login_as(other_user):
+        assert client.get(f"/api/selection/studies/{study_id}").status_code == 404
+        assert client.delete(f"/api/selection/studies/{study_id}").status_code == 404
+        assert client.get("/api/selection/studies").json() == []
+
+    # The owner's session still sees it after the impersonated block ends.
+    assert client.get(f"/api/selection/studies/{study_id}").status_code == 200
+
+
+def test_two_projects_can_reuse_the_same_study_name(client, other_user, login_as):
+    payload = _viga_leve_payload([], "Estudo repetido")
+    assert client.post("/api/selection/studies", json=payload).status_code == 201
+
+    with login_as(other_user):
+        # Same name, different project: not a conflict.
+        assert client.post("/api/selection/studies", json=payload).status_code == 201

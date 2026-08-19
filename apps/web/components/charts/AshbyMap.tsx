@@ -1,21 +1,24 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, type ReactNode } from "react";
 import dynamic from "next/dynamic";
 import type { Data, Layout } from "plotly.js";
 import type { MapPoint, PropertyMap } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { formatNumber, prettyUnit } from "@/lib/format";
+import { chartFileName, escapeHover, toClosedRing, toXY, withAlpha } from "@/lib/charts";
+import { chartTheme, classVisual } from "@/lib/design/palette";
 import {
-  HIGHLIGHT_COLOR,
-  chartFileName,
-  classColors,
-  downloadPlotImage,
-  escapeHover,
-  toClosedRing,
-  toXY,
-  withAlpha,
-} from "@/lib/charts";
+  Card,
+  CardBody,
+  CardHeader,
+  DataQualityBadge,
+  EmptyState,
+  MissingValue,
+  useResolvedTheme,
+} from "@/components/ui";
+import { ChartToolbar } from "./ChartToolbar";
+import { FigureData, type FigureColumn } from "./FigureData";
 
 // Plotly touches window/document, so it must never render on the server.
 const Plot = dynamic(() => import("react-plotly.js"), { ssr: false });
@@ -49,6 +52,43 @@ function errorBar(
   return null;
 }
 
+/** `Name, symbol [unit]` — the axis title, and the header of its data column. */
+function axisTitle(name: string, symbol: string | null, unit: string): string {
+  const pretty = prettyUnit(unit);
+  const head = symbol ? `${name}, ${symbol}` : name;
+  return pretty ? `${head} [${pretty}]` : head;
+}
+
+/**
+ * One axis of one point, as the data table shows it: the value, the quality of
+ * the datum behind it, and whatever the error bar in the figure was drawing.
+ */
+function axisCell(point: MapPoint, axis: "x" | "y"): ReactNode {
+  const value = axis === "x" ? point.x : point.y;
+  const low = axis === "x" ? point.x_min : point.y_min;
+  const high = axis === "x" ? point.x_max : point.y_max;
+  const uncertainty = axis === "x" ? point.x_uncertainty : point.y_uncertainty;
+  const quality = axis === "x" ? point.x_quality : point.y_quality;
+  return (
+    <span className="flex flex-col items-end gap-0.5">
+      <span className="flex items-center gap-1.5">
+        <span className="tabular-nums">{formatNumber(value)}</span>
+        {quality !== null ? <DataQualityBadge state={quality} showLabel={false} /> : null}
+      </span>
+      {low !== null && high !== null ? (
+        <span className="whitespace-nowrap text-2xs text-ink-muted">
+          {t.interval}: {formatNumber(low)} – {formatNumber(high)}
+        </span>
+      ) : null}
+      {uncertainty !== null ? (
+        <span className="whitespace-nowrap text-2xs text-ink-muted">
+          {t.uncertainty}: ±{formatNumber(uncertainty)}
+        </span>
+      ) : null}
+    </span>
+  );
+}
+
 function hoverFor(point: MapPoint, map: PropertyMap): string {
   const xUnit = prettyUnit(map.x_axis.unit);
   const yUnit = prettyUnit(map.y_axis.unit);
@@ -76,9 +116,15 @@ function hoverFor(point: MapPoint, map: PropertyMap): string {
   if (point.y_uncertainty !== null) {
     lines.push(`${t.uncertainty} Y: ±${formatNumber(point.y_uncertainty)} ${yUnit}`);
   }
-  lines.push(
-    `${t.quality}: ${ptBR.quality[point.x_quality]} / ${ptBR.quality[point.y_quality]}`,
-  );
+  // Null exactly when that axis is an index — it has no single provenance of
+  // its own, so the side is omitted rather than badged with an invented state.
+  const qualityParts = [
+    point.x_quality !== null ? `X: ${ptBR.quality[point.x_quality]}` : null,
+    point.y_quality !== null ? `Y: ${ptBR.quality[point.y_quality]}` : null,
+  ].filter((part): part is string => part !== null);
+  if (qualityParts.length > 0) {
+    lines.push(`${t.quality}: ${qualityParts.join(" / ")}`);
+  }
   if (map.index) {
     lines.push(
       point.index_value === null
@@ -96,6 +142,10 @@ function hoverFor(point: MapPoint, map: PropertyMap): string {
  * canonical units, convex-hull envelopes already expressed in the displayed
  * scale, and index lines whose slope and endpoints were derived from the
  * expression on the server.
+ *
+ * Colours, marker shapes and dashes come from the design tokens, so the figure
+ * follows the theme instead of staying white inside a dark page — and so a class
+ * keeps the same identity here, in the comparator and in `/estilo`.
  */
 export function AshbyMap({
   map,
@@ -105,13 +155,10 @@ export function AshbyMap({
   showLabels = false,
 }: AshbyMapProps) {
   const container = useRef<HTMLDivElement>(null);
-  const [exporting, setExporting] = useState<"png" | "svg" | null>(null);
-  const [exportError, setExportError] = useState<string | null>(null);
-
-  const colors = useMemo(
-    () => classColors(map.points.map((p) => p.class_slug)),
-    [map.points],
-  );
+  // Colours come from the tokens of whichever theme is on the document, so the
+  // figure has to be rebuilt when the reader switches — not only recoloured.
+  const theme = useResolvedTheme();
+  const paint = useMemo(() => chartTheme(theme), [theme]);
   const highlighted = useMemo(() => new Set(highlightIds), [highlightIds]);
 
   const traces = useMemo<Data[]>(() => {
@@ -122,15 +169,17 @@ export function AshbyMap({
       for (const envelope of map.envelopes) {
         const { xs, ys } = toClosedRing(envelope.polygon);
         if (xs.length < 2) continue; // a single material has no outline to show
-        const color = colors[envelope.class_slug] ?? HIGHLIGHT_COLOR;
+        const visual = classVisual(envelope.class_slug);
         result.push({
           x: xs,
           y: ys,
           type: "scatter",
           mode: "lines",
           fill: xs.length > 2 ? "toself" : undefined,
-          fillcolor: withAlpha(color, 0.08),
-          line: { color, width: 1, dash: "dot" },
+          fillcolor: withAlpha(visual.color, 0.08),
+          // The dash is the class's, not a generic dot: on a monochrome
+          // printout it is the only thing left telling two envelopes apart.
+          line: { color: visual.color, width: 1, dash: visual.dash },
           hoverinfo: "skip",
           showlegend: false,
           name: envelope.class_name,
@@ -147,7 +196,7 @@ export function AshbyMap({
     }
 
     for (const [classSlug, members] of Array.from(byClass.entries()).sort()) {
-      const color = colors[classSlug] ?? HIGHLIGHT_COLOR;
+      const visual = classVisual(classSlug);
       const xErrors = members.map((p) => errorBar(p, "x"));
       const yErrors = members.map((p) => errorBar(p, "y"));
       const hasX = showIntervals && xErrors.some(Boolean);
@@ -162,15 +211,16 @@ export function AshbyMap({
         type: "scatter",
         mode: showLabels ? "text+markers" : "markers",
         textposition: "top center",
-        textfont: { size: 10, color: "#475569" },
+        textfont: { size: 10, color: paint.label },
         name: members[0]?.class_name ?? classSlug,
         marker: {
           size: members.map((p) => (highlighted.has(p.material_id) ? 16 : 11)),
-          color,
+          color: visual.color,
+          symbol: visual.symbol,
           line: {
             width: members.map((p) => (highlighted.has(p.material_id) ? 3 : 1)),
             color: members.map((p) =>
-              highlighted.has(p.material_id) ? HIGHLIGHT_COLOR : "#ffffff",
+              highlighted.has(p.material_id) ? paint.highlight : paint.markerEdge,
             ),
           },
         },
@@ -180,7 +230,7 @@ export function AshbyMap({
               symmetric: false,
               array: xErrors.map((e) => e?.plus ?? 0),
               arrayminus: xErrors.map((e) => e?.minus ?? 0),
-              color: withAlpha(color, 0.55),
+              color: withAlpha(visual.color, 0.55),
               thickness: 1,
               width: 3,
             }
@@ -191,7 +241,7 @@ export function AshbyMap({
               symmetric: false,
               array: yErrors.map((e) => e?.plus ?? 0),
               arrayminus: yErrors.map((e) => e?.minus ?? 0),
-              color: withAlpha(color, 0.55),
+              color: withAlpha(visual.color, 0.55),
               thickness: 1,
               width: 3,
             }
@@ -214,7 +264,7 @@ export function AshbyMap({
           mode: "lines",
           name: label,
           line: {
-            color: "#0f172a",
+            color: paint.ink,
             width: 2,
             dash: position === 0 ? "solid" : "dash",
           },
@@ -224,114 +274,125 @@ export function AshbyMap({
     }
 
     return result;
-  }, [map, colors, highlighted, showEnvelopes, showIntervals, showLabels]);
+  }, [map, highlighted, showEnvelopes, showIntervals, showLabels, paint]);
 
   const layout = useMemo<Partial<Layout>>(() => {
-    const axisTitle = (
-      name: string,
-      symbol: string | null,
-      unit: string,
-    ): string => {
-      const pretty = prettyUnit(unit);
-      const head = symbol ? `${name}, ${symbol}` : name;
-      return pretty ? `${head} [${pretty}]` : head;
-    };
+    const base = paint.layout;
     return {
+      ...base,
       autosize: true,
       height: 540,
       margin: { l: 80, r: 24, t: 16, b: 60 },
       hovermode: "closest",
-      paper_bgcolor: "#ffffff",
-      plot_bgcolor: "#ffffff",
-      legend: { orientation: "h", y: -0.18, font: { size: 11 } },
+      legend: { ...base.legend, orientation: "h", y: -0.18, font: { size: 11 } },
       xaxis: {
+        ...base.xaxis,
         title: {
           text: axisTitle(map.x_axis.property_name, map.x_axis.symbol, map.x_axis.unit),
         },
         type: map.scale,
-        gridcolor: "#e2e8f0",
         zeroline: false,
       },
       yaxis: {
+        ...base.yaxis,
         title: {
           text: axisTitle(map.y_axis.property_name, map.y_axis.symbol, map.y_axis.unit),
         },
         type: map.scale,
-        gridcolor: "#e2e8f0",
         zeroline: false,
       },
     };
+  }, [map, paint]);
+
+  // The figure's own numbers, as columns. The index column only exists when the
+  // figure drew one, and a point without an index carries the backend's reason
+  // rather than a blank — the same sentence the hover already shows.
+  const columns = useMemo<FigureColumn<MapPoint>[]>(() => {
+    const result: FigureColumn<MapPoint>[] = [
+      {
+        key: "class",
+        header: ptBR.chart.columnClass,
+        cell: (point) => point.class_name,
+      },
+      {
+        key: "x",
+        header: axisTitle(map.x_axis.property_name, map.x_axis.symbol, map.x_axis.unit),
+        numeric: true,
+        cell: (point) => axisCell(point, "x"),
+      },
+      {
+        key: "y",
+        header: axisTitle(map.y_axis.property_name, map.y_axis.symbol, map.y_axis.unit),
+        numeric: true,
+        cell: (point) => axisCell(point, "y"),
+      },
+    ];
+    if (map.index) {
+      result.push({
+        key: "index",
+        header: t.indexValue,
+        numeric: true,
+        cell: (point) => {
+          if (point.index_value !== null) return formatNumber(point.index_value);
+          if (!point.index_undefined_reason) return null;
+          return (
+            <span className="flex flex-col items-end gap-0.5">
+              <MissingValue />
+              <span className="text-2xs text-ink-muted">{point.index_undefined_reason}</span>
+            </span>
+          );
+        },
+      });
+    }
+    return result;
   }, [map]);
 
-  async function handleExport(format: "png" | "svg") {
-    setExportError(null);
-    setExporting(format);
-    try {
-      await downloadPlotImage(
-        container.current,
-        format,
-        chartFileName(
-          "mapa",
-          map.y_axis.property_name,
-          map.x_axis.property_name,
-          map.scale,
-        ),
-      );
-    } catch {
-      setExportError(t.exportError);
-    } finally {
-      setExporting(null);
-    }
-  }
-
-  const buttonClass =
-    "rounded border border-slate-300 px-2.5 py-1 text-xs text-slate-600 hover:bg-slate-50 disabled:opacity-50";
-
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4">
-      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-        <p className="text-xs text-slate-500">
-          {t.coverage(map.plotted_count, map.considered_count)}
-        </p>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            className={buttonClass}
-            onClick={() => void handleExport("png")}
-            disabled={exporting !== null || map.points.length === 0}
-          >
-            {exporting === "png" ? t.exporting : t.exportPng}
-          </button>
-          <button
-            type="button"
-            className={buttonClass}
-            onClick={() => void handleExport("svg")}
-            disabled={exporting !== null || map.points.length === 0}
-          >
-            {exporting === "svg" ? t.exporting : t.exportSvg}
-          </button>
-        </div>
-      </div>
-
-      {exportError && (
-        <p role="alert" className="mb-2 text-xs text-red-600">
-          {exportError}
-        </p>
-      )}
-
-      {map.points.length === 0 ? (
-        <p className="py-12 text-center text-sm text-slate-500">{t.empty}</p>
-      ) : (
-        <div ref={container}>
-          <Plot
-            data={traces}
-            layout={layout}
-            config={{ displaylogo: false, responsive: true }}
-            style={{ width: "100%" }}
-            useResizeHandler
+    <Card>
+      <CardHeader
+        headingLevel={2}
+        title={t.figure}
+        description={t.coverage(map.plotted_count, map.considered_count)}
+        actions={
+          <ChartToolbar
+            target={container}
+            disabled={map.points.length === 0}
+            fileName={chartFileName(
+              "mapa",
+              map.y_axis.property_name,
+              map.x_axis.property_name,
+              map.scale,
+            )}
           />
-        </div>
-      )}
-    </div>
+        }
+      />
+      <CardBody className="flex flex-col gap-3">
+        {map.points.length === 0 ? (
+          <EmptyState title={t.empty} />
+        ) : (
+          <>
+            {/* `role="img"` collapses Plotly's thousands of `<path>` and tick
+                nodes into one object for assistive technology. What replaces
+                them is the table below, not a longer label. */}
+            <div ref={container} role="img" aria-label={ptBR.chart.figureLabel(t.figure)}>
+              <Plot
+                data={traces}
+                layout={layout}
+                config={{ displaylogo: false, responsive: true }}
+                style={{ width: "100%" }}
+                useResizeHandler
+              />
+            </div>
+            <FigureData
+              caption={t.figure}
+              rows={map.points}
+              rowKey={(point) => point.material_id}
+              rowHeader={{ header: ptBR.compare.columnMaterial, cell: (point) => point.material_name }}
+              columns={columns}
+            />
+          </>
+        )}
+      </CardBody>
+    </Card>
   );
 }

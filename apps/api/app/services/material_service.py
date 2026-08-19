@@ -15,13 +15,14 @@ from app.domain.data_quality import (
     missing_value,
 )
 from app.domain.errors import ConflictError, NotFoundError, ValidationError
-from app.models.enums import PropertyCategory
+from app.models.enums import DataQuality, PropertyCategory
 from app.models.material import Material
 from app.models.material_property_value import MaterialPropertyValue
 from app.repositories.material_repository import MaterialRepository
 from app.schemas.material import (
     ChartData,
     ChartPoint,
+    DataQualitySummary,
     MaterialCreate,
     MaterialDetail,
     MaterialListItem,
@@ -41,6 +42,26 @@ _CATEGORY_ORDER = [
 ]
 
 
+def _summarise_quality(material: Material) -> DataQualitySummary:
+    """Count a material's values by provenance, keeping absence separate.
+
+    A value flagged missing carries a ``data_quality`` like any other row, but
+    counting it under that quality would state that something was measured or
+    imported when nothing was. Absence is counted on its own.
+    """
+    summary = DataQualitySummary()
+    for value in material.property_values:
+        if value.is_missing:
+            summary.missing += 1
+        elif value.data_quality is DataQuality.MEDIDO:
+            summary.medido += 1
+        elif value.data_quality is DataQuality.IMPORTADO:
+            summary.importado += 1
+        else:
+            summary.estimado += 1
+    return summary
+
+
 class MaterialService:
     """Coordinates catalogue reads and shapes them into API responses."""
 
@@ -54,9 +75,11 @@ class MaterialService:
                 id=m.id,
                 name=m.name,
                 class_name=m.material_class.name,
+                class_slug=m.material_class.slug,
                 subclass=m.subclass,
                 is_demo=m.is_demo,
                 keywords=list(m.keywords or []),
+                quality=_summarise_quality(m),
             )
             for m in materials
         ]
@@ -70,6 +93,7 @@ class MaterialService:
             name=material.name,
             class_id=material.class_id,
             class_name=material.material_class.name,
+            class_slug=material.material_class.slug,
             subclass=material.subclass,
             description=material.description,
             is_demo=material.is_demo,
@@ -159,9 +183,7 @@ class MaterialService:
 
         # Build (and validate) the new rows before deleting the old ones, so a
         # validation error leaves the existing data untouched.
-        new_rows = [
-            self._build_value_from_input(v, is_demo=material.is_demo) for v in values
-        ]
+        new_rows = [self._build_value_from_input(v, is_demo=material.is_demo) for v in values]
         self.repo.delete_values_for_material(material_id)
         for row in new_rows:
             row.material_id = material_id
@@ -179,9 +201,7 @@ class MaterialService:
         slugs = [v.property_slug for v in values]
         duplicates = sorted({s for s in slugs if slugs.count(s) > 1})
         if duplicates:
-            raise ValidationError(
-                f"Propriedades repetidas no payload: {', '.join(duplicates)}"
-            )
+            raise ValidationError(f"Propriedades repetidas no payload: {', '.join(duplicates)}")
 
     def _build_value_from_input(
         self, payload: PropertyValueIn, is_demo: bool

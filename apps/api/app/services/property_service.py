@@ -21,9 +21,7 @@ class PropertyService:
         self.repo = PropertyDefinitionRepository(db)
 
     def list_properties(self) -> list[PropertyDefinitionOut]:
-        return [
-            self._to_out(prop, count) for prop, count in self.repo.list_with_counts()
-        ]
+        return [self._to_out(prop, count) for prop, count in self.repo.list_with_counts()]
 
     def create_property(self, payload: PropertyDefinitionIn) -> PropertyDefinitionOut:
         slug = self._resolve_slug(payload)
@@ -63,7 +61,7 @@ class PropertyService:
         # Changing the canonical unit or dimension would desynchronise every
         # stored normalized_value from the definition (a chart labelled g/cm³
         # plotting values still in kg/m³). Block while values exist; a future
-        # migration tool may re-normalise instead (see docs/backlog.md).
+        # migration tool may re-normalise instead (see docs/TODO.md).
         unit_changed = (
             payload.canonical_unit != obj.canonical_unit
             or payload.physical_dimension != obj.physical_dimension
@@ -93,9 +91,7 @@ class PropertyService:
         if obj is None:
             raise NotFoundError(f"Propriedade não encontrada: {property_id}")
         if self.repo.value_count(property_id) > 0:
-            raise ConflictError(
-                "Não é possível excluir uma propriedade com valores cadastrados."
-            )
+            raise ConflictError("Não é possível excluir uma propriedade com valores cadastrados.")
         self.repo.delete(obj)
         self.repo.commit()
 

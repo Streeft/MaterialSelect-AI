@@ -6,23 +6,11 @@
 
 import type { CoordinatePair } from "./types";
 
-/**
- * Categorical palette for material classes. Hues are spaced far enough apart to
- * stay distinguishable under the common forms of colour-vision deficiency, and
- * dark enough to read as an outline on white.
- */
-export const CLASS_PALETTE = [
-  "#2563eb", // blue
-  "#059669", // green
-  "#d97706", // amber
-  "#7c3aed", // violet
-  "#db2777", // pink
-  "#0891b2", // cyan
-  "#65a30d", // lime
-  "#b45309", // brown
-] as const;
-
-export const HIGHLIGHT_COLOR = "#dc2626";
+// Colour, marker shape and dash pattern live in `lib/design/palette.ts`, which
+// is also what `/estilo` documents. This file used to carry a second palette of
+// its own; two palettes is how a report ends up looking like it came from two
+// tools, and the one here was colour-only — no shape, nothing left on a
+// monochrome printout.
 
 /** Unicode combining marks, left behind by NFD decomposition. */
 const COMBINING_MARKS = /[\u0300-\u036f]/g;
@@ -63,22 +51,6 @@ export function axisLabels(
       ? property.symbol
       : property.property_name,
   );
-}
-
-/**
- * Assign one palette entry per class, deterministically.
- *
- * Classes are user-editable, so colours cannot be hard-coded per slug: sorting
- * the slugs before assigning keeps a given chart stable across re-renders and
- * across reloads, which matters when a figure goes into a report.
- */
-export function classColors(slugs: string[]): Record<string, string> {
-  const unique = Array.from(new Set(slugs)).sort();
-  const colors: Record<string, string> = {};
-  unique.forEach((slug, position) => {
-    colors[slug] = CLASS_PALETTE[position % CLASS_PALETTE.length] as string;
-  });
-  return colors;
 }
 
 /** Add an alpha channel to a `#rrggbb` colour, for envelope fills. */
@@ -137,8 +109,9 @@ export function chartFileName(...parts: (string | null | undefined)[]): string {
 /**
  * Export the Plotly figure inside `container` as a PNG or SVG download.
  *
- * Uses the very Plotly instance `react-plotly.js` already loaded, so no second
- * copy of the library is pulled into the bundle. PNG is rendered at 2× for
+ * Imports the same custom bundle `react-plotly.js` is aliased to in
+ * `next.config.mjs`, so this is the very instance that drew the figure and no
+ * second copy of the library is pulled in. PNG is rendered at 2× for
  * legibility in printed reports; SVG is resolution-independent and is the right
  * choice for the monograph.
  */
@@ -148,9 +121,11 @@ export async function downloadPlotImage(
   fileName: string,
 ): Promise<void> {
   const graph = container?.querySelector<HTMLElement>(".js-plotly-plot");
-  if (!graph) throw new Error("Gráfico ainda não renderizado.");
+  // English on purpose: this never reaches a reader. The toolbar catches it and
+  // shows `ptBR.chart.exportError`, which is where the pt-BR sentence lives.
+  if (!graph) throw new Error("Plot not rendered yet.");
 
-  const plotly = (await import("plotly.js/dist/plotly")).default;
+  const plotly = (await import("@/lib/plotly-custom")).default;
   const dataUrl = await plotly.toImage(graph, {
     format,
     width: graph.clientWidth || 1100,

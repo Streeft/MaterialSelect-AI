@@ -21,13 +21,9 @@ class MaterialClass(Base):
     name: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
     slug: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
     description: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    parent_id: Mapped[int | None] = mapped_column(
-        ForeignKey("material_class.id"), nullable=True
-    )
+    parent_id: Mapped[int | None] = mapped_column(ForeignKey("material_class.id"), nullable=True)
 
     parent: Mapped[MaterialClass | None] = relationship(
         remote_side="MaterialClass.id", backref="children"
     )
-    materials: Mapped[list[Material]] = relationship(  # noqa: F821
-        back_populates="material_class"
-    )
+    materials: Mapped[list[Material]] = relationship(back_populates="material_class")  # noqa: F821

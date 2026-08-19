@@ -27,7 +27,9 @@ class Material(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(200), nullable=False, index=True)
-    class_id: Mapped[int] = mapped_column(ForeignKey("material_class.id"), nullable=False)
+    class_id: Mapped[int] = mapped_column(
+        ForeignKey("material_class.id"), nullable=False, index=True
+    )
     subclass: Mapped[str | None] = mapped_column(String(200), nullable=True)
     description: Mapped[str | None] = mapped_column(String(1000), nullable=True)
     # Free-form keywords for search; stored as a JSON list for portability.
@@ -38,13 +40,11 @@ class Material(Base):
     # Set when the material was created by an import job, enabling logical
     # rollback of the whole import as a unit. NULL for manually created rows.
     import_job_id: Mapped[int | None] = mapped_column(
-        ForeignKey("import_job.id"), nullable=True
+        ForeignKey("import_job.id"), nullable=True, index=True
     )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
 
-    material_class: Mapped[MaterialClass] = relationship(  # noqa: F821
-        back_populates="materials"
-    )
+    material_class: Mapped[MaterialClass] = relationship(back_populates="materials")  # noqa: F821
     property_values: Mapped[list[MaterialPropertyValue]] = relationship(  # noqa: F821
         back_populates="material", cascade="all, delete-orphan"
     )

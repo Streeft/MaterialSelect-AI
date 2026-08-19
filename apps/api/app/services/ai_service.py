@@ -224,15 +224,15 @@ class AIService:
 
     # --- explanation ------------------------------------------------------
 
-    def explain(self, study_id: int) -> ExplanationOut:
+    def explain(self, study_id: int, project_id: int) -> ExplanationOut:
         provider = self._provider()
-        study = self.selection_repo.get_study(study_id)
+        study = self.selection_repo.get_study(study_id, project_id)
         if study is None:
             raise NotFoundError(f"Estudo não encontrado: {study_id}")
 
         # The prose is written about numbers this call just produced, not about
         # numbers the caller supplied.
-        result = SelectionService(self.db).run_study(study_id)
+        result = SelectionService(self.db, project_id).run_study(study_id)
         context = _result_context(study, result)
 
         raw = provider.explain(context)
@@ -268,7 +268,10 @@ def _result_context(study, result) -> ResultContext:
     """Flatten a computed run into the read-only view a provider may see."""
     ranked = [(r.name, r.rank, r.score) for r in (result.ranking.ranked if result.ranking else [])]
     excluded = [
-        (e.name, list(e.missing_keys)) for e in (result.ranking.excluded if result.ranking else [])
+        # Labels, not keys: whatever a provider quotes from here ends up in
+        # prose a person reads.
+        (e.name, list(e.missing_labels))
+        for e in (result.ranking.excluded if result.ranking else [])
     ]
     funnel = [(step.label, step.remaining) for step in result.funnel]
 
@@ -291,6 +294,14 @@ def _result_context(study, result) -> ResultContext:
         study.index_expression or "",
         result.index.dimension if result.index else "",
         *[c.label or "" for c in study.constraints],
+        # Material names are pipeline output as much as any label is: writing
+        # "Aço AISI 1020 lidera" quotes the catalogue, it does not invent 1020.
+        # Without this, naming the winner would be enough to have a whole
+        # explanation discarded the moment the catalogue holds a real alloy
+        # designation.
+        *[name for name, _, _ in ranked],
+        *[name for name, _ in excluded],
+        *[label for _, labels in excluded for label in labels],
     ]:
         numbers.update(numbers_in(text))
 

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from sqlalchemy import String, delete, func, or_, select
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.models.material import Material
 from app.models.material_class import MaterialClass
@@ -28,7 +28,13 @@ class MaterialRepository:
         stmt = (
             select(Material)
             .join(MaterialClass, Material.class_id == MaterialClass.id)
-            .options(joinedload(Material.material_class))
+            .options(
+                joinedload(Material.material_class),
+                # One extra query for the whole page, so the catalogue can state
+                # each material's data quality. Reaching the same collection
+                # lazily would be one query per row.
+                selectinload(Material.property_values),
+            )
             .where(Material.is_active.is_(True))
             .order_by(Material.name)
         )
@@ -37,11 +43,7 @@ class MaterialRepository:
             # Escape LIKE metacharacters so user input is matched literally —
             # otherwise "%" and "_" act as wildcards and silently distort results.
             escaped = (
-                search.strip()
-                .lower()
-                .replace("\\", "\\\\")
-                .replace("%", "\\%")
-                .replace("_", "\\_")
+                search.strip().lower().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
             )
             term = f"%{escaped}%"
             # keywords is a JSON list; matching against its text form is a
@@ -74,9 +76,7 @@ class MaterialRepository:
                 joinedload(Material.property_values).joinedload(
                     MaterialPropertyValue.property_definition
                 ),
-                joinedload(Material.property_values).joinedload(
-                    MaterialPropertyValue.source
-                ),
+                joinedload(Material.property_values).joinedload(MaterialPropertyValue.source),
             )
             .where(Material.id == material_id)
             .execution_options(populate_existing=True)
@@ -99,11 +99,7 @@ class MaterialRepository:
             select(MaterialPropertyValue)
             .join(PropertyDefinition, MaterialPropertyValue.property_id == PropertyDefinition.id)
             .join(Material, MaterialPropertyValue.material_id == Material.id)
-            .options(
-                joinedload(MaterialPropertyValue.material).joinedload(
-                    Material.material_class
-                )
-            )
+            .options(joinedload(MaterialPropertyValue.material).joinedload(Material.material_class))
             .where(PropertyDefinition.slug == slug)
             .where(MaterialPropertyValue.is_missing.is_(False))
             .where(Material.is_active.is_(True))
@@ -125,9 +121,9 @@ class MaterialRepository:
 
     def get_or_create_source(self, label: str, is_demo: bool = False) -> Source:
         """Return the source with ``label``, creating it if necessary."""
-        existing = self.db.execute(
-            select(Source).where(Source.label == label)
-        ).scalars().one_or_none()
+        existing = (
+            self.db.execute(select(Source).where(Source.label == label)).scalars().one_or_none()
+        )
         if existing:
             return existing
         source = Source(label=label, is_demo=is_demo)
@@ -138,9 +134,7 @@ class MaterialRepository:
     def delete_values_for_material(self, material_id: int) -> None:
         """Remove all property values of a material (used when replacing them)."""
         self.db.execute(
-            delete(MaterialPropertyValue).where(
-                MaterialPropertyValue.material_id == material_id
-            )
+            delete(MaterialPropertyValue).where(MaterialPropertyValue.material_id == material_id)
         )
 
     def add(self, obj: object) -> None:

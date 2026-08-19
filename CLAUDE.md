@@ -1,13 +1,21 @@
 # CLAUDE.md — Convenções do projeto MaterialSelect AI
 
-Instruções para agentes/contribuidores trabalhando neste repositório.
+Instruções para agentes/contribuidores trabalhando neste repositório. Esta é a
+**versão curta**, carregada automaticamente.
+
+> **Novo por aqui?** Comece por [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md)
+> (estado do projeto) e leia [`docs/CLAUDE.md`](docs/CLAUDE.md) — o guia
+> completo, com as armadilhas que já causaram bug, a nomenclatura e as decisões
+> que não devem ser alteradas. Arquitetura em
+> [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md); o que fazer a seguir em
+> [`docs/TODO.md`](docs/TODO.md).
 
 ## Princípios inegociáveis (metodologia)
 
 1. **Não inventar propriedades de materiais.** Só existem valores explicitamente
    cadastrados ou importados.
 2. **Todo cálculo numérico é determinístico e vive no backend** (camadas
-   `calculations` / `domain`). A futura camada de IA **nunca** produz valores
+   `calculations` / `domain`). A camada de IA **nunca** produz valores
    numéricos — apenas interpreta, sugere e explica.
 3. **Dado ausente nunca vira zero.** Use `is_missing=True` com campos numéricos
    `NULL`. A regra está centralizada em `app/domain/data_quality.py`.
@@ -25,6 +33,9 @@ Instruções para agentes/contribuidores trabalhando neste repositório.
 - **Código (identificadores, funções, comentários):** inglês, consistente.
 - **Domínio/rotulagem de UI** pode usar termos em PT-BR quando forem o texto
   exibido (dicionário em `apps/web/lib/i18n.ts`).
+- Exceção única e deliberada, comentada no próprio arquivo: os textos de amostra
+  dentro de `apps/web/app/estilo/page.tsx`, que são conteúdo de espécime
+  tipográfico e não copy de produto.
 
 ## Arquitetura em camadas (backend)
 
@@ -33,14 +44,109 @@ Fluxo: `routers` (HTTP fino) → `services` (regras/orquestração) →
 Regras puras em `domain`; cálculo determinístico em `calculations`. **Sem lógica
 de negócio nos routers.** Contratos de entrada/saída em `schemas` (Pydantic v2).
 
-`importers/` (Fase 3) e `ai/` (Fase 6) estão implementadas; `exporters/` segue
-como stub documentado.
+`importers/` (Fase 3), `ai/` (Fase 6) e `exporters/` (Fase 7) estão
+implementadas.
+
+Em `exporters/`, **todo arquivo exportado carrega o aviso de limitação de uso**
+(compromisso do item 5 da proposta). O modelo `Report` é agnóstico de formato e
+tem dois renderizadores: `spreadsheet.py` (CSV/XLSX) e `html.py` (imprimível).
+
+**O escape é por formato, e não intercambiável.** `cells.py` neutraliza injeção
+de fórmula na planilha com apóstrofo à frente — visível, nunca destrutivo;
+números negativos saem como célula numérica de propósito. `html.py` neutraliza
+injeção de **marcação** com `html.escape` em todo valor, cabeçalho, título e
+nota. Não reaproveite um no outro: um `=` é inerte em HTML, e o apóstrofo
+apareceria na tela como corrupção do dado. O HTML ainda é servido sob
+`Content-Security-Policy: default-src 'none'`, camada independente do escape.
 
 Na camada `ai/`, o provedor recebe só o catálogo e o texto — nunca uma sessão de
 banco ou o avaliador de expressões — e **toda** saída passa por
-`app/ai/guardrails.py` antes de chegar ao usuário. Ao mexer ali, não afrouxe a
-ancoragem numérica: todo número de uma restrição proposta tem de aparecer no
-enunciado do usuário, inclusive quando uma conversão estaria correta.
+`app/ai/guardrails.py` antes de chegar ao usuário. Ao mexer ali, não afrouxe duas
+regras: **ancoragem numérica** (todo número de uma restrição proposta tem de
+aparecer no enunciado do usuário, inclusive quando uma conversão estaria correta)
+e **unidade explícita** (limiar sobre propriedade dimensionada não pode omitir a
+unidade — unidade ausente vira a canônica e, numa escala com offset, inverte o
+sentido do enunciado).
+
+Há quatro provedores: `mock` (padrão, determinístico, sem rede), `claude-api`
+(API da Anthropic, chave própria), `claude-cli` (o Claude Code instalado na
+máquina, pela assinatura já autenticada) e `openai-compat` (qualquer servidor que
+fale `/chat/completions`, escolhido por `AI_BASE_URL` — Groq no plano gratuito,
+Ollama local, OpenRouter, OpenAI). O que os provedores reais compartilham está em
+`app/ai/model_base.py` — **não** em um arquivo com "claude" no nome, porque as
+garantias são da camada. Duas delas não são negociáveis (D-35): **o modelo
+escolhe um índice pelo slug** e a expressão é lida do catálogo depois — não peça
+esse campo ao modelo — e **as ressalvas da explicação são do backend**
+(`app/ai/caveats.py`), fora do esquema enviado. Um provedor real não é
+determinístico, e é por isso que o padrão continua `mock`.
+
+No `openai-compat`, duas coisas parecem descuido e são decisão (D-36):
+`AI_BASE_URL` **não tem padrão** (um padrão escolheria um fornecedor pelo
+operador; sem ele, o erro traz as receitas prontas) e **chave vazia é
+configuração válida** — sem `AI_API_KEY` o cabeçalho `Authorization` não é
+enviado, que é o que um Ollama local espera. Degradar o modo JSON é decisão do
+operador via `AI_JSON_MODE`, nunca queda silenciosa. E o aviso mostrado ao
+usuário nomeia **o host** de destino, nunca o caminho — um caminho de gateway
+pode carregar token.
+
+## Sistema de design (frontend)
+
+A interface tem um sistema de design próprio, **sem biblioteca de componentes**
+(D-23). Três regras que não são questão de gosto:
+
+- **Cor só via token.** Todo valor de cor vive em `apps/web/app/globals.css` como
+  triplo `"R G B"`; o Tailwind lê pelo `tailwind.config.ts` e a camada de gráfico
+  lê o mesmo token em runtime por `lib/design/palette.ts`, de modo que interface
+  e figura não possam discordar (D-28). Nada de classe de paleta crua
+  (`bg-slate-800`) em componente.
+- **A paleta é azul, e dois matizes estão onde estão de propósito** (D-38, que
+  substitui a paleta de D-33 sem revogar o método dela). `--info` fica no ciano
+  para que um alerta informativo não vire cromo de marca, e
+  `--quality-importado` fica no violeta porque o único matiz com que uma
+  procedência não pode ser confundida é aquele em que se clica. Ao mexer na
+  paleta, meça: o par mais apertado é `--brand-700` sobre `--brand-50` a 5,01:1,
+  e `--accent` **não** é o azul do Google (#1A73E8 dá 4,51:1 com branco). Estado
+  de hover nomeia `800`/`900`, nunca `--accent` — que *é* `--brand-700` e
+  produziria um hover invisível no tema claro. A paleta categórica de classes
+  (Okabe–Ito) não é da marca e não se mexe: ela responde a daltonismo e a
+  impressão monocromática.
+- **Forma e movimento também são token.** `rounded-card`/`rounded-control`
+  cobrem quase tudo; a classe `.pressable` (em `globals.css`) é o gesto de
+  "maleável" — 2% de `transform` na curva do Material 3, sem biblioteca.
+- **Primitivas em `components/ui/`**, importadas sempre pelo barril
+  `@/components/ui` e documentadas ao vivo em `/estilo` — as figuras da
+  monografia são capturas dessa rota, e por isso ela não pode envelhecer em
+  relação ao código.
+- **A navegação é a barra lateral** (`components/layout/AppSidebar.tsx`, D-37):
+  fixa a partir de `lg`, gaveta modal abaixo, e recolhível a 76 px. Ao recolher,
+  o rótulo de um link vira `sr-only` — **nunca** é removido, ou o link fica sem
+  nome acessível. O estado recolhido não é persistido de propósito; se um dia
+  precisar ser, o caminho é um cookie lido no servidor, não um `useEffect`.
+- **A borda de um controle é informação, não moldura** (D-34). Um campo tem o
+  mesmo fundo do cartão em que está, então aquela borda é a única coisa que diz
+  que existe um controle ali: ela responde à WCAG 1.4.11 (3:1), e não ao
+  orçamento de fio de cabelo dos outros contornos. Use `border-edge-control` no
+  contorno do que se opera e nunca num divisor decorativo.
+
+E as proibições do §13 de [`docs/REDESIGN.md`](docs/REDESIGN.md), que continuam
+valendo depois da Fase 8: nenhuma biblioteca de componentes, **nenhum framework
+de animação** (a proibição vale igual quando a animação vem bonita), nenhum
+cálculo movido para o cliente, e **ausência nunca é renderizada como `0`, `—` ou
+célula vazia** — é o quarto estado da qualidade do dado, com rótulo escrito
+(D-24). Número na tela usa a convenção do pt-BR (D-30), e todo gráfico tem como
+alternativa textual a tabela que o originou (D-31).
+
+**O Plotly é montado à la carte.** `apps/web/lib/plotly-custom.ts` registra
+exatamente as cinco famílias de traço que as figuras usam (`bar`, `box`,
+`heatmap`, `scatter`, `scatterpolar`), e o `webpack.resolve.alias` do
+`next.config.mjs` aponta para lá o `plotly.js/dist/plotly` que o
+`react-plotly.js` exige — a build completa custava 4,5 MB, 79% de todo o
+JavaScript da aplicação. Duas consequências que não são opcionais: **um sexto
+tipo de traço tem de ser registrado ali**, ou o Plotly falha em runtime com
+"Trace type not found" — o verificador de tipos não pega isso —, e o alias vale
+**só para o cliente** (`if (!isServer)`), porque aplicá-lo ao grafo do servidor
+quebra o runtime de desenvolvimento com um erro que **não reproduz em
+`next build`** e só aparece quando alguém abre a aplicação.
 
 ## Convenções
 
@@ -74,29 +180,104 @@ npm run dev
 npm run typecheck; npm run test; npm run build
 ```
 
+## Integração contínua
+
+`.github/workflows/ci.yml` roda em todo push para `main` e em todo PR. O portão
+é exatamente o conjunto de comandos acima — se um deles falha localmente, falha
+na CI:
+
+- **Backend** (Python 3.11 e 3.12): `ruff check app`, `black --check app`,
+  `pytest`, e `alembic upgrade head` + `app.db.seed` num banco limpo. Este
+  último existe porque os testes usam SQLite em memória com `create_all` e
+  nunca exercitam as migrações — que são a fonte de verdade do schema.
+- **Frontend**: `npm ci`, `typecheck`, `lint`, `test`, `build`.
+
+Antes de abrir um PR, rode os dois conjuntos localmente; nenhum passo da CI é
+meramente informativo.
+
 ## Estado atual
 
-Fases 1 (Fundação), 2 (CRUD do catálogo), 3 (Importação CSV/XLSX), 4 (Seleção
-determinística: filtros, índices de desempenho com parser seguro, ranking
-multicritério e estudos salvos — ver docs/07-selecao-deterministica.md) e 5
-(Visualização: mapas de Ashby com envelopes por classe, barras de erro e linhas
-de índice com inclinação derivada da expressão; comparador com tabela, barras,
-radar, coordenadas paralelas e heatmap; exportação PNG/SVG — ver
-docs/08-visualizacao.md) e 6 (camada de IA opcional, desacoplada, com provedor
-simulado determinístico e guardrails executáveis — ver docs/09-camada-ia.md)
-concluídas. Próxima: Fase 7 (relatórios e qualidade). Backlog completo em
-`docs/backlog.md`.
+Fases 1 a 6 concluídas. **Fase 7 (relatórios e qualidade) parcial** — as
+exportações CSV/XLSX, o relatório HTML imprimível, os testes end-to-end de
+interface (A4, Playwright em `apps/web/e2e/`) e a autenticação (A5) já saíram;
+falta só auditoria (M2), que A5 destravou (havia "quem" fica vazio como
+dependência, agora há `User`). **A5** deu login exclusivamente por terceiros
+(Google, OAuth 2.0 — sem senha em lugar nenhum do sistema), sessão em cookie
+`httpOnly` que é linha de banco e não JWT, catálogo compartilhado entre todo
+usuário autenticado e um `Project` por usuário isolando `SelectionStudy`
+([D-42](docs/DECISIONS.md)); o Playwright injeta uma sessão fixa por cookie em
+vez de passar pelo Google, sem expor bypass nenhum na API. **Fase 8 (redesign da
+interface) concluída** — sistema de design próprio, as quatro promessas da
+proposta visíveis na tela, acessibilidade medida no navegador nos dois temas e
+a 375 px.
+`docs/11-usabilidade.md` está instrumentado, mas **nenhuma sessão de teste com
+usuários foi realizada** — enquanto a tabela de melhorias dele estiver vazia, o
+§3.5 da proposta não foi cumprido.
+
+A camada de IA da Fase 6 ganhou provedores reais (`claude-api`, `claude-cli`,
+`openai-compat`) sem que serviço, guardrails ou interface mudassem — a
+demonstração de que a camada é mesmo opcional e substituível.
+
+**Fase 9 concluída** — o pedido tinha seis frentes (IA gratuita, sidebar,
+repaginação mais colorida e arredondada, dashboards interativos, mapas
+personalizáveis, laudo de engenharia completo), e as seis foram entregues: o
+provedor `openai-compat` (D-36), o renderizador de figuras SVG do backend
+(`app/exporters/figures.py`), a barra lateral (D-37), a repaginação — paleta,
+forma e movimento (D-38) —, o painel de indicadores em `/painel` (D-39):
+cobertura geral, composição por tipo de evidência, cobertura por classe,
+ranking de lacunas e distribuição por propriedade com box-plot, tudo sobre
+quartis e percentuais computados no backend (ADR 0004); os mapas
+personalizáveis (D-40): um eixo do mapa em `/mapas` agora pode ser um índice de
+desempenho — do catálogo ou expressão personalizada —, não só uma propriedade
+cadastrada, com a linha de índice sobreposta e o eixo-índice mutuamente
+exclusivos por desenho; e o laudo de engenharia (D-41):
+`GET /api/exports/estudos/{id}/laudo.html`, um documento distinto do
+relatório de seleção da Fase 7 — a mesma reexecução determinística e as
+mesmas oito seções de auditoria, mais o gráfico de barras do ranking
+(`figures.py`, agora exercitado fora de teste) e, quando a camada de IA está
+ligada, a interpretação de `AIService.explain()`. Ausência de IA é
+declarada, nunca silenciosa; responsável técnico é texto livre, nunca
+validado. **As figuras da monografia que são capturas de `/estilo` precisam
+ser refeitas depois de D-38.**
+
+617 testes de backend e 148 de frontend, todos verdes. CI no GitHub Actions roda
+em todo PR e push para `main`.
+
+**Desempenho medido**, com os números em `docs/PROJECT_CONTEXT.md §12`: o maior
+*chunk* de JavaScript caiu de 4,5 MB para 981 KB (o Plotly completo era 79% de
+todo o JS), as chaves estrangeiras ganharam índice, e o `upload` — único endpoint
+`async` da aplicação — passou a rodar o serviço em *threadpool*, porque inline
+ele congelava o event loop inteiro e não só a própria requisição. Duas
+"otimizações" foram medidas e **recusadas** (índices de cobertura e `ANALYZE`,
+este último 85% mais lento no `overview`).
+
+**Estado detalhado, decisões, backlog e histórico da última sessão estão em
+`docs/`** — ver PROJECT_CONTEXT.md, DECISIONS.md, TODO.md e
+CHANGELOG_SESSION.md. Não duplique esse conteúdo aqui.
 
 **Geometria de gráficos é cálculo, não apresentação.** Inclinação de linha de
 índice, envelopes e escores normalizados são computados no backend e enviados em
-coordenadas de dados; o frontend só desenha (ADR 0004). Nunca calcule uma dessas
-grandezas em componente React.
+coordenadas de dados (ADR 0004). Nunca calcule uma dessas grandezas em
+componente React.
 
-Débitos técnicos conhecidos:
+## gstack
 
-- `apps/web/lib/types.ts` espelha `packages/shared-types` (duplicação
-  consciente); unificar via workspaces + `transpilePackages` depois.
-- Busca por palavra-chave usa LIKE sobre JSON; migrar para tabela de
-  associação/índice textual quando a base crescer.
-- `black --check` falha em arquivos anteriores à Fase 5 (o repositório nunca foi
-  formatado por inteiro); arquivos novos já saem formatados.
+O [gstack](https://github.com/garrytan/gstack) está instalado em
+`~/.claude/skills/gstack` e expõe papéis de uma equipe de engenharia como
+comandos de barra. Os úteis aqui, por papel:
+
+- **Produto/estratégia:** `/office-hours`, `/plan-ceo-review`, `/autoplan`
+- **Engenharia:** `/plan-eng-review`, `/investigate`, `/devex-review`
+- **Design:** `/plan-design-review`, `/design-consultation`, `/design-shotgun`,
+  `/design-html`, `/design-review`
+- **Revisão e QA:** `/review`, `/codex`, `/qa`, `/qa-only`
+- **Segurança:** `/cso` (OWASP Top 10 + STRIDE)
+- **Release:** `/ship`, `/land-and-deploy`, `/canary`
+- **Documentação:** `/document-release`, `/document-generate`
+- **Retrospectiva:** `/retro`
+- **Proteções:** `/careful`, `/freeze`, `/guard`, `/unfreeze`
+
+Os comandos são sugestões de fluxo, não autoridade: **as regras deste arquivo e
+as decisões em `docs/DECISIONS.md` prevalecem** sobre o que qualquer skill
+externa recomendar. Em particular, nenhum deles autoriza violar os princípios
+inegociáveis da metodologia nem as proibições do sistema de design.

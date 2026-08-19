@@ -2,15 +2,23 @@
 
 import type { ColumnRole, PropertyDefinition } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
+import {
+  Input,
+  RowHeader,
+  Select,
+  SelectOption,
+  TBody,
+  THead,
+  Table,
+  TableCaption,
+  TableScroll,
+  Td,
+  Th,
+  Tr,
+} from "@/components/ui";
 
 export type ColumnTarget =
-  | "ignore"
-  | "name"
-  | "class"
-  | "subclass"
-  | "description"
-  | "keywords"
-  | "property";
+  "ignore" | "name" | "class" | "subclass" | "description" | "keywords" | "property";
 
 /** Client-side state for one spreadsheet column being mapped. */
 export interface ColumnState {
@@ -50,83 +58,88 @@ export function MappingEditor({ columns, properties, onChange }: MappingEditorPr
     onChange(columns.map((c, i) => (i === index ? { ...c, ...patch } : c)));
   }
 
-  const selectClass =
-    "rounded border border-slate-300 bg-white px-2 py-1 text-sm focus:border-brand-500 focus:outline-none";
-
   return (
-    <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-      <table className="min-w-full divide-y divide-slate-200 text-sm">
-        <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
-          <tr>
-            <th scope="col" className="px-3 py-2">Coluna</th>
-            <th scope="col" className="px-3 py-2">Destino</th>
-            <th scope="col" className="px-3 py-2">{ptBR.importer.property}</th>
-            <th scope="col" className="px-3 py-2">{ptBR.importer.columnRole}</th>
-            <th scope="col" className="px-3 py-2">{ptBR.importer.unit}</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-100">
-          {columns.map((col, i) => (
-            <tr key={col.column}>
-              <td className="px-3 py-2 font-medium text-slate-700">{col.column}</td>
-              <td className="px-3 py-2">
-                <select
-                  aria-label={`Destino da coluna ${col.column}`}
-                  className={selectClass}
-                  value={col.target}
-                  onChange={(e) => update(i, { target: e.target.value as ColumnTarget })}
-                >
-                  {TARGET_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>{o.label}</option>
-                  ))}
-                </select>
-              </td>
-              <td className="px-3 py-2">
-                {col.target === "property" && (
-                  <select
-                    aria-label={`Propriedade da coluna ${col.column}`}
-                    className={selectClass}
-                    value={col.propertySlug}
-                    onChange={(e) => update(i, { propertySlug: e.target.value })}
+    <TableScroll label={ptBR.importer.mappingTitle}>
+      <Table>
+        <TableCaption>{ptBR.importer.mappingTitle}</TableCaption>
+        <THead>
+          <Tr>
+            <Th>{ptBR.importer.columnSource}</Th>
+            <Th>{ptBR.importer.columnTarget}</Th>
+            <Th>{ptBR.importer.property}</Th>
+            <Th>{ptBR.importer.columnRole}</Th>
+            <Th>{ptBR.importer.unit}</Th>
+          </Tr>
+        </THead>
+        <TBody>
+          {columns.map((col, i) => {
+            // The last three controls only exist for a column mapped to a
+            // property. The cells are empty because there is nothing to set —
+            // not because a value is missing.
+            const isProperty = col.target === "property";
+            return (
+              <Tr key={col.column}>
+                <RowHeader>{col.column}</RowHeader>
+                <Td>
+                  <Select
+                    aria-label={ptBR.importer.ariaTarget(col.column)}
+                    value={col.target}
+                    onChange={(e) => update(i, { target: e.target.value as ColumnTarget })}
                   >
-                    <option value="">—</option>
-                    {properties.map((p) => (
-                      <option key={p.slug} value={p.slug}>
-                        {p.name}
-                      </option>
+                    {TARGET_OPTIONS.map((o) => (
+                      <SelectOption key={o.value} value={o.value}>
+                        {o.label}
+                      </SelectOption>
                     ))}
-                  </select>
-                )}
-              </td>
-              <td className="px-3 py-2">
-                {col.target === "property" && (
-                  <select
-                    aria-label={`Papel da coluna ${col.column}`}
-                    className={selectClass}
-                    value={col.role}
-                    onChange={(e) => update(i, { role: e.target.value as ColumnRole })}
-                  >
-                    {ROLE_OPTIONS.map((o) => (
-                      <option key={o.value} value={o.value}>{o.label}</option>
-                    ))}
-                  </select>
-                )}
-              </td>
-              <td className="px-3 py-2">
-                {col.target === "property" && (
-                  <input
-                    aria-label={`Unidade da coluna ${col.column}`}
-                    className={selectClass + " w-28"}
-                    value={col.unit}
-                    onChange={(e) => update(i, { unit: e.target.value })}
-                    placeholder="ex.: GPa"
-                  />
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+                  </Select>
+                </Td>
+                <Td>
+                  {isProperty && (
+                    <Select
+                      aria-label={ptBR.importer.ariaProperty(col.column)}
+                      value={col.propertySlug}
+                      onChange={(e) => update(i, { propertySlug: e.target.value })}
+                    >
+                      <SelectOption value="">{ptBR.importer.selectProperty}</SelectOption>
+                      {properties.map((p) => (
+                        <SelectOption key={p.slug} value={p.slug}>
+                          {p.name}
+                        </SelectOption>
+                      ))}
+                    </Select>
+                  )}
+                </Td>
+                <Td>
+                  {isProperty && (
+                    <Select
+                      aria-label={ptBR.importer.ariaRole(col.column)}
+                      value={col.role}
+                      onChange={(e) => update(i, { role: e.target.value as ColumnRole })}
+                    >
+                      {ROLE_OPTIONS.map((o) => (
+                        <SelectOption key={o.value} value={o.value}>
+                          {o.label}
+                        </SelectOption>
+                      ))}
+                    </Select>
+                  )}
+                </Td>
+                <Td>
+                  {isProperty && (
+                    <Input
+                      aria-label={ptBR.importer.ariaUnit(col.column)}
+                      className="w-28"
+                      value={col.unit}
+                      onChange={(e) => update(i, { unit: e.target.value })}
+                      placeholder="ex.: GPa"
+                    />
+                  )}
+                </Td>
+              </Tr>
+            );
+          })}
+        </TBody>
+      </Table>
+    </TableScroll>
   );
 }

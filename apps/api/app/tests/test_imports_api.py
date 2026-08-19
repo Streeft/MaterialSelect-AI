@@ -60,6 +60,15 @@ def test_upload_returns_headers_sample_and_suggestions(client):
     assert dens["suggested_property_slug"] == "densidade"
     assert dens["suggested_unit"] == "g/cm**3"
 
+    # A slug with more than one word ("modulo_young") joins its words with an
+    # underscore, but `slugify()` on the header text always produces a hyphen —
+    # the suggestion lookup has to bridge that or every multi-word property
+    # silently never gets suggested, however the header spells it.
+    modulo = by_column["modulo_young [GPa]"]
+    assert modulo["suggested_target"] == "property"
+    assert modulo["suggested_property_slug"] == "modulo_young"
+    assert modulo["suggested_unit"] == "GPa"
+
 
 def test_upload_rejects_wrong_extension(client):
     resp = _upload(client, filename="materiais.exe")
@@ -79,8 +88,8 @@ def test_validate_reports_row_status(client):
     report = resp.json()
 
     assert report["row_count"] == 6
-    assert report["valid_count"] == 3      # A, B and the sanitized formula row
-    assert report["error_count"] == 1      # unknown class + unparsable density
+    assert report["valid_count"] == 3  # A, B and the sanitized formula row
+    assert report["error_count"] == 1  # unknown class + unparsable density
     assert report["duplicate_count"] == 2  # repeat in file + existing "Aço Demo B"
 
     by_row = {r["row_number"]: r for r in report["rows"]}
@@ -128,10 +137,10 @@ def test_commit_imports_only_valid_rows(client):
     assert dens["data_quality"] == "IMPORTADO"
     assert dens["source_label"] == "Planilha de teste"
 
-    esc = props["limite_escoamento"]          # "240 - 300" range cell
+    esc = props["limite_escoamento"]  # "240 - 300" range cell
     assert (esc["value_min"], esc["value_max"]) == (240.0, 300.0)
 
-    temp = props["temp_max_servico"]          # degC -> K conversion
+    temp = props["temp_max_servico"]  # degC -> K conversion
     assert abs(temp["normalized_value"] - 423.15) < 1e-6
 
 
@@ -150,7 +159,7 @@ def test_missing_cell_becomes_missing_value_not_zero(client):
     polimero = next(m for m in listing if m["name"] == "Polimero Import B")
     detail = client.get(f"/api/materials/{polimero['id']}").json()
     props = {p["property_slug"]: p for g in detail["property_groups"] for p in g["properties"]}
-    temp = props["temp_max_servico"]          # cell contains "N/A"
+    temp = props["temp_max_servico"]  # cell contains "N/A"
     assert temp["is_missing"] is True
     assert temp["normalized_value"] is None
 
