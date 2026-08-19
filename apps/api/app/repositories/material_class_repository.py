@@ -29,9 +29,11 @@ class MaterialClassRepository:
         return self.db.get(MaterialClass, class_id)
 
     def get_by_slug(self, slug: str) -> MaterialClass | None:
-        return self.db.execute(
-            select(MaterialClass).where(MaterialClass.slug == slug)
-        ).scalars().one_or_none()
+        return (
+            self.db.execute(select(MaterialClass).where(MaterialClass.slug == slug))
+            .scalars()
+            .one_or_none()
+        )
 
     def slug_exists(self, slug: str, exclude_id: int | None = None) -> bool:
         stmt = select(MaterialClass.id).where(MaterialClass.slug == slug)
@@ -59,9 +61,7 @@ class MaterialClassRepository:
 
     def child_count(self, class_id: int) -> int:
         return self.db.execute(
-            select(func.count(MaterialClass.id)).where(
-                MaterialClass.parent_id == class_id
-            )
+            select(func.count(MaterialClass.id)).where(MaterialClass.parent_id == class_id)
         ).scalar_one()
 
     def add(self, obj: MaterialClass) -> None:

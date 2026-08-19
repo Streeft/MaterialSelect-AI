@@ -12,10 +12,17 @@ export const ptBR = {
     selection: "Seleção",
     maps: "Mapas",
     compare: "Comparar",
+    dashboard: "Painel",
     imports: "Importar",
     classes: "Classes",
     properties: "Propriedades",
+    // Eight links in a row said nothing about what belongs with what. The
+    // groups are the three things someone does here, in the order they do them.
+    groupStudy: "Estudar",
+    groupData: "Dados",
+    groupAdmin: "Administrar",
   },
+
   actions: {
     new: "Novo material",
     edit: "Editar",
@@ -26,6 +33,8 @@ export const ptBR = {
     add: "Adicionar",
     remove: "Remover",
     create: "Criar",
+    /** Header of a table column that holds buttons; usually screen-reader only. */
+    columnActions: "Ações",
     confirmDeactivate: "Desativar este material? Ele sairá do catálogo, mas poderá ser reativado.",
     confirmDelete: "Excluir definitivamente? Esta ação não pode ser desfeita.",
     saving: "Salvando…",
@@ -37,6 +46,9 @@ export const ptBR = {
     description: "Descrição",
     keywords: "Palavras-chave (separadas por vírgula)",
     selectClass: "Selecione uma classe",
+    selectProperty: "Selecione uma propriedade",
+    selectUnit: "Selecione uma unidade",
+    identification: "Identificação",
     values: "Valores de propriedade",
     property: "Propriedade",
     kind: "Tipo",
@@ -87,10 +99,16 @@ export const ptBR = {
   },
   importer: {
     title: "Importar materiais",
-    stepUpload: "1. Arquivo",
-    stepMapping: "2. Mapeamento",
-    stepReport: "3. Validação",
-    stepDone: "4. Conclusão",
+    subtitle: "Arquivo → Mapeamento → Validação → Conclusão",
+    // The stepper numbers the steps itself; a "1." in the label would print twice.
+    stepUpload: "Arquivo",
+    stepMapping: "Mapeamento",
+    stepReport: "Validação",
+    stepDone: "Conclusão",
+    // Why a step cannot be opened yet. Shown at the moment someone tries.
+    blockedMapping: "Envie um arquivo para mapear as colunas.",
+    blockedReport: "Valide o mapeamento para ver o relatório.",
+    blockedDone: "Importe as linhas válidas para concluir.",
     dropHint: "Selecione um arquivo CSV ou XLSX (até 5 MB).",
     uploading: "Enviando…",
     sheet: "Aba",
@@ -100,6 +118,16 @@ export const ptBR = {
     mappingHelp:
       "Indique o que cada coluna representa. Colunas ignoradas não serão importadas. Unidades detectadas no cabeçalho ou na célula têm prioridade.",
     columnRole: "Papel",
+    columnSource: "Coluna",
+    columnTarget: "Destino",
+    selectProperty: "Selecione uma propriedade",
+    // Each control in the mapping table repeats down the rows, so its accessible
+    // name has to say which column it belongs to — otherwise a screen reader
+    // hears "Destino" five times with nothing to tell them apart.
+    ariaTarget: (column: string) => `Destino da coluna ${column}`,
+    ariaProperty: (column: string) => `Propriedade da coluna ${column}`,
+    ariaRole: (column: string) => `Papel da coluna ${column}`,
+    ariaUnit: (column: string) => `Unidade da coluna ${column}`,
     ignore: "Ignorar",
     targetName: "Nome do material",
     targetClass: "Classe",
@@ -116,6 +144,11 @@ export const ptBR = {
     defaultClass: "Classe padrão (quando a coluna estiver vazia)",
     noDefaultClass: "Nenhuma",
     sourceLabel: "Fonte dos dados (opcional)",
+    sourcePlaceholder: "ex.: Planilha Prof. Fulano 2026",
+    errorNoNameColumn: "Indique qual coluna contém o nome do material.",
+    errorPropertyWithoutSlug: "Há colunas de propriedade sem a propriedade selecionada.",
+    errorNoClass: "Mapeie uma coluna de classe ou escolha uma classe padrão.",
+    errorTemplateName: "Informe um nome para o template.",
     templates: "Template de mapeamento",
     applyTemplate: "Aplicar template…",
     saveTemplate: "Salvar como template",
@@ -131,6 +164,17 @@ export const ptBR = {
     statusOk: "OK",
     statusError: "Erro",
     statusDuplicate: "Duplicado",
+    columnDetails: "Detalhes",
+    // Not "Erro": the status column already says that, and a second badge with
+    // the same word says nothing about what it does to the line.
+    issueLabel: "Impede",
+    warningLabel: "Aviso",
+    rowOk: "Nada a corrigir nesta linha.",
+    // A dash in a preview is indistinguishable from a dash that is the data.
+    emptyCell: "vazia",
+    noName: "sem nome",
+    reportHint:
+      "Cada linha aparece com o que foi encontrado nela. O que está marcado como “Impede” bloqueia a importação daquela linha; avisos não.",
     commitHint:
       "Apenas as linhas válidas serão importadas. Linhas com erro ou duplicadas serão ignoradas.",
     commit: "Importar linhas válidas",
@@ -163,10 +207,15 @@ export const ptBR = {
   selection: {
     title: "Seleção de materiais",
     subtitle: "Função → Restrições → Objetivo → Ranking (determinístico, sem IA)",
-    stepFunction: "1. Função",
-    stepConstraints: "2. Restrições",
-    stepObjective: "3. Objetivo",
-    stepResults: "4. Resultados",
+    // The stepper numbers the steps itself; a "1." in the label would print twice.
+    stepFunction: "Função",
+    stepConstraints: "Restrições",
+    stepObjective: "Objetivo",
+    stepResults: "Resultados",
+    // Why a step cannot be opened yet. Shown at the moment someone tries.
+    blockedResults: "Execute a seleção para ver os resultados.",
+    back: "Voltar",
+    advance: "Avançar",
     functionTitle: "Descrição do problema",
     studyName: "Nome do estudo",
     functionText: "Função do componente",
@@ -181,6 +230,25 @@ export const ptBR = {
     noConstraints: "Nenhuma restrição — todos os materiais são candidatos.",
     property: "Propriedade",
     operator: "Operador",
+    // Symbols alone name nothing to a screen reader, and "∈ faixa" was a
+    // Portuguese string living in a component file.
+    operators: {
+      gte: "≥ maior ou igual",
+      gt: "> maior que",
+      lte: "≤ menor ou igual",
+      lt: "< menor que",
+      between: "∈ dentro da faixa",
+      outside: "∉ fora da faixa",
+      exists: "tem valor cadastrado",
+      not_exists: "não tem valor cadastrado",
+      in_class: "∈ pertence à classe",
+      not_in_class: "∉ não pertence à classe",
+      text_contains: "texto contém",
+    },
+    constraintNumber: (n: number) => `Restrição ${n}`,
+    selectProperty: "Selecione uma propriedade",
+    selectCriterion: "Selecione um critério",
+    autoDirection: "Automática (pela propriedade)",
     value: "Valor",
     valueMin: "Mínimo",
     valueMax: "Máximo",
@@ -189,6 +257,10 @@ export const ptBR = {
     text: "Texto",
     remaining: "Candidatos restantes",
     of: "de",
+    counterHint: "Atualizado a cada mudança nas restrições.",
+    counterPending: "Recalculando…",
+    counterError: "Não foi possível recontar os candidatos.",
+    actionBar: "Ações da etapa",
     objectiveTitle: "Índice de desempenho e ranking",
     objectiveHint:
       "Escolha um índice de mérito (opcional) e defina os critérios de ranking com pesos.",
@@ -219,14 +291,20 @@ export const ptBR = {
     running: "Executando…",
     resultsTitle: "Resultados",
     funnel: "Funil de eliminação",
+    funnelHint:
+      "Cada barra mostra quantos candidatos sobrevivem à etapa, em proporção ao conjunto inicial.",
     initial: "Inicial",
     passed: "Passam",
+    eliminated: "eliminados",
     candidates: "Candidatos",
     ranking: "Ranking",
     rank: "#",
     score: "Pontuação",
     indexValue: "Índice",
+    indexUndefined: "Índice indefinido",
     contributions: "Contribuições por critério",
+    contributionsHint:
+      "Quanto cada critério pesou na pontuação. As larguras são a proporção de cada parcela no total.",
     excludedTitle: "Excluídos por dados ausentes",
     excludedHint: "Estes materiais não têm valor para todos os critérios e não foram ranqueados.",
     missing: "faltando",
@@ -236,7 +314,21 @@ export const ptBR = {
     topMaterial: "1º colocado",
     changed: "mudou",
     unchanged: "estável",
+    // The results screen is long; these are the blocks someone jumps between.
+    onThisPage: "Nesta página",
+    provenanceTitle: "Proveniência do resultado",
+    provenanceHint:
+      "O que gerou exatamente estes números. É o mesmo conteúdo que vai para o relatório exportado.",
+    provCombinator: "Combinação das restrições",
+    provConstraints: "Etapas de eliminação",
+    provIndexExpression: "Expressão do índice",
+    provIndexGoal: "Sentido do índice",
+    provIndexDimension: "Dimensão do índice",
+    provIndexDefined: "Materiais com índice definido",
+    provCriteria: "Critérios e pesos",
+    provNone: "não usado neste estudo",
     saveStudy: "Salvar estudo",
+    saveNeedsName: "Dê um nome ao estudo na etapa Função para poder salvá-lo.",
     saved: "Estudo salvo.",
     savedStudies: "Estudos salvos",
     noStudies: "Nenhum estudo salvo.",
@@ -256,6 +348,14 @@ export const ptBR = {
       "A IA lê o enunciado e propõe função, restrições e índices já cadastrados. Ela não calcula nada: todo número vem do backend e toda sugestão passa pela sua revisão.",
     disabled: "Camada de IA desativada. O sistema funciona integralmente sem ela.",
     simulatedBadge: "Provedor simulado",
+    // Um provedor externo é a exceção, não o padrão: quem está vendo a tela
+    // precisa saber que aquela leitura veio de um modelo — e que ela pode sair
+    // diferente da próxima vez. O detalhe fica na ressalva, ao pé da proposta.
+    modelBadge: (provider: string) => `Modelo externo: ${provider}`,
+    // §3.4 da proposta: a assistência é opcional e passa pela revisão de quem
+    // usa. Isso precisa estar dito no painel, não só na documentação.
+    optionalBadge: "Opcional",
+    reviewBadge: "Nada é aplicado sem sua revisão",
     statementLabel: "Descreva o problema em português",
     statementPlaceholder:
       "Ex.: preciso de uma viga leve e rígida; a temperatura de serviço deve ser no mínimo 300 °C e a densidade no máximo 3 g/cm3.",
@@ -288,16 +388,55 @@ export const ptBR = {
     explainError: "Não foi possível gerar a explicação.",
     close: "Fechar",
   },
+  exports: {
+    title: "Exportar",
+    csv: "CSV",
+    xlsx: "XLSX",
+    html: "HTML para impressão",
+    htmlTitle: "Abre em nova aba, pronto para imprimir ou salvar como PDF",
+    catalogue: "Exportar catálogo",
+    study: "Exportar relatório",
+    hint: "O relatório traz restrições, funil, índice, ranking, excluídos por dado ausente, sensibilidade e a proveniência de cada número — com o aviso de limitação exigido.",
+    laudoTitle: "Laudo de engenharia",
+    laudoButton: "Gerar laudo",
+    laudoHint: "Documento único, distinto do relatório: gráfico de ranqueamento, as mesmas tabelas de auditoria e, se a camada de IA estiver ligada, uma interpretação técnica.",
+    laudoResponsibleLabel: "Responsável técnico (opcional)",
+    laudoResponsiblePlaceholder: "Nome de quem assina a leitura",
+  },
   catalog: {
     title: "Catálogo de materiais",
+    subtitle: "O que existe cadastrado, e com que qualidade de dado.",
     searchPlaceholder: "Buscar por nome, classe ou palavra-chave…",
+    searchLabel: "Buscar materiais",
     columnName: "Material",
     columnClass: "Classe",
     columnKeywords: "Palavras-chave",
+    columnQuality: "Dados",
     empty: "Nenhum material encontrado.",
+    emptyHint: "Ajuste a busca ou os filtros — ou cadastre o primeiro material.",
+    emptyFiltered: "Nenhum material atende aos filtros escolhidos.",
+    clearFilters: "Limpar filtros",
     loading: "Carregando materiais…",
     error: "Não foi possível carregar os materiais.",
     count: (n: number) => `${n} ${n === 1 ? "material" : "materiais"}`,
+    showing: (shown: number, total: number) => `Mostrando ${shown} de ${total}`,
+    filters: "Filtros",
+    filterClass: "Classe",
+    allClasses: "Todas",
+    filterQuality: "Qualidade do dado",
+    // Not "sem lacunas": the catalogue only knows about properties that were
+    // recorded, so it can say a material has no gap *among the ones cadastradas*
+    // and nothing more.
+    qualityAny: "Qualquer",
+    qualityComplete: "Sem lacunas cadastradas",
+    qualityWithGaps: "Com lacunas",
+    qualityMeasured: "Tem valor medido",
+    view: "Exibição",
+    viewTable: "Tabela",
+    viewCards: "Cartões",
+    // The summary badge on a row/card. Absence is stated, never left blank.
+    qualityBreakdown: "Composição dos dados",
+    noValues: "Nenhuma propriedade cadastrada",
   },
   detail: {
     back: "← Voltar ao catálogo",
@@ -314,6 +453,18 @@ export const ptBR = {
     missing: "ausente",
     uncertainty: "incerteza",
     noProperties: "Este material ainda não possui propriedades cadastradas.",
+    inactive: "Inativo",
+    identification: "Identificação",
+    keywords: "Palavras-chave",
+    position: "Onde este material fica",
+    positionHint:
+      "Densidade × módulo de Young, os dois eixos do mapa demonstrativo. Este material aparece destacado.",
+    openInMaps: "Ver no mapa completo",
+    // The sheet is where §3.2 has to pay off: every number says where it came
+    // from, and the legend explains the vocabulary once, no matter how many
+    // properties the material has.
+    provenanceHint:
+      "Clique em um valor para ver a unidade original, a conversão aplicada e a fonte registrada.",
   },
   chart: {
     title: "Mapa de propriedades",
@@ -324,6 +475,22 @@ export const ptBR = {
       `${n} ${n === 1 ? "material foi omitido" : "materiais foram omitidos"} por não ter valor em ambos os eixos.`,
     logNote: "Escala logarítmica exige valores positivos; pontos ≤ 0 são omitidos.",
     empty: "Sem pontos suficientes para o gráfico.",
+    // Shared by every figure in the application: the map, the comparator and
+    // the thumbnail on the material sheet.
+    toolbar: "Ações do gráfico",
+    exportPng: "Exportar PNG",
+    exportSvg: "Exportar SVG",
+    exporting: "Exportando…",
+    exportError: "Não foi possível exportar a imagem.",
+    // A figura é uma tela de vetores: para quem usa leitor de tela ela é
+    // silêncio. A alternativa textual de verdade é a tabela que a originou,
+    // aberta a partir da própria figura.
+    dataTable: "Tabela de dados da figura",
+    dataTableHint: "Os mesmos números que a figura desenha, em texto.",
+    figureLabel: (title: string) =>
+      `${title}. Figura; a tabela de dados equivalente está logo abaixo.`,
+    columnClass: "Classe",
+    thisMaterial: "Este material",
   },
   map: {
     title: "Mapas de propriedades",
@@ -331,6 +498,14 @@ export const ptBR = {
       "Mapa de Ashby: dois eixos, envelopes por classe e linhas de índice com inclinação calculada no backend.",
     axisX: "Eixo X",
     axisY: "Eixo Y",
+    axisTypeProperty: "Propriedade",
+    axisTypeIndex: "Índice",
+    axisIndexChoose: "Selecione um índice",
+    axisIndexHint:
+      "Um eixo em índice mostra um valor calculado — do catálogo ou uma expressão sua — em vez de uma propriedade cadastrada.",
+    sameExpressionAxis: "Escolha duas expressões diferentes para os eixos.",
+    indexAxisConflict:
+      "A linha de índice sobreposta exige dois eixos de propriedade; ela some enquanto um eixo for um índice.",
     scale: "Escala",
     linear: "Linear",
     log: "Logarítmica",
@@ -366,10 +541,6 @@ export const ptBR = {
     excludedHint: "Nenhum material é descartado em silêncio; abaixo o motivo de cada omissão.",
     indexValue: "Índice",
     undefinedIndex: "índice indefinido",
-    exportPng: "Exportar PNG",
-    exportSvg: "Exportar SVG",
-    exporting: "Exportando…",
-    exportError: "Não foi possível exportar a imagem.",
     empty: "Nenhum material pôde ser plotado com estes eixos.",
     loading: "Calculando o mapa…",
     error: "Não foi possível montar o mapa.",
@@ -377,6 +548,72 @@ export const ptBR = {
     quality: "Qualidade",
     interval: "Faixa",
     uncertainty: "Incerteza",
+    // The control panel, named group by group. Eleven controls in one row said
+    // nothing about which of them change the question and which change only the
+    // drawing.
+    controls: "Controles do mapa",
+    groupAxes: "Eixos e escala",
+    groupClasses: "Classes exibidas",
+    groupDisplay: "O que desenhar",
+    groupIndex: "Linha de índice",
+    sameAxis: "Escolha duas propriedades diferentes para os eixos.",
+    notesTitle: "Observações sobre este mapa",
+    levelsHint: "Cada nível traçado vira uma reta paralela; o lado favorável é contado abaixo.",
+    figure: "Mapa de Ashby",
+  },
+  dashboard: {
+    title: "Painel do catálogo",
+    subtitle:
+      "Quanto do catálogo está preenchido, com que qualidade, e como cada propriedade se distribui entre as classes.",
+    loading: "Carregando o painel…",
+    error: "Não foi possível carregar o painel.",
+    empty: "Nenhum material cadastrado ainda.",
+    materials: "Materiais ativos",
+    demoNote: (n: number) => `${n} de demonstração`,
+    classes: "Classes",
+    properties: "Propriedades",
+    overallCoverage: "Cobertura geral",
+    coverageOf: (filled: number, slots: number) => `${filled} de ${slots} pares preenchidos`,
+    coverageEmpty: "Sem pares material×propriedade para cobrir.",
+    // A composição por qualidade.
+    qualityMixTitle: "Composição por qualidade do dado",
+    qualityMixHint: "Todo par material×propriedade do catálogo, num só lugar.",
+    qualityMixFigure: "Composição por qualidade do dado",
+    columnBucket: "Estado",
+    columnCount: "Quantidade",
+    columnShare: "Participação",
+    // A cobertura por classe.
+    classCoverageTitle: "Cobertura por classe",
+    classCoverageHint: "Percentual de pares preenchidos, por classe de material.",
+    classCoverageFigure: "Cobertura por classe",
+    columnClass: "Classe",
+    columnMaterials: "Materiais",
+    columnCoverage: "Cobertura",
+    filled: "Preenchido",
+    declaredMissing: "Declarado ausente",
+    notRecorded: "Não registrado",
+    // As lacunas.
+    gapsTitle: "Propriedades menos preenchidas",
+    gapsHint: "As propriedades com menor cobertura no catálogo — por onde começar a preencher.",
+    gapsEmpty: "Nenhuma propriedade cadastrada ainda.",
+    // A distribuição por propriedade.
+    distributionTitle: "Distribuição por propriedade",
+    distributionSubtitle:
+      "Mínimo, quartis, mediana e máximo de cada classe, calculados no backend (ADR 0004).",
+    property: "Propriedade",
+    scale: "Escala",
+    linear: "Linear",
+    log: "Logarítmica",
+    logDisabled: "Esta propriedade admite valores não positivos; a escala log não se aplica.",
+    distributionEmpty: "Nenhuma classe tem valores registrados para esta propriedade.",
+    distributionFigure: (name: string) => `Distribuição — ${name}`,
+    classesWithoutData: "Classes sem dados desta propriedade",
+    columnCountBox: "Materiais",
+    columnMin: "Mínimo",
+    columnQ1: "Q1",
+    columnMedian: "Mediana",
+    columnQ3: "Q3",
+    columnMax: "Máximo",
   },
   compare: {
     title: "Comparador de materiais",
@@ -407,11 +644,17 @@ export const ptBR = {
     notesTitle: "Observações sobre os dados",
     original: "Valor original",
     canonical: "Valor normalizado (unidade canônica)",
-    exportPng: "Exportar PNG",
-    exportSvg: "Exportar SVG",
     radarNeedsThree: "O radar precisa de ao menos três propriedades.",
     radarSkipsMissing:
       "Materiais sem valor em alguma propriedade não são traçados no radar; veja a tabela.",
+    controls: "O que comparar",
+    groupMaterials: "Materiais",
+    groupProperties: "Propriedades",
+    groupView: "Como ver",
+    selectedCount: (chosen: number, max: number) => `${chosen} de ${max}`,
+    limitReached: "Limite atingido. Desmarque um item para escolher outro.",
+    noMaterialsFound: "Nenhum material corresponde ao filtro.",
+    figure: "Comparação de materiais",
   },
   categories: {
     FISICA: "Física",
@@ -425,6 +668,174 @@ export const ptBR = {
     MEDIDO: "Medido",
     IMPORTADO: "Importado",
     ESTIMADO: "Estimado",
+    // Not a value of the backend's DataQuality enum: absence is the *lack* of a
+    // value, not a fourth kind of one. It is named here because the interface
+    // has to show it, and showing it as an empty cell is what the project's
+    // third principle forbids.
+    AUSENTE: "Ausente",
+    // A quinta coisa que o painel precisa nomear e o resto da interface não:
+    // nenhuma linha existe para este par material×propriedade. Diferente de
+    // AUSENTE, que é uma declaração — alguém procurou e não achou.
+    NAO_REGISTRADO: "Não registrado",
+  },
+  qualityHint: {
+    MEDIDO: "Medido diretamente, com a condição de ensaio registrada.",
+    IMPORTADO: "Veio de um conjunto de dados externo, com a fonte registrada.",
+    ESTIMADO: "Inferido, não medido. Confira antes de decidir com base nele.",
+    AUSENTE: "Nenhum valor cadastrado. O sistema não preenche a lacuna.",
+    NAO_REGISTRADO: "Nenhum registro para este par — ninguém preencheu ainda.",
+  },
+
+  ui: {
+    loading: "Carregando…",
+    errorTitle: "Algo não funcionou",
+    retry: "Tentar novamente",
+    close: "Fechar",
+    details: "Detalhes",
+    skipToContent: "Pular para o conteúdo",
+    openMenu: "Abrir menu",
+    closeMenu: "Fechar menu",
+    mainNav: "Navegação principal",
+    collapseSidebar: "Recolher a barra lateral",
+    expandSidebar: "Expandir a barra lateral",
+    steps: "Etapas",
+    views: "Visualizações",
+    stepDone: "concluída",
+    stepBlocked: "bloqueada",
+    theme: {
+      label: "Tema",
+      light: "Claro",
+      dark: "Escuro",
+      system: "Sistema",
+    },
+  },
+
+  provenance: {
+    title: "De onde vem este valor",
+    trigger: "Ver a proveniência deste valor",
+    legendTitle: "Como ler a qualidade do dado",
+    original: "Valor original",
+    normalized: "Valor normalizado",
+    conversion: "Conversão",
+    uncertainty: "Incerteza",
+    range: "Faixa",
+    typical: "Típico",
+    condition: "Condição de medição",
+    source: "Fonte",
+    notes: "Observações",
+    unknown: "não informado",
+    missingTitle: "Sem valor cadastrado",
+    missingBody:
+      "Nenhum valor foi medido, importado ou estimado para esta propriedade neste material. O sistema não supõe um.",
+  },
+
+  // Canonical text lives in apps/api/app/exporters/report.py (LIMITATION_NOTICE).
+  // The copy below is kept byte-identical by a test — see lib/i18n.test.ts. The
+  // proposal (§3.6) requires this notice in the system *and* in every export;
+  // two surfaces saying it differently would be worse than one saying it once.
+  limitation: {
+    title: "Limite de uso desta ferramenta",
+    full:
+      "Esta ferramenta destina-se a apoio didático e à triagem preliminar de candidatos. " +
+      "Não substitui validação experimental, análise estrutural detalhada nem julgamento de engenharia.",
+    short: "Apoio didático e triagem preliminar — não substitui validação experimental.",
+  },
+
+  indexCard: {
+    title: "Índice de desempenho",
+    validity: "Condições de validade",
+    assumptionFuncao: "Função",
+    assumptionGeometria: "Geometria",
+    assumptionObjetivo: "Objetivo",
+    assumptionRestricao: "Restrição",
+    assumptionReferencia: "Referência",
+    expression: "Expressão",
+    dimension: "Dimensão do resultado",
+    goal: "Objetivo",
+    maximize: "Maximizar",
+    minimize: "Minimizar",
+    slope: "Inclinação (log-log)",
+    slopeVertical: "Reta vertical",
+    slopeUnavailable: "Sem reta de índice nestes eixos",
+    noAssumptions: "Este índice não declara hipóteses.",
+    noAssumptionsHint:
+      "Sem função, geometria, objetivo e restrição declarados não é possível verificar se ele se aplica ao seu problema. Ele continua calculável; a responsabilidade pela aplicação é sua.",
+    warning:
+      "Um índice só vale nas condições em que foi derivado. Confira função, geometria e restrição antes de usá-lo.",
+    selectLabel: "Escolha o índice de desempenho",
+    selected: "Selecionado",
+    select: "Selecionar",
+    none: "Nenhum índice",
+    noneHint: "O ranking usará apenas os critérios de propriedade.",
+    custom: "Expressão personalizada",
+    customHint: "Você declara a expressão e as hipóteses.",
+  },
+
+  home: {
+    lead: "Da função do componente ao relatório de seleção, com cada etapa do raciocínio à vista.",
+    lead2:
+      "Nenhuma propriedade é inventada: todo número na tela veio de um valor cadastrado ou de " +
+      "um cálculo determinístico, e a origem de cada um está a um gesto de distância.",
+    methodTitle: "O método, em quatro passos",
+    methodHint:
+      "É o percurso de Ashby: descreva a função, elimine com restrições, ordene por um objetivo e leia o resultado com a proveniência de cada número.",
+    step1: "Função",
+    step1Hint: "O que o componente faz e o que se quer otimizar.",
+    step2: "Restrições",
+    step2Hint: "Cada uma elimina candidatos, e o funil mostra quantos.",
+    step3: "Objetivo",
+    step3Hint: "Um índice de mérito e os critérios de ranking.",
+    step4: "Resultados",
+    step4Hint: "Ranking, contribuições, excluídos e sensibilidade.",
+    start: "Começar um estudo",
+    browse: "Explorar o catálogo",
+    savedTitle: "Retomar um estudo",
+    savedHint: "Estudos salvos ficam disponíveis para reabrir e executar de novo.",
+    savedEmpty: "Nenhum estudo salvo ainda.",
+    savedEmptyHint: "O primeiro sai da tela de seleção, no botão “Salvar estudo”.",
+    savedError: "Não foi possível carregar os estudos salvos.",
+    resume: "Retomar",
+    // Counted nouns, both forms. Lowercasing another label to reuse it breaks
+    // the moment a label starts with an acronym.
+    constraintOne: "restrição",
+    constraintMany: "restrições",
+    criterionOne: "critério",
+    criterionMany: "critérios",
+    exploreTitle: "Ou explore os dados",
+    catalogHint: "Materiais, propriedades e a proveniência de cada valor.",
+    mapsHint: "Mapa de Ashby com envelopes por classe e linhas de índice.",
+    compareHint: "Tabela, barras, radar e heatmap sobre valores normalizados.",
+    importHint: "Traga uma planilha CSV ou XLSX com validação linha a linha.",
+  },
+
+  auth: {
+    loginTitle: "Entrar",
+    loginSubtitle: "Entre com sua conta Google para usar o MaterialSelect AI.",
+    loginButton: "Entrar com Google",
+    loginHint: "Usamos apenas seu nome, e-mail e foto do Google para identificar sua sessão.",
+    checkingSession: "Verificando sessão…",
+    logout: "Sair",
+    loggingOut: "Saindo…",
+  },
+
+  styleGuide: {
+    title: "Sistema de design",
+    subtitle:
+      "Vitrine viva dos tokens e das primitivas. Serve de referência para quem continuar o trabalho e de fonte das figuras da monografia.",
+    tokens: "Tokens de cor",
+    shape: "Forma e movimento",
+    surfaces: "Superfícies, bordas e tinta",
+    semantics: "Estados semânticos",
+    qualityScale: "Qualidade do dado",
+    classPalette: "Paleta categórica de classes",
+    classPaletteHint:
+      "Okabe–Ito: cada par permanece distinguível sob deuteranopia e protanopia. Em impressão monocromática quem separa as classes é a forma do marcador e o rótulo escrito — nunca a cor sozinha.",
+    typography: "Tipografia",
+    buttons: "Botões",
+    forms: "Formulários",
+    feedback: "Carregando, vazio e erro",
+    tables: "Tabelas",
+    overlays: "Sobreposições",
   },
 } as const;
 

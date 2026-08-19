@@ -9,6 +9,7 @@ materials" assertions remain stable regardless of test order).
 from __future__ import annotations
 
 from collections.abc import Generator
+from contextlib import contextmanager
 
 import pytest
 from fastapi.testclient import TestClient
@@ -18,7 +19,10 @@ from sqlalchemy.pool import StaticPool
 
 from app.db.base import Base, get_db, json_serializer
 from app.db.seed import seed
+from app.dependencies import get_current_user
 from app.main import app
+from app.models.project import Project
+from app.models.user import User
 
 # A single in-memory database shared across the pool for the whole test session;
 # StaticPool keeps the same underlying connection so the schema/seed persist.
@@ -97,8 +101,69 @@ def db_session(_connection: Connection) -> Generator[Session, None, None]:
         session.close()
 
 
+def _create_user(connection: Connection, *, google_sub: str, email: str, name: str) -> User:
+    """Write a User + its default Project directly, bypassing AuthService/Google.
+
+    Mirrors the invariant AuthService maintains on first login (one Project per
+    User) without a real OAuth round-trip.
+    """
+    session = _session_for(connection)
+    try:
+        user = User(google_sub=google_sub, email=email, name=name, avatar_url=None)
+        session.add(user)
+        session.flush()
+        session.add(Project(name="Meu projeto", owner_id=user.id))
+        session.commit()
+    finally:
+        session.close()
+    return user
+
+
 @pytest.fixture()
-def client(_connection: Connection) -> Generator[TestClient, None, None]:
+def test_user(_connection: Connection) -> User:
+    """The default logged-in user for every test using the ``client`` fixture."""
+    return _create_user(
+        _connection,
+        google_sub="test:fixture-user",
+        email="pesquisador@example.com",
+        name="Usuário de teste",
+    )
+
+
+@pytest.fixture()
+def other_user(_connection: Connection) -> User:
+    """A second user with their own Project, for cross-project isolation tests."""
+    return _create_user(
+        _connection,
+        google_sub="test:fixture-other-user",
+        email="outro@example.com",
+        name="Outro usuário",
+    )
+
+
+@pytest.fixture()
+def client(_connection: Connection, test_user: User) -> Generator[TestClient, None, None]:
+    def _override_get_db() -> Generator[Session, None, None]:
+        session = _session_for(_connection)
+        try:
+            yield session
+        finally:
+            session.close()
+
+    app.dependency_overrides[get_db] = _override_get_db
+    app.dependency_overrides[get_current_user] = lambda: test_user
+    with TestClient(app) as test_client:
+        yield test_client
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture()
+def anon_client(_connection: Connection) -> Generator[TestClient, None, None]:
+    """A client with no auth override — real cookie-based ``get_current_user``
+    runs, so requests without a session cookie see the actual 401 a logged-out
+    browser would get. Only ``get_db`` is swapped, same as ``client``.
+    """
+
     def _override_get_db() -> Generator[Session, None, None]:
         session = _session_for(_connection)
         try:
@@ -110,3 +175,27 @@ def client(_connection: Connection) -> Generator[TestClient, None, None]:
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()
+
+
+@pytest.fixture()
+def login_as():
+    """Context manager to temporarily authenticate ``client`` as another user.
+
+    Swaps only the ``get_current_user`` override, so the surrounding test keeps
+    the same ``client``/``db_session`` connection and transaction — only "who is
+    logged in" changes for the duration of the ``with`` block.
+    """
+
+    @contextmanager
+    def _login_as(user: User) -> Generator[None, None, None]:
+        previous = app.dependency_overrides.get(get_current_user)
+        app.dependency_overrides[get_current_user] = lambda: user
+        try:
+            yield
+        finally:
+            if previous is not None:
+                app.dependency_overrides[get_current_user] = previous
+            else:
+                app.dependency_overrides.pop(get_current_user, None)
+
+    return _login_as

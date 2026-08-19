@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from sqlalchemy import JSON, DateTime, Float, ForeignKey, Integer, String
+from sqlalchemy import JSON, DateTime, Float, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -24,9 +24,17 @@ class SelectionStudy(Base):
     """A saved Function → Constraints → Objective → Ranking analysis."""
 
     __tablename__ = "selection_study"
+    __table_args__ = (
+        UniqueConstraint("project_id", "name", name="uq_selection_study_project_name"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String(200), unique=True, nullable=False)
+    # Uniqueness on `name` is enforced per project, not globally — see the
+    # composite constraint on the table and SelectionRepository.study_name_exists.
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    project_id: Mapped[int] = mapped_column(
+        ForeignKey("project.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     description: Mapped[str | None] = mapped_column(String(1000), nullable=True)
 
     function_text: Mapped[str | None] = mapped_column(String(1000), nullable=True)
@@ -63,7 +71,7 @@ class SelectionConstraint(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     study_id: Mapped[int] = mapped_column(
-        ForeignKey("selection_study.id", ondelete="CASCADE"), nullable=False
+        ForeignKey("selection_study.id", ondelete="CASCADE"), nullable=False, index=True
     )
     position: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
@@ -87,13 +95,20 @@ class RankingCriterion(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     study_id: Mapped[int] = mapped_column(
-        ForeignKey("selection_study.id", ondelete="CASCADE"), nullable=False
+        ForeignKey("selection_study.id", ondelete="CASCADE"), nullable=False, index=True
     )
     position: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
     key: Mapped[str] = mapped_column(String(160), nullable=False)  # slug or "__index__"
-    label: Mapped[str] = mapped_column(String(200), nullable=False)
-    direction: Mapped[str] = mapped_column(String(3), default="max", nullable=False)
+
+    # Both nullable on purpose: NULL means "the user did not say", and the run
+    # derives the answer from the property or the index. Filling them in at save
+    # time would freeze a guess that then outranks the real source — a label
+    # defaulted to the key printed "__index__" in reports, and a direction
+    # defaulted to "max" silently reversed the ranking of a lower-is-better
+    # property. Absent is absent here too.
+    label: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    direction: Mapped[str | None] = mapped_column(String(3), nullable=True)
     weight: Mapped[float] = mapped_column(Float, default=1.0, nullable=False)
 
     study: Mapped[SelectionStudy] = relationship(back_populates="criteria")

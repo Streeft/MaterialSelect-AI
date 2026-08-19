@@ -7,6 +7,8 @@ import type {
   CommitResult,
   Comparison,
   ComparisonRequest,
+  CurrentUser,
+  DashboardOverview,
   Explanation,
   Interpretation,
   ImportJobOut,
@@ -22,6 +24,7 @@ import type {
   PerformanceIndex,
   PropertyDefinition,
   PropertyDefinitionIn,
+  PropertyDistribution,
   PropertyMap,
   PropertyMapRequest,
   PropertyValueIn,
@@ -61,6 +64,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     ...init,
     headers: { Accept: "application/json", "Content-Type": "application/json", ...init?.headers },
+    credentials: "include",
     cache: "no-store",
   });
   if (!res.ok) {
@@ -68,6 +72,21 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   }
   if (res.status === 204) return undefined as T;
   return (await res.json()) as T;
+}
+
+// --- Auth -------------------------------------------------------------------
+
+export function getCurrentUser(): Promise<CurrentUser> {
+  return request<CurrentUser>(`/api/auth/me`);
+}
+
+export function logout(): Promise<void> {
+  return request<void>(`/api/auth/logout`, { method: "POST" });
+}
+
+/** For a plain `<a href>` — a full-page redirect into Google, not a fetch. */
+export function googleLoginUrl(): string {
+  return `${API_URL}/api/auth/google/login`;
 }
 
 // --- Materials ------------------------------------------------------------
@@ -176,6 +195,7 @@ export async function uploadImportFile(file: File): Promise<UploadResult> {
   const res = await fetch(`${API_URL}/api/imports/upload`, {
     method: "POST",
     body: form,
+    credentials: "include",
     cache: "no-store",
   });
   if (!res.ok) {
@@ -290,6 +310,18 @@ export function getComparison(payload: ComparisonRequest): Promise<Comparison> {
   });
 }
 
+// --- Dashboard ---------------------------------------------------------------
+
+export function getDashboardOverview(): Promise<DashboardOverview> {
+  return request<DashboardOverview>(`/api/dashboard/overview`);
+}
+
+export function getDashboardDistribution(propertySlug: string): Promise<PropertyDistribution> {
+  return request<PropertyDistribution>(
+    `/api/dashboard/distribution/${encodeURIComponent(propertySlug)}`,
+  );
+}
+
 // --- Optional AI layer ------------------------------------------------------
 
 export function getAIStatus(): Promise<AIStatus> {
@@ -308,4 +340,39 @@ export function explainStudy(studyId: number): Promise<Explanation> {
     method: "POST",
     body: JSON.stringify({ study_id: studyId }),
   });
+}
+
+// --- Exports ----------------------------------------------------------------
+// Downloads are plain links rather than fetch calls: the browser then handles
+// the Content-Disposition filename and the save dialog natively.
+//
+// "html" is not a download: the API serves it inline so the browser renders it
+// and the user prints it to PDF. That is deliberately how the project gets a
+// PDF without taking on a PDF-generation dependency.
+
+export type ExportFormat = "csv" | "xlsx" | "html";
+
+/** True when the format opens in the browser instead of downloading. */
+export function opensInBrowser(format: ExportFormat): boolean {
+  return format === "html";
+}
+
+export function catalogueExportUrl(format: ExportFormat): string {
+  return `${API_URL}/api/exports/catalogo.${format}`;
+}
+
+export function studyExportUrl(studyId: number, format: ExportFormat): string {
+  return `${API_URL}/api/exports/estudos/${studyId}.${format}`;
+}
+
+/**
+ * The engineering report (laudo): a document distinct from the selection
+ * report, combining a ranking figure, the same audit tables, and — when the
+ * AI layer is on — an interpretive narrative. HTML-only, and always opens
+ * inline, like the printable report it is built alongside.
+ */
+export function studyLaudoUrl(studyId: number, responsible?: string): string {
+  const trimmed = responsible?.trim();
+  const query = trimmed ? `?${new URLSearchParams({ responsavel: trimmed })}` : "";
+  return `${API_URL}/api/exports/estudos/${studyId}/laudo.html${query}`;
 }

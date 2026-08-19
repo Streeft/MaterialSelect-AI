@@ -1,31 +1,34 @@
 import { describe, expect, it } from "vitest";
 import {
-  CLASS_PALETTE,
   axisLabels,
   chartFileName,
-  classColors,
   escapeHover,
   toClosedRing,
   toXY,
   withAlpha,
 } from "./charts";
+import { classVisual } from "./design/palette";
 
-describe("classColors", () => {
-  it("assigns one palette entry per distinct class", () => {
-    const colors = classColors(["metais", "polimeros", "metais"]);
-    expect(Object.keys(colors)).toEqual(["metais", "polimeros"]);
-    expect(new Set(Object.values(colors)).size).toBe(2);
+describe("classVisual", () => {
+  it("gives a class the same seat every time it is asked", () => {
+    // A figure printed today and reprinted next week must not swap colours.
+    expect(classVisual("metais")).toEqual(classVisual("metais"));
   });
 
-  it("is stable regardless of the order the classes arrive in", () => {
-    expect(classColors(["b", "a", "c"])).toEqual(classColors(["c", "b", "a", "a"]));
+  it("separates classes by shape and dash, not only by colour", () => {
+    const metals = classVisual("metais");
+    const polymers = classVisual("polimeros");
+    expect(metals.color).not.toBe(polymers.color);
+    expect(metals.symbol).not.toBe(polymers.symbol);
+    expect(metals.dash).not.toBe(polymers.dash);
   });
 
-  it("cycles the palette when there are more classes than colours", () => {
-    const slugs = Array.from({ length: CLASS_PALETTE.length + 2 }, (_, i) => `c${i}`);
-    const colors = classColors(slugs);
-    expect(Object.keys(colors)).toHaveLength(slugs.length);
-    expect(Object.values(colors).every(Boolean)).toBe(true);
+  it("seats a class the catalogue invented later, without repainting the others", () => {
+    const before = classVisual("metais");
+    const novel = classVisual("liga-de-titanio-do-usuario");
+    expect(novel.color).toBeTruthy();
+    expect(novel.symbol).toBeTruthy();
+    expect(classVisual("metais")).toEqual(before);
   });
 });
 

@@ -18,6 +18,7 @@ from __future__ import annotations
 import re
 import unicodedata
 
+from app.ai.caveats import standard_caveats
 from app.ai.provider import AIProvider, ProblemContext, PropertyFacts, ResultContext
 from app.calculations.expressions import ExpressionError, safe_variable
 from app.calculations.powerlaw import as_monomial
@@ -70,6 +71,8 @@ _UNITS: dict[str, str] = {
     "oc": "degC",
     "c": "degC",  # only ever reached after a degree sign; see _read_unit
     "celsius": "degC",
+    "graus": "degC",  # "300 graus C" — the letter lands in the next token
+    "grau": "degC",
     "k": "kelvin",
     "kelvin": "kelvin",
     "w/(m*k)": "W/(m*K)",
@@ -197,7 +200,7 @@ class MockAIProvider(AIProvider):
         function_text, function_tag = self._match(_FUNCTIONS, folded)
         objective_text, objective_tag = self._match(_OBJECTIVES, folded)
         mentioned = self._mentioned_properties(context, folded)
-        constraints = self._read_constraints(context, statement)
+        constraints, unreadable_units = self._read_constraints(context, statement)
         indices = self._match_indices(context, function_tag, objective_tag, mentioned)
         chart = self._suggest_chart(context, indices, mentioned)
 
@@ -206,6 +209,13 @@ class MockAIProvider(AIProvider):
         ]
 
         open_questions: list[str] = []
+        for property_name, clause in unreadable_units:
+            open_questions.append(
+                f"Em “{clause}” há um limite para {property_name}, mas não foi possível "
+                "identificar a unidade. A restrição não foi proposta: lida na unidade "
+                "canônica ela poderia inverter o sentido do enunciado. Escreva a unidade "
+                "(ex.: “300 °C”, “70 GPa”, “3 g/cm3”)."
+            )
         if not constraints:
             open_questions.append(
                 "Nenhuma restrição numérica foi reconhecida no enunciado. Escreva os "
@@ -263,10 +273,19 @@ class MockAIProvider(AIProvider):
                     break
         return found
 
-    def _read_constraints(self, context: ProblemContext, statement: str) -> list[dict]:
-        """Extract constraints clause by clause, copying numbers verbatim."""
+    def _read_constraints(
+        self, context: ProblemContext, statement: str
+    ) -> tuple[list[dict], list[tuple[str, str]]]:
+        """Extract constraints clause by clause, copying numbers verbatim.
+
+        Returns the proposals plus the clauses that clearly stated a limit whose
+        unit could not be identified. Those are not proposed — they become open
+        questions, because a threshold read in the wrong unit is worse than no
+        threshold at all.
+        """
         by_slug = {facts.slug: facts for facts in context.properties}
         constraints: list[dict] = []
+        unreadable: list[tuple[str, str]] = []
         seen: set[tuple[str, str]] = set()
 
         for clause in _split_clauses(statement):
@@ -286,19 +305,47 @@ class MockAIProvider(AIProvider):
                 self._threshold_constraint(match, clause, folded_clause)
             )
             if proposal is None:
+                if self._is_threshold_missing_its_unit(match, folded_clause):
+                    unreadable.append((match.name, clause.strip()))
                 continue
             key = (proposal["constraint"]["property_slug"], proposal["constraint"]["operator"])
             if key in seen:
                 continue
             seen.add(key)
             constraints.append(proposal)
-        return constraints
+        return constraints, unreadable
+
+    @classmethod
+    def _is_threshold_missing_its_unit(cls, facts: PropertyFacts, folded: str) -> bool:
+        """True when the clause states a limit but names no usable unit."""
+        if not any(phrase in folded for phrase, _ in _COMPARATORS):
+            return False
+        found = _VALUE_UNIT.search(folded)
+        if not found:
+            return False
+        unit = _read_unit(found.group("unit"), facts.accepted_units, facts.canonical_unit)
+        return cls._needs_a_unit(facts, unit)
+
+    @staticmethod
+    def _needs_a_unit(facts: PropertyFacts, unit: str | None) -> bool:
+        """True when a threshold was read but its unit could not be.
+
+        Proposing it anyway would let the value be taken in the canonical unit,
+        which on an offset scale reverses the user's meaning ("300 °C" read as
+        300 K). The clause is dropped and turned into an open question instead.
+        """
+        return unit is None and facts.canonical_unit.strip().lower() not in {
+            "",
+            "dimensionless",
+        }
 
     def _range_constraint(self, facts: PropertyFacts, clause: str, folded: str) -> dict | None:
         found = _RANGE.search(folded)
         if not found:
             return None
         unit = _read_unit(found.group("unit"), facts.accepted_units, facts.canonical_unit)
+        if self._needs_a_unit(facts, unit):
+            return None
         return {
             "constraint": {
                 "operator": "between",
@@ -319,6 +366,8 @@ class MockAIProvider(AIProvider):
         if not found:
             return None
         unit = _read_unit(found.group("unit"), facts.accepted_units, facts.canonical_unit)
+        if self._needs_a_unit(facts, unit):
+            return None
         return {
             "constraint": {
                 "operator": operator,
@@ -474,25 +523,7 @@ class MockAIProvider(AIProvider):
             )
             del leader_rank  # position is already in the listing
 
-        caveats = [
-            "Esta redação descreve resultados já calculados; ela não recalcula, não "
-            "ajusta e não acrescenta nenhum valor.",
-            "A ferramenta faz triagem preliminar. Não substitui validação experimental, "
-            "análise estrutural detalhada nem julgamento de engenharia.",
-        ]
-        if context.excluded_for_missing:
-            names = ", ".join(name for name, _ in context.excluded_for_missing)
-            caveats.append(
-                f"Materiais sem valor para algum critério ficaram fora do ranking e não "
-                f"foram avaliados: {names}. A ausência não é um valor ruim, é ausência."
-            )
-        if context.sensitivity_changed:
-            caveats.append(
-                "A análise de sensibilidade mostra que o primeiro colocado muda quando os "
-                "pesos variam: a recomendação é sensível à ponderação escolhida."
-            )
-        else:
-            caveats.append("O primeiro colocado se mantém sob as variações de peso testadas.")
+        caveats = standard_caveats(context)
 
         summary = (
             f"{context.ranked[0][0]} lidera entre {context.final_count} candidatos."

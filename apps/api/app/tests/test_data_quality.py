@@ -25,7 +25,7 @@ def test_missing_value_is_never_zero():
 def test_scalar_value_records_conversion_trail():
     nv = build_scalar_value(2.70, "g/cm**3", "kg/m**3")
     assert nv.is_missing is False
-    assert nv.value_scalar == 2.70          # original preserved
+    assert nv.value_scalar == 2.70  # original preserved
     assert nv.original_unit == "g/cm**3"
     assert nv.normalized_value == pytest.approx(2700.0)
     assert nv.canonical_unit == "kg/m**3"

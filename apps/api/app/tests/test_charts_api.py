@@ -358,6 +358,129 @@ class TestIndexOverlay:
         assert any("99999" in note for note in data["notes"])
 
 
+class TestIndexAxis:
+    """An axis can be a computed index instead of a catalogued property.
+
+    This reuses the same evaluation path as the index overlay
+    (``ChartService._material_variables`` / ``evaluate_index``), so a material
+    excluded here for the same reason it would be excluded from an overlay's
+    values is the expected behaviour, not a gap.
+    """
+
+    def test_index_on_x_axis_replaces_the_property(self, client: TestClient) -> None:
+        data = _map(
+            client,
+            x=None,
+            x_index={"name": "Rigidez específica", "expression": "modulo_young / densidade"},
+            y="densidade",
+            scale="linear",
+        )
+        assert data["x_axis"]["is_index"] is True
+        assert data["x_axis"]["property_slug"] is None
+        assert data["x_axis"]["property_name"] == "Rigidez específica"
+        assert data["x_axis"]["expression"] == "modulo_young / densidade"
+        assert data["x_axis"]["unit"]  # dimension is derived, not assumed
+
+        aluminium = next(
+            p for p in data["points"] if p["material_name"].startswith("Liga Alumínio")
+        )
+        assert aluminium["x"] == pytest.approx(69e9 / 2700.0)
+
+    def test_index_axis_carries_no_quality_badge_or_bounds(self, client: TestClient) -> None:
+        data = _map(
+            client,
+            x=None,
+            x_index={"expression": "modulo_young / densidade"},
+            y="densidade",
+            scale="linear",
+        )
+        for point in data["points"]:
+            assert point["x_quality"] is None
+            assert point["x_min"] is None and point["x_max"] is None
+            assert point["x_is_interval"] is False
+
+    def test_unnamed_index_axis_falls_back_to_its_expression(self, client: TestClient) -> None:
+        data = _map(
+            client, x=None, x_index={"expression": "modulo_young / densidade"}, y="densidade"
+        )
+        assert data["x_axis"]["property_name"] == "modulo_young / densidade"
+
+    def test_index_axis_direction_follows_its_own_goal(self, client: TestClient) -> None:
+        data = _map(
+            client,
+            x=None,
+            x_index={"expression": "modulo_young / densidade", "goal": "minimize"},
+            y="densidade",
+        )
+        assert data["x_axis"]["better_direction"] == "LOWER"
+
+    def test_both_axes_can_be_independent_indices(self, client: TestClient) -> None:
+        data = _map(
+            client,
+            x=None,
+            y=None,
+            x_index={"expression": "modulo_young / densidade"},
+            y_index={"expression": "1 / densidade"},
+            scale="linear",
+        )
+        assert data["x_axis"]["is_index"] is True
+        assert data["y_axis"]["is_index"] is True
+        assert data["plotted_count"] == 5
+
+    def test_material_lacking_a_variable_is_excluded_with_the_axis_label(
+        self, client: TestClient
+    ) -> None:
+        # Only two demo materials have Vickers hardness (see TestIndexOverlay).
+        data = _map(
+            client,
+            x=None,
+            x_index={"name": "Dureza específica", "expression": "dureza / densidade"},
+            y="modulo_young",
+        )
+        assert data["plotted_count"] == 2
+        assert len(data["excluded"]) == 3
+        assert all("Dureza específica" in e["reason"] for e in data["excluded"])
+
+    def test_rejects_the_same_index_on_both_axes(self, client: TestClient) -> None:
+        response = client.post(
+            MAP_URL,
+            json={
+                "x": None,
+                "y": None,
+                "x_index": {"expression": "modulo_young / densidade"},
+                "y_index": {"expression": "modulo_young / densidade"},
+            },
+        )
+        assert response.status_code == 400
+
+    def test_rejects_an_axis_with_neither_property_nor_index(self, client: TestClient) -> None:
+        response = client.post(MAP_URL, json={"x": None, "y": "densidade"})
+        assert response.status_code == 400
+
+    def test_rejects_an_axis_with_both_property_and_index(self, client: TestClient) -> None:
+        response = client.post(
+            MAP_URL,
+            json={
+                "x": "densidade",
+                "x_index": {"expression": "modulo_young / densidade"},
+                "y": "modulo_young",
+            },
+        )
+        assert response.status_code == 400
+
+    def test_overlay_index_cannot_combine_with_an_index_axis(self, client: TestClient) -> None:
+        response = client.post(
+            MAP_URL,
+            json={
+                "x": None,
+                "x_index": {"expression": "modulo_young / densidade"},
+                "y": "modulo_young",
+                "index": {"expression": "1 / densidade", "goal": "maximize"},
+            },
+        )
+        assert response.status_code == 400
+
+
 class TestCompare:
     def _ids(self, client: TestClient) -> list[int]:
         return [m["id"] for m in client.get("/api/materials").json()]

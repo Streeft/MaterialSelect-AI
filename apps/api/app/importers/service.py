@@ -144,7 +144,12 @@ class ImportService:
 
     def _suggest(self, headers: list[str]) -> list[ColumnSuggestion]:
         """Heuristic mapping suggestions from header names (UI pre-fill only)."""
-        properties = {p.slug: p for p in self.repo.list_properties()}
+        # Keyed by `slugify(p.slug)`, not `p.slug` itself: a stored slug like
+        # "modulo_young" uses underscores, but `slugify(prop_base)` below always
+        # produces hyphens — comparing the two forms directly meant every
+        # property whose slug has more than one word (most of them) could never
+        # be auto-suggested from a header, however the header spelled it.
+        properties = {slugify(p.slug): p for p in self.repo.list_properties()}
         suggestions: list[ColumnSuggestion] = []
         for header in headers:
             base = header_without_unit(header).strip().lower()
@@ -350,15 +355,20 @@ class ImportService:
             try:
                 parsed = parse_cell(raw)
             except CellParseError as exc:
-                results.append(
-                    (None, RowIssue(column=column.column, message=str(exc)))
-                )
+                results.append((None, RowIssue(column=column.column, message=str(exc))))
                 continue
 
             bucket = by_property.setdefault(
                 column.property_slug,
-                {"unit": None, "value": None, "min": None, "max": None,
-                 "typical": None, "missing_cells": 0, "cells": 0},
+                {
+                    "unit": None,
+                    "value": None,
+                    "min": None,
+                    "max": None,
+                    "typical": None,
+                    "missing_cells": 0,
+                    "cells": 0,
+                },
             )
             bucket["cells"] += 1
             effective_unit = parsed.unit or column.unit
@@ -377,29 +387,52 @@ class ImportService:
         for slug, b in by_property.items():
             if b["missing_cells"] == b["cells"]:
                 results.append(
-                    (PropertyValueIn(property_slug=slug, kind="missing",
-                                     data_quality=DataQuality.IMPORTADO), None)
+                    (
+                        PropertyValueIn(
+                            property_slug=slug, kind="missing", data_quality=DataQuality.IMPORTADO
+                        ),
+                        None,
+                    )
                 )
             elif b["min"] is not None and b["max"] is not None:
                 results.append(
-                    (PropertyValueIn(
-                        property_slug=slug, kind="interval",
-                        value_min=b["min"], value_max=b["max"],
-                        value_typical=b["typical"], unit=b["unit"],
-                        source_label=mapping.source_label,
-                        data_quality=DataQuality.IMPORTADO), None)
+                    (
+                        PropertyValueIn(
+                            property_slug=slug,
+                            kind="interval",
+                            value_min=b["min"],
+                            value_max=b["max"],
+                            value_typical=b["typical"],
+                            unit=b["unit"],
+                            source_label=mapping.source_label,
+                            data_quality=DataQuality.IMPORTADO,
+                        ),
+                        None,
+                    )
                 )
             elif b["value"] is not None:
                 results.append(
-                    (PropertyValueIn(
-                        property_slug=slug, kind="scalar", value=b["value"],
-                        unit=b["unit"], source_label=mapping.source_label,
-                        data_quality=DataQuality.IMPORTADO), None)
+                    (
+                        PropertyValueIn(
+                            property_slug=slug,
+                            kind="scalar",
+                            value=b["value"],
+                            unit=b["unit"],
+                            source_label=mapping.source_label,
+                            data_quality=DataQuality.IMPORTADO,
+                        ),
+                        None,
+                    )
                 )
             else:
                 # e.g. only min without max — incomplete interval.
                 results.append(
-                    (None, RowIssue(message=f"Intervalo incompleto para '{slug}' (min e max são obrigatórios)."))
+                    (
+                        None,
+                        RowIssue(
+                            message=f"Intervalo incompleto para '{slug}' (min e max são obrigatórios)."
+                        ),
+                    )
                 )
         return results
 

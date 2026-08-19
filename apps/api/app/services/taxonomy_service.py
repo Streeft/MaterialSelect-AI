@@ -18,9 +18,7 @@ class TaxonomyService:
         self.repo = MaterialClassRepository(db)
 
     def list_classes(self) -> list[MaterialClassOut]:
-        return [
-            self._to_out(cls, count) for cls, count in self.repo.list_with_counts()
-        ]
+        return [self._to_out(cls, count) for cls, count in self.repo.list_with_counts()]
 
     def create_class(self, payload: MaterialClassIn) -> MaterialClassOut:
         slug = self._resolve_slug(payload)
@@ -64,13 +62,9 @@ class TaxonomyService:
         if obj is None:
             raise NotFoundError(f"Classe não encontrada: {class_id}")
         if self.repo.material_count(class_id) > 0:
-            raise ConflictError(
-                "Não é possível excluir uma classe em uso por materiais."
-            )
+            raise ConflictError("Não é possível excluir uma classe em uso por materiais.")
         if self.repo.child_count(class_id) > 0:
-            raise ConflictError(
-                "Não é possível excluir uma classe com subclasses."
-            )
+            raise ConflictError("Não é possível excluir uma classe com subclasses.")
         self.repo.delete(obj)
         self.repo.commit()
 
@@ -97,9 +91,7 @@ class TaxonomyService:
             seen: set[int] = set()
             while ancestor is not None:
                 if ancestor.id == class_id:
-                    raise ValidationError(
-                        "A hierarquia de classes não pode conter ciclos."
-                    )
+                    raise ValidationError("A hierarquia de classes não pode conter ciclos.")
                 if ancestor.id in seen:
                     break
                 seen.add(ancestor.id)

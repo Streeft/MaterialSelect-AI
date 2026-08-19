@@ -49,8 +49,7 @@ class ImportRepository:
         """Resolve a class cell to a taxonomy node (case-insensitive)."""
         needle = text.strip().lower()
         stmt = select(MaterialClass).where(
-            (func.lower(MaterialClass.name) == needle)
-            | (func.lower(MaterialClass.slug) == needle)
+            (func.lower(MaterialClass.name) == needle) | (func.lower(MaterialClass.slug) == needle)
         )
         return self.db.execute(stmt).scalars().first()
 

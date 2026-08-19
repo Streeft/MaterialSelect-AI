@@ -32,9 +32,11 @@ class PropertyDefinitionRepository:
         return self.db.get(PropertyDefinition, property_id)
 
     def get_by_slug(self, slug: str) -> PropertyDefinition | None:
-        return self.db.execute(
-            select(PropertyDefinition).where(PropertyDefinition.slug == slug)
-        ).scalars().one_or_none()
+        return (
+            self.db.execute(select(PropertyDefinition).where(PropertyDefinition.slug == slug))
+            .scalars()
+            .one_or_none()
+        )
 
     def slug_exists(self, slug: str, exclude_id: int | None = None) -> bool:
         stmt = select(PropertyDefinition.id).where(PropertyDefinition.slug == slug)

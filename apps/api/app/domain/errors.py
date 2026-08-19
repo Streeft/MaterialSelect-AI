@@ -21,3 +21,16 @@ class ValidationError(DomainError):
 
 class ConflictError(DomainError):
     """The operation conflicts with current state (duplicate, in use). -> HTTP 409."""
+
+
+class AuthenticationError(DomainError):
+    """No session, or the session cookie is missing/invalid/expired. -> HTTP 401."""
+
+
+class ServiceUnavailableError(DomainError):
+    """A required external dependency is not configured. -> HTTP 503.
+
+    Reserved for deployment-configuration gaps (e.g. no Google OAuth client
+    set), not for domain rule violations — those are ``ValidationError`` or
+    ``ConflictError``.
+    """

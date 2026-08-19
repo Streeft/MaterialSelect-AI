@@ -71,9 +71,7 @@ def read_csv(data: bytes, max_rows: int) -> TabularData:
     headers = [str(h).strip() for h in all_rows[0]]
     rows = all_rows[1:]
     if len(rows) > max_rows:
-        raise ValidationError(
-            f"O arquivo tem {len(rows)} linhas de dados; o limite é {max_rows}."
-        )
+        raise ValidationError(f"O arquivo tem {len(rows)} linhas de dados; o limite é {max_rows}.")
     return TabularData(headers=headers, rows=rows)
 
 
@@ -107,12 +105,8 @@ def read_xlsx(data: bytes, max_rows: int, sheet_name: str | None = None) -> Tabu
     headers = [str(h).strip() if h is not None else "" for h in raw_rows[0]]
     rows = raw_rows[1:]
     if len(rows) > max_rows:
-        raise ValidationError(
-            f"A aba tem {len(rows)} linhas de dados; o limite é {max_rows}."
-        )
-    return TabularData(
-        headers=headers, rows=rows, sheet_names=sheet_names, sheet_name=sheet.title
-    )
+        raise ValidationError(f"A aba tem {len(rows)} linhas de dados; o limite é {max_rows}.")
+    return TabularData(headers=headers, rows=rows, sheet_names=sheet_names, sheet_name=sheet.title)
 
 
 def read_tabular(

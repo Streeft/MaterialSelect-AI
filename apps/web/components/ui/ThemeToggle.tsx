@@ -1,0 +1,104 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { ptBR } from "@/lib/i18n";
+import {
+  applyPreference,
+  readPreference,
+  resolveTheme,
+  watchSystemTheme,
+  type ThemePreference,
+} from "@/lib/theme";
+import { ButtonGroup, ButtonGroupItem } from "./Button";
+import { IconMonitor, IconMoon, IconSun } from "./icons";
+
+const OPTIONS: { id: ThemePreference; label: string; icon: React.ReactNode }[] = [
+  { id: "system", label: ptBR.ui.theme.system, icon: <IconMonitor className="h-3.5 w-3.5" /> },
+  { id: "light", label: ptBR.ui.theme.light, icon: <IconSun className="h-3.5 w-3.5" /> },
+  { id: "dark", label: ptBR.ui.theme.dark, icon: <IconMoon className="h-3.5 w-3.5" /> },
+];
+
+/**
+ * Three states, not two: "follow the system" is a preference a reader can hold,
+ * and a two-way switch silently converts it into a frozen choice the first time
+ * it is touched.
+ *
+ * Renders nothing until mounted. The server does not know the reader's stored
+ * preference, so any markup emitted there would be wrong for someone and would
+ * make React complain about it during hydration.
+ */
+export function ThemeToggle({
+  className,
+  compact = false,
+}: {
+  className?: string;
+  /**
+   * Icons only, with the words left for assistive technology.
+   *
+   * The three labels cost 236 px, and in the header that was 236 px the grouped
+   * navigation did not have: at 1280 the bar overflowed the page and the whole
+   * document scrolled sideways. The meaning never depended on the words being
+   * painted — every button keeps its `title` and its accessible name.
+   */
+  compact?: boolean;
+}) {
+  const [preference, setPreference] = useState<ThemePreference | null>(null);
+
+  useEffect(() => {
+    setPreference(readPreference());
+  }, []);
+
+  useEffect(() => {
+    if (preference !== "system") return;
+    return watchSystemTheme(() => applyPreference("system"));
+  }, [preference]);
+
+  if (preference === null) {
+    // Reserve the space so the header does not jump when this appears.
+    return <div aria-hidden className={className} style={{ width: compact ? 112 : 132, height: 30 }} />;
+  }
+
+  return (
+    <ButtonGroup label={ptBR.ui.theme.label} className={className}>
+      {OPTIONS.map((option) => (
+        <ButtonGroupItem
+          key={option.id}
+          selected={preference === option.id}
+          // `md-outlined-segmented-button` has no unnamed slot and no `part`
+          // on its label text — there is no CSS hook to hide the label below
+          // `sm` the way the old hand-rolled button did. `compact` still has
+          // to win: an icon-only button here (label="") plus an explicit
+          // `aria-label` keeps the accessible name regardless of what's
+          // visible, same as `IconButton`.
+          label={compact ? "" : option.label}
+          aria-label={option.label}
+          icon={option.icon}
+          onClick={() => {
+            setPreference(option.id);
+            applyPreference(option.id);
+          }}
+          title={option.label}
+        />
+      ))}
+    </ButtonGroup>
+  );
+}
+
+/** Current resolved theme, for the chart layer. Re-renders on every change. */
+export function useResolvedTheme() {
+  const [theme, setTheme] = useState<"light" | "dark">("light");
+  useEffect(() => {
+    const read = () =>
+      setTheme(
+        (document.documentElement.dataset.theme as "light" | "dark" | undefined) ??
+          resolveTheme(readPreference()),
+      );
+    read();
+    // The attribute changes both from the toggle and from the OS watcher, so
+    // observing the element is more reliable than subscribing to either one.
+    const observer = new MutationObserver(read);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+    return () => observer.disconnect();
+  }, []);
+  return theme;
+}

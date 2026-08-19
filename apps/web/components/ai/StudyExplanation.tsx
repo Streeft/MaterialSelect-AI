@@ -5,6 +5,7 @@ import { useMutation } from "@tanstack/react-query";
 import { ApiError, explainStudy } from "@/lib/api";
 import type { Explanation } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
+import { Alert, Button, Card, CardBody, CardHeader } from "@/components/ui";
 
 const t = ptBR.ai;
 
@@ -15,6 +16,10 @@ const t = ptBR.ai;
  * describes a current computation rather than a remembered one. If the wording
  * were ever to cite a figure the run did not produce, the API rejects it and
  * this component shows the refusal instead of the prose.
+ *
+ * That the text came from the AI layer is stated in the title and in the
+ * disclaimer, not in a colour. A tint the reader has to have been taught is the
+ * same failure the data-quality badges avoid (D-24).
  */
 export function StudyExplanation({ studyId }: { studyId: number }) {
   const [explanation, setExplanation] = useState<Explanation | null>(null);
@@ -31,55 +36,52 @@ export function StudyExplanation({ studyId }: { studyId: number }) {
 
   if (explanation) {
     return (
-      <div className="mt-2 rounded-md border border-violet-200 bg-violet-50/40 p-3 text-left">
-        <div className="flex items-start justify-between gap-2">
-          <h4 className="text-sm font-semibold text-slate-800">
-            {t.explanationTitle}: {explanation.study_name}
-          </h4>
-          <button
-            type="button"
-            onClick={() => setExplanation(null)}
-            className="rounded border border-slate-300 px-2 py-0.5 text-xs text-slate-500 hover:bg-white"
-          >
-            {t.close}
-          </button>
-        </div>
+      <Card className="mt-2 text-left">
+        <CardHeader
+          title={`${t.explanationTitle}: ${explanation.study_name}`}
+          headingLevel={4}
+          actions={
+            <Button size="sm" variant="ghost" onClick={() => setExplanation(null)}>
+              {t.close}
+            </Button>
+          }
+        />
+        <CardBody className="space-y-2">
+          <p className="max-w-prose text-sm font-medium text-ink">{explanation.summary}</p>
+          {explanation.paragraphs.map((paragraph, i) => (
+            <p key={i} className="max-w-prose text-sm text-ink-muted">
+              {paragraph}
+            </p>
+          ))}
 
-        <p className="mt-1 text-sm font-medium text-slate-700">{explanation.summary}</p>
-        {explanation.paragraphs.map((paragraph, i) => (
-          <p key={i} className="mt-2 text-sm text-slate-600">
-            {paragraph}
-          </p>
-        ))}
+          {explanation.caveats.length > 0 && (
+            <Alert tone="warning" title={t.caveats}>
+              <ul className="list-disc space-y-1 pl-4 text-xs">
+                {explanation.caveats.map((caveat, i) => (
+                  <li key={i}>{caveat}</li>
+                ))}
+              </ul>
+            </Alert>
+          )}
 
-        {explanation.caveats.length > 0 && (
-          <div className="mt-3 rounded bg-amber-50 px-3 py-2">
-            <h5 className="text-xs font-semibold text-amber-800">{t.caveats}</h5>
-            <ul className="mt-1 space-y-1 text-xs text-amber-800">
-              {explanation.caveats.map((caveat, i) => (
-                <li key={i}>• {caveat}</li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        <p className="mt-2 text-xs text-slate-400">{explanation.disclaimer}</p>
-      </div>
+          <p className="max-w-prose text-2xs text-ink-subtle">{explanation.disclaimer}</p>
+        </CardBody>
+      </Card>
     );
   }
 
   return (
     <>
-      <button
-        type="button"
+      <Button
+        size="sm"
+        variant="secondary"
+        loading={explain.isPending}
         onClick={() => explain.mutate()}
-        disabled={explain.isPending}
-        className="rounded border border-slate-300 px-2 py-1 text-xs text-violet-800 hover:bg-slate-50 disabled:opacity-50"
       >
         {explain.isPending ? t.explaining : t.explain}
-      </button>
+      </Button>
       {error && (
-        <p role="alert" className="mt-1 text-xs text-red-600">
+        <p role="alert" className="mt-1 text-xs text-danger-fg">
           {error}
         </p>
       )}

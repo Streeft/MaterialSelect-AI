@@ -70,6 +70,32 @@ def test_missing_value_is_reported_as_missing_not_zero(client):
     assert cond["normalized_value"] is None  # never coerced to 0
 
 
+def test_listing_summarises_data_quality_without_counting_absence_as_a_value(client):
+    """The catalogue filter needs to tell a gap from a measurement.
+
+    Absence is counted apart from the three qualities: a missing row still
+    carries a ``data_quality``, and folding it in would claim a value exists.
+    """
+    listing = client.get("/api/materials").json()
+    ceramica = next(m for m in listing if m["name"] == "Cerâmica Demo D")
+
+    detail = client.get(f"/api/materials/{ceramica['id']}").json()
+    props = [p for g in detail["property_groups"] for p in g["properties"]]
+    missing = [p for p in props if p["is_missing"]]
+
+    assert ceramica["quality"]["missing"] == len(missing)
+    assert ceramica["quality"]["missing"] > 0
+    recorded = sum(ceramica["quality"][k] for k in ("medido", "importado", "estimado"))
+    assert recorded == len(props) - len(missing)
+
+
+def test_listing_carries_the_class_slug(client):
+    listing = client.get("/api/materials").json()
+    assert all(m["class_slug"] for m in listing)
+    ceramica = next(m for m in listing if m["name"] == "Cerâmica Demo D")
+    assert ceramica["class_slug"] == "ceramicas"
+
+
 def test_interval_property_exposes_min_max(client):
     listing = client.get("/api/materials").json()
     polimero = next(m for m in listing if m["name"] == "Polímero Demo C")

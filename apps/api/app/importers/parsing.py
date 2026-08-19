@@ -48,9 +48,7 @@ _SCALAR_UNIT_RE = re.compile(rf"^(?P<num>{_NUM})\s+(?P<unit>[^\s].*)$")
 # Ranges: "120 - 150", "120-150", "120 – 150", optionally with trailing unit.
 # The separator must not be glued to an exponent sign; digit-hyphen-digit is
 # accepted ("120-150") since negative bounds are written with spaces if needed.
-_RANGE_RE = re.compile(
-    rf"^(?P<min>{_NUM})\s*[-–—]\s*(?P<max>{_NUM})(?:\s+(?P<unit>[^\s].*))?$"
-)
+_RANGE_RE = re.compile(rf"^(?P<min>{_NUM})\s*[-–—]\s*(?P<max>{_NUM})(?:\s+(?P<unit>[^\s].*))?$")
 # Unit inside a header, e.g. "densidade [g/cm3]" or "custo (R$/kg)".
 _HEADER_UNIT_RE = re.compile(r"[\[(]([^\][()]+)[\])]\s*$")
 # "cm3" -> "cm**3" etc., so header-style units become Pint-parsable.

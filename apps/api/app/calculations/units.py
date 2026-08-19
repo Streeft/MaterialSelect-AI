@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import math
 import re
+from tokenize import TokenError
 
 from pint import UnitRegistry
 from pint.errors import DimensionalityError, UndefinedUnitError
@@ -28,13 +29,87 @@ class UnitError(ValueError):
     """Raised for any unit-related problem (unknown unit or wrong dimension)."""
 
 
+# A unit string is free text a person types, and Pint answers a malformed one
+# with whatever its parser happens to raise on the way down: ``AssertionError``
+# for an operator left without an operand ("m**", "1/", "$"),
+# ``tokenize.TokenError`` for a parenthesis never closed ("(m"),
+# ``UndefinedUnitError`` (an ``AttributeError``) for a name it does not know,
+# ``ValueError`` for the rest. They share no common base — ``UndefinedUnitError``
+# descends from ``AttributeError`` and ``DimensionalityError`` from ``TypeError``
+# — so the tuple has to be written out. Every one of them left uncaught leaves
+# the service layer as HTTP 500: the user made a typo and the application
+# answers with a defect of its own.
+_UNIT_PARSE_FAILURES = (UndefinedUnitError, AssertionError, TokenError, ValueError)
+
+
+# Pint parses a unit by *evaluating* it as an arithmetic expression, which means
+# a ten-character string decides how much work the process does: "9**9**9" is
+# 9**387420489, an integer of some 370 million digits, and the call never
+# returns — one core pegged and memory climbing, from a field a person types
+# during an import. Neither a length limit nor a bound on the exponent alone
+# closes it: ten characters are enough for the first, and the chained form keeps
+# every digit small. So the guard checks the *shape*: every power operator must
+# be followed by a plain literal exponent — a number, or a fraction in
+# parentheses — and nothing else. That admits every unit a material has
+# (kg/m**3, MPa*m**0.5, m**(1/2), m**-3) and refuses arithmetic.
+_MAX_UNIT_LENGTH = 64
+_MAX_ABS_EXPONENT = 12.0
+
+# The operand of "**", anchored so that what follows it is the end of the
+# string or a separator — never another power operator, which is what makes the
+# chained form fail to match and be counted as malformed below.
+_POWER_OPERAND_RE = re.compile(
+    r"""\*\*\s*
+        (?:
+            (?P<plain>[+-]?\d+(?:\.\d+)?)             # m**3, m**-3, m**0.5
+          | \(\s*(?P<num>[+-]?\d+(?:\.\d+)?)          # m**(1/2), m**(3)
+            \s*(?:/\s*(?P<den>\d+(?:\.\d+)?)\s*)?\)
+        )
+        \s*(?=$|\*(?!\*)|[/)\s])
+    """,
+    re.VERBOSE,
+)
+
+
+def _reject_pathological_unit(unit: str) -> None:
+    """Refuse a unit string that would make Pint's parser do unbounded work.
+
+    Raises:
+        UnitError: if the string is absurdly long, or contains a power whose
+            exponent is not a plain literal within :data:`_MAX_ABS_EXPONENT`.
+    """
+    if len(unit) > _MAX_UNIT_LENGTH:
+        raise UnitError(f"Unidade longa demais ({len(unit)} caracteres): {unit[:32]!r}…")
+
+    # Pint accepts "^" as a synonym for "**"; normalising first means the guard
+    # cannot be walked around by writing the same expression the other way.
+    normalized = unit.replace("^", "**")
+    operators = normalized.count("**")
+    if operators == 0:
+        return
+
+    matches = list(_POWER_OPERAND_RE.finditer(normalized))
+    if len(matches) != operators:
+        raise UnitError(f"Expoente inválido em unidade: {unit!r}")
+
+    for match in matches:
+        raw = match.group("plain") or match.group("num")
+        exponent = float(raw)
+        denominator = match.group("den")
+        if denominator is not None:
+            divisor = float(denominator)
+            if divisor == 0:
+                raise UnitError(f"Expoente inválido em unidade: {unit!r}")
+            exponent /= divisor
+        if abs(exponent) > _MAX_ABS_EXPONENT:
+            raise UnitError(f"Expoente fora da faixa em unidade: {unit!r}")
+
+
 # Matches an optional sign, then either a plain digit run ("1500") or a
 # thousands-grouped integer part ("1.234" / "1 234"), an optional decimal part
 # (comma or point) and an optional scientific-notation exponent. The plain-run
 # alternative is required so ungrouped integers >= 1000 are accepted.
-_NUMBER_RE = re.compile(
-    r"^[+-]?(?:\d+|\d{1,3}(?:[.\s]\d{3})+)(?:[.,]\d+)?(?:[eE][+-]?\d+)?$"
-)
+_NUMBER_RE = re.compile(r"^[+-]?(?:\d+|\d{1,3}(?:[.\s]\d{3})+)(?:[.,]\d+)?(?:[eE][+-]?\d+)?$")
 
 
 def parse_decimal_comma(raw: str | float | int) -> float:
@@ -63,7 +138,9 @@ def parse_decimal_comma(raw: str | float | int) -> float:
     # explicitly in a later phase.
     text = text.replace(" ", "")
     if "," in text:
-        text = text.replace(".", "") if text.count(".") and text.rfind(",") > text.rfind(".") else text
+        text = (
+            text.replace(".", "") if text.count(".") and text.rfind(",") > text.rfind(".") else text
+        )
         text = text.replace(",", ".")
     try:
         return float(text)
@@ -82,18 +159,17 @@ def validate_dimension(unit: str, expected_dimension: str) -> bool:
     Raises:
         UnitError: if the unit is unknown to Pint.
     """
+    _reject_pathological_unit(unit)
     if not expected_dimension:
         return True
     try:
         quantity = ureg.Quantity(1.0, unit)
-    except (UndefinedUnitError, AssertionError, ValueError) as exc:
+    except _UNIT_PARSE_FAILURES as exc:
         raise UnitError(f"Unidade desconhecida: {unit!r}") from exc
     return quantity.check(expected_dimension)
 
 
-def to_canonical(
-    value: float, from_unit: str, canonical_unit: str
-) -> tuple[float, str]:
+def to_canonical(value: float, from_unit: str, canonical_unit: str) -> tuple[float, str]:
     """Convert ``value`` from ``from_unit`` to ``canonical_unit``.
 
     Returns a ``(normalized_value, conversion_method)`` tuple, where
@@ -109,12 +185,18 @@ def to_canonical(
     """
     if not math.isfinite(value):
         raise UnitError(f"Valor não finito não é permitido: {value!r}")
+    # Before the identity shortcut on purpose: a pathological unit must not be
+    # able to enter the system by being declared on both sides.
+    _reject_pathological_unit(from_unit)
+    _reject_pathological_unit(canonical_unit)
     if from_unit == canonical_unit:
         return value, f"identity:{canonical_unit}"
     try:
         converted = ureg.Quantity(value, from_unit).to(canonical_unit)
-    except (UndefinedUnitError, ValueError) as exc:
-        raise UnitError(f"Unidade desconhecida em conversão {from_unit!r}->{canonical_unit!r}") from exc
+    except _UNIT_PARSE_FAILURES as exc:
+        raise UnitError(
+            f"Unidade desconhecida em conversão {from_unit!r}->{canonical_unit!r}"
+        ) from exc
     except DimensionalityError as exc:
         raise UnitError(
             f"Unidades incompatíveis: {from_unit!r} não pode ser convertido para {canonical_unit!r}"

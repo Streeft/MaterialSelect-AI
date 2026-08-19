@@ -143,6 +143,28 @@ class TestConstraintChecks:
         )
         assert reason and "não aparece no enunciado" in reason
 
+    def test_dimensioned_threshold_without_a_unit_is_rejected(self) -> None:
+        # Downstream an absent unit means "already canonical". On an offset
+        # scale that reverses the statement: "no mínimo 300 °C" would become
+        # ≥ 300 K, i.e. −173 °C, which constrains nothing.
+        reason = self._check(operator="gte", property_slug="temp_max_servico", value=300.0)
+        assert reason and "não indica a unidade" in reason
+
+    def test_dimensionless_property_needs_no_unit(self) -> None:
+        catalogue = Catalogue(
+            properties={"dureza": "dimensionless"},
+            class_slugs=set(),
+            index_slugs=set(),
+        )
+        assert (
+            check_constraint(
+                ConstraintIn(operator="gte", property_slug="dureza", value=300.0),
+                self.STATEMENT,
+                catalogue,
+            )
+            is None
+        )
+
     def test_incompatible_unit_is_rejected(self) -> None:
         reason = self._check(
             operator="gte", property_slug="temp_max_servico", value=300.0, unit="GPa"

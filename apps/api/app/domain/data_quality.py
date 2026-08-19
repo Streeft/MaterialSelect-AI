@@ -37,9 +37,7 @@ def missing_value() -> NormalizedValue:
     return NormalizedValue(is_missing=True)
 
 
-def build_scalar_value(
-    value: float, original_unit: str, canonical_unit: str
-) -> NormalizedValue:
+def build_scalar_value(value: float, original_unit: str, canonical_unit: str) -> NormalizedValue:
     """Build a normalised scalar value, converting to canonical units.
 
     The original value and unit are preserved; the normalised value and the
@@ -75,9 +73,7 @@ def build_interval_value(
             would silently misplace the material.
     """
     if value_min > value_max:
-        raise ValueError(
-            f"Intervalo invertido: min ({value_min}) maior que max ({value_max})"
-        )
+        raise ValueError(f"Intervalo invertido: min ({value_min}) maior que max ({value_max})")
     if value_typical is not None and not (value_min <= value_typical <= value_max):
         raise ValueError(
             f"Valor típico ({value_typical}) fora do intervalo [{value_min}, {value_max}]"

@@ -21,6 +21,7 @@ from app.importers.readers import read_csv, read_xlsx
 
 # --- parse_cell -----------------------------------------------------------
 
+
 @pytest.mark.parametrize("raw", [None, "", "  ", "N/A", "n/d", "não disponível", "-", "--"])
 def test_missing_tokens(raw):
     assert parse_cell(raw).kind == "missing"
@@ -65,6 +66,7 @@ def test_unrecognised_cell_raises():
 
 # --- header helpers -------------------------------------------------------
 
+
 def test_unit_from_header_and_normalization():
     assert unit_from_header("densidade [g/cm3]") == "g/cm**3"
     assert unit_from_header("modulo_young (GPa)") == "GPa"
@@ -76,6 +78,7 @@ def test_unit_from_header_and_normalization():
 
 # --- formula sanitisation -------------------------------------------------
 
+
 def test_sanitize_formula_cells():
     clean, sanitized = sanitize_text_cell("=HYPERLINK('http://x','Aço')")
     assert sanitized is True
@@ -86,6 +89,7 @@ def test_sanitize_formula_cells():
 
 
 # --- readers --------------------------------------------------------------
+
 
 def test_read_csv_semicolon_and_comma():
     semi = "nome;classe\nA;Metais\nB;Polímeros\n".encode()

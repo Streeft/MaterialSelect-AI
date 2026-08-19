@@ -25,6 +25,7 @@ apps/api/var/
 # Node / Next.js
 node_modules/
 .next/
+.next-e2e/
 out/
 dist/
 *.tsbuildinfo
@@ -32,8 +33,16 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# Playwright (apps/web/e2e)
+playwright-report/
+test-results/
+blob-report/
+
 # Editor / OS
 .vscode/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Configuração pessoal do Claude Code (não versionada)
+.claude/settings.local.json

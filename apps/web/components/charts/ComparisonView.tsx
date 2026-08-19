@@ -1,18 +1,36 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import dynamic from "next/dynamic";
 import type { Data, Layout } from "plotly.js";
 import type { CompareCell, CompareMaterial, Comparison } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
-import { formatNumber, prettyUnit } from "@/lib/format";
+import { formatNumber, formatScore, prettyUnit } from "@/lib/format";
+import { axisLabels as buildAxisLabels, chartFileName, escapeHover } from "@/lib/charts";
+import { chartTheme, classVisual } from "@/lib/design/palette";
 import {
-  axisLabels as buildAxisLabels,
-  chartFileName,
-  classColors,
-  downloadPlotImage,
-  escapeHover,
-} from "@/lib/charts";
+  Alert,
+  Card,
+  CardBody,
+  CardHeader,
+  DataQualityBadge,
+  MissingValue,
+  ProvenancePopover,
+  RowHeader,
+  TBody,
+  THead,
+  Table,
+  TableCaption,
+  TableScroll,
+  Td,
+  Th,
+  Tr,
+  provenanceOfCell,
+  qualityState,
+  useResolvedTheme,
+} from "@/components/ui";
+import { ChartToolbar } from "./ChartToolbar";
+import { FigureData, type FigureColumn } from "./FigureData";
 
 const Plot = dynamic(() => import("react-plotly.js"), { ssr: false });
 
@@ -39,31 +57,6 @@ function cellsBySlug(material: CompareMaterial): Map<string, CompareCell> {
 }
 
 /**
- * Unit suffix for inline text.
- *
- * `prettyUnit` renders a dimensionless unit as an em dash, which reads as a
- * missing value when it trails a number ("3,5 —"). Inline, no suffix is the
- * honest rendering; the column header still carries the "[—]" marker.
- */
-function unitSuffix(unit: string | null): string {
-  const pretty = prettyUnit(unit);
-  return pretty && pretty !== "—" ? ` ${pretty}` : "";
-}
-
-/** Human-readable original value with its unit, for the traceability column. */
-function originalText(cell: CompareCell): string {
-  if (cell.is_missing) return t.missing;
-  const unit = unitSuffix(cell.original_unit);
-  if (cell.value_min !== null && cell.value_max !== null) {
-    return `${formatNumber(cell.value_min)} – ${formatNumber(cell.value_max)}${unit}`;
-  }
-  if (cell.original_value === null) return "—";
-  const uncertainty =
-    cell.uncertainty !== null ? ` ± ${formatNumber(cell.uncertainty)}` : "";
-  return `${formatNumber(cell.original_value)}${uncertainty}${unit}`;
-}
-
-/**
  * The five comparison views.
  *
  * All of them read `normalized`, which the backend computed on the same scale
@@ -72,14 +65,10 @@ function originalText(cell: CompareCell): string {
  */
 export function ComparisonView({ comparison, mode }: ComparisonViewProps) {
   const container = useRef<HTMLDivElement>(null);
-  const [exporting, setExporting] = useState<"png" | "svg" | null>(null);
-  const [exportError, setExportError] = useState<string | null>(null);
+  const theme = useResolvedTheme();
+  const paint = useMemo(() => chartTheme(theme), [theme]);
 
   const { properties, materials } = comparison;
-  const colors = useMemo(
-    () => classColors(materials.map((m) => m.class_slug)),
-    [materials],
-  );
   const lookup = useMemo(
     () => new Map(materials.map((m) => [m.material_id, cellsBySlug(m)])),
     [materials],
@@ -98,12 +87,11 @@ export function ComparisonView({ comparison, mode }: ComparisonViewProps) {
     // one categorical column and silently merge the two series.
     const axisLabels = buildAxisLabels(properties);
     const baseLayout: Partial<Layout> = {
+      ...paint.layout,
       autosize: true,
       height: 480,
       margin: { l: 70, r: 24, t: 20, b: 90 },
-      paper_bgcolor: "#ffffff",
-      plot_bgcolor: "#ffffff",
-      legend: { orientation: "h", y: -0.25, font: { size: 11 } },
+      legend: { ...paint.layout.legend, orientation: "h", y: -0.25, font: { size: 11 } },
     };
 
     if (mode === "bars") {
@@ -113,13 +101,13 @@ export function ComparisonView({ comparison, mode }: ComparisonViewProps) {
           name: material.name,
           x: axisLabels,
           y: properties.map((p) => normalizedOf(material.material_id, p.property_slug)),
-          marker: { color: colors[material.class_slug] },
+          marker: { color: classVisual(material.class_slug).color },
           hovertemplate: `<b>${escapeHover(material.name)}</b><br>%{x}: %{y:.3f}<extra></extra>`,
         })),
         layout: {
           ...baseLayout,
           barmode: "group",
-          yaxis: { title: { text: t.normalizedScale }, range: [0, 1.05] },
+          yaxis: { ...baseLayout.yaxis, title: { text: t.normalizedScale }, range: [0, 1.05] },
         },
       };
     }
@@ -141,7 +129,8 @@ export function ComparisonView({ comparison, mode }: ComparisonViewProps) {
             theta: [...axisLabels, axisLabels[0] ?? ""],
             fill: "toself",
             opacity: 0.35,
-            line: { color: colors[material.class_slug] },
+            line: { color: classVisual(material.class_slug).color },
+            marker: { symbol: classVisual(material.class_slug).symbol },
             hovertemplate: `<b>${escapeHover(material.name)}</b><br>%{theta}: %{r:.3f}<extra></extra>`,
           } as Data;
         }),
@@ -164,14 +153,14 @@ export function ComparisonView({ comparison, mode }: ComparisonViewProps) {
           x: axisLabels,
           y: properties.map((p) => normalizedOf(material.material_id, p.property_slug)),
           connectgaps: false,
-          line: { color: colors[material.class_slug], width: 2 },
-          marker: { size: 8 },
+          line: { color: classVisual(material.class_slug).color, width: 2 },
+          marker: { size: 8, symbol: classVisual(material.class_slug).symbol },
           hovertemplate: `<b>${escapeHover(material.name)}</b><br>%{x}: %{y:.3f}<extra></extra>`,
         })),
         layout: {
           ...baseLayout,
-          yaxis: { title: { text: t.normalizedScale }, range: [0, 1.05] },
-          xaxis: { type: "category" },
+          yaxis: { ...baseLayout.yaxis, title: { text: t.normalizedScale }, range: [0, 1.05] },
+          xaxis: { ...baseLayout.xaxis, type: "category" },
         },
       };
     }
@@ -203,151 +192,156 @@ export function ComparisonView({ comparison, mode }: ComparisonViewProps) {
     }
 
     return null; // table mode is plain HTML
-  }, [mode, materials, properties, colors, normalizedOf]);
+  }, [mode, materials, properties, paint, normalizedOf]);
 
-  async function handleExport(format: "png" | "svg") {
-    setExportError(null);
-    setExporting(format);
-    try {
-      await downloadPlotImage(
-        container.current,
-        format,
-        chartFileName("comparacao", mode, ...materials.map((m) => m.name).slice(0, 3)),
-      );
-    } catch {
-      setExportError(ptBR.map.exportError);
-    } finally {
-      setExporting(null);
-    }
-  }
+  const fileName = chartFileName(
+    "comparacao",
+    mode,
+    ...materials.map((m) => m.name).slice(0, 3),
+  );
 
-  const buttonClass =
-    "rounded border border-slate-300 px-2.5 py-1 text-xs text-slate-600 hover:bg-slate-50 disabled:opacity-50";
+  // What the four figures actually plot is the normalised score, so that — and
+  // not the raw value — is what their data table has to carry. A property with
+  // no value stays `null` all the way here and is rendered as absence.
+  const figureColumns: FigureColumn<CompareMaterial>[] = properties.map((property) => ({
+    key: property.property_slug,
+    header: property.property_name,
+    numeric: true,
+    cell: (material) => {
+      const normalized = normalizedOf(material.material_id, property.property_slug);
+      return normalized === null ? null : formatScore(normalized);
+    },
+  }));
 
   if (mode === "table") {
     return (
-      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-        <table className="min-w-full divide-y divide-slate-200 text-sm">
-          <caption className="sr-only">
+      <TableScroll label={t.figure}>
+        <Table>
+          <TableCaption>
             {t.title}: {t.normalizedScale}
-          </caption>
-          <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
-            <tr>
-              <th scope="col" className="px-3 py-2">
-                {t.columnMaterial}
-              </th>
+          </TableCaption>
+          <THead>
+            <Tr>
+              <Th>{t.columnMaterial}</Th>
               {properties.map((p) => (
-                <th key={p.property_slug} scope="col" className="px-3 py-2">
+                <Th key={p.property_slug}>
                   {p.property_name}
-                  <span className="ml-1 font-normal normal-case text-slate-400">
+                  <span className="ml-1 font-normal normal-case text-ink-subtle">
                     [{prettyUnit(p.unit)}]
                   </span>
-                </th>
+                </Th>
               ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
+            </Tr>
+          </THead>
+          <TBody>
             {materials.map((material) => (
-              <tr key={material.material_id}>
-                <th scope="row" className="px-3 py-2 text-left font-medium text-brand-700">
+              <Tr key={material.material_id}>
+                <RowHeader>
                   {material.name}
-                  <span className="block text-xs font-normal text-slate-400">
+                  <span className="block text-xs font-normal text-ink-subtle">
                     {material.class_name}
                   </span>
-                </th>
+                </RowHeader>
                 {properties.map((p) => {
                   const cell = lookup.get(material.material_id)?.get(p.property_slug);
-                  if (!cell || cell.is_missing) {
+                  // No cell at all is the same fact as a cell flagged missing:
+                  // nothing was recorded. Both get the badge, never a dash.
+                  if (!cell || cell.is_missing || cell.value === null) {
                     return (
-                      <td key={p.property_slug} className="px-3 py-2 text-slate-400">
-                        {t.missing}
-                      </td>
+                      <Td key={p.property_slug}>
+                        {cell ? (
+                          <ProvenancePopover provenance={provenanceOfCell(cell, p.unit)}>
+                            <MissingValue />
+                          </ProvenancePopover>
+                        ) : (
+                          <MissingValue />
+                        )}
+                      </Td>
                     );
                   }
+                  const provenance = provenanceOfCell(cell, p.unit);
                   return (
-                    <td key={p.property_slug} className="px-3 py-2 text-slate-700">
-                      <span className="tabular-nums">
-                        {cell.value === null ? "—" : formatNumber(cell.value)}
-                      </span>
-                      <span className="block text-xs text-slate-400">
-                        {t.original}: {originalText(cell)}
+                    <Td key={p.property_slug} className="text-ink">
+                      <span className="flex flex-wrap items-baseline gap-x-2">
+                        {/* §3.2: the whole chain behind the number, one click
+                            away, instead of grey micro-text nobody reads. */}
+                        <ProvenancePopover provenance={provenance}>
+                          <span className="tabular-nums">{formatNumber(cell.value)}</span>
+                        </ProvenancePopover>
+                        <DataQualityBadge state={qualityState(provenance)} showLabel={false} />
                       </span>
                       {cell.normalized !== null && (
                         <span className="mt-1 flex items-center gap-1">
-                          <span className="h-1.5 w-16 overflow-hidden rounded bg-slate-100">
+                          <span className="h-1.5 w-16 overflow-hidden rounded bg-surface-sunken">
                             <span
                               className="block h-full bg-brand-500"
                               style={{ width: `${cell.normalized * 100}%` }}
                             />
                           </span>
-                          <span className="text-xs tabular-nums text-slate-400">
-                            {cell.normalized.toFixed(2)}
+                          <span className="text-xs tabular-nums text-ink-subtle">
+                            {formatScore(cell.normalized)}
                           </span>
                         </span>
                       )}
-                    </td>
+                    </Td>
                   );
                 })}
-              </tr>
+              </Tr>
             ))}
-          </tbody>
-        </table>
-      </div>
+          </TBody>
+        </Table>
+      </TableScroll>
     );
   }
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4">
-      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-        <p className="text-xs text-slate-500">{t.normalizedScale}</p>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            className={buttonClass}
-            onClick={() => void handleExport("png")}
-            disabled={exporting !== null}
-          >
-            {exporting === "png" ? ptBR.map.exporting : t.exportPng}
-          </button>
-          <button
-            type="button"
-            className={buttonClass}
-            onClick={() => void handleExport("svg")}
-            disabled={exporting !== null}
-          >
-            {exporting === "svg" ? ptBR.map.exporting : t.exportSvg}
-          </button>
-        </div>
-      </div>
+    <Card>
+      <CardHeader
+        headingLevel={2}
+        title={t.figure}
+        description={t.normalizedScale}
+        actions={<ChartToolbar target={container} fileName={fileName} disabled={!figure} />}
+      />
+      <CardBody className="flex flex-col gap-3">
+        {mode === "radar" && properties.length < 3 && (
+          <Alert tone="warning">{t.radarNeedsThree}</Alert>
+        )}
+        {mode === "radar" && incomplete.length > 0 && (
+          <Alert tone="warning">
+            {t.radarSkipsMissing} ({incomplete.map((m) => m.name).join(", ")})
+          </Alert>
+        )}
 
-      {exportError && (
-        <p role="alert" className="mb-2 text-xs text-red-600">
-          {exportError}
-        </p>
-      )}
+        {figure && (
+          <div ref={container} role="img" aria-label={ptBR.chart.figureLabel(t.figure)}>
+            <Plot
+              data={figure.data}
+              layout={figure.layout}
+              config={{ displaylogo: false, responsive: true }}
+              style={{ width: "100%" }}
+              useResizeHandler
+            />
+          </div>
+        )}
 
-      {mode === "radar" && properties.length < 3 && (
-        <p className="mb-2 rounded bg-amber-50 px-3 py-2 text-xs text-amber-800">
-          {t.radarNeedsThree}
-        </p>
-      )}
-      {mode === "radar" && incomplete.length > 0 && (
-        <p className="mb-2 rounded bg-amber-50 px-3 py-2 text-xs text-amber-800">
-          {t.radarSkipsMissing} ({incomplete.map((m) => m.name).join(", ")})
-        </p>
-      )}
-
-      {figure && (
-        <div ref={container}>
-          <Plot
-            data={figure.data}
-            layout={figure.layout}
-            config={{ displaylogo: false, responsive: true }}
-            style={{ width: "100%" }}
-            useResizeHandler
-          />
-        </div>
-      )}
-    </div>
+        <FigureData
+          caption={`${t.figure} — ${t.normalizedScale}`}
+          rows={materials}
+          rowKey={(material) => material.material_id}
+          rowHeader={{
+            header: t.columnMaterial,
+            cell: (material) => (
+              <>
+                {material.name}
+                <span className="block text-xs font-normal text-ink-subtle">
+                  {material.class_name}
+                </span>
+              </>
+            ),
+          }}
+          columns={figureColumns}
+        />
+      </CardBody>
+    </Card>
   );
 }

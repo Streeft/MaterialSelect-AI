@@ -1,7 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
-import Link from "next/link";
+import { useId, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ApiError,
@@ -23,6 +22,29 @@ import type {
   ValidationReport,
 } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
+import {
+  Alert,
+  Button,
+  ButtonLink,
+  Card,
+  CardBody,
+  Disclosure,
+  Field,
+  Input,
+  Section,
+  Select,
+  SelectOption,
+  Stepper,
+  TBody,
+  THead,
+  Table,
+  TableScroll,
+  Td,
+  Th,
+  Tr,
+  type Step as StepItem,
+  type StepStatus,
+} from "@/components/ui";
 import {
   MappingEditor,
   type ColumnState,
@@ -60,14 +82,14 @@ function buildMapping(
   sourceLabel: string,
 ): { mapping?: ImportMapping; error?: string } {
   const nameCol = columns.find((c) => c.target === "name");
-  if (!nameCol) return { error: "Indique qual coluna contém o nome do material." };
+  if (!nameCol) return { error: t.errorNoNameColumn };
   const propCols = columns.filter((c) => c.target === "property");
   if (propCols.some((c) => !c.propertySlug)) {
-    return { error: "Há colunas de propriedade sem a propriedade selecionada." };
+    return { error: t.errorPropertyWithoutSlug };
   }
   const classCol = columns.find((c) => c.target === "class");
   if (!classCol && defaultClassId === null) {
-    return { error: "Mapeie uma coluna de classe ou escolha uma classe padrão." };
+    return { error: t.errorNoClass };
   }
   return {
     mapping: {
@@ -111,9 +133,25 @@ function applyTemplate(columns: ColumnState[], template: ImportTemplate): Column
   });
 }
 
+/**
+ * The same four-step language as `/selecao`.
+ *
+ * Both screens are wizards, and until now each spelled "where am I" its own way:
+ * one with clickable pills that silently did nothing, the other with static
+ * ones. A blocked step here is genuinely blocked — there is nothing to map
+ * before a file exists.
+ */
+const STEPS: StepItem<Step>[] = [
+  { id: "upload", label: t.stepUpload },
+  { id: "mapping", label: t.stepMapping, blockedReason: t.blockedMapping },
+  { id: "report", label: t.stepReport, blockedReason: t.blockedReport },
+  { id: "done", label: t.stepDone, blockedReason: t.blockedDone },
+];
+
 export default function ImportPage() {
   const qc = useQueryClient();
   const fileInput = useRef<HTMLInputElement>(null);
+  const fileInputId = useId();
 
   const [step, setStep] = useState<Step>("upload");
   const [upload, setUpload] = useState<UploadResult | null>(null);
@@ -226,267 +264,208 @@ export default function ImportPage() {
       return;
     }
     if (!templateName.trim()) {
-      setError("Informe um nome para o template.");
+      setError(t.errorTemplateName);
       return;
     }
     doSaveTemplate.mutate({ name: templateName.trim(), mapping: built.mapping });
   }
 
-  const steps: { key: Step; label: string }[] = [
-    { key: "upload", label: t.stepUpload },
-    { key: "mapping", label: t.stepMapping },
-    { key: "report", label: t.stepReport },
-    { key: "done", label: t.stepDone },
-  ];
-
-  const inputClass =
-    "rounded border border-slate-300 bg-white px-2 py-1 text-sm focus:border-brand-500 focus:outline-none";
+  /** A step is reachable only once the step before it produced something. */
+  function statusOf(item: StepItem<Step>): StepStatus {
+    if (item.id === step) return "current";
+    switch (item.id) {
+      case "upload":
+        return upload ? "done" : "upcoming";
+      case "mapping":
+        return !upload ? "blocked" : report ? "done" : "upcoming";
+      case "report":
+        return !report ? "blocked" : result ? "done" : "upcoming";
+      case "done":
+        return result ? "done" : "blocked";
+    }
+  }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-baseline justify-between">
-        <h1 className="text-xl font-semibold text-slate-900">{t.title}</h1>
-        <nav aria-label="Etapas" className="flex gap-2 text-xs">
-          {steps.map((s) => (
-            <span
-              key={s.key}
-              className={
-                "rounded-full px-2 py-1 " +
-                (step === s.key ? "bg-brand-600 text-white" : "bg-slate-100 text-slate-500")
-              }
-            >
-              {s.label}
-            </span>
-          ))}
-        </nav>
+      <div>
+        <h1 className="text-xl font-semibold text-ink">{t.title}</h1>
+        <p className="text-sm text-ink-muted">{t.subtitle}</p>
       </div>
 
+      <Stepper label={ptBR.ui.steps} steps={STEPS} statusOf={statusOf} current={step} onSelect={setStep} />
+
       {error && (
-        <p role="alert" className="rounded-md bg-red-50 px-4 py-2 text-sm text-red-700">
+        <Alert tone="danger" role="alert">
           {error}
-        </p>
+        </Alert>
       )}
 
       {step === "upload" && (
-        <section className="rounded-lg border border-slate-200 bg-white p-6">
-          <p className="mb-3 text-sm text-slate-600">{t.dropHint}</p>
-          <input
-            ref={fileInput}
-            type="file"
-            accept=".csv,.xlsx"
-            aria-label={t.dropHint}
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) doUpload.mutate(file);
-            }}
-            className="text-sm"
-          />
-          {doUpload.isPending && <p className="mt-2 text-sm text-slate-500">{t.uploading}</p>}
-        </section>
+        <Card>
+          <CardBody className="space-y-3">
+            {/* A file input manages its own id, so the Field is told which one
+                to point at rather than guessing through the control context. */}
+            <Field label={t.dropHint} htmlFor={fileInputId}>
+              <input
+                ref={fileInput}
+                id={fileInputId}
+                type="file"
+                accept=".csv,.xlsx"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) doUpload.mutate(file);
+                }}
+                className="text-sm text-ink file:mr-3 file:rounded-control file:border-0 file:bg-brand file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-brand-fg"
+              />
+            </Field>
+            {doUpload.isPending && <p className="text-sm text-ink-muted">{t.uploading}</p>}
+          </CardBody>
+        </Card>
       )}
 
       {step === "mapping" && upload && (
-        <section className="space-y-4">
-          <div className="flex flex-wrap items-center gap-3 text-sm">
-            <span className="font-medium text-slate-700">{upload.filename}</span>
-            <span className="text-slate-500">{t.rows(upload.row_count)}</span>
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-end gap-3 text-sm">
+            <span className="font-medium text-ink">{upload.filename}</span>
+            <span className="text-ink-muted">{t.rows(upload.row_count)}</span>
             {upload.sheet_names.length > 1 && (
-              <label className="flex items-center gap-1 text-slate-600">
-                {t.sheet}:
-                <select
-                  className={inputClass}
-                  value={upload.sheet_name ?? ""}
-                  onChange={(e) => doPreviewSheet.mutate(e.target.value)}
-                >
-                  {upload.sheet_names.map((s) => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                </select>
-              </label>
+              <Select
+                label={t.sheet}
+                className="w-48"
+                value={upload.sheet_name ?? ""}
+                onChange={(e) => doPreviewSheet.mutate(e.target.value)}
+              >
+                {upload.sheet_names.map((s) => (
+                  <SelectOption key={s} value={s}>
+                    {s}
+                  </SelectOption>
+                ))}
+              </Select>
             )}
           </div>
 
-          <details className="rounded-lg border border-slate-200 bg-white p-3" open>
-            <summary className="cursor-pointer text-sm font-medium text-slate-700">
-              {t.preview}
-            </summary>
-            <div className="mt-2 overflow-x-auto">
-              <table className="min-w-full text-xs">
-                <thead>
-                  <tr>
+          <Disclosure summary={t.preview} defaultOpen>
+            <TableScroll label={t.preview}>
+              <Table>
+                <THead>
+                  <Tr>
                     {upload.headers.map((h) => (
-                      <th key={h} className="border-b border-slate-200 px-2 py-1 text-left font-medium text-slate-600">
-                        {h}
-                      </th>
+                      <Th key={h}>{h}</Th>
                     ))}
-                  </tr>
-                </thead>
-                <tbody>
+                  </Tr>
+                </THead>
+                <TBody>
                   {upload.sample_rows.map((row, i) => (
-                    <tr key={i}>
+                    <Tr key={i}>
                       {row.map((cell, j) => (
-                        <td key={j} className="border-b border-slate-100 px-2 py-1 text-slate-600">
-                          {cell ?? <span className="text-slate-300">—</span>}
-                        </td>
+                        <Td key={j} className="text-ink-muted">
+                          {/* An empty cell in the source file says something;
+                              a dash here would be read as the file's content. */}
+                          {cell ?? (
+                            <span className="text-2xs italic text-ink-subtle">{t.emptyCell}</span>
+                          )}
+                        </Td>
                       ))}
-                    </tr>
+                    </Tr>
                   ))}
-                </tbody>
-              </table>
-            </div>
-          </details>
+                </TBody>
+              </Table>
+            </TableScroll>
+          </Disclosure>
 
-          <div>
-            <h2 className="mb-1 text-sm font-semibold text-slate-800">{t.mappingTitle}</h2>
-            <p className="mb-2 text-xs text-slate-500">{t.mappingHelp}</p>
+          <Section title={t.mappingTitle} description={t.mappingHelp} headingLevel={2}>
             <MappingEditor
               columns={columns}
               properties={properties.data ?? []}
               onChange={setColumns}
             />
-          </div>
+          </Section>
 
           <div className="grid gap-3 sm:grid-cols-2">
-            <label className="text-sm text-slate-600">
-              {t.defaultClass}
-              <select
-                className={`${inputClass} mt-1 block w-full`}
-                value={defaultClassId ?? ""}
-                onChange={(e) =>
-                  setDefaultClassId(e.target.value ? Number(e.target.value) : null)
-                }
-              >
-                <option value="">{t.noDefaultClass}</option>
-                {(classes.data ?? []).map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
-            </label>
-            <label className="text-sm text-slate-600">
-              {t.sourceLabel}
-              <input
-                className={`${inputClass} mt-1 block w-full`}
-                value={sourceLabel}
-                onChange={(e) => setSourceLabel(e.target.value)}
-                placeholder="ex.: Planilha Prof. Fulano 2026"
-              />
-            </label>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 text-sm">
-            <span className="font-medium text-slate-700">{t.templates}:</span>
-            <select
-              className={inputClass}
-              aria-label={t.applyTemplate}
-              defaultValue=""
-              onChange={(e) => {
-                const template = (templates.data ?? []).find(
-                  (x) => x.id === Number(e.target.value),
-                );
-                if (template) setColumns((cols) => applyTemplate(cols, template));
-              }}
+            <Select
+              label={t.defaultClass}
+              value={defaultClassId ?? ""}
+              onChange={(e) => setDefaultClassId(e.target.value ? Number(e.target.value) : null)}
             >
-              <option value="">{t.applyTemplate}</option>
-              {(templates.data ?? []).map((tpl) => (
-                <option key={tpl.id} value={tpl.id}>{tpl.name}</option>
+              <SelectOption value="">{t.noDefaultClass}</SelectOption>
+              {(classes.data ?? []).map((c) => (
+                <SelectOption key={c.id} value={String(c.id)}>
+                  {c.name}
+                </SelectOption>
               ))}
-            </select>
-            <input
-              className={inputClass}
-              placeholder={t.templateName}
-              value={templateName}
-              onChange={(e) => setTemplateName(e.target.value)}
-            />
-            <button
-              type="button"
-              onClick={handleSaveTemplate}
-              disabled={doSaveTemplate.isPending}
-              className="rounded border border-slate-300 px-3 py-1 text-slate-600 hover:bg-slate-50 disabled:opacity-50"
-            >
-              {t.saveTemplate}
-            </button>
+            </Select>
+            <Input label={t.sourceLabel} value={sourceLabel} onChange={(e) => setSourceLabel(e.target.value)} placeholder={t.sourcePlaceholder} />
           </div>
 
-          <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={handleValidate}
-              disabled={doValidate.isPending}
-              className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
-            >
+          <Card>
+            <CardBody className="flex flex-wrap items-end gap-3">
+              <Select
+                label={t.templates}
+                className="w-56"
+                onChange={(e) => {
+                  const template = (templates.data ?? []).find(
+                    (x) => x.id === Number(e.target.value),
+                  );
+                  if (template) setColumns((cols) => applyTemplate(cols, template));
+                }}
+              >
+                <SelectOption value="">{t.applyTemplate}</SelectOption>
+                {(templates.data ?? []).map((tpl) => (
+                  <SelectOption key={tpl.id} value={String(tpl.id)}>
+                    {tpl.name}
+                  </SelectOption>
+                ))}
+              </Select>
+              <Input label={t.templateName} className="w-56" value={templateName} onChange={(e) => setTemplateName(e.target.value)} />
+              <Button onClick={handleSaveTemplate} loading={doSaveTemplate.isPending}>
+                {t.saveTemplate}
+              </Button>
+            </CardBody>
+          </Card>
+
+          <div className="flex flex-wrap gap-3">
+            <Button variant="primary" onClick={handleValidate} loading={doValidate.isPending}>
               {doValidate.isPending ? t.validating : t.validate}
-            </button>
-            <button
-              type="button"
-              onClick={() => doCancel.mutate()}
-              className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50"
-            >
-              {t.cancelImport}
-            </button>
+            </Button>
+            <Button onClick={() => doCancel.mutate()}>{t.cancelImport}</Button>
           </div>
-        </section>
+        </div>
       )}
 
       {step === "report" && report && (
-        <section className="space-y-4">
-          <h2 className="text-sm font-semibold text-slate-800">{t.reportTitle}</h2>
+        <Section title={t.reportTitle} headingLevel={2}>
           <ValidationReportView report={report} />
-          <p className="text-xs text-slate-500">{t.commitHint}</p>
-          <div className="flex gap-3">
-            <button
-              type="button"
+          <p className="text-xs text-ink-muted">{t.commitHint}</p>
+          <div className="flex flex-wrap gap-3">
+            <Button
+              variant="primary"
               onClick={() => doCommit.mutate()}
-              disabled={doCommit.isPending || report.valid_count === 0}
-              className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
+              disabled={report.valid_count === 0}
+              loading={doCommit.isPending}
             >
               {doCommit.isPending ? t.committing : `${t.commit} (${report.valid_count})`}
-            </button>
-            <button
-              type="button"
-              onClick={() => setStep("mapping")}
-              className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50"
-            >
-              ← {t.stepMapping}
-            </button>
-            <button
-              type="button"
-              onClick={() => doCancel.mutate()}
-              className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50"
-            >
-              {t.cancelImport}
-            </button>
+            </Button>
+            <Button onClick={() => setStep("mapping")}>← {t.stepMapping}</Button>
+            <Button onClick={() => doCancel.mutate()}>{t.cancelImport}</Button>
           </div>
-        </section>
+        </Section>
       )}
 
       {step === "done" && result && (
-        <section className="rounded-lg border border-green-200 bg-green-50 p-6">
-          <h2 className="text-lg font-semibold text-green-800">{t.doneTitle}</h2>
-          <p className="mt-1 text-sm text-green-700">
-            {t.doneSummary(result.imported_count, result.skipped_count)}
-          </p>
-          <div className="mt-4 flex gap-3 text-sm">
-            <Link
-              href="/catalogo"
-              className="rounded-lg bg-brand-600 px-4 py-2 font-medium text-white hover:bg-brand-700"
-            >
+        <Alert tone="success" title={t.doneTitle}>
+          <p>{t.doneSummary(result.imported_count, result.skipped_count)}</p>
+          <div className="mt-3 flex flex-wrap gap-3">
+            <ButtonLink href="/catalogo" variant="primary">
               {t.goCatalog}
-            </Link>
-            <button
-              type="button"
-              onClick={reset}
-              className="rounded-lg border border-slate-300 px-4 py-2 text-slate-600 hover:bg-white"
-            >
-              {t.newImport}
-            </button>
+            </ButtonLink>
+            <Button onClick={reset}>{t.newImport}</Button>
           </div>
-        </section>
+        </Alert>
       )}
 
-      <section className="space-y-2">
-        <h2 className="text-sm font-semibold text-slate-800">{t.historyTitle}</h2>
+      <Section title={t.historyTitle} headingLevel={2}>
         <ImportHistory />
-      </section>
+      </Section>
     </div>
   );
 }
