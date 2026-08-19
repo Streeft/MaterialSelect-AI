@@ -46,3 +46,7 @@ Thumbs.db
 
 # Configuração pessoal do Claude Code (não versionada)
 .claude/settings.local.json
+
+# Scratch de execução do subagent-driven-development (superpowers) — ledgers,
+# briefs e pacotes de revisão de cada plano, nunca artefato do produto.
+.superpowers/
