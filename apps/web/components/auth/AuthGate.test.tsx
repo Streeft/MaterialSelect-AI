@@ -1,5 +1,11 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, waitFor } from "@testing-library/react";
+// @material/web's button family exposes its role on a <button> inside a
+// shadow root — plain @testing-library/react's screen can't see past that
+// boundary. shadow-dom-testing-library's screen is a superset of the
+// original (light-DOM-only queries still work) plus the Shadow-prefixed
+// variants this file needs for the retry button in the billing-error test.
+import { screen } from "shadow-dom-testing-library";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { AuthGate } from "./AuthGate";
@@ -75,6 +81,15 @@ describe("AuthGate — sessão", () => {
     await waitFor(() => expect(routerReplace).toHaveBeenCalledWith("/entrar"));
     expect(screen.queryByText("Conteúdo protegido")).not.toBeInTheDocument();
   });
+
+  it("sends an unauthenticated visitor away from /assinatura too — that route only exempts billing, not session", async () => {
+    route.pathname = "/assinatura";
+    getCurrentUser.mockRejectedValue(new ApiError("Não autenticado.", 401));
+    renderGate(<p>Conteúdo protegido</p>);
+
+    await waitFor(() => expect(routerReplace).toHaveBeenCalledWith("/entrar"));
+    expect(screen.queryByText("Conteúdo protegido")).not.toBeInTheDocument();
+  });
 });
 
 describe("AuthGate — assinatura", () => {
@@ -117,5 +132,20 @@ describe("AuthGate — assinatura", () => {
 
     expect(await screen.findByText("Conteúdo protegido")).toBeInTheDocument();
     expect(routerReplace).not.toHaveBeenCalled();
+  });
+
+  it("shows a retryable error state when the billing check itself fails", async () => {
+    getCurrentUser.mockResolvedValue(user);
+    getBillingStatus.mockRejectedValue(new Error("falha de rede"));
+
+    renderGate(<p>Conteúdo protegido</p>);
+
+    await screen.findByShadowRole("alert");
+    expect(screen.queryByText("Conteúdo protegido")).not.toBeInTheDocument();
+    expect(routerReplace).not.toHaveBeenCalled(); // a failed check is not "not subscribed"
+
+    getBillingStatus.mockClear();
+    fireEvent.click(screen.getByShadowRole("button", { name: ptBR.ui.retry }));
+    await waitFor(() => expect(getBillingStatus).toHaveBeenCalled());
   });
 });
