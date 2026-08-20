@@ -1,8 +1,8 @@
 """Knowledge-base models: catalogued reference documents and their text chunks.
 
 This is the schema behind ``Cérebro/`` — the curated Engineering-of-Materials
-reference material that grounds the AI layer's prose. Two tables, and the split
-is the whole point:
+reference material that grounds the AI layer's prose. Three tables, and the
+splits are the whole point:
 
 * :class:`KnowledgeDocument` is *provenance*. One row per file on disk, keyed by
   its path, carrying who wrote it, how much authority it has and what licence it
@@ -34,6 +34,7 @@ from sqlalchemy import (
     Enum,
     ForeignKey,
     Integer,
+    LargeBinary,
     String,
     Text,
     UniqueConstraint,
@@ -142,4 +143,53 @@ class KnowledgeChunk(Base):
     text: Mapped[str] = mapped_column(Text, nullable=False)
     char_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
+    # The same text folded for matching: lowercased, diacritics stripped (see
+    # app/knowledge/lexical.py). Stored rather than folded per query because
+    # SQLite's lower() does not touch accents, so without this column a search
+    # for "resistencia" could not reach "resistência" without reading every
+    # passage into Python first. The cost is roughly doubling the text stored;
+    # the reader is always shown `text`, never this.
+    search_text: Mapped[str] = mapped_column(Text, default="", nullable=False)
+
     document: Mapped[KnowledgeDocument] = relationship(back_populates="chunks")
+    embedding: Mapped[KnowledgeEmbedding | None] = relationship(
+        back_populates="chunk",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        uselist=False,
+    )
+
+
+class KnowledgeEmbedding(Base):
+    """The vector for one passage, for semantic retrieval.
+
+    A separate table and not a column on the chunk, for two reasons that both
+    matter in practice. Vectors are optional — the lexical path works without
+    any of them, and a corpus indexed on a machine with no embedding provider
+    should not carry a NULL column the width of a passage. And they are
+    *replaceable independently of the text*: changing the embedding model
+    invalidates every vector while leaving every passage exactly as valid as it
+    was, so the two belong to different lifecycles.
+
+    ``model`` and ``dimensions`` travel with the vector because a similarity
+    between vectors from two different models is a number that looks like an
+    answer and is not. Retrieval compares them before comparing the vectors.
+    """
+
+    __tablename__ = "knowledge_embedding"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    chunk_id: Mapped[int] = mapped_column(
+        ForeignKey("knowledge_chunk.id", ondelete="CASCADE"),
+        unique=True,
+        nullable=False,
+    )
+
+    #: The model that produced it, as configured. Never inferred.
+    model: Mapped[str] = mapped_column(String(120), nullable=False)
+    dimensions: Mapped[int] = mapped_column(Integer, nullable=False)
+    #: Little-endian float32, L2-normalised. See app/knowledge/embeddings.py.
+    vector: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+
+    chunk: Mapped[KnowledgeChunk] = relationship(back_populates="embedding")

@@ -99,5 +99,18 @@ export function AuthGate({ children }: { children: ReactNode }) {
     );
   }
 
+  // Positive check, not a fall-through: TanStack Query has states where `data`
+  // is undefined while neither `isLoading` nor `isError` is true — a query
+  // paused by `networkMode` while offline is one. Reaching `children` by
+  // elimination would render the whole application with no subscription ever
+  // confirmed, which is exactly what this component exists to prevent.
+  if (billing?.active !== true) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <LoadingState label={ptBR.auth.checkingSubscription} />
+      </div>
+    );
+  }
+
   return <>{children}</>;
 }
