@@ -776,3 +776,19 @@ export interface CurrentUser {
   avatar_url: string | null;
   project_id: number;
 }
+
+// --- Billing (assinatura Stripe) --------------------------------------------
+
+export interface BillingStatus {
+  active: boolean;
+  status: string | null;
+  current_period_end: string | null;
+}
+
+export interface CheckoutSession {
+  url: string;
+}
+
+export interface PortalSession {
+  url: string;
+}
