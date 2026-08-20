@@ -9,7 +9,7 @@ from __future__ import annotations
 import math
 from typing import Any
 
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -18,6 +18,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app import __version__
 from app.config import settings
+from app.dependencies import require_active_subscription
 from app.domain.errors import (
     AuthenticationError,
     ConflictError,
@@ -29,6 +30,7 @@ from app.domain.errors import (
 from app.routers import (
     ai,
     auth,
+    billing,
     charts,
     classes,
     dashboard,
@@ -120,17 +122,42 @@ async def _handle_request_validation(_: Request, exc: RequestValidationError) ->
 
 app.include_router(health.router, prefix="/api")
 app.include_router(auth.router, prefix="/api")
-app.include_router(materials.router, prefix="/api")
-app.include_router(classes.router, prefix="/api")
-app.include_router(properties.router, prefix="/api")
-app.include_router(imports.router, prefix="/api")
-app.include_router(imports.templates_router, prefix="/api")
-app.include_router(selection.router, prefix="/api")
-app.include_router(selection.indices_router, prefix="/api")
-app.include_router(charts.router, prefix="/api")
-app.include_router(dashboard.router, prefix="/api")
-app.include_router(ai.router, prefix="/api")
-app.include_router(exports.router, prefix="/api")
+app.include_router(billing.router, prefix="/api")
+app.include_router(
+    materials.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
+)
+app.include_router(
+    classes.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
+)
+app.include_router(
+    properties.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
+)
+app.include_router(
+    imports.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
+)
+app.include_router(
+    imports.templates_router,
+    prefix="/api",
+    dependencies=[Depends(require_active_subscription)],
+)
+app.include_router(
+    selection.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
+)
+app.include_router(
+    selection.indices_router,
+    prefix="/api",
+    dependencies=[Depends(require_active_subscription)],
+)
+app.include_router(
+    charts.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
+)
+app.include_router(
+    dashboard.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
+)
+app.include_router(ai.router, prefix="/api", dependencies=[Depends(require_active_subscription)])
+app.include_router(
+    exports.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
+)
 
 
 @app.get("/", tags=["root"])
