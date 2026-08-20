@@ -29,6 +29,29 @@ vi.mock("@/lib/api", async (importOriginal) => ({
 
 const { ApiError } = await import("@/lib/api");
 
+type BillingQuery = ReturnType<typeof import("@/lib/billing").useBillingStatus>;
+
+// The real hook everywhere, with one escape hatch: a query state that cannot be
+// reached by mocking the API alone. TanStack Query refuses `undefined` as query
+// data (it turns into an error), yet reports exactly `data: undefined` with
+// neither `isLoading` nor `isError` for a query paused by `networkMode` while
+// offline — the state the gate must not fall through.
+const billingStub = vi.hoisted(() => ({
+  real: null as ((options?: { enabled?: boolean }) => unknown) | null,
+  override: null as unknown,
+}));
+
+vi.mock("@/lib/billing", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/billing")>();
+  billingStub.real = actual.useBillingStatus;
+  return { useBillingStatus: useBillingStatusStub };
+});
+
+function useBillingStatusStub(options?: { enabled?: boolean }): BillingQuery {
+  const real = billingStub.real!(options) as BillingQuery;
+  return (billingStub.override as BillingQuery | null) ?? real;
+}
+
 const user: CurrentUser = {
   id: 1,
   email: "pesquisador@example.com",
@@ -54,6 +77,7 @@ beforeEach(() => {
   routerReplace.mockClear();
   getCurrentUser.mockReset();
   getBillingStatus.mockReset();
+  billingStub.override = null;
 });
 
 describe("AuthGate — sessão", () => {
@@ -132,6 +156,20 @@ describe("AuthGate — assinatura", () => {
 
     expect(await screen.findByText("Conteúdo protegido")).toBeInTheDocument();
     expect(routerReplace).not.toHaveBeenCalled();
+  });
+
+  it("does not render protected content when the check settled without a status", async () => {
+    // Neither loading, nor error, nor an explicit `active: false` — the state a
+    // paused query lands in. The gate must confirm `active === true`, never
+    // reach the page by elimination.
+    getCurrentUser.mockResolvedValue(user);
+    getBillingStatus.mockResolvedValue(undefined);
+
+    renderGate(<p>Conteúdo protegido</p>);
+
+    await screen.findByText(ptBR.auth.checkingSubscription);
+    expect(screen.queryByText("Conteúdo protegido")).not.toBeInTheDocument();
+    expect(routerReplace).not.toHaveBeenCalled(); // "sem resposta" is not "not subscribed"
   });
 
   it("shows a retryable error state when the billing check itself fails", async () => {
