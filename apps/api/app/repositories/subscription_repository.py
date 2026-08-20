@@ -19,9 +19,7 @@ class SubscriptionRepository:
         return self.db.execute(stmt).scalars().first()
 
     def get_by_stripe_customer_id(self, stripe_customer_id: str) -> Subscription | None:
-        stmt = select(Subscription).where(
-            Subscription.stripe_customer_id == stripe_customer_id
-        )
+        stmt = select(Subscription).where(Subscription.stripe_customer_id == stripe_customer_id)
         return self.db.execute(stmt).scalars().first()
 
     def create(
