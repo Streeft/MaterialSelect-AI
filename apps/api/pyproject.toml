@@ -35,6 +35,14 @@ dev = [
 ai = [
     "anthropic>=0.69",
 ]
+# A base de conhecimento (Cérebro) é opcional como as duas abaixo: sem
+# KNOWLEDGE_DIR configurado nada aqui é importado. pypdf, e não pymupdf, por
+# licença — pymupdf é AGPL e imporia copyleft a um projeto que não tem nenhum
+# (ver app/knowledge/readers.py, que é o único módulo a trocar se a qualidade
+# da extração decepcionar).
+knowledge = [
+    "pypdf>=4.2",
+]
 # A cobrança é opcional como a camada de IA: sem STRIPE_API_KEY configurada
 # nada importa o SDK de verdade (ver app/services/billing_service.py), e os
 # testes usam sempre um cliente falso — CI nunca precisa deste extra.

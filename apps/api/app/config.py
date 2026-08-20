@@ -81,6 +81,26 @@ class Settings(BaseSettings):
     # Executable for claude-cli, resolved on PATH.
     ai_cli_command: str = "claude"
 
+    # --- Knowledge base / Cérebro (optional) ------------------------------
+    # Root directory of the curated reference corpus, relative to the repo root
+    # or absolute. Empty disables the layer entirely: nothing is discovered,
+    # nothing is indexed, and the AI layer behaves exactly as it did before —
+    # same contract as AI_PROVIDER="" and an unset STRIPE_API_KEY.
+    knowledge_dir: str = ""
+    # Ceiling on one document's bytes. A textbook runs to ~150 MB, so this is
+    # generous by design; it exists to fail loudly on a file that is not what it
+    # claims rather than to filter the corpus.
+    knowledge_max_document_bytes: int = 200 * 1024 * 1024
+    # Ceiling on passages kept per document. A full textbook yields tens of
+    # thousands; this bounds one ingestion run and, more importantly, keeps a
+    # single enormous source from crowding out every other document at
+    # retrieval time.
+    knowledge_max_chunks_per_document: int = 4000
+    # How many passages retrieval hands to the model. Small on purpose: the
+    # prompt already carries the catalogue, and an answer grounded in three
+    # relevant passages is more checkable than one drowning in twenty.
+    knowledge_retrieval_top_k: int = 5
+
     # --- Auth (A5): login with Google, project-scoped studies -------------
     # Empty client id/secret means OAuth is off: the login endpoint answers
     # 503 with a clear reason instead of crashing into Google with bad
@@ -139,6 +159,11 @@ class Settings(BaseSettings):
     def ai_enabled(self) -> bool:
         """True when an AI provider is configured."""
         return bool(self.ai_provider.strip())
+
+    @property
+    def knowledge_enabled(self) -> bool:
+        """True when a knowledge-base root is configured."""
+        return bool(self.knowledge_dir.strip())
 
     @property
     def cors_origins_list(self) -> list[str]:
