@@ -11,11 +11,106 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [6](#sessão-6--210826--estudo-de-caso-didático-a2) | 21/08/2026 | Estudo de caso didático (A2) | 630 → 632 | 148 (inalterado) |
 | [5](#sessão-5--210826--auditoria-m2-e-a-instalação-do-ambiente-de-assistente) | 21/08/2026 | Fase 7: auditoria de alterações (M2) | 617 → 630 | 148 (inalterado) |
 | [4](#sessão-4--110826-a-120826--fase-9-e-a-varredura-que-a-fechou) | 11 e 12/08/2026 | Fase 9 (seis frentes) e a varredura de fechamento | 436 → 591 | 123 → 141 |
 | [3](#sessão-3--110826--os-provedores-reais-da-camada-de-ia) | 11/08/2026 | Fase 6: provedores reais de IA | 391 → 436 | 123 |
 | [2](#sessão-2--050826-a-100826--fase-7-parcial-ci-obrigatória-e-fase-8) | 05/08 a 10/08/2026 | Fase 7 (relatório HTML), CI obrigatória, Fase 8 (redesign) | 362 → 391 | 44 → 123 |
 | [1](#sessão-1--300726-a-040826--fases-5-a-7) | 30/07 a 04/08/2026 | Fases 5, 6 e 7 (exportação) | 169 → 362 | 13 → 44 |
+
+---
+
+# Sessão 6 — 21/08/26 — Estudo de caso didático (A2)
+
+Ponto de partida: fim da sessão 5 (PR #10 aberta, M2 verde). Testes de
+backend: 630 → 632. Continuação da mesma sessão de trabalho após uma pausa —
+o usuário voltou ("bom dia") e escolheu A2 entre as pendências restantes do
+`TODO.md`, a mesma pergunta feita no início da sessão 5.
+
+## 1. O caso escolhido
+
+O tirante leve e rígido ("light, stiff tie") de Ashby: elemento sob tração
+pura, minimizar massa para rigidez axial especificada, índice a maximizar
+`M = E/ρ`. Três razões concretas, não só "é um exemplo clássico":
+
+- O índice `rigidez-especifica` (`modulo_young / densidade`) **já estava
+  semeado** no catálogo (`app/db/seed.py`), com a referência a Ashby nas
+  próprias hipóteses — o caso reusa o que já existia, não inventa um índice
+  novo.
+- O resultado é genuinamente consolidado na literatura, com uma conclusão
+  contraintuitiva bem documentada (cerâmicas vencem no índice bruto, e é
+  exatamente por isso que o caso precisa de uma segunda restrição para
+  chegar à resposta de engenharia real) — o tipo de caso onde "os candidatos
+  batem com o esperado" é uma afirmação verificável, não uma opinião.
+- A restrição de fragilidade usa `not_in_class`, que já existe na
+  aplicação — nenhuma propriedade nova (tenacidade à fratura) precisou ser
+  adicionada ao catálogo.
+
+## 2. Dados: reais, não fictícios, e a rede bloqueada no meio do caminho
+
+Princípio 1 do `CLAUDE.md` proíbe inventar propriedade de material. Nove
+materiais (três metais, dois compósitos, dois polímeros, uma cerâmica, um
+elastômero) precisavam de densidade e módulo de Young **reais**, não
+fabricados. `WebFetch` para as fontes candidatas (MIT OpenCourseWare, en.wikipedia.org)
+retornou `EGRESS_BLOCKED` — a política de rede deste ambiente não permite
+essas requisições — em três domínios diferentes; só `WebSearch` (que devolve
+um resumo sintetizado, não a página inteira) funcionou. As cifras finais
+vieram desses resumos, cross-checadas entre duas a três buscas independentes
+por material, e o documento (§3 abaixo) registra essa limitação em vez de
+escondê-la atrás de uma citação com precisão que a própria coleta não tinha.
+
+## 3. Execução real, não simulada
+
+Servidor subido localmente contra um banco limpo (`alembic upgrade head` +
+seed), autenticado pela mesma sessão fixa que o Playwright usa
+(`ENVIRONMENT=development` + `E2E_SESSION_TOKEN`, sem bypass exposto por
+rota nenhuma — mecanismo documentado em `docs/CLAUDE.md §5`, não um atalho
+novo). Sequência real, via HTTP: upload → validação → commit da planilha
+(`docs/estudo-de-caso/materiais-haste-leve-rigida.csv`) → `POST
+/selection/run` (restrições + índice + ranking) → `POST /selection/studies`
+(salvar) → exportação do relatório e do laudo. As sugestões automáticas de
+coluna da importação acertaram as nove colunas sozinhas — a mesma
+funcionalidade cujo bug de hífen/underscore a suíte A4 corrigiu numa sessão
+anterior, funcionando corretamente aqui.
+
+O resultado bateu exatamente com o previsto: CFRP em primeiro (35,3), os três
+metais estruturais num platô de 1,8% entre si (25,48–25,93), a cerâmica
+excluída pela restrição de fragilidade apesar de ter, de longe, o melhor
+índice bruto (100,0, quase 3× o CFRP). Os três pontos que o exemplo do
+tirante existe para ilustrar, reproduzidos por uma execução real, não
+citados de memória.
+
+A auditoria (M2, sessão anterior) registrou o próprio `POST
+/selection/studies` deste estudo — a primeira vez que a trilha gravou algo
+fora dos próprios testes que a exercitaram.
+
+## 4. O que foi criado
+
+- `docs/estudo-de-caso/` — a planilha real (não o `sample-data/` fictício), um
+  `README.md` com as fontes, e `evidencias/` com as respostas reais da
+  aplicação (JSON do `/selection/run`, relatório de seleção e laudo em HTML,
+  relatório em CSV) — nada composto à mão fora da aplicação.
+- `docs/12-estudo-de-caso.md` — o roteiro: caso escolhido, enunciado no
+  formato Função/Restrições/Objetivo/Variáveis livres, dados e fontes (com a
+  ressalva de precisão do §2 acima), execução real, resultado, comparação
+  com a literatura em três pontos verificáveis, limitações, como reproduzir.
+- `app/tests/test_case_study.py` — a mesma planilha embutida (mesmo padrão
+  que `test_imports_api.py` já usa para sua própria fixture), a mesma
+  seleção, e a asserção de que a ordenação e o platô dos metais se repetem a
+  cada execução da suíte — a verificação do item 2.6/6 da proposta vira
+  regressão de CI, não só um resultado manual documentado uma vez.
+
+## 5. Verificação
+
+`pytest` (632 testes, +2 desta sessão), `ruff check` e `black --check`
+verdes. Sem verificação de frontend — o caso é inteiramente backend/API,
+como o pedido original de A2 já era.
+
+## 6. O que continua em aberto
+
+Do backlog: M1 (triagem de licenciamento) e a sessão de teste de usabilidade
+do §3.5 — esta última é a única pendência do trabalho como um todo que não é
+código e não pode ser fechada por quem programa sozinho.
 
 ---
 

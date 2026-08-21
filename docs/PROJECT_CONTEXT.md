@@ -79,13 +79,23 @@ sobreviva à conta, à entidade ou ao estudo desaparecerem depois; `GET
 endpoint de estudo ([D-43](DECISIONS.md)). A importação em lote fica de fora
 de propósito — `ImportJob` já é a trilha desse fluxo.
 
-**Duas faltas do trabalho como um todo** não são de código e não podem ser
-fechadas por quem programa sozinho: a sessão de teste com usuários do §3.5 da
-proposta (`11-usabilidade.md` está instrumentado,
-mas **nenhuma sessão foi realizada** — enquanto a tabela de melhorias dele
-estiver vazia, o §3.5 não foi cumprido) e o próprio estudo de caso.
+**Estudo de caso didático (A2) concluído** — o tirante leve e rígido de Ashby,
+do enunciado ao relatório exportado, executado contra a aplicação real (não
+simulado): nove materiais reais de literatura, o índice `rigidez-especifica`
+já semeado, e uma ordenação que bate com os três pontos consolidados na
+literatura — compósitos à frente de metais, os três metais estruturais num
+platô de menos de 2% entre si, cerâmica excluída por fragilidade apesar do
+melhor índice bruto. Roteiro completo em
+[`12-estudo-de-caso.md`](12-estudo-de-caso.md), regressão automatizada em
+`test_case_study.py`.
 
-**Saúde do código:** 630 testes de backend (Python 3.11 e 3.12) e 148 de
+**A falta que resta no trabalho como um todo não é de código** e não pode ser
+fechada por quem programa sozinho: a sessão de teste com usuários do §3.5 da
+proposta — `11-usabilidade.md` está instrumentado, mas **nenhuma sessão foi
+realizada**; enquanto a tabela de melhorias dele estiver vazia, o §3.5 não foi
+cumprido.
+
+**Saúde do código:** 632 testes de backend (Python 3.11 e 3.12) e 148 de
 frontend, todos verdes. `ruff` limpo, `black --check` limpo, typecheck estrito e
 build de produção sem avisos. CI no GitHub Actions rodando em todo PR e push
 para `main`, com os checks **obrigatórios**: o GitHub recusa o merge se
@@ -229,6 +239,22 @@ O pedido tinha seis frentes, e as seis foram entregues:
 > **As figuras da monografia que são capturas de `/estilo` precisam ser refeitas
 > depois de D-38.**
 
+### Estudo de caso didático (A2)
+O tirante leve e rígido ("light, stiff tie") de Ashby — o exemplo introdutório
+mais citado da metodologia — reproduzido do enunciado ao relatório exportado,
+executado contra a aplicação real: nove materiais reais de literatura
+(rotulados como tal, `docs/estudo-de-caso/`, não o `sample-data/` fictício),
+importados pelo assistente de importação, ranqueados pelo índice
+`rigidez-especifica` (E/ρ) já semeado no catálogo. A ordenação resultante bate
+com três pontos consolidados na literatura de Ashby: compósitos de fibra à
+frente de qualquer metal, os três metais estruturais (aço, alumínio, titânio)
+num platô de menos de 2% entre si em rigidez específica, e a cerâmica —
+melhor índice bruto de todo o conjunto — corretamente excluída por uma
+restrição de fragilidade, não por acaso do índice. Roteiro completo com as
+respostas reais da API como evidência em
+[`12-estudo-de-caso.md`](12-estudo-de-caso.md); regressão automatizada em
+`test_case_study.py`.
+
 ## 5. Em andamento
 
 **Fase 7 concluída** — as exportações (planilha e imprimível), os testes
@@ -254,10 +280,7 @@ dependências. Os itens de maior peso:
    ([TODO.md](TODO.md) M1).
 2. **Nenhuma sessão de teste de usabilidade** — compromisso do §3.5, com o
    instrumento pronto em [11-usabilidade.md](11-usabilidade.md) e a análise
-   cobrada como entrega pelo §4.1.
-3. **Nenhum estudo de caso didático completo** (A2) — entregável explícito da
-   proposta (itens 2.6 e 6); a ferramenta funciona mas não está demonstrada
-   contra um caso com solução consolidada na literatura.
+   cobrada como entrega pelo §4.1. Não é código: exige participantes reais.
 
 ## 7. Principais fluxos
 
@@ -324,19 +347,18 @@ que mais afetam quem for mexer no código:
 | Dependência de provedor de IA | Arquitetura desacoplada com provedor simulado; funciona sem chave. |
 | Incorporação inadvertida de dado protegido | Triagem de licenciamento prevista (item 4.2 da proposta) — **ainda não implementada**, ver [TODO.md](TODO.md). |
 | Resultado não reproduzível por interferência de IA | Cálculo determinístico + guardrails executáveis + confirmação do usuário. |
-| Regressão silenciosa | CI com 630 testes de backend e 148 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
+| Regressão silenciosa | CI com 632 testes de backend e 148 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
 
 ## 11. Próximos passos sugeridos
 
 Na ordem em que eu atacaria:
 
-1. **Estudo de caso didático completo**, do enunciado ao relatório — é entregável
-   explícito da proposta (item 6) e ainda não existe. O relatório imprimível, que
-   é o artefato final do caso, já está pronto.
-2. **Aplicar o teste de usabilidade** de [11-usabilidade.md](11-usabilidade.md).
+1. **Aplicar o teste de usabilidade** de [11-usabilidade.md](11-usabilidade.md).
    O instrumento está pronto e a interface acabou de ser refeita; é o momento em
    que a sessão rende mais, e o §4.1 cobra a análise e as melhorias como entrega.
-3. **Triagem de licenciamento** das bases incorporadas — agora que o repositório
+   Única pendência que exige um humano fora do teclado — nenhum agente fecha
+   sozinho.
+2. **Triagem de licenciamento** das bases incorporadas — agora que o repositório
    é público, incorporar dado protegido custa mais caro.
 
 Detalhamento com impacto e dificuldade em [TODO.md](TODO.md).
