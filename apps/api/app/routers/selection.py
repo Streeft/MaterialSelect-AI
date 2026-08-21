@@ -12,8 +12,9 @@ from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy.orm import Session
 
 from app.db.base import get_db
-from app.dependencies import get_current_project
+from app.dependencies import get_current_project, get_current_user
 from app.models.project import Project
+from app.models.user import User
 from app.schemas.selection import (
     FilterRequest,
     FilterResultOut,
@@ -78,8 +79,9 @@ def create_study(
     payload: StudyIn,
     db: Session = Depends(get_db),
     project: Project = Depends(get_current_project),
+    user: User = Depends(get_current_user),
 ) -> StudyOut:
-    return SelectionService(db, project.id).create_study(payload)
+    return SelectionService(db, project.id, user).create_study(payload)
 
 
 @router.get("/studies/{study_id}", response_model=StudyOut)
@@ -96,8 +98,9 @@ def delete_study(
     study_id: int,
     db: Session = Depends(get_db),
     project: Project = Depends(get_current_project),
+    user: User = Depends(get_current_user),
 ) -> Response:
-    SelectionService(db, project.id).delete_study(study_id)
+    SelectionService(db, project.id, user).delete_study(study_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
@@ -125,5 +128,6 @@ def create_index(
     payload: PerformanceIndexIn,
     db: Session = Depends(get_db),
     project: Project = Depends(get_current_project),
+    user: User = Depends(get_current_user),
 ) -> PerformanceIndexOut:
-    return SelectionService(db, project.id).create_index(payload)
+    return SelectionService(db, project.id, user).create_index(payload)
