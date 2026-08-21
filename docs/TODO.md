@@ -13,15 +13,8 @@ os vizinhos — outros documentos citam esses códigos.
 
 ## Alta prioridade
 
-### A2 — Estudo de caso didático completo
-- **Descrição:** um caso com solução consolidada na literatura, do enunciado ao
-  relatório exportado, verificando se os candidatos e a ordenação correspondem
-  ao esperado. Publicar como roteiro em `docs/`.
-- **Impacto:** alto. É **entregável explícito da proposta** (itens 2.6 e 6) e a
-  validação metodológica do trabalho. Sem ele, a ferramenta funciona mas não
-  está demonstrada.
-- **Dificuldade:** ▃
-- **Dependências:** nenhuma técnica; depende de escolher o caso na literatura.
+Nenhum item aberto no momento — A2 (estudo de caso) saiu para "Débitos já
+quitados".
 
 ---
 
@@ -129,6 +122,18 @@ crie tabela sem o caso de uso. (`User` e `Project` saíram desta lista com A5;
 
 Registrados para não voltarem por engano:
 
+- ~~**A2** — Estudo de caso didático completo~~ — o tirante leve e rígido
+  ("light, stiff tie") de Ashby, reproduzido do enunciado ao relatório
+  exportado contra a aplicação real (não simulado): nove materiais reais de
+  literatura (não o `sample-data/` fictício) importados pelo assistente de
+  importação, o índice `rigidez-especifica` já semeado, uma restrição de
+  fragilidade que exclui a cerâmica mesmo com o melhor índice bruto, e a
+  ordenação resultante batendo com os três pontos consolidados na literatura
+  de Ashby: compósitos à frente de metais, os três metais estruturais num
+  platô de menos de 2% entre si, cerâmica excluída por fragilidade apesar do
+  índice. Roteiro completo, com as respostas reais da API como evidência, em
+  [`docs/12-estudo-de-caso.md`](12-estudo-de-caso.md); regressão automatizada
+  em `app/tests/test_case_study.py`.
 - ~~**M2** — Auditoria de alterações~~ — `AuditEvent`
   (`app/models/audit.py`) registra quem, o quê e quando para material, classe,
   propriedade, índice de desempenho e estudo de seleção: um retrato de

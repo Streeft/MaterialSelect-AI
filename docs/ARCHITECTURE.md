@@ -79,7 +79,7 @@ MaterialSelect-AI/
 │  │  │  ├─ routers/            # HTTP fino, sem regra de negócio
 │  │  │  ├─ schemas/            # contratos Pydantic v2
 │  │  │  ├─ services/           # orquestração de casos de uso
-│  │  │  └─ tests/              # 26 arquivos, 630 testes
+│  │  │  └─ tests/              # 27 arquivos, 632 testes
 │  │  └─ pyproject.toml
 │  └─ web/                      # frontend Next.js 14
 │     ├─ app/                   # App Router: uma pasta por rota — catalogo,
