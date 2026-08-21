@@ -11,12 +11,103 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [7](#sessão-7--210826--triagem-de-licenciamento-m1) | 21/08/2026 | Triagem de licenciamento (M1) | 632 → 639 | 148 (inalterado) |
 | [6](#sessão-6--210826--estudo-de-caso-didático-a2) | 21/08/2026 | Estudo de caso didático (A2) | 630 → 632 | 148 (inalterado) |
 | [5](#sessão-5--210826--auditoria-m2-e-a-instalação-do-ambiente-de-assistente) | 21/08/2026 | Fase 7: auditoria de alterações (M2) | 617 → 630 | 148 (inalterado) |
 | [4](#sessão-4--110826-a-120826--fase-9-e-a-varredura-que-a-fechou) | 11 e 12/08/2026 | Fase 9 (seis frentes) e a varredura de fechamento | 436 → 591 | 123 → 141 |
 | [3](#sessão-3--110826--os-provedores-reais-da-camada-de-ia) | 11/08/2026 | Fase 6: provedores reais de IA | 391 → 436 | 123 |
 | [2](#sessão-2--050826-a-100826--fase-7-parcial-ci-obrigatória-e-fase-8) | 05/08 a 10/08/2026 | Fase 7 (relatório HTML), CI obrigatória, Fase 8 (redesign) | 362 → 391 | 44 → 123 |
 | [1](#sessão-1--300726-a-040826--fases-5-a-7) | 30/07 a 04/08/2026 | Fases 5, 6 e 7 (exportação) | 169 → 362 | 13 → 44 |
+
+---
+
+# Sessão 7 — 21/08/26 — Triagem de licenciamento (M1)
+
+Ponto de partida: o merge da PR #10 (sessões 5+6, M2+A2) em `main`
+(`5f8b7f0`). Testes de backend: 632 → 639. O usuário mesclou a PR direto
+("tire do rascunho e faça o merge, eu já revisei"), então este trabalho
+reinicia o branch designado a partir de `main`, como as instruções de tarefa
+preveem para uma PR já mesclada — não empilha em cima de histórico já
+integrado.
+
+## 1. Uma sessão que ganhou um segundo participante
+
+No meio do trabalho de M2/A2, uma sessão desconhecida (`observer-sessions-e7`)
+começou a mandar mensagens ecoando o progresso da sessão de volta — inclusive
+anunciando que ia commitar/pushar/abrir PR na mesma branch. Sem confirmação de
+quem era, isso foi tratado como um evento a reportar, não a obedecer: o
+trabalho já verificado foi commitado e pushado primeiro, a outra sessão foi
+instruída a não tocar na branch, e o usuário foi avisado no fim do turno. O
+usuário confirmou depois que a sessão era dele mesmo, noutra máquina — registro
+aqui porque a resposta (push primeiro, avisar, não assumir) é o comportamento
+correto independente de a origem acabar sendo benigna ou não.
+
+## 2. O pedido e a escolha do que atacar
+
+Passado o merge, o usuário perguntou "qual o próximo passo?" sem apontar um
+item. Restavam dois: M1 (triagem de licenciamento) e a sessão de teste de
+usabilidade do §3.5 — esta última exige participantes reais, não é código que
+uma sessão feche sozinha. M1 foi a escolha natural e confirmada pelo usuário.
+
+(Um pedido paralelo — "estruture a pasta Cérebro" — apareceu antes disso.
+"Cérebro" não é um conceito que existe em nenhum lugar do repositório; a
+pergunta de esclarecimento foi interrompida pelo usuário com "esqueça por
+enquanto", então fica registrada como não resolvida, não como decidida.)
+
+## 3. O que foi implementado
+
+`Source` (`app/models/source.py`) ganha `license_label`, `license_url`, a
+sinalização explícita `contains_third_party_data` e um carimbo de quem
+registrou a fonte e quando (`reviewed_by_user_id`/`reviewed_at`).
+
+- **O portão fica na importação** (`ImportService._check_source_licensing`,
+  `app/importers/service.py`), rodando tanto em `validate()` (feedback cedo)
+  quanto de novo em `commit()` (o portão que realmente importa — o catálogo
+  pode mudar entre as duas chamadas). Uma fonte **nova** sem
+  `source_license_label` é recusada antes de qualquer linha ser escrita; uma
+  fonte marcada `source_contains_third_party_data=True` exige também
+  `source_review_confirmed=True` explícito — a "decisão humana obrigatória
+  antes da incorporação" que o item do backlog pede.
+- **Reusar um `source_label` já registrado não reabre a decisão.** A licença
+  é fixada uma vez, na primeira importação que registra aquela fonte; a
+  segunda, a terceira, todas as seguintes reaproveitam a linha como está.
+- **O portão não cobre o cadastro manual de material**, de propósito — o
+  item do backlog fala em "base... importada", e um material só já passa por
+  uma pessoa logada decidindo linha a linha, o mesmo nível de decisão que o
+  portão está formalizando para um lote inteiro de uma vez. Estender ao
+  cadastro manual mudaria o contrato de `PropertyValueIn` (e os dois arquivos
+  de tipos que o espelham) por um ganho que o item não pede.
+- **`GET /api/sources`** lista toda fonte registrada com licença, sinalização
+  e revisor — a mesma lógica de M2: uma trilha que só grava e nunca se mostra
+  não sustenta alegação nenhuma de conformidade.
+- **Backfill da fonte de demonstração do seed**, tanto na migration
+  (`fc5a731dd162`, para um banco de desenvolvimento já semeado antes desta
+  sessão) quanto em `app/db/seed.py` (para um banco novo) — a única fonte que
+  já existia antes de M1 nunca aparece como "sem licença".
+
+Decisão completa (com alternativas descartadas) em [D-44](DECISIONS.md).
+
+## 4. Correções incidentais
+
+Duas fixtures de teste já mescladas (`test_imports_api.py`,
+`test_case_study.py`) registravam uma fonte nova sem licença — o próprio
+portão que esta sessão introduziu as teria quebrado. Corrigidas com
+`source_license_label` nos seus mapeamentos; `docs/12-estudo-de-caso.md`
+ganhou uma nota apontando que reproduzir o caso hoje, contra uma fonte ainda
+não registrada, exige o mesmo campo.
+
+## 5. Verificação
+
+`pytest` (639 testes, +7 desta sessão, em `test_source_licensing.py`),
+`ruff check` e `black --check` verdes, `alembic upgrade head` + seed num
+banco limpo (inclusive o backfill da fonte de demonstração). Sem verificação
+de frontend — o pedido era só de backend, como M2.
+
+## 6. O que continua em aberto
+
+Só a sessão de teste de usabilidade do §3.5 — a única pendência do trabalho
+como um todo que não é código e não pode ser fechada por quem programa
+sozinho.
 
 ---
 
