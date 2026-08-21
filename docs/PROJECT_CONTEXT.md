@@ -40,8 +40,10 @@ sugerir e explicar.
 
 ## 3. Estado atual
 
-**Fases 1 a 6, 8 e 9 concluídas. Fase 7 parcial** — falta só auditoria (M2),
-agora destravada por A5 (autenticação, concluída nesta sessão).
+**Fases 1 a 9 concluídas.** Fase 7 fechou nesta sessão com a auditoria (M2);
+o único item que resta sob o guarda-chuva da Fase 7 é a exportação em PPTX
+(B2, baixa prioridade) — que a proposta previa como *arquitetura para*, não
+como entrega, então não bloqueia a fase.
 
 | # | Fase | Estado | Documento |
 |---|---|---|---|
@@ -51,14 +53,15 @@ agora destravada por A5 (autenticação, concluída nesta sessão).
 | 4 | Seleção determinística | ✅ | [07](07-selecao-deterministica.md) |
 | 5 | Visualização | ✅ | [08](08-visualizacao.md) |
 | 6 | Camada de IA opcional | ✅ | [09](09-camada-ia.md) |
-| 7 | Relatórios e qualidade | 🔄 parcial | [10](10-relatorios.md) |
+| 7 | Relatórios e qualidade | ✅ | [10](10-relatorios.md) |
 | 8 | Redesign da interface | ✅ | [REDESIGN](REDESIGN.md) · [11](11-usabilidade.md) |
 | 9 | IA gratuita, painel, mapas personalizáveis e laudo | ✅ | [D-36 a D-41](DECISIONS.md) |
 
 A Fase 8 vem depois da 7 na numeração e antes dela na conclusão: o redesign era
 independente do que faltava na 7 e resolvia a acessibilidade, que estava
 listada como pendência daquela fase. A Fase 9 seguiu o mesmo raciocínio, e A5
-(autenticação) fechou nesta sessão sem esperar o resto da Fase 7.
+(autenticação) e M2 (auditoria) fecharam a Fase 7 em sessões separadas, sem
+esperar uma pela outra.
 
 **Autenticação (A5) concluída** — login exclusivamente por terceiros (Google,
 OAuth 2.0; nenhuma senha em lugar nenhum do sistema), sessão em cookie
@@ -66,17 +69,33 @@ OAuth 2.0; nenhuma senha em lugar nenhum do sistema), sessão em cookie
 compartilhado entre todo usuário autenticado e um `Project` isolando os
 `SelectionStudy` de cada usuário — um projeto por usuário, criado
 automaticamente no primeiro login ([D-42](DECISIONS.md),
-[ARCHITECTURE.md §7](ARCHITECTURE.md)). Isso destrava M2 (auditoria), que
-dependia de "quem" existir — não foi implementada nesta sessão.
+[ARCHITECTURE.md §7](ARCHITECTURE.md)).
 
-**O que continua faltando da Fase 7** é auditoria (M2) e o estudo de caso
-didático — nenhuma das outras fases tem pendência aberta. Duas faltas não são
-de código e não podem ser fechadas por quem programa sozinho: a sessão de
-teste com usuários do §3.5 da proposta (`11-usabilidade.md` está instrumentado,
-mas **nenhuma sessão foi realizada** — enquanto a tabela de melhorias dele
-estiver vazia, o §3.5 não foi cumprido) e o próprio estudo de caso.
+**Auditoria (M2) concluída** — `AuditEvent` registra quem mudou o quê e quando
+para material, classe, propriedade, índice de desempenho e estudo de seleção,
+com retrato de `user_email`/`entity_label`/`project_id` para que a linha
+sobreviva à conta, à entidade ou ao estudo desaparecerem depois; `GET
+/api/audit` lista por entidade, com a mesma fronteira de projeto de todo
+endpoint de estudo ([D-43](DECISIONS.md)). A importação em lote fica de fora
+de propósito — `ImportJob` já é a trilha desse fluxo.
 
-**Saúde do código:** 617 testes de backend (Python 3.11 e 3.12) e 148 de
+**Estudo de caso didático (A2) concluído** — o tirante leve e rígido de Ashby,
+do enunciado ao relatório exportado, executado contra a aplicação real (não
+simulado): nove materiais reais de literatura, o índice `rigidez-especifica`
+já semeado, e uma ordenação que bate com os três pontos consolidados na
+literatura — compósitos à frente de metais, os três metais estruturais num
+platô de menos de 2% entre si, cerâmica excluída por fragilidade apesar do
+melhor índice bruto. Roteiro completo em
+[`12-estudo-de-caso.md`](12-estudo-de-caso.md), regressão automatizada em
+`test_case_study.py`.
+
+**A falta que resta no trabalho como um todo não é de código** e não pode ser
+fechada por quem programa sozinho: a sessão de teste com usuários do §3.5 da
+proposta — `11-usabilidade.md` está instrumentado, mas **nenhuma sessão foi
+realizada**; enquanto a tabela de melhorias dele estiver vazia, o §3.5 não foi
+cumprido.
+
+**Saúde do código:** 632 testes de backend (Python 3.11 e 3.12) e 148 de
 frontend, todos verdes. `ruff` limpo, `black --check` limpo, typecheck estrito e
 build de produção sem avisos. CI no GitHub Actions rodando em todo PR e push
 para `main`, com os checks **obrigatórios**: o GitHub recusa o merge se
@@ -131,7 +150,7 @@ na entrada.
   ([D-35](DECISIONS.md)). Só o `mock` é determinístico, e a ressalva mostrada ao
   usuário diz isso.
 
-### Exportação (Fase 7, parcial)
+### Exportação (Fase 7)
 CSV, XLSX e **HTML imprimível** do catálogo e do **relatório de seleção
 auditável** em 9 seções, incluindo proveniência de cada número. O HTML é
 autocontido e traz folha de estilo de impressão — o PDF sai do navegador, sem
@@ -146,6 +165,19 @@ lugar nenhum do sistema. Sessão em cookie `httpOnly` que é uma linha de banco
 global e compartilhado entre todo usuário autenticado; só `SelectionStudy` é
 privado, escopado por `Project` (um por usuário, criado automaticamente no
 primeiro login). Ver [D-42](DECISIONS.md) e [ARCHITECTURE.md §7](ARCHITECTURE.md).
+
+### Auditoria (Fase 7 — M2)
+`AuditEvent` registra quem mudou o quê e quando, para material, classe,
+propriedade, índice de desempenho e estudo de seleção — as entidades que uma
+pessoa edita à mão pelos serviços de catálogo e seleção. Cada linha guarda um
+**retrato** de `user_email`/`entity_label`/`project_id`, não uma junção viva:
+sobrevive à conta, à entidade ou ao estudo desaparecerem depois — inclusive a
+exclusão do próprio estudo, o evento em que essa garantia mais importa.
+`changes` é o diff só dos campos que de fato mudaram (por campo em
+materiais/classes/propriedades, por slug de propriedade na troca de valores).
+`GET /api/audit` lista por entidade, sob a mesma fronteira de projeto de todo
+endpoint de estudo. A importação em lote fica de fora de propósito —
+`ImportJob` já é a trilha desse fluxo. Ver [D-43](DECISIONS.md).
 
 ### Interface (Fase 8)
 - **Sistema de design próprio, sem biblioteca de componentes**: primitivas em
@@ -207,13 +239,30 @@ O pedido tinha seis frentes, e as seis foram entregues:
 > **As figuras da monografia que são capturas de `/estilo` precisam ser refeitas
 > depois de D-38.**
 
+### Estudo de caso didático (A2)
+O tirante leve e rígido ("light, stiff tie") de Ashby — o exemplo introdutório
+mais citado da metodologia — reproduzido do enunciado ao relatório exportado,
+executado contra a aplicação real: nove materiais reais de literatura
+(rotulados como tal, `docs/estudo-de-caso/`, não o `sample-data/` fictício),
+importados pelo assistente de importação, ranqueados pelo índice
+`rigidez-especifica` (E/ρ) já semeado no catálogo. A ordenação resultante bate
+com três pontos consolidados na literatura de Ashby: compósitos de fibra à
+frente de qualquer metal, os três metais estruturais (aço, alumínio, titânio)
+num platô de menos de 2% entre si em rigidez específica, e a cerâmica —
+melhor índice bruto de todo o conjunto — corretamente excluída por uma
+restrição de fragilidade, não por acaso do índice. Roteiro completo com as
+respostas reais da API como evidência em
+[`12-estudo-de-caso.md`](12-estudo-de-caso.md); regressão automatizada em
+`test_case_study.py`.
+
 ## 5. Em andamento
 
-**Fase 7** — as exportações (planilha e imprimível), os testes end-to-end de
-interface (A4/B11) e a autenticação (A5) estão entregues. Falta: arquitetura
-para PPTX (B2, baixa prioridade) e auditoria (M2, agora destravada por A5). A
-acessibilidade, que estava nesta lista, foi entregue pela Fase 8; o
-**desempenho**, que também estava, foi medido e tratado (seção 12).
+**Fase 7 concluída** — as exportações (planilha e imprimível), os testes
+end-to-end de interface (A4/B11), a autenticação (A5) e a auditoria (M2) estão
+entregues. Falta só a arquitetura para PPTX (B2, baixa prioridade,
+explicitamente fora de escopo salvo pedido). A acessibilidade, que estava
+nesta lista, foi entregue pela Fase 8; o **desempenho**, que também estava,
+foi medido e tratado (seção 12).
 
 **Teste de usabilidade (§3.5 da proposta)** — [11-usabilidade.md](11-usabilidade.md)
 traz o roteiro, o formulário e a tabela de melhorias, prontos para aplicar.
@@ -226,17 +275,12 @@ venha de uma sessão de fato observada.
 Ver [TODO.md](TODO.md) para o backlog priorizado com impacto, dificuldade e
 dependências. Os itens de maior peso:
 
-1. **Nenhuma auditoria de alterações** (M2) — quem mudou o quê e quando não é
-   registrado. Só ficou viável depois de A5 (autenticação) existir "quem".
-2. **Nenhuma triagem de licenciamento** das bases incorporadas — compromisso do
+1. **Nenhuma triagem de licenciamento** das bases incorporadas — compromisso do
    item 4.2 da proposta, e agora com o repositório público a aposta é maior
    ([TODO.md](TODO.md) M1).
-3. **Nenhuma sessão de teste de usabilidade** — compromisso do §3.5, com o
+2. **Nenhuma sessão de teste de usabilidade** — compromisso do §3.5, com o
    instrumento pronto em [11-usabilidade.md](11-usabilidade.md) e a análise
-   cobrada como entrega pelo §4.1.
-4. **Nenhum estudo de caso didático completo** (A2) — entregável explícito da
-   proposta (itens 2.6 e 6); a ferramenta funciona mas não está demonstrada
-   contra um caso com solução consolidada na literatura.
+   cobrada como entrega pelo §4.1. Não é código: exige participantes reais.
 
 ## 7. Principais fluxos
 
@@ -272,6 +316,7 @@ que mais afetam quem for mexer no código:
 | A navegação é a barra lateral, e o rótulo recolhido vira `sr-only` | [D-37](DECISIONS.md) |
 | O laudo de engenharia é um documento à parte do relatório de seleção | [D-41](DECISIONS.md) |
 | Login só por terceiros (Google); catálogo compartilhado; um projeto por usuário | [D-42](DECISIONS.md) |
+| A trilha de auditoria guarda retratos (quem/o quê/projeto), não junções vivas; importação em lote fica de fora | [D-43](DECISIONS.md) |
 
 ## 9. Limitações atuais
 
@@ -284,8 +329,6 @@ que mais afetam quem for mexer no código:
 - **Sem multiusuário, sem colaboração.** Login com Google e projetos existem
   (A5), mas cada `Project` tem dono único e nenhuma tela troca entre dois
   projetos de um mesmo usuário ainda ([D-42](DECISIONS.md)).
-- **Sem auditoria de alterações** (M2) — quem mudou o quê e quando não é
-  registrado, apesar de "quem" existir desde A5.
 - **TOPSIS/AHP/PROMETHEE** estão previstos na arquitetura mas fora do escopo
   desta versão. `domain/ranking.py` foi deixado genérico para acomodá-los.
 - **Propriedades dependentes de condição** (curvas completas) fora do escopo.
@@ -304,22 +347,19 @@ que mais afetam quem for mexer no código:
 | Dependência de provedor de IA | Arquitetura desacoplada com provedor simulado; funciona sem chave. |
 | Incorporação inadvertida de dado protegido | Triagem de licenciamento prevista (item 4.2 da proposta) — **ainda não implementada**, ver [TODO.md](TODO.md). |
 | Resultado não reproduzível por interferência de IA | Cálculo determinístico + guardrails executáveis + confirmação do usuário. |
-| Regressão silenciosa | CI com 617 testes de backend e 148 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
+| Regressão silenciosa | CI com 632 testes de backend e 148 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
 
 ## 11. Próximos passos sugeridos
 
 Na ordem em que eu atacaria:
 
-1. **Estudo de caso didático completo**, do enunciado ao relatório — é entregável
-   explícito da proposta (item 6) e ainda não existe. O relatório imprimível, que
-   é o artefato final do caso, já está pronto.
-2. **Aplicar o teste de usabilidade** de [11-usabilidade.md](11-usabilidade.md).
+1. **Aplicar o teste de usabilidade** de [11-usabilidade.md](11-usabilidade.md).
    O instrumento está pronto e a interface acabou de ser refeita; é o momento em
    que a sessão rende mais, e o §4.1 cobra a análise e as melhorias como entrega.
-3. **Triagem de licenciamento** das bases incorporadas — agora que o repositório
+   Única pendência que exige um humano fora do teclado — nenhum agente fecha
+   sozinho.
+2. **Triagem de licenciamento** das bases incorporadas — agora que o repositório
    é público, incorporar dado protegido custa mais caro.
-4. **Auditoria de alterações** (M2), agora que A5 deu ao esquema um `User` para
-   registrar como autor de cada mudança.
 
 Detalhamento com impacto e dificuldade em [TODO.md](TODO.md).
 

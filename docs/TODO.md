@@ -13,15 +13,8 @@ os vizinhos — outros documentos citam esses códigos.
 
 ## Alta prioridade
 
-### A2 — Estudo de caso didático completo
-- **Descrição:** um caso com solução consolidada na literatura, do enunciado ao
-  relatório exportado, verificando se os candidatos e a ordenação correspondem
-  ao esperado. Publicar como roteiro em `docs/`.
-- **Impacto:** alto. É **entregável explícito da proposta** (itens 2.6 e 6) e a
-  validação metodológica do trabalho. Sem ele, a ferramenta funciona mas não
-  está demonstrada.
-- **Dificuldade:** ▃
-- **Dependências:** nenhuma técnica; depende de escolher o caso na literatura.
+Nenhum item aberto no momento — A2 (estudo de caso) saiu para "Débitos já
+quitados".
 
 ---
 
@@ -35,14 +28,6 @@ os vizinhos — outros documentos citam esses códigos.
   mitigação de risco declarada, ainda não implementada.
 - **Dificuldade:** ▃
 - **Dependências:** modelo de `Source` já existe e pode ser estendido.
-
-### M2 — Auditoria de alterações
-- **Descrição:** `AuditEvent` registrando quem mudou o quê e quando.
-- **Impacto:** médio. Sustenta a alegação de rastreabilidade no nível do
-  *processo*, não só do dado.
-- **Dificuldade:** ▃
-- **Dependências:** nenhuma mais — A5 quitou o "quem" (há `User` desde o login
-  com Google). Ainda não implementado.
 
 ### M8 — Desempenho medido (Lighthouse)
 - **Descrição:** a metade de desempenho do antigo M3, que ficou de fora quando a
@@ -127,9 +112,9 @@ os vizinhos — outros documentos citam esses códigos.
 
 ## Entidades ainda não modeladas
 
-`AuditEvent`, `SavedChart`, `GeneratedReport`. Cada uma depende de um item
-acima (M2, B7) — não crie tabela sem o caso de uso. (`User` e `Project` saíram
-desta lista com A5.)
+`SavedChart`, `GeneratedReport`. Cada uma depende de um item acima (B7) — não
+crie tabela sem o caso de uso. (`User` e `Project` saíram desta lista com A5;
+`AuditEvent` saiu com M2.)
 
 ---
 
@@ -137,6 +122,30 @@ desta lista com A5.)
 
 Registrados para não voltarem por engano:
 
+- ~~**A2** — Estudo de caso didático completo~~ — o tirante leve e rígido
+  ("light, stiff tie") de Ashby, reproduzido do enunciado ao relatório
+  exportado contra a aplicação real (não simulado): nove materiais reais de
+  literatura (não o `sample-data/` fictício) importados pelo assistente de
+  importação, o índice `rigidez-especifica` já semeado, uma restrição de
+  fragilidade que exclui a cerâmica mesmo com o melhor índice bruto, e a
+  ordenação resultante batendo com os três pontos consolidados na literatura
+  de Ashby: compósitos à frente de metais, os três metais estruturais num
+  platô de menos de 2% entre si, cerâmica excluída por fragilidade apesar do
+  índice. Roteiro completo, com as respostas reais da API como evidência, em
+  [`docs/12-estudo-de-caso.md`](12-estudo-de-caso.md); regressão automatizada
+  em `app/tests/test_case_study.py`.
+- ~~**M2** — Auditoria de alterações~~ — `AuditEvent`
+  (`app/models/audit.py`) registra quem, o quê e quando para material, classe,
+  propriedade, índice de desempenho e estudo de seleção: um retrato de
+  `user_email`/`entity_label` (sobrevive à conta ou à entidade sumirem depois)
+  e um diff só dos campos que mudaram. `GET /api/audit` lista por
+  entidade, com a mesma fronteira de projeto de todo endpoint de estudo — o
+  catálogo é visível a qualquer usuário logado, um estudo só ao seu dono,
+  inclusive depois de excluído (retrato de `project_id`, não junção viva). A
+  importação em lote fica de fora de propósito: `ImportService` monta
+  `Material` direto, sem os métodos públicos de `MaterialService` que
+  chamam o audit — `ImportJob` já é a trilha desse fluxo. Ver
+  [D-43](DECISIONS.md).
 - ~~**A5** — Autenticação e autorização por projeto~~ — login exclusivamente
   por terceiros (Google, OAuth 2.0; sem senha em lugar nenhum), sessão em
   cookie `httpOnly` (`UserSession` é linha de banco, não JWT — logout revoga

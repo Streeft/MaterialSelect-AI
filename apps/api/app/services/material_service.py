@@ -15,9 +15,11 @@ from app.domain.data_quality import (
     missing_value,
 )
 from app.domain.errors import ConflictError, NotFoundError, ValidationError
-from app.models.enums import DataQuality, PropertyCategory
+from app.models.enums import AuditAction, AuditEntityType, DataQuality, PropertyCategory
 from app.models.material import Material
 from app.models.material_property_value import MaterialPropertyValue
+from app.models.user import User
+from app.repositories.audit_repository import AuditRepository
 from app.repositories.material_repository import MaterialRepository
 from app.schemas.material import (
     ChartData,
@@ -30,6 +32,7 @@ from app.schemas.material import (
     PropertyValueIn,
 )
 from app.schemas.property import PropertyGroup, PropertyValueOut
+from app.services.audit_service import diff_fields, record_change
 
 # Order in which categories are presented on the sheet.
 _CATEGORY_ORDER = [
@@ -65,8 +68,10 @@ def _summarise_quality(material: Material) -> DataQualitySummary:
 class MaterialService:
     """Coordinates catalogue reads and shapes them into API responses."""
 
-    def __init__(self, db: Session) -> None:
+    def __init__(self, db: Session, user: User | None = None) -> None:
         self.repo = MaterialRepository(db)
+        self.audit_repo = AuditRepository(db)
+        self.user = user
 
     def list_materials(self, search: str | None = None) -> list[MaterialListItem]:
         materials = self.repo.list_materials(search)
@@ -133,6 +138,14 @@ class MaterialService:
             row.material_id = material.id
             self.repo.add(row)
 
+        record_change(
+            self.audit_repo,
+            self.user,
+            entity_type=AuditEntityType.MATERIAL,
+            entity_id=material.id,
+            entity_label=material.name,
+            action=AuditAction.CRIADO,
+        )
         self.repo.commit()
         return self.get_material_detail(material.id)
 
@@ -141,6 +154,7 @@ class MaterialService:
         material = self.repo.get_material(material_id)
         if material is None:
             raise NotFoundError(f"Material não encontrado: {material_id}")
+        before = self._identity_snapshot(material)
 
         data = payload.model_dump(exclude_unset=True)
         if "name" in data and data["name"] is not None:
@@ -161,6 +175,17 @@ class MaterialService:
         if "is_active" in data and data["is_active"] is not None:
             material.is_active = data["is_active"]
 
+        changes = diff_fields(before, self._identity_snapshot(material))
+        if changes:
+            record_change(
+                self.audit_repo,
+                self.user,
+                entity_type=AuditEntityType.MATERIAL,
+                entity_id=material.id,
+                entity_label=material.name,
+                action=AuditAction.ATUALIZADO,
+                changes=changes,
+            )
         self.repo.commit()
         return self.get_material_detail(material_id)
 
@@ -169,8 +194,30 @@ class MaterialService:
         material = self.repo.get_material(material_id)
         if material is None:
             raise NotFoundError(f"Material não encontrado: {material_id}")
+        was_active = material.is_active
         material.is_active = False
+        if was_active:
+            record_change(
+                self.audit_repo,
+                self.user,
+                entity_type=AuditEntityType.MATERIAL,
+                entity_id=material.id,
+                entity_label=material.name,
+                action=AuditAction.EXCLUIDO,
+            )
         self.repo.commit()
+
+    @staticmethod
+    def _identity_snapshot(material: Material) -> dict:
+        """The mutable identity fields ``update_material`` can touch, for diffing."""
+        return {
+            "name": material.name,
+            "class_id": material.class_id,
+            "subclass": material.subclass,
+            "description": material.description,
+            "keywords": list(material.keywords or []),
+            "is_active": material.is_active,
+        }
 
     def replace_property_values(
         self, material_id: int, values: list[PropertyValueIn]
@@ -180,6 +227,7 @@ class MaterialService:
         if material is None:
             raise NotFoundError(f"Material não encontrado: {material_id}")
         self._ensure_unique_slugs(values)
+        before = self._values_snapshot(material)
 
         # Build (and validate) the new rows before deleting the old ones, so a
         # validation error leaves the existing data untouched.
@@ -188,8 +236,48 @@ class MaterialService:
         for row in new_rows:
             row.material_id = material_id
             self.repo.add(row)
+
+        # zip with the input payload, not `row.property_definition` — the new
+        # rows are transient (not yet flushed), so that relationship would
+        # trigger a lazy load on an object with no identity yet.
+        after = {
+            v.property_slug: self._value_repr(row) for v, row in zip(values, new_rows, strict=True)
+        }
+        changes = diff_fields(before, after)
+        if changes:
+            record_change(
+                self.audit_repo,
+                self.user,
+                entity_type=AuditEntityType.MATERIAL,
+                entity_id=material.id,
+                entity_label=material.name,
+                action=AuditAction.ATUALIZADO,
+                changes=changes,
+            )
         self.repo.commit()
         return self.get_material_detail(material_id)
+
+    @staticmethod
+    def _values_snapshot(material: Material) -> dict[str, str]:
+        return {
+            v.property_definition.slug: MaterialService._value_repr(v)
+            for v in material.property_values
+        }
+
+    @staticmethod
+    def _value_repr(value: MaterialPropertyValue) -> str:
+        """A compact, human-readable summary of a value for the audit diff.
+
+        Not meant to be parsed back — just legible in a changelog: unit-aware,
+        and explicit about absence rather than printing a blank or a zero.
+        """
+        if value.is_missing:
+            return "ausente"
+        if value.value_min is not None and value.value_max is not None:
+            return f"{value.value_min:g}–{value.value_max:g} {value.original_unit}"
+        if value.value_scalar is not None:
+            return f"{value.value_scalar:g} {value.original_unit}"
+        return "ausente"
 
     @staticmethod
     def _ensure_unique_slugs(values: list[PropertyValueIn]) -> None:

@@ -1,0 +1,83 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Laudo de engenharia — Haste leve e rígida — estudo de caso (A2)</title><style>
+:root { color-scheme: light; }
+* { box-sizing: border-box; }
+body {
+  font-family: ui-sans-serif, system-ui, "Segoe UI", Roboto, Arial, sans-serif;
+  line-height: 1.5;
+  color: #0f172a;
+  background: #f1f5f9;
+  margin: 0;
+  padding: 2rem 1rem;
+}
+main {
+  max-width: 62rem;
+  margin: 0 auto;
+  padding: 2.5rem;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+}
+h1 { font-size: 1.6rem; line-height: 1.25; margin: 0 0 0.35rem; }
+.subtitle { margin: 0 0 1.75rem; color: #475569; }
+.notices {
+  margin: 0 0 2.5rem;
+  padding: 0.9rem 1.1rem;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-left: 4px solid #475569;
+}
+.notice { margin: 0.45rem 0; font-size: 0.875rem; color: #334155; }
+.notice-demo { font-weight: 700; color: #9a3412; border-left-color: #ea580c; }
+section { margin: 0 0 2.75rem; }
+h2 {
+  font-size: 1.05rem;
+  margin: 0 0 0.5rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 2px solid #e2e8f0;
+}
+.note { margin: 0.35rem 0; font-size: 0.8rem; color: #475569; }
+.empty { margin: 0.5rem 0; font-size: 0.85rem; font-style: italic; color: #64748b; }
+.responsible { margin: 0 0 1.75rem; font-size: 0.9rem; font-weight: 600; color: #1e293b; }
+.figure { margin: 0 0 2.75rem; }
+.figure svg { display: block; width: 100%; height: auto; }
+.narrative p { max-width: 62ch; margin: 0.6rem 0; font-size: 0.85rem; color: #334155; }
+.narrative-note {
+  margin: 0.75rem 0 0;
+  padding: 0.6rem 0.8rem;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  font-size: 0.8rem;
+  color: #475569;
+}
+.table-scroll { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 0.8rem; }
+th, td {
+  border: 1px solid #cbd5e1;
+  padding: 0.35rem 0.5rem;
+  text-align: left;
+  vertical-align: top;
+}
+th { background: #f1f5f9; font-weight: 600; }
+tbody tr:nth-child(even) { background: #f8fafc; }
+footer {
+  margin-top: 3rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid #e2e8f0;
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+@page { margin: 18mm 14mm; }
+
+@media print {
+  body { background: #ffffff; padding: 0; font-size: 10pt; }
+  main { max-width: none; padding: 0; border: none; border-radius: 0; }
+  .table-scroll { overflow-x: visible; }
+  /* A heading stranded at the foot of a page, and a row split across two,
+     are the two ways a printed table stops being readable. */
+  h2 { break-after: avoid; }
+  tr { break-inside: avoid; }
+  thead { display: table-header-group; }
+  .notices { break-inside: avoid; }
+}
+</style></head><body><main><h1>Laudo de engenharia — Haste leve e rígida — estudo de caso (A2)</h1><p class="subtitle">Reprodução do caso clássico de Ashby: tirante sob tração, minimizar massa para rigidez especificada. Índice E/ρ; cerâmica excluída por fragilidade.</p><p class="responsible">Responsável técnico: Estudo de caso A2</p><div class="notices"><p class="notice">Esta ferramenta destina-se a apoio didático e à triagem preliminar de candidatos. Não substitui validação experimental, análise estrutural detalhada nem julgamento de engenharia.</p><p class="notice">Todos os números deste relatório foram calculados de forma determinística no backend a partir dos valores cadastrados. Reexecutar o estudo com o mesmo catálogo reproduz exatamente estes resultados.</p></div><div class="figure"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 440" width="100%" role="img" aria-label="Candidatos ranqueados" font-family="ui-sans-serif, system-ui, Segoe UI, Roboto, Arial, sans-serif"><title>Candidatos ranqueados</title><desc>Gráfico de barras com a pontuação de cada candidato ranqueado, do maior para o menor.</desc><rect x="0" y="0" width="720" height="440" fill="#ffffff"/><text x="78" y="20" font-size="13" font-weight="600" fill="#0f172a">Candidatos ranqueados</text><line x1="78" y1="34" x2="78" y2="378" stroke="#94a3b8" stroke-width="1.5"/><text x="315.0" y="418" font-size="11" fill="#0f172a" text-anchor="middle">Pontuação (normalizada)</text><text x="72" y="58.5" font-size="10" fill="#475569" text-anchor="end">CFRP laminado (epóxi/…</text><rect x="78" y="44.5" width="474" height="22" rx="4" fill="#b45309" fill-opacity="0.85"/><text x="558" y="58.5" font-size="10" fill="#475569">1</text><text x="72" y="101.5" font-size="10" fill="#475569" text-anchor="end">Liga de alumínio 7075…</text><rect x="78" y="87.5" width="347.64" height="22" rx="4" fill="#1d4ed8" fill-opacity="0.85"/><text x="431.64" y="101.5" font-size="10" fill="#475569">0.733409665569</text><text x="72" y="144.5" font-size="10" fill="#475569" text-anchor="end">Liga de titânio Ti-6A…</text><rect x="78" y="130.5" width="345.05" height="22" rx="4" fill="#1d4ed8" fill-opacity="0.85"/><text x="429.05" y="144.5" font-size="10" fill="#475569">0.727960439914</text><text x="72" y="187.5" font-size="10" fill="#475569" text-anchor="end">Aço estrutural (tipo …</text><rect x="78" y="173.5" width="341.62" height="22" rx="4" fill="#1d4ed8" fill-opacity="0.85"/><text x="425.62" y="187.5" font-size="10" fill="#475569">0.720707884251</text><text x="72" y="230.5" font-size="10" fill="#475569" text-anchor="end">GFRP laminado (epóxi/…</text><rect x="78" y="216.5" width="193.41" height="22" rx="4" fill="#1d4ed8" fill-opacity="0.85"/><text x="277.41" y="230.5" font-size="10" fill="#475569">0.408043509375</text><text x="72" y="273.5" font-size="10" fill="#475569" text-anchor="end">Poliamida 6/6 (Nylon)</text><rect x="78" y="259.5" width="34.43" height="22" rx="4" fill="#1d4ed8" fill-opacity="0.85"/><text x="118.43" y="273.5" font-size="10" fill="#475569">0.0726380047417</text><text x="72" y="316.5" font-size="10" fill="#475569" text-anchor="end">Polipropileno</text><rect x="78" y="302.5" width="21.65" height="22" rx="4" fill="#1d4ed8" fill-opacity="0.85"/><text x="105.65" y="316.5" font-size="10" fill="#475569">0.0456815221955</text><text x="72" y="359.5" font-size="10" fill="#475569" text-anchor="end">Borracha natural (NR)</text><rect x="78" y="345.5" width="0" height="22" rx="4" fill="#1d4ed8" fill-opacity="0.85"/><text x="84" y="359.5" font-size="10" fill="#475569">0</text><text x="78" y="434" font-size="9" fill="#64748b">Pontuação após normalização e ponderação dos critérios do estudo.</text></svg></div><section><h2>1. Problema</h2><div class="table-scroll"><table><thead><tr><th>Item</th><th>Valor</th></tr></thead><tbody><tr><td>Estudo</td><td>Haste leve e rígida — estudo de caso (A2)</td></tr><tr><td>Função do componente</td><td>Tirante (elemento sob tração pura)</td></tr><tr><td>Objetivo</td><td>Minimizar massa para uma rigidez axial especificada</td></tr><tr><td>Variáveis livres</td><td>área da seção transversal</td></tr><tr><td>Combinação das restrições</td><td>AND</td></tr><tr><td>Materiais considerados</td><td>14</td></tr><tr><td>Candidatos após as restrições</td><td>8</td></tr></tbody></table></div></section><section><h2>2. Restrições e funil</h2><div class="table-scroll"><table><thead><tr><th>Restrição</th><th>Operador</th><th>Passaram</th><th>Restantes</th></tr></thead><tbody><tr><td>Conjunto do estudo de caso</td><td>text_contains</td><td>9</td><td>9</td></tr><tr><td>Não frágil (cerâmica excluída de uso em tração)</td><td>not_in_class</td><td>12</td><td>8</td></tr></tbody></table></div></section><section><h2>3. Candidatos</h2><div class="table-scroll"><table><thead><tr><th>Posição</th><th>Material</th><th>Classe</th><th>Índice</th><th>Pontuação</th></tr></thead><tbody><tr><td>1</td><td>CFRP laminado (epóxi/fibra de carbono)</td><td>Compósitos</td><td>35333333.3333</td><td>1</td></tr><tr><td>2</td><td>Liga de alumínio 7075-T6</td><td>Metais</td><td>25925925.9259</td><td>0.733409665569</td></tr><tr><td>3</td><td>Liga de titânio Ti-6Al-4V</td><td>Metais</td><td>25733634.3115</td><td>0.727960439914</td></tr><tr><td>4</td><td>Aço estrutural (tipo A36/SS400)</td><td>Metais</td><td>25477707.0064</td><td>0.720707884251</td></tr><tr><td>5</td><td>GFRP laminado (epóxi/fibra de vidro)</td><td>Compósitos</td><td>14444444.4444</td><td>0.408043509375</td></tr><tr><td>6</td><td>Poliamida 6/6 (Nylon)</td><td>Polímeros</td><td>2608695.65217</td><td>0.0726380047417</td></tr><tr><td>7</td><td>Polipropileno</td><td>Polímeros</td><td>1657458.56354</td><td>0.0456815221955</td></tr><tr><td>8</td><td>Borracha natural (NR)</td><td>Elastômeros</td><td>45454.5454545</td><td>0</td></tr></tbody></table></div></section><section><h2>4. Índice de desempenho</h2><p class="note">A dimensão é derivada da própria expressão por análise dimensional, não declarada à mão.</p><div class="table-scroll"><table><thead><tr><th>Item</th><th>Valor</th></tr></thead><tbody><tr><td>Nome</td><td>Rigidez específica</td></tr><tr><td>Expressão</td><td>modulo_young / densidade</td></tr><tr><td>Objetivo</td><td>maximizar</td></tr><tr><td>Dimensão (derivada)</td><td>[length] ** 2 / [time] ** 2</td></tr><tr><td>Variáveis</td><td>densidade, modulo_young</td></tr><tr><td>Definido para</td><td>8</td></tr><tr><td>Indefinido para</td><td>0</td></tr></tbody></table></div></section><section><h2>5. Contribuições</h2><p class="note">Normalização: minmax. Os pesos são renormalizados para somar 1; a pontuação é a soma das contribuições.</p><div class="table-scroll"><table><thead><tr><th>Posição</th><th>Material</th><th>Critério</th><th>Valor bruto</th><th>Normalizado</th><th>Peso</th><th>Contribuição</th></tr></thead><tbody><tr><td>1</td><td>CFRP laminado (epóxi/fibra de carbono)</td><td>Rigidez específica</td><td>35333333.3333</td><td>1</td><td>1</td><td>1</td></tr><tr><td>2</td><td>Liga de alumínio 7075-T6</td><td>Rigidez específica</td><td>25925925.9259</td><td>0.73341</td><td>1</td><td>0.73341</td></tr><tr><td>3</td><td>Liga de titânio Ti-6Al-4V</td><td>Rigidez específica</td><td>25733634.3115</td><td>0.72796</td><td>1</td><td>0.72796</td></tr><tr><td>4</td><td>Aço estrutural (tipo A36/SS400)</td><td>Rigidez específica</td><td>25477707.0064</td><td>0.720708</td><td>1</td><td>0.720708</td></tr><tr><td>5</td><td>GFRP laminado (epóxi/fibra de vidro)</td><td>Rigidez específica</td><td>14444444.4444</td><td>0.408044</td><td>1</td><td>0.408044</td></tr><tr><td>6</td><td>Poliamida 6/6 (Nylon)</td><td>Rigidez específica</td><td>2608695.65217</td><td>0.072638</td><td>1</td><td>0.072638</td></tr><tr><td>7</td><td>Polipropileno</td><td>Rigidez específica</td><td>1657458.56354</td><td>0.045682</td><td>1</td><td>0.045682</td></tr><tr><td>8</td><td>Borracha natural (NR)</td><td>Rigidez específica</td><td>45454.5454545</td><td>0</td><td>1</td><td>0</td></tr></tbody></table></div></section><section><h2>6. Excluídos por dado ausente</h2><p class="note">Nenhum material foi excluído por dado ausente.</p></section><section><h2>7. Sensibilidade</h2><p class="note">O ranking é recalculado sob pesos perturbados. &#x27;Mudou&#x27; indica que a recomendação depende da ponderação escolhida.</p><div class="table-scroll"><table><thead><tr><th>Cenário de pesos</th><th>1º colocado</th><th>Resultado</th></tr></thead><tbody><tr><td>Pesos iguais</td><td>CFRP laminado (epóxi/fibra de carbono)</td><td>estável</td></tr></tbody></table></div></section><section><h2>8. Proveniência</h2><p class="note">Origem de cada número usado na decisão. Um valor ausente aparece como &#x27;ausente&#x27;, nunca como zero ou célula vazia.</p><div class="table-scroll"><table><thead><tr><th>Material</th><th>Propriedade</th><th>Valor normalizado</th><th>Unidade canônica</th><th>Valor original</th><th>Unidade original</th><th>Método de conversão</th><th>Qualidade do dado</th></tr></thead><tbody><tr><td>CFRP laminado (epóxi/fibra de carbono)</td><td>Densidade</td><td>1500</td><td>kg/m**3</td><td>1.5</td><td>g/cm**3</td><td>pint:g/cm**3-&gt;kg/m**3</td><td>IMPORTADO</td></tr><tr><td>CFRP laminado (epóxi/fibra de carbono)</td><td>Módulo de Young</td><td>53000000000</td><td>Pa</td><td>53</td><td>GPa</td><td>pint:GPa-&gt;Pa</td><td>IMPORTADO</td></tr><tr><td>Liga de alumínio 7075-T6</td><td>Densidade</td><td>2700</td><td>kg/m**3</td><td>2.7</td><td>g/cm**3</td><td>pint:g/cm**3-&gt;kg/m**3</td><td>IMPORTADO</td></tr><tr><td>Liga de alumínio 7075-T6</td><td>Módulo de Young</td><td>70000000000</td><td>Pa</td><td>70</td><td>GPa</td><td>pint:GPa-&gt;Pa</td><td>IMPORTADO</td></tr><tr><td>Liga de titânio Ti-6Al-4V</td><td>Densidade</td><td>4430</td><td>kg/m**3</td><td>4.43</td><td>g/cm**3</td><td>pint:g/cm**3-&gt;kg/m**3</td><td>IMPORTADO</td></tr><tr><td>Liga de titânio Ti-6Al-4V</td><td>Módulo de Young</td><td>114000000000</td><td>Pa</td><td>114</td><td>GPa</td><td>pint:GPa-&gt;Pa</td><td>IMPORTADO</td></tr><tr><td>Aço estrutural (tipo A36/SS400)</td><td>Densidade</td><td>7850</td><td>kg/m**3</td><td>7.85</td><td>g/cm**3</td><td>pint:g/cm**3-&gt;kg/m**3</td><td>IMPORTADO</td></tr><tr><td>Aço estrutural (tipo A36/SS400)</td><td>Módulo de Young</td><td>200000000000</td><td>Pa</td><td>200</td><td>GPa</td><td>pint:GPa-&gt;Pa</td><td>IMPORTADO</td></tr><tr><td>GFRP laminado (epóxi/fibra de vidro)</td><td>Densidade</td><td>1800</td><td>kg/m**3</td><td>1.8</td><td>g/cm**3</td><td>pint:g/cm**3-&gt;kg/m**3</td><td>IMPORTADO</td></tr><tr><td>GFRP laminado (epóxi/fibra de vidro)</td><td>Módulo de Young</td><td>26000000000</td><td>Pa</td><td>26</td><td>GPa</td><td>pint:GPa-&gt;Pa</td><td>IMPORTADO</td></tr><tr><td>Poliamida 6/6 (Nylon)</td><td>Densidade</td><td>1150</td><td>kg/m**3</td><td>1.15</td><td>g/cm**3</td><td>pint:g/cm**3-&gt;kg/m**3</td><td>IMPORTADO</td></tr><tr><td>Poliamida 6/6 (Nylon)</td><td>Módulo de Young</td><td>3000000000</td><td>Pa</td><td>3</td><td>GPa</td><td>pint:GPa-&gt;Pa</td><td>IMPORTADO</td></tr><tr><td>Polipropileno</td><td>Densidade</td><td>905</td><td>kg/m**3</td><td>0.905</td><td>g/cm**3</td><td>pint:g/cm**3-&gt;kg/m**3</td><td>IMPORTADO</td></tr><tr><td>Polipropileno</td><td>Módulo de Young</td><td>1500000000</td><td>Pa</td><td>1.5</td><td>GPa</td><td>pint:GPa-&gt;Pa</td><td>IMPORTADO</td></tr><tr><td>Borracha natural (NR)</td><td>Densidade</td><td>1100</td><td>kg/m**3</td><td>1.1</td><td>g/cm**3</td><td>pint:g/cm**3-&gt;kg/m**3</td><td>IMPORTADO</td></tr><tr><td>Borracha natural (NR)</td><td>Módulo de Young</td><td>50000000</td><td>Pa</td><td>0.05</td><td>GPa</td><td>pint:GPa-&gt;Pa</td><td>IMPORTADO</td></tr></tbody></table></div></section><section><h2>9. Interpretação técnica (IA)</h2><div class="narrative"><p>CFRP laminado (epóxi/fibra de carbono) lidera entre 8 candidatos.</p><p>O estudo “Haste leve e rígida — estudo de caso (A2)” trata de tirante (elemento sob tração pura), com o objetivo de minimizar massa para uma rigidez axial especificada.</p><p>Partindo de 14 materiais, as restrições aplicadas (Conjunto do estudo de caso, Não frágil (cerâmica excluída de uso em tração)) reduziram o conjunto a 8. Eliminação passo a passo: Conjunto do estudo de caso → 9; Não frágil (cerâmica excluída de uso em tração) → 8.</p><p>O mérito foi medido pelo índice “Rigidez específica” (modulo_young / densidade), de dimensão [length] ** 2 / [time] ** 2, calculado pelo backend a partir dos valores cadastrados.</p><p>A ordenação resultante é: 1º CFRP laminado (epóxi/fibra de carbono); 2º Liga de alumínio 7075-T6; 3º Liga de titânio Ti-6Al-4V; 4º Aço estrutural (tipo A36/SS400); 5º GFRP laminado (epóxi/fibra de vidro). O primeiro colocado é CFRP laminado (epóxi/fibra de carbono), com pontuação 1.000.</p><ul class="note"><li>Esta redação descreve resultados já calculados; ela não recalcula, não ajusta e não acrescenta nenhum valor.</li><li>A ferramenta faz triagem preliminar. Não substitui validação experimental, análise estrutural detalhada nem julgamento de engenharia.</li><li>O primeiro colocado se mantém sob as variações de peso testadas.</li></ul><p class="narrative-note">Interpretação assistida por IA: sugestões editáveis, sem valor numérico produzido pela IA. Todo cálculo é determinístico no backend e todo critério passa pela sua revisão. Provedor simulado: as sugestões vêm de regras determinísticas locais, sem nenhum serviço externo.</p></div></section><footer>Gerado por MaterialSelect AI — seleção de materiais pela metodologia de Ashby, com cálculo determinístico e proveniência rastreável.</footer></main></body></html>
