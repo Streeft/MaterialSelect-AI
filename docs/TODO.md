@@ -36,14 +36,6 @@ os vizinhos — outros documentos citam esses códigos.
 - **Dificuldade:** ▃
 - **Dependências:** modelo de `Source` já existe e pode ser estendido.
 
-### M2 — Auditoria de alterações
-- **Descrição:** `AuditEvent` registrando quem mudou o quê e quando.
-- **Impacto:** médio. Sustenta a alegação de rastreabilidade no nível do
-  *processo*, não só do dado.
-- **Dificuldade:** ▃
-- **Dependências:** nenhuma mais — A5 quitou o "quem" (há `User` desde o login
-  com Google). Ainda não implementado.
-
 ### M8 — Desempenho medido (Lighthouse)
 - **Descrição:** a metade de desempenho do antigo M3, que ficou de fora quando a
   acessibilidade foi entregue. **A parte de peso de bundle já foi feita** na
@@ -127,9 +119,9 @@ os vizinhos — outros documentos citam esses códigos.
 
 ## Entidades ainda não modeladas
 
-`AuditEvent`, `SavedChart`, `GeneratedReport`. Cada uma depende de um item
-acima (M2, B7) — não crie tabela sem o caso de uso. (`User` e `Project` saíram
-desta lista com A5.)
+`SavedChart`, `GeneratedReport`. Cada uma depende de um item acima (B7) — não
+crie tabela sem o caso de uso. (`User` e `Project` saíram desta lista com A5;
+`AuditEvent` saiu com M2.)
 
 ---
 
@@ -137,6 +129,18 @@ desta lista com A5.)
 
 Registrados para não voltarem por engano:
 
+- ~~**M2** — Auditoria de alterações~~ — `AuditEvent`
+  (`app/models/audit.py`) registra quem, o quê e quando para material, classe,
+  propriedade, índice de desempenho e estudo de seleção: um retrato de
+  `user_email`/`entity_label` (sobrevive à conta ou à entidade sumirem depois)
+  e um diff só dos campos que mudaram. `GET /api/audit` lista por
+  entidade, com a mesma fronteira de projeto de todo endpoint de estudo — o
+  catálogo é visível a qualquer usuário logado, um estudo só ao seu dono,
+  inclusive depois de excluído (retrato de `project_id`, não junção viva). A
+  importação em lote fica de fora de propósito: `ImportService` monta
+  `Material` direto, sem os métodos públicos de `MaterialService` que
+  chamam o audit — `ImportJob` já é a trilha desse fluxo. Ver
+  [D-43](DECISIONS.md).
 - ~~**A5** — Autenticação e autorização por projeto~~ — login exclusivamente
   por terceiros (Google, OAuth 2.0; sem senha em lugar nenhum), sessão em
   cookie `httpOnly` (`UserSession` é linha de banco, não JWT — logout revoga

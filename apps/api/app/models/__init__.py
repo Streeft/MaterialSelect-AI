@@ -4,7 +4,15 @@ Importing this package registers every model on the shared declarative
 ``Base.metadata`` so that Alembic autogenerate and ``create_all`` can see them.
 """
 
-from app.models.enums import BetterDirection, DataQuality, ImportStatus, PropertyCategory
+from app.models.audit import AuditEvent
+from app.models.enums import (
+    AuditAction,
+    AuditEntityType,
+    BetterDirection,
+    DataQuality,
+    ImportStatus,
+    PropertyCategory,
+)
 from app.models.import_job import ImportJob, ImportMappingTemplate
 from app.models.material import Material
 from app.models.material_class import MaterialClass
@@ -17,6 +25,9 @@ from app.models.source import Source
 from app.models.user import User, UserSession
 
 __all__ = [
+    "AuditAction",
+    "AuditEntityType",
+    "AuditEvent",
     "BetterDirection",
     "DataQuality",
     "ImportJob",
