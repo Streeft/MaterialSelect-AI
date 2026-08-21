@@ -27,6 +27,7 @@ MAPPING = {
     "class_column": "classe",
     "keywords_column": "palavras_chave",
     "source_label": "Planilha de teste",
+    "source_license_label": "Uso interno autorizado",
     "columns": [
         {"column": "densidade [g/cm3]", "property_slug": "densidade", "unit": "g/cm**3"},
         {"column": "modulo_young [GPa]", "property_slug": "modulo_young", "unit": "GPa"},

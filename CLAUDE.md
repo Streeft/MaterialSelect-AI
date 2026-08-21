@@ -241,7 +241,7 @@ declarada, nunca silenciosa; responsável técnico é texto livre, nunca
 validado. **As figuras da monografia que são capturas de `/estilo` precisam
 ser refeitas depois de D-38.**
 
-632 testes de backend e 148 de frontend, todos verdes. CI no GitHub Actions roda
+639 testes de backend e 148 de frontend, todos verdes. CI no GitHub Actions roda
 em todo PR e push para `main`.
 
 **Desempenho medido**, com os números em `docs/PROJECT_CONTEXT.md §12`: o maior

@@ -1581,3 +1581,81 @@ espúrio numa atualização sem mudança real; exclusão duas vezes grava um ún
 mista; o dono continua vendo o evento de exclusão do próprio estudo depois
 dele sumir da tabela; e a importação em lote não grava evento nenhum de
 material. `alembic upgrade head` + seed num banco limpo, como todo PR.
+
+---
+
+## D-44 — A licença de uma fonte é decidida uma vez, no registro; reusar o rótulo não reabre a decisão
+
+**Contexto.** M1 do [TODO.md](TODO.md) — nenhuma base importada tinha
+procedência ou licença registrada, e nada impedia incorporar dado
+possivelmente protegido sem uma decisão humana explícita. Compromisso do item
+4.2 da proposta, e o repositório é público desde
+[D-22](#d-22--repositório-público-para-o-portão-de-ci-ser-real).
+
+**Decisão.**
+- **`Source` ganha `license_label`/`license_url`, a sinalização explícita
+  `contains_third_party_data` e um carimbo de quem registrou a fonte e
+  quando** (`reviewed_by_user_id`/`reviewed_at`). Nenhum desses campos é
+  inferido — todos vêm do que quem importa escreveu no mapeamento.
+- **O portão fica na importação, não no cadastro manual.** O item do backlog
+  fala em "base... importada"; um material só (`POST /materials`) já passa
+  por uma pessoa logada decidindo linha a linha, o mesmo nível de decisão
+  humana que o portão de importação está formalizando para um lote inteiro de
+  uma vez. Estender o portão ao cadastro manual exigiria mudar o contrato de
+  `PropertyValueIn` (e os dois arquivos de tipos que o espelham) por um ganho
+  que o item não pede — fica registrado como extensão natural, não como
+  lacuna.
+- **A licença é obrigatória só para uma fonte nova.** `source_label` já
+  registrado → o rótulo é reaproveitado como está, sem reabrir a decisão a
+  cada importação seguinte. Rótulo novo sem `source_license_label` → 400,
+  antes de qualquer linha ser escrita — tanto em `/imports/{id}/validate`
+  (feedback cedo) quanto em `/imports/{id}/commit` (o portão que realmente
+  importa, caso o mapeamento tenha sido alterado entre as duas chamadas).
+- **`contains_third_party_data=True` exige `source_review_confirmed=True`
+  explícito.** É a "decisão humana obrigatória antes da incorporação" do
+  item do backlog: uma marcação por si só não basta, precisa de uma segunda
+  confirmação — o mesmo padrão de duas etapas que a IA já segue para uma
+  restrição não bastar sem o número aparecer no enunciado (princípio 1.5 do
+  `docs/CLAUDE.md`).
+- **`GET /api/sources`** lista toda fonte registrada com sua licença e
+  revisor, sob login — mesma lógica de M2: uma trilha que só grava e nunca
+  se mostra não sustenta alegação nenhuma de conformidade.
+
+**Alternativas descartadas.**
+- Um fluxo de aprovação assíncrono (fonte fica "pendente" até um segundo
+  usuário aprovar): não existe estado "pendente" em nenhuma outra parte da
+  aplicação — tudo aqui é CRUD síncrono por uma pessoa logada. Inventar uma
+  máquina de estados para um único caso de uso teria sido a exceção, não a
+  regra.
+- Licença obrigatória em toda importação, mesmo reaproveitando uma fonte já
+  registrada: reabriria a mesma decisão a cada linha nova de uma base que já
+  foi revisada — ruído, não rastreabilidade.
+- Estender o portão ao cadastro manual de material: ver "A decisão" acima.
+- Inferir `contains_third_party_data` automaticamente (por exemplo, por
+  domínio da URL da referência): um heurístico errado — silencioso — é pior
+  que exigir que a pessoa marque explicitamente, e o princípio 1 do
+  `CLAUDE.md` já rejeita qualquer palpite automático no lugar do dado
+  explícito.
+
+**Como funciona.** `ImportService._check_source_licensing`
+(`app/importers/service.py`) roda em `validate()` e de novo em `commit()` —
+o catálogo pode mudar entre as duas chamadas, e o portão de verdade é o
+segundo. `MaterialRepository.get_or_create_source` (estendido, não duplicado)
+grava os campos de licença só quando cria a linha; reutilizar um `label`
+existente devolve a linha como está, licença e carimbo de revisor inclusos.
+`MaterialService._build_value_from_input` ganhou os mesmos parâmetros
+opcionais para repassá-los — o cadastro manual nunca os define, então nunca
+aciona o carimbo (por quê: ver "A decisão" acima). `app/db/seed.py` e a
+própria migration (`fc5a731dd162`) registram a licença da fonte de
+demonstração (`"Dado fictício de demonstração — não é conteúdo de terceiro"`)
+para que ela nunca apareça como "sem licença" num banco já semeado antes
+desta migration.
+
+**Como se sabe que passa.** `pytest`, `ruff check` e `black --check` verdes,
+com `test_source_licensing.py` cobrindo: fonte nova sem licença rejeitada;
+fonte marcada como terceiro sem confirmação rejeitada; fonte válida commitada
+e `GET /api/sources` mostrando licença, sinalização e revisor certos; reusar
+uma fonte já registrada não exige licença de novo e não duplica a linha;
+importação sem `source_label` nenhum não aciona o portão; `GET /api/sources`
+exige login. `alembic upgrade head` + seed num banco limpo, como todo PR —
+inclusive o backfill da fonte de demonstração.

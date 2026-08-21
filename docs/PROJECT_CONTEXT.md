@@ -95,7 +95,7 @@ proposta — `11-usabilidade.md` está instrumentado, mas **nenhuma sessão foi
 realizada**; enquanto a tabela de melhorias dele estiver vazia, o §3.5 não foi
 cumprido.
 
-**Saúde do código:** 632 testes de backend (Python 3.11 e 3.12) e 148 de
+**Saúde do código:** 639 testes de backend (Python 3.11 e 3.12) e 148 de
 frontend, todos verdes. `ruff` limpo, `black --check` limpo, typecheck estrito e
 build de produção sem avisos. CI no GitHub Actions rodando em todo PR e push
 para `main`, com os checks **obrigatórios**: o GitHub recusa o merge se
@@ -255,6 +255,20 @@ respostas reais da API como evidência em
 [`12-estudo-de-caso.md`](12-estudo-de-caso.md); regressão automatizada em
 `test_case_study.py`.
 
+### Triagem de licenciamento (Fase 7 — M1)
+`Source` registra procedência e licença — nenhum campo é inferido, todos vêm
+do que quem importa escreveu no mapeamento. Uma fonte **nova** sem licença é
+recusada antes de qualquer linha ser escrita (`validate()` e de novo em
+`commit()`, o portão que realmente importa); uma fonte marcada como
+possivelmente contendo dado de terceiro exige uma segunda confirmação humana
+explícita, não só a marcação. Reusar um `source_label` já registrado não
+reabre a decisão a cada importação seguinte — ela foi feita uma vez, na
+primeira. `GET /api/sources` lista toda fonte com sua licença e revisor,
+mesma lógica de transparência de M2. O portão fica na importação — a mesma
+escala de decisão humana que o cadastro manual de um material já exige linha
+a linha; estendê-lo ao cadastro manual é extensão natural, não lacuna. Ver
+[D-44](DECISIONS.md).
+
 ## 5. Em andamento
 
 **Fase 7 concluída** — as exportações (planilha e imprimível), os testes
@@ -273,14 +287,13 @@ venha de uma sessão de fato observada.
 ## 6. Pendências
 
 Ver [TODO.md](TODO.md) para o backlog priorizado com impacto, dificuldade e
-dependências. Os itens de maior peso:
+dependências. O único item que resta:
 
-1. **Nenhuma triagem de licenciamento** das bases incorporadas — compromisso do
-   item 4.2 da proposta, e agora com o repositório público a aposta é maior
-   ([TODO.md](TODO.md) M1).
-2. **Nenhuma sessão de teste de usabilidade** — compromisso do §3.5, com o
+1. **Nenhuma sessão de teste de usabilidade** — compromisso do §3.5, com o
    instrumento pronto em [11-usabilidade.md](11-usabilidade.md) e a análise
-   cobrada como entrega pelo §4.1. Não é código: exige participantes reais.
+   cobrada como entrega pelo §4.1. Não é código: exige participantes reais —
+   a única pendência do trabalho como um todo que um agente não fecha
+   sozinho.
 
 ## 7. Principais fluxos
 
@@ -317,6 +330,7 @@ que mais afetam quem for mexer no código:
 | O laudo de engenharia é um documento à parte do relatório de seleção | [D-41](DECISIONS.md) |
 | Login só por terceiros (Google); catálogo compartilhado; um projeto por usuário | [D-42](DECISIONS.md) |
 | A trilha de auditoria guarda retratos (quem/o quê/projeto), não junções vivas; importação em lote fica de fora | [D-43](DECISIONS.md) |
+| A licença de uma fonte é decidida uma vez, no registro; reusar o rótulo não reabre a decisão | [D-44](DECISIONS.md) |
 
 ## 9. Limitações atuais
 
@@ -345,23 +359,19 @@ que mais afetam quem for mexer no código:
 | Base definitiva atrasar ou não vir | Importação agnóstica de formato + dados sintéticos desde a Fase 1. |
 | Escopo grande para um semestre | Desenvolvimento em fases com entregável utilizável a cada uma. |
 | Dependência de provedor de IA | Arquitetura desacoplada com provedor simulado; funciona sem chave. |
-| Incorporação inadvertida de dado protegido | Triagem de licenciamento prevista (item 4.2 da proposta) — **ainda não implementada**, ver [TODO.md](TODO.md). |
+| Incorporação inadvertida de dado protegido | Triagem de licenciamento (M1, item 4.2 da proposta) — `Source` registra licença/procedência, e uma fonte nova sem licença ou marcada como possivelmente protegida sem confirmação humana é recusada antes de qualquer linha ser escrita ([D-44](DECISIONS.md)). |
 | Resultado não reproduzível por interferência de IA | Cálculo determinístico + guardrails executáveis + confirmação do usuário. |
-| Regressão silenciosa | CI com 632 testes de backend e 148 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
+| Regressão silenciosa | CI com 639 testes de backend e 148 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
 
 ## 11. Próximos passos sugeridos
 
-Na ordem em que eu atacaria:
+**Aplicar o teste de usabilidade** de [11-usabilidade.md](11-usabilidade.md) é
+o único item que resta. O instrumento está pronto e a interface acabou de ser
+refeita; é o momento em que a sessão rende mais, e o §4.1 cobra a análise e as
+melhorias como entrega. Única pendência que exige um humano fora do teclado —
+nenhum agente fecha sozinho.
 
-1. **Aplicar o teste de usabilidade** de [11-usabilidade.md](11-usabilidade.md).
-   O instrumento está pronto e a interface acabou de ser refeita; é o momento em
-   que a sessão rende mais, e o §4.1 cobra a análise e as melhorias como entrega.
-   Única pendência que exige um humano fora do teclado — nenhum agente fecha
-   sozinho.
-2. **Triagem de licenciamento** das bases incorporadas — agora que o repositório
-   é público, incorporar dado protegido custa mais caro.
-
-Detalhamento com impacto e dificuldade em [TODO.md](TODO.md).
+Detalhamento em [TODO.md](TODO.md).
 
 ## 12. Desempenho — o que foi medido
 
