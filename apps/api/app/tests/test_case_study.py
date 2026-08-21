@@ -32,6 +32,7 @@ MAPPING = {
     "subclass_column": "subclasse",
     "keywords_column": "palavras_chave",
     "source_label": "Estudo de caso didático — Ashby (valores típicos de classe)",
+    "source_license_label": "Valores típicos de literatura de engenharia (ver docs/12-estudo-de-caso.md §3.1)",
     "columns": [
         {"column": "densidade [g/cm3]", "property_slug": "densidade", "unit": "g/cm**3"},
         {"column": "modulo_young [GPa]", "property_slug": "modulo_young", "unit": "GPa"},

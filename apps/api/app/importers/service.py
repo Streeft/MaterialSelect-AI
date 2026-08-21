@@ -35,6 +35,7 @@ from app.importers.readers import ALLOWED_EXTENSIONS, TabularData, read_tabular
 from app.models.enums import DataQuality, ImportStatus
 from app.models.import_job import ImportJob, ImportMappingTemplate
 from app.models.material import Material
+from app.models.user import User
 from app.repositories.import_repository import ImportRepository
 from app.repositories.material_repository import MaterialRepository
 from app.schemas.imports import (
@@ -73,8 +74,9 @@ def sanitize_filename(raw: str) -> str:
 class ImportService:
     """Drives the import wizard endpoints."""
 
-    def __init__(self, db: Session) -> None:
+    def __init__(self, db: Session, user: User | None = None) -> None:
         self.db = db
+        self.user = user
         self.repo = ImportRepository(db)
         self.materials = MaterialRepository(db)
         self.material_service = MaterialService(db)
@@ -195,6 +197,7 @@ class ImportService:
         job = self._job_in_status(job_id, {ImportStatus.PENDENTE, ImportStatus.VALIDADO})
         table = self._read_job_file(job, sheet_name or job.sheet_name)
         self._check_mapping_columns(mapping, table.headers)
+        self._check_source_licensing(mapping)
 
         rows, counts = self._validate_rows(mapping, table)
 
@@ -438,10 +441,36 @@ class ImportService:
 
     # --- commit / cancel / rollback ----------------------------------------
 
+    def _check_source_licensing(self, mapping: ImportMapping) -> None:
+        """M1: refuse to incorporate an unregistered source without its
+        licença/procedência, and refuse a source flagged as possibly
+        containing third-party data without an explicit human confirmation.
+
+        A no-op when ``source_label`` is empty (nothing gets registered) or
+        already registered (the decision was made once, at that source's own
+        registration — reusing the label does not re-litigate it).
+        """
+        if not mapping.source_label:
+            return
+        if self.materials.get_source_by_label(mapping.source_label) is not None:
+            return
+        if not mapping.source_license_label or not mapping.source_license_label.strip():
+            raise ValidationError(
+                f"A fonte '{mapping.source_label}' ainda não existe no catálogo — "
+                "informe a licença/procedência (source_license_label) antes de importar."
+            )
+        if mapping.source_contains_third_party_data and not mapping.source_review_confirmed:
+            raise ValidationError(
+                f"A fonte '{mapping.source_label}' foi marcada como possivelmente "
+                "contendo dado de terceiro protegido — confirme a revisão humana "
+                "(source_review_confirmed) antes de incorporar."
+            )
+
     def commit(self, job_id: int) -> CommitResult:
         """Create materials for every valid row, in a single transaction."""
         job = self._job_in_status(job_id, {ImportStatus.VALIDADO})
         mapping = ImportMapping.model_validate(job.mapping)
+        self._check_source_licensing(mapping)
         table = self._read_job_file(job, job.sheet_name)
         index = {header: i for i, header in enumerate(table.headers)}
 
@@ -520,7 +549,14 @@ class ImportService:
         for value_in, issue in self._row_values(mapping, cell):
             if issue is not None or value_in is None:  # pragma: no cover - filtered upstream
                 continue
-            value_row = self.material_service._build_value_from_input(value_in, is_demo=False)
+            value_row = self.material_service._build_value_from_input(
+                value_in,
+                is_demo=False,
+                source_license_label=mapping.source_license_label,
+                source_license_url=mapping.source_license_url,
+                source_contains_third_party_data=mapping.source_contains_third_party_data,
+                source_reviewed_by_user_id=self.user.id if self.user else None,
+            )
             value_row.material_id = material.id
             self.repo.add(value_row)
 

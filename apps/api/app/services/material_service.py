@@ -292,12 +292,24 @@ class MaterialService:
             raise ValidationError(f"Propriedades repetidas no payload: {', '.join(duplicates)}")
 
     def _build_value_from_input(
-        self, payload: PropertyValueIn, is_demo: bool
+        self,
+        payload: PropertyValueIn,
+        is_demo: bool,
+        *,
+        source_license_label: str | None = None,
+        source_license_url: str | None = None,
+        source_contains_third_party_data: bool = False,
+        source_reviewed_by_user_id: int | None = None,
     ) -> MaterialPropertyValue:
         """Convert a PropertyValueIn into a validated MaterialPropertyValue.
 
         Unit conversion and dimensional/interval validation happen here; any
-        failure is surfaced as a ``ValidationError`` (HTTP 400).
+        failure is surfaced as a ``ValidationError`` (HTTP 400). The
+        ``source_*`` kwargs are licensing metadata (M1) for a brand-new
+        ``Source`` — manual entry through the API never sets them (there is
+        no licensing gate on that path yet, see docs/DECISIONS.md D-44);
+        ``ImportService`` is the only caller that passes them, after its own
+        gate has already required them for an unregistered source.
         """
         prop = self.repo.get_property_by_slug(payload.property_slug)
         if prop is None:
@@ -334,7 +346,14 @@ class MaterialService:
 
         source_id = None
         if payload.source_label:
-            source = self.repo.get_or_create_source(payload.source_label, is_demo=is_demo)
+            source = self.repo.get_or_create_source(
+                payload.source_label,
+                is_demo=is_demo,
+                license_label=source_license_label,
+                license_url=source_license_url,
+                contains_third_party_data=source_contains_third_party_data,
+                reviewed_by_user_id=source_reviewed_by_user_id,
+            )
             source_id = source.id
 
         return MaterialPropertyValue(
