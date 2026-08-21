@@ -51,44 +51,35 @@ Thumbs.db
 # briefs e pacotes de revisão de cada plano, nunca artefato do produto.
 .superpowers/
 
+
 # --- Cérebro: material de terceiros, fora do controle de versão -------------
 # Este repositório é público. Os arquivos abaixo são livros comerciais íntegros
-# e um extrato do banco de dados licenciado do Granta EduPack (ANSYS): o agente
-# que montou esta base não os publica. Eles continuam no disco e alimentam a
-# indexação local do Cérebro normalmente — indexar não é redistribuir.
+# e um extrato do banco de dados licenciado do Granta EduPack (ANSYS): a
+# intenção é não publicá-los — eles continuam no disco e alimentam a indexação
+# local do Cérebro normalmente, indexar não é redistribuir.
 #
 # A proveniência de cada um fica registrada no catálogo do Cérebro, versionado,
 # de modo que o repositório documente a base inteira mesmo sem hospedá-la.
 #
 # Para publicar um deles é preciso uma decisão humana explícita, arquivo a
-# arquivo: `git add -f "Cérebro/<arquivo>.pdf"`. O LFS já está configurado em
+# arquivo: `git add -f "Cérebro/<caminho>"`. O LFS já está configurado em
 # .gitattributes, então o arquivo entra como ponteiro sem passo adicional.
 
-Cérebro/Michael Ashby (Auth.)-Seleção De Materiais No Projeto Mecânico (2012).pdf
-Cérebro/Selecao_de_Materiais_no_Projeto_Mecanico.pdf
-Cérebro/Materiais e Design.pdf
-Cérebro/Ciencia-e-Engenharia-de-Materiais-CALLISTER-9ª-Edicao-pdf.pdf
-Cérebro/Michael F. Ashby - Materials Selection in Mechanical Design. 5th.pdf
-Cérebro/Diran Apelian - Shaping Our World_ Engineering Education for the 21st Century.pdf
-Cérebro/Materials_ Engineering, Science, Processing and Design ( PDFDrive ).pdf
-Cérebro/Materials Selection for Aerospace Systems.pdf
-Cérebro/Selecao_de_Materiais_no_Projeto_Mecanico - Cap 13 e 14 Processos e seleção de processos.pdf
-Cérebro/Structural Materials - Properties and Selection 2019.pdf
-Cérebro/MATERIALS and PROCESS SELECTION for ENGINEERING DESIGN.pdf
-Cérebro/Corrosion and Materials Selection 2014.pdf
-Cérebro/Selecao_de_Materiais_no_Projeto_Mecanico - Capítulo 3 Materiais de Engenharia e suas propriedades.pdf
-Cérebro/Selecao_de_Materiais_no_Projeto_Mecanico - Capítulo 3 Materiais de Engenharia e suas propriedades (1).pdf
+# Bibliografia comercial completa (um nível só — não afeta Extratos-de-Capitulos/,
+# que continua versionado de propósito).
+Cérebro/01-Bibliografia/*.pdf
 
-# Extrato do banco de dados proprietário do Granta EduPack (103 arquivos).
-Cérebro/Fichas descritivas de materiais - Granta Edupack - Nível 2/
+# Banco de dados licenciado ANSYS/Granta EduPack.
+Cérebro/03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/
 
-# Fichas do EduPack baixadas avulsas para o Trabalho 2 — mesma origem que a
-# pasta acima. Identificadas pelo tamanho (254–347 KB, a faixa das fichas
-# confirmadas) e pelas mesmas fontes embutidas; o restante da pasta, que é
-# trabalho dos alunos, continua versionado.
-Cérebro/⚙Seleção de Materiais/Trabalho 2/Arquivos para gerar slide/ABS_capacete.pdf
-Cérebro/⚙Seleção de Materiais/Trabalho 2/Arquivos para gerar slide/alumínio.pdf
-Cérebro/⚙Seleção de Materiais/Trabalho 2/Arquivos para gerar slide/cobre_1.pdf
-Cérebro/⚙Seleção de Materiais/Trabalho 2/Arquivos para gerar slide/cobre_2.pdf
-Cérebro/⚙Seleção de Materiais/Trabalho 2/Arquivos para gerar slide/injection.pdf
-Cérebro/⚙Seleção de Materiais/Trabalho 2/Arquivos para gerar slide/thermoforming.pdf
+# As mesmas fichas Granta, cópias avulsas usadas no Trabalho 2.
+Cérebro/02-Material-de-Curso-ENG02016/Trabalhos-Entregues/Trabalho 2/Arquivos para gerar slide/ABS_capacete.pdf
+Cérebro/02-Material-de-Curso-ENG02016/Trabalhos-Entregues/Trabalho 2/Arquivos para gerar slide/alumínio.pdf
+Cérebro/02-Material-de-Curso-ENG02016/Trabalhos-Entregues/Trabalho 2/Arquivos para gerar slide/cobre_1.pdf
+Cérebro/02-Material-de-Curso-ENG02016/Trabalhos-Entregues/Trabalho 2/Arquivos para gerar slide/cobre_2.pdf
+Cérebro/02-Material-de-Curso-ENG02016/Trabalhos-Entregues/Trabalho 2/Arquivos para gerar slide/injection.pdf
+Cérebro/02-Material-de-Curso-ENG02016/Trabalhos-Entregues/Trabalho 2/Arquivos para gerar slide/thermoforming.pdf
+
+# Pasta de triagem de duplicatas — provisória, não versionar enquanto não for
+# revisada.
+Cérebro/_Duplicados-Para-Revisao/
