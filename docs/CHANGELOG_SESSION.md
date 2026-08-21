@@ -11,10 +11,226 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [6](#sessão-6--210826--estudo-de-caso-didático-a2) | 21/08/2026 | Estudo de caso didático (A2) | 630 → 632 | 148 (inalterado) |
+| [5](#sessão-5--210826--auditoria-m2-e-a-instalação-do-ambiente-de-assistente) | 21/08/2026 | Fase 7: auditoria de alterações (M2) | 617 → 630 | 148 (inalterado) |
 | [4](#sessão-4--110826-a-120826--fase-9-e-a-varredura-que-a-fechou) | 11 e 12/08/2026 | Fase 9 (seis frentes) e a varredura de fechamento | 436 → 591 | 123 → 141 |
 | [3](#sessão-3--110826--os-provedores-reais-da-camada-de-ia) | 11/08/2026 | Fase 6: provedores reais de IA | 391 → 436 | 123 |
 | [2](#sessão-2--050826-a-100826--fase-7-parcial-ci-obrigatória-e-fase-8) | 05/08 a 10/08/2026 | Fase 7 (relatório HTML), CI obrigatória, Fase 8 (redesign) | 362 → 391 | 44 → 123 |
 | [1](#sessão-1--300726-a-040826--fases-5-a-7) | 30/07 a 04/08/2026 | Fases 5, 6 e 7 (exportação) | 169 → 362 | 13 → 44 |
+
+---
+
+# Sessão 6 — 21/08/26 — Estudo de caso didático (A2)
+
+Ponto de partida: fim da sessão 5 (PR #10 aberta, M2 verde). Testes de
+backend: 630 → 632. Continuação da mesma sessão de trabalho após uma pausa —
+o usuário voltou ("bom dia") e escolheu A2 entre as pendências restantes do
+`TODO.md`, a mesma pergunta feita no início da sessão 5.
+
+## 1. O caso escolhido
+
+O tirante leve e rígido ("light, stiff tie") de Ashby: elemento sob tração
+pura, minimizar massa para rigidez axial especificada, índice a maximizar
+`M = E/ρ`. Três razões concretas, não só "é um exemplo clássico":
+
+- O índice `rigidez-especifica` (`modulo_young / densidade`) **já estava
+  semeado** no catálogo (`app/db/seed.py`), com a referência a Ashby nas
+  próprias hipóteses — o caso reusa o que já existia, não inventa um índice
+  novo.
+- O resultado é genuinamente consolidado na literatura, com uma conclusão
+  contraintuitiva bem documentada (cerâmicas vencem no índice bruto, e é
+  exatamente por isso que o caso precisa de uma segunda restrição para
+  chegar à resposta de engenharia real) — o tipo de caso onde "os candidatos
+  batem com o esperado" é uma afirmação verificável, não uma opinião.
+- A restrição de fragilidade usa `not_in_class`, que já existe na
+  aplicação — nenhuma propriedade nova (tenacidade à fratura) precisou ser
+  adicionada ao catálogo.
+
+## 2. Dados: reais, não fictícios, e a rede bloqueada no meio do caminho
+
+Princípio 1 do `CLAUDE.md` proíbe inventar propriedade de material. Nove
+materiais (três metais, dois compósitos, dois polímeros, uma cerâmica, um
+elastômero) precisavam de densidade e módulo de Young **reais**, não
+fabricados. `WebFetch` para as fontes candidatas (MIT OpenCourseWare, en.wikipedia.org)
+retornou `EGRESS_BLOCKED` — a política de rede deste ambiente não permite
+essas requisições — em três domínios diferentes; só `WebSearch` (que devolve
+um resumo sintetizado, não a página inteira) funcionou. As cifras finais
+vieram desses resumos, cross-checadas entre duas a três buscas independentes
+por material, e o documento (§3 abaixo) registra essa limitação em vez de
+escondê-la atrás de uma citação com precisão que a própria coleta não tinha.
+
+## 3. Execução real, não simulada
+
+Servidor subido localmente contra um banco limpo (`alembic upgrade head` +
+seed), autenticado pela mesma sessão fixa que o Playwright usa
+(`ENVIRONMENT=development` + `E2E_SESSION_TOKEN`, sem bypass exposto por
+rota nenhuma — mecanismo documentado em `docs/CLAUDE.md §5`, não um atalho
+novo). Sequência real, via HTTP: upload → validação → commit da planilha
+(`docs/estudo-de-caso/materiais-haste-leve-rigida.csv`) → `POST
+/selection/run` (restrições + índice + ranking) → `POST /selection/studies`
+(salvar) → exportação do relatório e do laudo. As sugestões automáticas de
+coluna da importação acertaram as nove colunas sozinhas — a mesma
+funcionalidade cujo bug de hífen/underscore a suíte A4 corrigiu numa sessão
+anterior, funcionando corretamente aqui.
+
+O resultado bateu exatamente com o previsto: CFRP em primeiro (35,3), os três
+metais estruturais num platô de 1,8% entre si (25,48–25,93), a cerâmica
+excluída pela restrição de fragilidade apesar de ter, de longe, o melhor
+índice bruto (100,0, quase 3× o CFRP). Os três pontos que o exemplo do
+tirante existe para ilustrar, reproduzidos por uma execução real, não
+citados de memória.
+
+A auditoria (M2, sessão anterior) registrou o próprio `POST
+/selection/studies` deste estudo — a primeira vez que a trilha gravou algo
+fora dos próprios testes que a exercitaram.
+
+## 4. O que foi criado
+
+- `docs/estudo-de-caso/` — a planilha real (não o `sample-data/` fictício), um
+  `README.md` com as fontes, e `evidencias/` com as respostas reais da
+  aplicação (JSON do `/selection/run`, relatório de seleção e laudo em HTML,
+  relatório em CSV) — nada composto à mão fora da aplicação.
+- `docs/12-estudo-de-caso.md` — o roteiro: caso escolhido, enunciado no
+  formato Função/Restrições/Objetivo/Variáveis livres, dados e fontes (com a
+  ressalva de precisão do §2 acima), execução real, resultado, comparação
+  com a literatura em três pontos verificáveis, limitações, como reproduzir.
+- `app/tests/test_case_study.py` — a mesma planilha embutida (mesmo padrão
+  que `test_imports_api.py` já usa para sua própria fixture), a mesma
+  seleção, e a asserção de que a ordenação e o platô dos metais se repetem a
+  cada execução da suíte — a verificação do item 2.6/6 da proposta vira
+  regressão de CI, não só um resultado manual documentado uma vez.
+
+## 5. Verificação
+
+`pytest` (632 testes, +2 desta sessão), `ruff check` e `black --check`
+verdes. Sem verificação de frontend — o caso é inteiramente backend/API,
+como o pedido original de A2 já era.
+
+## 6. O que continua em aberto
+
+Do backlog: M1 (triagem de licenciamento) e a sessão de teste de usabilidade
+do §3.5 — esta última é a única pendência do trabalho como um todo que não é
+código e não pode ser fechada por quem programa sozinho.
+
+---
+
+# Sessão 5 — 21/08/26 — Auditoria (M2) e a instalação do ambiente de assistente
+
+Ponto de partida: `d20e7df` (fim da sessão 4 registrada aqui). Testes de
+backend: 617 → 630. Testes de frontend: 148 (inalterado — o pedido era só de
+backend).
+
+> **A contagem de partida não bate com o fim da sessão 4** (591, não 617) — a
+> diferença (26 testes) veio de trabalho entre as duas sessões que não ganhou
+> uma seção própria neste arquivo (a autenticação A5, [D-42](DECISIONS.md), já
+> estava em produção no início desta sessão). Registrado aqui para quem for
+> reconciliar os números depois; não investigado nesta sessão, que tratava de
+> outro assunto.
+
+## 0. Ambiente do assistente
+
+Sessão iniciada num container novo, sem nada instalado além do Claude Code em
+si. Antes do trabalho de código, os três marketplaces e os dois plugins de
+[`docs/CLAUDE_SETUP.md`](CLAUDE_SETUP.md) foram reconectados
+(`claude-plugins-official`, `superpowers-dev`, `thedotmack`;
+`superpowers@superpowers-dev`, `claude-mem@thedotmack`), e o gstack foi
+clonado e instalado. A receita documentada (clonar em `~/.agents/skills/gstack`)
+não registra as skills onde este ambiente as espera: qualquer diretório
+literalmente chamado `skills/` faz o instalador do gstack tratar a instalação
+como "já dentro de um diretório de skills" e symlinkar os comandos *ao lado*
+do clone em vez de para dentro de `~/.claude/skills/`, então em
+`~/.agents/skills/gstack` os comandos foram parar em `~/.agents/skills/*` —
+onde o Claude Code deste ambiente não os enxerga. Clonar direto em
+`~/.claude/skills/gstack` (mesmo nome de diretório final, container diferente)
+ativa o mesmo caminho de código de um jeito que resolve para o lugar certo. À
+parte disso, o instalador tenta baixar seu próprio Chromium via Playwright
+para a função `/browse`; a rede deste ambiente bloqueia esse host
+(`cdn.playwright.dev`) e o instalador, sem tratamento de erro nesse trecho,
+aborta antes de chegar ao passo que registra as skills — contornado
+comentando as duas chamadas de instalação do Chromium no script (o ambiente
+já tem um Chromium próprio em `/opt/pw-browsers`, só não na revisão que este
+Playwright vendorizado espera). Nenhuma mudança de projeto — só do ambiente do
+assistente, fora do repositório.
+
+## 1. O pedido e a escolha do que atacar
+
+O pedido desta sessão foi genérico — "leia a documentação, baixe as skills do
+projeto, continue de onde parou" — sem apontar qual pendência. `TODO.md`
+listava quatro itens de peso comparável e natureza bem diferente: A2 (estudo
+de caso, exige curar dado real citável — julgamento de domínio), a sessão de
+teste de usabilidade do §3.5 (exige pessoas reais, não pode ser feita por um
+agente), M1 (triagem de licenciamento) e M2 (auditoria, com dependência já
+satisfeita por A5, spec autocontida, zero dependência de dado externo).
+Perguntado, o usuário escolheu M2 — o item mais adequado a uma sessão autônoma
+de uma vez só, e o único das quatro pendências que não dependia de julgamento
+de domínio ou de um humano fora do teclado.
+
+## 2. O que foi implementado
+
+`AuditEvent` (`app/models/audit.py`, migration `d063cad4ae8b`): quem mudou o
+quê e quando, para as entidades que uma pessoa edita à mão — material, classe,
+propriedade, índice de desempenho e estudo de seleção.
+
+- **Retrato, não junção viva.** `user_email`/`entity_label`/`project_id` são
+  capturados no momento do evento, não lidos de uma junção em tempo de
+  leitura — sobrevivem à conta, à entidade ou ao estudo desaparecerem depois.
+  É a mesma lógica de proveniência que já vale para `material_property_value`
+  (princípio 4 do `CLAUDE.md`), aplicada a "quem fez isto".
+- **`changes` é um diff, não um dump.** Só os campos que de fato mudaram
+  (`app/services/audit_service.diff_fields`) — um `PATCH` de um campo não
+  imprime os outros dez inalterados, e um `PATCH` que não muda nada não grava
+  evento nenhum.
+- **A troca de valores de propriedade vira um diff por slug**, não um evento
+  por linha — `PUT .../values` já é "substitua o conjunto inteiro", e a
+  proveniência de cada valor já é rastreada à parte por linha.
+- **A importação em lote fica de fora, de propósito.** `ImportService` monta
+  `Material` diretamente (`app/importers/service.py`), sem os métodos
+  públicos de `MaterialService` onde o `record_change` está — `ImportJob` já é
+  a trilha desse fluxo, e auditar por linha um commit de milhares seria ruído.
+- **`GET /api/audit`** lista por `entity_type`/`entity_id`, paginado, sob a
+  mesma fronteira de projeto de todo endpoint de estudo — catálogo visível a
+  qualquer usuário logado, `selection_study` só ao dono, inclusive depois de
+  excluído (é exatamente o retrato de `project_id` que torna isso possível).
+
+Quatro serviços (`MaterialService`, `TaxonomyService`, `PropertyService`,
+`SelectionService`) ganharam um `user: User | None = None` no construtor,
+todo roteador que os instancia passou a repassar o usuário logado, e
+`AuditRepository`/`audit_service.record_change` fazem a escrita — sempre antes
+do `commit()` do próprio serviço, para que o evento nunca fique numa
+transação diferente da mudança que descreve.
+
+Decisão registrada em [D-43](DECISIONS.md), com as alternativas descartadas
+(dump completo em vez de diff, evento por linha de valor, filtro de
+privacidade por junção viva, cobrir a importação).
+
+## 3. Correções incidentais
+
+Duas classes de repositório não tinham `flush()` (`PropertyDefinitionRepository`)
+ou não seguiam o padrão de outras (mesmo método, só faltando) — descobertas
+pelos próprios testes de auditoria ao precisar do `id` do objeto recém-criado
+antes do `commit()`. Corrigidas junto, sem afetar nenhum comportamento
+existente.
+
+## 4. Verificação
+
+`pytest` (630 testes, +13 desta sessão), `ruff check` e `black --check`
+verdes; `alembic upgrade head` + `python -m app.db.seed` num banco limpo (o
+mesmo portão que a CI roda). `test_audit.py` cobre: evento por ação e por tipo
+de entidade; diff correto por campo e por slug de propriedade; nenhum evento
+numa atualização sem mudança real; exclusão duas vezes grava um único
+`EXCLUIDO`; um usuário não vê o estudo de outro nem por id nem numa listagem
+mista; o dono continua vendo a exclusão do próprio estudo depois dela
+acontecer; a importação em lote não grava evento de material. Sem verificação
+de frontend — o pedido era só de backend, e nenhuma tela consome `GET
+/api/audit` ainda (fica para quando houver pedido de interface para isto).
+
+## 5. O que continua em aberto
+
+Da Fase 7, só a arquitetura para PPTX (B2, baixa prioridade, fora de escopo
+salvo pedido). Do trabalho como um todo: a sessão de teste de usabilidade do
+§3.5 (nenhuma foi realizada), o estudo de caso didático completo (A2) e a
+triagem de licenciamento (M1) — nenhum dos três é código que um agente possa
+fechar sozinho numa sessão como esta.
 
 ---
 

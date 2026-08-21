@@ -27,6 +27,7 @@ from app.domain.errors import (
 )
 from app.routers import (
     ai,
+    audit,
     auth,
     charts,
     classes,
@@ -125,6 +126,7 @@ app.include_router(charts.router, prefix="/api")
 app.include_router(dashboard.router, prefix="/api")
 app.include_router(ai.router, prefix="/api")
 app.include_router(exports.router, prefix="/api")
+app.include_router(audit.router, prefix="/api")
 
 
 @app.get("/", tags=["root"])

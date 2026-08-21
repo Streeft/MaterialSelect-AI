@@ -79,7 +79,7 @@ MaterialSelect-AI/
 │  │  │  ├─ routers/            # HTTP fino, sem regra de negócio
 │  │  │  ├─ schemas/            # contratos Pydantic v2
 │  │  │  ├─ services/           # orquestração de casos de uso
-│  │  │  └─ tests/              # 25 arquivos, 617 testes
+│  │  │  └─ tests/              # 27 arquivos, 632 testes
 │  │  └─ pyproject.toml
 │  └─ web/                      # frontend Next.js 14
 │     ├─ app/                   # App Router: uma pasta por rota — catalogo,
@@ -281,6 +281,7 @@ erDiagram
   Project ||--o{ SelectionStudy : escopa
   SelectionStudy ||--o{ SelectionConstraint : tem
   SelectionStudy ||--o{ RankingCriterion : tem
+  User ||--o{ AuditEvent : "assina (retrato)"
 ```
 
 | Tabela | Papel |
@@ -296,6 +297,7 @@ erDiagram
 | `project` | Container de estudos de um dono; um por `user` no v1. |
 | `user_session` | Sessão de login; `id` é o próprio valor do cookie. |
 | `selection_study`, `selection_constraint`, `ranking_criterion` | Estudos reexecutáveis, escopados por `project_id`. |
+| `audit_event` | Quem mudou o quê e quando (M2), com retrato de `user_email`/`entity_label`/`project_id` — sobrevive à conta, à entidade ou ao estudo desaparecerem depois ([D-43](DECISIONS.md)). |
 
 **Campos de proveniência em `material_property_value`** — o coração do modelo:
 `value_scalar`/`value_min`/`value_max`/`value_typical` (unidade **original**),
@@ -353,6 +355,7 @@ Todas sob `/api`. Erros de domínio são mapeados em `main.py`:
 | IA (opcional) | `GET /ai/status`, `POST /ai/interpret`, `POST /ai/explain` |
 | Exportação | `GET /exports/catalogo.{csv,xlsx,html}`, `GET /exports/estudos/{id}.{csv,xlsx,html}` |
 | Laudo de engenharia | `GET /exports/estudos/{id}/laudo.html` |
+| Auditoria | `GET /audit` — quem mudou o quê e quando ([D-43](DECISIONS.md)) |
 
 Visualização e comparação são **POST** porque a entrada é estruturada (par de
 eixos, filtros, conjuntos de materiais, expressão e níveis) e não caberia

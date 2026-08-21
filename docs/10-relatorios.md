@@ -191,8 +191,8 @@ O `html` é o único servido `inline`; os outros dois baixam. O laudo aceita
 
 ## Ainda fora desta fatia
 
-Exportação de PPTX (B2), autenticação por projeto (A5) e auditoria (M2) seguem
-na Fase 7 e estão no [`TODO.md`](TODO.md). Os testes end-to-end de interface
-(A4) já saíram — Playwright cobrindo importar → selecionar → visualizar →
-exportar, `apps/web/e2e/`, e a suíte já é check obrigatório de CI
-(`E2E (Playwright)` em `ci.yml`); ver "Débitos já quitados" no `TODO.md`.
+Exportação de PPTX (B2) segue na Fase 7 e está no [`TODO.md`](TODO.md).
+Autenticação por projeto (A5), auditoria (M2) e os testes end-to-end de
+interface (A4 — Playwright cobrindo importar → selecionar → visualizar →
+exportar, `apps/web/e2e/`, check obrigatório de CI em `ci.yml`) já saíram; ver
+"Débitos já quitados" no `TODO.md`.
