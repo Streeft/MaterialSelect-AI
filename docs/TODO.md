@@ -20,15 +20,6 @@ quitados".
 
 ## Média prioridade
 
-### M1 — Triagem de licenciamento das bases incorporadas
-- **Descrição:** registrar procedência e licença de cada base/documentação
-  importada, com sinalização de conteúdo possivelmente protegido e decisão
-  humana obrigatória antes da incorporação.
-- **Impacto:** médio-alto. É **compromisso do item 4.2 da proposta** e uma
-  mitigação de risco declarada, ainda não implementada.
-- **Dificuldade:** ▃
-- **Dependências:** modelo de `Source` já existe e pode ser estendido.
-
 ### M8 — Desempenho medido (Lighthouse)
 - **Descrição:** a metade de desempenho do antigo M3, que ficou de fora quando a
   acessibilidade foi entregue. **A parte de peso de bundle já foi feita** na
@@ -122,6 +113,17 @@ crie tabela sem o caso de uso. (`User` e `Project` saíram desta lista com A5;
 
 Registrados para não voltarem por engano:
 
+- ~~**M1** — Triagem de licenciamento das bases incorporadas~~ — `Source`
+  ganhou `license_label`/`license_url`, a sinalização explícita
+  `contains_third_party_data` e um carimbo de quem registrou a fonte e
+  quando. O portão fica na importação (`ImportService._check_source_licensing`,
+  rodando em `validate()` e de novo em `commit()`): uma fonte **nova** sem
+  licença registrada é recusada antes de qualquer linha ser escrita, e uma
+  fonte marcada como possivelmente contendo dado de terceiro exige uma
+  segunda confirmação humana explícita (`source_review_confirmed`). Reusar
+  um `source_label` já registrado não reabre a decisão a cada importação.
+  `GET /api/sources` lista toda fonte com sua licença e revisor. Ver
+  [D-44](DECISIONS.md).
 - ~~**A2** — Estudo de caso didático completo~~ — o tirante leve e rígido
   ("light, stiff tie") de Ashby, reproduzido do enunciado ao relatório
   exportado contra a aplicação real (não simulado): nove materiais reais de

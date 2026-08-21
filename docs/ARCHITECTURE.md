@@ -79,7 +79,7 @@ MaterialSelect-AI/
 │  │  │  ├─ routers/            # HTTP fino, sem regra de negócio
 │  │  │  ├─ schemas/            # contratos Pydantic v2
 │  │  │  ├─ services/           # orquestração de casos de uso
-│  │  │  └─ tests/              # 27 arquivos, 632 testes
+│  │  │  └─ tests/              # 28 arquivos, 639 testes
 │  │  └─ pyproject.toml
 │  └─ web/                      # frontend Next.js 14
 │     ├─ app/                   # App Router: uma pasta por rota — catalogo,
@@ -290,7 +290,7 @@ erDiagram
 | `material` | Identidade, `is_demo`, `is_active` (soft delete), `import_job_id`. |
 | `property_definition` | Catálogo configurável: unidade canônica, dimensão, direção desejável. |
 | `material_property_value` | O valor **com toda a proveniência**. |
-| `source` | Rótulo de origem do dado. |
+| `source` | Rótulo de origem do dado — licença/procedência, sinalização de dado de terceiro e revisor registrados no momento em que a fonte é criada (M1, [D-44](DECISIONS.md)). |
 | `import_job`, `import_mapping_template` | Ciclo da importação e rollback lógico. |
 | `performance_index` | Índices clássicos de Ashby com hipóteses. |
 | `user` | Identidade Google (`google_sub` único), sem senha ([D-42](DECISIONS.md)). |
@@ -356,6 +356,7 @@ Todas sob `/api`. Erros de domínio são mapeados em `main.py`:
 | Exportação | `GET /exports/catalogo.{csv,xlsx,html}`, `GET /exports/estudos/{id}.{csv,xlsx,html}` |
 | Laudo de engenharia | `GET /exports/estudos/{id}/laudo.html` |
 | Auditoria | `GET /audit` — quem mudou o quê e quando ([D-43](DECISIONS.md)) |
+| Fontes | `GET /sources` — licença, procedência e revisor de cada fonte registrada ([D-44](DECISIONS.md)) |
 
 Visualização e comparação são **POST** porque a entrada é estruturada (par de
 eixos, filtros, conjuntos de materiais, expressão e níveis) e não caberia

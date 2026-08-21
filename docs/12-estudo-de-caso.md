@@ -140,6 +140,9 @@ passo, com o endpoint real de cada etapa:
    `POST /api/imports/{id}/validate` (mapeamento explícito: só `densidade` e
    `modulo_young`, unidade de cada coluna declarada) → `valid_count: 9`,
    `error_count: 0` → `POST /api/imports/{id}/commit` → `imported_count: 9`.
+   *(Executado antes de M1: reproduzir isto hoje contra uma fonte ainda não
+   registrada exige também `source_license_label` no mapeamento — ver
+   [D-44](DECISIONS.md) — `test_case_study.py` já usa o mapeamento atualizado.)*
    As sugestões automáticas de coluna (`suggestions` na resposta do upload)
    acertaram as nove colunas sozinhas, inclusive `densidade`/`modulo_young`
    por slug — o mesmo mecanismo cujo bug de hífen/underscore a suíte A4
