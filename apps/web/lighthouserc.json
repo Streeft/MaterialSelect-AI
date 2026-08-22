@@ -1,0 +1,52 @@
+{
+  "ci": {
+    "collect": {
+      "numberOfRuns": 3,
+      "startServerCommand": "npm run start",
+      "url": [
+        "http://localhost:3000",
+        "http://localhost:3000/catalogo",
+        "http://localhost:3000/importar",
+        "http://localhost:3000/selecao",
+        "http://localhost:3000/mapas",
+        "http://localhost:3000/comparar",
+        "http://localhost:3000/painel",
+        "http://localhost:3000/estilo",
+        "http://localhost:3000/entrar",
+        "http://localhost:3000/admin/classes",
+        "http://localhost:3000/admin/propriedades"
+      ],
+      "settings": {
+        "headful": false,
+        "preset": "desktop",
+        "cookies": [
+          {
+            "name": "msai_session",
+            "value": "e2e-fixed-session-token-nao-use-em-producao",
+            "domain": "localhost",
+            "path": "/",
+            "httpOnly": true,
+            "secure": false,
+            "sameSite": "Lax"
+          }
+        ]
+      }
+    },
+    "assert": {
+      "assertions": {
+        "categories:performance": ["error", { "minScore": 0.7 }],
+        "categories:accessibility": ["error", { "minScore": 0.9 }],
+        "categories:best-practices": ["error", { "minScore": 0.8 }],
+        "categories:seo": ["warn", { "minScore": 0.8 }],
+        "interactive": ["error", { "maxNumericValue": 5000 }],
+        "first-contentful-paint": ["error", { "maxNumericValue": 2500 }],
+        "largest-contentful-paint": ["error", { "maxNumericValue": 4000 }],
+        "cumulative-layout-shift": ["error", { "maxNumericValue": 0.1 }],
+        "total-blocking-time": ["error", { "maxNumericValue": 500 }]
+      }
+    },
+    "upload": {
+      "target": "temporary-public-storage"
+    }
+  }
+}
