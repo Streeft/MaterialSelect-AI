@@ -67,6 +67,8 @@ class AuditEntityType(str, enum.Enum):
     PROPERTY_DEFINITION = "property_definition"
     PERFORMANCE_INDEX = "performance_index"
     SELECTION_STUDY = "selection_study"
+
+
 class SourceAuthority(str, enum.Enum):
     """How much weight a knowledge-base document's claims carry.
 

@@ -9,7 +9,6 @@ from fastapi import Depends, Request
 from sqlalchemy.orm import Session
 
 from app.db.base import get_db
-from app.domain.errors import AuthenticationError
 from app.domain.errors import AuthenticationError, SubscriptionRequiredError
 from app.models.project import Project
 from app.models.user import User

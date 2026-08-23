@@ -45,7 +45,7 @@ jobs:
 
       - name: Instalar dependências do backend
         working-directory: apps/api
-        run: pip install -e ".[dev]"
+        run: pip install -e ".[dev,knowledge]"
 
       - name: Preparar Python
         uses: actions/setup-python@v7
@@ -103,7 +103,7 @@ jobs:
           cache-dependency-path: apps/api/pyproject.toml
 
       - name: Instalar dependências
-        run: pip install -e ".[dev]"
+        run: pip install -e ".[dev,knowledge]"
 
       - name: Lint (ruff)
         run: ruff check app
@@ -175,7 +175,7 @@ jobs:
 
       - name: Instalar dependências do backend
         working-directory: apps/api
-        run: pip install -e ".[dev]"
+        run: pip install -e ".[dev,knowledge]"
 
       - name: Preparar Node
         uses: actions/setup-node@v7
