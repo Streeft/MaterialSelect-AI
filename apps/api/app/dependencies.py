@@ -10,10 +10,12 @@ from sqlalchemy.orm import Session
 
 from app.db.base import get_db
 from app.domain.errors import AuthenticationError
+from app.domain.errors import AuthenticationError, SubscriptionRequiredError
 from app.models.project import Project
 from app.models.user import User
 from app.repositories.project_repository import ProjectRepository
 from app.repositories.session_repository import SessionRepository
+from app.repositories.subscription_repository import SubscriptionRepository
 
 # Named ``msai_*`` to avoid colliding with any cookie a proxy or the browser
 # itself sets. The session cookie is the only one both the router and this
@@ -43,3 +45,13 @@ def get_current_project(
         # default Project atomically with the User on first login.
         raise AuthenticationError("Usuário sem projeto padrão.")
     return project
+
+
+def require_active_subscription(
+    user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> None:
+    subscription = SubscriptionRepository(db).get_by_user_id(user.id)
+    if subscription is None or subscription.status != "active":
+        raise SubscriptionRequiredError(
+            "É necessária uma assinatura ativa para usar esta funcionalidade."
+        )
