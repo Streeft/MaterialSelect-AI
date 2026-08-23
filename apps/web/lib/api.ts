@@ -3,7 +3,9 @@
 
 import type {
   AIStatus,
+  BillingStatus,
   ChartData,
+  CheckoutSession,
   CommitResult,
   Comparison,
   ComparisonRequest,
@@ -22,6 +24,7 @@ import type {
   MaterialListItem,
   MaterialUpdate,
   PerformanceIndex,
+  PortalSession,
   PropertyDefinition,
   PropertyDefinitionIn,
   PropertyDistribution,
@@ -340,6 +343,20 @@ export function explainStudy(studyId: number): Promise<Explanation> {
     method: "POST",
     body: JSON.stringify({ study_id: studyId }),
   });
+}
+
+// --- Billing (assinatura Stripe) ---------------------------------------------
+
+export function getBillingStatus(): Promise<BillingStatus> {
+  return request<BillingStatus>(`/api/billing/status`);
+}
+
+export function createCheckoutSession(): Promise<CheckoutSession> {
+  return request<CheckoutSession>(`/api/billing/checkout`, { method: "POST" });
+}
+
+export function createPortalSession(): Promise<PortalSession> {
+  return request<PortalSession>(`/api/billing/portal`, { method: "POST" });
 }
 
 // --- Exports ----------------------------------------------------------------

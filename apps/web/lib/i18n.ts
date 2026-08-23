@@ -814,8 +814,18 @@ export const ptBR = {
     loginButton: "Entrar com Google",
     loginHint: "Usamos apenas seu nome, e-mail e foto do Google para identificar sua sessão.",
     checkingSession: "Verificando sessão…",
+    checkingSubscription: "Verificando assinatura…",
     logout: "Sair",
     loggingOut: "Saindo…",
+  },
+
+  billing: {
+    title: "Assinatura",
+    inactiveSubtitle: "Assine para continuar usando o MaterialSelect AI.",
+    activeSubtitle: "Sua assinatura está ativa.",
+    subscribeButton: "Assinar",
+    manageButton: "Gerenciar assinatura",
+    redirecting: "Redirecionando…",
   },
 
   styleGuide: {
