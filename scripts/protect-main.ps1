@@ -47,7 +47,8 @@ $checks = @(
     "Backend (Python 3.11)",
     "Backend (Python 3.12)",
     "Frontend",
-    "E2E (Playwright)"
+    "E2E (Playwright)",
+    "Lighthouse"
 )
 
 $ruleset = [ordered]@{
