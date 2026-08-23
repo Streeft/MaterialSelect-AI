@@ -512,7 +512,6 @@ def _get_or_create_source(db: Session, spec: dict) -> Source:
         reference=spec.get("reference"),
         is_demo=spec.get("is_demo", False),
         license_label=spec.get("license_label"),
-        label=spec["label"], reference=spec.get("reference"), is_demo=spec.get("is_demo", False)
     )
     db.add(obj)
     db.flush()

@@ -19,7 +19,6 @@ from sqlalchemy.pool import StaticPool
 
 from app.db.base import Base, get_db, json_serializer
 from app.db.seed import seed
-from app.dependencies import get_current_user
 from app.dependencies import get_current_user, require_active_subscription
 from app.main import app
 from app.models.project import Project
