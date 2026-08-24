@@ -243,17 +243,29 @@ A lista completa, com as receitas prontas de cada provedor, está em
 - Backend, matriz Python 3.11 e 3.12: `ruff`, `black --check`, `pytest`, e
   `alembic upgrade head` + seed num banco limpo. Este último existe porque os
   testes usam `create_all` em memória e **nunca exercitam as migrações**.
+  Instala `pip install -e ".[dev,knowledge]"` — sem o extra `knowledge` os
+  testes de ingestão do Cérebro (`test_knowledge_ingest.py`) não têm `pypdf` e
+  falham.
 - Frontend: `npm ci`, `typecheck`, `lint`, `test`, `build`.
 - E2E: Playwright (`apps/web/e2e/`) contra API e banco próprios da suíte —
   Python + Node no mesmo runner, Chromium via `--with-deps`. Relatório HTML
   publicado como artefato quando falha.
+- Lighthouse: build de produção, sobe API e frontend em portas isoladas
+  (8811, as mesmas do E2E), sessão fixa via `E2E_SESSION_TOKEN` para que as
+  11 rotas auditadas sejam as telas reais e não repetidamente `/entrar`, e
+  limiares de desempenho/acessibilidade/boas práticas por rota
+  (`apps/web/lighthouserc.json`). É a métrica de "tempo até interativo" que
+  M8 deixava pendente — ver `TODO.md`.
 
-Os quatro checks — `Backend (Python 3.11)`, `Backend (Python 3.12)`,
-`Frontend` e `E2E (Playwright)` — são **obrigatórios**: a ruleset
-`CI obrigatoria em main` faz o GitHub recusar o merge, e não há ator de
-exceção (vale para o dono do repositório também). A branch ainda precisa
-estar atualizada com `main` antes do merge, para que a combinação testada
-seja a combinação mesclada.
+Os checks `Backend (Python 3.11)`, `Backend (Python 3.12)`, `Frontend` e
+`E2E (Playwright)` são **obrigatórios**: a ruleset `CI obrigatoria em main` faz
+o GitHub recusar o merge, e não há ator de exceção (vale para o dono do
+repositório também). A branch ainda precisa estar atualizada com `main` antes
+do merge, para que a combinação testada seja a combinação mesclada.
+`scripts/protect-main.ps1` já lista `Lighthouse` entre os nomes exigidos, mas
+**isso só vale depois que o script for de fato executado contra o
+repositório** — o arquivo é a intenção, não a prova de que a ruleset viva no
+GitHub já a inclui. Confirme antes de contar com o Lighthouse como portão.
 
 > **Ao acrescentar um job ao `ci.yml`, acrescente o nome em
 > `scripts/protect-main.ps1` e rode o script.** A ruleset exige uma lista fixa de

@@ -13,25 +13,30 @@ os vizinhos — outros documentos citam esses códigos.
 
 ## Alta prioridade
 
-Nenhum item aberto no momento — A2 (estudo de caso) saiu para "Débitos já
-quitados".
+Nenhum item aberto no momento — A6 (Cérebro em `main`) foi decidido, não
+executado: ver "Débitos já quitados".
 
 ---
 
 ## Média prioridade
 
-### M8 — Desempenho medido (Lighthouse)
-- **Descrição:** a metade de desempenho do antigo M3, que ficou de fora quando a
-  acessibilidade foi entregue. **A parte de peso de bundle já foi feita** na
-  varredura da Fase 9: o Plotly era mesmo o suspeito — 4,5 MB, 79% de todo o JS —
-  e passou a ser montado à la carte, derrubando o maior *chunk* para 981 KB
-  (`PROJECT_CONTEXT.md §12`). O que resta é o que nunca foi medido: **tempo até
-  interativo** em todas as rotas, com Lighthouse ou equivalente.
-- **Impacto:** médio. Um estudante em aula, num notebook modesto, é o público
-  descrito na proposta.
-- **Dificuldade:** ▁ (o que sobrou), antes ▃
-- **Dependências:** nenhuma. Se virar job de CI, vale o aviso do A4 sobre
-  `scripts/protect-main.ps1`.
+### M9 — Reconciliar as duas arquiteturas de cobrança
+- **Descrição:** o PR #18 trouxe a implementação de cobrança da
+  `fase-9-ia-e-laudo` (`Subscription`, `routers/billing.py`,
+  `require_active_subscription`) sem ativá-la como portão global — ela
+  bloquearia todo usuário sem assinatura, inclusive as fixtures de teste, e
+  decidiria por omissão a reconciliação com o plano Free/Pro já documentado em
+  `docs/superpowers/plans/2026-08-21-assinatura-e-limites.md` (plano gratuito
+  funcional, teto só em recursos específicos via `EntitlementService`). O
+  teste que afirma o portão global está com `skip` e o motivo escrito
+  (`test_billing_api.py::test_protected_route_without_active_subscription_is_forbidden`).
+  Falta decidir qual arquitetura vence — ou como as duas convivem — antes de
+  ligar qualquer portão de cobrança em produção.
+- **Impacto:** alto para o modelo de negócio, mas **não bloqueia** o uso atual
+  do sistema — sem portão ligado, toda rota continua acessível a qualquer
+  usuário autenticado como sempre foi.
+- **Dificuldade:** ▆ — é decisão de arquitetura, não só código.
+- **Dependências:** decisão explícita do autor sobre qual desenho seguir.
 
 ### M4 — Unificar o contrato de tipos
 - **Descrição:** npm workspaces + `transpilePackages` para eliminar o espelho
@@ -113,6 +118,22 @@ crie tabela sem o caso de uso. (`User` e `Project` saíram desta lista com A5;
 
 Registrados para não voltarem por engano:
 
+- ~~**A6** — Purgar o material licenciado do Cérebro em `main`~~ — **decidido
+  não purgar.** O autor optou por manter os 158 arquivos (11 livros
+  comerciais, 103 fichas Granta EduPack, material de curso e trabalhos
+  entregues) como base de conhecimento da camada de IA, com informação
+  completa sobre a exposição. Risco aceito, não descuido. Ver
+  [D-45](DECISIONS.md).
+- ~~**M8** — Desempenho medido (Lighthouse)~~ — job `Lighthouse` em `ci.yml`:
+  build de produção, API e frontend em portas isoladas (8811), sessão fixa via
+  `E2E_SESSION_TOKEN` para que as 11 rotas auditadas sejam as telas reais
+  autenticadas (sem isso, todas cairiam em `/entrar` e o Lighthouse mediria só
+  a tela de login), com limiares por assertiva
+  (`apps/web/lighthouserc.json`): performance ≥0,7, acessibilidade ≥0,9,
+  boas práticas ≥0,8, interativo ≤5 s, FCP ≤2,5 s, LCP ≤4 s, CLS ≤0,1, TBT
+  ≤500 ms. `scripts/protect-main.ps1` já lista `Lighthouse` entre os nomes
+  exigidos — falta confirmar que o script foi de fato executado contra a
+  ruleset viva no GitHub (ver `CLAUDE.md` §7).
 - ~~**M1** — Triagem de licenciamento das bases incorporadas~~ — `Source`
   ganhou `license_label`/`license_url`, a sinalização explícita
   `contains_third_party_data` e um carimbo de quem registrou a fonte e
