@@ -58,7 +58,7 @@ export function Stepper<T extends string>({
                   // A step is a button, so its outline is what says it can be
                   // pressed and owes 3:1 (WCAG 1.4.11). The blocked one is
                   // disabled and therefore exempt, but a dashed hairline on the
-                  // near-black page is invisible rather than merely quiet.
+                  // dark theme's page is invisible rather than merely quiet.
                   isCurrent
                     ? "border-brand bg-brand-50 font-semibold text-brand-700"
                     : status === "done"

@@ -19,3 +19,9 @@
 | 5 | Visualização | ✅ — [08](08-visualizacao.md) |
 | 6 | Camada de IA opcional | ✅ — [09](09-camada-ia.md) |
 | 7 | Relatórios e qualidade | 🔄 parcial — [10](10-relatorios.md) |
+| 8 | Redesign da interface | ✅ — [REDESIGN.md](REDESIGN.md) |
+| 9 | IA gratuita, painel, mapas e laudo | ✅ — [08](08-visualizacao.md), [09](09-camada-ia.md), [10](10-relatorios.md) |
+
+O que falta da Fase 7 são testes end-to-end (**A4**), autenticação (**A5**) e
+auditoria (**M2**) — todos em [`TODO.md`](TODO.md), que é onde essa conversa
+continua.

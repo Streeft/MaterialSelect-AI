@@ -1,4 +1,10 @@
-"""Deterministic selection endpoints (thin HTTP layer over SelectionService)."""
+"""Deterministic selection endpoints (thin HTTP layer over SelectionService).
+
+Every endpoint depends on ``get_current_project`` — which itself depends on
+``get_current_user`` — so login is required everywhere here, even for the
+catalogue-only endpoints (filter/index/run/indices) that don't use the
+project id. That keeps one dependency per endpoint instead of two.
+"""
 
 from __future__ import annotations
 
@@ -6,6 +12,9 @@ from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy.orm import Session
 
 from app.db.base import get_db
+from app.dependencies import get_current_project, get_current_user
+from app.models.project import Project
+from app.models.user import User
 from app.schemas.selection import (
     FilterRequest,
     FilterResultOut,
@@ -26,60 +35,99 @@ indices_router = APIRouter(prefix="/performance-indices", tags=["selection"])
 
 
 @router.post("/filter", response_model=FilterResultOut)
-def filter_materials(payload: FilterRequest, db: Session = Depends(get_db)) -> FilterResultOut:
+def filter_materials(
+    payload: FilterRequest,
+    db: Session = Depends(get_db),
+    project: Project = Depends(get_current_project),
+) -> FilterResultOut:
     """Apply constraints and return the elimination funnel plus candidates."""
-    return SelectionService(db).filter(payload)
+    return SelectionService(db, project.id).filter(payload)
 
 
 @router.post("/index", response_model=IndexResultOut)
-def evaluate_index(payload: IndexRequest, db: Session = Depends(get_db)) -> IndexResultOut:
+def evaluate_index(
+    payload: IndexRequest,
+    db: Session = Depends(get_db),
+    project: Project = Depends(get_current_project),
+) -> IndexResultOut:
     """Validate and evaluate a performance-index expression over all materials."""
-    return SelectionService(db).evaluate_index(payload)
+    return SelectionService(db, project.id).evaluate_index(payload)
 
 
 @router.post("/run", response_model=RunResultOut)
-def run_selection(payload: RunRequest, db: Session = Depends(get_db)) -> RunResultOut:
+def run_selection(
+    payload: RunRequest,
+    db: Session = Depends(get_db),
+    project: Project = Depends(get_current_project),
+) -> RunResultOut:
     """Run the full pipeline: filter → index → ranking (with sensitivity)."""
-    return SelectionService(db).run(payload)
+    return SelectionService(db, project.id).run(payload)
 
 
 # --- saved studies ---------------------------------------------------------
 
 
 @router.get("/studies", response_model=list[StudySummaryOut])
-def list_studies(db: Session = Depends(get_db)) -> list[StudySummaryOut]:
-    return SelectionService(db).list_studies()
+def list_studies(
+    db: Session = Depends(get_db), project: Project = Depends(get_current_project)
+) -> list[StudySummaryOut]:
+    return SelectionService(db, project.id).list_studies()
 
 
 @router.post("/studies", response_model=StudyOut, status_code=status.HTTP_201_CREATED)
-def create_study(payload: StudyIn, db: Session = Depends(get_db)) -> StudyOut:
-    return SelectionService(db).create_study(payload)
+def create_study(
+    payload: StudyIn,
+    db: Session = Depends(get_db),
+    project: Project = Depends(get_current_project),
+    user: User = Depends(get_current_user),
+) -> StudyOut:
+    return SelectionService(db, project.id, user).create_study(payload)
 
 
 @router.get("/studies/{study_id}", response_model=StudyOut)
-def get_study(study_id: int, db: Session = Depends(get_db)) -> StudyOut:
-    return SelectionService(db).get_study(study_id)
+def get_study(
+    study_id: int,
+    db: Session = Depends(get_db),
+    project: Project = Depends(get_current_project),
+) -> StudyOut:
+    return SelectionService(db, project.id).get_study(study_id)
 
 
 @router.delete("/studies/{study_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_study(study_id: int, db: Session = Depends(get_db)) -> Response:
-    SelectionService(db).delete_study(study_id)
+def delete_study(
+    study_id: int,
+    db: Session = Depends(get_db),
+    project: Project = Depends(get_current_project),
+    user: User = Depends(get_current_user),
+) -> Response:
+    SelectionService(db, project.id, user).delete_study(study_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.post("/studies/{study_id}/run", response_model=RunResultOut)
-def run_study(study_id: int, db: Session = Depends(get_db)) -> RunResultOut:
-    return SelectionService(db).run_study(study_id)
+def run_study(
+    study_id: int,
+    db: Session = Depends(get_db),
+    project: Project = Depends(get_current_project),
+) -> RunResultOut:
+    return SelectionService(db, project.id).run_study(study_id)
 
 
 # --- performance-index catalogue -------------------------------------------
 
 
 @indices_router.get("", response_model=list[PerformanceIndexOut])
-def list_indices(db: Session = Depends(get_db)) -> list[PerformanceIndexOut]:
-    return SelectionService(db).list_indices()
+def list_indices(
+    db: Session = Depends(get_db), project: Project = Depends(get_current_project)
+) -> list[PerformanceIndexOut]:
+    return SelectionService(db, project.id).list_indices()
 
 
 @indices_router.post("", response_model=PerformanceIndexOut, status_code=status.HTTP_201_CREATED)
-def create_index(payload: PerformanceIndexIn, db: Session = Depends(get_db)) -> PerformanceIndexOut:
-    return SelectionService(db).create_index(payload)
+def create_index(
+    payload: PerformanceIndexIn,
+    db: Session = Depends(get_db),
+    project: Project = Depends(get_current_project),
+    user: User = Depends(get_current_user),
+) -> PerformanceIndexOut:
+    return SelectionService(db, project.id, user).create_index(payload)

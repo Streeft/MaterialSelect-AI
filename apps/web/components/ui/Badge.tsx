@@ -73,7 +73,7 @@ export function ClassBadge({
     >
       {/* `ink/20`, not a fixed black: the hairline exists so a pale seat (the
           Okabe–Ito yellow) still reads as a disc against the badge, and on the
-          near-black surface a black hairline is the one colour that cannot do
+          dark theme's graphite a black hairline is the one colour that cannot do
           that. Following the ink token flips it with the theme. */}
       <span
         aria-hidden

@@ -18,6 +18,7 @@ from __future__ import annotations
 import re
 import unicodedata
 
+from app.ai.caveats import standard_caveats
 from app.ai.provider import AIProvider, ProblemContext, PropertyFacts, ResultContext
 from app.calculations.expressions import ExpressionError, safe_variable
 from app.calculations.powerlaw import as_monomial
@@ -522,25 +523,7 @@ class MockAIProvider(AIProvider):
             )
             del leader_rank  # position is already in the listing
 
-        caveats = [
-            "Esta redação descreve resultados já calculados; ela não recalcula, não "
-            "ajusta e não acrescenta nenhum valor.",
-            "A ferramenta faz triagem preliminar. Não substitui validação experimental, "
-            "análise estrutural detalhada nem julgamento de engenharia.",
-        ]
-        if context.excluded_for_missing:
-            names = ", ".join(name for name, _ in context.excluded_for_missing)
-            caveats.append(
-                f"Materiais sem valor para algum critério ficaram fora do ranking e não "
-                f"foram avaliados: {names}. A ausência não é um valor ruim, é ausência."
-            )
-        if context.sensitivity_changed:
-            caveats.append(
-                "A análise de sensibilidade mostra que o primeiro colocado muda quando os "
-                "pesos variam: a recomendação é sensível à ponderação escolhida."
-            )
-        else:
-            caveats.append("O primeiro colocado se mantém sob as variações de peso testadas.")
+        caveats = standard_caveats(context)
 
         summary = (
             f"{context.ranked[0][0]} lidera entre {context.final_count} candidatos."

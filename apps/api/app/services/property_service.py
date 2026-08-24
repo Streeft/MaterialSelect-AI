@@ -7,18 +7,24 @@ from sqlalchemy.orm import Session
 from app.calculations.units import UnitError, validate_dimension
 from app.domain.errors import ConflictError, NotFoundError, ValidationError
 from app.domain.slug import slugify
+from app.models.enums import AuditAction, AuditEntityType
 from app.models.property_definition import PropertyDefinition
+from app.models.user import User
+from app.repositories.audit_repository import AuditRepository
 from app.repositories.property_definition_repository import (
     PropertyDefinitionRepository,
 )
 from app.schemas.property import PropertyDefinitionIn, PropertyDefinitionOut
+from app.services.audit_service import diff_fields, record_change
 
 
 class PropertyService:
     """Coordinates CRUD of property definitions, validating units/dimensions."""
 
-    def __init__(self, db: Session) -> None:
+    def __init__(self, db: Session, user: User | None = None) -> None:
         self.repo = PropertyDefinitionRepository(db)
+        self.audit_repo = AuditRepository(db)
+        self.user = user
 
     def list_properties(self) -> list[PropertyDefinitionOut]:
         return [self._to_out(prop, count) for prop, count in self.repo.list_with_counts()]
@@ -43,6 +49,15 @@ class PropertyService:
             allows_log_scale=payload.allows_log_scale,
         )
         self.repo.add(obj)
+        self.repo.flush()
+        record_change(
+            self.audit_repo,
+            self.user,
+            entity_type=AuditEntityType.PROPERTY_DEFINITION,
+            entity_id=obj.id,
+            entity_label=obj.name,
+            action=AuditAction.CRIADO,
+        )
         self.repo.commit()
         return self._to_out(obj, 0)
 
@@ -52,6 +67,7 @@ class PropertyService:
         obj = self.repo.get(property_id)
         if obj is None:
             raise NotFoundError(f"Propriedade não encontrada: {property_id}")
+        before = self._snapshot(obj)
 
         slug = self._resolve_slug(payload)
         if self.repo.slug_exists(slug, exclude_id=property_id):
@@ -61,7 +77,7 @@ class PropertyService:
         # Changing the canonical unit or dimension would desynchronise every
         # stored normalized_value from the definition (a chart labelled g/cm³
         # plotting values still in kg/m³). Block while values exist; a future
-        # migration tool may re-normalise instead (see docs/backlog.md).
+        # migration tool may re-normalise instead (see docs/TODO.md).
         unit_changed = (
             payload.canonical_unit != obj.canonical_unit
             or payload.physical_dimension != obj.physical_dimension
@@ -83,6 +99,18 @@ class PropertyService:
         obj.is_interval = payload.is_interval
         obj.better_direction = payload.better_direction
         obj.allows_log_scale = payload.allows_log_scale
+
+        changes = diff_fields(before, self._snapshot(obj))
+        if changes:
+            record_change(
+                self.audit_repo,
+                self.user,
+                entity_type=AuditEntityType.PROPERTY_DEFINITION,
+                entity_id=obj.id,
+                entity_label=obj.name,
+                action=AuditAction.ATUALIZADO,
+                changes=changes,
+            )
         self.repo.commit()
         return self._to_out(obj, self.repo.value_count(property_id))
 
@@ -92,8 +120,32 @@ class PropertyService:
             raise NotFoundError(f"Propriedade não encontrada: {property_id}")
         if self.repo.value_count(property_id) > 0:
             raise ConflictError("Não é possível excluir uma propriedade com valores cadastrados.")
+        record_change(
+            self.audit_repo,
+            self.user,
+            entity_type=AuditEntityType.PROPERTY_DEFINITION,
+            entity_id=obj.id,
+            entity_label=obj.name,
+            action=AuditAction.EXCLUIDO,
+        )
         self.repo.delete(obj)
         self.repo.commit()
+
+    @staticmethod
+    def _snapshot(obj: PropertyDefinition) -> dict:
+        return {
+            "name": obj.name,
+            "slug": obj.slug,
+            "symbol": obj.symbol,
+            "description": obj.description,
+            "category": obj.category,
+            "physical_dimension": obj.physical_dimension,
+            "canonical_unit": obj.canonical_unit,
+            "accepted_units": list(obj.accepted_units or []),
+            "is_interval": obj.is_interval,
+            "better_direction": obj.better_direction,
+            "allows_log_scale": obj.allows_log_scale,
+        }
 
     # --- helpers ----------------------------------------------------------
 

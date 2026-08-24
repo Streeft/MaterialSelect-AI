@@ -21,7 +21,6 @@ import {
   Disclosure,
   EmptyState,
   ErrorState,
-  Field,
   Input,
   LoadingState,
   MissingValue,
@@ -31,6 +30,7 @@ import {
   RadioOption,
   Section,
   Select,
+  SelectOption,
   Skeleton,
   Stepper,
   TBody,
@@ -43,6 +43,7 @@ import {
   Th,
   RowHeader,
   ThemeToggle,
+  ToggleChip,
   Tr,
   type Provenance,
 } from "@/components/ui";
@@ -65,6 +66,20 @@ const SURFACES = [
   ["ink", "bg-ink"],
   ["ink-muted", "bg-ink-muted"],
   ["ink-subtle", "bg-ink-subtle"],
+] as const;
+
+/**
+ * The shape scale (D-38), largest last.
+ *
+ * `seat` is the odd one out and is here so it stays honest: it is the radius of
+ * a segment *inside* a `control`, and the only reason it is not simply `control`
+ * is that concentric shapes at the same radius read as a printing error.
+ */
+const RADII = [
+  ["rounded-seat", "rounded-seat", "8 px"],
+  ["rounded-control", "rounded-control", "12 px"],
+  ["rounded-card", "rounded-card", "20 px"],
+  ["rounded-full", "rounded-full", "pílula"],
 ] as const;
 
 const BRAND = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950] as const;
@@ -182,6 +197,34 @@ export default function StyleGuidePage() {
         </div>
       </Section>
 
+      <Section
+        title={ptBR.styleGuide.shape}
+        description="Dois tokens de raio cobrem quase tudo; o terceiro existe para o que fica dentro de um controle. O movimento é CSS puro — passe o ponteiro e pressione. Quem pede menos movimento no sistema operacional recebe a mesma mudança de estado, sem a animação."
+        headingLevel={2}
+      >
+        <div className="flex flex-wrap items-end gap-4">
+          {RADII.map(([name, cls, size]) => (
+            <div key={name} className="flex flex-col items-center gap-1">
+              <span className={`h-14 w-14 border border-edge-control bg-surface-sunken ${cls}`} />
+              <code className="font-mono text-2xs text-ink-subtle">{name}</code>
+              <span className="text-2xs text-ink-subtle">{size}</span>
+            </div>
+          ))}
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="pressable grid h-14 w-28 place-items-center rounded-card border border-edge bg-surface-raised text-xs text-ink-muted shadow-card hover:shadow-lift">
+            .pressable
+          </span>
+          <Button variant="primary">Botão primário</Button>
+          <ToggleChip selected onClick={() => {}}>
+            Filtro ativo
+          </ToggleChip>
+          <ToggleChip selected={false} onClick={() => {}}>
+            Filtro inativo
+          </ToggleChip>
+        </div>
+      </Section>
+
       <Section title={ptBR.styleGuide.semantics} headingLevel={2}>
         <div className="grid gap-3 sm:grid-cols-2">
           {SEMANTIC.map(([name, solid, soft]) => (
@@ -282,14 +325,18 @@ export default function StyleGuidePage() {
           </Button>
         </div>
         <ButtonGroup label="Visualização">
-          <ButtonGroupItem selected={view === "table"} onClick={() => setView("table")}>
-            <IconTable className="h-3.5 w-3.5" />
-            Tabela
-          </ButtonGroupItem>
-          <ButtonGroupItem selected={view === "cards"} onClick={() => setView("cards")}>
-            <IconGrid className="h-3.5 w-3.5" />
-            Cartões
-          </ButtonGroupItem>
+          <ButtonGroupItem
+            selected={view === "table"}
+            label="Tabela"
+            icon={<IconTable className="h-3.5 w-3.5" />}
+            onClick={() => setView("table")}
+          />
+          <ButtonGroupItem
+            selected={view === "cards"}
+            label="Cartões"
+            icon={<IconGrid className="h-3.5 w-3.5" />}
+            onClick={() => setView("cards")}
+          />
         </ButtonGroup>
         <div className="flex flex-wrap gap-2">
           <Badge>neutro</Badge>
@@ -312,26 +359,25 @@ export default function StyleGuidePage() {
         <Card>
           <CardHeader title="Novo critério" description="Todos os campos são rotulados" />
           <CardBody className="grid gap-4 sm:grid-cols-2">
-            <Field label="Nome do estudo" hint="Aparece na lista de estudos salvos" required>
-              <Input placeholder="Viga leve para bicicleta" />
-            </Field>
-            <Field label="Peso" hint="Renormalizado para somar 1">
-              <NumberInput defaultValue={0.5} />
-            </Field>
-            <Field label="Propriedade">
-              <Select defaultValue="densidade">
-                <option value="densidade">Densidade</option>
-                <option value="modulo_young">Módulo de Young</option>
-              </Select>
-            </Field>
-            <Field label="Valor" error="Informe um número." required>
-              <Input defaultValue="abc" />
-            </Field>
-            <Field label="Observações" className="sm:col-span-2">
-              <Textarea placeholder="Contexto do estudo…" />
-            </Field>
+            <Input
+              label="Nome do estudo"
+              hint="Aparece na lista de estudos salvos"
+              required
+              placeholder="Viga leve para bicicleta"
+            />
+            <NumberInput label="Peso" hint="Renormalizado para somar 1" value={0.5} />
+            <Select label="Propriedade" value="densidade">
+              <SelectOption value="densidade">Densidade</SelectOption>
+              <SelectOption value="modulo_young">Módulo de Young</SelectOption>
+            </Select>
+            <Input label="Valor" error="Informe um número." required value="abc" />
+            <Textarea
+              label="Observações"
+              className="sm:col-span-2"
+              placeholder="Contexto do estudo…"
+            />
             <RadioGroup legend="Objetivo" className="sm:col-span-2">
-              <RadioOption name="demo-goal" label="Maximizar" defaultChecked />
+              <RadioOption name="demo-goal" label="Maximizar" checked />
               <RadioOption name="demo-goal" label="Minimizar" />
             </RadioGroup>
             <Checkbox

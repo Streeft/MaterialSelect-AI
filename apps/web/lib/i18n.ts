@@ -12,6 +12,7 @@ export const ptBR = {
     selection: "Seleção",
     maps: "Mapas",
     compare: "Comparar",
+    dashboard: "Painel",
     imports: "Importar",
     classes: "Classes",
     properties: "Propriedades",
@@ -347,6 +348,10 @@ export const ptBR = {
       "A IA lê o enunciado e propõe função, restrições e índices já cadastrados. Ela não calcula nada: todo número vem do backend e toda sugestão passa pela sua revisão.",
     disabled: "Camada de IA desativada. O sistema funciona integralmente sem ela.",
     simulatedBadge: "Provedor simulado",
+    // Um provedor externo é a exceção, não o padrão: quem está vendo a tela
+    // precisa saber que aquela leitura veio de um modelo — e que ela pode sair
+    // diferente da próxima vez. O detalhe fica na ressalva, ao pé da proposta.
+    modelBadge: (provider: string) => `Modelo externo: ${provider}`,
     // §3.4 da proposta: a assistência é opcional e passa pela revisão de quem
     // usa. Isso precisa estar dito no painel, não só na documentação.
     optionalBadge: "Opcional",
@@ -392,6 +397,11 @@ export const ptBR = {
     catalogue: "Exportar catálogo",
     study: "Exportar relatório",
     hint: "O relatório traz restrições, funil, índice, ranking, excluídos por dado ausente, sensibilidade e a proveniência de cada número — com o aviso de limitação exigido.",
+    laudoTitle: "Laudo de engenharia",
+    laudoButton: "Gerar laudo",
+    laudoHint: "Documento único, distinto do relatório: gráfico de ranqueamento, as mesmas tabelas de auditoria e, se a camada de IA estiver ligada, uma interpretação técnica.",
+    laudoResponsibleLabel: "Responsável técnico (opcional)",
+    laudoResponsiblePlaceholder: "Nome de quem assina a leitura",
   },
   catalog: {
     title: "Catálogo de materiais",
@@ -488,6 +498,14 @@ export const ptBR = {
       "Mapa de Ashby: dois eixos, envelopes por classe e linhas de índice com inclinação calculada no backend.",
     axisX: "Eixo X",
     axisY: "Eixo Y",
+    axisTypeProperty: "Propriedade",
+    axisTypeIndex: "Índice",
+    axisIndexChoose: "Selecione um índice",
+    axisIndexHint:
+      "Um eixo em índice mostra um valor calculado — do catálogo ou uma expressão sua — em vez de uma propriedade cadastrada.",
+    sameExpressionAxis: "Escolha duas expressões diferentes para os eixos.",
+    indexAxisConflict:
+      "A linha de índice sobreposta exige dois eixos de propriedade; ela some enquanto um eixo for um índice.",
     scale: "Escala",
     linear: "Linear",
     log: "Logarítmica",
@@ -542,6 +560,60 @@ export const ptBR = {
     notesTitle: "Observações sobre este mapa",
     levelsHint: "Cada nível traçado vira uma reta paralela; o lado favorável é contado abaixo.",
     figure: "Mapa de Ashby",
+  },
+  dashboard: {
+    title: "Painel do catálogo",
+    subtitle:
+      "Quanto do catálogo está preenchido, com que qualidade, e como cada propriedade se distribui entre as classes.",
+    loading: "Carregando o painel…",
+    error: "Não foi possível carregar o painel.",
+    empty: "Nenhum material cadastrado ainda.",
+    materials: "Materiais ativos",
+    demoNote: (n: number) => `${n} de demonstração`,
+    classes: "Classes",
+    properties: "Propriedades",
+    overallCoverage: "Cobertura geral",
+    coverageOf: (filled: number, slots: number) => `${filled} de ${slots} pares preenchidos`,
+    coverageEmpty: "Sem pares material×propriedade para cobrir.",
+    // A composição por qualidade.
+    qualityMixTitle: "Composição por qualidade do dado",
+    qualityMixHint: "Todo par material×propriedade do catálogo, num só lugar.",
+    qualityMixFigure: "Composição por qualidade do dado",
+    columnBucket: "Estado",
+    columnCount: "Quantidade",
+    columnShare: "Participação",
+    // A cobertura por classe.
+    classCoverageTitle: "Cobertura por classe",
+    classCoverageHint: "Percentual de pares preenchidos, por classe de material.",
+    classCoverageFigure: "Cobertura por classe",
+    columnClass: "Classe",
+    columnMaterials: "Materiais",
+    columnCoverage: "Cobertura",
+    filled: "Preenchido",
+    declaredMissing: "Declarado ausente",
+    notRecorded: "Não registrado",
+    // As lacunas.
+    gapsTitle: "Propriedades menos preenchidas",
+    gapsHint: "As propriedades com menor cobertura no catálogo — por onde começar a preencher.",
+    gapsEmpty: "Nenhuma propriedade cadastrada ainda.",
+    // A distribuição por propriedade.
+    distributionTitle: "Distribuição por propriedade",
+    distributionSubtitle:
+      "Mínimo, quartis, mediana e máximo de cada classe, calculados no backend (ADR 0004).",
+    property: "Propriedade",
+    scale: "Escala",
+    linear: "Linear",
+    log: "Logarítmica",
+    logDisabled: "Esta propriedade admite valores não positivos; a escala log não se aplica.",
+    distributionEmpty: "Nenhuma classe tem valores registrados para esta propriedade.",
+    distributionFigure: (name: string) => `Distribuição — ${name}`,
+    classesWithoutData: "Classes sem dados desta propriedade",
+    columnCountBox: "Materiais",
+    columnMin: "Mínimo",
+    columnQ1: "Q1",
+    columnMedian: "Mediana",
+    columnQ3: "Q3",
+    columnMax: "Máximo",
   },
   compare: {
     title: "Comparador de materiais",
@@ -601,12 +673,17 @@ export const ptBR = {
     // has to show it, and showing it as an empty cell is what the project's
     // third principle forbids.
     AUSENTE: "Ausente",
+    // A quinta coisa que o painel precisa nomear e o resto da interface não:
+    // nenhuma linha existe para este par material×propriedade. Diferente de
+    // AUSENTE, que é uma declaração — alguém procurou e não achou.
+    NAO_REGISTRADO: "Não registrado",
   },
   qualityHint: {
     MEDIDO: "Medido diretamente, com a condição de ensaio registrada.",
     IMPORTADO: "Veio de um conjunto de dados externo, com a fonte registrada.",
     ESTIMADO: "Inferido, não medido. Confira antes de decidir com base nele.",
     AUSENTE: "Nenhum valor cadastrado. O sistema não preenche a lacuna.",
+    NAO_REGISTRADO: "Nenhum registro para este par — ninguém preencheu ainda.",
   },
 
   ui: {
@@ -619,6 +696,8 @@ export const ptBR = {
     openMenu: "Abrir menu",
     closeMenu: "Fechar menu",
     mainNav: "Navegação principal",
+    collapseSidebar: "Recolher a barra lateral",
+    expandSidebar: "Expandir a barra lateral",
     steps: "Etapas",
     views: "Visualizações",
     stepDone: "concluída",
@@ -729,11 +808,32 @@ export const ptBR = {
     importHint: "Traga uma planilha CSV ou XLSX com validação linha a linha.",
   },
 
+  auth: {
+    loginTitle: "Entrar",
+    loginSubtitle: "Entre com sua conta Google para usar o MaterialSelect AI.",
+    loginButton: "Entrar com Google",
+    loginHint: "Usamos apenas seu nome, e-mail e foto do Google para identificar sua sessão.",
+    checkingSession: "Verificando sessão…",
+    checkingSubscription: "Verificando assinatura…",
+    logout: "Sair",
+    loggingOut: "Saindo…",
+  },
+
+  billing: {
+    title: "Assinatura",
+    inactiveSubtitle: "Assine para continuar usando o MaterialSelect AI.",
+    activeSubtitle: "Sua assinatura está ativa.",
+    subscribeButton: "Assinar",
+    manageButton: "Gerenciar assinatura",
+    redirecting: "Redirecionando…",
+  },
+
   styleGuide: {
     title: "Sistema de design",
     subtitle:
       "Vitrine viva dos tokens e das primitivas. Serve de referência para quem continuar o trabalho e de fonte das figuras da monografia.",
     tokens: "Tokens de cor",
+    shape: "Forma e movimento",
     surfaces: "Superfícies, bordas e tinta",
     semantics: "Estados semânticos",
     qualityScale: "Qualidade do dado",

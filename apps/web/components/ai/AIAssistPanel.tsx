@@ -13,7 +13,6 @@ import {
   CardBody,
   CardHeader,
   Checkbox,
-  Field,
   RadioOption,
   Textarea,
 } from "@/components/ui";
@@ -124,19 +123,23 @@ export function AIAssistPanel({ onApply }: AIAssistPanelProps) {
           <div className="flex flex-wrap gap-1.5">
             <Badge tone="info">{t.optionalBadge}</Badge>
             <Badge tone="info">{t.reviewBadge}</Badge>
-            {status.data?.simulated && <Badge tone="warning">{t.simulatedBadge}</Badge>}
+            {status.data?.enabled &&
+              (status.data.simulated ? (
+                <Badge tone="warning">{t.simulatedBadge}</Badge>
+              ) : (
+                <Badge tone="warning">{t.modelBadge(status.data.provider)}</Badge>
+              ))}
           </div>
         }
       />
       <CardBody className="space-y-3">
-        <Field label={t.statementLabel}>
-          <Textarea
-            rows={3}
-            value={statement}
-            onChange={(e) => setStatement(e.target.value)}
-            placeholder={t.statementPlaceholder}
-          />
-        </Field>
+        <Textarea
+          label={t.statementLabel}
+          rows={3}
+          value={statement}
+          onChange={(e) => setStatement(e.target.value)}
+          placeholder={t.statementPlaceholder}
+        />
 
         <Button
           variant="primary"

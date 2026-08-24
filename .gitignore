@@ -25,12 +25,18 @@ apps/api/var/
 # Node / Next.js
 node_modules/
 .next/
+.next-e2e/
 out/
 dist/
 *.tsbuildinfo
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Playwright (apps/web/e2e)
+playwright-report/
+test-results/
+blob-report/
 
 # Editor / OS
 .vscode/
@@ -40,3 +46,40 @@ Thumbs.db
 
 # Configuração pessoal do Claude Code (não versionada)
 .claude/settings.local.json
+
+# Scratch de execução do subagent-driven-development (superpowers) — ledgers,
+# briefs e pacotes de revisão de cada plano, nunca artefato do produto.
+.superpowers/
+
+
+# --- Cérebro: material de terceiros, fora do controle de versão -------------
+# Este repositório é público. Os arquivos abaixo são livros comerciais íntegros
+# e um extrato do banco de dados licenciado do Granta EduPack (ANSYS): a
+# intenção é não publicá-los — eles continuam no disco e alimentam a indexação
+# local do Cérebro normalmente, indexar não é redistribuir.
+#
+# A proveniência de cada um fica registrada no catálogo do Cérebro, versionado,
+# de modo que o repositório documente a base inteira mesmo sem hospedá-la.
+#
+# Para publicar um deles é preciso uma decisão humana explícita, arquivo a
+# arquivo: `git add -f "Cérebro/<caminho>"`. O LFS já está configurado em
+# .gitattributes, então o arquivo entra como ponteiro sem passo adicional.
+
+# Bibliografia comercial completa (um nível só — não afeta Extratos-de-Capitulos/,
+# que continua versionado de propósito).
+Cérebro/01-Bibliografia/*.pdf
+
+# Banco de dados licenciado ANSYS/Granta EduPack.
+Cérebro/03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/
+
+# As mesmas fichas Granta, cópias avulsas usadas no Trabalho 2.
+Cérebro/02-Material-de-Curso-ENG02016/Trabalhos-Entregues/Trabalho 2/Arquivos para gerar slide/ABS_capacete.pdf
+Cérebro/02-Material-de-Curso-ENG02016/Trabalhos-Entregues/Trabalho 2/Arquivos para gerar slide/alumínio.pdf
+Cérebro/02-Material-de-Curso-ENG02016/Trabalhos-Entregues/Trabalho 2/Arquivos para gerar slide/cobre_1.pdf
+Cérebro/02-Material-de-Curso-ENG02016/Trabalhos-Entregues/Trabalho 2/Arquivos para gerar slide/cobre_2.pdf
+Cérebro/02-Material-de-Curso-ENG02016/Trabalhos-Entregues/Trabalho 2/Arquivos para gerar slide/injection.pdf
+Cérebro/02-Material-de-Curso-ENG02016/Trabalhos-Entregues/Trabalho 2/Arquivos para gerar slide/thermoforming.pdf
+
+# Pasta de triagem de duplicatas — provisória, não versionar enquanto não for
+# revisada.
+Cérebro/_Duplicados-Para-Revisao/
