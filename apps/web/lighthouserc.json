@@ -3,18 +3,20 @@
     "collect": {
       "numberOfRuns": 3,
       "startServerCommand": "npm run start",
+      "startServerReadyPattern": "Ready in",
+      "startServerReadyTimeout": 60000,
       "url": [
-        "http://localhost:3000",
-        "http://localhost:3000/catalogo",
-        "http://localhost:3000/importar",
-        "http://localhost:3000/selecao",
-        "http://localhost:3000/mapas",
-        "http://localhost:3000/comparar",
-        "http://localhost:3000/painel",
-        "http://localhost:3000/estilo",
-        "http://localhost:3000/entrar",
-        "http://localhost:3000/admin/classes",
-        "http://localhost:3000/admin/propriedades"
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:3000/catalogo",
+        "http://127.0.0.1:3000/importar",
+        "http://127.0.0.1:3000/selecao",
+        "http://127.0.0.1:3000/mapas",
+        "http://127.0.0.1:3000/comparar",
+        "http://127.0.0.1:3000/painel",
+        "http://127.0.0.1:3000/estilo",
+        "http://127.0.0.1:3000/entrar",
+        "http://127.0.0.1:3000/admin/classes",
+        "http://127.0.0.1:3000/admin/propriedades"
       ],
       "settings": {
         "headful": false,
@@ -23,7 +25,7 @@
           {
             "name": "msai_session",
             "value": "e2e-fixed-session-token-nao-use-em-producao",
-            "domain": "localhost",
+            "domain": "127.0.0.1",
             "path": "/",
             "httpOnly": true,
             "secure": false,
@@ -46,7 +48,8 @@
       }
     },
     "upload": {
-      "target": "temporary-public-storage"
+      "target": "filesystem",
+      "outputDir": "./.lighthouseci/report"
     }
   }
 }
