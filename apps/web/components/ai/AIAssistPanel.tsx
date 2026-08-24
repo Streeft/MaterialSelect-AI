@@ -13,7 +13,6 @@ import {
   CardBody,
   CardHeader,
   Checkbox,
-  Field,
   RadioOption,
   Textarea,
 } from "@/components/ui";
@@ -134,14 +133,13 @@ export function AIAssistPanel({ onApply }: AIAssistPanelProps) {
         }
       />
       <CardBody className="space-y-3">
-        <Field label={t.statementLabel}>
-          <Textarea
-            rows={3}
-            value={statement}
-            onChange={(e) => setStatement(e.target.value)}
-            placeholder={t.statementPlaceholder}
-          />
-        </Field>
+        <Textarea
+          label={t.statementLabel}
+          rows={3}
+          value={statement}
+          onChange={(e) => setStatement(e.target.value)}
+          placeholder={t.statementPlaceholder}
+        />
 
         <Button
           variant="primary"

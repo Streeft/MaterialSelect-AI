@@ -11,7 +11,8 @@ and a missing comparison cell stays ``None`` all the way to the axis.
 from __future__ import annotations
 
 import math
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
+from dataclasses import dataclass
 from typing import TypeVar
 
 from app.calculations.expressions import (
@@ -26,7 +27,7 @@ from app.calculations.units import UnitError, to_canonical, to_canonical_delta
 from app.domain.errors import NotFoundError, ValidationError
 from app.domain.geometry import Point, convex_hull
 from app.domain.ranking import Direction, Normalization, normalize_column
-from app.models.enums import BetterDirection
+from app.models.enums import BetterDirection, DataQuality
 from app.models.material import Material
 from app.models.material_property_value import MaterialPropertyValue
 from app.models.property_definition import PropertyDefinition
@@ -47,6 +48,7 @@ from app.schemas.charts import (
     PropertyMapOut,
     PropertyMapRequest,
 )
+from app.schemas.selection import IndexIn
 
 # Half a decade. Used only to give an index line somewhere to be drawn when
 # every plotted material shares the same abscissa.
@@ -58,6 +60,25 @@ _LEVEL_TOLERANCE = 1e-9
 T = TypeVar("T")
 
 
+@dataclass(frozen=True)
+class _AxisSample:
+    """One material's placement on one axis — a property value or an index value.
+
+    ``bounds`` already carries its axis's ``x_``/``y_`` prefix (built by
+    :meth:`ChartService._bounds`), so it drops straight into ``MapPointOut`` as
+    keyword arguments; empty for an index axis, which has no interval or
+    uncertainty of its own to report.
+    """
+
+    value: float | None
+    quality: DataQuality | None
+    bounds: dict[str, float | bool | None]
+    missing: bool
+
+
+AxisGetter = Callable[[Material, dict[str, MaterialPropertyValue]], _AxisSample]
+
+
 class ChartService:
     """Builds property maps and comparison matrices."""
 
@@ -67,15 +88,34 @@ class ChartService:
     # --- property map -----------------------------------------------------
 
     def property_map(self, request: PropertyMapRequest) -> PropertyMapOut:
-        x_def = self._require_property(request.x)
-        y_def = self._require_property(request.y)
-        if x_def.slug == y_def.slug:
-            raise ValidationError("Escolha duas propriedades diferentes para os eixos.")
+        if (request.x is None) == (request.x_index is None):
+            raise ValidationError("Informe x ou x_index no eixo X — nunca os dois, nunca nenhum.")
+        if (request.y is None) == (request.y_index is None):
+            raise ValidationError("Informe y ou y_index no eixo Y — nunca os dois, nunca nenhum.")
+        if request.index is not None and (
+            request.x_index is not None or request.y_index is not None
+        ):
+            raise ValidationError(
+                "Não é possível sobrepor um índice quando um eixo já é um índice."
+            )
         self._require_classes(request.class_slugs)
 
         materials = self.repo.list_materials(
             material_ids=request.material_ids, class_slugs=request.class_slugs
         )
+        variables = self._material_variables(materials)
+
+        x_meta, x_label, x_get = self._resolve_axis("x", request.x, request.x_index, variables)
+        y_meta, y_label, y_get = self._resolve_axis("y", request.y, request.y_index, variables)
+
+        if (
+            not x_meta.is_index
+            and not y_meta.is_index
+            and x_meta.property_slug == y_meta.property_slug
+        ):
+            raise ValidationError("Escolha duas propriedades diferentes para os eixos.")
+        if x_meta.is_index and y_meta.is_index and x_meta.expression == y_meta.expression:
+            raise ValidationError("Escolha dois eixos diferentes para o mapa.")
 
         notes: list[str] = []
         points: list[MapPointOut] = []
@@ -83,13 +123,13 @@ class ChartService:
 
         for material in materials:
             by_slug = {v.property_definition.slug: v for v in material.property_values}
-            x_value = self._plottable(by_slug.get(x_def.slug))
-            y_value = self._plottable(by_slug.get(y_def.slug))
+            x_sample = x_get(material, by_slug)
+            y_sample = y_get(material, by_slug)
 
             absent = [
-                definition.name
-                for definition, value in ((x_def, x_value), (y_def, y_value))
-                if value is None
+                label
+                for label, sample in ((x_label, x_sample), (y_label, y_sample))
+                if sample.missing
             ]
             if absent:
                 excluded.append(
@@ -101,8 +141,8 @@ class ChartService:
                 )
                 continue
 
-            x = x_value.normalized_value  # type: ignore[union-attr]
-            y = y_value.normalized_value  # type: ignore[union-attr]
+            x = x_sample.value  # type: ignore[assignment]
+            y = y_sample.value  # type: ignore[assignment]
             if request.scale == "log" and (x <= 0 or y <= 0):
                 excluded.append(
                     ExcludedPointOut(
@@ -122,28 +162,28 @@ class ChartService:
                     is_demo=material.is_demo,
                     x=x,
                     y=y,
-                    **self._bounds(x_value, x_def, "x"),  # type: ignore[arg-type]
-                    **self._bounds(y_value, y_def, "y"),  # type: ignore[arg-type]
-                    x_quality=x_value.data_quality,  # type: ignore[union-attr]
-                    y_quality=y_value.data_quality,  # type: ignore[union-attr]
+                    **x_sample.bounds,  # type: ignore[arg-type]
+                    **y_sample.bounds,  # type: ignore[arg-type]
+                    x_quality=x_sample.quality,
+                    y_quality=y_sample.quality,
                 )
             )
 
         if request.scale == "log":
-            for definition in (x_def, y_def):
-                if not definition.allows_log_scale:
+            for meta in (x_meta, y_meta):
+                if not meta.is_index and not meta.allows_log_scale:
                     notes.append(
-                        f"A propriedade '{definition.name}' está marcada como imprópria para "
+                        f"A propriedade '{meta.property_name}' está marcada como imprópria para "
                         "escala logarítmica no catálogo."
                     )
 
         envelopes = self._envelopes(points, request.scale) if request.include_envelopes else []
-        overlay = self._index_overlay(request, points, materials, notes)
+        overlay = self._index_overlay(request, points, variables, notes)
 
         return PropertyMapOut(
             scale=request.scale,
-            x_axis=self._axis(x_def, [p.x for p in points]),
-            y_axis=self._axis(y_def, [p.y for p in points]),
+            x_axis=x_meta.model_copy(update=self._range(points, "x")),
+            y_axis=y_meta.model_copy(update=self._range(points, "y")),
             points=points,
             envelopes=envelopes,
             excluded=excluded,
@@ -152,6 +192,93 @@ class ChartService:
             plotted_count=len(points),
             notes=notes,
         )
+
+    def _resolve_axis(
+        self,
+        axis_key: str,
+        slug: str | None,
+        index_in: IndexIn | None,
+        variables: dict[int, dict[str, float]],
+    ) -> tuple[MapAxisOut, str, AxisGetter]:
+        """Build one axis's metadata, its display label, and its per-material sample.
+
+        ``variables`` is the whole request's material→canonical-values snapshot
+        (:meth:`_material_variables`), computed once and shared with the overlay
+        index so an index axis and an overlaid index never disagree about a
+        material's own values.
+        """
+        if index_in is not None:
+            used, dimension = self._validate_expression(index_in.expression)
+            label = index_in.name or index_in.expression
+            meta = MapAxisOut(
+                is_index=True,
+                property_name=label,
+                expression=index_in.expression,
+                unit=dimension,
+                better_direction=(
+                    BetterDirection.HIGHER if index_in.goal == "maximize" else BetterDirection.LOWER
+                ),
+                allows_log_scale=True,
+            )
+
+            def get_index(material: Material, by_slug: dict) -> _AxisSample:
+                evaluation = evaluate_index(
+                    index_in.expression, used, variables.get(material.id, {})
+                )
+                if evaluation.value is None:
+                    return _AxisSample(None, None, {}, True)
+                return _AxisSample(evaluation.value, None, {}, False)
+
+            return meta, label, get_index
+
+        definition = self._require_property(slug)  # type: ignore[arg-type]
+        meta = MapAxisOut(
+            property_slug=definition.slug,
+            property_name=definition.name,
+            symbol=definition.symbol,
+            unit=definition.canonical_unit,
+            category=definition.category,
+            better_direction=definition.better_direction,
+            allows_log_scale=definition.allows_log_scale,
+        )
+
+        def get_property(material: Material, by_slug: dict) -> _AxisSample:
+            value_obj = self._plottable(by_slug.get(definition.slug))
+            if value_obj is None:
+                return _AxisSample(None, None, {}, True)
+            return _AxisSample(
+                value_obj.normalized_value,
+                value_obj.data_quality,
+                self._bounds(value_obj, definition, axis_key),
+                False,
+            )
+
+        return meta, definition.name, get_property
+
+    @staticmethod
+    def _material_variables(materials: list[Material]) -> dict[int, dict[str, float]]:
+        """Every material's canonical values, keyed by safe variable name.
+
+        Shared by an index axis and the overlay index so both evaluate from the
+        same snapshot — the same guarantee D-35 already makes between a saved
+        study and a chart, extended to a map whose own axis is an index.
+        """
+        return {
+            m.id: {
+                safe_variable(v.property_definition.slug): v.normalized_value
+                for v in m.property_values
+                if not v.is_missing and v.normalized_value is not None
+            }
+            for m in materials
+        }
+
+    @staticmethod
+    def _range(points: list[MapPointOut], axis: str) -> dict[str, float | None]:
+        values = [getattr(p, axis) for p in points]
+        return {
+            "min_value": min(values) if values else None,
+            "max_value": max(values) if values else None,
+        }
 
     @staticmethod
     def _plottable(value: MaterialPropertyValue | None) -> MaterialPropertyValue | None:
@@ -204,20 +331,6 @@ class ChartService:
         }
 
     @staticmethod
-    def _axis(definition: PropertyDefinition, values: list[float]) -> MapAxisOut:
-        return MapAxisOut(
-            property_slug=definition.slug,
-            property_name=definition.name,
-            symbol=definition.symbol,
-            unit=definition.canonical_unit,
-            category=definition.category,
-            better_direction=definition.better_direction,
-            allows_log_scale=definition.allows_log_scale,
-            min_value=min(values) if values else None,
-            max_value=max(values) if values else None,
-        )
-
-    @staticmethod
     def _envelopes(points: list[MapPointOut], scale: str) -> list[ClassEnvelopeOut]:
         """Convex hull per class, computed in the space the chart displays."""
         grouped: dict[str, list[MapPointOut]] = {}
@@ -249,28 +362,22 @@ class ChartService:
         self,
         request: PropertyMapRequest,
         points: list[MapPointOut],
-        materials: list[Material],
+        variables: dict[int, dict[str, float]],
         notes: list[str],
     ) -> IndexOverlayOut | None:
         if request.index is None:
             return None
+        # Guaranteed by property_map's own guard: the overlay is only ever
+        # requested alongside two property axes, never an axis that is itself
+        # an index (see the "Não é possível sobrepor..." check).
+        assert request.x is not None and request.y is not None
 
         expression = request.index.expression
         used, dimension = self._validate_expression(expression)
 
-        # Index values use *all* of a material's canonical properties, exactly as
-        # the selection pipeline does — the map and a saved study must agree.
-        values_by_material = {
-            m.id: {
-                safe_variable(v.property_definition.slug): v.normalized_value
-                for v in m.property_values
-                if not v.is_missing and v.normalized_value is not None
-            }
-            for m in materials
-        }
         evaluations: dict[int, IndexEvaluation] = {
             point.material_id: evaluate_index(
-                expression, used, values_by_material.get(point.material_id, {})
+                expression, used, variables.get(point.material_id, {})
             )
             for point in points
         }

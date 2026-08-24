@@ -64,7 +64,17 @@ export function THead({ className, children, ...rest }: HTMLAttributes<HTMLTable
 
 export function TBody({ className, children, ...rest }: HTMLAttributes<HTMLTableSectionElement>) {
   return (
-    <tbody {...rest} className={cn("divide-y divide-edge-subtle", className)}>
+    <tbody
+      {...rest}
+      // The row tint is not decoration on a nine-column table: it is the only
+      // thing that keeps the eye on one material while it travels from the name
+      // in the first column to the value in the last. `colors` only — a row that
+      // also scaled would shift every row under it.
+      className={cn(
+        "divide-y divide-edge-subtle [&>tr:hover]:bg-surface-sunken [&>tr]:transition-colors",
+        className,
+      )}
+    >
       {children}
     </tbody>
   );

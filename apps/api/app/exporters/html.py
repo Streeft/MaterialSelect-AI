@@ -72,6 +72,18 @@ h2 {
 }
 .note { margin: 0.35rem 0; font-size: 0.8rem; color: #475569; }
 .empty { margin: 0.5rem 0; font-size: 0.85rem; font-style: italic; color: #64748b; }
+.responsible { margin: 0 0 1.75rem; font-size: 0.9rem; font-weight: 600; color: #1e293b; }
+.figure { margin: 0 0 2.75rem; }
+.figure svg { display: block; width: 100%; height: auto; }
+.narrative p { max-width: 62ch; margin: 0.6rem 0; font-size: 0.85rem; color: #334155; }
+.narrative-note {
+  margin: 0.75rem 0 0;
+  padding: 0.6rem 0.8rem;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  font-size: 0.8rem;
+  color: #475569;
+}
 .table-scroll { overflow-x: auto; }
 table { border-collapse: collapse; width: 100%; font-size: 0.8rem; }
 th, td {
@@ -152,6 +164,31 @@ def _render_sheet(sheet: Sheet, position: int) -> str:
     return "".join(parts)
 
 
+def _render_narrative(report: Report, position: int) -> str:
+    """The AI-authored interpretation, or a stated reason it is absent.
+
+    Either way the section exists: a laudo that simply omitted it when the
+    layer is off would read as if the interpretation had never been asked
+    for, rather than as a deliberate, declared absence.
+    """
+    parts = [
+        "<section>",
+        f"<h2>{position}. Interpretação técnica (IA)</h2>",
+        '<div class="narrative">',
+    ]
+    if report.narrative:
+        parts += [f"<p>{escape(paragraph)}</p>" for paragraph in report.narrative]
+        if report.narrative_caveats:
+            items = "".join(f"<li>{escape(c)}</li>" for c in report.narrative_caveats)
+            parts.append(f'<ul class="note">{items}</ul>')
+    else:
+        parts.append('<p class="empty">Interpretação por IA não disponível.</p>')
+    if report.narrative_note:
+        parts.append(f'<p class="narrative-note">{escape(report.narrative_note)}</p>')
+    parts.append("</div></section>")
+    return "".join(parts)
+
+
 def to_html(report: Report) -> str:
     """Render the whole report as one standalone HTML document."""
     notices = []
@@ -161,8 +198,18 @@ def to_html(report: Report) -> str:
         notices.append(f'<p class="{css}">{escape(notice)}</p>')
 
     sections = [_render_sheet(sheet, i) for i, sheet in enumerate(report.sheets, start=1)]
+    if report.narrative is not None or report.narrative_note is not None:
+        sections.append(_render_narrative(report, len(report.sheets) + 1))
 
     subtitle = f'<p class="subtitle">{escape(report.subtitle)}</p>' if report.subtitle else ""
+    responsible = (
+        f'<p class="responsible">Responsável técnico: {escape(report.responsible)}</p>'
+        if report.responsible
+        else ""
+    )
+    # Trusted markup: always our own app.exporters.figures output, which
+    # escapes every string it writes internally — never re-escaped here.
+    figure = f'<div class="figure">{report.figure}</div>' if report.figure else ""
 
     return (
         "<!doctype html>"
@@ -176,7 +223,9 @@ def to_html(report: Report) -> str:
         "<body><main>"
         f"<h1>{escape(report.title)}</h1>"
         f"{subtitle}"
+        f"{responsible}"
         f'<div class="notices">{"".join(notices)}</div>'
+        f"{figure}"
         f"{''.join(sections)}"
         "<footer>Gerado por MaterialSelect AI — "
         "seleção de materiais pela metodologia de Ashby, "

@@ -34,9 +34,16 @@ usuário e sem produzir valores numéricos).
   Young com escala linear/log.
 - Testes automatizados de unidades, dado ausente e API.
 
-O que **não** está nesta entrega: importador de planilhas, índices de
-desempenho, ranking, wizard de seleção, IA e exportação de relatórios. Ver
-[`backlog.md`](backlog.md).
+O que **não** estava nesta entrega: importador de planilhas, índices de
+desempenho, ranking, wizard de seleção, IA e exportação de relatórios.
+
+> **Esta seção é o registro da Fase 1, não o estado do projeto.** Tudo o que ela
+> lista como ausente entrou depois, nas Fases 3 a 7 e 9 — o importador em
+> [`06`](06-importacao.md), a seleção em [`07`](07-selecao-deterministica.md), a
+> IA em [`09`](09-camada-ia.md), os relatórios e o laudo em
+> [`10`](10-relatorios.md). O estado atual está em
+> [`PROJECT_CONTEXT.md`](PROJECT_CONTEXT.md) e o que falta, em
+> [`TODO.md`](TODO.md).
 
 ## Princípios
 

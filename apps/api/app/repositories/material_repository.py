@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
+
 from sqlalchemy import String, delete, func, or_, select
 from sqlalchemy.orm import Session, joinedload, selectinload
 
@@ -119,17 +121,47 @@ class MaterialRepository:
             stmt = stmt.where(Material.id != exclude_id)
         return self.db.execute(stmt).first() is not None
 
-    def get_or_create_source(self, label: str, is_demo: bool = False) -> Source:
-        """Return the source with ``label``, creating it if necessary."""
+    def get_or_create_source(
+        self,
+        label: str,
+        is_demo: bool = False,
+        *,
+        license_label: str | None = None,
+        license_url: str | None = None,
+        contains_third_party_data: bool = False,
+        reviewed_by_user_id: int | None = None,
+    ) -> Source:
+        """Return the source with ``label``, creating it if necessary.
+
+        The licensing fields (M1) only apply to a brand-new row — reusing an
+        existing label never overwrites its already-recorded license or
+        reviewer. The decision is made once, at registration; see
+        ``app.importers.service`` for where it is enforced before this is
+        ever called with an unregistered license.
+        """
         existing = (
             self.db.execute(select(Source).where(Source.label == label)).scalars().one_or_none()
         )
         if existing:
             return existing
-        source = Source(label=label, is_demo=is_demo)
+        source = Source(
+            label=label,
+            is_demo=is_demo,
+            license_label=license_label,
+            license_url=license_url,
+            contains_third_party_data=contains_third_party_data,
+            reviewed_by_user_id=reviewed_by_user_id,
+            reviewed_at=datetime.now(UTC) if reviewed_by_user_id is not None else None,
+        )
         self.db.add(source)
         self.db.flush()
         return source
+
+    def get_source_by_label(self, label: str) -> Source | None:
+        return self.db.execute(select(Source).where(Source.label == label)).scalars().one_or_none()
+
+    def list_sources(self) -> list[Source]:
+        return list(self.db.execute(select(Source).order_by(Source.label)).scalars().all())
 
     def delete_values_for_material(self, material_id: int) -> None:
         """Remove all property values of a material (used when replacing them)."""

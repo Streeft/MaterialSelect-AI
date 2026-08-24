@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render } from "@testing-library/react";
+// See the note in components/layout/layout.test.tsx: MWC button roles live
+// inside a shadow root, invisible to plain @testing-library/react queries.
+import { screen } from "shadow-dom-testing-library";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { SavedStudies } from "./SavedStudies";
@@ -32,7 +35,7 @@ describe("SavedStudies", () => {
     listStudies.mockResolvedValue([makeStudy()]);
     render(<SavedStudies />, { wrapper });
 
-    const resume = await screen.findByRole("link", { name: ptBR.home.resume });
+    const resume = await screen.findByShadowRole("link", { name: ptBR.home.resume });
     expect(resume).toHaveAttribute("href", "/selecao?estudo=7");
     expect(screen.getByText("Painel de fuselagem")).toBeInTheDocument();
   });

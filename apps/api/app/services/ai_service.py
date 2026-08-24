@@ -224,15 +224,15 @@ class AIService:
 
     # --- explanation ------------------------------------------------------
 
-    def explain(self, study_id: int) -> ExplanationOut:
+    def explain(self, study_id: int, project_id: int) -> ExplanationOut:
         provider = self._provider()
-        study = self.selection_repo.get_study(study_id)
+        study = self.selection_repo.get_study(study_id, project_id)
         if study is None:
             raise NotFoundError(f"Estudo não encontrado: {study_id}")
 
         # The prose is written about numbers this call just produced, not about
         # numbers the caller supplied.
-        result = SelectionService(self.db).run_study(study_id)
+        result = SelectionService(self.db, project_id).run_study(study_id)
         context = _result_context(study, result)
 
         raw = provider.explain(context)

@@ -26,9 +26,11 @@ from app.domain.filters import (
 )
 from app.domain.ranking import Criterion, Direction, Normalization, rank
 from app.domain.slug import slugify
-from app.models.enums import BetterDirection
+from app.models.enums import AuditAction, AuditEntityType, BetterDirection
 from app.models.performance_index import PerformanceIndex
 from app.models.selection import RankingCriterion, SelectionConstraint, SelectionStudy
+from app.models.user import User
+from app.repositories.audit_repository import AuditRepository
 from app.repositories.selection_repository import SelectionRepository
 from app.schemas.selection import (
     CandidateOut,
@@ -54,6 +56,7 @@ from app.schemas.selection import (
     StudyOut,
     StudySummaryOut,
 )
+from app.services.audit_service import record_change
 
 INDEX_KEY = "__index__"
 _NUMERIC_OPS = {
@@ -67,10 +70,19 @@ _NUMERIC_OPS = {
 
 
 class SelectionService:
-    """Orchestrates the deterministic selection endpoints."""
+    """Orchestrates the deterministic selection endpoints.
 
-    def __init__(self, db) -> None:
+    ``project_id`` scopes every saved-study method (list/get/create/delete/run
+    by id) to one Project — the catalogue-only methods (filter, index, run,
+    performance-index catalogue) ignore it, since the catalogue is shared
+    across every logged-in user, not owned by a project.
+    """
+
+    def __init__(self, db, project_id: int, user: User | None = None) -> None:
         self.repo = SelectionRepository(db)
+        self.audit_repo = AuditRepository(db)
+        self.user = user
+        self.project_id = project_id
         self._snapshots: list[MaterialSnapshot] | None = None
         self._props: dict = {}
 
@@ -462,6 +474,15 @@ class SelectionService:
             is_demo=False,
         )
         self.repo.add(index)
+        self.repo.flush()
+        record_change(
+            self.audit_repo,
+            self.user,
+            entity_type=AuditEntityType.PERFORMANCE_INDEX,
+            entity_id=index.id,
+            entity_label=index.name,
+            action=AuditAction.CRIADO,
+        )
         self.repo.commit()
         return self._index_to_out(index)
 
@@ -477,20 +498,21 @@ class SelectionService:
                 constraint_count=len(s.constraints),
                 criterion_count=len(s.criteria),
             )
-            for s in self.repo.list_studies()
+            for s in self.repo.list_studies(self.project_id)
         ]
 
     def get_study(self, study_id: int) -> StudyOut:
-        study = self.repo.get_study(study_id)
+        study = self.repo.get_study(study_id, self.project_id)
         if study is None:
             raise NotFoundError(f"Estudo não encontrado: {study_id}")
         return self._study_to_out(study)
 
     def create_study(self, payload: StudyIn) -> StudyOut:
-        if self.repo.study_name_exists(payload.name):
+        if self.repo.study_name_exists(payload.name, self.project_id):
             raise ConflictError(f"Já existe um estudo com o nome: {payload.name}")
         study = SelectionStudy(
             name=payload.name.strip(),
+            project_id=self.project_id,
             description=payload.description,
             function_text=payload.function_text,
             objective_text=payload.objective_text,
@@ -530,18 +552,37 @@ class SelectionService:
                 )
             )
         self.repo.add(study)
+        self.repo.flush()
+        record_change(
+            self.audit_repo,
+            self.user,
+            entity_type=AuditEntityType.SELECTION_STUDY,
+            entity_id=study.id,
+            entity_label=study.name,
+            action=AuditAction.CRIADO,
+            project_id=self.project_id,
+        )
         self.repo.commit()
         return self._study_to_out(study)
 
     def delete_study(self, study_id: int) -> None:
-        study = self.repo.get_study(study_id)
+        study = self.repo.get_study(study_id, self.project_id)
         if study is None:
             raise NotFoundError(f"Estudo não encontrado: {study_id}")
+        record_change(
+            self.audit_repo,
+            self.user,
+            entity_type=AuditEntityType.SELECTION_STUDY,
+            entity_id=study.id,
+            entity_label=study.name,
+            action=AuditAction.EXCLUIDO,
+            project_id=self.project_id,
+        )
         self.repo.delete(study)
         self.repo.commit()
 
     def run_study(self, study_id: int) -> RunResultOut:
-        study = self.repo.get_study(study_id)
+        study = self.repo.get_study(study_id, self.project_id)
         if study is None:
             raise NotFoundError(f"Estudo não encontrado: {study_id}")
         return self.run(self._study_to_run_request(study))

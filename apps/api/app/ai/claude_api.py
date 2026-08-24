@@ -15,13 +15,13 @@ from __future__ import annotations
 
 from typing import Any
 
-from app.ai.claude_base import ClaudeProviderBase, parse_json_object
+from app.ai.model_base import ModelProviderBase, parse_json_object
 from app.ai.provider import AIProvider, AIUnavailableError
 from app.config import Settings
 from app.config import settings as default_settings
 
 
-class ClaudeAPIProvider(ClaudeProviderBase):
+class ClaudeAPIProvider(ModelProviderBase):
     """Claude via ``POST /v1/messages``."""
 
     name = "claude-api"

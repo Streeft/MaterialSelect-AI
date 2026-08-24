@@ -46,7 +46,9 @@ if (-not $gh) {
 $checks = @(
     "Backend (Python 3.11)",
     "Backend (Python 3.12)",
-    "Frontend"
+    "Frontend",
+    "E2E (Playwright)",
+    "Lighthouse"
 )
 
 $ruleset = [ordered]@{

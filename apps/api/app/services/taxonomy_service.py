@@ -6,16 +6,22 @@ from sqlalchemy.orm import Session
 
 from app.domain.errors import ConflictError, NotFoundError, ValidationError
 from app.domain.slug import slugify
+from app.models.enums import AuditAction, AuditEntityType
 from app.models.material_class import MaterialClass
+from app.models.user import User
+from app.repositories.audit_repository import AuditRepository
 from app.repositories.material_class_repository import MaterialClassRepository
 from app.schemas.material_class import MaterialClassIn, MaterialClassOut
+from app.services.audit_service import diff_fields, record_change
 
 
 class TaxonomyService:
     """Coordinates CRUD of material classes, guarding taxonomy integrity."""
 
-    def __init__(self, db: Session) -> None:
+    def __init__(self, db: Session, user: User | None = None) -> None:
         self.repo = MaterialClassRepository(db)
+        self.audit_repo = AuditRepository(db)
+        self.user = user
 
     def list_classes(self) -> list[MaterialClassOut]:
         return [self._to_out(cls, count) for cls, count in self.repo.list_with_counts()]
@@ -35,6 +41,15 @@ class TaxonomyService:
             description=payload.description,
         )
         self.repo.add(obj)
+        self.repo.flush()
+        record_change(
+            self.audit_repo,
+            self.user,
+            entity_type=AuditEntityType.MATERIAL_CLASS,
+            entity_id=obj.id,
+            entity_label=obj.name,
+            action=AuditAction.CRIADO,
+        )
         self.repo.commit()
         return self._to_out(obj, 0)
 
@@ -42,6 +57,7 @@ class TaxonomyService:
         obj = self.repo.get(class_id)
         if obj is None:
             raise NotFoundError(f"Classe não encontrada: {class_id}")
+        before = self._snapshot(obj)
 
         slug = self._resolve_slug(payload)
         if self.repo.slug_exists(slug, exclude_id=class_id):
@@ -54,6 +70,18 @@ class TaxonomyService:
         obj.slug = slug
         obj.parent_id = payload.parent_id
         obj.description = payload.description
+
+        changes = diff_fields(before, self._snapshot(obj))
+        if changes:
+            record_change(
+                self.audit_repo,
+                self.user,
+                entity_type=AuditEntityType.MATERIAL_CLASS,
+                entity_id=obj.id,
+                entity_label=obj.name,
+                action=AuditAction.ATUALIZADO,
+                changes=changes,
+            )
         self.repo.commit()
         return self._to_out(obj, self.repo.material_count(class_id))
 
@@ -65,8 +93,25 @@ class TaxonomyService:
             raise ConflictError("Não é possível excluir uma classe em uso por materiais.")
         if self.repo.child_count(class_id) > 0:
             raise ConflictError("Não é possível excluir uma classe com subclasses.")
+        record_change(
+            self.audit_repo,
+            self.user,
+            entity_type=AuditEntityType.MATERIAL_CLASS,
+            entity_id=obj.id,
+            entity_label=obj.name,
+            action=AuditAction.EXCLUIDO,
+        )
         self.repo.delete(obj)
         self.repo.commit()
+
+    @staticmethod
+    def _snapshot(obj: MaterialClass) -> dict:
+        return {
+            "name": obj.name,
+            "slug": obj.slug,
+            "parent_id": obj.parent_id,
+            "description": obj.description,
+        }
 
     # --- helpers ----------------------------------------------------------
 
