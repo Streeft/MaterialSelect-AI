@@ -241,8 +241,23 @@ declarada, nunca silenciosa; responsável técnico é texto livre, nunca
 validado. **As figuras da monografia que são capturas de `/estilo` precisam
 ser refeitas depois de D-38.**
 
-639 testes de backend e 148 de frontend, todos verdes. CI no GitHub Actions roda
-em todo PR e push para `main`.
+**Branches de fase divergentes foram reconciliadas com `main`** (PRs #15, #14,
+#7, #18): três eram ilusão de squash-merge (conteúdo já presente, git só
+reportava divergência); a quarta (`fase-9-ia-e-laudo`) trouxe ~1.600 linhas
+genuinamente novas — camada de conhecimento (`app/knowledge/`, ingestão do
+Cérebro) e cobrança com Stripe —, ambas integradas por inteiro. O portão global
+de assinatura **não foi ligado** (decidiria por omissão a reconciliação com o
+plano Free/Pro documentado em
+`docs/superpowers/plans/2026-08-21-assinatura-e-limites.md`; ver **M9** no
+TODO.md) e o Cérebro licenciado (livros comerciais + fichas ANSYS/Granta
+EduPack) **ainda está no histórico de `main`** via PR #16, num repositório
+público — purgado só em `fase-9-ia-e-laudo` antes do merge, não em `main` (ver
+**A6** no TODO.md, a única pendência de prioridade alta em aberto).
+
+712 testes de backend (+1 skip, registrado por M9) e 154 de frontend, todos
+verdes. CI no GitHub Actions roda em todo PR e push para `main`, agora com um
+quinto job (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas —
+ver §12 do PROJECT_CONTEXT.md).
 
 **Desempenho medido**, com os números em `docs/PROJECT_CONTEXT.md §12`: o maior
 *chunk* de JavaScript caiu de 4,5 MB para 981 KB (o Plotly completo era 79% de

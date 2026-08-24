@@ -89,17 +89,46 @@ melhor índice bruto. Roteiro completo em
 [`12-estudo-de-caso.md`](12-estudo-de-caso.md), regressão automatizada em
 `test_case_study.py`.
 
+**Trabalho que ficou só em branch foi trazido para `main`.** As branches de
+fase apareciam como `N behind / M ahead` mesmo depois de mescladas — o PR #9
+entrou por *squash*, que não cria vínculo de parentesco com a branch de
+origem, então o git segue reportando divergência com o conteúdo já presente.
+Verificação arquivo a arquivo confirmou isso para três branches
+(`fase-5-visualizacao`, `fase-6-provedores-claude`, `fase-8-redesign-interface`
+— PRs #15, #7, #14), que foram apenas mescladas de volta sem conteúdo novo.
+Uma quarta, `fase-9-ia-e-laudo`, tinha ~1.600 linhas genuinamente não
+mescladas: a **camada de conhecimento** (ingestão do Cérebro para a IA,
+`app/knowledge/`) e a **cobrança com Stripe** (`Subscription`,
+`routers/billing.py`). As duas entraram por completo no PR #18, com duas
+ressalvas registradas no backlog:
+
+- O portão global de assinatura (`require_active_subscription`) **não foi
+  ativado** — ligá-lo derrubaria todo usuário sem assinatura, inclusive as
+  fixtures da suíte, e decidiria por omissão a reconciliação com o plano
+  Free/Pro já documentado em
+  `docs/superpowers/plans/2026-08-21-assinatura-e-limites.md`. Ver **M9** no
+  backlog.
+- O Cérebro (10 livros comerciais + 103 fichas ANSYS/Granta EduPack) foi
+  **purgado do histórico** de `fase-9-ia-e-laudo` antes do merge
+  (`git filter-repo`, 89 commits reescritos) — mas o mesmo material chegou a
+  `main` por outro caminho, o PR #16, e **ainda está lá**, num repositório
+  público. Ver **A6** no backlog — é o único item de prioridade alta aberto.
+
 **A falta que resta no trabalho como um todo não é de código** e não pode ser
 fechada por quem programa sozinho: a sessão de teste com usuários do §3.5 da
 proposta — `11-usabilidade.md` está instrumentado, mas **nenhuma sessão foi
 realizada**; enquanto a tabela de melhorias dele estiver vazia, o §3.5 não foi
 cumprido.
 
-**Saúde do código:** 639 testes de backend (Python 3.11 e 3.12) e 148 de
-frontend, todos verdes. `ruff` limpo, `black --check` limpo, typecheck estrito e
-build de produção sem avisos. CI no GitHub Actions rodando em todo PR e push
-para `main`, com os checks **obrigatórios**: o GitHub recusa o merge se
-qualquer um falhar ([D-22](DECISIONS.md)).
+**Saúde do código:** 712 testes de backend (Python 3.11 e 3.12, +1 skip
+registrado por M9) e 154 de frontend, todos verdes. `ruff` limpo, `black
+--check` limpo, typecheck estrito e build de produção sem avisos. CI no
+GitHub Actions rodando em todo PR e push para `main`, com os checks
+**obrigatórios**: o GitHub recusa o merge se qualquer um falhar
+([D-22](DECISIONS.md)). Um quinto job, `Lighthouse`, mede desempenho e
+acessibilidade nas 11 rotas principais (§12) e já está listado em
+`scripts/protect-main.ps1` como obrigatório — falta confirmar que o script foi
+de fato executado contra a ruleset viva no GitHub.
 
 ## 4. Funcionalidades concluídas
 
@@ -239,6 +268,24 @@ O pedido tinha seis frentes, e as seis foram entregues:
 > **As figuras da monografia que são capturas de `/estilo` precisam ser refeitas
 > depois de D-38.**
 
+### Camada de conhecimento e cobrança (Fase 9, integradas pelo PR #18)
+Ficaram ~1.600 linhas da `fase-9-ia-e-laudo` que não chegaram a `main` junto do
+resto da fase — trazidas depois, íntegras, verificadas caminho a caminho:
+
+- **Ingestão do Cérebro** (`app/knowledge/`) — leitura de PDF (`readers.py`,
+  extrai texto via `pypdf`; o extra `knowledge` precisa estar instalado, e a CI
+  passou a instalar `.[dev,knowledge]` por causa disso), *chunking*,
+  *embeddings*, busca léxica e um `manifest` de proveniência por documento,
+  mais 40 testes. Alimenta a camada de IA; não produz número nenhum sozinha —
+  o princípio 2 continua valendo aqui.
+- **Cobrança com Stripe** — `Subscription`, `SubscriptionRepository`,
+  `routers/billing.py`, `services/billing_service.py`. O código entrou
+  **inteiro**, mas o portão global (`require_active_subscription`) **não foi
+  ligado** em nenhum router: ligá-lo decidiria por omissão a reconciliação com
+  o plano Free/Pro já documentado em
+  `docs/superpowers/plans/2026-08-21-assinatura-e-limites.md`. Ver **M9** no
+  backlog — é decisão de arquitetura, não de código.
+
 ### Estudo de caso didático (A2)
 O tirante leve e rígido ("light, stiff tie") de Ashby — o exemplo introdutório
 mais citado da metodologia — reproduzido do enunciado ao relatório exportado,
@@ -287,13 +334,20 @@ venha de uma sessão de fato observada.
 ## 6. Pendências
 
 Ver [TODO.md](TODO.md) para o backlog priorizado com impacto, dificuldade e
-dependências. O único item que resta:
+dependências. Os itens que restam:
 
 1. **Nenhuma sessão de teste de usabilidade** — compromisso do §3.5, com o
    instrumento pronto em [11-usabilidade.md](11-usabilidade.md) e a análise
    cobrada como entrega pelo §4.1. Não é código: exige participantes reais —
    a única pendência do trabalho como um todo que um agente não fecha
    sozinho.
+2. **A6 — purgar o Cérebro licenciado de `main`** (alta prioridade). O
+   procedimento já foi validado numa branch (`git filter-repo`); falta
+   repeti-lo em `main`, que é público. Ver TODO.md.
+3. **M9 — reconciliar as duas arquiteturas de cobrança.** O portão global de
+   assinatura existe em código mas não está ligado; decidir qual desenho
+   segue (ou como convivem) é pré-requisito para ligar cobrança em produção.
+   Ver TODO.md.
 
 ## 7. Principais fluxos
 
@@ -351,6 +405,13 @@ que mais afetam quem for mexer no código:
   `mock` é determinístico, e é ele o padrão. O `claude-api` foi exercitado
   contra um cliente falso nos testes, mas ainda não contra a API de verdade —
   não há chave neste ambiente; o `claude-cli` foi verificado ao vivo.
+- **A cobrança existe em código, mas não em portão.** `require_active_
+  subscription` não está aplicado a nenhuma rota — todo usuário autenticado
+  continua acessando tudo, como antes do PR #18. Isso é intencional (ver M9),
+  mas quer dizer que o sistema hoje não tem como cobrar de ninguém de verdade.
+- **O Cérebro licenciado ainda está no histórico de `main`.** A purga que
+  removeu o material comercial de `fase-9-ia-e-laudo` não alcançou `main`
+  (que recebeu o mesmo material por outro caminho, PR #16) — ver A6.
 
 ## 10. Riscos conhecidos
 
@@ -361,15 +422,25 @@ que mais afetam quem for mexer no código:
 | Dependência de provedor de IA | Arquitetura desacoplada com provedor simulado; funciona sem chave. |
 | Incorporação inadvertida de dado protegido | Triagem de licenciamento (M1, item 4.2 da proposta) — `Source` registra licença/procedência, e uma fonte nova sem licença ou marcada como possivelmente protegida sem confirmação humana é recusada antes de qualquer linha ser escrita ([D-44](DECISIONS.md)). |
 | Resultado não reproduzível por interferência de IA | Cálculo determinístico + guardrails executáveis + confirmação do usuário. |
-| Regressão silenciosa | CI com 639 testes de backend e 148 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
+| Regressão silenciosa | CI com 712 testes de backend e 154 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
+| Material licenciado do Cérebro exposto em `main` (repositório público) | Purga por `git filter-repo` já validada em branch; falta repetir em `main` (**A6**). |
+| Duas arquiteturas de cobrança coexistindo em código | Portão global deliberadamente não ligado até a reconciliação (**M9**); sem portão, o risco atual é "não cobra ninguém", não "cobra errado". |
 
 ## 11. Próximos passos sugeridos
 
-**Aplicar o teste de usabilidade** de [11-usabilidade.md](11-usabilidade.md) é
-o único item que resta. O instrumento está pronto e a interface acabou de ser
+**Aplicar o teste de usabilidade** de [11-usabilidade.md](11-usabilidade.md)
+continua sendo a única pendência que exige um humano fora do teclado — nenhum
+agente fecha sozinho. O instrumento está pronto e a interface acabou de ser
 refeita; é o momento em que a sessão rende mais, e o §4.1 cobra a análise e as
-melhorias como entrega. Única pendência que exige um humano fora do teclado —
-nenhum agente fecha sozinho.
+melhorias como entrega.
+
+Duas pendências de código dependem de decisão do autor antes de qualquer
+implementação:
+
+- **A6** — purgar o Cérebro licenciado de `main` (alta prioridade; risco de
+  exposição num repositório público).
+- **M9** — reconciliar a arquitetura de cobrança trazida pelo PR #18 com o
+  plano Free/Pro já documentado, antes de ligar qualquer portão de assinatura.
 
 Detalhamento em [TODO.md](TODO.md).
 
@@ -420,5 +491,26 @@ segunda execução some abaixo de 1% da espera.
 **O que foi medido e inocentado:** o `DashboardService` emite 7 consultas e
 nenhum laço por material — o custo é do banco, não do serviço. O `.env.example`
 já documentava todas as variáveis da camada de IA.
+
+**Tempo até interativo — a metade do M8 que faltava.** O job `Lighthouse` da CI
+mede as 11 rotas principais, autenticadas pela sessão fixa de E2E, e falha o
+build se qualquer uma ultrapassar o orçamento:
+
+| Métrica | Limite |
+|---|---|
+| Performance (categoria) | ≥ 0,70 |
+| Acessibilidade (categoria) | ≥ 0,90 |
+| Boas práticas (categoria) | ≥ 0,80 |
+| Tempo até interativo | ≤ 5.000 ms |
+| First Contentful Paint | ≤ 2.500 ms |
+| Largest Contentful Paint | ≤ 4.000 ms |
+| Cumulative Layout Shift | ≤ 0,1 |
+| Total Blocking Time | ≤ 500 ms |
+
+Configuração em `apps/web/lighthouserc.json`; os valores reais medidos por
+execução ficam no relatório publicado como artefato da CI (`lighthouse-report`),
+não neste documento — não os transcrevo aqui sem reler o artefato de uma
+execução real, para não registrar um número que pareça medido e seja só a
+lembrança de um.
 
 Ver também as correções de travamento em [CHANGELOG_SESSION.md](CHANGELOG_SESSION.md).
