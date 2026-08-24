@@ -51,12 +51,31 @@ class Sheet:
 
 @dataclass
 class Report:
-    """A complete export: a title, the mandatory notices, and its tables."""
+    """A complete export: a title, the mandatory notices, and its tables.
+
+    ``responsible``, ``figure`` and ``narrative*`` are optional and used only
+    by the engineering-report (laudo) renderer in ``exporters/html.py``; the
+    CSV and XLSX renderers read only ``sheets`` and ignore them, so a plain
+    selection report is unaffected by their presence.
+    """
 
     title: str
     subtitle: str
     notices: list[str]
     sheets: list[Sheet]
+    #: The engineer who requested the laudo, declared free text — never
+    #: computed, never validated against anything.
+    responsible: str | None = None
+    #: Raw SVG markup from ``app.exporters.figures``, already escaped
+    #: internally by that module — embedded as-is, not re-escaped here.
+    figure: str | None = None
+    #: AI-authored paragraphs about this same computed result. ``None`` means
+    #: no narrative was produced (the layer is off, or the response was
+    #: discarded) — ``narrative_note`` then says why, so the absence is
+    #: declared rather than silent.
+    narrative: list[str] | None = None
+    narrative_caveats: list[str] | None = None
+    narrative_note: str | None = None
 
     def sheet(self, name: str) -> Sheet | None:
         """Return a sheet by name, or None."""

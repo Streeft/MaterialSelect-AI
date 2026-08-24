@@ -57,5 +57,8 @@ class PropertyDefinitionRepository:
     def delete(self, obj: PropertyDefinition) -> None:
         self.db.delete(obj)
 
+    def flush(self) -> None:
+        self.db.flush()
+
     def commit(self) -> None:
         self.db.commit()

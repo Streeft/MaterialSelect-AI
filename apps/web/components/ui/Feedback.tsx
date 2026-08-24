@@ -3,6 +3,7 @@ import { cn } from "@/lib/cn";
 import { ptBR } from "@/lib/i18n";
 import { IconDanger, IconInfo } from "./icons";
 import { Button } from "./Button";
+import { MdCircularProgress } from "./material/elements";
 
 /**
  * Loading, empty and error are states of the same screen, not afterthoughts.
@@ -13,14 +14,11 @@ import { Button } from "./Button";
 
 export function Spinner({ className, label }: { className?: string; label?: string }) {
   return (
-    <span
-      role={label ? "status" : undefined}
+    <MdCircularProgress
+      indeterminate
       aria-label={label}
       aria-hidden={label ? undefined : true}
-      className={cn(
-        "inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-r-transparent align-[-0.125em]",
-        className,
-      )}
+      className={cn("h-4 w-4 align-[-0.125em]", className)}
     />
   );
 }

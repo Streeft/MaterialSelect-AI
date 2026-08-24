@@ -1,10 +1,14 @@
-"""The half of a real Claude provider that has nothing to do with transport.
+"""The half of a real provider that has nothing to do with transport.
 
 Prompt, JSON contract and the translation from what a model answers into the
-dict :class:`~app.services.ai_service.AIService` expects all live here, so the
-Messages API provider and the CLI provider cannot disagree about any of them. A
-subclass answers one question: given a system prompt, a user message and a JSON
-schema, what did Claude reply?
+dict :class:`~app.services.ai_service.AIService` expects all live here, so no two
+providers can disagree about any of them. A subclass answers one question: given
+a system prompt, a user message and a JSON schema, what did the model reply?
+
+Nothing in this module is specific to one vendor, and that is the point. The
+guarantees below are the *layer's*, not Claude's: the Anthropic API, the local
+Claude Code CLI and any OpenAI-compatible endpoint all reach the service through
+this same reading, so swapping the model cannot quietly swap the rules.
 
 Nothing here trusts that reply. Two habits are deliberate:
 
@@ -46,10 +50,10 @@ from app.ai.provider import (
 _MAX_TEXT = 300
 
 
-class ClaudeProviderBase(AIProvider):
-    """Everything a real Claude provider does except the network call itself."""
+class ModelProviderBase(AIProvider):
+    """Everything a real provider does except the network call itself."""
 
-    name = "claude"
+    name = "model"
     #: Not simulated: the disclaimer shown to the user changes because of this.
     simulated = False
 
@@ -63,6 +67,23 @@ class ClaudeProviderBase(AIProvider):
                 service turns it into an HTTP 400, because a provider that
                 cannot answer is a configuration state, not a server fault.
         """
+
+    def system_for(self, system: str, schema: dict) -> str:
+        """The system prompt, for a transport that cannot enforce the schema.
+
+        Servers differ in whether they constrain output to a JSON Schema. Where
+        one cannot, the contract has to travel in words instead — so it belongs
+        here, next to the schema it restates, and not in whichever transport
+        happens to need it. The reading below does not get more trusting when
+        the schema was only *asked for*: every field is still coerced, and the
+        guardrails still run.
+        """
+        return (
+            f"{system}\n\n"
+            "Responda **exclusivamente** com um objeto JSON válido, sem texto "
+            "antes ou depois e sem cercas de código, obedecendo a este JSON "
+            f"Schema:\n\n{json.dumps(schema, ensure_ascii=False, indent=2)}"
+        )
 
     def interpret(self, context: ProblemContext) -> dict:
         raw = self._complete(

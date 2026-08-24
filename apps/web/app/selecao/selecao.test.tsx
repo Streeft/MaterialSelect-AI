@@ -1,5 +1,8 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, waitFor } from "@testing-library/react";
+// See the note in components/layout/layout.test.tsx: MWC button roles live
+// inside a shadow root, invisible to plain @testing-library/react queries.
+import { screen } from "shadow-dom-testing-library";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
@@ -30,6 +33,7 @@ vi.mock("@/lib/api", () => ({
   explainStudy: () => Promise.resolve(null),
   opensInBrowser: () => true,
   studyExportUrl: () => "#",
+  studyLaudoUrl: () => "#",
 }));
 
 const searchParams = new URLSearchParams();
@@ -72,7 +76,7 @@ describe("assistente de seleção", () => {
     // only next to the constraint editor and vanish the moment anyone moved on.
     await waitFor(() => expect(screen.getByText("5")).toBeInTheDocument());
 
-    await user.click(screen.getByRole("button", { name: new RegExp(t.stepObjective, "i") }));
+    await user.click(screen.getByShadowRole("button", { name: new RegExp(t.stepObjective, "i") }));
     expect(screen.getByText("5")).toBeInTheDocument();
     expect(screen.getByText(`${t.of} 12`)).toBeInTheDocument();
   });
@@ -80,7 +84,7 @@ describe("assistente de seleção", () => {
   it("refuses the results step, in words, until a selection has been run", async () => {
     render(wrap(<SelectionPage />));
 
-    const results = await screen.findByRole("button", {
+    const results = await screen.findByShadowRole("button", {
       name: new RegExp(t.stepResults, "i"),
     });
     expect(results).toBeDisabled();
@@ -92,13 +96,13 @@ describe("assistente de seleção", () => {
     runSelection.mockResolvedValue(result({ final_count: 2 }));
     render(wrap(<SelectionPage />));
 
-    await user.click(screen.getByRole("button", { name: new RegExp(t.stepObjective, "i") }));
-    await user.click(screen.getByRole("button", { name: t.run }));
+    await user.click(screen.getByShadowRole("button", { name: new RegExp(t.stepObjective, "i") }));
+    await user.click(screen.getByShadowRole("button", { name: t.run }));
 
     // The funnel block is the first thing the results screen renders.
-    await waitFor(() => expect(screen.getByRole("heading", { name: t.funnel })).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByShadowRole("heading", { name: t.funnel })).toBeInTheDocument());
     expect(
-      screen.getByRole("button", { name: new RegExp(t.stepResults, "i") }),
+      screen.getByShadowRole("button", { name: new RegExp(t.stepResults, "i") }),
     ).not.toBeDisabled();
   });
 
@@ -106,11 +110,11 @@ describe("assistente de seleção", () => {
     const user = userEvent.setup();
     render(wrap(<SelectionPage />));
 
-    await user.click(screen.getByRole("button", { name: new RegExp(t.stepObjective, "i") }));
-    await user.click(screen.getByRole("button", { name: t.run }));
+    await user.click(screen.getByShadowRole("button", { name: new RegExp(t.stepObjective, "i") }));
+    await user.click(screen.getByShadowRole("button", { name: t.run }));
 
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: t.saveStudy })).toBeDisabled(),
+      expect(screen.getByShadowRole("button", { name: t.saveStudy })).toBeDisabled(),
     );
     expect(screen.getByText(t.saveNeedsName)).toBeInTheDocument();
   });

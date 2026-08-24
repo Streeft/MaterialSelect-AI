@@ -33,6 +33,7 @@ import {
   Input,
   Section,
   Select,
+  SelectOption,
   Stepper,
   TBody,
   THead,
@@ -328,18 +329,18 @@ export default function ImportPage() {
             <span className="font-medium text-ink">{upload.filename}</span>
             <span className="text-ink-muted">{t.rows(upload.row_count)}</span>
             {upload.sheet_names.length > 1 && (
-              <Field label={t.sheet} className="w-48">
-                <Select
-                  value={upload.sheet_name ?? ""}
-                  onChange={(e) => doPreviewSheet.mutate(e.target.value)}
-                >
-                  {upload.sheet_names.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </Select>
-              </Field>
+              <Select
+                label={t.sheet}
+                className="w-48"
+                value={upload.sheet_name ?? ""}
+                onChange={(e) => doPreviewSheet.mutate(e.target.value)}
+              >
+                {upload.sheet_names.map((s) => (
+                  <SelectOption key={s} value={s}>
+                    {s}
+                  </SelectOption>
+                ))}
+              </Select>
             )}
           </div>
 
@@ -381,51 +382,41 @@ export default function ImportPage() {
           </Section>
 
           <div className="grid gap-3 sm:grid-cols-2">
-            <Field label={t.defaultClass}>
-              <Select
-                value={defaultClassId ?? ""}
-                onChange={(e) => setDefaultClassId(e.target.value ? Number(e.target.value) : null)}
-              >
-                <option value="">{t.noDefaultClass}</option>
-                {(classes.data ?? []).map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-            <Field label={t.sourceLabel}>
-              <Input
-                value={sourceLabel}
-                onChange={(e) => setSourceLabel(e.target.value)}
-                placeholder={t.sourcePlaceholder}
-              />
-            </Field>
+            <Select
+              label={t.defaultClass}
+              value={defaultClassId ?? ""}
+              onChange={(e) => setDefaultClassId(e.target.value ? Number(e.target.value) : null)}
+            >
+              <SelectOption value="">{t.noDefaultClass}</SelectOption>
+              {(classes.data ?? []).map((c) => (
+                <SelectOption key={c.id} value={String(c.id)}>
+                  {c.name}
+                </SelectOption>
+              ))}
+            </Select>
+            <Input label={t.sourceLabel} value={sourceLabel} onChange={(e) => setSourceLabel(e.target.value)} placeholder={t.sourcePlaceholder} />
           </div>
 
           <Card>
             <CardBody className="flex flex-wrap items-end gap-3">
-              <Field label={t.templates} className="w-56">
-                <Select
-                  defaultValue=""
-                  onChange={(e) => {
-                    const template = (templates.data ?? []).find(
-                      (x) => x.id === Number(e.target.value),
-                    );
-                    if (template) setColumns((cols) => applyTemplate(cols, template));
-                  }}
-                >
-                  <option value="">{t.applyTemplate}</option>
-                  {(templates.data ?? []).map((tpl) => (
-                    <option key={tpl.id} value={tpl.id}>
-                      {tpl.name}
-                    </option>
-                  ))}
-                </Select>
-              </Field>
-              <Field label={t.templateName} className="w-56">
-                <Input value={templateName} onChange={(e) => setTemplateName(e.target.value)} />
-              </Field>
+              <Select
+                label={t.templates}
+                className="w-56"
+                onChange={(e) => {
+                  const template = (templates.data ?? []).find(
+                    (x) => x.id === Number(e.target.value),
+                  );
+                  if (template) setColumns((cols) => applyTemplate(cols, template));
+                }}
+              >
+                <SelectOption value="">{t.applyTemplate}</SelectOption>
+                {(templates.data ?? []).map((tpl) => (
+                  <SelectOption key={tpl.id} value={String(tpl.id)}>
+                    {tpl.name}
+                  </SelectOption>
+                ))}
+              </Select>
+              <Input label={t.templateName} className="w-56" value={templateName} onChange={(e) => setTemplateName(e.target.value)} />
               <Button onClick={handleSaveTemplate} loading={doSaveTemplate.isPending}>
                 {t.saveTemplate}
               </Button>

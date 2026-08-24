@@ -2,9 +2,20 @@
 
 import { useEffect, type RefObject } from "react";
 
-/** Everything the browser hands focus to on Tab. */
+/**
+ * Everything the browser hands focus to on Tab.
+ *
+ * @material/web's button family delegates focus to a real `<button>` inside
+ * its shadow root (`shadowRootOptions.delegatesFocus`) rather than exposing a
+ * `tabindex` of its own, so none of the native-element clauses below match
+ * the host tag — without listing it explicitly, the trap's wrap-around logic
+ * would compute a `first`/`last` that skips it, misfiring on the element
+ * that actually IS first/last in the browser's real tab order (see the M3
+ * migration plan's Etapa 6 note). Extend this list as later stages add more
+ * focusable @material/web tags (checkbox, radio, select, tabs...).
+ */
 const FOCUSABLE =
-  'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+  'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"]),md-filled-button:not([disabled]),md-outlined-button:not([disabled]),md-text-button:not([disabled]),md-icon-button:not([disabled])';
 
 /**
  * Focus containment for anything modal — dialog, drawer, sheet.

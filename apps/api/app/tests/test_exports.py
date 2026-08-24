@@ -224,6 +224,41 @@ class TestHtmlRendering:
     def test_sections_are_numbered_for_citation(self) -> None:
         assert "<h2>1. Dados</h2>" in to_html(_report())
 
+    def test_responsible_is_absent_by_default(self) -> None:
+        assert '<p class="responsible">' not in to_html(_report())
+
+    def test_responsible_name_is_escaped(self) -> None:
+        report = _report()
+        report.responsible = "<b>Fulano</b>"
+        rendered = to_html(report)
+        assert "<b>Fulano</b>" not in rendered
+        assert "Responsável técnico: &lt;b&gt;Fulano&lt;/b&gt;" in rendered
+
+    def test_figure_is_embedded_as_trusted_markup(self) -> None:
+        report = _report()
+        report.figure = '<svg role="img"><title>x</title></svg>'
+        rendered = to_html(report)
+        # Not escaped: this is our own SVG output, not reader-supplied text.
+        assert '<div class="figure"><svg role="img">' in rendered
+
+    def test_narrative_paragraphs_are_escaped_and_numbered_after_the_sheets(self) -> None:
+        report = _report()
+        report.narrative = ["<script>alert(1)</script>", "Parágrafo normal."]
+        rendered = to_html(report)
+        assert "<h2>2. Interpretação técnica (IA)</h2>" in rendered
+        assert "<script>" not in rendered
+        assert "Parágrafo normal." in rendered
+
+    def test_narrative_absence_is_declared_not_omitted(self) -> None:
+        report = _report()
+        report.narrative_note = "Interpretação por IA não disponível: camada desligada."
+        rendered = to_html(report)
+        assert "Interpretação técnica (IA)" in rendered
+        assert "Interpretação por IA não disponível" in rendered
+
+    def test_no_narrative_section_when_neither_field_is_set(self) -> None:
+        assert "Interpretação técnica" not in to_html(_report())
+
 
 class TestHtmlEndpoint:
     def test_catalogue_html_opens_inline_rather_than_downloading(self, client: TestClient) -> None:
@@ -341,33 +376,37 @@ class TestCatalogueExport:
         )
 
 
+def _exportable_study_id(client: TestClient) -> int:
+    response = client.post(
+        "/api/selection/studies",
+        json={
+            "name": "Estudo exportável",
+            "function_text": "Viga em flexão",
+            "objective_text": "Minimizar massa",
+            "free_variables": ["espessura"],
+            "combinator": "AND",
+            "constraints": [
+                {"operator": "gt", "property_slug": "modulo_young", "value": 1.0, "unit": "GPa"}
+            ],
+            "index": {
+                "name": "Viga leve",
+                "expression": "sqrt(modulo_young) / densidade",
+                "goal": "maximize",
+            },
+            "normalization": "minmax",
+            "criteria": [
+                {"key": "__index__", "weight": 2.0},
+                {"key": "densidade", "weight": 1.0},
+            ],
+        },
+    )
+    assert response.status_code == 201, response.text
+    return response.json()["id"]
+
+
 class TestStudyExport:
     def _study_id(self, client: TestClient) -> int:
-        response = client.post(
-            "/api/selection/studies",
-            json={
-                "name": "Estudo exportável",
-                "function_text": "Viga em flexão",
-                "objective_text": "Minimizar massa",
-                "free_variables": ["espessura"],
-                "combinator": "AND",
-                "constraints": [
-                    {"operator": "gt", "property_slug": "modulo_young", "value": 1.0, "unit": "GPa"}
-                ],
-                "index": {
-                    "name": "Viga leve",
-                    "expression": "sqrt(modulo_young) / densidade",
-                    "goal": "maximize",
-                },
-                "normalization": "minmax",
-                "criteria": [
-                    {"key": "__index__", "weight": 2.0},
-                    {"key": "densidade", "weight": 1.0},
-                ],
-            },
-        )
-        assert response.status_code == 201, response.text
-        return response.json()["id"]
+        return _exportable_study_id(client)
 
     def test_report_contains_every_audit_section(self, client: TestClient) -> None:
         response = client.get(f"/api/exports/estudos/{self._study_id(client)}.xlsx")
@@ -476,3 +515,85 @@ class TestStudyExport:
 
     def test_unknown_study_is_404(self, client: TestClient) -> None:
         assert client.get("/api/exports/estudos/999999.csv").status_code == 404
+
+
+class TestStudyLaudo:
+    """The engineering report: a document distinct from the selection report.
+
+    It carries the same audit sections, plus a ranking figure and (when the
+    AI layer is on, which it is by default in tests — ``AI_PROVIDER=mock``)
+    an interpretive narrative.
+    """
+
+    def test_laudo_contains_every_audit_section(self, client: TestClient) -> None:
+        text = client.get(f"/api/exports/estudos/{_exportable_study_id(client)}/laudo.html").text
+        for expected in [
+            "Problema",
+            "Restrições e funil",
+            "Candidatos",
+            "Índice de desempenho",
+            "Contribuições",
+            "Excluídos por dado ausente",
+            "Sensibilidade",
+            "Proveniência",
+        ]:
+            assert expected in text, f"faltou a seção '{expected}'"
+
+    def test_laudo_title_differs_from_the_selection_report(self, client: TestClient) -> None:
+        text = client.get(f"/api/exports/estudos/{_exportable_study_id(client)}/laudo.html").text
+        assert "<h1>Laudo de engenharia" in text
+
+    def test_laudo_embeds_a_ranking_figure(self, client: TestClient) -> None:
+        text = client.get(f"/api/exports/estudos/{_exportable_study_id(client)}/laudo.html").text
+        assert '<div class="figure">' in text
+        assert 'role="img"' in text
+        assert "Candidatos ranqueados" in text
+
+    def test_laudo_includes_the_ai_narrative_by_default(self, client: TestClient) -> None:
+        # AI_PROVIDER defaults to "mock" — deterministic, no network — so the
+        # narrative section is populated out of the box.
+        text = client.get(f"/api/exports/estudos/{_exportable_study_id(client)}/laudo.html").text
+        assert "Interpretação técnica (IA)" in text
+        assert "Interpretação por IA não disponível" not in text
+
+    def test_laudo_declares_narrative_absence_when_ai_is_off(
+        self, client: TestClient, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from app.services import ai_service
+
+        monkeypatch.setattr(ai_service.default_settings, "ai_provider", "")
+        response = client.get(f"/api/exports/estudos/{_exportable_study_id(client)}/laudo.html")
+        assert response.status_code == 200, response.text
+        assert "Interpretação por IA não disponível" in response.text
+
+    def test_laudo_declares_the_responsible_engineer_when_given(self, client: TestClient) -> None:
+        study_id = _exportable_study_id(client)
+        response = client.get(
+            f"/api/exports/estudos/{study_id}/laudo.html", params={"responsavel": "Ana Engenheira"}
+        )
+        assert "Responsável técnico: Ana Engenheira" in response.text
+
+    def test_laudo_omits_the_responsible_line_when_not_given(self, client: TestClient) -> None:
+        text = client.get(f"/api/exports/estudos/{_exportable_study_id(client)}/laudo.html").text
+        assert "Responsável técnico" not in text
+
+    def test_a_hostile_responsible_name_cannot_escape_as_markup(self, client: TestClient) -> None:
+        study_id = _exportable_study_id(client)
+        response = client.get(
+            f"/api/exports/estudos/{study_id}/laudo.html",
+            params={"responsavel": "<img src=x onerror=alert(1)>"},
+        )
+        assert "<img src=x" not in response.text
+        assert "&lt;img src=x" in response.text
+
+    def test_laudo_is_served_inline_under_the_no_execution_policy(self, client: TestClient) -> None:
+        response = client.get(f"/api/exports/estudos/{_exportable_study_id(client)}/laudo.html")
+        assert response.headers["content-disposition"].startswith("inline")
+        assert response.headers["content-security-policy"] == HTML_CSP
+
+    def test_laudo_carries_the_limitation_notice(self, client: TestClient) -> None:
+        text = client.get(f"/api/exports/estudos/{_exportable_study_id(client)}/laudo.html").text
+        assert LIMITATION_NOTICE in text
+
+    def test_unknown_study_is_404(self, client: TestClient) -> None:
+        assert client.get("/api/exports/estudos/999999/laudo.html").status_code == 404

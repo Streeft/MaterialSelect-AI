@@ -38,7 +38,10 @@ export {
   RadioGroup,
   RadioOption,
   Select,
+  SelectOption,
   Textarea,
+  CONTROL,
+  useWiring,
 } from "./Field";
 export { Disclosure, Popover } from "./Popover";
 export {

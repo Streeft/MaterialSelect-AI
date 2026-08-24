@@ -23,13 +23,13 @@ import subprocess  # noqa: S404 - fixed argv, no shell, nothing untrusted in it
 import tempfile
 from pathlib import Path
 
-from app.ai.claude_base import ClaudeProviderBase, parse_json_object
+from app.ai.model_base import ModelProviderBase, parse_json_object
 from app.ai.provider import AIProvider, AIUnavailableError
 from app.config import Settings
 from app.config import settings as default_settings
 
 
-class ClaudeCLIProvider(ClaudeProviderBase):
+class ClaudeCLIProvider(ModelProviderBase):
     """Claude via ``claude -p``, authenticated as the local CLI already is."""
 
     name = "claude-cli"

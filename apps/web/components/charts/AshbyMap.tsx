@@ -73,7 +73,7 @@ function axisCell(point: MapPoint, axis: "x" | "y"): ReactNode {
     <span className="flex flex-col items-end gap-0.5">
       <span className="flex items-center gap-1.5">
         <span className="tabular-nums">{formatNumber(value)}</span>
-        <DataQualityBadge state={quality} showLabel={false} />
+        {quality !== null ? <DataQualityBadge state={quality} showLabel={false} /> : null}
       </span>
       {low !== null && high !== null ? (
         <span className="whitespace-nowrap text-2xs text-ink-muted">
@@ -116,9 +116,15 @@ function hoverFor(point: MapPoint, map: PropertyMap): string {
   if (point.y_uncertainty !== null) {
     lines.push(`${t.uncertainty} Y: ±${formatNumber(point.y_uncertainty)} ${yUnit}`);
   }
-  lines.push(
-    `${t.quality}: ${ptBR.quality[point.x_quality]} / ${ptBR.quality[point.y_quality]}`,
-  );
+  // Null exactly when that axis is an index — it has no single provenance of
+  // its own, so the side is omitted rather than badged with an invented state.
+  const qualityParts = [
+    point.x_quality !== null ? `X: ${ptBR.quality[point.x_quality]}` : null,
+    point.y_quality !== null ? `Y: ${ptBR.quality[point.y_quality]}` : null,
+  ].filter((part): part is string => part !== null);
+  if (qualityParts.length > 0) {
+    lines.push(`${t.quality}: ${qualityParts.join(" / ")}`);
+  }
   if (map.index) {
     lines.push(
       point.index_value === null

@@ -122,15 +122,23 @@ adivinhar. E cada índice sugerido justifica **apenas o que de fato casou** com
 ele: um índice de placa que compartilha só o objetivo não alega também
 corresponder à função “viga”.
 
-## Provedores reais (`app/ai/claude_*.py`)
+## Provedores reais (`app/ai/claude_api.py`, `claude_cli.py`, `openai_compat.py`)
 
-Dois, ambos falando com o Claude, ambos atrás do mesmo `AIProvider` — a escolha
-entre eles é de quem instala, não do código:
+Três, todos atrás do mesmo `AIProvider` — a escolha entre eles é de quem
+instala, não do código:
 
 | `AI_PROVIDER` | Como fala com o modelo | Credencial |
 |---|---|---|
 | `claude-api` | SDK oficial `anthropic`, `POST /v1/messages` | chave própria (`ANTHROPIC_API_KEY` ou `AI_API_KEY`) |
 | `claude-cli` | o `claude` já instalado na máquina, em `--print` | a sessão do Claude Code, já autenticada |
+| `openai-compat` | `POST {AI_BASE_URL}/chat/completions` | `AI_API_KEY`, e **vazio é válido** — um Ollama local não quer cabeçalho `Authorization` |
+
+O `openai-compat` é o caminho gratuito, e é um **protocolo**, não um fornecedor
+([D-36](DECISIONS.md)): o mesmo código atende Groq no plano gratuito, um Ollama
+rodando nesta máquina, OpenRouter ou a OpenAI, e quem escolhe é `AI_BASE_URL` —
+que **não tem padrão**, porque um padrão escolheria um fornecedor pelo operador.
+O aviso que o usuário vê nomeia **o host** de destino, nunca o caminho: um
+caminho de gateway pode carregar token.
 
 O `claude-cli` existe porque uma assinatura do Claude é a credencial que a maior
 parte das pessoas deste projeto já tem. A chamada é deliberadamente hostil a
@@ -140,8 +148,10 @@ plugin, skill ou servidor MCP da máquina participe da resposta, sessão não
 persistida e diretório de trabalho neutro. Ele faz uma pergunta e lê uma
 resposta; não pode virar um jeito de executar coisa alguma.
 
-O que os dois têm em comum está em `app/ai/claude_base.py`, e é onde a garantia
-mora ([D-35](DECISIONS.md)):
+O que os provedores reais têm em comum está em `app/ai/model_base.py` — o nome
+não traz "claude" de propósito, porque a garantia é da camada e não de um
+fornecedor ([D-36](DECISIONS.md)) —, e é ali que ela mora
+([D-35](DECISIONS.md)):
 
 - **O modelo escolhe um índice pelo slug e mais nada.** Nome, expressão e
   objetivo são lidos do catálogo *depois* da resposta. Não é uma checagem: o
@@ -220,9 +230,12 @@ que precise de configuração sobrescreve `from_settings`; é o único ponto por
 onde configuração alcança um provedor, e a interface continua recebendo apenas o
 catálogo e o texto.
 
-Para outro modelo de linguagem, o caminho curto é herdar de `ClaudeProviderBase`
+Para outro modelo de linguagem, o caminho curto é herdar de `ModelProviderBase`
 e implementar só `_complete` — prompt, esquema e leitura da resposta já estão
-prontos e são os mesmos dos dois provedores existentes.
+prontos e são os mesmos dos três provedores reais existentes. Foi exatamente
+esse caminho que o `openai-compat` percorreu, e ele é a demonstração de que a
+base não é do Claude: nenhum arquivo de serviço, guardrail ou interface mudou
+para acomodá-lo ([D-36](DECISIONS.md)).
 
 Um provedor real deve receber a instrução de **citar o número do usuário, na
 unidade do usuário**, e de escolher índices por slug — é o que

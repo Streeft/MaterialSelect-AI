@@ -21,8 +21,8 @@ from fastapi.testclient import TestClient
 
 from app.ai import claude_cli, factory
 from app.ai.claude_api import ClaudeAPIProvider
-from app.ai.claude_base import ClaudeProviderBase, parse_json_object
 from app.ai.claude_cli import ClaudeCLIProvider, _read_payload
+from app.ai.model_base import ModelProviderBase, parse_json_object
 from app.ai.prompts import EXPLAIN_SCHEMA, explain_user, format_decimal, interpret_schema
 from app.ai.provider import (
     AIUnavailableError,
@@ -78,7 +78,7 @@ def _context(statement: str = STATEMENT) -> ProblemContext:
     )
 
 
-class _ScriptedClaude(ClaudeProviderBase):
+class _ScriptedClaude(ModelProviderBase):
     """A Claude provider whose answer is written in advance."""
 
     name = "claude-roteirizado"
@@ -379,7 +379,7 @@ class TestExplanationThroughTheService:
         as it was told — a trap the user would meet and no test would.
         """
 
-        class _Parrot(ClaudeProviderBase):
+        class _Parrot(ModelProviderBase):
             name = "claude-papagaio"
 
             def _complete(self, system: str, user: str, schema: dict) -> dict:
