@@ -13,21 +13,8 @@ os vizinhos — outros documentos citam esses códigos.
 
 ## Alta prioridade
 
-### A6 — Purgar o material licenciado do Cérebro em `main`
-- **Descrição:** o PR #16 versionou o Cérebro inteiro em `main` via Git LFS,
-  incluindo 10 livros comerciais e as 103 fichas da base licenciada
-  ANSYS/Granta EduPack — num repositório **público**. A mesma purga já foi
-  feita com sucesso em `fase-9-ia-e-laudo` via `git filter-repo` (120 caminhos,
-  89 commits reescritos, force-push bem-sucedido) antes de trazer aquela
-  branch para `main`; falta repetir o procedimento em `main` propriamente.
-- **Impacto:** alto — exposição de direito autoral de terceiros, ao vivo, num
-  repositório público.
-- **Dificuldade:** ▃ (o procedimento já está validado; o risco é
-  coordenação — todo clone existente fica desatualizado depois de um
-  `filter-repo` + force-push em `main`, diferente de reescrever uma branch de
-  feature).
-- **Dependências:** nenhuma técnica; decisão do autor sobre quando forçar a
-  reescrita de `main` (avisar qualquer colaborador com clone local).
+Nenhum item aberto no momento — A6 (Cérebro em `main`) foi decidido, não
+executado: ver "Débitos já quitados".
 
 ---
 
@@ -131,6 +118,12 @@ crie tabela sem o caso de uso. (`User` e `Project` saíram desta lista com A5;
 
 Registrados para não voltarem por engano:
 
+- ~~**A6** — Purgar o material licenciado do Cérebro em `main`~~ — **decidido
+  não purgar.** O autor optou por manter os 158 arquivos (11 livros
+  comerciais, 103 fichas Granta EduPack, material de curso e trabalhos
+  entregues) como base de conhecimento da camada de IA, com informação
+  completa sobre a exposição. Risco aceito, não descuido. Ver
+  [D-45](DECISIONS.md).
 - ~~**M8** — Desempenho medido (Lighthouse)~~ — job `Lighthouse` em `ci.yml`:
   build de produção, API e frontend em portas isoladas (8811), sessão fixa via
   `E2E_SESSION_TOKEN` para que as 11 rotas auditadas sejam as telas reais

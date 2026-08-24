@@ -1659,3 +1659,43 @@ uma fonte já registrada não exige licença de novo e não duplica a linha;
 importação sem `source_label` nenhum não aciona o portão; `GET /api/sources`
 exige login. `alembic upgrade head` + seed num banco limpo, como todo PR —
 inclusive o backfill da fonte de demonstração.
+
+## D-45 — O Cérebro (livros comerciais, fichas Granta EduPack) fica versionado em `main`, por decisão explícita do autor
+
+**Contexto.** O commit `565a6d2` (PR #17) versionou `Cérebro/` inteira em
+`main` via Git LFS — 158 arquivos, 653 MB: 11 livros comerciais e 2 extratos
+de capítulo (`01-Bibliografia/`), 103 fichas técnicas do Granta EduPack
+(`03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/`), mais material de curso do
+professor, trabalhos entregues pelo autor, diagramas e dois artigos
+científicos. O repositório é público desde
+[D-22](#d-22--repositório-público-para-o-portão-de-ci-ser-real). Ao levantar
+a reconciliação das branches de fase, o material licenciado (livros +
+Granta) foi identificado como candidato a purga do histórico — o mesmo
+procedimento (`git filter-repo`) já tinha sido executado com sucesso em
+`fase-9-ia-e-laudo` antes daquela branch ser trazida para `main`.
+
+**Decisão.** O autor optou por **não purgar** — os 158 arquivos continuam no
+histórico e na árvore atual de `main`, incluindo os 11 livros e as 103
+fichas. A razão declarada: **o Cérebro é a base de conhecimento que a
+camada `ai/` usa para as validações** — vocabulário, método e contexto de
+domínio para o modelo escrever sobre seleção de materiais em vez de
+escrever a partir do que ele "sabe" (mesmo raciocínio do commit original).
+Isso é uma decisão de risco aceito, tomada com informação completa sobre o
+que está exposto — não um descuido. **A6, que registrava isto como pendência
+de purga no [TODO.md](TODO.md), foi removido**; não há ação de código
+pendente aqui.
+
+**O que isso não muda.** O guardrail de `app/ai/guardrails.py` continua
+valendo por inteiro: o Cérebro dá vocabulário e contexto, **nunca** um
+número — todo cálculo segue vindo do pipeline determinístico
+(princípio 1.5/2 do `CLAUDE.md`), e um valor lido de um livro não vira
+citável só por estar indexado. A decisão é sobre **hospedar o material**,
+não sobre **como a IA o usa** — essas são questões independentes.
+
+**Alternativas descartadas.**
+- Purgar só os 116 arquivos inequivocamente comerciais (livros + Granta),
+  mantendo o material de curso e os trabalhos entregues: foi a proposta
+  levada ao autor; recusada em favor de manter tudo.
+- Purgar tudo: nem chegou a ser considerada pelo autor — descartaria também
+  conteúdo que ele tem razão para manter (seus próprios trabalhos
+  entregues).
