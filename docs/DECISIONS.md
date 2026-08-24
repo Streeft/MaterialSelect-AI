@@ -1497,3 +1497,165 @@ projetos podem repetir nome de estudo). Frontend: `typecheck`, `lint`,
 `test` e `build` verdes, com `AuthGate` e a página `/entrar` cobertos por
 teste. Playwright (`npm run test:e2e`): os dois specs passam com a sessão
 injetada, sem tocar o Google.
+
+---
+
+## D-43 — A trilha de auditoria guarda retratos, não junções vivas; e não cobre a importação em lote
+
+**Contexto.** M2 do [TODO.md](TODO.md) — nenhuma alteração de catálogo ou de
+estudo tinha "quem" e "quando" registrados, apesar de A5 ([D-42](#d-42--login-só-por-terceiros-google-catálogo-compartilhado-entre-usuários-um-projeto-por-usuário-no-v1))
+já ter dado ao esquema um `User` para atribuir a mudança. Ficou pendente desde
+então; nada bloqueava mais.
+
+**Decisão.**
+- **`AuditEvent`** (`app/models/audit.py`) registra `quem` (retrato de
+  `user_email`, mais `user_id` como FK `SET NULL` — a FK existe para consulta
+  enquanto a conta existir, o retrato existe para quando ela não existir mais),
+  `o quê` (`entity_type` + `entity_id`, mais um retrato de `entity_label`) e
+  `quando` (`created_at`), para as entidades que uma pessoa edita à mão:
+  material, classe, propriedade, índice de desempenho e estudo de seleção.
+- **`changes` é um diff só nos campos que mudaram** (`{campo: {before, after}}`),
+  calculado pelo próprio serviço antes do commit — nunca no roteador, nunca em
+  SQL. Uma atualização que não muda nada de fato (`PATCH` repetindo o valor já
+  gravado) não grava evento nenhum: um log de "nada mudou" registrado toda vez
+  que alguém reenvia o mesmo formulário seria ruído, não trilha.
+- **A troca de valores de propriedade de um material (`PUT .../values`) vira
+  um evento `ATUALIZADO` diffado por slug de propriedade**, não um evento por
+  linha da tabela `material_property_value`: a operação já é "substitua o
+  conjunto inteiro", e a proveniência de cada valor (unidade, fonte, método de
+  conversão) já é rastreada à parte por linha (princípio 4 do `CLAUDE.md`) —
+  isto rastreia *quem* mexeu, não reproduz *o que* já está rastreado alhures.
+- **Para `SELECTION_STUDY`, o evento guarda um retrato de `project_id`** — não
+  uma junção contra `selection_study.project_id` em tempo de leitura. Depois
+  que um estudo é excluído, `entity_id` deixa de resolver a qualquer linha; um
+  filtro de privacidade por junção quebraria em silêncio bem na hora em que
+  mais importa (auditar a própria exclusão). Catálogo (material, classe,
+  propriedade, índice) não tem dono e o campo fica `NULL`.
+- **A importação em lote não passa por aqui, de propósito.** `ImportService`
+  monta `Material`/`MaterialPropertyValue` diretamente
+  (`app/importers/service.py`), sem os métodos públicos de `MaterialService`
+  onde o `record_change` está — auditar por linha um commit de milhares
+  produziria ruído, não trilha útil. `ImportJob` (com seu próprio `status`,
+  contagens e `committed_at`) já *é* a trilha desse fluxo; document limitation,
+  não bug — coberto por `test_import_commit_does_not_record_material_events`.
+- **`record_change` é um no-op silencioso quando `user is None`.** Todo
+  endpoint que muta hoje passa um usuário real (login é obrigatório desde A5),
+  mas os serviços também são instanciados por código sem ator — a importação
+  acima, e a reexecução de estudo salvo por `ExportService`/`AIService`. Um
+  parâmetro opcional em vez de obrigatório evita forçar um ator fabricado
+  nesses caminhos só para satisfazer uma assinatura — a mesma lógica de nunca
+  inventar um valor ausente (princípio 3), aplicada a "quem fez isto".
+
+**Alternativas descartadas.**
+- Guardar o objeto inteiro (antes/depois) em vez de só os campos que mudaram:
+  mais fácil de escrever, muito mais ruidoso de ler — um `PATCH` de um campo
+  não deveria imprimir os outros dez inalterados.
+- Um evento por linha de `material_property_value` na troca de valores: exige
+  IDs estáveis através de um delete+recreate (a operação atual apaga e recria
+  todas as linhas do material, não faz UPDATE por linha), e duplicaria a
+  proveniência que a própria linha já carrega.
+- Filtrar a privacidade de `SELECTION_STUDY` por junção contra a tabela viva:
+  mais simples de escrever, mas perde a visibilidade do dono sobre o evento
+  mais importante — a própria exclusão — no instante em que ele acontece.
+- Cobrir a importação também: o commit de um `ImportJob` já grava contagens e
+  status; replicar isso material a material não acrescenta rastreabilidade,
+  só volume. Fica registrado como limite conhecido, não como pendência.
+
+**Como funciona.** `app/services/audit_service.py` expõe `record_change`
+(grava o evento, no-op se `user is None`) e `diff_fields` (compara dois dicts
+e devolve só as chaves que mudaram). Cada serviço mutante
+(`MaterialService`, `TaxonomyService`, `PropertyService`, `SelectionService`)
+ganhou um `user: User | None = None` no construtor e chama `record_change`
+depois de mutar o objeto mas **antes** do próprio `commit()` — o evento entra
+na mesma transação da mudança que descreve, então um nunca fica sem o outro.
+`GET /api/audit` (`app/routers/audit.py`) lista por `entity_type`/`entity_id`
+paginado, sob o mesmo `get_current_project` que todo endpoint de estudo já
+usa; `AuditRepository.list_events` aplica o filtro de privacidade de
+`SELECTION_STUDY` na própria consulta.
+
+**Como se sabe que passa.** `pytest`, `ruff check` e `black --check` verdes,
+com `test_audit.py` cobrindo: evento criado/atualizado/excluído para cada tipo
+de entidade; diff correto por campo e por slug de propriedade; nenhum evento
+espúrio numa atualização sem mudança real; exclusão duas vezes grava um único
+`EXCLUIDO`; um usuário não vê o estudo de outro nem por id nem numa listagem
+mista; o dono continua vendo o evento de exclusão do próprio estudo depois
+dele sumir da tabela; e a importação em lote não grava evento nenhum de
+material. `alembic upgrade head` + seed num banco limpo, como todo PR.
+
+---
+
+## D-44 — A licença de uma fonte é decidida uma vez, no registro; reusar o rótulo não reabre a decisão
+
+**Contexto.** M1 do [TODO.md](TODO.md) — nenhuma base importada tinha
+procedência ou licença registrada, e nada impedia incorporar dado
+possivelmente protegido sem uma decisão humana explícita. Compromisso do item
+4.2 da proposta, e o repositório é público desde
+[D-22](#d-22--repositório-público-para-o-portão-de-ci-ser-real).
+
+**Decisão.**
+- **`Source` ganha `license_label`/`license_url`, a sinalização explícita
+  `contains_third_party_data` e um carimbo de quem registrou a fonte e
+  quando** (`reviewed_by_user_id`/`reviewed_at`). Nenhum desses campos é
+  inferido — todos vêm do que quem importa escreveu no mapeamento.
+- **O portão fica na importação, não no cadastro manual.** O item do backlog
+  fala em "base... importada"; um material só (`POST /materials`) já passa
+  por uma pessoa logada decidindo linha a linha, o mesmo nível de decisão
+  humana que o portão de importação está formalizando para um lote inteiro de
+  uma vez. Estender o portão ao cadastro manual exigiria mudar o contrato de
+  `PropertyValueIn` (e os dois arquivos de tipos que o espelham) por um ganho
+  que o item não pede — fica registrado como extensão natural, não como
+  lacuna.
+- **A licença é obrigatória só para uma fonte nova.** `source_label` já
+  registrado → o rótulo é reaproveitado como está, sem reabrir a decisão a
+  cada importação seguinte. Rótulo novo sem `source_license_label` → 400,
+  antes de qualquer linha ser escrita — tanto em `/imports/{id}/validate`
+  (feedback cedo) quanto em `/imports/{id}/commit` (o portão que realmente
+  importa, caso o mapeamento tenha sido alterado entre as duas chamadas).
+- **`contains_third_party_data=True` exige `source_review_confirmed=True`
+  explícito.** É a "decisão humana obrigatória antes da incorporação" do
+  item do backlog: uma marcação por si só não basta, precisa de uma segunda
+  confirmação — o mesmo padrão de duas etapas que a IA já segue para uma
+  restrição não bastar sem o número aparecer no enunciado (princípio 1.5 do
+  `docs/CLAUDE.md`).
+- **`GET /api/sources`** lista toda fonte registrada com sua licença e
+  revisor, sob login — mesma lógica de M2: uma trilha que só grava e nunca
+  se mostra não sustenta alegação nenhuma de conformidade.
+
+**Alternativas descartadas.**
+- Um fluxo de aprovação assíncrono (fonte fica "pendente" até um segundo
+  usuário aprovar): não existe estado "pendente" em nenhuma outra parte da
+  aplicação — tudo aqui é CRUD síncrono por uma pessoa logada. Inventar uma
+  máquina de estados para um único caso de uso teria sido a exceção, não a
+  regra.
+- Licença obrigatória em toda importação, mesmo reaproveitando uma fonte já
+  registrada: reabriria a mesma decisão a cada linha nova de uma base que já
+  foi revisada — ruído, não rastreabilidade.
+- Estender o portão ao cadastro manual de material: ver "A decisão" acima.
+- Inferir `contains_third_party_data` automaticamente (por exemplo, por
+  domínio da URL da referência): um heurístico errado — silencioso — é pior
+  que exigir que a pessoa marque explicitamente, e o princípio 1 do
+  `CLAUDE.md` já rejeita qualquer palpite automático no lugar do dado
+  explícito.
+
+**Como funciona.** `ImportService._check_source_licensing`
+(`app/importers/service.py`) roda em `validate()` e de novo em `commit()` —
+o catálogo pode mudar entre as duas chamadas, e o portão de verdade é o
+segundo. `MaterialRepository.get_or_create_source` (estendido, não duplicado)
+grava os campos de licença só quando cria a linha; reutilizar um `label`
+existente devolve a linha como está, licença e carimbo de revisor inclusos.
+`MaterialService._build_value_from_input` ganhou os mesmos parâmetros
+opcionais para repassá-los — o cadastro manual nunca os define, então nunca
+aciona o carimbo (por quê: ver "A decisão" acima). `app/db/seed.py` e a
+própria migration (`fc5a731dd162`) registram a licença da fonte de
+demonstração (`"Dado fictício de demonstração — não é conteúdo de terceiro"`)
+para que ela nunca apareça como "sem licença" num banco já semeado antes
+desta migration.
+
+**Como se sabe que passa.** `pytest`, `ruff check` e `black --check` verdes,
+com `test_source_licensing.py` cobrindo: fonte nova sem licença rejeitada;
+fonte marcada como terceiro sem confirmação rejeitada; fonte válida commitada
+e `GET /api/sources` mostrando licença, sinalização e revisor certos; reusar
+uma fonte já registrada não exige licença de novo e não duplica a linha;
+importação sem `source_label` nenhum não aciona o portão; `GET /api/sources`
+exige login. `alembic upgrade head` + seed num banco limpo, como todo PR —
+inclusive o backfill da fonte de demonstração.
