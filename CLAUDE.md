@@ -249,10 +249,12 @@ Cérebro) e cobrança com Stripe —, ambas integradas por inteiro. O portão gl
 de assinatura **não foi ligado** (decidiria por omissão a reconciliação com o
 plano Free/Pro documentado em
 `docs/superpowers/plans/2026-08-21-assinatura-e-limites.md`; ver **M9** no
-TODO.md) e o Cérebro licenciado (livros comerciais + fichas ANSYS/Granta
-EduPack) **ainda está no histórico de `main`** via PR #16, num repositório
-público — purgado só em `fase-9-ia-e-laudo` antes do merge, não em `main` (ver
-**A6** no TODO.md, a única pendência de prioridade alta em aberto).
+TODO.md). O Cérebro licenciado (livros comerciais + fichas ANSYS/Granta
+EduPack) veio por outro caminho, o PR #17, e **continua no histórico de
+`main` por decisão explícita do autor** — é a base de conhecimento da camada
+de IA, e ele optou por mantê-la hospedada sabendo da exposição, ao contrário
+de `fase-9-ia-e-laudo`, purgada antes do merge. Risco aceito, não pendência
+([D-45](docs/DECISIONS.md)).
 
 712 testes de backend (+1 skip, registrado por M9) e 154 de frontend, todos
 verdes. CI no GitHub Actions roda em todo PR e push para `main`, agora com um

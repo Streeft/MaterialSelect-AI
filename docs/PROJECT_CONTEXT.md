@@ -108,11 +108,13 @@ ressalvas registradas no backlog:
   Free/Pro já documentado em
   `docs/superpowers/plans/2026-08-21-assinatura-e-limites.md`. Ver **M9** no
   backlog.
-- O Cérebro (10 livros comerciais + 103 fichas ANSYS/Granta EduPack) foi
-  **purgado do histórico** de `fase-9-ia-e-laudo` antes do merge
-  (`git filter-repo`, 89 commits reescritos) — mas o mesmo material chegou a
-  `main` por outro caminho, o PR #16, e **ainda está lá**, num repositório
-  público. Ver **A6** no backlog — é o único item de prioridade alta aberto.
+- O Cérebro licenciado (11 livros comerciais + 2 extratos de capítulo + 103
+  fichas ANSYS/Granta EduPack) foi **purgado do histórico** de
+  `fase-9-ia-e-laudo` antes do merge (`git filter-repo`, 89 commits
+  reescritos) — mas o mesmo material chegou a `main` por outro caminho, o
+  PR #17, e continua lá por **decisão explícita do autor**: o Cérebro é a
+  base de conhecimento da camada de IA, e ele optou por mantê-lo hospedado
+  mesmo sabendo da exposição. Não é pendência — ver [D-45](DECISIONS.md).
 
 **A falta que resta no trabalho como um todo não é de código** e não pode ser
 fechada por quem programa sozinho: a sessão de teste com usuários do §3.5 da
@@ -341,10 +343,7 @@ dependências. Os itens que restam:
    cobrada como entrega pelo §4.1. Não é código: exige participantes reais —
    a única pendência do trabalho como um todo que um agente não fecha
    sozinho.
-2. **A6 — purgar o Cérebro licenciado de `main`** (alta prioridade). O
-   procedimento já foi validado numa branch (`git filter-repo`); falta
-   repeti-lo em `main`, que é público. Ver TODO.md.
-3. **M9 — reconciliar as duas arquiteturas de cobrança.** O portão global de
+2. **M9 — reconciliar as duas arquiteturas de cobrança.** O portão global de
    assinatura existe em código mas não está ligado; decidir qual desenho
    segue (ou como convivem) é pré-requisito para ligar cobrança em produção.
    Ver TODO.md.
@@ -409,9 +408,11 @@ que mais afetam quem for mexer no código:
   subscription` não está aplicado a nenhuma rota — todo usuário autenticado
   continua acessando tudo, como antes do PR #18. Isso é intencional (ver M9),
   mas quer dizer que o sistema hoje não tem como cobrar de ninguém de verdade.
-- **O Cérebro licenciado ainda está no histórico de `main`.** A purga que
-  removeu o material comercial de `fase-9-ia-e-laudo` não alcançou `main`
-  (que recebeu o mesmo material por outro caminho, PR #16) — ver A6.
+- **O Cérebro licenciado está no histórico de `main`, por decisão explícita
+  do autor.** É a base de conhecimento da camada de IA; ele optou por manter
+  o material hospedado sabendo da exposição, em vez de purgá-lo como foi
+  feito em `fase-9-ia-e-laudo` antes daquela branch chegar a `main`. Ver
+  [D-45](DECISIONS.md).
 
 ## 10. Riscos conhecidos
 
@@ -423,7 +424,7 @@ que mais afetam quem for mexer no código:
 | Incorporação inadvertida de dado protegido | Triagem de licenciamento (M1, item 4.2 da proposta) — `Source` registra licença/procedência, e uma fonte nova sem licença ou marcada como possivelmente protegida sem confirmação humana é recusada antes de qualquer linha ser escrita ([D-44](DECISIONS.md)). |
 | Resultado não reproduzível por interferência de IA | Cálculo determinístico + guardrails executáveis + confirmação do usuário. |
 | Regressão silenciosa | CI com 712 testes de backend e 154 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
-| Material licenciado do Cérebro exposto em `main` (repositório público) | Purga por `git filter-repo` já validada em branch; falta repetir em `main` (**A6**). |
+| Material licenciado do Cérebro exposto em `main` (repositório público) | Risco aceito por decisão explícita do autor, não mitigado — o Cérebro é a base de conhecimento da camada de IA ([D-45](DECISIONS.md)). |
 | Duas arquiteturas de cobrança coexistindo em código | Portão global deliberadamente não ligado até a reconciliação (**M9**); sem portão, o risco atual é "não cobra ninguém", não "cobra errado". |
 
 ## 11. Próximos passos sugeridos
@@ -434,11 +435,9 @@ agente fecha sozinho. O instrumento está pronto e a interface acabou de ser
 refeita; é o momento em que a sessão rende mais, e o §4.1 cobra a análise e as
 melhorias como entrega.
 
-Duas pendências de código dependem de decisão do autor antes de qualquer
+Uma pendência de código depende de decisão do autor antes de qualquer
 implementação:
 
-- **A6** — purgar o Cérebro licenciado de `main` (alta prioridade; risco de
-  exposição num repositório público).
 - **M9** — reconciliar a arquitetura de cobrança trazida pelo PR #18 com o
   plano Free/Pro já documentado, antes de ligar qualquer portão de assinatura.
 
