@@ -38,7 +38,7 @@ def list_materials(
     user: User = Depends(get_current_user),
 ) -> list[MaterialListItem]:
     """List active materials, optionally filtered by a search term."""
-    return MaterialService(db).list_materials(search)
+    return MaterialService(db, user).list_materials(search)
 
 
 @router.post("", response_model=MaterialDetail, status_code=status.HTTP_201_CREATED)
@@ -48,7 +48,7 @@ def create_material(
     user: User = Depends(get_current_user),
 ) -> MaterialDetail:
     """Create a material together with its property values."""
-    return MaterialService(db).create_material(payload)
+    return MaterialService(db, user).create_material(payload)
 
 
 @router.get("/chart", response_model=ChartData)
@@ -63,7 +63,7 @@ def material_chart(
     Declared before ``/{material_id}`` so the literal path wins over the dynamic
     one.
     """
-    return MaterialService(db).build_chart(x, y)
+    return MaterialService(db, user).build_chart(x, y)
 
 
 @router.get("/{material_id}", response_model=MaterialDetail)
@@ -73,7 +73,7 @@ def get_material(
     user: User = Depends(get_current_user),
 ) -> MaterialDetail:
     """Return a material's full sheet, with properties grouped by category."""
-    return MaterialService(db).get_material_detail(material_id)
+    return MaterialService(db, user).get_material_detail(material_id)
 
 
 @router.patch("/{material_id}", response_model=MaterialDetail)
@@ -84,7 +84,7 @@ def update_material(
     user: User = Depends(get_current_user),
 ) -> MaterialDetail:
     """Apply a partial update to a material's identity fields."""
-    return MaterialService(db).update_material(material_id, payload)
+    return MaterialService(db, user).update_material(material_id, payload)
 
 
 @router.put("/{material_id}/values", response_model=MaterialDetail)
@@ -95,7 +95,7 @@ def replace_values(
     user: User = Depends(get_current_user),
 ) -> MaterialDetail:
     """Replace all property values of a material with the provided set."""
-    return MaterialService(db).replace_property_values(material_id, values)
+    return MaterialService(db, user).replace_property_values(material_id, values)
 
 
 @router.delete("/{material_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -105,5 +105,5 @@ def deactivate_material(
     user: User = Depends(get_current_user),
 ) -> Response:
     """Soft-delete (deactivate) a material."""
-    MaterialService(db).deactivate_material(material_id)
+    MaterialService(db, user).deactivate_material(material_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

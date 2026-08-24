@@ -27,6 +27,7 @@ from app.domain.errors import (
 )
 from app.routers import (
     ai,
+    audit,
     auth,
     charts,
     classes,
@@ -37,6 +38,7 @@ from app.routers import (
     materials,
     properties,
     selection,
+    sources,
 )
 
 app = FastAPI(
@@ -125,6 +127,8 @@ app.include_router(charts.router, prefix="/api")
 app.include_router(dashboard.router, prefix="/api")
 app.include_router(ai.router, prefix="/api")
 app.include_router(exports.router, prefix="/api")
+app.include_router(audit.router, prefix="/api")
+app.include_router(sources.router, prefix="/api")
 
 
 @app.get("/", tags=["root"])
