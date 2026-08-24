@@ -134,7 +134,7 @@ jobs:
           cache-dependency-path: apps/api/pyproject.toml
 
       - name: Instalar dependências
-        run: pip install -e ".[dev]"
+        run: pip install -e ".[dev,knowledge]"
 
       - name: Lint (ruff)
         run: ruff check app
