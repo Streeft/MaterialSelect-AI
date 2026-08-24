@@ -10,12 +10,17 @@ Projeto de Trabalho de Conclusão de Curso em Engenharia de Materiais (UFRGS).
 > Os materiais e valores incluídos são fictícios, criados apenas para exercitar
 > o sistema.
 
-Estão concluídas as **Fases 1 a 6**: fundação, catálogo, importação de planilhas,
-seleção determinística (filtros, índices de desempenho, ranking multicritério),
-visualização (mapas de Ashby e comparador) e a camada de IA opcional. A **Fase 7
-— relatórios e qualidade — está em andamento**: a exportação em CSV, XLSX e HTML
-imprimível já saiu; faltam testes end-to-end, autenticação e auditoria. O
-backlog priorizado está em [`docs/TODO.md`](docs/TODO.md).
+Estão concluídas as **Fases 1 a 6, 8 e 9**: fundação, catálogo, importação de
+planilhas, seleção determinística (filtros, índices de desempenho, ranking
+multicritério), visualização (mapas de Ashby e comparador), a camada de IA
+opcional, o redesign da interface e — na Fase 9 — a IA gratuita por servidor
+compatível com OpenAI, a barra lateral, o painel de indicadores, os mapas com
+eixo-índice e o laudo de engenharia.
+
+A **Fase 7 — relatórios e qualidade — segue parcial**: a exportação em CSV, XLSX
+e HTML imprimível já saiu; faltam testes end-to-end, autenticação e auditoria. O
+backlog priorizado está em [`docs/TODO.md`](docs/TODO.md), e o estado detalhado
+em [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md).
 
 ## Arquitetura (resumo)
 
@@ -131,7 +136,7 @@ estar atualizada com `main` antes de mesclar. A configuração vive em
 rode-o de novo sempre que acrescentar um job ao `ci.yml`, senão o job novo roda
 sem bloquear nada.
 
-## Camada de IA (Fase 6 — opcional, ligada por padrão em modo simulado)
+## Camada de IA (Fase 6 — opcional, simulada por padrão, modelo real sob demanda)
 
 Na etapa 1 de **Seleção**, o painel *Interpretar enunciado* lê um problema em
 português e propõe função, objetivo, restrições e índices **já cadastrados** —
@@ -147,10 +152,39 @@ aparece na tela, com o motivo.
 
 O provedor padrão é **simulado**: regras determinísticas locais, sem chave e sem
 rede. Defina `AI_PROVIDER=` (vazio) para desligar a camada por completo; nada no
-resto do sistema depende dela. Detalhes em
+resto do sistema depende dela.
+
+Para usar um modelo de verdade, troque a variável — e nada mais:
+
+```powershell
+$env:AI_PROVIDER = "claude-cli"   # usa o Claude Code já instalado e autenticado
+$env:AI_PROVIDER = "claude-api"   # usa a API da Anthropic (pede ANTHROPIC_API_KEY
+                                  # e `pip install -e ".[ai]"`)
+$env:AI_PROVIDER = "openai-compat"  # qualquer servidor compatível com OpenAI
+```
+
+O `openai-compat` é o caminho **gratuito**, e é um protocolo, não um fornecedor:
+quem escolhe é `AI_BASE_URL`, que não tem padrão de propósito. As três receitas
+prontas — Ollama nesta máquina (sem conta, sem chave, sem internet), o plano
+gratuito da Groq, ou qualquer gateway pago — estão comentadas em
+[`apps/api/.env.example`](apps/api/.env.example). Chave vazia é configuração
+válida: um servidor local não quer cabeçalho `Authorization`.
+
+```powershell
+# Exemplo: Ollama local, sem credencial nenhuma
+$env:AI_PROVIDER = "openai-compat"
+$env:AI_BASE_URL = "http://localhost:11434/v1"
+$env:AI_MODEL    = "llama3.1"
+$env:AI_JSON_MODE = "object"
+```
+
+Serviço, guardrails e interface não mudam: é o mesmo contrato, com o mesmo filtro
+na saída. Em compensação, um provedor real **não é determinístico** — o mesmo
+enunciado pode ser lido de dois jeitos, e a ressalva na tela diz isso. O cálculo
+não varia, porque não passa por ali. Detalhes em
 [`docs/09-camada-ia.md`](docs/09-camada-ia.md).
 
-## Relatórios e exportação (Fase 7 — em andamento)
+## Relatórios e exportação (Fase 7 — parcial)
 
 No **Catálogo** e em cada estudo salvo há botões **CSV**, **XLSX** e **HTML para
 impressão**. O relatório de um estudo reexecuta o pipeline determinístico e traz
@@ -169,6 +203,28 @@ triagem preliminar e não substitui validação experimental — e o aviso de da
 demonstrativos quando aplicável. Cada formato é protegido contra a injeção que
 lhe cabe: fórmula na planilha, marcação no HTML. Detalhes em
 [`docs/10-relatorios.md`](docs/10-relatorios.md).
+
+## Laudo de engenharia (Fase 9 — disponível)
+
+Um estudo salvo também gera um **laudo**
+(`GET /api/exports/estudos/{id}/laudo.html`), que é um documento **distinto** do
+relatório acima e não uma variante dele: o relatório acompanha uma tela, o laudo
+é feito para ser anexado sozinho a uma monografia. Traz a mesma reexecução
+determinística e as mesmas oito seções de auditoria, mais o gráfico de barras do
+ranking — renderizado em SVG **no backend**, porque a figura de um documento
+auditável não pode depender de um navegador ter executado JavaScript — e, quando
+a camada de IA está ligada, a interpretação escrita por ela. A ausência de IA é
+**declarada** no próprio laudo, nunca silenciosa. O responsável técnico é texto
+livre e nunca validado: o sistema não tem como conferir um registro profissional
+e fingir que confere seria pior do que não pedir.
+
+## Painel de indicadores (Fase 9 — disponível)
+
+Acesse **Painel** (`/painel`): cobertura geral do catálogo, composição por tipo
+de evidência, cobertura por classe, ranking das maiores lacunas e distribuição de
+uma propriedade por classe em box-plot. Os quartis e percentuais são computados
+no backend; o navegador recebe os cinco números de cada caixa prontos e nunca a
+amostra para quantilizar.
 
 ## Mapas e comparação (Fase 5 — disponível)
 

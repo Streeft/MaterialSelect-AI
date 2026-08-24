@@ -1,7 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { render } from "@testing-library/react";
+// MWC's button/dialog-close roles live inside a shadow root, invisible to
+// plain @testing-library/react queries (see the note in layout.test.tsx).
+import { screen, within } from "shadow-dom-testing-library";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
+import type { InputHTMLAttributes } from "react";
 import { cn } from "@/lib/cn";
 import { ptBR } from "@/lib/i18n";
 import { describeViolations, findA11yViolations } from "@/lib/testing/axe";
@@ -24,7 +28,9 @@ import {
   RadioOption,
   Section,
   Select,
+  SelectOption,
   Stepper,
+  useWiring,
   TBody,
   THead,
   Table,
@@ -65,24 +71,50 @@ describe("Button", () => {
         Executar
       </Button>,
     );
-    const button = screen.getByRole("button", { name: /executar/i });
-    expect(button).toBeDisabled();
-    expect(button).toHaveAttribute("aria-busy", "true");
+    const button = await screen.findByShadowRole("button", { name: "Executar" });
+    // getByShadowRole resolves to the shadow-internal <button>; the host
+    // custom element is where @material/web's aria-delegation mixin and our
+    // own `disabled`/`type` props actually land — see the Dialog test's note.
+    const host = (button.getRootNode() as ShadowRoot).host as HTMLElement;
+    expect(host).toHaveAttribute("disabled");
+    // @material/web's aria-delegation mixin moves aria-* off the host onto
+    // data-aria-* (then re-applies it inside the shadow root) to avoid
+    // duplicate announcements — see vitest.config.ts's resolve.conditions note.
+    expect(host).toHaveAttribute("data-aria-busy", "true");
     await userEvent.click(button);
     expect(onClick).not.toHaveBeenCalled();
   });
 
-  it("defaults to type=button so it cannot submit a form by accident", () => {
+  it("defaults to type=button so it cannot submit a form by accident", async () => {
     render(<Button>Adicionar</Button>);
-    expect(screen.getByRole("button")).toHaveAttribute("type", "button");
+    const button = await screen.findByShadowRole("button", { name: "Adicionar" });
+    const host = (button.getRootNode() as ShadowRoot).host as HTMLElement;
+    expect(host).toHaveProperty("type", "button");
   });
 });
+
+// `Field` now only wraps the two native-control call sites MWC has no
+// equivalent for (a multi-`<select>` and a file `<input>`) — every other
+// control carries its own `label`/`hint`/`error` directly, and Field itself
+// went from cloning props onto its child to a context (`useWiring`) the
+// child opts into, same as `ConstraintEditor.tsx`'s `ClassMultiSelect`.
+function WiredInput(props: InputHTMLAttributes<HTMLInputElement>) {
+  const w = useWiring();
+  return (
+    <input
+      id={w.id}
+      aria-describedby={w.describedBy}
+      aria-invalid={w.invalid || undefined}
+      {...props}
+    />
+  );
+}
 
 describe("Field", () => {
   it("wires label, hint and error to the control without the call site doing it", () => {
     render(
       <Field label="Densidade" hint="Em g/cm³" error="Campo obrigatório.">
-        <Input />
+        <WiredInput />
       </Field>,
     );
     const input = screen.getByLabelText(/densidade/i);
@@ -99,7 +131,7 @@ describe("Field", () => {
   it("does not claim invalid when there is no error", () => {
     render(
       <Field label="Nome">
-        <Input />
+        <WiredInput />
       </Field>,
     );
     expect(screen.getByLabelText("Nome")).not.toHaveAttribute("aria-invalid");
@@ -186,8 +218,8 @@ describe("Popover", () => {
 
   it("renders the panel outside the trigger's parent, so no container clips it", async () => {
     const { container } = render(<Harness />);
-    await userEvent.click(screen.getByRole("button", { name: /proveni/i }));
-    const panel = screen.getByRole("dialog", { name: /proveni/i });
+    await userEvent.click(screen.getByShadowRole("button", { name: /proveni/i }));
+    const panel = screen.getByShadowRole("dialog", { name: /proveni/i });
     expect(container).not.toContainElement(panel);
     expect(document.body).toContainElement(panel);
     expect(container.querySelector("p div")).toBeNull();
@@ -195,11 +227,11 @@ describe("Popover", () => {
 
   it("closes on Escape and returns focus to the trigger", async () => {
     render(<Harness />);
-    const trigger = screen.getByRole("button", { name: /proveni/i });
+    const trigger = screen.getByShadowRole("button", { name: /proveni/i });
     await userEvent.click(trigger);
     expect(trigger).toHaveAttribute("aria-expanded", "true");
     await userEvent.keyboard("{Escape}");
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.queryByShadowRole("dialog")).not.toBeInTheDocument();
     expect(trigger).toHaveFocus();
   });
 });
@@ -222,24 +254,28 @@ describe("Dialog", () => {
 
   it("moves focus in, closes on Escape and gives focus back", async () => {
     render(<Harness />);
-    const opener = screen.getByRole("button", { name: "Abrir" });
+    const opener = screen.getByShadowRole("button", { name: "Abrir" });
     await userEvent.click(opener);
 
     // Focus lands on the panel, so the dialog's name is announced on entry and
     // the reader does not start out sitting on "Fechar".
-    const dialog = screen.getByRole("dialog", { name: "Confirmar" });
+    const dialog = screen.getByShadowRole("dialog", { name: "Confirmar" });
     expect(dialog).toHaveFocus();
 
     await userEvent.keyboard("{Escape}");
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.queryByShadowRole("dialog")).not.toBeInTheDocument();
     expect(opener).toHaveFocus();
   });
 
   it("keeps Tab inside the dialog", async () => {
     render(<Harness />);
-    await userEvent.click(screen.getByRole("button", { name: "Abrir" }));
-    const dialog = screen.getByRole("dialog");
-    const close = within(dialog).getByRole("button", { name: ptBR.ui.close });
+    await userEvent.click(screen.getByShadowRole("button", { name: "Abrir" }));
+    const dialog = screen.getByShadowRole("dialog");
+    const closeButton = within(dialog).getByShadowRole("button", { name: ptBR.ui.close });
+    // jsdom does not implement shadow DOM focus delegation (delegatesFocus), so
+    // Tab lands on the host custom element, not the shadow-internal <button>
+    // closeButton resolves to — see Button.tsx's tabIndex note.
+    const close = (closeButton.getRootNode() as ShadowRoot).host as HTMLElement;
 
     await userEvent.tab(); // panel -> Fechar
     expect(close).toHaveFocus();
@@ -272,15 +308,15 @@ describe("Tabs", () => {
 
   it("moves between tabs with the arrow keys and keeps one stop in the tab order", async () => {
     render(<Harness />);
-    const first = screen.getByRole("tab", { name: "Tabela" });
+    const first = screen.getByShadowRole("tab", { name: "Tabela" });
     first.focus();
     await userEvent.keyboard("{ArrowRight}");
-    const second = screen.getByRole("tab", { name: "Barras" });
+    const second = screen.getByShadowRole("tab", { name: "Barras" });
     expect(second).toHaveFocus();
     expect(second).toHaveAttribute("aria-selected", "true");
     expect(first).toHaveAttribute("tabindex", "-1");
     await userEvent.keyboard("{End}");
-    expect(screen.getByRole("tab", { name: "Radar" })).toHaveFocus();
+    expect(screen.getByShadowRole("tab", { name: "Radar" })).toHaveFocus();
   });
 
   it("links the selected tab to a panel that exists", async () => {
@@ -288,13 +324,13 @@ describe("Tabs", () => {
 
     // The bug this pins: the panel used to be a sibling component with its own
     // id, so `aria-controls` referred to nothing at all.
-    const panel = screen.getByRole("tabpanel", { name: "Tabela" });
-    const selected = screen.getByRole("tab", { name: "Tabela" });
+    const panel = screen.getByShadowRole("tabpanel", { name: "Tabela" });
+    const selected = screen.getByShadowRole("tab", { name: "Tabela" });
     expect(selected).toHaveAttribute("aria-controls", panel.id);
 
     selected.focus();
     await userEvent.keyboard("{ArrowRight}");
-    expect(screen.getByRole("tabpanel", { name: "Barras" })).toHaveTextContent("Painel de barras");
+    expect(screen.getByShadowRole("tabpanel", { name: "Barras" })).toHaveTextContent("Painel de barras");
   });
 });
 
@@ -318,11 +354,11 @@ describe("Stepper", () => {
         }
       />,
     );
-    expect(screen.getByRole("button", { name: /restrições/i })).toHaveAttribute(
+    expect(screen.getByShadowRole("button", { name: /restrições/i })).toHaveAttribute(
       "aria-current",
       "step",
     );
-    const blocked = screen.getByRole("button", { name: /resultados/i });
+    const blocked = screen.getByShadowRole("button", { name: /resultados/i });
     expect(blocked).toBeDisabled();
     expect(blocked).toHaveTextContent("Execute a seleção primeiro.");
     await userEvent.click(blocked);
@@ -342,17 +378,13 @@ describe("acessibilidade das primitivas", () => {
           <Card>
             <CardHeader title="Candidatos" description="Após as restrições" />
             <CardBody>
-              <Field label="Nome do estudo" hint="Usado ao salvar">
-                <Input />
-              </Field>
-              <Field label="Normalização">
-                <Select>
-                  <option value="minmax">Min-máx</option>
-                  <option value="vector">Vetorial</option>
-                </Select>
-              </Field>
+              <Input label="Nome do estudo" hint="Usado ao salvar" />
+              <Select label="Normalização">
+                <SelectOption value="minmax">Min-máx</SelectOption>
+                <SelectOption value="vector">Vetorial</SelectOption>
+              </Select>
               <RadioGroup legend="Objetivo">
-                <RadioOption name="goal" label="Maximizar" defaultChecked />
+                <RadioOption name="goal" label="Maximizar" checked />
                 <RadioOption name="goal" label="Minimizar" />
               </RadioGroup>
               <Button variant="primary">Executar seleção</Button>

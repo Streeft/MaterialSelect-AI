@@ -7,6 +7,7 @@ import pytest
 from app.calculations.expressions import (
     ExpressionError,
     evaluate,
+    parse,
     result_dimension,
     safe_variable,
     validate_names,
@@ -102,3 +103,54 @@ def test_dimensionally_inconsistent_sum_rejected():
 
 def test_dimensionless_expression():
     assert result_dimension("E / rho", {"E": "Pa", "rho": "Pa"}) == "dimensionless"
+
+
+# --- the memoised parser --------------------------------------------------
+#
+# `parse` is cached because an index is evaluated once per material. These pin
+# the three properties the cache depends on; each of them, if it stopped
+# holding, would fail somewhere far away from here and not look like a cache.
+
+
+def test_parse_returns_the_same_tree_for_the_same_expression():
+    """Not an incidental detail — it *is* the optimisation."""
+    assert parse("E / rho") is parse("E / rho")
+
+
+def test_parse_does_not_confuse_two_expressions():
+    first = parse("E / rho")
+    second = parse("rho / E")
+    assert first is not second
+    assert evaluate("E / rho", {"E": 10.0, "rho": 2.0}) == 5.0
+    assert evaluate("rho / E", {"E": 10.0, "rho": 2.0}) == 0.2
+
+
+def test_a_rejected_expression_is_rejected_every_time():
+    """Exceptions are never memoised, so an unsafe expression cannot be
+    remembered as accepted after a single rejection."""
+    for _ in range(3):
+        with pytest.raises(ExpressionError):
+            parse("__import__('os').system('echo')")
+    for _ in range(3):
+        with pytest.raises(ExpressionError):
+            parse("E $ rho")
+
+
+def test_the_cache_is_bounded():
+    """Expressions come from the user; an unbounded cache keyed by user input
+    is a memory vector, not an optimisation."""
+    info = parse.cache_info()
+    assert info.maxsize is not None
+    for i in range(info.maxsize + 50):
+        parse(f"E / rho + {i}")
+    assert parse.cache_info().currsize <= info.maxsize
+
+
+def test_evaluating_the_same_expression_twice_is_independent():
+    """The shared tree carries no state between materials: same expression,
+    different variables, no bleed."""
+    assert evaluate("E / rho", {"E": 210e9, "rho": 7850.0}) == pytest.approx(210e9 / 7850.0)
+    assert evaluate("E / rho", {"E": 70e9, "rho": 2700.0}) == pytest.approx(70e9 / 2700.0)
+    # And a walk over Quantities, which shares the very same cached tree.
+    assert "[length]" in result_dimension("E / rho", {"E": "Pa", "rho": "kg/m**3"})
+    assert evaluate("E / rho", {"E": 210e9, "rho": 7850.0}) == pytest.approx(210e9 / 7850.0)

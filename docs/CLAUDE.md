@@ -51,6 +51,15 @@ Ela interpreta, sugere e explica. Ao mexer em `app/ai/`, não afrouxe:
 O provedor recebe só o catálogo e o texto. Nunca lhe passe uma sessão de banco
 nem o avaliador de expressões.
 
+Com provedor real (`claude-api`, `claude-cli`, `openai-compat`), duas coisas não
+são negociáveis e já estão estruturadas em `app/ai/model_base.py`
+([D-35](DECISIONS.md)) — o nome do arquivo não traz "claude" de propósito, porque
+as garantias são da camada e não de um fornecedor ([D-36](DECISIONS.md)): o
+modelo escolhe um índice **pelo slug** e a expressão vem do catálogo depois — não
+peça esse campo ao modelo; e as ressalvas da explicação vivem em
+`app/ai/caveats.py`, fora do esquema enviado. O padrão continua `mock`, o único
+determinístico.
+
 ### 1.6 Nenhum `eval`/`exec`
 Expressões passam por `ast.parse` + whitelist + interpretador manual em
 `app/calculations/expressions.py`.
@@ -67,6 +76,13 @@ Compromisso do item 5 da proposta. Sem opção de desligar.
 
 ### 1.9 Sem segredos versionados
 Configuração por variáveis de ambiente. Há `.env.example`.
+
+### 1.10 Login é só por terceiros (Google). Nunca senha
+Nenhum formulário de e-mail/senha, nenhum hash de senha para gerenciar. A
+sessão é uma linha de banco (`UserSession`), não um JWT — logout precisa
+revogar de verdade. O catálogo continua compartilhado entre todo usuário
+autenticado; só `SelectionStudy` é escopado por `Project`. Ver
+[D-42](DECISIONS.md).
 
 ---
 
@@ -145,6 +161,20 @@ cd apps\api; .\.venv\Scripts\Activate.ps1; pytest
 cd apps\web; npm run typecheck; npm run lint; npm run test; npm run build
 ```
 
+**End-to-end (A4):** `cd apps\web; npm run test:e2e` roda o Playwright
+(`apps/web/e2e/`) — importar → selecionar → visualizar → exportar, contra API e
+banco próprios (`apps/api/scripts/e2e_server.py`), em portas isoladas das de
+desenvolvimento (8811/3011). É check obrigatório de CI (`E2E (Playwright)` em
+`ci.yml`); rode localmente antes do PR para não descobrir uma falha só lá.
+
+Toda rota exceto `/entrar` exige login (A5) — sem cliente OAuth de teste
+utilizável em CI, a suíte não passa pelo Google: `playwright.config.ts` passa
+`E2E_SESSION_TOKEN` para o processo da API, `app/db/seed.py`
+(`seed_e2e_session`) grava uma sessão fixa com esse token só quando
+`ENVIRONMENT=development`, e `apps/web/e2e/session.ts` injeta o mesmo token
+como cookie `msai_session` no navegador antes da primeira navegação de cada
+spec. Nenhuma rota de bypass é exposta pela API.
+
 ---
 
 ## 6. Como executar
@@ -174,12 +204,34 @@ Atalhos em `scripts/`: `dev-api.ps1`, `dev-web.ps1`, `seed.ps1`. Há ainda
 obrigatórios no GitHub (seção 7).
 
 ### Variáveis de ambiente relevantes
+A lista completa, com as receitas prontas de cada provedor, está em
+`apps/api/.env.example` — ele é a fonte, esta tabela é o resumo.
+
 | Variável | Padrão | Efeito |
 |---|---|---|
 | `DATABASE_URL` | `sqlite:///./materialselect.db` | Banco. |
 | `CORS_ORIGINS` | `http://localhost:3000` | Origens permitidas. |
-| `AI_PROVIDER` | `mock` | `""` desliga a camada de IA por completo. |
+| `ENVIRONMENT` | `development` | Rótulo livre de ambiente. |
+| `APP_NAME` | `MaterialSelect AI` | Nome exibido nos metadados da API. |
+| `UPLOAD_DIR` | `var/uploads` | Onde o arquivo espera enquanto o job de importação está aberto. |
+| `MAX_UPLOAD_BYTES` | `5242880` (5 MiB) | Teto de um arquivo enviado. |
+| `MAX_IMPORT_ROWS` | `5000` | Teto de linhas por importação; limita o tempo de validação e commit. |
+| `AI_PROVIDER` | `mock` | `""` desliga a camada de IA por completo; `claude-api`, `claude-cli` e `openai-compat` ligam um modelo real ([09](09-camada-ia.md)). |
+| `AI_API_KEY` | vazio | Token do `openai-compat`; no `claude-api` prefira exportar `ANTHROPIC_API_KEY`. Vazio é configuração válida (Ollama local). |
+| `AI_MODEL` | `claude-opus-5` | O valor certo depende do provedor. |
+| `AI_BASE_URL` | vazio, **sem padrão** | Raiz da API compatível com OpenAI, terminando em `/v1`. Sem padrão de propósito ([D-36](DECISIONS.md)). |
+| `AI_JSON_MODE` | `schema` | `schema`/`object`/`prompt`. Degradar é decisão do operador, nunca queda silenciosa. |
+| `AI_TIMEOUT_SECONDS` | `90` | O provedor de CLI precisa da ponta alta: ele sobe um processo antes de perguntar. |
+| `AI_MAX_OUTPUT_TOKENS` | `16000` | Teto de uma resposta, pensamento e texto juntos. |
+| `AI_CLI_COMMAND` | `claude` | Executável do `claude-cli`, resolvido no PATH. |
 | `NEXT_PUBLIC_API_URL` | `http://localhost:8000` | URL da API no frontend. |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | vazio | Login desligado (503) sem os dois. Sem padrão de propósito — não existe cliente OAuth que sirva para todo mundo ([D-42](DECISIONS.md)). |
+| `GOOGLE_ALLOWED_DOMAIN` | vazio | Vazio permite qualquer conta Google; setado, restringe por sufixo de e-mail (ex.: antes de hospedar para uma turma). |
+| `BACKEND_BASE_URL` | `http://localhost:8000` | Monta o `redirect_uri` exato que o Google exige pré-registrado (`{BACKEND_BASE_URL}/api/auth/google/callback`). |
+| `FRONTEND_URL` | `http://localhost:3000` | Para onde o navegador volta após o login. |
+| `SESSION_COOKIE_SECURE` | `true` | Seguro por padrão (só HTTPS); dev local em HTTP precisa `false` explicitamente. |
+| `SESSION_TTL_HOURS` | `336` (14 dias) | Vida fixa da sessão desde a criação, sem renovação deslizante. |
+| `OAUTH_STATE_TTL_SECONDS` | `600` | Janela entre o redirect ao Google e o callback voltar. |
 
 ---
 
@@ -192,12 +244,16 @@ obrigatórios no GitHub (seção 7).
   `alembic upgrade head` + seed num banco limpo. Este último existe porque os
   testes usam `create_all` em memória e **nunca exercitam as migrações**.
 - Frontend: `npm ci`, `typecheck`, `lint`, `test`, `build`.
+- E2E: Playwright (`apps/web/e2e/`) contra API e banco próprios da suíte —
+  Python + Node no mesmo runner, Chromium via `--with-deps`. Relatório HTML
+  publicado como artefato quando falha.
 
-Os três checks — `Backend (Python 3.11)`, `Backend (Python 3.12)` e `Frontend` —
-são **obrigatórios**: a ruleset `CI obrigatoria em main` faz o GitHub recusar o
-merge, e não há ator de exceção (vale para o dono do repositório também). A
-branch ainda precisa estar atualizada com `main` antes do merge, para que a
-combinação testada seja a combinação mesclada.
+Os quatro checks — `Backend (Python 3.11)`, `Backend (Python 3.12)`,
+`Frontend` e `E2E (Playwright)` — são **obrigatórios**: a ruleset
+`CI obrigatoria em main` faz o GitHub recusar o merge, e não há ator de
+exceção (vale para o dono do repositório também). A branch ainda precisa
+estar atualizada com `main` antes do merge, para que a combinação testada
+seja a combinação mesclada.
 
 > **Ao acrescentar um job ao `ci.yml`, acrescente o nome em
 > `scripts/protect-main.ps1` e rode o script.** A ruleset exige uma lista fixa de
@@ -212,8 +268,12 @@ combinação testada seja a combinação mesclada.
 
 **Não há deploy.** `docker-compose.yml` e os `Dockerfile.*` são scaffold
 documentado do alvo de produção (PostgreSQL + API + Web), não exercitados. O MVP
-roda localmente. Antes de qualquer exposição em rede, resolva autenticação
-(seção "Alta prioridade" do [TODO.md](TODO.md)).
+roda localmente. Autenticação já está resolvida (A5, [D-42](DECISIONS.md)) —
+antes de qualquer exposição em rede, registre um cliente OAuth no Google Cloud
+Console (`GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`, redirect URI
+`{BACKEND_BASE_URL}/api/auth/google/callback`, ver `.env.example`) e confirme
+`SESSION_COOKIE_SECURE=true` (o padrão) e `CORS_ORIGINS` apontando só para o
+domínio real do frontend.
 
 ---
 

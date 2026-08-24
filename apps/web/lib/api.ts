@@ -3,10 +3,14 @@
 
 import type {
   AIStatus,
+  BillingStatus,
   ChartData,
+  CheckoutSession,
   CommitResult,
   Comparison,
   ComparisonRequest,
+  CurrentUser,
+  DashboardOverview,
   Explanation,
   Interpretation,
   ImportJobOut,
@@ -20,8 +24,10 @@ import type {
   MaterialListItem,
   MaterialUpdate,
   PerformanceIndex,
+  PortalSession,
   PropertyDefinition,
   PropertyDefinitionIn,
+  PropertyDistribution,
   PropertyMap,
   PropertyMapRequest,
   PropertyValueIn,
@@ -61,6 +67,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     ...init,
     headers: { Accept: "application/json", "Content-Type": "application/json", ...init?.headers },
+    credentials: "include",
     cache: "no-store",
   });
   if (!res.ok) {
@@ -68,6 +75,21 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   }
   if (res.status === 204) return undefined as T;
   return (await res.json()) as T;
+}
+
+// --- Auth -------------------------------------------------------------------
+
+export function getCurrentUser(): Promise<CurrentUser> {
+  return request<CurrentUser>(`/api/auth/me`);
+}
+
+export function logout(): Promise<void> {
+  return request<void>(`/api/auth/logout`, { method: "POST" });
+}
+
+/** For a plain `<a href>` — a full-page redirect into Google, not a fetch. */
+export function googleLoginUrl(): string {
+  return `${API_URL}/api/auth/google/login`;
 }
 
 // --- Materials ------------------------------------------------------------
@@ -176,6 +198,7 @@ export async function uploadImportFile(file: File): Promise<UploadResult> {
   const res = await fetch(`${API_URL}/api/imports/upload`, {
     method: "POST",
     body: form,
+    credentials: "include",
     cache: "no-store",
   });
   if (!res.ok) {
@@ -290,6 +313,18 @@ export function getComparison(payload: ComparisonRequest): Promise<Comparison> {
   });
 }
 
+// --- Dashboard ---------------------------------------------------------------
+
+export function getDashboardOverview(): Promise<DashboardOverview> {
+  return request<DashboardOverview>(`/api/dashboard/overview`);
+}
+
+export function getDashboardDistribution(propertySlug: string): Promise<PropertyDistribution> {
+  return request<PropertyDistribution>(
+    `/api/dashboard/distribution/${encodeURIComponent(propertySlug)}`,
+  );
+}
+
 // --- Optional AI layer ------------------------------------------------------
 
 export function getAIStatus(): Promise<AIStatus> {
@@ -308,6 +343,20 @@ export function explainStudy(studyId: number): Promise<Explanation> {
     method: "POST",
     body: JSON.stringify({ study_id: studyId }),
   });
+}
+
+// --- Billing (assinatura Stripe) ---------------------------------------------
+
+export function getBillingStatus(): Promise<BillingStatus> {
+  return request<BillingStatus>(`/api/billing/status`);
+}
+
+export function createCheckoutSession(): Promise<CheckoutSession> {
+  return request<CheckoutSession>(`/api/billing/checkout`, { method: "POST" });
+}
+
+export function createPortalSession(): Promise<PortalSession> {
+  return request<PortalSession>(`/api/billing/portal`, { method: "POST" });
 }
 
 // --- Exports ----------------------------------------------------------------
@@ -331,4 +380,16 @@ export function catalogueExportUrl(format: ExportFormat): string {
 
 export function studyExportUrl(studyId: number, format: ExportFormat): string {
   return `${API_URL}/api/exports/estudos/${studyId}.${format}`;
+}
+
+/**
+ * The engineering report (laudo): a document distinct from the selection
+ * report, combining a ranking figure, the same audit tables, and — when the
+ * AI layer is on — an interpretive narrative. HTML-only, and always opens
+ * inline, like the printable report it is built alongside.
+ */
+export function studyLaudoUrl(studyId: number, responsible?: string): string {
+  const trimmed = responsible?.trim();
+  const query = trimmed ? `?${new URLSearchParams({ responsavel: trimmed })}` : "";
+  return `${API_URL}/api/exports/estudos/${studyId}/laudo.html${query}`;
 }

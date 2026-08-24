@@ -13,64 +13,23 @@ os vizinhos — outros documentos citam esses códigos.
 
 ## Alta prioridade
 
-### A2 — Estudo de caso didático completo
-- **Descrição:** um caso com solução consolidada na literatura, do enunciado ao
-  relatório exportado, verificando se os candidatos e a ordenação correspondem
-  ao esperado. Publicar como roteiro em `docs/`.
-- **Impacto:** alto. É **entregável explícito da proposta** (itens 2.6 e 6) e a
-  validação metodológica do trabalho. Sem ele, a ferramenta funciona mas não
-  está demonstrada.
-- **Dificuldade:** ▃
-- **Dependências:** nenhuma técnica; depende de escolher o caso na literatura.
-
-### A4 — Testes end-to-end dos fluxos
-- **Descrição:** Playwright cobrindo importar → selecionar → visualizar →
-  exportar.
-- **Impacto:** alto. Toda a verificação de interface foi manual. Dois bugs desta
-  sessão (unidade nula na IA, `prettyUnit` com expoente fracionário) só
-  apareceram porque alguém abriu o navegador.
-- **Dificuldade:** ▆
-- **Dependências:** nenhuma, mas **um job novo não bloqueia sozinho.** A ruleset
-  exige uma lista fixa de nomes; um job de Playwright acrescentado ao `ci.yml`
-  roda e reprova o PR na aparência, sem impedir o merge, até que o nome entre em
-  `scripts/protect-main.ps1` e o script seja rodado de novo.
-
-### A5 — Autenticação e autorização por projeto
-- **Descrição:** usuários, sessões, e escopo de dados por projeto.
-- **Impacto:** alto **se** o sistema for exposto em rede. Hoje a API é
-  totalmente aberta, incluindo escrita e exclusão (ver [DECISIONS.md](DECISIONS.md) D-18).
-- **Dificuldade:** ▆
-- **Dependências:** exige modelar `User` e `Project` e revisar toda consulta para
-  filtrar por escopo. Não comece sem decidir se o trabalho será hospedado.
+Nenhum item aberto no momento — A2 (estudo de caso) saiu para "Débitos já
+quitados".
 
 ---
 
 ## Média prioridade
 
-### M1 — Triagem de licenciamento das bases incorporadas
-- **Descrição:** registrar procedência e licença de cada base/documentação
-  importada, com sinalização de conteúdo possivelmente protegido e decisão
-  humana obrigatória antes da incorporação.
-- **Impacto:** médio-alto. É **compromisso do item 4.2 da proposta** e uma
-  mitigação de risco declarada, ainda não implementada.
-- **Dificuldade:** ▃
-- **Dependências:** modelo de `Source` já existe e pode ser estendido.
-
-### M2 — Auditoria de alterações
-- **Descrição:** `AuditEvent` registrando quem mudou o quê e quando.
-- **Impacto:** médio. Sustenta a alegação de rastreabilidade no nível do
-  *processo*, não só do dado.
-- **Dificuldade:** ▃
-- **Dependências:** faz mais sentido depois de A5 (sem usuários, "quem" fica vazio).
-
 ### M8 — Desempenho medido (Lighthouse)
 - **Descrição:** a metade de desempenho do antigo M3, que ficou de fora quando a
-  acessibilidade foi entregue. Medir peso de bundle e tempo até interativo nas
-  oito rotas; o Plotly é o suspeito óbvio, e hoje entra por `next/dynamic` sem
-  que ninguém tenha medido o quanto isso custa.
+  acessibilidade foi entregue. **A parte de peso de bundle já foi feita** na
+  varredura da Fase 9: o Plotly era mesmo o suspeito — 4,5 MB, 79% de todo o JS —
+  e passou a ser montado à la carte, derrubando o maior *chunk* para 981 KB
+  (`PROJECT_CONTEXT.md §12`). O que resta é o que nunca foi medido: **tempo até
+  interativo** em todas as rotas, com Lighthouse ou equivalente.
 - **Impacto:** médio. Um estudante em aula, num notebook modesto, é o público
   descrito na proposta.
-- **Dificuldade:** ▃
+- **Dificuldade:** ▁ (o que sobrou), antes ▃
 - **Dependências:** nenhuma. Se virar job de CI, vale o aviso do A4 sobre
   `scripts/protect-main.ps1`.
 
@@ -144,8 +103,9 @@ os vizinhos — outros documentos citam esses códigos.
 
 ## Entidades ainda não modeladas
 
-`User`, `Project`, `AuditEvent`, `SavedChart`, `GeneratedReport`. Cada uma
-depende de um item acima (A5, M2, B7) — não crie tabela sem o caso de uso.
+`SavedChart`, `GeneratedReport`. Cada uma depende de um item acima (B7) — não
+crie tabela sem o caso de uso. (`User` e `Project` saíram desta lista com A5;
+`AuditEvent` saiu com M2.)
 
 ---
 
@@ -153,6 +113,72 @@ depende de um item acima (A5, M2, B7) — não crie tabela sem o caso de uso.
 
 Registrados para não voltarem por engano:
 
+- ~~**M1** — Triagem de licenciamento das bases incorporadas~~ — `Source`
+  ganhou `license_label`/`license_url`, a sinalização explícita
+  `contains_third_party_data` e um carimbo de quem registrou a fonte e
+  quando. O portão fica na importação (`ImportService._check_source_licensing`,
+  rodando em `validate()` e de novo em `commit()`): uma fonte **nova** sem
+  licença registrada é recusada antes de qualquer linha ser escrita, e uma
+  fonte marcada como possivelmente contendo dado de terceiro exige uma
+  segunda confirmação humana explícita (`source_review_confirmed`). Reusar
+  um `source_label` já registrado não reabre a decisão a cada importação.
+  `GET /api/sources` lista toda fonte com sua licença e revisor. Ver
+  [D-44](DECISIONS.md).
+- ~~**A2** — Estudo de caso didático completo~~ — o tirante leve e rígido
+  ("light, stiff tie") de Ashby, reproduzido do enunciado ao relatório
+  exportado contra a aplicação real (não simulado): nove materiais reais de
+  literatura (não o `sample-data/` fictício) importados pelo assistente de
+  importação, o índice `rigidez-especifica` já semeado, uma restrição de
+  fragilidade que exclui a cerâmica mesmo com o melhor índice bruto, e a
+  ordenação resultante batendo com os três pontos consolidados na literatura
+  de Ashby: compósitos à frente de metais, os três metais estruturais num
+  platô de menos de 2% entre si, cerâmica excluída por fragilidade apesar do
+  índice. Roteiro completo, com as respostas reais da API como evidência, em
+  [`docs/12-estudo-de-caso.md`](12-estudo-de-caso.md); regressão automatizada
+  em `app/tests/test_case_study.py`.
+- ~~**M2** — Auditoria de alterações~~ — `AuditEvent`
+  (`app/models/audit.py`) registra quem, o quê e quando para material, classe,
+  propriedade, índice de desempenho e estudo de seleção: um retrato de
+  `user_email`/`entity_label` (sobrevive à conta ou à entidade sumirem depois)
+  e um diff só dos campos que mudaram. `GET /api/audit` lista por
+  entidade, com a mesma fronteira de projeto de todo endpoint de estudo — o
+  catálogo é visível a qualquer usuário logado, um estudo só ao seu dono,
+  inclusive depois de excluído (retrato de `project_id`, não junção viva). A
+  importação em lote fica de fora de propósito: `ImportService` monta
+  `Material` direto, sem os métodos públicos de `MaterialService` que
+  chamam o audit — `ImportJob` já é a trilha desse fluxo. Ver
+  [D-43](DECISIONS.md).
+- ~~**A5** — Autenticação e autorização por projeto~~ — login exclusivamente
+  por terceiros (Google, OAuth 2.0; sem senha em lugar nenhum), sessão em
+  cookie `httpOnly` (`UserSession` é linha de banco, não JWT — logout revoga
+  de verdade), catálogo global compartilhado entre usuários autenticados, um
+  `Project` por `User` criado no primeiro login, `SelectionStudy` escopado por
+  `project_id` (ver [D-42](DECISIONS.md), [ARCHITECTURE.md §7](ARCHITECTURE.md)).
+  O Playwright (A4/B11) não passa pelo Google: `app/db/seed.py` grava uma
+  sessão fixa só quando `ENVIRONMENT=development` **e** `E2E_SESSION_TOKEN`
+  está no ambiente, e a suíte injeta esse token como cookie antes da primeira
+  navegação — sem nenhuma rota de bypass exposta pela API. Destrava M2.
+- ~~**A4** — testes end-to-end dos fluxos~~ — Playwright cobre importar →
+  selecionar → visualizar → exportar como uma sessão contínua no navegador,
+  contra API e banco (SQLite, descartável) próprios, em portas isoladas das de
+  desenvolvimento (`apps/web/e2e/`, `apps/web/playwright.config.ts`,
+  `apps/api/scripts/e2e_server.py`; `npm run test:e2e`). Achou um bug real de
+  produção antes de ir ao ar: a sugestão automática de coluna na importação
+  (`_suggest`, `app/importers/service.py`) comparava um slug hifenizado
+  (`slugify()` sempre usa `-`) contra o slug armazenado, que usa `_` — então
+  **toda propriedade de nome composto** ("Módulo de Young", "Limite de
+  escoamento" etc.) nunca era sugerida automaticamente, e só "Densidade"
+  (palavra única) por coincidência funcionava. Corrigido comparando os dois
+  lados já normalizados; regressão coberta em `test_imports_api.py`.
+- ~~**B11** — Playwright (A4) como check obrigatório de CI~~ — job
+  `E2E (Playwright)` em `ci.yml`: Python + Node no mesmo runner, Chromium via
+  `--with-deps`, `npm run test:e2e`, relatório HTML publicado como artefato
+  quando falha. `playwright.config.ts` resolvia o Python fixo em
+  `.venv/Scripts/python.exe` (layout Windows) — não existe no runner Ubuntu;
+  agora `E2E_API_PYTHON` sobrepõe o caminho, e o workflow passa
+  `E2E_API_PYTHON=python`, o que o `setup-python` já deixa no PATH.
+  `scripts/protect-main.ps1` ganhou o nome do check e foi rodado contra o
+  repositório.
 - ~~`black --check` falhava em arquivos anteriores à Fase 5~~ — backend formatado
   por inteiro em commit próprio; `black --check` virou portão de CI.
 - ~~Isolamento de testes quebrado com pysqlite~~ — corrigido no `conftest.py`,

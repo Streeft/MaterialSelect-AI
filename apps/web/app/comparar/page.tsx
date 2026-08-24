@@ -20,11 +20,11 @@ import {
   CardHeader,
   EmptyState,
   ErrorState,
-  Field,
   Input,
   LoadingState,
   Section,
   Select,
+  SelectOption,
   Tabs,
   ToggleChip,
 } from "@/components/ui";
@@ -139,14 +139,14 @@ function ComparePageContent() {
             />
             <CardBody className="flex flex-col gap-3">
               <div className="flex flex-wrap items-end gap-2">
-                <Field label={t.search} className="min-w-[12rem] flex-1">
-                  <Input
-                    type="search"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder={t.search}
-                  />
-                </Field>
+                <Input
+                  label={t.search}
+                  className="min-w-[12rem] flex-1"
+                  type="search"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder={t.search}
+                />
                 <Button
                   size="sm"
                   variant="ghost"
@@ -219,15 +219,14 @@ function ComparePageContent() {
         id="visualizacao"
         title={t.groupView}
         actions={
-          <Field label={t.normalization}>
-            <Select
-              value={normalization}
-              onChange={(e) => setNormalization(e.target.value as NormalizationMethod)}
-            >
-              <option value="minmax">{t.normMinmax}</option>
-              <option value="vector">{t.normVector}</option>
-            </Select>
-          </Field>
+          <Select
+            label={t.normalization}
+            value={normalization}
+            onChange={(e) => setNormalization(e.target.value as NormalizationMethod)}
+          >
+            <SelectOption value="minmax">{t.normMinmax}</SelectOption>
+            <SelectOption value="vector">{t.normVector}</SelectOption>
+          </Select>
         }
       >
         {/* Real tabs, not a row of buttons: arrows move between the five views
