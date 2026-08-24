@@ -43,6 +43,15 @@ jobs:
         working-directory: apps/web
         run: npm ci
 
+      - name: Build do frontend
+        working-directory: apps/web
+        env:
+          # NEXT_PUBLIC_* é inlinado em tempo de build, não de execução — sem
+          # isto aqui, "npm run start" mais abaixo serviria um bundle que
+          # aponta para o padrão embutido no código, não para esta CI.
+          NEXT_PUBLIC_API_URL: http://localhost:8000
+        run: npm run build
+
       - name: Preparar Python
         uses: actions/setup-python@v7
         with:
