@@ -19,7 +19,7 @@ from sqlalchemy.pool import StaticPool
 
 from app.db.base import Base, get_db, json_serializer
 from app.db.seed import seed
-from app.dependencies import get_current_user
+from app.dependencies import get_current_user, require_active_subscription
 from app.main import app
 from app.models.project import Project
 from app.models.user import User
@@ -143,6 +143,29 @@ def other_user(_connection: Connection) -> User:
 
 @pytest.fixture()
 def client(_connection: Connection, test_user: User) -> Generator[TestClient, None, None]:
+    def _override_get_db() -> Generator[Session, None, None]:
+        session = _session_for(_connection)
+        try:
+            yield session
+        finally:
+            session.close()
+
+    app.dependency_overrides[get_db] = _override_get_db
+    app.dependency_overrides[get_current_user] = lambda: test_user
+    app.dependency_overrides[require_active_subscription] = lambda: None
+    with TestClient(app) as test_client:
+        yield test_client
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture()
+def client_without_subscription(
+    _connection: Connection, test_user: User
+) -> Generator[TestClient, None, None]:
+    """Like `client`, but leaves `require_active_subscription` un-stubbed — for
+    testing the 403 (or the 200 once a subscription exists) that a logged-in
+    user without an active plan actually gets."""
+
     def _override_get_db() -> Generator[Session, None, None]:
         session = _session_for(_connection)
         try:

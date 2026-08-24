@@ -36,12 +36,19 @@ from app.models.project import Project
 from app.models.property_definition import PropertyDefinition
 from app.models.source import Source
 from app.models.user import User, UserSession
+from app.repositories.subscription_repository import SubscriptionRepository
 
 DEMO_WARNING = "Dados exclusivamente demonstrativos. Não utilizar em projetos reais."
 
 # Stable, fictitious Google `sub` for the E2E fixture user — never a real
 # Google identity, since this row is never reached through the OAuth flow.
 E2E_USER_GOOGLE_SUB = "e2e-fixture-user"
+
+# Fictitious Stripe ids for the same fixture user. No Stripe account ever sees
+# them: the subscription gate reads only the local `status` column, so an
+# invented customer id is enough to make the E2E browser a paying user.
+E2E_STRIPE_CUSTOMER_ID = "cus_e2e_seed"
+E2E_STRIPE_SUBSCRIPTION_ID = "sub_e2e_seed"
 
 # --- Taxonomy -------------------------------------------------------------
 CLASSES = [
@@ -631,7 +638,7 @@ def seed(db: Session) -> dict[str, int]:
 
 
 def seed_e2e_session(db: Session) -> None:
-    """Write a fixed logged-in session for the Playwright suite.
+    """Write a fixed logged-in, subscribed session for the Playwright suite.
 
     Only runs when ``ENVIRONMENT=development`` *and* ``E2E_SESSION_TOKEN`` is
     set — never in production, and a no-op for a developer running
@@ -641,6 +648,12 @@ def seed_e2e_session(db: Session) -> None:
     ``e2e/session.ts`` injects it straight into the browser as the
     ``msai_session`` cookie, skipping Google entirely without exposing any
     bypass route from the API itself.
+
+    The active ``Subscription`` written alongside the session exists under the
+    same guard, so a spec that exercises a billing-aware screen finds a
+    coherent account instead of a half-seeded one. Stripe is never contacted
+    here — the check reads the local ``status`` column, so fictitious ids are
+    enough.
     """
     token = os.environ.get("E2E_SESSION_TOKEN")
     if not token or settings.environment != "development":
@@ -668,6 +681,15 @@ def seed_e2e_session(db: Session) -> None:
                 user_id=user.id,
                 expires_at=datetime.now(UTC) + timedelta(hours=settings.session_ttl_hours),
             )
+        )
+
+    subscriptions = SubscriptionRepository(db)
+    if subscriptions.get_by_user_id(user.id) is None:
+        subscriptions.create(
+            user_id=user.id,
+            stripe_customer_id=E2E_STRIPE_CUSTOMER_ID,
+            stripe_subscription_id=E2E_STRIPE_SUBSCRIPTION_ID,
+            status="active",
         )
     db.commit()
 
