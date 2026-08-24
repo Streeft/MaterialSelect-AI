@@ -23,12 +23,14 @@ from app.domain.errors import (
     ConflictError,
     NotFoundError,
     ServiceUnavailableError,
+    SubscriptionRequiredError,
     ValidationError,
 )
 from app.routers import (
     ai,
     audit,
     auth,
+    billing,
     charts,
     classes,
     dashboard,
@@ -81,6 +83,11 @@ async def _handle_authentication(_: Request, exc: AuthenticationError) -> JSONRe
     return _error_response(401, str(exc))
 
 
+@app.exception_handler(SubscriptionRequiredError)
+async def _handle_subscription_required(_: Request, exc: SubscriptionRequiredError) -> JSONResponse:
+    return _error_response(403, str(exc))
+
+
 @app.exception_handler(ServiceUnavailableError)
 async def _handle_service_unavailable(_: Request, exc: ServiceUnavailableError) -> JSONResponse:
     return _error_response(503, str(exc))
@@ -116,6 +123,7 @@ async def _handle_request_validation(_: Request, exc: RequestValidationError) ->
 
 app.include_router(health.router, prefix="/api")
 app.include_router(auth.router, prefix="/api")
+app.include_router(billing.router, prefix="/api")
 app.include_router(materials.router, prefix="/api")
 app.include_router(classes.router, prefix="/api")
 app.include_router(properties.router, prefix="/api")
