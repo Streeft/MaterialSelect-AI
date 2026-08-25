@@ -119,6 +119,14 @@ proposta — `11-usabilidade.md` está instrumentado, mas **nenhuma sessão foi
 realizada**; enquanto a tabela de melhorias dele estiver vazia, o §3.5 não foi
 cumprido.
 
+**M4 (contrato de tipos) resolvido.** `packages/shared-types/index.ts` deixou
+de ser cópia manual e passou a ser importado de verdade por `apps/web` via
+npm workspaces + `transpilePackages` — a duplicação já tinha divergido em
+produção (`x_quality`/`y_quality` não-nulos no arquivo canônico, corretos
+como `| null` só na cópia que o typechecker de fato exercitava), exatamente o
+modo de falha silenciosa que a decisão original ([D-16](DECISIONS.md)) já
+previa. Ver M4 em [TODO.md](TODO.md).
+
 **Saúde do código:** 713 testes de backend (Python 3.11 e 3.12, nenhum skip)
 e 157 de frontend, todos verdes. `ruff` limpo, `black
 --check` limpo, typecheck estrito e build de produção sem avisos. CI no
