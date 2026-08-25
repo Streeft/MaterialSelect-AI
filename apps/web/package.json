@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
+    "@materialselect/shared-types": "*",
     "@lit/react": "^1.0.8",
     "@material/web": "^2.5.0",
     "@tanstack/react-query": "^5.51.0",

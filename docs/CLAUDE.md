@@ -141,8 +141,11 @@ editor, é inglês.
 - **Alembic é a fonte de verdade do schema.** Gere com
   `alembic revision --autogenerate` depois de alterar models. Nunca edite o banco
   à mão. `create_all` só no seed e nos testes.
-- **Ao alterar um contrato, altere os dois arquivos**: `packages/shared-types/index.ts`
-  e `apps/web/lib/types.ts` (duplicação consciente, ver [TODO.md](TODO.md)).
+- **Contrato de tipos: um arquivo só.** `packages/shared-types/index.ts` é
+  canônico; `apps/web` o importa via npm workspace (`@materialselect/shared-types`,
+  transpilado por `transpilePackages` em `next.config.mjs`), não mais por cópia
+  manual. `apps/web/lib/types.ts` é um barril de reexportação — não escreva
+  tipo novo ali (D-16/M4).
 
 ---
 

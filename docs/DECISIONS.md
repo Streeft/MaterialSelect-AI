@@ -231,9 +231,9 @@ silenciosamente em aritmética. O controle célula a célula é o que se quer aq
 
 ---
 
-## D-16 — Contrato de tipos duplicado conscientemente
+## D-16 — Contrato de tipos duplicado conscientemente (superado por M4, abaixo)
 
-**Decisão.** `packages/shared-types/index.ts` é canônico e
+**Decisão original.** `packages/shared-types/index.ts` é canônico e
 `apps/web/lib/types.ts` o espelha manualmente.
 
 **Por quê.** Unificar exigiria npm workspaces + `transpilePackages`, complicando
@@ -241,6 +241,22 @@ o build do Next no MVP.
 
 **Custo aceito.** Ao alterar um contrato é preciso alterar dois arquivos.
 Registrado como débito em [TODO.md](TODO.md).
+
+**Por que deixou de valer.** O custo aceito deixou de ser hipotético: os dois
+arquivos **já tinham divergido** quando M4 foi atacado — `x_quality`/
+`y_quality` em `PropertyMapOut` eram `DataQuality` (não-nulo) em
+`shared-types/index.ts` e `DataQuality | null` (correto — nulo quando o eixo é
+um índice, sem propriedade única para atribuir proveniência) em
+`apps/web/lib/types.ts`. `packages/shared-types` nunca era importado por
+código nenhum, então nada do build ou dos testes acusava a divergência —
+exatamente o modo de falha "só aparece em runtime" que D-16 já previa. npm
+workspaces + `transpilePackages` foram implementados (`package.json` na raiz
+com `workspaces`, `@materialselect/shared-types` como dependência de
+`apps/web`); `apps/web/lib/types.ts` virou um barril de reexportação
+(`export * from "@materialselect/shared-types"`) em vez de conteúdo
+duplicado, preservando os 39 pontos de importação existentes (`@/lib/types`)
+sem precisar trocar cada um pelo nome do pacote. Ver M4 em
+[TODO.md](TODO.md).
 
 ---
 
