@@ -50,17 +50,6 @@ def test_portal_without_stripe_configured_returns_503(client):
     assert response.status_code == 503
 
 
-@pytest.mark.skip(
-    reason="Portão global de assinatura não está ligado. Esta branch traz duas "
-    "arquiteturas de cobrança: a desta implementação, em que toda rota exige "
-    "assinatura ativa, e o plano Free/Pro de "
-    "docs/superpowers/plans/2026-08-21-assinatura-e-limites.md, em que o plano "
-    "gratuito é funcional e só recursos específicos têm teto. Ligar o portão "
-    "global aqui derrubaria todo usuário sem assinatura — inclusive as "
-    "fixtures de toda a suíte — e decidiria a reconciliação por omissão. O "
-    "teste fica como registro da intenção original até essa decisão ser "
-    "tomada explicitamente."
-)
 def test_protected_route_without_active_subscription_is_forbidden(client_without_subscription):
     response = client_without_subscription.get("/api/materials")
     assert response.status_code == 403

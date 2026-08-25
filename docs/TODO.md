@@ -20,24 +20,6 @@ executado: ver "Débitos já quitados".
 
 ## Média prioridade
 
-### M9 — Reconciliar as duas arquiteturas de cobrança
-- **Descrição:** o PR #18 trouxe a implementação de cobrança da
-  `fase-9-ia-e-laudo` (`Subscription`, `routers/billing.py`,
-  `require_active_subscription`) sem ativá-la como portão global — ela
-  bloquearia todo usuário sem assinatura, inclusive as fixtures de teste, e
-  decidiria por omissão a reconciliação com o plano Free/Pro já documentado em
-  `docs/superpowers/plans/2026-08-21-assinatura-e-limites.md` (plano gratuito
-  funcional, teto só em recursos específicos via `EntitlementService`). O
-  teste que afirma o portão global está com `skip` e o motivo escrito
-  (`test_billing_api.py::test_protected_route_without_active_subscription_is_forbidden`).
-  Falta decidir qual arquitetura vence — ou como as duas convivem — antes de
-  ligar qualquer portão de cobrança em produção.
-- **Impacto:** alto para o modelo de negócio, mas **não bloqueia** o uso atual
-  do sistema — sem portão ligado, toda rota continua acessível a qualquer
-  usuário autenticado como sempre foi.
-- **Dificuldade:** ▆ — é decisão de arquitetura, não só código.
-- **Dependências:** decisão explícita do autor sobre qual desenho seguir.
-
 ### M4 — Unificar o contrato de tipos
 - **Descrição:** npm workspaces + `transpilePackages` para eliminar o espelho
   manual entre `packages/shared-types` e `apps/web/lib/types.ts`.
@@ -118,6 +100,15 @@ crie tabela sem o caso de uso. (`User` e `Project` saíram desta lista com A5;
 
 Registrados para não voltarem por engano:
 
+- ~~**M9** — Reconciliar as duas arquiteturas de cobrança~~ — **decidido: o
+  portão binário do plano de 18/08 é o que fica ligado.** `require_active_
+  subscription` passou a valer em todo router exceto `health`/`auth`/`billing`;
+  o plano Free/Pro de 21/08 fica registrado como desenho alternativo, não
+  implementado. `AuthGate.tsx` voltou a dois estágios (`/auth/me` →
+  `/billing/status`); a sessão fixa de E2E/Lighthouse já escrevia uma
+  `Subscription` ativa para este momento. Verificado ao vivo: sem cookie →
+  401, com assinatura ativa → 200, autenticado sem assinatura → 403 (com
+  `/billing/status` continuando alcançável). Ver [D-46](DECISIONS.md).
 - ~~**A6** — Purgar o material licenciado do Cérebro em `main`~~ — **decidido
   não purgar.** O autor optou por manter os 158 arquivos (11 livros
   comerciais, 103 fichas Granta EduPack, material de curso e trabalhos

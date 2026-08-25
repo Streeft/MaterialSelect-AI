@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { AuthGate } from "./AuthGate";
 import { ptBR } from "@/lib/i18n";
-import type { CurrentUser } from "@/lib/types";
+import type { BillingStatus, CurrentUser } from "@/lib/types";
 
 const route = { pathname: "/" };
 const routerReplace = vi.fn();
@@ -14,9 +14,11 @@ vi.mock("next/navigation", () => ({
 }));
 
 const getCurrentUser = vi.fn();
+const getBillingStatus = vi.fn();
 vi.mock("@/lib/api", async (importOriginal) => ({
   ApiError: (await importOriginal<typeof import("@/lib/api")>()).ApiError,
   getCurrentUser: () => getCurrentUser(),
+  getBillingStatus: () => getBillingStatus(),
 }));
 
 const { ApiError } = await import("@/lib/api");
@@ -28,6 +30,9 @@ const user: CurrentUser = {
   avatar_url: null,
   project_id: 1,
 };
+
+const activeBilling: BillingStatus = { active: true, status: "active", current_period_end: null };
+const inactiveBilling: BillingStatus = { active: false, status: null, current_period_end: null };
 
 function renderGate(children: ReactNode) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -42,9 +47,10 @@ beforeEach(() => {
   route.pathname = "/";
   routerReplace.mockClear();
   getCurrentUser.mockReset();
+  getBillingStatus.mockReset();
 });
 
-describe("AuthGate", () => {
+describe("AuthGate — sessão", () => {
   it("always renders /entrar, session check or not", () => {
     route.pathname = "/entrar";
     getCurrentUser.mockReturnValue(new Promise(() => {})); // never settles
@@ -69,9 +75,44 @@ describe("AuthGate", () => {
     await waitFor(() => expect(routerReplace).toHaveBeenCalledWith("/entrar"));
     expect(screen.queryByText("Conteúdo protegido")).not.toBeInTheDocument();
   });
+});
 
-  it("renders the real page for a valid session", async () => {
+describe("AuthGate — assinatura", () => {
+  it("always renders /assinatura once logged in, billing check or not", async () => {
+    route.pathname = "/assinatura";
     getCurrentUser.mockResolvedValue(user);
+    getBillingStatus.mockReturnValue(new Promise(() => {})); // never settles
+
+    renderGate(<p>Tela de assinatura</p>);
+
+    expect(await screen.findByText("Tela de assinatura")).toBeInTheDocument();
+    expect(routerReplace).not.toHaveBeenCalled();
+  });
+
+  it("holds the real page back while the billing check is in flight", async () => {
+    getCurrentUser.mockResolvedValue(user);
+    getBillingStatus.mockReturnValue(new Promise(() => {}));
+
+    renderGate(<p>Conteúdo protegido</p>);
+
+    await screen.findByText(ptBR.auth.checkingSubscription);
+    expect(screen.queryByText("Conteúdo protegido")).not.toBeInTheDocument();
+  });
+
+  it("sends an unsubscribed user to /assinatura", async () => {
+    getCurrentUser.mockResolvedValue(user);
+    getBillingStatus.mockResolvedValue(inactiveBilling);
+
+    renderGate(<p>Conteúdo protegido</p>);
+
+    await waitFor(() => expect(routerReplace).toHaveBeenCalledWith("/assinatura"));
+    expect(screen.queryByText("Conteúdo protegido")).not.toBeInTheDocument();
+  });
+
+  it("renders the real page for an active subscription", async () => {
+    getCurrentUser.mockResolvedValue(user);
+    getBillingStatus.mockResolvedValue(activeBilling);
+
     renderGate(<p>Conteúdo protegido</p>);
 
     expect(await screen.findByText("Conteúdo protegido")).toBeInTheDocument();
