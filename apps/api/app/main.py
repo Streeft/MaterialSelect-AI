@@ -9,7 +9,7 @@ from __future__ import annotations
 import math
 from typing import Any
 
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -18,6 +18,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app import __version__
 from app.config import settings
+from app.dependencies import require_active_subscription
 from app.domain.errors import (
     AuthenticationError,
     ConflictError,
@@ -121,22 +122,54 @@ async def _handle_request_validation(_: Request, exc: RequestValidationError) ->
     return JSONResponse(status_code=422, content={"detail": errors})
 
 
+# `health`, `auth` e `billing` ficam sem a dependência de bloco: são as únicas
+# rotas públicas (health/auth) ou que decidem sua própria regra por rota
+# (billing — checkout precisa funcionar sem assinatura, para poder comprar
+# uma). Todo outro router exige assinatura ativa, incluindo `audit` e
+# `sources`, que chegaram depois deste desenho mas seguem o mesmo princípio:
+# tudo fica atrás do portão, exceto o que não pode ficar.
 app.include_router(health.router, prefix="/api")
 app.include_router(auth.router, prefix="/api")
 app.include_router(billing.router, prefix="/api")
-app.include_router(materials.router, prefix="/api")
-app.include_router(classes.router, prefix="/api")
-app.include_router(properties.router, prefix="/api")
-app.include_router(imports.router, prefix="/api")
-app.include_router(imports.templates_router, prefix="/api")
-app.include_router(selection.router, prefix="/api")
-app.include_router(selection.indices_router, prefix="/api")
-app.include_router(charts.router, prefix="/api")
-app.include_router(dashboard.router, prefix="/api")
-app.include_router(ai.router, prefix="/api")
-app.include_router(exports.router, prefix="/api")
-app.include_router(audit.router, prefix="/api")
-app.include_router(sources.router, prefix="/api")
+app.include_router(
+    materials.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
+)
+app.include_router(
+    classes.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
+)
+app.include_router(
+    properties.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
+)
+app.include_router(
+    imports.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
+)
+app.include_router(
+    imports.templates_router,
+    prefix="/api",
+    dependencies=[Depends(require_active_subscription)],
+)
+app.include_router(
+    selection.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
+)
+app.include_router(
+    selection.indices_router,
+    prefix="/api",
+    dependencies=[Depends(require_active_subscription)],
+)
+app.include_router(
+    charts.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
+)
+app.include_router(
+    dashboard.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
+)
+app.include_router(ai.router, prefix="/api", dependencies=[Depends(require_active_subscription)])
+app.include_router(
+    exports.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
+)
+app.include_router(audit.router, prefix="/api", dependencies=[Depends(require_active_subscription)])
+app.include_router(
+    sources.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
+)
 
 
 @app.get("/", tags=["root"])
