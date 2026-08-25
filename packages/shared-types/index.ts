@@ -1,6 +1,10 @@
 // Shared API contract types for MaterialSelect AI.
-// These mirror the backend Pydantic schemas in apps/api/app/schemas.
-// Kept framework-agnostic so both the web app and future clients can import them.
+//
+// Canonical (D-16/M4): apps/web imports this workspace package directly
+// (`@materialselect/shared-types`, transpiled via next.config.mjs) instead of
+// mirroring it — a manual copy used to drift silently until the typechecker
+// caught it (see the M4 entry in docs/TODO.md for the field it missed).
+// Mirrors the backend Pydantic schemas in apps/api/app/schemas.
 
 export type PropertyCategory =
   | "FISICA"
@@ -100,6 +104,8 @@ export interface PropertyDefinition {
   allows_log_scale: boolean;
   value_count: number;
 }
+
+// --- Write payloads (mirror the backend Pydantic input schemas) -----------
 
 export interface PropertyValueIn {
   property_slug: string;
@@ -271,6 +277,7 @@ export interface ChartData {
   points: ChartPoint[];
   excluded_material_ids: number[];
 }
+
 // --- Deterministic selection ----------------------------------------------
 
 export type ConstraintOperator =
@@ -515,8 +522,10 @@ export interface MapPoint {
   y_uncertainty: number | null;
   x_is_interval: boolean;
   y_is_interval: boolean;
-  x_quality: DataQuality;
-  y_quality: DataQuality;
+  /** Null exactly when that axis is an index: a computed index has no single
+   * provenance of its own to badge. */
+  x_quality: DataQuality | null;
+  y_quality: DataQuality | null;
   index_value: number | null;
   index_undefined_reason: string | null;
 }
@@ -692,8 +701,7 @@ export interface Explanation {
   disclaimer: string;
 }
 
-// ---------------------------------------------------------------------------
-// Dashboard (Fase 9)
+// --- Dashboard ---------------------------------------------------------
 //
 // The panel's vocabulary is three-valued where `DataQuality` above is not:
 // a (material, property) slot is filled, declared missing, or never recorded.

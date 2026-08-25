@@ -7,6 +7,12 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const nextConfig = {
   reactStrictMode: true,
 
+  // `@materialselect/shared-types` (packages/shared-types) ships its TypeScript
+  // source directly, not a pre-built dist — Next needs to run it through its own
+  // compiler like any first-party file (D-16/M4: this is what replaced the
+  // manual mirror in apps/web/lib/types.ts).
+  transpilePackages: ["@materialselect/shared-types"],
+
   // The Playwright suite builds and serves its own instance of this app
   // (`e2e/playwright.config.ts`) so it can run alongside `npm run dev` without
   // the corruption a build and a dev server sharing one `.next` already caused
