@@ -108,7 +108,13 @@ Registrados para não voltarem por engano:
   `/billing/status`); a sessão fixa de E2E/Lighthouse já escrevia uma
   `Subscription` ativa para este momento. Verificado ao vivo: sem cookie →
   401, com assinatura ativa → 200, autenticado sem assinatura → 403 (com
-  `/billing/status` continuando alcançável). Ver [D-46](DECISIONS.md).
+  `/billing/status` continuando alcançável). **Checkout real testado de
+  ponta a ponta** (25/08): o autor configurou Stripe em modo de teste e um
+  cliente OAuth do Google na própria máquina e completou o fluxo completo —
+  login → checkout hospedado → pagamento de teste → webhook → `/assinatura`
+  com assinatura ativa. Essa verificação achou um bug real que os 713 testes
+  não pegavam (webhook sempre devolvia 500 contra o SDK de verdade); corrigido
+  e coberto por teste no PR #21. Ver [D-46](DECISIONS.md).
 - ~~**A6** — Purgar o material licenciado do Cérebro em `main`~~ — **decidido
   não purgar.** O autor optou por manter os 158 arquivos (11 livros
   comerciais, 103 fichas Granta EduPack, material de curso e trabalhos
