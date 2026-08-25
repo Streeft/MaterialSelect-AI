@@ -288,8 +288,11 @@ resto da fase — trazidas depois, íntegras, verificadas caminho a caminho:
   ligado hoje, aplicado a todo router exceto `health`/`auth`/`billing`. O
   plano Free/Pro de 21/08 fica registrado como alternativa não implementada.
   Sem `STRIPE_API_KEY` configurada (o padrão em dev e CI), `checkout` e
-  `portal` respondem 503 — o portão está ligado, mas ninguém consegue
-  assinar de verdade sem um operador configurar o Stripe.
+  `portal` respondem 503. Isso é o padrão do ambiente, não uma limitação do
+  código: o autor configurou Stripe em modo de teste na própria máquina e
+  **completou um checkout real de ponta a ponta** (login → checkout →
+  pagamento de teste → webhook → assinatura ativa), o que expôs e corrigiu
+  um bug real no processamento do webhook (PR #21, ver [D-46](DECISIONS.md)).
 
 ### Estudo de caso didático (A2)
 O tirante leve e rígido ("light, stiff tie") de Ashby — o exemplo introdutório
@@ -404,13 +407,18 @@ que mais afetam quem for mexer no código:
   `mock` é determinístico, e é ele o padrão. O `claude-api` foi exercitado
   contra um cliente falso nos testes, mas ainda não contra a API de verdade —
   não há chave neste ambiente; o `claude-cli` foi verificado ao vivo.
-- **O portão de assinatura está ligado, mas sem preço real configurado.**
+- **O portão de assinatura está ligado, e o checkout foi testado ao vivo.**
   `require_active_subscription` bloqueia toda rota (exceto
   `health`/`auth`/`billing`) sem `Subscription.status == "active"`
-  ([D-46](DECISIONS.md)) — mas `STRIPE_API_KEY` é vazio por padrão em dev e
-  CI, então `checkout`/`portal` respondem 503. O sistema cobra a decisão
-  certa (bloquear sem assinatura), mas ainda não tem como vender uma de
-  verdade sem um operador configurar o Stripe.
+  ([D-46](DECISIONS.md)). `STRIPE_API_KEY` continua vazio por padrão em dev e
+  CI ([D-36](DECISIONS.md); `checkout`/`portal` respondem 503 sem uma chave
+  configurada), mas o autor configurou Stripe em modo de teste na própria
+  máquina e completou um checkout real de ponta a ponta — login Google →
+  checkout hospedado → pagamento de teste → webhook → `/assinatura` refletindo
+  a assinatura ativa. A verificação achou e corrigiu um bug real que os 713
+  testes não pegavam (todo webhook devolvia 500 contra o SDK de verdade da
+  Stripe; PR #21). O que falta é só um plano de preço em **modo de produção**
+  — nenhuma credencial `sk_live_...` foi configurada em lugar nenhum.
 - **O Cérebro licenciado está no histórico de `main`, por decisão explícita
   do autor.** É a base de conhecimento da camada de IA; ele optou por manter
   o material hospedado sabendo da exposição, em vez de purgá-lo como foi
@@ -428,7 +436,7 @@ que mais afetam quem for mexer no código:
 | Resultado não reproduzível por interferência de IA | Cálculo determinístico + guardrails executáveis + confirmação do usuário. |
 | Regressão silenciosa | CI com 713 testes de backend e 157 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
 | Material licenciado do Cérebro exposto em `main` (repositório público) | Risco aceito por decisão explícita do autor, não mitigado — o Cérebro é a base de conhecimento da camada de IA ([D-45](DECISIONS.md)). |
-| Uso sem cobrança | Portão binário ligado ([D-46](DECISIONS.md)) — falta só um operador configurar `STRIPE_API_KEY`/`STRIPE_WEBHOOK_SECRET`/`STRIPE_PRICE_ID` para vender de verdade. |
+| Uso sem cobrança | Portão binário ligado ([D-46](DECISIONS.md)), checkout testado ao vivo em modo de teste — falta só configurar `STRIPE_API_KEY`/`STRIPE_WEBHOOK_SECRET`/`STRIPE_PRICE_ID` em **modo de produção** para vender de verdade. |
 
 ## 11. Próximos passos sugeridos
 
