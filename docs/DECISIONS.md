@@ -1763,3 +1763,28 @@ esperado: D-36 já estabeleceu que nenhuma credencial tem valor padrão.
 - Manter os dois desenhos coexistindo, sem nenhum ligado: era o estado desde
   o PR #18: preservava opcionalidade, mas deixava o sistema sem cobrança
   nenhuma de verdade indefinidamente.
+
+**Checkout real testado ao vivo (25/08).** O autor configurou um produto de
+teste na própria conta Stripe (modo de teste — `sk_test_...`,
+`STRIPE_PRICE_ID`, `STRIPE_WEBHOOK_SECRET`) e um cliente OAuth real no Google
+Cloud Console, na própria máquina local (fora deste ambiente de execução, que
+bloqueia todo domínio `*.stripe.com` por política de rede da organização) e
+rodou o fluxo completo: login Google → `/assinatura` → checkout hospedado da
+Stripe → pagamento em modo de teste → redirecionamento de volta com
+`?status=sucesso`, com `stripe listen` encaminhando os webhooks para a API
+local.
+
+Essa verificação expôs um bug real que nenhum dos 713 testes pegava: **todo**
+evento de webhook devolvia 500. `billing_service.py` chamava `.get()` no
+`event`/`data` que o SDK de verdade devolve (`stripe>=10`, testado com
+15.5.1) — um `Event`/`StripeObject`, que aceita `[]` e `in` mas **bloqueia
+`.get()` de propósito** (força `.to_dict()`). O fake de teste sempre injetou
+um dict Python puro, que suporta `.get()` normalmente — a suíte nunca
+reproduzia a restrição do SDK real. Corrigido no PR #21: `_get(obj, key,
+default)` substitui os cinco `.get()` do serviço, e o fake de teste passou a
+envolver o evento com `_StrictStripeObject` (aceita `[]`/`in`, rejeita
+`.get()`) para que o mesmo bug não volte a passar despercebido. Depois da
+correção: `checkout.session.completed` processado sem erro, `Subscription`
+criada com `status="active"`, `/assinatura` refletindo a assinatura ativa e
+o portão liberando as rotas antes bloqueadas — confirmado pelo autor no
+próprio ambiente, não só pelos testes automatizados.
