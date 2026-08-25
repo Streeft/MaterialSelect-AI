@@ -102,12 +102,9 @@ mescladas: a **camada de conhecimento** (ingestão do Cérebro para a IA,
 `routers/billing.py`). As duas entraram por completo no PR #18, com duas
 ressalvas registradas no backlog:
 
-- O portão global de assinatura (`require_active_subscription`) **não foi
-  ativado** — ligá-lo derrubaria todo usuário sem assinatura, inclusive as
-  fixtures da suíte, e decidiria por omissão a reconciliação com o plano
-  Free/Pro já documentado em
-  `docs/superpowers/plans/2026-08-21-assinatura-e-limites.md`. Ver **M9** no
-  backlog.
+- O portão global de assinatura (`require_active_subscription`) ficou
+  **desligado** até a arquitetura ser decidida — resolvido depois, ver
+  [D-46](DECISIONS.md): o binário do plano de 18/08 é o que está ligado.
 - O Cérebro licenciado (11 livros comerciais + 2 extratos de capítulo + 103
   fichas ANSYS/Granta EduPack) foi **purgado do histórico** de
   `fase-9-ia-e-laudo` antes do merge (`git filter-repo`, 89 commits
@@ -122,8 +119,8 @@ proposta — `11-usabilidade.md` está instrumentado, mas **nenhuma sessão foi
 realizada**; enquanto a tabela de melhorias dele estiver vazia, o §3.5 não foi
 cumprido.
 
-**Saúde do código:** 712 testes de backend (Python 3.11 e 3.12, +1 skip
-registrado por M9) e 154 de frontend, todos verdes. `ruff` limpo, `black
+**Saúde do código:** 713 testes de backend (Python 3.11 e 3.12, nenhum skip)
+e 157 de frontend, todos verdes. `ruff` limpo, `black
 --check` limpo, typecheck estrito e build de produção sem avisos. CI no
 GitHub Actions rodando em todo PR e push para `main`, com os checks
 **obrigatórios**: o GitHub recusa o merge se qualquer um falhar
@@ -196,6 +193,9 @@ lugar nenhum do sistema. Sessão em cookie `httpOnly` que é uma linha de banco
 global e compartilhado entre todo usuário autenticado; só `SelectionStudy` é
 privado, escopado por `Project` (um por usuário, criado automaticamente no
 primeiro login). Ver [D-42](DECISIONS.md) e [ARCHITECTURE.md §7](ARCHITECTURE.md).
+`AuthGate.tsx` no frontend é um portão de **dois estágios** desde
+[D-46](DECISIONS.md): `/auth/me` primeiro (não autenticado → `/entrar`),
+depois `/billing/status` (autenticado sem assinatura ativa → `/assinatura`).
 
 ### Auditoria (Fase 7 — M2)
 `AuditEvent` registra quem mudou o quê e quando, para material, classe,
@@ -281,12 +281,15 @@ resto da fase — trazidas depois, íntegras, verificadas caminho a caminho:
   mais 40 testes. Alimenta a camada de IA; não produz número nenhum sozinha —
   o princípio 2 continua valendo aqui.
 - **Cobrança com Stripe** — `Subscription`, `SubscriptionRepository`,
-  `routers/billing.py`, `services/billing_service.py`. O código entrou
-  **inteiro**, mas o portão global (`require_active_subscription`) **não foi
-  ligado** em nenhum router: ligá-lo decidiria por omissão a reconciliação com
-  o plano Free/Pro já documentado em
-  `docs/superpowers/plans/2026-08-21-assinatura-e-limites.md`. Ver **M9** no
-  backlog — é decisão de arquitetura, não de código.
+  `routers/billing.py`, `services/billing_service.py`, `require_active_
+  subscription`. O código entrou inteiro, mas o portão ficou desligado até
+  a arquitetura ser decidida entre dois desenhos concorrentes — resolvido
+  em [D-46](DECISIONS.md): o portão binário do plano de 18/08 é o que está
+  ligado hoje, aplicado a todo router exceto `health`/`auth`/`billing`. O
+  plano Free/Pro de 21/08 fica registrado como alternativa não implementada.
+  Sem `STRIPE_API_KEY` configurada (o padrão em dev e CI), `checkout` e
+  `portal` respondem 503 — o portão está ligado, mas ninguém consegue
+  assinar de verdade sem um operador configurar o Stripe.
 
 ### Estudo de caso didático (A2)
 O tirante leve e rígido ("light, stiff tie") de Ashby — o exemplo introdutório
@@ -336,17 +339,13 @@ venha de uma sessão de fato observada.
 ## 6. Pendências
 
 Ver [TODO.md](TODO.md) para o backlog priorizado com impacto, dificuldade e
-dependências. Os itens que restam:
+dependências. O único item que resta:
 
 1. **Nenhuma sessão de teste de usabilidade** — compromisso do §3.5, com o
    instrumento pronto em [11-usabilidade.md](11-usabilidade.md) e a análise
    cobrada como entrega pelo §4.1. Não é código: exige participantes reais —
    a única pendência do trabalho como um todo que um agente não fecha
    sozinho.
-2. **M9 — reconciliar as duas arquiteturas de cobrança.** O portão global de
-   assinatura existe em código mas não está ligado; decidir qual desenho
-   segue (ou como convivem) é pré-requisito para ligar cobrança em produção.
-   Ver TODO.md.
 
 ## 7. Principais fluxos
 
@@ -384,6 +383,7 @@ que mais afetam quem for mexer no código:
 | Login só por terceiros (Google); catálogo compartilhado; um projeto por usuário | [D-42](DECISIONS.md) |
 | A trilha de auditoria guarda retratos (quem/o quê/projeto), não junções vivas; importação em lote fica de fora | [D-43](DECISIONS.md) |
 | A licença de uma fonte é decidida uma vez, no registro; reusar o rótulo não reabre a decisão | [D-44](DECISIONS.md) |
+| Portão de assinatura: o desenho binário do plano de 18/08, não o Free/Pro do de 21/08 | [D-46](DECISIONS.md) |
 
 ## 9. Limitações atuais
 
@@ -404,10 +404,13 @@ que mais afetam quem for mexer no código:
   `mock` é determinístico, e é ele o padrão. O `claude-api` foi exercitado
   contra um cliente falso nos testes, mas ainda não contra a API de verdade —
   não há chave neste ambiente; o `claude-cli` foi verificado ao vivo.
-- **A cobrança existe em código, mas não em portão.** `require_active_
-  subscription` não está aplicado a nenhuma rota — todo usuário autenticado
-  continua acessando tudo, como antes do PR #18. Isso é intencional (ver M9),
-  mas quer dizer que o sistema hoje não tem como cobrar de ninguém de verdade.
+- **O portão de assinatura está ligado, mas sem preço real configurado.**
+  `require_active_subscription` bloqueia toda rota (exceto
+  `health`/`auth`/`billing`) sem `Subscription.status == "active"`
+  ([D-46](DECISIONS.md)) — mas `STRIPE_API_KEY` é vazio por padrão em dev e
+  CI, então `checkout`/`portal` respondem 503. O sistema cobra a decisão
+  certa (bloquear sem assinatura), mas ainda não tem como vender uma de
+  verdade sem um operador configurar o Stripe.
 - **O Cérebro licenciado está no histórico de `main`, por decisão explícita
   do autor.** É a base de conhecimento da camada de IA; ele optou por manter
   o material hospedado sabendo da exposição, em vez de purgá-lo como foi
@@ -423,23 +426,17 @@ que mais afetam quem for mexer no código:
 | Dependência de provedor de IA | Arquitetura desacoplada com provedor simulado; funciona sem chave. |
 | Incorporação inadvertida de dado protegido | Triagem de licenciamento (M1, item 4.2 da proposta) — `Source` registra licença/procedência, e uma fonte nova sem licença ou marcada como possivelmente protegida sem confirmação humana é recusada antes de qualquer linha ser escrita ([D-44](DECISIONS.md)). |
 | Resultado não reproduzível por interferência de IA | Cálculo determinístico + guardrails executáveis + confirmação do usuário. |
-| Regressão silenciosa | CI com 712 testes de backend e 154 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
+| Regressão silenciosa | CI com 713 testes de backend e 157 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
 | Material licenciado do Cérebro exposto em `main` (repositório público) | Risco aceito por decisão explícita do autor, não mitigado — o Cérebro é a base de conhecimento da camada de IA ([D-45](DECISIONS.md)). |
-| Duas arquiteturas de cobrança coexistindo em código | Portão global deliberadamente não ligado até a reconciliação (**M9**); sem portão, o risco atual é "não cobra ninguém", não "cobra errado". |
+| Uso sem cobrança | Portão binário ligado ([D-46](DECISIONS.md)) — falta só um operador configurar `STRIPE_API_KEY`/`STRIPE_WEBHOOK_SECRET`/`STRIPE_PRICE_ID` para vender de verdade. |
 
 ## 11. Próximos passos sugeridos
 
 **Aplicar o teste de usabilidade** de [11-usabilidade.md](11-usabilidade.md)
-continua sendo a única pendência que exige um humano fora do teclado — nenhum
-agente fecha sozinho. O instrumento está pronto e a interface acabou de ser
-refeita; é o momento em que a sessão rende mais, e o §4.1 cobra a análise e as
-melhorias como entrega.
-
-Uma pendência de código depende de decisão do autor antes de qualquer
-implementação:
-
-- **M9** — reconciliar a arquitetura de cobrança trazida pelo PR #18 com o
-  plano Free/Pro já documentado, antes de ligar qualquer portão de assinatura.
+é o único item que resta. O instrumento está pronto e a interface acabou de
+ser refeita; é o momento em que a sessão rende mais, e o §4.1 cobra a análise
+e as melhorias como entrega. Única pendência que exige um humano fora do
+teclado — nenhum agente fecha sozinho.
 
 Detalhamento em [TODO.md](TODO.md).
 

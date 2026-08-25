@@ -1699,3 +1699,67 @@ não sobre **como a IA o usa** — essas são questões independentes.
 - Purgar tudo: nem chegou a ser considerada pelo autor — descartaria também
   conteúdo que ele tem razão para manter (seus próprios trabalhos
   entregues).
+
+## D-46 — M9 resolvido: o portão global de assinatura (plano de 18/08) é o que fica ligado
+
+**Contexto.** O PR #18 trouxe duas arquiteturas de cobrança nunca reconciliadas:
+o plano de 18/08 (`docs/superpowers/plans/2026-08-18-multi-tenant-billing.md`) —
+um portão binário, `require_active_subscription` aplicado em bloco a todo
+router — já totalmente codificado mas não ligado; e o plano de 21/08
+(`docs/superpowers/plans/2026-08-21-assinatura-e-limites.md`) — Free/Pro com
+quatro recursos limitados por um `EntitlementService`, nunca implementado.
+D-44 tinha registrado a ambiguidade sem decidir; o teste que afirmava o
+portão global ficou com `skip` até esta decisão ser tomada explicitamente.
+
+**Decisão.** Ativar o plano de 18/08 como está. `require_active_subscription`
+passou a ser aplicado a todo router em `main.py`, exceto `health`, `auth` e
+`billing` — incluindo `audit` e `sources`, que chegaram depois do desenho
+original mas seguem o mesmo princípio ("tudo atrás do portão, exceto o que
+não pode ficar"). O plano de 21/08 (Free/Pro) não foi implementado; fica como
+desenho alternativo registrado, não como próximo passo.
+
+**Por que o binário, e não o Free/Pro.** O binário já estava pronto —
+`Subscription`, `SubscriptionRepository`, `BillingService`,
+`SubscriptionRequiredError`, o router `/billing/*` e até o `AuthGate` de dois
+estágios (revertido a um estágio só na reconciliação do PR #18) já existiam.
+Faltava só ligar a dependência em `main.py` e reescrever `AuthGate.tsx` — uma
+tarde de trabalho contra uma reimplementação do zero (`EntitlementService`,
+nova migration, quatro services a mudar) que o Free/Pro exigiria.
+
+**O que isso muda de verdade.**
+- Toda rota exceto `/api/health`, `/api/auth/*` e `/api/billing/*` responde
+  403 (`SubscriptionRequiredError`) a um usuário autenticado sem
+  `Subscription.status == "active"`. `GET /api/billing/status` continua
+  público a qualquer usuário logado — é a rota que o `AuthGate` consulta
+  para decidir se redireciona a `/assinatura`.
+- `AuthGate.tsx` volta a ser um portão de dois estágios: `/auth/me` primeiro
+  (não autenticado → `/entrar`), depois `/billing/status` (autenticado sem
+  assinatura ativa → `/assinatura`). `/assinatura` e `/entrar` são as únicas
+  rotas que o portão nunca bloqueia.
+- A sessão fixa de E2E/Lighthouse (`seed_e2e_session`, `ENVIRONMENT=development`
+  + `E2E_SESSION_TOKEN`) já escrevia uma `Subscription` `status="active"`
+  junto da sessão — preparada de propósito para este momento (ver o
+  docstring da função). Confirmado ao vivo: sem essa preparação, o gate teria
+  quebrado toda a suíte de Playwright e o job de Lighthouse.
+- O teste `test_protected_route_without_active_subscription_is_forbidden`
+  perdeu o `skip`.
+
+**Verificação ao vivo, além dos 713 testes.** Subida a API com a sessão fixa
+semeada: sem cookie → 401; com a sessão de e2e (assinatura ativa) →
+`GET /api/materials` 200; um segundo usuário logado sem nenhuma
+`Subscription` → 403 em `/api/materials` e 200 em `/api/billing/status` (a
+rota continua alcançável para renderizar o convite a assinar).
+
+**O que fica em aberto.** Nenhum plano de preço real está configurado
+(`STRIPE_API_KEY` vazio nos ambientes de desenvolvimento e CI, então
+`checkout`/`portal` respondem 503) — o portão está ligado, mas ninguém
+consegue assinar de verdade sem um operador configurar o Stripe. Isso é
+esperado: D-36 já estabeleceu que nenhuma credencial tem valor padrão.
+
+**Alternativas descartadas.**
+- Implementar o Free/Pro (plano de 21/08) agora: mais amigável para um
+  produto real, mas full-rewrite não pedido — o autor escolheu explicitamente
+  o binário já pronto quando confrontado com os dois.
+- Manter os dois desenhos coexistindo, sem nenhum ligado: era o estado desde
+  o PR #18: preservava opcionalidade, mas deixava o sistema sem cobrança
+  nenhuma de verdade indefinidamente.
