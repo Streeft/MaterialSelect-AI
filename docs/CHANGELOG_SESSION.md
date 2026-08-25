@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [8](#sessão-8--240826-a-250826--reconciliação-de-branches-m9-e-o-checkout-do-stripe-testado-ao-vivo) | 24 e 25/08/2026 | Reconciliação de branches, M9 (portão de assinatura, D-46) e checkout do Stripe testado ao vivo | 639 → 713 | 148 → 157 |
 | [7](#sessão-7--210826--triagem-de-licenciamento-m1) | 21/08/2026 | Triagem de licenciamento (M1) | 632 → 639 | 148 (inalterado) |
 | [6](#sessão-6--210826--estudo-de-caso-didático-a2) | 21/08/2026 | Estudo de caso didático (A2) | 630 → 632 | 148 (inalterado) |
 | [5](#sessão-5--210826--auditoria-m2-e-a-instalação-do-ambiente-de-assistente) | 21/08/2026 | Fase 7: auditoria de alterações (M2) | 617 → 630 | 148 (inalterado) |
@@ -18,6 +19,149 @@ por isso que ela tem menos detalhe de processo que as outras.
 | [3](#sessão-3--110826--os-provedores-reais-da-camada-de-ia) | 11/08/2026 | Fase 6: provedores reais de IA | 391 → 436 | 123 |
 | [2](#sessão-2--050826-a-100826--fase-7-parcial-ci-obrigatória-e-fase-8) | 05/08 a 10/08/2026 | Fase 7 (relatório HTML), CI obrigatória, Fase 8 (redesign) | 362 → 391 | 44 → 123 |
 | [1](#sessão-1--300726-a-040826--fases-5-a-7) | 30/07 a 04/08/2026 | Fases 5, 6 e 7 (exportação) | 169 → 362 | 13 → 44 |
+
+---
+
+# Sessão 8 — 24/08/26 a 25/08/26 — Reconciliação de branches, M9 e o checkout do Stripe testado ao vivo
+
+Ponto de partida: fim da sessão 7 (PR #13 mesclada, M1 verde). Testes de
+backend: 639 → 713 (0 skip); frontend: 148 → 157. A sessão teve quatro frentes
+encadeadas — nenhuma pedida isoladamente, cada uma abrindo a próxima.
+
+## 1. Branches de fase divergentes, reconciliadas com `main`
+
+`git status`/`git log` mostravam quatro branches de fase (`fase-5-visualizacao`,
+`fase-6-provedores-claude`, `fase-8-redesign-interface`, `fase-9-ia-e-laudo`)
+como `N ahead / M behind` de `main`, mesmo depois de supostamente mescladas.
+Verificação arquivo a arquivo (não confiar no resumo do git) mostrou que três
+delas (PRs #15, #7, #14) eram **ilusão de squash-merge** — squash não cria
+vínculo de parentesco, então o git segue reportando divergência de conteúdo já
+presente; foram apenas fechadas de volta, sem conteúdo novo.
+
+A quarta, `fase-9-ia-e-laudo`, tinha ~1.600 linhas genuinamente não
+mescladas: a **camada de conhecimento** (ingestão do Cérebro para a IA,
+`app/knowledge/`) e a **cobrança com Stripe** (`Subscription`,
+`routers/billing.py`, `services/billing_service.py`). Trazida por inteiro no
+PR #18, com duas ressalvas que viraram trabalho de sessão à parte:
+
+- O **portão global de assinatura** (`require_active_subscription`) entrou
+  desligado — a fase-9 e o plano Free/Pro de 21/08
+  (`docs/superpowers/plans/`) discordavam sobre a arquitetura de cobrança, e
+  ligar um dos dois por omissão decidiria a reconciliação sem que o autor
+  tivesse escolhido. Isso virou **M9** no `TODO.md`, resolvido na frente 2
+  desta sessão.
+- O **Cérebro licenciado** (11 livros comerciais + 2 extratos + 103 fichas
+  ANSYS/Granta EduPack) chegou a `main` por um caminho paralelo, o PR #17,
+  antes mesmo desta reconciliação — e continua lá por decisão explícita do
+  autor ao ser confrontado com a opção de purgar (**D-45**): risco aceito,
+  não descuido, porque é a base de conhecimento da camada de IA.
+
+`docs/CLAUDE.md`, `PROJECT_CONTEXT.md` e `TODO.md` foram sincronizados com o
+estado real pós-reconciliação (PR #19) — contagem de testes, menções à
+camada de conhecimento e à cobrança, e o registro das duas ressalvas acima
+como pendências explícitas (não escondidas).
+
+## 2. M9 — a arquitetura de cobrança, decidida
+
+Duas arquiteturas coexistiam em código, nenhuma ligada: o portão binário do
+plano de 18/08 (`require_active_subscription` em bloco, já totalmente
+codificado) e o Free/Pro do plano de 21/08 (`EntitlementService`, nunca
+implementado). Confrontado com os dois via `AskUserQuestion`, o autor
+escolheu o binário — já pronto contra uma reimplementação do zero.
+
+- **Backend:** `main.py` passa a aplicar `require_active_subscription` a
+  todo router exceto `health`/`auth`/`billing` (inclusive `audit` e
+  `sources`, que chegaram depois do desenho original mas seguem o mesmo
+  princípio); o teste que afirmava o portão perdeu o `skip`.
+- **Frontend:** `AuthGate.tsx` volta a ser um portão de dois estágios —
+  `/auth/me` primeiro (não autenticado → `/entrar`), depois
+  `/billing/status` (autenticado sem assinatura ativa → `/assinatura`).
+- **Verificação ao vivo**, além dos testes: sem cookie → 401; sessão de
+  e2e (que já escrevia uma `Subscription` ativa, preparada de propósito para
+  este momento) → `GET /api/materials` 200; segundo usuário sem assinatura
+  nenhuma → 403 em `/api/materials`, 200 em `/api/billing/status` (a rota
+  continua alcançável para o `AuthGate` decidir o redirecionamento).
+
+Decisão completa em [D-46](DECISIONS.md); M9 passou para "Débitos já
+quitados" no `TODO.md`. PR #20.
+
+## 3. Configurar o Stripe de verdade e testar o checkout — ao vivo, na máquina do autor
+
+Pedido seguinte: "configura o Stripe de verdade e testa o checkout". Este
+ambiente remoto bloqueia por política de rede **todo** domínio `*.stripe.com`
+e `packages.stripe.dev` (confirmado via o proxy de saída, `403` em toda
+tentativa de `CONNECT`) — sem contorno possível nem tentado, como a política
+de negação exige. O trabalho de configuração e teste aconteceu inteiramente
+na máquina Windows do autor, guiado turno a turno por este agente sem
+nenhum acesso a ela: Stripe CLI, conta de teste, produto e preço; cliente
+OAuth real no Google Cloud Console; Python nunca instalado (instalação do
+zero, com o checkbox "Add python.exe to PATH"); `.venv` inexistente;
+checkout local desatualizado sem o extra `billing` do `pyproject.toml`;
+banco sem migrations aplicadas (`no such table: user`); porta 3000 ocupada
+por processo zumbi, derrubando o CORS do `AuthGate`. Cada obstáculo foi
+diagnosticado a partir do que o autor colava (traceback, log, captura de
+tela) e resolvido com o comando exato para CMD do Windows — nunca PowerShell,
+por restrição da máquina do autor.
+
+Resultado da primeira tentativa: **pagamento completo** na Stripe (modo de
+teste, cartão `4242 4242 4242 4242`), redirecionamento de volta com
+`?status=sucesso` — mas `/assinatura` continuava mostrando "não assinado", e
+`stripe listen` mostrava **todo** evento de webhook voltando `500`.
+
+## 4. O bug do webhook: `.get()` num objeto que não é um dict
+
+Diagnóstico a partir do traceback colado pelo autor:
+`AttributeError: 'get' is a dict method, but a Event is not a dict. Use
+.to_dict() to convert it.` — `billing_service.py` chamava `.get()` no
+`event`/`data` que o SDK real da Stripe (`stripe>=10`, testado com `15.5.1`)
+devolve como `Event`/`StripeObject`: aceita `[]` e `in`, mas **bloqueia
+`.get()` de propósito**. Nenhum dos 713 testes pegava isso porque o fake de
+teste sempre injetava um **dict Python puro**, que suporta `.get()`
+normalmente — a suíte nunca exercitava essa restrição do SDK real.
+
+Seguindo TDD para o bug: `test_billing_service.py` ganhou `_StrictStripeObject`
+(aceita `[]`/`in`, rejeita `.get()`, espelhando de verdade o SDK real — o
+próprio objetivo já declarado no cabeçalho do arquivo), e o fake de webhook
+passou a devolver o evento embrulhado nele. Rodado sozinho, isso reproduziu
+o exato `AttributeError` do autor num teste antes verde. A correção:
+`_get(obj, key, default=None)` — lê via `obj[key] if key in obj else
+default`, funcionando igual em `Event`/`StripeObject` real e em dict fake —
+substituiu os cinco `.get()` em `handle_webhook` e nos três handlers de
+evento. 713 testes voltaram a passar, `ruff`/`black` limpos. PR #21.
+
+Novo teste ao vivo do autor, já com a correção: `stripe listen` mostrou todo
+webhook voltando `204`, e `/assinatura` passou a refletir a assinatura
+ativa — M9 testado de ponta a ponta, não só pelos 713 testes automatizados.
+
+## 5. Documentação do teste ao vivo
+
+`D-46` (com uma nova seção "Checkout real testado ao vivo"), a entrada de M9
+em `TODO.md` e as seções 4/9 de `PROJECT_CONTEXT.md` foram atualizadas para
+registrar a verificação de ponta a ponta e o bug encontrado/corrigido. A
+limitação que resta deixou de ser "ninguém testou o fluxo" e passou a ser só
+"nenhuma credencial de **produção** (`sk_live_...`) está configurada em
+lugar nenhum" — D-36 já estabelece que nenhuma credencial tem valor padrão,
+de propósito. PR #22.
+
+## 6. Verificação
+
+`ruff`, `black --check`, **713 testes de backend** (0 skip, matriz 3.11 e
+3.12), **157 de frontend**, `alembic upgrade head` + seed num banco limpo —
+tudo verde nos quatro PRs (#20, #21, #22) e nas quatro reconciliações (#15,
+#14, #7, #18) mais o PR #19 de docs. Além dos testes: o checkout completo
+foi executado de verdade contra a Stripe em modo de teste, não só simulado
+contra um cliente falso — a mesma prática de "verificação ao vivo além dos
+testes" que já tinha achado a unidade nula na camada de IA em sessão
+anterior.
+
+## 7. O que fica em aberto
+
+- **Nenhuma sessão de teste de usabilidade** (§3.5) — a única pendência do
+  trabalho como um todo que não é código, inalterada por esta sessão.
+- **Nenhuma credencial de produção da Stripe configurada** — o portão está
+  ligado e o fluxo foi testado em modo de teste; vender de verdade exige um
+  operador configurar `sk_live_...` (D-36, decisão deliberada de não ter
+  padrão).
 
 ---
 
