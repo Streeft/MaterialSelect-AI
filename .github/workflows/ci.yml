@@ -55,10 +55,13 @@ jobs:
         with:
           node-version: "22"
           cache: npm
-          cache-dependency-path: apps/web/package-lock.json
+          cache-dependency-path: package-lock.json
 
+      # O lockfile do workspace (npm workspaces, D-16/M4) vive na raiz do
+      # repositório, não em apps/web — `npm ci` tem que rodar de lá para
+      # instalar tanto apps/web quanto packages/shared-types de uma vez.
       - name: Instalar dependências do frontend
-        working-directory: apps/web
+        working-directory: .
         run: npm ci
 
       # `next start` exige um build de produção — e o `NEXT_PUBLIC_*` é
@@ -172,9 +175,13 @@ jobs:
           # como piso realista.
           node-version: "22"
           cache: npm
-          cache-dependency-path: apps/web/package-lock.json
+          cache-dependency-path: package-lock.json
 
+      # O lockfile do workspace (npm workspaces, D-16/M4) vive na raiz, não em
+      # apps/web — sobrepõe o `defaults.run.working-directory` do job só para
+      # este passo; os demais continuam rodando dentro de apps/web.
       - name: Instalar dependências
+        working-directory: .
         # `npm ci` respeita o lockfile e falha se ele estiver dessincronizado do
         # package.json — o que é a verificação que queremos.
         run: npm ci
@@ -213,10 +220,11 @@ jobs:
         with:
           node-version: "22"
           cache: npm
-          cache-dependency-path: apps/web/package-lock.json
+          cache-dependency-path: package-lock.json
 
+      # O lockfile do workspace (npm workspaces, D-16/M4) vive na raiz.
       - name: Instalar dependências do frontend
-        working-directory: apps/web
+        working-directory: .
         run: npm ci
 
       - name: Instalar o Chromium do Playwright

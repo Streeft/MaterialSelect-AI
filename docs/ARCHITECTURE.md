@@ -90,7 +90,7 @@ MaterialSelect-AI/
 │     ├─ lib/                   # api.ts, types.ts, i18n.ts, format.ts,
 │     │                         #   charts.ts, plotly-custom.ts, design/
 │     └─ types/                 # declarações de módulos sem tipos
-├─ packages/shared-types/       # contrato canônico (espelhado em web/lib/types.ts)
+├─ packages/shared-types/       # contrato canônico (importado por web via npm workspace)
 ├─ docs/                        # esta documentação
 ├─ .github/workflows/ci.yml     # portão de CI
 ├─ sample-data/                 # CSV de exemplo para a importação
@@ -446,7 +446,14 @@ Nenhuma externa obrigatória. A camada de IA é opcional e, no provedor padrão
 
 ## 10. Contrato de tipos
 
-`packages/shared-types/index.ts` é canônico; `apps/web/lib/types.ts` o espelha
-**manualmente**. Duplicação consciente para manter o build do Next simples no
-MVP — está registrada como débito em [TODO.md](TODO.md). **Ao alterar um
-contrato, altere os dois arquivos.**
+`packages/shared-types/index.ts` é canônico. `apps/web` importa esse pacote
+diretamente pelo nome (`@materialselect/shared-types`) via npm workspaces
+(`package.json` da raiz), e o Next transpila a fonte TypeScript do pacote em
+tempo de build/dev (`transpilePackages` em `next.config.mjs` — o pacote não
+publica um `dist`, só o `.ts` de origem). `apps/web/lib/types.ts` é um
+barril de reexportação (`export * from "@materialselect/shared-types"`),
+mantido só para que o resto do código continue importando `@/lib/types` sem
+trocar 39 pontos de chamada pelo nome do pacote. **Ao alterar um contrato,
+edite só `packages/shared-types/index.ts`** — não há mais um segundo arquivo
+para lembrar de sincronizar (D-16/M4, que substituiu a duplicação manual
+original).

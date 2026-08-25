@@ -20,14 +20,6 @@ executado: ver "Débitos já quitados".
 
 ## Média prioridade
 
-### M4 — Unificar o contrato de tipos
-- **Descrição:** npm workspaces + `transpilePackages` para eliminar o espelho
-  manual entre `packages/shared-types` e `apps/web/lib/types.ts`.
-- **Impacto:** médio. Hoje toda mudança de contrato exige editar dois arquivos, e
-  esquecer um só aparece em runtime.
-- **Dificuldade:** ▃
-- **Dependências:** mexe na configuração de build do Next — faça em PR isolado.
-
 ### M5 — Métodos multicritério adicionais (TOPSIS, AHP, PROMETHEE)
 - **Descrição:** implementar sobre a estrutura já genérica de `domain/ranking.py`.
 - **Impacto:** médio. Previsto na arquitetura e **explicitamente fora do escopo
@@ -100,6 +92,16 @@ crie tabela sem o caso de uso. (`User` e `Project` saíram desta lista com A5;
 
 Registrados para não voltarem por engano:
 
+- ~~**M4** — Unificar o contrato de tipos~~ — npm workspaces (`package.json`
+  na raiz, `workspaces: ["apps/web", "packages/shared-types"]`) +
+  `transpilePackages` em `next.config.mjs`. `packages/shared-types/index.ts`
+  passa a ser importado de verdade por `apps/web` (como
+  `@materialselect/shared-types`), não só copiado à mão; `apps/web/lib/types.ts`
+  virou um barril de reexportação, preservando os 39 pontos de importação que já
+  usavam `@/lib/types`. A divergência que a duplicação escondia (`x_quality`/
+  `y_quality` não-nulos em `shared-types`, corretamente nulos em
+  `apps/web/lib/types.ts`) foi resolvida ao consolidar num arquivo só — a
+  versão de `apps/web`, que era a exercitada pelo typechecker. Ver [D-16](DECISIONS.md).
 - ~~**M9** — Reconciliar as duas arquiteturas de cobrança~~ — **decidido: o
   portão binário do plano de 18/08 é o que fica ligado.** `require_active_
   subscription` passou a valer em todo router exceto `health`/`auth`/`billing`;
