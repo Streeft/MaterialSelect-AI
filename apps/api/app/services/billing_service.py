@@ -120,7 +120,7 @@ class BillingService:
         # The only ordering the payload itself carries. Stripe delivers
         # at-least-once and out of order, so "the event that arrived last" is
         # not "the change that happened last" — see `_is_stale`.
-        occurred_at = _event_time(event.get("created"))
+        occurred_at = _event_time(_get(event, "created"))
 
         if event_type == "checkout.session.completed":
             self._on_checkout_completed(data, occurred_at)
@@ -166,7 +166,7 @@ class BillingService:
         subscription.updated_at = occurred_at or datetime.now(UTC)
 
     def _on_checkout_completed(self, data: dict, occurred_at: datetime | None = None) -> None:
-        user_id = _user_id_from(data.get("client_reference_id"))
+        user_id = _user_id_from(_get(data, "client_reference_id"))
         if user_id is None:
             # Not a session this app started: a Payment Link, a session created
             # in the Stripe Dashboard, or a `stripe trigger` test event all
@@ -182,13 +182,13 @@ class BillingService:
             subscription = self.subscriptions.create(
                 user_id=user_id,
                 stripe_customer_id=data["customer"],
-                stripe_subscription_id=data.get("subscription"),
+                stripe_subscription_id=_get(data, "subscription"),
                 status="active",
             )
             self._stamp(subscription, occurred_at)
             return
         subscription.stripe_customer_id = data["customer"]
-        subscription.stripe_subscription_id = data.get("subscription")
+        subscription.stripe_subscription_id = _get(data, "subscription")
         subscription.status = "active"
         self._stamp(subscription, occurred_at)
 
@@ -199,7 +199,7 @@ class BillingService:
         if self._is_stale(subscription, occurred_at):
             return  # a re-delivery of an older state; the row is already ahead
         subscription.status = data["status"]
-        period_end = data.get("current_period_end")
+        period_end = _get(data, "current_period_end")
         subscription.current_period_end = (
             datetime.fromtimestamp(period_end, tz=UTC) if period_end else None
         )
@@ -214,6 +214,18 @@ class BillingService:
             return
         subscription.status = "past_due"
         self._stamp(subscription, occurred_at)
+
+
+def _get(obj: Any, key: str, default: Any = None) -> Any:
+    """Read one optional field from a Stripe event/object.
+
+    The real SDK's `Event`/`StripeObject` supports `[]` and `in` but
+    deliberately raises `AttributeError` on `.get()` (it wants `.to_dict()`
+    used instead) — `.get()` calls here passed against the test suite's
+    plain-dict fakes and only broke against the real API. This reads the
+    same way across both.
+    """
+    return obj[key] if key in obj else default
 
 
 def _event_time(created: Any) -> datetime | None:
