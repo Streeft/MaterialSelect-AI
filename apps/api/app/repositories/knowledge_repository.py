@@ -73,6 +73,26 @@ class KnowledgeRepository:
     def count_documents(self) -> int:
         return int(self.db.execute(select(func.count(KnowledgeDocument.id))).scalar_one())
 
+    def list_all_chunks_for_lexical_search(self) -> list[KnowledgeChunk]:
+        """Every chunk with a non-empty ``search_text``, joined to its document.
+
+        Loaded eagerly and in full: BM25 needs corpus-wide document frequency,
+        which means every passage's tokens regardless of how few will end up
+        in the answer. At the corpus's current size (~150 documents) this is a
+        single query, not a scaling concern yet — see the spec's ``§10``.
+        """
+        from sqlalchemy.orm import joinedload
+
+        return list(
+            self.db.execute(
+                select(KnowledgeChunk)
+                .options(joinedload(KnowledgeChunk.document), joinedload(KnowledgeChunk.embedding))
+                .where(KnowledgeChunk.search_text != "")
+            )
+            .scalars()
+            .all()
+        )
+
     # --- embeddings ----------------------------------------------------
 
     def set_embedding(self, chunk_id: int, *, model: str, vector: list[float]) -> None:
