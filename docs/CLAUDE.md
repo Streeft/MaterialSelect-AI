@@ -46,7 +46,14 @@ Ela interpreta, sugere e explica. Ao mexer em `app/ai/`, não afrouxe:
 - **ancoragem numérica** — todo número de uma restrição proposta tem de aparecer
   no enunciado do usuário, *inclusive quando uma conversão estaria correta*;
 - **unidade explícita** — limiar sobre propriedade dimensionada não pode omitir
-  a unidade.
+  a unidade;
+- **trechos recuperados são vocabulário, nunca número** — o que `app/knowledge/`
+  traz do Cérebro (`ProblemContext.retrieved`/`ResultContext.retrieved`) pode
+  ensinar terminologia ao modelo e, em `explain()`, ser citado; não pode virar
+  o número de uma restrição. Isso é garantido por `guardrails.check_constraint`
+  e `guardrails.ungrounded_numbers` nunca lerem `context.retrieved` — nenhuma
+  das duas sabe que o campo existe —, não por convenção de prompt nem por
+  disciplina do provedor.
 
 O provedor recebe só o catálogo e o texto. Nunca lhe passe uma sessão de banco
 nem o avaliador de expressões.
