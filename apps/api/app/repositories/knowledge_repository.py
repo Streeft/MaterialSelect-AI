@@ -118,3 +118,17 @@ class KnowledgeRepository:
                 )
             )
         self.db.flush()
+
+    def list_all_embeddings(self) -> list[KnowledgeChunk]:
+        """Every chunk that has an embedding, joined to it and to its document."""
+        from sqlalchemy.orm import joinedload
+
+        return list(
+            self.db.execute(
+                select(KnowledgeChunk)
+                .join(KnowledgeEmbedding, KnowledgeChunk.embedding)
+                .options(joinedload(KnowledgeChunk.document), joinedload(KnowledgeChunk.embedding))
+            )
+            .scalars()
+            .all()
+        )

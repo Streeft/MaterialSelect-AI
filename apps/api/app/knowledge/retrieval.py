@@ -1,9 +1,17 @@
 """Retrieval: turn a query into ranked, cited passages from the corpus.
 
-Nothing here existed before this module — ``lexical.py`` and ``embeddings.py``
-are primitives a caller has to orchestrate, and this is that orchestration.
-Only lexical search is implemented in this first pass; semantic search and
-the fusion between the two arrive in the next one.
+Hybrid by default: lexical (BM25, no network) and semantic (embeddings, one
+network call for the query) are ranked separately, then combined by
+*reciprocal rank fusion* — each candidate's score is the sum of
+``1 / (k + rank)`` across whichever lists it appears in, ``k = 60`` (the
+constant the RRF literature converged on; no tuning knob here because there
+is nothing yet to tune it against).
+
+Semantic search degrades to lexical-only, silently to the caller, whenever
+embeddings are unconfigured or the call fails — a knowledge base is more
+useful with half its retrieval working than with none of it, and the
+alternative (raising) would make one flaky embedding provider take down every
+AI call in the product.
 
 **Vocabulary and context, never a number's source.** Whatever this returns
 feeds a prompt as reference text — it is never read by
@@ -13,19 +21,31 @@ feeds a prompt as reference text — it is never read by
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 
 from sqlalchemy.orm import Session
 
 from app.config import Settings
+from app.knowledge.embeddings import (
+    EmbeddingClient,
+    EmbeddingUnavailableError,
+    similarity,
+    unpack_vector,
+)
 from app.knowledge.lexical import bm25_scores, tokenize
 from app.models.enums import DocumentKind, SourceAuthority
+from app.models.knowledge import KnowledgeChunk
 from app.repositories.knowledge_repository import KnowledgeRepository
 
-#: How many lexical candidates feed the ranking before top_k trims it. Wider
-#: than what the caller asked for so a later fusion step (semantic search)
-#: has more than one signal's worth of material to combine.
-_LEXICAL_CANDIDATES = 20
+logger = logging.getLogger(__name__)
+
+#: How many candidates each ranking (lexical, semantic) contributes before
+#: fusion trims to top_k. Wider than top_k so fusion has real material to
+#: combine instead of comparing two already-truncated lists.
+_CANDIDATES = 20
+#: RRF's smoothing constant — the value the technique's literature settled on.
+_RRF_K = 60
 
 
 @dataclass(frozen=True)
@@ -42,48 +62,87 @@ class RetrievedChunk:
 
 
 def search(db: Session, query: str, *, top_k: int, settings: Settings) -> list[RetrievedChunk]:
-    """The ``top_k`` passages most relevant to ``query``.
-
-    Lexical (BM25) always runs — it needs no network and no configuration
-    beyond a corpus already ingested. Empty list when nothing was ingested or
-    nothing matches; never raises for an empty corpus.
-    """
+    """The ``top_k`` passages most relevant to ``query``, lexical + semantic."""
     repo = KnowledgeRepository(db)
-    return _lexical_search(repo, query, top_k=top_k)
-
-
-def _lexical_search(repo: KnowledgeRepository, query: str, *, top_k: int) -> list[RetrievedChunk]:
     query_tokens = tokenize(query)
     if not query_tokens:
         return []
 
+    lexical_ranked = _lexical_rank(repo, query_tokens)
+    semantic_ranked = _semantic_rank(repo, query, settings)
+
+    fused = _reciprocal_rank_fusion([lexical_ranked, semantic_ranked])
+    if not fused:
+        return []
+
+    chunks_by_id = {chunk.id: chunk for chunk in repo.list_all_chunks_for_lexical_search()}
+    # Semantic-only matches may not be in the lexical fetch (search_text could
+    # theoretically differ in coverage); fall back to the embeddings fetch.
+    if any(chunk_id not in chunks_by_id for chunk_id, _ in fused):
+        chunks_by_id.update({chunk.id: chunk for chunk in repo.list_all_embeddings()})
+
+    results = [
+        _to_retrieved_chunk(chunks_by_id[chunk_id], score)
+        for chunk_id, score in fused
+        if chunk_id in chunks_by_id
+    ]
+    return results[:top_k]
+
+
+def _lexical_rank(repo: KnowledgeRepository, query_tokens: list[str]) -> list[tuple[int, float]]:
     chunks = repo.list_all_chunks_for_lexical_search()
     if not chunks:
         return []
-
     documents = {chunk.id: tokenize(chunk.search_text) for chunk in chunks}
     document_frequency: dict[str, int] = {}
     for tokens in documents.values():
         for token in set(tokens):
             document_frequency[token] = document_frequency.get(token, 0) + 1
-
     scores = bm25_scores(query_tokens, documents, document_frequency, corpus_size=len(chunks))
-    if not scores:
+    return sorted(scores.items(), key=lambda item: -item[1])[:_CANDIDATES]
+
+
+def _semantic_rank(
+    repo: KnowledgeRepository, query: str, settings: Settings
+) -> list[tuple[int, float]]:
+    if not (
+        settings.knowledge_embedding_base_url.strip() and settings.knowledge_embedding_model.strip()
+    ):
+        return []
+    chunks = repo.list_all_embeddings()
+    if not chunks:
+        return []
+    try:
+        client = EmbeddingClient(settings)
+        query_vector = client.embed([query])[0]
+    except EmbeddingUnavailableError as exc:
+        logger.warning("Busca semântica indisponível, usando só léxica: %s", exc)
         return []
 
-    by_id = {chunk.id: chunk for chunk in chunks}
-    ranked = sorted(scores.items(), key=lambda item: -item[1])[: max(top_k, _LEXICAL_CANDIDATES)]
-
-    results = [
-        RetrievedChunk(
-            document_title=by_id[chunk_id].document.title,
-            document_kind=by_id[chunk_id].document.kind,
-            document_authority=by_id[chunk_id].document.authority,
-            page_start=by_id[chunk_id].page_start,
-            page_end=by_id[chunk_id].page_end,
-            text=by_id[chunk_id].text,
-            score=score,
-        )
-        for chunk_id, score in ranked
+    scored = [
+        (chunk.id, similarity(query_vector, unpack_vector(chunk.embedding.vector)))
+        for chunk in chunks
+        if chunk.embedding is not None and chunk.embedding.model == client.model
     ]
-    return results[:top_k]
+    scored.sort(key=lambda item: -item[1])
+    return scored[:_CANDIDATES]
+
+
+def _reciprocal_rank_fusion(rankings: list[list[tuple[int, float]]]) -> list[tuple[int, float]]:
+    fused: dict[int, float] = {}
+    for ranking in rankings:
+        for position, (chunk_id, _score) in enumerate(ranking):
+            fused[chunk_id] = fused.get(chunk_id, 0.0) + 1.0 / (_RRF_K + position + 1)
+    return sorted(fused.items(), key=lambda item: -item[1])
+
+
+def _to_retrieved_chunk(chunk: KnowledgeChunk, score: float) -> RetrievedChunk:
+    return RetrievedChunk(
+        document_title=chunk.document.title,
+        document_kind=chunk.document.kind,
+        document_authority=chunk.document.authority,
+        page_start=chunk.page_start,
+        page_end=chunk.page_end,
+        text=chunk.text,
+        score=score,
+    )
