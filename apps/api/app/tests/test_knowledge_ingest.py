@@ -167,6 +167,19 @@ class TestIngest:
         KnowledgeService(db_session).ingest()
         assert KnowledgeRepository(db_session).get_by_path("sub/pasta/doc.pdf") is not None
 
+    def test_search_text_is_populated_for_lexical_retrieval(self, db_session, corpus: Path) -> None:
+        # Sem isto a busca léxica (BM25) não tem o que comparar: toda consulta
+        # voltaria vazia mesmo com o texto certo indexado.
+        _write(corpus, "aula.pdf", ["O módulo de Young mede a rigidez do material."])
+        KnowledgeService(db_session).ingest()
+
+        document = KnowledgeRepository(db_session).get_by_path("aula.pdf")
+        assert document is not None
+        chunk = KnowledgeRepository(db_session).list_chunks(document.id)[0]
+        assert chunk.search_text != ""
+        assert "modulo" in chunk.search_text  # dobrado: sem acento
+        assert "young" in chunk.search_text
+
 
 class TestIdempotency:
     def test_second_run_changes_nothing(self, db_session, corpus: Path) -> None:
