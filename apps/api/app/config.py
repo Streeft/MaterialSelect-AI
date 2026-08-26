@@ -101,6 +101,17 @@ class Settings(BaseSettings):
     # relevant passages is more checkable than one drowning in twenty.
     knowledge_retrieval_top_k: int = 5
 
+    # Embeddings para busca semântica — estritamente opcional por cima da
+    # busca léxica (que não depende de nenhum dos três). Sem padrão de
+    # propósito (D-36): um padrão escolheria um fornecedor pelo operador.
+    # Receitas prontas em .env.example.
+    knowledge_embedding_base_url: str = ""
+    knowledge_embedding_model: str = ""
+    # Textos por requisição de embedding. A maioria dos provedores tem um
+    # teto prático (centenas a milhares); 96 é conservador o bastante para
+    # servir a qualquer um sem medir por provedor.
+    knowledge_embedding_batch: int = 96
+
     # --- Auth (A5): login with Google, project-scoped studies -------------
     # Empty client id/secret means OAuth is off: the login endpoint answers
     # 503 with a clear reason instead of crashing into Google with bad
