@@ -127,7 +127,26 @@ como `| null` só na cópia que o typechecker de fato exercitava), exatamente o
 modo de falha silenciosa que a decisão original ([D-16](DECISIONS.md)) já
 previa. Ver M4 em [TODO.md](TODO.md).
 
-**Saúde do código:** 713 testes de backend (Python 3.11 e 3.12, nenhum skip)
+**RAG sobre o Cérebro entregue.** O Cérebro, hospedado em `main` desde D-45
+mas inerte até aqui — íntegro, mas sem nada em `app/ai/` que o lesse —,
+passou a alimentar `interpret()`/`explain()` de verdade: busca híbrida
+(léxica BM25 + semântica, fundidas por *reciprocal rank fusion*) em
+`app/knowledge/retrieval.py`, ligada só quando o provedor não é o `mock`
+(`provider.simulated`, não o nome do provedor — a mesma disciplina de
+D-35/D-36), e citação **verificada** por índice em `explain()` — nunca
+citação livre — via `guardrails.check_citations`. A garantia que mais
+importava não foi só mantida, foi **provada**: `check_constraint` e
+`ungrounded_numbers` nunca leem `context.retrieved`, então um número presente
+só num trecho recuperado continua sendo recusado como restrição exatamente
+como antes desta feature existir — teste dedicado cobre o caso, e dois
+revisores confirmaram separadamente que nenhum caminho novo alcança essas
+duas funções. Receita gratuita de embeddings (Jina AI, `api.jina.ai`, 1M
+tokens grátis por mês, sem cartão) documentada em `.env.example`, sem padrão
+de propósito (mesmo raciocínio de `AI_BASE_URL`, D-36); sem nada configurado,
+a busca cai para léxico puro. 55 testes novos de backend. Ver
+[D-47](DECISIONS.md) e [09-camada-ia.md](09-camada-ia.md).
+
+**Saúde do código:** 768 testes de backend (Python 3.11 e 3.12, nenhum skip)
 e 157 de frontend, todos verdes. `ruff` limpo, `black
 --check` limpo, typecheck estrito e build de produção sem avisos. CI no
 GitHub Actions rodando em todo PR e push para `main`, com os checks
@@ -286,8 +305,23 @@ resto da fase — trazidas depois, íntegras, verificadas caminho a caminho:
   extrai texto via `pypdf`; o extra `knowledge` precisa estar instalado, e a CI
   passou a instalar `.[dev,knowledge]` por causa disso), *chunking*,
   *embeddings*, busca léxica e um `manifest` de proveniência por documento,
-  mais 40 testes. Alimenta a camada de IA; não produz número nenhum sozinha —
-  o princípio 2 continua valendo aqui.
+  mais 40 testes. Ficou pronta antes de ter consumidor — a busca abaixo é
+  quem passou a usá-la.
+- **Busca sobre o Cérebro (RAG)** ([D-47](DECISIONS.md)) —
+  `app/knowledge/retrieval.py` funde busca léxica (BM25) e semântica
+  (embeddings) por *reciprocal rank fusion*, alimentando `interpret()` e
+  `explain()` da camada de IA com trechos numerados, só quando o provedor
+  ativo não é o `mock` (`provider.simulated`). `explain()` pode citar a
+  fonte: o esquema pede só o **índice** do trecho, verificado contra os
+  trechos de fato recuperados naquela chamada
+  (`guardrails.check_citations`) — nunca citação livre por título ou texto.
+  A garantia mais importante da camada de IA ficou provada, não só mantida:
+  `check_constraint`/`ungrounded_numbers` nunca leem `context.retrieved`,
+  então um número presente só num trecho recuperado nunca vira restrição
+  aceita — teste dedicado cobre exatamente isso. Receita gratuita de
+  embeddings (Jina AI, 1M tokens grátis/mês, sem cartão) documentada em
+  `.env.example`; sem nada configurado, a busca cai para léxico puro. Mais
+  55 testes.
 - **Cobrança com Stripe** — `Subscription`, `SubscriptionRepository`,
   `routers/billing.py`, `services/billing_service.py`, `require_active_
   subscription`. O código entrou inteiro, mas o portão ficou desligado até
@@ -395,6 +429,7 @@ que mais afetam quem for mexer no código:
 | A trilha de auditoria guarda retratos (quem/o quê/projeto), não junções vivas; importação em lote fica de fora | [D-43](DECISIONS.md) |
 | A licença de uma fonte é decidida uma vez, no registro; reusar o rótulo não reabre a decisão | [D-44](DECISIONS.md) |
 | Portão de assinatura: o desenho binário do plano de 18/08, não o Free/Pro do de 21/08 | [D-46](DECISIONS.md) |
+| Trecho recuperado do Cérebro é vocabulário, nunca número; citação verificada por índice | [D-47](DECISIONS.md) |
 
 ## 9. Limitações atuais
 
@@ -442,7 +477,7 @@ que mais afetam quem for mexer no código:
 | Dependência de provedor de IA | Arquitetura desacoplada com provedor simulado; funciona sem chave. |
 | Incorporação inadvertida de dado protegido | Triagem de licenciamento (M1, item 4.2 da proposta) — `Source` registra licença/procedência, e uma fonte nova sem licença ou marcada como possivelmente protegida sem confirmação humana é recusada antes de qualquer linha ser escrita ([D-44](DECISIONS.md)). |
 | Resultado não reproduzível por interferência de IA | Cálculo determinístico + guardrails executáveis + confirmação do usuário. |
-| Regressão silenciosa | CI com 713 testes de backend e 157 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
+| Regressão silenciosa | CI com 768 testes de backend e 157 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
 | Material licenciado do Cérebro exposto em `main` (repositório público) | Risco aceito por decisão explícita do autor, não mitigado — o Cérebro é a base de conhecimento da camada de IA ([D-45](DECISIONS.md)). |
 | Uso sem cobrança | Portão binário ligado ([D-46](DECISIONS.md)), checkout testado ao vivo em modo de teste — falta só configurar `STRIPE_API_KEY`/`STRIPE_WEBHOOK_SECRET`/`STRIPE_PRICE_ID` em **modo de produção** para vender de verdade. |
 
