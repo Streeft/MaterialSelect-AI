@@ -301,6 +301,67 @@ class TestExplanation:
         assert response.status_code == 400
         assert "não produziu" in response.json()["detail"]
 
+    def test_valid_citation_is_translated_to_a_readable_source(
+        self, client: TestClient, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from app.knowledge.retrieval import RetrievedChunk
+        from app.models.enums import DocumentKind, SourceAuthority
+
+        chunk = RetrievedChunk(
+            document_title="Materials Selection in Mechanical Design",
+            document_kind=DocumentKind.LIVRO,
+            document_authority=SourceAuthority.CIENTIFICA,
+            page_start=42,
+            page_end=43,
+            text="x",
+            score=1.0,
+        )
+
+        class _CitingProvider(AIProvider):
+            name = "citador"
+            simulated = False
+
+            def interpret(self, context) -> dict:
+                raise NotImplementedError
+
+            def explain(self, context) -> dict:
+                return {"summary": "ok", "paragraphs": ["texto"], "sources": [1], "caveats": []}
+
+        monkeypatch.setattr(ai_service, "get_provider", lambda *_a, **_k: _CitingProvider())
+        monkeypatch.setattr("app.services.ai_service.knowledge_search", lambda *a, **k: [chunk])
+
+        study_id = self._study_id(client)
+        body = client.post("/api/ai/explain", json={"study_id": study_id}).json()
+
+        assert body["sources"] == [
+            {
+                "document_title": "Materials Selection in Mechanical Design",
+                "page_start": 42,
+                "page_end": 43,
+            }
+        ]
+
+    def test_invalid_citation_index_is_silently_dropped(
+        self, client: TestClient, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        class _CitingProvider(AIProvider):
+            name = "citador"
+            simulated = False
+
+            def interpret(self, context) -> dict:
+                raise NotImplementedError
+
+            def explain(self, context) -> dict:
+                return {"summary": "ok", "paragraphs": ["texto"], "sources": [99], "caveats": []}
+
+        monkeypatch.setattr(ai_service, "get_provider", lambda *_a, **_k: _CitingProvider())
+        monkeypatch.setattr("app.services.ai_service.knowledge_search", lambda *a, **k: [])
+
+        study_id = self._study_id(client)
+        response = client.post("/api/ai/explain", json={"study_id": study_id})
+        assert response.status_code == 200  # não derruba a explicação inteira
+        assert response.json()["sources"] == []
+
 
 class _CitingProvider(AIProvider):
     """Devolve índices de citação, para provar que model_base.py os lê."""
