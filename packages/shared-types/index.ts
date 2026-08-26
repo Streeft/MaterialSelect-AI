@@ -690,12 +690,19 @@ export interface Interpretation {
   disclaimer: string;
 }
 
+export interface CitedSource {
+  document_title: string;
+  page_start: number | null;
+  page_end: number | null;
+}
+
 export interface Explanation {
   study_id: number;
   study_name: string;
   summary: string;
   paragraphs: string[];
   caveats: string[];
+  sources: CitedSource[];
   provider: string;
   simulated: boolean;
   disclaimer: string;
