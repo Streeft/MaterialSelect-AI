@@ -57,6 +57,10 @@ você, esse registro se perde.
 propriedade dimensionada, **não proponha a restrição**: escreva uma pergunta em \
 open_questions citando a cláusula. Lido na unidade canônica, "no mínimo 300" \
 pode virar 300 K e inverter o sentido do que o usuário disse.
+4a. Os "Trechos de referência", quando presentes, servem só para entender \
+terminologia e contexto técnico. Nenhum número deles vira restrição — todo \
+número continua tendo que estar escrito no enunciado do usuário. Citar um \
+trecho não abre exceção nenhuma na regra 2.
 5. Não estime propriedade de material, não recomende material e não faça conta.
 
 O que não couber nessas regras vira uma frase em open_questions. Dizer "não \
@@ -79,6 +83,11 @@ percentuais, médias, arredondamentos ou ordens de grandeza — nem quando a con
 estiver certa. Uma cifra que não esteja no bloco faz o backend descartar a \
 resposta inteira, e o usuário fica sem explicação nenhuma.
 
+Se houver "Trechos de referência", você pode citá-los para dar contexto — \
+preencha sources com os números entre colchetes dos trechos que realmente \
+usou (ex.: [1], [2]). Isso não muda a regra sobre números: cifra continua \
+tendo que vir do bloco de dados, nunca de um trecho de referência.
+
 Não afirme que um material é adequado à aplicação, não sugira substituições e \
 não estime propriedade. O ranking mede o índice declarado sobre os valores \
 cadastrados; ele não decide um projeto.
@@ -93,6 +102,7 @@ As ressalvas do relatório são escritas pelo backend — não as repita.\
 
 def interpret_user(context: ProblemContext) -> str:
     """The catalogue the model may choose from, then the user's own words."""
+    reference = _reference_block(context.retrieved)
     blocks = [
         "# Catálogo de propriedades (slug: nome | unidade canônica | unidades "
         "aceitas | melhor quando)",
@@ -103,6 +113,10 @@ def interpret_user(context: ProblemContext) -> str:
         "",
         "# Classes de materiais (slug: nome)",
         _classes_block(context) or "(vazio)",
+    ]
+    if reference:
+        blocks += ["", reference]
+    blocks += [
         "",
         "# Enunciado do usuário (a única fonte legítima de números)",
         context.statement,
@@ -318,18 +332,42 @@ def _classes_block(context: ProblemContext) -> str:
     return "\n".join(f"- {facts.slug}: {facts.name}" for facts in context.classes)
 
 
+def _reference_block(retrieved: tuple) -> str:
+    """Numbered reference passages, or empty when nothing was retrieved."""
+    if not retrieved:
+        return ""
+    lines = ["# Trechos de referência (vocabulário e contexto — nunca extraia número daqui)"]
+    for i, chunk in enumerate(retrieved, start=1):
+        pages = (
+            f" — p. {chunk.page_start}-{chunk.page_end}"
+            if chunk.page_start and chunk.page_end
+            else ""
+        )
+        lines.append(f"[{i}] {chunk.document_title}{pages}")
+        lines.append(f'    "{chunk.text}"')
+    return "\n".join(lines)
+
+
 # --- explanation -----------------------------------------------------------
 
 EXPLAIN_SCHEMA = {
     "type": "object",
     "additionalProperties": False,
-    "required": ["summary", "paragraphs"],
+    "required": ["summary", "paragraphs", "sources"],
     "properties": {
         "summary": {"type": "string", "description": "Uma frase."},
         "paragraphs": {
             "type": "array",
             "items": {"type": "string"},
             "description": "De dois a quatro parágrafos curtos.",
+        },
+        "sources": {
+            "type": "array",
+            "items": {"type": "integer"},
+            "description": (
+                "Índices (1, 2, ...) dos trechos de referência de fato usados. "
+                "Vazio se nenhum foi citado ou se não havia nenhum disponível."
+            ),
         },
     },
 }
@@ -388,6 +426,9 @@ def explain_user(context: ResultContext) -> str:
             else "o primeiro colocado se mantém sob as variações testadas."
         )
     )
+    reference = _reference_block(context.retrieved)
+    if reference:
+        lines += ["", reference]
     return "\n".join(lines)
 
 
