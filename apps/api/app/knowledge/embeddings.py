@@ -143,10 +143,15 @@ class EmbeddingClient:
         if not texts:
             return []
 
-        body = {"model": self._model_or_fail(), "input": texts}
-        payload = self._post(body)
-        vectors = _vectors_of(payload, expected=len(texts))
-        return [normalise(vector) for vector in vectors]
+        batch_size = max(1, self.settings.knowledge_embedding_batch)
+        vectors: list[list[float]] = []
+        for start in range(0, len(texts), batch_size):
+            batch = texts[start : start + batch_size]
+            body = {"model": self._model_or_fail(), "input": batch}
+            payload = self._post(body)
+            batch_vectors = _vectors_of(payload, expected=len(batch))
+            vectors.extend(normalise(vector) for vector in batch_vectors)
+        return vectors
 
     # --- transport --------------------------------------------------------
 
