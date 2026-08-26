@@ -431,3 +431,68 @@ def test_model_base_defaults_missing_sources_to_empty_list() -> None:
         sensitivity_changed=False,
     )
     assert _StubProvider().explain(context)["sources"] == []
+
+
+class TestRetrievedTextNeverGroundsANumber:
+    def test_number_only_in_a_retrieved_chunk_does_not_ground_a_constraint(
+        self, client: TestClient, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A garantia central deste trabalho: um trecho recuperado pode
+        conter qualquer número — isso nunca torna esse número "ancorado" no
+        enunciado. Só o texto que o próprio usuário escreveu ancora.
+        """
+        from app.knowledge.retrieval import RetrievedChunk
+        from app.models.enums import DocumentKind, SourceAuthority
+
+        chunk = RetrievedChunk(
+            document_title="Livro qualquer",
+            document_kind=DocumentKind.LIVRO,
+            document_authority=SourceAuthority.CIENTIFICA,
+            page_start=1,
+            page_end=1,
+            # 999 aparece só aqui — nunca no enunciado do usuário abaixo.
+            text="O módulo de referência típico é 999 GPa para este material.",
+            score=1.0,
+        )
+
+        class _ProviderCitingTheRetrievedNumber(AIProvider):
+            name = "cita-o-trecho"
+            simulated = False
+
+            def interpret(self, context) -> dict:
+                # Propõe uma restrição usando o número que só existe no
+                # trecho recuperado, não no enunciado do usuário.
+                return {
+                    "function_text": None,
+                    "objective_text": None,
+                    "free_variables": [],
+                    "constraints": [
+                        {
+                            "constraint": {
+                                "operator": "gte",
+                                "property_slug": "modulo_young",
+                                "value": 999.0,
+                                "unit": "GPa",
+                            },
+                            "evidence": "trecho recuperado",
+                            "rationale": "citado do Cérebro",
+                        }
+                    ],
+                    "properties": [],
+                    "indices": [],
+                    "chart": None,
+                    "open_questions": [],
+                }
+
+            def explain(self, context) -> dict:
+                raise NotImplementedError
+
+        monkeypatch.setattr(
+            ai_service, "get_provider", lambda *_a, **_k: _ProviderCitingTheRetrievedNumber()
+        )
+        monkeypatch.setattr("app.services.ai_service.knowledge_search", lambda *a, **k: [chunk])
+
+        body = _interpret(client, "Preciso de uma viga leve para uma estrutura.")
+
+        assert body["constraints"] == []  # a restrição foi recusada
+        assert any("não aparece no enunciado" in r for r in body["rejected"])
