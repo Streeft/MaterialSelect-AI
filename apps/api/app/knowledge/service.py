@@ -24,6 +24,7 @@ from app.config import Settings
 from app.config import settings as default_settings
 from app.domain.errors import ValidationError
 from app.knowledge.chunking import chunk_text
+from app.knowledge.lexical import fold
 from app.knowledge.manifest import DeclaredProvenance, load_manifest
 from app.knowledge.readers import SUPPORTED_EXTENSIONS, extract_text
 from app.models.enums import IngestStatus
@@ -212,6 +213,7 @@ class KnowledgeService:
                     page_start=chunk.page_start,
                     page_end=chunk.page_end,
                     heading=chunk.heading,
+                    search_text=fold(chunk.text),
                 )
                 for chunk in chunks
             ],
