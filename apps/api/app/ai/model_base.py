@@ -100,6 +100,7 @@ class ModelProviderBase(AIProvider):
             "paragraphs": [
                 text for text in (_text(p) for p in _as_list(raw.get("paragraphs"))) if text
             ],
+            "sources": [i for i in _as_list(raw.get("sources")) if isinstance(i, int)],
             # Not the model's to write, and not the model's to leave out.
             "caveats": standard_caveats(context),
         }
