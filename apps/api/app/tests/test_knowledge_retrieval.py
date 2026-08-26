@@ -93,3 +93,72 @@ class TestLexicalOnly:
 
     def test_empty_corpus_returns_empty(self, db_session, corpus) -> None:
         assert search(db_session, "qualquer coisa", top_k=5, settings=Settings()) == []
+
+
+class _FakeEmbeddingClient:
+    """Vetores determinísticos: 'quente' aponta pra um eixo, 'frio' pro outro."""
+
+    def __init__(self, model: str = "fake-embed", fail: bool = False) -> None:
+        self.model = model
+        self.fail = fail
+
+    def embed(self, texts: list[str]) -> list[list[float]]:
+        if self.fail:
+            from app.knowledge.embeddings import EmbeddingUnavailableError
+
+            raise EmbeddingUnavailableError("indisponível no teste")
+        return [[1.0, 0.0] if "quente" in text.lower() else [0.0, 1.0] for text in texts]
+
+
+class TestHybridSearch:
+    def test_semantic_search_used_when_configured(
+        self, db_session, corpus, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # Sinônimo puro, sem sobreposição léxica com a consulta: só a via
+        # semântica encontra.
+        _write(corpus, "termico.pdf", ["Materiais para ambientes de alta temperatura, quente."])
+        _write(corpus, "outro.pdf", ["Processos de fabricação e usinagem convencional."])
+        KnowledgeService(db_session).ingest()
+
+        settings = Settings(
+            knowledge_dir=str(corpus),
+            knowledge_embedding_base_url="https://fake/v1",
+            knowledge_embedding_model="fake-embed",
+        )
+        fake = _FakeEmbeddingClient()
+        monkeypatch.setattr("app.knowledge.retrieval.EmbeddingClient", lambda _settings: fake)
+        # Popula os vetores como a ingestão faria.
+        service = KnowledgeService(db_session, settings)
+        monkeypatch.setattr(service, "_embeddings_configured", lambda: True)
+        monkeypatch.setattr(service, "_embedding_client", lambda: fake)
+        service.ingest()
+
+        results = search(db_session, "quente", top_k=5, settings=settings)
+        assert any("temperatura" in r.text for r in results)
+
+    def test_degrades_to_lexical_when_embedding_call_fails(
+        self, db_session, corpus, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        _write(corpus, "aula.pdf", ["Densidade e módulo de elasticidade dos metais."])
+        KnowledgeService(db_session).ingest()
+
+        settings = Settings(
+            knowledge_embedding_base_url="https://fake/v1",
+            knowledge_embedding_model="fake-embed",
+        )
+        failing = _FakeEmbeddingClient(fail=True)
+        monkeypatch.setattr("app.knowledge.retrieval.EmbeddingClient", lambda _settings: failing)
+
+        # Não levanta: cai para léxico puro nesta consulta.
+        results = search(
+            db_session, "densidade modulo elasticidade metais", top_k=5, settings=settings
+        )
+        assert results
+
+    def test_no_embedding_config_is_lexical_only(self, db_session, corpus) -> None:
+        # Sem KNOWLEDGE_EMBEDDING_*, nenhuma tentativa de rede é feita — o
+        # settings default (Settings()) já não tem os dois campos setados.
+        _write(corpus, "aula.pdf", ["Resistência à tração de ligas metálicas."])
+        KnowledgeService(db_session).ingest()
+        results = search(db_session, "resistencia tracao ligas", top_k=5, settings=Settings())
+        assert results
