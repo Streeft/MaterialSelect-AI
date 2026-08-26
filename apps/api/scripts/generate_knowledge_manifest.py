@@ -57,9 +57,13 @@ def infer_provenance(relative_path: str) -> dict:
         "autoridade": authority,
     }
 
-    match = _AUTHOR_PREFIX.match(Path(relative_path).name)
-    if match:
-        entry["autor"] = match.group(1)
+    # Autor só é extraído de livros (LIVRO) e artigos (ARTIGO) — nunca de
+    # fichas técnicas (FICHA) ou outros documentos onde " - " é separador
+    # de material/propriedade, não de título de obra.
+    if kind in ("LIVRO", "ARTIGO"):
+        match = _AUTHOR_PREFIX.match(Path(relative_path).name)
+        if match:
+            entry["autor"] = match.group(1)
 
     return entry
 

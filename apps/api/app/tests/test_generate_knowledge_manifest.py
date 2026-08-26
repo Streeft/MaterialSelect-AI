@@ -72,3 +72,18 @@ class TestTitleAndAuthor:
         entry = infer_provenance("01-Bibliografia/qualquer-livro.pdf")
         assert entry.get("referencia") is None
         assert entry.get("url") is None
+
+    def test_ficha_with_dash_pattern_does_not_extract_author(self) -> None:
+        # Regression test: material names in FICHA files may have " - " pattern
+        # (e.g. "Polietileno - PE") but should NOT extract as author.
+        entry = infer_provenance(
+            "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Polimeros/Polietileno - PE.pdf"
+        )
+        assert entry["tipo"] == "FICHA"
+        assert "autor" not in entry or entry["autor"] is None
+
+    def test_artigo_with_author_prefix_extracts_author(self) -> None:
+        # ARTIGO is the second folder type where author extraction is allowed.
+        entry = infer_provenance("05-Artigos-Cientificos/Smith - Innovative Materials Research.pdf")
+        assert entry["tipo"] == "ARTIGO"
+        assert entry["autor"] == "Smith"

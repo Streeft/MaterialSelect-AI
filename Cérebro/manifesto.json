@@ -88,15 +88,13 @@
       "path": "02-Material-de-Curso-ENG02016/Ferramentas-Avaliativas/Instruções - Ferramenta avaliativa 1B - Mapeamento de materiais em produtos.pdf",
       "titulo": "Instruções   Ferramenta avaliativa 1B   Mapeamento de materiais em produtos",
       "tipo": "OUTRO",
-      "autoridade": "TECNICA",
-      "autor": "Instruções"
+      "autoridade": "TECNICA"
     },
     {
       "path": "02-Material-de-Curso-ENG02016/Ferramentas-Avaliativas/Instruções - Ferramenta avaliativa 2B - PROJETO DE SELEÇÃO DE MATERIAIS.pdf",
       "titulo": "Instruções   Ferramenta avaliativa 2B   PROJETO DE SELEÇÃO DE MATERIAIS",
       "tipo": "OUTRO",
-      "autoridade": "TECNICA",
-      "autor": "Instruções"
+      "autoridade": "TECNICA"
     },
     {
       "path": "02-Material-de-Curso-ENG02016/Ferramentas-Avaliativas/trios definidos para a FA1B -  Mapeamento de materiais em produtos.pdf",
@@ -162,8 +160,7 @@
       "path": "02-Material-de-Curso-ENG02016/Trabalhos-Entregues/Trabalho 2/Arquivos para gerar slide/Instruções - Ferramenta avaliativa 2B - PROJETO DE SELEÇÃO DE MATERIAIS.pdf",
       "titulo": "Instruções   Ferramenta avaliativa 2B   PROJETO DE SELEÇÃO DE MATERIAIS",
       "tipo": "EXERCICIO",
-      "autoridade": "TECNICA",
-      "autor": "Instruções"
+      "autoridade": "TECNICA"
     },
     {
       "path": "02-Material-de-Curso-ENG02016/Trabalhos-Entregues/Trabalho 2/Arquivos para gerar slide/Projeto Selecao Materiais Trio C.pdf",
@@ -391,8 +388,7 @@
       "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Híbridos, compósitos , espumas, materiais naturais/Espumas/ESPUMAS - GERAL.pdf",
       "titulo": "ESPUMAS   GERAL",
       "tipo": "FICHA",
-      "autoridade": "TECNICA",
-      "autor": "ESPUMAS"
+      "autoridade": "TECNICA"
     },
     {
       "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Híbridos, compósitos , espumas, materiais naturais/Espumas/Espuma cerâmica.pdf",
@@ -512,8 +508,7 @@
       "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Metais e ligas/METAIS - GERAL.pdf",
       "titulo": "METAIS   GERAL",
       "tipo": "FICHA",
-      "autoridade": "TECNICA",
-      "autor": "METAIS"
+      "autoridade": "TECNICA"
     },
     {
       "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Metais e ligas/Não-Ferrosas/Aluminio e suas ligas/Ligas de aluminio fundidas.pdf",
@@ -669,8 +664,7 @@
       "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Polímeros e elastômeros/Elastômeros/Elastomeros - GERAL.pdf",
       "titulo": "Elastomeros   GERAL",
       "tipo": "FICHA",
-      "autoridade": "TECNICA",
-      "autor": "Elastomeros"
+      "autoridade": "TECNICA"
     },
     {
       "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Polímeros e elastômeros/Elastômeros/Elastomeros de silicones - SI-Q.pdf",
@@ -688,8 +682,7 @@
       "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Polímeros e elastômeros/Elastômeros/Policloropreno - Neoprene - CR.pdf",
       "titulo": "Policloropreno   Neoprene   CR",
       "tipo": "FICHA",
-      "autoridade": "TECNICA",
-      "autor": "Policloropreno"
+      "autoridade": "TECNICA"
     },
     {
       "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Polímeros e elastômeros/Elastômeros/Poliuretano.pdf",
@@ -701,29 +694,25 @@
       "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Polímeros e elastômeros/Polímeros/Polímeros - GERAL.pdf",
       "titulo": "Polímeros   GERAL",
       "tipo": "FICHA",
-      "autoridade": "TECNICA",
-      "autor": "Polímeros"
+      "autoridade": "TECNICA"
     },
     {
       "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Polímeros e elastômeros/Polímeros/Termofixos/Epóxis - EP.pdf",
       "titulo": "Epóxis   EP",
       "tipo": "FICHA",
-      "autoridade": "TECNICA",
-      "autor": "Epóxis"
+      "autoridade": "TECNICA"
     },
     {
       "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Polímeros e elastômeros/Polímeros/Termofixos/Fenólicos - PH.pdf",
       "titulo": "Fenólicos   PH",
       "tipo": "FICHA",
-      "autoridade": "TECNICA",
-      "autor": "Fenólicos"
+      "autoridade": "TECNICA"
     },
     {
       "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Polímeros e elastômeros/Polímeros/Termofixos/Poliéster - UP.pdf",
       "titulo": "Poliéster   UP",
       "tipo": "FICHA",
-      "autoridade": "TECNICA",
-      "autor": "Poliéster"
+      "autoridade": "TECNICA"
     },
     {
       "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Polímeros e elastômeros/Polímeros/Termoplásticos/Acrilonitrila butadieno estireno - ABS.pdf",
@@ -741,8 +730,7 @@
       "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Polímeros e elastômeros/Polímeros/Termoplásticos/Ionômero - I.pdf",
       "titulo": "Ionômero   I",
       "tipo": "FICHA",
-      "autoridade": "TECNICA",
-      "autor": "Ionômero"
+      "autoridade": "TECNICA"
     },
     {
       "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Polímeros e elastômeros/Polímeros/Termoplásticos/Poli -eter-eter-cetona - PEEK.pdf",
@@ -754,15 +742,13 @@
       "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Polímeros e elastômeros/Polímeros/Termoplásticos/Poliamida - Nylons - PA.pdf",
       "titulo": "Poliamida   Nylons   PA",
       "tipo": "FICHA",
-      "autoridade": "TECNICA",
-      "autor": "Poliamida"
+      "autoridade": "TECNICA"
     },
     {
       "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Polímeros e elastômeros/Polímeros/Termoplásticos/Policarbonato - PC.pdf",
       "titulo": "Policarbonato   PC",
       "tipo": "FICHA",
-      "autoridade": "TECNICA",
-      "autor": "Policarbonato"
+      "autoridade": "TECNICA"
     },
     {
       "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Polímeros e elastômeros/Polímeros/Termoplásticos/Policloreto de vinila - PVC.pdf",
@@ -774,15 +760,13 @@
       "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Polímeros e elastômeros/Polímeros/Termoplásticos/Poliestireno - PS.pdf",
       "titulo": "Poliestireno   PS",
       "tipo": "FICHA",
-      "autoridade": "TECNICA",
-      "autor": "Poliestireno"
+      "autoridade": "TECNICA"
     },
     {
       "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Polímeros e elastômeros/Polímeros/Termoplásticos/Polietileno - PE.pdf",
       "titulo": "Polietileno   PE",
       "tipo": "FICHA",
-      "autoridade": "TECNICA",
-      "autor": "Polietileno"
+      "autoridade": "TECNICA"
     },
     {
       "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Polímeros e elastômeros/Polímeros/Termoplásticos/Polihidroxialcanoato - PHA e PHB.pdf",
@@ -794,8 +778,7 @@
       "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Polímeros e elastômeros/Polímeros/Termoplásticos/Polilactídeo - PLA.pdf",
       "titulo": "Polilactídeo   PLA",
       "tipo": "FICHA",
-      "autoridade": "TECNICA",
-      "autor": "Polilactídeo"
+      "autoridade": "TECNICA"
     },
     {
       "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Polímeros e elastômeros/Polímeros/Termoplásticos/Polimetil metacrilato - Acrílico - PMMA.pdf",
@@ -807,15 +790,13 @@
       "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Polímeros e elastômeros/Polímeros/Termoplásticos/Polioximetileno - Acetal - POM.pdf",
       "titulo": "Polioximetileno   Acetal   POM",
       "tipo": "FICHA",
-      "autoridade": "TECNICA",
-      "autor": "Polioximetileno"
+      "autoridade": "TECNICA"
     },
     {
       "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Polímeros e elastômeros/Polímeros/Termoplásticos/Polipropileno - PP.pdf",
       "titulo": "Polipropileno   PP",
       "tipo": "FICHA",
-      "autoridade": "TECNICA",
-      "autor": "Polipropileno"
+      "autoridade": "TECNICA"
     },
     {
       "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Polímeros e elastômeros/Polímeros/Termoplásticos/Politereftalato de etileno - PET.pdf",
@@ -827,8 +808,7 @@
       "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Polímeros e elastômeros/Polímeros/Termoplásticos/Poliueratano - tpPUR.pdf",
       "titulo": "Poliueratano   tpPUR",
       "tipo": "FICHA",
-      "autoridade": "TECNICA",
-      "autor": "Poliueratano"
+      "autoridade": "TECNICA"
     },
     {
       "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Polímeros e elastômeros/Polímeros/Termoplásticos/Poltetrafluoroetileno - PTFE - Teflon.pdf",
