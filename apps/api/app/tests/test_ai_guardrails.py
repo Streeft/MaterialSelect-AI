@@ -227,3 +227,47 @@ class TestConstraintChecks:
             self._check(operator=operator, property_slug="modulo_young", value=999.0, unit="GPa")
             is not None
         )
+
+
+class TestCheckCitations:
+    def test_valid_indices_pass_through(self) -> None:
+        from app.ai.guardrails import check_citations
+        from app.knowledge.retrieval import RetrievedChunk
+        from app.models.enums import DocumentKind, SourceAuthority
+
+        chunk = RetrievedChunk(
+            document_title="Livro",
+            document_kind=DocumentKind.LIVRO,
+            document_authority=SourceAuthority.CIENTIFICA,
+            page_start=1,
+            page_end=1,
+            text="x",
+            score=1.0,
+        )
+        assert check_citations([1], (chunk,)) == [1]
+
+    def test_index_out_of_range_is_dropped(self) -> None:
+        from app.ai.guardrails import check_citations
+
+        assert check_citations([1, 2, 99], ()) == []
+
+    def test_zero_and_negative_indices_are_dropped(self) -> None:
+        from app.ai.guardrails import check_citations
+        from app.knowledge.retrieval import RetrievedChunk
+        from app.models.enums import DocumentKind, SourceAuthority
+
+        chunk = RetrievedChunk(
+            document_title="x",
+            document_kind=DocumentKind.OUTRO,
+            document_authority=SourceAuthority.NAO_VERIFICADA,
+            page_start=None,
+            page_end=None,
+            text="x",
+            score=1.0,
+        )
+        assert check_citations([0, -1, 1], (chunk,)) == [1]
+
+    def test_empty_input_is_empty_output(self) -> None:
+        from app.ai.guardrails import check_citations
+
+        assert check_citations([], ()) == []

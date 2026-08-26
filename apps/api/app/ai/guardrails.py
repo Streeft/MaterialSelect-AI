@@ -186,6 +186,19 @@ def check_chart(x: str, y: str, catalogue: Catalogue) -> str | None:
     return None
 
 
+def check_citations(indices: list[int], retrieved: tuple) -> list[int]:
+    """Keep only citation indices that name a passage actually retrieved.
+
+    Unlike ``check_constraint``, this never raises or reports a rejection: a
+    bad index is metadata the model got wrong about its own citation, not an
+    invented figure — dropping it silently costs nothing the reader would
+    have used. ``indices`` are 1-based, matching the numbering the prompt's
+    reference block shows the model.
+    """
+    valid_range = range(1, len(retrieved) + 1)
+    return [i for i in indices if i in valid_range]
+
+
 def check_constraint(constraint, statement: str, catalogue: Catalogue) -> str | None:
     """Validate one proposed constraint against the catalogue and the statement.
 
