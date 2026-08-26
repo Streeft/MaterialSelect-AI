@@ -107,7 +107,10 @@ class _FakeEmbeddingClient:
             from app.knowledge.embeddings import EmbeddingUnavailableError
 
             raise EmbeddingUnavailableError("indisponível no teste")
-        return [[1.0, 0.0] if "quente" in text.lower() else [0.0, 1.0] for text in texts]
+        return [
+            [1.0, 0.0] if "quente" in text.lower() or "calor" in text.lower() else [0.0, 1.0]
+            for text in texts
+        ]
 
 
 class TestHybridSearch:
@@ -133,7 +136,7 @@ class TestHybridSearch:
         monkeypatch.setattr(service, "_embedding_client", lambda: fake)
         service.ingest()
 
-        results = search(db_session, "quente", top_k=5, settings=settings)
+        results = search(db_session, "calor", top_k=5, settings=settings)
         assert any("temperatura" in r.text for r in results)
 
     def test_degrades_to_lexical_when_embedding_call_fails(
