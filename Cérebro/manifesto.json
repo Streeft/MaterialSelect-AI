@@ -1,0 +1,870 @@
+{
+  "documentos": [
+    {
+      "path": "01-Bibliografia/Ciencia-e-Engenharia-de-Materiais-CALLISTER-9ª-Edicao-pdf.pdf",
+      "titulo": "Ciencia e Engenharia de Materiais CALLISTER 9ª Edicao pdf",
+      "tipo": "LIVRO",
+      "autoridade": "CIENTIFICA"
+    },
+    {
+      "path": "01-Bibliografia/Corrosion and Materials Selection 2014.pdf",
+      "titulo": "Corrosion and Materials Selection 2014",
+      "tipo": "LIVRO",
+      "autoridade": "CIENTIFICA"
+    },
+    {
+      "path": "01-Bibliografia/Diran Apelian - Shaping Our World_ Engineering Education for the 21st Century.pdf",
+      "titulo": "Diran Apelian   Shaping Our World  Engineering Education for the 21st Century",
+      "tipo": "LIVRO",
+      "autoridade": "CIENTIFICA"
+    },
+    {
+      "path": "01-Bibliografia/Extratos-de-Capitulos/Selecao_de_Materiais_no_Projeto_Mecanico - Cap 13 e 14 Processos e seleção de processos.pdf",
+      "titulo": "Selecao de Materiais no Projeto Mecanico   Cap 13 e 14 Processos e seleção de processos",
+      "tipo": "LIVRO",
+      "autoridade": "CIENTIFICA"
+    },
+    {
+      "path": "01-Bibliografia/Extratos-de-Capitulos/Selecao_de_Materiais_no_Projeto_Mecanico - Capítulo 3 Materiais de Engenharia e suas propriedades.pdf",
+      "titulo": "Selecao de Materiais no Projeto Mecanico   Capítulo 3 Materiais de Engenharia e suas propriedades",
+      "tipo": "LIVRO",
+      "autoridade": "CIENTIFICA"
+    },
+    {
+      "path": "01-Bibliografia/MATERIALS and PROCESS SELECTION for ENGINEERING DESIGN.pdf",
+      "titulo": "MATERIALS and PROCESS SELECTION for ENGINEERING DESIGN",
+      "tipo": "LIVRO",
+      "autoridade": "CIENTIFICA"
+    },
+    {
+      "path": "01-Bibliografia/Materiais e Design.pdf",
+      "titulo": "Materiais e Design",
+      "tipo": "LIVRO",
+      "autoridade": "CIENTIFICA"
+    },
+    {
+      "path": "01-Bibliografia/Materials Selection for Aerospace Systems.pdf",
+      "titulo": "Materials Selection for Aerospace Systems",
+      "tipo": "LIVRO",
+      "autoridade": "CIENTIFICA"
+    },
+    {
+      "path": "01-Bibliografia/Materials_ Engineering, Science, Processing and Design ( PDFDrive ).pdf",
+      "titulo": "Materials  Engineering, Science, Processing and Design ( PDFDrive )",
+      "tipo": "LIVRO",
+      "autoridade": "CIENTIFICA"
+    },
+    {
+      "path": "01-Bibliografia/Michael Ashby (Auth.)-Seleção De Materiais No Projeto Mecânico (2012).pdf",
+      "titulo": "Michael Ashby (Auth.) Seleção De Materiais No Projeto Mecânico (2012)",
+      "tipo": "LIVRO",
+      "autoridade": "CIENTIFICA"
+    },
+    {
+      "path": "01-Bibliografia/Michael F. Ashby - Materials Selection in Mechanical Design. 5th.pdf",
+      "titulo": "Michael F. Ashby   Materials Selection in Mechanical Design. 5th",
+      "tipo": "LIVRO",
+      "autoridade": "CIENTIFICA"
+    },
+    {
+      "path": "01-Bibliografia/Selecao_de_Materiais_no_Projeto_Mecanico.pdf",
+      "titulo": "Selecao de Materiais no Projeto Mecanico",
+      "tipo": "LIVRO",
+      "autoridade": "CIENTIFICA"
+    },
+    {
+      "path": "01-Bibliografia/Structural Materials - Properties and Selection 2019.pdf",
+      "titulo": "Structural Materials   Properties and Selection 2019",
+      "tipo": "LIVRO",
+      "autoridade": "CIENTIFICA"
+    },
+    {
+      "path": "02-Material-de-Curso-ENG02016/Ferramentas-Avaliativas/GRUPOS E CENÁRIOS DEFINIDOS PARA A F.A.2 B - PROJETO DE SELEÇÃO DE MATERIAIS.pdf",
+      "titulo": "GRUPOS E CENÁRIOS DEFINIDOS PARA A F.A.2 B   PROJETO DE SELEÇÃO DE MATERIAIS",
+      "tipo": "OUTRO",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "02-Material-de-Curso-ENG02016/Ferramentas-Avaliativas/Instruções - Ferramenta avaliativa 1B - Mapeamento de materiais em produtos.pdf",
+      "titulo": "Instruções   Ferramenta avaliativa 1B   Mapeamento de materiais em produtos",
+      "tipo": "OUTRO",
+      "autoridade": "TECNICA",
+      "autor": "Instruções"
+    },
+    {
+      "path": "02-Material-de-Curso-ENG02016/Ferramentas-Avaliativas/Instruções - Ferramenta avaliativa 2B - PROJETO DE SELEÇÃO DE MATERIAIS.pdf",
+      "titulo": "Instruções   Ferramenta avaliativa 2B   PROJETO DE SELEÇÃO DE MATERIAIS",
+      "tipo": "OUTRO",
+      "autoridade": "TECNICA",
+      "autor": "Instruções"
+    },
+    {
+      "path": "02-Material-de-Curso-ENG02016/Ferramentas-Avaliativas/trios definidos para a FA1B -  Mapeamento de materiais em produtos.pdf",
+      "titulo": "trios definidos para a FA1B    Mapeamento de materiais em produtos",
+      "tipo": "OUTRO",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "02-Material-de-Curso-ENG02016/Plano de Aulas - ENG02016 Seleção de Materiais - 2026-1 - atualizado 12-05-2026.pdf",
+      "titulo": "Plano de Aulas   ENG02016 Seleção de Materiais   2026 1   atualizado 12 05 2026",
+      "tipo": "OUTRO",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "02-Material-de-Curso-ENG02016/Topicos-de-Aula/Topico 5 - Seleção de processos na seleção de materiais.pdf",
+      "titulo": "Topico 5   Seleção de processos na seleção de materiais",
+      "tipo": "SLIDE",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "02-Material-de-Curso-ENG02016/Topicos-de-Aula/Topico 6 - Seleção de processos e o meio ambiente.pdf",
+      "titulo": "Topico 6   Seleção de processos e o meio ambiente",
+      "tipo": "SLIDE",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "02-Material-de-Curso-ENG02016/Topicos-de-Aula/Tópico 1 - Introdução a Seleção de Materiais e Evolução dos Materiais e produtos - atualizado em 17-03-26.pdf",
+      "titulo": "Tópico 1   Introdução a Seleção de Materiais e Evolução dos Materiais e produtos   atualizado em 17 03 26",
+      "tipo": "SLIDE",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "02-Material-de-Curso-ENG02016/Topicos-de-Aula/Tópico 2 - Materiais de engenharia e suas propriedades.pdf",
+      "titulo": "Tópico 2   Materiais de engenharia e suas propriedades",
+      "tipo": "SLIDE",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "02-Material-de-Curso-ENG02016/Topicos-de-Aula/Tópico 3 - Estratégias de Seleção de Materiais e estudos de caso.pdf",
+      "titulo": "Tópico 3   Estratégias de Seleção de Materiais e estudos de caso",
+      "tipo": "SLIDE",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "02-Material-de-Curso-ENG02016/Topicos-de-Aula/Tópico 4 - Diagramas de Seleção de propriedades e índices de mérito em estudos de caso.pdf",
+      "titulo": "Tópico 4   Diagramas de Seleção de propriedades e índices de mérito em estudos de caso",
+      "tipo": "SLIDE",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "02-Material-de-Curso-ENG02016/Trabalhos-Entregues/Trabalho 2/Arquivos para gerar slide/ABS_capacete.pdf",
+      "titulo": "ABS capacete",
+      "tipo": "EXERCICIO",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "02-Material-de-Curso-ENG02016/Trabalhos-Entregues/Trabalho 2/Arquivos para gerar slide/GRUPOS E CENÁRIOS DEFINIDOS PARA A F.A.2 B - PROJETO DE SELEÇÃO DE MATERIAIS.pdf",
+      "titulo": "GRUPOS E CENÁRIOS DEFINIDOS PARA A F.A.2 B   PROJETO DE SELEÇÃO DE MATERIAIS",
+      "tipo": "EXERCICIO",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "02-Material-de-Curso-ENG02016/Trabalhos-Entregues/Trabalho 2/Arquivos para gerar slide/Instruções - Ferramenta avaliativa 2B - PROJETO DE SELEÇÃO DE MATERIAIS.pdf",
+      "titulo": "Instruções   Ferramenta avaliativa 2B   PROJETO DE SELEÇÃO DE MATERIAIS",
+      "tipo": "EXERCICIO",
+      "autoridade": "TECNICA",
+      "autor": "Instruções"
+    },
+    {
+      "path": "02-Material-de-Curso-ENG02016/Trabalhos-Entregues/Trabalho 2/Arquivos para gerar slide/Projeto Selecao Materiais Trio C.pdf",
+      "titulo": "Projeto Selecao Materiais Trio C",
+      "tipo": "EXERCICIO",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "02-Material-de-Curso-ENG02016/Trabalhos-Entregues/Trabalho 2/Arquivos para gerar slide/alumínio.pdf",
+      "titulo": "alumínio",
+      "tipo": "EXERCICIO",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "02-Material-de-Curso-ENG02016/Trabalhos-Entregues/Trabalho 2/Arquivos para gerar slide/cobre_1.pdf",
+      "titulo": "cobre 1",
+      "tipo": "EXERCICIO",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "02-Material-de-Curso-ENG02016/Trabalhos-Entregues/Trabalho 2/Arquivos para gerar slide/cobre_2.pdf",
+      "titulo": "cobre 2",
+      "tipo": "EXERCICIO",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "02-Material-de-Curso-ENG02016/Trabalhos-Entregues/Trabalho 2/Arquivos para gerar slide/injection.pdf",
+      "titulo": "injection",
+      "tipo": "EXERCICIO",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "02-Material-de-Curso-ENG02016/Trabalhos-Entregues/Trabalho 2/Arquivos para gerar slide/thermoforming.pdf",
+      "titulo": "thermoforming",
+      "tipo": "EXERCICIO",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "02-Material-de-Curso-ENG02016/Trabalhos-Entregues/Trabalho 2/F.A.2B-FRANCISCO-JULIA-FERNANDO.pdf",
+      "titulo": "F.A.2B FRANCISCO JULIA FERNANDO",
+      "tipo": "EXERCICIO",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Cerâmicas e vidros/Cerâmicas não técnicas/Argila queimada/Tijolo.pdf",
+      "titulo": "Tijolo",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Cerâmicas e vidros/Cerâmicas não técnicas/Cerâmicas não técnicas.pdf",
+      "titulo": "Cerâmicas não técnicas",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Cerâmicas e vidros/Cerâmicas não técnicas/Cimento e concreto/Cimento.pdf",
+      "titulo": "Cimento",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Cerâmicas e vidros/Cerâmicas não técnicas/Cimento e concreto/Concreto.pdf",
+      "titulo": "Concreto",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Cerâmicas e vidros/Cerâmicas não técnicas/Cimento e concreto/Gesso.pdf",
+      "titulo": "Gesso",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Cerâmicas e vidros/Cerâmicas não técnicas/Pedras e minerais/Ardósia.pdf",
+      "titulo": "Ardósia",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Cerâmicas e vidros/Cerâmicas não técnicas/Pedras e minerais/Arenito.pdf",
+      "titulo": "Arenito",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Cerâmicas e vidros/Cerâmicas não técnicas/Pedras e minerais/Calcário.pdf",
+      "titulo": "Calcário",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Cerâmicas e vidros/Cerâmicas não técnicas/Pedras e minerais/Granito.pdf",
+      "titulo": "Granito",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Cerâmicas e vidros/Cerâmicas não técnicas/Pedras e minerais/Mármore.pdf",
+      "titulo": "Mármore",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Cerâmicas e vidros/Cerâmicas técnicas/Alumina.pdf",
+      "titulo": "Alumina",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Cerâmicas e vidros/Cerâmicas técnicas/Carbeto de boro.pdf",
+      "titulo": "Carbeto de boro",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Cerâmicas e vidros/Cerâmicas técnicas/Carbeto de silício.pdf",
+      "titulo": "Carbeto de silício",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Cerâmicas e vidros/Cerâmicas técnicas/Carbeto de tungstênio.pdf",
+      "titulo": "Carbeto de tungstênio",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Cerâmicas e vidros/Cerâmicas técnicas/Cerâmicas técnicas.pdf",
+      "titulo": "Cerâmicas técnicas",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Cerâmicas e vidros/Cerâmicas técnicas/Nitreto de alumínio.pdf",
+      "titulo": "Nitreto de alumínio",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Cerâmicas e vidros/Cerâmicas técnicas/Nitreto de silício.pdf",
+      "titulo": "Nitreto de silício",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Cerâmicas e vidros/Cerâmicas técnicas/Silício.pdf",
+      "titulo": "Silício",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Cerâmicas e vidros/Cerâmicas técnicas/Zircônioa.pdf",
+      "titulo": "Zircônioa",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Cerâmicas e vidros/Vidros/Cerâmica vítrea.pdf",
+      "titulo": "Cerâmica vítrea",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Cerâmicas e vidros/Vidros/Vidro borosilicato.pdf",
+      "titulo": "Vidro borosilicato",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Cerâmicas e vidros/Vidros/Vidro de sílica.pdf",
+      "titulo": "Vidro de sílica",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Cerâmicas e vidros/Vidros/Vidro sodocálcico.pdf",
+      "titulo": "Vidro sodocálcico",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Cerâmicas e vidros/Vidros/Vidros.pdf",
+      "titulo": "Vidros",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Híbridos, compósitos , espumas, materiais naturais/Compósitos/Compósitos GERAL.pdf",
+      "titulo": "Compósitos GERAL",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Híbridos, compósitos , espumas, materiais naturais/Compósitos/Metálica/Compósito de carboneto de silício_alumínio.pdf",
+      "titulo": "Compósito de carboneto de silício alumínio",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Híbridos, compósitos , espumas, materiais naturais/Compósitos/Polímérica/DMC.pdf",
+      "titulo": "DMC",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Híbridos, compósitos , espumas, materiais naturais/Compósitos/Polímérica/PRFC.pdf",
+      "titulo": "PRFC",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Híbridos, compósitos , espumas, materiais naturais/Compósitos/Polímérica/PRFV.pdf",
+      "titulo": "PRFV",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Híbridos, compósitos , espumas, materiais naturais/Compósitos/Polímérica/SMC.pdf",
+      "titulo": "SMC",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Híbridos, compósitos , espumas, materiais naturais/Espumas/ESPUMAS - GERAL.pdf",
+      "titulo": "ESPUMAS   GERAL",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA",
+      "autor": "ESPUMAS"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Híbridos, compósitos , espumas, materiais naturais/Espumas/Espuma cerâmica.pdf",
+      "titulo": "Espuma cerâmica",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Híbridos, compósitos , espumas, materiais naturais/Espumas/Espuma metálica.pdf",
+      "titulo": "Espuma metálica",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Híbridos, compósitos , espumas, materiais naturais/Materiais Naturais/Bambu.pdf",
+      "titulo": "Bambu",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Híbridos, compósitos , espumas, materiais naturais/Materiais Naturais/Cortiça.pdf",
+      "titulo": "Cortiça",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Híbridos, compósitos , espumas, materiais naturais/Materiais Naturais/Couro.pdf",
+      "titulo": "Couro",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Híbridos, compósitos , espumas, materiais naturais/Materiais Naturais/Madeira compensada.pdf",
+      "titulo": "Madeira compensada",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Híbridos, compósitos , espumas, materiais naturais/Materiais Naturais/Madeira de lei - dura - carvalho_longitudinal às fibras.pdf",
+      "titulo": "Madeira de lei   dura   carvalho longitudinal às fibras",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Híbridos, compósitos , espumas, materiais naturais/Materiais Naturais/Madeira de lei - dura - carvalho_transversal às fibras.pdf",
+      "titulo": "Madeira de lei   dura   carvalho transversal às fibras",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Híbridos, compósitos , espumas, materiais naturais/Materiais Naturais/Madeira macia - Pinho_longitudinal às fibras.pdf",
+      "titulo": "Madeira macia   Pinho longitudinal às fibras",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Híbridos, compósitos , espumas, materiais naturais/Materiais Naturais/Madeira macia - Pinho_transversal às fibras.pdf",
+      "titulo": "Madeira macia   Pinho transversal às fibras",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Híbridos, compósitos , espumas, materiais naturais/Materiais Naturais/Materiais Naturais - GERAL.pdf",
+      "titulo": "Materiais Naturais   GERAL",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Híbridos, compósitos , espumas, materiais naturais/Materiais Naturais/Papel e Papelão.pdf",
+      "titulo": "Papel e Papelão",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Metais e ligas/Ferrosas/Aço de alto carbono.pdf",
+      "titulo": "Aço de alto carbono",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Metais e ligas/Ferrosas/Aço de baixa liga.pdf",
+      "titulo": "Aço de baixa liga",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Metais e ligas/Ferrosas/Aço de baixo carbono.pdf",
+      "titulo": "Aço de baixo carbono",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Metais e ligas/Ferrosas/Aço de médio carbono.pdf",
+      "titulo": "Aço de médio carbono",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Metais e ligas/Ferrosas/Aço inoxidável.pdf",
+      "titulo": "Aço inoxidável",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Metais e ligas/Ferrosas/Ferro fundido cinzento.pdf",
+      "titulo": "Ferro fundido cinzento",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Metais e ligas/Ferrosas/Ferro fundido nodular.pdf",
+      "titulo": "Ferro fundido nodular",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Metais e ligas/METAIS - GERAL.pdf",
+      "titulo": "METAIS   GERAL",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA",
+      "autor": "METAIS"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Metais e ligas/Não-Ferrosas/Aluminio e suas ligas/Ligas de aluminio fundidas.pdf",
+      "titulo": "Ligas de aluminio fundidas",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Metais e ligas/Não-Ferrosas/Aluminio e suas ligas/Ligas de aluminio trabalháveis mecanicamente.pdf",
+      "titulo": "Ligas de aluminio trabalháveis mecanicamente",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Metais e ligas/Não-Ferrosas/Aluminio e suas ligas/Ligas de aluminio tratáveis termicamente.pdf",
+      "titulo": "Ligas de aluminio tratáveis termicamente",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Metais e ligas/Não-Ferrosas/Chumbo e suas ligas/Chumbo comercialmente puro.pdf",
+      "titulo": "Chumbo comercialmente puro",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Metais e ligas/Não-Ferrosas/Chumbo e suas ligas/Ligas de chumbo.pdf",
+      "titulo": "Ligas de chumbo",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Metais e ligas/Não-Ferrosas/Cobre e suas ligas/Bronze.pdf",
+      "titulo": "Bronze",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Metais e ligas/Não-Ferrosas/Cobre e suas ligas/Cobre puro.pdf",
+      "titulo": "Cobre puro",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Metais e ligas/Não-Ferrosas/Cobre e suas ligas/Latão.pdf",
+      "titulo": "Latão",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Metais e ligas/Não-Ferrosas/Estanho.pdf",
+      "titulo": "Estanho",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Metais e ligas/Não-Ferrosas/Ligas de tungstênio.pdf",
+      "titulo": "Ligas de tungstênio",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Metais e ligas/Não-Ferrosas/Magnésio e suas ligas/Ligas fundidas de magnésio.pdf",
+      "titulo": "Ligas fundidas de magnésio",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Metais e ligas/Não-Ferrosas/Magnésio e suas ligas/Ligas trabalhadas de magnésio.pdf",
+      "titulo": "Ligas trabalhadas de magnésio",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Metais e ligas/Não-Ferrosas/Níquel e suas ligas/Ligas de níquel-cromo.pdf",
+      "titulo": "Ligas de níquel cromo",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Metais e ligas/Não-Ferrosas/Níquel e suas ligas/Níquel puro.pdf",
+      "titulo": "Níquel puro",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Metais e ligas/Não-Ferrosas/Níquel e suas ligas/Superligas à base de níquel.pdf",
+      "titulo": "Superligas à base de níquel",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Metais e ligas/Não-Ferrosas/Ouro.pdf",
+      "titulo": "Ouro",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Metais e ligas/Não-Ferrosas/Prata.pdf",
+      "titulo": "Prata",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Metais e ligas/Não-Ferrosas/Titânio e suas ligas/Ligas de titânio.pdf",
+      "titulo": "Ligas de titânio",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Metais e ligas/Não-Ferrosas/Titânio e suas ligas/Titânio comercialmente puro.pdf",
+      "titulo": "Titânio comercialmente puro",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Metais e ligas/Não-Ferrosas/Zinco e suas ligas/Ligas de zinco fundidas sob pressão.pdf",
+      "titulo": "Ligas de zinco fundidas sob pressão",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Metais e ligas/Não-Ferrosas/Zinco e suas ligas/Zinco comercialmente puro.pdf",
+      "titulo": "Zinco comercialmente puro",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Polímeros e elastômeros/Elastômeros/Borracha Natural - NR.pdf",
+      "titulo": "Borracha Natural   NR",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Polímeros e elastômeros/Elastômeros/Borracha butílica IIR.pdf",
+      "titulo": "Borracha butílica IIR",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Polímeros e elastômeros/Elastômeros/Borracha de butadieno estireno - SBR.pdf",
+      "titulo": "Borracha de butadieno estireno   SBR",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Polímeros e elastômeros/Elastômeros/Borracha de poliisopreno - IIR.pdf",
+      "titulo": "Borracha de poliisopreno   IIR",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Polímeros e elastômeros/Elastômeros/Elastomeros - GERAL.pdf",
+      "titulo": "Elastomeros   GERAL",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA",
+      "autor": "Elastomeros"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Polímeros e elastômeros/Elastômeros/Elastomeros de silicones - SI-Q.pdf",
+      "titulo": "Elastomeros de silicones   SI Q",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Polímeros e elastômeros/Elastômeros/Etileno acetato de vinila -EVA.pdf",
+      "titulo": "Etileno acetato de vinila  EVA",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Polímeros e elastômeros/Elastômeros/Policloropreno - Neoprene - CR.pdf",
+      "titulo": "Policloropreno   Neoprene   CR",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA",
+      "autor": "Policloropreno"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Polímeros e elastômeros/Elastômeros/Poliuretano.pdf",
+      "titulo": "Poliuretano",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Polímeros e elastômeros/Polímeros/Polímeros - GERAL.pdf",
+      "titulo": "Polímeros   GERAL",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA",
+      "autor": "Polímeros"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Polímeros e elastômeros/Polímeros/Termofixos/Epóxis - EP.pdf",
+      "titulo": "Epóxis   EP",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA",
+      "autor": "Epóxis"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Polímeros e elastômeros/Polímeros/Termofixos/Fenólicos - PH.pdf",
+      "titulo": "Fenólicos   PH",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA",
+      "autor": "Fenólicos"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Polímeros e elastômeros/Polímeros/Termofixos/Poliéster - UP.pdf",
+      "titulo": "Poliéster   UP",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA",
+      "autor": "Poliéster"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Polímeros e elastômeros/Polímeros/Termoplásticos/Acrilonitrila butadieno estireno - ABS.pdf",
+      "titulo": "Acrilonitrila butadieno estireno   ABS",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Polímeros e elastômeros/Polímeros/Termoplásticos/Amido termoplástico - TPS.pdf",
+      "titulo": "Amido termoplástico   TPS",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Polímeros e elastômeros/Polímeros/Termoplásticos/Ionômero - I.pdf",
+      "titulo": "Ionômero   I",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA",
+      "autor": "Ionômero"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Polímeros e elastômeros/Polímeros/Termoplásticos/Poli -eter-eter-cetona - PEEK.pdf",
+      "titulo": "Poli  eter eter cetona   PEEK",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Polímeros e elastômeros/Polímeros/Termoplásticos/Poliamida - Nylons - PA.pdf",
+      "titulo": "Poliamida   Nylons   PA",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA",
+      "autor": "Poliamida"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Polímeros e elastômeros/Polímeros/Termoplásticos/Policarbonato - PC.pdf",
+      "titulo": "Policarbonato   PC",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA",
+      "autor": "Policarbonato"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Polímeros e elastômeros/Polímeros/Termoplásticos/Policloreto de vinila - PVC.pdf",
+      "titulo": "Policloreto de vinila   PVC",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Polímeros e elastômeros/Polímeros/Termoplásticos/Poliestireno - PS.pdf",
+      "titulo": "Poliestireno   PS",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA",
+      "autor": "Poliestireno"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Polímeros e elastômeros/Polímeros/Termoplásticos/Polietileno - PE.pdf",
+      "titulo": "Polietileno   PE",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA",
+      "autor": "Polietileno"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Polímeros e elastômeros/Polímeros/Termoplásticos/Polihidroxialcanoato - PHA e PHB.pdf",
+      "titulo": "Polihidroxialcanoato   PHA e PHB",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Polímeros e elastômeros/Polímeros/Termoplásticos/Polilactídeo - PLA.pdf",
+      "titulo": "Polilactídeo   PLA",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA",
+      "autor": "Polilactídeo"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Polímeros e elastômeros/Polímeros/Termoplásticos/Polimetil metacrilato - Acrílico - PMMA.pdf",
+      "titulo": "Polimetil metacrilato   Acrílico   PMMA",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Polímeros e elastômeros/Polímeros/Termoplásticos/Polioximetileno - Acetal - POM.pdf",
+      "titulo": "Polioximetileno   Acetal   POM",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA",
+      "autor": "Polioximetileno"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Polímeros e elastômeros/Polímeros/Termoplásticos/Polipropileno - PP.pdf",
+      "titulo": "Polipropileno   PP",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA",
+      "autor": "Polipropileno"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Polímeros e elastômeros/Polímeros/Termoplásticos/Politereftalato de etileno - PET.pdf",
+      "titulo": "Politereftalato de etileno   PET",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Polímeros e elastômeros/Polímeros/Termoplásticos/Poliueratano - tpPUR.pdf",
+      "titulo": "Poliueratano   tpPUR",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA",
+      "autor": "Poliueratano"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Polímeros e elastômeros/Polímeros/Termoplásticos/Poltetrafluoroetileno - PTFE - Teflon.pdf",
+      "titulo": "Poltetrafluoroetileno   PTFE   Teflon",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/Polímeros e elastômeros/Polímeros/Termoplásticos/Polímero de celulose - CA.pdf",
+      "titulo": "Polímero de celulose   CA",
+      "tipo": "FICHA",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "04-Ferramentas-e-Diagramas/Diagrama de barras Preço level 2.pdf",
+      "titulo": "Diagrama de barras Preço level 2",
+      "tipo": "OUTRO",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "04-Ferramentas-e-Diagramas/Diagramas de Ashby.pdf",
+      "titulo": "Diagramas de Ashby",
+      "tipo": "OUTRO",
+      "autoridade": "TECNICA"
+    },
+    {
+      "path": "05-Artigos-Cientificos/Biônica e seleção de materiais _ design de garrafa térmica bioinspirada na inflorescência-tanque de bromélias.pdf",
+      "titulo": "Biônica e seleção de materiais   design de garrafa térmica bioinspirada na inflorescência tanque de bromélias",
+      "tipo": "ARTIGO",
+      "autoridade": "CIENTIFICA"
+    },
+    {
+      "path": "05-Artigos-Cientificos/The selection and design of earthen materials for 3D printing 2023.pdf",
+      "titulo": "The selection and design of earthen materials for 3D printing 2023",
+      "tipo": "ARTIGO",
+      "autoridade": "CIENTIFICA"
+    }
+  ]
+}
