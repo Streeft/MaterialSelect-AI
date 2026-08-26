@@ -38,6 +38,7 @@ from app.routers import (
     exports,
     health,
     imports,
+    knowledge,
     materials,
     properties,
     selection,
@@ -147,6 +148,9 @@ app.include_router(
     imports.templates_router,
     prefix="/api",
     dependencies=[Depends(require_active_subscription)],
+)
+app.include_router(
+    knowledge.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
 )
 app.include_router(
     selection.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
