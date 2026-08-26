@@ -71,7 +71,7 @@ spec, que foi escrita a partir de um resumo):
 
 ---
 
-## Tarefa 1: Corrigir `search_text` nunca populado
+### Task 1: Corrigir `search_text` nunca populado
 
 A busca léxica (BM25) já está correta em `lexical.py`, mas não tem o que
 buscar: `KnowledgeChunk.search_text` fica sempre `""` porque
@@ -161,7 +161,7 @@ git commit -m "fix(conhecimento): popula search_text na ingestão (BM25 não tin
 
 ---
 
-## Tarefa 2: Configuração de embeddings + lote real
+### Task 2: Configuração de embeddings + lote real
 
 `EmbeddingClient` referencia `settings.knowledge_embedding_model`/
 `knowledge_embedding_base_url`, que não existem em `Settings` — todo uso
@@ -352,7 +352,7 @@ git commit -m "fix(conhecimento): declara KNOWLEDGE_EMBEDDING_* e implementa lot
 
 ---
 
-## Tarefa 3: Gerar embeddings na ingestão
+### Task 3: Gerar embeddings na ingestão
 
 Hoje `KnowledgeService.ingest()` nunca grava `KnowledgeEmbedding`. Esta tarefa
 liga a geração — só quando embeddings estão configurados, sem derrubar a
@@ -636,7 +636,7 @@ git commit -m "feat(conhecimento): gera embeddings na ingestão quando configura
 
 ---
 
-## Tarefa 4: `app/knowledge/retrieval.py` — busca léxica
+### Task 4: `app/knowledge/retrieval.py` — busca léxica
 
 O primeiro pedaço do módulo que hoje não existe: uma função que recebe uma
 consulta e devolve trechos ranqueados por BM25.
@@ -896,7 +896,7 @@ git commit -m "feat(conhecimento): busca léxica (BM25) sobre o corpus ingerido"
 
 ---
 
-## Tarefa 5: `retrieval.py` — busca semântica + fusão RRF
+### Task 5: `retrieval.py` — busca semântica + fusão RRF
 
 Estende `search()` com o caminho semântico (quando configurado) e funde os
 dois rankings por *reciprocal rank fusion*. Degrada para léxico puro se a
@@ -1188,7 +1188,7 @@ git commit -m "feat(conhecimento): busca semântica + fusão RRF, com degradaç�
 
 ---
 
-## Tarefa 6: `Cérebro/manifesto.json`
+### Task 6: `Cérebro/manifesto.json`
 
 Script que infere proveniência da estrutura de pastas — conservador, nunca
 inventa autor. Reaproveitável: rodar de novo só declara o que ainda não foi
@@ -1417,7 +1417,7 @@ git commit -m "feat(conhecimento): gera Cérebro/manifesto.json por convenção 
 
 ---
 
-## Tarefa 7: Ligar `retrieved` no `AIProvider` e no `AIService`
+### Task 7: Ligar `retrieved` no `AIProvider` e no `AIService`
 
 `ProblemContext`/`ResultContext` ganham o campo `retrieved`; `AIService` chama
 `retrieval.search` antes de montar o contexto, só para provedor real.
@@ -1656,7 +1656,7 @@ git commit -m "feat(ia): liga a busca no Cérebro a interpret()/explain(), só p
 
 ---
 
-## Tarefa 8: Bloco de contexto no prompt + campo `sources` no schema de explain
+### Task 8: Bloco de contexto no prompt + campo `sources` no schema de explain
 
 **Arquivos:**
 - Modificar: `apps/api/app/ai/prompts.py`
@@ -1909,7 +1909,7 @@ git commit -m "feat(ia): bloco de trechos de referência no prompt + campo sourc
 
 ---
 
-## Tarefa 9: `model_base.py` lê `sources` da resposta do modelo
+### Task 9: `model_base.py` lê `sources` da resposta do modelo
 
 **Arquivos:**
 - Modificar: `apps/api/app/ai/model_base.py`
@@ -2043,7 +2043,7 @@ git commit -m "feat(ia): model_base.py lê sources da resposta bruta do modelo"
 
 ---
 
-## Tarefa 10: `guardrails.check_citations` + a prova de que a ancoragem numérica continua intacta
+### Task 10: `guardrails.check_citations` + a prova de que a ancoragem numérica continua intacta
 
 O guardrail que impede citação de trecho que não foi de fato recuperado nesta
 chamada — e o teste que prova a garantia central deste trabalho todo.
@@ -2220,7 +2220,7 @@ git commit -m "feat(ia): guardrail de citação verificada + prova de que retrie
 
 ---
 
-## Tarefa 11: `ExplanationOut.sources` (citação verificada, traduzida para exibição)
+### Task 11: `ExplanationOut.sources` (citação verificada, traduzida para exibição)
 
 **Arquivos:**
 - Modificar: `apps/api/app/schemas/ai.py`
@@ -2437,7 +2437,7 @@ git commit -m "feat(ia): ExplanationOut.sources — citação verificada, traduz
 
 ---
 
-## Tarefa 12: `python -m app.knowledge.ingest` (CLI)
+### Task 12: `python -m app.knowledge.ingest` (CLI)
 
 **Arquivos:**
 - Criar: `apps/api/app/knowledge/ingest.py`
@@ -2586,7 +2586,7 @@ git commit -m "feat(conhecimento): python -m app.knowledge.ingest, mesmo padrão
 
 ---
 
-## Tarefa 13: `POST /api/knowledge/ingest` (rota HTTP)
+### Task 13: `POST /api/knowledge/ingest` (rota HTTP)
 
 **Arquivos:**
 - Criar: `apps/api/app/schemas/knowledge.py`
@@ -2779,7 +2779,7 @@ git commit -m "feat(conhecimento): POST /api/knowledge/ingest, mesma autorizaç�
 
 ---
 
-## Tarefa 14: `.env.example` — receita da Jina AI
+### Task 14: `.env.example` — receita da Jina AI
 
 **Arquivos:**
 - Modificar: `apps/api/.env.example`
@@ -2834,7 +2834,7 @@ git commit -m "docs: receita da Jina AI (e alternativas) para KNOWLEDGE_EMBEDDIN
 
 ---
 
-## Tarefa 15: Frontend — tipos + texto de carregamento em `AIAssistPanel`
+### Task 15: Frontend — tipos + texto de carregamento em `AIAssistPanel`
 
 **Arquivos:**
 - Modificar: `packages/shared-types/index.ts`
@@ -2929,7 +2929,7 @@ git commit -m "feat(frontend): texto de carregamento distinto quando o provedor 
 
 ---
 
-## Tarefa 16: Frontend — `StudyExplanation.tsx` (texto + citações)
+### Task 16: Frontend — `StudyExplanation.tsx` (texto + citações)
 
 **Arquivos:**
 - Modificar: `apps/web/components/ai/StudyExplanation.tsx`
@@ -3010,7 +3010,7 @@ git commit -m "feat(frontend): StudyExplanation mostra fontes citadas e o carreg
 
 ---
 
-## Tarefa 17: Documentação
+### Task 17: Documentação
 
 **Arquivos:**
 - Modificar: `docs/09-camada-ia.md`
@@ -3070,7 +3070,7 @@ git commit -m "docs: RAG sobre o Cérebro — camada de IA, decisão, backlog e 
 
 ---
 
-## Tarefa 18: Portão completo, push, PR
+### Task 18: Portão completo, push, PR
 
 - [ ] **Passo 1: Backend — suíte completa + migrations**
 
