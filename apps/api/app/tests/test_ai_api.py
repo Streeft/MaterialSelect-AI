@@ -302,6 +302,19 @@ class TestExplanation:
         assert "não produziu" in response.json()["detail"]
 
 
+class _CitingProvider(AIProvider):
+    """Devolve índices de citação, para provar que model_base.py os lê."""
+
+    name = "citador"
+    simulated = False
+
+    def interpret(self, context) -> dict:
+        raise NotImplementedError
+
+    def explain(self, context) -> dict:
+        raise NotImplementedError
+
+
 class _RecordingProvider(AIProvider):
     """Não simulado: prova que o AIService chama a busca antes de invocá-lo."""
 
@@ -360,3 +373,61 @@ class TestRetrievalGating:
 
         context = ProblemContext(statement="x", properties=[], indices=[], classes=[])
         assert context.retrieved == ()
+
+
+def test_model_base_reads_sources_from_raw_output() -> None:
+    from app.ai.model_base import ModelProviderBase
+    from app.ai.provider import ResultContext
+
+    class _StubProvider(ModelProviderBase):
+        name = "stub"
+
+        def _complete(self, system, user, schema):
+            return {"summary": "ok", "paragraphs": ["texto"], "sources": [1, 2]}
+
+    provider = _StubProvider()
+    context = ResultContext(
+        study_name="x",
+        function_text=None,
+        objective_text=None,
+        constraint_labels=[],
+        index_name=None,
+        index_expression=None,
+        index_dimension=None,
+        initial_count=1,
+        final_count=1,
+        funnel=[],
+        ranked=[],
+        excluded_for_missing=[],
+        sensitivity_changed=False,
+    )
+    result = provider.explain(context)
+    assert result["sources"] == [1, 2]
+
+
+def test_model_base_defaults_missing_sources_to_empty_list() -> None:
+    from app.ai.model_base import ModelProviderBase
+    from app.ai.provider import ResultContext
+
+    class _StubProvider(ModelProviderBase):
+        name = "stub"
+
+        def _complete(self, system, user, schema):
+            return {"summary": "ok", "paragraphs": []}  # sem "sources"
+
+    context = ResultContext(
+        study_name="x",
+        function_text=None,
+        objective_text=None,
+        constraint_labels=[],
+        index_name=None,
+        index_expression=None,
+        index_dimension=None,
+        initial_count=1,
+        final_count=1,
+        funnel=[],
+        ranked=[],
+        excluded_for_missing=[],
+        sensitivity_changed=False,
+    )
+    assert _StubProvider().explain(context)["sources"] == []
