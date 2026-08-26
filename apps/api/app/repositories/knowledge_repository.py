@@ -5,7 +5,7 @@ from __future__ import annotations
 from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
-from app.models.knowledge import KnowledgeChunk, KnowledgeDocument
+from app.models.knowledge import KnowledgeChunk, KnowledgeDocument, KnowledgeEmbedding
 
 
 class KnowledgeRepository:
@@ -72,3 +72,29 @@ class KnowledgeRepository:
 
     def count_documents(self) -> int:
         return int(self.db.execute(select(func.count(KnowledgeDocument.id))).scalar_one())
+
+    # --- embeddings ----------------------------------------------------
+
+    def set_embedding(self, chunk_id: int, *, model: str, vector: list[float]) -> None:
+        """Create or replace the embedding for one chunk."""
+        from app.knowledge.embeddings import pack_vector
+
+        existing = (
+            self.db.execute(
+                select(KnowledgeEmbedding).where(KnowledgeEmbedding.chunk_id == chunk_id)
+            )
+            .scalars()
+            .one_or_none()
+        )
+        packed = pack_vector(vector)
+        if existing is not None:
+            existing.model = model
+            existing.dimensions = len(vector)
+            existing.vector = packed
+        else:
+            self.db.add(
+                KnowledgeEmbedding(
+                    chunk_id=chunk_id, model=model, dimensions=len(vector), vector=packed
+                )
+            )
+        self.db.flush()

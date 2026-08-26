@@ -350,3 +350,99 @@ class TestManifest:
         assert document is not None
         assert document.title == "Título correto"
         assert document.kind == DocumentKind.SLIDE
+
+
+class _FakeEmbeddingClient:
+    """Determinístico, sem rede: cada texto vira um vetor de tamanho fixo."""
+
+    def __init__(self, model: str = "fake-embed", calls: list[list[str]] | None = None) -> None:
+        self.model = model
+        self.calls = calls if calls is not None else []
+
+    def embed(self, texts: list[str]) -> list[list[float]]:
+        self.calls.append(list(texts))
+        return [[1.0, 0.0, 0.0] for _ in texts]
+
+
+class TestEmbeddingSync:
+    def test_new_document_gets_embeddings_when_configured(
+        self, db_session, corpus: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        _write(corpus, "aula.pdf", ["Conteúdo técnico sobre seleção de materiais."])
+        service = KnowledgeService(db_session)
+        fake = _FakeEmbeddingClient()
+        monkeypatch.setattr(service, "_embeddings_configured", lambda: True)
+        monkeypatch.setattr(service, "_embedding_client", lambda: fake)
+
+        report = service.ingest()
+
+        document = KnowledgeRepository(db_session).get_by_path("aula.pdf")
+        chunk = KnowledgeRepository(db_session).list_chunks(document.id)[0]
+        assert chunk.embedding is not None
+        assert chunk.embedding.model == "fake-embed"
+        assert report.embedded_chunks >= 1
+
+    def test_embeddings_are_never_generated_when_unconfigured(
+        self, db_session, corpus: Path
+    ) -> None:
+        # Padrão do produto: sem KNOWLEDGE_EMBEDDING_* a ingestão continua
+        # léxica-somente, sem tentar nenhuma chamada de rede.
+        _write(corpus, "aula.pdf", ["conteúdo"])
+        report = KnowledgeService(db_session).ingest()
+        assert report.embedded_chunks == 0
+        document = KnowledgeRepository(db_session).get_by_path("aula.pdf")
+        chunk = KnowledgeRepository(db_session).list_chunks(document.id)[0]
+        assert chunk.embedding is None
+
+    def test_unchanged_document_already_embedded_is_not_re_embedded(
+        self, db_session, corpus: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        _write(corpus, "aula.pdf", ["conteúdo estável"])
+        service = KnowledgeService(db_session)
+        calls: list[list[str]] = []
+        fake = _FakeEmbeddingClient(calls=calls)
+        monkeypatch.setattr(service, "_embeddings_configured", lambda: True)
+        monkeypatch.setattr(service, "_embedding_client", lambda: fake)
+
+        service.ingest()
+        calls.clear()
+        second = service.ingest()  # documento inalterado, já embedado
+
+        assert second.embedded_chunks == 0
+        assert calls == []
+
+    def test_previously_unconfigured_document_gets_embedded_once_turned_on(
+        self, db_session, corpus: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # Corpus já ingerido sem embeddings; ligar a configuração depois não
+        # deve exigir --force para o backfill acontecer.
+        _write(corpus, "aula.pdf", ["conteúdo"])
+        service = KnowledgeService(db_session)
+        service.ingest()  # sem embeddings configurados ainda
+
+        fake = _FakeEmbeddingClient()
+        monkeypatch.setattr(service, "_embeddings_configured", lambda: True)
+        monkeypatch.setattr(service, "_embedding_client", lambda: fake)
+        report = service.ingest()  # force=False
+
+        assert report.unchanged == 1  # não reextraiu o texto
+        assert report.embedded_chunks >= 1  # mas embedou
+
+    def test_embedding_failure_is_recorded_not_raised(
+        self, db_session, corpus: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from app.knowledge.embeddings import EmbeddingUnavailableError
+
+        class _FailingClient:
+            def embed(self, texts: list[str]) -> list[list[float]]:
+                raise EmbeddingUnavailableError("servidor fora do ar")
+
+        _write(corpus, "aula.pdf", ["conteúdo"])
+        service = KnowledgeService(db_session)
+        monkeypatch.setattr(service, "_embeddings_configured", lambda: True)
+        monkeypatch.setattr(service, "_embedding_client", lambda: _FailingClient())
+
+        report = service.ingest()  # não levanta
+
+        assert report.embeddings_skipped_reason == "servidor fora do ar"
+        assert report.failed == 0  # a extração léxica continua tendo sucesso

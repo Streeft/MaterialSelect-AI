@@ -24,6 +24,7 @@ from app.config import Settings
 from app.config import settings as default_settings
 from app.domain.errors import ValidationError
 from app.knowledge.chunking import chunk_text
+from app.knowledge.embeddings import EmbeddingClient, EmbeddingUnavailableError
 from app.knowledge.lexical import fold
 from app.knowledge.manifest import DeclaredProvenance, load_manifest
 from app.knowledge.readers import SUPPORTED_EXTENSIONS, extract_text
@@ -57,6 +58,8 @@ class IngestReport:
     failed: int = 0
     skipped: int = 0
     total_chunks: int = 0
+    embedded_chunks: int = 0
+    embeddings_skipped_reason: str | None = None
     outcomes: list[DocumentOutcome] = field(default_factory=list)
 
     def record(self, outcome: DocumentOutcome) -> None:
@@ -123,6 +126,34 @@ class KnowledgeService:
         ]
         return sorted(found, key=lambda p: p.relative_to(root).as_posix())
 
+    def _embeddings_configured(self) -> bool:
+        return bool(
+            self.settings.knowledge_embedding_base_url.strip()
+            and self.settings.knowledge_embedding_model.strip()
+        )
+
+    def _embedding_client(self) -> EmbeddingClient:
+        return EmbeddingClient(self.settings)
+
+    def _sync_embeddings(self, embed_client: EmbeddingClient, document: KnowledgeDocument) -> int:
+        """Embed every chunk of ``document`` lacking a vector from the current model.
+
+        Self-healing on purpose: a chunk already embedded with today's model is
+        left alone; one embedded with a *different* model (or never embedded)
+        gets a fresh vector — so turning embeddings on after the fact, or
+        switching models, never needs ``force=True`` to backfill.
+        """
+        chunks = self.repo.list_chunks(document.id)
+        stale = [
+            c for c in chunks if c.embedding is None or c.embedding.model != embed_client.model
+        ]
+        if not stale:
+            return 0
+        vectors = embed_client.embed([c.text for c in stale])
+        for chunk, vector in zip(stale, vectors, strict=True):
+            self.repo.set_embedding(chunk.id, model=embed_client.model, vector=vector)
+        return len(stale)
+
     # --- ingestion ---------------------------------------------------------
 
     def ingest(self, force: bool = False) -> IngestReport:
@@ -135,14 +166,31 @@ class KnowledgeService:
         root = self.root()
         declared = load_manifest(root)
         report = IngestReport(root=str(root))
+        embed_client = self._embedding_client() if self._embeddings_configured() else None
 
         for path in self.discover():
             relative = path.relative_to(root).as_posix()
             try:
-                report.record(self._ingest_one(path, relative, declared.get(relative), force))
+                outcome = self._ingest_one(path, relative, declared.get(relative), force)
             except ValidationError as exc:
                 # One unreadable document costs that document, not the run.
-                report.record(self._record_failure(relative, str(exc)))
+                outcome = self._record_failure(relative, str(exc))
+            report.record(outcome)
+
+            if (
+                embed_client is not None
+                and outcome.action != "falhou"
+                and report.embeddings_skipped_reason is None
+            ):
+                document = self.repo.get_by_path(relative)
+                if document is not None:
+                    try:
+                        report.embedded_chunks += self._sync_embeddings(embed_client, document)
+                    except EmbeddingUnavailableError as exc:
+                        # One systemic failure (network, credential) is enough
+                        # to know retrying per document would only waste time —
+                        # recorded once, the lexical pass already succeeded.
+                        report.embeddings_skipped_reason = str(exc)
         return report
 
     def _ingest_one(
