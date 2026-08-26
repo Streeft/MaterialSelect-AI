@@ -19,6 +19,7 @@ from app.ai.factory import disclaimer_for, get_provider
 from app.ai.guardrails import (
     Catalogue,
     check_chart,
+    check_citations,
     check_constraint,
     check_index,
     check_property,
@@ -42,6 +43,7 @@ from app.repositories.chart_repository import ChartRepository
 from app.repositories.selection_repository import SelectionRepository
 from app.schemas.ai import (
     AIStatusOut,
+    CitedSourceOut,
     ExplanationOut,
     InterpretationOut,
     InterpretRequest,
@@ -269,12 +271,28 @@ class AIService:
                 f"({values}); a resposta foi descartada."
             )
 
+        # Citations follow the same discipline: an index the provider made up
+        # about its own answer is dropped, not trusted — check_citations is
+        # the guardrail, this only translates what survives into something a
+        # reader can act on.
+        raw_sources = [i for i in raw.get("sources", []) if isinstance(i, int)]
+        valid_indices = check_citations(raw_sources, context.retrieved)
+        sources = [
+            CitedSourceOut(
+                document_title=context.retrieved[i - 1].document_title,
+                page_start=context.retrieved[i - 1].page_start,
+                page_end=context.retrieved[i - 1].page_end,
+            )
+            for i in valid_indices
+        ]
+
         return ExplanationOut(
             study_id=study_id,
             study_name=study.name,
             summary=summary,
             paragraphs=paragraphs,
             caveats=caveats,
+            sources=sources,
             provider=provider.name,
             simulated=provider.simulated,
             disclaimer=disclaimer_for(provider),
