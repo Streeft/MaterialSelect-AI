@@ -300,3 +300,63 @@ class TestExplanation:
         response = client.post("/api/ai/explain", json={"study_id": study_id})
         assert response.status_code == 400
         assert "não produziu" in response.json()["detail"]
+
+
+class _RecordingProvider(AIProvider):
+    """Não simulado: prova que o AIService chama a busca antes de invocá-lo."""
+
+    name = "gravador"
+    simulated = False
+
+    def __init__(self) -> None:
+        self.received_context: object | None = None
+
+    def interpret(self, context) -> dict:
+        self.received_context = context
+        return {
+            "function_text": None,
+            "objective_text": None,
+            "free_variables": [],
+            "constraints": [],
+            "properties": [],
+            "indices": [],
+            "chart": None,
+            "open_questions": [],
+        }
+
+    def explain(self, context) -> dict:
+        self.received_context = context
+        return {"summary": "ok", "paragraphs": [], "caveats": []}
+
+
+class TestRetrievalGating:
+    def test_mock_never_triggers_retrieval(
+        self, client: TestClient, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        called = []
+        monkeypatch.setattr(
+            "app.services.ai_service.knowledge_search",
+            lambda *a, **k: called.append(1) or [],
+        )
+        _interpret(client)
+        assert called == []
+
+    def test_real_provider_triggers_retrieval(
+        self, client: TestClient, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        provider = _RecordingProvider()
+        monkeypatch.setattr(ai_service, "get_provider", lambda *_a, **_k: provider)
+        called = []
+        monkeypatch.setattr(
+            "app.services.ai_service.knowledge_search",
+            lambda *a, **k: called.append(1) or [],
+        )
+        _interpret(client)
+        assert called == [1]
+        assert provider.received_context.retrieved == ()
+
+    def test_context_defaults_have_empty_retrieved(self) -> None:
+        from app.ai.provider import ProblemContext
+
+        context = ProblemContext(statement="x", properties=[], indices=[], classes=[])
+        assert context.retrieved == ()

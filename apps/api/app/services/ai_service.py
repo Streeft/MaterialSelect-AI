@@ -37,6 +37,7 @@ from app.ai.provider import (
 from app.config import Settings
 from app.config import settings as default_settings
 from app.domain.errors import NotFoundError, ValidationError
+from app.knowledge.retrieval import search as knowledge_search
 from app.repositories.chart_repository import ChartRepository
 from app.repositories.selection_repository import SelectionRepository
 from app.schemas.ai import (
@@ -87,10 +88,11 @@ class AIService:
 
     # --- interpretation ---------------------------------------------------
 
-    def _context(self, statement: str) -> ProblemContext:
+    def _context(self, statement: str, provider: AIProvider) -> ProblemContext:
         properties = self.repo.list_properties()
         indices = self.selection_repo.list_indices()
         classes = {m.material_class.slug: m.material_class.name for m in self.repo.list_materials()}
+        retrieved = self._retrieve(statement, provider)
         return ProblemContext(
             statement=statement,
             properties=[
@@ -117,6 +119,20 @@ class AIService:
                 for i in indices
             ],
             classes=[ClassFacts(slug=slug, name=name) for slug, name in sorted(classes.items())],
+            retrieved=tuple(retrieved),
+        )
+
+    def _retrieve(self, query: str, provider: AIProvider) -> list:
+        """Trechos do Cérebro para dar contexto ao provedor — nunca ao mock.
+
+        O mock é descrito como determinístico e sem rede; ligar retrieval nele
+        quebraria essa garantia, e todo teste que usa AI_PROVIDER=mock (a
+        maioria da suíte) ficaria mais lento sem nenhum ganho.
+        """
+        if provider.simulated:
+            return []
+        return knowledge_search(
+            self.db, query, top_k=self.settings.knowledge_retrieval_top_k, settings=self.settings
         )
 
     def interpret(self, request: InterpretRequest) -> InterpretationOut:
@@ -125,7 +141,7 @@ class AIService:
         if not statement:
             raise ValidationError("Informe o enunciado do problema.")
 
-        context = self._context(statement)
+        context = self._context(statement, provider)
         catalogue = context.catalogue()
         raw = provider.interpret(context)
         rejected: list[str] = []
@@ -233,7 +249,8 @@ class AIService:
         # The prose is written about numbers this call just produced, not about
         # numbers the caller supplied.
         result = SelectionService(self.db, project_id).run_study(study_id)
-        context = _result_context(study, result)
+        retrieved = self._retrieve(study.function_text or study.name, provider)
+        context = _result_context(study, result, retrieved)
 
         raw = provider.explain(context)
         summary = str(raw.get("summary", ""))
@@ -264,7 +281,7 @@ class AIService:
         )
 
 
-def _result_context(study, result) -> ResultContext:
+def _result_context(study, result, retrieved: list) -> ResultContext:
     """Flatten a computed run into the read-only view a provider may see."""
     ranked = [(r.name, r.rank, r.score) for r in (result.ranking.ranked if result.ranking else [])]
     excluded = [
@@ -322,6 +339,7 @@ def _result_context(study, result) -> ResultContext:
             scenario.changed for scenario in (result.ranking.sensitivity if result.ranking else [])
         ),
         numbers=numbers,
+        retrieved=tuple(retrieved),
     )
 
 

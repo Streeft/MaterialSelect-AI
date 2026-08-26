@@ -17,6 +17,7 @@ from dataclasses import dataclass, field
 
 from app.ai.guardrails import Catalogue
 from app.config import Settings
+from app.knowledge.retrieval import RetrievedChunk
 
 
 class AIUnavailableError(RuntimeError):
@@ -65,6 +66,7 @@ class ProblemContext:
     properties: list[PropertyFacts]
     indices: list[IndexFacts]
     classes: list[ClassFacts]
+    retrieved: tuple[RetrievedChunk, ...] = ()
 
     def catalogue(self) -> Catalogue:
         """The same context expressed as the guardrails' allow-list."""
@@ -97,6 +99,7 @@ class ResultContext:
     excluded_for_missing: list[tuple[str, list[str]]]
     sensitivity_changed: bool
     numbers: set[float] = field(default_factory=set)
+    retrieved: tuple[RetrievedChunk, ...] = ()
 
 
 class AIProvider(ABC):
