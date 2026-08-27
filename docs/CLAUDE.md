@@ -232,6 +232,9 @@ A lista completa, com as receitas prontas de cada provedor, está em
 | `SESSION_COOKIE_SECURE` | `true` | Seguro por padrão (só HTTPS); dev local em HTTP precisa `false` explicitamente. |
 | `SESSION_TTL_HOURS` | `336` (14 dias) | Vida fixa da sessão desde a criação, sem renovação deslizante. |
 | `OAUTH_STATE_TTL_SECONDS` | `600` | Janela entre o redirect ao Google e o callback voltar. |
+| `STRIPE_API_KEY` | vazio | Cobrança desligada sem os três (`stripe_enabled`); vazio nos três é o único estado consistente para dev sem Stripe. |
+| `STRIPE_WEBHOOK_SECRET` | vazio | Verifica a assinatura HMAC do cabeçalho `Stripe-Signature`; sem ele o webhook não teria como distinguir um evento real de um forjado. |
+| `STRIPE_PRICE_ID` | vazio | O preço/plano que `checkout` usa. Um só plano no v1 — sem seletor de plano na interface ([D-43](DECISIONS.md)). |
 
 ---
 
@@ -274,6 +277,12 @@ Console (`GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`, redirect URI
 `{BACKEND_BASE_URL}/api/auth/google/callback`, ver `.env.example`) e confirme
 `SESSION_COOKIE_SECURE=true` (o padrão) e `CORS_ORIGINS` apontando só para o
 domínio real do frontend.
+
+Ligar o portão de assinatura ([D-43](DECISIONS.md), configurando
+`STRIPE_API_KEY`/`STRIPE_WEBHOOK_SECRET`/`STRIPE_PRICE_ID`) passa a exigir
+assinatura ativa de **todo** usuário já cadastrado, não só de quem se cadastrar
+depois — aceito para o v1 porque, como já dito acima, ainda não há usuário
+real em produção para isso incomodar.
 
 ---
 
