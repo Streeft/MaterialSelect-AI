@@ -101,6 +101,10 @@ class _FakeEmbeddingClient:
     def __init__(self, model: str = "fake-embed", fail: bool = False) -> None:
         self.model = model
         self.fail = fail
+        # Every test that builds this fake already sets
+        # knowledge_embedding_base_url/model, so gating should pass — mirrors
+        # EmbeddingClient.configured without depending on it.
+        self.configured = True
 
     def embed(self, texts: list[str]) -> list[list[float]]:
         if self.fail:
@@ -157,6 +161,48 @@ class TestHybridSearch:
             db_session, "densidade modulo elasticidade metais", top_k=5, settings=settings
         )
         assert results
+
+    def test_corrupted_stored_embedding_degrades_to_lexical_instead_of_raising(
+        self, db_session, corpus, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A dimension-mismatched (or otherwise corrupted) stored vector must
+        not turn a real user request into an HTTP 400: ``similarity()`` raises
+        a plain ``ValidationError`` (not ``EmbeddingUnavailableError``, which
+        only covers the network call), and the module's own docstring
+        promises silent degradation to lexical-only for any embedding
+        failure, not just an unreachable server.
+        """
+        import struct
+
+        from app.models.knowledge import KnowledgeEmbedding
+
+        _write(corpus, "termico.pdf", ["Materiais para ambientes de alta temperatura, quente."])
+        KnowledgeService(db_session).ingest()
+
+        settings = Settings(
+            knowledge_dir=str(corpus),
+            knowledge_embedding_base_url="https://fake/v1",
+            knowledge_embedding_model="fake-embed",
+        )
+        fake = _FakeEmbeddingClient()
+        monkeypatch.setattr("app.knowledge.retrieval.EmbeddingClient", lambda _settings: fake)
+        service = KnowledgeService(db_session, settings)
+        monkeypatch.setattr(service, "_embeddings_configured", lambda: True)
+        monkeypatch.setattr(service, "_embedding_client", lambda: fake)
+        service.ingest()
+
+        # Corrupt the stored vector: 3 dimensions where the query embedding
+        # (from _FakeEmbeddingClient) has 2. unpack_vector() itself succeeds
+        # (the byte length is a multiple of 4); it is similarity() that then
+        # raises ValidationError on the dimension mismatch.
+        embedding = db_session.query(KnowledgeEmbedding).one()
+        embedding.vector = struct.pack("<3f", 1.0, 0.0, 0.0)
+        embedding.dimensions = 3
+        db_session.flush()
+
+        # Must not raise. Lexical still finds the passage by its own words.
+        results = search(db_session, "temperatura", top_k=5, settings=settings)
+        assert any("temperatura" in r.text for r in results)
 
     def test_no_embedding_config_is_lexical_only(self, db_session, corpus) -> None:
         # Sem KNOWLEDGE_EMBEDDING_*, nenhuma tentativa de rede é feita — o

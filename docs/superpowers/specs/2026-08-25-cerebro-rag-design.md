@@ -229,7 +229,7 @@ não duplicado.
   padrão de `_FakeStripeClient`).
 - `test_knowledge_retrieval.py` (novo): BM25 sozinho, semântico sozinho (com
   fake), fusão RRF, degradação quando o embedding falha, `top_k` respeitado.
-- `test_ai_service.py`: `interpret`/`explain` só chamam retrieval quando
+- `test_ai_api.py` (`TestRetrievalGating`): `interpret`/`explain` só chamam retrieval quando
   `provider.simulated is False`; `mock` nunca aciona rede nenhuma
   (verificável explicitamente).
 - Teste dedicado: número presente **só** num trecho recuperado não vira

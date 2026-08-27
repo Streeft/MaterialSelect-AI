@@ -27,6 +27,7 @@ from dataclasses import dataclass
 from sqlalchemy.orm import Session
 
 from app.config import Settings
+from app.domain.errors import ValidationError
 from app.knowledge.embeddings import (
     EmbeddingClient,
     EmbeddingUnavailableError,
@@ -68,14 +69,19 @@ def search(db: Session, query: str, *, top_k: int, settings: Settings) -> list[R
     if not query_tokens:
         return []
 
-    lexical_ranked = _lexical_rank(repo, query_tokens)
+    # Loaded once and shared: lexical scoring, the semantic-fallback fetch
+    # below, and _to_retrieved_chunk() all need the same rows, and the corpus
+    # is loaded whole (see list_all_chunks_for_lexical_search's docstring).
+    all_chunks = repo.list_all_chunks_for_lexical_search()
+
+    lexical_ranked = _lexical_rank(all_chunks, query_tokens)
     semantic_ranked = _semantic_rank(repo, query, settings)
 
     fused = _reciprocal_rank_fusion([lexical_ranked, semantic_ranked])
     if not fused:
         return []
 
-    chunks_by_id = {chunk.id: chunk for chunk in repo.list_all_chunks_for_lexical_search()}
+    chunks_by_id = {chunk.id: chunk for chunk in all_chunks}
     # Semantic-only matches may not be in the lexical fetch (search_text could
     # theoretically differ in coverage); fall back to the embeddings fetch.
     if any(chunk_id not in chunks_by_id for chunk_id, _ in fused):
@@ -89,8 +95,7 @@ def search(db: Session, query: str, *, top_k: int, settings: Settings) -> list[R
     return results[:top_k]
 
 
-def _lexical_rank(repo: KnowledgeRepository, query_tokens: list[str]) -> list[tuple[int, float]]:
-    chunks = repo.list_all_chunks_for_lexical_search()
+def _lexical_rank(chunks: list[KnowledgeChunk], query_tokens: list[str]) -> list[tuple[int, float]]:
     if not chunks:
         return []
     documents = {chunk.id: tokenize(chunk.search_text) for chunk in chunks}
@@ -105,25 +110,32 @@ def _lexical_rank(repo: KnowledgeRepository, query_tokens: list[str]) -> list[tu
 def _semantic_rank(
     repo: KnowledgeRepository, query: str, settings: Settings
 ) -> list[tuple[int, float]]:
-    if not (
-        settings.knowledge_embedding_base_url.strip() and settings.knowledge_embedding_model.strip()
-    ):
+    client = EmbeddingClient(settings)
+    if not client.configured:
         return []
     chunks = repo.list_all_embeddings()
     if not chunks:
         return []
     try:
-        client = EmbeddingClient(settings)
         query_vector = client.embed([query])[0]
+        scored = [
+            (chunk.id, similarity(query_vector, unpack_vector(chunk.embedding.vector)))
+            for chunk in chunks
+            if chunk.embedding is not None and chunk.embedding.model == client.model
+        ]
     except EmbeddingUnavailableError as exc:
         logger.warning("Busca semântica indisponível, usando só léxica: %s", exc)
         return []
-
-    scored = [
-        (chunk.id, similarity(query_vector, unpack_vector(chunk.embedding.vector)))
-        for chunk in chunks
-        if chunk.embedding is not None and chunk.embedding.model == client.model
-    ]
+    except ValidationError as exc:
+        # Not EmbeddingUnavailableError: the call succeeded, but a stored
+        # vector is corrupted or from an incompatible dimensionality (a
+        # sibling of EmbeddingUnavailableError, not a subclass — it does not
+        # get caught above). Same degradation, different cause: half the
+        # retrieval working beats a flaky/corrupted row taking down the call.
+        logger.warning(
+            "Pontuação semântica falhou com um vetor corrompido, usando só léxica: %s", exc
+        )
+        return []
     scored.sort(key=lambda item: -item[1])
     return scored[:_CANDIDATES]
 

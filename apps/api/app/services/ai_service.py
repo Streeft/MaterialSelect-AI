@@ -275,7 +275,9 @@ class AIService:
         # about its own answer is dropped, not trusted — check_citations is
         # the guardrail, this only translates what survives into something a
         # reader can act on.
-        raw_sources = [i for i in raw.get("sources", []) if isinstance(i, int)]
+        raw_sources = [
+            i for i in raw.get("sources", []) if isinstance(i, int) and not isinstance(i, bool)
+        ]
         valid_indices = check_citations(raw_sources, context.retrieved)
         sources = [
             CitedSourceOut(

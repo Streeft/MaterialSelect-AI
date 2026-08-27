@@ -89,6 +89,53 @@ class TestMissingConfiguration:
             client.embed(["texto"])
 
 
+class TestDedicatedApiKey:
+    def test_dedicated_key_is_used_when_set(self) -> None:
+        settings = _settings(
+            knowledge_embedding_api_key="jina_dedicated",
+            ai_api_key="groq_chat_key",
+        )
+        client = EmbeddingClient(settings)
+        assert client._headers()["Authorization"] == "Bearer jina_dedicated"
+
+    def test_falls_back_to_ai_api_key_when_unset(self) -> None:
+        # Regression guard: every other test in this file relies on exactly
+        # this fallback, since none of them set knowledge_embedding_api_key.
+        settings = _settings(ai_api_key="groq_chat_key")
+        client = EmbeddingClient(settings)
+        assert client._headers()["Authorization"] == "Bearer groq_chat_key"
+
+    def test_no_key_at_all_omits_the_header(self) -> None:
+        settings = _settings()
+        client = EmbeddingClient(settings)
+        assert "Authorization" not in client._headers()
+
+
+class TestConfiguredGate:
+    def test_configured_when_base_url_and_model_are_set_directly(self) -> None:
+        settings = _settings()
+        assert EmbeddingClient(settings).configured is True
+
+    def test_configured_via_ai_base_url_fallback(self) -> None:
+        # The documented fallback: only KNOWLEDGE_EMBEDDING_MODEL is set,
+        # base URL is inherited from AI_BASE_URL. .base_url already resolves
+        # this; .configured must consult it rather than the raw setting.
+        settings = Settings(
+            knowledge_embedding_base_url="",
+            knowledge_embedding_model="jina-embeddings-v3",
+            ai_base_url="https://api.groq.com/openai/v1",
+        )
+        assert EmbeddingClient(settings).configured is True
+
+    def test_not_configured_when_neither_base_url_is_set(self) -> None:
+        settings = Settings(knowledge_embedding_model="jina-embeddings-v3")
+        assert EmbeddingClient(settings).configured is False
+
+    def test_not_configured_without_a_model(self) -> None:
+        settings = Settings(knowledge_embedding_base_url="https://api.jina.ai/v1")
+        assert EmbeddingClient(settings).configured is False
+
+
 class TestBatching:
     def test_large_input_is_split_into_batches(self) -> None:
         server = _Server()
