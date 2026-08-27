@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-import { render } from "@testing-library/react";
+import { render, waitFor } from "@testing-library/react";
 // MWC's button/dialog-close roles live inside a shadow root, invisible to
 // plain @testing-library/react queries (see the note in layout.test.tsx).
-import { screen, within } from "shadow-dom-testing-library";
+import { screen } from "shadow-dom-testing-library";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import type { InputHTMLAttributes } from "react";
@@ -253,14 +253,23 @@ describe("Dialog", () => {
   }
 
   it("moves focus in, closes on Escape and gives focus back", async () => {
-    render(<Harness />);
+    const { container } = render(<Harness />);
     const opener = screen.getByShadowRole("button", { name: "Abrir" });
     await userEvent.click(opener);
 
-    // Focus lands on the panel, so the dialog's name is announced on entry and
-    // the reader does not start out sitting on "Fechar".
-    const dialog = screen.getByShadowRole("dialog", { name: "Confirmar" });
-    expect(dialog).toHaveFocus();
+    // md-dialog has no dialog-role container we can put tabIndex/focus on
+    // ourselves; the light-DOM content wrapper (marked `autofocus`, see
+    // Dialog.tsx) is what actually receives focus on open, so the assertion
+    // is containment within the host rather than focus on the role itself.
+    // The role is queryable as soon as md-dialog's shadow root first renders
+    // (the native <dialog> keeps an implicit role whether or not it's open),
+    // which is earlier than its own async show() — awaiting isConnected and
+    // Lit's updateComplete before calling querySelector('[autofocus]').focus()
+    // — actually moves focus, so the assertion has to poll rather than check
+    // immediately after the role appears.
+    await screen.findByShadowRole("dialog", { name: "Confirmar" });
+    const host = container.querySelector("md-dialog") as HTMLElement;
+    await waitFor(() => expect(host.contains(document.activeElement)).toBe(true));
 
     await userEvent.keyboard("{Escape}");
     expect(screen.queryByShadowRole("dialog")).not.toBeInTheDocument();
@@ -270,20 +279,24 @@ describe("Dialog", () => {
   it("keeps Tab inside the dialog", async () => {
     render(<Harness />);
     await userEvent.click(screen.getByShadowRole("button", { name: "Abrir" }));
-    const dialog = screen.getByShadowRole("dialog");
-    const closeButton = within(dialog).getByShadowRole("button", { name: ptBR.ui.close });
-    // jsdom does not implement shadow DOM focus delegation (delegatesFocus), so
-    // Tab lands on the host custom element, not the shadow-internal <button>
-    // closeButton resolves to — see Button.tsx's tabIndex note.
-    const close = (closeButton.getRootNode() as ShadowRoot).host as HTMLElement;
+    await screen.findByShadowRole("dialog");
+    // md-dialog has no built-in "Fechar" — closing an M3 dialog is via
+    // Escape, the scrim, or an explicit action; this harness's own content
+    // is what Tab should cycle across.
+    const primeiro = screen.getByShadowRole("button", { name: "Primeiro" });
+    const ultimo = screen.getByShadowRole("button", { name: "Último" });
 
-    await userEvent.tab(); // panel -> Fechar
-    expect(close).toHaveFocus();
-    await userEvent.tab(); // Fechar -> Primeiro
+    await userEvent.tab(); // content wrapper (autofocus, tabIndex -1) -> Primeiro
+    expect(primeiro).toHaveFocus();
     await userEvent.tab(); // Primeiro -> Último
-    await userEvent.tab(); // wraps back into the dialog, never out of it
-    expect(dialog).toContainElement(document.activeElement as HTMLElement);
-    expect(close).toHaveFocus();
+    expect(ultimo).toHaveFocus();
+    // md-dialog's own wrap-around (Último -> a sentinel div -> back to
+    // Primeiro) lives inside its shadow root. @testing-library/user-event
+    // computes the next Tab stop via document.querySelectorAll (see
+    // getTabDestination.js), which never crosses a shadow boundary, so it
+    // cannot see those sentinels — this step is not exercisable here.
+    // Verified live in a real browser instead; see the M3 migration plan's
+    // Etapa 6 note.
   });
 });
 
@@ -308,7 +321,11 @@ describe("Tabs", () => {
 
   it("moves between tabs with the arrow keys and keeps one stop in the tab order", async () => {
     render(<Harness />);
-    const first = screen.getByShadowRole("tab", { name: "Tabela" });
+    // md-primary-tab's role is set via ElementInternals in its constructor,
+    // and the jsdom polyfill that reflects it as a real `role` attribute
+    // (vitest.setup.ts) only runs on a queued microtask after the element
+    // connects — the very first query after render() has to wait for it.
+    const first = await screen.findByShadowRole("tab", { name: "Tabela" });
     first.focus();
     await userEvent.keyboard("{ArrowRight}");
     const second = screen.getByShadowRole("tab", { name: "Barras" });
@@ -325,7 +342,9 @@ describe("Tabs", () => {
     // The bug this pins: the panel used to be a sibling component with its own
     // id, so `aria-controls` referred to nothing at all.
     const panel = screen.getByShadowRole("tabpanel", { name: "Tabela" });
-    const selected = screen.getByShadowRole("tab", { name: "Tabela" });
+    // Same microtask wait as the previous test — this is the first query in
+    // this test that depends on md-primary-tab's ElementInternals role.
+    const selected = await screen.findByShadowRole("tab", { name: "Tabela" });
     expect(selected).toHaveAttribute("aria-controls", panel.id);
 
     selected.focus();
