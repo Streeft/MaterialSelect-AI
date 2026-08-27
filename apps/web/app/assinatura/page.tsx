@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { createCheckoutSession, createPortalSession } from "@/lib/api";
+import { ApiError, createCheckoutSession, createPortalSession } from "@/lib/api";
 import { useBillingStatus } from "@/lib/billing";
 import { ptBR } from "@/lib/i18n";
 import { Button, Card, CardBody, ErrorState, LoadingState } from "@/components/ui";
@@ -17,24 +17,32 @@ const t = ptBR.billing;
 export default function BillingPage() {
   const { data, isLoading, isError, refetch } = useBillingStatus();
   const [redirecting, setRedirecting] = useState(false);
+  // Distinct from `isError` above: that one is the /billing/status query
+  // failing to load, this one is the checkout/portal *action* failing —
+  // most likely Stripe not configured on the server (503, PT-BR detail).
+  const [actionError, setActionError] = useState<string | null>(null);
 
   async function handleCheckout() {
+    setActionError(null);
     setRedirecting(true);
     try {
       const session = await createCheckoutSession();
       window.location.href = session.url;
-    } catch {
+    } catch (err) {
       setRedirecting(false);
+      setActionError(err instanceof ApiError ? err.message : t.checkoutError);
     }
   }
 
   async function handlePortal() {
+    setActionError(null);
     setRedirecting(true);
     try {
       const session = await createPortalSession();
       window.location.href = session.url;
-    } catch {
+    } catch (err) {
       setRedirecting(false);
+      setActionError(err instanceof ApiError ? err.message : t.portalError);
     }
   }
 
@@ -62,6 +70,9 @@ export default function BillingPage() {
               </Button>
             </>
           )}
+          {actionError ? (
+            <ErrorState description={actionError} onRetry={() => setActionError(null)} />
+          ) : null}
         </CardBody>
       </Card>
     </div>
