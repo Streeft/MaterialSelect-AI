@@ -55,6 +55,7 @@ diferente. O que é óbvio não precisa de registro.
 | D-40 | Um eixo do mapa pode ser um índice; overlay e eixo-índice são exclusivos | aceito | abaixo |
 | D-41 | O laudo de engenharia é um documento à parte | aceito | abaixo |
 | D-42 | Login só por terceiros (Google); catálogo compartilhado; um projeto por usuário no v1 | aceito | abaixo |
+| D-47 | Busca híbrida (RRF) sobre o Cérebro, Jina AI como receita gratuita, citação verificada | aceito | abaixo |
 
 ---
 
@@ -1804,3 +1805,90 @@ correção: `checkout.session.completed` processado sem erro, `Subscription`
 criada com `status="active"`, `/assinatura` refletindo a assinatura ativa e
 o portão liberando as rotas antes bloqueadas — confirmado pelo autor no
 próprio ambiente, não só pelos testes automatizados.
+
+## D-47 — Busca híbrida (RRF) sobre o Cérebro, Jina AI como receita gratuita, citação verificada em vez de citação livre
+
+**26/08/2026.** O Cérebro (`Cérebro/`) estava em `main` desde D-45 — hospedado,
+íntegro, mas inerte: nada em `app/ai/` o lia. Este spec
+(`docs/superpowers/specs/2026-08-25-cerebro-rag-design.md`) fechou quatro
+escolhas de arquitetura antes de qualquer linha de código, em conversa com o
+autor.
+
+**Léxica e semântica, fundidas por RRF — não uma ou outra.** BM25 sozinho
+(`app/knowledge/lexical.py`) já funciona sem rede assim que a ingestão roda; é
+a via que qualquer instalação tem de graça. Semântica sozinha exigiria um
+backend de embeddings configurado para que o Cérebro servisse a algo, o que
+recriaria o mesmo problema que D-36 já resolveu para a IA: uma dependência
+externa obrigatória onde o produto promete funcionar sem nenhuma. *Reciprocal
+rank fusion* (`app/knowledge/retrieval.py`, `_reciprocal_rank_fusion`,
+`k=60`) deixa as duas coexistirem sem que uma dependa da outra: o léxico
+cobre a instalação sem nenhuma chave, o semântico melhora a mesma busca por
+cima quando configurado, e a fusão nunca precisa saber qual das duas listas
+está vazia — soma `1/(60+posição)` sobre as que existirem.
+
+**Jina AI como receita documentada em `.env.example`, não como dependência.**
+A pesquisa que precedeu o spec (seção 1, "Decisões de escopo já tomadas")
+verificou `api.jina.ai/v1/embeddings`: formato compatível com OpenAI de
+verdade (`model` + `input` → `data[].embedding`, o mesmo contrato que
+`EmbeddingClient` já fala para qualquer servidor), cadastro sem cartão, 1M
+tokens grátis por mês — hospedado, o que importa porque o produto é pensado
+como SaaS e não pode depender da máquina do autor ter um Ollama no ar. Isso
+não torna a Jina AI obrigatória: `KNOWLEDGE_EMBEDDING_BASE_URL` **não tem
+padrão**, pelo mesmo raciocínio de `AI_BASE_URL` (D-36) — um padrão escolheria
+um fornecedor pelo operador — e o mesmo `.env.example` documenta Ollama local
+e OpenAI como alternativas com o mesmo cliente. Sem nenhuma das três
+configuradas, a busca cai para léxico puro, silenciosamente para quem chama.
+
+**Retrieval gated por `provider.simulated`, nunca pelo nome do provedor.**
+`AIService._retrieve` (`app/services/ai_service.py`) checa
+`provider.simulated`, não `provider.name == "mock"` — a mesma disciplina de
+D-35/D-36, onde a garantia mora na camada e não num fornecedor nomeado. Um
+provedor futuro que se declare `simulated = True` herda a isenção de rede
+automaticamente; um que não se declare simulado não precisa ser adicionado a
+lista nenhuma para ganhar retrieval. O motivo de existir o portão é duplo:
+preservar a promessa de que `mock` é determinístico e sem rede (`CLAUDE.md`
+§1.5, `docs/09-camada-ia.md`), e não deixar a suíte inteira — a maioria dela
+rodando com `AI_PROVIDER=mock` — mais lenta por uma consulta que a maior parte
+dos testes não precisa.
+
+**Citação verificada por índice, não citação livre por título e trecho.** A
+alternativa mais óbvia — deixar o modelo escrever de qual documento tirou uma
+afirmação — foi descartada: um provedor real pode errar o título, parafrasear
+o trecho errado ou inventar uma fonte plausível, e nada no formato livre
+permitiria distinguir uma citação real de uma alucinada. `EXPLAIN_SCHEMA`
+pede só `sources: list[int]` — o índice `[1]`, `[2]`… do bloco numerado que o
+próprio backend construiu (`prompts.py`, `_reference_block`) — e
+`guardrails.check_citations(sources, retrieved)` descarta qualquer índice
+fora do intervalo dos trechos **de fato entregues naquela chamada**. Uma
+citação inválida não derruba a explicação inteira (diferente de
+`ungrounded_numbers`): é metadado sobre a própria resposta, não uma alegação
+numérica, e o pior caso de descartá-la é uma fonte a menos listada, nunca uma
+informação errada mostrada como verificada.
+
+**O que não mudou, e é o ponto do spec inteiro.**
+`guardrails.check_constraint`/`ungrounded_numbers` continuam lendo só
+`context.statement`/`context.numbers` — nenhuma das duas foi tocada para
+saber que `context.retrieved` existe. Um número presente só num trecho
+recuperado, ausente do enunciado do usuário, é recusado do mesmo jeito que
+antes desta feature existir; a Tarefa 10 do plano de implementação cravou
+essa garantia com um teste dedicado, e dois revisores confirmaram
+separadamente que nenhum caminho novo alcança as duas funções. Ver
+`CLAUDE.md` §1.5 (terceira regra) e [09-camada-ia.md](09-camada-ia.md).
+
+**Alternativas descartadas.**
+- **Semântica pura, sem BM25.** Exigiria embeddings configurados para o
+  Cérebro servir a qualquer coisa — voltaria a depender de uma credencial
+  externa onde o resto do produto (D-36) já tinha decidido o contrário.
+- **Citação livre (título e trecho escritos pelo modelo).** Nada verificável
+  do lado do backend; um título ou trecho plausível e errado passaria
+  exatamente como um verdadeiro. O índice numérico é o único formato em que
+  "esta citação existe de verdade" é uma checagem, não uma torcida.
+
+**Como se sabe que passa.** 768 testes de backend (0 falhas, 0 pulados) —
+`test_knowledge_retrieval.py` (BM25 sozinho, semântico sozinho com fake,
+fusão RRF, degradação, `top_k`), o teste dedicado de `test_ai_api.py`
+(`TestRetrievedTextNeverGroundsANumber`) que prova a ancoragem intacta com um
+número presente só no trecho recuperado,
+`check_citations` (índice fora do intervalo descartado, índice válido passa)
+e o portão `provider.simulated` verificado explicitamente para `interpret` e
+`explain`. 157 testes de frontend, inalterado.

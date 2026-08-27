@@ -92,6 +92,24 @@ crie tabela sem o caso de uso. (`User` e `Project` saíram desta lista com A5;
 
 Registrados para não voltarem por engano:
 
+- ~~**RAG sobre o Cérebro**~~ — o Cérebro (D-45) deixou de estar inerte em
+  `main`: `app/knowledge/retrieval.py` faz busca híbrida (BM25 + semântica,
+  fundidas por *reciprocal rank fusion*) e alimenta `interpret()`/`explain()`
+  da camada de IA com trechos numerados, *gated* por `provider.simulated` — o
+  `mock` nunca aciona a busca, preservando a garantia de determinístico e sem
+  rede. `explain()` ganhou citação **verificada** por índice
+  (`guardrails.check_citations`), não citação livre: um índice fora do que
+  foi de fato recuperado naquela chamada é descartado. A garantia mais
+  importante da metodologia ficou intacta e provada, não só prometida: um
+  número presente só num trecho recuperado continua sendo recusado como
+  restrição, porque `check_constraint`/`ungrounded_numbers` nunca leem
+  `context.retrieved` — teste dedicado cobre exatamente isso, e dois
+  revisores confirmaram separadamente que nenhum caminho novo alcança essas
+  funções. Receita gratuita de embeddings (Jina AI, 1M tokens/mês sem
+  cartão) documentada em `.env.example`, sem padrão de propósito (mesmo
+  raciocínio de `AI_BASE_URL`, D-36); sem nada configurado, cai para busca só
+  léxica. 55 testes novos de backend (768 no total, nenhum skip). Ver
+  [D-47](DECISIONS.md) e [09-camada-ia.md](09-camada-ia.md).
 - ~~**M4** — Unificar o contrato de tipos~~ — npm workspaces (`package.json`
   na raiz, `workspaces: ["apps/web", "packages/shared-types"]`) +
   `transpilePackages` em `next.config.mjs`. `packages/shared-types/index.ts`
