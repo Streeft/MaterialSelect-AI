@@ -826,6 +826,11 @@ export const ptBR = {
     subscribeButton: "Assinar",
     manageButton: "Gerenciar assinatura",
     redirecting: "Redirecionando…",
+    // Fallback for a failure with no `detail` from the backend (network error,
+    // response we couldn't parse). The likelier case — Stripe not configured —
+    // arrives as an ApiError with its own PT-BR message and is shown as-is.
+    checkoutError: "Não foi possível iniciar a assinatura.",
+    portalError: "Não foi possível abrir o gerenciamento da assinatura.",
   },
 
   styleGuide: {
