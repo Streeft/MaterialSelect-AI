@@ -108,7 +108,8 @@ Registrados para não voltarem por engano:
   funções. Receita gratuita de embeddings (Jina AI, 1M tokens/mês sem
   cartão) documentada em `.env.example`, sem padrão de propósito (mesmo
   raciocínio de `AI_BASE_URL`, D-36); sem nada configurado, cai para busca só
-  léxica. 55 testes novos de backend (768 no total, nenhum skip). Ver
+  léxica. 55 testes novos de backend nesta entrega; 795 no total (nenhum
+  skip) depois da rodada de correção da revisão final e da PR #26. Ver
   [D-47](DECISIONS.md) e [09-camada-ia.md](09-camada-ia.md).
 - ~~**M4** — Unificar o contrato de tipos~~ — npm workspaces (`package.json`
   na raiz, `workspaces: ["apps/web", "packages/shared-types"]`) +
