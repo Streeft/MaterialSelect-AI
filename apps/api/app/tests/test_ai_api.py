@@ -300,3 +300,319 @@ class TestExplanation:
         response = client.post("/api/ai/explain", json={"study_id": study_id})
         assert response.status_code == 400
         assert "não produziu" in response.json()["detail"]
+
+    def test_valid_citation_is_translated_to_a_readable_source(
+        self, client: TestClient, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from app.knowledge.retrieval import RetrievedChunk
+        from app.models.enums import DocumentKind, SourceAuthority
+
+        chunk = RetrievedChunk(
+            document_title="Materials Selection in Mechanical Design",
+            document_kind=DocumentKind.LIVRO,
+            document_authority=SourceAuthority.CIENTIFICA,
+            page_start=42,
+            page_end=43,
+            text="x",
+            score=1.0,
+        )
+
+        class _CitingProvider(AIProvider):
+            name = "citador"
+            simulated = False
+
+            def interpret(self, context) -> dict:
+                raise NotImplementedError
+
+            def explain(self, context) -> dict:
+                return {"summary": "ok", "paragraphs": ["texto"], "sources": [1], "caveats": []}
+
+        monkeypatch.setattr(ai_service, "get_provider", lambda *_a, **_k: _CitingProvider())
+        monkeypatch.setattr("app.services.ai_service.knowledge_search", lambda *a, **k: [chunk])
+
+        study_id = self._study_id(client)
+        body = client.post("/api/ai/explain", json={"study_id": study_id}).json()
+
+        assert body["sources"] == [
+            {
+                "document_title": "Materials Selection in Mechanical Design",
+                "page_start": 42,
+                "page_end": 43,
+            }
+        ]
+
+    def test_invalid_citation_index_is_silently_dropped(
+        self, client: TestClient, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        class _CitingProvider(AIProvider):
+            name = "citador"
+            simulated = False
+
+            def interpret(self, context) -> dict:
+                raise NotImplementedError
+
+            def explain(self, context) -> dict:
+                return {"summary": "ok", "paragraphs": ["texto"], "sources": [99], "caveats": []}
+
+        monkeypatch.setattr(ai_service, "get_provider", lambda *_a, **_k: _CitingProvider())
+        monkeypatch.setattr("app.services.ai_service.knowledge_search", lambda *a, **k: [])
+
+        study_id = self._study_id(client)
+        response = client.post("/api/ai/explain", json={"study_id": study_id})
+        assert response.status_code == 200  # não derruba a explicação inteira
+        assert response.json()["sources"] == []
+
+    def test_bool_in_sources_does_not_become_a_citation_index(
+        self, client: TestClient, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # bool is a subclass of int: [True, False] must not be read as
+        # citation indices [1, 0] by ai_service.py's own filter, mirroring
+        # the same guard in model_base.py.
+        from app.knowledge.retrieval import RetrievedChunk
+        from app.models.enums import DocumentKind, SourceAuthority
+
+        chunk = RetrievedChunk(
+            document_title="Livro qualquer",
+            document_kind=DocumentKind.LIVRO,
+            document_authority=SourceAuthority.CIENTIFICA,
+            page_start=1,
+            page_end=1,
+            text="x",
+            score=1.0,
+        )
+
+        class _CitingProvider(AIProvider):
+            name = "citador"
+            simulated = False
+
+            def interpret(self, context) -> dict:
+                raise NotImplementedError
+
+            def explain(self, context) -> dict:
+                return {
+                    "summary": "ok",
+                    "paragraphs": ["texto"],
+                    "sources": [True, False],
+                    "caveats": [],
+                }
+
+        monkeypatch.setattr(ai_service, "get_provider", lambda *_a, **_k: _CitingProvider())
+        monkeypatch.setattr("app.services.ai_service.knowledge_search", lambda *a, **k: [chunk])
+
+        study_id = self._study_id(client)
+        response = client.post("/api/ai/explain", json={"study_id": study_id})
+        assert response.status_code == 200, response.text
+        assert response.json()["sources"] == []
+
+
+class _RecordingProvider(AIProvider):
+    """Não simulado: prova que o AIService chama a busca antes de invocá-lo."""
+
+    name = "gravador"
+    simulated = False
+
+    def __init__(self) -> None:
+        self.received_context: object | None = None
+
+    def interpret(self, context) -> dict:
+        self.received_context = context
+        return {
+            "function_text": None,
+            "objective_text": None,
+            "free_variables": [],
+            "constraints": [],
+            "properties": [],
+            "indices": [],
+            "chart": None,
+            "open_questions": [],
+        }
+
+    def explain(self, context) -> dict:
+        self.received_context = context
+        return {"summary": "ok", "paragraphs": [], "caveats": []}
+
+
+class TestRetrievalGating:
+    def test_mock_never_triggers_retrieval(
+        self, client: TestClient, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        called = []
+        monkeypatch.setattr(
+            "app.services.ai_service.knowledge_search",
+            lambda *a, **k: called.append(1) or [],
+        )
+        _interpret(client)
+        assert called == []
+
+    def test_real_provider_triggers_retrieval(
+        self, client: TestClient, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        provider = _RecordingProvider()
+        monkeypatch.setattr(ai_service, "get_provider", lambda *_a, **_k: provider)
+        called = []
+        monkeypatch.setattr(
+            "app.services.ai_service.knowledge_search",
+            lambda *a, **k: called.append(1) or [],
+        )
+        _interpret(client)
+        assert called == [1]
+        assert provider.received_context.retrieved == ()
+
+    def test_context_defaults_have_empty_retrieved(self) -> None:
+        from app.ai.provider import ProblemContext
+
+        context = ProblemContext(statement="x", properties=[], indices=[], classes=[])
+        assert context.retrieved == ()
+
+
+def test_model_base_reads_sources_from_raw_output() -> None:
+    from app.ai.model_base import ModelProviderBase
+    from app.ai.provider import ResultContext
+
+    class _StubProvider(ModelProviderBase):
+        name = "stub"
+
+        def _complete(self, system, user, schema):
+            return {"summary": "ok", "paragraphs": ["texto"], "sources": [1, 2]}
+
+    provider = _StubProvider()
+    context = ResultContext(
+        study_name="x",
+        function_text=None,
+        objective_text=None,
+        constraint_labels=[],
+        index_name=None,
+        index_expression=None,
+        index_dimension=None,
+        initial_count=1,
+        final_count=1,
+        funnel=[],
+        ranked=[],
+        excluded_for_missing=[],
+        sensitivity_changed=False,
+    )
+    result = provider.explain(context)
+    assert result["sources"] == [1, 2]
+
+
+def test_model_base_defaults_missing_sources_to_empty_list() -> None:
+    from app.ai.model_base import ModelProviderBase
+    from app.ai.provider import ResultContext
+
+    class _StubProvider(ModelProviderBase):
+        name = "stub"
+
+        def _complete(self, system, user, schema):
+            return {"summary": "ok", "paragraphs": []}  # sem "sources"
+
+    context = ResultContext(
+        study_name="x",
+        function_text=None,
+        objective_text=None,
+        constraint_labels=[],
+        index_name=None,
+        index_expression=None,
+        index_dimension=None,
+        initial_count=1,
+        final_count=1,
+        funnel=[],
+        ranked=[],
+        excluded_for_missing=[],
+        sensitivity_changed=False,
+    )
+    assert _StubProvider().explain(context)["sources"] == []
+
+
+def test_model_base_sources_does_not_treat_a_bool_as_a_citation_index() -> None:
+    # bool is a subclass of int in Python: a model emitting valid JSON
+    # "sources": [true, false] must not be read as citation indices 1 and 0.
+    from app.ai.model_base import ModelProviderBase
+    from app.ai.provider import ResultContext
+
+    class _StubProvider(ModelProviderBase):
+        name = "stub"
+
+        def _complete(self, system, user, schema):
+            return {"summary": "ok", "paragraphs": [], "sources": [True, False, 1]}
+
+    context = ResultContext(
+        study_name="x",
+        function_text=None,
+        objective_text=None,
+        constraint_labels=[],
+        index_name=None,
+        index_expression=None,
+        index_dimension=None,
+        initial_count=1,
+        final_count=1,
+        funnel=[],
+        ranked=[],
+        excluded_for_missing=[],
+        sensitivity_changed=False,
+    )
+    assert _StubProvider().explain(context)["sources"] == [1]
+
+
+class TestRetrievedTextNeverGroundsANumber:
+    def test_number_only_in_a_retrieved_chunk_does_not_ground_a_constraint(
+        self, client: TestClient, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A garantia central deste trabalho: um trecho recuperado pode
+        conter qualquer número — isso nunca torna esse número "ancorado" no
+        enunciado. Só o texto que o próprio usuário escreveu ancora.
+        """
+        from app.knowledge.retrieval import RetrievedChunk
+        from app.models.enums import DocumentKind, SourceAuthority
+
+        chunk = RetrievedChunk(
+            document_title="Livro qualquer",
+            document_kind=DocumentKind.LIVRO,
+            document_authority=SourceAuthority.CIENTIFICA,
+            page_start=1,
+            page_end=1,
+            # 999 aparece só aqui — nunca no enunciado do usuário abaixo.
+            text="O módulo de referência típico é 999 GPa para este material.",
+            score=1.0,
+        )
+
+        class _ProviderCitingTheRetrievedNumber(AIProvider):
+            name = "cita-o-trecho"
+            simulated = False
+
+            def interpret(self, context) -> dict:
+                # Propõe uma restrição usando o número que só existe no
+                # trecho recuperado, não no enunciado do usuário.
+                return {
+                    "function_text": None,
+                    "objective_text": None,
+                    "free_variables": [],
+                    "constraints": [
+                        {
+                            "constraint": {
+                                "operator": "gte",
+                                "property_slug": "modulo_young",
+                                "value": 999.0,
+                                "unit": "GPa",
+                            },
+                            "evidence": "trecho recuperado",
+                            "rationale": "citado do Cérebro",
+                        }
+                    ],
+                    "properties": [],
+                    "indices": [],
+                    "chart": None,
+                    "open_questions": [],
+                }
+
+            def explain(self, context) -> dict:
+                raise NotImplementedError
+
+        monkeypatch.setattr(
+            ai_service, "get_provider", lambda *_a, **_k: _ProviderCitingTheRetrievedNumber()
+        )
+        monkeypatch.setattr("app.services.ai_service.knowledge_search", lambda *a, **k: [chunk])
+
+        body = _interpret(client, "Preciso de uma viga leve para uma estrutura.")
+
+        assert body["constraints"] == []  # a restrição foi recusada
+        assert any("não aparece no enunciado" in r for r in body["rejected"])

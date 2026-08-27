@@ -197,11 +197,12 @@ meramente informativo.
 
 ## Estado atual
 
-Fases 1 a 6 concluídas. **Fase 7 (relatórios e qualidade) parcial** — as
+Fases 1 a 9 concluídas. **Fase 7 (relatórios e qualidade) concluída** — as
 exportações CSV/XLSX, o relatório HTML imprimível, os testes end-to-end de
-interface (A4, Playwright em `apps/web/e2e/`) e a autenticação (A5) já saíram;
-falta só auditoria (M2), que A5 destravou (havia "quem" fica vazio como
-dependência, agora há `User`). **A5** deu login exclusivamente por terceiros
+interface (A4, Playwright em `apps/web/e2e/`), a autenticação (A5) e a
+auditoria (M2 — `AuditEvent`, quem mudou o quê e quando, retrato em vez de
+junção viva, [D-43](docs/DECISIONS.md)) já saíram; falta só a arquitetura para
+PPTX (B2, baixa prioridade). **A5** deu login exclusivamente por terceiros
 (Google, OAuth 2.0 — sem senha em lugar nenhum do sistema), sessão em cookie
 `httpOnly` que é linha de banco e não JWT, catálogo compartilhado entre todo
 usuário autenticado e um `Project` por usuário isolando `SelectionStudy`
@@ -249,8 +250,32 @@ com verificação de plano por cima; um preço só no v1
 de `/billing` continuam fora do portão; o webhook do Stripe tem guarda de
 ordem para uma reentrega fora de ordem não reativar assinatura cancelada.
 
-617 testes de backend e 148 de frontend, todos verdes. CI no GitHub Actions roda
-em todo PR e push para `main`.
+**Branches de fase divergentes foram reconciliadas com `main`** (PRs #15, #14,
+#7, #18): três eram ilusão de squash-merge (conteúdo já presente, git só
+reportava divergência); a quarta (`fase-9-ia-e-laudo`) trouxe ~1.600 linhas
+genuinamente novas — camada de conhecimento (`app/knowledge/`, ingestão do
+Cérebro) e cobrança com Stripe —, ambas integradas por inteiro. O Cérebro
+licenciado (livros comerciais + fichas ANSYS/Granta EduPack) veio por outro
+caminho, o PR #17, e **continua no histórico de `main` por decisão explícita
+do autor** — é a base de conhecimento da camada de IA, e ele optou por
+mantê-la hospedada sabendo da exposição, ao contrário de
+`fase-9-ia-e-laudo`, purgada antes do merge. Risco aceito, não pendência
+([D-45](docs/DECISIONS.md)).
+
+**O portão global de assinatura está ligado** ([D-46](docs/DECISIONS.md)):
+entre os dois desenhos que o PR #18 deixou coexistindo em código, o autor
+escolheu o binário do plano de 18/08 — `require_active_subscription` exige
+`Subscription.status == "active"` em todo router exceto
+`health`/`auth`/`billing`, e `AuthGate.tsx` voltou a ser um portão de dois
+estágios (`/auth/me` → `/billing/status`). O plano Free/Pro de 21/08 fica
+registrado como alternativa não implementada. `STRIPE_API_KEY` continua vazio
+por padrão (D-36) — o portão bloqueia sem assinatura, mas `checkout`/`portal`
+respondem 503 até um operador configurar o Stripe de verdade.
+
+713 testes de backend (nenhum skip) e 157 de frontend, todos verdes. CI no
+GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
+(`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
+PROJECT_CONTEXT.md).
 
 **Desempenho medido**, com os números em `docs/PROJECT_CONTEXT.md §12`: o maior
 *chunk* de JavaScript caiu de 4,5 MB para 981 KB (o Plotly completo era 79% de

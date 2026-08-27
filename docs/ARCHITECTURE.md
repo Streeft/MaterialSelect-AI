@@ -79,7 +79,7 @@ MaterialSelect-AI/
 │  │  │  ├─ routers/            # HTTP fino, sem regra de negócio
 │  │  │  ├─ schemas/            # contratos Pydantic v2
 │  │  │  ├─ services/           # orquestração de casos de uso
-│  │  │  └─ tests/              # 25 arquivos, 617 testes
+│  │  │  └─ tests/              # 28 arquivos, 639 testes
 │  │  └─ pyproject.toml
 │  └─ web/                      # frontend Next.js 14
 │     ├─ app/                   # App Router: uma pasta por rota — catalogo,
@@ -90,7 +90,7 @@ MaterialSelect-AI/
 │     ├─ lib/                   # api.ts, types.ts, i18n.ts, format.ts,
 │     │                         #   charts.ts, plotly-custom.ts, design/
 │     └─ types/                 # declarações de módulos sem tipos
-├─ packages/shared-types/       # contrato canônico (espelhado em web/lib/types.ts)
+├─ packages/shared-types/       # contrato canônico (importado por web via npm workspace)
 ├─ docs/                        # esta documentação
 ├─ .github/workflows/ci.yml     # portão de CI
 ├─ sample-data/                 # CSV de exemplo para a importação
@@ -281,6 +281,7 @@ erDiagram
   Project ||--o{ SelectionStudy : escopa
   SelectionStudy ||--o{ SelectionConstraint : tem
   SelectionStudy ||--o{ RankingCriterion : tem
+  User ||--o{ AuditEvent : "assina (retrato)"
 ```
 
 | Tabela | Papel |
@@ -289,13 +290,14 @@ erDiagram
 | `material` | Identidade, `is_demo`, `is_active` (soft delete), `import_job_id`. |
 | `property_definition` | Catálogo configurável: unidade canônica, dimensão, direção desejável. |
 | `material_property_value` | O valor **com toda a proveniência**. |
-| `source` | Rótulo de origem do dado. |
+| `source` | Rótulo de origem do dado — licença/procedência, sinalização de dado de terceiro e revisor registrados no momento em que a fonte é criada (M1, [D-44](DECISIONS.md)). |
 | `import_job`, `import_mapping_template` | Ciclo da importação e rollback lógico. |
 | `performance_index` | Índices clássicos de Ashby com hipóteses. |
 | `user` | Identidade Google (`google_sub` único), sem senha ([D-42](DECISIONS.md)). |
 | `project` | Container de estudos de um dono; um por `user` no v1. |
 | `user_session` | Sessão de login; `id` é o próprio valor do cookie. |
 | `selection_study`, `selection_constraint`, `ranking_criterion` | Estudos reexecutáveis, escopados por `project_id`. |
+| `audit_event` | Quem mudou o quê e quando (M2), com retrato de `user_email`/`entity_label`/`project_id` — sobrevive à conta, à entidade ou ao estudo desaparecerem depois ([D-43](DECISIONS.md)). |
 
 **Campos de proveniência em `material_property_value`** — o coração do modelo:
 `value_scalar`/`value_min`/`value_max`/`value_typical` (unidade **original**),
@@ -353,6 +355,8 @@ Todas sob `/api`. Erros de domínio são mapeados em `main.py`:
 | IA (opcional) | `GET /ai/status`, `POST /ai/interpret`, `POST /ai/explain` |
 | Exportação | `GET /exports/catalogo.{csv,xlsx,html}`, `GET /exports/estudos/{id}.{csv,xlsx,html}` |
 | Laudo de engenharia | `GET /exports/estudos/{id}/laudo.html` |
+| Auditoria | `GET /audit` — quem mudou o quê e quando ([D-43](DECISIONS.md)) |
+| Fontes | `GET /sources` — licença, procedência e revisor de cada fonte registrada ([D-44](DECISIONS.md)) |
 
 Visualização e comparação são **POST** porque a entrada é estruturada (par de
 eixos, filtros, conjuntos de materiais, expressão e níveis) e não caberia
@@ -442,7 +446,14 @@ Nenhuma externa obrigatória. A camada de IA é opcional e, no provedor padrão
 
 ## 10. Contrato de tipos
 
-`packages/shared-types/index.ts` é canônico; `apps/web/lib/types.ts` o espelha
-**manualmente**. Duplicação consciente para manter o build do Next simples no
-MVP — está registrada como débito em [TODO.md](TODO.md). **Ao alterar um
-contrato, altere os dois arquivos.**
+`packages/shared-types/index.ts` é canônico. `apps/web` importa esse pacote
+diretamente pelo nome (`@materialselect/shared-types`) via npm workspaces
+(`package.json` da raiz), e o Next transpila a fonte TypeScript do pacote em
+tempo de build/dev (`transpilePackages` em `next.config.mjs` — o pacote não
+publica um `dist`, só o `.ts` de origem). `apps/web/lib/types.ts` é um
+barril de reexportação (`export * from "@materialselect/shared-types"`),
+mantido só para que o resto do código continue importando `@/lib/types` sem
+trocar 39 pontos de chamada pelo nome do pacote. **Ao alterar um contrato,
+edite só `packages/shared-types/index.ts`** — não há mais um segundo arquivo
+para lembrar de sincronizar (D-16/M4, que substituiu a duplicação manual
+original).

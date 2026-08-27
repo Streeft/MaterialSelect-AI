@@ -25,6 +25,28 @@ class _FakeSession:
         self.url = url
 
 
+class _StrictStripeObject:
+    """Mimics the real SDK's `Event`/`StripeObject`: `[]` and `in` work,
+    `.get()` does not — the real class raises `AttributeError` on `.get()`
+    on purpose, to force `.to_dict()` instead. A plain dict fake would let
+    `.get()` calls in the service pass silently in every test and only
+    blow up against the real Stripe API in production; wrapping the fake
+    event this way is what makes that bug reproducible here.
+    """
+
+    def __init__(self, data: dict) -> None:
+        self._data = {
+            key: (_StrictStripeObject(value) if isinstance(value, dict) else value)
+            for key, value in data.items()
+        }
+
+    def __getitem__(self, key):
+        return self._data[key]
+
+    def __contains__(self, key):
+        return key in self._data
+
+
 class _FakeStripeClient:
     def __init__(self) -> None:
         self.api_key: str | None = None
@@ -57,7 +79,11 @@ class _FakeStripeClient:
             def construct_event(payload, signature, secret):
                 if client.webhook_error is not None:
                     raise client.webhook_error
-                return client.webhook_event
+                return (
+                    _StrictStripeObject(client.webhook_event)
+                    if client.webhook_event is not None
+                    else None
+                )
 
         self.checkout = _Checkout()
         self.billing_portal = _Portal()

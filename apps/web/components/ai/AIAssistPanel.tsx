@@ -147,7 +147,11 @@ export function AIAssistPanel({ onApply }: AIAssistPanelProps) {
           loading={interpret.isPending}
           onClick={() => interpret.mutate()}
         >
-          {interpret.isPending ? t.interpreting : t.interpret}
+          {interpret.isPending
+            ? status.data?.simulated
+              ? t.interpreting
+              : t.interpretingWithKnowledge
+            : t.interpret}
         </Button>
 
         {error && (

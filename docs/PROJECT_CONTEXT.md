@@ -40,8 +40,10 @@ sugerir e explicar.
 
 ## 3. Estado atual
 
-**Fases 1 a 6, 8 e 9 concluídas. Fase 7 parcial** — falta só auditoria (M2),
-agora destravada por A5 (autenticação, concluída nesta sessão).
+**Fases 1 a 9 concluídas.** Fase 7 fechou nesta sessão com a auditoria (M2);
+o único item que resta sob o guarda-chuva da Fase 7 é a exportação em PPTX
+(B2, baixa prioridade) — que a proposta previa como *arquitetura para*, não
+como entrega, então não bloqueia a fase.
 
 | # | Fase | Estado | Documento |
 |---|---|---|---|
@@ -51,14 +53,15 @@ agora destravada por A5 (autenticação, concluída nesta sessão).
 | 4 | Seleção determinística | ✅ | [07](07-selecao-deterministica.md) |
 | 5 | Visualização | ✅ | [08](08-visualizacao.md) |
 | 6 | Camada de IA opcional | ✅ | [09](09-camada-ia.md) |
-| 7 | Relatórios e qualidade | 🔄 parcial | [10](10-relatorios.md) |
+| 7 | Relatórios e qualidade | ✅ | [10](10-relatorios.md) |
 | 8 | Redesign da interface | ✅ | [REDESIGN](REDESIGN.md) · [11](11-usabilidade.md) |
 | 9 | IA gratuita, painel, mapas personalizáveis e laudo | ✅ | [D-36 a D-41](DECISIONS.md) |
 
 A Fase 8 vem depois da 7 na numeração e antes dela na conclusão: o redesign era
 independente do que faltava na 7 e resolvia a acessibilidade, que estava
 listada como pendência daquela fase. A Fase 9 seguiu o mesmo raciocínio, e A5
-(autenticação) fechou nesta sessão sem esperar o resto da Fase 7.
+(autenticação) e M2 (auditoria) fecharam a Fase 7 em sessões separadas, sem
+esperar uma pela outra.
 
 **Autenticação (A5) concluída** — login exclusivamente por terceiros (Google,
 OAuth 2.0; nenhuma senha em lugar nenhum do sistema), sessão em cookie
@@ -66,29 +69,92 @@ OAuth 2.0; nenhuma senha em lugar nenhum do sistema), sessão em cookie
 compartilhado entre todo usuário autenticado e um `Project` isolando os
 `SelectionStudy` de cada usuário — um projeto por usuário, criado
 automaticamente no primeiro login ([D-42](DECISIONS.md),
-[ARCHITECTURE.md §7](ARCHITECTURE.md)). Isso destrava M2 (auditoria), que
-dependia de "quem" existir — não foi implementada nesta sessão.
+[ARCHITECTURE.md §7](ARCHITECTURE.md)).
 
-**Portão de assinatura concluído** — em cima do login de A5, todo usuário
-autenticado agora também precisa de uma assinatura Stripe ativa para usar
-qualquer rota da ferramenta; `/entrar` e `/assinatura` continuam abertas, a
-segunda para quem já logou mas ainda não assinou. Tenant é o usuário
-individual, sem `Organization` nem `tenant_id` — a mesma fronteira de
-isolamento de D-42, só com uma verificação de plano por cima; um preço só no
-v1, sem seletor de plano ([D-43](DECISIONS.md)).
+**Auditoria (M2) concluída** — `AuditEvent` registra quem mudou o quê e quando
+para material, classe, propriedade, índice de desempenho e estudo de seleção,
+com retrato de `user_email`/`entity_label`/`project_id` para que a linha
+sobreviva à conta, à entidade ou ao estudo desaparecerem depois; `GET
+/api/audit` lista por entidade, com a mesma fronteira de projeto de todo
+endpoint de estudo ([D-43](DECISIONS.md)). A importação em lote fica de fora
+de propósito — `ImportJob` já é a trilha desse fluxo.
 
-**O que continua faltando da Fase 7** é auditoria (M2) e o estudo de caso
-didático — nenhuma das outras fases tem pendência aberta. Duas faltas não são
-de código e não podem ser fechadas por quem programa sozinho: a sessão de
-teste com usuários do §3.5 da proposta (`11-usabilidade.md` está instrumentado,
-mas **nenhuma sessão foi realizada** — enquanto a tabela de melhorias dele
-estiver vazia, o §3.5 não foi cumprido) e o próprio estudo de caso.
+**Estudo de caso didático (A2) concluído** — o tirante leve e rígido de Ashby,
+do enunciado ao relatório exportado, executado contra a aplicação real (não
+simulado): nove materiais reais de literatura, o índice `rigidez-especifica`
+já semeado, e uma ordenação que bate com os três pontos consolidados na
+literatura — compósitos à frente de metais, os três metais estruturais num
+platô de menos de 2% entre si, cerâmica excluída por fragilidade apesar do
+melhor índice bruto. Roteiro completo em
+[`12-estudo-de-caso.md`](12-estudo-de-caso.md), regressão automatizada em
+`test_case_study.py`.
 
-**Saúde do código:** 617 testes de backend (Python 3.11 e 3.12) e 148 de
-frontend, todos verdes. `ruff` limpo, `black --check` limpo, typecheck estrito e
-build de produção sem avisos. CI no GitHub Actions rodando em todo PR e push
-para `main`, com os checks **obrigatórios**: o GitHub recusa o merge se
-qualquer um falhar ([D-22](DECISIONS.md)).
+**Trabalho que ficou só em branch foi trazido para `main`.** As branches de
+fase apareciam como `N behind / M ahead` mesmo depois de mescladas — o PR #9
+entrou por *squash*, que não cria vínculo de parentesco com a branch de
+origem, então o git segue reportando divergência com o conteúdo já presente.
+Verificação arquivo a arquivo confirmou isso para três branches
+(`fase-5-visualizacao`, `fase-6-provedores-claude`, `fase-8-redesign-interface`
+— PRs #15, #7, #14), que foram apenas mescladas de volta sem conteúdo novo.
+Uma quarta, `fase-9-ia-e-laudo`, tinha ~1.600 linhas genuinamente não
+mescladas: a **camada de conhecimento** (ingestão do Cérebro para a IA,
+`app/knowledge/`) e a **cobrança com Stripe** (`Subscription`,
+`routers/billing.py`). As duas entraram por completo no PR #18, com duas
+ressalvas registradas no backlog:
+
+- O portão global de assinatura (`require_active_subscription`) ficou
+  **desligado** até a arquitetura ser decidida — resolvido depois, ver
+  [D-46](DECISIONS.md): o binário do plano de 18/08 é o que está ligado.
+- O Cérebro licenciado (11 livros comerciais + 2 extratos de capítulo + 103
+  fichas ANSYS/Granta EduPack) foi **purgado do histórico** de
+  `fase-9-ia-e-laudo` antes do merge (`git filter-repo`, 89 commits
+  reescritos) — mas o mesmo material chegou a `main` por outro caminho, o
+  PR #17, e continua lá por **decisão explícita do autor**: o Cérebro é a
+  base de conhecimento da camada de IA, e ele optou por mantê-lo hospedado
+  mesmo sabendo da exposição. Não é pendência — ver [D-45](DECISIONS.md).
+
+**A falta que resta no trabalho como um todo não é de código** e não pode ser
+fechada por quem programa sozinho: a sessão de teste com usuários do §3.5 da
+proposta — `11-usabilidade.md` está instrumentado, mas **nenhuma sessão foi
+realizada**; enquanto a tabela de melhorias dele estiver vazia, o §3.5 não foi
+cumprido.
+
+**M4 (contrato de tipos) resolvido.** `packages/shared-types/index.ts` deixou
+de ser cópia manual e passou a ser importado de verdade por `apps/web` via
+npm workspaces + `transpilePackages` — a duplicação já tinha divergido em
+produção (`x_quality`/`y_quality` não-nulos no arquivo canônico, corretos
+como `| null` só na cópia que o typechecker de fato exercitava), exatamente o
+modo de falha silenciosa que a decisão original ([D-16](DECISIONS.md)) já
+previa. Ver M4 em [TODO.md](TODO.md).
+
+**RAG sobre o Cérebro entregue.** O Cérebro, hospedado em `main` desde D-45
+mas inerte até aqui — íntegro, mas sem nada em `app/ai/` que o lesse —,
+passou a alimentar `interpret()`/`explain()` de verdade: busca híbrida
+(léxica BM25 + semântica, fundidas por *reciprocal rank fusion*) em
+`app/knowledge/retrieval.py`, ligada só quando o provedor não é o `mock`
+(`provider.simulated`, não o nome do provedor — a mesma disciplina de
+D-35/D-36), e citação **verificada** por índice em `explain()` — nunca
+citação livre — via `guardrails.check_citations`. A garantia que mais
+importava não foi só mantida, foi **provada**: `check_constraint` e
+`ungrounded_numbers` nunca leem `context.retrieved`, então um número presente
+só num trecho recuperado continua sendo recusado como restrição exatamente
+como antes desta feature existir — teste dedicado cobre o caso, e dois
+revisores confirmaram separadamente que nenhum caminho novo alcança essas
+duas funções. Receita gratuita de embeddings (Jina AI, `api.jina.ai`, 1M
+tokens grátis por mês, sem cartão) documentada em `.env.example`, sem padrão
+de propósito (mesmo raciocínio de `AI_BASE_URL`, D-36); sem nada configurado,
+a busca cai para léxico puro. 55 testes novos de backend. Ver
+[D-47](DECISIONS.md) e [09-camada-ia.md](09-camada-ia.md).
+
+**Saúde do código:** 768 testes de backend (Python 3.11 e 3.12, nenhum skip)
+e 157 de frontend, todos verdes. `ruff` limpo, `black
+--check` limpo, typecheck estrito e build de produção sem avisos. CI no
+GitHub Actions rodando em todo PR e push para `main`, com os checks
+**obrigatórios**: o GitHub recusa o merge se qualquer um falhar
+([D-22](DECISIONS.md)). Um quinto job, `Lighthouse`, mede desempenho e
+acessibilidade nas 11 rotas principais (§12) e já está listado em
+`scripts/protect-main.ps1` como obrigatório — falta confirmar que o script foi
+de fato executado contra a ruleset viva no GitHub.
 
 ## 4. Funcionalidades concluídas
 
@@ -139,7 +205,7 @@ na entrada.
   ([D-35](DECISIONS.md)). Só o `mock` é determinístico, e a ressalva mostrada ao
   usuário diz isso.
 
-### Exportação (Fase 7, parcial)
+### Exportação (Fase 7)
 CSV, XLSX e **HTML imprimível** do catálogo e do **relatório de seleção
 auditável** em 9 seções, incluindo proveniência de cada número. O HTML é
 autocontido e traz folha de estilo de impressão — o PDF sai do navegador, sem
@@ -154,19 +220,22 @@ lugar nenhum do sistema. Sessão em cookie `httpOnly` que é uma linha de banco
 global e compartilhado entre todo usuário autenticado; só `SelectionStudy` é
 privado, escopado por `Project` (um por usuário, criado automaticamente no
 primeiro login). Ver [D-42](DECISIONS.md) e [ARCHITECTURE.md §7](ARCHITECTURE.md).
+`AuthGate.tsx` no frontend é um portão de **dois estágios** desde
+[D-46](DECISIONS.md): `/auth/me` primeiro (não autenticado → `/entrar`),
+depois `/billing/status` (autenticado sem assinatura ativa → `/assinatura`).
 
-### Assinatura (portão de acesso, Stripe)
-Segundo portão em cima do login: toda rota da ferramenta — catálogo, seleção,
-mapas, painel, exportação, IA — exige assinatura ativa, aplicado em bloco no
-`include_router` de `app/main.py`. Só `/health`, `/auth/*` e `/billing/*`
-ficam de fora, cada rota de `/billing` por um motivo próprio (`checkout`/
-`status` não podem depender de assinatura sem virar circular; o `webhook` não
-tem cookie de sessão porque quem chama é o Stripe). Tenant é o usuário
-individual — sem `Organization`, sem `tenant_id`, sem RLS; o catálogo continua
-global. Um preço só no v1 (`STRIPE_PRICE_ID`), sem seletor de plano. O
-webhook tem guarda de ordem (`_is_stale`) para uma reentrega fora de ordem não
-reativar uma assinatura já cancelada, e valida `client_reference_id` antes de
-usá-lo. Ver [D-43](DECISIONS.md).
+### Auditoria (Fase 7 — M2)
+`AuditEvent` registra quem mudou o quê e quando, para material, classe,
+propriedade, índice de desempenho e estudo de seleção — as entidades que uma
+pessoa edita à mão pelos serviços de catálogo e seleção. Cada linha guarda um
+**retrato** de `user_email`/`entity_label`/`project_id`, não uma junção viva:
+sobrevive à conta, à entidade ou ao estudo desaparecerem depois — inclusive a
+exclusão do próprio estudo, o evento em que essa garantia mais importa.
+`changes` é o diff só dos campos que de fato mudaram (por campo em
+materiais/classes/propriedades, por slug de propriedade na troca de valores).
+`GET /api/audit` lista por entidade, sob a mesma fronteira de projeto de todo
+endpoint de estudo. A importação em lote fica de fora de propósito —
+`ImportJob` já é a trilha desse fluxo. Ver [D-43](DECISIONS.md).
 
 ### Interface (Fase 8)
 - **Sistema de design próprio, sem biblioteca de componentes**: primitivas em
@@ -228,13 +297,83 @@ O pedido tinha seis frentes, e as seis foram entregues:
 > **As figuras da monografia que são capturas de `/estilo` precisam ser refeitas
 > depois de D-38.**
 
+### Camada de conhecimento e cobrança (Fase 9, integradas pelo PR #18)
+Ficaram ~1.600 linhas da `fase-9-ia-e-laudo` que não chegaram a `main` junto do
+resto da fase — trazidas depois, íntegras, verificadas caminho a caminho:
+
+- **Ingestão do Cérebro** (`app/knowledge/`) — leitura de PDF (`readers.py`,
+  extrai texto via `pypdf`; o extra `knowledge` precisa estar instalado, e a CI
+  passou a instalar `.[dev,knowledge]` por causa disso), *chunking*,
+  *embeddings*, busca léxica e um `manifest` de proveniência por documento,
+  mais 40 testes. Ficou pronta antes de ter consumidor — a busca abaixo é
+  quem passou a usá-la.
+- **Busca sobre o Cérebro (RAG)** ([D-47](DECISIONS.md)) —
+  `app/knowledge/retrieval.py` funde busca léxica (BM25) e semântica
+  (embeddings) por *reciprocal rank fusion*, alimentando `interpret()` e
+  `explain()` da camada de IA com trechos numerados, só quando o provedor
+  ativo não é o `mock` (`provider.simulated`). `explain()` pode citar a
+  fonte: o esquema pede só o **índice** do trecho, verificado contra os
+  trechos de fato recuperados naquela chamada
+  (`guardrails.check_citations`) — nunca citação livre por título ou texto.
+  A garantia mais importante da camada de IA ficou provada, não só mantida:
+  `check_constraint`/`ungrounded_numbers` nunca leem `context.retrieved`,
+  então um número presente só num trecho recuperado nunca vira restrição
+  aceita — teste dedicado cobre exatamente isso. Receita gratuita de
+  embeddings (Jina AI, 1M tokens grátis/mês, sem cartão) documentada em
+  `.env.example`; sem nada configurado, a busca cai para léxico puro. Mais
+  55 testes.
+- **Cobrança com Stripe** — `Subscription`, `SubscriptionRepository`,
+  `routers/billing.py`, `services/billing_service.py`, `require_active_
+  subscription`. O código entrou inteiro, mas o portão ficou desligado até
+  a arquitetura ser decidida entre dois desenhos concorrentes — resolvido
+  em [D-46](DECISIONS.md): o portão binário do plano de 18/08 é o que está
+  ligado hoje, aplicado a todo router exceto `health`/`auth`/`billing`. O
+  plano Free/Pro de 21/08 fica registrado como alternativa não implementada.
+  Sem `STRIPE_API_KEY` configurada (o padrão em dev e CI), `checkout` e
+  `portal` respondem 503. Isso é o padrão do ambiente, não uma limitação do
+  código: o autor configurou Stripe em modo de teste na própria máquina e
+  **completou um checkout real de ponta a ponta** (login → checkout →
+  pagamento de teste → webhook → assinatura ativa), o que expôs e corrigiu
+  um bug real no processamento do webhook (PR #21, ver [D-46](DECISIONS.md)).
+
+### Estudo de caso didático (A2)
+O tirante leve e rígido ("light, stiff tie") de Ashby — o exemplo introdutório
+mais citado da metodologia — reproduzido do enunciado ao relatório exportado,
+executado contra a aplicação real: nove materiais reais de literatura
+(rotulados como tal, `docs/estudo-de-caso/`, não o `sample-data/` fictício),
+importados pelo assistente de importação, ranqueados pelo índice
+`rigidez-especifica` (E/ρ) já semeado no catálogo. A ordenação resultante bate
+com três pontos consolidados na literatura de Ashby: compósitos de fibra à
+frente de qualquer metal, os três metais estruturais (aço, alumínio, titânio)
+num platô de menos de 2% entre si em rigidez específica, e a cerâmica —
+melhor índice bruto de todo o conjunto — corretamente excluída por uma
+restrição de fragilidade, não por acaso do índice. Roteiro completo com as
+respostas reais da API como evidência em
+[`12-estudo-de-caso.md`](12-estudo-de-caso.md); regressão automatizada em
+`test_case_study.py`.
+
+### Triagem de licenciamento (Fase 7 — M1)
+`Source` registra procedência e licença — nenhum campo é inferido, todos vêm
+do que quem importa escreveu no mapeamento. Uma fonte **nova** sem licença é
+recusada antes de qualquer linha ser escrita (`validate()` e de novo em
+`commit()`, o portão que realmente importa); uma fonte marcada como
+possivelmente contendo dado de terceiro exige uma segunda confirmação humana
+explícita, não só a marcação. Reusar um `source_label` já registrado não
+reabre a decisão a cada importação seguinte — ela foi feita uma vez, na
+primeira. `GET /api/sources` lista toda fonte com sua licença e revisor,
+mesma lógica de transparência de M2. O portão fica na importação — a mesma
+escala de decisão humana que o cadastro manual de um material já exige linha
+a linha; estendê-lo ao cadastro manual é extensão natural, não lacuna. Ver
+[D-44](DECISIONS.md).
+
 ## 5. Em andamento
 
-**Fase 7** — as exportações (planilha e imprimível), os testes end-to-end de
-interface (A4/B11) e a autenticação (A5) estão entregues. Falta: arquitetura
-para PPTX (B2, baixa prioridade) e auditoria (M2, agora destravada por A5). A
-acessibilidade, que estava nesta lista, foi entregue pela Fase 8; o
-**desempenho**, que também estava, foi medido e tratado (seção 12).
+**Fase 7 concluída** — as exportações (planilha e imprimível), os testes
+end-to-end de interface (A4/B11), a autenticação (A5) e a auditoria (M2) estão
+entregues. Falta só a arquitetura para PPTX (B2, baixa prioridade,
+explicitamente fora de escopo salvo pedido). A acessibilidade, que estava
+nesta lista, foi entregue pela Fase 8; o **desempenho**, que também estava,
+foi medido e tratado (seção 12).
 
 **Teste de usabilidade (§3.5 da proposta)** — [11-usabilidade.md](11-usabilidade.md)
 traz o roteiro, o formulário e a tabela de melhorias, prontos para aplicar.
@@ -245,19 +384,13 @@ venha de uma sessão de fato observada.
 ## 6. Pendências
 
 Ver [TODO.md](TODO.md) para o backlog priorizado com impacto, dificuldade e
-dependências. Os itens de maior peso:
+dependências. O único item que resta:
 
-1. **Nenhuma auditoria de alterações** (M2) — quem mudou o quê e quando não é
-   registrado. Só ficou viável depois de A5 (autenticação) existir "quem".
-2. **Nenhuma triagem de licenciamento** das bases incorporadas — compromisso do
-   item 4.2 da proposta, e agora com o repositório público a aposta é maior
-   ([TODO.md](TODO.md) M1).
-3. **Nenhuma sessão de teste de usabilidade** — compromisso do §3.5, com o
+1. **Nenhuma sessão de teste de usabilidade** — compromisso do §3.5, com o
    instrumento pronto em [11-usabilidade.md](11-usabilidade.md) e a análise
-   cobrada como entrega pelo §4.1.
-4. **Nenhum estudo de caso didático completo** (A2) — entregável explícito da
-   proposta (itens 2.6 e 6); a ferramenta funciona mas não está demonstrada
-   contra um caso com solução consolidada na literatura.
+   cobrada como entrega pelo §4.1. Não é código: exige participantes reais —
+   a única pendência do trabalho como um todo que um agente não fecha
+   sozinho.
 
 ## 7. Principais fluxos
 
@@ -293,7 +426,10 @@ que mais afetam quem for mexer no código:
 | A navegação é a barra lateral, e o rótulo recolhido vira `sr-only` | [D-37](DECISIONS.md) |
 | O laudo de engenharia é um documento à parte do relatório de seleção | [D-41](DECISIONS.md) |
 | Login só por terceiros (Google); catálogo compartilhado; um projeto por usuário | [D-42](DECISIONS.md) |
-| Assinatura ativa por usuário é o segundo portão; tenant é o usuário, sem `Organization` | [D-43](DECISIONS.md) |
+| A trilha de auditoria guarda retratos (quem/o quê/projeto), não junções vivas; importação em lote fica de fora | [D-43](DECISIONS.md) |
+| A licença de uma fonte é decidida uma vez, no registro; reusar o rótulo não reabre a decisão | [D-44](DECISIONS.md) |
+| Portão de assinatura: o desenho binário do plano de 18/08, não o Free/Pro do de 21/08 | [D-46](DECISIONS.md) |
+| Trecho recuperado do Cérebro é vocabulário, nunca número; citação verificada por índice | [D-47](DECISIONS.md) |
 
 ## 9. Limitações atuais
 
@@ -306,8 +442,6 @@ que mais afetam quem for mexer no código:
 - **Sem multiusuário, sem colaboração.** Login com Google e projetos existem
   (A5), mas cada `Project` tem dono único e nenhuma tela troca entre dois
   projetos de um mesmo usuário ainda ([D-42](DECISIONS.md)).
-- **Sem auditoria de alterações** (M2) — quem mudou o quê e quando não é
-  registrado, apesar de "quem" existir desde A5.
 - **TOPSIS/AHP/PROMETHEE** estão previstos na arquitetura mas fora do escopo
   desta versão. `domain/ranking.py` foi deixado genérico para acomodá-los.
 - **Propriedades dependentes de condição** (curvas completas) fora do escopo.
@@ -316,6 +450,23 @@ que mais afetam quem for mexer no código:
   `mock` é determinístico, e é ele o padrão. O `claude-api` foi exercitado
   contra um cliente falso nos testes, mas ainda não contra a API de verdade —
   não há chave neste ambiente; o `claude-cli` foi verificado ao vivo.
+- **O portão de assinatura está ligado, e o checkout foi testado ao vivo.**
+  `require_active_subscription` bloqueia toda rota (exceto
+  `health`/`auth`/`billing`) sem `Subscription.status == "active"`
+  ([D-46](DECISIONS.md)). `STRIPE_API_KEY` continua vazio por padrão em dev e
+  CI ([D-36](DECISIONS.md); `checkout`/`portal` respondem 503 sem uma chave
+  configurada), mas o autor configurou Stripe em modo de teste na própria
+  máquina e completou um checkout real de ponta a ponta — login Google →
+  checkout hospedado → pagamento de teste → webhook → `/assinatura` refletindo
+  a assinatura ativa. A verificação achou e corrigiu um bug real que os 713
+  testes não pegavam (todo webhook devolvia 500 contra o SDK de verdade da
+  Stripe; PR #21). O que falta é só um plano de preço em **modo de produção**
+  — nenhuma credencial `sk_live_...` foi configurada em lugar nenhum.
+- **O Cérebro licenciado está no histórico de `main`, por decisão explícita
+  do autor.** É a base de conhecimento da camada de IA; ele optou por manter
+  o material hospedado sabendo da exposição, em vez de purgá-lo como foi
+  feito em `fase-9-ia-e-laudo` antes daquela branch chegar a `main`. Ver
+  [D-45](DECISIONS.md).
 
 ## 10. Riscos conhecidos
 
@@ -324,26 +475,21 @@ que mais afetam quem for mexer no código:
 | Base definitiva atrasar ou não vir | Importação agnóstica de formato + dados sintéticos desde a Fase 1. |
 | Escopo grande para um semestre | Desenvolvimento em fases com entregável utilizável a cada uma. |
 | Dependência de provedor de IA | Arquitetura desacoplada com provedor simulado; funciona sem chave. |
-| Incorporação inadvertida de dado protegido | Triagem de licenciamento prevista (item 4.2 da proposta) — **ainda não implementada**, ver [TODO.md](TODO.md). |
+| Incorporação inadvertida de dado protegido | Triagem de licenciamento (M1, item 4.2 da proposta) — `Source` registra licença/procedência, e uma fonte nova sem licença ou marcada como possivelmente protegida sem confirmação humana é recusada antes de qualquer linha ser escrita ([D-44](DECISIONS.md)). |
 | Resultado não reproduzível por interferência de IA | Cálculo determinístico + guardrails executáveis + confirmação do usuário. |
-| Regressão silenciosa | CI com 617 testes de backend e 148 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
+| Regressão silenciosa | CI com 768 testes de backend e 157 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
+| Material licenciado do Cérebro exposto em `main` (repositório público) | Risco aceito por decisão explícita do autor, não mitigado — o Cérebro é a base de conhecimento da camada de IA ([D-45](DECISIONS.md)). |
+| Uso sem cobrança | Portão binário ligado ([D-46](DECISIONS.md)), checkout testado ao vivo em modo de teste — falta só configurar `STRIPE_API_KEY`/`STRIPE_WEBHOOK_SECRET`/`STRIPE_PRICE_ID` em **modo de produção** para vender de verdade. |
 
 ## 11. Próximos passos sugeridos
 
-Na ordem em que eu atacaria:
+**Aplicar o teste de usabilidade** de [11-usabilidade.md](11-usabilidade.md)
+é o único item que resta. O instrumento está pronto e a interface acabou de
+ser refeita; é o momento em que a sessão rende mais, e o §4.1 cobra a análise
+e as melhorias como entrega. Única pendência que exige um humano fora do
+teclado — nenhum agente fecha sozinho.
 
-1. **Estudo de caso didático completo**, do enunciado ao relatório — é entregável
-   explícito da proposta (item 6) e ainda não existe. O relatório imprimível, que
-   é o artefato final do caso, já está pronto.
-2. **Aplicar o teste de usabilidade** de [11-usabilidade.md](11-usabilidade.md).
-   O instrumento está pronto e a interface acabou de ser refeita; é o momento em
-   que a sessão rende mais, e o §4.1 cobra a análise e as melhorias como entrega.
-3. **Triagem de licenciamento** das bases incorporadas — agora que o repositório
-   é público, incorporar dado protegido custa mais caro.
-4. **Auditoria de alterações** (M2), agora que A5 deu ao esquema um `User` para
-   registrar como autor de cada mudança.
-
-Detalhamento com impacto e dificuldade em [TODO.md](TODO.md).
+Detalhamento em [TODO.md](TODO.md).
 
 ## 12. Desempenho — o que foi medido
 
@@ -392,5 +538,26 @@ segunda execução some abaixo de 1% da espera.
 **O que foi medido e inocentado:** o `DashboardService` emite 7 consultas e
 nenhum laço por material — o custo é do banco, não do serviço. O `.env.example`
 já documentava todas as variáveis da camada de IA.
+
+**Tempo até interativo — a metade do M8 que faltava.** O job `Lighthouse` da CI
+mede as 11 rotas principais, autenticadas pela sessão fixa de E2E, e falha o
+build se qualquer uma ultrapassar o orçamento:
+
+| Métrica | Limite |
+|---|---|
+| Performance (categoria) | ≥ 0,70 |
+| Acessibilidade (categoria) | ≥ 0,90 |
+| Boas práticas (categoria) | ≥ 0,80 |
+| Tempo até interativo | ≤ 5.000 ms |
+| First Contentful Paint | ≤ 2.500 ms |
+| Largest Contentful Paint | ≤ 4.000 ms |
+| Cumulative Layout Shift | ≤ 0,1 |
+| Total Blocking Time | ≤ 500 ms |
+
+Configuração em `apps/web/lighthouserc.json`; os valores reais medidos por
+execução ficam no relatório publicado como artefato da CI (`lighthouse-report`),
+não neste documento — não os transcrevo aqui sem reler o artefato de uma
+execução real, para não registrar um número que pareça medido e seja só a
+lembrança de um.
 
 Ver também as correções de travamento em [CHANGELOG_SESSION.md](CHANGELOG_SESSION.md).

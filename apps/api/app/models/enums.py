@@ -44,6 +44,31 @@ class DataQuality(str, enum.Enum):
     ESTIMADO = "ESTIMADO"
 
 
+class AuditAction(str, enum.Enum):
+    """What happened to an entity, in an ``AuditEvent`` row (M2)."""
+
+    CRIADO = "CRIADO"
+    ATUALIZADO = "ATUALIZADO"
+    EXCLUIDO = "EXCLUIDO"
+
+
+class AuditEntityType(str, enum.Enum):
+    """Which kind of entity an ``AuditEvent`` describes.
+
+    Scoped to what a person edits by hand through the catalogue/selection
+    services. Materials created in bulk by the importer (``ImportService``
+    builds ``Material`` rows directly, bypassing ``MaterialService``'s public
+    mutation methods) are not covered — the job's own ``ImportJob`` row is
+    that flow's audit trail.
+    """
+
+    MATERIAL = "material"
+    MATERIAL_CLASS = "material_class"
+    PROPERTY_DEFINITION = "property_definition"
+    PERFORMANCE_INDEX = "performance_index"
+    SELECTION_STUDY = "selection_study"
+
+
 class SourceAuthority(str, enum.Enum):
     """How much weight a knowledge-base document's claims carry.
 

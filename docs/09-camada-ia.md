@@ -94,6 +94,71 @@ de uma restrição) contam como calculados, porque são.
 
 Se a prosa citar algo fora disso, a resposta inteira é descartada com HTTP 400.
 
+## Contexto do Cérebro (`app/knowledge/`)
+
+Opcional sobre o opcional. Quando o provedor não é o `mock`,
+`AIService._retrieve` consulta o `Cérebro/` já ingerido — busca léxica e
+semântica fundidas por *reciprocal rank fusion* (`app/knowledge/retrieval.py`)
+— pelos trechos mais relevantes ao enunciado (em `interpret()`) ou ao estudo
+(em `explain()`), e os anexa ao prompt como um bloco numerado de "Trechos de
+referência" (`app/ai/prompts.py`, `_reference_block`). `provider.simulated` é
+o portão inteiro: o `mock` nunca aciona essa busca, pelo mesmo motivo de
+sempre — ele é descrito como determinístico e sem rede, e ligar retrieval nele
+quebraria as duas coisas, sem ganho nenhum para a maioria da suíte, que roda
+com `AI_PROVIDER=mock`.
+
+### A garantia central: trecho recuperado é vocabulário, nunca número
+
+Um trecho pode ensinar ao modelo o que "tenacidade à fratura" quer dizer; ele
+não pode virar o `300` de uma restrição. Isso não é disciplina de prompt —
+embora `prompts.py` também peça isso, na regra 4a — é estrutural:
+`guardrails.check_constraint` e `guardrails.ungrounded_numbers` só leem
+`context.statement`/`context.numbers`; nenhuma das duas jamais recebe
+`context.retrieved`, o campo em que os trechos chegam. Um número que exista só
+num trecho recuperado e não no enunciado do usuário é recusado do mesmo jeito
+que qualquer outro número inventado — a regra 2 (ancoragem numérica) continua
+valendo sem precisar saber que o retrieval existe. É essa ausência de leitura,
+não uma convenção, que faz a garantia resistir a alguém adicionando retrieval
+em outro lugar sem entender a regra.
+
+### Busca híbrida (`app/knowledge/retrieval.py`)
+
+- **Léxica** — BM25 sobre `search_text` (texto normalizado na ingestão), sem
+  rede.
+- **Semântica** — opcional, roda só quando `KNOWLEDGE_EMBEDDING_BASE_URL` e
+  `KNOWLEDGE_EMBEDDING_MODEL` estão configurados; degrada para léxico puro,
+  silenciosamente para quem chama, se a chamada de embedding falhar. Um trecho
+  achado por metade do mecanismo vale mais que nenhum, e um provedor de
+  embeddings instável não pode derrubar toda chamada de IA por isso.
+- **Fusão** — *reciprocal rank fusion*: `score = Σ 1/(60 + posição)` por lista
+  em que o trecho aparece, `k = 60` fixo — o valor a que a literatura de RRF já
+  convergiu, sem parâmetro para calibrar contra nada ainda. O resultado corta
+  em `KNOWLEDGE_RETRIEVAL_TOP_K` (padrão 5).
+
+A ingestão que alimenta essa busca é `app/knowledge/service.py` — idempotente
+por checksum, um documento do `Cérebro/` por linha — e não produz número
+nenhum sozinha; o princípio 2 do `CLAUDE.md` continua valendo tanto quanto
+antes de ela existir. Ver [D-45](DECISIONS.md) sobre por que o material
+licenciado que ela indexa está hospedado em `main`.
+
+### Citação verificada, só em `explain()`
+
+`explain()` pode citar os trechos que efetivamente usou: o esquema pede só o
+**índice** numérico do trecho (`[1]`, `[2]`…), nunca título ou texto — o
+mínimo que dá para checar contra o que foi de fato entregue ao modelo.
+`guardrails.check_citations` descarta qualquer índice fora do intervalo dos
+trechos recuperados **naquela chamada**. Ao contrário de `ungrounded_numbers`,
+que derruba a explicação inteira quando encontra uma cifra inventada, aqui só
+a citação inválida é removida — é metadado sobre a própria resposta, não uma
+alegação numérica, e descartar o índice ruim não custa ao leitor nada que ele
+fosse usar. `AIService.explain` traduz o que sobrevive em `CitedSourceOut`
+(título do documento e páginas), que é o que a interface mostra.
+
+`interpret()` não ganha citação: ali `retrieved` serve só para o modelo mapear
+vocabulário do enunciado para slugs do catálogo — a UI já mostra, para cada
+restrição sugerida, o `evidence` copiado do próprio enunciado do usuário, e
+não há de onde um trecho do Cérebro entraria nessa tela.
+
 ## Provedor simulado (`app/ai/mock.py`)
 
 É a implementação de referência e a que o produto entrega. Lê o enunciado com
@@ -266,3 +331,14 @@ sugestões perdidas, não para servir de garantia.
   na frente do usuário. Foi ele que revelou que nome de material é saída do
   pipeline como qualquer rótulo: escrever "Aço AISI 1020 lidera" não é inventar
   1020, e sem isso bastaria nomear o vencedor para perder a explicação inteira.
+- `test_knowledge_retrieval.py` — BM25 sozinho, semântico sozinho (com fake de
+  embeddings), fusão RRF, degradação para léxico puro quando o embedding falha,
+  `top_k` respeitado. `test_ai_api.py` (`TestRetrievalGating`) prova o portão
+  do retrieval:
+  `interpret`/`explain` só chamam `knowledge_search` quando
+  `provider.simulated is False`, e o `mock` nunca aciona rede nenhuma. Um teste
+  dedicado cobre a garantia central desta seção — um número presente **só** num
+  trecho recuperado, ausente do enunciado do usuário, continua sendo recusado
+  como restrição, exatamente como antes de o retrieval existir — e outro cobre
+  `check_citations`: índice de citação fora do conjunto recuperado é descartado,
+  índice válido passa.

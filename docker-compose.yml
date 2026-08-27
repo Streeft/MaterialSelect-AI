@@ -28,8 +28,11 @@ services:
 
   web:
     build:
-      context: ./apps/web
-      dockerfile: ../../Dockerfile.web
+      # Contexto na raiz (não ./apps/web): o npm workspace (D-16/M4) precisa
+      # enxergar package.json/package-lock.json da raiz e packages/shared-types
+      # junto de apps/web para instalar e transpilar @materialselect/shared-types.
+      context: .
+      dockerfile: Dockerfile.web
     environment:
       NEXT_PUBLIC_API_URL: http://localhost:8000
     depends_on:

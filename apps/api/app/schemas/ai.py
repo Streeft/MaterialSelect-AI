@@ -115,6 +115,19 @@ class ExplainRequest(BaseModel):
     study_id: int
 
 
+class CitedSourceOut(BaseModel):
+    """One reference passage the explanation actually drew on.
+
+    Only the fields a reader needs to go check the source — never the
+    passage's own text, which stays server-side context, not something the
+    interface repeats back.
+    """
+
+    document_title: str
+    page_start: int | None = None
+    page_end: int | None = None
+
+
 class ExplanationOut(BaseModel):
     """Prose about a computed result, plus what it deliberately does not say."""
 
@@ -123,6 +136,7 @@ class ExplanationOut(BaseModel):
     summary: str
     paragraphs: list[str]
     caveats: list[str]
+    sources: list[CitedSourceOut] = Field(default_factory=list)
     provider: str
     simulated: bool
     disclaimer: str

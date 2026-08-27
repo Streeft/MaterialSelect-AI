@@ -55,6 +55,7 @@ diferente. O que é óbvio não precisa de registro.
 | D-40 | Um eixo do mapa pode ser um índice; overlay e eixo-índice são exclusivos | aceito | abaixo |
 | D-41 | O laudo de engenharia é um documento à parte | aceito | abaixo |
 | D-42 | Login só por terceiros (Google); catálogo compartilhado; um projeto por usuário no v1 | aceito | abaixo |
+| D-47 | Busca híbrida (RRF) sobre o Cérebro, Jina AI como receita gratuita, citação verificada | aceito | abaixo |
 
 ---
 
@@ -231,9 +232,9 @@ silenciosamente em aritmética. O controle célula a célula é o que se quer aq
 
 ---
 
-## D-16 — Contrato de tipos duplicado conscientemente
+## D-16 — Contrato de tipos duplicado conscientemente (superado por M4, abaixo)
 
-**Decisão.** `packages/shared-types/index.ts` é canônico e
+**Decisão original.** `packages/shared-types/index.ts` é canônico e
 `apps/web/lib/types.ts` o espelha manualmente.
 
 **Por quê.** Unificar exigiria npm workspaces + `transpilePackages`, complicando
@@ -241,6 +242,22 @@ o build do Next no MVP.
 
 **Custo aceito.** Ao alterar um contrato é preciso alterar dois arquivos.
 Registrado como débito em [TODO.md](TODO.md).
+
+**Por que deixou de valer.** O custo aceito deixou de ser hipotético: os dois
+arquivos **já tinham divergido** quando M4 foi atacado — `x_quality`/
+`y_quality` em `PropertyMapOut` eram `DataQuality` (não-nulo) em
+`shared-types/index.ts` e `DataQuality | null` (correto — nulo quando o eixo é
+um índice, sem propriedade única para atribuir proveniência) em
+`apps/web/lib/types.ts`. `packages/shared-types` nunca era importado por
+código nenhum, então nada do build ou dos testes acusava a divergência —
+exatamente o modo de falha "só aparece em runtime" que D-16 já previa. npm
+workspaces + `transpilePackages` foram implementados (`package.json` na raiz
+com `workspaces`, `@materialselect/shared-types` como dependência de
+`apps/web`); `apps/web/lib/types.ts` virou um barril de reexportação
+(`export * from "@materialselect/shared-types"`) em vez de conteúdo
+duplicado, preservando os 39 pontos de importação existentes (`@/lib/types`)
+sem precisar trocar cada um pelo nome do pacote. Ver M4 em
+[TODO.md](TODO.md).
 
 ---
 
@@ -1500,123 +1517,378 @@ injetada, sem tocar o Google.
 
 ---
 
-## D-43 — Assinatura ativa é o segundo portão, por usuário; um preço só no v1; catálogo continua global
+## D-43 — A trilha de auditoria guarda retratos, não junções vivas; e não cobre a importação em lote
 
-**18/08/2026.** O pedido original descrevia "SaaS multi-tenant" no sentido de
-livro-texto — `tenant_id` em toda tabela, RLS no Postgres, plano por
-organização. Perguntado o que "tenant" significa aqui, o autor confirmou o que
-D-42 já tinha decidido sem precisar chamar assim: **o tenant é o usuário
-individual**, cada conta Google é sua própria conta pagante, e a fronteira de
-isolamento já existe — `user_id`/`project_id`. O trabalho real deste spec não é
-multi-tenancy, é cobrança: dar a essa fronteira que já existe uma verificação
-de plano ativo por cima.
+**Contexto.** M2 do [TODO.md](TODO.md) — nenhuma alteração de catálogo ou de
+estudo tinha "quem" e "quando" registrados, apesar de A5 ([D-42](#d-42--login-só-por-terceiros-google-catálogo-compartilhado-entre-usuários-um-projeto-por-usuário-no-v1))
+já ter dado ao esquema um `User` para atribuir a mudança. Ficou pendente desde
+então; nada bloqueava mais.
 
 **Decisão.**
-- **Sem `Organization`, sem `tenant_id`, sem RLS.** Uma coluna `tenant_id`
-  paralela a `user_id`/`project_id` seria redundante e um risco de
-  dessincronia — duas fronteiras de isolamento dizendo a mesma coisa, sem
-  ganho real. `Subscription.user_id` (única, um-para-um) é toda a
-  modelagem que este spec precisa.
-- **O catálogo continua global e compartilhado**, exatamente como D-42 já
-  desenhou para `Project`. Assinatura não reabre essa decisão — gatear o
-  catálogo por usuário duplicaria dado de referência que é o mesmo para todo
-  mundo, o mesmo argumento que já descartou `Project` isolando o catálogo em
-  D-42.
-- **Um preço só no v1** (`STRIPE_PRICE_ID`), sem seletor de plano na
-  interface. `/assinatura` oferece "assinar" ou "gerenciar", nunca "escolher
-  entre planos" — não há segundo plano para escolher ainda.
-- **O portão é tudo ou nada.** Sem assinatura ativa, nenhuma rota da
-  ferramenta responde — catálogo, seleção, mapas, painel, exportação, IA — só
-  a autenticação e o próprio fluxo de cobrança continuam de pé. Aplicado em
-  bloco: `app/main.py` passa
-  `dependencies=[Depends(require_active_subscription)]` a cada
-  `include_router` da ferramenta, não router por router — um router novo
-  entra gateado por default, em vez de aberto até alguém lembrar de gatear.
-- **Três rotas ficam fora do portão, cada uma por um motivo próprio, não pela
-  mesma regra.** `/health` (verificação de infraestrutura, sem usuário).
-  `/auth/*` (já eram públicas desde D-42 — sem elas ninguém autentica para
-  chegar a ter uma assinatura). E `/billing/*` inteira: `checkout` e `status`
-  não podem exigir assinatura sem virar circular — é exatamente o que um
-  usuário sem assinatura precisa chamar para conseguir uma —, `portal` segue
-  o mesmo raciocínio para quem quer cancelar ou trocar cartão, e `webhook` não
-  tem como exigir cookie de sessão: quem chama é o Stripe, sem navegador,
-  sem cookie nenhum.
-- **`status` espelha o vocabulário do próprio Stripe** (`active`,
-  `past_due`, `canceled`, ...) em vez de um enum próprio do projeto. Traduzir
-  para uma nomenclatura interna criaria uma segunda fonte de verdade sobre o
-  que cada status Stripe *significa*, que teria de ser mantida em sincronia
-  com o vocabulário de Stripe para sempre. `BillingStatusOut.active` é a
-  única leitura derivada — `status == "active"` —, e é ela que o
-  `AuthGate` do frontend e `require_active_subscription` do backend
-  realmente checam.
-
-**A ordem de eventos do webhook precisa de guarda porque Stripe não promete
-ordem.** Stripe entrega webhooks pelo menos uma vez e não garante ordem de
-chegada — um `customer.subscription.updated` que ainda diz "active" pode
-chegar *depois* do `customer.subscription.deleted` para o mesmo cancelamento,
-reentregue por retry. Sem uma guarda, essa reentrega reativaria uma assinatura
-cancelada na própria coluna que o portão lê. `BillingService._is_stale()`
-compara o `created` do evento (relógio do Stripe, não de chegada) contra
-`Subscription.updated_at`, carimbado pelo `_stamp()` toda vez que um evento é
-aplicado — os dois lados da comparação vêm do mesmo relógio de propósito, ou
-a comparação não significa nada. Um evento sem `created` utilizável é
-aplicado, não descartado: descartá-lo inventaria uma ordem que ninguém
-declarou. `invoice.payment_failed` não passa por essa guarda — ele só pode
-levar o status a `past_due`, nunca de volta a `active`, então uma entrega fora
-de ordem ali é defensiva, não perigosa.
-
-**`client_reference_id` é validado antes de virar `user_id`, nunca confiado
-cegamente.** Um `checkout.session.completed` sem esse campo — Payment Link,
-sessão criada direto no painel do Stripe, ou um evento de teste via
-`stripe trigger` — chega com `client_reference_id: null`. Tratado como o
-mesmo caso de um `customer_id` desconhecido: nada aqui para reconciliar, e
-lançar erro só faria o Stripe reentregar um payload que nunca vai melhorar.
-O evento é ignorado com log, não com exceção.
+- **`AuditEvent`** (`app/models/audit.py`) registra `quem` (retrato de
+  `user_email`, mais `user_id` como FK `SET NULL` — a FK existe para consulta
+  enquanto a conta existir, o retrato existe para quando ela não existir mais),
+  `o quê` (`entity_type` + `entity_id`, mais um retrato de `entity_label`) e
+  `quando` (`created_at`), para as entidades que uma pessoa edita à mão:
+  material, classe, propriedade, índice de desempenho e estudo de seleção.
+- **`changes` é um diff só nos campos que mudaram** (`{campo: {before, after}}`),
+  calculado pelo próprio serviço antes do commit — nunca no roteador, nunca em
+  SQL. Uma atualização que não muda nada de fato (`PATCH` repetindo o valor já
+  gravado) não grava evento nenhum: um log de "nada mudou" registrado toda vez
+  que alguém reenvia o mesmo formulário seria ruído, não trilha.
+- **A troca de valores de propriedade de um material (`PUT .../values`) vira
+  um evento `ATUALIZADO` diffado por slug de propriedade**, não um evento por
+  linha da tabela `material_property_value`: a operação já é "substitua o
+  conjunto inteiro", e a proveniência de cada valor (unidade, fonte, método de
+  conversão) já é rastreada à parte por linha (princípio 4 do `CLAUDE.md`) —
+  isto rastreia *quem* mexeu, não reproduz *o que* já está rastreado alhures.
+- **Para `SELECTION_STUDY`, o evento guarda um retrato de `project_id`** — não
+  uma junção contra `selection_study.project_id` em tempo de leitura. Depois
+  que um estudo é excluído, `entity_id` deixa de resolver a qualquer linha; um
+  filtro de privacidade por junção quebraria em silêncio bem na hora em que
+  mais importa (auditar a própria exclusão). Catálogo (material, classe,
+  propriedade, índice) não tem dono e o campo fica `NULL`.
+- **A importação em lote não passa por aqui, de propósito.** `ImportService`
+  monta `Material`/`MaterialPropertyValue` diretamente
+  (`app/importers/service.py`), sem os métodos públicos de `MaterialService`
+  onde o `record_change` está — auditar por linha um commit de milhares
+  produziria ruído, não trilha útil. `ImportJob` (com seu próprio `status`,
+  contagens e `committed_at`) já *é* a trilha desse fluxo; document limitation,
+  não bug — coberto por `test_import_commit_does_not_record_material_events`.
+- **`record_change` é um no-op silencioso quando `user is None`.** Todo
+  endpoint que muta hoje passa um usuário real (login é obrigatório desde A5),
+  mas os serviços também são instanciados por código sem ator — a importação
+  acima, e a reexecução de estudo salvo por `ExportService`/`AIService`. Um
+  parâmetro opcional em vez de obrigatório evita forçar um ator fabricado
+  nesses caminhos só para satisfazer uma assinatura — a mesma lógica de nunca
+  inventar um valor ausente (princípio 3), aplicada a "quem fez isto".
 
 **Alternativas descartadas.**
-- `tenant_id` + RLS por tabela: a modelagem "de livro-texto" do pedido
-  original. Descartada porque duplicaria a fronteira de isolamento que
-  `user_id`/`project_id` já são, sem ganho de segurança real — e o próprio
-  autor confirmou que tenant é o usuário, fechando a questão.
-- Seletor de plano/preço na interface: nenhum segundo plano existe ainda para
-  escolher entre; construir o seletor antes do segundo preço seria antecipar
-  um caso de uso inexistente — o mesmo raciocínio que D-42 já aplicou à troca
-  de `Project`.
-- Enum de status próprio do projeto (`ATIVA`/`CANCELADA`/...): criaria uma
-  segunda fonte de verdade sobre o vocabulário do Stripe, que teria de ser
-  mantida em sincronia com ele para sempre.
-- Gatear `/billing/checkout` e `/billing/status` por assinatura ativa: torna
-  impossível para quem ainda não assinou conseguir assinar — o próprio
-  portão bloquearia a porta de saída dele.
+- Guardar o objeto inteiro (antes/depois) em vez de só os campos que mudaram:
+  mais fácil de escrever, muito mais ruidoso de ler — um `PATCH` de um campo
+  não deveria imprimir os outros dez inalterados.
+- Um evento por linha de `material_property_value` na troca de valores: exige
+  IDs estáveis através de um delete+recreate (a operação atual apaga e recria
+  todas as linhas do material, não faz UPDATE por linha), e duplicaria a
+  proveniência que a própria linha já carrega.
+- Filtrar a privacidade de `SELECTION_STUDY` por junção contra a tabela viva:
+  mais simples de escrever, mas perde a visibilidade do dono sobre o evento
+  mais importante — a própria exclusão — no instante em que ele acontece.
+- Cobrir a importação também: o commit de um `ImportJob` já grava contagens e
+  status; replicar isso material a material não acrescenta rastreabilidade,
+  só volume. Fica registrado como limite conhecido, não como pendência.
 
-**Consequência que muda comportamento existente.** Todo usuário hoje
-cadastrado — inclusive quem já usava o sistema antes deste spec — passa a
-precisar de uma assinatura ativa para continuar. Aceito de propósito para o
-v1 (ver seção 8, Deploy, no [`docs/CLAUDE.md`](CLAUDE.md)): não há usuário
-real em produção ainda para essa migração incomodar.
+**Como funciona.** `app/services/audit_service.py` expõe `record_change`
+(grava o evento, no-op se `user is None`) e `diff_fields` (compara dois dicts
+e devolve só as chaves que mudaram). Cada serviço mutante
+(`MaterialService`, `TaxonomyService`, `PropertyService`, `SelectionService`)
+ganhou um `user: User | None = None` no construtor e chama `record_change`
+depois de mutar o objeto mas **antes** do próprio `commit()` — o evento entra
+na mesma transação da mudança que descreve, então um nunca fica sem o outro.
+`GET /api/audit` (`app/routers/audit.py`) lista por `entity_type`/`entity_id`
+paginado, sob o mesmo `get_current_project` que todo endpoint de estudo já
+usa; `AuditRepository.list_events` aplica o filtro de privacidade de
+`SELECTION_STUDY` na própria consulta.
 
-**Como funciona.** `AuthGate.tsx` (frontend) faz dois estágios em sequência —
-`/auth/me` primeiro, `/billing/status` depois — e só então libera `children`;
-a checagem é positiva (`billing?.active !== true` redireciona), nunca por
-eliminação, porque um estado do TanStack Query com `data` indefinido sem
-`isLoading` nem `isError` (uma consulta pausada por `networkMode` offline, por
-exemplo) não pode virar "libera a aplicação inteira sem assinatura
-confirmada". `require_active_subscription` (backend,
-`app/dependencies.py`) é o espelho no lado do servidor — o frontend nunca é a
-única barreira. `app/db/seed.py` (`seed_e2e_session`) grava também uma
-`Subscription` ativa para o usuário fixo do Playwright, do mesmo jeito que já
-gravava `User`/`Project`/`UserSession` para o login — sem essa linha, D-42
-continuaria autenticando o navegador do E2E e este portão o bloquearia de
-qualquer rota da ferramenta mesmo assim.
+**Como se sabe que passa.** `pytest`, `ruff check` e `black --check` verdes,
+com `test_audit.py` cobrindo: evento criado/atualizado/excluído para cada tipo
+de entidade; diff correto por campo e por slug de propriedade; nenhum evento
+espúrio numa atualização sem mudança real; exclusão duas vezes grava um único
+`EXCLUIDO`; um usuário não vê o estudo de outro nem por id nem numa listagem
+mista; o dono continua vendo o evento de exclusão do próprio estudo depois
+dele sumir da tabela; e a importação em lote não grava evento nenhum de
+material. `alembic upgrade head` + seed num banco limpo, como todo PR.
 
-**Como se sabe que passa.** Backend: `pytest`, `ruff check` e `black --check`
-verdes — `test_billing_service.py` (ancoragem em `client_reference_id`
-ausente/inválido, `_is_stale` recusando um `subscription.updated` que chega
-depois de um `subscription.deleted` para o mesmo cliente, `invoice.payment_failed`
-sem guarda de ordem) e `test_billing_api.py` (assinatura de webhook inválida →
-401, evento válido → 204, cada rota de `/billing` acessível sem assinatura
-ativa, toda rota da ferramenta bloqueada sem ela). Frontend: `typecheck`,
-`lint`, `test` e `build` verdes, com o segundo estágio de `AuthGate.test.tsx`
-cobrindo a checagem positiva. Playwright (`npm run test:e2e`): a sessão
-injetada carrega também uma assinatura ativa, então os specs existentes
-continuam passando sem precisar simular Stripe.
+---
+
+## D-44 — A licença de uma fonte é decidida uma vez, no registro; reusar o rótulo não reabre a decisão
+
+**Contexto.** M1 do [TODO.md](TODO.md) — nenhuma base importada tinha
+procedência ou licença registrada, e nada impedia incorporar dado
+possivelmente protegido sem uma decisão humana explícita. Compromisso do item
+4.2 da proposta, e o repositório é público desde
+[D-22](#d-22--repositório-público-para-o-portão-de-ci-ser-real).
+
+**Decisão.**
+- **`Source` ganha `license_label`/`license_url`, a sinalização explícita
+  `contains_third_party_data` e um carimbo de quem registrou a fonte e
+  quando** (`reviewed_by_user_id`/`reviewed_at`). Nenhum desses campos é
+  inferido — todos vêm do que quem importa escreveu no mapeamento.
+- **O portão fica na importação, não no cadastro manual.** O item do backlog
+  fala em "base... importada"; um material só (`POST /materials`) já passa
+  por uma pessoa logada decidindo linha a linha, o mesmo nível de decisão
+  humana que o portão de importação está formalizando para um lote inteiro de
+  uma vez. Estender o portão ao cadastro manual exigiria mudar o contrato de
+  `PropertyValueIn` (e os dois arquivos de tipos que o espelham) por um ganho
+  que o item não pede — fica registrado como extensão natural, não como
+  lacuna.
+- **A licença é obrigatória só para uma fonte nova.** `source_label` já
+  registrado → o rótulo é reaproveitado como está, sem reabrir a decisão a
+  cada importação seguinte. Rótulo novo sem `source_license_label` → 400,
+  antes de qualquer linha ser escrita — tanto em `/imports/{id}/validate`
+  (feedback cedo) quanto em `/imports/{id}/commit` (o portão que realmente
+  importa, caso o mapeamento tenha sido alterado entre as duas chamadas).
+- **`contains_third_party_data=True` exige `source_review_confirmed=True`
+  explícito.** É a "decisão humana obrigatória antes da incorporação" do
+  item do backlog: uma marcação por si só não basta, precisa de uma segunda
+  confirmação — o mesmo padrão de duas etapas que a IA já segue para uma
+  restrição não bastar sem o número aparecer no enunciado (princípio 1.5 do
+  `docs/CLAUDE.md`).
+- **`GET /api/sources`** lista toda fonte registrada com sua licença e
+  revisor, sob login — mesma lógica de M2: uma trilha que só grava e nunca
+  se mostra não sustenta alegação nenhuma de conformidade.
+
+**Alternativas descartadas.**
+- Um fluxo de aprovação assíncrono (fonte fica "pendente" até um segundo
+  usuário aprovar): não existe estado "pendente" em nenhuma outra parte da
+  aplicação — tudo aqui é CRUD síncrono por uma pessoa logada. Inventar uma
+  máquina de estados para um único caso de uso teria sido a exceção, não a
+  regra.
+- Licença obrigatória em toda importação, mesmo reaproveitando uma fonte já
+  registrada: reabriria a mesma decisão a cada linha nova de uma base que já
+  foi revisada — ruído, não rastreabilidade.
+- Estender o portão ao cadastro manual de material: ver "A decisão" acima.
+- Inferir `contains_third_party_data` automaticamente (por exemplo, por
+  domínio da URL da referência): um heurístico errado — silencioso — é pior
+  que exigir que a pessoa marque explicitamente, e o princípio 1 do
+  `CLAUDE.md` já rejeita qualquer palpite automático no lugar do dado
+  explícito.
+
+**Como funciona.** `ImportService._check_source_licensing`
+(`app/importers/service.py`) roda em `validate()` e de novo em `commit()` —
+o catálogo pode mudar entre as duas chamadas, e o portão de verdade é o
+segundo. `MaterialRepository.get_or_create_source` (estendido, não duplicado)
+grava os campos de licença só quando cria a linha; reutilizar um `label`
+existente devolve a linha como está, licença e carimbo de revisor inclusos.
+`MaterialService._build_value_from_input` ganhou os mesmos parâmetros
+opcionais para repassá-los — o cadastro manual nunca os define, então nunca
+aciona o carimbo (por quê: ver "A decisão" acima). `app/db/seed.py` e a
+própria migration (`fc5a731dd162`) registram a licença da fonte de
+demonstração (`"Dado fictício de demonstração — não é conteúdo de terceiro"`)
+para que ela nunca apareça como "sem licença" num banco já semeado antes
+desta migration.
+
+**Como se sabe que passa.** `pytest`, `ruff check` e `black --check` verdes,
+com `test_source_licensing.py` cobrindo: fonte nova sem licença rejeitada;
+fonte marcada como terceiro sem confirmação rejeitada; fonte válida commitada
+e `GET /api/sources` mostrando licença, sinalização e revisor certos; reusar
+uma fonte já registrada não exige licença de novo e não duplica a linha;
+importação sem `source_label` nenhum não aciona o portão; `GET /api/sources`
+exige login. `alembic upgrade head` + seed num banco limpo, como todo PR —
+inclusive o backfill da fonte de demonstração.
+
+## D-45 — O Cérebro (livros comerciais, fichas Granta EduPack) fica versionado em `main`, por decisão explícita do autor
+
+**Contexto.** O commit `565a6d2` (PR #17) versionou `Cérebro/` inteira em
+`main` via Git LFS — 158 arquivos, 653 MB: 11 livros comerciais e 2 extratos
+de capítulo (`01-Bibliografia/`), 103 fichas técnicas do Granta EduPack
+(`03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/`), mais material de curso do
+professor, trabalhos entregues pelo autor, diagramas e dois artigos
+científicos. O repositório é público desde
+[D-22](#d-22--repositório-público-para-o-portão-de-ci-ser-real). Ao levantar
+a reconciliação das branches de fase, o material licenciado (livros +
+Granta) foi identificado como candidato a purga do histórico — o mesmo
+procedimento (`git filter-repo`) já tinha sido executado com sucesso em
+`fase-9-ia-e-laudo` antes daquela branch ser trazida para `main`.
+
+**Decisão.** O autor optou por **não purgar** — os 158 arquivos continuam no
+histórico e na árvore atual de `main`, incluindo os 11 livros e as 103
+fichas. A razão declarada: **o Cérebro é a base de conhecimento que a
+camada `ai/` usa para as validações** — vocabulário, método e contexto de
+domínio para o modelo escrever sobre seleção de materiais em vez de
+escrever a partir do que ele "sabe" (mesmo raciocínio do commit original).
+Isso é uma decisão de risco aceito, tomada com informação completa sobre o
+que está exposto — não um descuido. **A6, que registrava isto como pendência
+de purga no [TODO.md](TODO.md), foi removido**; não há ação de código
+pendente aqui.
+
+**O que isso não muda.** O guardrail de `app/ai/guardrails.py` continua
+valendo por inteiro: o Cérebro dá vocabulário e contexto, **nunca** um
+número — todo cálculo segue vindo do pipeline determinístico
+(princípio 1.5/2 do `CLAUDE.md`), e um valor lido de um livro não vira
+citável só por estar indexado. A decisão é sobre **hospedar o material**,
+não sobre **como a IA o usa** — essas são questões independentes.
+
+**Alternativas descartadas.**
+- Purgar só os 116 arquivos inequivocamente comerciais (livros + Granta),
+  mantendo o material de curso e os trabalhos entregues: foi a proposta
+  levada ao autor; recusada em favor de manter tudo.
+- Purgar tudo: nem chegou a ser considerada pelo autor — descartaria também
+  conteúdo que ele tem razão para manter (seus próprios trabalhos
+  entregues).
+
+## D-46 — M9 resolvido: o portão global de assinatura (plano de 18/08) é o que fica ligado
+
+**Contexto.** O PR #18 trouxe duas arquiteturas de cobrança nunca reconciliadas:
+o plano de 18/08 (`docs/superpowers/plans/2026-08-18-multi-tenant-billing.md`) —
+um portão binário, `require_active_subscription` aplicado em bloco a todo
+router — já totalmente codificado mas não ligado; e o plano de 21/08
+(`docs/superpowers/plans/2026-08-21-assinatura-e-limites.md`) — Free/Pro com
+quatro recursos limitados por um `EntitlementService`, nunca implementado.
+D-44 tinha registrado a ambiguidade sem decidir; o teste que afirmava o
+portão global ficou com `skip` até esta decisão ser tomada explicitamente.
+
+**Decisão.** Ativar o plano de 18/08 como está. `require_active_subscription`
+passou a ser aplicado a todo router em `main.py`, exceto `health`, `auth` e
+`billing` — incluindo `audit` e `sources`, que chegaram depois do desenho
+original mas seguem o mesmo princípio ("tudo atrás do portão, exceto o que
+não pode ficar"). O plano de 21/08 (Free/Pro) não foi implementado; fica como
+desenho alternativo registrado, não como próximo passo.
+
+**Por que o binário, e não o Free/Pro.** O binário já estava pronto —
+`Subscription`, `SubscriptionRepository`, `BillingService`,
+`SubscriptionRequiredError`, o router `/billing/*` e até o `AuthGate` de dois
+estágios (revertido a um estágio só na reconciliação do PR #18) já existiam.
+Faltava só ligar a dependência em `main.py` e reescrever `AuthGate.tsx` — uma
+tarde de trabalho contra uma reimplementação do zero (`EntitlementService`,
+nova migration, quatro services a mudar) que o Free/Pro exigiria.
+
+**O que isso muda de verdade.**
+- Toda rota exceto `/api/health`, `/api/auth/*` e `/api/billing/*` responde
+  403 (`SubscriptionRequiredError`) a um usuário autenticado sem
+  `Subscription.status == "active"`. `GET /api/billing/status` continua
+  público a qualquer usuário logado — é a rota que o `AuthGate` consulta
+  para decidir se redireciona a `/assinatura`.
+- `AuthGate.tsx` volta a ser um portão de dois estágios: `/auth/me` primeiro
+  (não autenticado → `/entrar`), depois `/billing/status` (autenticado sem
+  assinatura ativa → `/assinatura`). `/assinatura` e `/entrar` são as únicas
+  rotas que o portão nunca bloqueia.
+- A sessão fixa de E2E/Lighthouse (`seed_e2e_session`, `ENVIRONMENT=development`
+  + `E2E_SESSION_TOKEN`) já escrevia uma `Subscription` `status="active"`
+  junto da sessão — preparada de propósito para este momento (ver o
+  docstring da função). Confirmado ao vivo: sem essa preparação, o gate teria
+  quebrado toda a suíte de Playwright e o job de Lighthouse.
+- O teste `test_protected_route_without_active_subscription_is_forbidden`
+  perdeu o `skip`.
+
+**Verificação ao vivo, além dos 713 testes.** Subida a API com a sessão fixa
+semeada: sem cookie → 401; com a sessão de e2e (assinatura ativa) →
+`GET /api/materials` 200; um segundo usuário logado sem nenhuma
+`Subscription` → 403 em `/api/materials` e 200 em `/api/billing/status` (a
+rota continua alcançável para renderizar o convite a assinar).
+
+**O que fica em aberto.** Nenhum plano de preço real está configurado
+(`STRIPE_API_KEY` vazio nos ambientes de desenvolvimento e CI, então
+`checkout`/`portal` respondem 503) — o portão está ligado, mas ninguém
+consegue assinar de verdade sem um operador configurar o Stripe. Isso é
+esperado: D-36 já estabeleceu que nenhuma credencial tem valor padrão.
+
+**Alternativas descartadas.**
+- Implementar o Free/Pro (plano de 21/08) agora: mais amigável para um
+  produto real, mas full-rewrite não pedido — o autor escolheu explicitamente
+  o binário já pronto quando confrontado com os dois.
+- Manter os dois desenhos coexistindo, sem nenhum ligado: era o estado desde
+  o PR #18: preservava opcionalidade, mas deixava o sistema sem cobrança
+  nenhuma de verdade indefinidamente.
+
+**Checkout real testado ao vivo (25/08).** O autor configurou um produto de
+teste na própria conta Stripe (modo de teste — `sk_test_...`,
+`STRIPE_PRICE_ID`, `STRIPE_WEBHOOK_SECRET`) e um cliente OAuth real no Google
+Cloud Console, na própria máquina local (fora deste ambiente de execução, que
+bloqueia todo domínio `*.stripe.com` por política de rede da organização) e
+rodou o fluxo completo: login Google → `/assinatura` → checkout hospedado da
+Stripe → pagamento em modo de teste → redirecionamento de volta com
+`?status=sucesso`, com `stripe listen` encaminhando os webhooks para a API
+local.
+
+Essa verificação expôs um bug real que nenhum dos 713 testes pegava: **todo**
+evento de webhook devolvia 500. `billing_service.py` chamava `.get()` no
+`event`/`data` que o SDK de verdade devolve (`stripe>=10`, testado com
+15.5.1) — um `Event`/`StripeObject`, que aceita `[]` e `in` mas **bloqueia
+`.get()` de propósito** (força `.to_dict()`). O fake de teste sempre injetou
+um dict Python puro, que suporta `.get()` normalmente — a suíte nunca
+reproduzia a restrição do SDK real. Corrigido no PR #21: `_get(obj, key,
+default)` substitui os cinco `.get()` do serviço, e o fake de teste passou a
+envolver o evento com `_StrictStripeObject` (aceita `[]`/`in`, rejeita
+`.get()`) para que o mesmo bug não volte a passar despercebido. Depois da
+correção: `checkout.session.completed` processado sem erro, `Subscription`
+criada com `status="active"`, `/assinatura` refletindo a assinatura ativa e
+o portão liberando as rotas antes bloqueadas — confirmado pelo autor no
+próprio ambiente, não só pelos testes automatizados.
+
+## D-47 — Busca híbrida (RRF) sobre o Cérebro, Jina AI como receita gratuita, citação verificada em vez de citação livre
+
+**26/08/2026.** O Cérebro (`Cérebro/`) estava em `main` desde D-45 — hospedado,
+íntegro, mas inerte: nada em `app/ai/` o lia. Este spec
+(`docs/superpowers/specs/2026-08-25-cerebro-rag-design.md`) fechou quatro
+escolhas de arquitetura antes de qualquer linha de código, em conversa com o
+autor.
+
+**Léxica e semântica, fundidas por RRF — não uma ou outra.** BM25 sozinho
+(`app/knowledge/lexical.py`) já funciona sem rede assim que a ingestão roda; é
+a via que qualquer instalação tem de graça. Semântica sozinha exigiria um
+backend de embeddings configurado para que o Cérebro servisse a algo, o que
+recriaria o mesmo problema que D-36 já resolveu para a IA: uma dependência
+externa obrigatória onde o produto promete funcionar sem nenhuma. *Reciprocal
+rank fusion* (`app/knowledge/retrieval.py`, `_reciprocal_rank_fusion`,
+`k=60`) deixa as duas coexistirem sem que uma dependa da outra: o léxico
+cobre a instalação sem nenhuma chave, o semântico melhora a mesma busca por
+cima quando configurado, e a fusão nunca precisa saber qual das duas listas
+está vazia — soma `1/(60+posição)` sobre as que existirem.
+
+**Jina AI como receita documentada em `.env.example`, não como dependência.**
+A pesquisa que precedeu o spec (seção 1, "Decisões de escopo já tomadas")
+verificou `api.jina.ai/v1/embeddings`: formato compatível com OpenAI de
+verdade (`model` + `input` → `data[].embedding`, o mesmo contrato que
+`EmbeddingClient` já fala para qualquer servidor), cadastro sem cartão, 1M
+tokens grátis por mês — hospedado, o que importa porque o produto é pensado
+como SaaS e não pode depender da máquina do autor ter um Ollama no ar. Isso
+não torna a Jina AI obrigatória: `KNOWLEDGE_EMBEDDING_BASE_URL` **não tem
+padrão**, pelo mesmo raciocínio de `AI_BASE_URL` (D-36) — um padrão escolheria
+um fornecedor pelo operador — e o mesmo `.env.example` documenta Ollama local
+e OpenAI como alternativas com o mesmo cliente. Sem nenhuma das três
+configuradas, a busca cai para léxico puro, silenciosamente para quem chama.
+
+**Retrieval gated por `provider.simulated`, nunca pelo nome do provedor.**
+`AIService._retrieve` (`app/services/ai_service.py`) checa
+`provider.simulated`, não `provider.name == "mock"` — a mesma disciplina de
+D-35/D-36, onde a garantia mora na camada e não num fornecedor nomeado. Um
+provedor futuro que se declare `simulated = True` herda a isenção de rede
+automaticamente; um que não se declare simulado não precisa ser adicionado a
+lista nenhuma para ganhar retrieval. O motivo de existir o portão é duplo:
+preservar a promessa de que `mock` é determinístico e sem rede (`CLAUDE.md`
+§1.5, `docs/09-camada-ia.md`), e não deixar a suíte inteira — a maioria dela
+rodando com `AI_PROVIDER=mock` — mais lenta por uma consulta que a maior parte
+dos testes não precisa.
+
+**Citação verificada por índice, não citação livre por título e trecho.** A
+alternativa mais óbvia — deixar o modelo escrever de qual documento tirou uma
+afirmação — foi descartada: um provedor real pode errar o título, parafrasear
+o trecho errado ou inventar uma fonte plausível, e nada no formato livre
+permitiria distinguir uma citação real de uma alucinada. `EXPLAIN_SCHEMA`
+pede só `sources: list[int]` — o índice `[1]`, `[2]`… do bloco numerado que o
+próprio backend construiu (`prompts.py`, `_reference_block`) — e
+`guardrails.check_citations(sources, retrieved)` descarta qualquer índice
+fora do intervalo dos trechos **de fato entregues naquela chamada**. Uma
+citação inválida não derruba a explicação inteira (diferente de
+`ungrounded_numbers`): é metadado sobre a própria resposta, não uma alegação
+numérica, e o pior caso de descartá-la é uma fonte a menos listada, nunca uma
+informação errada mostrada como verificada.
+
+**O que não mudou, e é o ponto do spec inteiro.**
+`guardrails.check_constraint`/`ungrounded_numbers` continuam lendo só
+`context.statement`/`context.numbers` — nenhuma das duas foi tocada para
+saber que `context.retrieved` existe. Um número presente só num trecho
+recuperado, ausente do enunciado do usuário, é recusado do mesmo jeito que
+antes desta feature existir; a Tarefa 10 do plano de implementação cravou
+essa garantia com um teste dedicado, e dois revisores confirmaram
+separadamente que nenhum caminho novo alcança as duas funções. Ver
+`CLAUDE.md` §1.5 (terceira regra) e [09-camada-ia.md](09-camada-ia.md).
+
+**Alternativas descartadas.**
+- **Semântica pura, sem BM25.** Exigiria embeddings configurados para o
+  Cérebro servir a qualquer coisa — voltaria a depender de uma credencial
+  externa onde o resto do produto (D-36) já tinha decidido o contrário.
+- **Citação livre (título e trecho escritos pelo modelo).** Nada verificável
+  do lado do backend; um título ou trecho plausível e errado passaria
+  exatamente como um verdadeiro. O índice numérico é o único formato em que
+  "esta citação existe de verdade" é uma checagem, não uma torcida.
+
+**Como se sabe que passa.** 768 testes de backend (0 falhas, 0 pulados) —
+`test_knowledge_retrieval.py` (BM25 sozinho, semântico sozinho com fake,
+fusão RRF, degradação, `top_k`), o teste dedicado de `test_ai_api.py`
+(`TestRetrievedTextNeverGroundsANumber`) que prova a ancoragem intacta com um
+número presente só no trecho recuperado,
+`check_citations` (índice fora do intervalo descartado, índice válido passa)
+e o portão `provider.simulated` verificado explicitamente para `interpret` e
+`explain`. 157 testes de frontend, inalterado.

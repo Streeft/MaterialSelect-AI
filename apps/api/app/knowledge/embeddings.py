@@ -122,6 +122,17 @@ class EmbeddingClient:
         configured = self.settings.knowledge_embedding_base_url.strip()
         return configured or self.settings.ai_base_url.strip()
 
+    @property
+    def configured(self) -> bool:
+        """Whether embeddings can be attempted at all.
+
+        The single place this decision is made — through :attr:`base_url`, so
+        the AI_BASE_URL fallback documented above actually takes effect for
+        every caller that gates on this, instead of each caller duplicating
+        the raw-setting check and missing the fallback.
+        """
+        return bool(self.base_url and self.settings.knowledge_embedding_model.strip())
+
     def host(self) -> str:
         """The host, for a message shown to a user — never the path.
 
@@ -143,10 +154,15 @@ class EmbeddingClient:
         if not texts:
             return []
 
-        body = {"model": self._model_or_fail(), "input": texts}
-        payload = self._post(body)
-        vectors = _vectors_of(payload, expected=len(texts))
-        return [normalise(vector) for vector in vectors]
+        batch_size = max(1, self.settings.knowledge_embedding_batch)
+        vectors: list[list[float]] = []
+        for start in range(0, len(texts), batch_size):
+            batch = texts[start : start + batch_size]
+            body = {"model": self._model_or_fail(), "input": batch}
+            payload = self._post(body)
+            batch_vectors = _vectors_of(payload, expected=len(batch))
+            vectors.extend(normalise(vector) for vector in batch_vectors)
+        return vectors
 
     # --- transport --------------------------------------------------------
 
@@ -176,7 +192,12 @@ class EmbeddingClient:
 
     def _headers(self) -> dict[str, str]:
         headers = {"Content-Type": "application/json"}
-        key = self.settings.ai_api_key.strip()
+        # KNOWLEDGE_EMBEDDING_API_KEY, when set, is for an embeddings
+        # provider distinct from the chat one (e.g. Groq for chat, which has
+        # no /embeddings endpoint, paired with Jina for embeddings) — it
+        # takes priority. Empty falls back to AI_API_KEY, the historical
+        # (and still most common) behaviour: one provider serving both.
+        key = self.settings.knowledge_embedding_api_key.strip() or self.settings.ai_api_key.strip()
         # No key is a supported state, not a degraded one: it is how a local
         # server is addressed. An empty bearer would turn "no authentication
         # needed" into "authentication failed".

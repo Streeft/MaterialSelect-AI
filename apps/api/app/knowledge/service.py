@@ -9,12 +9,6 @@ safe thing to say twice.
 Failure is per document, never per run. A PDF that cannot be parsed is recorded
 with ``FALHOU`` and the reason, and the walk continues: one broken file in a
 corpus of a hundred should cost that file, not the other ninety-nine.
-
-Embedding is a **second, separate pass** (:meth:`KnowledgeService.index_embeddings`)
-and not part of ingestion. Extracting text is local, free and always possible;
-embedding is none of the three, and welding them together would mean a corpus
-could not be catalogued at all without a provider, a key and a working
-connection. Keeping them apart is what lets the lexical path be the floor.
 """
 
 from __future__ import annotations
@@ -30,7 +24,7 @@ from app.config import Settings
 from app.config import settings as default_settings
 from app.domain.errors import ValidationError
 from app.knowledge.chunking import chunk_text
-from app.knowledge.embeddings import EmbeddingClient, EmbeddingUnavailableError, pack_vector
+from app.knowledge.embeddings import EmbeddingClient, EmbeddingUnavailableError
 from app.knowledge.lexical import fold
 from app.knowledge.manifest import DeclaredProvenance, load_manifest
 from app.knowledge.readers import SUPPORTED_EXTENSIONS, extract_text
@@ -64,6 +58,8 @@ class IngestReport:
     failed: int = 0
     skipped: int = 0
     total_chunks: int = 0
+    embedded_chunks: int = 0
+    embeddings_skipped_reason: str | None = None
     outcomes: list[DocumentOutcome] = field(default_factory=list)
 
     def record(self, outcome: DocumentOutcome) -> None:
@@ -79,20 +75,6 @@ class IngestReport:
         self.total_chunks += outcome.chunk_count
 
 
-@dataclass
-class EmbeddingReport:
-    """What one embedding-indexing run did."""
-
-    model: str
-    embedded: int = 0
-    already_indexed: int = 0
-    failed_batches: int = 0
-    #: Why the run stopped early, when it did. Never empty on a partial run —
-    #: a corpus half-indexed in silence would answer confidently about the half
-    #: it has, which is the same failure as a silently truncated document.
-    stopped_reason: str | None = None
-
-
 def checksum_of(path: Path) -> str:
     """SHA-256 of a file's bytes, read in blocks."""
     digest = hashlib.sha256()
@@ -105,22 +87,10 @@ def checksum_of(path: Path) -> str:
 class KnowledgeService:
     """Discovery and ingestion of the curated reference corpus."""
 
-    def __init__(
-        self,
-        db: Session,
-        settings: Settings = default_settings,
-        embedder: EmbeddingClient | None = None,
-    ) -> None:
+    def __init__(self, db: Session, settings: Settings = default_settings) -> None:
         self.db = db
         self.settings = settings
         self.repo = KnowledgeRepository(db)
-        self._embedder = embedder
-
-    @property
-    def embedder(self) -> EmbeddingClient:
-        if self._embedder is None:
-            self._embedder = EmbeddingClient(self.settings)
-        return self._embedder
 
     # --- discovery ---------------------------------------------------------
 
@@ -156,6 +126,35 @@ class KnowledgeService:
         ]
         return sorted(found, key=lambda p: p.relative_to(root).as_posix())
 
+    def _embeddings_configured(self) -> bool:
+        # Delegates to EmbeddingClient.configured — the one place that
+        # decides this — rather than re-checking the raw settings here,
+        # which used to skip the AI_BASE_URL fallback that
+        # knowledge_embedding_base_url documents.
+        return self._embedding_client().configured
+
+    def _embedding_client(self) -> EmbeddingClient:
+        return EmbeddingClient(self.settings)
+
+    def _sync_embeddings(self, embed_client: EmbeddingClient, document: KnowledgeDocument) -> int:
+        """Embed every chunk of ``document`` lacking a vector from the current model.
+
+        Self-healing on purpose: a chunk already embedded with today's model is
+        left alone; one embedded with a *different* model (or never embedded)
+        gets a fresh vector — so turning embeddings on after the fact, or
+        switching models, never needs ``force=True`` to backfill.
+        """
+        chunks = self.repo.list_chunks(document.id)
+        stale = [
+            c for c in chunks if c.embedding is None or c.embedding.model != embed_client.model
+        ]
+        if not stale:
+            return 0
+        vectors = embed_client.embed([c.text for c in stale])
+        for chunk, vector in zip(stale, vectors, strict=True):
+            self.repo.set_embedding(chunk.id, model=embed_client.model, vector=vector)
+        return len(stale)
+
     # --- ingestion ---------------------------------------------------------
 
     def ingest(self, force: bool = False) -> IngestReport:
@@ -168,14 +167,31 @@ class KnowledgeService:
         root = self.root()
         declared = load_manifest(root)
         report = IngestReport(root=str(root))
+        embed_client = self._embedding_client() if self._embeddings_configured() else None
 
         for path in self.discover():
             relative = path.relative_to(root).as_posix()
             try:
-                report.record(self._ingest_one(path, relative, declared.get(relative), force))
+                outcome = self._ingest_one(path, relative, declared.get(relative), force)
             except ValidationError as exc:
                 # One unreadable document costs that document, not the run.
-                report.record(self._record_failure(relative, str(exc)))
+                outcome = self._record_failure(relative, str(exc))
+            report.record(outcome)
+
+            if (
+                embed_client is not None
+                and outcome.action != "falhou"
+                and report.embeddings_skipped_reason is None
+            ):
+                document = self.repo.get_by_path(relative)
+                if document is not None:
+                    try:
+                        report.embedded_chunks += self._sync_embeddings(embed_client, document)
+                    except EmbeddingUnavailableError as exc:
+                        # One systemic failure (network, credential) is enough
+                        # to know retrying per document would only waste time —
+                        # recorded once, the lexical pass already succeeded.
+                        report.embeddings_skipped_reason = str(exc)
         return report
 
     def _ingest_one(
@@ -242,15 +258,11 @@ class KnowledgeService:
                 KnowledgeChunk(
                     ordinal=chunk.ordinal,
                     text=chunk.text,
-                    # Folded once here rather than per query: SQLite's lower()
-                    # leaves accents alone, so this column is what lets a search
-                    # for "resistencia" reach "resistência" without reading the
-                    # whole corpus into Python first.
-                    search_text=fold(chunk.text),
                     char_count=chunk.char_count,
                     page_start=chunk.page_start,
                     page_end=chunk.page_end,
                     heading=chunk.heading,
+                    search_text=fold(chunk.text),
                 )
                 for chunk in chunks
             ],
@@ -294,72 +306,6 @@ class KnowledgeService:
         document.source_url = provenance.source_url
         document.licence_note = provenance.licence_note
         document.is_versioned = provenance.is_versioned
-
-    # --- embeddings --------------------------------------------------------
-
-    def index_embeddings(self, limit: int | None = None) -> EmbeddingReport:
-        """Compute and store vectors for passages that do not have one yet.
-
-        Resumable by construction: the work list is "passages with no vector for
-        the configured model", so a run interrupted by a rate limit picks up
-        exactly where it stopped, and switching KNOWLEDGE_EMBEDDING_MODEL makes
-        the whole corpus eligible again without a manual cleanup.
-
-        The batch is committed as it goes rather than at the end. A run over a
-        textbook is thousands of requests; losing all of them to the last one
-        failing would make the operation unusable on a free tier.
-
-        Args:
-            limit: stop after this many passages. For a first look at cost.
-
-        Raises:
-            EmbeddingUnavailableError: the semantic layer is not configured at
-                all. That is a mistake to fix, not a state to report — nobody
-                asks to index embeddings by accident.
-        """
-        if not self.settings.knowledge_embeddings_enabled:
-            raise EmbeddingUnavailableError(
-                "Defina KNOWLEDGE_EMBEDDING_MODEL (e KNOWLEDGE_EMBEDDING_BASE_URL, ou "
-                "AI_BASE_URL) para indexar embeddings. Sem eles a recuperação funciona "
-                "só pela via léxica, que não depende de rede."
-            )
-
-        model = self.settings.knowledge_embedding_model.strip()
-        client = self.embedder
-        report = EmbeddingReport(model=model, already_indexed=self.repo.count_embeddings(model))
-
-        batch_size = max(1, self.settings.knowledge_embedding_batch)
-        remaining = limit
-        while remaining is None or remaining > 0:
-            size = batch_size if remaining is None else min(batch_size, remaining)
-            chunks = self.repo.chunks_missing_embedding(model, size)
-            if not chunks:
-                break
-
-            try:
-                vectors = client.embed([chunk.text for chunk in chunks])
-            except EmbeddingUnavailableError as exc:
-                # Stop rather than skip: whatever broke the batch will break the
-                # next one too, and burning the rest of a rate limit to prove it
-                # helps nobody.
-                report.failed_batches += 1
-                report.stopped_reason = str(exc)
-                break
-
-            for chunk, vector in zip(chunks, vectors, strict=True):
-                self.repo.set_embedding(
-                    chunk_id=chunk.id,
-                    model=model,
-                    dimensions=len(vector),
-                    vector=pack_vector(vector),
-                )
-            self.db.commit()
-
-            report.embedded += len(chunks)
-            if remaining is not None:
-                remaining -= len(chunks)
-
-        return report
 
     def _record_failure(self, relative: str, reason: str) -> DocumentOutcome:
         """Persist a failed extraction so the corpus reports its own gaps."""

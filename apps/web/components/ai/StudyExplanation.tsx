@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
-import { ApiError, explainStudy } from "@/lib/api";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { ApiError, explainStudy, getAIStatus } from "@/lib/api";
 import type { Explanation } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { Alert, Button, Card, CardBody, CardHeader } from "@/components/ui";
@@ -24,6 +24,8 @@ const t = ptBR.ai;
 export function StudyExplanation({ studyId }: { studyId: number }) {
   const [explanation, setExplanation] = useState<Explanation | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const status = useQuery({ queryKey: ["ai-status"], queryFn: getAIStatus });
 
   const explain = useMutation({
     mutationFn: () => explainStudy(studyId),
@@ -64,6 +66,22 @@ export function StudyExplanation({ studyId }: { studyId: number }) {
             </Alert>
           )}
 
+          {explanation.sources.length > 0 && (
+            <div className="text-2xs text-ink-subtle">
+              <p className="font-medium">{t.sourcesConsulted}:</p>
+              <ul className="list-disc pl-4">
+                {explanation.sources.map((source, i) => (
+                  <li key={i}>
+                    {source.document_title}
+                    {source.page_start && source.page_end
+                      ? ` (p. ${source.page_start}-${source.page_end})`
+                      : ""}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           <p className="max-w-prose text-2xs text-ink-subtle">{explanation.disclaimer}</p>
         </CardBody>
       </Card>
@@ -78,7 +96,11 @@ export function StudyExplanation({ studyId }: { studyId: number }) {
         loading={explain.isPending}
         onClick={() => explain.mutate()}
       >
-        {explain.isPending ? t.explaining : t.explain}
+        {explain.isPending
+          ? status.data?.simulated
+            ? t.explaining
+            : t.explainingWithKnowledge
+          : t.explain}
       </Button>
       {error && (
         <p role="alert" className="mt-1 text-xs text-danger-fg">

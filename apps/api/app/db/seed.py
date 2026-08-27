@@ -154,7 +154,12 @@ PROPERTIES = [
 
 # --- Sources --------------------------------------------------------------
 SOURCES = [
-    {"label": "Dataset Demo MaterialSelect", "reference": DEMO_WARNING, "is_demo": True},
+    {
+        "label": "Dataset Demo MaterialSelect",
+        "reference": DEMO_WARNING,
+        "is_demo": True,
+        "license_label": "Dado fictício de demonstração — não é conteúdo de terceiro",
+    },
 ]
 
 # --- Performance indices (classic Ashby merit indices) --------------------
@@ -503,7 +508,10 @@ def _get_or_create_source(db: Session, spec: dict) -> Source:
     if existing:
         return existing
     obj = Source(
-        label=spec["label"], reference=spec.get("reference"), is_demo=spec.get("is_demo", False)
+        label=spec["label"],
+        reference=spec.get("reference"),
+        is_demo=spec.get("is_demo", False),
+        license_label=spec.get("license_label"),
     )
     db.add(obj)
     db.flush()
