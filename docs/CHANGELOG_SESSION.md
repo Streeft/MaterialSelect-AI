@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [9](#sessão-9--260826-a-270826--rag-sobre-o-cérebro-d-47-e-a-pr-26-fechada-e-remesclada) | 26 e 27/08/2026 | RAG sobre o Cérebro (D-47, 18 tarefas via SDD), PR #26 investigada/fechada e depois remesclada pelo autor | 713 → 795 | 157 → 162 |
 | [8](#sessão-8--240826-a-250826--reconciliação-de-branches-m9-e-o-checkout-do-stripe-testado-ao-vivo) | 24 e 25/08/2026 | Reconciliação de branches, M9 (portão de assinatura, D-46) e checkout do Stripe testado ao vivo | 639 → 713 | 148 → 157 |
 | [7](#sessão-7--210826--triagem-de-licenciamento-m1) | 21/08/2026 | Triagem de licenciamento (M1) | 632 → 639 | 148 (inalterado) |
 | [6](#sessão-6--210826--estudo-de-caso-didático-a2) | 21/08/2026 | Estudo de caso didático (A2) | 630 → 632 | 148 (inalterado) |
@@ -19,6 +20,94 @@ por isso que ela tem menos detalhe de processo que as outras.
 | [3](#sessão-3--110826--os-provedores-reais-da-camada-de-ia) | 11/08/2026 | Fase 6: provedores reais de IA | 391 → 436 | 123 |
 | [2](#sessão-2--050826-a-100826--fase-7-parcial-ci-obrigatória-e-fase-8) | 05/08 a 10/08/2026 | Fase 7 (relatório HTML), CI obrigatória, Fase 8 (redesign) | 362 → 391 | 44 → 123 |
 | [1](#sessão-1--300726-a-040826--fases-5-a-7) | 30/07 a 04/08/2026 | Fases 5, 6 e 7 (exportação) | 169 → 362 | 13 → 44 |
+
+---
+
+# Sessão 9 — 26/08/26 a 27/08/26 — RAG sobre o Cérebro (D-47) e a PR #26 fechada e remesclada
+
+Ponto de partida: fim da sessão 8 (PR #21 mesclada, portão de assinatura
+ligado). Testes de backend: 713 → 795 (0 skip); frontend: 157 → 162.
+
+## 1. RAG sobre o Cérebro — busca híbrida, D-47
+
+Plano de 18 tarefas (`docs/superpowers/plans/2026-08-25-cerebro-rag.md`),
+executado por `subagent-driven-development`: um subagente implementador por
+tarefa, revisão de tarefa a cada uma, revisão de branch inteira ao final.
+
+O Cérebro (`Cérebro/`, hospedado em `main` desde D-45) estava íntegro mas
+inerte — nada em `app/ai/` o lia. Passou a alimentar `interpret()`/
+`explain()`: busca léxica (BM25) + semântica (embeddings, receita gratuita
+Jina AI documentada em `.env.example`), fundidas por *reciprocal rank
+fusion* (`app/knowledge/retrieval.py`), ligada só quando o provedor não é o
+`mock`, com citação **verificada** por índice em `explain()` — nunca citação
+livre (`guardrails.check_citations`). A garantia que mais importava foi
+**provada**, não só mantida: `check_constraint`/`ungrounded_numbers` nunca
+leem `context.retrieved`, então um número presente só num trecho recuperado
+continua sendo recusado como restrição exatamente como antes — teste
+dedicado, confirmado por dois revisores independentes.
+
+A revisão final de branch (modelo mais capaz) encontrou 8 achados
+importantes + 6 menores — nenhum crítico. Uma rodada de correção (9 itens:
+tratamento de `ValidationError` na pontuação semântica, chave de embedding
+dedicada, propriedade `configured` consolidada, corpus léxico carregado uma
+vez em vez de recarregado por chamada, lock contra ingestão concorrente,
+filtro `isinstance(i, int) and not isinstance(i, bool)` em índices de
+citação, classe de teste morta removida, teste novo para fontes vazias em
+`StudyExplanation`) mais uma rerrevisão escopada, ambas limpas. Decisão
+completa em [D-47](DECISIONS.md). PR #25, mesclada pelo autor.
+
+## 2. PR #26 (`fase-9-ia-e-laudo`) — investigada, fechada, depois remesclada pelo autor
+
+Pedido: resolver as pendências da PR #26 (62 commits à frente de `main`,
+aberta desde a sessão 8) para poder mesclar ou fechar. Antes de tentar
+resolver conflitos, a arqueologia de git (comparação arquivo a arquivo do
+branch contra `origin/main`, não só o resumo do `git`) mostrou que o
+conteúdo substantivo da PR já estava em `main` — reconciliado por um
+caminho diferente na sessão 8 (ver seção 1 daquela sessão, D-45). Fechada
+sem merge, com comentário explicativo citando a reconciliação anterior.
+
+O autor então reabriu a PR pessoalmente, reconciliou o branch contra o
+`main` já atualizado e mesclou (commit `3ec451e`, 209 arquivos — bem menor
+que os 363 originais, porque a maior parte já estava presente). A mudança
+substantiva que restava: `Dialog.tsx` e `Tabs.tsx` migraram de
+implementação própria para `md-dialog`/`md-tabs` do `@material/web`
+(`8b74799`), estendendo o mesmo padrão já usado por botões, checkbox, radio,
+select e chips desde a Fase 9 (`components/ui/material/elements.ts`, em
+`main` desde o PR #8, 18/08 — portanto anterior a esta sessão).
+
+**Achado não resolvido nesta sessão:** nenhum documento registrava o uso de
+`@material/web`, e o padrão conflita textualmente com [D-23](DECISIONS.md)
+("sistema de design próprio, sem biblioteca de componentes") e com a
+proibição do §13 de [REDESIGN.md](REDESIGN.md). `@material/web` é a
+biblioteca de Web Components do Material Design 3, com sua própria camada
+de tema (100 variáveis `--md-sys-*` em `globals.css`, paralela aos tokens
+`--brand-*`/`--accent` de D-28). Sinalizado ao autor, que decidiu: registrar
+como decisão aceita em vez de reverter. Ver **D-48**.
+
+## 3. D-48 — `@material/web` reconciliado com D-23
+
+Confrontado via `AskUserQuestion` com três caminhos (registrar como exceção
+aceita / reverter Dialog e Tabs para implementação própria / deixar
+sinalizado sem decidir), o autor escolheu registrar. `DECISIONS.md` ganhou
+D-48: exceção pontual a D-23, restrita a primitivas de baixo nível sem
+estado de aplicação (botão, checkbox, radio, select, chip, diálogo, abas),
+sempre atrás do wrapper próprio em `components/ui/` — nunca importadas
+diretamente por uma tela. Nenhuma linha de código mudou; só a documentação
+passou a descrever o que já estava em produção desde a Fase 9.
+
+Um risco fica registrado, não mitigado: as ~100 variáveis `--md-sys-color-*`
+são um segundo sistema de cor, escrito à mão em paralelo aos tokens
+`--brand-*`/`--accent` de D-28, sem ponte automática entre os dois — e já
+divergiram (`--brand-700` claro é `#1565c0`, `--md-sys-color-primary` é
+`#005bbf`). Nenhuma tela mistura os dois de um jeito que quebre contraste
+hoje, mas o risco de nova divergência existe a cada mudança de paleta.
+
+## 4. Sincronização de documentação
+
+`docs/PROJECT_CONTEXT.md`, `CLAUDE.md` (raiz) e este changelog atualizados
+com a contagem de testes real pós-fix-wave e pós-PR #26 (795/162, não os
+768/157 que a PR #25 tinha deixado registrado), e com o resumo do que a PR
+#26 realmente trouxe — que não constava em nenhum lugar até este ponto.
 
 ---
 

@@ -35,7 +35,7 @@ diferente. O que é óbvio não precisa de registro.
 | D-20 | HTML imprimível em vez de biblioteca de PDF | aceito | abaixo |
 | D-21 | Campo opcional não preenchido continua `NULL` | aceito | abaixo |
 | D-22 | Repositório público para o portão de CI ser real | aceito, com consequência | abaixo |
-| D-23 | Sistema de design próprio, sem biblioteca de componentes | aceito | abaixo |
+| D-23 | Sistema de design próprio, sem biblioteca de componentes | aceito, exceção em **D-48** | abaixo |
 | D-24 | Qualidade do dado codificada em três canais, nunca só cor | aceito | abaixo |
 | D-25 | Hipóteses do índice antes da escolha, não depois | aceito | abaixo |
 | D-26 | Navegação agrupada por tarefa, sem menus suspensos | aceito | abaixo |
@@ -56,6 +56,7 @@ diferente. O que é óbvio não precisa de registro.
 | D-41 | O laudo de engenharia é um documento à parte | aceito | abaixo |
 | D-42 | Login só por terceiros (Google); catálogo compartilhado; um projeto por usuário no v1 | aceito | abaixo |
 | D-47 | Busca híbrida (RRF) sobre o Cérebro, Jina AI como receita gratuita, citação verificada | aceito | abaixo |
+| D-48 | `@material/web` para primitivas de baixo nível — exceção pontual a D-23 | aceito | abaixo |
 
 ---
 
@@ -450,6 +451,14 @@ minúsculas: `clsx` e `tailwind-merge`.
 há combobox, date picker nem menu com submenu — nenhum deles é necessário aqui.
 Os padrões de teclado (foco preso no diálogo, setas nas abas, `Escape` que
 devolve o foco) são responsabilidade nossa, e por isso cada um tem teste.
+
+**Exceção registrada depois, sem revisar esta decisão:** desde a Fase 9,
+primitivas de baixo nível (botão, checkbox, radio, select, chip, diálogo,
+abas) são Web Components de `@material/web`, por cima da API deste
+componente — ver [D-48](#d-48--materialweb-para-primitivas-de-baixo-nível--exceção-pontual-a-d-23).
+O que esta decisão continua a proibir — nenhuma abstração de layout ou de
+tema de terceiros, o vocabulário de API é sempre o de `components/ui/` — vale
+como antes.
 
 **Corolário — o painel do popover vive num portal.** Não é preferência de
 implementação: os gatilhos de proveniência ficam dentro de células de tabela, e
@@ -1884,11 +1893,75 @@ separadamente que nenhum caminho novo alcança as duas funções. Ver
   exatamente como um verdadeiro. O índice numérico é o único formato em que
   "esta citação existe de verdade" é uma checagem, não uma torcida.
 
-**Como se sabe que passa.** 768 testes de backend (0 falhas, 0 pulados) —
+**Como se sabe que passa.** 795 testes de backend (0 falhas, 0 pulados) —
 `test_knowledge_retrieval.py` (BM25 sozinho, semântico sozinho com fake,
 fusão RRF, degradação, `top_k`), o teste dedicado de `test_ai_api.py`
 (`TestRetrievedTextNeverGroundsANumber`) que prova a ancoragem intacta com um
 número presente só no trecho recuperado,
 `check_citations` (índice fora do intervalo descartado, índice válido passa)
 e o portão `provider.simulated` verificado explicitamente para `interpret` e
-`explain`. 157 testes de frontend, inalterado.
+`explain`. 162 testes de frontend — 768/157 logo após esta entrega (o texto
+original desta seção); os dois números finais aqui refletem a rodada de
+correção da revisão final de branch e a PR #26, sincronizados na sessão 9
+de `CHANGELOG_SESSION.md`.
+
+---
+
+## D-48 — `@material/web` para primitivas de baixo nível — exceção pontual a D-23
+
+**Contexto.** [D-23](#d-23--sistema-de-design-próprio-sem-biblioteca-de-componentes)
+decidiu escrever as primitivas de interface neste repositório, sem biblioteca
+de componentes — decisão reafirmada no §13 de `REDESIGN.md` ("nenhuma
+biblioteca de componentes"). Entre a Fase 9 (PR #8, 18/08) e a reconciliação
+da `fase-9-ia-e-laudo` (PR #26, 27/08), `components/ui/` passou a envolver
+`@material/web` — a biblioteca de Web Components do Material Design 3 do
+Google — para botão, ícone-botão, checkbox, radio, select, chip,
+segmented-button, e por fim diálogo e abas. Essa mudança **não gerou uma
+entrada de decisão na época**: só foi percebida e registrada nesta sessão,
+ao sincronizar a documentação depois da PR #26. Uma decisão descoberta
+retroativamente no código, não proposta antes dele, é o tipo de lacuna que
+este arquivo existe para fechar — daí este registro, em vez de simplesmente
+apagar a tensão com D-23.
+
+**Decisão.** Aceitar `@material/web` como exceção pontual a D-23, restrita ao
+que já está em uso: primitivas de baixo nível sem estado de aplicação
+(botão, checkbox, radio, select, chip, diálogo, abas). Cada uma é registrada
+uma vez em `components/ui/material/elements.ts` (via `@lit/react`,
+`createComponent()`) e só é alcançada pelo resto do app através do wrapper
+próprio em `components/ui/` (`Dialog.tsx`, `Tabs.tsx` etc.) — nunca
+importada diretamente por uma tela. O vocabulário de API continua sendo o do
+projeto; o que muda é a implementação por trás dele.
+
+**O que D-23 continua a proibir.** Nenhuma abstração de *layout* ou de
+composição de tela vem de terceiro (grid, formulário, tabela, popover de
+proveniência inteiro continuam próprios); nenhum sistema de tema concorrente
+governa a interface — o de `@material/web` só estiliza o próprio Web
+Component. `shadcn/ui`, MUI e Chakra seguem descartados pelas razões
+originais de D-23.
+
+**Alternativas descartadas.**
+- **Reverter para implementação própria (a leitura literal de D-23).**
+  Perderia o que motivou a troca: `@material/web` implementa de graça os
+  padrões de teclado que D-23 já registrava como "responsabilidade nossa"
+  (foco preso no diálogo, setas/Home/End nas abas, `Escape` cancelável) —
+  cada um hand-rolled antes, cada um com bug de acessibilidade já corrigido
+  ao menos uma vez no histórico do projeto.
+- **Não registrar nada, deixar D-23 como está.** É o estado em que isto foi
+  encontrado: o código diverge do que a documentação promete, sem que
+  ninguém tenha decidido a divergência. Silenciosamente incorreto é pior do
+  que uma exceção registrada.
+
+**Consequência aceita, ainda sem mitigação.** A camada de tema de
+`@material/web` (as ~100 variáveis `--md-sys-color-*` em `globals.css`) é
+hoje **um segundo sistema de cor**, escrito à mão em paralelo aos tokens
+`--brand-*`/`--accent` de [D-28](#d-28--uma-paleta-só-compartilhada-entre-interface-e-gráfico) —
+exatamente o "tema concorrente" que D-23 rejeitou em MUI/Chakra, só que
+sem o framework de tema completo por trás. Os dois já divergiram: o claro
+`--brand-700` é `rgb(21 101 192)` (`#1565c0`), e `--md-sys-color-primary` é
+`#005bbf` — próximos, não iguais. Não há hoje uma ponte automática (nenhum
+`var(--brand-700)` dentro do bloco `--md-sys-*`); manter os dois em sincronia
+depende de quem edita a paleta lembrar de editar os dois blocos. Fica como
+item de acompanhamento, não como bloqueio: nenhuma tela hoje mistura os dois
+sistemas de um jeito que produza contraste incorreto (verificado nos dois
+temas em `/estilo`), mas o risco de nova divergência é real a cada mudança
+de paleta.
