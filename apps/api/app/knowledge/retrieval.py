@@ -128,10 +128,12 @@ def _semantic_rank(
         return []
     except ValidationError as exc:
         # Not EmbeddingUnavailableError: the call succeeded, but a stored
-        # vector is corrupted or from an incompatible dimensionality (a
-        # sibling of EmbeddingUnavailableError, not a subclass — it does not
-        # get caught above). Same degradation, different cause: half the
-        # retrieval working beats a flaky/corrupted row taking down the call.
+        # vector is corrupted or from an incompatible dimensionality.
+        # EmbeddingUnavailableError is itself a ValidationError subclass, so
+        # it's already caught above; this clause is for the plain
+        # ValidationError that similarity()/unpack_vector() raise instead.
+        # Same degradation, different cause: half the retrieval working
+        # beats a flaky/corrupted row taking down the call.
         logger.warning(
             "Pontuação semântica falhou com um vetor corrompido, usando só léxica: %s", exc
         )
