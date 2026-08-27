@@ -28,6 +28,7 @@ dev = [
     "pytest>=8.2",
     "ruff>=0.5",
     "black>=24.4",
+    "httpx2",
 ]
 # The AI layer is optional and so is its dependency: `mock` and `claude-cli`
 # need nothing from here, and the deterministic product needs nothing at all.
