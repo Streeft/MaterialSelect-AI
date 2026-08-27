@@ -9,10 +9,12 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "lighthouse": "lhci autorun"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
+    "@materialselect/shared-types": "*",
     "@lit/react": "^1.0.8",
     "@material/web": "^2.5.0",
     "@tanstack/react-query": "^5.51.0",
@@ -28,6 +30,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@lhci/cli": "^0.13.0",
     "@material/material-color-utilities": "^0.4.0",
     "@playwright/test": "^1.62.1",
     "@testing-library/jest-dom": "^6.4.6",

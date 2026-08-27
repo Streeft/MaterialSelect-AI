@@ -29,6 +29,7 @@ from app.domain.errors import (
 )
 from app.routers import (
     ai,
+    audit,
     auth,
     billing,
     charts,
@@ -37,9 +38,11 @@ from app.routers import (
     exports,
     health,
     imports,
+    knowledge,
     materials,
     properties,
     selection,
+    sources,
 )
 
 app = FastAPI(
@@ -120,6 +123,12 @@ async def _handle_request_validation(_: Request, exc: RequestValidationError) ->
     return JSONResponse(status_code=422, content={"detail": errors})
 
 
+# `health`, `auth` e `billing` ficam sem a dependência de bloco: são as únicas
+# rotas públicas (health/auth) ou que decidem sua própria regra por rota
+# (billing — checkout precisa funcionar sem assinatura, para poder comprar
+# uma). Todo outro router exige assinatura ativa, incluindo `audit` e
+# `sources`, que chegaram depois deste desenho mas seguem o mesmo princípio:
+# tudo fica atrás do portão, exceto o que não pode ficar.
 app.include_router(health.router, prefix="/api")
 app.include_router(auth.router, prefix="/api")
 app.include_router(billing.router, prefix="/api")
@@ -141,6 +150,9 @@ app.include_router(
     dependencies=[Depends(require_active_subscription)],
 )
 app.include_router(
+    knowledge.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
+)
+app.include_router(
     selection.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
 )
 app.include_router(
@@ -157,6 +169,10 @@ app.include_router(
 app.include_router(ai.router, prefix="/api", dependencies=[Depends(require_active_subscription)])
 app.include_router(
     exports.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
+)
+app.include_router(audit.router, prefix="/api", dependencies=[Depends(require_active_subscription)])
+app.include_router(
+    sources.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
 )
 
 

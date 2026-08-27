@@ -161,35 +161,3 @@ export const MdRadio = createComponent({
   events: { onChange: "change" },
   displayName: "MdRadio",
 });
-
-import "@material/web/dialog/dialog.js";
-import { MdDialog as MdDialogElement } from "@material/web/dialog/dialog.js";
-
-export const MdDialog = createComponent({
-  react: React,
-  tagName: "md-dialog",
-  elementClass: MdDialogElement,
-  events: { onClose: "close" },
-  displayName: "MdDialog",
-});
-
-import "@material/web/tabs/tabs.js";
-import { MdTabs as MdTabsElement } from "@material/web/tabs/tabs.js";
-
-export const MdTabs = createComponent({
-  react: React,
-  tagName: "md-tabs",
-  elementClass: MdTabsElement,
-  events: { onChange: "change" },
-  displayName: "MdTabs",
-});
-
-import "@material/web/tabs/primary-tab.js";
-import { MdPrimaryTab as MdPrimaryTabElement } from "@material/web/tabs/primary-tab.js";
-
-export const MdPrimaryTab = createComponent({
-  react: React,
-  tagName: "md-primary-tab",
-  elementClass: MdPrimaryTabElement,
-  displayName: "MdPrimaryTab",
-});

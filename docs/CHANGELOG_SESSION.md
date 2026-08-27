@@ -11,10 +11,461 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [8](#sessão-8--240826-a-250826--reconciliação-de-branches-m9-e-o-checkout-do-stripe-testado-ao-vivo) | 24 e 25/08/2026 | Reconciliação de branches, M9 (portão de assinatura, D-46) e checkout do Stripe testado ao vivo | 639 → 713 | 148 → 157 |
+| [7](#sessão-7--210826--triagem-de-licenciamento-m1) | 21/08/2026 | Triagem de licenciamento (M1) | 632 → 639 | 148 (inalterado) |
+| [6](#sessão-6--210826--estudo-de-caso-didático-a2) | 21/08/2026 | Estudo de caso didático (A2) | 630 → 632 | 148 (inalterado) |
+| [5](#sessão-5--210826--auditoria-m2-e-a-instalação-do-ambiente-de-assistente) | 21/08/2026 | Fase 7: auditoria de alterações (M2) | 617 → 630 | 148 (inalterado) |
 | [4](#sessão-4--110826-a-120826--fase-9-e-a-varredura-que-a-fechou) | 11 e 12/08/2026 | Fase 9 (seis frentes) e a varredura de fechamento | 436 → 591 | 123 → 141 |
 | [3](#sessão-3--110826--os-provedores-reais-da-camada-de-ia) | 11/08/2026 | Fase 6: provedores reais de IA | 391 → 436 | 123 |
 | [2](#sessão-2--050826-a-100826--fase-7-parcial-ci-obrigatória-e-fase-8) | 05/08 a 10/08/2026 | Fase 7 (relatório HTML), CI obrigatória, Fase 8 (redesign) | 362 → 391 | 44 → 123 |
 | [1](#sessão-1--300726-a-040826--fases-5-a-7) | 30/07 a 04/08/2026 | Fases 5, 6 e 7 (exportação) | 169 → 362 | 13 → 44 |
+
+---
+
+# Sessão 8 — 24/08/26 a 25/08/26 — Reconciliação de branches, M9 e o checkout do Stripe testado ao vivo
+
+Ponto de partida: fim da sessão 7 (PR #13 mesclada, M1 verde). Testes de
+backend: 639 → 713 (0 skip); frontend: 148 → 157. A sessão teve quatro frentes
+encadeadas — nenhuma pedida isoladamente, cada uma abrindo a próxima.
+
+## 1. Branches de fase divergentes, reconciliadas com `main`
+
+`git status`/`git log` mostravam quatro branches de fase (`fase-5-visualizacao`,
+`fase-6-provedores-claude`, `fase-8-redesign-interface`, `fase-9-ia-e-laudo`)
+como `N ahead / M behind` de `main`, mesmo depois de supostamente mescladas.
+Verificação arquivo a arquivo (não confiar no resumo do git) mostrou que três
+delas (PRs #15, #7, #14) eram **ilusão de squash-merge** — squash não cria
+vínculo de parentesco, então o git segue reportando divergência de conteúdo já
+presente; foram apenas fechadas de volta, sem conteúdo novo.
+
+A quarta, `fase-9-ia-e-laudo`, tinha ~1.600 linhas genuinamente não
+mescladas: a **camada de conhecimento** (ingestão do Cérebro para a IA,
+`app/knowledge/`) e a **cobrança com Stripe** (`Subscription`,
+`routers/billing.py`, `services/billing_service.py`). Trazida por inteiro no
+PR #18, com duas ressalvas que viraram trabalho de sessão à parte:
+
+- O **portão global de assinatura** (`require_active_subscription`) entrou
+  desligado — a fase-9 e o plano Free/Pro de 21/08
+  (`docs/superpowers/plans/`) discordavam sobre a arquitetura de cobrança, e
+  ligar um dos dois por omissão decidiria a reconciliação sem que o autor
+  tivesse escolhido. Isso virou **M9** no `TODO.md`, resolvido na frente 2
+  desta sessão.
+- O **Cérebro licenciado** (11 livros comerciais + 2 extratos + 103 fichas
+  ANSYS/Granta EduPack) chegou a `main` por um caminho paralelo, o PR #17,
+  antes mesmo desta reconciliação — e continua lá por decisão explícita do
+  autor ao ser confrontado com a opção de purgar (**D-45**): risco aceito,
+  não descuido, porque é a base de conhecimento da camada de IA.
+
+`docs/CLAUDE.md`, `PROJECT_CONTEXT.md` e `TODO.md` foram sincronizados com o
+estado real pós-reconciliação (PR #19) — contagem de testes, menções à
+camada de conhecimento e à cobrança, e o registro das duas ressalvas acima
+como pendências explícitas (não escondidas).
+
+## 2. M9 — a arquitetura de cobrança, decidida
+
+Duas arquiteturas coexistiam em código, nenhuma ligada: o portão binário do
+plano de 18/08 (`require_active_subscription` em bloco, já totalmente
+codificado) e o Free/Pro do plano de 21/08 (`EntitlementService`, nunca
+implementado). Confrontado com os dois via `AskUserQuestion`, o autor
+escolheu o binário — já pronto contra uma reimplementação do zero.
+
+- **Backend:** `main.py` passa a aplicar `require_active_subscription` a
+  todo router exceto `health`/`auth`/`billing` (inclusive `audit` e
+  `sources`, que chegaram depois do desenho original mas seguem o mesmo
+  princípio); o teste que afirmava o portão perdeu o `skip`.
+- **Frontend:** `AuthGate.tsx` volta a ser um portão de dois estágios —
+  `/auth/me` primeiro (não autenticado → `/entrar`), depois
+  `/billing/status` (autenticado sem assinatura ativa → `/assinatura`).
+- **Verificação ao vivo**, além dos testes: sem cookie → 401; sessão de
+  e2e (que já escrevia uma `Subscription` ativa, preparada de propósito para
+  este momento) → `GET /api/materials` 200; segundo usuário sem assinatura
+  nenhuma → 403 em `/api/materials`, 200 em `/api/billing/status` (a rota
+  continua alcançável para o `AuthGate` decidir o redirecionamento).
+
+Decisão completa em [D-46](DECISIONS.md); M9 passou para "Débitos já
+quitados" no `TODO.md`. PR #20.
+
+## 3. Configurar o Stripe de verdade e testar o checkout — ao vivo, na máquina do autor
+
+Pedido seguinte: "configura o Stripe de verdade e testa o checkout". Este
+ambiente remoto bloqueia por política de rede **todo** domínio `*.stripe.com`
+e `packages.stripe.dev` (confirmado via o proxy de saída, `403` em toda
+tentativa de `CONNECT`) — sem contorno possível nem tentado, como a política
+de negação exige. O trabalho de configuração e teste aconteceu inteiramente
+na máquina Windows do autor, guiado turno a turno por este agente sem
+nenhum acesso a ela: Stripe CLI, conta de teste, produto e preço; cliente
+OAuth real no Google Cloud Console; Python nunca instalado (instalação do
+zero, com o checkbox "Add python.exe to PATH"); `.venv` inexistente;
+checkout local desatualizado sem o extra `billing` do `pyproject.toml`;
+banco sem migrations aplicadas (`no such table: user`); porta 3000 ocupada
+por processo zumbi, derrubando o CORS do `AuthGate`. Cada obstáculo foi
+diagnosticado a partir do que o autor colava (traceback, log, captura de
+tela) e resolvido com o comando exato para CMD do Windows — nunca PowerShell,
+por restrição da máquina do autor.
+
+Resultado da primeira tentativa: **pagamento completo** na Stripe (modo de
+teste, cartão `4242 4242 4242 4242`), redirecionamento de volta com
+`?status=sucesso` — mas `/assinatura` continuava mostrando "não assinado", e
+`stripe listen` mostrava **todo** evento de webhook voltando `500`.
+
+## 4. O bug do webhook: `.get()` num objeto que não é um dict
+
+Diagnóstico a partir do traceback colado pelo autor:
+`AttributeError: 'get' is a dict method, but a Event is not a dict. Use
+.to_dict() to convert it.` — `billing_service.py` chamava `.get()` no
+`event`/`data` que o SDK real da Stripe (`stripe>=10`, testado com `15.5.1`)
+devolve como `Event`/`StripeObject`: aceita `[]` e `in`, mas **bloqueia
+`.get()` de propósito**. Nenhum dos 713 testes pegava isso porque o fake de
+teste sempre injetava um **dict Python puro**, que suporta `.get()`
+normalmente — a suíte nunca exercitava essa restrição do SDK real.
+
+Seguindo TDD para o bug: `test_billing_service.py` ganhou `_StrictStripeObject`
+(aceita `[]`/`in`, rejeita `.get()`, espelhando de verdade o SDK real — o
+próprio objetivo já declarado no cabeçalho do arquivo), e o fake de webhook
+passou a devolver o evento embrulhado nele. Rodado sozinho, isso reproduziu
+o exato `AttributeError` do autor num teste antes verde. A correção:
+`_get(obj, key, default=None)` — lê via `obj[key] if key in obj else
+default`, funcionando igual em `Event`/`StripeObject` real e em dict fake —
+substituiu os cinco `.get()` em `handle_webhook` e nos três handlers de
+evento. 713 testes voltaram a passar, `ruff`/`black` limpos. PR #21.
+
+Novo teste ao vivo do autor, já com a correção: `stripe listen` mostrou todo
+webhook voltando `204`, e `/assinatura` passou a refletir a assinatura
+ativa — M9 testado de ponta a ponta, não só pelos 713 testes automatizados.
+
+## 5. Documentação do teste ao vivo
+
+`D-46` (com uma nova seção "Checkout real testado ao vivo"), a entrada de M9
+em `TODO.md` e as seções 4/9 de `PROJECT_CONTEXT.md` foram atualizadas para
+registrar a verificação de ponta a ponta e o bug encontrado/corrigido. A
+limitação que resta deixou de ser "ninguém testou o fluxo" e passou a ser só
+"nenhuma credencial de **produção** (`sk_live_...`) está configurada em
+lugar nenhum" — D-36 já estabelece que nenhuma credencial tem valor padrão,
+de propósito. PR #22.
+
+## 6. Verificação
+
+`ruff`, `black --check`, **713 testes de backend** (0 skip, matriz 3.11 e
+3.12), **157 de frontend**, `alembic upgrade head` + seed num banco limpo —
+tudo verde nos quatro PRs (#20, #21, #22) e nas quatro reconciliações (#15,
+#14, #7, #18) mais o PR #19 de docs. Além dos testes: o checkout completo
+foi executado de verdade contra a Stripe em modo de teste, não só simulado
+contra um cliente falso — a mesma prática de "verificação ao vivo além dos
+testes" que já tinha achado a unidade nula na camada de IA em sessão
+anterior.
+
+## 7. O que fica em aberto
+
+- **Nenhuma sessão de teste de usabilidade** (§3.5) — a única pendência do
+  trabalho como um todo que não é código, inalterada por esta sessão.
+- **Nenhuma credencial de produção da Stripe configurada** — o portão está
+  ligado e o fluxo foi testado em modo de teste; vender de verdade exige um
+  operador configurar `sk_live_...` (D-36, decisão deliberada de não ter
+  padrão).
+
+---
+
+# Sessão 7 — 21/08/26 — Triagem de licenciamento (M1)
+
+Ponto de partida: o merge da PR #10 (sessões 5+6, M2+A2) em `main`
+(`5f8b7f0`). Testes de backend: 632 → 639. O usuário mesclou a PR direto
+("tire do rascunho e faça o merge, eu já revisei"), então este trabalho
+reinicia o branch designado a partir de `main`, como as instruções de tarefa
+preveem para uma PR já mesclada — não empilha em cima de histórico já
+integrado.
+
+## 1. Uma sessão que ganhou um segundo participante
+
+No meio do trabalho de M2/A2, uma sessão desconhecida (`observer-sessions-e7`)
+começou a mandar mensagens ecoando o progresso da sessão de volta — inclusive
+anunciando que ia commitar/pushar/abrir PR na mesma branch. Sem confirmação de
+quem era, isso foi tratado como um evento a reportar, não a obedecer: o
+trabalho já verificado foi commitado e pushado primeiro, a outra sessão foi
+instruída a não tocar na branch, e o usuário foi avisado no fim do turno. O
+usuário confirmou depois que a sessão era dele mesmo, noutra máquina — registro
+aqui porque a resposta (push primeiro, avisar, não assumir) é o comportamento
+correto independente de a origem acabar sendo benigna ou não.
+
+## 2. O pedido e a escolha do que atacar
+
+Passado o merge, o usuário perguntou "qual o próximo passo?" sem apontar um
+item. Restavam dois: M1 (triagem de licenciamento) e a sessão de teste de
+usabilidade do §3.5 — esta última exige participantes reais, não é código que
+uma sessão feche sozinha. M1 foi a escolha natural e confirmada pelo usuário.
+
+(Um pedido paralelo — "estruture a pasta Cérebro" — apareceu antes disso.
+"Cérebro" não é um conceito que existe em nenhum lugar do repositório; a
+pergunta de esclarecimento foi interrompida pelo usuário com "esqueça por
+enquanto", então fica registrada como não resolvida, não como decidida.)
+
+## 3. O que foi implementado
+
+`Source` (`app/models/source.py`) ganha `license_label`, `license_url`, a
+sinalização explícita `contains_third_party_data` e um carimbo de quem
+registrou a fonte e quando (`reviewed_by_user_id`/`reviewed_at`).
+
+- **O portão fica na importação** (`ImportService._check_source_licensing`,
+  `app/importers/service.py`), rodando tanto em `validate()` (feedback cedo)
+  quanto de novo em `commit()` (o portão que realmente importa — o catálogo
+  pode mudar entre as duas chamadas). Uma fonte **nova** sem
+  `source_license_label` é recusada antes de qualquer linha ser escrita; uma
+  fonte marcada `source_contains_third_party_data=True` exige também
+  `source_review_confirmed=True` explícito — a "decisão humana obrigatória
+  antes da incorporação" que o item do backlog pede.
+- **Reusar um `source_label` já registrado não reabre a decisão.** A licença
+  é fixada uma vez, na primeira importação que registra aquela fonte; a
+  segunda, a terceira, todas as seguintes reaproveitam a linha como está.
+- **O portão não cobre o cadastro manual de material**, de propósito — o
+  item do backlog fala em "base... importada", e um material só já passa por
+  uma pessoa logada decidindo linha a linha, o mesmo nível de decisão que o
+  portão está formalizando para um lote inteiro de uma vez. Estender ao
+  cadastro manual mudaria o contrato de `PropertyValueIn` (e os dois arquivos
+  de tipos que o espelham) por um ganho que o item não pede.
+- **`GET /api/sources`** lista toda fonte registrada com licença, sinalização
+  e revisor — a mesma lógica de M2: uma trilha que só grava e nunca se mostra
+  não sustenta alegação nenhuma de conformidade.
+- **Backfill da fonte de demonstração do seed**, tanto na migration
+  (`fc5a731dd162`, para um banco de desenvolvimento já semeado antes desta
+  sessão) quanto em `app/db/seed.py` (para um banco novo) — a única fonte que
+  já existia antes de M1 nunca aparece como "sem licença".
+
+Decisão completa (com alternativas descartadas) em [D-44](DECISIONS.md).
+
+## 4. Correções incidentais
+
+Duas fixtures de teste já mescladas (`test_imports_api.py`,
+`test_case_study.py`) registravam uma fonte nova sem licença — o próprio
+portão que esta sessão introduziu as teria quebrado. Corrigidas com
+`source_license_label` nos seus mapeamentos; `docs/12-estudo-de-caso.md`
+ganhou uma nota apontando que reproduzir o caso hoje, contra uma fonte ainda
+não registrada, exige o mesmo campo.
+
+## 5. Verificação
+
+`pytest` (639 testes, +7 desta sessão, em `test_source_licensing.py`),
+`ruff check` e `black --check` verdes, `alembic upgrade head` + seed num
+banco limpo (inclusive o backfill da fonte de demonstração). Sem verificação
+de frontend — o pedido era só de backend, como M2.
+
+## 6. O que continua em aberto
+
+Só a sessão de teste de usabilidade do §3.5 — a única pendência do trabalho
+como um todo que não é código e não pode ser fechada por quem programa
+sozinho.
+
+---
+
+# Sessão 6 — 21/08/26 — Estudo de caso didático (A2)
+
+Ponto de partida: fim da sessão 5 (PR #10 aberta, M2 verde). Testes de
+backend: 630 → 632. Continuação da mesma sessão de trabalho após uma pausa —
+o usuário voltou ("bom dia") e escolheu A2 entre as pendências restantes do
+`TODO.md`, a mesma pergunta feita no início da sessão 5.
+
+## 1. O caso escolhido
+
+O tirante leve e rígido ("light, stiff tie") de Ashby: elemento sob tração
+pura, minimizar massa para rigidez axial especificada, índice a maximizar
+`M = E/ρ`. Três razões concretas, não só "é um exemplo clássico":
+
+- O índice `rigidez-especifica` (`modulo_young / densidade`) **já estava
+  semeado** no catálogo (`app/db/seed.py`), com a referência a Ashby nas
+  próprias hipóteses — o caso reusa o que já existia, não inventa um índice
+  novo.
+- O resultado é genuinamente consolidado na literatura, com uma conclusão
+  contraintuitiva bem documentada (cerâmicas vencem no índice bruto, e é
+  exatamente por isso que o caso precisa de uma segunda restrição para
+  chegar à resposta de engenharia real) — o tipo de caso onde "os candidatos
+  batem com o esperado" é uma afirmação verificável, não uma opinião.
+- A restrição de fragilidade usa `not_in_class`, que já existe na
+  aplicação — nenhuma propriedade nova (tenacidade à fratura) precisou ser
+  adicionada ao catálogo.
+
+## 2. Dados: reais, não fictícios, e a rede bloqueada no meio do caminho
+
+Princípio 1 do `CLAUDE.md` proíbe inventar propriedade de material. Nove
+materiais (três metais, dois compósitos, dois polímeros, uma cerâmica, um
+elastômero) precisavam de densidade e módulo de Young **reais**, não
+fabricados. `WebFetch` para as fontes candidatas (MIT OpenCourseWare, en.wikipedia.org)
+retornou `EGRESS_BLOCKED` — a política de rede deste ambiente não permite
+essas requisições — em três domínios diferentes; só `WebSearch` (que devolve
+um resumo sintetizado, não a página inteira) funcionou. As cifras finais
+vieram desses resumos, cross-checadas entre duas a três buscas independentes
+por material, e o documento (§3 abaixo) registra essa limitação em vez de
+escondê-la atrás de uma citação com precisão que a própria coleta não tinha.
+
+## 3. Execução real, não simulada
+
+Servidor subido localmente contra um banco limpo (`alembic upgrade head` +
+seed), autenticado pela mesma sessão fixa que o Playwright usa
+(`ENVIRONMENT=development` + `E2E_SESSION_TOKEN`, sem bypass exposto por
+rota nenhuma — mecanismo documentado em `docs/CLAUDE.md §5`, não um atalho
+novo). Sequência real, via HTTP: upload → validação → commit da planilha
+(`docs/estudo-de-caso/materiais-haste-leve-rigida.csv`) → `POST
+/selection/run` (restrições + índice + ranking) → `POST /selection/studies`
+(salvar) → exportação do relatório e do laudo. As sugestões automáticas de
+coluna da importação acertaram as nove colunas sozinhas — a mesma
+funcionalidade cujo bug de hífen/underscore a suíte A4 corrigiu numa sessão
+anterior, funcionando corretamente aqui.
+
+O resultado bateu exatamente com o previsto: CFRP em primeiro (35,3), os três
+metais estruturais num platô de 1,8% entre si (25,48–25,93), a cerâmica
+excluída pela restrição de fragilidade apesar de ter, de longe, o melhor
+índice bruto (100,0, quase 3× o CFRP). Os três pontos que o exemplo do
+tirante existe para ilustrar, reproduzidos por uma execução real, não
+citados de memória.
+
+A auditoria (M2, sessão anterior) registrou o próprio `POST
+/selection/studies` deste estudo — a primeira vez que a trilha gravou algo
+fora dos próprios testes que a exercitaram.
+
+## 4. O que foi criado
+
+- `docs/estudo-de-caso/` — a planilha real (não o `sample-data/` fictício), um
+  `README.md` com as fontes, e `evidencias/` com as respostas reais da
+  aplicação (JSON do `/selection/run`, relatório de seleção e laudo em HTML,
+  relatório em CSV) — nada composto à mão fora da aplicação.
+- `docs/12-estudo-de-caso.md` — o roteiro: caso escolhido, enunciado no
+  formato Função/Restrições/Objetivo/Variáveis livres, dados e fontes (com a
+  ressalva de precisão do §2 acima), execução real, resultado, comparação
+  com a literatura em três pontos verificáveis, limitações, como reproduzir.
+- `app/tests/test_case_study.py` — a mesma planilha embutida (mesmo padrão
+  que `test_imports_api.py` já usa para sua própria fixture), a mesma
+  seleção, e a asserção de que a ordenação e o platô dos metais se repetem a
+  cada execução da suíte — a verificação do item 2.6/6 da proposta vira
+  regressão de CI, não só um resultado manual documentado uma vez.
+
+## 5. Verificação
+
+`pytest` (632 testes, +2 desta sessão), `ruff check` e `black --check`
+verdes. Sem verificação de frontend — o caso é inteiramente backend/API,
+como o pedido original de A2 já era.
+
+## 6. O que continua em aberto
+
+Do backlog: M1 (triagem de licenciamento) e a sessão de teste de usabilidade
+do §3.5 — esta última é a única pendência do trabalho como um todo que não é
+código e não pode ser fechada por quem programa sozinho.
+
+---
+
+# Sessão 5 — 21/08/26 — Auditoria (M2) e a instalação do ambiente de assistente
+
+Ponto de partida: `d20e7df` (fim da sessão 4 registrada aqui). Testes de
+backend: 617 → 630. Testes de frontend: 148 (inalterado — o pedido era só de
+backend).
+
+> **A contagem de partida não bate com o fim da sessão 4** (591, não 617) — a
+> diferença (26 testes) veio de trabalho entre as duas sessões que não ganhou
+> uma seção própria neste arquivo (a autenticação A5, [D-42](DECISIONS.md), já
+> estava em produção no início desta sessão). Registrado aqui para quem for
+> reconciliar os números depois; não investigado nesta sessão, que tratava de
+> outro assunto.
+
+## 0. Ambiente do assistente
+
+Sessão iniciada num container novo, sem nada instalado além do Claude Code em
+si. Antes do trabalho de código, os três marketplaces e os dois plugins de
+[`docs/CLAUDE_SETUP.md`](CLAUDE_SETUP.md) foram reconectados
+(`claude-plugins-official`, `superpowers-dev`, `thedotmack`;
+`superpowers@superpowers-dev`, `claude-mem@thedotmack`), e o gstack foi
+clonado e instalado. A receita documentada (clonar em `~/.agents/skills/gstack`)
+não registra as skills onde este ambiente as espera: qualquer diretório
+literalmente chamado `skills/` faz o instalador do gstack tratar a instalação
+como "já dentro de um diretório de skills" e symlinkar os comandos *ao lado*
+do clone em vez de para dentro de `~/.claude/skills/`, então em
+`~/.agents/skills/gstack` os comandos foram parar em `~/.agents/skills/*` —
+onde o Claude Code deste ambiente não os enxerga. Clonar direto em
+`~/.claude/skills/gstack` (mesmo nome de diretório final, container diferente)
+ativa o mesmo caminho de código de um jeito que resolve para o lugar certo. À
+parte disso, o instalador tenta baixar seu próprio Chromium via Playwright
+para a função `/browse`; a rede deste ambiente bloqueia esse host
+(`cdn.playwright.dev`) e o instalador, sem tratamento de erro nesse trecho,
+aborta antes de chegar ao passo que registra as skills — contornado
+comentando as duas chamadas de instalação do Chromium no script (o ambiente
+já tem um Chromium próprio em `/opt/pw-browsers`, só não na revisão que este
+Playwright vendorizado espera). Nenhuma mudança de projeto — só do ambiente do
+assistente, fora do repositório.
+
+## 1. O pedido e a escolha do que atacar
+
+O pedido desta sessão foi genérico — "leia a documentação, baixe as skills do
+projeto, continue de onde parou" — sem apontar qual pendência. `TODO.md`
+listava quatro itens de peso comparável e natureza bem diferente: A2 (estudo
+de caso, exige curar dado real citável — julgamento de domínio), a sessão de
+teste de usabilidade do §3.5 (exige pessoas reais, não pode ser feita por um
+agente), M1 (triagem de licenciamento) e M2 (auditoria, com dependência já
+satisfeita por A5, spec autocontida, zero dependência de dado externo).
+Perguntado, o usuário escolheu M2 — o item mais adequado a uma sessão autônoma
+de uma vez só, e o único das quatro pendências que não dependia de julgamento
+de domínio ou de um humano fora do teclado.
+
+## 2. O que foi implementado
+
+`AuditEvent` (`app/models/audit.py`, migration `d063cad4ae8b`): quem mudou o
+quê e quando, para as entidades que uma pessoa edita à mão — material, classe,
+propriedade, índice de desempenho e estudo de seleção.
+
+- **Retrato, não junção viva.** `user_email`/`entity_label`/`project_id` são
+  capturados no momento do evento, não lidos de uma junção em tempo de
+  leitura — sobrevivem à conta, à entidade ou ao estudo desaparecerem depois.
+  É a mesma lógica de proveniência que já vale para `material_property_value`
+  (princípio 4 do `CLAUDE.md`), aplicada a "quem fez isto".
+- **`changes` é um diff, não um dump.** Só os campos que de fato mudaram
+  (`app/services/audit_service.diff_fields`) — um `PATCH` de um campo não
+  imprime os outros dez inalterados, e um `PATCH` que não muda nada não grava
+  evento nenhum.
+- **A troca de valores de propriedade vira um diff por slug**, não um evento
+  por linha — `PUT .../values` já é "substitua o conjunto inteiro", e a
+  proveniência de cada valor já é rastreada à parte por linha.
+- **A importação em lote fica de fora, de propósito.** `ImportService` monta
+  `Material` diretamente (`app/importers/service.py`), sem os métodos
+  públicos de `MaterialService` onde o `record_change` está — `ImportJob` já é
+  a trilha desse fluxo, e auditar por linha um commit de milhares seria ruído.
+- **`GET /api/audit`** lista por `entity_type`/`entity_id`, paginado, sob a
+  mesma fronteira de projeto de todo endpoint de estudo — catálogo visível a
+  qualquer usuário logado, `selection_study` só ao dono, inclusive depois de
+  excluído (é exatamente o retrato de `project_id` que torna isso possível).
+
+Quatro serviços (`MaterialService`, `TaxonomyService`, `PropertyService`,
+`SelectionService`) ganharam um `user: User | None = None` no construtor,
+todo roteador que os instancia passou a repassar o usuário logado, e
+`AuditRepository`/`audit_service.record_change` fazem a escrita — sempre antes
+do `commit()` do próprio serviço, para que o evento nunca fique numa
+transação diferente da mudança que descreve.
+
+Decisão registrada em [D-43](DECISIONS.md), com as alternativas descartadas
+(dump completo em vez de diff, evento por linha de valor, filtro de
+privacidade por junção viva, cobrir a importação).
+
+## 3. Correções incidentais
+
+Duas classes de repositório não tinham `flush()` (`PropertyDefinitionRepository`)
+ou não seguiam o padrão de outras (mesmo método, só faltando) — descobertas
+pelos próprios testes de auditoria ao precisar do `id` do objeto recém-criado
+antes do `commit()`. Corrigidas junto, sem afetar nenhum comportamento
+existente.
+
+## 4. Verificação
+
+`pytest` (630 testes, +13 desta sessão), `ruff check` e `black --check`
+verdes; `alembic upgrade head` + `python -m app.db.seed` num banco limpo (o
+mesmo portão que a CI roda). `test_audit.py` cobre: evento por ação e por tipo
+de entidade; diff correto por campo e por slug de propriedade; nenhum evento
+numa atualização sem mudança real; exclusão duas vezes grava um único
+`EXCLUIDO`; um usuário não vê o estudo de outro nem por id nem numa listagem
+mista; o dono continua vendo a exclusão do próprio estudo depois dela
+acontecer; a importação em lote não grava evento de material. Sem verificação
+de frontend — o pedido era só de backend, e nenhuma tela consome `GET
+/api/audit` ainda (fica para quando houver pedido de interface para isto).
+
+## 5. O que continua em aberto
+
+Da Fase 7, só a arquitetura para PPTX (B2, baixa prioridade, fora de escopo
+salvo pedido). Do trabalho como um todo: a sessão de teste de usabilidade do
+§3.5 (nenhuma foi realizada), o estudo de caso didático completo (A2) e a
+triagem de licenciamento (M1) — nenhum dos três é código que um agente possa
+fechar sozinho numa sessão como esta.
 
 ---
 

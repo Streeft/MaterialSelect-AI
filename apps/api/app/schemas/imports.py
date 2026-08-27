@@ -35,6 +35,16 @@ class ImportMapping(BaseModel):
     description_column: str | None = None
     keywords_column: str | None = None
     source_label: str | None = Field(default=None, max_length=160)
+    # Procedência/licença (M1) — required only when ``source_label`` names a
+    # source not yet registered; an already-registered source keeps the
+    # license it was given the first time (see ImportService._check_source_licensing).
+    source_license_label: str | None = Field(default=None, max_length=200)
+    source_license_url: str | None = Field(default=None, max_length=500)
+    source_contains_third_party_data: bool = False
+    # The human confirmation the backlog item requires before incorporating a
+    # source flagged as possibly containing third-party data. Meaningless
+    # (and ignored) unless source_contains_third_party_data is also True.
+    source_review_confirmed: bool = False
     columns: list[ColumnMapping] = []
 
 

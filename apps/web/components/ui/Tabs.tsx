@@ -1,24 +1,19 @@
 "use client";
 
-import { useCallback, useId, type ReactNode } from "react";
-import { MdPrimaryTab, MdTabs } from "./material/elements";
+import { useCallback, useId, useRef, type ReactNode } from "react";
+import { cn } from "@/lib/cn";
 
 /**
- * Tabs, on top of @material/web's md-tabs + md-primary-tab.
+ * Tabs with the keyboard behaviour the pattern actually specifies: arrows move
+ * between tabs, Home/End jump to the ends, and only the selected tab is in the
+ * tab order. A row of buttons styled as tabs traps a keyboard reader into
+ * pressing Tab once per view.
  *
- * md-tabs already implements the keyboard pattern this component used to
- * hand-roll: arrow keys move focus, Home/End jump to the ends, and only the
- * active tab sits in the tab order. `autoActivate` is the one property this
- * call site turns on — without it, arrow keys only move focus (the "manual
- * activation" ARIA pattern, Enter/Space required to commit a selection), and
- * this app's existing behaviour and tests expect selection to follow focus
- * immediately, the same as before.
- *
- * The panel stays exactly what it was: a sibling this component owns and
- * renders itself, not a separate `TabPanel` a caller could get the id wrong
- * for. `md-tabs` has no concept of a panel at all — selection is purely
- * index-based (`activeTabIndex`), so `value` is translated to/from an index
- * at the boundary here.
+ * The panel is a child of this component rather than a separate `TabPanel` the
+ * screen places itself. It used to be the latter, and the id that links the two
+ * came from a `useId` inside here — which no call site could possibly know, so
+ * every tab in the application pointed `aria-controls` at an element that did
+ * not exist. Owning both halves is what makes that unrepresentable.
  */
 
 export interface TabItem<T extends string> {
@@ -47,39 +42,66 @@ export function Tabs<T extends string>({
   children: ReactNode;
 }) {
   const base = useId();
-  const activeTabIndex = items.findIndex((item) => item.id === value);
+  const listRef = useRef<HTMLDivElement>(null);
 
-  const handleChange = useCallback(
-    (event: Event) => {
-      const activeTabIndex = (event.target as unknown as { activeTabIndex: number }).activeTabIndex;
-      const next = items[activeTabIndex];
-      if (next) onChange(next.id);
+  const onKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
+      const keys = ["ArrowRight", "ArrowLeft", "Home", "End"];
+      if (!keys.includes(event.key)) return;
+      event.preventDefault();
+      const index = items.findIndex((i) => i.id === value);
+      let next = index;
+      if (event.key === "ArrowRight") next = (index + 1) % items.length;
+      if (event.key === "ArrowLeft") next = (index - 1 + items.length) % items.length;
+      if (event.key === "Home") next = 0;
+      if (event.key === "End") next = items.length - 1;
+      const target = items[next];
+      if (!target) return;
+      onChange(target.id);
+      // Selection follows focus, so focus has to follow selection too.
+      listRef.current?.querySelector<HTMLButtonElement>(`#${CSS.escape(`${base}-tab-${target.id}`)}`)?.focus();
     },
-    [items, onChange],
+    [base, items, onChange, value],
   );
 
   return (
     <>
-      <MdTabs
+      <div
+        ref={listRef}
+        role="tablist"
         aria-label={label}
-        autoActivate
-        activeTabIndex={activeTabIndex}
-        onChange={handleChange}
-        className={className}
+        onKeyDown={onKeyDown}
+        className={cn("scroll-x flex gap-1 border-b border-edge", className)}
       >
-        {items.map((item) => (
-          <MdPrimaryTab
-            key={item.id}
-            id={`${base}-tab-${item.id}`}
-            // Only the selected panel is in the document, so only the
-            // selected tab may claim to control one.
-            aria-controls={item.id === value ? `${base}-panel-${item.id}` : undefined}
-          >
-            {item.label}
-            {item.meta ? <span className="ml-1.5 text-2xs text-ink-subtle">{item.meta}</span> : null}
-          </MdPrimaryTab>
-        ))}
-      </MdTabs>
+        {items.map((item) => {
+          const selected = item.id === value;
+          return (
+            <button
+              key={item.id}
+              id={`${base}-tab-${item.id}`}
+              role="tab"
+              type="button"
+              aria-selected={selected}
+              // Only the selected panel is in the document, so only the selected
+              // tab may claim to control one.
+              aria-controls={selected ? `${base}-panel-${item.id}` : undefined}
+              tabIndex={selected ? 0 : -1}
+              onClick={() => onChange(item.id)}
+              className={cn(
+                "-mb-px whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium transition",
+                selected
+                  ? "border-brand text-brand"
+                  : "border-transparent text-ink-subtle hover:border-edge-strong hover:text-ink",
+              )}
+            >
+              {item.label}
+              {item.meta ? (
+                <span className="ml-1.5 text-2xs text-ink-subtle">{item.meta}</span>
+              ) : null}
+            </button>
+          );
+        })}
+      </div>
       <div
         role="tabpanel"
         id={`${base}-panel-${value}`}

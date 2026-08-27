@@ -13,57 +13,12 @@ os vizinhos — outros documentos citam esses códigos.
 
 ## Alta prioridade
 
-### A2 — Estudo de caso didático completo
-- **Descrição:** um caso com solução consolidada na literatura, do enunciado ao
-  relatório exportado, verificando se os candidatos e a ordenação correspondem
-  ao esperado. Publicar como roteiro em `docs/`.
-- **Impacto:** alto. É **entregável explícito da proposta** (itens 2.6 e 6) e a
-  validação metodológica do trabalho. Sem ele, a ferramenta funciona mas não
-  está demonstrada.
-- **Dificuldade:** ▃
-- **Dependências:** nenhuma técnica; depende de escolher o caso na literatura.
+Nenhum item aberto no momento — A6 (Cérebro em `main`) foi decidido, não
+executado: ver "Débitos já quitados".
 
 ---
 
 ## Média prioridade
-
-### M1 — Triagem de licenciamento das bases incorporadas
-- **Descrição:** registrar procedência e licença de cada base/documentação
-  importada, com sinalização de conteúdo possivelmente protegido e decisão
-  humana obrigatória antes da incorporação.
-- **Impacto:** médio-alto. É **compromisso do item 4.2 da proposta** e uma
-  mitigação de risco declarada, ainda não implementada.
-- **Dificuldade:** ▃
-- **Dependências:** modelo de `Source` já existe e pode ser estendido.
-
-### M2 — Auditoria de alterações
-- **Descrição:** `AuditEvent` registrando quem mudou o quê e quando.
-- **Impacto:** médio. Sustenta a alegação de rastreabilidade no nível do
-  *processo*, não só do dado.
-- **Dificuldade:** ▃
-- **Dependências:** nenhuma mais — A5 quitou o "quem" (há `User` desde o login
-  com Google). Ainda não implementado.
-
-### M8 — Desempenho medido (Lighthouse)
-- **Descrição:** a metade de desempenho do antigo M3, que ficou de fora quando a
-  acessibilidade foi entregue. **A parte de peso de bundle já foi feita** na
-  varredura da Fase 9: o Plotly era mesmo o suspeito — 4,5 MB, 79% de todo o JS —
-  e passou a ser montado à la carte, derrubando o maior *chunk* para 981 KB
-  (`PROJECT_CONTEXT.md §12`). O que resta é o que nunca foi medido: **tempo até
-  interativo** em todas as rotas, com Lighthouse ou equivalente.
-- **Impacto:** médio. Um estudante em aula, num notebook modesto, é o público
-  descrito na proposta.
-- **Dificuldade:** ▁ (o que sobrou), antes ▃
-- **Dependências:** nenhuma. Se virar job de CI, vale o aviso do A4 sobre
-  `scripts/protect-main.ps1`.
-
-### M4 — Unificar o contrato de tipos
-- **Descrição:** npm workspaces + `transpilePackages` para eliminar o espelho
-  manual entre `packages/shared-types` e `apps/web/lib/types.ts`.
-- **Impacto:** médio. Hoje toda mudança de contrato exige editar dois arquivos, e
-  esquecer um só aparece em runtime.
-- **Dificuldade:** ▃
-- **Dependências:** mexe na configuração de build do Next — faça em PR isolado.
 
 ### M5 — Métodos multicritério adicionais (TOPSIS, AHP, PROMETHEE)
 - **Descrição:** implementar sobre a estrutura já genérica de `domain/ranking.py`.
@@ -127,9 +82,9 @@ os vizinhos — outros documentos citam esses códigos.
 
 ## Entidades ainda não modeladas
 
-`AuditEvent`, `SavedChart`, `GeneratedReport`. Cada uma depende de um item
-acima (M2, B7) — não crie tabela sem o caso de uso. (`User` e `Project` saíram
-desta lista com A5.)
+`SavedChart`, `GeneratedReport`. Cada uma depende de um item acima (B7) — não
+crie tabela sem o caso de uso. (`User` e `Project` saíram desta lista com A5;
+`AuditEvent` saiu com M2.)
 
 ---
 
@@ -137,6 +92,100 @@ desta lista com A5.)
 
 Registrados para não voltarem por engano:
 
+- ~~**RAG sobre o Cérebro**~~ — o Cérebro (D-45) deixou de estar inerte em
+  `main`: `app/knowledge/retrieval.py` faz busca híbrida (BM25 + semântica,
+  fundidas por *reciprocal rank fusion*) e alimenta `interpret()`/`explain()`
+  da camada de IA com trechos numerados, *gated* por `provider.simulated` — o
+  `mock` nunca aciona a busca, preservando a garantia de determinístico e sem
+  rede. `explain()` ganhou citação **verificada** por índice
+  (`guardrails.check_citations`), não citação livre: um índice fora do que
+  foi de fato recuperado naquela chamada é descartado. A garantia mais
+  importante da metodologia ficou intacta e provada, não só prometida: um
+  número presente só num trecho recuperado continua sendo recusado como
+  restrição, porque `check_constraint`/`ungrounded_numbers` nunca leem
+  `context.retrieved` — teste dedicado cobre exatamente isso, e dois
+  revisores confirmaram separadamente que nenhum caminho novo alcança essas
+  funções. Receita gratuita de embeddings (Jina AI, 1M tokens/mês sem
+  cartão) documentada em `.env.example`, sem padrão de propósito (mesmo
+  raciocínio de `AI_BASE_URL`, D-36); sem nada configurado, cai para busca só
+  léxica. 55 testes novos de backend (768 no total, nenhum skip). Ver
+  [D-47](DECISIONS.md) e [09-camada-ia.md](09-camada-ia.md).
+- ~~**M4** — Unificar o contrato de tipos~~ — npm workspaces (`package.json`
+  na raiz, `workspaces: ["apps/web", "packages/shared-types"]`) +
+  `transpilePackages` em `next.config.mjs`. `packages/shared-types/index.ts`
+  passa a ser importado de verdade por `apps/web` (como
+  `@materialselect/shared-types`), não só copiado à mão; `apps/web/lib/types.ts`
+  virou um barril de reexportação, preservando os 39 pontos de importação que já
+  usavam `@/lib/types`. A divergência que a duplicação escondia (`x_quality`/
+  `y_quality` não-nulos em `shared-types`, corretamente nulos em
+  `apps/web/lib/types.ts`) foi resolvida ao consolidar num arquivo só — a
+  versão de `apps/web`, que era a exercitada pelo typechecker. Ver [D-16](DECISIONS.md).
+- ~~**M9** — Reconciliar as duas arquiteturas de cobrança~~ — **decidido: o
+  portão binário do plano de 18/08 é o que fica ligado.** `require_active_
+  subscription` passou a valer em todo router exceto `health`/`auth`/`billing`;
+  o plano Free/Pro de 21/08 fica registrado como desenho alternativo, não
+  implementado. `AuthGate.tsx` voltou a dois estágios (`/auth/me` →
+  `/billing/status`); a sessão fixa de E2E/Lighthouse já escrevia uma
+  `Subscription` ativa para este momento. Verificado ao vivo: sem cookie →
+  401, com assinatura ativa → 200, autenticado sem assinatura → 403 (com
+  `/billing/status` continuando alcançável). **Checkout real testado de
+  ponta a ponta** (25/08): o autor configurou Stripe em modo de teste e um
+  cliente OAuth do Google na própria máquina e completou o fluxo completo —
+  login → checkout hospedado → pagamento de teste → webhook → `/assinatura`
+  com assinatura ativa. Essa verificação achou um bug real que os 713 testes
+  não pegavam (webhook sempre devolvia 500 contra o SDK de verdade); corrigido
+  e coberto por teste no PR #21. Ver [D-46](DECISIONS.md).
+- ~~**A6** — Purgar o material licenciado do Cérebro em `main`~~ — **decidido
+  não purgar.** O autor optou por manter os 158 arquivos (11 livros
+  comerciais, 103 fichas Granta EduPack, material de curso e trabalhos
+  entregues) como base de conhecimento da camada de IA, com informação
+  completa sobre a exposição. Risco aceito, não descuido. Ver
+  [D-45](DECISIONS.md).
+- ~~**M8** — Desempenho medido (Lighthouse)~~ — job `Lighthouse` em `ci.yml`:
+  build de produção, API e frontend em portas isoladas (8811), sessão fixa via
+  `E2E_SESSION_TOKEN` para que as 11 rotas auditadas sejam as telas reais
+  autenticadas (sem isso, todas cairiam em `/entrar` e o Lighthouse mediria só
+  a tela de login), com limiares por assertiva
+  (`apps/web/lighthouserc.json`): performance ≥0,7, acessibilidade ≥0,9,
+  boas práticas ≥0,8, interativo ≤5 s, FCP ≤2,5 s, LCP ≤4 s, CLS ≤0,1, TBT
+  ≤500 ms. `scripts/protect-main.ps1` já lista `Lighthouse` entre os nomes
+  exigidos — falta confirmar que o script foi de fato executado contra a
+  ruleset viva no GitHub (ver `CLAUDE.md` §7).
+- ~~**M1** — Triagem de licenciamento das bases incorporadas~~ — `Source`
+  ganhou `license_label`/`license_url`, a sinalização explícita
+  `contains_third_party_data` e um carimbo de quem registrou a fonte e
+  quando. O portão fica na importação (`ImportService._check_source_licensing`,
+  rodando em `validate()` e de novo em `commit()`): uma fonte **nova** sem
+  licença registrada é recusada antes de qualquer linha ser escrita, e uma
+  fonte marcada como possivelmente contendo dado de terceiro exige uma
+  segunda confirmação humana explícita (`source_review_confirmed`). Reusar
+  um `source_label` já registrado não reabre a decisão a cada importação.
+  `GET /api/sources` lista toda fonte com sua licença e revisor. Ver
+  [D-44](DECISIONS.md).
+- ~~**A2** — Estudo de caso didático completo~~ — o tirante leve e rígido
+  ("light, stiff tie") de Ashby, reproduzido do enunciado ao relatório
+  exportado contra a aplicação real (não simulado): nove materiais reais de
+  literatura (não o `sample-data/` fictício) importados pelo assistente de
+  importação, o índice `rigidez-especifica` já semeado, uma restrição de
+  fragilidade que exclui a cerâmica mesmo com o melhor índice bruto, e a
+  ordenação resultante batendo com os três pontos consolidados na literatura
+  de Ashby: compósitos à frente de metais, os três metais estruturais num
+  platô de menos de 2% entre si, cerâmica excluída por fragilidade apesar do
+  índice. Roteiro completo, com as respostas reais da API como evidência, em
+  [`docs/12-estudo-de-caso.md`](12-estudo-de-caso.md); regressão automatizada
+  em `app/tests/test_case_study.py`.
+- ~~**M2** — Auditoria de alterações~~ — `AuditEvent`
+  (`app/models/audit.py`) registra quem, o quê e quando para material, classe,
+  propriedade, índice de desempenho e estudo de seleção: um retrato de
+  `user_email`/`entity_label` (sobrevive à conta ou à entidade sumirem depois)
+  e um diff só dos campos que mudaram. `GET /api/audit` lista por
+  entidade, com a mesma fronteira de projeto de todo endpoint de estudo — o
+  catálogo é visível a qualquer usuário logado, um estudo só ao seu dono,
+  inclusive depois de excluído (retrato de `project_id`, não junção viva). A
+  importação em lote fica de fora de propósito: `ImportService` monta
+  `Material` direto, sem os métodos públicos de `MaterialService` que
+  chamam o audit — `ImportJob` já é a trilha desse fluxo. Ver
+  [D-43](DECISIONS.md).
 - ~~**A5** — Autenticação e autorização por projeto~~ — login exclusivamente
   por terceiros (Google, OAuth 2.0; sem senha em lugar nenhum), sessão em
   cookie `httpOnly` (`UserSession` é linha de banco, não JWT — logout revoga

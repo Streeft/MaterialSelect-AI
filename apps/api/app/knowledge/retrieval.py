@@ -1,39 +1,33 @@
-"""Finding the passages that bear on a question, and saying how they were found.
+"""Retrieval: turn a query into ranked, cited passages from the corpus.
 
-Two rankings, fused. The lexical pass (:mod:`app.knowledge.lexical`) needs
-nothing but the database and always runs; the semantic pass needs an embedding
-provider and runs when one is configured. Neither is trusted to be right alone.
+Hybrid by default: lexical (BM25, no network) and semantic (embeddings, one
+network call for the query) are ranked separately, then combined by
+*reciprocal rank fusion* — each candidate's score is the sum of
+``1 / (k + rank)`` across whichever lists it appears in, ``k = 60`` (the
+constant the RRF literature converged on; no tuning knob here because there
+is nothing yet to tune it against).
 
-**Why fusion and not a weighted sum.** BM25 scores and cosine similarities live
-on incomparable scales — one is unbounded and corpus-dependent, the other sits
-in [-1, 1] — so any weighting of the two raw numbers encodes an arbitrary
-exchange rate that shifts with the corpus. Reciprocal rank fusion uses only the
-*positions*, which is the part both rankings actually agree on the meaning of.
-It is also why adding a third ranking later would not require re-tuning the
-first two.
+Semantic search degrades to lexical-only, silently to the caller, whenever
+embeddings are unconfigured or the call fails — a knowledge base is more
+useful with half its retrieval working than with none of it, and the
+alternative (raising) would make one flaky embedding provider take down every
+AI call in the product.
 
-**Degradation is declared, never silent.** If embeddings are configured and the
-provider fails, the search still answers from the lexical pass — and says so, in
-:attr:`RetrievalResult.degraded_reason`, which the AI layer puts in front of the
-reader. A quietly lexical answer that the operator believes is semantic is the
-failure mode this whole project is built to avoid; the same reasoning that makes
-``AI_PROVIDER`` fail loudly rather than fall back to ``mock``.
-
-**Authority breaks ties and nothing more.** A passage from a course handout does
-not outrank a better-matching passage from a textbook. But when two passages are
-ranked equally, the one whose provenance someone actually vouched for goes
-first, and an undeclared source goes last. Authority is a curator's judgement,
-so it decides only where the ranking has nothing left to say.
+**Vocabulary and context, never a number's source.** Whatever this returns
+feeds a prompt as reference text — it is never read by
+``app.ai.guardrails.check_constraint``, which only ever sees
+``context.statement``. See ``app/knowledge/__init__.py``.
 """
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 
 from sqlalchemy.orm import Session
 
 from app.config import Settings
-from app.config import settings as default_settings
+from app.domain.errors import ValidationError
 from app.knowledge.embeddings import (
     EmbeddingClient,
     EmbeddingUnavailableError,
@@ -41,233 +35,128 @@ from app.knowledge.embeddings import (
     unpack_vector,
 )
 from app.knowledge.lexical import bm25_scores, tokenize
-from app.models.enums import SourceAuthority
+from app.models.enums import DocumentKind, SourceAuthority
 from app.models.knowledge import KnowledgeChunk
 from app.repositories.knowledge_repository import KnowledgeRepository
 
-#: Reciprocal rank fusion's smoothing constant. 60 is the value the original
-#: paper reports and the one every implementation since has used; it is large
-#: enough that the top few positions do not dominate outright.
-RRF_K = 60
+logger = logging.getLogger(__name__)
 
-#: Most to least authoritative. Ties only — see the module docstring.
-AUTHORITY_ORDER: dict[SourceAuthority, int] = {
-    SourceAuthority.OFICIAL: 0,
-    SourceAuthority.CIENTIFICA: 1,
-    SourceAuthority.TECNICA: 2,
-    SourceAuthority.SECUNDARIA: 3,
-    SourceAuthority.NAO_VERIFICADA: 4,
-}
+#: How many candidates each ranking (lexical, semantic) contributes before
+#: fusion trims to top_k. Wider than top_k so fusion has real material to
+#: combine instead of comparing two already-truncated lists.
+_CANDIDATES = 20
+#: RRF's smoothing constant — the value the technique's literature settled on.
+_RRF_K = 60
 
 
 @dataclass(frozen=True)
-class RetrievedPassage:
-    """One passage and everything needed to cite it back to its source."""
+class RetrievedChunk:
+    """One passage handed to a prompt, with what makes it checkable."""
 
-    chunk_id: int
-    document_id: int
-    path: str
-    title: str
-    authority: SourceAuthority
-    author: str | None
-    reference: str | None
-    source_url: str | None
+    document_title: str
+    document_kind: DocumentKind
+    document_authority: SourceAuthority
     page_start: int | None
     page_end: int | None
-    heading: str | None
     text: str
     score: float
 
-    @property
-    def locator(self) -> str:
-        """Where to look, in the words a reader would use.
 
-        Built here rather than in the frontend because it is the last link of
-        the citation chain, and a chain whose last link is assembled twice in
-        two places eventually disagrees with itself.
-        """
-        parts = [self.title]
-        if self.heading:
-            parts.append(self.heading)
-        if self.page_start and self.page_end and self.page_end != self.page_start:
-            parts.append(f"p. {self.page_start}-{self.page_end}")
-        elif self.page_start:
-            parts.append(f"p. {self.page_start}")
-        return " — ".join(parts)
+def search(db: Session, query: str, *, top_k: int, settings: Settings) -> list[RetrievedChunk]:
+    """The ``top_k`` passages most relevant to ``query``, lexical + semantic."""
+    repo = KnowledgeRepository(db)
+    query_tokens = tokenize(query)
+    if not query_tokens:
+        return []
+
+    # Loaded once and shared: lexical scoring, the semantic-fallback fetch
+    # below, and _to_retrieved_chunk() all need the same rows, and the corpus
+    # is loaded whole (see list_all_chunks_for_lexical_search's docstring).
+    all_chunks = repo.list_all_chunks_for_lexical_search()
+
+    lexical_ranked = _lexical_rank(all_chunks, query_tokens)
+    semantic_ranked = _semantic_rank(repo, query, settings)
+
+    fused = _reciprocal_rank_fusion([lexical_ranked, semantic_ranked])
+    if not fused:
+        return []
+
+    chunks_by_id = {chunk.id: chunk for chunk in all_chunks}
+    # Semantic-only matches may not be in the lexical fetch (search_text could
+    # theoretically differ in coverage); fall back to the embeddings fetch.
+    if any(chunk_id not in chunks_by_id for chunk_id, _ in fused):
+        chunks_by_id.update({chunk.id: chunk for chunk in repo.list_all_embeddings()})
+
+    results = [
+        _to_retrieved_chunk(chunks_by_id[chunk_id], score)
+        for chunk_id, score in fused
+        if chunk_id in chunks_by_id
+    ]
+    return results[:top_k]
 
 
-@dataclass(frozen=True)
-class RetrievalResult:
-    """The passages, and an honest account of how they were found."""
-
-    passages: list[RetrievedPassage]
-    #: "lexical" or "hibrido" — what actually ran, not what was configured.
-    method: str
-    #: Set when the semantic pass was configured but did not run. Shown to the
-    #: reader; never swallowed.
-    degraded_reason: str | None = None
-
-    @property
-    def is_empty(self) -> bool:
-        return not self.passages
+def _lexical_rank(chunks: list[KnowledgeChunk], query_tokens: list[str]) -> list[tuple[int, float]]:
+    if not chunks:
+        return []
+    documents = {chunk.id: tokenize(chunk.search_text) for chunk in chunks}
+    document_frequency: dict[str, int] = {}
+    for tokens in documents.values():
+        for token in set(tokens):
+            document_frequency[token] = document_frequency.get(token, 0) + 1
+    scores = bm25_scores(query_tokens, documents, document_frequency, corpus_size=len(chunks))
+    return sorted(scores.items(), key=lambda item: -item[1])[:_CANDIDATES]
 
 
-class KnowledgeRetriever:
-    """Retrieval over the ingested corpus."""
-
-    def __init__(
-        self,
-        db: Session,
-        settings: Settings = default_settings,
-        embedder: EmbeddingClient | None = None,
-    ) -> None:
-        self.db = db
-        self.settings = settings
-        self.repo = KnowledgeRepository(db)
-        self._embedder = embedder
-
-    @property
-    def embedder(self) -> EmbeddingClient:
-        if self._embedder is None:
-            self._embedder = EmbeddingClient(self.settings)
-        return self._embedder
-
-    def search(self, query: str, top_k: int | None = None) -> RetrievalResult:
-        """The passages most relevant to ``query``, best first.
-
-        An empty result is a legitimate answer and not an error: a corpus that
-        has nothing to say about a question should say nothing, so that the AI
-        layer can state it had no grounding rather than invent some.
-        """
-        limit = top_k if top_k is not None else self.settings.knowledge_retrieval_top_k
-        tokens = tokenize(query)
-        if not tokens or limit <= 0:
-            return RetrievalResult(passages=[], method="lexical")
-
-        candidates = self.repo.search_candidates(
-            tokens, self.settings.knowledge_retrieval_candidates
+def _semantic_rank(
+    repo: KnowledgeRepository, query: str, settings: Settings
+) -> list[tuple[int, float]]:
+    client = EmbeddingClient(settings)
+    if not client.configured:
+        return []
+    chunks = repo.list_all_embeddings()
+    if not chunks:
+        return []
+    try:
+        query_vector = client.embed([query])[0]
+        scored = [
+            (chunk.id, similarity(query_vector, unpack_vector(chunk.embedding.vector)))
+            for chunk in chunks
+            if chunk.embedding is not None and chunk.embedding.model == client.model
+        ]
+    except EmbeddingUnavailableError as exc:
+        logger.warning("Busca semântica indisponível, usando só léxica: %s", exc)
+        return []
+    except ValidationError as exc:
+        # Not EmbeddingUnavailableError: the call succeeded, but a stored
+        # vector is corrupted or from an incompatible dimensionality.
+        # EmbeddingUnavailableError is itself a ValidationError subclass, so
+        # it's already caught above; this clause is for the plain
+        # ValidationError that similarity()/unpack_vector() raise instead.
+        # Same degradation, different cause: half the retrieval working
+        # beats a flaky/corrupted row taking down the call.
+        logger.warning(
+            "Pontuação semântica falhou com um vetor corrompido, usando só léxica: %s", exc
         )
-        if not candidates:
-            return RetrievalResult(passages=[], method="lexical")
+        return []
+    scored.sort(key=lambda item: -item[1])
+    return scored[:_CANDIDATES]
 
-        lexical = self._lexical_scores(tokens, candidates)
-        semantic, degraded = self._semantic_scores(query, candidates)
 
-        method = "hibrido" if semantic else "lexical"
-        fused = self._fuse([lexical, semantic] if semantic else [lexical])
-        ordered = self._order(fused, candidates)
+def _reciprocal_rank_fusion(rankings: list[list[tuple[int, float]]]) -> list[tuple[int, float]]:
+    fused: dict[int, float] = {}
+    for ranking in rankings:
+        for position, (chunk_id, _score) in enumerate(ranking):
+            fused[chunk_id] = fused.get(chunk_id, 0.0) + 1.0 / (_RRF_K + position + 1)
+    return sorted(fused.items(), key=lambda item: -item[1])
 
-        return RetrievalResult(
-            passages=[self._passage(chunk, fused[chunk.id]) for chunk in ordered[:limit]],
-            method=method,
-            degraded_reason=degraded,
-        )
 
-    # --- the two passes ----------------------------------------------------
-
-    def _lexical_scores(
-        self, tokens: list[str], candidates: list[KnowledgeChunk]
-    ) -> dict[int, float]:
-        frequencies = {
-            token: self.repo.document_frequency(token) for token in dict.fromkeys(tokens)
-        }
-        return bm25_scores(
-            query_tokens=tokens,
-            documents={chunk.id: tokenize(chunk.text) for chunk in candidates},
-            document_frequency=frequencies,
-            corpus_size=self.repo.count_chunks(),
-        )
-
-    def _semantic_scores(
-        self, query: str, candidates: list[KnowledgeChunk]
-    ) -> tuple[dict[int, float], str | None]:
-        """Cosine similarity against the stored vectors, or why there is none."""
-        if not self.settings.knowledge_embeddings_enabled:
-            # Not degradation: nobody asked for semantic retrieval. Saying so
-            # would be noise on every single search.
-            return {}, None
-
-        model = self.settings.knowledge_embedding_model.strip()
-        stored = self.repo.embeddings_for([chunk.id for chunk in candidates])
-        usable = {chunk_id: row for chunk_id, row in stored.items() if row.model == model}
-        if not usable:
-            return {}, (
-                "Busca semântica configurada, mas nenhum trecho candidato tem vetor "
-                f"para o modelo '{model}'. Rode a indexação de embeddings; até lá a "
-                "recuperação é apenas léxica."
-            )
-
-        try:
-            vector = self.embedder.embed([query])[0]
-        except EmbeddingUnavailableError as exc:
-            return {}, f"Busca semântica indisponível ({exc}). A recuperação foi só léxica."
-
-        scores: dict[int, float] = {}
-        for chunk_id, row in usable.items():
-            candidate = unpack_vector(row.vector)
-            if len(candidate) != len(vector):
-                # A vector from another model that kept this model's name. Skip
-                # it rather than compare incomparable things.
-                continue
-            scores[chunk_id] = similarity(vector, candidate)
-        if not scores:
-            return {}, (
-                "Os vetores armazenados têm dimensão diferente da que o modelo "
-                f"'{model}' devolve agora. Reindexe os embeddings."
-            )
-        return scores, None
-
-    # --- fusion and ordering ------------------------------------------------
-
-    @staticmethod
-    def _fuse(rankings: list[dict[int, float]]) -> dict[int, float]:
-        """Reciprocal rank fusion over one or more rankings.
-
-        Equal scores share a rank, rather than being separated by whichever id
-        happened to sort first. Without that, two passages a ranking considers
-        indistinguishable would still come out of fusion with different numbers,
-        and the authority tie-break below would have nothing left to break.
-        """
-        fused: dict[int, float] = {}
-        for ranking in rankings:
-            ordered = sorted(ranking.items(), key=lambda item: (-item[1], item[0]))
-            rank = 0
-            previous: float | None = None
-            for position, (key, score) in enumerate(ordered):
-                if previous is None or score != previous:
-                    rank = position
-                    previous = score
-                fused[key] = fused.get(key, 0.0) + 1.0 / (RRF_K + rank + 1)
-        return fused
-
-    @staticmethod
-    def _order(fused: dict[int, float], candidates: list[KnowledgeChunk]) -> list[KnowledgeChunk]:
-        """Best first; authority and then id break ties, deterministically."""
-        scored = [chunk for chunk in candidates if chunk.id in fused]
-        return sorted(
-            scored,
-            key=lambda chunk: (
-                -fused[chunk.id],
-                AUTHORITY_ORDER.get(chunk.document.authority, len(AUTHORITY_ORDER)),
-                chunk.id,
-            ),
-        )
-
-    @staticmethod
-    def _passage(chunk: KnowledgeChunk, score: float) -> RetrievedPassage:
-        document = chunk.document
-        return RetrievedPassage(
-            chunk_id=chunk.id,
-            document_id=document.id,
-            path=document.path,
-            title=document.title,
-            authority=document.authority,
-            author=document.author,
-            reference=document.reference,
-            source_url=document.source_url,
-            page_start=chunk.page_start,
-            page_end=chunk.page_end,
-            heading=chunk.heading,
-            text=chunk.text,
-            score=score,
-        )
+def _to_retrieved_chunk(chunk: KnowledgeChunk, score: float) -> RetrievedChunk:
+    return RetrievedChunk(
+        document_title=chunk.document.title,
+        document_kind=chunk.document.kind,
+        document_authority=chunk.document.authority,
+        page_start=chunk.page_start,
+        page_end=chunk.page_end,
+        text=chunk.text,
+        score=score,
+    )

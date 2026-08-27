@@ -20,48 +20,148 @@ toda cifra da prosa tenha saído do pipeline determinístico, e um valor de
 propriedade lido de um livro não passa a ser citável só porque está indexado.
 Ver [`docs/09-camada-ia.md`](../docs/09-camada-ia.md) §5.
 
+## Arquitetura da pasta
+
+Reorganizada em 2026-08 por categoria de conteúdo — critério: **de onde vem o
+documento e qual autoridade ele tem**, não o formato do arquivo. Isso importa
+porque quem consulta esta base (a IA e você) precisa saber diferenciar
+"bibliografia com peer review / editora" de "material de aula do professor" de
+"trabalho de aluno" — os três podem coexistir, mas carregam pesos de confiança
+diferentes.
+
+```
+Cérebro/
+├── 01-Bibliografia/                        Livros comerciais completos (no git, via LFS)
+│   └── Extratos-de-Capitulos/              Capítulos avulsos extraídos de um dos livros (versionados)
+├── 02-Material-de-Curso-ENG02016/          Tudo que é específico desta oferta da disciplina
+│   ├── Plano de Aulas...pdf
+│   ├── Topicos-de-Aula/                    Tópico 1 a 6 (slides do professor)
+│   ├── Ferramentas-Avaliativas/            Instruções, grupos e trios das F.A. 1B/2B
+│   └── Trabalhos-Entregues/                Produção dos alunos (F.A.1B, F.A.2B) — NÃO é fonte de verdade,
+│                                            é contexto de curso; pode ter erros dos próprios autores
+├── 03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/   Banco de dados licenciado ANSYS/Granta (no git, via LFS)
+├── 04-Ferramentas-e-Diagramas/             Diagramas de Ashby, diagrama de barras de preço
+├── 05-Artigos-Cientificos/                 Artigos avulsos de periódico (bromélias, impressão 3D de terra)
+├── Links.md                                Links indicados na disciplina
+└── README.md                               Este arquivo
+```
+
+A estrutura interna de `03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/` (por
+família de material: Metais e ligas, Cerâmicas e vidros, Polímeros e
+elastômeros, Híbridos/compósitos/espumas/materiais naturais, com subpastas por
+subfamília) já veio bem organizada do EduPack e foi mantida como estava —
+não precisa de retrabalho.
+
+## Recomendação de ingestão — evitar travamentos
+
+Os arquivos aqui variam de ~20 KB (fichas técnicas) a **151 MB** (o maior
+livro). Indexar tudo com o mesmo pipeline, do mesmo jeito, é a causa mais
+provável de travamento/timeout numa consulta:
+
+- **`03-*` (fichas Granta) e `04-*`/`05-*`**: arquivos pequenos (a maioria
+  < 1 MB, nenhum > 20 MB). Seguros para indexação direta, arquivo inteiro de
+  uma vez.
+- **`02-*` (material de curso)**: pequenos/médios (a maioria < 10 MB). Também
+  seguros para indexação direta.
+- **`01-Bibliografia/` (livros completos)**: vários arquivos entre 40 MB e
+  151 MB. **Não indexar o PDF inteiro de uma vez.** Ou (a) fatiar por
+  capítulo/faixa de página antes de indexar — o padrão já existe nos
+  `Extratos-de-Capitulos/` —, ou (b) tratar como fonte de consulta sob
+  demanda (RAG com leitura de página específica) em vez de embutir o livro
+  inteiro no índice vetorial.
+
+Dois arquivos merecem checagem manual antes da próxima ingestão: `Michael
+Ashby (Auth.)-Seleção De Materiais No Projeto Mecânico (2012).pdf` (151 MB) e
+`Selecao_de_Materiais_no_Projeto_Mecanico.pdf` (103 MB), em `01-Bibliografia/`,
+parecem ser a mesma tradução PT do livro do Ashby em dois scans diferentes.
+Não foram mesclados/removidos nesta reorganização por falta de confirmação de
+conteúdo — abra os dois e decida se um deles pode sair.
+
 ## O que está aqui
 
 | Conjunto | Origem | No git? |
 |---|---|---|
-| `Tópico 1` a `Tópico 6` | slides do professor | sim |
-| `Plano de Aulas`, `Instruções - Ferramenta avaliativa 1B/2B`, grupos e trios | material da disciplina | sim |
-| `⚙Seleção de Materiais/` | trabalhos dos alunos (F.A.1B, F.A.2B) e os gráficos gerados | sim |
+| `02-Material-de-Curso-ENG02016/Topicos-de-Aula/` (Tópico 1 a 6) | slides do professor | sim |
+| `02-Material-de-Curso-ENG02016/` (Plano de Aulas, Ferramentas-Avaliativas) | material da disciplina | sim |
+| `02-Material-de-Curso-ENG02016/Trabalhos-Entregues/` | trabalhos dos alunos (F.A.1B, F.A.2B) e os gráficos gerados | sim |
 | `Links.md` | links indicados na disciplina (vídeos, sites, MatWeb, Khan Academy…) | sim |
-| Artigos avulsos (bromélias, 3D printing, Diagramas de Ashby) | periódicos e material didático | sim |
-| ~9 livros comerciais (Ashby, Callister, Apelian…) | bibliografia indicada | **não** |
-| `Fichas descritivas de materiais - Granta Edupack - Nível 2/` (103 fichas) | banco de dados licenciado ANSYS/Granta | **não** |
-| 6 fichas EduPack avulsas em `Trabalho 2/Arquivos para gerar slide/` | idem | **não** |
+| `05-Artigos-Cientificos/`, `04-Ferramentas-e-Diagramas/` | periódicos e material didático | sim |
+| `01-Bibliografia/` (11 livros comerciais: Ashby, Callister, Apelian…) | bibliografia indicada | sim (LFS) |
+| `01-Bibliografia/Extratos-de-Capitulos/` | capítulos extraídos da bibliografia | sim (LFS) |
+| `03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/` (103 fichas) | banco de dados licenciado ANSYS/Granta | sim (LFS) |
+| 6 fichas EduPack avulsas em `Trabalhos-Entregues/Trabalho 2/Arquivos para gerar slide/` | idem | sim (LFS) |
 
-## O que não é versionado, e por quê
+## Tudo está versionado — e o que isso custa
 
-Este repositório é **público**. Livros comerciais íntegros e o extrato do banco
-de dados licenciado do Granta EduPack ficam fora do controle de versão: eles
-continuam no disco, alimentam a indexação normalmente — **indexar não é
-redistribuir** — mas o repositório não os hospeda. Os padrões estão no
-[`.gitignore`](../.gitignore) da raiz, comentados um a um.
+Por decisão explícita, o Cérebro inteiro está no git: os 11 livros comerciais
+de `01-Bibliografia/`, as 103 fichas do Granta EduPack e todo o resto. Nada
+fica só no disco. Três consequências que é melhor conhecer antes de esbarrar
+nelas.
 
-Publicar qualquer um deles é decisão humana explícita, arquivo a arquivo:
+**Git LFS não é opcional aqui.** Todo `*.pdf` e `*.pptx` é ponteiro, não blob —
+ver [`.gitattributes`](../.gitattributes). Sem `git lfs` instalado, o clone traz
+arquivos de texto de três linhas no lugar dos PDFs:
 
 ```bash
-git add -f "Cérebro/<arquivo>.pdf"
+git lfs install
+git clone https://github.com/Streeft/MaterialSelect-AI.git
 ```
 
-O Git LFS já está configurado em [`.gitattributes`](../.gitattributes) para
-`*.pdf` e `*.pptx`, então um arquivo desses entra como ponteiro sem passo
-adicional — o que importa porque o maior deles tem 145 MB e o teto de um blob
-comum no GitHub é 100 MB.
+**A cota do plano gratuito do GitHub é 1 GB de armazenamento LFS e 1 GB de banda
+por mês.** O Cérebro ocupa ~653 MB do armazenamento, e um clone completo consome
+~653 MB da banda mensal. Esgotada a cota, o LFS fica bloqueado na conta inteira
+— inclusive para push — até comprar um data pack ou virar o mês. Quem só precisa
+do código, e não dos PDFs, evita o custo assim:
 
-Isto é, em espírito, o item **M1** do backlog ([`docs/TODO.md`](../docs/TODO.md))
-— "triagem de licenciamento das bases incorporadas" — aplicado a arquivo em
-disco antes de existir a tabela que o fará no banco.
+```bash
+GIT_LFS_SKIP_SMUDGE=1 git clone https://github.com/Streeft/MaterialSelect-AI.git
+```
+
+Pelo mesmo motivo, nenhum job de CI deve baixar objetos LFS: o `actions/checkout`
+não os baixa por padrão, e `lfs: true` não deve ser ligado sem necessidade real.
+
+**O licenciamento continua em aberto.** Este repositório é público, e livro
+comercial íntegro e extrato de banco licenciado ANSYS/Granta agora estão
+publicados nele. É o item **M1** do backlog ([`docs/TODO.md`](../docs/TODO.md))
+— "triagem de licenciamento das bases incorporadas" —, e ele não foi resolvido,
+só adiado: quem revisar decide arquivo a arquivo o que pode continuar aqui.
+Tirar um arquivo do histórico depois de publicado exige reescrever o histórico,
+não basta um `git rm`.
+
+Um detalhe de Windows que custa uma hora se pegar de surpresa: os nomes de
+arquivo desta pasta são descritivos de propósito, e o caminho mais longo
+(`.../Trabalho 2/Arquivos para gerar slide/GRUPOS E CENÁRIOS...pdf`) passa de
+180 caracteres. Somado a um diretório de clone fundo, estoura o `MAX_PATH` de
+260 e o git falha com `Filename too long`. A correção é por clone, uma vez:
+
+```bash
+git config core.longpaths true
+```
 
 ## Proveniência
 
 Todo documento indexado carrega origem, autoridade da fonte e data de acesso.
-Enquanto o catálogo em banco não existe, a tabela acima e o `.gitignore` são o
-registro; quando existir, esta seção aponta para ele.
+Enquanto o catálogo em banco não existe, a tabela acima é o registro; quando
+existir, esta seção aponta para ele.
 
 Fonte sem proveniência conhecida é um estado explícito, nunca uma omissão
 silenciosa — a mesma disciplina que `is_missing=True` aplica a dado de material
 em [`app/domain/data_quality.py`](../apps/api/app/domain/data_quality.py).
+
+## Alimentando esta base ao longo do tempo
+
+Novo material sempre entra pela categoria certa:
+
+- Livro/manual comercial inteiro → `01-Bibliografia/` (entra por LFS; se for
+  grande, considere já chegar fatiado por capítulo).
+- Capítulo avulso, artigo de periódico com peer review → `01-Bibliografia/Extratos-de-Capitulos/`
+  ou `05-Artigos-Cientificos/`, conforme a origem.
+- Slide/material desta ou de outra oferta da disciplina → `02-Material-de-Curso-ENG02016/`,
+  na subpasta correspondente.
+- Ficha técnica de material (Granta ou outra base licenciada) → `03-Fichas-Tecnicas-*/`,
+  seguindo a taxonomia por família já existente.
+- Diagrama, ferramenta de apoio, referência metodológica → `04-Ferramentas-e-Diagramas/`.
+
+Se surgir uma categoria nova (ex.: normas técnicas, estudos de caso
+industriais), crie uma pasta numerada seguinte (`06-...`) em vez de forçar em
+uma existente.

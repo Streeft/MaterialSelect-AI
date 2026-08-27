@@ -33,7 +33,8 @@ export function AuthGate({ children }: { children: ReactNode }) {
     error: userError,
     refetch: refetchUser,
   } = useCurrentUser();
-  const isUnauthenticated = userIsError && userError instanceof ApiError && userError.status === 401;
+  const isUnauthenticated =
+    userIsError && userError instanceof ApiError && userError.status === 401;
 
   // The billing query only means anything once a session is confirmed; while
   // `enabled` is false TanStack Query never fires it at all, so a logged-out
@@ -45,7 +46,8 @@ export function AuthGate({ children }: { children: ReactNode }) {
     isError: billingIsError,
     refetch: refetchBilling,
   } = useBillingStatus({ enabled: billingEnabled });
-  const isNotSubscribed = billingEnabled && !billingLoading && !billingIsError && billing?.active === false;
+  const isNotSubscribed =
+    billingEnabled && !billingLoading && !billingIsError && billing?.active === false;
 
   useEffect(() => {
     if (!isLoginRoute && isUnauthenticated) {

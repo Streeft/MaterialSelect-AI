@@ -100,23 +100,26 @@ class Settings(BaseSettings):
     # prompt already carries the catalogue, and an answer grounded in three
     # relevant passages is more checkable than one drowning in twenty.
     knowledge_retrieval_top_k: int = 5
-    # How many passages the lexical pass pulls before ranking. A pool, not an
-    # answer: it exists so BM25 and the semantic pass have something to rank,
-    # and only `knowledge_retrieval_top_k` of it survives.
-    knowledge_retrieval_candidates: int = 120
-    # Empty disables semantic retrieval; the lexical path then answers alone,
-    # which it can do with no network at all. Never a default value: choosing
-    # an embedding model for the operator would also choose a vendor, a price
-    # and a dimension for every vector already stored.
-    knowledge_embedding_model: str = ""
-    # Falls back to AI_BASE_URL when empty, and exists separately because the
-    # free chat provider the docs recommend (Groq) serves no /embeddings
-    # endpoint. Without this, the cheapest chat setup could not have semantic
-    # search — exactly the combination this project should support.
+
+    # Embeddings para busca semântica — estritamente opcional por cima da
+    # busca léxica (que não depende de nenhum dos três). Sem padrão de
+    # propósito (D-36): um padrão escolheria um fornecedor pelo operador.
+    # Receitas prontas em .env.example.
     knowledge_embedding_base_url: str = ""
-    # Passages per embedding request. Small enough that a rate limit costs one
-    # batch rather than a whole corpus.
-    knowledge_embedding_batch: int = 32
+    knowledge_embedding_model: str = ""
+    # Textos por requisição de embedding. A maioria dos provedores tem um
+    # teto prático (centenas a milhares); 96 é conservador o bastante para
+    # servir a qualquer um sem medir por provedor.
+    knowledge_embedding_batch: int = 96
+    # Chave dedicada ao provedor de embeddings, opcional por cima de
+    # AI_API_KEY. Vazio por padrão e cai para AI_API_KEY — na maioria dos
+    # casos o mesmo provedor serve chat e embeddings, e uma segunda chave
+    # seria redundante. Mas nem sempre: a receita gratuita recomendada
+    # (Groq para chat, que não serve /embeddings) precisa de um provedor
+    # de embeddings à parte (Jina, Ollama, OpenAI), e esse provedor tem sua
+    # própria credencial — sem este campo, a única chave configurável seria
+    # a da Groq, que o servidor de embeddings nem aceitaria.
+    knowledge_embedding_api_key: str = ""
 
     # --- Auth (A5): login with Google, project-scoped studies -------------
     # Empty client id/secret means OAuth is off: the login endpoint answers
@@ -181,16 +184,6 @@ class Settings(BaseSettings):
     def knowledge_enabled(self) -> bool:
         """True when a knowledge-base root is configured."""
         return bool(self.knowledge_dir.strip())
-
-    @property
-    def knowledge_embeddings_enabled(self) -> bool:
-        """True when semantic retrieval has both a model and somewhere to ask.
-
-        Both halves are required because either one alone is a misconfiguration
-        that would otherwise only surface as a failed request per search.
-        """
-        base = self.knowledge_embedding_base_url.strip() or self.ai_base_url.strip()
-        return bool(self.knowledge_embedding_model.strip()) and bool(base)
 
     @property
     def cors_origins_list(self) -> list[str]:

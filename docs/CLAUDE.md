@@ -46,7 +46,14 @@ Ela interpreta, sugere e explica. Ao mexer em `app/ai/`, não afrouxe:
 - **ancoragem numérica** — todo número de uma restrição proposta tem de aparecer
   no enunciado do usuário, *inclusive quando uma conversão estaria correta*;
 - **unidade explícita** — limiar sobre propriedade dimensionada não pode omitir
-  a unidade.
+  a unidade;
+- **trechos recuperados são vocabulário, nunca número** — o que `app/knowledge/`
+  traz do Cérebro (`ProblemContext.retrieved`/`ResultContext.retrieved`) pode
+  ensinar terminologia ao modelo e, em `explain()`, ser citado; não pode virar
+  o número de uma restrição. Isso é garantido por `guardrails.check_constraint`
+  e `guardrails.ungrounded_numbers` nunca lerem `context.retrieved` — nenhuma
+  das duas sabe que o campo existe —, não por convenção de prompt nem por
+  disciplina do provedor.
 
 O provedor recebe só o catálogo e o texto. Nunca lhe passe uma sessão de banco
 nem o avaliador de expressões.
@@ -141,8 +148,11 @@ editor, é inglês.
 - **Alembic é a fonte de verdade do schema.** Gere com
   `alembic revision --autogenerate` depois de alterar models. Nunca edite o banco
   à mão. `create_all` só no seed e nos testes.
-- **Ao alterar um contrato, altere os dois arquivos**: `packages/shared-types/index.ts`
-  e `apps/web/lib/types.ts` (duplicação consciente, ver [TODO.md](TODO.md)).
+- **Contrato de tipos: um arquivo só.** `packages/shared-types/index.ts` é
+  canônico; `apps/web` o importa via npm workspace (`@materialselect/shared-types`,
+  transpilado por `transpilePackages` em `next.config.mjs`), não mais por cópia
+  manual. `apps/web/lib/types.ts` é um barril de reexportação — não escreva
+  tipo novo ali (D-16/M4).
 
 ---
 
@@ -232,9 +242,6 @@ A lista completa, com as receitas prontas de cada provedor, está em
 | `SESSION_COOKIE_SECURE` | `true` | Seguro por padrão (só HTTPS); dev local em HTTP precisa `false` explicitamente. |
 | `SESSION_TTL_HOURS` | `336` (14 dias) | Vida fixa da sessão desde a criação, sem renovação deslizante. |
 | `OAUTH_STATE_TTL_SECONDS` | `600` | Janela entre o redirect ao Google e o callback voltar. |
-| `STRIPE_API_KEY` | vazio | Cobrança desligada sem os três (`stripe_enabled`); vazio nos três é o único estado consistente para dev sem Stripe. |
-| `STRIPE_WEBHOOK_SECRET` | vazio | Verifica a assinatura HMAC do cabeçalho `Stripe-Signature`; sem ele o webhook não teria como distinguir um evento real de um forjado. |
-| `STRIPE_PRICE_ID` | vazio | O preço/plano que `checkout` usa. Um só plano no v1 — sem seletor de plano na interface ([D-43](DECISIONS.md)). |
 
 ---
 
@@ -246,17 +253,29 @@ A lista completa, com as receitas prontas de cada provedor, está em
 - Backend, matriz Python 3.11 e 3.12: `ruff`, `black --check`, `pytest`, e
   `alembic upgrade head` + seed num banco limpo. Este último existe porque os
   testes usam `create_all` em memória e **nunca exercitam as migrações**.
+  Instala `pip install -e ".[dev,knowledge]"` — sem o extra `knowledge` os
+  testes de ingestão do Cérebro (`test_knowledge_ingest.py`) não têm `pypdf` e
+  falham.
 - Frontend: `npm ci`, `typecheck`, `lint`, `test`, `build`.
 - E2E: Playwright (`apps/web/e2e/`) contra API e banco próprios da suíte —
   Python + Node no mesmo runner, Chromium via `--with-deps`. Relatório HTML
   publicado como artefato quando falha.
+- Lighthouse: build de produção, sobe API e frontend em portas isoladas
+  (8811, as mesmas do E2E), sessão fixa via `E2E_SESSION_TOKEN` para que as
+  11 rotas auditadas sejam as telas reais e não repetidamente `/entrar`, e
+  limiares de desempenho/acessibilidade/boas práticas por rota
+  (`apps/web/lighthouserc.json`). É a métrica de "tempo até interativo" que
+  M8 deixava pendente — ver `TODO.md`.
 
-Os quatro checks — `Backend (Python 3.11)`, `Backend (Python 3.12)`,
-`Frontend` e `E2E (Playwright)` — são **obrigatórios**: a ruleset
-`CI obrigatoria em main` faz o GitHub recusar o merge, e não há ator de
-exceção (vale para o dono do repositório também). A branch ainda precisa
-estar atualizada com `main` antes do merge, para que a combinação testada
-seja a combinação mesclada.
+Os checks `Backend (Python 3.11)`, `Backend (Python 3.12)`, `Frontend` e
+`E2E (Playwright)` são **obrigatórios**: a ruleset `CI obrigatoria em main` faz
+o GitHub recusar o merge, e não há ator de exceção (vale para o dono do
+repositório também). A branch ainda precisa estar atualizada com `main` antes
+do merge, para que a combinação testada seja a combinação mesclada.
+`scripts/protect-main.ps1` já lista `Lighthouse` entre os nomes exigidos, mas
+**isso só vale depois que o script for de fato executado contra o
+repositório** — o arquivo é a intenção, não a prova de que a ruleset viva no
+GitHub já a inclui. Confirme antes de contar com o Lighthouse como portão.
 
 > **Ao acrescentar um job ao `ci.yml`, acrescente o nome em
 > `scripts/protect-main.ps1` e rode o script.** A ruleset exige uma lista fixa de
@@ -277,12 +296,6 @@ Console (`GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`, redirect URI
 `{BACKEND_BASE_URL}/api/auth/google/callback`, ver `.env.example`) e confirme
 `SESSION_COOKIE_SECURE=true` (o padrão) e `CORS_ORIGINS` apontando só para o
 domínio real do frontend.
-
-Ligar o portão de assinatura ([D-43](DECISIONS.md), configurando
-`STRIPE_API_KEY`/`STRIPE_WEBHOOK_SECRET`/`STRIPE_PRICE_ID`) passa a exigir
-assinatura ativa de **todo** usuário já cadastrado, não só de quem se cadastrar
-depois — aceito para o v1 porque, como já dito acima, ainda não há usuário
-real em produção para isso incomodar.
 
 ---
 
