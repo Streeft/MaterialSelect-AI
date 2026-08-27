@@ -362,18 +362,47 @@ class TestExplanation:
         assert response.status_code == 200  # não derruba a explicação inteira
         assert response.json()["sources"] == []
 
+    def test_bool_in_sources_does_not_become_a_citation_index(
+        self, client: TestClient, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # bool is a subclass of int: [True, False] must not be read as
+        # citation indices [1, 0] by ai_service.py's own filter, mirroring
+        # the same guard in model_base.py.
+        from app.knowledge.retrieval import RetrievedChunk
+        from app.models.enums import DocumentKind, SourceAuthority
 
-class _CitingProvider(AIProvider):
-    """Devolve índices de citação, para provar que model_base.py os lê."""
+        chunk = RetrievedChunk(
+            document_title="Livro qualquer",
+            document_kind=DocumentKind.LIVRO,
+            document_authority=SourceAuthority.CIENTIFICA,
+            page_start=1,
+            page_end=1,
+            text="x",
+            score=1.0,
+        )
 
-    name = "citador"
-    simulated = False
+        class _CitingProvider(AIProvider):
+            name = "citador"
+            simulated = False
 
-    def interpret(self, context) -> dict:
-        raise NotImplementedError
+            def interpret(self, context) -> dict:
+                raise NotImplementedError
 
-    def explain(self, context) -> dict:
-        raise NotImplementedError
+            def explain(self, context) -> dict:
+                return {
+                    "summary": "ok",
+                    "paragraphs": ["texto"],
+                    "sources": [True, False],
+                    "caveats": [],
+                }
+
+        monkeypatch.setattr(ai_service, "get_provider", lambda *_a, **_k: _CitingProvider())
+        monkeypatch.setattr("app.services.ai_service.knowledge_search", lambda *a, **k: [chunk])
+
+        study_id = self._study_id(client)
+        response = client.post("/api/ai/explain", json={"study_id": study_id})
+        assert response.status_code == 200, response.text
+        assert response.json()["sources"] == []
 
 
 class _RecordingProvider(AIProvider):
@@ -492,6 +521,36 @@ def test_model_base_defaults_missing_sources_to_empty_list() -> None:
         sensitivity_changed=False,
     )
     assert _StubProvider().explain(context)["sources"] == []
+
+
+def test_model_base_sources_does_not_treat_a_bool_as_a_citation_index() -> None:
+    # bool is a subclass of int in Python: a model emitting valid JSON
+    # "sources": [true, false] must not be read as citation indices 1 and 0.
+    from app.ai.model_base import ModelProviderBase
+    from app.ai.provider import ResultContext
+
+    class _StubProvider(ModelProviderBase):
+        name = "stub"
+
+        def _complete(self, system, user, schema):
+            return {"summary": "ok", "paragraphs": [], "sources": [True, False, 1]}
+
+    context = ResultContext(
+        study_name="x",
+        function_text=None,
+        objective_text=None,
+        constraint_labels=[],
+        index_name=None,
+        index_expression=None,
+        index_dimension=None,
+        initial_count=1,
+        final_count=1,
+        funnel=[],
+        ranked=[],
+        excluded_for_missing=[],
+        sensitivity_changed=False,
+    )
+    assert _StubProvider().explain(context)["sources"] == [1]
 
 
 class TestRetrievedTextNeverGroundsANumber:

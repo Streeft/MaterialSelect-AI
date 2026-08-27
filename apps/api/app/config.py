@@ -111,6 +111,15 @@ class Settings(BaseSettings):
     # teto prático (centenas a milhares); 96 é conservador o bastante para
     # servir a qualquer um sem medir por provedor.
     knowledge_embedding_batch: int = 96
+    # Chave dedicada ao provedor de embeddings, opcional por cima de
+    # AI_API_KEY. Vazio por padrão e cai para AI_API_KEY — na maioria dos
+    # casos o mesmo provedor serve chat e embeddings, e uma segunda chave
+    # seria redundante. Mas nem sempre: a receita gratuita recomendada
+    # (Groq para chat, que não serve /embeddings) precisa de um provedor
+    # de embeddings à parte (Jina, Ollama, OpenAI), e esse provedor tem sua
+    # própria credencial — sem este campo, a única chave configurável seria
+    # a da Groq, que o servidor de embeddings nem aceitaria.
+    knowledge_embedding_api_key: str = ""
 
     # --- Auth (A5): login with Google, project-scoped studies -------------
     # Empty client id/secret means OAuth is off: the login endpoint answers

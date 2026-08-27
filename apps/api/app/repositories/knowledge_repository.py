@@ -86,7 +86,7 @@ class KnowledgeRepository:
         return list(
             self.db.execute(
                 select(KnowledgeChunk)
-                .options(joinedload(KnowledgeChunk.document), joinedload(KnowledgeChunk.embedding))
+                .options(joinedload(KnowledgeChunk.document))
                 .where(KnowledgeChunk.search_text != "")
             )
             .scalars()

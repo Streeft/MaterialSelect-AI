@@ -333,7 +333,8 @@ sugestões perdidas, não para servir de garantia.
   1020, e sem isso bastaria nomear o vencedor para perder a explicação inteira.
 - `test_knowledge_retrieval.py` — BM25 sozinho, semântico sozinho (com fake de
   embeddings), fusão RRF, degradação para léxico puro quando o embedding falha,
-  `top_k` respeitado. `test_ai_service.py` prova o portão do retrieval:
+  `top_k` respeitado. `test_ai_api.py` (`TestRetrievalGating`) prova o portão
+  do retrieval:
   `interpret`/`explain` só chamam `knowledge_search` quando
   `provider.simulated is False`, e o `mock` nunca aciona rede nenhuma. Um teste
   dedicado cobre a garantia central desta seção — um número presente **só** num

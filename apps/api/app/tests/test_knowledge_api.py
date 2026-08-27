@@ -40,3 +40,27 @@ class TestIngestRoute:
         monkeypatch.setattr(settings, "knowledge_dir", "")
         response = client.post("/api/knowledge/ingest")
         assert response.status_code == 400
+
+    def test_concurrent_call_is_refused_with_409(self, client: TestClient, corpus: Path) -> None:
+        from app.routers.knowledge import _ingest_lock
+
+        # Simulate a run already in progress by holding the lock directly,
+        # rather than actually racing two requests.
+        _ingest_lock.acquire()
+        try:
+            response = client.post("/api/knowledge/ingest")
+        finally:
+            _ingest_lock.release()
+        assert response.status_code == 409
+        assert "andamento" in response.json()["detail"]
+
+    def test_lock_is_released_after_a_normal_call(self, client: TestClient, corpus: Path) -> None:
+        from app.routers.knowledge import _ingest_lock
+
+        first = client.post("/api/knowledge/ingest")
+        assert first.status_code == 200, first.text
+        # A finally-block release, not a leak: the lock must be free again,
+        # and a second sequential call must succeed normally.
+        assert not _ingest_lock.locked()
+        second = client.post("/api/knowledge/ingest")
+        assert second.status_code == 200, second.text

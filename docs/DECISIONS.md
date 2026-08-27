@@ -1886,8 +1886,9 @@ separadamente que nenhum caminho novo alcança as duas funções. Ver
 
 **Como se sabe que passa.** 768 testes de backend (0 falhas, 0 pulados) —
 `test_knowledge_retrieval.py` (BM25 sozinho, semântico sozinho com fake,
-fusão RRF, degradação, `top_k`), o teste dedicado de `test_ai_service.py`
-que prova a ancoragem intacta com um número presente só no trecho recuperado,
+fusão RRF, degradação, `top_k`), o teste dedicado de `test_ai_api.py`
+(`TestRetrievedTextNeverGroundsANumber`) que prova a ancoragem intacta com um
+número presente só no trecho recuperado,
 `check_citations` (índice fora do intervalo descartado, índice válido passa)
 e o portão `provider.simulated` verificado explicitamente para `interpret` e
 `explain`. 157 testes de frontend, inalterado.

@@ -127,10 +127,11 @@ class KnowledgeService:
         return sorted(found, key=lambda p: p.relative_to(root).as_posix())
 
     def _embeddings_configured(self) -> bool:
-        return bool(
-            self.settings.knowledge_embedding_base_url.strip()
-            and self.settings.knowledge_embedding_model.strip()
-        )
+        # Delegates to EmbeddingClient.configured — the one place that
+        # decides this — rather than re-checking the raw settings here,
+        # which used to skip the AI_BASE_URL fallback that
+        # knowledge_embedding_base_url documents.
+        return self._embedding_client().configured
 
     def _embedding_client(self) -> EmbeddingClient:
         return EmbeddingClient(self.settings)
