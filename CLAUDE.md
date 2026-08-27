@@ -92,7 +92,9 @@ pode carregar token.
 ## Sistema de design (frontend)
 
 A interface tem um sistema de design próprio, **sem biblioteca de componentes**
-(D-23). Três regras que não são questão de gosto:
+(D-23) — exceto as primitivas de baixo nível envolvidas por `@material/web`
+(botão, checkbox, radio, select, chip, diálogo, abas), exceção pontual aceita
+em D-48. Três regras que não são questão de gosto:
 
 - **Cor só via token.** Todo valor de cor vive em `apps/web/app/globals.css` como
   triplo `"R G B"`; o Tailwind lê pelo `tailwind.config.ts` e a camada de gráfico
@@ -272,7 +274,23 @@ registrado como alternativa não implementada. `STRIPE_API_KEY` continua vazio
 por padrão (D-36) — o portão bloqueia sem assinatura, mas `checkout`/`portal`
 respondem 503 até um operador configurar o Stripe de verdade.
 
-713 testes de backend (nenhum skip) e 157 de frontend, todos verdes. CI no
+**RAG sobre o Cérebro entregue** ([D-47](docs/DECISIONS.md)): busca híbrida
+(léxica BM25 + semântica, fundidas por *reciprocal rank fusion*) em
+`app/knowledge/retrieval.py`, ligada só quando o provedor não é o `mock`, com
+citação **verificada** por índice em `explain()` — nunca citação livre. A
+ancoragem numérica foi provada intacta: `check_constraint` e
+`ungrounded_numbers` nunca leem `context.retrieved`.
+
+**PR #26 (`fase-9-ia-e-laudo`) mesclada por reconciliação manual do autor**,
+depois de fechada sem merge por esta sessão (conteúdo já presente em `main`
+por outro caminho). A única mudança substantiva que restava — `Dialog.tsx` e
+`Tabs.tsx` migrados para `md-dialog`/`md-tabs` do `@material/web` — estende um
+padrão em `main` desde a Fase 9 (`components/ui/material/elements.ts`) que
+não tinha decisão registrada reconciliando-o com D-23 ("sem biblioteca de
+componentes"). Resolvido nesta sessão como [D-48](docs/DECISIONS.md):
+exceção pontual aceita, restrita a primitivas de baixo nível.
+
+795 testes de backend (nenhum skip) e 162 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
 PROJECT_CONTEXT.md).

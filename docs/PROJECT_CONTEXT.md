@@ -146,8 +146,31 @@ de propósito (mesmo raciocínio de `AI_BASE_URL`, D-36); sem nada configurado,
 a busca cai para léxico puro. 55 testes novos de backend. Ver
 [D-47](DECISIONS.md) e [09-camada-ia.md](09-camada-ia.md).
 
-**Saúde do código:** 768 testes de backend (Python 3.11 e 3.12, nenhum skip)
-e 157 de frontend, todos verdes. `ruff` limpo, `black
+**PR #26 (`fase-9-ia-e-laudo`) mesclada por reconciliação manual.** Depois que
+esta sessão fechou a PR sem mesclar — seu conteúdo já estava em `main` por
+outro caminho, ver acima —, o autor reabriu, reconciliou o branch contra o
+`main` já atualizado e mesclou pessoalmente (commit `3ec451e`, 209 arquivos,
++7061/-176 — bem menor que a PR original de 363 arquivos, porque a maior
+parte já estava presente). A mudança substantiva que restava: `Dialog.tsx` e
+`Tabs.tsx` migraram de implementação própria para `md-dialog`/`md-tabs` do
+pacote `@material/web` (commit `8b74799`), estendendo um padrão que já
+cobria botões, checkbox, radio, select e chips desde a Fase 9
+(`components/ui/material/elements.ts`, em `main` desde o PR #8, 18/08).
+**Isso nunca tinha sido registrado em nenhum documento até esta sessão**,
+tensionando textualmente [D-23](DECISIONS.md) ("sistema de design próprio,
+sem biblioteca de componentes") e a proibição do §13 de
+[REDESIGN.md](REDESIGN.md) ("nenhuma biblioteca de componentes"):
+`@material/web` é a biblioteca de Web Components do Material Design 3 do
+Google, com camada de tema própria (100 variáveis `--md-sys-*` em
+`globals.css`, paralela aos tokens `--brand-*`/`--accent` de D-28).
+Sinalizado ao autor e resolvido como [D-48](DECISIONS.md): exceção pontual
+aceita a D-23, restrita a primitivas de baixo nível sem estado de aplicação.
+A divergência entre as duas paletas de cor (`--brand-700` e
+`--md-sys-color-primary` já não coincidem) fica como risco monitorado, não
+como bloqueio.
+
+**Saúde do código:** 795 testes de backend (Python 3.11 e 3.12, nenhum skip)
+e 162 de frontend, todos verdes. `ruff` limpo, `black
 --check` limpo, typecheck estrito e build de produção sem avisos. CI no
 GitHub Actions rodando em todo PR e push para `main`, com os checks
 **obrigatórios**: o GitHub recusa o merge se qualquer um falhar
@@ -477,7 +500,7 @@ que mais afetam quem for mexer no código:
 | Dependência de provedor de IA | Arquitetura desacoplada com provedor simulado; funciona sem chave. |
 | Incorporação inadvertida de dado protegido | Triagem de licenciamento (M1, item 4.2 da proposta) — `Source` registra licença/procedência, e uma fonte nova sem licença ou marcada como possivelmente protegida sem confirmação humana é recusada antes de qualquer linha ser escrita ([D-44](DECISIONS.md)). |
 | Resultado não reproduzível por interferência de IA | Cálculo determinístico + guardrails executáveis + confirmação do usuário. |
-| Regressão silenciosa | CI com 768 testes de backend e 157 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
+| Regressão silenciosa | CI com 795 testes de backend e 162 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
 | Material licenciado do Cérebro exposto em `main` (repositório público) | Risco aceito por decisão explícita do autor, não mitigado — o Cérebro é a base de conhecimento da camada de IA ([D-45](DECISIONS.md)). |
 | Uso sem cobrança | Portão binário ligado ([D-46](DECISIONS.md)), checkout testado ao vivo em modo de teste — falta só configurar `STRIPE_API_KEY`/`STRIPE_WEBHOOK_SECRET`/`STRIPE_PRICE_ID` em **modo de produção** para vender de verdade. |
 
