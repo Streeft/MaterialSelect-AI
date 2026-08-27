@@ -69,6 +69,14 @@ automaticamente no primeiro login ([D-42](DECISIONS.md),
 [ARCHITECTURE.md §7](ARCHITECTURE.md)). Isso destrava M2 (auditoria), que
 dependia de "quem" existir — não foi implementada nesta sessão.
 
+**Portão de assinatura concluído** — em cima do login de A5, todo usuário
+autenticado agora também precisa de uma assinatura Stripe ativa para usar
+qualquer rota da ferramenta; `/entrar` e `/assinatura` continuam abertas, a
+segunda para quem já logou mas ainda não assinou. Tenant é o usuário
+individual, sem `Organization` nem `tenant_id` — a mesma fronteira de
+isolamento de D-42, só com uma verificação de plano por cima; um preço só no
+v1, sem seletor de plano ([D-43](DECISIONS.md)).
+
 **O que continua faltando da Fase 7** é auditoria (M2) e o estudo de caso
 didático — nenhuma das outras fases tem pendência aberta. Duas faltas não são
 de código e não podem ser fechadas por quem programa sozinho: a sessão de
@@ -146,6 +154,19 @@ lugar nenhum do sistema. Sessão em cookie `httpOnly` que é uma linha de banco
 global e compartilhado entre todo usuário autenticado; só `SelectionStudy` é
 privado, escopado por `Project` (um por usuário, criado automaticamente no
 primeiro login). Ver [D-42](DECISIONS.md) e [ARCHITECTURE.md §7](ARCHITECTURE.md).
+
+### Assinatura (portão de acesso, Stripe)
+Segundo portão em cima do login: toda rota da ferramenta — catálogo, seleção,
+mapas, painel, exportação, IA — exige assinatura ativa, aplicado em bloco no
+`include_router` de `app/main.py`. Só `/health`, `/auth/*` e `/billing/*`
+ficam de fora, cada rota de `/billing` por um motivo próprio (`checkout`/
+`status` não podem depender de assinatura sem virar circular; o `webhook` não
+tem cookie de sessão porque quem chama é o Stripe). Tenant é o usuário
+individual — sem `Organization`, sem `tenant_id`, sem RLS; o catálogo continua
+global. Um preço só no v1 (`STRIPE_PRICE_ID`), sem seletor de plano. O
+webhook tem guarda de ordem (`_is_stale`) para uma reentrega fora de ordem não
+reativar uma assinatura já cancelada, e valida `client_reference_id` antes de
+usá-lo. Ver [D-43](DECISIONS.md).
 
 ### Interface (Fase 8)
 - **Sistema de design próprio, sem biblioteca de componentes**: primitivas em
@@ -272,6 +293,7 @@ que mais afetam quem for mexer no código:
 | A navegação é a barra lateral, e o rótulo recolhido vira `sr-only` | [D-37](DECISIONS.md) |
 | O laudo de engenharia é um documento à parte do relatório de seleção | [D-41](DECISIONS.md) |
 | Login só por terceiros (Google); catálogo compartilhado; um projeto por usuário | [D-42](DECISIONS.md) |
+| Assinatura ativa por usuário é o segundo portão; tenant é o usuário, sem `Organization` | [D-43](DECISIONS.md) |
 
 ## 9. Limitações atuais
 

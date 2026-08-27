@@ -1497,3 +1497,126 @@ projetos podem repetir nome de estudo). Frontend: `typecheck`, `lint`,
 `test` e `build` verdes, com `AuthGate` e a página `/entrar` cobertos por
 teste. Playwright (`npm run test:e2e`): os dois specs passam com a sessão
 injetada, sem tocar o Google.
+
+---
+
+## D-43 — Assinatura ativa é o segundo portão, por usuário; um preço só no v1; catálogo continua global
+
+**18/08/2026.** O pedido original descrevia "SaaS multi-tenant" no sentido de
+livro-texto — `tenant_id` em toda tabela, RLS no Postgres, plano por
+organização. Perguntado o que "tenant" significa aqui, o autor confirmou o que
+D-42 já tinha decidido sem precisar chamar assim: **o tenant é o usuário
+individual**, cada conta Google é sua própria conta pagante, e a fronteira de
+isolamento já existe — `user_id`/`project_id`. O trabalho real deste spec não é
+multi-tenancy, é cobrança: dar a essa fronteira que já existe uma verificação
+de plano ativo por cima.
+
+**Decisão.**
+- **Sem `Organization`, sem `tenant_id`, sem RLS.** Uma coluna `tenant_id`
+  paralela a `user_id`/`project_id` seria redundante e um risco de
+  dessincronia — duas fronteiras de isolamento dizendo a mesma coisa, sem
+  ganho real. `Subscription.user_id` (única, um-para-um) é toda a
+  modelagem que este spec precisa.
+- **O catálogo continua global e compartilhado**, exatamente como D-42 já
+  desenhou para `Project`. Assinatura não reabre essa decisão — gatear o
+  catálogo por usuário duplicaria dado de referência que é o mesmo para todo
+  mundo, o mesmo argumento que já descartou `Project` isolando o catálogo em
+  D-42.
+- **Um preço só no v1** (`STRIPE_PRICE_ID`), sem seletor de plano na
+  interface. `/assinatura` oferece "assinar" ou "gerenciar", nunca "escolher
+  entre planos" — não há segundo plano para escolher ainda.
+- **O portão é tudo ou nada.** Sem assinatura ativa, nenhuma rota da
+  ferramenta responde — catálogo, seleção, mapas, painel, exportação, IA — só
+  a autenticação e o próprio fluxo de cobrança continuam de pé. Aplicado em
+  bloco: `app/main.py` passa
+  `dependencies=[Depends(require_active_subscription)]` a cada
+  `include_router` da ferramenta, não router por router — um router novo
+  entra gateado por default, em vez de aberto até alguém lembrar de gatear.
+- **Três rotas ficam fora do portão, cada uma por um motivo próprio, não pela
+  mesma regra.** `/health` (verificação de infraestrutura, sem usuário).
+  `/auth/*` (já eram públicas desde D-42 — sem elas ninguém autentica para
+  chegar a ter uma assinatura). E `/billing/*` inteira: `checkout` e `status`
+  não podem exigir assinatura sem virar circular — é exatamente o que um
+  usuário sem assinatura precisa chamar para conseguir uma —, `portal` segue
+  o mesmo raciocínio para quem quer cancelar ou trocar cartão, e `webhook` não
+  tem como exigir cookie de sessão: quem chama é o Stripe, sem navegador,
+  sem cookie nenhum.
+- **`status` espelha o vocabulário do próprio Stripe** (`active`,
+  `past_due`, `canceled`, ...) em vez de um enum próprio do projeto. Traduzir
+  para uma nomenclatura interna criaria uma segunda fonte de verdade sobre o
+  que cada status Stripe *significa*, que teria de ser mantida em sincronia
+  com o vocabulário de Stripe para sempre. `BillingStatusOut.active` é a
+  única leitura derivada — `status == "active"` —, e é ela que o
+  `AuthGate` do frontend e `require_active_subscription` do backend
+  realmente checam.
+
+**A ordem de eventos do webhook precisa de guarda porque Stripe não promete
+ordem.** Stripe entrega webhooks pelo menos uma vez e não garante ordem de
+chegada — um `customer.subscription.updated` que ainda diz "active" pode
+chegar *depois* do `customer.subscription.deleted` para o mesmo cancelamento,
+reentregue por retry. Sem uma guarda, essa reentrega reativaria uma assinatura
+cancelada na própria coluna que o portão lê. `BillingService._is_stale()`
+compara o `created` do evento (relógio do Stripe, não de chegada) contra
+`Subscription.updated_at`, carimbado pelo `_stamp()` toda vez que um evento é
+aplicado — os dois lados da comparação vêm do mesmo relógio de propósito, ou
+a comparação não significa nada. Um evento sem `created` utilizável é
+aplicado, não descartado: descartá-lo inventaria uma ordem que ninguém
+declarou. `invoice.payment_failed` não passa por essa guarda — ele só pode
+levar o status a `past_due`, nunca de volta a `active`, então uma entrega fora
+de ordem ali é defensiva, não perigosa.
+
+**`client_reference_id` é validado antes de virar `user_id`, nunca confiado
+cegamente.** Um `checkout.session.completed` sem esse campo — Payment Link,
+sessão criada direto no painel do Stripe, ou um evento de teste via
+`stripe trigger` — chega com `client_reference_id: null`. Tratado como o
+mesmo caso de um `customer_id` desconhecido: nada aqui para reconciliar, e
+lançar erro só faria o Stripe reentregar um payload que nunca vai melhorar.
+O evento é ignorado com log, não com exceção.
+
+**Alternativas descartadas.**
+- `tenant_id` + RLS por tabela: a modelagem "de livro-texto" do pedido
+  original. Descartada porque duplicaria a fronteira de isolamento que
+  `user_id`/`project_id` já são, sem ganho de segurança real — e o próprio
+  autor confirmou que tenant é o usuário, fechando a questão.
+- Seletor de plano/preço na interface: nenhum segundo plano existe ainda para
+  escolher entre; construir o seletor antes do segundo preço seria antecipar
+  um caso de uso inexistente — o mesmo raciocínio que D-42 já aplicou à troca
+  de `Project`.
+- Enum de status próprio do projeto (`ATIVA`/`CANCELADA`/...): criaria uma
+  segunda fonte de verdade sobre o vocabulário do Stripe, que teria de ser
+  mantida em sincronia com ele para sempre.
+- Gatear `/billing/checkout` e `/billing/status` por assinatura ativa: torna
+  impossível para quem ainda não assinou conseguir assinar — o próprio
+  portão bloquearia a porta de saída dele.
+
+**Consequência que muda comportamento existente.** Todo usuário hoje
+cadastrado — inclusive quem já usava o sistema antes deste spec — passa a
+precisar de uma assinatura ativa para continuar. Aceito de propósito para o
+v1 (ver seção 8, Deploy, no [`docs/CLAUDE.md`](CLAUDE.md)): não há usuário
+real em produção ainda para essa migração incomodar.
+
+**Como funciona.** `AuthGate.tsx` (frontend) faz dois estágios em sequência —
+`/auth/me` primeiro, `/billing/status` depois — e só então libera `children`;
+a checagem é positiva (`billing?.active !== true` redireciona), nunca por
+eliminação, porque um estado do TanStack Query com `data` indefinido sem
+`isLoading` nem `isError` (uma consulta pausada por `networkMode` offline, por
+exemplo) não pode virar "libera a aplicação inteira sem assinatura
+confirmada". `require_active_subscription` (backend,
+`app/dependencies.py`) é o espelho no lado do servidor — o frontend nunca é a
+única barreira. `app/db/seed.py` (`seed_e2e_session`) grava também uma
+`Subscription` ativa para o usuário fixo do Playwright, do mesmo jeito que já
+gravava `User`/`Project`/`UserSession` para o login — sem essa linha, D-42
+continuaria autenticando o navegador do E2E e este portão o bloquearia de
+qualquer rota da ferramenta mesmo assim.
+
+**Como se sabe que passa.** Backend: `pytest`, `ruff check` e `black --check`
+verdes — `test_billing_service.py` (ancoragem em `client_reference_id`
+ausente/inválido, `_is_stale` recusando um `subscription.updated` que chega
+depois de um `subscription.deleted` para o mesmo cliente, `invoice.payment_failed`
+sem guarda de ordem) e `test_billing_api.py` (assinatura de webhook inválida →
+401, evento válido → 204, cada rota de `/billing` acessível sem assinatura
+ativa, toda rota da ferramenta bloqueada sem ela). Frontend: `typecheck`,
+`lint`, `test` e `build` verdes, com o segundo estágio de `AuthGate.test.tsx`
+cobrindo a checagem positiva. Playwright (`npm run test:e2e`): a sessão
+injetada carrega também uma assinatura ativa, então os specs existentes
+continuam passando sem precisar simular Stripe.
