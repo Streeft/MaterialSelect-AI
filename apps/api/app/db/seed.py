@@ -649,11 +649,12 @@ def seed_e2e_session(db: Session) -> None:
     ``msai_session`` cookie, skipping Google entirely without exposing any
     bypass route from the API itself.
 
-    The active ``Subscription`` written alongside the session exists under the
-    same guard, so a spec that exercises a billing-aware screen finds a
-    coherent account instead of a half-seeded one. Stripe is never contacted
-    here — the check reads the local ``status`` column, so fictitious ids are
-    enough.
+    The active ``Subscription`` written alongside the session exists for the
+    same reason and under the same guard: since every router but ``/health``,
+    ``/auth`` and ``/billing`` now requires one, a logged-in-but-unsubscribed
+    fixture user would land on ``/assinatura`` and 403 on every API call the
+    specs make. Stripe is never contacted here — the gate reads the local
+    ``status`` column, so fictitious ids are enough.
     """
     token = os.environ.get("E2E_SESSION_TOKEN")
     if not token or settings.environment != "development":

@@ -241,6 +241,15 @@ declarada, nunca silenciosa; responsável técnico é texto livre, nunca
 validado. **As figuras da monografia que são capturas de `/estilo` precisam
 ser refeitas depois de D-38.**
 
+**Portão de assinatura concluído** — em cima do login de A5, todo usuário
+autenticado agora também precisa de uma assinatura Stripe ativa para usar
+qualquer rota da ferramenta; tenant é o usuário individual, sem
+`Organization` nem `tenant_id` — mesma fronteira de isolamento de D-42, só
+com verificação de plano por cima; um preço só no v1
+([D-43](docs/DECISIONS.md)). `/entrar`, `/assinatura`, `/health` e as rotas
+de `/billing` continuam fora do portão; o webhook do Stripe tem guarda de
+ordem para uma reentrega fora de ordem não reativar assinatura cancelada.
+
 **Branches de fase divergentes foram reconciliadas com `main`** (PRs #15, #14,
 #7, #18): três eram ilusão de squash-merge (conteúdo já presente, git só
 reportava divergência); a quarta (`fase-9-ia-e-laudo`) trouxe ~1.600 linhas

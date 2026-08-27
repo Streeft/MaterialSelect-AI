@@ -17,7 +17,7 @@ from app.models.enums import (
     SourceAuthority,
 )
 from app.models.import_job import ImportJob, ImportMappingTemplate
-from app.models.knowledge import KnowledgeChunk, KnowledgeDocument
+from app.models.knowledge import KnowledgeChunk, KnowledgeDocument, KnowledgeEmbedding
 from app.models.material import Material
 from app.models.material_class import MaterialClass
 from app.models.material_property_value import MaterialPropertyValue
@@ -42,6 +42,7 @@ __all__ = [
     "IngestStatus",
     "KnowledgeChunk",
     "KnowledgeDocument",
+    "KnowledgeEmbedding",
     "Material",
     "MaterialClass",
     "MaterialPropertyValue",
