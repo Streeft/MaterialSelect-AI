@@ -3,6 +3,10 @@
 from __future__ import annotations
 
 import io
+import json
+import sqlite3
+import tempfile
+from pathlib import Path
 
 import pytest
 from openpyxl import Workbook
@@ -17,7 +21,7 @@ from app.importers.parsing import (
     sanitize_text_cell,
     unit_from_header,
 )
-from app.importers.readers import read_csv, read_xlsx
+from app.importers.readers import read_csv, read_json, read_sqlite, read_tabular, read_xlsx
 
 # --- parse_cell -----------------------------------------------------------
 
@@ -188,3 +192,69 @@ def test_decode_csv_still_detects_utf8():
     data = text.encode("utf-8-sig")
     result = read_csv(data, max_rows=10)
     assert result.headers == ["Nome", "Descrição"]
+
+
+# --- JSON reader -----------------------------------------------------------
+
+
+def test_read_json_array_of_objects():
+    payload = [
+        {"nome": "Aço", "densidade": 7850},
+        {"nome": "Alumínio", "densidade": 2700},
+    ]
+    data = json.dumps(payload).encode("utf-8")
+    result = read_json(data, max_rows=10)
+    assert result.headers == ["nome", "densidade"]
+    assert result.rows == [["Aço", 7850], ["Alumínio", 2700]]
+
+
+def test_read_json_rejects_non_list():
+    data = json.dumps({"nome": "Aço"}).encode("utf-8")
+    with pytest.raises(ValidationError):
+        read_json(data, max_rows=10)
+
+
+def test_read_json_rejects_too_many_rows():
+    payload = [{"nome": f"Material {i}"} for i in range(5)]
+    data = json.dumps(payload).encode("utf-8")
+    with pytest.raises(ValidationError):
+        read_json(data, max_rows=2)
+
+
+# --- SQLite reader ---------------------------------------------------------
+
+
+def test_read_sqlite_single_table():
+    with tempfile.TemporaryDirectory() as tmp:
+        db_path = Path(tmp) / "materiais.sqlite"
+        conn = sqlite3.connect(db_path)
+        conn.execute("CREATE TABLE materiais (nome TEXT, densidade REAL)")
+        conn.execute("INSERT INTO materiais VALUES ('Aço', 7850.0)")
+        conn.execute("INSERT INTO materiais VALUES ('Alumínio', 2700.0)")
+        conn.commit()
+        conn.close()
+        data = db_path.read_bytes()
+    result = read_sqlite(data, max_rows=10)
+    assert result.headers == ["nome", "densidade"]
+    assert result.sheet_names == ["materiais"]
+    assert result.rows == [["Aço", 7850.0], ["Alumínio", 2700.0]]
+
+
+def test_read_sqlite_named_table_among_several():
+    with tempfile.TemporaryDirectory() as tmp:
+        db_path = Path(tmp) / "base.sqlite"
+        conn = sqlite3.connect(db_path)
+        conn.execute("CREATE TABLE a (x TEXT)")
+        conn.execute("CREATE TABLE b (y TEXT)")
+        conn.execute("INSERT INTO b VALUES ('valor')")
+        conn.commit()
+        conn.close()
+        data = db_path.read_bytes()
+    result = read_sqlite(data, max_rows=10, sheet_name="b")
+    assert result.headers == ["y"]
+    assert result.rows == [["valor"]]
+
+
+def test_read_tabular_dispatches_json_and_sqlite():
+    data = json.dumps([{"a": 1}]).encode("utf-8")
+    assert read_tabular(data, "json", max_rows=10).headers == ["a"]
