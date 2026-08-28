@@ -18,6 +18,7 @@ import csv
 import io
 from dataclasses import dataclass, field
 
+from charset_normalizer import from_bytes
 from openpyxl import load_workbook
 
 from app.domain.errors import ValidationError
@@ -36,12 +37,25 @@ class TabularData:
 
 
 def _decode_csv(data: bytes) -> str:
-    for encoding in ("utf-8-sig", "latin-1"):
-        try:
-            return data.decode(encoding)
-        except UnicodeDecodeError:
-            continue
-    raise ValidationError("Não foi possível decodificar o arquivo CSV (tente UTF-8).")
+    # utf-8-sig first: strict, so it never falsely matches non-UTF-8 bytes.
+    try:
+        return data.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        pass
+    # charset-normalizer scores candidate encodings by how "natural" the
+    # decoded text looks (character frequency, mojibake detection) instead of
+    # accepting the first encoding that merely doesn't raise — which is why
+    # Latin-1 alone (every byte is valid Latin-1) used to mask cp1252/other
+    # Windows encodings silently.
+    best = from_bytes(data).best()
+    if best is not None:
+        return str(best)
+    # Latin-1 never raises, so this is the final, always-successful fallback
+    # for any byte sequence charset-normalizer scored too low to trust.
+    try:
+        return data.decode("latin-1")
+    except UnicodeDecodeError as exc:
+        raise ValidationError("Não foi possível decodificar o arquivo CSV (tente UTF-8).") from exc
 
 
 def _sniff_delimiter(text: str) -> str:
