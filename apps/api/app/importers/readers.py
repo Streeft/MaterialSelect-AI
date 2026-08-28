@@ -201,7 +201,17 @@ def read_sqlite(data: bytes, max_rows: int, sheet_name: str | None = None) -> Ta
                 raise ValidationError(f"Tabela não encontrada: {sheet_name}")
             table = sheet_name or table_names[0]
 
-            cursor = conn.execute(f'SELECT * FROM "{table}"')
+            # Table names read back from sqlite_master are not thereby safe:
+            # a crafted upload can name a table anything at all — including
+            # one embedding a `"` that would close the quoted identifier and
+            # let the rest of the string run as SQL (e.g. a table literally
+            # named `x" UNION SELECT sql FROM sqlite_master--`). Membership in
+            # `table_names` only proves the string names *some* table in this
+            # file; it is not an escaping step. So embedded double-quotes are
+            # doubled before interpolation — the standard SQL-identifier
+            # escaping — regardless of where `table` came from.
+            safe_table = table.replace('"', '""')
+            cursor = conn.execute(f'SELECT * FROM "{safe_table}"')
             headers = [col[0] for col in cursor.description]
             raw_rows = [list(row) for row in cursor.fetchall()]
         except sqlite3.DatabaseError as exc:

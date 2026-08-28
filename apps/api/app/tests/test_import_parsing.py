@@ -221,6 +221,26 @@ def test_read_json_rejects_too_many_rows():
         read_json(data, max_rows=2)
 
 
+def test_read_json_rejects_undecodable_bytes():
+    # Invalid UTF-8 byte sequence: a lone continuation byte can never decode.
+    data = b"\xff\xfe\x00not valid json or utf-8"
+    with pytest.raises(ValidationError):
+        read_json(data, max_rows=10)
+
+
+def test_read_json_rejects_empty_list():
+    data = json.dumps([]).encode("utf-8")
+    with pytest.raises(ValidationError):
+        read_json(data, max_rows=10)
+
+
+def test_read_json_rejects_non_dict_element():
+    payload = [{"a": 1}, "not a dict"]
+    data = json.dumps(payload).encode("utf-8")
+    with pytest.raises(ValidationError):
+        read_json(data, max_rows=10)
+
+
 # --- SQLite reader ---------------------------------------------------------
 
 
@@ -253,6 +273,94 @@ def test_read_sqlite_named_table_among_several():
     result = read_sqlite(data, max_rows=10, sheet_name="b")
     assert result.headers == ["y"]
     assert result.rows == [["valor"]]
+
+
+def test_read_sqlite_escapes_table_name_with_embedded_quote():
+    """A table name coming back from ``sqlite_master`` is not thereby safe to
+    interpolate: a crafted upload can name a table anything, including a
+    string that embeds a double-quote sufficient to break out of the quoted
+    identifier if the reader ever fails to escape it. This reproduces the
+    reviewer's proof-of-concept — a table literally named
+    ``public_table" UNION SELECT segredo FROM public_table--`` sitting
+    alongside a real ``public_table`` — and confirms the escaped query reads
+    only the literal (malicious-named) table's own data, never the other
+    table's rows via the would-be UNION injection.
+    """
+    malicious_name = 'public_table" UNION SELECT segredo FROM public_table--'
+    ddl_escaped = malicious_name.replace('"', '""')
+    with tempfile.TemporaryDirectory() as tmp:
+        db_path = Path(tmp) / "evil.sqlite"
+        conn = sqlite3.connect(db_path)
+        conn.execute(f'CREATE TABLE "{ddl_escaped}" (nome TEXT)')
+        conn.execute(f'INSERT INTO "{ddl_escaped}" VALUES (?)', ("valor-legitimo",))
+        conn.execute("CREATE TABLE public_table (segredo TEXT)")
+        conn.execute("INSERT INTO public_table VALUES (?)", ("SEGREDO-VAZOU",))
+        conn.commit()
+        conn.close()
+        data = db_path.read_bytes()
+
+    result = read_sqlite(data, max_rows=10, sheet_name=malicious_name)
+    assert result.headers == ["nome"]
+    assert result.rows == [["valor-legitimo"]]
+
+
+def test_read_sqlite_no_user_tables():
+    with tempfile.TemporaryDirectory() as tmp:
+        db_path = Path(tmp) / "no_tables.sqlite"
+        conn = sqlite3.connect(db_path)
+        # Force the file into real SQLite format without leaving a user table.
+        conn.execute("CREATE TABLE tmp (x TEXT)")
+        conn.execute("DROP TABLE tmp")
+        conn.commit()
+        conn.close()
+        data = db_path.read_bytes()
+    with pytest.raises(ValidationError):
+        read_sqlite(data, max_rows=10)
+
+
+def test_read_sqlite_unknown_table_name():
+    with tempfile.TemporaryDirectory() as tmp:
+        db_path = Path(tmp) / "materiais.sqlite"
+        conn = sqlite3.connect(db_path)
+        conn.execute("CREATE TABLE materiais (nome TEXT)")
+        conn.execute("INSERT INTO materiais VALUES ('Aço')")
+        conn.commit()
+        conn.close()
+        data = db_path.read_bytes()
+    with pytest.raises(ValidationError, match="Tabela não encontrada"):
+        read_sqlite(data, max_rows=10, sheet_name="inexistente")
+
+
+def test_read_sqlite_corrupt():
+    with pytest.raises(ValidationError):
+        read_sqlite(b"isto claramente nao e um arquivo sqlite valido", max_rows=10)
+
+
+def test_read_sqlite_empty_table():
+    with tempfile.TemporaryDirectory() as tmp:
+        db_path = Path(tmp) / "vazio.sqlite"
+        conn = sqlite3.connect(db_path)
+        conn.execute("CREATE TABLE materiais (nome TEXT)")
+        conn.commit()
+        conn.close()
+        data = db_path.read_bytes()
+    with pytest.raises(ValidationError, match="está vazia"):
+        read_sqlite(data, max_rows=10)
+
+
+def test_read_sqlite_row_limit():
+    with tempfile.TemporaryDirectory() as tmp:
+        db_path = Path(tmp) / "muitas_linhas.sqlite"
+        conn = sqlite3.connect(db_path)
+        conn.execute("CREATE TABLE materiais (nome TEXT)")
+        conn.executemany(
+            "INSERT INTO materiais VALUES (?)", [(f"Material {i}",) for i in range(11)]
+        )
+        conn.commit()
+        conn.close()
+        data = db_path.read_bytes()
+    with pytest.raises(ValidationError):
+        read_sqlite(data, max_rows=10)
 
 
 def test_read_tabular_dispatches_json_and_sqlite():
