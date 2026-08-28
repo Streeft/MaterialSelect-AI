@@ -95,7 +95,8 @@ class ImportService:
         extension = Path(safe_name).suffix.lower()
         if extension not in ALLOWED_EXTENSIONS:
             raise ValidationError(
-                f"Extensão não suportada: {extension or '(nenhuma)'} — use .csv ou .xlsx."
+                f"Extensão não suportada: {extension or '(nenhuma)'} — "
+                "use .csv, .xlsx, .json ou .sqlite/.db."
             )
         # Map extensions to format strings; .db and .sqlite both use sqlite reader
         extension_to_format = {
