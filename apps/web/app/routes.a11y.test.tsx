@@ -206,6 +206,7 @@ const propertyMap: PropertyMap = {
     },
   ],
   envelopes: [],
+  envelopes_alt: [],
   excluded: [{ material_id: 3, name: "Liga experimental", reason: "Sem valor em ambos os eixos" }],
   index: null,
   considered_count: 3,
