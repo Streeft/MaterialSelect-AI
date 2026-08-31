@@ -30,9 +30,7 @@ def test_list_omits_configuration(client):
 
 
 def test_cannot_see_another_projects_saved_chart(client, other_user, login_as):
-    created = client.post(
-        "/api/saved-charts", json={"name": "A", "configuration": {}}
-    ).json()
+    created = client.post("/api/saved-charts", json={"name": "A", "configuration": {}}).json()
     assert created["id"]
 
     with login_as(other_user):
@@ -44,9 +42,7 @@ def test_cannot_see_another_projects_saved_chart(client, other_user, login_as):
 
 
 def test_delete_saved_chart(client):
-    created = client.post(
-        "/api/saved-charts", json={"name": "A", "configuration": {}}
-    ).json()
+    created = client.post("/api/saved-charts", json={"name": "A", "configuration": {}}).json()
     assert client.get(f"/api/saved-charts/{created['id']}").status_code == 200
 
     response = client.delete(f"/api/saved-charts/{created['id']}")
