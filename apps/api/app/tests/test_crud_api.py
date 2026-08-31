@@ -5,7 +5,12 @@ from __future__ import annotations
 import pytest
 from sqlalchemy.exc import IntegrityError
 
+from app.domain.errors import ConflictError
+from app.models.material import Material
 from app.models.material_property_value import MaterialPropertyValue
+from app.models.property_definition import PropertyDefinition
+from app.schemas.property import PropertyDefinitionIn
+from app.services.property_service import PropertyService
 
 
 def _metais_class_id(client) -> int:
@@ -302,15 +307,16 @@ def test_chart_excludes_deactivated_material(client):
 
 
 def test_update_property_unit_change_with_values_conflicts(client):
+    """Dimension change with values must still be blocked."""
     props = client.get("/api/properties").json()
     densidade = next(p for p in props if p["slug"] == "densidade")
     payload = {
         "name": densidade["name"],
         "slug": densidade["slug"],
         "category": densidade["category"],
-        "physical_dimension": densidade["physical_dimension"],
-        "canonical_unit": "g/cm**3",  # change while values exist -> conflict
-        "accepted_units": densidade["accepted_units"],
+        "physical_dimension": "[mass] / [length] / [time] ** 2",  # change dimension to pressure
+        "canonical_unit": "Pa",
+        "accepted_units": ["Pa", "MPa"],
         "is_interval": densidade["is_interval"],
         "better_direction": densidade["better_direction"],
         "allows_log_scale": densidade["allows_log_scale"],
@@ -435,3 +441,175 @@ def test_database_refuses_a_second_value_for_the_same_pair(db_session):
     )
     with pytest.raises(IntegrityError):
         db_session.flush()
+
+
+# --- Bulk renormalization on canonical unit change (Task 8: B9) -----------
+
+
+def test_update_property_renormalizes_values_on_canonical_unit_change(db_session):
+    """Successfully renormalizes all values when only the canonical unit changes."""
+    # Create a property in kg/m3 with density dimension
+    prop = PropertyDefinition(
+        name="Densidade Teste",
+        slug="densidade-teste",
+        category="FISICA",
+        physical_dimension="[mass] / [length] ** 3",
+        canonical_unit="kg/m**3",
+        accepted_units=["kg/m**3", "g/cm**3"],
+    )
+    db_session.add(prop)
+    db_session.flush()
+
+    # Create a material
+    material = Material(
+        name="Material Teste",
+        class_id=1,
+        subclass="Teste",
+        is_active=True,
+        is_demo=False,
+    )
+    db_session.add(material)
+    db_session.flush()
+
+    # Add a property value: 7.85 g/cm3 (original_unit), normalized to 7850.0 kg/m3
+    value = MaterialPropertyValue(
+        material_id=material.id,
+        property_id=prop.id,
+        value_scalar=7.85,
+        original_unit="g/cm**3",
+        normalized_value=7850.0,
+        canonical_unit="kg/m**3",
+        conversion_method="pint:g/cm**3->kg/m**3",
+    )
+    db_session.add(value)
+    db_session.flush()
+    value_id = value.id
+
+    # Update the property to change canonical unit from kg/m3 to g/cm3
+    service = PropertyService(db_session)
+    payload = PropertyDefinitionIn(
+        name=prop.name,
+        slug=prop.slug,
+        category=prop.category,
+        physical_dimension=prop.physical_dimension,
+        canonical_unit="g/cm**3",
+        accepted_units=["kg/m**3", "g/cm**3"],
+    )
+    result = service.update_property(prop.id, payload)
+
+    # Verify the property was updated
+    assert result.canonical_unit == "g/cm**3"
+
+    # Verify the value was renormalized
+    updated_value = db_session.get(MaterialPropertyValue, value_id)
+    assert updated_value is not None
+    assert updated_value.canonical_unit == "g/cm**3"
+    assert (
+        abs(updated_value.normalized_value - 7.85) < 1e-6
+    )  # original value_scalar is the new normalized
+    # value_scalar and original_unit must not change
+    assert updated_value.value_scalar == 7.85
+    assert updated_value.original_unit == "g/cm**3"
+
+
+def test_update_property_still_blocks_dimension_change_with_values(db_session):
+    """Dimension change must still be blocked with ConflictError when values exist."""
+    # Create a density property
+    prop = PropertyDefinition(
+        name="Densidade Teste 2",
+        slug="densidade-teste-2",
+        category="FISICA",
+        physical_dimension="[mass] / [length] ** 3",
+        canonical_unit="kg/m**3",
+    )
+    db_session.add(prop)
+    db_session.flush()
+
+    # Create a material
+    material = Material(
+        name="Material Teste 2",
+        class_id=1,
+        subclass="Teste",
+        is_active=True,
+        is_demo=False,
+    )
+    db_session.add(material)
+    db_session.flush()
+
+    # Add a property value
+    value = MaterialPropertyValue(
+        material_id=material.id,
+        property_id=prop.id,
+        value_scalar=1.0,
+        original_unit="kg/m**3",
+        normalized_value=1.0,
+        canonical_unit="kg/m**3",
+    )
+    db_session.add(value)
+    db_session.flush()
+
+    # Try to change the dimension (from density to pressure)
+    service = PropertyService(db_session)
+    payload = PropertyDefinitionIn(
+        name=prop.name,
+        slug=prop.slug,
+        category=prop.category,
+        physical_dimension="[mass] / [length] / [time] ** 2",  # pressure
+        canonical_unit="Pa",
+    )
+    with pytest.raises(ConflictError):
+        service.update_property(prop.id, payload)
+
+
+def test_update_property_renormalization_is_atomic_on_incompatible_original_unit(db_session):
+    """Abort the whole update if any value has incompatible original_unit."""
+    # Create a property
+    prop = PropertyDefinition(
+        name="Densidade Teste 3",
+        slug="densidade-teste-3",
+        category="FISICA",
+        physical_dimension="[mass] / [length] ** 3",
+        canonical_unit="kg/m**3",
+    )
+    db_session.add(prop)
+    db_session.flush()
+
+    # Create a material
+    material = Material(
+        name="Material Teste 3",
+        class_id=1,
+        subclass="Teste",
+        is_active=True,
+        is_demo=False,
+    )
+    db_session.add(material)
+    db_session.flush()
+
+    # Add a value with incompatible original_unit (corrupted data)
+    value = MaterialPropertyValue(
+        material_id=material.id,
+        property_id=prop.id,
+        value_scalar=1.0,
+        original_unit="not-a-real-unit",  # incompatible with new canonical unit
+        normalized_value=1.0,
+        canonical_unit="kg/m**3",
+    )
+    db_session.add(value)
+    db_session.flush()
+
+    # Try to change canonical unit to g/cm3
+    service = PropertyService(db_session)
+    payload = PropertyDefinitionIn(
+        name=prop.name,
+        slug=prop.slug,
+        category=prop.category,
+        physical_dimension=prop.physical_dimension,
+        canonical_unit="g/cm**3",
+    )
+    with pytest.raises(ConflictError):
+        service.update_property(prop.id, payload)
+
+    # Verify that the property's canonical_unit itself was NOT changed
+    unchanged = db_session.get(PropertyDefinition, prop.id)
+    assert unchanged is not None
+    assert unchanged.canonical_unit == "kg/m**3"
