@@ -111,7 +111,7 @@ class PropertyService:
                     new_normalized, method = to_canonical(
                         source, source_unit, payload.canonical_unit
                     )
-                except (UnitError, Exception) as exc:
+                except UnitError as exc:
                     raise ConflictError(
                         f"Não é possível renormalizar: o valor cadastrado em "
                         f"'{source_unit}' não converte para '{payload.canonical_unit}' ({exc})."
