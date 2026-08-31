@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [10](#sessão-10--270826-a-310826--backlog-b1b10-entregue-por-inteiro-via-sdd) | 27 a 31/08/2026 | Backlog B1–B10 (dez tarefas de baixa prioridade) entregue por inteiro, dirigido por subagentes | 795 → 831 | 162 → 165 |
 | [9](#sessão-9--260826-a-270826--rag-sobre-o-cérebro-d-47-e-a-pr-26-fechada-e-remesclada) | 26 e 27/08/2026 | RAG sobre o Cérebro (D-47, 18 tarefas via SDD), PR #26 investigada/fechada e depois remesclada pelo autor | 713 → 795 | 157 → 162 |
 | [8](#sessão-8--240826-a-250826--reconciliação-de-branches-m9-e-o-checkout-do-stripe-testado-ao-vivo) | 24 e 25/08/2026 | Reconciliação de branches, M9 (portão de assinatura, D-46) e checkout do Stripe testado ao vivo | 639 → 713 | 148 → 157 |
 | [7](#sessão-7--210826--triagem-de-licenciamento-m1) | 21/08/2026 | Triagem de licenciamento (M1) | 632 → 639 | 148 (inalterado) |
@@ -20,6 +21,88 @@ por isso que ela tem menos detalhe de processo que as outras.
 | [3](#sessão-3--110826--os-provedores-reais-da-camada-de-ia) | 11/08/2026 | Fase 6: provedores reais de IA | 391 → 436 | 123 |
 | [2](#sessão-2--050826-a-100826--fase-7-parcial-ci-obrigatória-e-fase-8) | 05/08 a 10/08/2026 | Fase 7 (relatório HTML), CI obrigatória, Fase 8 (redesign) | 362 → 391 | 44 → 123 |
 | [1](#sessão-1--300726-a-040826--fases-5-a-7) | 30/07 a 04/08/2026 | Fases 5, 6 e 7 (exportação) | 169 → 362 | 13 → 44 |
+
+---
+
+# Sessão 10 — 27/08/26 a 31/08/26 — Backlog B1–B10 entregue por inteiro, via SDD
+
+Ponto de partida: fim da sessão 9 (PR #27 mesclada, D-48 registrado). Pedido:
+"fazer as demandas de baixa prioridade B1-B10" — as dez pendências de
+`docs/TODO.md` §"Baixa prioridade", cada uma pequena isoladamente (▁/▃ de
+dificuldade) mas as dez juntas cobrindo praticamente todo o sistema:
+importação, mapa de Ashby, catálogo de materiais, exportação. Testes de
+backend: 795 → 831 (0 skip); frontend: 162 → 165.
+
+## 1. Planejamento
+
+Investigação de código (três agentes em paralelo, um por área: frontend/mapas,
+importadores/encoding, geometria/busca/exportação) antes de escrever o plano —
+`superpowers:writing-plans`, salvo em
+`docs/superpowers/plans/2026-08-27-backlog-b1-b10.md` (removido ao final,
+junto com o resto do workspace de SDD; o histórico do git é o registro).
+Dez tarefas, uma por item do backlog, ordenadas para serializar as poucas
+sobreposições de arquivo entre elas (ex.: B4 antes de B3, ambas em
+`readers.py`; B6 antes de B8, ambas em `_envelopes`).
+
+## 2. Execução — `subagent-driven-development`
+
+Um implementador por tarefa, revisão de tarefa a cada uma, revisão final de
+branch ao final — o mesmo processo já usado na sessão do RAG. Três achados
+valem registro:
+
+- **B3 (importação de JSON/SQLite):** a revisão de tarefa pegou um risco real
+  de injeção SQL em `read_sqlite` — o nome de tabela era interpolado direto
+  numa f-string, e embora o único chamador atual nunca passe um nome
+  controlado por usuário, a função é pública com um parâmetro (`sheet_name`)
+  desenhado explicitamente para reuso futuro (um seletor de tabela na UI,
+  espelhando o que já existe para XLSX). Corrigido com o escape padrão de
+  identificador SQL (duplicar aspas embutidas) antes da correção ser aceita;
+  um teste de regressão usa exatamente o payload malicioso da PoC do
+  revisor.
+- **Limites de taxa, não bugs.** Duas vezes um implementador foi interrompido
+  por "session limit"/"weekly limit" da API, não por um erro de código —
+  verificado a cada vez via `git status`/`git diff` antes de redespachar (uma
+  vez havia um diff correto sem commit, recuperado; a outra, nada a
+  recuperar, redespachado do zero). O modelo usado nos despachos caiu de
+  sonnet para haiku por cerca de um dia e meio até a janela semanal
+  resetar, com avisos mais explícitos nos briefs para compensar.
+- **Revisão final pegou dois bugs reais que dez revisões de tarefa (mais
+  leves, em haiku) tinham deixado passar** — exatamente o motivo de uma
+  revisão de branch inteira existir:
+  - **B7:** o seletor "carregar gráfico salvo" era um no-op silencioso — a
+    página aplicava os dados da *lista* de gráficos salvos
+    (`SavedChartListItem`, que omite `configuration` de propósito, para não
+    enviar o blob de filtro inteiro de cada gráfico só para popular um
+    seletor) através de um duplo cast `as unknown as Partial<MapUrlState>`,
+    em vez de buscar o registro completo com `getSavedChart(id)` — que já
+    existia em `lib/api.ts` mas nunca era chamado.
+  - **B8:** o objetivo de "trocar de escala sem recarregar" não era
+    cumprido — faltava `placeholderData` no `useQuery` do mapa; sem ele, o
+    React Query zera os dados a cada troca de `scale` (que faz parte da
+    chave da consulta), desmontando o gráfico e mostrando o carregamento
+    completo — exatamente o problema que B8 devia eliminar, com a lógica de
+    troca instantânea que a Tarefa 7 construiu (`envelopes_alt`/
+    `displayScale`) nunca chegando a rodar. O mesmo padrão
+    (`placeholderData: (previous) => previous`) já existia em
+    `apps/web/app/selecao/page.tsx` — só precisava ser copiado.
+  - Uma única rodada de correção resolveu os dois, mais o achado (já
+    rebaixado a Minor numa revisão de tarefa) de um `except` genérico
+    demais em `property_service.py` mascarando um bug real de conversão de
+    unidade como um 409 esperado — a correção expôs uma lacuna pré-existente
+    em `app/calculations/units.py` (Pint levanta `TypeError` bruto para uma
+    string de unidade malformada, antes silenciosamente engolida pelo
+    `except` largo demais); a rerrevisão confirmou por leitura direta do
+    arquivo que a ordem das cláusulas `except` continua correta (`Dimensio
+    nalityError` não fica sombreado pela cláusula mais ampla).
+
+## 3. Estado final
+
+831 testes de backend, 165 de frontend, `ruff`/`black`/`typecheck`/`lint`
+limpos, `alembic upgrade head` + seed confirmados contra um banco limpo (a
+cadeia de duas migrations novas — `SavedChart` de B7, `MaterialKeyword` de
+B5 — é linear). `docs/TODO.md` atualizado: B1–B10 saem de "Baixa
+prioridade" (agora vazia) para "Débitos já quitados"; `SavedChart` sai de
+"Entidades ainda não modeladas".
 
 ---
 
