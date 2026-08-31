@@ -3,7 +3,7 @@
 import { useMemo, useRef, type ReactNode } from "react";
 import dynamic from "next/dynamic";
 import type { Data, Layout } from "plotly.js";
-import type { MapPoint, PropertyMap } from "@/lib/types";
+import type { ChartScale, MapPoint, PropertyMap } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { formatNumber, prettyUnit } from "@/lib/format";
 import { chartFileName, escapeHover, toClosedRing, toXY, withAlpha } from "@/lib/charts";
@@ -27,7 +27,7 @@ const t = ptBR.map;
 
 interface AshbyMapProps {
   map: PropertyMap;
-  displayScale?: string;
+  displayScale?: ChartScale;
   isFetching?: boolean;
   highlightIds?: number[];
   showEnvelopes?: boolean;
@@ -288,7 +288,7 @@ export function AshbyMap({
 
   const layout = useMemo<Partial<Layout>>(() => {
     const base = paint.layout;
-    const axisScale = (displayScale || map.scale) as "linear" | "log";
+    const axisScale = displayScale || map.scale;
     return {
       ...base,
       autosize: true,

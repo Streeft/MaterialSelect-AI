@@ -7,6 +7,7 @@ import {
   createSavedChart,
   deleteSavedChart,
   getPropertyMap,
+  getSavedChart,
   listClasses,
   listPerformanceIndices,
   listProperties,
@@ -346,6 +347,10 @@ function MapsPageContent() {
     queryKey: ["property-map", JSON.stringify(request)],
     queryFn: () => getPropertyMap(request),
     enabled: xReady && yReady && !axisConflict,
+    // Keep the previous map on screen while the next one is in flight, so a
+    // scale toggle (or any other axis change) does not blink the whole chart
+    // between every interaction.
+    placeholderData: (previous) => previous,
   });
 
   const overlay = map.data?.index ?? null;
@@ -411,17 +416,31 @@ function MapsPageContent() {
     });
   }
 
-  /** Load a saved chart configuration and apply it to the page state. */
-  function handleLoadChart(chartId: number) {
-    const chart = savedCharts.data?.find((c) => c.id === chartId);
-    if (!chart) return;
-    const decoded = chart as unknown as Partial<MapUrlState>;
+  /**
+   * Load a saved chart configuration and apply it to the page state.
+   *
+   * `savedCharts.data` is the list endpoint's `{id, name, created_at}` shape
+   * (`SavedChartListItem`), deliberately without `configuration` — so the
+   * full record, `configuration` included, has to be fetched by id before
+   * there is anything real to apply.
+   */
+  async function handleLoadChart(chartId: number) {
+    const chart = await getSavedChart(chartId);
+    const decoded = chart.configuration as Partial<MapUrlState>;
     const defaults = getCurrentMapState();
     const applied = applyMapState(decoded, defaults);
 
     if (applied.xAxis) setXAxis(applied.xAxis as AxisState);
     if (applied.yAxis) setYAxis(applied.yAxis as AxisState);
-    if (applied.scale) setScale(applied.scale);
+    if (applied.scale) {
+      // `displayScale` is the axis type the chart actually renders (it wins
+      // over `map.scale` while a new request is in flight, see AshbyMap) and
+      // is otherwise only kept in sync with `scale` by the scale toggle's
+      // onClick — so it has to be set here too, or the chart keeps drawing
+      // the old scale until the reader clicks the toggle themselves.
+      setScale(applied.scale);
+      setDisplayScale(applied.scale);
+    }
     if (applied.selectedClasses) setSelectedClasses(applied.selectedClasses);
     if (applied.showEnvelopes !== undefined) setShowEnvelopes(applied.showEnvelopes);
     if (applied.showIntervals !== undefined) setShowIntervals(applied.showIntervals);
@@ -509,7 +528,7 @@ function MapsPageContent() {
               onChange={(e) => {
                 const id = Number(e.target.value);
                 if (Number.isInteger(id) && id > 0) {
-                  handleLoadChart(id);
+                  void handleLoadChart(id);
                 }
               }}
               className="min-w-[16rem]"
