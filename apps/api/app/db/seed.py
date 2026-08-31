@@ -36,6 +36,7 @@ from app.models.project import Project
 from app.models.property_definition import PropertyDefinition
 from app.models.source import Source
 from app.models.user import User, UserSession
+from app.repositories.material_repository import MaterialRepository
 from app.repositories.subscription_repository import SubscriptionRepository
 
 DEMO_WARNING = "Dados exclusivamente demonstrativos. Não utilizar em projetos reais."
@@ -600,6 +601,7 @@ def seed(db: Session) -> dict[str, int]:
     prop_by_slug = {p.slug: p for p in db.execute(select(PropertyDefinition)).scalars().all()}
 
     created_materials = 0
+    material_repo = MaterialRepository(db)
     for mat_spec in DEMO_MATERIALS:
         existing = (
             db.execute(select(Material).where(Material.name == mat_spec["name"]))
@@ -626,6 +628,7 @@ def seed(db: Session) -> dict[str, int]:
             row = _build_value_row(value_spec, prop, demo_source)
             row.material_id = material.id
             db.add(row)
+        material_repo.sync_keywords(material.id, mat_spec.get("keywords", []))
         created_materials += 1
 
     db.commit()

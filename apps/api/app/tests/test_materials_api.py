@@ -137,3 +137,50 @@ def test_chart_404_for_unknown_property(client):
         params={"x": "densidade", "y": "nao_existe"},
     )
     assert resp.status_code == 404
+
+
+# --- keyword search tests (B5) ------------------------------------------------
+
+
+def test_list_materials_search_matches_keyword(db_session, material_repo):
+    """Keyword search matches partial keywords via MaterialKeyword association."""
+    from app.models.material import Material
+
+    material = Material(
+        name="Liga X",
+        class_id=1,
+        keywords=["leve", "resistente"],
+        is_active=True,
+    )
+    material_repo.add(material)
+    material_repo.flush()
+    material_repo.sync_keywords(material.id, material.keywords)
+    material_repo.commit()
+
+    results = material_repo.list_materials(search="resist")
+    assert any(m.id == material.id for m in results)
+
+
+def test_sync_keywords_replaces_previous_set(db_session, material_repo):
+    """sync_keywords replaces the previous keyword set entirely."""
+    from app.models.material import Material
+
+    material = Material(
+        name="Liga Y",
+        class_id=1,
+        keywords=["xyzunique1"],
+        is_active=True,
+    )
+    material_repo.add(material)
+    material_repo.flush()
+    material_repo.sync_keywords(material.id, ["xyzunique1"])
+    material_repo.sync_keywords(material.id, ["xyzunique2"])
+    material_repo.commit()
+
+    # After sync_keywords(["xyzunique2"]), searching for "xyzunique1" should not find the material
+    results_a = material_repo.list_materials(search="xyzunique1")
+    assert not any(m.id == material.id for m in results_a)
+
+    # But searching for "xyzunique2" should find it
+    results_b = material_repo.list_materials(search="xyzunique2")
+    assert any(m.id == material.id for m in results_b)
