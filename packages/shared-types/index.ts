@@ -574,6 +574,7 @@ export interface PropertyMap {
   y_axis: MapAxis;
   points: MapPoint[];
   envelopes: ClassEnvelope[];
+  envelopes_alt: ClassEnvelope[];
   excluded: ExcludedPoint[];
   index: IndexOverlay | null;
   considered_count: number;

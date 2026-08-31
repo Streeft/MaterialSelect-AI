@@ -122,6 +122,23 @@ class TestEnvelopes:
         slugs = {e["class_slug"] for e in data["envelopes"]}
         assert slugs == {"metais", "polimeros", "ceramicas", "compositos"}
 
+    def test_property_map_returns_alt_scale_envelope(self, client: TestClient) -> None:
+        data = _map(client, scale="log")
+        assert data["envelopes_alt"]  # the linear-scale hull, computed alongside the log one
+        # The alt envelope must differ in general from the requested one (same
+        # points, different space) for a non-trivial class — assert shape, not
+        # exact equality, since a degenerate 1-2-point class can coincide.
+        assert all(isinstance(e["polygon"], list) for e in data["envelopes_alt"])
+
+    def test_property_map_alt_scale_excludes_nonpositive_for_log_alt(
+        self, client: TestClient
+    ) -> None:
+        # When the requested scale is "linear" (so non-positive points are kept
+        # in `points`), the alt (log) envelope must silently drop them from its
+        # own hull rather than crashing on log10 of a non-positive number.
+        data = _map(client, scale="linear")
+        assert data["envelopes_alt"] is not None  # no exception raised
+
     def test_single_material_class_yields_a_single_vertex(self, client: TestClient) -> None:
         data = _map(client)
         ceramic = next(e for e in data["envelopes"] if e["class_slug"] == "ceramicas")

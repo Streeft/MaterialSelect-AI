@@ -182,6 +182,16 @@ class ChartService:
             if request.include_envelopes
             else []
         )
+        alt_scale = "linear" if request.scale == "log" else "log"
+        envelopes_alt = (
+            self._envelopes(
+                [p for p in points if not (alt_scale == "log" and (p.x <= 0 or p.y <= 0))],
+                alt_scale,
+                request.envelope_shape,
+            )
+            if request.include_envelopes
+            else []
+        )
         overlay = self._index_overlay(request, points, variables, notes)
 
         return PropertyMapOut(
@@ -190,6 +200,7 @@ class ChartService:
             y_axis=y_meta.model_copy(update=self._range(points, "y")),
             points=points,
             envelopes=envelopes,
+            envelopes_alt=envelopes_alt,
             excluded=excluded,
             index=overlay,
             considered_count=len(materials),
