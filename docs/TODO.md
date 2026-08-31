@@ -37,46 +37,8 @@ executado: ver "Débitos já quitados".
 
 ## Baixa prioridade
 
-### B1 — Filtros compartilháveis por URL
-- **Impacto:** baixo, mas útil para uso didático (o professor manda o link).
-- **Dificuldade:** ▁ · **Dependências:** nenhuma.
-
-### B2 — Exportação PPTX
-- **Impacto:** baixo. Previsto como *arquitetura para*, não como entrega.
-- **Dificuldade:** ▃ · **Dependências:** A3 primeiro (mesmo modelo `Report`).
-
-### B3 — Importação de JSON e SQLite
-- **Impacto:** baixo enquanto a base vier em planilha.
-- **Dificuldade:** ▃ · **Dependências:** camada de leitores já é extensível.
-
-### B4 — Detecção automática de encoding além de UTF-8/Latin-1
-- **Impacto:** baixo. **Dificuldade:** ▁ · **Dependências:** nenhuma.
-
-### B5 — Busca textual em tabela de associação
-- **Descrição:** hoje palavras-chave usam LIKE sobre JSON.
-- **Impacto:** baixo até a base crescer; então vira desempenho.
-- **Dificuldade:** ▃ · **Dependências:** migration.
-
-### B6 — Envelopes elípticos ajustados
-- **Descrição:** hoje o envelope é fecho convexo — literal e honesto com poucos
-  materiais por classe.
-- **Impacto:** baixo, estético. **Dificuldade:** ▃ · **Dependências:** nenhuma.
-
-### B7 — Salvar gráfico como objeto reutilizável (`SavedChart`)
-- **Impacto:** baixo. **Dificuldade:** ▃ · **Dependências:** migration.
-
-### B8 — Evitar a segunda requisição ao alternar linear ↔ log
-- **Descrição:** devolver os dois fechos convexos numa resposta só.
-- **Impacto:** baixo, só latência. **Dificuldade:** ▁ · **Dependências:** nenhuma.
-
-### B9 — Renormalização em massa ao trocar unidade canônica
-- **Descrição:** hoje trocar a unidade canônica de propriedade em uso é
-  bloqueado com 409.
-- **Impacto:** baixo. **Dificuldade:** ▃ · **Dependências:** transação única.
-
-### B10 — Migrar o aviso do `httpx`/Starlette
-- **Descrição:** `StarletteDeprecationWarning` sugere `httpx2` no TestClient.
-- **Impacto:** baixo, cosmético. **Dificuldade:** ▁ · **Dependências:** upstream.
+Nenhum item aberto no momento — B1 a B10 foram entregues nesta sessão (ver
+"Débitos já quitados").
 
 ---
 
@@ -92,6 +54,46 @@ executado: ver "Débitos já quitados".
 
 Registrados para não voltarem por engano:
 
+- ~~**B1–B10**~~ — as dez pendências de baixa prioridade, entregues numa
+  sessão dirigida por subagentes (o plano de implementação existiu em
+  `docs/superpowers/plans/2026-08-27-backlog-b1-b10.md`; o histórico do git é
+  o registro agora). **B1** filtros compartilháveis por URL
+  (`apps/web/app/mapas/url-state.ts`, um parâmetro `estado` opaco em
+  base64url, com o link antigo `?x=&y=` continuando a funcionar). **B7**
+  `SavedChart` — configuração de mapa salva e reaberta, isolada por projeto
+  no mesmo padrão de `SelectionStudy` (D-42); a revisão final de branch
+  pegou um bug real (o botão "carregar" aplicava os dados da *lista*, que
+  omite `configuration` de propósito, em vez de buscar o registro completo —
+  corrigido). **B6** envelope elíptico ajustado como alternativa ao fecho
+  convexo (`app/domain/geometry.py::fitted_ellipse`, autovalores em forma
+  fechada de uma matriz 2×2, sempre backend, nunca no React — ADR 0004).
+  **B8** evitar a segunda requisição ao alternar linear/log — o backend
+  devolve `envelopes_alt` (o envelope na escala oposta) na mesma resposta; a
+  revisão final também pegou que faltava `placeholderData` no `useQuery` do
+  frontend, sem o qual a troca de escala continuava recarregando a tela
+  inteira em vez de trocar instantaneamente — corrigido. **B9**
+  renormalização em massa ao trocar só a unidade canônica de uma propriedade
+  (dimensão física inalterada): todo `MaterialPropertyValue.normalized_value`
+  é recalculado numa única transação atômica — computa tudo antes de
+  escrever qualquer linha, um valor incompatível aborta a operação inteira
+  sem gravação parcial; `value_min`/`value_max`/`uncertainty`/`original_unit`
+  nunca são tocados (CLAUDE.md §1.4). **B5** busca por palavra-chave migrou
+  de `LIKE` sobre `Material.keywords` convertido de JSON para texto para uma
+  tabela de associação indexada (`MaterialKeyword`), mantendo `keywords`
+  como fonte de verdade e sincronizando o índice a cada gravação. **B3**
+  importação de JSON e SQLite — a revisão pegou um risco real de injeção SQL
+  no nome de tabela interpolado em `read_sqlite` (inofensivo no único
+  chamador atual, mas uma função pública com um parâmetro pensado para reuso
+  futuro); corrigido com escape padrão de identificador SQL antes de
+  mesclar. **B4** detecção de encoding além de UTF-8/Latin-1, via
+  `charset-normalizer`. **B2** arquitetura de exportação PPTX
+  (`to_pptx(report) -> bytes`), deliberadamente sem rota exposta, como o
+  próprio item pedia. **B10** `httpx2` instalado para calar o aviso de
+  depreciação do TestClient do Starlette. 831 testes de backend (0 skip,
+  antes 795) e 165 de frontend (antes 162) ao final; a revisão final de
+  branch rodou `alembic upgrade head` + seed num banco limpo para confirmar
+  que a cadeia das duas migrations novas (`SavedChart`, `MaterialKeyword`) é
+  linear.
 - ~~**RAG sobre o Cérebro**~~ — o Cérebro (D-45) deixou de estar inerte em
   `main`: `app/knowledge/retrieval.py` faz busca híbrida (BM25 + semântica,
   fundidas por *reciprocal rank fusion*) e alimenta `interpret()`/`explain()`

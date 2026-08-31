@@ -169,8 +169,26 @@ A divergência entre as duas paletas de cor (`--brand-700` e
 `--md-sys-color-primary` já não coincidem) fica como risco monitorado, não
 como bloqueio.
 
-**Saúde do código:** 795 testes de backend (Python 3.11 e 3.12, nenhum skip)
-e 162 de frontend, todos verdes. `ruff` limpo, `black
+**Backlog de baixa prioridade B1–B10 entregue por inteiro**, dirigido por
+subagentes (um implementador por tarefa, revisão de tarefa a tarefa, revisão
+final de branch inteira). As dez tarefas eram deliberadamente pequenas e
+independentes; a revisão final ainda assim pegou dois bugs reais que as
+revisões por tarefa (mais leves) tinham deixado passar: o botão "carregar
+gráfico salvo" (B7) aplicava os dados da *lista* de gráficos salvos — que
+omite `configuration` de propósito, por desenho — em vez de buscar o
+registro completo, tornando o carregamento um no-op silencioso; e a troca
+linear/log (B8) não eliminava o recarregamento como pretendia, por faltar
+`placeholderData` no `useQuery` do React Query. Ambos corrigidos numa única
+rodada de correção, com rerrevisão escopada confirmando. A revisão final
+também confirmou, por leitura direta do código (não só pelos testes): a
+cadeia das duas migrations novas (`SavedChart` de B7, `MaterialKeyword` de
+B5) é linear; a correção de injeção SQL feita durante a revisão de B3
+(escape de nome de tabela em `read_sqlite`) sobreviveu intacta; e nenhuma
+geometria de gráfico (B6, B8) é calculada no frontend. Ver `docs/TODO.md`
+para o resumo de cada item.
+
+**Saúde do código:** 831 testes de backend (Python 3.11 e 3.12, nenhum skip)
+e 165 de frontend, todos verdes. `ruff` limpo, `black
 --check` limpo, typecheck estrito e build de produção sem avisos. CI no
 GitHub Actions rodando em todo PR e push para `main`, com os checks
 **obrigatórios**: o GitHub recusa o merge se qualquer um falhar
@@ -500,7 +518,7 @@ que mais afetam quem for mexer no código:
 | Dependência de provedor de IA | Arquitetura desacoplada com provedor simulado; funciona sem chave. |
 | Incorporação inadvertida de dado protegido | Triagem de licenciamento (M1, item 4.2 da proposta) — `Source` registra licença/procedência, e uma fonte nova sem licença ou marcada como possivelmente protegida sem confirmação humana é recusada antes de qualquer linha ser escrita ([D-44](DECISIONS.md)). |
 | Resultado não reproduzível por interferência de IA | Cálculo determinístico + guardrails executáveis + confirmação do usuário. |
-| Regressão silenciosa | CI com 795 testes de backend e 162 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
+| Regressão silenciosa | CI com 831 testes de backend e 165 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
 | Material licenciado do Cérebro exposto em `main` (repositório público) | Risco aceito por decisão explícita do autor, não mitigado — o Cérebro é a base de conhecimento da camada de IA ([D-45](DECISIONS.md)). |
 | Uso sem cobrança | Portão binário ligado ([D-46](DECISIONS.md)), checkout testado ao vivo em modo de teste — falta só configurar `STRIPE_API_KEY`/`STRIPE_WEBHOOK_SECRET`/`STRIPE_PRICE_ID` em **modo de produção** para vender de verdade. |
 
