@@ -290,7 +290,15 @@ não tinha decisão registrada reconciliando-o com D-23 ("sem biblioteca de
 componentes"). Resolvido nesta sessão como [D-48](docs/DECISIONS.md):
 exceção pontual aceita, restrita a primitivas de baixo nível.
 
-795 testes de backend (nenhum skip) e 162 de frontend, todos verdes. CI no
+**Backlog de baixa prioridade B1–B10 entregue por inteiro**, dirigido por
+subagentes. A revisão final de branch pegou dois bugs reais que as revisões
+por tarefa tinham deixado passar — B7 (carregar um `SavedChart` era um
+no-op, por usar os dados da lista em vez do registro completo) e B8 (faltava
+`placeholderData` no `useQuery`, então a troca linear/log continuava
+recarregando a tela) — ambos corrigidos e rerrevistos. Ver `docs/TODO.md`
+para o resumo de cada item.
+
+831 testes de backend (nenhum skip) e 165 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
 PROJECT_CONTEXT.md).

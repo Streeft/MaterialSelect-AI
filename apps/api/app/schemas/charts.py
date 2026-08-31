@@ -54,6 +54,10 @@ class PropertyMapRequest(BaseModel):
     # space. Computing it for the scale actually displayed keeps the drawing
     # honest.
     scale: ScaleLiteral = "log"
+    envelope_shape: Literal["hull", "ellipse"] = Field(
+        default="hull",
+        description="Forma do envelope de classe: fecho convexo (literal) ou elipse ajustada (suave)",
+    )
     class_slugs: list[str] = Field(
         default_factory=list, description="Filtro por classe (vazio = todas)"
     )
@@ -201,6 +205,15 @@ class PropertyMapOut(BaseModel):
     y_axis: MapAxisOut
     points: list[MapPointOut]
     envelopes: list[ClassEnvelopeOut] = Field(default_factory=list)
+    envelopes_alt: list[ClassEnvelopeOut] = Field(
+        default_factory=list,
+        description=(
+            "Envelopes na escala oposta à requisitada, sobre os mesmos pontos já "
+            "filtrados — permite ao cliente alternar linear/log sem uma segunda "
+            "requisição. Pontos não positivos são excluídos apenas do cálculo do "
+            "envelope logarítmico alternativo, nunca da lista principal de pontos."
+        ),
+    )
     excluded: list[ExcludedPointOut] = Field(default_factory=list)
     index: IndexOverlayOut | None = None
     considered_count: int = Field(description="Materiais avaliados após o filtro de classe/ids")

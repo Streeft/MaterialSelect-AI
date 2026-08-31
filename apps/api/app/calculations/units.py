@@ -34,12 +34,16 @@ class UnitError(ValueError):
 # for an operator left without an operand ("m**", "1/", "$"),
 # ``tokenize.TokenError`` for a parenthesis never closed ("(m"),
 # ``UndefinedUnitError`` (an ``AttributeError``) for a name it does not know,
-# ``ValueError`` for the rest. They share no common base — ``UndefinedUnitError``
-# descends from ``AttributeError`` and ``DimensionalityError`` from ``TypeError``
-# — so the tuple has to be written out. Every one of them left uncaught leaves
-# the service layer as HTTP 500: the user made a typo and the application
-# answers with a defect of its own.
-_UNIT_PARSE_FAILURES = (UndefinedUnitError, AssertionError, TokenError, ValueError)
+# a plain ``TypeError`` for a hyphenated string ("not-a-real-unit"): Pint parses
+# a unit as an arithmetic expression, so the hyphens read as subtraction between
+# two unresolved terms, and ``ValueError`` for the rest. They share no common
+# base — ``UndefinedUnitError`` descends from ``AttributeError`` and
+# ``DimensionalityError`` from ``TypeError`` too, which is exactly why callers
+# that also catch ``DimensionalityError`` must catch it *first*: this tuple's
+# plain ``TypeError`` would otherwise swallow it under the wrong message. Every
+# one of these left uncaught leaves the service layer as HTTP 500: the user
+# made a typo and the application answers with a defect of its own.
+_UNIT_PARSE_FAILURES = (UndefinedUnitError, AssertionError, TokenError, TypeError, ValueError)
 
 
 # Pint parses a unit by *evaluating* it as an arithmetic expression, which means
@@ -193,13 +197,17 @@ def to_canonical(value: float, from_unit: str, canonical_unit: str) -> tuple[flo
         return value, f"identity:{canonical_unit}"
     try:
         converted = ureg.Quantity(value, from_unit).to(canonical_unit)
-    except _UNIT_PARSE_FAILURES as exc:
-        raise UnitError(
-            f"Unidade desconhecida em conversão {from_unit!r}->{canonical_unit!r}"
-        ) from exc
+    # DimensionalityError first and separately: it is itself a TypeError
+    # subclass, so it must be caught before the broader parse-failure tuple
+    # below (which now includes plain TypeError) or it would be reported as
+    # an unknown unit instead of an incompatible one.
     except DimensionalityError as exc:
         raise UnitError(
             f"Unidades incompatíveis: {from_unit!r} não pode ser convertido para {canonical_unit!r}"
+        ) from exc
+    except _UNIT_PARSE_FAILURES as exc:
+        raise UnitError(
+            f"Unidade desconhecida em conversão {from_unit!r}->{canonical_unit!r}"
         ) from exc
     result = float(converted.magnitude)
     if not math.isfinite(result):

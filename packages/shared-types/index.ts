@@ -478,6 +478,7 @@ export interface PropertyMapRequest {
   x_index?: IndexIn | null;
   y_index?: IndexIn | null;
   scale: ChartScale;
+  envelope_shape?: "hull" | "ellipse";
   class_slugs?: string[];
   material_ids?: number[] | null;
   highlight_material_ids?: number[];
@@ -573,6 +574,7 @@ export interface PropertyMap {
   y_axis: MapAxis;
   points: MapPoint[];
   envelopes: ClassEnvelope[];
+  envelopes_alt: ClassEnvelope[];
   excluded: ExcludedPoint[];
   index: IndexOverlay | null;
   considered_count: number;
@@ -806,4 +808,24 @@ export interface CheckoutSession {
 
 export interface PortalSession {
   url: string;
+}
+
+// --- Saved charts (map configurations) ----------------------------------------
+
+export interface SavedChartIn {
+  name: string;
+  configuration: Record<string, unknown>;
+}
+
+export interface SavedChart {
+  id: number;
+  name: string;
+  configuration: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface SavedChartListItem {
+  id: number;
+  name: string;
+  created_at: string;
 }

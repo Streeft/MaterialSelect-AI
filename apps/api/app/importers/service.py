@@ -95,9 +95,18 @@ class ImportService:
         extension = Path(safe_name).suffix.lower()
         if extension not in ALLOWED_EXTENSIONS:
             raise ValidationError(
-                f"Extensão não suportada: {extension or '(nenhuma)'} — use .csv ou .xlsx."
+                f"Extensão não suportada: {extension or '(nenhuma)'} — "
+                "use .csv, .xlsx, .json ou .sqlite/.db."
             )
-        file_format = extension.lstrip(".")
+        # Map extensions to format strings; .db and .sqlite both use sqlite reader
+        extension_to_format = {
+            ".csv": "csv",
+            ".xlsx": "xlsx",
+            ".json": "json",
+            ".sqlite": "sqlite",
+            ".db": "sqlite",
+        }
+        file_format = extension_to_format[extension]
 
         # Parse BEFORE persisting anything, so a malformed file leaves no job.
         table = read_tabular(data, file_format, settings.max_import_rows)

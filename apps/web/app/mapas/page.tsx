@@ -1,13 +1,17 @@
 "use client";
 
 import { Suspense, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  createSavedChart,
+  deleteSavedChart,
   getPropertyMap,
+  getSavedChart,
   listClasses,
   listPerformanceIndices,
   listProperties,
+  listSavedCharts,
 } from "@/lib/api";
 import type {
   ChartScale,
@@ -16,6 +20,7 @@ import type {
   PerformanceIndex,
   PropertyDefinition,
   PropertyMapRequest,
+  SavedChartIn,
 } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { formatNumber, prettyUnit } from "@/lib/format";
@@ -30,6 +35,7 @@ import {
   CardBody,
   CardHeader,
   Checkbox,
+  Dialog,
   ErrorState,
   Input,
   LoadingState,
@@ -45,6 +51,7 @@ import {
   describeIndex,
   type IndexDescriptor,
 } from "@/components/selection/IndexCard";
+import { applyMapState, decodeMapState, encodeMapState, type MapUrlState } from "./url-state";
 
 const t = ptBR.map;
 
@@ -62,7 +69,7 @@ function parseIds(raw: string | null): number[] {
  * same "predefined slug or custom expression" choice the index overlay already
  * offers, just per axis instead of once for the whole map.
  */
-interface AxisState {
+export interface AxisState {
   mode: "property" | "index";
   property: string;
   /** "" (nothing chosen yet), a `PerformanceIndex` slug, or "custom". */
@@ -187,26 +194,36 @@ function AxisControl({
 
 function MapsPageContent() {
   const params = useSearchParams();
+  const router = useRouter();
+
+  // Decode URL state once on mount; read it only once, since the URL should not
+  // keep re-driving state after the user starts interacting.
+  const decodedState = useMemo(() => {
+    const estado = params.get("estado");
+    return estado ? decodeMapState(estado) : null;
+  }, [params]);
 
   const [xAxis, setXAxis] = useState<AxisState>({
-    mode: "property",
-    property: params.get("x") ?? "densidade",
-    indexSlug: "",
-    customExpression: "",
-    goal: "maximize",
+    mode: decodedState?.xAxis?.mode ?? "property",
+    property: decodedState?.xAxis?.property ?? params.get("x") ?? "densidade",
+    indexSlug: decodedState?.xAxis?.indexSlug ?? "",
+    customExpression: decodedState?.xAxis?.customExpression ?? "",
+    goal: decodedState?.xAxis?.goal ?? "maximize",
   });
   const [yAxis, setYAxis] = useState<AxisState>({
-    mode: "property",
-    property: params.get("y") ?? "modulo_young",
-    indexSlug: "",
-    customExpression: "",
-    goal: "maximize",
+    mode: decodedState?.yAxis?.mode ?? "property",
+    property: decodedState?.yAxis?.property ?? params.get("y") ?? "modulo_young",
+    indexSlug: decodedState?.yAxis?.indexSlug ?? "",
+    customExpression: decodedState?.yAxis?.customExpression ?? "",
+    goal: decodedState?.yAxis?.goal ?? "maximize",
   });
-  const [scale, setScale] = useState<ChartScale>("log");
-  const [selectedClasses, setSelectedClasses] = useState<string[]>([]);
-  const [showEnvelopes, setShowEnvelopes] = useState(true);
-  const [showIntervals, setShowIntervals] = useState(true);
-  const [showLabels, setShowLabels] = useState(false);
+  const [scale, setScale] = useState<ChartScale>(decodedState?.scale ?? "log");
+  const [displayScale, setDisplayScale] = useState<ChartScale>(scale);
+  const [envelopeShape, setEnvelopeShape] = useState<"hull" | "ellipse">(decodedState?.envelopeShape ?? "hull");
+  const [selectedClasses, setSelectedClasses] = useState<string[]>(decodedState?.selectedClasses ?? []);
+  const [showEnvelopes, setShowEnvelopes] = useState(decodedState?.showEnvelopes ?? true);
+  const [showIntervals, setShowIntervals] = useState(decodedState?.showIntervals ?? true);
+  const [showLabels, setShowLabels] = useState(decodedState?.showLabels ?? false);
 
   // Materials carried over from a selection run, so a study can be read on the map.
   const restrictedIds = useMemo(() => parseIds(params.get("materiais")), [params]);
@@ -236,9 +253,9 @@ function MapsPageContent() {
     );
   }, [properties.data]);
 
-  const [indexMode, setIndexMode] = useState("none"); // "none" | slug | "custom"
-  const [customExpression, setCustomExpression] = useState("");
-  const [indexGoal, setIndexGoal] = useState<Goal>("maximize");
+  const [indexMode, setIndexMode] = useState(decodedState?.indexMode ?? "none"); // "none" | slug | "custom"
+  const [customExpression, setCustomExpression] = useState(decodedState?.customExpression ?? "");
+  const [indexGoal, setIndexGoal] = useState<Goal>(decodedState?.indexGoal ?? "maximize");
 
   const xResolvedIndex = useMemo(
     () => resolveAxisIndex(xAxis, indices.data ?? []),
@@ -278,8 +295,8 @@ function MapsPageContent() {
     return chosen ? describeIndex(chosen) : null;
   }, [anyAxisIsIndex, indexMode, customExpression, indexGoal, indices.data]);
 
-  const [levelMaterialIds, setLevelMaterialIds] = useState<number[]>([]);
-  const [numericLevels, setNumericLevels] = useState<number[]>([]);
+  const [levelMaterialIds, setLevelMaterialIds] = useState<number[]>(decodedState?.levelMaterialIds ?? []);
+  const [numericLevels, setNumericLevels] = useState<number[]>(decodedState?.numericLevels ?? []);
   const [levelDraft, setLevelDraft] = useState("");
 
   const request = useMemo<PropertyMapRequest>(
@@ -289,6 +306,7 @@ function MapsPageContent() {
       x_index: xAxis.mode === "index" ? xResolvedIndex : null,
       y_index: yAxis.mode === "index" ? yResolvedIndex : null,
       scale,
+      envelope_shape: envelopeShape,
       class_slugs: selectedClasses,
       material_ids: restrictedIds.length > 0 ? restrictedIds : null,
       // Always requested; hiding them is a display choice handled in the
@@ -304,6 +322,7 @@ function MapsPageContent() {
       xResolvedIndex,
       yResolvedIndex,
       scale,
+      envelopeShape,
       selectedClasses,
       restrictedIds,
       activeIndex,
@@ -328,6 +347,10 @@ function MapsPageContent() {
     queryKey: ["property-map", JSON.stringify(request)],
     queryFn: () => getPropertyMap(request),
     enabled: xReady && yReady && !axisConflict,
+    // Keep the previous map on screen while the next one is in flight, so a
+    // scale toggle (or any other axis change) does not blink the whole chart
+    // between every interaction.
+    placeholderData: (previous) => previous,
   });
 
   const overlay = map.data?.index ?? null;
@@ -336,6 +359,120 @@ function MapsPageContent() {
     setSelectedClasses((current) =>
       current.includes(slug) ? current.filter((s) => s !== slug) : [...current, slug],
     );
+  }
+
+  // Save/load chart configuration state and handlers.
+  const queryClient = useQueryClient();
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [chartNameDraft, setChartNameDraft] = useState("");
+  const savedCharts = useQuery({
+    queryKey: ["saved-charts"],
+    queryFn: listSavedCharts,
+  });
+
+  const createMutation = useMutation({
+    mutationFn: (payload: SavedChartIn) => createSavedChart(payload),
+    onSuccess: () => {
+      setSaveDialogOpen(false);
+      setChartNameDraft("");
+      queryClient.invalidateQueries({ queryKey: ["saved-charts"] });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (chartId: number) => deleteSavedChart(chartId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["saved-charts"] });
+    },
+  });
+
+  /** Get the current map state as a MapUrlState object. */
+  function getCurrentMapState(): MapUrlState {
+    return {
+      xAxis,
+      yAxis,
+      scale,
+      envelopeShape,
+      selectedClasses,
+      showEnvelopes,
+      showIntervals,
+      showLabels,
+      indexMode,
+      customExpression,
+      indexGoal,
+      levelMaterialIds,
+      numericLevels,
+    };
+  }
+
+  /** Save the current configuration with the user-supplied name. */
+  async function handleSaveChart() {
+    const name = chartNameDraft.trim();
+    if (!name) return;
+    const state = getCurrentMapState();
+    await createMutation.mutateAsync({
+      name,
+      configuration: state as unknown as Record<string, unknown>,
+    });
+  }
+
+  /**
+   * Load a saved chart configuration and apply it to the page state.
+   *
+   * `savedCharts.data` is the list endpoint's `{id, name, created_at}` shape
+   * (`SavedChartListItem`), deliberately without `configuration` — so the
+   * full record, `configuration` included, has to be fetched by id before
+   * there is anything real to apply.
+   */
+  async function handleLoadChart(chartId: number) {
+    const chart = await getSavedChart(chartId);
+    const decoded = chart.configuration as Partial<MapUrlState>;
+    const defaults = getCurrentMapState();
+    const applied = applyMapState(decoded, defaults);
+
+    if (applied.xAxis) setXAxis(applied.xAxis as AxisState);
+    if (applied.yAxis) setYAxis(applied.yAxis as AxisState);
+    if (applied.scale) {
+      // `displayScale` is the axis type the chart actually renders (it wins
+      // over `map.scale` while a new request is in flight, see AshbyMap) and
+      // is otherwise only kept in sync with `scale` by the scale toggle's
+      // onClick — so it has to be set here too, or the chart keeps drawing
+      // the old scale until the reader clicks the toggle themselves.
+      setScale(applied.scale);
+      setDisplayScale(applied.scale);
+    }
+    if (applied.selectedClasses) setSelectedClasses(applied.selectedClasses);
+    if (applied.showEnvelopes !== undefined) setShowEnvelopes(applied.showEnvelopes);
+    if (applied.showIntervals !== undefined) setShowIntervals(applied.showIntervals);
+    if (applied.showLabels !== undefined) setShowLabels(applied.showLabels);
+    if (applied.indexMode) setIndexMode(applied.indexMode);
+    if (applied.customExpression !== undefined) setCustomExpression(applied.customExpression);
+    if (applied.indexGoal) setIndexGoal(applied.indexGoal);
+    if (applied.levelMaterialIds) setLevelMaterialIds(applied.levelMaterialIds);
+    if (applied.numericLevels) setNumericLevels(applied.numericLevels);
+  }
+
+  /** Build and share the current map state as a URL. */
+  async function shareMap() {
+    try {
+      const state = getCurrentMapState();
+      const encoded = encodeMapState(state);
+      const url = `${window.location.origin}${window.location.pathname}?estado=${encoded}`;
+
+      // Update URL without adding to history.
+      router.replace(`?estado=${encoded}`);
+
+      // Copy to clipboard.
+      await navigator.clipboard.writeText(url);
+
+      // Brief visual feedback (reuse the existing pattern if there is one,
+      // or show a simple inline message).
+      // For now, we'll rely on the browser's native "Copied!" feedback when
+      // available, or nothing if not. A full toast implementation is out of
+      // scope for this task.
+    } catch (err) {
+      console.error("Failed to share:", err);
+    }
   }
 
   /** Add a free M level typed by the user (pt-BR decimal comma accepted). */
@@ -356,10 +493,102 @@ function MapsPageContent() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-xl font-semibold text-ink">{t.title}</h1>
-        <p className="max-w-prose text-sm text-ink-muted">{t.subtitle}</p>
+      <div className="flex flex-col gap-2">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1">
+            <h1 className="text-xl font-semibold text-ink">{t.title}</h1>
+            <p className="max-w-prose text-sm text-ink-muted">{t.subtitle}</p>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => setSaveDialogOpen(true)}
+              title={t.saveTooltip}
+            >
+              {t.save}
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => void shareMap()}
+              title={t.shareTooltip}
+            >
+              {t.share}
+            </Button>
+          </div>
+        </div>
+
+        {/* Saved charts picker */}
+        {(savedCharts.data?.length ?? 0) > 0 && (
+          <div className="flex items-end gap-2">
+            <Select
+              label={t.savedCharts}
+              value=""
+              onChange={(e) => {
+                const id = Number(e.target.value);
+                if (Number.isInteger(id) && id > 0) {
+                  void handleLoadChart(id);
+                }
+              }}
+              className="min-w-[16rem]"
+            >
+              <SelectOption value="">{t.savedCharts}</SelectOption>
+              {(savedCharts.data ?? []).map((chart) => (
+                <SelectOption key={chart.id} value={String(chart.id)}>
+                  {chart.name}
+                </SelectOption>
+              ))}
+            </Select>
+          </div>
+        )}
       </div>
+
+      {/* Save chart dialog */}
+      <Dialog
+        open={saveDialogOpen}
+        onClose={() => {
+          setSaveDialogOpen(false);
+          setChartNameDraft("");
+        }}
+        title={t.save}
+        description={t.saveTooltip}
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => {
+                setSaveDialogOpen(false);
+                setChartNameDraft("");
+              }}
+            >
+              {t.cancel}
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => void handleSaveChart()}
+              disabled={!chartNameDraft.trim() || createMutation.isPending}
+            >
+              {t.ok}
+            </Button>
+          </div>
+        }
+      >
+        <Input
+          label={t.chartName}
+          placeholder={t.chartNamePlaceholder}
+          value={chartNameDraft}
+          onChange={(e) => setChartNameDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              void handleSaveChart();
+            }
+          }}
+          autoFocus
+        />
+      </Dialog>
 
       {/* One panel, four named groups.
           The eleven controls used to sit in three anonymous white boxes, in the
@@ -394,9 +623,26 @@ function MapsPageContent() {
                   {(["linear", "log"] as ChartScale[]).map((option) => (
                     <ButtonGroupItem
                       key={option}
-                      selected={scale === option}
+                      selected={displayScale === option}
                       label={option === "linear" ? t.linear : t.log}
-                      onClick={() => setScale(option)}
+                      onClick={() => {
+                        setDisplayScale(option);
+                        setScale(option);
+                      }}
+                    />
+                  ))}
+                </ButtonGroup>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <span className="text-xs font-medium text-ink-muted">{t.envelope}</span>
+                <ButtonGroup label={t.envelope}>
+                  {(["hull", "ellipse"] as const).map((option) => (
+                    <ButtonGroupItem
+                      key={option}
+                      selected={envelopeShape === option}
+                      label={option === "hull" ? t.convexHull : t.adjustedEllipse}
+                      onClick={() => setEnvelopeShape(option)}
                     />
                   ))}
                 </ButtonGroup>
@@ -602,6 +848,8 @@ function MapsPageContent() {
         <>
           <AshbyMap
             map={map.data}
+            displayScale={displayScale}
+            isFetching={map.isFetching}
             highlightIds={highlightIds}
             showEnvelopes={showEnvelopes}
             showIntervals={showIntervals}

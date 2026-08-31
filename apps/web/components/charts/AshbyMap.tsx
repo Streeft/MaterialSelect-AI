@@ -3,7 +3,7 @@
 import { useMemo, useRef, type ReactNode } from "react";
 import dynamic from "next/dynamic";
 import type { Data, Layout } from "plotly.js";
-import type { MapPoint, PropertyMap } from "@/lib/types";
+import type { ChartScale, MapPoint, PropertyMap } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { formatNumber, prettyUnit } from "@/lib/format";
 import { chartFileName, escapeHover, toClosedRing, toXY, withAlpha } from "@/lib/charts";
@@ -27,6 +27,8 @@ const t = ptBR.map;
 
 interface AshbyMapProps {
   map: PropertyMap;
+  displayScale?: ChartScale;
+  isFetching?: boolean;
   highlightIds?: number[];
   showEnvelopes?: boolean;
   showIntervals?: boolean;
@@ -149,6 +151,8 @@ function hoverFor(point: MapPoint, map: PropertyMap): string {
  */
 export function AshbyMap({
   map,
+  displayScale,
+  isFetching = false,
   highlightIds = [],
   showEnvelopes = true,
   showIntervals = true,
@@ -161,12 +165,18 @@ export function AshbyMap({
   const paint = useMemo(() => chartTheme(theme), [theme]);
   const highlighted = useMemo(() => new Set(highlightIds), [highlightIds]);
 
+  // When fetching with a different displayScale, use the pre-computed alt envelope
+  // instead of the stale one. This enables instant visual feedback on scale toggle.
+  const useAltEnvelopes =
+    isFetching && displayScale && displayScale !== map.scale && map.envelopes_alt.length > 0;
+  const renderEnvelopes = useAltEnvelopes ? map.envelopes_alt : map.envelopes;
+
   const traces = useMemo<Data[]>(() => {
     const result: Data[] = [];
 
     // 1. Class envelopes, drawn first so points sit on top of them.
     if (showEnvelopes) {
-      for (const envelope of map.envelopes) {
+      for (const envelope of renderEnvelopes) {
         const { xs, ys } = toClosedRing(envelope.polygon);
         if (xs.length < 2) continue; // a single material has no outline to show
         const visual = classVisual(envelope.class_slug);
@@ -274,10 +284,11 @@ export function AshbyMap({
     }
 
     return result;
-  }, [map, highlighted, showEnvelopes, showIntervals, showLabels, paint]);
+  }, [map, renderEnvelopes, highlighted, showEnvelopes, showIntervals, showLabels, paint]);
 
   const layout = useMemo<Partial<Layout>>(() => {
     const base = paint.layout;
+    const axisScale = displayScale || map.scale;
     return {
       ...base,
       autosize: true,
@@ -290,7 +301,7 @@ export function AshbyMap({
         title: {
           text: axisTitle(map.x_axis.property_name, map.x_axis.symbol, map.x_axis.unit),
         },
-        type: map.scale,
+        type: axisScale,
         zeroline: false,
       },
       yaxis: {
@@ -298,11 +309,11 @@ export function AshbyMap({
         title: {
           text: axisTitle(map.y_axis.property_name, map.y_axis.symbol, map.y_axis.unit),
         },
-        type: map.scale,
+        type: axisScale,
         zeroline: false,
       },
     };
-  }, [map, paint]);
+  }, [map, paint, displayScale]);
 
   // The figure's own numbers, as columns. The index column only exists when the
   // figure drew one, and a point without an index carries the backend's reason

@@ -206,6 +206,7 @@ const propertyMap: PropertyMap = {
     },
   ],
   envelopes: [],
+  envelopes_alt: [],
   excluded: [{ material_id: 3, name: "Liga experimental", reason: "Sem valor em ambos os eixos" }],
   index: null,
   considered_count: 3,
@@ -481,6 +482,11 @@ vi.mock("@/lib/api", async (importOriginal) => ({
   getDashboardOverview: () => Promise.resolve(overview),
   getDashboardDistribution: () => Promise.resolve(distribution),
   deactivateMaterial: () => Promise.resolve(),
+  // Saved charts endpoints (B7)
+  listSavedCharts: () => Promise.resolve([]),
+  getSavedChart: () => Promise.resolve(null),
+  createSavedChart: () => Promise.resolve(null),
+  deleteSavedChart: () => Promise.resolve(),
   // The selection wizard and the import wizard start empty and only reach these
   // on a user action; they exist so the module's shape is complete.
   getStudy: () => Promise.resolve(null),

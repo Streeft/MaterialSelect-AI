@@ -20,10 +20,12 @@ from app.models.import_job import ImportJob, ImportMappingTemplate
 from app.models.knowledge import KnowledgeChunk, KnowledgeDocument, KnowledgeEmbedding
 from app.models.material import Material
 from app.models.material_class import MaterialClass
+from app.models.material_keyword import MaterialKeyword
 from app.models.material_property_value import MaterialPropertyValue
 from app.models.performance_index import PerformanceIndex
 from app.models.project import Project
 from app.models.property_definition import PropertyDefinition
+from app.models.saved_chart import SavedChart
 from app.models.selection import RankingCriterion, SelectionConstraint, SelectionStudy
 from app.models.source import Source
 from app.models.subscription import Subscription
@@ -45,12 +47,14 @@ __all__ = [
     "KnowledgeEmbedding",
     "Material",
     "MaterialClass",
+    "MaterialKeyword",
     "MaterialPropertyValue",
     "PerformanceIndex",
     "Project",
     "PropertyCategory",
     "PropertyDefinition",
     "RankingCriterion",
+    "SavedChart",
     "SelectionConstraint",
     "SelectionStudy",
     "Source",
