@@ -5,6 +5,7 @@ export interface MapUrlState {
   xAxis: AxisState;
   yAxis: AxisState;
   scale: ChartScale;
+  envelopeShape: "hull" | "ellipse";
   selectedClasses: string[];
   showEnvelopes: boolean;
   showIntervals: boolean;
@@ -51,6 +52,7 @@ export function applyMapState(
     xAxis: decoded.xAxis ?? defaults.xAxis,
     yAxis: decoded.yAxis ?? defaults.yAxis,
     scale: decoded.scale ?? defaults.scale,
+    envelopeShape: decoded.envelopeShape ?? defaults.envelopeShape,
     selectedClasses: decoded.selectedClasses ?? defaults.selectedClasses,
     showEnvelopes: decoded.showEnvelopes ?? defaults.showEnvelopes,
     showIntervals: decoded.showIntervals ?? defaults.showIntervals,

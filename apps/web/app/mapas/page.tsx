@@ -217,6 +217,7 @@ function MapsPageContent() {
     goal: decodedState?.yAxis?.goal ?? "maximize",
   });
   const [scale, setScale] = useState<ChartScale>(decodedState?.scale ?? "log");
+  const [envelopeShape, setEnvelopeShape] = useState<"hull" | "ellipse">(decodedState?.envelopeShape ?? "hull");
   const [selectedClasses, setSelectedClasses] = useState<string[]>(decodedState?.selectedClasses ?? []);
   const [showEnvelopes, setShowEnvelopes] = useState(decodedState?.showEnvelopes ?? true);
   const [showIntervals, setShowIntervals] = useState(decodedState?.showIntervals ?? true);
@@ -303,6 +304,7 @@ function MapsPageContent() {
       x_index: xAxis.mode === "index" ? xResolvedIndex : null,
       y_index: yAxis.mode === "index" ? yResolvedIndex : null,
       scale,
+      envelope_shape: envelopeShape,
       class_slugs: selectedClasses,
       material_ids: restrictedIds.length > 0 ? restrictedIds : null,
       // Always requested; hiding them is a display choice handled in the
@@ -318,6 +320,7 @@ function MapsPageContent() {
       xResolvedIndex,
       yResolvedIndex,
       scale,
+      envelopeShape,
       selectedClasses,
       restrictedIds,
       activeIndex,
@@ -383,6 +386,7 @@ function MapsPageContent() {
       xAxis,
       yAxis,
       scale,
+      envelopeShape,
       selectedClasses,
       showEnvelopes,
       showIntervals,
@@ -602,6 +606,20 @@ function MapsPageContent() {
                       selected={scale === option}
                       label={option === "linear" ? t.linear : t.log}
                       onClick={() => setScale(option)}
+                    />
+                  ))}
+                </ButtonGroup>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <span className="text-xs font-medium text-ink-muted">{t.envelope}</span>
+                <ButtonGroup label={t.envelope}>
+                  {(["hull", "ellipse"] as const).map((option) => (
+                    <ButtonGroupItem
+                      key={option}
+                      selected={envelopeShape === option}
+                      label={option === "hull" ? t.convexHull : t.adjustedEllipse}
+                      onClick={() => setEnvelopeShape(option)}
                     />
                   ))}
                 </ButtonGroup>

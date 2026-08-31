@@ -478,6 +478,7 @@ export interface PropertyMapRequest {
   x_index?: IndexIn | null;
   y_index?: IndexIn | null;
   scale: ChartScale;
+  envelope_shape?: "hull" | "ellipse";
   class_slugs?: string[];
   material_ids?: number[] | null;
   highlight_material_ids?: number[];
