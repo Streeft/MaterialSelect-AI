@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from sqlalchemy.orm import Session
 
-from app.calculations.units import UnitError, validate_dimension
+from app.calculations.units import UnitError, to_canonical, validate_dimension
 from app.domain.errors import ConflictError, NotFoundError, ValidationError
 from app.domain.slug import slugify
 from app.models.enums import AuditAction, AuditEntityType
@@ -74,19 +74,59 @@ class PropertyService:
             raise ConflictError(f"Já existe uma propriedade com o slug: {slug}")
         self._validate_units(payload)
 
-        # Changing the canonical unit or dimension would desynchronise every
-        # stored normalized_value from the definition (a chart labelled g/cm³
-        # plotting values still in kg/m³). Block while values exist; a future
-        # migration tool may re-normalise instead (see docs/TODO.md).
-        unit_changed = (
-            payload.canonical_unit != obj.canonical_unit
-            or payload.physical_dimension != obj.physical_dimension
-        )
-        if unit_changed and self.repo.value_count(property_id) > 0:
+        # Changing the physical dimension is never safe to renormalize
+        # automatically: it means the unit conversion itself would be
+        # dimensionally invalid (density -> pressure has no conversion
+        # factor), so it stays blocked exactly as before. Changing only the
+        # canonical unit *within* the same dimension (kg/m3 -> g/cm3) is
+        # safe: every stored value's normalized_value can be recomputed from
+        # its own original_unit via to_canonical, in one transaction.
+        dimension_changed = payload.physical_dimension != obj.physical_dimension
+        canonical_unit_changed = payload.canonical_unit != obj.canonical_unit
+
+        if dimension_changed and self.repo.value_count(property_id) > 0:
             raise ConflictError(
-                "Não é possível alterar a unidade canônica ou a dimensão física de "
-                "uma propriedade com valores cadastrados."
+                "Não é possível alterar a dimensão física de uma propriedade com "
+                "valores cadastrados."
             )
+
+        if canonical_unit_changed and not dimension_changed:
+            values = self.repo.list_values(property_id)
+            # Compute every new normalized_value BEFORE writing any of them:
+            # one incompatible original_unit anywhere in the property must
+            # abort the whole change rather than leave some rows renormalized
+            # and others not (a chart reading this property mid-transaction
+            # would otherwise mix two canonical units silently).
+            recomputed: list[tuple] = []
+            for value in values:
+                if value.is_missing:
+                    continue
+                source = (
+                    value.value_scalar if value.value_scalar is not None else value.value_typical
+                )
+                if source is None:
+                    continue
+                source_unit = value.original_unit or obj.canonical_unit
+                try:
+                    new_normalized, method = to_canonical(
+                        source, source_unit, payload.canonical_unit
+                    )
+                except (UnitError, Exception) as exc:
+                    raise ConflictError(
+                        f"Não é possível renormalizar: o valor cadastrado em "
+                        f"'{source_unit}' não converte para '{payload.canonical_unit}' ({exc})."
+                    ) from exc
+                recomputed.append((value, new_normalized, method))
+
+            for value, new_normalized, method in recomputed:
+                value.normalized_value = new_normalized
+                value.canonical_unit = payload.canonical_unit
+                value.conversion_method = method
+            # value_scalar, value_min, value_max, value_typical, uncertainty and
+            # original_unit are never touched here — they stay in the
+            # material's original unit, per CLAUDE.md §1.4. Only the
+            # canonical-unit-denominated fields (normalized_value,
+            # canonical_unit, conversion_method) change.
 
         obj.name = payload.name.strip()
         obj.slug = slug
