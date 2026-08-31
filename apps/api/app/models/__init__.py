@@ -24,6 +24,7 @@ from app.models.material_property_value import MaterialPropertyValue
 from app.models.performance_index import PerformanceIndex
 from app.models.project import Project
 from app.models.property_definition import PropertyDefinition
+from app.models.saved_chart import SavedChart
 from app.models.selection import RankingCriterion, SelectionConstraint, SelectionStudy
 from app.models.source import Source
 from app.models.subscription import Subscription
@@ -51,6 +52,7 @@ __all__ = [
     "PropertyCategory",
     "PropertyDefinition",
     "RankingCriterion",
+    "SavedChart",
     "SelectionConstraint",
     "SelectionStudy",
     "Source",

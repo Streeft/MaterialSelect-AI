@@ -33,6 +33,9 @@ import type {
   PropertyValueIn,
   RunRequest,
   RunResult,
+  SavedChart,
+  SavedChartIn,
+  SavedChartListItem,
   StudyDetail,
   StudyIn,
   StudySummary,
@@ -295,6 +298,27 @@ export function deleteStudy(id: number): Promise<void> {
 
 export function runStudy(id: number): Promise<RunResult> {
   return request<RunResult>(`/api/selection/studies/${id}/run`, { method: "POST" });
+}
+
+// --- Saved charts -----------------------------------------------------------
+
+export function listSavedCharts(): Promise<SavedChartListItem[]> {
+  return request<SavedChartListItem[]>(`/api/saved-charts`);
+}
+
+export function getSavedChart(id: number): Promise<SavedChart> {
+  return request<SavedChart>(`/api/saved-charts/${id}`);
+}
+
+export function createSavedChart(payload: SavedChartIn): Promise<SavedChart> {
+  return request<SavedChart>(`/api/saved-charts`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteSavedChart(id: number): Promise<void> {
+  return request<void>(`/api/saved-charts/${id}`, { method: "DELETE" });
 }
 
 // --- Visualisation ----------------------------------------------------------

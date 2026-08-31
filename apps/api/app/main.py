@@ -41,6 +41,7 @@ from app.routers import (
     knowledge,
     materials,
     properties,
+    saved_charts,
     selection,
     sources,
 )
@@ -159,6 +160,9 @@ app.include_router(
     selection.indices_router,
     prefix="/api",
     dependencies=[Depends(require_active_subscription)],
+)
+app.include_router(
+    saved_charts.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
 )
 app.include_router(
     charts.router, prefix="/api", dependencies=[Depends(require_active_subscription)]

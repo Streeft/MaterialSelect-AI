@@ -82,9 +82,9 @@ executado: ver "Débitos já quitados".
 
 ## Entidades ainda não modeladas
 
-`SavedChart`, `GeneratedReport`. Cada uma depende de um item acima (B7) — não
-crie tabela sem o caso de uso. (`User` e `Project` saíram desta lista com A5;
-`AuditEvent` saiu com M2.)
+`GeneratedReport`. A entidade fica apenas aguardando especificação de caso de uso.
+(`User` e `Project` saíram desta lista com A5; `AuditEvent` saiu com M2;
+`SavedChart` saiu com B7 — salvar e reabrir configurações de mapa.)
 
 ---
 

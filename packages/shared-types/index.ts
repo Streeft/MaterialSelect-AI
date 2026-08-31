@@ -807,3 +807,23 @@ export interface CheckoutSession {
 export interface PortalSession {
   url: string;
 }
+
+// --- Saved charts (map configurations) ----------------------------------------
+
+export interface SavedChartIn {
+  name: string;
+  configuration: Record<string, unknown>;
+}
+
+export interface SavedChart {
+  id: number;
+  name: string;
+  configuration: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface SavedChartListItem {
+  id: number;
+  name: string;
+  created_at: string;
+}
