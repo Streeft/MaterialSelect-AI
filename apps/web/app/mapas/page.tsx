@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import {
   getPropertyMap,
@@ -45,6 +45,7 @@ import {
   describeIndex,
   type IndexDescriptor,
 } from "@/components/selection/IndexCard";
+import { decodeMapState, encodeMapState, type MapUrlState } from "./url-state";
 
 const t = ptBR.map;
 
@@ -62,7 +63,7 @@ function parseIds(raw: string | null): number[] {
  * same "predefined slug or custom expression" choice the index overlay already
  * offers, just per axis instead of once for the whole map.
  */
-interface AxisState {
+export interface AxisState {
   mode: "property" | "index";
   property: string;
   /** "" (nothing chosen yet), a `PerformanceIndex` slug, or "custom". */
@@ -187,26 +188,34 @@ function AxisControl({
 
 function MapsPageContent() {
   const params = useSearchParams();
+  const router = useRouter();
+
+  // Decode URL state once on mount; read it only once, since the URL should not
+  // keep re-driving state after the user starts interacting.
+  const decodedState = useMemo(() => {
+    const estado = params.get("estado");
+    return estado ? decodeMapState(estado) : null;
+  }, [params]);
 
   const [xAxis, setXAxis] = useState<AxisState>({
-    mode: "property",
-    property: params.get("x") ?? "densidade",
-    indexSlug: "",
-    customExpression: "",
-    goal: "maximize",
+    mode: decodedState?.xAxis?.mode ?? "property",
+    property: decodedState?.xAxis?.property ?? params.get("x") ?? "densidade",
+    indexSlug: decodedState?.xAxis?.indexSlug ?? "",
+    customExpression: decodedState?.xAxis?.customExpression ?? "",
+    goal: decodedState?.xAxis?.goal ?? "maximize",
   });
   const [yAxis, setYAxis] = useState<AxisState>({
-    mode: "property",
-    property: params.get("y") ?? "modulo_young",
-    indexSlug: "",
-    customExpression: "",
-    goal: "maximize",
+    mode: decodedState?.yAxis?.mode ?? "property",
+    property: decodedState?.yAxis?.property ?? params.get("y") ?? "modulo_young",
+    indexSlug: decodedState?.yAxis?.indexSlug ?? "",
+    customExpression: decodedState?.yAxis?.customExpression ?? "",
+    goal: decodedState?.yAxis?.goal ?? "maximize",
   });
-  const [scale, setScale] = useState<ChartScale>("log");
-  const [selectedClasses, setSelectedClasses] = useState<string[]>([]);
-  const [showEnvelopes, setShowEnvelopes] = useState(true);
-  const [showIntervals, setShowIntervals] = useState(true);
-  const [showLabels, setShowLabels] = useState(false);
+  const [scale, setScale] = useState<ChartScale>(decodedState?.scale ?? "log");
+  const [selectedClasses, setSelectedClasses] = useState<string[]>(decodedState?.selectedClasses ?? []);
+  const [showEnvelopes, setShowEnvelopes] = useState(decodedState?.showEnvelopes ?? true);
+  const [showIntervals, setShowIntervals] = useState(decodedState?.showIntervals ?? true);
+  const [showLabels, setShowLabels] = useState(decodedState?.showLabels ?? false);
 
   // Materials carried over from a selection run, so a study can be read on the map.
   const restrictedIds = useMemo(() => parseIds(params.get("materiais")), [params]);
@@ -236,9 +245,9 @@ function MapsPageContent() {
     );
   }, [properties.data]);
 
-  const [indexMode, setIndexMode] = useState("none"); // "none" | slug | "custom"
-  const [customExpression, setCustomExpression] = useState("");
-  const [indexGoal, setIndexGoal] = useState<Goal>("maximize");
+  const [indexMode, setIndexMode] = useState(decodedState?.indexMode ?? "none"); // "none" | slug | "custom"
+  const [customExpression, setCustomExpression] = useState(decodedState?.customExpression ?? "");
+  const [indexGoal, setIndexGoal] = useState<Goal>(decodedState?.indexGoal ?? "maximize");
 
   const xResolvedIndex = useMemo(
     () => resolveAxisIndex(xAxis, indices.data ?? []),
@@ -278,8 +287,8 @@ function MapsPageContent() {
     return chosen ? describeIndex(chosen) : null;
   }, [anyAxisIsIndex, indexMode, customExpression, indexGoal, indices.data]);
 
-  const [levelMaterialIds, setLevelMaterialIds] = useState<number[]>([]);
-  const [numericLevels, setNumericLevels] = useState<number[]>([]);
+  const [levelMaterialIds, setLevelMaterialIds] = useState<number[]>(decodedState?.levelMaterialIds ?? []);
+  const [numericLevels, setNumericLevels] = useState<number[]>(decodedState?.numericLevels ?? []);
   const [levelDraft, setLevelDraft] = useState("");
 
   const request = useMemo<PropertyMapRequest>(
@@ -338,6 +347,42 @@ function MapsPageContent() {
     );
   }
 
+  /** Build and share the current map state as a URL. */
+  async function shareMap() {
+    try {
+      const state: MapUrlState = {
+        xAxis,
+        yAxis,
+        scale,
+        selectedClasses,
+        showEnvelopes,
+        showIntervals,
+        showLabels,
+        indexMode,
+        customExpression,
+        indexGoal,
+        levelMaterialIds,
+        numericLevels,
+      };
+      const encoded = encodeMapState(state);
+      const url = `${window.location.origin}${window.location.pathname}?estado=${encoded}`;
+
+      // Update URL without adding to history.
+      router.replace(`?estado=${encoded}`);
+
+      // Copy to clipboard.
+      await navigator.clipboard.writeText(url);
+
+      // Brief visual feedback (reuse the existing pattern if there is one,
+      // or show a simple inline message).
+      // For now, we'll rely on the browser's native "Copied!" feedback when
+      // available, or nothing if not. A full toast implementation is out of
+      // scope for this task.
+    } catch (err) {
+      console.error("Failed to share:", err);
+    }
+  }
+
   /** Add a free M level typed by the user (pt-BR decimal comma accepted). */
   function addNumericLevel() {
     const value = Number(levelDraft.replace(",", "."));
@@ -356,9 +401,21 @@ function MapsPageContent() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-xl font-semibold text-ink">{t.title}</h1>
-        <p className="max-w-prose text-sm text-ink-muted">{t.subtitle}</p>
+      <div className="flex flex-col gap-2">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1">
+            <h1 className="text-xl font-semibold text-ink">{t.title}</h1>
+            <p className="max-w-prose text-sm text-ink-muted">{t.subtitle}</p>
+          </div>
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => void shareMap()}
+            title={t.shareTooltip}
+          >
+            {t.share}
+          </Button>
+        </div>
       </div>
 
       {/* One panel, four named groups.
