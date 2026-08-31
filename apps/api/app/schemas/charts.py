@@ -205,6 +205,15 @@ class PropertyMapOut(BaseModel):
     y_axis: MapAxisOut
     points: list[MapPointOut]
     envelopes: list[ClassEnvelopeOut] = Field(default_factory=list)
+    envelopes_alt: list[ClassEnvelopeOut] = Field(
+        default_factory=list,
+        description=(
+            "Envelopes na escala oposta à requisitada, sobre os mesmos pontos já "
+            "filtrados — permite ao cliente alternar linear/log sem uma segunda "
+            "requisição. Pontos não positivos são excluídos apenas do cálculo do "
+            "envelope logarítmico alternativo, nunca da lista principal de pontos."
+        ),
+    )
     excluded: list[ExcludedPointOut] = Field(default_factory=list)
     index: IndexOverlayOut | None = None
     considered_count: int = Field(description="Materiais avaliados após o filtro de classe/ids")

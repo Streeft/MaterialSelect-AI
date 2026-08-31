@@ -217,6 +217,7 @@ function MapsPageContent() {
     goal: decodedState?.yAxis?.goal ?? "maximize",
   });
   const [scale, setScale] = useState<ChartScale>(decodedState?.scale ?? "log");
+  const [displayScale, setDisplayScale] = useState<ChartScale>(scale);
   const [envelopeShape, setEnvelopeShape] = useState<"hull" | "ellipse">(decodedState?.envelopeShape ?? "hull");
   const [selectedClasses, setSelectedClasses] = useState<string[]>(decodedState?.selectedClasses ?? []);
   const [showEnvelopes, setShowEnvelopes] = useState(decodedState?.showEnvelopes ?? true);
@@ -603,9 +604,12 @@ function MapsPageContent() {
                   {(["linear", "log"] as ChartScale[]).map((option) => (
                     <ButtonGroupItem
                       key={option}
-                      selected={scale === option}
+                      selected={displayScale === option}
                       label={option === "linear" ? t.linear : t.log}
-                      onClick={() => setScale(option)}
+                      onClick={() => {
+                        setDisplayScale(option);
+                        setScale(option);
+                      }}
                     />
                   ))}
                 </ButtonGroup>
@@ -825,6 +829,8 @@ function MapsPageContent() {
         <>
           <AshbyMap
             map={map.data}
+            displayScale={displayScale}
+            isFetching={map.isFetching}
             highlightIds={highlightIds}
             showEnvelopes={showEnvelopes}
             showIntervals={showIntervals}
