@@ -51,6 +51,16 @@ class PropertyDefinitionRepository:
             )
         ).scalar_one()
 
+    def list_values(self, property_id: int) -> list[MaterialPropertyValue]:
+        """Fetch all MaterialPropertyValue rows for a property."""
+        return list(
+            self.db.execute(
+                select(MaterialPropertyValue).where(
+                    MaterialPropertyValue.property_id == property_id
+                )
+            ).scalars()
+        )
+
     def add(self, obj: PropertyDefinition) -> None:
         self.db.add(obj)
 

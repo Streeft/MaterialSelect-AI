@@ -1,6 +1,6 @@
-"""Import layer (Phase 3 — not yet implemented).
+"""Import layer (Phase 3).
 
-Will host the CSV/XLSX/JSON import wizard: header detection, column mapping,
-unit identification, validation, duplicate detection, import reports and
-reusable mapping templates. See docs/TODO.md.
+CSV/XLSX/JSON/SQLite import wizard: header detection, column mapping, unit
+identification, validation, duplicate detection, import reports and reusable
+mapping templates. See docs/06-importacao.md.
 """

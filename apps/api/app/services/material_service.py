@@ -138,6 +138,8 @@ class MaterialService:
             row.material_id = material.id
             self.repo.add(row)
 
+        self.repo.sync_keywords(material.id, payload.keywords or [])
+
         record_change(
             self.audit_repo,
             self.user,
@@ -172,6 +174,7 @@ class MaterialService:
             material.description = data["description"]
         if "keywords" in data and data["keywords"] is not None:
             material.keywords = data["keywords"]
+            self.repo.sync_keywords(material_id, data["keywords"])
         if "is_active" in data and data["is_active"] is not None:
             material.is_active = data["is_active"]
 

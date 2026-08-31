@@ -1,14 +1,14 @@
 # Importação de dados (Fase 3)
 
 A importação foi projetada para **não depender do formato da planilha do
-orientador**: um assistente de mapeamento converte qualquer CSV/XLSX tabular no
-modelo interno, com validação completa antes de qualquer escrita.
+orientador**: um assistente de mapeamento converte qualquer CSV/XLSX/JSON/SQLite
+tabular no modelo interno, com validação completa antes de qualquer escrita.
 
 ## Fluxo
 
 ```mermaid
 flowchart LR
-  A[Upload CSV/XLSX] --> B[Detecção de cabeçalhos<br/>+ amostra + sugestões]
+  A[Upload CSV/XLSX/JSON/SQLite] --> B[Detecção de cabeçalhos<br/>+ amostra + sugestões]
   B --> C[Mapeamento de colunas<br/>nome, classe, propriedades, unidades]
   C --> D[Validação (dry-run)<br/>relatório linha a linha]
   D --> E{Linhas válidas?}
@@ -62,8 +62,8 @@ planilhas futuras com o mesmo layout — casando pelas colunas presentes.
 
 ## Segurança
 
-- **Extensão e conteúdo:** apenas `.csv`/`.xlsx`; o arquivo é interpretado no
-  upload e rejeitado se malformado.
+- **Extensão e conteúdo:** `.csv`, `.xlsx`, `.json`, `.sqlite` e `.db`; o arquivo
+  é interpretado no upload e rejeitado se malformado.
 - **Limites:** 5 MB por arquivo e 5.000 linhas por importação (configuráveis por
   ambiente).
 - **Nome de arquivo sanitizado** (apenas o basename, charset restrito) e bytes
