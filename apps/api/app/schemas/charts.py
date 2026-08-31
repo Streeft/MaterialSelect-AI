@@ -54,6 +54,10 @@ class PropertyMapRequest(BaseModel):
     # space. Computing it for the scale actually displayed keeps the drawing
     # honest.
     scale: ScaleLiteral = "log"
+    envelope_shape: Literal["hull", "ellipse"] = Field(
+        default="hull",
+        description="Forma do envelope de classe: fecho convexo (literal) ou elipse ajustada (suave)",
+    )
     class_slugs: list[str] = Field(
         default_factory=list, description="Filtro por classe (vazio = todas)"
     )

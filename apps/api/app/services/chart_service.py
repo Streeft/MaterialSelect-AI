@@ -25,7 +25,7 @@ from app.calculations.performance import IndexEvaluation, evaluate_index
 from app.calculations.powerlaw import IndexLine, index_line
 from app.calculations.units import UnitError, to_canonical, to_canonical_delta
 from app.domain.errors import NotFoundError, ValidationError
-from app.domain.geometry import Point, convex_hull
+from app.domain.geometry import Point, convex_hull, fitted_ellipse
 from app.domain.ranking import Direction, Normalization, normalize_column
 from app.models.enums import BetterDirection, DataQuality
 from app.models.material import Material
@@ -177,7 +177,11 @@ class ChartService:
                         "escala logarítmica no catálogo."
                     )
 
-        envelopes = self._envelopes(points, request.scale) if request.include_envelopes else []
+        envelopes = (
+            self._envelopes(points, request.scale, request.envelope_shape)
+            if request.include_envelopes
+            else []
+        )
         overlay = self._index_overlay(request, points, variables, notes)
 
         return PropertyMapOut(
@@ -331,27 +335,30 @@ class ChartService:
         }
 
     @staticmethod
-    def _envelopes(points: list[MapPointOut], scale: str) -> list[ClassEnvelopeOut]:
-        """Convex hull per class, computed in the space the chart displays."""
+    def _envelopes(
+        points: list[MapPointOut], scale: str, shape: str = "hull"
+    ) -> list[ClassEnvelopeOut]:
+        """Convex hull or fitted ellipse per class, computed in the space the
+        chart displays."""
         grouped: dict[str, list[MapPointOut]] = {}
         for point in points:
             grouped.setdefault(point.class_slug, []).append(point)
 
+        envelope_fn = fitted_ellipse if shape == "ellipse" else convex_hull
+
         envelopes: list[ClassEnvelopeOut] = []
         for class_slug, members in sorted(grouped.items()):
             if scale == "log":
-                # Points with a non-positive coordinate never reach here on a log
-                # map (they are excluded upstream), so log10 is always defined.
                 raw: list[Point] = [(math.log10(p.x), math.log10(p.y)) for p in members]
-                hull = [[10.0**hx, 10.0**hy] for hx, hy in convex_hull(raw)]
+                polygon = [[10.0**hx, 10.0**hy] for hx, hy in envelope_fn(raw)]
             else:
-                hull = [[hx, hy] for hx, hy in convex_hull([(p.x, p.y) for p in members])]
+                polygon = [[hx, hy] for hx, hy in envelope_fn([(p.x, p.y) for p in members])]
             envelopes.append(
                 ClassEnvelopeOut(
                     class_slug=class_slug,
                     class_name=members[0].class_name,
                     point_count=len(members),
-                    polygon=hull,
+                    polygon=polygon,
                 )
             )
         return envelopes

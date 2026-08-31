@@ -5,6 +5,7 @@ const sample: MapUrlState = {
   xAxis: { mode: "property", property: "densidade", indexSlug: "", customExpression: "", goal: "maximize" },
   yAxis: { mode: "property", property: "modulo_young", indexSlug: "", customExpression: "", goal: "maximize" },
   scale: "log",
+  envelopeShape: "hull",
   selectedClasses: ["metais", "ceramicas"],
   showEnvelopes: true,
   showIntervals: false,

@@ -150,6 +150,16 @@ class TestEnvelopes:
     def test_envelopes_can_be_switched_off(self, client: TestClient) -> None:
         assert _map(client, include_envelopes=False)["envelopes"] == []
 
+    def test_ellipse_envelope_shape_option(self, client: TestClient) -> None:
+        data = _map(client, envelope_shape="ellipse")
+        assert data["envelopes"]  # at least one class present in the seeded fixture
+        for envelope in data["envelopes"]:
+            # A sampled ellipse should have many more vertices than a convex hull
+            # (48 samples per ellipse, vs typically 3-4 hull vertices per class).
+            # For a single-point class, both return 1; for multi-point, ellipse >> hull.
+            if envelope["point_count"] > 1:
+                assert len(envelope["polygon"]) > 2
+
 
 class TestIndexOverlay:
     def test_specific_stiffness_line_has_slope_one(self, client: TestClient) -> None:
