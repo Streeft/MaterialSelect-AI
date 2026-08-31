@@ -563,6 +563,8 @@ export const ptBR = {
     notesTitle: "Observações sobre este mapa",
     levelsHint: "Cada nível traçado vira uma reta paralela; o lado favorável é contado abaixo.",
     figure: "Mapa de Ashby",
+    share: "Compartilhar",
+    shareTooltip: "Copia um link com os filtros atuais",
   },
   dashboard: {
     title: "Painel do catálogo",
