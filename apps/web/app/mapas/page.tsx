@@ -2,12 +2,15 @@
 
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  createSavedChart,
+  deleteSavedChart,
   getPropertyMap,
   listClasses,
   listPerformanceIndices,
   listProperties,
+  listSavedCharts,
 } from "@/lib/api";
 import type {
   ChartScale,
@@ -16,6 +19,7 @@ import type {
   PerformanceIndex,
   PropertyDefinition,
   PropertyMapRequest,
+  SavedChartIn,
 } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { formatNumber, prettyUnit } from "@/lib/format";
@@ -30,6 +34,7 @@ import {
   CardBody,
   CardHeader,
   Checkbox,
+  Dialog,
   ErrorState,
   Input,
   LoadingState,
@@ -45,7 +50,7 @@ import {
   describeIndex,
   type IndexDescriptor,
 } from "@/components/selection/IndexCard";
-import { decodeMapState, encodeMapState, type MapUrlState } from "./url-state";
+import { applyMapState, decodeMapState, encodeMapState, type MapUrlState } from "./url-state";
 
 const t = ptBR.map;
 
@@ -347,23 +352,86 @@ function MapsPageContent() {
     );
   }
 
+  // Save/load chart configuration state and handlers.
+  const queryClient = useQueryClient();
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [chartNameDraft, setChartNameDraft] = useState("");
+  const savedCharts = useQuery({
+    queryKey: ["saved-charts"],
+    queryFn: listSavedCharts,
+  });
+
+  const createMutation = useMutation({
+    mutationFn: (payload: SavedChartIn) => createSavedChart(payload),
+    onSuccess: () => {
+      setSaveDialogOpen(false);
+      setChartNameDraft("");
+      queryClient.invalidateQueries({ queryKey: ["saved-charts"] });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (chartId: number) => deleteSavedChart(chartId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["saved-charts"] });
+    },
+  });
+
+  /** Get the current map state as a MapUrlState object. */
+  function getCurrentMapState(): MapUrlState {
+    return {
+      xAxis,
+      yAxis,
+      scale,
+      selectedClasses,
+      showEnvelopes,
+      showIntervals,
+      showLabels,
+      indexMode,
+      customExpression,
+      indexGoal,
+      levelMaterialIds,
+      numericLevels,
+    };
+  }
+
+  /** Save the current configuration with the user-supplied name. */
+  async function handleSaveChart() {
+    const name = chartNameDraft.trim();
+    if (!name) return;
+    const state = getCurrentMapState();
+    await createMutation.mutateAsync({
+      name,
+      configuration: state as unknown as Record<string, unknown>,
+    });
+  }
+
+  /** Load a saved chart configuration and apply it to the page state. */
+  function handleLoadChart(chartId: number) {
+    const chart = savedCharts.data?.find((c) => c.id === chartId);
+    if (!chart) return;
+    const decoded = chart as unknown as Partial<MapUrlState>;
+    const defaults = getCurrentMapState();
+    const applied = applyMapState(decoded, defaults);
+
+    if (applied.xAxis) setXAxis(applied.xAxis as AxisState);
+    if (applied.yAxis) setYAxis(applied.yAxis as AxisState);
+    if (applied.scale) setScale(applied.scale);
+    if (applied.selectedClasses) setSelectedClasses(applied.selectedClasses);
+    if (applied.showEnvelopes !== undefined) setShowEnvelopes(applied.showEnvelopes);
+    if (applied.showIntervals !== undefined) setShowIntervals(applied.showIntervals);
+    if (applied.showLabels !== undefined) setShowLabels(applied.showLabels);
+    if (applied.indexMode) setIndexMode(applied.indexMode);
+    if (applied.customExpression !== undefined) setCustomExpression(applied.customExpression);
+    if (applied.indexGoal) setIndexGoal(applied.indexGoal);
+    if (applied.levelMaterialIds) setLevelMaterialIds(applied.levelMaterialIds);
+    if (applied.numericLevels) setNumericLevels(applied.numericLevels);
+  }
+
   /** Build and share the current map state as a URL. */
   async function shareMap() {
     try {
-      const state: MapUrlState = {
-        xAxis,
-        yAxis,
-        scale,
-        selectedClasses,
-        showEnvelopes,
-        showIntervals,
-        showLabels,
-        indexMode,
-        customExpression,
-        indexGoal,
-        levelMaterialIds,
-        numericLevels,
-      };
+      const state = getCurrentMapState();
       const encoded = encodeMapState(state);
       const url = `${window.location.origin}${window.location.pathname}?estado=${encoded}`;
 
@@ -407,16 +475,96 @@ function MapsPageContent() {
             <h1 className="text-xl font-semibold text-ink">{t.title}</h1>
             <p className="max-w-prose text-sm text-ink-muted">{t.subtitle}</p>
           </div>
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={() => void shareMap()}
-            title={t.shareTooltip}
-          >
-            {t.share}
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => setSaveDialogOpen(true)}
+              title={t.saveTooltip}
+            >
+              {t.save}
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => void shareMap()}
+              title={t.shareTooltip}
+            >
+              {t.share}
+            </Button>
+          </div>
         </div>
+
+        {/* Saved charts picker */}
+        {(savedCharts.data?.length ?? 0) > 0 && (
+          <div className="flex items-end gap-2">
+            <Select
+              label={t.savedCharts}
+              value=""
+              onChange={(e) => {
+                const id = Number(e.target.value);
+                if (Number.isInteger(id) && id > 0) {
+                  handleLoadChart(id);
+                }
+              }}
+              className="min-w-[16rem]"
+            >
+              <SelectOption value="">{t.savedCharts}</SelectOption>
+              {(savedCharts.data ?? []).map((chart) => (
+                <SelectOption key={chart.id} value={String(chart.id)}>
+                  {chart.name}
+                </SelectOption>
+              ))}
+            </Select>
+          </div>
+        )}
       </div>
+
+      {/* Save chart dialog */}
+      <Dialog
+        open={saveDialogOpen}
+        onClose={() => {
+          setSaveDialogOpen(false);
+          setChartNameDraft("");
+        }}
+        title={t.save}
+        description={t.saveTooltip}
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => {
+                setSaveDialogOpen(false);
+                setChartNameDraft("");
+              }}
+            >
+              {t.cancel}
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => void handleSaveChart()}
+              disabled={!chartNameDraft.trim() || createMutation.isPending}
+            >
+              {t.ok}
+            </Button>
+          </div>
+        }
+      >
+        <Input
+          label={t.chartName}
+          placeholder={t.chartNamePlaceholder}
+          value={chartNameDraft}
+          onChange={(e) => setChartNameDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              void handleSaveChart();
+            }
+          }}
+          autoFocus
+        />
+      </Dialog>
 
       {/* One panel, four named groups.
           The eleven controls used to sit in three anonymous white boxes, in the
