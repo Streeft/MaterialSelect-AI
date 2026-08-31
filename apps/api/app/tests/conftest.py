@@ -23,6 +23,7 @@ from app.dependencies import get_current_user, require_active_subscription
 from app.main import app
 from app.models.project import Project
 from app.models.user import User
+from app.repositories.material_repository import MaterialRepository
 
 # A single in-memory database shared across the pool for the whole test session;
 # StaticPool keeps the same underlying connection so the schema/seed persist.
@@ -222,3 +223,9 @@ def login_as():
                 app.dependency_overrides.pop(get_current_user, None)
 
     return _login_as
+
+
+@pytest.fixture()
+def material_repo(db_session: Session) -> MaterialRepository:
+    """A MaterialRepository using the test database session."""
+    return MaterialRepository(db_session)

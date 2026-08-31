@@ -4,11 +4,12 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from sqlalchemy import String, delete, func, or_, select
+from sqlalchemy import delete, exists, func, or_, select
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.models.material import Material
 from app.models.material_class import MaterialClass
+from app.models.material_keyword import MaterialKeyword
 from app.models.material_property_value import MaterialPropertyValue
 from app.models.property_definition import PropertyDefinition
 from app.models.source import Source
@@ -48,15 +49,17 @@ class MaterialRepository:
                 search.strip().lower().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
             )
             term = f"%{escaped}%"
-            # keywords is a JSON list; matching against its text form is a
-            # pragmatic, portable keyword filter for the MVP (SQLite and Postgres
-            # both render the JSON array to text under CAST).
-            keywords_as_text = func.lower(func.cast(Material.keywords, String))
+            keyword_match = exists(
+                select(MaterialKeyword.id).where(
+                    MaterialKeyword.material_id == Material.id,
+                    func.lower(MaterialKeyword.keyword).like(term, escape="\\"),
+                )
+            )
             stmt = stmt.where(
                 or_(
                     func.lower(Material.name).like(term, escape="\\"),
                     func.lower(MaterialClass.name).like(term, escape="\\"),
-                    keywords_as_text.like(term, escape="\\"),
+                    keyword_match,
                 )
             )
 
@@ -107,6 +110,17 @@ class MaterialRepository:
             .where(Material.is_active.is_(True))
         )
         return list(self.db.execute(stmt).scalars().unique().all())
+
+    def sync_keywords(self, material_id: int, keywords: list[str]) -> None:
+        """Replace every MaterialKeyword row for ``material_id`` with ``keywords``.
+
+        Delete-then-insert rather than diffing: a material's keyword list is
+        small (a handful of words) and rewritten wholesale on every edit, so
+        there is nothing a diff would save.
+        """
+        self.db.execute(delete(MaterialKeyword).where(MaterialKeyword.material_id == material_id))
+        for keyword in keywords:
+            self.db.add(MaterialKeyword(material_id=material_id, keyword=keyword))
 
     # --- write helpers ----------------------------------------------------
 

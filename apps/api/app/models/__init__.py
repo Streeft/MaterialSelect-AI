@@ -20,6 +20,7 @@ from app.models.import_job import ImportJob, ImportMappingTemplate
 from app.models.knowledge import KnowledgeChunk, KnowledgeDocument, KnowledgeEmbedding
 from app.models.material import Material
 from app.models.material_class import MaterialClass
+from app.models.material_keyword import MaterialKeyword
 from app.models.material_property_value import MaterialPropertyValue
 from app.models.performance_index import PerformanceIndex
 from app.models.project import Project
@@ -46,6 +47,7 @@ __all__ = [
     "KnowledgeEmbedding",
     "Material",
     "MaterialClass",
+    "MaterialKeyword",
     "MaterialPropertyValue",
     "PerformanceIndex",
     "Project",
