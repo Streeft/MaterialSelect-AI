@@ -287,6 +287,10 @@ export type ConstraintOperator =
 export type Goal = "maximize" | "minimize";
 export type CriterionDirection = "max" | "min";
 export type NormalizationMethod = "minmax" | "vector";
+// `normalization` stays meaningful only when method == "weighted_sum": TOPSIS
+// and PROMETHEE each fix their own normalization internally (see
+// apps/api/app/schemas/selection.py's RankingIn docstring).
+export type MethodLiteral = "weighted_sum" | "topsis" | "promethee";
 export type Combinator = "AND" | "OR";
 
 export interface ConstraintIn {
@@ -299,6 +303,19 @@ export interface ConstraintIn {
   unit?: string | null;
   class_slugs?: string[];
   text?: string | null;
+}
+
+/**
+ * One node of a nested AND/OR constraint tree (M6) — mirrors the backend's
+ * `ConstraintGroupIn` (`apps/api/app/schemas/selection.py`) field-for-field,
+ * self-referencing via `groups`. Optional everywhere it plugs into
+ * `RunRequest`/`StudyIn`: its absence (`root_group` undefined/null)
+ * preserves the flat `constraints`/`combinator` shape those already had.
+ */
+export interface ConstraintGroupIn {
+  operator: Combinator;
+  constraints: ConstraintIn[];
+  groups: ConstraintGroupIn[];
 }
 
 export interface IndexIn {
@@ -316,13 +333,32 @@ export interface CriterionIn {
 
 export interface RankingIn {
   normalization: NormalizationMethod;
+  method: MethodLiteral;
   criteria: CriterionIn[];
   run_sensitivity?: boolean;
 }
 
+/** A pairwise comparison matrix (Saaty's 1-9 scale) to derive weights from. */
+export interface AhpWeightsIn {
+  criteria: string[];
+  matrix: number[][];
+}
+
+export interface AhpWeightsOut {
+  weights: Record<string, number>;
+  lambda_max: number;
+  consistency_index: number;
+  consistency_ratio: number;
+}
+
 export interface RunRequest {
-  combinator: Combinator;
-  constraints: ConstraintIn[];
+  // M6: an explicit nested tree (`root_group`) overrides these two entirely
+  // — see `ConstraintGroupIn`'s docstring. Kept optional so a caller that
+  // builds a tree does not also have to invent a flat pair to satisfy the
+  // type; the backend defaults both to `"AND"`/`[]` when omitted.
+  combinator?: Combinator;
+  constraints?: ConstraintIn[];
+  root_group?: ConstraintGroupIn | null;
   index?: IndexIn | null;
   ranking?: RankingIn | null;
 }
@@ -397,6 +433,7 @@ export interface SensitivityScenario {
 
 export interface RankingResult {
   normalization: string;
+  method: string;
   criteria: string[];
   ranked: RankedMaterial[];
   excluded: ExcludedMaterial[];
@@ -445,6 +482,7 @@ export interface StudyDetail {
   constraints: ConstraintIn[];
   index: IndexIn | null;
   normalization: NormalizationMethod;
+  method: MethodLiteral;
   criteria: CriterionIn[];
   created_at: string;
 }
@@ -455,10 +493,13 @@ export interface StudyIn {
   function_text?: string | null;
   objective_text?: string | null;
   free_variables: string[];
-  combinator: Combinator;
-  constraints: ConstraintIn[];
+  // M6: see RunRequest.root_group — same override/optionality rule.
+  combinator?: Combinator;
+  constraints?: ConstraintIn[];
+  root_group?: ConstraintGroupIn | null;
   index?: IndexIn | null;
   normalization: NormalizationMethod;
+  method: MethodLiteral;
   criteria: CriterionIn[];
 }
 

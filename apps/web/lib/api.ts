@@ -2,6 +2,8 @@
 // Base URL comes from NEXT_PUBLIC_API_URL (default: http://localhost:8000).
 
 import type {
+  AhpWeightsIn,
+  AhpWeightsOut,
   AIStatus,
   BillingStatus,
   ChartData,
@@ -261,6 +263,13 @@ export function createImportTemplate(
 
 export function runSelection(payload: RunRequest): Promise<RunResult> {
   return request<RunResult>(`/api/selection/run`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deriveAhpWeights(payload: AhpWeightsIn): Promise<AhpWeightsOut> {
+  return request<AhpWeightsOut>(`/api/selection/ahp-weights`, {
     method: "POST",
     body: JSON.stringify(payload),
   });

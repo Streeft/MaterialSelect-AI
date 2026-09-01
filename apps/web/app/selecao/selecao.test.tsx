@@ -7,19 +7,38 @@ import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { ptBR } from "@/lib/i18n";
-import type { RunResult } from "@/lib/types";
+import type { PropertyDefinition, RunRequest, RunResult } from "@/lib/types";
+import { selectMwcOption } from "@/lib/testing/mwc";
 
 const t = ptBR.selection;
 
-const runSelection = vi.fn<() => Promise<RunResult>>();
+const runSelection = vi.fn<(payload: RunRequest) => Promise<RunResult>>();
+
+const density: PropertyDefinition = {
+  id: 1,
+  name: "Densidade",
+  slug: "densidade",
+  symbol: "ρ",
+  description: null,
+  category: "FISICA",
+  physical_dimension: "[mass] / [length] ** 3",
+  canonical_unit: "kg/m**3",
+  accepted_units: ["kg/m**3"],
+  is_interval: false,
+  better_direction: "LOWER",
+  allows_log_scale: true,
+  value_count: 10,
+};
 
 // The wizard is the screen, not the network. Everything the page asks the API
 // for is stubbed; only `runSelection` carries a story, because the candidate
-// counter and the results step are what this file is about.
+// counter and the results step are what this file is about. It forwards its
+// payload (unlike a bare stub) so the method-selector tests below can assert
+// on what the wizard actually built.
 vi.mock("@/lib/api", () => ({
   ApiError: class ApiError extends Error {},
-  runSelection: () => runSelection(),
-  listProperties: () => Promise.resolve([]),
+  runSelection: (payload: RunRequest) => runSelection(payload),
+  listProperties: () => Promise.resolve([density]),
   listClasses: () => Promise.resolve([]),
   listPerformanceIndices: () => Promise.resolve([]),
   listStudies: () => Promise.resolve([]),
@@ -117,5 +136,43 @@ describe("assistente de seleção", () => {
       expect(screen.getByShadowRole("button", { name: t.saveStudy })).toBeDisabled(),
     );
     expect(screen.getByText(t.saveNeedsName)).toBeInTheDocument();
+  });
+});
+
+describe("método de ranking", () => {
+  it("hides normalization for TOPSIS/PROMETHEE, an option that has no effect on either", async () => {
+    const user = userEvent.setup();
+    render(wrap(<SelectionPage />));
+
+    await user.click(screen.getByShadowRole("button", { name: new RegExp(t.stepObjective, "i") }));
+    expect(screen.getByShadowRole("combobox", { name: t.normalization })).toBeInTheDocument();
+
+    await user.click(screen.getByShadowRole("button", { name: t.methodTopsis }));
+    expect(screen.queryByShadowRole("combobox", { name: t.normalization })).not.toBeInTheDocument();
+    expect(screen.getByText(t.methodHint)).toBeInTheDocument();
+
+    await user.click(screen.getByShadowRole("button", { name: t.methodWeightedSum }));
+    expect(screen.getByShadowRole("combobox", { name: t.normalization })).toBeInTheDocument();
+  });
+
+  it("sends the chosen method on the run request", async () => {
+    const user = userEvent.setup();
+    render(wrap(<SelectionPage />));
+
+    await user.click(screen.getByShadowRole("button", { name: new RegExp(t.stepObjective, "i") }));
+    await user.click(screen.getByShadowRole("button", { name: t.addCriterion }));
+    selectMwcOption(screen.getByShadowRole("combobox", { name: t.criterion }), density.slug);
+    await user.click(screen.getByShadowRole("button", { name: t.methodPromethee }));
+    await user.click(screen.getByShadowRole("button", { name: t.run }));
+
+    await waitFor(() => expect(runSelection).toHaveBeenCalled());
+    expect(runSelection).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ranking: expect.objectContaining({
+          method: "promethee",
+          criteria: [expect.objectContaining({ key: density.slug })],
+        }),
+      }),
+    );
   });
 });

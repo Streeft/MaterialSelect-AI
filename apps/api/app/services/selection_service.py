@@ -20,20 +20,34 @@ from app.calculations.units import UnitError, to_canonical
 from app.domain.errors import ConflictError, NotFoundError, ValidationError
 from app.domain.filters import (
     Constraint,
+    ConstraintGroupNode,
     MaterialSnapshot,
     Operator,
-    apply_constraints,
+    apply_constraint_tree,
 )
-from app.domain.ranking import Criterion, Direction, Normalization, rank
+from app.domain.ranking import (
+    Criterion,
+    Direction,
+    Normalization,
+    rank,
+    rank_promethee,
+    rank_topsis,
+)
 from app.domain.slug import slugify
 from app.models.enums import AuditAction, AuditEntityType, BetterDirection
 from app.models.performance_index import PerformanceIndex
-from app.models.selection import RankingCriterion, SelectionConstraint, SelectionStudy
+from app.models.selection import (
+    ConstraintGroup,
+    RankingCriterion,
+    SelectionConstraint,
+    SelectionStudy,
+)
 from app.models.user import User
 from app.repositories.audit_repository import AuditRepository
 from app.repositories.selection_repository import SelectionRepository
 from app.schemas.selection import (
     CandidateOut,
+    ConstraintGroupIn,
     ConstraintIn,
     ContributionOut,
     CriterionIn,
@@ -203,27 +217,225 @@ class SelectionService:
         }
         return labels.get(payload.operator, payload.operator)
 
+    # --- constraint groups (M6) --------------------------------------------
+    #
+    # A nested AND/OR tree generalizes the old flat constraints+combinator
+    # pair. Every entry point below funnels through _apply_group, which walks
+    # a ConstraintGroupNode (Task 7's domain dataclass) via apply_constraint_tree
+    # instead of the old apply_constraints. _apply_group is written to be
+    # byte-for-byte identical to the old apply_constraints funnel/candidate
+    # output whenever the tree is flat (no child groups) — the shape every
+    # pre-M6 study's migration backfill, and every study saved without
+    # root_group, still has. See its docstring for the equivalence argument.
+
+    def _check_root_group_conflict(
+        self, constraints_in: list[ConstraintIn], root_group_in: ConstraintGroupIn | None
+    ) -> None:
+        if root_group_in is not None and constraints_in:
+            raise ValidationError(
+                "Envie restrições no formato plano (constraints/combinator) ou em "
+                "root_group — não os dois ao mesmo tempo."
+            )
+
+    def _group_in_to_node(self, group_in: ConstraintGroupIn) -> ConstraintGroupNode:
+        return ConstraintGroupNode(
+            operator=group_in.operator,
+            constraints=[self._build_constraint(c) for c in group_in.constraints],
+            children=[self._group_in_to_node(g) for g in group_in.groups],
+        )
+
+    def _persist_group_tree(
+        self,
+        study: SelectionStudy,
+        group_in: ConstraintGroupIn,
+        parent_group_id: int | None,
+        position: int,
+    ) -> ConstraintGroup:
+        """Recursively persist a ConstraintGroupIn tree as real ConstraintGroup
+        rows (root first, then children depth-first), each SelectionConstraint
+        pointing at its own owning group's id. Constraints are stored raw,
+        exactly like the flat path below does — validation (unit conversion,
+        property existence) happens at run time, not at save time.
+        """
+        group = ConstraintGroup(
+            study_id=study.id,
+            parent_group_id=parent_group_id,
+            operator=group_in.operator,
+            position=position,
+        )
+        self.repo.add(group)
+        self.repo.flush()  # assigns group.id, needed by its own children/constraints
+
+        for c_position, c in enumerate(group_in.constraints):
+            study.constraints.append(
+                SelectionConstraint(
+                    group_id=group.id,
+                    position=c_position,
+                    operator=c.operator,
+                    property_slug=c.property_slug,
+                    value=c.value,
+                    value_min=c.value_min,
+                    value_max=c.value_max,
+                    unit=c.unit,
+                    class_slugs=c.class_slugs,
+                    text=c.text,
+                    label=c.label,
+                )
+            )
+        for g_position, child_in in enumerate(group_in.groups):
+            self._persist_group_tree(study, child_in, group.id, g_position)
+        return group
+
+    def _request_root_node(
+        self,
+        combinator: str,
+        constraints_in: list[ConstraintIn],
+        root_group_in: ConstraintGroupIn | None,
+    ) -> ConstraintGroupNode:
+        if root_group_in is not None:
+            return self._group_in_to_node(root_group_in)
+        return ConstraintGroupNode(
+            operator=combinator.upper(),
+            constraints=[self._build_constraint(c) for c in constraints_in],
+            children=[],
+        )
+
+    @staticmethod
+    def _item_node(item: Constraint | ConstraintGroupNode) -> ConstraintGroupNode:
+        if isinstance(item, ConstraintGroupNode):
+            return item
+        return ConstraintGroupNode(operator="AND", constraints=[item], children=[])
+
+    @staticmethod
+    def _item_label(item: Constraint | ConstraintGroupNode) -> str:
+        if isinstance(item, ConstraintGroupNode):
+            connective = "E" if item.operator == "AND" else "OU"
+            return f"Subgrupo ({connective})"
+        return item.label
+
+    @staticmethod
+    def _item_operator_code(item: Constraint | ConstraintGroupNode) -> str:
+        if isinstance(item, ConstraintGroupNode):
+            return item.operator
+        return item.operator.value
+
+    def _apply_group(
+        self, materials: list[MaterialSnapshot], group: ConstraintGroupNode
+    ) -> tuple[list[FunnelStepOut], list[MaterialSnapshot]]:
+        """Build the elimination funnel for one group's direct items — each
+        item is either a constraint or a nested child group, combined by
+        ``group.operator`` — and return the surviving materials.
+
+        Each item's own pass/fail is delegated to ``apply_constraint_tree``
+        (a single constraint is wrapped as a one-item AND group to reuse the
+        same evaluator), so a child group's own nested structure is still
+        fully honored even though the funnel reports it as one step.
+
+        When ``group`` has no child groups this reduces to exactly the old
+        ``apply_constraints`` algorithm: the AND branch narrows a running
+        list preserving order, the OR branch unions into a dict and returns
+        candidates sorted by id, and an item-less group returns every
+        material with no funnel steps — all matching apply_constraints's
+        behavior for a flat constraint list.
+        """
+        items: list[Constraint | ConstraintGroupNode] = [*group.constraints, *group.children]
+        if not items:
+            return [], list(materials)
+
+        steps: list[FunnelStepOut] = []
+
+        if group.operator == "OR":
+            passing: dict[int, MaterialSnapshot] = {}
+            for item in items:
+                admitted = apply_constraint_tree(materials, self._item_node(item))
+                for m in admitted:
+                    passing[m.id] = m
+                steps.append(
+                    FunnelStepOut(
+                        label=self._item_label(item),
+                        operator=self._item_operator_code(item),
+                        passed=len(admitted),
+                        remaining=len(passing),
+                    )
+                )
+            by_id = {m.id: m for m in materials}
+            return steps, [by_id[i] for i in sorted(passing)]
+
+        # AND
+        remaining = list(materials)
+        for item in items:
+            node = self._item_node(item)
+            standalone = len(apply_constraint_tree(materials, node))
+            remaining = apply_constraint_tree(remaining, node)
+            steps.append(
+                FunnelStepOut(
+                    label=self._item_label(item),
+                    operator=self._item_operator_code(item),
+                    passed=standalone,
+                    remaining=len(remaining),
+                )
+            )
+        return steps, remaining
+
+    def _load_group_tree(self, study: SelectionStudy) -> ConstraintGroupNode:
+        """Assemble a ConstraintGroupNode tree from a persisted study's
+        ConstraintGroup + SelectionConstraint rows (M6). Runs for every
+        study, old and new: a pre-M6 study's migration backfill (and every
+        study saved via the flat combinator/constraints path) is exactly one
+        root group with no children, which _apply_group evaluates identically
+        to the pre-M6 apply_constraints call.
+        """
+        groups: list[ConstraintGroup] = list(study.constraint_groups)
+        children_by_parent: dict[int | None, list[ConstraintGroup]] = {}
+        for g in groups:
+            children_by_parent.setdefault(g.parent_group_id, []).append(g)
+
+        constraints_by_group: dict[int, list[SelectionConstraint]] = {}
+        for c in study.constraints:
+            constraints_by_group.setdefault(c.group_id, []).append(c)
+
+        def build(g: ConstraintGroup) -> ConstraintGroupNode:
+            return ConstraintGroupNode(
+                operator=g.operator,
+                constraints=[
+                    self._build_constraint(self._constraint_to_in(c))
+                    for c in constraints_by_group.get(g.id, [])
+                ],
+                children=[build(child) for child in children_by_parent.get(g.id, [])],
+            )
+
+        roots = children_by_parent.get(None, [])
+        if not roots:
+            # Should never happen — Task 6 guarantees exactly one root group
+            # per study — but degrade to the flat legacy shape instead of
+            # crashing on a study that somehow has none.
+            return ConstraintGroupNode(
+                operator=study.combinator,
+                constraints=[
+                    self._build_constraint(self._constraint_to_in(c)) for c in study.constraints
+                ],
+                children=[],
+            )
+        return build(roots[0])
+
     # --- filter -----------------------------------------------------------
 
     def filter(self, request: FilterRequest) -> FilterResultOut:
+        self._check_root_group_conflict(request.constraints, request.root_group)
         snapshots = self._load()
-        constraints = [self._build_constraint(c) for c in request.constraints]
-        result = apply_constraints(snapshots, constraints, request.combinator)
-        by_id = {m.id: m for m in snapshots}
+        root_node = self._request_root_node(
+            request.combinator, request.constraints, request.root_group
+        )
+        steps, candidate_snaps = self._apply_group(snapshots, root_node)
         candidates = [
-            CandidateOut(material_id=i, name=by_id[i].name, class_name=by_id[i].class_name)
-            for i in result.candidate_ids
+            CandidateOut(material_id=m.id, name=m.name, class_name=m.class_name)
+            for m in candidate_snaps
         ]
         return FilterResultOut(
-            initial_count=result.initial_count,
-            combinator=result.combinator,
-            final_count=result.final_count,
-            steps=[
-                FunnelStepOut(
-                    label=s.label, operator=s.operator, passed=s.passed, remaining=s.remaining
-                )
-                for s in result.steps
-            ],
+            initial_count=len(snapshots),
+            combinator=root_node.operator,
+            final_count=len(candidate_snaps),
+            steps=steps,
             candidates=candidates,
         )
 
@@ -322,11 +534,20 @@ class SelectionService:
                 vals[c.key] = index_values.get(m.id) if c.key == INDEX_KEY else m.values.get(c.key)
             material_values.append((m.id, m.name, vals))
 
-        result = rank(
-            material_values, criteria, Normalization(ranking.normalization), ranking.run_sensitivity
-        )
+        if ranking.method == "topsis":
+            result = rank_topsis(material_values, criteria, ranking.run_sensitivity)
+        elif ranking.method == "promethee":
+            result = rank_promethee(material_values, criteria, ranking.run_sensitivity)
+        else:
+            result = rank(
+                material_values,
+                criteria,
+                Normalization(ranking.normalization),
+                ranking.run_sensitivity,
+            )
         return RankingResultOut(
             normalization=result.normalization,
+            method=ranking.method,
             criteria=result.criteria,
             ranked=[
                 RankedMaterialOut(
@@ -372,25 +593,32 @@ class SelectionService:
     # --- run (full pipeline) ---------------------------------------------
 
     def run(self, request: RunRequest) -> RunResultOut:
+        self._check_root_group_conflict(request.constraints, request.root_group)
+        self._load()
+        root_node = self._request_root_node(
+            request.combinator, request.constraints, request.root_group
+        )
+        return self._run_with_root_node(root_node, request.index, request.ranking)
+
+    def _run_with_root_node(
+        self, root_node: ConstraintGroupNode, index: IndexIn | None, ranking: RankingIn | None
+    ) -> RunResultOut:
         snapshots = self._load()
-        constraints = [self._build_constraint(c) for c in request.constraints]
-        filtered = apply_constraints(snapshots, constraints, request.combinator)
-        by_id = {m.id: m for m in snapshots}
-        candidate_snaps = [by_id[i] for i in filtered.candidate_ids]
+        steps, candidate_snaps = self._apply_group(snapshots, root_node)
 
         index_out = None
         index_value_by_id: dict[int, float | None] = {}
-        if request.index is not None:
+        if index is not None:
             index_out = self._index_result(
-                request.index.expression, request.index.goal, request.index.name, candidate_snaps
+                index.expression, index.goal, index.name, candidate_snaps
             )
             index_value_by_id = {v.material_id: v.value for v in index_out.values}
 
         ranking_out = None
         rank_by_id: dict[int, int] = {}
         score_by_id: dict[int, float] = {}
-        if request.ranking is not None and request.ranking.criteria:
-            ranking_out = self._rank(candidate_snaps, request.ranking, request.index)
+        if ranking is not None and ranking.criteria:
+            ranking_out = self._rank(candidate_snaps, ranking, index)
             for r in ranking_out.ranked:
                 rank_by_id[r.material_id] = r.rank
                 score_by_id[r.material_id] = r.score
@@ -410,7 +638,7 @@ class SelectionService:
         if rank_by_id:
             candidates.sort(key=lambda c: (c.rank is None, c.rank or 0, c.name))
         elif index_out is not None:
-            reverse = request.index.goal == "maximize"  # type: ignore[union-attr]
+            reverse = index.goal == "maximize"  # type: ignore[union-attr]
             candidates.sort(
                 key=lambda c: (
                     c.index_value is None,
@@ -421,15 +649,10 @@ class SelectionService:
             candidates.sort(key=lambda c: c.name)
 
         return RunResultOut(
-            initial_count=filtered.initial_count,
-            combinator=filtered.combinator,
-            final_count=filtered.final_count,
-            funnel=[
-                FunnelStepOut(
-                    label=s.label, operator=s.operator, passed=s.passed, remaining=s.remaining
-                )
-                for s in filtered.steps
-            ],
+            initial_count=len(snapshots),
+            combinator=root_node.operator,
+            final_count=len(candidate_snaps),
+            funnel=steps,
             candidates=candidates,
             index=index_out,
             ranking=ranking_out,
@@ -508,8 +731,16 @@ class SelectionService:
         return self._study_to_out(study)
 
     def create_study(self, payload: StudyIn) -> StudyOut:
+        self._check_root_group_conflict(payload.constraints, payload.root_group)
         if self.repo.study_name_exists(payload.name, self.project_id):
             raise ConflictError(f"Já existe um estudo com o nome: {payload.name}")
+        # A study's own `combinator` column always mirrors its root
+        # ConstraintGroup's operator (Task 6's invariant) — when the caller
+        # supplies a real tree via root_group, that is the root's operator,
+        # not the (possibly stale, since unused) flat `payload.combinator`.
+        combinator = (
+            payload.root_group.operator if payload.root_group is not None else payload.combinator
+        )
         study = SelectionStudy(
             name=payload.name.strip(),
             project_id=self.project_id,
@@ -517,27 +748,52 @@ class SelectionService:
             function_text=payload.function_text,
             objective_text=payload.objective_text,
             free_variables=payload.free_variables,
-            combinator=payload.combinator,
+            combinator=combinator,
             index_name=payload.index.name if payload.index else None,
             index_expression=payload.index.expression if payload.index else None,
             index_goal=payload.index.goal if payload.index else None,
             normalization=payload.normalization,
+            method=payload.method,
         )
-        for position, c in enumerate(payload.constraints):
-            study.constraints.append(
-                SelectionConstraint(
-                    position=position,
-                    operator=c.operator,
-                    property_slug=c.property_slug,
-                    value=c.value,
-                    value_min=c.value_min,
-                    value_max=c.value_max,
-                    unit=c.unit,
-                    class_slugs=c.class_slugs,
-                    text=c.text,
-                    label=c.label,
-                )
+        self.repo.add(study)
+        self.repo.flush()  # assigns study.id, needed by the root group below
+
+        if payload.root_group is not None:
+            # M6: an explicit nested tree — persist it for real, root first
+            # then children depth-first, each SelectionConstraint pointing at
+            # its own owning group.
+            self._persist_group_tree(study, payload.root_group, parent_group_id=None, position=0)
+        else:
+            # M6: every study gets exactly one root ConstraintGroup, mirroring
+            # the study's own combinator — this keeps a flat-payload study
+            # consistent with the shape the migration's backfill gives every
+            # pre-existing one: a flat list of constraints combined by a
+            # single AND/OR root.
+            root_group = ConstraintGroup(
+                study_id=study.id,
+                parent_group_id=None,
+                operator=payload.combinator,
+                position=0,
             )
+            self.repo.add(root_group)
+            self.repo.flush()  # assigns root_group.id, needed by each constraint
+
+            for position, c in enumerate(payload.constraints):
+                study.constraints.append(
+                    SelectionConstraint(
+                        group_id=root_group.id,
+                        position=position,
+                        operator=c.operator,
+                        property_slug=c.property_slug,
+                        value=c.value,
+                        value_min=c.value_min,
+                        value_max=c.value_max,
+                        unit=c.unit,
+                        class_slugs=c.class_slugs,
+                        text=c.text,
+                        label=c.label,
+                    )
+                )
         for position, cr in enumerate(payload.criteria):
             study.criteria.append(
                 RankingCriterion(
@@ -551,7 +807,6 @@ class SelectionService:
                     weight=cr.weight,
                 )
             )
-        self.repo.add(study)
         self.repo.flush()
         record_change(
             self.audit_repo,
@@ -585,7 +840,10 @@ class SelectionService:
         study = self.repo.get_study(study_id, self.project_id)
         if study is None:
             raise NotFoundError(f"Estudo não encontrado: {study_id}")
-        return self.run(self._study_to_run_request(study))
+        self._load()  # populate self._props before _load_group_tree builds constraints
+        root_node = self._load_group_tree(study)
+        index, ranking = self._study_index_and_ranking(study)
+        return self._run_with_root_node(root_node, index, ranking)
 
     def _study_to_out(self, study: SelectionStudy) -> StudyOut:
         index = None
@@ -606,11 +864,14 @@ class SelectionService:
             constraints=[self._constraint_to_in(c) for c in study.constraints],
             index=index,
             normalization=study.normalization,
+            method=study.method,
             criteria=[self._criterion_to_in(c) for c in study.criteria],
             created_at=study.created_at,
         )
 
-    def _study_to_run_request(self, study: SelectionStudy) -> RunRequest:
+    def _study_index_and_ranking(
+        self, study: SelectionStudy
+    ) -> tuple[IndexIn | None, RankingIn | None]:
         index = None
         if study.index_expression:
             index = IndexIn(
@@ -622,14 +883,10 @@ class SelectionService:
         if study.criteria:
             ranking = RankingIn(
                 normalization=study.normalization,
+                method=study.method,
                 criteria=[self._criterion_to_in(c) for c in study.criteria],
             )
-        return RunRequest(
-            combinator=study.combinator,
-            constraints=[self._constraint_to_in(c) for c in study.constraints],
-            index=index,
-            ranking=ranking,
-        )
+        return index, ranking
 
     @staticmethod
     def _constraint_to_in(c: SelectionConstraint) -> ConstraintIn:

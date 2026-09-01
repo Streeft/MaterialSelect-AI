@@ -230,6 +230,7 @@ describe("ResultsView", () => {
     const result = makeResult({
       ranking: {
         normalization: "minmax",
+        method: "weighted_sum",
         criteria: ["densidade", "modulo_young"],
         ranked: [
           {

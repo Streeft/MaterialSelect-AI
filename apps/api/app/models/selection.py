@@ -49,6 +49,7 @@ class SelectionStudy(Base):
     index_goal: Mapped[str | None] = mapped_column(String(10), nullable=True)
 
     normalization: Mapped[str] = mapped_column(String(10), default="minmax", nullable=False)
+    method: Mapped[str] = mapped_column(String(20), default="weighted_sum", nullable=False)
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
 
@@ -62,6 +63,46 @@ class SelectionStudy(Base):
         cascade="all, delete-orphan",
         order_by="RankingCriterion.position",
     )
+    # Every ConstraintGroup carries its own study_id (root or nested, M6), so
+    # this one relationship deletes the whole tree when the study goes —
+    # matching the cascade already declared for `constraints`/`criteria`,
+    # needed because SQLite here runs without `PRAGMA foreign_keys=ON`, so
+    # `ondelete="CASCADE"` alone would leave the group (and any descendants)
+    # orphaned.
+    constraint_groups: Mapped[list[ConstraintGroup]] = relationship(
+        back_populates="study",
+        cascade="all, delete-orphan",
+        order_by="ConstraintGroup.position",
+    )
+
+
+class ConstraintGroup(Base):
+    """One node of a constraint boolean-expression tree: either the root of
+    a study's constraints, or a nested AND/OR sub-group (M6).
+
+    A study's constraints used to combine under one global operator
+    (SelectionStudy.combinator); every study now has exactly one root
+    ConstraintGroup (parent_group_id NULL) whose operator is that same
+    value, created by this migration's backfill for existing studies —
+    reading a pre-M6 study still evaluates exactly as before. Nesting one
+    sub-group inside another (parent_group_id pointing at a non-root group)
+    is how "(A AND B) OR (C AND D)" is expressed: two child groups of a
+    root OR-group, each an AND-group over its own constraints.
+    """
+
+    __tablename__ = "selection_constraint_group"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    study_id: Mapped[int] = mapped_column(
+        ForeignKey("selection_study.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    parent_group_id: Mapped[int | None] = mapped_column(
+        ForeignKey("selection_constraint_group.id", ondelete="CASCADE"), nullable=True, index=True
+    )
+    operator: Mapped[str] = mapped_column(String(3), nullable=False)  # "AND" | "OR"
+    position: Mapped[int] = mapped_column(nullable=False, default=0)
+
+    study: Mapped[SelectionStudy] = relationship(back_populates="constraint_groups")
 
 
 class SelectionConstraint(Base):
@@ -72,6 +113,9 @@ class SelectionConstraint(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     study_id: Mapped[int] = mapped_column(
         ForeignKey("selection_study.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    group_id: Mapped[int] = mapped_column(
+        ForeignKey("selection_constraint_group.id", ondelete="CASCADE"), nullable=False, index=True
     )
     position: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 

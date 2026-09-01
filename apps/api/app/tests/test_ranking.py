@@ -5,7 +5,15 @@ from __future__ import annotations
 import pytest
 
 from app.domain.errors import ValidationError
-from app.domain.ranking import Criterion, Direction, Normalization, normalize_column, rank
+from app.domain.ranking import (
+    Criterion,
+    Direction,
+    Normalization,
+    normalize_column,
+    rank,
+    rank_promethee,
+    rank_topsis,
+)
 
 
 def _crit(key, direction, weight, label=None):
@@ -117,3 +125,95 @@ def test_vector_normalisation_survives_huge_values():
 
 def test_vector_normalisation_all_zero_column_is_a_tie():
     assert normalize_column([0.0, 0.0], Direction.MAX, Normalization.VECTOR) == [1.0, 1.0]
+
+
+def test_topsis_ranks_by_closeness_to_ideal():
+    materials = [
+        (1, "A", {"rigidez": 200.0, "densidade": 8.0}),
+        (2, "B", {"rigidez": 70.0, "densidade": 2.7}),
+        (3, "C", {"rigidez": 400.0, "densidade": 19.0}),
+    ]
+    criteria = [
+        _crit("rigidez", Direction.MAX, 1.0),
+        _crit("densidade", Direction.MIN, 1.0),
+    ]
+    result = rank_topsis(materials, criteria, run_sensitivity=False)
+    assert len(result.ranked) == 3
+    assert result.normalization == "topsis"
+    # Every score is the TOPSIS closeness coefficient, always in [0, 1].
+    for material in result.ranked:
+        assert 0.0 <= material.score <= 1.0
+    # Ranks are assigned 1..n with no gaps, best (highest score) first.
+    assert [m.rank for m in result.ranked] == sorted(m.rank for m in result.ranked)
+    assert result.ranked[0].score >= result.ranked[-1].score
+
+
+def test_topsis_excludes_missing_data_never_zero():
+    materials = [
+        (1, "A", {"rigidez": 200.0, "densidade": 8.0}),
+        (2, "B", {"rigidez": None, "densidade": 2.7}),
+    ]
+    criteria = [_crit("rigidez", Direction.MAX, 1.0), _crit("densidade", Direction.MIN, 1.0)]
+    result = rank_topsis(materials, criteria, run_sensitivity=False)
+    assert len(result.ranked) == 1
+    assert len(result.excluded) == 1
+    assert result.excluded[0].missing_keys == ["rigidez"]
+
+
+def test_topsis_identical_materials_tie_at_half():
+    # Every material identical on every criterion: ideal best == ideal worst,
+    # so the distance-ratio score is undefined by the raw formula — this
+    # must resolve to a genuine tie (0.5, per the docstring), not a
+    # ZeroDivisionError.
+    materials = [(1, "A", {"x": 5.0}), (2, "B", {"x": 5.0})]
+    criteria = [_crit("x", Direction.MAX, 1.0)]
+    result = rank_topsis(materials, criteria, run_sensitivity=False)
+    assert result.ranked[0].score == result.ranked[1].score == 0.5
+    assert result.ranked[0].rank == result.ranked[1].rank == 1
+
+
+def test_topsis_requires_at_least_one_criterion():
+    with pytest.raises(ValidationError):
+        rank_topsis([(1, "A", {})], [], run_sensitivity=False)
+
+
+def test_promethee_contributions_sum_to_score():
+    materials = [
+        (1, "A", {"rigidez": 200.0, "densidade": 8.0}),
+        (2, "B", {"rigidez": 70.0, "densidade": 2.7}),
+        (3, "C", {"rigidez": 400.0, "densidade": 19.0}),
+    ]
+    criteria = [
+        _crit("rigidez", Direction.MAX, 2.0),
+        _crit("densidade", Direction.MIN, 1.0),
+    ]
+    result = rank_promethee(materials, criteria, run_sensitivity=False)
+    assert result.normalization == "promethee"
+    for material in result.ranked:
+        total_contribution = sum(c.contribution for c in material.contributions)
+        assert total_contribution == pytest.approx(material.score, abs=1e-9)
+    # Net flow scores sum to (approximately) zero across all materials —
+    # a structural property of PROMETHEE II's net flow (every pairwise
+    # preference is counted once as +1 for the winner and once as -1 for
+    # the loser, so the total cancels).
+    assert sum(m.score for m in result.ranked) == pytest.approx(0.0, abs=1e-9)
+
+
+def test_promethee_direction_min_prefers_lower_value():
+    materials = [(1, "Leve", {"densidade": 2.0}), (2, "Pesado", {"densidade": 8.0})]
+    criteria = [_crit("densidade", Direction.MIN, 1.0)]
+    result = rank_promethee(materials, criteria, run_sensitivity=False)
+    assert result.ranked[0].name == "Leve"
+    assert result.ranked[0].score > result.ranked[1].score
+
+
+def test_promethee_requires_at_least_two_materials_with_data():
+    materials = [(1, "A", {"x": 5.0})]
+    criteria = [_crit("x", Direction.MAX, 1.0)]
+    with pytest.raises(ValidationError):
+        rank_promethee(materials, criteria, run_sensitivity=False)
+
+
+def test_promethee_requires_at_least_one_criterion():
+    with pytest.raises(ValidationError):
+        rank_promethee([(1, "A", {}), (2, "B", {})], [], run_sensitivity=False)
