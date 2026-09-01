@@ -228,6 +228,16 @@ export const ptBR = {
     combinator: "Combinar restrições com",
     addConstraint: "Adicionar restrição",
     noConstraints: "Nenhuma restrição — todos os materiais são candidatos.",
+    // M6: grupos aninhados de AND/OR. Cada grupo tem seu próprio operador —
+    // o rótulo abaixo nomeia esse controle quando ele não é o do grupo-raiz
+    // (esse usa `combinator` acima, com o mesmo sentido).
+    addGroup: "Adicionar grupo",
+    removeGroup: "Remover grupo",
+    groupOperatorLabel: "Operador do grupo",
+    groupNumber: (n: number) => `Grupo ${n}`,
+    emptyGroup: "Grupo vazio — adicione uma restrição ou um subgrupo.",
+    operatorAnd: "E",
+    operatorOr: "OU",
     property: "Propriedade",
     operator: "Operador",
     // Symbols alone name nothing to a screen reader, and "∈ faixa" was a

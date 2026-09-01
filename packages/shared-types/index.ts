@@ -305,6 +305,19 @@ export interface ConstraintIn {
   text?: string | null;
 }
 
+/**
+ * One node of a nested AND/OR constraint tree (M6) — mirrors the backend's
+ * `ConstraintGroupIn` (`apps/api/app/schemas/selection.py`) field-for-field,
+ * self-referencing via `groups`. Optional everywhere it plugs into
+ * `RunRequest`/`StudyIn`: its absence (`root_group` undefined/null)
+ * preserves the flat `constraints`/`combinator` shape those already had.
+ */
+export interface ConstraintGroupIn {
+  operator: Combinator;
+  constraints: ConstraintIn[];
+  groups: ConstraintGroupIn[];
+}
+
 export interface IndexIn {
   name?: string | null;
   expression: string;
@@ -339,8 +352,13 @@ export interface AhpWeightsOut {
 }
 
 export interface RunRequest {
-  combinator: Combinator;
-  constraints: ConstraintIn[];
+  // M6: an explicit nested tree (`root_group`) overrides these two entirely
+  // — see `ConstraintGroupIn`'s docstring. Kept optional so a caller that
+  // builds a tree does not also have to invent a flat pair to satisfy the
+  // type; the backend defaults both to `"AND"`/`[]` when omitted.
+  combinator?: Combinator;
+  constraints?: ConstraintIn[];
+  root_group?: ConstraintGroupIn | null;
   index?: IndexIn | null;
   ranking?: RankingIn | null;
 }
@@ -475,8 +493,10 @@ export interface StudyIn {
   function_text?: string | null;
   objective_text?: string | null;
   free_variables: string[];
-  combinator: Combinator;
-  constraints: ConstraintIn[];
+  // M6: see RunRequest.root_group — same override/optionality rule.
+  combinator?: Combinator;
+  constraints?: ConstraintIn[];
+  root_group?: ConstraintGroupIn | null;
   index?: IndexIn | null;
   normalization: NormalizationMethod;
   method: MethodLiteral;
