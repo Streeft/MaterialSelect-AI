@@ -13,9 +13,12 @@ from sqlalchemy.orm import Session
 
 from app.db.base import get_db
 from app.dependencies import get_current_project, get_current_user
+from app.domain.ahp import derive_weights
 from app.models.project import Project
 from app.models.user import User
 from app.schemas.selection import (
+    AhpWeightsIn,
+    AhpWeightsOut,
     FilterRequest,
     FilterResultOut,
     IndexRequest,
@@ -52,6 +55,33 @@ def evaluate_index(
 ) -> IndexResultOut:
     """Validate and evaluate a performance-index expression over all materials."""
     return SelectionService(db, project.id).evaluate_index(payload)
+
+
+@router.post("/ahp-weights", response_model=AhpWeightsOut)
+def derive_ahp_weights(
+    payload: AhpWeightsIn,
+    project: Project = Depends(get_current_project),
+) -> AhpWeightsOut:
+    """Derive normalized weights from a pairwise comparison matrix (AHP).
+
+    Pure computation, no persistence and no project scoping — ``project`` is
+    only here to require login, same as every other endpoint in this router
+    (see module docstring). A ``ValidationError`` from ``derive_weights``
+    (malformed matrix, or a consistency ratio above Saaty's 0.1 threshold) is
+    converted to a 400 by the app's global exception handler — see
+    ``app.domain.errors.ValidationError``'s own docstring — same as any other
+    domain-layer ``ValidationError`` raised from this router (e.g. an
+    incompatible unit on ``/filter``). 422 is reserved for Pydantic's own
+    request-schema validation (e.g. a matrix with the wrong shape for
+    ``AhpWeightsIn.criteria``).
+    """
+    result = derive_weights(payload.criteria, payload.matrix)
+    return AhpWeightsOut(
+        weights=result.weights,
+        lambda_max=result.lambda_max,
+        consistency_index=result.consistency_index,
+        consistency_ratio=result.consistency_ratio,
+    )
 
 
 @router.post("/run", response_model=RunResultOut)

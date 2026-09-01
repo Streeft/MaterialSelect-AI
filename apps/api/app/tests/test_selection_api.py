@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 
 def _names(candidates):
     return {c["name"] for c in candidates}
@@ -215,6 +217,32 @@ def test_study_crud_and_run(client):
     assert client.get(f"/api/selection/studies/{study_id}").status_code == 404
 
 
+def test_study_persists_and_reruns_with_its_method(client):
+    payload = {
+        "name": "Estudo TOPSIS",
+        "combinator": "AND",
+        "constraints": [],
+        "index": {
+            "name": "Rigidez específica",
+            "expression": "modulo_young / densidade",
+            "goal": "maximize",
+        },
+        "normalization": "minmax",
+        "method": "topsis",
+        "criteria": [{"key": "__index__", "weight": 1.0}],
+    }
+    created = client.post("/api/selection/studies", json=payload)
+    assert created.status_code == 201
+    assert created.json()["method"] == "topsis"
+    study_id = created.json()["id"]
+
+    fetched = client.get(f"/api/selection/studies/{study_id}").json()
+    assert fetched["method"] == "topsis"
+
+    run = client.post(f"/api/selection/studies/{study_id}/run").json()
+    assert run["ranking"]["method"] == "topsis"
+
+
 def _viga_leve_payload(criteria: list[dict], name: str = "Viga leve") -> dict:
     return {
         "name": name,
@@ -296,6 +324,90 @@ def test_run_no_criteria_has_no_ranking(client):
     body = resp.json()
     assert body["ranking"] is None
     assert body["final_count"] == 5
+
+
+def test_run_study_with_topsis_method(client):
+    payload = {
+        "combinator": "AND",
+        "constraints": [
+            {"operator": "lte", "property_slug": "densidade", "value": 5, "unit": "g/cm**3"},
+        ],
+        "index": {
+            "name": "Rigidez específica",
+            "expression": "modulo_young / densidade",
+            "goal": "maximize",
+        },
+        "ranking": {
+            "normalization": "minmax",
+            "method": "topsis",
+            "criteria": [
+                {"key": "__index__", "weight": 2.0},
+                {"key": "densidade", "weight": 1.0},
+            ],
+            "run_sensitivity": True,
+        },
+    }
+    resp = client.post("/api/selection/run", json=payload)
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["ranking"]["method"] == "topsis"
+    assert len(body["ranking"]["ranked"]) == 4
+
+
+def test_run_study_with_promethee_method(client):
+    payload = {
+        "ranking": {
+            "method": "promethee",
+            "criteria": [{"key": "densidade", "weight": 1.0}],
+            "run_sensitivity": False,
+        }
+    }
+    resp = client.post("/api/selection/run", json=payload)
+    assert resp.status_code == 200
+    assert resp.json()["ranking"]["method"] == "promethee"
+
+
+def test_ahp_weights_endpoint_returns_weights(client):
+    payload = {
+        "criteria": ["rigidez", "densidade"],
+        "matrix": [[1.0, 3.0], [1 / 3, 1.0]],
+    }
+    response = client.post("/api/selection/ahp-weights", json=payload)
+    assert response.status_code == 200
+    body = response.json()
+    assert sum(body["weights"].values()) == pytest.approx(1.0, abs=1e-6)
+    assert set(body["weights"]) == {"rigidez", "densidade"}
+
+
+def test_ahp_weights_endpoint_rejects_inconsistent_matrix(client):
+    # A cyclical set of extreme judgments (A >> B >> C >> A) is the textbook
+    # inconsistent case: it must be rejected outright, never averaged into
+    # numerically-valid-but-meaningless weights.
+    payload = {
+        "criteria": ["A", "B", "C"],
+        "matrix": [[1.0, 9.0, 1 / 9], [1 / 9, 1.0, 9.0], [9.0, 1 / 9, 1.0]],
+    }
+    response = client.post("/api/selection/ahp-weights", json=payload)
+    # A domain ValidationError maps to HTTP 400 app-wide (see the docstring
+    # on app.domain.errors.ValidationError and app.main's exception
+    # handler) — not 422, which this app reserves for Pydantic's own
+    # request-schema validation (e.g. a malformed matrix shape).
+    assert response.status_code == 400
+    assert "inconsistentes" in response.json()["detail"]
+
+
+def test_ahp_weights_endpoint_rejects_malformed_matrix_shape(client):
+    payload = {"criteria": ["A", "B"], "matrix": [[1.0]]}
+    response = client.post("/api/selection/ahp-weights", json=payload)
+    assert response.status_code == 400
+
+
+def test_ahp_weights_endpoint_requires_login(anon_client):
+    payload = {
+        "criteria": ["rigidez", "densidade"],
+        "matrix": [[1.0, 3.0], [1 / 3, 1.0]],
+    }
+    assert anon_client.post("/api/selection/ahp-weights", json=payload).status_code == 401
 
 
 def test_studies_endpoints_require_login(anon_client):
