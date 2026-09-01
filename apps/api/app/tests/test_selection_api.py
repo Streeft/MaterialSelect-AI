@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import pytest
 
+from app.models.selection import ConstraintGroup, SelectionConstraint
+
 
 def _names(candidates):
     return {c["name"] for c in candidates}
@@ -436,3 +438,84 @@ def test_two_projects_can_reuse_the_same_study_name(client, other_user, login_as
     with login_as(other_user):
         # Same name, different project: not a conflict.
         assert client.post("/api/selection/studies", json=payload).status_code == 201
+
+
+# --- M6: ConstraintGroup (model-level; the API schema does not expose group_id
+# yet — that is Task 8's wiring) --------------------------------------------
+#
+# No precedent exists in this codebase for testing a migration's data effects
+# directly (checked alembic/ and app/tests/): the shared test database is built
+# from `Base.metadata.create_all`, never from the migrations, so it never
+# starts in the pre-M6 state the migration's backfill runs against. The
+# migration's actual backfill SQL was instead verified by hand: applying it
+# with `alembic upgrade head` against a scratch SQLite copy of the dev
+# database seeded with pre-existing studies (some with constraints, one with
+# none, one AND and one OR) and inspecting the result directly. These tests
+# cover the equivalent, forward-looking guarantee — that `create_study`
+# (SelectionService) gives every *new* study the same one-root-group shape the
+# migration gives every *old* one, and that it is cleaned up correctly.
+
+
+def test_create_study_gets_one_root_constraint_group_matching_combinator(client, db_session):
+    """A new study's root ConstraintGroup mirrors its own combinator — the
+    exact shape the migration's backfill gives every pre-M6 study."""
+    payload = _viga_leve_payload([], "Estudo com grupo raiz")
+    payload["combinator"] = "OR"
+    payload["constraints"] = [
+        {"operator": "lte", "property_slug": "densidade", "value": 2800, "unit": "kg/m**3"},
+        {"operator": "gte", "property_slug": "modulo_young", "value": 60, "unit": "GPa"},
+    ]
+    study_id = client.post("/api/selection/studies", json=payload).json()["id"]
+
+    groups = db_session.query(ConstraintGroup).filter(ConstraintGroup.study_id == study_id).all()
+    assert len(groups) == 1
+    root = groups[0]
+    assert root.parent_group_id is None
+    assert root.operator == "OR"
+    assert root.position == 0
+
+    constraints = (
+        db_session.query(SelectionConstraint).filter(SelectionConstraint.study_id == study_id).all()
+    )
+    assert len(constraints) == 2
+    assert all(c.group_id == root.id for c in constraints)
+
+
+def test_study_with_no_constraints_still_gets_a_root_group(client, db_session):
+    """Backward compatibility holds even for the empty case: a study with zero
+    constraints still ends up with exactly one root group, same as the
+    migration's backfill gives every existing study regardless of how many
+    constraints it had."""
+    payload = _viga_leve_payload([], "Estudo sem restricoes")
+    study_id = client.post("/api/selection/studies", json=payload).json()["id"]
+
+    groups = db_session.query(ConstraintGroup).filter(ConstraintGroup.study_id == study_id).all()
+    assert len(groups) == 1
+    assert groups[0].parent_group_id is None
+    assert groups[0].operator == "AND"  # _viga_leve_payload's combinator
+
+
+def test_deleting_study_cascades_its_constraint_group(client, db_session):
+    """Deleting a study must not orphan its ConstraintGroup row: SQLite here
+    runs without PRAGMA foreign_keys=ON, so `ondelete=CASCADE` alone would not
+    clean it up — this is the ORM-level cascade doing the work instead."""
+    payload = _viga_leve_payload([], "Estudo a apagar")
+    payload["constraints"] = [
+        {"operator": "lte", "property_slug": "densidade", "value": 2800, "unit": "kg/m**3"},
+    ]
+    study_id = client.post("/api/selection/studies", json=payload).json()["id"]
+    assert (
+        db_session.query(ConstraintGroup).filter(ConstraintGroup.study_id == study_id).count() == 1
+    )
+
+    assert client.delete(f"/api/selection/studies/{study_id}").status_code == 204
+
+    assert (
+        db_session.query(ConstraintGroup).filter(ConstraintGroup.study_id == study_id).count() == 0
+    )
+    assert (
+        db_session.query(SelectionConstraint)
+        .filter(SelectionConstraint.study_id == study_id)
+        .count()
+        == 0
+    )
