@@ -228,6 +228,16 @@ export const ptBR = {
     combinator: "Combinar restrições com",
     addConstraint: "Adicionar restrição",
     noConstraints: "Nenhuma restrição — todos os materiais são candidatos.",
+    // M6: grupos aninhados de AND/OR. Cada grupo tem seu próprio operador —
+    // o rótulo abaixo nomeia esse controle quando ele não é o do grupo-raiz
+    // (esse usa `combinator` acima, com o mesmo sentido).
+    addGroup: "Adicionar grupo",
+    removeGroup: "Remover grupo",
+    groupOperatorLabel: "Operador do grupo",
+    groupNumber: (n: number) => `Grupo ${n}`,
+    emptyGroup: "Grupo vazio — adicione uma restrição ou um subgrupo.",
+    operatorAnd: "E",
+    operatorOr: "OU",
     property: "Propriedade",
     operator: "Operador",
     // Symbols alone name nothing to a screen reader, and "∈ faixa" was a
@@ -287,6 +297,15 @@ export const ptBR = {
     normalization: "Normalização",
     normMinmax: "Min-máx",
     normVector: "Vetorial",
+    method: "Método de ranking",
+    methodWeightedSum: "Soma ponderada",
+    methodTopsis: "TOPSIS",
+    methodPromethee: "PROMETHEE II",
+    // Por que a normalização some: os dois métodos fixam a própria por
+    // dentro (ver o docstring de RankingIn no backend) — mostrá-la como se
+    // ainda valesse enganaria quem está montando o estudo.
+    methodHint:
+      "TOPSIS e PROMETHEE II combinam os critérios de outro jeito e usam normalização própria — a escolha de normalização abaixo só vale para a soma ponderada.",
     run: "Executar seleção",
     running: "Executando…",
     resultsTitle: "Resultados",
@@ -341,6 +360,38 @@ export const ptBR = {
     compareCandidates: "Comparar candidatos",
     genericError: "Não foi possível concluir a operação. Verifique os critérios e tente novamente.",
     validationOk: "Expressão válida.",
+    // AHP (Analytic Hierarchy Process): uma forma alternativa de chegar aos
+    // pesos dos critérios, por comparação pareada — não um quarto método de
+    // ranking (esse continua sendo `method` acima).
+    ahp: {
+      toggle: "Derivar pesos por comparação pareada (AHP)",
+      toggleHint:
+        "Em vez de digitar cada peso, compare os critérios dois a dois numa escala de 1 a 9 e deixe o sistema calcular os pesos.",
+      title: "Comparação pareada",
+      hint:
+        "Para cada par, diga o quanto o critério da linha é mais importante que o da coluna (1 = igualmente importante, 9 = extremamente mais importante). A metade abaixo da diagonal é o recíproco, calculado automaticamente.",
+      needsCriteria: "Escolha ao menos dois critérios com propriedade definida para usar o AHP.",
+      pairLabel: (a: string, b: string) => `${a} em relação a ${b}`,
+      computing: "Calculando pesos…",
+      consistency: (ratio: string) => `Consistência: ${ratio}`,
+      consistencyOk: "ok",
+      consistencyBad: "revise os julgamentos",
+      weight: "Peso derivado",
+      apply: "Aplicar pesos aos critérios",
+      applied: "Pesos aplicados aos critérios de ranking.",
+      // Saaty's fundamental scale: only the odd anchors (1/3/5/7/9) carry a
+      // verbal description of their own — 2/4/6/8 are unlabeled compromises
+      // between two anchors, so the picker offers these nine points.
+      judgmentExtreme: "9 — extremamente mais importante",
+      judgmentVeryStrong: "7 — muito fortemente mais importante",
+      judgmentStrong: "5 — fortemente mais importante",
+      judgmentModerate: "3 — moderadamente mais importante",
+      judgmentEqual: "1 — igualmente importante",
+      judgmentModerateReverse: "1/3 — moderadamente menos importante",
+      judgmentStrongReverse: "1/5 — fortemente menos importante",
+      judgmentVeryStrongReverse: "1/7 — muito fortemente menos importante",
+      judgmentExtremeReverse: "1/9 — extremamente menos importante",
+    },
   },
   ai: {
     title: "Interpretar enunciado (opcional)",

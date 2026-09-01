@@ -76,6 +76,54 @@ diz por quê, em vez de desenhar algo plausível.
 **Soma ponderada normalizada**, com pesos, direção de otimização, método de
 normalização (min-máx ou vetorial), contribuição por critério e análise de
 sensibilidade. Dados ausentes são tratados explicitamente: o material é excluído
-do ranking e reportado, nunca preenchido com zero ou média. A arquitetura
-(critérios com direção/peso/normalização + matriz de escores) está preparada
-para TOPSIS/AHP/PROMETHEE.
+do ranking e reportado, nunca preenchido com zero ou média. Três métodos
+adicionais reaproveitam essa mesma arquitetura de entrada (critérios com
+direção/peso/normalização) sem remodelá-la: TOPSIS, PROMETHEE II e AHP para
+derivar os pesos.
+
+### TOPSIS
+
+Ordena materiais pela proximidade a uma solução ideal: constrói um ponto
+"melhor" e um ponto "pior" no espaço de critérios normalizado e ponderado (um
+por critério, tomando o extremo favorável e o desfavorável conforme a
+direção), e o escore de cada material é a razão entre sua distância ao pior e
+a soma das distâncias ao melhor e ao pior — mais perto do ideal e mais longe
+do anti-ideal, mais alto o escore. Herda sem alteração a exclusão de dado
+ausente e a renormalização de pesos da soma ponderada. Decisão de escopo:
+diferente da soma ponderada, a contribuição por critério **não soma** o
+escore final — isso é específico da agregação linear da soma ponderada e não
+tem equivalente em TOPSIS, cujo escore vem de uma razão de distâncias, não de
+uma soma; a contribuição continua reportada por critério, só que como
+transparência do cálculo, não como decomposição exata do escore.
+
+### PROMETHEE II
+
+Ordena por fluxo de saída líquido: compara cada material com todos os outros,
+par a par, em cada critério, e agrega a margem de preferência média
+ponderada pelos pesos dos critérios. Herda sem alteração a exclusão de dado
+ausente e a renormalização de pesos da soma ponderada; exige ao menos dois
+materiais com todos os critérios preenchidos, porque a comparação pareada não
+tem o que fazer com um único candidato. Decisão de escopo: usa apenas a
+função de preferência "usual" (tipo I de Saaty/Brans) — um material é
+estritamente preferido a outro num critério, ou não é, sem limiares de
+indiferença/preferência. A generalidade completa do PROMETHEE admite seis
+formas de função de preferência com limiares ajustáveis por critério; a
+"usual" não pede nenhum parâmetro além de direção e peso, a mesma informação
+que a soma ponderada e o TOPSIS já coletam. Limiar ajustável fica para
+trabalho futuro.
+
+### AHP (derivação de pesos)
+
+O AHP não é um quarto método de ranking: é uma forma alternativa de obter os
+**pesos** que qualquer um dos três métodos acima consome, a partir de uma
+matriz de comparação pareada entre critérios na escala 1–9 de Saaty (quanto
+mais importante um critério é que o outro). Decisão de escopo: os pesos saem
+por **média normalizada das colunas** da matriz — a aproximação documentada
+do próprio Saaty ao autovetor principal, exata quando a matriz é
+perfeitamente consistente —, não por um solver numérico de autovalor; a
+mesma escolha (fechado em vez de dependência pesada de álgebra linear) já
+usada para o envelope elíptico de `app/domain/geometry.py`. Toda matriz passa
+por um teste de consistência (razão de consistência de Saaty); acima de 0,1 o
+sistema **recusa** os pesos — nunca devolve pesos parciais nem "aproximados"
+de julgamentos autocontraditórios, a mesma regra de não inventar número
+aplicada aqui à derivação de peso.

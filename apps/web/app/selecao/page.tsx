@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -18,10 +18,11 @@ import {
   studyExportUrl,
 } from "@/lib/api";
 import type {
-  ConstraintIn,
+  ConstraintGroupIn,
   CriterionIn,
   Goal,
   IndexIn,
+  MethodLiteral,
   NormalizationMethod,
   RunRequest,
   RunResult,
@@ -32,8 +33,11 @@ import { countLabel, prettyUnit } from "@/lib/format";
 import {
   Alert,
   Button,
+  ButtonGroup,
+  ButtonGroupItem,
   Card,
   CardBody,
+  Checkbox,
   EmptyState,
   Input,
   LoadingState,
@@ -52,10 +56,14 @@ import {
 import { IconArrowRight, IconPlus, IconTrash } from "@/components/ui/icons";
 import {
   ConstraintEditor,
-  type ConstraintRow,
+  type ConstraintGroupState,
   emptyConstraint,
+  emptyGroup,
+  nextEditorId,
   toConstraintPayload,
+  countConstraints,
 } from "@/components/selection/ConstraintEditor";
+import { AhpMatrixInput, type AhpCriterionRef } from "@/components/selection/AhpMatrixInput";
 import {
   IndexCard,
   IndexPicker,
@@ -173,8 +181,12 @@ function SelectionWizard() {
   const [functionText, setFunctionText] = useState("");
   const [objectiveText, setObjectiveText] = useState("");
   const [freeVariables, setFreeVariables] = useState("");
-  const [combinator, setCombinator] = useState<"AND" | "OR">("AND");
-  const [constraints, setConstraints] = useState<ConstraintRow[]>([]);
+  // M6: the root of the nested AND/OR constraint tree. Its own `operator`
+  // replaces the page-level combinator picker this used to be — operator is
+  // now a per-group property, not a study-level one (see ConstraintEditor).
+  const [rootGroup, setRootGroup] = useState<ConstraintGroupState>(() =>
+    emptyGroup(nextEditorId("group")),
+  );
 
   const [indexMode, setIndexMode] = useState<string>("none"); // "none" | slug | "custom"
   const [customExpression, setCustomExpression] = useState("");
@@ -183,6 +195,11 @@ function SelectionWizard() {
 
   const [criteria, setCriteria] = useState<CriterionRow[]>([]);
   const [normalization, setNormalization] = useState<NormalizationMethod>("minmax");
+  const [method, setMethod] = useState<MethodLiteral>("weighted_sum");
+  // AHP derives *weights*, not a fourth ranking method — so it only shows up
+  // as an alternative input mode for the weight fields, gated on
+  // weighted_sum, never as another entry in `method` above.
+  const [useAhp, setUseAhp] = useState(false);
 
   const [result, setResult] = useState<RunResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -220,7 +237,36 @@ function SelectionWizard() {
     return chosen ? describeIndex(chosen) : null;
   }, [indexMode, customExpression, indexGoal, indices.data]);
 
-  const constraintPayload = (): ConstraintIn[] => toConstraintPayload(constraints);
+  const rootGroupPayload = (): ConstraintGroupIn => toConstraintPayload(rootGroup);
+
+  // Only the criteria that already name a property (or the index) are worth
+  // comparing pairwise — an empty row has nothing for AHP to weigh.
+  const ahpCriteria = useMemo<AhpCriterionRef[]>(
+    () =>
+      criteria
+        .filter((c) => c.key)
+        .map((c) => ({
+          key: c.key,
+          label:
+            c.key === "__index__"
+              ? t.useIndexCriterion
+              : properties.data?.find((p) => p.slug === c.key)?.name ?? c.key,
+        })),
+    [criteria, properties.data],
+  );
+
+  // Functional update, no `criteria` in the dependency list: this keeps the
+  // callback referentially stable across renders, which is what lets
+  // AhpMatrixInput's own effect key on it safely instead of re-firing
+  // `onDerived` on every unrelated keystroke elsewhere on the page.
+  const applyAhpWeights = useCallback((weights: Record<string, number>) => {
+    setCriteria((current) =>
+      current.map((c) => {
+        const w = weights[c.key];
+        return w === undefined ? c : { ...c, weight: w.toFixed(4) };
+      }),
+    );
+  }, []);
 
   function criteriaPayload(): CriterionIn[] {
     return criteria
@@ -234,12 +280,11 @@ function SelectionWizard() {
 
   function buildRequest(includeObjective: boolean): RunRequest {
     return {
-      combinator,
-      constraints: constraintPayload(),
+      root_group: rootGroupPayload(),
       index: includeObjective ? activeIndex : null,
       ranking:
         includeObjective && criteriaPayload().length > 0
-          ? { normalization, criteria: criteriaPayload(), run_sensitivity: true }
+          ? { normalization, method, criteria: criteriaPayload(), run_sensitivity: true }
           : null,
     };
   }
@@ -248,9 +293,8 @@ function SelectionWizard() {
   // Constraints only: adding the index here would make the number answer a
   // different question from the one the label asks.
   const preview = useQuery({
-    queryKey: ["selection-preview", JSON.stringify({ combinator, c: constraintPayload() })],
-    queryFn: () =>
-      runSelection({ combinator, constraints: constraintPayload(), index: null, ranking: null }),
+    queryKey: ["selection-preview", JSON.stringify(rootGroupPayload())],
+    queryFn: () => runSelection({ root_group: rootGroupPayload(), index: null, ranking: null }),
     // Keep the previous count on screen while the next one is in flight, so the
     // element does not blink between every keystroke.
     placeholderData: (previous) => previous,
@@ -274,10 +318,10 @@ function SelectionWizard() {
         function_text: functionText.trim() || null,
         objective_text: objectiveText.trim() || null,
         free_variables: freeVariables.split(",").map((s) => s.trim()).filter(Boolean),
-        combinator,
-        constraints: constraintPayload(),
+        root_group: rootGroupPayload(),
         index: activeIndex,
         normalization,
+        method,
         criteria: criteriaPayload(),
       }),
     onSuccess: () => {
@@ -301,10 +345,14 @@ function SelectionWizard() {
       setFunctionText(s.function_text ?? "");
       setObjectiveText(s.objective_text ?? "");
       setFreeVariables(s.free_variables.join(", "));
-      setCombinator(s.combinator);
-      setConstraints(
-        s.constraints.map((c) => ({
-          ...emptyConstraint(nextId()),
+      // `StudyOut` still returns a saved study's constraints as a flat list,
+      // even one saved with a real nested `root_group` (Task 8's known gap
+      // — the tree is not round-tripped back out). This reproduces exactly
+      // the flat shape pre-M6 always had; it never reconstructs nesting.
+      setRootGroup({
+        ...emptyGroup(nextEditorId("group"), s.combinator),
+        constraints: s.constraints.map((c) => ({
+          ...emptyConstraint(nextEditorId("row")),
           operator: c.operator,
           property_slug: c.property_slug ?? "",
           value: c.value?.toString() ?? "",
@@ -314,7 +362,7 @@ function SelectionWizard() {
           class_slugs: c.class_slugs ?? [],
           text: c.text ?? "",
         })),
-      );
+      });
       if (s.index) {
         setIndexMode("custom");
         setCustomExpression(s.index.expression);
@@ -323,6 +371,7 @@ function SelectionWizard() {
         setIndexMode("none");
       }
       setNormalization(s.normalization);
+      setMethod(s.method);
       setCriteria(
         s.criteria.map((c) => ({
           id: nextId(),
@@ -376,20 +425,26 @@ function SelectionWizard() {
     if (accepted.objectiveText) setObjectiveText(accepted.objectiveText);
     if (accepted.freeVariables.length > 0) setFreeVariables(accepted.freeVariables.join(", "));
     if (accepted.constraints.length > 0) {
-      setConstraints((current) => [
+      // Appended to the root group's own constraints, never nested into a
+      // child group the AI has no way to name — same "add, never replace"
+      // rule the flat editor always had.
+      setRootGroup((current) => ({
         ...current,
-        ...accepted.constraints.map(({ constraint }) => ({
-          ...emptyConstraint(nextId()),
-          operator: constraint.operator,
-          property_slug: constraint.property_slug ?? "",
-          value: constraint.value?.toString() ?? "",
-          value_min: constraint.value_min?.toString() ?? "",
-          value_max: constraint.value_max?.toString() ?? "",
-          unit: constraint.unit ?? "",
-          class_slugs: constraint.class_slugs ?? [],
-          text: constraint.text ?? "",
-        })),
-      ]);
+        constraints: [
+          ...current.constraints,
+          ...accepted.constraints.map(({ constraint }) => ({
+            ...emptyConstraint(nextEditorId("row")),
+            operator: constraint.operator,
+            property_slug: constraint.property_slug ?? "",
+            value: constraint.value?.toString() ?? "",
+            value_min: constraint.value_min?.toString() ?? "",
+            value_max: constraint.value_max?.toString() ?? "",
+            unit: constraint.unit ?? "",
+            class_slugs: constraint.class_slugs ?? [],
+            text: constraint.text ?? "",
+          })),
+        ],
+      }));
     }
     if (accepted.index) {
       setIndexMode(accepted.index.slug);
@@ -398,7 +453,7 @@ function SelectionWizard() {
   }
 
   const indexIsCriterion = criteria.some((c) => c.key === "__index__");
-  const hasConstraints = constraintPayload().length > 0;
+  const hasConstraints = countConstraints(rootGroupPayload()) > 0;
   const hasObjective = activeIndex !== null || criteriaPayload().length > 0;
   const canSave = name.trim().length > 0;
 
@@ -437,19 +492,13 @@ function SelectionWizard() {
           </Button>
         );
       case "constraints":
+        // Adding a constraint or a group is now a per-group action inside
+        // ConstraintEditor itself (M6) — operator is a per-group property,
+        // so "add" has to say which group, which only the editor knows.
         return (
-          <>
-            <Button
-              variant="secondary"
-              icon={<IconPlus />}
-              onClick={() => setConstraints([...constraints, emptyConstraint(nextId())])}
-            >
-              {t.addConstraint}
-            </Button>
-            <Button variant="primary" icon={<IconArrowRight />} onClick={() => setStep("objective")}>
-              {t.stepObjective}
-            </Button>
-          </>
+          <Button variant="primary" icon={<IconArrowRight />} onClick={() => setStep("objective")}>
+            {t.stepObjective}
+          </Button>
         );
       case "objective":
         return (
@@ -543,26 +592,16 @@ function SelectionWizard() {
 
         {/* Step 2: constraints */}
         {step === "constraints" && (
-          <Section
-            title={t.constraintsTitle}
-            description={t.constraintsHint}
-            actions={
-              <Select
-                label={t.combinator}
-                className="w-28"
-                value={combinator}
-                onChange={(e) => setCombinator(e.target.value as "AND" | "OR")}
-              >
-                <SelectOption value="AND">AND</SelectOption>
-                <SelectOption value="OR">OR</SelectOption>
-              </Select>
-            }
-          >
+          <Section title={t.constraintsTitle} description={t.constraintsHint}>
+            {/* The root group's own AND/OR toggle lives inside the editor
+                now (M6) — operator is a per-group property, not a
+                study-level one, so this section no longer owns a combinator
+                picker of its own. */}
             <ConstraintEditor
-              rows={constraints}
+              root={rootGroup}
               properties={properties.data ?? []}
               classes={classes.data ?? []}
-              onChange={setConstraints}
+              onChange={setRootGroup}
             />
           </Section>
         )}
@@ -628,19 +667,49 @@ function SelectionWizard() {
               title={t.rankingTitle}
               description={t.rankingHint}
               actions={
-                <Select
-                  label={t.normalization}
-                  className="w-40"
-                  value={normalization}
-                  onChange={(e) => setNormalization(e.target.value as NormalizationMethod)}
-                >
-                  <SelectOption value="minmax">{t.normMinmax}</SelectOption>
-                  <SelectOption value="vector">{t.normVector}</SelectOption>
-                </Select>
+                <div className="flex flex-wrap items-end gap-3">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs font-medium text-ink-muted">{t.method}</span>
+                    <ButtonGroup label={t.method}>
+                      <ButtonGroupItem
+                        selected={method === "weighted_sum"}
+                        label={t.methodWeightedSum}
+                        onClick={() => setMethod("weighted_sum")}
+                      />
+                      <ButtonGroupItem
+                        selected={method === "topsis"}
+                        label={t.methodTopsis}
+                        onClick={() => setMethod("topsis")}
+                      />
+                      <ButtonGroupItem
+                        selected={method === "promethee"}
+                        label={t.methodPromethee}
+                        onClick={() => setMethod("promethee")}
+                      />
+                    </ButtonGroup>
+                  </div>
+                  {/* Normalization only means something for weighted_sum —
+                      TOPSIS and PROMETHEE fix their own internally, so
+                      showing this as if it still applied would mislead. */}
+                  {method === "weighted_sum" && (
+                    <Select
+                      label={t.normalization}
+                      className="w-40"
+                      value={normalization}
+                      onChange={(e) => setNormalization(e.target.value as NormalizationMethod)}
+                    >
+                      <SelectOption value="minmax">{t.normMinmax}</SelectOption>
+                      <SelectOption value="vector">{t.normVector}</SelectOption>
+                    </Select>
+                  )}
+                </div>
               }
             >
               <Card>
                 <CardBody className="space-y-3">
+                  {method !== "weighted_sum" && (
+                    <p className="text-xs text-ink-muted">{t.methodHint}</p>
+                  )}
                   {criteria.map((c, position) => (
                     <fieldset key={c.id} className="flex flex-wrap items-end gap-3">
                       <legend className="sr-only">
@@ -725,6 +794,25 @@ function SelectionWizard() {
                   >
                     {t.addCriterion}
                   </Button>
+
+                  {/* AHP derives weights; it never becomes a fourth `method`
+                      (Task 2's scope note) — so it only shows up here, next
+                      to the weight fields it feeds, and only where
+                      "weighted_sum" still reads the weight the same way
+                      TOPSIS/PROMETHEE do internally. */}
+                  {method === "weighted_sum" && (
+                    <div className="space-y-3 border-t border-edge pt-3">
+                      <Checkbox
+                        label={t.ahp.toggle}
+                        hint={t.ahp.toggleHint}
+                        checked={useAhp}
+                        onChange={(e) => setUseAhp(e.target.checked)}
+                      />
+                      {useAhp && (
+                        <AhpMatrixInput criteria={ahpCriteria} onDerived={applyAhpWeights} />
+                      )}
+                    </div>
+                  )}
                 </CardBody>
               </Card>
             </Section>
