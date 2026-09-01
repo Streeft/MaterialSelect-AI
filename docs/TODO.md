@@ -20,13 +20,6 @@ executado: ver "Débitos já quitados".
 
 ## Média prioridade
 
-### M5 — Métodos multicritério adicionais (TOPSIS, AHP, PROMETHEE)
-- **Descrição:** implementar sobre a estrutura já genérica de `domain/ranking.py`.
-- **Impacto:** médio. Previsto na arquitetura e **explicitamente fora do escopo
-  desta versão** (item 5 da proposta) — só faça se o orientador pedir.
-- **Dificuldade:** ▃
-- **Dependências:** nenhuma; a matriz de escores já está no formato certo.
-
 ### M6 — Restrições com parênteses lógicos
 - **Descrição:** grupos aninhados em vez de só AND/OR global.
 - **Impacto:** médio para problemas reais de projeto.
@@ -54,6 +47,38 @@ Nenhum item aberto no momento — B1 a B10 foram entregues nesta sessão (ver
 
 Registrados para não voltarem por engano:
 
+- ~~**M5** — Métodos multicritério adicionais (TOPSIS, AHP, PROMETHEE)~~ —
+  implementado **por pedido explícito do orientador**, revertendo a nota "só
+  faça se o orientador pedir" que este item carregava antes: o usuário
+  confirmou explicitamente que o orientador pediu, então o item deixou de
+  estar fora de escopo. `app/domain/ranking.py` ganhou `rank_topsis` e
+  `rank_promethee`, ambos reaproveitando a mesma entrada genérica (critérios
+  com direção/peso/normalização) da soma ponderada já existente via o
+  auxiliar compartilhado `_split_complete_and_excluded` — exclusão de dado
+  ausente e renormalização de pesos idênticas nos três métodos, nunca
+  reimplementadas. **TOPSIS** decide por proximidade a um ponto ideal/anti-
+  ideal; decisão de escopo registrada no próprio docstring: ao contrário da
+  soma ponderada, a contribuição por critério não soma o escore (a razão de
+  distâncias não é uma agregação linear). **PROMETHEE II** decide por fluxo
+  de saída líquido de comparações pareadas; decisão de escopo: só a função de
+  preferência "usual" (tipo I), sem limiares de indiferença/preferência, e
+  exige ao menos dois materiais completos para comparar. `app/domain/ahp.py`
+  ganhou `derive_weights` para obter pesos de critério a partir de uma matriz
+  de comparação pareada (escala 1–9 de Saaty): pesos por **média normalizada
+  das colunas** (a aproximação documentada de Saaty ao autovetor principal,
+  não um solver numérico) e rejeição dura de qualquer matriz com razão de
+  consistência acima de 0,1 — nunca devolve pesos parciais de julgamentos
+  autocontraditórios. `RankingIn`/`StudyIn` ganharam `method`
+  (`weighted_sum`/`topsis`/`promethee`), persistido em
+  `SelectionStudy.method` (migration `f8c93a1d8844`) para que um estudo
+  salvo reexecute com o mesmo método; `POST /api/selection/ahp-weights`
+  chama `derive_weights` diretamente, sem persistência. No frontend,
+  `apps/web/app/selecao/page.tsx` ganhou o seletor de método e
+  `apps/web/components/selection/AhpMatrixInput.tsx` a entrada de matriz de
+  comparação (só o triângulo superior é editável; diagonal e triângulo
+  inferior seguem por construção). 852 testes de backend (nenhum skip) e 171
+  de frontend, todos verdes ao final. Ver
+  `docs/04-metodologia-selecao.md` para a descrição de cada método.
 - ~~**B1–B10**~~ — as dez pendências de baixa prioridade, entregues numa
   sessão dirigida por subagentes (o plano de implementação existiu em
   `docs/superpowers/plans/2026-08-27-backlog-b1-b10.md`; o histórico do git é
