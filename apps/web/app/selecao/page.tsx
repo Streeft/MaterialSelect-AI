@@ -18,7 +18,7 @@ import {
   studyExportUrl,
 } from "@/lib/api";
 import type {
-  ConstraintIn,
+  ConstraintGroupIn,
   CriterionIn,
   Goal,
   IndexIn,
@@ -56,9 +56,11 @@ import {
 import { IconArrowRight, IconPlus, IconTrash } from "@/components/ui/icons";
 import {
   ConstraintEditor,
-  type ConstraintRow,
+  type ConstraintGroupState,
   emptyConstraint,
+  emptyGroup,
   toConstraintPayload,
+  countConstraints,
 } from "@/components/selection/ConstraintEditor";
 import { AhpMatrixInput, type AhpCriterionRef } from "@/components/selection/AhpMatrixInput";
 import {
@@ -178,8 +180,10 @@ function SelectionWizard() {
   const [functionText, setFunctionText] = useState("");
   const [objectiveText, setObjectiveText] = useState("");
   const [freeVariables, setFreeVariables] = useState("");
-  const [combinator, setCombinator] = useState<"AND" | "OR">("AND");
-  const [constraints, setConstraints] = useState<ConstraintRow[]>([]);
+  // M6: the root of the nested AND/OR constraint tree. Its own `operator`
+  // replaces the page-level combinator picker this used to be — operator is
+  // now a per-group property, not a study-level one (see ConstraintEditor).
+  const [rootGroup, setRootGroup] = useState<ConstraintGroupState>(() => emptyGroup(nextId()));
 
   const [indexMode, setIndexMode] = useState<string>("none"); // "none" | slug | "custom"
   const [customExpression, setCustomExpression] = useState("");
@@ -230,7 +234,7 @@ function SelectionWizard() {
     return chosen ? describeIndex(chosen) : null;
   }, [indexMode, customExpression, indexGoal, indices.data]);
 
-  const constraintPayload = (): ConstraintIn[] => toConstraintPayload(constraints);
+  const rootGroupPayload = (): ConstraintGroupIn => toConstraintPayload(rootGroup);
 
   // Only the criteria that already name a property (or the index) are worth
   // comparing pairwise — an empty row has nothing for AHP to weigh.
@@ -273,8 +277,7 @@ function SelectionWizard() {
 
   function buildRequest(includeObjective: boolean): RunRequest {
     return {
-      combinator,
-      constraints: constraintPayload(),
+      root_group: rootGroupPayload(),
       index: includeObjective ? activeIndex : null,
       ranking:
         includeObjective && criteriaPayload().length > 0
@@ -287,9 +290,8 @@ function SelectionWizard() {
   // Constraints only: adding the index here would make the number answer a
   // different question from the one the label asks.
   const preview = useQuery({
-    queryKey: ["selection-preview", JSON.stringify({ combinator, c: constraintPayload() })],
-    queryFn: () =>
-      runSelection({ combinator, constraints: constraintPayload(), index: null, ranking: null }),
+    queryKey: ["selection-preview", JSON.stringify(rootGroupPayload())],
+    queryFn: () => runSelection({ root_group: rootGroupPayload(), index: null, ranking: null }),
     // Keep the previous count on screen while the next one is in flight, so the
     // element does not blink between every keystroke.
     placeholderData: (previous) => previous,
@@ -313,8 +315,7 @@ function SelectionWizard() {
         function_text: functionText.trim() || null,
         objective_text: objectiveText.trim() || null,
         free_variables: freeVariables.split(",").map((s) => s.trim()).filter(Boolean),
-        combinator,
-        constraints: constraintPayload(),
+        root_group: rootGroupPayload(),
         index: activeIndex,
         normalization,
         method,
@@ -341,9 +342,13 @@ function SelectionWizard() {
       setFunctionText(s.function_text ?? "");
       setObjectiveText(s.objective_text ?? "");
       setFreeVariables(s.free_variables.join(", "));
-      setCombinator(s.combinator);
-      setConstraints(
-        s.constraints.map((c) => ({
+      // `StudyOut` still returns a saved study's constraints as a flat list,
+      // even one saved with a real nested `root_group` (Task 8's known gap
+      // — the tree is not round-tripped back out). This reproduces exactly
+      // the flat shape pre-M6 always had; it never reconstructs nesting.
+      setRootGroup({
+        ...emptyGroup(nextId(), s.combinator),
+        constraints: s.constraints.map((c) => ({
           ...emptyConstraint(nextId()),
           operator: c.operator,
           property_slug: c.property_slug ?? "",
@@ -354,7 +359,7 @@ function SelectionWizard() {
           class_slugs: c.class_slugs ?? [],
           text: c.text ?? "",
         })),
-      );
+      });
       if (s.index) {
         setIndexMode("custom");
         setCustomExpression(s.index.expression);
@@ -417,20 +422,26 @@ function SelectionWizard() {
     if (accepted.objectiveText) setObjectiveText(accepted.objectiveText);
     if (accepted.freeVariables.length > 0) setFreeVariables(accepted.freeVariables.join(", "));
     if (accepted.constraints.length > 0) {
-      setConstraints((current) => [
+      // Appended to the root group's own constraints, never nested into a
+      // child group the AI has no way to name — same "add, never replace"
+      // rule the flat editor always had.
+      setRootGroup((current) => ({
         ...current,
-        ...accepted.constraints.map(({ constraint }) => ({
-          ...emptyConstraint(nextId()),
-          operator: constraint.operator,
-          property_slug: constraint.property_slug ?? "",
-          value: constraint.value?.toString() ?? "",
-          value_min: constraint.value_min?.toString() ?? "",
-          value_max: constraint.value_max?.toString() ?? "",
-          unit: constraint.unit ?? "",
-          class_slugs: constraint.class_slugs ?? [],
-          text: constraint.text ?? "",
-        })),
-      ]);
+        constraints: [
+          ...current.constraints,
+          ...accepted.constraints.map(({ constraint }) => ({
+            ...emptyConstraint(nextId()),
+            operator: constraint.operator,
+            property_slug: constraint.property_slug ?? "",
+            value: constraint.value?.toString() ?? "",
+            value_min: constraint.value_min?.toString() ?? "",
+            value_max: constraint.value_max?.toString() ?? "",
+            unit: constraint.unit ?? "",
+            class_slugs: constraint.class_slugs ?? [],
+            text: constraint.text ?? "",
+          })),
+        ],
+      }));
     }
     if (accepted.index) {
       setIndexMode(accepted.index.slug);
@@ -439,7 +450,7 @@ function SelectionWizard() {
   }
 
   const indexIsCriterion = criteria.some((c) => c.key === "__index__");
-  const hasConstraints = constraintPayload().length > 0;
+  const hasConstraints = countConstraints(rootGroupPayload()) > 0;
   const hasObjective = activeIndex !== null || criteriaPayload().length > 0;
   const canSave = name.trim().length > 0;
 
@@ -478,19 +489,13 @@ function SelectionWizard() {
           </Button>
         );
       case "constraints":
+        // Adding a constraint or a group is now a per-group action inside
+        // ConstraintEditor itself (M6) — operator is a per-group property,
+        // so "add" has to say which group, which only the editor knows.
         return (
-          <>
-            <Button
-              variant="secondary"
-              icon={<IconPlus />}
-              onClick={() => setConstraints([...constraints, emptyConstraint(nextId())])}
-            >
-              {t.addConstraint}
-            </Button>
-            <Button variant="primary" icon={<IconArrowRight />} onClick={() => setStep("objective")}>
-              {t.stepObjective}
-            </Button>
-          </>
+          <Button variant="primary" icon={<IconArrowRight />} onClick={() => setStep("objective")}>
+            {t.stepObjective}
+          </Button>
         );
       case "objective":
         return (
@@ -584,26 +589,16 @@ function SelectionWizard() {
 
         {/* Step 2: constraints */}
         {step === "constraints" && (
-          <Section
-            title={t.constraintsTitle}
-            description={t.constraintsHint}
-            actions={
-              <Select
-                label={t.combinator}
-                className="w-28"
-                value={combinator}
-                onChange={(e) => setCombinator(e.target.value as "AND" | "OR")}
-              >
-                <SelectOption value="AND">AND</SelectOption>
-                <SelectOption value="OR">OR</SelectOption>
-              </Select>
-            }
-          >
+          <Section title={t.constraintsTitle} description={t.constraintsHint}>
+            {/* The root group's own AND/OR toggle lives inside the editor
+                now (M6) — operator is a per-group property, not a
+                study-level one, so this section no longer owns a combinator
+                picker of its own. */}
             <ConstraintEditor
-              rows={constraints}
+              root={rootGroup}
               properties={properties.data ?? []}
               classes={classes.data ?? []}
-              onChange={setConstraints}
+              onChange={setRootGroup}
             />
           </Section>
         )}
