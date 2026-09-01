@@ -101,6 +101,21 @@ class FilterResult:
         return len(self.candidate_ids)
 
 
+@dataclass
+class ConstraintGroupNode:
+    """One node of a nested constraint tree, independent of the ORM — domain
+    code never imports SQLAlchemy (CLAUDE.md §4).
+
+    A leaf group has constraints and no children; an internal group combines
+    its children (constraints evaluated directly, plus any nested sub-groups'
+    own recursive result) with its own operator.
+    """
+
+    operator: str  # "AND" | "OR"
+    constraints: list[Constraint]
+    children: list[ConstraintGroupNode]
+
+
 def evaluate_constraint(constraint: Constraint, material: MaterialSnapshot) -> bool:
     """Return True if ``material`` satisfies ``constraint``."""
     op = constraint.operator
@@ -200,3 +215,40 @@ def apply_constraints(
             )
         )
     return FilterResult(initial, combinator, steps, [m.id for m in remaining])
+
+
+def _group_passes(material: MaterialSnapshot, group: ConstraintGroupNode) -> bool:
+    """One group's own AND/OR of its direct constraints and child groups'
+    recursive results — the tree-walk step apply_constraint_tree repeats
+    per material.
+    """
+    results = [evaluate_constraint(constraint, material) for constraint in group.constraints]
+    results.extend(_group_passes(material, child) for child in group.children)
+
+    if not results:
+        # An empty group (no constraints, no children) imposes no restriction —
+        # vacuously true for AND (nothing to fail), and for OR only if that's
+        # this codebase's existing convention for an empty flat constraint list
+        # in apply_constraints. We match that: all() and any() both return True
+        # on empty lists semantically, but more importantly, apply_constraints
+        # returns all materials when constraints is empty, regardless of
+        # combinator. So we return True here for both AND and OR.
+        return True
+
+    if group.operator == "AND":
+        return all(results)
+    return any(results)
+
+
+def apply_constraint_tree(
+    materials: list[MaterialSnapshot], root: ConstraintGroupNode
+) -> list[MaterialSnapshot]:
+    """Filter materials by a nested AND/OR constraint tree — the M6
+    generalization of apply_constraints's single global operator.
+
+    A root group with an empty children list and a flat constraints list
+    behaves identically to apply_constraints(materials, root.constraints,
+    root.operator) — this is what lets a pre-M6 study (backfilled into one
+    root group with no nesting) keep evaluating exactly as before.
+    """
+    return [material for material in materials if _group_passes(material, root)]
