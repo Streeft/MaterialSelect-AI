@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -22,6 +22,7 @@ import type {
   CriterionIn,
   Goal,
   IndexIn,
+  MethodLiteral,
   NormalizationMethod,
   RunRequest,
   RunResult,
@@ -32,8 +33,11 @@ import { countLabel, prettyUnit } from "@/lib/format";
 import {
   Alert,
   Button,
+  ButtonGroup,
+  ButtonGroupItem,
   Card,
   CardBody,
+  Checkbox,
   EmptyState,
   Input,
   LoadingState,
@@ -56,6 +60,7 @@ import {
   emptyConstraint,
   toConstraintPayload,
 } from "@/components/selection/ConstraintEditor";
+import { AhpMatrixInput, type AhpCriterionRef } from "@/components/selection/AhpMatrixInput";
 import {
   IndexCard,
   IndexPicker,
@@ -183,6 +188,11 @@ function SelectionWizard() {
 
   const [criteria, setCriteria] = useState<CriterionRow[]>([]);
   const [normalization, setNormalization] = useState<NormalizationMethod>("minmax");
+  const [method, setMethod] = useState<MethodLiteral>("weighted_sum");
+  // AHP derives *weights*, not a fourth ranking method — so it only shows up
+  // as an alternative input mode for the weight fields, gated on
+  // weighted_sum, never as another entry in `method` above.
+  const [useAhp, setUseAhp] = useState(false);
 
   const [result, setResult] = useState<RunResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -222,6 +232,35 @@ function SelectionWizard() {
 
   const constraintPayload = (): ConstraintIn[] => toConstraintPayload(constraints);
 
+  // Only the criteria that already name a property (or the index) are worth
+  // comparing pairwise — an empty row has nothing for AHP to weigh.
+  const ahpCriteria = useMemo<AhpCriterionRef[]>(
+    () =>
+      criteria
+        .filter((c) => c.key)
+        .map((c) => ({
+          key: c.key,
+          label:
+            c.key === "__index__"
+              ? t.useIndexCriterion
+              : properties.data?.find((p) => p.slug === c.key)?.name ?? c.key,
+        })),
+    [criteria, properties.data],
+  );
+
+  // Functional update, no `criteria` in the dependency list: this keeps the
+  // callback referentially stable across renders, which is what lets
+  // AhpMatrixInput's own effect key on it safely instead of re-firing
+  // `onDerived` on every unrelated keystroke elsewhere on the page.
+  const applyAhpWeights = useCallback((weights: Record<string, number>) => {
+    setCriteria((current) =>
+      current.map((c) => {
+        const w = weights[c.key];
+        return w === undefined ? c : { ...c, weight: w.toFixed(4) };
+      }),
+    );
+  }, []);
+
   function criteriaPayload(): CriterionIn[] {
     return criteria
       .map((c): CriterionIn | null => {
@@ -239,7 +278,7 @@ function SelectionWizard() {
       index: includeObjective ? activeIndex : null,
       ranking:
         includeObjective && criteriaPayload().length > 0
-          ? { normalization, criteria: criteriaPayload(), run_sensitivity: true }
+          ? { normalization, method, criteria: criteriaPayload(), run_sensitivity: true }
           : null,
     };
   }
@@ -278,6 +317,7 @@ function SelectionWizard() {
         constraints: constraintPayload(),
         index: activeIndex,
         normalization,
+        method,
         criteria: criteriaPayload(),
       }),
     onSuccess: () => {
@@ -323,6 +363,7 @@ function SelectionWizard() {
         setIndexMode("none");
       }
       setNormalization(s.normalization);
+      setMethod(s.method);
       setCriteria(
         s.criteria.map((c) => ({
           id: nextId(),
@@ -628,19 +669,49 @@ function SelectionWizard() {
               title={t.rankingTitle}
               description={t.rankingHint}
               actions={
-                <Select
-                  label={t.normalization}
-                  className="w-40"
-                  value={normalization}
-                  onChange={(e) => setNormalization(e.target.value as NormalizationMethod)}
-                >
-                  <SelectOption value="minmax">{t.normMinmax}</SelectOption>
-                  <SelectOption value="vector">{t.normVector}</SelectOption>
-                </Select>
+                <div className="flex flex-wrap items-end gap-3">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs font-medium text-ink-muted">{t.method}</span>
+                    <ButtonGroup label={t.method}>
+                      <ButtonGroupItem
+                        selected={method === "weighted_sum"}
+                        label={t.methodWeightedSum}
+                        onClick={() => setMethod("weighted_sum")}
+                      />
+                      <ButtonGroupItem
+                        selected={method === "topsis"}
+                        label={t.methodTopsis}
+                        onClick={() => setMethod("topsis")}
+                      />
+                      <ButtonGroupItem
+                        selected={method === "promethee"}
+                        label={t.methodPromethee}
+                        onClick={() => setMethod("promethee")}
+                      />
+                    </ButtonGroup>
+                  </div>
+                  {/* Normalization only means something for weighted_sum —
+                      TOPSIS and PROMETHEE fix their own internally, so
+                      showing this as if it still applied would mislead. */}
+                  {method === "weighted_sum" && (
+                    <Select
+                      label={t.normalization}
+                      className="w-40"
+                      value={normalization}
+                      onChange={(e) => setNormalization(e.target.value as NormalizationMethod)}
+                    >
+                      <SelectOption value="minmax">{t.normMinmax}</SelectOption>
+                      <SelectOption value="vector">{t.normVector}</SelectOption>
+                    </Select>
+                  )}
+                </div>
               }
             >
               <Card>
                 <CardBody className="space-y-3">
+                  {method !== "weighted_sum" && (
+                    <p className="text-xs text-ink-muted">{t.methodHint}</p>
+                  )}
                   {criteria.map((c, position) => (
                     <fieldset key={c.id} className="flex flex-wrap items-end gap-3">
                       <legend className="sr-only">
@@ -725,6 +796,25 @@ function SelectionWizard() {
                   >
                     {t.addCriterion}
                   </Button>
+
+                  {/* AHP derives weights; it never becomes a fourth `method`
+                      (Task 2's scope note) — so it only shows up here, next
+                      to the weight fields it feeds, and only where
+                      "weighted_sum" still reads the weight the same way
+                      TOPSIS/PROMETHEE do internally. */}
+                  {method === "weighted_sum" && (
+                    <div className="space-y-3 border-t border-edge pt-3">
+                      <Checkbox
+                        label={t.ahp.toggle}
+                        hint={t.ahp.toggleHint}
+                        checked={useAhp}
+                        onChange={(e) => setUseAhp(e.target.checked)}
+                      />
+                      {useAhp && (
+                        <AhpMatrixInput criteria={ahpCriteria} onDerived={applyAhpWeights} />
+                      )}
+                    </div>
+                  )}
                 </CardBody>
               </Card>
             </Section>
