@@ -495,6 +495,151 @@ def test_study_with_no_constraints_still_gets_a_root_group(client, db_session):
     assert groups[0].operator == "AND"  # _viga_leve_payload's combinator
 
 
+def test_run_with_nested_constraint_groups(client):
+    """M6, Task 8: root_group builds a real nested tree and apply_constraint_tree
+    filters through it end to end via the ad-hoc /run endpoint.
+
+    Demo densities/moduli: alumínio 2700 kg/m**3 / 69 GPa, aço 7850 / 210 GPa,
+    polímero 1050 / 2.5 GPa, cerâmica 3900 / 380 GPa, compósito 1600 / 120 GPa.
+    The two narrow ``between`` bands below isolate exactly one material each
+    (alumínio by density, aço by modulus), so the OR branch selects only
+    those two and the AND with the trivially-true exists(densidade) group
+    leaves the set unchanged.
+    """
+    payload = {
+        "root_group": {
+            "operator": "AND",
+            "constraints": [],
+            "groups": [
+                {
+                    "operator": "OR",
+                    "constraints": [
+                        {
+                            "operator": "between",
+                            "property_slug": "densidade",
+                            "value_min": 2000,
+                            "value_max": 3000,
+                            "unit": "kg/m**3",
+                        },
+                        {
+                            "operator": "between",
+                            "property_slug": "modulo_young",
+                            "value_min": 200,
+                            "value_max": 250,
+                            "unit": "GPa",
+                        },
+                    ],
+                    "groups": [],
+                },
+                {
+                    "operator": "AND",
+                    "constraints": [
+                        {"operator": "exists", "property_slug": "densidade"},
+                    ],
+                    "groups": [],
+                },
+            ],
+        },
+    }
+    resp = client.post("/api/selection/run", json=payload)
+    assert resp.status_code == 200
+    body = resp.json()
+    assert _names(body["candidates"]) == {"Liga Alumínio Demo A", "Aço Demo B"}
+    assert body["combinator"] == "AND"
+
+
+def test_flat_constraints_still_work_without_root_group(client):
+    """Backward compatibility: omitting root_group must behave exactly as it
+    did before M6's nested-group wiring — same funnel, same candidates."""
+    payload = {
+        "combinator": "AND",
+        "constraints": [
+            {"operator": "lte", "property_slug": "densidade", "value": 2800, "unit": "kg/m**3"},
+            {"operator": "gte", "property_slug": "modulo_young", "value": 60, "unit": "GPa"},
+        ],
+    }
+    resp = client.post("/api/selection/filter", json=payload)
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["initial_count"] == 5
+    assert [s["remaining"] for s in body["steps"]] == [3, 2]
+    assert _names(body["candidates"]) == {"Liga Alumínio Demo A", "Compósito Demo E"}
+
+
+def test_root_group_and_flat_constraints_together_rejected(client):
+    payload = {
+        "constraints": [
+            {"operator": "lte", "property_slug": "densidade", "value": 2800, "unit": "kg/m**3"},
+        ],
+        "root_group": {
+            "operator": "AND",
+            "constraints": [
+                {"operator": "gte", "property_slug": "modulo_young", "value": 60, "unit": "GPa"},
+            ],
+            "groups": [],
+        },
+    }
+    resp = client.post("/api/selection/filter", json=payload)
+    assert resp.status_code == 400
+
+
+def test_study_with_nested_root_group_persists_real_tree_and_runs(client, db_session):
+    """A saved study's root_group persists as real ConstraintGroup rows (not
+    just the flat one-root-group shape), and run_study evaluates the actual
+    nested tree via apply_constraint_tree."""
+    # Same narrow between-bands as test_run_with_nested_constraint_groups:
+    # each child isolates exactly one material, so the OR of the two picks
+    # exactly {alumínio, aço}.
+    payload = _viga_leve_payload([], "Estudo aninhado")
+    payload["root_group"] = {
+        "operator": "OR",
+        "constraints": [],
+        "groups": [
+            {
+                "operator": "AND",
+                "constraints": [
+                    {
+                        "operator": "between",
+                        "property_slug": "densidade",
+                        "value_min": 2000,
+                        "value_max": 3000,
+                        "unit": "kg/m**3",
+                    },
+                ],
+                "groups": [],
+            },
+            {
+                "operator": "AND",
+                "constraints": [
+                    {
+                        "operator": "between",
+                        "property_slug": "modulo_young",
+                        "value_min": 200,
+                        "value_max": 250,
+                        "unit": "GPa",
+                    },
+                ],
+                "groups": [],
+            },
+        ],
+    }
+    created = client.post("/api/selection/studies", json=payload)
+    assert created.status_code == 201
+    study_id = created.json()["id"]
+
+    groups = db_session.query(ConstraintGroup).filter(ConstraintGroup.study_id == study_id).all()
+    assert len(groups) == 3  # one root OR + two AND children
+    root = next(g for g in groups if g.parent_group_id is None)
+    assert root.operator == "OR"
+    children = [g for g in groups if g.parent_group_id == root.id]
+    assert len(children) == 2
+    assert {g.operator for g in children} == {"AND"}
+
+    run = client.post(f"/api/selection/studies/{study_id}/run")
+    assert run.status_code == 200
+    assert _names(run.json()["candidates"]) == {"Liga Alumínio Demo A", "Aço Demo B"}
+
+
 def test_deleting_study_cascades_its_constraint_group(client, db_session):
     """Deleting a study must not orphan its ConstraintGroup row: SQLite here
     runs without PRAGMA foreign_keys=ON, so `ondelete=CASCADE` alone would not

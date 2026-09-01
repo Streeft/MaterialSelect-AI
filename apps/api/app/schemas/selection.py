@@ -50,6 +50,22 @@ class ConstraintIn(BaseModel):
     text: str | None = Field(default=None, max_length=200)
 
 
+class ConstraintGroupIn(BaseModel):
+    """One node of a nested AND/OR constraint tree (M6).
+
+    Self-referencing via ``groups: list["ConstraintGroupIn"]`` — resolved by
+    this module's ``from __future__ import annotations`` at class-creation
+    time, no explicit ``model_rebuild()`` needed for a direct self-reference.
+    Optional everywhere it plugs into ``StudyIn``/``FilterRequest``/
+    ``RunRequest``: its absence (``root_group=None``) preserves the flat
+    ``constraints``/``combinator`` shape those schemas already had.
+    """
+
+    operator: CombinatorLiteral
+    constraints: list[ConstraintIn] = Field(default_factory=list)
+    groups: list[ConstraintGroupIn] = Field(default_factory=list)
+
+
 class IndexIn(BaseModel):
     """A performance index to compute over the candidates."""
 
@@ -79,6 +95,10 @@ class RankingIn(BaseModel):
 class FilterRequest(BaseModel):
     combinator: CombinatorLiteral = "AND"
     constraints: list[ConstraintIn] = Field(default_factory=list)
+    # M6: an explicit nested tree overrides combinator/constraints entirely.
+    # Omitting it reproduces the flat behavior exactly; supplying both this
+    # and a non-empty `constraints` is rejected by the service layer.
+    root_group: ConstraintGroupIn | None = None
 
 
 class IndexRequest(BaseModel):
@@ -89,6 +109,8 @@ class IndexRequest(BaseModel):
 class RunRequest(BaseModel):
     combinator: CombinatorLiteral = "AND"
     constraints: list[ConstraintIn] = Field(default_factory=list)
+    # M6: see FilterRequest.root_group — same override/compatibility rule.
+    root_group: ConstraintGroupIn | None = None
     index: IndexIn | None = None
     ranking: RankingIn | None = None
 
@@ -224,6 +246,8 @@ class StudyIn(BaseModel):
     free_variables: list[str] = Field(default_factory=list)
     combinator: CombinatorLiteral = "AND"
     constraints: list[ConstraintIn] = Field(default_factory=list)
+    # M6: see FilterRequest.root_group — same override/compatibility rule.
+    root_group: ConstraintGroupIn | None = None
     index: IndexIn | None = None
     normalization: NormalizationLiteral = "minmax"
     method: MethodLiteral = "weighted_sum"
