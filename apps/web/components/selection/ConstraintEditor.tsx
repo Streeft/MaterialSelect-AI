@@ -136,13 +136,25 @@ const CLASS_OPS = new Set<ConstraintOperator>(["in_class", "not_in_class"]);
 // The tree is edited immutably from the top (`ConstraintEditor` is the only
 // component holding `onChange`), so every mutation below walks the whole
 // `ConstraintGroupState` and returns a new one. Row and group ids are unique
-// across the tree (`internalId` below), so a constraint or group can be
+// across the tree (`nextEditorId` below), so a constraint or group can be
 // found and updated by id alone — no path bookkeeping needed.
 
-let internalCounter = 0;
-/** Ids for rows/groups this editor creates itself (its Add buttons). */
-function internalId(prefix: string): string {
-  return `${prefix}-${internalCounter++}`;
+let editorIdCounter = 0;
+/**
+ * The one id source for every row/group in the constraint tree.
+ *
+ * `page.tsx` used to keep its own, separately-seeded counter for the ids it
+ * mints directly (the initial root, `loadStudy`, `applySuggestions`) — two
+ * counters that both started at 0 and produced identically-shaped
+ * `row-N`/`group-N` strings could (and did) collide, silently making
+ * `updateConstraintById`/`removeConstraintById` below act on two unrelated
+ * rows at once (they match *every* row with a given id, by design — the
+ * uniqueness is what was supposed to make that safe). Exporting this one
+ * function, and having `page.tsx` use it too instead of its own generator,
+ * is what actually guarantees the uniqueness the comment above claims.
+ */
+export function nextEditorId(prefix: string): string {
+  return `${prefix}-${editorIdCounter++}`;
 }
 
 function updateGroupById(
@@ -181,11 +193,6 @@ function removeConstraintById(group: ConstraintGroupState, rowId: string): Const
     constraints: group.constraints.filter((r) => r.id !== rowId),
     groups: group.groups.map((g) => removeConstraintById(g, rowId)),
   };
-}
-
-/** Whether this node or any descendant has at least one constraint. */
-export function hasAnyConstraint(group: ConstraintGroupState): boolean {
-  return group.constraints.length > 0 || group.groups.some(hasAnyConstraint);
 }
 
 // --- One constraint row ------------------------------------------------------
@@ -372,7 +379,6 @@ interface GroupActions {
 
 function ConstraintGroupEditor({
   group,
-  depth,
   isRoot,
   groupLabel,
   properties,
@@ -380,7 +386,6 @@ function ConstraintGroupEditor({
   actions,
 }: {
   group: ConstraintGroupState;
-  depth: number;
   isRoot: boolean;
   groupLabel: string;
   properties: PropertyDefinition[];
@@ -457,7 +462,6 @@ function ConstraintGroupEditor({
             <li key={child.id}>
               <ConstraintGroupEditor
                 group={child}
-                depth={depth + 1}
                 isRoot={false}
                 groupLabel={t.groupNumber(position + 1)}
                 properties={properties}
@@ -508,14 +512,14 @@ export function ConstraintEditor({ root, properties, classes, onChange }: Props)
       onChange(
         updateGroupById(root, groupId, (g) => ({
           ...g,
-          constraints: [...g.constraints, emptyConstraint(internalId("row"))],
+          constraints: [...g.constraints, emptyConstraint(nextEditorId("row"))],
         })),
       ),
     addGroup: (groupId) =>
       onChange(
         updateGroupById(root, groupId, (g) => ({
           ...g,
-          groups: [...g.groups, emptyGroup(internalId("group"))],
+          groups: [...g.groups, emptyGroup(nextEditorId("group"))],
         })),
       ),
     removeGroup: (groupId) => onChange(removeGroupById(root, groupId)),
@@ -526,7 +530,6 @@ export function ConstraintEditor({ root, properties, classes, onChange }: Props)
   return (
     <ConstraintGroupEditor
       group={root}
-      depth={0}
       isRoot
       groupLabel={t.groupNumber(1)}
       properties={properties}
