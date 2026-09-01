@@ -35,7 +35,12 @@ from app.domain.ranking import (
 from app.domain.slug import slugify
 from app.models.enums import AuditAction, AuditEntityType, BetterDirection
 from app.models.performance_index import PerformanceIndex
-from app.models.selection import RankingCriterion, SelectionConstraint, SelectionStudy
+from app.models.selection import (
+    ConstraintGroup,
+    RankingCriterion,
+    SelectionConstraint,
+    SelectionStudy,
+)
 from app.models.user import User
 from app.repositories.audit_repository import AuditRepository
 from app.repositories.selection_repository import SelectionRepository
@@ -540,9 +545,27 @@ class SelectionService:
             normalization=payload.normalization,
             method=payload.method,
         )
+        self.repo.add(study)
+        self.repo.flush()  # assigns study.id, needed by the root group below
+
+        # M6: every study gets exactly one root ConstraintGroup, mirroring the
+        # study's own combinator. Full nested-group authoring is Task 8's
+        # wiring; this keeps new studies consistent with the shape the
+        # migration's backfill gives every pre-existing one — a flat list of
+        # constraints combined by a single AND/OR root.
+        root_group = ConstraintGroup(
+            study_id=study.id,
+            parent_group_id=None,
+            operator=payload.combinator,
+            position=0,
+        )
+        self.repo.add(root_group)
+        self.repo.flush()  # assigns root_group.id, needed by each constraint
+
         for position, c in enumerate(payload.constraints):
             study.constraints.append(
                 SelectionConstraint(
+                    group_id=root_group.id,
                     position=position,
                     operator=c.operator,
                     property_slug=c.property_slug,
@@ -568,7 +591,6 @@ class SelectionService:
                     weight=cr.weight,
                 )
             )
-        self.repo.add(study)
         self.repo.flush()
         record_change(
             self.audit_repo,
