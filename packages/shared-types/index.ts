@@ -287,6 +287,10 @@ export type ConstraintOperator =
 export type Goal = "maximize" | "minimize";
 export type CriterionDirection = "max" | "min";
 export type NormalizationMethod = "minmax" | "vector";
+// `normalization` stays meaningful only when method == "weighted_sum": TOPSIS
+// and PROMETHEE each fix their own normalization internally (see
+// apps/api/app/schemas/selection.py's RankingIn docstring).
+export type MethodLiteral = "weighted_sum" | "topsis" | "promethee";
 export type Combinator = "AND" | "OR";
 
 export interface ConstraintIn {
@@ -316,8 +320,22 @@ export interface CriterionIn {
 
 export interface RankingIn {
   normalization: NormalizationMethod;
+  method: MethodLiteral;
   criteria: CriterionIn[];
   run_sensitivity?: boolean;
+}
+
+/** A pairwise comparison matrix (Saaty's 1-9 scale) to derive weights from. */
+export interface AhpWeightsIn {
+  criteria: string[];
+  matrix: number[][];
+}
+
+export interface AhpWeightsOut {
+  weights: Record<string, number>;
+  lambda_max: number;
+  consistency_index: number;
+  consistency_ratio: number;
 }
 
 export interface RunRequest {
@@ -397,6 +415,7 @@ export interface SensitivityScenario {
 
 export interface RankingResult {
   normalization: string;
+  method: string;
   criteria: string[];
   ranked: RankedMaterial[];
   excluded: ExcludedMaterial[];
@@ -445,6 +464,7 @@ export interface StudyDetail {
   constraints: ConstraintIn[];
   index: IndexIn | null;
   normalization: NormalizationMethod;
+  method: MethodLiteral;
   criteria: CriterionIn[];
   created_at: string;
 }
@@ -459,6 +479,7 @@ export interface StudyIn {
   constraints: ConstraintIn[];
   index?: IndexIn | null;
   normalization: NormalizationMethod;
+  method: MethodLiteral;
   criteria: CriterionIn[];
 }
 
