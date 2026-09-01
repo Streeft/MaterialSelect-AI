@@ -59,6 +59,7 @@ import {
   type ConstraintGroupState,
   emptyConstraint,
   emptyGroup,
+  nextEditorId,
   toConstraintPayload,
   countConstraints,
 } from "@/components/selection/ConstraintEditor";
@@ -183,7 +184,9 @@ function SelectionWizard() {
   // M6: the root of the nested AND/OR constraint tree. Its own `operator`
   // replaces the page-level combinator picker this used to be — operator is
   // now a per-group property, not a study-level one (see ConstraintEditor).
-  const [rootGroup, setRootGroup] = useState<ConstraintGroupState>(() => emptyGroup(nextId()));
+  const [rootGroup, setRootGroup] = useState<ConstraintGroupState>(() =>
+    emptyGroup(nextEditorId("group")),
+  );
 
   const [indexMode, setIndexMode] = useState<string>("none"); // "none" | slug | "custom"
   const [customExpression, setCustomExpression] = useState("");
@@ -347,9 +350,9 @@ function SelectionWizard() {
       // — the tree is not round-tripped back out). This reproduces exactly
       // the flat shape pre-M6 always had; it never reconstructs nesting.
       setRootGroup({
-        ...emptyGroup(nextId(), s.combinator),
+        ...emptyGroup(nextEditorId("group"), s.combinator),
         constraints: s.constraints.map((c) => ({
-          ...emptyConstraint(nextId()),
+          ...emptyConstraint(nextEditorId("row")),
           operator: c.operator,
           property_slug: c.property_slug ?? "",
           value: c.value?.toString() ?? "",
@@ -430,7 +433,7 @@ function SelectionWizard() {
         constraints: [
           ...current.constraints,
           ...accepted.constraints.map(({ constraint }) => ({
-            ...emptyConstraint(nextId()),
+            ...emptyConstraint(nextEditorId("row")),
             operator: constraint.operator,
             property_slug: constraint.property_slug ?? "",
             value: constraint.value?.toString() ?? "",

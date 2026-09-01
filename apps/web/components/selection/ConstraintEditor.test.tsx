@@ -10,6 +10,7 @@ import {
   ConstraintEditor,
   emptyConstraint,
   emptyGroup,
+  nextEditorId,
   toConstraintPayload,
   type ConstraintGroupState,
 } from "./ConstraintEditor";
@@ -115,6 +116,47 @@ describe("ConstraintEditor — grupos aninhados (M6)", () => {
     const result = latest as unknown as ConstraintGroupState;
     expect(result.groups[0]?.operator).toBe("AND");
     expect(result.groups[1]?.operator).toBe("OR");
+  });
+
+  it("a row minted outside the editor (e.g. page.tsx's loadStudy) never collides with a row the editor's own Add button mints, because both share one id source", async () => {
+    const user = userEvent.setup();
+
+    // Mirrors what `page.tsx`'s `loadStudy` builds when reopening a saved
+    // study: a tree whose ids come straight from `nextEditorId` — the same
+    // function `ConstraintEditor`'s own "Adicionar restrição" button uses
+    // internally. Before the fix, `page.tsx` kept a second, independently
+    // seeded `row-N` counter of its own, so this loaded tree's row ids and
+    // whatever the editor minted next could (and did) collide.
+    const loaded: ConstraintGroupState = {
+      id: nextEditorId("group"),
+      operator: "AND",
+      constraints: [
+        emptyConstraint(nextEditorId("row")),
+        emptyConstraint(nextEditorId("row")),
+        emptyConstraint(nextEditorId("row")),
+      ],
+      groups: [],
+    };
+    const loadedIds = loaded.constraints.map((r) => r.id);
+
+    let latest: ConstraintGroupState | null = null;
+    render(<Harness initial={loaded} onRoot={(r) => (latest = r)} />);
+
+    const addConstraint = await screen.findByShadowRole("button", { name: t.addConstraint });
+    await user.click(addConstraint);
+
+    expect(latest).not.toBeNull();
+    const result = latest as unknown as ConstraintGroupState;
+    expect(result.constraints).toHaveLength(4);
+
+    // The whole point of the fix: every id in the tree is still distinct —
+    // the row the editor just added did not silently reuse one of the ids
+    // the "loaded" study already had.
+    const allIds = result.constraints.map((r) => r.id);
+    expect(new Set(allIds).size).toBe(allIds.length);
+    const newRow = result.constraints.find((r) => !loadedIds.includes(r.id));
+    expect(newRow).toBeDefined();
+    expect(loadedIds).not.toContain(newRow?.id);
   });
 
   it("toConstraintPayload() matches the expected ConstraintGroupIn shape for a two-level-nested tree", () => {
