@@ -24,7 +24,14 @@ from app.domain.filters import (
     Operator,
     apply_constraints,
 )
-from app.domain.ranking import Criterion, Direction, Normalization, rank
+from app.domain.ranking import (
+    Criterion,
+    Direction,
+    Normalization,
+    rank,
+    rank_promethee,
+    rank_topsis,
+)
 from app.domain.slug import slugify
 from app.models.enums import AuditAction, AuditEntityType, BetterDirection
 from app.models.performance_index import PerformanceIndex
@@ -322,11 +329,20 @@ class SelectionService:
                 vals[c.key] = index_values.get(m.id) if c.key == INDEX_KEY else m.values.get(c.key)
             material_values.append((m.id, m.name, vals))
 
-        result = rank(
-            material_values, criteria, Normalization(ranking.normalization), ranking.run_sensitivity
-        )
+        if ranking.method == "topsis":
+            result = rank_topsis(material_values, criteria, ranking.run_sensitivity)
+        elif ranking.method == "promethee":
+            result = rank_promethee(material_values, criteria, ranking.run_sensitivity)
+        else:
+            result = rank(
+                material_values,
+                criteria,
+                Normalization(ranking.normalization),
+                ranking.run_sensitivity,
+            )
         return RankingResultOut(
             normalization=result.normalization,
+            method=ranking.method,
             criteria=result.criteria,
             ranked=[
                 RankedMaterialOut(
@@ -522,6 +538,7 @@ class SelectionService:
             index_expression=payload.index.expression if payload.index else None,
             index_goal=payload.index.goal if payload.index else None,
             normalization=payload.normalization,
+            method=payload.method,
         )
         for position, c in enumerate(payload.constraints):
             study.constraints.append(
@@ -606,6 +623,7 @@ class SelectionService:
             constraints=[self._constraint_to_in(c) for c in study.constraints],
             index=index,
             normalization=study.normalization,
+            method=study.method,
             criteria=[self._criterion_to_in(c) for c in study.criteria],
             created_at=study.created_at,
         )
@@ -622,6 +640,7 @@ class SelectionService:
         if study.criteria:
             ranking = RankingIn(
                 normalization=study.normalization,
+                method=study.method,
                 criteria=[self._criterion_to_in(c) for c in study.criteria],
             )
         return RunRequest(

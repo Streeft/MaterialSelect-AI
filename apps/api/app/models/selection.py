@@ -49,6 +49,7 @@ class SelectionStudy(Base):
     index_goal: Mapped[str | None] = mapped_column(String(10), nullable=True)
 
     normalization: Mapped[str] = mapped_column(String(10), default="minmax", nullable=False)
+    method: Mapped[str] = mapped_column(String(20), default="weighted_sum", nullable=False)
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
 

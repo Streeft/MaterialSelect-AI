@@ -23,7 +23,14 @@ OperatorLiteral = Literal[
 GoalLiteral = Literal["maximize", "minimize"]
 DirectionLiteral = Literal["max", "min"]
 NormalizationLiteral = Literal["minmax", "vector"]
+MethodLiteral = Literal["weighted_sum", "topsis", "promethee"]
 CombinatorLiteral = Literal["AND", "OR"]
+
+# TOPSIS/PROMETHEE have no tunable pairwise-comparison count of their own,
+# but AHP's matrix is O(n^2) judgments to review by hand — this caps it at
+# the same size charts.py's MAX_COMPARE_PROPERTIES uses for a similar
+# "how many things can a user usefully compare" limit.
+MAX_AHP_CRITERIA = 12
 
 
 # --- Inputs ----------------------------------------------------------------
@@ -61,7 +68,10 @@ class CriterionIn(BaseModel):
 
 
 class RankingIn(BaseModel):
+    # ``normalization`` stays meaningful only when method == "weighted_sum":
+    # TOPSIS and PROMETHEE each fix their own normalization internally.
     normalization: NormalizationLiteral = "minmax"
+    method: MethodLiteral = "weighted_sum"
     criteria: list[CriterionIn]
     run_sensitivity: bool = True
 
@@ -163,6 +173,7 @@ class SensitivityScenarioOut(BaseModel):
 
 class RankingResultOut(BaseModel):
     normalization: str
+    method: str
     criteria: list[str]
     ranked: list[RankedMaterialOut]
     excluded: list[ExcludedMaterialOut]
@@ -215,6 +226,7 @@ class StudyIn(BaseModel):
     constraints: list[ConstraintIn] = Field(default_factory=list)
     index: IndexIn | None = None
     normalization: NormalizationLiteral = "minmax"
+    method: MethodLiteral = "weighted_sum"
     criteria: list[CriterionIn] = Field(default_factory=list)
 
 
@@ -238,5 +250,23 @@ class StudyOut(BaseModel):
     constraints: list[ConstraintIn]
     index: IndexIn | None = None
     normalization: str
+    method: str
     criteria: list[CriterionIn]
     created_at: datetime
+
+
+# --- AHP (pairwise-comparison weight derivation) ----------------------------
+
+
+class AhpWeightsIn(BaseModel):
+    """A pairwise comparison matrix (Saaty's 1-9 scale) to derive weights from."""
+
+    criteria: list[str] = Field(min_length=2, max_length=MAX_AHP_CRITERIA)
+    matrix: list[list[float]]
+
+
+class AhpWeightsOut(BaseModel):
+    weights: dict[str, float]
+    lambda_max: float
+    consistency_index: float
+    consistency_ratio: float
