@@ -425,17 +425,31 @@ export function ResultsView({ result }: { result: RunResult }) {
               </ProvenanceItem>
             </>
           )}
-          <ProvenanceItem term={t.normalization}>
+          <ProvenanceItem term={t.method}>
             {ranking ? (
-              ranking.normalization === "vector" ? (
-                t.normVector
+              ranking.method === "topsis" ? (
+                t.methodTopsis
+              ) : ranking.method === "promethee" ? (
+                t.methodPromethee
               ) : (
-                t.normMinmax
+                t.methodWeightedSum
               )
             ) : (
               <span className="text-ink-muted">{t.provNone}</span>
             )}
           </ProvenanceItem>
+          {/* Normalization is only a real, separate step for weighted_sum —
+              TOPSIS and PROMETHEE II fix their own internally (see
+              RankingIn's docstring on the backend and `ranking.normalization`
+              there being the method's own name, not an actual normalization
+              choice) — so this row would otherwise claim a normalization that
+              was never applied. Mirrors the objective step's own
+              `method === "weighted_sum"` gate on this same input. */}
+          {ranking && ranking.method === "weighted_sum" && (
+            <ProvenanceItem term={t.normalization}>
+              {ranking.normalization === "vector" ? t.normVector : t.normMinmax}
+            </ProvenanceItem>
+          )}
           <ProvenanceItem term={t.provCriteria}>
             {!ranking ? (
               <span className="text-ink-muted">{t.provNone}</span>

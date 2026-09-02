@@ -109,7 +109,7 @@ interface CriterionRow {
 }
 
 let counter = 0;
-const nextId = () => `row-${counter++}`;
+const nextId = () => `criterion-${counter++}`;
 
 /**
  * How many candidates are still standing, at every step.

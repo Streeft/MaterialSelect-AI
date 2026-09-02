@@ -6,9 +6,11 @@ import pytest
 
 from app.domain.errors import ValidationError
 from app.domain.ranking import (
+    PROMETHEE_TOO_FEW_CANDIDATES,
     Criterion,
     Direction,
     Normalization,
+    degrade_promethee_for_few_candidates,
     normalize_column,
     rank,
     rank_promethee,
@@ -210,10 +212,72 @@ def test_promethee_direction_min_prefers_lower_value():
 def test_promethee_requires_at_least_two_materials_with_data():
     materials = [(1, "A", {"x": 5.0})]
     criteria = [_crit("x", Direction.MAX, 1.0)]
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         rank_promethee(materials, criteria, run_sensitivity=False)
+    # The exact message is a contract SelectionService relies on to tell this
+    # specific, recoverable case apart from any other ValidationError the
+    # same call can raise — see PROMETHEE_TOO_FEW_CANDIDATES's own docstring.
+    assert str(exc_info.value) == PROMETHEE_TOO_FEW_CANDIDATES
 
 
 def test_promethee_requires_at_least_one_criterion():
     with pytest.raises(ValidationError):
         rank_promethee([(1, "A", {}), (2, "B", {})], [], run_sensitivity=False)
+
+
+# Twin of test_topsis_excludes_missing_data_never_zero: the same guarantee,
+# for PROMETHEE — a material missing a criterion value is excluded and
+# reported, never scored as if the gap were a zero.
+def test_promethee_excludes_missing_data_never_zero():
+    materials = [
+        (1, "A", {"rigidez": 200.0, "densidade": 8.0}),
+        (2, "B", {"rigidez": None, "densidade": 2.7}),
+        (3, "C", {"rigidez": 400.0, "densidade": 19.0}),
+    ]
+    criteria = [_crit("rigidez", Direction.MAX, 1.0), _crit("densidade", Direction.MIN, 1.0)]
+    result = rank_promethee(materials, criteria, run_sensitivity=False)
+    assert len(result.ranked) == 2
+    assert len(result.excluded) == 1
+    assert result.excluded[0].name == "B"
+    assert result.excluded[0].missing_keys == ["rigidez"]
+
+
+class TestDegradePrometheeForFewCandidates:
+    """The service-layer fallback for the case rank_promethee's own
+    ValidationError refuses to handle: fewer than two complete candidates.
+    See app.services.selection_service._rank for where this is actually
+    wired in behind that caught exception.
+    """
+
+    def test_zero_complete_candidates_returns_empty_ranking(self):
+        materials = [(1, "A", {"x": None})]
+        criteria = [_crit("x", Direction.MAX, 1.0)]
+        result = degrade_promethee_for_few_candidates(materials, criteria)
+        assert result.ranked == []
+        assert result.normalization == "promethee"
+        # The material is still reported as excluded-for-missing-data, same
+        # as every other ranking path — this fallback does not skip that.
+        assert len(result.excluded) == 1
+        assert result.excluded[0].missing_keys == ["x"]
+
+    def test_one_complete_candidate_gets_a_neutral_score_not_an_invented_one(self):
+        materials = [(1, "A", {"x": 5.0})]
+        criteria = [_crit("x", Direction.MAX, 2.0)]
+        result = degrade_promethee_for_few_candidates(materials, criteria)
+        assert len(result.ranked) == 1
+        material = result.ranked[0]
+        assert material.material_id == 1
+        assert material.rank == 1
+        # PROMETHEE has no peer to compare this material against — zero, not
+        # a fabricated "best possible" score the way weighted_sum's own
+        # single-candidate normalization would (that method treats the lone
+        # candidate as trivially the best on every criterion; PROMETHEE has
+        # no basis to claim that).
+        assert material.score == 0.0
+        assert len(material.contributions) == 1
+        assert material.contributions[0].contribution == 0.0
+        assert material.contributions[0].weight == pytest.approx(1.0)
+
+    def test_no_criteria_still_raises(self):
+        with pytest.raises(ValidationError):
+            degrade_promethee_for_few_candidates([(1, "A", {})], [])
