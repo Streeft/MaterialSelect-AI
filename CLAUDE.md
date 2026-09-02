@@ -298,7 +298,23 @@ no-op, por usar os dados da lista em vez do registro completo) e B8 (faltava
 recarregando a tela) — ambos corrigidos e rerrevistos. Ver `docs/TODO.md`
 para o resumo de cada item.
 
-831 testes de backend (nenhum skip) e 165 de frontend, todos verdes. CI no
+**M5 (TOPSIS, PROMETHEE II, AHP) e M6 (restrições aninhadas) entregues**,
+dez tarefas dirigidas por subagentes mais uma rodada de correção. M5 estava
+marcado no backlog como "só se o orientador pedir" — dito sem meias
+palavras: implementado porque o usuário confirmou que o orientador pediu. M6
+deu à árvore de restrições parênteses lógicos de verdade (`ConstraintGroup`,
+AND/OR aninhado). Uma revisão final de branch inteira, no modelo mais capaz
+disponível, achou 4 problemas Importantes que só apareciam onde M5/M6 novos
+encontravam código antigo intocado — o campo `method` não chegava a nenhuma
+tela e duas superfícies pré-existentes (proveniência dos resultados, nota de
+"Contribuições" do relatório/laudo) afirmavam algo falso para TOPSIS
+especificamente; `AhpWeightsIn.matrix` aceitava `NaN`/`Infinity`; PROMETHEE
+derrubava a resposta inteira com 0–1 candidatos em vez de degradar como os
+outros dois métodos; o laudo descrevia um estudo aninhado como um combinador
+único opaco. Os quatro corrigidos numa rodada só, rerrevisão limpa. Ver
+`docs/PROJECT_CONTEXT.md` §3 e `docs/07-selecao-deterministica.md`.
+
+872 testes de backend (nenhum skip) e 179 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
 PROJECT_CONTEXT.md).

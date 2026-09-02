@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [11](#sessão-11--010926-a-020926--m5-topsis-promethee-ii-ahp-e-m6-restrições-aninhadas-entregues-via-sdd) | 01 e 02/09/2026 | M5 (TOPSIS, PROMETHEE II, AHP) e M6 (restrições aninhadas), dez tarefas mais uma rodada de correção da revisão final de branch, via SDD | 831 → 872 | 165 → 179 |
 | [10](#sessão-10--270826-a-310826--backlog-b1b10-entregue-por-inteiro-via-sdd) | 27 a 31/08/2026 | Backlog B1–B10 (dez tarefas de baixa prioridade) entregue por inteiro, dirigido por subagentes | 795 → 831 | 162 → 165 |
 | [9](#sessão-9--260826-a-270826--rag-sobre-o-cérebro-d-47-e-a-pr-26-fechada-e-remesclada) | 26 e 27/08/2026 | RAG sobre o Cérebro (D-47, 18 tarefas via SDD), PR #26 investigada/fechada e depois remesclada pelo autor | 713 → 795 | 157 → 162 |
 | [8](#sessão-8--240826-a-250826--reconciliação-de-branches-m9-e-o-checkout-do-stripe-testado-ao-vivo) | 24 e 25/08/2026 | Reconciliação de branches, M9 (portão de assinatura, D-46) e checkout do Stripe testado ao vivo | 639 → 713 | 148 → 157 |
@@ -21,6 +22,126 @@ por isso que ela tem menos detalhe de processo que as outras.
 | [3](#sessão-3--110826--os-provedores-reais-da-camada-de-ia) | 11/08/2026 | Fase 6: provedores reais de IA | 391 → 436 | 123 |
 | [2](#sessão-2--050826-a-100826--fase-7-parcial-ci-obrigatória-e-fase-8) | 05/08 a 10/08/2026 | Fase 7 (relatório HTML), CI obrigatória, Fase 8 (redesign) | 362 → 391 | 44 → 123 |
 | [1](#sessão-1--300726-a-040826--fases-5-a-7) | 30/07 a 04/08/2026 | Fases 5, 6 e 7 (exportação) | 169 → 362 | 13 → 44 |
+
+---
+
+# Sessão 11 — 01/09/26 a 02/09/26 — M5 (TOPSIS/PROMETHEE II/AHP) e M6 (restrições aninhadas) entregues via SDD
+
+Ponto de partida: fim da sessão 10 (B1–B10 mesclados, commit `a97248d`).
+Pedido: M5 e M6, os dois itens de `docs/TODO.md` que restavam além de baixa
+prioridade — M6 já estava em "Média prioridade", pronto para ser feito; M5
+carregava a nota "só faça se o orientador pedir", e o usuário confirmou
+explicitamente, nesta sessão, que o orientador pediu — revertendo a nota e
+tirando o item de fora de escopo, registrado assim sem meias palavras no
+próprio TODO.md. Testes de backend: 831 → 872 (0 skip); frontend: 165 → 179.
+
+## 1. Planejamento
+
+Duas investigações de código em paralelo (`ranking.py`/`filters.py`/models
+de seleção existentes) antes do plano —
+`docs/superpowers/plans/2026-09-01-m5-m6-multicriterio-e-restricoes-aninhadas.md`,
+dez tarefas em duas frentes sem sobreposição real: M5
+(Tarefas 1–5, `rank_topsis`/`rank_promethee`/`derive_weights` até a UI) e M6
+(Tarefas 6–10, `ConstraintGroup` até o editor recursivo), ordenadas
+sequencialmente para que cada tarefa que toca um arquivo já mexido por uma
+tarefa anterior (ex.: Tarefa 6 e a Tarefa 3 disputando o head do Alembic)
+releia o estado real do arquivo em vez de supor números de linha do plano.
+
+## 2. Execução — `subagent-driven-development`
+
+Um implementador e um revisor por tarefa, como nas sessões 9 e 10. Três
+episódios de limite de taxa, nenhum deles um bug de código:
+
+- **Tarefa 1** despachada em haiku porque o sonnet ainda estava no limite
+  semanal (reset por volta das 22h UTC); voltou a sonnet a partir da
+  Tarefa 3, já com o limite semanal resetado.
+- **Tarefa 4** (seletor de método + entrada de matriz AHP no frontend) teve
+  dois implementadores sonnet parados pelo limite de sessão em sequência — o
+  primeiro deixou um diff substancial não commitado (verificado por
+  inspeção antes de redespachar, não descartado), o segundo travou numa
+  segunda vez à espera do próprio processo de verificação em background sem
+  nunca reportar. Em vez de despachar um terceiro implementador no mesmo
+  padrão de trava, o controlador assumiu diretamente: acompanhou o processo
+  Playwright do implementador anterior até o fim (ainda rodando de verdade,
+  não morto), confirmou a aprovação, leu o diff e o gate completo pessoalmente
+  e commitou como `0b1b128`.
+- **Tarefa 9** (editor recursivo `ConstraintEditor.tsx`) — o implementador
+  construiu a funcionalidade inteira corretamente, mas entrou num laço de
+  mais de seis rodadas tentando fazer seu próprio script descartável de
+  verificação manual clicar um alternador segmentado via um seletor
+  encadeado que resolvia para zero elementos neste Chromium de sandbox. O
+  controlador observou o diagnóstico do implementador, confirmou a causa
+  raiz, corrigiu só o script descartável (nunca o código de produção),
+  verificou o resultado manualmente e terminou a tarefa como controlador —
+  commit `6a9d307`.
+- Uma rerrevisão (rodada de correção da Tarefa 9, abaixo) também foi
+  interrompida pelo limite de sessão do sonnet a meio caminho e retomada
+  depois do reset, sem perda de trabalho.
+
+**Achado Crítico da Tarefa 9, corrigido numa rodada.** A revisão de tarefa
+pegou uma colisão de geradores de id: `page.tsx` mantinha seu próprio
+contador `nextId()` e `ConstraintEditor.tsx` um `internalId()` separado,
+ambos zerados em 0 e no mesmo formato `row-N`/`group-N` — as duas fontes
+podiam produzir o mesmo id, quebrando a premissa de id único que
+`updateConstraintById`/`removeConstraintById` fazem sobre a árvore inteira
+(reabrir um estudo e clicar "Adicionar restrição" podia reaproveitar um id
+já existente, fazendo editar ou remover uma linha afetar silenciosamente
+outra). Corrigido unificando os dois num gerador só, `nextEditorId`,
+exportado por `ConstraintEditor.tsx` (commit `db1caa5`), com teste de
+regressão que reproduz o cenário exato — uma linha vinda de fora do editor
+mais uma linha adicionada pelo próprio editor, provando que os ids nunca
+colidem. Rerrevisão escopada confirmou.
+
+## 3. Revisão final de branch e a rodada de correção
+
+Com as dez tarefas revisadas uma a uma, a revisão final de branch inteira —
+despachada no modelo mais capaz disponível, como o processo exige — achou
+zero Crítico e 4 Importantes, todos do tipo que nenhuma revisão de tarefa
+isolada alcança: código novo (M5/M6) encontrando código antigo intocado.
+
+1. O campo `method` (TOPSIS/PROMETHEE/soma ponderada) não chegava a nenhuma
+   tela, e duas superfícies pré-existentes afirmavam algo **falso**
+   especificamente para TOPSIS: o painel de proveniência dos resultados
+   caía no `else` e mostrava "Normalização: Min-máx", e a nota de
+   "Contribuições" do relatório/laudo exportado (`export_service.py`)
+   afirmava que a pontuação é a soma das contribuições — o próprio
+   docstring de `rank_topsis` nega isso.
+2. `AhpWeightsIn.matrix` aceitava `NaN`/`Infinity` — faltava o
+   `allow_inf_nan=False` que todo outro campo numérico do arquivo já tem —,
+   derrotando silenciosamente a rejeição dura de matriz inconsistente e
+   produzindo 500 em vez do 422 padrão.
+3. Um estudo PROMETHEE cujas restrições filtravam para 0–1 candidatos
+   derrubava a resposta inteira com erro, descartando funil e resultado,
+   enquanto `weighted_sum`/TOPSIS já degradavam para o estado vazio da
+   tela — uma interação genuína M5×M6, porque o aninhamento de M6 torna
+   esse funil bem mais alcançável.
+4. O laudo de engenharia (D-41) descrevia a lógica de um estudo aninhado
+   como um único combinador achatado, com linhas de subgrupo opacas —
+   números corretos, mas a árvore booleana real não dava para reconstruir a
+   partir do documento.
+
+Despachada **uma** rodada de correção cobrindo os 4 Importantes mais as
+limpezas Menores baratas do mesmo achado (chaves de i18n mortas, renomeação
+de prefixo de id, limite explícito em `root_group.groups`, nota de
+código-só-de-teste, dois testes novos) — nunca um corretor por achado. O
+implementador verificou por conta própria uma instrução do próprio
+despacho: a identidade soma-das-contribuições-igual-à-pontuação é
+**verdadeira** para PROMETHEE (fluxo líquido, confirmado contra
+`_score_promethee` e o teste já existente) e falsa só para TOPSIS — manteve
+a afirmação para PROMETHEE e a retirou só de TOPSIS, divergindo da instrução
+literal (equivocada nesse ponto) a favor do fato verificado. Commit
+`73eb4a2` sobre `0d00ee7`. Rerrevisão escopada confirmou os 4 achados
+corrigidos e os testes novos passando, sem achado novo.
+
+## 4. Estado final
+
+872 testes de backend (nenhum skip, antes 831) e 179 de frontend (antes
+165), `ruff`/`black --check`/`typecheck`/`lint`/`build` limpos, `alembic
+heads` num só head. `docs/TODO.md`: M5 e M6 saem de "Média prioridade" para
+"Débitos já quitados", com a autorização do orientador e a limitação
+conhecida de `StudyOut` (M6) registradas ali mesmo. Detalhe completo da
+rodada de correção final em
+`.superpowers/sdd/2026-09-01-m5-m6-multicriterio-e-restricoes-aninhadas/final-fix-wave-report.md`.
 
 ---
 
