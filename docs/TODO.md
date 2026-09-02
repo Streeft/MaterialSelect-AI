@@ -20,11 +20,8 @@ executado: ver "Débitos já quitados".
 
 ## Média prioridade
 
-### M6 — Restrições com parênteses lógicos
-- **Descrição:** grupos aninhados em vez de só AND/OR global.
-- **Impacto:** médio para problemas reais de projeto.
-- **Dificuldade:** ▃
-- **Dependências:** muda o schema de `SelectionConstraint` (precisa de migration).
+Nenhum item aberto no momento — M6 foi entregue nesta sessão (ver
+"Débitos já quitados").
 
 ---
 
@@ -79,6 +76,41 @@ Registrados para não voltarem por engano:
   inferior seguem por construção). 852 testes de backend (nenhum skip) e 171
   de frontend, todos verdes ao final. Ver
   `docs/04-metodologia-selecao.md` para a descrição de cada método.
+- ~~**M6** — Restrições com parênteses lógicos~~ — `ConstraintGroup`
+  (`app/models/selection.py`), um nó de árvore booleana AND/OR que se
+  autorreferencia por `parent_group_id`; a migration `6845a9523f17` cria a
+  tabela e faz o backfill — exatamente um grupo raiz por estudo já existente,
+  com o `combinator` que o estudo já tinha, reapontando cada
+  `SelectionConstraint` para esse grupo via a nova coluna `group_id`
+  (nullable até o backfill terminar, só então travada `NOT NULL` — a ordem
+  importa contra um banco com estudos salvos). `app/domain/filters.py` ganhou
+  `ConstraintGroupNode` (dataclass simples, sem SQLAlchemy — `domain` não
+  importa isso) e `apply_constraint_tree`, que percorre a árvore
+  recursivamente por material; `test_single_root_group_matches_flat_apply_
+  constraints` prova que um grupo raiz sem filhos avalia **identicamente** ao
+  `apply_constraints` plano de antes — a garantia de compatibilidade
+  retroativa do backfill, não só descrita, testada. Na API,
+  `ConstraintGroupIn` (`app/schemas/selection.py`) é opcional em
+  `StudyIn`/`FilterRequest`/`RunRequest` — a ausência de `root_group`
+  preserva o formato plano `constraints`/`combinator` que essas rotas já
+  tinham; quando presente, `SelectionService._persist_group_tree` grava a
+  árvore de verdade, raiz primeiro e filhos em profundidade. No frontend,
+  `apps/web/components/selection/ConstraintEditor.tsx` virou um editor de
+  árvore recursivo — cada grupo com seu próprio alternador AND/OR e
+  "Adicionar grupo"/"Adicionar restrição" em qualquer profundidade — e
+  `/selecao` passa a enviar `root_group` ao rodar ou salvar. **Limitação
+  conhecida, registrada e não corrigida nesta entrega:** `GET
+  /api/selection/studies/{id}` (`StudyOut`, montado por
+  `SelectionService._study_to_out`) ainda devolve as restrições como lista
+  plana — não recompõe a árvore para a resposta. Reabrir ("Abrir") um estudo
+  salvo com grupos de verdade mostra tudo achatado num único grupo AND no
+  editor, sem aviso na tela. Não é perda de dado: não existe endpoint de
+  edição in-place ainda, então a árvore real do estudo original continua
+  intacta no banco e continua avaliando corretamente sempre que o estudo é
+  **reexecutado** — mas é uma lacuna real de exibição/round-trip, não um
+  "não se aplica". Ver `docs/07-selecao-deterministica.md` para a descrição
+  do modelo de árvore e o exemplo trabalhado. 862 testes de backend (nenhum
+  skip, antes 852) e 176 de frontend (antes 171), todos verdes ao final.
 - ~~**B1–B10**~~ — as dez pendências de baixa prioridade, entregues numa
   sessão dirigida por subagentes (o plano de implementação existiu em
   `docs/superpowers/plans/2026-08-27-backlog-b1-b10.md`; o histórico do git é
