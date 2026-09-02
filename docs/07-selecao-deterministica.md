@@ -32,6 +32,38 @@ por **AND** (funil cumulativo) ou **OR** (união).
   **elimina** — não se seleciona sobre dado que não se tem. Os operadores
   `existe`/`não existe` permitem filtrar por completude de dados de propósito.
 
+### Grupos aninhados (M6)
+
+O AND/OR acima é, na verdade, um caso particular: cada restrição vive dentro de
+um **grupo** (`ConstraintGroup`), e é o grupo — não o estudo — que carrega o
+operador AND/OR. Um grupo combina, sob seu próprio operador, as restrições que
+tem diretamente e o resultado recursivo de cada grupo-filho que aninhar dentro
+dele (`app/domain/filters.py::ConstraintGroupNode`,
+`apply_constraint_tree`). Isso permite parênteses lógicos de verdade — por
+exemplo, `(rigidez > 100 OU densidade < 3) E classe = "metais"` é um grupo
+raiz AND com duas restrições/subgrupos: um subgrupo OR com as duas restrições
+de rigidez e densidade, e a restrição de classe diretamente no grupo raiz.
+
+Um estudo salvo antes do M6 — ou um estudo novo que não use aninhamento — é
+exatamente um grupo raiz sem filhos, com sua lista plana de restrições e um
+único operador: a mesma árvore de um nó só, avaliando **identicamente** ao
+`apply_constraints` de antes. A migration `6845a9523f17` faz esse backfill
+para todo estudo pré-existente (um `ConstraintGroup` raiz por estudo, com o
+`combinator` que ele já tinha), e a prova de equivalência comportamental para
+o caso de um único grupo raiz está nos testes de `filters.py`.
+
+> **Limitação conhecida:** salvar um estudo com uma árvore aninhada de verdade
+> grava a árvore corretamente (e `POST /api/selection/studies/{id}/run` a
+> reexecuta corretamente, porque lê do banco via `_load_group_tree`). Mas
+> `GET /api/selection/studies/{id}` (`StudyOut`, montado por
+> `SelectionService._study_to_out`) ainda devolve as restrições como lista
+> plana — não recompõe a árvore para a resposta. Na prática: reabrir ("Abrir")
+> um estudo salvo com grupos aninhados mostra tudo achatado num único grupo
+> AND no editor, sem nenhum aviso na tela de que a estrutura original era
+> outra. Não é perda de dado — a árvore real continua intacta no banco e
+> continua sendo o que o estudo *executa* — é uma lacuna de exibição/
+> round-trip, registrada em `docs/TODO.md`.
+
 ## Índices de desempenho (`app/calculations/expressions.py`)
 
 Um índice é uma expressão sobre os slugs das propriedades (ex.:

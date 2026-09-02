@@ -376,9 +376,6 @@ export const ptBR = {
       consistency: (ratio: string) => `Consistência: ${ratio}`,
       consistencyOk: "ok",
       consistencyBad: "revise os julgamentos",
-      weight: "Peso derivado",
-      apply: "Aplicar pesos aos critérios",
-      applied: "Pesos aplicados aos critérios de ranking.",
       // Saaty's fundamental scale: only the odd anchors (1/3/5/7/9) carry a
       // verbal description of their own — 2/4/6/8 are unlabeled compromises
       // between two anchors, so the picker offers these nine points.

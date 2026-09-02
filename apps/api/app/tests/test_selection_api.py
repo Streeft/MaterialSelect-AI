@@ -369,6 +369,117 @@ def test_run_study_with_promethee_method(client):
     assert resp.json()["ranking"]["method"] == "promethee"
 
 
+def test_run_promethee_with_one_candidate_after_filtering_does_not_500(client):
+    """M6's nested constraint groups make narrowing a run down to 0-1
+    candidates easy (a tightly nested AND tree), and PROMETHEE genuinely
+    cannot pairwise-compare fewer than two — but that must degrade to a
+    normal response with a near-empty ranking, not discard the whole run
+    the way an uncaught ValidationError used to (weighted_sum/TOPSIS both
+    already handled this gracefully; PROMETHEE did not)."""
+    payload = {
+        "constraints": [
+            # Only "Liga Alumínio Demo A" (2700 kg/m**3) falls in this band.
+            {
+                "operator": "between",
+                "property_slug": "densidade",
+                "value_min": 2600,
+                "value_max": 2800,
+                "unit": "kg/m**3",
+            },
+        ],
+        "ranking": {
+            "method": "promethee",
+            "criteria": [{"key": "modulo_young", "weight": 1.0}],
+            "run_sensitivity": False,
+        },
+    }
+    resp = client.post("/api/selection/run", json=payload)
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["final_count"] == 1
+    assert body["ranking"]["method"] == "promethee"
+    assert len(body["ranking"]["ranked"]) == 1
+    # No peer to compare against — a neutral score, not an invented one.
+    assert body["ranking"]["ranked"][0]["score"] == 0.0
+
+
+def test_run_promethee_with_zero_candidates_after_filtering_does_not_500(client):
+    payload = {
+        "constraints": [
+            {"operator": "gt", "property_slug": "densidade", "value": 999999, "unit": "kg/m**3"},
+        ],
+        "ranking": {
+            "method": "promethee",
+            "criteria": [{"key": "modulo_young", "weight": 1.0}],
+            "run_sensitivity": False,
+        },
+    }
+    resp = client.post("/api/selection/run", json=payload)
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["final_count"] == 0
+    assert body["ranking"]["ranked"] == []
+
+
+def test_run_topsis_method_with_nested_root_group(client):
+    """The one M5×M6 interaction with no coverage anywhere else in the plan:
+    a non-weighted_sum ranking method together with a real nested
+    root_group (not empty criteria, not a flat tree) in the same run.
+
+    Same OR-of-two-ANDs shape as test_run_with_nested_constraint_groups,
+    isolating alumínio (by density) and aço (by modulus) — this time with
+    TOPSIS ranking the two survivors instead of leaving the run unranked.
+    """
+    payload = {
+        "root_group": {
+            "operator": "OR",
+            "constraints": [],
+            "groups": [
+                {
+                    "operator": "AND",
+                    "constraints": [
+                        {
+                            "operator": "between",
+                            "property_slug": "densidade",
+                            "value_min": 2000,
+                            "value_max": 3000,
+                            "unit": "kg/m**3",
+                        },
+                    ],
+                    "groups": [],
+                },
+                {
+                    "operator": "AND",
+                    "constraints": [
+                        {
+                            "operator": "between",
+                            "property_slug": "modulo_young",
+                            "value_min": 200,
+                            "value_max": 250,
+                            "unit": "GPa",
+                        },
+                    ],
+                    "groups": [],
+                },
+            ],
+        },
+        "ranking": {
+            "method": "topsis",
+            "criteria": [
+                {"key": "densidade", "weight": 1.0},
+                {"key": "modulo_young", "weight": 1.0},
+            ],
+            "run_sensitivity": False,
+        },
+    }
+    resp = client.post("/api/selection/run", json=payload)
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["ranking"]["method"] == "topsis"
+    assert _names(body["candidates"]) == {"Liga Alumínio Demo A", "Aço Demo B"}
+    assert len(body["ranking"]["ranked"]) == 2
+
+
 def test_ahp_weights_endpoint_returns_weights(client):
     payload = {
         "criteria": ["rigidez", "densidade"],
@@ -402,6 +513,41 @@ def test_ahp_weights_endpoint_rejects_malformed_matrix_shape(client):
     payload = {"criteria": ["A", "B"], "matrix": [[1.0]]}
     response = client.post("/api/selection/ahp-weights", json=payload)
     assert response.status_code == 400
+
+
+def test_ahp_weights_endpoint_rejects_nan_matrix(client):
+    """json.loads accepts a literal ``NaN`` token by default — without
+    ``allow_inf_nan=False`` on ``AhpWeightsIn.matrix`` (every other numeric
+    field in this schema already has it), a NaN-poisoned matrix used to slip
+    past pydantic entirely. Inside derive_weights every rejection check is a
+    ``>`` comparison, always False against NaN, so the hard-reject on an
+    inconsistent matrix silently passed and produced NaN weights — which
+    FastAPI's JSONResponse (allow_nan=False) then failed to serialize as an
+    unhandled 500, not the normal 400/422 a malformed matrix gets everywhere
+    else. This must now be rejected as an ordinary 422 request-schema error,
+    with no derived weights in the response at all.
+
+    httpx's own JSON encoder refuses a NaN float client-side (it disables
+    allow_nan), so the literal token is sent as a raw body instead — this is
+    also exactly the wire shape a real hand-crafted request would use.
+    """
+    response = client.post(
+        "/api/selection/ahp-weights",
+        content=b'{"criteria": ["A", "B"], "matrix": [[1.0, NaN], [1.0, 1.0]]}',
+        headers={"content-type": "application/json"},
+    )
+    assert response.status_code == 422
+    detail = response.json()["detail"]
+    assert any("matrix" in [str(part) for part in err.get("loc", ())] for err in detail)
+
+
+def test_ahp_weights_endpoint_rejects_infinity_matrix(client):
+    response = client.post(
+        "/api/selection/ahp-weights",
+        content=b'{"criteria": ["A", "B"], "matrix": [[1.0, Infinity], [1.0, 1.0]]}',
+        headers={"content-type": "application/json"},
+    )
+    assert response.status_code == 422
 
 
 def test_ahp_weights_endpoint_requires_login(anon_client):

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field
 
@@ -32,6 +32,14 @@ CombinatorLiteral = Literal["AND", "OR"]
 # "how many things can a user usefully compare" limit.
 MAX_AHP_CRITERIA = 12
 
+# Belt-and-suspenders, not a currently-exploitable gap: Pydantic's own
+# recursion guard already stops a deeply/widely nested ConstraintGroupIn tree
+# from a stack-overflow DoS before this bound is ever reached. It exists
+# because this file's own convention (see MAX_AHP_CRITERIA above) is to bound
+# every array input explicitly rather than lean on an incidental library
+# behavior nobody chose as a limit on purpose.
+MAX_CONSTRAINT_GROUP_CHILDREN = 25
+
 
 # --- Inputs ----------------------------------------------------------------
 
@@ -59,11 +67,18 @@ class ConstraintGroupIn(BaseModel):
     Optional everywhere it plugs into ``StudyIn``/``FilterRequest``/
     ``RunRequest``: its absence (``root_group=None``) preserves the flat
     ``constraints``/``combinator`` shape those schemas already had.
+
+    ``groups`` (direct children of one node) is capped at
+    ``MAX_CONSTRAINT_GROUP_CHILDREN`` — belt-and-suspenders, since Pydantic's
+    own recursion guard already prevents a stack-overflow DoS from a deep or
+    wide tree; see that constant's own comment.
     """
 
     operator: CombinatorLiteral
     constraints: list[ConstraintIn] = Field(default_factory=list)
-    groups: list[ConstraintGroupIn] = Field(default_factory=list)
+    groups: list[ConstraintGroupIn] = Field(
+        default_factory=list, max_length=MAX_CONSTRAINT_GROUP_CHILDREN
+    )
 
 
 class IndexIn(BaseModel):
@@ -286,7 +301,15 @@ class AhpWeightsIn(BaseModel):
     """A pairwise comparison matrix (Saaty's 1-9 scale) to derive weights from."""
 
     criteria: list[str] = Field(min_length=2, max_length=MAX_AHP_CRITERIA)
-    matrix: list[list[float]]
+    # allow_inf_nan=False, same guard every other numeric field in this file
+    # uses (ConstraintIn.value/.value_min/.value_max, CriterionIn.weight):
+    # json.loads accepts literal NaN/Infinity, and derive_weights's own
+    # rejection checks are all `>` comparisons — always False against NaN —
+    # so a NaN-poisoned matrix would silently pass the consistency-ratio
+    # check instead of being rejected by it, and then fail to serialize
+    # (FastAPI's JSONResponse sets allow_nan=False) as an unhandled 500
+    # instead of the normal 400/422 a malformed matrix gets everywhere else.
+    matrix: list[list[Annotated[float, Field(allow_inf_nan=False)]]]
 
 
 class AhpWeightsOut(BaseModel):
