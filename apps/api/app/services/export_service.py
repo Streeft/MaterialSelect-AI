@@ -20,7 +20,7 @@ from app.exporters.figures import Bar, BarFigure, render_bars
 from app.exporters.report import Report, Sheet, standard_notices
 from app.repositories.chart_repository import ChartRepository
 from app.repositories.selection_repository import SelectionRepository
-from app.schemas.selection import RunResultOut
+from app.schemas.selection import RankingResultOut, RunResultOut
 from app.services.ai_service import AIService
 from app.services.selection_service import INDEX_KEY, SelectionService
 
@@ -47,16 +47,23 @@ class ExportService:
         if study is None:
             raise NotFoundError(f"Estudo não encontrado: {study_id}")
 
-        result = SelectionService(self.db, project_id).run_study(study_id)
+        service = SelectionService(self.db, project_id)
+        result = service.run_study(study_id)
+        # Same SelectionService instance as run_study above, so this reuses
+        # its already-populated property cache and snapshot list rather than
+        # rebuilding them — see SelectionService.describe_root_group.
+        root_group_description = service.describe_root_group(study)
         candidate_ids = [c.material_id for c in result.candidates]
         materials = {
             m.id: m for m in self.chart_repo.list_materials(material_ids=candidate_ids or [-1])
         }
-        return study, result, materials
+        return study, result, materials, root_group_description
 
-    def _sheets(self, study, result: RunResultOut, materials: dict) -> list[Sheet]:
+    def _sheets(
+        self, study, result: RunResultOut, materials: dict, root_group_description: str
+    ) -> list[Sheet]:
         sheets = [
-            self._problem_sheet(study, result),
+            self._problem_sheet(study, result, root_group_description),
             self._funnel_sheet(result),
             self._candidates_sheet(result),
         ]
@@ -70,12 +77,12 @@ class ExportService:
         return sheets
 
     def study_report(self, study_id: int, project_id: int) -> Report:
-        study, result, materials = self._run(study_id, project_id)
+        study, result, materials, root_group_description = self._run(study_id, project_id)
         return Report(
             title=f"Relatório de seleção — {study.name}",
             subtitle=study.description or "",
             notices=standard_notices(includes_demo_data=any(m.is_demo for m in materials.values())),
-            sheets=self._sheets(study, result, materials),
+            sheets=self._sheets(study, result, materials, root_group_description),
         )
 
     def study_laudo(
@@ -88,13 +95,13 @@ class ExportService:
         be attached on its own, not read as a reduced version of the
         spreadsheet-oriented tables.
         """
-        study, result, materials = self._run(study_id, project_id)
+        study, result, materials, root_group_description = self._run(study_id, project_id)
         narrative, caveats, note = self._narrative(study_id, project_id)
         return Report(
             title=f"Laudo de engenharia — {study.name}",
             subtitle=study.description or "",
             notices=standard_notices(includes_demo_data=any(m.is_demo for m in materials.values())),
-            sheets=self._sheets(study, result, materials),
+            sheets=self._sheets(study, result, materials, root_group_description),
             responsible=(responsible or "").strip() or None,
             figure=self._ranking_figure(result),
             narrative=narrative,
@@ -156,13 +163,17 @@ class ExportService:
         return paragraphs, explanation.caveats, explanation.disclaimer
 
     @staticmethod
-    def _problem_sheet(study, result: RunResultOut) -> Sheet:
+    def _problem_sheet(study, result: RunResultOut, root_group_description: str) -> Sheet:
         rows = [
             ["Estudo", study.name],
             ["Função do componente", study.function_text or "—"],
             ["Objetivo", study.objective_text or "—"],
             ["Variáveis livres", ", ".join(study.free_variables or []) or "—"],
-            ["Combinação das restrições", study.combinator],
+            # The real nested tree, not just study.combinator (the root
+            # group's own operator) — for a nested study, the root operator
+            # alone misdescribes the whole study's logic. See
+            # SelectionService.describe_root_group.
+            ["Combinação das restrições", root_group_description],
             ["Materiais considerados", result.initial_count],
             ["Candidatos após as restrições", result.final_count],
         ]
@@ -224,7 +235,54 @@ class ExportService:
         )
 
     @staticmethod
-    def _contributions_sheet(result: RunResultOut) -> Sheet:
+    def _contributions_note(ranking: RankingResultOut) -> str:
+        """The one line explaining how "Contribuição" relates to "Pontuação".
+
+        ``ranking.normalization`` only names a real normalization step for
+        weighted_sum — TOPSIS and PROMETHEE II each set it to their own
+        method name instead (see RankingIn's docstring on the backend), so
+        printing it unconditionally used to render "Normalização: topsis" as
+        if that were an actual normalization choice.
+
+        The contribution-sums-to-score identity is method-specific, not
+        method-agnostic, and the two non-weighted-sum methods do NOT agree
+        with each other on it: TOPSIS's score is a ratio of distances to an
+        ideal-best/-worst point, so the identity genuinely does not hold
+        there (rank_topsis's own docstring, and docs/04-metodologia-selecao.md
+        §"TOPSIS"). PROMETHEE II's score, by contrast, *is* the weighted sum
+        of each criterion's pairwise preference margin — the identity holds
+        for it exactly as it does for weighted_sum (rank_promethee's own
+        docstring and test_promethee_contributions_sum_to_score both assert
+        this) — so PROMETHEE keeps the "soma das contribuições" line and only
+        drops the false "Normalização" label.
+        """
+        method = ranking.method
+        if method == "topsis":
+            return (
+                "Método: TOPSIS. Os pesos são renormalizados para somar 1; a "
+                "pontuação é a proximidade (razão de distâncias) a uma solução "
+                "ideal, não a soma linear das contribuições listadas — cada "
+                "contribuição é reportada por critério como transparência do "
+                "cálculo, não como decomposição exata da pontuação."
+            )
+        if method == "promethee":
+            return (
+                "Método: PROMETHEE II. Os pesos são renormalizados para somar "
+                "1; a pontuação é o fluxo de saída líquido, calculado pela "
+                "própria fórmula do método — a soma das margens de preferência "
+                "pareada por critério, já ponderadas — e não uma normalização "
+                "min-máx ou vetorial."
+            )
+        normalization_label = {"minmax": "min-máx", "vector": "vetorial"}.get(
+            ranking.normalization, ranking.normalization
+        )
+        return (
+            f"Normalização: {normalization_label}. Os pesos são renormalizados "
+            "para somar 1; a pontuação é a soma das contribuições."
+        )
+
+    @classmethod
+    def _contributions_sheet(cls, result: RunResultOut) -> Sheet:
         ranking = result.ranking
         assert ranking is not None
         rows = [
@@ -252,10 +310,7 @@ class ExportService:
                 "Contribuição",
             ],
             rows=rows,
-            notes=[
-                f"Normalização: {ranking.normalization}. Os pesos são renormalizados "
-                "para somar 1; a pontuação é a soma das contribuições."
-            ],
+            notes=[cls._contributions_note(ranking)],
         )
 
     @staticmethod

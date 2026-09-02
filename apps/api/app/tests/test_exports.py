@@ -516,6 +516,63 @@ class TestStudyExport:
     def test_unknown_study_is_404(self, client: TestClient) -> None:
         assert client.get("/api/exports/estudos/999999.csv").status_code == 404
 
+    def test_report_describes_the_real_nested_constraint_tree(self, client: TestClient) -> None:
+        """A nested study used to be described by ``study.combinator`` alone
+        — the root group's own operator, presented as if it were the whole
+        study's logic — with each subgroup an opaque "Subgrupo" funnel row
+        showing nothing about what was inside it (D-41's laudo has to
+        represent the study's real logic, not just its final numbers).
+
+        This asserts the "Problema" sheet now spells out the real tree: the
+        root OR, both nested AND groups, and a constraint from each — not
+        just "OR" alone.
+        """
+        payload = {
+            "name": "Estudo aninhado exportável",
+            "root_group": {
+                "operator": "OR",
+                "constraints": [],
+                "groups": [
+                    {
+                        "operator": "AND",
+                        "constraints": [
+                            {
+                                "operator": "between",
+                                "property_slug": "densidade",
+                                "value_min": 2000,
+                                "value_max": 3000,
+                                "unit": "kg/m**3",
+                            },
+                        ],
+                        "groups": [],
+                    },
+                    {
+                        "operator": "AND",
+                        "constraints": [
+                            {
+                                "operator": "between",
+                                "property_slug": "modulo_young",
+                                "value_min": 200,
+                                "value_max": 250,
+                                "unit": "GPa",
+                            },
+                        ],
+                        "groups": [],
+                    },
+                ],
+            },
+            "normalization": "minmax",
+            "criteria": [],
+        }
+        study_id = client.post("/api/selection/studies", json=payload).json()["id"]
+
+        text = client.get(f"/api/exports/estudos/{study_id}.csv").text
+        problem = text.split("Restrições e funil")[0]
+        assert "OU(" in problem
+        assert problem.count("E(") == 2
+        assert "Densidade" in problem
+        assert "Módulo de Young" in problem
+
 
 class TestStudyLaudo:
     """The engineering report: a document distinct from the selection report.

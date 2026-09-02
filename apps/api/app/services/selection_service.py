@@ -26,9 +26,11 @@ from app.domain.filters import (
     apply_constraint_tree,
 )
 from app.domain.ranking import (
+    PROMETHEE_TOO_FEW_CANDIDATES,
     Criterion,
     Direction,
     Normalization,
+    degrade_promethee_for_few_candidates,
     rank,
     rank_promethee,
     rank_topsis,
@@ -418,6 +420,33 @@ class SelectionService:
             )
         return build(roots[0])
 
+    def describe_root_group(self, study: SelectionStudy) -> str:
+        """Render a study's real constraint tree as one compact, readable
+        expression — e.g. ``E( restrição1, restrição2, OU( restrição3,
+        restrição4 ) )`` — instead of the single root operator a caller
+        might otherwise read off ``study.combinator`` and mistake for the
+        whole study's logic.
+
+        For the export/laudo's "Problema" sheet (D-41): a nested study is
+        genuinely misdescribed by its root group's operator alone, and the
+        funnel already collapses a subgroup into one opaque "Subgrupo" row
+        with nothing showing what is inside it — this is the one place in
+        the document that spells the real structure out.
+        """
+        self._load()  # populates self._props, needed by _load_group_tree
+        root = self._load_group_tree(study)
+        if not root.constraints and not root.children:
+            return "Nenhuma restrição definida."
+        return self._render_group_tree(root)
+
+    @classmethod
+    def _render_group_tree(cls, group: ConstraintGroupNode) -> str:
+        connective = "E" if group.operator == "AND" else "OU"
+        items = [c.label for c in group.constraints] + [
+            cls._render_group_tree(child) for child in group.children
+        ]
+        return f"{connective}({', '.join(items)})"
+
     # --- filter -----------------------------------------------------------
 
     def filter(self, request: FilterRequest) -> FilterResultOut:
@@ -537,7 +566,23 @@ class SelectionService:
         if ranking.method == "topsis":
             result = rank_topsis(material_values, criteria, ranking.run_sensitivity)
         elif ranking.method == "promethee":
-            result = rank_promethee(material_values, criteria, ranking.run_sensitivity)
+            # PROMETHEE compares materials pairwise, so it genuinely cannot
+            # score fewer than two complete candidates — a nested M6
+            # constraint tree can easily narrow a run to 0-1 candidates, and
+            # unlike weighted_sum/TOPSIS (which handle that case gracefully),
+            # rank_promethee raises. Letting that ValidationError propagate
+            # here would turn it into an HTTP error that discards the whole
+            # run response (funnel, candidates, everything) instead of the
+            # normal empty/near-empty ranking the frontend already has an
+            # empty-state for. Only the specific "too few candidates" error
+            # is degraded this way — any other ValidationError from this call
+            # (e.g. a zero total weight) still propagates as a real error.
+            try:
+                result = rank_promethee(material_values, criteria, ranking.run_sensitivity)
+            except ValidationError as exc:
+                if str(exc) != PROMETHEE_TOO_FEW_CANDIDATES:
+                    raise
+                result = degrade_promethee_for_few_candidates(material_values, criteria)
         else:
             result = rank(
                 material_values,

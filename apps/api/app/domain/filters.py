@@ -79,7 +79,13 @@ class Constraint:
 
 @dataclass
 class FunnelStep:
-    """One line of the elimination funnel."""
+    """One line of the elimination funnel.
+
+    Same status as ``FilterResult``/``apply_constraints`` below: no production
+    path constructs one any more (the service layer builds ``FunnelStepOut``
+    from ``_apply_group`` instead) — retained only for the flat-tree
+    equivalence test.
+    """
 
     label: str
     operator: str
@@ -89,7 +95,14 @@ class FunnelStep:
 
 @dataclass
 class FilterResult:
-    """Outcome of applying a set of constraints."""
+    """Outcome of applying a set of constraints.
+
+    No production path builds one of these any more (M6 routes everything
+    through ``apply_constraint_tree``/``_apply_group``) — kept as the return
+    type of ``apply_constraints`` below, itself kept only as the reference
+    implementation ``test_single_root_group_matches_flat_apply_constraints``
+    compares against for the flat-tree equivalence proof.
+    """
 
     initial_count: int
     combinator: str
@@ -176,6 +189,13 @@ def apply_constraints(
     ``AND`` (default) yields a cumulative funnel: each step shows how many
     candidates survive after that constraint is added. ``OR`` reports how many
     materials each constraint admits and the growing union.
+
+    Retained only as the reference implementation
+    ``test_single_root_group_matches_flat_apply_constraints`` compares
+    against, proving a single-root, no-children ``ConstraintGroupNode``
+    evaluates identically through ``apply_constraint_tree``. No production
+    code path calls this function any more — everything routes through
+    ``apply_constraint_tree``/``SelectionService._apply_group``.
     """
     initial = len(materials)
     combinator = combinator.upper()

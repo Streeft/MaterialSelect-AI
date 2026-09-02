@@ -405,6 +405,17 @@ def _sensitivity_topsis(
     return scenarios
 
 
+# The exact message rank_promethee raises for "fewer than two complete
+# candidates" — a module-level constant so a caller (SelectionService) can
+# tell this specific, expected-and-recoverable case apart from any other
+# ValidationError the same call can raise (empty criteria; a zero total
+# weight) without parsing prose. See degrade_promethee_for_few_candidates.
+PROMETHEE_TOO_FEW_CANDIDATES = (
+    "PROMETHEE compara materiais aos pares; é preciso ao menos dois "
+    "materiais com todos os critérios preenchidos."
+)
+
+
 def rank_promethee(
     materials: list[MaterialValues],
     criteria: list[Criterion],
@@ -441,10 +452,7 @@ def rank_promethee(
     weights = _renormalize({c.key: c.weight for c in criteria})
     complete, excluded = _split_complete_and_excluded(materials, criteria)
     if len(complete) < 2:
-        raise ValidationError(
-            "PROMETHEE compara materiais aos pares; é preciso ao menos dois "
-            "materiais com todos os critérios preenchidos."
-        )
+        raise ValidationError(PROMETHEE_TOO_FEW_CANDIDATES)
 
     ranked = _score_promethee(complete, criteria, weights)
 
@@ -563,6 +571,70 @@ def _sensitivity_promethee(
             emphasised[criterion.key] = baseline_weights[criterion.key] * 2.0
             scenarios.append(scenario(f"Ênfase em {criterion.label}", emphasised))
     return scenarios
+
+
+def degrade_promethee_for_few_candidates(
+    materials: list[MaterialValues],
+    criteria: list[Criterion],
+) -> RankingResult:
+    """Build the RankingResult ``rank_promethee`` cannot produce for fewer
+    than two complete candidates, instead of letting its ``ValidationError``
+    (see ``PROMETHEE_TOO_FEW_CANDIDATES``) propagate and discard the whole
+    selection run.
+
+    That raise is correct on its own terms — a pairwise method genuinely has
+    nothing to compare a single material against — so this is not a relaxed
+    version of ``rank_promethee``; it is the caller's fallback for a case
+    ``rank_promethee`` refuses to handle, mirroring how ``rank``/
+    ``rank_topsis`` already degrade gracefully at 0-1 candidates instead of
+    raising. Weight renormalization still runs first (and can still raise on
+    a zero total — that failure mode is shared by every ranking method,
+    unrelated to how many candidates survived filtering).
+
+    * Zero complete candidates: an empty ranking, same as the other methods.
+    * One complete candidate: reported with a neutral (zero) score and a
+      zero-contribution row per criterion — PROMETHEE has no peer to compare
+      it against, so "outranks nobody, is outranked by nobody" is the honest
+      answer, not an invented one.
+
+    Callers must check ``len(complete) < 2`` themselves (via
+    ``PROMETHEE_TOO_FEW_CANDIDATES``-matching the caught error, or by
+    counting complete candidates directly) before calling this — it does not
+    re-check and will happily build a nonsensical "degenerate" result for
+    two or more.
+    """
+    if not criteria:
+        raise ValidationError("Defina ao menos um critério de ranking.")
+    weights = _renormalize({c.key: c.weight for c in criteria})
+    complete, excluded = _split_complete_and_excluded(materials, criteria)
+
+    ranked: list[RankedMaterial] = []
+    if complete:
+        material_id, name, values = complete[0]
+        contributions = [
+            Contribution(
+                key=c.key,
+                label=c.label,
+                raw=float(values[c.key]),  # type: ignore[arg-type]
+                normalized=0.0,
+                weight=weights[c.key],
+                contribution=0.0,
+            )
+            for c in criteria
+        ]
+        ranked = [
+            RankedMaterial(
+                material_id=material_id, name=name, score=0.0, rank=1, contributions=contributions
+            )
+        ]
+
+    return RankingResult(
+        normalization="promethee",
+        criteria=[c.key for c in criteria],
+        ranked=ranked,
+        excluded=excluded,
+        sensitivity=[],
+    )
 
 
 def rank(

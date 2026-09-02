@@ -273,4 +273,71 @@ describe("ResultsView", () => {
     expect(within(contributions).getByText("Módulo de Young")).toBeInTheDocument();
     expect(within(contributions).getByText("0,500")).toBeInTheDocument();
   });
+
+  it.each([
+    ["topsis", s.methodTopsis],
+    ["promethee", s.methodPromethee],
+  ])(
+    "names the %s method and stays silent about a normalization it never ran",
+    (method, methodLabel) => {
+      // rank_topsis/rank_promethee (backend) set RankingResult.normalization
+      // to the method's own name, not a real normalization choice — the
+      // provenance panel used to read that value through
+      // `=== "vector" ? normVector : normMinmax`, so anything that was not
+      // literally "vector" fell through and printed "Normalização: Min-máx"
+      // for a TOPSIS or PROMETHEE run. This is the regression test.
+      const result = makeResult({
+        ranking: {
+          normalization: method,
+          method,
+          criteria: ["densidade"],
+          ranked: [
+            {
+              material_id: 1,
+              name: "Liga A",
+              score: 0.7,
+              rank: 1,
+              contributions: [
+                {
+                  key: "densidade",
+                  label: "Densidade",
+                  raw: 2.7,
+                  normalized: 0.5,
+                  weight: 1,
+                  contribution: 0.5,
+                },
+              ],
+            },
+          ],
+          excluded: [],
+          sensitivity: [],
+        },
+      });
+      const { container } = render(<ResultsView result={result} />);
+
+      const provenance = block(container, "proveniencia");
+      expect(within(provenance).getByText(methodLabel)).toBeInTheDocument();
+      expect(within(provenance).queryByText(s.normalization)).not.toBeInTheDocument();
+      expect(within(provenance).queryByText(s.normMinmax)).not.toBeInTheDocument();
+      expect(within(provenance).queryByText(s.normVector)).not.toBeInTheDocument();
+    },
+  );
+
+  it("shows the real normalization for weighted_sum, alongside the method", () => {
+    const result = makeResult({
+      ranking: {
+        normalization: "vector",
+        method: "weighted_sum",
+        criteria: ["densidade"],
+        ranked: [],
+        excluded: [],
+        sensitivity: [],
+      },
+    });
+    const { container } = render(<ResultsView result={result} />);
+
+    const provenance = block(container, "proveniencia");
+    expect(within(provenance).getByText(s.methodWeightedSum)).toBeInTheDocument();
+    expect(within(provenance).getByText(s.normVector)).toBeInTheDocument();
+  });
 });
