@@ -76,6 +76,15 @@ Registrados para não voltarem por engano:
   inferior seguem por construção). 852 testes de backend (nenhum skip) e 171
   de frontend, todos verdes ao final. Ver
   `docs/04-metodologia-selecao.md` para a descrição de cada método.
+  **Addendo da revisão final de branch (corrigido na mesma sessão):**
+  `AhpWeightsIn.matrix` aceitava `NaN`/`Infinity` e produzia 500 em vez de
+  422 (faltava `allow_inf_nan=False`); um estudo PROMETHEE com menos de dois
+  candidatos completos após o filtro derrubava a resposta inteira em vez de
+  degradar como `weighted_sum`/TOPSIS já faziam; e `method` passou a
+  aparecer de fato no painel de proveniência dos resultados e na nota de
+  "Contribuições" do relatório/laudo, que antes afirmavam algo falso para
+  TOPSIS especificamente. Detalhe completo em
+  `.superpowers/sdd/2026-09-01-m5-m6-multicriterio-e-restricoes-aninhadas/final-fix-wave-report.md`.
 - ~~**M6** — Restrições com parênteses lógicos~~ — `ConstraintGroup`
   (`app/models/selection.py`), um nó de árvore booleana AND/OR que se
   autorreferencia por `parent_group_id`; a migration `6845a9523f17` cria a
@@ -111,6 +120,12 @@ Registrados para não voltarem por engano:
   "não se aplica". Ver `docs/07-selecao-deterministica.md` para a descrição
   do modelo de árvore e o exemplo trabalhado. 862 testes de backend (nenhum
   skip, antes 852) e 176 de frontend (antes 171), todos verdes ao final.
+  **Addendo da revisão final de branch (corrigido na mesma sessão):** o
+  laudo de engenharia (D-41) descrevia a lógica de um estudo aninhado como
+  um único combinador achatado, com linhas de subgrupo opacas — corrigido
+  com `SelectionService.describe_root_group`, que renderiza a árvore
+  AND/OR real na aba "Problema" do relatório/laudo. Total final: 872 testes
+  de backend, 179 de frontend.
 - ~~**B1–B10**~~ — as dez pendências de baixa prioridade, entregues numa
   sessão dirigida por subagentes (o plano de implementação existiu em
   `docs/superpowers/plans/2026-08-27-backlog-b1-b10.md`; o histórico do git é

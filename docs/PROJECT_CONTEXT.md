@@ -187,8 +187,58 @@ B5) é linear; a correção de injeção SQL feita durante a revisão de B3
 geometria de gráfico (B6, B8) é calculada no frontend. Ver `docs/TODO.md`
 para o resumo de cada item.
 
-**Saúde do código:** 831 testes de backend (Python 3.11 e 3.12, nenhum skip)
-e 165 de frontend, todos verdes. `ruff` limpo, `black
+**M5 (TOPSIS, PROMETHEE II, AHP) e M6 (restrições aninhadas) entregues,
+dirigidos por subagentes.** M5 estava registrado no backlog com a nota "só
+faça se o orientador pedir" — dito sem meias palavras: nesta sessão o usuário
+confirmou explicitamente que o orientador pediu, e só por isso o item saiu de
+fora de escopo (ver TODO.md). Dez tarefas ao todo (M5: Tarefas 1–5; M6:
+Tarefas 6–10), um implementador e um revisor por tarefa. `app/domain/
+ranking.py` ganhou `rank_topsis` (proximidade a um ponto ideal/anti-ideal) e
+`rank_promethee` (fluxo de saída líquido de comparações pareadas, função de
+preferência "usual"), os dois reaproveitando a exclusão de dado ausente e a
+renormalização de peso já existentes da soma ponderada; `app/domain/ahp.py`
+ganhou `derive_weights` (matriz de comparação pareada, escala de Saaty,
+rejeição dura acima de razão de consistência 0,1). `ConstraintGroup`
+(`app/models/selection.py`) é uma árvore booleana AND/OR autorreferenciada por
+`parent_group_id`, com migration (`6845a9523f17`, único head, cadeia linear
+sobre `f8c93a1d8844` de M5) e backfill que prova, por teste, avaliar
+**identicamente** ao `apply_constraints` plano de antes. A Tarefa 9 (editor
+recursivo `ConstraintEditor.tsx`) teve um achado Crítico na revisão de tarefa
+— dois geradores de id independentes (`page.tsx` e o editor), ambos zerados
+em 0 e no mesmo formato `row-N`/`group-N`, podiam colidir e fazer a edição de
+uma restrição afetar silenciosamente outra — corrigido numa única rodada,
+unificando os dois num gerador só (`nextEditorId`), com teste de regressão
+que reproduz o cenário exato do relato.
+
+Depois das dez tarefas revisadas uma a uma, uma **revisão final de branch
+inteira**, no modelo mais capaz disponível, achou 4 problemas Importantes que
+nenhuma revisão de tarefa isolada poderia ter pego — todos do tipo "código
+novo encontra código antigo intocado": o campo `method` (TOPSIS/PROMETHEE/
+soma ponderada) não chegava a nenhuma superfície de saída, e duas telas
+pré-existentes (o painel de proveniência dos resultados e a nota
+"Contribuições" do relatório/laudo exportado) afirmavam algo **falso**
+especificamente para TOPSIS — "Normalização: Min-máx" e a identidade
+soma-das-contribuições-igual-à-pontuação que o próprio docstring de
+`rank_topsis` nega; `AhpWeightsIn.matrix` aceitava `NaN`/`Infinity` (faltava o
+`allow_inf_nan=False` que todo outro campo numérico do arquivo já tem),
+derrotando silenciosamente a rejeição dura de matriz inconsistente e
+produzindo 500 em vez de 422; um estudo PROMETHEE cujas restrições filtravam
+para 0–1 candidatos derrubava a resposta inteira com erro, em vez de degradar
+como `weighted_sum`/TOPSIS já faziam — interação genuína M5×M6, porque o
+aninhamento de M6 torna esse funil bem mais alcançável; e o laudo de
+engenharia (D-41) descrevia a lógica de um estudo aninhado como um único
+combinador achatado, com linhas de subgrupo opacas. Os quatro foram
+corrigidos numa única rodada — a nota de "Contribuições" ficou sensível ao
+método (mantendo a identidade de soma só para PROMETHEE, onde ela é
+verdadeira, verificado contra `_score_promethee` e o teste já existente que a
+prova), e o laudo passou a renderizar a árvore real via
+`SelectionService.describe_root_group` — e uma rerrevisão escopada confirmou
+tudo limpo, sem achado novo. Commit `73eb4a2` sobre `0d00ee7`. Ver
+`docs/07-selecao-deterministica.md` para a descrição de cada método e do
+modelo de árvore.
+
+**Saúde do código:** 872 testes de backend (Python 3.11 e 3.12, nenhum skip)
+e 179 de frontend, todos verdes. `ruff` limpo, `black
 --check` limpo, typecheck estrito e build de produção sem avisos. CI no
 GitHub Actions rodando em todo PR e push para `main`, com os checks
 **obrigatórios**: o GitHub recusa o merge se qualquer um falhar
@@ -213,11 +263,15 @@ com **rollback lógico** por job. Templates de mapeamento. Sanitização de fór
 na entrada.
 
 ### Seleção determinística (o núcleo sem IA)
-- Restrições com 11 operadores, combináveis por AND/OR, com funil de eliminação.
+- Restrições com 11 operadores, combináveis por AND/OR em **grupos aninhados**
+  (M6, parênteses lógicos de verdade), com funil de eliminação.
 - Índices de desempenho com **parser seguro sem `eval`** e **dimensão derivada**
   por análise dimensional.
-- Ranking por soma ponderada normalizada, com contribuição por critério,
-  exclusão explícita de dados ausentes e análise de sensibilidade.
+- Ranking por **três métodos** (M5): soma ponderada normalizada, TOPSIS
+  (proximidade a um ponto ideal/anti-ideal) e PROMETHEE II (fluxo de saída
+  líquido), com contribuição por critério, exclusão explícita de dados
+  ausentes e análise de sensibilidade. Pesos de critério também derivam de
+  AHP (matriz de comparação pareada, escala de Saaty).
 - Estudos salvos e reexecutáveis, que reproduzem exatamente o mesmo resultado.
 
 ### Visualização
@@ -483,8 +537,12 @@ que mais afetam quem for mexer no código:
 - **Sem multiusuário, sem colaboração.** Login com Google e projetos existem
   (A5), mas cada `Project` tem dono único e nenhuma tela troca entre dois
   projetos de um mesmo usuário ainda ([D-42](DECISIONS.md)).
-- **TOPSIS/AHP/PROMETHEE** estão previstos na arquitetura mas fora do escopo
-  desta versão. `domain/ranking.py` foi deixado genérico para acomodá-los.
+- **Reabrir um estudo com grupos de restrição aninhados (M6) achata a
+  árvore no editor.** `GET /api/selection/studies/{id}` ainda devolve as
+  restrições como lista plana — não é perda de dado (a árvore real continua
+  intacta no banco e avalia corretamente ao **reexecutar** o estudo), mas
+  "Abrir" mostra tudo num único grupo AND, sem aviso na tela. Ver TODO.md
+  ("M6" em "Débitos já quitados").
 - **Propriedades dependentes de condição** (curvas completas) fora do escopo.
 - **Busca por palavra-chave usa LIKE sobre JSON** — não escala.
 - **Com provedor de IA real, a leitura do enunciado não é reproduzível.** Só o
