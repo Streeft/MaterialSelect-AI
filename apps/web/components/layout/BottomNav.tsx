@@ -15,16 +15,16 @@ import {
 const t = ptBR.nav;
 
 /**
- * Os cinco destinos que cabem numa mão.
+ * The five destinations that fit in one hand.
  *
- * Não é o rail com outra pintura: é uma escolha editorial sobre o que alguém
- * faz num telefone. /comparar e /importar ficam de fora — comparar quer largura
- * de tabela, importar quer um arquivo que raramente está no aparelho —, e as
- * duas rotas de administração também: manter o vocabulário do catálogo é
- * trabalho de mesa. Todas seguem alcançáveis pela gaveta do cabeçalho.
+ * Not the rail with a different coat of paint: it's an editorial choice about
+ * what someone does on a phone. /comparar and /importar are left out — compare
+ * wants table width, import wants a file that's rarely on the device — and so
+ * are the two admin routes: keeping the catalog's vocabulary straight is desk
+ * work. All of them stay reachable through the header drawer.
  *
- * Cinco é o teto: a 375 px, um sexto item deixa cada alvo com 62 px de largura,
- * e o rótulo passa a truncar antes de o dedo acertar.
+ * Five is the ceiling: at 375 px, a sixth item leaves each target 62 px wide,
+ * and the label starts truncating before the finger lands.
  */
 const ITEMS = [
   { href: "/app", label: t.home, icon: IconHome },
@@ -40,19 +40,20 @@ function isActive(pathname: string, href: string): boolean {
 }
 
 /**
- * A navegação principal em telas estreitas.
+ * The primary navigation on narrow screens.
  *
- * Substitui os dois toques que a gaveta modal cobrava por cada troca de tela —
- * abrir, escolher — por um. A gaveta continua no cabeçalho, para os destinos que
- * não estão aqui.
+ * Replaces the two taps the modal drawer charged for every screen switch —
+ * open, pick — with one. The drawer stays in the header, for the destinations
+ * that aren't here.
  *
- * `min-h-12` (48 px) é piso, não sugestão: é o alvo de toque mínimo, e a
- * altura precisa sobreviver a um rótulo que quebre em duas linhas.
- * `pb-[env(safe-area-inset-bottom)]` mantém a fileira acima da barra de gestos
- * do iOS; sem isso, o quinto item fica sob ela e deixa de ser tocável.
+ * `min-h-12` (48 px) is a floor, not a suggestion: it's the minimum touch
+ * target, and the height needs to survive a label that wraps to two lines.
+ * `pb-[env(safe-area-inset-bottom)]` keeps the row above iOS's gesture bar;
+ * without it, the fifth item sits under it and stops being tappable.
  *
- * O indicador é uma barra de 3 px no topo do item, e não embaixo: embaixo ela
- * cairia dentro da área segura, onde metade dos aparelhos a esconde.
+ * The active indicator is a 3 px bar at the top of the item, not the bottom:
+ * at the bottom it would fall inside the safe area, where half the devices
+ * hide it.
  */
 export function BottomNav() {
   const pathname = usePathname();
