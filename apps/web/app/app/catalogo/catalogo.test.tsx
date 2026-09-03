@@ -80,15 +80,20 @@ const { default: CatalogPage } = await import("./page");
 async function renderCatalog() {
   const user = userEvent.setup();
   render(wrap(<CatalogPage />));
-  expect(await screen.findByShadowRole("link", { name: /Aço 1020/ })).toBeInTheDocument();
-  return user;
+  const table = await screen.findByShadowRole("table");
+  expect(within(table).getByShadowRole("link", { name: /Aço 1020/ })).toBeInTheDocument();
+  return { user, table };
 }
 
+// The table (`hidden sm:block`) and the card list (`sm:hidden`) render
+// together — jsdom never evaluates the media query that picks one, so both
+// exist in the DOM at once. Every lookup below is scoped to the table to
+// avoid an ambiguous match against the card carrying the same material name.
 describe("catálogo", () => {
   it("says what each material's data is made of, on the row itself", async () => {
-    await renderCatalog();
+    const { table } = await renderCatalog();
 
-    const row = screen.getByShadowRole("link", { name: /Alumina/ }).closest("tr");
+    const row = within(table).getByShadowRole("link", { name: /Alumina/ }).closest("tr");
     expect(row).not.toBeNull();
     // Two imported values and three gaps — the gaps stated as a number, which is
     // the whole point: a shortlist built here should not rest on invisible holes.
@@ -97,26 +102,26 @@ describe("catálogo", () => {
   });
 
   it("says a material has nothing recorded instead of leaving the cell empty", async () => {
-    await renderCatalog();
+    const { table } = await renderCatalog();
 
-    const row = screen.getByShadowRole("link", { name: "Liga experimental" }).closest("tr");
+    const row = within(table).getByShadowRole("link", { name: "Liga experimental" }).closest("tr");
     expect(within(row as HTMLElement).getByText(t.noValues)).toBeInTheDocument();
   });
 
   it("filters by data quality, not only by name", async () => {
-    await renderCatalog();
+    const { table } = await renderCatalog();
 
     selectMwcOption(screen.getByShadowRole("combobox", { name: t.filterQuality }), "gaps");
 
     await waitFor(() => {
-      expect(screen.queryByShadowRole("link", { name: /Aço 1020/ })).not.toBeInTheDocument();
+      expect(within(table).queryByShadowRole("link", { name: /Aço 1020/ })).not.toBeInTheDocument();
     });
-    expect(screen.getByShadowRole("link", { name: /Alumina/ })).toBeInTheDocument();
+    expect(within(table).getByShadowRole("link", { name: /Alumina/ })).toBeInTheDocument();
     expect(screen.getByText(t.showing(1, 3))).toBeInTheDocument();
   });
 
   it("offers a way out when the filters leave nothing on screen", async () => {
-    const user = await renderCatalog();
+    const { user } = await renderCatalog();
 
     selectMwcOption(screen.getByShadowRole("combobox", { name: t.filterClass }), "ceramicas");
     selectMwcOption(screen.getByShadowRole("combobox", { name: t.filterQuality }), "measured");
@@ -126,18 +131,20 @@ describe("catálogo", () => {
     // The empty state clears the filters rather than only apologising — the
     // button inside it, not the one in the filter card above.
     await user.click(within(empty as HTMLElement).getByShadowRole("button", { name: t.clearFilters }));
-    expect(await screen.findByShadowRole("link", { name: /Aço 1020/ })).toBeInTheDocument();
+    const table = await screen.findByShadowRole("table");
+    expect(within(table).getByShadowRole("link", { name: /Aço 1020/ })).toBeInTheDocument();
   });
 
-  it("carries the same materials into the card view a phone gets", async () => {
-    const user = await renderCatalog();
+  it("carries the same materials into the card list a phone gets, alongside the table", async () => {
+    await renderCatalog();
 
-    await user.click(screen.getByShadowRole("button", { name: t.viewCards }));
-
-    await waitFor(() => expect(screen.queryByShadowRole("table")).not.toBeInTheDocument());
+    // The card list has no accessible role of its own (a plain <ul>), so it's
+    // reached as the sibling markup outside the table region.
     for (const material of materials) {
-      expect(screen.getByShadowRole("link", { name: new RegExp(material.name) })).toBeInTheDocument();
+      expect(
+        screen.getAllByShadowRole("link", { name: new RegExp(material.name) }).length,
+      ).toBeGreaterThanOrEqual(2);
     }
-    expect(screen.getByText(t.noValues)).toBeInTheDocument();
+    expect(screen.getAllByText(t.noValues).length).toBeGreaterThanOrEqual(2);
   });
 });

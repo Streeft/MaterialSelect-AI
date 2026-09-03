@@ -6,11 +6,10 @@ import { catalogueExportUrl, listClasses, listMaterials } from "@/lib/api";
 import type { MaterialListItem } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { ExportButtons } from "@/components/ExportButtons";
-import { MaterialCards, MaterialTable } from "@/components/catalog/MaterialRows";
+import { MaterialTable } from "@/components/catalog/MaterialRows";
+import { MaterialCards } from "@/components/catalog/MaterialCards";
 import {
   Button,
-  ButtonGroup,
-  ButtonGroupItem,
   ButtonLink,
   Card,
   CardBody,
@@ -65,7 +64,6 @@ export default function CatalogPage() {
   const [search, setSearch] = useState("");
   const [classSlug, setClassSlug] = useState("");
   const [quality, setQuality] = useState<QualityFilter>("any");
-  const [view, setView] = useState<"table" | "cards">("table");
   const debouncedSearch = useDebounced(search, 300);
 
   const materials = useQuery({
@@ -100,24 +98,7 @@ export default function CatalogPage() {
       />
 
       <Card>
-        <CardHeader
-          headingLevel={2}
-          title={t.filters}
-          actions={
-            <ButtonGroup label={t.view}>
-              <ButtonGroupItem
-                selected={view === "table"}
-                label={t.viewTable}
-                onClick={() => setView("table")}
-              />
-              <ButtonGroupItem
-                selected={view === "cards"}
-                label={t.viewCards}
-                onClick={() => setView("cards")}
-              />
-            </ButtonGroup>
-          }
-        />
+        <CardHeader headingLevel={2} title={t.filters} />
         <CardBody className="flex flex-wrap items-end gap-4">
           <Input
             label={t.searchLabel}
@@ -203,10 +184,13 @@ export default function CatalogPage() {
                 )
               }
             />
-          ) : view === "table" ? (
-            <MaterialTable materials={shown} />
           ) : (
-            <MaterialCards materials={shown} />
+            <>
+              <MaterialCards materials={shown} />
+              <div className="hidden sm:block">
+                <MaterialTable materials={shown} />
+              </div>
+            </>
           ))}
 
         {/* The legend belongs on the screen that shows many values at once —

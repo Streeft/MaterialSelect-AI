@@ -1,5 +1,6 @@
 import { AuthGate } from "@/components/auth/AuthGate";
 import { AppSidebar } from "@/components/layout/AppSidebar";
+import { BottomNav } from "@/components/layout/BottomNav";
 import { LimitationNotice } from "@/components/LimitationNotice";
 import { ptBR } from "@/lib/i18n";
 
@@ -34,6 +35,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </footer>
         </div>
       </div>
+      <BottomNav />
     </AuthGate>
   );
 }
