@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Public_Sans, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
 import { AuthGate } from "@/components/auth/AuthGate";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { LimitationNotice } from "@/components/LimitationNotice";
+import { SectionTheme } from "@/components/layout/SectionTheme";
 import { ptBR } from "@/lib/i18n";
 import { THEME_BOOTSTRAP_SCRIPT } from "@/lib/theme";
 
@@ -13,33 +14,26 @@ export const metadata: Metadata = {
   description: ptBR.tagline,
 };
 
-/**
- * Inter, self-hosted by Next at build time and exposed as a CSS variable that
- * tailwind.config.ts reads.
- *
- * `next/font` is what makes the webfont affordable: the file is served from this
- * origin (no request to a third party at runtime, no extra DNS on a slow link)
- * and the `@font-face` is inlined in the head, so there is no layout shift to
- * swap into. What it does cost is a fetch at *build* time — the CI now needs the
- * network for `next build`, not only for `npm ci`.
- */
-const inter = Inter({
+const sans = Public_Sans({ subsets: ["latin"], variable: "--font-sans", display: "swap" });
+const mono = IBM_Plex_Mono({
   subsets: ["latin"],
+  weight: ["400", "500"],
+  variable: "--font-mono",
   display: "swap",
-  variable: "--font-sans",
 });
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     // The bootstrap script writes data-theme before React sees the document, so
     // the server markup and the client's first render disagree by design.
-    <html lang="pt-BR" className={inter.variable} suppressHydrationWarning>
+    <html lang="pt-BR" className={`${sans.variable} ${mono.variable}`} suppressHydrationWarning>
       <head>
         {/* Blocking on purpose: a theme applied after first paint is a white
             flash for every reader who chose the dark one. */}
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP_SCRIPT }} />
       </head>
       <body>
+        <SectionTheme />
         <Providers>
           <AuthGate>
             {/* A column below `lg` (slim bar, then content) and a row above it

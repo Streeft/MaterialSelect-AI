@@ -3,97 +3,110 @@
 @tailwind utilities;
 
 /*
- * Design tokens.
+ * Design tokens — Prisma.
  *
- * Values live here and nowhere else. Tailwind reads them through
- * tailwind.config.ts; the chart layer reads them through lib/design/palette.ts.
- * Anything that hard-codes a hex outside this file is a bug waiting for the
- * dark theme to expose it.
+ * Substitui a base azul-Google (D-38) por uma identidade própria: a superfície
+ * fica cinza-azulada e neutra, e **cada área do aplicativo carrega um matiz
+ * próprio**. Estudar, mapear, comparar e cuidar dos dados deixam de ser a mesma
+ * tela em cores diferentes: o matiz localiza o leitor antes de ele ler o título.
  *
- * The palette is Google-informed (D-38): a blue carrying every interactive
- * affordance, paper and panels a hair cool instead of warm, and the dark theme a
- * soft graphite (#131314) rather than the near-black it used to be. It replaces
- * the "lumimotion" language of D-33 — an electric lime over #05080A — which read
- * as an instrument rather than as something a student would enjoy operating.
+ * A mecânica é deliberadamente de token, não de componente. `:root` publica a
+ * rampa da rota inicial; cada bloco `[data-section="…"]` reescreve --brand-*,
+ * --accent e os tokens M3 correspondentes. Um componente que já dizia
+ * `bg-brand-50 text-brand-700` passa a mudar de cor conforme a rota **sem uma
+ * linha de alteração** — inclusive os componentes @material/web, cujo shadow DOM
+ * herda --md-sys-color-* do mesmo escopo. Quem escreve o atributo é
+ * components/layout/SectionTheme.tsx, a partir de lib/design/sections.ts.
  *
- * Two hues had to move to make room, and neither move is cosmetic:
+ * Todos os matizes de seção compartilham croma e luminosidade em oklch (C 0,11
+ * no accent; L conforme a nota de cada bloco) e variam só o ângulo. É o que os
+ * mantém igualmente presentes sem que nenhum grite, e o que garante que o
+ * contraste medido de um vale para todos.
  *
- *   - `--info` kept its cyan. A blue brand plus a blue "info" would make every
- *     informational alert look like a piece of brand chrome.
- *   - `--quality-importado` left blue for violet. It is one of four ordinal
- *     provenance hues, and the one hue it must never be confused with is the one
- *     the reader clicks — otherwise "imported" starts reading as "interactive".
+ * Contraste: cada par tinta/superfície foi medido nos dois temas (4,5:1 para
+ * texto, 3:1 para as bordas não textuais de 1.4.11). O par mais apertado do
+ * conjunto é --accent com branco no tema claro, em 5,59:1; --brand-700 sobre
+ * --brand-50 nunca cai abaixo de 6,2:1. As medidas estão comentadas em cada
+ * bloco de seção.
  *
- * Contrast: every ink/surface pair below was checked against WCAG AA (4.5:1 for
- * body text, 3:1 for the non-text edges under 1.4.11) in BOTH themes, measured
- * against the *lightest* surface the token actually appears on — the raised
- * panel in the dark theme, the sunken strip and the faintest brand tint in the
- * light one. The tightest pair in the whole set is `--brand-700` on `--brand-50`
- * in the light theme, at 5.01:1; nothing else falls below 5.2:1. The lime it
- * replaced managed 4.74:1 at its tightest, so the retheme *gained* margin.
+ * O que NÃO mudou, e por quê:
  *
- * A blue does hold white text, which the lime never could, so `--accent` is no
- * longer an apology: it is `--brand-700` in the light theme (5.75:1 with white)
- * because Google's own #1A73E8 sits at 4.51:1 — passing, but with a margin thin
- * enough that a rounding difference would flip it.
+ *   - --quality-* (medido, importado, estimado, ausente) mantém os valores e os
+ *     glifos atuais. São a afirmação técnica do projeto (§3.3 da proposta), não
+ *     decoração; um matiz de seção passando por cima deles faria "estimado"
+ *     mudar de cor conforme a página. Ficam fora do ciclo, sempre.
+ *   - --success/--warning/--danger/--info seguem fora do ciclo pelo mesmo
+ *     motivo: um alerta que muda de cor por rota não é um alerta.
+ *   - A paleta Okabe–Ito de classes de material (lib/design/palette.ts) fica
+ *     intacta.
  */
 
 :root,
 [data-theme="light"] {
   color-scheme: light;
 
-  --surface: 248 249 250;
+  /* Cinza-azulado, não papel morno: a figura de Ashby e a tabela densa ficam
+   * mais legíveis sobre um branco levemente frio, e o matiz da seção não
+   * disputa com um fundo já quente. */
+  --surface: 244 246 250;
   --surface-raised: 255 255 255;
-  --surface-sunken: 241 243 244;
-  --surface-inverted: 32 33 36;
+  --surface-sunken: 235 238 245;
+  --surface-inverted: 23 26 33;
 
-  --edge: 218 220 224;
-  --edge-subtle: 232 234 237;
-  --edge-strong: 189 193 198;
-  /* The outline of a text field, and the one edge in the system that is not a
-   * matter of taste. An input's background is the same raised surface as the
-   * card behind it, so this border is the *only* thing that says a control is
-   * there — which puts it under WCAG 1.4.11 (non-text contrast) at 3:1, not
-   * under the hairline budget the other edges live on. 3.68:1 measured on the
-   * raised panel, the lighter of the two surfaces a control sits on. */
-  --edge-control: 128 134 139;
+  --edge: 220 225 234;
+  --edge-subtle: 231 234 241;
+  --edge-strong: 195 202 214;
+  /* A borda de um campo é a única coisa que diz que existe um controle ali, o
+   * que a coloca sob 1.4.11 (3:1), e não no orçamento de hairline das outras.
+   * 4,49:1 sobre o painel elevado, a mais clara das duas superfícies
+   * em que um controle se apoia. */
+  --edge-control: 111 119 137;
 
-  --ink: 32 33 36;
-  --ink-muted: 68 71 70;
-  /* 5.28:1 on `--brand-50`, the faintest surface it is ever asked to sit on. */
-  --ink-subtle: 95 99 104;
-  --ink-inverted: 248 249 250;
+  --ink: 23 26 33;
+  --ink-muted: 74 81 98;
+  /* 4,95:1 sobre --surface. Foi escurecido em relação ao cinza do
+   * D-38: sobre a superfície mais clara desta paleta, o valor anterior passava
+   * a 4,3:1 — reprovado. */
+  --ink-subtle: 99 107 124;
+  --ink-inverted: 242 244 249;
 
-  /* Google's blue ramp, with the dark end compressed on purpose.
+  /* O rail é escuro nos dois temas — é o que o mantém como moldura em vez de
+   * mais um painel, e o que faz o matiz da seção acender contra ele. Por isso
+   * não é --surface-inverted: aquele token vira claro no tema escuro, e o rail
+   * ficaria branco justamente onde a página é grafite.
    *
-   * `700` is the shade components mean by "confident ink on the faintest tint",
-   * so it has to clear 4.5:1 on `--brand-50`. Google publishes #1967D2 there,
-   * which lands at 4.68:1 — true, but close enough to the line that any future
-   * nudge to `--brand-50` would break it silently. #1565C0 buys 5.01:1 for a
-   * difference nobody can see, and doubles as `--accent`. */
-  --brand-50: 232 240 254;
-  --brand-100: 210 227 252;
-  --brand-200: 174 203 250;
-  --brand-300: 138 180 248;
-  --brand-400: 102 157 246;
-  --brand-500: 66 133 244;
-  --brand-600: 26 115 232;
-  --brand-700: 21 101 192;
-  --brand-800: 23 78 166;
-  --brand-900: 16 58 125;
-  --brand-950: 10 36 82;
+   * --rail-accent é uma referência, não um valor: aponta para o tom claro da
+   * rampa em cada tema, então acompanha o matiz da seção sem que este bloco
+   * precise conhecer as sete seções. */
+  --rail: 14 16 23;
+  --rail-ink: 242 244 249;
+  --rail-ink-muted: 195 201 216;
+  --rail-ink-subtle: 118 126 146;
+  --rail-edge: 255 255 255;
+  --rail-accent: var(--brand-300);
 
-  --accent: 21 101 192;
+  /* Rampa da rota inicial (matiz 262). As demais rotas a reescrevem nos
+   * blocos [data-section] mais abaixo. `700` é o tom que os componentes
+   * chamam de "tinta confiante sobre a tintura mais fraca": 7,12:1 sobre
+   * --brand-50. */
+  --brand-50: 234 244 255;
+  --brand-100: 216 233 255;
+  --brand-200: 192 216 255;
+  --brand-300: 164 197 255;
+  --brand-400: 127 164 234;
+  --brand-500: 90 132 212;
+  --brand-600: 73 114 192;
+  --brand-700: 44 79 148;
+  --brand-800: 35 64 119;
+  --brand-900: 22 44 85;
+  --brand-950: 10 25 54;
+  --accent: 69 103 168;
   --accent-fg: 255 255 255;
 
   --success: 24 128 56;
   --success-soft: 230 244 234;
   --success-fg: 19 115 51;
 
-  /* Orange, not the mustard this used to be. `DEFAULT` is a stroke — a border,
-   * an icon — so it answers to 1.4.11's 3:1, which Google's display yellow
-   * (#F9AB00, 1.7:1 on white) cannot do. #E8710A clears it at 3.09:1 and is the
-   * more colourful of the two anyway. */
   --warning: 232 113 10;
   --warning-soft: 254 239 227;
   --warning-fg: 138 76 12;
@@ -102,15 +115,12 @@
   --danger-soft: 252 232 230;
   --danger-fg: 165 14 14;
 
-  /* Cyan, kept away from the brand blue on purpose — see the header. */
   --info: 12 122 148;
   --info-soft: 219 245 250;
   --info-fg: 13 99 120;
 
-  /* Ordinal by confidence: measured > imported > estimated > absent. Three
-   * hues plus a neutral, chosen away from the red/green axis so deuteranopia
-   * does not collapse two of them, and now away from the brand blue too. Colour
-   * is never the only cue — see components/ui/DataQualityBadge.tsx. */
+  /* Ordinal por confiança: medido > importado > estimado > ausente. Inalterado
+   * — ver o cabeçalho deste arquivo. */
   --quality-medido: 14 107 99;
   --quality-medido-soft: 224 242 241;
   --quality-importado: 106 27 154;
@@ -120,113 +130,242 @@
   --quality-ausente: 95 99 104;
   --quality-ausente-soft: 241 243 244;
 
-  /* Material 3 scheme for @material/web's shadow DOM: button, text-field,
-   * card, dialog, tabs. Generated by lib/design/materialTheme.ts from seed
-   * #1A73E8, Google's own blue for the M3 migration, and locked against
-   * drift by materialTheme.test.ts. Hex, not an "R G B" triple: this is the
-   * format @material/web's own compiled styles expect, and these tokens are
-   * consumed only inside components' shadow trees, so they never need the
-   * Tailwind alpha-channel bridge the tokens above use.
-   *
-   * Deliberately NOT the source for --brand-*, --success, or --quality-*:
-   * see materialTheme.ts for why. In short, the M3 generator derives a
-   * custom color's tone from its core palette, and for a near-neutral input
-   * such as --quality-ausente's grey that swaps in a spurious saturated hue
-   * instead of preserving it. Those tokens keep their own hand-measured
-   * values above, untouched by this generator. */
-  --md-sys-color-primary: #005bbf;
+  /* Esquema Material 3 para o shadow DOM de @material/web. Só as famílias
+   * primary/secondary/tint são reescritas por seção; as superfícies e o error
+   * seguem neutras para os componentes M3 não brigarem com a paleta acima.
+   * Hex, não "R G B": é o formato que os estilos compilados do @material/web
+   * esperam, e estes tokens são lidos apenas dentro de shadow trees. */
+  --md-sys-color-primary: #4567a8;
   --md-sys-color-on-primary: #ffffff;
-  --md-sys-color-primary-container: #1a73e8;
+  --md-sys-color-primary-container: #5a84d4;
   --md-sys-color-on-primary-container: #ffffff;
-  --md-sys-color-primary-fixed: #d8e2ff;
-  --md-sys-color-primary-fixed-dim: #adc7ff;
-  --md-sys-color-on-primary-fixed: #001a41;
-  --md-sys-color-on-primary-fixed-variant: #004493;
-  --md-sys-color-inverse-primary: #adc7ff;
-  --md-sys-color-secondary: #475e8c;
+  --md-sys-color-inverse-primary: #97beff;
+  --md-sys-color-secondary: #2c4f94;
   --md-sys-color-on-secondary: #ffffff;
-  --md-sys-color-secondary-container: #b2c9fe;
-  --md-sys-color-on-secondary-container: #3d5481;
-  --md-sys-color-secondary-fixed: #d8e2ff;
-  --md-sys-color-secondary-fixed-dim: #afc7fb;
-  --md-sys-color-on-secondary-fixed: #001a41;
-  --md-sys-color-on-secondary-fixed-variant: #2e4673;
+  --md-sys-color-secondary-container: #c0d8ff;
+  --md-sys-color-on-secondary-container: #234077;
   --md-sys-color-tertiary: #8c36ab;
   --md-sys-color-on-tertiary: #ffffff;
-  --md-sys-color-tertiary-container: #a851c6;
-  --md-sys-color-on-tertiary-container: #ffffff;
-  --md-sys-color-tertiary-fixed: #fad7ff;
-  --md-sys-color-tertiary-fixed-dim: #efb0ff;
-  --md-sys-color-on-tertiary-fixed: #330045;
-  --md-sys-color-on-tertiary-fixed-variant: #721791;
   --md-sys-color-error: #ba1a1a;
   --md-sys-color-on-error: #ffffff;
   --md-sys-color-error-container: #ffdad6;
   --md-sys-color-on-error-container: #93000a;
-  --md-sys-color-background: #f9f9ff;
-  --md-sys-color-on-background: #191c23;
-  --md-sys-color-surface: #f9f9ff;
-  --md-sys-color-on-surface: #191c23;
-  --md-sys-color-surface-variant: #dee2f2;
-  --md-sys-color-on-surface-variant: #414754;
-  --md-sys-color-surface-dim: #d8d9e3;
-  --md-sys-color-surface-bright: #f9f9ff;
+  --md-sys-color-background: #f4f6fa;
+  --md-sys-color-on-background: #171a21;
+  --md-sys-color-surface: #ffffff;
+  --md-sys-color-on-surface: #171a21;
+  --md-sys-color-surface-variant: #ebeef5;
+  --md-sys-color-on-surface-variant: #4a5162;
   --md-sys-color-surface-container-lowest: #ffffff;
-  --md-sys-color-surface-container-low: #f2f3fd;
-  --md-sys-color-surface-container: #ecedf7;
-  --md-sys-color-surface-container-high: #e6e8f2;
-  --md-sys-color-surface-container-highest: #e0e2ec;
-  --md-sys-color-surface-tint: #005bc0;
-  --md-sys-color-outline: #727785;
-  --md-sys-color-outline-variant: #c1c6d6;
+  --md-sys-color-surface-container-low: #f4f6fa;
+  --md-sys-color-surface-container: #ebeef5;
+  --md-sys-color-surface-container-high: #e7eaf1;
+  --md-sys-color-surface-container-highest: #dce1ea;
+  --md-sys-color-surface-tint: #4567a8;
+  --md-sys-color-outline: #6f7789;
+  --md-sys-color-outline-variant: #c3cad6;
   --md-sys-color-shadow: #000000;
   --md-sys-color-scrim: #000000;
-  --md-sys-color-inverse-surface: #2d3038;
-  --md-sys-color-inverse-on-surface: #eff0fa;
+  --md-sys-color-inverse-surface: #171a21;
+  --md-sys-color-inverse-on-surface: #f2f4f9;
+}
+
+/* --- Matiz por seção · tema claro ------------------------------------------
+ * A rampa é reescrita por completo, e não só o --accent: um componente que
+ * pinta o estado ativo com `bg-brand-50 text-brand-700` precisa que os dois
+ * tons andem juntos, ou o contraste medido deixa de valer. */
+
+[data-section="selecao"] {
+  /* Seleção · matiz 300. accent/branco 5,75:1 · brand-700/brand-50 7,34:1 */
+  --brand-50: 246 240 255;
+  --brand-100: 236 226 255;
+  --brand-200: 222 206 253;
+  --brand-300: 205 183 246;
+  --brand-400: 175 149 223;
+  --brand-500: 147 114 200;
+  --brand-600: 129 96 181;
+  --brand-700: 93 64 138;
+  --brand-800: 75 52 111;
+  --brand-900: 52 35 79;
+  --brand-950: 31 19 50;
+  --accent: 115 89 158;
+  --accent-fg: 255 255 255;
+  --md-sys-color-primary: #73599e;
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #9372c8;
+  --md-sys-color-on-primary-container: #ffffff;
+  --md-sys-color-secondary-container: #decefd;
+  --md-sys-color-on-secondary-container: #4b346f;
+  --md-sys-color-surface-tint: #73599e;
+}
+
+[data-section="mapas"] {
+  /* Mapas · matiz 185. accent/branco 6,42:1 · brand-700/brand-50 6,26:1 */
+  --brand-50: 226 249 246;
+  --brand-100: 199 242 236;
+  --brand-200: 167 230 221;
+  --brand-300: 124 215 204;
+  --brand-400: 61 187 174;
+  --brand-500: 0 158 144;
+  --brand-600: 0 140 126;
+  --brand-700: 0 102 91;
+  --brand-800: 0 82 73;
+  --brand-900: 0 58 51;
+  --brand-950: 0 35 30;
+  --accent: 0 107 96;
+  --accent-fg: 255 255 255;
+  --md-sys-color-primary: #006b60;
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #009e90;
+  --md-sys-color-on-primary-container: #ffffff;
+  --md-sys-color-secondary-container: #a7e6dd;
+  --md-sys-color-on-secondary-container: #005249;
+  --md-sys-color-surface-tint: #006b60;
+}
+
+[data-section="comparar"] {
+  /* Comparar · matiz 350. accent/branco 5,85:1 · brand-700/brand-50 7,40:1 */
+  --brand-50: 255 237 246;
+  --brand-100: 255 220 236;
+  --brand-200: 250 199 221;
+  --brand-300: 241 172 204;
+  --brand-400: 216 135 174;
+  --brand-500: 191 98 145;
+  --brand-600: 171 81 127;
+  --brand-700: 129 49 92;
+  --brand-800: 104 40 74;
+  --brand-900: 74 26 51;
+  --brand-950: 46 13 30;
+  --accent: 151 76 114;
+  --accent-fg: 255 255 255;
+  --md-sys-color-primary: #974c72;
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #bf6291;
+  --md-sys-color-on-primary-container: #ffffff;
+  --md-sys-color-secondary-container: #fac7dd;
+  --md-sys-color-on-secondary-container: #68284a;
+  --md-sys-color-surface-tint: #974c72;
+}
+
+[data-section="catalogo"] {
+  /* Catálogo · matiz 225. accent/branco 5,69:1 · brand-700/brand-50 6,52:1 */
+  --brand-50: 227 248 255;
+  --brand-100: 201 239 255;
+  --brand-200: 170 225 248;
+  --brand-300: 129 209 240;
+  --brand-400: 73 179 216;
+  --brand-500: 0 149 193;
+  --brand-600: 0 130 173;
+  --brand-700: 0 94 132;
+  --brand-800: 0 76 106;
+  --brand-900: 0 53 76;
+  --brand-950: 0 31 47;
+  --accent: 0 111 146;
+  --accent-fg: 255 255 255;
+  --md-sys-color-primary: #006f92;
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #0095c1;
+  --md-sys-color-on-primary-container: #ffffff;
+  --md-sys-color-secondary-container: #aae1f8;
+  --md-sys-color-on-secondary-container: #004c6a;
+  --md-sys-color-surface-tint: #006f92;
+}
+
+[data-section="painel"] {
+  /* Painel · matiz 40. accent/branco 6,84:1 · brand-700/brand-50 7,25:1 */
+  --brand-50: 255 238 231;
+  --brand-100: 255 223 210;
+  --brand-200: 254 202 184;
+  --brand-300: 247 177 152;
+  --brand-400: 223 140 111;
+  --brand-500: 198 104 70;
+  --brand-600: 178 86 52;
+  --brand-700: 135 54 22;
+  --brand-800: 109 44 19;
+  --brand-900: 78 28 10;
+  --brand-950: 49 14 3;
+  --accent: 144 69 41;
+  --accent-fg: 255 255 255;
+  --md-sys-color-primary: #904529;
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #c66846;
+  --md-sys-color-on-primary-container: #ffffff;
+  --md-sys-color-secondary-container: #fecab8;
+  --md-sys-color-on-secondary-container: #6d2c13;
+  --md-sys-color-surface-tint: #904529;
+}
+
+[data-section="importar"] {
+  /* Importar · matiz 150. accent/branco 6,81:1 · brand-700/brand-50 6,70:1 */
+  --brand-50: 232 249 235;
+  --brand-100: 212 241 216;
+  --brand-200: 186 228 193;
+  --brand-300: 154 213 165;
+  --brand-400: 111 184 128;
+  --brand-500: 66 156 90;
+  --brand-600: 45 137 73;
+  --brand-700: 3 100 43;
+  --brand-800: 8 80 35;
+  --brand-900: 3 56 22;
+  --brand-950: 0 34 10;
+  --accent: 29 104 53;
+  --accent-fg: 255 255 255;
+  --md-sys-color-primary: #1d6835;
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #429c5a;
+  --md-sys-color-on-primary-container: #ffffff;
+  --md-sys-color-secondary-container: #bae4c1;
+  --md-sys-color-on-secondary-container: #085023;
+  --md-sys-color-surface-tint: #1d6835;
 }
 
 [data-theme="dark"] {
   color-scheme: dark;
 
-  /* Graphite, not the near-black of D-33. #05080A was a page with nothing
-   * behind it; #131314 is a page a panel can sit *on*, which is what makes the
-   * raised surface below read as raised without leaning on a shadow the dark
-   * theme can barely show. */
-  --surface: 19 19 20;
-  --surface-raised: 30 31 32;
-  --surface-sunken: 14 14 15;
-  --surface-inverted: 248 249 250;
+  /* Grafite azulado, não quase-preto: um painel elevado precisa de uma página
+   * em que possa se apoiar. */
+  --surface: 20 22 28;
+  --surface-raised: 27 30 38;
+  --surface-sunken: 15 17 22;
+  --surface-inverted: 231 233 240;
 
-  --edge: 48 49 52;
-  --edge-subtle: 35 36 39;
-  --edge-strong: 68 71 70;
-  /* Not `--edge-strong`: on the panel even that reaches only 1.9:1, which is a
-   * hairline the eye reads as decoration rather than as the edge of something
-   * you can type into. 5.19:1 here. */
-  --edge-control: 142 145 143;
+  --edge: 42 46 57;
+  --edge-subtle: 35 38 46;
+  --edge-strong: 58 63 76;
+  /* 4,10:1 sobre o painel elevado. */
+  --edge-control: 118 126 146;
 
-  --ink: 227 227 227;
-  --ink-muted: 196 199 197;
-  --ink-subtle: 154 160 166;
-  --ink-inverted: 19 19 20;
+  --ink: 231 233 240;
+  --ink-muted: 183 190 206;
+  --ink-subtle: 140 147 165;
+  --ink-inverted: 20 22 28;
 
-  /* The ramp is inverted, not recoloured. `bg-brand-50 text-brand-700` then
-   * means "faintest tint, confident ink" in both themes, and a component never
-   * has to name a different shade per theme. 7.19:1 for that pair here. */
-  --brand-50: 10 36 82;
-  --brand-100: 16 58 125;
-  --brand-200: 23 78 166;
-  --brand-300: 21 101 192;
-  --brand-400: 26 115 232;
-  --brand-500: 66 133 244;
-  --brand-600: 102 157 246;
-  --brand-700: 138 180 248;
-  --brand-800: 174 203 250;
-  --brand-900: 210 227 252;
-  --brand-950: 232 240 254;
+  /* Um passo mais fundo que --surface, e não mais claro: no tema escuro o rail
+   * é o que a página se apoia. */
+  --rail: 15 17 22;
+  --rail-ink: 242 244 249;
+  --rail-ink-muted: 195 201 216;
+  --rail-ink-subtle: 118 126 146;
+  --rail-edge: 255 255 255;
+  /* O tom claro da rampa neste tema é o 700 — ver a nota sobre a inversão. */
+  --rail-accent: var(--brand-700);
 
-  --accent: 138 180 248;
-  --accent-fg: 19 19 20;
+  /* A rampa é invertida, não recolorida: `bg-brand-50 text-brand-700` continua
+   * significando "tintura mais fraca, tinta confiante" nos dois temas, e nenhum
+   * componente precisa nomear um tom diferente por tema. 10,57:1 nesse par. */
+  --brand-50: 10 25 54;
+  --brand-100: 22 44 85;
+  --brand-200: 35 64 119;
+  --brand-300: 44 79 148;
+  --brand-400: 73 114 192;
+  --brand-500: 90 132 212;
+  --brand-600: 127 164 234;
+  --brand-700: 172 203 255;
+  --brand-800: 192 216 255;
+  --brand-900: 216 233 255;
+  --brand-950: 234 244 255;
+  --accent: 151 190 255;
+  --accent-fg: 20 22 28;
 
   --success: 129 201 149;
   --success-soft: 14 42 22;
@@ -244,12 +383,6 @@
   --info-soft: 6 38 45;
   --info-fg: 145 227 238;
 
-  /* Three of these four are untouched by the retheme on purpose: they are the
-   * product's claim about provenance (§3.3 da proposta), not decoration, and
-   * pulling them toward the brand would put "estimado" next to every
-   * interactive affordance on the page. `importado` moved only because the
-   * brand moved onto its hue — violet is the nearest seat that collides with
-   * nothing. */
   --quality-medido: 94 234 212;
   --quality-medido-soft: 11 46 44;
   --quality-importado: 206 147 216;
@@ -259,56 +392,185 @@
   --quality-ausente: 196 199 197;
   --quality-ausente-soft: 35 36 39;
 
-  /* Same generator, dark scheme — see the light block above. */
-  --md-sys-color-primary: #adc7ff;
-  --md-sys-color-on-primary: #002e68;
-  --md-sys-color-primary-container: #1a73e8;
+  --md-sys-color-primary: #97beff;
+  --md-sys-color-on-primary: #162c55;
+  --md-sys-color-primary-container: #2c4f94;
   --md-sys-color-on-primary-container: #ffffff;
-  --md-sys-color-primary-fixed: #d8e2ff;
-  --md-sys-color-primary-fixed-dim: #adc7ff;
-  --md-sys-color-on-primary-fixed: #001a41;
-  --md-sys-color-on-primary-fixed-variant: #004493;
-  --md-sys-color-inverse-primary: #005bc0;
-  --md-sys-color-secondary: #afc7fb;
-  --md-sys-color-on-secondary: #15305b;
-  --md-sys-color-secondary-container: #2e4673;
-  --md-sys-color-on-secondary-container: #9eb5e8;
-  --md-sys-color-secondary-fixed: #d8e2ff;
-  --md-sys-color-secondary-fixed-dim: #afc7fb;
-  --md-sys-color-on-secondary-fixed: #001a41;
-  --md-sys-color-on-secondary-fixed-variant: #2e4673;
+  --md-sys-color-inverse-primary: #4567a8;
+  --md-sys-color-secondary: #accbff;
+  --md-sys-color-on-secondary: #162c55;
+  --md-sys-color-secondary-container: #234077;
+  --md-sys-color-on-secondary-container: #d8e9ff;
   --md-sys-color-tertiary: #efb0ff;
   --md-sys-color-on-tertiary: #53006e;
-  --md-sys-color-tertiary-container: #a851c6;
-  --md-sys-color-on-tertiary-container: #ffffff;
-  --md-sys-color-tertiary-fixed: #fad7ff;
-  --md-sys-color-tertiary-fixed-dim: #efb0ff;
-  --md-sys-color-on-tertiary-fixed: #330045;
-  --md-sys-color-on-tertiary-fixed-variant: #721791;
   --md-sys-color-error: #ffb4ab;
   --md-sys-color-on-error: #690005;
   --md-sys-color-error-container: #93000a;
   --md-sys-color-on-error-container: #ffdad6;
-  --md-sys-color-background: #10131a;
-  --md-sys-color-on-background: #e0e2ec;
-  --md-sys-color-surface: #10131a;
-  --md-sys-color-on-surface: #e0e2ec;
-  --md-sys-color-surface-variant: #414754;
-  --md-sys-color-on-surface-variant: #c1c6d6;
-  --md-sys-color-surface-dim: #10131a;
-  --md-sys-color-surface-bright: #363941;
-  --md-sys-color-surface-container-lowest: #0b0e15;
-  --md-sys-color-surface-container-low: #191c23;
-  --md-sys-color-surface-container: #1d2027;
-  --md-sys-color-surface-container-high: #272a31;
-  --md-sys-color-surface-container-highest: #32353c;
-  --md-sys-color-surface-tint: #adc7ff;
-  --md-sys-color-outline: #8b909f;
-  --md-sys-color-outline-variant: #414754;
+  --md-sys-color-background: #14161c;
+  --md-sys-color-on-background: #e7e9f0;
+  --md-sys-color-surface: #1b1e26;
+  --md-sys-color-on-surface: #e7e9f0;
+  --md-sys-color-surface-variant: #2a2e39;
+  --md-sys-color-on-surface-variant: #b7bece;
+  --md-sys-color-surface-container-lowest: #0f1116;
+  --md-sys-color-surface-container-low: #14161c;
+  --md-sys-color-surface-container: #1b1e26;
+  --md-sys-color-surface-container-high: #23262e;
+  --md-sys-color-surface-container-highest: #2a2e39;
+  --md-sys-color-surface-tint: #97beff;
+  --md-sys-color-outline: #767e92;
+  --md-sys-color-outline-variant: #2a2e39;
   --md-sys-color-shadow: #000000;
   --md-sys-color-scrim: #000000;
-  --md-sys-color-inverse-surface: #e0e2ec;
-  --md-sys-color-inverse-on-surface: #2d3038;
+  --md-sys-color-inverse-surface: #e7e9f0;
+  --md-sys-color-inverse-on-surface: #14161c;
+}
+
+/* --- Matiz por seção · tema escuro ---------------------------------------- */
+
+[data-theme="dark"] [data-section="selecao"] {
+  /* Seleção · matiz 300. accent/surface 9,38:1 · brand-700/brand-50 10,45:1 */
+  --brand-50: 31 19 50;
+  --brand-100: 52 35 79;
+  --brand-200: 75 52 111;
+  --brand-300: 93 64 138;
+  --brand-400: 129 96 181;
+  --brand-500: 147 114 200;
+  --brand-600: 175 149 223;
+  --brand-700: 211 190 250;
+  --brand-800: 222 206 253;
+  --brand-900: 236 226 255;
+  --brand-950: 246 240 255;
+  --accent: 200 174 250;
+  --accent-fg: 20 22 28;
+  --md-sys-color-primary: #c8aefa;
+  --md-sys-color-on-primary: #34234f;
+  --md-sys-color-primary-container: #5d408a;
+  --md-sys-color-on-primary-container: #ffffff;
+  --md-sys-color-secondary-container: #4b346f;
+  --md-sys-color-on-secondary-container: #ece2ff;
+  --md-sys-color-surface-tint: #c8aefa;
+}
+
+[data-theme="dark"] [data-section="mapas"] {
+  /* Mapas · matiz 185. accent/surface 10,16:1 · brand-700/brand-50 10,57:1 */
+  --brand-50: 0 35 30;
+  --brand-100: 0 58 51;
+  --brand-200: 0 82 73;
+  --brand-300: 0 102 91;
+  --brand-400: 0 140 126;
+  --brand-500: 0 158 144;
+  --brand-600: 61 187 174;
+  --brand-700: 135 221 210;
+  --brand-800: 167 230 221;
+  --brand-900: 199 242 236;
+  --brand-950: 226 249 246;
+  --accent: 92 213 199;
+  --accent-fg: 20 22 28;
+  --md-sys-color-primary: #5cd5c7;
+  --md-sys-color-on-primary: #003a33;
+  --md-sys-color-primary-container: #00665b;
+  --md-sys-color-on-primary-container: #ffffff;
+  --md-sys-color-secondary-container: #005249;
+  --md-sys-color-on-secondary-container: #c7f2ec;
+  --md-sys-color-surface-tint: #5cd5c7;
+}
+
+[data-theme="dark"] [data-section="comparar"] {
+  /* Comparar · matiz 350. accent/surface 9,22:1 · brand-700/brand-50 10,38:1 */
+  --brand-50: 46 13 30;
+  --brand-100: 74 26 51;
+  --brand-200: 104 40 74;
+  --brand-300: 129 49 92;
+  --brand-400: 171 81 127;
+  --brand-500: 191 98 145;
+  --brand-600: 216 135 174;
+  --brand-700: 246 180 210;
+  --brand-800: 250 199 221;
+  --brand-900: 255 220 236;
+  --brand-950: 255 237 246;
+  --accent: 244 160 200;
+  --accent-fg: 20 22 28;
+  --md-sys-color-primary: #f4a0c8;
+  --md-sys-color-on-primary: #4a1a33;
+  --md-sys-color-primary-container: #81315c;
+  --md-sys-color-on-primary-container: #ffffff;
+  --md-sys-color-secondary-container: #68284a;
+  --md-sys-color-on-secondary-container: #ffdcec;
+  --md-sys-color-surface-tint: #f4a0c8;
+}
+
+[data-theme="dark"] [data-section="catalogo"] {
+  /* Catálogo · matiz 225. accent/surface 9,97:1 · brand-700/brand-50 10,62:1 */
+  --brand-50: 0 31 47;
+  --brand-100: 0 53 76;
+  --brand-200: 0 76 106;
+  --brand-300: 0 94 132;
+  --brand-400: 0 130 173;
+  --brand-500: 0 149 193;
+  --brand-600: 73 179 216;
+  --brand-700: 140 215 244;
+  --brand-800: 170 225 248;
+  --brand-900: 201 239 255;
+  --brand-950: 227 248 255;
+  --accent: 101 205 243;
+  --accent-fg: 20 22 28;
+  --md-sys-color-primary: #65cdf3;
+  --md-sys-color-on-primary: #00354c;
+  --md-sys-color-primary-container: #005e84;
+  --md-sys-color-on-primary-container: #ffffff;
+  --md-sys-color-secondary-container: #004c6a;
+  --md-sys-color-on-secondary-container: #c9efff;
+  --md-sys-color-surface-tint: #65cdf3;
+}
+
+[data-theme="dark"] [data-section="painel"] {
+  /* Painel · matiz 40. accent/surface 9,33:1 · brand-700/brand-50 10,47:1 */
+  --brand-50: 49 14 3;
+  --brand-100: 78 28 10;
+  --brand-200: 109 44 19;
+  --brand-300: 135 54 22;
+  --brand-400: 178 86 52;
+  --brand-500: 198 104 70;
+  --brand-600: 223 140 111;
+  --brand-700: 252 184 161;
+  --brand-800: 254 202 184;
+  --brand-900: 255 223 210;
+  --brand-950: 255 238 231;
+  --accent: 251 165 135;
+  --accent-fg: 20 22 28;
+  --md-sys-color-primary: #fba587;
+  --md-sys-color-on-primary: #4e1c0a;
+  --md-sys-color-primary-container: #873616;
+  --md-sys-color-on-primary-container: #ffffff;
+  --md-sys-color-secondary-container: #6d2c13;
+  --md-sys-color-on-secondary-container: #ffdfd2;
+  --md-sys-color-surface-tint: #fba587;
+}
+
+[data-theme="dark"] [data-section="importar"] {
+  /* Importar · matiz 150. accent/surface 10,11:1 · brand-700/brand-50 10,78:1 */
+  --brand-50: 0 34 10;
+  --brand-100: 3 56 22;
+  --brand-200: 8 80 35;
+  --brand-300: 3 100 43;
+  --brand-400: 45 137 73;
+  --brand-500: 66 156 90;
+  --brand-600: 111 184 128;
+  --brand-700: 163 219 173;
+  --brand-800: 186 228 193;
+  --brand-900: 212 241 216;
+  --brand-950: 232 249 235;
+  --accent: 137 210 152;
+  --accent-fg: 20 22 28;
+  --md-sys-color-primary: #89d298;
+  --md-sys-color-on-primary: #033816;
+  --md-sys-color-primary-container: #03642b;
+  --md-sys-color-on-primary-container: #ffffff;
+  --md-sys-color-secondary-container: #085023;
+  --md-sys-color-on-secondary-container: #d4f1d8;
+  --md-sys-color-surface-tint: #89d298;
 }
 
 @layer base {
@@ -320,11 +582,10 @@
     @apply bg-surface font-sans text-ink antialiased;
   }
 
-  /* Headings are set tight, as in the source pack. It is not only a look: at
-   * `text-lg` and up, default tracking makes a two-word section title read as
-   * two separate labels. `text-balance` keeps a wrapped title from leaving one
-   * orphan word on the second line — a real problem at 375 px, where most
-   * titles wrap. */
+  /* Public Sans tem números tabulares nativos e formas abertas que aguentam
+   * 12 px numa tabela de nove colunas; o título fica apertado de propósito,
+   * porque no tamanho de seção o tracking padrão faz um título de duas
+   * palavras ler como dois rótulos soltos. */
   h1,
   h2,
   h3,
@@ -336,8 +597,8 @@
     @apply text-pretty;
   }
 
-  /* One focus ring for the whole application. Visible on both themes, and
-   * `:focus-visible` so a mouse click does not leave a ring behind. */
+  /* Um anel de foco para toda a aplicação, e ele acompanha o matiz da seção:
+   * `ring-brand` lê --accent, que o bloco [data-section] reescreveu. */
   :focus-visible {
     @apply outline-none ring-2 ring-brand ring-offset-2 ring-offset-surface;
   }
@@ -346,8 +607,6 @@
     @apply bg-brand-200 text-ink;
   }
 
-  /* Numbers are the content of this application. Digits that do not line up in
-   * a column are a legibility defect, not a nicety. */
   th[data-numeric],
   td[data-numeric] {
     @apply text-right tabular-nums;
@@ -355,29 +614,34 @@
 }
 
 @layer utilities {
-  /* Wide content (tables, charts, code) scrolls inside its own box. The page
-   * body must never scroll horizontally — checked at 375 px. */
   .scroll-x {
     @apply overflow-x-auto overscroll-x-contain;
   }
 
-  /* The "malleable" gesture of D-38, as one utility instead of the same four
-   * classes copied into every primitive: the thing grows a little under the
-   * pointer and gives way under the press. Scale only — no `translate`, so it
-   * cannot nudge a neighbour, and no library, which §13 de REDESIGN.md rules
-   * out. The reduced-motion block below turns it into an instant state change
-   * rather than removing it: the feedback survives, the movement does not. */
+  /* O gesto "maleável": cresce um pouco sob o ponteiro e cede sob a pressão.
+   * Só escala — sem `translate`, para não empurrar o vizinho. O bloco de
+   * reduced-motion no fim transforma isso em mudança de estado instantânea:
+   * o retorno sobrevive, o movimento não. */
   .pressable {
     @apply transition ease-emphasized hover:scale-[1.02] active:scale-[0.98];
   }
 
-  /* Compact density for md-*-button hosts: this version of @material/web
-   * ships one default size (~40px) with no built-in "small" variant. Custom
-   * properties inherit through the shadow boundary the same way
-   * --md-sys-color-* does, so a light-DOM class reaches each component's
-   * private tokens directly. Unused variant-prefixed properties are simply
-   * ignored by whichever element doesn't read them, so one class can cover
-   * every button variant without knowing which one a given instance is. */
+  /* A entrada escalonada de uma lista ou de um grid de cartões, sem biblioteca
+   * de animação. O call site aplica `.rise` no item e `style={{ animationDelay }}`
+   * no máximo nos seis primeiros; do sétimo em diante tudo entra junto, ou a
+   * tela leva mais tempo para assentar do que o leitor para olhar. */
+  .rise {
+    animation: rise 260ms cubic-bezier(0.2, 0, 0, 1) both;
+  }
+
+  /* Uma barra que cresce da origem em vez de aparecer pronta. É o único
+   * movimento do painel e do funil, e existe porque a barra *significa* uma
+   * proporção: vê-la crescer diz de onde ela partiu. */
+  .grow-x {
+    transform-origin: left;
+    animation: grow-x 460ms cubic-bezier(0.2, 0, 0, 1) both;
+  }
+
   .md-btn-sm {
     --md-filled-button-container-height: 2rem;
     --md-filled-button-label-text-size: 0.75rem;
@@ -396,9 +660,8 @@
     --md-icon-button-icon-size: 1.125rem;
   }
 
-  /* M3 has no destructive button role. --danger/--ink-inverted (not
-   * --md-sys-color-error/-on-error, reserved for Etapa 4's form validation
-   * states) stand in on exactly the tokens a filled button paints with. */
+  /* O M3 não tem papel destrutivo. --danger/--ink-inverted entram exatamente
+   * nos tokens com que um filled button pinta. */
   .md-btn-danger {
     --md-filled-button-container-color: rgb(var(--danger));
     --md-filled-button-label-text-color: rgb(var(--ink-inverted));
