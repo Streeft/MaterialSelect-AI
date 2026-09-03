@@ -1965,3 +1965,36 @@ item de acompanhamento, não como bloqueio: nenhuma tela hoje mistura os dois
 sistemas de um jeito que produza contraste incorreto (verificado nos dois
 temas em `/estilo`), mas o risco de nova divergência é real a cada mudança
 de paleta.
+
+---
+
+## D-49 — Paleta por rota ("Prisma") substitui a paleta única de D-38, sem revogar seu método de medição
+
+**Contexto.** D-38 fixou uma paleta única, medida (`--brand-700`/`--brand-50`
+a 5,01:1), com dois matizes deliberados (`--info` ciano,
+`--quality-importado` violeta). O patch "Prisma" (aplicado nesta sessão,
+[spec](superpowers/specs/2026-09-02-design-system-prisma-design.md)) muda o
+mecanismo: cada rota tem seu próprio matiz de `--accent`/`--brand-*`,
+trocado via `[data-section]` no `<html>` (escrito por
+`components/layout/SectionTheme.tsx`), com `--md-sys-color-primary` e
+`--md-sys-color-primary-container` acompanhando no mesmo escopo.
+
+**Decisão.** Adotar a paleta por rota. O método que D-38 estabeleceu —
+medir cada par antes de aceitar, documentar o par mais apertado — continua
+valendo e foi seguido pelo patch: par mais apertado 5,59:1 (era 5,01:1),
+nenhum par abaixo de 6,2:1 (verificado em
+`lib/design/materialTheme.test.ts`, que trava as sete seções × dois temas
+contra o limiar WCAG AA). `--ink-subtle` foi escurecido porque a nova
+superfície mais clara reprovava o valor antigo (4,3:1).
+
+**O que continua intocado.** `--quality-*`, `--success`/`--warning`/
+`--danger`/`--info` e a paleta categórica Okabe–Ito — nenhum dos dois
+matizes deliberados de D-38 muda de propósito ou de posição; a rota nunca
+os sobrescreve.
+
+**Consequência aceita.** A paleta deixa de ser "uma cor por conceito em todo
+lugar" e passa a ser "uma cor por conceito, modulada por onde a tela está" —
+uma leitura a mais para quem edita a paleta pela primeira vez (qual valor é
+o de uma seção específica vs. o de um token semântico como `--success`).
+Mitigado por manter os dois tipos de token em blocos CSS visivelmente
+distintos em `globals.css` (`:root` vs. `[data-section]`).
