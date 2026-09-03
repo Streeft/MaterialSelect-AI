@@ -157,14 +157,19 @@ const ACCENT_FG = { light: "#ffffff", dark: "#14161c" };
 
 /** sRGB hex -> relative luminance (WCAG 2.x). */
 function relativeLuminance(hex: string): number {
-  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255) as [number, number, number];
+  const r = parseInt(hex.slice(1, 3), 16) / 255;
+  const g = parseInt(hex.slice(3, 5), 16) / 255;
+  const b = parseInt(hex.slice(5, 7), 16) / 255;
   const linear = (c: number) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
   return 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b);
 }
 
 /** WCAG contrast ratio between two sRGB hex colours, always >= 1. */
 function contrastRatio(hexA: string, hexB: string): number {
-  const [lA, lB] = [relativeLuminance(hexA), relativeLuminance(hexB)].sort((a, b) => b - a) as [number, number];
+  const lum1 = relativeLuminance(hexA);
+  const lum2 = relativeLuminance(hexB);
+  const lA = Math.max(lum1, lum2);
+  const lB = Math.min(lum1, lum2);
   return (lA + 0.05) / (lB + 0.05);
 }
 
