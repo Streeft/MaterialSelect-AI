@@ -1,10 +1,9 @@
 import type { Config } from "tailwindcss";
 
-// Cada cor semântica é uma custom property com um triplo "R G B", para que a
-// sintaxe `/<alpha>` do Tailwind continue funcionando E a camada de gráficos
-// possa ler o mesmo valor em tempo de execução (ver lib/design/palette.ts).
-// Definir uma cor duas vezes — aqui e no Plotly — é como uma interface e suas
-// figuras se afastam.
+// Each semantic color is a custom property with an "R G B" triple, so Tailwind's
+// `/<alpha>` syntax keeps working AND the graphics layer can read the same value
+// at runtime (see lib/design/palette.ts). Defining a color twice — here and in
+// Plotly — is how an interface and its figures drift apart.
 const v = (name: string) => `rgb(var(${name}) / <alpha-value>)`;
 
 const config: Config = {
@@ -36,8 +35,8 @@ const config: Config = {
           inverted: v("--ink-inverted"),
         },
 
-        // A moldura de navegação, escura nos dois temas. `accent` acompanha o
-        // matiz da seção — ver a nota em app/globals.css.
+        // The navigation frame, dark in both themes. `accent` follows the
+        // section hue — see the note in app/globals.css.
         rail: {
           DEFAULT: v("--rail"),
           ink: v("--rail-ink"),
@@ -47,9 +46,9 @@ const config: Config = {
           accent: v("--rail-accent"),
         },
 
-        // A rampa do matiz da seção atual. O nome continua `brand` de propósito:
-        // é o que faz todo componente já escrito herdar o matiz da rota sem uma
-        // linha de alteração. Ver o cabeçalho de app/globals.css.
+        // The ramp for the current section's hue. The name stays `brand` on purpose:
+        // that's what makes every existing component inherit the route's hue without
+        // a line of change. See the header of app/globals.css.
         brand: {
           50: v("--brand-50"),
           100: v("--brand-100"),
@@ -84,9 +83,9 @@ const config: Config = {
       },
 
       fontFamily: {
-        // Public Sans, carregada por next/font em app/layout.tsx e chegando aqui
-        // como --font-sans. Números tabulares nativos e formas abertas que
-        // aguentam 12 px numa tabela densa.
+        // Public Sans, loaded by next/font in app/layout.tsx and arriving here
+        // as --font-sans. Native tabular numbers and open forms that
+        // hold up at 12px in a dense table.
         sans: [
           "var(--font-sans)",
           "ui-sans-serif",
@@ -97,8 +96,8 @@ const config: Config = {
           "Arial",
           "sans-serif",
         ],
-        // IBM Plex Mono, também via next/font (--font-mono). Obrigatória em
-        // expressão de índice, slug, unidade e método de conversão.
+        // IBM Plex Mono, also via next/font (--font-mono). Required for
+        // index expression, slug, unit, and conversion method.
         mono: [
           "var(--font-mono)",
           "ui-monospace",
@@ -114,14 +113,14 @@ const config: Config = {
       },
 
       letterSpacing: {
-        // O rótulo em versalete que abre cada seção e cada coluna de tabela.
+        // The smallcap label that opens each section and each table column.
         eyebrow: "0.16em",
       },
 
       borderRadius: {
-        // Prisma. `card` e `control` cobrem quase todo call site rounded do
-        // aplicativo; `panel` é a moldura de uma tela inteira (o shell de uma
-        // rota), `seat` os assentos dentro de um ButtonGroup.
+        // Prisma. `card` and `control` cover almost every rounded call site in the
+        // app; `panel` is the frame of an entire screen (a route's shell), `seat`
+        // the seats inside a ButtonGroup.
         panel: "1.5rem",
         card: "1.25rem",
         control: "0.75rem",
@@ -133,9 +132,9 @@ const config: Config = {
         raised: "0 6px 16px -8px rgb(23 26 33 / 0.24)",
         overlay: "0 18px 40px -18px rgb(23 26 33 / 0.35), 0 2px 6px 0 rgb(23 26 33 / 0.12)",
         lift: "0 16px 34px -18px rgb(23 26 33 / 0.30)",
-        // O que fica sob o item de navegação em que você está, e sob um botão
-        // primário. Lê o token da marca, então acompanha o matiz da seção em vez
-        // de escurecer: é o que faz "você está aqui" sobreviver a um relance.
+        // What sits under the navigation item you're on, and under a primary button.
+        // Reads the brand token, so follows the section hue instead of darkening:
+        // that's what makes "you are here" survive a glance.
         glow: "0 0 0 1px rgb(var(--brand-300) / 0.40), 0 10px 22px -12px rgb(var(--accent) / 0.85)",
       },
 
@@ -165,15 +164,15 @@ const config: Config = {
           from: { transform: "scaleY(0)" },
           to: { transform: "scaleY(1)" },
         },
-        // A linha-guia do índice de mérito se desenhando na vitrine. O valor de
-        // `stroke-dasharray` fica no elemento, porque depende do comprimento do
-        // traço; aqui só o alvo.
+        // The guide line of the merit index drawing itself in the showcase. The
+        // `stroke-dasharray` value lives on the element because it depends on stroke
+        // length; here just the target.
         dash: {
           from: { strokeDashoffset: "900" },
           to: { strokeDashoffset: "0" },
         },
-        // Os halos de matiz atrás do herói. É a única animação em loop do
-        // produto, e é decorativa — o bloco de reduced-motion a congela.
+        // The hue halos behind the hero. It's the only looping animation in the
+        // product, and it's decorative — the reduced-motion block freezes it.
         drift: {
           "0%, 100%": { transform: "translate3d(0, 0, 0) scale(1)" },
           "50%": { transform: "translate3d(22px, -18px, 0) scale(1.07)" },

@@ -1,10 +1,10 @@
 /**
- * A superfície pública do design system.
+ * The public surface of the design system.
  *
- * As telas importam de `@/components/ui`, nunca dos arquivos individuais, para
- * que um primitivo possa ser dividido ou renomeado sem tocar em call sites — e
- * para que um revisor veja de relance se uma tela nova usou o sistema ou
- * escreveu os próprios controles à mão outra vez.
+ * Screens import from `@/components/ui`, never from individual files, so
+ * a primitive can be split or renamed without touching call sites — and
+ * so a reviewer can see at a glance whether a new screen used the system or
+ * hand-wrote its own controls again.
  */
 
 export { Alert, type AlertTone } from "./Alert";

@@ -1,20 +1,20 @@
 import { cn } from "@/lib/cn";
 
 /**
- * Uma proporção, desenhada.
+ * A proportion, drawn.
  *
- * O preenchimento cresce da origem em vez de aparecer pronto, e isso não é
- * enfeite: a barra *significa* uma fração, e vê-la crescer diz de onde ela
- * partiu. É CSS puro (`.grow-x` em globals.css), então o bloco de
- * reduced-motion a entrega já pronta para quem pediu menos movimento.
+ * The fill grows from origin instead of appearing ready, and that's not decoration:
+ * the bar *means* a fraction, and seeing it grow tells where it came from. It's
+ * pure CSS (`.grow-x` in globals.css), so the reduced-motion block delivers it
+ * already complete for those who asked for less motion.
  *
- * `value` é 0–1, e `null` quando não há valor a mostrar — §1.3: ausência não
- * vira número. Nesse caso a barra fica vazia e o texto ao lado é quem explica;
- * uma barra de 0% leria como um veredito sobre um dado que não existe.
+ * `value` is 0–1, and `null` when there's no value to show — §1.3: absence
+ * never becomes a number. In that case the bar stays empty and the text beside
+ * it explains; a 0% bar would read as a verdict on data that doesn't exist.
  *
- * `color` recebe uma classe de fundo para os casos em que a barra é de uma
- * classe de material (a paleta Okabe–Ito, que não acompanha o matiz da seção).
- * O padrão é `bg-brand`, que acompanha.
+ * `color` takes a background class for cases where the bar is a material
+ * class (the Okabe–Ito palette, which doesn't follow the section hue).
+ * The default is `bg-brand`, which does.
  */
 export function Bar({
   value,
@@ -25,10 +25,10 @@ export function Bar({
 }: {
   value: number | null;
   color?: string;
-  /** Escalonamento em ms, para uma pilha de barras. Ver o teto de seis em globals.css. */
+  /** Stagger in ms, for a stack of bars. See the six ceiling in globals.css. */
   delay?: number;
   className?: string;
-  /** Quando a barra é a única representação do número, ela precisa de nome. */
+  /** When the bar is the only representation of the number, it needs a name. */
   label?: string;
 }) {
   const pct = value === null ? 0 : Math.max(0, Math.min(1, value)) * 100;

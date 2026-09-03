@@ -5,21 +5,21 @@ import { usePathname } from "next/navigation";
 import { sectionForPath } from "@/lib/design/sections";
 
 /**
- * Escreve <html data-section="…"> conforme a rota.
+ * Writes <html data-section="…"> according to the route.
  *
- * Um efeito, e nada mais: é o atributo que faz os blocos [data-section] de
- * app/globals.css reescreverem --brand-*, --accent e os tokens M3 para toda a
- * árvore, inclusive dentro do shadow DOM dos componentes @material/web. Nenhum
- * componente precisa saber em que seção está.
+ * An effect, and nothing more: it's the attribute that makes [data-section]
+ * blocks in app/globals.css rewrite --brand-*, --accent, and M3 tokens for the
+ * entire tree, including inside @material/web components' shadow DOM. No
+ * component needs to know which section it's in.
  *
- * Fica em <html>, e não num wrapper, porque overlays e diálogos são
- * renderizados em portal fora da árvore de conteúdo — presos a um wrapper eles
- * perderiam o matiz e voltariam ao da rota inicial no meio da interação.
+ * Lives on <html>, not a wrapper, because overlays and dialogs render in a
+ * portal outside the content tree — trapped in a wrapper they'd lose the hue and
+ * revert to the initial route's in the middle of interaction.
  *
- * Monta ao lado do script inline que decide o tema em app/layout.tsx. A
- * primeira pintura sai com o matiz da rota inicial e o efeito corrige no mesmo
- * commit; se isso incomodar em algum caso, o layout pode escrever
- * data-section no servidor a partir do mesmo sectionForPath.
+ * Mounts alongside the inline script that decides theme in app/layout.tsx. The
+ * first paint comes with the initial route's hue and the effect corrects in the
+ * same commit; if that bothers in any case, the layout can write data-section
+ * on the server from the same sectionForPath.
  */
 export function SectionTheme() {
   const pathname = usePathname();

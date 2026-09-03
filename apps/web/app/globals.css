@@ -5,49 +5,49 @@
 /*
  * Design tokens — Prisma.
  *
- * Substitui a base azul-Google (D-38) por uma identidade própria: a superfície
- * fica cinza-azulada e neutra, e **cada área do aplicativo carrega um matiz
- * próprio**. Estudar, mapear, comparar e cuidar dos dados deixam de ser a mesma
- * tela em cores diferentes: o matiz localiza o leitor antes de ele ler o título.
+ * Replaces Google's blue base (D-38) with our own identity: the surface
+ * becomes a neutral blue-gray, and **each area of the app carries its own hue**.
+ * Studying, mapping, comparing, and tending to data are no longer the same
+ * screen in different colors: the hue locates the reader before they read the title.
  *
- * A mecânica é deliberadamente de token, não de componente. `:root` publica a
- * rampa da rota inicial; cada bloco `[data-section="…"]` reescreve --brand-*,
- * --accent e os tokens M3 correspondentes. Um componente que já dizia
- * `bg-brand-50 text-brand-700` passa a mudar de cor conforme a rota **sem uma
- * linha de alteração** — inclusive os componentes @material/web, cujo shadow DOM
- * herda --md-sys-color-* do mesmo escopo. Quem escreve o atributo é
- * components/layout/SectionTheme.tsx, a partir de lib/design/sections.ts.
+ * The mechanism is deliberately token-based, not component-based. `:root` publishes
+ * the ramp for the initial route; each `[data-section="…"]` block rewrites --brand-*,
+ * --accent, and corresponding M3 tokens. A component that already said
+ * `bg-brand-50 text-brand-700` now changes color with the route **without a
+ * single line of change** — including @material/web components, whose shadow DOM
+ * inherits --md-sys-color-* from the same scope. components/layout/SectionTheme.tsx
+ * writes the attribute, based on lib/design/sections.ts.
  *
- * Todos os matizes de seção compartilham croma e luminosidade em oklch (C 0,11
- * no accent; L conforme a nota de cada bloco) e variam só o ângulo. É o que os
- * mantém igualmente presentes sem que nenhum grite, e o que garante que o
- * contraste medido de um vale para todos.
+ * All section hues share chroma and luminosity in oklch (C 0.11
+ * in accent; L as noted in each block) and vary only the angle. That's what keeps
+ * them equally present without any shouting, and what ensures measured contrast
+ * holds for all.
  *
- * Contraste: cada par tinta/superfície foi medido nos dois temas (4,5:1 para
- * texto, 3:1 para as bordas não textuais de 1.4.11). O par mais apertado do
- * conjunto é --accent com branco no tema claro, em 5,59:1; --brand-700 sobre
- * --brand-50 nunca cai abaixo de 6,2:1. As medidas estão comentadas em cada
- * bloco de seção.
+ * Contrast: each ink/surface pair was measured in both themes (4.5:1 for
+ * text, 3:1 for non-text edges per 1.4.11). The tightest pair
+ * is --accent with white in light theme at 5.59:1; --brand-700 over
+ * --brand-50 never drops below 6.2:1. Measurements are noted in each
+ * section block.
  *
- * O que NÃO mudou, e por quê:
+ * What did NOT change, and why:
  *
- *   - --quality-* (medido, importado, estimado, ausente) mantém os valores e os
- *     glifos atuais. São a afirmação técnica do projeto (§3.3 da proposta), não
- *     decoração; um matiz de seção passando por cima deles faria "estimado"
- *     mudar de cor conforme a página. Ficam fora do ciclo, sempre.
- *   - --success/--warning/--danger/--info seguem fora do ciclo pelo mesmo
- *     motivo: um alerta que muda de cor por rota não é um alerta.
- *   - A paleta Okabe–Ito de classes de material (lib/design/palette.ts) fica
- *     intacta.
+ *   - --quality-* (measured, imported, estimated, missing) retains current values and
+ *     glyphs. They are the technical assertion of the project (§3.3 of the proposal), not
+ *     decoration; a section hue passing over them would make "estimated"
+ *     change color by page. They stay out of the cycle, always.
+ *   - --success/--warning/--danger/--info stay out of the cycle for the same
+ *     reason: an alert that changes color by route is not an alert.
+ *   - The Okabe–Ito palette for material classes (lib/design/palette.ts) stays
+ *     untouched.
  */
 
 :root,
 [data-theme="light"] {
   color-scheme: light;
 
-  /* Cinza-azulado, não papel morno: a figura de Ashby e a tabela densa ficam
-   * mais legíveis sobre um branco levemente frio, e o matiz da seção não
-   * disputa com um fundo já quente. */
+  /* Blue-gray, not warm paper: Ashby's chart and dense tables read better
+   * on slightly cool white, and the section hue doesn't compete with an already
+   * warm background. */
   --surface: 244 246 250;
   --surface-raised: 255 255 255;
   --surface-sunken: 235 238 245;
@@ -56,28 +56,28 @@
   --edge: 220 225 234;
   --edge-subtle: 231 234 241;
   --edge-strong: 195 202 214;
-  /* A borda de um campo é a única coisa que diz que existe um controle ali, o
-   * que a coloca sob 1.4.11 (3:1), e não no orçamento de hairline das outras.
-   * 4,49:1 sobre o painel elevado, a mais clara das duas superfícies
-   * em que um controle se apoia. */
+  /* A field border is the only thing that says a control exists there,
+   * which puts it under 1.4.11 (3:1), not the hairline budget of the others.
+   * 4.49:1 on the raised panel, the lighter of the two surfaces
+   * a control rests on. */
   --edge-control: 111 119 137;
 
   --ink: 23 26 33;
   --ink-muted: 74 81 98;
-  /* 4,95:1 sobre --surface. Foi escurecido em relação ao cinza do
-   * D-38: sobre a superfície mais clara desta paleta, o valor anterior passava
-   * a 4,3:1 — reprovado. */
+  /* 4.95:1 over --surface. Darkened from D-38's gray:
+   * over the lightest surface in this palette, the previous value fell
+   * to 4.3:1 — rejected. */
   --ink-subtle: 99 107 124;
   --ink-inverted: 242 244 249;
 
-  /* O rail é escuro nos dois temas — é o que o mantém como moldura em vez de
-   * mais um painel, e o que faz o matiz da seção acender contra ele. Por isso
-   * não é --surface-inverted: aquele token vira claro no tema escuro, e o rail
-   * ficaria branco justamente onde a página é grafite.
+  /* The rail is dark in both themes — that's what keeps it as a frame rather than
+   * another panel, and what makes the section hue pop against it. That's why
+   * it's not --surface-inverted: that token becomes light in dark theme, and the rail
+   * would turn white exactly where the page is charcoal.
    *
-   * --rail-accent é uma referência, não um valor: aponta para o tom claro da
-   * rampa em cada tema, então acompanha o matiz da seção sem que este bloco
-   * precise conhecer as sete seções. */
+   * --rail-accent is a reference, not a value: it points to the light tone of
+   * the ramp in each theme, so it follows the section hue without this block
+   * needing to know about all seven sections. */
   --rail: 14 16 23;
   --rail-ink: 242 244 249;
   --rail-ink-muted: 195 201 216;
@@ -85,9 +85,9 @@
   --rail-edge: 255 255 255;
   --rail-accent: var(--brand-300);
 
-  /* Rampa da rota inicial (matiz 262). As demais rotas a reescrevem nos
-   * blocos [data-section] mais abaixo. `700` é o tom que os componentes
-   * chamam de "tinta confiante sobre a tintura mais fraca": 7,12:1 sobre
+  /* Ramp for the initial route (hue 262). Other routes rewrite it in
+   * [data-section] blocks below. `700` is the tone components call
+   * "confident ink over weakest tint": 7.12:1 over
    * --brand-50. */
   --brand-50: 234 244 255;
   --brand-100: 216 233 255;
@@ -119,8 +119,8 @@
   --info-soft: 219 245 250;
   --info-fg: 13 99 120;
 
-  /* Ordinal por confiança: medido > importado > estimado > ausente. Inalterado
-   * — ver o cabeçalho deste arquivo. */
+  /* Ordinal by confidence: measured > imported > estimated > missing. Unchanged
+   * — see the header of this file. */
   --quality-medido: 14 107 99;
   --quality-medido-soft: 224 242 241;
   --quality-importado: 106 27 154;
@@ -130,11 +130,11 @@
   --quality-ausente: 95 99 104;
   --quality-ausente-soft: 241 243 244;
 
-  /* Esquema Material 3 para o shadow DOM de @material/web. Só as famílias
-   * primary/secondary/tint são reescritas por seção; as superfícies e o error
-   * seguem neutras para os componentes M3 não brigarem com a paleta acima.
-   * Hex, não "R G B": é o formato que os estilos compilados do @material/web
-   * esperam, e estes tokens são lidos apenas dentro de shadow trees. */
+  /* Material 3 scheme for @material/web's shadow DOM. Only primary/secondary/tint
+   * families are rewritten per section; surfaces and error stay neutral so M3
+   * components don't fight with the palette above. Hex, not "R G B": that's the
+   * format compiled @material/web styles expect, and these tokens are read only
+   * inside shadow trees. */
   --md-sys-color-primary: #4567a8;
   --md-sys-color-on-primary: #ffffff;
   --md-sys-color-primary-container: #5a84d4;
@@ -170,13 +170,13 @@
   --md-sys-color-inverse-on-surface: #f2f4f9;
 }
 
-/* --- Matiz por seção · tema claro ------------------------------------------
- * A rampa é reescrita por completo, e não só o --accent: um componente que
- * pinta o estado ativo com `bg-brand-50 text-brand-700` precisa que os dois
- * tons andem juntos, ou o contraste medido deixa de valer. */
+/* --- Hue by section · light theme -------------------------------------------
+ * The ramp is rewritten completely, not just --accent: a component that
+ * paints active state with `bg-brand-50 text-brand-700` needs both
+ * tones to move together, or measured contrast breaks. */
 
 [data-section="selecao"] {
-  /* Seleção · matiz 300. accent/branco 5,75:1 · brand-700/brand-50 7,34:1 */
+  /* Selection · hue 300. accent/white 5.75:1 · brand-700/brand-50 7.34:1 */
   --brand-50: 246 240 255;
   --brand-100: 236 226 255;
   --brand-200: 222 206 253;
@@ -200,7 +200,7 @@
 }
 
 [data-section="mapas"] {
-  /* Mapas · matiz 185. accent/branco 6,42:1 · brand-700/brand-50 6,26:1 */
+  /* Maps · hue 185. accent/white 6.42:1 · brand-700/brand-50 6.26:1 */
   --brand-50: 226 249 246;
   --brand-100: 199 242 236;
   --brand-200: 167 230 221;
@@ -224,7 +224,7 @@
 }
 
 [data-section="comparar"] {
-  /* Comparar · matiz 350. accent/branco 5,85:1 · brand-700/brand-50 7,40:1 */
+  /* Compare · hue 350. accent/white 5.85:1 · brand-700/brand-50 7.40:1 */
   --brand-50: 255 237 246;
   --brand-100: 255 220 236;
   --brand-200: 250 199 221;
@@ -248,7 +248,7 @@
 }
 
 [data-section="catalogo"] {
-  /* Catálogo · matiz 225. accent/branco 5,69:1 · brand-700/brand-50 6,52:1 */
+  /* Catalog · hue 225. accent/white 5.69:1 · brand-700/brand-50 6.52:1 */
   --brand-50: 227 248 255;
   --brand-100: 201 239 255;
   --brand-200: 170 225 248;
@@ -272,7 +272,7 @@
 }
 
 [data-section="painel"] {
-  /* Painel · matiz 40. accent/branco 6,84:1 · brand-700/brand-50 7,25:1 */
+  /* Panel · hue 40. accent/white 6.84:1 · brand-700/brand-50 7.25:1 */
   --brand-50: 255 238 231;
   --brand-100: 255 223 210;
   --brand-200: 254 202 184;
@@ -296,7 +296,7 @@
 }
 
 [data-section="importar"] {
-  /* Importar · matiz 150. accent/branco 6,81:1 · brand-700/brand-50 6,70:1 */
+  /* Import · hue 150. accent/white 6.81:1 · brand-700/brand-50 6.70:1 */
   --brand-50: 232 249 235;
   --brand-100: 212 241 216;
   --brand-200: 186 228 193;
@@ -322,8 +322,8 @@
 [data-theme="dark"] {
   color-scheme: dark;
 
-  /* Grafite azulado, não quase-preto: um painel elevado precisa de uma página
-   * em que possa se apoiar. */
+  /* Blue-tinted charcoal, not nearly black: a raised panel needs a page
+   * to rest on. */
   --surface: 20 22 28;
   --surface-raised: 27 30 38;
   --surface-sunken: 15 17 22;
@@ -332,7 +332,7 @@
   --edge: 42 46 57;
   --edge-subtle: 35 38 46;
   --edge-strong: 58 63 76;
-  /* 4,10:1 sobre o painel elevado. */
+  /* 4.10:1 over the raised panel. */
   --edge-control: 118 126 146;
 
   --ink: 231 233 240;
@@ -340,19 +340,19 @@
   --ink-subtle: 140 147 165;
   --ink-inverted: 20 22 28;
 
-  /* Um passo mais fundo que --surface, e não mais claro: no tema escuro o rail
-   * é o que a página se apoia. */
+  /* One step deeper than --surface, not lighter: in dark theme the rail
+   * is what the page rests on. */
   --rail: 15 17 22;
   --rail-ink: 242 244 249;
   --rail-ink-muted: 195 201 216;
   --rail-ink-subtle: 118 126 146;
   --rail-edge: 255 255 255;
-  /* O tom claro da rampa neste tema é o 700 — ver a nota sobre a inversão. */
+  /* The light tone of the ramp in this theme is 700 — see the inversion note. */
   --rail-accent: var(--brand-700);
 
-  /* A rampa é invertida, não recolorida: `bg-brand-50 text-brand-700` continua
-   * significando "tintura mais fraca, tinta confiante" nos dois temas, e nenhum
-   * componente precisa nomear um tom diferente por tema. 10,57:1 nesse par. */
+  /* The ramp is inverted, not recolored: `bg-brand-50 text-brand-700` still
+   * means "weakest tint, confident ink" in both themes, and no
+   * component needs to name a different tone per theme. 10.57:1 in this pair. */
   --brand-50: 10 25 54;
   --brand-100: 22 44 85;
   --brand-200: 35 64 119;
@@ -427,10 +427,10 @@
   --md-sys-color-inverse-on-surface: #14161c;
 }
 
-/* --- Matiz por seção · tema escuro ---------------------------------------- */
+/* --- Hue by section · dark theme ---------------------------------------- */
 
 [data-theme="dark"] [data-section="selecao"] {
-  /* Seleção · matiz 300. accent/surface 9,38:1 · brand-700/brand-50 10,45:1 */
+  /* Selection · hue 300. accent/surface 9.38:1 · brand-700/brand-50 10.45:1 */
   --brand-50: 31 19 50;
   --brand-100: 52 35 79;
   --brand-200: 75 52 111;
@@ -454,7 +454,7 @@
 }
 
 [data-theme="dark"] [data-section="mapas"] {
-  /* Mapas · matiz 185. accent/surface 10,16:1 · brand-700/brand-50 10,57:1 */
+  /* Maps · hue 185. accent/surface 10.16:1 · brand-700/brand-50 10.57:1 */
   --brand-50: 0 35 30;
   --brand-100: 0 58 51;
   --brand-200: 0 82 73;
@@ -478,7 +478,7 @@
 }
 
 [data-theme="dark"] [data-section="comparar"] {
-  /* Comparar · matiz 350. accent/surface 9,22:1 · brand-700/brand-50 10,38:1 */
+  /* Compare · hue 350. accent/surface 9.22:1 · brand-700/brand-50 10.38:1 */
   --brand-50: 46 13 30;
   --brand-100: 74 26 51;
   --brand-200: 104 40 74;
@@ -502,7 +502,7 @@
 }
 
 [data-theme="dark"] [data-section="catalogo"] {
-  /* Catálogo · matiz 225. accent/surface 9,97:1 · brand-700/brand-50 10,62:1 */
+  /* Catalog · hue 225. accent/surface 9.97:1 · brand-700/brand-50 10.62:1 */
   --brand-50: 0 31 47;
   --brand-100: 0 53 76;
   --brand-200: 0 76 106;
@@ -526,7 +526,7 @@
 }
 
 [data-theme="dark"] [data-section="painel"] {
-  /* Painel · matiz 40. accent/surface 9,33:1 · brand-700/brand-50 10,47:1 */
+  /* Panel · hue 40. accent/surface 9.33:1 · brand-700/brand-50 10.47:1 */
   --brand-50: 49 14 3;
   --brand-100: 78 28 10;
   --brand-200: 109 44 19;
@@ -550,7 +550,7 @@
 }
 
 [data-theme="dark"] [data-section="importar"] {
-  /* Importar · matiz 150. accent/surface 10,11:1 · brand-700/brand-50 10,78:1 */
+  /* Import · hue 150. accent/surface 10.11:1 · brand-700/brand-50 10.78:1 */
   --brand-50: 0 34 10;
   --brand-100: 3 56 22;
   --brand-200: 8 80 35;
@@ -582,10 +582,10 @@
     @apply bg-surface font-sans text-ink antialiased;
   }
 
-  /* Public Sans tem números tabulares nativos e formas abertas que aguentam
-   * 12 px numa tabela de nove colunas; o título fica apertado de propósito,
-   * porque no tamanho de seção o tracking padrão faz um título de duas
-   * palavras ler como dois rótulos soltos. */
+  /* Public Sans has native tabular numbers and open forms that hold up at
+   * 12px in a nine-column table; the heading is tight on purpose,
+   * because at section size default tracking makes a two-word title
+   * read as two loose labels. */
   h1,
   h2,
   h3,
@@ -597,8 +597,8 @@
     @apply text-pretty;
   }
 
-  /* Um anel de foco para toda a aplicação, e ele acompanha o matiz da seção:
-   * `ring-brand` lê --accent, que o bloco [data-section] reescreveu. */
+  /* A focus ring for the whole app, and it follows the section hue:
+   * `ring-brand` reads --accent, which [data-section] block rewrote. */
   :focus-visible {
     @apply outline-none ring-2 ring-brand ring-offset-2 ring-offset-surface;
   }
@@ -618,25 +618,25 @@
     @apply overflow-x-auto overscroll-x-contain;
   }
 
-  /* O gesto "maleável": cresce um pouco sob o ponteiro e cede sob a pressão.
-   * Só escala — sem `translate`, para não empurrar o vizinho. O bloco de
-   * reduced-motion no fim transforma isso em mudança de estado instantânea:
-   * o retorno sobrevive, o movimento não. */
+  /* The "malleable" gesture: grows slightly under the pointer and yields under pressure.
+   * Scales only — no `translate`, to avoid pushing neighbors. The reduced-motion
+   * block at the end turns this into instant state change:
+   * the return survives, the motion doesn't. */
   .pressable {
     @apply transition ease-emphasized hover:scale-[1.02] active:scale-[0.98];
   }
 
-  /* A entrada escalonada de uma lista ou de um grid de cartões, sem biblioteca
-   * de animação. O call site aplica `.rise` no item e `style={{ animationDelay }}`
-   * no máximo nos seis primeiros; do sétimo em diante tudo entra junto, ou a
-   * tela leva mais tempo para assentar do que o leitor para olhar. */
+  /* Staggered entry of a list or card grid, no animation library. The call site
+   * applies `.rise` on the item and `style={{ animationDelay }}` on at most
+   * the first six; from the seventh onward everything enters together, or
+   * the screen takes longer to settle than the reader takes to look. */
   .rise {
     animation: rise 260ms cubic-bezier(0.2, 0, 0, 1) both;
   }
 
-  /* Uma barra que cresce da origem em vez de aparecer pronta. É o único
-   * movimento do painel e do funil, e existe porque a barra *significa* uma
-   * proporção: vê-la crescer diz de onde ela partiu. */
+  /* A bar that grows from origin instead of appearing ready. It's the only
+   * motion in the panel and funnel, and exists because the bar *means* a
+   * proportion: seeing it grow tells where it came from. */
   .grow-x {
     transform-origin: left;
     animation: grow-x 460ms cubic-bezier(0.2, 0, 0, 1) both;
@@ -660,8 +660,8 @@
     --md-icon-button-icon-size: 1.125rem;
   }
 
-  /* O M3 não tem papel destrutivo. --danger/--ink-inverted entram exatamente
-   * nos tokens com que um filled button pinta. */
+  /* M3 has no destructive role. --danger/--ink-inverted map exactly
+   * to the tokens a filled button uses to paint. */
   .md-btn-danger {
     --md-filled-button-container-color: rgb(var(--danger));
     --md-filled-button-label-text-color: rgb(var(--ink-inverted));

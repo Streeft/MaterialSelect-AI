@@ -1,13 +1,13 @@
 /**
- * A qual seção cada rota pertence.
+ * Which section each route belongs to.
  *
- * O matiz não vive aqui: vive em app/globals.css, nos blocos
- * [data-section="…"]. Este módulo só responde "que seção é esta rota?", e é a
- * única fonte dessa resposta — o rail, o cabeçalho de página e o
- * SectionTheme leem daqui, então não há como um deles discordar dos outros.
+ * Hue does not live here: it lives in app/globals.css, in the
+ * [data-section="…"] blocks. This module only answers "which section is this route?",
+ * and is the single source of truth — the rail, page header, and
+ * SectionTheme read from here, so there's no way they can disagree with each other.
  *
- * `hue` é informativo (aparece no guia de estilo e em nenhuma decisão de
- * runtime); a cor efetiva sempre sai do CSS.
+ * `hue` is informational (appears in the style guide and in no runtime decision);
+ * the effective color always comes from CSS.
  */
 
 export type SectionId =
@@ -21,15 +21,15 @@ export type SectionId =
 
 export interface SectionMeta {
   id: SectionId;
-  /** Como a seção se chama para o leitor. */
+  /** What the section is called for the reader. */
   label: string;
-  /** Rota raiz da seção. `/` só casa consigo mesma; as outras também mandam no que estiver abaixo. */
+  /** Root route of the section. `/` only matches itself; the others also control what's below. */
   route: string;
-  /** Ângulo de matiz em oklch, para documentação. */
+  /** Hue angle in oklch, for documentation. */
   hue: number;
 }
 
-export const SECTIONS: readonly SectionMeta[] = [
+export const SECTIONS = [
   { id: "inicio", label: "Início", route: "/", hue: 262 },
   { id: "selecao", label: "Seleção", route: "/selecao", hue: 300 },
   { id: "mapas", label: "Mapas", route: "/mapas", hue: 185 },
@@ -40,9 +40,9 @@ export const SECTIONS: readonly SectionMeta[] = [
 ] as const;
 
 /**
- * A seção de um pathname. Rotas fora do mapa — /admin/*, /entrar — caem na
- * seção inicial de propósito: uma tela sem matiz próprio é melhor do que uma
- * tela que inventa um.
+ * The section of a pathname. Routes outside the map — /admin/*, /entrar — fall into
+ * the initial section on purpose: a screen without its own hue is better than a
+ * screen that invents one.
  */
 export function sectionForPath(pathname: string): SectionId {
   const match = SECTIONS.find(
@@ -52,5 +52,5 @@ export function sectionForPath(pathname: string): SectionId {
 }
 
 export function sectionMeta(id: SectionId): SectionMeta {
-  return SECTIONS.find((s) => s.id === id) ?? SECTIONS[0]!;
+  return SECTIONS.find((s) => s.id === id) ?? SECTIONS[0];
 }
