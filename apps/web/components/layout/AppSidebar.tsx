@@ -45,15 +45,15 @@ interface NavGroup {
 const HOME: NavItem = { href: "/", label: t.home, icon: IconHome };
 
 /**
- * Três grupos, na ordem em que o trabalho acontece: você estuda algo, o estudo
- * precisa de dados, e alguém mantém o vocabulário em que esses dados são
- * escritos.
+ * Three groups, in the order work happens: you study something, the study
+ * needs data, and someone maintains the vocabulary those data are
+ * written in.
  *
- * Todo destino carrega um glifo, do qual o cabeçalho anterior não precisava e
- * este precisa: um rail que colapsa para 68 px não tem espaço para palavras, e
- * o ícone passa a ser o rótulo. Cada um desenha o que a tela *faz* — um funil
- * para o funil de seleção, pontos plotados para o mapa de propriedades — em vez
- * de um documento genérico que faria os oito parecerem iguais a 18 px.
+ * Every destination carries a glyph, which the previous header didn't need and
+ * this one does: a rail that collapses to 68px has no room for words, and
+ * the icon becomes the label. Each one draws what the screen *does* — a funnel
+ * for the selection funnel, plotted points for the property map — rather than
+ * a generic document that would make all eight look the same at 18px.
  */
 const GROUPS: NavGroup[] = [
   {
@@ -84,30 +84,30 @@ const GROUPS: NavGroup[] = [
   },
 ];
 
-/** `/` só casa consigo mesma; toda outra rota também manda no que está abaixo dela. */
+/** `/` only matches itself; every other route also controls what's below it. */
 function isActive(pathname: string, href: string): boolean {
   if (href === "/") return pathname === "/";
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
 /**
- * Um destino.
+ * A destination.
  *
- * O rail é escuro nos dois temas (ver os tokens `--rail-*` em globals.css): é o
- * que o mantém como moldura em vez de mais um painel, e é contra ele que o
- * matiz da seção acende. O item ativo diz "você está aqui" três vezes, e cada
- * uma cobre uma falha da outra: o indicador de 3 px na borda esquerda sobrevive
- * ao rail colapsado, o preenchimento sobrevive a um relance, e `aria-current`
- * sobrevive a não haver cor nenhuma.
+ * The rail is dark in both themes (see `--rail-*` tokens in globals.css): that's what
+ * keeps it as a frame rather than another panel, and it's against the rail that
+ * the section hue pops. The active item says "you are here" three ways, and each
+ * one covers a failure mode of the others: the 3px indicator on the left edge survives
+ * the collapsed rail, the fill survives a glance, and `aria-current`
+ * survives having no color at all.
  *
- * O indicador é um filho posicionado, não uma `border-left`: uma borda
- * empurraria o conteúdo 3 px para dentro apenas no item ativo, e a fileira de
- * ícones deixaria de se alinhar.
+ * The indicator is a positioned child, not a `border-left`: a border
+ * would push content 3px inward only on the active item, and the row of
+ * icons would misalign.
  *
- * O rótulo nunca é removido quando o rail colapsa, apenas vira `sr-only`. Um
- * link cujo texto desaparece é um link sem nome acessível; um link cujo texto
- * só não é pintado continua se anunciando, e ganha um tooltip nativo para quem
- * vê mas não adivinha o glifo.
+ * The label is never removed when the rail collapses, only becomes `sr-only`. A
+ * link whose text disappears is a link without accessible name; a link whose text
+ * simply isn't painted still announces itself, and gets a native tooltip for those who
+ * see but can't guess the glyph.
  */
 function NavLink({
   item,
@@ -122,8 +122,8 @@ function NavLink({
   return (
     <Link
       href={item.href}
-      // A página atual é anunciada, não só pintada: cor sozinha deixa quem usa
-      // leitor de tela sem ideia de onde está.
+      // The current page is announced, not just painted: color alone leaves
+      // screen reader users with no idea where they are.
       aria-current={active ? "page" : undefined}
       title={collapsed ? item.label : undefined}
       className={cn(
@@ -152,7 +152,7 @@ function NavLink({
   );
 }
 
-/** Um grupo titulado de destinos. */
+/** A titled group of destinations. */
 function NavGroupList({
   group,
   pathname,
@@ -187,7 +187,7 @@ function NavGroupList({
   );
 }
 
-/** A marca, que também é o link para casa. */
+/** The brand, which is also the link to home. */
 function BrandLink({ pathname, collapsed = false }: { pathname: string; collapsed?: boolean }) {
   return (
     <Link
@@ -196,9 +196,9 @@ function BrandLink({ pathname, collapsed = false }: { pathname: string; collapse
       title={collapsed ? ptBR.appName : undefined}
       className="group flex items-center gap-2 rounded-control px-1 py-1"
     >
-      {/* Um squircle que arredonda mais sob o ponteiro. Decorativo — o nome ao
-          lado é o acessível, e permanece na árvore mesmo quando o rail está
-          estreito demais para pintá-lo. */}
+      {/* A squircle that rounds more under the pointer. Decorative — the name to the
+          side is the accessible one, and stays in the tree even when the rail is
+          too narrow to paint it. */}
       <span
         aria-hidden
         className="grid h-8 w-8 shrink-0 place-items-center rounded-[0.7rem] bg-brand text-sm font-bold text-brand-fg transition-all group-hover:scale-105 group-hover:rounded-[1.1rem]"
@@ -213,11 +213,11 @@ function BrandLink({ pathname, collapsed = false }: { pathname: string; collapse
 }
 
 /**
- * Quem está autenticado, e a única saída.
+ * Who is authenticated, and the only way out.
  *
- * Não renderiza nada enquanto `/auth/me` resolve ou quando não há usuário — o
- * `AuthGate` do layout já cobre essa espera, então este rodapé só precisa cobrir
- * o caso em que um usuário está carregado.
+ * Renders nothing while `/auth/me` resolves or when there's no user — the
+ * layout's `AuthGate` already covers that wait, so this footer only needs to cover
+ * the case when a user is loaded.
  */
 function UserFooter({ collapsed = false }: { collapsed?: boolean }) {
   const router = useRouter();
@@ -244,8 +244,8 @@ function UserFooter({ collapsed = false }: { collapsed?: boolean }) {
         title={collapsed ? user.name : undefined}
       >
         {user.avatar_url ? (
-          // URL de avatar de terceiro, não um asset local que o next/image possa
-          // otimizar.
+          // Third-party avatar URL, not a local asset that next/image can
+          // optimize.
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={user.avatar_url}
@@ -277,21 +277,20 @@ function UserFooter({ collapsed = false }: { collapsed?: boolean }) {
 }
 
 /**
- * A navegação da aplicação: um rail permanente de `lg` para cima, uma gaveta
- * modal abaixo disso.
+ * The app navigation: a permanent rail at `lg` and up, a modal drawer below that.
  *
- * Substitui um cabeçalho superior cujos oito links só caíam a partir de 1280 px
- * e eram uma fileira horizontal que não dizia nada sobre quais telas pertencem
- * umas às outras. O rail compra as duas coisas que aquela fileira não podia ter:
- * o agrupamento fica visível enquanto se trabalha, e a largura é sua — colapse
- * para glifos quando o mapa na tela importa mais do que o menu.
+ * Replaces a top header whose eight links only dropped at 1280px
+ * and were a horizontal row that told nothing about which screens belong
+ * together. The rail gets the two things that row couldn't have:
+ * grouping stays visible while working, and width is yours — collapse
+ * to glyphs when the map on screen matters more than the menu.
  *
- * O estado colapsado é estado do React e deliberadamente **não** persistido.
- * Sobrevive a toda navegação no cliente, porque este componente vive no layout
- * raiz e nunca desmonta; volta ao normal num reload. Persistir significaria ler
- * `localStorage` durante a renderização — o que discorda da marcação do
- * servidor e faz o React reclamar — ou fechar o rail com animação depois da
- * primeira pintura, que é pior do que começar aberto.
+ * Collapsed state is React state and deliberately **not** persisted.
+ * Survives all client navigation because this component lives in the root layout
+ * and never unmounts; returns to normal on reload. Persisting would mean reading
+ * `localStorage` during render — which disagrees with server markup and makes React
+ * complain — or animating the rail closed after first paint, which is worse than
+ * starting open.
  */
 export function AppSidebar() {
   const pathname = usePathname();
@@ -301,8 +300,8 @@ export function AppSidebar() {
 
   useFocusTrap(open, panelRef, () => setOpen(false));
 
-  // Uma gaveta que sobrevive à navegação que ela mesma causou cobriria a página
-  // que o leitor pediu.
+  // A drawer that survived navigation it caused would cover the page
+  // the reader asked for.
   useEffect(() => {
     setOpen(false);
   }, [pathname]);
@@ -311,14 +310,14 @@ export function AppSidebar() {
 
   return (
     <>
-      {/* Telas estreitas: uma barra fina que carrega só o caminho para a gaveta.
-          O controle de tema não é duplicado aqui — ele vive dentro da gaveta, ao
-          lado de todo o resto que é chrome de navegação. */}
+      {/* Narrow screens: a thin bar that carries only the path to the drawer.
+          Theme control is not duplicated here — it lives inside the drawer, beside
+          everything else that's navigation chrome. */}
       <header className="sticky top-0 z-30 flex items-center gap-2 bg-rail px-3 py-2 lg:hidden">
-        {/* O rótulo não muda para "fechar": enquanto a gaveta está aberta este
-            botão fica atrás do overlay, e a gaveta carrega o próprio controle de
-            fechar. Dois botões com o mesmo nome e a mesma função são um labirinto
-            para quem lê por nome. O estado está em `aria-expanded`. */}
+        {/* The label doesn't change to "close": while the drawer is open this
+            button sits behind the overlay, and the drawer carries its own
+            close control. Two buttons with the same name and function are a maze
+            for those reading by name. State is in `aria-expanded`. */}
         <IconButton
           size="sm"
           label={ptBR.ui.openMenu}
@@ -333,8 +332,8 @@ export function AppSidebar() {
         </Badge>
       </header>
 
-      {/* Telas largas: o rail. `sticky` com `h-screen` o mantém no lugar
-          enquanto a coluna de conteúdo rola por baixo. */}
+      {/* Wide screens: the rail. `sticky` with `h-screen` keeps it in place
+          while the content column scrolls beneath. */}
       <aside
         id="navegacao-lateral"
         className={cn(
@@ -393,8 +392,8 @@ export function AppSidebar() {
         </div>
       </aside>
 
-      {/* A gaveta é renderizada só enquanto aberta — uma cópia escondida de cada
-          link dobraria as paradas de tabulação em toda página. */}
+      {/* The drawer is rendered only while open — a hidden copy of each
+          link would double tab stops across the whole page. */}
       {open && (
         <div className="fixed inset-0 z-40 lg:hidden">
           <div

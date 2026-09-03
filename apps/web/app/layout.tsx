@@ -14,6 +14,11 @@ export const metadata: Metadata = {
   description: ptBR.tagline,
 };
 
+/**
+ * Load fonts from next/font/google: self-hosted at build time, no third-party
+ * request at runtime, CSS `@font-face` inlined. Trade-off: costs a fetch at CI
+ * build time, but every reader gets zero network delay and zero layout shift.
+ */
 const sans = Public_Sans({ subsets: ["latin"], variable: "--font-sans", display: "swap" });
 const mono = IBM_Plex_Mono({
   subsets: ["latin"],

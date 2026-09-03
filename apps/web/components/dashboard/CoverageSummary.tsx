@@ -6,12 +6,12 @@ import { Badge, Card, CardBody } from "@/components/ui";
 const t = ptBR.dashboard;
 
 /**
- * Um número, nomeado, no seu quadro.
+ * A number, labeled, in its own frame.
  *
- * `accent` é o traço de 4 px na borda esquerda: ele acompanha o matiz da seção
- * e é o que faz a fileira de quatro números pertencer visivelmente ao painel em
- * vez de flutuar. `index` dá o escalonamento de entrada — a grade sobe da
- * esquerda para a direita, na ordem em que se lê.
+ * `accent` is the 4px bar on the left edge: it follows the section hue
+ * and is what makes the row of four numbers visibly belong to the panel
+ * instead of floating. `index` provides staggered entry — the grid rises from
+ * left to right, in reading order.
  */
 function Stat({
   label,
@@ -39,16 +39,16 @@ function Stat({
 }
 
 /**
- * Os quatro números que um leitor quer antes de qualquer outra coisa: o tamanho
- * do catálogo, e quanto dele está de fato preenchido.
+ * The four numbers a reader wants before anything else: the catalog's size,
+ * and how much of it is actually filled.
  *
- * `coverage.filled_pct` é `null` num catálogo vazio (§1.3: ausência nunca vira
- * número), e é o único caso em que este quadro sai como frase em vez de
- * porcentagem — "0%" aqui leria como veredito sobre um dado que ainda não
- * existe.
+ * `coverage.filled_pct` is `null` in an empty catalog (§1.3: absence never
+ * becomes a number), and it's the only case where this frame comes out as prose
+ * instead of a percentage — "0%" here would read as a verdict on data that doesn't
+ * exist yet.
  *
- * O quarto quadro é invertido de propósito: a cobertura geral é a única das
- * quatro que é um julgamento sobre o catálogo, e não uma contagem dele.
+ * The fourth frame is inverted on purpose: overall coverage is the only one of
+ * the four that judges the catalog, not counts it.
  */
 export function CoverageSummary({ overview }: { overview: DashboardOverview }) {
   return (

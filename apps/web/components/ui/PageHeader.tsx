@@ -6,22 +6,22 @@ import { cn } from "@/lib/cn";
 import { sectionForPath, sectionMeta } from "@/lib/design/sections";
 
 /**
- * O cabeçalho de uma rota: onde você está, o que é esta tela, e os controles
- * que pertencem à página inteira.
+ * A route's header: where you are, what this screen is, and the controls
+ * that belong to the whole page.
  *
- * A linha em versalete acima do título é a metade escrita do sistema de
- * matizes. A cor sozinha localiza quem já conhece o aplicativo; "dados ·
- * catálogo" localiza quem abriu a tela pela primeira vez, e é a única das duas
- * que um leitor de tela anuncia. `group` é opcional porque três rotas —
- * /selecao, /mapas, /comparar — pertencem ao mesmo agrupamento do rail e ele
- * vale a repetição; onde não houver grupo, sai só o nome da seção.
+ * The smallcap line above the title is the written half of the hue system.
+ * Color alone locates those who know the app; "data · catalog"
+ * locates those opening the screen for the first time, and it's the only one
+ * a screen reader announces. `group` is optional because three routes —
+ * /selecao, /mapas, /comparar — belong to the same rail grouping and it's
+ * worth repeating; where there's no group, only the section name appears.
  *
- * O matiz não é passado por prop: vem de `sectionForPath`, a mesma função que
- * escreve `data-section` no `<html>`. Uma tela não pode discordar do rail
- * sobre em que seção está.
+ * The hue isn't passed as a prop: it comes from `sectionForPath`, the same
+ * function that writes `data-section` on `<html>`. A screen can't disagree with
+ * the rail about which section it's in.
  *
- * Substitui o `<h1 className="text-xl font-semibold text-ink">` copiado em
- * doze rotas. O nível é sempre `h1`: é o título do documento.
+ * Replaces the `<h1 className="text-xl font-semibold text-ink">` copied across
+ * twelve routes. The level is always `h1`: it's the document title.
  */
 export function PageHeader({
   title,
@@ -32,9 +32,9 @@ export function PageHeader({
 }: {
   title: ReactNode;
   description?: ReactNode;
-  /** Controles da página inteira, não de um cartão. */
+  /** Controls of the whole page, not a card. */
   actions?: ReactNode;
-  /** O agrupamento do rail, quando existir: "estudar", "dados". */
+  /** The rail grouping, if it exists: "study", "data". */
   group?: string;
   className?: string;
 }) {

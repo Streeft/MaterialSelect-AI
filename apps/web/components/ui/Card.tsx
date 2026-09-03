@@ -2,26 +2,25 @@ import type { ElementType, ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
 /**
- * O slot de ações de um cabeçalho, em um só lugar porque os dois cabeçalhos o
- * usam.
+ * A header's action slot, in one place because both headers use it.
  *
- * `shrink-0` impede que um título longo esprema os controles em colunas de duas
- * letras. Sozinho, ele também deixava os controles empurrarem o documento além
- * da viewport: a 375 px os três links de exportação do catálogo esticavam a
- * página para 389 px e toda rota herdava a rolagem lateral. `max-w-full` limita
- * o slot à linha em que ele está e `flex-wrap` dá uma segunda fila aos filhos.
+ * `shrink-0` prevents a long title from squeezing controls into two-letter columns.
+ * Alone it also let controls push the document past viewport: at 375px the three
+ * catalog export links stretched the page to 389px and every route inherited sideways
+ * scroll. `max-w-full` limits the slot to its line and `flex-wrap` gives children
+ * a second row.
  */
 const ACTIONS = "flex max-w-full shrink-0 flex-wrap items-center gap-2";
 
 /**
- * O teto do escalonamento de entrada. Do sétimo item em diante tudo entra
- * junto: a partir daí a tela leva mais tempo para assentar do que o leitor para
- * olhar, e a animação passa de explicação a espera.
+ * The ceiling of staggered entry. From the seventh item onward everything enters
+ * together: past that the screen takes longer to settle than the reader takes to
+ * look, and animation shifts from explanation to waiting.
  */
 const STAGGER_LIMIT = 6;
 const STAGGER_STEP = 40;
 
-/** Um painel elevado. O contêiner padrão de tudo que não é prosa. */
+/** A raised panel. The default container for everything that isn't prose. */
 export function Card({
   as: Tag = "div",
   className,
@@ -32,9 +31,9 @@ export function Card({
   className?: string;
   children: ReactNode;
   /**
-   * A posição do cartão em uma grade, quando a grade deve entrar escalonada.
-   * Omitir em um cartão solitário: um único elemento subindo sozinho não
-   * explica nada, só chega atrasado.
+   * The card's position in a grid, when the grid should enter staggered.
+   * Omit for a lone card: a single element rising alone explains nothing,
+   * just arrives late.
    */
   riseIndex?: number;
 }) {
@@ -54,11 +53,11 @@ export function Card({
 }
 
 /**
- * A moldura de uma rota inteira: o raio maior, para que a tela leia como uma
- * superfície própria e não como um cartão gigante.
+ * The frame of an entire route: larger radius, so the screen reads as its own
+ * surface, not a giant card.
  *
- * Existe para o shell de cada rota — o `<main>` e o que estiver ao redor dele —
- * e é o único lugar em que `rounded-panel` aparece.
+ * Exists for each route's shell — the `<main>` and what surrounds it —
+ * and is the only place `rounded-panel` appears.
  */
 export function PanelShell({
   className,
@@ -81,14 +80,14 @@ export function CardHeader({
 }: {
   title: ReactNode;
   description?: ReactNode;
-  /** Controles deste cartão, não da página. */
+  /** Controls of this card, not the page. */
   actions?: ReactNode;
   className?: string;
   /**
-   * Onde este cartão fica no outline do documento. Padrão `h3`, porque um cartão
-   * normalmente vive dentro de uma `Section` (`h2`); um cartão colocado direto
-   * sob o título da página tem de dizer `2`, ou o outline pula um nível e a
-   * página deixa de ser navegável por cabeçalhos.
+   * Where this card falls in the document outline. Default `h3`, because a card
+   * normally lives inside a `Section` (`h2`); a card placed directly
+   * under the page title must say `2`, or the outline skips a level and the
+   * page becomes non-navigable by heading.
    */
   headingLevel?: 2 | 3 | 4;
 }) {
@@ -129,16 +128,16 @@ export function CardFooter({ className, children }: { className?: string; childr
 }
 
 /**
- * Uma região titulada da página, com âncora estável.
+ * A titled page region with stable anchor.
  *
- * A tela de resultados é longa e é referenciada em aula ("olhem o funil"), então
- * todo bloco precisa de um id linkável — e de um cabeçalho real, para que o
- * outline do documento corresponda ao que o olho vê.
+ * The results screen is long and referenced in class ("look at the funnel"), so
+ * every block needs a linkable id — and a real heading, so the
+ * document outline matches what the eye sees.
  *
- * `min-w-0` porque uma seção é quase sempre item de grid ou flex, e tal item
- * assume `min-width: auto`: recusa-se a encolher abaixo da coisa mais larga que
- * tem dentro. Uma tabela larga então empurra a página inteira além da viewport
- * em vez de rolar na própria caixa.
+ * `min-w-0` because a section is almost always a grid or flex item, and such an item
+ * assumes `min-width: auto`: refuses to shrink below its widest child.
+ * A wide table then pushes the entire page past viewport
+ * instead of scrolling in its own box.
  */
 export function Section({
   id,
