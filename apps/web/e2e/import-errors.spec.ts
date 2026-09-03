@@ -11,7 +11,7 @@ import { selectMwcOption } from "./mwc";
 const FIXTURE_CSV = path.resolve(__dirname, "fixtures/materiais-e2e-invalido.csv");
 
 test("uma linha sem nome é rejeitada, não importada como vazio", async ({ page }) => {
-  await page.goto("/importar");
+  await page.goto("/app/importar");
 
   await page
     .getByLabel("Selecione um arquivo CSV ou XLSX (até 5 MB).")

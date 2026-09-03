@@ -49,7 +49,7 @@ export default function MaterialDetailPage() {
       // shows it as still active) and the chart it no longer belongs to.
       qc.invalidateQueries({ queryKey: ["material", id] });
       qc.invalidateQueries({ queryKey: ["chart"] });
-      router.push("/catalogo");
+      router.push("/app/catalogo");
     },
   });
 
@@ -63,7 +63,7 @@ export default function MaterialDetailPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <ButtonLink href="/catalogo" variant="link" size="sm" className="self-start">
+      <ButtonLink href="/app/catalogo" variant="link" size="sm" className="self-start">
         {t.back}
       </ButtonLink>
 
@@ -105,7 +105,7 @@ export default function MaterialDetailPage() {
                 )}
               </div>
               <div className="flex shrink-0 flex-wrap items-center gap-2">
-                <ButtonLink href={`/materiais/${id}/editar`} size="sm">
+                <ButtonLink href={`/app/materiais/${id}/editar`} size="sm">
                   {ptBR.actions.edit}
                 </ButtonLink>
                 {data.is_active && (
@@ -151,7 +151,7 @@ export default function MaterialDetailPage() {
               {chart.data && <PropertyChart data={chart.data} highlightMaterialId={id} />}
               {chart.data && (
                 <ButtonLink
-                  href={`/mapas?x=densidade&y=modulo_young&destaque=${id}`}
+                  href={`/app/mapas?x=densidade&y=modulo_young&destaque=${id}`}
                   size="sm"
                   className="self-start"
                 >

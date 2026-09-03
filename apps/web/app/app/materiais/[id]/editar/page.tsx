@@ -27,7 +27,7 @@ export default function EditMaterialPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <ButtonLink href={`/materiais/${id}`} variant="link" size="sm" className="self-start">
+      <ButtonLink href={`/app/materiais/${id}`} variant="link" size="sm" className="self-start">
         {ptBR.detail.back}
       </ButtonLink>
       <PageHeader title={ptBR.form.editTitle} />

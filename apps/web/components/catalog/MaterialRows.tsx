@@ -63,7 +63,7 @@ export function QualityBar({ quality }: { quality: DataQualitySummary }) {
 function MaterialName({ material }: { material: MaterialListItem }) {
   return (
     <span className="flex flex-wrap items-center gap-2">
-      <Link href={`/materiais/${material.id}`} className="font-medium text-brand hover:underline">
+      <Link href={`/app/materiais/${material.id}`} className="font-medium text-brand hover:underline">
         {material.name}
       </Link>
       {material.is_demo && <Badge tone="warning">{ptBR.demoBadge}</Badge>}

@@ -104,7 +104,7 @@ export function MaterialForm({ classes, properties, initial }: MaterialFormProps
       // Catalogue list and chart depend on this material's data.
       qc.invalidateQueries({ queryKey: ["materials"] });
       qc.invalidateQueries({ queryKey: ["chart"] });
-      router.push(`/materiais/${savedId}`);
+      router.push(`/app/materiais/${savedId}`);
     } catch (err) {
       setSubmitError(err instanceof ApiError ? err.message : ptBR.form.genericError);
     }

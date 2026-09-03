@@ -42,7 +42,7 @@ interface NavGroup {
   items: NavItem[];
 }
 
-const HOME: NavItem = { href: "/", label: t.home, icon: IconHome };
+const HOME: NavItem = { href: "/app", label: t.home, icon: IconHome };
 
 /**
  * Three groups, in the order work happens: you study something, the study
@@ -60,33 +60,33 @@ const GROUPS: NavGroup[] = [
     id: "study",
     label: t.groupStudy,
     items: [
-      { href: "/selecao", label: t.selection, icon: IconFilter },
-      { href: "/mapas", label: t.maps, icon: IconScatter },
-      { href: "/comparar", label: t.compare, icon: IconCompare },
+      { href: "/app/selecao", label: t.selection, icon: IconFilter },
+      { href: "/app/mapas", label: t.maps, icon: IconScatter },
+      { href: "/app/comparar", label: t.compare, icon: IconCompare },
     ],
   },
   {
     id: "data",
     label: t.groupData,
     items: [
-      { href: "/catalogo", label: t.catalog, icon: IconBook },
-      { href: "/painel", label: t.dashboard, icon: IconGauge },
-      { href: "/importar", label: t.imports, icon: IconUpload },
+      { href: "/app/catalogo", label: t.catalog, icon: IconBook },
+      { href: "/app/painel", label: t.dashboard, icon: IconGauge },
+      { href: "/app/importar", label: t.imports, icon: IconUpload },
     ],
   },
   {
     id: "admin",
     label: t.groupAdmin,
     items: [
-      { href: "/admin/classes", label: t.classes, icon: IconLayers },
-      { href: "/admin/propriedades", label: t.properties, icon: IconRuler },
+      { href: "/app/admin/classes", label: t.classes, icon: IconLayers },
+      { href: "/app/admin/propriedades", label: t.properties, icon: IconRuler },
     ],
   },
 ];
 
-/** `/` only matches itself; every other route also controls what's below it. */
+/** `/app` (the home item's own route) only matches itself; every other route also controls what's below it. */
 function isActive(pathname: string, href: string): boolean {
-  if (href === "/") return pathname === "/";
+  if (href === HOME.href) return pathname === HOME.href;
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
@@ -356,7 +356,7 @@ export function AppSidebar() {
         >
           <ul className="flex flex-col gap-0.5">
             <li>
-              <NavLink item={HOME} active={isActive(pathname, "/")} collapsed={collapsed} />
+              <NavLink item={HOME} active={isActive(pathname, HOME.href)} collapsed={collapsed} />
             </li>
           </ul>
           {GROUPS.map((group) => (
@@ -422,7 +422,7 @@ export function AppSidebar() {
             <nav className="flex flex-1 flex-col gap-5">
               <ul className="flex flex-col gap-0.5">
                 <li>
-                  <NavLink item={HOME} active={isActive(pathname, "/")} />
+                  <NavLink item={HOME} active={isActive(pathname, HOME.href)} />
                 </li>
               </ul>
               {GROUPS.map((group) => (
