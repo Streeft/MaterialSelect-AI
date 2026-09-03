@@ -93,7 +93,7 @@ export default function CatalogPage() {
         description={t.subtitle}
         group="dados"
         actions={
-          <ButtonLink href="/materiais/novo" variant="primary" size="sm">
+          <ButtonLink href="/app/materiais/novo" variant="primary" size="sm">
             + {ptBR.actions.new}
           </ButtonLink>
         }
@@ -197,7 +197,7 @@ export default function CatalogPage() {
                     {t.clearFilters}
                   </Button>
                 ) : (
-                  <ButtonLink href="/materiais/novo" size="sm" variant="primary">
+                  <ButtonLink href="/app/materiais/novo" size="sm" variant="primary">
                     + {ptBR.actions.new}
                   </ButtonLink>
                 )

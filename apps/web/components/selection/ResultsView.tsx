@@ -223,12 +223,12 @@ export function ResultsView({ result }: { result: RunResult }) {
       {candidates.length > 0 && (
         <div className="flex flex-wrap gap-3">
           <ButtonLink
-            href={`/mapas?materiais=${candidateIds}${topId ? `&destaque=${topId}` : ""}`}
+            href={`/app/mapas?materiais=${candidateIds}${topId ? `&destaque=${topId}` : ""}`}
             variant="secondary"
           >
             {t.viewOnMap}
           </ButtonLink>
-          <ButtonLink href={`/comparar?materiais=${candidateIds}`} variant="secondary">
+          <ButtonLink href={`/app/comparar?materiais=${candidateIds}`} variant="secondary">
             {t.compareCandidates}
           </ButtonLink>
         </div>

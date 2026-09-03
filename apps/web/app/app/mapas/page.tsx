@@ -894,7 +894,7 @@ function MapsPageContent() {
           {map.data.points.length > 0 && (
             <div>
               <ButtonLink
-                href={`/comparar?materiais=${map.data.points.map((p) => p.material_id).join(",")}`}
+                href={`/app/comparar?materiais=${map.data.points.map((p) => p.material_id).join(",")}`}
                 size="sm"
               >
                 {t.compareSelected} →

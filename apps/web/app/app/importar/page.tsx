@@ -453,7 +453,7 @@ export default function ImportPage() {
         <Alert tone="success" title={t.doneTitle}>
           <p>{t.doneSummary(result.imported_count, result.skipped_count)}</p>
           <div className="mt-3 flex flex-wrap gap-3">
-            <ButtonLink href="/catalogo" variant="primary">
+            <ButtonLink href="/app/catalogo" variant="primary">
               {t.goCatalog}
             </ButtonLink>
             <Button onClick={reset}>{t.newImport}</Button>

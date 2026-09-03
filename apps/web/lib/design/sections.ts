@@ -31,12 +31,12 @@ export interface SectionMeta {
 
 export const SECTIONS = [
   { id: "inicio", label: "Início", route: "/", hue: 262 },
-  { id: "selecao", label: "Seleção", route: "/selecao", hue: 300 },
-  { id: "mapas", label: "Mapas", route: "/mapas", hue: 185 },
-  { id: "comparar", label: "Comparar", route: "/comparar", hue: 350 },
-  { id: "catalogo", label: "Catálogo", route: "/catalogo", hue: 225 },
-  { id: "painel", label: "Painel", route: "/painel", hue: 40 },
-  { id: "importar", label: "Importar", route: "/importar", hue: 150 },
+  { id: "selecao", label: "Seleção", route: "/app/selecao", hue: 300 },
+  { id: "mapas", label: "Mapas", route: "/app/mapas", hue: 185 },
+  { id: "comparar", label: "Comparar", route: "/app/comparar", hue: 350 },
+  { id: "catalogo", label: "Catálogo", route: "/app/catalogo", hue: 225 },
+  { id: "painel", label: "Painel", route: "/app/painel", hue: 40 },
+  { id: "importar", label: "Importar", route: "/app/importar", hue: 150 },
 ] as const;
 
 /**

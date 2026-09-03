@@ -28,7 +28,7 @@ async function rankOf(page: Page, materialName: string): Promise<number> {
 
 test("importar, selecionar, visualizar e exportar um estudo", async ({ page }) => {
   // --- Importar --------------------------------------------------------
-  await page.goto("/importar");
+  await page.goto("/app/importar");
   await expect(page.getByRole("heading", { name: "Importar materiais" })).toBeVisible();
 
   await page
@@ -57,7 +57,7 @@ test("importar, selecionar, visualizar e exportar um estudo", async ({ page }) =
   await expect(page.getByText(MATERIAL_FLEXIVEL)).toBeVisible();
 
   // --- Selecionar --------------------------------------------------------
-  await page.goto("/selecao");
+  await page.goto("/app/selecao");
   await expect(page.getByRole("heading", { name: "Seleção de materiais" })).toBeVisible();
 
   await page.getByLabel("Nome do estudo").fill(STUDY_NAME);
@@ -98,7 +98,7 @@ test("importar, selecionar, visualizar e exportar um estudo", async ({ page }) =
   // Fresh load: the saved study lives server-side, and this proves the
   // "Estudos salvos" list is populated from a clean page, not from wizard
   // state left over from the run above.
-  await page.goto("/selecao");
+  await page.goto("/app/selecao");
   const savedRow = page.getByRole("row").filter({ hasText: STUDY_NAME });
   await expect(savedRow).toBeVisible();
 

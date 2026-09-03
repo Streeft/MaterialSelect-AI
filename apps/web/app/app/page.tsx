@@ -15,10 +15,10 @@ const t = ptBR.home;
  * and with the reason each one exists.
  */
 const STEPS = [
-  { href: "/selecao?etapa=funcao", label: t.step1, hint: t.step1Hint },
-  { href: "/selecao?etapa=restricoes", label: t.step2, hint: t.step2Hint },
-  { href: "/selecao?etapa=objetivo", label: t.step3, hint: t.step3Hint },
-  { href: "/selecao?etapa=resultados", label: t.step4, hint: t.step4Hint },
+  { href: "/app/selecao?etapa=funcao", label: t.step1, hint: t.step1Hint },
+  { href: "/app/selecao?etapa=restricoes", label: t.step2, hint: t.step2Hint },
+  { href: "/app/selecao?etapa=objetivo", label: t.step3, hint: t.step3Hint },
+  { href: "/app/selecao?etapa=resultados", label: t.step4, hint: t.step4Hint },
 ];
 
 export default function HomePage() {
@@ -29,10 +29,10 @@ export default function HomePage() {
         <p className="max-w-prose text-ink-muted">{t.lead}</p>
         <p className="max-w-prose text-sm text-ink-muted">{t.lead2}</p>
         <div className="flex flex-wrap gap-3 pt-1">
-          <ButtonLink href="/selecao" variant="primary" icon={<IconArrowRight />}>
+          <ButtonLink href="/app/selecao" variant="primary" icon={<IconArrowRight />}>
             {t.start}
           </ButtonLink>
-          <ButtonLink href="/catalogo">{t.browse}</ButtonLink>
+          <ButtonLink href="/app/catalogo">{t.browse}</ButtonLink>
         </div>
       </section>
 
@@ -67,10 +67,10 @@ export default function HomePage() {
       <Section title={t.exploreTitle}>
         <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {[
-            { href: "/catalogo", label: ptBR.nav.catalog, hint: t.catalogHint },
-            { href: "/mapas", label: ptBR.nav.maps, hint: t.mapsHint },
-            { href: "/comparar", label: ptBR.nav.compare, hint: t.compareHint },
-            { href: "/importar", label: ptBR.nav.imports, hint: t.importHint },
+            { href: "/app/catalogo", label: ptBR.nav.catalog, hint: t.catalogHint },
+            { href: "/app/mapas", label: ptBR.nav.maps, hint: t.mapsHint },
+            { href: "/app/comparar", label: ptBR.nav.compare, hint: t.compareHint },
+            { href: "/app/importar", label: ptBR.nav.imports, hint: t.importHint },
           ].map((item) => (
             <li key={item.href}>
               <Link

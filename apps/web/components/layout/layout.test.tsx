@@ -14,8 +14,9 @@ import type { CurrentUser } from "@/lib/types";
 import { findA11yViolations, describeViolations } from "@/lib/testing/axe";
 
 // The sidebar reads the route to say where the reader is; nothing else about
-// Next's router matters here.
-const route = { pathname: "/" };
+// Next's router matters here. The sidebar only ever renders under /app now
+// (app/app/layout.tsx), so "/app" is the sidebar's own home route, not "/".
+const route = { pathname: "/app" };
 const routerReplace = vi.fn();
 vi.mock("next/navigation", () => ({
   usePathname: () => route.pathname,
@@ -46,7 +47,7 @@ function renderSidebar() {
 }
 
 beforeEach(() => {
-  route.pathname = "/";
+  route.pathname = "/app";
   routerReplace.mockClear();
   getCurrentUser.mockClear();
   logoutMock.mockClear();
@@ -71,7 +72,7 @@ describe("AppSidebar", () => {
   });
 
   it("announces the current page, and only that one", () => {
-    route.pathname = "/mapas";
+    route.pathname = "/app/mapas";
     renderSidebar();
     const nav = rail();
 
@@ -85,7 +86,7 @@ describe("AppSidebar", () => {
   });
 
   it("keeps a nested route inside the section it belongs to", () => {
-    route.pathname = "/admin/classes";
+    route.pathname = "/app/admin/classes";
     renderSidebar();
 
     expect(within(rail()).getByShadowRole("link", { name: ptBR.nav.classes })).toHaveAttribute(
@@ -95,8 +96,8 @@ describe("AppSidebar", () => {
   });
 
   it("does not mark the home link on every route", () => {
-    // `/` matches only itself; `startsWith("/")` would light it up everywhere.
-    route.pathname = "/catalogo";
+    // `/app` matches only itself; `startsWith("/app/")` would light it up everywhere.
+    route.pathname = "/app/catalogo";
     renderSidebar();
 
     expect(within(rail()).getByShadowRole("link", { name: ptBR.nav.home })).not.toHaveAttribute(
@@ -198,7 +199,7 @@ describe("AppSidebar", () => {
     });
 
     it("marks the current page inside the drawer too", async () => {
-      route.pathname = "/importar";
+      route.pathname = "/app/importar";
       const user = userEvent.setup();
       renderSidebar();
       await user.click(await screen.findByShadowRole("button", { name: ptBR.ui.openMenu }));

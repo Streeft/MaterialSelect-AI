@@ -18,7 +18,7 @@ export default function NewMaterialPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <ButtonLink href="/catalogo" variant="link" size="sm" className="self-start">
+      <ButtonLink href="/app/catalogo" variant="link" size="sm" className="self-start">
         {ptBR.detail.back}
       </ButtonLink>
       <PageHeader title={ptBR.form.createTitle} />
