@@ -15,6 +15,7 @@ import {
   ErrorState,
   Input,
   LoadingState,
+  PageHeader,
   RowHeader,
   Select,
   SelectOption,
@@ -67,7 +68,7 @@ export default function ClassesAdminPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <h1 className="text-xl font-semibold text-ink">{ptBR.admin.classesTitle}</h1>
+      <PageHeader title={ptBR.admin.classesTitle} />
 
       <form
         onSubmit={(e) => {

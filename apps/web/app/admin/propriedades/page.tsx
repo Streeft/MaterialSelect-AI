@@ -15,6 +15,7 @@ import {
   ErrorState,
   Input,
   LoadingState,
+  PageHeader,
   RowHeader,
   Select,
   SelectOption,
@@ -89,7 +90,7 @@ export default function PropertiesAdminPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <h1 className="text-xl font-semibold text-ink">{ptBR.admin.propertiesTitle}</h1>
+      <PageHeader title={ptBR.admin.propertiesTitle} />
 
       <form
         onSubmit={(e) => {

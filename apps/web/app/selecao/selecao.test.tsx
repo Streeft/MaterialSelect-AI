@@ -56,8 +56,11 @@ vi.mock("@/lib/api", () => ({
 }));
 
 const searchParams = new URLSearchParams();
+// PageHeader reads its section from the current route (Task 1) — the mock
+// needs a real pathname so `sectionForPath` doesn't crash on `null`.
 vi.mock("next/navigation", () => ({
   useSearchParams: () => searchParams,
+  usePathname: () => "/selecao",
 }));
 
 function result(overrides: Partial<RunResult> = {}): RunResult {

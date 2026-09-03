@@ -17,6 +17,12 @@ const t = ptBR.dashboard;
 // data table every figure carries (D-31).
 vi.mock("react-plotly.js", () => ({ default: () => null }));
 
+// PageHeader reads its section from the current route (Task 1) — the mock
+// needs a real pathname so `sectionForPath` doesn't crash on `null`.
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/painel",
+}));
+
 const overview: DashboardOverview = {
   materials: 5,
   demo_materials: 5,

@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getMaterial, listClasses, listProperties } from "@/lib/api";
 import { ptBR } from "@/lib/i18n";
 import { MaterialForm } from "@/components/MaterialForm";
-import { ButtonLink, ErrorState, LoadingState } from "@/components/ui";
+import { ButtonLink, ErrorState, LoadingState, PageHeader } from "@/components/ui";
 
 export default function EditMaterialPage() {
   const params = useParams<{ id: string }>();
@@ -30,7 +30,7 @@ export default function EditMaterialPage() {
       <ButtonLink href={`/materiais/${id}`} variant="link" size="sm" className="self-start">
         {ptBR.detail.back}
       </ButtonLink>
-      <h1 className="text-xl font-semibold text-ink">{ptBR.form.editTitle}</h1>
+      <PageHeader title={ptBR.form.editTitle} />
 
       {loading && <LoadingState label={ptBR.detail.loading} />}
       {error && (

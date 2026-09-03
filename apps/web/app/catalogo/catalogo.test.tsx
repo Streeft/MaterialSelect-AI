@@ -10,6 +10,12 @@ import { ptBR } from "@/lib/i18n";
 import type { MaterialListItem } from "@/lib/types";
 import { selectMwcOption } from "@/lib/testing/mwc";
 
+// PageHeader reads its section from the current route (Task 1) — the mock
+// needs a real pathname so `sectionForPath` doesn't crash on `null`.
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/catalogo",
+}));
+
 const t = ptBR.catalog;
 
 const materials: MaterialListItem[] = [

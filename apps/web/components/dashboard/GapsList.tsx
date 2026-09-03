@@ -2,6 +2,7 @@ import type { PropertyCoverage } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { formatPercent } from "@/lib/format";
 import {
+  Bar,
   Card,
   CardBody,
   CardHeader,
@@ -50,15 +51,11 @@ export function GapsList({ gaps }: { gaps: PropertyCoverage[] }) {
                     <RowHeader>{g.name}</RowHeader>
                     <Td numeric>
                       <div className="flex items-center justify-end gap-2">
-                        <span
-                          aria-hidden
-                          className="h-1.5 w-16 overflow-hidden rounded-full bg-surface-sunken"
-                        >
-                          <span
-                            className="block h-full rounded-full bg-quality-ausente"
-                            style={{ width: `${g.coverage.filled_pct ?? 0}%` }}
-                          />
-                        </span>
+                        <Bar
+                          value={g.coverage.filled_pct === null ? null : g.coverage.filled_pct / 100}
+                          color="bg-quality-ausente"
+                          className="h-1.5 w-16"
+                        />
                         <span className="tabular-nums">
                           {g.coverage.filled_pct === null ? t.coverageEmpty : formatPercent(g.coverage.filled_pct)}
                         </span>
