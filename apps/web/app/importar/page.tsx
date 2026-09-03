@@ -31,6 +31,7 @@ import {
   Disclosure,
   Field,
   Input,
+  PageHeader,
   Section,
   Select,
   SelectOption,
@@ -287,10 +288,7 @@ export default function ImportPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold text-ink">{t.title}</h1>
-        <p className="text-sm text-ink-muted">{t.subtitle}</p>
-      </div>
+      <PageHeader title={t.title} description={t.subtitle} group="dados" />
 
       <Stepper label={ptBR.ui.steps} steps={STEPS} statusOf={statusOf} current={step} onSelect={setStep} />
 

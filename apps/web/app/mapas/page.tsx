@@ -39,6 +39,7 @@ import {
   ErrorState,
   Input,
   LoadingState,
+  PageHeader,
   Section,
   Select,
   SelectOption,
@@ -494,30 +495,31 @@ function MapsPageContent() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-2">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex-1">
-            <h1 className="text-xl font-semibold text-ink">{t.title}</h1>
-            <p className="max-w-prose text-sm text-ink-muted">{t.subtitle}</p>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={() => setSaveDialogOpen(true)}
-              title={t.saveTooltip}
-            >
-              {t.save}
-            </Button>
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={() => void shareMap()}
-              title={t.shareTooltip}
-            >
-              {t.share}
-            </Button>
-          </div>
-        </div>
+        <PageHeader
+          title={t.title}
+          description={t.subtitle}
+          group="estudar"
+          actions={
+            <>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => setSaveDialogOpen(true)}
+                title={t.saveTooltip}
+              >
+                {t.save}
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => void shareMap()}
+                title={t.shareTooltip}
+              >
+                {t.share}
+              </Button>
+            </>
+          }
+        />
 
         {/* Saved charts picker */}
         {(savedCharts.data?.length ?? 0) > 0 && (

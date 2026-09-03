@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { listClasses, listProperties } from "@/lib/api";
 import { ptBR } from "@/lib/i18n";
 import { MaterialForm } from "@/components/MaterialForm";
-import { ButtonLink, ErrorState, LoadingState } from "@/components/ui";
+import { ButtonLink, ErrorState, LoadingState, PageHeader } from "@/components/ui";
 
 export default function NewMaterialPage() {
   const classes = useQuery({ queryKey: ["classes"], queryFn: listClasses });
@@ -21,7 +21,7 @@ export default function NewMaterialPage() {
       <ButtonLink href="/catalogo" variant="link" size="sm" className="self-start">
         {ptBR.detail.back}
       </ButtonLink>
-      <h1 className="text-xl font-semibold text-ink">{ptBR.form.createTitle}</h1>
+      <PageHeader title={ptBR.form.createTitle} />
 
       {loading && <LoadingState label={ptBR.catalog.loading} />}
       {error && (

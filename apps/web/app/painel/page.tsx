@@ -10,7 +10,7 @@ import { QualityMixChart } from "@/components/dashboard/QualityMixChart";
 import { ClassCoverageChart } from "@/components/dashboard/ClassCoverageChart";
 import { GapsList } from "@/components/dashboard/GapsList";
 import { PropertyDistributionPanel } from "@/components/dashboard/PropertyDistributionPanel";
-import { EmptyState, ErrorState, LoadingState } from "@/components/ui";
+import { EmptyState, ErrorState, LoadingState, PageHeader } from "@/components/ui";
 
 const t = ptBR.dashboard;
 
@@ -58,10 +58,7 @@ export default function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-xl font-semibold text-ink">{t.title}</h1>
-        <p className="max-w-prose text-sm text-ink-muted">{t.subtitle}</p>
-      </div>
+      <PageHeader title={t.title} description={t.subtitle} group="dados" />
 
       {overview.isLoading && <LoadingState label={t.loading} />}
       {overview.isError && (

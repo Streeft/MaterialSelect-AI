@@ -22,6 +22,7 @@ import {
   ErrorState,
   Input,
   LoadingState,
+  PageHeader,
   Section,
   Select,
   SelectOption,
@@ -120,10 +121,7 @@ function ComparePageContent() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-xl font-semibold text-ink">{t.title}</h1>
-        <p className="max-w-prose text-sm text-ink-muted">{t.subtitle}</p>
-      </div>
+      <PageHeader title={t.title} description={t.subtitle} group="estudar" />
 
       <Section id="controles" title={t.controls} headingLevel={2}>
         <div className="grid gap-4 lg:grid-cols-2">

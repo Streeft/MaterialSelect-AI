@@ -20,6 +20,7 @@ import {
   ErrorState,
   Input,
   LoadingState,
+  PageHeader,
   Section,
   Select,
   SelectOption,
@@ -87,15 +88,16 @@ export default function CatalogPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold text-ink">{t.title}</h1>
-          <p className="max-w-prose text-sm text-ink-muted">{t.subtitle}</p>
-        </div>
-        <ButtonLink href="/materiais/novo" variant="primary" size="sm">
-          + {ptBR.actions.new}
-        </ButtonLink>
-      </div>
+      <PageHeader
+        title={t.title}
+        description={t.subtitle}
+        group="dados"
+        actions={
+          <ButtonLink href="/materiais/novo" variant="primary" size="sm">
+            + {ptBR.actions.new}
+          </ButtonLink>
+        }
+      />
 
       <Card>
         <CardHeader

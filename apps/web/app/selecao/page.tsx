@@ -41,6 +41,7 @@ import {
   EmptyState,
   Input,
   LoadingState,
+  PageHeader,
   Section,
   Select,
   SelectOption,
@@ -536,10 +537,7 @@ function SelectionWizard() {
   return (
     <div className="space-y-6">
       <div className="space-y-4">
-        <div>
-          <h1 className="text-xl font-semibold text-ink">{t.title}</h1>
-          <p className="text-sm text-ink-muted">{t.subtitle}</p>
-        </div>
+        <PageHeader title={t.title} description={t.subtitle} group="estudar" />
 
         <Stepper
           label={ptBR.ui.steps}
