@@ -1,14 +1,15 @@
 /**
- * The design system's public surface.
+ * A superfície pública do design system.
  *
- * Screens import from `@/components/ui`, never from the individual files, so
- * that a primitive can be split or renamed without touching call sites — and so
- * that a reviewer can see at a glance whether a new screen used the system or
- * hand-rolled its own controls again.
+ * As telas importam de `@/components/ui`, nunca dos arquivos individuais, para
+ * que um primitivo possa ser dividido ou renomeado sem tocar em call sites — e
+ * para que um revisor veja de relance se uma tela nova usou o sistema ou
+ * escreveu os próprios controles à mão outra vez.
  */
 
 export { Alert, type AlertTone } from "./Alert";
 export { Badge, ClassBadge, type BadgeTone } from "./Badge";
+export { Bar } from "./Bar";
 export {
   Button,
   ButtonGroup,
@@ -20,7 +21,7 @@ export {
   type ButtonSize,
   type ButtonVariant,
 } from "./Button";
-export { Card, CardBody, CardFooter, CardHeader, Section } from "./Card";
+export { Card, CardBody, CardFooter, CardHeader, PanelShell, Section } from "./Card";
 export {
   DataQualityBadge,
   DataQualityLegend,
@@ -43,6 +44,7 @@ export {
   CONTROL,
   useWiring,
 } from "./Field";
+export { PageHeader } from "./PageHeader";
 export { Disclosure, Popover } from "./Popover";
 export {
   ProvenanceDetails,
