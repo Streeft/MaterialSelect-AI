@@ -2,23 +2,22 @@ import Link from "next/link";
 import type { MaterialListItem } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { classVisual } from "@/lib/design/palette";
-import { Bar, Card, CardBody } from "@/components/ui";
+import { Badge, Bar, Card, CardBody } from "@/components/ui";
 import { QualityBar } from "@/components/catalog/MaterialRows";
 
 const t = ptBR.catalog;
 
 /**
- * Um material, empilhado.
+ * One material, stacked.
  *
- * A tabela do catálogo tem quatro colunas. A 375 px isso é rolagem lateral
- * sobre texto pequeno — legível para ninguém. Aqui a mesma informação vira
- * uma pilha: nome e classe, a cobertura como barra, e o detalhamento por
- * estado que `QualityBar` já dá à tabela — reaproveitado em vez de duplicado,
- * porque o card e a linha da tabela descrevem o mesmo material.
+ * The catalog table has four columns. At 375 px that's sideways scrolling
+ * over small text — readable by no one. Here the same information becomes a
+ * stack: name and class, coverage as a bar, and the per-state breakdown
+ * `QualityBar` already gives the table — reused rather than duplicated,
+ * because the card and the table row describe the same material.
  *
- * `Bar` recebe `null` quando não há propriedade nenhuma cadastrada — uma
- * barra de 0% leria como um veredito sobre um material que ninguém preencheu
- * ainda.
+ * `Bar` receives `null` when no property at all is registered — a 0% bar
+ * would read as a verdict on a material nobody has filled in yet.
  */
 function MaterialCard({ material, index }: { material: MaterialListItem; index: number }) {
   const { quality } = material;
@@ -29,13 +28,16 @@ function MaterialCard({ material, index }: { material: MaterialListItem; index: 
     <Card riseIndex={index}>
       <CardBody className="flex flex-col gap-3">
         <div className="flex items-start justify-between gap-3">
-          <div className="flex min-w-0 flex-col gap-0.5">
-            <Link
-              href={`/app/materiais/${material.id}`}
-              className="text-[0.9375rem] font-semibold text-brand-700"
-            >
-              {material.name}
-            </Link>
+          <div className="flex min-w-0 flex-col gap-1">
+            <span className="flex flex-wrap items-center gap-2">
+              <Link
+                href={`/app/materiais/${material.id}`}
+                className="text-[0.9375rem] font-semibold text-brand-700"
+              >
+                {material.name}
+              </Link>
+              {material.is_demo && <Badge tone="warning">{ptBR.demoBadge}</Badge>}
+            </span>
             {material.subclass ? (
               <span className="text-xs text-ink-subtle">{material.subclass}</span>
             ) : null}
@@ -65,28 +67,36 @@ function MaterialCard({ material, index }: { material: MaterialListItem; index: 
           </span>
         </div>
 
-        {/* Rótulo escrito antes da cor: os quatro estados são ordinais por
-            confiança, e um leitor que não distinga verde de âmbar precisa da
-            palavra. */}
+        {/* Label written before color: the four states are ordinal by
+            confidence, and a reader who can't tell green from amber needs
+            the word. */}
         <div className="flex flex-wrap items-center gap-1.5 border-t border-edge-subtle pt-3">
           <QualityBar quality={quality} />
         </div>
+
+        {material.keywords.length > 0 && (
+          <span className="flex flex-wrap gap-1">
+            {material.keywords.map((kw) => (
+              <Badge key={kw}>{kw}</Badge>
+            ))}
+          </span>
+        )}
       </CardBody>
     </Card>
   );
 }
 
 /**
- * O catálogo em telas estreitas.
+ * The catalog on narrow screens.
  *
- * Renderizado ao lado da tabela, cada um escondido no breakpoint do outro
- * (`sm:hidden` aqui, `hidden sm:block` na tabela) — é o que mantém a marcação
- * semântica correta em cada largura, em vez de forçar um `<table>` a se
- * comportar como uma lista via CSS.
+ * Rendered alongside the table, each hidden at the other's breakpoint
+ * (`sm:hidden` here, `hidden sm:block` on the table) — that's what keeps
+ * markup semantically correct at each width, instead of forcing a `<table>`
+ * to behave like a list via CSS.
  *
- * Isso duplica os nós no DOM. É aceitável porque o catálogo é paginado; se a
- * página passar a mostrar centenas de linhas, trocar por um `useMediaQuery`
- * que renderize só um dos dois.
+ * This duplicates the DOM nodes. Acceptable because the catalog is paginated;
+ * if the page ever shows hundreds of rows, switch to a `useMediaQuery` that
+ * renders only one of the two.
  */
 export function MaterialCards({ materials }: { materials: MaterialListItem[] }) {
   return (

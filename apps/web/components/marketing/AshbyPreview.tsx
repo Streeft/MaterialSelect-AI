@@ -1,19 +1,19 @@
 /**
- * O mapa de Ashby da vitrine.
+ * The showcase's Ashby map.
  *
- * SVG estático, com eixos logarítmicos rotulados, envelopes por classe, dez
- * pontos e a linha-guia do índice de mérito desenhando-se. Não é o componente
- * de gráfico do produto: aquele carrega Plotly, precisa de dados do cliente e
- * roda no navegador — três coisas que uma página pública indexável não quer.
+ * Static SVG, with labeled logarithmic axes, per-class envelopes, ten points,
+ * and the merit-index guide line drawing itself in. It is not the product's
+ * chart component: that one loads Plotly, needs client data, and runs in the
+ * browser — three things an indexable public page doesn't want.
  *
- * Os valores são os do catálogo de demonstração, nas mesmas posições relativas
- * que o gráfico real produz. A paleta é a Okabe–Ito de classes, importada e não
- * redigitada: a figura da vitrine e a do produto não podem discordar sobre a cor
- * de "metais".
+ * The values are the demo catalog's, in the same relative positions the real
+ * chart produces. The palette is the Okabe–Ito class palette, imported rather
+ * than retyped: the showcase's figure and the product's can't disagree about
+ * the color of "metals".
  *
- * `role="img"` com `aria-label`: a figura é uma prova visual, e a descrição
- * substitui o que ela mostra para quem não a vê. Os elementos internos são
- * decorativos por consequência.
+ * `role="img"` with `aria-label`: the figure is a visual proof, and the
+ * description substitutes for what it shows to someone who can't see it. The
+ * inner elements are decorative as a consequence.
  */
 import { classVisual } from "@/lib/design/palette";
 
@@ -115,8 +115,8 @@ export function AshbyPreview() {
           </text>
         </g>
 
-        {/* A linha-guia se desenha uma vez. É a relação que o índice expressa —
-            ver a nota sobre movimento em globals.css. */}
+        {/* The guide line draws itself in once. It's the relationship the index
+            expresses — see the note on motion in globals.css. */}
         <line
           x1="146"
           y1="334"

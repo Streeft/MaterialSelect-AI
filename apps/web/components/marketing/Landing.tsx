@@ -7,32 +7,32 @@ import { AshbyPreview } from "./AshbyPreview";
 import { FunnelPreview } from "./FunnelPreview";
 
 /**
- * A vitrine pública.
+ * The public showcase.
  *
- * Existe porque o aplicativo não tinha nenhuma: quem abria a URL caía direto no
- * assistente de seleção, sem saber o que a ferramenta faz nem por que confiar
- * nela. Server component inteiro — nada aqui tem estado, e a página é o que os
- * mecanismos de busca indexam.
+ * Exists because the app had none: anyone opening the URL landed straight on
+ * the selection wizard, with no idea what the tool does or why to trust it.
+ * Entirely a server component — nothing here has state, and this is the page
+ * search engines index.
  *
- * A ordem das seções é o argumento: a figura que prova que funciona, a
- * proveniência que nenhuma planilha oferece, o método que mostra que não há
- * caixa preta, o relatório que o cliente entrega ao chefe dele, o preço, e só
- * então o limite de uso — dito com confiança, porque é o que separa uma triagem
- * confiável de um chute com aparência de resposta.
+ * The section order is the argument: the figure that proves it works, the
+ * provenance no spreadsheet offers, the method that shows there's no black
+ * box, the report the client hands their boss, the price, and only then the
+ * usage limitation — stated with confidence, because that's exactly what
+ * separates a trustworthy screening from a guess dressed up as an answer.
  *
- * As classes de matiz (`bg-brand`, `text-brand-700`) herdam a rampa da seção
- * inicial, já que `/` mapeia para `inicio` em lib/design/sections.ts. A vitrine
- * não declara cor própria em lugar nenhum.
+ * The hue classes (`bg-brand`, `text-brand-700`) inherit the opening
+ * section's ramp, since `/` maps to `inicio` in lib/design/sections.ts. The
+ * showcase declares no color of its own anywhere.
  */
 export function Landing() {
   const m = marketing;
 
   return (
     <div className="flex flex-col">
-      {/* --- topo + herói: uma superfície escura contínua, não duas ------- */}
+      {/* --- top + hero: one continuous dark surface, not two ------------ */}
       <div className="relative overflow-hidden bg-rail text-rail-ink">
-        {/* Três halos de matiz que derivam devagar. Decorativo e o único
-            movimento em loop da página: tudo mais anima uma vez e assenta. */}
+        {/* Three hue halos that drift slowly. Decorative, and the page's only
+            looping motion: everything else animates once and settles. */}
         <span
           aria-hidden
           className="pointer-events-none absolute -inset-x-[10%] -inset-y-[30%] animate-drift bg-[radial-gradient(36%_48%_at_16%_34%,rgb(var(--brand-500)/0.55),transparent_70%),radial-gradient(32%_42%_at_74%_24%,rgb(var(--brand-400)/0.34),transparent_70%)]"
@@ -49,8 +49,9 @@ export function Landing() {
             <span className="text-[0.9375rem] font-semibold">{ptBR.appName}</span>
           </Link>
 
-          {/* Os âncoras somem no telefone em vez de virarem uma gaveta: são
-              três saltos dentro da mesma página, e rolar já os alcança. */}
+          {/* The anchors disappear on phones instead of becoming a drawer:
+              they're three jumps within the same page, and scrolling already
+              reaches them. */}
           <nav aria-label="Seções desta página" className="hidden gap-7 text-sm text-rail-ink-muted md:flex">
             {m.nav.map((item) => (
               <a key={item.href} href={item.href} className="transition hover:text-rail-ink">
@@ -108,14 +109,14 @@ export function Landing() {
             </ul>
           </div>
 
-          {/* A figura que um engenheiro de materiais reconhece em meio segundo.
-              É a única prova visual de que a ferramenta faz o que diz, então
-              abre a página em vez de esperar a terceira dobra. */}
+          {/* The figure a materials engineer recognizes in half a second.
+              It's the only visual proof that the tool does what it says, so
+              it opens the page instead of waiting for the third fold. */}
           <AshbyPreview />
         </section>
       </div>
 
-      {/* --- proveniência ------------------------------------------------- */}
+      {/* --- provenance ----------------------------------------------------- */}
       <section id="proveniencia" className="flex flex-col gap-8 border-b border-edge bg-surface-raised px-5 py-16 sm:px-8 lg:px-14">
         <div className="flex flex-col gap-2.5">
           <span className="font-mono text-2xs uppercase tracking-eyebrow text-brand-700">
@@ -126,13 +127,13 @@ export function Landing() {
           </h2>
           <p className="max-w-prose text-base leading-relaxed text-ink-muted">{m.provenance.body}</p>
         </div>
-        {/* A legenda real do produto, não uma reescrita para vender: os mesmos
-            quatro estados, glifos e definições que a tabela usa. Se um dia
-            mudarem, mudam nos dois lugares de uma vez. */}
+        {/* The product's real legend, not a rewrite for sales copy: the same
+            four states, glyphs, and definitions the table uses. If they ever
+            change, they change in both places at once. */}
         <DataQualityLegend className="sm:grid-cols-2 lg:grid-cols-4" />
       </section>
 
-      {/* --- método ------------------------------------------------------- */}
+      {/* --- method ----------------------------------------------------------- */}
       <section id="metodo" className="flex flex-col gap-8 bg-surface px-5 py-16 sm:px-8 lg:px-14">
         <div className="flex flex-col gap-2.5">
           <span className="font-mono text-2xs uppercase tracking-eyebrow text-brand-700">
@@ -158,14 +159,14 @@ export function Landing() {
               </li>
             ))}
           </ol>
-          {/* O funil com números reais do catálogo de demonstração: 48 → 9, e os
-              4 excluídos nomeados. É a captura de tela que a página não precisa
-              tirar. */}
+          {/* The funnel with real numbers from the demo catalog: 48 → 9, and
+              the 4 excluded ones named. It's the screenshot the page doesn't
+              need to take. */}
           <FunnelPreview />
         </div>
       </section>
 
-      {/* --- entregável --------------------------------------------------- */}
+      {/* --- deliverable ---------------------------------------------------- */}
       <section className="grid items-center gap-10 border-y border-edge bg-surface-raised px-5 py-16 sm:px-8 lg:grid-cols-[1fr_1.1fr] lg:gap-12 lg:px-14">
         <div className="flex flex-col gap-3.5">
           <span className="font-mono text-2xs uppercase tracking-eyebrow text-brand-700">
@@ -183,7 +184,7 @@ export function Landing() {
         <ReportPreview />
       </section>
 
-      {/* --- planos ------------------------------------------------------- */}
+      {/* --- plans ------------------------------------------------------------ */}
       <section id="planos" className="flex flex-col gap-7 bg-surface px-5 py-16 sm:px-8 lg:px-14">
         <div className="flex flex-col gap-2.5">
           <span className="font-mono text-2xs uppercase tracking-eyebrow text-brand-700">
@@ -268,7 +269,7 @@ export function Landing() {
         </ul>
       </section>
 
-      {/* --- limite de uso + fechamento ----------------------------------- */}
+      {/* --- usage limitation + closing --------------------------------------- */}
       <section className="grid items-center gap-10 border-t border-edge bg-surface-raised px-5 py-14 sm:px-8 lg:grid-cols-2 lg:px-14">
         <div className="flex flex-col gap-2.5 rounded-card border border-info/30 bg-info-soft p-6">
           <h2 className="inline-flex items-center gap-2.5 text-[0.9375rem] font-semibold text-info-fg">
@@ -327,11 +328,11 @@ export function Landing() {
 }
 
 /**
- * Um relatório de seleção, encolhido para caber numa dobra.
+ * A selection report, shrunk to fit above the fold.
  *
- * Três linhas em vez das nove reais, e os selos de qualidade agregados — o
- * suficiente para reconhecer o artefato, e não tanto que a página vire uma
- * planilha. Os números são os do catálogo de demonstração.
+ * Three rows instead of the real nine, and the aggregated quality badges —
+ * enough to recognize the artifact, and not so much that the page turns into
+ * a spreadsheet. The numbers are the demo catalog's.
  */
 function ReportPreview() {
   const rows = [

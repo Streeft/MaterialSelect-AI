@@ -1,13 +1,13 @@
 /**
- * O funil de eliminação com os números do catálogo de demonstração.
+ * The elimination funnel, with the demo catalog's numbers.
  *
- * Cada barra cresce da origem (`.grow-x`) e escalonada, então a página conta a
- * eliminação em vez de exibir o resultado dela — que é exatamente o que a
- * ferramenta faz e o que uma planilha não mostra.
+ * Each bar grows from the origin (`.grow-x`) and is staggered, so the page
+ * narrates the elimination instead of just showing its result — which is
+ * exactly what the tool does and a spreadsheet doesn't show.
  *
- * Os números são estáticos de propósito: a vitrine é um server component
- * indexável, e ir ao banco para desenhar uma prova visual acoplaria a página de
- * vendas ao estado do catálogo de quem a abriu.
+ * The numbers are static on purpose: the showcase is an indexable server
+ * component, and hitting the database to draw a visual proof would couple the
+ * sales page to the catalog state of whoever opened it.
  */
 const STAGES = [
   { label: "Catálogo", count: 48, width: 100, opacity: 0.85, final: false },

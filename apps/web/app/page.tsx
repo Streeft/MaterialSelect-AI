@@ -3,17 +3,17 @@ import { Landing } from "@/components/marketing/Landing";
 import { ptBR } from "@/lib/i18n";
 
 /**
- * A rota pública.
+ * The public route.
  *
- * Era o painel inicial do aplicativo; virou a vitrine. O que estava aqui mudou
- * para `/app` — ver `app/app/page.tsx` — e o rail passou a viver no layout
- * daquele segmento, não no raiz. Um visitante que nunca abriu a ferramenta não
- * deve ver a navegação interna dela antes de saber o que ela faz.
+ * Used to be the app's home dashboard; it became the showcase. What used to be
+ * here moved to `/app` — see `app/app/page.tsx` — and the rail now lives in
+ * that segment's layout, not at the root. A visitor who has never opened the
+ * tool shouldn't see its internal navigation before knowing what it does.
  *
- * Os metadados são o trabalho comercial que uma página de aplicativo nunca
- * precisou fazer: o título e a descrição são o que aparece num resultado de
- * busca e num link colado no WhatsApp, e valem mais que qualquer coisa dentro
- * da dobra para quem ainda não clicou.
+ * The metadata is the commercial work a product page never had to do: the
+ * title and description are what shows up in a search result and in a link
+ * pasted into WhatsApp, and matter more than anything above the fold for
+ * someone who hasn't clicked yet.
  */
 export const metadata: Metadata = {
   title: `${ptBR.appName} — seleção de materiais pelo método de Ashby`,

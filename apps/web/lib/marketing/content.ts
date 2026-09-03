@@ -1,15 +1,15 @@
 /**
- * A cópia da vitrine pública, em um lugar só.
+ * The public showcase's copy, in one place.
  *
- * Separada de `lib/i18n.ts` de propósito: aquele arquivo é o vocabulário do
- * produto — rótulos de coluna, nomes de estado, mensagens de erro — e é lido por
- * toda tela autenticada. Esta é a cópia de venda, muda por motivos comerciais e
- * numa cadência diferente. Misturar as duas faria uma revisão de preço tocar o
- * arquivo de que a tabela de resultados depende.
+ * Kept apart from `lib/i18n.ts` on purpose: that file is the product's
+ * vocabulary — column labels, state names, error messages — and is read by
+ * every authenticated screen. This is the sales copy, which changes for
+ * commercial reasons and on a different cadence. Mixing the two would make a
+ * price revision touch the file the results table depends on.
  *
- * Toda afirmação aqui é verificável no produto. É a regra que mantém a página
- * honesta e é o que torna o parágrafo de `limitation` um argumento em vez de uma
- * ressalva escondida no rodapé.
+ * Every claim here is verifiable in the product. That's the rule that keeps
+ * the page honest, and it's what turns the `limitation` paragraph into an
+ * argument instead of a caveat hidden in the footer.
  */
 
 export const marketing = {
@@ -26,8 +26,8 @@ export const marketing = {
       "Da função do componente ao relatório assinado. Nenhuma propriedade é inventada: todo número na tela veio de um valor cadastrado ou de um cálculo determinístico, e a origem de cada um está a um clique de distância.",
     primary: { label: "Começar um estudo", href: "/app/selecao" },
     secondary: { label: "Ver um estudo pronto", href: "/app/selecao?modelo=haste-leve-rigida" },
-    // Três afirmações que o produto cumpre hoje. Nenhuma métrica de vaidade:
-    // "1.200 engenheiros confiam" é o tipo de número que ninguém pode conferir.
+    // Three claims the product actually delivers today. No vanity metric:
+    // "1,200 engineers trust it" is the kind of number nobody can check.
     assurances: [
       "Sem cartão para experimentar",
       "Importe CSV ou XLSX",
@@ -63,13 +63,14 @@ export const marketing = {
   },
 
   /**
-   * Faixas de plano.
+   * Plan tiers.
    *
-   * `price` é uma string, não um número: "R$ 0", "Sob consulta" e um valor
-   * mensal têm de caber no mesmo lugar, e formatar moeda aqui só criaria a
-   * ilusão de que o preço já foi decidido. Os valores da faixa intermediária
-   * estão como `—` à espera dessa decisão; o eixo — materiais cadastrados e
-   * quem pode importar — é o que já está definido.
+   * `price` is a string, not a number: "R$ 0", "Sob consulta" (price on
+   * request), and a monthly figure all have to fit in the same slot, and
+   * formatting currency here would only create the illusion that the price
+   * has already been decided. The middle tier's values sit as `—` pending
+   * that decision; the axis — how many materials are cataloged and who can
+   * import — is what's already settled.
    */
   plans: {
     eyebrow: "planos",
