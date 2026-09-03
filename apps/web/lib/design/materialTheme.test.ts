@@ -1,19 +1,19 @@
 import { describe, expect, it } from "vitest";
 
 import { buildMdSysColorScheme, M3_SEED_HEX } from "./materialTheme";
+import { SECTIONS, type SectionId } from "./sections";
 
 /**
  * Locks the generator's output against the literal hex values pasted into
- * app/globals.css. If this test ever fails, the seed or the algorithm
- * changed — update globals.css to match (regenerate with this same
- * function) rather than editing the values below to make it pass.
+ * app/globals.css, for every M3 role EXCEPT `primary` and
+ * `primary-container` — those two are no longer generated from
+ * M3_SEED_HEX (see PER_SECTION below). If a role in this list ever fails,
+ * the seed or the algorithm changed — update globals.css to match
+ * (regenerate with this same function) rather than editing the values
+ * below to make it pass.
  */
-
-const LIGHT: Record<string, string> = {
-  "--md-sys-color-primary": "#005bbf",
+const LIGHT_NON_PRIMARY: Record<string, string> = {
   "--md-sys-color-on-primary": "#ffffff",
-  "--md-sys-color-primary-container": "#1a73e8",
-  "--md-sys-color-on-primary-container": "#ffffff",
   "--md-sys-color-primary-fixed": "#d8e2ff",
   "--md-sys-color-primary-fixed-dim": "#adc7ff",
   "--md-sys-color-on-primary-fixed": "#001a41",
@@ -61,11 +61,8 @@ const LIGHT: Record<string, string> = {
   "--md-sys-color-inverse-on-surface": "#eff0fa",
 };
 
-const DARK: Record<string, string> = {
-  "--md-sys-color-primary": "#adc7ff",
+const DARK_NON_PRIMARY: Record<string, string> = {
   "--md-sys-color-on-primary": "#002e68",
-  "--md-sys-color-primary-container": "#1a73e8",
-  "--md-sys-color-on-primary-container": "#ffffff",
   "--md-sys-color-primary-fixed": "#d8e2ff",
   "--md-sys-color-primary-fixed-dim": "#adc7ff",
   "--md-sys-color-on-primary-fixed": "#001a41",
@@ -113,23 +110,105 @@ const DARK: Record<string, string> = {
   "--md-sys-color-inverse-on-surface": "#2d3038",
 };
 
+/**
+ * The seven per-section `--accent` / `--md-sys-color-primary*` pairs, hand
+ * authored in app/globals.css `[data-section="…"]` blocks (and, for
+ * "inicio", the plain `:root` default — there is no `[data-section="inicio"]`
+ * block because nothing needs to override `:root` for it). This table is
+ * this test's copy of that source of truth: if it ever drifts from
+ * globals.css, one of the two was edited without the other.
+ */
+const PER_SECTION: Record<
+  SectionId,
+  { light: { accent: string; primaryContainer: string }; dark: { accent: string; primaryContainer: string } }
+> = {
+  inicio: {
+    light: { accent: "#4567a8", primaryContainer: "#5a84d4" },
+    dark: { accent: "#97beff", primaryContainer: "#2c4f94" },
+  },
+  selecao: {
+    light: { accent: "#73599e", primaryContainer: "#9372c8" },
+    dark: { accent: "#c8aefa", primaryContainer: "#5d408a" },
+  },
+  mapas: {
+    light: { accent: "#006b60", primaryContainer: "#009e90" },
+    dark: { accent: "#5cd5c7", primaryContainer: "#00665b" },
+  },
+  comparar: {
+    light: { accent: "#974c72", primaryContainer: "#bf6291" },
+    dark: { accent: "#f4a0c8", primaryContainer: "#81315c" },
+  },
+  catalogo: {
+    light: { accent: "#006f92", primaryContainer: "#0095c1" },
+    dark: { accent: "#65cdf3", primaryContainer: "#005e84" },
+  },
+  painel: {
+    light: { accent: "#904529", primaryContainer: "#c66846" },
+    dark: { accent: "#fba587", primaryContainer: "#873616" },
+  },
+  importar: {
+    light: { accent: "#1d6835", primaryContainer: "#429c5a" },
+    dark: { accent: "#89d298", primaryContainer: "#03642b" },
+  },
+};
+
+/** `--accent-fg` is white in light, dark ink in dark — same for all seven sections. */
+const ACCENT_FG = { light: "#ffffff", dark: "#14161c" };
+
+/** sRGB hex -> relative luminance (WCAG 2.x). */
+function relativeLuminance(hex: string): number {
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255) as [number, number, number];
+  const linear = (c: number) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+  return 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b);
+}
+
+/** WCAG contrast ratio between two sRGB hex colours, always >= 1. */
+function contrastRatio(hexA: string, hexB: string): number {
+  const [lA, lB] = [relativeLuminance(hexA), relativeLuminance(hexB)].sort((a, b) => b - a) as [number, number];
+  return (lA + 0.05) / (lB + 0.05);
+}
+
 describe("buildMdSysColorScheme", () => {
   it("seeds from Google's own blue, #1A73E8", () => {
     expect(M3_SEED_HEX).toBe("#1A73E8");
   });
 
-  it("keeps the seed itself as light.primaryContainer (Content variant, not TonalSpot)", () => {
-    // TonalSpot (the Android system default) desaturates primary to a
-    // washed-out blue-grey instead of Google's actual product blue — the
-    // Content variant is the one that preserves the seed's own chroma.
-    expect(buildMdSysColorScheme(false)["--md-sys-color-primary-container"]).toBe("#1a73e8");
+  it("matches every non-primary role pasted into app/globals.css (light)", () => {
+    const scheme = buildMdSysColorScheme(false);
+    for (const [key, value] of Object.entries(LIGHT_NON_PRIMARY)) {
+      expect(scheme[key]).toBe(value);
+    }
   });
 
-  it("matches the light scheme pasted into app/globals.css", () => {
-    expect(buildMdSysColorScheme(false)).toEqual(LIGHT);
+  it("matches every non-primary role pasted into app/globals.css (dark)", () => {
+    const scheme = buildMdSysColorScheme(true);
+    for (const [key, value] of Object.entries(DARK_NON_PRIMARY)) {
+      expect(scheme[key]).toBe(value);
+    }
+  });
+});
+
+describe("per-section palette (Prisma, D-49)", () => {
+  it.each(SECTIONS.map((s) => s.id))("%s has both a light and a dark accent", (id) => {
+    const section = PER_SECTION[id];
+    expect(section.light.accent).toMatch(/^#[0-9a-f]{6}$/);
+    expect(section.dark.accent).toMatch(/^#[0-9a-f]{6}$/);
   });
 
-  it("matches the dark scheme pasted into app/globals.css", () => {
-    expect(buildMdSysColorScheme(true)).toEqual(DARK);
+  it.each(SECTIONS.map((s) => s.id))(
+    "%s meets WCAG AA (4.5:1) for --accent against --accent-fg, both themes",
+    (id) => {
+      const section = PER_SECTION[id];
+      expect(contrastRatio(section.light.accent, ACCENT_FG.light)).toBeGreaterThanOrEqual(4.5);
+      expect(contrastRatio(section.dark.accent, ACCENT_FG.dark)).toBeGreaterThanOrEqual(4.5);
+    },
+  );
+
+  it("the tightest pair in the set is >= 5.58:1, per the patch's own measurement", () => {
+    const ratios = SECTIONS.flatMap((s) => [
+      contrastRatio(PER_SECTION[s.id].light.accent, ACCENT_FG.light),
+      contrastRatio(PER_SECTION[s.id].dark.accent, ACCENT_FG.dark),
+    ]);
+    expect(Math.min(...ratios)).toBeGreaterThanOrEqual(5.58);
   });
 });
