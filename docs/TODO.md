@@ -13,8 +13,27 @@ os vizinhos — outros documentos citam esses códigos.
 
 ## Alta prioridade
 
-Nenhum item aberto no momento — A6 (Cérebro em `main`) foi decidido, não
-executado: ver "Débitos já quitados".
+**S1 — Upgrade de segurança: Next.js 14.2.35 (21 CVEs) e PostCSS 8.4.31 (3
+CVEs).** ▃ Relatório GitGuard de 2026-09-03 (scan `cmtkwi5c001klf1xot2pwwk6f`,
+commit `a15569d`) achou 12 findings HIGH, 25 MEDIUM e 2 LOW — a maioria em
+`next` (DoS via Server Actions/Components, SSRF em rewrites e WebSocket
+upgrade, information disclosure em middleware com i18n) e `postcss` (path
+traversal via `sourceMappingURL`, XSS por escape incorreto). Ação: `npm
+install next@latest postcss@latest` em `apps/web`, rodar o gate completo
+(`typecheck`, `lint`, `test`, `build`, `test:e2e`) e conferir a lista de
+*breaking changes* do changelog do Next entre 14.2 e a versão de destino antes
+de assumir que a atualização é um bump mecânico. O mesmo relatório listou ~13
+achados SAST (Semgrep) sem local (`—`) — sql raw query e subprocess com env
+tainted em Python, e tags mutáveis de GitHub Action — não acionáveis sem
+localização exata; re-executar o scanner ou pedir o relatório PRO antes de
+agir neles. Deliberadamente sequenciado **depois** do patch de design
+"Prisma" (ver spec em `docs/superpowers/specs/2026-09-02-design-system-prisma-design.md`)
+por decisão do autor: os dois mexem em grande parte do frontend ao mesmo
+tempo, e misturar um upgrade de versão maior do Next com uma repaginação
+ampla dificultaria isolar qual mudança quebrou o quê.
+
+A6 (Cérebro em `main`) foi decidido, não executado: ver "Débitos já
+quitados".
 
 ---
 
