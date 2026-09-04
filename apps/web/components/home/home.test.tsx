@@ -36,7 +36,7 @@ describe("SavedStudies", () => {
     render(<SavedStudies />, { wrapper });
 
     const resume = await screen.findByShadowRole("link", { name: ptBR.home.resume });
-    expect(resume).toHaveAttribute("href", "/selecao?estudo=7");
+    expect(resume).toHaveAttribute("href", "/app/selecao?estudo=7");
     expect(screen.getByText("Painel de fuselagem")).toBeInTheDocument();
   });
 

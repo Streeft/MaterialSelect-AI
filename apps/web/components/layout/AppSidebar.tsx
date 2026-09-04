@@ -42,66 +42,72 @@ interface NavGroup {
   items: NavItem[];
 }
 
-const HOME: NavItem = { href: "/", label: t.home, icon: IconHome };
+const HOME: NavItem = { href: "/app", label: t.home, icon: IconHome };
 
 /**
- * Three groups, in the order the work happens: you study something, the study
- * needs data, and somebody maintains the vocabulary that data is written in.
+ * Three groups, in the order work happens: you study something, the study
+ * needs data, and someone maintains the vocabulary those data are
+ * written in.
  *
- * Every destination carries a glyph, which the previous header did not need and
- * this one does: a rail that collapses to 76 px has no room for words, so the
- * icon becomes the label. Each draws what the screen *does* — a funnel for the
- * selection funnel, plotted points for the property map — rather than a generic
- * document that would make all eight look alike at 18 px.
+ * Every destination carries a glyph, which the previous header didn't need and
+ * this one does: a rail that collapses to 68px has no room for words, and
+ * the icon becomes the label. Each one draws what the screen *does* — a funnel
+ * for the selection funnel, plotted points for the property map — rather than
+ * a generic document that would make all eight look the same at 18px.
  */
 const GROUPS: NavGroup[] = [
   {
     id: "study",
     label: t.groupStudy,
     items: [
-      { href: "/selecao", label: t.selection, icon: IconFilter },
-      { href: "/mapas", label: t.maps, icon: IconScatter },
-      { href: "/comparar", label: t.compare, icon: IconCompare },
+      { href: "/app/selecao", label: t.selection, icon: IconFilter },
+      { href: "/app/mapas", label: t.maps, icon: IconScatter },
+      { href: "/app/comparar", label: t.compare, icon: IconCompare },
     ],
   },
   {
     id: "data",
     label: t.groupData,
     items: [
-      { href: "/catalogo", label: t.catalog, icon: IconBook },
-      { href: "/painel", label: t.dashboard, icon: IconGauge },
-      { href: "/importar", label: t.imports, icon: IconUpload },
+      { href: "/app/catalogo", label: t.catalog, icon: IconBook },
+      { href: "/app/painel", label: t.dashboard, icon: IconGauge },
+      { href: "/app/importar", label: t.imports, icon: IconUpload },
     ],
   },
   {
     id: "admin",
     label: t.groupAdmin,
     items: [
-      { href: "/admin/classes", label: t.classes, icon: IconLayers },
-      { href: "/admin/propriedades", label: t.properties, icon: IconRuler },
+      { href: "/app/admin/classes", label: t.classes, icon: IconLayers },
+      { href: "/app/admin/propriedades", label: t.properties, icon: IconRuler },
     ],
   },
 ];
 
-/** `/` only matches itself; every other route also owns what hangs below it. */
+/** `/app` (the home item's own route) only matches itself; every other route also controls what's below it. */
 function isActive(pathname: string, href: string): boolean {
-  if (href === "/") return pathname === "/";
+  if (href === HOME.href) return pathname === HOME.href;
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
 /**
- * One destination.
+ * A destination.
  *
- * The shape is a full pill, and the movement is the point of the whole
- * redesign: the item grows from its left edge under the pointer and gives way
- * under the press, so the control behaves like something soft instead of a
- * painted rectangle. It is three CSS properties — no animation library, which
- * §13 de REDESIGN.md rules out and which nothing here would need anyway.
+ * The rail is dark in both themes (see `--rail-*` tokens in globals.css): that's what
+ * keeps it as a frame rather than another panel, and it's against the rail that
+ * the section hue pops. The active item says "you are here" three ways, and each
+ * one covers a failure mode of the others: the 3px indicator on the left edge survives
+ * the collapsed rail, the fill survives a glance, and `aria-current`
+ * survives having no color at all.
  *
- * The label is never removed when the rail collapses, only made `sr-only`. A
- * link whose text disappears is a link with no accessible name; a link whose
- * text is only unpainted still announces itself, and gains a native tooltip for
- * the reader who can see but cannot guess the glyph.
+ * The indicator is a positioned child, not a `border-left`: a border
+ * would push content 3px inward only on the active item, and the row of
+ * icons would misalign.
+ *
+ * The label is never removed when the rail collapses, only becomes `sr-only`. A
+ * link whose text disappears is a link without accessible name; a link whose text
+ * simply isn't painted still announces itself, and gets a native tooltip for those who
+ * see but can't guess the glyph.
  */
 function NavLink({
   item,
@@ -116,23 +122,29 @@ function NavLink({
   return (
     <Link
       href={item.href}
-      // The current page is announced, not only painted: colour alone leaves a
-      // screen-reader user with no idea where they are.
+      // The current page is announced, not just painted: color alone leaves
+      // screen reader users with no idea where they are.
       aria-current={active ? "page" : undefined}
       title={collapsed ? item.label : undefined}
       className={cn(
-        "group flex items-center gap-3 rounded-full py-2 text-sm transition",
+        "group relative flex items-center gap-3 rounded-control py-2 text-sm transition",
         "origin-left hover:scale-[1.02] active:scale-[0.98]",
         collapsed ? "justify-center px-2" : "px-3",
         active
-          ? "bg-brand-50 font-medium text-brand-700 shadow-glow"
-          : "text-ink-muted hover:bg-surface-sunken hover:text-ink",
+          ? "bg-rail-accent/20 font-semibold text-rail-ink"
+          : "text-rail-ink-muted hover:bg-rail-edge/[0.07] hover:text-rail-ink",
       )}
     >
+      {active ? (
+        <span
+          aria-hidden
+          className="animate-grow-y absolute inset-y-2 left-0 w-[3px] rounded-full bg-rail-accent"
+        />
+      ) : null}
       <Icon
         className={cn(
-          "h-[18px] w-[18px] transition-transform group-hover:scale-110",
-          active && "scale-105",
+          "h-[18px] w-[18px] shrink-0 transition-transform group-hover:scale-110",
+          active ? "scale-105 text-rail-accent" : "text-rail-ink-subtle",
         )}
       />
       <span className={cn(collapsed && "sr-only")}>{item.label}</span>
@@ -140,7 +152,7 @@ function NavLink({
   );
 }
 
-/** One titled group of destinations. */
+/** A titled group of destinations. */
 function NavGroupList({
   group,
   pathname,
@@ -158,7 +170,7 @@ function NavGroupList({
       <span
         id={labelId}
         className={cn(
-          "px-3 pb-1 text-2xs font-semibold uppercase tracking-wide text-ink-muted",
+          "px-3 pb-1 font-mono text-2xs uppercase tracking-eyebrow text-rail-ink-subtle",
           collapsed && "sr-only",
         )}
       >
@@ -175,35 +187,37 @@ function NavGroupList({
   );
 }
 
-/** The wordmark, which is also the link home. */
+/** The brand, which is also the link to home. */
 function BrandLink({ pathname, collapsed = false }: { pathname: string; collapsed?: boolean }) {
   return (
     <Link
-      href="/"
-      aria-current={pathname === "/" ? "page" : undefined}
+      href="/app"
+      aria-current={pathname === "/app" ? "page" : undefined}
       title={collapsed ? ptBR.appName : undefined}
       className="group flex items-center gap-2 rounded-control px-1 py-1"
     >
-      {/* A squircle that rounds further under the pointer. Decorative — the
-          name next to it is the accessible one, and stays in the tree even
-          when the rail is too narrow to paint it. */}
+      {/* A squircle that rounds more under the pointer. Decorative — the name to the
+          side is the accessible one, and stays in the tree even when the rail is
+          too narrow to paint it. */}
       <span
         aria-hidden
         className="grid h-8 w-8 shrink-0 place-items-center rounded-[0.7rem] bg-brand text-sm font-bold text-brand-fg transition-all group-hover:scale-105 group-hover:rounded-[1.1rem]"
       >
         M
       </span>
-      <span className={cn("font-semibold text-ink", collapsed && "sr-only")}>{ptBR.appName}</span>
+      <span className={cn("font-semibold text-rail-ink", collapsed && "sr-only")}>
+        {ptBR.appName}
+      </span>
     </Link>
   );
 }
 
 /**
- * The signed-in user, and the one way out.
+ * Who is authenticated, and the only way out.
  *
- * Renders nothing while `/auth/me` is still resolving or has no user — the
- * layout's `AuthGate` already covers that wait, so this footer only has to
- * cover the case where a user is loaded.
+ * Renders nothing while `/auth/me` resolves or when there's no user — the
+ * layout's `AuthGate` already covers that wait, so this footer only needs to cover
+ * the case when a user is loaded.
  */
 function UserFooter({ collapsed = false }: { collapsed?: boolean }) {
   const router = useRouter();
@@ -230,7 +244,8 @@ function UserFooter({ collapsed = false }: { collapsed?: boolean }) {
         title={collapsed ? user.name : undefined}
       >
         {user.avatar_url ? (
-          // A third-party avatar URL, not a local asset next/image can optimise.
+          // Third-party avatar URL, not a local asset that next/image can
+          // optimize.
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={user.avatar_url}
@@ -241,12 +256,14 @@ function UserFooter({ collapsed = false }: { collapsed?: boolean }) {
         ) : (
           <span
             aria-hidden
-            className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-brand-50 text-xs font-semibold text-brand-700"
+            className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-rail-accent/25 text-xs font-semibold text-rail-accent"
           >
             {user.name.charAt(0).toUpperCase()}
           </span>
         )}
-        {!collapsed && <span className="truncate text-xs font-medium text-ink">{user.name}</span>}
+        {!collapsed && (
+          <span className="truncate text-xs font-medium text-rail-ink-muted">{user.name}</span>
+        )}
       </div>
       <IconButton
         size="sm"
@@ -260,21 +277,20 @@ function UserFooter({ collapsed = false }: { collapsed?: boolean }) {
 }
 
 /**
- * The application's navigation: a persistent rail from `lg` up, a modal drawer
- * below it.
+ * The app navigation: a permanent rail at `lg` and up, a modal drawer below that.
  *
- * It replaces a top header whose eight links only fitted from 1280 px and were
- * a horizontal row that said nothing about which screens belong together. A
- * rail buys the two things that row could not have: the grouping stays visible
- * while you work, and the width is yours — collapse it to glyphs when the map
- * on screen matters more than the menu.
+ * Replaces a top header whose eight links only dropped at 1280px
+ * and were a horizontal row that told nothing about which screens belong
+ * together. The rail gets the two things that row couldn't have:
+ * grouping stays visible while working, and width is yours — collapse
+ * to glyphs when the map on screen matters more than the menu.
  *
- * The collapsed state is React state and is deliberately **not** persisted. It
- * survives every client-side navigation, because this component lives in the
- * root layout and never unmounts; it resets on a hard reload. Storing it would
- * mean either reading `localStorage` during render — which disagrees with the
- * server markup and makes React complain — or animating the rail shut after
- * first paint, which is worse than starting open.
+ * Collapsed state is React state and deliberately **not** persisted.
+ * Survives all client navigation because this component lives in the root layout
+ * and never unmounts; returns to normal on reload. Persisting would mean reading
+ * `localStorage` during render — which disagrees with server markup and makes React
+ * complain — or animating the rail closed after first paint, which is worse than
+ * starting open.
  */
 export function AppSidebar() {
   const pathname = usePathname();
@@ -284,7 +300,7 @@ export function AppSidebar() {
 
   useFocusTrap(open, panelRef, () => setOpen(false));
 
-  // A drawer that survives the navigation it just caused would cover the page
+  // A drawer that survived navigation it caused would cover the page
   // the reader asked for.
   useEffect(() => {
     setOpen(false);
@@ -294,14 +310,14 @@ export function AppSidebar() {
 
   return (
     <>
-      {/* Narrow screens: a slim bar that carries only the way into the drawer.
-          The theme control is not duplicated here — it lives inside the drawer,
-          next to everything else that is navigation chrome. */}
-      <header className="sticky top-0 z-30 flex items-center gap-2 border-b border-edge bg-surface-raised px-3 py-2 lg:hidden">
-        {/* The label does not flip to "close": while the drawer is open this
-            button sits behind the overlay, and the drawer carries its own close
-            control. Two buttons with the same name and the same job is a maze
-            for anyone reading by name. State is on `aria-expanded`. */}
+      {/* Narrow screens: a thin bar that carries only the path to the drawer.
+          Theme control is not duplicated here — it lives inside the drawer, beside
+          everything else that's navigation chrome. */}
+      <header className="sticky top-0 z-30 flex items-center gap-2 bg-rail px-3 py-2 lg:hidden">
+        {/* The label doesn't change to "close": while the drawer is open this
+            button sits behind the overlay, and the drawer carries its own
+            close control. Two buttons with the same name and function are a maze
+            for those reading by name. State is in `aria-expanded`. */}
         <IconButton
           size="sm"
           label={ptBR.ui.openMenu}
@@ -317,12 +333,12 @@ export function AppSidebar() {
       </header>
 
       {/* Wide screens: the rail. `sticky` with `h-screen` keeps it in place
-          while the content column scrolls under it. */}
+          while the content column scrolls beneath. */}
       <aside
         id="navegacao-lateral"
         className={cn(
-          "sticky top-0 hidden h-screen shrink-0 flex-col gap-4 border-r border-edge bg-surface-raised px-3 py-4 transition-[width] lg:flex",
-          collapsed ? "w-[76px]" : "w-64",
+          "sticky top-0 hidden h-screen shrink-0 flex-col gap-5 bg-rail px-3 py-4 transition-[width] ease-emphasized duration-slow lg:flex",
+          collapsed ? "w-[68px]" : "w-64",
         )}
       >
         <div className={cn("flex flex-col gap-2", collapsed && "items-center")}>
@@ -336,11 +352,11 @@ export function AppSidebar() {
 
         <nav
           aria-label={ptBR.ui.mainNav}
-          className="flex flex-1 flex-col gap-4 overflow-y-auto overscroll-contain"
+          className="flex flex-1 flex-col gap-5 overflow-y-auto overscroll-contain"
         >
           <ul className="flex flex-col gap-0.5">
             <li>
-              <NavLink item={HOME} active={isActive(pathname, "/")} collapsed={collapsed} />
+              <NavLink item={HOME} active={isActive(pathname, HOME.href)} collapsed={collapsed} />
             </li>
           </ul>
           {GROUPS.map((group) => (
@@ -354,7 +370,7 @@ export function AppSidebar() {
           ))}
         </nav>
 
-        <div className="mt-auto flex flex-col gap-2 border-t border-edge pt-3">
+        <div className="mt-auto flex flex-col gap-2 border-t border-rail-edge/10 pt-3">
           <UserFooter collapsed={collapsed} />
           <div
             className={cn(
@@ -376,14 +392,14 @@ export function AppSidebar() {
         </div>
       </aside>
 
-      {/* The drawer is rendered only while open — a hidden copy of every link
-          would double the tab stops on every page. */}
+      {/* The drawer is rendered only while open — a hidden copy of each
+          link would double tab stops across the whole page. */}
       {open && (
         <div className="fixed inset-0 z-40 lg:hidden">
           <div
             aria-hidden
             onClick={() => setOpen(false)}
-            className="absolute inset-0 bg-surface-inverted/50"
+            className="absolute inset-0 bg-rail/70"
           />
           <div
             id="menu-principal"
@@ -392,7 +408,7 @@ export function AppSidebar() {
             aria-modal="true"
             aria-label={ptBR.ui.mainNav}
             tabIndex={-1}
-            className="absolute left-0 top-0 flex h-full w-72 max-w-[85vw] flex-col gap-4 overflow-y-auto border-r border-edge bg-surface-raised p-4 shadow-overlay"
+            className="absolute left-0 top-0 flex h-full w-72 max-w-[85vw] flex-col gap-5 overflow-y-auto bg-rail p-4 shadow-overlay"
           >
             <div className="flex items-center justify-between gap-2">
               <BrandLink pathname={pathname} />
@@ -403,10 +419,10 @@ export function AppSidebar() {
                 onClick={() => setOpen(false)}
               />
             </div>
-            <nav className="flex flex-1 flex-col gap-4">
+            <nav className="flex flex-1 flex-col gap-5">
               <ul className="flex flex-col gap-0.5">
                 <li>
-                  <NavLink item={HOME} active={isActive(pathname, "/")} />
+                  <NavLink item={HOME} active={isActive(pathname, HOME.href)} />
                 </li>
               </ul>
               {GROUPS.map((group) => (
@@ -418,7 +434,7 @@ export function AppSidebar() {
                 />
               ))}
             </nav>
-            <div className="mt-auto flex flex-col gap-2 border-t border-edge pt-3">
+            <div className="mt-auto flex flex-col gap-2 border-t border-rail-edge/10 pt-3">
               <UserFooter />
               <ThemeToggle compact />
             </div>

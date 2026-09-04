@@ -1,89 +1,32 @@
-import Link from "next/link";
+import type { Metadata } from "next";
+import { Landing } from "@/components/marketing/Landing";
 import { ptBR } from "@/lib/i18n";
-import { Alert, ButtonLink, Section } from "@/components/ui";
-import { IconArrowRight } from "@/components/ui/icons";
-import { LimitationNotice } from "@/components/LimitationNotice";
-import { SavedStudies } from "@/components/home/SavedStudies";
-
-const t = ptBR.home;
 
 /**
- * The four steps of the method, each one a door into the wizard at that step.
+ * The public route.
  *
- * The home page is where someone who has never heard of Ashby arrives, so the
- * method is the page: function, constraints, objective, results, in that order
- * and with the reason each one exists.
+ * Used to be the app's home dashboard; it became the showcase. What used to be
+ * here moved to `/app` — see `app/app/page.tsx` — and the rail now lives in
+ * that segment's layout, not at the root. A visitor who has never opened the
+ * tool shouldn't see its internal navigation before knowing what it does.
+ *
+ * The metadata is the commercial work a product page never had to do: the
+ * title and description are what shows up in a search result and in a link
+ * pasted into WhatsApp, and matter more than anything above the fold for
+ * someone who hasn't clicked yet.
  */
-const STEPS = [
-  { href: "/selecao?etapa=funcao", label: t.step1, hint: t.step1Hint },
-  { href: "/selecao?etapa=restricoes", label: t.step2, hint: t.step2Hint },
-  { href: "/selecao?etapa=objetivo", label: t.step3, hint: t.step3Hint },
-  { href: "/selecao?etapa=resultados", label: t.step4, hint: t.step4Hint },
-];
+export const metadata: Metadata = {
+  title: `${ptBR.appName} — seleção de materiais pelo método de Ashby`,
+  description:
+    "Da função do componente ao relatório de seleção. Nenhuma propriedade é inventada: todo número veio de um valor cadastrado ou de um cálculo determinístico, com a origem à vista.",
+  openGraph: {
+    title: `${ptBR.appName} — seleção de materiais pelo método de Ashby`,
+    description:
+      "Restrições que eliminam candidatos à vista, índice de mérito auditável e a proveniência de cada valor.",
+    type: "website",
+  },
+};
 
 export default function HomePage() {
-  return (
-    <div className="space-y-8">
-      <section className="space-y-3">
-        <h1 className="text-2xl font-semibold text-ink">{ptBR.appName}</h1>
-        <p className="max-w-prose text-ink-muted">{t.lead}</p>
-        <p className="max-w-prose text-sm text-ink-muted">{t.lead2}</p>
-        <div className="flex flex-wrap gap-3 pt-1">
-          <ButtonLink href="/selecao" variant="primary" icon={<IconArrowRight />}>
-            {t.start}
-          </ButtonLink>
-          <ButtonLink href="/catalogo">{t.browse}</ButtonLink>
-        </div>
-      </section>
-
-      {/* The two warnings the proposal requires, on the first screen someone
-          sees — not only in the footer and not only inside an export. */}
-      <div className="space-y-3">
-        <Alert tone="warning">{ptBR.demoWarning}</Alert>
-        <LimitationNotice />
-      </div>
-
-      <Section title={t.methodTitle} description={t.methodHint}>
-        <ol className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {STEPS.map((step, i) => (
-            <li key={step.href}>
-              <Link
-                href={step.href}
-                className="flex h-full flex-col gap-1 rounded-card border border-edge bg-surface-raised p-4 shadow-card transition hover:border-brand hover:bg-brand-50"
-              >
-                <span className="text-2xs font-semibold uppercase tracking-wide text-brand-700">
-                  {i + 1}
-                </span>
-                <span className="text-sm font-medium text-ink">{step.label}</span>
-                <span className="text-xs text-ink-muted">{step.hint}</span>
-              </Link>
-            </li>
-          ))}
-        </ol>
-      </Section>
-
-      <SavedStudies />
-
-      <Section title={t.exploreTitle}>
-        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {[
-            { href: "/catalogo", label: ptBR.nav.catalog, hint: t.catalogHint },
-            { href: "/mapas", label: ptBR.nav.maps, hint: t.mapsHint },
-            { href: "/comparar", label: ptBR.nav.compare, hint: t.compareHint },
-            { href: "/importar", label: ptBR.nav.imports, hint: t.importHint },
-          ].map((item) => (
-            <li key={item.href}>
-              <Link
-                href={item.href}
-                className="flex h-full flex-col gap-1 rounded-card border border-edge bg-surface-raised p-4 shadow-card transition hover:border-brand hover:bg-brand-50"
-              >
-                <span className="text-sm font-medium text-ink">{item.label}</span>
-                <span className="text-xs text-ink-muted">{item.hint}</span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </Section>
-    </div>
-  );
+  return <Landing />;
 }

@@ -6,6 +6,7 @@ import { OKABE_ITO } from "@/lib/design/palette";
 import {
   Alert,
   Badge,
+  Bar,
   ButtonLink,
   MissingValue,
   Section,
@@ -52,14 +53,11 @@ function FunnelRow({
       <span className="truncate text-xs text-ink-muted" title={label}>
         {label}
       </span>
-      <span className="h-2.5 overflow-hidden rounded-full bg-surface-sunken">
-        <span
-          className={
-            "block h-full rounded-full " + (tone === "brand" ? "bg-brand" : "bg-ink-subtle")
-          }
-          style={{ width: `${percent(remaining, initial)}%` }}
-        />
-      </span>
+      <Bar
+        value={percent(remaining, initial) / 100}
+        color={tone === "brand" ? "bg-brand" : "bg-ink-subtle"}
+        className="h-2.5"
+      />
       <span className="text-xs tabular-nums text-ink">
         <strong>{remaining}</strong>
         {eliminated !== null && eliminated > 0 ? (
@@ -225,12 +223,12 @@ export function ResultsView({ result }: { result: RunResult }) {
       {candidates.length > 0 && (
         <div className="flex flex-wrap gap-3">
           <ButtonLink
-            href={`/mapas?materiais=${candidateIds}${topId ? `&destaque=${topId}` : ""}`}
+            href={`/app/mapas?materiais=${candidateIds}${topId ? `&destaque=${topId}` : ""}`}
             variant="secondary"
           >
             {t.viewOnMap}
           </ButtonLink>
-          <ButtonLink href={`/comparar?materiais=${candidateIds}`} variant="secondary">
+          <ButtonLink href={`/app/comparar?materiais=${candidateIds}`} variant="secondary">
             {t.compareCandidates}
           </ButtonLink>
         </div>
@@ -290,12 +288,7 @@ export function ResultsView({ result }: { result: RunResult }) {
                       {ranking && (
                         <Td>
                           <div className="flex items-center gap-2">
-                            <span className="h-2 w-24 overflow-hidden rounded-full bg-surface-sunken">
-                              <span
-                                className="block h-full rounded-full bg-brand"
-                                style={{ width: `${percent(c.score ?? 0, 1)}%` }}
-                              />
-                            </span>
+                            <Bar value={c.score} className="h-2 w-24" />
                             <span className="tabular-nums text-ink-muted">
                               {c.score !== null ? formatScore(c.score, 3) : <MissingValue />}
                             </span>

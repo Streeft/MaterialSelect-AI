@@ -38,7 +38,7 @@ export function SavedStudies() {
         <EmptyState
           title={t.savedEmpty}
           description={t.savedEmptyHint}
-          action={<ButtonLink href="/selecao">{ptBR.nav.selection}</ButtonLink>}
+          action={<ButtonLink href="/app/selecao">{ptBR.nav.selection}</ButtonLink>}
         />
       )}
 
@@ -66,7 +66,7 @@ export function SavedStudies() {
                   </Badge>
                 </div>
                 <ButtonLink
-                  href={`/selecao?estudo=${study.id}`}
+                  href={`/app/selecao?estudo=${study.id}`}
                   size="sm"
                   variant="secondary"
                   className="self-start"

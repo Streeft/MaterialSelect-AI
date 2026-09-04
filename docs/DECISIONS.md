@@ -57,6 +57,8 @@ diferente. O que é óbvio não precisa de registro.
 | D-42 | Login só por terceiros (Google); catálogo compartilhado; um projeto por usuário no v1 | aceito | abaixo |
 | D-47 | Busca híbrida (RRF) sobre o Cérebro, Jina AI como receita gratuita, citação verificada | aceito | abaixo |
 | D-48 | `@material/web` para primitivas de baixo nível — exceção pontual a D-23 | aceito | abaixo |
+| D-49 | Paleta por rota ("Prisma") substitui a paleta única de D-38, sem revogar seu método de medição | aceito | abaixo |
+| D-50 | Toggle manual "Tabela/Cartões" do catálogo substituído por troca automática de breakpoint | aceito | abaixo |
 
 ---
 
@@ -1965,3 +1967,91 @@ item de acompanhamento, não como bloqueio: nenhuma tela hoje mistura os dois
 sistemas de um jeito que produza contraste incorreto (verificado nos dois
 temas em `/estilo`), mas o risco de nova divergência é real a cada mudança
 de paleta.
+
+---
+
+## D-49 — Paleta por rota ("Prisma") substitui a paleta única de D-38, sem revogar seu método de medição
+
+**Contexto.** D-38 fixou uma paleta única, medida (`--brand-700`/`--brand-50`
+a 5,01:1), com dois matizes deliberados (`--info` ciano,
+`--quality-importado` violeta). O patch "Prisma" (aplicado nesta sessão,
+[spec](superpowers/specs/2026-09-02-design-system-prisma-design.md)) muda o
+mecanismo: cada rota tem seu próprio matiz de `--accent`/`--brand-*`,
+trocado via `[data-section]` no `<html>` (escrito por
+`components/layout/SectionTheme.tsx`), com `--md-sys-color-primary` e
+`--md-sys-color-primary-container` acompanhando no mesmo escopo.
+
+**Decisão.** Adotar a paleta por rota. O método que D-38 estabeleceu —
+medir cada par antes de aceitar, documentar o par mais apertado — continua
+valendo e foi seguido pelo patch: par mais apertado 5,59:1 (era 5,01:1),
+nenhum par abaixo de 6,2:1 (verificado em
+`lib/design/materialTheme.test.ts`, que trava as sete seções × dois temas
+contra o limiar WCAG AA). `--ink-subtle` foi escurecido porque a nova
+superfície mais clara reprovava o valor antigo (4,3:1).
+
+**O que continua intocado.** `--quality-*`, `--success`/`--warning`/
+`--danger`/`--info` e a paleta categórica Okabe–Ito — nenhum dos dois
+matizes deliberados de D-38 muda de propósito ou de posição; a rota nunca
+os sobrescreve.
+
+**Consequência aceita.** A paleta deixa de ser "uma cor por conceito em todo
+lugar" e passa a ser "uma cor por conceito, modulada por onde a tela está" —
+uma leitura a mais para quem edita a paleta pela primeira vez (qual valor é
+o de uma seção específica vs. o de um token semântico como `--success`).
+Mitigado por manter os dois tipos de token em blocos CSS visivelmente
+distintos em `globals.css` (`:root` vs. `[data-section]`).
+
+---
+
+## D-50 — O toggle manual "Tabela/Cartões" do catálogo é substituído por troca automática de breakpoint
+
+**Contexto.** Antes do patch "Prisma" (Task 6,
+[spec](superpowers/specs/2026-09-02-design-system-prisma-design.md)), a página
+`/app/catalogo` tinha um controle manual — um `ButtonGroup` guardado em
+`catalog.view`/`viewTable`/`viewCards` (`lib/i18n.ts`) — que deixava o usuário
+forçar a visão de tabela ou de cartões em qualquer largura de tela, independente
+do viewport. O patch introduziu um novo `components/catalog/MaterialCards.tsx`
+e removeu esse controle, substituindo-o por `MaterialCards` e `MaterialTable`
+montados lado a lado, cada um escondido no breakpoint do outro
+(`sm:hidden` / `hidden sm:block`) — a página escolhe a visão pela largura da
+tela, não mais por um clique do usuário.
+
+A remoção não estava pedida no brief da Task 6, que só instruía "encaixar
+`MaterialCards` ao lado da tabela" partindo da premissa (falsa) de que nenhuma
+visão em cartões existia ainda. A revisão independente confirmou que a leitura
+técnica está correta: a spec (§3.1, §3.3) é explícita — "cada um escondido no
+breakpoint do outro", "não uma reformatação CSS da mesma marcação" — e um
+toggle manual coexistindo com esse par automático produziria uma combinação
+quebrada (escolher "Cartões" numa tela larga enquanto o CSS de breakpoint
+mantém `sm:hidden` nos cartões). Mas a execução ficou incompleta: uma
+funcionalidade de usuário, testada e em uso, foi removida sem que a decisão
+fosse registrada — exatamente o tipo de lacuna que este arquivo existe para
+fechar (mesmo padrão de D-46/D-48: uma divergência resolvida no código sem
+registro é pior que uma exceção documentada).
+
+**Decisão.** Manter a remoção como está — não reintroduzir o toggle manual — e
+registrar aqui por que. Auto-troca por breakpoint é o que a spec do redesign
+pede para o par tabela/cartões, e as duas visões continuam existindo: nenhuma
+informação nem funcionalidade foi perdida, só a forma de acionar cada uma
+mudou de um clique do usuário para a largura da janela. `catalog.view`/
+`viewTable`/`viewCards` foram removidos de `lib/i18n.ts` sem deixar referência
+órfã (confirmado por grep: o único outro `viewTable` no código é
+`compare.viewTable`, chave distinta usada por `ComparisonView.tsx`).
+
+**Alternativas descartadas.**
+- **Manter o toggle como override por cima do par automático** (a alternativa
+  que a revisão apontou como menos destrutiva): tecnicamente viável — o
+  controle escolheria qual dos dois `hidden`/`sm:hidden` vale, ignorando o
+  breakpoint enquanto ativo — mas reintroduz exatamente a superfície que a
+  spec pediu para eliminar (dois mecanismos concorrentes decidindo o que
+  aparece), por um ganho que nenhum uso real do catálogo até hoje pediu:
+  nenhum teste, ticket ou nota de usabilidade em `docs/` menciona alguém
+  precisando forçar tabela numa tela estreita ou cartões numa tela larga.
+- **Reverter a remoção e não montar `MaterialCards` lado a lado**: contradiria
+  a spec diretamente e desfaria a Task 6 inteira.
+
+**Consequência aceita.** Um usuário que preferia forçar a visão de tabela numa
+tela larga estreitada (ex.: janela redimensionada, não um celular) perde esse
+controle explícito — a visão passa a seguir só a largura real do viewport.
+Não há perda de dado nem de recurso: as mesmas quatro colunas/estados
+aparecem nos dois formatos, só a seleção entre eles deixou de ser manual.

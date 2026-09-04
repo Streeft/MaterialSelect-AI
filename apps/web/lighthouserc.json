@@ -7,16 +7,16 @@
       "startServerReadyTimeout": 60000,
       "url": [
         "http://127.0.0.1:3000",
-        "http://127.0.0.1:3000/catalogo",
-        "http://127.0.0.1:3000/importar",
-        "http://127.0.0.1:3000/selecao",
-        "http://127.0.0.1:3000/mapas",
-        "http://127.0.0.1:3000/comparar",
-        "http://127.0.0.1:3000/painel",
-        "http://127.0.0.1:3000/estilo",
+        "http://127.0.0.1:3000/app/catalogo",
+        "http://127.0.0.1:3000/app/importar",
+        "http://127.0.0.1:3000/app/selecao",
+        "http://127.0.0.1:3000/app/mapas",
+        "http://127.0.0.1:3000/app/comparar",
+        "http://127.0.0.1:3000/app/painel",
+        "http://127.0.0.1:3000/app/estilo",
         "http://127.0.0.1:3000/entrar",
-        "http://127.0.0.1:3000/admin/classes",
-        "http://127.0.0.1:3000/admin/propriedades"
+        "http://127.0.0.1:3000/app/admin/classes",
+        "http://127.0.0.1:3000/app/admin/propriedades"
       ],
       "settings": {
         "headful": false,

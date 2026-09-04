@@ -2,36 +2,72 @@ import type { ElementType, ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
 /**
- * The actions slot of a header, in one place because both headers use it.
+ * A header's action slot, in one place because both headers use it.
  *
- * `shrink-0` keeps a long title from squeezing the controls into two-letter
- * columns. On its own it also let the controls push the whole document wider
- * than the viewport: at 375 px the catalogue's three export links stretched the
- * page to 389 px and every route inherited the sideways scroll. `max-w-full`
- * caps the slot at the line it sits on and `flex-wrap` gives its children a
- * second row — the controls stay unsqueezed, and the page stops growing.
+ * `shrink-0` prevents a long title from squeezing controls into two-letter columns.
+ * Alone it also let controls push the document past viewport: at 375px the three
+ * catalog export links stretched the page to 389px and every route inherited sideways
+ * scroll. `max-w-full` limits the slot to its line and `flex-wrap` gives children
+ * a second row.
  */
 const ACTIONS = "flex max-w-full shrink-0 flex-wrap items-center gap-2";
 
-/** A raised panel. The default container for anything that is not prose. */
+/**
+ * The ceiling of staggered entry. From the seventh item onward everything enters
+ * together: past that the screen takes longer to settle than the reader takes to
+ * look, and animation shifts from explanation to waiting.
+ */
+const STAGGER_LIMIT = 6;
+const STAGGER_STEP = 40;
+
+/** A raised panel. The default container for everything that isn't prose. */
 export function Card({
   as: Tag = "div",
   className,
   children,
+  riseIndex,
 }: {
   as?: ElementType;
   className?: string;
   children: ReactNode;
+  /**
+   * The card's position in a grid, when the grid should enter staggered.
+   * Omit for a lone card: a single element rising alone explains nothing,
+   * just arrives late.
+   */
+  riseIndex?: number;
 }) {
+  const staggered = riseIndex != null && riseIndex < STAGGER_LIMIT;
   return (
     <Tag
       className={cn(
         "rounded-card border border-edge bg-surface-raised shadow-card",
+        riseIndex != null && "rise",
         className,
       )}
+      style={staggered ? { animationDelay: `${riseIndex * STAGGER_STEP}ms` } : undefined}
     >
       {children}
     </Tag>
+  );
+}
+
+/**
+ * The frame of an entire route: larger radius, so the screen reads as its own
+ * surface, not a giant card.
+ *
+ * Exists for each route's shell — the `<main>` and what surrounds it —
+ * and is the only place `rounded-panel` appears.
+ */
+export function PanelShell({
+  className,
+  children,
+}: {
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className={cn("overflow-hidden rounded-panel bg-surface", className)}>{children}</div>
   );
 }
 
@@ -44,14 +80,14 @@ export function CardHeader({
 }: {
   title: ReactNode;
   description?: ReactNode;
-  /** Controls that belong to this card, not to the page. */
+  /** Controls of this card, not the page. */
   actions?: ReactNode;
   className?: string;
   /**
-   * Where this card sits in the document outline. Defaults to `h3` because a
-   * card normally lives inside a `Section` (`h2`); a card placed directly under
-   * the page title has to say `2`, or the outline skips a level and the page
-   * stops being navigable by headings.
+   * Where this card falls in the document outline. Default `h3`, because a card
+   * normally lives inside a `Section` (`h2`); a card placed directly
+   * under the page title must say `2`, or the outline skips a level and the
+   * page becomes non-navigable by heading.
    */
   headingLevel?: 2 | 3 | 4;
 }) {
@@ -92,16 +128,16 @@ export function CardFooter({ className, children }: { className?: string; childr
 }
 
 /**
- * A titled region of a page, with a stable anchor.
+ * A titled page region with stable anchor.
  *
- * The results screen is long and gets referenced in class ("look at the funnel"),
- * so every block needs an id someone can link to — and a real heading, so the
+ * The results screen is long and referenced in class ("look at the funnel"), so
+ * every block needs a linkable id — and a real heading, so the
  * document outline matches what the eye sees.
  *
- * `min-w-0` because a section is nearly always a grid or flex item, and such an
- * item defaults to `min-width: auto`: it refuses to shrink below the widest
- * thing inside it. One wide table then pushes the whole page past the viewport
- * instead of scrolling inside its own box.
+ * `min-w-0` because a section is almost always a grid or flex item, and such an item
+ * assumes `min-width: auto`: refuses to shrink below its widest child.
+ * A wide table then pushes the entire page past viewport
+ * instead of scrolling in its own box.
  */
 export function Section({
   id,
