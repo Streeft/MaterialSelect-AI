@@ -191,8 +191,8 @@ function NavGroupList({
 function BrandLink({ pathname, collapsed = false }: { pathname: string; collapsed?: boolean }) {
   return (
     <Link
-      href="/"
-      aria-current={pathname === "/" ? "page" : undefined}
+      href="/app"
+      aria-current={pathname === "/app" ? "page" : undefined}
       title={collapsed ? ptBR.appName : undefined}
       className="group flex items-center gap-2 rounded-control px-1 py-1"
     >

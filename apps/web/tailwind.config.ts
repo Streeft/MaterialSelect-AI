@@ -177,12 +177,17 @@ const config: Config = {
           "0%, 100%": { transform: "translate3d(0, 0, 0) scale(1)" },
           "50%": { transform: "translate3d(22px, -18px, 0) scale(1.07)" },
         },
+        "fade-in": {
+          from: { opacity: "0", transform: "translateY(2px)" },
+          to: { opacity: "1", transform: "none" },
+        },
       },
       animation: {
         rise: "rise 260ms cubic-bezier(0.2, 0, 0, 1) both",
         "grow-x": "grow-x 460ms cubic-bezier(0.2, 0, 0, 1) both",
         "grow-y": "grow-y 260ms cubic-bezier(0.2, 0, 0, 1) both",
         drift: "drift 22s ease-in-out infinite",
+        "fade-in": "fade-in 120ms ease-out",
       },
     },
   },

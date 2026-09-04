@@ -20,7 +20,7 @@ vi.mock("react-plotly.js", () => ({ default: () => null }));
 // PageHeader reads its section from the current route (Task 1) — the mock
 // needs a real pathname so `sectionForPath` doesn't crash on `null`.
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/painel",
+  usePathname: () => "/app/painel",
 }));
 
 const overview: DashboardOverview = {

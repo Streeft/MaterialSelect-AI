@@ -77,16 +77,21 @@ Registrados para não voltarem por engano:
   Okabe–Ito continuam intocados de propósito — proveniência e alerta não
   variam por rota. **Fase 2** (camada comercial): `/` virou a vitrine
   pública (`components/marketing/Landing.tsx`, sem sidebar nem portão de
-  login), as seis rotas do produto migraram para `/app/*` levando
-  `AuthGate` junto — achado nesta sessão e não no README do patch, que só
-  falava em mover `AppSidebar`/`LimitationNotice`: é `AuthGate` que hoje
-  condiciona toda rota a sessão + assinatura ativa, e deixá-lo no layout
-  raiz teria vazado o portão de login para a vitrine pública. `BottomNav`
-  chegou para telefone e `MaterialCards` passou a renderizar ao lado de
-  `MaterialTable` no catálogo (`sm:hidden`/`hidden sm:block`), DOM
-  duplicado de propósito — custo aceito porque o catálogo é paginado.
-  `PageHeader` substitui o `<h1>` manual em seis rotas (`group="estudar"`:
-  seleção/mapas/comparar; `group="dados"`: catálogo/painel/importar);
+  login), nove árvores de rota migraram para `/app/*` — as seis rotas do
+  produto (`selecao`, `mapas`, `comparar`, `catalogo`, `painel`,
+  `importar`) mais `estilo`, `admin` e `materiais`, as últimas três fora
+  da lista de rotas da própria spec e descobertas só durante a Tarefa 5 —
+  levando `AuthGate` junto — achado nesta sessão e não no README do
+  patch, que só falava em mover `AppSidebar`/`LimitationNotice`: é
+  `AuthGate` que hoje condiciona toda rota a sessão + assinatura ativa, e
+  deixá-lo no layout raiz teria vazado o portão de login para a vitrine
+  pública. `BottomNav` chegou para telefone e `MaterialCards` passou a
+  renderizar ao lado de `MaterialTable` no catálogo (`sm:hidden`/`hidden
+  sm:block`), DOM duplicado de propósito — custo aceito porque o catálogo
+  é paginado. `PageHeader` substitui o `<h1>` manual em dez arquivos de
+  rota (`group="estudar"`: seleção/mapas/comparar; `group="dados"`:
+  catálogo/painel/importar; mais admin/classes, admin/propriedades,
+  materiais/novo e materiais/[id]/editar);
   `/entrar` e `/assinatura` ficam de fora por decisão do próprio spec, que
   não lhes dá seção. **Descartado por decisão do spec, não por omissão:** a
   "coluna de cobertura" do catálogo que o README do patch pedia para ganhar
@@ -134,6 +139,17 @@ Registrados para não voltarem por engano:
   completo (único candidato pontuável) recebe 100%. 872 testes de backend
   (intocado por esta tarefa), 193 de frontend, 2 E2E e Lighthouse (11
   rotas, 33 execuções) verdes ao final.
+
+  **Débito aberto pela revisão final de branch, não quitado nesta
+  entrega:** `/app/estilo` (a página viva do guia de estilo, de onde saem
+  as capturas usadas como figuras de interface na monografia) não foi
+  atualizada para este patch — falta nela as três primitivas novas do
+  barril (`Bar`, `PageHeader`, `PanelShell`), o token de raio
+  `rounded-panel`, os seis tokens de superfície `rail-*` e, a lacuna mais
+  visível, ela só mostra a rampa da seção `inicio`, sem forma de ver as
+  outras seis paletas por rota que D-49 introduziu. A nota já existente no
+  `CLAUDE.md` da raiz sobre as figuras da monografia precisarem ser
+  refeitas depois de D-38 agora também vale depois de D-49/Prisma.
 - ~~**M5** — Métodos multicritério adicionais (TOPSIS, AHP, PROMETHEE)~~ —
   implementado **por pedido explícito do orientador**, revertendo a nota "só
   faça se o orientador pedir" que este item carregava antes: o usuário

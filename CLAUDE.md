@@ -325,9 +325,13 @@ subagentes mais uma verificação final; detalhe completo em
 a paleta única de D-38, um matiz de `--accent`/`--brand-*` por seção
 trocado via `[data-section]` no `<html>`, sem revogar o método de medição
 de D-38 ([D-49](docs/DECISIONS.md)). Fase 2: `/` virou vitrine pública sem
-sidebar nem portão de login, as seis rotas do produto migraram para
-`/app/*` levando `AuthGate` junto — achado nesta sessão, não previsto no
-README do patch —, `BottomNav` chegou para telefone e o catálogo passou a
+sidebar nem portão de login, nove árvores de rota migraram para
+`/app/*` — as seis rotas do produto (`selecao`, `mapas`, `comparar`,
+`catalogo`, `painel`, `importar`) mais `estilo`, `admin` e `materiais`, as
+últimas três descobertas só durante a Tarefa 5 por não constarem na lista
+de rotas da própria especificação — levando `AuthGate` junto — achado
+nesta sessão, não previsto no README do patch —, `BottomNav` chegou para
+telefone e o catálogo passou a
 alternar `MaterialCards`/`MaterialTable` por breakpoint em vez do toggle
 manual que existia antes ([D-50](docs/DECISIONS.md)). A verificação final
 achou e corrigiu dois defeitos que nenhum teste automatizado pegava: um

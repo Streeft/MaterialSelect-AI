@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { ptBR } from "@/lib/i18n";
+import { Landing } from "@/components/marketing/Landing";
 import { describeViolations, findA11yViolations } from "@/lib/testing/axe";
 import type {
   AIStatus,
@@ -625,5 +626,14 @@ describe("acessibilidade das telas principais", () => {
 
   it("importação", async () => {
     await auditRoute(<ImportPage />, ptBR.importer.title);
+  });
+
+  // Landing is the one route in this file that isn't under `/app`: no session,
+  // no query client, no API stubbing, because the vitrine has none of that —
+  // it's a plain server component (see its own top-of-file comment).
+  it("vitrine pública (/)", async () => {
+    const { container } = render(<Landing />);
+    await screen.findByRole("heading", { level: 1 });
+    await expectClean(container);
   });
 });

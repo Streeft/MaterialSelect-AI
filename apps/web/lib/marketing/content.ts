@@ -25,11 +25,11 @@ export const marketing = {
     body:
       "Da função do componente ao relatório assinado. Nenhuma propriedade é inventada: todo número na tela veio de um valor cadastrado ou de um cálculo determinístico, e a origem de cada um está a um clique de distância.",
     primary: { label: "Começar um estudo", href: "/app/selecao" },
-    secondary: { label: "Ver um estudo pronto", href: "/app/selecao?modelo=haste-leve-rigida" },
+    secondary: { label: "Ver um estudo pronto", href: "/app/selecao" },
     // Three claims the product actually delivers today. No vanity metric:
     // "1,200 engineers trust it" is the kind of number nobody can check.
     assurances: [
-      "Sem cartão para experimentar",
+      "Resultado reproduzível e auditável",
       "Importe CSV ou XLSX",
       "Seus dados não treinam nada",
     ],
@@ -80,7 +80,7 @@ export const marketing = {
       {
         id: "estudante",
         name: "Estudante",
-        price: "R$ 0",
+        price: "R$ —",
         period: "/ mês",
         note: "Catálogo de demonstração e um estudo salvo.",
         features: [
@@ -88,7 +88,7 @@ export const marketing = {
           { label: "Exportação em CSV", included: true },
           { label: "Sem importação de dados", included: false },
         ],
-        cta: "Começar grátis",
+        cta: "Falar com vendas",
         featured: false,
       },
       {
@@ -130,7 +130,7 @@ export const marketing = {
 
   close: {
     title: "Comece pelo estudo que se parece com o seu.",
-    body: "Três estudos-modelo abrem o assistente já preenchido.",
+    body: "O assistente guia da restrição ao ranking, passo a passo.",
     primary: { label: "Começar um estudo", href: "/app/selecao" },
     secondary: { label: "Importar meu catálogo", href: "/app/importar" },
   },
@@ -150,7 +150,7 @@ export const marketing = {
       {
         title: "recursos",
         links: [
-          { label: "Planilha modelo", href: "/modelo.csv" },
+          { label: "Como importar", href: "/app/importar" },
           { label: "Catálogo", href: "/app/catalogo" },
           { label: "Painel", href: "/app/painel" },
         ],

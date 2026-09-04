@@ -60,7 +60,7 @@ const searchParams = new URLSearchParams();
 // needs a real pathname so `sectionForPath` doesn't crash on `null`.
 vi.mock("next/navigation", () => ({
   useSearchParams: () => searchParams,
-  usePathname: () => "/selecao",
+  usePathname: () => "/app/selecao",
 }));
 
 function result(overrides: Partial<RunResult> = {}): RunResult {
