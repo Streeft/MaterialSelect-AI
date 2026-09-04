@@ -163,25 +163,67 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("project_id", sa.Integer(), nullable=True),
     )
-    with op.batch_alter_table(
-        "selection_study",
-        schema=None,
-        copy_from=_pre_migration_selection_study,
-        recreate="always",
-    ) as batch_op:
-        batch_op.alter_column("project_id", existing_type=sa.Integer(), nullable=False)
-        batch_op.create_index(
-            batch_op.f("ix_selection_study_project_id"), ["project_id"], unique=False
+    # The rebuild above is a SQLite workaround, not the intent, and forcing it
+    # everywhere (`recreate="always"`) breaks Postgres outright: rebuilding
+    # means dropping the table, and `ranking_criterion` and
+    # `selection_constraint` hold foreign keys into it — the server refuses
+    # with DependentObjectsStillExist. It went unnoticed because the suite and
+    # CI both run this migration against SQLite only.
+    #
+    # Switching to `recreate="auto"` alone would be worse than the failure: on
+    # Postgres batch mode would then skip the rebuild and emit the four ops
+    # below, and the old `UNIQUE (name)` — which `copy_from` drops only by
+    # virtue of not declaring it — would survive. The migration would "succeed"
+    # while leaving study names globally unique instead of unique per project.
+    # So the constraint is dropped explicitly on the native path, by
+    # reflection rather than by its Postgres-generated name, so any backend
+    # that names it differently is still handled.
+    if op.get_bind().dialect.name == "sqlite":
+        with op.batch_alter_table(
+            "selection_study",
+            schema=None,
+            copy_from=_pre_migration_selection_study,
+            recreate="always",
+        ) as batch_op:
+            batch_op.alter_column(
+                "project_id", existing_type=sa.Integer(), nullable=False
+            )
+            batch_op.create_index(
+                batch_op.f("ix_selection_study_project_id"), ["project_id"], unique=False
+            )
+            batch_op.create_foreign_key(
+                "fk_selection_study_project_id_project",
+                "project",
+                ["project_id"],
+                ["id"],
+                ondelete="CASCADE",
+            )
+            batch_op.create_unique_constraint(
+                "uq_selection_study_project_name", ["project_id", "name"]
+            )
+    else:
+        for unique in sa.inspect(op.get_bind()).get_unique_constraints("selection_study"):
+            if unique["column_names"] == ["name"] and unique["name"]:
+                op.drop_constraint(unique["name"], "selection_study", type_="unique")
+        op.alter_column(
+            "selection_study", "project_id", existing_type=sa.Integer(), nullable=False
         )
-        batch_op.create_foreign_key(
+        op.create_index(
+            op.f("ix_selection_study_project_id"),
+            "selection_study",
+            ["project_id"],
+            unique=False,
+        )
+        op.create_foreign_key(
             "fk_selection_study_project_id_project",
+            "selection_study",
             "project",
             ["project_id"],
             ["id"],
             ondelete="CASCADE",
         )
-        batch_op.create_unique_constraint(
-            "uq_selection_study_project_name", ["project_id", "name"]
+        op.create_unique_constraint(
+            "uq_selection_study_project_name", "selection_study", ["project_id", "name"]
         )
 
 

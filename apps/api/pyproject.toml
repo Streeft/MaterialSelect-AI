@@ -26,6 +26,14 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# The deploy target speaks `postgresql+psycopg://` (docker-compose.yml and the
+# hosted environment both), and the driver behind that URL was declared
+# nowhere — SQLAlchemy would raise ModuleNotFoundError on the first connection.
+# It stays an extra rather than a core dependency because local development and
+# the whole test suite run on SQLite; whoever points DATABASE_URL at Postgres
+# installs `.[postgres]`, and Dockerfile.api and the CI job that exercises the
+# migrations against a real server both do it explicitly.
+postgres = ["psycopg[binary]>=3.1"]
 dev = [
     "pytest>=8.2",
     "ruff>=0.5",

@@ -159,6 +159,68 @@ jobs:
           python -m alembic upgrade head
           python -m app.db.seed
 
+  migrations-postgres:
+    name: Migrações (PostgreSQL)
+    runs-on: ubuntu-latest
+    # O passo equivalente no job `backend` roda em SQLite, e é justamente por
+    # isso que ele não pegou o defeito que este job existe para impedir: a
+    # migração da autenticação forçava `recreate="always"`, o rebuild de tabela
+    # que só o SQLite exige. No Postgres isso é um DROP TABLE, e duas tabelas
+    # têm chave estrangeira para `selection_study` — o servidor recusa. O alvo
+    # de produção é Postgres; ele precisa ser exercitado aqui, não no deploy.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: materialselect
+          POSTGRES_PASSWORD: materialselect
+          POSTGRES_DB: materialselect
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    defaults:
+      run:
+        working-directory: apps/api
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Preparar Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: apps/api/pyproject.toml
+
+      - name: Instalar dependências
+        # `[postgres]` traz o psycopg — o driver que a URL de produção exige e
+        # que não estava declarado em lugar nenhum até este commit.
+        run: pip install -e ".[dev,knowledge,postgres]"
+
+      - name: Migrações aplicam e o seed roda em Postgres
+        env:
+          DATABASE_URL: postgresql+psycopg://materialselect:materialselect@localhost:5432/materialselect
+        run: |
+          python -m alembic upgrade head
+          python -m app.db.seed
+
+      - name: O schema resultante é o esperado
+        # Guarda a semântica, não só a aplicação sem erro: trocar o
+        # `recreate="always"` por `"auto"` faria as migrações passarem verdes
+        # aqui e deixaria a UNIQUE(name) antiga de pé, tornando o nome do estudo
+        # global em vez de único por projeto. Este passo falha nesse caso.
+        env:
+          PGPASSWORD: materialselect
+        run: |
+          psql -h localhost -U materialselect -d materialselect -c "\d selection_study" > schema.txt
+          cat schema.txt
+          grep -q "uq_selection_study_project_name" schema.txt
+          grep -q "fk_selection_study_project_id_project" schema.txt
+          ! grep -q "selection_study_name_key" schema.txt
+
   frontend:
     name: Frontend
     runs-on: ubuntu-latest
