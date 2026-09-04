@@ -257,6 +257,11 @@ A lista completa, com as receitas prontas de cada provedor, está em
   testes de ingestão do Cérebro (`test_knowledge_ingest.py`) não têm `pypdf` e
   falham.
 - Frontend: `npm ci`, `typecheck`, `lint`, `test`, `build`.
+- **Migrações (PostgreSQL)**: aplica `alembic upgrade head` + seed contra um
+  Postgres 16 de serviço e confere o schema resultante. O passo equivalente do
+  job `backend` roda em SQLite e por isso não pega incompatibilidade de
+  dialeto — foi assim que uma migração que não subia em Postgres ficou
+  invisível até a primeira tentativa de deploy.
 - E2E: Playwright (`apps/web/e2e/`) contra API e banco próprios da suíte —
   Python + Node no mesmo runner, Chromium via `--with-deps`. Relatório HTML
   publicado como artefato quando falha.
@@ -326,6 +331,7 @@ domínio real do frontend.
 | Campo opcional preenchido "por conveniência" na gravação | Deixe `NULL`. Um rótulo defaultado para a chave imprimiu `__index__` no relatório; uma direção defaultada para `"max"` inverteu o ranking de um estudo salvo ([D-21](DECISIONS.md)). |
 | `black --check` faz parte do portão | Rode `black app` antes de commitar. |
 | Testes que começam por escrita | Cobertos pelo conftest; não mexa nos listeners. |
+| Migration que só foi exercitada em SQLite | O alvo de produção é Postgres. `recreate="always"` em `batch_alter_table` é contorno de SQLite e vira `DROP TABLE` no Postgres — recusado se outra tabela tiver FK para ela. Mas trocar por `"auto"` sem pensar é pior: onde havia `copy_from` para descartar uma constraint sem nome, ela **sobrevive** e o schema fica errado em silêncio. O job `Migrações (PostgreSQL)` da CI guarda os dois casos. |
 | Invocar `next dev`/`next build` sem `--webpack` | Desde o Next 16 o padrão é Turbopack, e o alias que monta o Plotly à la carte muda de comportamento. Os scripts e o `playwright.config.ts` já passam o flag; se você chamar o `next` direto, repita-o ([D-51](DECISIONS.md)). |
 | E2E parado em "Verificando sessão…" sem nenhuma requisição falhando | O Next 16 bloqueia recurso de desenvolvimento (`/_next/*`) vindo de outra origem, e `127.0.0.1` ≠ `localhost`. Sem `allowedDevOrigins` no `next.config.mjs` a página não hidrata — e não há requisição falhando para apontar, porque o bloqueado é justamente quem dispararia as requisições. |
 | Clique interceptado por `md-select-option` no E2E | O menu do `md-outlined-select` fecha por animação. Use `selectMwcOption` (`e2e/mwc.ts`), que espera o listbox sumir antes de devolver o controle; não clique na opção "na mão". |
