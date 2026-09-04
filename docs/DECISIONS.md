@@ -59,6 +59,7 @@ diferente. O que é óbvio não precisa de registro.
 | D-48 | `@material/web` para primitivas de baixo nível — exceção pontual a D-23 | aceito | abaixo |
 | D-49 | Paleta por rota ("Prisma") substitui a paleta única de D-38, sem revogar seu método de medição | aceito | abaixo |
 | D-50 | Toggle manual "Tabela/Cartões" do catálogo substituído por troca automática de breakpoint | aceito | abaixo |
+| D-51 | Next 16 traz Turbopack por padrão; a build fica no webpack, por medição | aceito | abaixo |
 
 ---
 
@@ -2055,3 +2056,55 @@ tela larga estreitada (ex.: janela redimensionada, não um celular) perde esse
 controle explícito — a visão passa a seguir só a largura real do viewport.
 Não há perda de dado nem de recurso: as mesmas quatro colunas/estados
 aparecem nos dois formatos, só a seleção entre eles deixou de ser manual.
+
+## D-51 — O Next 16 traz o Turbopack por padrão; a build continua no webpack, por medição
+
+**Contexto.** S1 (upgrade de segurança) subiu o Next de 14.2.35 para 16.3.4.
+A 14.2.35 é a **última versão que a linha 14 recebeu** — os 21 CVEs não tinham
+correção dentro do major, então "só aplicar o patch" não era uma opção que
+existisse. O Next 16 tornou o Turbopack o bundler padrão e passou a **recusar a
+build** quando encontra uma chave `webpack` no `next.config.mjs` sem uma
+`turbopack` correspondente.
+
+Essa chave `webpack` não é acessório: é ela que aponta o
+`plotly.js/dist/plotly` exigido pelo `react-plotly.js` para
+`lib/plotly-custom.ts` — o Plotly montado à la carte que derrubou o maior chunk
+de 4,5 MB para 981 KB ([PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) §12). Registre-se
+a favor do Next: ele falha **alto**. Ignorar o alias em silêncio teria publicado
+a build completa do Plotly sem aviso nenhum, que é a pior versão possível deste
+problema.
+
+**Decisão.** Passar `--webpack` explicitamente em `npm run dev`, `npm run build`
+e no `webServer` do `playwright.config.ts` — este último invoca `next` direto,
+sem passar pelo script, então o flag precisa ser repetido lá ou a suíte E2E roda
+num bundler diferente do que a build produz. Um `turbopack.resolveAlias`
+equivalente fica no `next.config.mjs` como rede de segurança para quem largar o
+flag: com ele, esquecer o `--webpack` custa 16% de chunk, não 350%.
+
+Medido na mesma versão do Next 16, tudo o mais constante:
+
+| bundler | maior chunk | total de JS |
+|---|---|---|
+| webpack | **980 KB** | 2856 KB |
+| turbopack | 1136 KB (+16%) | 2556 KB (−10%) |
+
+Os dois **aplicam** o alias — se não aplicassem, os 4,5 MB estariam de volta. A
+diferença é só como cada um fatia os chunks.
+
+**Alternativas descartadas.**
+- **Migrar para o Turbopack agora.** O total de JS até melhora 10%, mas o número
+  que este projeto defende publicamente é o maior chunk (§12), e ele piora 16%.
+  Some-se que o `resolveAlias` do Turbopack não distingue grafo de cliente e de
+  servidor, e este alias **precisa** valer só para o cliente: aplicá-lo ao
+  servidor quebra o runtime de desenvolvimento com um erro que não reproduz em
+  `next build`. Migrar é uma opção real e provavelmente o futuro — mas é
+  migração de bundler, com medição própria e verificação ao vivo, não uma linha
+  de carona num patch de segurança.
+- **Aceitar o Turbopack sem alias** (`turbopack: {}` vazio, só para calar o
+  erro): devolveria os 4,5 MB. É exatamente a regressão que §12 documenta ter
+  custado trabalho para eliminar.
+
+**Consequência aceita.** O projeto fica atrelado a um bundler que o Next está
+deixando para trás: hoje o webpack já exige flag explícita, e um major futuro
+pode removê-lo. A dívida está registrada em [TODO.md](TODO.md); quando for paga,
+quem decide é a medição acima refeita, não a preferência.

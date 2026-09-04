@@ -1,4 +1,4 @@
-import type { Page } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 
 /**
  * Picks an option on an `md-outlined-select` in an E2E spec.
@@ -24,5 +24,21 @@ import type { Page } from "@playwright/test";
  */
 export async function selectMwcOption(page: Page, comboboxName: string, optionName: string) {
   await page.getByRole("combobox", { name: comboboxName }).click();
-  await page.getByRole("option", { name: optionName }).click();
+
+  const option = page.getByRole("option", { name: optionName });
+  await option.click();
+
+  // Do not hand control back while the popup is still up. `md-menu` closes on
+  // an animation, and this helper used to return mid-close: the spec's next
+  // `click()` then landed on an `md-select-option` overlaying its target and
+  // retried until the test timed out. It only showed up when the route was
+  // already compiled (a spec running second in the same worker) — the slow
+  // first-visit compile was hiding the race, not preventing it.
+  //
+  // The wait is on the *option*, not on the listbox: measured on this
+  // component, `md-menu` (role=listbox) reports `visible=false` to Playwright
+  // even while open, so asserting on it would be a no-op that waits for
+  // nothing. The option is genuinely visible while the popup is up — and it is
+  // what intercepts the next click — so it is the honest thing to wait on.
+  await expect(option).toBeHidden();
 }

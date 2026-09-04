@@ -606,6 +606,12 @@ das "otimizações" candidatas piorava as coisas.
 | Avaliar um índice para um material | 33,7 µs | **6,7 µs** (−80%) | 20 000 avaliações de `sqrt(modulo_young) / densidade`; a análise sintática era 17,5 µs disso. |
 | Índice sobre 5 000 materiais | 168 ms | **33 ms** | consequência do anterior: um mapa com eixo-índice avalia a mesma expressão uma vez por ponto. |
 
+> **Remedido no Next 16 (S1).** O upgrade de segurança trocou o bundler padrão
+> para Turbopack, o que obrigou a reconferir esta linha em vez de herdá-la: com
+> `--webpack`, o maior chunk mede **980 KB** — a medição continua valendo. Com
+> Turbopack ele sobe para 1136 KB (e o total de JS cai 10%); por que a build
+> ficou no webpack está em [D-51](DECISIONS.md).
+
 **A causa do bundle** era `react-plotly.js` exigir `plotly.js/dist/plotly`, a
 build completa com 3D, WebGL, mapbox e geo, para as **cinco** famílias de traço
 que estas figuras usam. `lib/plotly-custom.ts` monta o Plotly à la carte e o
