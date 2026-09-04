@@ -53,8 +53,15 @@ test("importar, selecionar, visualizar e exportar um estudo", async ({ page }) =
   // /catalogo in a fresh `next dev` process, which compiles the route on
   // demand — past the default 5s expect timeout on a shared CI runner.
   await page.waitForURL(/\/catalogo/, { timeout: 20_000 });
-  await expect(page.getByText(MATERIAL_RIGIDO)).toBeVisible();
-  await expect(page.getByText(MATERIAL_FLEXIVEL)).toBeVisible();
+  // The responsive catalog (Task 6) renders `MaterialCards` and
+  // `MaterialRows` at once and lets a `sm:` breakpoint decide which one is
+  // visible on screen — Playwright's `getByText` doesn't account for CSS
+  // visibility for a strict-mode match, so an unscoped locator resolves to
+  // two elements for the same material name. Scope to the table, which is
+  // what this desktop-width test run actually sees.
+  const catalogTable = page.getByRole("table");
+  await expect(catalogTable.getByText(MATERIAL_RIGIDO)).toBeVisible();
+  await expect(catalogTable.getByText(MATERIAL_FLEXIVEL)).toBeVisible();
 
   // --- Selecionar --------------------------------------------------------
   await page.goto("/app/selecao");
