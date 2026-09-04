@@ -429,7 +429,19 @@
 
 /* --- Hue by section · dark theme ---------------------------------------- */
 
-[data-theme="dark"] [data-section="selecao"] {
+/*
+ * Compound selector, no space: `data-theme` and `data-section` are both
+ * written onto the SAME element (`<html>`, see SectionTheme.tsx and
+ * lib/theme.ts's bootstrap script) — never onto two nested ones. A
+ * descendant-combinator selector here (`[data-theme="dark"] [data-section="…"]`)
+ * would never match, and every route would silently collapse onto the
+ * generic dark-theme fallback in `:root[data-theme="dark"]` above, with no
+ * error and no failing test (jsdom's a11y tests don't compare cross-route
+ * accent values, and materialTheme.test.ts locks the token generator's
+ * output, not this file's selector syntax). Found live in a real browser
+ * during Task 7 verification, not by any automated check.
+ */
+[data-theme="dark"][data-section="selecao"] {
   /* Selection · hue 300. accent/surface 9.38:1 · brand-700/brand-50 10.45:1 */
   --brand-50: 31 19 50;
   --brand-100: 52 35 79;
@@ -453,7 +465,7 @@
   --md-sys-color-surface-tint: #c8aefa;
 }
 
-[data-theme="dark"] [data-section="mapas"] {
+[data-theme="dark"][data-section="mapas"] {
   /* Maps · hue 185. accent/surface 10.16:1 · brand-700/brand-50 10.57:1 */
   --brand-50: 0 35 30;
   --brand-100: 0 58 51;
@@ -477,7 +489,7 @@
   --md-sys-color-surface-tint: #5cd5c7;
 }
 
-[data-theme="dark"] [data-section="comparar"] {
+[data-theme="dark"][data-section="comparar"] {
   /* Compare · hue 350. accent/surface 9.22:1 · brand-700/brand-50 10.38:1 */
   --brand-50: 46 13 30;
   --brand-100: 74 26 51;
@@ -501,7 +513,7 @@
   --md-sys-color-surface-tint: #f4a0c8;
 }
 
-[data-theme="dark"] [data-section="catalogo"] {
+[data-theme="dark"][data-section="catalogo"] {
   /* Catalog · hue 225. accent/surface 9.97:1 · brand-700/brand-50 10.62:1 */
   --brand-50: 0 31 47;
   --brand-100: 0 53 76;
@@ -525,7 +537,7 @@
   --md-sys-color-surface-tint: #65cdf3;
 }
 
-[data-theme="dark"] [data-section="painel"] {
+[data-theme="dark"][data-section="painel"] {
   /* Panel · hue 40. accent/surface 9.33:1 · brand-700/brand-50 10.47:1 */
   --brand-50: 49 14 3;
   --brand-100: 78 28 10;
@@ -549,7 +561,7 @@
   --md-sys-color-surface-tint: #fba587;
 }
 
-[data-theme="dark"] [data-section="importar"] {
+[data-theme="dark"][data-section="importar"] {
   /* Import · hue 150. accent/surface 10.11:1 · brand-700/brand-50 10.78:1 */
   --brand-50: 0 34 10;
   --brand-100: 3 56 22;

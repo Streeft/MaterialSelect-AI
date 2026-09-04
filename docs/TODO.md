@@ -63,6 +63,77 @@ Nenhum item aberto no momento — B1 a B10 foram entregues nesta sessão (ver
 
 Registrados para não voltarem por engano:
 
+- ~~**Prisma** — patch de sistema de design (paleta por rota, vitrine
+  pública, migração para `/app`)~~ — sete tarefas dirigidas por subagentes
+  mais uma rodada final de verificação (plano em
+  `.superpowers/sdd/2026-09-03-design-system-prisma/`). **Fase 1** (tokens e
+  primitivas): `app/globals.css` ganhou blocos `[data-section="…"]` por
+  rota — cada área do produto com seu próprio matiz de `--brand-*`/
+  `--accent`, trocado via `data-section` no `<html>`
+  (`components/layout/SectionTheme.tsx`) — substituindo a paleta única de
+  D-38 sem revogar o método de medição dela: par mais apertado 5,59:1 (era
+  5,01:1), nenhum par abaixo de 6,2:1 ([D-49](DECISIONS.md)).
+  `--quality-*`/`--success`/`--warning`/`--danger`/`--info` e a paleta
+  Okabe–Ito continuam intocados de propósito — proveniência e alerta não
+  variam por rota. **Fase 2** (camada comercial): `/` virou a vitrine
+  pública (`components/marketing/Landing.tsx`, sem sidebar nem portão de
+  login), as seis rotas do produto migraram para `/app/*` levando
+  `AuthGate` junto — achado nesta sessão e não no README do patch, que só
+  falava em mover `AppSidebar`/`LimitationNotice`: é `AuthGate` que hoje
+  condiciona toda rota a sessão + assinatura ativa, e deixá-lo no layout
+  raiz teria vazado o portão de login para a vitrine pública. `BottomNav`
+  chegou para telefone e `MaterialCards` passou a renderizar ao lado de
+  `MaterialTable` no catálogo (`sm:hidden`/`hidden sm:block`), DOM
+  duplicado de propósito — custo aceito porque o catálogo é paginado.
+  `PageHeader` substitui o `<h1>` manual em seis rotas (`group="estudar"`:
+  seleção/mapas/comparar; `group="dados"`: catálogo/painel/importar);
+  `/entrar` e `/assinatura` ficam de fora por decisão do próprio spec, que
+  não lhes dá seção. **Descartado por decisão do spec, não por omissão:** a
+  "coluna de cobertura" do catálogo que o README do patch pedia para ganhar
+  `Bar` — não existe tal coluna nesta base, e o item foi abandonado já na
+  Fase 1 em vez de forçado. Preços na vitrine ficam com `R$ —` (três
+  planos, eixo definido — número de materiais, quem pode importar — nenhum
+  valor inventado, item 1 da metodologia). Os cinco "refinamentos ainda
+  opcionais" do README do patch continuam fora de escopo, registrados aqui
+  em vez de silenciosamente descartados: `tabular-nums` generalizado,
+  `PanelShell` em todo shell de rota, estudos-modelo por query string em
+  `/selecao`, aviso de demonstração como convite de ativação, e qualquer
+  copy adicional de vitrine além da que o patch já trouxe pronta.
+
+  **Dois defeitos que a revisão de cada tarefa já tinha achado e corrigido
+  antes desta entrega chegar aqui:** a Task 6 devolveu um badge
+  `is_demo`/`keywords` que faltava em `MaterialCards` (presente na tabela,
+  ausente no cartão) e documentou a remoção do toggle manual
+  "Tabela/Cartões" do catálogo como [D-50](DECISIONS.md) — a troca por
+  breakpoint automático era a leitura técnica certa (a spec pede
+  exatamente isso), mas tinha saído sem registro.
+
+  **Esta tarefa (verificação final) achou e corrigiu mais dois, nenhum
+  coberto por teste automatizado até agora:** (1) `apps/web/e2e/golden-
+  path.spec.ts` quebrava em modo estrito do Playwright —
+  `getByText(MATERIAL_RIGIDO)` resolvia a dois elementos (o cartão novo da
+  Task 6 e a linha da tabela, ambos no DOM ao mesmo tempo por desenho, só
+  um visível por CSS de breakpoint) — corrigido escopando a leitura para
+  `page.getByRole("table").getByText(…)`. (2) um bug de CSS real, achado só
+  em navegador de verdade: os seis blocos `[data-theme="dark"]
+  [data-section="…"]` em `globals.css` usavam combinador descendente
+  (espaço) em vez de seletor composto, mas `data-theme` e `data-section`
+  são escritos no mesmo elemento (`<html>`, não em dois aninhados) — a
+  regra nunca casava, e as seis rotas caíam silenciosamente na cor de
+  fallback única do tema escuro, zerando D-49 inteiro no escuro sem erro
+  algum. `materialTheme.test.ts` não pega isso porque testa o *gerador* dos
+  tokens, não a sintaxe deste arquivo CSS. Corrigido removendo o espaço;
+  confirmado ao vivo com Chromium real que as seis rotas voltam a ter
+  `--accent` distinto no tema escuro depois da correção.
+
+  D-24 (ausência nunca vira zero) verificado ao vivo com um caso construído
+  na hora, já que os cinco materiais de seed não tinham nenhum candidato
+  sem escore: um material importado sem `modulo_young` recebe `score: null`
+  no ranking e `Bar` não renderiza nenhum preenchimento — nem 0%, nem
+  100% — só o rótulo "Dados ausentes: modulo_young"; o material com escore
+  completo (único candidato pontuável) recebe 100%. 872 testes de backend
+  (intocado por esta tarefa), 193 de frontend, 2 E2E e Lighthouse (11
+  rotas, 33 execuções) verdes ao final.
 - ~~**M5** — Métodos multicritério adicionais (TOPSIS, AHP, PROMETHEE)~~ —
   implementado **por pedido explícito do orientador**, revertendo a nota "só
   faça se o orientador pedir" que este item carregava antes: o usuário

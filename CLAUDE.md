@@ -314,10 +314,30 @@ outros dois métodos; o laudo descrevia um estudo aninhado como um combinador
 único opaco. Os quatro corrigidos numa rodada só, rerrevisão limpa. Ver
 `docs/PROJECT_CONTEXT.md` §3 e `docs/07-selecao-deterministica.md`.
 
-872 testes de backend (nenhum skip) e 179 de frontend, todos verdes. CI no
+872 testes de backend (nenhum skip) e 193 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
 PROJECT_CONTEXT.md).
+
+**Patch de design "Prisma" entregue** (sete tarefas dirigidas por
+subagentes mais uma verificação final; detalhe completo em
+`docs/TODO.md` — "Débitos já quitados"). Fase 1: paleta por rota substitui
+a paleta única de D-38, um matiz de `--accent`/`--brand-*` por seção
+trocado via `[data-section]` no `<html>`, sem revogar o método de medição
+de D-38 ([D-49](docs/DECISIONS.md)). Fase 2: `/` virou vitrine pública sem
+sidebar nem portão de login, as seis rotas do produto migraram para
+`/app/*` levando `AuthGate` junto — achado nesta sessão, não previsto no
+README do patch —, `BottomNav` chegou para telefone e o catálogo passou a
+alternar `MaterialCards`/`MaterialTable` por breakpoint em vez do toggle
+manual que existia antes ([D-50](docs/DECISIONS.md)). A verificação final
+achou e corrigiu dois defeitos que nenhum teste automatizado pegava: um
+locator do E2E que virou ambíguo pela duplicação de DOM cartão/tabela do
+catálogo, e um bug de CSS — os seis blocos `[data-theme="dark"]
+[data-section="…"]` usavam combinador descendente em vez de seletor
+composto (as duas variáveis vivem no mesmo elemento `<html>`, nunca em
+elementos aninhados), o que zerava a paleta por rota inteira no tema
+escuro sem erro nenhum. Corrigidos e confirmados ao vivo em Chromium, não
+só relidos no código.
 
 **Desempenho medido**, com os números em `docs/PROJECT_CONTEXT.md §12`: o maior
 *chunk* de JavaScript caiu de 4,5 MB para 981 KB (o Plotly completo era 79% de
