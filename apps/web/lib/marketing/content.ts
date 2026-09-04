@@ -65,12 +65,12 @@ export const marketing = {
   /**
    * Plan tiers.
    *
-   * `price` is a string, not a number: "R$ 0", "Sob consulta" (price on
-   * request), and a monthly figure all have to fit in the same slot, and
-   * formatting currency here would only create the illusion that the price
-   * has already been decided. The middle tier's values sit as `—` pending
-   * that decision; the axis — how many materials are cataloged and who can
-   * import — is what's already settled.
+   * `price` is a string, not a number: "R$ —" (pending decision), "Sob
+   * consulta" (price on request), and a monthly figure all have to fit in
+   * the same slot, and formatting currency here would only create the
+   * illusion that the price has already been decided. Every tier's price
+   * sits as `—`/"Sob consulta" pending that decision; the axis — how many
+   * materials are cataloged and who can import — is what's already settled.
    */
   plans: {
     eyebrow: "planos",

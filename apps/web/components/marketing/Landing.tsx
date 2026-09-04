@@ -175,7 +175,7 @@ export function Landing() {
           <h2 className="text-3xl font-bold tracking-[-0.03em] lg:text-4xl">{m.deliverable.title}</h2>
           <p className="max-w-prose text-base leading-relaxed text-ink-muted">{m.deliverable.body}</p>
           <Link
-            href="/app/selecao?modelo=haste-leve-rigida"
+            href="/app/selecao"
             className="pressable mt-1 inline-flex h-11 w-fit items-center rounded-control bg-brand px-5 text-sm font-semibold text-brand-fg shadow-glow"
           >
             Ver um relatório de exemplo
