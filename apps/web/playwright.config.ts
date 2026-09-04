@@ -70,7 +70,13 @@ export default defineConfig({
       },
     },
     {
-      command: `npx next dev -p ${WEB_PORT}`,
+      // `--webpack` for the same reason `npm run dev` carries it: Next 16
+      // defaults to Turbopack, and the Plotly alias in next.config.mjs has to
+      // stay client-only (see the note there). This invokes `next` directly
+      // rather than through the npm script, so the flag has to be repeated —
+      // dropping it here would silently run the suite on a different bundler
+      // than the one `npm run build` produces.
+      command: `npx next dev --webpack -p ${WEB_PORT}`,
       cwd: __dirname,
       url: WEB_URL,
       timeout: 90_000,

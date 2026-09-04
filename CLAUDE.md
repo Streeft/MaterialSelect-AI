@@ -143,12 +143,15 @@ exatamente as cinco famílias de traço que as figuras usam (`bar`, `box`,
 `heatmap`, `scatter`, `scatterpolar`), e o `webpack.resolve.alias` do
 `next.config.mjs` aponta para lá o `plotly.js/dist/plotly` que o
 `react-plotly.js` exige — a build completa custava 4,5 MB, 79% de todo o
-JavaScript da aplicação. Duas consequências que não são opcionais: **um sexto
+JavaScript da aplicação. Três consequências que não são opcionais: **um sexto
 tipo de traço tem de ser registrado ali**, ou o Plotly falha em runtime com
-"Trace type not found" — o verificador de tipos não pega isso —, e o alias vale
+"Trace type not found" — o verificador de tipos não pega isso —; o alias vale
 **só para o cliente** (`if (!isServer)`), porque aplicá-lo ao grafo do servidor
 quebra o runtime de desenvolvimento com um erro que **não reproduz em
-`next build`** e só aparece quando alguém abre a aplicação.
+`next build`** e só aparece quando alguém abre a aplicação; e desde o Next 16
+(que trocou o bundler padrão para Turbopack) **o `--webpack` em `dev`, `build` e
+no `webServer` do `playwright.config.ts` é load-bearing** — sem ele a build roda
+noutro bundler, com outro fatiamento de chunks ([D-51](docs/DECISIONS.md)).
 
 ## Convenções
 
@@ -314,10 +317,22 @@ outros dois métodos; o laudo descrevia um estudo aninhado como um combinador
 único opaco. Os quatro corrigidos numa rodada só, rerrevisão limpa. Ver
 `docs/PROJECT_CONTEXT.md` §3 e `docs/07-selecao-deterministica.md`.
 
-872 testes de backend (nenhum skip) e 193 de frontend, todos verdes. CI no
+872 testes de backend (nenhum skip) e 197 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
 PROJECT_CONTEXT.md).
+
+**S1 (upgrade de segurança) entregue:** `next` 14.2.35 → **16.3.4** e `postcss`
+→ **8.5.28**, fechando 21 CVEs do Next e 4 do PostCSS. A 14.2.35 é a última da
+linha 14 — não havia patch dentro do major, então subir era a única saída. Deu
+certo com risco baixo porque o Next 16 **ainda aceita React 18**, e a base não
+usa `cookies()`/`headers()` nem `params`/`searchParams` em server component. Três
+quebras reais vieram junto e estão documentadas em `docs/TODO.md`: o Turbopack
+virou padrão (daí o `--webpack`, [D-51](docs/DECISIONS.md)), `next lint` foi
+removido (o script chama o ESLint direto) e o Next 16 bloqueia recurso de
+desenvolvimento cross-origin (daí `allowedDevOrigins`, sem o qual o E2E não
+hidratava). O que sobrou de CVE é **S2** e é todo toolchain de desenvolvimento —
+nada que a aplicação publicada alcance.
 
 **Patch de design "Prisma" entregue** (sete tarefas dirigidas por
 subagentes mais uma verificação final; detalhe completo em
