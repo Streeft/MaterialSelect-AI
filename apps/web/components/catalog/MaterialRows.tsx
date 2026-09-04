@@ -4,8 +4,6 @@ import { ptBR } from "@/lib/i18n";
 import { classVisual } from "@/lib/design/palette";
 import {
   Badge,
-  Card,
-  CardBody,
   ClassBadge,
   DataQualityBadge,
   RowHeader,
@@ -63,7 +61,7 @@ export function QualityBar({ quality }: { quality: DataQualitySummary }) {
 function MaterialName({ material }: { material: MaterialListItem }) {
   return (
     <span className="flex flex-wrap items-center gap-2">
-      <Link href={`/materiais/${material.id}`} className="font-medium text-brand hover:underline">
+      <Link href={`/app/materiais/${material.id}`} className="font-medium text-brand hover:underline">
         {material.name}
       </Link>
       {material.is_demo && <Badge tone="warning">{ptBR.demoBadge}</Badge>}
@@ -109,40 +107,5 @@ export function MaterialTable({ materials }: { materials: MaterialListItem[] }) 
         </TBody>
       </Table>
     </TableScroll>
-  );
-}
-
-/**
- * The same rows as cards.
- *
- * Not decoration: on a phone the four-column table scrolls sideways inside its
- * own box, and reading one material then means dragging back and forth. The
- * cards carry exactly the same facts, stacked.
- */
-export function MaterialCards({ materials }: { materials: MaterialListItem[] }) {
-  return (
-    <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-      {materials.map((m) => (
-        <li key={m.id}>
-          <Card className="h-full">
-            <CardBody className="flex h-full flex-col gap-2">
-              <MaterialName material={m} />
-              <span className="flex flex-wrap items-center gap-2">
-                <ClassBadge name={m.class_name} color={classVisual(m.class_slug).color} />
-                {m.subclass && <span className="text-xs text-ink-subtle">{m.subclass}</span>}
-              </span>
-              <QualityBar quality={m.quality} />
-              {m.keywords.length > 0 && (
-                <span className="mt-auto flex flex-wrap gap-1 pt-1">
-                  {m.keywords.map((kw) => (
-                    <Badge key={kw}>{kw}</Badge>
-                  ))}
-                </span>
-              )}
-            </CardBody>
-          </Card>
-        </li>
-      ))}
-    </ul>
   );
 }
