@@ -57,6 +57,7 @@ diferente. O que é óbvio não precisa de registro.
 | D-42 | Login só por terceiros (Google); catálogo compartilhado; um projeto por usuário no v1 | aceito | abaixo |
 | D-47 | Busca híbrida (RRF) sobre o Cérebro, Jina AI como receita gratuita, citação verificada | aceito | abaixo |
 | D-48 | `@material/web` para primitivas de baixo nível — exceção pontual a D-23 | aceito | abaixo |
+| D-49 | Paleta por rota ("Prisma") substitui a paleta única de D-38, sem revogar seu método de medição | aceito | abaixo |
 | D-50 | Toggle manual "Tabela/Cartões" do catálogo substituído por troca automática de breakpoint | aceito | abaixo |
 
 ---

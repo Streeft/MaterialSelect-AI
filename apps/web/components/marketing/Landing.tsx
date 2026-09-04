@@ -75,7 +75,7 @@ export function Landing() {
 
         <section className="relative grid items-center gap-10 px-5 py-14 sm:px-8 lg:grid-cols-2 lg:gap-12 lg:px-14 lg:py-[68px]">
           <div className="flex flex-col gap-5">
-            <span className="self-start rounded-full border border-rail-edge/20 bg-rail-edge/[0.06] px-3.5 py-1.5 font-mono text-2xs uppercase tracking-eyebrow text-brand-700">
+            <span className="self-start rounded-full border border-rail-edge/20 bg-rail-edge/[0.06] px-3.5 py-1.5 font-mono text-2xs uppercase tracking-eyebrow text-rail-accent">
               {m.hero.eyebrow}
             </span>
             <h1 className="rise text-[2.25rem] font-extrabold leading-[1.06] tracking-[-0.038em] sm:text-5xl lg:text-[3.5rem]">

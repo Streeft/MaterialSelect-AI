@@ -13,7 +13,7 @@ import { selectMwcOption } from "@/lib/testing/mwc";
 // PageHeader reads its section from the current route (Task 1) — the mock
 // needs a real pathname so `sectionForPath` doesn't crash on `null`.
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/catalogo",
+  usePathname: () => "/app/catalogo",
 }));
 
 const t = ptBR.catalog;

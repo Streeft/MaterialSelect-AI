@@ -87,8 +87,8 @@
 
   /* Ramp for the initial route (hue 262). Other routes rewrite it in
    * [data-section] blocks below. `700` is the tone components call
-   * "confident ink over weakest tint": 7.12:1 over
-   * --brand-50. */
+   * "confident ink over weakest tint": accent/white 5.59:1 ·
+   * brand-700/brand-50 7.12:1. */
   --brand-50: 234 244 255;
   --brand-100: 216 233 255;
   --brand-200: 192 216 255;
@@ -643,7 +643,7 @@
    * the first six; from the seventh onward everything enters together, or
    * the screen takes longer to settle than the reader takes to look. */
   .rise {
-    animation: rise 260ms cubic-bezier(0.2, 0, 0, 1) both;
+    @apply animate-rise;
   }
 
   /* A bar that grows from origin instead of appearing ready. It's the only
@@ -651,7 +651,7 @@
    * proportion: seeing it grow tells where it came from. */
   .grow-x {
     transform-origin: left;
-    animation: grow-x 460ms cubic-bezier(0.2, 0, 0, 1) both;
+    @apply animate-grow-x;
   }
 
   .md-btn-sm {
