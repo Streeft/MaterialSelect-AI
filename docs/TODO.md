@@ -13,24 +13,25 @@ os vizinhos — outros documentos citam esses códigos.
 
 ## Alta prioridade
 
-**S1 — Upgrade de segurança: Next.js 14.2.35 (21 CVEs) e PostCSS 8.4.31 (3
-CVEs).** ▃ Relatório GitGuard de 2026-09-03 (scan `cmtkwi5c001klf1xot2pwwk6f`,
-commit `a15569d`) achou 12 findings HIGH, 25 MEDIUM e 2 LOW — a maioria em
-`next` (DoS via Server Actions/Components, SSRF em rewrites e WebSocket
-upgrade, information disclosure em middleware com i18n) e `postcss` (path
-traversal via `sourceMappingURL`, XSS por escape incorreto). Ação: `npm
-install next@latest postcss@latest` em `apps/web`, rodar o gate completo
-(`typecheck`, `lint`, `test`, `build`, `test:e2e`) e conferir a lista de
-*breaking changes* do changelog do Next entre 14.2 e a versão de destino antes
-de assumir que a atualização é um bump mecânico. O mesmo relatório listou ~13
-achados SAST (Semgrep) sem local (`—`) — sql raw query e subprocess com env
-tainted em Python, e tags mutáveis de GitHub Action — não acionáveis sem
-localização exata; re-executar o scanner ou pedir o relatório PRO antes de
-agir neles. Deliberadamente sequenciado **depois** do patch de design
-"Prisma" (ver spec em `docs/superpowers/specs/2026-09-02-design-system-prisma-design.md`)
-por decisão do autor: os dois mexem em grande parte do frontend ao mesmo
-tempo, e misturar um upgrade de versão maior do Next com uma repaginação
-ampla dificultaria isolar qual mudança quebrou o quê.
+**S2 — CVEs remanescentes, todos no toolchain de desenvolvimento.** ▃ Depois
+do S1 (ver "Débitos já quitados"), `npm audit` em `apps/web` sai de 30 para 27
+achados — e **nenhum dos 27 é código que vai para produção**. São três cadeias,
+cada uma presa a um major:
+
+- **`vitest` 2.x → 5** (1 crítico, mais `vite`/`esbuild`/`vite-node`/
+  `@vitest/mocker`): o crítico só vale com o *UI server* do Vitest escutando,
+  que não sobe nem em CI nem em produção.
+- **`@lhci/cli`** (arrasta `lighthouse`, `puppeteer-core`, `tar-fs`, `tmp`,
+  `ws`, `extract-zip`, `inquirer`, `uuid`, `cookie`): só roda no job de
+  Lighthouse. Atenção: o `fixAvailable` que o `npm audit` sugere aqui é
+  `@lhci/cli@0.1.0` — uma versão **anterior** à instalada, não uma correção;
+  não siga essa recomendação às cegas.
+- **`eslint-config-next` 14 → 16** (com `@next/eslint-plugin-next` e `glob`):
+  exige ESLint 9, e o projeto está no 8 com `.eslintrc.json`. Migrar significa
+  ir para *flat config* — trabalho real, não um bump. Ficou de fora do S1 de
+  propósito: nenhum desses CVEs é alcançável pela aplicação publicada, e
+  misturar a migração do ESLint com a do Next dobraria a superfície de quebra
+  num único PR.
 
 A6 (Cérebro em `main`) foi decidido, não executado: ver "Débitos já
 quitados".
@@ -62,6 +63,53 @@ Nenhum item aberto no momento — B1 a B10 foram entregues nesta sessão (ver
 ## Débitos já quitados
 
 Registrados para não voltarem por engano:
+
+- ~~**S1** — upgrade de segurança do Next e do PostCSS~~ — `next` 14.2.35 →
+  **16.3.4** e `postcss` → **8.5.28**, fechando os **21 CVEs do Next** (SSRF em
+  rewrites e em Server Actions, DoS em Server Components e no Image Optimizer,
+  XSS com nonce de CSP, envenenamento de cache, divulgação de endpoints internos
+  de Server Function) e os **4 do PostCSS** (path traversal por
+  `sourceMappingURL`, XSS por `</style>` não escapado). Os dois saíram limpos do
+  `npm audit`; o que restou virou **S2** e é todo de desenvolvimento.
+
+  **Não havia caminho menor:** `14.2.35` é a última versão que a linha 14
+  recebeu, então nenhum desses CVEs tinha correção dentro do major — o upgrade
+  de major era a única opção, e não uma preferência. O que tornou isso viável
+  com risco baixo é que o Next 16 **ainda aceita React 18**
+  (`peerDependencies`), então a migração para o React 19 não veio junto; e a
+  base não usa `cookies()`/`headers()` nem `params`/`searchParams` em server
+  component, que são as duas maiores quebras do Next 15.
+
+  **Três quebras reais apareceram, e nenhuma delas é bump mecânico:**
+
+  1. **O Turbopack virou o bundler padrão** e o Next 16 recusa a build ao ver
+     uma chave `webpack` sem uma `turbopack` — e essa chave é o alias que monta
+     o Plotly à la carte. `--webpack` explícito em `dev`, `build` e no
+     `webServer` do `playwright.config.ts`, com medição comparativa e o porquê
+     em [D-51](DECISIONS.md). Maior chunk continua **980 KB**.
+  2. **`next lint` foi removido.** O script `lint` passou a chamar o ESLint
+     direto (`eslint app components lib --ext .ts,.tsx`), cobrindo os mesmos
+     diretórios que o `next lint` cobria por padrão — nem mais, nem menos.
+  3. **O Next 16 bloqueia requisição cross-origin a recurso de desenvolvimento
+     (`/_next/*`)**, e trata `127.0.0.1` como origem diferente de `localhost`.
+     Como a suíte E2E serve e navega em `127.0.0.1:3011`, o runtime do cliente
+     era recusado, **a página não hidratava** e os dois specs morriam olhando
+     para o "Verificando sessão…" renderizado no servidor. O diagnóstico foi
+     difícil justamente porque não havia requisição falhando para apontar: o
+     recurso bloqueado era o que dispararia as requisições. Corrigido com
+     `allowedDevOrigins: ["127.0.0.1"]` no `next.config.mjs`.
+
+  **E um quarto achado, que não é do Next mas veio à tona por ele:**
+  `selectMwcOption` (`e2e/mwc.ts`) devolvia o controle enquanto o menu do
+  `md-outlined-select` ainda fechava; o clique seguinte do spec caía sobre um
+  `md-select-option` e repetia até estourar o teste. É corrida antiga, não
+  regressão do upgrade: passava porque a primeira visita à rota compilava
+  devagar e dava tempo de tudo assentar — com a rota já compilada (spec rodando
+  em segundo lugar no mesmo worker) ela perde. Intermitente, aliás: reproduziu
+  em algumas execuções e não em outras. O helper agora espera a **opção** sumir.
+  Medido, e não suposto: o `md-menu` (role=listbox) reporta `visible=false` ao
+  Playwright mesmo aberto, então esperar por ele seria um no-op; quem fica
+  visível — e quem intercepta o clique — é a opção.
 
 - ~~**Prisma** — patch de sistema de design (paleta por rota, vitrine
   pública, migração para `/app`)~~ — sete tarefas dirigidas por subagentes
