@@ -13,35 +13,41 @@ Três peças, em três provedores:
 
 ---
 
-## 0. Antes de começar: a decisão do domínio
-
-**Esta escolha muda o resto do roteiro, e é melhor fazê-la agora do que
-descobrir na véspera.**
+## 0. Por que existe um proxy no meio
 
 O navegador só manda o cookie de sessão para a API se considerar as duas
-metades o *mesmo site*. Com os domínios gratuitos (`algo.vercel.app` chamando
-`algo.fly.dev`) elas são sites diferentes, e o cookie `SameSite=Lax` — o padrão,
-e o mais seguro — simplesmente não é enviado nas chamadas `fetch`. O sintoma é
-cruel: o login parece funcionar, o cookie é gravado, e toda requisição seguinte
-volta anônima. Nada aparece em log nenhum.
+metades o **mesmo site**. Com os domínios gratuitos (`algo.vercel.app` chamando
+`algo.fly.dev`) elas são sites diferentes, e um cookie `SameSite=Lax` — o
+padrão, e o mais seguro — simplesmente não viaja nas chamadas `fetch`. O
+sintoma é cruel: o login parece funcionar, o cookie é gravado, e toda
+requisição seguinte volta anônima. Nada aparece em log nenhum.
 
-Há dois caminhos:
+A saída escolhida **não** foi afrouxar o cookie para `SameSite=None` (o que o
+transformaria em cookie de terceiros, que o Safari bloqueia por padrão), e sim
+eliminar o problema: o `rewrites()` do `next.config.mjs` serve `/api/*` a
+partir da própria origem do frontend, repassando para o Fly. Do ponto de vista
+do navegador existe **uma origem só** — cookie first-party, `SameSite=Lax`
+correto, e nenhum CORS.
 
-**A. Domínio próprio (recomendado).** Um domínio (`materialselect.com.br`, ~R$
-40/ano), com `app.` apontando para a Vercel e `api.` para o Fly. As duas metades
-passam a ser o mesmo site registrável, `SameSite=Lax` volta a estar certo, e
-não existe cookie de terceiro para navegador nenhum bloquear. Também é o que
-parece profissional na hora de mostrar.
+Duas consequências que não são detalhe:
 
-**B. Só os domínios gratuitos.** Funciona, com `SESSION_COOKIE_SAMESITE=none`.
-O custo é real: o cookie vira de terceiros, o **Safari bloqueia por padrão** e
-o Chrome está descontinuando. Se qualquer avaliador abrir pelo iPhone, o login
-falha. Serve para validar o deploy antes de comprar domínio, não para o dia da
-apresentação.
+- **O callback do OAuth também passa pelo proxy.** É isso que faz o cookie ser
+  gravado no domínio do frontend. Por isso `BACKEND_BASE_URL` na API é a URL do
+  **frontend**, e é esse o `redirect_uri` que se registra no Google.
+- **`NEXT_PUBLIC_API_URL` fica vazio**, o que aqui é valor com significado e não
+  ausência: `lib/api.ts` usa `??`, então `""` produz chamadas relativas
+  (`/api/materiais`). Trocar por `||` mandaria o frontend publicado falar com o
+  `localhost` de quem abrisse.
 
-O roteiro abaixo assume **A**, e marca o que muda no **B**.
+Verificado ao vivo antes de entrar aqui: com o proxy ligado, o navegador
+contatou uma única origem e `/api/auth/me` e `/api/billing/status` responderam
+200 — o cookie chegou à API através do proxy.
 
----
+**Custo aceito:** todo o tráfego da API passa pela borda da Vercel, o que
+acrescenta um salto de rede. Um domínio próprio com `app.` e `api.` no mesmo
+registrável dispensaria o proxy e é o caminho a seguir se um dia houver
+domínio — o `rewrites()` é condicional, então basta não definir
+`API_PROXY_TARGET`.
 
 ## 1. Neon (banco)
 
@@ -61,31 +67,37 @@ que seja sempre pelo mesmo caminho.
 ## 2. Fly.io (API)
 
 ```bash
-# uma vez, na sua máquina
 curl -L https://fly.io/install.sh | sh
 fly auth login
 
 # na raiz do repositório — o fly.toml já está lá
-fly apps create materialselect-api        # ou outro nome; ajuste o fly.toml
+fly apps create materialselect-api        # outro nome? ajuste o fly.toml
 ```
 
-Os segredos, todos de uma vez (nenhum deles vai para o repositório):
+Você vai precisar da URL da Vercel antes de definir os segredos, porque três
+deles apontam para ela. Crie o projeto na Vercel primeiro (§4, os dois
+primeiros passos), anote a URL — algo como
+`https://materialselect.vercel.app` — e volte aqui.
 
 ```bash
 fly secrets set \
   DATABASE_URL='postgresql+psycopg://…neon…' \
   GOOGLE_CLIENT_ID='…' \
   GOOGLE_CLIENT_SECRET='…' \
-  BACKEND_BASE_URL='https://api.seudominio.com.br' \
-  FRONTEND_URL='https://app.seudominio.com.br' \
-  CORS_ORIGINS='https://app.seudominio.com.br'
+  BACKEND_BASE_URL='https://materialselect.vercel.app' \
+  FRONTEND_URL='https://materialselect.vercel.app' \
+  CORS_ORIGINS='https://materialselect.vercel.app'
 ```
 
-No caminho **B** (sem domínio próprio), use as URLs `…fly.dev` e
-`…vercel.app` e acrescente `SESSION_COOKIE_SAMESITE=none`.
+**`BACKEND_BASE_URL` é a URL do frontend, e não é engano.** Ele existe só para
+montar o `redirect_uri` que o Google exige pré-registrado, e com o proxy esse
+caminho é servido pela Vercel (§0). Apontá-lo para o `…fly.dev` faria o Google
+devolver o usuário direto na API, que gravaria o cookie no domínio errado — e o
+login voltaria a não firmar.
 
-`ENVIRONMENT`, `PORT` e o resto já vêm do `fly.toml`. `SESSION_COOKIE_SECURE`
-é `true` por padrão e deve continuar assim.
+`SESSION_COOKIE_SAMESITE` fica no padrão `lax`: o proxy torna tudo mesma origem,
+então não há por que afrouxar. `ENVIRONMENT` e `PORT` vêm do `fly.toml`, e
+`SESSION_COOKIE_SECURE` é `true` por padrão e deve continuar assim.
 
 ```bash
 fly deploy
@@ -93,9 +105,9 @@ fly deploy
 
 O `[deploy] release_command` roda `alembic upgrade head` num contêiner à parte
 **antes** de a versão nova receber tráfego. Se a migração falhar, o deploy é
-abortado e a versão anterior continua servindo — é de propósito que as
-migrações não rodem no startup da aplicação: isso executaria uma vez por
-máquina, e duas máquinas subindo juntas competiriam pela mesma tabela.
+abortado e a versão anterior continua servindo — é de propósito que as migrações
+não rodem no startup da aplicação: isso executaria uma vez por máquina, e duas
+máquinas subindo juntas competiriam pela mesma tabela.
 
 Semeie o catálogo de demonstração uma vez:
 
@@ -117,9 +129,11 @@ Manter uma máquina de pé custa mais que zero, e é uma troca consciente.
 No [Google Cloud Console](https://console.cloud.google.com) → *APIs e serviços*
 → *Credenciais* → *ID do cliente OAuth* (tipo: aplicação web):
 
-- **URI de redirecionamento autorizado:** `{BACKEND_BASE_URL}/api/auth/google/callback`
-  — exatamente isso, com o mesmo esquema e host que você pôs em
-  `BACKEND_BASE_URL`. O Google compara caractere a caractere.
+- **URI de redirecionamento autorizado:**
+  `https://materialselect.vercel.app/api/auth/google/callback`
+  — a URL do **frontend**, porque é ela que serve o callback através do proxy.
+  O Google compara caractere a caractere; um `/` a mais já derruba.
+- **Origem JavaScript autorizada:** `https://materialselect.vercel.app`.
 - Copie o *client id* e o *secret* para os segredos do Fly (§2).
 
 Se quiser restringir a uma turma ou instituição, `GOOGLE_ALLOWED_DOMAIN` filtra
@@ -127,12 +141,20 @@ por sufixo de e-mail.
 
 ## 4. Vercel (frontend)
 
-1. *Import Project* apontando para o repositório; **Root Directory: `apps/web`**.
-2. Variável de ambiente: `NEXT_PUBLIC_API_URL = https://api.seudominio.com.br`.
-   **É variável de build, não de runtime** — `lib/api.ts` lê `process.env` em
-   nível de módulo e o valor vira literal no pacote. Trocar a URL depois exige
-   *redeploy*, não basta editar a variável.
-3. Domínio: aponte `app.seudominio.com.br` para o projeto.
+1. *Add New → Project* apontando para o repositório; **Root Directory:
+   `apps/web`**.
+2. Anote a URL que a Vercel atribuir — ela é o que vai nos segredos do Fly (§2)
+   e no Google (§3).
+3. Variáveis de ambiente:
+
+   | Variável | Valor | Por quê |
+   |---|---|---|
+   | `API_PROXY_TARGET` | `https://materialselect-api.fly.dev` | Destino do `rewrites()`. Lida na configuração, então vale no build. |
+   | `NEXT_PUBLIC_API_URL` | *(vazio)* | Vazio faz o cliente chamar `/api/...` na própria origem. Deixe a variável existir com valor vazio — ver §0. |
+
+4. *Redeploy* depois de definir as duas. **`NEXT_PUBLIC_*` é entrada de build**:
+   `lib/api.ts` lê `process.env` em nível de módulo e o valor vira literal no
+   pacote, então editar a variável sem reconstruir não muda nada.
 
 ## 5. Destravar o acesso
 
@@ -157,19 +179,26 @@ cabeçalho de `app/admin/grant_subscription.py`.
 Nesta ordem, porque cada uma isola uma camada:
 
 ```bash
-curl https://api.seudominio.com.br/api/health          # 1. API viva
-curl -i https://api.seudominio.com.br/api/materiais    # 2. deve dar 401, não 500
+# Direto na API, para saber se ela está viva:
+curl https://materialselect-api.fly.dev/api/health
+
+# E através do proxy, que é o caminho que o navegador usa:
+curl https://materialselect.vercel.app/api/health
+curl -i https://materialselect.vercel.app/api/materiais   # deve dar 401, não 500
 ```
+
+As duas primeiras devem devolver o mesmo corpo. Se a direta funciona e a
+proxiada não, o problema é `API_PROXY_TARGET` na Vercel.
 
 Um **500** no passo 2 é banco: `DATABASE_URL` errada ou migração que não rodou.
 Um **401** é o esperado — o portão funcionando.
 
 Depois, no navegador:
 
-3. Abra `https://app.seudominio.com.br` — a vitrine pública carrega sem login.
-4. Entre pelo Google. **Se voltar para a tela de login em laço, é o cookie**:
-   confira o `SameSite` (§0) e se `CORS_ORIGINS` bate exatamente com a origem
-   do frontend.
+3. Abra `https://materialselect.vercel.app` — a vitrine pública carrega sem login.
+4. Entre pelo Google. **Se voltar para a tela de login em laço**, confira se
+   `BACKEND_BASE_URL` é a URL da Vercel e não a do Fly (§2): é o erro mais
+   provável, porque o cookie acaba gravado no domínio errado.
 5. Depois de rodar o §5, `/app/catalogo` deve listar os materiais do seed.
 6. Exporte um estudo e confirme que o aviso de limitação de uso está no arquivo
    (item 5 da proposta, sem opção de desligar).
@@ -178,9 +207,9 @@ Depois, no navegador:
 
 | Sintoma | Causa provável |
 |---|---|
-| Login em laço, sem erro em log nenhum | `SameSite` — §0. É a falha mais provável em domínios diferentes. |
+| Login em laço, sem erro em log nenhum | `BACKEND_BASE_URL` apontando para o Fly em vez da Vercel (§2), ou `API_PROXY_TARGET` ausente. |
 | `ModuleNotFoundError: psycopg` | `DATABASE_URL` com `postgresql://` em vez de `postgresql+psycopg://`. |
-| Frontend chamando `localhost:8000` | `NEXT_PUBLIC_API_URL` ausente **no build**. Redeploy depois de definir. |
+| Frontend chamando `localhost:8000` | `NEXT_PUBLIC_API_URL` **ausente** (não é o mesmo que vazio) no build. Defina-a vazia e reconstrua. |
 | `redirect_uri_mismatch` do Google | O URI registrado não é exatamente `{BACKEND_BASE_URL}/api/auth/google/callback`. |
 | Toda rota em 403 mesmo logado | Falta a concessão do §5. |
 | Primeira requisição demorando segundos | Hibernação — confira `min_machines_running` no `fly.toml`. |
