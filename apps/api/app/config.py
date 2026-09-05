@@ -6,6 +6,9 @@ No secrets are hard-coded here. See .env.example for the documented variables.
 
 from __future__ import annotations
 
+from typing import Literal
+
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -140,6 +143,24 @@ class Settings(BaseSettings):
     # plain HTTP must opt out explicitly rather than the reverse, so a
     # deployment can never silently forget to turn this on.
     session_cookie_secure: bool = True
+    # `lax` assumes the browser treats the frontend and the API as one site,
+    # which holds while both are on localhost and stops holding the moment they
+    # are deployed to different registrable domains (say `…vercel.app` calling
+    # `…fly.dev`). Lax cookies ride along with a top-level navigation but not
+    # with a cross-site `fetch`, so the API would answer every request as
+    # anonymous: the login appears to work, writes the cookie, and `/auth/me`
+    # keeps returning 401 — a loop with nothing in the logs to explain it.
+    #
+    # `none` fixes that and costs something real: the cookie becomes a
+    # third-party cookie, which Safari blocks outright and Chrome is winding
+    # down. The setup that avoids the trade entirely is one registrable domain
+    # for both halves (`app.exemplo.com` + `api.exemplo.com`), where `lax` is
+    # both correct and safer. See docs/13-deploy.md.
+    #
+    # Only the session cookie reads this. The OAuth `state` cookie stays `lax`
+    # deliberately: it is only ever returned by Google's top-level redirect, so
+    # `lax` reaches it, and a CSRF token has no business being sent cross-site.
+    session_cookie_samesite: Literal["lax", "none", "strict"] = "lax"
     # 14 days, fixed at creation — no sliding renewal, so a session's
     # lifetime is exactly what it says, nothing to keep alive by polling.
     session_ttl_hours: int = 336
@@ -184,6 +205,21 @@ class Settings(BaseSettings):
     def knowledge_enabled(self) -> bool:
         """True when a knowledge-base root is configured."""
         return bool(self.knowledge_dir.strip())
+
+    @model_validator(mode="after")
+    def _samesite_none_requires_secure(self) -> Settings:
+        """A browser drops `SameSite=None` without `Secure` — quietly.
+
+        Catching it here turns a login that mysteriously never sticks into a
+        refusal to boot, with the reason written out.
+        """
+        if self.session_cookie_samesite == "none" and not self.session_cookie_secure:
+            raise ValueError(
+                "SESSION_COOKIE_SAMESITE=none exige SESSION_COOKIE_SECURE=true: "
+                "o navegador descarta um cookie SameSite=None sem Secure, e o "
+                "login nunca se firmaria."
+            )
+        return self
 
     @property
     def cors_origins_list(self) -> list[str]:

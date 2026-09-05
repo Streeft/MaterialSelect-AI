@@ -68,7 +68,10 @@ def google_callback(
         max_age=settings.session_ttl_hours * 3600,
         httponly=True,
         secure=settings.session_cookie_secure,
-        samesite="lax",
+        # Configurable because the frontend and the API are not necessarily one
+        # site once deployed — see the note on `session_cookie_samesite` in
+        # config.py. The `state` cookie above stays `lax` on purpose.
+        samesite=settings.session_cookie_samesite,
     )
     return response
 
