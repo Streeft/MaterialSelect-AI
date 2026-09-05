@@ -45,6 +45,18 @@ import type {
   ValidationReport,
 } from "./types";
 
+/**
+ * Where the API lives, from the browser's point of view.
+ *
+ * An **empty string is a meaningful value**, not a missing one: it makes every
+ * call below relative (`/api/materiais`), which is what the same-origin proxy
+ * deployment needs — `next.config.mjs` rewrites `/api/*` to the real API, so
+ * the browser only ever talks to the frontend's own origin and the session
+ * cookie stays first-party. See docs/13-deploy.md.
+ *
+ * Hence `??` and not `||`: the latter would treat "" as absent and fall back to
+ * localhost, sending the deployed frontend at the developer's own machine.
+ */
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 export class ApiError extends Error {

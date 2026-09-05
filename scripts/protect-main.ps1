@@ -46,6 +46,7 @@ if (-not $gh) {
 $checks = @(
     "Backend (Python 3.11)",
     "Backend (Python 3.12)",
+    "Migrações (PostgreSQL)",
     "Frontend",
     "E2E (Playwright)",
     "Lighthouse"

@@ -257,6 +257,11 @@ A lista completa, com as receitas prontas de cada provedor, está em
   testes de ingestão do Cérebro (`test_knowledge_ingest.py`) não têm `pypdf` e
   falham.
 - Frontend: `npm ci`, `typecheck`, `lint`, `test`, `build`.
+- **Migrações (PostgreSQL)**: aplica `alembic upgrade head` + seed contra um
+  Postgres 16 de serviço e confere o schema resultante. O passo equivalente do
+  job `backend` roda em SQLite e por isso não pega incompatibilidade de
+  dialeto — foi assim que uma migração que não subia em Postgres ficou
+  invisível até a primeira tentativa de deploy.
 - E2E: Playwright (`apps/web/e2e/`) contra API e banco próprios da suíte —
   Python + Node no mesmo runner, Chromium via `--with-deps`. Relatório HTML
   publicado como artefato quando falha.
@@ -288,16 +293,25 @@ GitHub já a inclui. Confirme antes de contar com o Lighthouse como portão.
 
 ## 8. Deploy
 
-**Não há deploy.** `docker-compose.yml` e os `Dockerfile.*` são scaffold
-documentado do alvo de produção (PostgreSQL + API + Web), não exercitados. O MVP
-roda localmente. Autenticação já está resolvida (A5, [D-42](DECISIONS.md)) —
-antes de qualquer exposição em rede, registre um cliente OAuth no Google Cloud
-Console (`GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`, redirect URI
-`{BACKEND_BASE_URL}/api/auth/google/callback`, ver `.env.example`) e confirme
-`SESSION_COOKIE_SECURE=true` (o padrão) e `CORS_ORIGINS` apontando só para o
-domínio real do frontend.
+O roteiro completo está em **[13-deploy.md](13-deploy.md)**. Resumo: Postgres no
+Neon, API no Fly (`fly.toml`, com `release_command` rodando as migrações antes
+de a versão nova receber tráfego) e frontend na Vercel. O `docker-compose.yml`
+continua servindo para reproduzir as três peças numa máquina só.
 
----
+Três coisas que não são detalhe de configuração:
+
+- **O cookie de sessão e o domínio.** `SameSite=Lax` só funciona se o navegador
+  considerar frontend e API o mesmo site. Em domínios diferentes
+  (`…vercel.app` chamando `…fly.dev`), o cookie deixa de ser enviado nas
+  chamadas `fetch` e o login entra em laço **sem erro em log nenhum**. Um
+  domínio próprio com `app.` e `api.` resolve na origem; `SESSION_COOKIE_SAMESITE=none`
+  resolve com o custo de virar cookie de terceiros, que o Safari bloqueia.
+- **`NEXT_PUBLIC_API_URL` é entrada de build, não de implantação.**
+  `lib/api.ts` lê `process.env` em nível de módulo, então o valor vira literal
+  no pacote. Trocar a URL exige reconstruir.
+- **Ninguém entra sem concessão.** O portão de D-46 não tem exceção e o Stripe
+  responde 503 sem chave (D-36): use
+  `python -m app.admin.grant_subscription --email …` depois do primeiro login.
 
 ## 9. Práticas adotadas nesta base
 
@@ -326,6 +340,7 @@ domínio real do frontend.
 | Campo opcional preenchido "por conveniência" na gravação | Deixe `NULL`. Um rótulo defaultado para a chave imprimiu `__index__` no relatório; uma direção defaultada para `"max"` inverteu o ranking de um estudo salvo ([D-21](DECISIONS.md)). |
 | `black --check` faz parte do portão | Rode `black app` antes de commitar. |
 | Testes que começam por escrita | Cobertos pelo conftest; não mexa nos listeners. |
+| Migration que só foi exercitada em SQLite | O alvo de produção é Postgres. `recreate="always"` em `batch_alter_table` é contorno de SQLite e vira `DROP TABLE` no Postgres — recusado se outra tabela tiver FK para ela. Mas trocar por `"auto"` sem pensar é pior: onde havia `copy_from` para descartar uma constraint sem nome, ela **sobrevive** e o schema fica errado em silêncio. O job `Migrações (PostgreSQL)` da CI guarda os dois casos. |
 | Invocar `next dev`/`next build` sem `--webpack` | Desde o Next 16 o padrão é Turbopack, e o alias que monta o Plotly à la carte muda de comportamento. Os scripts e o `playwright.config.ts` já passam o flag; se você chamar o `next` direto, repita-o ([D-51](DECISIONS.md)). |
 | E2E parado em "Verificando sessão…" sem nenhuma requisição falhando | O Next 16 bloqueia recurso de desenvolvimento (`/_next/*`) vindo de outra origem, e `127.0.0.1` ≠ `localhost`. Sem `allowedDevOrigins` no `next.config.mjs` a página não hidrata — e não há requisição falhando para apontar, porque o bloqueado é justamente quem dispararia as requisições. |
 | Clique interceptado por `md-select-option` no E2E | O menu do `md-outlined-select` fecha por animação. Use `selectMwcOption` (`e2e/mwc.ts`), que espera o listbox sumir antes de devolver o controle; não clique na opção "na mão". |

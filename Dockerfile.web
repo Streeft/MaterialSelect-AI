@@ -1,4 +1,4 @@
-# SCAFFOLD — imagem do frontend para produção futura (não usada no MVP local).
+# Imagem do frontend.
 #
 # Contexto de build é a raiz do repositório (ver docker-compose.yml): o npm
 # workspace (D-16/M4) precisa do package.json/package-lock.json da raiz e de
@@ -13,8 +13,24 @@ COPY packages/shared-types ./packages/shared-types
 COPY apps/web ./apps/web
 RUN npm ci
 
+# `NEXT_PUBLIC_*` é substituído no código durante o `next build`, não lido do
+# ambiente em runtime — `lib/api.ts` faz `process.env.NEXT_PUBLIC_API_URL` em
+# nível de módulo, e o valor vira literal no bundle. Passar essa variável só
+# como `environment:` no compose (como estava) não tinha efeito nenhum: a
+# imagem saía apontando para o padrão `http://localhost:8000`, e o frontend
+# publicado tentaria falar com a máquina de quem abriu o navegador.
+#
+# Daí ser ARG, e não ENV de runtime: o valor precisa existir *antes* do build.
+# Trocar a URL da API significa reconstruir a imagem — não é configuração de
+# implantação, é entrada de compilação.
+ARG NEXT_PUBLIC_API_URL=http://localhost:8000
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+
 WORKDIR /app/apps/web
 RUN npm run build
+
+RUN useradd --create-home --uid 10001 appuser && chown -R appuser:appuser /app
+USER appuser
 
 EXPOSE 3000
 CMD ["npm", "run", "start"]
