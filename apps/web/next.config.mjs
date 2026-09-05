@@ -41,6 +41,34 @@ const nextConfig = {
   // server's runtime with "Cannot read properties of undefined (reading
   // 'call')" — a failure that does not reproduce in `next build`, so it only
   // shows up when someone opens the application.
+  // Proxy para a API, para que o navegador só converse com uma origem.
+  //
+  // Sem isto, frontend e API ficam em domínios diferentes (`…vercel.app`
+  // chamando `…fly.dev`) e o cookie de sessão `SameSite=Lax` deixa de ser
+  // enviado nas chamadas `fetch`: o login grava o cookie e toda requisição
+  // seguinte volta anônima, em laço, sem erro em log nenhum. `SameSite=None`
+  // resolveria virando cookie de terceiros, que o Safari bloqueia.
+  //
+  // Com o proxy, o navegador vê tudo em `https://app…/api/*` — mesma origem,
+  // cookie first-party, nenhum CORS. **O callback do OAuth também passa por
+  // aqui**, e é isso que faz o cookie ser gravado no domínio do frontend:
+  // `BACKEND_BASE_URL` na API tem de ser a URL do frontend, para que o
+  // `redirect_uri` registrado no Google seja o caminho proxiado.
+  //
+  // Condicional de propósito: sem `API_PROXY_TARGET` não há reescrita nenhuma,
+  // e o desenvolvimento local e a suíte E2E continuam falando direto com a API
+  // por `NEXT_PUBLIC_API_URL`, exatamente como antes.
+  async rewrites() {
+    const target = process.env.API_PROXY_TARGET?.trim();
+    if (!target) return [];
+    return [
+      {
+        source: "/api/:path*",
+        destination: `${target.replace(/\/$/, "")}/api/:path*`,
+      },
+    ];
+  },
+
   // Turbopack became the default bundler in Next 16, which refuses to build
   // when it finds a `webpack` key and no `turbopack` one — loudly, which is the
   // right call: silently ignoring the alias below would have shipped the 4.5 MB
