@@ -1,6 +1,9 @@
-# SCAFFOLD para produção futura — NÃO é necessário para rodar o MVP.
-# O MVP roda localmente sem Docker (ver README). Este compose documenta o alvo
-# de produção (PostgreSQL + API + Web) e pode ser evoluído nas próximas fases.
+# Ambiente de produção em uma máquina só, e a forma mais fiel de reproduzir
+# localmente o que roda hospedado: PostgreSQL + API + Web.
+#
+# O deploy real (ver docs/13-deploy.md) separa as três peças em provedores
+# diferentes, mas este compose continua útil para exercitar as imagens e o
+# caminho de migração sem depender de nenhuma conta.
 services:
   db:
     image: postgres:16
@@ -12,29 +15,54 @@ services:
       - "5432:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U materialselect"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # As migrações rodam como passo próprio, antes da API subir — o mesmo papel
+  # que o `release_command` do fly.toml cumpre no ambiente hospedado. Sem isto o
+  # banco fica vazio e a API sobe respondendo erro em toda rota.
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    environment:
+      DATABASE_URL: postgresql+psycopg://materialselect:materialselect@db:5432/materialselect
+    depends_on:
+      db:
+        condition: service_healthy
+    command: python -m alembic upgrade head
 
   api:
     build:
-      context: ./apps/api
-      dockerfile: ../../Dockerfile.api
+      # Contexto na raiz: o Dockerfile.api instala a partir de
+      # apps/api/pyproject.toml, a fonte de verdade das dependências.
+      context: .
+      dockerfile: Dockerfile.api
     environment:
       DATABASE_URL: postgresql+psycopg://materialselect:materialselect@db:5432/materialselect
       CORS_ORIGINS: http://localhost:3000
       ENVIRONMENT: production
+      # Em HTTP local o cookie de sessão precisa ser explicitamente inseguro;
+      # o padrão é `true` (só HTTPS), que é o certo em produção de verdade.
+      SESSION_COOKIE_SECURE: "false"
+      PORT: "8000"
     depends_on:
-      - db
+      migrate:
+        condition: service_completed_successfully
     ports:
       - "8000:8000"
 
   web:
     build:
-      # Contexto na raiz (não ./apps/web): o npm workspace (D-16/M4) precisa
-      # enxergar package.json/package-lock.json da raiz e packages/shared-types
-      # junto de apps/web para instalar e transpilar @materialselect/shared-types.
       context: .
       dockerfile: Dockerfile.web
-    environment:
-      NEXT_PUBLIC_API_URL: http://localhost:8000
+      # ARG, não `environment`: `NEXT_PUBLIC_*` é substituído durante o build e
+      # não lido em runtime. Ver o comentário no Dockerfile.web.
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8000
     depends_on:
       - api
     ports:

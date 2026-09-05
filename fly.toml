@@ -1,0 +1,68 @@
+# Fly.io — a API.
+#
+# O frontend não vive aqui: ele vai para a Vercel, e o Postgres para o Neon
+# (ver docs/13-deploy.md). Este arquivo cobre só o serviço Python.
+#
+# `app` e `primary_region` são os dois valores que mudam por instalação. `gru`
+# é São Paulo, escolhido para ficar perto do Neon em `sa-east-1` — a latência
+# entre API e banco é o que mais aparece numa demonstração ao vivo, porque toda
+# tela faz várias consultas.
+app = "materialselect-api"
+primary_region = "gru"
+
+[build]
+  dockerfile = "Dockerfile.api"
+
+[deploy]
+  # As migrações rodam aqui, num contêiner separado, ANTES da nova versão
+  # receber tráfego — e se falharem, o deploy é abortado e a versão antiga
+  # continua servindo. É o mesmo papel do serviço `migrate` no
+  # docker-compose.yml, e a razão de o Dockerfile.api copiar `alembic/`.
+  #
+  # Um passo de release é o lugar certo para isso justamente porque roda uma
+  # vez por deploy: migração no startup da aplicação executa uma vez por
+  # máquina, e duas máquinas subindo juntas competem pela mesma tabela.
+  release_command = "python -m alembic upgrade head"
+
+[env]
+  ENVIRONMENT = "production"
+  PORT = "8080"
+  # Sem AI_PROVIDER definido aqui: o padrão do código é `mock`, o único
+  # determinístico (D-35). Ligar um provedor real é decisão de operação, feita
+  # por `fly secrets set`, não algo que este arquivo decide por quem implanta.
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+
+  # As duas linhas que decidem se a banca vê a ferramenta ou uma tela branca.
+  #
+  # O padrão do Fly é hibernar a máquina sem tráfego e acordá-la na próxima
+  # requisição, o que custa alguns segundos — aceitável para um hobby, péssimo
+  # no meio de uma apresentação, e pior ainda aqui porque a primeira coisa que
+  # a aplicação faz é `/auth/me`: o avaliador olharia para "Verificando
+  # sessão…" enquanto a máquina liga.
+  #
+  # Manter uma máquina sempre de pé custa mais do que zero. É uma escolha
+  # consciente de trocar centavos por previsibilidade no dia que importa.
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [http_service.concurrency]
+    type = "requests"
+    soft_limit = 40
+    hard_limit = 60
+
+  # `/api/health` é público de propósito (fica fora do portão de assinatura,
+  # ver app/main.py): é o que o balanceador consulta, e ele não tem sessão.
+  [[http_service.checks]]
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "20s"
+    method = "GET"
+    path = "/api/health"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

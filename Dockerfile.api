@@ -1,14 +1,44 @@
-# SCAFFOLD — imagem da API para produção futura (não usada no MVP local).
+# Imagem da API.
+#
+# Instala a partir do `pyproject.toml`, e não de um `requirements.txt` paralelo.
+# O arquivo antigo existia como "lista de pinos por conveniência" e derivou em
+# silêncio: ficou sem `google-auth` (o login), `httpx`, `python-pptx` e
+# `charset-normalizer`, todos dependências de runtime adicionadas depois dele.
+# Uma imagem construída a partir dele quebrava no import. Uma fonte de verdade
+# só, pelo mesmo motivo que o contrato de tipos tem uma só (D-16/M4).
+#
+# Extras: `postgres` traz o psycopg, que a DATABASE_URL de produção exige;
+# `billing` traz o stripe, importado preguiçosamente por billing_service mas
+# necessário assim que uma chave for configurada. `knowledge` (pypdf) fica de
+# fora de propósito — serve para ingerir o Cérebro, operação offline que não
+# acontece dentro deste contêiner.
 FROM python:3.12-slim
+
+# Não escreve .pyc e não bufferiza stdout: log aparece na hora no painel do
+# provedor, em vez de ficar preso num buffer quando o processo morre.
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-# psycopg (binary) needs no build deps; keep the image slim.
-COPY pyproject.toml requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+# As dependências mudam muito menos que o código: copiar só o pyproject antes
+# de instalar mantém essa camada em cache entre builds que só mexem em `app/`.
+COPY apps/api/pyproject.toml ./
+# `pip install .` precisa do pacote declarado em [tool.setuptools] packages.
+COPY apps/api/app ./app
+RUN pip install --no-cache-dir ".[postgres,billing]"
 
-COPY . .
+# Alembic entra depois: é usado pelo passo de release (migrações), não pelo
+# processo que serve as requisições.
+COPY apps/api/alembic ./alembic
+COPY apps/api/alembic.ini ./
+COPY apps/api/scripts ./scripts
 
-EXPOSE 8000
-# Migrations should run as a separate step in production; here we just serve.
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Um usuário sem privilégio: se a aplicação for comprometida, o atacante não
+# herda root dentro do contêiner.
+RUN useradd --create-home --uid 10001 appuser && chown -R appuser:appuser /app
+USER appuser
+
+# 8080 é o que o fly.toml declara como internal_port.
+EXPOSE 8080
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080}"]

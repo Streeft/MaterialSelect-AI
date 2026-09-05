@@ -57,7 +57,7 @@ Detalhes em [`docs/02-arquitetura.md`](docs/02-arquitetura.md).
 cd apps\api
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-pip install -e ".[dev]"          # ou: pip install -r requirements.txt
+pip install -e ".[dev]"          # extras: postgres, billing, ai, knowledge
 
 copy .env.example .env           # ajuste se necessário
 
