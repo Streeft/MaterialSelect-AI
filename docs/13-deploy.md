@@ -57,9 +57,14 @@ domínio — o `rewrites()` é condicional, então basta não definir
 3. **Troque o esquema para `postgresql+psycopg://`** — é o driver que o
    `pyproject.toml` declara no extra `postgres`, e sem isso o SQLAlchemy tenta
    o psycopg2, que não está instalado.
-4. Prefira o endpoint **sem** `-pooler` para as migrações. O pooler (PgBouncer)
-   serve bem ao tráfego normal, mas DDL em transação longa é exatamente o que
-   ele não foi feito para intermediar.
+4. **Apague o `-pooler` do host.** O Neon devolve por padrão o endpoint com
+   pooler (`ep-xxx-pooler.…`), e o `DATABASE_URL` aqui é um só: o mesmo valor
+   serve o `release_command`, que roda DDL, e a aplicação. O pooler (PgBouncer
+   em modo de transação) serve bem ao tráfego normal e é exatamente o que não
+   foi feito para intermediar migração. Nesta escala — uma máquina, um punhado
+   de conexões — o endpoint direto não custa nada e evita o problema.
+   `channel_binding=require`, se vier na string, pode ficar; o psycopg 3 o
+   suporta.
 
 Não rode as migrações à mão: o passo de release do Fly faz isso (§2), e é bom
 que seja sempre pelo mesmo caminho.
@@ -71,22 +76,26 @@ curl -L https://fly.io/install.sh | sh
 fly auth login
 
 # na raiz do repositório — o fly.toml já está lá
-fly apps create materialselect-api        # outro nome? ajuste o fly.toml
+fly apps create materialselect-ai        # outro nome? ajuste o fly.toml
 ```
 
 Você vai precisar da URL da Vercel antes de definir os segredos, porque três
 deles apontam para ela. Crie o projeto na Vercel primeiro (§4, os dois
-primeiros passos), anote a URL — algo como
-`https://materialselect.vercel.app` — e volte aqui.
+primeiros passos) e anote a URL atribuída.
+
+> As URLs deste guia são as **desta instalação** — API em
+> `materialselect-ai.fly.dev`, frontend em `material-select-ai-web.vercel.app`.
+> Numa instalação nova, troque as duas em todo o documento e ajuste `app` no
+> `fly.toml`.
 
 ```bash
 fly secrets set \
   DATABASE_URL='postgresql+psycopg://…neon…' \
   GOOGLE_CLIENT_ID='…' \
   GOOGLE_CLIENT_SECRET='…' \
-  BACKEND_BASE_URL='https://materialselect.vercel.app' \
-  FRONTEND_URL='https://materialselect.vercel.app' \
-  CORS_ORIGINS='https://materialselect.vercel.app'
+  BACKEND_BASE_URL='https://material-select-ai-web.vercel.app' \
+  FRONTEND_URL='https://material-select-ai-web.vercel.app' \
+  CORS_ORIGINS='https://material-select-ai-web.vercel.app'
 ```
 
 **`BACKEND_BASE_URL` é a URL do frontend, e não é engano.** Ele existe só para
@@ -130,10 +139,10 @@ No [Google Cloud Console](https://console.cloud.google.com) → *APIs e serviço
 → *Credenciais* → *ID do cliente OAuth* (tipo: aplicação web):
 
 - **URI de redirecionamento autorizado:**
-  `https://materialselect.vercel.app/api/auth/google/callback`
+  `https://material-select-ai-web.vercel.app/api/auth/google/callback`
   — a URL do **frontend**, porque é ela que serve o callback através do proxy.
   O Google compara caractere a caractere; um `/` a mais já derruba.
-- **Origem JavaScript autorizada:** `https://materialselect.vercel.app`.
+- **Origem JavaScript autorizada:** `https://material-select-ai-web.vercel.app`.
 - Copie o *client id* e o *secret* para os segredos do Fly (§2).
 
 Se quiser restringir a uma turma ou instituição, `GOOGLE_ALLOWED_DOMAIN` filtra
@@ -149,7 +158,7 @@ por sufixo de e-mail.
 
    | Variável | Valor | Por quê |
    |---|---|---|
-   | `API_PROXY_TARGET` | `https://materialselect-api.fly.dev` | Destino do `rewrites()`. Lida na configuração, então vale no build. |
+   | `API_PROXY_TARGET` | `https://materialselect-ai.fly.dev` | Destino do `rewrites()`. Lida na configuração, então vale no build. |
    | `NEXT_PUBLIC_API_URL` | *(vazio)* | Vazio faz o cliente chamar `/api/...` na própria origem. Deixe a variável existir com valor vazio — ver §0. |
 
 4. *Redeploy* depois de definir as duas. **`NEXT_PUBLIC_*` é entrada de build**:
@@ -180,11 +189,11 @@ Nesta ordem, porque cada uma isola uma camada:
 
 ```bash
 # Direto na API, para saber se ela está viva:
-curl https://materialselect-api.fly.dev/api/health
+curl https://materialselect-ai.fly.dev/api/health
 
 # E através do proxy, que é o caminho que o navegador usa:
-curl https://materialselect.vercel.app/api/health
-curl -i https://materialselect.vercel.app/api/materiais   # deve dar 401, não 500
+curl https://material-select-ai-web.vercel.app/api/health
+curl -i https://material-select-ai-web.vercel.app/api/materiais   # deve dar 401, não 500
 ```
 
 As duas primeiras devem devolver o mesmo corpo. Se a direta funciona e a
@@ -195,7 +204,7 @@ Um **401** é o esperado — o portão funcionando.
 
 Depois, no navegador:
 
-3. Abra `https://materialselect.vercel.app` — a vitrine pública carrega sem login.
+3. Abra `https://material-select-ai-web.vercel.app` — a vitrine pública carrega sem login.
 4. Entre pelo Google. **Se voltar para a tela de login em laço**, confira se
    `BACKEND_BASE_URL` é a URL da Vercel e não a do Fly (§2): é o erro mais
    provável, porque o cookie acaba gravado no domínio errado.
