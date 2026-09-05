@@ -293,16 +293,25 @@ GitHub já a inclui. Confirme antes de contar com o Lighthouse como portão.
 
 ## 8. Deploy
 
-**Não há deploy.** `docker-compose.yml` e os `Dockerfile.*` são scaffold
-documentado do alvo de produção (PostgreSQL + API + Web), não exercitados. O MVP
-roda localmente. Autenticação já está resolvida (A5, [D-42](DECISIONS.md)) —
-antes de qualquer exposição em rede, registre um cliente OAuth no Google Cloud
-Console (`GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`, redirect URI
-`{BACKEND_BASE_URL}/api/auth/google/callback`, ver `.env.example`) e confirme
-`SESSION_COOKIE_SECURE=true` (o padrão) e `CORS_ORIGINS` apontando só para o
-domínio real do frontend.
+O roteiro completo está em **[13-deploy.md](13-deploy.md)**. Resumo: Postgres no
+Neon, API no Fly (`fly.toml`, com `release_command` rodando as migrações antes
+de a versão nova receber tráfego) e frontend na Vercel. O `docker-compose.yml`
+continua servindo para reproduzir as três peças numa máquina só.
 
----
+Três coisas que não são detalhe de configuração:
+
+- **O cookie de sessão e o domínio.** `SameSite=Lax` só funciona se o navegador
+  considerar frontend e API o mesmo site. Em domínios diferentes
+  (`…vercel.app` chamando `…fly.dev`), o cookie deixa de ser enviado nas
+  chamadas `fetch` e o login entra em laço **sem erro em log nenhum**. Um
+  domínio próprio com `app.` e `api.` resolve na origem; `SESSION_COOKIE_SAMESITE=none`
+  resolve com o custo de virar cookie de terceiros, que o Safari bloqueia.
+- **`NEXT_PUBLIC_API_URL` é entrada de build, não de implantação.**
+  `lib/api.ts` lê `process.env` em nível de módulo, então o valor vira literal
+  no pacote. Trocar a URL exige reconstruir.
+- **Ninguém entra sem concessão.** O portão de D-46 não tem exceção e o Stripe
+  responde 503 sem chave (D-36): use
+  `python -m app.admin.grant_subscription --email …` depois do primeiro login.
 
 ## 9. Práticas adotadas nesta base
 
