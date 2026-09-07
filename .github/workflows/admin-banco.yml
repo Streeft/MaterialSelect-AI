@@ -1,0 +1,119 @@
+# Operações administrativas contra o banco de produção, disparadas à mão.
+#
+# São as três coisas que `docs/13-deploy.md` manda fazer por terminal e que, sem
+# um terminal, ficariam impossíveis: aplicar as migrações, semear o catálogo de
+# demonstração e conceder acesso a uma conta. Todas dependem só de alcançar o
+# Postgres — não passam pelo Fly —, e o runner do GitHub alcança.
+#
+# **Só `workflow_dispatch`.** Num repositório público isso importa: o disparo
+# manual exige permissão de escrita, e nenhum gatilho aqui responde a evento de
+# fork, então `DATABASE_URL` nunca é exposto a código de terceiro. Pelo mesmo
+# motivo as entradas do usuário chegam ao shell por variável de ambiente e não
+# por interpolação `${{ }}` dentro do `run:` — interpolar montaria o comando com
+# o texto digitado dentro dele.
+#
+# **Não entra em `scripts/protect-main.ps1`** — ver a mesma nota em
+# `deploy-api.yml`.
+#
+# Pré-requisito: o secret `DATABASE_URL` em Settings → Secrets and variables →
+# Actions, com o esquema `postgresql+psycopg://` e o host **sem** `-pooler`
+# (docs/13-deploy.md §1).
+name: Administração do banco
+
+on:
+  workflow_dispatch:
+    inputs:
+      acao:
+        description: "O que executar"
+        required: true
+        type: choice
+        options:
+          - migrar
+          - semear
+          - conceder
+          - revogar
+      email:
+        description: "E-mail da conta Google (obrigatório em conceder/revogar)"
+        required: false
+        type: string
+
+# Duas execuções ao mesmo tempo disputariam as mesmas tabelas.
+concurrency:
+  group: admin-banco
+  cancel-in-progress: false
+
+jobs:
+  executar:
+    name: ${{ inputs.acao }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/api
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Preparar Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      # Os mesmos extras que o Dockerfile.api instala, para que o que roda aqui
+      # seja o que roda em produção.
+      - name: Instalar dependências
+        run: pip install -e ".[postgres,billing]"
+
+      - name: Executar
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          # `seed_e2e_session` só grava a sessão fixa do Playwright quando
+          # ENVIRONMENT=development; declarar `production` fecha essa porta aqui
+          # de forma explícita, em vez de depender do padrão do config.
+          ENVIRONMENT: production
+          ACAO: ${{ inputs.acao }}
+          EMAIL: ${{ inputs.email }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${DATABASE_URL:-}" ]; then
+            echo "::error::O secret DATABASE_URL não está definido."
+            exit 1
+          fi
+          case "$DATABASE_URL" in
+            postgresql+psycopg://*) ;;
+            *)
+              echo "::error::DATABASE_URL precisa começar com 'postgresql+psycopg://' — sem isso o SQLAlchemy procura o psycopg2, que não está instalado."
+              exit 1
+              ;;
+          esac
+
+          exigir_email() {
+            if [ -z "${EMAIL:-}" ]; then
+              echo "::error::A ação '$ACAO' exige o campo E-mail."
+              exit 1
+            fi
+          }
+
+          case "$ACAO" in
+            migrar)
+              python -m alembic upgrade head
+              ;;
+            semear)
+              # As migrações primeiro, sempre: `app.db.seed` chama
+              # `create_all` por conveniência, e num banco vazio isso criaria as
+              # tabelas sem carimbo do Alembic — a migração seguinte falharia.
+              python -m alembic upgrade head
+              python -m app.db.seed
+              ;;
+            conceder)
+              exigir_email
+              python -m app.admin.grant_subscription --email "$EMAIL"
+              ;;
+            revogar)
+              exigir_email
+              python -m app.admin.grant_subscription --email "$EMAIL" --revoke
+              ;;
+            *)
+              echo "::error::Ação desconhecida: $ACAO"
+              exit 1
+              ;;
+          esac
