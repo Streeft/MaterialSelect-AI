@@ -7,7 +7,7 @@
 # é São Paulo, escolhido para ficar perto do Neon em `sa-east-1` — a latência
 # entre API e banco é o que mais aparece numa demonstração ao vivo, porque toda
 # tela faz várias consultas.
-app = "materialselect-api"
+app = "materialselect-ai"
 primary_region = "gru"
 
 [build]
