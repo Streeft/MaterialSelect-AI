@@ -268,6 +268,8 @@ Depois, no navegador:
 | `redirect_uri_mismatch` do Google | O URI registrado não é exatamente `{BACKEND_BASE_URL}/api/auth/google/callback`. |
 | Toda rota em 403 mesmo logado | Falta a concessão do §5. |
 | Primeira requisição demorando segundos | Hibernação — confira `min_machines_running` no `fly.toml`. |
+| Painel de IA em `403` acusando a credencial, com `error code: 1010` no fim da mensagem | **Não é a chave.** `1010` é da Cloudflare, que fica na frente da Groq: ela barrou a assinatura do cliente antes de a API ver a requisição. Ver [09-camada-ia.md](09-camada-ia.md). |
+| Painel de IA com erro genérico ("Falha na requisição …") em vez do texto do provedor | Versão da API anterior ao tratador de `AIUnavailableError`. Reimplante — um *secrets deploy* não basta, porque reusa a imagem. |
 
 ### O app sem endereço público
 

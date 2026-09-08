@@ -378,7 +378,12 @@ terminal. Publicar exigiu corrigir cinco defeitos que nenhum teste pegava, e
 duas armadilhas do Fly cuja assinatura é a mesma: **o job fica verde e a
 aplicação não funciona**. Na instância publicada a camada de IA usa a Groq por
 `openai-compat` (o `mock` segue sendo o padrão do código e o que os testes
-exercitam) e o Stripe responde 503 — configuração, não defeito.
+exercitam) e o Stripe responde 503 — configuração, não defeito. **Ligar a IA
+em produção custou mais dois defeitos do mesmo feitio**: o `AIUnavailableError`
+sem tratador, que virava 500 de corpo em texto puro e apagava a mensagem do
+provedor, e a requisição sem `User-Agent`, barrada pela Cloudflare na frente da
+Groq com `error code: 1010` — um 403 que a mensagem antiga atribuía à chave.
+Ambos em `docs/09-camada-ia.md`.
 
 **Estado detalhado, decisões, backlog e histórico da última sessão estão em
 `docs/`** — ver PROJECT_CONTEXT.md, DECISIONS.md, TODO.md e
