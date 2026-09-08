@@ -255,12 +255,37 @@ Depois, no navegador:
 
 | Sintoma | Causa provável |
 |---|---|
+| `DNS_PROBE_FINISHED_NXDOMAIN` em `…fly.dev`, com o deploy verde e as máquinas saudáveis | O app não tem endereço público. Ver abaixo — é a falha mais desnorteante das listadas aqui. |
 | Login em laço, sem erro em log nenhum | `BACKEND_BASE_URL` apontando para o Fly em vez da Vercel (§2), ou `API_PROXY_TARGET` ausente. |
 | `ModuleNotFoundError: psycopg` | `DATABASE_URL` com `postgresql://` em vez de `postgresql+psycopg://`. |
 | Frontend chamando `localhost:8000` | `NEXT_PUBLIC_API_URL` **ausente** (não é o mesmo que vazio) no build. Defina-a vazia e reconstrua. |
 | `redirect_uri_mismatch` do Google | O URI registrado não é exatamente `{BACKEND_BASE_URL}/api/auth/google/callback`. |
 | Toda rota em 403 mesmo logado | Falta a concessão do §5. |
 | Primeira requisição demorando segundos | Hibernação — confira `min_machines_running` no `fly.toml`. |
+
+### O app sem endereço público
+
+Vale a explicação porque nenhum sinal aponta para ela. O `<app>.fly.dev` só
+existe no DNS enquanto o app tem um IP público, e o `flyctl deploy` **só aloca
+um sozinho quando o app ainda não tem máquinas**. Um app criado pelo painel — ou
+que já recebeu um *secrets deploy*, que reinicia as máquinas com a imagem
+existente — chega ao primeiro `deploy` com máquinas de pé e nenhum endereço.
+
+O resultado é o pior tipo de falha: o deploy termina verde, as duas máquinas
+passam nos health checks, o `release_command` roda as migrações, e o próprio
+flyctl imprime *"Visit your newly deployed app at https://…fly.dev/"* — porque
+ele imprime essa linha sempre, tenha ou não IP. Do lado de fora, o navegador
+devolve `NXDOMAIN`: o endereço nunca existiu.
+
+O passo **"Garantir endereço público"** do `deploy-api.yml` (§5-bis) aloca o
+IPv4 compartilhado e o IPv6 e **falha o job** se ao final não houver nenhum —
+sem essa asserção o workflow seguiria verde com a aplicação inalcançável, que é
+exatamente o que já aconteceu uma vez aqui. Um `private_v6` sozinho não conta:
+não é endereço público.
+
+Um *secrets deploy* também não roda o `release_command`. Se as migrações
+precisarem correr sem um deploy de código, use a ação `migrar` do workflow de
+administração (§5-bis).
 
 ## O que este deploy não cobre
 

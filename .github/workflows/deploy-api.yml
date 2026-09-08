@@ -67,3 +67,46 @@ jobs:
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: flyctl deploy --remote-only
+
+      # O `<app>.fly.dev` só existe no DNS enquanto o app tem endereço público,
+      # e o `flyctl deploy` **só aloca um sozinho quando o app ainda não tem
+      # máquinas**. Um app criado pelo painel, ou que já recebeu um
+      # `secrets deploy`, chega aqui com máquinas de pé e nenhum IP: o deploy
+      # passa, as máquinas ficam saudáveis, o flyctl imprime "Visit your newly
+      # deployed app at …" — e o navegador responde DNS_PROBE_FINISHED_NXDOMAIN,
+      # porque aquele endereço nunca existiu. Aconteceu nesta instalação.
+      #
+      # `--shared` no IPv4 não é detalhe de economia: um IPv4 dedicado é cobrado
+      # à parte, e nada aqui precisa dele.
+      #
+      # A alocação tolera falha porque repetir num app que já tem IP é erro, e
+      # este passo precisa ser idempotente. Quem decide o resultado é a asserção
+      # do fim — sem ela, este job continuaria verde com a aplicação
+      # inalcançável, que é o pior desfecho possível para um passo de deploy.
+      - name: Garantir endereço público (sem IP não há DNS)
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          echo "== IPs antes =="
+          flyctl ips list || true
+
+          flyctl ips allocate-v4 --shared || echo "(IPv4 compartilhado não alocado agora — provavelmente já existe)"
+          flyctl ips allocate-v6 || echo "(IPv6 não alocado agora — provavelmente já existe)"
+
+          echo "== IPs depois =="
+          flyctl ips list
+
+          publicos="$(
+            flyctl ips list --json \
+              | jq '[.[] | (.Type // .type // "")]
+                    | map(select(. == "v4" or . == "shared_v4" or . == "v6"))
+                    | length'
+          )"
+          echo "Endereços públicos: $publicos"
+
+          if [ "$publicos" -lt 1 ]; then
+            echo "::error::O app continua sem endereço público. Sem IP não há registro DNS para <app>.fly.dev, e a aplicação fica inalcançável mesmo com as máquinas saudáveis."
+            exit 1
+          fi
