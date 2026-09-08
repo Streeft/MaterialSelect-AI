@@ -278,7 +278,16 @@ O roteiro completo está em [13-deploy.md](13-deploy.md) e o desenho em
   funciona**.
 
 A instância publicada roda a camada de IA com o provedor **`openai-compat`
-apontado para a Groq** — a receita gratuita que a Fase 9 documentou. Já
+apontado para a Groq** — a receita gratuita que a Fase 9 documentou —, e ela
+**foi exercitada de ponta a ponta em produção**: enunciado em português,
+proposta de função, duas restrições ancoradas no texto e um índice do catálogo
+escolhido por slug. Ligá-la custou mais dois defeitos que só existiam com um
+provedor real, e ambos deste mesmo feitio — **verde no deploy, quebrado na
+tela**: o `AIUnavailableError` que escapava sem tratador e virava 500 de corpo
+em texto puro, apagando a mensagem do provedor
+([09-camada-ia.md](09-camada-ia.md)), e a requisição sem `User-Agent`, que a
+Cloudflare na frente da Groq barrava com `error code: 1010` — um 403 que a
+mensagem antiga atribuía à chave, que estava correta o tempo todo. Já
 `/billing/checkout` responde 503 porque `STRIPE_API_KEY` está vazio
 ([D-36](DECISIONS.md)): configuração, não defeito. Ver §9.
 
@@ -599,7 +608,9 @@ que mais afetam quem for mexer no código:
 - **Com provedor de IA real, a leitura do enunciado não é reproduzível.** Só o
   `mock` é determinístico, e é ele o padrão. O `claude-api` foi exercitado
   contra um cliente falso nos testes, mas ainda não contra a API de verdade —
-  não há chave neste ambiente; o `claude-cli` foi verificado ao vivo.
+  não há chave neste ambiente. O `claude-cli` e o `openai-compat` foram
+  verificados ao vivo; o segundo contra a Groq, na instância publicada, e foi
+  esse exercício que revelou os dois defeitos descritos no §3.
 - **O portão de assinatura está ligado, e o checkout foi testado ao vivo.**
   `require_active_subscription` bloqueia toda rota (exceto
   `health`/`auth`/`billing`) sem `Subscription.status == "active"`
