@@ -312,6 +312,13 @@ Três coisas que não são detalhe de configuração:
 - **Ninguém entra sem concessão.** O portão de D-46 não tem exceção e o Stripe
   responde 503 sem chave (D-36): use
   `python -m app.admin.grant_subscription --email …` depois do primeiro login.
+- **Há um caminho sem terminal.** `.github/workflows/deploy-api.yml` e
+  `admin-banco.yml` fazem o `fly deploy` e as operações de banco (migrar,
+  semear, conceder, revogar) por disparo manual na aba Actions (13-deploy.md
+  §5-bis). São `workflow_dispatch` puros e **não** entram em
+  `scripts/protect-main.ps1`: a regra do §7 vale para os jobs do `ci.yml`, que
+  reportam em todo PR; exigir um job que só roda sob demanda travaria todo
+  merge para sempre.
 
 ## 9. Práticas adotadas nesta base
 

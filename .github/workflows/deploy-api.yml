@@ -1,0 +1,69 @@
+# Deploy da API para o Fly.io, disparado à mão pelo GitHub.
+#
+# Existe porque `fly deploy` exige o flyctl e acesso de rede ao fly.io, e nem
+# todo operador deste projeto tem um terminal à mão. O runner do GitHub tem os
+# dois, e o token do Fly fica num *secret* do repositório — nunca no histórico,
+# nunca numa conversa.
+#
+# **Só `workflow_dispatch`, de propósito.** Um gatilho em `push` deixaria todo
+# commit para `main` vermelho enquanto `FLY_API_TOKEN` não existisse, e um
+# vermelho que não significa defeito é pior que nenhum sinal. Quando quiser
+# deploy automático, acrescente aqui um `push:` com filtro de caminho — mas só
+# depois que o segredo estiver configurado e o primeiro deploy manual tiver
+# funcionado.
+#
+# **Este job NÃO entra em `scripts/protect-main.ps1`.** A regra do §7 de
+# `docs/CLAUDE.md` — todo job novo vira check obrigatório — vale para os jobs do
+# `ci.yml`, que rodam em todo PR. Um job que só roda sob demanda nunca reporta
+# status, e exigi-lo travaria todo merge para sempre.
+#
+# Pré-requisitos, ambos configurados pelo navegador:
+#   1. Um token em <https://fly.io/dashboard> → Tokens (ou `fly tokens create deploy`).
+#   2. Esse token em Settings → Secrets and variables → Actions, como
+#      `FLY_API_TOKEN`.
+#   3. Os segredos da aplicação (DATABASE_URL, GOOGLE_*, BACKEND_BASE_URL,
+#      FRONTEND_URL, CORS_ORIGINS) definidos no painel do Fly, na aba Secrets do
+#      app — eles são do app, não deste workflow. Ver docs/13-deploy.md §2.
+name: Deploy da API (Fly.io)
+
+on:
+  workflow_dispatch:
+
+# Dois deploys simultâneos disputariam a mesma máquina. Enfileira em vez de
+# cancelar: um deploy cancelado no meio deixa estado indefinido.
+concurrency:
+  group: deploy-api
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy da API
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # A referência que a própria Fly documenta. Fixar num SHA é o passo de
+      # endurecimento se um dia isto passar a rodar sem supervisão.
+      - name: Preparar flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Conferir que o token existe
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${FLY_API_TOKEN:-}" ]; then
+            echo "::error::O secret FLY_API_TOKEN não está definido. Crie-o em Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+
+      # `--remote-only` constrói a imagem no builder da Fly. Sem isso o runner
+      # precisaria montar a imagem localmente e enviá-la inteira pela rede.
+      #
+      # O `release_command` do fly.toml roda `alembic upgrade head` num
+      # contêiner à parte ANTES de a versão nova receber tráfego: se a migração
+      # falhar, o deploy é abortado e a versão anterior continua servindo.
+      - name: fly deploy
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: flyctl deploy --remote-only
