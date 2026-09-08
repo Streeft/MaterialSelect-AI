@@ -221,6 +221,12 @@ Três detalhes que não são arbitrários:
 - **A ação `semear` roda `alembic upgrade head` antes do seed.** `app.db.seed`
   chama `create_all` por conveniência, e num banco vazio isso criaria as tabelas
   sem carimbo do Alembic — a migração seguinte quebraria.
+- **O passo "Garantir endereço público" conta antes de alocar.** `flyctl ips
+  allocate-v6` **não é idempotente**: ele aloca outro endereço a cada chamada,
+  em silêncio e com sucesso. Escrito como `allocate-v6 || true`, acumulava um
+  IPv6 por deploy. E a asserção do fim — falhar o job se não houver endereço
+  público — existe porque o desfecho contrário já aconteceu aqui: deploy verde,
+  máquinas saudáveis, aplicação inalcançável.
 
 ## 6. Conferir que está de pé
 
