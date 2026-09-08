@@ -2108,3 +2108,88 @@ diferença é só como cada um fatia os chunks.
 deixando para trás: hoje o webpack já exige flag explícita, e um major futuro
 pode removê-lo. A dívida está registrada em [TODO.md](TODO.md); quando for paga,
 quem decide é a medição acima refeita, não a preferência.
+
+## D-52 — A ferramenta é publicada em Neon + Fly + Vercel, com a API servida pela origem do frontend
+
+**Contexto.** Até esta sessão o `docs/CLAUDE.md` §8 dizia "não há deploy", e o
+`docker-compose.yml` com os `Dockerfile.*` eram andaime documentado e nunca
+exercitado. O §3.5 da proposta pede a ferramenta *funcionando*, e uma banca não
+assiste a um `uvicorn --reload`.
+
+Exercitar o andaime revelou que **nada dele subiria**. Os defeitos não eram de
+configuração; eram de coisas que a máquina de desenvolvimento escondia:
+
+- A migração de autenticação forçava `recreate="always"` no `batch_alter_table`
+  — contorno de SQLite que no Postgres vira `DROP TABLE`, recusado porque duas
+  tabelas têm chave estrangeira para `selection_study`. E a correção óbvia
+  (`recreate="auto"`) seria **pior**: passaria verde deixando a `UNIQUE(name)`
+  antiga viva, com o nome do estudo globalmente único em vez de único por
+  projeto.
+- `psycopg` não estava declarado em lugar nenhum, embora o compose já usasse
+  `postgresql+psycopg://`.
+- O `requirements.txt` tinha derivado em silêncio: sem `google-auth` — o login —,
+  `httpx`, `python-pptx` nem `charset-normalizer`. Uma imagem construída a
+  partir dele quebrava no import.
+- `NEXT_PUBLIC_API_URL` chegava como variável de runtime, mas o Next substitui
+  `NEXT_PUBLIC_*` **durante o build**: a imagem saía apontando para
+  `localhost:8000`.
+
+**Decisão.** Postgres no **Neon**, API no **Fly.io**, frontend na **Vercel** —
+os três em plano gratuito, com `sa-east-1`/`gru` para ficar perto de quem
+apresenta. As migrações rodam no `release_command` do `fly.toml`, num contêiner à
+parte, **antes** de a versão nova receber tráfego; se falharem, o deploy aborta e
+a versão anterior continua servindo.
+
+**E a API é servida pela origem do frontend**, por `rewrites()` no
+`next.config.mjs`. Esta é a parte que mais mexeu no código, e a razão é o
+cookie: com `…vercel.app` chamando `…fly.dev` o navegador considera as duas
+metades sites diferentes, e um cookie `SameSite=Lax` **não viaja** nas chamadas
+`fetch`. O sintoma seria cruel — o login grava o cookie, toda requisição
+seguinte volta anônima, e **nada aparece em log nenhum**.
+
+Três consequências que não são detalhe de configuração:
+
+1. **O callback do OAuth também passa pelo proxy**, e é isso que grava o cookie
+   no domínio do frontend. Por isso `BACKEND_BASE_URL` na API é a URL do
+   **frontend**, e é essa que se registra no Google.
+2. **`NEXT_PUBLIC_API_URL` vazio é valor com significado, não ausência.**
+   `lib/api.ts` usa `??`, então `""` produz chamadas relativas; trocar por `||`
+   trataria `""` como ausente e mandaria o site publicado falar com o
+   `localhost` de quem o abrisse.
+3. O `rewrites()` é **condicional**: sem `API_PROXY_TARGET` não há reescrita, e
+   o desenvolvimento local e a suíte E2E seguem falando direto com a API.
+
+**Alternativas descartadas.**
+
+- **`SameSite=None`**: resolveria transformando-o em cookie de terceiros —
+  bloqueado pelo Safari por padrão e em descontinuação no Chrome. Um avaliador
+  abrindo pelo iPhone não entraria. O campo `SESSION_COOKIE_SAMESITE` existe,
+  com validador que recusa `none` sem `Secure`, mas o padrão é `lax`.
+- **Domínio próprio com `app.` e `api.`**: resolve na origem e dispensa o proxy.
+  É o caminho a seguir se um dia houver domínio — e por isso o `rewrites()` é
+  condicional, não incondicional.
+- **Deploy por terminal**: o operador deste projeto não tem shell disponível.
+  Dois workflows de `workflow_dispatch` fazem o deploy e as operações de banco
+  pelo navegador (13-deploy.md §5-bis). Num repositório público isso obriga: só
+  disparo manual, nenhum gatilho de fork, e entrada de usuário por `env` e nunca
+  interpolada dentro do `run:`.
+
+**Consequência aceita.** Todo o tráfego da API passa pela borda da Vercel, o
+que acrescenta um salto de rede. É o preço de não depender de política de cookie
+de terceiros.
+
+**Duas armadilhas que só o deploy real revelou**, ambas com a mesma assinatura —
+o job fica **verde** e a aplicação não funciona:
+
+- **App sem endereço público.** O `<app>.fly.dev` só existe no DNS enquanto o
+  app tem IP, e o `flyctl deploy` só aloca um sozinho quando o app ainda não tem
+  máquinas. Um app criado pelo painel chega ao primeiro deploy com máquinas de
+  pé e nenhum endereço: o deploy passa, os health checks passam, o flyctl imprime
+  "Visit your newly deployed app at …" — e o navegador devolve `NXDOMAIN`.
+- **`flyctl ips allocate-v6` não é idempotente.** Ele aloca **outro** endereço a
+  cada chamada, em silêncio e com sucesso. Um passo escrito como
+  `allocate-v6 || true` acumulava um IPv6 por deploy.
+
+O passo "Garantir endereço público" do `deploy-api.yml` conta antes de alocar e
+**falha o job** se ao final não houver endereço público. Essa asserção é a lição
+das duas: num passo de deploy, verde sem verificação é pior que vermelho.

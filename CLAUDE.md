@@ -366,6 +366,19 @@ ele congelava o event loop inteiro e não só a própria requisição. Duas
 "otimizações" foram medidas e **recusadas** (índices de cobertura e `ANALYZE`,
 este último 85% mais lento no `overview`).
 
+**A ferramenta está no ar** ([D-52](docs/DECISIONS.md),
+[13-deploy.md](docs/13-deploy.md)): frontend na Vercel
+(`material-select-ai-web.vercel.app`), API no Fly (`materialselect-ai.fly.dev`),
+Postgres no Neon, login pelo Google funcionando de ponta a ponta. **A API é
+servida pela origem do frontend** por `rewrites()` — sem isso o cookie
+`SameSite=Lax` não viajaria entre os dois domínios e o login entraria em laço
+sem erro em log nenhum. O deploy e as operações de banco são feitos por dois
+workflows de disparo manual (`deploy-api.yml`, `admin-banco.yml`), não por
+terminal. Publicar exigiu corrigir cinco defeitos que nenhum teste pegava, e
+duas armadilhas do Fly cuja assinatura é a mesma: **o job fica verde e a
+aplicação não funciona**. Na instância publicada a camada de IA roda no `mock` e
+o Stripe responde 503 — configuração, não defeito.
+
 **Estado detalhado, decisões, backlog e histórico da última sessão estão em
 `docs/`** — ver PROJECT_CONTEXT.md, DECISIONS.md, TODO.md e
 CHANGELOG_SESSION.md. Não duplique esse conteúdo aqui.
