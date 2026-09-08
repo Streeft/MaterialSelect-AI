@@ -79,33 +79,49 @@ jobs:
       # `--shared` no IPv4 não é detalhe de economia: um IPv4 dedicado é cobrado
       # à parte, e nada aqui precisa dele.
       #
-      # A alocação tolera falha porque repetir num app que já tem IP é erro, e
-      # este passo precisa ser idempotente. Quem decide o resultado é a asserção
-      # do fim — sem ela, este job continuaria verde com a aplicação
-      # inalcançável, que é o pior desfecho possível para um passo de deploy.
+      # **Contar antes de alocar, e não tentar-e-tolerar-o-erro.** A primeira
+      # versão deste passo chamava `allocate-v6` sempre, supondo que repetir num
+      # app que já tem IPv6 daria erro. Não dá: o comando **aloca outro**, em
+      # silêncio, a cada execução. Dois deploys deixaram dois IPv6 dedicados, e
+      # cada deploy seguinte somaria mais um — um vazamento lento que ninguém
+      # notaria, porque o job fica verde. Medido no log da execução nº 3.
       - name: Garantir endereço público (sem IP não há DNS)
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: |
           set -euo pipefail
 
-          echo "== IPs antes =="
-          flyctl ips list || true
+          # O campo de tipo do JSON carrega a *versão* ("v4"/"v6"), e o nome da
+          # chave varia com a versão do flyctl — daí ler `.Type` e `.type`.
+          quantos() {
+            flyctl ips list --json \
+              | jq --arg v "$1" '[.[] | select((.Type // .type // "") | test($v))] | length'
+          }
 
-          flyctl ips allocate-v4 --shared || echo "(IPv4 compartilhado não alocado agora — provavelmente já existe)"
-          flyctl ips allocate-v6 || echo "(IPv6 não alocado agora — provavelmente já existe)"
+          echo "== IPs antes =="
+          flyctl ips list
+
+          if [ "$(quantos '^(v4|shared_v4)$')" -gt 0 ]; then
+            echo "IPv4 já alocado — nada a fazer."
+          else
+            flyctl ips allocate-v4 --shared
+          fi
+
+          if [ "$(quantos '^v6$')" -gt 0 ]; then
+            echo "IPv6 já alocado — nada a fazer."
+          else
+            flyctl ips allocate-v6
+          fi
 
           echo "== IPs depois =="
           flyctl ips list
 
-          publicos="$(
-            flyctl ips list --json \
-              | jq '[.[] | (.Type // .type // "")]
-                    | map(select(. == "v4" or . == "shared_v4" or . == "v6"))
-                    | length'
-          )"
+          publicos="$(quantos '^(v4|shared_v4|v6)$')"
           echo "Endereços públicos: $publicos"
 
+          # Sem esta asserção o job seguiria verde com a aplicação inalcançável
+          # — o pior desfecho possível para um passo de deploy, e exatamente o
+          # que acontecia antes de este passo existir.
           if [ "$publicos" -lt 1 ]; then
             echo "::error::O app continua sem endereço público. Sem IP não há registro DNS para <app>.fly.dev, e a aplicação fica inalcançável mesmo com as máquinas saudáveis."
             exit 1
