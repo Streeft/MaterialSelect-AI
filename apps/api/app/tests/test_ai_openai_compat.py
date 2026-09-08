@@ -193,6 +193,24 @@ class TestAuthenticationIsOptional:
         headers = {name.lower(): value for name, value in server.request.headers.items()}  # type: ignore[attr-defined]
         assert headers["authorization"] == "Bearer gsk_exemplo"
 
+    def test_the_request_identifies_the_application(self) -> None:
+        """Sem User-Agent, o urllib manda `Python-urllib/3.x` — e um WAF barra.
+
+        Regressão de uma falha em produção: a Groq fica atrás da Cloudflare, que
+        recusou a requisição com 403 e `error code: 1010` ("assinatura de cliente
+        banida") antes de a API sequer ver a chave. O provedor então dizia que a
+        credencial fora recusada, mandando o operador trocar uma chave que estava
+        correta.
+
+        Identificar-se é higiene de cliente HTTP independente disso: um servidor
+        do outro lado tem direito de saber quem está falando com ele.
+        """
+        server = _Server(_answer(json.dumps(_EMPTY_INTERPRETATION)))
+        _provider(server).interpret(_context())
+        headers = {name.lower(): value for name, value in server.request.headers.items()}  # type: ignore[attr-defined]
+        assert "MaterialSelect" in headers["user-agent"]
+        assert "python-urllib" not in headers["user-agent"].lower()
+
 
 class TestHowTheShapeIsAskedFor:
     def test_schema_mode_asks_the_server_to_enforce_it(self) -> None:
@@ -282,6 +300,22 @@ class TestEveryFailureNamesItsFix:
             _provider(_Server(error=_http_error(401))).interpret(_context())
         assert "AI_API_KEY" in str(exc.value)
         assert "Ollama" in str(exc.value)
+
+    def test_a_403_does_not_blame_the_key_alone(self) -> None:
+        """403 é ambíguo, e tratá-lo como 401 mandou trocar uma chave correta.
+
+        Em produção a Cloudflare, na frente da Groq, devolveu 403 com
+        `error code: 1010` — nada a ver com a credencial. A mensagem dizia "o
+        servidor recusou a credencial" e o operador foi gerar outra chave à toa.
+        Agora ela nomeia as duas causas possíveis e diz como distingui-las pelo
+        detalhe: um corpo que não tem a forma de erro da API aponta o
+        intermediário.
+        """
+        with pytest.raises(AIUnavailableError) as exc:
+            _provider(_Server(error=_http_error(403))).interpret(_context())
+        message = str(exc.value)
+        assert "AI_API_KEY" in message  # a chave segue sendo uma das hipóteses
+        assert "WAF" in message or "intermediário" in message
 
     def test_a_missing_model_points_at_ai_model(self) -> None:
         with pytest.raises(AIUnavailableError) as exc:
