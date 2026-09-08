@@ -317,7 +317,7 @@ outros dois métodos; o laudo descrevia um estudo aninhado como um combinador
 único opaco. Os quatro corrigidos numa rodada só, rerrevisão limpa. Ver
 `docs/PROJECT_CONTEXT.md` §3 e `docs/07-selecao-deterministica.md`.
 
-872 testes de backend (nenhum skip) e 197 de frontend, todos verdes. CI no
+882 testes de backend (nenhum skip) e 197 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
 PROJECT_CONTEXT.md).
@@ -376,8 +376,9 @@ sem erro em log nenhum. O deploy e as operações de banco são feitos por dois
 workflows de disparo manual (`deploy-api.yml`, `admin-banco.yml`), não por
 terminal. Publicar exigiu corrigir cinco defeitos que nenhum teste pegava, e
 duas armadilhas do Fly cuja assinatura é a mesma: **o job fica verde e a
-aplicação não funciona**. Na instância publicada a camada de IA roda no `mock` e
-o Stripe responde 503 — configuração, não defeito.
+aplicação não funciona**. Na instância publicada a camada de IA usa a Groq por
+`openai-compat` (o `mock` segue sendo o padrão do código e o que os testes
+exercitam) e o Stripe responde 503 — configuração, não defeito.
 
 **Estado detalhado, decisões, backlog e histórico da última sessão estão em
 `docs/`** — ver PROJECT_CONTEXT.md, DECISIONS.md, TODO.md e
