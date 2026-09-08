@@ -34,6 +34,7 @@ import urllib.error
 import urllib.request
 from typing import Any
 
+from app import __version__
 from app.ai.model_base import ModelProviderBase, parse_json_object
 from app.ai.provider import AIProvider, AIUnavailableError
 from app.config import Settings
@@ -171,7 +172,17 @@ class OpenAICompatProvider(ModelProviderBase):
         return f"{base}/chat/completions"
 
     def _headers(self) -> dict[str, str]:
-        headers = {"Content-Type": "application/json"}
+        headers = {
+            "Content-Type": "application/json",
+            # Without this, urllib announces itself as `Python-urllib/3.x`, and
+            # a WAF in front of the API can refuse the request before the API
+            # ever sees it. Groq sits behind Cloudflare, which answered 403 with
+            # `error code: 1010` — "client signature banned" — and the provider
+            # reported a rejected credential for a key that was perfectly good.
+            # Identifying the caller is also plain HTTP hygiene: the server on
+            # the other end is entitled to know who is talking to it.
+            "User-Agent": f"MaterialSelect-AI/{__version__}",
+        }
         key = self.settings.ai_api_key.strip()
         # No key is a supported state, not a degraded one: it is how a local
         # server is addressed. Sending an empty bearer would turn "no
@@ -182,11 +193,24 @@ class OpenAICompatProvider(ModelProviderBase):
 
     def _http_message(self, exc: urllib.error.HTTPError) -> str:
         detail = _detail_of(exc)
-        if exc.code in (401, 403):
+        if exc.code == 401:
             return (
-                f"O servidor recusou a credencial ({exc.code}). Defina AI_API_KEY com "
-                "uma chave válida para AI_BASE_URL — ou aponte AI_BASE_URL para um "
+                "O servidor recusou a credencial (401). Defina AI_API_KEY com uma "
+                "chave válida para AI_BASE_URL — ou aponte AI_BASE_URL para um "
                 f"Ollama local, que não pede nenhuma. {detail}"
+            ).strip()
+        if exc.code == 403:
+            # 403 é ambíguo de propósito, e confundi-lo com 401 já custou tempo:
+            # pode ser a API recusando a chave, mas também um intermediário (CDN
+            # ou WAF) barrando o cliente antes de a API ver qualquer coisa. Um
+            # detalhe que não tem a forma de erro da API — um código de CDN, uma
+            # página HTML — é sinal do segundo caso, e aí trocar a chave não
+            # resolve nada.
+            return (
+                "Acesso recusado (403). Pode ser a chave: confira AI_API_KEY para "
+                "AI_BASE_URL. Mas 403 também vem de um intermediário (CDN/WAF) "
+                "barrando o cliente antes da API — se o detalhe abaixo não tiver a "
+                f"forma de um erro da API, é esse o caso, e a chave não é o problema. {detail}"
             ).strip()
         if exc.code == 404:
             return (

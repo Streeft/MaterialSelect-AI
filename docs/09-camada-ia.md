@@ -205,6 +205,20 @@ que **não tem padrão**, porque um padrão escolheria um fornecedor pelo operad
 O aviso que o usuário vê nomeia **o host** de destino, nunca o caminho: um
 caminho de gateway pode carregar token.
 
+**A requisição se identifica**, com `User-Agent: MaterialSelect-AI/{versão}`.
+Isso parece detalhe e não é: sem o cabeçalho, o `urllib` anuncia
+`Python-urllib/3.x`, e um WAF na frente da API recusa antes de a API ver
+qualquer coisa. Foi o que aconteceu na primeira chamada real da instância
+publicada — a Cloudflare, na frente da Groq, devolveu **403 com `error code:
+1010`** ("assinatura de cliente banida"). A chave estava correta o tempo todo.
+
+Daí também a mensagem de 403 ser diferente da de 401. **401 é credencial; 403 é
+ambíguo** — pode ser a API recusando a chave, ou um intermediário barrando o
+cliente. Tratá-los juntos mandava o operador gerar uma chave nova à toa, então a
+mensagem agora nomeia as duas hipóteses e diz como distingui-las: um detalhe que
+não tem a forma de erro da API — um código de CDN, uma página HTML — é o
+segundo caso.
+
 O `claude-cli` existe porque uma assinatura do Claude é a credencial que a maior
 parte das pessoas deste projeto já tem. A chamada é deliberadamente hostil a
 surpresas: sem shell, o enunciado vai por **stdin** e nunca na linha de comando,
