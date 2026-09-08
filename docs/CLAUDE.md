@@ -319,6 +319,15 @@ Três coisas que não são detalhe de configuração:
   `scripts/protect-main.ps1`: a regra do §7 vale para os jobs do `ci.yml`, que
   reportam em todo PR; exigir um job que só roda sob demanda travaria todo
   merge para sempre.
+- **No Fly, um deploy verde não prova que a aplicação está no ar**
+  ([D-52](DECISIONS.md)). Duas armadilhas já custaram tempo, com a mesma
+  assinatura: o app sem IP público (o `flyctl deploy` só aloca um sozinho
+  quando ainda não há máquinas — sem IP não há DNS, e o navegador devolve
+  `NXDOMAIN` enquanto o job passa e imprime a URL) e o `flyctl ips allocate-v6`,
+  que **aloca outro endereço a cada chamada** em vez de recusar. Daí o passo
+  "Garantir endereço público" contar antes de alocar e **derrubar o job** se
+  nada houver ao final: num passo de deploy, verde sem verificação é pior que
+  vermelho.
 
 ## 9. Práticas adotadas nesta base
 
