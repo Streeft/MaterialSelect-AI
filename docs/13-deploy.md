@@ -71,6 +71,9 @@ que seja sempre pelo mesmo caminho.
 
 ## 2. Fly.io (API)
 
+> **Sem terminal?** O §5-bis faz este passo e o `fly deploy` abaixo por dois
+> *workflows* do GitHub, sem instalar nada.
+
 ```bash
 curl -L https://fly.io/install.sh | sh
 fly auth login
@@ -182,6 +185,42 @@ O mesmo comando libera cada avaliador, e `--revoke` desfaz. A concessão é uma
 linha no banco, feita por quem já tem credencial de banco — privilégio bem
 menor e mais visível que uma variável que desliga o portão inteiro. Ver o
 cabeçalho de `app/admin/grant_subscription.py`.
+
+## 5-bis. Sem terminal: o mesmo deploy pelo navegador
+
+Tudo acima pressupõe um shell com `flyctl` instalado. Quem não tem — máquina
+emprestada, tablet, política de TI — faz o mesmo por dois *workflows* de
+disparo manual em `.github/workflows/`, na aba **Actions** do repositório.
+
+| Workflow | Faz o quê | Substitui |
+|---|---|---|
+| **Deploy da API (Fly.io)** | `flyctl deploy --remote-only` | o `fly deploy` do §2 |
+| **Administração do banco** | `migrar`, `semear`, `conceder`, `revogar` | o `fly ssh console` do §2 e do §5 |
+
+Dois segredos, em *Settings → Secrets and variables → Actions*:
+
+- **`FLY_API_TOKEN`** — criado em <https://fly.io/dashboard> → *Tokens*.
+- **`DATABASE_URL`** — a mesma string do §1, com `postgresql+psycopg://` e o
+  host **sem** `-pooler`. O workflow recusa a execução se o esquema estiver
+  errado, em vez de falhar lá dentro com `ModuleNotFoundError`.
+
+Os **segredos da aplicação** (`GOOGLE_*`, `BACKEND_BASE_URL`, `FRONTEND_URL`,
+`CORS_ORIGINS`, `DATABASE_URL`) continuam sendo do app no Fly, e a aba
+*Secrets* do painel do Fly os define sem terminal nenhum. `FLY_API_TOKEN` e
+`DATABASE_URL` no GitHub são outra coisa: servem ao runner, não à aplicação.
+
+Três detalhes que não são arbitrários:
+
+- **Só `workflow_dispatch`.** Um gatilho em `push` deixaria `main` vermelha
+  enquanto os segredos não existissem, e um vermelho que não significa defeito
+  é pior que sinal nenhum. Num repositório público isso também garante que
+  nenhum evento vindo de *fork* alcance os segredos.
+- **Os dois jobs não entram em `scripts/protect-main.ps1`.** A regra do §7 de
+  [CLAUDE.md](CLAUDE.md) vale para os jobs do `ci.yml`, que reportam em todo PR;
+  exigir um job que só roda sob demanda travaria todo merge para sempre.
+- **A ação `semear` roda `alembic upgrade head` antes do seed.** `app.db.seed`
+  chama `create_all` por conveniência, e num banco vazio isso criaria as tabelas
+  sem carimbo do Alembic — a migração seguinte quebraria.
 
 ## 6. Conferir que está de pé
 
