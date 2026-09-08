@@ -328,6 +328,16 @@ Três coisas que não são detalhe de configuração:
   "Garantir endereço público" contar antes de alocar e **derrubar o job** se
   nada houver ao final: num passo de deploy, verde sem verificação é pior que
   vermelho.
+- **Ligar a camada de IA em produção revelou dois defeitos que o `mock` não
+  podia revelar.** O `AIUnavailableError` era capturado só na construção do
+  provedor, nunca na chamada — sem tratador, virava o 500 padrão do Starlette,
+  cujo corpo é **texto puro**, e o `res.json()` do frontend estourava, trocando
+  a mensagem do provedor por um erro genérico. E a requisição do `openai-compat`
+  não mandava `User-Agent`: o `urllib` se anuncia como `Python-urllib/3.x`, que
+  a Cloudflare na frente da Groq barra com `error code: 1010` — um 403 que a
+  mensagem antiga atribuía à chave. Ambos em [09-camada-ia.md](09-camada-ia.md).
+  **Um provedor novo tem de se identificar**, e 401 (credencial) nunca deve
+  compartilhar mensagem com 403 (ambíguo: credencial *ou* intermediário).
 
 ## 9. Práticas adotadas nesta base
 
@@ -361,6 +371,7 @@ Três coisas que não são detalhe de configuração:
 | E2E parado em "Verificando sessão…" sem nenhuma requisição falhando | O Next 16 bloqueia recurso de desenvolvimento (`/_next/*`) vindo de outra origem, e `127.0.0.1` ≠ `localhost`. Sem `allowedDevOrigins` no `next.config.mjs` a página não hidrata — e não há requisição falhando para apontar, porque o bloqueado é justamente quem dispararia as requisições. |
 | Clique interceptado por `md-select-option` no E2E | O menu do `md-outlined-select` fecha por animação. Use `selectMwcOption` (`e2e/mwc.ts`), que espera o listbox sumir antes de devolver o controle; não clique na opção "na mão". |
 | `next-env.d.ts` apontando para `.next-e2e/` | Reverta (`git checkout -- apps/web/next-env.d.ts`). O Next 16 grava ali um `import` para o `distDir` que você usou por último, e este projeto tem *dois* (`.next` e `.next-e2e`, ver `next.config.mjs`). A versão commitada é a do `npm run build` (`.next/types/…`), para que o caminho comum deixe a árvore limpa; rodar o E2E troca para `.next-e2e` e isso é ruído, não informação. **Medido:** apontar para diretório inexistente **não** quebra o `typecheck` — o `tsc` tolera o import não resolvido num `.d.ts` —, então isto é higiene de diff, não armadilha. |
+| Provedor de IA real devolvendo 403 que acusa a credencial | `error code: 1010` no fim da mensagem é da Cloudflare, não da API: o cliente foi barrado antes. Verifique o `User-Agent` antes de trocar a chave. |
 | `apps/web/AGENTS.md` e `apps/web/CLAUDE.md` aparecendo do nada | São gerados pelo próprio Next 16 (`node_modules/next/dist/server/lib/generate-agent-files.js`) a cada `next dev`, e por isso estão versionados: apagá-los só recria o arquivo não rastreado. O conteúdo é um aviso de que o Next 16 diverge do que um modelo "sabe" — útil, e não conflita com a hierarquia deste projeto: o `CLAUDE.md` da raiz continua sendo a versão curta e este arquivo a completa. |
 
 ---

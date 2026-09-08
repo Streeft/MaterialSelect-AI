@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [12](#sessão-12--080926--a-ferramenta-no-ar-e-a-camada-de-ia-ligada-em-produção) | 08/09/2026 | Deploy em produção (Vercel + Fly + Neon, D-52), caminho de implantação sem terminal e a camada de IA ligada de verdade | 872 → 884 | 197 (inalterado) |
 | [11](#sessão-11--010926-a-020926--m5-topsis-promethee-ii-ahp-e-m6-restrições-aninhadas-entregues-via-sdd) | 01 e 02/09/2026 | M5 (TOPSIS, PROMETHEE II, AHP) e M6 (restrições aninhadas), dez tarefas mais uma rodada de correção da revisão final de branch, via SDD | 831 → 872 | 165 → 179 |
 | [10](#sessão-10--270826-a-310826--backlog-b1b10-entregue-por-inteiro-via-sdd) | 27 a 31/08/2026 | Backlog B1–B10 (dez tarefas de baixa prioridade) entregue por inteiro, dirigido por subagentes | 795 → 831 | 162 → 165 |
 | [9](#sessão-9--260826-a-270826--rag-sobre-o-cérebro-d-47-e-a-pr-26-fechada-e-remesclada) | 26 e 27/08/2026 | RAG sobre o Cérebro (D-47, 18 tarefas via SDD), PR #26 investigada/fechada e depois remesclada pelo autor | 713 → 795 | 157 → 162 |
@@ -22,6 +23,132 @@ por isso que ela tem menos detalhe de processo que as outras.
 | [3](#sessão-3--110826--os-provedores-reais-da-camada-de-ia) | 11/08/2026 | Fase 6: provedores reais de IA | 391 → 436 | 123 |
 | [2](#sessão-2--050826-a-100826--fase-7-parcial-ci-obrigatória-e-fase-8) | 05/08 a 10/08/2026 | Fase 7 (relatório HTML), CI obrigatória, Fase 8 (redesign) | 362 → 391 | 44 → 123 |
 | [1](#sessão-1--300726-a-040826--fases-5-a-7) | 30/07 a 04/08/2026 | Fases 5, 6 e 7 (exportação) | 169 → 362 | 13 → 44 |
+
+As sessões entre a 11 e a 12 — o patch de design "Prisma" (D-49, D-50), o
+upgrade de segurança S1 e a rodada de desempenho — **não têm seção própria
+aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
+`DECISIONS.md`.
+
+---
+
+# Sessão 12 — 08/09/26 — A ferramenta no ar, e a camada de IA ligada em produção
+
+Ponto de partida: fim da sessão 11 mais o patch "Prisma", o S1 e a rodada de
+desempenho (ver a nota do cabeçalho). Pedido: **publicar a ferramenta**, passo a
+passo e em conjunto — e, feito isso, fazer a camada de IA funcionar de verdade
+na instância publicada. Testes de backend: 872 → 884 (0 skip); frontend: 197,
+inalterado.
+
+Oito PRs mescladas (#33 a #40), quase todas corrigindo defeitos que **nenhum
+teste pegava porque só existem fora do ambiente de desenvolvimento**.
+
+## 1. A restrição que desenhou a sessão inteira
+
+O autor **não tem terminal**. Isso não era um detalhe de conforto: `docs/13-deploy.md`
+mandava rodar `flyctl deploy`, `alembic upgrade head`, `app.db.seed` e a
+concessão de acesso por linha de comando, e nenhum desses caminhos existia para
+ele. A resposta foi mover as quatro operações para dois workflows de disparo
+manual — `deploy-api.yml` e `admin-banco.yml` (#35) —, que num repositório
+público têm duas consequências de segurança que não são opcionais: **só
+`workflow_dispatch`** (nenhum gatilho responde a evento de fork, então os
+secrets nunca chegam a código de terceiro) e **entrada do usuário por variável
+de ambiente, nunca por interpolação `${{ }}` dentro do `run:`**.
+
+Nenhum dos dois entra em `scripts/protect-main.ps1`: um job de disparo manual
+nunca reporta status num PR, e exigi-lo travaria todo merge para sempre. A
+regra do §7 de `docs/CLAUDE.md` vale para os jobs de `ci.yml`.
+
+## 2. Os cinco defeitos que publicar revelou
+
+Nesta ordem, cada um bloqueando o seguinte:
+
+1. **A migração não subia em Postgres** — passava em SQLite e só ali.
+2. **`psycopg` não declarado** — `DATABASE_URL` com `postgresql://` procura o
+   `psycopg2`, que não está instalado. O esquema tem de ser `postgresql+psycopg://`.
+3. **`requirements.txt` tinha derivado** do `pyproject.toml`.
+4. **`NEXT_PUBLIC_API_URL` tratado como variável de runtime** — ela é embutida
+   no *build*, e **vazia é um valor com significado** (daí `??` e não `||`);
+   ausente, o frontend chama `localhost:8000`.
+5. **O cookie de sessão fixo em `samesite="lax"`**.
+
+O quinto é o que explica a topologia: a API é servida **pela origem do
+frontend**, por `rewrites()` da Vercel (#33). Sem isso o cookie `SameSite=Lax`
+não viajaria entre dois domínios e o login entraria em laço — sem erro em log
+nenhum. A alternativa, `SameSite=None`, foi recusada. Está em
+[D-52](DECISIONS.md).
+
+## 3. As duas armadilhas do Fly, e por que elas são as piores
+
+Assinatura comum: **o job termina verde e a aplicação não funciona**.
+
+- **O app sem endereço público** (#36). O `flyctl deploy` só aloca um IP
+  sozinho quando o app **ainda não tem máquinas**. Um app criado pelo painel
+  chega ao primeiro deploy com máquinas de pé e nenhum endereço: o deploy passa,
+  os health checks passam, as migrações rodam, o flyctl imprime *"Visit your
+  newly deployed app at…"* — e o navegador devolve `NXDOMAIN`. O passo
+  "Garantir endereço público" agora **falha o job** se ao final não houver
+  nenhum IP público; um `private_v6` sozinho não conta.
+- **`flyctl ips allocate-v6` não é idempotente** (#37). A primeira versão do
+  passo usava `|| true`, presumindo que repetir daria erro. Não dá: aloca outro
+  endereço, em silêncio, saindo 0. O defeito foi pego lendo a saída do próprio
+  passo que eu tinha acabado de escrever — cada deploy vazava um IPv6. A correção
+  conta antes de alocar.
+
+Vale registrar um terceiro tropeço, que não é do Fly e sim da interface do
+GitHub: **"Re-run jobs" reexecuta o commit congelado daquela execução**, nunca a
+`main` mais nova. Um deploy "re-rodado" depois de uma correção reimplanta a
+versão sem a correção.
+
+## 4. A camada de IA: dois defeitos que só existem com provedor real
+
+Com a ferramenta no ar, o painel de IA devolvia *"Falha na requisição
+/api/ai/interpret"* — a mensagem genérica do frontend, que não diz nada.
+
+**#39 — o `AIUnavailableError` sem tratador.** A exceção era capturada só na
+*construção* do provedor (camada desligada é configuração → 400), nunca na
+*chamada*. Sem `exception_handler` registrado ela subia sem tratamento, e o 500
+padrão do Starlette tem **corpo em texto puro** — então o `res.json()` do
+`lib/api.ts` estourava e o usuário via o texto genérico. A correção é um
+tratador único em `main.py`, e não um `try` em cada rota, porque `interpret` e
+`explain` tinham o mesmo buraco. O teste foi escrito antes e visto vermelho.
+
+Destravada a mensagem, ela trouxe a pista seguinte:
+
+```
+O servidor recusou a credencial (403). Defina AI_API_KEY com uma chave válida…
+error code: 1010
+```
+
+**#40 — a requisição não se identificava.** `error code: 1010` não é da Groq: é
+da **Cloudflare**, que fica na frente dela, e significa "assinatura de cliente
+banida". O provedor mandava exatamente dois cabeçalhos, e sem `User-Agent` o
+`urllib` se anuncia como `Python-urllib/3.x` — assinatura que WAFs barram por
+padrão. O 403 vinha do porteiro, antes de a API ver a requisição, e a mensagem
+mandava trocar uma chave que estava correta o tempo todo. O teste escrito antes
+falhou com `KeyError: 'user-agent'`, prova direta da ausência.
+
+Duas lições que ficam no código: **401 é credencial, 403 é ambíguo** — tratá-los
+juntos custou uma viagem ao painel da Groq —, e identificar-se é higiene de
+cliente HTTP independentemente de qualquer WAF. O `claude-api` não tinha a
+lacuna porque usa o SDK da Anthropic; verificado, não presumido.
+
+Depois do deploy, o painel foi exercitado ao vivo com um enunciado em português
+("viga leve e rígida, temperatura de serviço no mínimo 300 °C, densidade no
+máximo 3 g/cm³") e devolveu função, as duas restrições com o trecho de origem e
+o índice `viga-leve-rigidez` do catálogo. **Ancoragem numérica e unidade
+explícita intactas contra um provedor real** — os guardrails da Fase 6 foram
+exercitados fora do `mock` pela primeira vez, e é essa a prova de que a camada é
+mesmo substituível.
+
+## 5. O que ficou de fora
+
+- **Stripe.** `STRIPE_API_KEY` vazio mantém `/billing` em 503
+  ([D-36](DECISIONS.md)). O portão continua valendo para todos, então **cada
+  avaliador precisa da concessão** do §5 de `13-deploy.md` antes da defesa.
+- **O Cérebro não foi populado na instância** (`KNOWLEDGE_DIR` vazio): o RAG
+  liga junto com o provedor real ([D-47](DECISIONS.md)), mas não encontra base,
+  e as explicações vêm **sem citações** — ausência que o backend declara.
+- **S2** (CVEs restantes, todas de toolchain de desenvolvimento) segue aberta.
 
 ---
 
