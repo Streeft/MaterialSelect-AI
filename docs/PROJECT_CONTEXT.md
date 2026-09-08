@@ -588,6 +588,15 @@ que mais afetam quem for mexer no código:
   ([D-46](DECISIONS.md)) continua valendo para todos, então **cada avaliador
   precisa de concessão**: um login pelo Google para a conta existir, e a ação
   `conceder` do workflow de administração depois ([13-deploy.md](13-deploy.md) §5).
+- **Duas CVEs críticas em dependência de produção, medidas como inalcançáveis.**
+  O `plotly.js` 3.7.0 arrasta `maplibre-gl` 4.7.1, atingido por um *XSS
+  sanitizer bypass* ([GHSA-jrc7-96c5-q579](https://github.com/advisories/GHSA-jrc7-96c5-q579)),
+  e **nenhuma versão do Plotly resolve**: a 4.1.0 pede `maplibre-gl ^5.24.0`,
+  ainda na faixa vulnerável. O código não chega ao navegador porque o Plotly é
+  montado à la carte e nenhum traço de mapa é registrado — numa build com 22
+  chunks, `Plotly` aparece em 2 e `maplibre` em nenhum, verificado com controle
+  positivo. **Isto deixa de valer se um traço de mapa for registrado.** Ver
+  "S3" em [TODO.md](TODO.md).
 - **Dados demonstrativos são fictícios.** Os 5 materiais semeados existem para
   exercitar o sistema (conversão, intervalo, ausência, incerteza), não para
   descrever materiais reais. Marcados com `is_demo` e avisados na interface e em
