@@ -17,6 +17,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.exc import IntegrityError
 
 from app import __version__
+from app.ai.provider import AIUnavailableError
 from app.config import settings
 from app.dependencies import require_active_subscription
 from app.domain.errors import (
@@ -93,6 +94,26 @@ async def _handle_subscription_required(_: Request, exc: SubscriptionRequiredErr
 
 @app.exception_handler(ServiceUnavailableError)
 async def _handle_service_unavailable(_: Request, exc: ServiceUnavailableError) -> JSONResponse:
+    return _error_response(503, str(exc))
+
+
+@app.exception_handler(AIUnavailableError)
+async def _handle_ai_unavailable(_: Request, exc: AIUnavailableError) -> JSONResponse:
+    """Um provedor que não respondeu é 503 com a mensagem dele, nunca um 500.
+
+    `AIService._provider` já traduz a falha de *construção* para 400 — a camada
+    estar desligada é estado de configuração, não avaria. O que faltava era a
+    falha na *chamada*: chave rejeitada, modelo desconhecido, tempo esgotado.
+    Sem este tratador ela subia como RuntimeError e virava um 500 de texto puro,
+    que o frontend não consegue ler (ele lê `detail` do JSON) — o usuário via
+    "Falha na requisição /api/ai/interpret" e perdia justamente a mensagem que
+    diz o que corrigir. O provedor se dá ao trabalho de nomear o host e a causa;
+    jogar isso fora era o pior desfecho possível.
+
+    O `mock` nunca levanta isso numa chamada, e é por isso que o defeito
+    atravessou a suíte inteira sem aparecer. Aqui em vez de nas rotas porque
+    qualquer caminho que fale com um provedor precisa da mesma garantia.
+    """
     return _error_response(503, str(exc))
 
 

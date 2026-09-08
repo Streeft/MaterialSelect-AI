@@ -269,6 +269,25 @@ alto, cada uma com a mensagem que diz qual botão girar.
 `/status` responde mesmo com a camada desligada (dizendo isso); as demais rotas
 retornam 400 — estar desligada é um estado de configuração, não uma falha.
 
+**Um provedor que não responde é 503, com a mensagem dele.** A distinção importa
+e são dois erros diferentes: falhar ao *construir* o provedor (camada desligada,
+`AI_PROVIDER` desconhecido) é 400, traduzido em `AIService._provider`; falhar na
+*chamada* (chave rejeitada, modelo desconhecido, tempo esgotado) é 503, via o
+tratador de `AIUnavailableError` em `app/main.py`.
+
+Esse tratador foi acrescentado depois de o defeito aparecer em produção, na
+primeira vez que a instância publicada falou com um provedor real. Sem ele a
+exceção subia como `RuntimeError` não tratado e virava um **500 com corpo de
+texto puro** — que o frontend não consegue ler, porque ele lê `detail` do JSON —,
+então o usuário via um genérico "Falha na requisição /api/ai/interpret" e perdia
+exatamente a mensagem que diz o que corrigir. O provedor se dá ao trabalho de
+nomear o host e a causa; jogar isso fora era o pior desfecho possível.
+
+O `mock` nunca levanta `AIUnavailableError` numa chamada — só na construção —, e
+é por isso que 872 testes passaram por cima do defeito sem tocá-lo. A regressão
+que o guarda vive em `TestProviderFailureIsNotA500`, com um provedor que falha
+de propósito.
+
 `/explain` aceita **apenas um id de estudo**. O serviço reexecuta o estudo pelo
 pipeline determinístico e escreve sobre os números daquela execução; não há como
 o chamador injetar valores para a IA descrever.

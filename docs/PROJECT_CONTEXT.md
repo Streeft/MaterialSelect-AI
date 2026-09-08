@@ -237,7 +237,7 @@ tudo limpo, sem achado novo. Commit `73eb4a2` sobre `0d00ee7`. Ver
 `docs/07-selecao-deterministica.md` para a descrição de cada método e do
 modelo de árvore.
 
-**Saúde do código:** 872 testes de backend (Python 3.11 e 3.12, nenhum skip)
+**Saúde do código:** 882 testes de backend (Python 3.11 e 3.12, nenhum skip)
 e 179 de frontend, todos verdes. `ruff` limpo, `black
 --check` limpo, typecheck estrito e build de produção sem avisos. CI no
 GitHub Actions rodando em todo PR e push para `main`, com os checks
@@ -277,11 +277,10 @@ O roteiro completo está em [13-deploy.md](13-deploy.md) e o desenho em
   assinatura comum é a pior possível: **o job fica verde e a aplicação não
   funciona**.
 
-Duas coisas que a instância publicada **não** faz, e que são configuração e não
-defeito: a camada de IA roda no provedor `mock` (o `fly.toml` não define
-`AI_PROVIDER`, e o padrão do código é o determinístico sem rede), e
+A instância publicada roda a camada de IA com o provedor **`openai-compat`
+apontado para a Groq** — a receita gratuita que a Fase 9 documentou. Já
 `/billing/checkout` responde 503 porque `STRIPE_API_KEY` está vazio
-([D-36](DECISIONS.md)). Ver §9.
+([D-36](DECISIONS.md)): configuração, não defeito. Ver §9.
 
 ## 4. Funcionalidades concluídas
 
@@ -564,10 +563,17 @@ que mais afetam quem for mexer no código:
 
 ## 9. Limitações atuais
 
-- **A instância publicada roda a camada de IA no provedor `mock`.** O `fly.toml`
-  não define `AI_PROVIDER`, e o padrão do código é o determinístico sem rede
-  ([D-35](DECISIONS.md)). As telas de IA funcionam, com respostas fixas. Ligar um
-  provedor real é um `fly secrets set`, e é decisão de operação — não de código.
+- **A instância publicada usa um provedor real, e por isso não é reproduzível.**
+  `AI_PROVIDER=openai-compat` apontado para a Groq (modelo `openai/gpt-oss-20b`),
+  configurado por `fly secrets set` — decisão de operação, não de código, e por
+  isso o `fly.toml` continua sem `AI_PROVIDER` ([D-36](DECISIONS.md)). Só o
+  `mock` é determinístico ([D-35](DECISIONS.md)), e ele segue sendo o padrão do
+  código e o que a suíte de testes exercita. Duas consequências: o que for
+  digitado no painel de IA é enviado à Groq, e planos gratuitos costumam reservar
+  o direito de treinar em cima — a interface avisa isso ao lado de cada sugestão;
+  e o RAG sobre o Cérebro liga junto ([D-47](DECISIONS.md)), mas encontra base
+  vazia (`KNOWLEDGE_DIR` não é populado na instância), então as explicações vêm
+  **sem citações** — ausência que o backend declara em vez de esconder.
 - **`/billing/checkout` responde 503 na instância publicada**, porque
   `STRIPE_API_KEY` está vazio ([D-36](DECISIONS.md)). O portão de assinatura
   ([D-46](DECISIONS.md)) continua valendo para todos, então **cada avaliador
