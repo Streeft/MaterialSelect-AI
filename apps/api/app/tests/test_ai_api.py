@@ -10,7 +10,7 @@ from __future__ import annotations
 import pytest
 from fastapi.testclient import TestClient
 
-from app.ai.provider import AIProvider
+from app.ai.provider import AIProvider, AIUnavailableError
 from app.services import ai_service
 
 STATEMENT = (
@@ -616,3 +616,48 @@ class TestRetrievedTextNeverGroundsANumber:
 
         assert body["constraints"] == []  # a restrição foi recusada
         assert any("não aparece no enunciado" in r for r in body["rejected"])
+
+
+class TestProviderFailureIsNotA500:
+    """Um provedor real que não responde tem de virar 503 com a mensagem dele.
+
+    Regressão de um defeito que só existia com provedor real, e por isso passou
+    por 872 testes: `AIUnavailableError` era capturado ao *construir* o provedor
+    (`_provider`, que devolve 400 — a camada estar desligada é configuração),
+    mas não na *chamada*. Chave inválida, modelo desconhecido ou tempo esgotado
+    subiam como RuntimeError não tratado: 500 com corpo de texto puro, que o
+    frontend não consegue ler — ele lê `detail` do JSON — e mostrava um genérico
+    "Falha na requisição /api/ai/interpret".
+
+    O mock nunca levanta essa exceção numa chamada, e é por isso que nada disso
+    aparecia em teste. A mensagem do provedor é o produto aqui: ela nomeia o
+    host e diz se é chave, modelo ou tempo — jogá-la fora era o pior da falha.
+    """
+
+    class _FailingProvider(AIProvider):
+        name = "quebrado"
+        simulated = False
+        MESSAGE = "Não foi possível falar com api.groq.com: chave rejeitada."
+
+        def interpret(self, context) -> dict:
+            raise AIUnavailableError(self.MESSAGE)
+
+        def explain(self, context) -> dict:
+            raise AIUnavailableError(self.MESSAGE)
+
+    @pytest.fixture(autouse=True)
+    def _use_failing_provider(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setattr(ai_service, "get_provider", lambda *_a, **_k: self._FailingProvider())
+
+    def test_interpret_answers_503_with_the_provider_message(self, client: TestClient) -> None:
+        response = client.post("/api/ai/interpret", json={"statement": STATEMENT})
+        assert response.status_code == 503, response.text
+        assert response.json()["detail"] == self._FailingProvider.MESSAGE
+
+    def test_explain_answers_503_with_the_provider_message(self, client: TestClient) -> None:
+        # Criar o estudo não passa pela camada de IA, então o provedor quebrado
+        # não atrapalha aqui — a falha tem de vir da chamada em `explain`.
+        study_id = TestExplanation()._study_id(client)
+        response = client.post("/api/ai/explain", json={"study_id": study_id})
+        assert response.status_code == 503, response.text
+        assert response.json()["detail"] == self._FailingProvider.MESSAGE
