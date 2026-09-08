@@ -247,6 +247,42 @@ acessibilidade nas 11 rotas principais (§12) e já está listado em
 `scripts/protect-main.ps1` como obrigatório — falta confirmar que o script foi
 de fato executado contra a ruleset viva no GitHub.
 
+### A ferramenta está publicada e acessível
+
+Até esta sessão o projeto rodava só em máquina de desenvolvimento. Agora está
+no ar, com login pelo Google funcionando de ponta a ponta:
+
+| Peça | Onde | Endereço |
+|---|---|---|
+| Frontend | Vercel | <https://material-select-ai-web.vercel.app> |
+| API | Fly.io (`gru`) | <https://materialselect-ai.fly.dev> |
+| Postgres | Neon (`sa-east-1`) | — |
+
+O roteiro completo está em [13-deploy.md](13-deploy.md) e o desenho em
+[D-52](DECISIONS.md). O que importa saber aqui:
+
+- **A API é servida pela origem do frontend** (`rewrites()` no
+  `next.config.mjs`). Sem isso o cookie de sessão `SameSite=Lax` não viajaria
+  entre `…vercel.app` e `…fly.dev`, e o login entraria em laço **sem erro em log
+  nenhum**.
+- **O deploy é feito por dois workflows de disparo manual**
+  (`deploy-api.yml` e `admin-banco.yml`), não por terminal — o operador deste
+  projeto não tem shell disponível. Eles cobrem `fly deploy`, migrações, seed e
+  a concessão de acesso.
+- **Publicar exigiu corrigir cinco defeitos que nenhum teste pegava**, todos
+  invisíveis fora de produção: a migração que não subia em Postgres, o
+  `psycopg` não declarado, o `requirements.txt` que tinha derivado, o
+  `NEXT_PUBLIC_API_URL` tratado como variável de runtime, e o cookie fixo em
+  `samesite="lax"`. Mais duas do próprio Fly, descritas em D-52, cuja
+  assinatura comum é a pior possível: **o job fica verde e a aplicação não
+  funciona**.
+
+Duas coisas que a instância publicada **não** faz, e que são configuração e não
+defeito: a camada de IA roda no provedor `mock` (o `fly.toml` não define
+`AI_PROVIDER`, e o padrão do código é o determinístico sem rede), e
+`/billing/checkout` responde 503 porque `STRIPE_API_KEY` está vazio
+([D-36](DECISIONS.md)). Ver §9.
+
 ## 4. Funcionalidades concluídas
 
 ### Catálogo e dados
@@ -528,6 +564,15 @@ que mais afetam quem for mexer no código:
 
 ## 9. Limitações atuais
 
+- **A instância publicada roda a camada de IA no provedor `mock`.** O `fly.toml`
+  não define `AI_PROVIDER`, e o padrão do código é o determinístico sem rede
+  ([D-35](DECISIONS.md)). As telas de IA funcionam, com respostas fixas. Ligar um
+  provedor real é um `fly secrets set`, e é decisão de operação — não de código.
+- **`/billing/checkout` responde 503 na instância publicada**, porque
+  `STRIPE_API_KEY` está vazio ([D-36](DECISIONS.md)). O portão de assinatura
+  ([D-46](DECISIONS.md)) continua valendo para todos, então **cada avaliador
+  precisa de concessão**: um login pelo Google para a conta existir, e a ação
+  `conceder` do workflow de administração depois ([13-deploy.md](13-deploy.md) §5).
 - **Dados demonstrativos são fictícios.** Os 5 materiais semeados existem para
   exercitar o sistema (conversão, intervalo, ausência, incerteza), não para
   descrever materiais reais. Marcados com `is_demo` e avisados na interface e em
