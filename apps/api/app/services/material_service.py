@@ -15,6 +15,7 @@ from app.domain.data_quality import (
     missing_value,
 )
 from app.domain.errors import ConflictError, NotFoundError, ValidationError
+from app.domain.search_query import SearchQueryError
 from app.models.enums import AuditAction, AuditEntityType, DataQuality, PropertyCategory
 from app.models.material import Material
 from app.models.material_property_value import MaterialPropertyValue
@@ -74,7 +75,14 @@ class MaterialService:
         self.user = user
 
     def list_materials(self, search: str | None = None) -> list[MaterialListItem]:
-        materials = self.repo.list_materials(search)
+        # A query the reader mistyped is their problem to fix, not a server
+        # fault: `SearchQueryError` already carries a message in Portuguese
+        # saying which bracket or quote is unbalanced, so it becomes a 400 with
+        # that text rather than the 500 an unhandled ValueError would give.
+        try:
+            materials = self.repo.list_materials(search)
+        except SearchQueryError as exc:
+            raise ValidationError(str(exc)) from exc
         return [
             MaterialListItem(
                 id=m.id,

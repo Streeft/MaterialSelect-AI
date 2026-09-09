@@ -2290,3 +2290,41 @@ esticado quando os dois eixos não cobrem o mesmo número de décadas por pixel.
 honesto (igual em ambas as direções na unidade que o eixo mede) e legível;
 arredondá-lo na tela exigiria pisar em coordenadas de pixel dentro do que hoje é
 cálculo, e o ADR 0004 é claro sobre onde isso pertence.
+
+---
+
+## D-55 — A busca do catálogo ganha linguagem de consulta, com analisador próprio
+
+**Contexto.** A busca era `LIKE '%termo%'` sobre nome, classe e palavra-chave.
+O fluxo de referência de uma ferramenta de seleção oferece `AND`, `OR`, `NOT`,
+busca por frase, parênteses e curingas, e insere `AND` entre termos soltos — e
+essa é a porta de entrada da ferramenta, a diferença mais visível entre "lista
+de materiais" e "plataforma". Ver [14-plataforma-selecao.md](14-plataforma-selecao.md).
+
+**Decisão.**
+
+- **Analisador próprio em `app/domain/search_query.py`**, não um motor de busca.
+  O catálogo cabe em três colunas indexadas e responde em microssegundos; uma
+  dependência que precisa ser implantada, versionada e mantida em sincronia com
+  o dado canônico seria **uma segunda verdade sobre quais materiais existem**.
+  A árvore que o analisador produz sobrevive à troca: quando o catálogo crescer,
+  só o compilador muda.
+- **`AND` é o padrão entre termos soltos.** Duas palavras digitadas juntas
+  significam "as duas", não "qualquer uma". É a única decisão aqui que muda
+  resultado em silêncio, e por isso tem teste próprio.
+- **`AND` liga mais forte que `OR`.** `a OR b AND c` é `a OR (b AND c)`; ler ao
+  contrário descartaria registros que o usuário pediu.
+- **Termo sem curinga casa como subcadeia**, então digitar `inox` continua
+  achando `Aço inox 304`. O curinga é como se pede precisão, não o padrão.
+- **Curinga à esquerda é recusado.** Um padrão que começa com `*` não usa índice
+  e varre a tabela inteira; recusar é mais gentil que uma busca que parece
+  travar quando o catálogo crescer.
+- **O que o usuário digitou é escapado antes de virar padrão.** Um `%` em
+  `100%` é literal e não pode transformar o resto da consulta em curinga.
+- **Consulta malformada é 400 com a razão, nunca 500.** `SearchQueryError` vira
+  `ValidationError` no serviço, e a mensagem nomeia **o que quebra primeiro**:
+  em `(polímero OR`, o operador sem termo, não o parêntese — apontar o
+  parêntese mandaria o leitor consertar a ponta errada da consulta.
+
+A interface declara os operadores na dica do campo, ligada por
+`aria-describedby`: uma linguagem de consulta que ninguém descobre não existe.

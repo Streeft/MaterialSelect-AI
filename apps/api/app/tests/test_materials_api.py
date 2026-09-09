@@ -184,3 +184,56 @@ def test_sync_keywords_replaces_previous_set(db_session, material_repo):
     # But searching for "xyzunique2" should find it
     results_b = material_repo.list_materials(search="xyzunique2")
     assert any(m.id == material.id for m in results_b)
+
+
+# --- query language (Advanced Search) -----------------------------------------
+
+
+class TestTheSearchQueryLanguage:
+    """The operators reach the catalogue, and a bad query is a 400 not a 500.
+
+    The parser is unit-tested in `test_search_query.py`; these tests prove the
+    tree actually reaches SQL and that the reader gets a message they can act
+    on, rather than a stack trace.
+    """
+
+    def test_and_narrows_the_result(self, client) -> None:
+        both = client.get("/api/materials", params={"search": "polímero AND refratário"})
+        assert both.status_code == 200
+        either = client.get("/api/materials", params={"search": "polímero OR refratário"})
+        assert either.status_code == 200
+        assert len(both.json()) <= len(either.json())
+
+    def test_not_excludes(self, client) -> None:
+        todos = client.get("/api/materials", params={"search": "a"}).json()
+        sem = client.get("/api/materials", params={"search": "a NOT a"}).json()
+        assert sem == []
+        assert len(todos) >= len(sem)
+
+    def test_a_wildcard_reaches_the_database(self, client) -> None:
+        resp = client.get("/api/materials", params={"search": "pol*"})
+        assert resp.status_code == 200
+
+    def test_an_unclosed_bracket_is_a_400_that_names_the_bracket(self, client) -> None:
+        resp = client.get("/api/materials", params={"search": "(polímero OR alumínio"})
+        assert resp.status_code == 400, resp.text
+        assert "nunca fecha" in resp.json()["detail"]
+
+    def test_a_dangling_operator_names_the_operator_not_the_bracket(self, client) -> None:
+        """`(polímero OR` is broken twice; the message names what breaks first.
+
+        Reporting the bracket here would send the reader to fix the wrong end
+        of their query.
+        """
+        resp = client.get("/api/materials", params={"search": "(polímero OR"})
+        assert resp.status_code == 400, resp.text
+        assert "mais um termo" in resp.json()["detail"]
+
+    def test_a_leading_wildcard_is_refused_rather_than_scanning_everything(self, client) -> None:
+        resp = client.get("/api/materials", params={"search": "*ímero"})
+        assert resp.status_code == 400
+        assert "começar" in resp.json()["detail"]
+
+    def test_a_blank_search_still_lists_everything(self, client) -> None:
+        """An empty box is not a query — it is the catalogue."""
+        assert client.get("/api/materials", params={"search": "   "}).status_code == 200
