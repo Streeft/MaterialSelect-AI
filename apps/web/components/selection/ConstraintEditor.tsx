@@ -596,6 +596,34 @@ export function toConstraintPayload(group: ConstraintGroupState): ConstraintGrou
 }
 
 /** How many sendable constraints a `ConstraintGroupIn` tree carries, at any depth. */
+/**
+ * Rebuild the editable tree from a persisted `ConstraintGroupIn` — the inverse
+ * of `toConstraintPayload`.
+ *
+ * Reopening a saved study used to flatten it: `StudyOut` only carried a flat
+ * constraint list, so the parentheses of a nested study were silently lost.
+ * With P0-1 the stage carries its real `root_group`, and this is what turns it
+ * back into something editable, nesting included.
+ */
+export function fromConstraintPayload(group: ConstraintGroupIn): ConstraintGroupState {
+  return {
+    id: nextEditorId("group"),
+    operator: group.operator,
+    constraints: group.constraints.map((c) => ({
+      ...emptyConstraint(nextEditorId("row")),
+      operator: c.operator,
+      property_slug: c.property_slug ?? "",
+      value: c.value?.toString() ?? "",
+      value_min: c.value_min?.toString() ?? "",
+      value_max: c.value_max?.toString() ?? "",
+      unit: c.unit ?? "",
+      class_slugs: c.class_slugs ?? [],
+      text: c.text ?? "",
+    })),
+    groups: group.groups.map(fromConstraintPayload),
+  };
+}
+
 export function countConstraints(group: ConstraintGroupIn): number {
   return group.constraints.length + group.groups.reduce((sum, g) => sum + countConstraints(g), 0);
 }

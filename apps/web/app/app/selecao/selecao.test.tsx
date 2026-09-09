@@ -69,6 +69,7 @@ function result(overrides: Partial<RunResult> = {}): RunResult {
     combinator: "AND",
     final_count: 5,
     funnel: [],
+    stages: [],
     candidates: [],
     index: null,
     ranking: null,

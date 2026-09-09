@@ -236,6 +236,34 @@ export const ptBR = {
     groupOperatorLabel: "Operador do grupo",
     groupNumber: (n: number) => `Grupo ${n}`,
     emptyGroup: "Grupo vazio — adicione uma restrição ou um subgrupo.",
+    // P0-1: a seleção é uma pilha ordenada de estágios. O padrão continua sendo
+    // um único estágio de limites, então quem faz um estudo simples não vê
+    // vocabulário novo — os rótulos abaixo só aparecem quando há pilha.
+    stagesTitle: "Estágios da seleção",
+    stagesHint:
+      "Os estágios se aplicam em ordem, e o resultado é a interseção dos habilitados. Desligar um estágio mostra o efeito dele sem apagar o que você escreveu.",
+    stageKindLimit: "Limites",
+    stageKindTree: "Classes",
+    stageNumber: (n: number, kind: "limit" | "tree") =>
+      `Estágio ${n} (${kind === "limit" ? "limites" : "classes"})`,
+    stageLabel: "Nome do estágio",
+    stageLabelPlaceholder: "Opcional — ex.: Só metais leves",
+    stageEnabled: "Habilitado",
+    stageEnabledHint: "Um estágio desligado não estreita, mas continua salvo.",
+    stageAddLimit: "Estágio de limites",
+    stageAddTree: "Estágio de classes",
+    stageRemove: "Remover estágio",
+    stageMoveUp: (n: number) => `Mover o estágio ${n} para cima`,
+    stageMoveDown: (n: number) => `Mover o estágio ${n} para baixo`,
+    stageClasses: "Classes selecionadas",
+    stageClassesHint: "Segure Ctrl (ou Cmd) para escolher mais de uma.",
+    stageIncludeDescendants: "Incluir subclasses",
+    stageIncludeDescendantsHint:
+      "Marcado, escolher uma classe traz tudo o que está abaixo dela na hierarquia.",
+    stageNoClasses: "Nenhuma classe escolhida — este estágio não estreita nada.",
+    stagePassedAlone: "Admitidos sozinho",
+    stageRemaining: "Restantes",
+    stageDisabled: "Desligado",
     operatorAnd: "E",
     operatorOr: "OU",
     property: "Propriedade",
