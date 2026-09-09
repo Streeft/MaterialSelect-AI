@@ -7,6 +7,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from app.models.enums import DataQuality
+from app.schemas.process import ProcessOut
 from app.schemas.property import PropertyGroup
 
 # The three ways a property value can be provided on input.
@@ -119,6 +120,11 @@ class MaterialDetail(BaseModel):
     is_active: bool = True
     keywords: list[str] = []
     property_groups: list[PropertyGroup]
+    # P0-2: the processes this material can be made with — the datasheet half of
+    # the material↔process join. In the sheet's own payload and not behind a
+    # second endpoint, because it is part of reading the sheet, not an optional
+    # extra the interface has to remember to ask for.
+    processes: list[ProcessOut] = []
 
 
 class ChartPoint(BaseModel):

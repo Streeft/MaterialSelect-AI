@@ -34,6 +34,7 @@ from app.schemas.material import (
 )
 from app.schemas.property import PropertyGroup, PropertyValueOut
 from app.services.audit_service import diff_fields, record_change
+from app.services.process_service import ProcessService
 
 # Order in which categories are presented on the sheet.
 _CATEGORY_ORDER = [
@@ -72,6 +73,10 @@ class MaterialService:
     def __init__(self, db: Session, user: User | None = None) -> None:
         self.repo = MaterialRepository(db)
         self.audit_repo = AuditRepository(db)
+        # P0-2: read through the process service rather than reimplementing the
+        # join here — the compatible-processes list on the sheet and the process
+        # catalogue must not be able to disagree.
+        self.processes = ProcessService(db)
         self.user = user
 
     def list_materials(self, search: str | None = None) -> list[MaterialListItem]:
@@ -113,6 +118,7 @@ class MaterialService:
             is_active=material.is_active,
             keywords=list(material.keywords or []),
             property_groups=self._group_properties(material),
+            processes=self.processes.processes_for_material(material.id),
         )
 
     # --- write operations -------------------------------------------------

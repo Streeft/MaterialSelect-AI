@@ -492,3 +492,40 @@ def test_a_process_stage_with_nothing_selected_says_so_in_the_document(client, u
     assert created.status_code == 201, created.text
     text = client.get(f"/api/exports/estudos/{created.json()['id']}.html").text
     assert "nenhum processo selecionado" in text
+
+
+# --- the datasheet half of the join -------------------------------------------
+
+
+def test_the_material_sheet_lists_the_processes_it_can_be_made_with(client, universe) -> None:
+    """Part of reading the sheet, in the sheet's own payload — not behind a
+    second endpoint the interface has to remember to call."""
+    materials = client.get("/api/materials").json()
+    steel = next(m for m in materials if m["name"] == "Aço Demo B")
+
+    detail = client.get(f"/api/materials/{steel['id']}")
+    assert detail.status_code == 200, detail.text
+    slugs = {p["slug"] for p in detail.json()["processes"]}
+
+    # Both namespaces present: the seeded universe and this fixture's.
+    assert f"{NS}-solda" in slugs
+    assert f"{NS}-forja" in slugs
+    assert "solda-mig" in slugs  # from the seed
+    # Inactive processes never appear on a sheet.
+    assert f"{NS}-desativado" not in slugs
+
+
+def test_a_material_with_no_process_gets_an_empty_list_not_an_error(client, db_session) -> None:
+    """And the interface writes that absence out; it never renders it as a dash
+    or an empty cell (D-24)."""
+    from app.models.material import Material
+    from app.models.material_class import MaterialClass
+
+    cls = db_session.query(MaterialClass).filter_by(slug="metais").one()
+    orphan = Material(name="Material sem processo", class_id=cls.id, keywords=[])
+    db_session.add(orphan)
+    db_session.flush()
+
+    detail = client.get(f"/api/materials/{orphan.id}")
+    assert detail.status_code == 200, detail.text
+    assert detail.json()["processes"] == []
