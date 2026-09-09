@@ -2193,3 +2193,48 @@ o job fica **verde** e a aplicação não funciona:
 O passo "Garantir endereço público" do `deploy-api.yml` conta antes de alocar e
 **falha o job** se ao final não houver endereço público. Essa asserção é a lição
 das duas: num passo de deploy, verde sem verificação é pior que vermelho.
+
+---
+
+## D-53 — O mapa de seleção entra nos documentos exportados, com os eixos lidos do índice
+
+**Contexto.** `app/exporters/figures.py` sempre teve `render_scatter` — pontos,
+envelopes de classe, linha de iso-índice, escala log. Ele foi escrito na Fase 9,
+tem teste, e **nenhuma exportação o chamava**: só `render_bars` estava ligado,
+no gráfico de barras do laudo (D-41). O documento que a metodologia de Ashby
+produz sem o mapa é uma tabela de números; o mapa é onde o argumento acontece.
+
+**Decisão.**
+
+- **O relatório de seleção e o laudo carregam o mapa.** `Report.figure` (um SVG)
+  virou `Report.figures` (uma lista), porque um documento de seleção tem mais de
+  uma figura e a ordem é a ordem da leitura: o mapa é o argumento, o ranking é a
+  conclusão. CSV e XLSX seguem ignorando figuras — não é escolha, é o formato.
+- **O relatório leva só o mapa; o laudo leva mapa e ranking.** A D-41 distingue
+  os dois documentos, e o gráfico de barras continua sendo marca do laudo. O
+  mapa é de ambos porque sem ele o relatório de seleção não mostra seleção
+  nenhuma.
+- **Os eixos saem da expressão do índice, na ordem em que ela os nomeia.**
+  `sqrt(modulo_young) / densidade` desenha módulo contra densidade — que é como
+  a figura aparece na literatura, e não por acaso: é exatamente nesse par que o
+  índice é uma reta. Um estudo sem índice, ou cujo índice nomeie uma
+  propriedade só, **não tem plano onde ser desenhado**: o mapa é omitido, nunca
+  substituído por um par arbitrário que o catálogo oferecesse.
+- **A geometria não é calculada aqui.** O mapa vem de
+  `ChartService.property_map`, a mesma chamada que `/api/charts/property-map`
+  serve à tela. Reimplementar a projeção no exportador criaria duas verdades
+  sobre a mesma figura — exatamente o que o ADR 0004 existe para impedir.
+- **A linha passa pelo líder do ranking** (`index_level_material_ids`), porque é
+  isso que torna o desenho um *mapa de seleção* e não um gráfico de dispersão:
+  tudo do lado favorável da linha supera o primeiro colocado no índice.
+- **Falhar a figura nunca falha a exportação.** Uma propriedade sem valores
+  plotáveis, ou um índice sem contorno reto, omite o mapa e diz por quê na
+  legenda. O leitor pediu o relatório, não a figura.
+
+**Um defeito que só apareceu ao ligar.** A linha de iso-índice é resolvida sobre
+o *intervalo do eixo*, não sobre os dados, e legitimamente sai do quadro. O
+`maps()` do renderizador pergunta se um valor é representável na escala, não se
+ele cai dentro da moldura — então a linha era desenhada por cima dos rótulos de
+eixo e do título, com um endpoint em `y = -61,8` num `viewBox` que começa em 0.
+Invisível enquanto `render_scatter` não tinha chamador. Corrigido com um
+`clipPath` sobre a área de plotagem.
