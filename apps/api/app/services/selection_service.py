@@ -662,9 +662,15 @@ class SelectionService:
 
         roots = children_by_parent.get(None, [])
         if not roots:
-            # Should never happen — Task 6 guarantees exactly one root group
-            # per study — but degrade to the flat legacy shape instead of
-            # crashing on a study that somehow has none.
+            if stage_id is not None:
+                # A stage with no group of its own restricts nothing. Falling
+                # back to the study's whole constraint list here — as the
+                # study-wide branch below does — would pull in *other stages'*
+                # constraints and silently narrow more than the stage says.
+                return ConstraintGroupNode(operator="AND", constraints=[], children=[])
+            # Should never happen — M6 guarantees exactly one root group per
+            # study — but degrade to the flat legacy shape instead of crashing
+            # on a study that somehow has none.
             return ConstraintGroupNode(
                 operator=study.combinator,
                 constraints=[
@@ -737,7 +743,7 @@ class SelectionService:
         stages = self._request_stages(
             request.combinator, request.constraints, request.root_group, request.stages
         )
-        _, steps, candidate_snaps = self._apply_stages(snapshots, stages)
+        stage_outs, steps, candidate_snaps = self._apply_stages(snapshots, stages)
         candidates = [
             CandidateOut(material_id=m.id, name=m.name, class_name=m.class_name)
             for m in candidate_snaps
@@ -748,6 +754,7 @@ class SelectionService:
             final_count=len(candidate_snaps),
             steps=steps,
             candidates=candidates,
+            stages=stage_outs,
         )
 
     # --- performance index ------------------------------------------------

@@ -575,3 +575,61 @@ def test_a_single_stage_study_still_reads_as_one_tree_in_the_document(client):
     assert "Estágio 1" not in problem
     assert "[desabilitado]" not in problem
     assert problem.count("E(") == 1
+
+
+# --- Guards found by the final branch review --------------------------------
+
+
+def test_the_post_response_already_carries_the_pipeline(client):
+    """The POST response is built from objects that were just added in the same
+    session. If the relationship were not refreshed, it would silently return an
+    empty pipeline while the GET returned the real one."""
+    payload = {
+        "name": "Pilha na resposta do POST",
+        "free_variables": [],
+        "criteria": [],
+        "stages": [_metais_stage(label="Metais"), _leves_stage()],
+    }
+    created = client.post("/api/selection/studies", json=payload)
+    assert created.status_code == 201, created.text
+    body = created.json()
+    assert [s["kind"] for s in body["stages"]] == ["tree", "limit"]
+    assert body["stages"][1]["root_group"]["constraints"][0]["property_slug"] == "densidade"
+
+
+def test_filter_reports_the_stages_too(client):
+    """`/filter` accepts a pipeline, so it has to describe one — otherwise the
+    two endpoints disagree about the same request."""
+    body = client.post(
+        "/api/selection/filter", json={"stages": [_metais_stage(), _leves_stage()]}
+    ).json()
+    assert [s["kind"] for s in body["stages"]] == ["tree", "limit"]
+    assert body["stages"][0]["remaining"] == 2
+    assert body["stages"][1]["remaining"] == 1
+
+
+def test_a_limit_stage_with_no_group_does_not_borrow_another_stage_constraints(
+    client, db_session, study_id
+):
+    """A stage whose group rows are gone restricts nothing. Falling back to the
+    study's whole constraint list would pull in the *other* stages' constraints
+    and narrow more than the stage says."""
+    _drop_backfilled_stage(db_session, study_id)
+    keeps = _stage(db_session, study_id, position=0, kind="limit", label="Leves")
+    _limit(
+        db_session,
+        study_id,
+        keeps,
+        operator="lte",
+        property_slug="densidade",
+        value=2800.0,
+        unit="kg/m**3",
+    )
+    # A second limit stage with no group of its own.
+    _stage(db_session, study_id, position=1, kind="limit", label="Sem grupo")
+
+    result = client.post(f"/api/selection/studies/{study_id}/run").json()
+
+    # Stage 2 admits everything on its own; the result is stage 1's alone.
+    assert result["stages"][1]["passed"] == result["initial_count"]
+    assert result["final_count"] == 3
