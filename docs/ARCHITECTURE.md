@@ -214,7 +214,8 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-  A["Materiais ativos"] --> B["filters: restrições + funil"]
+  A["Materiais ativos"] --> S["estágios: pilha ordenada<br/>(interseção dos habilitados)"]
+  S --> B["filters: restrições + funil"]
   B --> C["expressions: índice<br/>(AST seguro, dimensão derivada)"]
   C --> D["ranking: soma ponderada<br/>normalizada"]
   D --> E["Candidatos + contribuições<br/>+ excluídos + sensibilidade"]
@@ -279,6 +280,8 @@ erDiagram
   User ||--o{ Project : possui
   User ||--o{ UserSession : loga
   Project ||--o{ SelectionStudy : escopa
+  SelectionStudy ||--o{ SelectionStage : tem
+  SelectionStage ||--o{ ConstraintGroup : tem
   SelectionStudy ||--o{ SelectionConstraint : tem
   SelectionStudy ||--o{ RankingCriterion : tem
   User ||--o{ AuditEvent : "assina (retrato)"
@@ -296,7 +299,7 @@ erDiagram
 | `user` | Identidade Google (`google_sub` único), sem senha ([D-42](DECISIONS.md)). |
 | `project` | Container de estudos de um dono; um por `user` no v1. |
 | `user_session` | Sessão de login; `id` é o próprio valor do cookie. |
-| `selection_study`, `selection_constraint`, `ranking_criterion` | Estudos reexecutáveis, escopados por `project_id`. |
+| `selection_study`, `selection_stage`, `selection_constraint_group`, `selection_constraint`, `ranking_criterion` | Estudos reexecutáveis, escopados por `project_id`. Um estudo é uma **pilha ordenada de estágios** (P0-1, [D-56](DECISIONS.md)); cada estágio de limites é dono de uma árvore AND/OR (M6). |
 | `audit_event` | Quem mudou o quê e quando (M2), com retrato de `user_email`/`entity_label`/`project_id` — sobrevive à conta, à entidade ou ao estudo desaparecerem depois ([D-43](DECISIONS.md)). |
 
 **Campos de proveniência em `material_property_value`** — o coração do modelo:
