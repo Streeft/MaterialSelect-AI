@@ -629,6 +629,24 @@ class TestStudyLaudo:
         assert text.count('<div class="figure">') == 2
         assert text.index("Mapa de seleção") < text.index("Candidatos ranqueados")
 
+    def test_the_map_draws_a_cloud_per_class_not_a_hull(self, client: TestClient) -> None:
+        """A hull needs three grades; most classes in a teaching catalogue have one.
+
+        Drawn as hulls the seeded catalogue produced *zero* envelopes and the
+        map was a bare scatter — the failure this test exists to keep out.
+        """
+        text = client.get(f"/api/exports/estudos/{_exportable_study_id(client)}/laudo.html").text
+        assert "<polygon" in text
+
+    def test_the_caption_says_the_cloud_is_indicative(self, client: TestClient) -> None:
+        """The cloud is padded, so it claims a little more area than it measures.
+
+        Saying so is the price of drawing it: the blob must not be read as the
+        region the class actually occupies.
+        """
+        text = client.get(f"/api/exports/estudos/{_exportable_study_id(client)}/laudo.html").text
+        assert "indicativas" in text
+
     def test_the_map_axes_come_from_the_index_expression(self, client: TestClient) -> None:
         """`sqrt(modulo_young) / densidade` is drawn as modulus against density.
 
