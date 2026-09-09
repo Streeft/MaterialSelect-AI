@@ -41,6 +41,7 @@ from app.routers import (
     imports,
     knowledge,
     materials,
+    processes,
     properties,
     saved_charts,
     selection,
@@ -162,6 +163,9 @@ app.include_router(
 )
 app.include_router(
     properties.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
+)
+app.include_router(
+    processes.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
 )
 app.include_router(
     imports.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
