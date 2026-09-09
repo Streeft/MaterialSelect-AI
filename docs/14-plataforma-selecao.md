@@ -52,14 +52,14 @@ Níveis: **0** não existe · **1** rudimentar · **2** existe, precisa melhorar
 | Arquitetura de dados (materiais) | **3** | `Material` + `MaterialClass` auto-referencial + `MaterialPropertyValue` com proveniência. Sólido. |
 | Rastreabilidade de unidade e proveniência | **5** | Valor original + unidade + normalizado + método + qualidade + fonte licenciada. **Acima do EduPack** — ver §4. |
 | Banco de processos | **0** | Não existe `Process`. Bloqueia Tree Stage cruzada, seleção de processo e o elo material↔processo do datasheet. |
-| Browse hierárquico | **2** | A hierarquia existe no modelo; a interface não tem árvore navegável, breadcrumb, favoritos nem recentes. |
+| Browse hierárquico | **2** | A hierarquia agora é lida na seleção (P0-1), mas o catálogo ainda não tem árvore navegável, breadcrumb, favoritos nem recentes. |
 | Registro de família (folder-level) | **0** | `MaterialClass` é rótulo, não registro com descrição, aplicações e ciência. |
-| Search | **1** | `LIKE` sobre nome/classe/palavra-chave. Sem AND/OR/NOT, frase, parênteses, curinga, relevância, fuzzy ou destaque. |
+| Search | **3** | Analisador próprio com AND/OR/NOT, frase, parênteses e curinga ([D-55](DECISIONS.md)). Falta relevância, fuzzy e destaque do trecho. |
 | Datasheet | **2** | Propriedades com proveniência existem; faltam aplicações, vantagens, limitações, processos compatíveis, similares e Science Notes. |
 | Motor de gráficos | **3** | Plotly à la carte no cliente + SVG determinístico no servidor; envelope, nuvem, linha de índice, escala log. Faltam caixa de seleção, anotações, rótulos arrastáveis e destaque de referência. |
-| **Seleção multiestágio** | **1** | **`SelectionStudy` é de estágio único**: uma árvore de restrições, um índice, um método. É o gargalo arquitetural. |
+| **Seleção multiestágio** | **4** | **Entregue (P0-1, [D-56](DECISIONS.md))**: `SelectionStage` ordenada, habilitável e nomeável, com funil por estágio. Falta reordenar por arraste e duplicar um estágio. |
 | Limit Stage | **3** | Restrições com AND/OR aninhado (M6), operadores, unidades. Falta a barra de distribuição que orienta o valor. |
-| Tree Stage | **1** | Filtro por classe existe; junção entre tabelas não, por falta de `Process`. |
+| Tree Stage | **2** | Estágio de classes com descendentes (P0-1) — a hierarquia finalmente é navegável na seleção. A junção entre tabelas continua faltando, por falta de `Process` (P0-2). |
 | Chart Stage (gráfico que filtra) | **1** | O gráfico mostra; não seleciona. Sem caixa nem linha de índice que reprove registro. |
 | Ranking | **4** | Soma ponderada, TOPSIS, PROMETHEE II, AHP (M5), com normalização declarada. |
 | Índice de desempenho | **3** | Catálogo de índices + expressão livre, com avaliador seguro e dimensão verificada. |
@@ -68,7 +68,7 @@ Níveis: **0** não existe · **1** rudimentar · **2** existe, precisa melhorar
 | Registro de referência | **0** | Não existe o conceito. |
 | Tabela de comparação | **2** | `ChartService.compare` compara propriedades; sem referência, sem diferença percentual, sem "definir como referência". |
 | Engineering Solver | **0** | Não existe. |
-| Projetos e notas | **2** | `Project` isola estudos por usuário; sem notas por estágio nem por projeto. |
+| Projetos e notas | **3** | `Project` isola estudos por usuário, e um estágio tem rótulo próprio (P0-1). Falta nota livre por projeto. |
 | Geração de relatório | **4** | Relatório de seleção, laudo, CSV/XLSX/HTML, com mapa, ranking e oito seções de auditoria. Falta PDF e DOCX. |
 | Eco Audit | **0** | Não existe. |
 | Part Cost Estimator | **0** | Não existe. |
@@ -79,17 +79,20 @@ Níveis: **0** não existe · **1** rudimentar · **2** existe, precisa melhorar
 | Unidades de exibição | **2** | Canônica correta; o usuário não escolhe a unidade de leitura (B11). |
 | Explicabilidade | **3** | Funil por restrição e proveniência por número; falta o *porquê* por registro reprovado. |
 | Camada de IA | **4** | Interpretação e explicação com guardrails, ancoragem numérica e citação verificada. |
-| Testes | **4** | 904 backend, 197 frontend, E2E e Lighthouse na CI. |
+| Testes | **5** | 987 backend, 210 frontend, E2E e Lighthouse na CI — e desde o P0-1 a migração é exercitada de verdade, nos dois sentidos, contra um banco que já contém dados. |
 | Desempenho | **3** | Índices, threadpool, Plotly fatiado. Não preparado para centenas de milhares de registros. |
 
-**Cobertura de capacidades inspiradas no EduPack: ~34%** — contado como
-capacidades em nível ≥ 3 sobre as 30 avaliadas (10 de 30 hoje).
+**Cobertura de capacidades inspiradas no EduPack: ~47%** — contado como
+capacidades em nível ≥ 3 sobre as 30 avaliadas (14 de 30). Eram 10 de 30 (~34%)
+quando este documento foi escrito; P1-1 (busca) e P0-1 (multiestágio, com Tree
+Stage e o efeito colateral em projetos/testes) responderam pelas quatro que
+subiram.
 
 ---
 
 ## 3. Os quatro gargalos, em ordem
 
-### P0-1 — A seleção é de estágio único
+### P0-1 — A seleção é de estágio único — **entregue**
 
 `SelectionStudy` carrega *uma* árvore de restrições, *um* índice e *um* método.
 Tudo que o EduPack faz de interessante — combinar Limit com Tree e com Chart,
@@ -99,13 +102,20 @@ G, H, J e a maior parte de V ficam sem onde encaixar.
 
 Nada mais no roteiro compensa não ter isto.
 
+**Entregue** ([D-56](DECISIONS.md)): `SelectionStage` ordenada, com tipos
+`limit` e `tree`, habilitável individualmente, com migração aditiva e backfill,
+funil por estágio, seção "Estágios" nos documentos e a pilha editável em
+`/app/selecao`. O que ficou de fora, e é melhoria e não bloqueio: reordenar por
+arraste, duplicar um estágio, e o Chart Stage que **filtra** (P1, que agora tem
+onde encaixar).
+
 ### P0-2 — Não existe ProcessUniverse
 
 Tree Stage, no manual, é uma junção: *materiais que este processo molda*,
 *processos que unem estes materiais*. Com só uma tabela, é filtro por pasta.
 Falta `Process`, `ProcessClass` e a associação N–N com `Material`.
 
-### P1-1 — Search é `LIKE`
+### P1-1 — Search é `LIKE` — **entregue**
 
 O manual dedica uma seção a operadores (AND, OR, NOT, frase, parênteses, `*`,
 `?`). Hoje é uma varredura por substring. É a porta de entrada da ferramenta e
@@ -145,9 +155,9 @@ correção, portão completo, decisão registrada.
 
 | | Item | Módulos do pedido | Depende de |
 |---|---|---|---|
-| **P0** | `SelectionStage` como entidade de primeira classe, com retrocompatibilidade | E, F, G, H | — |
+| ~~P0~~ | ~~`SelectionStage` como entidade de primeira classe~~ **entregue** | E, F, G, H | — |
 | **P0** | `Process`, `ProcessClass`, associação N–N com `Material` | A, G | — |
-| **P1** | Search com operadores, relevância e destaque | C | — |
+| **P1** | ~~Search com operadores~~ **entregue**; falta relevância e destaque | C | — |
 | **P1** | Chart Stage que **filtra** (caixa de seleção e linha de índice reprovando) | H, I | P0-1 |
 | **P1** | `My Records`: definidos pelo usuário, favoritos, recentes | T, U | — |
 | **P1** | Browse: árvore navegável, breadcrumb, registro de família | B, D | P0-2 |
@@ -161,7 +171,7 @@ correção, portão completo, decisão registrada.
 | **P4** | Battery Designer | S | P3 Synthesizer |
 | **P4** | PDF e DOCX no gerador de relatório | V | — |
 
-**Ordem de execução:** P0-1 → P0-2 → P1 → P2 → P3 → P4.
+**Ordem de execução:** ~~P0-1~~ → **P0-2** → P1 → P2 → P3 → P4.
 
 ### O que isto não é
 
