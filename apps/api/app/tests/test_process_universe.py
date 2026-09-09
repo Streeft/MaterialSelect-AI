@@ -17,39 +17,51 @@ import pytest
 from app.models.material import Material
 from app.models.process import MaterialProcess, Process, ProcessClass
 
+#: The fixture's own slug namespace. The seed installs a real demo universe
+#: (P0-2), so building one here with the obvious slugs would collide with it —
+#: and, worse, an assertion about f"{NS}-solda" would silently become an assertion
+#: about seed data. Everything below is prefixed, so a stage that selects these
+#: folders and processes cannot reach a seeded link, and the candidate lists stay
+#: exact.
+NS = "teste"
+
 
 @pytest.fixture()
-def universe(db_session) -> dict[str, int]:
+def universe(db_session) -> None:
     """A two-family process tree, one family with sub-folders, wired to materials.
 
-        conformacao ── conformacao_liquido ── fundicao-areia  → Liga Alumínio Demo A
-                    └─ conformacao_solido  ── forjamento      → Aço Demo B
-        uniao ─────────────────────────────── solda-mig       → Aço Demo B
+        teste-conformacao ── teste-liquido ── teste-fundicao → Liga Alumínio Demo A
+                          └─ teste-solido  ── teste-forja    → Aço Demo B
+        teste-uniao ────────────────────────── teste-solda   → Aço Demo B
 
-    "Polímero Demo C" is left with no process at all: the fourth state of the
-    data, and the case a process stage must reject rather than wave through.
+    "Polímero Demo C" gets none of these: within this namespace it is a material
+    with no process, which is the case a process stage must reject rather than
+    wave through.
     """
-    conformacao = ProcessClass(name="Conformação", slug="conformacao")
-    uniao = ProcessClass(name="União", slug="uniao")
+    conformacao = ProcessClass(name="Conformação de teste", slug=f"{NS}-conformacao")
+    uniao = ProcessClass(name="União de teste", slug=f"{NS}-uniao")
     db_session.add_all([conformacao, uniao])
     db_session.flush()
 
     liquido = ProcessClass(
-        name="Conformação em estado líquido", slug="conformacao_liquido", parent_id=conformacao.id
+        name="Estado líquido de teste", slug=f"{NS}-liquido", parent_id=conformacao.id
     )
     solido = ProcessClass(
-        name="Conformação em estado sólido", slug="conformacao_solido", parent_id=conformacao.id
+        name="Estado sólido de teste", slug=f"{NS}-solido", parent_id=conformacao.id
     )
     db_session.add_all([liquido, solido])
     db_session.flush()
 
-    fundicao = Process(name="Fundição em areia", slug="fundicao-areia", class_id=liquido.id)
-    forjamento = Process(name="Forjamento", slug="forjamento", class_id=solido.id)
-    solda = Process(name="Solda MIG", slug="solda-mig", class_id=uniao.id)
+    fundicao = Process(name="Fundição de teste", slug=f"{NS}-fundicao", class_id=liquido.id)
+    forjamento = Process(name="Forjamento de teste", slug=f"{NS}-forja", class_id=solido.id)
+    solda = Process(name="Solda de teste", slug=f"{NS}-solda", class_id=uniao.id)
     # Withdrawn from the catalogue: it must not admit anything, even though the
     # link below still exists.
     obsoleto = Process(
-        name="Processo desativado", slug="processo-desativado", class_id=uniao.id, is_active=False
+        name="Processo desativado de teste",
+        slug=f"{NS}-desativado",
+        class_id=uniao.id,
+        is_active=False,
     )
     db_session.add_all([fundicao, forjamento, solda, obsoleto])
     db_session.flush()
@@ -64,7 +76,6 @@ def universe(db_session) -> dict[str, int]:
         ]
     )
     db_session.flush()
-    return {"conformacao": conformacao.id, "uniao": uniao.id, "solda": solda.id}
 
 
 def _names(payload: dict) -> list[str]:
@@ -81,13 +92,13 @@ def test_list_process_classes_counts_only_what_sits_directly_in_each_folder(
     assert resp.status_code == 200, resp.text
     by_slug = {c["slug"]: c for c in resp.json()}
 
-    # "conformacao" holds no process directly — both of its children do.
-    assert by_slug["conformacao"]["process_count"] == 0
-    assert by_slug["conformacao_liquido"]["process_count"] == 1
+    # f"{NS}-conformacao" holds no process directly — both of its children do.
+    assert by_slug[f"{NS}-conformacao"]["process_count"] == 0
+    assert by_slug[f"{NS}-liquido"]["process_count"] == 1
     # Two, because the inactive one is still filed here: the count describes the
     # folder, and hiding it would make an operator wonder where it went.
-    assert by_slug["uniao"]["process_count"] == 2
-    assert by_slug["conformacao_liquido"]["parent_id"] == by_slug["conformacao"]["id"]
+    assert by_slug[f"{NS}-uniao"]["process_count"] == 2
+    assert by_slug[f"{NS}-liquido"]["parent_id"] == by_slug[f"{NS}-conformacao"]["id"]
 
 
 def test_list_processes_reports_the_join_and_hides_inactive_ones(client, universe) -> None:
@@ -95,11 +106,11 @@ def test_list_processes_reports_the_join_and_hides_inactive_ones(client, univers
     assert resp.status_code == 200, resp.text
     by_slug = {p["slug"]: p for p in resp.json()}
 
-    assert "processo-desativado" not in by_slug
-    assert by_slug["solda-mig"]["class_name"] == "União"
-    assert by_slug["solda-mig"]["material_count"] == 1
-    assert by_slug["forjamento"]["material_count"] == 1
-    assert by_slug["fundicao-areia"]["material_count"] == 1
+    assert f"{NS}-desativado" not in by_slug
+    assert by_slug[f"{NS}-solda"]["class_name"] == "União de teste"
+    assert by_slug[f"{NS}-solda"]["material_count"] == 1
+    assert by_slug[f"{NS}-forja"]["material_count"] == 1
+    assert by_slug[f"{NS}-fundicao"]["material_count"] == 1
 
 
 def test_the_process_catalogue_needs_a_session(anon_client) -> None:
@@ -113,7 +124,7 @@ def test_the_process_catalogue_needs_a_session(anon_client) -> None:
 def test_a_process_stage_keeps_the_materials_that_process_applies_to(client, universe) -> None:
     resp = client.post(
         "/api/selection/filter",
-        json={"stages": [{"kind": "process", "process_slugs": ["solda-mig"]}]},
+        json={"stages": [{"kind": "process", "process_slugs": [f"{NS}-solda"]}]},
     )
     assert resp.status_code == 200, resp.text
     assert _names(resp.json()) == ["Aço Demo B"]
@@ -122,7 +133,7 @@ def test_a_process_stage_keeps_the_materials_that_process_applies_to(client, uni
 def test_a_process_folder_carries_its_descendants(client, universe) -> None:
     resp = client.post(
         "/api/selection/filter",
-        json={"stages": [{"kind": "process", "process_class_slugs": ["conformacao"]}]},
+        json={"stages": [{"kind": "process", "process_class_slugs": [f"{NS}-conformacao"]}]},
     )
     assert resp.status_code == 200, resp.text
     assert _names(resp.json()) == ["Aço Demo B", "Liga Alumínio Demo A"]
@@ -147,14 +158,18 @@ def test_a_process_folder_without_descendants_admits_only_its_own(client, univer
 
     # Both halves, on purpose: the empty one alone would pass just as well if the
     # whole join were broken, so the positive case is what proves it is not.
-    assert picking("conformacao") == []
-    assert picking("conformacao_liquido") == ["Liga Alumínio Demo A"]
+    assert picking(f"{NS}-conformacao") == []
+    assert picking(f"{NS}-liquido") == ["Liga Alumínio Demo A"]
 
 
 def test_a_material_with_no_process_never_survives_a_process_stage(client, universe) -> None:
     resp = client.post(
         "/api/selection/filter",
-        json={"stages": [{"kind": "process", "process_class_slugs": ["conformacao", "uniao"]}]},
+        json={
+            "stages": [
+                {"kind": "process", "process_class_slugs": [f"{NS}-conformacao", f"{NS}-uniao"]}
+            ]
+        },
     )
     assert resp.status_code == 200, resp.text
     # Polímero Demo C has no link; Cerâmica Demo D's only process is inactive.
@@ -168,8 +183,8 @@ def test_two_process_stages_intersect(client, universe) -> None:
         "/api/selection/filter",
         json={
             "stages": [
-                {"kind": "process", "process_slugs": ["solda-mig"]},
-                {"kind": "process", "process_class_slugs": ["conformacao"]},
+                {"kind": "process", "process_slugs": [f"{NS}-solda"]},
+                {"kind": "process", "process_class_slugs": [f"{NS}-conformacao"]},
             ]
         },
     )
@@ -182,7 +197,7 @@ def test_a_process_stage_combines_with_a_limit_stage(client, universe) -> None:
         "/api/selection/filter",
         json={
             "stages": [
-                {"kind": "process", "process_class_slugs": ["conformacao"]},
+                {"kind": "process", "process_class_slugs": [f"{NS}-conformacao"]},
                 {
                     "kind": "limit",
                     "constraints": [
@@ -206,8 +221,8 @@ def test_the_funnel_reports_the_process_stage(client, universe) -> None:
         "/api/selection/filter",
         json={
             "stages": [
-                {"kind": "process", "label": "Soldável", "process_slugs": ["solda-mig"]},
-                {"kind": "process", "process_class_slugs": ["conformacao"], "enabled": False},
+                {"kind": "process", "label": "Soldável", "process_slugs": [f"{NS}-solda"]},
+                {"kind": "process", "process_class_slugs": [f"{NS}-conformacao"], "enabled": False},
             ]
         },
     )
@@ -240,8 +255,8 @@ def test_a_process_stage_round_trips_through_a_saved_study(client, universe) -> 
                 {
                     "kind": "process",
                     "label": "Conformável",
-                    "process_slugs": ["solda-mig"],
-                    "process_class_slugs": ["conformacao"],
+                    "process_slugs": [f"{NS}-solda"],
+                    "process_class_slugs": [f"{NS}-conformacao"],
                     "include_descendants": False,
                 },
             ],
@@ -256,8 +271,8 @@ def test_a_process_stage_round_trips_through_a_saved_study(client, universe) -> 
     assert [s["kind"] for s in stages] == ["limit", "process"]
     process_stage = stages[1]
     assert process_stage["label"] == "Conformável"
-    assert process_stage["process_slugs"] == ["solda-mig"]
-    assert process_stage["process_class_slugs"] == ["conformacao"]
+    assert process_stage["process_slugs"] == [f"{NS}-solda"]
+    assert process_stage["process_class_slugs"] == [f"{NS}-conformacao"]
     assert process_stage["include_descendants"] is False
     # Not a tree stage: the material-class list stays empty.
     assert process_stage["class_slugs"] == []
@@ -277,21 +292,21 @@ def test_a_process_stage_round_trips_through_a_saved_study(client, universe) -> 
         (
             {
                 "kind": "process",
-                "process_slugs": ["solda-mig"],
+                "process_slugs": [f"{NS}-solda"],
                 "constraints": [{"operator": "exists", "property_slug": "densidade"}],
             },
             "não leva restrições",
         ),
         (
-            {"kind": "process", "process_slugs": ["solda-mig"], "class_slugs": ["metais"]},
+            {"kind": "process", "process_slugs": [f"{NS}-solda"], "class_slugs": ["metais"]},
             "não leva classes de material",
         ),
         (
-            {"kind": "limit", "process_slugs": ["solda-mig"]},
+            {"kind": "limit", "process_slugs": [f"{NS}-solda"]},
             "não leva processos",
         ),
         (
-            {"kind": "tree", "class_slugs": ["metais"], "process_class_slugs": ["uniao"]},
+            {"kind": "tree", "class_slugs": ["metais"], "process_class_slugs": [f"{NS}-uniao"]},
             "não leva processos",
         ),
     ],
@@ -343,3 +358,39 @@ def test_an_empty_process_stage_does_not_narrow(client, universe) -> None:
     resp = client.post("/api/selection/filter", json={"stages": [{"kind": "process"}]})
     assert resp.status_code == 200, resp.text
     assert _names(resp.json()) == _names(everything.json())
+
+
+# --- the demo universe the seed installs -------------------------------------
+
+
+def test_the_seeded_process_universe_is_coherent(client) -> None:
+    """The seed's own universe, without the fixture above.
+
+    It checks the shape, not the contents: which processes a demo material is
+    declared compatible with is fictitious data that may be reworked, but the
+    universe must always be navigable — every process in a folder that exists,
+    every folder reachable from a root, and every record flagged as demo.
+    """
+    classes = client.get("/api/processes/classes").json()
+    processes = client.get("/api/processes").json()
+    assert classes and processes
+
+    class_ids = {c["id"] for c in classes}
+    for cls in classes:
+        assert cls["parent_id"] is None or cls["parent_id"] in class_ids
+    for process in processes:
+        assert process["class_id"] in class_ids
+        # Demonstration data, and it says so — principle 6.
+        assert process["is_demo"] is True
+
+    # The three families the taxonomy is rooted on, and at least one process
+    # under each of them once descendants are counted.
+    roots = [c["slug"] for c in classes if c["parent_id"] is None]
+    assert len(roots) >= 3
+    for root in roots:
+        resp = client.post(
+            "/api/selection/filter",
+            json={"stages": [{"kind": "process", "process_class_slugs": [root]}]},
+        )
+        assert resp.status_code == 200, resp.text
+        assert resp.json()["final_count"] > 0, f"nenhum material sob {root}"
