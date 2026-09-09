@@ -178,6 +178,31 @@ class TestEnvelopes:
                 assert len(envelope["polygon"]) > 2
 
 
+class TestClassClouds:
+    """The ellipse is a *cloud*, not a bounding shape — that is the point of it.
+
+    A hull traces the outermost grades; a class with one catalogued material
+    has no hull at all. The cloud is what makes the chart read like an Ashby
+    chart, and it is what the map, the report and the laudo all draw now.
+    """
+
+    def test_every_class_gets_a_cloud_even_with_a_single_material(self, client: TestClient) -> None:
+        data = _map(client, envelope_shape="ellipse")
+        singles = [e for e in data["envelopes"] if e["point_count"] == 1]
+        assert singles, "the seeded catalogue should hold at least one one-material class"
+        for envelope in singles:
+            # A dot would be one vertex; a cloud is a sampled boundary.
+            assert len(envelope["polygon"]) > 2
+
+    def test_the_hull_is_still_literal(self, client: TestClient) -> None:
+        """Padding belongs to the cloud alone. The hull answers a different
+        question — exactly which region these materials occupy — and answering
+        it with air around the edges would be a wrong answer."""
+        data = _map(client, envelope_shape="hull")
+        for envelope in data["envelopes"]:
+            assert len(envelope["polygon"]) <= max(envelope["point_count"], 1)
+
+
 class TestIndexOverlay:
     def test_specific_stiffness_line_has_slope_one(self, client: TestClient) -> None:
         data = _map(client, index={"expression": "modulo_young / densidade", "goal": "maximize"})

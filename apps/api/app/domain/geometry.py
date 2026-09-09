@@ -74,7 +74,25 @@ def bounding_box(points: list[Point]) -> tuple[Point, Point] | None:
     return (min(xs), min(ys)), (max(xs), max(ys))
 
 
-def fitted_ellipse(points: list[Point], *, samples: int = 48) -> list[Point]:
+def _circle(centre: Point, radius: float, samples: int) -> list[Point]:
+    """A circle as a sampled polygon — the cloud of a class with one grade."""
+    cx, cy = centre
+    return [
+        (
+            cx + radius * math.cos(2 * math.pi * i / samples),
+            cy + radius * math.sin(2 * math.pi * i / samples),
+        )
+        for i in range(samples)
+    ]
+
+
+def fitted_ellipse(
+    points: list[Point],
+    *,
+    samples: int = 48,
+    pad: float = 1.0,
+    min_semi_axis: float = 0.0,
+) -> list[Point]:
     """An ellipse, oriented along the point cloud's principal axes, that
     encloses every point — the "adjusted" alternative envelope to the convex
     hull's literal one.
@@ -92,14 +110,33 @@ def fitted_ellipse(points: list[Point], *, samples: int = 48) -> list[Point]:
     polygon (:class:`app.schemas.charts.ClassEnvelopeOut`) need no new code
     path for this shape.
 
-    Degenerate inputs: 0 points -> ``[]``; 1 point -> that point, repeated
-    zero times (a single-point "ellipse" is just the point); all points
-    collinear -> a zero-width ellipse (a line segment's endpoints, sampled).
+    ``pad`` and ``min_semi_axis`` turn that bounding ellipse into the *cloud*
+    an Ashby chart is read by. Both default to off, so a caller that wants the
+    strict enclosure above still gets exactly it.
+
+    - ``pad`` (>= 1) grows both semi-axes about the same centre. A class blob
+      that touches its outermost grade reads as a boundary; one with a little
+      air reads as a family, which is what the chart is claiming.
+    - ``min_semi_axis`` floors each semi-axis, in the caller's coordinates. A
+      class with one catalogued grade otherwise collapses to a dot and one with
+      two to a segment — invisible as families, on precisely the catalogues a
+      teaching tool is used with.
+
+    Both **widen** the drawn region beyond the materials in it, so a padded
+    cloud is indicative and no longer a statement that the class occupies
+    exactly that area. Whoever draws one has to say so where it is read;
+    ``ExportService`` puts it in the figure caption.
+
+    Degenerate inputs: 0 points -> ``[]``; 1 point -> that point (or a circle
+    of ``min_semi_axis``); all points collinear -> a zero-width ellipse
+    (or one ``min_semi_axis`` wide).
     """
     unique = sorted(set(points))
     if len(unique) == 0:
         return []
     if len(unique) == 1:
+        if min_semi_axis > 0.0:
+            return _circle(unique[0], min_semi_axis, samples)
         return unique
 
     n = len(unique)
@@ -146,10 +183,12 @@ def fitted_ellipse(points: list[Point], *, samples: int = 48) -> list[Point]:
         v = (-dx * sin_a + dy * cos_a) / axis2
         max_radius = max(max_radius, math.hypot(u, v))
     if max_radius == 0.0:
+        if min_semi_axis > 0.0:
+            return _circle((cx, cy), min_semi_axis, samples)
         return unique[:1]
 
-    semi_major = axis1 * max_radius
-    semi_minor = axis2 * max_radius
+    semi_major = max(axis1 * max_radius * pad, min_semi_axis)
+    semi_minor = max(axis2 * max_radius * pad, min_semi_axis)
 
     boundary: list[Point] = []
     for i in range(samples):

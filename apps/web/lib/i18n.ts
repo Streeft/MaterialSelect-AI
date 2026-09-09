@@ -559,7 +559,7 @@ export const ptBR = {
     log: "Logarítmica",
     envelope: "Envelope",
     convexHull: "Fecho convexo",
-    adjustedEllipse: "Elipse ajustada",
+    adjustedEllipse: "Nuvem da classe",
     classes: "Classes",
     allClasses: "Todas as classes",
     options: "Exibição",

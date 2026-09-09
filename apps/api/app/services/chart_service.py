@@ -60,6 +60,19 @@ _LEVEL_TOLERANCE = 1e-9
 T = TypeVar("T")
 
 
+#: How far a class cloud reaches past its outermost grade. Chosen by eye
+#: against the reference an Ashby chart sets: enough air that the blob reads as
+#: a family, little enough that a reader is not misled about where the class
+#: ends. A padded cloud is indicative, not a bounding region — whoever draws
+#: one says so where it is read.
+ELLIPSE_PAD = 1.18
+
+#: Floor for each semi-axis, as a fraction of the span of everything plotted.
+#: Without it a class holding one catalogued material is a dot and one holding
+#: two is a segment — which is most classes in a teaching catalogue.
+ELLIPSE_MIN_SEMI_AXIS_FRACTION = 0.055
+
+
 @dataclass(frozen=True)
 class _AxisSample:
     """One material's placement on one axis — a property value or an index value.
@@ -350,12 +363,37 @@ class ChartService:
         points: list[MapPointOut], scale: str, shape: str = "hull"
     ) -> list[ClassEnvelopeOut]:
         """Convex hull or fitted ellipse per class, computed in the space the
-        chart displays."""
+        chart displays.
+
+        The ellipse is drawn as a *cloud*, the way an Ashby chart is read: a
+        little air around the outermost grade, and a floor so a class with one
+        or two catalogued materials still reads as a family instead of a dot
+        or a stroke. The hull stays literal — it is the shape to pick when the
+        question is "exactly which region do these materials occupy".
+
+        Both constants are relative to the span of everything plotted, so they
+        mean the same thing on a log axis (where the span is in decades) and a
+        linear one, and on a catalogue of five materials or five hundred.
+        """
         grouped: dict[str, list[MapPointOut]] = {}
         for point in points:
             grouped.setdefault(point.class_slug, []).append(point)
 
-        envelope_fn = fitted_ellipse if shape == "ellipse" else convex_hull
+        def to_space(p: MapPointOut) -> Point:
+            return (math.log10(p.x), math.log10(p.y)) if scale == "log" else (p.x, p.y)
+
+        cloud = shape == "ellipse"
+        min_semi_axis = 0.0
+        if cloud and points:
+            in_space = [to_space(p) for p in points]
+            span_x = max(q[0] for q in in_space) - min(q[0] for q in in_space)
+            span_y = max(q[1] for q in in_space) - min(q[1] for q in in_space)
+            min_semi_axis = ELLIPSE_MIN_SEMI_AXIS_FRACTION * max(span_x, span_y)
+
+        def envelope_fn(raw: list[Point]) -> list[Point]:
+            if not cloud:
+                return convex_hull(raw)
+            return fitted_ellipse(raw, pad=ELLIPSE_PAD, min_semi_axis=min_semi_axis)
 
         envelopes: list[ClassEnvelopeOut] = []
         for class_slug, members in sorted(grouped.items()):

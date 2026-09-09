@@ -170,6 +170,10 @@ class ExportService:
                     x=x_slug,
                     y=y_slug,
                     scale="log",
+                    # Clouds, not hulls. A hull traces the outermost grades and
+                    # reads as a boundary; the cloud is how an Ashby chart shows
+                    # a family, and it is what the reader of a laudo recognises.
+                    envelope_shape="ellipse",
                     highlight_material_ids=ranked_ids,
                     index=index_in,
                     # The line through the winner is what makes the map a
@@ -261,6 +265,15 @@ class ExportService:
             f"{chart.plotted_count} de {chart.considered_count} materiais têm os dois "
             f"valores cadastrados e aparecem no mapa"
         ]
+        if chart.envelopes:
+            # The cloud is padded on purpose, so it claims a little more area
+            # than the materials in it occupy. Saying so is the price of
+            # drawing it: a reader must not take the blob for a measurement.
+            partes.append(
+                "as nuvens de classe são indicativas — desenhadas com folga em "
+                "torno dos materiais cadastrados, não são a região exata que a "
+                "classe ocupa"
+            )
         if chart.excluded:
             partes.append(f"{len(chart.excluded)} ficaram de fora por dado ausente")
         if highlighted_count:
