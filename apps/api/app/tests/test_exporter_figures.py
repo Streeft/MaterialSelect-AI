@@ -227,3 +227,35 @@ class TestBarsNeverInventAValue:
     def test_no_bars_at_all_still_renders(self) -> None:
         svg = render_bars(BarFigure(title="Índice", value_label="M", bars=[]))
         assert svg.startswith("<svg")
+
+
+class TestTheIndexLineStaysInsideTheFrame:
+    """An iso-index line is solved over the axis range, not the data range.
+
+    A line through the leading candidate can leave the plot on either side, and
+    an SVG without a clip draws it across the axis labels, the title, or off the
+    canvas entirely. This was invisible while `render_scatter` had no caller;
+    the selection map in the laudo is that caller.
+    """
+
+    @staticmethod
+    def _figure(line_points: list[tuple[float, float]]) -> ScatterFigure:
+        return ScatterFigure(
+            title="Mapa",
+            x=Axis(label="x", scale="log", min_value=1e3, max_value=1e4),
+            y=Axis(label="y", scale="log", min_value=1e10, max_value=1e11),
+            points=[Point(x=2e3, y=5e10, label="A", group="Metais")],
+            lines=[Line(label="M", points=line_points)],
+        )
+
+    def test_a_line_leaving_the_top_is_clipped_not_drawn_over_the_title(self) -> None:
+        # The second endpoint sits an order of magnitude above the y axis.
+        svg = render_scatter(self._figure([(1e3, 1e10), (1e4, 1e12)]))
+        assert "clipPath" in svg
+        polyline = re.search(r"<polyline[^>]*>", svg)
+        assert polyline is not None
+        assert "clip-path=" in polyline.group(0)
+
+    def test_a_line_wholly_inside_is_still_drawn(self) -> None:
+        svg = render_scatter(self._figure([(1e3, 1e10), (1e4, 9e10)]))
+        assert "<polyline" in svg

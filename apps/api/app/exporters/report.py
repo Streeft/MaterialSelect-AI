@@ -53,7 +53,7 @@ class Sheet:
 class Report:
     """A complete export: a title, the mandatory notices, and its tables.
 
-    ``responsible``, ``figure`` and ``narrative*`` are optional and used only
+    ``responsible``, ``figures`` and ``narrative*`` are optional and used only
     by the engineering-report (laudo) renderer in ``exporters/html.py``; the
     CSV and XLSX renderers read only ``sheets`` and ignore them, so a plain
     selection report is unaffected by their presence.
@@ -68,7 +68,10 @@ class Report:
     responsible: str | None = None
     #: Raw SVG markup from ``app.exporters.figures``, already escaped
     #: internally by that module — embedded as-is, not re-escaped here.
-    figure: str | None = None
+    #: A list because a selection document carries more than one figure: the
+    #: selection map is the argument, the ranking chart is its conclusion.
+    #: Order is the order they are read.
+    figures: list[str] = field(default_factory=list)
     #: AI-authored paragraphs about this same computed result. ``None`` means
     #: no narrative was produced (the layer is off, or the response was
     #: discarded) — ``narrative_note`` then says why, so the absence is

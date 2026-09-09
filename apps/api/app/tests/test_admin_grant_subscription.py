@@ -8,9 +8,15 @@ mistypes an address must not silently give access to somebody else.
 
 from __future__ import annotations
 
+import pytest
 from sqlalchemy.orm import Session
 
-from app.admin.grant_subscription import COMPED_CUSTOMER_PREFIX, apply_grant
+from app.admin.grant_subscription import (
+    COMPED_CUSTOMER_PREFIX,
+    apply_grant,
+    apply_grants,
+    parse_emails,
+)
 from app.models.user import User
 from app.repositories.subscription_repository import SubscriptionRepository
 from app.repositories.user_repository import UserRepository
@@ -128,3 +134,46 @@ def test_samesite_none_without_secure_is_refused_at_boot() -> None:
 
     # The valid pairing still constructs.
     assert Settings(session_cookie_samesite="none", session_cookie_secure=True)
+
+
+class TestParsingSeveralAddressesAtOnce:
+    """Granting to a defence panel or a usability cohort is one command, not eight.
+
+    The workflow that operators actually use (`admin-banco.yml`) passes a single
+    free-text field, so the separator has to survive whatever a tired person
+    types into it: commas, spaces, newlines, or a mix.
+    """
+
+    def test_a_single_address_is_still_a_list_of_one(self) -> None:
+        assert parse_emails(["ana@exemplo.br"]) == ["ana@exemplo.br"]
+
+    def test_commas_spaces_and_newlines_all_separate(self) -> None:
+        assert parse_emails(["ana@x.br, bruno@x.br\ncarla@x.br  dado@x.br"]) == [
+            "ana@x.br",
+            "bruno@x.br",
+            "carla@x.br",
+            "dado@x.br",
+        ]
+
+    def test_repeated_addresses_collapse_but_order_survives(self) -> None:
+        # Order matters only so the printed report reads in the sequence the
+        # operator typed; the grants themselves are independent.
+        assert parse_emails(["b@x.br, a@x.br, b@x.br"]) == ["b@x.br", "a@x.br"]
+
+    def test_an_empty_field_is_refused_rather_than_treated_as_zero_addresses(self) -> None:
+        with pytest.raises(ValueError):
+            parse_emails(["  ,  \n "])
+
+
+class TestOneBadAddressDoesNotCostTheOthers:
+    """A cohort of eight must not lose seven grants to one typo."""
+
+    def test_the_good_addresses_are_granted_even_when_one_is_unknown(
+        self, db_session: Session, test_user: User
+    ) -> None:
+        outcomes = apply_grants(
+            db_session, emails=[test_user.email, "ninguem@exemplo.br"], revoke=False
+        )
+
+        assert [o.ok for o in outcomes] == [True, False]
+        assert _status(db_session, test_user.id) == "active"

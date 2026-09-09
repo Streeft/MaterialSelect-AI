@@ -209,7 +209,7 @@ def to_html(report: Report) -> str:
     )
     # Trusted markup: always our own app.exporters.figures output, which
     # escapes every string it writes internally — never re-escaped here.
-    figure = f'<div class="figure">{report.figure}</div>' if report.figure else ""
+    figure = "".join(f'<div class="figure">{svg}</div>' for svg in report.figures)
 
     return (
         "<!doctype html>"
