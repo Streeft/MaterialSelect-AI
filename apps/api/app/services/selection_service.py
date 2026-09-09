@@ -36,6 +36,7 @@ from app.domain.ranking import (
     rank_topsis,
 )
 from app.domain.slug import slugify
+from app.domain.taxonomy import lineages
 from app.models.enums import AuditAction, AuditEntityType, BetterDirection
 from app.models.performance_index import PerformanceIndex
 from app.models.selection import (
@@ -107,13 +108,18 @@ class SelectionService:
     def _load(self) -> list[MaterialSnapshot]:
         if self._snapshots is None:
             self._props = {p.slug: p for p in self.repo.list_properties()}
+            # Read once per load, not per material: a Tree stage asks about
+            # ancestry, and the taxonomy is dozens of rows against hundreds of
+            # materials.
+            lineage_by_slug = lineages(self.repo.class_parents())
             self._snapshots = [
-                self._to_snapshot(m) for m in self.repo.list_active_materials_with_values()
+                self._to_snapshot(m, lineage_by_slug)
+                for m in self.repo.list_active_materials_with_values()
             ]
         return self._snapshots
 
     @staticmethod
-    def _to_snapshot(material) -> MaterialSnapshot:
+    def _to_snapshot(material, lineage_by_slug: dict[str, tuple[str, ...]]) -> MaterialSnapshot:
         values: dict[str, float] = {}
         for value in material.property_values:
             if not value.is_missing and value.normalized_value is not None:
@@ -125,6 +131,7 @@ class SelectionService:
             class_slug=material.material_class.slug,
             keywords=list(material.keywords or []),
             values=values,
+            class_path=list(lineage_by_slug.get(material.material_class.slug, ())),
         )
 
     # --- constraints ------------------------------------------------------
