@@ -2238,3 +2238,55 @@ ele cai dentro da moldura — então a linha era desenhada por cima dos rótulos
 eixo e do título, com um endpoint em `y = -61,8` num `viewBox` que começa em 0.
 Invisível enquanto `render_scatter` não tinha chamador. Corrigido com um
 `clipPath` sobre a área de plotagem.
+
+---
+
+## D-54 — O envelope de classe é uma nuvem, e a nuvem é indicativa
+
+**Contexto.** A [D-53](#d-53) pôs o mapa nos documentos exportados, e ele saiu
+**sem envelope nenhum**: um fecho convexo precisa de três pontos, e no catálogo
+semeado quase toda classe tem um ou dois materiais. O mapa virou um gráfico de
+dispersão — e a vitrine pública (`components/marketing/AshbyPreview.tsx`)
+prometia, num SVG desenhado à mão, as nuvens que o produto não desenhava.
+
+O pedido do autor foi explícito: aproximar do que o Ansys Granta EduPack gera.
+
+**Decisão.** O envelope elíptico do B6 passa a aceitar dois ajustes, ambos
+desligados por padrão — quem quiser a elipse *limitante* de antes continua
+recebendo exatamente ela:
+
+- **`pad`** (1,18) afasta os dois semi-eixos do centro. Uma mancha que encosta
+  no material mais externo é lida como fronteira; com um pouco de ar, é lida
+  como família — que é o que o gráfico afirma.
+- **`min_semi_axis`** (5,5% da extensão do que está plotado) dá piso a cada
+  semi-eixo. Sem ele, uma classe com um material é um ponto e uma com dois é um
+  segmento: invisíveis como famílias, e é assim que quase toda classe se
+  apresenta num catálogo didático.
+
+As duas constantes são **relativas à extensão do desenho**, então significam a
+mesma coisa em escala log (onde a extensão está em décadas) e linear, com cinco
+materiais ou quinhentos.
+
+**A nuvem é indicativa, e isso é dito onde ela é lida.** Ambos os ajustes
+*alargam* a região desenhada além dos materiais que ela contém — a mancha deixa
+de ser a afirmação "a classe ocupa exatamente esta área". A legenda da figura
+diz isso em português, e o rótulo do controle em `/mapas` deixou de ser "Elipse
+ajustada" para ser **"Nuvem da classe"**. Não é firula: é a mesma regra que
+proíbe renderizar ausência como zero — uma figura não pode afirmar mais do que
+foi medido sem avisar.
+
+**O fecho convexo continua literal.** Ele responde a outra pergunta — *qual
+região exatamente estes materiais ocupam* —, e respondê-la com folga nas bordas
+seria responder errado. Nenhum `pad` é aplicado a ele, e há teste para isso.
+
+**A nuvem é o padrão nas duas superfícies**: o mapa exportado pede `ellipse`, e
+`/app/mapas` abre nela, com o fecho a um clique. O padrão é o que o leitor
+reconhece como um mapa de Ashby; o fecho é a escolha de quem sabe por que a
+quer.
+
+**Observação medida, não corrigida.** O piso vale no espaço de dados, então uma
+classe de um material vira um círculo *em décadas* — que na tela aparece
+esticado quando os dois eixos não cobrem o mesmo número de décadas por pixel. É
+honesto (igual em ambas as direções na unidade que o eixo mede) e legível;
+arredondá-lo na tela exigiria pisar em coordenadas de pixel dentro do que hoje é
+cálculo, e o ADR 0004 é claro sobre onde isso pertence.
