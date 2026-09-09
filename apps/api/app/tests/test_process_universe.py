@@ -394,3 +394,101 @@ def test_the_seeded_process_universe_is_coherent(client) -> None:
         )
         assert resp.status_code == 200, resp.text
         assert resp.json()["final_count"] > 0, f"nenhum material sob {root}"
+
+
+# --- the report and the laudo -------------------------------------------------
+
+
+@pytest.fixture()
+def documented_study(client, universe) -> int:
+    """A study whose pipeline mixes all three stage kinds, so the document has to
+    describe each of them."""
+    payload = {
+        "name": "Estudo documentado com processo",
+        "free_variables": [],
+        "criteria": [{"key": "densidade", "weight": 1.0}],
+        "stages": [
+            {"kind": "tree", "label": "Só metais", "class_slugs": ["metais"]},
+            {
+                "kind": "process",
+                "label": "Soldável",
+                "process_slugs": [f"{NS}-solda"],
+            },
+            {
+                "kind": "process",
+                "process_class_slugs": [f"{NS}-conformacao"],
+                "enabled": False,
+            },
+        ],
+    }
+    resp = client.post("/api/selection/studies", json=payload)
+    assert resp.status_code == 201, resp.text
+    return resp.json()["id"]
+
+
+def test_the_report_names_the_process_stage_by_type(client, documented_study) -> None:
+    text = client.get(f"/api/exports/estudos/{documented_study}.html").text
+    stages_section = text.split("Estágios")[1]
+
+    # "Processos", not the raw `process` slug the engine uses.
+    assert "Processos" in stages_section
+    assert "process" not in stages_section.split("Restantes")[0]
+    assert "Soldável" in text
+    # The unnamed stage is named by what it is, never a dash (D-24).
+    assert "Sem rótulo" in stages_section
+    assert "—" not in stages_section.split("Habilitado")[0]
+
+
+def test_the_problem_section_spells_out_the_process_selection(client, documented_study) -> None:
+    """The document says "algum de", and names the processes and folders by their
+    display names — a reader who assumed every selected process must apply would
+    misread the candidate list."""
+    text = client.get(f"/api/exports/estudos/{documented_study}.html").text
+    problem = text.split("Estágios")[0]
+
+    assert "algum de" in problem
+    assert "Solda de teste" in problem
+    assert "Conformação de teste" in problem
+    assert "com descendentes" in problem
+    # And the disabled stage is described as disabled, not omitted.
+    assert "desabilitado" in problem
+
+
+def test_the_funnel_names_the_process_question_not_the_tree_one(client, universe) -> None:
+    """Found by reading the rendered document, not by an assertion: a process
+    stage used to report `in_tree` on its funnel line, telling the reader the
+    selection had filtered by material class."""
+    resp = client.post(
+        "/api/selection/filter",
+        json={
+            "stages": [
+                {"kind": "tree", "class_slugs": ["metais"]},
+                {"kind": "process", "process_slugs": [f"{NS}-solda"]},
+            ]
+        },
+    )
+    assert resp.status_code == 200, resp.text
+    assert [step["operator"] for step in resp.json()["steps"]] == ["in_tree", "in_process"]
+
+
+def test_the_laudo_describes_the_process_stage_too(client, documented_study) -> None:
+    resp = client.get(f"/api/exports/estudos/{documented_study}/laudo.html")
+    assert resp.status_code == 200, resp.text
+    assert "Processos" in resp.text
+    assert "Solda de teste" in resp.text
+
+
+def test_a_process_stage_with_nothing_selected_says_so_in_the_document(client, universe) -> None:
+    """Absence written out, not an empty cell the reader has to interpret."""
+    created = client.post(
+        "/api/selection/studies",
+        json={
+            "name": "Estudo com processo vazio",
+            "free_variables": [],
+            "criteria": [],
+            "stages": [{"kind": "process", "label": "Ainda a definir"}],
+        },
+    )
+    assert created.status_code == 201, created.text
+    text = client.get(f"/api/exports/estudos/{created.json()['id']}.html").text
+    assert "nenhum processo selecionado" in text

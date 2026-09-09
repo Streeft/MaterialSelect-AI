@@ -100,6 +100,13 @@ _NUMERIC_OPS = {
 #: forgotten here — it would read as its own raw slug, which is visible.
 _STAGE_KIND_LABELS = {"limit": "limites", "tree": "classes", "process": "processos"}
 
+#: The operator a single-question stage reports on its funnel line. `in_tree`
+#: predates P0-2 and is kept verbatim so a pre-existing study's funnel reads
+#: unchanged; `in_process` is the new one, and it exists because a funnel that
+#: called both `in_tree` would say the selection filtered by material class when
+#: it filtered by process.
+_STAGE_FUNNEL_OPERATORS = {"tree": "in_tree", "process": "in_process"}
+
 
 class SelectionService:
     """Orchestrates the deterministic selection endpoints.
@@ -619,14 +626,17 @@ class SelectionService:
                 # nested sub-group — exactly `_apply_group`, unchanged.
                 inner, narrowed = self._apply_group(remaining, stage.root)
             else:
-                # A tree stage is a single question, so a single line. Nothing
-                # ticked narrows nothing, and a line saying so is more honest
-                # than a silent absence.
+                # A tree or process stage is a single question, so a single line.
+                # Nothing ticked narrows nothing, and a line saying so is more
+                # honest than a silent absence. The operator names *which*
+                # question: reporting `in_tree` for a process stage would tell
+                # the reader of the funnel that the selection filtered by
+                # material class when it filtered by process.
                 narrowed = apply_stage(remaining, stage)
                 inner = [
                     FunnelStepOut(
                         label=display,
-                        operator="in_tree",
+                        operator=_STAGE_FUNNEL_OPERATORS.get(stage.kind, stage.kind),
                         passed=standalone,
                         remaining=len(narrowed),
                     )
