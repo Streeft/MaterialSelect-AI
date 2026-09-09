@@ -458,6 +458,8 @@ export const ptBR = {
     title: "Catálogo de materiais",
     subtitle: "O que existe cadastrado, e com que qualidade de dado.",
     searchPlaceholder: "Buscar por nome, classe ou palavra-chave…",
+    searchHint:
+      "Aceita operadores: aço AND inox · aço OR alumínio · aço NOT inox · \"aço inox\" para a frase exata · parênteses para agrupar · alum* e a?o como curingas.",
     searchLabel: "Buscar materiais",
     columnName: "Material",
     columnClass: "Classe",

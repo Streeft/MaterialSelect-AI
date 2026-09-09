@@ -333,7 +333,7 @@ outros dois métodos; o laudo descrevia um estudo aninhado como um combinador
 único opaco. Os quatro corrigidos numa rodada só, rerrevisão limpa. Ver
 `docs/PROJECT_CONTEXT.md` §3 e `docs/07-selecao-deterministica.md`.
 
-904 testes de backend (nenhum skip) e 197 de frontend, todos verdes. CI no
+934 testes de backend (nenhum skip) e 197 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
 PROJECT_CONTEXT.md).

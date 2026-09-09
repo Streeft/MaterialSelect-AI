@@ -107,6 +107,7 @@ export default function CatalogPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={t.searchPlaceholder}
+            hint={t.searchHint}
           />
 
           <Select
