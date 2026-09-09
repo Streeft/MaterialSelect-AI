@@ -97,9 +97,13 @@ class StageIn(BaseModel):
       ``root_group`` (M6), exactly as the top-level payload accepts them.
     * ``kind="tree"``: ``class_slugs``, with ``include_descendants`` deciding
       whether picking a folder picks everything under it.
+    * ``kind="process"``: ``process_slugs`` and/or ``process_class_slugs``
+      (P0-2) — the join into the process universe. Any-of: the stage keeps the
+      materials some selected process applies to. ``include_descendants``
+      applies to the folders here too.
     """
 
-    kind: Literal["limit", "tree"] = "limit"
+    kind: Literal["limit", "tree", "process"] = "limit"
     label: str | None = Field(default=None, max_length=200)
     enabled: bool = True
 
@@ -108,6 +112,10 @@ class StageIn(BaseModel):
     root_group: ConstraintGroupIn | None = None
 
     class_slugs: list[str] = Field(default_factory=list)
+    process_slugs: list[str] = Field(default_factory=list)
+    process_class_slugs: list[str] = Field(default_factory=list)
+    # Shared by the tree and process stages: in both, a folder means what is
+    # under it.
     include_descendants: bool = True
 
 
@@ -120,11 +128,13 @@ class StageOut(BaseModel):
     """
 
     position: int
-    kind: Literal["limit", "tree"]
+    kind: Literal["limit", "tree", "process"]
     label: str | None = None
     enabled: bool
     root_group: ConstraintGroupIn | None = None
     class_slugs: list[str] = Field(default_factory=list)
+    process_slugs: list[str] = Field(default_factory=list)
+    process_class_slugs: list[str] = Field(default_factory=list)
     include_descendants: bool = True
 
 
@@ -204,7 +214,8 @@ class StageResultOut(BaseModel):
 
     ``steps`` is the inner funnel of a limit stage — one line per constraint or
     nested sub-group, the same shape the single-tree funnel always had. A tree
-    stage has no inner steps: its whole question is the folder selection.
+    or process stage has no inner steps: its whole question is the selection
+    itself.
     """
 
     position: int
