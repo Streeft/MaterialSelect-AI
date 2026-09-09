@@ -43,6 +43,7 @@ from app.models.selection import (
     ConstraintGroup,
     RankingCriterion,
     SelectionConstraint,
+    SelectionStage,
     SelectionStudy,
 )
 from app.models.user import User
@@ -259,6 +260,7 @@ class SelectionService:
         group_in: ConstraintGroupIn,
         parent_group_id: int | None,
         position: int,
+        stage_id: int,
     ) -> ConstraintGroup:
         """Recursively persist a ConstraintGroupIn tree as real ConstraintGroup
         rows (root first, then children depth-first), each SelectionConstraint
@@ -269,6 +271,7 @@ class SelectionService:
         group = ConstraintGroup(
             study_id=study.id,
             parent_group_id=parent_group_id,
+            stage_id=stage_id,
             operator=group_in.operator,
             position=position,
         )
@@ -292,7 +295,7 @@ class SelectionService:
                 )
             )
         for g_position, child_in in enumerate(group_in.groups):
-            self._persist_group_tree(study, child_in, group.id, g_position)
+            self._persist_group_tree(study, child_in, group.id, g_position, stage_id)
         return group
 
     def _request_root_node(
@@ -810,11 +813,29 @@ class SelectionService:
         self.repo.add(study)
         self.repo.flush()  # assigns study.id, needed by the root group below
 
+        # P0-1: every study owns at least one stage, and every ConstraintGroup
+        # belongs to one. A study saved through the flat/root_group payload is
+        # a single enabled limit stage — the same shape the migration's
+        # backfill gives every pre-P0-1 study.
+        stage = SelectionStage(
+            study_id=study.id,
+            position=0,
+            kind="limit",
+            label=None,
+            enabled=True,
+            class_slugs=[],
+            include_descendants=True,
+        )
+        self.repo.add(stage)
+        self.repo.flush()  # assigns stage.id, needed by every group below
+
         if payload.root_group is not None:
             # M6: an explicit nested tree — persist it for real, root first
             # then children depth-first, each SelectionConstraint pointing at
             # its own owning group.
-            self._persist_group_tree(study, payload.root_group, parent_group_id=None, position=0)
+            self._persist_group_tree(
+                study, payload.root_group, parent_group_id=None, position=0, stage_id=stage.id
+            )
         else:
             # M6: every study gets exactly one root ConstraintGroup, mirroring
             # the study's own combinator — this keeps a flat-payload study
@@ -824,6 +845,7 @@ class SelectionService:
             root_group = ConstraintGroup(
                 study_id=study.id,
                 parent_group_id=None,
+                stage_id=stage.id,
                 operator=payload.combinator,
                 position=0,
             )
