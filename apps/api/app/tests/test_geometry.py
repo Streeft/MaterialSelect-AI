@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 from app.domain.geometry import bounding_box, convex_hull, fitted_ellipse
 
 
@@ -86,3 +88,50 @@ class TestFittedEllipse:
         points = [(0.0, 0.0), (1.0, 1.0), (2.0, 2.0)]
         ellipse = fitted_ellipse(points)
         assert len(ellipse) >= 2
+
+
+class TestEllipseCloudsForReading:
+    """Granta-style clouds: a class with two grades still reads as a family.
+
+    The bounding ellipse is honest but unreadable on a real catalogue — a
+    class with one grade collapses to a dot, two to a segment. Padding and a
+    floor turn it into the blob an Ashby chart is recognised by. Both default
+    to off, so the bounding guarantee above is what a caller gets unless it
+    asks otherwise.
+    """
+
+    def test_padding_grows_the_ellipse_around_the_same_centre(self) -> None:
+        points = [(0.0, 0.0), (2.0, 0.0), (1.0, 1.0), (1.0, -1.0)]
+        tight = fitted_ellipse(points)
+        padded = fitted_ellipse(points, pad=2.0)
+
+        def extent(poly: list[tuple[float, float]]) -> tuple[float, float]:
+            xs = [p[0] for p in poly]
+            ys = [p[1] for p in poly]
+            return max(xs) - min(xs), max(ys) - min(ys)
+
+        tw, th = extent(tight)
+        pw, ph = extent(padded)
+        assert pw > tw and ph > th
+        # The centre must not drift: a cloud that slides off its materials
+        # would put a class where it is not.
+        assert sum(p[0] for p in padded) / len(padded) == pytest.approx(
+            sum(p[0] for p in tight) / len(tight), abs=1e-9
+        )
+
+    def test_a_single_material_still_gets_a_visible_cloud(self) -> None:
+        poly = fitted_ellipse([(5.0, 5.0)], min_semi_axis=0.5)
+        assert len(poly) > 2
+        xs = [p[0] for p in poly]
+        assert max(xs) - min(xs) == pytest.approx(1.0, abs=1e-6)
+
+    def test_two_materials_do_not_collapse_to_a_segment(self) -> None:
+        # Collinear input: without a floor the minor axis is zero and the
+        # "ellipse" is a line the reader cannot tell from a stroke.
+        poly = fitted_ellipse([(0.0, 0.0), (2.0, 0.0)], min_semi_axis=0.4)
+        ys = [p[1] for p in poly]
+        assert max(ys) - min(ys) == pytest.approx(0.8, abs=1e-6)
+
+    def test_the_default_is_still_the_bounding_ellipse(self) -> None:
+        points = [(0.0, 0.0), (2.0, 0.0), (1.0, 1.0)]
+        assert fitted_ellipse(points) == fitted_ellipse(points, pad=1.0, min_semi_axis=0.0)

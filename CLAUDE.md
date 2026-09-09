@@ -60,6 +60,13 @@ mesma chamada que serve a tela: reimplementá-la no exportador criaria duas
 verdades sobre a mesma figura. Figura que não pode ser desenhada é **omitida com
 a razão na legenda**, nunca falha a exportação.
 
+O envelope de classe é uma **nuvem** ([D-54](docs/DECISIONS.md)): elipse com
+folga e piso de tamanho, para que uma classe de um material ainda se leia como
+família — o fecho convexo precisa de três pontos e some no catálogo didático. A
+nuvem **alarga** a região além dos materiais nela, então é indicativa, e a
+legenda diz isso. O **fecho continua literal** e nunca recebe folga: ele responde
+a "qual região exatamente estes materiais ocupam".
+
 **O escape é por formato, e não intercambiável.** `cells.py` neutraliza injeção
 de fórmula na planilha com apóstrofo à frente — visível, nunca destrutivo;
 números negativos saem como célula numérica de propósito. `html.py` neutraliza
@@ -326,7 +333,7 @@ outros dois métodos; o laudo descrevia um estudo aninhado como um combinador
 único opaco. Os quatro corrigidos numa rodada só, rerrevisão limpa. Ver
 `docs/PROJECT_CONTEXT.md` §3 e `docs/07-selecao-deterministica.md`.
 
-896 testes de backend (nenhum skip) e 197 de frontend, todos verdes. CI no
+934 testes de backend (nenhum skip) e 197 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
 PROJECT_CONTEXT.md).

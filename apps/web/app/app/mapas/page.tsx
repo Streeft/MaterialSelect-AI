@@ -220,7 +220,9 @@ function MapsPageContent() {
   });
   const [scale, setScale] = useState<ChartScale>(decodedState?.scale ?? "log");
   const [displayScale, setDisplayScale] = useState<ChartScale>(scale);
-  const [envelopeShape, setEnvelopeShape] = useState<"hull" | "ellipse">(decodedState?.envelopeShape ?? "hull");
+  // The cloud is the default because it is what an Ashby chart is read by;
+  // the hull stays one click away for "exactly which region do these occupy".
+  const [envelopeShape, setEnvelopeShape] = useState<"hull" | "ellipse">(decodedState?.envelopeShape ?? "ellipse");
   const [selectedClasses, setSelectedClasses] = useState<string[]>(decodedState?.selectedClasses ?? []);
   const [showEnvelopes, setShowEnvelopes] = useState(decodedState?.showEnvelopes ?? true);
   const [showIntervals, setShowIntervals] = useState(decodedState?.showIntervals ?? true);

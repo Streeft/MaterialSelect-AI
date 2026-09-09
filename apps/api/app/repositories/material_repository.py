@@ -4,15 +4,48 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from sqlalchemy import delete, exists, func, or_, select
+from sqlalchemy import and_, delete, exists, func, not_, or_, select
 from sqlalchemy.orm import Session, joinedload, selectinload
 
+from app.domain.search_query import And, Node, Not, Term, parse_query, to_like_pattern
 from app.models.material import Material
 from app.models.material_class import MaterialClass
 from app.models.material_keyword import MaterialKeyword
 from app.models.material_property_value import MaterialPropertyValue
 from app.models.property_definition import PropertyDefinition
 from app.models.source import Source
+
+
+def _matches(term: Term):
+    """One term against every column a reader would expect it to hit.
+
+    Name, class and keyword — the three the catalogue already indexed. A term
+    that matches any of them matches the material; `NOT` then negates the whole
+    disjunction, which is what "steel NOT alloy" means.
+    """
+    pattern = to_like_pattern(term)
+    keyword_match = exists(
+        select(MaterialKeyword.id).where(
+            MaterialKeyword.material_id == Material.id,
+            func.lower(MaterialKeyword.keyword).like(pattern, escape="\\"),
+        )
+    )
+    return or_(
+        func.lower(Material.name).like(pattern, escape="\\"),
+        func.lower(MaterialClass.name).like(pattern, escape="\\"),
+        keyword_match,
+    )
+
+
+def _compile(node: Node):
+    """Turn a parsed query into a SQLAlchemy boolean expression."""
+    if isinstance(node, Term):
+        return _matches(node)
+    if isinstance(node, Not):
+        return not_(_compile(node.operand))
+    if isinstance(node, And):
+        return and_(*(_compile(o) for o in node.operands))
+    return or_(*(_compile(o) for o in node.operands))
 
 
 class MaterialRepository:
@@ -42,26 +75,8 @@ class MaterialRepository:
             .order_by(Material.name)
         )
 
-        if search:
-            # Escape LIKE metacharacters so user input is matched literally —
-            # otherwise "%" and "_" act as wildcards and silently distort results.
-            escaped = (
-                search.strip().lower().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-            )
-            term = f"%{escaped}%"
-            keyword_match = exists(
-                select(MaterialKeyword.id).where(
-                    MaterialKeyword.material_id == Material.id,
-                    func.lower(MaterialKeyword.keyword).like(term, escape="\\"),
-                )
-            )
-            stmt = stmt.where(
-                or_(
-                    func.lower(Material.name).like(term, escape="\\"),
-                    func.lower(MaterialClass.name).like(term, escape="\\"),
-                    keyword_match,
-                )
-            )
+        if search and search.strip():
+            stmt = stmt.where(_compile(parse_query(search)))
 
         return list(self.db.execute(stmt).scalars().unique().all())
 

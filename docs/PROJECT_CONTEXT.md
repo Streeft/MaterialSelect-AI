@@ -237,7 +237,7 @@ tudo limpo, sem achado novo. Commit `73eb4a2` sobre `0d00ee7`. Ver
 `docs/07-selecao-deterministica.md` para a descrição de cada método e do
 modelo de árvore.
 
-**Saúde do código:** 896 testes de backend (Python 3.11 e 3.12, nenhum skip)
+**Saúde do código:** 934 testes de backend (Python 3.11 e 3.12, nenhum skip)
 e 179 de frontend, todos verdes. `ruff` limpo, `black
 --check` limpo, typecheck estrito e build de produção sem avisos. CI no
 GitHub Actions rodando em todo PR e push para `main`, com os checks
