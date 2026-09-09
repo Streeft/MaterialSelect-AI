@@ -47,6 +47,25 @@ _NUMERIC_OPERATORS = {
 }
 
 
+@dataclass(frozen=True)
+class ProcessReach:
+    """One process a material can be made with, and the folders that process
+    sits in (P0-2).
+
+    Carrying the process's class lineage *here*, on the material's side of the
+    join, is what keeps this module free of the taxonomy: matching a process
+    folder becomes a local question about a snapshot, exactly as
+    ``class_lineage`` made matching a material folder local. The alternative —
+    passing a process-taxonomy map down through ``apply_stage`` — would thread
+    a lookup table through three signatures to answer the same question.
+    """
+
+    process_slug: str
+    #: The process's class lineage, root→leaf. Empty when unknown, in which case
+    #: the process is matchable by its own slug alone.
+    class_path: tuple[str, ...] = ()
+
+
 @dataclass
 class MaterialSnapshot:
     """In-memory view of one active material used across the selection pipeline.
@@ -68,6 +87,11 @@ class MaterialSnapshot:
     #: exactly the pre-P0-1 ``IN_CLASS`` behaviour. Read it through
     #: ``class_lineage``, never directly.
     class_path: list[str] = field(default_factory=list)
+    #: The processes this material can be made with, each with its own folder
+    #: lineage (P0-2). Empty is the honest default: a snapshot built without it
+    #: simply has no process side to its join, which is what every snapshot
+    #: built before P0-2 looks like.
+    processes: list[ProcessReach] = field(default_factory=list)
 
     @property
     def class_lineage(self) -> tuple[str, ...]:
@@ -120,6 +144,58 @@ def matches_tree(material: MaterialSnapshot, selection: TreeSelection) -> bool:
     if selection.include_descendants:
         return any(slug in picked for slug in material.class_lineage)
     return material.class_slug in picked
+
+
+@dataclass(frozen=True)
+class ProcessSelection:
+    """The processes a stage keeps materials for — the join's other direction.
+
+    In the Ashby method a Tree stage is not "filter by folder", it is a join
+    between two universes: *the materials this process shapes*, and *the
+    processes that join these materials*. ``TreeSelection`` above walks the
+    material taxonomy; this one walks the process taxonomy and lands on
+    materials through the N–N link.
+
+    **Any-of, not all-of.** A material passes when *some* selected process
+    applies to it. "Weldable **and** injection-mouldable" is two stages, and the
+    pipeline already intersects them — which is precisely the composition the
+    ordered stack exists for, so expressing it twice would be two ways to say
+    one thing, one of them redundant.
+
+    Selecting nothing imposes no restriction, the same convention an empty
+    constraint group and an empty ``TreeSelection`` follow.
+    """
+
+    #: Individual processes, by slug — the leaves of the process tree.
+    process_slugs: tuple[str, ...] | list[str] = field(default_factory=tuple)
+    #: Process *folders*, by slug. A separate field and not the same list
+    #: because a process slug and a process-class slug are different
+    #: namespaces, and one list would leave the reader guessing which table
+    #: each entry names.
+    process_class_slugs: tuple[str, ...] | list[str] = field(default_factory=tuple)
+    include_descendants: bool = True
+
+
+def matches_processes(material: MaterialSnapshot, selection: ProcessSelection) -> bool:
+    """Return True if some selected process applies to ``material``."""
+    picked_processes = set(selection.process_slugs)
+    picked_folders = set(selection.process_class_slugs)
+    if not picked_processes and not picked_folders:
+        return True
+
+    for reach in material.processes:
+        if reach.process_slug in picked_processes:
+            return True
+        if not picked_folders:
+            continue
+        if selection.include_descendants:
+            if any(slug in picked_folders for slug in reach.class_path):
+                return True
+        elif reach.class_path and reach.class_path[-1] in picked_folders:
+            # Without descendants a folder means the processes filed directly
+            # in it — the process's own class, not an ancestor of it.
+            return True
+    return False
 
 
 @dataclass
@@ -179,15 +255,18 @@ class SelectionStageNode:
     """One stage of the selection pipeline, independent of the ORM (P0-1).
 
     A ``"limit"`` stage carries ``root`` (a constraint tree, M6's nesting
-    included); a ``"tree"`` stage carries ``tree`` (a folder selection). The
-    other field is ``None`` — a stage is one kind of question, not both.
+    included); a ``"tree"`` stage carries ``tree`` (a folder selection over the
+    material taxonomy); a ``"process"`` stage carries ``processes`` (P0-2, the
+    join into the process universe). The other fields are ``None`` — a stage is
+    one kind of question, not several.
     """
 
-    kind: str  # "limit" | "tree"
+    kind: str  # "limit" | "tree" | "process"
     label: str | None
     enabled: bool
     root: ConstraintGroupNode | None = None
     tree: TreeSelection | None = None
+    processes: ProcessSelection | None = None
 
 
 def evaluate_constraint(constraint: Constraint, material: MaterialSnapshot) -> bool:
@@ -350,6 +429,10 @@ def apply_stage(
         if stage.tree is None:
             return list(materials)
         return [m for m in materials if matches_tree(m, stage.tree)]
+    if stage.kind == "process":
+        if stage.processes is None:
+            return list(materials)
+        return [m for m in materials if matches_processes(m, stage.processes)]
     if stage.root is None:
         return list(materials)
     return apply_constraint_tree(materials, stage.root)
