@@ -674,24 +674,51 @@ class SelectionService:
             )
         return build(roots[0])
 
-    def describe_root_group(self, study: SelectionStudy) -> str:
-        """Render a study's real constraint tree as one compact, readable
-        expression — e.g. ``E( restrição1, restrição2, OU( restrição3,
-        restrição4 ) )`` — instead of the single root operator a caller
-        might otherwise read off ``study.combinator`` and mistake for the
-        whole study's logic.
+    def describe_pipeline(self, study: SelectionStudy) -> str:
+        """Render a study's real selection logic as one compact, readable
+        expression — for the export/laudo's "Problema" sheet (D-41).
 
-        For the export/laudo's "Problema" sheet (D-41): a nested study is
-        genuinely misdescribed by its root group's operator alone, and the
-        funnel already collapses a subgroup into one opaque "Subgrupo" row
-        with nothing showing what is inside it — this is the one place in
-        the document that spells the real structure out.
+        Two things it exists to avoid saying, both of which would be false:
+
+        * ``study.combinator`` alone (the first root group's operator)
+          misdescribes a nested study — e.g. ``E( restrição1, OU( restrição2,
+          restrição3 ) )`` — and the funnel collapses a subgroup into one opaque
+          "Subgrupo" row with nothing showing what is inside it. This is the one
+          place in the document that spells the structure out.
+        * With P0-1 a study can have several stages, and describing only the
+          first one's tree would quietly drop the rest. A single-stage study —
+          every study saved before P0-1 — still renders exactly as it did, with
+          no stage wrapper at all.
         """
-        self._load()  # populates self._props, needed by _load_group_tree
-        root = self._load_group_tree(study)
-        if not root.constraints and not root.children:
+        self._load()  # populates self._props, needed by the stage trees
+        stages = self._load_stages(study)
+
+        if len(stages) == 1 and stages[0].kind == "limit":
+            return self._describe_limit(stages[0])
+
+        return "; ".join(
+            self._describe_stage(stage, position) for position, stage in enumerate(stages)
+        )
+
+    def _describe_limit(self, stage: SelectionStageNode) -> str:
+        root = stage.root
+        if root is None or (not root.constraints and not root.children):
             return "Nenhuma restrição definida."
         return self._render_group_tree(root)
+
+    def _describe_stage(self, stage: SelectionStageNode, position: int) -> str:
+        name = self._stage_display(stage, position)
+        state = "" if stage.enabled else " [desabilitado]"
+        if stage.kind == "limit":
+            return f"{name}{state}: {self._describe_limit(stage)}"
+
+        selection = stage.tree or TreeSelection()
+        if not selection.class_slugs:
+            return f"{name}{state}: nenhuma classe selecionada"
+        names = self.repo.class_names()
+        picked = ", ".join(names.get(slug, slug) for slug in selection.class_slugs)
+        scope = "com descendentes" if selection.include_descendants else "sem descendentes"
+        return f"{name}{state}: classes {picked} ({scope})"
 
     @classmethod
     def _render_group_tree(cls, group: ConstraintGroupNode) -> str:

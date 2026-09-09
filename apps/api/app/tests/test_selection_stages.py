@@ -474,3 +474,104 @@ def test_a_flat_study_still_reports_one_stage_on_read(client):
     assert read["stages"][0]["root_group"]["operator"] == "OR"
     # The flat field kept its old meaning too.
     assert len(read["constraints"]) == 1
+
+
+# --- The documents describe the pipeline, not just the first stage ----------
+
+
+def _exportable_pipeline_study(client) -> int:
+    payload = {
+        "name": "Pilha exportável",
+        "function_text": "Viga leve e rígida",
+        "objective_text": "Minimizar massa",
+        "free_variables": ["área da seção"],
+        "index": {
+            "name": "Rigidez específica",
+            "expression": "modulo_young / densidade",
+            "goal": "maximize",
+        },
+        "criteria": [{"key": "__index__", "weight": 1.0}],
+        "stages": [
+            {"kind": "tree", "label": "Só metais", "class_slugs": ["metais"]},
+            {
+                "kind": "limit",
+                "label": "Leves",
+                "constraints": [
+                    {
+                        "operator": "lte",
+                        "property_slug": "densidade",
+                        "value": 2800,
+                        "unit": "kg/m**3",
+                    }
+                ],
+            },
+            {
+                "kind": "limit",
+                "label": "Rígidos",
+                "enabled": False,
+                "constraints": [
+                    {
+                        "operator": "gte",
+                        "property_slug": "modulo_young",
+                        "value": 200,
+                        "unit": "GPa",
+                    }
+                ],
+            },
+        ],
+    }
+    resp = client.post("/api/selection/studies", json=payload)
+    assert resp.status_code == 201, resp.text
+    return resp.json()["id"]
+
+
+def test_the_report_lists_every_stage(client):
+    study_id = _exportable_pipeline_study(client)
+    text = client.get(f"/api/exports/estudos/{study_id}.html").text
+
+    assert "Estágios" in text
+    for label in ("Só metais", "Leves", "Rígidos"):
+        assert label in text
+    # The disabled one is marked, not hidden: a document that omits a stage the
+    # study carries is a document that misdescribes the study.
+    assert "Não" in text.split("Estágios")[1]
+
+
+def test_the_problem_section_describes_the_whole_pipeline(client):
+    study_id = _exportable_pipeline_study(client)
+    text = client.get(f"/api/exports/estudos/{study_id}.html").text
+
+    problem = text.split("Estágios")[0]
+    assert "Só metais" in problem
+    assert "Leves" in problem
+    assert "[desabilitado]" in problem
+    # Class names, not slugs: the taxonomy has display names and the document
+    # should use them.
+    assert "Metais" in problem
+
+
+def test_the_laudo_lists_every_stage_too(client):
+    study_id = _exportable_pipeline_study(client)
+    text = client.get(f"/api/exports/estudos/{study_id}/laudo.html").text
+
+    assert "Estágios" in text
+    for label in ("Só metais", "Leves", "Rígidos"):
+        assert label in text
+
+
+def test_a_single_stage_study_still_reads_as_one_tree_in_the_document(client):
+    """The compatibility half: no stage wrapper, exactly the M6 rendering."""
+    payload = {
+        "name": "Estudo de um estágio para exportar",
+        "free_variables": [],
+        "criteria": [],
+        "constraints": [
+            {"operator": "lte", "property_slug": "densidade", "value": 2800, "unit": "kg/m**3"}
+        ],
+    }
+    study_id = client.post("/api/selection/studies", json=payload).json()["id"]
+
+    problem = client.get(f"/api/exports/estudos/{study_id}.html").text.split("Estágios")[0]
+    assert "Estágio 1" not in problem
+    assert "[desabilitado]" not in problem
+    assert problem.count("E(") == 1

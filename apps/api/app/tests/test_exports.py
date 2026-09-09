@@ -429,6 +429,7 @@ class TestStudyExport:
         for expected in [
             "Aviso",
             "Problema",
+            "Estágios",
             "Restrições e funil",
             "Candidatos",
             "Índice de desempenho",
@@ -445,6 +446,7 @@ class TestStudyExport:
         text = client.get(f"/api/exports/estudos/{self._study_id(client)}.html").text
         for expected in [
             "Problema",
+            "Estágios",
             "Restrições e funil",
             "Candidatos",
             "Índice de desempenho",
@@ -600,6 +602,7 @@ class TestStudyLaudo:
         text = client.get(f"/api/exports/estudos/{_exportable_study_id(client)}/laudo.html").text
         for expected in [
             "Problema",
+            "Estágios",
             "Restrições e funil",
             "Candidatos",
             "Índice de desempenho",
