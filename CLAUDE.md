@@ -331,8 +331,20 @@ quebras reais vieram junto e estão documentadas em `docs/TODO.md`: o Turbopack
 virou padrão (daí o `--webpack`, [D-51](docs/DECISIONS.md)), `next lint` foi
 removido (o script chama o ESLint direto) e o Next 16 bloqueia recurso de
 desenvolvimento cross-origin (daí `allowedDevOrigins`, sem o qual o E2E não
-hidratava). O que sobrou de CVE é **S2** e é todo toolchain de desenvolvimento —
-nada que a aplicação publicada alcance.
+hidratava).
+
+**S2 (o resto das CVEs) entregue:** `npm audit` em `apps/web` de **27 para 14**.
+`vitest` 2 → **5** (com `vite` 7 e `@vitejs/plugin-react` 5) fechou o único
+crítico de então; `eslint` 8 → **9** com `eslint-config-next` 16 levou a config
+para *flat config*; `@lhci/cli` 0.13 → **0.15.1**. Três armadilhas estão no §10
+de `docs/CLAUDE.md`. E um achado que desmente o enunciado original do S2: o
+lockfile antigo tinha `resolved`/`integrity` em **59 de 1095** entradas, então o
+`npm audit` não enxergava a maior parte da árvore — os dois críticos de
+`plotly.js`/`maplibre-gl` já estavam lá e não eram reportados. Eles **não**
+chegam ao navegador (o Plotly é montado à la carte e nenhum traço de mapa é
+registrado — medido no pacote, com controle positivo), mas a frase "nenhuma CVE
+em código de produção" era subcontagem, não fato. O que resta é **S3**, e
+nenhuma das cadeias tem versão corrigida publicada.
 
 **Patch de design "Prisma" entregue** (sete tarefas dirigidas por
 subagentes mais uma verificação final; detalhe completo em

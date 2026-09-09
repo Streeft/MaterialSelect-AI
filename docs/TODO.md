@@ -13,25 +13,45 @@ os vizinhos — outros documentos citam esses códigos.
 
 ## Alta prioridade
 
-**S2 — CVEs remanescentes, todos no toolchain de desenvolvimento.** ▃ Depois
-do S1 (ver "Débitos já quitados"), `npm audit` em `apps/web` sai de 30 para 27
-achados — e **nenhum dos 27 é código que vai para produção**. São três cadeias,
-cada uma presa a um major:
+**S3 — as cadeias de CVE que nenhum upgrade fecha.** ▃ O S2 (ver "Débitos já
+quitados") derrubou o `npm audit` de 27 para **14** achados e fechou as duas
+cadeias que tinham caminho de upgrade. As três que sobraram **não têm versão
+corrigida publicada**, e por isso são acompanhamento, não tarefa:
 
-- **`vitest` 2.x → 5** (1 crítico, mais `vite`/`esbuild`/`vite-node`/
-  `@vitest/mocker`): o crítico só vale com o *UI server* do Vitest escutando,
-  que não sobe nem em CI nem em produção.
-- **`@lhci/cli`** (arrasta `lighthouse`, `puppeteer-core`, `tar-fs`, `tmp`,
-  `ws`, `extract-zip`, `inquirer`, `uuid`, `cookie`): só roda no job de
-  Lighthouse. Atenção: o `fixAvailable` que o `npm audit` sugere aqui é
-  `@lhci/cli@0.1.0` — uma versão **anterior** à instalada, não uma correção;
-  não siga essa recomendação às cegas.
-- **`eslint-config-next` 14 → 16** (com `@next/eslint-plugin-next` e `glob`):
-  exige ESLint 9, e o projeto está no 8 com `.eslintrc.json`. Migrar significa
-  ir para *flat config* — trabalho real, não um bump. Ficou de fora do S1 de
-  propósito: nenhum desses CVEs é alcançável pela aplicação publicada, e
-  misturar a migração do ESLint com a do Next dobraria a superfície de quebra
-  num único PR.
+- **`plotly.js` → `maplibre-gl` (2 críticos).** *XSS sanitizer bypass*
+  ([GHSA-jrc7-96c5-q579](https://github.com/advisories/GHSA-jrc7-96c5-q579)),
+  que atinge `maplibre-gl <= 6.4.0`. O `plotly.js` 3.7.0 depende de
+  `maplibre-gl ^4.7.1`, e nem a 4.1.0 do Plotly ajuda: ela pede `^5.24.0`,
+  ainda dentro da faixa vulnerável. O `fixAvailable` do npm aponta
+  `plotly.js@2.34.0`, que é **downgrade de major** — a mesma armadilha do
+  `@lhci/cli`, e pela mesma razão: a versão sugerida é anterior à que
+  introduziu a dependência.
+
+  **Medido: o código vulnerável não chega ao navegador.** O Plotly é montado à
+  la carte (`lib/plotly-custom.ts` registra `bar`, `box`, `heatmap`, `scatter`
+  e `scatterpolar`), e nenhum traço de mapa entra no pacote. Numa build de
+  produção com 22 chunks, `Plotly` aparece em 2 deles e `maplibre` em
+  **nenhum** — controle positivo feito junto, para que o zero não fosse o zero
+  de um diretório vazio. Reavalie **se um sexto traço for registrado**: um
+  `scattermap` ou `choroplethmap` puxaria o maplibre para dentro do pacote e
+  transformaria isto num problema alcançável em produção.
+- **`@lhci/cli` (9 achados).** A 0.15.1 — a mais nova — ainda depende de
+  `tmp ^0.1.0`, `uuid ^8.3.1` e `inquirer ^6.3.1`, todos em faixa vulnerável.
+  Só roda no job de Lighthouse.
+- **`express`/`qs` (2 moderados).** Presos dentro do próprio `@lhci/cli`.
+
+**Débito de lint aberto pelo S2.** ▁ O `eslint-config-next` 16 traz a regra
+`react-hooks/set-state-in-effect`, que acusa **seis** pontos de código
+pré-existente: a semeadura de seleção padrão em `/app/comparar`, `/app/mapas` e
+`/app/painel`, a queda de log para linear quando a escala não é permitida (B7/B8)
+e o fechamento da gaveta ao navegar (D-37). São achados legítimos, e cada
+correção é uma refatoração de estado derivado numa tela de produto — com risco
+de regressão em comportamentos que já foram, eles próprios, correções de bug.
+Ficou em `warn` no `eslint.config.mjs`, com a justificativa escrita no arquivo:
+continua aparecendo na saída do lint, não some. **Ao quitar, promova a regra de
+volta para `error` no mesmo PR.** Há ainda 1 aviso de
+`react-hooks/incompatible-library` no `MaterialForm.tsx` (o `watch()` do
+react-hook-form não é memoizável) que é informativo e não tem correção local.
 
 A6 (Cérebro em `main`) foi decidido, não executado: ver "Débitos já
 quitados".
@@ -64,6 +84,52 @@ Nenhum item aberto no momento — B1 a B10 foram entregues nesta sessão (ver
 
 Registrados para não voltarem por engano:
 
+- ~~**S2** — CVEs do toolchain de desenvolvimento~~ — `npm audit` em
+  `apps/web` de **27 para 14** achados, com as duas cadeias que tinham caminho
+  de upgrade fechadas por inteiro. `vitest` 2 → **5** (com `vite` 7,
+  `@vitejs/plugin-react` 5 e `@types/node` 22) fechou o **único crítico** de
+  então, mais `vite`, `esbuild`, `vite-node` e `@vitest/mocker`. `eslint` 8 →
+  **9** e `eslint-config-next` 14 → **16** fecharam `@next/eslint-plugin-next`,
+  `eslint-config-next` e `glob`. `@lhci/cli` 0.13 → **0.15.1** fechou `tar-fs`,
+  `ws`, `@sentry/node` e `cookie`. Sobraram `brace-expansion`, `js-yaml` e
+  `body-parser`, que caíram junto na re-resolução do lockfile. O que **não**
+  fecha é o S3, acima.
+
+  **Três coisas que não eram bump mecânico:**
+
+  1. **O `npm audit fix` cego quebrou a instalação e foi revertido.** Ele
+     re-hoistou o `vitest` para a raiz e deixou o `jsdom` em
+     `apps/web/node_modules`; como o vitest resolve o `jsdom` a partir da
+     própria localização, os 24 arquivos de teste morreram com
+     `Cannot find package 'jsdom'` — reproduzido com `npm ci` limpo, para não
+     confundir com estado sujo de `node_modules`. O caminho que funcionou foi
+     declarar as versões no `package.json` e deixar o npm re-resolver a árvore
+     inteira de uma vez.
+  2. **A migração do Vite 6 mudou de lugar as condições de resolução do SSR, e
+     isso derrubou nove testes de shadow DOM.** O `vitest.config.ts` já trazia
+     `resolve.conditions: ["browser"]` com um comentário explicando por quê: sem
+     ele o `lit-html` resolve pelo build `node/`, que tem `isServer` fixo em
+     `true` e desliga em silêncio o mixin de delegação de ARIA do
+     `@material/web`. Desde o Vite 6 o pipeline de SSR lê as **suas próprias**
+     condições, e `resolve.conditions` deixou de alcançá-lo — a falha que aquele
+     comentário previa, acontecendo. Corrigido repetindo a condição em
+     `ssr.resolve.conditions`/`externalConditions`. **As duas listas têm de
+     concordar.**
+  3. **O ESLint 9 aboliu o `.eslintrc.json` e a flag `--ext`.** O conteúdo da
+     config não mudou (`next/core-web-vitals` e nada mais), mas o alcance passou
+     a ser glob explícito no script `lint`: ao receber um diretório, o ESLint 9
+     linta só `.js`, e o portão passaria verde **sem ter olhado uma linha de
+     TypeScript**. Falha silenciosa, do tipo que este projeto já pagou caro.
+
+  **E um achado que não estava no enunciado do S2:** o lockfile antigo tinha
+  `resolved`/`integrity` em apenas **59 de 1095** entradas, então o `npm audit`
+  não conseguia identificar a maior parte da árvore para conferir contra a base
+  de avisos. Os "27 achados, nenhum deles em código de produção" eram
+  subcontagem: os dois críticos de `plotly.js`/`maplibre-gl` já estavam lá, nas
+  mesmas versões, e simplesmente não eram reportados. O lockfile regenerado é
+  completo, e por isso o número de agora é comparável ao que qualquer outra
+  máquina veria.
+
 - ~~**S1** — upgrade de segurança do Next e do PostCSS~~ — `next` 14.2.35 →
   **16.3.4** e `postcss` → **8.5.28**, fechando os **21 CVEs do Next** (SSRF em
   rewrites e em Server Actions, DoS em Server Components e no Image Optimizer,
@@ -88,8 +154,10 @@ Registrados para não voltarem por engano:
      `webServer` do `playwright.config.ts`, com medição comparativa e o porquê
      em [D-51](DECISIONS.md). Maior chunk continua **980 KB**.
   2. **`next lint` foi removido.** O script `lint` passou a chamar o ESLint
-     direto (`eslint app components lib --ext .ts,.tsx`), cobrindo os mesmos
-     diretórios que o `next lint` cobria por padrão — nem mais, nem menos.
+     direto, cobrindo os mesmos diretórios que o `next lint` cobria por padrão —
+     nem mais, nem menos. (A forma exata mudou de novo no S2, com a migração
+     para *flat config*: a flag `--ext` não existe mais no ESLint 9 e o alcance
+     virou glob explícito.)
   3. **O Next 16 bloqueia requisição cross-origin a recurso de desenvolvimento
      (`/_next/*`)**, e trata `127.0.0.1` como origem diferente de `localhost`.
      Como a suíte E2E serve e navega em `127.0.0.1:3011`, o runtime do cliente
