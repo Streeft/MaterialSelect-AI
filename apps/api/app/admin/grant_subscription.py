@@ -118,6 +118,33 @@ def apply_grant(db: Session, *, email: str, revoke: bool = False) -> Outcome:
     )
 
 
+def parse_emails(raw: list[str]) -> list[str]:
+    """Split the operator's free text into addresses, in the order they typed them.
+
+    `admin-banco.yml` offers a single text field, so a cohort arrives as one
+    string. Accept every separator a tired person might reach for — comma,
+    space, newline — and refuse an empty field outright: "zero addresses" would
+    otherwise succeed silently, having granted nothing.
+    """
+    seen: dict[str, None] = {}
+    for chunk in raw:
+        for email in chunk.replace(",", " ").split():
+            seen.setdefault(email, None)
+    if not seen:
+        raise ValueError("Nenhum e-mail informado.")
+    return list(seen)
+
+
+def apply_grants(db: Session, *, emails: list[str], revoke: bool = False) -> list[Outcome]:
+    """Apply one grant per address, independently. Does not commit.
+
+    A cohort of eight must not lose seven grants to one typo, so a refusal on
+    one address never aborts the rest — `apply_grant` leaves the session
+    untouched when it refuses, so the successful ones stay committable.
+    """
+    return [apply_grant(db, email=email, revoke=revoke) for email in emails]
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         prog="python -m app.admin.grant_subscription",
@@ -126,7 +153,12 @@ def main() -> None:
             "sem passar pelo Stripe."
         ),
     )
-    parser.add_argument("--email", required=True, help="E-mail da conta Google.")
+    parser.add_argument(
+        "--email",
+        required=True,
+        nargs="+",
+        help="E-mail(s) da conta Google. Vários podem vir separados por vírgula ou espaço.",
+    )
     parser.add_argument(
         "--revoke",
         action="store_true",
@@ -134,20 +166,36 @@ def main() -> None:
     )
     args = parser.parse_args()
 
+    try:
+        emails = parse_emails(args.email)
+    except ValueError as exc:
+        print(f"[assinatura] {exc}", file=sys.stderr)
+        sys.exit(1)
+
     with SessionLocal() as db:
-        outcome = apply_grant(db, email=args.email, revoke=args.revoke)
-        if outcome.ok:
+        outcomes = apply_grants(db, emails=emails, revoke=args.revoke)
+        if any(o.ok for o in outcomes):
             db.commit()
 
-    stream = sys.stdout if outcome.ok else sys.stderr
-    print(f"[assinatura] {outcome.message}", file=stream)
-    if not outcome.ok:
-        sys.exit(1)
-    if outcome.status == "active":
+    for outcome in outcomes:
+        stream = sys.stdout if outcome.ok else sys.stderr
+        print(f"[assinatura] {outcome.message}", file=stream)
+
+    if any(o.status == "active" for o in outcomes):
         print(
             "[assinatura] Concessão manual, fora do Stripe — não gera cobrança "
             "nem aparece no painel dele."
         )
+
+    # One failure among many still fails the job: an operator reading a green
+    # tick must never conclude that everyone on the list got in.
+    falhas = [o for o in outcomes if not o.ok]
+    if falhas:
+        print(
+            f"[assinatura] {len(falhas)} de {len(outcomes)} endereços não foram aplicados.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
 
 
 if __name__ == "__main__":

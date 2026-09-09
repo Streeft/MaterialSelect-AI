@@ -51,6 +51,15 @@ Em `exporters/`, **todo arquivo exportado carrega o aviso de limitação de uso*
 (compromisso do item 5 da proposta). O modelo `Report` é agnóstico de formato e
 tem dois renderizadores: `spreadsheet.py` (CSV/XLSX) e `html.py` (imprimível).
 
+`Report.figures` é uma **lista** porque um documento de seleção tem mais de uma
+figura, e a ordem é a da leitura. O relatório leva o **mapa de seleção**; o
+laudo leva o mapa e o gráfico de ranking ([D-53](docs/DECISIONS.md)). Os eixos
+do mapa saem da expressão do índice, na ordem em que ela os nomeia — é nesse par
+que o índice é uma reta —, e a geometria vem de `ChartService.property_map`, a
+mesma chamada que serve a tela: reimplementá-la no exportador criaria duas
+verdades sobre a mesma figura. Figura que não pode ser desenhada é **omitida com
+a razão na legenda**, nunca falha a exportação.
+
 **O escape é por formato, e não intercambiável.** `cells.py` neutraliza injeção
 de fórmula na planilha com apóstrofo à frente — visível, nunca destrutivo;
 números negativos saem como célula numérica de propósito. `html.py` neutraliza
@@ -317,7 +326,7 @@ outros dois métodos; o laudo descrevia um estudo aninhado como um combinador
 único opaco. Os quatro corrigidos numa rodada só, rerrevisão limpa. Ver
 `docs/PROJECT_CONTEXT.md` §3 e `docs/07-selecao-deterministica.md`.
 
-884 testes de backend (nenhum skip) e 197 de frontend, todos verdes. CI no
+896 testes de backend (nenhum skip) e 197 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
 PROJECT_CONTEXT.md).

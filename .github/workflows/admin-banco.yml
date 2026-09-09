@@ -33,7 +33,7 @@ on:
           - conceder
           - revogar
       email:
-        description: "E-mail da conta Google (obrigatório em conceder/revogar)"
+        description: "E-mail(s) da conta Google, separados por vírgula ou espaço (obrigatório em conceder/revogar)"
         required: false
         type: string
 

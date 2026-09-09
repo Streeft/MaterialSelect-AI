@@ -62,6 +62,9 @@ PLOT_RIGHT = WIDTH - MARGIN_RIGHT
 PLOT_TOP = MARGIN_TOP
 PLOT_BOTTOM = HEIGHT - MARGIN_BOTTOM
 
+#: The clip that keeps an iso-index line inside the plot rectangle.
+PLOT_CLIP_ID = "plot-area"
+
 # Coordinates are rounded to this many decimals before being written, so the
 # same study always renders the same bytes.
 COORD_DIGITS = 2
@@ -428,6 +431,19 @@ def render_scatter(figure: ScatterFigure) -> str:
             f'stroke="{colour}" stroke-opacity="0.45" stroke-width="1"/>'
         )
 
+    # An iso-index line is solved over the axis range, not over the data, so an
+    # endpoint can land outside the plot rectangle — legitimately, since the
+    # line continues past the materials that happen to be catalogued. Clipping
+    # keeps it from being drawn across the axis labels and the title. `maps()`
+    # above cannot do this job: it asks whether a value is representable on the
+    # scale, not whether it lands inside the frame.
+    if figure.lines:
+        body.append(
+            f'<clipPath id="{PLOT_CLIP_ID}"><rect x="{_n(PLOT_LEFT)}" y="{_n(PLOT_TOP)}" '
+            f'width="{_n(PLOT_RIGHT - PLOT_LEFT)}" height="{_n(PLOT_BOTTOM - PLOT_TOP)}"/>'
+            f"</clipPath>"
+        )
+
     for line in figure.lines:
         drawable = [(x, y) for x, y in line.points if mx.maps(x) and my.maps(y)]
         if len(drawable) < 2:
@@ -435,7 +451,7 @@ def render_scatter(figure: ScatterFigure) -> str:
         path = " ".join(f"{_n(mx.to_pixel(x))},{_n(my.to_pixel(y))}" for x, y in drawable)
         body.append(
             f'<polyline points="{path}" fill="none" stroke="{INDEX_LINE}" '
-            f'stroke-width="1.75" stroke-dasharray="6 4"/>'
+            f'stroke-width="1.75" stroke-dasharray="6 4" clip-path="url(#{PLOT_CLIP_ID})"/>'
         )
 
     for point in figure.points:

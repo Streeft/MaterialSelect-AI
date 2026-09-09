@@ -67,8 +67,14 @@ Nenhum item aberto no momento — M6 foi entregue nesta sessão (ver
 
 ## Baixa prioridade
 
-Nenhum item aberto no momento — B1 a B10 foram entregues nesta sessão (ver
-"Débitos já quitados").
+**B11 — a unidade canônica é impressa como o Pint a escreve.** ▁ Um documento
+exportado traz `kg/m**3` e `m**2.5` onde a tela traz `kg/m³`, porque o frontend
+tem `prettyUnit` (`lib/units.ts`) e o backend não tem equivalente. Aparece nas
+tabelas do relatório e do laudo e, desde [D-53](DECISIONS.md), também nos
+rótulos de eixo do mapa — mas **é um problema do documento inteiro, não da
+figura**: consertar só o eixo deixaria a figura discordando da tabela ao lado.
+O caminho é um formatador no backend, aplicado nos dois lugares de uma vez.
+Pesa mais do que parece porque as figuras vão para a monografia.
 
 ---
 
