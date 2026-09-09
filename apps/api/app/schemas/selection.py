@@ -217,12 +217,43 @@ class RankingResultOut(BaseModel):
     sensitivity: list[SensitivityScenarioOut]
 
 
+class StageResultOut(BaseModel):
+    """What one stage of the pipeline did (P0-1).
+
+    ``passed`` is what the stage admits **on its own**, over the whole
+    catalogue — reported for a disabled stage too, because that is exactly the
+    question switching a stage off asks. ``remaining`` is the running count
+    after this stage: unchanged for a disabled one, since it did not narrow.
+
+    ``steps`` is the inner funnel of a limit stage — one line per constraint or
+    nested sub-group, the same shape the single-tree funnel always had. A tree
+    stage has no inner steps: its whole question is the folder selection.
+    """
+
+    position: int
+    kind: str
+    label: str | None = None
+    enabled: bool
+    passed: int
+    remaining: int
+    steps: list[FunnelStepOut] = Field(default_factory=list)
+
+
 class RunResultOut(BaseModel):
     initial_count: int
+    # The operator that combined the candidates. With a single limit stage this
+    # is its root group's own AND/OR, exactly as before P0-1. With more than one
+    # stage it is "AND": stages intersect, and reporting a stage's internal "OR"
+    # here would describe the pipeline as something it is not. `stages` below is
+    # the full truth either way.
     combinator: str
     final_count: int
     funnel: list[FunnelStepOut]
     candidates: list[CandidateOut]
+    # P0-1: the pipeline, stage by stage. A study saved before P0-1 (or through
+    # the flat payload) reports exactly one entry, and `funnel` then holds
+    # precisely the steps it always did.
+    stages: list[StageResultOut] = Field(default_factory=list)
     index: IndexResultOut | None = None
     ranking: RankingResultOut | None = None
 

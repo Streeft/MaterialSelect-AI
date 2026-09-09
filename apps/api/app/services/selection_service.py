@@ -23,7 +23,10 @@ from app.domain.filters import (
     ConstraintGroupNode,
     MaterialSnapshot,
     Operator,
+    SelectionStageNode,
+    TreeSelection,
     apply_constraint_tree,
+    apply_stage,
 )
 from app.domain.ranking import (
     PROMETHEE_TOO_FEW_CANDIDATES,
@@ -70,6 +73,7 @@ from app.schemas.selection import (
     RunRequest,
     RunResultOut,
     SensitivityScenarioOut,
+    StageResultOut,
     StudyIn,
     StudyOut,
     StudySummaryOut,
@@ -389,15 +393,155 @@ class SelectionService:
             )
         return steps, remaining
 
-    def _load_group_tree(self, study: SelectionStudy) -> ConstraintGroupNode:
+    @staticmethod
+    def _stage_display(stage: SelectionStageNode, position: int) -> str:
+        """The stage's name in the funnel: the user's own label when they wrote
+        one, otherwise what the stage is. Never a stored default — see the
+        model's note on `label`."""
+        if stage.label:
+            return stage.label
+        kind = "limites" if stage.kind == "limit" else "classes"
+        return f"Estágio {position + 1} ({kind})"
+
+    def _apply_stages(
+        self, materials: list[MaterialSnapshot], stages: list[SelectionStageNode]
+    ) -> tuple[list[StageResultOut], list[FunnelStepOut], list[MaterialSnapshot]]:
+        """Run the pipeline and build both reports: one entry per stage, and the
+        flat funnel the interface and the exports already read.
+
+        With exactly one stage the flat funnel is byte-identical to what
+        `_apply_group` produced before P0-1 — no stage prefix, no extra line —
+        which is what keeps every pre-P0-1 study, export and test reading the
+        same. With more than one stage each line is prefixed by its stage, or a
+        step from stage 1 and a step from stage 3 would be indistinguishable.
+        """
+        single = len(stages) == 1
+        stage_outs: list[StageResultOut] = []
+        flat: list[FunnelStepOut] = []
+        remaining = list(materials)
+
+        for position, stage in enumerate(stages):
+            display = self._stage_display(stage, position)
+            # Standalone over the whole catalogue, disabled stages included:
+            # "what would this stage admit by itself" is the question that
+            # switching it off asks. A tree stage with nothing ticked lands on
+            # the whole catalogue here, which is what it admits.
+            standalone = len(apply_stage(materials, stage))
+
+            if stage.kind == "limit" and stage.root is not None:
+                # A limit stage's inner funnel is one line per constraint or
+                # nested sub-group — exactly `_apply_group`, unchanged.
+                inner, narrowed = self._apply_group(remaining, stage.root)
+            else:
+                # A tree stage is a single question, so a single line. Nothing
+                # ticked narrows nothing, and a line saying so is more honest
+                # than a silent absence.
+                narrowed = apply_stage(remaining, stage)
+                inner = [
+                    FunnelStepOut(
+                        label=display,
+                        operator="in_tree",
+                        passed=standalone,
+                        remaining=len(narrowed),
+                    )
+                ]
+
+            if stage.enabled:
+                remaining = narrowed
+                flat.extend(
+                    inner
+                    if single
+                    else [
+                        FunnelStepOut(
+                            label=f"{display} · {step.label}" if step.label != display else display,
+                            operator=step.operator,
+                            passed=step.passed,
+                            remaining=step.remaining,
+                        )
+                        for step in inner
+                    ]
+                )
+
+            stage_outs.append(
+                StageResultOut(
+                    position=position,
+                    kind=stage.kind,
+                    label=stage.label,
+                    enabled=stage.enabled,
+                    passed=standalone,
+                    remaining=len(remaining),
+                    # A disabled stage still reports its inner steps: they
+                    # describe what it *would* do, which is what the reader
+                    # switched it off to find out. `enabled=False` above is
+                    # what marks them hypothetical.
+                    steps=inner if stage.kind == "limit" else [],
+                )
+            )
+
+        return stage_outs, flat, remaining
+
+    def _load_stages(self, study: SelectionStudy) -> list[SelectionStageNode]:
+        """Assemble the stage pipeline from a persisted study (P0-1).
+
+        A pre-P0-1 study is exactly one enabled limit stage — the migration's
+        backfill — so this returns a one-element list for it, and
+        `_apply_stages` then reports the flat funnel unchanged.
+
+        A study whose rows somehow describe no stage at all degrades to one
+        limit stage over its whole constraint tree, rather than to an empty
+        pipeline that would silently admit the entire catalogue.
+        """
+        stages = list(study.stages)
+        if not stages:
+            return [
+                SelectionStageNode(
+                    kind="limit", label=None, enabled=True, root=self._load_group_tree(study)
+                )
+            ]
+
+        nodes: list[SelectionStageNode] = []
+        for stage in stages:
+            if stage.kind == "tree":
+                nodes.append(
+                    SelectionStageNode(
+                        kind="tree",
+                        label=stage.label,
+                        enabled=stage.enabled,
+                        tree=TreeSelection(
+                            class_slugs=list(stage.class_slugs or []),
+                            include_descendants=stage.include_descendants,
+                        ),
+                    )
+                )
+                continue
+            nodes.append(
+                SelectionStageNode(
+                    kind="limit",
+                    label=stage.label,
+                    enabled=stage.enabled,
+                    root=self._load_group_tree(study, stage_id=stage.id),
+                )
+            )
+        return nodes
+
+    def _load_group_tree(
+        self, study: SelectionStudy, stage_id: int | None = None
+    ) -> ConstraintGroupNode:
         """Assemble a ConstraintGroupNode tree from a persisted study's
         ConstraintGroup + SelectionConstraint rows (M6). Runs for every
         study, old and new: a pre-M6 study's migration backfill (and every
         study saved via the flat combinator/constraints path) is exactly one
         root group with no children, which _apply_group evaluates identically
         to the pre-M6 apply_constraints call.
+
+        ``stage_id`` narrows to one limit stage's own tree (P0-1). Omitting it
+        reads every group of the study, which is the whole tree only while the
+        study has a single stage — every caller that predates P0-1 is in that
+        case, and `_load_stages` passes the id for the rest.
         """
-        groups: list[ConstraintGroup] = list(study.constraint_groups)
+        groups: list[ConstraintGroup] = [
+            g for g in study.constraint_groups if stage_id is None or g.stage_id == stage_id
+        ]
         children_by_parent: dict[int | None, list[ConstraintGroup]] = {}
         for g in groups:
             children_by_parent.setdefault(g.parent_group_id, []).append(g)
@@ -658,8 +802,26 @@ class SelectionService:
     def _run_with_root_node(
         self, root_node: ConstraintGroupNode, index: IndexIn | None, ranking: RankingIn | None
     ) -> RunResultOut:
+        """One constraint tree, run as a one-stage pipeline.
+
+        The single-stage path through `_run_with_stages`, which reports the flat
+        funnel exactly as it did before P0-1 — this is what keeps the flat and
+        `root_group` payloads, and every study saved through them, unchanged.
+        """
+        return self._run_with_stages(
+            [SelectionStageNode(kind="limit", label=None, enabled=True, root=root_node)],
+            index,
+            ranking,
+        )
+
+    def _run_with_stages(
+        self,
+        stages: list[SelectionStageNode],
+        index: IndexIn | None,
+        ranking: RankingIn | None,
+    ) -> RunResultOut:
         snapshots = self._load()
-        steps, candidate_snaps = self._apply_group(snapshots, root_node)
+        stage_outs, steps, candidate_snaps = self._apply_stages(snapshots, stages)
 
         index_out = None
         index_value_by_id: dict[int, float | None] = {}
@@ -705,13 +867,27 @@ class SelectionService:
 
         return RunResultOut(
             initial_count=len(snapshots),
-            combinator=root_node.operator,
+            combinator=self._pipeline_combinator(stages),
             final_count=len(candidate_snaps),
             funnel=steps,
             candidates=candidates,
+            stages=stage_outs,
             index=index_out,
             ranking=ranking_out,
         )
+
+    @staticmethod
+    def _pipeline_combinator(stages: list[SelectionStageNode]) -> str:
+        """What `RunResultOut.combinator` reports — see the field's own note.
+
+        One limit stage: its root group's own operator, exactly as before P0-1.
+        Anything else: "AND", because that is how stages combine, and reporting
+        a stage's internal "OR" would describe the pipeline as something it is
+        not.
+        """
+        if len(stages) == 1 and stages[0].kind == "limit" and stages[0].root is not None:
+            return stages[0].root.operator
+        return "AND"
 
     # --- performance-index catalogue -------------------------------------
 
@@ -914,10 +1090,10 @@ class SelectionService:
         study = self.repo.get_study(study_id, self.project_id)
         if study is None:
             raise NotFoundError(f"Estudo não encontrado: {study_id}")
-        self._load()  # populate self._props before _load_group_tree builds constraints
-        root_node = self._load_group_tree(study)
+        self._load()  # populate self._props before the stages build constraints
+        stages = self._load_stages(study)
         index, ranking = self._study_index_and_ranking(study)
-        return self._run_with_root_node(root_node, index, ranking)
+        return self._run_with_stages(stages, index, ranking)
 
     def _study_to_out(self, study: SelectionStudy) -> StudyOut:
         index = None

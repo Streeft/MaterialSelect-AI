@@ -7,9 +7,12 @@ from app.domain.filters import (
     ConstraintGroupNode,
     MaterialSnapshot,
     Operator,
+    SelectionStageNode,
     TreeSelection,
     apply_constraint_tree,
     apply_constraints,
+    apply_stage,
+    apply_stages,
     evaluate_constraint,
     matches_tree,
 )
@@ -303,3 +306,98 @@ def test_empty_tree_selection_imposes_no_restriction():
 def test_tree_selection_of_an_unknown_slug_admits_nothing():
     selection = TreeSelection(class_slugs=["inexistente"])
     assert [m.name for m in TAXONOMY if matches_tree(m, selection)] == []
+
+
+# --- Stage pipeline (P0-1): ordered, individually disableable ---------------
+
+
+def _limit_stage(*constraints, label=None, enabled=True, operator="AND"):
+    return SelectionStageNode(
+        kind="limit",
+        label=label,
+        enabled=enabled,
+        root=ConstraintGroupNode(operator=operator, constraints=list(constraints), children=[]),
+        tree=None,
+    )
+
+
+def _tree_stage(*slugs, label=None, enabled=True, include_descendants=True):
+    return SelectionStageNode(
+        kind="tree",
+        label=label,
+        enabled=enabled,
+        root=None,
+        tree=TreeSelection(class_slugs=list(slugs), include_descendants=include_descendants),
+    )
+
+
+PIPELINE_MATERIALS = [
+    _tree_snap(1, "Aço 1020", ["metais", "acos"]),
+    _tree_snap(2, "Alumínio 6061", ["metais", "ligas_leves"]),
+    _tree_snap(3, "PEAD", ["polimeros", "termoplasticos"]),
+]
+# Give them one property each so a limit stage has something to bite on.
+PIPELINE_MATERIALS[0].values["densidade"] = 7850.0
+PIPELINE_MATERIALS[1].values["densidade"] = 2700.0
+PIPELINE_MATERIALS[2].values["densidade"] = 950.0
+
+
+def test_one_limit_stage_equals_applying_its_tree_directly():
+    stage = _limit_stage(Constraint(operator=Operator.LTE, property_slug="densidade", value=3000.0))
+    assert [m.name for m in apply_stages(PIPELINE_MATERIALS, [stage])] == [
+        m.name for m in apply_constraint_tree(PIPELINE_MATERIALS, stage.root)
+    ]
+
+
+def test_stages_intersect_in_order():
+    stages = [
+        _tree_stage("metais"),
+        _limit_stage(Constraint(operator=Operator.LTE, property_slug="densidade", value=3000.0)),
+    ]
+    assert [m.name for m in apply_stages(PIPELINE_MATERIALS, stages)] == ["Alumínio 6061"]
+
+
+def test_a_disabled_stage_does_not_narrow():
+    stages = [
+        _tree_stage("metais"),
+        _limit_stage(
+            Constraint(operator=Operator.LTE, property_slug="densidade", value=3000.0),
+            enabled=False,
+        ),
+    ]
+    assert [m.name for m in apply_stages(PIPELINE_MATERIALS, stages)] == [
+        "Aço 1020",
+        "Alumínio 6061",
+    ]
+
+
+def test_disabling_every_stage_admits_everything():
+    stages = [_tree_stage("metais", enabled=False), _limit_stage(enabled=False)]
+    assert len(apply_stages(PIPELINE_MATERIALS, stages)) == len(PIPELINE_MATERIALS)
+
+
+def test_no_stages_at_all_admits_everything():
+    assert len(apply_stages(PIPELINE_MATERIALS, [])) == len(PIPELINE_MATERIALS)
+
+
+def test_stage_order_does_not_change_the_result_only_the_funnel():
+    # Intersection commutes; what the order changes is the story the funnel
+    # tells, which the service builds, not this function.
+    forward = [
+        _tree_stage("metais"),
+        _limit_stage(Constraint(operator=Operator.LT, property_slug="densidade", value=3000.0)),
+    ]
+    assert [m.name for m in apply_stages(PIPELINE_MATERIALS, forward)] == [
+        m.name for m in apply_stages(PIPELINE_MATERIALS, list(reversed(forward)))
+    ]
+
+
+def test_a_tree_stage_with_nothing_ticked_does_not_narrow():
+    assert len(apply_stages(PIPELINE_MATERIALS, [_tree_stage()])) == len(PIPELINE_MATERIALS)
+
+
+def test_apply_stage_evaluates_one_stage_standalone():
+    # What the funnel needs to answer "how many would this stage admit on its
+    # own", independently of the ones before it.
+    stage = _tree_stage("polimeros")
+    assert [m.name for m in apply_stage(PIPELINE_MATERIALS, stage)] == ["PEAD"]

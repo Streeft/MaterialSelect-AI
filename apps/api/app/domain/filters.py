@@ -174,6 +174,22 @@ class ConstraintGroupNode:
     children: list[ConstraintGroupNode]
 
 
+@dataclass
+class SelectionStageNode:
+    """One stage of the selection pipeline, independent of the ORM (P0-1).
+
+    A ``"limit"`` stage carries ``root`` (a constraint tree, M6's nesting
+    included); a ``"tree"`` stage carries ``tree`` (a folder selection). The
+    other field is ``None`` — a stage is one kind of question, not both.
+    """
+
+    kind: str  # "limit" | "tree"
+    label: str | None
+    enabled: bool
+    root: ConstraintGroupNode | None = None
+    tree: TreeSelection | None = None
+
+
 def evaluate_constraint(constraint: Constraint, material: MaterialSnapshot) -> bool:
     """Return True if ``material`` satisfies ``constraint``."""
     op = constraint.operator
@@ -317,3 +333,44 @@ def apply_constraint_tree(
     root group with no nesting) keep evaluating exactly as before.
     """
     return [material for material in materials if _group_passes(material, root)]
+
+
+def apply_stage(
+    materials: list[MaterialSnapshot], stage: SelectionStageNode
+) -> list[MaterialSnapshot]:
+    """Filter ``materials`` by one stage alone, ignoring ``stage.enabled``.
+
+    Ignoring ``enabled`` is what makes the funnel able to answer "how many
+    would this stage admit on its own" — including for a stage the user has
+    switched off, which is precisely the question switching it off asks.
+    Whether a disabled stage narrows the running set is decided by
+    ``apply_stages``, not here.
+    """
+    if stage.kind == "tree":
+        if stage.tree is None:
+            return list(materials)
+        return [m for m in materials if matches_tree(m, stage.tree)]
+    if stage.root is None:
+        return list(materials)
+    return apply_constraint_tree(materials, stage.root)
+
+
+def apply_stages(
+    materials: list[MaterialSnapshot], stages: list[SelectionStageNode]
+) -> list[MaterialSnapshot]:
+    """Run the pipeline: the intersection of the **enabled** stages, in order.
+
+    Intersection commutes, so the order does not change the surviving set —
+    what it changes is the funnel the service builds around this, which reads
+    as an argument and therefore has an order.
+
+    No stages, or every stage disabled, admits every material: same convention
+    as an empty constraint group. A pipeline that says nothing does not reject
+    everything.
+    """
+    remaining = list(materials)
+    for stage in stages:
+        if not stage.enabled:
+            continue
+        remaining = apply_stage(remaining, stage)
+    return remaining
