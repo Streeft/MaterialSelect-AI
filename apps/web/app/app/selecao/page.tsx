@@ -11,6 +11,8 @@ import {
   getStudy,
   listClasses,
   listPerformanceIndices,
+  listProcessClasses,
+  listProcesses,
   listProperties,
   listStudies,
   runSelection,
@@ -18,6 +20,7 @@ import {
   studyExportUrl,
 } from "@/lib/api";
 import type {
+  Combinator,
   CriterionIn,
   Goal,
   IndexIn,
@@ -26,6 +29,7 @@ import type {
   RunRequest,
   RunResult,
   StageIn,
+  StageOut,
   StudyDetail,
 } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
@@ -124,6 +128,47 @@ const nextId = () => `criterion-${counter++}`;
  * moved on. Here it is an element, it is always present, and it says what it is
  * doing while it recounts instead of showing a stale number as if it were fresh.
  */
+/**
+ * One persisted stage as the editor holds it.
+ *
+ * A named function with an exhaustive switch, and not the nested ternary this
+ * used to be: with three kinds a ternary maps the third to whichever branch is
+ * the fallback, so reopening a saved study would quietly turn a process stage
+ * into an empty limit stage — and the type checker would be satisfied.
+ */
+function stageFromPayload(stage: StageOut, combinator: Combinator): StageState {
+  const common = {
+    id: nextEditorId("stage"),
+    label: stage.label ?? "",
+    enabled: stage.enabled,
+  };
+  switch (stage.kind) {
+    case "tree":
+      return {
+        ...common,
+        kind: "tree",
+        classSlugs: stage.class_slugs,
+        includeDescendants: stage.include_descendants,
+      };
+    case "process":
+      return {
+        ...common,
+        kind: "process",
+        processSlugs: stage.process_slugs,
+        processClassSlugs: stage.process_class_slugs,
+        includeDescendants: stage.include_descendants,
+      };
+    case "limit":
+      return {
+        ...common,
+        kind: "limit",
+        group: stage.root_group
+          ? fromConstraintPayload(stage.root_group)
+          : emptyGroup(nextEditorId("group"), combinator),
+      };
+  }
+}
+
 function CandidateCounter({
   count,
   total,
@@ -210,6 +255,14 @@ function SelectionWizard() {
 
   const properties = useQuery({ queryKey: ["properties"], queryFn: listProperties });
   const classes = useQuery({ queryKey: ["classes"], queryFn: listClasses });
+  // P0-2: the process universe a process stage picks from. Shared reference
+  // data like the taxonomy, so it is cached under its own key and read by every
+  // stage in the pipeline.
+  const processes = useQuery({ queryKey: ["processes"], queryFn: listProcesses });
+  const processClasses = useQuery({
+    queryKey: ["process-classes"],
+    queryFn: listProcessClasses,
+  });
   const indices = useQuery({ queryKey: ["performance-indices"], queryFn: listPerformanceIndices });
   const studies = useQuery({ queryKey: ["studies"], queryFn: listStudies });
 
@@ -354,26 +407,7 @@ function SelectionWizard() {
       // back to the flat list — the pre-M6 shape — rather than opening empty.
       setStages(
         s.stages.length > 0
-          ? s.stages.map((stage): StageState =>
-              stage.kind === "tree"
-                ? {
-                    id: nextEditorId("stage"),
-                    kind: "tree",
-                    label: stage.label ?? "",
-                    enabled: stage.enabled,
-                    classSlugs: stage.class_slugs,
-                    includeDescendants: stage.include_descendants,
-                  }
-                : {
-                    id: nextEditorId("stage"),
-                    kind: "limit",
-                    label: stage.label ?? "",
-                    enabled: stage.enabled,
-                    group: stage.root_group
-                      ? fromConstraintPayload(stage.root_group)
-                      : emptyGroup(nextEditorId("group"), s.combinator),
-                  },
-            )
+          ? s.stages.map((stage) => stageFromPayload(stage, s.combinator))
           : [
               {
                 id: nextEditorId("stage"),
@@ -464,7 +498,31 @@ function SelectionWizard() {
       // "add, never replace" rule the flat editor always had.
       setStages((current) => {
         const target = current.findIndex((s) => s.kind === "limit");
-        if (target === -1) return current;
+        // No limit stage to append to — a pipeline of only tree and process
+        // stages. Adding one is the honest outcome: dropping the suggestion the
+        // reader just accepted would look like the button did nothing.
+        if (target === -1) {
+          return [
+            ...current,
+            {
+              ...emptyLimitStage(),
+              group: {
+                ...emptyGroup(nextEditorId("group")),
+                constraints: accepted.constraints.map(({ constraint }) => ({
+                  ...emptyConstraint(nextEditorId("row")),
+                  operator: constraint.operator,
+                  property_slug: constraint.property_slug ?? "",
+                  value: constraint.value?.toString() ?? "",
+                  value_min: constraint.value_min?.toString() ?? "",
+                  value_max: constraint.value_max?.toString() ?? "",
+                  unit: constraint.unit ?? "",
+                  class_slugs: constraint.class_slugs ?? [],
+                  text: constraint.text ?? "",
+                })),
+              },
+            },
+          ];
+        }
         return current.map((stage, i) =>
           i !== target || stage.kind !== "limit"
             ? stage
@@ -498,11 +556,16 @@ function SelectionWizard() {
   }
 
   const indexIsCriterion = criteria.some((c) => c.key === "__index__");
-  // A tree stage narrows without carrying a constraint, so "has the reader
-  // said anything yet" is not the constraint count alone.
+  // A tree or process stage narrows without carrying a constraint, so "has the
+  // reader said anything yet" is not the constraint count alone.
   const hasConstraints =
     countStageConstraints(stages) > 0 ||
-    stages.some((s) => s.kind === "tree" && s.classSlugs.length > 0);
+    stages.some((s) => s.kind === "tree" && s.classSlugs.length > 0) ||
+    stages.some(
+      (s) =>
+        s.kind === "process" &&
+        (s.processSlugs.length > 0 || s.processClassSlugs.length > 0),
+    );
   const hasObjective = activeIndex !== null || criteriaPayload().length > 0;
   const canSave = name.trim().length > 0;
 
@@ -649,6 +712,8 @@ function SelectionWizard() {
               stages={stages}
               properties={properties.data ?? []}
               classes={classes.data ?? []}
+              processes={processes.data ?? []}
+              processClasses={processClasses.data ?? []}
               onChange={setStages}
             />
           </Section>

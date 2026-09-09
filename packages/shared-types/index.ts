@@ -78,6 +78,37 @@ export interface MaterialDetail {
   is_active: boolean;
   keywords: string[];
   property_groups: PropertyGroup[];
+  /**
+   * The processes this material can be made with (P0-2) — the datasheet half of
+   * the material↔process join. Always present; an empty array means no process
+   * is linked, which the sheet writes out rather than rendering as a dash.
+   */
+  processes: Process[];
+}
+
+/** A node of the process taxonomy — the process-side twin of `MaterialClass`. */
+export interface ProcessClass {
+  id: number;
+  name: string;
+  slug: string;
+  parent_id: number | null;
+  description: string | null;
+  /** Processes filed *directly* here, so an empty folder reads as empty. */
+  process_count: number;
+}
+
+/** A manufacturing process in the catalogue (P0-2). */
+export interface Process {
+  id: number;
+  name: string;
+  slug: string;
+  class_id: number;
+  class_name: string;
+  class_slug: string;
+  description: string | null;
+  is_demo: boolean;
+  /** How many catalogued materials this process applies to. */
+  material_count: number;
 }
 
 export interface MaterialClass {
@@ -318,8 +349,12 @@ export interface ConstraintGroupIn {
   groups: ConstraintGroupIn[];
 }
 
-/** A stage's kind: a constraint tree, or a folder selection over the taxonomy. */
-export type StageKind = "limit" | "tree";
+/**
+ * A stage's kind: a constraint tree, a folder selection over the material
+ * taxonomy, or (P0-2) a selection over the process universe — the join's other
+ * direction.
+ */
+export type StageKind = "limit" | "tree" | "process";
 
 /**
  * One stage of the selection pipeline (P0-1) — mirrors the backend's `StageIn`
@@ -339,6 +374,11 @@ export interface StageIn {
   root_group?: ConstraintGroupIn | null;
   // kind === "tree"
   class_slugs?: string[];
+  // kind === "process" (P0-2). Any-of: the stage keeps the materials some
+  // selected process applies to. "This *and* that" is two stages.
+  process_slugs?: string[];
+  process_class_slugs?: string[];
+  /** Shared by the tree and process stages: a folder means what is under it. */
   include_descendants?: boolean;
 }
 
@@ -350,6 +390,8 @@ export interface StageOut {
   enabled: boolean;
   root_group: ConstraintGroupIn | null;
   class_slugs: string[];
+  process_slugs: string[];
+  process_class_slugs: string[];
   include_descendants: boolean;
 }
 
