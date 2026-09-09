@@ -181,10 +181,25 @@ Entre uma vez pelo Google (para a conta existir), e então:
 fly ssh console -C "python -m app.admin.grant_subscription --email voce@exemplo.com"
 ```
 
-O mesmo comando libera cada avaliador, e `--revoke` desfaz. A concessão é uma
-linha no banco, feita por quem já tem credencial de banco — privilégio bem
-menor e mais visível que uma variável que desliga o portão inteiro. Ver o
-cabeçalho de `app/admin/grant_subscription.py`.
+**Vários de uma vez.** Uma banca tem três avaliadores e uma sessão de
+usabilidade tem de cinco a oito participantes, então `--email` aceita a lista
+inteira, separada por vírgula ou espaço:
+
+```bash
+fly ssh console -C "python -m app.admin.grant_subscription --email 'ana@x.br, bruno@x.br carla@x.br'"
+```
+
+Cada endereço é aplicado por conta própria: **um erro de digitação não custa as
+outras concessões**, e o comando sai com erro se qualquer uma falhar — um visto
+verde nunca deve deixar você concluir que a turma toda entrou. `--revoke`
+desfaz, com a mesma lista.
+
+Cada pessoa precisa **entrar pelo Google uma vez antes**; este comando concede
+acesso a quem já existe, não cria conta. Se você rodar cedo demais, a mensagem
+diz exatamente isso. A concessão é uma linha no banco, feita por quem já tem
+credencial de banco — privilégio bem menor e mais visível que uma variável que
+desliga o portão inteiro. Ver o cabeçalho de
+`app/admin/grant_subscription.py`.
 
 ## 5-bis. Sem terminal: o mesmo deploy pelo navegador
 

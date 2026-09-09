@@ -14,14 +14,27 @@ someone else can check.
 from __future__ import annotations
 
 from app.ai.provider import AIUnavailableError
+from app.calculations.expressions import variables_in
 from app.domain.errors import NotFoundError, ValidationError
 from app.exporters.cells import format_number
-from app.exporters.figures import Bar, BarFigure, render_bars
+from app.exporters.figures import (
+    Axis,
+    Bar,
+    BarFigure,
+    Line,
+    Point,
+    Polygon,
+    ScatterFigure,
+    render_bars,
+    render_scatter,
+)
 from app.exporters.report import Report, Sheet, standard_notices
 from app.repositories.chart_repository import ChartRepository
 from app.repositories.selection_repository import SelectionRepository
-from app.schemas.selection import RankingResultOut, RunResultOut
+from app.schemas.charts import PropertyMapRequest
+from app.schemas.selection import IndexIn, RankingResultOut, RunResultOut
 from app.services.ai_service import AIService
+from app.services.chart_service import ChartService
 from app.services.selection_service import INDEX_KEY, SelectionService
 
 _MISSING = "ausente"
@@ -83,6 +96,10 @@ class ExportService:
             subtitle=study.description or "",
             notices=standard_notices(includes_demo_data=any(m.is_demo for m in materials.values())),
             sheets=self._sheets(study, result, materials, root_group_description),
+            # The map, and only the map. The ranking chart stays a mark of the
+            # laudo (D-41); the map is what makes this a *selection* report
+            # rather than a table of numbers, so it belongs to both.
+            figures=[f for f in (self._map_figure(study, result),) if f],
         )
 
     def study_laudo(
@@ -103,11 +120,154 @@ class ExportService:
             notices=standard_notices(includes_demo_data=any(m.is_demo for m in materials.values())),
             sheets=self._sheets(study, result, materials, root_group_description),
             responsible=(responsible or "").strip() or None,
-            figure=self._ranking_figure(result),
+            figures=self._figures(study, result),
             narrative=narrative,
             narrative_caveats=caveats,
             narrative_note=note,
         )
+
+    def _figures(self, study, result: RunResultOut) -> list[str]:
+        """The laudo's figures: the selection map first, then the ranking chart.
+
+        That order is the argument the document makes: the map is where the
+        candidates come from, the bar chart is what the ranking did with them.
+        Either may be absent — a study whose index names fewer than two
+        catalogued properties has no plane to be drawn on — and the caption of
+        whichever survives says so rather than leaving a silent gap.
+        """
+        return [f for f in (self._map_figure(study, result), self._ranking_figure(result)) if f]
+
+    def _map_figure(self, study, result: RunResultOut) -> str | None:
+        """The Ashby map of this study: every material, the candidates marked.
+
+        The two axes are read off the study's own index expression, in the
+        order it names them: `sqrt(modulo_young) / densidade` puts density on
+        x and modulus on y, which is how the chart is drawn in the literature.
+        A study with no index, or one naming a single property, has no such
+        plane — the map is then omitted rather than invented from an unrelated
+        pair.
+
+        Geometry is not computed here. `ChartService.property_map` is the same
+        call `/api/charts/property-map` serves, so the figure in the document
+        and the map on the screen cannot disagree (ADR 0004).
+        """
+        axes = self._map_axes(study)
+        if axes is None:
+            return None
+        x_slug, y_slug = axes
+
+        ranked_ids = [r.material_id for r in result.ranking.ranked] if result.ranking else []
+        winner = ranked_ids[:1]
+        index_in = (
+            IndexIn(name=study.index_name, expression=study.index_expression, goal=study.index_goal)
+            if study.index_expression
+            else None
+        )
+
+        try:
+            chart = ChartService(self.db).property_map(
+                PropertyMapRequest(
+                    x=x_slug,
+                    y=y_slug,
+                    scale="log",
+                    highlight_material_ids=ranked_ids,
+                    index=index_in,
+                    # The line through the winner is what makes the map a
+                    # selection map rather than a scatter plot: everything on
+                    # its favourable side beat the leader on the index.
+                    index_level_material_ids=winner,
+                )
+            )
+        except ValidationError:
+            # A property that cannot carry a map (no plottable values, log
+            # scale refused) is a reason to omit the figure, never to fail the
+            # export the reader actually asked for.
+            return None
+
+        if not chart.points:
+            return None
+
+        highlighted = set(ranked_ids)
+        points = [
+            Point(
+                x=p.x,
+                y=p.y,
+                label=p.material_name,
+                group=p.class_name,
+                highlighted=p.material_id in highlighted,
+            )
+            for p in chart.points
+        ]
+        polygons = [
+            Polygon(label=e.class_name, vertices=[(v[0], v[1]) for v in e.polygon])
+            for e in chart.envelopes
+        ]
+        lines = [
+            Line(label=self._level_label(level), points=[(pt[0], pt[1]) for pt in level.points])
+            for level in (chart.index.levels if chart.index and chart.index.available else [])
+        ]
+
+        return render_scatter(
+            ScatterFigure(
+                title="Mapa de seleção",
+                x=self._figure_axis(chart.x_axis, chart.scale),
+                y=self._figure_axis(chart.y_axis, chart.scale),
+                points=points,
+                polygons=polygons,
+                lines=lines,
+                caption=self._map_caption(chart, len(highlighted)),
+                description=(
+                    f"Mapa de {chart.y_axis.property_name} contra "
+                    f"{chart.x_axis.property_name}, em escala {chart.scale}, com os "
+                    f"candidatos aprovados destacados. Os mesmos números estão nas "
+                    f"tabelas 'Candidatos' e 'Índice de desempenho'."
+                ),
+            )
+        )
+
+    def _map_axes(self, study) -> tuple[str, str] | None:
+        """The (x, y) slugs the index names, in the order it names them."""
+        expression = getattr(study, "index_expression", None)
+        if not expression:
+            return None
+        known = {p.slug for p in self.chart_repo.list_properties()}
+        # `variables_in` returns a set; the order the expression names them is
+        # what decides which axis is which, so recover it by position.
+        used = [slug for slug in variables_in(expression) if slug in known]
+        if len(used) < 2:
+            return None
+        used.sort(key=expression.find)
+        return used[1], used[0]
+
+    @staticmethod
+    def _figure_axis(axis, scale: str) -> Axis:
+        label = f"{axis.property_name} ({axis.unit})" if axis.unit else axis.property_name
+        return Axis(
+            label=label,
+            scale="log" if scale == "log" else "linear",
+            min_value=axis.min_value if axis.min_value is not None else 0.0,
+            max_value=axis.max_value if axis.max_value is not None else 1.0,
+        )
+
+    @staticmethod
+    def _level_label(level) -> str:
+        if level.material_name:
+            return f"Índice de {level.material_name}"
+        return f"M = {level.value:.3g}"
+
+    @staticmethod
+    def _map_caption(chart, highlighted_count: int) -> str:
+        partes = [
+            f"{chart.plotted_count} de {chart.considered_count} materiais têm os dois "
+            f"valores cadastrados e aparecem no mapa"
+        ]
+        if chart.excluded:
+            partes.append(f"{len(chart.excluded)} ficaram de fora por dado ausente")
+        if highlighted_count:
+            partes.append(f"{highlighted_count} candidatos aprovados estão destacados")
+        if chart.index and not chart.index.available and chart.index.unavailable_reason:
+            partes.append(f"a linha de índice não foi traçada: {chart.index.unavailable_reason}")
+        return ". ".join(partes) + "."
 
     @staticmethod
     def _ranking_figure(result: RunResultOut) -> str | None:

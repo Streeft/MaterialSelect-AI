@@ -236,10 +236,24 @@ class TestHtmlRendering:
 
     def test_figure_is_embedded_as_trusted_markup(self) -> None:
         report = _report()
-        report.figure = '<svg role="img"><title>x</title></svg>'
+        report.figures = ['<svg role="img"><title>x</title></svg>']
         rendered = to_html(report)
         # Not escaped: this is our own SVG output, not reader-supplied text.
         assert '<div class="figure"><svg role="img">' in rendered
+
+    def test_every_figure_reaches_the_page_not_just_the_first(self) -> None:
+        # A selection document carries the map *and* the ranking chart; a
+        # renderer that drew only `figures[0]` would silently drop the
+        # conclusion and still look correct.
+        report = _report()
+        report.figures = [
+            '<svg role="img"><title>mapa</title></svg>',
+            '<svg role="img"><title>ranking</title></svg>',
+        ]
+        rendered = to_html(report)
+        assert "<title>mapa</title>" in rendered
+        assert "<title>ranking</title>" in rendered
+        assert rendered.count('<div class="figure">') == 2
 
     def test_narrative_paragraphs_are_escaped_and_numbered_after_the_sheets(self) -> None:
         report = _report()
@@ -605,6 +619,58 @@ class TestStudyLaudo:
         assert '<div class="figure">' in text
         assert 'role="img"' in text
         assert "Candidatos ranqueados" in text
+
+    def test_laudo_embeds_the_selection_map(self, client: TestClient) -> None:
+        """The map is the argument the document makes; the ranking is its conclusion."""
+        text = client.get(f"/api/exports/estudos/{_exportable_study_id(client)}/laudo.html").text
+        assert "Mapa de seleção" in text
+        # Both figures, and the map first: a reader meets the population before
+        # the verdict about it.
+        assert text.count('<div class="figure">') == 2
+        assert text.index("Mapa de seleção") < text.index("Candidatos ranqueados")
+
+    def test_the_map_axes_come_from_the_index_expression(self, client: TestClient) -> None:
+        """`sqrt(modulo_young) / densidade` is drawn as modulus against density.
+
+        Reading the axes off the index is what makes the figure a *selection*
+        map: the index is a straight line on exactly this pair, and on no
+        other pair the catalogue could have offered.
+        """
+        text = client.get(f"/api/exports/estudos/{_exportable_study_id(client)}/laudo.html").text
+        assert "Módulo de Young contra Densidade" in text
+
+    def test_the_selection_report_carries_the_map_but_not_the_ranking_chart(
+        self, client: TestClient
+    ) -> None:
+        """D-41 keeps the two documents distinct, and the map does not erase that.
+
+        The map belongs to both — a selection report without one is a table of
+        numbers. The ranking chart stays a mark of the laudo.
+        """
+        text = client.get(f"/api/exports/estudos/{_exportable_study_id(client)}.html").text
+        assert "Mapa de seleção" in text
+        assert "Candidatos ranqueados" not in text
+        assert text.count('<div class="figure">') == 1
+
+    def test_a_study_without_an_index_still_exports(self, client: TestClient) -> None:
+        """No index means no plane to draw on — omit the map, never fail the export.
+
+        The reader asked for the report, not for the figure; a study filtered
+        by constraints alone is a legitimate study.
+        """
+        response = client.post(
+            "/api/selection/studies",
+            json={
+                "name": "Só restrições",
+                "constraints": [
+                    {"operator": "gt", "property_slug": "modulo_young", "value": 1.0, "unit": "GPa"}
+                ],
+            },
+        )
+        assert response.status_code == 201, response.text
+        laudo = client.get(f"/api/exports/estudos/{response.json()['id']}/laudo.html")
+        assert laudo.status_code == 200
+        assert "Mapa de seleção" not in laudo.text
 
     def test_laudo_includes_the_ai_narrative_by_default(self, client: TestClient) -> None:
         # AI_PROVIDER defaults to "mock" — deterministic, no network — so the
