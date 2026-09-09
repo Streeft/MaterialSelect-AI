@@ -53,6 +53,12 @@ class SelectionRepository:
         )
         return {row[0]: row[1] for row in self.db.execute(stmt).all()}
 
+    def class_names(self) -> dict[str, str]:
+        """Every class slug mapped to its display name — for a document that
+        should say "Metais", not "metais"."""
+        stmt = select(MaterialClass.slug, MaterialClass.name)
+        return {row[0]: row[1] for row in self.db.execute(stmt).all()}
+
     def existing_class_slugs(self, slugs: list[str]) -> set[str]:
         if not slugs:
             return set()
