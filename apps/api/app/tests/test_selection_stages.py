@@ -250,3 +250,227 @@ def test_a_study_whose_rows_describe_no_stage_still_runs_its_constraints(
 
     assert result["final_count"] == 3
     assert len(result["stages"]) == 1
+
+
+# --- The HTTP surface: stages in the payload --------------------------------
+
+
+def _leves_stage(**over):
+    stage = {
+        "kind": "limit",
+        "label": "Leves",
+        "constraints": [
+            {"operator": "lte", "property_slug": "densidade", "value": 2800, "unit": "kg/m**3"}
+        ],
+    }
+    stage.update(over)
+    return stage
+
+
+def _metais_stage(**over):
+    stage = {"kind": "tree", "class_slugs": ["metais"]}
+    stage.update(over)
+    return stage
+
+
+def test_run_accepts_an_explicit_pipeline(client):
+    resp = client.post(
+        "/api/selection/run",
+        json={"stages": [_metais_stage(), _leves_stage()]},
+    )
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert [s["kind"] for s in body["stages"]] == ["tree", "limit"]
+    assert {c["name"] for c in body["candidates"]} == {"Liga Alumínio Demo A"}
+
+
+def test_filter_accepts_an_explicit_pipeline(client):
+    resp = client.post("/api/selection/filter", json={"stages": [_metais_stage()]})
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["final_count"] == 2
+
+
+def test_stages_together_with_top_level_constraints_is_rejected(client):
+    resp = client.post(
+        "/api/selection/run",
+        json={
+            "stages": [_metais_stage()],
+            "constraints": [
+                {"operator": "lte", "property_slug": "densidade", "value": 2800, "unit": "kg/m**3"}
+            ],
+        },
+    )
+    assert resp.status_code == 400
+    assert "estágios" in resp.json()["detail"]
+
+
+def test_an_empty_stage_list_is_rejected(client):
+    resp = client.post("/api/selection/run", json={"stages": []})
+    assert resp.status_code == 400
+    assert "estágio" in resp.json()["detail"]
+
+
+def test_more_stages_than_the_cap_is_rejected(client):
+    resp = client.post("/api/selection/run", json={"stages": [_metais_stage()] * 21})
+    assert resp.status_code == 422
+
+
+def test_a_tree_stage_carrying_constraints_is_rejected(client):
+    resp = client.post(
+        "/api/selection/run",
+        json={
+            "stages": [
+                {
+                    "kind": "tree",
+                    "class_slugs": ["metais"],
+                    "constraints": [
+                        {
+                            "operator": "lte",
+                            "property_slug": "densidade",
+                            "value": 2800,
+                            "unit": "kg/m**3",
+                        }
+                    ],
+                }
+            ]
+        },
+    )
+    assert resp.status_code == 400
+    assert "não leva restrições" in resp.json()["detail"]
+
+
+def test_a_limit_stage_carrying_classes_is_rejected(client):
+    resp = client.post(
+        "/api/selection/run",
+        json={"stages": [_leves_stage(class_slugs=["metais"])]},
+    )
+    assert resp.status_code == 400
+    assert "não leva classes" in resp.json()["detail"]
+
+
+def test_an_unknown_class_in_a_tree_stage_is_a_404_naming_it(client):
+    resp = client.post(
+        "/api/selection/run", json={"stages": [_metais_stage(class_slugs=["inexistente"])]}
+    )
+    assert resp.status_code == 404
+    assert "inexistente" in resp.json()["detail"]
+
+
+def test_a_saved_pipeline_round_trips(client):
+    payload = {
+        "name": "Estudo com pilha salva",
+        "free_variables": [],
+        "criteria": [],
+        "stages": [
+            _metais_stage(label="Só metais", include_descendants=False),
+            _leves_stage(enabled=False),
+        ],
+    }
+    created = client.post("/api/selection/studies", json=payload)
+    assert created.status_code == 201, created.text
+    study_id = created.json()["id"]
+
+    read = client.get(f"/api/selection/studies/{study_id}").json()
+    assert [s["position"] for s in read["stages"]] == [0, 1]
+    tree, limite = read["stages"]
+    assert tree["kind"] == "tree"
+    assert tree["label"] == "Só metais"
+    assert tree["class_slugs"] == ["metais"]
+    assert tree["include_descendants"] is False
+    assert tree["root_group"] is None
+    assert limite["kind"] == "limit"
+    assert limite["enabled"] is False
+    assert limite["root_group"]["operator"] == "AND"
+    assert limite["root_group"]["constraints"][0]["property_slug"] == "densidade"
+
+    # And it runs as saved: the disabled stage does not narrow.
+    result = client.post(f"/api/selection/studies/{study_id}/run").json()
+    assert {c["name"] for c in result["candidates"]} == {"Liga Alumínio Demo A", "Aço Demo B"}
+
+
+def test_a_saved_nested_stage_round_trips_its_parentheses(client):
+    """The M6 read-side gap, closed: reopening a nested study used to come back
+    as a flat list, silently losing the structure."""
+    payload = {
+        "name": "Estudo aninhado que volta inteiro",
+        "free_variables": [],
+        "criteria": [],
+        "stages": [
+            {
+                "kind": "limit",
+                "root_group": {
+                    "operator": "OR",
+                    "constraints": [],
+                    "groups": [
+                        {
+                            "operator": "AND",
+                            "constraints": [
+                                {
+                                    "operator": "lte",
+                                    "property_slug": "densidade",
+                                    "value": 2800,
+                                    "unit": "kg/m**3",
+                                }
+                            ],
+                            "groups": [],
+                        },
+                        {
+                            "operator": "AND",
+                            "constraints": [
+                                {
+                                    "operator": "gte",
+                                    "property_slug": "modulo_young",
+                                    "value": 200,
+                                    "unit": "GPa",
+                                }
+                            ],
+                            "groups": [],
+                        },
+                    ],
+                },
+            }
+        ],
+    }
+    study_id = client.post("/api/selection/studies", json=payload).json()["id"]
+
+    root = client.get(f"/api/selection/studies/{study_id}").json()["stages"][0]["root_group"]
+    assert root["operator"] == "OR"
+    assert [g["operator"] for g in root["groups"]] == ["AND", "AND"]
+    assert [g["constraints"][0]["property_slug"] for g in root["groups"]] == [
+        "densidade",
+        "modulo_young",
+    ]
+
+
+def test_the_study_summary_counts_stages(client):
+    payload = {
+        "name": "Estudo com três estágios",
+        "free_variables": [],
+        "criteria": [],
+        "stages": [_metais_stage(), _leves_stage(), _leves_stage(label="Outro")],
+    }
+    client.post("/api/selection/studies", json=payload)
+
+    summaries = client.get("/api/selection/studies").json()
+    mine = next(s for s in summaries if s["name"] == "Estudo com três estágios")
+    assert mine["stage_count"] == 3
+
+
+def test_a_flat_study_still_reports_one_stage_on_read(client):
+    payload = {
+        "name": "Estudo plano lido de volta",
+        "free_variables": [],
+        "criteria": [],
+        "combinator": "OR",
+        "constraints": [
+            {"operator": "lte", "property_slug": "densidade", "value": 2800, "unit": "kg/m**3"}
+        ],
+    }
+    study_id = client.post("/api/selection/studies", json=payload).json()["id"]
+
+    read = client.get(f"/api/selection/studies/{study_id}").json()
+    assert read["combinator"] == "OR"
+    assert len(read["stages"]) == 1
+    assert read["stages"][0]["root_group"]["operator"] == "OR"
+    # The flat field kept its old meaning too.
+    assert len(read["constraints"]) == 1
