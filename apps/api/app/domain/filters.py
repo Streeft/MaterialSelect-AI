@@ -61,6 +61,22 @@ class MaterialSnapshot:
     class_slug: str
     keywords: list[str]
     values: dict[str, float]
+    #: The material's class lineage, root→leaf, its own slug last — what makes
+    #: a tree stage able to say "everything under Metais" (P0-1). Defaults to
+    #: empty because ancestry is something the service reads from the taxonomy;
+    #: a snapshot built without it is matchable by its own class only, which is
+    #: exactly the pre-P0-1 ``IN_CLASS`` behaviour. Read it through
+    #: ``class_lineage``, never directly.
+    class_path: list[str] = field(default_factory=list)
+
+    @property
+    def class_lineage(self) -> tuple[str, ...]:
+        """The class slugs a tree selection may match this material by.
+
+        Absent ancestry is absent, not an empty set that matches nothing: with
+        no ``class_path`` this is the material's own class alone.
+        """
+        return tuple(self.class_path) if self.class_path else (self.class_slug,)
 
 
 @dataclass
@@ -75,6 +91,35 @@ class Constraint:
     value_max: float | None = None
     class_slugs: list[str] = field(default_factory=list)
     text: str | None = None
+
+
+@dataclass(frozen=True)
+class TreeSelection:
+    """A folder selection over the material taxonomy — a Tree stage's payload.
+
+    Different from the ``IN_CLASS`` constraint in one way that matters: with
+    ``include_descendants`` (the default) picking a folder picks everything
+    under it, which is what makes a hierarchy navigable. ``IN_CLASS`` compares
+    the material's own class slug and nothing else, so ticking a branch node
+    there admits nothing — every material sits in a leaf.
+
+    Selecting nothing imposes no restriction, the same convention an empty
+    constraint group follows: a stage with nothing ticked is a stage that does
+    not narrow, not a stage that rejects everything.
+    """
+
+    class_slugs: tuple[str, ...] | list[str] = field(default_factory=tuple)
+    include_descendants: bool = True
+
+
+def matches_tree(material: MaterialSnapshot, selection: TreeSelection) -> bool:
+    """Return True if ``material`` falls inside ``selection``'s folders."""
+    picked = set(selection.class_slugs)
+    if not picked:
+        return True
+    if selection.include_descendants:
+        return any(slug in picked for slug in material.class_lineage)
+    return material.class_slug in picked
 
 
 @dataclass

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, aliased, joinedload
 
 from app.models.material import Material
 from app.models.material_class import MaterialClass
@@ -39,6 +39,19 @@ class SelectionRepository:
     def list_properties(self) -> list[PropertyDefinition]:
         stmt = select(PropertyDefinition).order_by(PropertyDefinition.slug)
         return list(self.db.execute(stmt).scalars().all())
+
+    def class_parents(self) -> dict[str, str | None]:
+        """Every class slug mapped to its parent's slug (``None`` at a root).
+
+        Two columns of the whole taxonomy — dozens of rows, not a join per
+        material — which is what lets ``app.domain.taxonomy.lineages`` give a
+        Tree stage the ancestry a snapshot needs.
+        """
+        parent = aliased(MaterialClass)
+        stmt = select(MaterialClass.slug, parent.slug).join(
+            parent, MaterialClass.parent_id == parent.id, isouter=True
+        )
+        return {row[0]: row[1] for row in self.db.execute(stmt).all()}
 
     def existing_class_slugs(self, slugs: list[str]) -> set[str]:
         if not slugs:
