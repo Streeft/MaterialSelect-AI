@@ -73,6 +73,8 @@ from app.schemas.selection import (
     RunRequest,
     RunResultOut,
     SensitivityScenarioOut,
+    StageIn,
+    StageOut,
     StageResultOut,
     StudyIn,
     StudyOut,
@@ -250,6 +252,104 @@ class SelectionService:
                 "Envie restrições no formato plano (constraints/combinator) ou em "
                 "root_group — não os dois ao mesmo tempo."
             )
+
+    @staticmethod
+    def _check_stage_conflict(
+        constraints_in: list[ConstraintIn],
+        root_group_in: ConstraintGroupIn | None,
+        stages_in: list[StageIn] | None,
+    ) -> None:
+        """A payload describes the filter once. Two descriptions, one of them
+        silently ignored, is how a user ends up staring at a selection that does
+        not narrow."""
+        if stages_in is None:
+            return
+        if constraints_in or root_group_in is not None:
+            raise ValidationError(
+                "Envie os estágios ou as restrições no nível do estudo, não os dois."
+            )
+        if not stages_in:
+            raise ValidationError("Informe ao menos um estágio.")
+
+    def _check_stage_shape(self, stage_in: StageIn) -> None:
+        """Reject a stage that mixes the two kinds, and an unknown class slug.
+
+        Shape only — thresholds, units and property existence are *not* checked
+        here. That is deliberate and matches what saving already did before
+        P0-1: a constraint is stored raw and validated when the study runs (see
+        `_persist_group_tree`), so a study whose property was later renamed
+        still opens instead of becoming unreadable. What this does catch is a
+        payload that could never work as written, whatever the catalogue holds.
+        """
+        if stage_in.kind == "tree":
+            if stage_in.constraints or stage_in.root_group is not None:
+                raise ValidationError(
+                    "Um estágio de classes não leva restrições; use um estágio de limites."
+                )
+            self._check_class_slugs(stage_in.class_slugs)
+            return
+
+        if stage_in.class_slugs:
+            raise ValidationError(
+                "Um estágio de limites não leva classes; use um estágio de classes."
+            )
+        self._check_root_group_conflict(stage_in.constraints, stage_in.root_group)
+
+    def _stage_in_to_node(self, stage_in: StageIn) -> SelectionStageNode:
+        """One stage payload as a domain node, ready to run.
+
+        Builds the constraints, so it needs the catalogue loaded — this is the
+        run path. Saving goes through `_check_stage_shape` instead.
+        """
+        self._check_stage_shape(stage_in)
+        if stage_in.kind == "tree":
+            return SelectionStageNode(
+                kind="tree",
+                label=stage_in.label,
+                enabled=stage_in.enabled,
+                tree=TreeSelection(
+                    class_slugs=list(stage_in.class_slugs),
+                    include_descendants=stage_in.include_descendants,
+                ),
+            )
+
+        return SelectionStageNode(
+            kind="limit",
+            label=stage_in.label,
+            enabled=stage_in.enabled,
+            root=self._request_root_node(
+                stage_in.combinator, stage_in.constraints, stage_in.root_group
+            ),
+        )
+
+    def _check_class_slugs(self, slugs: list[str]) -> None:
+        """Same check `_build_constraint` makes for in_class: an unknown slug is
+        a 404 naming it, never a stage that quietly admits nothing."""
+        if not slugs:
+            return
+        unknown = sorted(set(slugs) - self.repo.existing_class_slugs(slugs))
+        if unknown:
+            raise NotFoundError(f"Classes desconhecidas: {', '.join(unknown)}")
+
+    def _request_stages(
+        self,
+        combinator: str,
+        constraints_in: list[ConstraintIn],
+        root_group_in: ConstraintGroupIn | None,
+        stages_in: list[StageIn] | None,
+    ) -> list[SelectionStageNode]:
+        """The pipeline a request describes — an explicit list of stages, or the
+        single limit stage the flat/`root_group` payload has always meant."""
+        if stages_in is not None:
+            return [self._stage_in_to_node(s) for s in stages_in]
+        return [
+            SelectionStageNode(
+                kind="limit",
+                label=None,
+                enabled=True,
+                root=self._request_root_node(combinator, constraints_in, root_group_in),
+            )
+        ]
 
     def _group_in_to_node(self, group_in: ConstraintGroupIn) -> ConstraintGroupNode:
         return ConstraintGroupNode(
@@ -604,19 +704,20 @@ class SelectionService:
     # --- filter -----------------------------------------------------------
 
     def filter(self, request: FilterRequest) -> FilterResultOut:
+        self._check_stage_conflict(request.constraints, request.root_group, request.stages)
         self._check_root_group_conflict(request.constraints, request.root_group)
         snapshots = self._load()
-        root_node = self._request_root_node(
-            request.combinator, request.constraints, request.root_group
+        stages = self._request_stages(
+            request.combinator, request.constraints, request.root_group, request.stages
         )
-        steps, candidate_snaps = self._apply_group(snapshots, root_node)
+        _, steps, candidate_snaps = self._apply_stages(snapshots, stages)
         candidates = [
             CandidateOut(material_id=m.id, name=m.name, class_name=m.class_name)
             for m in candidate_snaps
         ]
         return FilterResultOut(
             initial_count=len(snapshots),
-            combinator=root_node.operator,
+            combinator=self._pipeline_combinator(stages),
             final_count=len(candidate_snaps),
             steps=steps,
             candidates=candidates,
@@ -792,12 +893,13 @@ class SelectionService:
     # --- run (full pipeline) ---------------------------------------------
 
     def run(self, request: RunRequest) -> RunResultOut:
+        self._check_stage_conflict(request.constraints, request.root_group, request.stages)
         self._check_root_group_conflict(request.constraints, request.root_group)
         self._load()
-        root_node = self._request_root_node(
-            request.combinator, request.constraints, request.root_group
+        stages = self._request_stages(
+            request.combinator, request.constraints, request.root_group, request.stages
         )
-        return self._run_with_root_node(root_node, request.index, request.ranking)
+        return self._run_with_stages(stages, request.index, request.ranking)
 
     def _run_with_root_node(
         self, root_node: ConstraintGroupNode, index: IndexIn | None, ranking: RankingIn | None
@@ -950,6 +1052,7 @@ class SelectionService:
                 description=s.description,
                 created_at=s.created_at,
                 constraint_count=len(s.constraints),
+                stage_count=len(s.stages),
                 criterion_count=len(s.criteria),
             )
             for s in self.repo.list_studies(self.project_id)
@@ -962,6 +1065,7 @@ class SelectionService:
         return self._study_to_out(study)
 
     def create_study(self, payload: StudyIn) -> StudyOut:
+        self._check_stage_conflict(payload.constraints, payload.root_group, payload.stages)
         self._check_root_group_conflict(payload.constraints, payload.root_group)
         if self.repo.study_name_exists(payload.name, self.project_id):
             raise ConflictError(f"Já existe um estudo com o nome: {payload.name}")
@@ -972,6 +1076,18 @@ class SelectionService:
         combinator = (
             payload.root_group.operator if payload.root_group is not None else payload.combinator
         )
+        if payload.stages is not None:
+            # With an explicit pipeline the study's own `combinator` column
+            # mirrors the first limit stage's root operator — the field a
+            # pre-P0-1 reader will use, kept as close to true as one value can
+            # be. `stages` is the structure.
+            first_limit = next((s for s in payload.stages if s.kind == "limit"), None)
+            if first_limit is not None:
+                combinator = (
+                    first_limit.root_group.operator
+                    if first_limit.root_group is not None
+                    else first_limit.combinator
+                )
         study = SelectionStudy(
             name=payload.name.strip(),
             project_id=self.project_id,
@@ -988,6 +1104,16 @@ class SelectionService:
         )
         self.repo.add(study)
         self.repo.flush()  # assigns study.id, needed by the root group below
+
+        if payload.stages is not None:
+            # P0-1: an explicit pipeline. Validated first — one bad stage must
+            # not leave half a pipeline behind — then persisted in order.
+            for stage_in in payload.stages:
+                self._check_stage_shape(stage_in)
+            for position, stage_in in enumerate(payload.stages):
+                self._persist_stage(study, stage_in, position)
+            self._persist_criteria(study, payload)
+            return self._finish_study_creation(study)
 
         # P0-1: every study owns at least one stage, and every ConstraintGroup
         # belongs to one. A study saved through the flat/root_group payload is
@@ -1044,6 +1170,33 @@ class SelectionService:
                         label=c.label,
                     )
                 )
+        self._persist_criteria(study, payload)
+        return self._finish_study_creation(study)
+
+    def _persist_stage(self, study: SelectionStudy, stage_in: StageIn, position: int) -> None:
+        """One stage row, plus its own constraint tree when it is a limit stage."""
+        stage = SelectionStage(
+            study_id=study.id,
+            position=position,
+            kind=stage_in.kind,
+            label=stage_in.label,
+            enabled=stage_in.enabled,
+            class_slugs=list(stage_in.class_slugs),
+            include_descendants=stage_in.include_descendants,
+        )
+        self.repo.add(stage)
+        self.repo.flush()  # assigns stage.id, needed by the groups below
+        if stage_in.kind != "limit":
+            return
+
+        root_in = stage_in.root_group or ConstraintGroupIn(
+            operator=stage_in.combinator, constraints=list(stage_in.constraints), groups=[]
+        )
+        self._persist_group_tree(
+            study, root_in, parent_group_id=None, position=0, stage_id=stage.id
+        )
+
+    def _persist_criteria(self, study: SelectionStudy, payload: StudyIn) -> None:
         for position, cr in enumerate(payload.criteria):
             study.criteria.append(
                 RankingCriterion(
@@ -1057,6 +1210,8 @@ class SelectionService:
                     weight=cr.weight,
                 )
             )
+
+    def _finish_study_creation(self, study: SelectionStudy) -> StudyOut:
         self.repo.flush()
         record_change(
             self.audit_repo,
@@ -1112,12 +1267,77 @@ class SelectionService:
             free_variables=list(study.free_variables or []),
             combinator=study.combinator,
             constraints=[self._constraint_to_in(c) for c in study.constraints],
+            stages=self._stages_to_out(study),
             index=index,
             normalization=study.normalization,
             method=study.method,
             criteria=[self._criterion_to_in(c) for c in study.criteria],
             created_at=study.created_at,
         )
+
+    def _stages_to_out(self, study: SelectionStudy) -> list[StageOut]:
+        """A study's pipeline, read back whole.
+
+        A limit stage's `root_group` carries its real tree, nesting included —
+        which is also what closes the gap M6 left on the read side: a saved
+        nested study used to come back as a flat constraint list, so reopening
+        it silently dropped the parentheses.
+        """
+        groups_by_stage: dict[int, list[ConstraintGroup]] = {}
+        for group in study.constraint_groups:
+            groups_by_stage.setdefault(group.stage_id, []).append(group)
+
+        constraints_by_group: dict[int, list[SelectionConstraint]] = {}
+        for c in study.constraints:
+            constraints_by_group.setdefault(c.group_id, []).append(c)
+
+        outs: list[StageOut] = []
+        for stage in study.stages:
+            root_group = None
+            if stage.kind == "limit":
+                root_group = self._group_rows_to_in(
+                    groups_by_stage.get(stage.id, []), constraints_by_group
+                )
+            outs.append(
+                StageOut(
+                    position=stage.position,
+                    kind=stage.kind,
+                    label=stage.label,
+                    enabled=stage.enabled,
+                    root_group=root_group,
+                    class_slugs=list(stage.class_slugs or []),
+                    include_descendants=stage.include_descendants,
+                )
+            )
+        return outs
+
+    def _group_rows_to_in(
+        self,
+        groups: list[ConstraintGroup],
+        constraints_by_group: dict[int, list[SelectionConstraint]],
+    ) -> ConstraintGroupIn | None:
+        """Rebuild a ConstraintGroupIn tree from one stage's group rows.
+
+        The read-side mirror of `_persist_group_tree`. Returns None for a stage
+        with no group at all rather than an empty AND group, so a caller can
+        tell "no tree stored" from "a tree that restricts nothing".
+        """
+        children_by_parent: dict[int | None, list[ConstraintGroup]] = {}
+        for g in groups:
+            children_by_parent.setdefault(g.parent_group_id, []).append(g)
+
+        roots = children_by_parent.get(None, [])
+        if not roots:
+            return None
+
+        def build(g: ConstraintGroup) -> ConstraintGroupIn:
+            return ConstraintGroupIn(
+                operator=g.operator,
+                constraints=[self._constraint_to_in(c) for c in constraints_by_group.get(g.id, [])],
+                groups=[build(child) for child in children_by_parent.get(g.id, [])],
+            )
+
+        return build(roots[0])
 
     def _study_index_and_ranking(
         self, study: SelectionStudy

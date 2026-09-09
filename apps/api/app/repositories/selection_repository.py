@@ -77,6 +77,9 @@ class SelectionRepository:
             .options(
                 joinedload(SelectionStudy.constraints),
                 joinedload(SelectionStudy.criteria),
+                # P0-1: the summary reports how many stages a study has, and
+                # reading it lazily would be one query per study in the list.
+                joinedload(SelectionStudy.stages),
             )
             .where(SelectionStudy.project_id == project_id)
             .order_by(SelectionStudy.created_at.desc(), SelectionStudy.id.desc())
@@ -89,6 +92,10 @@ class SelectionRepository:
             .options(
                 joinedload(SelectionStudy.constraints),
                 joinedload(SelectionStudy.criteria),
+                # P0-1: reading a study returns its whole pipeline, groups
+                # included — both are walked on every read.
+                joinedload(SelectionStudy.stages),
+                joinedload(SelectionStudy.constraint_groups),
             )
             .where(SelectionStudy.id == study_id, SelectionStudy.project_id == project_id)
         )
