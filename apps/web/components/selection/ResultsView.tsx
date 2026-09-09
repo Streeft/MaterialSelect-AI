@@ -131,6 +131,10 @@ function ProvenanceItem({ term, children }: { term: string; children: ReactNode 
 
 export function ResultsView({ result }: { result: RunResult }) {
   const { funnel, candidates, index, ranking } = result;
+  // P0-1: the per-stage summary only appears when there is a pipeline to
+  // summarise. For a single-stage study the funnel below already *is* the
+  // pipeline, and a one-row table above it would say the same thing twice.
+  const stages = result.stages.length > 1 ? result.stages : [];
   // Why an index came out undefined for a given material. The backend says so
   // per material, and an absence without its reason is just a hole in a table.
   const undefinedReasonById = new Map(
@@ -216,6 +220,37 @@ export function ResultsView({ result }: { result: RunResult }) {
             />
           ))}
         </ol>
+
+        {stages.length > 0 && (
+          <div className="mt-5 overflow-x-auto">
+            <table className="w-full text-sm">
+              <caption className="mb-2 text-left text-xs text-ink-muted">
+                {t.stagesHint}
+              </caption>
+              <thead>
+                <tr className="text-left text-xs uppercase tracking-wide text-ink-muted">
+                  <th className="py-1 pr-3">{t.stagesTitle}</th>
+                  <th className="py-1 pr-3">{t.stagePassedAlone}</th>
+                  <th className="py-1 pr-3">{t.stageRemaining}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {stages.map((stage) => (
+                  <tr key={stage.position} className="border-t border-edge">
+                    <td className="py-1 pr-3">
+                      {stage.label || t.stageNumber(stage.position + 1, stage.kind)}
+                      {!stage.enabled && (
+                        <span className="ml-2 text-xs text-ink-muted">({t.stageDisabled})</span>
+                      )}
+                    </td>
+                    <td className="py-1 pr-3 tabular-nums">{formatNumber(stage.passed)}</td>
+                    <td className="py-1 pr-3 tabular-nums">{formatNumber(stage.remaining)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </Section>
 
       {candidates.length === 0 && <Alert tone="warning">{t.emptyResults}</Alert>}

@@ -52,17 +52,46 @@ para todo estudo pré-existente (um `ConstraintGroup` raiz por estudo, com o
 `combinator` que ele já tinha), e a prova de equivalência comportamental para
 o caso de um único grupo raiz está nos testes de `filters.py`.
 
-> **Limitação conhecida:** salvar um estudo com uma árvore aninhada de verdade
-> grava a árvore corretamente (e `POST /api/selection/studies/{id}/run` a
-> reexecuta corretamente, porque lê do banco via `_load_group_tree`). Mas
-> `GET /api/selection/studies/{id}` (`StudyOut`, montado por
-> `SelectionService._study_to_out`) ainda devolve as restrições como lista
-> plana — não recompõe a árvore para a resposta. Na prática: reabrir ("Abrir")
-> um estudo salvo com grupos aninhados mostra tudo achatado num único grupo
-> AND no editor, sem nenhum aviso na tela de que a estrutura original era
-> outra. Não é perda de dado — a árvore real continua intacta no banco e
-> continua sendo o que o estudo *executa* — é uma lacuna de exibição/
-> round-trip, registrada em `docs/TODO.md`.
+> **Limitação do M6, resolvida no P0-1:** `StudyOut` devolvia as restrições de
+> um estudo aninhado como lista plana, então reabrir o estudo mostrava tudo
+> achatado num único grupo AND, sem aviso nenhum. Nunca foi perda de dado — a
+> árvore real seguia intacta no banco e era o que o estudo *executava* —, mas
+> era uma lacuna de round-trip. `StageOut.root_group` agora devolve a árvore
+> inteira, e `fromConstraintPayload` a reconstrói no editor.
+
+## Estágios (P0-1)
+
+Os grupos acima descrevem **um** filtro. Um estudo, porém, é uma **pilha
+ordenada de estágios** (`SelectionStage`), e o resultado é a interseção dos
+estágios **habilitados**, na ordem em que estão ([D-56](DECISIONS.md)).
+
+Há dois tipos, e um estágio é uma pergunta só — enviar os campos do outro tipo
+é recusado, não ignorado:
+
+- **`limit`** — uma árvore de restrições, exatamente a do M6 acima. O estágio é
+  dono de um `ConstraintGroup` raiz; todo grupo aninhado carrega o mesmo
+  `stage_id`.
+- **`tree`** — uma seleção de pastas da taxonomia (`class_slugs`). Com
+  `include_descendants` (o padrão), escolher uma classe traz tudo abaixo dela.
+  Isso é o que a restrição `in_class` **não** faz: ela compara o slug da própria
+  classe do material, e como todo material mora numa folha, marcar um galho ali
+  não admite ninguém. As duas continuam existindo porque respondem a perguntas
+  diferentes — "exatamente nesta classe" e "nesta família".
+
+`enabled` é coluna e não exclusão: desligar e religar um estágio é *como* se vê
+o efeito de um critério. Um estágio desligado não estreita, mas continua no
+relatório e ainda diz **quantos admitiria sozinho** — a pergunta que desligar
+faz.
+
+A migration `a1c4f2e8b7d3` dá a cada estudo pré-existente exatamente um estágio
+`limit` habilitado na posição 0, dono do grupo raiz que o M6 já lhe dera. Com um
+estágio, o funil plano sai **idêntico** ao de antes: sem prefixo, sem linha
+extra. Com mais de um, cada linha nomeia seu estágio.
+
+Pilha vazia não existe em lugar nenhum: nem no banco, nem na API (`stages: []`
+é 400), nem na tela (o último estágio não pode ser removido). Um estudo cujas
+linhas descrevem estágio nenhum degrada para um estágio sobre a árvore inteira,
+em vez de admitir o catálogo todo em silêncio.
 
 ## Índices de desempenho (`app/calculations/expressions.py`)
 

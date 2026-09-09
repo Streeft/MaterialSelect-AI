@@ -2328,3 +2328,72 @@ de materiais" e "plataforma". Ver [14-plataforma-selecao.md](14-plataforma-selec
 
 A interface declara os operadores na dica do campo, ligada por
 `aria-describedby`: uma linguagem de consulta que ninguém descobre não existe.
+
+---
+
+## D-56 — A seleção é uma pilha ordenada de estágios
+
+**Contexto.** `SelectionStudy` carregava *uma* árvore de restrições, *um*
+índice, *um* método. A análise de lacunas ([14-plataforma-selecao.md](14-plataforma-selecao.md))
+apontou isso como o gargalo arquitetural P0-1: tudo que a metodologia faz
+combinando estágios — um estágio de limites estreitando o que um de classes
+admitiu, desabilitar o estágio 2 para ver o efeito, apagar o 3 e manter os
+outros — não tinha onde morar, e os módulos E, F, G, H ficavam sem encaixe.
+
+**Decisão.**
+
+- **`SelectionStage` é entidade de primeira classe**, ordenada por `position`,
+  e o resultado é a **interseção dos estágios habilitados**. Migração aditiva
+  com backfill: cada estudo existente vira um estágio `limit` habilitado na
+  posição 0, dono do grupo raiz que o M6 já lhe dera. Estudo salvo antes disso
+  avalia exatamente como antes.
+- **`enabled` é coluna, não exclusão.** Desligar e religar um estágio é *como*
+  se vê o efeito de um critério; um estágio apagado para tentar isso teria de
+  ser redigitado. E um estágio desligado ainda reporta **quantos admitiria
+  sozinho**, que é precisamente a pergunta que desligar faz.
+- **Dois tipos de estágio, e um estágio é uma pergunta só.** `limit` carrega a
+  árvore AND/OR do M6; `tree` carrega uma seleção de pastas da taxonomia.
+  Enviar os campos do outro tipo é **recusado**, não ignorado — descartar em
+  silêncio um filtro que o usuário escreveu é a forma exata do bug "por que
+  minha seleção não estreita".
+- **O estágio de classes anda a hierarquia; `in_class` não.** `in_class`
+  compara o slug da própria classe, então marcar um galho não admite material
+  nenhum — todo material mora numa folha. `include_descendants` (padrão) é o
+  que torna a hierarquia navegável, e desligá-lo devolve o pertencimento exato
+  para quem quer exatamente isso. Os dois continuam existindo porque respondem
+  a perguntas diferentes.
+- **Retrocompatibilidade é do funil, não só do resultado.** Com **um** estágio
+  o funil plano sai idêntico ao de antes — sem prefixo, sem linha extra. Com
+  mais de um, cada linha nomeia seu estágio, ou um passo do estágio 1 e um do
+  estágio 3 ficariam indistinguíveis.
+- **`RunResultOut.combinator` diz a verdade ou "AND".** Com um estágio de
+  limites é o operador do grupo raiz, como sempre; com mais de um é "AND",
+  porque é assim que estágios se combinam — reportar o "OU" interno de um
+  estágio descreveria a pilha como algo que ela não é. `stages` é a verdade
+  completa nos dois casos.
+- **Pilha vazia não existe.** Nem no banco (todo estudo tem ao menos um
+  estágio), nem na API (`stages: []` é 400), nem na tela (o último estágio não
+  pode ser removido). Um estudo cujas linhas descrevem estágio nenhum **degrada**
+  para um estágio sobre a árvore inteira, em vez de admitir o catálogo todo em
+  silêncio.
+
+**Consequência que não estava no pedido.** `StudyOut` devolvia as restrições de
+um estudo aninhado como lista plana — reabrir o estudo perdia os parênteses, e o
+M6 deixou isso anotado em código como lacuna conhecida. `StageOut.root_group`
+devolve a árvore de verdade, e a tela a reconstrói: a lacuna fechou porque a
+leitura por estágio precisava da estrutura de qualquer jeito.
+
+**E o que os documentos passaram a dizer.** A linha "Combinação das restrições"
+do relatório e do laudo virou **"Lógica da seleção"** e descreve a pilha inteira;
+`describe_root_group` (que renderizava só o primeiro grupo raiz e teria
+descartado os demais) virou `describe_pipeline`. Há uma seção **"Estágios"**
+nos dois documentos, sempre presente: um documento de auditoria cujas seções
+aparecem e somem conforme a forma do estudo é mais difícil de ler que um que
+sempre responde às mesmas perguntas.
+
+**Método.** `app/tests/test_migration_selection_stage.py` roda a migração de
+verdade, nos dois sentidos, contra um banco temporário que já contém um estudo
+com grupo raiz, grupo aninhado e restrição — o M6 registrou que seu backfill foi
+"verificado à mão" por não haver precedente; agora há. Conferido por mutação:
+quebrando o `UPDATE` do backfill, os cinco testes falham no travamento do NOT
+NULL, exatamente onde um banco de produção quebraria.

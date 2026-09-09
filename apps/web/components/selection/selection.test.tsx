@@ -132,6 +132,17 @@ function makeResult(overrides: Partial<RunResult> = {}): RunResult {
       { label: "Densidade ≤ 3", operator: "lte", passed: 6, remaining: 6 },
       { label: "Módulo ≥ 60", operator: "gte", passed: 3, remaining: 3 },
     ],
+    stages: [
+      {
+        position: 0,
+        kind: "limit",
+        label: null,
+        enabled: true,
+        passed: 3,
+        remaining: 3,
+        steps: [],
+      },
+    ],
     candidates: [
       { material_id: 1, name: "Liga A", class_name: "Metais", index_value: 12, score: 0.9, rank: 1 },
       {

@@ -61,6 +61,22 @@ class MaterialSnapshot:
     class_slug: str
     keywords: list[str]
     values: dict[str, float]
+    #: The material's class lineage, root→leaf, its own slug last — what makes
+    #: a tree stage able to say "everything under Metais" (P0-1). Defaults to
+    #: empty because ancestry is something the service reads from the taxonomy;
+    #: a snapshot built without it is matchable by its own class only, which is
+    #: exactly the pre-P0-1 ``IN_CLASS`` behaviour. Read it through
+    #: ``class_lineage``, never directly.
+    class_path: list[str] = field(default_factory=list)
+
+    @property
+    def class_lineage(self) -> tuple[str, ...]:
+        """The class slugs a tree selection may match this material by.
+
+        Absent ancestry is absent, not an empty set that matches nothing: with
+        no ``class_path`` this is the material's own class alone.
+        """
+        return tuple(self.class_path) if self.class_path else (self.class_slug,)
 
 
 @dataclass
@@ -75,6 +91,35 @@ class Constraint:
     value_max: float | None = None
     class_slugs: list[str] = field(default_factory=list)
     text: str | None = None
+
+
+@dataclass(frozen=True)
+class TreeSelection:
+    """A folder selection over the material taxonomy — a Tree stage's payload.
+
+    Different from the ``IN_CLASS`` constraint in one way that matters: with
+    ``include_descendants`` (the default) picking a folder picks everything
+    under it, which is what makes a hierarchy navigable. ``IN_CLASS`` compares
+    the material's own class slug and nothing else, so ticking a branch node
+    there admits nothing — every material sits in a leaf.
+
+    Selecting nothing imposes no restriction, the same convention an empty
+    constraint group follows: a stage with nothing ticked is a stage that does
+    not narrow, not a stage that rejects everything.
+    """
+
+    class_slugs: tuple[str, ...] | list[str] = field(default_factory=tuple)
+    include_descendants: bool = True
+
+
+def matches_tree(material: MaterialSnapshot, selection: TreeSelection) -> bool:
+    """Return True if ``material`` falls inside ``selection``'s folders."""
+    picked = set(selection.class_slugs)
+    if not picked:
+        return True
+    if selection.include_descendants:
+        return any(slug in picked for slug in material.class_lineage)
+    return material.class_slug in picked
 
 
 @dataclass
@@ -127,6 +172,22 @@ class ConstraintGroupNode:
     operator: str  # "AND" | "OR"
     constraints: list[Constraint]
     children: list[ConstraintGroupNode]
+
+
+@dataclass
+class SelectionStageNode:
+    """One stage of the selection pipeline, independent of the ORM (P0-1).
+
+    A ``"limit"`` stage carries ``root`` (a constraint tree, M6's nesting
+    included); a ``"tree"`` stage carries ``tree`` (a folder selection). The
+    other field is ``None`` — a stage is one kind of question, not both.
+    """
+
+    kind: str  # "limit" | "tree"
+    label: str | None
+    enabled: bool
+    root: ConstraintGroupNode | None = None
+    tree: TreeSelection | None = None
 
 
 def evaluate_constraint(constraint: Constraint, material: MaterialSnapshot) -> bool:
@@ -272,3 +333,44 @@ def apply_constraint_tree(
     root group with no nesting) keep evaluating exactly as before.
     """
     return [material for material in materials if _group_passes(material, root)]
+
+
+def apply_stage(
+    materials: list[MaterialSnapshot], stage: SelectionStageNode
+) -> list[MaterialSnapshot]:
+    """Filter ``materials`` by one stage alone, ignoring ``stage.enabled``.
+
+    Ignoring ``enabled`` is what makes the funnel able to answer "how many
+    would this stage admit on its own" — including for a stage the user has
+    switched off, which is precisely the question switching it off asks.
+    Whether a disabled stage narrows the running set is decided by
+    ``apply_stages``, not here.
+    """
+    if stage.kind == "tree":
+        if stage.tree is None:
+            return list(materials)
+        return [m for m in materials if matches_tree(m, stage.tree)]
+    if stage.root is None:
+        return list(materials)
+    return apply_constraint_tree(materials, stage.root)
+
+
+def apply_stages(
+    materials: list[MaterialSnapshot], stages: list[SelectionStageNode]
+) -> list[MaterialSnapshot]:
+    """Run the pipeline: the intersection of the **enabled** stages, in order.
+
+    Intersection commutes, so the order does not change the surviving set —
+    what it changes is the funnel the service builds around this, which reads
+    as an argument and therefore has an order.
+
+    No stages, or every stage disabled, admits every material: same convention
+    as an empty constraint group. A pipeline that says nothing does not reject
+    everything.
+    """
+    remaining = list(materials)
+    for stage in stages:
+        if not stage.enabled:
+            continue
+        remaining = apply_stage(remaining, stage)
+    return remaining

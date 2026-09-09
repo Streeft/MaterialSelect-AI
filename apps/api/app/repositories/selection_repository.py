@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, aliased, joinedload
 
 from app.models.material import Material
 from app.models.material_class import MaterialClass
@@ -40,6 +40,25 @@ class SelectionRepository:
         stmt = select(PropertyDefinition).order_by(PropertyDefinition.slug)
         return list(self.db.execute(stmt).scalars().all())
 
+    def class_parents(self) -> dict[str, str | None]:
+        """Every class slug mapped to its parent's slug (``None`` at a root).
+
+        Two columns of the whole taxonomy — dozens of rows, not a join per
+        material — which is what lets ``app.domain.taxonomy.lineages`` give a
+        Tree stage the ancestry a snapshot needs.
+        """
+        parent = aliased(MaterialClass)
+        stmt = select(MaterialClass.slug, parent.slug).join(
+            parent, MaterialClass.parent_id == parent.id, isouter=True
+        )
+        return {row[0]: row[1] for row in self.db.execute(stmt).all()}
+
+    def class_names(self) -> dict[str, str]:
+        """Every class slug mapped to its display name — for a document that
+        should say "Metais", not "metais"."""
+        stmt = select(MaterialClass.slug, MaterialClass.name)
+        return {row[0]: row[1] for row in self.db.execute(stmt).all()}
+
     def existing_class_slugs(self, slugs: list[str]) -> set[str]:
         if not slugs:
             return set()
@@ -64,6 +83,9 @@ class SelectionRepository:
             .options(
                 joinedload(SelectionStudy.constraints),
                 joinedload(SelectionStudy.criteria),
+                # P0-1: the summary reports how many stages a study has, and
+                # reading it lazily would be one query per study in the list.
+                joinedload(SelectionStudy.stages),
             )
             .where(SelectionStudy.project_id == project_id)
             .order_by(SelectionStudy.created_at.desc(), SelectionStudy.id.desc())
@@ -76,6 +98,10 @@ class SelectionRepository:
             .options(
                 joinedload(SelectionStudy.constraints),
                 joinedload(SelectionStudy.criteria),
+                # P0-1: reading a study returns its whole pipeline, groups
+                # included — both are walked on every read.
+                joinedload(SelectionStudy.stages),
+                joinedload(SelectionStudy.constraint_groups),
             )
             .where(SelectionStudy.id == study_id, SelectionStudy.project_id == project_id)
         )

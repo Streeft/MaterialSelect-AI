@@ -18,7 +18,6 @@ import {
   studyExportUrl,
 } from "@/lib/api";
 import type {
-  ConstraintGroupIn,
   CriterionIn,
   Goal,
   IndexIn,
@@ -26,6 +25,7 @@ import type {
   NormalizationMethod,
   RunRequest,
   RunResult,
+  StageIn,
   StudyDetail,
 } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
@@ -56,14 +56,18 @@ import {
 } from "@/components/ui";
 import { IconArrowRight, IconPlus, IconTrash } from "@/components/ui/icons";
 import {
-  ConstraintEditor,
-  type ConstraintGroupState,
   emptyConstraint,
   emptyGroup,
+  fromConstraintPayload,
   nextEditorId,
-  toConstraintPayload,
-  countConstraints,
 } from "@/components/selection/ConstraintEditor";
+import {
+  StageList,
+  type StageState,
+  countStageConstraints,
+  emptyLimitStage,
+  toStagePayload,
+} from "@/components/selection/StageList";
 import { AhpMatrixInput, type AhpCriterionRef } from "@/components/selection/AhpMatrixInput";
 import {
   IndexCard,
@@ -182,12 +186,10 @@ function SelectionWizard() {
   const [functionText, setFunctionText] = useState("");
   const [objectiveText, setObjectiveText] = useState("");
   const [freeVariables, setFreeVariables] = useState("");
-  // M6: the root of the nested AND/OR constraint tree. Its own `operator`
-  // replaces the page-level combinator picker this used to be — operator is
-  // now a per-group property, not a study-level one (see ConstraintEditor).
-  const [rootGroup, setRootGroup] = useState<ConstraintGroupState>(() =>
-    emptyGroup(nextEditorId("group")),
-  );
+  // P0-1: the ordered pipeline. It starts as exactly one limit stage holding
+  // the nested AND/OR tree M6 introduced, so a simple study looks and behaves
+  // as it always did; adding a stage is what turns it into a pipeline.
+  const [stages, setStages] = useState<StageState[]>(() => [emptyLimitStage()]);
 
   const [indexMode, setIndexMode] = useState<string>("none"); // "none" | slug | "custom"
   const [customExpression, setCustomExpression] = useState("");
@@ -238,7 +240,7 @@ function SelectionWizard() {
     return chosen ? describeIndex(chosen) : null;
   }, [indexMode, customExpression, indexGoal, indices.data]);
 
-  const rootGroupPayload = (): ConstraintGroupIn => toConstraintPayload(rootGroup);
+  const stagesPayload = (): StageIn[] => stages.map(toStagePayload);
 
   // Only the criteria that already name a property (or the index) are worth
   // comparing pairwise — an empty row has nothing for AHP to weigh.
@@ -281,7 +283,7 @@ function SelectionWizard() {
 
   function buildRequest(includeObjective: boolean): RunRequest {
     return {
-      root_group: rootGroupPayload(),
+      stages: stagesPayload(),
       index: includeObjective ? activeIndex : null,
       ranking:
         includeObjective && criteriaPayload().length > 0
@@ -294,8 +296,8 @@ function SelectionWizard() {
   // Constraints only: adding the index here would make the number answer a
   // different question from the one the label asks.
   const preview = useQuery({
-    queryKey: ["selection-preview", JSON.stringify(rootGroupPayload())],
-    queryFn: () => runSelection({ root_group: rootGroupPayload(), index: null, ranking: null }),
+    queryKey: ["selection-preview", JSON.stringify(stagesPayload())],
+    queryFn: () => runSelection({ stages: stagesPayload(), index: null, ranking: null }),
     // Keep the previous count on screen while the next one is in flight, so the
     // element does not blink between every keystroke.
     placeholderData: (previous) => previous,
@@ -319,7 +321,7 @@ function SelectionWizard() {
         function_text: functionText.trim() || null,
         objective_text: objectiveText.trim() || null,
         free_variables: freeVariables.split(",").map((s) => s.trim()).filter(Boolean),
-        root_group: rootGroupPayload(),
+        stages: stagesPayload(),
         index: activeIndex,
         normalization,
         method,
@@ -346,24 +348,55 @@ function SelectionWizard() {
       setFunctionText(s.function_text ?? "");
       setObjectiveText(s.objective_text ?? "");
       setFreeVariables(s.free_variables.join(", "));
-      // `StudyOut` still returns a saved study's constraints as a flat list,
-      // even one saved with a real nested `root_group` (Task 8's known gap
-      // — the tree is not round-tripped back out). This reproduces exactly
-      // the flat shape pre-M6 always had; it never reconstructs nesting.
-      setRootGroup({
-        ...emptyGroup(nextEditorId("group"), s.combinator),
-        constraints: s.constraints.map((c) => ({
-          ...emptyConstraint(nextEditorId("row")),
-          operator: c.operator,
-          property_slug: c.property_slug ?? "",
-          value: c.value?.toString() ?? "",
-          value_min: c.value_min?.toString() ?? "",
-          value_max: c.value_max?.toString() ?? "",
-          unit: c.unit ?? "",
-          class_slugs: c.class_slugs ?? [],
-          text: c.text ?? "",
-        })),
-      });
+      // P0-1 closes M6's read-side gap: `StudyOut.stages` carries each stage's
+      // real tree, so reopening a nested study restores its parentheses instead
+      // of flattening them. A study whose payload somehow has no stage falls
+      // back to the flat list — the pre-M6 shape — rather than opening empty.
+      setStages(
+        s.stages.length > 0
+          ? s.stages.map((stage): StageState =>
+              stage.kind === "tree"
+                ? {
+                    id: nextEditorId("stage"),
+                    kind: "tree",
+                    label: stage.label ?? "",
+                    enabled: stage.enabled,
+                    classSlugs: stage.class_slugs,
+                    includeDescendants: stage.include_descendants,
+                  }
+                : {
+                    id: nextEditorId("stage"),
+                    kind: "limit",
+                    label: stage.label ?? "",
+                    enabled: stage.enabled,
+                    group: stage.root_group
+                      ? fromConstraintPayload(stage.root_group)
+                      : emptyGroup(nextEditorId("group"), s.combinator),
+                  },
+            )
+          : [
+              {
+                id: nextEditorId("stage"),
+                kind: "limit",
+                label: "",
+                enabled: true,
+                group: {
+                  ...emptyGroup(nextEditorId("group"), s.combinator),
+                  constraints: s.constraints.map((c) => ({
+                    ...emptyConstraint(nextEditorId("row")),
+                    operator: c.operator,
+                    property_slug: c.property_slug ?? "",
+                    value: c.value?.toString() ?? "",
+                    value_min: c.value_min?.toString() ?? "",
+                    value_max: c.value_max?.toString() ?? "",
+                    unit: c.unit ?? "",
+                    class_slugs: c.class_slugs ?? [],
+                    text: c.text ?? "",
+                  })),
+                },
+              },
+            ],
+      );
       if (s.index) {
         setIndexMode("custom");
         setCustomExpression(s.index.expression);
@@ -426,26 +459,37 @@ function SelectionWizard() {
     if (accepted.objectiveText) setObjectiveText(accepted.objectiveText);
     if (accepted.freeVariables.length > 0) setFreeVariables(accepted.freeVariables.join(", "));
     if (accepted.constraints.length > 0) {
-      // Appended to the root group's own constraints, never nested into a
-      // child group the AI has no way to name — same "add, never replace"
-      // rule the flat editor always had.
-      setRootGroup((current) => ({
-        ...current,
-        constraints: [
-          ...current.constraints,
-          ...accepted.constraints.map(({ constraint }) => ({
-            ...emptyConstraint(nextEditorId("row")),
-            operator: constraint.operator,
-            property_slug: constraint.property_slug ?? "",
-            value: constraint.value?.toString() ?? "",
-            value_min: constraint.value_min?.toString() ?? "",
-            value_max: constraint.value_max?.toString() ?? "",
-            unit: constraint.unit ?? "",
-            class_slugs: constraint.class_slugs ?? [],
-            text: constraint.text ?? "",
-          })),
-        ],
-      }));
+      // Appended to the first limit stage's root group, never nested into a
+      // child group — nor into a stage — the AI has no way to name. Same
+      // "add, never replace" rule the flat editor always had.
+      setStages((current) => {
+        const target = current.findIndex((s) => s.kind === "limit");
+        if (target === -1) return current;
+        return current.map((stage, i) =>
+          i !== target || stage.kind !== "limit"
+            ? stage
+            : {
+                ...stage,
+                group: {
+                  ...stage.group,
+                  constraints: [
+                    ...stage.group.constraints,
+                    ...accepted.constraints.map(({ constraint }) => ({
+                      ...emptyConstraint(nextEditorId("row")),
+                      operator: constraint.operator,
+                      property_slug: constraint.property_slug ?? "",
+                      value: constraint.value?.toString() ?? "",
+                      value_min: constraint.value_min?.toString() ?? "",
+                      value_max: constraint.value_max?.toString() ?? "",
+                      unit: constraint.unit ?? "",
+                      class_slugs: constraint.class_slugs ?? [],
+                      text: constraint.text ?? "",
+                    })),
+                  ],
+                },
+              },
+        );
+      });
     }
     if (accepted.index) {
       setIndexMode(accepted.index.slug);
@@ -454,7 +498,11 @@ function SelectionWizard() {
   }
 
   const indexIsCriterion = criteria.some((c) => c.key === "__index__");
-  const hasConstraints = countConstraints(rootGroupPayload()) > 0;
+  // A tree stage narrows without carrying a constraint, so "has the reader
+  // said anything yet" is not the constraint count alone.
+  const hasConstraints =
+    countStageConstraints(stages) > 0 ||
+    stages.some((s) => s.kind === "tree" && s.classSlugs.length > 0);
   const hasObjective = activeIndex !== null || criteriaPayload().length > 0;
   const canSave = name.trim().length > 0;
 
@@ -590,16 +638,18 @@ function SelectionWizard() {
 
         {/* Step 2: constraints */}
         {step === "constraints" && (
-          <Section title={t.constraintsTitle} description={t.constraintsHint}>
+          <Section
+            title={stages.length > 1 ? t.stagesTitle : t.constraintsTitle}
+            description={stages.length > 1 ? t.stagesHint : t.constraintsHint}
+          >
             {/* The root group's own AND/OR toggle lives inside the editor
-                now (M6) — operator is a per-group property, not a
-                study-level one, so this section no longer owns a combinator
-                picker of its own. */}
-            <ConstraintEditor
-              root={rootGroup}
+                (M6) — operator is a per-group property, not a study-level
+                one — and since P0-1 each stage owns one such tree. */}
+            <StageList
+              stages={stages}
               properties={properties.data ?? []}
               classes={classes.data ?? []}
-              onChange={setRootGroup}
+              onChange={setStages}
             />
           </Section>
         )}

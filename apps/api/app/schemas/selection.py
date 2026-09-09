@@ -40,6 +40,11 @@ MAX_AHP_CRITERIA = 12
 # behavior nobody chose as a limit on purpose.
 MAX_CONSTRAINT_GROUP_CHILDREN = 25
 
+# A study's pipeline. Bounded like every other array here; twenty ordered stages
+# is already far past what a selection argument stays readable at, and each one
+# costs a full pass over the catalogue.
+MAX_STAGES = 20
+
 
 # --- Inputs ----------------------------------------------------------------
 
@@ -81,6 +86,48 @@ class ConstraintGroupIn(BaseModel):
     )
 
 
+class StageIn(BaseModel):
+    """One stage of the selection pipeline (P0-1).
+
+    A stage is one kind of question, and supplying the other kind's fields is
+    rejected rather than ignored — silently dropping a filter the user wrote is
+    the shape of a "why does my selection not narrow" bug.
+
+    * ``kind="limit"``: ``constraints`` + ``combinator``, or a nested
+      ``root_group`` (M6), exactly as the top-level payload accepts them.
+    * ``kind="tree"``: ``class_slugs``, with ``include_descendants`` deciding
+      whether picking a folder picks everything under it.
+    """
+
+    kind: Literal["limit", "tree"] = "limit"
+    label: str | None = Field(default=None, max_length=200)
+    enabled: bool = True
+
+    combinator: CombinatorLiteral = "AND"
+    constraints: list[ConstraintIn] = Field(default_factory=list)
+    root_group: ConstraintGroupIn | None = None
+
+    class_slugs: list[str] = Field(default_factory=list)
+    include_descendants: bool = True
+
+
+class StageOut(BaseModel):
+    """A persisted stage, read back whole.
+
+    ``root_group`` carries the real tree, nesting included — which also closes
+    the gap M6 left on the read side, where a saved nested study came back as a
+    flat constraint list and reopening it silently lost the parentheses.
+    """
+
+    position: int
+    kind: Literal["limit", "tree"]
+    label: str | None = None
+    enabled: bool
+    root_group: ConstraintGroupIn | None = None
+    class_slugs: list[str] = Field(default_factory=list)
+    include_descendants: bool = True
+
+
 class IndexIn(BaseModel):
     """A performance index to compute over the candidates."""
 
@@ -114,6 +161,11 @@ class FilterRequest(BaseModel):
     # Omitting it reproduces the flat behavior exactly; supplying both this
     # and a non-empty `constraints` is rejected by the service layer.
     root_group: ConstraintGroupIn | None = None
+    # P0-1: an explicit pipeline overrides the three fields above entirely.
+    # Supplying it together with any of them is rejected by the service layer,
+    # for the same reason: two descriptions of the same filter, one silently
+    # ignored.
+    stages: list[StageIn] | None = Field(default=None, max_length=MAX_STAGES)
 
 
 class IndexRequest(BaseModel):
@@ -126,6 +178,8 @@ class RunRequest(BaseModel):
     constraints: list[ConstraintIn] = Field(default_factory=list)
     # M6: see FilterRequest.root_group — same override/compatibility rule.
     root_group: ConstraintGroupIn | None = None
+    # P0-1: see FilterRequest.stages — same override/exclusivity rule.
+    stages: list[StageIn] | None = Field(default=None, max_length=MAX_STAGES)
     index: IndexIn | None = None
     ranking: RankingIn | None = None
 
@@ -138,6 +192,28 @@ class FunnelStepOut(BaseModel):
     operator: str
     passed: int
     remaining: int
+
+
+class StageResultOut(BaseModel):
+    """What one stage of the pipeline did (P0-1).
+
+    ``passed`` is what the stage admits **on its own**, over the whole
+    catalogue — reported for a disabled stage too, because that is exactly the
+    question switching a stage off asks. ``remaining`` is the running count
+    after this stage: unchanged for a disabled one, since it did not narrow.
+
+    ``steps`` is the inner funnel of a limit stage — one line per constraint or
+    nested sub-group, the same shape the single-tree funnel always had. A tree
+    stage has no inner steps: its whole question is the folder selection.
+    """
+
+    position: int
+    kind: str
+    label: str | None = None
+    enabled: bool
+    passed: int
+    remaining: int
+    steps: list[FunnelStepOut] = Field(default_factory=list)
 
 
 class CandidateOut(BaseModel):
@@ -155,6 +231,10 @@ class FilterResultOut(BaseModel):
     final_count: int
     steps: list[FunnelStepOut]
     candidates: list[CandidateOut]
+    # P0-1: same per-stage report `RunResultOut` carries. Filtering accepts a
+    # pipeline, so it has to be able to describe one — reporting only the flat
+    # funnel here would make the two endpoints disagree about the same request.
+    stages: list[StageResultOut] = Field(default_factory=list)
 
 
 class IndexValueOut(BaseModel):
@@ -219,10 +299,19 @@ class RankingResultOut(BaseModel):
 
 class RunResultOut(BaseModel):
     initial_count: int
+    # The operator that combined the candidates. With a single limit stage this
+    # is its root group's own AND/OR, exactly as before P0-1. With more than one
+    # stage it is "AND": stages intersect, and reporting a stage's internal "OR"
+    # here would describe the pipeline as something it is not. `stages` below is
+    # the full truth either way.
     combinator: str
     final_count: int
     funnel: list[FunnelStepOut]
     candidates: list[CandidateOut]
+    # P0-1: the pipeline, stage by stage. A study saved before P0-1 (or through
+    # the flat payload) reports exactly one entry, and `funnel` then holds
+    # precisely the steps it always did.
+    stages: list[StageResultOut] = Field(default_factory=list)
     index: IndexResultOut | None = None
     ranking: RankingResultOut | None = None
 
@@ -263,6 +352,8 @@ class StudyIn(BaseModel):
     constraints: list[ConstraintIn] = Field(default_factory=list)
     # M6: see FilterRequest.root_group — same override/compatibility rule.
     root_group: ConstraintGroupIn | None = None
+    # P0-1: see FilterRequest.stages — same override/exclusivity rule.
+    stages: list[StageIn] | None = Field(default=None, max_length=MAX_STAGES)
     index: IndexIn | None = None
     normalization: NormalizationLiteral = "minmax"
     method: MethodLiteral = "weighted_sum"
@@ -276,6 +367,7 @@ class StudySummaryOut(BaseModel):
     created_at: datetime
     constraint_count: int
     criterion_count: int
+    stage_count: int = 1
 
 
 class StudyOut(BaseModel):
@@ -285,8 +377,12 @@ class StudyOut(BaseModel):
     function_text: str | None = None
     objective_text: str | None = None
     free_variables: list[str]
+    # Kept as they always were, for every caller that reads them: the flat list
+    # of every constraint in the study, and the first stage's root operator.
+    # `stages` below is what carries the study's actual structure.
     combinator: str
     constraints: list[ConstraintIn]
+    stages: list[StageOut] = Field(default_factory=list)
     index: IndexIn | None = None
     normalization: str
     method: str

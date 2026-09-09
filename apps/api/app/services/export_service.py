@@ -64,8 +64,8 @@ class ExportService:
         result = service.run_study(study_id)
         # Same SelectionService instance as run_study above, so this reuses
         # its already-populated property cache and snapshot list rather than
-        # rebuilding them — see SelectionService.describe_root_group.
-        root_group_description = service.describe_root_group(study)
+        # rebuilding them — see SelectionService.describe_pipeline.
+        root_group_description = service.describe_pipeline(study)
         candidate_ids = [c.material_id for c in result.candidates]
         materials = {
             m.id: m for m in self.chart_repo.list_materials(material_ids=candidate_ids or [-1])
@@ -77,6 +77,7 @@ class ExportService:
     ) -> list[Sheet]:
         sheets = [
             self._problem_sheet(study, result, root_group_description),
+            self._stages_sheet(result),
             self._funnel_sheet(result),
             self._candidates_sheet(result),
         ]
@@ -342,15 +343,62 @@ class ExportService:
             ["Função do componente", study.function_text or "—"],
             ["Objetivo", study.objective_text or "—"],
             ["Variáveis livres", ", ".join(study.free_variables or []) or "—"],
-            # The real nested tree, not just study.combinator (the root
-            # group's own operator) — for a nested study, the root operator
-            # alone misdescribes the whole study's logic. See
-            # SelectionService.describe_root_group.
-            ["Combinação das restrições", root_group_description],
+            # The real logic, not just study.combinator (the first root
+            # group's own operator) — for a nested study the root operator alone
+            # misdescribes it, and since P0-1 a study can have several stages
+            # whose combination it does not describe at all. The row is named
+            # for what it now holds; "Combinação das restrições" stopped being
+            # true the moment a stage could be a folder selection rather than a
+            # restriction. See SelectionService.describe_pipeline.
+            ["Lógica da seleção", root_group_description],
             ["Materiais considerados", result.initial_count],
             ["Candidatos após as restrições", result.final_count],
         ]
         return Sheet(name="Problema", header=["Item", "Valor"], rows=rows)
+
+    @staticmethod
+    def _stages_sheet(result: RunResultOut) -> Sheet:
+        """The pipeline, one row per stage (P0-1).
+
+        Always present, including for a single-stage study: an audit document
+        whose sections appear and disappear with the shape of the study is
+        harder to read than one that always answers the same questions. For a
+        study saved before P0-1 this is one row, and it says so.
+
+        "Admitidos sozinho" is what the stage admits over the whole catalogue,
+        independently of the stages before it — reported for a disabled stage
+        too, because that is the question switching one off asks. "Restantes"
+        is the running count after the stage, unchanged when it is disabled.
+        """
+        kinds = {"limit": "Limites", "tree": "Classes"}
+        rows = [
+            [
+                stage.position + 1,
+                kinds.get(stage.kind, stage.kind),
+                stage.label or "—",
+                "Sim" if stage.enabled else "Não",
+                stage.passed,
+                stage.remaining,
+            ]
+            for stage in result.stages
+        ]
+        return Sheet(
+            name="Estágios",
+            header=[
+                "Nº",
+                "Tipo",
+                "Rótulo",
+                "Habilitado",
+                "Admitidos sozinho",
+                "Restantes",
+            ],
+            rows=rows,
+            notes=(
+                []
+                if len(rows) > 1
+                else ["Estudo de um único estágio: o funil abaixo é a totalidade da seleção."]
+            ),
+        )
 
     @staticmethod
     def _funnel_sheet(result: RunResultOut) -> Sheet:

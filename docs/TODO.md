@@ -80,15 +80,37 @@ Pesa mais do que parece porque as figuras vão para a monografia.
 
 ## Entidades ainda não modeladas
 
-`GeneratedReport`. A entidade fica apenas aguardando especificação de caso de uso.
-(`User` e `Project` saíram desta lista com A5; `AuditEvent` saiu com M2;
-`SavedChart` saiu com B7 — salvar e reabrir configurações de mapa.)
+`GeneratedReport` e `Process`/`ProcessClass`. A primeira aguarda especificação
+de caso de uso; as duas últimas são o **P0-2** do roteiro de plataforma
+([14-plataforma-selecao.md](14-plataforma-selecao.md)) — sem elas o Tree Stage
+não pode ser a junção entre tabelas que o manual descreve ("materiais que este
+processo molda", "processos que unem estes materiais"), e continua sendo só
+filtro por pasta. (`User` e `Project` saíram desta lista com A5; `AuditEvent`
+saiu com M2; `SavedChart` saiu com B7 — salvar e reabrir configurações de mapa;
+`SelectionStage` saiu com P0-1.)
 
 ---
 
 ## Débitos já quitados
 
 Registrados para não voltarem por engano:
+
+- ~~**P0-1** — a seleção era de estágio único~~ — o gargalo arquitetural que a
+  análise de lacunas apontou, entregue em seis passos
+  ([D-56](DECISIONS.md), [07-selecao-deterministica.md](07-selecao-deterministica.md)).
+  `SelectionStage` é entidade de primeira classe, ordenada e habilitável, com
+  dois tipos: `limit` (a árvore do M6) e `tree` (seleção de pastas da taxonomia,
+  **com descendentes** — o que `in_class` não sabe fazer, porque compara o slug
+  da própria classe e todo material mora numa folha). Migração aditiva
+  `a1c4f2e8b7d3` com backfill; funil por estágio e seção "Estágios" nos dois
+  documentos; a pilha editável em `/app/selecao`, que continua abrindo com um
+  único estágio para quem faz um estudo simples. Fechou de passagem a lacuna de
+  round-trip que o M6 deixou anotada. **O que ficou de fora, e é melhoria e não
+  bloqueio:** reordenar por arraste, duplicar um estágio, e o Chart Stage que
+  filtra (P1, que agora tem onde encaixar).
+- ~~**P1-1** — busca era `LIKE`~~ — analisador próprio com AND/OR/NOT, frase,
+  parênteses e curinga ([D-55](DECISIONS.md)). Falta relevância, *fuzzy* e
+  destaque do trecho, registrados como melhoria e não como bloqueio.
 
 - ~~**S2** — CVEs do toolchain de desenvolvimento~~ — `npm audit` em
   `apps/web` de **27 para 14** achados, com as duas cadeias que tinham caminho
@@ -335,23 +357,20 @@ Registrados para não voltarem por engano:
   `apps/web/components/selection/ConstraintEditor.tsx` virou um editor de
   árvore recursivo — cada grupo com seu próprio alternador AND/OR e
   "Adicionar grupo"/"Adicionar restrição" em qualquer profundidade — e
-  `/selecao` passa a enviar `root_group` ao rodar ou salvar. **Limitação
-  conhecida, registrada e não corrigida nesta entrega:** `GET
-  /api/selection/studies/{id}` (`StudyOut`, montado por
-  `SelectionService._study_to_out`) ainda devolve as restrições como lista
-  plana — não recompõe a árvore para a resposta. Reabrir ("Abrir") um estudo
-  salvo com grupos de verdade mostra tudo achatado num único grupo AND no
-  editor, sem aviso na tela. Não é perda de dado: não existe endpoint de
-  edição in-place ainda, então a árvore real do estudo original continua
-  intacta no banco e continua avaliando corretamente sempre que o estudo é
-  **reexecutado** — mas é uma lacuna real de exibição/round-trip, não um
-  "não se aplica". Ver `docs/07-selecao-deterministica.md` para a descrição
+  `/selecao` passa a enviar `root_group` ao rodar ou salvar. ~~**Limitação
+  conhecida, registrada e não corrigida nesta entrega:**~~ `GET
+  /api/selection/studies/{id}` devolvia as restrições como lista plana, então
+  reabrir um estudo aninhado mostrava tudo achatado num único grupo AND, sem
+  aviso na tela. **Fechada no P0-1** ([D-56](DECISIONS.md)):
+  `StageOut.root_group` devolve a árvore inteira e `fromConstraintPayload` a
+  reconstrói no editor — a leitura por estágio precisava da estrutura de
+  qualquer jeito. Ver `docs/07-selecao-deterministica.md` para a descrição
   do modelo de árvore e o exemplo trabalhado. 862 testes de backend (nenhum
   skip, antes 852) e 176 de frontend (antes 171), todos verdes ao final.
   **Addendo da revisão final de branch (corrigido na mesma sessão):** o
   laudo de engenharia (D-41) descrevia a lógica de um estudo aninhado como
   um único combinador achatado, com linhas de subgrupo opacas — corrigido
-  com `SelectionService.describe_root_group`, que renderiza a árvore
+  com `SelectionService.describe_root_group` (hoje `describe_pipeline`, D-56), que renderiza a árvore
   AND/OR real na aba "Problema" do relatório/laudo. Total final: 872 testes
   de backend, 179 de frontend.
 - ~~**B1–B10**~~ — as dez pendências de baixa prioridade, entregues numa
