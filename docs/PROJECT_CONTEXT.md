@@ -237,8 +237,25 @@ tudo limpo, sem achado novo. Commit `73eb4a2` sobre `0d00ee7`. Ver
 `docs/07-selecao-deterministica.md` para a descrição de cada método e do
 modelo de árvore.
 
-**Saúde do código:** 934 testes de backend (Python 3.11 e 3.12, nenhum skip)
-e 179 de frontend, todos verdes. `ruff` limpo, `black
+**Plataforma de seleção — P0-1 e P1-1 entregues.** Depois de comparar a
+ferramenta com o modelo funcional dos manuais do Granta EduPack
+([14-plataforma-selecao.md](14-plataforma-selecao.md): matriz de maturidade
+sobre 30 capacidades e roteiro P0–P4), os dois primeiros gargalos saíram. **A
+seleção deixou de ser de estágio único** ([D-56](DECISIONS.md)):
+`SelectionStage` é entidade de primeira classe, ordenada, nomeável e
+habilitável, com dois tipos — `limit` (a árvore do M6) e `tree` (seleção de
+pastas da taxonomia, com descendentes). Migração aditiva com backfill: todo
+estudo anterior vira um estágio e avalia exatamente como antes, funil incluído.
+**A busca deixou de ser `LIKE`** ([D-55](DECISIONS.md)): analisador próprio com
+AND/OR/NOT, frase, parênteses e curinga. A cobertura de capacidades inspiradas
+no EduPack subiu de ~34% para ~47% (14 de 30 em nível ≥ 3). O próximo gargalo é
+**P0-2**: `Process`/`ProcessClass`, sem os quais o Tree Stage não pode ser a
+junção entre tabelas que o manual descreve.
+
+**Saúde do código:** 987 testes de backend (Python 3.11 e 3.12, nenhum skip)
+e 210 de frontend, todos verdes. Desde o P0-1 a suíte também roda a migração de
+verdade, nos dois sentidos, contra um banco temporário que já contém dados —
+`app/tests/test_migration_selection_stage.py`. `ruff` limpo, `black
 --check` limpo, typecheck estrito e build de produção sem avisos. CI no
 GitHub Actions rodando em todo PR e push para `main`, com os checks
 **obrigatórios**: o GitHub recusa o merge se qualquer um falhar

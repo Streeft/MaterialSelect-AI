@@ -333,7 +333,26 @@ outros dois métodos; o laudo descrevia um estudo aninhado como um combinador
 único opaco. Os quatro corrigidos numa rodada só, rerrevisão limpa. Ver
 `docs/PROJECT_CONTEXT.md` §3 e `docs/07-selecao-deterministica.md`.
 
-934 testes de backend (nenhum skip) e 197 de frontend, todos verdes. CI no
+**P0-1 e P1-1 da plataforma de seleção entregues.** Depois de comparar a
+ferramenta com o modelo funcional dos manuais do Granta EduPack — matriz de
+maturidade e roteiro em `docs/14-plataforma-selecao.md` —, os dois primeiros
+gargalos saíram. **A seleção deixou de ser de estágio único**
+([D-56](docs/DECISIONS.md)): um estudo é uma **pilha ordenada de
+`SelectionStage`**, e o resultado é a interseção dos habilitados. Dois tipos, e
+um estágio é uma pergunta só — enviar os campos do outro é recusado, nunca
+ignorado: `limit` carrega a árvore AND/OR do M6, `tree` carrega uma seleção de
+pastas da taxonomia. **`include_descendants` é o que `in_class` não sabe
+fazer** — `in_class` compara o slug da própria classe, e como todo material mora
+numa folha, marcar um galho ali não admite ninguém; as duas continuam existindo
+porque respondem a perguntas diferentes. `enabled` é coluna e não exclusão, e um
+estágio desligado ainda diz quantos admitiria sozinho. Migração aditiva com
+backfill: com **um** estágio o funil plano sai idêntico ao de antes. Pilha vazia
+não existe — nem no banco, nem na API (`stages: []` é 400), nem na tela. A busca
+virou linguagem de consulta com AND/OR/NOT, frase, parênteses e curinga
+([D-55](docs/DECISIONS.md)), com `AND` como padrão e ligando mais forte que
+`OR`.
+
+987 testes de backend (nenhum skip) e 210 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
 PROJECT_CONTEXT.md).

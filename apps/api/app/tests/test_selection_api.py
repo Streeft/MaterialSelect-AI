@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from app.models.selection import ConstraintGroup, SelectionConstraint
+from app.models.selection import ConstraintGroup, SelectionConstraint, SelectionStage
 
 
 def _names(candidates):
@@ -810,3 +810,83 @@ def test_deleting_study_cascades_its_constraint_group(client, db_session):
         .count()
         == 0
     )
+
+
+# --- P0-1: SelectionStage (model-level; the API schema does not expose stages
+# yet — that is a later task's wiring) ---------------------------------------
+#
+# The migration's own backfill is exercised for real in
+# test_migration_selection_stage.py. These cover the forward-looking half:
+# that `create_study` gives every *new* study the same single-stage shape the
+# migration gives every *old* one, and that it is cleaned up correctly.
+
+
+def test_create_study_gets_one_enabled_limit_stage(client, db_session):
+    payload = _viga_leve_payload([], "Estudo com estágio")
+    payload["constraints"] = [
+        {"operator": "lte", "property_slug": "densidade", "value": 2800, "unit": "kg/m**3"},
+    ]
+    study_id = client.post("/api/selection/studies", json=payload).json()["id"]
+
+    stages = db_session.query(SelectionStage).filter(SelectionStage.study_id == study_id).all()
+    assert len(stages) == 1
+    stage = stages[0]
+    assert stage.position == 0
+    assert stage.kind == "limit"
+    assert stage.enabled is True
+    assert stage.label is None
+    assert stage.class_slugs == []
+
+
+def test_every_constraint_group_belongs_to_the_study_stage(client, db_session):
+    """Including the nested ones: a group's stage is the stage of its root, not
+    something only the root carries."""
+    payload = _viga_leve_payload([], "Estudo aninhado com estágio")
+    payload["constraints"] = []
+    payload["root_group"] = {
+        "operator": "OR",
+        "constraints": [],
+        "groups": [
+            {
+                "operator": "AND",
+                "constraints": [
+                    {
+                        "operator": "lte",
+                        "property_slug": "densidade",
+                        "value": 2800,
+                        "unit": "kg/m**3",
+                    }
+                ],
+                "groups": [],
+            },
+            {
+                "operator": "AND",
+                "constraints": [
+                    {"operator": "gte", "property_slug": "modulo_young", "value": 60, "unit": "GPa"}
+                ],
+                "groups": [],
+            },
+        ],
+    }
+    study_id = client.post("/api/selection/studies", json=payload).json()["id"]
+
+    stage_id = db_session.query(SelectionStage).filter(SelectionStage.study_id == study_id).one().id
+    groups = db_session.query(ConstraintGroup).filter(ConstraintGroup.study_id == study_id).all()
+    assert len(groups) == 3  # root + two children
+    assert {g.stage_id for g in groups} == {stage_id}
+
+
+def test_deleting_study_cascades_its_stage(client, db_session):
+    """Same reason as the ConstraintGroup cascade above: SQLite here runs
+    without PRAGMA foreign_keys=ON, so `ondelete=CASCADE` alone would leave the
+    stage — and, through it, its groups — orphaned."""
+    payload = _viga_leve_payload([], "Estudo com estágio a apagar")
+    payload["constraints"] = [
+        {"operator": "lte", "property_slug": "densidade", "value": 2800, "unit": "kg/m**3"},
+    ]
+    study_id = client.post("/api/selection/studies", json=payload).json()["id"]
+    assert db_session.query(SelectionStage).filter(SelectionStage.study_id == study_id).count() == 1
+
+    assert client.delete(f"/api/selection/studies/{study_id}").status_code == 204
+
+    assert db_session.query(SelectionStage).filter(SelectionStage.study_id == study_id).count() == 0
