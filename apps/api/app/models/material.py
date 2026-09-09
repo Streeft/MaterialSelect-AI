@@ -48,3 +48,12 @@ class Material(Base):
     property_values: Mapped[list[MaterialPropertyValue]] = relationship(  # noqa: F821
         back_populates="material", cascade="all, delete-orphan"
     )
+    # P0-2: the processes this material can be made with. No cascade delete of
+    # the processes themselves — a process outlives any one material that uses
+    # it; the link rows go with the material through the association's
+    # `ondelete="CASCADE"`.
+    processes: Mapped[list[Process]] = relationship(  # noqa: F821
+        secondary="material_process",
+        back_populates="materials",
+        order_by="Process.name",
+    )
