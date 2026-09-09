@@ -318,6 +318,54 @@ export interface ConstraintGroupIn {
   groups: ConstraintGroupIn[];
 }
 
+/** A stage's kind: a constraint tree, or a folder selection over the taxonomy. */
+export type StageKind = "limit" | "tree";
+
+/**
+ * One stage of the selection pipeline (P0-1) — mirrors the backend's `StageIn`
+ * (`apps/api/app/schemas/selection.py`).
+ *
+ * A stage is one kind of question. Sending a tree stage with constraints, or a
+ * limit stage with class slugs, is **rejected** by the backend rather than
+ * ignored, so do not populate both halves.
+ */
+export interface StageIn {
+  kind: StageKind;
+  label?: string | null;
+  enabled: boolean;
+  // kind === "limit"
+  combinator?: Combinator;
+  constraints?: ConstraintIn[];
+  root_group?: ConstraintGroupIn | null;
+  // kind === "tree"
+  class_slugs?: string[];
+  include_descendants?: boolean;
+}
+
+/** A persisted stage, read back whole — `root_group` carries the real tree. */
+export interface StageOut {
+  position: number;
+  kind: StageKind;
+  label: string | null;
+  enabled: boolean;
+  root_group: ConstraintGroupIn | null;
+  class_slugs: string[];
+  include_descendants: boolean;
+}
+
+/** What one stage of the pipeline did, in a run's result. */
+export interface StageResult {
+  position: number;
+  kind: StageKind;
+  label: string | null;
+  enabled: boolean;
+  /** What the stage admits on its own, over the whole catalogue. */
+  passed: number;
+  /** The running count after this stage — unchanged when it is disabled. */
+  remaining: number;
+  steps: FunnelStep[];
+}
+
 export interface IndexIn {
   name?: string | null;
   expression: string;
@@ -359,6 +407,9 @@ export interface RunRequest {
   combinator?: Combinator;
   constraints?: ConstraintIn[];
   root_group?: ConstraintGroupIn | null;
+  // P0-1: an explicit pipeline overrides the three fields above entirely.
+  // Sending it together with any of them is rejected by the backend.
+  stages?: StageIn[] | null;
   index?: IndexIn | null;
   ranking?: RankingIn | null;
 }
@@ -446,6 +497,8 @@ export interface RunResult {
   final_count: number;
   funnel: FunnelStep[];
   candidates: Candidate[];
+  /** P0-1: the pipeline, stage by stage. One entry for a single-stage study. */
+  stages: StageResult[];
   index: IndexResult | null;
   ranking: RankingResult | null;
 }
@@ -469,6 +522,7 @@ export interface StudySummary {
   created_at: string;
   constraint_count: number;
   criterion_count: number;
+  stage_count: number;
 }
 
 export interface StudyDetail {
@@ -480,6 +534,8 @@ export interface StudyDetail {
   free_variables: string[];
   combinator: Combinator;
   constraints: ConstraintIn[];
+  /** P0-1: the study's real structure. `constraints` above stays the flat list. */
+  stages: StageOut[];
   index: IndexIn | null;
   normalization: NormalizationMethod;
   method: MethodLiteral;
@@ -497,6 +553,8 @@ export interface StudyIn {
   combinator?: Combinator;
   constraints?: ConstraintIn[];
   root_group?: ConstraintGroupIn | null;
+  // P0-1: see RunRequest.stages — same override/exclusivity rule.
+  stages?: StageIn[] | null;
   index?: IndexIn | null;
   normalization: NormalizationMethod;
   method: MethodLiteral;
