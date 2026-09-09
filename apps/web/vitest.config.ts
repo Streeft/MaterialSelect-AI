@@ -32,4 +32,16 @@ export default defineConfig({
     // verified live in the preview browser.
     conditions: ["browser"],
   },
+
+  // Since Vite 6 the SSR pipeline reads its own conditions, and `resolve.conditions`
+  // above no longer reaches it. Without repeating "browser" here, lit-html falls
+  // back to the `node/` build described above and nine shadow-DOM tests fail with
+  // elements that never upgrade — the exact failure that comment predicts. Keep the
+  // two lists in agreement.
+  ssr: {
+    resolve: {
+      conditions: ["browser"],
+      externalConditions: ["browser"],
+    },
+  },
 });
