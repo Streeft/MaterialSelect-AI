@@ -1267,7 +1267,7 @@ class SelectionService:
             evaluation = evaluate_index(expression, used, variables)
             values.append(
                 IndexValueOut(
-                    material_id=m.id,
+                    record_id=m.id,
                     name=m.name,
                     class_name=m.class_name,
                     value=evaluation.value,
@@ -1346,7 +1346,7 @@ class SelectionService:
         index_values: dict[int, float | None] = {}
         if any(c.key == INDEX_KEY for c in criteria) and index is not None:
             ires = self._index_result(index.expression, index.goal, index.name, snapshots)
-            index_values = {v.material_id: v.value for v in ires.values}
+            index_values = {v.record_id: v.value for v in ires.values}
 
         material_values = []
         for m in snapshots:
@@ -1388,7 +1388,7 @@ class SelectionService:
             criteria=result.criteria,
             ranked=[
                 RankedMaterialOut(
-                    material_id=r.material_id,
+                    record_id=r.record_id,
                     name=r.name,
                     score=r.score,
                     rank=r.rank,
@@ -1408,7 +1408,7 @@ class SelectionService:
             ],
             excluded=[
                 ExcludedMaterialOut(
-                    material_id=e.material_id,
+                    record_id=e.record_id,
                     name=e.name,
                     missing_keys=e.missing_keys,
                     missing_labels=e.missing_labels,
@@ -1419,8 +1419,8 @@ class SelectionService:
                 SensitivityScenarioOut(
                     description=s.description,
                     weights=s.weights,
-                    top_material_id=s.top_material_id,
-                    top_material_name=s.top_material_name,
+                    top_record_id=s.top_record_id,
+                    top_record_name=s.top_record_name,
                     changed=s.changed,
                 )
                 for s in result.sensitivity
@@ -1475,7 +1475,7 @@ class SelectionService:
             index_out = self._index_result(
                 index.expression, index.goal, index.name, candidate_snaps
             )
-            index_value_by_id = {v.material_id: v.value for v in index_out.values}
+            index_value_by_id = {v.record_id: v.value for v in index_out.values}
 
         ranking_out = None
         rank_by_id: dict[int, int] = {}
@@ -1483,8 +1483,8 @@ class SelectionService:
         if ranking is not None and ranking.criteria:
             ranking_out = self._rank(candidate_snaps, ranking, index)
             for r in ranking_out.ranked:
-                rank_by_id[r.material_id] = r.rank
-                score_by_id[r.material_id] = r.score
+                rank_by_id[r.record_id] = r.rank
+                score_by_id[r.record_id] = r.score
 
         candidates = [
             CandidateOut(

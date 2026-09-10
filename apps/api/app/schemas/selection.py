@@ -281,7 +281,10 @@ class FilterResultOut(BaseModel):
 
 
 class IndexValueOut(BaseModel):
-    material_id: int
+    # ``record_id`` and not ``material_id`` since P0-4, for the reason
+    # ``CandidateOut`` gives: in a process study this is a process's id, and a
+    # field named after materials would have a reader resolve it against them.
+    record_id: int
     name: str
     class_name: str
     value: float | None = None
@@ -309,7 +312,7 @@ class ContributionOut(BaseModel):
 
 
 class RankedMaterialOut(BaseModel):
-    material_id: int
+    record_id: int
     name: str
     score: float
     rank: int
@@ -317,7 +320,7 @@ class RankedMaterialOut(BaseModel):
 
 
 class ExcludedMaterialOut(BaseModel):
-    material_id: int
+    record_id: int
     name: str
     missing_keys: list[str]
     missing_labels: list[str]
@@ -326,8 +329,8 @@ class ExcludedMaterialOut(BaseModel):
 class SensitivityScenarioOut(BaseModel):
     description: str
     weights: dict[str, float]
-    top_material_id: int | None = None
-    top_material_name: str | None = None
+    top_record_id: int | None = None
+    top_record_name: str | None = None
     changed: bool
 
 

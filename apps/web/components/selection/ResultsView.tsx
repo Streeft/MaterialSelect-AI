@@ -140,13 +140,13 @@ export function ResultsView({ result }: { result: RunResult }) {
   const undefinedReasonById = new Map(
     index?.values
       .filter((v) => v.value === null)
-      .map((v) => [v.material_id, v.undefined_reason] as const) ?? [],
+      .map((v) => [v.record_id, v.undefined_reason] as const) ?? [],
   );
 
   // Carry the surviving candidates over to the visual surfaces. The top-ranked
   // material is highlighted on the map so the two views tell the same story.
   const candidateIds = candidates.map((c) => c.record_id).join(",");
-  const topId = ranking?.ranked.find((r) => r.rank === 1)?.material_id;
+  const topId = ranking?.ranked.find((r) => r.rank === 1)?.record_id;
 
   const withContributions = ranking?.ranked.filter((r) => r.contributions.length > 0) ?? [];
   // Weights are per criterion and identical across materials, so any ranked row
@@ -346,7 +346,7 @@ export function ResultsView({ result }: { result: RunResult }) {
         <Section id="contribuicoes" title={t.contributions} description={t.contributionsHint}>
           <ul className="space-y-3">
             {withContributions.map((r) => (
-              <li key={r.material_id} className="flex flex-col gap-1">
+              <li key={r.record_id} className="flex flex-col gap-1">
                 <div className="flex flex-wrap items-baseline gap-2">
                   <span className="text-sm font-medium text-ink">{r.name}</span>
                   <span className="text-2xs tabular-nums text-ink-subtle">
@@ -366,7 +366,7 @@ export function ResultsView({ result }: { result: RunResult }) {
           <Alert tone="warning">
             <ul className="space-y-1">
               {ranking.excluded.map((e) => (
-                <li key={e.material_id} className="flex flex-wrap items-baseline gap-x-2">
+                <li key={e.record_id} className="flex flex-wrap items-baseline gap-x-2">
                   <span className="font-medium">{e.name}</span>
                   <MissingValue />
                   <span className="text-2xs">
@@ -397,7 +397,7 @@ export function ResultsView({ result }: { result: RunResult }) {
                 {ranking.sensitivity.map((s, i) => (
                   <Tr key={i}>
                     <Td className="text-ink-muted">{s.description}</Td>
-                    <Td>{s.top_material_name ?? <MissingValue />}</Td>
+                    <Td>{s.top_record_name ?? <MissingValue />}</Td>
                     <Td>
                       <Badge tone={s.changed ? "warning" : "success"}>
                         {s.changed ? t.changed : t.unchanged}
