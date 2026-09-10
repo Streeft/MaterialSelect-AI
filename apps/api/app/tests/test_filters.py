@@ -7,6 +7,8 @@ from app.domain.filters import (
     ConstraintGroupNode,
     MaterialSnapshot,
     Operator,
+    ProcessReach,
+    ProcessSelection,
     SelectionStageNode,
     TreeSelection,
     apply_constraint_tree,
@@ -14,6 +16,7 @@ from app.domain.filters import (
     apply_stage,
     apply_stages,
     evaluate_constraint,
+    matches_processes,
     matches_tree,
 )
 
@@ -401,3 +404,147 @@ def test_apply_stage_evaluates_one_stage_standalone():
     # own", independently of the ones before it.
     stage = _tree_stage("polimeros")
     assert [m.name for m in apply_stage(PIPELINE_MATERIALS, stage)] == ["PEAD"]
+
+
+# --- Process selection (P0-2): the join into the process universe -----------
+
+
+def _process_snap(id_, name, *processes):
+    """A snapshot whose process side of the join is known.
+
+    Each entry is ``(process_slug, class_path)`` — the process and the folders
+    it sits in, root→leaf, which is what lets a folder pick its descendants
+    without this module knowing the taxonomy.
+    """
+    return MaterialSnapshot(
+        id=id_,
+        name=name,
+        class_name="Metais",
+        class_slug="metais",
+        keywords=[],
+        values={},
+        processes=[ProcessReach(slug, tuple(path)) for slug, path in processes],
+    )
+
+
+# A tiny process universe: two families, one of them with a sub-folder.
+#
+#   conformacao ── conformacao_liquido ── fundicao-areia
+#                └─ conformacao_solido ─── forjamento
+#   uniao ─────────────────────────────── solda-mig
+UNIVERSE = [
+    _process_snap(
+        1,
+        "Aço 1020",
+        ("fundicao-areia", ["conformacao", "conformacao_liquido"]),
+        ("solda-mig", ["uniao"]),
+    ),
+    _process_snap(2, "Alumínio 6061", ("forjamento", ["conformacao", "conformacao_solido"])),
+    _process_snap(3, "PEAD", ("injecao", ["conformacao", "conformacao_liquido"])),
+    # No process linked at all — the fourth state of the data, not a zero.
+    _process_snap(4, "Vidro sodo-cálcico"),
+]
+
+
+def _passing(selection):
+    return [m.name for m in UNIVERSE if matches_processes(m, selection)]
+
+
+def test_a_picked_process_admits_the_materials_it_applies_to():
+    assert _passing(ProcessSelection(process_slugs=["solda-mig"])) == ["Aço 1020"]
+
+
+def test_picked_processes_are_any_of_not_all_of():
+    # A material linked to only one of the two still passes: this is the union,
+    # and "both" is expressed by two stages, which the pipeline intersects.
+    selection = ProcessSelection(process_slugs=["solda-mig", "forjamento"])
+    assert _passing(selection) == ["Aço 1020", "Alumínio 6061"]
+
+
+def test_a_process_folder_includes_its_descendants():
+    selection = ProcessSelection(process_class_slugs=["conformacao_liquido"])
+    assert _passing(selection) == ["Aço 1020", "PEAD"]
+
+
+def test_a_process_root_folder_includes_the_whole_family():
+    selection = ProcessSelection(process_class_slugs=["conformacao"])
+    assert _passing(selection) == ["Aço 1020", "Alumínio 6061", "PEAD"]
+
+
+def test_a_process_folder_without_descendants_is_exact_membership():
+    # "conformacao" holds no process directly — every one of them is filed in a
+    # sub-folder — so ticking it without descendants admits nobody. Same shape
+    # as the material tree stage, and the same reason.
+    assert (
+        _passing(ProcessSelection(process_class_slugs=["conformacao"], include_descendants=False))
+        == []
+    )
+    assert _passing(
+        ProcessSelection(process_class_slugs=["conformacao_solido"], include_descendants=False)
+    ) == ["Alumínio 6061"]
+
+
+def test_a_material_with_no_process_linked_never_passes_a_process_stage():
+    # Same rule a numeric constraint follows: you cannot select on data you do
+    # not have. Absence is not a silent pass, and it is not a zero either.
+    assert "Vidro sodo-cálcico" not in _passing(
+        ProcessSelection(process_class_slugs=["conformacao"])
+    )
+    assert "Vidro sodo-cálcico" not in _passing(ProcessSelection(process_slugs=["solda-mig"]))
+
+
+def test_an_empty_process_selection_imposes_no_restriction():
+    assert _passing(ProcessSelection()) == [m.name for m in UNIVERSE]
+
+
+def test_an_unknown_process_slug_admits_nothing():
+    assert _passing(ProcessSelection(process_slugs=["inexistente"])) == []
+    assert _passing(ProcessSelection(process_class_slugs=["inexistente"])) == []
+
+
+def test_processes_and_folders_union_within_one_stage():
+    selection = ProcessSelection(
+        process_slugs=["solda-mig"], process_class_slugs=["conformacao_solido"]
+    )
+    assert _passing(selection) == ["Aço 1020", "Alumínio 6061"]
+
+
+def _process_stage(*, processes=(), folders=(), label=None, enabled=True, include_descendants=True):
+    return SelectionStageNode(
+        kind="process",
+        label=label,
+        enabled=enabled,
+        processes=ProcessSelection(
+            process_slugs=list(processes),
+            process_class_slugs=list(folders),
+            include_descendants=include_descendants,
+        ),
+    )
+
+
+def test_apply_stage_runs_a_process_stage_standalone():
+    stage = _process_stage(folders=["conformacao_liquido"])
+    assert [m.name for m in apply_stage(UNIVERSE, stage)] == ["Aço 1020", "PEAD"]
+
+
+def test_two_process_stages_intersect_into_all_of():
+    # The claim ProcessSelection's docstring makes: "weldable AND forgeable" is
+    # two stages, not a flag. Only a material linked to both survives.
+    both = [_process_stage(processes=["solda-mig"]), _process_stage(folders=["conformacao"])]
+    assert [m.name for m in apply_stages(UNIVERSE, both)] == ["Aço 1020"]
+
+
+def test_a_disabled_process_stage_does_not_narrow():
+    stages = [_process_stage(processes=["solda-mig"], enabled=False)]
+    assert len(apply_stages(UNIVERSE, stages)) == len(UNIVERSE)
+
+
+def test_a_process_stage_with_nothing_ticked_does_not_narrow():
+    assert len(apply_stages(UNIVERSE, [_process_stage()])) == len(UNIVERSE)
+
+
+def test_a_process_stage_with_no_selection_object_does_not_narrow():
+    # Defensive, mirroring the tree stage: a node whose payload never got built
+    # must not reject the catalogue.
+    stage = SelectionStageNode(kind="process", label=None, enabled=True)
+    assert len(apply_stage(UNIVERSE, stage)) == len(UNIVERSE)

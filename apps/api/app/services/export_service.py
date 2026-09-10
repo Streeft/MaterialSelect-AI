@@ -370,12 +370,15 @@ class ExportService:
         too, because that is the question switching one off asks. "Restantes"
         is the running count after the stage, unchanged when it is disabled.
         """
-        kinds = {"limit": "Limites", "tree": "Classes"}
+        kinds = {"limit": "Limites", "tree": "Classes", "process": "Processos"}
         rows = [
             [
                 stage.position + 1,
                 kinds.get(stage.kind, stage.kind),
-                stage.label or "—",
+                # Written, never a dash: an unnamed stage is named by what it is,
+                # the same thing the funnel does, and the same rule D-24 sets for
+                # every other absence in this document.
+                stage.label or "Sem rótulo",
                 "Sim" if stage.enabled else "Não",
                 stage.passed,
                 stage.remaining,

@@ -10,13 +10,14 @@ import {
   type StageState,
   countStageConstraints,
   emptyLimitStage,
+  emptyProcessStage,
   emptyTreeStage,
   isSingleLimitStage,
   toStagePayload,
 } from "./StageList";
 import { emptyConstraint, nextEditorId } from "./ConstraintEditor";
 import { ptBR } from "@/lib/i18n";
-import type { MaterialClass, PropertyDefinition } from "@/lib/types";
+import type { MaterialClass, Process, ProcessClass, PropertyDefinition } from "@/lib/types";
 
 const t = ptBR.selection;
 
@@ -62,6 +63,32 @@ const classes: MaterialClass[] = [
   },
 ];
 
+const processClasses: ProcessClass[] = [
+  {
+    id: 1,
+    name: "Conformação",
+    slug: "conformacao",
+    parent_id: null,
+    description: null,
+    process_count: 0,
+  },
+  { id: 2, name: "União", slug: "uniao", parent_id: null, description: null, process_count: 1 },
+];
+
+const processes: Process[] = [
+  {
+    id: 1,
+    name: "Solda MIG",
+    slug: "solda-mig",
+    class_id: 2,
+    class_name: "União",
+    class_slug: "uniao",
+    description: null,
+    is_demo: true,
+    material_count: 3,
+  },
+];
+
 /** Controlled wrapper, the way `page.tsx` drives the list. */
 function Harness({
   initial,
@@ -76,6 +103,8 @@ function Harness({
       stages={stages}
       properties={[density]}
       classes={classes}
+      processes={processes}
+      processClasses={processClasses}
       onChange={(next) => {
         setStages(next);
         onStages?.(next);
@@ -198,5 +227,86 @@ describe("StageList", () => {
     render(<Harness initial={[emptyLimitStage(), emptyTreeStage()]} />);
     expect(screen.getByText(t.stageNumber(1, "limit"))).toBeInTheDocument();
     expect(screen.getByText(t.stageNumber(2, "tree"))).toBeInTheDocument();
+  });
+});
+
+
+// --- The process stage (P0-2) ------------------------------------------------
+
+describe("toStagePayload for a process stage", () => {
+  it("sends only the process fields, never the other kinds'", () => {
+    const stage = emptyProcessStage();
+    if (stage.kind !== "process") throw new Error("unreachable");
+    stage.processSlugs = ["solda-mig"];
+    stage.processClassSlugs = ["uniao"];
+
+    const payload = toStagePayload(stage);
+    expect(payload.kind).toBe("process");
+    expect(payload.process_slugs).toEqual(["solda-mig"]);
+    expect(payload.process_class_slugs).toEqual(["uniao"]);
+    expect(payload.include_descendants).toBe(true);
+    // The backend rejects a process stage carrying either of these, so the
+    // payload must not invent them.
+    expect(payload.root_group).toBeUndefined();
+    expect(payload.constraints).toBeUndefined();
+    expect(payload.class_slugs).toBeUndefined();
+  });
+
+  it("is not counted as carrying constraints", () => {
+    expect(countStageConstraints([emptyProcessStage()])).toBe(0);
+  });
+
+  it("is not the plain starting pipeline", () => {
+    expect(isSingleLimitStage([emptyProcessStage()])).toBe(false);
+  });
+});
+
+describe("StageList with a process stage", () => {
+  it("adds one and keeps the stages before it", async () => {
+    const user = userEvent.setup();
+    let last: StageState[] = [];
+    render(<Harness initial={[emptyLimitStage()]} onStages={(s) => (last = s)} />);
+
+    await user.click(screen.getByShadowText(new RegExp(t.stageAddProcess)));
+    expect(last.map((s) => s.kind)).toEqual(["limit", "process"]);
+  });
+
+  it("names it by position and kind when unnamed, and badges its type", () => {
+    render(<Harness initial={[emptyProcessStage()]} />);
+    expect(screen.getByText(t.stageNumber(1, "process"))).toBeInTheDocument();
+    expect(screen.getByText(t.stageKindProcess)).toBeInTheDocument();
+  });
+
+  it("says so when nothing is chosen, and warns about absence once something is", async () => {
+    const user = userEvent.setup();
+    render(<Harness initial={[emptyProcessStage()]} />);
+
+    // Absence written out, never an empty control the reader has to interpret.
+    expect(screen.getByText(t.stageNoProcesses)).toBeInTheDocument();
+    expect(screen.queryByText(t.stageProcessWarning)).not.toBeInTheDocument();
+
+    await user.selectOptions(screen.getByRole("listbox", { name: t.stageProcesses }), [
+      "solda-mig",
+    ]);
+    expect(screen.queryByText(t.stageNoProcesses)).not.toBeInTheDocument();
+    // And once it narrows, it says what a material with no process gets.
+    expect(screen.getByText(t.stageProcessWarning)).toBeInTheDocument();
+  });
+
+  it("offers both namespaces separately — families and processes", () => {
+    render(<Harness initial={[emptyProcessStage()]} />);
+    expect(screen.getByRole("listbox", { name: t.stageProcessClasses })).toBeInTheDocument();
+    expect(screen.getByRole("listbox", { name: t.stageProcesses })).toBeInTheDocument();
+  });
+
+  it("mixes with the other two kinds in one pipeline", async () => {
+    const user = userEvent.setup();
+    let last: StageState[] = [];
+    render(<Harness initial={[emptyLimitStage()]} onStages={(s) => (last = s)} />);
+
+    await user.click(screen.getByShadowText(new RegExp(t.stageAddTree)));
+    await user.click(screen.getByShadowText(new RegExp(t.stageAddProcess)));
+    expect(last.map((s) => s.kind)).toEqual(["limit", "tree", "process"]);
+    expect(last.map((s) => toStagePayload(s).kind)).toEqual(["limit", "tree", "process"]);
   });
 });

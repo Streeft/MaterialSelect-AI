@@ -2397,3 +2397,83 @@ com grupo raiz, grupo aninhado e restrição — o M6 registrou que seu backfill
 "verificado à mão" por não haver precedente; agora há. Conferido por mutação:
 quebrando o `UPDATE` do backfill, os cinco testes falham no travamento do NOT
 NULL, exatamente onde um banco de produção quebraria.
+
+---
+
+## D-57 — Existe um segundo universo, e o estágio de árvore é uma junção entre tabelas
+
+**Contexto.** O catálogo tinha **um** universo: materiais. Um estágio de árvore
+só podia ser "filtre por pasta da taxonomia de materiais", e a pergunta que o
+método de Ashby realmente faz — *que materiais este processo conforma*, *que
+processos unem estes materiais* — não tinha onde ser feita. A análise de lacunas
+([14-plataforma-selecao.md](14-plataforma-selecao.md)) apontou isso como o
+gargalo P0-2, e o exercício 9 do manual é literalmente esse cruzamento.
+
+**Decisão.**
+
+- **`ProcessClass`, `Process` e `material_process`.** A taxonomia de processos
+  tem exatamente a forma de `MaterialClass` — hierárquica, dirigida por dado —,
+  e o vínculo é uma associação N–N com chave composta.
+- **A família do processo é a raiz da taxonomia, não uma coluna enum.**
+  Conformação, União e Tratamento de superfície são dado semeado. Assim um
+  operador acrescenta família sem migração, `app/domain/taxonomy.py` é
+  reaproveitado sem uma linha nova, e não existe uma segunda verdade capaz de
+  discordar da árvore de classes.
+- **A associação não carrega propriedade nenhuma.** Um vínculo diz "este
+  processo se aplica a este material". Qualquer número sobre o par (faixa de
+  espessura, custo por peça) é propriedade *do par* e precisaria do mesmo
+  aparato de proveniência de `MaterialPropertyValue` — valor original, unidade,
+  normalizado, fonte, qualidade. Inventar um número solto ali violaria o
+  princípio 1, então o vínculo continua vínculo; no dia em que o par precisar de
+  números, ganha tabela própria com proveniência.
+- **Um terceiro tipo de estágio, `process`, e não um subdiscriminador do
+  `tree`.** A regra do D-56 continua valendo sem exceção: um estágio é uma
+  pergunta só, e enviar os campos de outro tipo é **recusado**, nunca ignorado.
+  Três tipos, três conjuntos de campos, três recusas.
+- **Duas listas, não uma:** `process_slugs` (folhas) e `process_class_slugs`
+  (pastas). Um slug de processo e um slug de classe de processo são namespaces
+  diferentes, e uma lista só deixaria o leitor adivinhando qual tabela cada
+  entrada nomeia. `include_descendants` vale para as pastas, como no estágio de
+  classes.
+- **Semântica de "algum", não de "todos".** Um material passa quando *algum*
+  processo selecionado se aplica a ele. "Soldável **e** forjável" são dois
+  estágios, e a pilha do P0-1 já os intersecta — dizer isso duas vezes criaria
+  duas formas de expressar a mesma coisa, uma delas fadada a divergir da outra.
+- **Ausência não passa.** Material sem processo vinculado **não** sobrevive a um
+  estágio de processo, pela mesma regra da restrição numérica: não se seleciona
+  sobre dado que não se tem. E processo inativo não admite ninguém, mesmo com o
+  vínculo ainda no banco.
+- **A ancestralidade do processo mora no snapshot do material**, em
+  `ProcessReach(process_slug, class_path)`. Assim casar uma pasta de processo
+  continua sendo uma pergunta local sobre um snapshot — exatamente o que
+  `class_lineage` fez pela pasta de material — e o domínio segue sem conhecer a
+  taxonomia. A alternativa, passar o mapa de classes por `apply_stage`, enfiaria
+  uma tabela de consulta em três assinaturas para responder a mesma coisa.
+
+**O que os documentos passaram a dizer.** A planilha "Estágios" nomeia o tipo
+novo ("Processos"), e a "Lógica da seleção" descreve a seleção por extenso, com
+os nomes de exibição e a palavra **"algum de"** dita em voz alta — um leitor que
+assumisse conjunção leria a lista de candidatos errado.
+
+**Um defeito real que só apareceu lendo o documento renderizado**, não a
+asserção: a linha do funil de um estágio de processo reportava o operador
+`in_tree`, ou seja, afirmava que a seleção havia filtrado por classe de
+material. Virou `in_process`, com `in_tree` preservado literalmente para que o
+funil de um estudo anterior leia igual.
+
+**E a ficha do material ganhou os processos compatíveis**, no próprio payload da
+ficha e não atrás de um segundo endpoint: ler a ficha é ler a junção. Fecha
+parte da lacuna do Datasheet que a matriz aponta.
+
+**O que isto ainda não é.** O exercício 11 do manual seleciona **processos** como
+resultado — o universo de saída é a tabela de processos, não a de materiais.
+O P0-2 faz o sentido do exercício 9; o sentido inverso é peça distinta, e está
+registrada como o próximo item do roteiro (P0-3).
+
+**Método.** `app/tests/test_migration_process_universe.py` roda a migração de
+verdade, nos dois sentidos, contra um banco que já contém um estudo com dois
+estágios; conferido por mutação — sem o backfill, os cinco testes falham no
+travamento do NOT NULL, exatamente onde a produção quebraria. O universo do
+seed é fictício e marcado (`is_demo`), e o que é inventado ali é a
+**compatibilidade**, dito no próprio arquivo: os nomes dos processos são
+vocabulário corrente de manufatura, domínio público da metodologia.

@@ -1,6 +1,23 @@
 // Minimal pt-BR dictionary. Structured as a flat map so an English locale can be
 // added later without touching call sites (swap the active dictionary).
 
+/**
+ * The word an unnamed stage is described by (P0-2).
+ *
+ * A table and not a ternary: with three kinds a ternary silently maps the third
+ * to whichever branch is the fallback, and the stage would be labelled wrong
+ * instead of visibly unlabelled.
+ */
+const STAGE_KIND_WORDS: Record<"limit" | "tree" | "process", string> = {
+  limit: "limites",
+  tree: "classes",
+  process: "processos",
+};
+
+function stageKindWord(kind: "limit" | "tree" | "process"): string {
+  return STAGE_KIND_WORDS[kind];
+}
+
 export const ptBR = {
   appName: "MaterialSelect AI",
   tagline: "Apoio à seleção de materiais pela metodologia de Ashby",
@@ -244,14 +261,18 @@ export const ptBR = {
       "Os estágios se aplicam em ordem, e o resultado é a interseção dos habilitados. Desligar um estágio mostra o efeito dele sem apagar o que você escreveu.",
     stageKindLimit: "Limites",
     stageKindTree: "Classes",
-    stageNumber: (n: number, kind: "limit" | "tree") =>
-      `Estágio ${n} (${kind === "limit" ? "limites" : "classes"})`,
+    // P0-2: o terceiro tipo. "Processos" e não "Fabricação" porque é o registro
+    // que se escolhe, e é como o resto da interface e o relatório o chamam.
+    stageKindProcess: "Processos",
+    stageNumber: (n: number, kind: "limit" | "tree" | "process") =>
+      `Estágio ${n} (${stageKindWord(kind)})`,
     stageLabel: "Nome do estágio",
     stageLabelPlaceholder: "Opcional — ex.: Só metais leves",
     stageEnabled: "Habilitado",
     stageEnabledHint: "Um estágio desligado não estreita, mas continua salvo.",
     stageAddLimit: "Estágio de limites",
     stageAddTree: "Estágio de classes",
+    stageAddProcess: "Estágio de processos",
     stageRemove: "Remover estágio",
     stageMoveUp: (n: number) => `Mover o estágio ${n} para cima`,
     stageMoveDown: (n: number) => `Mover o estágio ${n} para baixo`,
@@ -261,6 +282,19 @@ export const ptBR = {
     stageIncludeDescendantsHint:
       "Marcado, escolher uma classe traz tudo o que está abaixo dela na hierarquia.",
     stageNoClasses: "Nenhuma classe escolhida — este estágio não estreita nada.",
+    // P0-2. O estágio de processo é a junção entre as duas tabelas: dos
+    // processos selecionados para os materiais que eles servem.
+    stageProcesses: "Processos selecionados",
+    stageProcessClasses: "Famílias de processo",
+    stageProcessesHint:
+      "Vale qualquer um dos escolhidos. Para exigir dois processos ao mesmo tempo, use dois estágios — a pilha os intersecta.",
+    stageIncludeProcessDescendants: "Incluir subfamílias",
+    stageIncludeProcessDescendantsHint:
+      "Marcado, escolher uma família traz todos os processos abaixo dela.",
+    stageNoProcesses:
+      "Nenhum processo escolhido — este estágio não estreita nada.",
+    stageProcessWarning:
+      "Material sem processo cadastrado não passa por este estágio: não se seleciona sobre dado que não se tem.",
     stagePassedAlone: "Admitidos sozinho",
     stageRemaining: "Restantes",
     stageDisabled: "Desligado",
@@ -531,6 +565,13 @@ export const ptBR = {
     missing: "ausente",
     uncertainty: "incerteza",
     noProperties: "Este material ainda não possui propriedades cadastradas.",
+    // P0-2: os processos compatíveis na ficha do material. "Compatíveis" e não
+    // "possíveis" porque é uma compatibilidade declarada no catálogo, não uma
+    // conclusão da ferramenta.
+    compatibleProcesses: "Processos compatíveis",
+    compatibleProcessesHint:
+      "Processos cadastrados como aplicáveis a este material, agrupados por família.",
+    noProcesses: "Nenhum processo cadastrado para este material.",
     inactive: "Inativo",
     identification: "Identificação",
     keywords: "Palavras-chave",

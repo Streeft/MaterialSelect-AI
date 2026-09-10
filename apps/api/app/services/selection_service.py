@@ -23,6 +23,8 @@ from app.domain.filters import (
     ConstraintGroupNode,
     MaterialSnapshot,
     Operator,
+    ProcessReach,
+    ProcessSelection,
     SelectionStageNode,
     TreeSelection,
     apply_constraint_tree,
@@ -93,6 +95,19 @@ _NUMERIC_OPS = {
 }
 
 
+#: How an unnamed stage is described in the funnel and in the documents. A
+#: table and not an if-chain so a fourth kind cannot be added to the engine and
+#: forgotten here — it would read as its own raw slug, which is visible.
+_STAGE_KIND_LABELS = {"limit": "limites", "tree": "classes", "process": "processos"}
+
+#: The operator a single-question stage reports on its funnel line. `in_tree`
+#: predates P0-2 and is kept verbatim so a pre-existing study's funnel reads
+#: unchanged; `in_process` is the new one, and it exists because a funnel that
+#: called both `in_tree` would say the selection filtered by material class when
+#: it filtered by process.
+_STAGE_FUNNEL_OPERATORS = {"tree": "in_tree", "process": "in_process"}
+
+
 class SelectionService:
     """Orchestrates the deterministic selection endpoints.
 
@@ -119,14 +134,38 @@ class SelectionService:
             # ancestry, and the taxonomy is dozens of rows against hundreds of
             # materials.
             lineage_by_slug = lineages(self.repo.class_parents())
+            reach_by_material = self._load_process_reach()
             self._snapshots = [
-                self._to_snapshot(m, lineage_by_slug)
+                self._to_snapshot(m, lineage_by_slug, reach_by_material)
                 for m in self.repo.list_active_materials_with_values()
             ]
         return self._snapshots
 
+    def _load_process_reach(self) -> dict[int, list[ProcessReach]]:
+        """The process side of the join, ready for the snapshot (P0-2).
+
+        Two statements for the whole catalogue — the links and the process
+        taxonomy — and the folder lineage is resolved here, once per process
+        class, so ``matches_processes`` stays a local question about a snapshot.
+        """
+        process_lineages = lineages(self.repo.process_class_parents())
+        reach: dict[int, list[ProcessReach]] = {}
+        for material_id, pairs in self.repo.process_reach_by_material().items():
+            reach[material_id] = [
+                ProcessReach(
+                    process_slug=process_slug,
+                    class_path=process_lineages.get(class_slug, (class_slug,)),
+                )
+                for process_slug, class_slug in pairs
+            ]
+        return reach
+
     @staticmethod
-    def _to_snapshot(material, lineage_by_slug: dict[str, tuple[str, ...]]) -> MaterialSnapshot:
+    def _to_snapshot(
+        material,
+        lineage_by_slug: dict[str, tuple[str, ...]],
+        reach_by_material: dict[int, list[ProcessReach]] | None = None,
+    ) -> MaterialSnapshot:
         values: dict[str, float] = {}
         for value in material.property_values:
             if not value.is_missing and value.normalized_value is not None:
@@ -139,6 +178,7 @@ class SelectionService:
             keywords=list(material.keywords or []),
             values=values,
             class_path=list(lineage_by_slug.get(material.material_class.slug, ())),
+            processes=list((reach_by_material or {}).get(material.id, ())),
         )
 
     # --- constraints ------------------------------------------------------
@@ -281,17 +321,41 @@ class SelectionService:
         still opens instead of becoming unreadable. What this does catch is a
         payload that could never work as written, whatever the catalogue holds.
         """
+        has_constraints = bool(stage_in.constraints) or stage_in.root_group is not None
+        has_processes = bool(stage_in.process_slugs) or bool(stage_in.process_class_slugs)
+
         if stage_in.kind == "tree":
-            if stage_in.constraints or stage_in.root_group is not None:
+            if has_constraints:
                 raise ValidationError(
                     "Um estágio de classes não leva restrições; use um estágio de limites."
                 )
+            if has_processes:
+                raise ValidationError(
+                    "Um estágio de classes não leva processos; use um estágio de processos."
+                )
             self._check_class_slugs(stage_in.class_slugs)
+            return
+
+        if stage_in.kind == "process":
+            if has_constraints:
+                raise ValidationError(
+                    "Um estágio de processos não leva restrições; use um estágio de limites."
+                )
+            if stage_in.class_slugs:
+                raise ValidationError(
+                    "Um estágio de processos não leva classes de material; "
+                    "use um estágio de classes."
+                )
+            self._check_process_selection(stage_in.process_slugs, stage_in.process_class_slugs)
             return
 
         if stage_in.class_slugs:
             raise ValidationError(
                 "Um estágio de limites não leva classes; use um estágio de classes."
+            )
+        if has_processes:
+            raise ValidationError(
+                "Um estágio de limites não leva processos; use um estágio de processos."
             )
         self._check_root_group_conflict(stage_in.constraints, stage_in.root_group)
 
@@ -313,6 +377,18 @@ class SelectionService:
                 ),
             )
 
+        if stage_in.kind == "process":
+            return SelectionStageNode(
+                kind="process",
+                label=stage_in.label,
+                enabled=stage_in.enabled,
+                processes=ProcessSelection(
+                    process_slugs=list(stage_in.process_slugs),
+                    process_class_slugs=list(stage_in.process_class_slugs),
+                    include_descendants=stage_in.include_descendants,
+                ),
+            )
+
         return SelectionStageNode(
             kind="limit",
             label=stage_in.label,
@@ -330,6 +406,23 @@ class SelectionService:
         unknown = sorted(set(slugs) - self.repo.existing_class_slugs(slugs))
         if unknown:
             raise NotFoundError(f"Classes desconhecidas: {', '.join(unknown)}")
+
+    def _check_process_selection(
+        self, process_slugs: list[str], process_class_slugs: list[str]
+    ) -> None:
+        """Same posture as `_check_class_slugs`: an unknown slug is a 404 naming
+        it, never a stage that quietly admits nothing (P0-2)."""
+        if process_slugs:
+            unknown = sorted(set(process_slugs) - self.repo.existing_process_slugs(process_slugs))
+            if unknown:
+                raise NotFoundError(f"Processos desconhecidos: {', '.join(unknown)}")
+        if process_class_slugs:
+            unknown = sorted(
+                set(process_class_slugs)
+                - self.repo.existing_process_class_slugs(process_class_slugs)
+            )
+            if unknown:
+                raise NotFoundError(f"Classes de processo desconhecidas: {', '.join(unknown)}")
 
     def _request_stages(
         self,
@@ -500,7 +593,7 @@ class SelectionService:
         model's note on `label`."""
         if stage.label:
             return stage.label
-        kind = "limites" if stage.kind == "limit" else "classes"
+        kind = _STAGE_KIND_LABELS.get(stage.kind, stage.kind)
         return f"Estágio {position + 1} ({kind})"
 
     def _apply_stages(
@@ -533,14 +626,17 @@ class SelectionService:
                 # nested sub-group — exactly `_apply_group`, unchanged.
                 inner, narrowed = self._apply_group(remaining, stage.root)
             else:
-                # A tree stage is a single question, so a single line. Nothing
-                # ticked narrows nothing, and a line saying so is more honest
-                # than a silent absence.
+                # A tree or process stage is a single question, so a single line.
+                # Nothing ticked narrows nothing, and a line saying so is more
+                # honest than a silent absence. The operator names *which*
+                # question: reporting `in_tree` for a process stage would tell
+                # the reader of the funnel that the selection filtered by
+                # material class when it filtered by process.
                 narrowed = apply_stage(remaining, stage)
                 inner = [
                     FunnelStepOut(
                         label=display,
-                        operator="in_tree",
+                        operator=_STAGE_FUNNEL_OPERATORS.get(stage.kind, stage.kind),
                         passed=standalone,
                         remaining=len(narrowed),
                     )
@@ -609,6 +705,20 @@ class SelectionService:
                         enabled=stage.enabled,
                         tree=TreeSelection(
                             class_slugs=list(stage.class_slugs or []),
+                            include_descendants=stage.include_descendants,
+                        ),
+                    )
+                )
+                continue
+            if stage.kind == "process":
+                nodes.append(
+                    SelectionStageNode(
+                        kind="process",
+                        label=stage.label,
+                        enabled=stage.enabled,
+                        processes=ProcessSelection(
+                            process_slugs=list(stage.process_slugs or []),
+                            process_class_slugs=list(stage.process_class_slugs or []),
                             include_descendants=stage.include_descendants,
                         ),
                     )
@@ -718,6 +828,9 @@ class SelectionService:
         if stage.kind == "limit":
             return f"{name}{state}: {self._describe_limit(stage)}"
 
+        if stage.kind == "process":
+            return f"{name}{state}: {self._describe_processes(stage)}"
+
         selection = stage.tree or TreeSelection()
         if not selection.class_slugs:
             return f"{name}{state}: nenhuma classe selecionada"
@@ -725,6 +838,30 @@ class SelectionService:
         picked = ", ".join(names.get(slug, slug) for slug in selection.class_slugs)
         scope = "com descendentes" if selection.include_descendants else "sem descendentes"
         return f"{name}{state}: classes {picked} ({scope})"
+
+    def _describe_processes(self, stage: SelectionStageNode) -> str:
+        """A process stage in words, for the report and the laudo (P0-2).
+
+        Names the folders and the processes separately, because they are
+        different namespaces, and says "algum" out loud: a reader who assumes
+        every selected process must apply would misread the candidate list.
+        """
+        selection = stage.processes or ProcessSelection()
+        parts: list[str] = []
+        if selection.process_class_slugs:
+            folder_names = self.repo.process_class_names()
+            picked = ", ".join(
+                folder_names.get(slug, slug) for slug in selection.process_class_slugs
+            )
+            scope = "com descendentes" if selection.include_descendants else "sem descendentes"
+            parts.append(f"famílias de processo {picked} ({scope})")
+        if selection.process_slugs:
+            process_names = self.repo.process_names()
+            picked = ", ".join(process_names.get(slug, slug) for slug in selection.process_slugs)
+            parts.append(f"processos {picked}")
+        if not parts:
+            return "nenhum processo selecionado"
+        return "algum de " + "; ".join(parts)
 
     @classmethod
     def _render_group_tree(cls, group: ConstraintGroupNode) -> str:
@@ -1216,6 +1353,8 @@ class SelectionService:
             label=stage_in.label,
             enabled=stage_in.enabled,
             class_slugs=list(stage_in.class_slugs),
+            process_slugs=list(stage_in.process_slugs),
+            process_class_slugs=list(stage_in.process_class_slugs),
             include_descendants=stage_in.include_descendants,
         )
         self.repo.add(stage)
@@ -1340,6 +1479,8 @@ class SelectionService:
                     enabled=stage.enabled,
                     root_group=root_group,
                     class_slugs=list(stage.class_slugs or []),
+                    process_slugs=list(stage.process_slugs or []),
+                    process_class_slugs=list(stage.process_class_slugs or []),
                     include_descendants=stage.include_descendants,
                 )
             )

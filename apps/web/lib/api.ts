@@ -27,6 +27,8 @@ import type {
   MaterialUpdate,
   PerformanceIndex,
   PortalSession,
+  Process,
+  ProcessClass,
   PropertyDefinition,
   PropertyDefinitionIn,
   PropertyDistribution,
@@ -176,6 +178,16 @@ export function updateClass(id: number, payload: MaterialClassIn): Promise<Mater
 
 export function deleteClass(id: number): Promise<void> {
   return request<void>(`/api/classes/${id}`, { method: "DELETE" });
+}
+
+// --- Processes (P0-2) -----------------------------------------------------
+
+export function listProcesses(): Promise<Process[]> {
+  return request<Process[]>(`/api/processes`);
+}
+
+export function listProcessClasses(): Promise<ProcessClass[]> {
+  return request<ProcessClass[]>(`/api/processes/classes`);
 }
 
 // --- Properties -----------------------------------------------------------

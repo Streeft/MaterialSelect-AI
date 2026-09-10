@@ -112,6 +112,13 @@ class SelectionStage(Base):
       With ``include_descendants`` (the default) picking a branch picks
       everything under it — the thing ``in_class`` cannot express, because it
       compares the material's own class and every material sits in a leaf.
+    * ``"process"`` — the second direction of the same question (P0-2): keep the
+      materials that *some* selected process applies to, named in
+      ``process_slugs`` (leaves) and ``process_class_slugs`` (folders, expanded
+      by the same ``include_descendants``). Any-of rather than all-of, because
+      "weldable **and** injection-mouldable" is two stages, and the pipeline
+      already intersects them — which is exactly the composition P0-1 exists
+      for.
 
     ``enabled`` is a column and not a deletion on purpose: turning a stage off
     and back on is how the effect of a criterion is *seen*, and a stage the
@@ -130,7 +137,7 @@ class SelectionStage(Base):
         ForeignKey("selection_study.id", ondelete="CASCADE"), nullable=False, index=True
     )
     position: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    kind: Mapped[str] = mapped_column(String(10), nullable=False)  # "limit" | "tree"
+    kind: Mapped[str] = mapped_column(String(10), nullable=False)  # limit | tree | process
     # The user's own name for the stage. NULL means they did not name it, and
     # the interface says what the stage does instead — never a stored default
     # that would then outrank the stage's real content.
@@ -139,6 +146,14 @@ class SelectionStage(Base):
 
     # Tree-stage payload; empty for a limit stage.
     class_slugs: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
+    # Process-stage payload (P0-2); empty for the other two kinds. Two columns
+    # and not one: a process slug and a process-class slug are different
+    # namespaces, and a single list would need the reader to guess which table
+    # each entry names — the same reason `class_slugs` is not reused here.
+    process_slugs: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
+    process_class_slugs: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
+    # Shared by the tree and process stages: in both, picking a folder means
+    # picking what is under it.
     include_descendants: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
     study: Mapped[SelectionStudy] = relationship(back_populates="stages")

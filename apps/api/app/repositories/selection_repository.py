@@ -9,6 +9,7 @@ from app.models.material import Material
 from app.models.material_class import MaterialClass
 from app.models.material_property_value import MaterialPropertyValue
 from app.models.performance_index import PerformanceIndex
+from app.models.process import MaterialProcess, Process, ProcessClass
 from app.models.property_definition import PropertyDefinition
 from app.models.selection import SelectionStudy
 
@@ -58,6 +59,68 @@ class SelectionRepository:
         should say "Metais", not "metais"."""
         stmt = select(MaterialClass.slug, MaterialClass.name)
         return {row[0]: row[1] for row in self.db.execute(stmt).all()}
+
+    # --- process universe (P0-2) ------------------------------------------
+
+    def process_class_parents(self) -> dict[str, str | None]:
+        """Every process-class slug mapped to its parent's slug (``None`` at a root).
+
+        The process-side twin of ``class_parents``, and read the same way: two
+        columns of the whole taxonomy, fed to ``app.domain.taxonomy.lineages`` so
+        a process stage can pick a folder and mean everything under it.
+        """
+        parent = aliased(ProcessClass)
+        stmt = select(ProcessClass.slug, parent.slug).join(
+            parent, ProcessClass.parent_id == parent.id, isouter=True
+        )
+        return {row[0]: row[1] for row in self.db.execute(stmt).all()}
+
+    def process_reach_by_material(self) -> dict[int, list[tuple[str, str]]]:
+        """Every material↔process link as ``{material_id: [(process, class)]}``.
+
+        One statement for the whole join, not one per material: this feeds the
+        snapshot, and the snapshot is built for the entire active catalogue on
+        every selection run.
+
+        Inactive processes are left out, matching what
+        ``list_active_materials_with_values`` does on the other side — a process
+        withdrawn from the catalogue must not keep admitting materials.
+        """
+        stmt = (
+            select(MaterialProcess.material_id, Process.slug, ProcessClass.slug)
+            .join(Process, Process.id == MaterialProcess.process_id)
+            .join(ProcessClass, ProcessClass.id == Process.class_id)
+            .where(Process.is_active.is_(True))
+            .order_by(MaterialProcess.material_id, Process.slug)
+        )
+        reach: dict[int, list[tuple[str, str]]] = {}
+        for material_id, process_slug, class_slug in self.db.execute(stmt).all():
+            reach.setdefault(material_id, []).append((process_slug, class_slug))
+        return reach
+
+    def existing_process_slugs(self, slugs: list[str]) -> set[str]:
+        if not slugs:
+            return set()
+        stmt = select(Process.slug).where(Process.slug.in_(slugs))
+        return {row[0] for row in self.db.execute(stmt).all()}
+
+    def existing_process_class_slugs(self, slugs: list[str]) -> set[str]:
+        if not slugs:
+            return set()
+        stmt = select(ProcessClass.slug).where(ProcessClass.slug.in_(slugs))
+        return {row[0] for row in self.db.execute(stmt).all()}
+
+    def process_names(self) -> dict[str, str]:
+        """Process slug → display name, so a document says "Solda MIG"."""
+        stmt = select(Process.slug, Process.name)
+        return {row[0]: row[1] for row in self.db.execute(stmt).all()}
+
+    def process_class_names(self) -> dict[str, str]:
+        """Process-class slug → display name."""
+        stmt = select(ProcessClass.slug, ProcessClass.name)
+        return {row[0]: row[1] for row in self.db.execute(stmt).all()}
+
+    # --- material taxonomy -------------------------------------------------
 
     def existing_class_slugs(self, slugs: list[str]) -> set[str]:
         if not slugs:
