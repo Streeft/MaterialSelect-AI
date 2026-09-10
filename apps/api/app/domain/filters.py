@@ -13,6 +13,16 @@ Design choices, aligned with the Ashby methodology:
   on purpose.
 * Thresholds are compared against the canonical (normalized) value, so units are
   always consistent. Conversion happens once, in the service, not per material.
+* A threshold over a **capability envelope** is satisfied by *reach* (P0-4): a
+  process that shapes parts of 0,1 to 10 kg meets "≥ 5 kg". Which rule applies
+  follows from the shape of the datum the record holds — ``values`` compares as
+  one number, ``envelopes`` compares as a range — never from the operator, which
+  keeps its plain meaning either way. The difference is real and has to reach the
+  reader: wherever an envelope was compared, the report says so.
+* A **discrete** attribute holds labels, so it is answered by set membership
+  (``HAS_ANY_LABEL`` / ``HAS_NO_LABEL``) and never by a numeric operator. The
+  negative one does not admit a record that has no such attribute recorded:
+  absence is a state, and asking for it is what ``NOT_EXISTS`` is for.
 """
 
 from __future__ import annotations
@@ -35,6 +45,13 @@ class Operator(str, Enum):
     IN_CLASS = "in_class"
     NOT_IN_CLASS = "not_in_class"
     TEXT_CONTAINS = "text_contains"
+    # P0-4: a discrete attribute holds labels, not a number, so selecting over
+    # it is set membership and not comparison. Any-of and none-of, the same pair
+    # IN_CLASS/NOT_IN_CLASS forms — and for the same reason the process stage is
+    # any-of: the conjunction is a second constraint, which the tree already
+    # combines.
+    HAS_ANY_LABEL = "has_any_label"
+    HAS_NO_LABEL = "has_no_label"
 
 
 _NUMERIC_OPERATORS = {
@@ -45,6 +62,8 @@ _NUMERIC_OPERATORS = {
     Operator.BETWEEN,
     Operator.OUTSIDE,
 }
+
+_LABEL_OPERATORS = {Operator.HAS_ANY_LABEL, Operator.HAS_NO_LABEL}
 
 
 @dataclass(frozen=True)
@@ -79,7 +98,9 @@ class RecordSnapshot:
     a process study without a second implementation to keep in agreement.
 
     ``values`` maps a property slug to its canonical (normalized) numeric value.
-    Missing / absent properties are simply absent from the dict — never 0.
+    Missing / absent properties are simply absent from the dict — never 0. The
+    same holds for the other two maps: a slug present in none of the three is a
+    datum the record does not have, and a constraint over it is not satisfied.
     """
 
     id: int
@@ -88,6 +109,23 @@ class RecordSnapshot:
     class_slug: str
     keywords: list[str] = field(default_factory=list)
     values: dict[str, float] = field(default_factory=dict)
+    #: Capability envelopes, slug → ``(lower, upper)`` in canonical units (P0-4).
+    #:
+    #: A different datum from a scalar, not a convenience: every point inside is
+    #: achievable, so a threshold is met when the range **reaches** it. That is
+    #: why an envelope lives in its own map instead of being collapsed to a
+    #: representative number — collapsing is precisely what makes a process that
+    #: shapes 0,1–10 kg fail a "≥ 5 kg" it can obviously meet.
+    #:
+    #: On the base rather than on ``ProcessSnapshot`` because nothing about the
+    #: rule is process-specific; today only process attributes populate it, and
+    #: the day a material interval is read as an envelope (its own item — it
+    #: would move every existing funnel count) there is nowhere new to put it.
+    envelopes: dict[str, tuple[float, float]] = field(default_factory=dict)
+    #: Discrete attributes, slug → the labels this record holds (P0-4). A label
+    #: has no unit and no order, so it is neither in ``values`` nor comparable
+    #: by a numeric operator.
+    labels: dict[str, tuple[str, ...]] = field(default_factory=dict)
     #: The record's class lineage, root→leaf, its own slug last — what makes a
     #: tree stage able to say "everything under Metais" (P0-1). Defaults to
     #: empty because ancestry is something the service reads from the taxonomy;
@@ -146,6 +184,11 @@ class Constraint:
     value_max: float | None = None
     class_slugs: list[str] = field(default_factory=list)
     text: str | None = None
+    #: The labels a HAS_ANY_LABEL / HAS_NO_LABEL constraint names (P0-4). A
+    #: separate field from ``class_slugs`` because a class slug and an attribute
+    #: label are different namespaces, the same reason the process stage keeps
+    #: its two slug lists apart.
+    labels: list[str] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -347,14 +390,97 @@ class SelectionStageNode:
     materials: TreeSelection | None = None
 
 
+def has_value(record: RecordSnapshot, slug: str | None) -> bool:
+    """Return True if ``record`` holds *any* datum under ``slug``.
+
+    The three maps are three shapes of one thing — "this record has a value for
+    this attribute" — so completeness is a question about all of them. Reading
+    only ``values``, as this did before P0-4, would report a process that has a
+    capability envelope and a set of labels as having no data at all.
+    """
+    if slug is None:
+        return False
+    return slug in record.values or slug in record.envelopes or slug in record.labels
+
+
+def _envelope_satisfies(constraint: Constraint, lower: float, upper: float) -> bool:
+    """Compare a threshold against a capability envelope, by **reach**.
+
+    Every point of ``[lower, upper]`` is achievable, so the question a threshold
+    asks is "can this record produce a value that satisfies it" — satisfied when
+    some point of the envelope does. A process that shapes parts of 0,1 to 10 kg
+    meets "≥ 5 kg": collapsing the envelope to its midpoint (5,05 here, and 2,05
+    for a 0,1–4 kg process that also reaches 3) answers a different question and
+    silently rejects capability the record actually has.
+
+    This is deliberately *not* the rule a material's interval property follows,
+    where the range is scatter around one true value and the representative point
+    is the honest comparison. The difference is in the datum, not in the
+    operator, so the report has to name it wherever an envelope was compared —
+    a semantic difference the reader cannot see is the one thing this engine is
+    built not to produce.
+    """
+    op = constraint.operator
+    if op is Operator.GT:
+        return constraint.value is not None and upper > constraint.value
+    if op is Operator.GTE:
+        return constraint.value is not None and upper >= constraint.value
+    if op is Operator.LT:
+        return constraint.value is not None and lower < constraint.value
+    if op is Operator.LTE:
+        return constraint.value is not None and lower <= constraint.value
+    if op is Operator.BETWEEN:
+        # Overlap, not containment: the requested window is satisfiable if the
+        # envelope reaches into it anywhere.
+        return (
+            constraint.value_min is not None
+            and constraint.value_max is not None
+            and upper >= constraint.value_min
+            and lower <= constraint.value_max
+        )
+    if op is Operator.OUTSIDE:
+        return (
+            constraint.value_min is not None
+            and constraint.value_max is not None
+            and (lower < constraint.value_min or upper > constraint.value_max)
+        )
+    return False  # pragma: no cover - only numeric operators reach here
+
+
+def _scalar_satisfies(constraint: Constraint, x: float) -> bool:
+    """Compare a threshold against a single value — the pre-P0-4 rule, unchanged."""
+    op = constraint.operator
+    if op is Operator.GT:
+        return constraint.value is not None and x > constraint.value
+    if op is Operator.GTE:
+        return constraint.value is not None and x >= constraint.value
+    if op is Operator.LT:
+        return constraint.value is not None and x < constraint.value
+    if op is Operator.LTE:
+        return constraint.value is not None and x <= constraint.value
+    if op is Operator.BETWEEN:
+        return (
+            constraint.value_min is not None
+            and constraint.value_max is not None
+            and constraint.value_min <= x <= constraint.value_max
+        )
+    if op is Operator.OUTSIDE:
+        return (
+            constraint.value_min is not None
+            and constraint.value_max is not None
+            and (x < constraint.value_min or x > constraint.value_max)
+        )
+    return False  # pragma: no cover - only numeric operators reach here
+
+
 def evaluate_constraint(constraint: Constraint, material: RecordSnapshot) -> bool:
     """Return True if ``material`` satisfies ``constraint``."""
     op = constraint.operator
 
     if op is Operator.EXISTS:
-        return constraint.property_slug in material.values
+        return has_value(material, constraint.property_slug)
     if op is Operator.NOT_EXISTS:
-        return constraint.property_slug not in material.values
+        return not has_value(material, constraint.property_slug)
 
     if op is Operator.IN_CLASS:
         return material.class_slug in set(constraint.class_slugs)
@@ -368,31 +494,36 @@ def evaluate_constraint(constraint: Constraint, material: RecordSnapshot) -> boo
         haystack = " ".join([material.name.lower(), *(k.lower() for k in material.keywords)])
         return needle in haystack
 
-    # Numeric operators: the property value must be present to be verifiable.
-    if op in _NUMERIC_OPERATORS:
-        if constraint.property_slug not in material.values:
+    if op in _LABEL_OPERATORS:
+        picked = set(constraint.labels)
+        if not picked:
+            # A criterion that names no label does not narrow — the convention an
+            # empty TreeSelection and an empty ProcessSelection already follow.
+            return True
+        slug = constraint.property_slug
+        if slug is None or slug not in material.labels:
+            # Absence is not a free pass, and that includes the negative
+            # operator: "must not be a primary-shaping process" is unanswerable
+            # for a process with no such attribute recorded. NOT_EXISTS is how
+            # absence is asked for on purpose.
             return False
-        x = material.values[constraint.property_slug]
-        if op is Operator.GT:
-            return constraint.value is not None and x > constraint.value
-        if op is Operator.GTE:
-            return constraint.value is not None and x >= constraint.value
-        if op is Operator.LT:
-            return constraint.value is not None and x < constraint.value
-        if op is Operator.LTE:
-            return constraint.value is not None and x <= constraint.value
-        if op is Operator.BETWEEN:
-            return (
-                constraint.value_min is not None
-                and constraint.value_max is not None
-                and constraint.value_min <= x <= constraint.value_max
-            )
-        if op is Operator.OUTSIDE:
-            return (
-                constraint.value_min is not None
-                and constraint.value_max is not None
-                and (x < constraint.value_min or x > constraint.value_max)
-            )
+        held = set(material.labels[slug])
+        if op is Operator.HAS_ANY_LABEL:
+            return bool(held & picked)
+        return not (held & picked)
+
+    # Numeric operators: the value must be present to be verifiable, and which
+    # rule applies follows from which shape of datum the record holds.
+    if op in _NUMERIC_OPERATORS:
+        slug = constraint.property_slug
+        if slug is None:
+            return False
+        envelope = material.envelopes.get(slug)
+        if envelope is not None:
+            return _envelope_satisfies(constraint, envelope[0], envelope[1])
+        if slug not in material.values:
+            return False
+        return _scalar_satisfies(constraint, material.values[slug])
 
     return False  # pragma: no cover - all operators handled above
 
