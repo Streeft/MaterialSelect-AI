@@ -19,6 +19,9 @@ OperatorLiteral = Literal[
     "in_class",
     "not_in_class",
     "text_contains",
+    # P0-4: set membership over a discrete process attribute's closed vocabulary.
+    "has_any_label",
+    "has_no_label",
 ]
 GoalLiteral = Literal["maximize", "minimize"]
 DirectionLiteral = Literal["max", "min"]
@@ -65,6 +68,11 @@ class ConstraintIn(BaseModel):
     unit: str | None = None
     class_slugs: list[str] = Field(default_factory=list)
     text: str | None = Field(default=None, max_length=200)
+    # P0-4: the labels a has_any_label / has_no_label constraint names. A field of
+    # its own and not `class_slugs`, because a class slug and an attribute label
+    # are different namespaces — the same reason the process stage keeps its two
+    # slug lists apart.
+    labels: list[str] = Field(default_factory=list)
 
 
 class ConstraintGroupIn(BaseModel):

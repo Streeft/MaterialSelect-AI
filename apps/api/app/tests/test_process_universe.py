@@ -650,9 +650,15 @@ def test_a_stage_from_the_other_universe_is_refused(
     assert fragment in resp.json()["detail"]
 
 
-def test_ranking_a_process_study_is_refused_with_the_reason(client, universe) -> None:
-    """Declared, never a silently empty ranking: a reader would take that for
-    "no process scored well" rather than "this cannot be computed"."""
+def test_ranking_a_process_study_cannot_reach_a_material_property(client, universe) -> None:
+    """P0-4 lifted P0-3's blanket refusal of ranking in a process study, but it
+    did not merge the two catalogues: ``densidade`` is a material property, and
+    in a process study it simply does not exist.
+
+    The 404 naming it is the point. Resolving it against the material catalogue —
+    which is what the service did before P0-4 — converted the threshold, admitted
+    the criterion, and then scored every process on a value none of them had.
+    """
     resp = client.post(
         "/api/selection/run",
         json={
@@ -660,19 +666,19 @@ def test_ranking_a_process_study_is_refused_with_the_reason(client, universe) ->
             "ranking": {"criteria": [{"key": "densidade", "weight": 1.0}]},
         },
     )
-    assert resp.status_code == 400, resp.text
+    assert resp.status_code == 404, resp.text
     detail = resp.json()["detail"]
-    assert "não inventa valor" in detail
-    assert "atributo" in detail
+    assert "Atributo não encontrado" in detail
+    assert "densidade" in detail
 
 
-def test_an_index_over_a_process_study_is_refused_with_the_reason(client, universe) -> None:
+def test_an_index_over_a_process_study_cannot_read_a_material_property(client, universe) -> None:
     resp = client.post(
         "/api/selection/run",
         json={"universe": "process", "index": {"expression": "densidade", "goal": "maximize"}},
     )
     assert resp.status_code == 400, resp.text
-    assert "não inventa valor" in resp.json()["detail"]
+    assert "densidade" in resp.json()["detail"]
 
 
 def test_material_class_slugs_on_another_kind_is_refused(client, universe) -> None:
@@ -747,9 +753,16 @@ def test_the_study_list_states_each_universe(client, universe) -> None:
     assert by_name["Um de materiais"] == "material"
 
 
-def test_saving_a_process_study_with_a_ranking_is_refused_at_save_time(client, universe) -> None:
+def test_saving_a_process_study_with_an_uncomputable_criterion_is_refused_at_save_time(
+    client, universe
+) -> None:
     """Not only at run time: a study that cannot be run is not worth storing,
-    and finding out later is worse."""
+    and finding out later is worse.
+
+    What is refused narrowed with P0-4 — it is no longer "a process study cannot
+    rank", it is "this criterion names nothing in the process catalogue" — but the
+    save-time boundary P0-3 drew is unchanged.
+    """
     resp = client.post(
         "/api/selection/studies",
         json={
@@ -760,8 +773,8 @@ def test_saving_a_process_study_with_a_ranking_is_refused_at_save_time(client, u
             "stages": [{"kind": "tree", "class_slugs": [f"{NS}-uniao"]}],
         },
     )
-    assert resp.status_code == 400, resp.text
-    assert "não inventa valor" in resp.json()["detail"]
+    assert resp.status_code == 404, resp.text
+    assert "Atributo não encontrado" in resp.json()["detail"]
 
 
 # --- the report and the laudo of a process study ------------------------------

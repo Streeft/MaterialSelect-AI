@@ -3,9 +3,13 @@
 from __future__ import annotations
 
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.models.process import MaterialProcess, Process, ProcessClass
+from app.models.process_attribute import (
+    ProcessAttributeDefinition,
+    ProcessAttributeValue,
+)
 
 
 class ProcessRepository:
@@ -44,6 +48,33 @@ class ProcessRepository:
             .order_by(Process.name)
         )
         return list(self.db.execute(stmt).scalars().unique().all())
+
+    def list_attributes(self) -> list[ProcessAttributeDefinition]:
+        """The process attribute catalogue (P0-4), in display order.
+
+        Ordered by name and not by ``id``: the order a reader sees must not
+        depend on which attribute an operator happened to create first.
+        """
+        stmt = select(ProcessAttributeDefinition).order_by(ProcessAttributeDefinition.name)
+        return list(self.db.execute(stmt).scalars().all())
+
+    def get_active_process_by_slug(self, slug: str) -> Process | None:
+        """One active process with its class, attribute values and their
+        definitions and sources loaded — the process datasheet's query (P0-4).
+
+        Everything the sheet shows in one round trip, because the sheet shows the
+        provenance and provenance is the source row.
+        """
+        stmt = (
+            select(Process)
+            .options(
+                joinedload(Process.process_class),
+                selectinload(Process.attribute_values).joinedload(ProcessAttributeValue.attribute),
+                selectinload(Process.attribute_values).joinedload(ProcessAttributeValue.source),
+            )
+            .where(Process.slug == slug, Process.is_active.is_(True))
+        )
+        return self.db.execute(stmt).scalars().unique().one_or_none()
 
     def material_counts_by_process(self) -> dict[int, int]:
         """How many materials each process applies to — one statement, not one
