@@ -32,6 +32,35 @@ class BetterDirection(str, enum.Enum):
     NEUTRAL = "NEUTRAL"
 
 
+class ProcessAttributeKind(str, enum.Enum):
+    """What *shape* of value a process attribute holds (P0-4).
+
+    Load-bearing, unlike ``PropertyDefinition.is_interval``: the selection
+    engine compares a value differently depending on this, so it has to be
+    readable from the definition alone — the interface builds the editor from
+    it before any value exists, and the report has to be able to say which rule
+    was applied.
+
+    ``ESCALAR`` is one number, compared exactly as a material property is.
+
+    ``ENVELOPE`` is a *capability range* — "this process shapes parts of 0,1 a
+    10 kg". It is not scatter around a true value: every point inside is
+    genuinely achievable, so a threshold is satisfied when the range **reaches**
+    it, not when its midpoint does. That is the difference from a material's
+    interval property, where the range expresses uncertainty about one true
+    value and the midpoint is the representative point.
+
+    ``DISCRETO`` is a set of labels from a closed vocabulary — *Shape*,
+    *Process characteristics*. Closed and not free text for the same reason a
+    class has a slug: "Chapa conformada" and "chapa conformada" would otherwise
+    be two different capabilities.
+    """
+
+    ESCALAR = "ESCALAR"
+    ENVELOPE = "ENVELOPE"
+    DISCRETO = "DISCRETO"
+
+
 class DataQuality(str, enum.Enum):
     """Provenance / confidence level of a stored property value.
 
