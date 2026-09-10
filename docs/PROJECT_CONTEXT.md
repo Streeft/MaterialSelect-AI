@@ -237,7 +237,7 @@ tudo limpo, sem achado novo. Commit `73eb4a2` sobre `0d00ee7`. Ver
 `docs/07-selecao-deterministica.md` para a descrição de cada método e do
 modelo de árvore.
 
-**Plataforma de seleção — P0-1 e P1-1 entregues.** Depois de comparar a
+**Plataforma de seleção — P0-1, P0-2 e P1-1 entregues.** Depois de comparar a
 ferramenta com o modelo funcional dos manuais do Granta EduPack
 ([14-plataforma-selecao.md](14-plataforma-selecao.md): matriz de maturidade
 sobre 30 capacidades e roteiro P0–P4), os dois primeiros gargalos saíram. **A
@@ -247,15 +247,28 @@ habilitável, com dois tipos — `limit` (a árvore do M6) e `tree` (seleção d
 pastas da taxonomia, com descendentes). Migração aditiva com backfill: todo
 estudo anterior vira um estágio e avalia exatamente como antes, funil incluído.
 **A busca deixou de ser `LIKE`** ([D-55](DECISIONS.md)): analisador próprio com
-AND/OR/NOT, frase, parênteses e curinga. A cobertura de capacidades inspiradas
-no EduPack subiu de ~34% para ~47% (14 de 30 em nível ≥ 3). O próximo gargalo é
-**P0-2**: `Process`/`ProcessClass`, sem os quais o Tree Stage não pode ser a
-junção entre tabelas que o manual descreve.
+AND/OR/NOT, frase, parênteses e curinga.
 
-**Saúde do código:** 987 testes de backend (Python 3.11 e 3.12, nenhum skip)
-e 210 de frontend, todos verdes. Desde o P0-1 a suíte também roda a migração de
+**E existe um segundo universo** ([D-57](DECISIONS.md), P0-2): `ProcessClass`
+hierárquica, `Process` e a associação N–N `material_process` deram ao Tree Stage
+a **junção entre tabelas** que o manual descreve. Um terceiro tipo de estágio,
+`process`, mantém os materiais que *algum* processo selecionado serve — por
+pasta ou por folha, com descendentes —, e a ficha do material passou a listar os
+processos compatíveis, agrupados por família. A família do processo é a raiz da
+taxonomia e não uma coluna enum, e o vínculo não carrega número nenhum: um valor
+sobre o par precisaria da mesma proveniência de `MaterialPropertyValue`, e
+inventá-lo violaria o princípio 1.
+
+A cobertura de capacidades inspiradas no EduPack subiu de ~34% para **~57%**
+(17 de 30 em nível ≥ 3). O próximo gargalo é **P0-3**: a seleção só devolve
+materiais, e o exercício 11 do manual seleciona **processos** — o universo de
+saída precisa ser escolhido.
+
+**Saúde do código:** 1034 testes de backend (Python 3.11 e 3.12, nenhum skip)
+e 218 de frontend, todos verdes. Desde o P0-1 a suíte também roda as migrações de
 verdade, nos dois sentidos, contra um banco temporário que já contém dados —
-`app/tests/test_migration_selection_stage.py`. `ruff` limpo, `black
+`test_migration_selection_stage.py` e `test_migration_process_universe.py`,
+ambos conferidos por mutação. `ruff` limpo, `black
 --check` limpo, typecheck estrito e build de produção sem avisos. CI no
 GitHub Actions rodando em todo PR e push para `main`, com os checks
 **obrigatórios**: o GitHub recusa o merge se qualquer um falhar

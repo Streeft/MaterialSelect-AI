@@ -314,6 +314,8 @@ const materialDetail: MaterialDetail = {
   is_demo: true,
   is_active: true,
   keywords: ["estrutural"],
+  // P0-2: the sheet always carries the join, empty or not.
+  processes: [],
   property_groups: [
     {
       category: "FISICA",
@@ -474,6 +476,8 @@ vi.mock("@/lib/api", async (importOriginal) => ({
   ApiError: (await importOriginal<typeof import("@/lib/api")>()).ApiError,
   listMaterials: () => Promise.resolve(materials),
   listClasses: () => Promise.resolve(classes),
+  listProcesses: () => Promise.resolve([]),
+  listProcessClasses: () => Promise.resolve([]),
   listProperties: () => Promise.resolve(properties),
   listPerformanceIndices: () => Promise.resolve(indices),
   getPropertyMap: () => Promise.resolve(propertyMap),

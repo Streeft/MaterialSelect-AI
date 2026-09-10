@@ -148,6 +148,47 @@ export default function MaterialDetailPage() {
                 sheet scrolled sideways at 375 px instead of the table scrolling
                 inside its own box. */}
             <div className="flex min-w-0 flex-col gap-3">
+              {/* P0-2: the datasheet half of the material↔process join. */}
+              <Section
+                id="processos"
+                title={t.compatibleProcesses}
+                description={t.compatibleProcessesHint}
+              >
+                {data.processes.length === 0 ? (
+                  // Written out, never an empty card: no process linked is a
+                  // state, and it is not the same as "cannot be manufactured".
+                  <EmptyState title={t.noProcesses} />
+                ) : (
+                  <Card>
+                    <CardBody className="flex flex-col gap-3">
+                      {Object.entries(
+                        data.processes.reduce<Record<string, typeof data.processes>>(
+                          (byFamily, process) => {
+                            const family = process.class_name;
+                            byFamily[family] = [...(byFamily[family] ?? []), process];
+                            return byFamily;
+                          },
+                          {},
+                        ),
+                      ).map(([family, list]) => (
+                        <div key={family} className="flex flex-col gap-1">
+                          <span className="text-xs font-medium uppercase tracking-wide text-fg-muted">
+                            {family}
+                          </span>
+                          <div className="flex flex-wrap gap-2">
+                            {list.map((process) => (
+                              <Badge key={process.slug} tone="brand" title={process.description ?? undefined}>
+                                {process.name}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </CardBody>
+                  </Card>
+                )}
+              </Section>
+
               {chart.data && <PropertyChart data={chart.data} highlightMaterialId={id} />}
               {chart.data && (
                 <ButtonLink

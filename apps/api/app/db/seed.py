@@ -32,6 +32,7 @@ from app.models.material import Material
 from app.models.material_class import MaterialClass
 from app.models.material_property_value import MaterialPropertyValue
 from app.models.performance_index import PerformanceIndex
+from app.models.process import MaterialProcess, Process, ProcessClass
 from app.models.project import Project
 from app.models.property_definition import PropertyDefinition
 from app.models.source import Source
@@ -465,6 +466,147 @@ DEMO_MATERIALS = [
 ]
 
 
+# --- Process universe (P0-2) ----------------------------------------------
+#
+# ⚠️  Também demonstrativo. Os nomes dos processos são vocabulário corrente de
+# engenharia de manufatura (domínio público da metodologia de Ashby); o que é
+# fictício é a **compatibilidade** afirmada abaixo, escolhida para exercitar a
+# junção material↔processo e nada mais. Nenhum processo real deve ser escolhido
+# a partir desta tabela.
+#
+# As três famílias são as raízes da taxonomia, e não uma coluna enum: é dado
+# semeado, então um operador acrescenta família sem migração, e a pasta com
+# descendentes do estágio de processo funciona sem uma linha de código nova.
+PROCESS_CLASSES = [
+    {"name": "Conformação", "slug": "conformacao", "parent": None},
+    {
+        "name": "Conformação em estado líquido",
+        "slug": "conformacao-liquido",
+        "parent": "conformacao",
+    },
+    {
+        "name": "Conformação em estado sólido",
+        "slug": "conformacao-solido",
+        "parent": "conformacao",
+    },
+    {
+        "name": "Conformação de particulados",
+        "slug": "conformacao-particulados",
+        "parent": "conformacao",
+    },
+    {"name": "Remoção de material", "slug": "remocao-material", "parent": "conformacao"},
+    {"name": "União", "slug": "uniao", "parent": None},
+    {"name": "Tratamento de superfície", "slug": "tratamento-superficie", "parent": None},
+]
+
+PROCESSES = [
+    {
+        "name": "Fundição em areia",
+        "slug": "fundicao-areia",
+        "class_slug": "conformacao-liquido",
+        "description": "Metal líquido vazado em molde de areia aglomerada.",
+    },
+    {
+        "name": "Moldagem por injeção",
+        "slug": "moldagem-injecao",
+        "class_slug": "conformacao-liquido",
+        "description": "Polímero fundido injetado sob pressão em molde fechado.",
+    },
+    {
+        "name": "Forjamento",
+        "slug": "forjamento",
+        "class_slug": "conformacao-solido",
+        "description": "Deformação plástica por compressão entre matrizes.",
+    },
+    {
+        "name": "Extrusão",
+        "slug": "extrusao",
+        "class_slug": "conformacao-solido",
+        "description": "Material forçado através de uma matriz de seção constante.",
+    },
+    {
+        "name": "Moldagem por compressão",
+        "slug": "moldagem-compressao",
+        "class_slug": "conformacao-solido",
+        "description": "Carga prensada em molde aquecido até a cura.",
+    },
+    {
+        "name": "Prensagem e sinterização",
+        "slug": "prensagem-sinterizacao",
+        "class_slug": "conformacao-particulados",
+        "description": "Pó compactado e depois consolidado por tratamento térmico.",
+    },
+    {
+        "name": "Usinagem convencional",
+        "slug": "usinagem-convencional",
+        "class_slug": "remocao-material",
+        "description": "Remoção de cavaco por ferramenta de geometria definida.",
+    },
+    {
+        "name": "Retificação",
+        "slug": "retificacao",
+        "class_slug": "remocao-material",
+        "description": "Acabamento por abrasão com ferramenta de geometria não definida.",
+    },
+    {
+        "name": "Solda MIG",
+        "slug": "solda-mig",
+        "class_slug": "uniao",
+        "description": "União por fusão com eletrodo consumível e gás de proteção.",
+    },
+    {
+        "name": "Adesivagem",
+        "slug": "adesivagem",
+        "class_slug": "uniao",
+        "description": "União por adesivo estrutural, sem aporte térmico.",
+    },
+    {
+        "name": "Parafusamento",
+        "slug": "parafusamento",
+        "class_slug": "uniao",
+        "description": "União mecânica desmontável por elemento roscado.",
+    },
+    {
+        "name": "Pintura",
+        "slug": "pintura",
+        "class_slug": "tratamento-superficie",
+        "description": "Camada orgânica aplicada para proteção e acabamento.",
+    },
+    {
+        "name": "Anodização",
+        "slug": "anodizacao",
+        "class_slug": "tratamento-superficie",
+        "description": "Crescimento eletrolítico de óxido na superfície do metal.",
+    },
+]
+
+#: Material name → the processes it is declared compatible with. Fictitious, as
+#: the note above says. "Cerâmica Demo D" has no joining process on purpose:
+#: absence is a state here too, and a process stage must reject a material
+#: rather than wave it through for lack of data.
+MATERIAL_PROCESS_LINKS = {
+    "Liga Alumínio Demo A": [
+        "fundicao-areia",
+        "extrusao",
+        "forjamento",
+        "usinagem-convencional",
+        "solda-mig",
+        "anodizacao",
+    ],
+    "Aço Demo B": [
+        "fundicao-areia",
+        "forjamento",
+        "usinagem-convencional",
+        "solda-mig",
+        "parafusamento",
+        "pintura",
+    ],
+    "Polímero Demo C": ["moldagem-injecao", "extrusao", "adesivagem", "pintura"],
+    "Cerâmica Demo D": ["prensagem-sinterizacao", "retificacao"],
+    "Compósito Demo E": ["moldagem-compressao", "usinagem-convencional", "adesivagem", "pintura"],
+}
+
+
 def _get_or_create_class(db: Session, name: str, slug: str) -> MaterialClass:
     existing = (
         db.execute(select(MaterialClass).where(MaterialClass.slug == slug)).scalars().one_or_none()
@@ -475,6 +617,89 @@ def _get_or_create_class(db: Session, name: str, slug: str) -> MaterialClass:
     db.add(obj)
     db.flush()
     return obj
+
+
+def _get_or_create_process_class(db: Session, spec: dict, parent_id: int | None) -> ProcessClass:
+    existing = (
+        db.execute(select(ProcessClass).where(ProcessClass.slug == spec["slug"]))
+        .scalars()
+        .one_or_none()
+    )
+    if existing:
+        return existing
+    obj = ProcessClass(name=spec["name"], slug=spec["slug"], parent_id=parent_id)
+    db.add(obj)
+    db.flush()
+    return obj
+
+
+def _get_or_create_process(db: Session, spec: dict, class_id: int) -> Process:
+    existing = (
+        db.execute(select(Process).where(Process.slug == spec["slug"])).scalars().one_or_none()
+    )
+    if existing:
+        return existing
+    obj = Process(
+        name=spec["name"],
+        slug=spec["slug"],
+        class_id=class_id,
+        description=spec.get("description"),
+        is_demo=True,
+    )
+    db.add(obj)
+    db.flush()
+    return obj
+
+
+def _seed_process_universe(db: Session) -> dict[str, int]:
+    """The demo process universe and its links to the demo materials.
+
+    Idempotent like the rest of the seed, link rows included: the composite
+    primary key means a repeated run would raise instead of duplicating, so each
+    pair is checked before it is inserted.
+    """
+    class_by_slug: dict[str, ProcessClass] = {}
+    # Parents first — the list is ordered so a parent is always already present.
+    for spec in PROCESS_CLASSES:
+        parent = class_by_slug.get(spec["parent"]) if spec["parent"] else None
+        class_by_slug[spec["slug"]] = _get_or_create_process_class(
+            db, spec, parent.id if parent else None
+        )
+
+    process_by_slug: dict[str, Process] = {}
+    for spec in PROCESSES:
+        process_by_slug[spec["slug"]] = _get_or_create_process(
+            db, spec, class_by_slug[spec["class_slug"]].id
+        )
+    db.flush()
+
+    links_created = 0
+    for material_name, process_slugs in MATERIAL_PROCESS_LINKS.items():
+        material = (
+            db.execute(select(Material).where(Material.name == material_name))
+            .scalars()
+            .one_or_none()
+        )
+        if material is None:  # pragma: no cover - only if a demo material is renamed
+            continue
+        for slug in process_slugs:
+            process = process_by_slug[slug]
+            already = db.execute(
+                select(MaterialProcess).where(
+                    MaterialProcess.material_id == material.id,
+                    MaterialProcess.process_id == process.id,
+                )
+            ).one_or_none()
+            if already:
+                continue
+            db.add(MaterialProcess(material_id=material.id, process_id=process.id))
+            links_created += 1
+    db.flush()
+    return {
+        "process_classes": len(PROCESS_CLASSES),
+        "processes": len(PROCESSES),
+        "material_process_links": links_created,
+    }
 
 
 def _get_or_create_property(db: Session, spec: dict) -> PropertyDefinition:
@@ -631,12 +856,16 @@ def seed(db: Session) -> dict[str, int]:
         material_repo.sync_keywords(material.id, mat_spec.get("keywords", []))
         created_materials += 1
 
+    # After the materials: the links need them to exist (P0-2).
+    process_summary = _seed_process_universe(db)
+
     db.commit()
     return {
         "classes": len(CLASSES),
         "properties": len(PROPERTIES),
         "indices": len(PERFORMANCE_INDICES),
         "materials_created": created_materials,
+        **process_summary,
     }
 
 

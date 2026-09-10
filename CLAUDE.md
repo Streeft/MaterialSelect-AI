@@ -333,15 +333,15 @@ outros dois métodos; o laudo descrevia um estudo aninhado como um combinador
 único opaco. Os quatro corrigidos numa rodada só, rerrevisão limpa. Ver
 `docs/PROJECT_CONTEXT.md` §3 e `docs/07-selecao-deterministica.md`.
 
-**P0-1 e P1-1 da plataforma de seleção entregues.** Depois de comparar a
+**P0-1, P0-2 e P1-1 da plataforma de seleção entregues.** Depois de comparar a
 ferramenta com o modelo funcional dos manuais do Granta EduPack — matriz de
-maturidade e roteiro em `docs/14-plataforma-selecao.md` —, os dois primeiros
+maturidade e roteiro em `docs/14-plataforma-selecao.md` —, os três primeiros
 gargalos saíram. **A seleção deixou de ser de estágio único**
 ([D-56](docs/DECISIONS.md)): um estudo é uma **pilha ordenada de
-`SelectionStage`**, e o resultado é a interseção dos habilitados. Dois tipos, e
-um estágio é uma pergunta só — enviar os campos do outro é recusado, nunca
+`SelectionStage`**, e o resultado é a interseção dos habilitados. **Três** tipos,
+e um estágio é uma pergunta só — enviar os campos de outro é recusado, nunca
 ignorado: `limit` carrega a árvore AND/OR do M6, `tree` carrega uma seleção de
-pastas da taxonomia. **`include_descendants` é o que `in_class` não sabe
+pastas da taxonomia, e `process` carrega a junção com o universo de processos. **`include_descendants` é o que `in_class` não sabe
 fazer** — `in_class` compara o slug da própria classe, e como todo material mora
 numa folha, marcar um galho ali não admite ninguém; as duas continuam existindo
 porque respondem a perguntas diferentes. `enabled` é coluna e não exclusão, e um
@@ -352,7 +352,21 @@ virou linguagem de consulta com AND/OR/NOT, frase, parênteses e curinga
 ([D-55](docs/DECISIONS.md)), com `AND` como padrão e ligando mais forte que
 `OR`.
 
-987 testes de backend (nenhum skip) e 210 de frontend, todos verdes. CI no
+**O P0-2 deu o segundo universo** ([D-57](docs/DECISIONS.md)): `ProcessClass`
+hierárquica, `Process` e a associação N–N `material_process`, que é o que torna
+o Tree Stage a **junção entre tabelas** do método — materiais filtrados pelos
+processos que os servem. Três decisões que não se mexem: a **família do processo
+é a raiz da taxonomia**, não uma coluna enum (dado semeado, não schema, e uma
+verdade só); a **associação não carrega número nenhum** — um valor sobre o par
+precisaria da proveniência de `MaterialPropertyValue`, e inventá-lo violaria o
+princípio 1; e a semântica é **"algum"**, porque "soldável E forjável" são dois
+estágios e a pilha já os intersecta. Material sem processo vinculado **não**
+passa por um estágio de processo — mesma regra da restrição numérica. O funil
+distingue `in_tree` de `in_process`, ou diria que a seleção filtrou por classe
+quando filtrou por processo. A ficha do material lista os processos compatíveis,
+no próprio payload da ficha.
+
+1034 testes de backend (nenhum skip) e 218 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
 PROJECT_CONTEXT.md).
