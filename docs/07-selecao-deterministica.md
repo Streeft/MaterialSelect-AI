@@ -65,8 +65,8 @@ Os grupos acima descrevem **um** filtro. Um estudo, porém, é uma **pilha
 ordenada de estágios** (`SelectionStage`), e o resultado é a interseção dos
 estágios **habilitados**, na ordem em que estão ([D-56](DECISIONS.md)).
 
-Há dois tipos, e um estágio é uma pergunta só — enviar os campos do outro tipo
-é recusado, não ignorado:
+Há **três** tipos, e um estágio é uma pergunta só — enviar os campos de outro
+tipo é recusado, não ignorado:
 
 - **`limit`** — uma árvore de restrições, exatamente a do M6 acima. O estágio é
   dono de um `ConstraintGroup` raiz; todo grupo aninhado carrega o mesmo
@@ -77,6 +77,18 @@ Há dois tipos, e um estágio é uma pergunta só — enviar os campos do outro 
   classe do material, e como todo material mora numa folha, marcar um galho ali
   não admite ninguém. As duas continuam existindo porque respondem a perguntas
   diferentes — "exatamente nesta classe" e "nesta família".
+- **`process`** — a junção com o universo de processos (P0-2,
+  [D-57](DECISIONS.md)): mantém os materiais que **algum** processo selecionado
+  serve. Leva duas listas, porque são namespaces diferentes: `process_slugs`
+  (folhas, os processos em si) e `process_class_slugs` (pastas, as famílias),
+  com `include_descendants` valendo para as pastas.
+
+  **Algum, não todos.** "Soldável **e** forjável" são dois estágios, e a pilha
+  já os intersecta — expressar isso duas vezes criaria duas formas de dizer a
+  mesma coisa. E **ausência não passa**: material sem processo vinculado não
+  sobrevive a um estágio de processo, pela mesma regra da restrição numérica —
+  não se seleciona sobre dado que não se tem. Processo inativo também não admite
+  ninguém, mesmo com o vínculo ainda no banco.
 
 `enabled` é coluna e não exclusão: desligar e religar um estágio é *como* se vê
 o efeito de um critério. Um estágio desligado não estreita, mas continua no
@@ -88,10 +100,19 @@ A migration `a1c4f2e8b7d3` dá a cada estudo pré-existente exatamente um estág
 estágio, o funil plano sai **idêntico** ao de antes: sem prefixo, sem linha
 extra. Com mais de um, cada linha nomeia seu estágio.
 
+A migration `b7e2d9c4a105` acrescenta `process_slugs` e `process_class_slugs`
+do mesmo jeito aditivo: nullable, backfill com `[]`, então NOT NULL. Um estágio
+salvo antes do P0-2 continua sendo exatamente o que era.
+
 Pilha vazia não existe em lugar nenhum: nem no banco, nem na API (`stages: []`
 é 400), nem na tela (o último estágio não pode ser removido). Um estudo cujas
 linhas descrevem estágio nenhum degrada para um estágio sobre a árvore inteira,
 em vez de admitir o catálogo todo em silêncio.
+
+O funil nomeia **qual** pergunta cada estágio de pergunta única fez:
+`in_tree` para o de classes, `in_process` para o de processos. Chamar os dois de
+`in_tree` diria ao leitor que a seleção filtrou por classe de material quando
+filtrou por processo.
 
 ## Índices de desempenho (`app/calculations/expressions.py`)
 
