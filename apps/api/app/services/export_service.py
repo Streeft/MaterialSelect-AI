@@ -160,7 +160,18 @@ class ExportService:
         Geometry is not computed here. `ChartService.property_map` is the same
         call `/api/charts/property-map` serves, so the figure in the document
         and the map on the screen cannot disagree (ADR 0004).
+
+        **A process study has no such map, and this refuses to draw one** (P0-4).
+        `property_map` reads the *material* catalogue, and the ids it is handed to
+        highlight would be process ids: it would mark the materials that happen to
+        carry those ids and present the result as this study's map. That is the
+        same silent id collision P0-3 fixed in the provenance sheet, in the one
+        place P0-3 could not reach — a process study could not rank at all until
+        processes had attributes, so there were no ranked ids to mis-resolve.
         """
+        if result.universe != "material":
+            return None
+
         axes = self._map_axes(study)
         if axes is None:
             return None

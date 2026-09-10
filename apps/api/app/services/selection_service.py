@@ -44,7 +44,12 @@ from app.domain.ranking import (
 )
 from app.domain.slug import slugify
 from app.domain.taxonomy import lineages
-from app.models.enums import AuditAction, AuditEntityType, BetterDirection
+from app.models.enums import (
+    AuditAction,
+    AuditEntityType,
+    BetterDirection,
+    ProcessAttributeKind,
+)
 from app.models.performance_index import PerformanceIndex
 from app.models.selection import (
     ConstraintGroup,
@@ -96,6 +101,9 @@ _NUMERIC_OPS = {
     Operator.OUTSIDE,
 }
 
+#: Set-membership operators over a discrete attribute's closed vocabulary (P0-4).
+_LABEL_OPS = {Operator.HAS_ANY_LABEL, Operator.HAS_NO_LABEL}
+
 
 #: How an unnamed stage is described in the funnel and in the documents. A
 #: table and not an if-chain so a fourth kind cannot be added to the engine and
@@ -136,10 +144,18 @@ class SelectionService:
         self._snapshots: list[MaterialSnapshot] | None = None
         self._process_snapshots: list[ProcessSnapshot] | None = None
         self._props: dict = {}
+        #: Which catalogue ``_props`` currently holds — "material" or "process".
+        #: Set by `_load` / `_load_catalogue`, read where a message has to name
+        #: the right thing ("Atributo" vs "Propriedade") and where a discrete
+        #: attribute has to be refused.
+        self._universe: str = "material"
 
     # --- snapshot ---------------------------------------------------------
 
     def _load(self) -> list[MaterialSnapshot]:
+        # `_universe` is written wherever `_props` is, so the catalogue in force
+        # and the noun used to talk about it can never disagree.
+        self._universe = "material"
         if self._snapshots is None:
             self._props = {p.slug: p for p in self.repo.list_properties()}
             # Read once per load, not per material: a Tree stage asks about
@@ -173,34 +189,93 @@ class SelectionService:
         return reach
 
     def _load_processes(self) -> list[ProcessSnapshot]:
-        """The process universe as selectable records (P0-3).
+        """The process universe as selectable records (P0-3, attributes in P0-4).
 
-        ``values`` stays empty on every one of them, and that is not an
-        oversight: a process has no attribute with provenance yet, and a
-        snapshot that invented one would break principle 1 at the only place
-        the whole tool is meant to be trustworthy. What follows from it —
-        ranking and performance indices refused for a process study, out
-        loud — is handled in `_check_universe_supports`.
+        Until P0-4 every one of these had an empty ``values``, because a process
+        had no attribute with provenance — and a snapshot that invented one would
+        break principle 1 at the only place the whole tool is meant to be
+        trustworthy. Now the attributes exist, so the three maps are populated
+        from them by ``_attribute_maps``.
         """
         if self._process_snapshots is None:
             lineage_by_slug = lineages(self.repo.process_class_parents())
             material_lineages = lineages(self.repo.class_parents())
             reach = self.repo.material_reach_by_process()
-            self._process_snapshots = [
-                ProcessSnapshot(
-                    id=process.id,
-                    name=process.name,
-                    class_name=process.process_class.name,
-                    class_slug=process.process_class.slug,
-                    class_path=list(lineage_by_slug.get(process.process_class.slug, ())),
-                    material_paths=[
-                        material_lineages.get(class_slug, (class_slug,))
-                        for class_slug in reach.get(process.id, ())
-                    ],
+            self._process_snapshots = []
+            for process in self.repo.list_active_processes_with_class():
+                values, envelopes, labels = self._attribute_maps(process)
+                self._process_snapshots.append(
+                    ProcessSnapshot(
+                        id=process.id,
+                        name=process.name,
+                        class_name=process.process_class.name,
+                        class_slug=process.process_class.slug,
+                        class_path=list(lineage_by_slug.get(process.process_class.slug, ())),
+                        values=values,
+                        envelopes=envelopes,
+                        labels=labels,
+                        material_paths=[
+                            material_lineages.get(class_slug, (class_slug,))
+                            for class_slug in reach.get(process.id, ())
+                        ],
+                    )
                 )
-                for process in self.repo.list_active_processes_with_class()
-            ]
         return self._process_snapshots
+
+    @staticmethod
+    def _attribute_maps(
+        process,
+    ) -> tuple[dict[str, float], dict[str, tuple[float, float]], dict[str, tuple[str, ...]]]:
+        """One process's attribute values, split by the shape the engine reads.
+
+        A missing value contributes to none of the three maps — absence is
+        absence here exactly as it is for a material property, and it is what
+        makes a constraint over it not satisfied rather than satisfied by zero.
+
+        An **envelope lands in two maps on purpose**: its bounds in
+        ``envelopes``, which is what a threshold is compared against, and its
+        stored representative point in ``values``, which is the number a ranking
+        or an index expression reads. They are not two truths — the
+        representative point is exactly what ``normalized_value`` has always
+        meant — and the engine prefers the envelope for filtering, which
+        ``evaluate_constraint`` does by checking ``envelopes`` first. Leaving the
+        representative point out instead would make every attribute that has a
+        range unrankable, which is not a property of the datum but of the map it
+        happened to be filed in.
+        """
+        values: dict[str, float] = {}
+        envelopes: dict[str, tuple[float, float]] = {}
+        labels: dict[str, tuple[str, ...]] = {}
+        for value in process.attribute_values:
+            if value.is_missing:
+                continue
+            slug = value.attribute.slug
+            if value.attribute.kind is ProcessAttributeKind.DISCRETO:
+                if value.labels:
+                    labels[slug] = tuple(value.labels)
+                continue
+            if value.attribute.kind is ProcessAttributeKind.ENVELOPE:
+                if value.normalized_min is not None and value.normalized_max is not None:
+                    envelopes[slug] = (value.normalized_min, value.normalized_max)
+            if value.normalized_value is not None:
+                values[slug] = value.normalized_value
+        return values, envelopes, labels
+
+    def _load_catalogue(self, universe: str) -> None:
+        """Populate ``self._props`` with the attribute catalogue of ``universe``.
+
+        The constraints of a limit stage name attributes by slug, and which table
+        those slugs live in follows from the universe — the same rule P0-3
+        established for ``class_slugs``. Reading the *material* catalogue in a
+        process study was a real defect and not a theoretical one: the slugs
+        resolved, the thresholds converted, and the stage then admitted nobody,
+        because the snapshot it was compared against had no values at all.
+        """
+        if universe == "process":
+            self._props = {a.slug: a for a in self.repo.list_process_attributes()}
+            self._universe = "process"
+            return
+        self._load()
 
     def _records(self, universe: str) -> list[RecordSnapshot]:
         """The catalogue the pipeline runs over, for the universe asked for."""
@@ -238,14 +313,22 @@ class SelectionService:
             raise ValidationError(str(exc)) from exc
         return converted
 
-    def _build_constraint(self, payload: ConstraintIn) -> Constraint:
+    def _build_constraint(self, payload: ConstraintIn, universe: str = "material") -> Constraint:
         op = Operator(payload.operator)
         label = payload.label or self._default_label(payload)
+
+        if op in _LABEL_OPS:
+            return self._build_label_constraint(payload, op, label)
 
         if op in _NUMERIC_OPS:
             prop = self._props.get(payload.property_slug)
             if prop is None:
-                raise NotFoundError(f"Propriedade não encontrada: {payload.property_slug}")
+                raise NotFoundError(self._not_found(payload.property_slug))
+            if getattr(prop, "kind", None) is ProcessAttributeKind.DISCRETO:
+                raise ValidationError(
+                    f"'{prop.name}' é um atributo discreto e não se compara por número; "
+                    "use pertinência de rótulo."
+                )
             unit = payload.unit or prop.canonical_unit
             value = (
                 self._convert_threshold(payload.value, unit, prop.canonical_unit)
@@ -280,13 +363,21 @@ class SelectionService:
 
         if op in (Operator.EXISTS, Operator.NOT_EXISTS):
             if not payload.property_slug or payload.property_slug not in self._props:
-                raise NotFoundError(f"Propriedade não encontrada: {payload.property_slug}")
+                raise NotFoundError(self._not_found(payload.property_slug))
             return Constraint(operator=op, label=label, property_slug=payload.property_slug)
 
         if op in (Operator.IN_CLASS, Operator.NOT_IN_CLASS):
             if not payload.class_slugs:
                 raise ValidationError("Selecione ao menos uma classe.")
-            existing = self.repo.existing_class_slugs(payload.class_slugs)
+            # Which taxonomy names these classes follows from the universe, for
+            # the reason P0-3 gives about a tree stage: the engine compares the
+            # record's own class slug, and in a process study that slug is a
+            # process class. Validating against the material taxonomy here would
+            # 404 a legitimate process family.
+            if universe == "process":
+                existing = self.repo.existing_process_class_slugs(payload.class_slugs)
+            else:
+                existing = self.repo.existing_class_slugs(payload.class_slugs)
             unknown = sorted(set(payload.class_slugs) - existing)
             if unknown:
                 raise NotFoundError(f"Classes desconhecidas: {', '.join(unknown)}")
@@ -296,6 +387,40 @@ class SelectionService:
         if not payload.text or not payload.text.strip():
             raise ValidationError("Informe o texto a pesquisar.")
         return Constraint(operator=op, label=label, text=payload.text)
+
+    def _build_label_constraint(
+        self, payload: ConstraintIn, op: Operator, label: str
+    ) -> Constraint:
+        """A discrete criterion: set membership over a closed vocabulary (P0-4).
+
+        Two refusals rather than a quiet empty result. An attribute that is not
+        discrete has no labels to be a member of, and a label outside the
+        definition's vocabulary is a typo — matching nothing would look exactly
+        like "no process has this capability", which is the wrong answer to show
+        for a misspelling.
+        """
+        attribute = self._props.get(payload.property_slug)
+        if attribute is None:
+            raise NotFoundError(self._not_found(payload.property_slug))
+        if getattr(attribute, "kind", None) is not ProcessAttributeKind.DISCRETO:
+            raise ValidationError(
+                f"'{attribute.name}' não é um atributo discreto, então não tem rótulos; "
+                "use um operador numérico."
+            )
+        if not payload.labels:
+            raise ValidationError("Selecione ao menos um rótulo.")
+        allowed = set(attribute.allowed_labels or ())
+        unknown = sorted(set(payload.labels) - allowed)
+        if unknown:
+            raise NotFoundError(
+                f"Rótulos desconhecidos em '{attribute.name}': {', '.join(unknown)}"
+            )
+        return Constraint(
+            operator=op,
+            label=label,
+            property_slug=payload.property_slug,
+            labels=list(payload.labels),
+        )
 
     def _default_label(self, payload: ConstraintIn) -> str:
         prop = self._props.get(payload.property_slug) if payload.property_slug else None
@@ -309,15 +434,31 @@ class SelectionService:
             "outside": "∉",
         }
         if payload.operator in symbols:
+            # An envelope is compared by reach, not by its representative point,
+            # and that difference has to be visible wherever the constraint is —
+            # the funnel row, the report and the laudo all render this label. A
+            # semantic difference the reader cannot see is the one thing this
+            # engine is built not to produce.
+            rule = (
+                " (alcance do envelope)"
+                if getattr(prop, "kind", None) is ProcessAttributeKind.ENVELOPE
+                else ""
+            )
+            unit = payload.unit or (prop.canonical_unit if prop else "")
             if payload.operator in ("between", "outside"):
-                return f"{prop_name} {symbols[payload.operator]} [{payload.value_min}, {payload.value_max}] {payload.unit or (prop.canonical_unit if prop else '')}"
-            return f"{prop_name} {symbols[payload.operator]} {payload.value} {payload.unit or (prop.canonical_unit if prop else '')}"
+                return (
+                    f"{prop_name} {symbols[payload.operator]} "
+                    f"[{payload.value_min}, {payload.value_max}] {unit}{rule}"
+                )
+            return f"{prop_name} {symbols[payload.operator]} {payload.value} {unit}{rule}"
         labels = {
             "exists": f"{prop_name} definido",
             "not_exists": f"{prop_name} ausente",
             "in_class": f"Classe ∈ {', '.join(payload.class_slugs)}",
             "not_in_class": f"Classe ∉ {', '.join(payload.class_slugs)}",
             "text_contains": f"Texto contém '{payload.text}'",
+            "has_any_label": f"{prop_name} ∈ {{{', '.join(payload.labels)}}}",
+            "has_no_label": f"{prop_name} ∉ {{{', '.join(payload.labels)}}}",
         }
         return labels.get(payload.operator, payload.operator)
 
@@ -390,26 +531,32 @@ class SelectionService:
             )
         raise ValidationError(f"Tipo de estágio desconhecido: {stage_in.kind}")
 
-    def _check_universe_supports(self, universe: str, index, ranking) -> None:
-        """Refuse — out loud — what a process study cannot do yet (P0-3).
+    def _check_ranking_inputs(self, universe: str, index, ranking) -> None:
+        """Refuse, at save time, an index or a ranking the universe cannot compute.
 
-        A process has no attribute with provenance, so there is nothing to rank
-        by and nothing for an index expression to read. Returning an empty
-        ranking would be the silent version of this, and a reader would take it
-        for "no process scored well" rather than "this cannot be computed".
+        This is what remains of P0-3's blanket refusal ([D-58]): a process study
+        used to be denied ranking and indices outright, because a process had no
+        attribute and returning an empty ranking would have read as "no process
+        scored well" rather than "this cannot be computed". P0-4 gave processes
+        attributes, so the ban is gone and what is refused is narrower and
+        truer: an attribute that does not exist, and a **discrete** one, which
+        has labels instead of a magnitude and therefore no order to rank by.
+
+        Scoped to the process universe on purpose. A material study has always
+        stored its index raw and validated it at run time — so that a study whose
+        property was later renamed still opens instead of becoming unreadable —
+        and widening save-time validation to it is a separate decision, not a
+        side effect of this one.
         """
         if universe != "process":
             return
+        if index is None and ranking is None:
+            return
+        self._load_catalogue(universe)
         if index is not None:
-            raise ValidationError(
-                "Um estudo de processos ainda não aceita índice de desempenho: processo não "
-                "tem atributo cadastrado, e a ferramenta não inventa valor."
-            )
+            self._validate_expression(index.expression)
         if ranking is not None:
-            raise ValidationError(
-                "Um estudo de processos ainda não aceita ranqueamento: processo não tem "
-                "atributo cadastrado, e a ferramenta não inventa valor."
-            )
+            self._build_criteria(ranking, index)
 
     def _check_stage_shape(self, stage_in: StageIn, universe: str = "material") -> None:
         """Reject a stage that mixes the two kinds, and an unknown class slug.
@@ -530,7 +677,7 @@ class SelectionService:
             label=stage_in.label,
             enabled=stage_in.enabled,
             root=self._request_root_node(
-                stage_in.combinator, stage_in.constraints, stage_in.root_group
+                stage_in.combinator, stage_in.constraints, stage_in.root_group, universe
             ),
         )
 
@@ -577,15 +724,17 @@ class SelectionService:
                 kind="limit",
                 label=None,
                 enabled=True,
-                root=self._request_root_node(combinator, constraints_in, root_group_in),
+                root=self._request_root_node(combinator, constraints_in, root_group_in, universe),
             )
         ]
 
-    def _group_in_to_node(self, group_in: ConstraintGroupIn) -> ConstraintGroupNode:
+    def _group_in_to_node(
+        self, group_in: ConstraintGroupIn, universe: str = "material"
+    ) -> ConstraintGroupNode:
         return ConstraintGroupNode(
             operator=group_in.operator,
-            constraints=[self._build_constraint(c) for c in group_in.constraints],
-            children=[self._group_in_to_node(g) for g in group_in.groups],
+            constraints=[self._build_constraint(c, universe) for c in group_in.constraints],
+            children=[self._group_in_to_node(g, universe) for g in group_in.groups],
         )
 
     def _persist_group_tree(
@@ -626,6 +775,7 @@ class SelectionService:
                     class_slugs=c.class_slugs,
                     text=c.text,
                     label=c.label,
+                    labels=c.labels,
                 )
             )
         for g_position, child_in in enumerate(group_in.groups):
@@ -637,12 +787,13 @@ class SelectionService:
         combinator: str,
         constraints_in: list[ConstraintIn],
         root_group_in: ConstraintGroupIn | None,
+        universe: str = "material",
     ) -> ConstraintGroupNode:
         if root_group_in is not None:
-            return self._group_in_to_node(root_group_in)
+            return self._group_in_to_node(root_group_in, universe)
         return ConstraintGroupNode(
             operator=combinator.upper(),
-            constraints=[self._build_constraint(c) for c in constraints_in],
+            constraints=[self._build_constraint(c, universe) for c in constraints_in],
             children=[],
         )
 
@@ -910,11 +1061,15 @@ class SelectionService:
         for c in study.constraints:
             constraints_by_group.setdefault(c.group_id, []).append(c)
 
+        # Which catalogue these slugs name follows from the study's universe —
+        # the study row carries it, so no caller has to pass it down.
+        universe = study.universe
+
         def build(g: ConstraintGroup) -> ConstraintGroupNode:
             return ConstraintGroupNode(
                 operator=g.operator,
                 constraints=[
-                    self._build_constraint(self._constraint_to_in(c))
+                    self._build_constraint(self._constraint_to_in(c), universe)
                     for c in constraints_by_group.get(g.id, [])
                 ],
                 children=[build(child) for child in children_by_parent.get(g.id, [])],
@@ -934,7 +1089,8 @@ class SelectionService:
             return ConstraintGroupNode(
                 operator=study.combinator,
                 constraints=[
-                    self._build_constraint(self._constraint_to_in(c)) for c in study.constraints
+                    self._build_constraint(self._constraint_to_in(c), universe)
+                    for c in study.constraints
                 ],
                 children=[],
             )
@@ -956,7 +1112,9 @@ class SelectionService:
           every study saved before P0-1 — still renders exactly as it did, with
           no stage wrapper at all.
         """
-        self._load()  # populates self._props, needed by the stage trees
+        # The catalogue the stage trees resolve their slugs against — the
+        # study's own universe decides which one (P0-4).
+        self._load_catalogue(study.universe)
         stages = self._load_stages(study)
 
         if len(stages) == 1 and stages[0].kind == "limit":
@@ -1044,10 +1202,9 @@ class SelectionService:
     def filter(self, request: FilterRequest) -> FilterResultOut:
         self._check_stage_conflict(request.constraints, request.root_group, request.stages)
         self._check_root_group_conflict(request.constraints, request.root_group)
-        # `_load()` populates `self._props`, which building a limit stage's
-        # constraints needs — in either universe, since a limit stage over
-        # processes still names properties by slug.
-        self._load()
+        # A limit stage's constraints name attributes by slug, and which
+        # catalogue holds them follows from the universe (P0-4).
+        self._load_catalogue(request.universe)
         snapshots = self._records(request.universe)
         stages = self._request_stages(
             request.combinator,
@@ -1078,6 +1235,21 @@ class SelectionService:
         var_to_slug = {safe_variable(slug): slug for slug in self._props}
         try:
             used = validate_names(expression, set(var_to_slug))
+            # A discrete attribute has no magnitude and no unit (its
+            # `canonical_unit` is NULL by database constraint), so it cannot take
+            # part in an expression at all — and refusing it here, by name, beats
+            # the dimension error the NULL unit would produce two lines below.
+            discrete = sorted(
+                self._props[var_to_slug[var]].name
+                for var in used
+                if getattr(self._props[var_to_slug[var]], "kind", None)
+                is ProcessAttributeKind.DISCRETO
+            )
+            if discrete:
+                raise ValidationError(
+                    "Atributo discreto não entra em expressão de índice, porque não tem "
+                    f"magnitude: {', '.join(discrete)}."
+                )
             canonical_units = {var: self._props[var_to_slug[var]].canonical_unit for var in used}
             dimension = result_dimension(expression, canonical_units)
         except ExpressionError as exc:
@@ -1135,11 +1307,28 @@ class SelectionService:
             else:
                 prop = self._props.get(c.key)
                 if prop is None:
-                    raise NotFoundError(f"Propriedade não encontrada: {c.key}")
+                    raise NotFoundError(self._not_found(c.key))
+                if getattr(prop, "kind", None) is ProcessAttributeKind.DISCRETO:
+                    raise ValidationError(
+                        f"'{prop.name}' é um atributo discreto e não tem ordem: um rótulo não "
+                        "é melhor que outro, então não serve como critério de ranqueamento."
+                    )
                 direction = self._direction_for(c, prop.better_direction)
                 label = c.label or prop.name
             criteria.append(Criterion(key=c.key, label=label, direction=direction, weight=c.weight))
         return criteria
+
+    def _not_found(self, slug: str | None) -> str:
+        """The 404 message for a slug the catalogue in force does not hold.
+
+        "Atributo não encontrado" in a process study, "Propriedade não
+        encontrada" in a material one: the noun has to name the thing the user
+        was actually looking for, and Portuguese makes the participle agree with
+        it — which is why this returns the whole phrase instead of just the noun.
+        """
+        if self._universe == "process":
+            return f"Atributo não encontrado: {slug}"
+        return f"Propriedade não encontrada: {slug}"
 
     @staticmethod
     def _direction_for(criterion: CriterionIn, better: BetterDirection) -> Direction:
@@ -1243,8 +1432,7 @@ class SelectionService:
     def run(self, request: RunRequest) -> RunResultOut:
         self._check_stage_conflict(request.constraints, request.root_group, request.stages)
         self._check_root_group_conflict(request.constraints, request.root_group)
-        self._check_universe_supports(request.universe, request.index, request.ranking)
-        self._load()
+        self._load_catalogue(request.universe)
         stages = self._request_stages(
             request.combinator,
             request.constraints,
@@ -1429,7 +1617,7 @@ class SelectionService:
             raise ConflictError(f"Já existe um estudo com o nome: {payload.name}")
         # Refused at save time, not only at run time: a study that cannot be run
         # is not a study worth storing, and finding out later is worse.
-        self._check_universe_supports(
+        self._check_ranking_inputs(
             payload.universe,
             payload.index,
             RankingIn(criteria=payload.criteria) if payload.criteria else None,
@@ -1615,10 +1803,9 @@ class SelectionService:
         study = self.repo.get_study(study_id, self.project_id)
         if study is None:
             raise NotFoundError(f"Estudo não encontrado: {study_id}")
-        self._load()  # populate self._props before the stages build constraints
+        self._load_catalogue(study.universe)  # the catalogue the stages resolve against
         stages = self._load_stages(study)
         index, ranking = self._study_index_and_ranking(study)
-        self._check_universe_supports(study.universe, index, ranking)
         return self._run_with_stages(stages, index, ranking, universe=study.universe)
 
     def _study_to_out(self, study: SelectionStudy) -> StudyOut:
@@ -1745,6 +1932,7 @@ class SelectionService:
             unit=c.unit,
             class_slugs=list(c.class_slugs or []),
             text=c.text,
+            labels=list(c.labels or []),
         )
 
     @staticmethod

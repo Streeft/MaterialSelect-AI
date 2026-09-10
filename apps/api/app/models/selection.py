@@ -240,6 +240,12 @@ class SelectionConstraint(Base):
     class_slugs: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
     text: Mapped[str | None] = mapped_column(String(200), nullable=True)
     label: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    # P0-4: the labels of a discrete criterion (has_any_label / has_no_label) over
+    # a process attribute. A column of its own rather than reusing `class_slugs`:
+    # a class slug and an attribute label are different namespaces, and one list
+    # would leave the reader guessing which the entries name — the same reason
+    # the stage keeps its process and material slug lists apart.
+    labels: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
 
     study: Mapped[SelectionStudy] = relationship(back_populates="constraints")
 

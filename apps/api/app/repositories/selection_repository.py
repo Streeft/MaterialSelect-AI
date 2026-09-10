@@ -3,13 +3,17 @@
 from __future__ import annotations
 
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session, aliased, joinedload
+from sqlalchemy.orm import Session, aliased, joinedload, selectinload
 
 from app.models.material import Material
 from app.models.material_class import MaterialClass
 from app.models.material_property_value import MaterialPropertyValue
 from app.models.performance_index import PerformanceIndex
 from app.models.process import MaterialProcess, Process, ProcessClass
+from app.models.process_attribute import (
+    ProcessAttributeDefinition,
+    ProcessAttributeValue,
+)
 from app.models.property_definition import PropertyDefinition
 from app.models.selection import SelectionStudy
 
@@ -99,20 +103,39 @@ class SelectionRepository:
         return reach
 
     def list_active_processes_with_class(self) -> list[Process]:
-        """Active processes with their class eager-loaded — the process
-        universe's answer to ``list_active_materials_with_values`` (P0-3).
+        """Active processes with their class and attribute values eager-loaded —
+        the process universe's answer to ``list_active_materials_with_values``.
 
-        No values are loaded because a process has none yet: attributes with
-        provenance are their own piece of work, and a snapshot that invented
-        them would be the one thing this codebase never does.
+        The values arrived with P0-4; until then a process had no attribute at
+        all, and a limit stage in a process study silently admitted nobody
+        because it resolved its slugs against the *material* catalogue against a
+        snapshot whose ``values`` was empty by construction.
+
+        ``selectinload`` for the values rather than a join, so a process with a
+        dozen attributes does not multiply its own row a dozen times the way the
+        class join would.
         """
         stmt = (
             select(Process)
-            .options(joinedload(Process.process_class))
+            .options(
+                joinedload(Process.process_class),
+                selectinload(Process.attribute_values).joinedload(ProcessAttributeValue.attribute),
+            )
             .where(Process.is_active.is_(True))
             .order_by(Process.name)
         )
         return list(self.db.execute(stmt).scalars().unique().all())
+
+    def list_process_attributes(self) -> list[ProcessAttributeDefinition]:
+        """The process attribute catalogue (P0-4).
+
+        The process universe's counterpart to ``list_properties``, and a
+        separate call for the reason the tables are separate: a material
+        property picker that could reach "faixa de massa" would be offering a
+        process capability as a material property.
+        """
+        stmt = select(ProcessAttributeDefinition).order_by(ProcessAttributeDefinition.name)
+        return list(self.db.execute(stmt).scalars().all())
 
     def material_reach_by_process(self) -> dict[int, list[str]]:
         """Every link as ``{process_id: [material class slug]}`` (P0-3).
