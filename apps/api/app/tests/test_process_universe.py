@@ -762,3 +762,82 @@ def test_saving_a_process_study_with_a_ranking_is_refused_at_save_time(client, u
     )
     assert resp.status_code == 400, resp.text
     assert "não inventa valor" in resp.json()["detail"]
+
+
+# --- the report and the laudo of a process study ------------------------------
+
+
+@pytest.fixture()
+def process_study(client, universe) -> int:
+    created = client.post(
+        "/api/selection/studies",
+        json={
+            "name": "Estudo documentado de processos",
+            "universe": "process",
+            "free_variables": [],
+            "criteria": [],
+            "stages": [
+                {"kind": "tree", "label": "União", "class_slugs": [f"{NS}-uniao"]},
+                {"kind": "material", "material_class_slugs": ["metais"]},
+            ],
+        },
+    )
+    assert created.status_code == 201, created.text
+    return created.json()["id"]
+
+
+def test_the_document_states_the_universe_it_selected_over(client, process_study) -> None:
+    text = client.get(f"/api/exports/estudos/{process_study}.html").text
+    problem = text.split("Estágios")[0]
+
+    assert "Universo do resultado" in problem
+    assert "Processos considerados" in problem
+    # Never left to be inferred from the candidate names.
+    assert "Materiais considerados" not in problem
+
+
+def test_the_candidates_column_is_named_for_what_it_holds(client, process_study) -> None:
+    text = client.get(f"/api/exports/estudos/{process_study}.html").text
+    candidates = text.split("Candidatos")[-1]
+    assert "Processo" in candidates
+    assert "Solda de teste" in candidates
+
+
+def test_the_stage_table_never_prints_a_raw_slug(client, process_study) -> None:
+    """Found by reading the rendered document: the material stage printed
+    `material` in the Tipo column, which is the visible failure the label table
+    is designed to produce rather than a wrong label."""
+    text = client.get(f"/api/exports/estudos/{process_study}.html").text
+    stages = text.split("Estágios")[1].split("Restrições")[0]
+
+    assert "Materiais" in stages
+    assert ">material<" not in stages
+    # And a tree stage in a process study selects families, not material classes.
+    assert "Famílias" in stages
+
+
+def test_the_provenance_section_says_why_it_is_empty(client, process_study) -> None:
+    """Declared, never a section that quietly appears empty."""
+    text = client.get(f"/api/exports/estudos/{process_study}.html").text
+    assert "não há valor cuja origem rastrear" in text
+
+
+def test_the_document_says_why_there_is_no_map(client, process_study) -> None:
+    text = client.get(f"/api/exports/estudos/{process_study}.html").text
+    assert "Sem mapa de seleção e sem ranqueamento" in text
+
+
+def test_no_material_provenance_is_attributed_to_a_process(client, process_study) -> None:
+    """The worst available failure in an auditable document, and the one the
+    id-shaped lookup would have produced: a process id resolved against the
+    material table finds whatever material happens to carry that id."""
+    text = client.get(f"/api/exports/estudos/{process_study}.html").text
+    for material_name in ("Aço Demo B", "Liga Alumínio Demo A", "Polímero Demo C"):
+        assert material_name not in text
+
+
+def test_the_laudo_of_a_process_study_renders(client, process_study) -> None:
+    resp = client.get(f"/api/exports/estudos/{process_study}/laudo.html")
+    assert resp.status_code == 200, resp.text
+    assert "Solda de teste" in resp.text
+    assert "Universo do resultado" in resp.text
