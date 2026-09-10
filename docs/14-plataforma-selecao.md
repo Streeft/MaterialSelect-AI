@@ -51,7 +51,7 @@ Níveis: **0** não existe · **1** rudimentar · **2** existe, precisa melhorar
 |---|---|---|
 | Arquitetura de dados (materiais) | **3** | `Material` + `MaterialClass` auto-referencial + `MaterialPropertyValue` com proveniência. Sólido. |
 | Rastreabilidade de unidade e proveniência | **5** | Valor original + unidade + normalizado + método + qualidade + fonte licenciada. **Acima do EduPack** — ver §4. |
-| Banco de processos | **3** | **Entregue (P0-2, [D-57](DECISIONS.md))**: `ProcessClass` hierárquica, `Process` e a associação N–N. Falta atributo de processo (faixa de espessura, custo) com proveniência, e seleção *de* processo (exercício 11). |
+| Banco de processos | **3** | `ProcessClass` hierárquica, `Process`, a associação N–N (P0-2) e a **seleção de processos** como resultado (P0-3, [D-58](DECISIONS.md)). Continua em 3 por uma razão só, e ela é grande: **processo não tem atributo** — sem eles não há Limit Stage sobre processo nem ranqueamento. É o P0-4. |
 | Browse hierárquico | **2** | A hierarquia agora é lida na seleção (P0-1), mas o catálogo ainda não tem árvore navegável, breadcrumb, favoritos nem recentes. |
 | Registro de família (folder-level) | **0** | `MaterialClass` é rótulo, não registro com descrição, aplicações e ciência. |
 | Search | **3** | Analisador próprio com AND/OR/NOT, frase, parênteses e curinga ([D-55](DECISIONS.md)). Falta relevância, fuzzy e destaque do trecho. |
@@ -59,7 +59,7 @@ Níveis: **0** não existe · **1** rudimentar · **2** existe, precisa melhorar
 | Motor de gráficos | **3** | Plotly à la carte no cliente + SVG determinístico no servidor; envelope, nuvem, linha de índice, escala log. Faltam caixa de seleção, anotações, rótulos arrastáveis e destaque de referência. |
 | **Seleção multiestágio** | **4** | **Entregue (P0-1, [D-56](DECISIONS.md))**: `SelectionStage` ordenada, habilitável e nomeável, com funil por estágio. Falta reordenar por arraste e duplicar um estágio. |
 | Limit Stage | **3** | Restrições com AND/OR aninhado (M6), operadores, unidades. Falta a barra de distribuição que orienta o valor. |
-| Tree Stage | **4** | **A junção entre tabelas existe (P0-2)**: um estágio de processo filtra materiais pelos processos que os servem, por pasta ou por folha, com descendentes. Falta o sentido inverso — processos como resultado (exercício 11). |
+| Tree Stage | **4** | **A junção existe nos dois sentidos**: materiais filtrados pelos processos que os servem (P0-2) e processos filtrados pelos materiais que atendem (P0-3). Falta escolher **registros** avulsos do outro universo — hoje só pastas, porque `Material` não tem slug. |
 | Chart Stage (gráfico que filtra) | **1** | O gráfico mostra; não seleciona. Sem caixa nem linha de índice que reprove registro. |
 | Ranking | **4** | Soma ponderada, TOPSIS, PROMETHEE II, AHP (M5), com normalização declarada. |
 | Índice de desempenho | **3** | Catálogo de índices + expressão livre, com avaliador seguro e dimensão verificada. |
@@ -87,6 +87,14 @@ capacidades em nível ≥ 3 sobre as 30 avaliadas (17 de 30). Eram 10 de 30 (~34
 quando este documento foi escrito; P1-1 (busca) e P0-1 (multiestágio, com Tree
 Stage e o efeito colateral em projetos/testes) levaram a 14, e o P0-2 subiu as
 três restantes — banco de processos (0→3), Tree Stage (2→4) e Datasheet (2→3).
+
+**O P0-3 não move nenhuma linha da matriz, e isso é informação.** Ele completa a
+metade *estrutural* do exercício 11 — o universo de saída e a junção inversa —
+sem que nenhuma capacidade cruze um nível, porque o que falta para o exercício
+inteiro é a mesma coisa que segura o banco de processos em 3: **atributo de
+processo com proveniência**. Contar o P0-3 como avanço de cobertura seria
+inflar o número; o que ele fez foi tornar o P0-4 a única coisa entre a
+ferramenta e o capítulo 6 do manual.
 
 ---
 
@@ -120,14 +128,29 @@ que filtra materiais por pasta ou por folha do universo de processos, os
 processos compatíveis na ficha do material, e um universo demonstrativo
 semeado — fictício e marcado, sendo a **compatibilidade** o que é inventado ali.
 
-### P0-3 — A seleção só devolve materiais
+### P0-3 — A seleção só devolve materiais — **entregue**
 
 O exercício 11 do manual seleciona **processos**: o universo de saída é a tabela
-de processos, não a de materiais. O P0-2 fez o sentido do exercício 9 — materiais
-filtrados pelos processos que os servem —; o sentido inverso precisa de um
-estudo cujo universo de resultado seja escolhido, o que toca `SelectionStudy`,
-o ranking (um processo não tem `densidade`) e os documentos exportados. É o
-próximo gargalo, e o único item do manual sem lugar no roteiro antes dele.
+de processos, não a de materiais.
+
+**Entregue** ([D-58](DECISIONS.md)): `SelectionStudy.universe`, um motor só para
+os dois universos (`RecordSnapshot`), o estágio `material` fechando a junção
+inversa, os documentos declarando o universo, e o controle na tela. Ranqueamento
+e índice são **recusados com o motivo escrito** num estudo de processos — no
+salvamento e na execução.
+
+### P0-4 — Processo não tem atributo
+
+O passo 2 do exercício 11 é um Limit Stage sobre atributos do processo: *Shape*,
+*Mass range*, *Range of section thickness*, *Process characteristics*,
+*Economic batch size*. Nenhum deles existe.
+
+Não é "mais uma tabela": é a mesma proveniência de `MaterialPropertyValue`
+(valor original, unidade, normalizado, método, qualidade, fonte licenciada)
+aplicada ao processo — e **dois tipos de valor que o modelo atual não cobre
+inteiro**: *discreto* (`Shape: Dished sheet`, `Process characteristics: Primary
+shaping`) e *intervalo* como critério de seleção. É o que destrava o
+ranqueamento de processos, e é o que segura o banco de processos em nível 3.
 
 ### P1-1 — Search é `LIKE` — **entregue**
 
@@ -171,7 +194,8 @@ correção, portão completo, decisão registrada.
 |---|---|---|---|
 | ~~P0~~ | ~~`SelectionStage` como entidade de primeira classe~~ **entregue** | E, F, G, H | — |
 | ~~P0~~ | ~~`Process`, `ProcessClass`, associação N–N com `Material`~~ **entregue** | A, G | — |
-| **P0** | Seleção **de processos** (universo de saída escolhido — exercício 11) | G | P0-2 |
+| ~~P0~~ | ~~Seleção **de processos** (universo de saída escolhido)~~ **entregue** | G | P0-2 |
+| **P0** | Atributos de processo com proveniência (discreto e intervalo) | A, G | P0-3 |
 | **P1** | ~~Search com operadores~~ **entregue**; falta relevância e destaque | C | — |
 | **P1** | Chart Stage que **filtra** (caixa de seleção e linha de índice reprovando) | H, I | P0-1 |
 | **P1** | `My Records`: definidos pelo usuário, favoritos, recentes | T, U | — |
@@ -186,7 +210,7 @@ correção, portão completo, decisão registrada.
 | **P4** | Battery Designer | S | P3 Synthesizer |
 | **P4** | PDF e DOCX no gerador de relatório | V | — |
 
-**Ordem de execução:** ~~P0-1~~ → ~~P0-2~~ → **P0-3** → P1 → P2 → P3 → P4.
+**Ordem de execução:** ~~P0-1~~ → ~~P0-2~~ → ~~P0-3~~ → **P0-4** → P1 → P2 → P3 → P4.
 
 ### O que isto não é
 
