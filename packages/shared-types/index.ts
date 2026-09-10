@@ -490,7 +490,13 @@ export interface Candidate {
 export type SelectionUniverse = "material" | "process";
 
 export interface IndexValue {
-  material_id: number;
+  /**
+   * `record_id`, not `material_id`, since P0-4: a process study can be ranked and
+   * indexed now, so this is a process's id there. Named after materials it would
+   * invite a reader to resolve it against them — the mistake `Candidate.record_id`
+   * was renamed to prevent in P0-3.
+   */
+  record_id: number;
   name: string;
   class_name: string;
   value: number | null;
@@ -518,7 +524,8 @@ export interface Contribution {
 }
 
 export interface RankedMaterial {
-  material_id: number;
+  /** The ranked record's id — a material's or a process's. See `IndexValue`. */
+  record_id: number;
   name: string;
   score: number;
   rank: number;
@@ -526,7 +533,7 @@ export interface RankedMaterial {
 }
 
 export interface ExcludedMaterial {
-  material_id: number;
+  record_id: number;
   name: string;
   /** Stable identifiers. Show `missing_labels` to a person. */
   missing_keys: string[];
@@ -536,8 +543,8 @@ export interface ExcludedMaterial {
 export interface SensitivityScenario {
   description: string;
   weights: Record<string, number>;
-  top_material_id: number | null;
-  top_material_name: string | null;
+  top_record_id: number | null;
+  top_record_name: string | null;
   changed: boolean;
 }
 

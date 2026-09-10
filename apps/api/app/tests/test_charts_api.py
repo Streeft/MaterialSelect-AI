@@ -676,7 +676,7 @@ class TestChartAndSelectionAgree:
                 "index": {"expression": expression, "goal": "maximize"},
             },
         ).json()
-        from_selection = {v["material_id"]: v["value"] for v in run["index"]["values"]}
+        from_selection = {v["record_id"]: v["value"] for v in run["index"]["values"]}
 
         chart = _map(client, index={"expression": expression, "goal": "maximize"})
         from_chart = {p["material_id"]: p["index_value"] for p in chart["points"]}

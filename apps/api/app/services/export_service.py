@@ -177,7 +177,7 @@ class ExportService:
             return None
         x_slug, y_slug = axes
 
-        ranked_ids = [r.material_id for r in result.ranking.ranked] if result.ranking else []
+        ranked_ids = [r.record_id for r in result.ranking.ranked] if result.ranking else []
         winner = ranked_ids[:1]
         index_in = (
             IndexIn(name=study.index_name, expression=study.index_expression, goal=study.index_goal)
@@ -613,7 +613,7 @@ class ExportService:
         ranking = result.ranking
         assert ranking is not None
         rows = [
-            [s.description, s.top_material_name or "—", "mudou" if s.changed else "estável"]
+            [s.description, s.top_record_name or "—", "mudou" if s.changed else "estável"]
             for s in ranking.sensitivity
         ]
         return Sheet(
