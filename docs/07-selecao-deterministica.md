@@ -65,7 +65,17 @@ Os grupos acima descrevem **um** filtro. Um estudo, porém, é uma **pilha
 ordenada de estágios** (`SelectionStage`), e o resultado é a interseção dos
 estágios **habilitados**, na ordem em que estão ([D-56](DECISIONS.md)).
 
-Há **três** tipos, e um estágio é uma pergunta só — enviar os campos de outro
+**O estudo escolhe o universo do resultado** (P0-3, [D-58](DECISIONS.md)):
+`material` (o padrão, e todo estudo salvo antes disso) ou `process`. É coluna e
+não inferência — uma pilha de um único estágio de limites não nomeia universo
+nenhum. Os tipos de estágio disponíveis decorrem dele: um estudo de materiais
+aceita `limit`/`tree`/`process`, um de processos aceita `limit`/`tree`/`material`.
+
+`tree` sempre anda a taxonomia do **próprio** universo do estudo, e o estágio de
+travessia é o que nomeia o outro. Por isso **qual taxonomia valida `class_slugs`
+decorre do universo, não do nome do campo**, que é o mesmo nos dois.
+
+Há **quatro** tipos, e um estágio é uma pergunta só — enviar os campos de outro
 tipo é recusado, não ignorado:
 
 - **`limit`** — uma árvore de restrições, exatamente a do M6 acima. O estágio é
@@ -90,6 +100,16 @@ tipo é recusado, não ignorado:
   não se seleciona sobre dado que não se tem. Processo inativo também não admite
   ninguém, mesmo com o vínculo ainda no banco.
 
+- **`material`** — a mesma junção do outro lado (P0-3), num estudo de processos:
+  mantém os processos que servem **algum** material das pastas escolhidas, em
+  `material_class_slugs`. **Só pastas**: um `Material` não tem slug para nomear
+  uma folha, e o exercício 11 do manual seleciona uma pasta.
+
+**Um estudo de processos ainda não ranqueia nem aceita índice**, e a recusa é
+explícita, com o motivo — no salvamento e na execução. Processo não tem atributo
+com proveniência; devolver ranking vazio seria lido como "nenhum processo
+pontuou bem" em vez de "isto não é calculável".
+
 `enabled` é coluna e não exclusão: desligar e religar um estágio é *como* se vê
 o efeito de um critério. Um estágio desligado não estreita, mas continua no
 relatório e ainda diz **quantos admitiria sozinho** — a pergunta que desligar
@@ -110,9 +130,9 @@ linhas descrevem estágio nenhum degrada para um estágio sobre a árvore inteir
 em vez de admitir o catálogo todo em silêncio.
 
 O funil nomeia **qual** pergunta cada estágio de pergunta única fez:
-`in_tree` para o de classes, `in_process` para o de processos. Chamar os dois de
-`in_tree` diria ao leitor que a seleção filtrou por classe de material quando
-filtrou por processo.
+`in_tree` para o de árvore, `in_process` para o de processos e `in_material`
+para o de materiais. Chamar os três da mesma coisa diria ao leitor que a seleção
+filtrou por algo que ela não filtrou.
 
 ## Índices de desempenho (`app/calculations/expressions.py`)
 

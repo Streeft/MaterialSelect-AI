@@ -237,7 +237,7 @@ tudo limpo, sem achado novo. Commit `73eb4a2` sobre `0d00ee7`. Ver
 `docs/07-selecao-deterministica.md` para a descrição de cada método e do
 modelo de árvore.
 
-**Plataforma de seleção — P0-1, P0-2 e P1-1 entregues.** Depois de comparar a
+**Plataforma de seleção — P0-1, P0-2, P0-3 e P1-1 entregues.** Depois de comparar a
 ferramenta com o modelo funcional dos manuais do Granta EduPack
 ([14-plataforma-selecao.md](14-plataforma-selecao.md): matriz de maturidade
 sobre 30 capacidades e roteiro P0–P4), os dois primeiros gargalos saíram. **A
@@ -259,16 +259,25 @@ taxonomia e não uma coluna enum, e o vínculo não carrega número nenhum: um v
 sobre o par precisaria da mesma proveniência de `MaterialPropertyValue`, e
 inventá-lo violaria o princípio 1.
 
-A cobertura de capacidades inspiradas no EduPack subiu de ~34% para **~57%**
-(17 de 30 em nível ≥ 3). O próximo gargalo é **P0-3**: a seleção só devolve
-materiais, e o exercício 11 do manual seleciona **processos** — o universo de
-saída precisa ser escolhido.
+**E o estudo passou a escolher o universo do resultado** ([D-58](DECISIONS.md),
+P0-3): `material` ou `process`, com **um motor só** para os dois
+(`RecordSnapshot`), o estágio `material` fechando a junção inversa, e os
+documentos declarando o universo. Ranqueamento e índice são recusados com o
+motivo escrito num estudo de processos, no salvamento e na execução.
 
-**Saúde do código:** 1034 testes de backend (Python 3.11 e 3.12, nenhum skip)
-e 218 de frontend, todos verdes. Desde o P0-1 a suíte também roda as migrações de
+A cobertura de capacidades inspiradas no EduPack subiu de ~34% para **~57%**
+(17 de 30 em nível ≥ 3). O **P0-3 não moveu nenhuma linha da matriz, e isso é
+informação**: ele completou a metade estrutural do exercício 11, e o que falta
+para o exercício inteiro é a mesma coisa que segura o banco de processos em
+nível 3. O próximo gargalo é **P0-4**: **processo não tem atributo** — sem
+proveniência para *Shape*, *Mass range*, *Economic batch size* e companhia não
+há Limit Stage sobre processo nem ranqueamento.
+
+**Saúde do código:** 1076 testes de backend (Python 3.11 e 3.12, nenhum skip)
+e 225 de frontend, todos verdes. Desde o P0-1 a suíte também roda as migrações de
 verdade, nos dois sentidos, contra um banco temporário que já contém dados —
-`test_migration_selection_stage.py` e `test_migration_process_universe.py`,
-ambos conferidos por mutação. `ruff` limpo, `black
+`test_migration_selection_stage.py`, `test_migration_process_universe.py` e
+`test_migration_selection_universe.py`, os três conferidos por mutação. `ruff` limpo, `black
 --check` limpo, typecheck estrito e build de produção sem avisos. CI no
 GitHub Actions rodando em todo PR e push para `main`, com os checks
 **obrigatórios**: o GitHub recusa o merge se qualquer um falhar

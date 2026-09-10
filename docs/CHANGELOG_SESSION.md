@@ -11,7 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
-| [13](#sessão-13--090926-a-100926--p0-1-e-p0-2-a-plataforma-de-seleção-ganha-pilha-e-segundo-universo) | 09 e 10/09/2026 | P0-1 (pilha ordenada de estágios, D-56) e P0-2 (universo de processos, D-57), a partir da análise de lacunas contra os manuais do EduPack | 884 → 1034 | 197 → 218 |
+| [13](#sessão-13--090926-a-100926--p0-1-p0-2-e-p0-3-a-plataforma-de-seleção-ganha-pilha-segundo-universo-e-escolha-de-resultado) | 09 e 10/09/2026 | P0-1 (pilha de estágios, D-56), P0-2 (universo de processos, D-57) e P0-3 (universo do resultado, D-58), a partir da análise de lacunas contra os manuais do EduPack | 884 → 1076 | 197 → 225 |
 | [12](#sessão-12--080926--a-ferramenta-no-ar-e-a-camada-de-ia-ligada-em-produção) | 08/09/2026 | Deploy em produção (Vercel + Fly + Neon, D-52), caminho de implantação sem terminal e a camada de IA ligada de verdade | 872 → 884 | 197 (inalterado) |
 | [11](#sessão-11--010926-a-020926--m5-topsis-promethee-ii-ahp-e-m6-restrições-aninhadas-entregues-via-sdd) | 01 e 02/09/2026 | M5 (TOPSIS, PROMETHEE II, AHP) e M6 (restrições aninhadas), dez tarefas mais uma rodada de correção da revisão final de branch, via SDD | 831 → 872 | 165 → 179 |
 | [10](#sessão-10--270826-a-310826--backlog-b1b10-entregue-por-inteiro-via-sdd) | 27 a 31/08/2026 | Backlog B1–B10 (dez tarefas de baixa prioridade) entregue por inteiro, dirigido por subagentes | 795 → 831 | 162 → 165 |
@@ -32,7 +32,7 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
-## Sessão 13 — 09/09/26 a 10/09/26 — P0-1 e P0-2: a plataforma de seleção ganha pilha e segundo universo
+## Sessão 13 — 09/09/26 a 10/09/26 — P0-1, P0-2 e P0-3: a plataforma de seleção ganha pilha, segundo universo e escolha de resultado
 
 A sessão começou pela **análise de lacunas** contra o modelo funcional dos
 manuais *Getting Started with Granta EduPack* (2023 R1 e R2): matriz de
@@ -75,9 +75,28 @@ o controle anunciava o próprio texto de ajuda como parte do nome. Passaram a
 usar o `Field` do sistema de design, inclusive o do estágio de classes, que já
 tinha o problema desde o P0-1.
 
+**P0-3 — o estudo escolhe o universo do resultado** ([D-58](DECISIONS.md)), com
+o exercício 11 do manual lido na íntegra a pedido do autor. `RecordSnapshot`
+tornou o motor **um só** para os dois universos, em vez de um segundo motor a
+manter de acordo com o primeiro.
+
+Quatro defeitos no caminho, e **dois deles apareceram lendo o documento
+renderizado**, não a asserção:
+
+1. O exportador resolvia id de candidato contra a tabela de **materiais**. Num
+   estudo de processos imprimiria a proveniência do material que por acaso
+   carrega aquele id, sob o nome de um processo — a pior falha disponível num
+   documento auditável.
+2. A coluna "Tipo" da tabela de estágios imprimia o slug cru `material`.
+3. O estágio de árvore validava `class_slugs` contra a taxonomia de materiais
+   mesmo num estudo de processos: 404 em slug legítimo.
+4. O `switch` que reabre um estudo salvo ficou não-exaustivo — pego pelo `tsc`.
+
 Cobertura de capacidades inspiradas no EduPack: **~34% → ~57%** (17 de 30 em
-nível ≥ 3). Próximo gargalo: **P0-3**, selecionar processos como resultado
-(exercício 11 do manual).
+nível ≥ 3). O P0-3 **não moveu nenhuma linha da matriz**, e isso é informação:
+ele completou a metade estrutural do exercício 11, e o que falta para o
+exercício inteiro é o que segura o banco de processos em 3. Próximo gargalo:
+**P0-4**, atributos de processo com proveniência.
 
 ---
 

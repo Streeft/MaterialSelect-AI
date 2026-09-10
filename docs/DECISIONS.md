@@ -2477,3 +2477,76 @@ travamento do NOT NULL, exatamente onde a produção quebraria. O universo do
 seed é fictício e marcado (`is_demo`), e o que é inventado ali é a
 **compatibilidade**, dito no próprio arquivo: os nomes dos processos são
 vocabulário corrente de manufatura, domínio público da metodologia.
+
+---
+
+## D-58 — O estudo escolhe o universo do resultado, e o motor é um só
+
+**Contexto.** Todo estudo devolvia **materiais**. O exercício 11 do manual do
+EduPack seleciona **processos**: a tabela de resultado é o universo de processos,
+e um estágio alcança o de materiais ("Insert Material Universe > Polymers >
+Thermoplastic"). O P0-2 fez o sentido do exercício 9; este é o inverso.
+
+**Decisão.**
+
+- **`SelectionStudy.universe` é coluna, não inferência a partir dos estágios.**
+  Uma pilha de um único estágio de limites não nomeia universo nenhum, e
+  inferir deixaria o resultado dependendo de qual estágio o leitor escreveu
+  primeiro.
+- **Um motor só.** `RecordSnapshot` é a forma compartilhada de um registro
+  selecionável, e `MaterialSnapshot`/`ProcessSnapshot` são o que cada universo
+  acrescenta. Nada do que o motor faz — avaliar restrição, casar linhagem de
+  classe, contar num funil — é sobre *material*; é sobre *um registro com uma
+  classe e alguns valores*. Um segundo motor criaria duas verdades sobre a mesma
+  pergunta.
+- **`tree` anda o universo do próprio estudo; a travessia nomeia o outro.**
+  Daí `process` num estudo de materiais e `material` num de processos, cada um
+  com as suas colunas. Qual taxonomia valida um `class_slugs` decorre do
+  universo, **não do nome do campo**, que é o mesmo nos dois — foi exatamente
+  aí que dois defeitos apareceram (404 em slug legítimo; o documento imprimindo
+  slug cru no lugar do nome da família).
+- **O estágio inverso leva só pastas.** `material` não tem slug para nomear uma
+  folha, e o próprio exercício seleciona uma pasta. Inventar um identificador
+  seria schema a mais para uma pergunta que o manual não faz.
+- **Ranqueamento e índice são recusados num estudo de processos, com o motivo
+  escrito** — e **no salvamento**, não só na execução. Processo não tem atributo
+  com proveniência; devolver ranking vazio seria lido como "nenhum processo
+  pontuou bem" em vez de "isto não é calculável". Estudo que não roda não vale
+  guardar, e descobrir depois é pior.
+- **`CandidateOut.material_id` virou `record_id`.** Num estudo de processos
+  aquela linha *é* um processo, e um campo com o nome de um universo carregando
+  o id do outro é a mesma classe de mentira que o `in_tree` do funil era
+  ([D-57](DECISIONS.md)). Os tipos de ranking mantêm o nome de propósito: um
+  estudo de processos não ranqueia, então eles comprovadamente nunca descrevem
+  um processo. Quando os atributos chegarem, o rename acompanha a mudança que o
+  motiva.
+
+**O defeito mais grave, e ele era silencioso.** O exportador resolvia os ids
+dos candidatos contra a tabela de **materiais**. Num estudo de processos isso
+não devolveria vazio — devolveria o material que por acaso carrega aquele id, e
+imprimiria a proveniência dele sob o nome de um processo. Num documento cuja
+razão de existir é ser auditável, é a pior falha disponível. A busca não
+acontece para o outro universo, e há teste afirmando que nome de material nenhum
+aparece no documento.
+
+**O que o documento passou a dizer.** O universo do resultado é declarado; a
+coluna dos candidatos é nomeada pelo que contém; a seção de proveniência diz
+por que está vazia; e a razão de não haver mapa nem ranqueamento fica onde o
+leitor procuraria a figura. Na tela, o controle de universo vem **antes** dos
+estágios, porque é ele que decide quais estágios existem, e só a travessia que
+se aplica é oferecida — o outro botão teria como único desfecho a recusa do
+backend.
+
+**O que isto ainda não é.** O passo 2 do exercício 11 é um Limit Stage sobre
+**atributos do processo** (*Shape*, *Mass range*, *Range of section thickness*,
+*Process characteristics*, *Economic batch size*). Isso exige atributo com a
+mesma proveniência de `MaterialPropertyValue` — e, para os dois primeiros,
+suporte a valor **discreto** e a **intervalo**, que o modelo atual só tem em
+parte. É peça do tamanho do P0-2, está registrada como **P0-4**, e é ela que
+destrava o ranqueamento de processos.
+
+**Método.** `app/tests/test_migration_selection_universe.py` roda a migração nos
+dois sentidos contra um banco com estudos salvos, e afirma que o backfill grava
+`"material"` porque é o que esses estudos **fazem** — não porque seja um padrão
+conveniente. Conferido por mutação. Dois dos quatro defeitos desta frente foram
+achados **lendo o documento renderizado**, não a asserção.

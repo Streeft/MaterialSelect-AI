@@ -333,9 +333,9 @@ outros dois métodos; o laudo descrevia um estudo aninhado como um combinador
 único opaco. Os quatro corrigidos numa rodada só, rerrevisão limpa. Ver
 `docs/PROJECT_CONTEXT.md` §3 e `docs/07-selecao-deterministica.md`.
 
-**P0-1, P0-2 e P1-1 da plataforma de seleção entregues.** Depois de comparar a
+**P0-1, P0-2, P0-3 e P1-1 da plataforma de seleção entregues.** Depois de comparar a
 ferramenta com o modelo funcional dos manuais do Granta EduPack — matriz de
-maturidade e roteiro em `docs/14-plataforma-selecao.md` —, os três primeiros
+maturidade e roteiro em `docs/14-plataforma-selecao.md` —, os quatro primeiros
 gargalos saíram. **A seleção deixou de ser de estágio único**
 ([D-56](docs/DECISIONS.md)): um estudo é uma **pilha ordenada de
 `SelectionStage`**, e o resultado é a interseção dos habilitados. **Três** tipos,
@@ -366,7 +366,22 @@ distingue `in_tree` de `in_process`, ou diria que a seleção filtrou por classe
 quando filtrou por processo. A ficha do material lista os processos compatíveis,
 no próprio payload da ficha.
 
-1034 testes de backend (nenhum skip) e 218 de frontend, todos verdes. CI no
+**O P0-3 deu ao estudo o universo do resultado** ([D-58](docs/DECISIONS.md)):
+`SelectionStudy.universe` é `material` (padrão) ou `process`, e o motor passou a
+ser **um só** para os dois — `RecordSnapshot` é a forma compartilhada, porque
+nada do que o motor faz é sobre *material*, é sobre *um registro com classe e
+valores*. `tree` anda a taxonomia do próprio universo e a travessia nomeia o
+outro (`process` num estudo de materiais, `material` num de processos), então
+**qual taxonomia valida um `class_slugs` decorre do universo, não do nome do
+campo**. Ranqueamento e índice são **recusados com o motivo escrito** num estudo
+de processos — no salvamento e na execução —, porque processo ainda não tem
+atributo e devolver ranking vazio seria lido como "ninguém pontuou bem".
+`CandidateOut.material_id` virou **`record_id`** pela mesma razão que
+`in_tree` virou `in_process`. E o exportador **não** resolve id de processo
+contra a tabela de materiais: resolveria por coincidência de id e imprimiria
+proveniência de material sob o nome de um processo.
+
+1076 testes de backend (nenhum skip) e 225 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
 PROJECT_CONTEXT.md).
