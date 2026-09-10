@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { describe, expect, it } from "vitest";
-import { render } from "@testing-library/react";
+import { render, within } from "@testing-library/react";
 // MWC controls (Button, Checkbox) live inside a shadow root, invisible to
 // plain @testing-library/react queries — same note as ConstraintEditor.test.tsx.
 import { screen } from "shadow-dom-testing-library";
@@ -10,6 +10,7 @@ import {
   type StageState,
   countStageConstraints,
   emptyLimitStage,
+  emptyMaterialStage,
   emptyProcessStage,
   emptyTreeStage,
   isSingleLimitStage,
@@ -93,9 +94,11 @@ const processes: Process[] = [
 function Harness({
   initial,
   onStages,
+  universe = "material",
 }: {
   initial: StageState[];
   onStages?: (stages: StageState[]) => void;
+  universe?: "material" | "process";
 }) {
   const [stages, setStages] = useState<StageState[]>(initial);
   return (
@@ -105,6 +108,7 @@ function Harness({
       classes={classes}
       processes={processes}
       processClasses={processClasses}
+      universe={universe}
       onChange={(next) => {
         setStages(next);
         onStages?.(next);
@@ -308,5 +312,79 @@ describe("StageList with a process stage", () => {
     await user.click(screen.getByShadowText(new RegExp(t.stageAddProcess)));
     expect(last.map((s) => s.kind)).toEqual(["limit", "tree", "process"]);
     expect(last.map((s) => toStagePayload(s).kind)).toEqual(["limit", "tree", "process"]);
+  });
+});
+
+
+// --- The process universe as the result (P0-3) --------------------------------
+
+describe("toStagePayload for a material stage", () => {
+  it("sends folders only, and none of the other kinds' fields", () => {
+    const stage = emptyMaterialStage();
+    if (stage.kind !== "material") throw new Error("unreachable");
+    stage.materialClassSlugs = ["metais"];
+
+    const payload = toStagePayload(stage);
+    expect(payload.kind).toBe("material");
+    expect(payload.material_class_slugs).toEqual(["metais"]);
+    expect(payload.include_descendants).toBe(true);
+    expect(payload.class_slugs).toBeUndefined();
+    expect(payload.process_slugs).toBeUndefined();
+    expect(payload.root_group).toBeUndefined();
+  });
+});
+
+describe("StageList in a process study", () => {
+  it("offers the material stage and not the process one", () => {
+    render(<Harness initial={[emptyLimitStage()]} universe="process" />);
+
+    // Offering the other universe's stage would be a button whose only
+    // outcome is the backend's refusal.
+    expect(screen.getByShadowText(new RegExp(t.stageAddMaterial))).toBeInTheDocument();
+    expect(screen.queryByShadowText(new RegExp(t.stageAddProcess))).not.toBeInTheDocument();
+  });
+
+  it("offers the process stage and not the material one in a material study", () => {
+    render(<Harness initial={[emptyLimitStage()]} universe="material" />);
+
+    expect(screen.getByShadowText(new RegExp(t.stageAddProcess))).toBeInTheDocument();
+    expect(screen.queryByShadowText(new RegExp(t.stageAddMaterial))).not.toBeInTheDocument();
+  });
+
+  it("lists process families in a tree stage, not material classes", () => {
+    // A tree stage walks the study's *own* universe — this is the assertion
+    // that would have caught listing the wrong taxonomy.
+    render(<Harness initial={[emptyTreeStage()]} universe="process" />);
+
+    const picker = screen.getByRole("listbox", { name: t.stageProcessClasses });
+    expect(within(picker).getByRole("option", { name: "União" })).toBeInTheDocument();
+    expect(within(picker).queryByRole("option", { name: "Metais" })).not.toBeInTheDocument();
+  });
+
+  it("lists material classes in a tree stage of a material study", () => {
+    render(<Harness initial={[emptyTreeStage()]} universe="material" />);
+
+    const picker = screen.getByRole("listbox", { name: t.stageClasses });
+    expect(within(picker).getByRole("option", { name: "Metais" })).toBeInTheDocument();
+  });
+
+  it("writes the absence out when no material folder is chosen", async () => {
+    const user = userEvent.setup();
+    render(<Harness initial={[emptyMaterialStage()]} universe="process" />);
+
+    expect(screen.getByText(t.stageNoMaterialClasses)).toBeInTheDocument();
+    expect(screen.queryByText(t.stageMaterialWarning)).not.toBeInTheDocument();
+
+    await user.selectOptions(screen.getByRole("listbox", { name: t.stageMaterialClasses }), [
+      "metais",
+    ]);
+    expect(screen.queryByText(t.stageNoMaterialClasses)).not.toBeInTheDocument();
+    expect(screen.getByText(t.stageMaterialWarning)).toBeInTheDocument();
+  });
+
+  it("names an unnamed material stage by position and kind", () => {
+    render(<Harness initial={[emptyMaterialStage()]} universe="process" />);
+    expect(screen.getByText(t.stageNumber(1, "material"))).toBeInTheDocument();
+    expect(screen.getByText(t.stageKindMaterial)).toBeInTheDocument();
   });
 });
