@@ -67,6 +67,7 @@ vi.mock("next/navigation", () => ({
 
 function result(overrides: Partial<RunResult> = {}): RunResult {
   return {
+    universe: "material",
     initial_count: 12,
     combinator: "AND",
     final_count: 5,

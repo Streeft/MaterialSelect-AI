@@ -354,7 +354,7 @@ export interface ConstraintGroupIn {
  * taxonomy, or (P0-2) a selection over the process universe — the join's other
  * direction.
  */
-export type StageKind = "limit" | "tree" | "process";
+export type StageKind = "limit" | "tree" | "process" | "material";
 
 /**
  * One stage of the selection pipeline (P0-1) — mirrors the backend's `StageIn`
@@ -378,7 +378,10 @@ export interface StageIn {
   // selected process applies to. "This *and* that" is two stages.
   process_slugs?: string[];
   process_class_slugs?: string[];
-  /** Shared by the tree and process stages: a folder means what is under it. */
+  // kind === "material" (P0-3): folders of the material taxonomy, in a process
+  // study. Folders only — a Material has no slug to name a leaf by.
+  material_class_slugs?: string[];
+  /** Shared by every folder-selecting stage: a folder means what is under it. */
   include_descendants?: boolean;
 }
 
@@ -392,6 +395,7 @@ export interface StageOut {
   class_slugs: string[];
   process_slugs: string[];
   process_class_slugs: string[];
+  material_class_slugs: string[];
   include_descendants: boolean;
 }
 
@@ -442,6 +446,7 @@ export interface AhpWeightsOut {
 }
 
 export interface RunRequest {
+  universe?: SelectionUniverse;
   // M6: an explicit nested tree (`root_group`) overrides these two entirely
   // — see `ConstraintGroupIn`'s docstring. Kept optional so a caller that
   // builds a tree does not also have to invent a flat pair to satisfy the
@@ -463,14 +468,26 @@ export interface FunnelStep {
   remaining: number;
 }
 
+/**
+ * One surviving record of the pipeline.
+ *
+ * `record_id`, not `material_id`, since P0-3: in a process study this row *is*
+ * a process. A field named for one universe while carrying the other's id is
+ * the same class of lie the funnel's `in_tree` was. The ranking types below
+ * keep their material-specific names on purpose — a process study cannot rank
+ * yet, so they provably never describe a process.
+ */
 export interface Candidate {
-  material_id: number;
+  record_id: number;
   name: string;
   class_name: string;
   index_value: number | null;
   score: number | null;
   rank: number | null;
 }
+
+/** Which universe a study returns (P0-3). */
+export type SelectionUniverse = "material" | "process";
 
 export interface IndexValue {
   material_id: number;
@@ -534,6 +551,7 @@ export interface RankingResult {
 }
 
 export interface RunResult {
+  universe: SelectionUniverse;
   initial_count: number;
   combinator: string;
   final_count: number;
@@ -558,6 +576,7 @@ export interface PerformanceIndex {
 }
 
 export interface StudySummary {
+  universe: SelectionUniverse;
   id: number;
   name: string;
   description: string | null;
@@ -568,6 +587,7 @@ export interface StudySummary {
 }
 
 export interface StudyDetail {
+  universe: SelectionUniverse;
   id: number;
   name: string;
   description: string | null;
@@ -586,6 +606,7 @@ export interface StudyDetail {
 }
 
 export interface StudyIn {
+  universe?: SelectionUniverse;
   name: string;
   description?: string | null;
   function_text?: string | null;

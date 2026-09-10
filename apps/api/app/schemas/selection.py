@@ -45,6 +45,10 @@ MAX_CONSTRAINT_GROUP_CHILDREN = 25
 # costs a full pass over the catalogue.
 MAX_STAGES = 20
 
+#: Which universe a study returns (P0-3). "material" is the default and what
+#: every study saved before P0-3 does.
+UniverseLiteral = Literal["material", "process"]
+
 
 # --- Inputs ----------------------------------------------------------------
 
@@ -103,7 +107,7 @@ class StageIn(BaseModel):
       applies to the folders here too.
     """
 
-    kind: Literal["limit", "tree", "process"] = "limit"
+    kind: Literal["limit", "tree", "process", "material"] = "limit"
     label: str | None = Field(default=None, max_length=200)
     enabled: bool = True
 
@@ -114,8 +118,10 @@ class StageIn(BaseModel):
     class_slugs: list[str] = Field(default_factory=list)
     process_slugs: list[str] = Field(default_factory=list)
     process_class_slugs: list[str] = Field(default_factory=list)
-    # Shared by the tree and process stages: in both, a folder means what is
-    # under it.
+    # kind === "material" (P0-3): folders of the material taxonomy, in a process
+    # study. Folders only — a Material has no slug to name a leaf by.
+    material_class_slugs: list[str] = Field(default_factory=list)
+    # Shared by every folder-selecting stage: a folder means what is under it.
     include_descendants: bool = True
 
 
@@ -128,13 +134,14 @@ class StageOut(BaseModel):
     """
 
     position: int
-    kind: Literal["limit", "tree", "process"]
+    kind: Literal["limit", "tree", "process", "material"]
     label: str | None = None
     enabled: bool
     root_group: ConstraintGroupIn | None = None
     class_slugs: list[str] = Field(default_factory=list)
     process_slugs: list[str] = Field(default_factory=list)
     process_class_slugs: list[str] = Field(default_factory=list)
+    material_class_slugs: list[str] = Field(default_factory=list)
     include_descendants: bool = True
 
 
@@ -165,6 +172,9 @@ class RankingIn(BaseModel):
 
 
 class FilterRequest(BaseModel):
+    # P0-3: which universe to filter. The stage kinds a pipeline may use follow
+    # from it, and the service refuses a stage that belongs to the other one.
+    universe: UniverseLiteral = "material"
     combinator: CombinatorLiteral = "AND"
     constraints: list[ConstraintIn] = Field(default_factory=list)
     # M6: an explicit nested tree overrides combinator/constraints entirely.
@@ -184,6 +194,7 @@ class IndexRequest(BaseModel):
 
 
 class RunRequest(BaseModel):
+    universe: UniverseLiteral = "material"
     combinator: CombinatorLiteral = "AND"
     constraints: list[ConstraintIn] = Field(default_factory=list)
     # M6: see FilterRequest.root_group — same override/compatibility rule.
@@ -228,7 +239,17 @@ class StageResultOut(BaseModel):
 
 
 class CandidateOut(BaseModel):
-    material_id: int
+    """One surviving record of the pipeline.
+
+    ``record_id`` and not ``material_id`` since P0-3: in a process study this
+    row *is* a process, and a field named for one universe while carrying the
+    other's id is the same class of lie the funnel's ``in_tree`` was. The
+    ranking outputs below keep their material-specific names on purpose — a
+    process study cannot rank yet (no attributes), so they provably never
+    describe a process.
+    """
+
+    record_id: int
     name: str
     class_name: str
     index_value: float | None = None
@@ -237,6 +258,9 @@ class CandidateOut(BaseModel):
 
 
 class FilterResultOut(BaseModel):
+    # P0-3: which universe the candidates are records of. Stated, never left to
+    # be inferred from the ids.
+    universe: UniverseLiteral = "material"
     initial_count: int
     combinator: str
     final_count: int
@@ -309,6 +333,7 @@ class RankingResultOut(BaseModel):
 
 
 class RunResultOut(BaseModel):
+    universe: UniverseLiteral = "material"
     initial_count: int
     # The operator that combined the candidates. With a single limit stage this
     # is its root group's own AND/OR, exactly as before P0-1. With more than one
@@ -359,6 +384,7 @@ class StudyIn(BaseModel):
     function_text: str | None = Field(default=None, max_length=1000)
     objective_text: str | None = Field(default=None, max_length=1000)
     free_variables: list[str] = Field(default_factory=list)
+    universe: UniverseLiteral = "material"
     combinator: CombinatorLiteral = "AND"
     constraints: list[ConstraintIn] = Field(default_factory=list)
     # M6: see FilterRequest.root_group — same override/compatibility rule.
@@ -379,6 +405,7 @@ class StudySummaryOut(BaseModel):
     constraint_count: int
     criterion_count: int
     stage_count: int = 1
+    universe: UniverseLiteral = "material"
 
 
 class StudyOut(BaseModel):
@@ -388,6 +415,7 @@ class StudyOut(BaseModel):
     function_text: str | None = None
     objective_text: str | None = None
     free_variables: list[str]
+    universe: UniverseLiteral = "material"
     # Kept as they always were, for every caller that reads them: the flat list
     # of every constraint in the study, and the first stage's root operator.
     # `stages` below is what carries the study's actual structure.

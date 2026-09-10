@@ -25,6 +25,8 @@ from app.domain.filters import (
     Operator,
     ProcessReach,
     ProcessSelection,
+    ProcessSnapshot,
+    RecordSnapshot,
     SelectionStageNode,
     TreeSelection,
     apply_constraint_tree,
@@ -98,14 +100,23 @@ _NUMERIC_OPS = {
 #: How an unnamed stage is described in the funnel and in the documents. A
 #: table and not an if-chain so a fourth kind cannot be added to the engine and
 #: forgotten here — it would read as its own raw slug, which is visible.
-_STAGE_KIND_LABELS = {"limit": "limites", "tree": "classes", "process": "processos"}
+_STAGE_KIND_LABELS = {
+    "limit": "limites",
+    "tree": "classes",
+    "process": "processos",
+    "material": "materiais",
+}
 
 #: The operator a single-question stage reports on its funnel line. `in_tree`
 #: predates P0-2 and is kept verbatim so a pre-existing study's funnel reads
 #: unchanged; `in_process` is the new one, and it exists because a funnel that
 #: called both `in_tree` would say the selection filtered by material class when
 #: it filtered by process.
-_STAGE_FUNNEL_OPERATORS = {"tree": "in_tree", "process": "in_process"}
+_STAGE_FUNNEL_OPERATORS = {
+    "tree": "in_tree",
+    "process": "in_process",
+    "material": "in_material",
+}
 
 
 class SelectionService:
@@ -123,6 +134,7 @@ class SelectionService:
         self.user = user
         self.project_id = project_id
         self._snapshots: list[MaterialSnapshot] | None = None
+        self._process_snapshots: list[ProcessSnapshot] | None = None
         self._props: dict = {}
 
     # --- snapshot ---------------------------------------------------------
@@ -159,6 +171,42 @@ class SelectionService:
                 for process_slug, class_slug in pairs
             ]
         return reach
+
+    def _load_processes(self) -> list[ProcessSnapshot]:
+        """The process universe as selectable records (P0-3).
+
+        ``values`` stays empty on every one of them, and that is not an
+        oversight: a process has no attribute with provenance yet, and a
+        snapshot that invented one would break principle 1 at the only place
+        the whole tool is meant to be trustworthy. What follows from it —
+        ranking and performance indices refused for a process study, out
+        loud — is handled in `_check_universe_supports`.
+        """
+        if self._process_snapshots is None:
+            lineage_by_slug = lineages(self.repo.process_class_parents())
+            material_lineages = lineages(self.repo.class_parents())
+            reach = self.repo.material_reach_by_process()
+            self._process_snapshots = [
+                ProcessSnapshot(
+                    id=process.id,
+                    name=process.name,
+                    class_name=process.process_class.name,
+                    class_slug=process.process_class.slug,
+                    class_path=list(lineage_by_slug.get(process.process_class.slug, ())),
+                    material_paths=[
+                        material_lineages.get(class_slug, (class_slug,))
+                        for class_slug in reach.get(process.id, ())
+                    ],
+                )
+                for process in self.repo.list_active_processes_with_class()
+            ]
+        return self._process_snapshots
+
+    def _records(self, universe: str) -> list[RecordSnapshot]:
+        """The catalogue the pipeline runs over, for the universe asked for."""
+        if universe == "process":
+            return list(self._load_processes())
+        return list(self._load())
 
     @staticmethod
     def _to_snapshot(
@@ -311,7 +359,59 @@ class SelectionService:
         if not stages_in:
             raise ValidationError("Informe ao menos um estágio.")
 
-    def _check_stage_shape(self, stage_in: StageIn) -> None:
+    #: Which stage kinds each universe accepts (P0-3). `tree` always means
+    #: folders of the study's own universe; the cross stage is the one that
+    #: names the other, and each universe has exactly one of them.
+    _KINDS_BY_UNIVERSE = {
+        "material": {"limit", "tree", "process"},
+        "process": {"limit", "tree", "material"},
+    }
+
+    def _check_stage_universe(self, stage_in: StageIn, universe: str) -> None:
+        """A stage that belongs to the other universe is refused, not ignored.
+
+        The two wrong combinations are the ones a reader would most plausibly
+        write: a process stage in a process study (they meant the *tree* stage),
+        and a material stage in a material study (same). Saying so beats
+        evaluating something they did not ask for.
+        """
+        allowed = self._KINDS_BY_UNIVERSE[universe]
+        if stage_in.kind in allowed:
+            return
+        if universe == "process" and stage_in.kind == "process":
+            raise ValidationError(
+                "Num estudo de processos, use um estágio de árvore para escolher famílias "
+                "de processo; o estágio de processos serve a um estudo de materiais."
+            )
+        if universe == "material" and stage_in.kind == "material":
+            raise ValidationError(
+                "Num estudo de materiais, use um estágio de classes para escolher classes "
+                "de material; o estágio de materiais serve a um estudo de processos."
+            )
+        raise ValidationError(f"Tipo de estágio desconhecido: {stage_in.kind}")
+
+    def _check_universe_supports(self, universe: str, index, ranking) -> None:
+        """Refuse — out loud — what a process study cannot do yet (P0-3).
+
+        A process has no attribute with provenance, so there is nothing to rank
+        by and nothing for an index expression to read. Returning an empty
+        ranking would be the silent version of this, and a reader would take it
+        for "no process scored well" rather than "this cannot be computed".
+        """
+        if universe != "process":
+            return
+        if index is not None:
+            raise ValidationError(
+                "Um estudo de processos ainda não aceita índice de desempenho: processo não "
+                "tem atributo cadastrado, e a ferramenta não inventa valor."
+            )
+        if ranking is not None:
+            raise ValidationError(
+                "Um estudo de processos ainda não aceita ranqueamento: processo não tem "
+                "atributo cadastrado, e a ferramenta não inventa valor."
+            )
+
+    def _check_stage_shape(self, stage_in: StageIn, universe: str = "material") -> None:
         """Reject a stage that mixes the two kinds, and an unknown class slug.
 
         Shape only — thresholds, units and property existence are *not* checked
@@ -323,6 +423,10 @@ class SelectionService:
         """
         has_constraints = bool(stage_in.constraints) or stage_in.root_group is not None
         has_processes = bool(stage_in.process_slugs) or bool(stage_in.process_class_slugs)
+        if stage_in.kind != "material" and stage_in.material_class_slugs:
+            raise ValidationError(
+                "Só um estágio de materiais leva classes de material nesse campo."
+            )
 
         if stage_in.kind == "tree":
             if has_constraints:
@@ -333,7 +437,25 @@ class SelectionService:
                 raise ValidationError(
                     "Um estágio de classes não leva processos; use um estágio de processos."
                 )
-            self._check_class_slugs(stage_in.class_slugs)
+            # A tree stage names folders of the study's **own** universe, so
+            # which taxonomy validates them follows from the universe — not
+            # from the field's name, which is the same in both.
+            if universe == "process":
+                self._check_process_selection([], stage_in.class_slugs)
+            else:
+                self._check_class_slugs(stage_in.class_slugs)
+            return
+
+        if stage_in.kind == "material":
+            if has_constraints:
+                raise ValidationError(
+                    "Um estágio de materiais não leva restrições; use um estágio de limites."
+                )
+            if has_processes:
+                raise ValidationError(
+                    "Um estágio de materiais não leva processos; use um estágio de árvore."
+                )
+            self._check_class_slugs(stage_in.material_class_slugs)
             return
 
         if stage_in.kind == "process":
@@ -359,13 +481,16 @@ class SelectionService:
             )
         self._check_root_group_conflict(stage_in.constraints, stage_in.root_group)
 
-    def _stage_in_to_node(self, stage_in: StageIn) -> SelectionStageNode:
+    def _stage_in_to_node(
+        self, stage_in: StageIn, universe: str = "material"
+    ) -> SelectionStageNode:
         """One stage payload as a domain node, ready to run.
 
         Builds the constraints, so it needs the catalogue loaded — this is the
         run path. Saving goes through `_check_stage_shape` instead.
         """
-        self._check_stage_shape(stage_in)
+        self._check_stage_universe(stage_in, universe)
+        self._check_stage_shape(stage_in, universe)
         if stage_in.kind == "tree":
             return SelectionStageNode(
                 kind="tree",
@@ -373,6 +498,17 @@ class SelectionService:
                 enabled=stage_in.enabled,
                 tree=TreeSelection(
                     class_slugs=list(stage_in.class_slugs),
+                    include_descendants=stage_in.include_descendants,
+                ),
+            )
+
+        if stage_in.kind == "material":
+            return SelectionStageNode(
+                kind="material",
+                label=stage_in.label,
+                enabled=stage_in.enabled,
+                materials=TreeSelection(
+                    class_slugs=list(stage_in.material_class_slugs),
                     include_descendants=stage_in.include_descendants,
                 ),
             )
@@ -430,11 +566,12 @@ class SelectionService:
         constraints_in: list[ConstraintIn],
         root_group_in: ConstraintGroupIn | None,
         stages_in: list[StageIn] | None,
+        universe: str = "material",
     ) -> list[SelectionStageNode]:
         """The pipeline a request describes — an explicit list of stages, or the
         single limit stage the flat/`root_group` payload has always meant."""
         if stages_in is not None:
-            return [self._stage_in_to_node(s) for s in stages_in]
+            return [self._stage_in_to_node(s, universe) for s in stages_in]
         return [
             SelectionStageNode(
                 kind="limit",
@@ -710,6 +847,19 @@ class SelectionService:
                     )
                 )
                 continue
+            if stage.kind == "material":
+                nodes.append(
+                    SelectionStageNode(
+                        kind="material",
+                        label=stage.label,
+                        enabled=stage.enabled,
+                        materials=TreeSelection(
+                            class_slugs=list(stage.material_class_slugs or []),
+                            include_descendants=stage.include_descendants,
+                        ),
+                    )
+                )
+                continue
             if stage.kind == "process":
                 nodes.append(
                     SelectionStageNode(
@@ -813,7 +963,8 @@ class SelectionService:
             return self._describe_limit(stages[0])
 
         return "; ".join(
-            self._describe_stage(stage, position) for position, stage in enumerate(stages)
+            self._describe_stage(stage, position, study.universe)
+            for position, stage in enumerate(stages)
         )
 
     def _describe_limit(self, stage: SelectionStageNode) -> str:
@@ -822,7 +973,9 @@ class SelectionService:
             return "Nenhuma restrição definida."
         return self._render_group_tree(root)
 
-    def _describe_stage(self, stage: SelectionStageNode, position: int) -> str:
+    def _describe_stage(
+        self, stage: SelectionStageNode, position: int, universe: str = "material"
+    ) -> str:
         name = self._stage_display(stage, position)
         state = "" if stage.enabled else " [desabilitado]"
         if stage.kind == "limit":
@@ -831,13 +984,28 @@ class SelectionService:
         if stage.kind == "process":
             return f"{name}{state}: {self._describe_processes(stage)}"
 
+        if stage.kind == "material":
+            selection = stage.materials or TreeSelection()
+            if not selection.class_slugs:
+                return f"{name}{state}: nenhuma classe de material selecionada"
+            names = self.repo.class_names()
+            picked = ", ".join(names.get(slug, slug) for slug in selection.class_slugs)
+            scope = "com descendentes" if selection.include_descendants else "sem descendentes"
+            return f"{name}{state}: serve algum material de {picked} ({scope})"
+
         selection = stage.tree or TreeSelection()
         if not selection.class_slugs:
             return f"{name}{state}: nenhuma classe selecionada"
-        names = self.repo.class_names()
+        # Same reason as the validation above: a tree stage walks the study's own
+        # universe, so a process study must be described with process folder
+        # names — printing raw slugs there would be the visible symptom.
+        names = (
+            self.repo.process_class_names() if universe == "process" else self.repo.class_names()
+        )
         picked = ", ".join(names.get(slug, slug) for slug in selection.class_slugs)
         scope = "com descendentes" if selection.include_descendants else "sem descendentes"
-        return f"{name}{state}: classes {picked} ({scope})"
+        label = "famílias de processo" if universe == "process" else "classes"
+        return f"{name}{state}: {label} {picked} ({scope})"
 
     def _describe_processes(self, stage: SelectionStageNode) -> str:
         """A process stage in words, for the report and the laudo (P0-2).
@@ -876,16 +1044,25 @@ class SelectionService:
     def filter(self, request: FilterRequest) -> FilterResultOut:
         self._check_stage_conflict(request.constraints, request.root_group, request.stages)
         self._check_root_group_conflict(request.constraints, request.root_group)
-        snapshots = self._load()
+        # `_load()` populates `self._props`, which building a limit stage's
+        # constraints needs — in either universe, since a limit stage over
+        # processes still names properties by slug.
+        self._load()
+        snapshots = self._records(request.universe)
         stages = self._request_stages(
-            request.combinator, request.constraints, request.root_group, request.stages
+            request.combinator,
+            request.constraints,
+            request.root_group,
+            request.stages,
+            request.universe,
         )
         stage_outs, steps, candidate_snaps = self._apply_stages(snapshots, stages)
         candidates = [
-            CandidateOut(material_id=m.id, name=m.name, class_name=m.class_name)
+            CandidateOut(record_id=m.id, name=m.name, class_name=m.class_name)
             for m in candidate_snaps
         ]
         return FilterResultOut(
+            universe=request.universe,
             initial_count=len(snapshots),
             combinator=self._pipeline_combinator(stages),
             final_count=len(candidate_snaps),
@@ -1066,11 +1243,18 @@ class SelectionService:
     def run(self, request: RunRequest) -> RunResultOut:
         self._check_stage_conflict(request.constraints, request.root_group, request.stages)
         self._check_root_group_conflict(request.constraints, request.root_group)
+        self._check_universe_supports(request.universe, request.index, request.ranking)
         self._load()
         stages = self._request_stages(
-            request.combinator, request.constraints, request.root_group, request.stages
+            request.combinator,
+            request.constraints,
+            request.root_group,
+            request.stages,
+            request.universe,
         )
-        return self._run_with_stages(stages, request.index, request.ranking)
+        return self._run_with_stages(
+            stages, request.index, request.ranking, universe=request.universe
+        )
 
     def _run_with_root_node(
         self, root_node: ConstraintGroupNode, index: IndexIn | None, ranking: RankingIn | None
@@ -1092,8 +1276,9 @@ class SelectionService:
         stages: list[SelectionStageNode],
         index: IndexIn | None,
         ranking: RankingIn | None,
+        universe: str = "material",
     ) -> RunResultOut:
-        snapshots = self._load()
+        snapshots = self._records(universe)
         stage_outs, steps, candidate_snaps = self._apply_stages(snapshots, stages)
 
         index_out = None
@@ -1115,7 +1300,7 @@ class SelectionService:
 
         candidates = [
             CandidateOut(
-                material_id=m.id,
+                record_id=m.id,
                 name=m.name,
                 class_name=m.class_name,
                 index_value=index_value_by_id.get(m.id),
@@ -1139,6 +1324,7 @@ class SelectionService:
             candidates.sort(key=lambda c: c.name)
 
         return RunResultOut(
+            universe=universe,
             initial_count=len(snapshots),
             combinator=self._pipeline_combinator(stages),
             final_count=len(candidate_snaps),
@@ -1225,6 +1411,7 @@ class SelectionService:
                 constraint_count=len(s.constraints),
                 stage_count=len(s.stages),
                 criterion_count=len(s.criteria),
+                universe=s.universe,
             )
             for s in self.repo.list_studies(self.project_id)
         ]
@@ -1240,6 +1427,13 @@ class SelectionService:
         self._check_root_group_conflict(payload.constraints, payload.root_group)
         if self.repo.study_name_exists(payload.name, self.project_id):
             raise ConflictError(f"Já existe um estudo com o nome: {payload.name}")
+        # Refused at save time, not only at run time: a study that cannot be run
+        # is not a study worth storing, and finding out later is worse.
+        self._check_universe_supports(
+            payload.universe,
+            payload.index,
+            RankingIn(criteria=payload.criteria) if payload.criteria else None,
+        )
         # A study's own `combinator` column always mirrors its root
         # ConstraintGroup's operator (Task 6's invariant) — when the caller
         # supplies a real tree via root_group, that is the root's operator,
@@ -1272,6 +1466,7 @@ class SelectionService:
             index_goal=payload.index.goal if payload.index else None,
             normalization=payload.normalization,
             method=payload.method,
+            universe=payload.universe,
         )
         self.repo.add(study)
         self.repo.flush()  # assigns study.id, needed by the root group below
@@ -1280,7 +1475,8 @@ class SelectionService:
             # P0-1: an explicit pipeline. Validated first — one bad stage must
             # not leave half a pipeline behind — then persisted in order.
             for stage_in in payload.stages:
-                self._check_stage_shape(stage_in)
+                self._check_stage_universe(stage_in, payload.universe)
+                self._check_stage_shape(stage_in, payload.universe)
             for position, stage_in in enumerate(payload.stages):
                 self._persist_stage(study, stage_in, position)
             self._persist_criteria(study, payload)
@@ -1355,6 +1551,7 @@ class SelectionService:
             class_slugs=list(stage_in.class_slugs),
             process_slugs=list(stage_in.process_slugs),
             process_class_slugs=list(stage_in.process_class_slugs),
+            material_class_slugs=list(stage_in.material_class_slugs),
             include_descendants=stage_in.include_descendants,
         )
         self.repo.add(stage)
@@ -1421,7 +1618,8 @@ class SelectionService:
         self._load()  # populate self._props before the stages build constraints
         stages = self._load_stages(study)
         index, ranking = self._study_index_and_ranking(study)
-        return self._run_with_stages(stages, index, ranking)
+        self._check_universe_supports(study.universe, index, ranking)
+        return self._run_with_stages(stages, index, ranking, universe=study.universe)
 
     def _study_to_out(self, study: SelectionStudy) -> StudyOut:
         index = None
@@ -1434,6 +1632,7 @@ class SelectionService:
         return StudyOut(
             id=study.id,
             name=study.name,
+            universe=study.universe,
             description=study.description,
             function_text=study.function_text,
             objective_text=study.objective_text,
@@ -1481,6 +1680,7 @@ class SelectionService:
                     class_slugs=list(stage.class_slugs or []),
                     process_slugs=list(stage.process_slugs or []),
                     process_class_slugs=list(stage.process_class_slugs or []),
+                    material_class_slugs=list(stage.material_class_slugs or []),
                     include_descendants=stage.include_descendants,
                 )
             )

@@ -158,6 +158,13 @@ function stageFromPayload(stage: StageOut, combinator: Combinator): StageState {
         processClassSlugs: stage.process_class_slugs,
         includeDescendants: stage.include_descendants,
       };
+    case "material":
+      return {
+        ...common,
+        kind: "material",
+        materialClassSlugs: stage.material_class_slugs,
+        includeDescendants: stage.include_descendants,
+      };
     case "limit":
       return {
         ...common,

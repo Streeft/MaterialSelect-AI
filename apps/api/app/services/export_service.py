@@ -66,7 +66,7 @@ class ExportService:
         # its already-populated property cache and snapshot list rather than
         # rebuilding them — see SelectionService.describe_pipeline.
         root_group_description = service.describe_pipeline(study)
-        candidate_ids = [c.material_id for c in result.candidates]
+        candidate_ids = [c.record_id for c in result.candidates]
         materials = {
             m.id: m for m in self.chart_repo.list_materials(material_ids=candidate_ids or [-1])
         }
@@ -603,7 +603,7 @@ class ExportService:
         rows: list[list[object]] = []
 
         for candidate in result.candidates:
-            material = materials.get(candidate.material_id)
+            material = materials.get(candidate.record_id)
             if material is None:
                 continue
             by_slug = {v.property_definition.slug: v for v in material.property_values}
