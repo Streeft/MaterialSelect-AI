@@ -257,6 +257,15 @@ export const ptBR = {
     // P0-1: a seleção é uma pilha ordenada de estágios. O padrão continua sendo
     // um único estágio de limites, então quem faz um estudo simples não vê
     // vocabulário novo — os rótulos abaixo só aparecem quando há pilha.
+    // P0-3: o universo do resultado. "Universo" é o termo do método, e é o que
+    // o relatório também usa — a tela e o documento não podem divergir.
+    universeTitle: "Universo do resultado",
+    universeHint:
+      "O que a seleção devolve. Trocar reinicia os estágios: cada universo tem os seus, e um estágio do outro seria recusado.",
+    universeMaterial: "Materiais",
+    universeProcess: "Processos",
+    universeProcessNote:
+      "Um estudo de processos ainda não ranqueia nem aceita índice de desempenho: processo não tem atributo cadastrado, e a ferramenta não inventa valor.",
     stagesTitle: "Estágios da seleção",
     stagesHint:
       "Os estágios se aplicam em ordem, e o resultado é a interseção dos habilitados. Desligar um estágio mostra o efeito dele sem apagar o que você escreveu.",
@@ -276,6 +285,7 @@ export const ptBR = {
     stageAddLimit: "Estágio de limites",
     stageAddTree: "Estágio de classes",
     stageAddProcess: "Estágio de processos",
+    stageAddMaterial: "Estágio de materiais",
     stageRemove: "Remover estágio",
     stageMoveUp: (n: number) => `Mover o estágio ${n} para cima`,
     stageMoveDown: (n: number) => `Mover o estágio ${n} para baixo`,

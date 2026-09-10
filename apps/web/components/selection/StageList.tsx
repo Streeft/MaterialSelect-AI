@@ -6,6 +6,7 @@ import type {
   Process,
   ProcessClass,
   PropertyDefinition,
+  SelectionUniverse,
   StageIn,
 } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
@@ -177,6 +178,13 @@ interface Props {
   /** The process universe (P0-2). Empty while it loads, or if none is catalogued. */
   processes?: Process[];
   processClasses?: ProcessClass[];
+  /**
+   * Which universe the study returns (P0-3). It decides two things the reader
+   * would otherwise have to know by heart: which cross stage can be added, and
+   * which taxonomy a tree stage lists — a tree stage always walks the study's
+   * **own** universe.
+   */
+  universe?: SelectionUniverse;
   onChange: (stages: StageState[]) => void;
 }
 
@@ -186,8 +194,12 @@ export function StageList({
   classes,
   processes = [],
   processClasses = [],
+  universe = "material",
   onChange,
 }: Props) {
+  const isProcessStudy = universe === "process";
+  // A tree stage selects folders of the study's own universe.
+  const ownFolders = isProcessStudy ? processClasses : classes;
   const replace = (index: number, next: StageState) =>
     onChange(stages.map((s, i) => (i === index ? next : s)));
 
@@ -272,7 +284,8 @@ export function StageList({
             {stage.kind === "tree" && (
               <TreeStageFields
                 stage={stage}
-                classes={classes}
+                classes={ownFolders}
+                label={isProcessStudy ? t.stageProcessClasses : t.stageClasses}
                 onChange={(next) => replace(index, next)}
               />
             )}
@@ -302,9 +315,18 @@ export function StageList({
         <Button size="sm" onClick={() => onChange([...stages, emptyTreeStage()])}>
           + {t.stageAddTree}
         </Button>
-        <Button size="sm" onClick={() => onChange([...stages, emptyProcessStage()])}>
-          + {t.stageAddProcess}
-        </Button>
+        {/* One cross stage per universe, and only the one that applies: the
+            backend refuses the other, so offering it would be a button whose
+            only outcome is an error message. */}
+        {isProcessStudy ? (
+          <Button size="sm" onClick={() => onChange([...stages, emptyMaterialStage()])}>
+            + {t.stageAddMaterial}
+          </Button>
+        ) : (
+          <Button size="sm" onClick={() => onChange([...stages, emptyProcessStage()])}>
+            + {t.stageAddProcess}
+          </Button>
+        )}
       </div>
     </div>
   );
@@ -490,16 +512,18 @@ function ProcessStageFields({
 function TreeStageFields({
   stage,
   classes,
+  label,
   onChange,
 }: {
   stage: Extract<StageState, { kind: "tree" }>;
-  classes: MaterialClass[];
+  classes: { slug: string; name: string }[];
+  label: string;
   onChange: (stage: StageState) => void;
 }) {
   return (
     <div className="flex flex-col gap-3">
       <SlugMultiSelect
-        label={t.stageClasses}
+        label={label}
         hint={t.stageClassesHint}
         options={classes}
         selected={stage.classSlugs}
