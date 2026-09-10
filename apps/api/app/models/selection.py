@@ -50,6 +50,13 @@ class SelectionStudy(Base):
     objective_text: Mapped[str | None] = mapped_column(String(1000), nullable=True)
     free_variables: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
 
+    # P0-3: which universe the study *returns*. "material" (the default, and
+    # every study saved before P0-3) or "process" — the manual's exercise 11,
+    # where the result table is the process universe and a stage reaches into
+    # the material one. It is a column and not an inference from the stages
+    # because an empty pipeline would otherwise have no universe at all.
+    universe: Mapped[str] = mapped_column(String(10), default="material", nullable=False)
+
     combinator: Mapped[str] = mapped_column(String(3), default="AND", nullable=False)
 
     # Optional performance index applied to the candidates.
@@ -112,13 +119,25 @@ class SelectionStage(Base):
       With ``include_descendants`` (the default) picking a branch picks
       everything under it — the thing ``in_class`` cannot express, because it
       compares the material's own class and every material sits in a leaf.
-    * ``"process"`` — the second direction of the same question (P0-2): keep the
-      materials that *some* selected process applies to, named in
+    * ``"process"`` — the cross-universe join, in a **material** study (P0-2):
+      keep the materials that *some* selected process applies to, named in
       ``process_slugs`` (leaves) and ``process_class_slugs`` (folders, expanded
       by the same ``include_descendants``). Any-of rather than all-of, because
       "weldable **and** injection-mouldable" is two stages, and the pipeline
       already intersects them — which is exactly the composition P0-1 exists
       for.
+    * ``"material"`` — the same join from the other side, in a **process**
+      study (P0-3): keep the processes that serve *some* material in the
+      selected folders, named in ``material_class_slugs``. Folders only: a
+      ``Material`` has no slug to name a leaf by, and the manual's own exercise
+      selects a folder ("Polymers > Thermoplastic").
+
+    Which kinds a stage may be is decided by the study's ``universe``: a
+    material study takes ``limit``/``tree``/``process``, a process study takes
+    ``limit``/``tree``/``material``. ``tree`` always means folders of the
+    study's **own** universe, so `class_slugs` holds material classes in one and
+    process classes in the other — the cross stage is the one that names the
+    other universe, and it names it in its own columns.
 
     ``enabled`` is a column and not a deletion on purpose: turning a stage off
     and back on is how the effect of a criterion is *seen*, and a stage the
@@ -137,7 +156,8 @@ class SelectionStage(Base):
         ForeignKey("selection_study.id", ondelete="CASCADE"), nullable=False, index=True
     )
     position: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    kind: Mapped[str] = mapped_column(String(10), nullable=False)  # limit | tree | process
+    # limit | tree | process | material
+    kind: Mapped[str] = mapped_column(String(10), nullable=False)
     # The user's own name for the stage. NULL means they did not name it, and
     # the interface says what the stage does instead — never a stored default
     # that would then outrank the stage's real content.
@@ -152,6 +172,9 @@ class SelectionStage(Base):
     # each entry names — the same reason `class_slugs` is not reused here.
     process_slugs: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
     process_class_slugs: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
+    # Material-stage payload (P0-3): folders of the material taxonomy, for a
+    # process study. Folders only — see the class docstring.
+    material_class_slugs: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
     # Shared by the tree and process stages: in both, picking a folder means
     # picking what is under it.
     include_descendants: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
