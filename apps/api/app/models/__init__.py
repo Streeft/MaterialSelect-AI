@@ -13,6 +13,7 @@ from app.models.enums import (
     DocumentKind,
     ImportStatus,
     IngestStatus,
+    ProcessAttributeKind,
     PropertyCategory,
     SourceAuthority,
 )
@@ -24,6 +25,10 @@ from app.models.material_keyword import MaterialKeyword
 from app.models.material_property_value import MaterialPropertyValue
 from app.models.performance_index import PerformanceIndex
 from app.models.process import MaterialProcess, Process, ProcessClass
+from app.models.process_attribute import (
+    ProcessAttributeDefinition,
+    ProcessAttributeValue,
+)
 from app.models.project import Project
 from app.models.property_definition import PropertyDefinition
 from app.models.saved_chart import SavedChart
@@ -60,6 +65,9 @@ __all__ = [
     "MaterialPropertyValue",
     "PerformanceIndex",
     "Process",
+    "ProcessAttributeDefinition",
+    "ProcessAttributeKind",
+    "ProcessAttributeValue",
     "ProcessClass",
     "Project",
     "PropertyCategory",
