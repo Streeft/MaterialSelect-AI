@@ -66,6 +66,14 @@ export type StageState =
       processSlugs: string[];
       processClassSlugs: string[];
       includeDescendants: boolean;
+    }
+  | {
+      id: string;
+      kind: "material";
+      label: string;
+      enabled: boolean;
+      materialClassSlugs: string[];
+      includeDescendants: boolean;
     };
 
 export function emptyLimitStage(): StageState {
@@ -101,6 +109,17 @@ export function emptyProcessStage(): StageState {
   };
 }
 
+export function emptyMaterialStage(): StageState {
+  return {
+    id: nextEditorId("stage"),
+    kind: "material",
+    label: "",
+    enabled: true,
+    materialClassSlugs: [],
+    includeDescendants: true,
+  };
+}
+
 /** The pipeline as the API takes it. An empty label is "not named", not `""`. */
 export function toStagePayload(stage: StageState): StageIn {
   const common = {
@@ -112,6 +131,14 @@ export function toStagePayload(stage: StageState): StageIn {
       ...common,
       kind: "tree",
       class_slugs: stage.classSlugs,
+      include_descendants: stage.includeDescendants,
+    };
+  }
+  if (stage.kind === "material") {
+    return {
+      ...common,
+      kind: "material",
+      material_class_slugs: stage.materialClassSlugs,
       include_descendants: stage.includeDescendants,
     };
   }
@@ -249,6 +276,13 @@ export function StageList({
                 onChange={(next) => replace(index, next)}
               />
             )}
+            {stage.kind === "material" && (
+              <MaterialStageFields
+                stage={stage}
+                classes={classes}
+                onChange={(next) => replace(index, next)}
+              />
+            )}
             {stage.kind === "process" && (
               <ProcessStageFields
                 stage={stage}
@@ -287,6 +321,7 @@ const STAGE_BADGES: Record<StageState["kind"], string> = {
   limit: t.stageKindLimit,
   tree: t.stageKindTree,
   process: t.stageKindProcess,
+  material: t.stageKindMaterial,
 };
 
 // Identity tones, not status ones: "success"/"warning" carry meaning elsewhere
@@ -295,6 +330,7 @@ const STAGE_TONES: Record<StageState["kind"], BadgeTone> = {
   limit: "neutral",
   tree: "info",
   process: "brand",
+  material: "info",
 };
 
 /**
@@ -354,6 +390,44 @@ function MultiSelect({
         </option>
       ))}
     </select>
+  );
+}
+
+function MaterialStageFields({
+  stage,
+  classes,
+  onChange,
+}: {
+  stage: Extract<StageState, { kind: "material" }>;
+  classes: MaterialClass[];
+  onChange: (stage: StageState) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-3">
+      <p className="text-sm text-fg-muted">{t.stageMaterialsHint}</p>
+
+      <SlugMultiSelect
+        label={t.stageMaterialClasses}
+        hint={t.stageClassesHint}
+        options={classes}
+        selected={stage.materialClassSlugs}
+        onChange={(materialClassSlugs) => onChange({ ...stage, materialClassSlugs })}
+      />
+
+      <Checkbox
+        label={t.stageIncludeDescendants}
+        checked={stage.includeDescendants}
+        onChange={(e) => onChange({ ...stage, includeDescendants: e.target.checked })}
+        hint={t.stageIncludeDescendantsHint}
+      />
+
+      {/* Absence written out, never an empty control the reader has to read into. */}
+      {stage.materialClassSlugs.length === 0 ? (
+        <p className="text-sm text-fg-muted">{t.stageNoMaterialClasses}</p>
+      ) : (
+        <p className="text-sm text-fg-muted">{t.stageMaterialWarning}</p>
+      )}
+    </div>
   );
 }
 

@@ -98,6 +98,43 @@ class SelectionRepository:
             reach.setdefault(material_id, []).append((process_slug, class_slug))
         return reach
 
+    def list_active_processes_with_class(self) -> list[Process]:
+        """Active processes with their class eager-loaded — the process
+        universe's answer to ``list_active_materials_with_values`` (P0-3).
+
+        No values are loaded because a process has none yet: attributes with
+        provenance are their own piece of work, and a snapshot that invented
+        them would be the one thing this codebase never does.
+        """
+        stmt = (
+            select(Process)
+            .options(joinedload(Process.process_class))
+            .where(Process.is_active.is_(True))
+            .order_by(Process.name)
+        )
+        return list(self.db.execute(stmt).scalars().unique().all())
+
+    def material_reach_by_process(self) -> dict[int, list[str]]:
+        """Every link as ``{process_id: [material class slug]}`` (P0-3).
+
+        The mirror of ``process_reach_by_material``, and read the same way: one
+        statement for the whole join, because the snapshot is built for the
+        entire active catalogue on every run. Inactive **materials** are left
+        out — a material withdrawn from the catalogue must not keep a process
+        admissible on its account.
+        """
+        stmt = (
+            select(MaterialProcess.process_id, MaterialClass.slug)
+            .join(Material, Material.id == MaterialProcess.material_id)
+            .join(MaterialClass, MaterialClass.id == Material.class_id)
+            .where(Material.is_active.is_(True))
+            .order_by(MaterialProcess.process_id)
+        )
+        reach: dict[int, list[str]] = {}
+        for process_id, class_slug in self.db.execute(stmt).all():
+            reach.setdefault(process_id, []).append(class_slug)
+        return reach
+
     def existing_process_slugs(self, slugs: list[str]) -> set[str]:
         if not slugs:
             return set()

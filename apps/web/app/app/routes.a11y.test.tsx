@@ -376,6 +376,7 @@ const studies: StudySummary[] = [
     description: null,
     created_at: "2026-03-14T10:00:00Z",
     constraint_count: 3,
+    universe: "material",
     criterion_count: 1,
     stage_count: 1,
   },

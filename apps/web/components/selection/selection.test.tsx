@@ -125,6 +125,7 @@ const s = ptBR.selection;
 
 function makeResult(overrides: Partial<RunResult> = {}): RunResult {
   return {
+    universe: "material",
     initial_count: 10,
     combinator: "AND",
     final_count: 3,
@@ -144,9 +145,9 @@ function makeResult(overrides: Partial<RunResult> = {}): RunResult {
       },
     ],
     candidates: [
-      { material_id: 1, name: "Liga A", class_name: "Metais", index_value: 12, score: 0.9, rank: 1 },
+      { record_id: 1, name: "Liga A", class_name: "Metais", index_value: 12, score: 0.9, rank: 1 },
       {
-        material_id: 2,
+        record_id: 2,
         name: "Liga B",
         class_name: "Metais",
         index_value: null,

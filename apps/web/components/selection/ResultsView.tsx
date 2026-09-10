@@ -145,7 +145,7 @@ export function ResultsView({ result }: { result: RunResult }) {
 
   // Carry the surviving candidates over to the visual surfaces. The top-ranked
   // material is highlighted on the map so the two views tell the same story.
-  const candidateIds = candidates.map((c) => c.material_id).join(",");
+  const candidateIds = candidates.map((c) => c.record_id).join(",");
   const topId = ranking?.ranked.find((r) => r.rank === 1)?.material_id;
 
   const withContributions = ranking?.ranked.filter((r) => r.contributions.length > 0) ?? [];
@@ -294,9 +294,9 @@ export function ResultsView({ result }: { result: RunResult }) {
               </THead>
               <TBody>
                 {candidates.map((c) => {
-                  const reason = undefinedReasonById.get(c.material_id);
+                  const reason = undefinedReasonById.get(c.record_id);
                   return (
-                    <Tr key={c.material_id} className={c.rank === 1 ? "bg-success-soft" : undefined}>
+                    <Tr key={c.record_id} className={c.rank === 1 ? "bg-success-soft" : undefined}>
                       {ranking && (
                         <Td numeric className="font-semibold">
                           {c.rank ?? <MissingValue />}

@@ -8,13 +8,14 @@
  * to whichever branch is the fallback, and the stage would be labelled wrong
  * instead of visibly unlabelled.
  */
-const STAGE_KIND_WORDS: Record<"limit" | "tree" | "process", string> = {
+const STAGE_KIND_WORDS: Record<"limit" | "tree" | "process" | "material", string> = {
   limit: "limites",
   tree: "classes",
   process: "processos",
+  material: "materiais",
 };
 
-function stageKindWord(kind: "limit" | "tree" | "process"): string {
+function stageKindWord(kind: "limit" | "tree" | "process" | "material"): string {
   return STAGE_KIND_WORDS[kind];
 }
 
@@ -264,7 +265,9 @@ export const ptBR = {
     // P0-2: o terceiro tipo. "Processos" e não "Fabricação" porque é o registro
     // que se escolhe, e é como o resto da interface e o relatório o chamam.
     stageKindProcess: "Processos",
-    stageNumber: (n: number, kind: "limit" | "tree" | "process") =>
+    // P0-3: o estágio de travessia visto do lado do processo.
+    stageKindMaterial: "Materiais",
+    stageNumber: (n: number, kind: "limit" | "tree" | "process" | "material") =>
       `Estágio ${n} (${stageKindWord(kind)})`,
     stageLabel: "Nome do estágio",
     stageLabelPlaceholder: "Opcional — ex.: Só metais leves",
@@ -293,6 +296,14 @@ export const ptBR = {
       "Marcado, escolher uma família traz todos os processos abaixo dela.",
     stageNoProcesses:
       "Nenhum processo escolhido — este estágio não estreita nada.",
+    // P0-3: o estágio de travessia num estudo de processos.
+    stageMaterialClasses: "Classes de material atendidas",
+    stageMaterialsHint:
+      "Mantém os processos que servem algum material das classes escolhidas. Só pastas: um material não tem identificador de folha aqui.",
+    stageNoMaterialClasses:
+      "Nenhuma classe de material escolhida — este estágio não estreita nada.",
+    stageMaterialWarning:
+      "Processo sem material vinculado não passa por este estágio: não se seleciona sobre dado que não se tem.",
     stageProcessWarning:
       "Material sem processo cadastrado não passa por este estágio: não se seleciona sobre dado que não se tem.",
     stagePassedAlone: "Admitidos sozinho",
