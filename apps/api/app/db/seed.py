@@ -27,12 +27,18 @@ from app.domain.data_quality import (
     build_scalar_value,
     missing_value,
 )
-from app.models.enums import BetterDirection, DataQuality, PropertyCategory
+from app.models.enums import (
+    BetterDirection,
+    DataQuality,
+    ProcessAttributeKind,
+    PropertyCategory,
+)
 from app.models.material import Material
 from app.models.material_class import MaterialClass
 from app.models.material_property_value import MaterialPropertyValue
 from app.models.performance_index import PerformanceIndex
 from app.models.process import MaterialProcess, Process, ProcessClass
+from app.models.process_attribute import ProcessAttributeDefinition, ProcessAttributeValue
 from app.models.project import Project
 from app.models.property_definition import PropertyDefinition
 from app.models.source import Source
@@ -580,6 +586,183 @@ PROCESSES = [
     },
 ]
 
+# --- Process attributes (P0-4) --------------------------------------------
+#
+# The five attributes of the manual's exercise 11, step 2, in an open
+# implementation: what a process can shape, how heavy, how thin, what it does to
+# the material, and from what batch size it pays off.
+#
+# ⚠️  Every number and every label below is FICTITIOUS, exactly like the demo
+# materials' property values, and lands with `DataQuality.ESTIMADO` under the
+# demo source. They exist to exercise the two shapes of value the engine gained
+# — a capability envelope and a discrete vocabulary — never to describe what a
+# real foundry or press can do. No third party's dataset is reproduced here: the
+# *questions* are the public methodology's, the answers are made up.
+PROCESS_ATTRIBUTES = [
+    {
+        "slug": "faixa-massa",
+        "name": "Faixa de massa",
+        "symbol": "m",
+        "kind": ProcessAttributeKind.ENVELOPE,
+        "physical_dimension": "[mass]",
+        "canonical_unit": "kg",
+        "accepted_units": ["kg", "g", "t"],
+        "better_direction": BetterDirection.NEUTRAL,
+        "description": "Massa de peça que o processo consegue produzir.",
+    },
+    {
+        "slug": "espessura-secao",
+        "name": "Faixa de espessura de seção",
+        "symbol": "t",
+        "kind": ProcessAttributeKind.ENVELOPE,
+        "physical_dimension": "[length]",
+        "canonical_unit": "m",
+        "accepted_units": ["m", "mm", "cm"],
+        "better_direction": BetterDirection.NEUTRAL,
+        "description": "Espessura de parede ou de seção que o processo alcança.",
+    },
+    {
+        "slug": "lote-economico",
+        "name": "Lote econômico mínimo",
+        "symbol": "n",
+        "kind": ProcessAttributeKind.ESCALAR,
+        # A count has no dimension, and pretending otherwise would put it in a
+        # unit system it does not belong to — same treatment `custo_massa` gets.
+        "physical_dimension": "",
+        "canonical_unit": "dimensionless",
+        "accepted_units": ["dimensionless"],
+        "better_direction": BetterDirection.LOWER,
+        "description": "Número de peças a partir do qual o processo se paga.",
+    },
+    {
+        "slug": "forma",
+        "name": "Forma",
+        "kind": ProcessAttributeKind.DISCRETO,
+        "allowed_labels": [
+            "Maciço 3D",
+            "Oco 3D",
+            "Chapa plana",
+            "Chapa conformada",
+            "Perfil de seção constante",
+        ],
+        "description": "Geometrias que o processo produz.",
+    },
+    {
+        "slug": "caracteristica-processo",
+        "name": "Característica do processo",
+        "kind": ProcessAttributeKind.DISCRETO,
+        "allowed_labels": [
+            "Conformação primária",
+            "Conformação secundária",
+            "Remoção de material",
+            "União",
+            "Tratamento de superfície",
+        ],
+        "description": "O que o processo faz ao material.",
+    },
+]
+
+#: Process slug → its attribute values. Fictitious, as the note above says.
+#:
+#: ``parafusamento`` and ``adesivagem`` deliberately carry **no** mass or
+#: thickness envelope, and ``pintura`` carries an explicitly missing one: absence
+#: is a state here as everywhere, and a limit stage over mass must reject all
+#: three rather than wave them through — including the one whose row exists and
+#: says nobody wrote the value down.
+PROCESS_ATTRIBUTE_VALUES = {
+    "fundicao-areia": [
+        {"slug": "faixa-massa", "kind": "envelope", "min": 0.2, "max": 400.0, "unit": "kg"},
+        {"slug": "espessura-secao", "kind": "envelope", "min": 3.0, "max": 120.0, "unit": "mm"},
+        {"slug": "lote-economico", "kind": "scalar", "value": 20.0, "unit": "dimensionless"},
+        {"slug": "forma", "kind": "labels", "labels": ["Maciço 3D", "Oco 3D"]},
+        {"slug": "caracteristica-processo", "kind": "labels", "labels": ["Conformação primária"]},
+    ],
+    "moldagem-injecao": [
+        {"slug": "faixa-massa", "kind": "envelope", "min": 0.005, "max": 12.0, "unit": "kg"},
+        {"slug": "espessura-secao", "kind": "envelope", "min": 0.6, "max": 9.0, "unit": "mm"},
+        {"slug": "lote-economico", "kind": "scalar", "value": 8000.0, "unit": "dimensionless"},
+        {"slug": "forma", "kind": "labels", "labels": ["Maciço 3D", "Oco 3D"]},
+        {"slug": "caracteristica-processo", "kind": "labels", "labels": ["Conformação primária"]},
+    ],
+    "forjamento": [
+        {"slug": "faixa-massa", "kind": "envelope", "min": 0.1, "max": 90.0, "unit": "kg"},
+        {"slug": "espessura-secao", "kind": "envelope", "min": 5.0, "max": 200.0, "unit": "mm"},
+        {"slug": "lote-economico", "kind": "scalar", "value": 500.0, "unit": "dimensionless"},
+        {"slug": "forma", "kind": "labels", "labels": ["Maciço 3D", "Chapa conformada"]},
+        {
+            "slug": "caracteristica-processo",
+            "kind": "labels",
+            "labels": ["Conformação secundária"],
+        },
+    ],
+    "extrusao": [
+        {"slug": "faixa-massa", "kind": "envelope", "min": 0.02, "max": 60.0, "unit": "kg"},
+        {"slug": "espessura-secao", "kind": "envelope", "min": 1.0, "max": 40.0, "unit": "mm"},
+        {"slug": "lote-economico", "kind": "scalar", "value": 1200.0, "unit": "dimensionless"},
+        {"slug": "forma", "kind": "labels", "labels": ["Perfil de seção constante"]},
+        {"slug": "caracteristica-processo", "kind": "labels", "labels": ["Conformação primária"]},
+    ],
+    "moldagem-compressao": [
+        {"slug": "faixa-massa", "kind": "envelope", "min": 0.05, "max": 25.0, "unit": "kg"},
+        {"slug": "espessura-secao", "kind": "envelope", "min": 1.5, "max": 30.0, "unit": "mm"},
+        {"slug": "lote-economico", "kind": "scalar", "value": 900.0, "unit": "dimensionless"},
+        {"slug": "forma", "kind": "labels", "labels": ["Chapa conformada", "Maciço 3D"]},
+        {"slug": "caracteristica-processo", "kind": "labels", "labels": ["Conformação primária"]},
+    ],
+    "prensagem-sinterizacao": [
+        {"slug": "faixa-massa", "kind": "envelope", "min": 0.001, "max": 4.0, "unit": "kg"},
+        {"slug": "espessura-secao", "kind": "envelope", "min": 1.0, "max": 25.0, "unit": "mm"},
+        {"slug": "lote-economico", "kind": "scalar", "value": 3000.0, "unit": "dimensionless"},
+        {"slug": "forma", "kind": "labels", "labels": ["Maciço 3D"]},
+        {"slug": "caracteristica-processo", "kind": "labels", "labels": ["Conformação primária"]},
+    ],
+    "usinagem-convencional": [
+        {"slug": "faixa-massa", "kind": "envelope", "min": 0.002, "max": 300.0, "unit": "kg"},
+        {"slug": "espessura-secao", "kind": "envelope", "min": 0.5, "max": 500.0, "unit": "mm"},
+        {"slug": "lote-economico", "kind": "scalar", "value": 1.0, "unit": "dimensionless"},
+        {"slug": "forma", "kind": "labels", "labels": ["Maciço 3D", "Oco 3D", "Chapa plana"]},
+        {"slug": "caracteristica-processo", "kind": "labels", "labels": ["Remoção de material"]},
+    ],
+    "retificacao": [
+        {"slug": "faixa-massa", "kind": "envelope", "min": 0.002, "max": 80.0, "unit": "kg"},
+        {"slug": "espessura-secao", "kind": "envelope", "min": 0.5, "max": 300.0, "unit": "mm"},
+        {"slug": "lote-economico", "kind": "scalar", "value": 1.0, "unit": "dimensionless"},
+        {"slug": "forma", "kind": "labels", "labels": ["Maciço 3D", "Chapa plana"]},
+        {"slug": "caracteristica-processo", "kind": "labels", "labels": ["Remoção de material"]},
+    ],
+    "solda-mig": [
+        {"slug": "espessura-secao", "kind": "envelope", "min": 1.0, "max": 40.0, "unit": "mm"},
+        {"slug": "forma", "kind": "labels", "labels": ["Chapa plana", "Perfil de seção constante"]},
+        {"slug": "caracteristica-processo", "kind": "labels", "labels": ["União"]},
+    ],
+    "adesivagem": [
+        {"slug": "espessura-secao", "kind": "envelope", "min": 0.2, "max": 20.0, "unit": "mm"},
+        {"slug": "forma", "kind": "labels", "labels": ["Chapa plana", "Chapa conformada"]},
+        {"slug": "caracteristica-processo", "kind": "labels", "labels": ["União"]},
+    ],
+    "parafusamento": [
+        {"slug": "forma", "kind": "labels", "labels": ["Chapa plana", "Maciço 3D"]},
+        {"slug": "caracteristica-processo", "kind": "labels", "labels": ["União"]},
+    ],
+    "pintura": [
+        # The row exists and says the value was never established — a different
+        # state from having no row, and both must read as "not selectable on".
+        {"slug": "faixa-massa", "kind": "missing"},
+        {
+            "slug": "caracteristica-processo",
+            "kind": "labels",
+            "labels": ["Tratamento de superfície"],
+        },
+    ],
+    "anodizacao": [
+        {
+            "slug": "caracteristica-processo",
+            "kind": "labels",
+            "labels": ["Tratamento de superfície"],
+        },
+    ],
+}
+
 #: Material name → the processes it is declared compatible with. Fictitious, as
 #: the note above says. "Cerâmica Demo D" has no joining process on purpose:
 #: absence is a state here too, and a process stage must reject a material
@@ -695,11 +878,137 @@ def _seed_process_universe(db: Session) -> dict[str, int]:
             db.add(MaterialProcess(material_id=material.id, process_id=process.id))
             links_created += 1
     db.flush()
+
+    attributes_created = _seed_process_attributes(db, process_by_slug)
     return {
         "process_classes": len(PROCESS_CLASSES),
         "processes": len(PROCESSES),
         "material_process_links": links_created,
+        "process_attributes": len(PROCESS_ATTRIBUTES),
+        "process_attribute_values": attributes_created,
     }
+
+
+def _seed_process_attributes(db: Session, process_by_slug: dict[str, Process]) -> int:
+    """The attribute catalogue and its demonstration values (P0-4).
+
+    Idempotent for the reason the pair is unique in the database: a repeated run
+    would raise on the second insert rather than duplicate, so each (process,
+    attribute) pair is checked before it is written.
+    """
+    source = _get_or_create_source(db, SOURCES[0])
+    attribute_by_slug = {
+        spec["slug"]: _get_or_create_process_attribute(db, spec) for spec in PROCESS_ATTRIBUTES
+    }
+    db.flush()
+
+    created = 0
+    for process_slug, value_specs in PROCESS_ATTRIBUTE_VALUES.items():
+        process = process_by_slug[process_slug]
+        for spec in value_specs:
+            attribute = attribute_by_slug[spec["slug"]]
+            already = db.execute(
+                select(ProcessAttributeValue).where(
+                    ProcessAttributeValue.process_id == process.id,
+                    ProcessAttributeValue.attribute_id == attribute.id,
+                )
+            ).one_or_none()
+            if already:
+                continue
+            row = _build_attribute_value_row(spec, attribute, source)
+            row.process_id = process.id
+            db.add(row)
+            created += 1
+    db.flush()
+    return created
+
+
+def _get_or_create_process_attribute(db: Session, spec: dict) -> ProcessAttributeDefinition:
+    existing = (
+        db.execute(
+            select(ProcessAttributeDefinition).where(
+                ProcessAttributeDefinition.slug == spec["slug"]
+            )
+        )
+        .scalars()
+        .one_or_none()
+    )
+    if existing:
+        return existing
+    obj = ProcessAttributeDefinition(
+        slug=spec["slug"],
+        name=spec["name"],
+        symbol=spec.get("symbol"),
+        description=spec.get("description"),
+        kind=spec["kind"],
+        physical_dimension=spec.get("physical_dimension", ""),
+        # NULL exactly for a discrete attribute — the table's own check
+        # constraint enforces it, so a typo here fails loudly at seed time
+        # instead of producing a definition the engine cannot read.
+        canonical_unit=spec.get("canonical_unit"),
+        accepted_units=spec.get("accepted_units", []),
+        allowed_labels=spec.get("allowed_labels", []),
+        better_direction=spec.get("better_direction", BetterDirection.NEUTRAL),
+    )
+    db.add(obj)
+    db.flush()
+    return obj
+
+
+def _build_attribute_value_row(
+    spec: dict,
+    attribute: ProcessAttributeDefinition,
+    source: Source,
+) -> ProcessAttributeValue:
+    """One ProcessAttributeValue from a seed spec, through the domain builders.
+
+    The numeric shapes go through `app.domain.data_quality` exactly as a material
+    property value does — same conversion, same trail — which is the whole reason
+    those builders were reused instead of copied. The envelope is the only one
+    that also stores the converted **bounds**: in a capability range they are the
+    criterion, and the typical is merely representative.
+    """
+    kind = spec["kind"]
+    labels: list[str] = []
+    if kind == "missing":
+        nv = missing_value()
+    elif kind == "labels":
+        nv = missing_value()
+        labels = list(spec["labels"])
+    elif kind == "scalar":
+        nv = build_scalar_value(spec["value"], spec["unit"], attribute.canonical_unit)
+    elif kind == "envelope":
+        nv = build_interval_value(
+            spec["min"],
+            spec["max"],
+            spec["unit"],
+            attribute.canonical_unit,
+            value_typical=spec.get("typical"),
+        )
+    else:  # pragma: no cover - guarded by seed authoring
+        raise ValueError(f"Tipo de valor desconhecido no seed: {kind!r}")
+
+    return ProcessAttributeValue(
+        attribute_id=attribute.id,
+        value_scalar=nv.value_scalar,
+        value_min=nv.value_min,
+        value_max=nv.value_max,
+        value_typical=nv.value_typical,
+        labels=labels,
+        original_unit=nv.original_unit,
+        normalized_value=nv.normalized_value,
+        normalized_min=nv.normalized_min,
+        normalized_max=nv.normalized_max,
+        canonical_unit=nv.canonical_unit,
+        conversion_method=nv.conversion_method,
+        notes=spec.get("notes"),
+        source_id=source.id,
+        data_quality=spec.get("quality", DataQuality.ESTIMADO),
+        # A discrete value is *present* — it holds labels — so it is not missing,
+        # even though it has no number. `missing_value()` above is only how the
+        # numeric fields get their NULLs without inventing a zero.
+        is_missing=nv.is_missing and kind != "labels",
+    )
 
 
 def _get_or_create_property(db: Session, spec: dict) -> PropertyDefinition:
