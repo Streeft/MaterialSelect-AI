@@ -214,7 +214,7 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-  A["Materiais ativos"] --> S["estágios: pilha ordenada<br/>(interseção dos habilitados)"]
+  A["Materiais ativos"] --> S["estágios: pilha ordenada<br/>limit · tree · process<br/>(interseção dos habilitados)"]
   S --> B["filters: restrições + funil"]
   B --> C["expressions: índice<br/>(AST seguro, dimensão derivada)"]
   C --> D["ranking: soma ponderada<br/>normalizada"]
@@ -273,6 +273,9 @@ aparece no seed e nos testes.
 ```mermaid
 erDiagram
   MaterialClass ||--o{ Material : classifica
+  ProcessClass ||--o{ Process : classifica
+  Material ||--o{ MaterialProcess : "aplica-se (N–N)"
+  Process ||--o{ MaterialProcess : "aplica-se (N–N)"
   Material ||--o{ MaterialPropertyValue : possui
   PropertyDefinition ||--o{ MaterialPropertyValue : define
   Source ||--o{ MaterialPropertyValue : origina
@@ -290,6 +293,9 @@ erDiagram
 | Tabela | Papel |
 |---|---|
 | `material_class` | Taxonomia hierárquica (`parent_id`). |
+| `process_class` | Taxonomia hierárquica de processos — as famílias (Conformação, União, Tratamento de superfície) são as **raízes**, não um enum ([D-57](DECISIONS.md)). |
+| `process` | Um processo de fabricação; `is_demo`, `is_active`. |
+| `material_process` | A junção N–N, chave composta. Sem propriedades: um número sobre o par precisaria da proveniência de `material_property_value`. |
 | `material` | Identidade, `is_demo`, `is_active` (soft delete), `import_job_id`. |
 | `property_definition` | Catálogo configurável: unidade canônica, dimensão, direção desejável. |
 | `material_property_value` | O valor **com toda a proveniência**. |

@@ -51,15 +51,15 @@ Níveis: **0** não existe · **1** rudimentar · **2** existe, precisa melhorar
 |---|---|---|
 | Arquitetura de dados (materiais) | **3** | `Material` + `MaterialClass` auto-referencial + `MaterialPropertyValue` com proveniência. Sólido. |
 | Rastreabilidade de unidade e proveniência | **5** | Valor original + unidade + normalizado + método + qualidade + fonte licenciada. **Acima do EduPack** — ver §4. |
-| Banco de processos | **0** | Não existe `Process`. Bloqueia Tree Stage cruzada, seleção de processo e o elo material↔processo do datasheet. |
+| Banco de processos | **3** | **Entregue (P0-2, [D-57](DECISIONS.md))**: `ProcessClass` hierárquica, `Process` e a associação N–N. Falta atributo de processo (faixa de espessura, custo) com proveniência, e seleção *de* processo (exercício 11). |
 | Browse hierárquico | **2** | A hierarquia agora é lida na seleção (P0-1), mas o catálogo ainda não tem árvore navegável, breadcrumb, favoritos nem recentes. |
 | Registro de família (folder-level) | **0** | `MaterialClass` é rótulo, não registro com descrição, aplicações e ciência. |
 | Search | **3** | Analisador próprio com AND/OR/NOT, frase, parênteses e curinga ([D-55](DECISIONS.md)). Falta relevância, fuzzy e destaque do trecho. |
-| Datasheet | **2** | Propriedades com proveniência existem; faltam aplicações, vantagens, limitações, processos compatíveis, similares e Science Notes. |
+| Datasheet | **3** | Propriedades com proveniência e **processos compatíveis** (P0-2), agrupados por família. Faltam aplicações, vantagens, limitações, similares e Science Notes. |
 | Motor de gráficos | **3** | Plotly à la carte no cliente + SVG determinístico no servidor; envelope, nuvem, linha de índice, escala log. Faltam caixa de seleção, anotações, rótulos arrastáveis e destaque de referência. |
 | **Seleção multiestágio** | **4** | **Entregue (P0-1, [D-56](DECISIONS.md))**: `SelectionStage` ordenada, habilitável e nomeável, com funil por estágio. Falta reordenar por arraste e duplicar um estágio. |
 | Limit Stage | **3** | Restrições com AND/OR aninhado (M6), operadores, unidades. Falta a barra de distribuição que orienta o valor. |
-| Tree Stage | **2** | Estágio de classes com descendentes (P0-1) — a hierarquia finalmente é navegável na seleção. A junção entre tabelas continua faltando, por falta de `Process` (P0-2). |
+| Tree Stage | **4** | **A junção entre tabelas existe (P0-2)**: um estágio de processo filtra materiais pelos processos que os servem, por pasta ou por folha, com descendentes. Falta o sentido inverso — processos como resultado (exercício 11). |
 | Chart Stage (gráfico que filtra) | **1** | O gráfico mostra; não seleciona. Sem caixa nem linha de índice que reprove registro. |
 | Ranking | **4** | Soma ponderada, TOPSIS, PROMETHEE II, AHP (M5), com normalização declarada. |
 | Índice de desempenho | **3** | Catálogo de índices + expressão livre, com avaliador seguro e dimensão verificada. |
@@ -82,11 +82,11 @@ Níveis: **0** não existe · **1** rudimentar · **2** existe, precisa melhorar
 | Testes | **5** | 987 backend, 210 frontend, E2E e Lighthouse na CI — e desde o P0-1 a migração é exercitada de verdade, nos dois sentidos, contra um banco que já contém dados. |
 | Desempenho | **3** | Índices, threadpool, Plotly fatiado. Não preparado para centenas de milhares de registros. |
 
-**Cobertura de capacidades inspiradas no EduPack: ~47%** — contado como
-capacidades em nível ≥ 3 sobre as 30 avaliadas (14 de 30). Eram 10 de 30 (~34%)
+**Cobertura de capacidades inspiradas no EduPack: ~57%** — contado como
+capacidades em nível ≥ 3 sobre as 30 avaliadas (17 de 30). Eram 10 de 30 (~34%)
 quando este documento foi escrito; P1-1 (busca) e P0-1 (multiestágio, com Tree
-Stage e o efeito colateral em projetos/testes) responderam pelas quatro que
-subiram.
+Stage e o efeito colateral em projetos/testes) levaram a 14, e o P0-2 subiu as
+três restantes — banco de processos (0→3), Tree Stage (2→4) e Datasheet (2→3).
 
 ---
 
@@ -109,11 +109,25 @@ funil por estágio, seção "Estágios" nos documentos e a pilha editável em
 arraste, duplicar um estágio, e o Chart Stage que **filtra** (P1, que agora tem
 onde encaixar).
 
-### P0-2 — Não existe ProcessUniverse
+### P0-2 — Não existe ProcessUniverse — **entregue**
 
 Tree Stage, no manual, é uma junção: *materiais que este processo molda*,
-*processos que unem estes materiais*. Com só uma tabela, é filtro por pasta.
-Falta `Process`, `ProcessClass` e a associação N–N com `Material`.
+*processos que unem estes materiais*. Com só uma tabela, era filtro por pasta.
+
+**Entregue** ([D-57](DECISIONS.md)): `ProcessClass` hierárquica, `Process`,
+a associação N–N `material_process`, um **terceiro tipo de estágio** (`process`)
+que filtra materiais por pasta ou por folha do universo de processos, os
+processos compatíveis na ficha do material, e um universo demonstrativo
+semeado — fictício e marcado, sendo a **compatibilidade** o que é inventado ali.
+
+### P0-3 — A seleção só devolve materiais
+
+O exercício 11 do manual seleciona **processos**: o universo de saída é a tabela
+de processos, não a de materiais. O P0-2 fez o sentido do exercício 9 — materiais
+filtrados pelos processos que os servem —; o sentido inverso precisa de um
+estudo cujo universo de resultado seja escolhido, o que toca `SelectionStudy`,
+o ranking (um processo não tem `densidade`) e os documentos exportados. É o
+próximo gargalo, e o único item do manual sem lugar no roteiro antes dele.
 
 ### P1-1 — Search é `LIKE` — **entregue**
 
@@ -156,7 +170,8 @@ correção, portão completo, decisão registrada.
 | | Item | Módulos do pedido | Depende de |
 |---|---|---|---|
 | ~~P0~~ | ~~`SelectionStage` como entidade de primeira classe~~ **entregue** | E, F, G, H | — |
-| **P0** | `Process`, `ProcessClass`, associação N–N com `Material` | A, G | — |
+| ~~P0~~ | ~~`Process`, `ProcessClass`, associação N–N com `Material`~~ **entregue** | A, G | — |
+| **P0** | Seleção **de processos** (universo de saída escolhido — exercício 11) | G | P0-2 |
 | **P1** | ~~Search com operadores~~ **entregue**; falta relevância e destaque | C | — |
 | **P1** | Chart Stage que **filtra** (caixa de seleção e linha de índice reprovando) | H, I | P0-1 |
 | **P1** | `My Records`: definidos pelo usuário, favoritos, recentes | T, U | — |
@@ -171,7 +186,7 @@ correção, portão completo, decisão registrada.
 | **P4** | Battery Designer | S | P3 Synthesizer |
 | **P4** | PDF e DOCX no gerador de relatório | V | — |
 
-**Ordem de execução:** ~~P0-1~~ → **P0-2** → P1 → P2 → P3 → P4.
+**Ordem de execução:** ~~P0-1~~ → ~~P0-2~~ → **P0-3** → P1 → P2 → P3 → P4.
 
 ### O que isto não é
 

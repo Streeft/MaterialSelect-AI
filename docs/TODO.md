@@ -80,14 +80,16 @@ Pesa mais do que parece porque as figuras vão para a monografia.
 
 ## Entidades ainda não modeladas
 
-`GeneratedReport` e `Process`/`ProcessClass`. A primeira aguarda especificação
-de caso de uso; as duas últimas são o **P0-2** do roteiro de plataforma
-([14-plataforma-selecao.md](14-plataforma-selecao.md)) — sem elas o Tree Stage
-não pode ser a junção entre tabelas que o manual descreve ("materiais que este
-processo molda", "processos que unem estes materiais"), e continua sendo só
-filtro por pasta. (`User` e `Project` saíram desta lista com A5; `AuditEvent`
-saiu com M2; `SavedChart` saiu com B7 — salvar e reabrir configurações de mapa;
-`SelectionStage` saiu com P0-1.)
+`GeneratedReport`, e nada mais de estrutural no roteiro imediato. Aguarda
+especificação de caso de uso. (`User` e `Project` saíram desta lista com A5;
+`AuditEvent` saiu com M2; `SavedChart` saiu com B7 — salvar e reabrir
+configurações de mapa; `SelectionStage` saiu com P0-1; `Process`,
+`ProcessClass` e `MaterialProcess` saíram com P0-2.)
+
+O que **falta modelar** para o próximo gargalo (P0-3) não é uma entidade nova e
+sim uma escolha em `SelectionStudy`: **qual universo o estudo devolve**. Hoje é
+sempre material; o exercício 11 do manual seleciona processos, e isso toca o
+ranking (um processo não tem `densidade`) e os documentos exportados.
 
 ---
 
@@ -104,10 +106,25 @@ Registrados para não voltarem por engano:
   da própria classe e todo material mora numa folha). Migração aditiva
   `a1c4f2e8b7d3` com backfill; funil por estágio e seção "Estágios" nos dois
   documentos; a pilha editável em `/app/selecao`, que continua abrindo com um
-  único estágio para quem faz um estudo simples. Fechou de passagem a lacuna de
+  único estágio para quem faz um estudo simples. **O P0-2 acrescentou o terceiro
+  tipo, `process`** — ver a entrada abaixo. Fechou de passagem a lacuna de
   round-trip que o M6 deixou anotada. **O que ficou de fora, e é melhoria e não
   bloqueio:** reordenar por arraste, duplicar um estágio, e o Chart Stage que
   filtra (P1, que agora tem onde encaixar).
+- ~~**P0-2** — não existia universo de processos~~ — `ProcessClass`
+  hierárquica, `Process` e a associação N–N `material_process`, entregues em
+  sete passos ([D-57](DECISIONS.md)). O Tree Stage virou a **junção entre
+  tabelas** do método: um terceiro tipo de estágio, `process`, mantém os
+  materiais que *algum* processo selecionado serve, por pasta ou por folha, com
+  descendentes. Migração aditiva `b7e2d9c4a105` com backfill, conferida por
+  mutação. A ficha do material lista os processos compatíveis, agrupados por
+  família — parte da lacuna do Datasheet. Universo demonstrativo semeado,
+  fictício e marcado, sendo a **compatibilidade** o que é inventado ali.
+  Pegou dois defeitos pré-existentes de passagem (o funil que reportava
+  `in_tree` para um estágio de processo; a sugestão da IA descartada em silêncio
+  numa pilha sem estágio de limites). **O que ficou de fora, e é o próximo
+  gargalo e não uma lacuna deste item:** selecionar **processos** como resultado
+  (exercício 11 do manual) — o P0-3.
 - ~~**P1-1** — busca era `LIKE`~~ — analisador próprio com AND/OR/NOT, frase,
   parênteses e curinga ([D-55](DECISIONS.md)). Falta relevância, *fuzzy* e
   destaque do trecho, registrados como melhoria e não como bloqueio.
