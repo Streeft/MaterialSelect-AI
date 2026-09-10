@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 from app.domain.filters import (
     Constraint,
     ConstraintGroupNode,
@@ -9,6 +11,7 @@ from app.domain.filters import (
     Operator,
     ProcessReach,
     ProcessSelection,
+    ProcessSnapshot,
     SelectionStageNode,
     TreeSelection,
     apply_constraint_tree,
@@ -16,6 +19,7 @@ from app.domain.filters import (
     apply_stage,
     apply_stages,
     evaluate_constraint,
+    matches_linked_tree,
     matches_processes,
     matches_tree,
 )
@@ -548,3 +552,128 @@ def test_a_process_stage_with_no_selection_object_does_not_narrow():
     # must not reject the catalogue.
     stage = SelectionStageNode(kind="process", label=None, enabled=True)
     assert len(apply_stage(UNIVERSE, stage)) == len(UNIVERSE)
+
+
+# --- The process universe as the result (P0-3) --------------------------------
+
+
+def _process(id_, name, class_path, *material_paths):
+    """A process record: its own folder lineage, and the material lineages it serves."""
+    return ProcessSnapshot(
+        id=id_,
+        name=name,
+        class_name=class_path[-1].title(),
+        class_slug=class_path[-1],
+        class_path=list(class_path),
+        material_paths=[tuple(p) for p in material_paths],
+    )
+
+
+#   conformacao ── liquido ── Injeção      → polimeros/termoplasticos
+#               └─ solido  ── Forjamento   → metais/acos
+#   uniao ─────────────────── Solda MIG    → metais/acos, metais/ligas_leves
+#   uniao ─────────────────── Adesivagem   → (nenhum material)
+PROCESSES = [
+    _process(1, "Injeção", ["conformacao", "liquido"], ["polimeros", "termoplasticos"]),
+    _process(2, "Forjamento", ["conformacao", "solido"], ["metais", "acos"]),
+    _process(3, "Solda MIG", ["uniao"], ["metais", "acos"], ["metais", "ligas_leves"]),
+    _process(4, "Adesivagem", ["uniao"]),
+]
+
+
+def _serving(selection):
+    return [p.name for p in PROCESSES if matches_linked_tree(p.material_paths, selection)]
+
+
+def test_a_material_folder_keeps_the_processes_that_serve_it():
+    assert _serving(TreeSelection(class_slugs=["metais"])) == ["Forjamento", "Solda MIG"]
+
+
+def test_a_material_leaf_folder_is_exact():
+    assert _serving(TreeSelection(class_slugs=["termoplasticos"])) == ["Injeção"]
+
+
+def test_linked_folders_are_any_of_not_all_of():
+    # Solda MIG serves aços *and* ligas leves; Forjamento only aços. Picking both
+    # folders keeps a process that serves either.
+    selection = TreeSelection(class_slugs=["acos", "ligas_leves"])
+    assert _serving(selection) == ["Forjamento", "Solda MIG"]
+
+
+def test_without_descendants_a_material_folder_means_its_own_leaf():
+    # No material sits directly in "metais" — they are all in leaves — so ticking
+    # it without descendants admits no process at all.
+    assert _serving(TreeSelection(class_slugs=["metais"], include_descendants=False)) == []
+    assert _serving(TreeSelection(class_slugs=["acos"], include_descendants=False)) == [
+        "Forjamento",
+        "Solda MIG",
+    ]
+
+
+def test_a_process_that_serves_no_material_never_passes():
+    # Same rule as everywhere: you cannot select on data you do not have.
+    assert "Adesivagem" not in _serving(TreeSelection(class_slugs=["metais", "polimeros"]))
+
+
+def test_an_empty_material_selection_does_not_narrow():
+    assert _serving(TreeSelection()) == [p.name for p in PROCESSES]
+
+
+def test_an_unknown_material_folder_admits_nothing():
+    assert _serving(TreeSelection(class_slugs=["inexistente"])) == []
+
+
+def _material_stage(*slugs, enabled=True, include_descendants=True):
+    return SelectionStageNode(
+        kind="material",
+        label=None,
+        enabled=enabled,
+        materials=TreeSelection(class_slugs=list(slugs), include_descendants=include_descendants),
+    )
+
+
+def _process_tree_stage(*slugs):
+    """A tree stage in a process study selects folders of the *process* taxonomy."""
+    return SelectionStageNode(
+        kind="tree", label=None, enabled=True, tree=TreeSelection(class_slugs=list(slugs))
+    )
+
+
+def test_a_tree_stage_walks_the_process_taxonomy_in_a_process_study():
+    # The same `matches_tree` that walks the material taxonomy in a material
+    # study — the record's own lineage is what it reads, whichever universe.
+    stage = _process_tree_stage("conformacao")
+    assert [p.name for p in apply_stage(PROCESSES, stage)] == ["Injeção", "Forjamento"]
+
+
+def test_the_manual_exercise_11_shape_runs_end_to_end():
+    """Process Universe, narrowed to a family, then to the material folder —
+    the pipeline of the manual's exercise 11, steps 1 and 3."""
+    stages = [_process_tree_stage("uniao"), _material_stage("metais")]
+    assert [p.name for p in apply_stages(PROCESSES, stages)] == ["Solda MIG"]
+
+
+def test_a_disabled_material_stage_does_not_narrow():
+    assert len(apply_stages(PROCESSES, [_material_stage("metais", enabled=False)])) == len(
+        PROCESSES
+    )
+
+
+def test_a_material_stage_with_nothing_ticked_does_not_narrow():
+    assert len(apply_stages(PROCESSES, [_material_stage()])) == len(PROCESSES)
+
+
+def test_a_material_stage_over_materials_fails_loudly():
+    """A wiring bug, not a user input: the silent alternative — "links to
+    nothing", so nothing passes — reads exactly like a legitimately empty
+    result."""
+    with pytest.raises(TypeError, match="process study"):
+        apply_stage(PIPELINE_MATERIALS, _material_stage("metais"))
+
+
+def test_the_record_base_gives_both_universes_the_same_lineage_rule():
+    # A process with no ancestry is matchable by its own class alone — the same
+    # fallback a material has.
+    lone = ProcessSnapshot(id=9, name="Solda", class_name="União", class_slug="uniao")
+    assert lone.class_lineage == ("uniao",)
+    assert matches_tree(lone, TreeSelection(class_slugs=["uniao"]))

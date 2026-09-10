@@ -67,8 +67,16 @@ class ProcessReach:
 
 
 @dataclass
-class MaterialSnapshot:
-    """In-memory view of one active material used across the selection pipeline.
+class RecordSnapshot:
+    """In-memory view of one selectable record, in **either** universe (P0-3).
+
+    Materials were the only universe until the process one arrived, so
+    everything the engine does to a record — evaluate a constraint against its
+    values, match its class lineage against a folder selection, count it in a
+    funnel — was written against ``MaterialSnapshot``. None of it is actually
+    about materials: it is about *a record with a class and some values*. This
+    base is that record, and it is what lets one engine run a material study and
+    a process study without a second implementation to keep in agreement.
 
     ``values`` maps a property slug to its canonical (normalized) numeric value.
     Missing / absent properties are simply absent from the dict — never 0.
@@ -78,29 +86,52 @@ class MaterialSnapshot:
     name: str
     class_name: str
     class_slug: str
-    keywords: list[str]
-    values: dict[str, float]
-    #: The material's class lineage, root→leaf, its own slug last — what makes
-    #: a tree stage able to say "everything under Metais" (P0-1). Defaults to
+    keywords: list[str] = field(default_factory=list)
+    values: dict[str, float] = field(default_factory=dict)
+    #: The record's class lineage, root→leaf, its own slug last — what makes a
+    #: tree stage able to say "everything under Metais" (P0-1). Defaults to
     #: empty because ancestry is something the service reads from the taxonomy;
     #: a snapshot built without it is matchable by its own class only, which is
     #: exactly the pre-P0-1 ``IN_CLASS`` behaviour. Read it through
     #: ``class_lineage``, never directly.
     class_path: list[str] = field(default_factory=list)
+
+    @property
+    def class_lineage(self) -> tuple[str, ...]:
+        """The class slugs a tree selection may match this record by.
+
+        Absent ancestry is absent, not an empty set that matches nothing: with
+        no ``class_path`` this is the record's own class alone.
+        """
+        return tuple(self.class_path) if self.class_path else (self.class_slug,)
+
+
+@dataclass
+class MaterialSnapshot(RecordSnapshot):
+    """A record in the material universe."""
+
     #: The processes this material can be made with, each with its own folder
     #: lineage (P0-2). Empty is the honest default: a snapshot built without it
     #: simply has no process side to its join, which is what every snapshot
     #: built before P0-2 looks like.
     processes: list[ProcessReach] = field(default_factory=list)
 
-    @property
-    def class_lineage(self) -> tuple[str, ...]:
-        """The class slugs a tree selection may match this material by.
 
-        Absent ancestry is absent, not an empty set that matches nothing: with
-        no ``class_path`` this is the material's own class alone.
-        """
-        return tuple(self.class_path) if self.class_path else (self.class_slug,)
+@dataclass
+class ProcessSnapshot(RecordSnapshot):
+    """A record in the process universe (P0-3).
+
+    The join's other side is *folder lineages*, not slugs: the material stage
+    selects folders of the material taxonomy, because a ``Material`` has no slug
+    to name a leaf by and the method's own exercise selects a folder. Carrying
+    the lineages here — rather than a taxonomy map passed down through
+    ``apply_stage`` — keeps matching a local question about one snapshot, the
+    same reasoning ``ProcessReach`` follows on the material side.
+    """
+
+    #: One entry per material this process serves: that material's class
+    #: lineage, root→leaf.
+    material_paths: list[tuple[str, ...]] = field(default_factory=list)
 
 
 @dataclass
@@ -130,20 +161,56 @@ class TreeSelection:
     Selecting nothing imposes no restriction, the same convention an empty
     constraint group follows: a stage with nothing ticked is a stage that does
     not narrow, not a stage that rejects everything.
+
+    Reused verbatim by the **material** stage of a process study (P0-3): a
+    folder selection is a folder selection, and what changes is only whether it
+    is matched against the record's own lineage or against the lineages of the
+    records it links to — see ``matches_linked_tree``.
     """
 
     class_slugs: tuple[str, ...] | list[str] = field(default_factory=tuple)
     include_descendants: bool = True
 
 
-def matches_tree(material: MaterialSnapshot, selection: TreeSelection) -> bool:
-    """Return True if ``material`` falls inside ``selection``'s folders."""
+def matches_tree(record: RecordSnapshot, selection: TreeSelection) -> bool:
+    """Return True if ``record`` falls inside ``selection``'s folders.
+
+    Universe-agnostic: it reads the record's own lineage, which a material and a
+    process both have.
+    """
     picked = set(selection.class_slugs)
     if not picked:
         return True
     if selection.include_descendants:
-        return any(slug in picked for slug in material.class_lineage)
-    return material.class_slug in picked
+        return any(slug in picked for slug in record.class_lineage)
+    return record.class_slug in picked
+
+
+def matches_linked_tree(
+    paths: list[tuple[str, ...]] | tuple[tuple[str, ...], ...], selection: TreeSelection
+) -> bool:
+    """Return True if **some** linked record falls inside ``selection``'s folders.
+
+    The folder half of the join, seen from the other side (P0-3): given the
+    class lineages of the records this one links to, does any of them sit in a
+    picked folder. Any-of and not all-of, for the same reason
+    ``ProcessSelection`` gives — the conjunction is two stages.
+
+    A record that links to nothing never passes a non-empty selection: same rule
+    as everywhere else here, you cannot select on data you do not have.
+    """
+    picked = set(selection.class_slugs)
+    if not picked:
+        return True
+    for path in paths:
+        if selection.include_descendants:
+            if any(slug in picked for slug in path):
+                return True
+        elif path and path[-1] in picked:
+            # Without descendants a folder means the records filed directly in
+            # it — the linked record's own class, not an ancestor of it.
+            return True
+    return False
 
 
 @dataclass(frozen=True)
@@ -177,7 +244,12 @@ class ProcessSelection:
 
 
 def matches_processes(material: MaterialSnapshot, selection: ProcessSelection) -> bool:
-    """Return True if some selected process applies to ``material``."""
+    """Return True if some selected process applies to ``material``.
+
+    Material-side by construction: only a material carries ``processes``. The
+    mirror question — which processes serve a material folder — is
+    ``matches_linked_tree`` over a ``ProcessSnapshot``.
+    """
     picked_processes = set(selection.process_slugs)
     picked_folders = set(selection.process_class_slugs)
     if not picked_processes and not picked_folders:
@@ -254,22 +326,28 @@ class ConstraintGroupNode:
 class SelectionStageNode:
     """One stage of the selection pipeline, independent of the ORM (P0-1).
 
-    A ``"limit"`` stage carries ``root`` (a constraint tree, M6's nesting
-    included); a ``"tree"`` stage carries ``tree`` (a folder selection over the
-    material taxonomy); a ``"process"`` stage carries ``processes`` (P0-2, the
-    join into the process universe). The other fields are ``None`` — a stage is
-    one kind of question, not several.
+    One payload per kind, and the others are ``None`` — a stage is one kind of
+    question, not several:
+
+    * ``"limit"`` → ``root``, a constraint tree with M6's nesting.
+    * ``"tree"`` → ``tree``, folders of the study's **own** universe.
+    * ``"process"`` → ``processes``, the join into the process universe, in a
+      material study (P0-2).
+    * ``"material"`` → ``materials``, the same join from the other side, in a
+      process study (P0-3): folders of the material taxonomy, matched against
+      the materials each process serves.
     """
 
-    kind: str  # "limit" | "tree" | "process"
+    kind: str  # "limit" | "tree" | "process" | "material"
     label: str | None
     enabled: bool
     root: ConstraintGroupNode | None = None
     tree: TreeSelection | None = None
     processes: ProcessSelection | None = None
+    materials: TreeSelection | None = None
 
 
-def evaluate_constraint(constraint: Constraint, material: MaterialSnapshot) -> bool:
+def evaluate_constraint(constraint: Constraint, material: RecordSnapshot) -> bool:
     """Return True if ``material`` satisfies ``constraint``."""
     op = constraint.operator
 
@@ -377,7 +455,7 @@ def apply_constraints(
     return FilterResult(initial, combinator, steps, [m.id for m in remaining])
 
 
-def _group_passes(material: MaterialSnapshot, group: ConstraintGroupNode) -> bool:
+def _group_passes(material: RecordSnapshot, group: ConstraintGroupNode) -> bool:
     """One group's own AND/OR of its direct constraints and child groups'
     recursive results — the tree-walk step apply_constraint_tree repeats
     per material.
@@ -401,8 +479,8 @@ def _group_passes(material: MaterialSnapshot, group: ConstraintGroupNode) -> boo
 
 
 def apply_constraint_tree(
-    materials: list[MaterialSnapshot], root: ConstraintGroupNode
-) -> list[MaterialSnapshot]:
+    materials: list[RecordSnapshot], root: ConstraintGroupNode
+) -> list[RecordSnapshot]:
     """Filter materials by a nested AND/OR constraint tree — the M6
     generalization of apply_constraints's single global operator.
 
@@ -414,9 +492,23 @@ def apply_constraint_tree(
     return [material for material in materials if _group_passes(material, root)]
 
 
-def apply_stage(
-    materials: list[MaterialSnapshot], stage: SelectionStageNode
-) -> list[MaterialSnapshot]:
+def _material_paths(record: RecordSnapshot) -> tuple[tuple[str, ...], ...]:
+    """The material lineages a process serves.
+
+    Raises for anything that is not a process: a material stage over materials
+    is a wiring bug (the service refuses that combination), and the tempting
+    silent alternative — treat it as "links to nothing", so nothing passes — is
+    indistinguishable from a legitimately empty result, which is precisely the
+    kind of quiet wrong answer this engine is built not to give.
+    """
+    if not isinstance(record, ProcessSnapshot):
+        raise TypeError(
+            f"A material stage applies only to a process study; got {type(record).__name__}."
+        )
+    return tuple(record.material_paths)
+
+
+def apply_stage(materials: list[RecordSnapshot], stage: SelectionStageNode) -> list[RecordSnapshot]:
     """Filter ``materials`` by one stage alone, ignoring ``stage.enabled``.
 
     Ignoring ``enabled`` is what makes the funnel able to answer "how many
@@ -433,14 +525,22 @@ def apply_stage(
         if stage.processes is None:
             return list(materials)
         return [m for m in materials if matches_processes(m, stage.processes)]
+    if stage.kind == "material":
+        if stage.materials is None:
+            return list(materials)
+        return [
+            record
+            for record in materials
+            if matches_linked_tree(_material_paths(record), stage.materials)
+        ]
     if stage.root is None:
         return list(materials)
     return apply_constraint_tree(materials, stage.root)
 
 
 def apply_stages(
-    materials: list[MaterialSnapshot], stages: list[SelectionStageNode]
-) -> list[MaterialSnapshot]:
+    materials: list[RecordSnapshot], stages: list[SelectionStageNode]
+) -> list[RecordSnapshot]:
     """Run the pipeline: the intersection of the **enabled** stages, in order.
 
     Intersection commutes, so the order does not change the surviving set —
