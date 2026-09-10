@@ -66,10 +66,19 @@ class ExportService:
         # its already-populated property cache and snapshot list rather than
         # rebuilding them — see SelectionService.describe_pipeline.
         root_group_description = service.describe_pipeline(study)
-        candidate_ids = [c.record_id for c in result.candidates]
-        materials = {
-            m.id: m for m in self.chart_repo.list_materials(material_ids=candidate_ids or [-1])
-        }
+        # Only a material study's candidates are materials (P0-3). Looking a
+        # process id up in the material table would not merely find nothing —
+        # it would find whatever material happens to carry that id, and print
+        # its provenance under a process's name. In a document whose whole
+        # purpose is auditability that is the worst available failure, so the
+        # lookup simply does not happen for the other universe.
+        if result.universe == "material":
+            candidate_ids = [c.record_id for c in result.candidates]
+            materials = {
+                m.id: m for m in self.chart_repo.list_materials(material_ids=candidate_ids or [-1])
+            }
+        else:
+            materials = {}
         return study, result, materials, root_group_description
 
     def _sheets(
@@ -351,9 +360,17 @@ class ExportService:
             # true the moment a stage could be a folder selection rather than a
             # restriction. See SelectionService.describe_pipeline.
             ["Lógica da seleção", root_group_description],
-            ["Materiais considerados", result.initial_count],
-            ["Candidatos após as restrições", result.final_count],
         ]
+        # P0-3: the document states which universe it selected over. Left to be
+        # inferred from the candidate names, a reader skimming the header would
+        # take a list of processes for a list of materials.
+        if result.universe == "process":
+            rows.append(["Universo do resultado", "Processos"])
+            rows.append(["Processos considerados", result.initial_count])
+        else:
+            rows.append(["Universo do resultado", "Materiais"])
+            rows.append(["Materiais considerados", result.initial_count])
+        rows.append(["Candidatos após as restrições", result.final_count])
         return Sheet(name="Problema", header=["Item", "Valor"], rows=rows)
 
     @staticmethod
@@ -370,7 +387,17 @@ class ExportService:
         too, because that is the question switching one off asks. "Restantes"
         is the running count after the stage, unchanged when it is disabled.
         """
-        kinds = {"limit": "Limites", "tree": "Classes", "process": "Processos"}
+        kinds = {
+            "limit": "Limites",
+            "tree": "Classes",
+            "process": "Processos",
+            "material": "Materiais",
+        }
+        if result.universe == "process":
+            # A tree stage walks the study's own universe, so in a process study
+            # it selects process *families* — calling that column "Classes"
+            # would point the reader at the material taxonomy.
+            kinds = {**kinds, "tree": "Famílias"}
         rows = [
             [
                 stage.position + 1,
@@ -428,11 +455,25 @@ class ExportService:
     @classmethod
     def _candidates_sheet(cls, result: RunResultOut) -> Sheet:
         rows = list(cls._candidates_seq(result))
+        # The column is named for what it holds. "Material" over a list of
+        # processes would be a caption contradicting its own table.
+        subject = "Processo" if result.universe == "process" else "Material"
+        notes: list[str] = []
+        if not rows:
+            notes.append("Nenhum candidato sobreviveu às restrições.")
+        if result.universe == "process":
+            # The reason a figure is missing belongs where the reader looks for
+            # the figure. With no attributes there is no plane to draw on, and
+            # an unexplained gap reads as a rendering failure.
+            notes.append(
+                "Sem mapa de seleção e sem ranqueamento: ambos precisam de valores numéricos, "
+                "e um processo ainda não tem atributo cadastrado."
+            )
         return Sheet(
             name="Candidatos",
-            header=["Posição", "Material", "Classe", "Índice", "Pontuação"],
+            header=["Posição", subject, "Classe", "Índice", "Pontuação"],
             rows=rows,
-            notes=[] if rows else ["Nenhum candidato sobreviveu às restrições."],
+            notes=notes,
         )
 
     @staticmethod
@@ -595,6 +636,20 @@ class ExportService:
         return slugs
 
     def _provenance_sheet(self, study, result: RunResultOut, materials: dict) -> Sheet:
+        if result.universe == "process":
+            # Declared, never a section that quietly appears empty: a process
+            # carries no attribute with provenance yet, so there is nothing to
+            # trace — and saying so is the audit trail for this document.
+            return Sheet(
+                name="Proveniência dos valores",
+                header=["Item", "Situação"],
+                rows=[],
+                notes=[
+                    "Este estudo seleciona processos, e um processo ainda não tem atributo "
+                    "cadastrado — não há valor cuja origem rastrear. A seleção acima usou "
+                    "apenas a taxonomia de processos e o vínculo com os materiais."
+                ],
+            )
         slugs = self._relevant_slugs(study, result)
         # A material with no row at all for a property still has to name that
         # property the way every other row names it. Reading the name off the
