@@ -28,6 +28,7 @@ import type {
   PerformanceIndex,
   PortalSession,
   Process,
+  ProcessAttribute,
   ProcessClass,
   PropertyDefinition,
   PropertyDefinitionIn,
@@ -188,6 +189,18 @@ export function listProcesses(): Promise<Process[]> {
 
 export function listProcessClasses(): Promise<ProcessClass[]> {
   return request<ProcessClass[]>(`/api/processes/classes`);
+}
+
+/**
+ * The process attribute catalogue (P0-4) — what a limit stage over processes can
+ * select on, and which shape of value each attribute holds.
+ *
+ * A call of its own and not part of `listProperties`: the two catalogues are
+ * separate tables precisely so a material property picker cannot reach "faixa de
+ * massa" and offer a process capability as a material property.
+ */
+export function listProcessAttributes(): Promise<ProcessAttribute[]> {
+  return request<ProcessAttribute[]>(`/api/processes/attributes`);
 }
 
 // --- Properties -----------------------------------------------------------

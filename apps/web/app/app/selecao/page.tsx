@@ -11,6 +11,7 @@ import {
   getStudy,
   listClasses,
   listPerformanceIndices,
+  listProcessAttributes,
   listProcessClasses,
   listProcesses,
   listProperties,
@@ -287,6 +288,13 @@ function SelectionWizard() {
   // data like the taxonomy, so it is cached under its own key and read by every
   // stage in the pipeline.
   const processes = useQuery({ queryKey: ["processes"], queryFn: listProcesses });
+  // P0-4: what a limit stage over processes selects on. Its own query, because
+  // it is its own catalogue — a material property picker that could reach "faixa
+  // de massa" would be offering a process capability as a material property.
+  const processAttributes = useQuery({
+    queryKey: ["process-attributes"],
+    queryFn: listProcessAttributes,
+  });
   const processClasses = useQuery({
     queryKey: ["process-classes"],
     queryFn: listProcessClasses,
@@ -769,6 +777,7 @@ function SelectionWizard() {
             <StageList
               stages={stages}
               properties={properties.data ?? []}
+              processAttributes={processAttributes.data ?? []}
               classes={classes.data ?? []}
               processes={processes.data ?? []}
               processClasses={processClasses.data ?? []}

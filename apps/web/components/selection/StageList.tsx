@@ -4,6 +4,7 @@ import type {
   ConstraintGroupIn,
   MaterialClass,
   Process,
+  ProcessAttribute,
   ProcessClass,
   PropertyDefinition,
   SelectionUniverse,
@@ -174,6 +175,9 @@ export function isSingleLimitStage(stages: StageState[]): boolean {
 interface Props {
   stages: StageState[];
   properties: PropertyDefinition[];
+  /** The process attribute catalogue (P0-4) — what a limit stage selects on in a
+   * process study. Empty while it loads, or if none is catalogued. */
+  processAttributes?: ProcessAttribute[];
   classes: MaterialClass[];
   /** The process universe (P0-2). Empty while it loads, or if none is catalogued. */
   processes?: Process[];
@@ -191,6 +195,7 @@ interface Props {
 export function StageList({
   stages,
   properties,
+  processAttributes = [],
   classes,
   processes = [],
   processClasses = [],
@@ -276,8 +281,13 @@ export function StageList({
             {stage.kind === "limit" && (
               <ConstraintEditor
                 root={stage.group}
-                properties={properties}
-                classes={classes}
+                // A limit stage names attributes of the study's **own** universe
+                // (P0-4), the same rule a tree stage follows for folders — and
+                // `in_class` inside it compares the record's own class, so the
+                // folder list follows the universe too.
+                properties={isProcessStudy ? processAttributes : properties}
+                classes={ownFolders}
+                universe={universe}
                 onChange={(group) => replace(index, { ...stage, group })}
               />
             )}

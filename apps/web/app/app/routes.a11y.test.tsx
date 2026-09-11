@@ -479,6 +479,7 @@ vi.mock("@/lib/api", async (importOriginal) => ({
   listClasses: () => Promise.resolve(classes),
   listProcesses: () => Promise.resolve([]),
   listProcessClasses: () => Promise.resolve([]),
+  listProcessAttributes: () => Promise.resolve([]),
   listProperties: () => Promise.resolve(properties),
   listPerformanceIndices: () => Promise.resolve(indices),
   getPropertyMap: () => Promise.resolve(propertyMap),

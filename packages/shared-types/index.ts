@@ -97,6 +97,61 @@ export interface ProcessClass {
   process_count: number;
 }
 
+/**
+ * What *shape* of value a process attribute holds (P0-4).
+ *
+ * Load-bearing, not descriptive: the engine compares an `ENVELOPE` by reach
+ * (a process that shapes 0,1–10 kg meets "≥ 5 kg") and an `ESCALAR` by its own
+ * value, and a `DISCRETO` attribute answers set membership instead. It is what
+ * decides which editor to draw and which operators can apply, before any value
+ * exists.
+ */
+export type ProcessAttributeKind = "ESCALAR" | "ENVELOPE" | "DISCRETO";
+
+/** One process attribute definition (P0-4) — the catalogue a limit stage over
+ * processes selects on. */
+export interface ProcessAttribute {
+  id: number;
+  name: string;
+  slug: string;
+  symbol: string | null;
+  description: string | null;
+  kind: ProcessAttributeKind;
+  physical_dimension: string;
+  /** Null exactly when `kind` is `DISCRETO` — a label has no unit. */
+  canonical_unit: string | null;
+  accepted_units: string[];
+  /** The closed vocabulary of a discrete attribute; empty otherwise. */
+  allowed_labels: string[];
+  better_direction: BetterDirection;
+}
+
+/** One attribute value of one process, with its provenance (P0-4). */
+export interface ProcessAttributeValue {
+  attribute_id: number;
+  attribute_name: string;
+  attribute_slug: string;
+  kind: ProcessAttributeKind;
+  value_scalar: number | null;
+  value_min: number | null;
+  value_max: number | null;
+  value_typical: number | null;
+  labels: string[];
+  original_unit: string | null;
+  normalized_value: number | null;
+  normalized_min: number | null;
+  normalized_max: number | null;
+  canonical_unit: string | null;
+  conversion_method: string | null;
+  uncertainty: number | null;
+  measurement_condition: string | null;
+  notes: string | null;
+  source_label: string | null;
+  data_quality: DataQuality;
+  /** The fourth state of data quality (D-24): render a written label, never 0. */
+  is_missing: boolean;
+}
+
 /** A manufacturing process in the catalogue (P0-2). */
 export interface Process {
   id: number;
@@ -313,7 +368,11 @@ export interface ChartData {
 
 export type ConstraintOperator =
   | "gt" | "gte" | "lt" | "lte" | "between" | "outside"
-  | "exists" | "not_exists" | "in_class" | "not_in_class" | "text_contains";
+  | "exists" | "not_exists" | "in_class" | "not_in_class" | "text_contains"
+  // P0-4: set membership over a discrete process attribute's closed vocabulary.
+  // Never applicable to a material property — none of them is discrete — which
+  // is why the editor offers these two only in a process study.
+  | "has_any_label" | "has_no_label";
 
 export type Goal = "maximize" | "minimize";
 export type CriterionDirection = "max" | "min";
@@ -334,6 +393,10 @@ export interface ConstraintIn {
   unit?: string | null;
   class_slugs?: string[];
   text?: string | null;
+  /** The labels a `has_any_label` / `has_no_label` constraint names (P0-4). A
+   * field of its own and not `class_slugs`: a class slug and an attribute label
+   * are different namespaces. */
+  labels?: string[];
 }
 
 /**
