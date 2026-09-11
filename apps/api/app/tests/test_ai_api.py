@@ -478,6 +478,7 @@ def test_model_base_reads_sources_from_raw_output() -> None:
     provider = _StubProvider()
     context = ResultContext(
         study_name="x",
+        universe="material",
         function_text=None,
         objective_text=None,
         constraint_labels=[],
@@ -507,6 +508,7 @@ def test_model_base_defaults_missing_sources_to_empty_list() -> None:
 
     context = ResultContext(
         study_name="x",
+        universe="material",
         function_text=None,
         objective_text=None,
         constraint_labels=[],
@@ -537,6 +539,7 @@ def test_model_base_sources_does_not_treat_a_bool_as_a_citation_index() -> None:
 
     context = ResultContext(
         study_name="x",
+        universe="material",
         function_text=None,
         objective_text=None,
         constraint_labels=[],
