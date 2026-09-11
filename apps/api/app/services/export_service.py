@@ -29,6 +29,7 @@ from app.exporters.figures import (
     render_scatter,
 )
 from app.exporters.report import Report, Sheet, standard_notices
+from app.models.enums import ProcessAttributeKind
 from app.repositories.chart_repository import ChartRepository
 from app.repositories.selection_repository import SelectionRepository
 from app.schemas.charts import PropertyMapRequest
@@ -51,7 +52,7 @@ class ExportService:
     # --- selection study --------------------------------------------------
 
     def _run(self, study_id: int, project_id: int):
-        """Re-run the study and load the materials its candidates named.
+        """Re-run the study and load the records its candidates named.
 
         Shared by the selection report and the laudo, so both describe the
         same execution of the deterministic pipeline rather than two.
@@ -66,23 +67,25 @@ class ExportService:
         # its already-populated property cache and snapshot list rather than
         # rebuilding them — see SelectionService.describe_pipeline.
         root_group_description = service.describe_pipeline(study)
-        # Only a material study's candidates are materials (P0-3). Looking a
-        # process id up in the material table would not merely find nothing —
-        # it would find whatever material happens to carry that id, and print
-        # its provenance under a process's name. In a document whose whole
-        # purpose is auditability that is the worst available failure, so the
-        # lookup simply does not happen for the other universe.
+        # Each universe's candidates are looked up in its **own** table (P0-3,
+        # extended by P0-4). Looking a process id up in the material table would
+        # not merely find nothing — it would find whatever material happens to
+        # carry that id, and print its provenance under a process's name. In a
+        # document whose whole purpose is auditability that is the worst
+        # available failure, so the two lookups never cross.
+        candidate_ids = [c.record_id for c in result.candidates]
         if result.universe == "material":
-            candidate_ids = [c.record_id for c in result.candidates]
-            materials = {
+            records = {
                 m.id: m for m in self.chart_repo.list_materials(material_ids=candidate_ids or [-1])
             }
         else:
-            materials = {}
-        return study, result, materials, root_group_description
+            records = {
+                p.id: p for p in self.selection_repo.processes_with_attributes(candidate_ids)
+            }
+        return study, result, records, root_group_description
 
     def _sheets(
-        self, study, result: RunResultOut, materials: dict, root_group_description: str
+        self, study, result: RunResultOut, records: dict, root_group_description: str
     ) -> list[Sheet]:
         sheets = [
             self._problem_sheet(study, result, root_group_description),
@@ -96,16 +99,18 @@ class ExportService:
             sheets.append(self._contributions_sheet(result))
             sheets.append(self._excluded_sheet(result))
             sheets.append(self._sensitivity_sheet(result))
-        sheets.append(self._provenance_sheet(study, result, materials))
+        sheets.append(self._provenance_sheet(study, result, records))
         return sheets
 
     def study_report(self, study_id: int, project_id: int) -> Report:
-        study, result, materials, root_group_description = self._run(study_id, project_id)
+        study, result, records, root_group_description = self._run(study_id, project_id)
         return Report(
             title=f"Relatório de seleção — {study.name}",
             subtitle=study.description or "",
-            notices=standard_notices(includes_demo_data=any(m.is_demo for m in materials.values())),
-            sheets=self._sheets(study, result, materials, root_group_description),
+            # `is_demo` is a column of both `Material` and `Process`, so the
+            # warning is raised by whichever universe the study returned.
+            notices=standard_notices(includes_demo_data=any(r.is_demo for r in records.values())),
+            sheets=self._sheets(study, result, records, root_group_description),
             # The map, and only the map. The ranking chart stays a mark of the
             # laudo (D-41); the map is what makes this a *selection* report
             # rather than a table of numbers, so it belongs to both.
@@ -122,13 +127,13 @@ class ExportService:
         be attached on its own, not read as a reduced version of the
         spreadsheet-oriented tables.
         """
-        study, result, materials, root_group_description = self._run(study_id, project_id)
+        study, result, records, root_group_description = self._run(study_id, project_id)
         narrative, caveats, note = self._narrative(study_id, project_id)
         return Report(
             title=f"Laudo de engenharia — {study.name}",
             subtitle=study.description or "",
-            notices=standard_notices(includes_demo_data=any(m.is_demo for m in materials.values())),
-            sheets=self._sheets(study, result, materials, root_group_description),
+            notices=standard_notices(includes_demo_data=any(r.is_demo for r in records.values())),
+            sheets=self._sheets(study, result, records, root_group_description),
             responsible=(responsible or "").strip() or None,
             figures=self._figures(study, result),
             narrative=narrative,
@@ -646,21 +651,10 @@ class ExportService:
                 slugs.append(constraint.property_slug)
         return slugs
 
-    def _provenance_sheet(self, study, result: RunResultOut, materials: dict) -> Sheet:
+    def _provenance_sheet(self, study, result: RunResultOut, records: dict) -> Sheet:
         if result.universe == "process":
-            # Declared, never a section that quietly appears empty: a process
-            # carries no attribute with provenance yet, so there is nothing to
-            # trace — and saying so is the audit trail for this document.
-            return Sheet(
-                name="Proveniência dos valores",
-                header=["Item", "Situação"],
-                rows=[],
-                notes=[
-                    "Este estudo seleciona processos, e um processo ainda não tem atributo "
-                    "cadastrado — não há valor cuja origem rastrear. A seleção acima usou "
-                    "apenas a taxonomia de processos e o vínculo com os materiais."
-                ],
-            )
+            return self._process_provenance_sheet(study, result, records)
+        materials = records
         slugs = self._relevant_slugs(study, result)
         # A material with no row at all for a property still has to name that
         # property the way every other row names it. Reading the name off the
@@ -723,6 +717,110 @@ class ExportService:
                 else ["Sem propriedades a rastrear para este estudo."]
             ),
         )
+
+    def _process_provenance_sheet(self, study, result: RunResultOut, records: dict) -> Sheet:
+        """The same argument the material provenance sheet makes, for a process
+        study (P0-4).
+
+        Until processes had attributes this section could only declare itself
+        empty, and it did. Now there is a trail to print, and it has to carry
+        something the material sheet never needed: **which shape of value** each
+        number is. A capability envelope is compared by reach and a scalar by its
+        own value, so a reader auditing "why did this process pass ≥ 5 kg" needs
+        the column that says the datum was a range — otherwise the two rules are
+        indistinguishable in the document, which is the one thing this figure
+        exists to prevent.
+
+        A discrete attribute has no number and no unit at all; its value is its
+        labels, and they go in the same column with the unit columns saying so.
+        """
+        slugs = self._relevant_slugs(study, result)
+        # Named from the catalogue, not from the value: an attribute a process has
+        # no row for still has to be named the way every other row names it.
+        attributes = {a.slug: a for a in self.selection_repo.list_process_attributes()}
+        kind_labels = {
+            ProcessAttributeKind.ESCALAR: "escalar",
+            ProcessAttributeKind.ENVELOPE: "envelope de capacidade",
+            ProcessAttributeKind.DISCRETO: "discreto",
+        }
+        rows: list[list[object]] = []
+
+        for candidate in result.candidates:
+            process = records.get(candidate.record_id)
+            if process is None:
+                continue
+            by_slug = {v.attribute.slug: v for v in process.attribute_values}
+            for slug in slugs:
+                attribute = attributes.get(slug)
+                kind = kind_labels.get(attribute.kind, "—") if attribute else "—"
+                name = attribute.name if attribute else slug
+                value = by_slug.get(slug)
+                if value is None or value.is_missing:
+                    rows.append([process.name, name, kind, _MISSING, "—", _MISSING, "—", "—", "—"])
+                    continue
+                rows.append(
+                    [
+                        process.name,
+                        name,
+                        kind,
+                        self._attribute_value_text(value),
+                        value.canonical_unit or "—",
+                        self._attribute_original_text(value),
+                        value.original_unit or "—",
+                        value.conversion_method or "—",
+                        value.data_quality.value,
+                    ]
+                )
+
+        notes = [
+            "Origem de cada valor de processo usado na decisão. Um valor ausente aparece "
+            "como 'ausente', nunca como zero ou célula vazia.",
+            "Um envelope de capacidade é comparado por alcance: o limiar é atendido quando "
+            "a faixa alcança o valor, e não quando o ponto médio alcança. O ponto "
+            "representativo é o que um ranqueamento ou um índice lê.",
+        ]
+        return Sheet(
+            name="Proveniência",
+            header=[
+                "Processo",
+                "Atributo",
+                "Tipo de valor",
+                "Valor normalizado",
+                "Unidade canônica",
+                "Valor original",
+                "Unidade original",
+                "Método de conversão",
+                "Qualidade do dado",
+            ],
+            rows=rows,
+            notes=notes if rows else ["Sem atributos a rastrear para este estudo."],
+        )
+
+    @staticmethod
+    def _attribute_value_text(value) -> str:
+        """The normalised value as the document prints it, by shape of datum.
+
+        An envelope prints both bounds, because both are the criterion. A label
+        set prints its labels: they are the value, and rendering them as a number
+        or a dash would be the empty cell D-24 forbids.
+        """
+        if value.labels:
+            return ", ".join(value.labels)
+        if value.normalized_min is not None and value.normalized_max is not None:
+            return f"{format_number(value.normalized_min)} – {format_number(value.normalized_max)}"
+        return format_number(value.normalized_value)
+
+    @staticmethod
+    def _attribute_original_text(value) -> str:
+        if value.labels:
+            # The labels *are* the original: there was no conversion, and saying
+            # "—" here would read as "the original was not recorded".
+            return ", ".join(value.labels)
+        if value.value_min is not None and value.value_max is not None:
+            return f"{format_number(value.value_min)} – {format_number(value.value_max)}"
+        if value.value_scalar is not None:
+            return format_number(value.value_scalar)
+        return format_number(value.value_typical)
 
     # --- catalogue --------------------------------------------------------
 

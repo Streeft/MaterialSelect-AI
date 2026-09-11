@@ -744,3 +744,107 @@ def test_a_slug_collision_does_not_make_the_laudo_draw_a_material_map(
     assert "Processo colidente" in laudo.text
     for material in ("Liga Alumínio Demo A", "Aço Demo B", "Polímero Demo C"):
         assert material not in laudo.text
+
+
+# --- the document: provenance, and the noun the narrative uses ----------------
+
+
+@pytest.fixture()
+def documented_study(client, attributes) -> int:
+    """A process study that rests on all three shapes of value, so the
+    provenance sheet has one row of each to print."""
+    created = client.post(
+        "/api/selection/studies",
+        json={
+            "name": "Peças de 5 kg, maciças",
+            "universe": "process",
+            "free_variables": [],
+            "criteria": [{"key": LOTE, "weight": 1.0}],
+            "stages": [
+                _limit(
+                    [
+                        {"operator": "gte", "property_slug": MASSA, "value": 5.0},
+                        {
+                            "operator": "has_any_label",
+                            "property_slug": FORMA,
+                            "labels": ["Maciço 3D"],
+                        },
+                    ]
+                )
+            ],
+        },
+    )
+    assert created.status_code == 201, created.text
+    return created.json()["id"]
+
+
+def test_the_provenance_sheet_traces_a_process_value(client, documented_study) -> None:
+    """Before P0-4 this section could only declare itself empty. Now it prints the
+    same trail the material sheet prints — original value and unit, normalised
+    value and canonical unit, and the conversion method that links them."""
+    text = client.get(f"/api/exports/estudos/{documented_study}.html").text
+
+    assert "Faixa de massa de teste" in text
+    assert "identity:kg" in text
+    assert "ESTIMADO" in text
+
+
+def test_the_provenance_sheet_prints_both_bounds_of_an_envelope(client, documented_study) -> None:
+    """Both bounds, because in a capability range both are the criterion — the
+    representative point alone would hide what the threshold was compared
+    against."""
+    text = client.get(f"/api/exports/estudos/{documented_study}.html").text
+    assert "0.1 – 10" in text
+
+
+def test_the_provenance_sheet_says_which_rule_compared_the_number(client, documented_study) -> None:
+    """A semantic difference the reader cannot see is the one this engine exists
+    not to produce: the sheet names the shape of each datum and states the reach
+    rule in its own note."""
+    text = client.get(f"/api/exports/estudos/{documented_study}.html").text
+
+    assert "Tipo de valor" in text
+    assert "envelope de capacidade" in text
+    assert "comparado por alcance" in text
+
+
+def test_a_discrete_value_prints_its_labels_and_never_an_empty_cell(
+    client, documented_study
+) -> None:
+    """The labels *are* the value (D-24): rendering them as a dash would be the
+    empty cell the design system forbids, and rendering a number would be a
+    fabrication."""
+    text = client.get(f"/api/exports/estudos/{documented_study}.html").text
+
+    assert "Forma de teste" in text
+    assert "discreto" in text
+    assert "Maciço 3D" in text
+
+
+def test_the_interpretation_counts_processes_and_not_materials(client, documented_study) -> None:
+    """Found by reading the rendered laudo, not by a failing assertion.
+
+    The narrative said "Partindo de 13 materiais" over a selection of
+    *processes* — the AI layer asserting something the deterministic result does
+    not say, which is exactly what the guardrails exist to prevent. The same word
+    reached the prompt of a real provider, which would then have gone on writing
+    about materials.
+    """
+    text = client.get(f"/api/exports/estudos/{documented_study}/laudo.html").text
+
+    assert "processos, as restrições aplicadas" in text
+    assert "materiais, as restrições aplicadas" not in text
+
+
+def test_the_csv_export_of_a_process_study_carries_the_same_trail(client, documented_study) -> None:
+    """The escape is per format and not interchangeable: `cells.py` guards the
+    spreadsheet against formula injection, `html.py` guards against markup. The
+    provenance of a process value has to survive both, so the CSV is read too."""
+    resp = client.get(f"/api/exports/estudos/{documented_study}.csv")
+    assert resp.status_code == 200, resp.text
+    body = resp.content.decode("utf-8-sig")
+
+    assert "Tipo de valor" in body
+    assert "envelope de capacidade" in body
+    assert "identity:kg" in body
+    assert "Maciço 3D" in body

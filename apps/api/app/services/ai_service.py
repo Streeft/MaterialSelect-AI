@@ -344,6 +344,7 @@ def _result_context(study, result, retrieved: list) -> ResultContext:
 
     return ResultContext(
         study_name=study.name,
+        universe=result.universe,
         function_text=study.function_text,
         objective_text=study.objective_text,
         constraint_labels=[c.label or c.operator for c in study.constraints],

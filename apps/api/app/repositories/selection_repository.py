@@ -126,6 +126,29 @@ class SelectionRepository:
         )
         return list(self.db.execute(stmt).scalars().unique().all())
 
+    def processes_with_attributes(self, process_ids: list[int]) -> list[Process]:
+        """The named processes with their attribute values, definitions and sources
+        loaded — the export's provenance query for a process study (P0-4).
+
+        By id and not the whole catalogue, mirroring
+        ``ChartRepository.list_materials(material_ids=...)`` on the other side: the
+        provenance sheet traces the candidates, and loading every process to print
+        a handful would grow with the catalogue for no reader's benefit.
+        """
+        if not process_ids:
+            return []
+        stmt = (
+            select(Process)
+            .options(
+                joinedload(Process.process_class),
+                selectinload(Process.attribute_values).joinedload(ProcessAttributeValue.attribute),
+                selectinload(Process.attribute_values).joinedload(ProcessAttributeValue.source),
+            )
+            .where(Process.id.in_(process_ids))
+            .order_by(Process.name)
+        )
+        return list(self.db.execute(stmt).scalars().unique().all())
+
     def list_process_attributes(self) -> list[ProcessAttributeDefinition]:
         """The process attribute catalogue (P0-4).
 

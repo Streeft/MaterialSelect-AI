@@ -830,9 +830,15 @@ def test_the_stage_table_never_prints_a_raw_slug(client, process_study) -> None:
 
 
 def test_the_provenance_section_says_why_it_is_empty(client, process_study) -> None:
-    """Declared, never a section that quietly appears empty."""
+    """Declared, never a section that quietly appears empty.
+
+    The reason changed with P0-4 and the requirement did not. It used to be "a
+    process has no attribute at all"; now processes do have attributes, and this
+    particular study selected purely by taxonomy — so there is no *value* it
+    rested on, which is what the section has to say.
+    """
     text = client.get(f"/api/exports/estudos/{process_study}.html").text
-    assert "não há valor cuja origem rastrear" in text
+    assert "Sem atributos a rastrear para este estudo" in text
 
 
 def test_the_document_says_why_there_is_no_map(client, process_study) -> None:

@@ -239,6 +239,7 @@ class TestCaveatsAreNotTheModels:
     def _explain(self, answer: dict) -> dict:
         context = ResultContext(
             study_name="Estudo",
+            universe="material",
             function_text=None,
             objective_text=None,
             constraint_labels=[],
@@ -407,6 +408,7 @@ class TestExplanationThroughTheService:
         # "Aço AISI 1020" is catalogue output; quoting it is not inventing 1020.
         context = ResultContext(
             study_name="e",
+            universe="material",
             function_text=None,
             objective_text=None,
             constraint_labels=[],
@@ -445,6 +447,7 @@ class TestExplainPrompt:
     def test_the_block_names_what_was_left_out_for_missing_data(self) -> None:
         context = ResultContext(
             study_name="Estudo",
+            universe="material",
             function_text=None,
             objective_text=None,
             constraint_labels=[],
