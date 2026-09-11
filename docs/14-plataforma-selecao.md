@@ -226,11 +226,11 @@ correção, portão completo, decisão registrada.
 | ~~P0~~ | ~~`SelectionStage` como entidade de primeira classe~~ **entregue** | E, F, G, H | — |
 | ~~P0~~ | ~~`Process`, `ProcessClass`, associação N–N com `Material`~~ **entregue** | A, G | — |
 | ~~P0~~ | ~~Seleção **de processos** (universo de saída escolhido)~~ **entregue** | G | P0-2 |
-| **P0** | Atributos de processo com proveniência (discreto e intervalo) | A, G | P0-3 |
+| ~~P0~~ | ~~Atributos de processo com proveniência (discreto e envelope)~~ **entregue** | A, G | P0-3 |
 | **P1** | ~~Search com operadores~~ **entregue**; falta relevância e destaque | C | — |
 | **P1** | Chart Stage que **filtra** (caixa de seleção e linha de índice reprovando) | H, I | P0-1 |
 | **P1** | `My Records`: definidos pelo usuário, favoritos, recentes | T, U | — |
-| **P1** | Browse: árvore navegável, breadcrumb, registro de família | B, D | P0-2 |
+| **P1** | Browse: árvore navegável, breadcrumb, registro de família, **ficha do processo** | B, D | P0-2 |
 | **P2** | Find Similar + Nearness + registro de referência | K, L | P1 My Records |
 | **P2** | Tabela de comparação com referência e diferença percentual | M | P2 referência |
 | **P2** | Engineering Solver (viga em flexão, tração, compressão) | N | P0-1 |
