@@ -337,9 +337,19 @@ export const ptBR = {
       in_class: "∈ pertence à classe",
       not_in_class: "∉ não pertence à classe",
       text_contains: "texto contém",
+      // P0-4: set membership over a discrete process attribute. Offered only in
+      // a process study — no material property is discrete.
+      has_any_label: "∈ tem algum dos rótulos",
+      has_no_label: "∉ não tem nenhum dos rótulos",
     },
     constraintNumber: (n: number) => `Restrição ${n}`,
     selectProperty: "Selecione uma propriedade",
+    // P0-4: in a process study the row selects on a process *attribute*, which
+    // is a different catalogue — the field is named for what it holds.
+    attribute: "Atributo do processo",
+    selectAttribute: "Selecione um atributo",
+    labels: "Rótulos",
+    labelsPickAttributeFirst: "Escolha o atributo para ver os rótulos possíveis.",
     selectCriterion: "Selecione um critério",
     autoDirection: "Automática (pela propriedade)",
     value: "Valor",
