@@ -23,6 +23,12 @@ Design choices, aligned with the Ashby methodology:
   (``HAS_ANY_LABEL`` / ``HAS_NO_LABEL``) and never by a numeric operator. The
   negative one does not admit a record that has no such attribute recorded:
   absence is a state, and asking for it is what ``NOT_EXISTS`` is for.
+* A **Chart stage** (P1-2) is a region of one plane, and nothing here computes
+  geometry: a box is a bound per axis, and the favourable side of an index line
+  is a comparison on the index value. Unlike a threshold, it rejects a record it
+  cannot *place* on the plane even where no bound applies — if the reader cannot
+  see it in the figure, it must not be in the result. Index values arrive already
+  computed, in ``RecordSnapshot.derived``.
 """
 
 from __future__ import annotations
@@ -126,6 +132,20 @@ class RecordSnapshot:
     #: has no unit and no order, so it is neither in ``values`` nor comparable
     #: by a numeric operator.
     labels: dict[str, tuple[str, ...]] = field(default_factory=dict)
+    #: Quantities **computed for this run**, key → value (P1-2): today the value
+    #: of a performance index, which a Chart stage can put on an axis or draw a
+    #: line at.
+    #:
+    #: Separate from ``values`` because the two have different provenance and the
+    #: report says so: a value in ``values`` was entered and converted by someone
+    #: and can be traced to a source; a value here was derived from those by an
+    #: expression this study names. Filed under the expression's own text, so two
+    #: stages naming the same index share one computed number.
+    #:
+    #: Filled by the service before the engine sees the record, exactly as a
+    #: threshold is converted to canonical units before it gets here — the domain
+    #: compares numbers and never evaluates an expression.
+    derived: dict[str, float] = field(default_factory=dict)
     #: The record's class lineage, root→leaf, its own slug last — what makes a
     #: tree stage able to say "everything under Metais" (P0-1). Defaults to
     #: empty because ancestry is something the service reads from the taxonomy;
@@ -313,6 +333,119 @@ def matches_processes(material: MaterialSnapshot, selection: ProcessSelection) -
     return False
 
 
+@dataclass(frozen=True)
+class ChartAxis:
+    """One axis of a Chart stage, and the bounds the drawn box puts on it (P1-2).
+
+    ``key`` is what the value is filed under on the snapshot: a property slug
+    (in ``values``) or an index expression (in ``derived``). The axis does not
+    care which — ``quantity`` below resolves it — and that is the whole point: an
+    Ashby map plots a catalogued property and a computed index on the same
+    footing, so a box drawn on it has to bound them on the same footing too.
+
+    ``min_value``/``max_value`` are in **data coordinates**, never pixels
+    (ADR 0004). Either may be absent: a box open on one side is a real thing to
+    draw, and "everything above 200 GPa" should not have to invent a ceiling.
+    """
+
+    key: str
+    #: What the reader calls this axis, for the funnel line and the figure's
+    #: caption. Empty falls back to the key, which is a slug or an expression —
+    #: readable, if less pretty.
+    label: str = ""
+    min_value: float | None = None
+    max_value: float | None = None
+
+
+@dataclass(frozen=True)
+class ChartSelection:
+    """A Chart stage: a region of one plane, and what it admits (P1-2).
+
+    The third stage type of the method, after Limit and Tree. Two things can be
+    drawn on the plane, and either may be absent:
+
+    * the **box**, bounding each axis — see :class:`ChartAxis`;
+    * the **index line**, admitting the records on the favourable side of an
+      iso-index contour: ``index >= level`` when the index is to be maximised,
+      ``<=`` when minimised.
+
+    **Neither is geometry.** The line *looks* like geometry and is not: the
+    favourable side of an iso-index contour is exactly a comparison on the index
+    value, which is why ``ChartService._draw_levels`` already computes the same
+    set as ``superior_material_ids`` to *draw* it. Keeping the rule a comparison
+    is what lets the figure and the funnel agree by construction instead of by
+    coincidence.
+
+    What this adds over a Limit stage is one thing, and it is real: a Limit stage
+    names **property slugs**, so it cannot constrain a *derived* quantity. "Every
+    material whose E^(1/2)/ρ beats this one" is not four thresholds on two
+    properties — it is one threshold on a combination of them, and this is where
+    it becomes expressible. The box, by itself, is four thresholds and says so;
+    what it also carries is the **plane the decision was drawn on**, which is
+    what lets the report redraw the figure the reader was looking at.
+    """
+
+    x: ChartAxis
+    y: ChartAxis
+    #: The index the line is drawn from, filed in ``derived`` under this key.
+    index_key: str | None = None
+    #: Where the line sits, in index units. Both this and ``index_key`` are
+    #: needed for a line to exist; a key with no level is an index the map draws
+    #: and the stage does not select on.
+    index_level: float | None = None
+    #: "maximize" | "minimize" — which side of the line is the favourable one.
+    index_goal: str = "maximize"
+    index_label: str = ""
+
+
+def quantity(record: RecordSnapshot, key: str) -> float | None:
+    """The record's value for ``key``, catalogued or computed — None if it has none.
+
+    ``values`` first, then ``derived``: a catalogued number outranks a derived
+    one of the same name, which only matters if someone names an index after a
+    property, and then the catalogued value is the one the reader means.
+    """
+    if key in record.values:
+        return record.values[key]
+    return record.derived.get(key)
+
+
+def matches_chart(record: RecordSnapshot, selection: ChartSelection) -> bool:
+    """Return True if ``record`` falls inside ``selection``'s region.
+
+    **A record that cannot be placed on the plane never passes** — even when the
+    box puts no bound on the axis it is missing, and even when there is no box at
+    all. That is not the rule a Limit stage would give (a threshold only rejects
+    what it can compare), and the difference is deliberate: this stage's criterion
+    is "inside this region of this plane", and a record with no coordinate is not
+    drawn on the plane at all. If the reader cannot see it in the figure, it must
+    not be in the result — which makes an unbounded Chart stage a meaningful
+    thing to write: "must be plottable here".
+
+    An **envelope** (P0-4) enters through its representative point, because that
+    is the single point the map draws. A Limit stage compares the same attribute
+    by *reach*, over its bounds. Two rules for one attribute, so the document says
+    which one ran — the same obligation D-59 took on.
+    """
+    for axis in (selection.x, selection.y):
+        value = quantity(record, axis.key)
+        if value is None:
+            return False
+        if axis.min_value is not None and value < axis.min_value:
+            return False
+        if axis.max_value is not None and value > axis.max_value:
+            return False
+
+    if selection.index_key is None or selection.index_level is None:
+        return True
+    index_value = quantity(record, selection.index_key)
+    if index_value is None:
+        return False
+    if selection.index_goal == "minimize":
+        return index_value <= selection.index_level
+    return index_value >= selection.index_level
+
+
 @dataclass
 class FunnelStep:
     """One line of the elimination funnel.
@@ -379,15 +512,18 @@ class SelectionStageNode:
     * ``"material"`` → ``materials``, the same join from the other side, in a
       process study (P0-3): folders of the material taxonomy, matched against
       the materials each process serves.
+    * ``"chart"`` → ``chart``, a region of one plane — the box and/or the index
+      line the reader drew on a map (P1-2).
     """
 
-    kind: str  # "limit" | "tree" | "process" | "material"
+    kind: str  # "limit" | "tree" | "process" | "material" | "chart"
     label: str | None
     enabled: bool
     root: ConstraintGroupNode | None = None
     tree: TreeSelection | None = None
     processes: ProcessSelection | None = None
     materials: TreeSelection | None = None
+    chart: ChartSelection | None = None
 
 
 def has_value(record: RecordSnapshot, slug: str | None) -> bool:
@@ -664,6 +800,10 @@ def apply_stage(materials: list[RecordSnapshot], stage: SelectionStageNode) -> l
             for record in materials
             if matches_linked_tree(_material_paths(record), stage.materials)
         ]
+    if stage.kind == "chart":
+        if stage.chart is None:
+            return list(materials)
+        return [record for record in materials if matches_chart(record, stage.chart)]
     if stage.root is None:
         return list(materials)
     return apply_constraint_tree(materials, stage.root)
