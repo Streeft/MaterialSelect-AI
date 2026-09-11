@@ -333,10 +333,10 @@ outros dois métodos; o laudo descrevia um estudo aninhado como um combinador
 único opaco. Os quatro corrigidos numa rodada só, rerrevisão limpa. Ver
 `docs/PROJECT_CONTEXT.md` §3 e `docs/07-selecao-deterministica.md`.
 
-**P0-1, P0-2, P0-3 e P1-1 da plataforma de seleção entregues.** Depois de comparar a
-ferramenta com o modelo funcional dos manuais do Granta EduPack — matriz de
-maturidade e roteiro em `docs/14-plataforma-selecao.md` —, os quatro primeiros
-gargalos saíram. **A seleção deixou de ser de estágio único**
+**Os quatro gargalos P0 e o P1-1 da plataforma de seleção entregues.** Depois de
+comparar a ferramenta com o modelo funcional dos manuais do Granta EduPack —
+matriz de maturidade e roteiro em `docs/14-plataforma-selecao.md` —, P0-1 a P0-4
+saíram, e com o P0-4 o **exercício 11 do manual fecha por inteiro**. **A seleção deixou de ser de estágio único**
 ([D-56](docs/DECISIONS.md)): um estudo é uma **pilha ordenada de
 `SelectionStage`**, e o resultado é a interseção dos habilitados. **Três** tipos,
 e um estágio é uma pergunta só — enviar os campos de outro é recusado, nunca
@@ -381,7 +381,29 @@ atributo e devolver ranking vazio seria lido como "ninguém pontuou bem".
 contra a tabela de materiais: resolveria por coincidência de id e imprimiria
 proveniência de material sob o nome de um processo.
 
-1076 testes de backend (nenhum skip) e 225 de frontend, todos verdes. CI no
+**O P0-4 deu atributo ao processo** ([D-59](docs/DECISIONS.md)), e é o que fecha o
+exercício 11. `ProcessAttributeDefinition`/`ProcessAttributeValue` têm o trilho
+de proveniência inteiro de `MaterialPropertyValue` mais os dois tipos de valor que
+o modelo não cobria. **O envelope de capacidade é comparado por alcance:** um
+processo que conforma peças de 0,1 a 10 kg atende "≥ 5 kg", e colapsar no ponto
+médio erraria — **isso não é a regra do intervalo de material**, onde a faixa é
+dispersão em torno de um valor verdadeiro e o ponto médio o representa; a
+diferença está no dado, não na fórmula. Por isso a regra **tem de chegar ao
+leitor**: o rótulo da restrição diz "alcance do envelope", e a folha de
+proveniência tem a coluna *Tipo de valor* mais a nota. **Discreto** é pertinência
+a vocabulário fechado, e o operador negativo não libera ausência. `ProcessAttributeKind`
+é load-bearing (o motor compara por regras distintas), garantido por
+`CheckConstraint`: atributo discreto não tem unidade, numérico não fica sem ela.
+Tabelas próprias e não uma coluna `universe` em `PropertyDefinition`, pela mesma
+razão do D-57. Um envelope vive em **dois** mapas do snapshot de propósito — os
+limites em `envelopes` para filtrar, o ponto representativo em `values` para
+ranquear —, e o motor prefere o envelope ao filtrar. A recusa de ranqueamento do
+D-58 foi **retirada**, não reescrita: recusa-se atributo inexistente e atributo
+discreto onde se exige magnitude. `material_id` virou `record_id` também em
+ranking e índice, como o D-58 anunciou que aconteceria quando os atributos
+chegassem.
+
+1141 testes de backend (nenhum skip) e 232 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
 PROJECT_CONTEXT.md).

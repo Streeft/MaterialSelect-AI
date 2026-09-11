@@ -84,13 +84,13 @@ Pesa mais do que parece porque as figuras vão para a monografia.
 especificação de caso de uso. (`User` e `Project` saíram desta lista com A5;
 `AuditEvent` saiu com M2; `SavedChart` saiu com B7 — salvar e reabrir
 configurações de mapa; `SelectionStage` saiu com P0-1; `Process`,
-`ProcessClass` e `MaterialProcess` saíram com P0-2.)
+`ProcessClass` e `MaterialProcess` saíram com P0-2;
+`ProcessAttributeDefinition` e `ProcessAttributeValue` saíram com P0-4.)
 
-O que **falta modelar** para o próximo gargalo (P0-4) é uma entidade nova:
-**atributo de processo com proveniência** — a mesma de `MaterialPropertyValue`,
-mais dois tipos de valor que o modelo atual não cobre inteiro (discreto e
-intervalo como critério). Sem ela não há Limit Stage sobre processo nem
-ranqueamento de processo, que é o passo 2 do exercício 11 do manual.
+**Nada de estrutural pendente no roteiro imediato.** Os quatro gargalos P0 do
+roteiro de plataforma estão entregues, e o que resta em P1 é apresentação e
+navegação sobre modelos que já existem — a ficha do processo, a árvore navegável
+do catálogo, o Chart Stage que filtra.
 
 ---
 
@@ -135,7 +135,33 @@ Registrados para não voltarem por engano:
   processo contra a tabela de materiais (imprimiria proveniência de material sob
   nome de processo), a coluna Tipo com o slug cru, a validação de `class_slugs`
   contra a taxonomia errada e o `switch` de reabertura não-exaustivo. **O que
-  ficou de fora, e é o próximo gargalo:** atributos de processo — o P0-4.
+  ficou de fora, e virou o P0-4:** atributos de processo.
+- ~~**P0-4** — processo não tinha atributo~~ — `ProcessAttributeDefinition` e
+  `ProcessAttributeValue` com o trilho de proveniência inteiro, mais os **dois
+  tipos de valor que o modelo não cobria**: envelope de capacidade (comparado por
+  **alcance**, não pelo ponto médio) e discreto por pertinência a vocabulário
+  fechado ([D-59](DECISIONS.md)). Fecha o exercício 11 do manual: Limit Stage
+  sobre atributo de processo na API e na tela, e o ranqueamento que o D-58
+  recusava. Duas migrações aditivas — `d4a8c1f70b93` (a primeira **sem backfill**,
+  e honestamente: a informação é nova) e `e6c3f45a91d8` (`selection_constraint.labels`)
+  —, cinco atributos demonstrativos fictícios com ausência nas duas formas, e a
+  folha de proveniência de processo com a coluna *Tipo de valor* que diz por qual
+  regra cada número foi comparado.
+
+  Três defeitos no caminho, **dois deles não por asserção que falhou**: um
+  estágio de limites num estudo de processos resolvia slugs contra o catálogo de
+  materiais e então não admitia ninguém, sem explicação; a interpretação da IA
+  dizia "Partindo de 13 **materiais**" numa seleção de processos (achado lendo o
+  laudo renderizado, e a mesma palavra chegava ao prompt de um provedor real); e
+  habilitar o ranqueamento abriu a possibilidade de o mapa do laudo destacar
+  materiais com ids de processo, fechada por guard de universo com teste que
+  constrói a colisão de slug de propósito.
+
+  **O que ficou de fora, nomeado e registrado em P1:** a **ficha do processo na
+  tela** (`GET /api/processes/{slug}` já devolve tudo, falta a rota), catálogo de
+  processos **editável** (pede a trilha de auditoria do M2), **intervalo de
+  material lido como envelope** (mudaria toda contagem de funil existente, então é
+  item próprio) e gráfico de atributo de processo.
 - ~~**P1-1** — busca era `LIKE`~~ — analisador próprio com AND/OR/NOT, frase,
   parênteses e curinga ([D-55](DECISIONS.md)). Falta relevância, *fuzzy* e
   destaque do trecho, registrados como melhoria e não como bloqueio.

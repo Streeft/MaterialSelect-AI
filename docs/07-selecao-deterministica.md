@@ -105,10 +105,42 @@ tipo é recusado, não ignorado:
   `material_class_slugs`. **Só pastas**: um `Material` não tem slug para nomear
   uma folha, e o exercício 11 do manual seleciona uma pasta.
 
-**Um estudo de processos ainda não ranqueia nem aceita índice**, e a recusa é
-explícita, com o motivo — no salvamento e na execução. Processo não tem atributo
-com proveniência; devolver ranking vazio seria lido como "nenhum processo
-pontuou bem" em vez de "isto não é calculável".
+### Atributos de processo (P0-4)
+
+Um estágio de limites num estudo de processos nomeia **atributos de processo**, e
+não propriedades de material — a mesma regra que `tree` segue para pastas
+([D-59](DECISIONS.md)). Os dois catálogos são tabelas separadas
+(`process_attribute_definition`, `process_attribute_value`), com o trilho de
+proveniência inteiro de `material_property_value`, e um slug de material num
+estudo de processos é **404 nomeando o que não existe** — antes do P0-4 ele era
+aceito, convertido, e o estágio então não admitia ninguém, sem explicação.
+
+`ProcessAttributeKind` diz qual a forma do valor, e é o que decide como comparar:
+
+- **`ESCALAR`** — um número, comparado exatamente como uma propriedade de
+  material.
+- **`ENVELOPE`** — uma **faixa de capacidade**, comparada por **alcance**: um
+  processo que conforma peças de 0,1 a 10 kg atende "≥ 5 kg". Não é a regra do
+  intervalo de material, e a diferença está no dado: lá a faixa é dispersão em
+  torno de um valor verdadeiro e o ponto médio o representa; aqui todo ponto de
+  dentro é de fato alcançável. `between` sobre envelope é **sobreposição**, não
+  contenção. A regra aparece no rótulo da restrição ("alcance do envelope"), na
+  coluna *Tipo de valor* da folha de proveniência e na nota dela.
+- **`DISCRETO`** — rótulos de um vocabulário fechado (`allowed_labels`),
+  respondidos por pertinência: `has_any_label` / `has_no_label`. O operador
+  negativo **não** libera ausência — processo sem `forma` cadastrada não é "um
+  processo cuja forma não é maciça" —, e rótulo fora do vocabulário é 404
+  nomeando o rótulo, nunca zero resultado.
+
+**Ranqueamento e índice passaram a valer num estudo de processos**, e a recusa de
+D-58 foi retirada em vez de reescrita. O que se recusa agora é atributo
+inexistente e atributo **discreto** onde se exige magnitude: como critério de
+ranqueamento (um rótulo não é melhor que outro, então não há ordem) e dentro de
+expressão de índice (pelo nome, não pelo erro de dimensão que a unidade NULL
+produziria depois). Um envelope é ranqueado pelo **ponto representativo** — o
+mesmo `normalized_value` de sempre — enquanto continua sendo filtrado pelos
+limites.
+
 
 `enabled` é coluna e não exclusão: desligar e religar um estágio é *como* se vê
 o efeito de um critério. Um estágio desligado não estreita, mas continua no
