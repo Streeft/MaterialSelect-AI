@@ -237,10 +237,10 @@ tudo limpo, sem achado novo. Commit `73eb4a2` sobre `0d00ee7`. Ver
 `docs/07-selecao-deterministica.md` para a descrição de cada método e do
 modelo de árvore.
 
-**Plataforma de seleção — P0-1, P0-2 e P1-1 entregues.** Depois de comparar a
-ferramenta com o modelo funcional dos manuais do Granta EduPack
+**Plataforma de seleção — os quatro gargalos P0 e o P1-1 entregues.** Depois de
+comparar a ferramenta com o modelo funcional dos manuais do Granta EduPack
 ([14-plataforma-selecao.md](14-plataforma-selecao.md): matriz de maturidade
-sobre 30 capacidades e roteiro P0–P4), os dois primeiros gargalos saíram. **A
+sobre 32 capacidades e roteiro P0–P4), P0-1 a P0-4 saíram. **A
 seleção deixou de ser de estágio único** ([D-56](DECISIONS.md)):
 `SelectionStage` é entidade de primeira classe, ordenada, nomeável e
 habilitável, com dois tipos — `limit` (a árvore do M6) e `tree` (seleção de
@@ -259,16 +259,39 @@ taxonomia e não uma coluna enum, e o vínculo não carrega número nenhum: um v
 sobre o par precisaria da mesma proveniência de `MaterialPropertyValue`, e
 inventá-lo violaria o princípio 1.
 
-A cobertura de capacidades inspiradas no EduPack subiu de ~34% para **~57%**
-(17 de 30 em nível ≥ 3). O próximo gargalo é **P0-3**: a seleção só devolve
-materiais, e o exercício 11 do manual seleciona **processos** — o universo de
-saída precisa ser escolhido.
+**E o estudo passou a escolher o universo do resultado** ([D-58](DECISIONS.md),
+P0-3): `material` ou `process`, com **um motor só** para os dois
+(`RecordSnapshot`), o estágio `material` fechando a junção inversa, e os
+documentos declarando o universo.
 
-**Saúde do código:** 1034 testes de backend (Python 3.11 e 3.12, nenhum skip)
-e 218 de frontend, todos verdes. Desde o P0-1 a suíte também roda as migrações de
+**E processo passou a ter atributo** ([D-59](DECISIONS.md), P0-4), o que fecha o
+exercício 11 do manual. `ProcessAttributeDefinition` e `ProcessAttributeValue`
+carregam o trilho de proveniência inteiro de `MaterialPropertyValue` mais os dois
+tipos de valor que o modelo não cobria: **envelope de capacidade**, comparado por
+**alcance** — um processo que conforma peças de 0,1 a 10 kg atende "≥ 5 kg", e o
+ponto médio erraria isso —, e **discreto**, por pertinência a um vocabulário
+fechado. A regra de comparação chega ao leitor: o rótulo da restrição diz "alcance
+do envelope" e a folha de proveniência tem a coluna *Tipo de valor*. Com isso a
+recusa de ranqueamento do D-58 foi **retirada**, não reescrita: o que se recusa
+agora é atributo inexistente e atributo discreto onde se exige magnitude.
+
+A cobertura de capacidades inspiradas no EduPack subiu de ~31% para **~53%**
+(17 de 32 em nível ≥ 3), e o **denominador estava errado até aqui**: o parágrafo
+anterior dizia "30 avaliadas" e publicava ~57%, mas a tabela sempre teve 32
+linhas. Pelo **terceiro marco seguido** o percentual não se move, e isso diz mais
+sobre a métrica do que sobre a ferramenta: o P0-4 levantou duas capacidades
+(banco de processos 3→4, Limit Stage 3→4) que já estavam acima do corte. O
+documento passou a publicar também o **nível médio** — **2,16**, era 2,09 antes do
+P0-4 e 1,3 no começo —, onde crescimento dentro da faixa aparece. O que resta em
+P1 é apresentação sobre modelos que já existem: a ficha do processo na tela, a
+árvore navegável do catálogo e o Chart Stage que filtra.
+
+**Saúde do código:** 1141 testes de backend (Python 3.11 e 3.12, nenhum skip)
+e 232 de frontend, todos verdes. Desde o P0-1 a suíte também roda as migrações de
 verdade, nos dois sentidos, contra um banco temporário que já contém dados —
-`test_migration_selection_stage.py` e `test_migration_process_universe.py`,
-ambos conferidos por mutação. `ruff` limpo, `black
+`test_migration_selection_stage.py`, `test_migration_process_universe.py`,
+`test_migration_selection_universe.py` e `test_migration_process_attributes.py`,
+os quatro conferidos por mutação. `ruff` limpo, `black
 --check` limpo, typecheck estrito e build de produção sem avisos. CI no
 GitHub Actions rodando em todo PR e push para `main`, com os checks
 **obrigatórios**: o GitHub recusa o merge se qualquer um falhar

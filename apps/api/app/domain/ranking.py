@@ -60,7 +60,7 @@ class Contribution:
 
 @dataclass
 class RankedMaterial:
-    material_id: int
+    record_id: int
     name: str
     score: float
     rank: int
@@ -69,7 +69,7 @@ class RankedMaterial:
 
 @dataclass
 class ExcludedMaterial:
-    material_id: int
+    record_id: int
     name: str
     missing_keys: list[str]  # stable identifiers, for callers that match on them
     missing_labels: list[str]  # the same criteria as a reader knows them
@@ -79,8 +79,8 @@ class ExcludedMaterial:
 class SensitivityScenario:
     description: str
     weights: dict[str, float]
-    top_material_id: int | None
-    top_material_name: str | None
+    top_record_id: int | None
+    top_record_name: str | None
     changed: bool  # did the #1 material change vs the baseline?
 
 
@@ -155,7 +155,7 @@ def _score(
         )
 
     ranked: list[RankedMaterial] = []
-    for i, (material_id, name, values) in enumerate(complete):
+    for i, (record_id, name, values) in enumerate(complete):
         contributions: list[Contribution] = []
         score = 0.0
         for criterion in criteria:
@@ -175,7 +175,7 @@ def _score(
             )
         ranked.append(
             RankedMaterial(
-                material_id=material_id, name=name, score=score, rank=0, contributions=contributions
+                record_id=record_id, name=name, score=score, rank=0, contributions=contributions
             )
         )
 
@@ -200,16 +200,16 @@ def _split_complete_and_excluded(
     computation with a gap silently treated as zero."""
     complete: list[MaterialValues] = []
     excluded: list[ExcludedMaterial] = []
-    for material_id, name, values in materials:
+    for record_id, name, values in materials:
         missing = [c for c in criteria if values.get(c.key) is None]
         if missing:
             excluded.append(
                 ExcludedMaterial(
-                    material_id, name, [c.key for c in missing], [c.label for c in missing]
+                    record_id, name, [c.key for c in missing], [c.label for c in missing]
                 )
             )
         else:
-            complete.append((material_id, name, values))
+            complete.append((record_id, name, values))
     return complete, excluded
 
 
@@ -237,9 +237,9 @@ def _sensitivity(
         return SensitivityScenario(
             description=description,
             weights=weights,
-            top_material_id=top.material_id if top else None,
-            top_material_name=top.name if top else None,
-            changed=bool(top and top.material_id != baseline_top.material_id),
+            top_record_id=top.record_id if top else None,
+            top_record_name=top.name if top else None,
+            changed=bool(top and top.record_id != baseline_top.record_id),
         )
 
     # Equal weights across all criteria.
@@ -333,7 +333,7 @@ def _score_topsis(
             ideal_worst[criterion.key] = max(column)
 
     ranked: list[RankedMaterial] = []
-    for i, (material_id, name, values) in enumerate(complete):
+    for i, (record_id, name, values) in enumerate(complete):
         dist_best_sq = 0.0
         dist_worst_sq = 0.0
         contributions: list[Contribution] = []
@@ -361,7 +361,7 @@ def _score_topsis(
         score = 0.5 if denom == 0 else dist_worst / denom
         ranked.append(
             RankedMaterial(
-                material_id=material_id, name=name, score=score, rank=0, contributions=contributions
+                record_id=record_id, name=name, score=score, rank=0, contributions=contributions
             )
         )
 
@@ -391,9 +391,9 @@ def _sensitivity_topsis(
         return SensitivityScenario(
             description=description,
             weights=weights,
-            top_material_id=top.material_id if top else None,
-            top_material_name=top.name if top else None,
-            changed=bool(top and top.material_id != baseline_top.material_id),
+            top_record_id=top.record_id if top else None,
+            top_record_name=top.name if top else None,
+            changed=bool(top and top.record_id != baseline_top.record_id),
         )
 
     scenarios.append(scenario("Pesos iguais", {c.key: 1.0 for c in criteria}))
@@ -509,7 +509,7 @@ def _score_promethee(
         net_by_criterion[criterion.key] = net
 
     ranked: list[RankedMaterial] = []
-    for i, (material_id, name, values) in enumerate(complete):
+    for i, (record_id, name, values) in enumerate(complete):
         contributions: list[Contribution] = []
         score = 0.0
         for criterion in criteria:
@@ -529,7 +529,7 @@ def _score_promethee(
             )
         ranked.append(
             RankedMaterial(
-                material_id=material_id, name=name, score=score, rank=0, contributions=contributions
+                record_id=record_id, name=name, score=score, rank=0, contributions=contributions
             )
         )
 
@@ -559,9 +559,9 @@ def _sensitivity_promethee(
         return SensitivityScenario(
             description=description,
             weights=weights,
-            top_material_id=top.material_id if top else None,
-            top_material_name=top.name if top else None,
-            changed=bool(top and top.material_id != baseline_top.material_id),
+            top_record_id=top.record_id if top else None,
+            top_record_name=top.name if top else None,
+            changed=bool(top and top.record_id != baseline_top.record_id),
         )
 
     scenarios.append(scenario("Pesos iguais", {c.key: 1.0 for c in criteria}))
@@ -610,7 +610,7 @@ def degrade_promethee_for_few_candidates(
 
     ranked: list[RankedMaterial] = []
     if complete:
-        material_id, name, values = complete[0]
+        record_id, name, values = complete[0]
         contributions = [
             Contribution(
                 key=c.key,
@@ -624,7 +624,7 @@ def degrade_promethee_for_few_candidates(
         ]
         ranked = [
             RankedMaterial(
-                material_id=material_id, name=name, score=0.0, rank=1, contributions=contributions
+                record_id=record_id, name=name, score=0.0, rank=1, contributions=contributions
             )
         ]
 

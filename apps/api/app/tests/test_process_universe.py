@@ -529,3 +529,334 @@ def test_a_material_with_no_process_gets_an_empty_list_not_an_error(client, db_s
     detail = client.get(f"/api/materials/{orphan.id}")
     assert detail.status_code == 200, detail.text
     assert detail.json()["processes"] == []
+
+
+# --- the process universe as the result (P0-3) --------------------------------
+
+
+def _process_names(payload: dict) -> list[str]:
+    return sorted(c["name"] for c in payload["candidates"])
+
+
+def test_a_process_study_returns_processes_not_materials(client, universe) -> None:
+    resp = client.post("/api/selection/filter", json={"universe": "process"})
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+
+    assert body["universe"] == "process"
+    # Every active process, seeded and fixture alike — nothing narrows yet.
+    names = _process_names(body)
+    assert "Solda de teste" in names
+    assert "Fundição de teste" in names
+    # The inactive one never appears.
+    assert "Processo desativado de teste" not in names
+    # And no material leaked into the result.
+    assert "Aço Demo B" not in names
+
+
+def test_a_tree_stage_in_a_process_study_walks_the_process_taxonomy(client, universe) -> None:
+    resp = client.post(
+        "/api/selection/filter",
+        json={
+            "universe": "process",
+            "stages": [{"kind": "tree", "class_slugs": [f"{NS}-conformacao"]}],
+        },
+    )
+    assert resp.status_code == 200, resp.text
+    assert _process_names(resp.json()) == ["Forjamento de teste", "Fundição de teste"]
+
+
+def test_a_material_stage_keeps_the_processes_that_serve_the_folder(client, universe) -> None:
+    """The manual's exercise 11 step 3: insert Material Universe > a folder."""
+    resp = client.post(
+        "/api/selection/filter",
+        json={
+            "universe": "process",
+            "stages": [{"kind": "material", "material_class_slugs": ["ceramicas"]}],
+        },
+    )
+    assert resp.status_code == 200, resp.text
+    # Cerâmica Demo D is linked to the *inactive* fixture process and to the
+    # seeded ones; the inactive one is out of the universe entirely.
+    assert "Processo desativado de teste" not in _process_names(resp.json())
+
+
+def test_the_exercise_11_shape_runs_over_http(client, universe) -> None:
+    """Process universe → a process family → the materials it must serve."""
+    resp = client.post(
+        "/api/selection/filter",
+        json={
+            "universe": "process",
+            "stages": [
+                {"kind": "tree", "class_slugs": [f"{NS}-uniao"]},
+                {"kind": "material", "material_class_slugs": ["metais"]},
+            ],
+        },
+    )
+    assert resp.status_code == 200, resp.text
+    # Only the fixture's welding process is both in "união" and serves a metal.
+    assert _process_names(resp.json()) == ["Solda de teste"]
+
+
+def test_a_process_with_no_material_never_survives_a_material_stage(client, universe) -> None:
+    resp = client.post(
+        "/api/selection/filter",
+        json={
+            "universe": "process",
+            "stages": [{"kind": "material", "material_class_slugs": ["metais", "polimeros"]}],
+        },
+    )
+    assert resp.status_code == 200, resp.text
+    # The fixture's casting process serves only "Liga Alumínio Demo A" (a metal),
+    # so it passes; a process linked to nothing would not.
+    assert "Fundição de teste" in _process_names(resp.json())
+
+
+def test_the_funnel_names_the_material_question(client, universe) -> None:
+    resp = client.post(
+        "/api/selection/filter",
+        json={
+            "universe": "process",
+            "stages": [
+                {"kind": "tree", "class_slugs": [f"{NS}-uniao"]},
+                {"kind": "material", "material_class_slugs": ["metais"]},
+            ],
+        },
+    )
+    assert resp.status_code == 200, resp.text
+    assert [s["operator"] for s in resp.json()["steps"]] == ["in_tree", "in_material"]
+    assert [s["kind"] for s in resp.json()["stages"]] == ["tree", "material"]
+
+
+# --- what a process study refuses --------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("universe_name", "kind", "fragment"),
+    [
+        ("process", "process", "estágio de árvore"),
+        ("material", "material", "estágio de classes"),
+    ],
+)
+def test_a_stage_from_the_other_universe_is_refused(
+    client, universe, universe_name: str, kind: str, fragment: str
+) -> None:
+    """The two mistakes a reader would most plausibly make, each named."""
+    resp = client.post(
+        "/api/selection/filter",
+        json={"universe": universe_name, "stages": [{"kind": kind}]},
+    )
+    assert resp.status_code == 400, resp.text
+    assert fragment in resp.json()["detail"]
+
+
+def test_ranking_a_process_study_cannot_reach_a_material_property(client, universe) -> None:
+    """P0-4 lifted P0-3's blanket refusal of ranking in a process study, but it
+    did not merge the two catalogues: ``densidade`` is a material property, and
+    in a process study it simply does not exist.
+
+    The 404 naming it is the point. Resolving it against the material catalogue —
+    which is what the service did before P0-4 — converted the threshold, admitted
+    the criterion, and then scored every process on a value none of them had.
+    """
+    resp = client.post(
+        "/api/selection/run",
+        json={
+            "universe": "process",
+            "ranking": {"criteria": [{"key": "densidade", "weight": 1.0}]},
+        },
+    )
+    assert resp.status_code == 404, resp.text
+    detail = resp.json()["detail"]
+    assert "Atributo não encontrado" in detail
+    assert "densidade" in detail
+
+
+def test_an_index_over_a_process_study_cannot_read_a_material_property(client, universe) -> None:
+    resp = client.post(
+        "/api/selection/run",
+        json={"universe": "process", "index": {"expression": "densidade", "goal": "maximize"}},
+    )
+    assert resp.status_code == 400, resp.text
+    assert "densidade" in resp.json()["detail"]
+
+
+def test_material_class_slugs_on_another_kind_is_refused(client, universe) -> None:
+    resp = client.post(
+        "/api/selection/filter",
+        json={
+            "universe": "material",
+            "stages": [{"kind": "tree", "class_slugs": ["metais"], "material_class_slugs": ["x"]}],
+        },
+    )
+    assert resp.status_code == 400, resp.text
+
+
+def test_a_material_study_is_untouched_by_all_of_this(client, universe) -> None:
+    """The regression that matters most: the default universe still behaves
+    exactly as it did, with no `universe` in the payload at all."""
+    plain = client.post("/api/selection/filter", json={"constraints": []})
+    assert plain.status_code == 200, plain.text
+    assert plain.json()["universe"] == "material"
+    assert "Aço Demo B" in _process_names(plain.json())
+
+
+def test_a_process_study_round_trips_through_a_saved_study(client, universe) -> None:
+    created = client.post(
+        "/api/selection/studies",
+        json={
+            "name": "Estudo de processos salvo",
+            "universe": "process",
+            "free_variables": [],
+            "criteria": [],
+            "stages": [
+                {"kind": "tree", "class_slugs": [f"{NS}-uniao"]},
+                {"kind": "material", "label": "Serve metais", "material_class_slugs": ["metais"]},
+            ],
+        },
+    )
+    assert created.status_code == 201, created.text
+    study_id = created.json()["id"]
+    assert created.json()["universe"] == "process"
+
+    read = client.get(f"/api/selection/studies/{study_id}")
+    assert read.status_code == 200, read.text
+    stages = read.json()["stages"]
+    assert [s["kind"] for s in stages] == ["tree", "material"]
+    assert stages[1]["material_class_slugs"] == ["metais"]
+    assert stages[1]["class_slugs"] == []
+
+    run = client.post(f"/api/selection/studies/{study_id}/run")
+    assert run.status_code == 200, run.text
+    assert run.json()["universe"] == "process"
+    assert [c["name"] for c in run.json()["candidates"]] == ["Solda de teste"]
+
+
+def test_the_study_list_states_each_universe(client, universe) -> None:
+    client.post(
+        "/api/selection/studies",
+        json={
+            "name": "Um de processos",
+            "universe": "process",
+            "free_variables": [],
+            "criteria": [],
+            "stages": [{"kind": "tree", "class_slugs": [f"{NS}-uniao"]}],
+        },
+    )
+    client.post(
+        "/api/selection/studies",
+        json={"name": "Um de materiais", "free_variables": [], "criteria": [], "constraints": []},
+    )
+    listed = client.get("/api/selection/studies").json()
+    by_name = {s["name"]: s["universe"] for s in listed}
+    assert by_name["Um de processos"] == "process"
+    assert by_name["Um de materiais"] == "material"
+
+
+def test_saving_a_process_study_with_an_uncomputable_criterion_is_refused_at_save_time(
+    client, universe
+) -> None:
+    """Not only at run time: a study that cannot be run is not worth storing,
+    and finding out later is worse.
+
+    What is refused narrowed with P0-4 — it is no longer "a process study cannot
+    rank", it is "this criterion names nothing in the process catalogue" — but the
+    save-time boundary P0-3 drew is unchanged.
+    """
+    resp = client.post(
+        "/api/selection/studies",
+        json={
+            "name": "Processos com ranking",
+            "universe": "process",
+            "free_variables": [],
+            "criteria": [{"key": "densidade", "weight": 1.0}],
+            "stages": [{"kind": "tree", "class_slugs": [f"{NS}-uniao"]}],
+        },
+    )
+    assert resp.status_code == 404, resp.text
+    assert "Atributo não encontrado" in resp.json()["detail"]
+
+
+# --- the report and the laudo of a process study ------------------------------
+
+
+@pytest.fixture()
+def process_study(client, universe) -> int:
+    created = client.post(
+        "/api/selection/studies",
+        json={
+            "name": "Estudo documentado de processos",
+            "universe": "process",
+            "free_variables": [],
+            "criteria": [],
+            "stages": [
+                {"kind": "tree", "label": "União", "class_slugs": [f"{NS}-uniao"]},
+                {"kind": "material", "material_class_slugs": ["metais"]},
+            ],
+        },
+    )
+    assert created.status_code == 201, created.text
+    return created.json()["id"]
+
+
+def test_the_document_states_the_universe_it_selected_over(client, process_study) -> None:
+    text = client.get(f"/api/exports/estudos/{process_study}.html").text
+    problem = text.split("Estágios")[0]
+
+    assert "Universo do resultado" in problem
+    assert "Processos considerados" in problem
+    # Never left to be inferred from the candidate names.
+    assert "Materiais considerados" not in problem
+
+
+def test_the_candidates_column_is_named_for_what_it_holds(client, process_study) -> None:
+    text = client.get(f"/api/exports/estudos/{process_study}.html").text
+    candidates = text.split("Candidatos")[-1]
+    assert "Processo" in candidates
+    assert "Solda de teste" in candidates
+
+
+def test_the_stage_table_never_prints_a_raw_slug(client, process_study) -> None:
+    """Found by reading the rendered document: the material stage printed
+    `material` in the Tipo column, which is the visible failure the label table
+    is designed to produce rather than a wrong label."""
+    text = client.get(f"/api/exports/estudos/{process_study}.html").text
+    stages = text.split("Estágios")[1].split("Restrições")[0]
+
+    assert "Materiais" in stages
+    assert ">material<" not in stages
+    # And a tree stage in a process study selects families, not material classes.
+    assert "Famílias" in stages
+
+
+def test_the_provenance_section_says_why_it_is_empty(client, process_study) -> None:
+    """Declared, never a section that quietly appears empty.
+
+    The reason changed with P0-4 and the requirement did not. It used to be "a
+    process has no attribute at all"; now processes do have attributes, and this
+    particular study selected purely by taxonomy — so there is no *value* it
+    rested on, which is what the section has to say.
+    """
+    text = client.get(f"/api/exports/estudos/{process_study}.html").text
+    assert "Sem atributos a rastrear para este estudo" in text
+
+
+def test_the_document_says_why_there_is_no_map(client, process_study) -> None:
+    text = client.get(f"/api/exports/estudos/{process_study}.html").text
+    assert "Sem mapa de seleção e sem ranqueamento" in text
+
+
+def test_no_material_provenance_is_attributed_to_a_process(client, process_study) -> None:
+    """The worst available failure in an auditable document, and the one the
+    id-shaped lookup would have produced: a process id resolved against the
+    material table finds whatever material happens to carry that id."""
+    text = client.get(f"/api/exports/estudos/{process_study}.html").text
+    for material_name in ("Aço Demo B", "Liga Alumínio Demo A", "Polímero Demo C"):
+        assert material_name not in text
+
+
+def test_the_laudo_of_a_process_study_renders(client, process_study) -> None:
+    resp = client.get(f"/api/exports/estudos/{process_study}/laudo.html")
+    assert resp.status_code == 200, resp.text
+    assert "Solda de teste" in resp.text
+    assert "Universo do resultado" in resp.text

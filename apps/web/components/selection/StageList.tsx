@@ -4,8 +4,10 @@ import type {
   ConstraintGroupIn,
   MaterialClass,
   Process,
+  ProcessAttribute,
   ProcessClass,
   PropertyDefinition,
+  SelectionUniverse,
   StageIn,
 } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
@@ -66,6 +68,14 @@ export type StageState =
       processSlugs: string[];
       processClassSlugs: string[];
       includeDescendants: boolean;
+    }
+  | {
+      id: string;
+      kind: "material";
+      label: string;
+      enabled: boolean;
+      materialClassSlugs: string[];
+      includeDescendants: boolean;
     };
 
 export function emptyLimitStage(): StageState {
@@ -101,6 +111,17 @@ export function emptyProcessStage(): StageState {
   };
 }
 
+export function emptyMaterialStage(): StageState {
+  return {
+    id: nextEditorId("stage"),
+    kind: "material",
+    label: "",
+    enabled: true,
+    materialClassSlugs: [],
+    includeDescendants: true,
+  };
+}
+
 /** The pipeline as the API takes it. An empty label is "not named", not `""`. */
 export function toStagePayload(stage: StageState): StageIn {
   const common = {
@@ -112,6 +133,14 @@ export function toStagePayload(stage: StageState): StageIn {
       ...common,
       kind: "tree",
       class_slugs: stage.classSlugs,
+      include_descendants: stage.includeDescendants,
+    };
+  }
+  if (stage.kind === "material") {
+    return {
+      ...common,
+      kind: "material",
+      material_class_slugs: stage.materialClassSlugs,
       include_descendants: stage.includeDescendants,
     };
   }
@@ -146,21 +175,36 @@ export function isSingleLimitStage(stages: StageState[]): boolean {
 interface Props {
   stages: StageState[];
   properties: PropertyDefinition[];
+  /** The process attribute catalogue (P0-4) — what a limit stage selects on in a
+   * process study. Empty while it loads, or if none is catalogued. */
+  processAttributes?: ProcessAttribute[];
   classes: MaterialClass[];
   /** The process universe (P0-2). Empty while it loads, or if none is catalogued. */
   processes?: Process[];
   processClasses?: ProcessClass[];
+  /**
+   * Which universe the study returns (P0-3). It decides two things the reader
+   * would otherwise have to know by heart: which cross stage can be added, and
+   * which taxonomy a tree stage lists — a tree stage always walks the study's
+   * **own** universe.
+   */
+  universe?: SelectionUniverse;
   onChange: (stages: StageState[]) => void;
 }
 
 export function StageList({
   stages,
   properties,
+  processAttributes = [],
   classes,
   processes = [],
   processClasses = [],
+  universe = "material",
   onChange,
 }: Props) {
+  const isProcessStudy = universe === "process";
+  // A tree stage selects folders of the study's own universe.
+  const ownFolders = isProcessStudy ? processClasses : classes;
   const replace = (index: number, next: StageState) =>
     onChange(stages.map((s, i) => (i === index ? next : s)));
 
@@ -237,13 +281,26 @@ export function StageList({
             {stage.kind === "limit" && (
               <ConstraintEditor
                 root={stage.group}
-                properties={properties}
-                classes={classes}
+                // A limit stage names attributes of the study's **own** universe
+                // (P0-4), the same rule a tree stage follows for folders — and
+                // `in_class` inside it compares the record's own class, so the
+                // folder list follows the universe too.
+                properties={isProcessStudy ? processAttributes : properties}
+                classes={ownFolders}
+                universe={universe}
                 onChange={(group) => replace(index, { ...stage, group })}
               />
             )}
             {stage.kind === "tree" && (
               <TreeStageFields
+                stage={stage}
+                classes={ownFolders}
+                label={isProcessStudy ? t.stageProcessClasses : t.stageClasses}
+                onChange={(next) => replace(index, next)}
+              />
+            )}
+            {stage.kind === "material" && (
+              <MaterialStageFields
                 stage={stage}
                 classes={classes}
                 onChange={(next) => replace(index, next)}
@@ -268,9 +325,18 @@ export function StageList({
         <Button size="sm" onClick={() => onChange([...stages, emptyTreeStage()])}>
           + {t.stageAddTree}
         </Button>
-        <Button size="sm" onClick={() => onChange([...stages, emptyProcessStage()])}>
-          + {t.stageAddProcess}
-        </Button>
+        {/* One cross stage per universe, and only the one that applies: the
+            backend refuses the other, so offering it would be a button whose
+            only outcome is an error message. */}
+        {isProcessStudy ? (
+          <Button size="sm" onClick={() => onChange([...stages, emptyMaterialStage()])}>
+            + {t.stageAddMaterial}
+          </Button>
+        ) : (
+          <Button size="sm" onClick={() => onChange([...stages, emptyProcessStage()])}>
+            + {t.stageAddProcess}
+          </Button>
+        )}
       </div>
     </div>
   );
@@ -287,6 +353,7 @@ const STAGE_BADGES: Record<StageState["kind"], string> = {
   limit: t.stageKindLimit,
   tree: t.stageKindTree,
   process: t.stageKindProcess,
+  material: t.stageKindMaterial,
 };
 
 // Identity tones, not status ones: "success"/"warning" carry meaning elsewhere
@@ -295,6 +362,7 @@ const STAGE_TONES: Record<StageState["kind"], BadgeTone> = {
   limit: "neutral",
   tree: "info",
   process: "brand",
+  material: "info",
 };
 
 /**
@@ -357,6 +425,44 @@ function MultiSelect({
   );
 }
 
+function MaterialStageFields({
+  stage,
+  classes,
+  onChange,
+}: {
+  stage: Extract<StageState, { kind: "material" }>;
+  classes: MaterialClass[];
+  onChange: (stage: StageState) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-3">
+      <p className="text-sm text-fg-muted">{t.stageMaterialsHint}</p>
+
+      <SlugMultiSelect
+        label={t.stageMaterialClasses}
+        hint={t.stageClassesHint}
+        options={classes}
+        selected={stage.materialClassSlugs}
+        onChange={(materialClassSlugs) => onChange({ ...stage, materialClassSlugs })}
+      />
+
+      <Checkbox
+        label={t.stageIncludeDescendants}
+        checked={stage.includeDescendants}
+        onChange={(e) => onChange({ ...stage, includeDescendants: e.target.checked })}
+        hint={t.stageIncludeDescendantsHint}
+      />
+
+      {/* Absence written out, never an empty control the reader has to read into. */}
+      {stage.materialClassSlugs.length === 0 ? (
+        <p className="text-sm text-fg-muted">{t.stageNoMaterialClasses}</p>
+      ) : (
+        <p className="text-sm text-fg-muted">{t.stageMaterialWarning}</p>
+      )}
+    </div>
+  );
+}
+
 function ProcessStageFields({
   stage,
   processes,
@@ -416,16 +522,18 @@ function ProcessStageFields({
 function TreeStageFields({
   stage,
   classes,
+  label,
   onChange,
 }: {
   stage: Extract<StageState, { kind: "tree" }>;
-  classes: MaterialClass[];
+  classes: { slug: string; name: string }[];
+  label: string;
   onChange: (stage: StageState) => void;
 }) {
   return (
     <div className="flex flex-col gap-3">
       <SlugMultiSelect
-        label={t.stageClasses}
+        label={label}
         hint={t.stageClassesHint}
         options={classes}
         selected={stage.classSlugs}

@@ -97,6 +97,61 @@ export interface ProcessClass {
   process_count: number;
 }
 
+/**
+ * What *shape* of value a process attribute holds (P0-4).
+ *
+ * Load-bearing, not descriptive: the engine compares an `ENVELOPE` by reach
+ * (a process that shapes 0,1–10 kg meets "≥ 5 kg") and an `ESCALAR` by its own
+ * value, and a `DISCRETO` attribute answers set membership instead. It is what
+ * decides which editor to draw and which operators can apply, before any value
+ * exists.
+ */
+export type ProcessAttributeKind = "ESCALAR" | "ENVELOPE" | "DISCRETO";
+
+/** One process attribute definition (P0-4) — the catalogue a limit stage over
+ * processes selects on. */
+export interface ProcessAttribute {
+  id: number;
+  name: string;
+  slug: string;
+  symbol: string | null;
+  description: string | null;
+  kind: ProcessAttributeKind;
+  physical_dimension: string;
+  /** Null exactly when `kind` is `DISCRETO` — a label has no unit. */
+  canonical_unit: string | null;
+  accepted_units: string[];
+  /** The closed vocabulary of a discrete attribute; empty otherwise. */
+  allowed_labels: string[];
+  better_direction: BetterDirection;
+}
+
+/** One attribute value of one process, with its provenance (P0-4). */
+export interface ProcessAttributeValue {
+  attribute_id: number;
+  attribute_name: string;
+  attribute_slug: string;
+  kind: ProcessAttributeKind;
+  value_scalar: number | null;
+  value_min: number | null;
+  value_max: number | null;
+  value_typical: number | null;
+  labels: string[];
+  original_unit: string | null;
+  normalized_value: number | null;
+  normalized_min: number | null;
+  normalized_max: number | null;
+  canonical_unit: string | null;
+  conversion_method: string | null;
+  uncertainty: number | null;
+  measurement_condition: string | null;
+  notes: string | null;
+  source_label: string | null;
+  data_quality: DataQuality;
+  /** The fourth state of data quality (D-24): render a written label, never 0. */
+  is_missing: boolean;
+}
+
 /** A manufacturing process in the catalogue (P0-2). */
 export interface Process {
   id: number;
@@ -313,7 +368,11 @@ export interface ChartData {
 
 export type ConstraintOperator =
   | "gt" | "gte" | "lt" | "lte" | "between" | "outside"
-  | "exists" | "not_exists" | "in_class" | "not_in_class" | "text_contains";
+  | "exists" | "not_exists" | "in_class" | "not_in_class" | "text_contains"
+  // P0-4: set membership over a discrete process attribute's closed vocabulary.
+  // Never applicable to a material property — none of them is discrete — which
+  // is why the editor offers these two only in a process study.
+  | "has_any_label" | "has_no_label";
 
 export type Goal = "maximize" | "minimize";
 export type CriterionDirection = "max" | "min";
@@ -334,6 +393,10 @@ export interface ConstraintIn {
   unit?: string | null;
   class_slugs?: string[];
   text?: string | null;
+  /** The labels a `has_any_label` / `has_no_label` constraint names (P0-4). A
+   * field of its own and not `class_slugs`: a class slug and an attribute label
+   * are different namespaces. */
+  labels?: string[];
 }
 
 /**
@@ -354,7 +417,7 @@ export interface ConstraintGroupIn {
  * taxonomy, or (P0-2) a selection over the process universe — the join's other
  * direction.
  */
-export type StageKind = "limit" | "tree" | "process";
+export type StageKind = "limit" | "tree" | "process" | "material";
 
 /**
  * One stage of the selection pipeline (P0-1) — mirrors the backend's `StageIn`
@@ -378,7 +441,10 @@ export interface StageIn {
   // selected process applies to. "This *and* that" is two stages.
   process_slugs?: string[];
   process_class_slugs?: string[];
-  /** Shared by the tree and process stages: a folder means what is under it. */
+  // kind === "material" (P0-3): folders of the material taxonomy, in a process
+  // study. Folders only — a Material has no slug to name a leaf by.
+  material_class_slugs?: string[];
+  /** Shared by every folder-selecting stage: a folder means what is under it. */
   include_descendants?: boolean;
 }
 
@@ -392,6 +458,7 @@ export interface StageOut {
   class_slugs: string[];
   process_slugs: string[];
   process_class_slugs: string[];
+  material_class_slugs: string[];
   include_descendants: boolean;
 }
 
@@ -442,6 +509,7 @@ export interface AhpWeightsOut {
 }
 
 export interface RunRequest {
+  universe?: SelectionUniverse;
   // M6: an explicit nested tree (`root_group`) overrides these two entirely
   // — see `ConstraintGroupIn`'s docstring. Kept optional so a caller that
   // builds a tree does not also have to invent a flat pair to satisfy the
@@ -463,8 +531,17 @@ export interface FunnelStep {
   remaining: number;
 }
 
+/**
+ * One surviving record of the pipeline.
+ *
+ * `record_id`, not `material_id`, since P0-3: in a process study this row *is*
+ * a process. A field named for one universe while carrying the other's id is
+ * the same class of lie the funnel's `in_tree` was. The ranking types below
+ * keep their material-specific names on purpose — a process study cannot rank
+ * yet, so they provably never describe a process.
+ */
 export interface Candidate {
-  material_id: number;
+  record_id: number;
   name: string;
   class_name: string;
   index_value: number | null;
@@ -472,8 +549,17 @@ export interface Candidate {
   rank: number | null;
 }
 
+/** Which universe a study returns (P0-3). */
+export type SelectionUniverse = "material" | "process";
+
 export interface IndexValue {
-  material_id: number;
+  /**
+   * `record_id`, not `material_id`, since P0-4: a process study can be ranked and
+   * indexed now, so this is a process's id there. Named after materials it would
+   * invite a reader to resolve it against them — the mistake `Candidate.record_id`
+   * was renamed to prevent in P0-3.
+   */
+  record_id: number;
   name: string;
   class_name: string;
   value: number | null;
@@ -501,7 +587,8 @@ export interface Contribution {
 }
 
 export interface RankedMaterial {
-  material_id: number;
+  /** The ranked record's id — a material's or a process's. See `IndexValue`. */
+  record_id: number;
   name: string;
   score: number;
   rank: number;
@@ -509,7 +596,7 @@ export interface RankedMaterial {
 }
 
 export interface ExcludedMaterial {
-  material_id: number;
+  record_id: number;
   name: string;
   /** Stable identifiers. Show `missing_labels` to a person. */
   missing_keys: string[];
@@ -519,8 +606,8 @@ export interface ExcludedMaterial {
 export interface SensitivityScenario {
   description: string;
   weights: Record<string, number>;
-  top_material_id: number | null;
-  top_material_name: string | null;
+  top_record_id: number | null;
+  top_record_name: string | null;
   changed: boolean;
 }
 
@@ -534,6 +621,7 @@ export interface RankingResult {
 }
 
 export interface RunResult {
+  universe: SelectionUniverse;
   initial_count: number;
   combinator: string;
   final_count: number;
@@ -558,6 +646,7 @@ export interface PerformanceIndex {
 }
 
 export interface StudySummary {
+  universe: SelectionUniverse;
   id: number;
   name: string;
   description: string | null;
@@ -568,6 +657,7 @@ export interface StudySummary {
 }
 
 export interface StudyDetail {
+  universe: SelectionUniverse;
   id: number;
   name: string;
   description: string | null;
@@ -586,6 +676,7 @@ export interface StudyDetail {
 }
 
 export interface StudyIn {
+  universe?: SelectionUniverse;
   name: string;
   description?: string | null;
   function_text?: string | null;

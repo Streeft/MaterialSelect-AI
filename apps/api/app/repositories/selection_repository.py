@@ -3,13 +3,17 @@
 from __future__ import annotations
 
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session, aliased, joinedload
+from sqlalchemy.orm import Session, aliased, joinedload, selectinload
 
 from app.models.material import Material
 from app.models.material_class import MaterialClass
 from app.models.material_property_value import MaterialPropertyValue
 from app.models.performance_index import PerformanceIndex
 from app.models.process import MaterialProcess, Process, ProcessClass
+from app.models.process_attribute import (
+    ProcessAttributeDefinition,
+    ProcessAttributeValue,
+)
 from app.models.property_definition import PropertyDefinition
 from app.models.selection import SelectionStudy
 
@@ -96,6 +100,85 @@ class SelectionRepository:
         reach: dict[int, list[tuple[str, str]]] = {}
         for material_id, process_slug, class_slug in self.db.execute(stmt).all():
             reach.setdefault(material_id, []).append((process_slug, class_slug))
+        return reach
+
+    def list_active_processes_with_class(self) -> list[Process]:
+        """Active processes with their class and attribute values eager-loaded —
+        the process universe's answer to ``list_active_materials_with_values``.
+
+        The values arrived with P0-4; until then a process had no attribute at
+        all, and a limit stage in a process study silently admitted nobody
+        because it resolved its slugs against the *material* catalogue against a
+        snapshot whose ``values`` was empty by construction.
+
+        ``selectinload`` for the values rather than a join, so a process with a
+        dozen attributes does not multiply its own row a dozen times the way the
+        class join would.
+        """
+        stmt = (
+            select(Process)
+            .options(
+                joinedload(Process.process_class),
+                selectinload(Process.attribute_values).joinedload(ProcessAttributeValue.attribute),
+            )
+            .where(Process.is_active.is_(True))
+            .order_by(Process.name)
+        )
+        return list(self.db.execute(stmt).scalars().unique().all())
+
+    def processes_with_attributes(self, process_ids: list[int]) -> list[Process]:
+        """The named processes with their attribute values, definitions and sources
+        loaded — the export's provenance query for a process study (P0-4).
+
+        By id and not the whole catalogue, mirroring
+        ``ChartRepository.list_materials(material_ids=...)`` on the other side: the
+        provenance sheet traces the candidates, and loading every process to print
+        a handful would grow with the catalogue for no reader's benefit.
+        """
+        if not process_ids:
+            return []
+        stmt = (
+            select(Process)
+            .options(
+                joinedload(Process.process_class),
+                selectinload(Process.attribute_values).joinedload(ProcessAttributeValue.attribute),
+                selectinload(Process.attribute_values).joinedload(ProcessAttributeValue.source),
+            )
+            .where(Process.id.in_(process_ids))
+            .order_by(Process.name)
+        )
+        return list(self.db.execute(stmt).scalars().unique().all())
+
+    def list_process_attributes(self) -> list[ProcessAttributeDefinition]:
+        """The process attribute catalogue (P0-4).
+
+        The process universe's counterpart to ``list_properties``, and a
+        separate call for the reason the tables are separate: a material
+        property picker that could reach "faixa de massa" would be offering a
+        process capability as a material property.
+        """
+        stmt = select(ProcessAttributeDefinition).order_by(ProcessAttributeDefinition.name)
+        return list(self.db.execute(stmt).scalars().all())
+
+    def material_reach_by_process(self) -> dict[int, list[str]]:
+        """Every link as ``{process_id: [material class slug]}`` (P0-3).
+
+        The mirror of ``process_reach_by_material``, and read the same way: one
+        statement for the whole join, because the snapshot is built for the
+        entire active catalogue on every run. Inactive **materials** are left
+        out — a material withdrawn from the catalogue must not keep a process
+        admissible on its account.
+        """
+        stmt = (
+            select(MaterialProcess.process_id, MaterialClass.slug)
+            .join(Material, Material.id == MaterialProcess.material_id)
+            .join(MaterialClass, MaterialClass.id == Material.class_id)
+            .where(Material.is_active.is_(True))
+            .order_by(MaterialProcess.process_id)
+        )
+        reach: dict[int, list[str]] = {}
+        for process_id, class_slug in self.db.execute(stmt).all():
+            reach.setdefault(process_id, []).append(class_slug)
         return reach
 
     def existing_process_slugs(self, slugs: list[str]) -> set[str]:

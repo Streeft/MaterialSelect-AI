@@ -11,6 +11,7 @@ import {
   getStudy,
   listClasses,
   listPerformanceIndices,
+  listProcessAttributes,
   listProcessClasses,
   listProcesses,
   listProperties,
@@ -21,6 +22,7 @@ import {
 } from "@/lib/api";
 import type {
   Combinator,
+  SelectionUniverse,
   CriterionIn,
   Goal,
   IndexIn,
@@ -158,6 +160,13 @@ function stageFromPayload(stage: StageOut, combinator: Combinator): StageState {
         processClassSlugs: stage.process_class_slugs,
         includeDescendants: stage.include_descendants,
       };
+    case "material":
+      return {
+        ...common,
+        kind: "material",
+        materialClassSlugs: stage.material_class_slugs,
+        includeDescendants: stage.include_descendants,
+      };
     case "limit":
       return {
         ...common,
@@ -235,6 +244,26 @@ function SelectionWizard() {
   // the nested AND/OR tree M6 introduced, so a simple study looks and behaves
   // as it always did; adding a stage is what turns it into a pipeline.
   const [stages, setStages] = useState<StageState[]>(() => [emptyLimitStage()]);
+  // P0-3: which universe the study returns. Switching it resets the pipeline,
+  // because a stage of the other universe is refused by the backend — carrying
+  // one across would only produce an error the reader did not ask for.
+  const [universe, setUniverse] = useState<SelectionUniverse>("material");
+
+  /**
+   * Switching universe starts the pipeline over.
+   *
+   * Carrying stages across would hand the backend a stage it refuses — the
+   * kinds are per-universe by design — so the reader would get an error they
+   * did not ask for. Resetting is the honest outcome, and the control says so
+   * before it is used.
+   */
+  function changeUniverse(next: SelectionUniverse) {
+    if (next === universe) return;
+    setUniverse(next);
+    setStages([emptyLimitStage()]);
+  }
+
+  const isProcessStudy = universe === "process";
 
   const [indexMode, setIndexMode] = useState<string>("none"); // "none" | slug | "custom"
   const [customExpression, setCustomExpression] = useState("");
@@ -259,6 +288,13 @@ function SelectionWizard() {
   // data like the taxonomy, so it is cached under its own key and read by every
   // stage in the pipeline.
   const processes = useQuery({ queryKey: ["processes"], queryFn: listProcesses });
+  // P0-4: what a limit stage over processes selects on. Its own query, because
+  // it is its own catalogue — a material property picker that could reach "faixa
+  // de massa" would be offering a process capability as a material property.
+  const processAttributes = useQuery({
+    queryKey: ["process-attributes"],
+    queryFn: listProcessAttributes,
+  });
   const processClasses = useQuery({
     queryKey: ["process-classes"],
     queryFn: listProcessClasses,
@@ -336,6 +372,7 @@ function SelectionWizard() {
 
   function buildRequest(includeObjective: boolean): RunRequest {
     return {
+      universe,
       stages: stagesPayload(),
       index: includeObjective ? activeIndex : null,
       ranking:
@@ -349,8 +386,9 @@ function SelectionWizard() {
   // Constraints only: adding the index here would make the number answer a
   // different question from the one the label asks.
   const preview = useQuery({
-    queryKey: ["selection-preview", JSON.stringify(stagesPayload())],
-    queryFn: () => runSelection({ stages: stagesPayload(), index: null, ranking: null }),
+    queryKey: ["selection-preview", universe, JSON.stringify(stagesPayload())],
+    queryFn: () =>
+      runSelection({ universe, stages: stagesPayload(), index: null, ranking: null }),
     // Keep the previous count on screen while the next one is in flight, so the
     // element does not blink between every keystroke.
     placeholderData: (previous) => previous,
@@ -374,6 +412,7 @@ function SelectionWizard() {
         function_text: functionText.trim() || null,
         objective_text: objectiveText.trim() || null,
         free_variables: freeVariables.split(",").map((s) => s.trim()).filter(Boolean),
+        universe,
         stages: stagesPayload(),
         index: activeIndex,
         normalization,
@@ -401,6 +440,7 @@ function SelectionWizard() {
       setFunctionText(s.function_text ?? "");
       setObjectiveText(s.objective_text ?? "");
       setFreeVariables(s.free_variables.join(", "));
+      setUniverse(s.universe);
       // P0-1 closes M6's read-side gap: `StudyOut.stages` carries each stage's
       // real tree, so reopening a nested study restores its parentheses instead
       // of flattening them. A study whose payload somehow has no stage falls
@@ -705,22 +745,59 @@ function SelectionWizard() {
             title={stages.length > 1 ? t.stagesTitle : t.constraintsTitle}
             description={stages.length > 1 ? t.stagesHint : t.constraintsHint}
           >
+            {/* P0-3: the universe comes before the stages because it decides
+                which stages exist. Put after them it would read as a filter on
+                a pipeline already written. */}
+            <Card className="mb-4">
+              <CardBody className="flex flex-col gap-2">
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs font-medium text-ink-muted">{t.universeTitle}</span>
+                  <ButtonGroup label={t.universeTitle}>
+                    <ButtonGroupItem
+                      selected={universe === "material"}
+                      label={t.universeMaterial}
+                      onClick={() => changeUniverse("material")}
+                    />
+                    <ButtonGroupItem
+                      selected={universe === "process"}
+                      label={t.universeProcess}
+                      onClick={() => changeUniverse("process")}
+                    />
+                  </ButtonGroup>
+                </div>
+                <p className="text-xs text-fg-muted">{t.universeHint}</p>
+                {/* What a process study cannot do, said here rather than
+                    discovered as an error two steps later. */}
+                {isProcessStudy && <Alert tone="info">{t.universeProcessNote}</Alert>}
+              </CardBody>
+            </Card>
             {/* The root group's own AND/OR toggle lives inside the editor
                 (M6) — operator is a per-group property, not a study-level
                 one — and since P0-1 each stage owns one such tree. */}
             <StageList
               stages={stages}
               properties={properties.data ?? []}
+              processAttributes={processAttributes.data ?? []}
               classes={classes.data ?? []}
               processes={processes.data ?? []}
               processClasses={processClasses.data ?? []}
+              universe={universe}
               onChange={setStages}
             />
           </Section>
         )}
 
         {/* Step 3: objective (index + ranking) */}
-        {step === "objective" && (
+        {/* P0-3: a process study has no objective step to fill in. Said here,
+            in the step the reader opened, rather than discovered as a 400 when
+            they press Run. */}
+        {step === "objective" && isProcessStudy && (
+          <Section title={t.objectiveTitle}>
+            <Alert tone="info">{t.universeProcessNote}</Alert>
+          </Section>
+        )}
+
+        {step === "objective" && !isProcessStudy && (
           <div className="space-y-5">
             <Section title={t.objectiveTitle}>
               <Card>

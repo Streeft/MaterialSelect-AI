@@ -23,6 +23,12 @@ Two design choices worth stating, because both had a plausible alternative:
   unit, normalized value, source, quality). Inventing a bare number here would
   break principle 1, so the link stays a link; the day the pairing needs
   numbers, it gets its own table with provenance, not a column.
+
+  P0-4 kept that promise for the *process*, not the pair:
+  ``ProcessAttributeValue`` gives a process its own attributes with the full
+  trail, and the association is still a bare link. A number about the *pairing*
+  — the thickness this process reaches *in this material* — remains unmodelled,
+  and is still not a column here.
 """
 
 from __future__ import annotations
@@ -91,6 +97,14 @@ class Process(Base):
         secondary="material_process",
         back_populates="processes",
         order_by="Material.name",
+    )
+    # P0-4: the attributes a Limit stage can select on. Cascade for the reason
+    # every other owned collection in this codebase has one — SQLite runs here
+    # without `PRAGMA foreign_keys=ON`, so `ondelete` alone would orphan the
+    # rows.
+    attribute_values: Mapped[list[ProcessAttributeValue]] = relationship(  # noqa: F821
+        back_populates="process",
+        cascade="all, delete-orphan",
     )
 
 

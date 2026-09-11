@@ -8,13 +8,14 @@
  * to whichever branch is the fallback, and the stage would be labelled wrong
  * instead of visibly unlabelled.
  */
-const STAGE_KIND_WORDS: Record<"limit" | "tree" | "process", string> = {
+const STAGE_KIND_WORDS: Record<"limit" | "tree" | "process" | "material", string> = {
   limit: "limites",
   tree: "classes",
   process: "processos",
+  material: "materiais",
 };
 
-function stageKindWord(kind: "limit" | "tree" | "process"): string {
+function stageKindWord(kind: "limit" | "tree" | "process" | "material"): string {
   return STAGE_KIND_WORDS[kind];
 }
 
@@ -256,6 +257,15 @@ export const ptBR = {
     // P0-1: a seleção é uma pilha ordenada de estágios. O padrão continua sendo
     // um único estágio de limites, então quem faz um estudo simples não vê
     // vocabulário novo — os rótulos abaixo só aparecem quando há pilha.
+    // P0-3: o universo do resultado. "Universo" é o termo do método, e é o que
+    // o relatório também usa — a tela e o documento não podem divergir.
+    universeTitle: "Universo do resultado",
+    universeHint:
+      "O que a seleção devolve. Trocar reinicia os estágios: cada universo tem os seus, e um estágio do outro seria recusado.",
+    universeMaterial: "Materiais",
+    universeProcess: "Processos",
+    universeProcessNote:
+      "Um estudo de processos ainda não ranqueia nem aceita índice de desempenho: processo não tem atributo cadastrado, e a ferramenta não inventa valor.",
     stagesTitle: "Estágios da seleção",
     stagesHint:
       "Os estágios se aplicam em ordem, e o resultado é a interseção dos habilitados. Desligar um estágio mostra o efeito dele sem apagar o que você escreveu.",
@@ -264,7 +274,9 @@ export const ptBR = {
     // P0-2: o terceiro tipo. "Processos" e não "Fabricação" porque é o registro
     // que se escolhe, e é como o resto da interface e o relatório o chamam.
     stageKindProcess: "Processos",
-    stageNumber: (n: number, kind: "limit" | "tree" | "process") =>
+    // P0-3: o estágio de travessia visto do lado do processo.
+    stageKindMaterial: "Materiais",
+    stageNumber: (n: number, kind: "limit" | "tree" | "process" | "material") =>
       `Estágio ${n} (${stageKindWord(kind)})`,
     stageLabel: "Nome do estágio",
     stageLabelPlaceholder: "Opcional — ex.: Só metais leves",
@@ -273,6 +285,7 @@ export const ptBR = {
     stageAddLimit: "Estágio de limites",
     stageAddTree: "Estágio de classes",
     stageAddProcess: "Estágio de processos",
+    stageAddMaterial: "Estágio de materiais",
     stageRemove: "Remover estágio",
     stageMoveUp: (n: number) => `Mover o estágio ${n} para cima`,
     stageMoveDown: (n: number) => `Mover o estágio ${n} para baixo`,
@@ -293,6 +306,14 @@ export const ptBR = {
       "Marcado, escolher uma família traz todos os processos abaixo dela.",
     stageNoProcesses:
       "Nenhum processo escolhido — este estágio não estreita nada.",
+    // P0-3: o estágio de travessia num estudo de processos.
+    stageMaterialClasses: "Classes de material atendidas",
+    stageMaterialsHint:
+      "Mantém os processos que servem algum material das classes escolhidas. Só pastas: um material não tem identificador de folha aqui.",
+    stageNoMaterialClasses:
+      "Nenhuma classe de material escolhida — este estágio não estreita nada.",
+    stageMaterialWarning:
+      "Processo sem material vinculado não passa por este estágio: não se seleciona sobre dado que não se tem.",
     stageProcessWarning:
       "Material sem processo cadastrado não passa por este estágio: não se seleciona sobre dado que não se tem.",
     stagePassedAlone: "Admitidos sozinho",
@@ -316,9 +337,19 @@ export const ptBR = {
       in_class: "∈ pertence à classe",
       not_in_class: "∉ não pertence à classe",
       text_contains: "texto contém",
+      // P0-4: set membership over a discrete process attribute. Offered only in
+      // a process study — no material property is discrete.
+      has_any_label: "∈ tem algum dos rótulos",
+      has_no_label: "∉ não tem nenhum dos rótulos",
     },
     constraintNumber: (n: number) => `Restrição ${n}`,
     selectProperty: "Selecione uma propriedade",
+    // P0-4: in a process study the row selects on a process *attribute*, which
+    // is a different catalogue — the field is named for what it holds.
+    attribute: "Atributo do processo",
+    selectAttribute: "Selecione um atributo",
+    labels: "Rótulos",
+    labelsPickAttributeFirst: "Escolha o atributo para ver os rótulos possíveis.",
     selectCriterion: "Selecione um critério",
     autoDirection: "Automática (pela propriedade)",
     value: "Valor",

@@ -86,6 +86,14 @@ class ResultContext:
     """
 
     study_name: str
+    #: Which universe the study returned — "material" or "process" (P0-4).
+    #:
+    #: The narrative has to name what it counted. Without this the wording was
+    #: "Partindo de 13 materiais" for a selection of *processes*, which is the
+    #: one thing the AI layer must never do: assert something the deterministic
+    #: result does not say. It also reached the prompt of a real provider, which
+    #: would then go on writing about materials.
+    universe: str
     function_text: str | None
     objective_text: str | None
     constraint_labels: list[str]

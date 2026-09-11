@@ -266,7 +266,7 @@ class TestDegradePrometheeForFewCandidates:
         result = degrade_promethee_for_few_candidates(materials, criteria)
         assert len(result.ranked) == 1
         material = result.ranked[0]
-        assert material.material_id == 1
+        assert material.record_id == 1
         assert material.rank == 1
         # PROMETHEE has no peer to compare this material against — zero, not
         # a fabricated "best possible" score the way weighted_sum's own

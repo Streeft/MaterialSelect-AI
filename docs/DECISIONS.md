@@ -2477,3 +2477,182 @@ travamento do NOT NULL, exatamente onde a produção quebraria. O universo do
 seed é fictício e marcado (`is_demo`), e o que é inventado ali é a
 **compatibilidade**, dito no próprio arquivo: os nomes dos processos são
 vocabulário corrente de manufatura, domínio público da metodologia.
+
+---
+
+## D-58 — O estudo escolhe o universo do resultado, e o motor é um só
+
+**Contexto.** Todo estudo devolvia **materiais**. O exercício 11 do manual do
+EduPack seleciona **processos**: a tabela de resultado é o universo de processos,
+e um estágio alcança o de materiais ("Insert Material Universe > Polymers >
+Thermoplastic"). O P0-2 fez o sentido do exercício 9; este é o inverso.
+
+**Decisão.**
+
+- **`SelectionStudy.universe` é coluna, não inferência a partir dos estágios.**
+  Uma pilha de um único estágio de limites não nomeia universo nenhum, e
+  inferir deixaria o resultado dependendo de qual estágio o leitor escreveu
+  primeiro.
+- **Um motor só.** `RecordSnapshot` é a forma compartilhada de um registro
+  selecionável, e `MaterialSnapshot`/`ProcessSnapshot` são o que cada universo
+  acrescenta. Nada do que o motor faz — avaliar restrição, casar linhagem de
+  classe, contar num funil — é sobre *material*; é sobre *um registro com uma
+  classe e alguns valores*. Um segundo motor criaria duas verdades sobre a mesma
+  pergunta.
+- **`tree` anda o universo do próprio estudo; a travessia nomeia o outro.**
+  Daí `process` num estudo de materiais e `material` num de processos, cada um
+  com as suas colunas. Qual taxonomia valida um `class_slugs` decorre do
+  universo, **não do nome do campo**, que é o mesmo nos dois — foi exatamente
+  aí que dois defeitos apareceram (404 em slug legítimo; o documento imprimindo
+  slug cru no lugar do nome da família).
+- **O estágio inverso leva só pastas.** `material` não tem slug para nomear uma
+  folha, e o próprio exercício seleciona uma pasta. Inventar um identificador
+  seria schema a mais para uma pergunta que o manual não faz.
+- **Ranqueamento e índice são recusados num estudo de processos, com o motivo
+  escrito** — e **no salvamento**, não só na execução. Processo não tem atributo
+  com proveniência; devolver ranking vazio seria lido como "nenhum processo
+  pontuou bem" em vez de "isto não é calculável". Estudo que não roda não vale
+  guardar, e descobrir depois é pior.
+- **`CandidateOut.material_id` virou `record_id`.** Num estudo de processos
+  aquela linha *é* um processo, e um campo com o nome de um universo carregando
+  o id do outro é a mesma classe de mentira que o `in_tree` do funil era
+  ([D-57](DECISIONS.md)). Os tipos de ranking mantêm o nome de propósito: um
+  estudo de processos não ranqueia, então eles comprovadamente nunca descrevem
+  um processo. Quando os atributos chegarem, o rename acompanha a mudança que o
+  motiva.
+
+**O defeito mais grave, e ele era silencioso.** O exportador resolvia os ids
+dos candidatos contra a tabela de **materiais**. Num estudo de processos isso
+não devolveria vazio — devolveria o material que por acaso carrega aquele id, e
+imprimiria a proveniência dele sob o nome de um processo. Num documento cuja
+razão de existir é ser auditável, é a pior falha disponível. A busca não
+acontece para o outro universo, e há teste afirmando que nome de material nenhum
+aparece no documento.
+
+**O que o documento passou a dizer.** O universo do resultado é declarado; a
+coluna dos candidatos é nomeada pelo que contém; a seção de proveniência diz
+por que está vazia; e a razão de não haver mapa nem ranqueamento fica onde o
+leitor procuraria a figura. Na tela, o controle de universo vem **antes** dos
+estágios, porque é ele que decide quais estágios existem, e só a travessia que
+se aplica é oferecida — o outro botão teria como único desfecho a recusa do
+backend.
+
+**O que isto ainda não é.** O passo 2 do exercício 11 é um Limit Stage sobre
+**atributos do processo** (*Shape*, *Mass range*, *Range of section thickness*,
+*Process characteristics*, *Economic batch size*). Isso exige atributo com a
+mesma proveniência de `MaterialPropertyValue` — e, para os dois primeiros,
+suporte a valor **discreto** e a **intervalo**, que o modelo atual só tem em
+parte. É peça do tamanho do P0-2, está registrada como **P0-4**, e é ela que
+destrava o ranqueamento de processos.
+
+**Método.** `app/tests/test_migration_selection_universe.py` roda a migração nos
+dois sentidos contra um banco com estudos salvos, e afirma que o backfill grava
+`"material"` porque é o que esses estudos **fazem** — não porque seja um padrão
+conveniente. Conferido por mutação. Dois dos quatro defeitos desta frente foram
+achados **lendo o documento renderizado**, não a asserção.
+
+---
+
+## D-59 — Processo tem atributo, e o envelope de capacidade é comparado por alcance
+
+**Contexto.** Até aqui um processo era nome, família e vínculos. O passo 2 do
+exercício 11 do manual é um Limit Stage sobre atributos do processo — forma,
+faixa de massa, espessura de seção, característica do processo, lote econômico —
+e nenhum existia. Era também a razão escrita pela qual um estudo de processos
+recusava ranqueamento ([D-58](DECISIONS.md)).
+
+**Decisão.**
+
+- **Tabelas próprias, não uma coluna `universe` em `PropertyDefinition`.** Mesmo
+  raciocínio que deu `ProcessClass` ao universo de processos ([D-57](DECISIONS.md)):
+  `property_definition` é lida pelo seletor de propriedade, pelos eixos do
+  gráfico, pelo painel e pelo avaliador de índices, e um único descuido ofereceria
+  "faixa de massa" como propriedade de material. A forma é compartilhada
+  **copiando** a forma, não a linha — e `app/calculations/units.py` e
+  `app/domain/data_quality.py` são reaproveitados intocados, que é onde o risco
+  real de duplicação estava.
+
+- **`ProcessAttributeKind` é load-bearing, diferente de
+  `PropertyDefinition.is_interval`.** O motor compara por regras distintas, então
+  o tipo tem de ser legível a partir da definição, antes de existir valor algum:
+  a interface desenha o editor a partir dele, e o relatório precisa dizer por qual
+  regra o número foi comparado. Uma `CheckConstraint` no banco garante que
+  atributo discreto não tem unidade e atributo numérico não fica sem ela — uma
+  definição com as duas coisas, ou com nenhuma, deixaria todo valor abaixo dela
+  ilegível.
+
+- **O envelope de capacidade é comparado por alcance, e isso *não* é a regra do
+  intervalo de material.** Um aço de módulo 200–210 GPa tem *um* módulo
+  verdadeiro ali dentro, e o ponto médio o representa. Um processo que conforma
+  peças de 0,1 a 10 kg consegue de fato qualquer massa da faixa, então "≥ 5 kg" é
+  atendido quando a faixa **alcança** o valor. São dois dados diferentes — e é a
+  diferença no dado, não na fórmula, que justifica regras diferentes. O teste
+  `test_the_midpoint_rule_would_have_rejected_a_reachable_envelope` mostra o caso
+  que a alternativa erraria: envelope 0,1–4 kg alcança 3 kg, o ponto médio (2,05)
+  não. `BETWEEN` sobre envelope é **sobreposição**, não contenção.
+
+  **Consequência obrigatória:** a diferença tem de chegar ao leitor. O rótulo
+  gerado de uma restrição sobre envelope diz "(alcance do envelope)", e a folha de
+  proveniência tem coluna **Tipo de valor** mais a nota da regra. Diferença
+  semântica que o leitor não vê é a única coisa que este motor existe para não
+  produzir.
+
+  Aplicar semântica de envelope ao **intervalo de material** é item próprio, não
+  efeito colateral deste: moveria toda contagem de funil existente.
+
+- **Discreto é pertinência a conjunto, com vocabulário fechado.**
+  `HAS_ANY_LABEL`/`HAS_NO_LABEL`, e o operador negativo **não** libera ausência:
+  um processo sem `forma` cadastrada não é "um processo cuja forma não é maciça",
+  é um processo cuja forma ninguém escreveu — pedir ausência é o que
+  `NOT_EXISTS` faz. Vocabulário fechado pela mesma razão que uma classe tem slug:
+  duas grafias não podem virar duas capacidades, e rótulo fora do vocabulário é
+  404 nomeando o rótulo, nunca zero resultado que pareceria "nenhum processo tem
+  essa capacidade".
+
+- **O envelope vive em dois mapas do snapshot, de propósito.** Os limites em
+  `envelopes`, que é contra o que um limiar é comparado; o `normalized_value` em
+  `values`, que é o número que um ranqueamento ou um índice lê. Não são duas
+  verdades — ponto representativo é o que `normalized_value` sempre significou —
+  e o motor prefere o envelope ao filtrar. Deixá-lo fora tornaria inranqueável
+  todo atributo com faixa, o que é propriedade do mapa em que ele foi arquivado,
+  não do dado.
+
+- **A recusa de D-58 foi retirada, não reescrita.** Ela dizia "processo não tem
+  atributo cadastrado, e a ferramenta não inventa valor", e era verdade. O que se
+  recusa agora é mais estreito e continua declarado: atributo inexistente (404
+  nomeando, o que também prova que o catálogo é por universo — `densidade` não
+  existe num estudo de processos) e atributo **discreto** onde se exige magnitude,
+  como critério de ranqueamento (um rótulo não é melhor que outro) e dentro de
+  expressão de índice (recusado pelo nome, em vez do erro de dimensão que a
+  unidade NULL produziria depois).
+
+- **`material_id` virou `record_id` em ranking e índice**, exatamente como D-58
+  anunciou que aconteceria "quando os atributos chegarem": agora um estudo de
+  processos ranqueia, então aquelas linhas de fato carregam id de processo.
+
+**Método.** Dois defeitos reais apareceram, e nenhum dos dois por asserção que
+falhou:
+
+1. **Um estágio de limites num estudo de processos resolvia seus slugs contra o
+   catálogo de materiais.** "densidade ≥ 1000" era aceito, o limiar convertido, e
+   o estágio então não admitia ninguém — porque o snapshot de processo não tinha
+   valor nenhum. Zero resultado sem explicação é a pior resposta disponível.
+2. **A interpretação dizia "Partindo de 13 materiais" numa seleção de
+   processos** — achado lendo o laudo renderizado. É a camada de IA afirmando algo
+   que o resultado determinístico não diz, e a mesma palavra chegava ao prompt de
+   um provedor real. `ResultContext.universe` é campo obrigatório, sem padrão que
+   pudesse mentir por omissão.
+
+E um terceiro que habilitar o ranqueamento criou: o mapa do laudo é desenhado por
+`ChartService.property_map`, que lê o catálogo de materiais e recebe os ids
+ranqueados para destacar. Os eixos são filtrados contra as propriedades de
+material, o que barra o caso comum — mas slug é único por tabela, então nada
+impede um atributo de processo chamado `densidade`, e aí os eixos resolvem. Sem o
+guard de universo o laudo de uma seleção de processos imprime "Liga Alumínio Demo
+A": há teste que constrói a colisão de propósito e falha sem o guard.
+
+A migração `d4a8c1f70b93` é a primeira aditiva **sem backfill**, e é honesto que
+seja: a informação é nova, processo sem atributo continua sem, e a regra de não
+selecionar sobre dado ausente dá a resposta certa sem inventar nada. Conferida por
+`compare_metadata` e por mutação — sem a `CheckConstraint`, dois testes falham. A
+`e6c3f45a91d8` acrescenta `selection_constraint.labels` no molde de sempre.
