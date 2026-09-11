@@ -65,7 +65,17 @@ Os grupos acima descrevem **um** filtro. Um estudo, porém, é uma **pilha
 ordenada de estágios** (`SelectionStage`), e o resultado é a interseção dos
 estágios **habilitados**, na ordem em que estão ([D-56](DECISIONS.md)).
 
-Há **três** tipos, e um estágio é uma pergunta só — enviar os campos de outro
+**O estudo escolhe o universo do resultado** (P0-3, [D-58](DECISIONS.md)):
+`material` (o padrão, e todo estudo salvo antes disso) ou `process`. É coluna e
+não inferência — uma pilha de um único estágio de limites não nomeia universo
+nenhum. Os tipos de estágio disponíveis decorrem dele: um estudo de materiais
+aceita `limit`/`tree`/`process`, um de processos aceita `limit`/`tree`/`material`.
+
+`tree` sempre anda a taxonomia do **próprio** universo do estudo, e o estágio de
+travessia é o que nomeia o outro. Por isso **qual taxonomia valida `class_slugs`
+decorre do universo, não do nome do campo**, que é o mesmo nos dois.
+
+Há **quatro** tipos, e um estágio é uma pergunta só — enviar os campos de outro
 tipo é recusado, não ignorado:
 
 - **`limit`** — uma árvore de restrições, exatamente a do M6 acima. O estágio é
@@ -90,6 +100,48 @@ tipo é recusado, não ignorado:
   não se seleciona sobre dado que não se tem. Processo inativo também não admite
   ninguém, mesmo com o vínculo ainda no banco.
 
+- **`material`** — a mesma junção do outro lado (P0-3), num estudo de processos:
+  mantém os processos que servem **algum** material das pastas escolhidas, em
+  `material_class_slugs`. **Só pastas**: um `Material` não tem slug para nomear
+  uma folha, e o exercício 11 do manual seleciona uma pasta.
+
+### Atributos de processo (P0-4)
+
+Um estágio de limites num estudo de processos nomeia **atributos de processo**, e
+não propriedades de material — a mesma regra que `tree` segue para pastas
+([D-59](DECISIONS.md)). Os dois catálogos são tabelas separadas
+(`process_attribute_definition`, `process_attribute_value`), com o trilho de
+proveniência inteiro de `material_property_value`, e um slug de material num
+estudo de processos é **404 nomeando o que não existe** — antes do P0-4 ele era
+aceito, convertido, e o estágio então não admitia ninguém, sem explicação.
+
+`ProcessAttributeKind` diz qual a forma do valor, e é o que decide como comparar:
+
+- **`ESCALAR`** — um número, comparado exatamente como uma propriedade de
+  material.
+- **`ENVELOPE`** — uma **faixa de capacidade**, comparada por **alcance**: um
+  processo que conforma peças de 0,1 a 10 kg atende "≥ 5 kg". Não é a regra do
+  intervalo de material, e a diferença está no dado: lá a faixa é dispersão em
+  torno de um valor verdadeiro e o ponto médio o representa; aqui todo ponto de
+  dentro é de fato alcançável. `between` sobre envelope é **sobreposição**, não
+  contenção. A regra aparece no rótulo da restrição ("alcance do envelope"), na
+  coluna *Tipo de valor* da folha de proveniência e na nota dela.
+- **`DISCRETO`** — rótulos de um vocabulário fechado (`allowed_labels`),
+  respondidos por pertinência: `has_any_label` / `has_no_label`. O operador
+  negativo **não** libera ausência — processo sem `forma` cadastrada não é "um
+  processo cuja forma não é maciça" —, e rótulo fora do vocabulário é 404
+  nomeando o rótulo, nunca zero resultado.
+
+**Ranqueamento e índice passaram a valer num estudo de processos**, e a recusa de
+D-58 foi retirada em vez de reescrita. O que se recusa agora é atributo
+inexistente e atributo **discreto** onde se exige magnitude: como critério de
+ranqueamento (um rótulo não é melhor que outro, então não há ordem) e dentro de
+expressão de índice (pelo nome, não pelo erro de dimensão que a unidade NULL
+produziria depois). Um envelope é ranqueado pelo **ponto representativo** — o
+mesmo `normalized_value` de sempre — enquanto continua sendo filtrado pelos
+limites.
+
+
 `enabled` é coluna e não exclusão: desligar e religar um estágio é *como* se vê
 o efeito de um critério. Um estágio desligado não estreita, mas continua no
 relatório e ainda diz **quantos admitiria sozinho** — a pergunta que desligar
@@ -110,9 +162,9 @@ linhas descrevem estágio nenhum degrada para um estágio sobre a árvore inteir
 em vez de admitir o catálogo todo em silêncio.
 
 O funil nomeia **qual** pergunta cada estágio de pergunta única fez:
-`in_tree` para o de classes, `in_process` para o de processos. Chamar os dois de
-`in_tree` diria ao leitor que a seleção filtrou por classe de material quando
-filtrou por processo.
+`in_tree` para o de árvore, `in_process` para o de processos e `in_material`
+para o de materiais. Chamar os três da mesma coisa diria ao leitor que a seleção
+filtrou por algo que ela não filtrou.
 
 ## Índices de desempenho (`app/calculations/expressions.py`)
 

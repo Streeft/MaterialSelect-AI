@@ -51,6 +51,7 @@ class TestExplainPrompt:
     def test_no_reference_block_when_nothing_retrieved(self) -> None:
         context = ResultContext(
             study_name="Estudo",
+            universe="material",
             function_text=None,
             objective_text=None,
             constraint_labels=[],
@@ -69,6 +70,7 @@ class TestExplainPrompt:
     def test_reference_block_when_retrieved(self) -> None:
         context = ResultContext(
             study_name="Estudo",
+            universe="material",
             function_text=None,
             objective_text=None,
             constraint_labels=[],

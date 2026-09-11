@@ -6,8 +6,9 @@ import type {
   ConstraintGroupIn,
   ConstraintIn,
   ConstraintOperator,
-  MaterialClass,
+  ProcessAttribute,
   PropertyDefinition,
+  SelectionUniverse,
 } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { prettyUnit } from "@/lib/format";
@@ -66,6 +67,38 @@ function ClassMultiSelect({
   );
 }
 
+/**
+ * What a constraint row can select on, in either universe (P0-4).
+ *
+ * A material property and a process attribute are separate tables on purpose —
+ * so a material picker can never offer "faixa de massa" — but the *editor* asks
+ * one question of both: what is it called, what unit is it in, and what shape is
+ * its value. `PropertyDefinition` satisfies this structurally; only a process
+ * attribute carries `kind` and `allowed_labels`, and a row reads them to decide
+ * whether to draw a number field or a label picker.
+ */
+export interface SelectableAttribute {
+  slug: string;
+  name: string;
+  canonical_unit: string | null;
+  kind?: ProcessAttribute["kind"];
+  allowed_labels?: string[];
+}
+
+/**
+ * What the `in_class` picker lists — a folder of whichever taxonomy the study's
+ * universe uses (P0-4).
+ *
+ * The minimal shape on purpose: `in_class` compares the record's *own* class
+ * slug, and in a process study that slug is a process family. Typing this as
+ * `MaterialClass` would have made the picker refuse the taxonomy it is supposed
+ * to show, which is what the type checker caught here.
+ */
+export interface SelectableFolder {
+  slug: string;
+  name: string;
+}
+
 /** Local editable shape for one constraint (values kept as strings for inputs). */
 export interface ConstraintRow {
   id: string;
@@ -77,6 +110,8 @@ export interface ConstraintRow {
   unit: string;
   class_slugs: string[];
   text: string;
+  /** The labels a discrete criterion names (P0-4). */
+  labels: string[];
 }
 
 export function emptyConstraint(id: string): ConstraintRow {
@@ -90,6 +125,7 @@ export function emptyConstraint(id: string): ConstraintRow {
     unit: "",
     class_slugs: [],
     text: "",
+    labels: [],
   };
 }
 
@@ -125,11 +161,45 @@ const OPERATORS: ConstraintOperator[] = [
   "text_contains",
 ];
 
+/**
+ * The two set-membership operators, offered only in a process study (P0-4).
+ *
+ * Not a simplification: no material property is discrete, so in a material study
+ * these two could only ever be picked and then refused by the backend. Offering
+ * an option that cannot work is the same defect as hiding one that can.
+ */
+export const LABEL_OPERATORS: ConstraintOperator[] = ["has_any_label", "has_no_label"];
+
 const NUMERIC = new Set<ConstraintOperator>(["gt", "gte", "lt", "lte", "between", "outside"]);
+const LABEL_OPS = new Set<ConstraintOperator>(LABEL_OPERATORS);
 const NEEDS_PROPERTY = new Set<ConstraintOperator>([
   "gt", "gte", "lt", "lte", "between", "outside", "exists", "not_exists",
+  "has_any_label", "has_no_label",
 ]);
 const CLASS_OPS = new Set<ConstraintOperator>(["in_class", "not_in_class"]);
+
+/** True when an attribute holds labels rather than a magnitude. */
+function isDiscrete(attribute: SelectableAttribute | undefined): boolean {
+  return attribute?.kind === "DISCRETO";
+}
+
+/**
+ * The attributes an operator can actually compare.
+ *
+ * A number cannot be compared against a shape and a shape has no order, so the
+ * picker offers only what the chosen operator can answer. The backend refuses
+ * the other combination anyway (with the reason written); this is what stops the
+ * reader from composing it in the first place. `exists`/`not_exists` ask about
+ * presence, which every shape of value has.
+ */
+export function selectableFor(
+  operator: ConstraintOperator,
+  attributes: SelectableAttribute[],
+): SelectableAttribute[] {
+  if (LABEL_OPS.has(operator)) return attributes.filter(isDiscrete);
+  if (NUMERIC.has(operator)) return attributes.filter((a) => !isDiscrete(a));
+  return attributes;
+}
 
 // --- Tree helpers ------------------------------------------------------------
 //
@@ -202,19 +272,25 @@ function ConstraintRowFields({
   rowLabel,
   properties,
   classes,
+  universe,
   onUpdate,
   onRemove,
 }: {
   row: ConstraintRow;
   rowLabel: string;
-  properties: PropertyDefinition[];
-  classes: MaterialClass[];
+  properties: SelectableAttribute[];
+  classes: SelectableFolder[];
+  universe: SelectionUniverse;
   onUpdate: (patch: Partial<ConstraintRow>) => void;
   onRemove: () => void;
 }) {
   const isNumeric = NUMERIC.has(row.operator);
   const isRange = row.operator === "between" || row.operator === "outside";
+  const isLabelOp = LABEL_OPS.has(row.operator);
   const prop = properties.find((p) => p.slug === row.property_slug);
+  const isProcessStudy = universe === "process";
+  const operators = isProcessStudy ? [...OPERATORS, ...LABEL_OPERATORS] : OPERATORS;
+  const offered = selectableFor(row.operator, properties);
 
   return (
     <Card as="fieldset">
@@ -229,7 +305,7 @@ function ConstraintRowFields({
           value={row.operator}
           onChange={(e) => onUpdate({ operator: e.target.value as ConstraintOperator })}
         >
-          {OPERATORS.map((op) => (
+          {operators.map((op) => (
             <SelectOption key={op} value={op}>
               {t.operators[op]}
             </SelectOption>
@@ -238,13 +314,20 @@ function ConstraintRowFields({
 
         {NEEDS_PROPERTY.has(row.operator) && (
           <Select
-            label={t.property}
+            label={isProcessStudy ? t.attribute : t.property}
             className="w-56"
             value={row.property_slug}
-            onChange={(e) => onUpdate({ property_slug: e.target.value })}
+            onChange={(e) =>
+              // Changing the attribute drops the labels that belonged to the old
+              // one: a vocabulary is per-attribute, so carrying them over would
+              // send labels the new attribute has never heard of.
+              onUpdate({ property_slug: e.target.value, labels: [] })
+            }
           >
-            <SelectOption value="">{t.selectProperty}</SelectOption>
-            {properties.map((p) => (
+            <SelectOption value="">
+              {isProcessStudy ? t.selectAttribute : t.selectProperty}
+            </SelectOption>
+            {offered.map((p) => (
               <SelectOption key={p.slug} value={p.slug}>
                 {p.name}
               </SelectOption>
@@ -288,7 +371,7 @@ function ConstraintRowFields({
           // and the placeholder is the only place that says which one.
           <Input
             label={t.unit}
-            hint={prop ? prettyUnit(prop.canonical_unit) : undefined}
+            hint={prop?.canonical_unit ? prettyUnit(prop.canonical_unit) : undefined}
             className="w-28"
             value={row.unit}
             onChange={(e) => onUpdate({ unit: e.target.value })}
@@ -305,6 +388,25 @@ function ConstraintRowFields({
               {classes.map((c) => (
                 <option key={c.slug} value={c.slug}>
                   {c.name}
+                </option>
+              ))}
+            </ClassMultiSelect>
+          </Field>
+        )}
+
+        {isLabelOp && (
+          <Field
+            label={t.labels}
+            className="w-56"
+            hint={prop ? undefined : t.labelsPickAttributeFirst}
+          >
+            <ClassMultiSelect
+              value={row.labels}
+              onChange={(values) => onUpdate({ labels: values })}
+            >
+              {(prop?.allowed_labels ?? []).map((label) => (
+                <option key={label} value={label}>
+                  {label}
                 </option>
               ))}
             </ClassMultiSelect>
@@ -382,14 +484,16 @@ function ConstraintGroupEditor({
   isRoot,
   groupLabel,
   properties,
+  universe,
   classes,
   actions,
 }: {
   group: ConstraintGroupState;
   isRoot: boolean;
   groupLabel: string;
-  properties: PropertyDefinition[];
-  classes: MaterialClass[];
+  properties: SelectableAttribute[];
+  universe: SelectionUniverse;
+  classes: SelectableFolder[];
   actions: GroupActions;
 }) {
   const isEmpty = group.constraints.length === 0 && group.groups.length === 0;
@@ -446,6 +550,7 @@ function ConstraintGroupEditor({
                   row={row}
                   rowLabel={rowLabel}
                   properties={properties}
+                  universe={universe}
                   classes={classes}
                   onUpdate={(patch) => actions.updateConstraint(row.id, patch)}
                   onRemove={() => actions.removeConstraint(row.id)}
@@ -465,6 +570,7 @@ function ConstraintGroupEditor({
                 isRoot={false}
                 groupLabel={t.groupNumber(position + 1)}
                 properties={properties}
+                universe={universe}
                 classes={classes}
                 actions={actions}
               />
@@ -499,12 +605,17 @@ function ConstraintGroupEditor({
 
 interface Props {
   root: ConstraintGroupState;
-  properties: PropertyDefinition[];
-  classes: MaterialClass[];
+  properties: SelectableAttribute[];
+  /**
+   * Which universe the study returns (P0-4). It decides which catalogue the
+   * rows select on and whether the two set-membership operators exist at all.
+   */
+  universe?: SelectionUniverse;
+  classes: SelectableFolder[];
   onChange: (root: ConstraintGroupState) => void;
 }
 
-export function ConstraintEditor({ root, properties, classes, onChange }: Props) {
+export function ConstraintEditor({ root, properties, classes, universe = "material", onChange }: Props) {
   const actions: GroupActions = {
     updateOperator: (groupId, operator) =>
       onChange(updateGroupById(root, groupId, (g) => ({ ...g, operator }))),
@@ -533,6 +644,7 @@ export function ConstraintEditor({ root, properties, classes, onChange }: Props)
       isRoot
       groupLabel={t.groupNumber(1)}
       properties={properties}
+      universe={universe}
       classes={classes}
       actions={actions}
     />
@@ -577,6 +689,14 @@ function rowToConstraintIn(r: ConstraintRow): ConstraintIn | null {
   if (r.operator === "in_class" || r.operator === "not_in_class") {
     return r.class_slugs.length ? { operator: r.operator, class_slugs: r.class_slugs } : null;
   }
+  if (LABEL_OPS.has(r.operator)) {
+    // Both halves are required: the attribute says which vocabulary, the labels
+    // say which of it. A row missing either is not sendable — the backend would
+    // refuse it, and a half-written row is not a criterion the reader stated.
+    return r.property_slug && r.labels.length
+      ? { operator: r.operator, property_slug: r.property_slug, labels: r.labels }
+      : null;
+  }
   return r.text.trim() ? { operator: r.operator, text: r.text.trim() } : null;
 }
 
@@ -619,6 +739,7 @@ export function fromConstraintPayload(group: ConstraintGroupIn): ConstraintGroup
       unit: c.unit ?? "",
       class_slugs: c.class_slugs ?? [],
       text: c.text ?? "",
+      labels: c.labels ?? [],
     })),
     groups: group.groups.map(fromConstraintPayload),
   };

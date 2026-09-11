@@ -491,17 +491,21 @@ class MockAIProvider(AIProvider):
             opening += f", com o objetivo de {context.objective_text.lower()}"
         paragraphs.append(opening + ".")
 
+        # What was counted, named for what it is (P0-4). "13 materiais" over a
+        # selection of processes is the AI layer asserting something the
+        # deterministic result does not say.
+        subject = "processos" if context.universe == "process" else "materiais"
         if context.constraint_labels:
             funnel = "; ".join(f"{label} → {remaining}" for label, remaining in context.funnel)
             paragraphs.append(
-                f"Partindo de {context.initial_count} materiais, as restrições aplicadas "
+                f"Partindo de {context.initial_count} {subject}, as restrições aplicadas "
                 f"({', '.join(context.constraint_labels)}) reduziram o conjunto a "
                 f"{context.final_count}. Eliminação passo a passo: {funnel}."
             )
         else:
             paragraphs.append(
                 f"Nenhuma restrição foi aplicada, de modo que os {context.final_count} "
-                "materiais do catálogo seguiram como candidatos."
+                f"{subject} do catálogo seguiram como candidatos."
             )
 
         if context.index_name and context.index_expression:

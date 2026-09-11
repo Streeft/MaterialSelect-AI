@@ -125,6 +125,7 @@ const s = ptBR.selection;
 
 function makeResult(overrides: Partial<RunResult> = {}): RunResult {
   return {
+    universe: "material",
     initial_count: 10,
     combinator: "AND",
     final_count: 3,
@@ -144,9 +145,9 @@ function makeResult(overrides: Partial<RunResult> = {}): RunResult {
       },
     ],
     candidates: [
-      { material_id: 1, name: "Liga A", class_name: "Metais", index_value: 12, score: 0.9, rank: 1 },
+      { record_id: 1, name: "Liga A", class_name: "Metais", index_value: 12, score: 0.9, rank: 1 },
       {
-        material_id: 2,
+        record_id: 2,
         name: "Liga B",
         class_name: "Metais",
         index_value: null,
@@ -161,9 +162,9 @@ function makeResult(overrides: Partial<RunResult> = {}): RunResult {
       dimension: "meter ** 2 / second ** 2",
       variables: ["modulo_young", "densidade"],
       values: [
-        { material_id: 1, name: "Liga A", class_name: "Metais", value: 12, undefined_reason: null },
+        { record_id: 1, name: "Liga A", class_name: "Metais", value: 12, undefined_reason: null },
         {
-          material_id: 2,
+          record_id: 2,
           name: "Liga B",
           class_name: "Metais",
           value: null,
@@ -245,7 +246,7 @@ describe("ResultsView", () => {
         criteria: ["densidade", "modulo_young"],
         ranked: [
           {
-            material_id: 1,
+            record_id: 1,
             name: "Liga A",
             score: 0.9,
             rank: 1,
@@ -304,7 +305,7 @@ describe("ResultsView", () => {
           criteria: ["densidade"],
           ranked: [
             {
-              material_id: 1,
+              record_id: 1,
               name: "Liga A",
               score: 0.7,
               rank: 1,

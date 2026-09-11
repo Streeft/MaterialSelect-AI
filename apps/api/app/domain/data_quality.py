@@ -28,6 +28,22 @@ class NormalizedValue:
     value_typical: float | None = None
     original_unit: str | None = None
     normalized_value: float | None = None
+    #: The interval's **bounds** in canonical units. Both None for a scalar.
+    #:
+    #: ``normalized_value`` alone was enough while every interval meant scatter
+    #: around one true value: charts plot the representative point, and a filter
+    #: compared against it. A process capability range (P0-4) is a different
+    #: datum — every point inside is achievable, so the *bounds* are what a
+    #: threshold is compared against, and they have to exist in canonical units
+    #: to be comparable at all. Same arithmetic as the typical, one conversion
+    #: per bound so an offset scale (°C→K) stays correct.
+    #:
+    #: ``MaterialPropertyValue`` has no columns for these yet, so for a material
+    #: interval they are computed and dropped on write. Giving material
+    #: intervals envelope semantics would move every existing funnel count, so
+    #: it is its own item, not a side effect of this one.
+    normalized_min: float | None = None
+    normalized_max: float | None = None
     canonical_unit: str | None = None
     conversion_method: str | None = None
 
@@ -65,6 +81,10 @@ def build_interval_value(
 
     The typical value (defaulting to the interval mid-point) is normalised and
     stored as ``normalized_value`` so charts have a single representative point.
+    The **bounds** are normalised too, into ``normalized_min``/``normalized_max``:
+    a process capability range is compared against its bounds, not its midpoint
+    (P0-4), and the conversion is the same arithmetic either way — so this is one
+    builder and what differs is how the engine reads the result.
 
     Raises:
         ValueError: if the interval is inverted (min > max) or the provided
@@ -80,6 +100,8 @@ def build_interval_value(
         )
     typical = value_typical if value_typical is not None else (value_min + value_max) / 2.0
     normalized, method = to_canonical(typical, original_unit, canonical_unit)
+    normalized_min, _ = to_canonical(value_min, original_unit, canonical_unit)
+    normalized_max, _ = to_canonical(value_max, original_unit, canonical_unit)
     return NormalizedValue(
         is_missing=False,
         value_min=value_min,
@@ -87,6 +109,8 @@ def build_interval_value(
         value_typical=typical,
         original_unit=original_unit,
         normalized_value=normalized,
+        normalized_min=normalized_min,
+        normalized_max=normalized_max,
         canonical_unit=canonical_unit,
         conversion_method=method,
     )

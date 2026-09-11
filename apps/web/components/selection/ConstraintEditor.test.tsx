@@ -10,12 +10,14 @@ import {
   ConstraintEditor,
   emptyConstraint,
   emptyGroup,
+  fromConstraintPayload,
   nextEditorId,
+  selectableFor,
   toConstraintPayload,
   type ConstraintGroupState,
 } from "./ConstraintEditor";
 import { ptBR } from "@/lib/i18n";
-import type { PropertyDefinition } from "@/lib/types";
+import type { ProcessAttribute, PropertyDefinition, SelectionUniverse } from "@/lib/types";
 
 const t = ptBR.selection;
 
@@ -41,16 +43,21 @@ const density: PropertyDefinition = {
 function Harness({
   initial,
   onRoot,
+  properties = [density],
+  universe = "material",
 }: {
   initial: ConstraintGroupState;
   onRoot?: (root: ConstraintGroupState) => void;
+  properties?: Parameters<typeof ConstraintEditor>[0]["properties"];
+  universe?: SelectionUniverse;
 }) {
   const [root, setRoot] = useState(initial);
   return (
     <ConstraintEditor
       root={root}
-      properties={[density]}
+      properties={properties}
       classes={[]}
+      universe={universe}
       onChange={(next) => {
         setRoot(next);
         onRoot?.(next);
@@ -58,6 +65,36 @@ function Harness({
     />
   );
 }
+
+// --- P0-4: process attributes -------------------------------------------------
+
+const massRange: ProcessAttribute = {
+  id: 1,
+  name: "Faixa de massa",
+  slug: "faixa-massa",
+  symbol: "m",
+  description: null,
+  kind: "ENVELOPE",
+  physical_dimension: "[mass]",
+  canonical_unit: "kg",
+  accepted_units: ["kg", "g"],
+  allowed_labels: [],
+  better_direction: "NEUTRAL",
+};
+
+const shape: ProcessAttribute = {
+  id: 2,
+  name: "Forma",
+  slug: "forma",
+  symbol: null,
+  description: null,
+  kind: "DISCRETO",
+  physical_dimension: "",
+  canonical_unit: null,
+  accepted_units: [],
+  allowed_labels: ["Maciço 3D", "Oco 3D"],
+  better_direction: "NEUTRAL",
+};
 
 describe("ConstraintEditor — grupos aninhados (M6)", () => {
   it("adding a nested group renders it indented under its parent", async () => {
@@ -231,5 +268,126 @@ describe("ConstraintEditor — grupos aninhados (M6)", () => {
       constraints: [],
       groups: [{ operator: "OR", constraints: [], groups: [] }],
     });
+  });
+});
+
+describe("restrição sobre atributo de processo (P0-4)", () => {
+  // The MWC selects are not driven here, the way no other suite in this app
+  // drives them: `md-outlined-select` is a custom element whose shadow root
+  // carries the label twice (`md-outlined-field` and `md-menu` both), so a
+  // label query is ambiguous and `userEvent.selectOptions` does not apply to it
+  // at all. What is asserted instead is what the row *offers* — the options it
+  // renders, which are light-DOM children — and the two pure rules that decide
+  // what reaches the backend.
+
+  function rowWith(patch: Partial<ReturnType<typeof emptyConstraint>>): ConstraintGroupState {
+    return {
+      ...emptyGroup(nextEditorId("group")),
+      constraints: [{ ...emptyConstraint(nextEditorId("row")), ...patch }],
+    };
+  }
+
+  /**
+   * The options a row renders, by the words a reader sees.
+   *
+   * Their `value` is set as a *property* on the upgraded `md-select-option`, not
+   * as an attribute, so `getAttribute("value")` comes back empty for every one
+   * of them — reading the text is both correct and closer to what is offered.
+   */
+  function optionTexts(container: HTMLElement): string[] {
+    return Array.from(container.querySelectorAll("md-select-option")).map(
+      (o) => o.textContent?.trim() ?? "",
+    );
+  }
+
+  it("offers the two set-membership operators only in a process study", () => {
+    const process = render(
+      <Harness initial={rowWith({})} properties={[massRange, shape]} universe="process" />,
+    );
+    expect(optionTexts(process.container)).toContain(t.operators.has_any_label);
+    expect(optionTexts(process.container)).toContain(t.operators.has_no_label);
+    process.unmount();
+
+    // No material property is discrete, so in a material study these two could
+    // only ever be picked and then refused — an option that cannot work is the
+    // same defect as a missing one.
+    const material = render(<Harness initial={rowWith({})} />);
+    expect(optionTexts(material.container)).not.toContain(t.operators.has_any_label);
+  });
+
+  it("offers the chosen operator's attributes, by name, in the row", () => {
+    // The rendered picker and `selectableFor` have to agree: the rule below is
+    // only worth testing if it is the rule the row actually uses.
+    const { container } = render(
+      <Harness initial={rowWith({})} properties={[massRange, shape]} universe="process" />,
+    );
+    expect(optionTexts(container)).toContain(massRange.name);
+    expect(optionTexts(container)).not.toContain(shape.name);
+  });
+
+  it("offers only the attributes the chosen operator can compare", () => {
+    expect(selectableFor("gte", [massRange, shape]).map((a) => a.slug)).toEqual(["faixa-massa"]);
+    expect(selectableFor("has_any_label", [massRange, shape]).map((a) => a.slug)).toEqual([
+      "forma",
+    ]);
+    // Presence is a question every shape of value can answer.
+    expect(selectableFor("exists", [massRange, shape]).map((a) => a.slug)).toEqual([
+      "faixa-massa",
+      "forma",
+    ]);
+  });
+
+  it("a material property is never filtered out as discrete", () => {
+    // `PropertyDefinition` has no `kind` at all, so the guard must read its
+    // absence as "not discrete" rather than as a missing answer.
+    expect(selectableFor("gte", [density]).map((a) => a.slug)).toEqual(["densidade"]);
+    expect(selectableFor("has_any_label", [density])).toEqual([]);
+  });
+
+  it("lists the chosen attribute's own vocabulary, and nothing else", () => {
+    const { container } = render(
+      <Harness
+        initial={rowWith({ operator: "has_any_label", property_slug: "forma" })}
+        properties={[massRange, shape]}
+        universe="process"
+      />,
+    );
+    const picker = container.querySelector("select[multiple]");
+    expect(picker).toBeTruthy();
+    expect(Array.from(picker!.querySelectorAll("option")).map((o) => o.textContent)).toEqual([
+      "Maciço 3D",
+      "Oco 3D",
+    ]);
+  });
+
+  it("sends attribute and labels together, and nothing until both are there", () => {
+    // Half a criterion is not a criterion: the attribute says which vocabulary,
+    // the labels say which of it, and the backend refuses either alone.
+    expect(
+      toConstraintPayload(rowWith({ operator: "has_any_label", property_slug: "forma" }))
+        .constraints,
+    ).toEqual([]);
+    expect(
+      toConstraintPayload(rowWith({ operator: "has_any_label", labels: ["Oco 3D"] })).constraints,
+    ).toEqual([]);
+    expect(
+      toConstraintPayload(
+        rowWith({ operator: "has_any_label", property_slug: "forma", labels: ["Oco 3D"] }),
+      ).constraints,
+    ).toEqual([{ operator: "has_any_label", property_slug: "forma", labels: ["Oco 3D"] }]);
+  });
+
+  it("reopens a saved discrete constraint with its labels", () => {
+    const reopened = fromConstraintPayload({
+      operator: "AND",
+      constraints: [
+        { operator: "has_no_label", property_slug: "forma", labels: ["Maciço 3D"] },
+      ],
+      groups: [],
+    });
+    expect(reopened.constraints[0]?.labels).toEqual(["Maciço 3D"]);
+    expect(toConstraintPayload(reopened).constraints).toEqual([
+      { operator: "has_no_label", property_slug: "forma", labels: ["Maciço 3D"] },
+    ]);
   });
 });

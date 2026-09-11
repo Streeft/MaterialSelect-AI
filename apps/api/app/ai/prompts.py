@@ -390,7 +390,8 @@ def explain_user(context: ResultContext) -> str:
         dimension = f", dimensão {context.index_dimension}" if context.index_dimension else ""
         lines.append(f"Índice de mérito: {context.index_name}{expression}{dimension}")
 
-    lines.append(f"Materiais no catálogo: {context.initial_count}")
+    subject = "Processos" if context.universe == "process" else "Materiais"
+    lines.append(f"{subject} no catálogo: {context.initial_count}")
     lines.append(f"Candidatos após as restrições: {context.final_count}")
 
     if context.constraint_labels:

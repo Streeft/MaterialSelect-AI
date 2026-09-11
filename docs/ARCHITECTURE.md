@@ -214,7 +214,7 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-  A["Materiais ativos"] --> S["estágios: pilha ordenada<br/>limit · tree · process<br/>(interseção dos habilitados)"]
+  A["Registros ativos do universo<br/>(materiais ou processos)"] --> S["estágios: pilha ordenada<br/>limit · tree · process · material<br/>(interseção dos habilitados)"]
   S --> B["filters: restrições + funil"]
   B --> C["expressions: índice<br/>(AST seguro, dimensão derivada)"]
   C --> D["ranking: soma ponderada<br/>normalizada"]
@@ -274,6 +274,8 @@ aparece no seed e nos testes.
 erDiagram
   MaterialClass ||--o{ Material : classifica
   ProcessClass ||--o{ Process : classifica
+  ProcessAttributeDefinition ||--o{ ProcessAttributeValue : define
+  Process ||--o{ ProcessAttributeValue : tem
   Material ||--o{ MaterialProcess : "aplica-se (N–N)"
   Process ||--o{ MaterialProcess : "aplica-se (N–N)"
   Material ||--o{ MaterialPropertyValue : possui
@@ -295,7 +297,9 @@ erDiagram
 | `material_class` | Taxonomia hierárquica (`parent_id`). |
 | `process_class` | Taxonomia hierárquica de processos — as famílias (Conformação, União, Tratamento de superfície) são as **raízes**, não um enum ([D-57](DECISIONS.md)). |
 | `process` | Um processo de fabricação; `is_demo`, `is_active`. |
-| `material_process` | A junção N–N, chave composta. Sem propriedades: um número sobre o par precisaria da proveniência de `material_property_value`. |
+| `material_process` | A junção N–N, chave composta — lida nos **dois** sentidos ([D-58](DECISIONS.md)). Sem propriedades: um número sobre o par precisaria da proveniência de `material_property_value`. Continua sem, depois do P0-4: os atributos são do **processo**, não do par. |
+| `process_attribute_definition` | O catálogo de atributos de processo ([D-59](DECISIONS.md)). `kind` (escalar / envelope / discreto) é load-bearing — decide como o motor compara — e uma `CheckConstraint` garante que só o discreto fica sem unidade canônica. Tabela própria e não uma coluna em `property_definition`, pela mesma razão que `process_class` não é uma flag em `material_class`. |
+| `process_attribute_value` | Um valor por par (processo, atributo), com o trilho inteiro de `material_property_value` **mais** `normalized_min`/`normalized_max`: num envelope de capacidade são os limites que respondem ao critério. `labels` guarda o valor de um atributo discreto — que não é `is_missing`, porque ter rótulo e não ter número são coisas diferentes. |
 | `material` | Identidade, `is_demo`, `is_active` (soft delete), `import_job_id`. |
 | `property_definition` | Catálogo configurável: unidade canônica, dimensão, direção desejável. |
 | `material_property_value` | O valor **com toda a proveniência**. |
