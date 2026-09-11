@@ -51,14 +51,14 @@ Níveis: **0** não existe · **1** rudimentar · **2** existe, precisa melhorar
 |---|---|---|
 | Arquitetura de dados (materiais) | **3** | `Material` + `MaterialClass` auto-referencial + `MaterialPropertyValue` com proveniência. Sólido. |
 | Rastreabilidade de unidade e proveniência | **5** | Valor original + unidade + normalizado + método + qualidade + fonte licenciada. **Acima do EduPack** — ver §4. |
-| Banco de processos | **3** | `ProcessClass` hierárquica, `Process`, a associação N–N (P0-2) e a **seleção de processos** como resultado (P0-3, [D-58](DECISIONS.md)). Continua em 3 por uma razão só, e ela é grande: **processo não tem atributo** — sem eles não há Limit Stage sobre processo nem ranqueamento. É o P0-4. |
+| Banco de processos | **4** | `ProcessClass` hierárquica, `Process`, a associação N–N (P0-2), a **seleção de processos** como resultado (P0-3) e **atributos com proveniência** (P0-4, [D-59](DECISIONS.md)): envelope de capacidade, escalar e discreto, com Limit Stage e ranqueamento sobre eles. Falta catálogo de processos **editável** (hoje só semeado, sem a trilha de auditoria que o de materiais tem) e gráfico de atributo de processo. |
 | Browse hierárquico | **2** | A hierarquia agora é lida na seleção (P0-1), mas o catálogo ainda não tem árvore navegável, breadcrumb, favoritos nem recentes. |
 | Registro de família (folder-level) | **0** | `MaterialClass` é rótulo, não registro com descrição, aplicações e ciência. |
 | Search | **3** | Analisador próprio com AND/OR/NOT, frase, parênteses e curinga ([D-55](DECISIONS.md)). Falta relevância, fuzzy e destaque do trecho. |
-| Datasheet | **3** | Propriedades com proveniência e **processos compatíveis** (P0-2), agrupados por família. Faltam aplicações, vantagens, limitações, similares e Science Notes. |
+| Datasheet | **3** | Propriedades com proveniência e **processos compatíveis** (P0-2), agrupados por família. Faltam aplicações, vantagens, limitações, similares e Science Notes — e a **ficha do processo**: `GET /api/processes/{slug}` já devolve os atributos com proveniência inteira (P0-4), falta a rota de apresentação. |
 | Motor de gráficos | **3** | Plotly à la carte no cliente + SVG determinístico no servidor; envelope, nuvem, linha de índice, escala log. Faltam caixa de seleção, anotações, rótulos arrastáveis e destaque de referência. |
 | **Seleção multiestágio** | **4** | **Entregue (P0-1, [D-56](DECISIONS.md))**: `SelectionStage` ordenada, habilitável e nomeável, com funil por estágio. Falta reordenar por arraste e duplicar um estágio. |
-| Limit Stage | **3** | Restrições com AND/OR aninhado (M6), operadores, unidades. Falta a barra de distribuição que orienta o valor. |
+| Limit Stage | **4** | Restrições com AND/OR aninhado (M6), operadores, unidades, nos **dois universos**, sobre as três formas de valor — escalar, envelope de capacidade (comparado por alcance) e discreto por pertinência (P0-4). Falta a barra de distribuição que orienta o valor. |
 | Tree Stage | **4** | **A junção existe nos dois sentidos**: materiais filtrados pelos processos que os servem (P0-2) e processos filtrados pelos materiais que atendem (P0-3). Falta escolher **registros** avulsos do outro universo — hoje só pastas, porque `Material` não tem slug. |
 | Chart Stage (gráfico que filtra) | **1** | O gráfico mostra; não seleciona. Sem caixa nem linha de índice que reprove registro. |
 | Ranking | **4** | Soma ponderada, TOPSIS, PROMETHEE II, AHP (M5), com normalização declarada. |
@@ -79,22 +79,30 @@ Níveis: **0** não existe · **1** rudimentar · **2** existe, precisa melhorar
 | Unidades de exibição | **2** | Canônica correta; o usuário não escolhe a unidade de leitura (B11). |
 | Explicabilidade | **3** | Funil por restrição e proveniência por número; falta o *porquê* por registro reprovado. |
 | Camada de IA | **4** | Interpretação e explicação com guardrails, ancoragem numérica e citação verificada. |
-| Testes | **5** | 987 backend, 210 frontend, E2E e Lighthouse na CI — e desde o P0-1 a migração é exercitada de verdade, nos dois sentidos, contra um banco que já contém dados. |
+| Testes | **5** | 1141 backend, 232 frontend, E2E e Lighthouse na CI — e desde o P0-1 a migração é exercitada de verdade, nos dois sentidos, contra um banco que já contém dados, conferida por mutação. |
 | Desempenho | **3** | Índices, threadpool, Plotly fatiado. Não preparado para centenas de milhares de registros. |
 
-**Cobertura de capacidades inspiradas no EduPack: ~57%** — contado como
-capacidades em nível ≥ 3 sobre as 30 avaliadas (17 de 30). Eram 10 de 30 (~34%)
-quando este documento foi escrito; P1-1 (busca) e P0-1 (multiestágio, com Tree
-Stage e o efeito colateral em projetos/testes) levaram a 14, e o P0-2 subiu as
-três restantes — banco de processos (0→3), Tree Stage (2→4) e Datasheet (2→3).
+**Cobertura de capacidades inspiradas no EduPack: ~53%** — contado como
+capacidades em nível ≥ 3 sobre as **32** avaliadas (17 de 32).
 
-**O P0-3 não move nenhuma linha da matriz, e isso é informação.** Ele completa a
-metade *estrutural* do exercício 11 — o universo de saída e a junção inversa —
-sem que nenhuma capacidade cruze um nível, porque o que falta para o exercício
-inteiro é a mesma coisa que segura o banco de processos em 3: **atributo de
-processo com proveniência**. Contar o P0-3 como avanço de cobertura seria
-inflar o número; o que ele fez foi tornar o P0-4 a única coisa entre a
-ferramenta e o capítulo 6 do manual.
+**O denominador estava errado até o P0-4.** As versões anteriores deste parágrafo
+diziam "30 avaliadas" e publicavam ~57%; a tabela acima sempre teve 32 linhas.
+Recontado, o número é 17 de 32 (≈ 53%) — e as leituras históricas se corrigem pelo
+mesmo denominador: 10 de 32 (~31%) quando este documento foi escrito, 14 de 32
+(~44%) depois de P1-1 e P0-1, 17 de 32 (~53%) depois do P0-2.
+
+**Pelo terceiro marco seguido o percentual não se move, e isso diz mais sobre a
+métrica do que sobre a ferramenta.** O P0-3 não cruzou nenhum nível; o P0-4
+levantou **duas** capacidades — banco de processos 3→4 e Limit Stage 3→4 — mas as
+duas já estavam acima do corte, então a contagem de "≥ 3" não registra nada. Subir
+o corte agora seria mover o gol no meio do jogo. Em vez disso este documento passa
+a publicar também o **nível médio**, onde crescimento dentro da faixa aparece:
+**2,16** (era 2,09 antes do P0-4; era 1,3 quando o documento foi escrito).
+
+O que o P0-4 fez, então: fechou o exercício 11 do manual por inteiro — passo 1
+(universo de saída, P0-3), passo 2 (Limit Stage sobre atributo do processo) e
+passo 3 (Tree Stage no universo de materiais, P0-3) — e retirou a recusa de
+ranqueamento que o [D-58](DECISIONS.md) tinha escrito.
 
 ---
 
@@ -139,18 +147,41 @@ inversa, os documentos declarando o universo, e o controle na tela. Ranqueamento
 e índice são **recusados com o motivo escrito** num estudo de processos — no
 salvamento e na execução.
 
-### P0-4 — Processo não tem atributo
+### P0-4 — Processo não tem atributo — **entregue**
 
 O passo 2 do exercício 11 é um Limit Stage sobre atributos do processo: *Shape*,
 *Mass range*, *Range of section thickness*, *Process characteristics*,
-*Economic batch size*. Nenhum deles existe.
+*Economic batch size*. Nenhum deles existia.
 
-Não é "mais uma tabela": é a mesma proveniência de `MaterialPropertyValue`
+Não era "mais uma tabela": era a mesma proveniência de `MaterialPropertyValue`
 (valor original, unidade, normalizado, método, qualidade, fonte licenciada)
-aplicada ao processo — e **dois tipos de valor que o modelo atual não cobre
+aplicada ao processo — e **dois tipos de valor que o modelo não cobria
 inteiro**: *discreto* (`Shape: Dished sheet`, `Process characteristics: Primary
-shaping`) e *intervalo* como critério de seleção. É o que destrava o
-ranqueamento de processos, e é o que segura o banco de processos em nível 3.
+shaping`) e *intervalo* como critério de seleção.
+
+**Entregue** ([D-59](DECISIONS.md)): `ProcessAttributeDefinition` e
+`ProcessAttributeValue` com o trilho inteiro mais `normalized_min`/`normalized_max`;
+`ProcessAttributeKind` (escalar, envelope, discreto) load-bearing e garantido por
+`CheckConstraint`; o motor compara envelope por **alcance** e discreto por
+pertinência, com a regra escrita onde o número aparece; catálogo de atributos e
+ficha do processo na API; cinco atributos demonstrativos fictícios com ausência
+nas duas formas; proveniência de processo no relatório, no laudo e na planilha; e
+o editor de restrições de `/app/selecao` selecionando sobre o catálogo certo.
+A recusa de ranqueamento do [D-58](DECISIONS.md) foi retirada.
+
+O que ficou de fora, nomeado:
+
+- **A ficha do processo na tela.** `GET /api/processes/{slug}` já devolve os
+  atributos com proveniência e tem teste; falta a rota de apresentação
+  (`/app/processos/[slug]`), que é superfície de navegação nova e não o gargalo do
+  exercício. Fica em P1, junto de *Browse hierárquico*.
+- **Catálogo de processos editável.** Hoje o universo de processos vem do seed, e
+  editá-lo à mão pede a trilha de auditoria que o catálogo de materiais tem (M2).
+- **Intervalo de material lido como envelope.** Item próprio de propósito: mudaria
+  a semântica de comparação de todo intervalo já cadastrado e moveria toda
+  contagem de funil existente.
+- **Gráfico de atributo de processo.** O motor de gráficos lê o catálogo de
+  materiais; um mapa de processos é a próxima coisa que o *Chart Stage* pediria.
 
 ### P1-1 — Search é `LIKE` — **entregue**
 
@@ -210,7 +241,7 @@ correção, portão completo, decisão registrada.
 | **P4** | Battery Designer | S | P3 Synthesizer |
 | **P4** | PDF e DOCX no gerador de relatório | V | — |
 
-**Ordem de execução:** ~~P0-1~~ → ~~P0-2~~ → ~~P0-3~~ → **P0-4** → P1 → P2 → P3 → P4.
+**Ordem de execução:** ~~P0-1~~ → ~~P0-2~~ → ~~P0-3~~ → ~~P0-4~~ → **P1** → P2 → P3 → P4.
 
 ### O que isto não é
 
