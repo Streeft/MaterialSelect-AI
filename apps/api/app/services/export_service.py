@@ -24,6 +24,7 @@ from app.exporters.figures import (
     Line,
     Point,
     Polygon,
+    Region,
     ScatterFigure,
     render_bars,
     render_scatter,
@@ -33,7 +34,7 @@ from app.models.enums import ProcessAttributeKind
 from app.repositories.chart_repository import ChartRepository
 from app.repositories.selection_repository import SelectionRepository
 from app.schemas.charts import PropertyMapRequest
-from app.schemas.selection import IndexIn, RankingResultOut, RunResultOut
+from app.schemas.selection import ChartStageIn, IndexIn, RankingResultOut, RunResultOut
 from app.services.ai_service import AIService
 from app.services.chart_service import ChartService
 from app.services.selection_service import INDEX_KEY, SelectionService
@@ -155,12 +156,19 @@ class ExportService:
     def _map_figure(self, study, result: RunResultOut) -> str | None:
         """The Ashby map of this study: every material, the candidates marked.
 
-        The two axes are read off the study's own index expression, in the
-        order it names them: `sqrt(modulo_young) / densidade` puts density on
-        x and modulus on y, which is how the chart is drawn in the literature.
-        A study with no index, or one naming a single property, has no such
-        plane — the map is then omitted rather than invented from an unrelated
-        pair.
+        **A Chart stage's plane wins** (P1-2), because it is the plane the
+        decision was actually drawn on: the reader chose those axes, dragged that
+        box and slid that line, and a document that redrew the same selection on
+        a different pair would be answering a question nobody asked. The box goes
+        out as a `Region` in data coordinates and the line at the stage's stored
+        level.
+
+        Failing that, the two axes are read off the study's own index expression,
+        in the order it names them: `sqrt(modulo_young) / densidade` puts density
+        on x and modulus on y, which is how the chart is drawn in the literature.
+        A study with neither a chart stage nor an index, or one whose index names
+        a single property, has no such plane — the map is then omitted rather
+        than invented from an unrelated pair.
 
         Geometry is not computed here. `ChartService.property_map` is the same
         call `/api/charts/property-map` serves, so the figure in the document
@@ -173,41 +181,54 @@ class ExportService:
         same silent id collision P0-3 fixed in the provenance sheet, in the one
         place P0-3 could not reach — a process study could not rank at all until
         processes had attributes, so there were no ranked ids to mis-resolve.
+
+        That refusal reaches a Chart stage too: a process study may hold one, and
+        the plane it drew is **not drawn** here, because there is no map of the
+        process universe to draw it on yet (the P1 item P0-4 registered). The
+        stage still selects, and the "Estágios" table and the "Lógica da
+        seleção" row still say what it asked — a figure is omitted, never
+        substituted by a map of the wrong universe.
         """
         if result.universe != "material":
             return None
 
-        axes = self._map_axes(study)
-        if axes is None:
-            return None
-        x_slug, y_slug = axes
-
         ranked_ids = [r.record_id for r in result.ranking.ranked] if result.ranking else []
         winner = ranked_ids[:1]
-        index_in = (
-            IndexIn(name=study.index_name, expression=study.index_expression, goal=study.index_goal)
-            if study.index_expression
-            else None
-        )
+        plane = self._chart_plane(study)
+
+        if plane is not None:
+            request = self._plane_request(plane, ranked_ids)
+        else:
+            axes = self._map_axes(study)
+            if axes is None:
+                return None
+            x_slug, y_slug = axes
+            request = PropertyMapRequest(
+                x=x_slug,
+                y=y_slug,
+                scale="log",
+                # Clouds, not hulls. A hull traces the outermost grades and
+                # reads as a boundary; the cloud is how an Ashby chart shows
+                # a family, and it is what the reader of a laudo recognises.
+                envelope_shape="ellipse",
+                highlight_material_ids=ranked_ids,
+                index=(
+                    IndexIn(
+                        name=study.index_name,
+                        expression=study.index_expression,
+                        goal=study.index_goal,
+                    )
+                    if study.index_expression
+                    else None
+                ),
+                # The line through the winner is what makes the map a
+                # selection map rather than a scatter plot: everything on
+                # its favourable side beat the leader on the index.
+                index_level_material_ids=winner,
+            )
 
         try:
-            chart = ChartService(self.db).property_map(
-                PropertyMapRequest(
-                    x=x_slug,
-                    y=y_slug,
-                    scale="log",
-                    # Clouds, not hulls. A hull traces the outermost grades and
-                    # reads as a boundary; the cloud is how an Ashby chart shows
-                    # a family, and it is what the reader of a laudo recognises.
-                    envelope_shape="ellipse",
-                    highlight_material_ids=ranked_ids,
-                    index=index_in,
-                    # The line through the winner is what makes the map a
-                    # selection map rather than a scatter plot: everything on
-                    # its favourable side beat the leader on the index.
-                    index_level_material_ids=winner,
-                )
-            )
+            chart = ChartService(self.db).property_map(request)
         except ValidationError:
             # A property that cannot carry a map (no plottable values, log
             # scale refused) is a reason to omit the figure, never to fail the
@@ -245,7 +266,8 @@ class ExportService:
                 points=points,
                 polygons=polygons,
                 lines=lines,
-                caption=self._map_caption(chart, len(highlighted)),
+                regions=self._plane_regions(plane),
+                caption=self._map_caption(chart, len(highlighted), plane),
                 description=(
                     f"Mapa de {chart.y_axis.property_name} contra "
                     f"{chart.x_axis.property_name}, em escala {chart.scale}, com os "
@@ -254,6 +276,98 @@ class ExportService:
                 ),
             )
         )
+
+    @staticmethod
+    def _chart_plane(study) -> ChartStageIn | None:
+        """The plane a Chart stage drew, if the study has one that ran (P1-2).
+
+        The **first enabled** chart stage, by position. A study can hold several,
+        and the document draws one figure; the first is the one the rest of the
+        pipeline is read against, and drawing the last would put the reader's
+        opening argument off the page.
+
+        A chart stage that is switched off does not shape the result, so it does
+        not get to choose the plane either — the study then falls back to the
+        plane its index expression names, which is what it would have drawn
+        before P1-2.
+        """
+        for stage in sorted(getattr(study, "stages", []) or [], key=lambda st: st.position):
+            if stage.kind == "chart" and stage.enabled:
+                return SelectionService._stage_row_to_chart_in(stage)
+        return None
+
+    @staticmethod
+    def _plane_request(plane: ChartStageIn, ranked_ids: list[int]) -> PropertyMapRequest:
+        """The map request for a Chart stage's plane — the reader's own axes.
+
+        The map the document draws is the map the decision was drawn on, so the
+        axes come from the stage and not from the index expression. Either axis
+        may be an index, which is what ``x_index``/``y_index`` are for.
+
+        The line is placed at the **stored level**, through ``index_levels``, and
+        not through the winning material: the stage's level is the argument, and
+        re-deriving it from the result would move the line whenever the data
+        moved — the thing storing a number instead of a material was for.
+
+        ``index`` is refused by ``property_map`` alongside an index axis, so when
+        the plane already plots one the line is left undrawn and the caption says
+        why. Drawing it would need a second, contradictory meaning for the same
+        axis.
+        """
+        line_fits = (
+            plane.index_expression is not None
+            and plane.index_level is not None
+            and plane.x.expression is None
+            and plane.y.expression is None
+        )
+        return PropertyMapRequest(
+            x=plane.x.property_slug,
+            y=plane.y.property_slug,
+            x_index=(
+                IndexIn(expression=plane.x.expression) if plane.x.expression is not None else None
+            ),
+            y_index=(
+                IndexIn(expression=plane.y.expression) if plane.y.expression is not None else None
+            ),
+            scale="log",
+            envelope_shape="ellipse",
+            highlight_material_ids=ranked_ids,
+            index=(
+                IndexIn(expression=plane.index_expression, goal=plane.index_goal)
+                if line_fits
+                else None
+            ),
+            index_levels=[plane.index_level] if line_fits else [],
+        )
+
+    @staticmethod
+    def _plane_regions(plane: ChartStageIn | None) -> list[Region]:
+        """The drawn box, or nothing when the stage bounded neither axis.
+
+        The bounds go out exactly as stored, in data coordinates — an absent one
+        stays absent all the way to the renderer, which is what draws the open
+        side running to the frame instead of to an invented limit.
+        """
+        if plane is None:
+            return []
+        bounds = (
+            plane.x.min_value,
+            plane.x.max_value,
+            plane.y.min_value,
+            plane.y.max_value,
+        )
+        if all(bound is None for bound in bounds):
+            return []
+        return [
+            Region(
+                # Kept short: the legend truncates a label past 20 characters.
+                label="Região do estágio",
+                x_min=plane.x.min_value,
+                x_max=plane.x.max_value,
+                y_min=plane.y.min_value,
+                y_max=plane.y.max_value,
+            )
+        ]
 
     def _map_axes(self, study) -> tuple[str, str] | None:
         """The (x, y) slugs the index names, in the order it names them."""
@@ -286,11 +400,42 @@ class ExportService:
         return f"M = {level.value:.3g}"
 
     @staticmethod
-    def _map_caption(chart, highlighted_count: int) -> str:
+    def _map_caption(chart, highlighted_count: int, plane: ChartStageIn | None = None) -> str:
         partes = [
             f"{chart.plotted_count} de {chart.considered_count} materiais têm os dois "
             f"valores cadastrados e aparecem no mapa"
         ]
+        if plane is not None:
+            partes.append(
+                "os eixos são os do estágio de gráfico — este é o plano em que a "
+                "decisão foi desenhada"
+            )
+            if any(
+                b is not None
+                for b in (
+                    plane.x.min_value,
+                    plane.x.max_value,
+                    plane.y.min_value,
+                    plane.y.max_value,
+                )
+            ):
+                # An open side is drawn running to the frame, and a reader who
+                # does not know that would take the frame for a limit.
+                partes.append(
+                    "o retângulo é a região do estágio; um lado sem limite é desenhado "
+                    "até a borda do gráfico e não é um limite"
+                )
+            if plane.index_expression is not None and plane.index_level is not None:
+                if plane.x.expression is None and plane.y.expression is None:
+                    partes.append(
+                        f"a linha está no nível {format_number(plane.index_level)} de "
+                        f"{plane.index_expression}, como o estágio a guardou"
+                    )
+                else:
+                    partes.append(
+                        f"a linha de {plane.index_expression} não foi traçada porque um "
+                        f"dos eixos já é um índice; o nível está na tabela 'Estágios'"
+                    )
         if chart.envelopes:
             # The cloud is padded on purpose, so it claims a little more area
             # than the materials in it occupy. Saying so is the price of
@@ -408,6 +553,7 @@ class ExportService:
             "tree": "Classes",
             "process": "Processos",
             "material": "Materiais",
+            "chart": "Gráfico",
         }
         if result.universe == "process":
             # A tree stage walks the study's own universe, so in a process study

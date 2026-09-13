@@ -8,14 +8,17 @@
  * to whichever branch is the fallback, and the stage would be labelled wrong
  * instead of visibly unlabelled.
  */
-const STAGE_KIND_WORDS: Record<"limit" | "tree" | "process" | "material", string> = {
+type StageKindWord = "limit" | "tree" | "process" | "material" | "chart";
+
+const STAGE_KIND_WORDS: Record<StageKindWord, string> = {
   limit: "limites",
   tree: "classes",
   process: "processos",
   material: "materiais",
+  chart: "gráfico",
 };
 
-function stageKindWord(kind: "limit" | "tree" | "process" | "material"): string {
+function stageKindWord(kind: StageKindWord): string {
   return STAGE_KIND_WORDS[kind];
 }
 
@@ -276,7 +279,10 @@ export const ptBR = {
     stageKindProcess: "Processos",
     // P0-3: o estágio de travessia visto do lado do processo.
     stageKindMaterial: "Materiais",
-    stageNumber: (n: number, kind: "limit" | "tree" | "process" | "material") =>
+    // P1-2: o quarto tipo. "Gráfico" e não "Mapa" porque é o gesto que se faz —
+    // desenhar no gráfico —, e "Mapa" já nomeia a tela `/app/mapas`.
+    stageKindChart: "Gráfico",
+    stageNumber: (n: number, kind: StageKindWord) =>
       `Estágio ${n} (${stageKindWord(kind)})`,
     stageLabel: "Nome do estágio",
     stageLabelPlaceholder: "Opcional — ex.: Só metais leves",
@@ -286,6 +292,7 @@ export const ptBR = {
     stageAddTree: "Estágio de classes",
     stageAddProcess: "Estágio de processos",
     stageAddMaterial: "Estágio de materiais",
+    stageAddChart: "Estágio de gráfico",
     stageRemove: "Remover estágio",
     stageMoveUp: (n: number) => `Mover o estágio ${n} para cima`,
     stageMoveDown: (n: number) => `Mover o estágio ${n} para baixo`,
@@ -316,6 +323,42 @@ export const ptBR = {
       "Processo sem material vinculado não passa por este estágio: não se seleciona sobre dado que não se tem.",
     stageProcessWarning:
       "Material sem processo cadastrado não passa por este estágio: não se seleciona sobre dado que não se tem.",
+    // P1-2: o estágio de gráfico — a região de um plano como critério.
+    stageChartHint:
+      "Escolha o plano e desenhe nele: a caixa limita cada eixo, e a linha de índice admite o lado favorável. Sem caixa e sem linha, o estágio ainda exige que o registro possa ser posto neste plano.",
+    stageChartAxisX: "Eixo X",
+    stageChartAxisY: "Eixo Y",
+    stageChartAxisKind: "O eixo é",
+    stageChartAxisProperty: "Propriedade",
+    stageChartAxisExpression: "Índice",
+    stageChartExpression: "Expressão do índice",
+    stageChartExpressionPlaceholder: "ex.: sqrt(modulo_young)/densidade",
+    stageChartExpressionHint:
+      "É aqui que este estágio vai além de um estágio de limites: um limite nomeia uma propriedade cadastrada e não alcança uma combinação delas.",
+    stageChartMin: "Mínimo",
+    stageChartMax: "Máximo",
+    // D-... / ADR 0004: a caixa é lida de um eixo já desenhado em unidade
+    // canônica, então não há seletor de unidade — e dizer isso é obrigação,
+    // porque o campo de uma restrição, logo acima na mesma tela, tem um.
+    stageChartBoundsHint: (unit: string) =>
+      `Em ${unit}, a unidade canônica do eixo. Deixe em branco para não limitar esse lado — em branco não é zero.`,
+    stageChartBoundsHintPlain:
+      "Na unidade canônica do eixo. Deixe em branco para não limitar esse lado — em branco não é zero.",
+    stageChartLine: "Linha de índice",
+    stageChartLineHint:
+      "Admite quem está do lado favorável da linha. A expressão e o nível andam juntos: nível sem expressão não é nível de nada, e expressão sem nível é uma linha sem posição.",
+    stageChartLevel: "Nível da linha",
+    stageChartGoal: "Lado favorável",
+    stageChartGoalMaximize: "Maior é melhor",
+    stageChartGoalMinimize: "Menor é melhor",
+    stageChartNoAxes:
+      "Escolha as duas propriedades (ou escreva as duas expressões) — sem os dois eixos não há plano.",
+    stageChartPlottableOnly:
+      "Sem caixa e sem linha: este estágio admite todo registro que possa ser desenhado neste plano, e só ele.",
+    stageChartWarning:
+      "Registro sem um dos dois valores não é desenhado no plano e não passa — mesmo onde a caixa não limita aquele eixo.",
+    stageChartInvertedBox: (axis: string) =>
+      `O mínimo do eixo ${axis} é maior que o máximo: assim nada passa.`,
     stagePassedAlone: "Admitidos sozinho",
     stageRemaining: "Restantes",
     stageDisabled: "Desligado",

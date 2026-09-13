@@ -70,6 +70,8 @@ import {
 import {
   StageList,
   type StageState,
+  boundToField,
+  chartAxisFromPayload,
   countStageConstraints,
   emptyLimitStage,
   toStagePayload,
@@ -167,6 +169,19 @@ function stageFromPayload(stage: StageOut, combinator: Combinator): StageState {
         materialClassSlugs: stage.material_class_slugs,
         includeDescendants: stage.include_descendants,
       };
+    case "chart":
+      return {
+        ...common,
+        kind: "chart",
+        // A chart stage always has a plane, but the type says it may be null,
+        // and a study whose row somehow lost it reopens as a blank plane rather
+        // than crashing the editor.
+        x: chartAxisFromPayload(stage.chart?.x),
+        y: chartAxisFromPayload(stage.chart?.y),
+        indexExpression: stage.chart?.index_expression ?? "",
+        indexGoal: stage.chart?.index_goal ?? "maximize",
+        indexLevel: boundToField(stage.chart?.index_level),
+      };
     case "limit":
       return {
         ...common,
@@ -177,6 +192,7 @@ function stageFromPayload(stage: StageOut, combinator: Combinator): StageState {
       };
   }
 }
+
 
 function CandidateCounter({
   count,
@@ -605,6 +621,15 @@ function SelectionWizard() {
       (s) =>
         s.kind === "process" &&
         (s.processSlugs.length > 0 || s.processClassSlugs.length > 0),
+    ) ||
+    // A chart stage with both axes chosen narrows even with no box and no line:
+    // "must be plottable here" is a criterion, so the step is done.
+    stages.some(
+      (s) =>
+        s.kind === "chart" &&
+        [s.x, s.y].every((axis) =>
+          axis.mode === "property" ? axis.propertySlug !== "" : axis.expression.trim() !== "",
+        ),
     );
   const hasObjective = activeIndex !== null || criteriaPayload().length > 0;
   const canSave = name.trim().length > 0;

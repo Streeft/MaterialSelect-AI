@@ -9,11 +9,15 @@ import {
   StageList,
   type StageState,
   countStageConstraints,
+  boundToField,
+  chartAxisFromPayload,
+  emptyChartStage,
   emptyLimitStage,
   emptyMaterialStage,
   emptyProcessStage,
   emptyTreeStage,
   isSingleLimitStage,
+  toChartPayload,
   toStagePayload,
 } from "./StageList";
 import { emptyConstraint, nextEditorId } from "./ConstraintEditor";
@@ -386,5 +390,223 @@ describe("StageList in a process study", () => {
     render(<Harness initial={[emptyMaterialStage()]} universe="process" />);
     expect(screen.getByText(t.stageNumber(1, "material"))).toBeInTheDocument();
     expect(screen.getByText(t.stageKindMaterial)).toBeInTheDocument();
+  });
+});
+
+
+// --- The chart stage (P1-2) ---------------------------------------------------
+
+/** A chart stage with its plane chosen, so a test can vary one thing at a time. */
+function chartStage(over: Partial<Extract<StageState, { kind: "chart" }>> = {}) {
+  const stage = emptyChartStage();
+  if (stage.kind !== "chart") throw new Error("unreachable");
+  return {
+    ...stage,
+    x: { ...stage.x, propertySlug: "densidade" },
+    y: { ...stage.y, propertySlug: "densidade" },
+    ...over,
+  };
+}
+
+describe("toChartPayload", () => {
+  it("sends a blank bound as null and never as zero", () => {
+    // The whole reason the state holds strings: `Number("")` is 0, and 0 is a
+    // bound. A box that quietly acquired a floor at zero would narrow a
+    // selection the reader never narrowed.
+    const payload = toChartPayload(chartStage({ x: { ...chartStage().x, min: "0", max: "" } }));
+
+    expect(payload.x.min_value).toBe(0);
+    expect(payload.x.max_value).toBeNull();
+  });
+
+  it("sends the property when the axis is a property, and nothing else", () => {
+    const payload = toChartPayload(
+      chartStage({
+        x: { mode: "property", propertySlug: "densidade", expression: "sqrt(E)/rho", min: "", max: "" },
+      }),
+    );
+
+    // The expression the reader typed before switching back is kept in the
+    // editor but not sent: the backend refuses an axis naming both.
+    expect(payload.x.property_slug).toBe("densidade");
+    expect(payload.x.expression).toBeNull();
+  });
+
+  it("sends the expression when the axis is an index, and nothing else", () => {
+    const payload = toChartPayload(
+      chartStage({
+        x: { mode: "expression", propertySlug: "densidade", expression: " sqrt(E)/rho ", min: "", max: "" },
+      }),
+    );
+
+    expect(payload.x.expression).toBe("sqrt(E)/rho");
+    expect(payload.x.property_slug).toBeNull();
+  });
+
+  it("drops a half-written line rather than sending it broken", () => {
+    // A level with no expression is not a level of anything, and an expression
+    // with no level is a line with no position. The backend refuses both, so
+    // the screen must not build either.
+    const noLevel = toChartPayload(chartStage({ indexExpression: "sqrt(E)/rho" }));
+    expect(noLevel.index_expression).toBeNull();
+    expect(noLevel.index_level).toBeNull();
+
+    const noExpression = toChartPayload(chartStage({ indexLevel: "100" }));
+    expect(noExpression.index_expression).toBeNull();
+    expect(noExpression.index_level).toBeNull();
+  });
+
+  it("sends the line when it has both halves", () => {
+    const payload = toChartPayload(
+      chartStage({ indexExpression: "sqrt(E)/rho", indexLevel: "0.003", indexGoal: "minimize" }),
+    );
+
+    expect(payload.index_expression).toBe("sqrt(E)/rho");
+    expect(payload.index_level).toBe(0.003);
+    expect(payload.index_goal).toBe("minimize");
+  });
+
+  it("sends a bound that is not a number as null, never as NaN", () => {
+    // NaN compares false against everything, so it would reject the whole
+    // catalogue without a word — and the schema refuses it anyway.
+    const payload = toChartPayload(chartStage({ x: { ...chartStage().x, min: "abc" } }));
+
+    expect(payload.x.min_value).toBeNull();
+  });
+});
+
+describe("reopening a saved chart stage", () => {
+  it("brings an absent bound back as an empty field, never as zero", () => {
+    // The one place the nullable column's whole point could be lost: a study
+    // reopened with a floor of 0 would narrow where it never narrowed.
+    expect(boundToField(null)).toBe("");
+    expect(boundToField(undefined)).toBe("");
+    expect(boundToField(0)).toBe("0");
+    expect(boundToField(2800)).toBe("2800");
+  });
+
+  it("reopens a property axis in property mode and an index axis in index mode", () => {
+    expect(chartAxisFromPayload({ property_slug: "densidade", max_value: 2800 })).toEqual({
+      mode: "property",
+      propertySlug: "densidade",
+      expression: "",
+      min: "",
+      max: "2800",
+    });
+    expect(chartAxisFromPayload({ expression: "sqrt(E)/rho", min_value: 100 })).toEqual({
+      mode: "expression",
+      propertySlug: "",
+      expression: "sqrt(E)/rho",
+      min: "100",
+      max: "",
+    });
+  });
+
+  it("round-trips a plane through the payload and back unchanged", () => {
+    const before = chartStage({
+      x: { mode: "property", propertySlug: "densidade", expression: "", min: "", max: "2800" },
+      y: { mode: "expression", propertySlug: "", expression: "sqrt(E)/rho", min: "100", max: "" },
+    });
+    const payload = toChartPayload(before);
+
+    expect(chartAxisFromPayload(payload.x)).toEqual(before.x);
+    expect(chartAxisFromPayload(payload.y)).toEqual(before.y);
+  });
+});
+
+describe("toStagePayload for a chart stage", () => {
+  it("sends the plane and none of the other kinds' fields", () => {
+    const payload = toStagePayload(chartStage());
+
+    expect(payload.kind).toBe("chart");
+    expect(payload.chart?.x.property_slug).toBe("densidade");
+    expect(payload.root_group).toBeUndefined();
+    expect(payload.class_slugs).toBeUndefined();
+    expect(payload.process_slugs).toBeUndefined();
+  });
+
+  it("is not counted as carrying constraints", () => {
+    expect(countStageConstraints([emptyChartStage()])).toBe(0);
+  });
+
+  it("is not the plain starting pipeline", () => {
+    expect(isSingleLimitStage([emptyChartStage()])).toBe(false);
+  });
+});
+
+describe("StageList with a chart stage", () => {
+  it("adds one in either universe — a plane is a plane", async () => {
+    const user = userEvent.setup();
+    let last: StageState[] = [];
+    const { unmount } = render(
+      <Harness initial={[emptyLimitStage()]} onStages={(s) => (last = s)} />,
+    );
+    await user.click(screen.getByShadowText(new RegExp(t.stageAddChart)));
+    expect(last.map((s) => s.kind)).toEqual(["limit", "chart"]);
+    unmount();
+
+    render(<Harness initial={[emptyLimitStage()]} universe="process" onStages={(s) => (last = s)} />);
+    await user.click(screen.getByShadowText(new RegExp(t.stageAddChart)));
+    expect(last.map((s) => s.kind)).toEqual(["limit", "chart"]);
+  });
+
+  it("names it by position and kind when unnamed, and badges its type", () => {
+    render(<Harness initial={[emptyChartStage()]} />);
+    expect(screen.getByText(t.stageNumber(1, "chart"))).toBeInTheDocument();
+    expect(screen.getByText(t.stageKindChart)).toBeInTheDocument();
+  });
+
+  it("says so while the plane is incomplete", () => {
+    render(<Harness initial={[emptyChartStage()]} />);
+    // Absence written out, never an empty control the reader has to interpret.
+    expect(screen.getByText(t.stageChartNoAxes)).toBeInTheDocument();
+  });
+
+  it("says that a plane with no box and no line still selects", () => {
+    render(<Harness initial={[chartStage()]} />);
+    // "Must be plottable here" is a criterion, and a screen that showed nothing
+    // would read as a stage that asks nothing.
+    expect(screen.getByText(t.stageChartPlottableOnly)).toBeInTheDocument();
+  });
+
+  it("states the plottability rule once the stage narrows", () => {
+    render(<Harness initial={[chartStage({ x: { ...chartStage().x, min: "1000" } })]} />);
+
+    // The one rule this stage has that no other stage has: a record with no
+    // coordinate is out even where the box bounds nothing.
+    expect(screen.getByText(t.stageChartWarning)).toBeInTheDocument();
+    expect(screen.queryByText(t.stageChartPlottableOnly)).not.toBeInTheDocument();
+  });
+
+  it("warns about an inverted box before the run, not after", () => {
+    render(
+      <Harness initial={[chartStage({ x: { ...chartStage().x, min: "8000", max: "1000" } })]} />,
+    );
+
+    // It would return nothing and look like an answer.
+    expect(screen.getByText(t.stageChartInvertedBox("X"))).toBeInTheDocument();
+  });
+
+  it("names the canonical unit of the chosen axis instead of offering a unit picker", () => {
+    render(<Harness initial={[chartStage()]} />);
+
+    // The numbers are read off an axis already drawn in canonical units, so a
+    // picker would offer a conversion nothing performs.
+    expect(screen.getAllByText(t.stageChartBoundsHint("kg/m³")).length).toBeGreaterThan(0);
+  });
+
+  it("falls back to a unitless hint while no axis is chosen", () => {
+    render(<Harness initial={[emptyChartStage()]} />);
+
+    expect(screen.getAllByText(t.stageChartBoundsHintPlain).length).toBe(2);
+  });
+
+  it("offers the study's own attributes on the plane", () => {
+    const { container } = render(<Harness initial={[emptyChartStage()]} />);
+
+    const options = Array.from(container.querySelectorAll("md-select-option")).map(
+      (o) => o.textContent?.trim() ?? "",
+    );
+    expect(options).toContain("Densidade");
   });
 });
