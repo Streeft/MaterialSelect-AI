@@ -98,6 +98,54 @@ class ConstraintGroupIn(BaseModel):
     )
 
 
+class ChartAxisIn(BaseModel):
+    """One axis of a chart stage: what it plots, and where the box cuts it.
+
+    Exactly one of ``property_slug`` and ``expression`` — the two are different
+    namespaces that happen to overlap (``densidade`` is a valid expression as
+    well as a slug), so which one the reader meant cannot be inferred from the
+    string. The same rule the database enforces on the stage's own columns.
+
+    ``min_value``/``max_value`` are in **data coordinates and canonical units**,
+    never pixels (ADR 0004) and never the unit the value was entered in. There is
+    no ``unit`` field here, unlike a constraint's: a constraint's threshold is
+    typed by a reader who picks the unit, while these numbers are read off an
+    axis that ``ChartService`` already draws in canonical units. Either bound may
+    be absent — a box open on one side is a real thing to draw.
+    """
+
+    property_slug: str | None = Field(default=None, min_length=1, max_length=160)
+    expression: str | None = Field(default=None, min_length=1, max_length=500)
+    min_value: float | None = Field(default=None, allow_inf_nan=False)
+    max_value: float | None = Field(default=None, allow_inf_nan=False)
+
+
+class ChartStageIn(BaseModel):
+    """The plane a chart stage selects on, and what was drawn on it (P1-2).
+
+    Two things can be drawn, and either may be absent: the **box** (bounds on
+    each axis, in :class:`ChartAxisIn`) and the **index line**
+    (``index_expression`` + ``index_level``, admitting the favourable side).
+    A stage with neither still selects, and means "must be plottable here".
+
+    ``index_level`` is a number, not "the line through material 7": sliding the
+    line until it passes through a record is how a reader *finds* the level, but
+    storing the record would move the line whenever that record's data changed,
+    and a saved study has to re-run to the same answer.
+
+    Deliberately not shaped like ``PropertyMapRequest``, which the map endpoint
+    takes: that one carries scale and envelope options and no bounds, because it
+    describes a *drawing*. This one describes a *criterion*, and the axis is the
+    only thing the two share.
+    """
+
+    x: ChartAxisIn
+    y: ChartAxisIn
+    index_expression: str | None = Field(default=None, min_length=1, max_length=500)
+    index_goal: GoalLiteral = "maximize"
+    index_level: float | None = Field(default=None, allow_inf_nan=False)
+
+
 class StageIn(BaseModel):
     """One stage of the selection pipeline (P0-1).
 
@@ -113,9 +161,12 @@ class StageIn(BaseModel):
       (P0-2) — the join into the process universe. Any-of: the stage keeps the
       materials some selected process applies to. ``include_descendants``
       applies to the folders here too.
+    * ``kind="chart"``: ``chart`` (P1-2) — a region of one plane. The only stage
+      that reaches a *derived* quantity, because a limit stage names property
+      slugs and an index is not one.
     """
 
-    kind: Literal["limit", "tree", "process", "material"] = "limit"
+    kind: Literal["limit", "tree", "process", "material", "chart"] = "limit"
     label: str | None = Field(default=None, max_length=200)
     enabled: bool = True
 
@@ -129,6 +180,8 @@ class StageIn(BaseModel):
     # kind === "material" (P0-3): folders of the material taxonomy, in a process
     # study. Folders only — a Material has no slug to name a leaf by.
     material_class_slugs: list[str] = Field(default_factory=list)
+    # kind === "chart" (P1-2): the plane, the box and the line.
+    chart: ChartStageIn | None = None
     # Shared by every folder-selecting stage: a folder means what is under it.
     include_descendants: bool = True
 
@@ -142,7 +195,7 @@ class StageOut(BaseModel):
     """
 
     position: int
-    kind: Literal["limit", "tree", "process", "material"]
+    kind: Literal["limit", "tree", "process", "material", "chart"]
     label: str | None = None
     enabled: bool
     root_group: ConstraintGroupIn | None = None
@@ -150,6 +203,7 @@ class StageOut(BaseModel):
     process_slugs: list[str] = Field(default_factory=list)
     process_class_slugs: list[str] = Field(default_factory=list)
     material_class_slugs: list[str] = Field(default_factory=list)
+    chart: ChartStageIn | None = None
     include_descendants: bool = True
 
 
