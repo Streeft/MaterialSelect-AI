@@ -22,6 +22,7 @@ from app.exporters.figures import (
     Line,
     Point,
     Polygon,
+    Region,
     ScatterFigure,
     render_bars,
     render_scatter,
@@ -164,6 +165,86 @@ class TestDegenerateGeometry:
     def test_a_one_point_index_line_is_not_a_line(self) -> None:
         svg = render_scatter(_map(lines=[Line(label="E^(1/2)/ρ", points=[(2700.0, 7e10)])]))
         assert "<polyline" not in svg
+
+
+class TestTheChartStageRegion:
+    """The box a Chart stage drew (P1-2).
+
+    Every test here is about the same lie: a rectangle that claims a limit the
+    reader never set. The open side is the whole difficulty — it has to reach the
+    frame *because* there is no bound there, and it must not be mistakable for
+    one, which is why the caption says so and this class checks the geometry.
+    """
+
+    @staticmethod
+    def _region_rect(svg: str) -> dict[str, str] | None:
+        """The region's rect — not the white ground the figure is drawn on."""
+        for rect in _rects(svg):
+            if rect.get("stroke-width") == "1.5":
+                return rect
+        return None
+
+    def test_a_closed_box_is_drawn_inside_the_plot(self) -> None:
+        svg = render_scatter(
+            _map(
+                regions=[Region(label="Região", x_min=1000.0, x_max=5000.0, y_min=1e9, y_max=1e11)]
+            )
+        )
+
+        rect = self._region_rect(svg)
+        assert rect is not None
+        assert float(rect["x"]) > PLOT_LEFT
+        assert float(rect["x"]) + float(rect["width"]) < PLOT_RIGHT
+        assert float(rect["y"]) > PLOT_TOP
+        assert float(rect["y"]) + float(rect["height"]) < PLOT_BOTTOM
+
+    def test_an_open_side_runs_to_the_frame_rather_than_to_an_invented_limit(self) -> None:
+        """ "Tudo acima de 100 GPa" has no ceiling, and the drawing must not
+        invent one — the rectangle simply reaches the top of the plot."""
+        svg = render_scatter(_map(regions=[Region(label="Região", y_min=1e11)]))
+
+        rect = self._region_rect(svg)
+        assert rect is not None
+        assert float(rect["x"]) == PLOT_LEFT
+        assert float(rect["width"]) == PLOT_RIGHT - PLOT_LEFT
+        assert float(rect["y"]) == PLOT_TOP
+
+    def test_the_top_edge_is_the_larger_value(self) -> None:
+        """The pixel axis grows downwards and the data axis upwards, so getting
+        this backwards draws a box that is right in width and inverted in
+        height — a mistake no single-axis test would catch."""
+        svg = render_scatter(_map(regions=[Region(label="Região", y_min=1e9, y_max=1e11)]))
+
+        rect = self._region_rect(svg)
+        assert rect is not None
+        # y_max = 1e11 is nearer the top of a 1e8..1e12 axis than y_min = 1e9.
+        assert float(rect["y"]) < (PLOT_TOP + PLOT_BOTTOM) / 2
+        assert float(rect["y"]) + float(rect["height"]) > (PLOT_TOP + PLOT_BOTTOM) / 2
+
+    def test_a_bound_the_log_scale_cannot_represent_opens_that_side(self) -> None:
+        """Clamping a non-positive bound onto a log axis would put the edge at an
+        arbitrary floor and call it the reader's limit."""
+        svg = render_scatter(_map(regions=[Region(label="Região", x_min=0.0, x_max=5000.0)]))
+
+        rect = self._region_rect(svg)
+        assert rect is not None
+        assert float(rect["x"]) == PLOT_LEFT
+
+    def test_a_box_entirely_off_the_plot_is_not_drawn_as_a_sliver(self) -> None:
+        svg = render_scatter(_map(regions=[Region(label="Região", x_min=1e9, x_max=1e10)]))
+
+        assert self._region_rect(svg) is None
+
+    def test_the_region_is_named_in_the_legend(self) -> None:
+        svg = render_scatter(_map(regions=[Region(label="Região do estágio", y_min=1e11)]))
+
+        assert "Região do estágio" in svg
+
+    def test_the_region_is_drawn_under_the_points(self) -> None:
+        """It is context for the materials, not a lid over them."""
+        svg = render_scatter(_map(regions=[Region(label="Região", x_min=1000.0, x_max=5000.0)]))
+
+        assert svg.index('stroke-width="1.5"') < svg.index("<circle")
 
 
 class TestHighlighting:

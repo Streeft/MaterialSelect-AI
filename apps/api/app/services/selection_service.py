@@ -19,6 +19,8 @@ from app.calculations.performance import evaluate_index
 from app.calculations.units import UnitError, to_canonical
 from app.domain.errors import ConflictError, NotFoundError, ValidationError
 from app.domain.filters import (
+    ChartAxis,
+    ChartSelection,
     Constraint,
     ConstraintGroupNode,
     MaterialSnapshot,
@@ -44,6 +46,12 @@ from app.domain.ranking import (
 )
 from app.domain.slug import slugify
 from app.domain.taxonomy import lineages
+
+# The one number formatter in the codebase, and the same one the report and the
+# laudo print with — `describe_pipeline` and the chart-stage sentence below feed
+# those documents, so a second rounding rule here would make the prose and the
+# table disagree about the same bound. `export_service` reaches for the same one.
+from app.exporters.cells import format_number
 from app.models.enums import (
     AuditAction,
     AuditEntityType,
@@ -63,6 +71,8 @@ from app.repositories.audit_repository import AuditRepository
 from app.repositories.selection_repository import SelectionRepository
 from app.schemas.selection import (
     CandidateOut,
+    ChartAxisIn,
+    ChartStageIn,
     ConstraintGroupIn,
     ConstraintIn,
     ContributionOut,
@@ -113,6 +123,7 @@ _STAGE_KIND_LABELS = {
     "tree": "classes",
     "process": "processos",
     "material": "materiais",
+    "chart": "gráfico",
 }
 
 #: The operator a single-question stage reports on its funnel line. `in_tree`
@@ -124,6 +135,10 @@ _STAGE_FUNNEL_OPERATORS = {
     "tree": "in_tree",
     "process": "in_process",
     "material": "in_material",
+    # P1-2, for the same reason `in_process` exists: a funnel line that said
+    # `in_tree` for a chart stage would tell the reader the selection filtered by
+    # class when it filtered by a region of a plane.
+    "chart": "in_chart",
 }
 
 
@@ -502,10 +517,12 @@ class SelectionService:
 
     #: Which stage kinds each universe accepts (P0-3). `tree` always means
     #: folders of the study's own universe; the cross stage is the one that
-    #: names the other, and each universe has exactly one of them.
+    #: names the other, and each universe has exactly one of them. `chart` is in
+    #: both because a plane is a plane: a process has had magnitudes since P0-4,
+    #: so a region of one is as selectable there as it is over materials.
     _KINDS_BY_UNIVERSE = {
-        "material": {"limit", "tree", "process"},
-        "process": {"limit", "tree", "material"},
+        "material": {"limit", "tree", "process", "chart"},
+        "process": {"limit", "tree", "material", "chart"},
     }
 
     def _check_stage_universe(self, stage_in: StageIn, universe: str) -> None:
@@ -574,6 +591,26 @@ class SelectionService:
             raise ValidationError(
                 "Só um estágio de materiais leva classes de material nesse campo."
             )
+        if stage_in.kind != "chart" and stage_in.chart is not None:
+            raise ValidationError("Só um estágio de gráfico leva um plano nesse campo.")
+
+        if stage_in.kind == "chart":
+            if has_constraints:
+                raise ValidationError(
+                    "Um estágio de gráfico não leva restrições; use um estágio de limites."
+                )
+            if has_processes:
+                raise ValidationError(
+                    "Um estágio de gráfico não leva processos; use um estágio de processos."
+                )
+            if stage_in.class_slugs:
+                raise ValidationError(
+                    "Um estágio de gráfico não leva classes; use um estágio de classes."
+                )
+            if stage_in.chart is None:
+                raise ValidationError("Um estágio de gráfico precisa de um plano.")
+            self._check_chart_shape(stage_in.chart)
+            return
 
         if stage_in.kind == "tree":
             if has_constraints:
@@ -628,6 +665,44 @@ class SelectionService:
             )
         self._check_root_group_conflict(stage_in.constraints, stage_in.root_group)
 
+    #: Which axis is which, for an error message that names the one at fault.
+    _CHART_AXES = (("x", "X"), ("y", "Y"))
+
+    def _check_chart_shape(self, chart: ChartStageIn) -> None:
+        """Shape of the plane, checked at save time — the same posture as every
+        other stage: what could never work as written, whatever the catalogue
+        holds. Whether the slug exists and whether the expression evaluates is
+        settled when the study runs (`_chart_axis`), so a study whose property
+        was later renamed still opens instead of becoming unreadable.
+        """
+        for field, name in self._CHART_AXES:
+            axis: ChartAxisIn = getattr(chart, field)
+            named = (axis.property_slug is not None) + (axis.expression is not None)
+            if named != 1:
+                raise ValidationError(
+                    f"O eixo {name} é uma propriedade ou uma expressão de índice, "
+                    "nunca as duas e nunca nenhuma."
+                )
+            if (
+                axis.min_value is not None
+                and axis.max_value is not None
+                and axis.min_value > axis.max_value
+            ):
+                # An inverted box admits nobody, and does it silently — which is
+                # exactly the "why does my selection return nothing" bug the
+                # stage checks exist to prevent.
+                raise ValidationError(f"O limite inferior do eixo {name} é maior que o superior.")
+
+        # A level with no index has nothing to be a level of, and an index with
+        # no level is a line with no position: the map would draw it and the
+        # stage would select on nothing. Both are the reader having stopped
+        # halfway, so both are refused instead of half-applied.
+        if (chart.index_expression is None) != (chart.index_level is None):
+            raise ValidationError(
+                "A linha de índice precisa da expressão e do nível; sem os dois ela não "
+                "tem onde ficar."
+            )
+
     def _stage_in_to_node(
         self, stage_in: StageIn, universe: str = "material"
     ) -> SelectionStageNode:
@@ -672,6 +747,16 @@ class SelectionService:
                 ),
             )
 
+        if stage_in.kind == "chart":
+            return SelectionStageNode(
+                kind="chart",
+                label=stage_in.label,
+                enabled=stage_in.enabled,
+                # `_check_stage_shape` above has already refused a chart stage
+                # with no plane, so this cannot be None here.
+                chart=self._chart_selection(stage_in.chart),  # type: ignore[arg-type]
+            )
+
         return SelectionStageNode(
             kind="limit",
             label=stage_in.label,
@@ -706,6 +791,99 @@ class SelectionService:
             )
             if unknown:
                 raise NotFoundError(f"Classes de processo desconhecidas: {', '.join(unknown)}")
+
+    # --- chart stage ------------------------------------------------------
+
+    def _chart_selection(self, chart: ChartStageIn) -> ChartSelection:
+        """One chart payload as a domain selection, with every key resolved.
+
+        The run path, so unlike `_check_chart_shape` this one does touch the
+        catalogue: a slug that names nothing is a 404 naming it, and an
+        expression that does not evaluate is a 400 saying why — never a stage
+        that quietly admits nobody because the coordinate it asked for is
+        missing from every record.
+        """
+        index_key = None
+        index_label = ""
+        if chart.index_expression is not None:
+            index_key, index_label = self._chart_quantity(None, chart.index_expression)
+        return ChartSelection(
+            x=self._chart_axis(chart.x),
+            y=self._chart_axis(chart.y),
+            index_key=index_key,
+            index_level=chart.index_level,
+            index_goal=chart.index_goal,
+            index_label=index_label,
+        )
+
+    def _chart_axis(self, axis: ChartAxisIn) -> ChartAxis:
+        key, label = self._chart_quantity(axis.property_slug, axis.expression)
+        return ChartAxis(key=key, label=label, min_value=axis.min_value, max_value=axis.max_value)
+
+    def _chart_quantity(self, slug: str | None, expression: str | None) -> tuple[str, str]:
+        """Resolve one plotted quantity to (snapshot key, reader-facing label).
+
+        An expression is filed under its own text, which is also what the reader
+        sees — there is no name to give it, because a chart stage names an
+        expression and not a catalogued index (D-35 is about the *model* not
+        choosing an expression; a reader typing one is not that).
+        """
+        if expression is not None:
+            self._validate_expression(expression)
+            return expression, expression
+
+        definition = self._props.get(slug or "")
+        if definition is None:
+            raise NotFoundError(self._not_found(slug))
+        # A discrete attribute has labels and no magnitude, so it has no axis to
+        # be plotted on. Refusing it by name beats the alternative: every record
+        # would come back unplottable and the stage would read as "nothing is in
+        # this region" rather than "this cannot be an axis".
+        if getattr(definition, "kind", None) is ProcessAttributeKind.DISCRETO:
+            raise ValidationError(
+                f"Atributo discreto não pode ser eixo de um gráfico, porque não tem "
+                f"magnitude: {definition.name}."
+            )
+        return definition.slug, definition.name
+
+    def _fill_derived(
+        self, records: list[MaterialSnapshot], stages: list[SelectionStageNode]
+    ) -> None:
+        """Compute every derived quantity the pipeline's chart stages name, once.
+
+        Called from `_apply_stages`, which is the single door every run path goes
+        through — putting it at each caller instead would make "forgot to fill
+        `derived`" a silent wrong answer rather than an impossible one.
+
+        **An expression that cannot be computed for a record leaves no key**, and
+        never a zero: `matches_chart` then reads the record as unplottable, which
+        is what it is. That is principle 3 again, one layer up — the reason
+        `evaluate_index` returns a reason instead of a number.
+
+        A key already in the catalogue is skipped: it is a property slug, its
+        value is in `values`, and `quantity` prefers that one anyway.
+        """
+        keys: set[str] = set()
+        for stage in stages:
+            chart = stage.chart
+            if chart is None:
+                continue
+            for key in (chart.x.key, chart.y.key, chart.index_key):
+                if key is not None and key not in self._props:
+                    keys.add(key)
+        if not keys:
+            return
+
+        variables_by_id = {
+            record.id: {safe_variable(slug): value for slug, value in record.values.items()}
+            for record in records
+        }
+        for expression in sorted(keys):
+            used, _, _ = self._validate_expression(expression)
+            for record in records:
+                evaluation = evaluate_index(expression, used, variables_by_id[record.id])
+                if evaluation.value is not None:
+                    record.derived[expression] = evaluation.value
 
     def _request_stages(
         self,
@@ -896,6 +1074,10 @@ class SelectionService:
         same. With more than one stage each line is prefixed by its stage, or a
         step from stage 1 and a step from stage 3 would be indistinguishable.
         """
+        # Before anything is compared: a chart stage's axes and line may be
+        # expressions, and the domain compares numbers and never evaluates one.
+        self._fill_derived(materials, stages)
+
         single = len(stages) == 1
         stage_outs: list[StageResultOut] = []
         flat: list[FunnelStepOut] = []
@@ -914,12 +1096,13 @@ class SelectionService:
                 # nested sub-group — exactly `_apply_group`, unchanged.
                 inner, narrowed = self._apply_group(remaining, stage.root)
             else:
-                # A tree or process stage is a single question, so a single line.
-                # Nothing ticked narrows nothing, and a line saying so is more
-                # honest than a silent absence. The operator names *which*
-                # question: reporting `in_tree` for a process stage would tell
-                # the reader of the funnel that the selection filtered by
-                # material class when it filtered by process.
+                # A tree, process, material or chart stage is a single
+                # question, so a single line. Nothing ticked narrows nothing, and
+                # a line saying so is more honest than a silent absence. The
+                # operator names *which* question: reporting `in_tree` for a
+                # process stage would tell the reader of the funnel that the
+                # selection filtered by material class when it filtered by
+                # process.
                 narrowed = apply_stage(remaining, stage)
                 inner = [
                     FunnelStepOut(
@@ -1022,6 +1205,16 @@ class SelectionService:
                             process_class_slugs=list(stage.process_class_slugs or []),
                             include_descendants=stage.include_descendants,
                         ),
+                    )
+                )
+                continue
+            if stage.kind == "chart":
+                nodes.append(
+                    SelectionStageNode(
+                        kind="chart",
+                        label=stage.label,
+                        enabled=stage.enabled,
+                        chart=self._chart_selection(self._stage_row_to_chart_in(stage)),
                     )
                 )
                 continue
@@ -1142,6 +1335,9 @@ class SelectionService:
         if stage.kind == "process":
             return f"{name}{state}: {self._describe_processes(stage)}"
 
+        if stage.kind == "chart":
+            return f"{name}{state}: {self._describe_chart(stage)}"
+
         if stage.kind == "material":
             selection = stage.materials or TreeSelection()
             if not selection.class_slugs:
@@ -1164,6 +1360,50 @@ class SelectionService:
         scope = "com descendentes" if selection.include_descendants else "sem descendentes"
         label = "famílias de processo" if universe == "process" else "classes"
         return f"{name}{state}: {label} {picked} ({scope})"
+
+    @classmethod
+    def _describe_chart(cls, stage: SelectionStageNode) -> str:
+        """A chart stage in words, for the report and the laudo (P1-2).
+
+        Says the plane first and the bounds second, because the plane is what
+        the other stage types have no equivalent of — and names the axes so that
+        a reader who never sees the figure still knows what was compared.
+
+        Bounds go out in data coordinates, the same numbers that were stored:
+        rewriting them for display would put a second version of the box in the
+        document, and the figure is drawn from the first one.
+        """
+        chart = stage.chart
+        if chart is None:  # pragma: no cover - a chart stage always has a plane
+            return "nenhum plano definido"
+        parts = [f"no plano {chart.y.label or chart.y.key} × {chart.x.label or chart.x.key}"]
+        for axis, name in ((chart.x, "X"), (chart.y, "Y")):
+            bound = cls._describe_bounds(axis)
+            if bound:
+                parts.append(f"eixo {name} {bound}")
+        if chart.index_key is not None and chart.index_level is not None:
+            side = "≥" if chart.index_goal != "minimize" else "≤"
+            parts.append(
+                f"{chart.index_label or chart.index_key} {side} "
+                f"{format_number(chart.index_level)}"
+            )
+        if len(parts) == 1:
+            # No box and no line: the stage still selects, and saying so beats a
+            # sentence that names a plane and then appears to ask for nothing.
+            return f"{parts[0]} (apenas plotável)"
+        return ", ".join(parts)
+
+    @staticmethod
+    def _describe_bounds(axis: ChartAxis) -> str:
+        """One axis's half of the box, or "" when the reader bounded neither side."""
+        low, high = axis.min_value, axis.max_value
+        if low is not None and high is not None:
+            return f"entre {format_number(low)} e {format_number(high)}"
+        if low is not None:
+            return f"≥ {format_number(low)}"
+        if high is not None:
+            return f"≤ {format_number(high)}"
+        return ""
 
     def _describe_processes(self, stage: SelectionStageNode) -> str:
         """A process stage in words, for the report and the laudo (P0-2).
@@ -1730,6 +1970,7 @@ class SelectionService:
 
     def _persist_stage(self, study: SelectionStudy, stage_in: StageIn, position: int) -> None:
         """One stage row, plus its own constraint tree when it is a limit stage."""
+        chart = stage_in.chart
         stage = SelectionStage(
             study_id=study.id,
             position=position,
@@ -1741,6 +1982,20 @@ class SelectionService:
             process_class_slugs=list(stage_in.process_class_slugs),
             material_class_slugs=list(stage_in.material_class_slugs),
             include_descendants=stage_in.include_descendants,
+            # NULL when there is no chart, and NULL for each bound the reader did
+            # not draw — the columns are nullable precisely so an absent limit
+            # and a limit of zero stay different things.
+            chart_x_slug=chart.x.property_slug if chart else None,
+            chart_x_expression=chart.x.expression if chart else None,
+            chart_y_slug=chart.y.property_slug if chart else None,
+            chart_y_expression=chart.y.expression if chart else None,
+            chart_x_min=chart.x.min_value if chart else None,
+            chart_x_max=chart.x.max_value if chart else None,
+            chart_y_min=chart.y.min_value if chart else None,
+            chart_y_max=chart.y.max_value if chart else None,
+            chart_index_expression=chart.index_expression if chart else None,
+            chart_index_goal=chart.index_goal if chart else None,
+            chart_index_level=chart.index_level if chart else None,
         )
         self.repo.add(stage)
         self.repo.flush()  # assigns stage.id, needed by the groups below
@@ -1834,6 +2089,32 @@ class SelectionService:
             created_at=study.created_at,
         )
 
+    @staticmethod
+    def _stage_row_to_chart_in(stage: SelectionStage) -> ChartStageIn:
+        """A persisted chart stage's eleven columns as the payload they came from.
+
+        One place, read by both sides — `_load_stages` to run the stage and
+        `_stages_to_out` to hand it back to the editor — so a study cannot
+        re-open as one plane and run as another.
+        """
+        return ChartStageIn(
+            x=ChartAxisIn(
+                property_slug=stage.chart_x_slug,
+                expression=stage.chart_x_expression,
+                min_value=stage.chart_x_min,
+                max_value=stage.chart_x_max,
+            ),
+            y=ChartAxisIn(
+                property_slug=stage.chart_y_slug,
+                expression=stage.chart_y_expression,
+                min_value=stage.chart_y_min,
+                max_value=stage.chart_y_max,
+            ),
+            index_expression=stage.chart_index_expression,
+            index_goal=stage.chart_index_goal or "maximize",
+            index_level=stage.chart_index_level,
+        )
+
     def _stages_to_out(self, study: SelectionStudy) -> list[StageOut]:
         """A study's pipeline, read back whole.
 
@@ -1868,6 +2149,7 @@ class SelectionService:
                     process_slugs=list(stage.process_slugs or []),
                     process_class_slugs=list(stage.process_class_slugs or []),
                     material_class_slugs=list(stage.material_class_slugs or []),
+                    chart=self._stage_row_to_chart_in(stage) if stage.kind == "chart" else None,
                     include_descendants=stage.include_descendants,
                 )
             )

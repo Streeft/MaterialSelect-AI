@@ -2656,3 +2656,124 @@ seja: a informação é nova, processo sem atributo continua sem, e a regra de n
 selecionar sobre dado ausente dá a resposta certa sem inventar nada. Conferida por
 `compare_metadata` e por mutação — sem a `CheckConstraint`, dois testes falham. A
 `e6c3f45a91d8` acrescenta `selection_constraint.labels` no molde de sempre.
+
+---
+
+## D-60 — O gráfico passa a reprovar, e a região de um plano é um critério
+
+**Contexto.** O manual usa o gráfico três vezes: para mostrar, para desenhar uma
+caixa em torno dos candidatos, e para deslizar a linha de índice até isolá-los.
+Aqui ele só mostrava. A matriz de maturidade registrava o Chart Stage em nível 1
+desde que foi escrita, e ele era o único dos três tipos de estágio do método que
+faltava — o P0-1 deixou explicitamente "onde encaixar".
+
+**Decisão.**
+
+- **Nada disso é geometria, e a linha é o caso que parece ser.** O lado favorável
+  de um contorno iso-índice é exatamente uma comparação sobre o valor do índice:
+  `índice ≥ nível` quando se maximiza, `≤` quando se minimiza. É o que
+  `ChartService._draw_levels` já faz para computar `superior_material_ids` e
+  *desenhar* a linha. Manter a regra como comparação é o que faz a figura e o
+  funil concordarem por construção, em vez de por coincidência — e é a leitura de
+  ADR 0004 aplicada a um estágio: o que o cliente manda é a decisão em
+  coordenadas de dados, nunca pixels.
+
+- **O que o estágio acrescenta ao Limit Stage é um só, e é real.** Um estágio de
+  limites nomeia **slug de propriedade**, então não alcança quantidade derivada.
+  "Todo material cujo E^(1/2)/ρ bate este" não são quatro limiares sobre duas
+  propriedades — é um limiar sobre uma combinação delas, e é aqui que passa a ser
+  expressável. A caixa sozinha *são* quatro limiares, e a documentação diz isso;
+  o que ela carrega além disso é o **plano em que a decisão foi desenhada**.
+
+- **Registro que não pode ser posto no plano nunca passa** — mesmo onde a caixa
+  não põe limite naquele eixo, e mesmo sem caixa nenhuma. Não é a regra que um
+  limiar daria: um limiar só rejeita o que consegue comparar. A diferença é
+  deliberada, porque o critério é "dentro desta região deste plano", e registro
+  sem coordenada não é desenhado no plano. Se o leitor não o vê na figura, ele
+  não pode estar no resultado — o que torna um estágio de gráfico sem caixa e sem
+  linha uma coisa com sentido: "tem de ser plotável aqui".
+
+- **Um envelope entra pelo ponto representativo, e um Limit Stage o compara por
+  alcance.** Duas regras para o mesmo atributo, de propósito: o ponto
+  representativo é o único ponto que o mapa desenha, e alcance é o que responde a
+  "este processo consegue esta massa" ([D-59](DECISIONS.md)). O teste
+  `test_the_same_envelope_reads_one_way_on_a_plane_and_another_under_a_limit`
+  fixa a diferença — mesmo atributo, mesmo limiar, um estágio admite e o outro
+  não —, e a obrigação que o D-59 assumiu vale igual aqui: o documento diz qual
+  regra rodou.
+
+- **`RecordSnapshot.derived` é um quarto mapa, separado de `values`.** A
+  proveniência é outra: um número em `values` foi cadastrado e convertido por
+  alguém e se rastreia até uma fonte; um em `derived` foi derivado desses por uma
+  expressão que o estudo nomeia. Arquivado sob o texto da própria expressão, então
+  dois estágios que nomeiam o mesmo índice compartilham um número. Preenchido pelo
+  **serviço** antes de o motor ver o registro, igual a um limiar ser convertido
+  antes de chegar lá: o domínio compara números e nunca avalia expressão.
+  `_fill_derived` roda dentro de `_apply_stages`, a porta única por onde todo
+  caminho de execução passa, o que torna "esqueci de calcular" impossível em vez
+  de silenciosamente errado.
+
+- **Cada eixo é *ou* propriedade cadastrada *ou* expressão, em duas colunas e não
+  uma.** Slug e expressão são espaços de nomes diferentes que se sobrepõem:
+  `densidade` também é expressão válida, e o que o leitor quis dizer não se
+  infere da string. Uma `CheckConstraint` faz o banco concordar — exatamente um
+  dos dois por eixo —, guardada por `kind <> 'chart'` porque os outros quatro
+  tipos deixam essas colunas NULL. Essa guarda é *load-bearing*: sem ela a
+  própria migração não roda, porque os estágios já gravados violam a checagem no
+  instante em que o `batch_alter_table` recria a tabela.
+
+- **Toda coluna da caixa nasce anulável e fica anulável.** NULL quer dizer "sem
+  limite", e `0` é um limite. Uma caixa aberta de um lado é coisa que se desenha
+  — "tudo acima de 100 GPa" não devia ter de inventar um teto —, então limite
+  ausente e limite zero têm de continuar distinguíveis, do banco até a tinta. Na
+  figura, o lado aberto é desenhado indo até a borda do gráfico, e a legenda diz
+  que isso não é um limite; na interface, o campo é uma **string**, porque
+  `Number("")` é `0` e um campo em branco que virasse zero estreitaria uma
+  seleção que ninguém estreitou.
+
+- **O nível da linha é um número, não "a linha que passa pelo material 7".**
+  Deslizar a linha até encostar num registro é como o leitor *encontra* o nível,
+  mas guardar o registro moveria a linha toda vez que o dado dele mudasse — e um
+  estudo salvo tem de reexecutar para a mesma resposta. É a mesma regra do D-35
+  vista de outro ângulo.
+
+- **O documento redesenha o plano em que a decisão foi desenhada.** Quando o
+  estudo tem um estágio de gráfico habilitado, os eixos do mapa saem **dele** e
+  não da expressão do índice: o leitor escolheu aquele par. Estágio desabilitado
+  não escolhe o plano, porque não moldou o resultado. A geometria continua vindo
+  de `ChartService.property_map`, a mesma chamada que serve a tela; o que o
+  estágio acrescenta ao pedido são os eixos, o destaque e o nível guardado.
+  Linha sobre eixo que já é índice **não é traçada e o documento declara isso** —
+  `property_map` recusa a sobreposição, e desenhá-la exigiria um segundo
+  significado para o mesmo eixo.
+
+- **Não há seletor de unidade na caixa**, ao contrário do limiar de uma
+  restrição. Um limiar é digitado por quem escolhe a unidade; estes números são
+  lidos de um eixo que o `ChartService` já desenha em unidade canônica, e um
+  seletor ofereceria uma conversão que ninguém faz. A dica nomeia a unidade do
+  eixo escolhido no lugar dele.
+
+**Consequências.**
+
+Um estudo de **processos** pode ter um estágio de gráfico — processo tem
+magnitude desde o P0-4 —, mas o plano dele **não é desenhado**: não existe mapa
+do universo de processos ainda, e `property_map` lê o catálogo de materiais, de
+modo que desenhar marcaria os materiais que por acaso carregam aqueles ids
+([D-58](DECISIONS.md)). A seleção acontece e as tabelas dizem o que ela pediu;
+só a figura é omitida. Gráfico de atributo de processo continua sendo item de
+P1, registrado desde o P0-4.
+
+`Region` é primitiva nova em `app/exporters/figures.py`, e a caixa aberta é a
+razão dela: limite ausente chega como `None` e o *renderizador* resolve o lado
+aberto, porque onde a moldura do gráfico termina é fato sobre o desenho e não
+sobre o dado. A cor é a **cor da tinta** e não um sétimo matiz: os seis da paleta
+categórica já são de classes, e `HIGHLIGHT` e `INDEX_LINE` já reaproveitam dois.
+Região é anotação sobre o dado, não mais uma série nele.
+
+**Alternativas recusadas.** Desenhar a caixa reimplementando a geometria no
+exportador (criaria duas verdades sobre a mesma figura — a regra do
+[CLAUDE.md](../CLAUDE.md) vale); guardar a caixa em pixels (mudaria de
+significado com o tamanho da janela); tratar limite ausente como zero (inventa um
+limite); deixar o estágio admitir registro não plotável quando a caixa não limita
+aquele eixo (o critério é a região, e quem não está na figura não está na
+região).

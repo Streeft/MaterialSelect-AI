@@ -5,6 +5,8 @@ from __future__ import annotations
 import pytest
 
 from app.domain.filters import (
+    ChartAxis,
+    ChartSelection,
     Constraint,
     ConstraintGroupNode,
     MaterialSnapshot,
@@ -19,9 +21,11 @@ from app.domain.filters import (
     apply_stage,
     apply_stages,
     evaluate_constraint,
+    matches_chart,
     matches_linked_tree,
     matches_processes,
     matches_tree,
+    quantity,
 )
 
 
@@ -945,3 +949,174 @@ def test_an_envelope_constraint_runs_through_a_stage_pipeline() -> None:
 
     kept = apply_stage([reaches, does_not, no_data], stage)
     assert [record.id for record in kept] == [1]
+
+
+# --- P1-2: the Chart stage ----------------------------------------------------
+#
+# The third stage type of the method. What is under test is not "does a box
+# contain a point" but the three rules that make the stage honest: it rejects
+# what it cannot draw, it constrains a *derived* quantity a Limit stage cannot
+# reach, and the favourable side of an index line is a comparison and not
+# geometry.
+
+
+def _plotted(id_, name, values=None, derived=None):
+    return MaterialSnapshot(
+        id=id_,
+        name=name,
+        class_name="Metais",
+        class_slug="metais",
+        values=values or {},
+        derived=derived or {},
+    )
+
+
+#: The axis pair every box below is drawn on.
+def _box(x_min=None, x_max=None, y_min=None, y_max=None):
+    return ChartSelection(
+        x=ChartAxis(key="densidade", label="Densidade", min_value=x_min, max_value=x_max),
+        y=ChartAxis(key="modulo_young", label="Módulo", min_value=y_min, max_value=y_max),
+    )
+
+
+def test_a_point_inside_the_box_passes_and_one_outside_does_not() -> None:
+    inside = _plotted(1, "Dentro", {"densidade": 2700.0, "modulo_young": 69e9})
+    outside = _plotted(2, "Fora", {"densidade": 7800.0, "modulo_young": 210e9})
+    selection = _box(x_min=1000.0, x_max=3000.0, y_min=10e9, y_max=100e9)
+
+    assert matches_chart(inside, selection) is True
+    assert matches_chart(outside, selection) is False
+
+
+def test_a_box_open_on_one_side_bounds_only_what_it_names() -> None:
+    """ "Tudo acima de 100 GPa" should not have to invent a ceiling."""
+    stiff = _plotted(1, "Rígido", {"densidade": 7800.0, "modulo_young": 210e9})
+    soft = _plotted(2, "Flexível", {"densidade": 1200.0, "modulo_young": 3e9})
+    selection = _box(y_min=100e9)
+
+    assert matches_chart(stiff, selection) is True
+    assert matches_chart(soft, selection) is False
+
+
+def test_a_record_that_cannot_be_placed_on_the_plane_never_passes() -> None:
+    """The rule that separates this stage from a Limit stage.
+
+    A threshold only rejects what it can compare, so a box open on x would let a
+    record with no x through. This does not: the criterion is "inside this region
+    of this plane", and a record with no coordinate is not drawn on the plane at
+    all. If the reader cannot see it in the figure, it must not be in the result.
+    """
+    no_x = _plotted(1, "Sem densidade", {"modulo_young": 210e9})
+    selection = _box(y_min=100e9)  # x is unbounded, and still required
+
+    assert matches_chart(no_x, selection) is False
+
+
+def test_an_unbounded_chart_stage_still_asks_to_be_plottable() -> None:
+    """Which makes it a meaningful stage to write: "must be plottable here"."""
+    both = _plotted(1, "Completo", {"densidade": 2700.0, "modulo_young": 69e9})
+    half = _plotted(2, "Metade", {"densidade": 2700.0})
+    selection = _box()
+
+    assert matches_chart(both, selection) is True
+    assert matches_chart(half, selection) is False
+
+
+def test_the_box_bounds_are_inclusive() -> None:
+    on_the_edge = _plotted(1, "Na borda", {"densidade": 3000.0, "modulo_young": 10e9})
+
+    assert matches_chart(on_the_edge, _box(x_max=3000.0, y_min=10e9)) is True
+    assert matches_chart(on_the_edge, _box(x_max=2999.0)) is False
+
+
+def test_an_axis_can_be_a_derived_quantity_a_limit_stage_cannot_reach() -> None:
+    """The one thing this stage adds over a Limit stage.
+
+    A limit stage names property slugs, so it cannot bound E^(1/2)/ρ at all. Here
+    the axis is the expression, and the value comes from ``derived``.
+    """
+    good = _plotted(1, "Bom", {"densidade": 2700.0}, {"sqrt(modulo_young) / densidade": 0.0031})
+    poor = _plotted(2, "Ruim", {"densidade": 7800.0}, {"sqrt(modulo_young) / densidade": 0.0019})
+    selection = ChartSelection(
+        x=ChartAxis(key="densidade", min_value=1000.0),
+        y=ChartAxis(key="sqrt(modulo_young) / densidade", min_value=0.003),
+    )
+
+    assert matches_chart(good, selection) is True
+    assert matches_chart(poor, selection) is False
+
+
+def test_the_index_line_admits_the_favourable_side_by_the_goal() -> None:
+    """The same comparison ``_draw_levels`` makes to compute
+    ``superior_material_ids`` — which is what keeps the figure and the funnel
+    agreeing by construction instead of by coincidence."""
+    above = _plotted(1, "Acima", {"densidade": 2700.0, "modulo_young": 69e9}, {"M": 0.004})
+    below = _plotted(2, "Abaixo", {"densidade": 7800.0, "modulo_young": 210e9}, {"M": 0.002})
+    axes = {"x": ChartAxis(key="densidade"), "y": ChartAxis(key="modulo_young")}
+
+    maximize = ChartSelection(**axes, index_key="M", index_level=0.003, index_goal="maximize")
+    assert matches_chart(above, maximize) is True
+    assert matches_chart(below, maximize) is False
+
+    # The other goal flips which side is favourable, and nothing else.
+    minimize = ChartSelection(**axes, index_key="M", index_level=0.003, index_goal="minimize")
+    assert matches_chart(above, minimize) is False
+    assert matches_chart(below, minimize) is True
+
+
+def test_an_index_the_record_has_no_value_for_does_not_pass_the_line() -> None:
+    undefined = _plotted(1, "Sem índice", {"densidade": 2700.0, "modulo_young": 69e9})
+    selection = ChartSelection(
+        x=ChartAxis(key="densidade"),
+        y=ChartAxis(key="modulo_young"),
+        index_key="M",
+        index_level=0.003,
+    )
+
+    assert matches_chart(undefined, selection) is False
+
+
+def test_an_index_key_without_a_level_draws_but_does_not_select() -> None:
+    """A map can carry an index the stage does not filter on — the line has to be
+    placed somewhere to reject anything."""
+    record = _plotted(1, "Qualquer", {"densidade": 2700.0, "modulo_young": 69e9}, {"M": 0.001})
+    selection = ChartSelection(
+        x=ChartAxis(key="densidade"), y=ChartAxis(key="modulo_young"), index_key="M"
+    )
+
+    assert matches_chart(record, selection) is True
+
+
+def test_quantity_prefers_a_catalogued_value_over_a_derived_one() -> None:
+    """Only matters if someone names an index after a property — and then the
+    catalogued value is the one the reader means."""
+    record = _plotted(1, "Homônimo", {"densidade": 2700.0}, {"densidade": 9999.0})
+
+    assert quantity(record, "densidade") == 2700.0
+    assert quantity(record, "inexistente") is None
+
+
+def test_a_chart_stage_runs_through_the_pipeline() -> None:
+    """The rule has to hold through `apply_stage`, which is what the service calls."""
+    inside = _plotted(1, "Dentro", {"densidade": 2700.0, "modulo_young": 69e9})
+    outside = _plotted(2, "Fora", {"densidade": 7800.0, "modulo_young": 210e9})
+    unplottable = _plotted(3, "Sem eixo", {"densidade": 2700.0})
+
+    stage = SelectionStageNode(
+        kind="chart",
+        label="Leves e rígidos",
+        enabled=True,
+        chart=_box(x_max=3000.0, y_min=10e9),
+    )
+
+    assert [r.id for r in apply_stage([inside, outside, unplottable], stage)] == [1]
+
+
+def test_a_chart_stage_with_no_selection_narrows_nothing() -> None:
+    """Same convention every other stage follows: a payload that says nothing does
+    not reject everyone. The *drawn* empty box is `_box()`, which is a different
+    thing and does filter — see the plottability test above."""
+    records = [_plotted(1, "A", {"densidade": 2700.0}), _plotted(2, "B", {})]
+    stage = SelectionStageNode(kind="chart", label=None, enabled=True, chart=None)
+
+    assert [r.id for r in apply_stage(records, stage)] == [1, 2]

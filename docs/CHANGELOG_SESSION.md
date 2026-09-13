@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [15](#sessão-15--110926-a-130926--p1-2-o-gráfico-passa-a-reprovar) | 11 e 13/09/2026 | P1-2 (Chart Stage: a região de um plano como critério, D-60) — o único nível 1 da matriz de maturidade | 1141 → 1209 | 232 → 253 |
 | [14](#sessão-14--100926-a-110926--p0-4-processo-passa-a-ter-atributo-e-o-exercício-11-fecha) | 10 e 11/09/2026 | P0-4 (atributos de processo com proveniência, envelope de capacidade e discreto, D-59) — o quarto e último gargalo P0 | 1076 → 1141 | 225 → 232 |
 | [13](#sessão-13--090926-a-100926--p0-1-p0-2-e-p0-3-a-plataforma-de-seleção-ganha-pilha-segundo-universo-e-escolha-de-resultado) | 09 e 10/09/2026 | P0-1 (pilha de estágios, D-56), P0-2 (universo de processos, D-57) e P0-3 (universo do resultado, D-58), a partir da análise de lacunas contra os manuais do EduPack | 884 → 1076 | 197 → 225 |
 | [12](#sessão-12--080926--a-ferramenta-no-ar-e-a-camada-de-ia-ligada-em-produção) | 08/09/2026 | Deploy em produção (Vercel + Fly + Neon, D-52), caminho de implantação sem terminal e a camada de IA ligada de verdade | 872 → 884 | 197 (inalterado) |
@@ -30,6 +31,74 @@ As sessões entre a 11 e a 12 — o patch de design "Prisma" (D-49, D-50), o
 upgrade de segurança S1 e a rodada de desempenho — **não têm seção própria
 aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
+
+---
+
+## Sessão 15 — 11/09/26 a 13/09/26 — P1-2: o gráfico passa a reprovar
+
+**O pedido.** "Iniciar o P1" — com a ressalva explícita de que as sessões de teste
+com usuários ficam para mais adiante e o projeto pode seguir sem essa validação
+por enquanto. O P1-1 (busca com operadores) já estava entregue, então a próxima
+frente era o **Chart Stage que filtra**: o único nível **1** da matriz de
+maturidade, e o único dos três tipos de estágio do método que faltava.
+
+**O que foi entregue** ([D-60](DECISIONS.md)), em seis passos, cada um com o
+portão completo antes do commit:
+
+1. **Domínio.** `ChartSelection`, `ChartAxis`, `quantity` e `matches_chart` em
+   `app/domain/filters.py`, mais `RecordSnapshot.derived` — o quarto mapa. 12
+   testes novos.
+2. **Modelo e migração.** As onze colunas do payload em `SelectionStage` e
+   `ck_selection_stage_chart_axes`, na migração `f2b6d0e39c47`. A segunda aditiva
+   **sem backfill** desde o P0-4.
+3. **Serviço, schemas e rotas.** `ChartStageIn`/`ChartAxisIn`, a resolução de cada
+   eixo contra o catálogo do universo do estudo, `_fill_derived` e o funil
+   `in_chart`.
+4. **Relatório e laudo.** O mapa passa a ser desenhado no plano do estágio, com a
+   caixa como `Region` e a linha no nível guardado.
+5. **Interface.** O editor do estágio em `/app/selecao`, nos dois universos.
+6. **Documentação, portão e PR.**
+
+**Três coisas que valem mais do que a soma delas.**
+
+**A linha não é geometria, e é o caso que parece ser.** O lado favorável de um
+contorno iso-índice é exatamente `índice ≥ nível` — é o que
+`ChartService._draw_levels` já computa para *desenhar* a linha. Manter a regra como
+comparação é o que faz a figura e o funil concordarem por construção em vez de por
+coincidência, e é a leitura do ADR 0004 aplicada a um estágio inteiro.
+
+**Registro que não pode ser posto no plano nunca passa**, mesmo onde a caixa não
+limita aquele eixo e mesmo sem caixa nenhuma. Não é a regra que um limiar daria, e
+a diferença é deliberada: quem o leitor não vê na figura não pode estar no
+resultado. Isso dá sentido a um estágio de gráfico sem nada desenhado — "tem de ser
+plotável aqui".
+
+**O mesmo envelope lê de dois jeitos, de propósito.** Um estágio de limites compara
+por alcance (P0-4); um estágio de gráfico compara o ponto representativo, porque é o
+único ponto que o mapa desenha. Há teste que fixa a divergência — mesmo atributo,
+mesmo limiar, um admite e o outro não —, e a obrigação do D-59 vale igual: o
+documento diz qual regra rodou.
+
+**O que a verificação por mutação pegou.** Uma legenda que prometia uma linha que o
+desenho não tinha: `test_the_line_is_drawn_at_the_level_the_stage_stored` assertava
+só o texto da legenda, e esvaziar `index_levels` no pedido do mapa não a derrubava.
+A asserção sobre `<polyline>` fechou isso. E a guarda `kind <> 'chart'` da
+`CheckConstraint` mostrou-se *load-bearing* do jeito mais forte possível: sem ela a
+própria migração não roda, porque os estágios já gravados violam a checagem no
+instante em que o `batch_alter_table` recria a tabela.
+
+**Numeração corrigida de passagem.** O §3 do roteiro chamava de "P1-2" o item
+`My Records`, que a tabela do §5 sempre listou *depois* do Chart Stage. A numeração
+passou a seguir a ordem do §5: o Chart Stage é o P1-2 e `My Records` é o P1-3.
+
+**Cobertura EduPack: de ~53% para ~56%** (18 de 32 em nível ≥ 3), nível médio de
+2,16 para **2,25**. É o primeiro marco desde o P0-2 a mover o percentual, e move
+porque partiu do único nível 1 da tabela.
+
+**O que ficou de fora, e é melhoria e não bloqueio:** desenhar a caixa
+**arrastando** no gráfico da tela — hoje os limites são digitados, já em
+coordenadas de dados, que é a metade que importa para a auditoria — e o mapa do
+universo de processos, registrado em P1 desde o P0-4.
 
 ---
 

@@ -88,9 +88,10 @@ configurações de mapa; `SelectionStage` saiu com P0-1; `Process`,
 `ProcessAttributeDefinition` e `ProcessAttributeValue` saíram com P0-4.)
 
 **Nada de estrutural pendente no roteiro imediato.** Os quatro gargalos P0 do
-roteiro de plataforma estão entregues, e o que resta em P1 é apresentação e
-navegação sobre modelos que já existem — a ficha do processo, a árvore navegável
-do catálogo, o Chart Stage que filtra.
+roteiro de plataforma estão entregues, mais o P1-1 (busca) e o P1-2 (Chart
+Stage), e o que resta em P1 é apresentação e navegação sobre modelos que já
+existem — a ficha do processo, a árvore navegável do catálogo e o espaço do
+usuário (`My Records`, que é o único P1 restante com modelo novo).
 
 ---
 
@@ -110,8 +111,8 @@ Registrados para não voltarem por engano:
   único estágio para quem faz um estudo simples. **O P0-2 acrescentou o terceiro
   tipo, `process`** — ver a entrada abaixo. Fechou de passagem a lacuna de
   round-trip que o M6 deixou anotada. **O que ficou de fora, e é melhoria e não
-  bloqueio:** reordenar por arraste, duplicar um estágio, e o Chart Stage que
-  filtra (P1, que agora tem onde encaixar).
+  bloqueio:** reordenar por arraste e duplicar um estágio. O Chart Stage que
+  filtra, também listado ali, saiu depois como P1-2 — ver a entrada abaixo.
 - ~~**P0-2** — não existia universo de processos~~ — `ProcessClass`
   hierárquica, `Process` e a associação N–N `material_process`, entregues em
   sete passos ([D-57](DECISIONS.md)). O Tree Stage virou a **junção entre
@@ -165,6 +166,28 @@ Registrados para não voltarem por engano:
 - ~~**P1-1** — busca era `LIKE`~~ — analisador próprio com AND/OR/NOT, frase,
   parênteses e curinga ([D-55](DECISIONS.md)). Falta relevância, *fuzzy* e
   destaque do trecho, registrados como melhoria e não como bloqueio.
+- ~~**P1-2** — o gráfico mostrava e não selecionava~~ — quarto tipo de estágio,
+  `chart`, entregue em seis passos ([D-60](DECISIONS.md),
+  [07-selecao-deterministica.md](07-selecao-deterministica.md)). Carrega o plano,
+  a caixa (um limite por eixo, em coordenadas de dados, nunca pixel) e a linha
+  iso-índice no nível **guardado** — número e não "a linha que passa pelo
+  material 7", porque um estudo salvo tem de reexecutar para a mesma resposta.
+  Três coisas que valem mais do que parecem: **um eixo pode ser quantidade
+  derivada** (é o que um estágio de limites, que nomeia slug de propriedade, não
+  alcança); **registro não plotável não passa**, mesmo onde a caixa não limita
+  aquele eixo; e o documento **redesenha o plano em que a decisão foi
+  desenhada**, com a região como figura e a geometria vinda de
+  `ChartService.property_map`, a mesma chamada que serve a tela. Migração aditiva
+  `f2b6d0e39c47`, a segunda **sem backfill** (a informação é nova), conferida por
+  mutação nas duas direções — sem a guarda `kind <> 'chart'` a própria migração
+  não roda.
+
+  **O que ficou de fora, e é melhoria e não bloqueio:** desenhar a caixa
+  **arrastando** no gráfico da tela — hoje os limites são digitados, já em
+  coordenadas de dados, que é a metade que importa para a auditoria — e o mapa
+  do universo de processos: um estudo de processos pode ter um estágio de
+  gráfico, mas o plano dele não é desenhado, porque `property_map` lê o catálogo
+  de materiais. Esse segundo item já estava registrado em P1 desde o P0-4.
 
 - ~~**S2** — CVEs do toolchain de desenvolvimento~~ — `npm audit` em
   `apps/web` de **27 para 14** achados, com as duas cadeias que tinham caminho

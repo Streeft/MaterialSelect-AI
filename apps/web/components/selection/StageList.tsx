@@ -1,7 +1,10 @@
 "use client";
 
 import type {
+  ChartAxisIn,
+  ChartStageIn,
   ConstraintGroupIn,
+  Goal,
   MaterialClass,
   Process,
   ProcessAttribute,
@@ -23,9 +26,12 @@ import {
   Field,
   IconButton,
   Input,
+  Select,
+  SelectOption,
   useWiring,
 } from "@/components/ui";
 import { cn } from "@/lib/cn";
+import { prettyUnit } from "@/lib/format";
 import {
   ConstraintEditor,
   type ConstraintGroupState,
@@ -76,7 +82,43 @@ export type StageState =
       enabled: boolean;
       materialClassSlugs: string[];
       includeDescendants: boolean;
+    }
+  | {
+      id: string;
+      kind: "chart";
+      label: string;
+      enabled: boolean;
+      x: ChartAxisState;
+      y: ChartAxisState;
+      indexExpression: string;
+      indexGoal: Goal;
+      /** The level, as typed. Empty is "no line", which is not a level of 0. */
+      indexLevel: string;
     };
+
+/**
+ * One axis of a chart stage, as the editor holds it (P1-2).
+ *
+ * `mode` is explicit rather than inferred from which of the two fields is
+ * filled: a reader who types an expression, changes their mind and picks a
+ * property would otherwise leave both set, which the backend refuses. Holding
+ * the choice means the screen cannot build that payload.
+ *
+ * The bounds are **strings**, because a number input's empty state is what
+ * carries "no bound" — and `Number("")` is `0`, which is a bound. Parsing
+ * happens once, in `toStagePayload`, where the empty string becomes `null`.
+ */
+export interface ChartAxisState {
+  mode: "property" | "expression";
+  propertySlug: string;
+  expression: string;
+  min: string;
+  max: string;
+}
+
+function emptyChartAxis(): ChartAxisState {
+  return { mode: "property", propertySlug: "", expression: "", min: "", max: "" };
+}
 
 export function emptyLimitStage(): StageState {
   return {
@@ -122,6 +164,91 @@ export function emptyMaterialStage(): StageState {
   };
 }
 
+export function emptyChartStage(): StageState {
+  return {
+    id: nextEditorId("stage"),
+    kind: "chart",
+    label: "",
+    enabled: true,
+    x: emptyChartAxis(),
+    y: emptyChartAxis(),
+    indexExpression: "",
+    indexGoal: "maximize",
+    indexLevel: "",
+  };
+}
+
+/**
+ * A typed bound as the API takes it: a number, or `null` for "no bound".
+ *
+ * Blank is null and never 0 — that is the whole reason the state holds strings.
+ * A value that is not a number at all is also null rather than `NaN`: `NaN`
+ * compares false against everything, so it would reject the entire catalogue
+ * without a word, and the schema refuses it anyway.
+ */
+function toBound(text: string): number | null {
+  const trimmed = text.trim();
+  if (!trimmed) return null;
+  const value = Number(trimmed);
+  return Number.isFinite(value) ? value : null;
+}
+
+function toAxisPayload(axis: ChartAxisState) {
+  return {
+    property_slug: axis.mode === "property" ? axis.propertySlug || null : null,
+    expression: axis.mode === "expression" ? axis.expression.trim() || null : null,
+    min_value: toBound(axis.min),
+    max_value: toBound(axis.max),
+  };
+}
+
+/** The plane as the API takes it — the line only when it has both halves. */
+export function toChartPayload(stage: Extract<StageState, { kind: "chart" }>): ChartStageIn {
+  const expression = stage.indexExpression.trim();
+  const level = toBound(stage.indexLevel);
+  // Neither half alone is sent: the backend refuses the pair broken, and a
+  // half-written line is the reader having stopped in the middle rather than
+  // having asked for something.
+  const line = expression && level !== null;
+  return {
+    x: toAxisPayload(stage.x),
+    y: toAxisPayload(stage.y),
+    index_expression: line ? expression : null,
+    index_goal: stage.indexGoal,
+    index_level: line ? level : null,
+  };
+}
+
+/**
+ * A stored bound back into the editor's string field.
+ *
+ * `null` is an empty field and never "0": the column is nullable precisely so
+ * that an absent limit and a limit of zero stay different things, and reopening
+ * a saved study is exactly where that distinction would be lost.
+ */
+export function boundToField(value: number | null | undefined): string {
+  return value === null || value === undefined ? "" : String(value);
+}
+
+/**
+ * One stored axis back into editor state — the inverse of `toAxisPayload`.
+ *
+ * Lives here rather than in the page for the reason `fromConstraintPayload`
+ * lives beside `toConstraintPayload`: the two directions have to agree, and
+ * they only stay in agreement while they are read together.
+ */
+export function chartAxisFromPayload(axis: ChartAxisIn | null | undefined): ChartAxisState {
+  return {
+    // Which mode it was is unambiguous, because the backend refuses an axis
+    // that names both.
+    mode: axis?.expression ? "expression" : "property",
+    propertySlug: axis?.property_slug ?? "",
+    expression: axis?.expression ?? "",
+    min: boundToField(axis?.min_value),
+    max: boundToField(axis?.max_value),
+  };
+}
+
 /** The pipeline as the API takes it. An empty label is "not named", not `""`. */
 export function toStagePayload(stage: StageState): StageIn {
   const common = {
@@ -152,6 +279,9 @@ export function toStagePayload(stage: StageState): StageIn {
       process_class_slugs: stage.processClassSlugs,
       include_descendants: stage.includeDescendants,
     };
+  }
+  if (stage.kind === "chart") {
+    return { ...common, kind: "chart", chart: toChartPayload(stage) };
   }
   return { ...common, kind: "limit", root_group: toConstraintPayload(stage.group) };
 }
@@ -314,6 +444,17 @@ export function StageList({
                 onChange={(next) => replace(index, next)}
               />
             )}
+            {stage.kind === "chart" && (
+              <ChartStageFields
+                stage={stage}
+                // The plane plots attributes of the study's **own** universe,
+                // the same rule a limit stage follows (P0-4): offering a
+                // material property on a process study's plane would be a 404
+                // waiting to happen.
+                properties={isProcessStudy ? processAttributes : properties}
+                onChange={(next) => replace(index, next)}
+              />
+            )}
           </CardBody>
         </Card>
       ))}
@@ -324,6 +465,11 @@ export function StageList({
         </Button>
         <Button size="sm" onClick={() => onChange([...stages, emptyTreeStage()])}>
           + {t.stageAddTree}
+        </Button>
+        {/* Offered in both universes: a process has had magnitudes since P0-4,
+            so a region of one of its planes selects the same way. */}
+        <Button size="sm" onClick={() => onChange([...stages, emptyChartStage()])}>
+          + {t.stageAddChart}
         </Button>
         {/* One cross stage per universe, and only the one that applies: the
             backend refuses the other, so offering it would be a button whose
@@ -354,6 +500,7 @@ const STAGE_BADGES: Record<StageState["kind"], string> = {
   tree: t.stageKindTree,
   process: t.stageKindProcess,
   material: t.stageKindMaterial,
+  chart: t.stageKindChart,
 };
 
 // Identity tones, not status ones: "success"/"warning" carry meaning elsewhere
@@ -363,6 +510,7 @@ const STAGE_TONES: Record<StageState["kind"], BadgeTone> = {
   tree: "info",
   process: "brand",
   material: "info",
+  chart: "brand",
 };
 
 /**
@@ -515,6 +663,202 @@ function ProcessStageFields({
       ) : (
         <p className="text-sm text-fg-muted">{t.stageProcessWarning}</p>
       )}
+    </div>
+  );
+}
+
+/**
+ * The chart stage's editor: the plane, the box and the line (P1-2).
+ *
+ * Two things here are deliberate and would be easy to "fix" into a bug.
+ *
+ * **The bounds have no unit picker**, unlike a constraint's threshold three
+ * cards up. A threshold is typed by a reader who chooses the unit; these numbers
+ * are read off an axis the chart already draws in canonical units, so a picker
+ * would offer a conversion nothing performs. The hint names the unit instead.
+ *
+ * **Blank is not zero.** Each bound is held as a string precisely so the empty
+ * field can mean "no bound"; `Number("")` is `0`, which is a bound, and a box
+ * that silently acquired a floor at zero would narrow a selection the reader
+ * never narrowed.
+ */
+function ChartStageFields({
+  stage,
+  properties,
+  onChange,
+}: {
+  stage: Extract<StageState, { kind: "chart" }>;
+  properties: { slug: string; name: string; canonical_unit?: string | null }[];
+  onChange: (stage: StageState) => void;
+}) {
+  const hasBox =
+    stage.x.min !== "" || stage.x.max !== "" || stage.y.min !== "" || stage.y.max !== "";
+  const hasLine = stage.indexExpression.trim() !== "" && stage.indexLevel.trim() !== "";
+  const axesChosen = [stage.x, stage.y].every((axis) =>
+    axis.mode === "property" ? axis.propertySlug !== "" : axis.expression.trim() !== "",
+  );
+
+  return (
+    <div className="flex flex-col gap-4">
+      <p className="text-sm text-fg-muted">{t.stageChartHint}</p>
+
+      <div className="flex flex-wrap gap-4">
+        <ChartAxisFields
+          axis={stage.x}
+          label={t.stageChartAxisX}
+          properties={properties}
+          onChange={(x) => onChange({ ...stage, x })}
+        />
+        <ChartAxisFields
+          axis={stage.y}
+          label={t.stageChartAxisY}
+          properties={properties}
+          onChange={(y) => onChange({ ...stage, y })}
+        />
+      </div>
+
+      <div className="flex flex-col gap-3 rounded-card border border-edge p-3">
+        <p className="text-sm font-medium text-fg">{t.stageChartLine}</p>
+        <p className="text-sm text-fg-muted">{t.stageChartLineHint}</p>
+        <div className="flex flex-wrap items-end gap-3">
+          <Input
+            label={t.stageChartExpression}
+            className="min-w-[14rem] flex-1"
+            value={stage.indexExpression}
+            placeholder={t.stageChartExpressionPlaceholder}
+            onChange={(e) => onChange({ ...stage, indexExpression: e.target.value })}
+          />
+          <Input
+            label={t.stageChartLevel}
+            className="w-40"
+            inputMode="decimal"
+            value={stage.indexLevel}
+            onChange={(e) => onChange({ ...stage, indexLevel: e.target.value })}
+          />
+          <Select
+            label={t.stageChartGoal}
+            className="w-52"
+            value={stage.indexGoal}
+            onChange={(e) => onChange({ ...stage, indexGoal: e.target.value as Goal })}
+          >
+            <SelectOption value="maximize">{t.stageChartGoalMaximize}</SelectOption>
+            <SelectOption value="minimize">{t.stageChartGoalMinimize}</SelectOption>
+          </Select>
+        </div>
+      </div>
+
+      {/* Absence written out, never an empty control the reader has to read
+          into — and the plottability rule stated, because it is the one rule
+          this stage has that no other stage has. */}
+      {!axesChosen ? (
+        <p className="text-sm text-fg-muted">{t.stageChartNoAxes}</p>
+      ) : !hasBox && !hasLine ? (
+        <p className="text-sm text-fg-muted">{t.stageChartPlottableOnly}</p>
+      ) : (
+        <p className="text-sm text-fg-muted">{t.stageChartWarning}</p>
+      )}
+
+      {/* Said before the run, not after: an inverted box returns nothing and
+          looks like an answer, which is the bug this whole stage's checks
+          exist to prevent. The backend refuses it too. */}
+      {invertedAxis(stage) !== null && (
+        <p className="text-sm text-danger-fg">{t.stageChartInvertedBox(invertedAxis(stage)!)}</p>
+      )}
+    </div>
+  );
+}
+
+/** Which axis has its minimum above its maximum, if either does. */
+function invertedAxis(stage: Extract<StageState, { kind: "chart" }>): string | null {
+  const pairs: [ChartAxisState, string][] = [
+    [stage.x, "X"],
+    [stage.y, "Y"],
+  ];
+  for (const [axis, name] of pairs) {
+    const min = toBound(axis.min);
+    const max = toBound(axis.max);
+    if (min !== null && max !== null && min > max) return name;
+  }
+  return null;
+}
+
+function ChartAxisFields({
+  axis,
+  label,
+  properties,
+  onChange,
+}: {
+  axis: ChartAxisState;
+  label: string;
+  properties: { slug: string; name: string; canonical_unit?: string | null }[];
+  onChange: (axis: ChartAxisState) => void;
+}) {
+  const chosen = properties.find((p) => p.slug === axis.propertySlug);
+  // The unit is named only when it is known: inventing "na unidade canônica do
+  // eixo" for an axis nobody has chosen yet would be a hint about nothing.
+  const boundsHint =
+    axis.mode === "property" && chosen?.canonical_unit
+      ? t.stageChartBoundsHint(prettyUnit(chosen.canonical_unit))
+      : t.stageChartBoundsHintPlain;
+
+  return (
+    <div className="flex min-w-[18rem] flex-1 flex-col gap-3 rounded-card border border-edge p-3">
+      <p className="text-sm font-medium text-fg">{label}</p>
+
+      <Select
+        label={t.stageChartAxisKind}
+        value={axis.mode}
+        onChange={(e) =>
+          // Switching the mode does not erase what was typed in the other one:
+          // a reader comparing a property against an index toggles back and
+          // forth, and only `mode` decides what is sent.
+          onChange({ ...axis, mode: e.target.value as ChartAxisState["mode"] })
+        }
+      >
+        <SelectOption value="property">{t.stageChartAxisProperty}</SelectOption>
+        <SelectOption value="expression">{t.stageChartAxisExpression}</SelectOption>
+      </Select>
+
+      {axis.mode === "property" ? (
+        <Select
+          label={t.property}
+          value={axis.propertySlug}
+          onChange={(e) => onChange({ ...axis, propertySlug: e.target.value })}
+        >
+          <SelectOption value="">{t.selectProperty}</SelectOption>
+          {properties.map((p) => (
+            <SelectOption key={p.slug} value={p.slug}>
+              {p.name}
+            </SelectOption>
+          ))}
+        </Select>
+      ) : (
+        <Input
+          label={t.stageChartExpression}
+          value={axis.expression}
+          placeholder={t.stageChartExpressionPlaceholder}
+          hint={t.stageChartExpressionHint}
+          onChange={(e) => onChange({ ...axis, expression: e.target.value })}
+        />
+      )}
+
+      <div className="flex flex-wrap gap-3">
+        <Input
+          label={t.stageChartMin}
+          className="min-w-[8rem] flex-1"
+          inputMode="decimal"
+          value={axis.min}
+          onChange={(e) => onChange({ ...axis, min: e.target.value })}
+        />
+        <Input
+          label={t.stageChartMax}
+          className="min-w-[8rem] flex-1"
+          inputMode="decimal"
+          value={axis.max}
+          onChange={(e) => onChange({ ...axis, max: e.target.value })}
+        />
+      </div>
+      <p className="text-sm text-fg-muted">{boundsHint}</p>
     </div>
   );
 }
