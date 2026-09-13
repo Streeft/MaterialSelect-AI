@@ -12,7 +12,11 @@ from sqlalchemy.orm import Session
 from app.db.base import get_db
 from app.dependencies import get_current_user
 from app.models.user import User
-from app.schemas.material_class import MaterialClassIn, MaterialClassOut
+from app.schemas.material_class import (
+    MaterialClassDetailOut,
+    MaterialClassIn,
+    MaterialClassOut,
+)
 from app.services.taxonomy_service import TaxonomyService
 
 router = APIRouter(prefix="/classes", tags=["classes"])
@@ -24,6 +28,17 @@ def list_classes(
 ) -> list[MaterialClassOut]:
     """List all material classes with their material counts."""
     return TaxonomyService(db, user).list_classes()
+
+
+# Declared before the parameterised paths that follow, and taking a **slug**
+# rather than an id: a breadcrumb and a tree link by slug, which is what the rest
+# of this application already puts in a URL.
+@router.get("/{slug}", response_model=MaterialClassDetailOut)
+def get_class(
+    slug: str, db: Session = Depends(get_db), user: User = Depends(get_current_user)
+) -> MaterialClassDetailOut:
+    """One family as a record: its prose, its breadcrumb and its subfolders (P1-4)."""
+    return TaxonomyService(db, user).get_class(slug)
 
 
 @router.post("", response_model=MaterialClassOut, status_code=status.HTTP_201_CREATED)

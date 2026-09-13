@@ -41,6 +41,40 @@ class ProcessOut(BaseModel):
     material_count: int = 0
 
 
+class ProcessClassRefOut(BaseModel):
+    """A process folder named just enough to link to it — one breadcrumb step."""
+
+    id: int
+    name: str
+    slug: str
+
+
+class ProcessClassDetailOut(ProcessClassOut):
+    """One process family as a **record** rather than a label (P1-4).
+
+    The mirror of ``MaterialClassDetailOut``, field for field, for the reason
+    D-57 gives: the two universes answer the same questions, and a process family
+    that could not be browsed while a material class could would be exactly the
+    asymmetry that decision was made to avoid.
+
+    ``ancestors`` excludes the folder itself — the page the reader is on is not a
+    link back to itself — and ``descendant_process_count`` is what tells a pure
+    branch (``process_count`` 0 by design) apart from an empty one.
+    """
+
+    applications: str | None = None
+    characteristics: str | None = None
+    ancestors: list[ProcessClassRefOut] = []
+    children: list[ProcessClassOut] = []
+    descendant_process_count: int = 0
+    #: The processes filed **directly** in this folder, named so the page can
+    #: link to each datasheet. Unlike the material side — where the catalogue
+    #: already lists materials through its own endpoint — nothing else lists the
+    #: processes of one folder, so carrying them here saves the page a second
+    #: call it would otherwise have to filter client-side.
+    processes: list[ProcessOut] = []
+
+
 class ProcessAttributeOut(BaseModel):
     """One process attribute *definition* (P0-4) — what the editor needs before
     any value exists.
