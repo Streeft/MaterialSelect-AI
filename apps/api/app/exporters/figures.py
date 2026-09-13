@@ -78,6 +78,14 @@ AXIS = "#94a3b8"
 SURFACE = "#ffffff"
 HIGHLIGHT = "#b45309"
 INDEX_LINE = "#0f766e"
+#: The box a Chart stage drew. Deliberately the ink colour and **not** a data
+#: hue: every one of the six group colours is already spoken for by a class, and
+#: `HIGHLIGHT` and `INDEX_LINE` reuse two of them as it is. A seventh hue would
+#: read as a seventh class. The region is an annotation over the data, not
+#: another series in it, so it is drawn in the same near-black the axes and the
+#: title use — which also survives the photocopier the group palette is chosen
+#: for.
+REGION = INK
 
 # Ordinal, and deliberately not a rainbow: six hues that stay distinguishable
 # in greyscale (a printed monograph is often photocopied) and avoid putting the
@@ -136,6 +144,27 @@ class Line:
 
 
 @dataclass(frozen=True)
+class Region:
+    """The box a Chart stage drew, in data coordinates (P1-2).
+
+    A bound of ``None`` is **open on that side**, and is drawn running to the
+    edge of the plot rather than to an invented number — the same distinction
+    the stored column makes, carried all the way to the ink. Closing an open
+    box at some arbitrary value would draw a limit the reader never set.
+
+    Which is also why the open side is resolved *here* and not by the caller:
+    where the plot rectangle ends is a fact about the drawing, and the service
+    that hands the box over does not know it.
+    """
+
+    label: str
+    x_min: float | None = None
+    x_max: float | None = None
+    y_min: float | None = None
+    y_max: float | None = None
+
+
+@dataclass(frozen=True)
 class ScatterFigure:
     """An Ashby-style property map."""
 
@@ -145,6 +174,7 @@ class ScatterFigure:
     points: list[Point] = field(default_factory=list)
     polygons: list[Polygon] = field(default_factory=list)
     lines: list[Line] = field(default_factory=list)
+    regions: list[Region] = field(default_factory=list)
     #: Read under the figure. States what was left out, and why.
     caption: str = ""
     #: The accessible description. Never the only place a fact appears.
@@ -410,8 +440,39 @@ def _caption(text: str) -> str:
 # --- Figures ----------------------------------------------------------------
 
 
+def _region_rect(
+    region: Region, mx: _Mapping, my: _Mapping
+) -> tuple[float, float, float, float] | None:
+    """A region as ``(left, top, width, height)`` in pixels, clipped to the plot.
+
+    An absent bound runs to the frame, which is what "no bound" looks like when
+    it is drawn. A bound the scale cannot represent — a non-positive number on a
+    log axis — is treated the same way rather than being clamped to some floor:
+    both are "the box does not close on this side *here*", and the caption is
+    where the difference between them belongs.
+
+    Returns None when nothing of the box falls inside the plot, so an offscreen
+    region is omitted instead of being drawn as a sliver on the edge.
+    """
+
+    def edge(value: float | None, mapping: _Mapping, fallback: float) -> float:
+        if value is None or not mapping.maps(value):
+            return fallback
+        return mapping.to_pixel(value)
+
+    left = max(PLOT_LEFT, min(edge(region.x_min, mx, PLOT_LEFT), PLOT_RIGHT))
+    right = max(PLOT_LEFT, min(edge(region.x_max, mx, PLOT_RIGHT), PLOT_RIGHT))
+    # The y pixel axis grows downwards, so the *maximum* value is the top edge.
+    top = max(PLOT_TOP, min(edge(region.y_max, my, PLOT_TOP), PLOT_BOTTOM))
+    bottom = max(PLOT_TOP, min(edge(region.y_min, my, PLOT_BOTTOM), PLOT_BOTTOM))
+    if right <= left or bottom <= top:
+        return None
+    return left, top, right - left, bottom - top
+
+
 def render_scatter(figure: ScatterFigure) -> str:
-    """An Ashby map: envelopes underneath, index lines over them, points on top."""
+    """An Ashby map, drawn bottom to top: class envelopes, the Chart stage's box
+    over them, the index line over that, and the points on top of everything."""
     mx = _Mapping(figure.x, PLOT_LEFT, PLOT_RIGHT)
     my = _Mapping(figure.y, PLOT_BOTTOM, PLOT_TOP)
     order = _group_order(figure.points, figure.polygons)
@@ -429,6 +490,16 @@ def render_scatter(figure: ScatterFigure) -> str:
         body.append(
             f'<polygon points="{path}" fill="{colour}" fill-opacity="0.08" '
             f'stroke="{colour}" stroke-opacity="0.45" stroke-width="1"/>'
+        )
+
+    for region in figure.regions:
+        rect = _region_rect(region, mx, my)
+        if rect is None:
+            continue
+        left, top, width, height = rect
+        body.append(
+            f'<rect x="{_n(left)}" y="{_n(top)}" width="{_n(width)}" height="{_n(height)}" '
+            f'fill="{REGION}" fill-opacity="0.06" stroke="{REGION}" stroke-width="1.5"/>'
         )
 
     # An iso-index line is solved over the axis range, not over the data, so an
@@ -472,6 +543,8 @@ def render_scatter(figure: ScatterFigure) -> str:
         )
 
     entries = [(_colour_for(group, order), group) for group in order]
+    if figure.regions:
+        entries.append((REGION, figure.regions[0].label))
     if figure.lines:
         entries.append((INDEX_LINE, figure.lines[0].label))
     body.append(_legend(entries))
