@@ -333,15 +333,17 @@ outros dois métodos; o laudo descrevia um estudo aninhado como um combinador
 único opaco. Os quatro corrigidos numa rodada só, rerrevisão limpa. Ver
 `docs/PROJECT_CONTEXT.md` §3 e `docs/07-selecao-deterministica.md`.
 
-**Os quatro gargalos P0 e o P1-1 da plataforma de seleção entregues.** Depois de
+**Os quatro gargalos P0, o P1-1 e o P1-2 da plataforma de seleção entregues.** Depois de
 comparar a ferramenta com o modelo funcional dos manuais do Granta EduPack —
 matriz de maturidade e roteiro em `docs/14-plataforma-selecao.md` —, P0-1 a P0-4
 saíram, e com o P0-4 o **exercício 11 do manual fecha por inteiro**. **A seleção deixou de ser de estágio único**
 ([D-56](docs/DECISIONS.md)): um estudo é uma **pilha ordenada de
-`SelectionStage`**, e o resultado é a interseção dos habilitados. **Três** tipos,
+`SelectionStage`**, e o resultado é a interseção dos habilitados. **Cinco** tipos
+(`limit`, `tree`, `process`, `material` e — desde o P1-2 — `chart`),
 e um estágio é uma pergunta só — enviar os campos de outro é recusado, nunca
 ignorado: `limit` carrega a árvore AND/OR do M6, `tree` carrega uma seleção de
-pastas da taxonomia, e `process` carrega a junção com o universo de processos. **`include_descendants` é o que `in_class` não sabe
+pastas da taxonomia, `process` carrega a junção com o universo de processos e
+`chart` carrega uma região de um plano. **`include_descendants` é o que `in_class` não sabe
 fazer** — `in_class` compara o slug da própria classe, e como todo material mora
 numa folha, marcar um galho ali não admite ninguém; as duas continuam existindo
 porque respondem a perguntas diferentes. `enabled` é coluna e não exclusão, e um
@@ -403,7 +405,32 @@ discreto onde se exige magnitude. `material_id` virou `record_id` também em
 ranking e índice, como o D-58 anunciou que aconteceria quando os atributos
 chegassem.
 
-1141 testes de backend (nenhum skip) e 232 de frontend, todos verdes. CI no
+**O P1-2 fez o gráfico reprovar** ([D-60](docs/DECISIONS.md)), e com ele os três
+tipos de estágio do método existem. Um estágio `chart` carrega o **plano**, a
+**caixa** (um limite por eixo, em coordenadas de dados, nunca pixel) e a **linha
+iso-índice** no nível guardado — número e não "a linha que passa pelo material 7",
+porque um estudo salvo reexecuta para a mesma resposta. **Nada disso é geometria,
+e a linha é o caso que parece ser:** o lado favorável de um contorno é
+`índice ≥ nível` (ou `≤`), a mesma comparação que `ChartService._draw_levels` já
+faz para desenhar a linha, o que faz figura e funil concordarem por construção.
+**O que o estágio acrescenta ao de limites é um só e é real:** um eixo pode ser
+uma quantidade **derivada**, e um estágio de limites nomeia slug de propriedade.
+**Registro que não pode ser posto no plano nunca passa** — mesmo onde a caixa não
+limita aquele eixo e mesmo sem caixa —, o que torna um estágio sem caixa e sem
+linha um critério com sentido: "tem de ser plotável aqui". Um envelope entra pelo
+**ponto representativo** aqui e por **alcance** num estágio de limites: duas
+regras para o mesmo dado, de propósito, e o documento diz qual rodou.
+`RecordSnapshot.derived` é o quarto mapa — preenchido pelo serviço antes de o
+motor ver o registro, porque o domínio compara números e nunca avalia expressão.
+Toda coluna da caixa é anulável e **fica** anulável: NULL é "sem limite" e `0` é
+um limite, e o lado aberto é desenhado indo até a borda do gráfico com a legenda
+dizendo que isso não é um limite. O relatório e o laudo redesenham **o plano em
+que a decisão foi desenhada** — geometria ainda vinda de
+`ChartService.property_map` —, e um estudo de processos pode ter um estágio de
+gráfico, mas o plano dele não é desenhado: não existe mapa do universo de
+processos ainda.
+
+1209 testes de backend (nenhum skip) e 253 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
 PROJECT_CONTEXT.md).

@@ -75,7 +75,7 @@ aceita `limit`/`tree`/`process`, um de processos aceita `limit`/`tree`/`material
 travessia é o que nomeia o outro. Por isso **qual taxonomia valida `class_slugs`
 decorre do universo, não do nome do campo**, que é o mesmo nos dois.
 
-Há **quatro** tipos, e um estágio é uma pergunta só — enviar os campos de outro
+Há **cinco** tipos, e um estágio é uma pergunta só — enviar os campos de outro
 tipo é recusado, não ignorado:
 
 - **`limit`** — uma árvore de restrições, exatamente a do M6 acima. O estágio é
@@ -104,6 +104,9 @@ tipo é recusado, não ignorado:
   mantém os processos que servem **algum** material das pastas escolhidas, em
   `material_class_slugs`. **Só pastas**: um `Material` não tem slug para nomear
   uma folha, e o exercício 11 do manual seleciona uma pasta.
+
+- **`chart`** — uma **região de um plano** (P1-2, [D-60](DECISIONS.md)), e o
+  único tipo que vale nos dois universos sem mudar de nome. Ver abaixo.
 
 ### Atributos de processo (P0-4)
 
@@ -142,6 +145,56 @@ mesmo `normalized_value` de sempre — enquanto continua sendo filtrado pelos
 limites.
 
 
+### O estágio de gráfico (P1-2)
+
+O gráfico deixa de só mostrar e passa a **reprovar** ([D-60](DECISIONS.md)). Um
+estágio `chart` carrega o plano e o que foi desenhado nele — a **caixa** (um
+limite por eixo) e a **linha iso-índice** (que admite o lado favorável) —, e
+qualquer um dos dois pode faltar.
+
+**Nada disso é geometria, e a linha é o caso que parece ser.** O lado favorável de
+um contorno iso-índice é exatamente `índice ≥ nível` quando se maximiza, e `≤`
+quando se minimiza — é o mesmo conjunto que `ChartService._draw_levels` já computa
+para *desenhar* a linha. Manter a regra como comparação é o que faz a figura e o
+funil concordarem por construção.
+
+**O que este estágio acrescenta ao de limites é um só, e é real:** um estágio de
+limites nomeia **slug de propriedade**, então não alcança quantidade derivada.
+"Todo material cujo E^(1/2)/ρ bate este" não são quatro limiares sobre duas
+propriedades — é um limiar sobre uma combinação delas. Cada eixo é, então, *ou*
+uma propriedade cadastrada *ou* uma expressão de índice; nunca as duas e nunca
+nenhuma, garantido por `CheckConstraint`.
+
+**Registro que não pode ser posto no plano nunca passa** — mesmo onde a caixa não
+limita aquele eixo, e mesmo sem caixa nenhuma. Não é a regra que um limiar daria
+(um limiar só rejeita o que consegue comparar), e a diferença é deliberada: o
+critério é "dentro desta região deste plano", e registro sem coordenada não é
+desenhado no plano. Isso torna um estágio sem caixa e sem linha uma coisa com
+sentido — "tem de ser plotável aqui".
+
+**Um envelope (P0-4) entra pelo ponto representativo**, porque é o único ponto
+que o mapa desenha, enquanto um estágio de limites compara o mesmo atributo por
+**alcance**. Duas regras para o mesmo dado, e é por isso que o documento diz qual
+rodou — a obrigação que o [D-59](DECISIONS.md) assumiu.
+
+Os limites da caixa são **coordenadas de dados em unidade canônica**, nunca
+pixels (ADR 0004), e não há campo de unidade: os números são lidos de um eixo que
+o `ChartService` já desenha assim. NULL é "sem limite" e `0` é um limite, então
+uma caixa aberta de um lado é coisa que se desenha e o lado aberto continua
+distinguível de um zero — do banco até a legenda da figura. O nível da linha é um
+**número** e não "a linha que passa pelo material 7": guardar o registro moveria a
+linha toda vez que o dado dele mudasse, e um estudo salvo tem de reexecutar para a
+mesma resposta.
+
+A expressão é avaliada pelo **serviço**, uma vez por execução, e o resultado vai
+para `RecordSnapshot.derived` — mapa separado de `values` porque a proveniência é
+outra, e arquivado sob o texto da própria expressão. O domínio compara números e
+nunca avalia expressão, exatamente como um limiar chega até ele já convertido.
+
+A migration `f2b6d0e39c47` acrescenta as onze colunas do payload, todas anuláveis
+e **sem backfill** — a informação é nova, e nenhum estágio já salvo é de gráfico.
+
+
 `enabled` é coluna e não exclusão: desligar e religar um estágio é *como* se vê
 o efeito de um critério. Um estágio desligado não estreita, mas continua no
 relatório e ainda diz **quantos admitiria sozinho** — a pergunta que desligar
@@ -162,9 +215,9 @@ linhas descrevem estágio nenhum degrada para um estágio sobre a árvore inteir
 em vez de admitir o catálogo todo em silêncio.
 
 O funil nomeia **qual** pergunta cada estágio de pergunta única fez:
-`in_tree` para o de árvore, `in_process` para o de processos e `in_material`
-para o de materiais. Chamar os três da mesma coisa diria ao leitor que a seleção
-filtrou por algo que ela não filtrou.
+`in_tree` para o de árvore, `in_process` para o de processos, `in_material`
+para o de materiais e `in_chart` para o de gráfico. Chamar os quatro da mesma
+coisa diria ao leitor que a seleção filtrou por algo que ela não filtrou.
 
 ## Índices de desempenho (`app/calculations/expressions.py`)
 

@@ -56,11 +56,11 @@ Níveis: **0** não existe · **1** rudimentar · **2** existe, precisa melhorar
 | Registro de família (folder-level) | **0** | `MaterialClass` é rótulo, não registro com descrição, aplicações e ciência. |
 | Search | **3** | Analisador próprio com AND/OR/NOT, frase, parênteses e curinga ([D-55](DECISIONS.md)). Falta relevância, fuzzy e destaque do trecho. |
 | Datasheet | **3** | Propriedades com proveniência e **processos compatíveis** (P0-2), agrupados por família. Faltam aplicações, vantagens, limitações, similares e Science Notes — e a **ficha do processo**: `GET /api/processes/{slug}` já devolve os atributos com proveniência inteira (P0-4), falta a rota de apresentação. |
-| Motor de gráficos | **3** | Plotly à la carte no cliente + SVG determinístico no servidor; envelope, nuvem, linha de índice, escala log. Faltam caixa de seleção, anotações, rótulos arrastáveis e destaque de referência. |
+| Motor de gráficos | **3** | Plotly à la carte no cliente + SVG determinístico no servidor; envelope, nuvem, linha de índice, escala log, e a **região do Chart Stage** desenhada no documento (P1-2). Faltam desenhar a caixa arrastando, anotações, rótulos arrastáveis e destaque de referência. |
 | **Seleção multiestágio** | **4** | **Entregue (P0-1, [D-56](DECISIONS.md))**: `SelectionStage` ordenada, habilitável e nomeável, com funil por estágio. Falta reordenar por arraste e duplicar um estágio. |
 | Limit Stage | **4** | Restrições com AND/OR aninhado (M6), operadores, unidades, nos **dois universos**, sobre as três formas de valor — escalar, envelope de capacidade (comparado por alcance) e discreto por pertinência (P0-4). Falta a barra de distribuição que orienta o valor. |
 | Tree Stage | **4** | **A junção existe nos dois sentidos**: materiais filtrados pelos processos que os servem (P0-2) e processos filtrados pelos materiais que atendem (P0-3). Falta escolher **registros** avulsos do outro universo — hoje só pastas, porque `Material` não tem slug. |
-| Chart Stage (gráfico que filtra) | **1** | O gráfico mostra; não seleciona. Sem caixa nem linha de índice que reprove registro. |
+| Chart Stage (gráfico que filtra) | **4** | **Entregue (P1-2, [D-60](DECISIONS.md))**: a caixa e a linha iso-índice reprovam, nos dois universos, e um eixo pode ser uma quantidade **derivada** — que é o que um Limit Stage não alcança. Registro não plotável não passa. Falta desenhar a caixa arrastando no gráfico da tela (hoje ela é digitada em coordenadas de dados) e o mapa do universo de processos. |
 | Ranking | **4** | Soma ponderada, TOPSIS, PROMETHEE II, AHP (M5), com normalização declarada. |
 | Índice de desempenho | **3** | Catálogo de índices + expressão livre, com avaliador seguro e dimensão verificada. |
 | Performance Index Finder | **0** | Não existe o fluxo função→restrição→objetivo→índice. |
@@ -77,30 +77,37 @@ Níveis: **0** não existe · **1** rudimentar · **2** existe, precisa melhorar
 | Battery Designer | **0** | Não existe. |
 | My Records (usuário / sintetizados / favoritos) | **0** | Catálogo é compartilhado; não há espaço do usuário. |
 | Unidades de exibição | **2** | Canônica correta; o usuário não escolhe a unidade de leitura (B11). |
-| Explicabilidade | **3** | Funil por restrição e proveniência por número; falta o *porquê* por registro reprovado. |
+| Explicabilidade | **3** | Funil por restrição e por estágio (`in_chart` inclusive) e proveniência por número; falta o *porquê* por registro reprovado. |
 | Camada de IA | **4** | Interpretação e explicação com guardrails, ancoragem numérica e citação verificada. |
-| Testes | **5** | 1141 backend, 232 frontend, E2E e Lighthouse na CI — e desde o P0-1 a migração é exercitada de verdade, nos dois sentidos, contra um banco que já contém dados, conferida por mutação. |
+| Testes | **5** | 1209 backend, 253 frontend, E2E e Lighthouse na CI — e desde o P0-1 a migração é exercitada de verdade, nos dois sentidos, contra um banco que já contém dados, conferida por mutação. |
 | Desempenho | **3** | Índices, threadpool, Plotly fatiado. Não preparado para centenas de milhares de registros. |
 
-**Cobertura de capacidades inspiradas no EduPack: ~53%** — contado como
-capacidades em nível ≥ 3 sobre as **32** avaliadas (17 de 32).
+**Cobertura de capacidades inspiradas no EduPack: ~56%** — contado como
+capacidades em nível ≥ 3 sobre as **32** avaliadas (18 de 32). **Nível médio:
+2,25.**
 
 **O denominador estava errado até o P0-4.** As versões anteriores deste parágrafo
 diziam "30 avaliadas" e publicavam ~57%; a tabela acima sempre teve 32 linhas.
-Recontado, o número é 17 de 32 (≈ 53%) — e as leituras históricas se corrigem pelo
-mesmo denominador: 10 de 32 (~31%) quando este documento foi escrito, 14 de 32
-(~44%) depois de P1-1 e P0-1, 17 de 32 (~53%) depois do P0-2.
+Recontado, o número é 17 de 32 (≈ 53%) no fim do P0-4 — e as leituras históricas
+se corrigem pelo mesmo denominador: 10 de 32 (~31%) quando este documento foi
+escrito, 14 de 32 (~44%) depois de P1-1 e P0-1, 17 de 32 (~53%) depois do P0-2.
 
-**Pelo terceiro marco seguido o percentual não se move, e isso diz mais sobre a
+**Por três marcos seguidos o percentual não se moveu, e isso disse mais sobre a
 métrica do que sobre a ferramenta.** O P0-3 não cruzou nenhum nível; o P0-4
 levantou **duas** capacidades — banco de processos 3→4 e Limit Stage 3→4 — mas as
-duas já estavam acima do corte, então a contagem de "≥ 3" não registra nada. Subir
-o corte agora seria mover o gol no meio do jogo. Em vez disso este documento passa
-a publicar também o **nível médio**, onde crescimento dentro da faixa aparece:
-**2,16** (era 2,09 antes do P0-4; era 1,3 quando o documento foi escrito).
+duas já estavam acima do corte, então a contagem de "≥ 3" não registrou nada.
+Subir o corte ali seria mover o gol no meio do jogo. Em vez disso este documento
+passou a publicar também o **nível médio**, onde crescimento dentro da faixa
+aparece: **2,25** (era 2,16 depois do P0-4, 2,09 antes dele, 1,3 quando o
+documento foi escrito).
 
-O que o P0-4 fez, então: fechou o exercício 11 do manual por inteiro — passo 1
-(universo de saída, P0-3), passo 2 (Limit Stage sobre atributo do processo) e
+O P1-2 é o primeiro marco desde o P0-2 a mover o percentual, e move porque partiu
+do único nível **1** da tabela: o Chart Stage foi de 1 a 4 de uma vez. Não é um
+salto maior que os anteriores — é o mesmo tamanho de trabalho aplicado à
+capacidade que estava mais atrás.
+
+O que o P0-4 fez, antes dele: fechou o exercício 11 do manual por inteiro — passo
+1 (universo de saída, P0-3), passo 2 (Limit Stage sobre atributo do processo) e
 passo 3 (Tree Stage no universo de materiais, P0-3) — e retirou a recusa de
 ranqueamento que o [D-58](DECISIONS.md) tinha escrito.
 
@@ -122,8 +129,8 @@ Nada mais no roteiro compensa não ter isto.
 `limit` e `tree`, habilitável individualmente, com migração aditiva e backfill,
 funil por estágio, seção "Estágios" nos documentos e a pilha editável em
 `/app/selecao`. O que ficou de fora, e é melhoria e não bloqueio: reordenar por
-arraste, duplicar um estágio, e o Chart Stage que **filtra** (P1, que agora tem
-onde encaixar).
+arraste, duplicar um estágio, e o Chart Stage que **filtra** (P1-2, que agora tem
+onde encaixar — e que foi entregue ali, [D-60](DECISIONS.md)).
 
 ### P0-2 — Não existe ProcessUniverse — **entregue**
 
@@ -189,7 +196,37 @@ O manual dedica uma seção a operadores (AND, OR, NOT, frase, parênteses, `*`,
 `?`). Hoje é uma varredura por substring. É a porta de entrada da ferramenta e
 a diferença mais visível entre "lista de materiais" e "plataforma".
 
-### P1-2 — Não há espaço do usuário
+### P1-2 — O gráfico mostra e não seleciona — **entregue**
+
+O manual usa o gráfico três vezes: para mostrar, para desenhar uma caixa em torno
+dos candidatos, e para deslizar a linha de índice até isolá-los. Aqui ele só
+mostrava — era o único dos três tipos de estágio do método que faltava, e o
+único nível **1** da matriz.
+
+**Entregue** ([D-60](DECISIONS.md)): um quarto tipo de estágio, `chart`, que
+carrega o plano, a caixa (um limite por eixo, em coordenadas de dados) e a linha
+iso-índice no nível guardado. Três coisas que valem mais do que parecem:
+
+- **Um eixo pode ser uma quantidade derivada.** É o que este estágio acrescenta
+  ao Limit Stage, que nomeia *slug de propriedade*: "todo material cujo
+  E^(1/2)/ρ bate este" não são quatro limiares sobre duas propriedades.
+- **Registro não plotável não passa**, mesmo onde a caixa não limita aquele eixo
+  — o critério é a região do plano, e quem não está na figura não está no
+  resultado.
+- **O documento redesenha o plano em que a decisão foi desenhada**, com a região
+  como figura e a linha no nível que o estágio guardou.
+
+Ficou de fora, e é melhoria e não bloqueio: **desenhar a caixa arrastando** no
+gráfico da tela (hoje os limites são digitados, já em coordenadas de dados, que é
+a metade que importa para a auditoria) e o mapa do universo de processos — um
+estudo de processos pode ter um estágio de gráfico, mas o plano dele não é
+desenhado.
+
+> **Numeração.** Rascunhos anteriores deste documento chamavam de "P1-2" o item
+> `My Records`, que a tabela do §5 sempre listou *depois* do Chart Stage. A
+> numeração aqui passa a seguir a ordem do §5; `My Records` é o P1-3.
+
+### P1-3 — Não há espaço do usuário
 
 Sem `My Records`, o Synthesizer não tem onde gravar, o Find Similar não tem
 referência persistente e o usuário não pode cadastrar o material do orientador
@@ -228,7 +265,7 @@ correção, portão completo, decisão registrada.
 | ~~P0~~ | ~~Seleção **de processos** (universo de saída escolhido)~~ **entregue** | G | P0-2 |
 | ~~P0~~ | ~~Atributos de processo com proveniência (discreto e envelope)~~ **entregue** | A, G | P0-3 |
 | **P1** | ~~Search com operadores~~ **entregue**; falta relevância e destaque | C | — |
-| **P1** | Chart Stage que **filtra** (caixa de seleção e linha de índice reprovando) | H, I | P0-1 |
+| ~~P1~~ | ~~Chart Stage que **filtra** (caixa de seleção e linha de índice reprovando)~~ **entregue** | H, I | P0-1 |
 | **P1** | `My Records`: definidos pelo usuário, favoritos, recentes | T, U | — |
 | **P1** | Browse: árvore navegável, breadcrumb, registro de família, **ficha do processo** | B, D | P0-2 |
 | **P2** | Find Similar + Nearness + registro de referência | K, L | P1 My Records |
@@ -241,7 +278,7 @@ correção, portão completo, decisão registrada.
 | **P4** | Battery Designer | S | P3 Synthesizer |
 | **P4** | PDF e DOCX no gerador de relatório | V | — |
 
-**Ordem de execução:** ~~P0-1~~ → ~~P0-2~~ → ~~P0-3~~ → ~~P0-4~~ → **P1** → P2 → P3 → P4.
+**Ordem de execução:** ~~P0-1~~ → ~~P0-2~~ → ~~P0-3~~ → ~~P0-4~~ → ~~P1-1~~ → ~~P1-2~~ → **P1-3 em diante** → P2 → P3 → P4.
 
 ### O que isto não é
 

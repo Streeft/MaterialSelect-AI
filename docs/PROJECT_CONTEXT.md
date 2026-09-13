@@ -237,7 +237,7 @@ tudo limpo, sem achado novo. Commit `73eb4a2` sobre `0d00ee7`. Ver
 `docs/07-selecao-deterministica.md` para a descrição de cada método e do
 modelo de árvore.
 
-**Plataforma de seleção — os quatro gargalos P0 e o P1-1 entregues.** Depois de
+**Plataforma de seleção — os quatro gargalos P0, o P1-1 e o P1-2 entregues.** Depois de
 comparar a ferramenta com o modelo funcional dos manuais do Granta EduPack
 ([14-plataforma-selecao.md](14-plataforma-selecao.md): matriz de maturidade
 sobre 32 capacidades e roteiro P0–P4), P0-1 a P0-4 saíram. **A
@@ -275,23 +275,40 @@ do envelope" e a folha de proveniência tem a coluna *Tipo de valor*. Com isso a
 recusa de ranqueamento do D-58 foi **retirada**, não reescrita: o que se recusa
 agora é atributo inexistente e atributo discreto onde se exige magnitude.
 
-A cobertura de capacidades inspiradas no EduPack subiu de ~31% para **~53%**
-(17 de 32 em nível ≥ 3), e o **denominador estava errado até aqui**: o parágrafo
+**E o gráfico passou a reprovar** ([D-60](DECISIONS.md), P1-2): um quarto tipo de
+estágio, `chart`, carrega o **plano** e o que foi desenhado nele — a caixa (um
+limite por eixo, em coordenadas de dados) e a linha iso-índice no nível guardado.
+Nada disso é geometria: o lado favorável de um contorno é uma comparação sobre o
+valor do índice, a mesma que `ChartService._draw_levels` já faz para *desenhar* a
+linha, de modo que a figura e o funil concordam por construção. O que o estágio
+acrescenta ao de limites é um só e é real — **um eixo pode ser uma quantidade
+derivada**, e um estágio de limites nomeia slug de propriedade. **Registro que não
+pode ser posto no plano não passa**, mesmo onde a caixa não limita aquele eixo, o
+que torna um estágio sem caixa e sem linha um critério com sentido: "tem de ser
+plotável aqui". O relatório e o laudo redesenham **o plano em que a decisão foi
+desenhada**, com a região como figura — e um estudo de processos pode ter um
+estágio de gráfico, mas o plano dele não é desenhado, porque não existe mapa do
+universo de processos ainda.
+
+A cobertura de capacidades inspiradas no EduPack subiu de ~31% para **~56%**
+(18 de 32 em nível ≥ 3), e o **denominador estava errado até o P0-4**: o parágrafo
 anterior dizia "30 avaliadas" e publicava ~57%, mas a tabela sempre teve 32
-linhas. Pelo **terceiro marco seguido** o percentual não se move, e isso diz mais
+linhas. Por **três marcos seguidos** o percentual não se moveu, e isso disse mais
 sobre a métrica do que sobre a ferramenta: o P0-4 levantou duas capacidades
 (banco de processos 3→4, Limit Stage 3→4) que já estavam acima do corte. O
-documento passou a publicar também o **nível médio** — **2,16**, era 2,09 antes do
-P0-4 e 1,3 no começo —, onde crescimento dentro da faixa aparece. O que resta em
-P1 é apresentação sobre modelos que já existem: a ficha do processo na tela, a
-árvore navegável do catálogo e o Chart Stage que filtra.
+documento passou a publicar também o **nível médio** — **2,25**, era 2,16 depois do
+P0-4 e 1,3 no começo —, onde crescimento dentro da faixa aparece. O P1-2 é o
+primeiro marco desde o P0-2 a mover o percentual, e move porque partiu do único
+nível **1** da tabela. O que resta em P1 é apresentação sobre modelos que já
+existem: a ficha do processo na tela, a árvore navegável do catálogo e o espaço do
+usuário (`My Records`).
 
-**Saúde do código:** 1141 testes de backend (Python 3.11 e 3.12, nenhum skip)
-e 232 de frontend, todos verdes. Desde o P0-1 a suíte também roda as migrações de
+**Saúde do código:** 1209 testes de backend (Python 3.11 e 3.12, nenhum skip)
+e 253 de frontend, todos verdes. Desde o P0-1 a suíte também roda as migrações de
 verdade, nos dois sentidos, contra um banco temporário que já contém dados —
 `test_migration_selection_stage.py`, `test_migration_process_universe.py`,
-`test_migration_selection_universe.py` e `test_migration_process_attributes.py`,
-os quatro conferidos por mutação. `ruff` limpo, `black
+`test_migration_selection_universe.py`, `test_migration_process_attributes.py` e
+`test_migration_chart_stage.py`, os cinco conferidos por mutação. `ruff` limpo, `black
 --check` limpo, typecheck estrito e build de produção sem avisos. CI no
 GitHub Actions rodando em todo PR e push para `main`, com os checks
 **obrigatórios**: o GitHub recusa o merge se qualquer um falhar
