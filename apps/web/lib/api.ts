@@ -27,9 +27,12 @@ import type {
   MaterialUpdate,
   PerformanceIndex,
   PortalSession,
+  MaterialClassDetail,
   Process,
   ProcessAttribute,
   ProcessClass,
+  ProcessClassDetail,
+  ProcessDetail,
   PropertyDefinition,
   PropertyDefinitionIn,
   PropertyDistribution,
@@ -201,6 +204,21 @@ export function listProcessClasses(): Promise<ProcessClass[]> {
  */
 export function listProcessAttributes(): Promise<ProcessAttribute[]> {
   return request<ProcessAttribute[]>(`/api/processes/attributes`);
+}
+
+/** One process with its attributes and their provenance — the datasheet (P1-4). */
+export function getProcess(slug: string): Promise<ProcessDetail> {
+  return request<ProcessDetail>(`/api/processes/${encodeURIComponent(slug)}`);
+}
+
+/** One process family as a record: prose, breadcrumb, subfolders, processes (P1-4). */
+export function getProcessClass(slug: string): Promise<ProcessClassDetail> {
+  return request<ProcessClassDetail>(`/api/processes/classes/${encodeURIComponent(slug)}`);
+}
+
+/** One material family as a record: prose, breadcrumb, subfolders (P1-4). */
+export function getClass(slug: string): Promise<MaterialClassDetail> {
+  return request<MaterialClassDetail>(`/api/classes/${encodeURIComponent(slug)}`);
 }
 
 // --- Properties -----------------------------------------------------------
