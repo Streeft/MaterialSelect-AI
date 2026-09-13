@@ -24,16 +24,33 @@ class ProcessRepository:
         self.db = db
 
     def list_classes_with_counts(self) -> list[tuple[ProcessClass, int]]:
-        """Every process folder, with how many processes are filed *directly* in it.
+        """Every process folder, with how many **active** processes are filed
+        *directly* in it.
 
         Directly, not cumulatively: the count answers "is this folder empty",
         and a cumulative count would make every branch look populated even when
         nothing is filed in it — the same reason a Tree stage needs
         ``include_descendants`` to be a decision rather than a default.
+
+        Active, because every other reading of this number already is. The count
+        used to include withdrawn processes while `list_active_processes` excluded
+        them, so a folder holding one live process and one withdrawn one reported
+        two and handed back one. That went unseen while nothing put the count and
+        the list on the same screen; the family record (P1-4) does, and a reader
+        would have concluded the page lost a row. It was wrong for the stage
+        picker too: a folder whose only process is withdrawn admits nobody, which
+        is exactly what "is this folder empty" asks.
+
+        The filter lives in the **ON** clause and not in a WHERE: moved to WHERE
+        it would turn the outer join into an inner one and drop every empty
+        folder from the taxonomy.
         """
         stmt = (
             select(ProcessClass, func.count(Process.id))
-            .outerjoin(Process, Process.class_id == ProcessClass.id)
+            .outerjoin(
+                Process,
+                (Process.class_id == ProcessClass.id) & Process.is_active.is_(True),
+            )
             .group_by(ProcessClass.id)
             .order_by(ProcessClass.name)
         )

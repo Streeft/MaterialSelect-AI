@@ -5,13 +5,16 @@ from __future__ import annotations
 from sqlalchemy.orm import Session
 
 from app.domain.errors import NotFoundError
+from app.domain.taxonomy import lineages
 from app.models.process import Process, ProcessClass
 from app.models.process_attribute import ProcessAttributeDefinition, ProcessAttributeValue
 from app.repositories.process_repository import ProcessRepository
 from app.schemas.process import (
     ProcessAttributeOut,
     ProcessAttributeValueOut,
+    ProcessClassDetailOut,
     ProcessClassOut,
+    ProcessClassRefOut,
     ProcessDetailOut,
     ProcessOut,
 )
@@ -33,6 +36,61 @@ class ProcessService:
         return [
             self._class_to_out(cls, count) for cls, count in self.repo.list_classes_with_counts()
         ]
+
+    def get_class(self, slug: str) -> ProcessClassDetailOut:
+        """One process family as a record: prose, breadcrumb, subfolders, processes.
+
+        Same shape and same method as ``TaxonomyService.get_class`` (P1-4): the
+        whole taxonomy is read once and walked in memory by
+        ``app.domain.taxonomy.lineages`` — the same walk a process Tree stage
+        uses, so a breadcrumb and a stage cannot disagree about who is under
+        whom.
+        """
+        rows = self.repo.list_classes_with_counts()
+        by_slug = {cls.slug: (cls, count) for cls, count in rows}
+        found = by_slug.get(slug)
+        if found is None:
+            raise NotFoundError(f"Família de processo não encontrada: {slug}")
+        cls, direct_count = found
+
+        slug_by_id = {c.id: c.slug for c, _ in rows}
+        parents = {c.slug: slug_by_id.get(c.parent_id) for c, _ in rows}
+        paths = lineages(parents)
+
+        material_counts = self.repo.material_counts_by_process()
+        return ProcessClassDetailOut(
+            id=cls.id,
+            name=cls.name,
+            slug=cls.slug,
+            parent_id=cls.parent_id,
+            description=cls.description,
+            process_count=direct_count,
+            applications=cls.applications,
+            characteristics=cls.characteristics,
+            ancestors=[
+                ProcessClassRefOut(
+                    id=by_slug[ancestor][0].id, name=by_slug[ancestor][0].name, slug=ancestor
+                )
+                for ancestor in paths[slug][:-1]
+                if ancestor in by_slug
+            ],
+            children=[
+                self._class_to_out(child, count)
+                for child, count in rows
+                if child.parent_id == cls.id
+            ],
+            descendant_process_count=sum(
+                count for child, count in rows if slug in paths[child.slug]
+            ),
+            # Active only, exactly like `list_processes`: a withdrawn process
+            # admits nobody in a stage, so offering it in a folder would be a
+            # link to something the rest of the tool refuses to use.
+            processes=[
+                self._process_to_out(p, material_counts.get(p.id, 0))
+                for p in self.repo.list_active_processes()
+                if p.class_id == cls.id
+            ],
+        )
 
     def list_processes(self) -> list[ProcessOut]:
         counts = self.repo.material_counts_by_process()
