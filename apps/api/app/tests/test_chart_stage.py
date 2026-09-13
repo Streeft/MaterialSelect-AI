@@ -405,6 +405,137 @@ def test_a_plane_with_no_box_and_no_line_says_what_it_asks(client) -> None:
     assert "apenas plotável" in resp.text
 
 
+# --- the figure the document draws ------------------------------------------
+
+
+def _study_with(client, stage: dict, **over) -> int:
+    payload = {"name": "Estudo com plano", "stages": [stage], "criteria": []}
+    payload.update(over)
+    created = client.post("/api/selection/studies", json=payload)
+    assert created.status_code == 201, created.text
+    return created.json()["id"]
+
+
+def _laudo(client, study_id: int) -> str:
+    resp = client.get(f"/api/exports/estudos/{study_id}/laudo.html")
+    assert resp.status_code == 200, resp.text
+    return resp.text
+
+
+def test_the_map_is_drawn_on_the_plane_the_stage_chose(client) -> None:
+    """Not on the plane the index expression names: the reader picked these axes,
+    and a document that redrew the same selection on a different pair would be
+    answering a question nobody asked.
+
+    The index here names *other* properties on purpose, so the two planes cannot
+    coincide by accident.
+    """
+    study_id = _study_with(
+        client,
+        _chart(
+            x={"property_slug": "dureza"},
+            y={"property_slug": "temp_max_servico", "min_value": 100.0},
+        ),
+        index={"expression": INDEX, "goal": "maximize"},
+    )
+
+    text = _laudo(client, study_id)
+    # The figure's accessible description names y against x, and nothing else in
+    # the document produces that sentence — a property name alone would also
+    # appear in the provenance sheet and prove nothing.
+    assert "Mapa de Temperatura máxima de serviço contra Dureza (Vickers)" in text
+    assert "os eixos são os do estágio de gráfico" in text
+
+
+def test_a_study_with_no_chart_stage_still_draws_the_plane_of_its_index(client) -> None:
+    """The pre-P1-2 behaviour, unchanged — and the control that shows the test
+    above is measuring the stage and not the seed."""
+    study_id = _study_with(
+        client,
+        {"kind": "tree", "class_slugs": ["metais", "ceramicas"]},
+        index={"expression": INDEX, "goal": "maximize"},
+    )
+
+    text = _laudo(client, study_id)
+    assert "Mapa de Módulo de Young contra Densidade" in text
+    assert "os eixos são os do estágio de gráfico" not in text
+
+
+def test_a_disabled_chart_stage_does_not_choose_the_plane(client) -> None:
+    """It did not shape the result, so it does not get to shape the figure."""
+    study_id = _study_with(
+        client,
+        _chart(enabled=False, x={"property_slug": "dureza"}),
+        index={"expression": INDEX, "goal": "maximize"},
+    )
+
+    text = _laudo(client, study_id)
+    assert "os eixos são os do estágio de gráfico" not in text
+    assert "Mapa de Módulo de Young contra Densidade" in text
+
+
+def test_the_drawn_box_reaches_the_figure(client) -> None:
+    study_id = _study_with(
+        client, _chart(x={"property_slug": "densidade", "min_value": 1000.0, "max_value": 5000.0})
+    )
+
+    text = _laudo(client, study_id)
+    assert "Região do estágio" in text
+    assert "o retângulo é a região do estágio" in text
+
+
+def test_the_caption_warns_that_an_open_side_is_not_a_limit(client) -> None:
+    """The rectangle runs to the frame where there is no bound, and a reader who
+    did not know that would read the frame as the reader's own limit."""
+    study_id = _study_with(client, _chart(y={"property_slug": "modulo_young", "min_value": 1e11}))
+
+    assert "até a borda do gráfico e não é um limite" in _laudo(client, study_id)
+
+
+def test_a_plane_with_no_box_draws_no_region(client) -> None:
+    study_id = _study_with(client, _chart())
+
+    text = _laudo(client, study_id)
+    assert "Região do estágio" not in text
+
+
+def test_the_line_is_drawn_at_the_level_the_stage_stored(client) -> None:
+    """Not through the winning material: the stage's level is the argument, and
+    re-deriving it from the result would move the line whenever the data did."""
+    study_id = _study_with(client, _chart(index_expression=INDEX, index_level=100.0))
+
+    text = _laudo(client, study_id)
+    assert "a linha está no nível 100 de" in text
+    # And it is really on the figure: a `polyline` is the iso-index line and
+    # nothing else — clouds are polygons and materials are circles. Without this
+    # the caption could promise a line the drawing never carries.
+    assert "<polyline" in text
+
+
+def test_a_line_over_an_index_axis_is_declared_undrawn_rather_than_faked(client) -> None:
+    """``property_map`` refuses an overlaid index alongside an index axis, and
+    the honest answer is to say so — drawing it would need a second,
+    contradictory meaning for the same axis. The level is still in 'Estágios'.
+    """
+    study_id = _study_with(
+        client,
+        _chart(x={"expression": INDEX}, index_expression=INDEX, index_level=100.0),
+    )
+
+    text = _laudo(client, study_id)
+    assert "não foi traçada porque um dos eixos já é um índice" in text
+    assert "<polyline" not in text
+
+
+def test_the_stage_table_names_the_fourth_kind(client) -> None:
+    """Without the entry the column would print the raw ``chart``."""
+    study_id = _study_with(client, _chart(label="Leve e rígido"))
+
+    text = _laudo(client, study_id)
+    assert "Gráfico" in text
+    assert "Leve e rígido" in text
+
+
 # --- the process universe ----------------------------------------------------
 
 
@@ -571,6 +702,32 @@ def test_a_discrete_attribute_cannot_be_an_axis(client, process_universe) -> Non
 
     assert resp.status_code == 400, resp.text
     assert "Forma de gráfico" in resp.json()["detail"]
+
+
+def test_a_process_study_draws_no_map_for_its_plane_rather_than_the_wrong_one(
+    client, process_universe
+) -> None:
+    """There is no map of the process universe yet, and ``property_map`` reads
+    the *material* catalogue — so drawing one would mark whichever materials
+    happen to carry those ids. The stage still selects and the tables still say
+    what it asked; only the figure is missing (the P1 item P0-4 registered).
+    """
+    created = client.post(
+        "/api/selection/studies",
+        json={
+            "name": "Processos num plano",
+            "universe": "process",
+            "stages": [_process_chart(x={"property_slug": MASSA, "min_value": 1.0})],
+            "criteria": [],
+        },
+    )
+    assert created.status_code == 201, created.text
+
+    text = _laudo(client, created.json()["id"])
+    assert "Mapa de seleção" not in text
+    # The selection itself is intact and described.
+    assert "Gráfico" in text
+    assert "Injeção de gráfico" in text
 
 
 def test_an_axis_resolves_against_the_catalogue_of_its_own_universe(
