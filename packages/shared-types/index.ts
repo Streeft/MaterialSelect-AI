@@ -414,10 +414,47 @@ export interface ConstraintGroupIn {
 
 /**
  * A stage's kind: a constraint tree, a folder selection over the material
- * taxonomy, or (P0-2) a selection over the process universe — the join's other
- * direction.
+ * taxonomy, (P0-2) a selection over the process universe — the join's other
+ * direction — or (P1-2) a region of one plane.
  */
-export type StageKind = "limit" | "tree" | "process" | "material";
+export type StageKind = "limit" | "tree" | "process" | "material" | "chart";
+
+/**
+ * One axis of a chart stage (P1-2) — mirrors the backend's `ChartAxisIn`.
+ *
+ * Exactly one of `property_slug` and `expression`: the two are different
+ * namespaces that happen to overlap (`densidade` is a valid expression as well
+ * as a slug), so which one was meant cannot be inferred from the string. The
+ * backend refuses both and neither.
+ *
+ * `min_value`/`max_value` are in **data coordinates and canonical units** — the
+ * numbers read off an axis the chart already draws that way. There is no unit
+ * field, unlike a constraint's threshold, which the reader types in a unit of
+ * their choosing. Either may be null: a box open on one side is a real thing to
+ * draw, and null is "no bound" where `0` would be one.
+ */
+export interface ChartAxisIn {
+  property_slug?: string | null;
+  expression?: string | null;
+  min_value?: number | null;
+  max_value?: number | null;
+}
+
+/**
+ * The plane a chart stage selects on (P1-2) — mirrors `ChartStageIn`.
+ *
+ * The box and the index line may each be absent; a stage with neither still
+ * selects, and means "must be plottable here". `index_expression` and
+ * `index_level` come as a pair — a level with no index has nothing to be a
+ * level of, and an index with no level is a line with no position.
+ */
+export interface ChartStageIn {
+  x: ChartAxisIn;
+  y: ChartAxisIn;
+  index_expression?: string | null;
+  index_goal?: Goal;
+  index_level?: number | null;
+}
 
 /**
  * One stage of the selection pipeline (P0-1) — mirrors the backend's `StageIn`
@@ -444,6 +481,8 @@ export interface StageIn {
   // kind === "material" (P0-3): folders of the material taxonomy, in a process
   // study. Folders only — a Material has no slug to name a leaf by.
   material_class_slugs?: string[];
+  // kind === "chart" (P1-2): the plane, the box and the line.
+  chart?: ChartStageIn | null;
   /** Shared by every folder-selecting stage: a folder means what is under it. */
   include_descendants?: boolean;
 }
@@ -459,6 +498,7 @@ export interface StageOut {
   process_slugs: string[];
   process_class_slugs: string[];
   material_class_slugs: string[];
+  chart: ChartStageIn | null;
   include_descendants: boolean;
 }
 
