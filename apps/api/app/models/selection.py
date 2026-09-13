@@ -13,6 +13,7 @@ from datetime import UTC, datetime
 from sqlalchemy import (
     JSON,
     Boolean,
+    CheckConstraint,
     DateTime,
     Float,
     ForeignKey,
@@ -131,6 +132,11 @@ class SelectionStage(Base):
       selected folders, named in ``material_class_slugs``. Folders only: a
       ``Material`` has no slug to name a leaf by, and the manual's own exercise
       selects a folder ("Polymers > Thermoplastic").
+    * ``"chart"`` — a region of one plane (P1-2): the box the reader drew, and/or
+      the iso-index line they slid until it isolated the candidates. The third
+      stage type of the method, and the only one that can constrain a **derived**
+      quantity — a limit stage names property slugs, so it cannot bound
+      ``E^(1/2)/ρ`` at all.
 
     Which kinds a stage may be is decided by the study's ``universe``: a
     material study takes ``limit``/``tree``/``process``, a process study takes
@@ -150,13 +156,26 @@ class SelectionStage(Base):
     """
 
     __tablename__ = "selection_stage"
+    __table_args__ = (
+        # An axis is one thing or the other, never both and never neither — a
+        # chart stage whose axis names a slug *and* an expression is a stage the
+        # engine cannot read, because it would not know what the coordinate is.
+        # Only for a chart stage: the other four kinds leave these NULL, and a
+        # stray value there is refused by the service and read by nothing.
+        CheckConstraint(
+            "kind <> 'chart' OR ("
+            "((chart_x_slug IS NULL) <> (chart_x_expression IS NULL))"
+            " AND ((chart_y_slug IS NULL) <> (chart_y_expression IS NULL)))",
+            name="ck_selection_stage_chart_axes",
+        ),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     study_id: Mapped[int] = mapped_column(
         ForeignKey("selection_study.id", ondelete="CASCADE"), nullable=False, index=True
     )
     position: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    # limit | tree | process | material
+    # limit | tree | process | material | chart
     kind: Mapped[str] = mapped_column(String(10), nullable=False)
     # The user's own name for the stage. NULL means they did not name it, and
     # the interface says what the stage does instead — never a stored default
@@ -175,6 +194,43 @@ class SelectionStage(Base):
     # Material-stage payload (P0-3): folders of the material taxonomy, for a
     # process study. Folders only — see the class docstring.
     material_class_slugs: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
+
+    # --- Chart-stage payload (P1-2) --------------------------------------
+    #
+    # Every column here is nullable, and that is not the looseness it looks
+    # like: NULL means "no bound", and 0 is a bound. A box open on one side is a
+    # real thing to draw — "everything above 100 GPa" should not have to invent
+    # a ceiling — so an absent limit and a limit of zero have to stay
+    # distinguishable, which is the same rule principle 3 states for a property
+    # value.
+    #
+    # Each axis is *either* a catalogued property or an index expression, in two
+    # columns rather than one, because a slug and an expression are different
+    # namespaces that happen to overlap: `densidade` is a valid expression too.
+    # Same shape `PropertyMapRequest` uses for `x` / `x_index`, and the check
+    # constraint below makes the database agree.
+    chart_x_slug: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    chart_x_expression: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    chart_y_slug: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    chart_y_expression: Mapped[str | None] = mapped_column(String(500), nullable=True)
+
+    #: The drawn box, in **data coordinates** — never pixels (ADR 0004). A stage
+    #: stored in screen space would mean something different the next time the
+    #: window is a different size.
+    chart_x_min: Mapped[float | None] = mapped_column(Float, nullable=True)
+    chart_x_max: Mapped[float | None] = mapped_column(Float, nullable=True)
+    chart_y_min: Mapped[float | None] = mapped_column(Float, nullable=True)
+    chart_y_max: Mapped[float | None] = mapped_column(Float, nullable=True)
+
+    #: The iso-index line: which index, which way is better, and where the line
+    #: sits. The level is stored as a **number**, not as "the line through
+    #: material 7": sliding the line until it passes through a record is how a
+    #: reader *finds* the level, but storing the record would move the line
+    #: whenever that record's data changed, and a saved study has to re-run to
+    #: the same answer.
+    chart_index_expression: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    chart_index_goal: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    chart_index_level: Mapped[float | None] = mapped_column(Float, nullable=True)
     # Shared by the tree and process stages: in both, picking a folder means
     # picking what is under it.
     include_descendants: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
