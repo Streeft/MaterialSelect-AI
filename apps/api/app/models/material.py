@@ -37,6 +37,25 @@ class Material(Base):
 
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     is_demo: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    # P1-4: who this record belongs to. NULL is the shared reference catalogue
+    # — every row that existed before My Records, and every row the importer
+    # and the seed still create. Set means one person's own record, readable
+    # and writable only by them.
+    #
+    # A column and not a parallel `UserMaterial` table: the selection engine,
+    # the chart repository, the dashboard and the exporters all ask a material
+    # the same questions regardless of who made it, and a second table would
+    # fork every one of those into two code paths answering "what is this
+    # material's modulus?" — the two-truths failure the project refuses
+    # elsewhere. D-57 split the process attributes off because they are a
+    # *different kind of thing*; ownership is the same thing with a different
+    # reader.
+    #
+    # The cascade is the honest one: a private record has no meaning without
+    # its owner.
+    owner_id: Mapped[int | None] = mapped_column(
+        ForeignKey("user.id", ondelete="CASCADE"), nullable=True, index=True
+    )
     # Set when the material was created by an import job, enabling logical
     # rollback of the whole import as a unit. NULL for manually created rows.
     import_job_id: Mapped[int | None] = mapped_column(
@@ -56,4 +75,16 @@ class Material(Base):
         secondary="material_process",
         back_populates="materials",
         order_by="Process.name",
+    )
+    # P1-4: the bookmarks pointing at this material. Cascade for the reason
+    # every owned collection here has one — SQLite runs without
+    # `PRAGMA foreign_keys=ON`, so `ondelete` alone would orphan the rows — and
+    # the path that actually hard-deletes a material is real, not theoretical:
+    # rolling back an import (`ImportRepository`) removes its rows outright,
+    # and someone may well have starred one of them first.
+    favorites: Mapped[list[Favorite]] = relationship(  # noqa: F821
+        cascade="all, delete-orphan",
+    )
+    recent_views: Mapped[list[RecentRecord]] = relationship(  # noqa: F821
+        cascade="all, delete-orphan",
     )
