@@ -41,6 +41,7 @@ from app.routers import (
     imports,
     knowledge,
     materials,
+    my_records,
     processes,
     properties,
     saved_charts,
@@ -200,6 +201,9 @@ app.include_router(
     exports.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
 )
 app.include_router(audit.router, prefix="/api", dependencies=[Depends(require_active_subscription)])
+app.include_router(
+    my_records.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
+)
 app.include_router(
     sources.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
 )

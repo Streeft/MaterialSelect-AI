@@ -86,7 +86,7 @@ class ProcessService:
             # admits nobody in a stage, so offering it in a folder would be a
             # link to something the rest of the tool refuses to use.
             processes=[
-                self._process_to_out(p, material_counts.get(p.id, 0))
+                self.process_to_out(p, material_counts.get(p.id, 0))
                 for p in self.repo.list_active_processes()
                 if p.class_id == cls.id
             ],
@@ -95,7 +95,7 @@ class ProcessService:
     def list_processes(self) -> list[ProcessOut]:
         counts = self.repo.material_counts_by_process()
         return [
-            self._process_to_out(p, counts.get(p.id, 0)) for p in self.repo.list_active_processes()
+            self.process_to_out(p, counts.get(p.id, 0)) for p in self.repo.list_active_processes()
         ]
 
     def list_attributes(self) -> list[ProcessAttributeOut]:
@@ -114,7 +114,7 @@ class ProcessService:
         if process is None:
             raise NotFoundError(f"Processo não encontrado: {slug}")
         counts = self.repo.material_counts_by_process()
-        base = self._process_to_out(process, counts.get(process.id, 0))
+        base = self.process_to_out(process, counts.get(process.id, 0))
         # Ordered by attribute name, so the sheet reads the same way twice — the
         # relationship's own order is whatever the database returned.
         values = sorted(process.attribute_values, key=lambda v: v.attribute.name)
@@ -168,7 +168,7 @@ class ProcessService:
     def processes_for_material(self, material_id: int) -> list[ProcessOut]:
         counts = self.repo.material_counts_by_process()
         return [
-            self._process_to_out(p, counts.get(p.id, 0))
+            self.process_to_out(p, counts.get(p.id, 0))
             for p in self.repo.processes_for_material(material_id)
         ]
 
@@ -184,7 +184,9 @@ class ProcessService:
         )
 
     @staticmethod
-    def _process_to_out(process: Process, material_count: int) -> ProcessOut:
+    def process_to_out(process: Process, material_count: int) -> ProcessOut:
+        """A process's API shape. Public since P1-4: the user's own space
+        renders a starred process as the same card the catalogue does."""
         return ProcessOut(
             id=process.id,
             name=process.name,
