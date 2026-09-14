@@ -88,10 +88,10 @@ configurações de mapa; `SelectionStage` saiu com P0-1; `Process`,
 `ProcessAttributeDefinition` e `ProcessAttributeValue` saíram com P0-4.)
 
 **Nada de estrutural pendente no roteiro imediato.** Os quatro gargalos P0 do
-roteiro de plataforma estão entregues, mais o P1-1 (busca) e o P1-2 (Chart
-Stage), e o que resta em P1 é apresentação e navegação sobre modelos que já
-existem — a ficha do processo, a árvore navegável do catálogo e o espaço do
-usuário (`My Records`, que é o único P1 restante com modelo novo).
+roteiro de plataforma estão entregues, mais o P1-1 (busca), o P1-2 (Chart Stage)
+e o P1-3 (browse). O que resta em P1 é o espaço do usuário (`My Records`) —
+o único item restante da faixa com modelo novo, e o que mexe na fronteira que o
+D-42 estabeleceu (catálogo compartilhado entre todo usuário autenticado).
 
 ---
 
@@ -166,6 +166,29 @@ Registrados para não voltarem por engano:
 - ~~**P1-1** — busca era `LIKE`~~ — analisador próprio com AND/OR/NOT, frase,
   parênteses e curinga ([D-55](DECISIONS.md)). Falta relevância, *fuzzy* e
   destaque do trecho, registrados como melhoria e não como bloqueio.
+- ~~**P1-3** — não havia porta de entrada para navegar~~ — uma pasta da taxonomia
+  virou **registro** e o segundo universo passou a se navegar
+  ([D-61](DECISIONS.md)). `applications` e `characteristics` em `MaterialClass` e
+  `ProcessClass` (texto editorial, **fora do princípio 1 por construção**, preso
+  pela regra oposta: NULL é "ninguém escreveu" e a tela escreve isso — D-24);
+  `GET /api/classes/{slug}` e `GET /api/processes/classes/{slug}` devolvendo
+  prosa, trilha e subpastas, com o breadcrumb saindo de
+  `app.domain.taxonomy.lineages` — a mesma travessia do Tree Stage, então trilha
+  e estágio não podem discordar sobre quem está sob quem. Cinco rotas novas,
+  entre elas a **ficha do processo**, que a API devolvia desde o P0-4 sem ninguém
+  renderizar. Migração aditiva `a7d51c93e084`, sem backfill.
+
+  **Uma decisão anterior foi revertida:** `process_count` passou a contar só
+  processos ativos. Raciocínio inteiro no D-61 — o resumo é que o docstring do
+  repositório sempre disse que a contagem responde "esta pasta está vazia", que o
+  operador servido pela razão antiga não tem tela, e que o registro de família põe
+  a contagem ao lado da lista, onde "2 processos" seguido de um lê como página que
+  perdeu uma linha.
+
+  **O que ficou de fora, e é melhoria e não bloqueio:** favoritos e recentes (que
+  são `My Records`), *Science Notes* e imagem de família, e o catálogo de
+  processos **editável** — registrado desde o P0-2, porque pede a trilha de
+  auditoria que o catálogo de materiais tem.
 - ~~**P1-2** — o gráfico mostrava e não selecionava~~ — quarto tipo de estágio,
   `chart`, entregue em seis passos ([D-60](DECISIONS.md),
   [07-selecao-deterministica.md](07-selecao-deterministica.md)). Carrega o plano,
