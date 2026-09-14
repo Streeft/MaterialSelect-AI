@@ -473,7 +473,25 @@ mas não passou pela revisão de fonte e licença do M1. O canário
 varredura no dia em que nasce — **e não pega omissão por construção**, o que
 custou um defeito real registrado no D-62.
 
-1297 testes de backend (nenhum skip) e 286 de frontend, todos verdes. CI no
+**O P2 deu o fim do fluxo do manual** ([D-63](docs/DECISIONS.md)):
+`Datasheet → Find Similar → Comparison Table`. Duas perguntas carregam o item, e
+nenhuma é de implementação. **Em que espaço se mede distância entre materiais:**
+log onde `allows_log_scale` permite — a mesma bandeira que os gráficos leem,
+para figura e semelhança não discordarem —, escalada pela dispersão do conjunto
+e **promediada, não somada**, senão a base mais larga pareceria mais distante
+por ter respondido mais. A queda para linear é **da propriedade no run, nunca de
+um registro**. **E quando um percentual significa algo:** só em escala de razão,
+decidido por `units.is_ratio_scale` **comportamentalmente** (dobrar a magnitude
+dobra a grandeza) e não por tabela privada do Pint — 20 °C não é o dobro de
+10 °C. A **base é tudo ou nada** e volta na resposta, com os excluídos nomeados:
+lista ranqueada sem a base que a produziu é veredito, não resultado. A
+**referência é parâmetro da pergunta** e vive na URL (B1), nunca no servidor —
+senão a mesma URL desenharia duas tabelas. As **cinco maneiras de não haver
+percentual** têm cada uma sua frase (D-24), e a ordem entre "a linha não tem" e
+"a referência não tem" está fixada por teste: a culpa é da referência, porque
+consertá-la conserta a coluna.
+
+1341 testes de backend (nenhum skip) e 299 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
 PROJECT_CONTEXT.md).

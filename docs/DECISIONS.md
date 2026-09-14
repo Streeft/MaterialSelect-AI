@@ -3003,3 +3003,88 @@ escreve); `aria-pressed` no hospedeiro do `md-icon-button` e o
 `aria-label-selected` que o próprio MWC oferece (o primeiro fica num elemento que
 leitor de tela não lê; o segundo não é nome de atributo ARIA válido e reprova
 `aria-valid-attr`).
+
+---
+
+## D-63 — "Semelhante" é uma pergunta com base declarada, e um percentual só existe onde há zero verdadeiro
+
+**Contexto.** O fluxo canônico dos manuais termina em
+`Datasheet → Find Similar → Comparison Table`, e as três capacidades estavam em
+**0, 0 e 2** na matriz do §5 de
+[`14-plataforma-selecao.md`](14-plataforma-selecao.md). Com o `My Records`
+entregue (P1-4, [D-62](DECISIONS.md)), a dependência que as bloqueava saiu.
+
+Duas perguntas carregam o item, e nenhuma delas é de implementação: *em que
+espaço se mede a distância entre dois materiais*, e *quando uma diferença
+percentual quer dizer alguma coisa*.
+
+**Decisão.**
+
+- **A base é tudo ou nada, e vai na resposta.** Quem pergunta "o que se parece
+  com isto, nestes cinco aspectos" não pode receber na mesma lista um registro
+  que não tem um dos cinco: seria comparar duas perguntas e apresentar as
+  respostas juntas. Candidato sem uma propriedade da base sai em `excluded` com
+  os slugs que lhe faltam — o mesmo contrato do `ranking.py`, de propósito. E a
+  base volta **na resposta**, porque uma lista ranqueada sem as propriedades que
+  a produziram é um veredito, não um resultado.
+
+- **`property_slugs` não tem padrão no servidor.** Assumir "toda propriedade que
+  a referência por acaso tem" deixaria o hábito de cadastro escolher a pergunta,
+  e o leitor nunca veria que ela foi escolhida por ele. A interface **propõe**
+  uma base, com as marcas visíveis; a requisição **declara** uma.
+
+- **A distância é medida em espaço log onde a propriedade permite.** Propriedade
+  de material varre ordens de grandeza, e em eixo linear a de faixa mais larga
+  decide toda comparação sozinha — a mesma razão pela qual um mapa de Ashby é
+  log-log. A permissão vem de `allows_log_scale`, **a mesma bandeira que os
+  gráficos leem**, para figura e semelhança não discordarem sobre em que espaço
+  a propriedade vive. Valor não positivo não tem logaritmo, e a queda para linear
+  é **da propriedade no run, nunca de um registro**: dois registros em eixos
+  diferentes não estão em eixo nenhum.
+
+- **Escala pela dispersão do conjunto, e média — não soma.** Dividir por
+  `max - min` torna a coordenada adimensional; a média dos quadrados mantém uma
+  distância sobre três propriedades no mesmo pé de uma sobre seis, enquanto a
+  soma faria a base mais larga parecer mais distante por ter respondido mais.
+  Propriedade em que ninguém difere contribui zero e é **nomeada**, porque
+  descartá-la calada deixaria a base documentada maior que a que rodou.
+
+- **A distância só se compara dentro de uma resposta**, e a tela diz isso antes
+  do primeiro resultado: a escala vem da dispersão daquele conjunto, então 0,4
+  aqui e 0,4 noutra execução não são a mesma afirmação.
+
+- **A referência é parâmetro da pergunta, nunca estado no servidor.** "Comparado
+  contra o X" é coisa que um leitor pergunta, não fato sobre o catálogo: viaja na
+  requisição e na URL (B1). Referência guardada no servidor faria a mesma URL
+  desenhar duas tabelas diferentes para duas pessoas. E tem de ser **um dos
+  materiais comparados** — medir as linhas contra algo que o leitor não enxerga
+  tornaria todo percentual inconferível.
+
+- **O percentual só existe em escala de razão.** 600 K é mesmo o dobro de 200 K;
+  20 °C não é o dobro de 10 °C, e "+100%" ali seria falso com toda a autoridade
+  de um número calculado. `units.is_ratio_scale` decide por **comportamento** —
+  dobrar a magnitude dobra a grandeza em unidade base *é* a definição —, e não
+  por introspecção de tabela privada do Pint, que mudaria sem aviso. Nenhuma
+  unidade canônica do catálogo tropeça nisso hoje; `canonical_unit` é
+  configurável pelo operador, e é para amanhã que a guarda existe.
+
+- **Cinco maneiras de não haver percentual, cada uma com sua frase.**
+  `sem_referencia`, `valor_ausente`, `referencia_ausente`, `referencia_zero` e
+  `escala_sem_zero` são todas idênticas como célula em branco e nenhuma quer
+  dizer o mesmo (D-24). A **ordem** entre as duas do meio é escolha e está fixada
+  por teste: faltando os dois lados, a culpa é da referência, porque consertá-la
+  conserta a coluna enquanto consertar a linha conserta uma célula.
+
+**Consequências.** `Find Similar` sai de 0 para 4, `Registro de referência` de 0
+para 3 e `Tabela de comparação` de 2 para 4. O registro de referência **não** é
+entidade nova: é o parâmetro, e essa é a razão de a capacidade ficar em 3 e não
+em 4 — falta poder fixá-lo como estado de um projeto, que é o que o EduPack
+chama de *reference record* propriamente dito.
+
+**Alternativas rejeitadas.** Comparar o candidato pelo que ele tem (mistura duas
+perguntas numa lista); somar as contribuições em vez de promediar (penaliza a
+base mais larga por responder mais); decidir log por registro (dois eixos, uma
+distância sem sentido); base padrão no servidor (o catálogo escolhe a pergunta);
+referência como linha de banco (a mesma URL deixaria de ser a mesma tabela);
+percentual sempre que houver dois números (afirma falsidade em escala com
+offset); `—` na célula sem percentual (quatro razões distintas viram um traço).

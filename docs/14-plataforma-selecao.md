@@ -64,9 +64,9 @@ Níveis: **0** não existe · **1** rudimentar · **2** existe, precisa melhorar
 | Ranking | **4** | Soma ponderada, TOPSIS, PROMETHEE II, AHP (M5), com normalização declarada. |
 | Índice de desempenho | **3** | Catálogo de índices + expressão livre, com avaliador seguro e dimensão verificada. |
 | Performance Index Finder | **0** | Não existe o fluxo função→restrição→objetivo→índice. |
-| Find Similar / Nearness | **0** | Não existe. |
-| Registro de referência | **0** | Não existe o conceito. |
-| Tabela de comparação | **2** | `ChartService.compare` compara propriedades; sem referência, sem diferença percentual, sem "definir como referência". |
+| Find Similar / Nearness | **4** | **Entregue (P2, [D-63](DECISIONS.md))**: distância em espaço log onde a propriedade permite, escalada pela dispersão do conjunto e promediada, com a **base declarada na resposta** e os registros que não puderam ser medidos nomeados com o que lhes falta. Falta similaridade no universo de processos. |
+| Registro de referência | **3** | **Entregue (P2)**: a referência é parâmetro da pergunta e vive na URL, nunca no servidor. Falta fixá-la como estado de um projeto — o *reference record* propriamente dito — e destacá-la nas figuras. |
+| Tabela de comparação | **4** | **Entregue (P2)**: referência, "definir como referência" e diferença percentual por propriedade — calculada só onde a unidade tem zero verdadeiro, e com cada uma das cinco ausências escrita por extenso (D-24). |
 | Engineering Solver | **0** | Não existe. |
 | Projetos e notas | **3** | `Project` isola estudos por usuário, e um estágio tem rótulo próprio (P0-1). Falta nota livre por projeto. |
 | Geração de relatório | **4** | Relatório de seleção, laudo, CSV/XLSX/HTML, com mapa, ranking e oito seções de auditoria. Falta PDF e DOCX. |
@@ -79,12 +79,12 @@ Níveis: **0** não existe · **1** rudimentar · **2** existe, precisa melhorar
 | Unidades de exibição | **2** | Canônica correta; o usuário não escolhe a unidade de leitura (B11). |
 | Explicabilidade | **3** | Funil por restrição e por estágio (`in_chart` inclusive) e proveniência por número; falta o *porquê* por registro reprovado. |
 | Camada de IA | **4** | Interpretação e explicação com guardrails, ancoragem numérica e citação verificada. |
-| Testes | **5** | 1297 backend, 286 frontend, E2E e Lighthouse na CI — e desde o P0-1 a migração é exercitada de verdade, nos dois sentidos, contra um banco que já contém dados, conferida por mutação. |
+| Testes | **5** | 1341 backend, 299 frontend, E2E e Lighthouse na CI — e desde o P0-1 a migração é exercitada de verdade, nos dois sentidos, contra um banco que já contém dados, conferida por mutação. |
 | Desempenho | **3** | Índices, threadpool, Plotly fatiado. Não preparado para centenas de milhares de registros. |
 
-**Cobertura de capacidades inspiradas no EduPack: ~66%** — contado como
-capacidades em nível ≥ 3 sobre as **32** avaliadas (21 de 32). **Nível médio:
-2,56.**
+**Cobertura de capacidades inspiradas no EduPack: ~75%** — contado como
+capacidades em nível ≥ 3 sobre as **32** avaliadas (24 de 32). **Nível médio:
+2,84.**
 
 **O denominador estava errado até o P0-4.** As versões anteriores deste parágrafo
 diziam "30 avaliadas" e publicavam ~57%; a tabela acima sempre teve 32 linhas.
@@ -130,6 +130,23 @@ pouco e o trabalho por baixo dele foi o maior da faixa.
 `My Records` fica em **3** e não em 4 por duas ausências nomeadas: os registros
 **sintetizados**, que são o Synthesizer (P3), e um registro próprio de *processo*,
 que pede o catálogo de processos editável — item aberto desde o P0-2.
+
+O **P2** move **três linhas de uma vez** — Find Similar 0→4, Registro de
+referência 0→3 e Tabela de comparação 2→4 —, e leva a cobertura de ~66% para
+**~75%**, com o nível médio em **2,84**. É o maior salto de percentual do
+roteiro inteiro, e a leitura honesta tem duas metades.
+
+A primeira: as três capacidades estavam entre as mais atrasadas da tabela, duas
+delas em zero, e **fecham juntas porque são um fluxo só** — o manual vai de
+`Datasheet` a `Find Similar` e daí à `Comparison Table` —, então o trabalho que
+destrava uma destrava as três. A segunda, e é o que o número não mostra: quase
+nada disto é apresentação sobre modelo pronto. A distância entre dois materiais
+não existia em lugar nenhum do sistema, e decidir **em que espaço** medi-la é
+escolha de método, não de implementação (D-63).
+
+`Registro de referência` fica em **3** e não em 4 por uma ausência nomeada: a
+referência é parâmetro da pergunta, e falta poder fixá-la como estado de um
+projeto — o *reference record* propriamente dito — e destacá-la nas figuras.
 
 O que o P0-4 fez, antes dele: fechou o exercício 11 do manual por inteiro — passo
 1 (universo de saída, P0-3), passo 2 (Limit Stage sobre atributo do processo) e
@@ -322,8 +339,8 @@ correção, portão completo, decisão registrada.
 | ~~P1~~ | ~~Chart Stage que **filtra** (caixa de seleção e linha de índice reprovando)~~ **entregue** | H, I | P0-1 |
 | ~~P1~~ | ~~`My Records`: definidos pelo usuário, favoritos, recentes~~ **entregue** | T, U | — |
 | ~~P1~~ | ~~Browse: árvore navegável, breadcrumb, registro de família, **ficha do processo**~~ **entregue** | B, D | P0-2 |
-| **P2** | Find Similar + Nearness + registro de referência | K, L | P1 My Records |
-| **P2** | Tabela de comparação com referência e diferença percentual | M | P2 referência |
+| ~~P2~~ | ~~Find Similar + Nearness + registro de referência~~ **entregue** | K, L | P1 My Records |
+| ~~P2~~ | ~~Tabela de comparação com referência e diferença percentual~~ **entregue** | M | P2 referência |
 | **P2** | Engineering Solver (viga em flexão, tração, compressão) | N | P0-1 |
 | **P2** | Performance Index Finder | J | P2 Solver |
 | **P3** | Eco Audit (material, manufatura, transporte, uso, fim de vida) | O | A ampliado |
@@ -332,7 +349,7 @@ correção, portão completo, decisão registrada.
 | **P4** | Battery Designer | S | P3 Synthesizer |
 | **P4** | PDF e DOCX no gerador de relatório | V | — |
 
-**Ordem de execução:** ~~P0-1~~ → ~~P0-2~~ → ~~P0-3~~ → ~~P0-4~~ → ~~P1-1~~ → ~~P1-2~~ → ~~P1-3 (browse)~~ → ~~P1-4 (`My Records`)~~ → **P2** → P3 → P4. **A faixa P1 está fechada.**
+**Ordem de execução:** ~~P0-1~~ → ~~P0-2~~ → ~~P0-3~~ → ~~P0-4~~ → ~~P1-1~~ → ~~P1-2~~ → ~~P1-3 (browse)~~ → ~~P1-4 (`My Records`)~~ → ~~P2 (Find Similar, referência, comparação)~~ → **P2 restante** (Engineering Solver, Performance Index Finder) → P3 → P4.
 
 ### O que isto não é
 
