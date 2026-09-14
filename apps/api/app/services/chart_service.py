@@ -95,8 +95,13 @@ AxisGetter = Callable[[Material, dict[str, MaterialPropertyValue]], _AxisSample]
 class ChartService:
     """Builds property maps and comparison matrices."""
 
-    def __init__(self, db) -> None:
-        self.repo = ChartRepository(db)
+    def __init__(self, db, viewer_id: int | None = None) -> None:
+        # Who is looking. A figure shows this reader's own records alongside the
+        # shared catalogue and nobody else's (P1-4); `None` is the shared
+        # catalogue alone, which is the safe direction for a caller that never
+        # said.
+        self.viewer_id = viewer_id
+        self.repo = ChartRepository(db, viewer_id)
 
     # --- property map -----------------------------------------------------
 

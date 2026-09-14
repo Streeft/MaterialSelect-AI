@@ -14,6 +14,7 @@ from app.models.material_keyword import MaterialKeyword
 from app.models.material_property_value import MaterialPropertyValue
 from app.models.property_definition import PropertyDefinition
 from app.models.source import Source
+from app.repositories.visibility import visible_materials
 
 
 def _matches(term: Term):
@@ -49,10 +50,19 @@ def _compile(node: Node):
 
 
 class MaterialRepository:
-    """Encapsulates all material-related database queries."""
+    """Encapsulates all material-related database queries.
 
-    def __init__(self, db: Session) -> None:
+    ``viewer_id`` is who is reading, and every statement that selects materials
+    narrows to what that reader may see (P1-4). It is a constructor argument
+    rather than a parameter on eight methods so that a call site cannot pass it
+    to some of them and not the others; it defaults to ``None``, which means the
+    shared catalogue and nothing else — the safe direction for a construction
+    site that was never updated.
+    """
+
+    def __init__(self, db: Session, viewer_id: int | None = None) -> None:
         self.db = db
+        self.viewer_id = viewer_id
 
     def list_materials(self, search: str | None = None) -> list[Material]:
         """Return active materials, optionally filtered by a search term.
@@ -72,6 +82,7 @@ class MaterialRepository:
                 selectinload(Material.property_values),
             )
             .where(Material.is_active.is_(True))
+            .where(visible_materials(self.viewer_id))
             .order_by(Material.name)
         )
 
@@ -99,6 +110,7 @@ class MaterialRepository:
                 joinedload(Material.property_values).joinedload(MaterialPropertyValue.source),
             )
             .where(Material.id == material_id)
+            .where(visible_materials(self.viewer_id))
             .execution_options(populate_existing=True)
         )
         return self.db.execute(stmt).scalars().unique().one_or_none()
@@ -123,6 +135,7 @@ class MaterialRepository:
             .where(PropertyDefinition.slug == slug)
             .where(MaterialPropertyValue.is_missing.is_(False))
             .where(Material.is_active.is_(True))
+            .where(visible_materials(self.viewer_id))
         )
         return list(self.db.execute(stmt).scalars().unique().all())
 
@@ -144,8 +157,21 @@ class MaterialRepository:
         return self.db.get(MaterialClass, class_id)
 
     def name_exists(self, name: str, exclude_id: int | None = None) -> bool:
-        """Return True if another material already uses ``name`` (case-insensitive)."""
-        stmt = select(Material.id).where(func.lower(Material.name) == name.strip().lower())
+        """True if a material **this reader can see** already uses ``name``.
+
+        Scoped to the visible set rather than to the whole table, and that is
+        the better answer on both counts it trades between (P1-4). A global
+        check would refuse a name because of a record the person cannot see —
+        an error message that reveals a hidden record exists. Scoping it keeps
+        names unique inside every view that is ever rendered, which is all the
+        readability of a chart or a report actually requires: no single view
+        mixes two readers' records.
+        """
+        stmt = (
+            select(Material.id)
+            .where(func.lower(Material.name) == name.strip().lower())
+            .where(visible_materials(self.viewer_id))
+        )
         if exclude_id is not None:
             stmt = stmt.where(Material.id != exclude_id)
         return self.db.execute(stmt).first() is not None

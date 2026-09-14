@@ -45,10 +45,11 @@ _MISSING = "ausente"
 class ExportService:
     """Builds reports for saved studies and for the catalogue."""
 
-    def __init__(self, db) -> None:
+    def __init__(self, db, viewer_id: int | None = None) -> None:
         self.db = db
-        self.selection_repo = SelectionRepository(db)
-        self.chart_repo = ChartRepository(db)
+        self.viewer_id = viewer_id
+        self.selection_repo = SelectionRepository(db, viewer_id)
+        self.chart_repo = ChartRepository(db, viewer_id)
 
     # --- selection study --------------------------------------------------
 
@@ -228,7 +229,7 @@ class ExportService:
             )
 
         try:
-            chart = ChartService(self.db).property_map(request)
+            chart = ChartService(self.db, self.viewer_id).property_map(request)
         except ValidationError:
             # A property that cannot carry a map (no plottable values, log
             # scale refused) is a reason to omit the figure, never to fail the
@@ -499,7 +500,7 @@ class ExportService:
         under one percent of the wait, which is the case that matters.
         """
         try:
-            explanation = AIService(self.db).explain(study_id, project_id)
+            explanation = AIService(self.db, viewer_id=self.viewer_id).explain(study_id, project_id)
         except (ValidationError, AIUnavailableError) as exc:
             return None, None, f"Interpretação por IA não disponível: {exc}"
 
