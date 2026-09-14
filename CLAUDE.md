@@ -333,7 +333,7 @@ outros dois métodos; o laudo descrevia um estudo aninhado como um combinador
 único opaco. Os quatro corrigidos numa rodada só, rerrevisão limpa. Ver
 `docs/PROJECT_CONTEXT.md` §3 e `docs/07-selecao-deterministica.md`.
 
-**Os quatro gargalos P0, o P1-1 e o P1-2 da plataforma de seleção entregues.** Depois de
+**Os quatro gargalos P0, o P1-1, o P1-2 e o P1-3 da plataforma de seleção entregues.** Depois de
 comparar a ferramenta com o modelo funcional dos manuais do Granta EduPack —
 matriz de maturidade e roteiro em `docs/14-plataforma-selecao.md` —, P0-1 a P0-4
 saíram, e com o P0-4 o **exercício 11 do manual fecha por inteiro**. **A seleção deixou de ser de estágio único**
@@ -430,7 +430,27 @@ que a decisão foi desenhada** — geometria ainda vinda de
 gráfico, mas o plano dele não é desenhado: não existe mapa do universo de
 processos ainda.
 
-1209 testes de backend (nenhum skip) e 253 de frontend, todos verdes. CI no
+**O P1-3 fez a taxonomia virar registro e o segundo universo se navegar**
+([D-61](docs/DECISIONS.md)). Uma pasta era rótulo; agora carrega `applications` e
+`characteristics` — texto editorial, **fora do princípio 1 por construção**,
+porque aquele princípio governa valor de propriedade e uma frase sobre uma
+família não é um. O que as segura é a regra oposta: **NULL quer dizer "ninguém
+escreveu"**, estado diferente de string vazia, e a tela desenha isso com rótulo
+escrito (D-24) — painel em branco leria como "esta família não tem aplicações". O
+**breadcrumb sai de `app.domain.taxonomy.lineages`**, a mesma travessia do Tree
+Stage, então trilha e estágio não discordam sobre quem está sob quem,
+e exclui a própria pasta. **`descendant_*_count` é o que torna a árvore
+navegável:** a contagem direta é 0 num galho puro por desenho, e sem o total da
+subárvore ninguém distingue "pasta vazia" de "pasta cujo conteúdo está um nível
+abaixo". A ficha da família mostra o que está nela **e abaixo dela**. Navegar e
+filtrar convivem porque são perguntas diferentes — o seletor estreita a lista, o
+cartão de família sai para a página dela. A **ficha do processo** saiu junto:
+`GET /api/processes/{slug}` devolvia tudo desde o P0-4 e nada renderizava, e o
+**tipo do valor** aparece ao lado de cada atributo porque envelope é comparado
+por alcance e escalar pelo próprio valor (D-59). `process_count` passou a contar
+só ativos, revertendo decisão anterior — raciocínio no D-61.
+
+1234 testes de backend (nenhum skip) e 277 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
 PROJECT_CONTEXT.md).

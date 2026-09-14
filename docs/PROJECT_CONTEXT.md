@@ -237,7 +237,7 @@ tudo limpo, sem achado novo. Commit `73eb4a2` sobre `0d00ee7`. Ver
 `docs/07-selecao-deterministica.md` para a descrição de cada método e do
 modelo de árvore.
 
-**Plataforma de seleção — os quatro gargalos P0, o P1-1 e o P1-2 entregues.** Depois de
+**Plataforma de seleção — os quatro gargalos P0, o P1-1, o P1-2 e o P1-3 entregues.** Depois de
 comparar a ferramenta com o modelo funcional dos manuais do Granta EduPack
 ([14-plataforma-selecao.md](14-plataforma-selecao.md): matriz de maturidade
 sobre 32 capacidades e roteiro P0–P4), P0-1 a P0-4 saíram. **A
@@ -290,21 +290,36 @@ desenhada**, com a região como figura — e um estudo de processos pode ter um
 estágio de gráfico, mas o plano dele não é desenhado, porque não existe mapa do
 universo de processos ainda.
 
-A cobertura de capacidades inspiradas no EduPack subiu de ~31% para **~56%**
-(18 de 32 em nível ≥ 3), e o **denominador estava errado até o P0-4**: o parágrafo
+**E a taxonomia virou registro, e o segundo universo passou a se navegar**
+([D-61](DECISIONS.md), P1-3). Uma pasta era rótulo — nome, slug e pai; agora
+carrega `applications` e `characteristics`, texto editorial que fica **fora do
+princípio 1 por construção** (aquele princípio governa valor de propriedade, e
+uma frase sobre uma família não é um), preso pela regra oposta: NULL quer dizer
+"ninguém escreveu" e a tela escreve isso (D-24). `GET /api/classes/{slug}` e
+`GET /api/processes/classes/{slug}` devolvem a pasta como registro — prosa,
+trilha e subpastas —, com o breadcrumb saindo de `app.domain.taxonomy.lineages`,
+a mesma travessia do Tree Stage. Cinco rotas novas: `/app/processos`, a **ficha
+do processo** (que a API devolvia desde o P0-4 sem ninguém renderizar), a família
+de processo, a família de material e a árvore no próprio catálogo. Navegar e
+filtrar convivem porque são perguntas diferentes. `process_count` passou a contar
+só ativos — reversão de uma decisão anterior, com o raciocínio no D-61.
+
+A cobertura de capacidades inspiradas no EduPack subiu de ~31% para **~62%**
+(20 de 32 em nível ≥ 3), e o **denominador estava errado até o P0-4**: o parágrafo
 anterior dizia "30 avaliadas" e publicava ~57%, mas a tabela sempre teve 32
 linhas. Por **três marcos seguidos** o percentual não se moveu, e isso disse mais
 sobre a métrica do que sobre a ferramenta: o P0-4 levantou duas capacidades
 (banco de processos 3→4, Limit Stage 3→4) que já estavam acima do corte. O
-documento passou a publicar também o **nível médio** — **2,25**, era 2,16 depois do
-P0-4 e 1,3 no começo —, onde crescimento dentro da faixa aparece. O P1-2 é o
-primeiro marco desde o P0-2 a mover o percentual, e move porque partiu do único
-nível **1** da tabela. O que resta em P1 é apresentação sobre modelos que já
-existem: a ficha do processo na tela, a árvore navegável do catálogo e o espaço do
-usuário (`My Records`).
+documento passou a publicar também o **nível médio** — **2,44**, era 2,25 depois
+do P1-2, 2,16 depois do P0-4 e 1,3 no começo —, onde crescimento dentro da faixa
+aparece. O P1-3 move duas linhas de uma vez (Browse 2→4, Registro de família
+0→3), e a leitura honesta é que o salto é grande porque caiu sobre as duas
+capacidades **mais atrasadas da tabela** — uma delas a única em zero — e quase
+tudo que precisou já existia no backend desde o P0-2 e o P0-4. O que resta em P1
+é o espaço do usuário (`My Records`).
 
-**Saúde do código:** 1209 testes de backend (Python 3.11 e 3.12, nenhum skip)
-e 253 de frontend, todos verdes. Desde o P0-1 a suíte também roda as migrações de
+**Saúde do código:** 1234 testes de backend (Python 3.11 e 3.12, nenhum skip)
+e 277 de frontend, todos verdes. Desde o P0-1 a suíte também roda as migrações de
 verdade, nos dois sentidos, contra um banco temporário que já contém dados —
 `test_migration_selection_stage.py`, `test_migration_process_universe.py`,
 `test_migration_selection_universe.py`, `test_migration_process_attributes.py` e
