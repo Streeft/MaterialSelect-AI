@@ -89,20 +89,28 @@ class MaterialService:
             materials = self.repo.list_materials(search)
         except SearchQueryError as exc:
             raise ValidationError(str(exc)) from exc
-        return [
-            MaterialListItem(
-                id=m.id,
-                name=m.name,
-                class_name=m.material_class.name,
-                class_slug=m.material_class.slug,
-                subclass=m.subclass,
-                is_demo=m.is_demo,
-                is_own_record=m.owner_id is not None,
-                keywords=list(m.keywords or []),
-                quality=_summarise_quality(m),
-            )
-            for m in materials
-        ]
+        return [self.list_item(m) for m in materials]
+
+    @staticmethod
+    def list_item(material: Material) -> MaterialListItem:
+        """One catalogue row's compact shape.
+
+        Public and shared rather than inlined in the listing, because the user's
+        own space (P1-4) renders starred materials as the same card — and two
+        builders would let the catalogue and the favourites list disagree about
+        what a material looks like.
+        """
+        return MaterialListItem(
+            id=material.id,
+            name=material.name,
+            class_name=material.material_class.name,
+            class_slug=material.material_class.slug,
+            subclass=material.subclass,
+            is_demo=material.is_demo,
+            is_own_record=material.owner_id is not None,
+            keywords=list(material.keywords or []),
+            quality=_summarise_quality(material),
+        )
 
     def get_material_detail(self, material_id: int) -> MaterialDetail:
         material = self.repo.get_material(material_id)
