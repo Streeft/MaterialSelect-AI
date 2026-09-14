@@ -45,6 +45,8 @@ import type {
   SavedChart,
   SavedChartIn,
   SavedChartListItem,
+  Similar,
+  SimilarRequest,
   StudyDetail,
   StudyIn,
   StudySummary,
@@ -522,4 +524,18 @@ export function removeFavorite(universe: Universe, recordId: number): Promise<My
  */
 export function touchRecent(universe: Universe, recordId: number): Promise<void> {
   return request<void>(`/api/my-records/recents/${universe}/${recordId}`, { method: "POST" });
+}
+
+/**
+ * Rank the catalogue by distance from one material (P2).
+ *
+ * A POST because the basis is a body, not an identity: "similar in these five
+ * respects" is a different question from "similar in these two", and a list of
+ * slugs in a query string would make the two share a cache entry.
+ */
+export function findSimilar(materialId: number, body: SimilarRequest): Promise<Similar> {
+  return request<Similar>(`/api/materials/${materialId}/similares`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
 }
