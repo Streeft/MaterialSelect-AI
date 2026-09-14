@@ -22,6 +22,7 @@ from app.models.material import Material
 from app.models.material_class import MaterialClass
 from app.models.material_property_value import MaterialPropertyValue
 from app.models.property_definition import PropertyDefinition
+from app.repositories.visibility import visible_materials
 
 # 1 for a row carrying a number, 0 for a row declaring absence — and the mirror
 # of it. Summing these is what lets one GROUP BY return both counts, instead of
@@ -31,10 +32,18 @@ DECLARED_MISSING = case((MaterialPropertyValue.is_missing.is_(True), 1), else_=0
 
 
 class DashboardRepository:
-    """Counts and distributions over the catalogue."""
+    """Counts and distributions over the catalogue.
 
-    def __init__(self, db: Session) -> None:
+    ``viewer_id`` narrows every count to the materials that reader may see
+    (P1-4). The panel describes *their* catalogue: the shared reference data
+    plus their own records, never anybody else's — a coverage percentage that
+    silently included a stranger's record would be unexplainable from any
+    screen they can open.
+    """
+
+    def __init__(self, db: Session, viewer_id: int | None = None) -> None:
         self.db = db
+        self.viewer_id = viewer_id
 
     # --- Totals -----------------------------------------------------------
 
@@ -43,7 +52,7 @@ class DashboardRepository:
         stmt = select(
             func.count(Material.id),
             func.coalesce(func.sum(case((Material.is_demo.is_(True), 1), else_=0)), 0),
-        ).where(Material.is_active.is_(True))
+        ).where(Material.is_active.is_(True), visible_materials(self.viewer_id))
         total, demo = self.db.execute(stmt).one()
         return int(total or 0), int(demo or 0)
 
@@ -66,7 +75,11 @@ class DashboardRepository:
             .select_from(MaterialClass)
             .outerjoin(
                 Material,
-                and_(Material.class_id == MaterialClass.id, Material.is_active.is_(True)),
+                and_(
+                    Material.class_id == MaterialClass.id,
+                    Material.is_active.is_(True),
+                    visible_materials(self.viewer_id),
+                ),
             )
             .group_by(MaterialClass.id, MaterialClass.slug, MaterialClass.name)
             .order_by(MaterialClass.name)
@@ -84,7 +97,7 @@ class DashboardRepository:
             .select_from(MaterialPropertyValue)
             .join(Material, MaterialPropertyValue.material_id == Material.id)
             .join(MaterialClass, Material.class_id == MaterialClass.id)
-            .where(Material.is_active.is_(True))
+            .where(Material.is_active.is_(True), visible_materials(self.viewer_id))
             .group_by(MaterialClass.slug)
         )
         return {
@@ -116,7 +129,7 @@ class DashboardRepository:
                 PropertyDefinition,
                 MaterialPropertyValue.property_id == PropertyDefinition.id,
             )
-            .where(Material.is_active.is_(True))
+            .where(Material.is_active.is_(True), visible_materials(self.viewer_id))
             .group_by(PropertyDefinition.slug)
         )
         return {
@@ -137,7 +150,11 @@ class DashboardRepository:
             select(MaterialPropertyValue.data_quality, func.count(MaterialPropertyValue.id))
             .select_from(MaterialPropertyValue)
             .join(Material, MaterialPropertyValue.material_id == Material.id)
-            .where(Material.is_active.is_(True), MaterialPropertyValue.is_missing.is_(False))
+            .where(
+                Material.is_active.is_(True),
+                visible_materials(self.viewer_id),
+                MaterialPropertyValue.is_missing.is_(False),
+            )
             .group_by(MaterialPropertyValue.data_quality)
         )
         return {quality: int(count or 0) for quality, count in self.db.execute(stmt).all()}
@@ -166,6 +183,7 @@ class DashboardRepository:
             )
             .where(
                 Material.is_active.is_(True),
+                visible_materials(self.viewer_id),
                 MaterialPropertyValue.is_missing.is_(False),
                 MaterialPropertyValue.normalized_value.is_not(None),
                 PropertyDefinition.slug == slug,

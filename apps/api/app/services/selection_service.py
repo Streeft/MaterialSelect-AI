@@ -152,7 +152,8 @@ class SelectionService:
     """
 
     def __init__(self, db, project_id: int, user: User | None = None) -> None:
-        self.repo = SelectionRepository(db)
+        self.viewer_id = user.id if user is not None else None
+        self.repo = SelectionRepository(db, self.viewer_id)
         self.audit_repo = AuditRepository(db)
         self.user = user
         self.project_id = project_id

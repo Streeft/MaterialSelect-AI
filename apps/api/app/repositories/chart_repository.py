@@ -16,13 +16,20 @@ from app.models.material import Material
 from app.models.material_class import MaterialClass
 from app.models.material_property_value import MaterialPropertyValue
 from app.models.property_definition import PropertyDefinition
+from app.repositories.visibility import visible_materials
 
 
 class ChartRepository:
-    """Queries backing the visualisation endpoints."""
+    """Queries backing the visualisation endpoints.
 
-    def __init__(self, db: Session) -> None:
+    ``viewer_id`` narrows every material query to what that reader may see
+    (P1-4), so a person's own records are plotted alongside the catalogue and
+    nobody else's are. Defaults to ``None``: the shared catalogue alone.
+    """
+
+    def __init__(self, db: Session, viewer_id: int | None = None) -> None:
         self.db = db
+        self.viewer_id = viewer_id
 
     def list_materials(
         self,
@@ -46,6 +53,7 @@ class ChartRepository:
                 joinedload(Material.property_values).joinedload(MaterialPropertyValue.source),
             )
             .where(Material.is_active.is_(True))
+            .where(visible_materials(self.viewer_id))
             .order_by(Material.name)
         )
         if material_ids is not None:

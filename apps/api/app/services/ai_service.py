@@ -59,11 +59,14 @@ from app.services.selection_service import SelectionService
 class AIService:
     """Builds the context, runs the provider, and enforces the limits."""
 
-    def __init__(self, db, settings: Settings = default_settings) -> None:
+    def __init__(
+        self, db, settings: Settings = default_settings, viewer_id: int | None = None
+    ) -> None:
         self.db = db
         self.settings = settings
-        self.repo = ChartRepository(db)
-        self.selection_repo = SelectionRepository(db)
+        self.viewer_id = viewer_id
+        self.repo = ChartRepository(db, viewer_id)
+        self.selection_repo = SelectionRepository(db, viewer_id)
 
     # --- status -----------------------------------------------------------
 

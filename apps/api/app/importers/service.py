@@ -78,6 +78,11 @@ class ImportService:
         self.db = db
         self.user = user
         self.repo = ImportRepository(db)
+        # Deliberately no viewer: an import writes into the **shared catalogue**
+        # (P1-4 leaves `owner_id` NULL there), so the duplicate-name check it
+        # runs has to be against the shared catalogue too. Handing it the
+        # importing user would let a name collide with that one person's private
+        # record and refuse a catalogue row nobody else can explain.
         self.materials = MaterialRepository(db)
         self.material_service = MaterialService(db)
 

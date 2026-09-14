@@ -71,7 +71,8 @@ class MaterialService:
     """Coordinates catalogue reads and shapes them into API responses."""
 
     def __init__(self, db: Session, user: User | None = None) -> None:
-        self.repo = MaterialRepository(db)
+        self.viewer_id = user.id if user is not None else None
+        self.repo = MaterialRepository(db, self.viewer_id)
         self.audit_repo = AuditRepository(db)
         # P0-2: read through the process service rather than reimplementing the
         # join here — the compatible-processes list on the sheet and the process
