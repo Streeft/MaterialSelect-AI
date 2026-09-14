@@ -616,6 +616,9 @@ export const ptBR = {
     filters: "Filtros",
     filterClass: "Classe",
     allClasses: "Todas",
+    // P1-4: navegar não é filtrar. O seletor estreita a lista desta tela; um
+    // cartão de família leva para a página daquela família.
+    browseHint: "Abra uma família para ver o registro dela, as subclasses e os materiais.",
     filterQuality: "Qualidade do dado",
     // Not "sem lacunas": the catalogue only knows about properties that were
     // recorded, so it can say a material has no gap *among the ones cadastradas*
