@@ -124,6 +124,14 @@ class Process(Base):
         back_populates="process",
         cascade="all, delete-orphan",
     )
+    # P1-4: the bookmarks pointing at this process, cascading for the same
+    # reason as the attribute values above.
+    favorites: Mapped[list[Favorite]] = relationship(  # noqa: F821
+        cascade="all, delete-orphan",
+    )
+    recent_views: Mapped[list[RecentRecord]] = relationship(  # noqa: F821
+        cascade="all, delete-orphan",
+    )
 
 
 class MaterialProcess(Base):
