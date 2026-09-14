@@ -22,6 +22,7 @@ import {
   Disclosure,
   EmptyState,
   ErrorState,
+  IconButton,
   Input,
   LoadingState,
   MissingValue,
@@ -48,7 +49,7 @@ import {
   Tr,
   type Provenance,
 } from "@/components/ui";
-import { IconDownload, IconGrid, IconPlus, IconTable, IconTrash } from "@/components/ui/icons";
+import { IconDownload, IconGrid, IconPlus, IconStar, IconTable, IconTrash } from "@/components/ui/icons";
 
 /**
  * Living documentation for the design system.
@@ -454,6 +455,37 @@ export default function StyleGuidePage() {
               teste de acessibilidade desta rota pega isso. Uma página real tem
               uma trilha só e fica com o nome padrão. */}
           <Breadcrumb items={[{ label: "Processos" }]} label="Trilha de exemplo, com um passo" />
+        </div>
+      </Section>
+
+      <Section title="Alternância de ícone" headingLevel={2}>
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center gap-3">
+            <IconButton
+              toggle
+              selected={false}
+              label="Favoritar"
+              icon={<IconStar />}
+              onClick={() => undefined}
+            />
+            <IconButton
+              toggle
+              selected
+              label="Desfavoritar"
+              className="text-accent"
+              icon={<IconStar filled />}
+              onClick={() => undefined}
+            />
+          </div>
+          <p className="max-w-prose text-sm text-ink-muted">
+            Duas coisas dizem o estado, e são precisas as duas: o nome acessível diz o que o
+            clique vai fazer, e o <code className="font-mono">aria-pressed</code> diz em que
+            estado se está — quem ouve não deveria ter de inferir isso da troca do verbo. O
+            atributo é desenhado pelo próprio <code className="font-mono">md-icon-button</code>,
+            no <em>botão de dentro</em> do shadow root; escrito aqui no hospedeiro ficaria num
+            elemento que leitor de tela nenhum lê. O contorno e a estrela cheia são a mesma
+            forma no mesmo tamanho, para o que estiver ao lado não se deslocar a cada clique.
+          </p>
         </div>
       </Section>
 

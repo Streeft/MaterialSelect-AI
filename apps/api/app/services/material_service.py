@@ -71,7 +71,8 @@ class MaterialService:
     """Coordinates catalogue reads and shapes them into API responses."""
 
     def __init__(self, db: Session, user: User | None = None) -> None:
-        self.repo = MaterialRepository(db)
+        self.viewer_id = user.id if user is not None else None
+        self.repo = MaterialRepository(db, self.viewer_id)
         self.audit_repo = AuditRepository(db)
         # P0-2: read through the process service rather than reimplementing the
         # join here — the compatible-processes list on the sheet and the process
@@ -88,19 +89,28 @@ class MaterialService:
             materials = self.repo.list_materials(search)
         except SearchQueryError as exc:
             raise ValidationError(str(exc)) from exc
-        return [
-            MaterialListItem(
-                id=m.id,
-                name=m.name,
-                class_name=m.material_class.name,
-                class_slug=m.material_class.slug,
-                subclass=m.subclass,
-                is_demo=m.is_demo,
-                keywords=list(m.keywords or []),
-                quality=_summarise_quality(m),
-            )
-            for m in materials
-        ]
+        return [self.list_item(m) for m in materials]
+
+    @staticmethod
+    def list_item(material: Material) -> MaterialListItem:
+        """One catalogue row's compact shape.
+
+        Public and shared rather than inlined in the listing, because the user's
+        own space (P1-4) renders starred materials as the same card — and two
+        builders would let the catalogue and the favourites list disagree about
+        what a material looks like.
+        """
+        return MaterialListItem(
+            id=material.id,
+            name=material.name,
+            class_name=material.material_class.name,
+            class_slug=material.material_class.slug,
+            subclass=material.subclass,
+            is_demo=material.is_demo,
+            is_own_record=material.owner_id is not None,
+            keywords=list(material.keywords or []),
+            quality=_summarise_quality(material),
+        )
 
     def get_material_detail(self, material_id: int) -> MaterialDetail:
         material = self.repo.get_material(material_id)
@@ -116,6 +126,7 @@ class MaterialService:
             description=material.description,
             is_demo=material.is_demo,
             is_active=material.is_active,
+            is_own_record=material.owner_id is not None,
             keywords=list(material.keywords or []),
             property_groups=self._group_properties(material),
             processes=self.processes.processes_for_material(material.id),
@@ -129,6 +140,14 @@ class MaterialService:
         Validates the referenced class and every property/unit; the whole
         operation is atomic (a single invalid value aborts the creation).
         """
+        if payload.is_own_record and self.viewer_id is None:
+            # Not reachable through the API, where every route resolves a user
+            # first — but an own record with no owner would be a row nobody
+            # could ever read back, so it is refused where it is representable
+            # rather than written and lost.
+            raise ValidationError(
+                "Um registro próprio precisa de um usuário; nenhum foi identificado."
+            )
         if self.repo.get_class(payload.class_id) is None:
             raise NotFoundError(f"Classe não encontrada: {payload.class_id}")
         if self.repo.name_exists(payload.name):
@@ -143,6 +162,9 @@ class MaterialService:
             keywords=payload.keywords,
             is_demo=payload.is_demo,
             is_active=True,
+            # NULL keeps it in the shared catalogue, which is what every caller
+            # before P1-4 meant and still means.
+            owner_id=self.viewer_id if payload.is_own_record else None,
         )
         self.repo.add(material)
         self.repo.flush()

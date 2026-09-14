@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [17](#sessão-17--140926--p1-4-o-catálogo-ganha-dono-e-o-usuário-ganha-espaço) | 14/09/2026 | P1-4 (`My Records`: registro próprio, favoritos e recentes, D-62) — fecha a faixa P1 | 1234 → 1297 | 277 → 286 |
 | [16](#sessão-16--130926-a-140926--p1-3-a-taxonomia-vira-registro-e-o-segundo-universo-se-navega) | 13 e 14/09/2026 | P1-3 (browse: registro de família, árvore navegável, trilha e a ficha do processo, D-61) | 1209 → 1234 | 253 → 277 |
 | [15](#sessão-15--110926-a-130926--p1-2-o-gráfico-passa-a-reprovar) | 11 e 13/09/2026 | P1-2 (Chart Stage: a região de um plano como critério, D-60) — o único nível 1 da matriz de maturidade | 1141 → 1209 | 232 → 253 |
 | [14](#sessão-14--100926-a-110926--p0-4-processo-passa-a-ter-atributo-e-o-exercício-11-fecha) | 10 e 11/09/2026 | P0-4 (atributos de processo com proveniência, envelope de capacidade e discreto, D-59) — o quarto e último gargalo P0 | 1076 → 1141 | 225 → 232 |
@@ -32,6 +33,58 @@ As sessões entre a 11 e a 12 — o patch de design "Prisma" (D-49, D-50), o
 upgrade de segurança S1 e a rodada de desempenho — **não têm seção própria
 aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
+
+---
+
+## Sessão 17 — 14/09/26 — P1-4: o catálogo ganha dono, e o usuário ganha espaço
+
+**O pedido.** "Continue de onde parou", depois que a PR do P1-3 foi mesclada.
+Restava um item na faixa P1 e ele era o que mexia na fronteira do D-42, então a
+escolha não teve concorrente: **`My Records`**.
+
+**A decisão que carrega o resto.** `Material.owner_id` anulável — NULL é o
+catálogo compartilhado —, e não uma tabela `UserMaterial` paralela, que
+bifurcaria o motor, o painel, as figuras e os exportadores em dois caminhos
+respondendo a mesma pergunta sobre o mesmo material. O que essa escolha custa é
+que *toda* leitura de material passa a precisar saber quem está perguntando, e é
+por isso que a regra mora num arquivo só (`visibility.py`), entra por construtor
+nos quatro repositórios e **falha fechada**.
+
+**Dois achados que valem mais que o código que os produziu.**
+
+O primeiro é uma remoção. Escrevi um `owns()` para o lado da escrita e descobri,
+antes de usá-lo, que ele não tinha ramo alcançável: o filtro de leitura já
+devolve exatamente o conjunto gravável, porque um material visível ou é
+compartilhado (gravável por todos desde o D-42) ou é seu. Função com ramo morto
+lê como proteção e não protege nada — saiu, e o argumento ficou escrito no lugar
+dela, com os endpoints provando-o.
+
+O segundo é um defeito que eu mesmo introduzi e que o canário **não podia**
+pegar. O padrão seguro (`None` = só o compartilhado) é a direção certa do erro
+para vazamento e a direção errada para correção: o `SelectionService` recebia
+`user` opcional porque só a auditoria o lia, então por um commit o registro
+próprio de uma pessoa sumiu do estudo dela, de toda seleção e de todo documento —
+com cara de perda de dado, não de bug de permissão. Toda prova do canário falha
+quando um registro **aparece** para quem não pode vê-lo; nenhuma falha quando ele
+**some** para quem pode. Achei-o escrevendo o teste do exportador, que esperava
+ver o registro próprio no relatório e não viu. `user` virou obrigatório no
+serviço — o erro passa a ser `TypeError` — e entrou o controle positivo.
+A regra geral ficou registrada no D-62: **todo padrão que falha fechado precisa
+de uma prova de que o caminho aberto ainda abre.**
+
+**E dois achados de acessibilidade, os dois de ferramenta e não de leitura.**
+`aria-pressed` escrito no hospedeiro `md-icon-button` fica num elemento que
+leitor de tela nenhum lê — o botão real mora no shadow root; e
+`aria-label-selected`, que o próprio MWC oferece para isso, **não é nome de
+atributo ARIA válido** e reprova `aria-valid-attr`. O axe pegou o segundo nas
+duas fichas. A primitiva ganhou `toggle`/`selected`, e o `/estilo` documenta a
+diferença ao vivo.
+
+**Números.** Backend 1234 → 1297, frontend 277 → 286. Cobertura EduPack ~62% →
+**~66%** (21 de 32 em nível ≥ 3); nível médio 2,44 → **2,56**. Duas linhas se
+movem: `My Records` 0→3 — era a última capacidade em zero — e Browse 4→5. A faixa
+P1 fechou; o próximo é o **P2** (*Find Similar*, registro de referência, tabela
+de comparação com diferença percentual), que o `My Records` destravou.
 
 ---
 

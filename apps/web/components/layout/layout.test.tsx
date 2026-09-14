@@ -186,7 +186,7 @@ describe("AppSidebar", () => {
       expect(trigger).toHaveAttribute("aria-expanded", "false");
     });
 
-    it("carries the same ten destinations as the rail", async () => {
+    it("carries the same eleven destinations as the rail", async () => {
       const user = userEvent.setup();
       renderSidebar();
       await user.click(await screen.findByShadowRole("button", { name: ptBR.ui.openMenu }));
@@ -195,8 +195,9 @@ describe("AppSidebar", () => {
       for (const group of [ptBR.nav.groupStudy, ptBR.nav.groupData, ptBR.nav.groupAdmin]) {
         expect(within(drawer).getByShadowRole("list", { name: group })).toBeInTheDocument();
       }
-      // Dez desde o P1-4, que deu porta de entrada ao universo de processos.
-      expect(within(drawer).getAllByShadowRole("link")).toHaveLength(11); // 10 + o wordmark
+      // Onze desde o P1-4: o universo de processos ganhou porta de entrada, e o
+      // espaço do usuário ("Meus registros") também.
+      expect(within(drawer).getAllByShadowRole("link")).toHaveLength(12); // 11 + o wordmark
     });
 
     it("marks the current page inside the drawer too", async () => {

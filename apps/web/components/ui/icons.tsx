@@ -291,3 +291,21 @@ export const IconQualityMissing = (p: IconProps) => (
     <path d="m8.8 15.2 6.4-6.4" />
   </Svg>
 );
+
+/**
+ * The favourite mark (P1-4). Two states, one shape: the outline is "not
+ * starred" and the filled star is "starred", so the control does not move or
+ * change size when it is toggled — a star that resized would shift whatever
+ * sits beside it on every click.
+ *
+ * `fill` is taken from the current colour rather than a token of its own,
+ * because the button that owns it already carries the tone.
+ */
+export const IconStar = ({ filled = false, ...p }: IconProps & { filled?: boolean }) => (
+  <Svg {...p}>
+    <path
+      d="M12 3.6l2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8L3.6 9.7l5.8-.8z"
+      fill={filled ? "currentColor" : "none"}
+    />
+  </Svg>
+);

@@ -16,13 +16,21 @@ from app.models.process_attribute import (
 )
 from app.models.property_definition import PropertyDefinition
 from app.models.selection import SelectionStudy
+from app.repositories.visibility import visible_materials
 
 
 class SelectionRepository:
-    """Queries backing filtering, indices, ranking and saved studies."""
+    """Queries backing filtering, indices, ranking and saved studies.
 
-    def __init__(self, db: Session) -> None:
+    ``viewer_id`` decides which materials reach the snapshot (P1-4). A person's
+    own records take part in their selections, charts and reports exactly as
+    catalogue rows do — that is the whole point of having them — and nobody
+    else's ever appear. It defaults to ``None``, the shared catalogue alone.
+    """
+
+    def __init__(self, db: Session, viewer_id: int | None = None) -> None:
         self.db = db
+        self.viewer_id = viewer_id
 
     # --- snapshot / lookups ----------------------------------------------
 
@@ -37,6 +45,7 @@ class SelectionRepository:
                 ),
             )
             .where(Material.is_active.is_(True))
+            .where(visible_materials(self.viewer_id))
             .order_by(Material.name)
         )
         return list(self.db.execute(stmt).scalars().unique().all())
@@ -174,6 +183,7 @@ class SelectionRepository:
             .join(Material, Material.id == MaterialProcess.material_id)
             .join(MaterialClass, MaterialClass.id == Material.class_id)
             .where(Material.is_active.is_(True))
+            .where(visible_materials(self.viewer_id))
             .order_by(MaterialProcess.process_id)
         )
         reach: dict[int, list[str]] = {}

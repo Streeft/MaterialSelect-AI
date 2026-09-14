@@ -69,8 +69,9 @@ def _coverage(filled: int, declared_missing: int, slots: int) -> Coverage:
 class DashboardService:
     """Read-only aggregation over the catalogue."""
 
-    def __init__(self, db: Session) -> None:
-        self.repo = DashboardRepository(db)
+    def __init__(self, db: Session, viewer_id: int | None = None) -> None:
+        self.viewer_id = viewer_id
+        self.repo = DashboardRepository(db, viewer_id)
 
     def overview(self) -> OverviewOut:
         """Totals, provenance mix, per-class and per-property coverage."""
