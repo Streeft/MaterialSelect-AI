@@ -53,6 +53,11 @@ class MaterialCreate(BaseModel):
     keywords: list[str] = Field(default_factory=list)
     # User-created data is not demonstration data by default.
     is_demo: bool = False
+    # P1-4. Ownership is **declared, never inferred from who typed**. The same
+    # person adds to the shared catalogue (D-42) and keeps records of their own,
+    # and only they know which one a given form was. Defaulting to False also
+    # keeps every client written before My Records doing exactly what it did.
+    is_own_record: bool = False
     values: list[PropertyValueIn] = Field(default_factory=list)
 
 
@@ -99,6 +104,11 @@ class MaterialListItem(BaseModel):
     class_slug: str
     subclass: str | None = None
     is_demo: bool
+    # P1-4: a boolean and not ``owner_id``, which would put another person's
+    # user id on the wire for nothing. A reader only ever sees shared rows and
+    # their own, so "has an owner" and "is mine" are the same fact here — and
+    # the boolean is the one of the two that cannot identify anybody.
+    is_own_record: bool = False
     keywords: list[str] = []
     quality: DataQualitySummary = Field(default_factory=DataQualitySummary)
 
@@ -118,6 +128,8 @@ class MaterialDetail(BaseModel):
     description: str | None = None
     is_demo: bool
     is_active: bool = True
+    # Same boolean, same reason, as on the list item.
+    is_own_record: bool = False
     keywords: list[str] = []
     property_groups: list[PropertyGroup]
     # P0-2: the processes this material can be made with — the datasheet half of

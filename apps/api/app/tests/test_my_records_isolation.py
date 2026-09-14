@@ -217,3 +217,34 @@ def test_the_panel_does_not_count_another_persons_record(
         owner_total = client.get("/api/dashboard/overview").json()["materials"]
 
     assert owner_total == stranger_total + 1
+
+
+def test_no_write_reaches_another_persons_record(client, private_record: Material) -> None:
+    """Writing needs no predicate of its own, and this is the proof of that claim.
+
+    ``visibility.py`` argues that a "may I write" rule would have no reachable
+    branch: a record owned by somebody else is invisible, so every mutation
+    already stops at the lookup. That argument is only worth what the endpoints
+    do, so the endpoints are asked — all three of them, each with a payload that
+    would have succeeded on a record of the caller's own.
+    """
+    material_id = private_record.id
+
+    patched = client.patch(f"/api/materials/{material_id}", json={"name": "Renomeado"})
+    replaced = client.put(f"/api/materials/{material_id}/values", json=[])
+    deleted = client.delete(f"/api/materials/{material_id}")
+
+    assert [patched.status_code, replaced.status_code, deleted.status_code] == [404, 404, 404]
+
+
+def test_the_record_survives_every_refused_write(
+    client, login_as, other_user: User, private_record: Material
+) -> None:
+    """A 404 has to mean "nothing happened", not "it happened and I said no"."""
+    client.patch(f"/api/materials/{private_record.id}", json={"name": "Renomeado"})
+    client.delete(f"/api/materials/{private_record.id}")
+
+    with login_as(other_user):
+        sheet = client.get(f"/api/materials/{private_record.id}").json()
+    assert sheet["name"] == PRIVATE_NAME
+    assert sheet["is_active"] is True

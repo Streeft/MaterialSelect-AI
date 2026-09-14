@@ -36,14 +36,15 @@ def visible_materials(viewer_id: int | None) -> ColumnElement[bool]:
     return or_(shared, Material.owner_id == viewer_id)
 
 
-def owns(material: Material, viewer_id: int | None) -> bool:
-    """True when ``viewer_id`` may *write* to ``material``.
-
-    Writing is not the mirror of reading. A shared catalogue row stays writable
-    by any logged-in user — that is what the catalogue has been since D-42, and
-    My Records does not quietly take it away. What this adds is the other half:
-    a record with an owner is only ever written by that owner.
-    """
-    if material.owner_id is None:
-        return True
-    return viewer_id is not None and material.owner_id == viewer_id
+# There is deliberately **no** second predicate for writing, and the reason is
+# worth stating because its absence looks like an omission.
+#
+# Writing needs no rule of its own because the read filter already yields
+# exactly the writable set. A material a reader can see is either shared —
+# communally writable since D-42, and My Records does not quietly revoke that —
+# or their own, which they may write by definition. The case a write predicate
+# would exist to catch, "visible but not mine", cannot occur: a record owned by
+# somebody else is not visible in the first place, so every mutation in
+# ``MaterialService`` already fails at ``get_material`` with the 404 that
+# ``test_my_records_isolation`` asserts. A predicate with no reachable branch
+# would read as protection while protecting nothing.

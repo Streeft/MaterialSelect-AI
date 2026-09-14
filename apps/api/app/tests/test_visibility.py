@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session
 from app.models.material import Material
 from app.models.material_class import MaterialClass
 from app.models.user import User
-from app.repositories.visibility import owns, visible_materials
+from app.repositories.visibility import visible_materials
 
 
 @pytest.fixture()
@@ -80,25 +80,3 @@ def test_a_reader_with_no_identity_sees_only_the_shared_catalogue(
     visible = _names(db_session, None)
     assert "Aço partilhado" in visible
     assert visible.isdisjoint({"Liga da Ana", "Liga do Bruno"})
-
-
-def test_writing_to_a_shared_catalogue_row_is_not_taken_away(
-    catalogue: dict[str, Material], other_user: User
-) -> None:
-    """Writing is not the mirror of reading. The catalogue has been communally
-    writable since D-42, and My Records adds the other half rather than
-    quietly revoking that."""
-    assert owns(catalogue["shared"], other_user.id) is True
-
-
-def test_only_the_owner_writes_to_an_owned_record(
-    catalogue: dict[str, Material], test_user: User, other_user: User
-) -> None:
-    assert owns(catalogue["mine"], test_user.id) is True
-    assert owns(catalogue["mine"], other_user.id) is False
-
-
-def test_an_anonymous_writer_never_owns_an_owned_record(
-    catalogue: dict[str, Material],
-) -> None:
-    assert owns(catalogue["mine"], None) is False
