@@ -62,6 +62,13 @@ export interface MaterialListItem {
   class_slug: string;
   subclass: string | null;
   is_demo: boolean;
+  /**
+   * P1-4: whether this material is a record of the signed-in person's own,
+   * rather than part of the shared catalogue. A boolean and not an owner id:
+   * a reader only ever sees shared rows and their own, so "has an owner" and
+   * "is mine" are the same fact — and the boolean identifies nobody.
+   */
+  is_own_record: boolean;
   keywords: string[];
   quality: DataQualitySummary;
 }
@@ -76,6 +83,8 @@ export interface MaterialDetail {
   description: string | null;
   is_demo: boolean;
   is_active: boolean;
+  /** Same flag, same reason, as on `MaterialListItem`. */
+  is_own_record: boolean;
   keywords: string[];
   property_groups: PropertyGroup[];
   /**
@@ -276,6 +285,13 @@ export interface MaterialCreate {
   description?: string | null;
   keywords: string[];
   is_demo: boolean;
+  /**
+   * P1-4. Declared, never inferred from who is typing: the same person adds to
+   * the shared catalogue and keeps records of their own, and only they know
+   * which one a given form was. Optional, and absent means the shared
+   * catalogue — what every caller meant before My Records existed.
+   */
+  is_own_record?: boolean;
   values: PropertyValueIn[];
 }
 
@@ -1161,4 +1177,31 @@ export interface SavedChartListItem {
   id: number;
   name: string;
   created_at: string;
+}
+
+// --- My Records (P1-4) -----------------------------------------------------
+
+/** The two universes a bookmark can point into — the engine's own word (D-58). */
+export type Universe = "material" | "process";
+
+/**
+ * One bookmarked record, carrying the record itself rather than its id.
+ *
+ * `universe` is explicit rather than inferred from which of the two record
+ * fields is null: inference works and is one silent assumption away from
+ * breaking the day a third universe arrives.
+ */
+export interface Bookmark {
+  universe: Universe;
+  /** When it was starred, or when it was last opened. */
+  at: string;
+  material: MaterialListItem | null;
+  process: Process | null;
+}
+
+/** Everything the user's own space shows, in one request. */
+export interface MyRecords {
+  favorites: Bookmark[];
+  recents: Bookmark[];
+  own_records: MaterialListItem[];
 }

@@ -212,6 +212,24 @@ export interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement>
   /** Required: an icon-only control has no visible text to name it. */
   label: string;
   icon: ReactNode;
+  /**
+   * Turn the button into a two-state toggle (P1-4).
+   *
+   * This delegates to `md-icon-button`'s own `toggle`/`selected`, which is the
+   * only way the state actually reaches a screen reader: the element renders
+   * its `aria-pressed` on the `<button>` **inside** its shadow root, and an
+   * `aria-pressed` written on the host here would sit on an element assistive
+   * tech never reads.
+   *
+   * There is deliberately no `labelSelected`. `md-icon-button` offers an
+   * `aria-label-selected` for exactly that, and axe rejects it — it is not a
+   * real ARIA attribute name, so the audit fails `aria-valid-attr` on every
+   * screen that uses one. Pass the state-appropriate string as `label`
+   * instead: the host's `aria-label` does reach the shadow button, so the name
+   * changes with the state and `aria-pressed` carries the state itself.
+   */
+  toggle?: boolean;
+  selected?: boolean;
 }
 
 /**
@@ -231,13 +249,15 @@ const FilterChipElement = MdFilterChip as ElementType;
 const SegmentedButtonElement = MdOutlinedSegmentedButton as ElementType;
 
 export const IconButton = forwardRef<HTMLElement, IconButtonProps>(function IconButton(
-  { size = "md", label, icon, className, disabled, ...rest },
+  { size = "md", label, icon, className, disabled, toggle, selected, ...rest },
   ref,
 ) {
   return (
     <IconButtonElement
       ref={ref as never}
       aria-label={label}
+      toggle={toggle || undefined}
+      selected={toggle ? selected : undefined}
       title={label}
       disabled={disabled}
       // See the matching comment on Button above: makes this a Tab stop

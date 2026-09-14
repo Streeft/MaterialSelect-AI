@@ -79,6 +79,7 @@ const materials: MaterialListItem[] = [
     class_slug: "metais",
     subclass: "Aço-carbono",
     is_demo: true,
+    is_own_record: false,
     keywords: ["estrutural"],
     quality: { medido: 4, importado: 0, estimado: 1, missing: 0 },
   },
@@ -89,6 +90,7 @@ const materials: MaterialListItem[] = [
     class_slug: "ceramicas",
     subclass: null,
     is_demo: true,
+    is_own_record: false,
     keywords: [],
     quality: { medido: 0, importado: 2, estimado: 0, missing: 3 },
   },
@@ -321,6 +323,7 @@ const materialDetail: MaterialDetail = {
   subclass: "Aço-carbono",
   description: "Aço de baixo carbono.",
   is_demo: true,
+  is_own_record: false,
   is_active: true,
   keywords: ["estrutural"],
   // P0-2: the sheet always carries the join, empty or not.
@@ -592,6 +595,13 @@ const materialFamily: MaterialClassDetail = {
 
 vi.mock("@/lib/api", async (importOriginal) => ({
   ApiError: (await importOriginal<typeof import("@/lib/api")>()).ApiError,
+  // P1-4: a ficha traz a estrela e anota a visita, então toda tela de registro
+  // passa por estas quatro. O espaço vazio é o estado honesto aqui — a
+  // auditoria é sobre a ficha, não sobre os marcadores.
+  getMyRecords: () => Promise.resolve({ favorites: [], recents: [], own_records: [] }),
+  addFavorite: () => Promise.resolve({ favorites: [], recents: [], own_records: [] }),
+  removeFavorite: () => Promise.resolve({ favorites: [], recents: [], own_records: [] }),
+  touchRecent: () => Promise.resolve(undefined),
   listMaterials: () => Promise.resolve(materials),
   listClasses: () => Promise.resolve(classes),
   listProcesses: () => Promise.resolve(processes),
@@ -668,6 +678,7 @@ const { default: ProcessesPage } = await import("./processos/page");
 const { default: ProcessDetailPage } = await import("./processos/[slug]/page");
 const { default: ProcessFamilyPage } = await import("./processos/familia/[slug]/page");
 const { default: MaterialFamilyPage } = await import("./catalogo/[slug]/page");
+const { default: MyRecordsPage } = await import("./meus-registros/page");
 
 function makeClient() {
   return new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -779,6 +790,13 @@ describe("acessibilidade das telas principais", () => {
 
   it("família de material", async () => {
     await auditRoute(<MaterialFamilyPage />, "Metais");
+  });
+
+  // P1-4: o espaço do usuário. Auditado com as três listas **vazias**, que é o
+  // caminho que a D-24 governa: ausência escrita, nunca painel em branco — e é
+  // justamente o estado que um teste de conteúdo tenderia a pular.
+  it("meus registros", async () => {
+    await auditRoute(<MyRecordsPage />, ptBR.myRecords.title);
   });
 
   // Landing is the one route in this file that isn't under `/app`: no session,

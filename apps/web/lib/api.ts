@@ -25,6 +25,7 @@ import type {
   MaterialDetail,
   MaterialListItem,
   MaterialUpdate,
+  MyRecords,
   PerformanceIndex,
   PortalSession,
   MaterialClassDetail,
@@ -47,6 +48,7 @@ import type {
   StudyDetail,
   StudyIn,
   StudySummary,
+  Universe,
   UploadResult,
   ValidationReport,
 } from "./types";
@@ -480,4 +482,44 @@ export function studyLaudoUrl(studyId: number, responsible?: string): string {
   const trimmed = responsible?.trim();
   const query = trimmed ? `?${new URLSearchParams({ responsavel: trimmed })}` : "";
   return `${API_URL}/api/exports/estudos/${studyId}/laudo.html${query}`;
+}
+
+// --- My Records (P1-4) ------------------------------------------------------
+
+/**
+ * Favourites, recents and own records in one request.
+ *
+ * One call and not three because the page shows them together: separate
+ * requests would let one list render against a catalogue the others never saw.
+ */
+export function getMyRecords(): Promise<MyRecords> {
+  return request<MyRecords>(`/api/my-records`);
+}
+
+/**
+ * Star a record. `PUT`, because starring is idempotent — a second click on a
+ * lit star means what the first one meant. Returns the whole space, so the
+ * caller never has to re-fetch to stay consistent with it.
+ */
+export function addFavorite(universe: Universe, recordId: number): Promise<MyRecords> {
+  return request<MyRecords>(`/api/my-records/favorites/${universe}/${recordId}`, {
+    method: "PUT",
+  });
+}
+
+export function removeFavorite(universe: Universe, recordId: number): Promise<MyRecords> {
+  return request<MyRecords>(`/api/my-records/favorites/${universe}/${recordId}`, {
+    method: "DELETE",
+  });
+}
+
+/**
+ * Note that the reader just opened a record.
+ *
+ * Declared by the client rather than recorded inside the datasheet's own GET:
+ * a read that writes is un-cacheable and non-idempotent, and an export
+ * re-reading a record would quietly reorder the list.
+ */
+export function touchRecent(universe: Universe, recordId: number): Promise<void> {
+  return request<void>(`/api/my-records/recents/${universe}/${recordId}`, { method: "POST" });
 }

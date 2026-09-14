@@ -5,6 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { deactivateMaterial, getChart, getMaterial } from "@/lib/api";
 import { ptBR } from "@/lib/i18n";
+import { FavoriteButton } from "@/components/my-records/FavoriteButton";
+import { useRecordVisit } from "@/components/my-records/useRecordVisit";
 import { classVisual } from "@/lib/design/palette";
 import { PropertyGroupCard } from "@/components/PropertyGroup";
 import { PropertyChart } from "@/components/PropertyChart";
@@ -35,6 +37,8 @@ export default function MaterialDetailPage() {
     queryFn: () => getMaterial(id),
     enabled: Number.isFinite(id),
   });
+
+  useRecordVisit("material", Number.isFinite(id) ? id : undefined);
 
   // Density × Young's modulus is the demonstrative Ashby-style map for the MVP.
   const chart = useQuery({
@@ -83,6 +87,13 @@ export default function MaterialDetailPage() {
                 <div className="flex flex-wrap items-center gap-2">
                   <h1 className="text-2xl font-semibold text-ink">{data.name}</h1>
                   {data.is_demo && <Badge tone="warning">{ptBR.demoBadge}</Badge>}
+                  {/* P1-4: the sheet says whose record this is. Beside the demo
+                      badge because they answer the same question — how far this
+                      material's numbers may be trusted — and a reader who has
+                      learnt to look here finds both. */}
+                  {data.is_own_record && (
+                    <Badge tone="info">{ptBR.myRecords.ownBadge}</Badge>
+                  )}
                   {!data.is_active && <Badge>{t.inactive}</Badge>}
                 </div>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -106,6 +117,7 @@ export default function MaterialDetailPage() {
                 )}
               </div>
               <div className="flex shrink-0 flex-wrap items-center gap-2">
+                <FavoriteButton universe="material" recordId={data.id} />
                 <ButtonLink href={`/app/materiais/${id}/editar`} size="sm">
                   {ptBR.actions.edit}
                 </ButtonLink>

@@ -6,6 +6,8 @@ import { useQuery } from "@tanstack/react-query";
 import { getProcess } from "@/lib/api";
 import type { ProcessAttributeValue } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
+import { FavoriteButton } from "@/components/my-records/FavoriteButton";
+import { useRecordVisit } from "@/components/my-records/useRecordVisit";
 import { formatNumber, prettyUnit } from "@/lib/format";
 import {
   Badge,
@@ -46,6 +48,8 @@ export default function ProcessDetailPage() {
     enabled: Boolean(slug),
   });
 
+  useRecordVisit("process", process.data?.id);
+
   if (process.isLoading) return <LoadingState label={t.loading} />;
   if (process.isError) {
     return <ErrorState title={t.notFound} onRetry={() => void process.refetch()} />;
@@ -68,7 +72,12 @@ export default function ProcessDetailPage() {
         title={data.name}
         description={data.description ?? undefined}
         group="dados"
-        actions={data.is_demo ? <Badge tone="warning">{ptBR.demoBadge}</Badge> : undefined}
+        actions={
+          <span className="flex items-center gap-2">
+            {data.is_demo && <Badge tone="warning">{ptBR.demoBadge}</Badge>}
+            <FavoriteButton universe="process" recordId={data.id} />
+          </span>
+        }
       />
 
       <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
