@@ -59,11 +59,67 @@ E2E_STRIPE_CUSTOMER_ID = "cus_e2e_seed"
 E2E_STRIPE_SUBSCRIPTION_ID = "sub_e2e_seed"
 
 # --- Taxonomy -------------------------------------------------------------
+#
+# O texto de família (P1-4) tem o mesmo estatuto dos **nomes** de processo mais
+# abaixo: é caracterização corrente de engenharia de materiais — o vocabulário
+# com que qualquer curso apresenta as cinco famílias —, escrita aqui com
+# palavras próprias, e não dado medido nem transcrição de catálogo de terceiro.
+# Nada nestes campos é comparado, convertido, ranqueado ou plotado; eles não são
+# valor de propriedade, e é por isso que não caem sob o princípio 1.
+#
+# `elastomeros` fica **sem texto de propósito**, como `condutividade_termica`
+# fica sem valor: é o estado "ninguém escreveu", e a demonstração precisa
+# mostrá-lo com rótulo escrito (D-24) em vez de um painel vazio que o leitor
+# teria de interpretar.
 CLASSES = [
-    {"name": "Metais", "slug": "metais"},
-    {"name": "Polímeros", "slug": "polimeros"},
-    {"name": "Cerâmicas", "slug": "ceramicas"},
-    {"name": "Compósitos", "slug": "compositos"},
+    {
+        "name": "Metais",
+        "slug": "metais",
+        "characteristics": (
+            "Ligas cristalinas: módulo e densidade altos, dúcteis, condutoras de "
+            "calor e eletricidade, e tolerantes a dano — deformam antes de romper."
+        ),
+        "applications": (
+            "Estrutura e componentes que carregam carga: peças de máquina, "
+            "perfis, fixadores, trocadores de calor."
+        ),
+    },
+    {
+        "name": "Polímeros",
+        "slug": "polimeros",
+        "characteristics": (
+            "Cadeias longas: densidade e módulo baixos, isolantes, moldáveis em "
+            "forma complexa a baixo custo por peça, com temperatura de serviço limitada."
+        ),
+        "applications": (
+            "Carcaças, embalagem, isolamento elétrico e térmico, componentes de "
+            "grande série em que a forma importa mais que a rigidez."
+        ),
+    },
+    {
+        "name": "Cerâmicas",
+        "slug": "ceramicas",
+        "characteristics": (
+            "Ligações fortes e direcionais: módulo e dureza altos, refratárias e "
+            "resistentes a desgaste — e frágeis, porque não têm mecanismo de escoamento."
+        ),
+        "applications": (
+            "Revestimento refratário, ferramenta de corte, isolante elétrico de "
+            "alta temperatura, superfície sujeita a desgaste."
+        ),
+    },
+    {
+        "name": "Compósitos",
+        "slug": "compositos",
+        "characteristics": (
+            "Reforço numa matriz: rigidez e resistência específicas altas, "
+            "propriedades anisotrópicas, e desempenho que depende da direção da fibra."
+        ),
+        "applications": (
+            "Estrutura em que massa é penalizada: aeronáutica, esportivo, " "vasos de pressão, pás."
+        ),
+    },
+    # Sem texto de propósito — ver a nota acima.
     {"name": "Elastômeros", "slug": "elastomeros"},
 ]
 
@@ -483,8 +539,24 @@ DEMO_MATERIALS = [
 # As três famílias são as raízes da taxonomia, e não uma coluna enum: é dado
 # semeado, então um operador acrescenta família sem migração, e a pasta com
 # descendentes do estágio de processo funciona sem uma linha de código nova.
+# O texto de família aqui tem o mesmo estatuto do das classes de material: é a
+# caracterização corrente com que a metodologia apresenta cada família de
+# processo. As subfamílias de conformação ficam **sem texto**, porque o nome
+# delas já diz o que a família é — e porque um galho sem prosa é o caso que a
+# tela tem de mostrar com rótulo escrito em vez de painel vazio.
 PROCESS_CLASSES = [
-    {"name": "Conformação", "slug": "conformacao", "parent": None},
+    {
+        "name": "Conformação",
+        "slug": "conformacao",
+        "parent": None,
+        "characteristics": (
+            "Dá forma à peça a partir de matéria-prima bruta, sem remover "
+            "material: o custo é dominado pelo ferramental, então o lote econômico é alto."
+        ),
+        "applications": (
+            "Produção em série da forma primária da peça, antes de acabamento e união."
+        ),
+    },
     {
         "name": "Conformação em estado líquido",
         "slug": "conformacao-liquido",
@@ -500,9 +572,39 @@ PROCESS_CLASSES = [
         "slug": "conformacao-particulados",
         "parent": "conformacao",
     },
-    {"name": "Remoção de material", "slug": "remocao-material", "parent": "conformacao"},
-    {"name": "União", "slug": "uniao", "parent": None},
-    {"name": "Tratamento de superfície", "slug": "tratamento-superficie", "parent": None},
+    {
+        "name": "Remoção de material",
+        "slug": "remocao-material",
+        "parent": "conformacao",
+        "characteristics": (
+            "Chega à forma tirando material: alcança tolerância e acabamento que "
+            "a conformação não alcança, com custo por peça que cresce com o volume removido."
+        ),
+        "applications": (
+            "Acabamento de superfície funcional, furos e ajustes dimensionais "
+            "sobre uma peça já conformada."
+        ),
+    },
+    {
+        "name": "União",
+        "slug": "uniao",
+        "parent": None,
+        "characteristics": (
+            "Junta peças já conformadas. A junta é descontinuidade de "
+            "propriedade, e é onde a montagem costuma falhar."
+        ),
+        "applications": "Montagem de estrutura e de conjunto a partir de componentes.",
+    },
+    {
+        "name": "Tratamento de superfície",
+        "slug": "tratamento-superficie",
+        "parent": None,
+        "characteristics": (
+            "Muda a superfície e não o volume: age sobre desgaste, corrosão e "
+            "aparência, sem alterar as propriedades de massa da peça."
+        ),
+        "applications": "Proteção contra corrosão, resistência a desgaste, acabamento.",
+    },
 ]
 
 PROCESSES = [
@@ -790,13 +892,24 @@ MATERIAL_PROCESS_LINKS = {
 }
 
 
-def _get_or_create_class(db: Session, name: str, slug: str) -> MaterialClass:
+def _get_or_create_class(
+    db: Session,
+    name: str,
+    slug: str,
+    applications: str | None = None,
+    characteristics: str | None = None,
+) -> MaterialClass:
+    """The family prose defaults to None, which is the honest value for the
+    fallback caller below: a class conjured from a material's ``class_slug`` has
+    nobody to have written it."""
     existing = (
         db.execute(select(MaterialClass).where(MaterialClass.slug == slug)).scalars().one_or_none()
     )
     if existing:
         return existing
-    obj = MaterialClass(name=name, slug=slug)
+    obj = MaterialClass(
+        name=name, slug=slug, applications=applications, characteristics=characteristics
+    )
     db.add(obj)
     db.flush()
     return obj
@@ -810,7 +923,13 @@ def _get_or_create_process_class(db: Session, spec: dict, parent_id: int | None)
     )
     if existing:
         return existing
-    obj = ProcessClass(name=spec["name"], slug=spec["slug"], parent_id=parent_id)
+    obj = ProcessClass(
+        name=spec["name"],
+        slug=spec["slug"],
+        parent_id=parent_id,
+        applications=spec.get("applications"),
+        characteristics=spec.get("characteristics"),
+    )
     db.add(obj)
     db.flush()
     return obj
@@ -1122,7 +1241,13 @@ def seed(db: Session) -> dict[str, int]:
     Idempotent. Returns a small summary dict for logging/tests.
     """
     for spec in CLASSES:
-        _get_or_create_class(db, spec["name"], spec["slug"])
+        _get_or_create_class(
+            db,
+            spec["name"],
+            spec["slug"],
+            applications=spec.get("applications"),
+            characteristics=spec.get("characteristics"),
+        )
     for spec in PROPERTIES:
         _get_or_create_property(db, spec)
     demo_source = None

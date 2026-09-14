@@ -6,6 +6,7 @@ import { paletteSeats } from "@/lib/design/palette";
 import {
   Alert,
   Badge,
+  Breadcrumb,
   Button,
   ButtonGroup,
   ButtonGroupItem,
@@ -429,6 +430,31 @@ export default function StyleGuidePage() {
           filho do próprio componente: assim o <code className="font-mono">aria-controls</code> da
           aba não tem como apontar para um elemento que não existe.
         </Tabs>
+      </Section>
+
+      <Section title="Trilha de navegação" headingLevel={2}>
+        <div className="flex flex-col gap-3">
+          <Breadcrumb
+            items={[
+              { label: "Catálogo", href: "/app/catalogo" },
+              { label: "Metais", href: "/app/catalogo/metais" },
+              { label: "Aços" },
+            ]}
+          />
+          <p className="max-w-prose text-sm text-ink-muted">
+            O último passo é a página em que se está: sai como texto com{" "}
+            <code className="font-mono">aria-current=&quot;page&quot;</code>, nunca como link,
+            porque link de volta para a página atual anuncia um destino que não existe. A barra
+            separadora é <code className="font-mono">aria-hidden</code> — sem isso um caminho de
+            quatro níveis vira oito anúncios, e a ordem já está na lista.
+          </p>
+          {/* Uma raiz sozinha: um passo só continua sendo uma trilha válida.
+              O `label` próprio não é enfeite — dois landmarks `nav` com o mesmo
+              nome acessível na mesma página violam `landmark-unique`, e o
+              teste de acessibilidade desta rota pega isso. Uma página real tem
+              uma trilha só e fica com o nome padrão. */}
+          <Breadcrumb items={[{ label: "Processos" }]} label="Trilha de exemplo, com um passo" />
+        </div>
       </Section>
 
       <Section title={ptBR.styleGuide.tables} headingLevel={2}>

@@ -70,6 +70,9 @@ const GROUPS: NavGroup[] = [
     label: t.groupData,
     items: [
       { href: "/app/catalogo", label: t.catalog, icon: IconBook },
+      // P1-4: o segundo universo passa a ter porta de entrada. Sem isto ele só
+      // era alcançável de dentro de um estágio ou da ficha de um material.
+      { href: "/app/processos", label: t.processes, icon: IconLayers },
       { href: "/app/painel", label: t.dashboard, icon: IconGauge },
       { href: "/app/importar", label: t.imports, icon: IconUpload },
     ],

@@ -152,6 +152,57 @@ export interface ProcessAttributeValue {
   is_missing: boolean;
 }
 
+/**
+ * A taxonomy folder named just enough to link to it — one breadcrumb step (P1-4).
+ *
+ * The same shape in both universes, because a breadcrumb asks the same thing of
+ * each: what is this folder called, and what is its slug.
+ */
+export interface ClassRef {
+  id: number;
+  name: string;
+  slug: string;
+}
+
+/**
+ * The prose a family record carries (P1-4).
+ *
+ * `null` means **nobody wrote it** — a different state from an empty string,
+ * which would read as "this family has no applications". The screen renders the
+ * first as a written absence (D-24) and must never collapse the two.
+ */
+export interface FamilyProse {
+  applications: string | null;
+  characteristics: string | null;
+}
+
+/** One material family read as a record rather than a label (P1-4). */
+export interface MaterialClassDetail extends MaterialClass, FamilyProse {
+  /** Root→parent, this folder **excluded**: the page is not a link to itself. */
+  ancestors: ClassRef[];
+  /** Direct subfolders only — grandchildren belong to the child's own page. */
+  children: MaterialClass[];
+  /**
+   * This folder and everything below it. What tells a pure branch
+   * (`material_count` 0 by design) from an empty one, and so what gives the
+   * reader a reason to open it.
+   */
+  descendant_material_count: number;
+}
+
+/** One process family read as a record (P1-4) — D-57's symmetry, field for field. */
+export interface ProcessClassDetail extends ProcessClass, FamilyProse {
+  ancestors: ClassRef[];
+  children: ProcessClass[];
+  descendant_process_count: number;
+  /**
+   * The active processes filed directly here. Carried on the record because —
+   * unlike materials, which the catalogue lists through its own endpoint —
+   * nothing else lists the processes of one folder.
+   */
+  processes: Process[];
+}
+
 /** A manufacturing process in the catalogue (P0-2). */
 export interface Process {
   id: number;
@@ -172,7 +223,17 @@ export interface MaterialClass {
   slug: string;
   parent_id: number | null;
   description: string | null;
+  /**
+   * Materials filed **directly** here, so an empty branch reads as empty
+   * instead of borrowing its children's contents. The subtree total is
+   * `MaterialClassDetail.descendant_material_count`.
+   */
   material_count: number;
+}
+
+/** One process with its attributes and their provenance — the datasheet (P0-4). */
+export interface ProcessDetail extends Process {
+  attributes: ProcessAttributeValue[];
 }
 
 export interface PropertyDefinition {
