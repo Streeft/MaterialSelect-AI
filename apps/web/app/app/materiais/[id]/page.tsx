@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { deactivateMaterial, getChart, getMaterial } from "@/lib/api";
@@ -176,10 +177,20 @@ export default function MaterialDetailPage() {
                             {family}
                           </span>
                           <div className="flex flex-wrap gap-2">
+                            {/* Links since P1-4: the join reads in both
+                                directions now that a process has a datasheet,
+                                and a badge that named a page the reader could
+                                not reach was the half of P0-2 still missing. */}
                             {list.map((process) => (
-                              <Badge key={process.slug} tone="brand" title={process.description ?? undefined}>
-                                {process.name}
-                              </Badge>
+                              <Link
+                                key={process.slug}
+                                href={`/app/processos/${process.slug}`}
+                                className="rounded-control focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                              >
+                                <Badge tone="brand" title={process.description ?? undefined}>
+                                  {process.name}
+                                </Badge>
+                              </Link>
                             ))}
                           </div>
                         </div>

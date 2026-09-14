@@ -37,6 +37,10 @@ export const ptBR = {
     imports: "Importar",
     classes: "Classes",
     properties: "Propriedades",
+    // P1-4: o segundo universo ganha porta de entrada própria. Estava acessível
+    // só de dentro de um estágio de seleção e da ficha de um material — o que
+    // faz do universo de processos algo que se usa, nunca algo que se navega.
+    processes: "Processos",
     // Eight links in a row said nothing about what belongs with what. The
     // groups are the three things someone does here, in the order they do them.
     groupStudy: "Estudar",
@@ -914,6 +918,62 @@ export const ptBR = {
       dark: "Escuro",
       system: "Sistema",
     },
+  },
+
+  // P1-4: a ficha do processo e o registro de família.
+  processes: {
+    title: "Processos de fabricação",
+    subtitle:
+      "O segundo universo do método: o que conforma, une e trata um material. Navegue por família ou abra a ficha de um processo.",
+    loading: "Carregando processos…",
+    error: "Não foi possível carregar os processos.",
+    empty: "Nenhum processo cadastrado.",
+    familiesTitle: "Famílias",
+    countProcesses: (n: number) => (n === 1 ? "1 processo" : `${n} processos`),
+    countDirect: (n: number) => (n === 1 ? "1 processo aqui" : `${n} processos aqui`),
+    countBelow: (n: number) => `${n} no total, contando as subfamílias`,
+    // Ausência escrita (D-24): pasta vazia é um estado, e não um card em branco.
+    emptyFolder: "Nenhum processo cadastrado diretamente nesta família.",
+    emptyFolderWithChildren:
+      "Nenhum processo diretamente aqui — o que esta família guarda está nas subfamílias abaixo.",
+    subfamilies: "Subfamílias",
+    attributes: "Atributos",
+    attributesHint:
+      "Cada valor traz o trilho de proveniência inteiro: o que foi informado, em que unidade, como foi convertido e de onde veio.",
+    noAttributes: "Nenhum atributo cadastrado para este processo.",
+    materialsServed: (n: number) =>
+      n === 1 ? "Serve 1 material do catálogo" : `Serve ${n} materiais do catálogo`,
+    noMaterialsServed: "Nenhum material do catálogo vinculado a este processo.",
+    family: "Família",
+    notFound: "Processo não encontrado.",
+    familyNotFound: "Família de processo não encontrada.",
+    backToProcesses: "Todos os processos",
+    // O tipo do valor é o que diz por qual regra ele é comparado (D-59).
+    kind: "Tipo de valor",
+    kindESCALAR: "Escalar",
+    kindENVELOPE: "Envelope de capacidade",
+    kindDISCRETO: "Discreto",
+    kindEnvelopeHint:
+      "Comparado por alcance: a faixa atende um limiar quando o alcança, e não pelo ponto médio.",
+    kindDiscretoHint: "Pertinência a um vocabulário fechado, sem unidade e sem ordem.",
+  },
+
+  // P1-4: o registro de família, nos dois universos.
+  family: {
+    applications: "Onde se usa",
+    characteristics: "O que caracteriza",
+    // A prosa ausente é o quarto estado do dado, e tem rótulo escrito.
+    unwritten: "Ninguém escreveu este texto ainda.",
+    inThisFamily: "Nesta família",
+    subclasses: "Subclasses",
+    countMaterials: (n: number) => (n === 1 ? "1 material" : `${n} materiais`),
+    countDirect: (n: number) => (n === 1 ? "1 material aqui" : `${n} materiais aqui`),
+    countBelow: (n: number) => `${n} no total, contando as subclasses`,
+    emptyFolder: "Nenhum material cadastrado diretamente nesta classe.",
+    emptyFolderWithChildren:
+      "Nenhum material diretamente aqui — o que esta classe guarda está nas subclasses abaixo.",
+    notFound: "Classe não encontrada.",
+    allClasses: "Todo o catálogo",
   },
 
   provenance: {

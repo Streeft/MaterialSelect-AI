@@ -3,7 +3,12 @@
 import { cn } from "@/lib/cn";
 import { ptBR } from "@/lib/i18n";
 import { formatNumber, prettyUnit } from "@/lib/format";
-import type { CompareCell, DataQuality, PropertyValueOut } from "@/lib/types";
+import type {
+  CompareCell,
+  DataQuality,
+  ProcessAttributeValue,
+  PropertyValueOut,
+} from "@/lib/types";
 import { DataQualityBadge, type QualityState } from "./DataQualityBadge";
 import { Popover } from "./Popover";
 import { IconInfo } from "./icons";
@@ -54,6 +59,38 @@ export function provenanceOfProperty(p: PropertyValueOut): Provenance {
     measurementCondition: p.measurement_condition,
     sourceLabel: p.source_label,
     notes: p.notes,
+  };
+}
+
+/**
+ * One process attribute value's provenance (P1-4).
+ *
+ * A third adapter rather than a third popover: the trail is the trail, and a
+ * process attribute carries exactly the same chain a material property does —
+ * that was the point of P0-4. What differs is only which field holds the
+ * number, so that difference lives here and the popover stays one truth about
+ * how provenance *looks*.
+ *
+ * A discrete attribute has no number at all; its labels are the value, and they
+ * are rendered beside the trigger rather than inside the trail, because "de onde
+ * vem este valor" has no numeric answer for a label.
+ */
+export function provenanceOfProcessAttribute(v: ProcessAttributeValue): Provenance {
+  return {
+    quality: v.data_quality,
+    isMissing: v.is_missing,
+    originalValue: v.value_scalar,
+    originalUnit: v.original_unit,
+    normalizedValue: v.normalized_value,
+    canonicalUnit: v.canonical_unit,
+    conversionMethod: v.conversion_method,
+    uncertainty: v.uncertainty,
+    valueMin: v.value_min,
+    valueMax: v.value_max,
+    valueTypical: v.value_typical,
+    measurementCondition: v.measurement_condition,
+    sourceLabel: v.source_label,
+    notes: v.notes,
   };
 }
 
