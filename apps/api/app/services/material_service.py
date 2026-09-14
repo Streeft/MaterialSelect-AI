@@ -97,6 +97,7 @@ class MaterialService:
                 class_slug=m.material_class.slug,
                 subclass=m.subclass,
                 is_demo=m.is_demo,
+                is_own_record=m.owner_id is not None,
                 keywords=list(m.keywords or []),
                 quality=_summarise_quality(m),
             )
@@ -117,6 +118,7 @@ class MaterialService:
             description=material.description,
             is_demo=material.is_demo,
             is_active=material.is_active,
+            is_own_record=material.owner_id is not None,
             keywords=list(material.keywords or []),
             property_groups=self._group_properties(material),
             processes=self.processes.processes_for_material(material.id),
@@ -130,6 +132,14 @@ class MaterialService:
         Validates the referenced class and every property/unit; the whole
         operation is atomic (a single invalid value aborts the creation).
         """
+        if payload.is_own_record and self.viewer_id is None:
+            # Not reachable through the API, where every route resolves a user
+            # first — but an own record with no owner would be a row nobody
+            # could ever read back, so it is refused where it is representable
+            # rather than written and lost.
+            raise ValidationError(
+                "Um registro próprio precisa de um usuário; nenhum foi identificado."
+            )
         if self.repo.get_class(payload.class_id) is None:
             raise NotFoundError(f"Classe não encontrada: {payload.class_id}")
         if self.repo.name_exists(payload.name):
@@ -144,6 +154,9 @@ class MaterialService:
             keywords=payload.keywords,
             is_demo=payload.is_demo,
             is_active=True,
+            # NULL keeps it in the shared catalogue, which is what every caller
+            # before P1-4 meant and still means.
+            owner_id=self.viewer_id if payload.is_own_record else None,
         )
         self.repo.add(material)
         self.repo.flush()
