@@ -51,6 +51,7 @@ export {
   ProvenanceDetails,
   ProvenancePopover,
   provenanceOfCell,
+  provenanceOfProcessAttribute,
   provenanceOfProperty,
   qualityState,
   type Provenance,

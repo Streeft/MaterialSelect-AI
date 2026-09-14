@@ -57,7 +57,7 @@ beforeEach(() => {
 const rail = () => screen.getByShadowRole("navigation", { name: ptBR.ui.mainNav });
 
 describe("AppSidebar", () => {
-  it("groups the eight links under what someone came here to do", () => {
+  it("groups every link under what someone came here to do", () => {
     renderSidebar();
     const nav = rail();
 
@@ -186,7 +186,7 @@ describe("AppSidebar", () => {
       expect(trigger).toHaveAttribute("aria-expanded", "false");
     });
 
-    it("carries the same nine destinations as the rail", async () => {
+    it("carries the same ten destinations as the rail", async () => {
       const user = userEvent.setup();
       renderSidebar();
       await user.click(await screen.findByShadowRole("button", { name: ptBR.ui.openMenu }));
@@ -195,7 +195,8 @@ describe("AppSidebar", () => {
       for (const group of [ptBR.nav.groupStudy, ptBR.nav.groupData, ptBR.nav.groupAdmin]) {
         expect(within(drawer).getByShadowRole("list", { name: group })).toBeInTheDocument();
       }
-      expect(within(drawer).getAllByShadowRole("link")).toHaveLength(10); // 9 + o wordmark
+      // Dez desde o P1-4, que deu porta de entrada ao universo de processos.
+      expect(within(drawer).getAllByShadowRole("link")).toHaveLength(11); // 10 + o wordmark
     });
 
     it("marks the current page inside the drawer too", async () => {
