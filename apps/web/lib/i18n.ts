@@ -597,6 +597,34 @@ export const ptBR = {
     laudoResponsibleLabel: "Responsável técnico (opcional)",
     laudoResponsiblePlaceholder: "Nome de quem assina a leitura",
   },
+  similar: {
+    title: "Materiais semelhantes",
+    hint: "Escolha em que aspectos \u201Csemelhante\u201D quer dizer. A distância é medida só sobre essas propriedades.",
+    basisLabel: "Comparar por",
+    basisEmpty: "Escolha ao menos uma propriedade para comparar.",
+    search: "Buscar semelhantes",
+    loading: "Procurando semelhantes…",
+    empty: "Nenhum material pôde ser comparado nesta base.",
+    // A distância só é comparável dentro de uma resposta: a escala vem da
+    // dispersão daquele conjunto. Dizê-lo evita que o número seja lido como
+    // uma medida absoluta.
+    distanceHint:
+      "A distância é adimensional e só se compara dentro desta resposta: a escala vem da dispersão deste conjunto.",
+    distance: "Distância",
+    basisUsed: "Base usada",
+    excludedTitle: "Fora desta comparação",
+    excludedHint:
+      "Sem valor para alguma propriedade da base. Não foram comparados pelo que têm — seria outra pergunta na mesma lista.",
+    excludedMissing: "sem",
+    degenerateTitle: "Não separaram ninguém",
+    degenerateHint:
+      "Todos os registros têm o mesmo valor: a propriedade não contribuiu para a distância.",
+    linearTitle: "Medidas em escala linear",
+    linearHint:
+      "Pediam escala logarítmica, mas algum registro tem valor não positivo — e log não existe ali.",
+  },
+
+
   myRecords: {
     title: "Meus registros",
     subtitle: "O que você marcou, o que abriu por último e o que cadastrou para si.",
@@ -859,6 +887,21 @@ export const ptBR = {
     columnMax: "Máximo",
   },
   compare: {
+    // P2: a referência é parâmetro da pergunta, nunca estado no servidor.
+    reference: "Referência",
+    setReference: "Definir como referência",
+    clearReference: "Limpar referência",
+    isReference: "Esta é a referência",
+    differenceHeader: "Dif. %",
+    // Cada ausência tem razão própria, e todas parecem célula em branco (D-24).
+    difference: {
+      sem_referencia: "Sem referência escolhida",
+      referencia: "Referência",
+      valor_ausente: "Este material não tem o valor",
+      referencia_ausente: "A referência não tem o valor",
+      referencia_zero: "A referência vale zero: não há razão",
+      escala_sem_zero: "Escala sem zero verdadeiro: percentual não significa nada",
+    },
     title: "Comparador de materiais",
     subtitle:
       "Tabela, barras, radar, coordenadas paralelas e heatmap sobre valores normalizados no backend.",

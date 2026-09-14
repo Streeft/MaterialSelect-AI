@@ -935,7 +935,32 @@ export interface ComparisonRequest {
   material_ids: number[];
   property_slugs: string[];
   normalization: NormalizationMethod;
+  /**
+   * P2: the record everything else is measured against. A parameter of the
+   * question, never server state — "compared against X" is something a reader
+   * asks, so it travels in the request and in the shareable URL. It must be one
+   * of `material_ids`: a reference outside the table would make every
+   * percentage uncheckable.
+   */
+  reference_id?: number | null;
 }
+
+/**
+ * Why a percentage difference is, or is not, a number (P2).
+ *
+ * Six states rather than a nullable float, because every absence here has a
+ * different reason and the reader needs the one that applies: a blank where the
+ * reference has no value and a blank where the unit has no true zero look
+ * identical and mean nothing alike (D-24).
+ */
+export type DifferenceState =
+  | "calculada"
+  | "referencia"
+  | "sem_referencia"
+  | "valor_ausente"
+  | "referencia_ausente"
+  | "referencia_zero"
+  | "escala_sem_zero";
 
 export interface CompareAxis {
   property_slug: string;
@@ -966,6 +991,9 @@ export interface CompareCell {
   data_quality: DataQuality | null;
   source_label: string | null;
   measurement_condition: string | null;
+  /** P2. Null whenever `difference_state` is anything but "calculada". */
+  difference_pct: number | null;
+  difference_state: DifferenceState;
 }
 
 export interface CompareMaterial {
@@ -1204,4 +1232,60 @@ export interface MyRecords {
   favorites: Bookmark[];
   recents: Bookmark[];
   own_records: MaterialListItem[];
+}
+
+// --- Find Similar (P2) ------------------------------------------------------
+
+/**
+ * Which properties "similar" means, and how many neighbours to return.
+ *
+ * `property_slugs` has no default on the server, deliberately: defaulting to
+ * "every property the reference happens to have" would let the catalogue's
+ * recording habits choose the question without the reader seeing it chosen. The
+ * interface proposes a basis; the request states one.
+ */
+export interface SimilarRequest {
+  property_slugs: string[];
+  limit?: number;
+}
+
+export interface Neighbour {
+  record_id: number;
+  name: string;
+  class_name: string;
+  class_slug: string;
+  is_demo: boolean;
+  is_own_record: boolean;
+  /**
+   * Dimensionless, and comparable only *within one answer*: the scaling comes
+   * from that pool's own spread, so 0.4 here and 0.4 in another run are not the
+   * same statement.
+   */
+  distance: number;
+  rank: number;
+  /** Per-property squared contribution, so a position can be explained. */
+  contributions: Record<string, number>;
+}
+
+/** A record that could not be placed on the basis, and what it lacked. */
+export interface SimilarExcluded {
+  record_id: number;
+  name: string;
+  missing_slugs: string[];
+  missing_labels: string[];
+}
+
+export interface Similar {
+  reference_id: number;
+  reference_name: string;
+  basis: string[];
+  basis_labels: string[];
+  neighbours: Neighbour[];
+  excluded: SimilarExcluded[];
+  /** Basis properties every record agreed on: they separated nobody. */
+  degenerate: string[];
+  degenerate_labels: string[];
+  /** Basis properties measured linearly despite asking for log space. */
+  linear_fallback: string[];
+  linear_fallback_labels: string[];
 }

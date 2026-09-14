@@ -6,6 +6,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { deactivateMaterial, getChart, getMaterial } from "@/lib/api";
 import { ptBR } from "@/lib/i18n";
 import { FavoriteButton } from "@/components/my-records/FavoriteButton";
+import { SimilarPanel } from "@/components/similar/SimilarPanel";
 import { useRecordVisit } from "@/components/my-records/useRecordVisit";
 import { classVisual } from "@/lib/design/palette";
 import { PropertyGroupCard } from "@/components/PropertyGroup";
@@ -211,6 +212,12 @@ export default function MaterialDetailPage() {
                   </Card>
                 )}
               </Section>
+
+              {/* P2: "what resembles this" is a question about a record, so it
+                  lives on the record's own page — the same reasoning that put
+                  the compatible processes here rather than behind a second
+                  screen. */}
+              <SimilarPanel material={data} />
 
               {chart.data && <PropertyChart data={chart.data} highlightMaterialId={id} />}
               {chart.data && (

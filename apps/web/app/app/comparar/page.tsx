@@ -52,6 +52,14 @@ function ComparePageContent() {
     parseIds(params.get("materiais")).slice(0, MAX_MATERIALS),
   );
   const [selectedProperties, setSelectedProperties] = useState<string[]>([]);
+  // P2: the reference is read from the URL like the material list beside it, so
+  // "compared against X" survives a reload and travels in a shared link (B1).
+  // A reference held on the server would make the same URL render two different
+  // tables for two people.
+  const [referenceId, setReferenceId] = useState<number | null>(() => {
+    const raw = Number(params.get("referencia"));
+    return Number.isInteger(raw) && raw > 0 ? raw : null;
+  });
   const [normalization, setNormalization] = useState<NormalizationMethod>("minmax");
   const [mode, setMode] = useState<ComparisonMode>("table");
   const [search, setSearch] = useState("");
@@ -80,13 +88,20 @@ function ComparePageContent() {
     );
   }, [materials.data, search]);
 
+  // A reference that is no longer among the compared materials is dropped
+  // rather than sent: the API refuses it, and the reader removing a row should
+  // not be handed an error for it.
+  const activeReference =
+    referenceId !== null && selectedMaterials.includes(referenceId) ? referenceId : null;
+
   const request = useMemo<ComparisonRequest>(
     () => ({
       material_ids: selectedMaterials,
       property_slugs: selectedProperties,
       normalization,
+      reference_id: activeReference,
     }),
-    [selectedMaterials, selectedProperties, normalization],
+    [selectedMaterials, selectedProperties, normalization, activeReference],
   );
 
   const ready = selectedMaterials.length > 0 && selectedProperties.length > 0;
@@ -250,7 +265,14 @@ function ComparePageContent() {
             />
           )}
 
-          {comparison.data && <ComparisonView comparison={comparison.data} mode={mode} />}
+          {comparison.data && (
+            <ComparisonView
+              comparison={comparison.data}
+              mode={mode}
+              referenceId={activeReference}
+              onSetReference={setReferenceId}
+            />
+          )}
         </Tabs>
       </Section>
 
