@@ -23,7 +23,7 @@ from app.calculations.expressions import (
 )
 from app.calculations.performance import IndexEvaluation, evaluate_index
 from app.calculations.powerlaw import IndexLine, index_line
-from app.calculations.units import UnitError, to_canonical, to_canonical_delta
+from app.calculations.units import UnitError, is_ratio_scale, to_canonical, to_canonical_delta
 from app.domain.errors import NotFoundError, ValidationError
 from app.domain.geometry import Point, convex_hull, fitted_ellipse
 from app.domain.ranking import Direction, Normalization, normalize_column
@@ -40,6 +40,7 @@ from app.schemas.charts import (
     CompareMaterialOut,
     CompareOut,
     CompareRequest,
+    DifferenceState,
     ExcludedPointOut,
     IndexLevelOut,
     IndexOverlayOut,
@@ -620,6 +621,15 @@ class ChartService:
 
         # Requested order is preserved: it may carry meaning (a ranking).
         ordered = [materials[mid] for mid in material_ids]
+
+        # P2: a reference outside the table would have the rows measured against
+        # something the reader cannot see — every percentage would be
+        # uncheckable. So it has to be one of the compared materials.
+        reference_id = request.reference_id
+        if reference_id is not None and reference_id not in materials:
+            raise ValidationError(
+                "A referência precisa ser um dos materiais comparados: " f"{reference_id}"
+            )
         method = Normalization(request.normalization)
         notes: list[str] = []
 
@@ -685,6 +695,19 @@ class ChartService:
                 )
             )
 
+        # Whether a *ratio* means anything is a fact about the unit, so it is
+        # settled once per property rather than re-derived in every cell.
+        ratio_scale = {
+            slug: is_ratio_scale(definitions[slug].canonical_unit) for slug in property_slugs
+        }
+        for slug in property_slugs:
+            if reference_id is not None and not ratio_scale[slug]:
+                notes.append(
+                    f"'{definitions[slug].name}' está numa escala sem zero verdadeiro "
+                    f"({definitions[slug].canonical_unit}): uma diferença percentual não "
+                    "significa nada ali e não é calculada."
+                )
+
         rows = [
             CompareMaterialOut(
                 material_id=material.id,
@@ -693,7 +716,18 @@ class ChartService:
                 class_slug=material.material_class.slug,
                 is_demo=material.is_demo,
                 cells=[
-                    self._cell(slug, raw[slug].get(material.id), normalized[slug].get(material.id))
+                    self._cell(
+                        slug,
+                        raw[slug].get(material.id),
+                        normalized[slug].get(material.id),
+                        difference=self._difference(
+                            value=raw[slug].get(material.id),
+                            reference=raw[slug].get(reference_id) if reference_id else None,
+                            reference_id=reference_id,
+                            material_id=material.id,
+                            ratio_scale=ratio_scale[slug],
+                        ),
+                    )
                     for slug in property_slugs
                 ],
                 complete=all(material.id in raw[slug] for slug in property_slugs),
@@ -704,14 +738,58 @@ class ChartService:
         return CompareOut(normalization=method.value, properties=axes, materials=rows, notes=notes)
 
     @staticmethod
+    def _difference(
+        *,
+        value: MaterialPropertyValue | None,
+        reference: MaterialPropertyValue | None,
+        reference_id: int | None,
+        material_id: int,
+        ratio_scale: bool,
+    ) -> tuple[float | None, DifferenceState]:
+        """The percentage difference from the reference, or why there is none.
+
+        The order of these tests is the order a reader would ask them in, and
+        each one returns a *named* absence rather than a blank: a cell with no
+        value and a cell whose unit has no true zero look identical on screen and
+        mean nothing alike (D-24).
+        """
+        if reference_id is None:
+            return None, "sem_referencia"
+        if material_id == reference_id:
+            # Zero by definition — and saying "this is the reference" is more
+            # use to a reader than printing 0 %, which invites the question.
+            return None, "referencia"
+        if not ratio_scale:
+            return None, "escala_sem_zero"
+        if reference is None or reference.normalized_value is None:
+            return None, "referencia_ausente"
+        if value is None or value.normalized_value is None:
+            return None, "valor_ausente"
+        base = float(reference.normalized_value)
+        if base == 0:
+            return None, "referencia_zero"
+        return (float(value.normalized_value) - base) / base * 100.0, "calculada"
+
+    @staticmethod
     def _cell(
-        slug: str, value: MaterialPropertyValue | None, normalized: float | None
+        slug: str,
+        value: MaterialPropertyValue | None,
+        normalized: float | None,
+        difference: tuple[float | None, DifferenceState] = (None, "sem_referencia"),
     ) -> CompareCellOut:
+        difference_pct, difference_state = difference
         if value is None:
-            return CompareCellOut(property_slug=slug, is_missing=True)
+            return CompareCellOut(
+                property_slug=slug,
+                is_missing=True,
+                difference_pct=difference_pct,
+                difference_state=difference_state,
+            )
         return CompareCellOut(
             property_slug=slug,
             is_missing=False,
+            difference_pct=difference_pct,
+            difference_state=difference_state,
             value=value.normalized_value,
             normalized=normalized,
             value_min=value.value_min,
