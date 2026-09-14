@@ -12,9 +12,14 @@ import type {
   Comparison,
   DashboardOverview,
   MaterialClass,
+  MaterialClassDetail,
   MaterialDetail,
   MaterialListItem,
   PerformanceIndex,
+  Process,
+  ProcessClass,
+  ProcessClassDetail,
+  ProcessDetail,
   PropertyDefinition,
   PropertyDistribution,
   PropertyMap,
@@ -45,7 +50,11 @@ const nav = vi.hoisted(() => ({ query: "" }));
 
 vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(nav.query),
-  useParams: () => ({ id: "1" }),
+  // `id` for the material datasheet, `slug` for the browse routes (P1-4). Both
+  // at once because each page reads only its own key, and a `slug` of undefined
+  // leaves those queries disabled — the page would stay on its loading state and
+  // the audit would time out on a screen that never rendered.
+  useParams: () => ({ id: "1", slug: "fundicao" }),
   useRouter: () => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn() }),
   usePathname: () => "/",
 }));
@@ -473,12 +482,123 @@ const aiStatus: AIStatus = {
 
 // `ApiError` comes from the real module: the pages narrow on it with
 // `instanceof`, and a look-alike declared here would silently never match.
+// P1-4: the browse screens. Populated rather than empty, because an empty page
+// is an empty state and not the screen worth auditing — the violations live in
+// the trail, the badges and the provenance triggers a real folder renders.
+const processClasses: ProcessClass[] = [
+  {
+    id: 1,
+    name: "Conformação",
+    slug: "conformacao",
+    parent_id: null,
+    description: null,
+    process_count: 0,
+  },
+  {
+    id: 2,
+    name: "Conformação em estado líquido",
+    slug: "conformacao-liquido",
+    parent_id: 1,
+    description: null,
+    process_count: 1,
+  },
+];
+
+const processes: Process[] = [
+  {
+    id: 10,
+    name: "Fundição",
+    slug: "fundicao",
+    class_id: 2,
+    class_name: "Conformação em estado líquido",
+    class_slug: "conformacao-liquido",
+    description: "Verte metal líquido num molde.",
+    is_demo: true,
+    material_count: 2,
+  },
+];
+
+const processDetail: ProcessDetail = {
+  ...(processes[0] as Process),
+  attributes: [
+    {
+      attribute_id: 1,
+      attribute_name: "Faixa de massa",
+      attribute_slug: "faixa-massa",
+      kind: "ENVELOPE",
+      value_scalar: null,
+      value_min: 0.2,
+      value_max: 400,
+      value_typical: 200.1,
+      labels: [],
+      original_unit: "kg",
+      normalized_value: 200.1,
+      normalized_min: 0.2,
+      normalized_max: 400,
+      canonical_unit: "kg",
+      conversion_method: "identity:kg",
+      uncertainty: null,
+      measurement_condition: null,
+      notes: null,
+      source_label: "Dados demonstrativos",
+      data_quality: "ESTIMADO",
+      is_missing: false,
+    },
+    {
+      attribute_id: 2,
+      attribute_name: "Lote econômico",
+      attribute_slug: "lote-economico",
+      kind: "ESCALAR",
+      value_scalar: null,
+      value_min: null,
+      value_max: null,
+      value_typical: null,
+      labels: [],
+      original_unit: null,
+      normalized_value: null,
+      normalized_min: null,
+      normalized_max: null,
+      canonical_unit: null,
+      conversion_method: null,
+      uncertainty: null,
+      measurement_condition: null,
+      notes: null,
+      source_label: null,
+      data_quality: "ESTIMADO",
+      is_missing: true,
+    },
+  ],
+};
+
+const processFamily: ProcessClassDetail = {
+  ...(processClasses[0] as ProcessClass),
+  applications: "Produção em série da forma primária.",
+  // Null on purpose: the written-absence path is the one worth auditing.
+  characteristics: null,
+  ancestors: [],
+  children: [processClasses[1] as ProcessClass],
+  descendant_process_count: 1,
+  processes: [],
+};
+
+const materialFamily: MaterialClassDetail = {
+  ...(classes[0] as MaterialClass),
+  applications: "Estruturas e componentes de máquina.",
+  characteristics: "Condutores, dúcteis, módulo alto.",
+  ancestors: [],
+  children: [],
+  descendant_material_count: 2,
+};
+
 vi.mock("@/lib/api", async (importOriginal) => ({
   ApiError: (await importOriginal<typeof import("@/lib/api")>()).ApiError,
   listMaterials: () => Promise.resolve(materials),
   listClasses: () => Promise.resolve(classes),
-  listProcesses: () => Promise.resolve([]),
-  listProcessClasses: () => Promise.resolve([]),
+  listProcesses: () => Promise.resolve(processes),
+  listProcessClasses: () => Promise.resolve(processClasses),
+  getProcess: () => Promise.resolve(processDetail),
+  getProcessClass: () => Promise.resolve(processFamily),
+  getClass: () => Promise.resolve(materialFamily),
   listProcessAttributes: () => Promise.resolve([]),
   listProperties: () => Promise.resolve(properties),
   listPerformanceIndices: () => Promise.resolve(indices),
@@ -544,6 +664,10 @@ const { default: StylePage } = await import("./estilo/page");
 const { default: DashboardPage } = await import("./painel/page");
 const { default: SelectionPage } = await import("./selecao/page");
 const { default: ImportPage } = await import("./importar/page");
+const { default: ProcessesPage } = await import("./processos/page");
+const { default: ProcessDetailPage } = await import("./processos/[slug]/page");
+const { default: ProcessFamilyPage } = await import("./processos/familia/[slug]/page");
+const { default: MaterialFamilyPage } = await import("./catalogo/[slug]/page");
 
 function makeClient() {
   return new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -633,6 +757,28 @@ describe("acessibilidade das telas principais", () => {
 
   it("importação", async () => {
     await auditRoute(<ImportPage />, ptBR.importer.title);
+  });
+
+  // P1-4: the browse screens. The datasheet is where a provenance trigger sits
+  // next to a written absence, and the family page is where the trail lives —
+  // both are patterns the rest of the product reuses.
+  it("processos", async () => {
+    await auditRoute(<ProcessesPage />, ptBR.processes.title);
+  });
+
+  it("ficha do processo", async () => {
+    // O marcador é o `h1` da página — o nome do processo —, não um parágrafo:
+    // `auditRoute` espera um heading, e esperar por texto solto auditaria a
+    // tela antes de ela ter terminado de chegar.
+    await auditRoute(<ProcessDetailPage />, "Fundição");
+  });
+
+  it("família de processo", async () => {
+    await auditRoute(<ProcessFamilyPage />, "Conformação");
+  });
+
+  it("família de material", async () => {
+    await auditRoute(<MaterialFamilyPage />, "Metais");
   });
 
   // Landing is the one route in this file that isn't under `/app`: no session,

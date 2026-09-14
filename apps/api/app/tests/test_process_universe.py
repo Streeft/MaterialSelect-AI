@@ -95,9 +95,25 @@ def test_list_process_classes_counts_only_what_sits_directly_in_each_folder(
     # f"{NS}-conformacao" holds no process directly — both of its children do.
     assert by_slug[f"{NS}-conformacao"]["process_count"] == 0
     assert by_slug[f"{NS}-liquido"]["process_count"] == 1
-    # Two, because the inactive one is still filed here: the count describes the
-    # folder, and hiding it would make an operator wonder where it went.
-    assert by_slug[f"{NS}-uniao"]["process_count"] == 2
+    # One, not two: the withdrawn process filed here is not counted.
+    #
+    # This reverses what this test asserted until P1-4, and the earlier reason
+    # was a real one — "the count describes the folder, and hiding a withdrawn
+    # process would make an operator wonder where it went". Three things settled
+    # it the other way:
+    #
+    # * The repository's own docstring always said the count answers "is this
+    #   folder empty". A folder whose only process is withdrawn admits nobody in
+    #   a stage, so by that question it *is* empty. The two readings had been
+    #   coexisting in the same file.
+    # * The operator that rationale serves has no screen: the process catalogue
+    #   is read-only, and making it editable is still an open P1 item. When that
+    #   screen arrives it can ask for a filed-total as its own field, with its own
+    #   purpose — better than repurposing this one.
+    # * P1-4 puts the count **next to the list** on the family record, and every
+    #   list in the tool excludes withdrawn processes. A folder reporting two and
+    #   handing back one reads as a page that lost a row.
+    assert by_slug[f"{NS}-uniao"]["process_count"] == 1
     assert by_slug[f"{NS}-liquido"]["parent_id"] == by_slug[f"{NS}-conformacao"]["id"]
 
 

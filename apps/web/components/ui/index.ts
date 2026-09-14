@@ -10,6 +10,7 @@
 export { Alert, type AlertTone } from "./Alert";
 export { Badge, ClassBadge, type BadgeTone } from "./Badge";
 export { Bar } from "./Bar";
+export { Breadcrumb, type Crumb } from "./Breadcrumb";
 export {
   Button,
   ButtonGroup,
@@ -50,6 +51,7 @@ export {
   ProvenanceDetails,
   ProvenancePopover,
   provenanceOfCell,
+  provenanceOfProcessAttribute,
   provenanceOfProperty,
   qualityState,
   type Provenance,

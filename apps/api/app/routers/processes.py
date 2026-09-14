@@ -18,6 +18,7 @@ from app.dependencies import get_current_user
 from app.models.user import User
 from app.schemas.process import (
     ProcessAttributeOut,
+    ProcessClassDetailOut,
     ProcessClassOut,
     ProcessDetailOut,
     ProcessOut,
@@ -36,6 +37,16 @@ def list_process_classes(
 ) -> list[ProcessClassOut]:
     """List the process taxonomy, with how many processes sit directly in each folder."""
     return ProcessService(db).list_classes()
+
+
+# Right after "/classes" and well before "/{slug}": a folder slug and a process
+# slug live in different namespaces, and the path segment is what separates them.
+@router.get("/classes/{slug}", response_model=ProcessClassDetailOut)
+def get_process_class(
+    slug: str, db: Session = Depends(get_db), user: User = Depends(get_current_user)
+) -> ProcessClassDetailOut:
+    """One process family as a record: prose, breadcrumb, subfolders, processes (P1-4)."""
+    return ProcessService(db).get_class(slug)
 
 
 @router.get("/attributes", response_model=list[ProcessAttributeOut])

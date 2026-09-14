@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [16](#sessão-16--130926-a-140926--p1-3-a-taxonomia-vira-registro-e-o-segundo-universo-se-navega) | 13 e 14/09/2026 | P1-3 (browse: registro de família, árvore navegável, trilha e a ficha do processo, D-61) | 1209 → 1234 | 253 → 277 |
 | [15](#sessão-15--110926-a-130926--p1-2-o-gráfico-passa-a-reprovar) | 11 e 13/09/2026 | P1-2 (Chart Stage: a região de um plano como critério, D-60) — o único nível 1 da matriz de maturidade | 1141 → 1209 | 232 → 253 |
 | [14](#sessão-14--100926-a-110926--p0-4-processo-passa-a-ter-atributo-e-o-exercício-11-fecha) | 10 e 11/09/2026 | P0-4 (atributos de processo com proveniência, envelope de capacidade e discreto, D-59) — o quarto e último gargalo P0 | 1076 → 1141 | 225 → 232 |
 | [13](#sessão-13--090926-a-100926--p0-1-p0-2-e-p0-3-a-plataforma-de-seleção-ganha-pilha-segundo-universo-e-escolha-de-resultado) | 09 e 10/09/2026 | P0-1 (pilha de estágios, D-56), P0-2 (universo de processos, D-57) e P0-3 (universo do resultado, D-58), a partir da análise de lacunas contra os manuais do EduPack | 884 → 1076 | 197 → 225 |
@@ -31,6 +32,51 @@ As sessões entre a 11 e a 12 — o patch de design "Prisma" (D-49, D-50), o
 upgrade de segurança S1 e a rodada de desempenho — **não têm seção própria
 aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
+
+---
+
+## Sessão 16 — 13/09/26 a 14/09/26 — P1-3: a taxonomia vira registro, e o segundo universo se navega
+
+**O pedido.** "Continue", depois que a PR do P1-2 foi mesclada. Entre as duas
+frentes de P1 restantes — `My Records` e o browse — a escolha foi o **browse**,
+dita e justificada na hora: `My Records` mexe na fronteira que o D-42
+estabeleceu (catálogo compartilhado entre todo usuário autenticado) e interage
+com o portão de assinatura, enquanto o browse é apresentação sobre modelos que
+já existem e move três capacidades da matriz.
+
+**O que foi entregue** ([D-61](DECISIONS.md)), em cinco passos:
+
+1. **Registro de família.** `applications`/`characteristics` nas duas taxonomias,
+   migração aditiva `a7d51c93e084` sem backfill, e as duas rotas de detalhe com
+   prosa, trilha e subpastas.
+2. **Seed.** Texto para quatro famílias de material e três de processo, com
+   `elastomeros` deixada sem texto de propósito.
+3. **Ficha do processo na tela**, mais `/app/processos` e a família de processo.
+4. **Árvore navegável, trilha e ficha da família de material.**
+5. **Documentação e portão.**
+
+**O achado que vale a sessão.** Escrevendo o teste do registro de família, uma
+asserção quebrou e mostrou que `process_count` contava processos **inativos**
+enquanto toda lista os excluía — uma pasta diria "2 processos" e entregaria um.
+Comecei a tratar como defeito e o teste antigo tinha **razão escrita**: era
+decisão, não descuido. A reversão foi feita mesmo assim, com os três motivos no
+D-61, e o teste antigo foi **reescrito com o raciocínio inteiro** em vez de
+apagado. O autor foi consultado antes de o trabalho continuar em cima dela.
+
+**O que a suíte pegou sozinha.** O teste de acessibilidade de `/estilo` reprovou
+a seção nova da `Breadcrumb` no instante em que ela entrou: dois `nav` com o
+mesmo nome acessível violam `landmark-unique`. É para isso que a prop `label`
+existe, e uma página real tem uma trilha só.
+
+**Cobertura EduPack: de ~56% para ~62%** (20 de 32 em nível ≥ 3), nível médio de
+2,25 para **2,44**. Duas linhas de uma vez — Browse 2→4 e Registro de família
+0→3 —, e a leitura honesta está escrita no roteiro: o salto é grande porque caiu
+sobre as duas capacidades mais atrasadas da tabela, uma delas a única em zero, e
+quase tudo que precisou já existia no backend.
+
+**O que ficou de fora:** favoritos e recentes (que são `My Records`), *Science
+Notes* e imagem de família, e o catálogo de processos editável — registrado
+desde o P0-2.
 
 ---
 

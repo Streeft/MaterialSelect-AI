@@ -6,12 +6,18 @@ from sqlalchemy.orm import Session
 
 from app.domain.errors import ConflictError, NotFoundError, ValidationError
 from app.domain.slug import slugify
+from app.domain.taxonomy import lineages
 from app.models.enums import AuditAction, AuditEntityType
 from app.models.material_class import MaterialClass
 from app.models.user import User
 from app.repositories.audit_repository import AuditRepository
 from app.repositories.material_class_repository import MaterialClassRepository
-from app.schemas.material_class import MaterialClassIn, MaterialClassOut
+from app.schemas.material_class import (
+    ClassRefOut,
+    MaterialClassDetailOut,
+    MaterialClassIn,
+    MaterialClassOut,
+)
 from app.services.audit_service import diff_fields, record_change
 
 
@@ -26,6 +32,55 @@ class TaxonomyService:
     def list_classes(self) -> list[MaterialClassOut]:
         return [self._to_out(cls, count) for cls, count in self.repo.list_with_counts()]
 
+    def get_class(self, slug: str) -> MaterialClassDetailOut:
+        """One family as a record: its prose, its breadcrumb and its subfolders (P1-4).
+
+        Built from the **whole** taxonomy in one read rather than from a query
+        per question. A taxonomy is a folder tree — tens of rows, not the data
+        table — so walking it in memory costs less than three round trips, and it
+        is what lets the ancestry come from ``app.domain.taxonomy.lineages``:
+        the same walk the Tree stage uses, so a breadcrumb and a stage can never
+        disagree about who is under whom.
+        """
+        rows = self.repo.list_with_counts()
+        by_slug = {cls.slug: (cls, count) for cls, count in rows}
+        found = by_slug.get(slug)
+        if found is None:
+            raise NotFoundError(f"Classe não encontrada: {slug}")
+        cls, direct_count = found
+
+        slug_by_id = {c.id: c.slug for c, _ in rows}
+        parents = {c.slug: slug_by_id.get(c.parent_id) for c, _ in rows}
+        paths = lineages(parents)
+
+        return MaterialClassDetailOut(
+            id=cls.id,
+            name=cls.name,
+            slug=cls.slug,
+            parent_id=cls.parent_id,
+            description=cls.description,
+            material_count=direct_count,
+            applications=cls.applications,
+            characteristics=cls.characteristics,
+            # Root→parent: the last element of the path is this class itself, and
+            # the page the reader is on is not a link back to itself.
+            ancestors=[
+                ClassRefOut(
+                    id=by_slug[ancestor][0].id, name=by_slug[ancestor][0].name, slug=ancestor
+                )
+                for ancestor in paths[slug][:-1]
+                if ancestor in by_slug
+            ],
+            children=[
+                self._to_out(child, count) for child, count in rows if child.parent_id == cls.id
+            ],
+            # This folder and everything below it — `slug in path` is true for the
+            # class itself, which is the meaning wanted: "how much is in here".
+            descendant_material_count=sum(
+                count for child, count in rows if slug in paths[child.slug]
+            ),
+        )
+
     def create_class(self, payload: MaterialClassIn) -> MaterialClassOut:
         slug = self._resolve_slug(payload)
         if self.repo.slug_exists(slug):
@@ -39,6 +94,8 @@ class TaxonomyService:
             slug=slug,
             parent_id=payload.parent_id,
             description=payload.description,
+            applications=payload.applications,
+            characteristics=payload.characteristics,
         )
         self.repo.add(obj)
         self.repo.flush()
@@ -70,6 +127,8 @@ class TaxonomyService:
         obj.slug = slug
         obj.parent_id = payload.parent_id
         obj.description = payload.description
+        obj.applications = payload.applications
+        obj.characteristics = payload.characteristics
 
         changes = diff_fields(before, self._snapshot(obj))
         if changes:
@@ -111,6 +170,10 @@ class TaxonomyService:
             "slug": obj.slug,
             "parent_id": obj.parent_id,
             "description": obj.description,
+            # P1-4: family prose is part of the record, so a change to it is a
+            # change the audit trail must be able to answer for.
+            "applications": obj.applications,
+            "characteristics": obj.characteristics,
         }
 
     # --- helpers ----------------------------------------------------------

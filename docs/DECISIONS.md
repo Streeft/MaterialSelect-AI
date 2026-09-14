@@ -2777,3 +2777,114 @@ significado com o tamanho da janela); tratar limite ausente como zero (inventa u
 limite); deixar o estágio admitir registro não plotável quando a caixa não limita
 aquele eixo (o critério é a região, e quem não está na figura não está na
 região).
+
+---
+
+## D-61 — Uma pasta da taxonomia é um registro, e o segundo universo se navega
+
+**Contexto.** O método abre no *browse*: uma árvore de pastas, uma trilha que diz
+onde se está, e a pasta aberta como página própria — com o que a família **é**,
+não só o que está dentro dela. Aqui a hierarquia existia no motor desde o P0-1
+([D-56](DECISIONS.md)) e não existia na tela. Duas lacunas concretas: o catálogo
+tinha uma caixa de seleção plana, que lista classe aninhada e raiz
+indistintamente, e o universo de processos não tinha porta de entrada nenhuma —
+era alcançável só de dentro de um estágio de seleção e da ficha de um material, o
+que fazia dele algo que se *usa* e nunca algo que se *navega*.
+
+**Decisão.**
+
+- **Uma pasta passa a carregar prosa, e essa prosa está fora do princípio 1 por
+  construção.** `applications` e `characteristics` em `MaterialClass` e
+  `ProcessClass` são texto editorial: nada ali é comparado, convertido,
+  ranqueado ou plotado. O princípio 1 governa *valor de propriedade*, e uma frase
+  sobre uma família não é um. O que as segura é a regra oposta e ela é estrita:
+  **NULL quer dizer "ninguém escreveu"**, estado diferente de string vazia, e a
+  tela desenha isso com rótulo escrito (D-24) — um painel em branco leria como
+  "esta família não tem aplicações", que é uma afirmação que o catálogo nunca
+  fez. O seed deixa `elastomeros` sem texto de propósito, pelo mesmo motivo que
+  deixa `condutividade_termica` sem valor.
+
+- **As duas taxonomias mudam juntas.** A assimetria seria pior que a duplicação:
+  o [D-57](DECISIONS.md) deu ao universo de processos a mesma taxonomia que ao de
+  materiais justamente para que os dois respondessem às mesmas perguntas, e uma
+  família de processo que não pudesse ser navegada enquanto uma classe de
+  material pudesse seria exatamente o que aquela decisão evitou.
+
+- **O breadcrumb sai de `app.domain.taxonomy.lineages`** — a mesma travessia que
+  o Tree Stage usa —, então uma trilha e um estágio não podem discordar sobre
+  quem está sob quem. Exclui a própria pasta: a página em que o leitor está não é
+  link de volta para ela mesma, e `href` opcional em `Crumb` torna isso
+  irrepresentável por acidente.
+
+- **`descendant_*_count` é o que torna a árvore navegável.** A contagem direta é
+  0 num galho puro *por desenho* — é o que responde "esta pasta está vazia" —, e
+  sem o total da subárvore o leitor não distingue "pasta vazia" de "pasta cujo
+  conteúdo está um nível abaixo", e não tem por que abri-la. As duas contagens
+  aparecem juntas, para que nenhuma das duas leituras fique escondida.
+
+- **A ficha da família mostra o que está nela *e abaixo dela*.** Galho puro
+  renderizaria página vazia de outro jeito, mandando quem abriu "Metais" caçar
+  metais nas subclasses. Os cartões de subclasse são como se estreita a partir
+  dali.
+
+- **Navegar e filtrar convivem, porque são perguntas diferentes.** O seletor de
+  classe estreita a lista da tela do catálogo; um cartão de família *sai* para a
+  página daquela família. Colapsar num controle só custaria a pergunta que
+  perdesse.
+
+- **A prosa não vai na listagem, só no detalhe.** A lista desenha um seletor e
+  uma árvore, e pendurar dois parágrafos por classe nela mandaria o texto
+  editorial da taxonomia inteira para renderizar um dropdown — a mesma razão pela
+  qual `ProcessDetailOut` é separado de `ProcessOut`. Vai no `_snapshot` da
+  auditoria, porque texto de família é parte do registro e o M2 tem de responder
+  por uma mudança nele.
+
+- **A ficha do processo é a mesma experiência de leitura da ficha do material.**
+  `GET /api/processes/{slug}` devolvia tudo desde o P0-4 e nada renderizava.
+  `provenanceOfProcessAttribute` é um terceiro **adaptador** e não um terceiro
+  popover: o trilho é o trilho. E o **tipo do valor** aparece ao lado de cada
+  atributo, porque envelope é comparado por alcance e escalar pelo próprio valor
+  ([D-59](DECISIONS.md)) — quem não vê qual regra se aplica não consegue conferir
+  a seleção que a usou. É a obrigação do D-59 trazida para a tela.
+
+- **`process_count` passa a contar só processos ativos.** Isto reverte uma
+  decisão anterior, que tinha razão escrita ("a contagem descreve a pasta, e
+  esconder um processo retirado faria o operador se perguntar onde ele foi").
+  Três coisas resolveram do outro lado: o docstring do próprio repositório sempre
+  disse que a contagem responde **"esta pasta está vazia"**, e pasta cujo único
+  processo foi retirado não admite ninguém num estágio; o operador que aquela
+  razão servia **não tem tela**, porque o catálogo de processos é somente leitura
+  e torná-lo editável segue item de P1 aberto; e o registro de família põe a
+  contagem **ao lado da lista**, onde "2 processos" seguido de um lê como página
+  que perdeu uma linha. Quando a tela de edição existir, ela pede um
+  total-arquivado como campo próprio — melhor que reaproveitar este. O filtro
+  fica na cláusula **ON** e não num WHERE: movido para WHERE, o outer join vira
+  inner e toda pasta vazia some da taxonomia, inclusive todo galho puro.
+
+**Consequências.**
+
+Os selos de processo na ficha do material viraram **links**: a junção do P0-2 lê
+nos dois sentidos agora que um processo tem ficha, e um selo que nomeava página
+inalcançável era a metade que faltava.
+
+`lib/taxonomy.ts` é o gêmeo cliente de `app/domain/taxonomy.py`, extraído quando
+a segunda cópia do percurso apareceu. Percorre `parent_id` em largura em vez de
+supor profundidade — a taxonomia é dado semeado e um operador aprofunda sem
+migração — e leva as duas defesas da versão do backend: raiz ausente devolve ela
+mesma e não conjunto vazio, e ciclo termina em vez de girar.
+
+`Breadcrumb` é primitiva nova, documentada ao vivo em `/estilo`. O teste de
+acessibilidade daquela rota pegou um defeito assim que a seção entrou: dois `nav`
+com o mesmo nome acessível violam `landmark-unique` — é para isso que a prop
+`label` existe.
+
+`BottomNav` fica com cinco destinos. É o que se faz todo dia no telefone, e
+navegar o universo de processos não é isso; a barra lateral e a gaveta levam o
+link.
+
+**Alternativas recusadas.** Substituir o seletor de classe pela árvore (custaria
+o filtro, que responde outra pergunta); mostrar na família só o que está filado
+naquele nível exato (deixa todo galho puro numa página vazia); uma coluna
+`universe` numa tabela de pastas só (mesma razão do D-57); um cartão de prosa
+vazio quando ninguém escreveu nada (duas linhas de "ninguém escreveu" dizem menos
+que nenhum cartão).
