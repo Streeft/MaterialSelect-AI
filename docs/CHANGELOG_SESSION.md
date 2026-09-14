@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [18](#sessão-18--140926--p2-o-fim-do-fluxo-do-manual) | 14/09/2026 | P2 (Find Similar, registro de referência e diferença percentual, D-63) | 1297 → 1341 | 286 → 299 |
 | [17](#sessão-17--140926--p1-4-o-catálogo-ganha-dono-e-o-usuário-ganha-espaço) | 14/09/2026 | P1-4 (`My Records`: registro próprio, favoritos e recentes, D-62) — fecha a faixa P1 | 1234 → 1297 | 277 → 286 |
 | [16](#sessão-16--130926-a-140926--p1-3-a-taxonomia-vira-registro-e-o-segundo-universo-se-navega) | 13 e 14/09/2026 | P1-3 (browse: registro de família, árvore navegável, trilha e a ficha do processo, D-61) | 1209 → 1234 | 253 → 277 |
 | [15](#sessão-15--110926-a-130926--p1-2-o-gráfico-passa-a-reprovar) | 11 e 13/09/2026 | P1-2 (Chart Stage: a região de um plano como critério, D-60) — o único nível 1 da matriz de maturidade | 1141 → 1209 | 232 → 253 |
@@ -33,6 +34,55 @@ As sessões entre a 11 e a 12 — o patch de design "Prisma" (D-49, D-50), o
 upgrade de segurança S1 e a rodada de desempenho — **não têm seção própria
 aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
+
+---
+
+## Sessão 18 — 14/09/26 — P2: o fim do fluxo do manual
+
+**O pedido.** "Continue de onde parou", com a PR do P1-4 mesclada. O roteiro
+apontava para o P2, e as três capacidades dele — `Find Similar`, registro de
+referência e a tabela de comparação — são **um fluxo só** no manual, então
+saíram juntas.
+
+**As duas perguntas que carregam o item, e nenhuma é de implementação.**
+
+*Em que espaço se mede a distância entre dois materiais.* Propriedade de
+material varre ordens de grandeza, e em eixo linear a de faixa mais larga decide
+toda comparação sozinha — a mesma razão pela qual um mapa de Ashby é log-log. A
+permissão de log vem de `allows_log_scale`, **a mesma bandeira que os gráficos
+leem**: figura e semelhança não podem discordar sobre em que espaço a
+propriedade vive. E a escala é promediada, não somada, senão a base mais larga
+pareceria mais distante por ter respondido mais.
+
+*Quando um percentual significa alguma coisa.* Só em escala de razão. 600 K é
+mesmo o dobro de 200 K; 20 °C não é o dobro de 10 °C, e "+100%" ali seria falso
+com toda a autoridade de um número calculado. `is_ratio_scale` decide por
+**comportamento** — dobrar a magnitude dobra a grandeza em unidade base *é* a
+definição — e não por introspecção de tabela privada do Pint. Nenhuma unidade
+canônica do catálogo tropeça nisso hoje; `canonical_unit` é configurável pelo
+operador, e é para amanhã que a guarda existe. O teste registra uma propriedade
+em °C só para provar que a guarda chega à tabela.
+
+**A metade do trabalho que não é número.** A base é **tudo ou nada** e volta na
+resposta; quem não pôde ser medido é nomeado com o que lhe falta; propriedade em
+que ninguém difere contribui zero e é nomeada também, porque descartá-la calada
+deixaria a base documentada maior que a que rodou. E o percentual tem **cinco
+maneiras distintas de não existir**, todas idênticas como célula em branco e
+nenhuma igual em significado, então cada uma tem sua frase (D-24). A ordem entre
+duas delas está fixada por teste: faltando os dois lados, a culpa é da
+referência, porque consertá-la conserta a coluna enquanto consertar a linha
+conserta uma célula.
+
+**Uma guarda de teste que se recusou a rodar.** O canário sobre as unidades
+canônicas do catálogo ganhou uma asserção de que o catálogo não está vazio —
+canário sobre lista vazia passa provando nada, que foi exatamente a armadilha que
+o teto de recentes pegou na sessão anterior.
+
+**Números.** Backend 1297 → 1341, frontend 286 → 299. Cobertura EduPack ~66% →
+**~75%** (24 de 32 em nível ≥ 3); nível médio 2,56 → **2,84**. Três linhas se
+movem — Find Similar 0→4, Registro de referência 0→3, Tabela de comparação 2→4 —
+e é o maior salto de percentual do roteiro. Falta do P2 o **Engineering Solver**
+e o **Performance Index Finder**.
 
 ---
 

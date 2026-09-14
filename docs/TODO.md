@@ -90,9 +90,9 @@ configurações de mapa; `SelectionStage` saiu com P0-1; `Process`,
 **Nada de estrutural pendente no roteiro imediato, e a faixa P1 fechou.** Os
 quatro gargalos P0 estão entregues, mais o P1-1 (busca), o P1-2 (Chart Stage), o
 P1-3 (browse) e o P1-4 (`My Records`) — este último o que mexeu na fronteira que
-o D-42 estabeleceu, e o único da faixa a mexer nela. O próximo alvo é o **P2**:
-*Find Similar* e registro de referência, que o `My Records` destravou, e a tabela
-de comparação com diferença percentual.
+o D-42 estabeleceu, e o único da faixa a mexer nela. O **P2** saiu em seguida — *Find Similar*, registro de referência e a tabela de
+comparação com diferença percentual —, e o alvo agora é o **resto do P2**:
+Engineering Solver e Performance Index Finder.
 
 ---
 
@@ -212,6 +212,18 @@ Registrados para não voltarem por engano:
 
   **O que ficou de fora:** registros **sintetizados** (são o Synthesizer, P3) e
   registro próprio de *processo*, que pede o catálogo de processos editável.
+- ~~**P2** — o fluxo do manual não tinha fim~~ — `Find Similar`, registro de
+  referência e a tabela de comparação com diferença percentual, entregues em
+  seis passos ([D-63](DECISIONS.md)). `app/domain/nearness.py` mede a distância
+  em espaço log onde a propriedade permite, escala pela dispersão do conjunto e
+  **promedia** (soma penalizaria a base mais larga por ter respondido mais); a
+  **base é tudo ou nada** e volta na resposta com os excluídos nomeados;
+  `units.is_ratio_scale` decide, por comportamento, onde um percentual significa
+  alguma coisa; a referência é **parâmetro da pergunta** e vive na URL.
+
+  **O que ficou de fora:** similaridade no universo de processos, fixar a
+  referência como estado de um projeto (o *reference record* propriamente dito,
+  e a razão de a capacidade ficar em 3), e destacá-la nas figuras.
 - ~~**P1-2** — o gráfico mostrava e não selecionava~~ — quarto tipo de estágio,
   `chart`, entregue em seis passos ([D-60](DECISIONS.md),
   [07-selecao-deterministica.md](07-selecao-deterministica.md)). Carrega o plano,
