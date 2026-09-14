@@ -304,22 +304,30 @@ de processo, a família de material e a árvore no próprio catálogo. Navegar e
 filtrar convivem porque são perguntas diferentes. `process_count` passou a contar
 só ativos — reversão de uma decisão anterior, com o raciocínio no D-61.
 
-A cobertura de capacidades inspiradas no EduPack subiu de ~31% para **~62%**
-(20 de 32 em nível ≥ 3), e o **denominador estava errado até o P0-4**: o parágrafo
+A cobertura de capacidades inspiradas no EduPack subiu de ~31% para **~66%**
+(21 de 32 em nível ≥ 3), e o **denominador estava errado até o P0-4**: o parágrafo
 anterior dizia "30 avaliadas" e publicava ~57%, mas a tabela sempre teve 32
 linhas. Por **três marcos seguidos** o percentual não se moveu, e isso disse mais
 sobre a métrica do que sobre a ferramenta: o P0-4 levantou duas capacidades
 (banco de processos 3→4, Limit Stage 3→4) que já estavam acima do corte. O
-documento passou a publicar também o **nível médio** — **2,44**, era 2,25 depois
-do P1-2, 2,16 depois do P0-4 e 1,3 no começo —, onde crescimento dentro da faixa
-aparece. O P1-3 move duas linhas de uma vez (Browse 2→4, Registro de família
-0→3), e a leitura honesta é que o salto é grande porque caiu sobre as duas
-capacidades **mais atrasadas da tabela** — uma delas a única em zero — e quase
-tudo que precisou já existia no backend desde o P0-2 e o P0-4. O que resta em P1
-é o espaço do usuário (`My Records`).
+documento passou a publicar também o **nível médio** — **2,56**, era 2,44 depois
+do P1-3, 2,25 depois do P1-2, 2,16 depois do P0-4 e 1,3 no começo —, onde
+crescimento dentro da faixa aparece. O P1-3 move duas linhas de uma vez (Browse
+2→4, Registro de família 0→3), e a leitura honesta é que o salto é grande porque
+caiu sobre as duas capacidades **mais atrasadas da tabela** — uma delas a única
+em zero — e quase tudo que precisou já existia no backend desde o P0-2 e o P0-4.
 
-**Saúde do código:** 1234 testes de backend (Python 3.11 e 3.12, nenhum skip)
-e 277 de frontend, todos verdes. Desde o P0-1 a suíte também roda as migrações de
+**A faixa P1 fechou com o P1-4** (`My Records` 0→3, Browse 4→5), e a leitura dele
+é o contrário da do P1-3: aquele foi apresentação sobre modelo pronto, este teve
+de abrir uma fronteira que não existia. Um registro que pertence a uma pessoa
+obriga toda leitura de material do sistema a saber quem está perguntando —
+quatro repositórios, seis serviços, o motor, o painel, as figuras e os dois
+documentos. O percentual move pouco e o trabalho por baixo foi o maior da faixa.
+O próximo é o **P2**: *Find Similar*, registro de referência e a tabela de
+comparação com diferença percentual.
+
+**Saúde do código:** 1297 testes de backend (Python 3.11 e 3.12, nenhum skip)
+e 286 de frontend, todos verdes. Desde o P0-1 a suíte também roda as migrações de
 verdade, nos dois sentidos, contra um banco temporário que já contém dados —
 `test_migration_selection_stage.py`, `test_migration_process_universe.py`,
 `test_migration_selection_universe.py`, `test_migration_process_attributes.py` e

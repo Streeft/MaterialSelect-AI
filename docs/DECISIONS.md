@@ -2888,3 +2888,118 @@ naquele nível exato (deixa todo galho puro numa página vazia); uma coluna
 `universe` numa tabela de pastas só (mesma razão do D-57); um cartão de prosa
 vazio quando ninguém escreveu nada (duas linhas de "ninguém escreveu" dizem menos
 que nenhum cartão).
+
+---
+
+## D-62 — O catálogo ganha dono, e o espaço do usuário existe
+
+**Contexto.** O catálogo é compartilhado entre todo usuário autenticado desde o
+[D-42](DECISIONS.md): é dado de referência, não trabalho autoral de um projeto, e
+só `SelectionStudy` era isolado por `Project`. O modelo funcional dos manuais tem
+uma terceira coisa que nenhuma das duas cobre — `My Records`, o espaço de quem
+usa: registros que a pessoa cadastrou para si, os que marcou para voltar, e os
+que abriu por último. Era a única capacidade da matriz do §5 de
+[`14-plataforma-selecao.md`](14-plataforma-selecao.md) ainda em zero, e é a que o
+P2 (*Find Similar*, registro de referência) e o P3 (Synthesizer) dependem.
+
+**Decisão.**
+
+- **Propriedade é uma coluna em `Material`, não uma tabela paralela.**
+  `owner_id` anulável: NULL é o catálogo compartilhado — o que o catálogo sempre
+  foi —, preenchido é o registro próprio de uma pessoa. Uma `UserMaterial`
+  separada bifurcaria o motor de seleção, o repositório de gráficos, o painel e
+  os exportadores em dois caminhos respondendo "qual é o módulo deste material?",
+  que é a falha de duas verdades que o projeto recusa em todo o resto. O
+  [D-57](DECISIONS.md) separou os atributos de processo porque são *outro tipo de
+  coisa*; propriedade é a mesma coisa com outro leitor.
+
+- **A regra de visibilidade é escrita uma vez e falha fechada.**
+  `Material.is_active` é filtrado à mão em onze lugares de quatro repositórios, e
+  essa repetição é sobrevivível: esquecê-la mostra um material retirado, o que é
+  um incômodo. Propriedade não é — esquecê-la mostra o registro de outra pessoa.
+  Então `app/repositories/visibility.py` guarda o predicado, `viewer_id` é
+  argumento de construtor e não parâmetro de oito métodos, e o padrão `None`
+  significa **só o catálogo compartilhado**: um ponto de construção nunca
+  atualizado renderiza menos do que poderia, nunca mais do que pode.
+
+- **Escrita não ganha predicado próprio, porque ele não teria ramo alcançável.**
+  O filtro de leitura já devolve exatamente o conjunto gravável: um material que
+  se enxerga ou é compartilhado — comunalmente gravável desde o D-42, e o My
+  Records não revoga isso em silêncio — ou é seu. "Visível e não meu" não ocorre,
+  então toda mutação já para no `get_material` com 404. Função com ramo morto lê
+  como proteção e não protege nada.
+
+- **A propriedade é declarada, nunca inferida de quem digitou.** A mesma pessoa
+  alimenta o catálogo compartilhado e guarda registros seus, e só ela sabe qual
+  dos dois um formulário era: `is_own_record` no payload, com padrão `False`, que
+  mantém todo cliente anterior fazendo o que fazia. Na saída é booleano e não
+  `owner_id` — um leitor só enxerga o compartilhado e o próprio, então "tem dono"
+  e "é meu" são o mesmo fato, e o booleano é o único dos dois que não identifica
+  ninguém.
+
+- **A checagem de nome duplicado é escopada ao conjunto visível.** Verificação
+  global recusaria um nome por causa de um registro que a pessoa não enxerga —
+  mensagem de erro que denuncia o escondido. O escopo mantém nome único dentro de
+  toda tela que chega a ser desenhada, que é tudo o que a legibilidade de um
+  gráfico exige: nenhuma vista mistura registros de dois leitores. O importador
+  fica **sem** observador de propósito, porque escreve no catálogo compartilhado.
+
+- **Um marcador alcança exatamente um universo, com chave estrangeira de
+  verdade.** `Favorite` e `RecentRecord` têm `material_id` e `process_id`
+  anuláveis com `CheckConstraint` de XOR — a mesma forma do eixo do Chart Stage
+  ([D-60](DECISIONS.md)). O par polimórfico `universe`/`record_id` teria uma
+  coluna a menos e **nenhuma** chave estrangeira: apagar um processo deixaria
+  marcador apontando para nada, e restrição nenhuma poderia dizê-lo.
+
+- **Marcador não carrega número nenhum**, pela mesma razão que a associação
+  material↔processo não carrega (D-57): valor sobre um material precisa da
+  proveniência de `MaterialPropertyValue`, e uma cópia guardada aqui por
+  conveniência seria uma segunda resposta sem atribuição.
+
+- **Recentes são conjunto com ordem, não log.** Reabrir atualiza a linha que
+  existe, e o teto é 20. Log de visitas responde "o que eu fiz", que é outra
+  pergunta e que o `AuditEvent` já responde melhor (M2). E a visita é registrada
+  por `POST` do cliente, nunca dentro do GET da ficha: leitura que escreve não é
+  cacheável nem idempotente, e um relatório relendo um registro reordenaria a
+  lista em silêncio.
+
+- **O documento declara um registro próprio.** O valor satisfaz o princípio 1 —
+  foi explicitamente cadastrado —, mas nunca passou pela revisão de fonte e
+  licença que o M1 exige do catálogo. Aviso no topo e coluna na folha, a mesma
+  forma com que dado de demonstração já se declara, porque quem aprendeu a
+  procurar um acha o outro no mesmo lugar; e a folha de proveniência ganha a
+  coluna *Registro*, pela obrigação que o [D-59](DECISIONS.md) impôs para o tipo
+  de valor — a regra tem de chegar ao leitor, e é ali que se audita um número de
+  cada vez.
+
+- **Registro próprio é só de material no v1.** Um processo definido pelo usuário
+  exigiria o catálogo de processos **editável**, que é item aberto desde o P0-2 e
+  pede a trilha de auditoria que o de materiais tem. A assimetria está escrita no
+  código que a encontra (`_is_own_record` lê por `getattr`), e não escondida.
+
+**Consequências.** O registro próprio de uma pessoa participa das seleções, dos
+gráficos, do painel e dos documentos dela exatamente como uma linha de catálogo —
+é para isso que ele existe — e nunca aparece para mais ninguém. O canário
+(`test_my_records_isolation.py`) varre `app.openapi()` e não uma lista escrita à
+mão, então endpoint novo entra na varredura no dia em que nasce.
+
+**E o custo dessa escolha apareceu na hora.** O `None` seguro-por-padrão estreita
+a leitura, e por um commit o `SelectionService` — que recebia `user` opcional
+porque só a auditoria o lia — estreitou-a em toda leitura: o registro próprio de
+uma pessoa sumia do estudo dela, com cara de perda de dado e não de bug de
+permissão. O canário **não pega isso por construção**: toda prova dele falha
+quando um registro aparece para quem não pode vê-lo, e nenhuma falha quando ele
+some para quem pode. `user` virou obrigatório no `SelectionService` (o erro passa
+a ser `TypeError`) e entrou o controle positivo. A lição é a regra: todo padrão
+que falha fechado precisa de uma prova de que o caminho aberto ainda abre.
+
+**Alternativas rejeitadas.** Tabela `UserMaterial` paralela (duas verdades sobre
+o mesmo material); marcador polimórfico `universe`/`record_id` (sem integridade
+referencial); inferir propriedade de quem criou a linha (rouba do catálogo
+compartilhado a única porta de entrada que ele tem); `owner_id` na resposta da
+API (põe o id de outra pessoa no fio sem necessidade); um predicado de escrita
+(sem ramo alcançável); registrar a visita dentro do GET da ficha (leitura que
+escreve); `aria-pressed` no hospedeiro do `md-icon-button` e o
+`aria-label-selected` que o próprio MWC oferece (o primeiro fica num elemento que
+leitor de tela não lê; o segundo não é nome de atributo ARIA válido e reprova
+`aria-valid-attr`).

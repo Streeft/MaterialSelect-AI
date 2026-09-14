@@ -450,7 +450,30 @@ cartão de família sai para a página dela. A **ficha do processo** saiu junto:
 por alcance e escalar pelo próprio valor (D-59). `process_count` passou a contar
 só ativos, revertendo decisão anterior — raciocínio no D-61.
 
-1234 testes de backend (nenhum skip) e 277 de frontend, todos verdes. CI no
+**O P1-4 fechou a faixa P1** ([D-62](docs/DECISIONS.md)): o catálogo ganhou
+dono e o usuário ganhou espaço. `Material.owner_id` é anulável — **NULL é o
+catálogo compartilhado**, que é o que ele sempre foi (D-42), e preenchido é o
+registro próprio de uma pessoa. Uma coluna e não uma tabela paralela, porque o
+motor, o painel, as figuras e os exportadores fazem a um material as mesmas
+perguntas independentemente de quem o criou. A regra de visibilidade mora em
+`app/repositories/visibility.py`, é argumento de construtor nos quatro
+repositórios que leem material, e **falha fechada**: sem observador, só o
+compartilhado. **Escrita não tem predicado próprio de propósito** — o filtro de
+leitura já devolve exatamente o conjunto gravável, e um `owns()` teria ramo
+morto. Propriedade é **declarada, nunca inferida de quem digitou**
+(`is_own_record` no payload), e sai como booleano, nunca como `owner_id`.
+`Favorite` e `RecentRecord` alcançam um universo cada por duas colunas anuláveis
+com XOR (a forma do D-60), porque o par polimórfico não teria chave estrangeira
+nenhuma; nenhum dos dois carrega número. Recentes são **conjunto com ordem, não
+log**, com teto de 20 e registrados por `POST` do cliente — GET que escreve não
+é cacheável nem idempotente. O documento **declara** registro próprio, no topo e
+na coluna *Registro* da folha de proveniência: o valor satisfaz o princípio 1,
+mas não passou pela revisão de fonte e licença do M1. O canário
+(`test_my_records_isolation.py`) varre `app.openapi()`, então rota nova entra na
+varredura no dia em que nasce — **e não pega omissão por construção**, o que
+custou um defeito real registrado no D-62.
+
+1297 testes de backend (nenhum skip) e 286 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
 PROJECT_CONTEXT.md).
