@@ -87,11 +87,12 @@ configurações de mapa; `SelectionStage` saiu com P0-1; `Process`,
 `ProcessClass` e `MaterialProcess` saíram com P0-2;
 `ProcessAttributeDefinition` e `ProcessAttributeValue` saíram com P0-4.)
 
-**Nada de estrutural pendente no roteiro imediato.** Os quatro gargalos P0 do
-roteiro de plataforma estão entregues, mais o P1-1 (busca), o P1-2 (Chart Stage)
-e o P1-3 (browse). O que resta em P1 é o espaço do usuário (`My Records`) —
-o único item restante da faixa com modelo novo, e o que mexe na fronteira que o
-D-42 estabeleceu (catálogo compartilhado entre todo usuário autenticado).
+**Nada de estrutural pendente no roteiro imediato, e a faixa P1 fechou.** Os
+quatro gargalos P0 estão entregues, mais o P1-1 (busca), o P1-2 (Chart Stage), o
+P1-3 (browse) e o P1-4 (`My Records`) — este último o que mexeu na fronteira que
+o D-42 estabeleceu, e o único da faixa a mexer nela. O próximo alvo é o **P2**:
+*Find Similar* e registro de referência, que o `My Records` destravou, e a tabela
+de comparação com diferença percentual.
 
 ---
 
@@ -185,10 +186,32 @@ Registrados para não voltarem por engano:
   a contagem ao lado da lista, onde "2 processos" seguido de um lê como página que
   perdeu uma linha.
 
-  **O que ficou de fora, e é melhoria e não bloqueio:** favoritos e recentes (que
-  são `My Records`), *Science Notes* e imagem de família, e o catálogo de
-  processos **editável** — registrado desde o P0-2, porque pede a trilha de
-  auditoria que o catálogo de materiais tem.
+  **O que ficou de fora, e é melhoria e não bloqueio:** *Science Notes* e imagem
+  de família, e o catálogo de processos **editável** — registrado desde o P0-2,
+  porque pede a trilha de auditoria que o catálogo de materiais tem. (Favoritos e
+  recentes saíram com o P1-4.)
+- ~~**P1-4** — o catálogo não tinha dono e o usuário não tinha espaço~~ —
+  entregue em sete passos ([D-62](DECISIONS.md)). `Material.owner_id` anulável dá
+  o registro próprio (NULL é o catálogo compartilhado); `Favorite` e
+  `RecentRecord` dão favoritos e recentes nos dois universos, com XOR entre as
+  duas colunas de registro para haver chave estrangeira de verdade;
+  `/app/meus-registros` é o espaço. A regra de visibilidade vive num lugar só e
+  falha fechada, e o canário varre `app.openapi()` em vez de uma lista escrita à
+  mão. **Escrita não ganhou predicado próprio**, porque não teria ramo
+  alcançável. O documento declara registro próprio no topo e na folha de
+  proveniência.
+
+  **O defeito que a própria decisão previu, e que apareceu na hora:** o padrão
+  seguro (`None` = só o compartilhado) estreita a leitura, e o `SelectionService`
+  recebia `user` opcional porque só a auditoria o lia — então por um commit o
+  registro próprio de uma pessoa sumiu do estudo dela, em toda seleção e todo
+  documento. O canário não pega isso por construção: ele falha quando um registro
+  **aparece** para quem não pode vê-lo, nunca quando **some** para quem pode.
+  `user` virou obrigatório (o erro passa a ser `TypeError`) e entrou o controle
+  positivo. Ver D-62.
+
+  **O que ficou de fora:** registros **sintetizados** (são o Synthesizer, P3) e
+  registro próprio de *processo*, que pede o catálogo de processos editável.
 - ~~**P1-2** — o gráfico mostrava e não selecionava~~ — quarto tipo de estágio,
   `chart`, entregue em seis passos ([D-60](DECISIONS.md),
   [07-selecao-deterministica.md](07-selecao-deterministica.md)). Carrega o plano,

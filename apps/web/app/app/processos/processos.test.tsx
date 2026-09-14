@@ -155,6 +155,13 @@ vi.mock("@/lib/api", () => ({
   listProcessClasses: () => Promise.resolve(classes),
   getProcess: () => Promise.resolve(detail),
   getProcessClass: () => Promise.resolve(familyDetail),
+  // P1-4: a ficha traz a estrela e anota a visita, então toda tela de registro
+  // passa por estas quatro. O espaço vazio é o estado honesto aqui — o teste é
+  // sobre a ficha, não sobre os marcadores.
+  getMyRecords: () => Promise.resolve({ favorites: [], recents: [], own_records: [] }),
+  addFavorite: () => Promise.resolve({ favorites: [], recents: [], own_records: [] }),
+  removeFavorite: () => Promise.resolve({ favorites: [], recents: [], own_records: [] }),
+  touchRecent: () => Promise.resolve(undefined),
 }));
 
 function wrap(node: ReactNode) {

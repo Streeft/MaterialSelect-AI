@@ -30,7 +30,7 @@ def property_map(
     user: User = Depends(get_current_user),
 ) -> PropertyMapOut:
     """Build an Ashby property map: points, envelopes, index line and exclusions."""
-    return ChartService(db).property_map(payload)
+    return ChartService(db, user.id).property_map(payload)
 
 
 @router.post("/compare", response_model=CompareOut)
@@ -40,4 +40,4 @@ def compare(
     user: User = Depends(get_current_user),
 ) -> CompareOut:
     """Build the comparison matrix backing the table, bars, radar and heatmap."""
-    return ChartService(db).compare(payload)
+    return ChartService(db, user.id).compare(payload)

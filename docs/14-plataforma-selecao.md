@@ -52,7 +52,7 @@ Níveis: **0** não existe · **1** rudimentar · **2** existe, precisa melhorar
 | Arquitetura de dados (materiais) | **3** | `Material` + `MaterialClass` auto-referencial + `MaterialPropertyValue` com proveniência. Sólido. |
 | Rastreabilidade de unidade e proveniência | **5** | Valor original + unidade + normalizado + método + qualidade + fonte licenciada. **Acima do EduPack** — ver §4. |
 | Banco de processos | **4** | `ProcessClass` hierárquica, `Process`, a associação N–N (P0-2), a **seleção de processos** como resultado (P0-3) e **atributos com proveniência** (P0-4, [D-59](DECISIONS.md)): envelope de capacidade, escalar e discreto, com Limit Stage e ranqueamento sobre eles. Falta catálogo de processos **editável** (hoje só semeado, sem a trilha de auditoria que o de materiais tem) e gráfico de atributo de processo. |
-| Browse hierárquico | **4** | **Entregue (P1-3, [D-61](DECISIONS.md))**: árvore navegável nos dois universos, trilha de navegação, e a família aberta como página própria — com o que está nela *e abaixo dela*. Faltam favoritos e recentes, que são `My Records` (P1-4). |
+| Browse hierárquico | **5** | **Entregue (P1-3, [D-61](DECISIONS.md))**: árvore navegável nos dois universos, trilha de navegação, e a família aberta como página própria — com o que está nela *e abaixo dela*. Favoritos e recentes chegaram com o P1-4 ([D-62](DECISIONS.md)). |
 | Registro de família (folder-level) | **3** | **Entregue (P1-3)**: `MaterialClass` e `ProcessClass` carregam descrição, aplicações e características, com a prosa ausente escrita como ausência (D-24) e editável pela mesma rota auditada. Faltam as *Science Notes* e imagem de família. |
 | Search | **3** | Analisador próprio com AND/OR/NOT, frase, parênteses e curinga ([D-55](DECISIONS.md)). Falta relevância, fuzzy e destaque do trecho. |
 | Datasheet | **4** | Propriedades com proveniência e **processos compatíveis** (P0-2), agora **links** para a ficha de cada um — a junção lê nos dois sentidos. A **ficha do processo** saiu (P1-3): atributos com o trilho inteiro e o *tipo de valor* ao lado, que é o que diz por qual regra cada um é comparado (D-59). Faltam aplicações, vantagens, limitações, similares e Science Notes do material. |
@@ -75,16 +75,16 @@ Níveis: **0** não existe · **1** rudimentar · **2** existe, precisa melhorar
 | Synthesizer / registros sintetizados | **0** | Não existe. |
 | Sandwich Panels | **0** | Não existe. |
 | Battery Designer | **0** | Não existe. |
-| My Records (usuário / sintetizados / favoritos) | **0** | Catálogo é compartilhado; não há espaço do usuário. |
+| My Records (usuário / sintetizados / favoritos) | **3** | **Entregue (P1-4, [D-62](DECISIONS.md))**: `Material.owner_id` dá registro próprio, `Favorite` e `RecentRecord` dão favoritos e recentes nos dois universos, e `/app/meus-registros` é o espaço. Faltam os **sintetizados** (P3) e um registro próprio de *processo*, que pede o catálogo de processos editável.
 | Unidades de exibição | **2** | Canônica correta; o usuário não escolhe a unidade de leitura (B11). |
 | Explicabilidade | **3** | Funil por restrição e por estágio (`in_chart` inclusive) e proveniência por número; falta o *porquê* por registro reprovado. |
 | Camada de IA | **4** | Interpretação e explicação com guardrails, ancoragem numérica e citação verificada. |
-| Testes | **5** | 1234 backend, 277 frontend, E2E e Lighthouse na CI — e desde o P0-1 a migração é exercitada de verdade, nos dois sentidos, contra um banco que já contém dados, conferida por mutação. |
+| Testes | **5** | 1297 backend, 286 frontend, E2E e Lighthouse na CI — e desde o P0-1 a migração é exercitada de verdade, nos dois sentidos, contra um banco que já contém dados, conferida por mutação. |
 | Desempenho | **3** | Índices, threadpool, Plotly fatiado. Não preparado para centenas de milhares de registros. |
 
-**Cobertura de capacidades inspiradas no EduPack: ~62%** — contado como
-capacidades em nível ≥ 3 sobre as **32** avaliadas (20 de 32). **Nível médio:
-2,44.**
+**Cobertura de capacidades inspiradas no EduPack: ~66%** — contado como
+capacidades em nível ≥ 3 sobre as **32** avaliadas (21 de 32). **Nível médio:
+2,56.**
 
 **O denominador estava errado até o P0-4.** As versões anteriores deste parágrafo
 diziam "30 avaliadas" e publicavam ~57%; a tabela acima sempre teve 32 linhas.
@@ -113,6 +113,23 @@ sugira outra coisa: o salto é grande porque o trabalho caiu sobre as duas
 capacidades **mais atrasadas da tabela** — uma delas a única em zero —, e quase
 tudo que ele precisou já existia no backend desde o P0-2 e o P0-4. Foi
 apresentação sobre modelo pronto, não motor novo.
+
+O **P1-4** fecha a faixa P1 e move duas linhas: `My Records` 0→3 — era a última
+capacidade em zero da tabela — e Browse 4→5, porque favoritos e recentes eram
+justamente o que faltava a ele. A cobertura vai de ~62% para **~66%** e o nível
+médio de 2,44 para **2,56**.
+
+E aqui a leitura honesta é o contrário da do P1-3. Aquele foi apresentação sobre
+modelo pronto; este teve de **abrir uma fronteira que não existia**. Até agora o
+catálogo era compartilhado por todo usuário autenticado (D-42) e só o estudo era
+isolado; um registro que pertence a uma pessoa obriga toda leitura de material do
+sistema a saber quem está perguntando — quatro repositórios, seis serviços, o
+motor de seleção, o painel, as figuras e os dois documentos. O percentual move
+pouco e o trabalho por baixo dele foi o maior da faixa.
+
+`My Records` fica em **3** e não em 4 por duas ausências nomeadas: os registros
+**sintetizados**, que são o Synthesizer (P3), e um registro próprio de *processo*,
+que pede o catálogo de processos editável — item aberto desde o P0-2.
 
 O que o P0-4 fez, antes dele: fechou o exercício 11 do manual por inteiro — passo
 1 (universo de saída, P0-3), passo 2 (Limit Stage sobre atributo do processo) e
@@ -303,7 +320,7 @@ correção, portão completo, decisão registrada.
 | ~~P0~~ | ~~Atributos de processo com proveniência (discreto e envelope)~~ **entregue** | A, G | P0-3 |
 | **P1** | ~~Search com operadores~~ **entregue**; falta relevância e destaque | C | — |
 | ~~P1~~ | ~~Chart Stage que **filtra** (caixa de seleção e linha de índice reprovando)~~ **entregue** | H, I | P0-1 |
-| **P1** | `My Records`: definidos pelo usuário, favoritos, recentes | T, U | — |
+| ~~P1~~ | ~~`My Records`: definidos pelo usuário, favoritos, recentes~~ **entregue** | T, U | — |
 | ~~P1~~ | ~~Browse: árvore navegável, breadcrumb, registro de família, **ficha do processo**~~ **entregue** | B, D | P0-2 |
 | **P2** | Find Similar + Nearness + registro de referência | K, L | P1 My Records |
 | **P2** | Tabela de comparação com referência e diferença percentual | M | P2 referência |
@@ -315,7 +332,7 @@ correção, portão completo, decisão registrada.
 | **P4** | Battery Designer | S | P3 Synthesizer |
 | **P4** | PDF e DOCX no gerador de relatório | V | — |
 
-**Ordem de execução:** ~~P0-1~~ → ~~P0-2~~ → ~~P0-3~~ → ~~P0-4~~ → ~~P1-1~~ → ~~P1-2~~ → ~~P1-3 (browse)~~ → **P1-4 (`My Records`)** → P2 → P3 → P4.
+**Ordem de execução:** ~~P0-1~~ → ~~P0-2~~ → ~~P0-3~~ → ~~P0-4~~ → ~~P1-1~~ → ~~P1-2~~ → ~~P1-3 (browse)~~ → ~~P1-4 (`My Records`)~~ → **P2** → P3 → P4. **A faixa P1 está fechada.**
 
 ### O que isto não é
 

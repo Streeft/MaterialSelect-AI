@@ -23,6 +23,7 @@ import {
   IconPanelLeft,
   IconRuler,
   IconScatter,
+  IconStar,
   IconUpload,
 } from "@/components/ui/icons";
 
@@ -73,6 +74,7 @@ const GROUPS: NavGroup[] = [
       // P1-4: o segundo universo passa a ter porta de entrada. Sem isto ele só
       // era alcançável de dentro de um estágio ou da ficha de um material.
       { href: "/app/processos", label: t.processes, icon: IconLayers },
+      { href: "/app/meus-registros", label: t.myRecords, icon: IconStar },
       { href: "/app/painel", label: t.dashboard, icon: IconGauge },
       { href: "/app/importar", label: t.imports, icon: IconUpload },
     ],

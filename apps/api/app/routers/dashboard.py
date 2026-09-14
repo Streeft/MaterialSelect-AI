@@ -27,7 +27,7 @@ router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 @router.get("/overview", response_model=OverviewOut)
 def overview(db: Session = Depends(get_db), user: User = Depends(get_current_user)) -> OverviewOut:
     """Totals, provenance mix and coverage per class and per property."""
-    return DashboardService(db).overview()
+    return DashboardService(db, user.id).overview()
 
 
 @router.get("/distribution/{property_slug}", response_model=DistributionOut)
@@ -37,4 +37,4 @@ def distribution(
     user: User = Depends(get_current_user),
 ) -> DistributionOut:
     """The five-number summary of one property, per material class."""
-    return DashboardService(db).distribution(property_slug)
+    return DashboardService(db, user.id).distribution(property_slug)

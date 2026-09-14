@@ -30,7 +30,7 @@ router = APIRouter(prefix="/ai", tags=["ai"])
 @router.get("/status", response_model=AIStatusOut)
 def ai_status(db: Session = Depends(get_db), user: User = Depends(get_current_user)) -> AIStatusOut:
     """Report whether the layer is on, and whether it is the simulated provider."""
-    return AIService(db).status()
+    return AIService(db, user=user).status()
 
 
 @router.post("/interpret", response_model=InterpretationOut)
@@ -40,7 +40,7 @@ def interpret(
     user: User = Depends(get_current_user),
 ) -> InterpretationOut:
     """Structure a problem statement into editable, reviewable suggestions."""
-    return AIService(db).interpret(payload)
+    return AIService(db, user=user).interpret(payload)
 
 
 @router.post("/explain", response_model=ExplanationOut)
@@ -48,6 +48,7 @@ def explain(
     payload: ExplainRequest,
     db: Session = Depends(get_db),
     project: Project = Depends(get_current_project),
+    user: User = Depends(get_current_user),
 ) -> ExplanationOut:
     """Describe a saved study's already-computed result in prose."""
-    return AIService(db).explain(payload.study_id, project.id)
+    return AIService(db, user=user).explain(payload.study_id, project.id)

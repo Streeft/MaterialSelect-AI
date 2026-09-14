@@ -31,6 +31,12 @@ DEMO_DATA_NOTICE = (
     "cujos valores são fictícios. Não utilizar em projetos reais."
 )
 
+OWN_RECORD_NOTICE = (
+    "Este documento inclui registros próprios do usuário, cadastrados por ele "
+    "mesmo e não pertencentes ao catálogo compartilhado. Os valores desses "
+    "registros não passaram pela mesma revisão de fonte e licença do catálogo."
+)
+
 REPRODUCIBILITY_NOTICE = (
     "Todos os números deste relatório foram calculados de forma determinística "
     "no backend a partir dos valores cadastrados. Reexecutar o estudo com o "
@@ -85,13 +91,24 @@ class Report:
         return next((s for s in self.sheets if s.name == name), None)
 
 
-def standard_notices(*, includes_demo_data: bool) -> list[str]:
+def standard_notices(*, includes_demo_data: bool, includes_own_records: bool = False) -> list[str]:
     """The notices every export carries, in the order they must be read.
 
     The demo warning comes first when it applies: a reader who stops after one
     line should stop on the one that says the numbers are fictitious.
+
+    ``includes_own_records`` (P1-4) declares the other way a document can carry
+    numbers that are not catalogue numbers. A value the reader typed into a
+    record of their own is legitimate data — principle 1 is satisfied, it was
+    explicitly registered — but it never went through the source-and-licence
+    review that M1 requires of the shared catalogue, and a document that let
+    the two read alike would be the one place where that distinction is lost.
+    It sits after the demo warning and before the rest: fictitious is worse
+    than unreviewed, and both are worse than a footnote nobody reads.
     """
     notices = [LIMITATION_NOTICE, REPRODUCIBILITY_NOTICE]
+    if includes_own_records:
+        notices.insert(0, OWN_RECORD_NOTICE)
     if includes_demo_data:
         notices.insert(0, DEMO_DATA_NOTICE)
     return notices
