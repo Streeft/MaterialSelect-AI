@@ -151,7 +151,20 @@ class SelectionService:
     across every logged-in user, not owned by a project.
     """
 
-    def __init__(self, db, project_id: int, user: User | None = None) -> None:
+    def __init__(self, db, project_id: int, user: User | None) -> None:
+        """``user`` has **no default**, and that is load-bearing (P1-4).
+
+        It used to be optional because only the audit trail read it, so the
+        call sites that never wrote left it out. Once the viewer also decides
+        *which materials exist* for this run, that omission stopped being
+        harmless: the safe-by-default `None` narrowed every read to the shared
+        catalogue, and a person's own record vanished from their own study —
+        silently, and looking exactly like data loss. A required argument turns
+        that mistake from a wrong answer into a TypeError.
+
+        ``None`` remains expressible, for a caller that genuinely has no
+        viewer, but it now has to be written down.
+        """
         self.viewer_id = user.id if user is not None else None
         self.repo = SelectionRepository(db, self.viewer_id)
         self.audit_repo = AuditRepository(db)

@@ -31,6 +31,7 @@ from app.exporters.figures import (
 )
 from app.exporters.report import Report, Sheet, standard_notices
 from app.models.enums import ProcessAttributeKind
+from app.models.user import User
 from app.repositories.chart_repository import ChartRepository
 from app.repositories.selection_repository import SelectionRepository
 from app.schemas.charts import PropertyMapRequest
@@ -45,11 +46,16 @@ _MISSING = "ausente"
 class ExportService:
     """Builds reports for saved studies and for the catalogue."""
 
-    def __init__(self, db, viewer_id: int | None = None) -> None:
+    def __init__(self, db, user: User | None = None) -> None:
+        # The ``User`` and not only their id, because this service constructs a
+        # ``SelectionService`` to re-run the study and that one needs the whole
+        # object. Carrying two spellings of "who is asking" through the same
+        # call chain is how they come to disagree.
         self.db = db
-        self.viewer_id = viewer_id
-        self.selection_repo = SelectionRepository(db, viewer_id)
-        self.chart_repo = ChartRepository(db, viewer_id)
+        self.user = user
+        self.viewer_id = user.id if user is not None else None
+        self.selection_repo = SelectionRepository(db, self.viewer_id)
+        self.chart_repo = ChartRepository(db, self.viewer_id)
 
     # --- selection study --------------------------------------------------
 
@@ -63,7 +69,7 @@ class ExportService:
         if study is None:
             raise NotFoundError(f"Estudo não encontrado: {study_id}")
 
-        service = SelectionService(self.db, project_id)
+        service = SelectionService(self.db, project_id, self.user)
         result = service.run_study(study_id)
         # Same SelectionService instance as run_study above, so this reuses
         # its already-populated property cache and snapshot list rather than
@@ -85,6 +91,18 @@ class ExportService:
                 p.id: p for p in self.selection_repo.processes_with_attributes(candidate_ids)
             }
         return study, result, records, root_group_description
+
+    @staticmethod
+    def _is_own_record(record: object) -> bool:
+        """Whether this record belongs to one person rather than the catalogue.
+
+        ``getattr`` with a default rather than a plain attribute read, and the
+        asymmetry is real and deliberate: only ``Material`` carries an owner.
+        A user-defined *process* would need the process catalogue to be
+        editable at all, which is its own open item (registered since P0-2), so
+        a process is always a catalogue record and answers False here.
+        """
+        return getattr(record, "owner_id", None) is not None
 
     def _sheets(
         self, study, result: RunResultOut, records: dict, root_group_description: str
@@ -111,7 +129,10 @@ class ExportService:
             subtitle=study.description or "",
             # `is_demo` is a column of both `Material` and `Process`, so the
             # warning is raised by whichever universe the study returned.
-            notices=standard_notices(includes_demo_data=any(r.is_demo for r in records.values())),
+            notices=standard_notices(
+                includes_demo_data=any(r.is_demo for r in records.values()),
+                includes_own_records=any(self._is_own_record(r) for r in records.values()),
+            ),
             sheets=self._sheets(study, result, records, root_group_description),
             # The map, and only the map. The ranking chart stays a mark of the
             # laudo (D-41); the map is what makes this a *selection* report
@@ -134,7 +155,10 @@ class ExportService:
         return Report(
             title=f"Laudo de engenharia — {study.name}",
             subtitle=study.description or "",
-            notices=standard_notices(includes_demo_data=any(r.is_demo for r in records.values())),
+            notices=standard_notices(
+                includes_demo_data=any(r.is_demo for r in records.values()),
+                includes_own_records=any(self._is_own_record(r) for r in records.values()),
+            ),
             sheets=self._sheets(study, result, records, root_group_description),
             responsible=(responsible or "").strip() or None,
             figures=self._figures(study, result),
@@ -500,7 +524,7 @@ class ExportService:
         under one percent of the wait, which is the case that matters.
         """
         try:
-            explanation = AIService(self.db, viewer_id=self.viewer_id).explain(study_id, project_id)
+            explanation = AIService(self.db, user=self.user).explain(study_id, project_id)
         except (ValidationError, AIUnavailableError) as exc:
             return None, None, f"Interpretação por IA não disponível: {exc}"
 
@@ -816,9 +840,12 @@ class ExportService:
             by_slug = {v.property_definition.slug: v for v in material.property_values}
             for slug in slugs:
                 value = by_slug.get(slug)
+                origin = "Próprio" if self._is_own_record(material) else "Catálogo"
                 if value is None:
                     label = names.get(slug, slug)
-                    rows.append([material.name, label, _MISSING, _MISSING, "—", "—", "—", "—"])
+                    rows.append(
+                        [material.name, label, _MISSING, _MISSING, "—", "—", "—", "—", origin]
+                    )
                     continue
                 definition = value.property_definition
                 rows.append(
@@ -839,6 +866,7 @@ class ExportService:
                         value.original_unit or "—",
                         value.conversion_method or "—",
                         value.data_quality.value,
+                        origin,
                     ]
                 )
 
@@ -853,12 +881,20 @@ class ExportService:
                 "Unidade original",
                 "Método de conversão",
                 "Qualidade do dado",
+                # P1-4, and the same obligation D-59 imposed for the value's
+                # shape: the rule has to reach the reader. "Qualidade do dado"
+                # says how the number was obtained; this says whose catalogue
+                # it came from, and only one of the two went through the
+                # source-and-licence review of M1.
+                "Registro",
             ],
             rows=rows,
             notes=(
                 [
                     "Origem de cada número usado na decisão. Um valor ausente aparece como "
-                    "'ausente', nunca como zero ou célula vazia."
+                    "'ausente', nunca como zero ou célula vazia.",
+                    "'Registro' distingue o catálogo compartilhado de um registro próprio do "
+                    "usuário, que não passou pela revisão de fonte e licença do catálogo.",
                 ]
                 if rows
                 else ["Sem propriedades a rastrear para este estudo."]
@@ -976,7 +1012,7 @@ class ExportService:
         materials = self.chart_repo.list_materials()
         definitions = self.chart_repo.list_properties()
 
-        header = ["Material", "Classe", "Demonstrativo"] + [
+        header = ["Material", "Classe", "Demonstrativo", "Registro próprio"] + [
             f"{d.name} [{d.canonical_unit}]" for d in definitions
         ]
         rows: list[list[object]] = []
@@ -984,7 +1020,12 @@ class ExportService:
 
         for material in materials:
             by_slug = {v.property_definition.slug: v for v in material.property_values}
-            row: list[object] = [material.name, material.material_class.name, material.is_demo]
+            row: list[object] = [
+                material.name,
+                material.material_class.name,
+                material.is_demo,
+                self._is_own_record(material),
+            ]
             for definition in definitions:
                 value = by_slug.get(definition.slug)
                 row.append(
@@ -1015,7 +1056,10 @@ class ExportService:
         return Report(
             title="Catálogo de materiais",
             subtitle=f"{len(materials)} materiais ativos, {len(definitions)} propriedades",
-            notices=standard_notices(includes_demo_data=any(m.is_demo for m in materials)),
+            notices=standard_notices(
+                includes_demo_data=any(m.is_demo for m in materials),
+                includes_own_records=any(self._is_own_record(m) for m in materials),
+            ),
             sheets=[
                 Sheet(
                     name="Materiais",
