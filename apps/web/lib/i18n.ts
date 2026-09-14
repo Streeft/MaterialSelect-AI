@@ -41,6 +41,9 @@ export const ptBR = {
     // só de dentro de um estágio de seleção e da ficha de um material — o que
     // faz do universo de processos algo que se usa, nunca algo que se navega.
     processes: "Processos",
+    // P1-4: o espaço do usuário. Fica em "Dados" e não em "Estudar" porque é
+    // onde os registros moram, não uma ferramenta de decidir com eles.
+    myRecords: "Meus registros",
     // Eight links in a row said nothing about what belongs with what. The
     // groups are the three things someone does here, in the order they do them.
     groupStudy: "Estudar",
@@ -594,6 +597,33 @@ export const ptBR = {
     laudoResponsibleLabel: "Responsável técnico (opcional)",
     laudoResponsiblePlaceholder: "Nome de quem assina a leitura",
   },
+  myRecords: {
+    title: "Meus registros",
+    subtitle: "O que você marcou, o que abriu por último e o que cadastrou para si.",
+    favorites: "Favoritos",
+    favoritesEmpty: "Nenhum registro favoritado ainda.",
+    favoritesHint:
+      "A estrela na ficha de um material ou processo traz o registro para cá.",
+    recents: "Abertos recentemente",
+    recentsEmpty: "Nenhum registro aberto ainda nesta conta.",
+    recentsHint: "Os últimos 20 registros que você abriu, do mais recente ao mais antigo.",
+    ownRecords: "Registros próprios",
+    ownRecordsEmpty: "Você ainda não cadastrou nenhum registro próprio.",
+    ownRecordsHint:
+      "Um registro próprio é seu: entra nas suas seleções, mapas e documentos, e ninguém mais o enxerga.",
+    ownBadge: "Registro próprio",
+    // A afirmação que o documento também faz, e pelo mesmo motivo: o valor foi
+    // cadastrado por quem o cadastrou, mas não passou pela revisão de fonte e
+    // licença do catálogo compartilhado.
+    ownNotice:
+      "Registros próprios não passaram pela revisão de fonte e licença do catálogo compartilhado.",
+    addFavorite: "Favoritar",
+    removeFavorite: "Desfavoritar",
+    favorited: "Favoritado",
+    universeMaterial: "Material",
+    universeProcess: "Processo",
+  },
+
   catalog: {
     title: "Catálogo de materiais",
     subtitle: "O que existe cadastrado, e com que qualidade de dado.",
