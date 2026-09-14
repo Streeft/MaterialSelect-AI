@@ -248,3 +248,36 @@ def test_the_record_survives_every_refused_write(
         sheet = client.get(f"/api/materials/{private_record.id}").json()
     assert sheet["name"] == PRIVATE_NAME
     assert sheet["is_active"] is True
+
+
+def test_my_own_record_takes_part_in_my_own_selection(
+    client, login_as, other_user: User, private_record: Material
+) -> None:
+    """The other direction, and the one a leak test structurally cannot see.
+
+    Every assertion above fails when a record is shown to somebody who may not
+    see it. None of them fails when a record is hidden from the person who
+    *may* — and that is a real defect with a real cause: the viewer defaults to
+    "shared catalogue only", so any read path that forgets to pass the user
+    silently drops the caller's own records. It shipped exactly that way for
+    one commit, on every selection and every export, and looked like data loss
+    rather than a permissions bug.
+
+    An own record is not a separate shelf. It selects, charts and gets exported
+    with the catalogue, which is the entire point of having one.
+    """
+    with login_as(other_user):
+        run = client.post(
+            "/api/selection/run",
+            json={"stages": [{"kind": "limit", "constraints": []}]},
+        )
+        assert run.status_code == 200, run.text
+        assert PRIVATE_NAME in run.text
+
+        assert PRIVATE_NAME in client.get("/api/exports/catalogo.csv").text
+        assert (
+            PRIVATE_NAME
+            in client.post(
+                "/api/charts/property-map", json={"x": "densidade", "y": "modulo_young"}
+            ).text
+        )

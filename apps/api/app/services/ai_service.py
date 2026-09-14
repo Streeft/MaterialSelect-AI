@@ -39,6 +39,7 @@ from app.config import Settings
 from app.config import settings as default_settings
 from app.domain.errors import NotFoundError, ValidationError
 from app.knowledge.retrieval import search as knowledge_search
+from app.models.user import User
 from app.repositories.chart_repository import ChartRepository
 from app.repositories.selection_repository import SelectionRepository
 from app.schemas.ai import (
@@ -59,14 +60,13 @@ from app.services.selection_service import SelectionService
 class AIService:
     """Builds the context, runs the provider, and enforces the limits."""
 
-    def __init__(
-        self, db, settings: Settings = default_settings, viewer_id: int | None = None
-    ) -> None:
+    def __init__(self, db, settings: Settings = default_settings, user: User | None = None) -> None:
         self.db = db
         self.settings = settings
-        self.viewer_id = viewer_id
-        self.repo = ChartRepository(db, viewer_id)
-        self.selection_repo = SelectionRepository(db, viewer_id)
+        self.user = user
+        self.viewer_id = user.id if user is not None else None
+        self.repo = ChartRepository(db, self.viewer_id)
+        self.selection_repo = SelectionRepository(db, self.viewer_id)
 
     # --- status -----------------------------------------------------------
 
@@ -253,7 +253,7 @@ class AIService:
 
         # The prose is written about numbers this call just produced, not about
         # numbers the caller supplied.
-        result = SelectionService(self.db, project_id).run_study(study_id)
+        result = SelectionService(self.db, project_id, self.user).run_study(study_id)
         retrieved = self._retrieve(study.function_text or study.name, provider)
         context = _result_context(study, result, retrieved)
 

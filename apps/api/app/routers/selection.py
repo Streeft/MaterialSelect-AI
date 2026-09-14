@@ -42,9 +42,10 @@ def filter_materials(
     payload: FilterRequest,
     db: Session = Depends(get_db),
     project: Project = Depends(get_current_project),
+    user: User = Depends(get_current_user),
 ) -> FilterResultOut:
     """Apply constraints and return the elimination funnel plus candidates."""
-    return SelectionService(db, project.id).filter(payload)
+    return SelectionService(db, project.id, user).filter(payload)
 
 
 @router.post("/index", response_model=IndexResultOut)
@@ -52,9 +53,10 @@ def evaluate_index(
     payload: IndexRequest,
     db: Session = Depends(get_db),
     project: Project = Depends(get_current_project),
+    user: User = Depends(get_current_user),
 ) -> IndexResultOut:
     """Validate and evaluate a performance-index expression over all materials."""
-    return SelectionService(db, project.id).evaluate_index(payload)
+    return SelectionService(db, project.id, user).evaluate_index(payload)
 
 
 @router.post("/ahp-weights", response_model=AhpWeightsOut)
@@ -89,9 +91,10 @@ def run_selection(
     payload: RunRequest,
     db: Session = Depends(get_db),
     project: Project = Depends(get_current_project),
+    user: User = Depends(get_current_user),
 ) -> RunResultOut:
     """Run the full pipeline: filter → index → ranking (with sensitivity)."""
-    return SelectionService(db, project.id).run(payload)
+    return SelectionService(db, project.id, user).run(payload)
 
 
 # --- saved studies ---------------------------------------------------------
@@ -99,9 +102,11 @@ def run_selection(
 
 @router.get("/studies", response_model=list[StudySummaryOut])
 def list_studies(
-    db: Session = Depends(get_db), project: Project = Depends(get_current_project)
+    db: Session = Depends(get_db),
+    project: Project = Depends(get_current_project),
+    user: User = Depends(get_current_user),
 ) -> list[StudySummaryOut]:
-    return SelectionService(db, project.id).list_studies()
+    return SelectionService(db, project.id, user).list_studies()
 
 
 @router.post("/studies", response_model=StudyOut, status_code=status.HTTP_201_CREATED)
@@ -119,8 +124,9 @@ def get_study(
     study_id: int,
     db: Session = Depends(get_db),
     project: Project = Depends(get_current_project),
+    user: User = Depends(get_current_user),
 ) -> StudyOut:
-    return SelectionService(db, project.id).get_study(study_id)
+    return SelectionService(db, project.id, user).get_study(study_id)
 
 
 @router.delete("/studies/{study_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -139,8 +145,9 @@ def run_study(
     study_id: int,
     db: Session = Depends(get_db),
     project: Project = Depends(get_current_project),
+    user: User = Depends(get_current_user),
 ) -> RunResultOut:
-    return SelectionService(db, project.id).run_study(study_id)
+    return SelectionService(db, project.id, user).run_study(study_id)
 
 
 # --- performance-index catalogue -------------------------------------------
@@ -148,9 +155,11 @@ def run_study(
 
 @indices_router.get("", response_model=list[PerformanceIndexOut])
 def list_indices(
-    db: Session = Depends(get_db), project: Project = Depends(get_current_project)
+    db: Session = Depends(get_db),
+    project: Project = Depends(get_current_project),
+    user: User = Depends(get_current_user),
 ) -> list[PerformanceIndexOut]:
-    return SelectionService(db, project.id).list_indices()
+    return SelectionService(db, project.id, user).list_indices()
 
 
 @indices_router.post("", response_model=PerformanceIndexOut, status_code=status.HTTP_201_CREATED)

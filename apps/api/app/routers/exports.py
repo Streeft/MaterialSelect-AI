@@ -89,7 +89,7 @@ def export_catalogue(
 ) -> Response:
     """Export the whole active catalogue with its provenance trail."""
     _require_supported(fmt)
-    return _file_response(ExportService(db, user.id).catalogue_report(), fmt)
+    return _file_response(ExportService(db, user).catalogue_report(), fmt)
 
 
 @router.get("/estudos/{study_id}.{fmt}")
@@ -106,7 +106,7 @@ def export_study(
     catalogue rather than a remembered result.
     """
     _require_supported(fmt)
-    return _file_response(ExportService(db, user.id).study_report(study_id, project.id), fmt)
+    return _file_response(ExportService(db, user).study_report(study_id, project.id), fmt)
 
 
 @router.get("/estudos/{study_id}/laudo.html")
@@ -123,7 +123,7 @@ def export_study_laudo(
     report it is built alongside: there is no spreadsheet shape for a figure
     or a paragraph.
     """
-    report = ExportService(db, user.id).study_laudo(study_id, project.id, responsible=responsavel)
+    report = ExportService(db, user).study_laudo(study_id, project.id, responsible=responsavel)
     return _file_response(report, "html")
 
 
