@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { listProcessClasses, listProcesses } from "@/lib/api";
 import type { Process, ProcessClass } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
+import { descendantSlugs, roots } from "@/lib/taxonomy";
 import {
   Badge,
   Card,
@@ -73,11 +74,6 @@ export default function ProcessesPage() {
   );
 }
 
-/** The taxonomy's roots, which is where the reader starts. */
-function roots(classes: ProcessClass[]): ProcessClass[] {
-  return classes.filter((c) => c.parent_id === null);
-}
-
 function FamilyCard({
   family,
   classes,
@@ -89,7 +85,7 @@ function FamilyCard({
 }) {
   // Everything under this root, the root included — the reader wants the
   // family's processes, not only the ones that happen to be filed at its top.
-  const subtree = descendantSlugs(family, classes);
+  const subtree = descendantSlugs(family.slug, classes);
   const inFamily = processes.filter((p) => subtree.has(p.class_slug));
 
   return (
@@ -126,26 +122,3 @@ function FamilyCard({
   );
 }
 
-/**
- * Every slug at or under `family`.
- *
- * Walked breadth-first over `parent_id` rather than assuming two levels: the
- * taxonomy is data, an operator can deepen it without a migration (D-57), and a
- * hard-coded depth would silently drop whatever they add.
- */
-function descendantSlugs(family: ProcessClass, classes: ProcessClass[]): Set<string> {
-  const slugs = new Set([family.slug]);
-  const ids = new Set([family.id]);
-  let grew = true;
-  while (grew) {
-    grew = false;
-    for (const candidate of classes) {
-      if (candidate.parent_id !== null && ids.has(candidate.parent_id) && !ids.has(candidate.id)) {
-        ids.add(candidate.id);
-        slugs.add(candidate.slug);
-        grew = true;
-      }
-    }
-  }
-  return slugs;
-}

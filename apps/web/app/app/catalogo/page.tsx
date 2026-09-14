@@ -1,10 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { catalogueExportUrl, listClasses, listMaterials } from "@/lib/api";
 import type { MaterialListItem } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
+import { descendantSlugs, roots } from "@/lib/taxonomy";
 import { ExportButtons } from "@/components/ExportButtons";
 import { MaterialTable } from "@/components/catalog/MaterialRows";
 import { MaterialCards } from "@/components/catalog/MaterialCards";
@@ -150,6 +152,36 @@ export default function CatalogPage() {
           </Button>
         </CardBody>
       </Card>
+
+      {/* P1-4: the way *into* the taxonomy, next to (not instead of) the filter
+          above. The two answer different questions — the select narrows the list
+          on this screen, a family card leaves for that family's own page, where
+          the record and the subclasses are. Collapsing them into one control
+          would cost whichever question lost. */}
+      <Section id="familias" title={ptBR.family.subclasses} description={t.browseHint}>
+        <div className="flex flex-wrap gap-2">
+          {roots(classes.data ?? []).map((family) => (
+            <Link
+              key={family.slug}
+              href={`/app/catalogo/${family.slug}`}
+              className="rounded-control focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            >
+              <Card className="pressable">
+                <CardBody className="flex flex-col gap-0.5 px-4 py-3">
+                  <span className="font-medium text-ink">{family.name}</span>
+                  <span className="text-xs text-ink-muted">
+                    {ptBR.family.countMaterials(
+                      (materials.data ?? []).filter((m) =>
+                        descendantSlugs(family.slug, classes.data ?? []).has(m.class_slug),
+                      ).length,
+                    )}
+                  </span>
+                </CardBody>
+              </Card>
+            </Link>
+          ))}
+        </div>
+      </Section>
 
       <Section
         id="materiais"

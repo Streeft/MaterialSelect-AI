@@ -667,6 +667,7 @@ const { default: ImportPage } = await import("./importar/page");
 const { default: ProcessesPage } = await import("./processos/page");
 const { default: ProcessDetailPage } = await import("./processos/[slug]/page");
 const { default: ProcessFamilyPage } = await import("./processos/familia/[slug]/page");
+const { default: MaterialFamilyPage } = await import("./catalogo/[slug]/page");
 
 function makeClient() {
   return new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -774,6 +775,10 @@ describe("acessibilidade das telas principais", () => {
 
   it("família de processo", async () => {
     await auditRoute(<ProcessFamilyPage />, "Conformação");
+  });
+
+  it("família de material", async () => {
+    await auditRoute(<MaterialFamilyPage />, "Metais");
   });
 
   // Landing is the one route in this file that isn't under `/app`: no session,
