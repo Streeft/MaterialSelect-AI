@@ -3,7 +3,8 @@
 A load case is a *derivation*, not a datum. Ashby's method turns a design brief
 into a material index by writing three things and eliminating one:
 
-1. the **objective** to minimise — here always the mass ``m = A · L · ρ``;
+1. the **objective** to minimise — the mass ``m = A · L · ρ``, or, with the
+   cost twin of the index, the part's material cost (see below);
 2. the **constraint** the part must meet — a stiffness, a load, a moment;
 3. the **free variable** the designer may still choose — the section area
    for a bar, a beam or a column; the thickness for a plate, where the area in
@@ -32,6 +33,16 @@ the structural factor divided by the index must come out in the unit the case
 declares — so an algebra slip in a new case fails the suite instead of reaching
 a reader.
 
+**The same structural factor serves a second objective** (P3, D-65): swap ρ for
+ρ·Cm in the material grouping and the derivation minimises the part's *material
+cost* instead of its mass. Nothing about the geometry changes, which is why each
+case names two index slugs rather than carrying two derivations — and why the
+rule above holds unchanged, with ``custo = fator estrutural / índice de custo``.
+The tool cannot tell the two apart *dimensionally*: ``custo_massa`` is money per
+mass, money is in no unit system, and so a cost index carries the same dimension
+as its mass twin. Which objective ran is therefore said in words, never inferred
+from a unit.
+
 **The two namespaces never mix.** A structural expression may only name a
 design variable (``comprimento``, ``rigidez``, …); an index may only name a
 property slug (``modulo_young``, ``densidade``, …). ``_validate`` enforces the
@@ -44,10 +55,9 @@ standard results; the method that assembles them into indices is Ashby's
 (*Material Selection in Mechanical Design*), cited per case. No third-party
 database, text or dataset is reproduced.
 
-What is **not** here, and is a deliberate v1 omission: cost as an objective
-(which replaces ρ with ρ·Cm in every material grouping), sections other than
-solid square and solid rectangular, and any case the user would author themselves — a derivation is
-verified by review, like ``units.py``, not by data entry.
+What is **not** here, and is a deliberate v1 omission: sections other than solid
+square and solid rectangular, and any case the user would author themselves — a
+derivation is verified by review, like ``units.py``, not by data entry.
 """
 
 from __future__ import annotations
@@ -59,6 +69,18 @@ from app.calculations.expressions import ExpressionError, variables_in
 # π² written out: the safe expression grammar admits numeric literals only, and
 # a named constant would have to enter the evaluator's whitelist for one case.
 _PI_SQUARED = "9.869604401089358"
+
+#: The two objectives one derivation serves (D-65). They are not two derivations
+#: and never become two: the structural factor is the same number in both runs,
+#: and only the material grouping changes — ρ for the mass, ρ·Cm for the cost.
+MASS_OBJECTIVE = "massa"
+COST_OBJECTIVE = "custo"
+OBJECTIVES = (MASS_OBJECTIVE, COST_OBJECTIVE)
+
+#: The objective, as a reader sees it. The mass label is per case (a plate and a
+#: tie minimise different masses in words); the cost label is one sentence for
+#: every case, because the swap that produces it is the same swap everywhere.
+COST_OBJECTIVE_LABEL = "Minimizar custo de material"
 
 
 @dataclass(frozen=True)
@@ -95,6 +117,10 @@ class LoadCase:
     label: str
     summary: str
     index_slug: str
+    #: The cost twin of ``index_slug``: the same derivation with ρ·Cm in place of
+    #: ρ, which minimises the part's **material cost** instead of its mass. The
+    #: structural factor is identical — that is why one derivation serves both.
+    cost_index_slug: str
     objective_label: str
     constraint_label: str
     free_variable_label: str
@@ -125,6 +151,26 @@ class LoadCase:
     def design_units(self) -> dict[str, str]:
         """Canonical unit per design variable, for dimensional analysis."""
         return {variable.key: variable.unit for variable in self.variables}
+
+    def index_slug_for(self, objective: str) -> str:
+        """The catalogued index this case yields for one objective.
+
+        The choice lives here, beside the derivation that justifies it, so that
+        no caller can pair a case with an index the case does not produce.
+        """
+        if objective == MASS_OBJECTIVE:
+            return self.index_slug
+        if objective == COST_OBJECTIVE:
+            return self.cost_index_slug
+        raise ValueError(f"Objetivo desconhecido: {objective}")
+
+    def objective_label_for(self, objective: str) -> str:
+        """How the objective reads on screen, for one objective."""
+        if objective == MASS_OBJECTIVE:
+            return self.objective_label
+        if objective == COST_OBJECTIVE:
+            return COST_OBJECTIVE_LABEL
+        raise ValueError(f"Objetivo desconhecido: {objective}")
 
 
 # --- design variables ------------------------------------------------------
@@ -236,6 +282,7 @@ LOAD_CASES: tuple[LoadCase, ...] = (
             "a área da seção é livre."
         ),
         index_slug="rigidez-especifica",
+        cost_index_slug="rigidez-especifica-custo",
         objective_label="Minimizar massa",
         constraint_label="Rigidez axial S especificada",
         free_variable_label="Área da seção A",
@@ -265,6 +312,7 @@ LOAD_CASES: tuple[LoadCase, ...] = (
             "a área da seção é livre."
         ),
         index_slug="resistencia-especifica",
+        cost_index_slug="resistencia-especifica-custo",
         objective_label="Minimizar massa",
         constraint_label="Carga F suportada sem falha",
         free_variable_label="Área da seção A",
@@ -293,6 +341,7 @@ LOAD_CASES: tuple[LoadCase, ...] = (
             "a área da seção é livre."
         ),
         index_slug="componente-leve-escoamento",
+        cost_index_slug="componente-leve-escoamento-custo",
         objective_label="Minimizar massa",
         constraint_label="Carga F suportada sem escoar",
         free_variable_label="Área da seção A",
@@ -322,6 +371,7 @@ LOAD_CASES: tuple[LoadCase, ...] = (
             "a espessura é livre, o vão e a largura são fixos."
         ),
         index_slug="placa-leve-rigidez",
+        cost_index_slug="placa-leve-rigidez-custo",
         objective_label="Minimizar massa",
         constraint_label="Rigidez à flexão S especificada",
         free_variable_label="Espessura t",
@@ -356,6 +406,7 @@ LOAD_CASES: tuple[LoadCase, ...] = (
             "a seção é livre, o vão é fixo."
         ),
         index_slug="viga-leve-rigidez",
+        cost_index_slug="viga-leve-rigidez-custo",
         objective_label="Minimizar massa",
         constraint_label="Rigidez à flexão S especificada",
         free_variable_label="Área da seção A",
@@ -385,6 +436,7 @@ LOAD_CASES: tuple[LoadCase, ...] = (
             "Viga que não pode escoar na fibra mais solicitada; " "a seção é livre, o vão é fixo."
         ),
         index_slug="viga-leve-resistencia",
+        cost_index_slug="viga-leve-resistencia-custo",
         objective_label="Minimizar massa",
         constraint_label="Momento fletor M suportado sem escoar",
         free_variable_label="Área da seção A",
@@ -414,6 +466,7 @@ LOAD_CASES: tuple[LoadCase, ...] = (
             "a seção é livre, o comprimento é fixo."
         ),
         index_slug="viga-leve-rigidez",
+        cost_index_slug="viga-leve-rigidez-custo",
         objective_label="Minimizar massa",
         constraint_label="Carga F suportada sem flambar",
         free_variable_label="Área da seção A",

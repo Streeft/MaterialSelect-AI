@@ -63,6 +63,11 @@ REQUIRED_PROCESS_ATTRIBUTES = (
 #: The material property that carries cost per unit mass.
 MATERIAL_COST_SLUG = "custo_massa"
 
+#: What a money answer is denominated in, written once for every surface that
+#: has to name it — this estimator, and the cost objective of the solver, which
+#: divides by an index built on the same dimensionless ``custo_massa``.
+MONETARY_UNIT = "unidade monetária não especificada"
+
 
 class PartCostError(ValueError):
     """The brief cannot be costed — bad inputs, not missing data."""

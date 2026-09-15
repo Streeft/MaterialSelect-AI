@@ -232,4 +232,86 @@ def test_axial_yield_matches_the_closed_form() -> None:
 def test_every_seeded_index_is_reachable_through_some_load_case() -> None:
     """An index the Finder cannot reach is a flow that dead-ends in the catalogue."""
     reachable = {case.index_slug for case in LOAD_CASES}
+    reachable |= {case.cost_index_slug for case in LOAD_CASES}
     assert reachable == set(_INDEX_BY_SLUG)
+
+
+# --- the cost twin (D-65) --------------------------------------------------
+#
+# One derivation, read twice. The claims below are the whole of that: the cost
+# index is the mass index with ρ·Cm in place of ρ, the structural factor does
+# not move, and therefore the cost of the part is its mass times the cost of a
+# kilogram. Nothing here re-authors an expression — each check evaluates the two
+# catalogued indices against the same numbers and compares the results, so a
+# mistyped twin in the seed fails here rather than on a reader's screen.
+
+_CUSTO = 8.4  # monetary units per kg; any positive number proves the relation
+
+
+@pytest.mark.parametrize("case", LOAD_CASES, ids=lambda case: case.key)
+def test_every_case_points_at_a_seeded_cost_index_that_can_be_inverted(case) -> None:
+    index = _INDEX_BY_SLUG.get(case.cost_index_slug)
+    assert index is not None, f"{case.key} aponta para índice de custo inexistente"
+    assert index["goal"] == "maximize"
+
+
+@pytest.mark.parametrize("case", LOAD_CASES, ids=lambda case: case.key)
+def test_the_cost_index_is_the_mass_index_divided_by_the_cost_of_a_kilogram(case) -> None:
+    """The swap is ρ → ρ·Cm and nothing else, which is why one factor serves both."""
+    properties = {
+        "modulo_young": _E,
+        "densidade": _RHO,
+        "limite_escoamento": _SIGMA,
+        "resistencia_tracao": _SIGMA * 1.3,
+        "custo_massa": _CUSTO,
+    }
+    mass_index = _INDEX_BY_SLUG[case.index_slug]["expression"]
+    cost_index = _INDEX_BY_SLUG[case.cost_index_slug]["expression"]
+    # The cost expression must reference Cm; without it this comparison would
+    # pass on a twin that is simply a copy of the mass index.
+    assert "custo_massa" in variables_in(cost_index)
+    mass_value = evaluate(mass_index, {k: properties[k] for k in variables_in(mass_index)})
+    cost_value = evaluate(cost_index, {k: properties[k] for k in variables_in(cost_index)})
+    assert cost_value == pytest.approx(mass_value / _CUSTO, rel=1e-12)
+
+
+@pytest.mark.parametrize("case", LOAD_CASES, ids=lambda case: case.key)
+def test_the_cost_objective_comes_out_with_the_dimension_of_a_mass(case) -> None:
+    """Not a defect: money is in no unit system, so Pint cannot tell the two apart.
+
+    ``custo_massa`` is catalogued as dimensionless on purpose, so the derived
+    dimension proves the *algebra* of the cost twin and says nothing about what
+    the answer is denominated in. That is why the solver names the objective in
+    words and carries ``objective_note`` — see ``app.calculations.solver``.
+    """
+    index = _INDEX_BY_SLUG[case.cost_index_slug]
+    units = {**case.design_units, **_PROPERTY_UNITS}
+    dimension = result_dimension(f"({case.objective_structural}) / ({index['expression']})", units)
+    assert dimension == "[mass]"
+
+
+def test_the_cost_of_the_part_is_its_mass_times_the_cost_of_a_kilogram() -> None:
+    """The reader-facing consequence, on one case, end to end."""
+    inputs = {"rigidez": 1.0e6, "comprimento": 1.2}
+    case = by_key("tirante-rigidez")
+    assert case is not None
+    structural = evaluate(case.objective_structural, inputs)
+    properties = {"modulo_young": _E, "densidade": _RHO, "custo_massa": _CUSTO}
+
+    def value(slug: str) -> float:
+        expression = _INDEX_BY_SLUG[slug]["expression"]
+        return evaluate(expression, {k: properties[k] for k in variables_in(expression)})
+
+    mass = structural / value(case.index_slug)
+    cost = structural / value(case.cost_index_slug)
+    assert cost == pytest.approx(mass * _CUSTO, rel=1e-12)
+
+
+def test_index_slug_for_refuses_an_objective_the_case_does_not_have() -> None:
+    """A caller never names an index, so an unknown objective has no fallback."""
+    case = by_key("tirante-rigidez")
+    assert case is not None
+    with pytest.raises(ValueError):
+        case.index_slug_for("carbono")
+    with pytest.raises(ValueError):
+        case.objective_label_for("carbono")
