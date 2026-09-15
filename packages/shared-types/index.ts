@@ -327,7 +327,12 @@ export interface PropertyDefinitionIn {
 
 // --- Import wizard --------------------------------------------------------
 
-export type ImportStatus = "PENDENTE" | "VALIDADO" | "IMPORTADO" | "CANCELADO" | "REVERTIDO";
+export type ImportStatus =
+  | "PENDENTE"
+  | "VALIDADO"
+  | "IMPORTADO"
+  | "CANCELADO"
+  | "REVERTIDO";
 
 export type ColumnRole = "value" | "min" | "max" | "typical";
 
@@ -444,12 +449,22 @@ export interface ChartData {
 // --- Deterministic selection ----------------------------------------------
 
 export type ConstraintOperator =
-  | "gt" | "gte" | "lt" | "lte" | "between" | "outside"
-  | "exists" | "not_exists" | "in_class" | "not_in_class" | "text_contains"
+  | "gt"
+  | "gte"
+  | "lt"
+  | "lte"
+  | "between"
+  | "outside"
+  | "exists"
+  | "not_exists"
+  | "in_class"
+  | "not_in_class"
+  | "text_contains"
   // P0-4: set membership over a discrete process attribute's closed vocabulary.
   // Never applicable to a material property — none of them is discrete — which
   // is why the editor offers these two only in a process study.
-  | "has_any_label" | "has_no_label";
+  | "has_any_label"
+  | "has_no_label";
 
 export type Goal = "maximize" | "minimize";
 export type CriterionDirection = "max" | "min";
@@ -1340,16 +1355,29 @@ export interface LoadCase {
   index_name: string | null;
   index_expression: string | null;
   index_goal: string | null;
+  /**
+   * The same derivation read against cost (D-65): ρ·Cm in place of ρ in the
+   * material grouping. Carried beside the mass index, not in place of it — a
+   * case answers two objectives and the reader chooses which one runs.
+   */
+  cost_index_slug: string;
+  cost_index_name: string | null;
+  cost_index_expression: string | null;
+  cost_objective_label: string;
   objective_unit: string;
   free_unit: string;
   variables: DesignVariable[];
   supports: SupportCondition[];
 }
 
+/** Which of a case's two indices to run. Defaults to the mass on the server. */
+export type SolverObjective = "massa" | "custo";
+
 export interface SolveRequest {
   case_key: string;
   /** One value per design variable, in that variable's canonical unit. */
   inputs: Record<string, number>;
+  objective?: SolverObjective;
   limit?: number;
 }
 
@@ -1362,7 +1390,7 @@ export interface SolvedRecord {
   is_own_record: boolean;
   rank: number;
   index_value: number;
-  /** The mass, in `objective_unit`. */
+  /** The objective — a mass, or a material cost — in `objective_unit`. */
   objective_value: number;
   /** The free variable — section area or plate thickness — in `free_unit`. */
   free_value: number;
@@ -1381,6 +1409,16 @@ export interface SolveResult {
   case: LoadCase;
   inputs: Record<string, number>;
   /**
+   * Which objective ran, and the index that answered it — on the result rather
+   * than read off the case, because a case carries two indices and showing the
+   * other one would make the screen disagree with the number under it.
+   */
+  objective: SolverObjective;
+  objective_label: string;
+  index_slug: string;
+  index_name: string | null;
+  index_expression: string | null;
+  /**
    * Pure geometry and load: the same number for every material in the run,
    * which is what makes the ordering the index's ordering. Returned so the
    * reader can check a mass by hand — mass = structural factor / index.
@@ -1389,9 +1427,14 @@ export interface SolveResult {
   free_structural_factor: number;
   objective_unit: string;
   free_unit: string;
-  /** Derived by Pint from the canonical units, never declared by hand. */
+  /**
+   * Derived by Pint from the canonical units, never declared by hand — and on a
+   * cost run *not* the answer's unit: `custo_massa` is dimensionless, so the
+   * dimension comes out as a mass and `objective_note` says why.
+   */
   objective_dimension: string;
   free_dimension: string;
+  objective_note: string | null;
   solved: SolvedRecord[];
   excluded: SolverExcluded[];
 }
