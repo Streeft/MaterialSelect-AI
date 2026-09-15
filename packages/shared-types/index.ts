@@ -1395,3 +1395,68 @@ export interface SolveResult {
   solved: SolvedRecord[];
   excluded: SolverExcluded[];
 }
+
+// --- Part Cost Estimator (P3) -----------------------------------------------
+
+export interface CostRequest {
+  material_id: number;
+  /** Finished part mass, kg — from the Solver, or measured. */
+  part_mass: number;
+  batch_size: number;
+  write_off_years?: number;
+  load_factor?: number;
+}
+
+/**
+ * One estimate, decomposed.
+ *
+ * The sum is `total`; the parts are the point. Each behaves differently with
+ * the batch: `material` is a floor no batch can get under, `tooling` falls as
+ * 1/n, and the two time terms do not move with n at all.
+ */
+export interface CostTerms {
+  material: number;
+  tooling: number;
+  overhead: number;
+  capital: number;
+  total: number;
+  /** The share a larger batch could still remove — the tooling term. */
+  batch_sensitive: number;
+}
+
+export interface CostedProcess {
+  process_id: number;
+  process_slug: string;
+  process_name: string;
+  class_name: string;
+  rank: number;
+  terms: CostTerms;
+}
+
+/** A process that could not be priced, and what it lacked. */
+export interface UncostedProcess {
+  process_id: number;
+  process_slug: string;
+  process_name: string;
+  missing_slugs: string[];
+  missing_labels: string[];
+  reason: string;
+}
+
+export interface CostResult {
+  material_id: number;
+  material_name: string;
+  part_mass: number;
+  batch_size: number;
+  write_off_years: number;
+  load_factor: number;
+  material_cost_per_mass: number;
+  /**
+   * What the answer is denominated in. Money is not a physical quantity and the
+   * catalogue never recorded a currency, so the screen says this instead of
+   * printing a symbol nobody declared.
+   */
+  monetary_unit_note: string;
+  costed: CostedProcess[];
+  uncosted: UncostedProcess[];
+}

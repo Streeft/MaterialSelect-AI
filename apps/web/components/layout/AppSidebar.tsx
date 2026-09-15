@@ -67,6 +67,7 @@ const GROUPS: NavGroup[] = [
       // P2: o Engineering Solver e o Index Finder moram na mesma tela, porque
       // são a mesma derivação lida de dois jeitos.
       { href: "/app/dimensionar", label: t.solver, icon: IconRuler },
+      { href: "/app/custo", label: t.cost, icon: IconGauge },
     ],
   },
   {
