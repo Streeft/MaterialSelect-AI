@@ -42,6 +42,7 @@ from app.models.process_attribute import ProcessAttributeDefinition, ProcessAttr
 from app.models.project import Project
 from app.models.property_definition import PropertyDefinition
 from app.models.source import Source
+from app.models.transport_mode import TransportMode
 from app.models.user import User, UserSession
 from app.repositories.material_repository import MaterialRepository
 from app.repositories.subscription_repository import SubscriptionRepository
@@ -209,6 +210,58 @@ PROPERTIES = [
         "symbol": "Cm",
         "category": PropertyCategory.ECONOMICA,
         "physical_dimension": "",  # currency per mass; treated as dimensionless proxy
+        "canonical_unit": "dimensionless",
+        "accepted_units": ["dimensionless"],
+        "is_interval": False,
+        "better_direction": BetterDirection.LOWER,
+    },
+    # --- environmental (P3, Eco Audit) ------------------------------------
+    #
+    # Energy is a dimension Pint knows, so MJ/kg is audited like any other
+    # derived unit. A CO₂ footprint is kilograms of one substance per kilogram
+    # of another, and Pint has no notion of substance — it flattens the ratio to
+    # dimensionless, exactly as it does for money. So these two follow
+    # `custo_massa`: dimensionless in the catalogue, "kg de CO₂" in words on
+    # every surface that prints them.
+    {
+        "slug": "energia_incorporada",
+        "name": "Energia incorporada (produção primária)",
+        "symbol": "Hm",
+        "category": PropertyCategory.AMBIENTAL,
+        "physical_dimension": "[length] ** 2 / [time] ** 2",
+        "canonical_unit": "MJ/kg",
+        "accepted_units": ["MJ/kg", "kJ/kg"],
+        "is_interval": False,
+        "better_direction": BetterDirection.LOWER,
+    },
+    {
+        "slug": "pegada_co2",
+        "name": "Pegada de CO₂ (produção primária)",
+        "symbol": "CO₂m",
+        "category": PropertyCategory.AMBIENTAL,
+        "physical_dimension": "",  # kg de CO₂ por kg de material; ver nota acima
+        "canonical_unit": "dimensionless",
+        "accepted_units": ["dimensionless"],
+        "is_interval": False,
+        "better_direction": BetterDirection.LOWER,
+    },
+    {
+        "slug": "energia_reciclagem",
+        "name": "Energia de reciclagem",
+        "symbol": "Hr",
+        "category": PropertyCategory.AMBIENTAL,
+        "physical_dimension": "[length] ** 2 / [time] ** 2",
+        "canonical_unit": "MJ/kg",
+        "accepted_units": ["MJ/kg", "kJ/kg"],
+        "is_interval": False,
+        "better_direction": BetterDirection.LOWER,
+    },
+    {
+        "slug": "co2_reciclagem",
+        "name": "Pegada de CO₂ da reciclagem",
+        "symbol": "CO₂r",
+        "category": PropertyCategory.AMBIENTAL,
+        "physical_dimension": "",  # kg de CO₂ por kg de material; ver nota acima
         "canonical_unit": "dimensionless",
         "accepted_units": ["dimensionless"],
         "is_interval": False,
@@ -465,6 +518,35 @@ DEMO_MATERIALS = [
                 "unit": "dimensionless",
                 "quality": DataQuality.ESTIMADO,
             },
+            # --- ambiental (P3, Eco Audit) ---
+            {
+                "slug": "energia_incorporada",
+                "kind": "scalar",
+                "value": 210.0,
+                "unit": "MJ/kg",
+                "quality": DataQuality.ESTIMADO,
+            },
+            {
+                "slug": "pegada_co2",
+                "kind": "scalar",
+                "value": 12.5,
+                "unit": "dimensionless",
+                "quality": DataQuality.ESTIMADO,
+            },
+            {
+                "slug": "energia_reciclagem",
+                "kind": "scalar",
+                "value": 24.0,
+                "unit": "MJ/kg",
+                "quality": DataQuality.ESTIMADO,
+            },
+            {
+                "slug": "co2_reciclagem",
+                "kind": "scalar",
+                "value": 1.6,
+                "unit": "dimensionless",
+                "quality": DataQuality.ESTIMADO,
+            },
         ],
     },
     {
@@ -509,6 +591,35 @@ DEMO_MATERIALS = [
                 "unit": "degC",
                 "quality": DataQuality.ESTIMADO,
             },
+            # --- ambiental (P3, Eco Audit) ---
+            {
+                "slug": "energia_incorporada",
+                "kind": "scalar",
+                "value": 32.0,
+                "unit": "MJ/kg",
+                "quality": DataQuality.ESTIMADO,
+            },
+            {
+                "slug": "pegada_co2",
+                "kind": "scalar",
+                "value": 2.2,
+                "unit": "dimensionless",
+                "quality": DataQuality.ESTIMADO,
+            },
+            {
+                "slug": "energia_reciclagem",
+                "kind": "scalar",
+                "value": 11.0,
+                "unit": "MJ/kg",
+                "quality": DataQuality.ESTIMADO,
+            },
+            {
+                "slug": "co2_reciclagem",
+                "kind": "scalar",
+                "value": 0.8,
+                "unit": "dimensionless",
+                "quality": DataQuality.ESTIMADO,
+            },
         ],
     },
     {
@@ -547,6 +658,35 @@ DEMO_MATERIALS = [
                 "kind": "scalar",
                 "value": 90.0,
                 "unit": "degC",
+                "quality": DataQuality.ESTIMADO,
+            },
+            # --- ambiental (P3, Eco Audit) ---
+            {
+                "slug": "energia_incorporada",
+                "kind": "scalar",
+                "value": 95.0,
+                "unit": "MJ/kg",
+                "quality": DataQuality.ESTIMADO,
+            },
+            {
+                "slug": "pegada_co2",
+                "kind": "scalar",
+                "value": 3.1,
+                "unit": "dimensionless",
+                "quality": DataQuality.ESTIMADO,
+            },
+            {
+                "slug": "energia_reciclagem",
+                "kind": "scalar",
+                "value": 32.0,
+                "unit": "MJ/kg",
+                "quality": DataQuality.ESTIMADO,
+            },
+            {
+                "slug": "co2_reciclagem",
+                "kind": "scalar",
+                "value": 1.2,
+                "unit": "dimensionless",
                 "quality": DataQuality.ESTIMADO,
             },
         ],
@@ -592,6 +732,31 @@ DEMO_MATERIALS = [
                 "kind": "missing",
                 "notes": "Não disponível no dataset demo.",
             },
+            # --- ambiental (P3, Eco Audit) ---
+            {
+                "slug": "energia_incorporada",
+                "kind": "scalar",
+                "value": 78.0,
+                "unit": "MJ/kg",
+                "quality": DataQuality.ESTIMADO,
+            },
+            {
+                "slug": "pegada_co2",
+                "kind": "scalar",
+                "value": 4.5,
+                "unit": "dimensionless",
+                "quality": DataQuality.ESTIMADO,
+            },
+            {
+                "slug": "energia_reciclagem",
+                "kind": "missing",
+                "notes": "Rota de reciclagem não estabelecida para esta cerâmica fictícia.",
+            },
+            {
+                "slug": "co2_reciclagem",
+                "kind": "missing",
+                "notes": "Rota de reciclagem não estabelecida para esta cerâmica fictícia.",
+            },
         ],
     },
     {
@@ -630,6 +795,31 @@ DEMO_MATERIALS = [
                 "unit": "dimensionless",
                 "uncertainty": 8.0,
                 "quality": DataQuality.ESTIMADO,
+            },
+            # --- ambiental (P3, Eco Audit) ---
+            {
+                "slug": "energia_incorporada",
+                "kind": "scalar",
+                "value": 300.0,
+                "unit": "MJ/kg",
+                "quality": DataQuality.ESTIMADO,
+            },
+            {
+                "slug": "pegada_co2",
+                "kind": "scalar",
+                "value": 18.0,
+                "unit": "dimensionless",
+                "quality": DataQuality.ESTIMADO,
+            },
+            {
+                "slug": "energia_reciclagem",
+                "kind": "missing",
+                "notes": "Reciclagem de compósito de fibra não estabelecida no dataset demo.",
+            },
+            {
+                "slug": "co2_reciclagem",
+                "kind": "missing",
+                "notes": "Reciclagem de compósito de fibra não estabelecida no dataset demo.",
             },
         ],
     },
@@ -946,6 +1136,42 @@ PROCESS_ATTRIBUTES = [
             "termo de material, e é por isso que aparece no denominador dele."
         ),
     },
+    # --- environmental (P3, Eco Audit) ------------------------------------
+    #
+    # The third reader of this table, after the selection engine and the part
+    # cost estimator. `fracao-refugo` is read by two of the three now, for
+    # different reasons: there it decides what the foundry bills, here what it
+    # had to smelt.
+    {
+        "slug": "energia-processo",
+        "name": "Energia de processo por massa",
+        "symbol": "Hp",
+        "kind": ProcessAttributeKind.ESCALAR,
+        "physical_dimension": "[length] ** 2 / [time] ** 2",
+        "canonical_unit": "MJ/kg",
+        "accepted_units": ["MJ/kg", "kJ/kg"],
+        "better_direction": BetterDirection.LOWER,
+        "description": (
+            "Energia gasta para conformar um quilograma de material neste "
+            "processo. Cobra-se sobre a massa comprada, não sobre a massa da "
+            "peça: o refugo também passou pela máquina."
+        ),
+    },
+    {
+        "slug": "co2-processo",
+        "name": "Pegada de CO₂ do processo por massa",
+        "symbol": "CO₂p",
+        "kind": ProcessAttributeKind.ESCALAR,
+        "physical_dimension": "",  # kg de CO₂ por kg de material
+        "canonical_unit": "dimensionless",
+        "accepted_units": ["dimensionless"],
+        "better_direction": BetterDirection.LOWER,
+        "description": (
+            "Quilogramas de CO₂ por quilograma conformado. Adimensional no "
+            "catálogo porque o sistema de unidades não distingue substância; a "
+            "unidade é dita em palavras onde o número aparece."
+        ),
+    },
 ]
 
 #: Process slug → its attribute values. Fictitious, as the note above says.
@@ -965,6 +1191,12 @@ PROCESS_ATTRIBUTES = [
 #: so the estimator has to report it as uncosted rather than silently treat a
 #: blank as zero, which would make it look like the cheapest process on the
 #: list.
+#:
+#: The environmental rows (P3, Eco Audit) sit on exactly the same seven shaping
+#: processes and for the same reason: an eco audit of a part is an audit of
+#: *making* the part. ``retificacao`` keeps its economic gap and gains no
+#: environmental row at all, so it demonstrates both shapes of absence — a row
+#: that says "nobody wrote this down" and no row at all.
 PROCESS_ATTRIBUTE_VALUES = {
     "fundicao-areia": [
         {"slug": "faixa-massa", "kind": "envelope", "min": 0.2, "max": 400.0, "unit": "kg"},
@@ -977,6 +1209,8 @@ PROCESS_ATTRIBUTE_VALUES = {
         {"slug": "custo-capital", "kind": "scalar", "value": 250000.0, "unit": "dimensionless"},
         {"slug": "custo-hora-operacao", "kind": "scalar", "value": 85.0, "unit": "1/hour"},
         {"slug": "fracao-refugo", "kind": "scalar", "value": 0.12, "unit": "dimensionless"},
+        {"slug": "energia-processo", "kind": "scalar", "value": 11.0, "unit": "MJ/kg"},
+        {"slug": "co2-processo", "kind": "scalar", "value": 0.85, "unit": "dimensionless"},
     ],
     "moldagem-injecao": [
         {"slug": "faixa-massa", "kind": "envelope", "min": 0.005, "max": 12.0, "unit": "kg"},
@@ -989,6 +1223,8 @@ PROCESS_ATTRIBUTE_VALUES = {
         {"slug": "custo-capital", "kind": "scalar", "value": 600000.0, "unit": "dimensionless"},
         {"slug": "custo-hora-operacao", "kind": "scalar", "value": 110.0, "unit": "1/hour"},
         {"slug": "fracao-refugo", "kind": "scalar", "value": 0.03, "unit": "dimensionless"},
+        {"slug": "energia-processo", "kind": "scalar", "value": 19.0, "unit": "MJ/kg"},
+        {"slug": "co2-processo", "kind": "scalar", "value": 1.35, "unit": "dimensionless"},
     ],
     "forjamento": [
         {"slug": "faixa-massa", "kind": "envelope", "min": 0.1, "max": 90.0, "unit": "kg"},
@@ -1005,6 +1241,8 @@ PROCESS_ATTRIBUTE_VALUES = {
         {"slug": "custo-capital", "kind": "scalar", "value": 900000.0, "unit": "dimensionless"},
         {"slug": "custo-hora-operacao", "kind": "scalar", "value": 130.0, "unit": "1/hour"},
         {"slug": "fracao-refugo", "kind": "scalar", "value": 0.08, "unit": "dimensionless"},
+        {"slug": "energia-processo", "kind": "scalar", "value": 8.5, "unit": "MJ/kg"},
+        {"slug": "co2-processo", "kind": "scalar", "value": 0.62, "unit": "dimensionless"},
     ],
     "extrusao": [
         {"slug": "faixa-massa", "kind": "envelope", "min": 0.02, "max": 60.0, "unit": "kg"},
@@ -1017,6 +1255,8 @@ PROCESS_ATTRIBUTE_VALUES = {
         {"slug": "custo-capital", "kind": "scalar", "value": 500000.0, "unit": "dimensionless"},
         {"slug": "custo-hora-operacao", "kind": "scalar", "value": 95.0, "unit": "1/hour"},
         {"slug": "fracao-refugo", "kind": "scalar", "value": 0.05, "unit": "dimensionless"},
+        {"slug": "energia-processo", "kind": "scalar", "value": 6.0, "unit": "MJ/kg"},
+        {"slug": "co2-processo", "kind": "scalar", "value": 0.44, "unit": "dimensionless"},
     ],
     "moldagem-compressao": [
         {"slug": "faixa-massa", "kind": "envelope", "min": 0.05, "max": 25.0, "unit": "kg"},
@@ -1029,6 +1269,8 @@ PROCESS_ATTRIBUTE_VALUES = {
         {"slug": "custo-capital", "kind": "scalar", "value": 320000.0, "unit": "dimensionless"},
         {"slug": "custo-hora-operacao", "kind": "scalar", "value": 100.0, "unit": "1/hour"},
         {"slug": "fracao-refugo", "kind": "scalar", "value": 0.06, "unit": "dimensionless"},
+        {"slug": "energia-processo", "kind": "scalar", "value": 14.0, "unit": "MJ/kg"},
+        {"slug": "co2-processo", "kind": "scalar", "value": 1.0, "unit": "dimensionless"},
     ],
     "prensagem-sinterizacao": [
         {"slug": "faixa-massa", "kind": "envelope", "min": 0.001, "max": 4.0, "unit": "kg"},
@@ -1041,6 +1283,8 @@ PROCESS_ATTRIBUTE_VALUES = {
         {"slug": "custo-capital", "kind": "scalar", "value": 700000.0, "unit": "dimensionless"},
         {"slug": "custo-hora-operacao", "kind": "scalar", "value": 140.0, "unit": "1/hour"},
         {"slug": "fracao-refugo", "kind": "scalar", "value": 0.02, "unit": "dimensionless"},
+        {"slug": "energia-processo", "kind": "scalar", "value": 26.0, "unit": "MJ/kg"},
+        {"slug": "co2-processo", "kind": "scalar", "value": 1.9, "unit": "dimensionless"},
     ],
     "usinagem-convencional": [
         {"slug": "faixa-massa", "kind": "envelope", "min": 0.002, "max": 300.0, "unit": "kg"},
@@ -1053,6 +1297,8 @@ PROCESS_ATTRIBUTE_VALUES = {
         {"slug": "custo-capital", "kind": "scalar", "value": 180000.0, "unit": "dimensionless"},
         {"slug": "custo-hora-operacao", "kind": "scalar", "value": 120.0, "unit": "1/hour"},
         {"slug": "fracao-refugo", "kind": "scalar", "value": 0.45, "unit": "dimensionless"},
+        {"slug": "energia-processo", "kind": "scalar", "value": 4.5, "unit": "MJ/kg"},
+        {"slug": "co2-processo", "kind": "scalar", "value": 0.33, "unit": "dimensionless"},
     ],
     "retificacao": [
         {"slug": "custo-ferramental", "kind": "missing"},
@@ -1465,6 +1711,83 @@ def _get_or_create_index(db: Session, spec: dict) -> PerformanceIndex:
     return obj
 
 
+#: Transport modes (P3, Eco Audit). A closed, tiny vocabulary — see the model's
+#: docstring for why it is neither a material nor a process, and why the two
+#: intensities are plain columns instead of the provenance rail.
+#:
+#: The figures are fictitious like everything else here, but their **ordering**
+#: is the teaching: a tonne-kilometre by sea costs a fraction of one by road,
+#: and one by air costs an order of magnitude more than either. An audit whose
+#: transport phase is invisible at 1500 km by sea and dominant at 1500 km by air
+#: is showing the reader something true about the world, with invented numbers.
+#:
+#: ``ferroviario`` deliberately carries **no carbon intensity**: absence is a
+#: state here as everywhere, so choosing it gives a transport phase with energy
+#: and no carbon, and the carbon podium is refused while the energy one stands.
+TRANSPORT_MODES = [
+    {
+        "slug": "maritimo",
+        "name": "Marítimo (navio de carga)",
+        "description": "Contêiner em navio de carga. O modal mais barato por tonelada-quilômetro.",
+        "energy_intensity": 0.16,
+        "carbon_intensity": 0.012,
+        "display_order": 10,
+    },
+    {
+        "slug": "ferroviario",
+        "name": "Ferroviário",
+        "description": "Vagão de carga. Intensidade de carbono não estabelecida no dataset demo.",
+        "energy_intensity": 0.45,
+        "carbon_intensity": None,
+        "display_order": 20,
+    },
+    {
+        "slug": "rodoviario",
+        "name": "Rodoviário (caminhão 32 t)",
+        "description": "Caminhão pesado em rodovia, carga cheia.",
+        "energy_intensity": 0.9,
+        "carbon_intensity": 0.068,
+        "display_order": 30,
+    },
+    {
+        "slug": "aereo",
+        "name": "Aéreo (carga)",
+        "description": "Porão de aeronave de carga. Uma ordem de grandeza acima dos demais.",
+        "energy_intensity": 8.5,
+        "carbon_intensity": 0.62,
+        "display_order": 40,
+    },
+]
+
+
+def _seed_transport_modes(db: Session, source: Source | None) -> int:
+    """Write the transport catalogue. Idempotent, like every other block here."""
+    created = 0
+    for spec in TRANSPORT_MODES:
+        existing = (
+            db.execute(select(TransportMode).where(TransportMode.slug == spec["slug"]))
+            .scalars()
+            .one_or_none()
+        )
+        if existing is not None:
+            continue
+        db.add(
+            TransportMode(
+                slug=spec["slug"],
+                name=spec["name"],
+                description=spec["description"],
+                energy_intensity=spec["energy_intensity"],
+                carbon_intensity=spec["carbon_intensity"],
+                display_order=spec["display_order"],
+                is_active=True,
+                is_demo=True,
+                source_id=source.id if source else None,
+            )
+        )
+        created += 1
+    return created
+
+
 def seed(db: Session) -> dict[str, int]:
     """Populate taxonomy, properties, sources, indices and demo materials.
 
@@ -1522,6 +1845,7 @@ def seed(db: Session) -> dict[str, int]:
 
     # After the materials: the links need them to exist (P0-2).
     process_summary = _seed_process_universe(db)
+    transport_created = _seed_transport_modes(db, demo_source)
 
     db.commit()
     return {
@@ -1529,6 +1853,7 @@ def seed(db: Session) -> dict[str, int]:
         "properties": len(PROPERTIES),
         "indices": len(PERFORMANCE_INDICES),
         "materials_created": created_materials,
+        "transport_modes": transport_created,
         **process_summary,
     }
 

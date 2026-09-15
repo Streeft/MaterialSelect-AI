@@ -42,6 +42,7 @@ from app.models.selection import (
 )
 from app.models.source import Source
 from app.models.subscription import Subscription
+from app.models.transport_mode import TransportMode
 from app.models.user import User, UserSession
 
 __all__ = [
@@ -83,6 +84,7 @@ __all__ = [
     "Source",
     "SourceAuthority",
     "Subscription",
+    "TransportMode",
     "User",
     "UserSession",
 ]
