@@ -36,6 +36,8 @@ export const ptBR = {
     compare: "Comparar",
     solver: "Dimensionar",
     cost: "Custo",
+    eco: "Eco",
+    synthesis: "Sintetizar",
     dashboard: "Painel",
     imports: "Importar",
     classes: "Classes",
@@ -691,6 +693,10 @@ export const ptBR = {
     columnObjective: "Massa",
     columnObjectiveCost: "Custo de material",
     columnFree: "Seção necessária",
+    // Uma coluna para os dois destinos seguintes do fluxo: o custo e a
+    // auditoria ambiental, ambos alimentados pela massa que esta linha acabou
+    // de calcular.
+    columnNext: "Seguir para",
     excludedTitle: "Fora deste dimensionamento",
     excludedHint:
       "Sem valor para alguma propriedade que o caso exige. Não foram dimensionados por estimativa — ausência não vira zero.",
@@ -737,6 +743,121 @@ export const ptBR = {
     uncostedHint:
       "Faltou dado econômico. Não foram precificados por estimativa — ausência não vira zero, e um ferramental em branco faria o processo parecer o mais barato da lista.",
     fromSolver: "Estimar custo",
+  },
+
+  eco: {
+    fromSolver: "Auditar",
+    title: "Auditoria ambiental",
+    subtitle:
+      "Onde a energia e o CO₂ desta peça realmente vão — material, manufatura, transporte, uso e fim de vida.",
+    briefStep: "1. A peça",
+    materialLabel: "Material",
+    processLabel: "Processo que faz a peça",
+    processHint:
+      "Auditar uma peça é auditar fazer a peça: é o processo que diz quanta energia a conformação gasta e quanto material foi preciso comprar.",
+    massLabel: "Massa da peça (kg)",
+    massHint:
+      "A massa acabada. O dimensionamento calcula esta massa para você.",
+    recycledLabel: "Teor reciclado (0 a 1)",
+    recycledHint:
+      "Fração do material comprado que vem de reciclagem. A 0, a figura de reciclagem nem é lida — o que o cálculo precisa depende do briefing.",
+    transportStep: "2. O transporte",
+    transportModeLabel: "Modal",
+    transportDistanceLabel: "Distância (km)",
+    transportHint:
+      "A distância é fato da cadeia de suprimento, não do material: entra como número visível, nunca como constante escondida.",
+    useStep: "3. O uso",
+    useHint:
+      "Os dois modelos não são variantes de um. No estático a massa da peça não entra em lugar nenhum — aliviar a peça não muda esta fase. No móvel ela é fator linear. Os campos do outro modelo são recusados, nunca ignorados.",
+    useModelLabel: "Modelo de uso",
+    useStatic: "Estático (consome porque funciona)",
+    useMobile: "Móvel (consome porque é carregado)",
+    powerLabel: "Potência em serviço (W)",
+    dutyLabel: "Ciclo de trabalho (0 a 1)",
+    dutyHint: "Fração do tempo em que a peça de fato consome.",
+    lifeLabel: "Vida em serviço (anos)",
+    travelLabel: "Distância percorrida na vida (km)",
+    intensityLabel: "Intensidade de uso (MJ por kg por km)",
+    carbonPerEnergyLabel: "Carbono por energia (kg CO₂/MJ)",
+    carbonPerEnergyHint:
+      "A rede elétrica para um produto estático, o combustível para um móvel. Sem ela a fase de uso tem energia e não tem carbono — o que é um estado, não um zero.",
+    eolLabel: "Fim de vida",
+    eolRecycle: "Reciclagem",
+    eolLandfill: "Aterro",
+    eolIncineration: "Incineração",
+    eolHint:
+      "Aterro e incineração não têm energia catalogada nesta versão, e não viram zero: enterrar uma peça pareceria a coisa mais barata a fazer com ela.",
+    run: "Auditar",
+    running: "Auditando…",
+    resultStep: "4. As cinco fases",
+    columnPhase: "Fase",
+    columnEnergy: "Energia",
+    columnCarbon: "Carbono",
+    columnDetail: "Como foi calculada",
+    totalLabel: "Total",
+    // A resposta não é o total: é qual fase domina, porque é nela que esforço
+    // de projeto muda alguma coisa.
+    dominanceTitle: "Qual fase domina",
+    dominanceEnergy: "Em energia",
+    dominanceCarbon: "Em carbono",
+    dominanceShare: "da soma",
+    massBought: "Massa comprada",
+    massBoughtHint:
+      "Maior que a massa da peça pelo refugo do processo: a fundição fundiu o que não virou peça, e essa energia foi gasta do mesmo jeito.",
+    noTotal:
+      "Sem total: uma soma sobre quatro das cinco fases não é um total, é uma parcela que parece um.",
+  },
+
+  synthesis: {
+    title: "Sintetizar material",
+    subtitle:
+      "Um compósito ou uma espuma calculados a partir de materiais do catálogo. O registro é seu, fica declarado como sintetizado, e cada valor carrega a lei que o produziu.",
+    // O que separa valor calculado de valor inventado, dito antes de qualquer
+    // campo: é a frase que justifica a tela inteira existir (princípio 1).
+    principle:
+      "Nada aqui é inventado: cada número sai de uma lei aplicada a valores catalogados, e a lei vem escrita ao lado dele. Onde não existe lei honesta, a propriedade simplesmente não é sintetizada — e o motivo aparece.",
+    kindStep: "1. O tipo de síntese",
+    kindLabel: "Tipo",
+    kindComposite: "Compósito de dois constituintes",
+    kindFoam: "Espuma de um sólido",
+    recipeStep: "2. A receita",
+    parentALabel: "Primeiro constituinte",
+    parentASolidLabel: "Sólido",
+    parentBLabel: "Segundo constituinte",
+    fractionLabel: "Fração volumétrica do primeiro (0 a 1)",
+    fractionHint:
+      "Fração em volume, não em massa. O que é grandeza por unidade de massa — custo, energia incorporada — é convertido para fração mássica usando as duas densidades.",
+    densityLabel: "Densidade relativa (0 a 1)",
+    densityHint:
+      "Densidade da espuma dividida pela do sólido. Em 1 a espuma é o próprio sólido.",
+    identityStep: "3. A identidade do registro",
+    nameLabel: "Nome",
+    nameHint: "É como o registro vai aparecer no seu catálogo.",
+    classLabel: "Classe",
+    classHint:
+      "Exigida e não herdada: a ferramenta não sabe se uma espuma de alumínio é metal ou espuma metálica para quem está catalogando, e tudo que lê por classe precisa que alguém tenha decidido.",
+    descriptionLabel: "Descrição (opcional)",
+    preview: "Ver o que sairia",
+    previewing: "Calculando…",
+    save: "Gravar registro",
+    saving: "Gravando…",
+    previewStep: "4. O que sairia",
+    previewEmpty:
+      "Esta receita não produziu valor nenhum com os dados que os pais têm.",
+    columnProperty: "Propriedade",
+    columnValue: "Valor",
+    columnRule: "Lei",
+    columnQuality: "Qualidade",
+    // A base da lei é impressa junto do valor porque "conservação de massa" e
+    // "ajuste empírico" não são a mesma afirmação sobre o número.
+    skippedTitle: "O que este registro não vai ter",
+    skippedHint:
+      "Duas razões diferentes convivem aqui: o constituinte não tem o dado, ou esta propriedade não tem lei honesta para este tipo de síntese.",
+    savedTitle: "Registro gravado",
+    savedHint:
+      "Ele é seu, fica declarado como sintetizado e já aparece no catálogo.",
+    openRecord: "Abrir a ficha",
+    parentsLabel: "Constituintes",
   },
 
   myRecords: {

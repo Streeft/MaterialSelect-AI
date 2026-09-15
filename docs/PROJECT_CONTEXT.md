@@ -357,12 +357,35 @@ nenhum.** `custo_massa` é adimensional de propósito, então a análise dimensi
 devolve a dimensão da massa nas duas execuções do solver. Ela continua provando a
 álgebra e deixou de nomear a resposta — daí o objetivo, a unidade ("unidade
 monetária não especificada") e a razão disso serem ditos em palavras, na API e na
-tela. Imprimir "R$" seria inventar dado, que é o princípio 1 de outro chapéu. A
-matriz vai a **27 de 32 (~84%)**, com nível médio **3,12**. Sobram da faixa P3 o
-Eco Audit e o Synthesizer.
+tela. Imprimir "R$" seria inventar dado, que é o princípio 1 de outro chapéu.
 
-**Saúde do código:** 1505 testes de backend (Python 3.11 e 3.12, nenhum skip)
-e 321 de frontend, todos verdes. Desde o P0-1 a suíte também roda as migrações de
+**O Eco Audit fechou a segunda linha em zero da faixa** ([D-66](DECISIONS.md)):
+cinco fases (material, manufatura, transporte, uso, fim de vida) em energia e
+carbono, e a resposta **não é o total** — é qual fase domina, porque é nela que
+esforço de projeto muda alguma coisa. A fase de uso tem **dois modelos que não
+são variantes de um**: no estático a massa da peça não aparece, então aliviar a
+peça economiza *exatamente nada* ali, e escolher errado inverte a auditoria. A
+fase de material é cobrada sobre a **massa comprada** (`massa / (1 − f)`, a
+fatoração do D-65), que é por que a auditoria exige um processo: auditar uma peça
+é auditar *fazer* a peça.
+
+A recusa que atravessa o item: faltando o dado de qualquer fase, o pódio **e o
+total** são recusados com o motivo escrito, porque a fase que ninguém calculou
+pode ser a que domina e uma soma sobre quatro das cinco é uma parcela que parece
+um total. É o princípio 3 aplicado a uma estatística de resumo. Aterro e
+incineração ficam declarados sem energia catalogada em vez de valerem zero — um
+aterro grátis faria enterrar a peça parecer a coisa mais barata que se pode fazer
+com ela.
+
+Dados novos: quatro propriedades ambientais na categoria `AMBIENTAL` (que existia
+sem uso), dois atributos de processo e `TransportMode` — nem material nem
+processo, e o modelo diz por quê. A matriz vai a **28 de 32 (~88%)**, com nível
+médio **3,22**, e pela primeira vez **nenhuma linha abaixo de 3 é capacidade pela
+metade**: as quatro que restam são módulos que não existem (Synthesizer, Sandwich
+Panels, Battery Designer) mais o B11.
+
+**Saúde do código:** 1561 testes de backend (Python 3.11 e 3.12, nenhum skip)
+e 334 de frontend, todos verdes. Desde o P0-1 a suíte também roda as migrações de
 verdade, nos dois sentidos, contra um banco temporário que já contém dados —
 `test_migration_selection_stage.py`, `test_migration_process_universe.py`,
 `test_migration_selection_universe.py`, `test_migration_process_attributes.py` e

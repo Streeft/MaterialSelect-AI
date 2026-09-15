@@ -36,6 +36,7 @@ from app.routers import (
     charts,
     classes,
     dashboard,
+    eco,
     exports,
     health,
     imports,
@@ -49,6 +50,7 @@ from app.routers import (
     selection,
     solver,
     sources,
+    synthesis,
 )
 
 app = FastAPI(
@@ -214,6 +216,10 @@ app.include_router(
 )
 app.include_router(
     part_cost.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
+)
+app.include_router(eco.router, prefix="/api", dependencies=[Depends(require_active_subscription)])
+app.include_router(
+    synthesis.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
 )
 
 

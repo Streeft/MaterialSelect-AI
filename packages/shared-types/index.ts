@@ -1503,3 +1503,185 @@ export interface CostResult {
   costed: CostedProcess[];
   uncosted: UncostedProcess[];
 }
+
+// --- Eco Audit (P3) ----------------------------------------------------------
+
+/** One way of moving a finished part. A closed, seeded vocabulary. */
+export interface TransportMode {
+  slug: string;
+  name: string;
+  description: string | null;
+  /**
+   * MJ and kg CO₂ per tonne-kilometre. `null` means nobody catalogued it — a
+   * state, never a zero, and the audit says so in the transport phase.
+   */
+  energy_intensity: number | null;
+  carbon_intensity: number | null;
+  is_demo: boolean;
+}
+
+/**
+ * Which of the two service models runs, and its own numbers.
+ *
+ * They are not variants of one model: in `estatico` the part's mass does not
+ * appear at all, so lightweighting saves nothing in the use phase; in `movel`
+ * it is a linear factor. Sending a field belonging to the other model is
+ * refused by the API, never ignored.
+ */
+export type UseModel = "estatico" | "movel";
+
+export interface EcoUseIn {
+  model: UseModel;
+  power_watts?: number | null;
+  duty_cycle?: number | null;
+  distance_km?: number | null;
+  mobile_intensity?: number | null;
+  life_years?: number | null;
+  carbon_per_energy?: number | null;
+}
+
+export type EndOfLifeRoute = "reciclagem" | "aterro" | "incineracao";
+
+export interface EcoAuditRequest {
+  material_id: number;
+  /** Required: an eco audit of a part is an audit of *making* the part. */
+  process_id: number;
+  part_mass: number;
+  recycled_fraction?: number;
+  transport_mode: string;
+  transport_distance_km?: number;
+  use: EcoUseIn;
+  end_of_life?: EndOfLifeRoute;
+}
+
+/**
+ * One phase of the life, with energy and carbon answered independently.
+ *
+ * They read different catalogued data, so a phase can be known in megajoules
+ * and unknown in kilograms of CO₂ — which is why each carries its own absence
+ * and its own written reason (D-24).
+ */
+export interface EcoPhase {
+  phase: string;
+  label: string;
+  energy: number | null;
+  carbon: number | null;
+  detail: string;
+  energy_missing: string[];
+  carbon_missing: string[];
+  energy_reason: string | null;
+  carbon_reason: string | null;
+}
+
+/** The heaviest phase of one quantity, or the reason nobody can name one. */
+export interface EcoDominance {
+  phase: string | null;
+  label: string | null;
+  share: number | null;
+  refusal: string | null;
+}
+
+export interface EcoAuditResult {
+  material_id: number;
+  material_name: string;
+  process_id: number;
+  process_name: string;
+  transport_mode: TransportMode;
+  transport_distance_km: number;
+  /** What the part weighs, and what had to be bought to make it. */
+  mass_in_part: number;
+  mass_bought: number;
+  scrap_fraction: number;
+  recycled_fraction: number;
+  use_model: UseModel;
+  end_of_life: EndOfLifeRoute;
+  phases: EcoPhase[];
+  /** `null` when any phase is absent: a total over four of five is a subtotal. */
+  total_energy: number | null;
+  total_carbon: number | null;
+  energy_dominance: EcoDominance;
+  carbon_dominance: EcoDominance;
+  energy_unit: string;
+  carbon_unit: string;
+  carbon_unit_note: string;
+  recycling_credit_note: string;
+}
+
+// --- Synthesizer (P3) --------------------------------------------------------
+
+/** Os dois tipos de síntese de v1. */
+export type SynthesisKind = "composito" | "espuma";
+
+/**
+ * Uma lei de mistura ou de escala.
+ *
+ * `basis` é o quanto se pode confiar no número que ela produz: `exato` é
+ * conservação de massa ou definição, `limites` é um par que depende de algo que
+ * o catálogo não registra (a direção), `empirico` é ajuste experimental.
+ */
+export interface SynthesisRule {
+  key: string;
+  label: string;
+  formula: string;
+  basis: "exato" | "limites" | "empirico";
+  basis_label: string;
+}
+
+export interface SynthesisKindInfo {
+  kind: SynthesisKind;
+  label: string;
+  note: string;
+  /** Slug da propriedade → a lei que roda nela. */
+  rules: Record<string, SynthesisRule>;
+  /**
+   * Slug → por que este tipo **não** sintetiza aquela propriedade. Um "não sei"
+   * com motivo é resposta; um silêncio não é.
+   */
+  without_rule: Record<string, string>;
+}
+
+export interface SynthesisRequest {
+  kind: SynthesisKind;
+  name: string;
+  class_id: number;
+  description?: string | null;
+  parent_a_id: number;
+  /** Só num compósito. Mandar numa espuma é recusado, nunca ignorado. */
+  parent_b_id?: number | null;
+  volume_fraction?: number | null;
+  relative_density?: number | null;
+}
+
+export interface SynthesizedValue {
+  slug: string;
+  name: string;
+  canonical_unit: string | null;
+  /** Escalar, ou `null` quando a regra devolveu um par de limites. */
+  value: number | null;
+  value_min: number | null;
+  value_max: number | null;
+  rule: SynthesisRule;
+  /** A pior qualidade entre os valores dos pais que a regra leu. */
+  quality: string;
+}
+
+export interface SynthesisSkipped {
+  slug: string;
+  name: string;
+  reason: string;
+}
+
+export interface SynthesisPreview {
+  kind: SynthesisKind;
+  kind_label: string;
+  kind_note: string;
+  parents: string[];
+  parameters: Record<string, number>;
+  values: SynthesizedValue[];
+  skipped: SynthesisSkipped[];
+}
+
+export interface SynthesisResult extends SynthesisPreview {
+  material_id: number;
+  material_name: string;
+}
