@@ -776,6 +776,82 @@ PROCESS_ATTRIBUTES = [
         ],
         "description": "O que o processo faz ao material.",
     },
+    # --- economics, for the Part Cost Estimator (P3) ----------------------
+    #
+    # Money is not a physical quantity, and this catalogue does not pretend
+    # otherwise: `custo_massa` is already dimensionless for that reason. The
+    # consequence shows up twice below — a cost per hour and a rate of parts per
+    # hour end up with the **same** dimension (1/[time]), because both
+    # numerators are dimensionless. That is not a modelling slip: it is what
+    # happens when one of the two quantities lives outside the unit system, and
+    # naming it here is cheaper than discovering it in a dimension check later.
+    {
+        "slug": "custo-ferramental",
+        "name": "Custo de ferramental dedicado",
+        "symbol": "C_t",
+        "kind": ProcessAttributeKind.ESCALAR,
+        "physical_dimension": "",
+        "canonical_unit": "dimensionless",
+        "accepted_units": ["dimensionless"],
+        "better_direction": BetterDirection.LOWER,
+        "description": (
+            "Matriz, molde ou dispositivo feito só para esta peça, em unidade "
+            "monetária não especificada. É este custo que o lote dilui."
+        ),
+    },
+    {
+        "slug": "taxa-producao",
+        "name": "Taxa de produção",
+        "symbol": "ṅ",
+        "kind": ProcessAttributeKind.ESCALAR,
+        "physical_dimension": "1 / [time]",
+        "canonical_unit": "1/hour",
+        "accepted_units": ["1/hour", "1/minute", "1/second"],
+        "better_direction": BetterDirection.HIGHER,
+        "description": "Peças por hora que o processo entrega em regime.",
+    },
+    {
+        "slug": "custo-capital",
+        "name": "Custo de capital do equipamento",
+        "symbol": "C_c",
+        "kind": ProcessAttributeKind.ESCALAR,
+        "physical_dimension": "",
+        "canonical_unit": "dimensionless",
+        "accepted_units": ["dimensionless"],
+        "better_direction": BetterDirection.LOWER,
+        "description": (
+            "Máquina e instalação, em unidade monetária não especificada, "
+            "amortizados no horizonte que a oficina declara."
+        ),
+    },
+    {
+        "slug": "custo-hora-operacao",
+        "name": "Custo de operação por hora",
+        "symbol": "Ċ_oh",
+        "kind": ProcessAttributeKind.ESCALAR,
+        "physical_dimension": "1 / [time]",
+        "canonical_unit": "1/hour",
+        "accepted_units": ["1/hour"],
+        "better_direction": BetterDirection.LOWER,
+        "description": (
+            "Mão de obra, energia e rateio por hora de operação, em unidade "
+            "monetária não especificada."
+        ),
+    },
+    {
+        "slug": "fracao-refugo",
+        "name": "Fração de refugo",
+        "symbol": "f",
+        "kind": ProcessAttributeKind.ESCALAR,
+        "physical_dimension": "",
+        "canonical_unit": "dimensionless",
+        "accepted_units": ["dimensionless"],
+        "better_direction": BetterDirection.LOWER,
+        "description": (
+            "Parte do material que não vira peça, entre 0 e 1. Encarece só o "
+            "termo de material, e é por isso que aparece no denominador dele."
+        ),
+    },
 ]
 
 #: Process slug → its attribute values. Fictitious, as the note above says.
@@ -785,6 +861,16 @@ PROCESS_ATTRIBUTES = [
 #: is a state here as everywhere, and a limit stage over mass must reject all
 #: three rather than wave them through — including the one whose row exists and
 #: says nobody wrote the value down.
+#:
+#: The economic rows (P3) follow the same discipline and are just as invented.
+#: Only the **shaping** processes carry them, and that is a statement rather than
+#: an omission: a part-cost estimate prices *making the part*, so a surface
+#: treatment or a joining operation is not a candidate for it — it is something
+#: that happens to a part that already exists. ``retificacao`` is the deliberate
+#: third case: it carries a tooling row that says nobody established the value,
+#: so the estimator has to report it as uncosted rather than silently treat a
+#: blank as zero, which would make it look like the cheapest process on the
+#: list.
 PROCESS_ATTRIBUTE_VALUES = {
     "fundicao-areia": [
         {"slug": "faixa-massa", "kind": "envelope", "min": 0.2, "max": 400.0, "unit": "kg"},
@@ -792,6 +878,11 @@ PROCESS_ATTRIBUTE_VALUES = {
         {"slug": "lote-economico", "kind": "scalar", "value": 20.0, "unit": "dimensionless"},
         {"slug": "forma", "kind": "labels", "labels": ["Maciço 3D", "Oco 3D"]},
         {"slug": "caracteristica-processo", "kind": "labels", "labels": ["Conformação primária"]},
+        {"slug": "custo-ferramental", "kind": "scalar", "value": 12000.0, "unit": "dimensionless"},
+        {"slug": "taxa-producao", "kind": "scalar", "value": 12.0, "unit": "1/hour"},
+        {"slug": "custo-capital", "kind": "scalar", "value": 250000.0, "unit": "dimensionless"},
+        {"slug": "custo-hora-operacao", "kind": "scalar", "value": 85.0, "unit": "1/hour"},
+        {"slug": "fracao-refugo", "kind": "scalar", "value": 0.12, "unit": "dimensionless"},
     ],
     "moldagem-injecao": [
         {"slug": "faixa-massa", "kind": "envelope", "min": 0.005, "max": 12.0, "unit": "kg"},
@@ -799,6 +890,11 @@ PROCESS_ATTRIBUTE_VALUES = {
         {"slug": "lote-economico", "kind": "scalar", "value": 8000.0, "unit": "dimensionless"},
         {"slug": "forma", "kind": "labels", "labels": ["Maciço 3D", "Oco 3D"]},
         {"slug": "caracteristica-processo", "kind": "labels", "labels": ["Conformação primária"]},
+        {"slug": "custo-ferramental", "kind": "scalar", "value": 90000.0, "unit": "dimensionless"},
+        {"slug": "taxa-producao", "kind": "scalar", "value": 240.0, "unit": "1/hour"},
+        {"slug": "custo-capital", "kind": "scalar", "value": 600000.0, "unit": "dimensionless"},
+        {"slug": "custo-hora-operacao", "kind": "scalar", "value": 110.0, "unit": "1/hour"},
+        {"slug": "fracao-refugo", "kind": "scalar", "value": 0.03, "unit": "dimensionless"},
     ],
     "forjamento": [
         {"slug": "faixa-massa", "kind": "envelope", "min": 0.1, "max": 90.0, "unit": "kg"},
@@ -810,6 +906,11 @@ PROCESS_ATTRIBUTE_VALUES = {
             "kind": "labels",
             "labels": ["Conformação secundária"],
         },
+        {"slug": "custo-ferramental", "kind": "scalar", "value": 45000.0, "unit": "dimensionless"},
+        {"slug": "taxa-producao", "kind": "scalar", "value": 90.0, "unit": "1/hour"},
+        {"slug": "custo-capital", "kind": "scalar", "value": 900000.0, "unit": "dimensionless"},
+        {"slug": "custo-hora-operacao", "kind": "scalar", "value": 130.0, "unit": "1/hour"},
+        {"slug": "fracao-refugo", "kind": "scalar", "value": 0.08, "unit": "dimensionless"},
     ],
     "extrusao": [
         {"slug": "faixa-massa", "kind": "envelope", "min": 0.02, "max": 60.0, "unit": "kg"},
@@ -817,6 +918,11 @@ PROCESS_ATTRIBUTE_VALUES = {
         {"slug": "lote-economico", "kind": "scalar", "value": 1200.0, "unit": "dimensionless"},
         {"slug": "forma", "kind": "labels", "labels": ["Perfil de seção constante"]},
         {"slug": "caracteristica-processo", "kind": "labels", "labels": ["Conformação primária"]},
+        {"slug": "custo-ferramental", "kind": "scalar", "value": 18000.0, "unit": "dimensionless"},
+        {"slug": "taxa-producao", "kind": "scalar", "value": 400.0, "unit": "1/hour"},
+        {"slug": "custo-capital", "kind": "scalar", "value": 500000.0, "unit": "dimensionless"},
+        {"slug": "custo-hora-operacao", "kind": "scalar", "value": 95.0, "unit": "1/hour"},
+        {"slug": "fracao-refugo", "kind": "scalar", "value": 0.05, "unit": "dimensionless"},
     ],
     "moldagem-compressao": [
         {"slug": "faixa-massa", "kind": "envelope", "min": 0.05, "max": 25.0, "unit": "kg"},
@@ -824,6 +930,11 @@ PROCESS_ATTRIBUTE_VALUES = {
         {"slug": "lote-economico", "kind": "scalar", "value": 900.0, "unit": "dimensionless"},
         {"slug": "forma", "kind": "labels", "labels": ["Chapa conformada", "Maciço 3D"]},
         {"slug": "caracteristica-processo", "kind": "labels", "labels": ["Conformação primária"]},
+        {"slug": "custo-ferramental", "kind": "scalar", "value": 40000.0, "unit": "dimensionless"},
+        {"slug": "taxa-producao", "kind": "scalar", "value": 45.0, "unit": "1/hour"},
+        {"slug": "custo-capital", "kind": "scalar", "value": 320000.0, "unit": "dimensionless"},
+        {"slug": "custo-hora-operacao", "kind": "scalar", "value": 100.0, "unit": "1/hour"},
+        {"slug": "fracao-refugo", "kind": "scalar", "value": 0.06, "unit": "dimensionless"},
     ],
     "prensagem-sinterizacao": [
         {"slug": "faixa-massa", "kind": "envelope", "min": 0.001, "max": 4.0, "unit": "kg"},
@@ -831,6 +942,11 @@ PROCESS_ATTRIBUTE_VALUES = {
         {"slug": "lote-economico", "kind": "scalar", "value": 3000.0, "unit": "dimensionless"},
         {"slug": "forma", "kind": "labels", "labels": ["Maciço 3D"]},
         {"slug": "caracteristica-processo", "kind": "labels", "labels": ["Conformação primária"]},
+        {"slug": "custo-ferramental", "kind": "scalar", "value": 55000.0, "unit": "dimensionless"},
+        {"slug": "taxa-producao", "kind": "scalar", "value": 150.0, "unit": "1/hour"},
+        {"slug": "custo-capital", "kind": "scalar", "value": 700000.0, "unit": "dimensionless"},
+        {"slug": "custo-hora-operacao", "kind": "scalar", "value": 140.0, "unit": "1/hour"},
+        {"slug": "fracao-refugo", "kind": "scalar", "value": 0.02, "unit": "dimensionless"},
     ],
     "usinagem-convencional": [
         {"slug": "faixa-massa", "kind": "envelope", "min": 0.002, "max": 300.0, "unit": "kg"},
@@ -838,8 +954,14 @@ PROCESS_ATTRIBUTE_VALUES = {
         {"slug": "lote-economico", "kind": "scalar", "value": 1.0, "unit": "dimensionless"},
         {"slug": "forma", "kind": "labels", "labels": ["Maciço 3D", "Oco 3D", "Chapa plana"]},
         {"slug": "caracteristica-processo", "kind": "labels", "labels": ["Remoção de material"]},
+        {"slug": "custo-ferramental", "kind": "scalar", "value": 1500.0, "unit": "dimensionless"},
+        {"slug": "taxa-producao", "kind": "scalar", "value": 8.0, "unit": "1/hour"},
+        {"slug": "custo-capital", "kind": "scalar", "value": 180000.0, "unit": "dimensionless"},
+        {"slug": "custo-hora-operacao", "kind": "scalar", "value": 120.0, "unit": "1/hour"},
+        {"slug": "fracao-refugo", "kind": "scalar", "value": 0.45, "unit": "dimensionless"},
     ],
     "retificacao": [
+        {"slug": "custo-ferramental", "kind": "missing"},
         {"slug": "faixa-massa", "kind": "envelope", "min": 0.002, "max": 80.0, "unit": "kg"},
         {"slug": "espessura-secao", "kind": "envelope", "min": 0.5, "max": 300.0, "unit": "mm"},
         {"slug": "lote-economico", "kind": "scalar", "value": 1.0, "unit": "dimensionless"},

@@ -43,18 +43,42 @@ def values_by_process(db_session) -> dict[str, dict[str, ProcessAttributeValue]]
     return out
 
 
+#: What the manual's exercise 11, step 2 asks a process for. Fixed: an open
+#: implementation of that exercise seeds exactly these.
+EXERCISE_ELEVEN = {
+    "faixa-massa",
+    "espessura-secao",
+    "lote-economico",
+    "forma",
+    "caracteristica-processo",
+}
+
+#: What the Part Cost Estimator asks a process for (P3, D-65). A separate set
+#: rather than five more entries above, because the two answer different
+#: questions — "can this process make the part" and "what would it cost" — and
+#: an attribute that drifts from one group into the other should read as the
+#: mistake it is.
+ECONOMICS = {
+    "custo-ferramental",
+    "taxa-producao",
+    "custo-capital",
+    "custo-hora-operacao",
+    "fracao-refugo",
+}
+
+
 def test_the_five_attributes_of_exercise_eleven_are_seeded(db_session) -> None:
-    """The manual's step 2 names five; an open implementation of it seeds five."""
+    """The manual's step 2 names five; an open implementation of it seeds five.
+
+    The equality is against the **union** of the two named groups and not a bare
+    superset check: a stray attribute nobody declared still fails here, which is
+    what this test was for before the economics arrived.
+    """
     attributes = db_session.execute(select(ProcessAttributeDefinition)).scalars().all()
     by_slug = {a.slug: a for a in attributes}
 
-    assert set(by_slug) == {
-        "faixa-massa",
-        "espessura-secao",
-        "lote-economico",
-        "forma",
-        "caracteristica-processo",
-    }
+    assert EXERCISE_ELEVEN <= set(by_slug)
+    assert set(by_slug) == EXERCISE_ELEVEN | ECONOMICS
     assert by_slug["faixa-massa"].kind is ProcessAttributeKind.ENVELOPE
     assert by_slug["espessura-secao"].kind is ProcessAttributeKind.ENVELOPE
     assert by_slug["lote-economico"].kind is ProcessAttributeKind.ESCALAR
@@ -169,3 +193,25 @@ def test_the_seeded_catalogue_answers_the_exercise(client) -> None:
     assert "Pintura" not in names  # value explicitly missing
     assert "Parafusamento" not in names  # no value at all
     assert "Prensagem e sinterização" not in names  # reaches only 4 kg
+
+
+def test_every_economic_attribute_is_a_scalar_the_cost_equation_can_read(db_session) -> None:
+    """The estimator multiplies and divides them; an envelope or a label cannot."""
+    by_slug = {
+        a.slug: a for a in db_session.execute(select(ProcessAttributeDefinition)).scalars().all()
+    }
+    for slug in ECONOMICS:
+        assert by_slug[slug].kind is ProcessAttributeKind.ESCALAR, slug
+
+
+def test_only_shaping_processes_carry_economics(values_by_process) -> None:
+    """A part-cost estimate prices *making the part*.
+
+    A surface treatment or a joining operation happens to a part that already
+    exists, so leaving them without economic data is a statement rather than a
+    gap — and the estimator has to report them as uncosted instead of pricing
+    them at zero.
+    """
+    assert not (ECONOMICS & set(values_by_process.get("pintura", {})))
+    assert not (ECONOMICS & set(values_by_process.get("parafusamento", {})))
+    assert ECONOMICS <= set(values_by_process["fundicao-areia"])

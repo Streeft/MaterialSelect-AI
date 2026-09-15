@@ -101,6 +101,27 @@ class ProcessRepository:
         )
         return {row[0]: row[1] for row in self.db.execute(stmt).all()}
 
+    def processes_for_material_with_values(self, material_id: int) -> list[Process]:
+        """The same join as :meth:`processes_for_material`, with attribute values.
+
+        A separate method rather than an eager-load bolted onto that one: the
+        datasheet asks only for names and families, and making it carry every
+        attribute value of every compatible process would slow the commonest
+        screen in the tool to serve the rarest. The Part Cost Estimator (P3) is
+        the caller that genuinely needs the values.
+        """
+        stmt = (
+            select(Process)
+            .options(
+                joinedload(Process.process_class),
+                selectinload(Process.attribute_values).joinedload(ProcessAttributeValue.attribute),
+            )
+            .join(MaterialProcess, MaterialProcess.process_id == Process.id)
+            .where(MaterialProcess.material_id == material_id, Process.is_active.is_(True))
+            .order_by(Process.name)
+        )
+        return list(self.db.execute(stmt).scalars().unique().all())
+
     def processes_for_material(self, material_id: int) -> list[Process]:
         """The processes one material can be made with — the datasheet's side of
         the join."""

@@ -42,6 +42,7 @@ from app.routers import (
     knowledge,
     materials,
     my_records,
+    part_cost,
     processes,
     properties,
     saved_charts,
@@ -210,6 +211,9 @@ app.include_router(
 )
 app.include_router(
     solver.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
+)
+app.include_router(
+    part_cost.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
 )
 
 
