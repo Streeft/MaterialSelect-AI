@@ -11,6 +11,8 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [19](#sessão-19--150926--p2-restante-o-solver-e-o-index-finder) | 15/09/2026 | P2 restante (Engineering Solver e Performance Index Finder, D-64) — fecha a faixa P2 | 1341 → 1432 | 299 → 308 |
+| [18](#sessão-18--140926--p2-o-fim-do-fluxo-do-manual) | 14/09/2026 | P2 (Find Similar, registro de referência e diferença percentual, D-63) | 1297 → 1341 | 286 → 299 |
 | [17](#sessão-17--140926--p1-4-o-catálogo-ganha-dono-e-o-usuário-ganha-espaço) | 14/09/2026 | P1-4 (`My Records`: registro próprio, favoritos e recentes, D-62) — fecha a faixa P1 | 1234 → 1297 | 277 → 286 |
 | [16](#sessão-16--130926-a-140926--p1-3-a-taxonomia-vira-registro-e-o-segundo-universo-se-navega) | 13 e 14/09/2026 | P1-3 (browse: registro de família, árvore navegável, trilha e a ficha do processo, D-61) | 1209 → 1234 | 253 → 277 |
 | [15](#sessão-15--110926-a-130926--p1-2-o-gráfico-passa-a-reprovar) | 11 e 13/09/2026 | P1-2 (Chart Stage: a região de um plano como critério, D-60) — o único nível 1 da matriz de maturidade | 1141 → 1209 | 232 → 253 |
@@ -33,6 +35,119 @@ As sessões entre a 11 e a 12 — o patch de design "Prisma" (D-49, D-50), o
 upgrade de segurança S1 e a rodada de desempenho — **não têm seção própria
 aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
+
+---
+
+## Sessão 19 — 15/09/26 — P2 restante: o Solver e o Index Finder
+
+**O pedido.** "Para de checar e continua a P2 na mesma branch", com a PR #52
+ainda aberta e verde. O roteiro apontava para o resto do P2 — **Engineering
+Solver** e **Performance Index Finder** —, as duas últimas capacidades da tabela
+ainda em **zero**.
+
+**O achado que decidiu o desenho.** Ao escrever a especificação dos dois itens
+ficou claro que **não são dois**. O Finder pergunta "qual índice esta combinação
+de função, restrição e objetivo produz?"; o Solver pergunta "com estes números,
+quantos quilos dá?". As duas perguntas caem sobre a **mesma derivação**.
+Construí-los separados criaria as duas verdades que o D-60 (figura × funil) e o
+D-63 (`allows_log_scale`) recusaram cada um na sua camada.
+
+**O que saiu.** Três commits, cada um com o portão inteiro antes do próximo.
+
+1. `app/calculations/load_cases.py` + `solver.py` — sete casos de carga padrão,
+   cada um com a derivação escrita por extenso, e a fatoração de Ashby tornada
+   literal: `massa = fator estrutural / índice`. O índice é **lido do catálogo
+   pelo slug**, nunca escrito no caso (a regra do D-35). `_validate` recusa no
+   import um caso cuja expressão estrutural nomeie o que não é variável de
+   projeto.
+2. Serviço, schemas e rotas — `GET /api/solver/casos` (o Finder) e
+   `POST /api/solver/resolver` (o Solver), com o filtro de visibilidade do P1-4
+   e prova de isolamento própria, porque o canário varre só GET.
+3. `/app/dimensionar` — o caso, os números, o resultado; com o fator estrutural
+   na legenda da tabela, para a massa poder ser conferida à mão.
+
+**Verificação.** Duas frentes independentes por caso: a **prova dimensional**
+(fator estrutural sobre índice tem de sair na unidade declarada) e a **forma
+fechada** (a massa recalculada direto da equação de restrição). Trocar
+`comprimento ** 5` por `** 4` na viga derruba as duas. No solver, trocar a
+divisão pelo índice por multiplicação derruba quatro provas; anular a guarda de
+dado ausente derruba duas. No isolamento, tirar o observador derruba o controle
+positivo e abrir o predicado derruba a prova de vazamento.
+
+**Três defeitos reais, nenhum deles do item.**
+
+- `result_dimension` publicava resíduo de ponto flutuante
+  (`[mass] / [length] ** 2.22e-16`) quando um índice de expoente fracionário se
+  combinava com o caso que o produz — `2 / 3` não é fração binária. A string ia
+  para a tela.
+- A tabela de sinônimos da camada de IA conhecia "rigidez" e "rigido" mas não o
+  adjetivo flexionado, e o casamento é por substring: *"uma viga leve e
+  **rígida**"* não nomeava propriedade nenhuma. Ficou invisível enquanto havia um
+  único índice de viga no catálogo; quando entrou o segundo, os dois empataram em
+  função e objetivo e o desempate **alfabético** entregou ao leitor um índice de
+  resistência que ele não pediu. A expectativa do teste estava certa — quem
+  estava errada era a leitura.
+- O `onChange` do `NumberInput` na tela nova lia `event.currentTarget`, que já é
+  `null` quando o atualizador de estado roda. Teria quebrado no navegador a cada
+  tecla.
+
+**Números.** 1341 → **1432** testes de backend (nenhum skip), 299 → **308** de
+frontend. Cobertura EduPack ~75% → **~81%** (26 de 32), nível médio 2,84 →
+**3,03** — a primeira vez que a média cruza 3, e só porque as duas capacidades
+fechadas estavam ambas em zero.
+
+**A faixa P2 fechou.** O próximo é o **P3**, e o primeiro item dele — o Part Cost
+Estimator — é justamente o que destrava o objetivo *custo* nos casos de carga,
+razão pela qual o custo ficou nomeado como omissão no D-64 em vez de improvisado.
+
+---
+
+## Sessão 18 — 14/09/26 — P2: o fim do fluxo do manual
+
+**O pedido.** "Continue de onde parou", com a PR do P1-4 mesclada. O roteiro
+apontava para o P2, e as três capacidades dele — `Find Similar`, registro de
+referência e a tabela de comparação — são **um fluxo só** no manual, então
+saíram juntas.
+
+**As duas perguntas que carregam o item, e nenhuma é de implementação.**
+
+*Em que espaço se mede a distância entre dois materiais.* Propriedade de
+material varre ordens de grandeza, e em eixo linear a de faixa mais larga decide
+toda comparação sozinha — a mesma razão pela qual um mapa de Ashby é log-log. A
+permissão de log vem de `allows_log_scale`, **a mesma bandeira que os gráficos
+leem**: figura e semelhança não podem discordar sobre em que espaço a
+propriedade vive. E a escala é promediada, não somada, senão a base mais larga
+pareceria mais distante por ter respondido mais.
+
+*Quando um percentual significa alguma coisa.* Só em escala de razão. 600 K é
+mesmo o dobro de 200 K; 20 °C não é o dobro de 10 °C, e "+100%" ali seria falso
+com toda a autoridade de um número calculado. `is_ratio_scale` decide por
+**comportamento** — dobrar a magnitude dobra a grandeza em unidade base *é* a
+definição — e não por introspecção de tabela privada do Pint. Nenhuma unidade
+canônica do catálogo tropeça nisso hoje; `canonical_unit` é configurável pelo
+operador, e é para amanhã que a guarda existe. O teste registra uma propriedade
+em °C só para provar que a guarda chega à tabela.
+
+**A metade do trabalho que não é número.** A base é **tudo ou nada** e volta na
+resposta; quem não pôde ser medido é nomeado com o que lhe falta; propriedade em
+que ninguém difere contribui zero e é nomeada também, porque descartá-la calada
+deixaria a base documentada maior que a que rodou. E o percentual tem **cinco
+maneiras distintas de não existir**, todas idênticas como célula em branco e
+nenhuma igual em significado, então cada uma tem sua frase (D-24). A ordem entre
+duas delas está fixada por teste: faltando os dois lados, a culpa é da
+referência, porque consertá-la conserta a coluna enquanto consertar a linha
+conserta uma célula.
+
+**Uma guarda de teste que se recusou a rodar.** O canário sobre as unidades
+canônicas do catálogo ganhou uma asserção de que o catálogo não está vazio —
+canário sobre lista vazia passa provando nada, que foi exatamente a armadilha que
+o teto de recentes pegou na sessão anterior.
+
+**Números.** Backend 1297 → 1341, frontend 286 → 299. Cobertura EduPack ~66% →
+**~75%** (24 de 32 em nível ≥ 3); nível médio 2,56 → **2,84**. Três linhas se
+movem — Find Similar 0→4, Registro de referência 0→3, Tabela de comparação 2→4 —
+e é o maior salto de percentual do roteiro. Falta do P2 o **Engineering Solver**
+e o **Performance Index Finder**.
 
 ---
 

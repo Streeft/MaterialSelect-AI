@@ -143,6 +143,8 @@ function makeCell(overrides: Partial<CompareCell> = {}): CompareCell {
     conversion_method: "pint",
     uncertainty: null,
     data_quality: "MEDIDO",
+    difference_pct: null,
+    difference_state: "sem_referencia",
     source_label: "ASM",
     measurement_condition: null,
     ...overrides,
@@ -203,3 +205,101 @@ describe("ComparisonView, chart modes", () => {
     ).toBeInTheDocument();
   });
 });
+
+/**
+ * The reference and the percentage difference (P2).
+ *
+ * The interesting half is everything that is *not* a number: five distinct
+ * reasons a percentage can fail to exist, all identical as a blank cell and
+ * none alike in meaning, so each renders its own sentence (D-24).
+ */
+describe("ComparisonView, referência e diferença percentual", () => {
+  function withReference(cells: CompareCell[][]): Comparison {
+    const base = makeComparison();
+    return {
+      ...base,
+      materials: base.materials.map((material, index) => ({
+        ...material,
+        cells: cells[index] ?? material.cells,
+      })),
+    };
+  }
+
+  it("não mostra coluna de diferença quando ninguém é referência", () => {
+    render(<ComparisonView comparison={makeComparison()} mode="table" />);
+
+    expect(screen.queryByShadowText(ptBR.compare.differenceHeader)).not.toBeInTheDocument();
+  });
+
+  it("marca a linha de referência em vez de imprimir 0 %", () => {
+    const comparison = withReference([
+      [makeCell({ difference_state: "referencia" })],
+      [makeCell({ difference_state: "calculada", difference_pct: 50 })],
+    ]);
+
+    render(<ComparisonView comparison={comparison} mode="table" referenceId={1} />);
+
+    expect(screen.getAllByShadowText(ptBR.compare.reference).length).toBeGreaterThan(0);
+  });
+
+  it("imprime o percentual com sinal quando ele existe", () => {
+    const comparison = withReference([
+      [makeCell({ difference_state: "referencia" })],
+      [makeCell({ difference_state: "calculada", difference_pct: 50 })],
+    ]);
+
+    render(<ComparisonView comparison={comparison} mode="table" referenceId={1} />);
+
+    expect(screen.getByShadowText("+50%")).toBeInTheDocument();
+  });
+
+  it("escreve a razão quando a referência é que não tem o valor", () => {
+    // Distinção que importa: a linha está boa, quem não responde é a
+    // referência, e dizer o contrário mandaria o leitor consertar o registro
+    // errado.
+    const comparison = withReference([
+      [makeCell({ difference_state: "referencia" })],
+      [makeCell({ difference_state: "referencia_ausente" })],
+    ]);
+
+    render(<ComparisonView comparison={comparison} mode="table" referenceId={1} />);
+
+    expect(
+      screen.getByShadowText(ptBR.compare.difference.referencia_ausente),
+    ).toBeInTheDocument();
+  });
+
+  it("escreve a razão quando a unidade não tem zero verdadeiro", () => {
+    const comparison = withReference([
+      [makeCell({ difference_state: "referencia" })],
+      [makeCell({ difference_state: "escala_sem_zero" })],
+    ]);
+
+    render(<ComparisonView comparison={comparison} mode="table" referenceId={1} />);
+
+    expect(
+      screen.getByShadowText(ptBR.compare.difference.escala_sem_zero),
+    ).toBeInTheDocument();
+  });
+
+  it("oferece definir como referência quando o chamador sabe recebê-la", async () => {
+    const user = userEvent.setup();
+    const onSetReference = vi.fn();
+
+    render(
+      <ComparisonView
+        comparison={makeComparison()}
+        mode="table"
+        referenceId={null}
+        onSetReference={onSetReference}
+      />,
+    );
+
+    const buttons = await screen.findAllByShadowRole("button", {
+      name: ptBR.compare.setReference,
+    });
+    await user.click(buttons[0]!);
+
+    expect(onSetReference).toHaveBeenCalledWith(1);
+  });
+})

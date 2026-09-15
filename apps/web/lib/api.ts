@@ -19,6 +19,7 @@ import type {
   ImportMapping,
   ImportTemplate,
   IndexResult,
+  LoadCase,
   MaterialClass,
   MaterialClassIn,
   MaterialCreate,
@@ -45,6 +46,10 @@ import type {
   SavedChart,
   SavedChartIn,
   SavedChartListItem,
+  Similar,
+  SimilarRequest,
+  SolveRequest,
+  SolveResult,
   StudyDetail,
   StudyIn,
   StudySummary,
@@ -522,4 +527,48 @@ export function removeFavorite(universe: Universe, recordId: number): Promise<My
  */
 export function touchRecent(universe: Universe, recordId: number): Promise<void> {
   return request<void>(`/api/my-records/recents/${universe}/${recordId}`, { method: "POST" });
+}
+
+/**
+ * Rank the catalogue by distance from one material (P2).
+ *
+ * A POST because the basis is a body, not an identity: "similar in these five
+ * respects" is a different question from "similar in these two", and a list of
+ * slugs in a query string would make the two share a cache entry.
+ */
+export function findSimilar(materialId: number, body: SimilarRequest): Promise<Similar> {
+  return request<Similar>(`/api/materials/${materialId}/similares`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+// --- Engineering Solver & Performance Index Finder (P2) ---------------------
+
+/**
+ * The load-case catalogue: the Finder's own listing.
+ *
+ * A GET, because browsing cases by facet is a question about the catalogue and
+ * nothing about the reader — so it caches, and two people asking get one answer.
+ */
+export function listLoadCases(): Promise<LoadCase[]> {
+  return request<LoadCase[]>("/api/solver/casos");
+}
+
+export function getLoadCase(key: string): Promise<LoadCase> {
+  return request<LoadCase>(`/api/solver/casos/${encodeURIComponent(key)}`);
+}
+
+/**
+ * Dimension every visible material against one brief.
+ *
+ * A POST like `findSimilar`, and for the same reason: the brief is a body of
+ * design numbers, and putting them in a query string would make two different
+ * questions share a cache entry.
+ */
+export function solveBrief(body: SolveRequest): Promise<SolveResult> {
+  return request<SolveResult>("/api/solver/resolver", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
 }

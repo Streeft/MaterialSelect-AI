@@ -10,6 +10,8 @@ import { axisLabels as buildAxisLabels, chartFileName, escapeHover } from "@/lib
 import { chartTheme, classVisual } from "@/lib/design/palette";
 import {
   Alert,
+  Badge,
+  Button,
   Card,
   CardBody,
   CardHeader,
@@ -49,6 +51,34 @@ export const COMPARISON_MODES: { key: ComparisonMode; label: string }[] = [
 interface ComparisonViewProps {
   comparison: Comparison;
   mode: ComparisonMode;
+  /** P2: which row is the reference, and how to change it. Both optional: the
+      table is perfectly usable without one, and says so per cell. */
+  referenceId?: number | null;
+  onSetReference?: (materialId: number | null) => void;
+}
+
+/**
+ * The percentage difference, or the written reason there is none (P2).
+ *
+ * Every state renders *text*, never a dash or a blank: "the reference has no
+ * value" and "this unit has no true zero" look identical as an empty cell and
+ * mean nothing alike (D-24).
+ */
+function DifferenceCell({ cell }: { cell: CompareCell }) {
+  if (cell.difference_state === "calculada" && cell.difference_pct !== null) {
+    const sign = cell.difference_pct > 0 ? "+" : "";
+    return (
+      <span className="tabular-nums text-ink">
+        {sign}
+        {formatNumber(cell.difference_pct)}%
+      </span>
+    );
+  }
+  return (
+    <span className="text-xs text-ink-subtle">
+      {t.difference[cell.difference_state as keyof typeof t.difference]}
+    </span>
+  );
 }
 
 /** Index a material's cells by property slug — the API guarantees one per property. */
@@ -63,7 +93,12 @@ function cellsBySlug(material: CompareMaterial): Map<string, CompareCell> {
  * the ranking uses. A missing cell is `null` everywhere and is rendered as a
  * gap — never as a zero, which would silently rank an unknown material last.
  */
-export function ComparisonView({ comparison, mode }: ComparisonViewProps) {
+export function ComparisonView({
+  comparison,
+  mode,
+  referenceId = null,
+  onSetReference,
+}: ComparisonViewProps) {
   const container = useRef<HTMLDivElement>(null);
   const theme = useResolvedTheme();
   const paint = useMemo(() => chartTheme(theme), [theme]);
@@ -229,6 +264,14 @@ export function ComparisonView({ comparison, mode }: ComparisonViewProps) {
                   <span className="ml-1 font-normal normal-case text-ink-subtle">
                     [{prettyUnit(p.unit)}]
                   </span>
+                  {/* The percentage rides inside the property's own column
+                      rather than doubling the table's width: it is a reading of
+                      that property, not a separate measurement. */}
+                  {referenceId !== null && (
+                    <span className="ml-1 font-normal normal-case text-ink-subtle">
+                      · {t.differenceHeader}
+                    </span>
+                  )}
                 </Th>
               ))}
             </Tr>
@@ -241,6 +284,28 @@ export function ComparisonView({ comparison, mode }: ComparisonViewProps) {
                   <span className="block text-xs font-normal text-ink-subtle">
                     {material.class_name}
                   </span>
+                  {onSetReference &&
+                    (referenceId === material.material_id ? (
+                      <span className="mt-1 flex items-center gap-2">
+                        <Badge tone="info">{t.reference}</Badge>
+                        <Button
+                          size="sm"
+                          variant="link"
+                          onClick={() => onSetReference(null)}
+                        >
+                          {t.clearReference}
+                        </Button>
+                      </span>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="link"
+                        className="mt-1"
+                        onClick={() => onSetReference(material.material_id)}
+                      >
+                        {t.setReference}
+                      </Button>
+                    ))}
                 </RowHeader>
                 {properties.map((p) => {
                   const cell = lookup.get(material.material_id)?.get(p.property_slug);
@@ -255,6 +320,11 @@ export function ComparisonView({ comparison, mode }: ComparisonViewProps) {
                           </ProvenancePopover>
                         ) : (
                           <MissingValue />
+                        )}
+                        {referenceId !== null && cell && (
+                          <span className="mt-1 block">
+                            <DifferenceCell cell={cell} />
+                          </span>
                         )}
                       </Td>
                     );
@@ -281,6 +351,11 @@ export function ComparisonView({ comparison, mode }: ComparisonViewProps) {
                           <span className="text-xs tabular-nums text-ink-subtle">
                             {formatScore(cell.normalized)}
                           </span>
+                        </span>
+                      )}
+                      {referenceId !== null && (
+                        <span className="mt-1 block">
+                          <DifferenceCell cell={cell} />
                         </span>
                       )}
                     </Td>

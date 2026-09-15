@@ -233,3 +233,38 @@ def to_canonical_delta(delta: float, from_unit: str, canonical_unit: str) -> flo
     origin, _ = to_canonical(0.0, from_unit, canonical_unit)
     shifted, _ = to_canonical(delta, from_unit, canonical_unit)
     return abs(shifted - origin)
+
+
+def is_ratio_scale(unit: str) -> bool:
+    """True when a *ratio* between two values in this unit means something (P2).
+
+    A percentage difference — "this material is 40% denser" — is only defined on
+    a scale whose zero is a real zero. Kelvin has one, so 600 K really is twice
+    200 K; Celsius does not, so 20 °C is not twice 10 °C, and a comparison table
+    printing "+100%" there would be stating something false with the full
+    authority of a computed number.
+
+    Every canonical unit in the catalogue today is a ratio scale, so nothing
+    currently trips this. It exists because ``PropertyDefinition.canonical_unit``
+    is operator-configurable: a property registered in °C tomorrow would
+    otherwise produce that false number silently, which is the failure mode this
+    codebase refuses everywhere else.
+
+    The test is behavioural rather than an introspection of Pint's internals:
+    **doubling the magnitude doubles the quantity** is the definition of a ratio
+    scale, so asserting it directly says what the function means and cannot drift
+    when the library reorganises its private tables.
+
+    Returns:
+        True for a ratio scale, and for any unit whose scale cannot be
+        established — the conservative answer is the one that does *not* invent
+        a percentage.
+    """
+    try:
+        one = float(ureg.Quantity(1.0, unit).to_base_units().magnitude)
+        two = float(ureg.Quantity(2.0, unit).to_base_units().magnitude)
+    except Exception:  # noqa: BLE001 — an unparseable unit is not a ratio scale
+        return False
+    if not (math.isfinite(one) and math.isfinite(two)):
+        return False
+    return math.isclose(two, 2.0 * one, rel_tol=1e-9, abs_tol=1e-12)

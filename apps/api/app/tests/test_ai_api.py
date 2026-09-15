@@ -80,6 +80,21 @@ class TestInterpretation:
     def test_leading_index_is_the_light_stiff_beam(self, client: TestClient) -> None:
         assert _interpret(client)["indices"][0]["slug"] == "viga-leve-rigidez"
 
+    def test_the_stiffness_adjective_is_read_as_a_property(self, client: TestClient) -> None:
+        """ "uma viga leve e rígida" has to name the modulus, not just the function.
+
+        The catalogue holds two beam indices that share function and objective —
+        one limited by stiffness, one by yielding — so the only thing that can
+        separate them is which property the brief actually mentions. While the
+        synonym table listed "rigidez" and "rigido" but not the inflected
+        adjective, that sentence named no property at all and the two tied, with
+        the alphabet breaking the tie for a strength index the reader never
+        asked for.
+        """
+        indices = {i["slug"]: i["rationale"] for i in _interpret(client)["indices"]}
+        assert "propriedade" in indices["viga-leve-rigidez"]
+        assert indices["viga-leve-rigidez"] != indices.get("viga-leve-resistencia")
+
     def test_each_rationale_claims_only_what_that_index_matched(self, client: TestClient) -> None:
         # The statement describes a beam; the plate index may share the
         # "minimise mass" objective, but it must not claim the function too.

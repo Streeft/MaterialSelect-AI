@@ -3003,3 +3003,197 @@ escreve); `aria-pressed` no hospedeiro do `md-icon-button` e o
 `aria-label-selected` que o próprio MWC oferece (o primeiro fica num elemento que
 leitor de tela não lê; o segundo não é nome de atributo ARIA válido e reprova
 `aria-valid-attr`).
+
+---
+
+## D-63 — "Semelhante" é uma pergunta com base declarada, e um percentual só existe onde há zero verdadeiro
+
+**Contexto.** O fluxo canônico dos manuais termina em
+`Datasheet → Find Similar → Comparison Table`, e as três capacidades estavam em
+**0, 0 e 2** na matriz do §5 de
+[`14-plataforma-selecao.md`](14-plataforma-selecao.md). Com o `My Records`
+entregue (P1-4, [D-62](DECISIONS.md)), a dependência que as bloqueava saiu.
+
+Duas perguntas carregam o item, e nenhuma delas é de implementação: *em que
+espaço se mede a distância entre dois materiais*, e *quando uma diferença
+percentual quer dizer alguma coisa*.
+
+**Decisão.**
+
+- **A base é tudo ou nada, e vai na resposta.** Quem pergunta "o que se parece
+  com isto, nestes cinco aspectos" não pode receber na mesma lista um registro
+  que não tem um dos cinco: seria comparar duas perguntas e apresentar as
+  respostas juntas. Candidato sem uma propriedade da base sai em `excluded` com
+  os slugs que lhe faltam — o mesmo contrato do `ranking.py`, de propósito. E a
+  base volta **na resposta**, porque uma lista ranqueada sem as propriedades que
+  a produziram é um veredito, não um resultado.
+
+- **`property_slugs` não tem padrão no servidor.** Assumir "toda propriedade que
+  a referência por acaso tem" deixaria o hábito de cadastro escolher a pergunta,
+  e o leitor nunca veria que ela foi escolhida por ele. A interface **propõe**
+  uma base, com as marcas visíveis; a requisição **declara** uma.
+
+- **A distância é medida em espaço log onde a propriedade permite.** Propriedade
+  de material varre ordens de grandeza, e em eixo linear a de faixa mais larga
+  decide toda comparação sozinha — a mesma razão pela qual um mapa de Ashby é
+  log-log. A permissão vem de `allows_log_scale`, **a mesma bandeira que os
+  gráficos leem**, para figura e semelhança não discordarem sobre em que espaço
+  a propriedade vive. Valor não positivo não tem logaritmo, e a queda para linear
+  é **da propriedade no run, nunca de um registro**: dois registros em eixos
+  diferentes não estão em eixo nenhum.
+
+- **Escala pela dispersão do conjunto, e média — não soma.** Dividir por
+  `max - min` torna a coordenada adimensional; a média dos quadrados mantém uma
+  distância sobre três propriedades no mesmo pé de uma sobre seis, enquanto a
+  soma faria a base mais larga parecer mais distante por ter respondido mais.
+  Propriedade em que ninguém difere contribui zero e é **nomeada**, porque
+  descartá-la calada deixaria a base documentada maior que a que rodou.
+
+- **A distância só se compara dentro de uma resposta**, e a tela diz isso antes
+  do primeiro resultado: a escala vem da dispersão daquele conjunto, então 0,4
+  aqui e 0,4 noutra execução não são a mesma afirmação.
+
+- **A referência é parâmetro da pergunta, nunca estado no servidor.** "Comparado
+  contra o X" é coisa que um leitor pergunta, não fato sobre o catálogo: viaja na
+  requisição e na URL (B1). Referência guardada no servidor faria a mesma URL
+  desenhar duas tabelas diferentes para duas pessoas. E tem de ser **um dos
+  materiais comparados** — medir as linhas contra algo que o leitor não enxerga
+  tornaria todo percentual inconferível.
+
+- **O percentual só existe em escala de razão.** 600 K é mesmo o dobro de 200 K;
+  20 °C não é o dobro de 10 °C, e "+100%" ali seria falso com toda a autoridade
+  de um número calculado. `units.is_ratio_scale` decide por **comportamento** —
+  dobrar a magnitude dobra a grandeza em unidade base *é* a definição —, e não
+  por introspecção de tabela privada do Pint, que mudaria sem aviso. Nenhuma
+  unidade canônica do catálogo tropeça nisso hoje; `canonical_unit` é
+  configurável pelo operador, e é para amanhã que a guarda existe.
+
+- **Cinco maneiras de não haver percentual, cada uma com sua frase.**
+  `sem_referencia`, `valor_ausente`, `referencia_ausente`, `referencia_zero` e
+  `escala_sem_zero` são todas idênticas como célula em branco e nenhuma quer
+  dizer o mesmo (D-24). A **ordem** entre as duas do meio é escolha e está fixada
+  por teste: faltando os dois lados, a culpa é da referência, porque consertá-la
+  conserta a coluna enquanto consertar a linha conserta uma célula.
+
+**Consequências.** `Find Similar` sai de 0 para 4, `Registro de referência` de 0
+para 3 e `Tabela de comparação` de 2 para 4. O registro de referência **não** é
+entidade nova: é o parâmetro, e essa é a razão de a capacidade ficar em 3 e não
+em 4 — falta poder fixá-lo como estado de um projeto, que é o que o EduPack
+chama de *reference record* propriamente dito.
+
+**Alternativas rejeitadas.** Comparar o candidato pelo que ele tem (mistura duas
+perguntas numa lista); somar as contribuições em vez de promediar (penaliza a
+base mais larga por responder mais); decidir log por registro (dois eixos, uma
+distância sem sentido); base padrão no servidor (o catálogo escolhe a pergunta);
+referência como linha de banco (a mesma URL deixaria de ser a mesma tabela);
+percentual sempre que houver dois números (afirma falsidade em escala com
+offset); `—` na célula sem percentual (quatro razões distintas viram um traço).
+
+---
+
+## D-64 — O Solver e o Index Finder são uma derivação só, e a massa é o fator estrutural dividido pelo índice
+
+**Contexto.** O P2 restante tinha dois itens na matriz do §5 de
+[`14-plataforma-selecao.md`](14-plataforma-selecao.md), ambos em **0**:
+*Engineering Solver* (viga em flexão, tração, compressão) e *Performance Index
+Finder* (o fluxo função→restrição→objetivo→índice). Desenhá-los mostra logo que
+**não são duas coisas**: o Finder lê simbolicamente ("qual índice esta
+combinação produz?") e o Solver numericamente ("quantos quilos dá?") a **mesma
+derivação**. Construí-los separados criaria as duas verdades que o
+[D-60](#d-60) e o [D-63](#d-63) recusaram cada um na sua camada.
+
+**Decisão.**
+
+**1. Um caso de carga é uma derivação, e mora em código.** `app/calculations/
+load_cases.py` guarda sete casos padrão — tirante por rigidez, por resistência e
+por escoamento; viga por rigidez e por momento; placa por rigidez; coluna por
+flambagem de Euler. Cada um carrega a derivação escrita por extenso: o objetivo,
+a restrição, a variável livre e a eliminação.
+
+Tabela e não linha de banco, ao contrário do que o [D-57](#d-57) decidiu para a
+família do processo, e a diferença é o tipo de coisa: uma família de processo é
+**dado semeado**, uma derivação é **argumento**. Argumento se verifica por
+revisão, como `units.py`, não por digitação — um usuário com formulário poderia
+cadastrar uma derivação errada e a ferramenta a apresentaria com toda a
+autoridade de um número calculado. O custo é nomeado: em v1 ninguém cadastra
+caso novo.
+
+**2. `massa = fator estrutural / índice`, e isso vale por construção.** A
+fatoração que o método de Ashby torna famosa separa o objetivo em
+
+    m = (fator estrutural) × (agrupamento material)
+
+e o agrupamento material *é* o índice, invertido. Então cada caso guarda só a
+metade estrutural, e **o índice é lido do catálogo pelo slug na hora de
+resolver** — a mesma regra que o [D-35](#d-35) impõe à camada de IA e pela mesma
+razão: duas cópias de uma fórmula viram duas respostas. Um índice novo entrou no
+seed para a viga por resistência (σy^(2/3)/ρ), e **todo índice semeado é
+alcançável por algum caso**, com teste que varre isso: índice que o Finder não
+alcança é fluxo que morre no catálogo.
+
+Consequência que o solver depende e recusa quando falha: só índice de
+**maximizar** se inverte em massa. Índice de minimizar inverteria o sentido, e a
+recusa traz o motivo escrito.
+
+**3. Os dois espaços de nomes nunca se misturam.** Expressão estrutural só
+nomeia variável de projeto (`comprimento`, `rigidez`, `momento`, as duas
+constantes de apoio); índice só nomeia slug de propriedade. `_validate` recusa
+**no import** um caso que saia disso. Nome compartilhado deixaria um dado de
+projeto sombrear uma propriedade — e o número continuaria plausível, que é o
+pior desfecho possível.
+
+**4. A variável livre não é sempre a área.** Na placa o desenho fixa a área em
+planta e libera a **espessura**. Cada caso declara qual variável libera e em que
+unidade, e a prova dimensional lê a unidade declarada em vez de esperar metro
+quadrado — o que faz um caso que declare uma unidade e derive outra falhar na
+suíte em vez de na tela.
+
+**5. A condição de apoio é escolha visível, não constante escondida.** A
+constante C da flecha e o fator de extremidade n² de Euler são exatamente o que
+faz dois briefings idênticos darem respostas diferentes. Vão como escolha
+nomeada que preenche uma variável de projeto; o valor aproximado da coluna
+engastada-rotulada leva a ressalva junto.
+
+**6. Viga em flexão e coluna em flambagem caem no mesmo índice**, e o documento
+diz por quê: nos dois a restrição é elástica e a seção entra ao quadrado. Não é
+economia de catálogo, é um fato do método que vale a pena o leitor ver.
+
+**7. Ausência é exclusão nomeada, como em todo lugar** (princípio 3). Material
+sem uma propriedade que o caso exige sai em `excluded` com os slugs que lhe
+faltam — o contrato de `ranking.ExcludedMaterial` e `nearness.ExcludedRecord`,
+de propósito.
+
+**8. A unidade de cada resposta é derivada, nunca declarada à mão.** As
+variáveis de projeto carregam unidade canônica, as propriedades carregam a
+delas, e o Pint multiplica tudo por `result_dimension`. É o que transforma
+"2,4 kg" em afirmação auditável em vez de número com rótulo digitado ao lado.
+
+**Como se verifica.** Duas frentes independentes, por caso:
+
+- **Prova dimensional:** fator estrutural sobre índice tem de sair na unidade
+  que o caso declara.
+- **Forma fechada:** a massa recalculada direto da equação de restrição (isola a
+  variável livre, depois m = A·L·ρ) tem de bater com a fatoração.
+
+Trocar `comprimento ** 5` por `** 4` na viga derruba as duas. Trocar a divisão
+pelo índice por multiplicação no solver derruba quatro provas; anular a guarda
+de dado ausente derruba duas.
+
+**O que se recusou.** Derivar o índice simbolicamente em runtime (exigiria CAS,
+e uma derivação que ninguém revisou é pior que uma tabela revisada); guardar a
+expressão do índice junto do caso (segunda cópia, segunda resposta); calcular o
+fator estrutural por material (não tem termo material nenhum, e recomputá-lo
+seria convite a deixar uma propriedade vazar para dentro dele); pré-preencher
+vão e carga na tela (seria a ferramenta escrevendo o briefing); e custo como
+objetivo, que fica nomeado como omissão de v1 — trocaria ρ por ρ·Cm em todo
+agrupamento material e dobraria o catálogo de casos.
+
+**Dois defeitos reais apareceram ao construir isto, e estão registrados porque
+nenhum deles era do item.** `result_dimension` publicava resíduo de ponto
+flutuante (`[mass] / [length] ** 2.22e-16`) sempre que um índice de expoente
+fracionário se combinava com o caso que o produz — `2 / 3` não é fração binária.
+E a tabela de sinônimos da camada de IA conhecia "rigidez" e "rigido" mas não o
+adjetivo flexionado, então *"uma viga leve e **rígida**"* não nomeava
+propriedade nenhuma; ficou invisível enquanto havia um único índice de viga no
+catálogo e, no instante em que entrou o segundo, o desempate alfabético entregou
+ao leitor um índice de resistência que ele não pediu.

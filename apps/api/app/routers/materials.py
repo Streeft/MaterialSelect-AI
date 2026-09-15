@@ -24,7 +24,9 @@ from app.schemas.material import (
     MaterialUpdate,
     PropertyValueIn,
 )
+from app.schemas.similarity import SimilarOut, SimilarRequest
 from app.services.material_service import MaterialService
+from app.services.similarity_service import SimilarityService
 
 router = APIRouter(prefix="/materials", tags=["materials"])
 
@@ -74,6 +76,22 @@ def get_material(
 ) -> MaterialDetail:
     """Return a material's full sheet, with properties grouped by category."""
     return MaterialService(db, user).get_material_detail(material_id)
+
+
+@router.post("/{material_id}/similares", response_model=SimilarOut)
+def similar_materials(
+    material_id: int,
+    payload: SimilarRequest,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> SimilarOut:
+    """Rank the catalogue by distance from this material (P2).
+
+    A POST because the basis is a body, not an identity: "similar in these five
+    respects" is a different question from "similar in these two", and putting a
+    list of slugs in a query string would make the two share a cache entry.
+    """
+    return SimilarityService(db, user.id).similar_to(material_id, payload)
 
 
 @router.patch("/{material_id}", response_model=MaterialDetail)
