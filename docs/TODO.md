@@ -224,6 +224,22 @@ Registrados para não voltarem por engano:
   **O que ficou de fora:** similaridade no universo de processos, fixar a
   referência como estado de um projeto (o *reference record* propriamente dito,
   e a razão de a capacidade ficar em 3), e destacá-la nas figuras.
+- ~~**P2 restante** — o método parava antes de dimensionar~~ — Engineering Solver
+  e Performance Index Finder, entregues em três passos
+  ([D-64](DECISIONS.md)). São **uma derivação só**: `app/calculations/
+  load_cases.py` guarda sete casos padrão com a derivação escrita por extenso, e
+  a fatoração de Ashby vira literal — `massa = fator estrutural / índice`, com o
+  índice **lido do catálogo pelo slug** e nunca reescrito no caso. Os dois
+  espaços de nomes (variável de projeto × slug de propriedade) são separados e a
+  separação é conferida **no import**. A variável livre é área numa viga e
+  espessura numa placa, cada caso declara qual, e a prova dimensional lê a
+  unidade declarada. `/app/dimensionar` mostra o fator estrutural ao lado do
+  resultado, para a massa poder ser conferida à mão.
+
+  **O que ficou de fora:** objetivo **custo** (trocaria ρ por ρ·Cm em todo
+  agrupamento material, e depende do Part Cost Estimator, P3), seções além de
+  maciça quadrada e retangular, navegar por faceta em vez de por caso, e amarrar
+  um dimensionamento a um estudo salvo e ao laudo.
 - ~~**P1-2** — o gráfico mostrava e não selecionava~~ — quarto tipo de estágio,
   `chart`, entregue em seis passos ([D-60](DECISIONS.md),
   [07-selecao-deterministica.md](07-selecao-deterministica.md)). Carrega o plano,
