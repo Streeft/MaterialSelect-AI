@@ -236,10 +236,32 @@ Registrados para não voltarem por engano:
   unidade declarada. `/app/dimensionar` mostra o fator estrutural ao lado do
   resultado, para a massa poder ser conferida à mão.
 
-  **O que ficou de fora:** objetivo **custo** (trocaria ρ por ρ·Cm em todo
-  agrupamento material, e depende do Part Cost Estimator, P3), seções além de
-  maciça quadrada e retangular, navegar por faceta em vez de por caso, e amarrar
-  um dimensionamento a um estudo salvo e ao laudo.
+  **O que ficou de fora:** seções além de maciça quadrada e retangular, navegar
+  por faceta em vez de por caso, e amarrar um dimensionamento a um estudo salvo
+  e ao laudo. O objetivo **custo** estava nesta lista e **saiu no P3**, junto com
+  o Part Cost Estimator de que dependia ([D-65](DECISIONS.md)).
+- ~~**P3 (primeiro item)** — o Part Cost Estimator, e com ele o objetivo custo~~
+  — `POST /api/custo/estimar` estima `C = m·Cm/(1−f) + C_t/n + Ċ_oh/ṅ +
+  C_c/(ṅ·t_wo·L)` sobre os processos compatíveis com o material e devolve os
+  **quatro termos**, porque é o comportamento de cada um com o lote — material
+  como piso, ferramental caindo com 1/n, os dois de tempo imóveis — que decide
+  alguma coisa; `/app/custo` imprime coluna por coluna e o dimensionamento liga
+  nele com a massa que acabou de calcular. Premissa de oficina é entrada com
+  valor visível; processo sem dado econômico é nomeado, nunca zerado; e a unidade
+  monetária é dita em palavras, porque dinheiro não está em sistema de unidades
+  nenhum.
+
+  No mesmo item, o **objetivo custo** ([D-65](DECISIONS.md)): seis índices gêmeos
+  no seed, `LoadCase.cost_index_slug`, e `objective` em `POST
+  /api/solver/resolver`. A mesma derivação, lida outra vez — quem chama nomeia o
+  objetivo e o caso escolhe o índice, como o D-35 exige. A consequência que a
+  tela carrega: `custo_massa` é adimensional, então a análise dimensional devolve
+  a dimensão da massa nas duas execuções; ela prova a álgebra e deixou de nomear
+  a resposta.
+
+  **O que ficou de fora:** a curva custo × lote desenhada, o custo por família de
+  processo, e custo como objetivo em estudo de **processos** — um processo não
+  tem `custo_massa`, e ali a pergunta é a do estimador.
 - ~~**P1-2** — o gráfico mostrava e não selecionava~~ — quarto tipo de estágio,
   `chart`, entregue em seis passos ([D-60](DECISIONS.md),
   [07-selecao-deterministica.md](07-selecao-deterministica.md)). Carrega o plano,

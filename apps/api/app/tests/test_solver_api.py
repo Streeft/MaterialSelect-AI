@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -49,6 +50,18 @@ def test_the_expression_shown_is_read_from_the_catalogue(client: TestClient) -> 
     catalogue = {i["slug"]: i["expression"] for i in client.get("/api/performance-indices").json()}
     for case in client.get("/api/solver/casos").json():
         assert case["index_expression"] == catalogue[case["index_slug"]]
+        # The cost twin is read the same way, for the same reason (D-65).
+        assert case["cost_index_expression"] == catalogue[case["cost_index_slug"]]
+
+
+def test_the_finder_shows_both_objectives_a_case_answers(client: TestClient) -> None:
+    """One derivation, two readings — and the reader sees both before choosing."""
+    beam = next(
+        case for case in client.get("/api/solver/casos").json() if case["key"] == "viga-rigidez"
+    )
+    assert beam["cost_index_slug"] == "viga-leve-rigidez-custo"
+    assert beam["cost_objective_label"] == "Minimizar custo de material"
+    assert beam["cost_index_expression"] != beam["index_expression"]
 
 
 def test_each_case_carries_the_derivation_that_produced_its_index(
@@ -165,6 +178,94 @@ def test_a_non_finite_input_is_refused_before_it_reaches_the_parser(
 def test_the_limit_caps_the_list(client: TestClient) -> None:
     body = _solve(client, limit=2).json()
     assert len(body["solved"]) <= 2
+
+
+# --- the cost objective (D-65) ---------------------------------------------
+
+
+def test_the_same_brief_answers_a_cost_when_asked_for_one(client: TestClient) -> None:
+    body = _solve(client, objective="custo").json()
+
+    assert body["objective"] == "custo"
+    assert body["objective_label"] == "Minimizar custo de material"
+    assert body["index_slug"] == "viga-leve-rigidez-custo"
+    assert body["solved"], "nenhum material do seed tem custo por massa"
+    assert all(record["objective_value"] > 0 for record in body["solved"])
+
+
+def test_the_objective_defaults_to_the_mass(client: TestClient) -> None:
+    """A client written before D-65 keeps the answer it was getting."""
+    body = _solve(client).json()
+    assert body["objective"] == "massa"
+    assert body["index_slug"] == "viga-leve-rigidez"
+    assert body["objective_unit"] == "kg"
+    assert body["objective_note"] is None
+
+
+def test_the_cost_run_names_its_unit_in_words_and_says_why(client: TestClient) -> None:
+    body = _solve(client, objective="custo").json()
+
+    assert body["objective_unit"] == "unidade monetária não especificada"
+    # Same dimension as the mass run, because money is in no unit system — the
+    # response owes the reader that sentence rather than a symbol.
+    assert body["objective_dimension"] == "[mass]"
+    assert "adimensional" in body["objective_note"]
+
+
+def test_the_cost_of_a_part_is_its_mass_times_its_price_per_kilogram(
+    client: TestClient, db_session: Session
+) -> None:
+    """End to end over the seeded catalogue: the two runs are one derivation.
+
+    The structural factor is the same number in both, and every material's cost
+    is its own mass scaled by its own catalogued ``custo_massa`` — which is the
+    claim that makes the cost objective a reading of the derivation rather than
+    a second one.
+    """
+    prices = {
+        material_id: float(value)
+        for material_id, value in db_session.execute(
+            select(MaterialPropertyValue.material_id, MaterialPropertyValue.normalized_value)
+            .join(PropertyDefinition)
+            .where(
+                PropertyDefinition.slug == "custo_massa",
+                MaterialPropertyValue.is_missing.is_(False),
+                MaterialPropertyValue.normalized_value.is_not(None),
+            )
+        ).all()
+    }
+    mass = _solve(client, limit=50).json()
+    cost = _solve(client, objective="custo", limit=50).json()
+
+    assert cost["structural_factor"] == mass["structural_factor"]
+    by_id = {record["record_id"]: record for record in mass["solved"]}
+    compared = 0
+    for record in cost["solved"]:
+        twin = by_id[record["record_id"]]
+        assert record["objective_value"] == pytest.approx(
+            twin["objective_value"] * prices[record["record_id"]], rel=1e-9
+        )
+        compared += 1
+    assert compared > 0, "nenhum material do seed permitiu a comparação"
+
+
+def test_a_material_without_a_catalogued_price_is_excluded_from_the_cost_run(
+    client: TestClient,
+) -> None:
+    """Absence again (principle 3): no price is not a price of zero."""
+    mass = {record["record_id"] for record in _solve(client, limit=50).json()["solved"]}
+    cost = _solve(client, objective="custo", limit=50).json()
+    solved = {record["record_id"] for record in cost["solved"]}
+
+    for record_id in mass - solved:
+        excluded = next(item for item in cost["excluded"] if item["record_id"] == record_id)
+        assert "custo_massa" in excluded["missing_slugs"]
+        assert excluded["missing_labels"] and all(excluded["missing_labels"])
+
+
+def test_the_objective_the_case_does_not_have_is_refused(client: TestClient) -> None:
+    """Not silently treated as a mass: the answer would be a different question."""
+    assert _solve(client, objective="carbono").status_code == 422
 
 
 # --- isolation (P1-4) ------------------------------------------------------

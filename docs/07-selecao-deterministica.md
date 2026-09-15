@@ -248,7 +248,9 @@ método ([D-64](DECISIONS.md)):
 
 - lido por **faceta** (função, restrição, objetivo, variável livre), é o
   *Performance Index Finder*: qual índice esta combinação produz;
-- preenchido com **números**, é o *Engineering Solver*: quantos quilos dá.
+- preenchido com **números**, é o *Engineering Solver*: quantos quilos dá — ou
+  quanto custa em material, se o objetivo escolhido for o custo
+  ([D-65](DECISIONS.md)).
 
 A derivação de Ashby separa o objetivo em fatores:
 
@@ -283,6 +285,21 @@ Os sete casos, com a variável que cada um libera:
 | Placa em flexão | Rigidez à flexão S | **Espessura t** | `E^(1/3)/ρ` |
 | Coluna em compressão | Carga crítica de Euler | Área A | `E^(1/2)/ρ` |
 
+**Cada caso nomeia um segundo índice: o gêmeo de custo** ([D-65](DECISIONS.md)).
+Trocar ρ por ρ·Cm no agrupamento material faz a mesma derivação minimizar o
+**custo de material da peça**; o fator estrutural não muda em nada, e é por isso
+que um caso nomeia dois slugs em vez de carregar duas derivações. Os gêmeos são
+os seis índices acima com `· Cm` no denominador (`E/ρCm`, `σu/ρCm`, `σy/ρCm`,
+`E^(1/2)/ρCm`, `σy^(2/3)/ρCm`, `E^(1/3)/ρCm`), e quem chama a API nomeia o
+**objetivo**, nunca o índice: `LoadCase.index_slug_for` escolhe.
+
+A consequência que precisa chegar ao leitor: `custo_massa` é **adimensional** de
+propósito (dinheiro não está em sistema de unidades nenhum), então `fator
+estrutural / índice de custo` sai com **a mesma dimensão da massa**. A prova
+dimensional continua derrubando um expoente errado num gêmeo — o que ela deixou
+de fazer é dizer o que o número é. Daí o objetivo, a unidade ("unidade monetária
+não especificada") e a razão disso virem escritos na resposta.
+
 Viga em flexão e coluna em flambagem caem no **mesmo** índice, e não por
 coincidência: nos dois a restrição é elástica e a seção entra ao quadrado.
 
@@ -299,14 +316,53 @@ dois.
 Material sem alguma propriedade que o caso exige sai em `excluded` **com os slugs
 que lhe faltam** (princípio 3), no mesmo contrato de `ranking.ExcludedMaterial`.
 
-Fora de v1, e nomeado: objetivo **custo** (trocaria ρ por ρ·Cm em todo
-agrupamento material), seções além de maciça quadrada e retangular, e caso de
+Fora de v1, e nomeado: seções além de maciça quadrada e retangular, e caso de
 carga cadastrado pelo usuário — uma derivação se verifica por revisão, como
-`units.py`, não por digitação.
+`units.py`, não por digitação. (O objetivo **custo** estava nesta lista até o P3;
+saiu com o Part Cost Estimator, que era do que ele dependia.)
 
 Casos-limite tratados: divisão por zero, resultado não finito, base negativa com
 expoente fracionário (resultado complexo), overflow, variável sem valor →
 o índice fica **indefinido** para aquele material (nunca um número inventado).
+
+## Custo da peça (`app/calculations/part_cost.py`)
+
+O caso de carga responde "que material faz esta peça mais leve — ou mais barata
+em material". A pergunta irmã é **quanto custa fazê-la**, processo a processo, e
+é o que este módulo estima ([D-65](DECISIONS.md)):
+
+```
+C = m·Cm/(1−f) + C_t/n + Ċ_oh/ṅ + C_c/(ṅ·t_wo·L)
+```
+
+- `m·Cm/(1−f)` — **material**, já contando a fração de refugo `f`;
+- `C_t/n` — **ferramental** dedicado, diluído pelo lote `n`;
+- `Ċ_oh/ṅ` — **overhead** da oficina, por peça, à taxa de produção `ṅ`;
+- `C_c/(ṅ·t_wo·L)` — **capital** do equipamento, amortizado em `t_wo` anos com
+  fator de carga `L`.
+
+**O estimador devolve os termos, nunca só o total.** Cada um anda com o lote de
+um jeito: o material é um **piso** que lote nenhum atravessa, o ferramental cai
+com 1/n e é o único que cai, e os dois termos de tempo não se mexem com `n`. É o
+cruzamento entre dois processos conforme `n` cresce que decide alguma coisa; um
+total sozinho seria oráculo.
+
+**Premissa de oficina é entrada com valor visível.** Horizonte de amortização e
+fator de carga não são fatos de processo nenhum — duas fábricas com a mesma
+prensa amortizam em prazos diferentes —, então vão como campo com padrão
+sobrescrevível, do mesmo jeito que a condição de apoio do caso de carga. As
+8760 h/ano ficam separadas do fator de carga: uma é calendário, o outro é
+escolha.
+
+**Dinheiro não está em sistema de unidades nenhum.** `custo_massa` é catalogado
+como adimensional de propósito, e toda resposta monetária sai em "unidade
+monetária não especificada". Imprimir um símbolo de moeda que o catálogo nunca
+registrou seria inventar dado — o princípio 1 de outro chapéu.
+
+Processo sem um dos cinco atributos econômicos que o modelo exige sai em
+`uncosted` **com os slugs e os rótulos que lhe faltam** (princípio 3): um
+ferramental em branco faria o processo mais capital-intensivo parecer o mais
+barato.
 
 ## Ranking multicritério (`app/domain/ranking.py`)
 

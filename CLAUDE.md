@@ -511,11 +511,34 @@ dimensional lê a unidade declarada. Um caso de carga mora em **código e não e
 tabela**, ao contrário da família de processo do D-57, porque é argumento e não
 dado: argumento se verifica por revisão, como `units.py`. Viga em flexão e coluna
 em flambagem caem no **mesmo** índice, e o documento diz por quê. A condição de
-apoio é **escolha visível**, não constante escondida. Custo como objetivo fica
-nomeado como omissão de v1: trocaria ρ por ρ·Cm em todo agrupamento material, e
-depende do Part Cost Estimator (P3).
+apoio é **escolha visível**, não constante escondida.
 
-1432 testes de backend (nenhum skip) e 308 de frontend, todos verdes. CI no
+**O P3 começou pelo Part Cost Estimator, e ele destravou o objetivo custo**
+([D-65](docs/DECISIONS.md)) — duas escalas de uma pergunta só.
+`C = m·Cm/(1−f) + C_t/n + Ċ_oh/ṅ + C_c/(ṅ·t_wo·L)` sobre os processos
+compatíveis, devolvida **termo a termo**: é como cada parcela anda com o lote
+(material é piso, ferramental cai com 1/n, os dois de tempo não se mexem) e o
+cruzamento entre dois processos conforme *n* cresce que decidem algo — total
+sozinho seria oráculo. Premissa de oficina é entrada com valor visível, como a
+condição de apoio do D-64. E o objetivo *custo* é a **mesma derivação lida outra
+vez**: ρ vira ρ·Cm no agrupamento material, o fator estrutural não se mexe, e um
+caso passa a nomear **dois slugs de índice** em vez de carregar duas derivações
+— quem chama nomeia o objetivo, e o caso escolhe o índice (regra do D-35,
+intacta).
+
+A consequência que atravessa as duas metades: **dinheiro não está em sistema de
+unidades nenhum.** `custo_massa` é adimensional de propósito, então a análise
+dimensional devolve a **dimensão da massa** nas duas execuções do solver. Ela
+continua provando a álgebra — um expoente errado num gêmeo de custo cai igual —
+e deixou de nomear a resposta: por isso o objetivo, a unidade ("unidade monetária
+não especificada") e a razão disso são ditos em **palavras**, na API e na tela.
+Imprimir "R$" seria inventar dado. Na tela, o gêmeo de custo aparece **ao lado**
+do de massa antes da escolha (quem não vê os dois não nota que o fator estrutural
+não mudou), e o link para `/app/custo` **some** numa execução de custo: ele leva
+`massa=`, e um custo ali seria um número de outra grandeza que o estimador não
+teria como perceber.
+
+1505 testes de backend (nenhum skip) e 321 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
 PROJECT_CONTEXT.md).
