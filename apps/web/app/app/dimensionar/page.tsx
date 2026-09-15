@@ -186,7 +186,7 @@ function ResultTable({ result }: { result: SolveResult }) {
             <Th scope="col">{t.columnIndex}</Th>
             <Th scope="col">{`${objectiveColumn} (${result.objective_unit})`}</Th>
             <Th scope="col">{`${result.case.free_variable_label} (${result.free_unit})`}</Th>
-            {isCost ? null : <Th scope="col">{ptBR.cost.fromSolver}</Th>}
+            {isCost ? null : <Th scope="col">{t.columnNext}</Th>}
           </Tr>
         </THead>
         <TBody>
@@ -218,15 +218,25 @@ function ResultTable({ result }: { result: SolveResult }) {
               </Td>
               {isCost ? null : (
                 <Td>
-                  {/* The mass this row just computed is exactly the number the
-                      cost estimate needs, so the link carries it (B1). Typing it
-                      again would be an invitation to type it wrong. */}
-                  <Link
-                    className="text-accent underline underline-offset-2"
-                    href={`/app/custo?material=${record.record_id}&massa=${record.objective_value}`}
-                  >
-                    {ptBR.cost.fromSolver}
-                  </Link>
+                  {/* The mass this row just computed is exactly the number both
+                      the cost estimate and the eco audit need, so the links
+                      carry it (B1). Typing it again would be an invitation to
+                      type it wrong. Both are absent on a cost run: they carry
+                      `massa=`, and a cost there is a different quantity. */}
+                  <div className="flex flex-wrap gap-3">
+                    <Link
+                      className="text-accent underline underline-offset-2"
+                      href={`/app/custo?material=${record.record_id}&massa=${record.objective_value}`}
+                    >
+                      {ptBR.cost.fromSolver}
+                    </Link>
+                    <Link
+                      className="text-accent underline underline-offset-2"
+                      href={`/app/eco?material=${record.record_id}&massa=${record.objective_value}`}
+                    >
+                      {ptBR.eco.fromSolver}
+                    </Link>
+                  </div>
                 </Td>
               )}
             </Tr>

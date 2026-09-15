@@ -15,7 +15,12 @@ import { cn } from "@/lib/cn";
 
 type IconProps = SVGProps<SVGSVGElement> & { title?: string };
 
-function Svg({ children, className, title, ...rest }: IconProps & { children: React.ReactNode }) {
+function Svg({
+  children,
+  className,
+  title,
+  ...rest
+}: IconProps & { children: React.ReactNode }) {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -231,6 +236,19 @@ export const IconRuler = (p: IconProps) => (
   </Svg>
 );
 
+/**
+ * Auditoria ambiental — a leaf with its midrib.
+ *
+ * Drawn rather than borrowed for the same reason as every other icon here: the
+ * set has one hand, and a stroke weight that matches the text beside it.
+ */
+export const IconLeaf = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M20 4.5c0 8-5 12.5-11.5 12.5H5.5C5.5 9.5 11 4.5 20 4.5Z" />
+    <path d="M4 20.5c2.5-4 5-6.5 9-8.5" />
+  </Svg>
+);
+
 /** The collapse control: a panel with its rail marked off. */
 export const IconPanelLeft = (p: IconProps) => (
   <Svg {...p}>
@@ -301,7 +319,10 @@ export const IconQualityMissing = (p: IconProps) => (
  * `fill` is taken from the current colour rather than a token of its own,
  * because the button that owns it already carries the tone.
  */
-export const IconStar = ({ filled = false, ...p }: IconProps & { filled?: boolean }) => (
+export const IconStar = ({
+  filled = false,
+  ...p
+}: IconProps & { filled?: boolean }) => (
   <Svg {...p}>
     <path
       d="M12 3.6l2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8L3.6 9.7l5.8-.8z"
