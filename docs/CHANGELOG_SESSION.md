@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [19](#sessão-19--150926--p2-restante-o-solver-e-o-index-finder) | 15/09/2026 | P2 restante (Engineering Solver e Performance Index Finder, D-64) — fecha a faixa P2 | 1341 → 1432 | 299 → 308 |
 | [18](#sessão-18--140926--p2-o-fim-do-fluxo-do-manual) | 14/09/2026 | P2 (Find Similar, registro de referência e diferença percentual, D-63) | 1297 → 1341 | 286 → 299 |
 | [17](#sessão-17--140926--p1-4-o-catálogo-ganha-dono-e-o-usuário-ganha-espaço) | 14/09/2026 | P1-4 (`My Records`: registro próprio, favoritos e recentes, D-62) — fecha a faixa P1 | 1234 → 1297 | 277 → 286 |
 | [16](#sessão-16--130926-a-140926--p1-3-a-taxonomia-vira-registro-e-o-segundo-universo-se-navega) | 13 e 14/09/2026 | P1-3 (browse: registro de família, árvore navegável, trilha e a ficha do processo, D-61) | 1209 → 1234 | 253 → 277 |
@@ -34,6 +35,70 @@ As sessões entre a 11 e a 12 — o patch de design "Prisma" (D-49, D-50), o
 upgrade de segurança S1 e a rodada de desempenho — **não têm seção própria
 aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
+
+---
+
+## Sessão 19 — 15/09/26 — P2 restante: o Solver e o Index Finder
+
+**O pedido.** "Para de checar e continua a P2 na mesma branch", com a PR #52
+ainda aberta e verde. O roteiro apontava para o resto do P2 — **Engineering
+Solver** e **Performance Index Finder** —, as duas últimas capacidades da tabela
+ainda em **zero**.
+
+**O achado que decidiu o desenho.** Ao escrever a especificação dos dois itens
+ficou claro que **não são dois**. O Finder pergunta "qual índice esta combinação
+de função, restrição e objetivo produz?"; o Solver pergunta "com estes números,
+quantos quilos dá?". As duas perguntas caem sobre a **mesma derivação**.
+Construí-los separados criaria as duas verdades que o D-60 (figura × funil) e o
+D-63 (`allows_log_scale`) recusaram cada um na sua camada.
+
+**O que saiu.** Três commits, cada um com o portão inteiro antes do próximo.
+
+1. `app/calculations/load_cases.py` + `solver.py` — sete casos de carga padrão,
+   cada um com a derivação escrita por extenso, e a fatoração de Ashby tornada
+   literal: `massa = fator estrutural / índice`. O índice é **lido do catálogo
+   pelo slug**, nunca escrito no caso (a regra do D-35). `_validate` recusa no
+   import um caso cuja expressão estrutural nomeie o que não é variável de
+   projeto.
+2. Serviço, schemas e rotas — `GET /api/solver/casos` (o Finder) e
+   `POST /api/solver/resolver` (o Solver), com o filtro de visibilidade do P1-4
+   e prova de isolamento própria, porque o canário varre só GET.
+3. `/app/dimensionar` — o caso, os números, o resultado; com o fator estrutural
+   na legenda da tabela, para a massa poder ser conferida à mão.
+
+**Verificação.** Duas frentes independentes por caso: a **prova dimensional**
+(fator estrutural sobre índice tem de sair na unidade declarada) e a **forma
+fechada** (a massa recalculada direto da equação de restrição). Trocar
+`comprimento ** 5` por `** 4` na viga derruba as duas. No solver, trocar a
+divisão pelo índice por multiplicação derruba quatro provas; anular a guarda de
+dado ausente derruba duas. No isolamento, tirar o observador derruba o controle
+positivo e abrir o predicado derruba a prova de vazamento.
+
+**Três defeitos reais, nenhum deles do item.**
+
+- `result_dimension` publicava resíduo de ponto flutuante
+  (`[mass] / [length] ** 2.22e-16`) quando um índice de expoente fracionário se
+  combinava com o caso que o produz — `2 / 3` não é fração binária. A string ia
+  para a tela.
+- A tabela de sinônimos da camada de IA conhecia "rigidez" e "rigido" mas não o
+  adjetivo flexionado, e o casamento é por substring: *"uma viga leve e
+  **rígida**"* não nomeava propriedade nenhuma. Ficou invisível enquanto havia um
+  único índice de viga no catálogo; quando entrou o segundo, os dois empataram em
+  função e objetivo e o desempate **alfabético** entregou ao leitor um índice de
+  resistência que ele não pediu. A expectativa do teste estava certa — quem
+  estava errada era a leitura.
+- O `onChange` do `NumberInput` na tela nova lia `event.currentTarget`, que já é
+  `null` quando o atualizador de estado roda. Teria quebrado no navegador a cada
+  tecla.
+
+**Números.** 1341 → **1432** testes de backend (nenhum skip), 299 → **308** de
+frontend. Cobertura EduPack ~75% → **~81%** (26 de 32), nível médio 2,84 →
+**3,03** — a primeira vez que a média cruza 3, e só porque as duas capacidades
+fechadas estavam ambas em zero.
+
+**A faixa P2 fechou.** O próximo é o **P3**, e o primeiro item dele — o Part Cost
+Estimator — é justamente o que destrava o objetivo *custo* nos casos de carga,
+razão pela qual o custo ficou nomeado como omissão no D-64 em vez de improvisado.
 
 ---
 

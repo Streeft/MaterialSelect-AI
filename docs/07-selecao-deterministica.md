@@ -236,8 +236,73 @@ O **mesmo interpretador** roda em dois domínios numéricos: `float` (valor do
 incompatíveis ou elevar uma grandeza a um expoente com dimensão é rejeitado.
 
 Índices semeados (clássicos de Ashby): rigidez específica `E/ρ`, resistência
-específica `σ/ρ`, viga leve `E^(1/2)/ρ`, placa leve `E^(1/3)/ρ`, componente leve
-`σy/ρ` — cada um com função, geometria, objetivo, restrição e referência.
+específica `σ/ρ`, viga leve por rigidez `E^(1/2)/ρ`, viga leve por resistência
+`σy^(2/3)/ρ`, placa leve `E^(1/3)/ρ`, componente leve `σy/ρ` — cada um com
+função, geometria, objetivo, restrição e referência.
+
+## Casos de carga: o Solver e o Index Finder (`app/calculations/load_cases.py`)
+
+Um índice ordena materiais; ele não diz quanto a peça pesa. O que fecha essa
+distância é o **caso de carga** — e o mesmo objeto responde às duas perguntas do
+método ([D-64](DECISIONS.md)):
+
+- lido por **faceta** (função, restrição, objetivo, variável livre), é o
+  *Performance Index Finder*: qual índice esta combinação produz;
+- preenchido com **números**, é o *Engineering Solver*: quantos quilos dá.
+
+A derivação de Ashby separa o objetivo em fatores:
+
+```
+m = (fator estrutural) × (agrupamento material)
+```
+
+e o agrupamento material **é** o índice, invertido. Daí a regra de que o solver
+depende, verdadeira por construção em todos os sete casos:
+
+```
+massa = fator estrutural / índice
+```
+
+Cada caso guarda **só a metade estrutural**; o índice é lido do catálogo pelo
+slug na hora de resolver. Duas cópias de uma fórmula viram duas respostas.
+
+**Os dois espaços de nomes não se misturam.** Expressão estrutural só nomeia
+variável de projeto (`comprimento`, `rigidez`, `carga`, `momento`, `largura` e as
+duas constantes de apoio); índice só nomeia slug de propriedade. `_validate`
+recusa isso **no import** do módulo.
+
+Os sete casos, com a variável que cada um libera:
+
+| Caso | Restrição | Variável livre | Índice |
+|---|---|---|---|
+| Tirante em tração | Rigidez axial S | Área A | `E/ρ` |
+| Tirante em tração | Carga F sem romper | Área A | `σu/ρ` |
+| Componente axial | Carga F sem escoar | Área A | `σy/ρ` |
+| Viga em flexão | Rigidez à flexão S | Área A | `E^(1/2)/ρ` |
+| Viga em flexão | Momento M sem escoar | Área A | `σy^(2/3)/ρ` |
+| Placa em flexão | Rigidez à flexão S | **Espessura t** | `E^(1/3)/ρ` |
+| Coluna em compressão | Carga crítica de Euler | Área A | `E^(1/2)/ρ` |
+
+Viga em flexão e coluna em flambagem caem no **mesmo** índice, e não por
+coincidência: nos dois a restrição é elástica e a seção entra ao quadrado.
+
+A **condição de apoio** (constante C da flecha, fator de extremidade n² de Euler)
+é escolha nomeada que preenche uma variável de projeto, nunca constante
+escondida: é ela que faz dois briefings idênticos darem respostas diferentes.
+
+A unidade de cada resposta é **derivada** pelo Pint a partir das unidades
+canônicas, e há teste por caso exigindo que o fator estrutural dividido pelo
+índice saia na unidade que o caso declara — mais um teste que recalcula a massa
+direto da equação de restrição. Um expoente errado numa derivação nova derruba os
+dois.
+
+Material sem alguma propriedade que o caso exige sai em `excluded` **com os slugs
+que lhe faltam** (princípio 3), no mesmo contrato de `ranking.ExcludedMaterial`.
+
+Fora de v1, e nomeado: objetivo **custo** (trocaria ρ por ρ·Cm em todo
+agrupamento material), seções além de maciça quadrada e retangular, e caso de
+carga cadastrado pelo usuário — uma derivação se verifica por revisão, como
+`units.py`, não por digitação.
 
 Casos-limite tratados: divisão por zero, resultado não finito, base negativa com
 expoente fracionário (resultado complexo), overflow, variável sem valor →
