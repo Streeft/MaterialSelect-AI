@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [20](#sessão-20--150926--p3-o-custo-da-peça-e-o-custo-como-objetivo) | 15/09/2026 | P3 Part Cost Estimator + objetivo custo nos casos de carga (D-65) | 1432 → 1505 | 308 → 321 |
 | [19](#sessão-19--150926--p2-restante-o-solver-e-o-index-finder) | 15/09/2026 | P2 restante (Engineering Solver e Performance Index Finder, D-64) — fecha a faixa P2 | 1341 → 1432 | 299 → 308 |
 | [18](#sessão-18--140926--p2-o-fim-do-fluxo-do-manual) | 14/09/2026 | P2 (Find Similar, registro de referência e diferença percentual, D-63) | 1297 → 1341 | 286 → 299 |
 | [17](#sessão-17--140926--p1-4-o-catálogo-ganha-dono-e-o-usuário-ganha-espaço) | 14/09/2026 | P1-4 (`My Records`: registro próprio, favoritos e recentes, D-62) — fecha a faixa P1 | 1234 → 1297 | 277 → 286 |
@@ -35,6 +36,66 @@ As sessões entre a 11 e a 12 — o patch de design "Prisma" (D-49, D-50), o
 upgrade de segurança S1 e a rodada de desempenho — **não têm seção própria
 aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
+
+---
+
+## Sessão 20 — 15/09/26 — P3: o custo da peça, e o custo como objetivo
+
+**O pedido.** "Continue de onde parou", com a PR do P2 restante mesclada. O
+roteiro apontava para o **P3**, cujo primeiro item — o *Part Cost Estimator* —
+era exatamente o que a sessão anterior tinha nomeado como pré-requisito do
+objetivo *custo*. Os dois saíram juntos, porque são a mesma pergunta em duas
+escalas.
+
+**O achado do desenho.** *Quanto custa fazer esta peça* e *que material a faz
+mais barata* não são dois módulos. O estimador responde a primeira processo a
+processo; o objetivo custo responde a segunda com a **mesma derivação do D-64**,
+trocando ρ por ρ·Cm no agrupamento material. O fator estrutural — geometria e
+carga — não se mexe. É por isso que um caso de carga passou a nomear **dois
+slugs de índice** em vez de carregar duas derivações, e por isso que a regra do
+D-35 continua valendo palavra por palavra: quem chama a API nomeia o **objetivo**
+e o caso escolhe o índice.
+
+**O estimador devolve os termos, nunca só o total.** `C = m·Cm/(1−f) + C_t/n +
+Ċ_oh/ṅ + C_c/(ṅ·t_wo·L)`, e o que decide alguma coisa é como cada termo anda com
+o lote: o material é um **piso** que lote nenhum atravessa, o ferramental cai com
+1/n e é o único que cai, os dois de tempo não se mexem. Um total sozinho seria
+oráculo; o cruzamento entre dois processos conforme *n* cresce é a resposta.
+
+**A frase que a camada inteira gira em torno.** Dinheiro não está em sistema de
+unidades nenhum. `custo_massa` é catalogado como adimensional **de propósito**, e
+a consequência é que a análise dimensional devolve a **mesma dimensão** nas duas
+execuções do solver: massa e custo saem ambos em `[mass]`. Isso não é defeito —
+a prova continua derrubando um expoente errado num gêmeo de custo exatamente como
+derrubaria num de massa. O que ela deixou de fazer é **nomear a resposta**. Daí
+`objective`, `objective_unit` em palavras ("unidade monetária não especificada")
+e `objective_note`, que carrega a explicação em vez de deixar o leitor deduzi-la
+de um "[mass]" embaixo de uma coluna de dinheiro.
+
+**Três decisões de tela que não são acabamento.** O gêmeo de custo aparece **ao
+lado** do de massa no cartão do caso, antes da escolha — quem não vê os dois ao
+mesmo tempo não tem como notar que o fator estrutural não mudou. A faceta
+"Objetivo" nomeia as duas leituras, porque o objetivo deixou de ser propriedade
+do caso e virou escolha de quem lê. E o **link para `/app/custo` some numa
+execução de custo**: ele leva `massa=` na URL, e entregar ali um custo daria ao
+estimador um número de outra grandeza sem que ele tivesse como perceber.
+
+**Um defeito real, achado por CI e não por leitura.** A auditoria de
+acessibilidade do comparador falhou num commit que só mexia no backend, e não
+reproduzia localmente em três execuções seguidas. A causa era genuína: aquele
+era o único teste de rota que corria uma promessa contra uma busca no DOM.
+Passou a esperar `client.isFetching()` antes de procurar — quatro execuções
+limpas depois.
+
+**Números.** 1432 → **1505** testes de backend (nenhum skip), 308 → **321** de
+frontend. Cobertura EduPack ~81% → **~84%** (27 de 32), nível médio 3,03 →
+**3,12**. O percentual sobe por uma linha só (Part Cost Estimator 0→3); o que ele
+não mostra é que o objetivo custo completou **duas** capacidades que já estavam
+acima do corte — mesmo descompasso entre métrica e ferramenta que o P0-4 expôs,
+na direção oposta.
+
+**Sobram da faixa P3** o Eco Audit e o Synthesizer (+ Sandwich Panels), nenhum
+pré-requisito do outro.
 
 ---
 
