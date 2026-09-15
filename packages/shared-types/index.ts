@@ -1503,3 +1503,106 @@ export interface CostResult {
   costed: CostedProcess[];
   uncosted: UncostedProcess[];
 }
+
+// --- Eco Audit (P3) ----------------------------------------------------------
+
+/** One way of moving a finished part. A closed, seeded vocabulary. */
+export interface TransportMode {
+  slug: string;
+  name: string;
+  description: string | null;
+  /**
+   * MJ and kg CO₂ per tonne-kilometre. `null` means nobody catalogued it — a
+   * state, never a zero, and the audit says so in the transport phase.
+   */
+  energy_intensity: number | null;
+  carbon_intensity: number | null;
+  is_demo: boolean;
+}
+
+/**
+ * Which of the two service models runs, and its own numbers.
+ *
+ * They are not variants of one model: in `estatico` the part's mass does not
+ * appear at all, so lightweighting saves nothing in the use phase; in `movel`
+ * it is a linear factor. Sending a field belonging to the other model is
+ * refused by the API, never ignored.
+ */
+export type UseModel = "estatico" | "movel";
+
+export interface EcoUseIn {
+  model: UseModel;
+  power_watts?: number | null;
+  duty_cycle?: number | null;
+  distance_km?: number | null;
+  mobile_intensity?: number | null;
+  life_years?: number | null;
+  carbon_per_energy?: number | null;
+}
+
+export type EndOfLifeRoute = "reciclagem" | "aterro" | "incineracao";
+
+export interface EcoAuditRequest {
+  material_id: number;
+  /** Required: an eco audit of a part is an audit of *making* the part. */
+  process_id: number;
+  part_mass: number;
+  recycled_fraction?: number;
+  transport_mode: string;
+  transport_distance_km?: number;
+  use: EcoUseIn;
+  end_of_life?: EndOfLifeRoute;
+}
+
+/**
+ * One phase of the life, with energy and carbon answered independently.
+ *
+ * They read different catalogued data, so a phase can be known in megajoules
+ * and unknown in kilograms of CO₂ — which is why each carries its own absence
+ * and its own written reason (D-24).
+ */
+export interface EcoPhase {
+  phase: string;
+  label: string;
+  energy: number | null;
+  carbon: number | null;
+  detail: string;
+  energy_missing: string[];
+  carbon_missing: string[];
+  energy_reason: string | null;
+  carbon_reason: string | null;
+}
+
+/** The heaviest phase of one quantity, or the reason nobody can name one. */
+export interface EcoDominance {
+  phase: string | null;
+  label: string | null;
+  share: number | null;
+  refusal: string | null;
+}
+
+export interface EcoAuditResult {
+  material_id: number;
+  material_name: string;
+  process_id: number;
+  process_name: string;
+  transport_mode: TransportMode;
+  transport_distance_km: number;
+  /** What the part weighs, and what had to be bought to make it. */
+  mass_in_part: number;
+  mass_bought: number;
+  scrap_fraction: number;
+  recycled_fraction: number;
+  use_model: UseModel;
+  end_of_life: EndOfLifeRoute;
+  phases: EcoPhase[];
+  /** `null` when any phase is absent: a total over four of five is a subtotal. */
+  total_energy: number | null;
+  total_carbon: number | null;
+  energy_dominance: EcoDominance;
+  carbon_dominance: EcoDominance;
+  energy_unit: string;
+  carbon_unit: string;
+  carbon_unit_note: string;
+  recycling_credit_note: string;
+}

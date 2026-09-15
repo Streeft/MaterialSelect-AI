@@ -15,6 +15,7 @@ import type {
   ChartData,
   Comparison,
   CostResult,
+  EcoAuditResult,
   DashboardOverview,
   MaterialClass,
   MaterialClassDetail,
@@ -30,6 +31,7 @@ import type {
   PropertyDistribution,
   PropertyMap,
   SolveResult,
+  TransportMode,
   StudySummary,
 } from "@/lib/types";
 
@@ -67,7 +69,14 @@ vi.mock("next/navigation", () => ({
 }));
 
 const classes: MaterialClass[] = [
-  { id: 1, name: "Metais", slug: "metais", parent_id: null, description: null, material_count: 2 },
+  {
+    id: 1,
+    name: "Metais",
+    slug: "metais",
+    parent_id: null,
+    description: null,
+    material_count: 2,
+  },
   {
     id: 2,
     name: "Cerâmicas",
@@ -226,7 +235,13 @@ const propertyMap: PropertyMap = {
   ],
   envelopes: [],
   envelopes_alt: [],
-  excluded: [{ material_id: 3, name: "Liga experimental", reason: "Sem valor em ambos os eixos" }],
+  excluded: [
+    {
+      material_id: 3,
+      name: "Liga experimental",
+      reason: "Sem valor em ambos os eixos",
+    },
+  ],
   index: null,
   considered_count: 3,
   plotted_count: 2,
@@ -319,8 +334,20 @@ const chart: ChartData = {
   y_property_name: "Módulo de Young",
   y_unit: "Pa",
   points: [
-    { material_id: 1, material_name: "Aço 1020", class_name: "Metais", x: 7850, y: 2e11 },
-    { material_id: 2, material_name: "Alumina", class_name: "Cerâmicas", x: 3900, y: 3.7e11 },
+    {
+      material_id: 1,
+      material_name: "Aço 1020",
+      class_name: "Metais",
+      x: 7850,
+      y: 2e11,
+    },
+    {
+      material_id: 2,
+      material_name: "Alumina",
+      class_name: "Cerâmicas",
+      x: 3900,
+      y: 3.7e11,
+    },
   ],
   excluded_material_ids: [3],
 };
@@ -414,7 +441,13 @@ const overview: DashboardOverview = {
   demo_materials: 3,
   classes: 2,
   properties: 2,
-  coverage: { filled: 4, declared_missing: 1, not_recorded: 1, slots: 6, filled_pct: 66.7 },
+  coverage: {
+    filled: 4,
+    declared_missing: 1,
+    not_recorded: 1,
+    slots: 6,
+    filled_pct: 66.7,
+  },
   by_quality: [
     { bucket: "MEDIDO", count: 2, share_pct: 33.3 },
     { bucket: "IMPORTADO", count: 2, share_pct: 33.3 },
@@ -426,13 +459,25 @@ const overview: DashboardOverview = {
       slug: "metais",
       name: "Metais",
       materials: 2,
-      coverage: { filled: 4, declared_missing: 0, not_recorded: 0, slots: 4, filled_pct: 100 },
+      coverage: {
+        filled: 4,
+        declared_missing: 0,
+        not_recorded: 0,
+        slots: 4,
+        filled_pct: 100,
+      },
     },
     {
       slug: "ceramicas",
       name: "Cerâmicas",
       materials: 1,
-      coverage: { filled: 0, declared_missing: 1, not_recorded: 1, slots: 2, filled_pct: null },
+      coverage: {
+        filled: 0,
+        declared_missing: 1,
+        not_recorded: 1,
+        slots: 2,
+        filled_pct: null,
+      },
     },
   ],
   by_property: [
@@ -441,14 +486,26 @@ const overview: DashboardOverview = {
       name: "Módulo de Young",
       category: "MECANICA",
       canonical_unit: "Pa",
-      coverage: { filled: 3, declared_missing: 0, not_recorded: 0, slots: 3, filled_pct: 100 },
+      coverage: {
+        filled: 3,
+        declared_missing: 0,
+        not_recorded: 0,
+        slots: 3,
+        filled_pct: 100,
+      },
     },
     {
       slug: "densidade",
       name: "Densidade",
       category: "FISICA",
       canonical_unit: "kg/m**3",
-      coverage: { filled: 1, declared_missing: 1, not_recorded: 1, slots: 3, filled_pct: 33.3 },
+      coverage: {
+        filled: 1,
+        declared_missing: 1,
+        not_recorded: 1,
+        slots: 3,
+        filled_pct: 33.3,
+      },
     },
   ],
   gaps: [
@@ -457,7 +514,13 @@ const overview: DashboardOverview = {
       name: "Densidade",
       category: "FISICA",
       canonical_unit: "kg/m**3",
-      coverage: { filled: 1, declared_missing: 1, not_recorded: 1, slots: 3, filled_pct: 33.3 },
+      coverage: {
+        filled: 1,
+        declared_missing: 1,
+        not_recorded: 1,
+        slots: 3,
+        filled_pct: 33.3,
+      },
     },
   ],
 };
@@ -604,7 +667,6 @@ const materialFamily: MaterialClassDetail = {
   descendant_material_count: 2,
 };
 
-
 // P2: um caso de carga e uma resposta de dimensionamento. O caso traz a
 // derivação inteira porque é ela que a tela abre num <details> — auditar a
 // tela sem ela auditaria metade.
@@ -636,8 +698,18 @@ const loadCases: LoadCase[] = [
     objective_unit: "kg",
     free_unit: "m**2",
     variables: [
-      { key: "comprimento", label: "Comprimento", unit: "m", help_text: "Vão livre." },
-      { key: "rigidez", label: "Rigidez exigida", unit: "N/m", help_text: "Força por deslocamento." },
+      {
+        key: "comprimento",
+        label: "Comprimento",
+        unit: "m",
+        help_text: "Vão livre.",
+      },
+      {
+        key: "rigidez",
+        label: "Rigidez exigida",
+        unit: "N/m",
+        help_text: "Força por deslocamento.",
+      },
       {
         key: "constante_apoio",
         label: "Constante de apoio e carregamento",
@@ -656,6 +728,107 @@ const loadCases: LoadCase[] = [
     ],
   },
 ];
+
+// P3: o Eco Audit. Uma fase sem carbono e um pódio recusado entram de propósito
+// — é o estado que a tela desenha com rótulo escrito, e auditar só o caminho
+// feliz deixaria essa metade sem auditoria.
+const transportModes: TransportMode[] = [
+  {
+    slug: "maritimo",
+    name: "Marítimo (navio de carga)",
+    description: null,
+    energy_intensity: 0.16,
+    carbon_intensity: 0.012,
+    is_demo: true,
+  },
+];
+
+const ecoResult: EcoAuditResult = {
+  material_id: 1,
+  material_name: "Aço 1020",
+  process_id: 1,
+  process_name: "Fundição em areia",
+  transport_mode: transportModes[0]!,
+  transport_distance_km: 1500,
+  mass_in_part: 2,
+  mass_bought: 2.5,
+  scrap_fraction: 0.2,
+  recycled_fraction: 0,
+  use_model: "movel",
+  end_of_life: "reciclagem",
+  phases: [
+    {
+      phase: "material",
+      label: "Material",
+      energy: 525,
+      carbon: 31.25,
+      detail: "massa comprada × primária",
+      energy_missing: [],
+      carbon_missing: [],
+      energy_reason: null,
+      carbon_reason: null,
+    },
+    {
+      phase: "manufatura",
+      label: "Manufatura",
+      energy: 27.5,
+      carbon: null,
+      detail: "massa comprada × energia do processo por kg",
+      energy_missing: [],
+      carbon_missing: ["co2-processo"],
+      energy_reason: null,
+      carbon_reason: "Dados ausentes: co2-processo",
+    },
+    {
+      phase: "transporte",
+      label: "Transporte",
+      energy: 2.7,
+      carbon: 0.204,
+      detail: "massa da peça (t) × distância (km) × intensidade do modal",
+      energy_missing: [],
+      carbon_missing: [],
+      energy_reason: null,
+      carbon_reason: null,
+    },
+    {
+      phase: "uso",
+      label: "Uso",
+      energy: 1000,
+      carbon: 70,
+      detail: "massa da peça × distância × intensidade de uso",
+      energy_missing: [],
+      carbon_missing: [],
+      energy_reason: null,
+      carbon_reason: null,
+    },
+    {
+      phase: "fim-de-vida",
+      label: "Fim de vida",
+      energy: 48,
+      carbon: 3.2,
+      detail: "massa da peça × energia de reciclagem por kg",
+      energy_missing: [],
+      carbon_missing: [],
+      energy_reason: null,
+      carbon_reason: null,
+    },
+  ],
+  total_energy: 1603.2,
+  total_carbon: null,
+  energy_dominance: { phase: "uso", label: "Uso", share: 0.62, refusal: null },
+  carbon_dominance: {
+    phase: null,
+    label: null,
+    share: null,
+    refusal:
+      "Sem fase dominante em carbono: Manufatura não pôde ser calculada.",
+  },
+  energy_unit: "MJ",
+  carbon_unit: "kg de CO₂",
+  carbon_unit_note: "O carbono sai em kg de CO₂ por declaração.",
+  recycling_credit_note:
+    "Este documento não abate crédito de reciclagem do total.",
+};
 
 const costResult: CostResult = {
   material_id: 1,
@@ -740,9 +913,12 @@ vi.mock("@/lib/api", async (importOriginal) => ({
   // P1-4: a ficha traz a estrela e anota a visita, então toda tela de registro
   // passa por estas quatro. O espaço vazio é o estado honesto aqui — a
   // auditoria é sobre a ficha, não sobre os marcadores.
-  getMyRecords: () => Promise.resolve({ favorites: [], recents: [], own_records: [] }),
-  addFavorite: () => Promise.resolve({ favorites: [], recents: [], own_records: [] }),
-  removeFavorite: () => Promise.resolve({ favorites: [], recents: [], own_records: [] }),
+  getMyRecords: () =>
+    Promise.resolve({ favorites: [], recents: [], own_records: [] }),
+  addFavorite: () =>
+    Promise.resolve({ favorites: [], recents: [], own_records: [] }),
+  removeFavorite: () =>
+    Promise.resolve({ favorites: [], recents: [], own_records: [] }),
   touchRecent: () => Promise.resolve(undefined),
   listMaterials: () => Promise.resolve(materials),
   listClasses: () => Promise.resolve(classes),
@@ -756,6 +932,8 @@ vi.mock("@/lib/api", async (importOriginal) => ({
   listPerformanceIndices: () => Promise.resolve(indices),
   listLoadCases: () => Promise.resolve(loadCases),
   estimatePartCost: () => Promise.resolve(costResult),
+  listTransportModes: () => Promise.resolve(transportModes),
+  runEcoAudit: () => Promise.resolve(ecoResult),
   solveBrief: () => Promise.resolve(solveResult),
   getPropertyMap: () => Promise.resolve(propertyMap),
   getComparison: () => Promise.resolve(comparison),
@@ -821,11 +999,13 @@ const { default: SelectionPage } = await import("./selecao/page");
 const { default: ImportPage } = await import("./importar/page");
 const { default: ProcessesPage } = await import("./processos/page");
 const { default: ProcessDetailPage } = await import("./processos/[slug]/page");
-const { default: ProcessFamilyPage } = await import("./processos/familia/[slug]/page");
+const { default: ProcessFamilyPage } =
+  await import("./processos/familia/[slug]/page");
 const { default: MaterialFamilyPage } = await import("./catalogo/[slug]/page");
 const { default: MyRecordsPage } = await import("./meus-registros/page");
 const { default: SolverPage } = await import("./dimensionar/page");
 const { default: CostPage } = await import("./custo/page");
+const { default: EcoPage } = await import("./eco/page");
 
 function makeClient() {
   return new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -967,7 +1147,9 @@ describe("acessibilidade das telas principais", () => {
     await waitFor(() => expect(client.isFetching()).toBe(0));
 
     selectMwcOption(
-      await shadowScreen.findByShadowRole("combobox", { name: ptBR.solver.caseLabel }),
+      await shadowScreen.findByShadowRole("combobox", {
+        name: ptBR.solver.caseLabel,
+      }),
       "viga-rigidez",
     );
     await screen.findByRole("heading", { name: ptBR.solver.inputsStep });
@@ -978,6 +1160,13 @@ describe("acessibilidade das telas principais", () => {
   // com ele na tela que a auditoria vale.
   it("custo da peça", async () => {
     await auditRoute(<CostPage />, ptBR.cost.briefStep);
+  });
+
+  // P3: mesma razão — o formulário monta sozinho, e a auditoria vale com ele na
+  // tela. O resultado tem uma fase sem carbono, então o rótulo escrito que
+  // substitui a célula vazia entra na varredura.
+  it("auditoria ambiental", async () => {
+    await auditRoute(<EcoPage />, ptBR.eco.briefStep);
   });
 
   // Landing is the one route in this file that isn't under `/app`: no session,

@@ -15,6 +15,8 @@ import type {
   CostResult,
   CurrentUser,
   DashboardOverview,
+  EcoAuditRequest,
+  EcoAuditResult,
   Explanation,
   Interpretation,
   ImportJobOut,
@@ -55,6 +57,7 @@ import type {
   StudyDetail,
   StudyIn,
   StudySummary,
+  TransportMode,
   Universe,
   UploadResult,
   ValidationReport,
@@ -585,6 +588,24 @@ export function solveBrief(body: SolveRequest): Promise<SolveResult> {
  */
 export function estimatePartCost(body: CostRequest): Promise<CostResult> {
   return request<CostResult>("/api/custo/estimar", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+// --- Eco Audit (P3) ---------------------------------------------------------
+
+export function listTransportModes(): Promise<TransportMode[]> {
+  return request<TransportMode[]>("/api/eco/modais");
+}
+
+/**
+ * A POST like the solver's and the estimator's: the brief is a body of design
+ * numbers, and a query string would make two different questions share a cache
+ * entry.
+ */
+export function runEcoAudit(body: EcoAuditRequest): Promise<EcoAuditResult> {
+  return request<EcoAuditResult>("/api/eco/auditar", {
     method: "POST",
     body: JSON.stringify(body),
   });
