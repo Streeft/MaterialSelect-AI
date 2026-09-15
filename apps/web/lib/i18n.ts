@@ -25,7 +25,8 @@ function stageKindWord(kind: StageKindWord): string {
 export const ptBR = {
   appName: "MaterialSelect AI",
   tagline: "Apoio à seleção de materiais pela metodologia de Ashby",
-  demoWarning: "Dados exclusivamente demonstrativos. Não utilizar em projetos reais.",
+  demoWarning:
+    "Dados exclusivamente demonstrativos. Não utilizar em projetos reais.",
   demoBadge: "Demonstrativo",
   nav: {
     home: "Início",
@@ -65,7 +66,8 @@ export const ptBR = {
     create: "Criar",
     /** Header of a table column that holds buttons; usually screen-reader only. */
     columnActions: "Ações",
-    confirmDeactivate: "Desativar este material? Ele sairá do catálogo, mas poderá ser reativado.",
+    confirmDeactivate:
+      "Desativar este material? Ele sairá do catálogo, mas poderá ser reativado.",
     confirmDelete: "Excluir definitivamente? Esta ação não pode ser desfeita.",
     saving: "Salvando…",
   },
@@ -100,7 +102,8 @@ export const ptBR = {
     createTitle: "Novo material",
     editTitle: "Editar material",
     required: "Campo obrigatório.",
-    genericError: "Não foi possível salvar. Verifique os dados e tente novamente.",
+    genericError:
+      "Não foi possível salvar. Verifique os dados e tente novamente.",
   },
   admin: {
     classesTitle: "Classes de materiais",
@@ -143,7 +146,8 @@ export const ptBR = {
     uploading: "Enviando…",
     sheet: "Aba",
     preview: "Amostra do arquivo",
-    rows: (n: number) => `${n} ${n === 1 ? "linha de dados" : "linhas de dados"}`,
+    rows: (n: number) =>
+      `${n} ${n === 1 ? "linha de dados" : "linhas de dados"}`,
     mappingTitle: "Mapeie as colunas",
     mappingHelp:
       "Indique o que cada coluna representa. Colunas ignoradas não serão importadas. Unidades detectadas no cabeçalho ou na célula têm prioridade.",
@@ -176,7 +180,8 @@ export const ptBR = {
     sourceLabel: "Fonte dos dados (opcional)",
     sourcePlaceholder: "ex.: Planilha Prof. Fulano 2026",
     errorNoNameColumn: "Indique qual coluna contém o nome do material.",
-    errorPropertyWithoutSlug: "Há colunas de propriedade sem a propriedade selecionada.",
+    errorPropertyWithoutSlug:
+      "Há colunas de propriedade sem a propriedade selecionada.",
     errorNoClass: "Mapeie uma coluna de classe ou escolha uma classe padrão.",
     errorTemplateName: "Informe um nome para o template.",
     templates: "Template de mapeamento",
@@ -232,11 +237,13 @@ export const ptBR = {
       CANCELADO: "Cancelado",
       REVERTIDO: "Revertido",
     },
-    genericError: "Não foi possível concluir a operação. Verifique os dados e tente novamente.",
+    genericError:
+      "Não foi possível concluir a operação. Verifique os dados e tente novamente.",
   },
   selection: {
     title: "Seleção de materiais",
-    subtitle: "Função → Restrições → Objetivo → Ranking (determinístico, sem IA)",
+    subtitle:
+      "Função → Restrições → Objetivo → Ranking (determinístico, sem IA)",
     // The stepper numbers the steps itself; a "1." in the label would print twice.
     stepFunction: "Função",
     stepConstraints: "Restrições",
@@ -310,7 +317,8 @@ export const ptBR = {
     stageIncludeDescendants: "Incluir subclasses",
     stageIncludeDescendantsHint:
       "Marcado, escolher uma classe traz tudo o que está abaixo dela na hierarquia.",
-    stageNoClasses: "Nenhuma classe escolhida — este estágio não estreita nada.",
+    stageNoClasses:
+      "Nenhuma classe escolhida — este estágio não estreita nada.",
     // P0-2. O estágio de processo é a junção entre as duas tabelas: dos
     // processos selecionados para os materiais que eles servem.
     stageProcesses: "Processos selecionados",
@@ -401,7 +409,8 @@ export const ptBR = {
     attribute: "Atributo do processo",
     selectAttribute: "Selecione um atributo",
     labels: "Rótulos",
-    labelsPickAttributeFirst: "Escolha o atributo para ver os rótulos possíveis.",
+    labelsPickAttributeFirst:
+      "Escolha o atributo para ver os rótulos possíveis.",
     selectCriterion: "Selecione um critério",
     autoDirection: "Automática (pela propriedade)",
     value: "Valor",
@@ -423,7 +432,8 @@ export const ptBR = {
     noIndex: "Nenhum índice",
     customIndex: "Expressão personalizada",
     expression: "Expressão",
-    expressionHint: "Use os slugs das propriedades, números, + - * / ** e sqrt/cbrt/abs.",
+    expressionHint:
+      "Use os slugs das propriedades, números, + - * / ** e sqrt/cbrt/abs.",
     goal: "Objetivo",
     maximize: "Maximizar",
     minimize: "Minimizar",
@@ -431,7 +441,8 @@ export const ptBR = {
     validate: "Validar expressão",
     variablesAvailable: "Variáveis disponíveis",
     rankingTitle: "Critérios de ranking",
-    rankingHint: "Some ponderada normalizada. Pesos são renormalizados para somar 1.",
+    rankingHint:
+      "Some ponderada normalizada. Pesos são renormalizados para somar 1.",
     addCriterion: "Adicionar critério",
     useIndexCriterion: "Usar o índice como critério",
     criterion: "Critério",
@@ -470,7 +481,8 @@ export const ptBR = {
     contributionsHint:
       "Quanto cada critério pesou na pontuação. As larguras são a proporção de cada parcela no total.",
     excludedTitle: "Excluídos por dados ausentes",
-    excludedHint: "Estes materiais não têm valor para todos os critérios e não foram ranqueados.",
+    excludedHint:
+      "Estes materiais não têm valor para todos os critérios e não foram ranqueados.",
     missing: "faltando",
     sensitivity: "Análise de sensibilidade",
     sensitivityHint: "Como o 1º colocado muda ao variar os pesos.",
@@ -503,7 +515,8 @@ export const ptBR = {
     emptyResults: "Nenhum candidato após as restrições.",
     viewOnMap: "Ver candidatos no mapa",
     compareCandidates: "Comparar candidatos",
-    genericError: "Não foi possível concluir a operação. Verifique os critérios e tente novamente.",
+    genericError:
+      "Não foi possível concluir a operação. Verifique os critérios e tente novamente.",
     validationOk: "Expressão válida.",
     // AHP (Analytic Hierarchy Process): uma forma alternativa de chegar aos
     // pesos dos critérios, por comparação pareada — não um quarto método de
@@ -513,9 +526,9 @@ export const ptBR = {
       toggleHint:
         "Em vez de digitar cada peso, compare os critérios dois a dois numa escala de 1 a 9 e deixe o sistema calcular os pesos.",
       title: "Comparação pareada",
-      hint:
-        "Para cada par, diga o quanto o critério da linha é mais importante que o da coluna (1 = igualmente importante, 9 = extremamente mais importante). A metade abaixo da diagonal é o recíproco, calculado automaticamente.",
-      needsCriteria: "Escolha ao menos dois critérios com propriedade definida para usar o AHP.",
+      hint: "Para cada par, diga o quanto o critério da linha é mais importante que o da coluna (1 = igualmente importante, 9 = extremamente mais importante). A metade abaixo da diagonal é o recíproco, calculado automaticamente.",
+      needsCriteria:
+        "Escolha ao menos dois critérios com propriedade definida para usar o AHP.",
       pairLabel: (a: string, b: string) => `${a} em relação a ${b}`,
       computing: "Calculando pesos…",
       consistency: (ratio: string) => `Consistência: ${ratio}`,
@@ -539,7 +552,8 @@ export const ptBR = {
     title: "Interpretar enunciado (opcional)",
     subtitle:
       "A IA lê o enunciado e propõe função, restrições e índices já cadastrados. Ela não calcula nada: todo número vem do backend e toda sugestão passa pela sua revisão.",
-    disabled: "Camada de IA desativada. O sistema funciona integralmente sem ela.",
+    disabled:
+      "Camada de IA desativada. O sistema funciona integralmente sem ela.",
     simulatedBadge: "Provedor simulado",
     // Um provedor externo é a exceção, não o padrão: quem está vendo a tela
     // precisa saber que aquela leitura veio de um modelo — e que ela pode sair
@@ -595,7 +609,8 @@ export const ptBR = {
     hint: "O relatório traz o mapa de seleção, restrições, funil, índice, ranking, excluídos por dado ausente, sensibilidade e a proveniência de cada número — com o aviso de limitação exigido.",
     laudoTitle: "Laudo de engenharia",
     laudoButton: "Gerar laudo",
-    laudoHint: "Documento único, distinto do relatório: mapa de seleção, gráfico de ranqueamento, as mesmas tabelas de auditoria e, se a camada de IA estiver ligada, uma interpretação técnica.",
+    laudoHint:
+      "Documento único, distinto do relatório: mapa de seleção, gráfico de ranqueamento, as mesmas tabelas de auditoria e, se a camada de IA estiver ligada, uma interpretação técnica.",
     laudoResponsibleLabel: "Responsável técnico (opcional)",
     laudoResponsiblePlaceholder: "Nome de quem assina a leitura",
   },
@@ -629,7 +644,7 @@ export const ptBR = {
   solver: {
     title: "Dimensionar",
     subtitle:
-      "Escolha o caso de carga, informe os números do projeto e veja quanto a peça pesaria em cada material.",
+      "Escolha o caso de carga, informe os números do projeto e veja quanto a peça pesaria — ou custaria — em cada material.",
     caseStep: "1. O caso de carga",
     caseLabel: "Caso",
     caseHint:
@@ -637,12 +652,27 @@ export const ptBR = {
     facetFunction: "Função",
     facetConstraint: "Restrição",
     facetObjective: "Objetivo",
+    // D-65: o objetivo deixou de ser propriedade do caso e virou escolha de quem
+    // lê. A faceta diz os dois, senão afirmaria "minimizar massa" numa tela em
+    // que o custo está a um seletor de distância.
+    facetObjectiveOr: "ou",
     facetFree: "Variável livre",
     facetFixed: "Fixado pelo projeto",
     derivationTitle: "Como o índice sai daí",
     derivationHint:
       "A conta está escrita para poder ser refeita à mão. O índice não é escrito aqui: é lido do catálogo.",
     indexTitle: "Índice que este caso produz",
+    // D-65: o mesmo caso responde a dois objetivos porque a troca de ρ por ρ·Cm
+    // não mexe no fator estrutural. São duas leituras de uma derivação, e a tela
+    // diz isso em vez de oferecer dois casos parecidos.
+    costIndexTitle: "E se o objetivo for o custo",
+    costIndexHint:
+      "Trocando a densidade por densidade × custo por massa, a mesma derivação minimiza o custo de material da peça. A geometria não muda.",
+    objectiveLabel: "Objetivo",
+    objectiveMass: "Minimizar massa",
+    objectiveCost: "Minimizar custo de material",
+    objectiveHint:
+      "O que a coluna do resultado vai medir. O fator estrutural é o mesmo número nos dois casos — só o índice muda.",
     inputsStep: "2. Os números do projeto",
     inputsHint:
       "Cada valor vai na unidade indicada. Todos precisam ser maiores que zero.",
@@ -655,15 +685,20 @@ export const ptBR = {
     // Mostrá-lo é o que permite conferir uma massa à mão.
     structuralFactor: "Fator estrutural",
     structuralFactorHint:
-      "Só geometria e carga — o mesmo número para todo material desta execução. Massa = fator estrutural ÷ índice.",
+      "Só geometria e carga — o mesmo número para todo material desta execução. Resposta = fator estrutural ÷ índice.",
     columnMaterial: "Material",
     columnIndex: "Índice",
     columnObjective: "Massa",
+    columnObjectiveCost: "Custo de material",
     columnFree: "Seção necessária",
     excludedTitle: "Fora deste dimensionamento",
     excludedHint:
       "Sem valor para alguma propriedade que o caso exige. Não foram dimensionados por estimativa — ausência não vira zero.",
-    unitNote: "A unidade de cada resposta é derivada das unidades canônicas, não declarada à mão.",
+    unitNote:
+      "A unidade de cada resposta é derivada das unidades canônicas, não declarada à mão.",
+    // O aviso do custo não é o mesmo aviso: a dimensão sai como massa porque
+    // custo por massa é adimensional. Quem lê merece a frase, não a dedução.
+    indexRan: "Índice usado nesta execução",
   },
 
   cost: {
@@ -673,7 +708,8 @@ export const ptBR = {
     briefStep: "1. A peça e o lote",
     materialLabel: "Material",
     massLabel: "Massa da peça (kg)",
-    massHint: "A massa acabada. O dimensionamento calcula esta massa para você.",
+    massHint:
+      "A massa acabada. O dimensionamento calcula esta massa para você.",
     batchLabel: "Peças no lote",
     batchHint: "É o lote que dilui o ferramental — e só ele.",
     assumptionsStep: "2. As premissas da oficina",
@@ -681,11 +717,13 @@ export const ptBR = {
       "Não são fatos do processo: duas fábricas com a mesma prensa amortizam em horizontes diferentes e a mantêm ocupada frações diferentes do ano.",
     writeOffLabel: "Amortização (anos)",
     loadFactorLabel: "Fator de carga (0 a 1)",
-    loadFactorHint: "Fração do tempo disponível em que o equipamento roda de fato.",
+    loadFactorHint:
+      "Fração do tempo disponível em que o equipamento roda de fato.",
     estimate: "Estimar",
     estimating: "Estimando…",
     resultStep: "3. O custo, termo a termo",
-    resultEmpty: "Nenhum processo compatível pôde ser precificado com estes dados.",
+    resultEmpty:
+      "Nenhum processo compatível pôde ser precificado com estes dados.",
     columnProcess: "Processo",
     columnMaterial: "Material",
     columnTooling: "Ferramental",
@@ -701,17 +739,18 @@ export const ptBR = {
     fromSolver: "Estimar custo",
   },
 
-
   myRecords: {
     title: "Meus registros",
-    subtitle: "O que você marcou, o que abriu por último e o que cadastrou para si.",
+    subtitle:
+      "O que você marcou, o que abriu por último e o que cadastrou para si.",
     favorites: "Favoritos",
     favoritesEmpty: "Nenhum registro favoritado ainda.",
     favoritesHint:
       "A estrela na ficha de um material ou processo traz o registro para cá.",
     recents: "Abertos recentemente",
     recentsEmpty: "Nenhum registro aberto ainda nesta conta.",
-    recentsHint: "Os últimos 20 registros que você abriu, do mais recente ao mais antigo.",
+    recentsHint:
+      "Os últimos 20 registros que você abriu, do mais recente ao mais antigo.",
     ownRecords: "Registros próprios",
     ownRecordsEmpty: "Você ainda não cadastrou nenhum registro próprio.",
     ownRecordsHint:
@@ -734,14 +773,15 @@ export const ptBR = {
     subtitle: "O que existe cadastrado, e com que qualidade de dado.",
     searchPlaceholder: "Buscar por nome, classe ou palavra-chave…",
     searchHint:
-      "Aceita operadores: aço AND inox · aço OR alumínio · aço NOT inox · \"aço inox\" para a frase exata · parênteses para agrupar · alum* e a?o como curingas.",
+      'Aceita operadores: aço AND inox · aço OR alumínio · aço NOT inox · "aço inox" para a frase exata · parênteses para agrupar · alum* e a?o como curingas.',
     searchLabel: "Buscar materiais",
     columnName: "Material",
     columnClass: "Classe",
     columnKeywords: "Palavras-chave",
     columnQuality: "Dados",
     empty: "Nenhum material encontrado.",
-    emptyHint: "Ajuste a busca ou os filtros — ou cadastre o primeiro material.",
+    emptyHint:
+      "Ajuste a busca ou os filtros — ou cadastre o primeiro material.",
     emptyFiltered: "Nenhum material atende aos filtros escolhidos.",
     clearFilters: "Limpar filtros",
     loading: "Carregando materiais…",
@@ -753,7 +793,8 @@ export const ptBR = {
     allClasses: "Todas",
     // P1-4: navegar não é filtrar. O seletor estreita a lista desta tela; um
     // cartão de família leva para a página daquela família.
-    browseHint: "Abra uma família para ver o registro dela, as subclasses e os materiais.",
+    browseHint:
+      "Abra uma família para ver o registro dela, as subclasses e os materiais.",
     filterQuality: "Qualidade do dado",
     // Not "sem lacunas": the catalogue only knows about properties that were
     // recorded, so it can say a material has no gap *among the ones cadastradas*
@@ -808,7 +849,8 @@ export const ptBR = {
     log: "Logarítmica",
     excludedNote: (n: number) =>
       `${n} ${n === 1 ? "material foi omitido" : "materiais foram omitidos"} por não ter valor em ambos os eixos.`,
-    logNote: "Escala logarítmica exige valores positivos; pontos ≤ 0 são omitidos.",
+    logNote:
+      "Escala logarítmica exige valores positivos; pontos ≤ 0 são omitidos.",
     empty: "Sem pontos suficientes para o gráfico.",
     // Shared by every figure in the application: the map, the comparator and
     // the thumbnail on the material sheet.
@@ -876,7 +918,8 @@ export const ptBR = {
     coverage: (plotted: number, considered: number) =>
       `${plotted} de ${considered} ${considered === 1 ? "material plotado" : "materiais plotados"}`,
     excludedTitle: "Materiais fora do mapa",
-    excludedHint: "Nenhum material é descartado em silêncio; abaixo o motivo de cada omissão.",
+    excludedHint:
+      "Nenhum material é descartado em silêncio; abaixo o motivo de cada omissão.",
     indexValue: "Índice",
     undefinedIndex: "índice indefinido",
     empty: "Nenhum material pôde ser plotado com estes eixos.",
@@ -896,7 +939,8 @@ export const ptBR = {
     groupIndex: "Linha de índice",
     sameAxis: "Escolha duas propriedades diferentes para os eixos.",
     notesTitle: "Observações sobre este mapa",
-    levelsHint: "Cada nível traçado vira uma reta paralela; o lado favorável é contado abaixo.",
+    levelsHint:
+      "Cada nível traçado vira uma reta paralela; o lado favorável é contado abaixo.",
     figure: "Mapa de Ashby",
     share: "Compartilhar",
     shareTooltip: "Copia um link com os filtros atuais",
@@ -921,7 +965,8 @@ export const ptBR = {
     classes: "Classes",
     properties: "Propriedades",
     overallCoverage: "Cobertura geral",
-    coverageOf: (filled: number, slots: number) => `${filled} de ${slots} pares preenchidos`,
+    coverageOf: (filled: number, slots: number) =>
+      `${filled} de ${slots} pares preenchidos`,
     coverageEmpty: "Sem pares material×propriedade para cobrir.",
     // A composição por qualidade.
     qualityMixTitle: "Composição por qualidade do dado",
@@ -932,7 +977,8 @@ export const ptBR = {
     columnShare: "Participação",
     // A cobertura por classe.
     classCoverageTitle: "Cobertura por classe",
-    classCoverageHint: "Percentual de pares preenchidos, por classe de material.",
+    classCoverageHint:
+      "Percentual de pares preenchidos, por classe de material.",
     classCoverageFigure: "Cobertura por classe",
     columnClass: "Classe",
     columnMaterials: "Materiais",
@@ -942,7 +988,8 @@ export const ptBR = {
     notRecorded: "Não registrado",
     // As lacunas.
     gapsTitle: "Propriedades menos preenchidas",
-    gapsHint: "As propriedades com menor cobertura no catálogo — por onde começar a preencher.",
+    gapsHint:
+      "As propriedades com menor cobertura no catálogo — por onde começar a preencher.",
     gapsEmpty: "Nenhuma propriedade cadastrada ainda.",
     // A distribuição por propriedade.
     distributionTitle: "Distribuição por propriedade",
@@ -952,8 +999,10 @@ export const ptBR = {
     scale: "Escala",
     linear: "Linear",
     log: "Logarítmica",
-    logDisabled: "Esta propriedade admite valores não positivos; a escala log não se aplica.",
-    distributionEmpty: "Nenhuma classe tem valores registrados para esta propriedade.",
+    logDisabled:
+      "Esta propriedade admite valores não positivos; a escala log não se aplica.",
+    distributionEmpty:
+      "Nenhuma classe tem valores registrados para esta propriedade.",
     distributionFigure: (name: string) => `Distribuição — ${name}`,
     classesWithoutData: "Classes sem dados desta propriedade",
     columnCountBox: "Materiais",
@@ -977,7 +1026,8 @@ export const ptBR = {
       valor_ausente: "Este material não tem o valor",
       referencia_ausente: "A referência não tem o valor",
       referencia_zero: "A referência vale zero: não há razão",
-      escala_sem_zero: "Escala sem zero verdadeiro: percentual não significa nada",
+      escala_sem_zero:
+        "Escala sem zero verdadeiro: percentual não significa nada",
     },
     title: "Comparador de materiais",
     subtitle:
@@ -995,7 +1045,8 @@ export const ptBR = {
     viewParallel: "Coordenadas paralelas",
     viewHeatmap: "Heatmap",
     columnMaterial: "Material",
-    normalizedScale: "Escala normalizada (0 a 1; 1 = melhor entre os comparados)",
+    normalizedScale:
+      "Escala normalizada (0 a 1; 1 = melhor entre os comparados)",
     neutralScale: "posição relativa, sem direção preferida",
     missing: "ausente",
     incomplete: "dados incompletos",
@@ -1083,7 +1134,8 @@ export const ptBR = {
     empty: "Nenhum processo cadastrado.",
     familiesTitle: "Famílias",
     countProcesses: (n: number) => (n === 1 ? "1 processo" : `${n} processos`),
-    countDirect: (n: number) => (n === 1 ? "1 processo aqui" : `${n} processos aqui`),
+    countDirect: (n: number) =>
+      n === 1 ? "1 processo aqui" : `${n} processos aqui`,
     countBelow: (n: number) => `${n} no total, contando as subfamílias`,
     // Ausência escrita (D-24): pasta vazia é um estado, e não um card em branco.
     emptyFolder: "Nenhum processo cadastrado diretamente nesta família.",
@@ -1095,7 +1147,9 @@ export const ptBR = {
       "Cada valor traz o trilho de proveniência inteiro: o que foi informado, em que unidade, como foi convertido e de onde veio.",
     noAttributes: "Nenhum atributo cadastrado para este processo.",
     materialsServed: (n: number) =>
-      n === 1 ? "Serve 1 material do catálogo" : `Serve ${n} materiais do catálogo`,
+      n === 1
+        ? "Serve 1 material do catálogo"
+        : `Serve ${n} materiais do catálogo`,
     noMaterialsServed: "Nenhum material do catálogo vinculado a este processo.",
     family: "Família",
     notFound: "Processo não encontrado.",
@@ -1108,7 +1162,8 @@ export const ptBR = {
     kindDISCRETO: "Discreto",
     kindEnvelopeHint:
       "Comparado por alcance: a faixa atende um limiar quando o alcança, e não pelo ponto médio.",
-    kindDiscretoHint: "Pertinência a um vocabulário fechado, sem unidade e sem ordem.",
+    kindDiscretoHint:
+      "Pertinência a um vocabulário fechado, sem unidade e sem ordem.",
   },
 
   // P1-4: o registro de família, nos dois universos.
@@ -1120,7 +1175,8 @@ export const ptBR = {
     inThisFamily: "Nesta família",
     subclasses: "Subclasses",
     countMaterials: (n: number) => (n === 1 ? "1 material" : `${n} materiais`),
-    countDirect: (n: number) => (n === 1 ? "1 material aqui" : `${n} materiais aqui`),
+    countDirect: (n: number) =>
+      n === 1 ? "1 material aqui" : `${n} materiais aqui`,
     countBelow: (n: number) => `${n} no total, contando as subclasses`,
     emptyFolder: "Nenhum material cadastrado diretamente nesta classe.",
     emptyFolderWithChildren:
@@ -1157,7 +1213,8 @@ export const ptBR = {
     full:
       "Esta ferramenta destina-se a apoio didático e à triagem preliminar de candidatos. " +
       "Não substitui validação experimental, análise estrutural detalhada nem julgamento de engenharia.",
-    short: "Apoio didático e triagem preliminar — não substitui validação experimental.",
+    short:
+      "Apoio didático e triagem preliminar — não substitui validação experimental.",
   },
 
   indexCard: {
@@ -1209,9 +1266,11 @@ export const ptBR = {
     start: "Começar um estudo",
     browse: "Explorar o catálogo",
     savedTitle: "Retomar um estudo",
-    savedHint: "Estudos salvos ficam disponíveis para reabrir e executar de novo.",
+    savedHint:
+      "Estudos salvos ficam disponíveis para reabrir e executar de novo.",
     savedEmpty: "Nenhum estudo salvo ainda.",
-    savedEmptyHint: "O primeiro sai da tela de seleção, no botão “Salvar estudo”.",
+    savedEmptyHint:
+      "O primeiro sai da tela de seleção, no botão “Salvar estudo”.",
     savedError: "Não foi possível carregar os estudos salvos.",
     resume: "Retomar",
     // Counted nouns, both forms. Lowercasing another label to reuse it breaks
@@ -1231,7 +1290,8 @@ export const ptBR = {
     loginTitle: "Entrar",
     loginSubtitle: "Entre com sua conta Google para usar o MaterialSelect AI.",
     loginButton: "Entrar com Google",
-    loginHint: "Usamos apenas seu nome, e-mail e foto do Google para identificar sua sessão.",
+    loginHint:
+      "Usamos apenas seu nome, e-mail e foto do Google para identificar sua sessão.",
     checkingSession: "Verificando sessão…",
     checkingSubscription: "Verificando assinatura…",
     logout: "Sair",

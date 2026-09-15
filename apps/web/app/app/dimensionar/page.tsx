@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import type { LoadCase, SolveResult } from "@/lib/types";
+import type { LoadCase, SolveResult, SolverObjective } from "@/lib/types";
 import { listLoadCases, solveBrief } from "@/lib/api";
 import { ptBR } from "@/lib/i18n";
 import { formatNumber } from "@/lib/format";
@@ -49,16 +49,26 @@ const t = ptBR.solver;
 function initialInputs(loadCase: LoadCase): Record<string, string> {
   const inputs: Record<string, string> = {};
   for (const variable of loadCase.variables) {
-    const support = loadCase.supports.find((s) => s.variable_key === variable.key);
+    const support = loadCase.supports.find(
+      (s) => s.variable_key === variable.key,
+    );
     inputs[variable.key] = support ? String(support.value) : "";
   }
   return inputs;
 }
 
-function Facet({ label, children }: { label: string; children: React.ReactNode }) {
+function Facet({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="flex flex-col gap-0.5">
-      <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">{label}</span>
+      <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">
+        {label}
+      </span>
       <span className="text-sm text-ink">{children}</span>
     </div>
   );
@@ -72,7 +82,12 @@ function CaseCard({ loadCase }: { loadCase: LoadCase }) {
 
         <div className="grid gap-3 sm:grid-cols-2">
           <Facet label={t.facetFunction}>{loadCase.function_label}</Facet>
-          <Facet label={t.facetObjective}>{loadCase.objective_label}</Facet>
+          {/* Both readings, because the objective is a choice in step 2 now
+              (D-65) and naming only the mass here would contradict it. */}
+          <Facet label={t.facetObjective}>
+            {loadCase.objective_label} {t.facetObjectiveOr}{" "}
+            {loadCase.cost_objective_label.toLocaleLowerCase("pt-BR")}
+          </Facet>
           <Facet label={t.facetConstraint}>{loadCase.constraint_label}</Facet>
           <Facet label={t.facetFree}>{loadCase.free_variable_label}</Facet>
         </div>
@@ -107,6 +122,30 @@ function CaseCard({ loadCase }: { loadCase: LoadCase }) {
           </div>
         </div>
 
+        {/* The cost twin (D-65). Shown beside the mass index rather than behind
+            the objective toggle: the point of the item is that these are two
+            readings of one derivation, and a reader who cannot see both at once
+            has no way to notice that the structural factor never moved. */}
+        <div className="flex flex-col gap-2 rounded-card bg-surface-muted p-3">
+          <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">
+            {t.costIndexTitle}
+          </span>
+          <div className="flex flex-wrap items-baseline gap-2">
+            <Link
+              className="text-sm font-medium text-accent underline underline-offset-2"
+              href={`/app/mapas?indice=${encodeURIComponent(loadCase.cost_index_slug)}`}
+            >
+              {loadCase.cost_index_name ?? loadCase.cost_index_slug}
+            </Link>
+            {loadCase.cost_index_expression ? (
+              <code className="rounded-control bg-surface px-2 py-0.5 text-xs text-ink">
+                {loadCase.cost_index_expression}
+              </code>
+            ) : null}
+          </div>
+          <span className="text-xs text-ink-muted">{t.costIndexHint}</span>
+        </div>
+
         <details className="group">
           <summary className="cursor-pointer text-sm font-medium text-ink">
             {t.derivationTitle}
@@ -128,20 +167,26 @@ function ResultTable({ result }: { result: SolveResult }) {
   if (result.solved.length === 0) {
     return <EmptyState title={t.resultEmpty} />;
   }
+  // A cost answer is not a mass, so the column says so — and the estimate link
+  // is a mass link: passing a cost to /app/custo as `massa` would hand the
+  // estimator a number in the wrong quantity and it would not notice.
+  const isCost = result.objective === "custo";
+  const objectiveColumn = isCost ? t.columnObjectiveCost : t.columnObjective;
   return (
     <TableScroll label={t.resultStep}>
       <Table>
         <TableCaption>
-          {t.structuralFactor}: {formatNumber(result.structural_factor)} · {t.unitNote}
+          {t.structuralFactor}: {formatNumber(result.structural_factor)} ·{" "}
+          {result.objective_note ?? t.unitNote}
         </TableCaption>
         <THead>
           <Tr>
             <Th scope="col">#</Th>
             <Th scope="col">{t.columnMaterial}</Th>
             <Th scope="col">{t.columnIndex}</Th>
-            <Th scope="col">{`${t.columnObjective} (${result.objective_unit})`}</Th>
+            <Th scope="col">{`${objectiveColumn} (${result.objective_unit})`}</Th>
             <Th scope="col">{`${result.case.free_variable_label} (${result.free_unit})`}</Th>
-            <Th scope="col">{ptBR.cost.fromSolver}</Th>
+            {isCost ? null : <Th scope="col">{ptBR.cost.fromSolver}</Th>}
           </Tr>
         </THead>
         <TBody>
@@ -162,20 +207,28 @@ function ResultTable({ result }: { result: SolveResult }) {
                   />
                 </div>
               </Td>
-              <Td className="tabular-nums">{formatNumber(record.index_value)}</Td>
-              <Td className="tabular-nums">{formatNumber(record.objective_value)}</Td>
-              <Td className="tabular-nums">{formatNumber(record.free_value)}</Td>
-              <Td>
-                {/* The mass this row just computed is exactly the number the
-                    cost estimate needs, so the link carries it (B1). Typing it
-                    again would be an invitation to type it wrong. */}
-                <Link
-                  className="text-accent underline underline-offset-2"
-                  href={`/app/custo?material=${record.record_id}&massa=${record.objective_value}`}
-                >
-                  {ptBR.cost.fromSolver}
-                </Link>
+              <Td className="tabular-nums">
+                {formatNumber(record.index_value)}
               </Td>
+              <Td className="tabular-nums">
+                {formatNumber(record.objective_value)}
+              </Td>
+              <Td className="tabular-nums">
+                {formatNumber(record.free_value)}
+              </Td>
+              {isCost ? null : (
+                <Td>
+                  {/* The mass this row just computed is exactly the number the
+                      cost estimate needs, so the link carries it (B1). Typing it
+                      again would be an invitation to type it wrong. */}
+                  <Link
+                    className="text-accent underline underline-offset-2"
+                    href={`/app/custo?material=${record.record_id}&massa=${record.objective_value}`}
+                  >
+                    {ptBR.cost.fromSolver}
+                  </Link>
+                </Td>
+              )}
             </Tr>
           ))}
         </TBody>
@@ -188,6 +241,7 @@ export default function DimensionarPage() {
   const cases = useQuery({ queryKey: ["load-cases"], queryFn: listLoadCases });
   const [caseKey, setCaseKey] = useState<string>("");
   const [inputs, setInputs] = useState<Record<string, string>>({});
+  const [objective, setObjective] = useState<SolverObjective>("massa");
   const [result, setResult] = useState<SolveResult | null>(null);
 
   const selected = useMemo(
@@ -209,6 +263,7 @@ export default function DimensionarPage() {
         inputs: Object.fromEntries(
           Object.entries(inputs).map(([key, value]) => [key, Number(value)]),
         ),
+        objective,
       }),
     onSuccess: setResult,
   });
@@ -217,7 +272,12 @@ export default function DimensionarPage() {
     selected !== null &&
     selected.variables.every((variable) => {
       const raw = inputs[variable.key];
-      return raw !== undefined && raw !== "" && Number.isFinite(Number(raw)) && Number(raw) > 0;
+      return (
+        raw !== undefined &&
+        raw !== "" &&
+        Number.isFinite(Number(raw)) &&
+        Number(raw) > 0
+      );
     });
 
   if (cases.isLoading) return <LoadingState label={t.title} />;
@@ -231,7 +291,9 @@ export default function DimensionarPage() {
         <Select
           label={t.caseLabel}
           value={caseKey}
-          onChange={(event) => chooseCase((event.target as HTMLSelectElement).value)}
+          onChange={(event) =>
+            chooseCase((event.target as HTMLSelectElement).value)
+          }
         >
           {(cases.data ?? []).map((item) => (
             <SelectOption key={item.key} value={item.key}>
@@ -246,22 +308,32 @@ export default function DimensionarPage() {
         <Section title={t.inputsStep} description={t.inputsHint}>
           <div className="grid gap-4 sm:grid-cols-2">
             {selected.variables.map((variable) => {
-              const support = selected.supports.filter((s) => s.variable_key === variable.key);
+              const support = selected.supports.filter(
+                (s) => s.variable_key === variable.key,
+              );
               if (support.length > 0) {
                 return (
-                  <Field key={variable.key} label={t.supportLabel} hint={variable.help_text}>
+                  <Field
+                    key={variable.key}
+                    label={t.supportLabel}
+                    hint={variable.help_text}
+                  >
                     <Select
                       label={t.supportLabel}
                       value={inputs[variable.key] ?? ""}
                       onChange={(event) =>
                         setInputs((current) => ({
                           ...current,
-                          [variable.key]: (event.target as HTMLSelectElement).value,
+                          [variable.key]: (event.target as HTMLSelectElement)
+                            .value,
                         }))
                       }
                     >
                       {support.map((condition) => (
-                        <SelectOption key={condition.key} value={String(condition.value)}>
+                        <SelectOption
+                          key={condition.key}
+                          value={String(condition.value)}
+                        >
                           {condition.note
                             ? `${condition.label} — ${condition.note}`
                             : condition.label}
@@ -289,22 +361,65 @@ export default function DimensionarPage() {
               );
             })}
           </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label={t.objectiveLabel} hint={t.objectiveHint}>
+              <Select
+                label={t.objectiveLabel}
+                value={objective}
+                onChange={(event) =>
+                  setObjective(
+                    (event.target as HTMLSelectElement)
+                      .value as SolverObjective,
+                  )
+                }
+              >
+                <SelectOption value="massa">{t.objectiveMass}</SelectOption>
+                <SelectOption value="custo">
+                  {selected.cost_objective_label}
+                </SelectOption>
+              </Select>
+            </Field>
+          </div>
           <div>
-            <Button onClick={() => solve.mutate()} disabled={!ready || solve.isPending}>
+            <Button
+              onClick={() => solve.mutate()}
+              disabled={!ready || solve.isPending}
+            >
               {solve.isPending ? t.solving : t.solve}
             </Button>
           </div>
-          {solve.isError ? <Alert tone="danger">{String(solve.error)}</Alert> : null}
+          {solve.isError ? (
+            <Alert tone="danger">{String(solve.error)}</Alert>
+          ) : null}
         </Section>
       ) : null}
 
       {result ? (
         <Section title={t.resultStep} description={t.structuralFactorHint}>
+          {/* Which index produced these numbers, on the result and not read off
+              the case: a case carries two, and showing the other one would make
+              the screen disagree with the column under it. */}
+          <p className="text-xs text-ink-muted">
+            {result.objective_label} · {t.indexRan}:{" "}
+            <Link
+              className="text-accent underline underline-offset-2"
+              href={`/app/mapas?indice=${encodeURIComponent(result.index_slug)}`}
+            >
+              {result.index_name ?? result.index_slug}
+            </Link>
+            {result.index_expression ? (
+              <code className="ml-2 rounded-control bg-surface-muted px-2 py-0.5 text-ink">
+                {result.index_expression}
+              </code>
+            ) : null}
+          </p>
           <ResultTable result={result} />
           {result.excluded.length > 0 ? (
             <Card>
               <CardBody className="flex flex-col gap-2">
-                <span className="text-sm font-medium text-ink">{t.excludedTitle}</span>
+                <span className="text-sm font-medium text-ink">
+                  {t.excludedTitle}
+                </span>
                 <span className="text-xs text-ink-muted">{t.excludedHint}</span>
                 <ul className="flex flex-col gap-1 text-sm text-ink">
                   {result.excluded.map((item) => (

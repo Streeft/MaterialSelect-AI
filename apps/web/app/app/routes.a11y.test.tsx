@@ -629,6 +629,10 @@ const loadCases: LoadCase[] = [
     index_name: "Viga leve limitada por rigidez",
     index_expression: "sqrt(modulo_young) / densidade",
     index_goal: "maximize",
+    cost_index_slug: "viga-leve-rigidez-custo",
+    cost_index_name: "Viga barata limitada por rigidez",
+    cost_index_expression: "sqrt(modulo_young) / (densidade * custo_massa)",
+    cost_objective_label: "Minimizar custo de material",
     objective_unit: "kg",
     free_unit: "m**2",
     variables: [
@@ -694,12 +698,18 @@ const costResult: CostResult = {
 const solveResult: SolveResult = {
   case: loadCases[0]!,
   inputs: { comprimento: 0.8, rigidez: 200000, constante_apoio: 48 },
+  objective: "massa",
+  objective_label: "Minimizar massa",
+  index_slug: "viga-leve-rigidez",
+  index_name: "Viga leve limitada por rigidez",
+  index_expression: "sqrt(modulo_young) / densidade",
   structural_factor: 1234.5,
   free_structural_factor: 12.3,
   objective_unit: "kg",
   free_unit: "m**2",
   objective_dimension: "[mass]",
   free_dimension: "[length] ** 2",
+  objective_note: null,
   solved: [
     {
       record_id: 1,
