@@ -341,11 +341,28 @@ reescrito ao lado — é a mesma recusa de duas verdades que o D-60 e o D-63 já
 tinham feito nas camadas deles. O que o percentual **não** mostra: o sistema
 passou a responder em quilos e metros quadrados, com a unidade **derivada** pelo
 Pint e o fator estrutural à vista, o que é a diferença entre ordenar materiais e
-dimensionar uma peça. O próximo alvo é o **P3**, e o primeiro item dele — o
-**Part Cost Estimator** — é o que destrava o objetivo *custo* nos casos de carga.
+dimensionar uma peça.
 
-**Saúde do código:** 1432 testes de backend (Python 3.11 e 3.12, nenhum skip)
-e 308 de frontend, todos verdes. Desde o P0-1 a suíte também roda as migrações de
+**O P3 começou pelo Part Cost Estimator, e ele destravou o objetivo custo**
+([D-65](DECISIONS.md)). São duas escalas da mesma pergunta: quanto custa
+**fazer** esta peça (`POST /api/custo/estimar`, quatro termos à vista porque é
+como cada um anda com o lote que decide algo) e que material a faz **mais
+barata** (`objective` no solver). A segunda metade é literalmente a derivação do
+D-64 lida outra vez — ρ vira ρ·Cm no agrupamento material, o fator estrutural não
+se mexe —, e é por isso que um caso de carga passou a nomear dois índices em vez
+de carregar duas derivações.
+
+A consequência que atravessa tudo: **dinheiro não está em sistema de unidades
+nenhum.** `custo_massa` é adimensional de propósito, então a análise dimensional
+devolve a dimensão da massa nas duas execuções do solver. Ela continua provando a
+álgebra e deixou de nomear a resposta — daí o objetivo, a unidade ("unidade
+monetária não especificada") e a razão disso serem ditos em palavras, na API e na
+tela. Imprimir "R$" seria inventar dado, que é o princípio 1 de outro chapéu. A
+matriz vai a **27 de 32 (~84%)**, com nível médio **3,12**. Sobram da faixa P3 o
+Eco Audit e o Synthesizer.
+
+**Saúde do código:** 1505 testes de backend (Python 3.11 e 3.12, nenhum skip)
+e 321 de frontend, todos verdes. Desde o P0-1 a suíte também roda as migrações de
 verdade, nos dois sentidos, contra um banco temporário que já contém dados —
 `test_migration_selection_stage.py`, `test_migration_process_universe.py`,
 `test_migration_selection_universe.py`, `test_migration_process_attributes.py` e

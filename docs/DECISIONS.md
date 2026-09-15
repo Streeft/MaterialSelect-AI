@@ -3197,3 +3197,97 @@ adjetivo flexionado, então *"uma viga leve e **rígida**"* não nomeava
 propriedade nenhuma; ficou invisível enquanto havia um único índice de viga no
 catálogo e, no instante em que entrou o segundo, o desempate alfabético entregou
 ao leitor um índice de resistência que ele não pediu.
+
+## D-65 — O custo da peça é uma decomposição com quatro termos, e o custo de material é a mesma derivação do D-64 lida outra vez
+
+**Contexto.** O P3 da matriz do §5 de
+[`14-plataforma-selecao.md`](14-plataforma-selecao.md) abre com o *Part Cost
+Estimator*, em **0**. E o [D-64](#d-64) fechou nomeando a omissão que o
+destravaria: custo como objetivo, "que trocaria ρ por ρ·Cm em todo agrupamento
+material e depende do Part Cost Estimator". Os dois são um item só porque
+respondem à mesma pergunta em duas escalas: quanto custa **fazer** esta peça, e
+que material a faz **mais barata**.
+
+**Decisão.**
+
+**1. O estimador devolve os termos, nunca só o total.** O modelo é
+
+    C = m·Cm/(1−f) + C_t/n + Ċ_oh/ṅ + C_c/(ṅ·t_wo·L)
+
+e o que o leitor veio buscar não é o total: é **como cada termo anda com o
+lote**. O termo de material é um piso que lote nenhum atravessa; o ferramental
+cai com 1/n e é o único que cai; os dois termos de tempo não se mexem com n. Um
+total sozinho seria oráculo, e o cruzamento entre dois processos conforme n
+cresce é a resposta de verdade — por isso `CostTerms` carrega os quatro mais
+`batch_sensitive`, e a tela imprime coluna por coluna.
+
+**2. Dinheiro não está em sistema de unidades nenhum, e a ferramenta admite
+isso.** `custo_massa` é catalogado como **adimensional de propósito**: fingir que
+dinheiro é grandeza física o poria num sistema a que não pertence. Toda resposta
+monetária sai em "unidade monetária não especificada" — `MONETARY_UNIT`, escrito
+uma vez em `app/calculations/part_cost.py` e lido por toda superfície que precisa
+nomeá-lo. Imprimir "R$" sobre um número cuja moeda ninguém declarou seria
+inventar dado, que é o princípio 1 de outro chapéu.
+
+**3. Premissa de oficina é entrada com valor visível, não constante escondida.**
+Horizonte de amortização e fator de carga não são fatos de processo nenhum —
+duas fábricas com a mesma prensa amortizam em prazos diferentes e a mantêm
+ocupada frações diferentes do ano. Vão como campo, com padrão visível e
+sobrescrevível, exatamente como o [D-64](#d-64) tratou a constante de apoio. As
+8760 h/ano ficam **separadas** do fator de carga: uma é calendário, o outro é
+escolha da oficina.
+
+**4. O objetivo custo é a mesma derivação, não uma segunda.** Trocar ρ por ρ·Cm
+no agrupamento material faz o caso de carga minimizar o **custo de material da
+peça** em vez da massa. O fator estrutural não muda **em nada** — é geometria e
+carga —, então um caso passa a nomear **dois slugs de índice** (`index_slug` e
+`cost_index_slug`) em vez de carregar duas derivações. Seis índices gêmeos
+entraram no seed, um por índice de massa existente, e a regra do [D-64](#d-64)
+continua valendo palavra por palavra: **o índice é lido do catálogo pelo slug**,
+e quem chama a API nunca o nomeia — nomeia o objetivo, e o caso escolhe
+(`LoadCase.index_slug_for`).
+
+**5. A análise dimensional prova a álgebra e deixou de nomear a resposta.** Esta
+é a consequência que precisa chegar ao leitor, e a razão de o objetivo ser dito
+em palavras. Como `custo_massa` é adimensional, `fator estrutural / índice de
+custo` sai com **a mesma dimensão da massa**. O Pint não tem como distinguir as
+duas, e isso não é defeito: a prova dimensional continua derrubando um expoente
+errado num gêmeo de custo exatamente como derrubaria num de massa. O que ela
+deixou de fazer é dizer o que o número é. Daí `objective`, `objective_unit` em
+palavras e `objective_note`, que carrega a frase em vez de deixar o leitor
+deduzi-la de um "[mass]" embaixo de uma coluna de dinheiro.
+
+**6. Na tela, o gêmeo de custo aparece ao lado do de massa, antes da escolha.**
+São duas leituras de uma derivação, e quem não vê as duas ao mesmo tempo não tem
+como notar que o fator estrutural não mudou. Pela mesma razão a faceta
+"Objetivo" nomeia as duas: o objetivo deixou de ser propriedade do caso e virou
+escolha de quem lê, e afirmar "Minimizar massa" numa tela em que o custo está a
+um seletor de distância seria falso. E o **link para a estimativa de custo some
+numa execução de custo** — ele leva `massa=` na URL, e entregar ali um custo
+daria ao estimador um número de outra grandeza sem que ele tivesse como
+perceber.
+
+**7. Ausência é exclusão nomeada, nos dois lados** (princípio 3). Processo sem
+um atributo econômico que o modelo exige sai em `uncosted` com os slugs e os
+rótulos que lhe faltam — ferramental em branco faria o processo mais
+capital-intensivo parecer o mais barato. Material sem `custo_massa` catalogado
+sai de uma execução de custo pelo mesmo caminho pelo qual material sem módulo
+sai de uma de massa.
+
+**Como se verifica.** Um teste por comportamento com o lote (piso do material,
+queda 1/n do ferramental, imobilidade dos termos de tempo) mais o cruzamento
+entre dois processos conforme n cresce. Para o objetivo custo, três provas
+independentes por caso: o gêmeo tem de referenciar `custo_massa`; avaliado sobre
+os mesmos números, tem de dar exatamente o índice de massa dividido pelo custo do
+quilograma; e a dimensão tem de sair `[mass]`. Ponta a ponta, sobre o catálogo
+semeado, o custo de cada material tem de ser a sua própria massa multiplicada
+pelo seu próprio `custo_massa`, com o **mesmo** fator estrutural nas duas
+execuções. Trocar `sqrt` por `cbrt` num gêmeo derruba quatro provas.
+
+**O que se recusou.** Imprimir símbolo de moeda (inventaria o que o catálogo não
+registra); dobrar o catálogo de casos de carga para acomodar o objetivo custo (a
+derivação é a mesma; o que muda é um slug); deixar o cliente nomear o índice de
+custo (segunda verdade, [D-35](#d-35)); esconder o horizonte de amortização como
+constante; e custo como objetivo em **estudo de processos**, que continua fora —
+um processo não tem `custo_massa`, e a pergunta ali é a do estimador, não a do
+solver.
