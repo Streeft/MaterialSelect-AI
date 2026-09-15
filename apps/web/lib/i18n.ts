@@ -37,6 +37,7 @@ export const ptBR = {
     solver: "Dimensionar",
     cost: "Custo",
     eco: "Eco",
+    synthesis: "Sintetizar",
     dashboard: "Painel",
     imports: "Importar",
     classes: "Classes",
@@ -805,6 +806,58 @@ export const ptBR = {
       "Maior que a massa da peça pelo refugo do processo: a fundição fundiu o que não virou peça, e essa energia foi gasta do mesmo jeito.",
     noTotal:
       "Sem total: uma soma sobre quatro das cinco fases não é um total, é uma parcela que parece um.",
+  },
+
+  synthesis: {
+    title: "Sintetizar material",
+    subtitle:
+      "Um compósito ou uma espuma calculados a partir de materiais do catálogo. O registro é seu, fica declarado como sintetizado, e cada valor carrega a lei que o produziu.",
+    // O que separa valor calculado de valor inventado, dito antes de qualquer
+    // campo: é a frase que justifica a tela inteira existir (princípio 1).
+    principle:
+      "Nada aqui é inventado: cada número sai de uma lei aplicada a valores catalogados, e a lei vem escrita ao lado dele. Onde não existe lei honesta, a propriedade simplesmente não é sintetizada — e o motivo aparece.",
+    kindStep: "1. O tipo de síntese",
+    kindLabel: "Tipo",
+    kindComposite: "Compósito de dois constituintes",
+    kindFoam: "Espuma de um sólido",
+    recipeStep: "2. A receita",
+    parentALabel: "Primeiro constituinte",
+    parentASolidLabel: "Sólido",
+    parentBLabel: "Segundo constituinte",
+    fractionLabel: "Fração volumétrica do primeiro (0 a 1)",
+    fractionHint:
+      "Fração em volume, não em massa. O que é grandeza por unidade de massa — custo, energia incorporada — é convertido para fração mássica usando as duas densidades.",
+    densityLabel: "Densidade relativa (0 a 1)",
+    densityHint:
+      "Densidade da espuma dividida pela do sólido. Em 1 a espuma é o próprio sólido.",
+    identityStep: "3. A identidade do registro",
+    nameLabel: "Nome",
+    nameHint: "É como o registro vai aparecer no seu catálogo.",
+    classLabel: "Classe",
+    classHint:
+      "Exigida e não herdada: a ferramenta não sabe se uma espuma de alumínio é metal ou espuma metálica para quem está catalogando, e tudo que lê por classe precisa que alguém tenha decidido.",
+    descriptionLabel: "Descrição (opcional)",
+    preview: "Ver o que sairia",
+    previewing: "Calculando…",
+    save: "Gravar registro",
+    saving: "Gravando…",
+    previewStep: "4. O que sairia",
+    previewEmpty:
+      "Esta receita não produziu valor nenhum com os dados que os pais têm.",
+    columnProperty: "Propriedade",
+    columnValue: "Valor",
+    columnRule: "Lei",
+    columnQuality: "Qualidade",
+    // A base da lei é impressa junto do valor porque "conservação de massa" e
+    // "ajuste empírico" não são a mesma afirmação sobre o número.
+    skippedTitle: "O que este registro não vai ter",
+    skippedHint:
+      "Duas razões diferentes convivem aqui: o constituinte não tem o dado, ou esta propriedade não tem lei honesta para este tipo de síntese.",
+    savedTitle: "Registro gravado",
+    savedHint:
+      "Ele é seu, fica declarado como sintetizado e já aparece no catálogo.",
+    openRecord: "Abrir a ficha",
+    parentsLabel: "Constituintes",
   },
 
   myRecords: {

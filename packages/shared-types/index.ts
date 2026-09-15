@@ -1606,3 +1606,82 @@ export interface EcoAuditResult {
   carbon_unit_note: string;
   recycling_credit_note: string;
 }
+
+// --- Synthesizer (P3) --------------------------------------------------------
+
+/** Os dois tipos de síntese de v1. */
+export type SynthesisKind = "composito" | "espuma";
+
+/**
+ * Uma lei de mistura ou de escala.
+ *
+ * `basis` é o quanto se pode confiar no número que ela produz: `exato` é
+ * conservação de massa ou definição, `limites` é um par que depende de algo que
+ * o catálogo não registra (a direção), `empirico` é ajuste experimental.
+ */
+export interface SynthesisRule {
+  key: string;
+  label: string;
+  formula: string;
+  basis: "exato" | "limites" | "empirico";
+  basis_label: string;
+}
+
+export interface SynthesisKindInfo {
+  kind: SynthesisKind;
+  label: string;
+  note: string;
+  /** Slug da propriedade → a lei que roda nela. */
+  rules: Record<string, SynthesisRule>;
+  /**
+   * Slug → por que este tipo **não** sintetiza aquela propriedade. Um "não sei"
+   * com motivo é resposta; um silêncio não é.
+   */
+  without_rule: Record<string, string>;
+}
+
+export interface SynthesisRequest {
+  kind: SynthesisKind;
+  name: string;
+  class_id: number;
+  description?: string | null;
+  parent_a_id: number;
+  /** Só num compósito. Mandar numa espuma é recusado, nunca ignorado. */
+  parent_b_id?: number | null;
+  volume_fraction?: number | null;
+  relative_density?: number | null;
+}
+
+export interface SynthesizedValue {
+  slug: string;
+  name: string;
+  canonical_unit: string | null;
+  /** Escalar, ou `null` quando a regra devolveu um par de limites. */
+  value: number | null;
+  value_min: number | null;
+  value_max: number | null;
+  rule: SynthesisRule;
+  /** A pior qualidade entre os valores dos pais que a regra leu. */
+  quality: string;
+}
+
+export interface SynthesisSkipped {
+  slug: string;
+  name: string;
+  reason: string;
+}
+
+export interface SynthesisPreview {
+  kind: SynthesisKind;
+  kind_label: string;
+  kind_note: string;
+  parents: string[];
+  parameters: Record<string, number>;
+  values: SynthesizedValue[];
+  skipped: SynthesisSkipped[];
+}
+
+export interface SynthesisResult extends SynthesisPreview {
+  material_id: number;
+  material_name: string;
+}

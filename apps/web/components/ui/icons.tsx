@@ -237,6 +237,17 @@ export const IconRuler = (p: IconProps) => (
 );
 
 /**
+ * Sintetizar — two circles overlapping: a mixture of two things that stays
+ * legible as two. Drawn like the rest of the set, at the same stroke weight.
+ */
+export const IconBlend = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="9" cy="12" r="6.5" />
+    <circle cx="15" cy="12" r="6.5" />
+  </Svg>
+);
+
+/**
  * Auditoria ambiental — a leaf with its midrib.
  *
  * Drawn rather than borrowed for the same reason as every other icon here: the

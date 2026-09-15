@@ -54,6 +54,10 @@ import type {
   SimilarRequest,
   SolveRequest,
   SolveResult,
+  SynthesisKindInfo,
+  SynthesisPreview,
+  SynthesisRequest,
+  SynthesisResult,
   StudyDetail,
   StudyIn,
   StudySummary,
@@ -101,12 +105,19 @@ async function errorMessage(res: Response, fallback: string): Promise<string> {
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     ...init,
-    headers: { Accept: "application/json", "Content-Type": "application/json", ...init?.headers },
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      ...init?.headers,
+    },
     credentials: "include",
     cache: "no-store",
   });
   if (!res.ok) {
-    throw new ApiError(await errorMessage(res, `Falha na requisição ${path}`), res.status);
+    throw new ApiError(
+      await errorMessage(res, `Falha na requisição ${path}`),
+      res.status,
+    );
   }
   if (res.status === 204) return undefined as T;
   return (await res.json()) as T;
@@ -130,7 +141,10 @@ export function googleLoginUrl(): string {
 // --- Materials ------------------------------------------------------------
 
 export function listMaterials(search?: string): Promise<MaterialListItem[]> {
-  const query = search && search.trim() ? `?search=${encodeURIComponent(search.trim())}` : "";
+  const query =
+    search && search.trim()
+      ? `?search=${encodeURIComponent(search.trim())}`
+      : "";
   return request<MaterialListItem[]>(`/api/materials${query}`);
 }
 
@@ -144,14 +158,19 @@ export function getChart(x: string, y: string): Promise<ChartData> {
   );
 }
 
-export function createMaterial(payload: MaterialCreate): Promise<MaterialDetail> {
+export function createMaterial(
+  payload: MaterialCreate,
+): Promise<MaterialDetail> {
   return request<MaterialDetail>(`/api/materials`, {
     method: "POST",
     body: JSON.stringify(payload),
   });
 }
 
-export function updateMaterial(id: number, payload: MaterialUpdate): Promise<MaterialDetail> {
+export function updateMaterial(
+  id: number,
+  payload: MaterialUpdate,
+): Promise<MaterialDetail> {
   return request<MaterialDetail>(`/api/materials/${id}`, {
     method: "PATCH",
     body: JSON.stringify(payload),
@@ -185,7 +204,10 @@ export function createClass(payload: MaterialClassIn): Promise<MaterialClass> {
   });
 }
 
-export function updateClass(id: number, payload: MaterialClassIn): Promise<MaterialClass> {
+export function updateClass(
+  id: number,
+  payload: MaterialClassIn,
+): Promise<MaterialClass> {
   return request<MaterialClass>(`/api/classes/${id}`, {
     method: "PUT",
     body: JSON.stringify(payload),
@@ -225,12 +247,16 @@ export function getProcess(slug: string): Promise<ProcessDetail> {
 
 /** One process family as a record: prose, breadcrumb, subfolders, processes (P1-4). */
 export function getProcessClass(slug: string): Promise<ProcessClassDetail> {
-  return request<ProcessClassDetail>(`/api/processes/classes/${encodeURIComponent(slug)}`);
+  return request<ProcessClassDetail>(
+    `/api/processes/classes/${encodeURIComponent(slug)}`,
+  );
 }
 
 /** One material family as a record: prose, breadcrumb, subfolders (P1-4). */
 export function getClass(slug: string): Promise<MaterialClassDetail> {
-  return request<MaterialClassDetail>(`/api/classes/${encodeURIComponent(slug)}`);
+  return request<MaterialClassDetail>(
+    `/api/classes/${encodeURIComponent(slug)}`,
+  );
 }
 
 // --- Properties -----------------------------------------------------------
@@ -239,7 +265,9 @@ export function listProperties(): Promise<PropertyDefinition[]> {
   return request<PropertyDefinition[]>(`/api/properties`);
 }
 
-export function createProperty(payload: PropertyDefinitionIn): Promise<PropertyDefinition> {
+export function createProperty(
+  payload: PropertyDefinitionIn,
+): Promise<PropertyDefinition> {
   return request<PropertyDefinition>(`/api/properties`, {
     method: "POST",
     body: JSON.stringify(payload),
@@ -274,12 +302,18 @@ export async function uploadImportFile(file: File): Promise<UploadResult> {
     cache: "no-store",
   });
   if (!res.ok) {
-    throw new ApiError(await errorMessage(res, "Falha no envio do arquivo"), res.status);
+    throw new ApiError(
+      await errorMessage(res, "Falha no envio do arquivo"),
+      res.status,
+    );
   }
   return (await res.json()) as UploadResult;
 }
 
-export function previewImportSheet(jobId: number, sheetName: string): Promise<UploadResult> {
+export function previewImportSheet(
+  jobId: number,
+  sheetName: string,
+): Promise<UploadResult> {
   return request<UploadResult>(`/api/imports/${jobId}/preview`, {
     method: "POST",
     body: JSON.stringify({ sheet_name: sheetName }),
@@ -297,15 +331,21 @@ export function validateImport(
 }
 
 export function commitImport(jobId: number): Promise<CommitResult> {
-  return request<CommitResult>(`/api/imports/${jobId}/commit`, { method: "POST" });
+  return request<CommitResult>(`/api/imports/${jobId}/commit`, {
+    method: "POST",
+  });
 }
 
 export function cancelImport(jobId: number): Promise<ImportJobOut> {
-  return request<ImportJobOut>(`/api/imports/${jobId}/cancel`, { method: "POST" });
+  return request<ImportJobOut>(`/api/imports/${jobId}/cancel`, {
+    method: "POST",
+  });
 }
 
 export function rollbackImport(jobId: number): Promise<ImportJobOut> {
-  return request<ImportJobOut>(`/api/imports/${jobId}/rollback`, { method: "POST" });
+  return request<ImportJobOut>(`/api/imports/${jobId}/rollback`, {
+    method: "POST",
+  });
 }
 
 export function listImports(): Promise<ImportJobOut[]> {
@@ -335,14 +375,19 @@ export function runSelection(payload: RunRequest): Promise<RunResult> {
   });
 }
 
-export function deriveAhpWeights(payload: AhpWeightsIn): Promise<AhpWeightsOut> {
+export function deriveAhpWeights(
+  payload: AhpWeightsIn,
+): Promise<AhpWeightsOut> {
   return request<AhpWeightsOut>(`/api/selection/ahp-weights`, {
     method: "POST",
     body: JSON.stringify(payload),
   });
 }
 
-export function evaluateIndex(expression: string, goal: "maximize" | "minimize"): Promise<IndexResult> {
+export function evaluateIndex(
+  expression: string,
+  goal: "maximize" | "minimize",
+): Promise<IndexResult> {
   return request<IndexResult>(`/api/selection/index`, {
     method: "POST",
     body: JSON.stringify({ expression, goal }),
@@ -373,7 +418,9 @@ export function deleteStudy(id: number): Promise<void> {
 }
 
 export function runStudy(id: number): Promise<RunResult> {
-  return request<RunResult>(`/api/selection/studies/${id}/run`, { method: "POST" });
+  return request<RunResult>(`/api/selection/studies/${id}/run`, {
+    method: "POST",
+  });
 }
 
 // --- Saved charts -----------------------------------------------------------
@@ -399,7 +446,9 @@ export function deleteSavedChart(id: number): Promise<void> {
 
 // --- Visualisation ----------------------------------------------------------
 
-export function getPropertyMap(payload: PropertyMapRequest): Promise<PropertyMap> {
+export function getPropertyMap(
+  payload: PropertyMapRequest,
+): Promise<PropertyMap> {
   return request<PropertyMap>(`/api/charts/property-map`, {
     method: "POST",
     body: JSON.stringify(payload),
@@ -419,7 +468,9 @@ export function getDashboardOverview(): Promise<DashboardOverview> {
   return request<DashboardOverview>(`/api/dashboard/overview`);
 }
 
-export function getDashboardDistribution(propertySlug: string): Promise<PropertyDistribution> {
+export function getDashboardDistribution(
+  propertySlug: string,
+): Promise<PropertyDistribution> {
   return request<PropertyDistribution>(
     `/api/dashboard/distribution/${encodeURIComponent(propertySlug)}`,
   );
@@ -490,7 +541,9 @@ export function studyExportUrl(studyId: number, format: ExportFormat): string {
  */
 export function studyLaudoUrl(studyId: number, responsible?: string): string {
   const trimmed = responsible?.trim();
-  const query = trimmed ? `?${new URLSearchParams({ responsavel: trimmed })}` : "";
+  const query = trimmed
+    ? `?${new URLSearchParams({ responsavel: trimmed })}`
+    : "";
   return `${API_URL}/api/exports/estudos/${studyId}/laudo.html${query}`;
 }
 
@@ -511,16 +564,28 @@ export function getMyRecords(): Promise<MyRecords> {
  * lit star means what the first one meant. Returns the whole space, so the
  * caller never has to re-fetch to stay consistent with it.
  */
-export function addFavorite(universe: Universe, recordId: number): Promise<MyRecords> {
-  return request<MyRecords>(`/api/my-records/favorites/${universe}/${recordId}`, {
-    method: "PUT",
-  });
+export function addFavorite(
+  universe: Universe,
+  recordId: number,
+): Promise<MyRecords> {
+  return request<MyRecords>(
+    `/api/my-records/favorites/${universe}/${recordId}`,
+    {
+      method: "PUT",
+    },
+  );
 }
 
-export function removeFavorite(universe: Universe, recordId: number): Promise<MyRecords> {
-  return request<MyRecords>(`/api/my-records/favorites/${universe}/${recordId}`, {
-    method: "DELETE",
-  });
+export function removeFavorite(
+  universe: Universe,
+  recordId: number,
+): Promise<MyRecords> {
+  return request<MyRecords>(
+    `/api/my-records/favorites/${universe}/${recordId}`,
+    {
+      method: "DELETE",
+    },
+  );
 }
 
 /**
@@ -530,8 +595,13 @@ export function removeFavorite(universe: Universe, recordId: number): Promise<My
  * a read that writes is un-cacheable and non-idempotent, and an export
  * re-reading a record would quietly reorder the list.
  */
-export function touchRecent(universe: Universe, recordId: number): Promise<void> {
-  return request<void>(`/api/my-records/recents/${universe}/${recordId}`, { method: "POST" });
+export function touchRecent(
+  universe: Universe,
+  recordId: number,
+): Promise<void> {
+  return request<void>(`/api/my-records/recents/${universe}/${recordId}`, {
+    method: "POST",
+  });
 }
 
 /**
@@ -541,7 +611,10 @@ export function touchRecent(universe: Universe, recordId: number): Promise<void>
  * respects" is a different question from "similar in these two", and a list of
  * slugs in a query string would make the two share a cache entry.
  */
-export function findSimilar(materialId: number, body: SimilarRequest): Promise<Similar> {
+export function findSimilar(
+  materialId: number,
+  body: SimilarRequest,
+): Promise<Similar> {
   return request<Similar>(`/api/materials/${materialId}/similares`, {
     method: "POST",
     body: JSON.stringify(body),
@@ -606,6 +679,31 @@ export function listTransportModes(): Promise<TransportMode[]> {
  */
 export function runEcoAudit(body: EcoAuditRequest): Promise<EcoAuditResult> {
   return request<EcoAuditResult>("/api/eco/auditar", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+// --- Synthesizer (P3) -------------------------------------------------------
+
+export function listSynthesisKinds(): Promise<SynthesisKindInfo[]> {
+  return request<SynthesisKindInfo[]>("/api/sintetizar/tipos");
+}
+
+/** O que a receita produziria, sem gravar nada. */
+export function previewSynthesis(
+  body: SynthesisRequest,
+): Promise<SynthesisPreview> {
+  return request<SynthesisPreview>("/api/sintetizar/previa", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export function createSynthesis(
+  body: SynthesisRequest,
+): Promise<SynthesisResult> {
+  return request<SynthesisResult>("/api/sintetizar", {
     method: "POST",
     body: JSON.stringify(body),
   });
