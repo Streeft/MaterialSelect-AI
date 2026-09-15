@@ -272,6 +272,20 @@ PERFORMANCE_INDICES = [
         },
     },
     {
+        "name": "Viga leve limitada por resistência",
+        "slug": "viga-leve-resistencia",
+        "expression": "limite_escoamento ** (2 / 3) / densidade",
+        "goal": "maximize",
+        "description": "Índice σy^(2/3)/ρ para vigas leves que não podem escoar.",
+        "assumptions": {
+            "funcao": "Viga em flexão",
+            "geometria": "Seção livre, comprimento fixo",
+            "objetivo": "Minimizar massa",
+            "restricao": "Momento fletor especificado",
+            "referencia": "Ashby, Material Selection in Mechanical Design",
+        },
+    },
+    {
         "name": "Placa leve limitada por rigidez",
         "slug": "placa-leve-rigidez",
         "expression": "cbrt(modulo_young) / densidade",

@@ -28,6 +28,7 @@ import re
 from functools import lru_cache
 
 from pint.errors import DimensionalityError, OffsetUnitCalculusError
+from pint.util import UnitsContainer
 
 from app.calculations.units import ureg
 
@@ -247,4 +248,29 @@ def result_dimension(expression: str, canonical_units: dict[str, str]) -> str:
     dimensionality = getattr(result, "dimensionality", None)
     if dimensionality is None or str(dimensionality) == "dimensionless":
         return "dimensionless"
-    return str(dimensionality)
+    return str(_without_numerical_residue(dimensionality))
+
+
+#: Below this, an exponent is binary-arithmetic residue and not a dimension.
+#: An expression with a fractional power — ``σy ** (2 / 3)``, the bending-strength
+#: index — cannot cancel exactly against another such power, because ``2 / 3`` is
+#: not a binary fraction. Combining that index with the load case that yields it
+#: leaves ``[mass] / [length] ** 2.22e-16`` where the physics says ``[mass]``, and
+#: that string is displayed to a reader. No physical dimension has an exponent
+#: anywhere near this size, so dropping these terms cannot hide a real one: an
+#: algebra error shows up as an exponent of order one.
+_DIMENSION_EPSILON = 1e-9
+
+
+def _without_numerical_residue(dimensionality):
+    """Drop dimension terms whose exponent is floating-point noise."""
+    cleaned = {
+        name: exponent
+        for name, exponent in dict(dimensionality).items()
+        if abs(exponent) > _DIMENSION_EPSILON
+    }
+    if len(cleaned) == len(dict(dimensionality)):
+        return dimensionality
+    if not cleaned:
+        return "dimensionless"
+    return UnitsContainer(cleaned)
