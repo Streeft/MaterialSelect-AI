@@ -11,6 +11,8 @@ import type {
   CommitResult,
   Comparison,
   ComparisonRequest,
+  CostRequest,
+  CostResult,
   CurrentUser,
   DashboardOverview,
   Explanation,
@@ -568,6 +570,21 @@ export function getLoadCase(key: string): Promise<LoadCase> {
  */
 export function solveBrief(body: SolveRequest): Promise<SolveResult> {
   return request<SolveResult>("/api/solver/resolver", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+// --- Part Cost Estimator (P3) -----------------------------------------------
+
+/**
+ * Price one part across every process that can make it.
+ *
+ * A POST like `solveBrief`: the brief is a body of design and shop numbers, and
+ * a query string would make two different questions share a cache entry.
+ */
+export function estimatePartCost(body: CostRequest): Promise<CostResult> {
+  return request<CostResult>("/api/custo/estimar", {
     method: "POST",
     body: JSON.stringify(body),
   });

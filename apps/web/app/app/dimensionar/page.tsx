@@ -141,6 +141,7 @@ function ResultTable({ result }: { result: SolveResult }) {
             <Th scope="col">{t.columnIndex}</Th>
             <Th scope="col">{`${t.columnObjective} (${result.objective_unit})`}</Th>
             <Th scope="col">{`${result.case.free_variable_label} (${result.free_unit})`}</Th>
+            <Th scope="col">{ptBR.cost.fromSolver}</Th>
           </Tr>
         </THead>
         <TBody>
@@ -164,6 +165,17 @@ function ResultTable({ result }: { result: SolveResult }) {
               <Td className="tabular-nums">{formatNumber(record.index_value)}</Td>
               <Td className="tabular-nums">{formatNumber(record.objective_value)}</Td>
               <Td className="tabular-nums">{formatNumber(record.free_value)}</Td>
+              <Td>
+                {/* The mass this row just computed is exactly the number the
+                    cost estimate needs, so the link carries it (B1). Typing it
+                    again would be an invitation to type it wrong. */}
+                <Link
+                  className="text-accent underline underline-offset-2"
+                  href={`/app/custo?material=${record.record_id}&massa=${record.objective_value}`}
+                >
+                  {ptBR.cost.fromSolver}
+                </Link>
+              </Td>
             </Tr>
           ))}
         </TBody>

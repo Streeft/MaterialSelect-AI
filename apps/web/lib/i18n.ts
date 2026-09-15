@@ -34,6 +34,7 @@ export const ptBR = {
     maps: "Mapas",
     compare: "Comparar",
     solver: "Dimensionar",
+    cost: "Custo",
     dashboard: "Painel",
     imports: "Importar",
     classes: "Classes",
@@ -663,6 +664,41 @@ export const ptBR = {
     excludedHint:
       "Sem valor para alguma propriedade que o caso exige. Não foram dimensionados por estimativa — ausência não vira zero.",
     unitNote: "A unidade de cada resposta é derivada das unidades canônicas, não declarada à mão.",
+  },
+
+  cost: {
+    title: "Custo da peça",
+    subtitle:
+      "Quanto custaria fazer esta peça em cada processo que a produz — e quanto disso o lote ainda pode tirar.",
+    briefStep: "1. A peça e o lote",
+    materialLabel: "Material",
+    massLabel: "Massa da peça (kg)",
+    massHint: "A massa acabada. O dimensionamento calcula esta massa para você.",
+    batchLabel: "Peças no lote",
+    batchHint: "É o lote que dilui o ferramental — e só ele.",
+    assumptionsStep: "2. As premissas da oficina",
+    assumptionsHint:
+      "Não são fatos do processo: duas fábricas com a mesma prensa amortizam em horizontes diferentes e a mantêm ocupada frações diferentes do ano.",
+    writeOffLabel: "Amortização (anos)",
+    loadFactorLabel: "Fator de carga (0 a 1)",
+    loadFactorHint: "Fração do tempo disponível em que o equipamento roda de fato.",
+    estimate: "Estimar",
+    estimating: "Estimando…",
+    resultStep: "3. O custo, termo a termo",
+    resultEmpty: "Nenhum processo compatível pôde ser precificado com estes dados.",
+    columnProcess: "Processo",
+    columnMaterial: "Material",
+    columnTooling: "Ferramental",
+    columnOverhead: "Operação",
+    columnCapital: "Capital",
+    columnTotal: "Total",
+    // O leitor precisa saber que a soma é conferível e o que cada parcela faz.
+    termsHint:
+      "Material não se move com o lote — é o piso. Ferramental cai com 1/n. Operação e capital dependem da velocidade, não do lote.",
+    uncostedTitle: "Sem estimativa",
+    uncostedHint:
+      "Faltou dado econômico. Não foram precificados por estimativa — ausência não vira zero, e um ferramental em branco faria o processo parecer o mais barato da lista.",
+    fromSolver: "Estimar custo",
   },
 
 

@@ -14,6 +14,7 @@ import type {
   AIStatus,
   ChartData,
   Comparison,
+  CostResult,
   DashboardOverview,
   MaterialClass,
   MaterialClassDetail,
@@ -652,6 +653,44 @@ const loadCases: LoadCase[] = [
   },
 ];
 
+const costResult: CostResult = {
+  material_id: 1,
+  material_name: "Aço 1020",
+  part_mass: 2,
+  batch_size: 1000,
+  write_off_years: 5,
+  load_factor: 0.5,
+  material_cost_per_mass: 8,
+  monetary_unit_note: "Os valores estão em unidade monetária não especificada.",
+  costed: [
+    {
+      process_id: 1,
+      process_slug: "fundicao-areia",
+      process_name: "Fundição em areia",
+      class_name: "Conformação",
+      rank: 1,
+      terms: {
+        material: 20,
+        tooling: 12,
+        overhead: 7.08,
+        capital: 0.95,
+        total: 40.03,
+        batch_sensitive: 12,
+      },
+    },
+  ],
+  uncosted: [
+    {
+      process_id: 2,
+      process_slug: "retificacao",
+      process_name: "Retificação",
+      missing_slugs: ["custo-ferramental"],
+      missing_labels: ["Custo de ferramental dedicado"],
+      reason: "Sem dado econômico: Custo de ferramental dedicado",
+    },
+  ],
+};
+
 const solveResult: SolveResult = {
   case: loadCases[0]!,
   inputs: { comprimento: 0.8, rigidez: 200000, constante_apoio: 48 },
@@ -706,6 +745,7 @@ vi.mock("@/lib/api", async (importOriginal) => ({
   listProperties: () => Promise.resolve(properties),
   listPerformanceIndices: () => Promise.resolve(indices),
   listLoadCases: () => Promise.resolve(loadCases),
+  estimatePartCost: () => Promise.resolve(costResult),
   solveBrief: () => Promise.resolve(solveResult),
   getPropertyMap: () => Promise.resolve(propertyMap),
   getComparison: () => Promise.resolve(comparison),
@@ -775,6 +815,7 @@ const { default: ProcessFamilyPage } = await import("./processos/familia/[slug]/
 const { default: MaterialFamilyPage } = await import("./catalogo/[slug]/page");
 const { default: MyRecordsPage } = await import("./meus-registros/page");
 const { default: SolverPage } = await import("./dimensionar/page");
+const { default: CostPage } = await import("./custo/page");
 
 function makeClient() {
   return new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -921,6 +962,12 @@ describe("acessibilidade das telas principais", () => {
     );
     await screen.findByRole("heading", { name: ptBR.solver.inputsStep });
     await expectClean(container);
+  });
+
+  // P3: o formulário já monta sem interação (o material vem do catálogo), e é
+  // com ele na tela que a auditoria vale.
+  it("custo da peça", async () => {
+    await auditRoute(<CostPage />, ptBR.cost.briefStep);
   });
 
   // Landing is the one route in this file that isn't under `/app`: no session,
