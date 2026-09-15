@@ -66,19 +66,30 @@ ECONOMICS = {
     "fracao-refugo",
 }
 
+#: What the Eco Audit asks a process for (P3, D-66). A third group for the same
+#: reason the second one exists: "what does conforming a kilogram cost the
+#: planet" is not the question either of the others asks. ``fracao-refugo``
+#: stays in ECONOMICS and is read by both — there it decides what the foundry
+#: bills, here what it had to smelt — so the groups are named by the question
+#: that introduced each slug, not by who reads it.
+ENVIRONMENT = {
+    "energia-processo",
+    "co2-processo",
+}
+
 
 def test_the_five_attributes_of_exercise_eleven_are_seeded(db_session) -> None:
     """The manual's step 2 names five; an open implementation of it seeds five.
 
-    The equality is against the **union** of the two named groups and not a bare
+    The equality is against the **union** of the named groups and not a bare
     superset check: a stray attribute nobody declared still fails here, which is
-    what this test was for before the economics arrived.
+    what this test was for before the economics and the environment arrived.
     """
     attributes = db_session.execute(select(ProcessAttributeDefinition)).scalars().all()
     by_slug = {a.slug: a for a in attributes}
 
     assert EXERCISE_ELEVEN <= set(by_slug)
-    assert set(by_slug) == EXERCISE_ELEVEN | ECONOMICS
+    assert set(by_slug) == EXERCISE_ELEVEN | ECONOMICS | ENVIRONMENT
     assert by_slug["faixa-massa"].kind is ProcessAttributeKind.ENVELOPE
     assert by_slug["espessura-secao"].kind is ProcessAttributeKind.ENVELOPE
     assert by_slug["lote-economico"].kind is ProcessAttributeKind.ESCALAR
