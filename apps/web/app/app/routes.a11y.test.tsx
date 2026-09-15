@@ -31,6 +31,8 @@ import type {
   PropertyDistribution,
   PropertyMap,
   SolveResult,
+  SynthesisKindInfo,
+  SynthesisPreview,
   TransportMode,
   StudySummary,
 } from "@/lib/types";
@@ -729,6 +731,67 @@ const loadCases: LoadCase[] = [
   },
 ];
 
+// P3: o Synthesizer. A prévia traz uma propriedade **sem** lei de propósito —
+// a ausência com motivo escrito é metade do que esta tela mostra, e auditar só
+// os valores deixaria essa metade sem auditoria.
+const synthesisKinds: SynthesisKindInfo[] = [
+  {
+    kind: "composito",
+    label: "Compósito de dois constituintes",
+    note: "O módulo sai como par de limites porque depende da direção.",
+    rules: {
+      densidade: {
+        key: "volume-linear",
+        label: "Regra das misturas por volume",
+        formula: "x = f·xA + (1 − f)·xB",
+        basis: "exato",
+        basis_label: "Exata",
+      },
+    },
+    without_rule: { limite_escoamento: "Controlada pela interface." },
+  },
+  {
+    kind: "espuma",
+    label: "Espuma de um sólido",
+    note: "As escalas de Gibson–Ashby são empíricas.",
+    rules: {},
+    without_rule: {},
+  },
+];
+
+const synthesisPreview: SynthesisPreview = {
+  kind: "composito",
+  kind_label: "Compósito de dois constituintes",
+  kind_note: "O módulo sai como par de limites porque depende da direção.",
+  parents: ["Aço 1020", "Alumínio 6061"],
+  parameters: { fracao_volumetrica: 0.6 },
+  values: [
+    {
+      slug: "densidade",
+      name: "Densidade",
+      canonical_unit: "kg/m**3",
+      value: 1560,
+      value_min: null,
+      value_max: null,
+      rule: {
+        key: "volume-linear",
+        label: "Regra das misturas por volume",
+        formula: "x = f·xA + (1 − f)·xB",
+        basis: "exato",
+        basis_label: "Exata",
+      },
+      quality: "ESTIMADO",
+    },
+  ],
+  skipped: [
+    {
+      slug: "limite_escoamento",
+      name: "Limite de escoamento",
+      reason: "Resistência de compósito é controlada pela interface.",
+    },
+  ],
+};
+
 // P3: o Eco Audit. Uma fase sem carbono e um pódio recusado entram de propósito
 // — é o estado que a tela desenha com rótulo escrito, e auditar só o caminho
 // feliz deixaria essa metade sem auditoria.
@@ -933,6 +996,14 @@ vi.mock("@/lib/api", async (importOriginal) => ({
   listLoadCases: () => Promise.resolve(loadCases),
   estimatePartCost: () => Promise.resolve(costResult),
   listTransportModes: () => Promise.resolve(transportModes),
+  listSynthesisKinds: () => Promise.resolve(synthesisKinds),
+  previewSynthesis: () => Promise.resolve(synthesisPreview),
+  createSynthesis: () =>
+    Promise.resolve({
+      ...synthesisPreview,
+      material_id: 9,
+      material_name: "Compósito",
+    }),
   runEcoAudit: () => Promise.resolve(ecoResult),
   solveBrief: () => Promise.resolve(solveResult),
   getPropertyMap: () => Promise.resolve(propertyMap),
@@ -1006,6 +1077,7 @@ const { default: MyRecordsPage } = await import("./meus-registros/page");
 const { default: SolverPage } = await import("./dimensionar/page");
 const { default: CostPage } = await import("./custo/page");
 const { default: EcoPage } = await import("./eco/page");
+const { default: SynthesisPage } = await import("./sintetizar/page");
 
 function makeClient() {
   return new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -1167,6 +1239,12 @@ describe("acessibilidade das telas principais", () => {
   // substitui a célula vazia entra na varredura.
   it("auditoria ambiental", async () => {
     await auditRoute(<EcoPage />, ptBR.eco.briefStep);
+  });
+
+  // P3: a tela monta com o primeiro tipo escolhido e o aviso do princípio 1 na
+  // frente; é com ela assim que a auditoria vale.
+  it("sintetizar material", async () => {
+    await auditRoute(<SynthesisPage />, ptBR.synthesis.kindStep);
   });
 
   // Landing is the one route in this file that isn't under `/app`: no session,

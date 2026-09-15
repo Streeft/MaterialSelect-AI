@@ -17,6 +17,7 @@ import { ptBR } from "@/lib/i18n";
 import { Badge, IconButton, ThemeToggle } from "@/components/ui";
 import { useFocusTrap } from "@/components/ui/focusTrap";
 import {
+  IconBlend,
   IconBook,
   IconClose,
   IconCompare,
@@ -89,6 +90,10 @@ const GROUPS: NavGroup[] = [
       // P1-4: o segundo universo passa a ter porta de entrada. Sem isto ele só
       // era alcançável de dentro de um estágio ou da ficha de um material.
       { href: "/app/processos", label: t.processes, icon: IconLayers },
+      // P3: sintetizar cria um registro, e um registro próprio — por isso
+      // fica em "Dados", ao lado de onde ele vai aparecer, e não em
+      // "Estudar", que é onde se decide com registros que já existem.
+      { href: "/app/sintetizar", label: t.synthesis, icon: IconBlend },
       { href: "/app/meus-registros", label: t.myRecords, icon: IconStar },
       { href: "/app/painel", label: t.dashboard, icon: IconGauge },
       { href: "/app/importar", label: t.imports, icon: IconUpload },
