@@ -85,7 +85,13 @@ _UNITS: dict[str, str] = {
 # user is still found — this table only sharpens the common cases.
 _PROPERTY_SYNONYMS: dict[str, tuple[str, ...]] = {
     "densidade": ("massa especifica", "peso especifico", "leve", "leveza", "densa"),
-    "modulo_young": ("rigidez", "rigido", "modulo elastico", "elasticidade"),
+    # "rigid" and not "rigidez"/"rigido": tokens match as substrings, and the
+    # adjective a brief actually uses is inflected — "uma viga leve e rígida".
+    # With only the noun listed, that sentence named no stiffness property at
+    # all, which stayed invisible while the stiffness index was the only beam
+    # index in the catalogue and started ranking below a strength index the
+    # moment a second one existed. The objective tagger already used this prefix.
+    "modulo_young": ("rigid", "modulo elastico", "elasticidade"),
     "limite_escoamento": ("escoamento", "escoar", "limite elastico"),
     "resistencia_tracao": ("resistencia", "resistente", "tracao", "ruptura"),
     "dureza": ("duro", "vickers", "abrasao", "desgaste"),
