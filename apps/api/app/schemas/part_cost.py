@@ -4,11 +4,13 @@ from __future__ import annotations
 
 from pydantic import BaseModel, Field
 
+from app.calculations.part_cost import MONETARY_UNIT
+
 #: What the answer is denominated in. Money is not a physical quantity, and this
 #: catalogue never recorded a currency — so every surface says this instead of
 #: printing a symbol nobody declared. See ``app.calculations.part_cost``.
 MONETARY_UNIT_NOTE = (
-    "Os valores estão em unidade monetária não especificada: o catálogo registra "
+    f"Os valores estão em {MONETARY_UNIT}: o catálogo registra "
     "custo por massa sem declarar moeda, e imprimir um símbolo aqui seria inventar "
     "o que ninguém informou."
 )

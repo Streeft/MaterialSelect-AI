@@ -299,6 +299,100 @@ PERFORMANCE_INDICES = [
             "referencia": "Ashby, Material Selection in Mechanical Design",
         },
     },
+    # --- cost twins (P3, D-65) --------------------------------------------
+    #
+    # Every index above minimises **mass**. Swap ρ for ρ·Cm in the material
+    # grouping and the same derivation minimises the **material cost of the
+    # part** instead — the structural factor does not change at all, which is
+    # why the load cases can offer both objectives without a second derivation.
+    #
+    # `custo_massa` is dimensionless (money is not a physical quantity), so a
+    # cost index has the *same dimension* as its mass twin. The tool therefore
+    # cannot tell them apart dimensionally and says so in words instead.
+    {
+        "name": "Rigidez por custo",
+        "slug": "rigidez-especifica-custo",
+        "expression": "modulo_young / (densidade * custo_massa)",
+        "goal": "maximize",
+        "description": "Módulo de Young por unidade de custo (E/ρCm).",
+        "assumptions": {
+            "funcao": "Componente sob rigidez",
+            "geometria": "Livre",
+            "objetivo": "Minimizar custo de material",
+            "restricao": "Rigidez especificada",
+            "referencia": "Ashby, Material Selection in Mechanical Design",
+        },
+    },
+    {
+        "name": "Resistência por custo",
+        "slug": "resistencia-especifica-custo",
+        "expression": "resistencia_tracao / (densidade * custo_massa)",
+        "goal": "maximize",
+        "description": "Resistência à tração por unidade de custo (σu/ρCm).",
+        "assumptions": {
+            "funcao": "Tirante sob tração",
+            "geometria": "Área livre",
+            "objetivo": "Minimizar custo de material",
+            "restricao": "Resistência especificada",
+            "referencia": "Ashby, Material Selection in Mechanical Design",
+        },
+    },
+    {
+        "name": "Escoamento por custo",
+        "slug": "componente-leve-escoamento-custo",
+        "expression": "limite_escoamento / (densidade * custo_massa)",
+        "goal": "maximize",
+        "description": "Limite de escoamento por unidade de custo (σy/ρCm).",
+        "assumptions": {
+            "funcao": "Componente sob carga axial",
+            "geometria": "Área livre",
+            "objetivo": "Minimizar custo de material",
+            "restricao": "Escoamento especificado",
+            "referencia": "Ashby, Material Selection in Mechanical Design",
+        },
+    },
+    {
+        "name": "Viga barata limitada por rigidez",
+        "slug": "viga-leve-rigidez-custo",
+        "expression": "sqrt(modulo_young) / (densidade * custo_massa)",
+        "goal": "maximize",
+        "description": "Índice E^(1/2)/(ρCm) para vigas baratas e rígidas.",
+        "assumptions": {
+            "funcao": "Viga em flexão",
+            "geometria": "Seção livre, comprimento fixo",
+            "objetivo": "Minimizar custo de material",
+            "restricao": "Rigidez à flexão especificada",
+            "referencia": "Ashby, Material Selection in Mechanical Design",
+        },
+    },
+    {
+        "name": "Viga barata limitada por resistência",
+        "slug": "viga-leve-resistencia-custo",
+        "expression": "limite_escoamento ** (2 / 3) / (densidade * custo_massa)",
+        "goal": "maximize",
+        "description": "Índice σy^(2/3)/(ρCm) para vigas baratas que não escoam.",
+        "assumptions": {
+            "funcao": "Viga em flexão",
+            "geometria": "Seção livre, comprimento fixo",
+            "objetivo": "Minimizar custo de material",
+            "restricao": "Momento fletor especificado",
+            "referencia": "Ashby, Material Selection in Mechanical Design",
+        },
+    },
+    {
+        "name": "Placa barata limitada por rigidez",
+        "slug": "placa-leve-rigidez-custo",
+        "expression": "cbrt(modulo_young) / (densidade * custo_massa)",
+        "goal": "maximize",
+        "description": "Índice E^(1/3)/(ρCm) para placas baratas e rígidas.",
+        "assumptions": {
+            "funcao": "Placa em flexão",
+            "geometria": "Espessura livre, área fixa",
+            "objetivo": "Minimizar custo de material",
+            "restricao": "Rigidez à flexão especificada",
+            "referencia": "Ashby, Material Selection in Mechanical Design",
+        },
+    },
     {
         "name": "Componente leve limitado por escoamento",
         "slug": "componente-leve-escoamento",
