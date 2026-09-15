@@ -120,6 +120,15 @@ class MaterialRepository:
         stmt = select(PropertyDefinition).where(PropertyDefinition.slug == slug)
         return self.db.execute(stmt).scalars().one_or_none()
 
+    def list_properties(self) -> list[PropertyDefinition]:
+        """The whole property catalogue, in name order.
+
+        No visibility filter: a property *definition* is shared by everyone —
+        ownership lives on the material (P1-4), never on what a property is.
+        """
+        stmt = select(PropertyDefinition).order_by(PropertyDefinition.name)
+        return list(self.db.execute(stmt).scalars().all())
+
     def values_for_property(self, slug: str) -> list[MaterialPropertyValue]:
         """Return non-missing values for a property, for ACTIVE materials only.
 

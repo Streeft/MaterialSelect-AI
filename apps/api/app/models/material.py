@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, String
+from sqlalchemy import JSON, Boolean, CheckConstraint, DateTime, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -24,6 +24,19 @@ class Material(Base):
     """
 
     __tablename__ = "material"
+    __table_args__ = (
+        # P3: um registro sintetizado é hipótese de alguém, nunca catálogo
+        # compartilhado. A garantia fica no banco e não só no serviço porque o
+        # custo de errar é um número calculado passando por medido para todo
+        # mundo — e porque o seed, o importador e uma migração futura escrevem
+        # nesta tabela sem passar pelo serviço.
+        # Escrito sem comparar com 1: o PostgreSQL recusa `booleano = 1`, e o
+        # job de migrações da CI roda contra PostgreSQL de verdade.
+        CheckConstraint(
+            "NOT (is_synthesized AND owner_id IS NULL)",
+            name="ck_material_sintetizado_tem_dono",
+        ),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(200), nullable=False, index=True)
@@ -56,6 +69,16 @@ class Material(Base):
     owner_id: Mapped[int | None] = mapped_column(
         ForeignKey("user.id", ondelete="CASCADE"), nullable=True, index=True
     )
+    # P3: a derived record — a composite or a foam the Synthesizer computed from
+    # catalogued parents plus a recipe. The flag is on the **record** and not on
+    # each value because the decision to inherit a value unchanged is as much a
+    # modelling choice as the decision to mix two; what varies per value is
+    # *which law* ran, and that travels with the value in `notes`.
+    #
+    # A synthesized record is always somebody's own (see the CheckConstraint
+    # below): it is a hypothesis, not a catalogue entry, and putting one in the
+    # shared catalogue would make a computed number look measured to everyone.
+    is_synthesized: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     # Set when the material was created by an import job, enabling logical
     # rollback of the whole import as a unit. NULL for manually created rows.
     import_job_id: Mapped[int | None] = mapped_column(
@@ -66,6 +89,14 @@ class Material(Base):
     material_class: Mapped[MaterialClass] = relationship(back_populates="materials")  # noqa: F821
     property_values: Mapped[list[MaterialPropertyValue]] = relationship(  # noqa: F821
         back_populates="material", cascade="all, delete-orphan"
+    )
+    # P3: a receita, quando este registro é derivado. NULL em todo material
+    # catalogado, que é o que todos eram antes do Synthesizer.
+    synthesis: Mapped[MaterialSynthesis | None] = relationship(  # noqa: F821
+        back_populates="material",
+        foreign_keys="MaterialSynthesis.material_id",
+        cascade="all, delete-orphan",
+        uselist=False,
     )
     # P0-2: the processes this material can be made with. No cascade delete of
     # the processes themselves — a process outlives any one material that uses
