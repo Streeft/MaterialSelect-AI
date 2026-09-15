@@ -23,6 +23,7 @@ from app.models.material import Material
 from app.models.material_class import MaterialClass
 from app.models.material_keyword import MaterialKeyword
 from app.models.material_property_value import MaterialPropertyValue
+from app.models.material_synthesis import MaterialSynthesis
 from app.models.my_records import Favorite, RecentRecord
 from app.models.performance_index import PerformanceIndex
 from app.models.process import MaterialProcess, Process, ProcessClass
@@ -66,6 +67,7 @@ __all__ = [
     "MaterialKeyword",
     "MaterialProcess",
     "MaterialPropertyValue",
+    "MaterialSynthesis",
     "PerformanceIndex",
     "Process",
     "ProcessAttributeDefinition",

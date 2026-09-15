@@ -157,8 +157,12 @@ def test_a_link_survives_a_round_trip_through_the_new_tables(migrated_url: str) 
             )
             conn.execute(
                 sa.text(
+                    # `is_synthesized` entra aqui porque este INSERT roda **depois**
+                    # do upgrade para head, e a coluna do P3 é NOT NULL sem padrão
+                    # de servidor — como `is_active` e `is_demo` sempre foram.
                     "INSERT INTO material (id, name, class_id, keywords, is_active, is_demo,"
-                    " created_at) VALUES (1, 'Aço 1020', 1, '[]', 1, 1, '2026-01-01')"
+                    " is_synthesized, created_at)"
+                    " VALUES (1, 'Aço 1020', 1, '[]', 1, 1, 0, '2026-01-01')"
                 )
             )
             conn.execute(
