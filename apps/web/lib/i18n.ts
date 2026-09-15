@@ -33,6 +33,7 @@ export const ptBR = {
     selection: "Seleção",
     maps: "Mapas",
     compare: "Comparar",
+    solver: "Dimensionar",
     dashboard: "Painel",
     imports: "Importar",
     classes: "Classes",
@@ -622,6 +623,46 @@ export const ptBR = {
     linearTitle: "Medidas em escala linear",
     linearHint:
       "Pediam escala logarítmica, mas algum registro tem valor não positivo — e log não existe ali.",
+  },
+
+  solver: {
+    title: "Dimensionar",
+    subtitle:
+      "Escolha o caso de carga, informe os números do projeto e veja quanto a peça pesaria em cada material.",
+    caseStep: "1. O caso de carga",
+    caseLabel: "Caso",
+    caseHint:
+      "Função, restrição e objetivo. É essa combinação que determina o índice de desempenho.",
+    facetFunction: "Função",
+    facetConstraint: "Restrição",
+    facetObjective: "Objetivo",
+    facetFree: "Variável livre",
+    facetFixed: "Fixado pelo projeto",
+    derivationTitle: "Como o índice sai daí",
+    derivationHint:
+      "A conta está escrita para poder ser refeita à mão. O índice não é escrito aqui: é lido do catálogo.",
+    indexTitle: "Índice que este caso produz",
+    inputsStep: "2. Os números do projeto",
+    inputsHint:
+      "Cada valor vai na unidade indicada. Todos precisam ser maiores que zero.",
+    supportLabel: "Apoio e carregamento",
+    solve: "Dimensionar",
+    solving: "Dimensionando…",
+    resultStep: "3. O resultado",
+    resultEmpty: "Nenhum material pôde ser dimensionado com estes dados.",
+    // Fator estrutural: só geometria e carga, igual para todo material do run.
+    // Mostrá-lo é o que permite conferir uma massa à mão.
+    structuralFactor: "Fator estrutural",
+    structuralFactorHint:
+      "Só geometria e carga — o mesmo número para todo material desta execução. Massa = fator estrutural ÷ índice.",
+    columnMaterial: "Material",
+    columnIndex: "Índice",
+    columnObjective: "Massa",
+    columnFree: "Seção necessária",
+    excludedTitle: "Fora deste dimensionamento",
+    excludedHint:
+      "Sem valor para alguma propriedade que o caso exige. Não foram dimensionados por estimativa — ausência não vira zero.",
+    unitNote: "A unidade de cada resposta é derivada das unidades canônicas, não declarada à mão.",
   },
 
 

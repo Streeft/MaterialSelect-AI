@@ -19,6 +19,7 @@ import type {
   ImportMapping,
   ImportTemplate,
   IndexResult,
+  LoadCase,
   MaterialClass,
   MaterialClassIn,
   MaterialCreate,
@@ -47,6 +48,8 @@ import type {
   SavedChartListItem,
   Similar,
   SimilarRequest,
+  SolveRequest,
+  SolveResult,
   StudyDetail,
   StudyIn,
   StudySummary,
@@ -535,6 +538,36 @@ export function touchRecent(universe: Universe, recordId: number): Promise<void>
  */
 export function findSimilar(materialId: number, body: SimilarRequest): Promise<Similar> {
   return request<Similar>(`/api/materials/${materialId}/similares`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+// --- Engineering Solver & Performance Index Finder (P2) ---------------------
+
+/**
+ * The load-case catalogue: the Finder's own listing.
+ *
+ * A GET, because browsing cases by facet is a question about the catalogue and
+ * nothing about the reader — so it caches, and two people asking get one answer.
+ */
+export function listLoadCases(): Promise<LoadCase[]> {
+  return request<LoadCase[]>("/api/solver/casos");
+}
+
+export function getLoadCase(key: string): Promise<LoadCase> {
+  return request<LoadCase>(`/api/solver/casos/${encodeURIComponent(key)}`);
+}
+
+/**
+ * Dimension every visible material against one brief.
+ *
+ * A POST like `findSimilar`, and for the same reason: the brief is a body of
+ * design numbers, and putting them in a query string would make two different
+ * questions share a cache entry.
+ */
+export function solveBrief(body: SolveRequest): Promise<SolveResult> {
+  return request<SolveResult>("/api/solver/resolver", {
     method: "POST",
     body: JSON.stringify(body),
   });

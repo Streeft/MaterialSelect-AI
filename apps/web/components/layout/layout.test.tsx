@@ -195,9 +195,10 @@ describe("AppSidebar", () => {
       for (const group of [ptBR.nav.groupStudy, ptBR.nav.groupData, ptBR.nav.groupAdmin]) {
         expect(within(drawer).getByShadowRole("list", { name: group })).toBeInTheDocument();
       }
-      // Onze desde o P1-4: o universo de processos ganhou porta de entrada, e o
-      // espaço do usuário ("Meus registros") também.
-      expect(within(drawer).getAllByShadowRole("link")).toHaveLength(12); // 11 + o wordmark
+      // Doze desde o P2: o universo de processos ganhou porta de entrada no
+      // P1-4, o espaço do usuário ("Meus registros") também, e agora o
+      // dimensionamento ("Dimensionar") entra no grupo de estudo.
+      expect(within(drawer).getAllByShadowRole("link")).toHaveLength(13); // 12 + o wordmark
     });
 
     it("marks the current page inside the drawer too", async () => {
