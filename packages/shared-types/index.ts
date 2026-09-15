@@ -1289,3 +1289,109 @@ export interface Similar {
   linear_fallback: string[];
   linear_fallback_labels: string[];
 }
+
+// --- Engineering Solver & Performance Index Finder (P2) ---------------------
+
+/** One number the designer supplies. Never a material property. */
+export interface DesignVariable {
+  key: string;
+  label: string;
+  /** Canonical unit the value must already be in. */
+  unit: string;
+  help_text: string;
+}
+
+/**
+ * A named end condition that fills one design variable.
+ *
+ * A choice and not a hidden constant: the beam deflection constant and the
+ * Euler end-fixity factor are what make two otherwise identical briefs give
+ * different answers, so the reader has to see which one ran.
+ */
+export interface SupportCondition {
+  key: string;
+  label: string;
+  variable_key: string;
+  value: number;
+  note: string | null;
+}
+
+/**
+ * One standard load case: the derivation, and the index it yields.
+ *
+ * This is both halves of the item. Read by facet (`function_label`,
+ * `constraint_label`, `objective_label`) it is the Performance Index Finder;
+ * filled in with numbers it is the Engineering Solver's brief. `index_expression`
+ * is joined from the index catalogue at read time and never authored alongside
+ * the case, so the formula on screen is the one that runs.
+ */
+export interface LoadCase {
+  key: string;
+  label: string;
+  summary: string;
+  function_label: string;
+  constraint_label: string;
+  objective_label: string;
+  free_variable_label: string;
+  fixed_labels: string[];
+  derivation: string[];
+  reference: string;
+  index_slug: string;
+  index_name: string | null;
+  index_expression: string | null;
+  index_goal: string | null;
+  objective_unit: string;
+  free_unit: string;
+  variables: DesignVariable[];
+  supports: SupportCondition[];
+}
+
+export interface SolveRequest {
+  case_key: string;
+  /** One value per design variable, in that variable's canonical unit. */
+  inputs: Record<string, number>;
+  limit?: number;
+}
+
+export interface SolvedRecord {
+  record_id: number;
+  name: string;
+  class_name: string;
+  class_slug: string;
+  is_demo: boolean;
+  is_own_record: boolean;
+  rank: number;
+  index_value: number;
+  /** The mass, in `objective_unit`. */
+  objective_value: number;
+  /** The free variable — section area or plate thickness — in `free_unit`. */
+  free_value: number;
+}
+
+/** A material that could not be dimensioned, and what it lacked. */
+export interface SolverExcluded {
+  record_id: number;
+  name: string;
+  missing_slugs: string[];
+  missing_labels: string[];
+  reason: string;
+}
+
+export interface SolveResult {
+  case: LoadCase;
+  inputs: Record<string, number>;
+  /**
+   * Pure geometry and load: the same number for every material in the run,
+   * which is what makes the ordering the index's ordering. Returned so the
+   * reader can check a mass by hand — mass = structural factor / index.
+   */
+  structural_factor: number;
+  free_structural_factor: number;
+  objective_unit: string;
+  free_unit: string;
+  /** Derived by Pint from the canonical units, never declared by hand. */
+  objective_dimension: string;
+  free_dimension: string;
+  solved: SolvedRecord[];
+  excluded: SolverExcluded[];
+}
