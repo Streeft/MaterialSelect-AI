@@ -831,8 +831,17 @@ describe("acessibilidade das telas principais", () => {
     // screen worth auditing.
     nav.query = "materiais=1,2";
     const user = userEvent.setup();
-    const { container } = render(wrap(<ComparePage />, makeClient()));
+    const client = makeClient();
+    const { container } = render(wrap(<ComparePage />, client));
 
+    // Settle the query before looking for anything, the way `auditRoute` does.
+    // This block was the one route audit that raced a promise with a DOM find
+    // instead: the row appears only once the comparison resolves, so under a
+    // loaded runner the default find timeout could expire while the screen was
+    // still on "Comparando…" — which is exactly how it failed in CI on a
+    // backend-only commit. Waiting on the query is deterministic; waiting on
+    // the DOM to catch up is a race that a faster machine merely hides.
+    await waitFor(() => expect(client.isFetching()).toBe(0));
     await screen.findByRole("rowheader", { name: /Aço 1020/ });
     await expectClean(container);
 
