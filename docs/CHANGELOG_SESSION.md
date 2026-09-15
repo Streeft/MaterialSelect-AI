@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [21](#sessão-21--150926--p3-o-eco-audit) | 15/09/2026 | P3 Eco Audit: cinco fases, dois modelos de uso, pódio recusável (D-66) | 1505 → 1561 | 321 → 334 |
 | [20](#sessão-20--150926--p3-o-custo-da-peça-e-o-custo-como-objetivo) | 15/09/2026 | P3 Part Cost Estimator + objetivo custo nos casos de carga (D-65) | 1432 → 1505 | 308 → 321 |
 | [19](#sessão-19--150926--p2-restante-o-solver-e-o-index-finder) | 15/09/2026 | P2 restante (Engineering Solver e Performance Index Finder, D-64) — fecha a faixa P2 | 1341 → 1432 | 299 → 308 |
 | [18](#sessão-18--140926--p2-o-fim-do-fluxo-do-manual) | 14/09/2026 | P2 (Find Similar, registro de referência e diferença percentual, D-63) | 1297 → 1341 | 286 → 299 |
@@ -36,6 +37,79 @@ As sessões entre a 11 e a 12 — o patch de design "Prisma" (D-49, D-50), o
 upgrade de segurança S1 e a rodada de desempenho — **não têm seção própria
 aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
+
+---
+
+## Sessão 21 — 15/09/26 — P3: o Eco Audit
+
+**O pedido.** "Continua o Eco Audit na mesma branch", com a PR do Part Cost
+Estimator mesclada. Como a branch tinha acabado de ser mesclada, ela foi
+**reiniciada a partir do `main` novo** — uma PR mesclada está terminada e não
+recebe trabalho novo.
+
+**O achado do desenho.** Um eco audit soma energia e carbono em cinco fases, e a
+tentação é entregar o total. Mas o total não decide nada: **a resposta é qual
+fase domina**, porque é nela que esforço de projeto muda alguma coisa. Uma porta
+de carro se decide na fase de uso; uma sacola plástica, na de material. Acertar
+o total e errar a dominância seria uma auditoria que lê bem e engana.
+
+**Os dois modelos de uso, que é onde uma auditoria mente ou não.** Uma geladeira
+gasta porque funciona — potência × tempo, e a massa da peça **não aparece em
+lugar nenhum**. Um painel de carro gasta porque alguém o carrega — massa ×
+distância × intensidade. Escolher errado **inverte** a auditoria: aliviar a peça
+economiza muito num modelo e *exatamente nada* no outro. Daí o modelo ser escolha
+declarada, os campos do outro serem recusados e não ignorados (a regra do D-56), e
+o resultado dizer qual rodou.
+
+**A massa comprada, e a exigência que ela justifica.** A fase de material é
+cobrada sobre `massa / (1 − f)` — o refugo passou pela fundição do mesmo jeito —,
+a mesma fatoração do termo de material do D-65. E é por isso que uma auditoria
+aqui **precisa de processo**: auditar uma peça é auditar *fazer* a peça. A
+consequência boa é que um processo perdulário aumenta também a fase de material,
+não só a de manufatura.
+
+**A recusa que o item existe para fazer.** Faltando o dado de qualquer fase, a
+fase dominante é recusada com o motivo escrito, **e o total também**: a fase que
+ninguém calculou pode ser a que domina, e uma soma sobre quatro das cinco é uma
+parcela que parece um total. Aterro e incineração não têm energia catalogada
+nesta versão e **não viram zero** — um aterro grátis faria enterrar a peça parecer
+a coisa mais barata que se pode fazer com ela, que é a falácia que uma auditoria
+ambiental existe para desfazer.
+
+**A segunda vez que o sistema de unidades não dá conta, por motivo novo.**
+Dinheiro não está em sistema nenhum (D-65). Uma pegada de CO₂ *está*, mas é
+quilograma de uma substância por quilograma de outra, e o Pint não tem noção de
+substância — ele reduz a razão a adimensional. Mesmo tratamento, motivo
+diferente: adimensional no catálogo, "kg de CO₂" em palavras onde o número
+aparece. A energia, essa sim, é derivada em MJ como o D-64 deriva uma massa.
+
+**O terceiro universo, e por que ele não é um processo.** `TransportMode` é
+tabela própria. Um `Process` se liga a materiais por `material_process`, e é essa
+junção que faz do Tree Stage uma junção entre tabelas; um navio não é compatível
+com um material, e semeá-lo como processo poria uma linha sem sentido dentro de
+um estágio de seleção que se lê como se tivesse. As duas intensidades são colunas
+simples e não o trilho de proveniência, com a justificativa escrita no modelo —
+quatro linhas semeadas, sem importação nem digitação em v1.
+
+**Verificação.** Seis mutações sobre a camada de cálculo, todas apanhadas pelo
+teste que deveria apanhá-las. Sobre o catálogo semeado, as lacunas plantadas de
+propósito chegam à resposta como motivo escrito: cerâmica e compósito sem figura
+de reciclagem (os casos clássicos de "não se recicla de rotina") e o modal
+ferroviário sem intensidade de carbono.
+
+**Um ajuste de teste que valia a pena fazer direito.** Quatro propriedades novas
+mudaram a contagem à mão do painel (8 → 12 propriedades, 40 → 60 casas). O
+cabeçalho do arquivo é uma tabela conferida à mão de propósito — é isso que faz
+dele uma verificação e não um eco do endpoint —, então ele foi **refeito à mão**
+em vez de derivado do seed.
+
+**Números.** 1505 → **1561** testes de backend (nenhum skip), 321 → **334** de
+frontend. Cobertura EduPack ~84% → **~88%** (28 de 32), nível médio 3,12 →
+**3,22**. Pela primeira vez a tabela não tem nenhuma capacidade *pela metade*: as
+quatro linhas abaixo de 3 são módulos que ainda não existem, mais o B11.
+
+**Resta da faixa P3** o Synthesizer (+ Sandwich Panels), que é também o que falta
+para `My Records` sair de 3.
 
 ---
 

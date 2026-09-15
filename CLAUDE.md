@@ -538,7 +538,29 @@ não mudou), e o link para `/app/custo` **some** numa execução de custo: ele l
 `massa=`, e um custo ali seria um número de outra grandeza que o estimador não
 teria como perceber.
 
-1505 testes de backend (nenhum skip) e 321 de frontend, todos verdes. CI no
+**O Eco Audit fechou a faixa P3 menos o Synthesizer** ([D-66](docs/DECISIONS.md)):
+cinco fases — material, manufatura, transporte, uso, fim de vida — em energia e
+carbono, e **a resposta não é o total**, é qual fase domina. Quatro coisas não se
+mexem ali. A fase de uso tem **dois modelos que não são variantes de um** (no
+`estatico` a massa da peça não entra em lugar nenhum, então aliviar a peça
+economiza *nada* ali; escolher errado inverte a auditoria), e os campos do outro
+modelo são **recusados, nunca ignorados** — a regra do D-56. A fase de material é
+cobrada sobre a **massa comprada**, `massa / (1 − f)`, a fatoração do D-65 — e é
+por isso que uma auditoria exige processo: auditar uma peça é auditar *fazer* a
+peça. A **reciclagem aparece duas vezes e nunca se cancela** (gasto no fim desta
+vida, poupança no início da próxima), e abater crédito é escolha de método que
+este módulo não faz. E **auditoria incompleta não se resume, só se lista**: sem o
+dado de uma fase, o pódio e o total são recusados com o motivo escrito — aterro e
+incineração ficam declarados sem energia, nunca valendo zero.
+
+Energia e carbono têm **pódios independentes**, porque leem dados diferentes e
+podem discordar. A energia é derivada pelo Pint em MJ; o carbono sai em palavras
+("kg de CO₂"), porque uma razão entre massas de substâncias diferentes o Pint
+reduz a adimensional — mesmo dever do dinheiro no D-65, por motivo diferente.
+`TransportMode` é tabela própria e **não** um processo: um `Process` se liga a
+materiais por `material_process`, e um navio não é compatível com um material.
+
+1561 testes de backend (nenhum skip) e 334 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
 PROJECT_CONTEXT.md).

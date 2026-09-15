@@ -262,6 +262,27 @@ Registrados para não voltarem por engano:
   **O que ficou de fora:** a curva custo × lote desenhada, o custo por família de
   processo, e custo como objetivo em estudo de **processos** — um processo não
   tem `custo_massa`, e ali a pergunta é a do estimador.
+- ~~**P3 (segundo item)** — o Eco Audit~~ — `POST /api/eco/auditar` e
+  `/app/eco` somam energia e carbono da peça em cinco fases
+  ([D-66](DECISIONS.md)). A resposta não é o total: é **qual fase domina**, uma
+  vez em energia e outra em carbono, porque as duas podem discordar. Faltando o
+  dado de qualquer fase, o pódio e o total são **recusados com o motivo
+  escrito** — a fase que ninguém calculou pode ser a que domina.
+
+  Quatro decisões que não se mexem: a fase de uso tem **dois modelos que não são
+  variantes de um** (no estático a massa não entra, e os campos do outro modelo
+  são recusados, nunca ignorados); a fase de material é cobrada sobre a **massa
+  comprada**, `massa / (1 − f)`, o que é também por que a auditoria exige
+  processo; a reciclagem é gasto no fim desta vida e poupança no início da
+  próxima, e **não se abate crédito**; e aterro e incineração ficam declarados
+  sem energia em vez de valerem zero.
+
+  Dados novos: quatro propriedades ambientais (categoria `AMBIENTAL`, que
+  existia sem uso), dois atributos de processo e `TransportMode` — nem material
+  nem processo, com a justificativa no modelo.
+
+  **O que ficou de fora:** a figura de barras por fase, comparar dois materiais
+  na mesma auditoria, e energia catalogada para aterro e incineração.
 - ~~**P1-2** — o gráfico mostrava e não selecionava~~ — quarto tipo de estágio,
   `chart`, entregue em seis passos ([D-60](DECISIONS.md),
   [07-selecao-deterministica.md](07-selecao-deterministica.md)). Carrega o plano,

@@ -70,7 +70,7 @@ Níveis: **0** não existe · **1** rudimentar · **2** existe, precisa melhorar
 | Engineering Solver | **3** | **Entregue (P2, [D-64](DECISIONS.md))**: tirante (rigidez, resistência, escoamento), viga (rigidez, momento), placa (rigidez) e coluna (flambagem de Euler), respondidos com **massa e variável livre em unidade derivada**, o fator estrutural à vista para a conta poder ser refeita à mão, e ausência tratada como exclusão nomeada. **O objetivo custo saiu** (P3, [D-65](DECISIONS.md)): o mesmo fator estrutural dividido pelo gêmeo de custo do índice responde quanto a peça custa em material, e o resultado diz qual objetivo rodou em palavras — a dimensão sai como massa porque `custo_massa` é adimensional. Faltam seções além de maciça quadrada/retangular e amarrar um dimensionamento a um estudo salvo e ao laudo. |
 | Projetos e notas | **3** | `Project` isola estudos por usuário, e um estágio tem rótulo próprio (P0-1). Falta nota livre por projeto. |
 | Geração de relatório | **4** | Relatório de seleção, laudo, CSV/XLSX/HTML, com mapa, ranking e oito seções de auditoria. Falta PDF e DOCX. |
-| Eco Audit | **0** | Não existe. |
+| Eco Audit | **3** | **Entregue (P3, [D-66](DECISIONS.md))**: cinco fases (material, manufatura, transporte, uso, fim de vida) em energia e carbono, com **dois modelos de uso** que não são variantes de um — no estático a massa não entra, e é por isso que escolher errado inverte a auditoria. A resposta não é o total: é qual fase domina, uma vez em energia e outra em carbono, e faltando uma fase o pódio é **recusado com o motivo escrito**. Faltam a figura de barras por fase, comparar dois materiais lado a lado na mesma auditoria e as rotas de fim de vida que v1 deixou sem energia catalogada.
 | Part Cost Estimator | **3** | **Entregue (P3, [D-65](DECISIONS.md))**: `C = m·Cm/(1−f) + C_t/n + Ċ_oh/ṅ + C_c/(ṅ·t_wo·L)` sobre os processos compatíveis com o material, devolvida **termo a termo** — porque o que o leitor veio buscar é como cada parcela anda com o lote, e o cruzamento entre dois processos conforme *n* cresce. Premissas de oficina são entrada com valor visível; processo sem dado econômico é nomeado, nunca zerado; e a resposta declara a unidade monetária em palavras, porque dinheiro não está em sistema de unidades nenhum. Falta a curva custo × lote desenhada e o custo por família de processo.
 | Synthesizer / registros sintetizados | **0** | Não existe. |
 | Sandwich Panels | **0** | Não existe. |
@@ -82,14 +82,19 @@ Níveis: **0** não existe · **1** rudimentar · **2** existe, precisa melhorar
 | Testes | **5** | 1341 backend, 299 frontend, E2E e Lighthouse na CI — e desde o P0-1 a migração é exercitada de verdade, nos dois sentidos, contra um banco que já contém dados, conferida por mutação. |
 | Desempenho | **3** | Índices, threadpool, Plotly fatiado. Não preparado para centenas de milhares de registros. |
 
-**Cobertura de capacidades inspiradas no EduPack: ~84%** — contado como
-capacidades em nível ≥ 3 sobre as **32** avaliadas (27 de 32). **Nível médio:
-3,12.** O P3 moveu as duas coisas por uma razão só: o Part Cost Estimator saiu
-de **zero** (+1 na contagem) e, com ele, o objetivo custo destravou o Engineering
-Solver e o Performance Index Finder — que já estavam acima do corte e por isso
-não aparecem no percentual, embora seja ali que a faixa ficou mais completa. É o
-mesmo descompasso entre métrica e ferramenta que o P0-4 expôs, agora na direção
-oposta.
+**Cobertura de capacidades inspiradas no EduPack: ~88%** — contado como
+capacidades em nível ≥ 3 sobre as **32** avaliadas (28 de 32). **Nível médio:
+3,22.** O P3 moveu duas linhas que estavam em **zero**: o Part Cost Estimator e o
+Eco Audit. Com o primeiro veio também o objetivo custo, que destravou o
+Engineering Solver e o Performance Index Finder — os dois já acima do corte, e
+por isso invisíveis no percentual embora seja ali que a faixa ficou mais
+completa. É o mesmo descompasso entre métrica e ferramenta que o P0-4 expôs, na
+direção oposta.
+
+**As quatro linhas abaixo de 3 são agora, todas, módulos que não existem** —
+Synthesizer, Sandwich Panels, Battery Designer — mais `Unidades de exibição`
+(B11, que é uma escolha de leitura e não um módulo). Nenhuma delas é capacidade
+pela metade: é a primeira vez que a tabela não tem nada em construção.
 
 **O denominador estava errado até o P0-4.** As versões anteriores deste parágrafo
 diziam "30 avaliadas" e publicavam ~57%; a tabela acima sempre teve 32 linhas.
@@ -168,6 +173,22 @@ de propósito (dinheiro não está em sistema de unidades nenhum), então a aná
 dimensional devolve a mesma dimensão nas duas execuções. Ela continua provando a
 álgebra e deixou de nomear a resposta — que é por que o objetivo, a unidade e a
 razão disso são ditos em palavras na resposta e na tela.
+
+O **P3 Eco Audit** tira a outra linha do zero, e a decisão que o carrega é a
+mesma em espírito: **a resposta não é o total, é qual fase domina**, porque é
+nela que esforço de projeto muda alguma coisa. Uma porta de carro se decide na
+fase de uso; uma sacola plástica, na de material. E é por isso que a fase de uso
+tem **dois modelos que não são variantes de um** — no estático a massa da peça
+não aparece, então aliviar a peça economiza *exatamente nada* ali, e escolher
+errado inverte a auditoria inteira.
+
+O que o número não mostra, de novo: faltando o dado de uma fase, o pódio é
+**recusado com o motivo escrito**, e o total também. A fase que ninguém calculou
+pode ser justamente a que domina, e uma soma sobre quatro das cinco não é um
+total — é uma parcela que parece um. É o princípio 3 aplicado a uma estatística
+de resumo em vez de a uma célula, e é a razão de aterro e incineração ficarem
+declarados sem energia em vez de valerem zero: um aterro grátis faria enterrar a
+peça parecer a coisa mais barata que se pode fazer com ela.
 
 O que o P0-4 fez, antes dele: fechou o exercício 11 do manual por inteiro — passo
 1 (universo de saída, P0-3), passo 2 (Limit Stage sobre atributo do processo) e
@@ -364,22 +385,23 @@ correção, portão completo, decisão registrada.
 | ~~P2~~ | ~~Tabela de comparação com referência e diferença percentual~~ **entregue** | M | P2 referência |
 | ~~**P2**~~ | ~~Engineering Solver (viga em flexão, tração, compressão)~~ | N | ~~P0-1~~ |
 | ~~**P2**~~ | ~~Performance Index Finder~~ | J | ~~P2 Solver~~ |
-| **P3** | Eco Audit (material, manufatura, transporte, uso, fim de vida) | O | A ampliado |
+| ~~**P3**~~ | ~~Eco Audit (material, manufatura, transporte, uso, fim de vida)~~ **entregue** | O | ~~A ampliado~~ |
 | ~~**P3**~~ | ~~Part Cost Estimator~~ **entregue** (com o objetivo *custo* nos casos de carga) | P | ~~P0-2~~ |
 | **P3** | Synthesizer + Sandwich Panels | Q, R | P1 My Records |
 | **P4** | Battery Designer | S | P3 Synthesizer |
 | **P4** | PDF e DOCX no gerador de relatório | V | — |
 
-**Ordem de execução:** ~~P0-1~~ → ~~P0-2~~ → ~~P0-3~~ → ~~P0-4~~ → ~~P1-1~~ → ~~P1-2~~ → ~~P1-3 (browse)~~ → ~~P1-4 (`My Records`)~~ → ~~P2 (Find Similar, referência, comparação)~~ → ~~P2 restante (Engineering Solver, Performance Index Finder)~~ → ~~P3 Part Cost Estimator (+ objetivo custo)~~ → **P3** (Eco Audit, Synthesizer) → P4.
+**Ordem de execução:** ~~P0-1~~ → ~~P0-2~~ → ~~P0-3~~ → ~~P0-4~~ → ~~P1-1~~ → ~~P1-2~~ → ~~P1-3 (browse)~~ → ~~P1-4 (`My Records`)~~ → ~~P2 (Find Similar, referência, comparação)~~ → ~~P2 restante (Engineering Solver, Performance Index Finder)~~ → ~~P3 Part Cost Estimator (+ objetivo custo)~~ → ~~P3 Eco Audit~~ → **P3** (Synthesizer + Sandwich Panels) → P4.
 
 **A faixa P2 fechou, e o Part Cost Estimator saiu junto com o que ele
 destravava.** O custo ficou nomeado como omissão no [D-64](DECISIONS.md) em vez
 de improvisado porque dependia deste módulo; com ele no lugar, trocar ρ por ρ·Cm
 em cada agrupamento material é a mesma fatoração, e um caso de carga passou a
 nomear dois índices em vez de carregar duas derivações
-([D-65](DECISIONS.md)). O que resta da faixa P3 são dois módulos inteiros que
-ainda não existem — Eco Audit e Synthesizer —, nenhum deles pré-requisito do
-outro.
+([D-65](DECISIONS.md)). O **Eco Audit** saiu em seguida
+([D-66](DECISIONS.md)), e com ele a faixa P3 fica com um módulo só: o
+**Synthesizer** (mais os *Sandwich Panels*, que são o mesmo mecanismo aplicado a
+uma geometria), que é também o que falta para `My Records` sair de 3.
 
 ### O que isto não é
 
