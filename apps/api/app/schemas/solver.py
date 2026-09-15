@@ -7,7 +7,11 @@ are two readings of one derivation, so they share one shape.
 
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import BaseModel, Field, field_validator
+
+from app.calculations.load_cases import COST_OBJECTIVE, MASS_OBJECTIVE
 
 #: A brief with more design variables than this is not one of our cases; the
 #: bound exists so an oversized payload is refused before it reaches the parser.
@@ -49,6 +53,13 @@ class LoadCaseOut(BaseModel):
     index_name: str | None = None
     index_expression: str | None = None
     index_goal: str | None = None
+    #: The same derivation read against cost (D-65): ρ·Cm in place of ρ. Carried
+    #: beside the mass index rather than in place of it, because the Finder
+    #: browses a case's *two* answers to one brief.
+    cost_index_slug: str
+    cost_index_name: str | None = None
+    cost_index_expression: str | None = None
+    cost_objective_label: str
     objective_unit: str
     free_unit: str
     variables: list[DesignVariableOut]
@@ -59,6 +70,9 @@ class SolveRequest(BaseModel):
     case_key: str = Field(min_length=1, max_length=80)
     #: One value per design variable, in that variable's canonical unit.
     inputs: dict[str, float]
+    #: Which of the case's two indices to run. Defaults to the mass, which is
+    #: what the endpoint answered before D-65 — an older client keeps its answer.
+    objective: Literal[MASS_OBJECTIVE, COST_OBJECTIVE] = MASS_OBJECTIVE
     limit: int = Field(default=10, ge=1, le=50)
 
     @field_validator("inputs")
@@ -102,14 +116,25 @@ class SolveResultOut(BaseModel):
 
     case: LoadCaseOut
     inputs: dict[str, float]
+    #: Which objective ran, and the index that answered it. Both are on the
+    #: result rather than read off the case, because a case carries two indices
+    #: and a screen showing the other one would be the second truth D-60 and
+    #: D-63 each refused in their own layer.
+    objective: str
+    objective_label: str
+    index_slug: str
+    index_name: str | None = None
+    index_expression: str | None = None
     #: Pure geometry and load — identical for every material in this run, which
     #: is what makes the ordering the index's ordering.
     structural_factor: float
     free_structural_factor: float
     objective_unit: str
     free_unit: str
-    #: Derived by Pint from the canonical units, never declared by hand.
+    #: Derived by Pint from the canonical units, never declared by hand — and on
+    #: a cost run *not* the answer's unit, which is what ``objective_note`` says.
     objective_dimension: str
     free_dimension: str
+    objective_note: str | None = None
     solved: list[SolvedRecordOut]
     excluded: list[SolverExcludedOut]

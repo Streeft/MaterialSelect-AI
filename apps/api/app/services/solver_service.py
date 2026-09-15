@@ -5,7 +5,11 @@ case's function, constraint and objective, and the index that falls out of the
 derivation — **joined to the catalogued index at read time**, so the expression
 a reader sees is the one the solver will run. Nothing here authors a formula.
 
-The Solver is ``solve``: same catalogue, one case, plus the design numbers.
+The Solver is ``solve``: same catalogue, one case, plus the design numbers, and
+an **objective** — the mass, or the material cost of the part (D-65). The
+objective chooses which of the case's two catalogued indices runs and nothing
+else; the structural factor is the same number either way, which is the whole
+reason one derivation serves both.
 
 Both read materials through ``ChartRepository``, like ``SimilarityService``, so
 the P1-4 visibility filter is applied in the one place that already applies it.
@@ -16,7 +20,7 @@ from __future__ import annotations
 from sqlalchemy.orm import Session
 
 from app.calculations.expressions import ExpressionError, variables_in
-from app.calculations.load_cases import LOAD_CASES, LoadCase, by_key
+from app.calculations.load_cases import COST_OBJECTIVE_LABEL, LOAD_CASES, LoadCase, by_key
 from app.calculations.solver import RecordValues, SolverError, solve
 from app.domain.errors import NotFoundError, ValidationError
 from app.models.material import Material
@@ -35,7 +39,7 @@ from app.schemas.solver import (
 
 
 class SolverService:
-    """Turns a design brief into masses, and a facet into an index."""
+    """Turns a design brief into masses or costs, and a facet into an index."""
 
     def __init__(self, db: Session, viewer_id: int | None = None) -> None:
         self.viewer_id = viewer_id
@@ -45,16 +49,19 @@ class SolverService:
     # --- Performance Index Finder -----------------------------------------
 
     def list_cases(self) -> list[LoadCaseOut]:
-        """Every case, with the catalogued index it yields."""
+        """Every case, with the two catalogued indices it yields."""
         indices = {index.slug: index for index in self.selection_repo.list_indices()}
-        return [self._case_out(case, indices.get(case.index_slug)) for case in LOAD_CASES]
+        return [
+            self._case_out(case, indices.get(case.index_slug), indices.get(case.cost_index_slug))
+            for case in LOAD_CASES
+        ]
 
     def get_case(self, key: str) -> LoadCaseOut:
         case = by_key(key)
         if case is None:
             raise NotFoundError(f"Caso de carga não encontrado: {key}")
         indices = {index.slug: index for index in self.selection_repo.list_indices()}
-        return self._case_out(case, indices.get(case.index_slug))
+        return self._case_out(case, indices.get(case.index_slug), indices.get(case.cost_index_slug))
 
     # --- Engineering Solver -----------------------------------------------
 
@@ -63,20 +70,17 @@ class SolverService:
         if case is None:
             raise NotFoundError(f"Caso de carga não encontrado: {request.case_key}")
 
-        index = next(
-            (
-                candidate
-                for candidate in self.selection_repo.list_indices()
-                if candidate.slug == case.index_slug
-            ),
-            None,
-        )
+        # Which index answers the brief is the objective's only consequence, and
+        # the case decides it — a caller never names an index (D-35, D-65).
+        wanted = case.index_slug_for(request.objective)
+        catalogued = {index.slug: index for index in self.selection_repo.list_indices()}
+        index = catalogued.get(wanted)
         if index is None:
             # The load-case catalogue is code and the index catalogue is data;
             # a database the seed never reached can have one without the other.
-            raise NotFoundError(
-                f"O índice {case.index_slug}, que este caso produz, não está no catálogo."
-            )
+            raise NotFoundError(f"O índice {wanted}, que este caso produz, não está no catálogo.")
+        cost_index = catalogued.get(case.cost_index_slug)
+        mass_index = catalogued.get(case.index_slug)
 
         definitions = {p.slug: p for p in self.repo.list_properties()}
         try:
@@ -107,6 +111,7 @@ class SolverService:
                 inputs=dict(request.inputs),
                 records=records,
                 property_units=property_units,
+                objective=request.objective,
                 limit=request.limit,
             )
         except SolverError as exc:
@@ -118,14 +123,20 @@ class SolverService:
             return definition.name if definition else slug
 
         return SolveResultOut(
-            case=self._case_out(case, index),
+            case=self._case_out(case, mass_index, cost_index),
             inputs=dict(request.inputs),
+            objective=result.objective,
+            objective_label=case.objective_label_for(request.objective),
+            index_slug=index.slug,
+            index_name=index.name,
+            index_expression=index.expression,
             structural_factor=result.structural_factor,
             free_structural_factor=result.free_structural_factor,
             objective_unit=result.objective_unit,
             free_unit=result.free_unit,
             objective_dimension=result.objective_dimension,
             free_dimension=result.free_dimension,
+            objective_note=result.objective_note,
             solved=[
                 SolvedRecordOut(
                     record_id=record.record_id,
@@ -156,7 +167,11 @@ class SolverService:
     # --- shaping ----------------------------------------------------------
 
     @staticmethod
-    def _case_out(case: LoadCase, index: PerformanceIndex | None) -> LoadCaseOut:
+    def _case_out(
+        case: LoadCase,
+        index: PerformanceIndex | None,
+        cost_index: PerformanceIndex | None,
+    ) -> LoadCaseOut:
         return LoadCaseOut(
             key=case.key,
             label=case.label,
@@ -174,6 +189,10 @@ class SolverService:
             index_name=index.name if index else None,
             index_expression=index.expression if index else None,
             index_goal=index.goal if index else None,
+            cost_index_slug=case.cost_index_slug,
+            cost_index_name=cost_index.name if cost_index else None,
+            cost_index_expression=cost_index.expression if cost_index else None,
+            cost_objective_label=COST_OBJECTIVE_LABEL,
             objective_unit=case.objective_unit,
             free_unit=case.free_unit,
             variables=[

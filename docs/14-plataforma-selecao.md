@@ -63,15 +63,15 @@ Níveis: **0** não existe · **1** rudimentar · **2** existe, precisa melhorar
 | Chart Stage (gráfico que filtra) | **4** | **Entregue (P1-2, [D-60](DECISIONS.md))**: a caixa e a linha iso-índice reprovam, nos dois universos, e um eixo pode ser uma quantidade **derivada** — que é o que um Limit Stage não alcança. Registro não plotável não passa. Falta desenhar a caixa arrastando no gráfico da tela (hoje ela é digitada em coordenadas de dados) e o mapa do universo de processos. |
 | Ranking | **4** | Soma ponderada, TOPSIS, PROMETHEE II, AHP (M5), com normalização declarada. |
 | Índice de desempenho | **3** | Catálogo de índices + expressão livre, com avaliador seguro e dimensão verificada. |
-| Performance Index Finder | **3** | **Entregue (P2, [D-64](DECISIONS.md))**: sete casos de carga padrão, cada um trazendo função, restrição, objetivo e variável livre, a derivação escrita por extenso e o índice que ela produz — **lido do catálogo**, nunca reescrito ao lado. Todo índice semeado é alcançável por algum caso, com teste que varre isso. Falta navegar por faceta (hoje se escolhe o caso inteiro, não "tenho esta restrição, quais índices servem?") e o objetivo custo. |
+| Performance Index Finder | **3** | **Entregue (P2, [D-64](DECISIONS.md))**: sete casos de carga padrão, cada um trazendo função, restrição, objetivo e variável livre, a derivação escrita por extenso e o índice que ela produz — **lido do catálogo**, nunca reescrito ao lado. Todo índice semeado é alcançável por algum caso, com teste que varre isso. Falta navegar por faceta (hoje se escolhe o caso inteiro, não "tenho esta restrição, quais índices servem?"). **O objetivo custo saiu** (P3, [D-65](DECISIONS.md)): cada caso nomeia também o gêmeo de custo do seu índice, e a tela mostra os dois lado a lado. |
 | Find Similar / Nearness | **4** | **Entregue (P2, [D-63](DECISIONS.md))**: distância em espaço log onde a propriedade permite, escalada pela dispersão do conjunto e promediada, com a **base declarada na resposta** e os registros que não puderam ser medidos nomeados com o que lhes falta. Falta similaridade no universo de processos. |
 | Registro de referência | **3** | **Entregue (P2)**: a referência é parâmetro da pergunta e vive na URL, nunca no servidor. Falta fixá-la como estado de um projeto — o *reference record* propriamente dito — e destacá-la nas figuras. |
 | Tabela de comparação | **4** | **Entregue (P2)**: referência, "definir como referência" e diferença percentual por propriedade — calculada só onde a unidade tem zero verdadeiro, e com cada uma das cinco ausências escrita por extenso (D-24). |
-| Engineering Solver | **3** | **Entregue (P2, [D-64](DECISIONS.md))**: tirante (rigidez, resistência, escoamento), viga (rigidez, momento), placa (rigidez) e coluna (flambagem de Euler), respondidos com **massa e variável livre em unidade derivada**, o fator estrutural à vista para a conta poder ser refeita à mão, e ausência tratada como exclusão nomeada. Falta objetivo custo, seções além de maciça quadrada/retangular, e amarrar um dimensionamento a um estudo salvo e ao laudo. |
+| Engineering Solver | **3** | **Entregue (P2, [D-64](DECISIONS.md))**: tirante (rigidez, resistência, escoamento), viga (rigidez, momento), placa (rigidez) e coluna (flambagem de Euler), respondidos com **massa e variável livre em unidade derivada**, o fator estrutural à vista para a conta poder ser refeita à mão, e ausência tratada como exclusão nomeada. **O objetivo custo saiu** (P3, [D-65](DECISIONS.md)): o mesmo fator estrutural dividido pelo gêmeo de custo do índice responde quanto a peça custa em material, e o resultado diz qual objetivo rodou em palavras — a dimensão sai como massa porque `custo_massa` é adimensional. Faltam seções além de maciça quadrada/retangular e amarrar um dimensionamento a um estudo salvo e ao laudo. |
 | Projetos e notas | **3** | `Project` isola estudos por usuário, e um estágio tem rótulo próprio (P0-1). Falta nota livre por projeto. |
 | Geração de relatório | **4** | Relatório de seleção, laudo, CSV/XLSX/HTML, com mapa, ranking e oito seções de auditoria. Falta PDF e DOCX. |
 | Eco Audit | **0** | Não existe. |
-| Part Cost Estimator | **0** | Não existe. |
+| Part Cost Estimator | **3** | **Entregue (P3, [D-65](DECISIONS.md))**: `C = m·Cm/(1−f) + C_t/n + Ċ_oh/ṅ + C_c/(ṅ·t_wo·L)` sobre os processos compatíveis com o material, devolvida **termo a termo** — porque o que o leitor veio buscar é como cada parcela anda com o lote, e o cruzamento entre dois processos conforme *n* cresce. Premissas de oficina são entrada com valor visível; processo sem dado econômico é nomeado, nunca zerado; e a resposta declara a unidade monetária em palavras, porque dinheiro não está em sistema de unidades nenhum. Falta a curva custo × lote desenhada e o custo por família de processo.
 | Synthesizer / registros sintetizados | **0** | Não existe. |
 | Sandwich Panels | **0** | Não existe. |
 | Battery Designer | **0** | Não existe. |
@@ -82,10 +82,14 @@ Níveis: **0** não existe · **1** rudimentar · **2** existe, precisa melhorar
 | Testes | **5** | 1341 backend, 299 frontend, E2E e Lighthouse na CI — e desde o P0-1 a migração é exercitada de verdade, nos dois sentidos, contra um banco que já contém dados, conferida por mutação. |
 | Desempenho | **3** | Índices, threadpool, Plotly fatiado. Não preparado para centenas de milhares de registros. |
 
-**Cobertura de capacidades inspiradas no EduPack: ~81%** — contado como
-capacidades em nível ≥ 3 sobre as **32** avaliadas (26 de 32). **Nível médio:
-3,03** — e é a primeira vez que a média cruza 3, o que só aconteceu porque as
-duas capacidades que o P2 restante fechou estavam ambas em **zero**.
+**Cobertura de capacidades inspiradas no EduPack: ~84%** — contado como
+capacidades em nível ≥ 3 sobre as **32** avaliadas (27 de 32). **Nível médio:
+3,12.** O P3 moveu as duas coisas por uma razão só: o Part Cost Estimator saiu
+de **zero** (+1 na contagem) e, com ele, o objetivo custo destravou o Engineering
+Solver e o Performance Index Finder — que já estavam acima do corte e por isso
+não aparecem no percentual, embora seja ali que a faixa ficou mais completa. É o
+mesmo descompasso entre métrica e ferramenta que o P0-4 expôs, agora na direção
+oposta.
 
 **O denominador estava errado até o P0-4.** As versões anteriores deste parágrafo
 diziam "30 avaliadas" e publicavam ~57%; a tabela acima sempre teve 32 linhas.
@@ -148,6 +152,22 @@ escolha de método, não de implementação (D-63).
 `Registro de referência` fica em **3** e não em 4 por uma ausência nomeada: a
 referência é parâmetro da pergunta, e falta poder fixá-la como estado de um
 projeto — o *reference record* propriamente dito — e destacá-la nas figuras.
+
+O **P3 Part Cost Estimator** tira uma linha do zero e, no mesmo movimento, fecha
+a omissão que o [D-64](DECISIONS.md) tinha deixado nomeada. O módulo responde
+"quanto custa **fazer** esta peça, processo a processo" com os quatro termos à
+vista, porque é o comportamento de cada termo com o lote — e o cruzamento entre
+dois processos conforme *n* cresce — que decide alguma coisa; um total sozinho
+seria oráculo. O objetivo *custo* responde a pergunta irmã, "que material a faz
+**mais barata**", e é literalmente a mesma derivação: ρ vira ρ·Cm no agrupamento
+material, o fator estrutural não se mexe, e por isso um caso de carga passou a
+nomear dois índices em vez de carregar duas derivações ([D-65](DECISIONS.md)).
+
+A consequência que o número da tabela não mostra: `custo_massa` é adimensional
+de propósito (dinheiro não está em sistema de unidades nenhum), então a análise
+dimensional devolve a mesma dimensão nas duas execuções. Ela continua provando a
+álgebra e deixou de nomear a resposta — que é por que o objetivo, a unidade e a
+razão disso são ditos em palavras na resposta e na tela.
 
 O que o P0-4 fez, antes dele: fechou o exercício 11 do manual por inteiro — passo
 1 (universo de saída, P0-3), passo 2 (Limit Stage sobre atributo do processo) e
@@ -345,19 +365,21 @@ correção, portão completo, decisão registrada.
 | ~~**P2**~~ | ~~Engineering Solver (viga em flexão, tração, compressão)~~ | N | ~~P0-1~~ |
 | ~~**P2**~~ | ~~Performance Index Finder~~ | J | ~~P2 Solver~~ |
 | **P3** | Eco Audit (material, manufatura, transporte, uso, fim de vida) | O | A ampliado |
-| **P3** | Part Cost Estimator | P | P0-2 |
+| ~~**P3**~~ | ~~Part Cost Estimator~~ **entregue** (com o objetivo *custo* nos casos de carga) | P | ~~P0-2~~ |
 | **P3** | Synthesizer + Sandwich Panels | Q, R | P1 My Records |
 | **P4** | Battery Designer | S | P3 Synthesizer |
 | **P4** | PDF e DOCX no gerador de relatório | V | — |
 
-**Ordem de execução:** ~~P0-1~~ → ~~P0-2~~ → ~~P0-3~~ → ~~P0-4~~ → ~~P1-1~~ → ~~P1-2~~ → ~~P1-3 (browse)~~ → ~~P1-4 (`My Records`)~~ → ~~P2 (Find Similar, referência, comparação)~~ → ~~P2 restante (Engineering Solver, Performance Index Finder)~~ → **P3** (Eco Audit, Part Cost Estimator, Synthesizer) → P4.
+**Ordem de execução:** ~~P0-1~~ → ~~P0-2~~ → ~~P0-3~~ → ~~P0-4~~ → ~~P1-1~~ → ~~P1-2~~ → ~~P1-3 (browse)~~ → ~~P1-4 (`My Records`)~~ → ~~P2 (Find Similar, referência, comparação)~~ → ~~P2 restante (Engineering Solver, Performance Index Finder)~~ → ~~P3 Part Cost Estimator (+ objetivo custo)~~ → **P3** (Eco Audit, Synthesizer) → P4.
 
-**A faixa P2 fechou.** O que resta são módulos inteiros que ainda não existem —
-nenhum deles pré-requisito de outro dentro da faixa —, e o primeiro deles, o
-**Part Cost Estimator**, é o que destrava o objetivo *custo* nos casos de carga:
-trocar ρ por ρ·Cm em cada agrupamento material é a mesma fatoração do
-[D-64](DECISIONS.md), e é por isso que o custo ficou nomeado como omissão ali em
-vez de improvisado.
+**A faixa P2 fechou, e o Part Cost Estimator saiu junto com o que ele
+destravava.** O custo ficou nomeado como omissão no [D-64](DECISIONS.md) em vez
+de improvisado porque dependia deste módulo; com ele no lugar, trocar ρ por ρ·Cm
+em cada agrupamento material é a mesma fatoração, e um caso de carga passou a
+nomear dois índices em vez de carregar duas derivações
+([D-65](DECISIONS.md)). O que resta da faixa P3 são dois módulos inteiros que
+ainda não existem — Eco Audit e Synthesizer —, nenhum deles pré-requisito do
+outro.
 
 ### O que isto não é
 

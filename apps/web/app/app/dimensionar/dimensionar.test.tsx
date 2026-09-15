@@ -34,11 +34,25 @@ const beam: LoadCase = {
   index_name: "Viga leve limitada por rigidez",
   index_expression: "sqrt(modulo_young) / densidade",
   index_goal: "maximize",
+  cost_index_slug: "viga-leve-rigidez-custo",
+  cost_index_name: "Viga barata limitada por rigidez",
+  cost_index_expression: "sqrt(modulo_young) / (densidade * custo_massa)",
+  cost_objective_label: "Minimizar custo de material",
   objective_unit: "kg",
   free_unit: "m**2",
   variables: [
-    { key: "comprimento", label: "Comprimento", unit: "m", help_text: "Vão livre." },
-    { key: "rigidez", label: "Rigidez exigida", unit: "N/m", help_text: "Força por deslocamento." },
+    {
+      key: "comprimento",
+      label: "Comprimento",
+      unit: "m",
+      help_text: "Vão livre.",
+    },
+    {
+      key: "rigidez",
+      label: "Rigidez exigida",
+      unit: "N/m",
+      help_text: "Força por deslocamento.",
+    },
     {
       key: "constante_apoio",
       label: "Constante de apoio e carregamento",
@@ -60,12 +74,18 @@ const beam: LoadCase = {
 const result: SolveResult = {
   case: beam,
   inputs: { comprimento: 0.8, rigidez: 200000, constante_apoio: 48 },
+  objective: "massa",
+  objective_label: "Minimizar massa",
+  index_slug: "viga-leve-rigidez",
+  index_name: "Viga leve limitada por rigidez",
+  index_expression: "sqrt(modulo_young) / densidade",
   structural_factor: 1234.5,
   free_structural_factor: 12.3,
   objective_unit: "kg",
   free_unit: "m**2",
   objective_dimension: "[mass]",
   free_dimension: "[length] ** 2",
+  objective_note: null,
   solved: [
     {
       record_id: 1,
@@ -105,7 +125,9 @@ vi.mock("@/lib/api", () => ({
 }));
 
 function wrap(node: ReactNode) {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
   return <QueryClientProvider client={client}>{node}</QueryClientProvider>;
 }
 
@@ -131,7 +153,10 @@ describe("Dimensionar", () => {
     await chooseBeam();
 
     expect(screen.getByText(beam.constraint_label)).toBeInTheDocument();
-    expect(screen.getByText(beam.objective_label)).toBeInTheDocument();
+    // A faceta do objetivo nomeia as duas leituras: a escolha é do leitor.
+    expect(
+      screen.getByText(/Minimizar massa ou minimizar custo de material/),
+    ).toBeInTheDocument();
     expect(screen.getByText(beam.free_variable_label)).toBeInTheDocument();
   });
 
@@ -139,7 +164,9 @@ describe("Dimensionar", () => {
     // Nunca reescrita na tela: duas cópias de uma fórmula viram duas respostas.
     await chooseBeam();
 
-    expect(screen.getByText("sqrt(modulo_young) / densidade")).toBeInTheDocument();
+    expect(
+      screen.getByText("sqrt(modulo_young) / densidade"),
+    ).toBeInTheDocument();
     expect(screen.getByText(beam.index_name!)).toBeInTheDocument();
   });
 
@@ -158,16 +185,26 @@ describe("Dimensionar", () => {
     // escrevendo o briefing.
     await chooseBeam();
 
-    expect(await screen.findByShadowRole("button", { name: t.solve })).toBeDisabled();
+    expect(
+      await screen.findByShadowRole("button", { name: t.solve }),
+    ).toBeDisabled();
   });
 
   it("dimensiona e mostra a massa de cada material", async () => {
     const user = userEvent.setup();
     await chooseBeam();
 
-    await user.type(await screen.findByShadowLabelText(/Comprimento/), "0,8".replace(",", "."));
-    await user.type(await screen.findByShadowLabelText(/Rigidez exigida/), "200000");
-    await user.click(await screen.findByShadowRole("button", { name: t.solve }));
+    await user.type(
+      await screen.findByShadowLabelText(/Comprimento/),
+      "0,8".replace(",", "."),
+    );
+    await user.type(
+      await screen.findByShadowLabelText(/Rigidez exigida/),
+      "200000",
+    );
+    await user.click(
+      await screen.findByShadowRole("button", { name: t.solve }),
+    );
 
     await screen.findByRole("heading", { name: t.resultStep });
     expect(screen.getByText("Alumínio 6061")).toBeInTheDocument();
@@ -179,13 +216,19 @@ describe("Dimensionar", () => {
     await chooseBeam();
 
     await user.type(await screen.findByShadowLabelText(/Comprimento/), "0.8");
-    await user.type(await screen.findByShadowLabelText(/Rigidez exigida/), "200000");
-    await user.click(await screen.findByShadowRole("button", { name: t.solve }));
+    await user.type(
+      await screen.findByShadowLabelText(/Rigidez exigida/),
+      "200000",
+    );
+    await user.click(
+      await screen.findByShadowRole("button", { name: t.solve }),
+    );
 
     await waitFor(() => expect(solveBrief).toHaveBeenCalledTimes(1));
     expect(solveBrief.mock.calls[0]![0]).toEqual({
       case_key: "viga-rigidez",
       inputs: { comprimento: 0.8, rigidez: 200000, constante_apoio: 48 },
+      objective: "massa",
     });
   });
 
@@ -195,8 +238,13 @@ describe("Dimensionar", () => {
     await chooseBeam();
 
     await user.type(await screen.findByShadowLabelText(/Comprimento/), "0.8");
-    await user.type(await screen.findByShadowLabelText(/Rigidez exigida/), "200000");
-    await user.click(await screen.findByShadowRole("button", { name: t.solve }));
+    await user.type(
+      await screen.findByShadowLabelText(/Rigidez exigida/),
+      "200000",
+    );
+    await user.click(
+      await screen.findByShadowRole("button", { name: t.solve }),
+    );
 
     await screen.findByText(t.excludedTitle);
     expect(screen.getByText(/Polímero sem módulo/)).toBeInTheDocument();
@@ -208,11 +256,131 @@ describe("Dimensionar", () => {
     await chooseBeam();
 
     await user.type(await screen.findByShadowLabelText(/Comprimento/), "0.8");
-    await user.type(await screen.findByShadowLabelText(/Rigidez exigida/), "200000");
-    await user.click(await screen.findByShadowRole("button", { name: t.solve }));
+    await user.type(
+      await screen.findByShadowLabelText(/Rigidez exigida/),
+      "200000",
+    );
+    await user.click(
+      await screen.findByShadowRole("button", { name: t.solve }),
+    );
 
     await screen.findByRole("heading", { name: t.resultStep });
-    expect(screen.getByText(new RegExp(t.structuralFactor))).toBeInTheDocument();
+    expect(
+      screen.getByText(new RegExp(t.structuralFactor)),
+    ).toBeInTheDocument();
     expect(screen.getByText(/1\.234,5/)).toBeInTheDocument();
+  });
+
+  // --- o objetivo custo (D-65) ---------------------------------------------
+
+  it("mostra o índice gêmeo de custo ao lado do de massa, antes de escolher", async () => {
+    // São duas leituras de uma derivação. Quem não vê as duas ao mesmo tempo
+    // não tem como notar que o fator estrutural não mudou.
+    await chooseBeam();
+
+    expect(screen.getByText(beam.cost_index_name!)).toBeInTheDocument();
+    expect(
+      screen.getByText("sqrt(modulo_young) / (densidade * custo_massa)"),
+    ).toBeInTheDocument();
+  });
+
+  it("pede o custo quando o objetivo escolhido é o custo", async () => {
+    const user = userEvent.setup();
+    await chooseBeam();
+
+    selectMwcOption(
+      await screen.findByShadowRole("combobox", { name: t.objectiveLabel }),
+      "custo",
+    );
+    await user.type(await screen.findByShadowLabelText(/Comprimento/), "0.8");
+    await user.type(
+      await screen.findByShadowLabelText(/Rigidez exigida/),
+      "200000",
+    );
+    await user.click(
+      await screen.findByShadowRole("button", { name: t.solve }),
+    );
+
+    await waitFor(() => expect(solveBrief).toHaveBeenCalledTimes(1));
+    expect(solveBrief.mock.calls[0]![0]!.objective).toBe("custo");
+  });
+
+  it("diz em que unidade o custo está e por que a dimensão sai como massa", async () => {
+    const user = userEvent.setup();
+    solveBrief.mockResolvedValue({
+      ...result,
+      objective: "custo",
+      objective_label: "Minimizar custo de material",
+      index_slug: "viga-leve-rigidez-custo",
+      index_name: "Viga barata limitada por rigidez",
+      index_expression: "sqrt(modulo_young) / (densidade * custo_massa)",
+      objective_unit: "unidade monetária não especificada",
+      objective_note:
+        "custo_massa é adimensional, então a dimensão sai como massa.",
+    });
+    await chooseBeam();
+
+    await user.type(await screen.findByShadowLabelText(/Comprimento/), "0.8");
+    await user.type(
+      await screen.findByShadowLabelText(/Rigidez exigida/),
+      "200000",
+    );
+    await user.click(
+      await screen.findByShadowRole("button", { name: t.solve }),
+    );
+
+    await screen.findByRole("heading", { name: t.resultStep });
+    expect(
+      screen.getByText(
+        new RegExp(`${t.columnObjectiveCost} \\(unidade monetária`),
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/adimensional/)).toBeInTheDocument();
+  });
+
+  it("não oferece a estimativa de custo a partir de um resultado que não é massa", async () => {
+    // O link leva `massa=` para /app/custo. Mandar um custo ali entregaria ao
+    // estimador um número de outra grandeza, e ele não teria como perceber.
+    const user = userEvent.setup();
+    solveBrief.mockResolvedValue({
+      ...result,
+      objective: "custo",
+      objective_unit: "unidade monetária não especificada",
+      objective_note: "custo_massa é adimensional.",
+    });
+    await chooseBeam();
+
+    await user.type(await screen.findByShadowLabelText(/Comprimento/), "0.8");
+    await user.type(
+      await screen.findByShadowLabelText(/Rigidez exigida/),
+      "200000",
+    );
+    await user.click(
+      await screen.findByShadowRole("button", { name: t.solve }),
+    );
+
+    await screen.findByRole("heading", { name: t.resultStep });
+    expect(
+      screen.queryByRole("link", { name: ptBR.cost.fromSolver }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("oferece a estimativa de custo com a massa que acabou de calcular", async () => {
+    const user = userEvent.setup();
+    await chooseBeam();
+
+    await user.type(await screen.findByShadowLabelText(/Comprimento/), "0.8");
+    await user.type(
+      await screen.findByShadowLabelText(/Rigidez exigida/),
+      "200000",
+    );
+    await user.click(
+      await screen.findByShadowRole("button", { name: t.solve }),
+    );
+
+    await screen.findByRole("heading", { name: t.resultStep });
+    expect(
+      screen.getByRole("link", { name: ptBR.cost.fromSolver }),
+    ).toHaveAttribute("href", "/app/custo?material=1&massa=0.402");
   });
 });
