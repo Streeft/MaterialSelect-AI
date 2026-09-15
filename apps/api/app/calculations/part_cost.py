@@ -138,6 +138,13 @@ class UncostedProcess:
     reason: str
 
 
+#: Wall-clock hours in a year. Written once because two modules need the same
+#: year: this estimator turns it into machine time with a load factor, and the
+#: eco audit turns it into service time with a duty cycle. A year that differed
+#: between them would be a difference nobody could see in either answer.
+HOURS_PER_YEAR = 8760.0
+
+
 def _hours_per_year(write_off_years: float) -> float:
     """Available hours in the write-off horizon, before the load factor.
 
@@ -145,7 +152,7 @@ def _hours_per_year(write_off_years: float) -> float:
     turns it into running time, and keeping the two separate is what lets a
     reader change one without silently changing the other.
     """
-    return 8760.0 * write_off_years
+    return HOURS_PER_YEAR * write_off_years
 
 
 def cost_terms(

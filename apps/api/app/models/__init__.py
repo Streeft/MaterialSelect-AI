@@ -23,6 +23,7 @@ from app.models.material import Material
 from app.models.material_class import MaterialClass
 from app.models.material_keyword import MaterialKeyword
 from app.models.material_property_value import MaterialPropertyValue
+from app.models.material_synthesis import MaterialSynthesis
 from app.models.my_records import Favorite, RecentRecord
 from app.models.performance_index import PerformanceIndex
 from app.models.process import MaterialProcess, Process, ProcessClass
@@ -42,6 +43,7 @@ from app.models.selection import (
 )
 from app.models.source import Source
 from app.models.subscription import Subscription
+from app.models.transport_mode import TransportMode
 from app.models.user import User, UserSession
 
 __all__ = [
@@ -65,6 +67,7 @@ __all__ = [
     "MaterialKeyword",
     "MaterialProcess",
     "MaterialPropertyValue",
+    "MaterialSynthesis",
     "PerformanceIndex",
     "Process",
     "ProcessAttributeDefinition",
@@ -83,6 +86,7 @@ __all__ = [
     "Source",
     "SourceAuthority",
     "Subscription",
+    "TransportMode",
     "User",
     "UserSession",
 ]

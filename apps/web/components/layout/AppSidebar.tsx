@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState, type ComponentType, type SVGProps } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ComponentType,
+  type SVGProps,
+} from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
@@ -11,6 +17,7 @@ import { ptBR } from "@/lib/i18n";
 import { Badge, IconButton, ThemeToggle } from "@/components/ui";
 import { useFocusTrap } from "@/components/ui/focusTrap";
 import {
+  IconBlend,
   IconBook,
   IconClose,
   IconCompare,
@@ -18,6 +25,7 @@ import {
   IconGauge,
   IconHome,
   IconLayers,
+  IconLeaf,
   IconLogout,
   IconMenu,
   IconPanelLeft,
@@ -68,6 +76,10 @@ const GROUPS: NavGroup[] = [
       // são a mesma derivação lida de dois jeitos.
       { href: "/app/dimensionar", label: t.solver, icon: IconRuler },
       { href: "/app/custo", label: t.cost, icon: IconGauge },
+      // P3: a auditoria ambiental fica ao lado do custo porque as duas
+      // respondem à mesma pergunta em moedas diferentes — o que esta peça
+      // custa, em dinheiro e em energia.
+      { href: "/app/eco", label: t.eco, icon: IconLeaf },
     ],
   },
   {
@@ -78,6 +90,10 @@ const GROUPS: NavGroup[] = [
       // P1-4: o segundo universo passa a ter porta de entrada. Sem isto ele só
       // era alcançável de dentro de um estágio ou da ficha de um material.
       { href: "/app/processos", label: t.processes, icon: IconLayers },
+      // P3: sintetizar cria um registro, e um registro próprio — por isso
+      // fica em "Dados", ao lado de onde ele vai aparecer, e não em
+      // "Estudar", que é onde se decide com registros que já existem.
+      { href: "/app/sintetizar", label: t.synthesis, icon: IconBlend },
       { href: "/app/meus-registros", label: t.myRecords, icon: IconStar },
       { href: "/app/painel", label: t.dashboard, icon: IconGauge },
       { href: "/app/importar", label: t.imports, icon: IconUpload },
@@ -188,7 +204,11 @@ function NavGroupList({
       <ul aria-labelledby={labelId} className="flex flex-col gap-0.5">
         {group.items.map((item) => (
           <li key={item.href}>
-            <NavLink item={item} active={isActive(pathname, item.href)} collapsed={collapsed} />
+            <NavLink
+              item={item}
+              active={isActive(pathname, item.href)}
+              collapsed={collapsed}
+            />
           </li>
         ))}
       </ul>
@@ -197,7 +217,13 @@ function NavGroupList({
 }
 
 /** The brand, which is also the link to home. */
-function BrandLink({ pathname, collapsed = false }: { pathname: string; collapsed?: boolean }) {
+function BrandLink({
+  pathname,
+  collapsed = false,
+}: {
+  pathname: string;
+  collapsed?: boolean;
+}) {
   return (
     <Link
       href="/app"
@@ -214,7 +240,9 @@ function BrandLink({ pathname, collapsed = false }: { pathname: string; collapse
       >
         M
       </span>
-      <span className={cn("font-semibold text-rail-ink", collapsed && "sr-only")}>
+      <span
+        className={cn("font-semibold text-rail-ink", collapsed && "sr-only")}
+      >
         {ptBR.appName}
       </span>
     </Link>
@@ -247,9 +275,17 @@ function UserFooter({ collapsed = false }: { collapsed?: boolean }) {
   }
 
   return (
-    <div className={cn("flex items-center gap-2", collapsed ? "flex-col" : "justify-between")}>
+    <div
+      className={cn(
+        "flex items-center gap-2",
+        collapsed ? "flex-col" : "justify-between",
+      )}
+    >
       <div
-        className={cn("flex min-w-0 items-center gap-2", collapsed && "flex-col")}
+        className={cn(
+          "flex min-w-0 items-center gap-2",
+          collapsed && "flex-col",
+        )}
         title={collapsed ? user.name : undefined}
       >
         {user.avatar_url ? (
@@ -271,7 +307,9 @@ function UserFooter({ collapsed = false }: { collapsed?: boolean }) {
           </span>
         )}
         {!collapsed && (
-          <span className="truncate text-xs font-medium text-rail-ink-muted">{user.name}</span>
+          <span className="truncate text-xs font-medium text-rail-ink-muted">
+            {user.name}
+          </span>
         )}
       </div>
       <IconButton
@@ -315,7 +353,9 @@ export function AppSidebar() {
     setOpen(false);
   }, [pathname]);
 
-  const collapseLabel = collapsed ? ptBR.ui.expandSidebar : ptBR.ui.collapseSidebar;
+  const collapseLabel = collapsed
+    ? ptBR.ui.expandSidebar
+    : ptBR.ui.collapseSidebar;
 
   return (
     <>
@@ -365,7 +405,11 @@ export function AppSidebar() {
         >
           <ul className="flex flex-col gap-0.5">
             <li>
-              <NavLink item={HOME} active={isActive(pathname, HOME.href)} collapsed={collapsed} />
+              <NavLink
+                item={HOME}
+                active={isActive(pathname, HOME.href)}
+                collapsed={collapsed}
+              />
             </li>
           </ul>
           {GROUPS.map((group) => (
@@ -392,7 +436,14 @@ export function AppSidebar() {
               size="sm"
               label={collapseLabel}
               title={collapseLabel}
-              icon={<IconPanelLeft className={cn("transition-transform", collapsed && "rotate-180")} />}
+              icon={
+                <IconPanelLeft
+                  className={cn(
+                    "transition-transform",
+                    collapsed && "rotate-180",
+                  )}
+                />
+              }
               aria-expanded={!collapsed}
               aria-controls="navegacao-lateral"
               onClick={() => setCollapsed((value) => !value)}

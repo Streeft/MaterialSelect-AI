@@ -3291,3 +3291,97 @@ custo (segunda verdade, [D-35](#d-35)); esconder o horizonte de amortização co
 constante; e custo como objetivo em **estudo de processos**, que continua fora —
 um processo não tem `custo_massa`, e a pergunta ali é a do estimador, não a do
 solver.
+
+## D-66 — Uma auditoria ambiental responde qual fase domina, e recusa o pódio quando falta uma fase
+
+**Contexto.** *Eco Audit* é a linha em **0** que restava na faixa P3 da matriz do
+§5 de [`14-plataforma-selecao.md`](14-plataforma-selecao.md), e a única que a
+matriz marca como dependente de "A ampliado" — o catálogo de materiais precisava
+crescer para acomodá-la. Um eco audit soma energia e carbono de uma peça em cinco
+fases (material, manufatura, transporte, uso, fim de vida), e **a resposta não é
+o total**: é qual fase domina, porque é nela que esforço de projeto muda alguma
+coisa. Uma porta de carro se decide na fase de uso; uma sacola plástica, na de
+material. Acertar o total e errar a dominância seria uma auditoria que lê bem e
+engana.
+
+**Decisão.**
+
+**1. A fase de uso tem dois modelos, e eles não são variantes de um.** Uma
+geladeira gasta energia porque funciona — `estatico`: potência × tempo, e a massa
+da peça **não aparece em lugar nenhum**. Um painel de carro gasta porque alguém o
+carrega — `movel`: massa × distância × intensidade. Escolher errado **inverte** a
+auditoria: aliviar a peça economiza muito num modelo e *exatamente nada* no
+outro. Por isso o modelo é escolha declarada que carrega os próprios campos, os
+campos do outro modelo são **recusados e não ignorados** (a regra que o
+[D-56](#d-56) deu ao estágio de seleção, pela mesma razão: um número que o leitor
+digitou e a soma não contém), e a resposta diz qual rodou.
+
+**2. A fase de material é cobrada sobre a massa comprada, não sobre a massa da
+peça.** Um processo que refuga um quinto do material faz a fundição fundir um
+quinto a mais, e essa energia foi gasta tenha ou não saído no produto:
+`massa comprada = massa / (1 − f)`, a mesma fatoração que o [D-65](#d-65) usou no
+termo de material do custo. Daí decorre uma exigência que parece arbitrária e não
+é: **uma auditoria aqui precisa de processo**. Auditar uma peça é auditar *fazer*
+a peça — sem processo não há fase de manufatura nem fração de refugo, e sem a
+fração de refugo a massa comprada teria de ser adivinhada, que é um zero
+disfarçado. A consequência boa é que um processo perdulário **aumenta também a
+fase de material**, não só a de manufatura, e é isso que o leitor precisa ver.
+
+**3. A reciclagem aparece duas vezes e nunca se cancela.** Ela é energia
+**gasta** no fim desta vida (a rota `reciclagem`) e energia **poupada** no início
+da próxima (o teor reciclado de quem comprar o material). Abater um crédito de
+reciclagem do total desta peça é escolha de método que normas diferentes fazem de
+maneira diferente, então este módulo **não a faz**: reporta a energia da própria
+rota e deixa o crédito onde ele pertence, na fase de material da próxima
+auditoria. A nota que diz isso viaja com toda resposta.
+
+**4. Auditoria incompleta não se resume, só se lista.** Faltando o dado de
+qualquer fase, a **fase dominante é recusada com o motivo escrito** — a fase que
+ninguém calculou pode ser justamente a que domina — e o **total também**, porque
+uma soma sobre quatro das cinco fases é uma parcela que parece um total. É o
+princípio 3 aplicado a uma *estatística de resumo* em vez de a uma célula, e é a
+recusa que o leitor mais vai encontrar: **aterro e incineração não têm energia
+catalogada nesta versão e não viram zero**. Um aterro de custo zero faria enterrar
+a peça parecer a coisa mais barata que se pode fazer com ela, que é exatamente a
+falácia que uma auditoria ambiental existe para desfazer.
+
+**5. Os dois pódios são independentes, e podem discordar.** Energia e carbono
+leem dados catalogados diferentes, então uma fase pode ser conhecida em MJ e
+desconhecida em kg de CO₂. Cada grandeza tem a sua ausência, o seu motivo escrito
+(D-24) e o seu pódio. Quando a rede elétrica é limpa, a fase que domina em
+energia não é a que domina em carbono — e mostrar as duas é o que torna isso
+visível em vez de acidental.
+
+**6. A energia é auditada pelo Pint; o carbono, por declaração.** MJ/kg é
+dimensão que o sistema de unidades conhece, então toda energia aqui é derivada
+como o D-64 deriva uma massa. Uma pegada de CO₂ é quilograma de uma substância
+por quilograma de outra, e o Pint não tem noção de substância — ele reduz a razão
+a adimensional, exatamente como faz com dinheiro ([D-65](#d-65)), por motivo
+diferente e com o mesmo dever: dizer em palavras. `pegada_co2` e `co2_reciclagem`
+são adimensionais no catálogo e "kg de CO₂" em toda superfície que os imprime.
+
+**7. `TransportMode` é tabela própria, e não material nem processo.** Não é
+material porque nada nele é propriedade da matéria. E **não é processo** no
+sentido do [D-57](#d-57): um `Process` se liga a materiais por `material_process`,
+e é essa junção que faz do Tree Stage uma junção entre tabelas. Um navio não é
+compatível com um material, e semeá-lo como processo poria uma linha sem sentido
+dentro de um estágio de seleção que se lê como se tivesse sentido. As duas
+intensidades são **colunas simples e não o trilho de proveniência**, com a
+justificativa escrita no modelo: o trilho existe para sobreviver a importação e
+digitação, e não há nem uma nem outra em v1 — quatro linhas semeadas com dois
+números cada. O compromisso do M1 sobrevive: a linha nomeia a sua `Source`.
+
+**Como se verifica.** Seis mutações sobre a camada de cálculo, todas apanhadas:
+multiplicar em vez de dividir pela fração de refugo; deixar o pódio ignorar as
+fases ausentes; multiplicar a fase estática pela massa; somar as fases que
+existem em vez de recusar o total; trocar as duas frações do teor reciclado; e
+cobrar o fim de vida sobre a massa comprada. Sobre o catálogo semeado, os testes
+de API provam que as lacunas plantadas de propósito chegam à resposta como motivo
+escrito: a cerâmica e o compósito sem figura de reciclagem (os casos clássicos de
+"não se recicla de rotina") e o modal ferroviário sem intensidade de carbono.
+
+**O que se recusou.** Abater crédito de reciclagem (escolha de método, não de
+implementação); tratar aterro como zero; um modelo de uso único com a massa
+entrando "quando fizer sentido" (seria a inversão silenciosa que o item inteiro
+existe para evitar); modais como processos; e um pódio calculado sobre as fases
+disponíveis, que é a versão desta ferramenta do gráfico com eixo truncado.
