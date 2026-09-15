@@ -364,6 +364,50 @@ Processo sem um dos cinco atributos econômicos que o modelo exige sai em
 ferramental em branco faria o processo mais capital-intensivo parecer o mais
 barato.
 
+## Auditoria ambiental (`app/calculations/eco_audit.py`)
+
+O estimador de custo responde quanto custa fazer a peça em dinheiro. Esta
+responde em **energia e carbono**, sobre cinco fases — material, manufatura,
+transporte, uso e fim de vida ([D-66](DECISIONS.md)). E a resposta **não é o
+total**: é qual fase domina, porque é nela que esforço de projeto muda alguma
+coisa. Uma porta de carro se decide na fase de uso; uma sacola plástica, na de
+material.
+
+**A fase de uso tem dois modelos, e eles não são variantes de um:**
+
+| Modelo | Conta | A massa da peça |
+|---|---|---|
+| `estatico` | potência × horas em serviço | **não entra** |
+| `movel` | massa × distância percorrida × intensidade | fator linear |
+
+Escolher errado inverte a auditoria: aliviar a peça economiza muito num modelo e
+*exatamente nada* no outro. Por isso o modelo é escolha declarada que carrega os
+próprios campos, e **os campos do outro modelo são recusados, nunca ignorados** —
+um número que o leitor digitou e a soma não contém é pior do que um erro.
+
+**A fase de material é cobrada sobre a massa comprada**, `massa / (1 − f)`, a
+mesma fatoração do termo de material do custo (D-65). Daí a auditoria exigir um
+processo: auditar uma peça é auditar *fazer* a peça. A consequência boa é que um
+processo perdulário aumenta **também** a fase de material, não só a de manufatura.
+
+**A reciclagem aparece duas vezes e nunca se cancela:** energia gasta no fim
+desta vida, energia poupada no início da próxima (pelo teor reciclado de quem
+comprar o material). Abater crédito é escolha de método que normas diferentes
+fazem diferente, e este módulo não a faz.
+
+**Auditoria incompleta não se resume, só se lista.** Faltando o dado de qualquer
+fase, a fase dominante é recusada com o motivo escrito — a fase que ninguém
+calculou pode ser justamente a que domina — e o total também. Aterro e
+incineração não têm energia catalogada nesta versão e **não viram zero**: um
+aterro grátis faria enterrar a peça parecer a coisa mais barata que se pode fazer
+com ela.
+
+Energia e carbono têm **pódios independentes**, porque leem dados diferentes e
+podem discordar — com rede elétrica limpa, a fase que domina em energia não é a
+que domina em carbono. A energia é derivada pelo Pint em MJ; o carbono é dito em
+palavras ("kg de CO₂"), porque uma razão entre massas de substâncias diferentes
+o Pint reduz a adimensional, como faz com dinheiro.
+
 ## Ranking multicritério (`app/domain/ranking.py`)
 
 Soma ponderada normalizada. Cada critério tem uma direção (maior/menor é melhor),
