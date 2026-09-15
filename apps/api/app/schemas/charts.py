@@ -224,12 +224,37 @@ class PropertyMapOut(BaseModel):
 # --- Comparison ------------------------------------------------------------
 
 
+#: Why a percentage difference is or is not a number, per cell (P2).
+#:
+#: Six states and not a nullable float, because every absence here has a
+#: *different* reason and the reader needs the one that applies: a blank cell
+#: where the reference has no value and a blank cell where the unit has no true
+#: zero look identical and mean nothing alike (D-24).
+DifferenceState = Literal[
+    "calculada",  # a number is present
+    "referencia",  # this row *is* the reference
+    "sem_referencia",  # no reference was chosen
+    "valor_ausente",  # this material has no value for the property
+    "referencia_ausente",  # the reference has no value for the property
+    "referencia_zero",  # the reference's value is zero: no ratio exists
+    "escala_sem_zero",  # the unit has no true zero, so a ratio means nothing
+]
+
+
 class CompareRequest(BaseModel):
-    """Compare a handful of materials over a handful of properties."""
+    """Compare a handful of materials over a handful of properties.
+
+    ``reference_id`` (P2) is **a parameter of the question, not stored state**.
+    "Compared against X" is something a reader asks, not a fact about the
+    catalogue, so it travels in the request and — through the URL state the
+    screen already keeps (B1) — in the link. A server-side "current reference"
+    would make the same URL render two different tables for two people.
+    """
 
     material_ids: list[int] = Field(min_length=1, max_length=MAX_COMPARE_MATERIALS)
     property_slugs: list[str] = Field(min_length=1, max_length=MAX_COMPARE_PROPERTIES)
     normalization: NormalizationLiteral = "minmax"
+    reference_id: int | None = None
 
 
 class CompareAxisOut(BaseModel):
@@ -269,6 +294,11 @@ class CompareCellOut(BaseModel):
     data_quality: DataQuality | None = None
     source_label: str | None = None
     measurement_condition: str | None = None
+    #: Percentage difference from the reference, in canonical units (P2).
+    #: ``None`` whenever ``difference_state`` is anything but ``"calculada"`` —
+    #: and the state, never a dash, is what the screen renders in that case.
+    difference_pct: float | None = None
+    difference_state: DifferenceState = "sem_referencia"
 
 
 class CompareMaterialOut(BaseModel):

@@ -473,7 +473,49 @@ mas não passou pela revisão de fonte e licença do M1. O canário
 varredura no dia em que nasce — **e não pega omissão por construção**, o que
 custou um defeito real registrado no D-62.
 
-1297 testes de backend (nenhum skip) e 286 de frontend, todos verdes. CI no
+**O P2 deu o fim do fluxo do manual** ([D-63](docs/DECISIONS.md)):
+`Datasheet → Find Similar → Comparison Table`. Duas perguntas carregam o item, e
+nenhuma é de implementação. **Em que espaço se mede distância entre materiais:**
+log onde `allows_log_scale` permite — a mesma bandeira que os gráficos leem,
+para figura e semelhança não discordarem —, escalada pela dispersão do conjunto
+e **promediada, não somada**, senão a base mais larga pareceria mais distante
+por ter respondido mais. A queda para linear é **da propriedade no run, nunca de
+um registro**. **E quando um percentual significa algo:** só em escala de razão,
+decidido por `units.is_ratio_scale` **comportamentalmente** (dobrar a magnitude
+dobra a grandeza) e não por tabela privada do Pint — 20 °C não é o dobro de
+10 °C. A **base é tudo ou nada** e volta na resposta, com os excluídos nomeados:
+lista ranqueada sem a base que a produziu é veredito, não resultado. A
+**referência é parâmetro da pergunta** e vive na URL (B1), nunca no servidor —
+senão a mesma URL desenharia duas tabelas. As **cinco maneiras de não haver
+percentual** têm cada uma sua frase (D-24), e a ordem entre "a linha não tem" e
+"a referência não tem" está fixada por teste: a culpa é da referência, porque
+consertá-la conserta a coluna.
+
+**O P2 restante fechou a faixa** ([D-64](docs/DECISIONS.md)), e a primeira coisa
+que o desenho mostra é que **Engineering Solver e Performance Index Finder são
+uma derivação só**: o Finder a lê simbolicamente ("qual índice esta combinação
+produz?"), o Solver numericamente ("quantos quilos dá?"). Separá-los criaria as
+duas verdades que o D-60 e o D-63 recusaram cada um na sua camada. Daí
+`app/calculations/load_cases.py`: sete casos padrão — tirante por rigidez, por
+resistência e por escoamento; viga por rigidez e por momento; placa por rigidez;
+coluna por flambagem —, cada um com a derivação escrita por extenso e a fatoração
+de Ashby tornada literal: **`massa = fator estrutural / índice`**. O fator
+estrutural só nomeia variável de projeto, o índice só nomeia slug de propriedade,
+e **o índice é lido do catálogo pelo slug** e nunca escrito no caso — a regra do
+D-35, pela mesma razão. `_validate` recusa **no import** um caso cuja expressão
+estrutural saia do seu espaço de nomes: nome compartilhado deixaria um dado de
+projeto sombrear uma propriedade, e o número continuaria plausível. **A variável
+livre não é sempre a área** — na placa o desenho fixa a área em planta e libera a
+espessura —, então cada caso declara qual libera e em que unidade, e a prova
+dimensional lê a unidade declarada. Um caso de carga mora em **código e não em
+tabela**, ao contrário da família de processo do D-57, porque é argumento e não
+dado: argumento se verifica por revisão, como `units.py`. Viga em flexão e coluna
+em flambagem caem no **mesmo** índice, e o documento diz por quê. A condição de
+apoio é **escolha visível**, não constante escondida. Custo como objetivo fica
+nomeado como omissão de v1: trocaria ρ por ρ·Cm em todo agrupamento material, e
+depende do Part Cost Estimator (P3).
+
+1432 testes de backend (nenhum skip) e 308 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
 PROJECT_CONTEXT.md).

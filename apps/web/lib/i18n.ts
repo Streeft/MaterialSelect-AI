@@ -33,6 +33,7 @@ export const ptBR = {
     selection: "Seleção",
     maps: "Mapas",
     compare: "Comparar",
+    solver: "Dimensionar",
     dashboard: "Painel",
     imports: "Importar",
     classes: "Classes",
@@ -597,6 +598,74 @@ export const ptBR = {
     laudoResponsibleLabel: "Responsável técnico (opcional)",
     laudoResponsiblePlaceholder: "Nome de quem assina a leitura",
   },
+  similar: {
+    title: "Materiais semelhantes",
+    hint: "Escolha em que aspectos \u201Csemelhante\u201D quer dizer. A distância é medida só sobre essas propriedades.",
+    basisLabel: "Comparar por",
+    basisEmpty: "Escolha ao menos uma propriedade para comparar.",
+    search: "Buscar semelhantes",
+    loading: "Procurando semelhantes…",
+    empty: "Nenhum material pôde ser comparado nesta base.",
+    // A distância só é comparável dentro de uma resposta: a escala vem da
+    // dispersão daquele conjunto. Dizê-lo evita que o número seja lido como
+    // uma medida absoluta.
+    distanceHint:
+      "A distância é adimensional e só se compara dentro desta resposta: a escala vem da dispersão deste conjunto.",
+    distance: "Distância",
+    basisUsed: "Base usada",
+    excludedTitle: "Fora desta comparação",
+    excludedHint:
+      "Sem valor para alguma propriedade da base. Não foram comparados pelo que têm — seria outra pergunta na mesma lista.",
+    excludedMissing: "sem",
+    degenerateTitle: "Não separaram ninguém",
+    degenerateHint:
+      "Todos os registros têm o mesmo valor: a propriedade não contribuiu para a distância.",
+    linearTitle: "Medidas em escala linear",
+    linearHint:
+      "Pediam escala logarítmica, mas algum registro tem valor não positivo — e log não existe ali.",
+  },
+
+  solver: {
+    title: "Dimensionar",
+    subtitle:
+      "Escolha o caso de carga, informe os números do projeto e veja quanto a peça pesaria em cada material.",
+    caseStep: "1. O caso de carga",
+    caseLabel: "Caso",
+    caseHint:
+      "Função, restrição e objetivo. É essa combinação que determina o índice de desempenho.",
+    facetFunction: "Função",
+    facetConstraint: "Restrição",
+    facetObjective: "Objetivo",
+    facetFree: "Variável livre",
+    facetFixed: "Fixado pelo projeto",
+    derivationTitle: "Como o índice sai daí",
+    derivationHint:
+      "A conta está escrita para poder ser refeita à mão. O índice não é escrito aqui: é lido do catálogo.",
+    indexTitle: "Índice que este caso produz",
+    inputsStep: "2. Os números do projeto",
+    inputsHint:
+      "Cada valor vai na unidade indicada. Todos precisam ser maiores que zero.",
+    supportLabel: "Apoio e carregamento",
+    solve: "Dimensionar",
+    solving: "Dimensionando…",
+    resultStep: "3. O resultado",
+    resultEmpty: "Nenhum material pôde ser dimensionado com estes dados.",
+    // Fator estrutural: só geometria e carga, igual para todo material do run.
+    // Mostrá-lo é o que permite conferir uma massa à mão.
+    structuralFactor: "Fator estrutural",
+    structuralFactorHint:
+      "Só geometria e carga — o mesmo número para todo material desta execução. Massa = fator estrutural ÷ índice.",
+    columnMaterial: "Material",
+    columnIndex: "Índice",
+    columnObjective: "Massa",
+    columnFree: "Seção necessária",
+    excludedTitle: "Fora deste dimensionamento",
+    excludedHint:
+      "Sem valor para alguma propriedade que o caso exige. Não foram dimensionados por estimativa — ausência não vira zero.",
+    unitNote: "A unidade de cada resposta é derivada das unidades canônicas, não declarada à mão.",
+  },
+
+
   myRecords: {
     title: "Meus registros",
     subtitle: "O que você marcou, o que abriu por último e o que cadastrou para si.",
@@ -859,6 +928,21 @@ export const ptBR = {
     columnMax: "Máximo",
   },
   compare: {
+    // P2: a referência é parâmetro da pergunta, nunca estado no servidor.
+    reference: "Referência",
+    setReference: "Definir como referência",
+    clearReference: "Limpar referência",
+    isReference: "Esta é a referência",
+    differenceHeader: "Dif. %",
+    // Cada ausência tem razão própria, e todas parecem célula em branco (D-24).
+    difference: {
+      sem_referencia: "Sem referência escolhida",
+      referencia: "Referência",
+      valor_ausente: "Este material não tem o valor",
+      referencia_ausente: "A referência não tem o valor",
+      referencia_zero: "A referência vale zero: não há razão",
+      escala_sem_zero: "Escala sem zero verdadeiro: percentual não significa nada",
+    },
     title: "Comparador de materiais",
     subtitle:
       "Tabela, barras, radar, coordenadas paralelas e heatmap sobre valores normalizados no backend.",

@@ -6,6 +6,10 @@ import type { ReactNode } from "react";
 import { ptBR } from "@/lib/i18n";
 import { Landing } from "@/components/marketing/Landing";
 import { describeViolations, findA11yViolations } from "@/lib/testing/axe";
+// The load-case picker is an `md-outlined-select`: the real combobox lives in
+// its shadow root, where the plain `screen` above cannot reach.
+import { screen as shadowScreen } from "shadow-dom-testing-library";
+import { selectMwcOption } from "@/lib/testing/mwc";
 import type {
   AIStatus,
   ChartData,
@@ -15,6 +19,7 @@ import type {
   MaterialClassDetail,
   MaterialDetail,
   MaterialListItem,
+  LoadCase,
   PerformanceIndex,
   Process,
   ProcessClass,
@@ -23,6 +28,7 @@ import type {
   PropertyDefinition,
   PropertyDistribution,
   PropertyMap,
+  SolveResult,
   StudySummary,
 } from "@/lib/types";
 
@@ -266,6 +272,8 @@ const comparison: Comparison = {
           data_quality: "MEDIDO",
           source_label: "ASM",
           measurement_condition: null,
+          difference_pct: null,
+          difference_state: "sem_referencia",
         },
       ],
     },
@@ -293,6 +301,8 @@ const comparison: Comparison = {
           data_quality: null,
           source_label: null,
           measurement_condition: null,
+          difference_pct: null,
+          difference_state: "sem_referencia",
         },
       ],
     },
@@ -593,6 +603,89 @@ const materialFamily: MaterialClassDetail = {
   descendant_material_count: 2,
 };
 
+
+// P2: um caso de carga e uma resposta de dimensionamento. O caso traz a
+// derivação inteira porque é ela que a tela abre num <details> — auditar a
+// tela sem ela auditaria metade.
+const loadCases: LoadCase[] = [
+  {
+    key: "viga-rigidez",
+    label: "Viga em flexão, rigidez especificada",
+    summary: "Viga que não pode fletir mais do que o projeto admite.",
+    function_label: "Viga em flexão, rigidez especificada",
+    constraint_label: "Rigidez à flexão S especificada",
+    objective_label: "Minimizar massa",
+    free_variable_label: "Área da seção A",
+    fixed_labels: ["Comprimento L", "Rigidez S"],
+    derivation: [
+      "Objetivo: m = A · L · ρ.",
+      "Restrição: S = C · E · I / L³.",
+      "Isolando a variável livre: A = √(12 · S · L³ / (C · E)).",
+      "Minimizar a massa é maximizar √E/ρ.",
+    ],
+    reference: "Ashby, Material Selection in Mechanical Design",
+    index_slug: "viga-leve-rigidez",
+    index_name: "Viga leve limitada por rigidez",
+    index_expression: "sqrt(modulo_young) / densidade",
+    index_goal: "maximize",
+    objective_unit: "kg",
+    free_unit: "m**2",
+    variables: [
+      { key: "comprimento", label: "Comprimento", unit: "m", help_text: "Vão livre." },
+      { key: "rigidez", label: "Rigidez exigida", unit: "N/m", help_text: "Força por deslocamento." },
+      {
+        key: "constante_apoio",
+        label: "Constante de apoio e carregamento",
+        unit: "dimensionless",
+        help_text: "Constante C da flecha.",
+      },
+    ],
+    supports: [
+      {
+        key: "biapoiada-central",
+        label: "Biapoiada, carga no meio do vão",
+        variable_key: "constante_apoio",
+        value: 48,
+        note: null,
+      },
+    ],
+  },
+];
+
+const solveResult: SolveResult = {
+  case: loadCases[0]!,
+  inputs: { comprimento: 0.8, rigidez: 200000, constante_apoio: 48 },
+  structural_factor: 1234.5,
+  free_structural_factor: 12.3,
+  objective_unit: "kg",
+  free_unit: "m**2",
+  objective_dimension: "[mass]",
+  free_dimension: "[length] ** 2",
+  solved: [
+    {
+      record_id: 1,
+      name: "Alumínio 6061",
+      class_name: "Metais",
+      class_slug: "metais",
+      is_demo: false,
+      is_own_record: false,
+      rank: 1,
+      index_value: 3070,
+      objective_value: 0.402,
+      free_value: 0.00018,
+    },
+  ],
+  excluded: [
+    {
+      record_id: 2,
+      name: "Polímero sem módulo",
+      missing_slugs: ["modulo_young"],
+      missing_labels: ["Módulo de Young"],
+      reason: "Dados ausentes: modulo_young",
+    },
+  ],
+};
+
 vi.mock("@/lib/api", async (importOriginal) => ({
   ApiError: (await importOriginal<typeof import("@/lib/api")>()).ApiError,
   // P1-4: a ficha traz a estrela e anota a visita, então toda tela de registro
@@ -612,6 +705,8 @@ vi.mock("@/lib/api", async (importOriginal) => ({
   listProcessAttributes: () => Promise.resolve([]),
   listProperties: () => Promise.resolve(properties),
   listPerformanceIndices: () => Promise.resolve(indices),
+  listLoadCases: () => Promise.resolve(loadCases),
+  solveBrief: () => Promise.resolve(solveResult),
   getPropertyMap: () => Promise.resolve(propertyMap),
   getComparison: () => Promise.resolve(comparison),
   getMaterial: () => Promise.resolve(materialDetail),
@@ -679,6 +774,7 @@ const { default: ProcessDetailPage } = await import("./processos/[slug]/page");
 const { default: ProcessFamilyPage } = await import("./processos/familia/[slug]/page");
 const { default: MaterialFamilyPage } = await import("./catalogo/[slug]/page");
 const { default: MyRecordsPage } = await import("./meus-registros/page");
+const { default: SolverPage } = await import("./dimensionar/page");
 
 function makeClient() {
   return new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -797,6 +893,25 @@ describe("acessibilidade das telas principais", () => {
   // justamente o estado que um teste de conteúdo tenderia a pular.
   it("meus registros", async () => {
     await auditRoute(<MyRecordsPage />, ptBR.myRecords.title);
+  });
+
+  // P2: sem caso escolhido a tela é um <select> e nada mais — auditá-la ali
+  // não tocaria no formulário de projeto, na derivação nem na tabela, que é
+  // onde moram os rótulos. O caso não vem pré-escolhido de propósito (escolher
+  // por alguém qual é o problema seria o oposto do que o Finder serve), então
+  // o teste escolhe, como um leitor escolheria.
+  it("dimensionar, com o caso escolhido e o formulário montado", async () => {
+    const client = makeClient();
+    const { container } = render(wrap(<SolverPage />, client));
+    await screen.findByRole("heading", { name: ptBR.solver.title });
+    await waitFor(() => expect(client.isFetching()).toBe(0));
+
+    selectMwcOption(
+      await shadowScreen.findByShadowRole("combobox", { name: ptBR.solver.caseLabel }),
+      "viga-rigidez",
+    );
+    await screen.findByRole("heading", { name: ptBR.solver.inputsStep });
+    await expectClean(container);
   });
 
   // Landing is the one route in this file that isn't under `/app`: no session,

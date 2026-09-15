@@ -46,6 +46,7 @@ from app.routers import (
     properties,
     saved_charts,
     selection,
+    solver,
     sources,
 )
 
@@ -206,6 +207,9 @@ app.include_router(
 )
 app.include_router(
     sources.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
+)
+app.include_router(
+    solver.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
 )
 
 
