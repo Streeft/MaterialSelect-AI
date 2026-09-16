@@ -27,6 +27,7 @@ from app.domain.data_quality import (
     build_scalar_value,
     missing_value,
 )
+from app.models.battery_chemistry import BatteryChemistry
 from app.models.enums import (
     BetterDirection,
     DataQuality,
@@ -277,7 +278,367 @@ SOURCES = [
         "is_demo": True,
         "license_label": "Dado fictício de demonstração — não é conteúdo de terceiro",
     },
+    {
+        # Diferente do conjunto acima: estes números **não** são fictícios, são
+        # de literatura pública. Por isso a fonte é própria e a licença diz o
+        # que é — o compromisso do M1 é registrar a procedência, e um número
+        # real escondido sob o rótulo "fictício" seria o oposto disso.
+        "label": "Literatura de baterias (compilação)",
+        "reference": (
+            "Valores de célula compilados de literatura técnica pública. A "
+            "citação específica de cada química fica na própria linha, em "
+            "`battery_chemistry.citation`."
+        ),
+        "is_demo": False,
+        "license_label": (
+            "Valores factuais de literatura publicada, citados por linha; "
+            "nenhum texto, tabela ou base de dados de terceiro é reproduzido"
+        ),
+    },
 ]
+
+#: Rótulo da fonte acima, nomeado para o seeder não repetir a string.
+BATTERY_SOURCE_LABEL = "Literatura de baterias (compilação)"
+
+# --- Battery cell chemistries (P4, D-69) ----------------------------------
+# Números de literatura padrão, compilados como conjunto de demonstração. Cada
+# linha guarda a **sua** citação: as nove não saíram do mesmo lugar, e achatá-las
+# num rótulo único tiraria a única informação que permite conferir um valor.
+#
+# Unidades canônicas, fixadas aqui e não escolhidas no ponto de uso:
+#   nominal_voltage V | specific_energy Wh/kg | energy_density Wh/L
+#   specific_power W/kg | cell_cost_per_kwh (moeda da fonte: USD)
+#   thermal_runaway_temp_c / operating_temp_*_c °C | c-rates em C
+BATTERY_CHEMISTRIES = [
+    {
+        "slug": "lfp",
+        "name": "Fosfato de Ferro-Lítio (LFP)",
+        "formula": "LiFePO4",
+        "nominal_voltage": 3.2,
+        "specific_energy": 160.0,
+        "energy_density": 350.0,
+        "specific_power": 1500.0,
+        "cycle_efficiency": 0.95,
+        "cycle_life": 3500,
+        "cell_cost_per_kwh": 75.0,
+        "thermal_safety": "ALTA",
+        "thermal_runaway_temp_c": 270.0,
+        "operating_temp_min_c": -20.0,
+        "operating_temp_max_c": 60.0,
+        "max_continuous_c_rate": 3.0,
+        "peak_c_rate": 5.0,
+        "description": "Química de cátodo de olivina com ligação P-O covalente de altíssima estabilidade térmica. Livre de cobalto e níquel, oferece excepcional segurança contra fuga térmica e ciclo de vida estendido.",
+        "advantages": [
+            "Excepcional estabilidade térmica e resistência à fuga térmica",
+            "Ciclo de vida longo (3000-5000 ciclos)",
+            "Livre de níquel e cobalto (menor risco na cadeia de suprimentos)",
+            "Excelente custo por ciclo e tolerância a sobrecarga",
+        ],
+        "limitations": [
+            "Menor energia específica que NMC/NCA (~160 Wh/kg)",
+            "Curva de tensão muito plana (dificulta estimativa de SoC)",
+            "Desempenho degradado em temperaturas abaixo de 0 °C",
+        ],
+        "typical_applications": [
+            "Veículos elétricos urbanos e comerciais",
+            "Armazenamento estacionário residencial e em rede (BESS)",
+            "Ferramentas elétricas industriais",
+        ],
+        "citation": "Linden's Handbook of Batteries (4th Ed.); Tarascon & Armand (Nature 2001)",
+        "display_order": 1,
+    },
+    {
+        "slug": "nmc_622",
+        "name": "Níquel-Manganês-Cobalto 6:2:2 (NMC-622)",
+        "formula": "LiNi0.6Mn0.2Co0.2O2",
+        "nominal_voltage": 3.65,
+        "specific_energy": 230.0,
+        "energy_density": 580.0,
+        "specific_power": 1800.0,
+        "cycle_efficiency": 0.95,
+        "cycle_life": 1800,
+        "cell_cost_per_kwh": 100.0,
+        "thermal_safety": "MEDIA",
+        "thermal_runaway_temp_c": 210.0,
+        "operating_temp_min_c": -20.0,
+        "operating_temp_max_c": 55.0,
+        "max_continuous_c_rate": 2.5,
+        "peak_c_rate": 4.0,
+        "description": "Equilíbrio clássico da indústria automotiva combinando alto teor de níquel (energia), manganês (estabilidade estrutural) e cobalto (condutividade).",
+        "advantages": [
+            "Excelente balanço entre densidade energética, potência e vida útil",
+            "Curva de descarga inclinada facilitando medição precisa de SoC",
+            "Cadeia de produção e reciclagem madura globalmente",
+        ],
+        "limitations": [
+            "Requer cobalto e níquel em teores consideráveis",
+            "Temperatura de fuga térmica moderada (~210 °C)",
+            "Exige sistema ativo de gerenciamento térmico (BTMS)",
+        ],
+        "typical_applications": [
+            "Veículos elétricos de passeio (médio/longo alcance)",
+            "Drones industriais e aeroespacial leve",
+            "Eletrônicos portáteis de alta performance",
+        ],
+        "citation": "Reddy, Linden's Handbook of Batteries (2011); BloombergNEF Battery Survey",
+        "display_order": 2,
+    },
+    {
+        "slug": "nmc_811",
+        "name": "Níquel-Manganês-Cobalto 8:1:1 (NMC-811)",
+        "formula": "LiNi0.8Mn0.1Co0.1O2",
+        "nominal_voltage": 3.7,
+        "specific_energy": 265.0,
+        "energy_density": 660.0,
+        "specific_power": 2100.0,
+        "cycle_efficiency": 0.95,
+        "cycle_life": 1300,
+        "cell_cost_per_kwh": 110.0,
+        "thermal_safety": "MODERADA",
+        "thermal_runaway_temp_c": 195.0,
+        "operating_temp_min_c": -15.0,
+        "operating_temp_max_c": 50.0,
+        "max_continuous_c_rate": 3.0,
+        "peak_c_rate": 5.0,
+        "description": "Formulação rica em níquel para maximizar a densidade de energia e reduzir o conteúdo de cobalto a 10%. Padrão moderno em VEs premium.",
+        "advantages": [
+            "Altíssima densidade energética gravimétrica e volumétrica",
+            "Menor dependência de cobalto em comparação com NMC-111 e LCO",
+            "Reduz significativamente a massa do pack veicular",
+        ],
+        "limitations": [
+            "Sensibilidade térmica aumentada e menor temperatura de decomposição",
+            "Degradação de ciclo mais acelerada sob alta temperatura e 100% SoC",
+            "Exige arquiteturas rigorosas de isolamento celular contra propagação",
+        ],
+        "typical_applications": [
+            "Veículos elétricos de alta autonomia (>500 km)",
+            "Aeronaves elétricas leves (eVTOL)",
+            "Drones de longa permanência",
+        ],
+        "citation": "Doeff et al. (Chem. Rev. 2020); BloombergNEF Technology Outlook",
+        "display_order": 3,
+    },
+    {
+        "slug": "nca",
+        "name": "Níquel-Cobalto-Alumínio (NCA)",
+        "formula": "LiNiCoAlO2",
+        "nominal_voltage": 3.65,
+        "specific_energy": 255.0,
+        "energy_density": 630.0,
+        "specific_power": 2300.0,
+        "cycle_efficiency": 0.94,
+        "cycle_life": 1200,
+        "cell_cost_per_kwh": 112.0,
+        "thermal_safety": "MODERADA",
+        "thermal_runaway_temp_c": 190.0,
+        "operating_temp_min_c": -20.0,
+        "operating_temp_max_c": 50.0,
+        "max_continuous_c_rate": 3.5,
+        "peak_c_rate": 6.0,
+        "description": "Substitui o manganês por alumínio para estabilizar o cátodo de alto níquel. Combina densidade energética extrema com alta potência específica.",
+        "advantages": [
+            "Excelente potência específica de aceleração",
+            "Densidade de energia comparável ao NMC-811",
+            "Ampla base de validação em veículos esportivos e de ponta",
+        ],
+        "limitations": [
+            "Vulnerável a superaquecimento se o BMS falhar",
+            "Custo elevado e reciclabilidade complexa",
+            "Ciclo de vida ligeiramente inferior ao LFP e NMC-622",
+        ],
+        "typical_applications": [
+            "Veículos elétricos de alta aceleração/performance",
+            "Ferramentas sem fio de alto torque",
+            "Aplicações militares e aeroespaciais",
+        ],
+        "citation": "Whittingham (Chem. Rev. 2004); Linden's Handbook of Batteries",
+        "display_order": 4,
+    },
+    {
+        "slug": "lco",
+        "name": "Óxido de Cobalto-Lítio (LCO)",
+        "formula": "LiCoO2",
+        "nominal_voltage": 3.7,
+        "specific_energy": 200.0,
+        "energy_density": 550.0,
+        "specific_power": 900.0,
+        "cycle_efficiency": 0.92,
+        "cycle_life": 800,
+        "cell_cost_per_kwh": 135.0,
+        "thermal_safety": "BAIXA",
+        "thermal_runaway_temp_c": 150.0,
+        "operating_temp_min_c": -10.0,
+        "operating_temp_max_c": 45.0,
+        "max_continuous_c_rate": 1.0,
+        "peak_c_rate": 2.0,
+        "description": "A química pioneira do íon-lítio (Goodenough, 1980). Cátodo estratificado com 60% de cobalto em massa. Excelente densidade volumétrica em pequenos formatos, mas baixa tolerância a sobreaquecimento.",
+        "advantages": [
+            "Densidade volumétrica compacta para gadgets",
+            "Baixa autodescarga (<2% ao mês)",
+            "Maturação fabril de mais de 30 anos",
+        ],
+        "limitations": [
+            "Custo muito elevado devido ao teor maciço de cobalto",
+            "Baixa segurança térmica (~150 °C fuga térmica)",
+            "Vida útil reduzida e inadequada para tração pesada",
+        ],
+        "typical_applications": [
+            "Smartphones e tablets",
+            "Notebooks ultrafinos",
+            "Câmeras e dispositivos médicos portáteis",
+        ],
+        "citation": "Goodenough & Park (JACS 2013); Linden's Handbook (4th Ed.)",
+        "display_order": 5,
+    },
+    {
+        "slug": "lto",
+        "name": "Titanato de Lítio (LTO)",
+        "formula": "Li4Ti5O12",
+        "nominal_voltage": 2.4,
+        "specific_energy": 85.0,
+        "energy_density": 180.0,
+        "specific_power": 4000.0,
+        "cycle_efficiency": 0.97,
+        "cycle_life": 18000,
+        "cell_cost_per_kwh": 280.0,
+        "thermal_safety": "MUITO_ALTA",
+        "thermal_runaway_temp_c": 350.0,
+        "operating_temp_min_c": -35.0,
+        "operating_temp_max_c": 65.0,
+        "max_continuous_c_rate": 10.0,
+        "peak_c_rate": 20.0,
+        "description": "Substitui o ânodo de grafite por titanato de lítio (estrutura espinélio com variação volumétrica nula / zero-strain). Elimina a formação de dendritos de lítio e possibilita recarga em menos de 10 minutos com vida quase ilimitada.",
+        "advantages": [
+            "Ciclo de vida imenso (15.000 a 25.000 ciclos)",
+            "Recarga ultrarrápida (10C a 20C sem degradação)",
+            "Operação excelente em frio extremo até -35 °C",
+            "Segurança intrínseca absoluta (não forma dendritos)",
+        ],
+        "limitations": [
+            "Baixa tensão nominal (2.4 V) e baixa energia específica (~85 Wh/kg)",
+            "Custo de aquisição inicial significativamente superior",
+            "Pack fica volumoso e pesado para veículos leves de longa autonomia",
+        ],
+        "typical_applications": [
+            "Ônibus elétricos com recarga de oportunidade em paradas (flash charging)",
+            "Estabilização de frequência em redes elétricas (grid regulation)",
+            "Trens elétricos e empilhadeiras de ciclo contínuo 24/7",
+        ],
+        "citation": "Zaghib et al. (J. Power Sources 2013); Ashby Energy Storage Profiles",
+        "display_order": 6,
+    },
+    {
+        "slug": "sodio_ion",
+        "name": "Íon de Sódio (Na-ion)",
+        "formula": "Na-ion",
+        "nominal_voltage": 3.1,
+        "specific_energy": 145.0,
+        "energy_density": 285.0,
+        "specific_power": 1600.0,
+        "cycle_efficiency": 0.92,
+        "cycle_life": 2600,
+        "cell_cost_per_kwh": 60.0,
+        "thermal_safety": "ALTA",
+        "thermal_runaway_temp_c": 260.0,
+        "operating_temp_min_c": -25.0,
+        "operating_temp_max_c": 55.0,
+        "max_continuous_c_rate": 3.0,
+        "peak_c_rate": 5.0,
+        "description": "Tecnologia sustentável que emprega sódio abundante na crosta terrestre em vez de lítio, e folha de alumínio em ambos os eletrodos (sem cobre). Pode ser descarregada a 0 V sem danos estruturais, simplificando o frete aéreo.",
+        "advantages": [
+            "Custo de matérias-primas muito inferior (abundância de sódio)",
+            "Elimina folha de cobre (usa alumínio no ânodo e cátodo)",
+            "Pode ser transportada a 0 V com risco de incêndio nulo em trânsito",
+            "Excelente retenção de capacidade em baixas temperaturas (-20 °C)",
+        ],
+        "limitations": [
+            "Densidade energética intermediária (~145 Wh/kg, abaixo de NMC)",
+            "Raio iônico do sódio maior que o lítio (maior expansão mecânica)",
+            "Indústria de produção em estágio inicial de escalonamento",
+        ],
+        "typical_applications": [
+            "Sistemas BESS de armazenamento de energia renovável",
+            "Veículos elétricos de baixo custo e micro-mobilidade",
+            "Sistemas de no-break (UPS) telecom",
+        ],
+        "citation": "Barker et al. (Nat. Energy 2020); CATL Sodium-ion Whitepaper 2023",
+        "display_order": 7,
+    },
+    {
+        "slug": "chumbo_acido",
+        "name": "Chumbo-Ácido Selada (VRLA/AGM)",
+        "formula": "Pb-Acid",
+        "nominal_voltage": 2.0,
+        "specific_energy": 38.0,
+        "energy_density": 75.0,
+        "specific_power": 260.0,
+        "cycle_efficiency": 0.8,
+        "cycle_life": 450,
+        "cell_cost_per_kwh": 65.0,
+        "thermal_safety": "ALTA",
+        "thermal_runaway_temp_c": 300.0,
+        "operating_temp_min_c": -20.0,
+        "operating_temp_max_c": 50.0,
+        "max_continuous_c_rate": 0.5,
+        "peak_c_rate": 2.0,
+        "description": "A química eletroquímica secundária mais antiga (Planté, 1859). Robusta e com reciclagem em circuito fechado próxima de 99%, porém extremamente pesada e com ciclo de vida restrito.",
+        "advantages": [
+            "Custo de aquisição inicial acessível",
+            "Infraestrutura de reciclagem universalmente estabelecida (>98%)",
+            "Comportamento confiável e tolerância a flutuação de tensão",
+        ],
+        "limitations": [
+            "Densidade de energia gravimétrica muito baixa (35-40 Wh/kg)",
+            "Ciclo de vida reduzido (300-500 ciclos sob 80% DoD)",
+            "Massa proibitiva para tração de alta performance",
+        ],
+        "typical_applications": [
+            "Partida de motores a combustão interna (baterias SLI 12V)",
+            "No-breaks (UPS) estáticos convencionais",
+            "Sistemas auxiliares de subestações",
+        ],
+        "citation": "Pavlov, Lead-Acid Batteries (Elsevier 2017); Ashby Materials and Energy",
+        "display_order": 8,
+    },
+    {
+        "slug": "nimh",
+        "name": "Níquel-Hidreto Metálico (NiMH)",
+        "formula": "NiMH",
+        "nominal_voltage": 1.2,
+        "specific_energy": 75.0,
+        "energy_density": 170.0,
+        "specific_power": 600.0,
+        "cycle_efficiency": 0.78,
+        "cycle_life": 850,
+        "cell_cost_per_kwh": 130.0,
+        "thermal_safety": "ALTA",
+        "thermal_runaway_temp_c": 250.0,
+        "operating_temp_min_c": -20.0,
+        "operating_temp_max_c": 50.0,
+        "max_continuous_c_rate": 1.5,
+        "peak_c_rate": 3.0,
+        "description": "Substituiu o níquel-cádmio eliminando o cádmio tóxico. Foi a espinha dorsal dos primeiros veículos híbridos comerciais (e.g. Toyota Prius gerações 1-3). Resistente a abusos, mas com taxa de autodescarga e custo relativamente altos.",
+        "advantages": [
+            "Livre de metais pesados tóxicos como cádmio ou chumbo",
+            "Alta segurança intrínseca e tolerância mecânica",
+            "Histórico comprovado em tração híbrida",
+        ],
+        "limitations": [
+            "Tensão de célula muito baixa (1.2 V, exige muitas células em série)",
+            "Autodescarga moderada a alta",
+            "Eficiência de ciclo inferior às de lítio (~78%)",
+        ],
+        "typical_applications": [
+            "Veículos híbridos convencionais (HEV)",
+            "Equipamentos médicos portáteis",
+            "Eletrônicos e brinquedos recarregáveis (substituição de pilhas AA)",
+        ],
+        "citation": "Ovshinsky et al. (Science 1993); Ashby Selection Guidelines",
+        "display_order": 9,
+    },
+]
+
 
 # --- Performance indices (classic Ashby merit indices) --------------------
 # Expressions reference property slugs; the safe parser validates them.
@@ -1788,6 +2149,56 @@ def _seed_transport_modes(db: Session, source: Source | None) -> int:
     return created
 
 
+def _seed_battery_chemistries(db: Session, source: Source | None) -> int:
+    """Escreve o catálogo de químicas. Idempotente, como todo bloco daqui.
+
+    A fonte é a da compilação de literatura, **não** a do dataset fictício: os
+    números aqui são reais, e escondê-los sob o rótulo de demonstração diria ao
+    leitor o contrário do que o M1 existe para dizer.
+    """
+    created = 0
+    for spec in BATTERY_CHEMISTRIES:
+        existing = (
+            db.execute(select(BatteryChemistry).where(BatteryChemistry.slug == spec["slug"]))
+            .scalars()
+            .one_or_none()
+        )
+        if existing is not None:
+            continue
+        db.add(
+            BatteryChemistry(
+                slug=spec["slug"],
+                name=spec["name"],
+                formula=spec["formula"],
+                description=spec["description"],
+                nominal_voltage=spec["nominal_voltage"],
+                specific_energy=spec["specific_energy"],
+                energy_density=spec["energy_density"],
+                specific_power=spec["specific_power"],
+                cycle_efficiency=spec["cycle_efficiency"],
+                cycle_life=spec["cycle_life"],
+                cell_cost_per_kwh=spec["cell_cost_per_kwh"],
+                thermal_safety=spec["thermal_safety"],
+                thermal_runaway_temp_c=spec["thermal_runaway_temp_c"],
+                operating_temp_min_c=spec["operating_temp_min_c"],
+                operating_temp_max_c=spec["operating_temp_max_c"],
+                max_continuous_c_rate=spec["max_continuous_c_rate"],
+                peak_c_rate=spec["peak_c_rate"],
+                advantages=list(spec["advantages"]),
+                limitations=list(spec["limitations"]),
+                typical_applications=list(spec["typical_applications"]),
+                citation=spec["citation"],
+                display_order=spec["display_order"],
+                is_active=True,
+                # Não é dado fictício: é literatura pública citada por linha.
+                is_demo=False,
+                source_id=source.id if source else None,
+            )
+        )
+        created += 1
+    return created
+
+
 def seed(db: Session) -> dict[str, int]:
     """Populate taxonomy, properties, sources, indices and demo materials.
 
@@ -1846,6 +2257,12 @@ def seed(db: Session) -> dict[str, int]:
     # After the materials: the links need them to exist (P0-2).
     process_summary = _seed_process_universe(db)
     transport_created = _seed_transport_modes(db, demo_source)
+    battery_source = (
+        db.execute(select(Source).where(Source.label == BATTERY_SOURCE_LABEL))
+        .scalars()
+        .one_or_none()
+    )
+    battery_created = _seed_battery_chemistries(db, battery_source)
 
     db.commit()
     return {
@@ -1854,6 +2271,7 @@ def seed(db: Session) -> dict[str, int]:
         "indices": len(PERFORMANCE_INDICES),
         "materials_created": created_materials,
         "transport_modes": transport_created,
+        "battery_chemistries": battery_created,
         **process_summary,
     }
 

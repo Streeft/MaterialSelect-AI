@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { ptBR } from "@/lib/i18n";
 import {
   applyPreference,
   readPreference,
   resolveTheme,
+  serverPreference,
+  subscribePreference,
   watchSystemTheme,
   type ThemePreference,
 } from "@/lib/theme";
@@ -42,11 +44,18 @@ export function ThemeToggle({
    */
   compact?: boolean;
 }) {
-  const [preference, setPreference] = useState<ThemePreference | null>(null);
-
-  useEffect(() => {
-    setPreference(readPreference());
-  }, []);
+  // A preferência vive em `localStorage`, que é fonte externa ao React: ler no
+  // efeito e guardar em `useState` custava dois renders e deixava a leitura
+  // fora de sincronia com qualquer outra escrita na chave — inclusive a de
+  // outra aba. `useSyncExternalStore` é a ferramenta feita para isto, e o
+  // snapshot de servidor `null` preserva o contrato antigo: nada é pintado
+  // antes de montar. Não há mais `setState` nenhum aqui; o clique escreve na
+  // fonte, e a fonte notifica.
+  const preference = useSyncExternalStore<ThemePreference | null>(
+    subscribePreference,
+    readPreference,
+    serverPreference,
+  );
 
   useEffect(() => {
     if (preference !== "system") return;
@@ -73,10 +82,7 @@ export function ThemeToggle({
           label={compact ? "" : option.label}
           aria-label={option.label}
           icon={option.icon}
-          onClick={() => {
-            setPreference(option.id);
-            applyPreference(option.id);
-          }}
+          onClick={() => applyPreference(option.id)}
           title={option.label}
         />
       ))}

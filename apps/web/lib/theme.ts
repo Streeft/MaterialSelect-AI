@@ -46,6 +46,49 @@ export function resolveTheme(preference: ThemePreference): Theme {
   return preference === "system" ? systemTheme() : preference;
 }
 
+/**
+ * Quem está ouvindo a preferência mudar.
+ *
+ * `localStorage` dispara `storage` para as **outras** abas e nunca para a que
+ * escreveu, então uma aba que só escutasse o evento não veria o próprio clique.
+ * Este conjunto cobre essa metade; o `storage` cobre a outra.
+ */
+const preferenceListeners = new Set<() => void>();
+
+/**
+ * Assinatura da preferência, no formato que `useSyncExternalStore` espera.
+ *
+ * A preferência mora em `localStorage`, que é uma fonte **externa** ao React —
+ * e ler uma fonte externa dentro de um `useEffect` com `setState` é exatamente
+ * o que a regra `react-hooks/set-state-in-effect` acusa, com razão: são dois
+ * renders onde bastava um, e a leitura fica fora de sincronia com qualquer
+ * outra coisa que escreva na chave. `useSyncExternalStore` é a ferramenta feita
+ * para isto, e traz de brinde o par de snapshots que resolve a hidratação: o do
+ * servidor devolve `null` (o servidor não sabe o que o leitor guardou), o do
+ * cliente devolve a preferência de verdade, e o React troca um pelo outro
+ * depois de hidratar sem reclamar de divergência.
+ */
+export function subscribePreference(onChange: () => void): () => void {
+  preferenceListeners.add(onChange);
+  const onStorage = (event: StorageEvent) => {
+    if (event.key === null || event.key === THEME_STORAGE_KEY) onChange();
+  };
+  window.addEventListener("storage", onStorage);
+  return () => {
+    preferenceListeners.delete(onChange);
+    window.removeEventListener("storage", onStorage);
+  };
+}
+
+/**
+ * O snapshot do servidor. Sempre `null`, e é o que mantém o contrato antigo:
+ * nada é pintado até montar, porque qualquer marcação emitida no servidor
+ * estaria errada para alguém.
+ */
+export function serverPreference(): null {
+  return null;
+}
+
 /** Write the resolved theme to the document and remember the preference. */
 export function applyPreference(preference: ThemePreference): Theme {
   const theme = resolveTheme(preference);
@@ -58,6 +101,7 @@ export function applyPreference(preference: ThemePreference): Theme {
   } catch {
     // Preference is not persisted; the session still honours it.
   }
+  for (const listener of preferenceListeners) listener();
   return theme;
 }
 

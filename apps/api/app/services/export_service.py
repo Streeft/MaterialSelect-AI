@@ -15,6 +15,7 @@ from __future__ import annotations
 
 from app.ai.provider import AIUnavailableError
 from app.calculations.expressions import variables_in
+from app.calculations.units import pretty_unit
 from app.domain.errors import NotFoundError, ValidationError
 from app.exporters.cells import format_number
 from app.exporters.figures import (
@@ -410,7 +411,9 @@ class ExportService:
 
     @staticmethod
     def _figure_axis(axis, scale: str) -> Axis:
-        label = f"{axis.property_name} ({axis.unit})" if axis.unit else axis.property_name
+        label = (
+            f"{axis.property_name} ({pretty_unit(axis.unit)})" if axis.unit else axis.property_name
+        )
         return Axis(
             label=label,
             scale="log" if scale == "log" else "linear",
@@ -853,7 +856,7 @@ class ExportService:
                         material.name,
                         definition.name,
                         _MISSING if value.is_missing else format_number(value.normalized_value),
-                        definition.canonical_unit,
+                        pretty_unit(definition.canonical_unit),
                         (
                             _MISSING
                             if value.is_missing
@@ -863,7 +866,7 @@ class ExportService:
                                 else value.value_typical
                             )
                         ),
-                        value.original_unit or "—",
+                        pretty_unit(value.original_unit) if value.original_unit else "—",
                         value.conversion_method or "—",
                         value.data_quality.value,
                         origin,
@@ -947,9 +950,9 @@ class ExportService:
                         name,
                         kind,
                         self._attribute_value_text(value),
-                        value.canonical_unit or "—",
+                        pretty_unit(value.canonical_unit) if value.canonical_unit else "—",
                         self._attribute_original_text(value),
-                        value.original_unit or "—",
+                        pretty_unit(value.original_unit) if value.original_unit else "—",
                         value.conversion_method or "—",
                         value.data_quality.value,
                     ]
@@ -1013,7 +1016,7 @@ class ExportService:
         definitions = self.chart_repo.list_properties()
 
         header = ["Material", "Classe", "Demonstrativo", "Registro próprio"] + [
-            f"{d.name} [{d.canonical_unit}]" for d in definitions
+            f"{d.name} [{pretty_unit(d.canonical_unit)}]" for d in definitions
         ]
         rows: list[list[object]] = []
         provenance: list[list[object]] = []
@@ -1043,9 +1046,9 @@ class ExportService:
                                 if value.value_scalar is not None
                                 else value.value_typical
                             ),
-                            value.original_unit or "—",
+                            pretty_unit(value.original_unit) if value.original_unit else "—",
                             format_number(value.normalized_value),
-                            definition.canonical_unit,
+                            pretty_unit(definition.canonical_unit),
                             value.conversion_method or "—",
                             value.data_quality.value,
                             value.source.label if value.source else "—",
