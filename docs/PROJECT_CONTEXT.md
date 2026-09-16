@@ -381,16 +381,50 @@ Dados novos: quatro propriedades ambientais na categoria `AMBIENTAL` (que existi
 sem uso), dois atributos de processo e `TransportMode` — nem material nem
 processo, e o modelo diz por quê.
 
-**O Synthesizer entregue** ([D-67](DECISIONS.md)): compósitos e espumas com regras
-físicas por propriedade (conservação volumétrica para densidade, Voigt-Reuss para módulo,
-fração mássica para grandezas por massa, Gibson-Ashby para espumas), ausências justificadas
-explicitamente em vez de estimadas (`_NO_RULE`), receita completa em `material_synthesis`
-e isolamento rigoroso no espaço do usuário (`owner_id NOT NULL`, `ck_material_sintetizado_tem_dono`).
-A matriz vai a **29 de 32 (~91%)**, com nível médio **3,38**: sobram apenas Sandwich Panels,
-Battery Designer e o débito B11.
+**O Synthesizer fechou a terceira** ([D-67](DECISIONS.md)): compósito de dois
+constituintes e espuma de um sólido, com a receita gravada e o registro declarado
+sintetizado. **Um valor sintetizado não é inventado; é calculado, e a diferença é
+que ele carrega a derivação** — cada valor nomeia a lei e a base dela (exata, par
+de limites, empírica), e a qualidade do dado é a pior dos pais que a regra leu.
+A decisão que carrega o item é que **a regra de mistura é propriedade da
+propriedade, não da receita**: densidade por volume, módulo como par de limites
+porque a direção não está catalogada, grandezas por massa por fração mássica
+(o que exige as duas densidades), temperatura de serviço pelo mínimo. E
+**resistência de compósito não tem regra nenhuma**, porque quem a controla é a
+interface — enquanto uma espuma, sendo o mesmo material com vazios, tem: a
+diferença não está na fórmula, está no que se sabe. Um sintetizado é sempre
+registro **próprio**, por `CheckConstraint`.
 
-**Saúde do código:** 1618 testes de backend (Python 3.11 e 3.12, nenhum skip)
-e 342 de frontend, todos verdes. Desde o P0-1 a suíte também roda as migrações de
+**Os Sandwich Panels fecharam a faixa P3** ([D-68](DECISIONS.md)): duas faces
+sobre um núcleo, como terceiro tipo do Synthesizer. Densidade e grandezas por
+massa saem pelas **mesmas regras do compósito** — massa é massa, o arranjo não a
+move —, e o que o painel acrescenta é uma regra só: o **módulo de flexão
+equivalente**. Ela não é mistura nenhuma, e isso é verificável em vez de
+afirmado: nas mesmas frações volumétricas `E*` fica **2,7× acima do limite de
+Voigt**, que é o teto de qualquer regra das misturas. Duas degenerescências
+conferem a fórmula inteira (sem núcleo devolve `Ef`, sem faces `Ec`), e **só a
+razão t/c decide** — escala self-similar não move nem `ρ*` nem `E*`, que é o que
+torna legítimo plotar o painel ao lado de sólidos.
+
+A recusa que o item carrega: **resistência é competição entre modos de falha, e
+o mínimo sobre um subconjunto é um limite superior.** Escoamento da face é
+calculável; cisalhamento do núcleo e enrugamento da face pedem dados que o
+catálogo não tem. O painel não declara resistência, com o motivo escrito — a
+recusa do D-66 aplicada a modo de falha em vez de a fase.
+
+**O Battery Designer entregue fechou a faixa P4** ([D-69](DECISIONS.md)): dimensionamento
+eletroquímico e térmico completo de packs de bateria por energia alvo ($E_{target}$),
+tensão nominal ($V_{nom}$) e potência de pico ($P_{peak}$), com catálogo de 6 químicas
+canônicas (LFP, NMC, NCA, LTO, Na-ion, Solid-State) e formatos cilíndricos/prismáticos/pouch.
+Calcula arranjo $N_s \times N_p$, envelopes de densidade com packing factors estruturais,
+massa térmica, taxas C contínuas/pico e permite a síntese direta de baterias dimensionadas
+no catálogo do usuário com rastreabilidade total de proveniência (`synthesis_type='battery_pack'`).
+
+A matriz vai a **31 de 32 (~97% do total, 100% das 31 capacidades funcionais em nível ≥ 3)**,
+com nível médio **3,50**. Sobra unicamente o débito não-funcional de baixa prioridade B11 (exportação PPTX).
+
+**Saúde do código:** 1688 testes de backend (Python 3.11 e 3.12, nenhum skip)
+e 353 de frontend, todos verdes. Desde o P0-1 a suíte também roda as migrações de
 verdade, nos dois sentidos, contra um banco temporário que já contém dados —
 `test_migration_selection_stage.py`, `test_migration_process_universe.py`,
 `test_migration_selection_universe.py`, `test_migration_process_attributes.py`,

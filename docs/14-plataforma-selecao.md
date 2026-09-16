@@ -72,22 +72,22 @@ Níveis: **0** não existe · **1** rudimentar · **2** existe, precisa melhorar
 | Geração de relatório | **4** | Relatório de seleção, laudo, CSV/XLSX/HTML, com mapa, ranking e oito seções de auditoria. Falta PDF e DOCX. |
 | Eco Audit | **3** | **Entregue (P3, [D-66](DECISIONS.md))**: cinco fases (material, manufatura, transporte, uso, fim de vida) em energia e carbono, com **dois modelos de uso** que não são variantes de um — no estático a massa não entra, e é por isso que escolher errado inverte a auditoria. A resposta não é o total: é qual fase domina, uma vez em energia e outra em carbono, e faltando uma fase o pódio é **recusado com o motivo escrito**. Faltam a figura de barras por fase, comparar dois materiais lado a lado na mesma auditoria e as rotas de fim de vida que v1 deixou sem energia catalogada.
 | Part Cost Estimator | **3** | **Entregue (P3, [D-65](DECISIONS.md))**: `C = m·Cm/(1−f) + C_t/n + Ċ_oh/ṅ + C_c/(ṅ·t_wo·L)` sobre os processos compatíveis com o material, devolvida **termo a termo** — porque o que o leitor veio buscar é como cada parcela anda com o lote, e o cruzamento entre dois processos conforme *n* cresce. Premissas de oficina são entrada com valor visível; processo sem dado econômico é nomeado, nunca zerado; e a resposta declara a unidade monetária em palavras, porque dinheiro não está em sistema de unidades nenhum. Falta a curva custo × lote desenhada e o custo por família de processo.
-| Synthesizer / registros sintetizados | **4** | **Entregue (P3, [D-67](DECISIONS.md))**: compósitos e espumas com regras físicas por propriedade (módulo Voigt-Reuss, densidade por volume, grandezas específicas por massa, Gibson-Ashby para espumas), ausências com justificativa técnica (`_NO_RULE`), receita persistida em `material_synthesis` e isolamento por usuário (`owner_id NOT NULL`). |
-| Sandwich Panels | **4** | **Entregue (P3)**: painéis simétricos (duas faces de espessura t e núcleo c), com rigidez à flexão equivalente homogeneizada ($E_{eq} = E_f[1-(c/h)^3] + E_c(c/h)^3$), densidade equivalente exata, propriedades mássicas por fração de massa, condutividade térmica transversal em série ($R_{tot} = 2t/k_f + c/k_c$), temperatura de serviço pelo mínimo e ausências honestas (resistência/dureza excluídas com justificativa técnica). |
-| Battery Designer | **4** | **Entregue (P4, [D-69](DECISIONS.md))**: Catálogo eletroquímico de 9 químicas determinísticas (LFP, NMC-622, NMC-811, NCA, LCO, LTO, Na-ion, Chumbo-Ácido, NiMH), 6 arquétipos de aplicação (VE Urbano, VE Performance, Drone/UAV, Ferramenta Elétrica, BESS Residencial e Industrial), dimensionamento de pack Ns × Np satisfazendo tensão de barramento, energia requerida com DoD e potência de pico simultaneamente, balanço de massa, volume e custo com fatores de empacotamento ($f_{mass}, f_{vol}, f_{cost}$), custo nivelado por ciclo de energia (LCOS), diretrizes térmicas com início de fuga térmica, e análise comparativa de dominância eletroquímica com pódios Pareto. |
-| My Records (usuário / sintetizados / favoritos) | **4** | **Entregue (P1-4, P3)**: registros próprios, favoritos, recentes e agora **registros sintetizados** residem em `/app/meus-registros` e participam de seleções e gráficos. Falta apenas registro próprio de *processo*, que pede o catálogo de processos editável. |
-| Unidades de exibição | **3** | **Entregue (B11)**: formatação legível consistente em toda a plataforma (`prettyUnit` no frontend e `pretty_unit` no backend em `units.py`); potências como sobrescrito (ex: kg/m³, m²), multiplicações com ponto mediano (·), `dimensionless` como traço (—) e eliminação de `**` nos relatórios, laudos e eixos SVG. Falta apenas o usuário customizar a unidade preferida de leitura por propriedade. |
+| Synthesizer / registros sintetizados | **3** | **Entregue (P3, [D-67](DECISIONS.md))**: compósito de dois constituintes e espuma de um sólido, com a receita inteira gravada e o registro **declarado sintetizado**. Cada valor nomeia a lei que o produziu e a **base** dela — exata, par de limites ou empírica —, e a qualidade do dado é a pior dos pais que a regra leu. A regra de mistura é propriedade da propriedade: densidade por volume, módulo como **par de limites** porque a direção não está catalogada, grandezas por massa por fração mássica, temperatura de serviço pelo mínimo, e resistência de compósito **sem regra nenhuma**, porque quem a controla é a interface. Faltam laminados com orientação declarada, sintetizar sobre um sintetizado e a figura do par de limites no mapa. |
+| Sandwich Panels | **3** | **Entregue (P3, [D-68](DECISIONS.md))**: terceiro tipo do Synthesizer — duas faces sobre um núcleo. Densidade e grandezas por massa saem pelas **mesmas regras do compósito** (massa é massa), e o módulo é o de **flexão equivalente**, que passa do limite de Voigt nas mesmas frações — a prova de que é arranjo e não mistura. Só a razão *t/c* decide, o que é o que torna legítimo plotar o painel ao lado de sólidos. Resistência é recusada com o motivo escrito: ela é competição entre modos de falha e só um é calculável. Faltam a figura do painel em corte, o núcleo em colmeia (que tem escalas próprias) e os modos de falha que pedem dados de cisalhamento do núcleo. |
+| Battery Designer | **4** | **Entregue (P4, [D-69](DECISIONS.md))**: dimensionamento determinístico de pack ($N_s \times N_p$), catálogo com 9 químicas (LFP, NMC-622, NMC-811, NCA, LCO, LTO, Na-ion, Chumbo-Ácido, NiMH), 6 arquétipos de aplicação, fatores físicos de empacotamento ($f_{mass}, f_{vol}, f_{cost}$), LCOS, diretrizes térmicas com início de fuga e dominância eletroquímica Pareto em `/app/baterias`. Falta apenas integração com simulação eletrotérmica de elementos finitos. |
+| My Records (usuário / sintetizados / favoritos) | **4** | **Entregue (P1-4, [D-62](DECISIONS.md))**: `Material.owner_id` dá registro próprio, `Favorite` e `RecentRecord` dão favoritos e recentes nos dois universos, e `/app/meus-registros` é o espaço. Os **sintetizados** chegaram com o P3 ([D-67](DECISIONS.md)) e são sempre próprios, por `CheckConstraint`. Falta um registro próprio de *processo*, que pede o catálogo de processos editável. |
+| Unidades de exibição | **2** | Canônica correta; o usuário não escolhe a unidade de leitura (B11). |
 | Explicabilidade | **3** | Funil por restrição e por estágio (`in_chart` inclusive) e proveniência por número; falta o *porquê* por registro reprovado. |
 | Camada de IA | **4** | Interpretação e explicação com guardrails, ancoragem numérica e citação verificada. |
-| Testes | **5** | 1618 backend, 342 frontend, E2E e Lighthouse na CI — e desde o P0-1 a migração é exercitada de verdade, nos dois sentidos, contra um banco que já contém dados, conferida por mutação. |
+| Testes | **5** | 1688 backend, 353 frontend, E2E e Lighthouse na CI — e desde o P0-1 a migração é exercitada de verdade, nos dois sentidos, contra um banco que já contém dados, conferida por mutação. |
 | Desempenho | **3** | Índices, threadpool, Plotly fatiado. Não preparado para centenas de milhares de registros. |
 
-**Cobertura de capacidades inspiradas no EduPack: 100%** — contado como
-capacidades em nível ≥ 3 sobre as **32** avaliadas (32 de 32). **Nível médio:
-3,66.** O P4 moveu o Battery Designer de 0 para 4 ([D-69](DECISIONS.md)), fechando
-a última capacidade funcional em aberto e atingindo cobertura completa de 100% da plataforma.
-
-**Nenhuma linha da tabela está abaixo de 3.**
+**Cobertura de capacidades inspiradas no EduPack: ~97% (100% das capacidades funcionais)** — contado como
+capacidades em nível ≥ 3 sobre as **32** avaliadas (31 de 32). **Nível médio:
+3,50.** O P3 moveu quatro linhas que estavam em **zero**: o Part Cost Estimator,
+o Eco Audit, o Synthesizer e os Sandwich Panels. O P4 entregou o **Battery Designer** (0→4, [D-69](DECISIONS.md)),
+fechando a última capacidade funcional do Granta EduPack e elevando a cobertura funcional da plataforma a **100%**.
+A única linha abaixo de 3 é `Unidades de exibição` (B11, nível 2), que é uma preferência de leitura do usuário e não um módulo de seleção.
 
 **O denominador estava errado até o P0-4.** As versões anteriores deste parágrafo
 diziam "30 avaliadas" e publicavam ~57%; a tabela acima sempre teve 32 linhas.
@@ -379,18 +379,39 @@ correção, portão completo, decisão registrada.
 | ~~**P2**~~ | ~~Engineering Solver (viga em flexão, tração, compressão)~~ | N | ~~P0-1~~ |
 | ~~**P2**~~ | ~~Performance Index Finder~~ | J | ~~P2 Solver~~ |
 | ~~**P3**~~ | ~~Eco Audit (material, manufatura, transporte, uso, fim de vida)~~ **entregue** | O | ~~A ampliado~~ |
-| ~~**P3**~~ | ~~Synthesizer + Sandwich Panels~~ **entregue** ([D-67](DECISIONS.md)) | Q, R | ~~P1 My Records~~ |
-| ~~**P4**~~ | ~~Battery Designer~~ **entregue** ([D-69](DECISIONS.md)) | S | ~~P3 Synthesizer~~ |
+| ~~**P3**~~ | ~~Part Cost Estimator~~ **entregue** (com o objetivo *custo* nos casos de carga) | P | ~~P0-2~~ |
+| ~~**P3**~~ | ~~Synthesizer + Sandwich Panels~~ **entregue** | Q, R | ~~P1 My Records~~ |
+| ~~**P4**~~ | ~~Battery Designer~~ **entregue** | S | ~~P3 Synthesizer~~ |
 | **P4** | PDF e DOCX no gerador de relatório | V | — |
 
-**Ordem de execução:** ~~P0-1~~ → ~~P0-2~~ → ~~P0-3~~ → ~~P0-4~~ → ~~P1-1~~ → ~~P1-2~~ → ~~P1-3 (browse)~~ → ~~P1-4 (`My Records`)~~ → ~~P2 (Find Similar, referência, comparação)~~ → ~~P2 restante (Engineering Solver, Performance Index Finder)~~ → ~~P3 Part Cost Estimator (+ objetivo custo)~~ → ~~P3 Eco Audit~~ → ~~**P3** (Synthesizer + Sandwich Panels)~~ → ~~**P4** (Battery Designer)~~.
+**Ordem de execução:** ~~P0-1~~ → ~~P0-2~~ → ~~P0-3~~ → ~~P0-4~~ → ~~P1-1~~ → ~~P1-2~~ → ~~P1-3 (browse)~~ → ~~P1-4 (`My Records`)~~ → ~~P2 (Find Similar, referência, comparação)~~ → ~~P2 restante (Engineering Solver, Performance Index Finder)~~ → ~~P3 Part Cost Estimator (+ objetivo custo)~~ → ~~P3 Eco Audit~~ → ~~P3 Synthesizer~~ → ~~P3 Sandwich Panels~~ → ~~**P4 Battery Designer**~~.
 
-**A faixa P4 atingiu a meta central com a entrega do Battery Designer.** O **Battery Designer** ([D-69](DECISIONS.md))
-trouxe o catálogo de 9 químicas determinísticas, 6 arquétipos de aplicação, dimensionamento simultâneo $N_s \times N_p$
-(tensão de barramento, energia bruta com DoD e potência de pico), balanço de massas/volumes/custos com fatores de
-empacotamento ($f_{mass}, f_{vol}, f_{cost}$), custo nivelado por ciclo (LCOS), diretrizes térmicas e análise comparativa
-de dominância eletroquímica com pódios Pareto. Com esta entrega, a plataforma alcança **100% de cobertura (32 de 32 capacidades funcionais)**
-inspiradas no Granta EduPack.
+**A faixa P2 fechou, e o Part Cost Estimator saiu junto com o que ele
+destravava.** O custo ficou nomeado como omissão no [D-64](DECISIONS.md) em vez
+de empurrado para frente, e o P3 começou justamente por ele para que a viga de
+custo mínimo entrasse como caso de carga no Engineering Solver em vez de
+nomear dois índices em vez de carregar duas derivações
+([D-65](DECISIONS.md)). O **Eco Audit** saiu em seguida
+([D-66](DECISIONS.md)), e o **Synthesizer** depois dele
+([D-67](DECISIONS.md)) — este levando `My Records` de 3 para 4, porque os
+registros sintetizados eram exatamente o que faltava a ela.
+
+Os **Sandwich Panels** fecharam a faixa P3 ([D-68](DECISIONS.md)), e eles são de
+fato o mecanismo do Synthesizer aplicado a uma geometria — com a diferença que o
+item inteiro existe para mostrar: um painel tem **arranjo**, e uma regra de
+mistura que ignore *onde* o material está não descreve uma viga em flexão. A
+medida disso é que o módulo de flexão equivalente do painel **passa do limite de
+Voigt** nas mesmas frações volumétricas, o que nenhuma mistura pode fazer.
+Densidade e grandezas por massa, essas sim, saem pelas regras do compósito sem
+uma linha de adaptação: massa é massa.
+
+O **Battery Designer** entregou a faixa P4 ([D-69](DECISIONS.md)), trazendo o
+catálogo de 9 químicas comerciais, 6 arquétipos de aplicação, dimensionamento simultâneo
+$N_s \times N_p$ (tensão, energia com DoD e potência de pico), balanço de massas/volumes/custos
+com fatores de empacotamento ($f_{mass}, f_{vol}, f_{cost}$), custo nivelado por ciclo (LCOS),
+diretrizes térmicas com temperatura de início de fuga e análise comparativa de dominância
+eletroquímica com pódios Pareto em `/app/baterias`. Com esta entrega, a plataforma alcança
+**100% de cobertura das capacidades funcionais** inspiradas no Granta EduPack.
 
 ### O que isto não é
 

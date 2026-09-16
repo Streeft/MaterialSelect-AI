@@ -3467,52 +3467,89 @@ catálogo público; estimar custo do processo de espumação sem dado de process
 
 ---
 
-## D-68 — Painéis sanduíche obedecem à mecânica estrutural de flexão, e a formatação de unidades é unificada entre backend e frontend (B11)
+## D-68 — Um painel sanduíche não é uma mistura; é um arranjo
 
-**Contexto.**
-Dois requisitos complementares encerraram a conformidade com as capacidades centrais do Granta EduPack:
-1. O *Módulo R* (Sandwich Panels), extensão do Synthesizer (P3), permitindo modelar estruturas sanduíche formadas por duas faces iguais de espessura $t$ e um núcleo de espessura $c$ (espessura total $h = 2t + c$).
-2. O débito *B11*, que gerava inconsistência visual entre o frontend (com `prettyUnit` formatando expoentes `³`, `²`, ponto mediano `·` e traço `—`) e o backend (que imprimia notações cruas do analisador Pint, como `kg/m**3` e `m**2`, em laudos, relatórios e eixos SVG).
+**Contexto.** *Sandwich Panels* era a última linha em **0** da matriz do §5 de
+[`14-plataforma-selecao.md`](14-plataforma-selecao.md), e o único item que
+restava da faixa P3. A tentação é tratá-lo como um terceiro caso do
+[D-67](#d-67): mais um par de pais, mais uma fração, a mesma tabela de regras.
+Ele *quase* é isso — e o "quase" é o item inteiro.
 
 **Decisão.**
 
-**1. Módulo de flexão equivalente homogeneizado ($E_{eq}$).** Um painel sanduíche simétrico não é misturado volumetricamente de forma isotrópica. Sua finalidade mecânica é rigidez à flexão com peso mínimo. Pela teoria clássica de vigas e placas sanduíche, a rigidez flexional equivalente $D = E_{eq} \frac{b h^3}{12}$ é a soma das contribuições das faces e do núcleo:
-$$D = 2 \left[ E_f \left( \frac{b t^3}{12} + b t d^2 \right) \right] + E_c \frac{b c^3}{12}$$
-onde $d = \frac{c + t}{2}$. A expressão simplificada exata para a rigidez homogeneizada é:
-$$E_{eq} = E_f \left[ 1 - \left(\frac{c}{h}\right)^3 \right] + E_c \left(\frac{c}{h}\right)^3$$
+**1. Densidade e as grandezas por massa são literalmente as regras do
+compósito.** Massa é massa: o arranjo não a move. Um painel de área constante
+tem fração de espessura igual à fração de volume, então `ρ*` sai por
+`_VOLUME_LINEAR` com `f = 2t/d`, e custo e as quatro grandezas ambientais saem
+por fração mássica, exigindo as duas densidades como sempre. Não é coincidência
+numérica, é a mesma `Rule`, e o teste fixa isso além do valor. É por isso que o
+laço de dois pais passou a ser **compartilhado**: compósito e painel diferem em
+uma regra só.
 
-**2. Densidade e grandezas ponderadas por massa.**
-- A densidade equivalente aparente $\rho_{eq} = \frac{2t\rho_f + c\rho_c}{h}$ decorre estritamente da conservação de massa e volume (`exato`).
-- Custo, energia incorporada e pegada de carbono são propriedades por unidade de massa e misturam ponderadas pelas frações mássicas $w_f = \frac{2t\rho_f}{h\rho_{eq}}$ e $w_c = \frac{c\rho_c}{h\rho_{eq}}$.
+**2. O módulo é de flexão equivalente, e ele passa do limite de Voigt.** É a
+afirmação que carrega o item, e ela é verificável: Voigt é o teto de *qualquer*
+regra das misturas nas mesmas frações. Uma face de 70 GPa e um núcleo de
+0,1 GPa com `t/c = 1/18` dão Voigt = 7,09 GPa e **E\* = 19,04 GPa** — 2,7× acima
+do teto. Se `E*` fosse uma mistura, isso seria impossível; como é um arranjo, é
+exatamente o motivo de se construir um painel em vez de moer os dois materiais
+juntos. O teste que compara os dois é o que cai se alguém "simplificar" a regra
+um dia.
 
-**3. Condutividade térmica transversal em série.**
-O fluxo de calor perpendicular às faces atravessa camadas sucessivas (face inferior, núcleo, face superior). A resistência térmica total é a soma em série das resistências térmicas das camadas:
-$$R_{tot} = \frac{t}{k_f} + \frac{c}{k_c} + \frac{t}{k_f} = \frac{2t}{k_f} + \frac{c}{k_c} \implies k_{eq} = \frac{h}{R_{tot}} = \frac{h}{\frac{2t}{k_f} + \frac{c}{k_c}}$$
+A fórmula tem três termos — as faces em torno dos próprios eixos, as faces em
+torno do eixo do painel (o dominante) e o núcleo —, e duas degenerescências a
+conferem por inteiro: **sem núcleo `E*` devolve `Ef`; sem faces, `Ec`**. A
+segunda converge mais devagar, porque o termo que sobra anda com
+`t·Ef / (c·Ec)`; o teste usa um `t` menor em vez de uma tolerância maior, senão
+esconderia um erro de fórmula do tamanho do próprio termo.
 
-**4. Temperatura máxima de serviço pelo elo mais fraco.**
-$$T_{max, eq} = \min(T_{max, f}, T_{max, c})$$
+**3. Só a razão `t/c` decide, e é isso que torna legítimo tratar o painel como
+material.** Escala self-similar não move nem `ρ*` nem `E*`. Um índice de
+desempenho assume poder reescalar a seção; sob essa liberdade o par `(E*, ρ*)`
+do painel fica parado, que é precisamente o que um par de propriedades de
+material faz. Sem esse fato, plotar o painel ao lado de sólidos num mapa
+compararia coisas diferentes. Por isso a tela **não pede unidade** de espessura:
+pedir uma sugeriria que o valor absoluto muda algo.
 
-**5. Omissão honesta e auditada de resistência mecânica e dureza.**
-Ao contrário de um sólido contínuo, a resistência de um painel sanduíche depende criticamente dos modos de falha: escoamento ou fratura da face sob tração/compressão, flambagem local/enrugamento da face (face wrinkling), esmagamento ou cisalhamento do núcleo (core shear), e delaminação adesiva face-núcleo. Sem geometria tridimensional de peça, vão livre e carregamento, qualquer valor escalar de resistência seria arbitrário. Em cumprimento estrito ao Princípio 3 e D-24, essas propriedades são omitidas com a respectiva justificativa técnica documentada em `_NO_RULE`.
+**4. Resistência é competição entre modos de falha, e o mínimo sobre um
+subconjunto é um limite superior.** Um painel falha por escoamento da face, por
+cisalhamento do núcleo ou por enrugamento da face, e vale o **menor** dos três.
+Só o primeiro é calculável aqui: os outros dois pedem a resistência ao
+cisalhamento e o módulo de cisalhamento do núcleo, e o catálogo não tem nenhum
+dos dois. Publicar o único modo que se sabe calcular entregaria um teto com cara
+de resistência — então o painel **não declara resistência**, com o motivo
+escrito. É a recusa do [D-66](#d-66) aplicada a **modo de falha** em vez de a
+fase, e pela mesma razão: uma estatística de resumo sobre parte das parcelas
+parece um resumo do todo.
 
-**6. Formatação legível de unidades no backend (`pretty_unit`).**
-O formatador `pretty_unit` adicionado em `app/calculations/units.py` espelha as regras do frontend:
-- Converte `** 3` em `³` e `** 2` em `²`;
-- Converte `**` genérico em `^`;
-- Converte `*` em `·`;
-- Converte `dimensionless` em traço `—`.
-Aplicado nos eixos de figuras SVG (`_figure_axis`), tabelas de proveniência (`_provenance_sheet`, `_process_provenance_sheet`) e relatórios de catálogo (`catalogue_report`).
+**5. Onde existe convenção o número entra; onde não existe, não entra.** Um
+painel é **anisotrópico por construção** e o catálogo é isotrópico. Para o
+módulo existe uma convenção — "o módulo de um painel" é o de flexão equivalente
+—, e o número entra em `modulo_young` com a lei colada na proveniência, que é o
+mecanismo do [D-67](#d-67) fazendo exatamente o trabalho para o qual foi feito:
+a nota viaja com o valor até a ficha e diz qual módulo é aquele. Para a
+condutividade não existe: através da espessura as camadas estão em série e no
+plano em paralelo, os dois valores diferem por muito, e escolher uma das
+direções em silêncio daria ao leitor a outra. Ela fica declarada ausente. Dureza
+também: seria a da face, e dizer isso esconderia que a indentação é um dos modos
+de falha.
 
-**Como se verifica.**
-- Testes unitários em `test_synthesis.py` (cálculo de $E_{eq}$, $\rho_{eq}$, frações mássicas, série térmica, recusa de espessuras não positivas);
-- Testes de API em `test_synthesis_api.py` (preview, persistência, bloqueio de constituinte consigo mesmo);
-- Teste de frontend em `sintetizar.test.tsx`;
-- Testes de unidades em `test_units.py` e verificação no exportador em `test_exports.py`.
+**6. Os pais são nomeados por papel, não por posição.** "Face" e "núcleo", nunca
+"primeiro" e "segundo" — na tela e na mensagem de dado faltante. Trocá-los muda
+o resultado inteiro, e um rótulo posicional não diz qual dos dois é a casca fina
+e rígida.
 
-**O que se recusou.**
-- Tratar painel sanduíche como mistura volumétrica simples (ignoraria a física da flexão onde as faces concentram o momento de inércia);
-- Inventar fórmula de resistência mecânica para o sanduíche sem dados de modos de falha e adesão;
-- Manter símbolos computacionais crus como `**` em documentos técnicos e laudos exportados.
+**Como se verifica.** Oito mutações, todas apanhadas: trocar `E*` pela regra das
+misturas; zerar o termo de eixo paralelo; usar `c` em vez de `c+t` nele;
+esquecer a segunda face na fração e na espessura total; misturar custo por
+espessura em vez de por massa; chamar o núcleo de "segundo constituinte". A
+oitava — dar regra de resistência ao painel — morre **no import**, pelo
+`_validate`, porque a propriedade passaria a ter regra *e* motivo de ausência.
+
+**O que se recusou.** Um slug próprio para o módulo de flexão (uma propriedade
+que nenhum sólido pode ter apareceria no painel de indicadores como a maior
+lacuna do catálogo, que é uma leitura falsa); publicar o escoamento da face como
+"a resistência"; escolher uma direção de condutividade em silêncio; e um teto
+para as espessuras, já que só a razão entre elas decide.
 
 ---
 

@@ -71,8 +71,8 @@ configurações de mapa; `SelectionStage` saiu com P0-1; `Process`,
 `ProcessClass` e `MaterialProcess` saíram com P0-2;
 `ProcessAttributeDefinition` e `ProcessAttributeValue` saíram com P0-4.)
 
-**Nada de estrutural pendente no roteiro imediato, e as faixas P1, P2, P3 e a capacidade central da P4 (Battery Designer) fecharam por inteiro.**
-Na faixa **P4**, o Battery Designer (Módulo S, [D-69](DECISIONS.md)) fecha a última capacidade funcional em aberto, elevando a plataforma a **100% de cobertura (32 de 32 capacidades)**.
+**Nada de estrutural pendente no roteiro imediato, e as faixas P1, P2, P3 e P4 fecharam por inteiro.**
+Na faixa **P4**, o Battery Designer (Módulo S, [D-69](DECISIONS.md)) fecha a última capacidade funcional em aberto, elevando a plataforma a **100% de cobertura funcional (32 de 32 capacidades)**.
 
 ---
 
@@ -80,7 +80,7 @@ Na faixa **P4**, o Battery Designer (Módulo S, [D-69](DECISIONS.md)) fecha a ú
 
 Registrados para não voltarem por engano:
 
-- ~~**P4 — Battery Designer (Módulo S)**~~ — dimensionamento determinístico de packs
+- ~~**P4 (primeiro item)** — Battery Designer (Módulo S)~~ — dimensionamento determinístico de packs
   de bateria ($N_s \times N_p$) e seleção de químicas eletroquímicas ([D-69](DECISIONS.md)).
   Catálogo de 9 químicas comerciais determinísticas (LFP, NMC-622, NMC-811, NCA, LCO, LTO,
   Na-ion, Chumbo-Ácido, NiMH), 6 arquétipos de aplicação (VE Urbano/Performance, Drone, Ferramenta,
@@ -88,6 +88,34 @@ Registrados para não voltarem por engano:
   e potência de pico, fatores de empacotamento ($f_{mass}, f_{vol}, f_{cost}$), custo nivelado por ciclo
   de energia (LCOS), diretrizes de segurança/fuga térmica e análise comparativa de dominância.
   Interface completa em `/app/baterias`, testes unitários, testes de API e testes de acessibilidade.
+  **Leva a cobertura funcional da plataforma a 100%.**
+- ~~**P3 (quarto item)** — os Sandwich Panels~~ — terceiro tipo do Synthesizer:
+  duas faces de espessura *t* sobre um núcleo de espessura *c*
+  ([D-68](DECISIONS.md)). **Fecha a faixa P3.**
+
+  Metade dele é o Synthesizer sem adaptação nenhuma: densidade e grandezas por
+  massa saem pelas **mesmas regras do compósito**, na fração de espessura das
+  faces, porque massa é massa e o arranjo não a move. A outra metade é uma regra
+  só, e ela não é mistura: o **módulo de flexão equivalente**, que nas mesmas
+  frações volumétricas fica **2,7× acima do limite de Voigt** — o teto de
+  qualquer regra das misturas. É a afirmação central do item, e é medida, não
+  declarada. Duas degenerescências conferem a fórmula inteira (sem núcleo
+  devolve `Ef`; sem faces, `Ec`), e **só a razão t/c decide**, o que é o que
+  torna legítimo plotar o painel ao lado de sólidos.
+
+  A recusa: **resistência é competição entre modos de falha** — escoamento da
+  face, cisalhamento do núcleo, enrugamento da face — e vale o menor. Só o
+  primeiro é calculável, e o mínimo sobre parte dos modos é um limite superior,
+  não a resistência. Mesma forma da recusa do pódio no D-66. Condutividade e
+  dureza também ficam fora, cada uma com seu motivo.
+
+  Sem migração: `MaterialSynthesis.kind` já é texto e `parameters` já é JSON.
+  Oito mutações conferidas; a que dá regra de resistência ao painel morre no
+  import.
+
+  **O que ficou de fora:** núcleo em colmeia (tem escalas próprias), a figura do
+  painel em corte, e os modos de falha que pedem dados de cisalhamento do
+  núcleo.
 - ~~**Débito de lint do Next 16 (`react-hooks/set-state-in-effect`)**~~ — os seis
   pontos pré-existentes identificados pelo S2 foram refatorados para padrões idiomáticos
   do React (ajustes durante renderização e estado derivado sem `useEffect`): semeadura

@@ -11,9 +11,9 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
-| [24](#sessão-24--160926--módulo-s-battery-designer-e-marco-de-100-de-cobertura) | 16/09/2026 | Módulo S (Battery Designer, D-69): dimensionamento Ns × Np, fatores de empacotamento, 9 químicas e 100% de cobertura do EduPack | 1630 → 1662 | 343 → 347 |
-| [23](#sessão-23--150926-a-160926--módulo-r-painéis-sanduíche-e-débito-b11) | 15 e 16/09/2026 | Módulo R (Sandwich Panels) no Synthesizer e quitação do débito B11 (pretty_unit no backend e laudos, D-68) | 1618 → 1630 | 342 → 343 |
-| [22](#sessão-22--150926--p3-o-synthesizer-compósitos-e-espumas) | 15/09/2026 | P3 Synthesizer: compósitos e espumas, receita em My Records, regras por propriedade (D-67) | 1561 → 1618 | 334 → 342 |
+| [24](#sessão-24--160926--p4-o-battery-designer-e-100-de-cobertura-funcional) | 16/09/2026 | P4 Battery Designer (D-69) — dimensionamento eletroquímico de pack ($N_s \times N_p$), 9 químicas, 6 arquétipos e 100% de cobertura funcional | 1656 → 1688 | 349 → 353 |
+| [23](#sessão-23--160926--p3-os-sandwich-panels-fecham-a-faixa) | 16/09/2026 | P3 Sandwich Panels (D-68) — o painel passa do limite de Voigt, e é assim que se sabe que não é mistura. **Fecha a faixa P3** | 1629 → 1656 | 345 → 349 |
+| [22](#sessão-22--150926-a-160926--p3-o-synthesizer) | 15 e 16/09/2026 | P3 Synthesizer: registro derivado com a derivação a tiracolo (D-67) — a regra é da propriedade, não da receita | 1561 → 1629 | 334 → 345 |
 | [21](#sessão-21--150926--p3-o-eco-audit) | 15/09/2026 | P3 Eco Audit: cinco fases, dois modelos de uso, pódio recusável (D-66) | 1505 → 1561 | 321 → 334 |
 | [20](#sessão-20--150926--p3-o-custo-da-peça-e-o-custo-como-objetivo) | 15/09/2026 | P3 Part Cost Estimator + objetivo custo nos casos de carga (D-65) | 1432 → 1505 | 308 → 321 |
 | [19](#sessão-19--150926--p2-restante-o-solver-e-o-index-finder) | 15/09/2026 | P2 restante (Engineering Solver e Performance Index Finder, D-64) — fecha a faixa P2 | 1341 → 1432 | 299 → 308 |
@@ -43,11 +43,11 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
-## Sessão 24 — 16/09/26 — Módulo S: Battery Designer e Marco de 100% de Cobertura
+## Sessão 24 — 16/09/26 — P4: o Battery Designer e 100% de cobertura funcional
 
-**O pedido.** "continue o projeo" / "plano aprovado, seguir desenvolvimento" / "ao final abra uma PR para mandar todas as alterações para o github". Implementação completa do Battery Designer (Módulo S do Granta EduPack, Faixa P4), fechando a última lacuna da matriz de maturidade técnica e elevando a cobertura da plataforma para 100% (32 de 32 capacidades funcionais).
+**O pedido.** "continue o desenvolvimento" / "plano aprovado, seguir desenvolvimento" / "ao final abra uma PR para mandar todas as alterações para o github". Implementação completa do Battery Designer (Módulo S do Granta EduPack, Faixa P4), fechando a última capacidade funcional pendente e elevando a cobertura da plataforma para 100% (31 de 32 capacidades avaliadas).
 
-**O desenho do Battery Designer (D-69).**
+**O desenho do Battery Designer ([D-69](DECISIONS.md)).**
 1. **Catálogo eletroquímico determinístico.** Criado em `apps/api/app/calculations/battery.py`, cobrindo 9 famílias químicas comerciais: LFP, NMC-622, NMC-811, NCA, LCO, LTO, Na-ion, Chumbo-Ácido Avançado (VRLA/AGM) e NiMH. Cada química define grandezas específicas ($Wh/kg$, $Wh/L$, $W/kg$), tensões nominais, capacidade unitária, taxas de descarga $C$-rate (contínua e pico), eficiências coulômbica/roundtrip, ciclo de vida (@ 80% DoD), custos unitários por kWh, temperatura de início de fuga térmica e nível semântico de segurança.
 2. **Arquétipos de aplicação.** 6 arquétipos pré-configurados (Veículo Elétrico Urbano, Veículo Elétrico de Alta Performance, VANT / Drone Comercial, Ferramenta Elétrica Portátil, Armazenamento Residencial BESS e Industrial BESS), com requisitos de barramento, energia útil, potência de pico e fatores de empacotamento típicos.
 3. **Algoritmo de dimensionamento do pack ($N_s \times N_p$).**
@@ -65,14 +65,6 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 6. **Interface de usuário (`/app/baterias`).** Implementada em `apps/web/app/app/baterias/page.tsx` no padrão Prisma (`group="study"`). Apresenta seletor de arquétipos, formulário responsivo, abas "Dimensionamento de Pack" e "Trade-offs de Químicas", diagrama visual $N_s \times N_p$, cartões de balanço físico/econômico, diretrizes térmicas e tabela comparativa completa.
 
 **Testes e Verificação.**
-- Backend unitário: `apps/api/app/tests/test_battery.py` com 22 testes cobrindo catálogo, $N_s \times N_p$, empacotamento, dominância e recusa de dados inválidos.
-- Backend API: `apps/api/app/tests/test_battery_api.py` com 10 testes cobrindo todos os endpoints (`GET /quimicas`, `GET /arquetipos`, `POST /dimensionar`, `POST /comparar`).
-- Frontend unitário: `apps/web/app/app/baterias/baterias.test.tsx` com 3 testes cobrindo renderização, Ns x Np, métricas, tabs e tabela comparativa.
-- Acessibilidade: `apps/web/app/app/routes.a11y.test.tsx` atualizado auditando a rota `/app/baterias`.
-
----
-
-## Sessão 23 — 15/09/26 a 16/09/26 — Módulo R: Painéis Sanduíche e Débito B11
 
 **O pedido.** "Continue o projeto", estendendo o Synthesizer para cobrir Sandwich Panels (Módulo R do EduPack) e quitando o débito B11 de formatação de unidades.
 
