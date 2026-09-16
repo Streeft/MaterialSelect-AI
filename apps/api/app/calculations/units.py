@@ -288,3 +288,49 @@ def pretty_unit(unit: str | None) -> str:
     s = re.sub(r"\s*\*\*\s*2(?![0-9.])", "²", s)
     s = re.sub(r"\s*\*\*\s*", "^", s)
     return s.replace("*", "·")
+
+
+def from_canonical(value: float, canonical_unit: str, display_unit: str) -> float:
+    """Convert a stored canonical value into the unit a reader asked to read it in.
+
+    The inverse of :func:`to_canonical`, and deliberately **not** its mirror: it
+    returns a bare number, with no ``conversion_method`` string beside it.
+
+    That asymmetry is the whole point. ``to_canonical`` runs once, at the moment a
+    number enters the system, and what it returns is *provenance*: the trail that
+    lets someone reproduce how the stored value came to be. ``from_canonical``
+    runs on the way out, every time anyone looks, and produces no new fact about
+    the material — only a different way of reading the same one. Emitting a
+    method string here would put reading steps into an audit trail that promises
+    to describe origin, and a reader switching from Pa to MPa would look like a
+    second conversion had been applied to the data. The stored value, its
+    original unit and its ``conversion_method`` never move.
+
+    Raises:
+        UnitError: if either unit is unknown, the two are dimensionally
+            incompatible, or the value is not finite — the same refusals
+            :func:`to_canonical` makes, for the same reason.
+    """
+    converted, _ = to_canonical(value, canonical_unit, display_unit)
+    return converted
+
+
+def from_canonical_delta(delta: float, canonical_unit: str, display_unit: str) -> float:
+    """Convert a *difference* out of the canonical unit, for reading.
+
+    The mirror of :func:`to_canonical_delta`, and it exists for the same reason:
+    a difference must not be converted like an absolute value when the units are
+    related by an offset. An uncertainty of ±5 K read in °C is ±5 °C, not
+    ±(−268,15) — and that second number would be printed beside a temperature
+    that converted correctly, so nothing on the screen would look wrong.
+
+    Converting both ends and subtracting is exact for any affine conversion
+    (``y = m·x + c``), and reduces to ``|m·delta|`` for the ordinary
+    multiplicative case, so the same code covers Pa→MPa and K→°C.
+
+    Raises:
+        UnitError: propagated from :func:`from_canonical`.
+    """
+    origin = from_canonical(0.0, canonical_unit, display_unit)
+    shifted = from_canonical(delta, canonical_unit, display_unit)
+    return abs(shifted - origin)

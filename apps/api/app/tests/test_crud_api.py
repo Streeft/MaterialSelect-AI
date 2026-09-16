@@ -119,6 +119,60 @@ def test_create_property_succeeds(client):
     assert body["value_count"] == 0
 
 
+def test_create_property_accepts_a_reading_unit(client):
+    """A convenção de leitura entra pela mesma rota auditada das outras."""
+    resp = client.post(
+        "/api/properties",
+        json={
+            "name": "Módulo de Cisalhamento Demo",
+            "category": "MECANICA",
+            "physical_dimension": "[mass] / [length] / [time] ** 2",
+            "canonical_unit": "Pa",
+            "accepted_units": ["Pa", "MPa", "GPa"],
+            "display_unit": "GPa",
+        },
+    )
+    assert resp.status_code == 201
+    assert resp.json()["display_unit"] == "GPa"
+
+
+def test_reading_unit_must_be_dimensionally_compatible(client):
+    """Uma convenção errada aqui imprimiria números plausíveis e falsos em toda
+    a aplicação — a ficha, o mapa, o relatório e o laudo —, e nenhuma dessas
+    telas teria como suspeitar. Por isso ela é recusada na entrada."""
+    resp = client.post(
+        "/api/properties",
+        json={
+            "name": "Propriedade com Leitura Errada Demo",
+            "category": "MECANICA",
+            "physical_dimension": "[mass] / [length] / [time] ** 2",
+            "canonical_unit": "Pa",
+            "accepted_units": ["Pa", "meter"],
+            "display_unit": "meter",
+        },
+    )
+    assert resp.status_code == 400
+
+
+def test_reading_unit_must_be_among_the_accepted_ones(client):
+    """É de `accepted_units` que o seletor da tela se alimenta: uma unidade
+    aplicada que o leitor não pode escolher de volta seria um caminho sem
+    volta."""
+    resp = client.post(
+        "/api/properties",
+        json={
+            "name": "Propriedade com Leitura Fora da Lista Demo",
+            "category": "MECANICA",
+            "physical_dimension": "[mass] / [length] / [time] ** 2",
+            "canonical_unit": "Pa",
+            "accepted_units": ["Pa", "MPa"],
+            "display_unit": "GPa",
+        },
+    )
+    assert resp.status_code == 400
+    assert "aceitas" in resp.json()["detail"]
+
+
 def test_delete_property_in_use_conflicts(client):
     props = client.get("/api/properties").json()
     densidade = next(p for p in props if p["slug"] == "densidade")

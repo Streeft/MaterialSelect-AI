@@ -32,6 +32,18 @@ class PropertyValueOut(BaseModel):
     canonical_unit: str | None = None
     conversion_method: str | None = None
 
+    # --- a mesma medida, lida noutra unidade (D-70) ------------------------
+    #: Acrescentados, nunca substitutos. Os campos acima guardam **o que a fonte
+    #: disse** e como aquilo virou canônico; estes guardam como o leitor pediu
+    #: para ler. Um documento que imprime a leitura continua podendo mostrar o
+    #: registro ao lado, e é isso que mantém a ficha auditável.
+    display_unit: str | None = None
+    display_value: float | None = None
+    display_min: float | None = None
+    display_max: float | None = None
+    display_typical: float | None = None
+    display_uncertainty: float | None = None
+
     uncertainty: float | None = None
     measurement_condition: str | None = None
     notes: str | None = None
@@ -63,6 +75,11 @@ class PropertyDefinitionIn(BaseModel):
     physical_dimension: str = Field(default="", max_length=120)
     canonical_unit: str = Field(min_length=1, max_length=60)
     accepted_units: list[str] = Field(default_factory=list)
+    #: A unidade em que a grandeza se lê. `None` é resposta legítima — "lê-se
+    #: como está guardada" —, e o serviço confere a compatibilidade dimensional
+    #: antes de gravar: uma convenção errada aqui produziria números plausíveis
+    #: e falsos em toda a aplicação.
+    display_unit: str | None = Field(default=None, max_length=60)
     is_interval: bool = False
     better_direction: BetterDirection = BetterDirection.NEUTRAL
     allows_log_scale: bool = True
@@ -80,6 +97,7 @@ class PropertyDefinitionOut(BaseModel):
     physical_dimension: str
     canonical_unit: str
     accepted_units: list[str]
+    display_unit: str | None = None
     is_interval: bool
     better_direction: BetterDirection
     allows_log_scale: bool

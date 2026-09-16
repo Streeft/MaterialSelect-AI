@@ -6,6 +6,8 @@ and preserving the missing-data and unit-provenance information end to end.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
+
 from sqlalchemy.orm import Session
 
 from app.calculations.units import UnitError
@@ -14,11 +16,13 @@ from app.domain.data_quality import (
     build_scalar_value,
     missing_value,
 )
+from app.domain.display_units import Reading, reading_for
 from app.domain.errors import ConflictError, NotFoundError, ValidationError
 from app.domain.search_query import SearchQueryError
 from app.models.enums import AuditAction, AuditEntityType, DataQuality, PropertyCategory
 from app.models.material import Material
 from app.models.material_property_value import MaterialPropertyValue
+from app.models.property_definition import PropertyDefinition
 from app.models.user import User
 from app.repositories.audit_repository import AuditRepository
 from app.repositories.material_repository import MaterialRepository
@@ -70,8 +74,19 @@ def _summarise_quality(material: Material) -> DataQualitySummary:
 class MaterialService:
     """Coordinates catalogue reads and shapes them into API responses."""
 
-    def __init__(self, db: Session, user: User | None = None) -> None:
+    def __init__(
+        self,
+        db: Session,
+        user: User | None = None,
+        unit_choices: Mapping[str, str] | None = None,
+    ) -> None:
         self.viewer_id = user.id if user is not None else None
+        # D-70: em que unidade este leitor pediu para ler cada propriedade.
+        # Argumento de construtor pela mesma razão que `viewer_id` é: a escolha
+        # vale para a requisição inteira, e um parâmetro por método deixaria
+        # alguma superfície de fora — que é exatamente como a figura passaria a
+        # discordar da tabela ao lado.
+        self.unit_choices: Mapping[str, str] = unit_choices or {}
         self.repo = MaterialRepository(db, self.viewer_id)
         self.audit_repo = AuditRepository(db)
         # P0-2: read through the process service rather than reimplementing the
@@ -430,9 +445,33 @@ class MaterialService:
                 groups.append(PropertyGroup(category=category, properties=props))
         return groups
 
-    @staticmethod
-    def _to_property_out(value: MaterialPropertyValue) -> PropertyValueOut:
+    def reading_for_definition(self, definition: PropertyDefinition) -> Reading:
+        """Em que unidade esta propriedade sai nesta requisição (D-70).
+
+        Não custa consulta nenhuma: a definição já veio carregada com o valor.
+        """
+        return reading_for(
+            canonical_unit=definition.canonical_unit,
+            display_unit=definition.display_unit,
+            accepted_units=definition.accepted_units or [],
+            requested=self.unit_choices.get(definition.slug),
+        )
+
+    def _to_property_out(self, value: MaterialPropertyValue) -> PropertyValueOut:
+        """Uma linha da ficha, com a leitura ao lado do registro (D-70).
+
+        **A leitura é acrescentada, nunca substitui.** `value_scalar`, a faixa,
+        o típico e `original_unit` guardam *o que a fonte disse*, e é essa a
+        única coisa que eles servem para dizer: reescrevê-los noutra unidade
+        apagaria o registro. `normalized_value` e `conversion_method` são o
+        trilho que explica como aquilo virou canônico, e também não se mexem.
+
+        Os campos `display_*` são a mesma medida lida noutra unidade, e saem
+        **ao lado**. Quem imprime escolhe qual mostrar; quem audita continua
+        vendo os dois.
+        """
         definition = value.property_definition
+        reading = self.reading_for_definition(definition)
         return PropertyValueOut(
             property_slug=definition.slug,
             property_name=definition.name,
@@ -449,6 +488,7 @@ class MaterialService:
             canonical_unit=value.canonical_unit,
             conversion_method=value.conversion_method,
             uncertainty=value.uncertainty,
+            **reading.read(value),
             measurement_condition=value.measurement_condition,
             notes=value.notes,
             data_quality=value.data_quality,

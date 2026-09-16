@@ -44,6 +44,7 @@ class PropertyService:
             physical_dimension=payload.physical_dimension,
             canonical_unit=payload.canonical_unit,
             accepted_units=payload.accepted_units,
+            display_unit=payload.display_unit,
             is_interval=payload.is_interval,
             better_direction=payload.better_direction,
             allows_log_scale=payload.allows_log_scale,
@@ -136,6 +137,7 @@ class PropertyService:
         obj.physical_dimension = payload.physical_dimension
         obj.canonical_unit = payload.canonical_unit
         obj.accepted_units = payload.accepted_units
+        obj.display_unit = payload.display_unit
         obj.is_interval = payload.is_interval
         obj.better_direction = payload.better_direction
         obj.allows_log_scale = payload.allows_log_scale
@@ -182,6 +184,7 @@ class PropertyService:
             "physical_dimension": obj.physical_dimension,
             "canonical_unit": obj.canonical_unit,
             "accepted_units": list(obj.accepted_units or []),
+            "display_unit": obj.display_unit,
             "is_interval": obj.is_interval,
             "better_direction": obj.better_direction,
             "allows_log_scale": obj.allows_log_scale,
@@ -217,6 +220,26 @@ class PropertyService:
                     f"A unidade aceita '{unit}' é incompatível com a dimensão da propriedade."
                 )
 
+        # A unidade de leitura (D-70) passa pelas mesmas duas peneiras, e por uma
+        # terceira: ela tem de estar entre as aceitas. É de `accepted_units` que
+        # o seletor da tela se alimenta, então uma convenção fora da lista seria
+        # uma unidade que o leitor vê aplicada e não consegue escolher de volta.
+        if payload.display_unit:
+            try:
+                compatible = validate_dimension(payload.display_unit, payload.physical_dimension)
+            except UnitError as exc:
+                raise ValidationError(str(exc)) from exc
+            if not compatible:
+                raise ValidationError(
+                    f"A unidade de leitura '{payload.display_unit}' é incompatível "
+                    "com a dimensão da propriedade."
+                )
+            if payload.display_unit not in payload.accepted_units:
+                raise ValidationError(
+                    f"A unidade de leitura '{payload.display_unit}' precisa estar "
+                    "entre as unidades aceitas."
+                )
+
     @staticmethod
     def _to_out(prop: PropertyDefinition, value_count: int) -> PropertyDefinitionOut:
         return PropertyDefinitionOut(
@@ -229,6 +252,7 @@ class PropertyService:
             physical_dimension=prop.physical_dimension,
             canonical_unit=prop.canonical_unit,
             accepted_units=list(prop.accepted_units or []),
+            display_unit=prop.display_unit,
             is_interval=prop.is_interval,
             better_direction=prop.better_direction,
             allows_log_scale=prop.allows_log_scale,

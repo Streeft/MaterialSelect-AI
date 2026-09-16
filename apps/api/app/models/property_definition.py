@@ -35,6 +35,19 @@ class PropertyDefinition(Base):
     canonical_unit: Mapped[str] = mapped_column(String(60), nullable=False)
     # List of unit strings accepted on input; stored as JSON for portability.
     accepted_units: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
+    #: A unidade em que esta grandeza **se lê**, quando não é a canônica.
+    #:
+    #: Mora aqui, ao lado de ``better_direction`` e ``allows_log_scale``, porque é
+    #: a mesma espécie de fato: algo que se sabe sobre a grandeza, não sobre o
+    #: registro nem sobre quem está olhando. E é **por propriedade e não por
+    #: dimensão** porque o dado obriga: módulo, escoamento e tração têm a mesma
+    #: dimensão e se leem em GPa, MPa e MPa — uma tabela com "210000 MPa" ao lado
+    #: de "250 MPa" estaria correta e seria ilegível.
+    #:
+    #: ``NULL`` é resposta legítima, não configuração faltando: quer dizer "esta
+    #: grandeza se lê como está guardada", que é o caso das adimensionais.
+    #: Nada aqui toca o valor gravado nem ``conversion_method``.
+    display_unit: Mapped[str | None] = mapped_column(String(60), nullable=True)
 
     is_interval: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     better_direction: Mapped[BetterDirection] = mapped_column(
