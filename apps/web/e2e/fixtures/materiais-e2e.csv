@@ -1,0 +1,3 @@
+nome,densidade [g/cm3],modulo_young [GPa]
+Material E2E Rigido,2,400
+Material E2E Flexivel,8,50

@@ -1,0 +1,10 @@
+nome,classe,subclasse,densidade [g/cm3],modulo_young [GPa],limite_escoamento_min [MPa],limite_escoamento_max [MPa],resistencia_tracao [MPa],dureza [HV],temp_max_servico [degC],condutividade_termica [W/(m*K)],custo_massa,palavras_chave
+Aço estrutural (tipo A36/SS400),Metais,Aço-carbono estrutural,7.85,200,,,,,,,,estrutural;caso-de-estudo
+Liga de alumínio 7075-T6,Metais,Liga de alumínio aeroespacial,2.70,70,,,,,,,,aeroespacial;caso-de-estudo
+Liga de titânio Ti-6Al-4V,Metais,Liga de titânio aeroespacial,4.43,114,,,,,,,,aeroespacial;caso-de-estudo
+Poliamida 6/6 (Nylon),Polímeros,Termoplástico de engenharia,1.15,3.0,,,,,,,,termoplástico;caso-de-estudo
+Polipropileno,Polímeros,Termoplástico commodity,0.905,1.5,,,,,,,,termoplástico;caso-de-estudo
+Alumina (Al2O3),Cerâmicas,Óxido técnico,3.90,390,,,,,,,,ceramica-tecnica;caso-de-estudo
+CFRP laminado (epóxi/fibra de carbono),Compósitos,Laminado quase-isotrópico,1.50,53,,,,,,,,alto-desempenho;caso-de-estudo
+GFRP laminado (epóxi/fibra de vidro),Compósitos,Laminado quase-isotrópico,1.80,26,,,,,,,,caso-de-estudo
+Borracha natural (NR),Elastômeros,Elastômero natural,1.10,0.05,,,,,,,,flexivel;caso-de-estudo

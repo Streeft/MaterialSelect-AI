@@ -1,0 +1,217 @@
+"""Business logic for the material taxonomy (classes)."""
+
+from __future__ import annotations
+
+from sqlalchemy.orm import Session
+
+from app.domain.errors import ConflictError, NotFoundError, ValidationError
+from app.domain.slug import slugify
+from app.domain.taxonomy import lineages
+from app.models.enums import AuditAction, AuditEntityType
+from app.models.material_class import MaterialClass
+from app.models.user import User
+from app.repositories.audit_repository import AuditRepository
+from app.repositories.material_class_repository import MaterialClassRepository
+from app.schemas.material_class import (
+    ClassRefOut,
+    MaterialClassDetailOut,
+    MaterialClassIn,
+    MaterialClassOut,
+)
+from app.services.audit_service import diff_fields, record_change
+
+
+class TaxonomyService:
+    """Coordinates CRUD of material classes, guarding taxonomy integrity."""
+
+    def __init__(self, db: Session, user: User | None = None) -> None:
+        self.repo = MaterialClassRepository(db)
+        self.audit_repo = AuditRepository(db)
+        self.user = user
+
+    def list_classes(self) -> list[MaterialClassOut]:
+        return [self._to_out(cls, count) for cls, count in self.repo.list_with_counts()]
+
+    def get_class(self, slug: str) -> MaterialClassDetailOut:
+        """One family as a record: its prose, its breadcrumb and its subfolders (P1-4).
+
+        Built from the **whole** taxonomy in one read rather than from a query
+        per question. A taxonomy is a folder tree — tens of rows, not the data
+        table — so walking it in memory costs less than three round trips, and it
+        is what lets the ancestry come from ``app.domain.taxonomy.lineages``:
+        the same walk the Tree stage uses, so a breadcrumb and a stage can never
+        disagree about who is under whom.
+        """
+        rows = self.repo.list_with_counts()
+        by_slug = {cls.slug: (cls, count) for cls, count in rows}
+        found = by_slug.get(slug)
+        if found is None:
+            raise NotFoundError(f"Classe não encontrada: {slug}")
+        cls, direct_count = found
+
+        slug_by_id = {c.id: c.slug for c, _ in rows}
+        parents = {c.slug: slug_by_id.get(c.parent_id) for c, _ in rows}
+        paths = lineages(parents)
+
+        return MaterialClassDetailOut(
+            id=cls.id,
+            name=cls.name,
+            slug=cls.slug,
+            parent_id=cls.parent_id,
+            description=cls.description,
+            material_count=direct_count,
+            applications=cls.applications,
+            characteristics=cls.characteristics,
+            # Root→parent: the last element of the path is this class itself, and
+            # the page the reader is on is not a link back to itself.
+            ancestors=[
+                ClassRefOut(
+                    id=by_slug[ancestor][0].id, name=by_slug[ancestor][0].name, slug=ancestor
+                )
+                for ancestor in paths[slug][:-1]
+                if ancestor in by_slug
+            ],
+            children=[
+                self._to_out(child, count) for child, count in rows if child.parent_id == cls.id
+            ],
+            # This folder and everything below it — `slug in path` is true for the
+            # class itself, which is the meaning wanted: "how much is in here".
+            descendant_material_count=sum(
+                count for child, count in rows if slug in paths[child.slug]
+            ),
+        )
+
+    def create_class(self, payload: MaterialClassIn) -> MaterialClassOut:
+        slug = self._resolve_slug(payload)
+        if self.repo.slug_exists(slug):
+            raise ConflictError(f"Já existe uma classe com o slug: {slug}")
+        if self.repo.name_exists(payload.name):
+            raise ConflictError(f"Já existe uma classe com o nome: {payload.name}")
+        self._validate_parent(payload.parent_id)
+
+        obj = MaterialClass(
+            name=payload.name.strip(),
+            slug=slug,
+            parent_id=payload.parent_id,
+            description=payload.description,
+            applications=payload.applications,
+            characteristics=payload.characteristics,
+        )
+        self.repo.add(obj)
+        self.repo.flush()
+        record_change(
+            self.audit_repo,
+            self.user,
+            entity_type=AuditEntityType.MATERIAL_CLASS,
+            entity_id=obj.id,
+            entity_label=obj.name,
+            action=AuditAction.CRIADO,
+        )
+        self.repo.commit()
+        return self._to_out(obj, 0)
+
+    def update_class(self, class_id: int, payload: MaterialClassIn) -> MaterialClassOut:
+        obj = self.repo.get(class_id)
+        if obj is None:
+            raise NotFoundError(f"Classe não encontrada: {class_id}")
+        before = self._snapshot(obj)
+
+        slug = self._resolve_slug(payload)
+        if self.repo.slug_exists(slug, exclude_id=class_id):
+            raise ConflictError(f"Já existe uma classe com o slug: {slug}")
+        if self.repo.name_exists(payload.name, exclude_id=class_id):
+            raise ConflictError(f"Já existe uma classe com o nome: {payload.name}")
+        self._validate_parent(payload.parent_id, class_id=class_id)
+
+        obj.name = payload.name.strip()
+        obj.slug = slug
+        obj.parent_id = payload.parent_id
+        obj.description = payload.description
+        obj.applications = payload.applications
+        obj.characteristics = payload.characteristics
+
+        changes = diff_fields(before, self._snapshot(obj))
+        if changes:
+            record_change(
+                self.audit_repo,
+                self.user,
+                entity_type=AuditEntityType.MATERIAL_CLASS,
+                entity_id=obj.id,
+                entity_label=obj.name,
+                action=AuditAction.ATUALIZADO,
+                changes=changes,
+            )
+        self.repo.commit()
+        return self._to_out(obj, self.repo.material_count(class_id))
+
+    def delete_class(self, class_id: int) -> None:
+        obj = self.repo.get(class_id)
+        if obj is None:
+            raise NotFoundError(f"Classe não encontrada: {class_id}")
+        if self.repo.material_count(class_id) > 0:
+            raise ConflictError("Não é possível excluir uma classe em uso por materiais.")
+        if self.repo.child_count(class_id) > 0:
+            raise ConflictError("Não é possível excluir uma classe com subclasses.")
+        record_change(
+            self.audit_repo,
+            self.user,
+            entity_type=AuditEntityType.MATERIAL_CLASS,
+            entity_id=obj.id,
+            entity_label=obj.name,
+            action=AuditAction.EXCLUIDO,
+        )
+        self.repo.delete(obj)
+        self.repo.commit()
+
+    @staticmethod
+    def _snapshot(obj: MaterialClass) -> dict:
+        return {
+            "name": obj.name,
+            "slug": obj.slug,
+            "parent_id": obj.parent_id,
+            "description": obj.description,
+            # P1-4: family prose is part of the record, so a change to it is a
+            # change the audit trail must be able to answer for.
+            "applications": obj.applications,
+            "characteristics": obj.characteristics,
+        }
+
+    # --- helpers ----------------------------------------------------------
+
+    def _resolve_slug(self, payload: MaterialClassIn) -> str:
+        slug = (payload.slug or slugify(payload.name)).strip()
+        if not slug:
+            raise ValidationError("Não foi possível gerar um slug a partir do nome.")
+        return slug
+
+    def _validate_parent(self, parent_id: int | None, class_id: int | None = None) -> None:
+        """Ensure the parent exists and does not create a cycle."""
+        if parent_id is None:
+            return
+        if class_id is not None and parent_id == class_id:
+            raise ValidationError("Uma classe não pode ser pai de si mesma.")
+        parent = self.repo.get(parent_id)
+        if parent is None:
+            raise NotFoundError(f"Classe pai não encontrada: {parent_id}")
+        # Walk up the ancestry to detect a cycle (parent is a descendant of self).
+        if class_id is not None:
+            ancestor = parent
+            seen: set[int] = set()
+            while ancestor is not None:
+                if ancestor.id == class_id:
+                    raise ValidationError("A hierarquia de classes não pode conter ciclos.")
+                if ancestor.id in seen:
+                    break
+                seen.add(ancestor.id)
+                ancestor = self.repo.get(ancestor.parent_id) if ancestor.parent_id else None
+
+    @staticmethod
+    def _to_out(cls: MaterialClass, material_count: int) -> MaterialClassOut:
+        return MaterialClassOut(
+            id=cls.id,
+            name=cls.name,
+            slug=cls.slug,
+            parent_id=cls.parent_id,
+            description=cls.description,
+            material_count=material_count,
+        )

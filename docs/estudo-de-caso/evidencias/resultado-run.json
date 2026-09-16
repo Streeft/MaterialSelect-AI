@@ -1,0 +1,303 @@
+{
+    "initial_count": 14,
+    "combinator": "AND",
+    "final_count": 8,
+    "funnel": [
+        {
+            "label": "Conjunto do estudo de caso",
+            "operator": "text_contains",
+            "passed": 9,
+            "remaining": 9
+        },
+        {
+            "label": "N\u00e3o fr\u00e1gil (cer\u00e2mica exclu\u00edda de uso em tra\u00e7\u00e3o)",
+            "operator": "not_in_class",
+            "passed": 12,
+            "remaining": 8
+        }
+    ],
+    "candidates": [
+        {
+            "material_id": 12,
+            "name": "CFRP laminado (ep\u00f3xi/fibra de carbono)",
+            "class_name": "Comp\u00f3sitos",
+            "index_value": 35333333.333333336,
+            "score": 1.0,
+            "rank": 1
+        },
+        {
+            "material_id": 7,
+            "name": "Liga de alum\u00ednio 7075-T6",
+            "class_name": "Metais",
+            "index_value": 25925925.925925925,
+            "score": 0.7334096655693907,
+            "rank": 2
+        },
+        {
+            "material_id": 8,
+            "name": "Liga de tit\u00e2nio Ti-6Al-4V",
+            "class_name": "Metais",
+            "index_value": 25733634.31151242,
+            "score": 0.7279604399140488,
+            "rank": 3
+        },
+        {
+            "material_id": 6,
+            "name": "A\u00e7o estrutural (tipo A36/SS400)",
+            "class_name": "Metais",
+            "index_value": 25477707.00636943,
+            "score": 0.7207078842509156,
+            "rank": 4
+        },
+        {
+            "material_id": 13,
+            "name": "GFRP laminado (ep\u00f3xi/fibra de vidro)",
+            "class_name": "Comp\u00f3sitos",
+            "index_value": 14444444.444444446,
+            "score": 0.4080435093745528,
+            "rank": 5
+        },
+        {
+            "material_id": 9,
+            "name": "Poliamida 6/6 (Nylon)",
+            "class_name": "Pol\u00edmeros",
+            "index_value": 2608695.6521739135,
+            "score": 0.07263800474172533,
+            "rank": 6
+        },
+        {
+            "material_id": 10,
+            "name": "Polipropileno",
+            "class_name": "Pol\u00edmeros",
+            "index_value": 1657458.5635359117,
+            "score": 0.04568152219552176,
+            "rank": 7
+        },
+        {
+            "material_id": 14,
+            "name": "Borracha natural (NR)",
+            "class_name": "Elast\u00f4meros",
+            "index_value": 45454.545454545456,
+            "score": 0.0,
+            "rank": 8
+        }
+    ],
+    "index": {
+        "name": "Rigidez espec\u00edfica",
+        "expression": "modulo_young / densidade",
+        "goal": "maximize",
+        "dimension": "[length] ** 2 / [time] ** 2",
+        "variables": [
+            "densidade",
+            "modulo_young"
+        ],
+        "values": [
+            {
+                "material_id": 12,
+                "name": "CFRP laminado (ep\u00f3xi/fibra de carbono)",
+                "class_name": "Comp\u00f3sitos",
+                "value": 35333333.333333336,
+                "undefined_reason": null
+            },
+            {
+                "material_id": 7,
+                "name": "Liga de alum\u00ednio 7075-T6",
+                "class_name": "Metais",
+                "value": 25925925.925925925,
+                "undefined_reason": null
+            },
+            {
+                "material_id": 8,
+                "name": "Liga de tit\u00e2nio Ti-6Al-4V",
+                "class_name": "Metais",
+                "value": 25733634.31151242,
+                "undefined_reason": null
+            },
+            {
+                "material_id": 6,
+                "name": "A\u00e7o estrutural (tipo A36/SS400)",
+                "class_name": "Metais",
+                "value": 25477707.00636943,
+                "undefined_reason": null
+            },
+            {
+                "material_id": 13,
+                "name": "GFRP laminado (ep\u00f3xi/fibra de vidro)",
+                "class_name": "Comp\u00f3sitos",
+                "value": 14444444.444444446,
+                "undefined_reason": null
+            },
+            {
+                "material_id": 9,
+                "name": "Poliamida 6/6 (Nylon)",
+                "class_name": "Pol\u00edmeros",
+                "value": 2608695.6521739135,
+                "undefined_reason": null
+            },
+            {
+                "material_id": 10,
+                "name": "Polipropileno",
+                "class_name": "Pol\u00edmeros",
+                "value": 1657458.5635359117,
+                "undefined_reason": null
+            },
+            {
+                "material_id": 14,
+                "name": "Borracha natural (NR)",
+                "class_name": "Elast\u00f4meros",
+                "value": 45454.545454545456,
+                "undefined_reason": null
+            }
+        ],
+        "defined_count": 8,
+        "undefined_count": 0
+    },
+    "ranking": {
+        "normalization": "minmax",
+        "criteria": [
+            "__index__"
+        ],
+        "ranked": [
+            {
+                "material_id": 12,
+                "name": "CFRP laminado (ep\u00f3xi/fibra de carbono)",
+                "score": 1.0,
+                "rank": 1,
+                "contributions": [
+                    {
+                        "key": "__index__",
+                        "label": "Rigidez espec\u00edfica",
+                        "raw": 35333333.333333336,
+                        "normalized": 1.0,
+                        "weight": 1.0,
+                        "contribution": 1.0
+                    }
+                ]
+            },
+            {
+                "material_id": 7,
+                "name": "Liga de alum\u00ednio 7075-T6",
+                "score": 0.7334096655693907,
+                "rank": 2,
+                "contributions": [
+                    {
+                        "key": "__index__",
+                        "label": "Rigidez espec\u00edfica",
+                        "raw": 25925925.925925925,
+                        "normalized": 0.7334096655693907,
+                        "weight": 1.0,
+                        "contribution": 0.7334096655693907
+                    }
+                ]
+            },
+            {
+                "material_id": 8,
+                "name": "Liga de tit\u00e2nio Ti-6Al-4V",
+                "score": 0.7279604399140488,
+                "rank": 3,
+                "contributions": [
+                    {
+                        "key": "__index__",
+                        "label": "Rigidez espec\u00edfica",
+                        "raw": 25733634.31151242,
+                        "normalized": 0.7279604399140488,
+                        "weight": 1.0,
+                        "contribution": 0.7279604399140488
+                    }
+                ]
+            },
+            {
+                "material_id": 6,
+                "name": "A\u00e7o estrutural (tipo A36/SS400)",
+                "score": 0.7207078842509156,
+                "rank": 4,
+                "contributions": [
+                    {
+                        "key": "__index__",
+                        "label": "Rigidez espec\u00edfica",
+                        "raw": 25477707.00636943,
+                        "normalized": 0.7207078842509156,
+                        "weight": 1.0,
+                        "contribution": 0.7207078842509156
+                    }
+                ]
+            },
+            {
+                "material_id": 13,
+                "name": "GFRP laminado (ep\u00f3xi/fibra de vidro)",
+                "score": 0.4080435093745528,
+                "rank": 5,
+                "contributions": [
+                    {
+                        "key": "__index__",
+                        "label": "Rigidez espec\u00edfica",
+                        "raw": 14444444.444444446,
+                        "normalized": 0.4080435093745528,
+                        "weight": 1.0,
+                        "contribution": 0.4080435093745528
+                    }
+                ]
+            },
+            {
+                "material_id": 9,
+                "name": "Poliamida 6/6 (Nylon)",
+                "score": 0.07263800474172533,
+                "rank": 6,
+                "contributions": [
+                    {
+                        "key": "__index__",
+                        "label": "Rigidez espec\u00edfica",
+                        "raw": 2608695.6521739135,
+                        "normalized": 0.07263800474172533,
+                        "weight": 1.0,
+                        "contribution": 0.07263800474172533
+                    }
+                ]
+            },
+            {
+                "material_id": 10,
+                "name": "Polipropileno",
+                "score": 0.04568152219552176,
+                "rank": 7,
+                "contributions": [
+                    {
+                        "key": "__index__",
+                        "label": "Rigidez espec\u00edfica",
+                        "raw": 1657458.5635359117,
+                        "normalized": 0.04568152219552176,
+                        "weight": 1.0,
+                        "contribution": 0.04568152219552176
+                    }
+                ]
+            },
+            {
+                "material_id": 14,
+                "name": "Borracha natural (NR)",
+                "score": 0.0,
+                "rank": 8,
+                "contributions": [
+                    {
+                        "key": "__index__",
+                        "label": "Rigidez espec\u00edfica",
+                        "raw": 45454.545454545456,
+                        "normalized": 0.0,
+                        "weight": 1.0,
+                        "contribution": 0.0
+                    }
+                ]
+            }
+        ],
+        "excluded": [],
+        "sensitivity": [
+            {
+                "description": "Pesos iguais",
+                "weights": {
+                    "__index__": 1.0
+                },
+                "top_material_id": 12,
+                "top_material_name": "CFRP laminado (ep\u00f3xi/fibra de carbono)",
+                "changed": false
+            }
+        ]
+    }
+}

@@ -1,0 +1,246 @@
+"""Data-access layer for materials."""
+
+from __future__ import annotations
+
+from datetime import UTC, datetime
+
+from sqlalchemy import and_, delete, exists, func, not_, or_, select
+from sqlalchemy.orm import Session, joinedload, selectinload
+
+from app.domain.search_query import And, Node, Not, Term, parse_query, to_like_pattern
+from app.models.material import Material
+from app.models.material_class import MaterialClass
+from app.models.material_keyword import MaterialKeyword
+from app.models.material_property_value import MaterialPropertyValue
+from app.models.property_definition import PropertyDefinition
+from app.models.source import Source
+from app.repositories.visibility import visible_materials
+
+
+def _matches(term: Term):
+    """One term against every column a reader would expect it to hit.
+
+    Name, class and keyword — the three the catalogue already indexed. A term
+    that matches any of them matches the material; `NOT` then negates the whole
+    disjunction, which is what "steel NOT alloy" means.
+    """
+    pattern = to_like_pattern(term)
+    keyword_match = exists(
+        select(MaterialKeyword.id).where(
+            MaterialKeyword.material_id == Material.id,
+            func.lower(MaterialKeyword.keyword).like(pattern, escape="\\"),
+        )
+    )
+    return or_(
+        func.lower(Material.name).like(pattern, escape="\\"),
+        func.lower(MaterialClass.name).like(pattern, escape="\\"),
+        keyword_match,
+    )
+
+
+def _compile(node: Node):
+    """Turn a parsed query into a SQLAlchemy boolean expression."""
+    if isinstance(node, Term):
+        return _matches(node)
+    if isinstance(node, Not):
+        return not_(_compile(node.operand))
+    if isinstance(node, And):
+        return and_(*(_compile(o) for o in node.operands))
+    return or_(*(_compile(o) for o in node.operands))
+
+
+class MaterialRepository:
+    """Encapsulates all material-related database queries.
+
+    ``viewer_id`` is who is reading, and every statement that selects materials
+    narrows to what that reader may see (P1-4). It is a constructor argument
+    rather than a parameter on eight methods so that a call site cannot pass it
+    to some of them and not the others; it defaults to ``None``, which means the
+    shared catalogue and nothing else — the safe direction for a construction
+    site that was never updated.
+    """
+
+    def __init__(self, db: Session, viewer_id: int | None = None) -> None:
+        self.db = db
+        self.viewer_id = viewer_id
+
+    def list_materials(self, search: str | None = None) -> list[Material]:
+        """Return active materials, optionally filtered by a search term.
+
+        The search is case-insensitive and matches the material name, its class
+        name, or any keyword. Uses parameterised ``ILIKE``/``LIKE`` — no string
+        interpolation into SQL.
+        """
+        stmt = (
+            select(Material)
+            .join(MaterialClass, Material.class_id == MaterialClass.id)
+            .options(
+                joinedload(Material.material_class),
+                # One extra query for the whole page, so the catalogue can state
+                # each material's data quality. Reaching the same collection
+                # lazily would be one query per row.
+                selectinload(Material.property_values),
+            )
+            .where(Material.is_active.is_(True))
+            .where(visible_materials(self.viewer_id))
+            .order_by(Material.name)
+        )
+
+        if search and search.strip():
+            stmt = stmt.where(_compile(parse_query(search)))
+
+        return list(self.db.execute(stmt).scalars().unique().all())
+
+    def get_material(self, material_id: int) -> Material | None:
+        """Return one material with its class, property values and definitions.
+
+        ``populate_existing`` forces the ORM to overwrite any already-loaded
+        (possibly stale) state for this material in the identity map. Without it,
+        re-reading after a bulk delete/insert of property values (as done by
+        ``replace_property_values``) would return the OLD collection, because a
+        loaded, non-expired collection is not refreshed by a plain re-query.
+        """
+        stmt = (
+            select(Material)
+            .options(
+                joinedload(Material.material_class),
+                joinedload(Material.property_values).joinedload(
+                    MaterialPropertyValue.property_definition
+                ),
+                joinedload(Material.property_values).joinedload(MaterialPropertyValue.source),
+            )
+            .where(Material.id == material_id)
+            .where(visible_materials(self.viewer_id))
+            .execution_options(populate_existing=True)
+        )
+        return self.db.execute(stmt).scalars().unique().one_or_none()
+
+    def get_property_by_slug(self, slug: str) -> PropertyDefinition | None:
+        """Return a property definition by slug, or None."""
+        stmt = select(PropertyDefinition).where(PropertyDefinition.slug == slug)
+        return self.db.execute(stmt).scalars().one_or_none()
+
+    def list_properties(self) -> list[PropertyDefinition]:
+        """The whole property catalogue, in name order.
+
+        No visibility filter: a property *definition* is shared by everyone —
+        ownership lives on the material (P1-4), never on what a property is.
+        """
+        stmt = select(PropertyDefinition).order_by(PropertyDefinition.name)
+        return list(self.db.execute(stmt).scalars().all())
+
+    def values_for_property(self, slug: str) -> list[MaterialPropertyValue]:
+        """Return non-missing values for a property, for ACTIVE materials only.
+
+        The ``is_active`` filter keeps soft-deleted materials out of charts and
+        any other aggregate consumers — deactivation must remove a material from
+        every selection surface, not just the catalogue list.
+        """
+        stmt = (
+            select(MaterialPropertyValue)
+            .join(PropertyDefinition, MaterialPropertyValue.property_id == PropertyDefinition.id)
+            .join(Material, MaterialPropertyValue.material_id == Material.id)
+            .options(joinedload(MaterialPropertyValue.material).joinedload(Material.material_class))
+            .where(PropertyDefinition.slug == slug)
+            .where(MaterialPropertyValue.is_missing.is_(False))
+            .where(Material.is_active.is_(True))
+            .where(visible_materials(self.viewer_id))
+        )
+        return list(self.db.execute(stmt).scalars().unique().all())
+
+    def sync_keywords(self, material_id: int, keywords: list[str]) -> None:
+        """Replace every MaterialKeyword row for ``material_id`` with ``keywords``.
+
+        Delete-then-insert rather than diffing: a material's keyword list is
+        small (a handful of words) and rewritten wholesale on every edit, so
+        there is nothing a diff would save.
+        """
+        self.db.execute(delete(MaterialKeyword).where(MaterialKeyword.material_id == material_id))
+        for keyword in keywords:
+            self.db.add(MaterialKeyword(material_id=material_id, keyword=keyword))
+
+    # --- write helpers ----------------------------------------------------
+
+    def get_class(self, class_id: int) -> MaterialClass | None:
+        """Return a material class by id, or None."""
+        return self.db.get(MaterialClass, class_id)
+
+    def name_exists(self, name: str, exclude_id: int | None = None) -> bool:
+        """True if a material **this reader can see** already uses ``name``.
+
+        Scoped to the visible set rather than to the whole table, and that is
+        the better answer on both counts it trades between (P1-4). A global
+        check would refuse a name because of a record the person cannot see —
+        an error message that reveals a hidden record exists. Scoping it keeps
+        names unique inside every view that is ever rendered, which is all the
+        readability of a chart or a report actually requires: no single view
+        mixes two readers' records.
+        """
+        stmt = (
+            select(Material.id)
+            .where(func.lower(Material.name) == name.strip().lower())
+            .where(visible_materials(self.viewer_id))
+        )
+        if exclude_id is not None:
+            stmt = stmt.where(Material.id != exclude_id)
+        return self.db.execute(stmt).first() is not None
+
+    def get_or_create_source(
+        self,
+        label: str,
+        is_demo: bool = False,
+        *,
+        license_label: str | None = None,
+        license_url: str | None = None,
+        contains_third_party_data: bool = False,
+        reviewed_by_user_id: int | None = None,
+    ) -> Source:
+        """Return the source with ``label``, creating it if necessary.
+
+        The licensing fields (M1) only apply to a brand-new row — reusing an
+        existing label never overwrites its already-recorded license or
+        reviewer. The decision is made once, at registration; see
+        ``app.importers.service`` for where it is enforced before this is
+        ever called with an unregistered license.
+        """
+        existing = (
+            self.db.execute(select(Source).where(Source.label == label)).scalars().one_or_none()
+        )
+        if existing:
+            return existing
+        source = Source(
+            label=label,
+            is_demo=is_demo,
+            license_label=license_label,
+            license_url=license_url,
+            contains_third_party_data=contains_third_party_data,
+            reviewed_by_user_id=reviewed_by_user_id,
+            reviewed_at=datetime.now(UTC) if reviewed_by_user_id is not None else None,
+        )
+        self.db.add(source)
+        self.db.flush()
+        return source
+
+    def get_source_by_label(self, label: str) -> Source | None:
+        return self.db.execute(select(Source).where(Source.label == label)).scalars().one_or_none()
+
+    def list_sources(self) -> list[Source]:
+        return list(self.db.execute(select(Source).order_by(Source.label)).scalars().all())
+
+    def delete_values_for_material(self, material_id: int) -> None:
+        """Remove all property values of a material (used when replacing them)."""
+        self.db.execute(
+            delete(MaterialPropertyValue).where(MaterialPropertyValue.material_id == material_id)
+        )
+
+    def add(self, obj: object) -> None:
+        """Stage a new ORM object for insertion."""
+        self.db.add(obj)
+
+    def flush(self) -> None:
+        """Flush pending changes (assigns primary keys without committing)."""
+        self.db.flush()
+
+    def commit(self) -> None:
+        """Commit the current transaction."""
+        self.db.commit()

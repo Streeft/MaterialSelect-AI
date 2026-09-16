@@ -1,0 +1,82 @@
+﻿Relatório de seleção — Haste leve e rígida — estudo de caso (A2)
+"Reprodução do caso clássico de Ashby: tirante sob tração, minimizar massa para rigidez especificada. Índice E/ρ; cerâmica excluída por fragilidade."
+"Esta ferramenta destina-se a apoio didático e à triagem preliminar de candidatos. Não substitui validação experimental, análise estrutural detalhada nem julgamento de engenharia."
+Todos os números deste relatório foram calculados de forma determinística no backend a partir dos valores cadastrados. Reexecutar o estudo com o mesmo catálogo reproduz exatamente estes resultados.
+
+Problema
+Item,Valor
+Estudo,Haste leve e rígida — estudo de caso (A2)
+Função do componente,Tirante (elemento sob tração pura)
+Objetivo,Minimizar massa para uma rigidez axial especificada
+Variáveis livres,área da seção transversal
+Combinação das restrições,AND
+Materiais considerados,14
+Candidatos após as restrições,8
+
+Restrições e funil
+Restrição,Operador,Passaram,Restantes
+Conjunto do estudo de caso,text_contains,9,9
+Não frágil (cerâmica excluída de uso em tração),not_in_class,12,8
+
+Candidatos
+Posição,Material,Classe,Índice,Pontuação
+1,CFRP laminado (epóxi/fibra de carbono),Compósitos,35333333.3333,1
+2,Liga de alumínio 7075-T6,Metais,25925925.9259,0.733409665569
+3,Liga de titânio Ti-6Al-4V,Metais,25733634.3115,0.727960439914
+4,Aço estrutural (tipo A36/SS400),Metais,25477707.0064,0.720707884251
+5,GFRP laminado (epóxi/fibra de vidro),Compósitos,14444444.4444,0.408043509375
+6,Poliamida 6/6 (Nylon),Polímeros,2608695.65217,0.0726380047417
+7,Polipropileno,Polímeros,1657458.56354,0.0456815221955
+8,Borracha natural (NR),Elastômeros,45454.5454545,0
+
+Índice de desempenho
+"A dimensão é derivada da própria expressão por análise dimensional, não declarada à mão."
+Item,Valor
+Nome,Rigidez específica
+Expressão,modulo_young / densidade
+Objetivo,maximizar
+Dimensão (derivada),[length] ** 2 / [time] ** 2
+Variáveis,"densidade, modulo_young"
+Definido para,8
+Indefinido para,0
+
+Contribuições
+Normalização: minmax. Os pesos são renormalizados para somar 1; a pontuação é a soma das contribuições.
+Posição,Material,Critério,Valor bruto,Normalizado,Peso,Contribuição
+1,CFRP laminado (epóxi/fibra de carbono),Rigidez específica,35333333.3333,1.0,1.0,1.0
+2,Liga de alumínio 7075-T6,Rigidez específica,25925925.9259,0.73341,1.0,0.73341
+3,Liga de titânio Ti-6Al-4V,Rigidez específica,25733634.3115,0.72796,1.0,0.72796
+4,Aço estrutural (tipo A36/SS400),Rigidez específica,25477707.0064,0.720708,1.0,0.720708
+5,GFRP laminado (epóxi/fibra de vidro),Rigidez específica,14444444.4444,0.408044,1.0,0.408044
+6,Poliamida 6/6 (Nylon),Rigidez específica,2608695.65217,0.072638,1.0,0.072638
+7,Polipropileno,Rigidez específica,1657458.56354,0.045682,1.0,0.045682
+8,Borracha natural (NR),Rigidez específica,45454.5454545,0.0,1.0,0.0
+
+Excluídos por dado ausente
+Nenhum material foi excluído por dado ausente.
+Material,Critérios sem valor
+
+Sensibilidade
+O ranking é recalculado sob pesos perturbados. 'Mudou' indica que a recomendação depende da ponderação escolhida.
+Cenário de pesos,1º colocado,Resultado
+Pesos iguais,CFRP laminado (epóxi/fibra de carbono),estável
+
+Proveniência
+"Origem de cada número usado na decisão. Um valor ausente aparece como 'ausente', nunca como zero ou célula vazia."
+Material,Propriedade,Valor normalizado,Unidade canônica,Valor original,Unidade original,Método de conversão,Qualidade do dado
+CFRP laminado (epóxi/fibra de carbono),Densidade,1500,kg/m**3,1.5,g/cm**3,pint:g/cm**3->kg/m**3,IMPORTADO
+CFRP laminado (epóxi/fibra de carbono),Módulo de Young,53000000000,Pa,53,GPa,pint:GPa->Pa,IMPORTADO
+Liga de alumínio 7075-T6,Densidade,2700,kg/m**3,2.7,g/cm**3,pint:g/cm**3->kg/m**3,IMPORTADO
+Liga de alumínio 7075-T6,Módulo de Young,70000000000,Pa,70,GPa,pint:GPa->Pa,IMPORTADO
+Liga de titânio Ti-6Al-4V,Densidade,4430,kg/m**3,4.43,g/cm**3,pint:g/cm**3->kg/m**3,IMPORTADO
+Liga de titânio Ti-6Al-4V,Módulo de Young,114000000000,Pa,114,GPa,pint:GPa->Pa,IMPORTADO
+Aço estrutural (tipo A36/SS400),Densidade,7850,kg/m**3,7.85,g/cm**3,pint:g/cm**3->kg/m**3,IMPORTADO
+Aço estrutural (tipo A36/SS400),Módulo de Young,200000000000,Pa,200,GPa,pint:GPa->Pa,IMPORTADO
+GFRP laminado (epóxi/fibra de vidro),Densidade,1800,kg/m**3,1.8,g/cm**3,pint:g/cm**3->kg/m**3,IMPORTADO
+GFRP laminado (epóxi/fibra de vidro),Módulo de Young,26000000000,Pa,26,GPa,pint:GPa->Pa,IMPORTADO
+Poliamida 6/6 (Nylon),Densidade,1150,kg/m**3,1.15,g/cm**3,pint:g/cm**3->kg/m**3,IMPORTADO
+Poliamida 6/6 (Nylon),Módulo de Young,3000000000,Pa,3,GPa,pint:GPa->Pa,IMPORTADO
+Polipropileno,Densidade,905,kg/m**3,0.905,g/cm**3,pint:g/cm**3->kg/m**3,IMPORTADO
+Polipropileno,Módulo de Young,1500000000,Pa,1.5,GPa,pint:GPa->Pa,IMPORTADO
+Borracha natural (NR),Densidade,1100,kg/m**3,1.1,g/cm**3,pint:g/cm**3->kg/m**3,IMPORTADO
+Borracha natural (NR),Módulo de Young,50000000,Pa,0.05,GPa,pint:GPa->Pa,IMPORTADO

@@ -1,0 +1,6 @@
+nome,classe,subclasse,densidade [g/cm3],modulo_young [GPa],limite_escoamento_min [MPa],limite_escoamento_max [MPa],resistencia_tracao [MPa],dureza [HV],temp_max_servico [degC],condutividade_termica [W/(m*K)],custo_massa,palavras_chave
+Liga Alumínio Demo A,Metais,Liga leve fictícia,2.70,69.0,240,300,,,150,,3.5,leve;aeroespacial;demo
+Aço Demo B,Metais,Aço estrutural fictício,7.85,210.0,,,500,200,450,,,estrutural;rígido;demo
+Polímero Demo C,Polímeros,Termoplástico fictício,1.05,2.5,40,60,,,90,,,leve;isolante;demo
+Cerâmica Demo D,Cerâmicas,Óxido técnico fictício,3.90,380.0,,,,1500,1600,N/A,,rígido;refratário;demo
+Compósito Demo E,Compósitos,Laminado fictício,1.60,120.0,,,1500,,,,40.0,leve;anisotrópico;alto desempenho;demo
