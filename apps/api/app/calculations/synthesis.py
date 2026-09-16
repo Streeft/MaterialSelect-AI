@@ -64,14 +64,16 @@ from dataclasses import dataclass
 
 from app.models.enums import DataQuality
 
-#: Os dois tipos de síntese de v1.
+#: Os três tipos de síntese.
 COMPOSITO = "composito"
 ESPUMA = "espuma"
-KINDS = (COMPOSITO, ESPUMA)
+PAINEL = "painel"
+KINDS = (COMPOSITO, ESPUMA, PAINEL)
 
 KIND_LABELS = {
     COMPOSITO: "Compósito de dois constituintes",
     ESPUMA: "Espuma de um sólido",
+    PAINEL: "Painel sanduíche",
 }
 
 #: Quão firme é a lei que produziu o número. Impresso ao lado do valor, porque
@@ -91,6 +93,10 @@ BASIS_LABELS = {
 #: converter fração volumétrica em fração mássica — uma dependência entre
 #: propriedades, e das que a resposta precisa nomear quando falta.
 DENSIDADE = "densidade"
+
+#: Slug do módulo. Nomeado pela mesma razão: no painel sanduíche ele é o número
+#: que a regra de flexão lê dos dois pais — e também o slug em que ela escreve.
+MODULO = "modulo_young"
 
 #: Melhor para pior. Um valor calculado herda a **pior** qualidade entre os
 #: valores que a regra leu: medido é o que alguém mediu, importado o que outra
@@ -206,6 +212,13 @@ _HERDADO = Rule(
     basis=EXATO,
 )
 
+_FLEXAO_SANDUICHE = Rule(
+    key="flexao-sanduiche",
+    label="Módulo de flexão equivalente do painel",
+    formula="E* = 12·[Ef·t³/6 + Ef·t·(c+t)²/2 + Ec·c³/12] / (c+2t)³",
+    basis=EXATO,
+)
+
 #: Constante empírica do colapso plástico de espuma de célula aberta. Escrita
 #: aqui e nomeada na fórmula, nunca escondida no meio da conta.
 _COLAPSO_PLASTICO = 0.3
@@ -219,6 +232,19 @@ _RULES: dict[str, dict[str, Rule]] = {
         DENSIDADE: _VOLUME_LINEAR,
         "modulo_young": _VOIGT_REUSS,
         "condutividade_termica": _VOIGT_REUSS,
+        "temp_max_servico": _MINIMO,
+        "custo_massa": _MASSA_LINEAR,
+        "energia_incorporada": _MASSA_LINEAR,
+        "pegada_co2": _MASSA_LINEAR,
+        "energia_reciclagem": _MASSA_LINEAR,
+        "co2_reciclagem": _MASSA_LINEAR,
+    },
+    PAINEL: {
+        # Massa é massa: a única grandeza que o arranjo não muda, e por isso a
+        # **mesma** regra do compósito, rodada na fração de espessura das faces.
+        DENSIDADE: _VOLUME_LINEAR,
+        # Esta não é mistura nenhuma — ver KIND_NOTES[PAINEL].
+        MODULO: _FLEXAO_SANDUICHE,
         "temp_max_servico": _MINIMO,
         "custo_massa": _MASSA_LINEAR,
         "energia_incorporada": _MASSA_LINEAR,
@@ -273,6 +299,31 @@ _NO_RULE: dict[str, dict[str, str]] = {
         ),
         "dureza": "Dureza de espuma depende da célula, não só do sólido.",
     },
+    PAINEL: {
+        "limite_escoamento": (
+            "A resistência de um painel é uma **competição entre modos de falha** — "
+            "escoamento da face, cisalhamento do núcleo e enrugamento da face —, e "
+            "vale o menor deles. Só o primeiro é calculável aqui: os outros dois "
+            "precisam da resistência ao cisalhamento e do módulo de cisalhamento do "
+            "núcleo, e nenhum dos dois está catalogado. O mínimo sobre parte dos "
+            "modos é um limite superior, não a resistência."
+        ),
+        "resistencia_tracao": (
+            "Mesma razão do limite de escoamento: sem os modos do núcleo, qualquer "
+            "número aqui seria um limite superior apresentado como resistência."
+        ),
+        "condutividade_termica": (
+            "Um painel é anisotrópico por construção: através da espessura as camadas "
+            "estão em série e no plano estão em paralelo, e os dois valores diferem "
+            "por muito. O catálogo guarda um número isotrópico, e escolher uma das "
+            "duas direções em silêncio daria ao leitor a outra."
+        ),
+        "dureza": (
+            "Dureza mede a superfície, então seria a da face — e dizer isso "
+            "esconderia que a indentação do núcleo é justamente um dos modos de "
+            "falha de um painel."
+        ),
+    },
 }
 
 #: Nota do tipo de síntese, mostrada uma vez por registro derivado.
@@ -287,6 +338,18 @@ KIND_NOTES = {
         "escalas de Gibson–Ashby são empíricas. As grandezas *por massa* são as "
         "do sólido: é a mesma substância, e o gasto do próprio processo de "
         "espumação não está catalogado — não foi estimado."
+    ),
+    PAINEL: (
+        "Painel sanduíche hipotético: duas faces de espessura **t** sobre um núcleo "
+        "de espessura **c**. Um painel não é uma mistura, é um **arranjo** — e o "
+        "módulo que sai daqui é o de **flexão equivalente**, o que uma placa "
+        "homogênea da mesma espessura precisaria ter para ser tão rígida quanto "
+        "esta. Ele passa do limite de Voigt nas mesmas frações, que é o que "
+        "nenhuma regra das misturas pode fazer, e é por isso que se constrói "
+        "painel. Só a **razão t/c** decide: dobrar as duas espessuras não muda "
+        "nem ρ* nem E*, e é isso que torna legítimo tratar o painel como "
+        "material. Densidade e as grandezas por massa, essas sim, são as mesmas "
+        "regras do compósito — massa é massa, o arranjo não a move."
     ),
 }
 
@@ -349,26 +412,64 @@ class ParentValue:
 ParentValues = dict[str, ParentValue]
 
 
-def synthesize_composite(
-    *, fraction: float, first: ParentValues, second: ParentValues
-) -> SynthesisResult:
-    """Um compósito de dois constituintes, com ``fraction`` de volume do primeiro.
+@dataclass(frozen=True)
+class _Sandwich:
+    """A geometria de um painel: espessura de **cada** face e do núcleo.
 
-    Args:
-        fraction: fração **volumétrica** do primeiro constituinte, 0 < f < 1.
-        first, second: valores catalogados de cada pai, por slug.
-
-    Raises:
-        SynthesisError: quando a fração não deixa um compósito de dois — em 0 ou
-            em 1 o resultado é um dos pais, e copiar um material catalogado para
-            dentro de um registro sintetizado seria criar uma segunda cópia dele.
+    Só a **razão** entre as duas decide alguma coisa — dobrar as duas não muda
+    nem ``ρ*`` nem ``E*``. É esse fato que torna legítimo tratar o painel como
+    um material: sob escala self-similar o par (E*, ρ*) não se move, que é
+    exatamente a liberdade que um índice de desempenho assume ter.
     """
-    if not 0 < fraction < 1:
-        raise SynthesisError(
-            "A fração volumétrica fica entre 0 e 1, exclusivos: em 0 ou em 1 o "
-            "resultado é um dos constituintes, não um compósito."
-        )
 
+    face: float
+    core: float
+
+    @property
+    def total(self) -> float:
+        return self.core + 2.0 * self.face
+
+    @property
+    def face_fraction(self) -> float:
+        """Fração de espessura ocupada pelas duas faces — e de volume, também.
+
+        Num painel de área constante, fração de espessura *é* fração de volume,
+        e é por isso que a densidade sai pela regra do compósito sem adaptação.
+        """
+        return 2.0 * self.face / self.total
+
+    def flexural_modulus(self, face_modulus: float, core_modulus: float) -> float:
+        """``E*``: o módulo de uma placa homogênea de igual rigidez à flexão.
+
+        Os três termos de ``(EI)/b`` são, na ordem: as faces fletindo em torno
+        dos próprios eixos, as faces em torno do eixo do painel (o termo que
+        domina, e o motivo de o sanduíche existir) e o núcleo em torno do eixo
+        do painel.
+        """
+        t, c, d = self.face, self.core, self.total
+        rigidity = (
+            face_modulus * t**3 / 6.0
+            + face_modulus * t * (c + t) ** 2 / 2.0
+            + core_modulus * c**3 / 12.0
+        )
+        return 12.0 * rigidity / d**3
+
+
+def _mix_two_parents(
+    *,
+    kind: str,
+    fraction: float,
+    first: ParentValues,
+    second: ParentValues,
+    sandwich: _Sandwich | None = None,
+) -> tuple[list[SynthesizedValue], list[SkippedProperty]]:
+    """Roda a tabela de regras de um tipo de **dois** pais.
+
+    Compósito e painel compartilham este laço porque compartilham quase todas
+    as regras: densidade, grandezas por massa e temperatura de serviço são as
+    mesmas leis, rodadas na mesma fração volumétrica. O que o painel acrescenta
+    é uma regra só — e ela não é mistura nenhuma, é geometria.
+    """
     values: list[SynthesizedValue] = []
     skipped: list[SkippedProperty] = []
     f = fraction
@@ -383,15 +484,15 @@ def synthesize_composite(
     if rho_a is not None and rho_b is not None:
         density = f * rho_a.value + (1.0 - f) * rho_b.value
 
-    for slug, rule in _RULES[COMPOSITO].items():
+    for slug, rule in _RULES[kind].items():
         a = first.get(slug)
         b = second.get(slug)
-        missing = [name for name, v in (("primeiro", a), ("segundo", b)) if v is None]
+        missing = [name for name, v in ((_FIRST[kind], a), (_SECOND[kind], b)) if v is None]
         if missing:
             who = (
-                "Os dois constituintes não têm"
+                f"Nem {missing[0]} nem o outro têm"
                 if len(missing) == 2
-                else f"O {missing[0]} constituinte não tem"
+                else f"{missing[0].capitalize()} não tem"
             )
             skipped.append(SkippedProperty(slug=slug, reason=f"{who} {slug} catalogado."))
             continue
@@ -460,14 +561,103 @@ def synthesize_composite(
                     value_max=max(reuss, voigt),
                 )
             )
+        elif rule.key == "flexao-sanduiche":
+            assert sandwich is not None  # garantido por _RULES: só o painel a tem
+            values.append(
+                SynthesizedValue(
+                    slug=slug,
+                    rule=rule,
+                    quality=quality,
+                    value=sandwich.flexural_modulus(a.value, b.value),
+                )
+            )
         else:  # pragma: no cover - guarded by _validate
             raise SynthesisError(f"Regra sem implementação: {rule.key}")
 
-    _add_declared_absences(COMPOSITO, skipped)
+    _add_declared_absences(kind, skipped)
+    return values, skipped
+
+
+#: Como cada tipo de dois pais chama os seus pais quando precisa dizer que falta
+#: dado num deles. "O primeiro constituinte" e "a face" são a mesma posição, e
+#: nomeá-la errado mandaria o leitor corrigir o material errado.
+_FIRST = {COMPOSITO: "o primeiro constituinte", PAINEL: "a face"}
+_SECOND = {COMPOSITO: "o segundo constituinte", PAINEL: "o núcleo"}
+
+
+def synthesize_composite(
+    *, fraction: float, first: ParentValues, second: ParentValues
+) -> SynthesisResult:
+    """Um compósito de dois constituintes, com ``fraction`` de volume do primeiro.
+
+    Args:
+        fraction: fração **volumétrica** do primeiro constituinte, 0 < f < 1.
+        first, second: valores catalogados de cada pai, por slug.
+
+    Raises:
+        SynthesisError: quando a fração não deixa um compósito de dois — em 0 ou
+            em 1 o resultado é um dos pais, e copiar um material catalogado para
+            dentro de um registro sintetizado seria criar uma segunda cópia dele.
+    """
+    if not 0 < fraction < 1:
+        raise SynthesisError(
+            "A fração volumétrica fica entre 0 e 1, exclusivos: em 0 ou em 1 o "
+            "resultado é um dos constituintes, não um compósito."
+        )
+
+    values, skipped = _mix_two_parents(
+        kind=COMPOSITO, fraction=fraction, first=first, second=second
+    )
     return SynthesisResult(
         kind=COMPOSITO,
         kind_label=KIND_LABELS[COMPOSITO],
         parameters={"fracao_volumetrica": fraction},
+        values=tuple(values),
+        skipped=tuple(sorted(skipped, key=lambda item: item.slug)),
+    )
+
+
+def synthesize_sandwich(
+    *, face_thickness: float, core_thickness: float, face: ParentValues, core: ParentValues
+) -> SynthesisResult:
+    """Um painel sanduíche: duas faces de espessura ``t`` sobre um núcleo ``c``.
+
+    As espessuras entram na **mesma unidade**, e qual unidade é não importa:
+    toda regra aqui lê só a razão ``t/c``. Densidade e as grandezas por massa
+    saem pelas regras do compósito, na fração de espessura das faces — massa é
+    massa, e o arranjo não a move. O módulo é o de **flexão equivalente**, e
+    esse o arranjo move muito: ele passa do limite de Voigt nas mesmas frações,
+    o que nenhuma regra das misturas pode fazer.
+
+    Raises:
+        SynthesisError: quando uma das espessuras não é positiva. Sem núcleo ou
+            sem face o resultado é um dos pais, não um painel — e as duas
+            degenerescências são exatamente onde ``E*`` devolve ``Ef`` e ``Ec``,
+            o que os testes usam para conferir a fórmula.
+    """
+    if not face_thickness > 0 or not core_thickness > 0:
+        raise SynthesisError(
+            "As duas espessuras são positivas: sem núcleo ou sem faces o "
+            "resultado é um dos materiais, não um painel sanduíche."
+        )
+    if not math.isfinite(face_thickness) or not math.isfinite(core_thickness):
+        raise SynthesisError("As espessuras precisam ser números finitos.")
+
+    sandwich = _Sandwich(face=face_thickness, core=core_thickness)
+    values, skipped = _mix_two_parents(
+        kind=PAINEL,
+        fraction=sandwich.face_fraction,
+        first=face,
+        second=core,
+        sandwich=sandwich,
+    )
+    return SynthesisResult(
+        kind=PAINEL,
+        kind_label=KIND_LABELS[PAINEL],
+        parameters={
+            "espessura_face": face_thickness,
+            "espessura_nucleo": core_thickness,
+        },
         values=tuple(values),
         skipped=tuple(sorted(skipped, key=lambda item: item.slug)),
     )

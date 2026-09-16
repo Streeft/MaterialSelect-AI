@@ -127,6 +127,8 @@ export default function SintetizarPage() {
   const [parentB, setParentB] = useState("");
   const [fraction, setFraction] = useState("0.6");
   const [density, setDensity] = useState("0.1");
+  const [faceThickness, setFaceThickness] = useState("1");
+  const [coreThickness, setCoreThickness] = useState("18");
   const [name, setName] = useState("");
   const [classId, setClassId] = useState("");
   const [description, setDescription] = useState("");
@@ -155,13 +157,22 @@ export default function SintetizarPage() {
       description: description.trim() || null,
       parent_a_id: Number(selectedA),
     };
-    return kind === "composito"
-      ? {
-          ...common,
-          parent_b_id: Number(selectedB),
-          volume_fraction: Number(fraction),
-        }
-      : { ...common, relative_density: Number(density) };
+    if (kind === "composito") {
+      return {
+        ...common,
+        parent_b_id: Number(selectedB),
+        volume_fraction: Number(fraction),
+      };
+    }
+    if (kind === "painel") {
+      return {
+        ...common,
+        parent_b_id: Number(selectedB),
+        face_thickness: Number(faceThickness),
+        core_thickness: Number(coreThickness),
+      };
+    }
+    return { ...common, relative_density: Number(density) };
   }, [
     kind,
     name,
@@ -171,6 +182,8 @@ export default function SintetizarPage() {
     selectedB,
     fraction,
     density,
+    faceThickness,
+    coreThickness,
   ]);
 
   const runPreview = useMutation({
@@ -196,9 +209,25 @@ export default function SintetizarPage() {
       const f = Number(fraction);
       return selectedB !== "" && selectedB !== selectedA && f > 0 && f < 1;
     }
+    if (kind === "painel") {
+      // Sem teto: um painel de 200 mm é tão legítimo quanto um de 2 mm, e é a
+      // razão entre as duas espessuras que decide o resultado.
+      const t = Number(faceThickness);
+      const c = Number(coreThickness);
+      return selectedB !== "" && selectedB !== selectedA && t > 0 && c > 0;
+    }
     const r = Number(density);
     return r > 0 && r < 1;
-  }, [kind, selectedA, selectedB, selectedClass, fraction, density]);
+  }, [
+    kind,
+    selectedA,
+    selectedB,
+    selectedClass,
+    fraction,
+    density,
+    faceThickness,
+    coreThickness,
+  ]);
 
   // Gravar exige nome; a prévia não, porque ela não cria registro nenhum e a
   // pergunta "o que sairia daqui" não depende de como o resultado se chamaria.
@@ -233,6 +262,7 @@ export default function SintetizarPage() {
         >
           <SelectOption value="composito">{t.kindComposite}</SelectOption>
           <SelectOption value="espuma">{t.kindFoam}</SelectOption>
+          <SelectOption value="painel">{t.kindPanel}</SelectOption>
         </Select>
         {info ? <p className="text-sm text-ink-muted">{info.note}</p> : null}
       </Section>
@@ -240,7 +270,13 @@ export default function SintetizarPage() {
       <Section title={t.recipeStep}>
         <div className="grid gap-4 sm:grid-cols-2">
           <Select
-            label={kind === "composito" ? t.parentALabel : t.parentASolidLabel}
+            label={
+              kind === "composito"
+                ? t.parentALabel
+                : kind === "painel"
+                  ? t.faceLabel
+                  : t.parentASolidLabel
+            }
             value={selectedA}
             onChange={(event) =>
               setParentA((event.target as HTMLSelectElement).value)
@@ -252,10 +288,20 @@ export default function SintetizarPage() {
               </SelectOption>
             ))}
           </Select>
-          {kind === "composito" ? (
+          {kind === "espuma" ? (
+            <NumberInput
+              label={t.densityLabel}
+              hint={t.densityHint}
+              value={density}
+              min={0}
+              max={1}
+              step="any"
+              onChange={(event) => setDensity(event.target.value)}
+            />
+          ) : (
             <>
               <Select
-                label={t.parentBLabel}
+                label={kind === "painel" ? t.coreLabel : t.parentBLabel}
                 value={selectedB}
                 onChange={(event) =>
                   setParentB((event.target as HTMLSelectElement).value)
@@ -267,26 +313,36 @@ export default function SintetizarPage() {
                   </SelectOption>
                 ))}
               </Select>
-              <NumberInput
-                label={t.fractionLabel}
-                hint={t.fractionHint}
-                value={fraction}
-                min={0}
-                max={1}
-                step="any"
-                onChange={(event) => setFraction(event.target.value)}
-              />
+              {kind === "composito" ? (
+                <NumberInput
+                  label={t.fractionLabel}
+                  hint={t.fractionHint}
+                  value={fraction}
+                  min={0}
+                  max={1}
+                  step="any"
+                  onChange={(event) => setFraction(event.target.value)}
+                />
+              ) : (
+                <>
+                  <NumberInput
+                    label={t.faceThicknessLabel}
+                    hint={t.thicknessHint}
+                    value={faceThickness}
+                    min={0}
+                    step="any"
+                    onChange={(event) => setFaceThickness(event.target.value)}
+                  />
+                  <NumberInput
+                    label={t.coreThicknessLabel}
+                    value={coreThickness}
+                    min={0}
+                    step="any"
+                    onChange={(event) => setCoreThickness(event.target.value)}
+                  />
+                </>
+              )}
             </>
-          ) : (
-            <NumberInput
-              label={t.densityLabel}
-              hint={t.densityHint}
-              value={density}
-              min={0}
-              max={1}
-              step="any"
-              onChange={(event) => setDensity(event.target.value)}
-            />
           )}
         </div>
         <div>

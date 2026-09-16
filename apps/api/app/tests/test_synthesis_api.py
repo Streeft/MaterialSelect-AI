@@ -55,6 +55,22 @@ def _foam(db: Session, **overrides):
     return payload
 
 
+def _panel(db: Session, **overrides):
+    payload = {
+        "kind": "painel",
+        "name": "Painel hipotético A",
+        "class_id": _class_id(db),
+        # A face é o material rígido; o núcleo, o leve. A ordem importa e a
+        # mensagem de dado faltante nomeia cada um pelo papel.
+        "parent_a_id": _material_id(db, "%Alumínio%"),
+        "parent_b_id": _material_id(db, "%Polímero%"),
+        "face_thickness": 1.0,
+        "core_thickness": 18.0,
+    }
+    payload.update(overrides)
+    return payload
+
+
 def _by_slug(body):
     return {value["slug"]: value for value in body["values"]}
 
@@ -66,22 +82,28 @@ def _skipped(body):
 # --- o catálogo de leis -----------------------------------------------------
 
 
-def test_os_dois_tipos_trazem_as_leis_e_as_ausencias_declaradas(client: TestClient) -> None:
+def test_os_tres_tipos_trazem_as_leis_e_as_ausencias_declaradas(client: TestClient) -> None:
     response = client.get("/api/sintetizar/tipos")
 
     assert response.status_code == 200, response.text
     kinds = {item["kind"]: item for item in response.json()}
-    assert set(kinds) == {"composito", "espuma"}
+    assert set(kinds) == {"composito", "espuma", "painel"}
     assert kinds["composito"]["rules"]["densidade"]["formula"]
     assert "interface" in kinds["composito"]["without_rule"]["limite_escoamento"]
 
 
 def test_a_assimetria_entre_os_tipos_aparece_no_catalogo(client: TestClient) -> None:
-    """Espuma tem lei de resistência; compósito não — e o motivo vem junto."""
+    """Espuma tem lei de resistência; compósito e painel não — com o motivo junto.
+
+    Os dois "não" têm razões diferentes, e é isso que a tela precisa mostrar: no
+    compósito quem decide é a interface; no painel a resistência é competição
+    entre modos de falha e só um deles é calculável.
+    """
     kinds = {item["kind"]: item for item in client.get("/api/sintetizar/tipos").json()}
 
     assert "limite_escoamento" in kinds["espuma"]["rules"]
-    assert "limite_escoamento" in kinds["composito"]["without_rule"]
+    assert "interface" in kinds["composito"]["without_rule"]["limite_escoamento"]
+    assert "modos de falha" in kinds["painel"]["without_rule"]["limite_escoamento"]
 
 
 def test_cada_lei_declara_a_base_em_que_se_apoia(client: TestClient) -> None:
@@ -371,3 +393,123 @@ def test_o_registro_de_outra_pessoa_nao_vira_constituinte(
 
     assert response.status_code == 404
     assert material.name not in response.text
+
+
+# --- painel sanduíche -------------------------------------------------------
+
+
+def test_o_painel_grava_o_modulo_de_flexao_com_a_lei_na_proveniencia(
+    client: TestClient, db_session: Session
+) -> None:
+    """O número entra em ``modulo_young``, e a lei colada nele diz qual módulo é.
+
+    É o mecanismo do D-67 fazendo o trabalho: o painel é anisotrópico e o slug é
+    isotrópico, então o que impede a confusão é a nota de proveniência, que
+    viaja com o valor até a ficha.
+    """
+    response = client.post("/api/sintetizar", json=_panel(db_session))
+
+    assert response.status_code == 201, response.text
+    material_id = response.json()["material_id"]
+
+    db_session.expire_all()
+    definition = (
+        db_session.execute(
+            select(PropertyDefinition).where(PropertyDefinition.slug == "modulo_young")
+        )
+        .scalars()
+        .first()
+    )
+    row = (
+        db_session.execute(
+            select(MaterialPropertyValue).where(
+                MaterialPropertyValue.material_id == material_id,
+                MaterialPropertyValue.property_id == definition.id,
+            )
+        )
+        .scalars()
+        .first()
+    )
+    assert row is not None
+    assert "flexão equivalente" in row.notes
+    assert "E*" in row.notes
+
+
+def test_a_receita_do_painel_guarda_as_duas_espessuras(
+    client: TestClient, db_session: Session
+) -> None:
+    """Sem as duas, o registro não reexecuta — e só a razão delas decide."""
+    response = client.post("/api/sintetizar", json=_panel(db_session))
+
+    assert response.status_code == 201, response.text
+    db_session.expire_all()
+    recipe = (
+        db_session.execute(
+            select(MaterialSynthesis).where(
+                MaterialSynthesis.material_id == response.json()["material_id"]
+            )
+        )
+        .scalars()
+        .first()
+    )
+    assert recipe.kind == "painel"
+    assert recipe.parameters == {"espessura_face": 1.0, "espessura_nucleo": 18.0}
+
+
+@pytest.mark.parametrize(
+    ("campo", "valor"),
+    [("volume_fraction", 0.5), ("relative_density", 0.2)],
+)
+def test_o_painel_recusa_os_campos_dos_outros_tipos(
+    client: TestClient, db_session: Session, campo: str, valor: float
+) -> None:
+    """Regra do D-56: campo do outro tipo é recusado, nunca ignorado.
+
+    Ignorá-lo em silêncio deixaria o leitor com um número que ele digitou e a
+    conta não conteve.
+    """
+    response = client.post("/api/sintetizar/previa", json=_panel(db_session, **{campo: valor}))
+
+    assert response.status_code == 400, response.text
+
+
+@pytest.mark.parametrize("campo", ["face_thickness", "core_thickness"])
+def test_os_outros_tipos_recusam_as_espessuras(
+    client: TestClient, db_session: Session, campo: str
+) -> None:
+    for payload in (_composite(db_session, **{campo: 2.0}), _foam(db_session, **{campo: 2.0})):
+        response = client.post("/api/sintetizar/previa", json=payload)
+        assert response.status_code == 400, response.text
+
+
+def test_um_painel_de_um_material_so_e_recusado(client: TestClient, db_session: Session) -> None:
+    """Face e núcleo iguais dão uma placa maciça, não um painel."""
+    alumínio = _material_id(db_session, "%Alumínio%")
+    response = client.post(
+        "/api/sintetizar/previa",
+        json=_panel(db_session, parent_a_id=alumínio, parent_b_id=alumínio),
+    )
+
+    assert response.status_code == 400, response.text
+
+
+def test_o_painel_nao_promete_resistencia_e_a_previa_diz_por_que(
+    client: TestClient, db_session: Session
+) -> None:
+    response = client.post("/api/sintetizar/previa", json=_panel(db_session))
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert "limite_escoamento" not in _by_slug(body)
+    assert "modos de falha" in _skipped(body)["limite_escoamento"]
+
+
+def test_o_painel_e_sintetizado_e_de_quem_o_criou(client: TestClient, db_session: Session) -> None:
+    """A garantia do D-67 vale para o terceiro tipo como para os outros dois."""
+    response = client.post("/api/sintetizar", json=_panel(db_session))
+
+    assert response.status_code == 201, response.text
+    db_session.expire_all()
+    material = db_session.get(Material, response.json()["material_id"])
+    assert material.is_synthesized is True
+    assert material.owner_id is not None
