@@ -242,19 +242,21 @@ function MapsPageContent() {
   // Fall back to the first two properties if the seeded slugs are absent.
   // Runs regardless of axis mode: the property field stays ready the moment
   // the reader switches an axis back from index to property.
-  useEffect(() => {
-    const available = properties.data;
-    if (!available || available.length < 2) return;
-    const slugs = available.map((p) => p.slug);
-    setXAxis((current) =>
-      slugs.includes(current.property) ? current : { ...current, property: slugs[0] as string },
-    );
-    setYAxis((current) =>
-      slugs.includes(current.property)
-        ? current
-        : { ...current, property: (slugs[1] ?? slugs[0]) as string },
-    );
-  }, [properties.data]);
+  // Adjusting state during render avoids cascading effects and satisfies
+  // react-hooks/set-state-in-effect.
+  const availableProperties = properties.data;
+  if (availableProperties && availableProperties.length >= 2) {
+    const slugs = availableProperties.map((p) => p.slug);
+    if (!slugs.includes(xAxis.property)) {
+      setXAxis((current) => ({ ...current, property: slugs[0] as string }));
+    }
+    if (!slugs.includes(yAxis.property)) {
+      setYAxis((current) => ({
+        ...current,
+        property: (slugs[1] ?? slugs[0]) as string,
+      }));
+    }
+  }
 
   const [indexMode, setIndexMode] = useState(decodedState?.indexMode ?? "none"); // "none" | slug | "custom"
   const [customExpression, setCustomExpression] = useState(decodedState?.customExpression ?? "");

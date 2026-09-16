@@ -12,6 +12,9 @@ import { screen as shadowScreen } from "shadow-dom-testing-library";
 import { selectMwcOption } from "@/lib/testing/mwc";
 import type {
   AIStatus,
+  ApplicationArchetype,
+  BatteryChemistry,
+  BatteryComparisonResult,
   ChartData,
   Comparison,
   CostResult,
@@ -22,6 +25,7 @@ import type {
   MaterialDetail,
   MaterialListItem,
   LoadCase,
+  PackDesignResult,
   PerformanceIndex,
   Process,
   ProcessClass,
@@ -971,6 +975,115 @@ const solveResult: SolveResult = {
   ],
 };
 
+const batteryChemistries: BatteryChemistry[] = [
+  {
+    slug: "lfp",
+    name: "LFP (Fosfato de Ferro-Lítio)",
+    specific_energy_wh_kg: 160,
+    energy_density_wh_l: 350,
+    specific_power_w_kg: 2000,
+    cell_nominal_voltage_v: 3.2,
+    nominal_cell_capacity_ah: 100,
+    c_rate_continuous: 3.0,
+    c_rate_peak: 5.0,
+    roundtrip_efficiency_pct: 95.0,
+    cycle_life_80_dod: 3500,
+    calendar_life_years: 15,
+    cell_cost_usd_kwh: 75.0,
+    thermal_runaway_temp_c: 270,
+    temp_range_min_c: -20,
+    temp_range_max_c: 60,
+    thermal_safety: "excellent",
+    self_discharge_pct_month: 2.0,
+    description: "Excelente estabilidade térmica.",
+  },
+];
+
+const batteryArchetypes: ApplicationArchetype[] = [
+  {
+    slug: "ve-urbano",
+    name: "Veículo Elétrico Urbano",
+    description: "Automóvel de passeio.",
+    target_voltage_v: 400,
+    target_energy_kwh: 50,
+    target_power_kw: 120,
+    dod: 0.85,
+    mass_packing_factor: 0.65,
+    volume_packing_factor: 0.50,
+    cost_packing_factor: 0.70,
+    default_chemistry_slug: "lfp",
+  },
+];
+
+const batteryDesignResult: PackDesignResult = {
+  chemistry: batteryChemistries[0]!,
+  series_cells_ns: 125,
+  parallel_strings_np: 2,
+  total_cells: 250,
+  cell_capacity_ah: 100,
+  cell_energy_wh: 320,
+  cell_mass_kg: 2.0,
+  cell_volume_l: 0.914,
+  cell_peak_power_w: 1600,
+  nominal_voltage_v: 400.0,
+  pack_capacity_ah: 200.0,
+  gross_energy_kwh: 80.0,
+  usable_energy_kwh: 68.0,
+  peak_power_kw: 400.0,
+  max_continuous_discharge_c_rate: 3.0,
+  dod: 0.85,
+  cells_mass_kg: 500.0,
+  pack_mass_kg: 769.23,
+  mass_overhead_kg: 269.23,
+  mass_packing_factor: 0.65,
+  cells_volume_l: 228.57,
+  pack_volume_l: 457.14,
+  volume_overhead_l: 228.57,
+  volume_packing_factor: 0.50,
+  pack_specific_energy_wh_kg: 104.0,
+  pack_energy_density_wh_l: 175.0,
+  cell_cost_total_usd: 6000.0,
+  pack_cost_total_usd: 8571.43,
+  cost_overhead_usd: 2571.43,
+  cost_packing_factor: 0.70,
+  cycle_life_at_dod: 3294,
+  levelized_cost_per_kwh_cycle: 0.0383,
+  thermal_safety: "excellent",
+  thermal_guidelines: ["Estabilidade térmica comprovada."],
+};
+
+const batteryComparisonResult: BatteryComparisonResult = {
+  target_voltage: 400,
+  target_energy_kwh: 50,
+  target_power_kw: 120,
+  dod: 0.85,
+  items: [
+    {
+      chemistry_slug: "lfp",
+      chemistry_name: "LFP (Fosfato de Ferro-Lítio)",
+      pack_mass_kg: 769.23,
+      pack_volume_l: 457.14,
+      pack_cost_usd: 8571.43,
+      cycle_life: 3294,
+      levelized_cost_per_kwh_cycle: 0.0383,
+      pack_specific_energy_wh_kg: 104.0,
+      pack_energy_density_wh_l: 175.0,
+      thermal_safety: "excellent",
+      series_cells_ns: 125,
+      parallel_strings_np: 2,
+      total_cells: 250,
+      usable_energy_kwh: 68.0,
+    },
+  ],
+  lightest_slug: "lfp",
+  most_compact_slug: "lfp",
+  lowest_upfront_cost_slug: "lfp",
+  most_durable_slug: "lfp",
+  lowest_levelized_cost_slug: "lfp",
+  safest_slug: "lfp",
+  technical_summary: "Resumo técnico comparativo.",
+};
+
 vi.mock("@/lib/api", async (importOriginal) => ({
   ApiError: (await importOriginal<typeof import("@/lib/api")>()).ApiError,
   // P1-4: a ficha traz a estrela e anota a visita, então toda tela de registro
@@ -1056,6 +1169,11 @@ vi.mock("@/lib/api", async (importOriginal) => ({
   createProperty: () => Promise.resolve(properties[0]),
   updateProperty: () => Promise.resolve(properties[0]),
   deleteProperty: () => Promise.resolve(),
+  listBatteryChemistries: () => Promise.resolve(batteryChemistries),
+  getBatteryChemistry: () => Promise.resolve(batteryChemistries[0]),
+  listBatteryArchetypes: () => Promise.resolve(batteryArchetypes),
+  designBatteryPack: () => Promise.resolve(batteryDesignResult),
+  compareBatteries: () => Promise.resolve(batteryComparisonResult),
 }));
 
 // Imported after the mocks so each page picks them up.
@@ -1078,6 +1196,7 @@ const { default: SolverPage } = await import("./dimensionar/page");
 const { default: CostPage } = await import("./custo/page");
 const { default: EcoPage } = await import("./eco/page");
 const { default: SynthesisPage } = await import("./sintetizar/page");
+const { default: BateriasPage } = await import("./baterias/page");
 
 function makeClient() {
   return new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -1245,6 +1364,11 @@ describe("acessibilidade das telas principais", () => {
   // frente; é com ela assim que a auditoria vale.
   it("sintetizar material", async () => {
     await auditRoute(<SynthesisPage />, ptBR.synthesis.kindStep);
+  });
+
+  // P4: o Battery Designer (Módulo S) dimensiona packs Ns x Np e seleciona químicas.
+  it("battery designer", async () => {
+    await auditRoute(<BateriasPage />, ptBR.battery.title);
   });
 
   // Landing is the one route in this file that isn't under `/app`: no session,

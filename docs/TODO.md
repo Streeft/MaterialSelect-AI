@@ -40,18 +40,9 @@ corrigida publicada**, e por isso são acompanhamento, não tarefa:
   Só roda no job de Lighthouse.
 - **`express`/`qs` (2 moderados).** Presos dentro do próprio `@lhci/cli`.
 
-**Débito de lint aberto pelo S2.** ▁ O `eslint-config-next` 16 traz a regra
-`react-hooks/set-state-in-effect`, que acusa **seis** pontos de código
-pré-existente: a semeadura de seleção padrão em `/app/comparar`, `/app/mapas` e
-`/app/painel`, a queda de log para linear quando a escala não é permitida (B7/B8)
-e o fechamento da gaveta ao navegar (D-37). São achados legítimos, e cada
-correção é uma refatoração de estado derivado numa tela de produto — com risco
-de regressão em comportamentos que já foram, eles próprios, correções de bug.
-Ficou em `warn` no `eslint.config.mjs`, com a justificativa escrita no arquivo:
-continua aparecendo na saída do lint, não some. **Ao quitar, promova a regra de
-volta para `error` no mesmo PR.** Há ainda 1 aviso de
-`react-hooks/incompatible-library` no `MaterialForm.tsx` (o `watch()` do
-react-hook-form não é memoizável) que é informativo e não tem correção local.
+Há ainda 1 aviso informativo de `react-hooks/incompatible-library` no `MaterialForm.tsx`
+(o `watch()` do react-hook-form não é memoizável), que não tem correção local.
+O débito de lint `react-hooks/set-state-in-effect` foi quitado (ver "Débitos já quitados").
 
 A6 (Cérebro em `main`) foi decidido, não executado: ver "Débitos já
 quitados".
@@ -80,8 +71,8 @@ configurações de mapa; `SelectionStage` saiu com P0-1; `Process`,
 `ProcessClass` e `MaterialProcess` saíram com P0-2;
 `ProcessAttributeDefinition` e `ProcessAttributeValue` saíram com P0-4.)
 
-**Nada de estrutural pendente no roteiro imediato, e as faixas P1, P2 e P3 fecharam por inteiro.**
-Na faixa **P3**, o Part Cost Estimator, o Eco Audit, o Synthesizer completo (compósitos, espumas e painéis sanduíche / Módulo R) e o débito **B11** estão entregues.
+**Nada de estrutural pendente no roteiro imediato, e as faixas P1, P2, P3 e a capacidade central da P4 (Battery Designer) fecharam por inteiro.**
+Na faixa **P4**, o Battery Designer (Módulo S, [D-69](DECISIONS.md)) fecha a última capacidade funcional em aberto, elevando a plataforma a **100% de cobertura (32 de 32 capacidades)**.
 
 ---
 
@@ -89,6 +80,20 @@ Na faixa **P3**, o Part Cost Estimator, o Eco Audit, o Synthesizer completo (com
 
 Registrados para não voltarem por engano:
 
+- ~~**P4 — Battery Designer (Módulo S)**~~ — dimensionamento determinístico de packs
+  de bateria ($N_s \times N_p$) e seleção de químicas eletroquímicas ([D-69](DECISIONS.md)).
+  Catálogo de 9 químicas comerciais determinísticas (LFP, NMC-622, NMC-811, NCA, LCO, LTO,
+  Na-ion, Chumbo-Ácido, NiMH), 6 arquétipos de aplicação (VE Urbano/Performance, Drone, Ferramenta,
+  BESS Residencial/Industrial), algoritmo de dimensionamento simultâneo para tensão, energia com DoD
+  e potência de pico, fatores de empacotamento ($f_{mass}, f_{vol}, f_{cost}$), custo nivelado por ciclo
+  de energia (LCOS), diretrizes de segurança/fuga térmica e análise comparativa de dominância.
+  Interface completa em `/app/baterias`, testes unitários, testes de API e testes de acessibilidade.
+- ~~**Débito de lint do Next 16 (`react-hooks/set-state-in-effect`)**~~ — os seis
+  pontos pré-existentes identificados pelo S2 foram refatorados para padrões idiomáticos
+  do React (ajustes durante renderização e estado derivado sem `useEffect`): semeadura
+  padrão em `/app/comparar`, `/app/mapas` e `/app/painel`, queda de escala log para linear
+  em `/app/painel` e fechamento de gaveta móvel em `AppSidebar.tsx`. A regra foi promovida
+  de volta para `error` em `apps/web/eslint.config.mjs`.
 - ~~**B11** — a unidade canônica era impressa como o Pint a escreve~~ — `pretty_unit`
   adicionado em `app/calculations/units.py` espelhando `prettyUnit` do frontend
   (`apps/web/lib/format.ts`). Converte potências `** 3` e `** 2` em sobrescritos

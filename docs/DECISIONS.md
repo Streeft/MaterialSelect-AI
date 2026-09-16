@@ -73,6 +73,7 @@ diferente. O que é óbvio não precisa de registro.
 | D-66 | Eco Audit: cinco fases, dois modelos de uso e análise de dominância (P3) | aceito | abaixo |
 | D-67 | Synthesizer: compósitos e espumas celulares com regras físicas auditáveis (P3) | aceito | abaixo |
 | D-68 | Sandwich Panels com rigidez flexional equivalente e unificação de unidades legíveis (B11) | aceito | abaixo |
+| D-69 | Battery Designer: dimensionamento de pack Ns x Np, empacotamento e dominância eletroquímica (P4) | aceito | abaixo |
 
 ---
 
@@ -3512,5 +3513,86 @@ Aplicado nos eixos de figuras SVG (`_figure_axis`), tabelas de proveniência (`_
 - Tratar painel sanduíche como mistura volumétrica simples (ignoraria a física da flexão onde as faces concentram o momento de inércia);
 - Inventar fórmula de resistência mecânica para o sanduíche sem dados de modos de falha e adesão;
 - Manter símbolos computacionais crus como `**` em documentos técnicos e laudos exportados.
+
+---
+
+## D-69 — Battery Designer: dimensionamento determinístico de pack ($N_s \times N_p$), fatores de empacotamento físicos e análise comparativa de dominância eletroquímica (P4 / Módulo S)
+
+**Contexto.**
+O Módulo S (Battery Designer) do Granta EduPack constitui a última capacidade funcional pendente na matriz de maturidade técnica da plataforma (`docs/14-plataforma-selecao.md`), correspondente à Faixa P4. O projeto de sistemas de armazenamento eletroquímico para veículos elétricos, drones, ferramentas elétricas e baterias estacionárias (BESS) requer dimensionar o número de células em série ($N_s$) para atingir a tensão nominal do barramento, células em paralelo ($N_p$) para atingir a energia e a potência de pico simultaneamente, calcular a sobrecarga de massa, volume e custo do invólucro, barramentos, BMS e arrefecimento via fatores de empacotamento ($f_{mass}, f_{vol}, f_{cost}$), e comparar objetivamente os trade-offs entre 9 famílias eletroquímicas comerciais (LFP, NMC-622, NMC-811, NCA, LCO, LTO, Na-ion, Chumbo-Ácido, NiMH).
+
+**Decisão.**
+
+**1. Catálogo eletroquímico canônico determinístico.**
+Implementado em `apps/api/app/calculations/battery.py`, cobrindo 9 químicas comerciais com propriedades verificadas na literatura técnica e fichas de fabricantes:
+- LFP (Fosfato de Ferro-Lítio): 160 Wh/kg, 350 Wh/L, 2000 W/kg, 3,2 V, 3500 ciclos, segurança térmica excelente (270 °C);
+- NMC-622: 230 Wh/kg, 550 Wh/L, 2000 W/kg, 3,65 V, 2000 ciclos, segurança moderada (210 °C);
+- NMC-811: 280 Wh/kg, 700 Wh/L, 2200 W/kg, 3,7 V, 1500 ciclos, alta densidade e segurança moderada (190 °C);
+- NCA: 260 Wh/kg, 650 Wh/L, 2500 W/kg, 3,65 V, 1200 ciclos, segurança moderada (180 °C);
+- LCO: 200 Wh/kg, 550 Wh/L, 1200 W/kg, 3,7 V, 800 ciclos, segurança baixa (150 °C);
+- LTO: 90 Wh/kg, 200 Wh/L, 4000 W/kg, 2,3 V, 15000 ciclos, segurança excelente (300 °C);
+- Na-ion: 140 Wh/kg, 280 Wh/L, 1800 W/kg, 3,1 V, 3000 ciclos, segurança excelente (260 °C);
+- Chumbo-Ácido Avançado (VRLA/AGM): 40 Wh/kg, 90 Wh/L, 400 W/kg, 2,0 V, 600 ciclos, segurança boa (150 °C);
+- NiMH: 75 Wh/kg, 220 Wh/L, 1000 W/kg, 1,2 V, 1200 ciclos, segurança boa (160 °C).
+
+**2. Arquétipos de aplicação para engenharia rápida.**
+6 arquétipos cobrindo as aplicações canônicas do Granta EduPack:
+- Veículo Elétrico Urbano (400 V, 50 kWh, 120 kW, DoD 0.85, LFP);
+- Veículo Elétrico de Alta Performance (800 V, 90 kWh, 450 kW, DoD 0.90, NMC-811);
+- VANT / Drone Comercial (24 V, 0,75 kWh, 3,5 kW, DoD 0.80, NCA);
+- Ferramenta Elétrica Portátil (18 V, 0,108 kWh, 1,2 kW, DoD 0.80, NMC-622);
+- Armazenamento Residencial BESS (48 V, 14 kWh, 7 kW, DoD 0.80, LFP);
+- Armazenamento Industrial BESS (1000 V, 2500 kWh, 1250 kW, DoD 0.80, LFP).
+
+**3. Algoritmo de dimensionamento do pack ($N_s \times N_p$).**
+- Células em série: $N_s = \lceil V_{req} / V_{cell} \rceil$;
+- Energia bruta requerida considerando profundidade de descarga: $E_{gross} = E_{req} / DoD$;
+- Células requeridas por energia: $N_{total, E} = \lceil (E_{gross} \times 1000) / E_{cell} \rceil$;
+- Células requeridas por potência de pico: $N_{total, P} = \lceil (P_{req} \times 1000) / P_{cell, peak} \rceil$;
+- Total preliminar: $N_{total} = \max(N_{total, E}, N_{total, P})$;
+- Cordões em paralelo: $N_p = \max(1, \lceil N_{total} / N_s \rceil)$;
+- Total final de células no pack: $N_{total} = N_s \times N_p$;
+- Potência de pico do pack: $P_{pack, peak} = (N_{total} \times P_{cell, peak}) / 1000$ (kW);
+- Taxa de descarga contínua efetiva: $C_{rate} = c\_rate\_continuous$.
+
+**4. Fatores de empacotamento físicos e overheads.**
+- Massa das células: $M_{cells} = N_{total} \times m_{cell}$;
+- Massa total do pack: $M_{pack} = M_{cells} / f_{mass}$;
+- Sobrecarga mássica (invólucro, barramentos, BMS, refrigeração): $M_{overhead} = M_{pack} - M_{cells}$;
+- Volume das células: $V_{cells} = N_{total} \times v_{cell}$;
+- Volume total do pack: $V_{pack} = V_{cells} / f_{vol}$;
+- Sobrecarga volumétrica: $V_{overhead} = V_{pack} - V_{cells}$;
+- Densidade energética efetiva do pack: $\rho_{E, pack} = (E_{gross} \times 1000) / V_{pack}$ (Wh/L);
+- Energia específica efetiva do pack: $e_{pack} = (E_{gross} \times 1000) / M_{pack}$ (Wh/kg);
+- Custo das células: $C_{cells} = (E_{gross}) \times c_{usd/kWh}$;
+- Custo total do pack: $C_{pack} = C_{cells} / f_{cost}$;
+- Sobrecarga de custo (integração): $C_{overhead} = C_{pack} - C_{cells}$;
+- Custo nivelado por ciclo de energia:
+  $$LCOS = \frac{C_{pack}}{E_{req} \times N_{cycles}}$$
+
+**5. Análise comparativa de dominância de químicas.**
+O endpoint `POST /api/baterias/comparar` dimensiona simultaneamente todas as 9 químicas para os mesmos requisitos de projeto e identifica os pódios Pareto/dominância:
+- Mais leve (`lightest_slug`): menor $M_{pack}$;
+- Mais compacto (`most_compact_slug`): menor $V_{pack}$;
+- Menor custo inicial (`lowest_upfront_cost_slug`): menor $C_{pack}$;
+- Maior durabilidade (`most_durable_slug`): maior $N_{cycles}$;
+- Menor custo por ciclo (`lowest_levelized_cost_slug`): menor $LCOS$;
+- Mais seguro (`safest_slug`): química de segurança excelente com maior início de fuga térmica.
+
+**6. Interface no padrão Prisma (`apps/web/app/app/baterias/page.tsx`).**
+Navegação em `/app/baterias` pertencente ao grupo "Estudar" (`study`), duas abas (Dimensionamento de Pack e Trade-offs de Químicas), banner visual $N_s \times N_p$, métricas com `StatTile`, badges de segurança com tons semânticos, tabela comparativa com destaque para a química selecionada e zero `set-state-in-effect`.
+
+**Como se verifica.**
+- Testes unitários em `apps/api/app/tests/test_battery.py` (cálculo $N_s \times N_p$, conservação e restrições de energia e potência, fatores de empacotamento, dominância, recusa de parâmetros fora dos limites físicos);
+- Testes de API em `apps/api/app/tests/test_battery_api.py` (validações HTTP 200, 404, 400, 422 para todos os endpoints);
+- Teste de frontend em `apps/web/app/app/baterias/baterias.test.tsx`;
+- Teste de acessibilidade em `apps/web/app/app/routes.a11y.test.tsx`.
+
+**O que se recusou.**
+- Tratar o pack como bateria ideal sem sobrecarga física de empacotamento ($f_{mass}, f_{vol}, f_{cost}$);
+- Dimensionar células em paralelo considerando apenas energia, ignorando a taxa de descarga e potência de pico necessária;
+- Omitir diretrizes de segurança e faixas de temperatura de fuga térmica para químicas de íon-lítio;
+- Restringir a escolha apenas a LFP e NMC, omitindo alternativas comerciais como Na-ion e LTO.
+
 
 

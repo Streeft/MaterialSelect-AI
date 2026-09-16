@@ -16,6 +16,7 @@ import { ptBR } from "@/lib/i18n";
 import { Badge, IconButton, ThemeToggle } from "@/components/ui";
 import { useFocusTrap } from "@/components/ui/focusTrap";
 import {
+  IconBattery,
   IconBlend,
   IconBook,
   IconClose,
@@ -79,6 +80,9 @@ const GROUPS: NavGroup[] = [
       // respondem à mesma pergunta em moedas diferentes — o que esta peça
       // custa, em dinheiro e em energia.
       { href: "/app/eco", label: t.eco, icon: IconLeaf },
+      // P4: o Battery Designer (Módulo S) permite dimensionar packs de bateria
+      // e selecionar químicas eletroquímicas para requisitos de aplicação.
+      { href: "/app/baterias", label: t.battery, icon: IconBattery },
     ],
   },
   {

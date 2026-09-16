@@ -1687,3 +1687,136 @@ export interface SynthesisResult extends SynthesisPreview {
   material_id: number;
   material_name: string;
 }
+
+// --- Battery Designer (P4 / Módulo S) ----------------------------------------
+
+export type ThermalSafetyLevel = "BAIXA" | "MODERADA" | "MEDIA" | "ALTA" | "MUITO_ALTA";
+
+export interface BatteryChemistry {
+  slug: string;
+  name: string;
+  formula: string;
+  nominal_voltage: number;
+  specific_energy: number;
+  energy_density: number;
+  specific_power: number;
+  cycle_efficiency: number;
+  cycle_life: number;
+  cell_cost_per_kwh: number;
+  thermal_safety: ThermalSafetyLevel;
+  thermal_runaway_temp_c: number;
+  operating_temp_min_c: number;
+  operating_temp_max_c: number;
+  max_continuous_c_rate: number;
+  peak_c_rate: number;
+  description: string;
+  advantages: string[];
+  limitations: string[];
+  typical_applications: string[];
+  reference: string;
+}
+
+export interface ApplicationArchetype {
+  slug: string;
+  name: string;
+  description: string;
+  target_voltage: number;
+  target_energy_kwh: number;
+  target_power_kw: number;
+  target_dod: number;
+  recommended_chemistries: string[];
+  default_cell_capacity_ah: number;
+}
+
+export interface PackDesignRequest {
+  chemistry_slug: string;
+  target_voltage_v: number;
+  target_energy_kwh: number;
+  target_power_kw: number;
+  dod?: number;
+  cell_capacity_ah?: number | null;
+  mass_packing_factor?: number;
+  volume_packing_factor?: number;
+  cost_packing_factor?: number;
+}
+
+export interface PackDesignResult {
+  chemistry: BatteryChemistry;
+  series_cells_ns: number;
+  parallel_strings_np: number;
+  total_cells: number;
+  cell_capacity_ah: number;
+  cell_energy_wh: number;
+  cell_mass_kg: number;
+  cell_volume_l: number;
+  cell_peak_power_w: number;
+  nominal_voltage_v: number;
+  pack_capacity_ah: number;
+  gross_energy_kwh: number;
+  usable_energy_kwh: number;
+  peak_power_kw: number;
+  max_continuous_discharge_c_rate: number;
+  dod: number;
+  cells_mass_kg: number;
+  pack_mass_kg: number;
+  mass_overhead_kg: number;
+  mass_packing_factor: number;
+  cells_volume_l: number;
+  pack_volume_l: number;
+  volume_overhead_l: number;
+  volume_packing_factor: number;
+  pack_specific_energy_wh_kg: number;
+  pack_energy_density_wh_l: number;
+  cell_cost_total_usd: number;
+  pack_cost_total_usd: number;
+  cost_overhead_usd: number;
+  cost_packing_factor: number;
+  cycle_life_at_dod: number;
+  levelized_cost_per_kwh_cycle: number;
+  thermal_safety: ThermalSafetyLevel;
+  thermal_guidelines: string[];
+}
+
+export interface BatteryComparisonRequest {
+  target_voltage_v: number;
+  target_energy_kwh: number;
+  target_power_kw: number;
+  dod?: number;
+  cell_capacity_ah?: number | null;
+  mass_packing_factor?: number;
+  volume_packing_factor?: number;
+  cost_packing_factor?: number;
+}
+
+export interface ChemistryComparisonItem {
+  chemistry_slug: string;
+  chemistry_name: string;
+  pack_mass_kg: number;
+  pack_volume_l: number;
+  pack_cost_usd: number;
+  cycle_life: number;
+  levelized_cost_per_kwh_cycle: number;
+  pack_specific_energy_wh_kg: number;
+  pack_energy_density_wh_l: number;
+  thermal_safety: ThermalSafetyLevel;
+  series_cells_ns: number;
+  parallel_strings_np: number;
+  total_cells: number;
+  usable_energy_kwh: number;
+}
+
+export interface BatteryComparisonResult {
+  target_voltage: number;
+  target_energy_kwh: number;
+  target_power_kw: number;
+  dod: number;
+  items: ChemistryComparisonItem[];
+  lightest_slug: string;
+  most_compact_slug: string;
+  lowest_upfront_cost_slug: string;
+  most_durable_slug: string;
+  lowest_levelized_cost_slug: string;
+  safest_slug: string;
+  technical_summary: string;
+}
+

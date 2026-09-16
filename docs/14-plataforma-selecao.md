@@ -74,7 +74,7 @@ Níveis: **0** não existe · **1** rudimentar · **2** existe, precisa melhorar
 | Part Cost Estimator | **3** | **Entregue (P3, [D-65](DECISIONS.md))**: `C = m·Cm/(1−f) + C_t/n + Ċ_oh/ṅ + C_c/(ṅ·t_wo·L)` sobre os processos compatíveis com o material, devolvida **termo a termo** — porque o que o leitor veio buscar é como cada parcela anda com o lote, e o cruzamento entre dois processos conforme *n* cresce. Premissas de oficina são entrada com valor visível; processo sem dado econômico é nomeado, nunca zerado; e a resposta declara a unidade monetária em palavras, porque dinheiro não está em sistema de unidades nenhum. Falta a curva custo × lote desenhada e o custo por família de processo.
 | Synthesizer / registros sintetizados | **4** | **Entregue (P3, [D-67](DECISIONS.md))**: compósitos e espumas com regras físicas por propriedade (módulo Voigt-Reuss, densidade por volume, grandezas específicas por massa, Gibson-Ashby para espumas), ausências com justificativa técnica (`_NO_RULE`), receita persistida em `material_synthesis` e isolamento por usuário (`owner_id NOT NULL`). |
 | Sandwich Panels | **4** | **Entregue (P3)**: painéis simétricos (duas faces de espessura t e núcleo c), com rigidez à flexão equivalente homogeneizada ($E_{eq} = E_f[1-(c/h)^3] + E_c(c/h)^3$), densidade equivalente exata, propriedades mássicas por fração de massa, condutividade térmica transversal em série ($R_{tot} = 2t/k_f + c/k_c$), temperatura de serviço pelo mínimo e ausências honestas (resistência/dureza excluídas com justificativa técnica). |
-| Battery Designer | **0** | Não existe. |
+| Battery Designer | **4** | **Entregue (P4, [D-69](DECISIONS.md))**: Catálogo eletroquímico de 9 químicas determinísticas (LFP, NMC-622, NMC-811, NCA, LCO, LTO, Na-ion, Chumbo-Ácido, NiMH), 6 arquétipos de aplicação (VE Urbano, VE Performance, Drone/UAV, Ferramenta Elétrica, BESS Residencial e Industrial), dimensionamento de pack Ns × Np satisfazendo tensão de barramento, energia requerida com DoD e potência de pico simultaneamente, balanço de massa, volume e custo com fatores de empacotamento ($f_{mass}, f_{vol}, f_{cost}$), custo nivelado por ciclo de energia (LCOS), diretrizes térmicas com início de fuga térmica, e análise comparativa de dominância eletroquímica com pódios Pareto. |
 | My Records (usuário / sintetizados / favoritos) | **4** | **Entregue (P1-4, P3)**: registros próprios, favoritos, recentes e agora **registros sintetizados** residem em `/app/meus-registros` e participam de seleções e gráficos. Falta apenas registro próprio de *processo*, que pede o catálogo de processos editável. |
 | Unidades de exibição | **3** | **Entregue (B11)**: formatação legível consistente em toda a plataforma (`prettyUnit` no frontend e `pretty_unit` no backend em `units.py`); potências como sobrescrito (ex: kg/m³, m²), multiplicações com ponto mediano (·), `dimensionless` como traço (—) e eliminação de `**` nos relatórios, laudos e eixos SVG. Falta apenas o usuário customizar a unidade preferida de leitura por propriedade. |
 | Explicabilidade | **3** | Funil por restrição e por estágio (`in_chart` inclusive) e proveniência por número; falta o *porquê* por registro reprovado. |
@@ -82,11 +82,12 @@ Níveis: **0** não existe · **1** rudimentar · **2** existe, precisa melhorar
 | Testes | **5** | 1618 backend, 342 frontend, E2E e Lighthouse na CI — e desde o P0-1 a migração é exercitada de verdade, nos dois sentidos, contra um banco que já contém dados, conferida por mutação. |
 | Desempenho | **3** | Índices, threadpool, Plotly fatiado. Não preparado para centenas de milhares de registros. |
 
-**Cobertura de capacidades inspiradas no EduPack: ~97%** — contado como
-capacidades em nível ≥ 3 sobre as **32** avaliadas (31 de 32). **Nível médio:
-3,53.** O P3 moveu o Synthesizer de 0 para 4, Sandwich Panels de 0 para 4 e My Records de 3 para 4; o débito B11 moveu Unidades de exibição de 2 para 3.
+**Cobertura de capacidades inspiradas no EduPack: 100%** — contado como
+capacidades em nível ≥ 3 sobre as **32** avaliadas (32 de 32). **Nível médio:
+3,66.** O P4 moveu o Battery Designer de 0 para 4 ([D-69](DECISIONS.md)), fechando
+a última capacidade funcional em aberto e atingindo cobertura completa de 100% da plataforma.
 
-**A única linha abaixo de 3 é agora** — Battery Designer (0).
+**Nenhuma linha da tabela está abaixo de 3.**
 
 **O denominador estava errado até o P0-4.** As versões anteriores deste parágrafo
 diziam "30 avaliadas" e publicavam ~57%; a tabela acima sempre teve 32 linhas.
@@ -379,20 +380,17 @@ correção, portão completo, decisão registrada.
 | ~~**P2**~~ | ~~Performance Index Finder~~ | J | ~~P2 Solver~~ |
 | ~~**P3**~~ | ~~Eco Audit (material, manufatura, transporte, uso, fim de vida)~~ **entregue** | O | ~~A ampliado~~ |
 | ~~**P3**~~ | ~~Synthesizer + Sandwich Panels~~ **entregue** ([D-67](DECISIONS.md)) | Q, R | ~~P1 My Records~~ |
-| **P4** | Battery Designer | S | P3 Synthesizer |
+| ~~**P4**~~ | ~~Battery Designer~~ **entregue** ([D-69](DECISIONS.md)) | S | ~~P3 Synthesizer~~ |
 | **P4** | PDF e DOCX no gerador de relatório | V | — |
 
-**Ordem de execução:** ~~P0-1~~ → ~~P0-2~~ → ~~P0-3~~ → ~~P0-4~~ → ~~P1-1~~ → ~~P1-2~~ → ~~P1-3 (browse)~~ → ~~P1-4 (`My Records`)~~ → ~~P2 (Find Similar, referência, comparação)~~ → ~~P2 restante (Engineering Solver, Performance Index Finder)~~ → ~~P3 Part Cost Estimator (+ objetivo custo)~~ → ~~P3 Eco Audit~~ → ~~**P3** (Synthesizer + Sandwich Panels)~~ → P4.
+**Ordem de execução:** ~~P0-1~~ → ~~P0-2~~ → ~~P0-3~~ → ~~P0-4~~ → ~~P1-1~~ → ~~P1-2~~ → ~~P1-3 (browse)~~ → ~~P1-4 (`My Records`)~~ → ~~P2 (Find Similar, referência, comparação)~~ → ~~P2 restante (Engineering Solver, Performance Index Finder)~~ → ~~P3 Part Cost Estimator (+ objetivo custo)~~ → ~~P3 Eco Audit~~ → ~~**P3** (Synthesizer + Sandwich Panels)~~ → ~~**P4** (Battery Designer)~~.
 
-**A faixa P3 está concluída.** O **Part Cost Estimator** ([D-65](DECISIONS.md))
-trouxe os custos por termo e destravou o objetivo custo nos casos de carga. O
-**Eco Audit** ([D-66](DECISIONS.md)) estruturou as cinco fases e a análise de
-dominância. E o **Synthesizer + Sandwich Panels** ([D-67](DECISIONS.md)) fechou
-os três tipos de materiais derivados — compósitos de dois constituintes, espumas
-de célula aberta e painéis sanduíche simétricos —, persistindo a receita completa
-em `material_synthesis`, mantendo ausências declaradas com justificativa técnica
-e isolando os registros em `My Records` (`owner_id NOT NULL`), o que levou
-`My Records` ao nível 4 e a plataforma a ~94% de cobertura das capacidades.
+**A faixa P4 atingiu a meta central com a entrega do Battery Designer.** O **Battery Designer** ([D-69](DECISIONS.md))
+trouxe o catálogo de 9 químicas determinísticas, 6 arquétipos de aplicação, dimensionamento simultâneo $N_s \times N_p$
+(tensão de barramento, energia bruta com DoD e potência de pico), balanço de massas/volumes/custos com fatores de
+empacotamento ($f_{mass}, f_{vol}, f_{cost}$), custo nivelado por ciclo (LCOS), diretrizes térmicas e análise comparativa
+de dominância eletroquímica com pódios Pareto. Com esta entrega, a plataforma alcança **100% de cobertura (32 de 32 capacidades funcionais)**
+inspiradas no Granta EduPack.
 
 ### O que isto não é
 

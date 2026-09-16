@@ -5,6 +5,10 @@ import type {
   AhpWeightsIn,
   AhpWeightsOut,
   AIStatus,
+  ApplicationArchetype,
+  BatteryChemistry,
+  BatteryComparisonRequest,
+  BatteryComparisonResult,
   BillingStatus,
   ChartData,
   CheckoutSession,
@@ -31,6 +35,8 @@ import type {
   MaterialListItem,
   MaterialUpdate,
   MyRecords,
+  PackDesignRequest,
+  PackDesignResult,
   PerformanceIndex,
   PortalSession,
   MaterialClassDetail,
@@ -708,3 +714,36 @@ export function createSynthesis(
     body: JSON.stringify(body),
   });
 }
+
+// --- Battery Designer (P4 / Módulo S) ---------------------------------------
+
+export function listBatteryChemistries(): Promise<BatteryChemistry[]> {
+  return request<BatteryChemistry[]>("/api/baterias/quimicas");
+}
+
+export function getBatteryChemistry(slug: string): Promise<BatteryChemistry> {
+  return request<BatteryChemistry>(`/api/baterias/quimicas/${encodeURIComponent(slug)}`);
+}
+
+export function listBatteryArchetypes(): Promise<ApplicationArchetype[]> {
+  return request<ApplicationArchetype[]>("/api/baterias/arquetipos");
+}
+
+export function designBatteryPack(
+  body: PackDesignRequest,
+): Promise<PackDesignResult> {
+  return request<PackDesignResult>("/api/baterias/dimensionar", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export function compareBatteries(
+  body: BatteryComparisonRequest,
+): Promise<BatteryComparisonResult> {
+  return request<BatteryComparisonResult>("/api/baterias/comparar", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+

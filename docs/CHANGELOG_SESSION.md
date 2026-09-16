@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [24](#sessão-24--160926--módulo-s-battery-designer-e-marco-de-100-de-cobertura) | 16/09/2026 | Módulo S (Battery Designer, D-69): dimensionamento Ns × Np, fatores de empacotamento, 9 químicas e 100% de cobertura do EduPack | 1630 → 1662 | 343 → 347 |
 | [23](#sessão-23--150926-a-160926--módulo-r-painéis-sanduíche-e-débito-b11) | 15 e 16/09/2026 | Módulo R (Sandwich Panels) no Synthesizer e quitação do débito B11 (pretty_unit no backend e laudos, D-68) | 1618 → 1630 | 342 → 343 |
 | [22](#sessão-22--150926--p3-o-synthesizer-compósitos-e-espumas) | 15/09/2026 | P3 Synthesizer: compósitos e espumas, receita em My Records, regras por propriedade (D-67) | 1561 → 1618 | 334 → 342 |
 | [21](#sessão-21--150926--p3-o-eco-audit) | 15/09/2026 | P3 Eco Audit: cinco fases, dois modelos de uso, pódio recusável (D-66) | 1505 → 1561 | 321 → 334 |
@@ -39,6 +40,35 @@ As sessões entre a 11 e a 12 — o patch de design "Prisma" (D-49, D-50), o
 upgrade de segurança S1 e a rodada de desempenho — **não têm seção própria
 aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
+
+---
+
+## Sessão 24 — 16/09/26 — Módulo S: Battery Designer e Marco de 100% de Cobertura
+
+**O pedido.** "continue o projeo" / "plano aprovado, seguir desenvolvimento" / "ao final abra uma PR para mandar todas as alterações para o github". Implementação completa do Battery Designer (Módulo S do Granta EduPack, Faixa P4), fechando a última lacuna da matriz de maturidade técnica e elevando a cobertura da plataforma para 100% (32 de 32 capacidades funcionais).
+
+**O desenho do Battery Designer (D-69).**
+1. **Catálogo eletroquímico determinístico.** Criado em `apps/api/app/calculations/battery.py`, cobrindo 9 famílias químicas comerciais: LFP, NMC-622, NMC-811, NCA, LCO, LTO, Na-ion, Chumbo-Ácido Avançado (VRLA/AGM) e NiMH. Cada química define grandezas específicas ($Wh/kg$, $Wh/L$, $W/kg$), tensões nominais, capacidade unitária, taxas de descarga $C$-rate (contínua e pico), eficiências coulômbica/roundtrip, ciclo de vida (@ 80% DoD), custos unitários por kWh, temperatura de início de fuga térmica e nível semântico de segurança.
+2. **Arquétipos de aplicação.** 6 arquétipos pré-configurados (Veículo Elétrico Urbano, Veículo Elétrico de Alta Performance, VANT / Drone Comercial, Ferramenta Elétrica Portátil, Armazenamento Residencial BESS e Industrial BESS), com requisitos de barramento, energia útil, potência de pico e fatores de empacotamento típicos.
+3. **Algoritmo de dimensionamento do pack ($N_s \times N_p$).**
+   - Células em série: $N_s = \lceil V_{req} / V_{cell} \rceil$;
+   - Energia bruta requerida: $E_{gross} = E_{req} / DoD$;
+   - Células por energia: $N_{total, E} = \lceil (E_{gross} \times 1000) / E_{cell} \rceil$;
+   - Células por potência de pico: $N_{total, P} = \lceil (P_{req} \times 1000) / P_{cell, peak} \rceil$;
+   - $N_{total} = \max(N_{total, E}, N_{total, P})$;
+   - Ramos em paralelo: $N_p = \lceil N_{total} / N_s \rceil$;
+   - Total final ajustado: $N_{total} = N_s \times N_p$.
+4. **Fatores de empacotamento físicos e overheads.** Modelagem da sobrecarga de invólucro estrutural, barramentos, BMS e arrefecimento:
+   - $M_{pack} = M_{cells} / f_{mass}$; $V_{pack} = V_{cells} / f_{vol}$; $C_{pack} = C_{cells} / f_{cost}$;
+   - Custo nivelado por ciclo de energia: $LCOS = C_{pack} / (E_{req} \times N_{cycles})$.
+5. **Análise de dominância e trade-offs.** O serviço compara todas as 9 químicas e extrai pódios Pareto: Mais leve, Mais compacto, Menor custo inicial, Maior durabilidade, Menor custo nivelado e Máxima segurança térmica.
+6. **Interface de usuário (`/app/baterias`).** Implementada em `apps/web/app/app/baterias/page.tsx` no padrão Prisma (`group="study"`). Apresenta seletor de arquétipos, formulário responsivo, abas "Dimensionamento de Pack" e "Trade-offs de Químicas", diagrama visual $N_s \times N_p$, cartões de balanço físico/econômico, diretrizes térmicas e tabela comparativa completa.
+
+**Testes e Verificação.**
+- Backend unitário: `apps/api/app/tests/test_battery.py` com 22 testes cobrindo catálogo, $N_s \times N_p$, empacotamento, dominância e recusa de dados inválidos.
+- Backend API: `apps/api/app/tests/test_battery_api.py` com 10 testes cobrindo todos os endpoints (`GET /quimicas`, `GET /arquetipos`, `POST /dimensionar`, `POST /comparar`).
+- Frontend unitário: `apps/web/app/app/baterias/baterias.test.tsx` com 3 testes cobrindo renderização, Ns x Np, métricas, tabs e tabela comparativa.
+- Acessibilidade: `apps/web/app/app/routes.a11y.test.tsx` atualizado auditando a rota `/app/baterias`.
 
 ---
 
