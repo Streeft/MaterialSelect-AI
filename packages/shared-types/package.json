@@ -1,7 +1,0 @@
-{
-  "name": "@materialselect/shared-types",
-  "version": "0.1.0",
-  "private": true,
-  "types": "index.ts",
-  "main": "index.ts"
-}
