@@ -3494,3 +3494,89 @@ onde a direção decide); barra de erro para lei empírica; síntese sobre regis
 já sintetizado em v1 — a propagação de qualidade a suportaria, mas a receita
 gravada deixaria de ser legível de uma olhada; e um sintetizado no catálogo
 compartilhado.
+
+---
+
+## D-68 — Um painel sanduíche não é uma mistura; é um arranjo
+
+**Contexto.** *Sandwich Panels* era a última linha em **0** da matriz do §5 de
+[`14-plataforma-selecao.md`](14-plataforma-selecao.md), e o único item que
+restava da faixa P3. A tentação é tratá-lo como um terceiro caso do
+[D-67](#d-67): mais um par de pais, mais uma fração, a mesma tabela de regras.
+Ele *quase* é isso — e o "quase" é o item inteiro.
+
+**Decisão.**
+
+**1. Densidade e as grandezas por massa são literalmente as regras do
+compósito.** Massa é massa: o arranjo não a move. Um painel de área constante
+tem fração de espessura igual à fração de volume, então `ρ*` sai por
+`_VOLUME_LINEAR` com `f = 2t/d`, e custo e as quatro grandezas ambientais saem
+por fração mássica, exigindo as duas densidades como sempre. Não é coincidência
+numérica, é a mesma `Rule`, e o teste fixa isso além do valor. É por isso que o
+laço de dois pais passou a ser **compartilhado**: compósito e painel diferem em
+uma regra só.
+
+**2. O módulo é de flexão equivalente, e ele passa do limite de Voigt.** É a
+afirmação que carrega o item, e ela é verificável: Voigt é o teto de *qualquer*
+regra das misturas nas mesmas frações. Uma face de 70 GPa e um núcleo de
+0,1 GPa com `t/c = 1/18` dão Voigt = 7,09 GPa e **E\* = 19,04 GPa** — 2,7× acima
+do teto. Se `E*` fosse uma mistura, isso seria impossível; como é um arranjo, é
+exatamente o motivo de se construir um painel em vez de moer os dois materiais
+juntos. O teste que compara os dois é o que cai se alguém "simplificar" a regra
+um dia.
+
+A fórmula tem três termos — as faces em torno dos próprios eixos, as faces em
+torno do eixo do painel (o dominante) e o núcleo —, e duas degenerescências a
+conferem por inteiro: **sem núcleo `E*` devolve `Ef`; sem faces, `Ec`**. A
+segunda converge mais devagar, porque o termo que sobra anda com
+`t·Ef / (c·Ec)`; o teste usa um `t` menor em vez de uma tolerância maior, senão
+esconderia um erro de fórmula do tamanho do próprio termo.
+
+**3. Só a razão `t/c` decide, e é isso que torna legítimo tratar o painel como
+material.** Escala self-similar não move nem `ρ*` nem `E*`. Um índice de
+desempenho assume poder reescalar a seção; sob essa liberdade o par `(E*, ρ*)`
+do painel fica parado, que é precisamente o que um par de propriedades de
+material faz. Sem esse fato, plotar o painel ao lado de sólidos num mapa
+compararia coisas diferentes. Por isso a tela **não pede unidade** de espessura:
+pedir uma sugeriria que o valor absoluto muda algo.
+
+**4. Resistência é competição entre modos de falha, e o mínimo sobre um
+subconjunto é um limite superior.** Um painel falha por escoamento da face, por
+cisalhamento do núcleo ou por enrugamento da face, e vale o **menor** dos três.
+Só o primeiro é calculável aqui: os outros dois pedem a resistência ao
+cisalhamento e o módulo de cisalhamento do núcleo, e o catálogo não tem nenhum
+dos dois. Publicar o único modo que se sabe calcular entregaria um teto com cara
+de resistência — então o painel **não declara resistência**, com o motivo
+escrito. É a recusa do [D-66](#d-66) aplicada a **modo de falha** em vez de a
+fase, e pela mesma razão: uma estatística de resumo sobre parte das parcelas
+parece um resumo do todo.
+
+**5. Onde existe convenção o número entra; onde não existe, não entra.** Um
+painel é **anisotrópico por construção** e o catálogo é isotrópico. Para o
+módulo existe uma convenção — "o módulo de um painel" é o de flexão equivalente
+—, e o número entra em `modulo_young` com a lei colada na proveniência, que é o
+mecanismo do [D-67](#d-67) fazendo exatamente o trabalho para o qual foi feito:
+a nota viaja com o valor até a ficha e diz qual módulo é aquele. Para a
+condutividade não existe: através da espessura as camadas estão em série e no
+plano em paralelo, os dois valores diferem por muito, e escolher uma das
+direções em silêncio daria ao leitor a outra. Ela fica declarada ausente. Dureza
+também: seria a da face, e dizer isso esconderia que a indentação é um dos modos
+de falha.
+
+**6. Os pais são nomeados por papel, não por posição.** "Face" e "núcleo", nunca
+"primeiro" e "segundo" — na tela e na mensagem de dado faltante. Trocá-los muda
+o resultado inteiro, e um rótulo posicional não diz qual dos dois é a casca fina
+e rígida.
+
+**Como se verifica.** Oito mutações, todas apanhadas: trocar `E*` pela regra das
+misturas; zerar o termo de eixo paralelo; usar `c` em vez de `c+t` nele;
+esquecer a segunda face na fração e na espessura total; misturar custo por
+espessura em vez de por massa; chamar o núcleo de "segundo constituinte". A
+oitava — dar regra de resistência ao painel — morre **no import**, pelo
+`_validate`, porque a propriedade passaria a ter regra *e* motivo de ausência.
+
+**O que se recusou.** Um slug próprio para o módulo de flexão (uma propriedade
+que nenhum sólido pode ter apareceria no painel de indicadores como a maior
+lacuna do catálogo, que é uma leitura falsa); publicar o escoamento da face como
+"a resistência"; escolher uma direção de condutividade em silêncio; e um teto
+para as espessuras, já que só a razão entre elas decide.

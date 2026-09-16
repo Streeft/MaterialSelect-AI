@@ -395,14 +395,29 @@ interface — enquanto uma espuma, sendo o mesmo material com vazios, tem: a
 diferença não está na fórmula, está no que se sabe. Um sintetizado é sempre
 registro **próprio**, por `CheckConstraint`.
 
-A matriz vai a **29 de 32 (~91%)**, com nível médio **3,34** — o Synthesizer
-moveu duas linhas, a sua e `My Records` 3→4, porque os sintetizados eram uma das
-duas ausências nomeadas dela. **Nenhuma linha abaixo de 3 é capacidade pela
-metade**: as três que restam são módulos que não existem (Sandwich Panels,
-Battery Designer) mais o B11.
+**Os Sandwich Panels fecharam a faixa P3** ([D-68](DECISIONS.md)): duas faces
+sobre um núcleo, como terceiro tipo do Synthesizer. Densidade e grandezas por
+massa saem pelas **mesmas regras do compósito** — massa é massa, o arranjo não a
+move —, e o que o painel acrescenta é uma regra só: o **módulo de flexão
+equivalente**. Ela não é mistura nenhuma, e isso é verificável em vez de
+afirmado: nas mesmas frações volumétricas `E*` fica **2,7× acima do limite de
+Voigt**, que é o teto de qualquer regra das misturas. Duas degenerescências
+conferem a fórmula inteira (sem núcleo devolve `Ef`, sem faces `Ec`), e **só a
+razão t/c decide** — escala self-similar não move nem `ρ*` nem `E*`, que é o que
+torna legítimo plotar o painel ao lado de sólidos.
 
-**Saúde do código:** 1629 testes de backend (Python 3.11 e 3.12, nenhum skip)
-e 345 de frontend, todos verdes. Desde o P0-1 a suíte também roda as migrações de
+A recusa que o item carrega: **resistência é competição entre modos de falha, e
+o mínimo sobre um subconjunto é um limite superior.** Escoamento da face é
+calculável; cisalhamento do núcleo e enrugamento da face pedem dados que o
+catálogo não tem. O painel não declara resistência, com o motivo escrito — a
+recusa do D-66 aplicada a modo de falha em vez de a fase.
+
+A matriz vai a **30 de 32 (~94%)**, com nível médio **3,44**. **A faixa P3
+fechou**, e sobram duas linhas abaixo de 3, nenhuma capacidade pela metade: o
+Battery Designer (P4) e o B11.
+
+**Saúde do código:** 1656 testes de backend (Python 3.11 e 3.12, nenhum skip)
+e 349 de frontend, todos verdes. Desde o P0-1 a suíte também roda as migrações de
 verdade, nos dois sentidos, contra um banco temporário que já contém dados —
 `test_migration_selection_stage.py`, `test_migration_process_universe.py`,
 `test_migration_selection_universe.py`, `test_migration_process_attributes.py`,
