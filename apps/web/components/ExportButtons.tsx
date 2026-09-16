@@ -7,6 +7,7 @@ const t = ptBR.exports;
 const LABELS: Record<ExportFormat, string> = {
   csv: t.csv,
   xlsx: t.xlsx,
+  docx: t.docx,
   html: t.html,
 };
 
@@ -18,7 +19,7 @@ interface ExportButtonsProps {
 }
 
 /**
- * CSV / XLSX / HTML export links.
+ * CSV / XLSX / DOCX / HTML export links.
  *
  * Plain anchors rather than fetch calls: the browser then honours the
  * `Content-Disposition` filename the API sends and shows its own save dialog,
@@ -30,7 +31,7 @@ interface ExportButtonsProps {
  * taking on a PDF-generation dependency.
  */
 export function ExportButtons({ urlFor, label = t.title, hint }: ExportButtonsProps) {
-  const formats: ExportFormat[] = ["csv", "xlsx", "html"];
+  const formats: ExportFormat[] = ["csv", "xlsx", "docx", "html"];
   return (
     <div className="flex flex-wrap items-center gap-2">
       <span className="text-2xs font-semibold uppercase tracking-wide text-ink-subtle">
