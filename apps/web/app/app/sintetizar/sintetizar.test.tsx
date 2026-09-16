@@ -89,6 +89,24 @@ const kinds: SynthesisKindInfo[] = [
       condutividade_termica: "Numa espuma quem conduz é o gás das células.",
     },
   },
+  {
+    kind: "painel",
+    label: "Painel sanduíche",
+    note: "Um painel não é uma mistura, é um arranjo.",
+    rules: {
+      modulo_young: {
+        key: "flexao-sanduiche",
+        label: "Módulo de flexão equivalente do painel",
+        formula: "E* = 12·[…] / (c+2t)³",
+        basis: "exato",
+        basis_label: "Exata",
+      },
+    },
+    without_rule: {
+      limite_escoamento:
+        "A resistência de um painel é uma competição entre modos de falha.",
+    },
+  },
 ];
 
 const preview: SynthesisPreview = {
@@ -322,5 +340,84 @@ describe("Sintetizar material", () => {
     expect(
       screen.getByText(/par de limites porque depende da direção/),
     ).toBeInTheDocument();
+  });
+});
+
+describe("Painel sanduíche", () => {
+  it("pede as duas espessuras e não a fração", async () => {
+    const user = userEvent.setup();
+    await open();
+
+    selectMwcOption(
+      await screen.findByShadowRole("combobox", { name: t.kindLabel }),
+      "painel",
+    );
+
+    expect(
+      await screen.findByShadowLabelText(new RegExp(t.faceThicknessLabel)),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByShadowLabelText(/Fração volumétrica/),
+    ).not.toBeInTheDocument();
+
+    await runPreview(user);
+
+    const sent = previewSynthesis.mock.calls[0]![0]!;
+    expect(sent.kind).toBe("painel");
+    expect(sent.face_thickness).toBe(1);
+    expect(sent.core_thickness).toBe(18);
+    expect(sent.volume_fraction).toBeUndefined();
+    expect(sent.relative_density).toBeUndefined();
+  });
+
+  it("manda um segundo material, porque o núcleo é um pai", async () => {
+    // Um painel tem dois pais como o compósito — e a espuma, um só. Errar isto
+    // mandaria uma receita que a API recusa.
+    const user = userEvent.setup();
+    await open();
+
+    selectMwcOption(
+      await screen.findByShadowRole("combobox", { name: t.kindLabel }),
+      "painel",
+    );
+    await screen.findByShadowLabelText(new RegExp(t.faceThicknessLabel));
+    await runPreview(user);
+
+    expect(previewSynthesis.mock.calls[0]![0]!.parent_b_id).toBe(2);
+  });
+
+  it("nomeia os pais por papel: face e núcleo", async () => {
+    // "Primeiro constituinte" não diz qual dos dois é a casca fina e rígida, e
+    // trocá-los muda o resultado inteiro.
+    await open();
+
+    selectMwcOption(
+      await screen.findByShadowRole("combobox", { name: t.kindLabel }),
+      "painel",
+    );
+
+    expect(
+      await screen.findByShadowRole("combobox", { name: t.faceLabel }),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByShadowRole("combobox", { name: t.coreLabel }),
+    ).toBeInTheDocument();
+  });
+
+  it("diz que só a razão entre as espessuras decide", async () => {
+    // É o que torna legítimo tratar o painel como material; sem essa frase o
+    // leitor procura uma unidade que a tela não pede.
+    await open();
+
+    selectMwcOption(
+      await screen.findByShadowRole("combobox", { name: t.kindLabel }),
+      "painel",
+    );
+
+    // `findAllBy…`: o texto de apoio do campo aparece no host e dentro do
+    // shadow root do MWC, como a nota do topo deste arquivo explica.
+    expect(
+      (await screen.findAllByShadowText(/só a razão/)).length,
+    ).toBeGreaterThan(0);
   });
 });

@@ -1609,8 +1609,8 @@ export interface EcoAuditResult {
 
 // --- Synthesizer (P3) --------------------------------------------------------
 
-/** Os dois tipos de síntese de v1. */
-export type SynthesisKind = "composito" | "espuma";
+/** Os três tipos de síntese. */
+export type SynthesisKind = "composito" | "espuma" | "painel";
 
 /**
  * Uma lei de mistura ou de escala.
@@ -1645,11 +1645,19 @@ export interface SynthesisRequest {
   name: string;
   class_id: number;
   description?: string | null;
+  /** Num painel, é a **face**. */
   parent_a_id: number;
-  /** Só num compósito. Mandar numa espuma é recusado, nunca ignorado. */
+  /** Num compósito e num painel (o **núcleo**). Numa espuma é recusado. */
   parent_b_id?: number | null;
   volume_fraction?: number | null;
   relative_density?: number | null;
+  /**
+   * Espessura de cada face e do núcleo, na mesma unidade. Qual unidade é não
+   * importa: toda regra do painel lê só a razão entre as duas. Mandar estes
+   * campos noutro tipo é recusado, nunca ignorado.
+   */
+  face_thickness?: number | null;
+  core_thickness?: number | null;
 }
 
 export interface SynthesizedValue {
