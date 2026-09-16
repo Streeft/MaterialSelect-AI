@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [24](#sessão-24--160926--p4-o-battery-designer-e-a-reconciliação-do-pr-56) | 16/09/2026 | P4 Battery Designer (D-69) — a álgebra do pack é argumento, a química é dado medido. **Fecha a última linha em zero da matriz**; reconcilia o PR #56 | 1656 → 1683 | 349 → 356 |
 | [23](#sessão-23--160926--p3-os-sandwich-panels-fecham-a-faixa) | 16/09/2026 | P3 Sandwich Panels (D-68) — o painel passa do limite de Voigt, e é assim que se sabe que não é mistura. **Fecha a faixa P3** | 1629 → 1656 | 345 → 349 |
 | [22](#sessão-22--150926-a-160926--p3-o-synthesizer) | 15 e 16/09/2026 | P3 Synthesizer: registro derivado com a derivação a tiracolo (D-67) — a regra é da propriedade, não da receita | 1561 → 1629 | 334 → 345 |
 | [21](#sessão-21--150926--p3-o-eco-audit) | 15/09/2026 | P3 Eco Audit: cinco fases, dois modelos de uso, pódio recusável (D-66) | 1505 → 1561 | 321 → 334 |
@@ -39,6 +40,94 @@ As sessões entre a 11 e a 12 — o patch de design "Prisma" (D-49, D-50), o
 upgrade de segurança S1 e a rodada de desempenho — **não têm seção própria
 aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
+
+---
+
+## Sessão 24 — 16/09/26 — P4: o Battery Designer, e a reconciliação do PR #56
+
+**O pedido.** Duas coisas, nesta ordem. Primeiro: "criei a branch
+`feature/battery-designer-module-s` no Antigravity CLI para trabalhar junto com
+esta sessão — verifique por que o PR #56 não mescla e se o Antigravity codou
+certinho a demanda". Depois, com o diagnóstico na mão: "confio em você Claude,
+execute tudo o possível para não perder nada e reverter os problemas que ele
+causou".
+
+**Por que o PR #56 não mesclava, e o que havia de errado nele.** O conflito era
+de base: a branch saiu de um `main` anterior ao merge do PR #55, e trazia uma
+**segunda implementação de painel sanduíche** — algebricamente idêntica à do
+D-68, o que é pior e não melhor, porque criaria as duas verdades que aquele
+documento existe para impedir. Vinham junto 122 exclusões de `Cérebro/` (a base
+de conhecimento que o [D-45](DECISIONS.md) registra como risco aceito, não como
+lixo a remover), um `submeter_pr.bat`, e o portão vermelho: 1 erro de `ruff`
+(F841 — a variável do vencedor de durabilidade era calculada e nunca usada), 8
+violações de `black` e 2 testes falhando. A CI do repositório nunca chegou a
+rodar naquele PR.
+
+**E o defeito que nenhum lint pegaria.** As nove químicas moravam num dicionário
+Python de 350 linhas — `specific_energy=160.0` para o LFP, e assim por diante. É
+a violação do princípio 1 na forma mais direta que existe: propriedade de
+material vinda de lugar nenhum que a ferramenta saiba nomear.
+
+**A pergunta que decidiu o desenho: 160 Wh/kg é argumento ou é dado?** A
+contagem em série e em paralelo, os fatores de empacotamento e o custo nivelado
+por ciclo são **álgebra** — verificam-se por revisão, e por isso moram em código,
+como `units.py` e como as sete derivações do D-64. A energia específica de uma
+química **não**: é medida sobre uma substância real. Então
+`app/calculations/battery.py` passou a receber um `CellSpec` pronto e a nunca
+consultar nada, e as nove químicas foram para `battery_chemistry` — tabela
+própria, semeada, com **cada linha nomeando a sua `Source`** (M1) e a sua
+citação, porque as nove não saíram do mesmo lugar. É o corte do D-57: *dado
+semeado, não schema*.
+
+**Por que tabela própria e não `Material`.** Energia específica, vida em ciclos e
+custo por kWh são propriedades que **nenhum outro registro pode ter**: cada uma
+ficaria em ~0% de cobertura no painel de indicadores e subiria ao topo do ranking
+de lacunas, reportando como o maior buraco do catálogo algo que não é buraco —
+exatamente o efeito pelo qual o D-68 recusou um slug para o módulo de flexão, uma
+sessão antes. E as células entrariam em mapas e estudos como se fossem
+candidatas ao lado do aço. A forma é a que o D-66 já aceitou para
+`TransportMode`.
+
+**A tela estava escrita contra um contrato imaginado.** `cell_nominal_voltage_v`
+em vez de `nominal_voltage`, `temp_range_min_c` em vez de
+`operating_temp_min_c`, rótulos térmicos em inglês (`"excellent"`, `"moderate"`)
+onde o catálogo guarda ordinais em português, campos de arquétipo que não
+existem, e uma API de `CardHeader` que o sistema de design não tem. **E os testes
+passavam**, porque afirmavam o mesmo engano que o código. A correção foi
+reescrevê-los com fixturas **tipadas pelos tipos compartilhados**, de modo que
+seja o compilador — e não a atenção de alguém — a impedir a divergência de
+voltar.
+
+**Quatro defeitos de produto que o typecheck não pegaria, achados na mesma
+leitura.** Dois dos três fatores de empacotamento existiam só no estado do
+componente: o volumétrico e o de custo dividiam o volume e o investimento do pack
+sem que ninguém os visse — a regra de premissa visível do D-65, quebrada. O custo
+nivelado saía por `toFixed(4)`, que sempre escreve ponto, e a tabela teria
+"3.900" de milhar ao lado de "0.0383" de decimal (D-30). O pódio usava `?? 0`
+seis vezes, que imprimiria "0 kg" no dia em que um vencedor não fosse encontrado
+(D-24). E a ficha da química não mostrava citação nem fonte — o catálogo tinha a
+proveniência e a tela não a dizia, que é meio princípio 1.
+
+**O sexto ponto do débito de lint.** O PR #56 promoveu
+`react-hooks/set-state-in-effect` de `warn` para `error` afirmando ter corrigido
+os seis pontos pré-existentes. Corrigiu cinco. O sexto, o `ThemeToggle`, é de
+outra natureza — lê `localStorage`, que é fonte **externa** ao React — e ganhou a
+correção que lhe cabe: `useSyncExternalStore`, que resolve os dois renders e traz
+o par de snapshots que preserva a hidratação. Não sobrou `setState` no
+componente: o clique escreve na fonte e a fonte notifica.
+
+**O que não foi trazido, de propósito.** As 122 exclusões de `Cérebro/`, o
+`submeter_pr.bat` e a segunda implementação de painel sanduíche.
+
+**Números.** 1656 → **1683** testes de backend (nenhum skip), 349 → **356** de
+frontend. Cobertura EduPack ~94% → **~97%** (31 de 32), nível médio 3,44 →
+**3,53**. Migração aditiva conferida num banco limpo, produzindo as nove
+químicas pelo seed.
+
+**A última linha em zero da matriz fechou.** O que resta do roteiro é PDF/DOCX no
+gerador de relatório — formato de saída, não capacidade de método —, mais o B11
+na leitura estreita da matriz (o usuário ainda não *escolhe* a unidade de
+leitura, embora o documento exportado já imprima `kg/m³` em vez de `kg/m**3`).
 
 ---
 

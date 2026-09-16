@@ -74,28 +74,31 @@ Níveis: **0** não existe · **1** rudimentar · **2** existe, precisa melhorar
 | Part Cost Estimator | **3** | **Entregue (P3, [D-65](DECISIONS.md))**: `C = m·Cm/(1−f) + C_t/n + Ċ_oh/ṅ + C_c/(ṅ·t_wo·L)` sobre os processos compatíveis com o material, devolvida **termo a termo** — porque o que o leitor veio buscar é como cada parcela anda com o lote, e o cruzamento entre dois processos conforme *n* cresce. Premissas de oficina são entrada com valor visível; processo sem dado econômico é nomeado, nunca zerado; e a resposta declara a unidade monetária em palavras, porque dinheiro não está em sistema de unidades nenhum. Falta a curva custo × lote desenhada e o custo por família de processo.
 | Synthesizer / registros sintetizados | **3** | **Entregue (P3, [D-67](DECISIONS.md))**: compósito de dois constituintes e espuma de um sólido, com a receita inteira gravada e o registro **declarado sintetizado**. Cada valor nomeia a lei que o produziu e a **base** dela — exata, par de limites ou empírica —, e a qualidade do dado é a pior dos pais que a regra leu. A regra de mistura é propriedade da propriedade: densidade por volume, módulo como **par de limites** porque a direção não está catalogada, grandezas por massa por fração mássica, temperatura de serviço pelo mínimo, e resistência de compósito **sem regra nenhuma**, porque quem a controla é a interface. Faltam laminados com orientação declarada, sintetizar sobre um sintetizado e a figura do par de limites no mapa. |
 | Sandwich Panels | **3** | **Entregue (P3, [D-68](DECISIONS.md))**: terceiro tipo do Synthesizer — duas faces sobre um núcleo. Densidade e grandezas por massa saem pelas **mesmas regras do compósito** (massa é massa), e o módulo é o de **flexão equivalente**, que passa do limite de Voigt nas mesmas frações — a prova de que é arranjo e não mistura. Só a razão *t/c* decide, o que é o que torna legítimo plotar o painel ao lado de sólidos. Resistência é recusada com o motivo escrito: ela é competição entre modos de falha e só um é calculável. Faltam a figura do painel em corte, o núcleo em colmeia (que tem escalas próprias) e os modos de falha que pedem dados de cisalhamento do núcleo. |
-| Battery Designer | **0** | Não existe. |
+| Battery Designer | **3** | **Entregue (P4, [D-69](DECISIONS.md))**: dado um requisito elétrico, quantas células em série e em paralelo o atendem, quanto o conjunto pesa, ocupa e custa, e qual química serve melhor. A álgebra do pack mora em código (é argumento, como os casos de carga do D-64); as nove químicas moram no **catálogo**, cada uma nomeando a sua `Source` e a sua citação própria — porque energia específica é medida, não argumento. Tabela própria e não `Material`, pela mesma razão do `TransportMode`. Faltam a degradação por temperatura e por taxa, o dimensionamento térmico do BMS e química de estado sólido. |
 | My Records (usuário / sintetizados / favoritos) | **4** | **Entregue (P1-4, [D-62](DECISIONS.md))**: `Material.owner_id` dá registro próprio, `Favorite` e `RecentRecord` dão favoritos e recentes nos dois universos, e `/app/meus-registros` é o espaço. Os **sintetizados** chegaram com o P3 ([D-67](DECISIONS.md)) e são sempre próprios, por `CheckConstraint`. Falta um registro próprio de *processo*, que pede o catálogo de processos editável.
 | Unidades de exibição | **2** | Canônica correta; o usuário não escolhe a unidade de leitura (B11). |
 | Explicabilidade | **3** | Funil por restrição e por estágio (`in_chart` inclusive) e proveniência por número; falta o *porquê* por registro reprovado. |
 | Camada de IA | **4** | Interpretação e explicação com guardrails, ancoragem numérica e citação verificada. |
-| Testes | **5** | 1656 backend, 349 frontend, E2E e Lighthouse na CI — e desde o P0-1 a migração é exercitada de verdade, nos dois sentidos, contra um banco que já contém dados, conferida por mutação. |
+| Testes | **5** | 1683 backend, 356 frontend, E2E e Lighthouse na CI — e desde o P0-1 a migração é exercitada de verdade, nos dois sentidos, contra um banco que já contém dados, conferida por mutação. |
 | Desempenho | **3** | Índices, threadpool, Plotly fatiado. Não preparado para centenas de milhares de registros. |
 
-**Cobertura de capacidades inspiradas no EduPack: ~94%** — contado como
-capacidades em nível ≥ 3 sobre as **32** avaliadas (30 de 32). **Nível médio:
-3,44.** O P3 moveu quatro linhas que estavam em **zero**: o Part Cost Estimator,
+**Cobertura de capacidades inspiradas no EduPack: ~97%** — contado como
+capacidades em nível ≥ 3 sobre as **32** avaliadas (31 de 32). **Nível médio:
+3,53.** O P3 moveu quatro linhas que estavam em **zero**: o Part Cost Estimator,
 o Eco Audit, o Synthesizer e os Sandwich Panels. Com o primeiro veio também o
 objetivo custo, que destravou o Engineering Solver e o Performance Index Finder —
 os dois já acima do corte, e por isso invisíveis no percentual embora seja ali
 que a faixa ficou mais completa. É o mesmo descompasso entre métrica e ferramenta
 que o P0-4 expôs, na direção oposta. O Synthesizer moveu **duas** linhas: a sua
 própria e `My Records` 3→4, porque os registros sintetizados eram uma das duas
-ausências nomeadas dela.
+ausências nomeadas dela. O **P4** moveu a última que estava em zero: o *Battery
+Designer* ([D-69](DECISIONS.md)).
 
-**Sobram duas linhas abaixo de 3**, e nenhuma é capacidade pela metade: o
-*Battery Designer* (P4, um módulo que não existe) e `Unidades de exibição` (B11,
-que é uma escolha de leitura e não um módulo). **A faixa P3 fechou.**
+**Sobra uma linha abaixo de 3**, e ela não é capacidade pela metade:
+`Unidades de exibição` (B11, que é uma escolha de leitura e não um módulo).
+**A faixa P3 fechou, e o Battery Designer fechou a P4 do lado da seleção** — o
+que resta da P4 é PDF/DOCX no gerador de relatório, que é formato de saída e não
+capacidade de método.
 
 **O denominador estava errado até o P0-4.** As versões anteriores deste parágrafo
 diziam "30 avaliadas" e publicavam ~57%; a tabela acima sempre teve 32 linhas.
@@ -389,10 +392,10 @@ correção, portão completo, decisão registrada.
 | ~~**P3**~~ | ~~Eco Audit (material, manufatura, transporte, uso, fim de vida)~~ **entregue** | O | ~~A ampliado~~ |
 | ~~**P3**~~ | ~~Part Cost Estimator~~ **entregue** (com o objetivo *custo* nos casos de carga) | P | ~~P0-2~~ |
 | ~~**P3**~~ | ~~Synthesizer + Sandwich Panels~~ **entregue** | Q, R | ~~P1 My Records~~ |
-| **P4** | Battery Designer | S | P3 Synthesizer |
+| ~~**P4**~~ | ~~Battery Designer~~ **entregue** | S | ~~P3 Synthesizer~~ |
 | **P4** | PDF e DOCX no gerador de relatório | V | — |
 
-**Ordem de execução:** ~~P0-1~~ → ~~P0-2~~ → ~~P0-3~~ → ~~P0-4~~ → ~~P1-1~~ → ~~P1-2~~ → ~~P1-3 (browse)~~ → ~~P1-4 (`My Records`)~~ → ~~P2 (Find Similar, referência, comparação)~~ → ~~P2 restante (Engineering Solver, Performance Index Finder)~~ → ~~P3 Part Cost Estimator (+ objetivo custo)~~ → ~~P3 Eco Audit~~ → ~~P3 Synthesizer~~ → ~~P3 Sandwich Panels~~ → **P4**.
+**Ordem de execução:** ~~P0-1~~ → ~~P0-2~~ → ~~P0-3~~ → ~~P0-4~~ → ~~P1-1~~ → ~~P1-2~~ → ~~P1-3 (browse)~~ → ~~P1-4 (`My Records`)~~ → ~~P2 (Find Similar, referência, comparação)~~ → ~~P2 restante (Engineering Solver, Performance Index Finder)~~ → ~~P3 Part Cost Estimator (+ objetivo custo)~~ → ~~P3 Eco Audit~~ → ~~P3 Synthesizer~~ → ~~P3 Sandwich Panels~~ → ~~P4 Battery Designer~~ → **P4 restante (PDF/DOCX)**.
 
 **A faixa P2 fechou, e o Part Cost Estimator saiu junto com o que ele
 destravava.** O custo ficou nomeado como omissão no [D-64](DECISIONS.md) em vez
@@ -412,6 +415,19 @@ medida disso é que o módulo de flexão equivalente do painel **passa do limite
 Voigt** nas mesmas frações volumétricas, o que nenhuma mistura pode fazer.
 Densidade e grandezas por massa, essas sim, saem pelas regras do compósito sem
 uma linha de adaptação: massa é massa.
+
+O **Battery Designer** ([D-69](DECISIONS.md)) fechou a última linha em zero da
+matriz, e o que decidiu o desenho dele foi uma pergunta só: *160 Wh/kg é
+argumento ou é dado?* A contagem em série e em paralelo, os fatores de
+empacotamento e o custo nivelado por ciclo são álgebra, e álgebra se verifica por
+revisão — moram em código, como as sete derivações de `load_cases.py`. A energia
+específica de uma química **não**: é medida sobre uma substância real, e escrevê-la
+num literal Python seria a violação do princípio 1 que a ferramenta inteira
+existe para não cometer. Daí `BatteryChemistry`, tabela própria e semeada, cada
+linha nomeando a sua fonte e a sua citação. O módulo chegou por uma branch escrita
+fora da sessão, com as nove químicas num dicionário de código; a reconciliação foi
+exatamente mover esse dicionário para o catálogo sem mexer numa vírgula da
+álgebra.
 
 ### O que isto não é
 

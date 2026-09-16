@@ -12,6 +12,8 @@ import { screen as shadowScreen } from "shadow-dom-testing-library";
 import { selectMwcOption } from "@/lib/testing/mwc";
 import type {
   AIStatus,
+  ApplicationArchetype,
+  BatteryChemistry,
   ChartData,
   Comparison,
   CostResult,
@@ -978,6 +980,49 @@ const solveResult: SolveResult = {
   ],
 };
 
+// P4: o catálogo de químicas é dado semeado com fonte, e a auditoria monta a
+// tela com ele — o painel de proveniência é parte do que axe precisa ver.
+const batteryChemistries: BatteryChemistry[] = [
+  {
+    slug: "lfp",
+    name: "LFP (fosfato de ferro-lítio)",
+    formula: "LiFePO4",
+    nominal_voltage: 3.2,
+    specific_energy: 160,
+    energy_density: 350,
+    specific_power: 1500,
+    cycle_efficiency: 0.95,
+    cycle_life: 3500,
+    cell_cost_per_kwh: 75,
+    thermal_safety: "ALTA",
+    thermal_runaway_temp_c: 270,
+    operating_temp_min_c: -20,
+    operating_temp_max_c: 60,
+    max_continuous_c_rate: 3,
+    peak_c_rate: 5,
+    description: "Estabilidade térmica alta.",
+    advantages: ["Vida em ciclos longa"],
+    limitations: ["Energia específica menor"],
+    typical_applications: ["Armazenamento estacionário"],
+    citation: "Linden's Handbook of Batteries (4ª ed.)",
+    source: "Literatura de baterias (compilação)",
+  },
+];
+
+const batteryArchetypes: ApplicationArchetype[] = [
+  {
+    slug: "ve-urbano",
+    name: "Veículo elétrico urbano",
+    description: "Automóvel de passeio para ciclo misto.",
+    target_voltage: 400,
+    target_energy_kwh: 50,
+    target_power_kw: 120,
+    target_dod: 0.85,
+    recommended_chemistries: ["lfp"],
+    default_cell_capacity_ah: 100,
+  },
+];
+
 vi.mock("@/lib/api", async (importOriginal) => ({
   ApiError: (await importOriginal<typeof import("@/lib/api")>()).ApiError,
   // P1-4: a ficha traz a estrela e anota a visita, então toda tela de registro
@@ -1012,6 +1057,11 @@ vi.mock("@/lib/api", async (importOriginal) => ({
       material_name: "Compósito",
     }),
   runEcoAudit: () => Promise.resolve(ecoResult),
+  listBatteryChemistries: () => Promise.resolve(batteryChemistries),
+  listBatteryArchetypes: () => Promise.resolve(batteryArchetypes),
+  designBatteryPack: () => Promise.resolve(null),
+  compareBatteries: () => Promise.resolve(null),
+  getBatteryChemistry: () => Promise.resolve(batteryChemistries[0]),
   solveBrief: () => Promise.resolve(solveResult),
   getPropertyMap: () => Promise.resolve(propertyMap),
   getComparison: () => Promise.resolve(comparison),
@@ -1085,6 +1135,7 @@ const { default: SolverPage } = await import("./dimensionar/page");
 const { default: CostPage } = await import("./custo/page");
 const { default: EcoPage } = await import("./eco/page");
 const { default: SynthesisPage } = await import("./sintetizar/page");
+const { default: BatteryPage } = await import("./baterias/page");
 
 function makeClient() {
   return new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -1252,6 +1303,13 @@ describe("acessibilidade das telas principais", () => {
   // frente; é com ela assim que a auditoria vale.
   it("sintetizar material", async () => {
     await auditRoute(<SynthesisPage />, ptBR.synthesis.kindStep);
+  });
+
+  // P4: a tela monta com os requisitos preenchidos e o arquétipo escolhido, e
+  // é assim que vale auditar — os três fatores de empacotamento, o seletor de
+  // química e a tabela comparativa só existem com o formulário montado.
+  it("dimensionar bateria", async () => {
+    await auditRoute(<BatteryPage />, ptBR.battery.title);
   });
 
   // Landing is the one route in this file that isn't under `/app`: no session,
