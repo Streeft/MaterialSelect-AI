@@ -584,7 +584,29 @@ por `_validate()`. Um sintetizado é sempre registro **próprio**, por
 `CheckConstraint` escrito de forma portável (`NOT (is_synthesized AND owner_id IS
 NULL)` — o PostgreSQL recusa `boolean = 1`).
 
-1629 testes de backend (nenhum skip) e 345 de frontend, todos verdes. CI no
+**Os Sandwich Panels fecharam a faixa P3** ([D-68](docs/DECISIONS.md)): duas
+faces sobre um núcleo, como terceiro tipo do Synthesizer. Metade dele é o
+Synthesizer sem adaptação — densidade e grandezas por massa saem pelas **mesmas
+regras do compósito**, na fração de espessura das faces, porque massa é massa e o
+arranjo não a move. A outra metade é uma regra só, e ela não é mistura: o
+**módulo de flexão equivalente**, que nas mesmas frações volumétricas fica
+**2,7× acima do limite de Voigt** — o teto de qualquer regra das misturas.
+Passar dele é impossível para uma mistura, e é exatamente o motivo de se
+construir um painel. Duas degenerescências conferem a fórmula inteira (sem
+núcleo devolve `Ef`; sem faces, `Ec`), e **só a razão t/c decide**: escala
+self-similar não move nem `ρ*` nem `E*`, que é o que torna legítimo plotar o
+painel ao lado de sólidos — e por que a tela não pede unidade de espessura.
+
+Duas recusas que não se afrouxam. **Resistência é competição entre modos de
+falha** (escoamento da face, cisalhamento do núcleo, enrugamento da face) e vale
+o menor; só o primeiro é calculável, e o mínimo sobre parte dos modos é um
+limite superior, não a resistência — é a recusa do pódio do D-66 aplicada a modo
+de falha. E **onde existe convenção o número entra, onde não existe não entra**:
+o módulo de um painel é, por convenção, o de flexão equivalente, e ele vai para
+`modulo_young` com a lei colada na proveniência; a condutividade não vai, porque
+um painel é anisotrópico por construção e o slug é isotrópico.
+
+1656 testes de backend (nenhum skip) e 349 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
 PROJECT_CONTEXT.md).

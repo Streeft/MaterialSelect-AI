@@ -452,6 +452,49 @@ import** por `_validate()`, como nos casos de carga do D-64. E um registro
 sintetizado é sempre **próprio**, nunca do catálogo compartilhado — `CheckConstraint`
 no banco, não só regra de serviço.
 
+### Painel sanduíche: o arranjo, e não a mistura
+
+O terceiro tipo de síntese é o que mostra os limites do parágrafo acima
+([D-68](DECISIONS.md)). Duas faces de espessura **t** sobre um núcleo de
+espessura **c**, e o resultado se divide em duas metades que não se parecem:
+
+**Densidade e grandezas por massa são as regras do compósito, sem adaptação.**
+Num painel de área constante a fração de espessura *é* a fração de volume, então
+`ρ*` sai pela regra das misturas por volume com `f = 2t/d`, e custo e as
+grandezas ambientais por fração mássica, como sempre. Massa é massa: o arranjo
+não a move. É a mesma `Rule` do compósito, não um valor que coincide.
+
+**O módulo é outra coisa.** `E*` é o módulo de flexão equivalente — o que uma
+placa homogênea de mesma espessura precisaria ter para ser tão rígida quanto
+este painel:
+
+```
+E* = 12 · [ Ef·t³/6 + Ef·t·(c+t)²/2 + Ec·c³/12 ] / (c + 2t)³
+```
+
+Os três termos são as faces em torno dos próprios eixos, as faces em torno do
+eixo do painel (o dominante) e o núcleo. **Ele passa do limite de Voigt**, e é
+esse o fato que prova que não se trata de mistura: com uma face de 70 GPa, um
+núcleo de 0,1 GPa e `t/c = 1/18`, Voigt dá 7,09 GPa e `E*` dá **19,04 GPa**.
+Voigt é o teto de qualquer regra das misturas nas mesmas frações; passar dele é
+impossível para uma mistura e é exatamente o motivo de se construir um painel.
+
+**Só a razão `t/c` decide.** Escala self-similar não move nem `ρ*` nem `E*` — e
+é isso que torna legítimo tratar o painel como material: um índice de desempenho
+assume poder reescalar a seção, e sob essa liberdade o par `(E*, ρ*)` fica
+parado. Por isso a tela não pede unidade de espessura.
+
+**O que o painel não declara, e por quê.** A resistência é **competição entre
+modos de falha** — escoamento da face, cisalhamento do núcleo, enrugamento da
+face — e vale o menor. Só o primeiro é calculável: os outros pedem a resistência
+ao cisalhamento e o módulo de cisalhamento do núcleo, que não estão catalogados.
+O mínimo sobre parte dos modos é um **limite superior**, não a resistência, então
+ela não sai — a mesma recusa que o eco audit faz com o pódio. A condutividade
+também não sai: um painel é anisotrópico por construção (série através da
+espessura, paralelo no plano) e o slug é isotrópico. Onde existe convenção — "o
+módulo de um painel" é o de flexão equivalente — o número entra com a lei colada
+nele; onde não existe, não entra.
+
 ## Ranking multicritério (`app/domain/ranking.py`)
 
 Soma ponderada normalizada. Cada critério tem uma direção (maior/menor é melhor),

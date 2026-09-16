@@ -313,9 +313,34 @@ Registrados para não voltarem por engano:
   `server_default` posto e depois retirado, conferida por mutação.
 
   **O que ficou de fora:** laminados com orientação declarada, sintetizar sobre
-  um sintetizado, a figura do par de limites no mapa, e os **Sandwich Panels** —
-  o mesmo mecanismo aplicado a uma geometria, e o único item que resta da
-  faixa P3.
+  um sintetizado e a figura do par de limites no mapa.
+- ~~**P3 (quarto item)** — os Sandwich Panels~~ — terceiro tipo do Synthesizer:
+  duas faces de espessura *t* sobre um núcleo de espessura *c*
+  ([D-68](DECISIONS.md)). **Fecha a faixa P3.**
+
+  Metade dele é o Synthesizer sem adaptação nenhuma: densidade e grandezas por
+  massa saem pelas **mesmas regras do compósito**, na fração de espessura das
+  faces, porque massa é massa e o arranjo não a move. A outra metade é uma regra
+  só, e ela não é mistura: o **módulo de flexão equivalente**, que nas mesmas
+  frações volumétricas fica **2,7× acima do limite de Voigt** — o teto de
+  qualquer regra das misturas. É a afirmação central do item, e é medida, não
+  declarada. Duas degenerescências conferem a fórmula inteira (sem núcleo
+  devolve `Ef`; sem faces, `Ec`), e **só a razão t/c decide**, o que é o que
+  torna legítimo plotar o painel ao lado de sólidos.
+
+  A recusa: **resistência é competição entre modos de falha** — escoamento da
+  face, cisalhamento do núcleo, enrugamento da face — e vale o menor. Só o
+  primeiro é calculável, e o mínimo sobre parte dos modos é um limite superior,
+  não a resistência. Mesma forma da recusa do pódio no D-66. Condutividade e
+  dureza também ficam fora, cada uma com seu motivo.
+
+  Sem migração: `MaterialSynthesis.kind` já é texto e `parameters` já é JSON.
+  Oito mutações conferidas; a que dá regra de resistência ao painel morre no
+  import.
+
+  **O que ficou de fora:** núcleo em colmeia (tem escalas próprias), a figura do
+  painel em corte, e os modos de falha que pedem dados de cisalhamento do
+  núcleo.
 - ~~**P1-2** — o gráfico mostrava e não selecionava~~ — quarto tipo de estágio,
   `chart`, entregue em seis passos ([D-60](DECISIONS.md),
   [07-selecao-deterministica.md](07-selecao-deterministica.md)). Carrega o plano,
