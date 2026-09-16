@@ -10,11 +10,12 @@ depósito de hipóteses que ele não leu.
 
 from __future__ import annotations
 
+import math
 from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
 
-from app.calculations.synthesis import COMPOSITO, ESPUMA
+from app.calculations.synthesis import COMPOSITO, ESPUMA, PAINEL
 
 
 class RuleOut(BaseModel):
@@ -45,7 +46,7 @@ class KindOut(BaseModel):
 class SynthesisRequest(BaseModel):
     """A receita. Os campos do outro tipo são recusados, nunca ignorados."""
 
-    kind: Literal[COMPOSITO, ESPUMA]
+    kind: Literal[COMPOSITO, ESPUMA, PAINEL]
     name: str = Field(min_length=1, max_length=200)
     #: Onde o registro derivado entra na taxonomia. Exigido, e não herdado de um
     #: pai: uma espuma de alumínio não é necessariamente um metal para quem a
@@ -56,15 +57,25 @@ class SynthesisRequest(BaseModel):
 
     #: Compósito: os dois constituintes e a fração volumétrica do primeiro.
     #: Espuma: só ``parent_a_id`` e a densidade relativa.
+    #: Painel: ``parent_a_id`` é a **face**, ``parent_b_id`` o **núcleo**, mais
+    #: as duas espessuras.
     parent_a_id: int
     parent_b_id: int | None = None
     volume_fraction: float | None = Field(default=None, gt=0.0, lt=1.0)
     relative_density: float | None = Field(default=None, gt=0.0, lt=1.0)
+    #: Espessura de **cada** face e do núcleo, na mesma unidade — qual unidade
+    #: é não importa, porque toda regra do painel lê só a razão entre as duas.
+    #: Sem limite superior de propósito: um painel de 200 mm é tão legítimo
+    #: quanto um de 2 mm, e é a razão que decide o resultado.
+    face_thickness: float | None = Field(default=None, gt=0.0)
+    core_thickness: float | None = Field(default=None, gt=0.0)
 
-    @field_validator("volume_fraction", "relative_density")
+    @field_validator("volume_fraction", "relative_density", "face_thickness", "core_thickness")
     @classmethod
     def _finite(cls, value: float | None) -> float | None:
-        if value is not None and value != value:
+        # `gt=0` já barra -inf e NaN não é > 0, mas +inf passa: uma espessura
+        # infinita zeraria a razão t/c sem erro nenhum.
+        if value is not None and not math.isfinite(value):
             raise ValueError("Valor inválido.")
         return value
 
