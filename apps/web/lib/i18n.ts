@@ -811,7 +811,7 @@ export const ptBR = {
   synthesis: {
     title: "Sintetizar material",
     subtitle:
-      "Um compósito ou uma espuma calculados a partir de materiais do catálogo. O registro é seu, fica declarado como sintetizado, e cada valor carrega a lei que o produziu.",
+      "Um compósito, uma espuma ou um painel sanduíche calculados a partir de materiais do catálogo. O registro é seu, fica declarado como sintetizado, e cada valor carrega a lei que o produziu.",
     // O que separa valor calculado de valor inventado, dito antes de qualquer
     // campo: é a frase que justifica a tela inteira existir (princípio 1).
     principle:
@@ -820,6 +820,7 @@ export const ptBR = {
     kindLabel: "Tipo",
     kindComposite: "Compósito de dois constituintes",
     kindFoam: "Espuma de um sólido",
+    kindPanel: "Painel sanduíche",
     recipeStep: "2. A receita",
     parentALabel: "Primeiro constituinte",
     parentASolidLabel: "Sólido",
@@ -830,6 +831,15 @@ export const ptBR = {
     densityLabel: "Densidade relativa (0 a 1)",
     densityHint:
       "Densidade da espuma dividida pela do sólido. Em 1 a espuma é o próprio sólido.",
+    faceLabel: "Face",
+    coreLabel: "Núcleo",
+    faceThicknessLabel: "Espessura de cada face",
+    coreThicknessLabel: "Espessura do núcleo",
+    // A unidade não é pedida de propósito: toda regra do painel lê só a razão
+    // entre as duas espessuras, e inventar uma unidade sugeriria que o valor
+    // absoluto muda alguma coisa.
+    thicknessHint:
+      "As duas na mesma unidade — qual unidade é não importa, porque só a razão entre elas decide. Dobrar as duas não muda nem a densidade nem o módulo do painel.",
     identityStep: "3. A identidade do registro",
     nameLabel: "Nome",
     nameHint: "É como o registro vai aparecer no seu catálogo.",

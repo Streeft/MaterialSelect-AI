@@ -34,6 +34,7 @@ from app.calculations.synthesis import (
     KIND_LABELS,
     KIND_NOTES,
     KINDS,
+    PAINEL,
     ParentValue,
     Rule,
     SynthesisError,
@@ -42,6 +43,7 @@ from app.calculations.synthesis import (
     rules_for,
     synthesize_composite,
     synthesize_foam,
+    synthesize_sandwich,
 )
 from app.domain.data_quality import build_interval_value, build_scalar_value
 from app.domain.errors import ConflictError, NotFoundError, ValidationError
@@ -179,6 +181,8 @@ class SynthesisService:
                 raise ValidationError(
                     "Densidade relativa é campo de espuma e não entra num compósito."
                 )
+            if request.face_thickness is not None or request.core_thickness is not None:
+                raise ValidationError("Espessura é campo de painel e não entra num compósito.")
             if request.volume_fraction is None:
                 raise ValidationError("Informe a fração volumétrica do primeiro constituinte.")
             if request.parent_b_id == request.parent_a_id:
@@ -196,12 +200,45 @@ class SynthesisService:
                 raise ValidationError(str(exc)) from exc
             return result, [first, second]
 
+        if request.kind == PAINEL:
+            if request.parent_b_id is None:
+                raise ValidationError("Um painel sanduíche precisa de uma face e de um núcleo.")
+            if request.volume_fraction is not None:
+                raise ValidationError(
+                    "Fração volumétrica é campo de compósito: num painel quem decide "
+                    "as frações é a razão entre as espessuras."
+                )
+            if request.relative_density is not None:
+                raise ValidationError(
+                    "Densidade relativa é campo de espuma e não entra num painel."
+                )
+            if request.face_thickness is None or request.core_thickness is None:
+                raise ValidationError("Informe a espessura da face e a do núcleo.")
+            if request.parent_b_id == request.parent_a_id:
+                raise ValidationError(
+                    "A face e o núcleo são o mesmo material; o painel seria uma "
+                    "placa maciça dele."
+                )
+            second = self._parent(request.parent_b_id)
+            try:
+                result = synthesize_sandwich(
+                    face_thickness=request.face_thickness,
+                    core_thickness=request.core_thickness,
+                    face=self._values(first),
+                    core=self._values(second),
+                )
+            except SynthesisError as exc:
+                raise ValidationError(str(exc)) from exc
+            return result, [first, second]
+
         if request.parent_b_id is not None:
             raise ValidationError("Uma espuma tem um sólido só.")
         if request.volume_fraction is not None:
             raise ValidationError(
                 "Fração volumétrica é campo de compósito e não entra numa espuma."
             )
+        if request.face_thickness is not None or request.core_thickness is not None:
+            raise ValidationError("Espessura é campo de painel e não entra numa espuma.")
         if request.relative_density is None:
             raise ValidationError("Informe a densidade relativa da espuma.")
         try:
@@ -324,4 +361,4 @@ def _rule_out(rule: Rule) -> RuleOut:
     )
 
 
-__all__ = ["SynthesisService", "COMPOSITO", "ESPUMA"]
+__all__ = ["SynthesisService", "COMPOSITO", "ESPUMA", "PAINEL"]

@@ -210,7 +210,9 @@ Registrados para não voltarem por engano:
   `user` virou obrigatório (o erro passa a ser `TypeError`) e entrou o controle
   positivo. Ver D-62.
 
-  **O que ficou de fora:** registros **sintetizados** (são o Synthesizer, P3) e
+  **O que ficou de fora:** um registro próprio de *processo* (os registros
+  **sintetizados**, que eram a outra ausência, saíram com o Synthesizer —
+  [D-67](DECISIONS.md)) e
   registro próprio de *processo*, que pede o catálogo de processos editável.
 - ~~**P2** — o fluxo do manual não tinha fim~~ — `Find Similar`, registro de
   referência e a tabela de comparação com diferença percentual, entregues em
@@ -283,6 +285,62 @@ Registrados para não voltarem por engano:
 
   **O que ficou de fora:** a figura de barras por fase, comparar dois materiais
   na mesma auditoria, e energia catalogada para aterro e incineração.
+- ~~**P3 (terceiro item)** — o Synthesizer~~ — `POST /api/synthesis/previa`,
+  `POST /api/synthesis` e `/app/sintetizar` criam **materiais hipotéticos** a
+  partir de materiais catalogados mais uma receita: compósito de dois
+  constituintes com fração volumétrica, ou espuma de um sólido com densidade
+  relativa ([D-67](DECISIONS.md)). É o item que mais perto passa de violar o
+  princípio 1, e o que o separa é uma frase: **um valor sintetizado não é
+  inventado; é calculado, e a diferença é que ele carrega a derivação.**
+
+  A decisão que carrega o item: **a regra de mistura é propriedade da
+  propriedade, não da receita.** Densidade linear por volume (exata); módulo como
+  **par de limites** de Voigt e Reuss, porque a direção não está catalogada;
+  custo e as quatro grandezas ambientais por **fração mássica**, o que exige as
+  duas densidades; temperatura de serviço pelo **mínimo**. E **resistência de
+  compósito sem regra nenhuma** — quem a controla é a interface, sobre a qual o
+  catálogo nada sabe —, enquanto a **espuma tem** regra de resistência, por ser o
+  mesmo material com vazios e ter mecanismo de falha que escala (Gibson–Ashby):
+  a diferença não está na fórmula, está no que se sabe.
+
+  Três garantias: cada valor nomeia a lei e a **base** dela (exata, limites,
+  empírica); a qualidade do dado é a **pior dos pais que a regra leu** (incerteza
+  de entrada propagada, incerteza de modelo dita em palavras); e um sintetizado é
+  **sempre registro próprio**, por `CheckConstraint` portável
+  (`NOT (is_synthesized AND owner_id IS NULL)` — o PostgreSQL recusa
+  `boolean = 1`). A prévia vem **antes** da identidade: o passo do nome só
+  aparece depois de haver prévia. Migração `ebf6d9eb737a`, com
+  `server_default` posto e depois retirado, conferida por mutação.
+
+  **O que ficou de fora:** laminados com orientação declarada, sintetizar sobre
+  um sintetizado e a figura do par de limites no mapa.
+- ~~**P3 (quarto item)** — os Sandwich Panels~~ — terceiro tipo do Synthesizer:
+  duas faces de espessura *t* sobre um núcleo de espessura *c*
+  ([D-68](DECISIONS.md)). **Fecha a faixa P3.**
+
+  Metade dele é o Synthesizer sem adaptação nenhuma: densidade e grandezas por
+  massa saem pelas **mesmas regras do compósito**, na fração de espessura das
+  faces, porque massa é massa e o arranjo não a move. A outra metade é uma regra
+  só, e ela não é mistura: o **módulo de flexão equivalente**, que nas mesmas
+  frações volumétricas fica **2,7× acima do limite de Voigt** — o teto de
+  qualquer regra das misturas. É a afirmação central do item, e é medida, não
+  declarada. Duas degenerescências conferem a fórmula inteira (sem núcleo
+  devolve `Ef`; sem faces, `Ec`), e **só a razão t/c decide**, o que é o que
+  torna legítimo plotar o painel ao lado de sólidos.
+
+  A recusa: **resistência é competição entre modos de falha** — escoamento da
+  face, cisalhamento do núcleo, enrugamento da face — e vale o menor. Só o
+  primeiro é calculável, e o mínimo sobre parte dos modos é um limite superior,
+  não a resistência. Mesma forma da recusa do pódio no D-66. Condutividade e
+  dureza também ficam fora, cada uma com seu motivo.
+
+  Sem migração: `MaterialSynthesis.kind` já é texto e `parameters` já é JSON.
+  Oito mutações conferidas; a que dá regra de resistência ao painel morre no
+  import.
+
+  **O que ficou de fora:** núcleo em colmeia (tem escalas próprias), a figura do
+  painel em corte, e os modos de falha que pedem dados de cisalhamento do
+  núcleo.
 - ~~**P1-2** — o gráfico mostrava e não selecionava~~ — quarto tipo de estágio,
   `chart`, entregue em seis passos ([D-60](DECISIONS.md),
   [07-selecao-deterministica.md](07-selecao-deterministica.md)). Carrega o plano,

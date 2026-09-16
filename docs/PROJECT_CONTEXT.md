@@ -379,17 +379,50 @@ com ela.
 
 Dados novos: quatro propriedades ambientais na categoria `AMBIENTAL` (que existia
 sem uso), dois atributos de processo e `TransportMode` — nem material nem
-processo, e o modelo diz por quê. A matriz vai a **28 de 32 (~88%)**, com nível
-médio **3,22**, e pela primeira vez **nenhuma linha abaixo de 3 é capacidade pela
-metade**: as quatro que restam são módulos que não existem (Synthesizer, Sandwich
-Panels, Battery Designer) mais o B11.
+processo, e o modelo diz por quê.
 
-**Saúde do código:** 1561 testes de backend (Python 3.11 e 3.12, nenhum skip)
-e 334 de frontend, todos verdes. Desde o P0-1 a suíte também roda as migrações de
+**O Synthesizer fechou a terceira** ([D-67](DECISIONS.md)): compósito de dois
+constituintes e espuma de um sólido, com a receita gravada e o registro declarado
+sintetizado. **Um valor sintetizado não é inventado; é calculado, e a diferença é
+que ele carrega a derivação** — cada valor nomeia a lei e a base dela (exata, par
+de limites, empírica), e a qualidade do dado é a pior dos pais que a regra leu.
+A decisão que carrega o item é que **a regra de mistura é propriedade da
+propriedade, não da receita**: densidade por volume, módulo como par de limites
+porque a direção não está catalogada, grandezas por massa por fração mássica
+(o que exige as duas densidades), temperatura de serviço pelo mínimo. E
+**resistência de compósito não tem regra nenhuma**, porque quem a controla é a
+interface — enquanto uma espuma, sendo o mesmo material com vazios, tem: a
+diferença não está na fórmula, está no que se sabe. Um sintetizado é sempre
+registro **próprio**, por `CheckConstraint`.
+
+**Os Sandwich Panels fecharam a faixa P3** ([D-68](DECISIONS.md)): duas faces
+sobre um núcleo, como terceiro tipo do Synthesizer. Densidade e grandezas por
+massa saem pelas **mesmas regras do compósito** — massa é massa, o arranjo não a
+move —, e o que o painel acrescenta é uma regra só: o **módulo de flexão
+equivalente**. Ela não é mistura nenhuma, e isso é verificável em vez de
+afirmado: nas mesmas frações volumétricas `E*` fica **2,7× acima do limite de
+Voigt**, que é o teto de qualquer regra das misturas. Duas degenerescências
+conferem a fórmula inteira (sem núcleo devolve `Ef`, sem faces `Ec`), e **só a
+razão t/c decide** — escala self-similar não move nem `ρ*` nem `E*`, que é o que
+torna legítimo plotar o painel ao lado de sólidos.
+
+A recusa que o item carrega: **resistência é competição entre modos de falha, e
+o mínimo sobre um subconjunto é um limite superior.** Escoamento da face é
+calculável; cisalhamento do núcleo e enrugamento da face pedem dados que o
+catálogo não tem. O painel não declara resistência, com o motivo escrito — a
+recusa do D-66 aplicada a modo de falha em vez de a fase.
+
+A matriz vai a **30 de 32 (~94%)**, com nível médio **3,44**. **A faixa P3
+fechou**, e sobram duas linhas abaixo de 3, nenhuma capacidade pela metade: o
+Battery Designer (P4) e o B11.
+
+**Saúde do código:** 1656 testes de backend (Python 3.11 e 3.12, nenhum skip)
+e 349 de frontend, todos verdes. Desde o P0-1 a suíte também roda as migrações de
 verdade, nos dois sentidos, contra um banco temporário que já contém dados —
 `test_migration_selection_stage.py`, `test_migration_process_universe.py`,
-`test_migration_selection_universe.py`, `test_migration_process_attributes.py` e
-`test_migration_chart_stage.py`, os cinco conferidos por mutação. `ruff` limpo, `black
+`test_migration_selection_universe.py`, `test_migration_process_attributes.py`,
+`test_migration_chart_stage.py` e `test_migration_synthesis.py`, os seis
+conferidos por mutação. `ruff` limpo, `black
 --check` limpo, typecheck estrito e build de produção sem avisos. CI no
 GitHub Actions rodando em todo PR e push para `main`, com os checks
 **obrigatórios**: o GitHub recusa o merge se qualquer um falhar

@@ -18,12 +18,14 @@ from app.calculations.synthesis import (
     ESPUMA,
     EXATO,
     LIMITES,
+    PAINEL,
     ParentValue,
     SynthesisError,
     reasons_for,
     rules_for,
     synthesize_composite,
     synthesize_foam,
+    synthesize_sandwich,
 )
 from app.models.enums import DataQuality
 
@@ -322,7 +324,7 @@ def test_um_tipo_desconhecido_e_recusado() -> None:
 # --- o contrato das tabelas -------------------------------------------------
 
 
-@pytest.mark.parametrize("kind", [COMPOSITO, ESPUMA])
+@pytest.mark.parametrize("kind", [COMPOSITO, ESPUMA, PAINEL])
 def test_toda_regra_escreve_a_formula_e_declara_a_base(kind) -> None:
     """O número tem de poder ser refeito à mão a partir do que a tela mostra."""
     for slug, rule in rules_for(kind).items():
@@ -330,13 +332,13 @@ def test_toda_regra_escreve_a_formula_e_declara_a_base(kind) -> None:
         assert rule.basis in (EXATO, LIMITES, EMPIRICO), slug
 
 
-@pytest.mark.parametrize("kind", [COMPOSITO, ESPUMA])
+@pytest.mark.parametrize("kind", [COMPOSITO, ESPUMA, PAINEL])
 def test_toda_ausencia_declarada_traz_motivo(kind) -> None:
     for slug, reason in reasons_for(kind).items():
         assert len(reason) > 20, slug
 
 
-@pytest.mark.parametrize("kind", [COMPOSITO, ESPUMA])
+@pytest.mark.parametrize("kind", [COMPOSITO, ESPUMA, PAINEL])
 def test_nenhuma_propriedade_tem_regra_e_motivo_de_ausencia_ao_mesmo_tempo(kind) -> None:
     """Uma das duas estaria mentindo, e nada no caminho até a tela pegaria."""
     assert not set(rules_for(kind)) & set(reasons_for(kind))
@@ -347,3 +349,199 @@ def test_cada_valor_carrega_a_lei_que_o_produziu() -> None:
     for value in result.values:
         assert value.rule.label in value.note
         assert value.rule.formula in value.note
+
+
+# --- painel sanduíche: o arranjo, não a mistura -----------------------------
+
+#: Uma face rígida e fina sobre um núcleo leve e mole — o caso que faz o
+#: sanduíche existir. Números redondos de propósito: a conta tem de poder ser
+#: refeita à mão a partir do que a fórmula diz.
+_E_FACE = 70.0e9
+_E_NUCLEO = 0.1e9
+_RHO_FACE = 2700.0
+_RHO_NUCLEO = 60.0
+_CUSTO_FACE = 5.0
+_CUSTO_NUCLEO = 20.0
+
+
+def _face(quality: DataQuality = DataQuality.MEDIDO) -> dict[str, ParentValue]:
+    return {
+        "modulo_young": _p(_E_FACE, quality),
+        DENSIDADE: _p(_RHO_FACE, quality),
+        "custo_massa": _p(_CUSTO_FACE, quality),
+        "temp_max_servico": _p(500.0, quality),
+    }
+
+
+def _nucleo(quality: DataQuality = DataQuality.MEDIDO) -> dict[str, ParentValue]:
+    return {
+        "modulo_young": _p(_E_NUCLEO, quality),
+        DENSIDADE: _p(_RHO_NUCLEO, quality),
+        "custo_massa": _p(_CUSTO_NUCLEO, quality),
+        "temp_max_servico": _p(120.0, quality),
+    }
+
+
+def _valor(result, slug: str):
+    return next(value for value in result.values if value.slug == slug)
+
+
+def test_o_painel_passa_do_limite_de_voigt_e_e_por_isso_que_ele_existe() -> None:
+    """A afirmação central do item: **E\* não é mistura nenhuma.**
+
+    Voigt é o limite *superior* da regra das misturas nas mesmas frações. Se o
+    módulo do painel fosse uma mistura, ele teria de ficar abaixo. Ele fica
+    muito acima — 2,7× aqui —, e é exatamente essa a razão de se construir um
+    painel sanduíche em vez de uma placa do mesmo par de materiais moído junto.
+
+    Se algum dia alguém trocar esta regra por uma regra das misturas "para
+    simplificar", este teste é o que cai.
+    """
+    t, c = 1.0, 18.0
+    result = synthesize_sandwich(face_thickness=t, core_thickness=c, face=_face(), core=_nucleo())
+    f = 2 * t / (c + 2 * t)
+    voigt = f * _E_FACE + (1 - f) * _E_NUCLEO
+
+    modulo = _valor(result, "modulo_young").value
+    assert modulo is not None
+    assert modulo > voigt
+    assert modulo == pytest.approx(19.0429e9, rel=1e-4)
+
+
+def test_sem_nucleo_o_painel_e_a_propria_face() -> None:
+    """Degenerescência que confere a fórmula inteira: c → 0 devolve ``Ef``."""
+    result = synthesize_sandwich(
+        face_thickness=1.0, core_thickness=1e-9, face=_face(), core=_nucleo()
+    )
+    assert _valor(result, "modulo_young").value == pytest.approx(_E_FACE, rel=1e-6)
+
+
+def test_sem_faces_o_painel_e_o_proprio_nucleo() -> None:
+    """A outra ponta: t → 0 devolve ``Ec``, e as duas juntas fixam os três termos.
+
+    Esta converge mais devagar que a outra, e vale saber por quê: o termo que
+    sobra é ``Ef·t·c²/2`` contra ``Ec·c³/12``, então o erro relativo anda com
+    ``t·Ef / (c·Ec)`` — e a face aqui é 700× mais rígida que o núcleo. Daí o
+    ``t`` bem menor; afrouxar a tolerância em vez disso esconderia um erro de
+    fórmula do tamanho do próprio termo.
+    """
+    result = synthesize_sandwich(
+        face_thickness=1e-12, core_thickness=1.0, face=_face(), core=_nucleo()
+    )
+    assert _valor(result, "modulo_young").value == pytest.approx(_E_NUCLEO, rel=1e-7)
+
+
+def test_so_a_razao_entre_as_espessuras_decide() -> None:
+    """Escala self-similar não move nem ρ* nem E*.
+
+    É esse fato que torna legítimo tratar o painel como um material: um índice
+    de desempenho assume poder reescalar a seção, e sob essa liberdade o par
+    (E*, ρ*) do painel não se mexe. Sem isso, plotá-lo ao lado de sólidos num
+    mapa seria comparar coisas diferentes.
+    """
+    pequeno = synthesize_sandwich(
+        face_thickness=1.0, core_thickness=18.0, face=_face(), core=_nucleo()
+    )
+    grande = synthesize_sandwich(
+        face_thickness=1000.0, core_thickness=18000.0, face=_face(), core=_nucleo()
+    )
+    for slug in ("modulo_young", DENSIDADE):
+        assert _valor(pequeno, slug).value == pytest.approx(_valor(grande, slug).value)
+
+
+def test_a_densidade_do_painel_e_a_regra_do_composito() -> None:
+    """Massa é massa: a única grandeza que o arranjo não move.
+
+    E não é coincidência de número — é literalmente a mesma ``Rule``, o que este
+    teste fixa junto com o valor.
+    """
+    t, c = 1.0, 18.0
+    result = synthesize_sandwich(face_thickness=t, core_thickness=c, face=_face(), core=_nucleo())
+    f = 2 * t / (c + 2 * t)
+
+    densidade = _valor(result, DENSIDADE)
+    assert densidade.value == pytest.approx(f * _RHO_FACE + (1 - f) * _RHO_NUCLEO)
+    assert densidade.rule.key == rules_for(COMPOSITO)[DENSIDADE].key
+
+
+def test_o_custo_do_painel_mistura_por_massa_e_nao_por_espessura() -> None:
+    """A mesma armadilha do compósito, e aqui ela é maior.
+
+    A face é 45× mais densa que o núcleo, então a fração mássica e a fração de
+    espessura não se parecem nem de longe: usar a de espessura erraria o custo
+    por quilograma em muito.
+    """
+    t, c = 1.0, 18.0
+    result = synthesize_sandwich(face_thickness=t, core_thickness=c, face=_face(), core=_nucleo())
+    f = 2 * t / (c + 2 * t)
+    rho = f * _RHO_FACE + (1 - f) * _RHO_NUCLEO
+    w_face = f * _RHO_FACE / rho
+
+    esperado = w_face * _CUSTO_FACE + (1 - w_face) * _CUSTO_NUCLEO
+    por_espessura = f * _CUSTO_FACE + (1 - f) * _CUSTO_NUCLEO
+
+    assert _valor(result, "custo_massa").value == pytest.approx(esperado)
+    assert esperado != pytest.approx(por_espessura)
+
+
+def test_a_temperatura_de_servico_do_painel_e_a_do_elo_mais_fraco() -> None:
+    result = synthesize_sandwich(
+        face_thickness=1.0, core_thickness=18.0, face=_face(), core=_nucleo()
+    )
+    assert _valor(result, "temp_max_servico").value == pytest.approx(120.0)
+
+
+def test_o_painel_nao_declara_resistencia_e_diz_por_que() -> None:
+    """A recusa do D-66 aplicada a modo de falha: o mínimo sobre parte é teto.
+
+    Escoamento da face é calculável; cisalhamento do núcleo e enrugamento da
+    face não são, porque o catálogo não tem nem a resistência ao cisalhamento
+    nem o módulo de cisalhamento do núcleo. Publicar só o modo que se sabe
+    calcular daria um limite superior com cara de resistência.
+    """
+    result = synthesize_sandwich(
+        face_thickness=1.0, core_thickness=18.0, face=_face(), core=_nucleo()
+    )
+    motivos = {item.slug: item.reason for item in result.skipped}
+
+    assert "limite_escoamento" not in {value.slug for value in result.values}
+    assert "modos de falha" in motivos["limite_escoamento"]
+    assert "limite superior" in motivos["limite_escoamento"]
+
+
+def test_o_painel_nao_declara_condutividade_porque_e_anisotropico() -> None:
+    result = synthesize_sandwich(
+        face_thickness=1.0, core_thickness=18.0, face=_face(), core=_nucleo()
+    )
+    motivos = {item.slug: item.reason for item in result.skipped}
+    assert "anisotrópico" in motivos["condutividade_termica"]
+
+
+def test_a_qualidade_do_painel_e_a_pior_dos_pais_que_a_regra_leu() -> None:
+    result = synthesize_sandwich(
+        face_thickness=1.0,
+        core_thickness=18.0,
+        face=_face(DataQuality.MEDIDO),
+        core=_nucleo(DataQuality.ESTIMADO),
+    )
+    assert _valor(result, "modulo_young").quality is DataQuality.ESTIMADO
+
+
+def test_falta_de_dado_no_nucleo_nomeia_o_nucleo() -> None:
+    """ "O segundo constituinte" mandaria o leitor conferir o material errado."""
+    core = _nucleo()
+    del core["modulo_young"]
+    result = synthesize_sandwich(face_thickness=1.0, core_thickness=18.0, face=_face(), core=core)
+    motivos = {item.slug: item.reason for item in result.skipped}
+    assert "núcleo" in motivos["modulo_young"]
+
+
+@pytest.mark.parametrize(
+    ("face", "nucleo"),
+    [(0.0, 1.0), (1.0, 0.0), (-1.0, 1.0), (math.inf, 1.0)],
+)
+def test_espessura_nao_positiva_ou_infinita_e_recusada(face, nucleo) -> None:
+    with pytest.raises(SynthesisError):
+        synthesize_sandwich(
+            face_thickness=face, core_thickness=nucleo, face=_face(), core=_nucleo()
+        )

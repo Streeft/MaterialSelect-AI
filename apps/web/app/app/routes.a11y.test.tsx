@@ -757,6 +757,13 @@ const synthesisKinds: SynthesisKindInfo[] = [
     rules: {},
     without_rule: {},
   },
+  {
+    kind: "painel",
+    label: "Painel sanduíche",
+    note: "Um painel não é uma mistura, é um arranjo.",
+    rules: {},
+    without_rule: {},
+  },
 ];
 
 const synthesisPreview: SynthesisPreview = {

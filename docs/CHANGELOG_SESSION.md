@@ -11,6 +11,8 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [23](#sessão-23--160926--p3-os-sandwich-panels-fecham-a-faixa) | 16/09/2026 | P3 Sandwich Panels (D-68) — o painel passa do limite de Voigt, e é assim que se sabe que não é mistura. **Fecha a faixa P3** | 1629 → 1656 | 345 → 349 |
+| [22](#sessão-22--150926-a-160926--p3-o-synthesizer) | 15 e 16/09/2026 | P3 Synthesizer: registro derivado com a derivação a tiracolo (D-67) — a regra é da propriedade, não da receita | 1561 → 1629 | 334 → 345 |
 | [21](#sessão-21--150926--p3-o-eco-audit) | 15/09/2026 | P3 Eco Audit: cinco fases, dois modelos de uso, pódio recusável (D-66) | 1505 → 1561 | 321 → 334 |
 | [20](#sessão-20--150926--p3-o-custo-da-peça-e-o-custo-como-objetivo) | 15/09/2026 | P3 Part Cost Estimator + objetivo custo nos casos de carga (D-65) | 1432 → 1505 | 308 → 321 |
 | [19](#sessão-19--150926--p2-restante-o-solver-e-o-index-finder) | 15/09/2026 | P2 restante (Engineering Solver e Performance Index Finder, D-64) — fecha a faixa P2 | 1341 → 1432 | 299 → 308 |
@@ -37,6 +39,145 @@ As sessões entre a 11 e a 12 — o patch de design "Prisma" (D-49, D-50), o
 upgrade de segurança S1 e a rodada de desempenho — **não têm seção própria
 aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
+
+---
+
+## Sessão 23 — 16/09/26 — P3: os Sandwich Panels fecham a faixa
+
+**O pedido.** "Continua os Sandwich Panels na mesma branch", com a documentação
+do Synthesizer já pushada e a PR #55 aberta e verde. O item era o último em
+**zero** da faixa P3.
+
+**A pergunta que decidiu o desenho.** Um painel sanduíche *parece* um terceiro
+caso do D-67: mais um par de pais, mais um parâmetro, a mesma tabela. E metade
+dele é exatamente isso — densidade e grandezas por massa saem pelas **mesmas
+regras do compósito**, na fração de espessura das faces, porque massa é massa e
+o arranjo não a move. É a mesma `Rule`, não um valor que coincide, e foi isso que
+levou o laço de dois pais a virar compartilhado: compósito e painel diferem em
+uma regra só.
+
+**A outra metade, e a razão de o item existir.** Essa uma regra é o **módulo de
+flexão equivalente**, e ela não é mistura nenhuma. O jeito de saber disso não é
+argumentar, é medir: **Voigt é o teto de qualquer regra das misturas** nas mesmas
+frações volumétricas, e `E*` passa dele. Com uma face de 70 GPa, um núcleo de
+0,1 GPa e `t/c = 1/18`, Voigt dá 7,09 GPa e `E*` dá **19,04 GPa** — 2,7× acima.
+Uma mistura não pode fazer isso; um arranjo pode, e é literalmente por isso que
+se constrói painel sanduíche em vez de moer os dois materiais juntos. O teste que
+compara os dois é o que cai no dia em que alguém "simplificar" a regra.
+
+**Duas degenerescências que conferem a fórmula inteira.** Sem núcleo, `E*`
+devolve `Ef`; sem faces, devolve `Ec`. As duas juntas fixam os três termos. A
+segunda converge mais devagar — o termo que sobra anda com `t·Ef / (c·Ec)`, e a
+face é 700× mais rígida —, e a primeira versão do teste falhou por isso. A
+correção foi **apertar o limite**, não afrouxar a tolerância: uma tolerância
+maior esconderia um erro de fórmula do tamanho do próprio termo.
+
+**O fato que torna o painel um "material".** Só a razão `t/c` decide: escala
+self-similar não move nem `ρ*` nem `E*`. Um índice de desempenho assume poder
+reescalar a seção, e sob essa liberdade o par `(E*, ρ*)` fica parado — que é
+exatamente o que um par de propriedades de material faz. Sem isso, plotar o
+painel ao lado de sólidos compararia coisas diferentes. Daí a tela **não pedir
+unidade** de espessura: pedir uma sugeriria que o valor absoluto muda algo.
+
+**A recusa, e de onde ela vem.** A resistência de um painel é **competição entre
+modos de falha** — escoamento da face, cisalhamento do núcleo, enrugamento da
+face — e vale o menor dos três. Só o primeiro é calculável: os outros pedem a
+resistência ao cisalhamento e o módulo de cisalhamento do núcleo, e o catálogo
+não tem nenhum dos dois. Publicar o único que se sabe calcular entregaria um
+**limite superior com cara de resistência**. É a recusa do pódio do D-66,
+aplicada a modo de falha em vez de a fase.
+
+**Uma decisão que quase virou outra.** O módulo de flexão quase ganhou um slug
+próprio, para não ocupar `modulo_young`. Foi recusado por um efeito colateral que
+só aparece no painel de indicadores: uma propriedade que *nenhum sólido pode
+ter* apareceria ali como a maior lacuna do catálogo — uma leitura falsa, e num
+lugar onde ninguém iria procurar a causa. O número entra em `modulo_young` com a
+lei colada na proveniência, que é o mecanismo do D-67 fazendo exatamente o
+trabalho para o qual foi feito.
+
+**Números.** 1629 → **1656** testes de backend (nenhum skip), 345 → **349** de
+frontend. Cobertura EduPack ~91% → **~94%** (30 de 32), nível médio 3,34 →
+**3,44**. Oito mutações conferidas, todas apanhadas; a que dá regra de
+resistência ao painel morre no import, pelo `_validate`.
+
+**A faixa P3 fechou.** Sobram duas linhas abaixo de 3 na matriz, e nenhuma é
+capacidade pela metade: o *Battery Designer* (P4) e o B11 (unidades de exibição,
+que é escolha de leitura e não módulo).
+
+---
+
+## Sessão 22 — 15/09/26 a 16/09/26 — P3: o Synthesizer
+
+**O pedido.** "Continua o Synthesizer na mesma branch", com a PR do Eco Audit
+(#54) ainda aberta. O Synthesizer entrou empilhado nela; a PR foi mesclada pelo
+autor com as duas metades dentro, e a documentação virou trabalho novo numa
+branch reiniciada a partir do `main` novo — uma PR mesclada está terminada.
+
+**A pergunta que o item inteiro tinha de responder antes da primeira linha de
+código.** O módulo cria materiais que não existem. Em que isso difere de digitar
+um número plausível no catálogo? A resposta é a frase que governa o resto:
+**um valor sintetizado não é inventado; é calculado, e a diferença é que ele
+carrega a derivação.** Um limite de Voigt tirado de dois módulos catalogados e de
+uma fração declarada veio de algum lugar, e o lugar é auditável — a mesma
+distinção que o D-64 fez entre "2,4 kg" como afirmação e como número digitado ao
+lado de um rótulo. Daí os três suportes: registro **declarado** sintetizado com a
+receita gravada; cada valor nomeando a lei e a **base** dela; e qualidade do dado
+igual à **pior dos pais que a regra leu**.
+
+Esse terceiro suporte propaga a incerteza *de entrada*. A do *modelo* não vira
+número nenhum — inventar barra de erro para uma lei empírica seria exatamente o
+que o princípio 1 proíbe —, e é dita em palavras, na base da regra. Mesma escolha
+que o D-65 fez com a unidade monetária: quando a ferramenta não sabe, ela diz.
+
+**A decisão que carrega o item.** *A regra de mistura é propriedade da
+propriedade, não da receita.* Aritmeticamente dá para aplicar regra das misturas
+a qualquer número, e é aí que uma ferramenta destas mente. Densidade mistura por
+**volume** (conservação de massa, exata). Módulo mistura por Voigt ao longo das
+fibras e Reuss transversalmente, e como **a direção não está catalogada**, a
+resposta honesta é o **par de limites** — a média entre eles seria um número só
+onde a pergunta tem dois. Custo e as quatro grandezas ambientais são *por unidade
+de massa*, então misturam por **fração mássica**, o que exige as **duas**
+densidades: errar isso é invisível até os constituintes terem densidades
+diferentes, e o teste usa densidades diferentes de propósito. Temperatura máxima
+de serviço é o **mínimo**.
+
+**O achado.** Resistência de compósito **não tem regra nenhuma**: quem a controla
+é a interface entre fibra e matriz, e a interface é exatamente aquilo sobre o que
+o catálogo não sabe nada. Mas uma **espuma tem** — ela é *o mesmo material* com
+vazios, o mecanismo de falha é entendido e escala (Gibson–Ashby). A assimetria é
+real e vale a pena ver escrita: **a diferença não está na fórmula; está no que se
+sabe.** A ausência aqui não é lacuna a preencher depois.
+
+**A mutação que morreu na coleta.** `_validate()` recusa **no import** uma
+propriedade que apareça ao mesmo tempo na tabela de regras e na de ausências —
+duas tabelas de estados mutuamente exclusivos, e estar nas duas faria a resposta
+depender da ordem de leitura. Dar regra de resistência ao compósito, uma das seis
+mutações da rodada, não chegou a falhar um teste: falhou o import, antes de
+qualquer teste rodar. É o mesmo desenho do `_validate` dos casos de carga.
+
+**Uma armadilha de banco que vale registrar.** O `CheckConstraint` que garante
+que um sintetizado tem dono foi escrito `NOT (is_synthesized AND owner_id IS
+NULL)` e não com `= 1`: o SQLite aceitaria a segunda forma e o PostgreSQL —
+que é o que a produção roda — a recusa. E a coluna NOT NULL numa tabela populada
+entrou com `server_default` que foi depois **retirado**, porque um padrão que o
+modelo não declara é deriva de schema.
+
+**Um defeito achado na verificação final, não por teste.** O link "abrir o
+registro criado" apontava para `/app/catalogo/{id}` — mas essa rota é a da
+**família**, e a ficha de um material é `/app/materiais/{id}`. O teste passava
+porque afirmava o href errado junto com o código. Corrigido nos dois, com a
+distinção escrita no componente.
+
+**Números.** 1561 → **1629** testes de backend (nenhum skip), 334 → **345** de
+frontend. Cobertura EduPack ~88% → **~91%** (29 de 32), nível médio 3,22 →
+**3,34**. O Synthesizer moveu **duas** linhas: a sua própria (0→3) e `My Records`
+(3→4), porque os registros sintetizados eram uma das duas ausências nomeadas
+dela.
+
+**Resta da faixa P3** os *Sandwich Panels* — o mesmo mecanismo aplicado a uma
+geometria, com a diferença de que um painel sanduíche tem **arranjo**, e uma
+regra de mistura que ignore onde o material está não descreve uma viga em flexão.
+Saíram na sessão seguinte.
 
 ---
 
@@ -109,7 +250,7 @@ frontend. Cobertura EduPack ~84% → **~88%** (28 de 32), nível médio 3,12 →
 quatro linhas abaixo de 3 são módulos que ainda não existem, mais o B11.
 
 **Resta da faixa P3** o Synthesizer (+ Sandwich Panels), que é também o que falta
-para `My Records` sair de 3.
+para `My Records` sair de 3 — o Synthesizer saiu na sessão seguinte.
 
 ---
 
