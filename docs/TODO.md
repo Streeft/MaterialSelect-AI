@@ -210,7 +210,9 @@ Registrados para não voltarem por engano:
   `user` virou obrigatório (o erro passa a ser `TypeError`) e entrou o controle
   positivo. Ver D-62.
 
-  **O que ficou de fora:** registros **sintetizados** (são o Synthesizer, P3) e
+  **O que ficou de fora:** um registro próprio de *processo* (os registros
+  **sintetizados**, que eram a outra ausência, saíram com o Synthesizer —
+  [D-67](DECISIONS.md)) e
   registro próprio de *processo*, que pede o catálogo de processos editável.
 - ~~**P2** — o fluxo do manual não tinha fim~~ — `Find Similar`, registro de
   referência e a tabela de comparação com diferença percentual, entregues em
@@ -283,6 +285,37 @@ Registrados para não voltarem por engano:
 
   **O que ficou de fora:** a figura de barras por fase, comparar dois materiais
   na mesma auditoria, e energia catalogada para aterro e incineração.
+- ~~**P3 (terceiro item)** — o Synthesizer~~ — `POST /api/synthesis/previa`,
+  `POST /api/synthesis` e `/app/sintetizar` criam **materiais hipotéticos** a
+  partir de materiais catalogados mais uma receita: compósito de dois
+  constituintes com fração volumétrica, ou espuma de um sólido com densidade
+  relativa ([D-67](DECISIONS.md)). É o item que mais perto passa de violar o
+  princípio 1, e o que o separa é uma frase: **um valor sintetizado não é
+  inventado; é calculado, e a diferença é que ele carrega a derivação.**
+
+  A decisão que carrega o item: **a regra de mistura é propriedade da
+  propriedade, não da receita.** Densidade linear por volume (exata); módulo como
+  **par de limites** de Voigt e Reuss, porque a direção não está catalogada;
+  custo e as quatro grandezas ambientais por **fração mássica**, o que exige as
+  duas densidades; temperatura de serviço pelo **mínimo**. E **resistência de
+  compósito sem regra nenhuma** — quem a controla é a interface, sobre a qual o
+  catálogo nada sabe —, enquanto a **espuma tem** regra de resistência, por ser o
+  mesmo material com vazios e ter mecanismo de falha que escala (Gibson–Ashby):
+  a diferença não está na fórmula, está no que se sabe.
+
+  Três garantias: cada valor nomeia a lei e a **base** dela (exata, limites,
+  empírica); a qualidade do dado é a **pior dos pais que a regra leu** (incerteza
+  de entrada propagada, incerteza de modelo dita em palavras); e um sintetizado é
+  **sempre registro próprio**, por `CheckConstraint` portável
+  (`NOT (is_synthesized AND owner_id IS NULL)` — o PostgreSQL recusa
+  `boolean = 1`). A prévia vem **antes** da identidade: o passo do nome só
+  aparece depois de haver prévia. Migração `ebf6d9eb737a`, com
+  `server_default` posto e depois retirado, conferida por mutação.
+
+  **O que ficou de fora:** laminados com orientação declarada, sintetizar sobre
+  um sintetizado, a figura do par de limites no mapa, e os **Sandwich Panels** —
+  o mesmo mecanismo aplicado a uma geometria, e o único item que resta da
+  faixa P3.
 - ~~**P1-2** — o gráfico mostrava e não selecionava~~ — quarto tipo de estágio,
   `chart`, entregue em seis passos ([D-60](DECISIONS.md),
   [07-selecao-deterministica.md](07-selecao-deterministica.md)). Carrega o plano,

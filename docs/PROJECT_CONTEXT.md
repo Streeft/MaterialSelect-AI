@@ -379,17 +379,35 @@ com ela.
 
 Dados novos: quatro propriedades ambientais na categoria `AMBIENTAL` (que existia
 sem uso), dois atributos de processo e `TransportMode` — nem material nem
-processo, e o modelo diz por quê. A matriz vai a **28 de 32 (~88%)**, com nível
-médio **3,22**, e pela primeira vez **nenhuma linha abaixo de 3 é capacidade pela
-metade**: as quatro que restam são módulos que não existem (Synthesizer, Sandwich
-Panels, Battery Designer) mais o B11.
+processo, e o modelo diz por quê.
 
-**Saúde do código:** 1561 testes de backend (Python 3.11 e 3.12, nenhum skip)
-e 334 de frontend, todos verdes. Desde o P0-1 a suíte também roda as migrações de
+**O Synthesizer fechou a terceira** ([D-67](DECISIONS.md)): compósito de dois
+constituintes e espuma de um sólido, com a receita gravada e o registro declarado
+sintetizado. **Um valor sintetizado não é inventado; é calculado, e a diferença é
+que ele carrega a derivação** — cada valor nomeia a lei e a base dela (exata, par
+de limites, empírica), e a qualidade do dado é a pior dos pais que a regra leu.
+A decisão que carrega o item é que **a regra de mistura é propriedade da
+propriedade, não da receita**: densidade por volume, módulo como par de limites
+porque a direção não está catalogada, grandezas por massa por fração mássica
+(o que exige as duas densidades), temperatura de serviço pelo mínimo. E
+**resistência de compósito não tem regra nenhuma**, porque quem a controla é a
+interface — enquanto uma espuma, sendo o mesmo material com vazios, tem: a
+diferença não está na fórmula, está no que se sabe. Um sintetizado é sempre
+registro **próprio**, por `CheckConstraint`.
+
+A matriz vai a **29 de 32 (~91%)**, com nível médio **3,34** — o Synthesizer
+moveu duas linhas, a sua e `My Records` 3→4, porque os sintetizados eram uma das
+duas ausências nomeadas dela. **Nenhuma linha abaixo de 3 é capacidade pela
+metade**: as três que restam são módulos que não existem (Sandwich Panels,
+Battery Designer) mais o B11.
+
+**Saúde do código:** 1629 testes de backend (Python 3.11 e 3.12, nenhum skip)
+e 345 de frontend, todos verdes. Desde o P0-1 a suíte também roda as migrações de
 verdade, nos dois sentidos, contra um banco temporário que já contém dados —
 `test_migration_selection_stage.py`, `test_migration_process_universe.py`,
-`test_migration_selection_universe.py`, `test_migration_process_attributes.py` e
-`test_migration_chart_stage.py`, os cinco conferidos por mutação. `ruff` limpo, `black
+`test_migration_selection_universe.py`, `test_migration_process_attributes.py`,
+`test_migration_chart_stage.py` e `test_migration_synthesis.py`, os seis
+conferidos por mutação. `ruff` limpo, `black
 --check` limpo, typecheck estrito e build de produção sem avisos. CI no
 GitHub Actions rodando em todo PR e push para `main`, com os checks
 **obrigatórios**: o GitHub recusa o merge se qualquer um falhar

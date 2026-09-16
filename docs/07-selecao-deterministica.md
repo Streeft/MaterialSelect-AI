@@ -408,6 +408,50 @@ que domina em carbono. A energia é derivada pelo Pint em MJ; o carbono é dito 
 palavras ("kg de CO₂"), porque uma razão entre massas de substâncias diferentes
 o Pint reduz a adimensional, como faz com dinheiro.
 
+## Síntese de registros derivados (`app/calculations/synthesis.py`)
+
+Este módulo cria **materiais hipotéticos**: um compósito de dois constituintes
+com fração volumétrica declarada, ou uma espuma de um sólido com densidade
+relativa declarada ([D-67](DECISIONS.md)). É o cálculo que mais perto passa de
+violar o princípio 1, e a distinção que o separa é uma só: **um valor sintetizado
+não é inventado; é calculado, e a diferença é que ele carrega a derivação.** O
+registro é declarado sintetizado com a receita gravada, cada valor nomeia a lei
+que o produziu, e a qualidade do dado é a **pior dos pais que a regra leu** —
+incerteza de entrada propagada; incerteza de modelo dita em palavras, nunca
+convertida em barra de erro.
+
+**A regra de mistura é propriedade da propriedade, não da receita**, e é isso que
+impede a ferramenta de mentir com aritmética correta:
+
+| Propriedade | Regra num compósito | Base |
+|---|---|---|
+| Densidade | linear **por volume** (conservação de massa) | exata |
+| Módulo, condutividade | **par de limites** de Voigt e Reuss | limites |
+| Custo e grandezas ambientais | linear **por fração mássica** | exata |
+| Temperatura máxima de serviço | o **mínimo** dos dois | exata |
+| Resistência | **não tem regra** | — |
+
+As três primeiras linhas se distinguem no dado, não na fórmula: uma grandeza *por
+unidade de massa* mistura por fração mássica, o que exige as **duas** densidades,
+e usar a fração volumétrica ali é invisível até os constituintes terem densidades
+diferentes. Num módulo, Voigt vale ao longo das fibras e Reuss transversalmente —
+como a direção não está catalogada, a média entre eles seria um número só onde a
+resposta honesta são dois.
+
+**A última linha é o achado.** Resistência de compósito é controlada pela
+interface entre fibra e matriz, e a interface é exatamente aquilo sobre o que o
+catálogo não sabe nada. Numa **espuma**, ao contrário, o mecanismo de falha é
+entendido e escala (Gibson–Ashby), então ela *tem* regra de resistência — uma
+espuma é o mesmo material com vazios, um compósito são dois materiais com uma
+interface entre eles. A diferença não está na fórmula; está no que se sabe.
+
+Propriedade sem regra declarada **não é sintetizada**: o registro derivado
+simplesmente não a tem, com o motivo escrito (princípio 3). Uma propriedade que
+aparecesse ao mesmo tempo na tabela de regras e na de ausências é recusada **no
+import** por `_validate()`, como nos casos de carga do D-64. E um registro
+sintetizado é sempre **próprio**, nunca do catálogo compartilhado — `CheckConstraint`
+no banco, não só regra de serviço.
+
 ## Ranking multicritério (`app/domain/ranking.py`)
 
 Soma ponderada normalizada. Cada critério tem uma direção (maior/menor é melhor),

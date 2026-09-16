@@ -3385,3 +3385,112 @@ implementação); tratar aterro como zero; um modelo de uso único com a massa
 entrando "quando fizer sentido" (seria a inversão silenciosa que o item inteiro
 existe para evitar); modais como processos; e um pódio calculado sobre as fases
 disponíveis, que é a versão desta ferramenta do gráfico com eixo truncado.
+
+---
+
+## D-67 — Um valor sintetizado não é inventado, e a regra de mistura é propriedade da propriedade
+
+**Contexto.** *Synthesizer* é a linha da matriz do §5 de
+[`14-plataforma-selecao.md`](14-plataforma-selecao.md) que mais perto passa de
+violar o princípio 1 da metodologia — "não inventar propriedades de materiais" —,
+e por isso ficou por último na faixa P3. O módulo cria **materiais hipotéticos**:
+um compósito de dois constituintes com fração volumétrica declarada, ou uma
+espuma de um sólido com densidade relativa declarada. A pergunta que o item
+inteiro tem de responder antes de escrever uma linha de código é: em que isso
+difere de digitar um número plausível no catálogo?
+
+**Decisão.**
+
+**1. Um valor sintetizado não é inventado; é calculado, e a diferença é que ele
+carrega a derivação.** O princípio 1 proíbe valor que veio de lugar nenhum. Um
+limite de Voigt calculado a partir de dois módulos catalogados e de uma fração
+declarada veio de algum lugar, e o lugar é auditável — a mesma distinção que o
+[D-64](#d-64) fez ao dizer que "2,4 kg" é afirmação auditável e não número com
+rótulo digitado ao lado. Três coisas sustentam isso, e nenhuma é opcional: o
+registro é **declarado sintetizado** com a receita inteira gravada (tipo, pais,
+parâmetros), então ninguém o encontra achando que é medido; **cada valor nomeia a
+lei que o produziu e a base dela** — exata, par de limites ou empírica —, porque
+"regra das misturas" e "Gibson–Ashby" são afirmações diferentes sobre o quanto se
+pode confiar no número; e **a qualidade do dado é a pior dos pais que a regra
+leu**, porque um valor calculado não pode ser mais confiável que o menos
+confiável dos números que entraram nele.
+
+Esse terceiro ponto propaga a incerteza **de entrada**. A incerteza **do modelo**
+não vira número nenhum: inventar barra de erro para uma lei empírica seria
+exatamente o que o princípio 1 proíbe, então ela é declarada em palavras, na base
+da regra. É a mesma escolha do [D-65](#d-65) sobre a unidade monetária — quando a
+ferramenta não sabe, ela diz, em vez de imprimir um número que parece saber.
+
+**2. A regra de mistura é propriedade da propriedade, não da receita.** É a
+decisão que carrega o item. Aritmeticamente é possível aplicar regra das misturas
+a qualquer número, e é aí que uma ferramenta destas mente. Densidade mistura
+linearmente **por volume**, e isso é conservação de massa — exato. Módulo mistura
+por Voigt ao longo das fibras e por Reuss transversalmente, e como a **direção
+não está catalogada**, a resposta honesta é o **par de limites**, não a média
+deles. Custo por massa e as quatro grandezas ambientais são *por unidade de
+massa*, então misturam por **fração mássica** e não volumétrica — o que exige as
+**duas densidades**, e errar isso é invisível até os constituintes terem
+densidades diferentes. Temperatura máxima de serviço não mistura: é o **mínimo**,
+porque o compósito falha quando o constituinte mais fraco falha.
+
+É o mesmo desenho do `is_ratio_scale` do [D-63](#d-63) — um comportamento da
+propriedade decide se a operação faz sentido — e do `ProcessAttributeKind` do
+[D-59](#d-59), em que o tipo decide qual comparação roda. A tabela de regras é
+indexada por `(tipo de síntese, slug de propriedade)` justamente para que a
+pergunta "esta propriedade tem lei aqui?" tenha uma resposta só.
+
+**3. Resistência de compósito não tem regra nenhuma, e a assimetria com a espuma
+é o achado.** Num compósito quem controla a resistência é a **interface** entre
+fibra e matriz, e a interface é exatamente aquilo sobre o que o catálogo não sabe
+nada. Numa espuma, não: uma espuma é *o mesmo material* com vazios, o mecanismo
+de falha é entendido e escala (Gibson–Ashby), então ela **tem** regra de
+resistência. **A diferença não está na fórmula; está no que se sabe** — e é por
+isso que a ausência aqui não é uma lacuna a preencher depois.
+
+Propriedade sem regra declarada **não é sintetizada**: o registro derivado
+simplesmente não a tem, com o motivo escrito (princípio 3, [D-24](#d-24)). Na
+tela isso é metade do que a prévia mostra, e não uma nota de rodapé.
+
+**4. `_validate()` recusa no import uma propriedade que tenha regra *e* motivo de
+ausência.** As duas tabelas descrevem estados mutuamente exclusivos, e uma
+propriedade em ambas deixaria a resposta depender da ordem de leitura. Falhar na
+importação do módulo é o que torna isso impossível de mesclar — a mesma escolha
+do `_validate` dos casos de carga no [D-64](#d-64), e o que apanhou a mutação M6
+já na coleta dos testes, antes de qualquer teste rodar.
+
+**5. Um registro sintetizado é sempre próprio, nunca do catálogo
+compartilhado.** É `CheckConstraint` no banco e não só regra de serviço, porque a
+alternativa é uma hipótese de uma pessoa aparecendo no catálogo de todas — que é
+a fronteira do [D-42](#d-42) e do [D-62](#d-62). Escrita portável como
+`NOT (is_synthesized AND owner_id IS NULL)`: o PostgreSQL recusa `boolean = 1`, e
+a forma que o SQLite aceitaria não é a que a produção roda.
+
+**6. A prévia vem antes da identidade.** A tela calcula e mostra o registro
+derivado inteiro — valores, leis, bases, ausências — **antes** de perguntar como
+ele se chamaria, e o passo da identidade só existe depois que há prévia. Gravar
+primeiro e explicar depois encheria o catálogo de hipóteses que ninguém leu, e a
+pergunta "o que sairia daqui" não depende de como o resultado se chamaria. A
+prévia é `POST` sem efeito e não `GET` pela mesma razão do `RecentRecord` no
+[D-62](#d-62) invertida: ela carrega uma receita no corpo, não um identificador.
+
+**As leis são mecânica dos materiais clássica** (Voigt, Reuss, Gibson–Ashby),
+escritas a partir dos resultados padrão. Como os casos de carga do [D-64](#d-64),
+elas moram em **código e não em tabela**, porque são argumento e não dado —
+argumento se verifica por revisão, como `units.py`. Nada aqui vem de base de
+dados licenciada.
+
+**Como se verifica.** Mutações sobre a camada de cálculo, todas apanhadas: trocar
+fração volumétrica por mássica no custo (invisível com densidades iguais, e o
+teste usa densidades diferentes de propósito); devolver a média de Voigt e Reuss
+em vez do par; trocar o mínimo da temperatura de serviço pela média; herdar a
+melhor qualidade dos pais em vez da pior; e dar regra de resistência ao
+compósito — esta apanhada **no import**, pelo `_validate`, e não por um teste.
+Os testes de API provam que a receita gravada reexecuta e que um registro
+sintetizado nunca é visível para outro usuário.
+
+**O que se recusou.** Aplicar regra das misturas a toda propriedade numérica
+(seria o clone aritmético que mente); uma média entre Voigt e Reuss (um número só
+onde a direção decide); barra de erro para lei empírica; síntese sobre registro
+já sintetizado em v1 — a propagação de qualidade a suportaria, mas a receita
+gravada deixaria de ser legível de uma olhada; e um sintetizado no catálogo
+compartilhado.
