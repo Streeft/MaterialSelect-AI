@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  useEffect,
   useRef,
   useState,
   type ComponentType,
@@ -17,6 +16,7 @@ import { ptBR } from "@/lib/i18n";
 import { Badge, IconButton, ThemeToggle } from "@/components/ui";
 import { useFocusTrap } from "@/components/ui/focusTrap";
 import {
+  IconBattery,
   IconBlend,
   IconBook,
   IconClose,
@@ -80,6 +80,9 @@ const GROUPS: NavGroup[] = [
       // respondem à mesma pergunta em moedas diferentes — o que esta peça
       // custa, em dinheiro e em energia.
       { href: "/app/eco", label: t.eco, icon: IconLeaf },
+      // P4: o Battery Designer (Módulo S) permite dimensionar packs de bateria
+      // e selecionar químicas eletroquímicas para requisitos de aplicação.
+      { href: "/app/baterias", label: t.battery, icon: IconBattery },
     ],
   },
   {
@@ -343,15 +346,18 @@ export function AppSidebar() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const [prevPathname, setPrevPathname] = useState(pathname);
   const panelRef = useRef<HTMLDivElement>(null);
 
   useFocusTrap(open, panelRef, () => setOpen(false));
 
   // A drawer that survived navigation it caused would cover the page
-  // the reader asked for.
-  useEffect(() => {
+  // the reader asked for. Adjusting state during render avoids cascading
+  // effects and satisfies react-hooks/set-state-in-effect.
+  if (prevPathname !== pathname) {
+    setPrevPathname(pathname);
     setOpen(false);
-  }, [pathname]);
+  }
 
   const collapseLabel = collapsed
     ? ptBR.ui.expandSidebar

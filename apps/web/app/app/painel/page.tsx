@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getDashboardDistribution, getDashboardOverview } from "@/lib/api";
 import type { ChartScale } from "@/lib/types";
@@ -26,20 +26,23 @@ const t = ptBR.dashboard;
 export default function DashboardPage() {
   const overview = useQuery({ queryKey: ["dashboard-overview"], queryFn: getDashboardOverview });
 
-  const [propertySlug, setPropertySlug] = useState<string | null>(null);
+  const [userPropertySlug, setUserPropertySlug] = useState<string | null>(null);
   const [scale, setScale] = useState<ChartScale>("linear");
 
   // Default to the property with the worst coverage — the one a reader most
   // likely came here to look at — once the overview has loaded.
-  useEffect(() => {
-    if (propertySlug !== null) return;
+  // Derived during render rather than scheduled in an effect to avoid
+  // cascading renders and satisfy react-hooks/set-state-in-effect.
+  const defaultPropertySlug = useMemo(() => {
     const properties = overview.data?.by_property;
-    if (!properties || properties.length === 0) return;
+    if (!properties || properties.length === 0) return null;
     const worst = [...properties].sort(
       (a, b) => (a.coverage.filled_pct ?? 0) - (b.coverage.filled_pct ?? 0),
     )[0];
-    if (worst) setPropertySlug(worst.slug);
-  }, [overview.data, propertySlug]);
+    return worst?.slug ?? null;
+  }, [overview.data]);
+
+  const propertySlug = userPropertySlug ?? defaultPropertySlug;
 
   const distribution = useQuery({
     queryKey: ["dashboard-distribution", propertySlug],
@@ -50,11 +53,11 @@ export default function DashboardPage() {
   // A property whose values cannot be plotted on a log axis (zero or negative
   // canonical values) silently disagreeing with a scale the reader already
   // picked would be worse than resetting it back to linear.
-  useEffect(() => {
-    if (distribution.data && distribution.data.allows_log_scale === false && scale === "log") {
-      setScale("linear");
-    }
-  }, [distribution.data, scale]);
+  // Adjusting state during render avoids cascading effects and satisfies
+  // react-hooks/set-state-in-effect.
+  if (distribution.data && distribution.data.allows_log_scale === false && scale === "log") {
+    setScale("linear");
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -85,7 +88,7 @@ export default function DashboardPage() {
           <PropertyDistributionPanel
             properties={overview.data.by_property}
             selected={propertySlug ?? ""}
-            onSelect={setPropertySlug}
+            onSelect={setUserPropertySlug}
             scale={scale}
             onScaleChange={setScale}
             distribution={distribution.data}

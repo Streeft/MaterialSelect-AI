@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { getComparison, listMaterials, listProperties } from "@/lib/api";
@@ -51,7 +51,7 @@ function ComparePageContent() {
   const [selectedMaterials, setSelectedMaterials] = useState<number[]>(() =>
     parseIds(params.get("materiais")).slice(0, MAX_MATERIALS),
   );
-  const [selectedProperties, setSelectedProperties] = useState<string[]>([]);
+  const [userSelectedProperties, setUserSelectedProperties] = useState<string[] | null>(null);
   // P2: the reference is read from the URL like the material list beside it, so
   // "compared against X" survives a reload and travels in a shared link (B1).
   // A reference held on the server would make the same URL render two different
@@ -68,15 +68,18 @@ function ComparePageContent() {
   const properties = useQuery({ queryKey: ["properties"], queryFn: listProperties });
 
   // Sensible first view: the properties most materials actually have.
-  useEffect(() => {
-    if (selectedProperties.length > 0 || !properties.data) return;
-    const ranked = [...properties.data]
+  // Derived during render rather than scheduled in an effect to avoid
+  // cascading renders and satisfy react-hooks/set-state-in-effect.
+  const defaultProperties = useMemo(() => {
+    if (!properties.data) return [];
+    return [...properties.data]
       .filter((p) => p.value_count > 0)
       .sort((a, b) => b.value_count - a.value_count)
       .slice(0, 4)
       .map((p) => p.slug);
-    if (ranked.length > 0) setSelectedProperties(ranked);
-  }, [properties.data, selectedProperties.length]);
+  }, [properties.data]);
+
+  const selectedProperties = userSelectedProperties ?? defaultProperties;
 
   const visibleMaterials = useMemo(() => {
     const all = materials.data ?? [];
@@ -122,13 +125,14 @@ function ComparePageContent() {
   }
 
   function toggleProperty(slug: string) {
-    setSelectedProperties((current) =>
-      current.includes(slug)
-        ? current.filter((x) => x !== slug)
-        : current.length >= MAX_PROPERTIES
-          ? current
-          : [...current, slug],
-    );
+    setUserSelectedProperties((current) => {
+      const base = current ?? defaultProperties;
+      return base.includes(slug)
+        ? base.filter((x) => x !== slug)
+        : base.length >= MAX_PROPERTIES
+          ? base
+          : [...base, slug];
+    });
   }
 
   const materialsFull = selectedMaterials.length >= MAX_MATERIALS;
