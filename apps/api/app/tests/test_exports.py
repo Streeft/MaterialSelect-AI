@@ -358,6 +358,28 @@ class TestCatalogueExport:
         text = client.get("/api/exports/catalogo.csv").text
         assert "pint:GPa->Pa" in text
 
+    def test_catalogue_export_uses_pretty_units(self, client: TestClient) -> None:
+        """B11: a **unidade** sai legível, e o **método de conversão** não.
+
+        A distinção é o item inteiro. `kg/m³` é rótulo de leitura; já
+        `identity:kg/m**3` é o trilho de proveniência do princípio 4, e o
+        docstring de `to_canonical` promete que ele é *reproduzível* — quem
+        auditar cola aquela string de volta no Pint, que não lê `³`.
+        Embelezá-lo transformaria um token verificável em enfeite.
+
+        O teste logo acima (`..._records_the_conversion_trail`) afirma que
+        `pint:GPa->Pa` sobrevive inteiro, então uma asserção de que `**`
+        sumiu do documento todo contradiria aquele por construção.
+        """
+        text = client.get("/api/exports/catalogo.csv").text
+
+        assert "kg/m³" in text
+        # O cabeçalho da folha de catálogo traz a unidade entre colchetes.
+        assert "[kg/m³]" in text
+        assert "[kg/m**3]" not in text
+        # E o trilho continua exato, com a unidade que o Pint aceita de volta.
+        assert "identity:kg/m**3" in text
+
     def test_unsupported_format_is_rejected(self, client: TestClient) -> None:
         assert client.get("/api/exports/catalogo.pdf").status_code == 400
 

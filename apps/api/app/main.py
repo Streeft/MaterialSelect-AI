@@ -32,6 +32,7 @@ from app.routers import (
     ai,
     audit,
     auth,
+    battery,
     billing,
     charts,
     classes,
@@ -220,6 +221,9 @@ app.include_router(
 app.include_router(eco.router, prefix="/api", dependencies=[Depends(require_active_subscription)])
 app.include_router(
     synthesis.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
+)
+app.include_router(
+    battery.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
 )
 
 

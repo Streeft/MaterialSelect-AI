@@ -16,22 +16,13 @@ export default [
 
   {
     // O `eslint-config-next` 16 traz o eslint-plugin-react-hooks da era do React
-    // Compiler, e com ele uma regra que a versão 14 não tinha:
-    // `set-state-in-effect`. Ela acusa seis pontos de código **pré-existente** —
-    // semear a seleção padrão em `/app/comparar`, `/app/mapas` e `/app/painel`,
-    // a queda de log para linear quando a escala não é permitida (B8) e o
-    // fechamento da gaveta ao navegar (D-37).
-    //
-    // São achados legítimos, mas cada correção é uma refatoração de estado
-    // derivado numa tela de produto, com risco de regressão em comportamentos
-    // que já foram, eles próprios, correções de bug. Isso não pertence a um PR
-    // cujo objetivo é fechar CVE.
-    //
-    // Fica em `warn`: continua aparecendo na saída do lint a cada execução, e
-    // não some. O débito está registrado em `docs/TODO.md` como item próprio.
-    // Ao quitá-lo, promova a regra de volta para `error` no mesmo PR.
+    // Compiler, e com ele a regra `set-state-in-effect`. Os seis pontos pré-existentes
+    // (semeadura de seleção padrão em /app/comparar, /app/mapas e /app/painel, a
+    // queda de log para linear em /app/painel e o fechamento da gaveta em AppSidebar)
+    // foram todos refatorados para ajustes durante a renderização / estado derivado,
+    // quitando o débito e restaurando a regra como erro impeditivo de CI.
     rules: {
-      "react-hooks/set-state-in-effect": "warn",
+      "react-hooks/set-state-in-effect": "error",
     },
   },
 ];
