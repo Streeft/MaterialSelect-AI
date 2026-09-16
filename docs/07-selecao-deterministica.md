@@ -495,6 +495,49 @@ espessura, paralelo no plano) e o slug é isotrópico. Onde existe convenção �
 módulo de um painel" é o de flexão equivalente — o número entra com a lei colada
 nele; onde não existe, não entra.
 
+## Dimensionamento de bateria (`app/calculations/battery.py`)
+
+O módulo da faixa P4 ([D-69](DECISIONS.md)). Dado um requisito elétrico — tensão
+de barramento, energia útil, potência de pico —, ele responde quantas células em
+série e em paralelo o atendem, quanto o conjunto pesa, ocupa e custa, e qual
+química do catálogo serve melhor.
+
+**A conta é argumento; os números da química são dado.** Esta é a fronteira do
+módulo, e é a mesma que o [D-64](DECISIONS.md) traçou para os casos de carga.
+Contagem em série (`ceil(V_alvo / V_célula)`), contagem em paralelo (o maior
+entre o que a energia exige e o que a potência exige), fatores de empacotamento e
+custo nivelado por ciclo são **álgebra**, e álgebra se verifica por revisão —
+mora em código. Energia específica, vida em ciclos e custo por kWh **não**: são
+medidas sobre substâncias reais, e escrevê-las num literal Python violaria o
+princípio 1. Elas moram em `battery_chemistry`, tabela semeada em que **cada
+linha nomeia a sua `Source`** (M1) e a sua citação própria — as nove químicas não
+saíram todas do mesmo lugar.
+
+Por isso `design_pack()` recebe um `CellSpec` **pronto** e nunca consulta banco
+nenhum; quem consulta é `BatteryService`. O teste da álgebra constrói a própria
+célula, de forma que corrigir um dado do catálogo não quebre a prova da fórmula.
+
+**Segurança térmica é rótulo ordinal, nunca número.** `BAIXA < MODERADA < MEDIA
+< ALTA < MUITO_ALTA` é texto: ranquear químicas por "segurança" numa escala
+numérica inventada seria uma magnitude que as fontes nunca afirmaram. O pódio
+ordena por esse posto; a tela só traduz o rótulo.
+
+**A moeda é dita em palavras.** O custo por kWh está em dólares dos Estados
+Unidos — a moeda em que a literatura de custo de célula cota —, e toda superfície
+que imprime um custo diz isso. A regra do [D-65](DECISIONS.md) nunca foi "não
+imprima moeda": foi **não infira moeda de um símbolo**.
+
+**O arquétipo carrega o requisito, não a premissa de oficina.** Os seis
+arquétipos de aplicação (`APPLICATION_ARCHETYPES`) trazem tensão, energia,
+potência, DoD e a capacidade típica de célula. Os três fatores de empacotamento
+— mássico, volumétrico e de custo — são premissa, como a condição de apoio do
+D-64: entrada com valor visível, e trocar de arquétipo não os mexe.
+
+**Recusas.** Química inexistente é **404** (o serviço lê a linha antes de entrar
+no cálculo, porque "não existe" é resposta diferente de "não dimensiona");
+comparar sobre catálogo vazio devolve o motivo por extenso, porque um pódio vazio
+leria como "nenhuma química serve".
+
 ## Ranking multicritério (`app/domain/ranking.py`)
 
 Soma ponderada normalizada. Cada critério tem uma direção (maior/menor é melhor),
@@ -530,6 +573,11 @@ resultado, de forma determinística.
 | GET/DELETE | `/api/selection/studies/{id}` | detalhe / excluir |
 | POST | `/api/selection/studies/{id}/run` | reexecutar um estudo salvo |
 | GET/POST | `/api/performance-indices` | catálogo de índices |
+| GET | `/api/baterias/quimicas` | catálogo de químicas de célula, com fonte e citação |
+| GET | `/api/baterias/quimicas/{slug}` | uma química (404 com o slug escrito) |
+| GET | `/api/baterias/arquetipos` | os seis arquétipos de aplicação |
+| POST | `/api/baterias/dimensionar` | Ns × Np, massa, volume, custo e diretrizes térmicas |
+| POST | `/api/baterias/comparar` | pódio por faceta sobre todas as químicas |
 
 ## Segurança
 

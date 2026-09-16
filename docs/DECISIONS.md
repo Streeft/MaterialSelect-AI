@@ -3580,3 +3580,103 @@ que nenhum sólido pode ter apareceria no painel de indicadores como a maior
 lacuna do catálogo, que é uma leitura falsa); publicar o escoamento da face como
 "a resistência"; escolher uma direção de condutividade em silêncio; e um teto
 para as espessuras, já que só a razão entre elas decide.
+
+## D-69 — O dimensionamento do pack é argumento; a química da célula é dado medido
+
+**Contexto.** *Battery Designer* é o item da faixa P4 na matriz do §5 de
+[`14-plataforma-selecao.md`](14-plataforma-selecao.md): dado um requisito
+elétrico — tensão de barramento, energia útil, potência de pico —, dizer quantas
+células em série e em paralelo o atendem, quanto o conjunto pesa, ocupa e custa,
+e qual química serve melhor. O módulo chegou por uma branch escrita fora desta
+sessão (PR #56), e a pergunta que decidiu o desenho apareceu na primeira leitura
+dela: **160 Wh/kg é argumento ou é dado?**
+
+**Decisão.** São duas camadas, e a fronteira entre elas é a mesma que o
+[D-64](#d-64) traçou para os casos de carga.
+
+**1. A álgebra mora em código; os números da química, não.** Contagem em série e
+em paralelo, fatores de empacotamento e custo nivelado por ciclo são **álgebra**
+— verificam-se por revisão, como `units.py` e como as sete derivações de
+`load_cases.py`. Energia específica, vida em ciclos e custo por kWh **não**: são
+medidas sobre substâncias reais. Escrever `specific_energy=160.0` num literal
+Python seria exatamente o que o princípio 1 proíbe — uma propriedade de material
+vinda de lugar nenhum que a ferramenta saiba nomear. Então
+`app/calculations/battery.py` recebe um `CellSpec` pronto e **nunca procura
+nada**; quem procura é o serviço, no catálogo. É o mesmo corte do
+[D-57](#d-57): *dado semeado, não schema*.
+
+**2. Tabela própria, e não `Material`.** Uma química de célula não é um material
+no sentido deste catálogo, e forçá-la ali quebraria duas coisas que funcionam.
+Energia específica, vida em ciclos e custo por kWh são propriedades que **nenhum
+outro registro pode ter**: cada uma ficaria em ~0% de cobertura no painel de
+indicadores e subiria ao topo do ranking de lacunas, reportando como o maior
+buraco do catálogo algo que não é buraco nenhum — o mesmo argumento pelo qual o
+[D-68](#d-68) recusou um slug próprio para o módulo de flexão. E as células
+entrariam em mapas, estudos de seleção e na tabela de comparação como se fossem
+candidatas ao lado do aço e do epóxi. `BatteryChemistry` segue a forma que o
+[D-66](#d-66) já aceitou para `TransportMode`: vocabulário fechado, semeado, numa
+tabela fora dos dois universos.
+
+**3. Colunas simples, mas a fonte não se abre mão.** O trilho de proveniência
+(valor original + unidade original + valor normalizado + unidade canônica +
+método de conversão) existe para sobreviver a **importação** e a **digitação**, e
+este vocabulário não tem nenhuma das duas no v1 — nove linhas semeadas, em
+unidades canônicas, escritas pelo seed e por mais ninguém. O que **não** se
+afrouxa é o compromisso do M1: **toda linha nomeia a sua `Source`**, e cada uma
+carrega também uma coluna `citation` própria, porque as nove químicas não saíram
+todas do mesmo lugar e achatá-las num rótulo único perderia a única informação
+que permite conferir um número. A unidade canônica de cada coluna está escrita no
+modelo e não é escolha do chamador. Se um dia existir entrada pelo usuário, isto
+gradua para a forma de `ProcessAttributeValue` — e a gradação fica sendo decisão
+de alguém, não descoberta por bug.
+
+**4. Segurança térmica é rótulo ordinal, nunca número.** `BAIXA < MODERADA <
+MEDIA < ALTA < MUITO_ALTA` é texto. Ranquear químicas por "segurança" numa escala
+numérica inventada seria uma magnitude que as fontes nunca afirmaram. A ordem
+vive no backend, que elege a mais segura do pódio; a tela só traduz o rótulo — e
+traduz por `Record` e não por `switch`, para que um sexto rótulo deixe de
+compilar em vez de cair num `default` silencioso.
+
+**5. Dinheiro é dito em palavras, como no [D-65](#d-65) — e aqui a moeda é
+conhecida.** O custo por kWh do catálogo está em dólares dos Estados Unidos,
+que é a moeda em que a literatura de custo de célula cota; o seed diz isso, o
+modelo diz isso, e toda superfície que imprime um custo diz isso ao leitor. A
+regra do D-65 nunca foi "não imprima moeda": foi **não infira moeda de um
+símbolo**. Nomear a moeda que a fonte declarou é relatar; deduzi-la de um cifrão
+é inventar. A nota que acompanha os custos também diz que são ordens de grandeza
+de comparação entre químicas, não orçamento.
+
+**6. O arquétipo carrega o requisito; os fatores de empacotamento são premissa
+de oficina.** Um `ApplicationArchetype` traz tensão, energia, potência, DoD e a
+capacidade típica de célula — o *problema*. Os três fatores (mássico,
+volumétrico e de custo) são premissa, como a condição de apoio do [D-64](#d-64)
+e as premissas de oficina do [D-65](#d-65): entrada **com valor visível**, e
+trocar de arquétipo não os mexe. Esconder dois deles — que foi o estado em que a
+tela chegou — deixaria dois números dividindo a massa, o volume e o investimento
+sem que ninguém os visse.
+
+**7. Química inexistente é 404, e catálogo vazio é recusa escrita.** O serviço lê
+a linha **antes** de entrar no cálculo, porque "esta química não existe" é uma
+resposta diferente de "estes números não dimensionam" e as duas não podem sair
+com o mesmo código. E comparar sobre um catálogo vazio devolve o motivo por
+extenso: um pódio vazio leria como "nenhuma química serve", que é uma afirmação
+sobre as químicas e não sobre o catálogo — a recusa do [D-66](#d-66) outra vez.
+
+**Como se verifica.** O teste da álgebra constrói a própria célula e **não toca
+no catálogo**: amarrá-lo aos números semeados faria uma correção de dado quebrar
+a prova da fórmula. Quem confere o catálogo é o teste de API — as nove químicas
+vêm do banco e não do código, cada uma declara de onde veio, as nove citações
+são distintas, o conjunto não se declara fictício, e um slug inexistente volta
+404 com o slug escrito. Na tela, as fixturas são **tipadas pelos tipos
+compartilhados**: a primeira versão desta página foi escrita contra um contrato
+imaginado — `cell_nominal_voltage_v`, rótulos térmicos em inglês — e os testes
+passavam porque afirmavam o mesmo engano que o código.
+
+**O que se recusou.** Pôr as químicas em `Material` (item 2); um `reference:
+str` obrigatório no esquema de saída em vez de `citation`/`source` anuláveis com
+rótulo escrito quando faltam (D-24); uma escala numérica de segurança térmica;
+`toFixed` para o custo nivelado, que sempre escreve ponto e poria o mesmo glifo
+como milhar numa coluna e decimal na seguinte (D-30); e — do PR #56 — as 122
+exclusões de `Cérebro/`, o `submeter_pr.bat` e uma segunda implementação de
+painel sanduíche, que teria criado as duas verdades que o [D-68](#d-68) existe
+para impedir.

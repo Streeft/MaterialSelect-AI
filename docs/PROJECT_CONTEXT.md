@@ -412,12 +412,42 @@ calculável; cisalhamento do núcleo e enrugamento da face pedem dados que o
 catálogo não tem. O painel não declara resistência, com o motivo escrito — a
 recusa do D-66 aplicada a modo de falha em vez de a fase.
 
-A matriz vai a **30 de 32 (~94%)**, com nível médio **3,44**. **A faixa P3
-fechou**, e sobram duas linhas abaixo de 3, nenhuma capacidade pela metade: o
-Battery Designer (P4) e o B11.
+**O Battery Designer fechou a última linha em zero** ([D-69](DECISIONS.md)), e
+o que decidiu o desenho dele foi uma pergunta só: *160 Wh/kg é argumento ou é
+dado?* A contagem em série e em paralelo, os fatores de empacotamento e o custo
+nivelado por ciclo são **álgebra** — moram em código, como as sete derivações do
+D-64. A energia específica de uma química **não**: é medida sobre uma substância
+real, e escrevê-la num literal Python seria a violação do princípio 1 que a
+ferramenta inteira existe para não cometer. Daí `BatteryChemistry`: tabela
+própria e semeada, na forma que o D-66 já aceitou para `TransportMode`, com
+**cada linha nomeando a sua `Source`** (M1) e a sua citação própria — as nove não
+saíram do mesmo lugar. Não vai em `Material` porque energia específica é
+propriedade que nenhum outro registro pode ter: ficaria em ~0% de cobertura no
+painel e subiria ao topo do ranking de lacunas, reportando como o maior buraco
+do catálogo algo que não é buraco — o mesmo argumento pelo qual o D-68 recusou um
+slug para o módulo de flexão.
 
-**Saúde do código:** 1656 testes de backend (Python 3.11 e 3.12, nenhum skip)
-e 349 de frontend, todos verdes. Desde o P0-1 a suíte também roda as migrações de
+Três regras acompanham. **Segurança térmica é rótulo ordinal, nunca número** (uma
+escala numérica de "segurança" seria magnitude que as fontes não afirmaram). **A
+moeda é dita em palavras**: os custos estão em dólares, que é a moeda em que a
+literatura de custo de célula cota, e toda superfície diz isso — a regra do D-65
+nunca foi "não imprima moeda", foi não *inferir* moeda de um símbolo. E **o
+arquétipo carrega o requisito, não a premissa de oficina**: os três fatores de
+empacotamento são entrada com valor visível, como a condição de apoio do D-64.
+
+O módulo chegou por uma branch escrita fora da sessão (PR #56), com as nove
+químicas num dicionário de código. A reconciliação foi exatamente mover esse
+dicionário para o catálogo sem mexer numa vírgula da álgebra — e não trouxe as
+122 exclusões de `Cérebro/`, o `submeter_pr.bat` nem a segunda implementação de
+painel sanduíche que vinha junto.
+
+A matriz vai a **31 de 32 (~97%)**, com nível médio **3,53**. **As faixas P3 e a
+metade de método da P4 fecharam**, e sobra uma linha abaixo de 3, que não é
+capacidade pela metade: o B11 (unidades de exibição, escolha de leitura e não
+módulo).
+
+**Saúde do código:** 1683 testes de backend (Python 3.11 e 3.12, nenhum skip)
+e 356 de frontend, todos verdes. Desde o P0-1 a suíte também roda as migrações de
 verdade, nos dois sentidos, contra um banco temporário que já contém dados —
 `test_migration_selection_stage.py`, `test_migration_process_universe.py`,
 `test_migration_selection_universe.py`, `test_migration_process_attributes.py`,

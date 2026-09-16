@@ -268,3 +268,23 @@ def is_ratio_scale(unit: str) -> bool:
     if not (math.isfinite(one) and math.isfinite(two)):
         return False
     return math.isclose(two, 2.0 * one, rel_tol=1e-9, abs_tol=1e-12)
+
+
+def pretty_unit(unit: str | None) -> str:
+    """Format a Pint unit or dimension string into a clean, human-readable form.
+
+    Mirrors the frontend ``prettyUnit`` helper (apps/web/lib/format.ts):
+    - Replaces cubic powers (``** 3``) with ``³`` and square powers (``** 2``) with ``²``;
+    - Replaces general power operator (``**``) with ``^``;
+    - Replaces multiplication operator (``*``) with a middle dot (``·``);
+    - Renders ``dimensionless`` as an em-dash ``—``;
+    - Returns an empty string if ``unit`` is None or empty.
+    """
+    if not unit:
+        return ""
+    if unit == "dimensionless":
+        return "—"
+    s = re.sub(r"\s*\*\*\s*3(?![0-9.])", "³", unit)
+    s = re.sub(r"\s*\*\*\s*2(?![0-9.])", "²", s)
+    s = re.sub(r"\s*\*\*\s*", "^", s)
+    return s.replace("*", "·")

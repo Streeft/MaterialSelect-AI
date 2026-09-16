@@ -606,7 +606,27 @@ o módulo de um painel é, por convenção, o de flexão equivalente, e ele vai 
 `modulo_young` com a lei colada na proveniência; a condutividade não vai, porque
 um painel é anisotrópico por construção e o slug é isotrópico.
 
-1656 testes de backend (nenhum skip) e 349 de frontend, todos verdes. CI no
+**O Battery Designer fechou a faixa P4 do lado do método** ([D-69](docs/DECISIONS.md)),
+e o desenho inteiro sai de uma pergunta: **160 Wh/kg é argumento ou é dado?** A
+contagem em série e em paralelo, os fatores de empacotamento e o custo nivelado
+por ciclo são álgebra — moram em código, como os casos de carga do D-64. A
+energia específica de uma química **não**: é medida sobre substância real, e um
+literal Python ali seria o princípio 1 violado. Daí `BatteryChemistry`: **tabela
+própria e semeada**, na forma do `TransportMode` (D-66), com cada linha nomeando
+a sua `Source` e a sua citação — as nove não saíram do mesmo lugar. Não vai em
+`Material` porque energia específica é propriedade que nenhum outro registro pode
+ter: ficaria em ~0% no painel e subiria ao topo do ranking de lacunas, que é o
+mesmo efeito pelo qual o D-68 recusou um slug para o módulo de flexão.
+`design_pack()` recebe um `CellSpec` **pronto** e nunca consulta banco. Três
+regras acompanham: **segurança térmica é rótulo ordinal, nunca número**; **a
+moeda é dita em palavras** (os custos estão em dólares porque é a moeda em que a
+literatura de célula cota — a regra do D-65 nunca foi "não imprima moeda", foi
+não *inferir* moeda de um símbolo); e **o arquétipo carrega o requisito, não a
+premissa de oficina** — os três fatores de empacotamento são entrada com valor
+visível. Química inexistente é 404; catálogo vazio recusa o pódio com o motivo
+escrito.
+
+1683 testes de backend (nenhum skip) e 356 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
 PROJECT_CONTEXT.md).

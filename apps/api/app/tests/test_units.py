@@ -10,6 +10,7 @@ import pytest
 from app.calculations.units import (
     UnitError,
     parse_decimal_comma,
+    pretty_unit,
     to_canonical,
     validate_dimension,
 )
@@ -191,3 +192,22 @@ def test_parse_plain_integers_with_four_plus_digits(raw, expected):
     # Regression: the old regex capped the ungrouped integer part at 3 digits,
     # rejecting common values like "1500".
     assert parse_decimal_comma(raw) == pytest.approx(expected)
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        (None, ""),
+        ("", ""),
+        ("dimensionless", "—"),
+        ("kg/m**3", "kg/m³"),
+        ("m**2", "m²"),
+        ("W/(m*K)", "W/(m·K)"),
+        ("MPa*m**0.5", "MPa·m^0.5"),
+        ("[length] ** 2.5 / [mass] ** 0.5 / [time]", "[length]^2.5 / [mass]^0.5 / [time]"),
+        ("kJ/mol", "kJ/mol"),
+        ("g/cm**3", "g/cm³"),
+    ],
+)
+def test_pretty_unit(raw, expected):
+    assert pretty_unit(raw) == expected

@@ -40,16 +40,17 @@ corrigida publicada**, e por isso são acompanhamento, não tarefa:
   Só roda no job de Lighthouse.
 - **`express`/`qs` (2 moderados).** Presos dentro do próprio `@lhci/cli`.
 
-**Débito de lint aberto pelo S2.** ▁ O `eslint-config-next` 16 traz a regra
-`react-hooks/set-state-in-effect`, que acusa **seis** pontos de código
-pré-existente: a semeadura de seleção padrão em `/app/comparar`, `/app/mapas` e
-`/app/painel`, a queda de log para linear quando a escala não é permitida (B7/B8)
-e o fechamento da gaveta ao navegar (D-37). São achados legítimos, e cada
-correção é uma refatoração de estado derivado numa tela de produto — com risco
-de regressão em comportamentos que já foram, eles próprios, correções de bug.
-Ficou em `warn` no `eslint.config.mjs`, com a justificativa escrita no arquivo:
-continua aparecendo na saída do lint, não some. **Ao quitar, promova a regra de
-volta para `error` no mesmo PR.** Há ainda 1 aviso de
+**Débito de lint aberto pelo S2 — quitado (P4).** ▁ Os seis pontos de
+`react-hooks/set-state-in-effect` foram corrigidos e a regra voltou a `error`,
+que é o que o débito pedia. Cinco viraram ajuste durante a renderização / estado
+derivado (semeadura de seleção padrão em `/app/comparar`, `/app/mapas` e
+`/app/painel`, a queda de log para linear do B8 e o fechamento da gaveta do
+D-37). O sexto, o `ThemeToggle`, era de outra natureza e ganhou outra correção:
+a preferência de tema mora em `localStorage`, que é fonte **externa** ao React,
+e o certo ali é `useSyncExternalStore` — que resolve os dois renders e traz o par
+de snapshots que preserva a hidratação (servidor devolve `null`, nada é pintado
+antes de montar). O clique agora escreve na fonte e a fonte notifica; não sobrou
+`setState` nenhum no componente. Resta 1 aviso de
 `react-hooks/incompatible-library` no `MaterialForm.tsx` (o `watch()` do
 react-hook-form não é memoizável) que é informativo e não tem correção local.
 
@@ -67,14 +68,22 @@ Nenhum item aberto no momento — M6 foi entregue nesta sessão (ver
 
 ## Baixa prioridade
 
-**B11 — a unidade canônica é impressa como o Pint a escreve.** ▁ Um documento
-exportado traz `kg/m**3` e `m**2.5` onde a tela traz `kg/m³`, porque o frontend
-tem `prettyUnit` (`lib/units.ts`) e o backend não tem equivalente. Aparece nas
-tabelas do relatório e do laudo e, desde [D-53](DECISIONS.md), também nos
-rótulos de eixo do mapa — mas **é um problema do documento inteiro, não da
-figura**: consertar só o eixo deixaria a figura discordando da tabela ao lado.
-O caminho é um formatador no backend, aplicado nos dois lugares de uma vez.
-Pesa mais do que parece porque as figuras vão para a monografia.
+**B11 — a unidade canônica impressa como o Pint a escreve — quitado (P4).** ▁
+`app/calculations/units.py` ganhou `pretty_unit()`, e o `export_service` o aplica
+nas tabelas do relatório, nas do laudo, na folha de proveniência e nos rótulos de
+eixo do mapa — os dois lugares de uma vez, que era o ponto: consertar só o eixo
+deixaria a figura discordando da tabela ao lado.
+
+**Uma coisa deliberadamente não é embelezada: o método de conversão.**
+`identity:kg/m**3` e `pint:GPa->Pa` permanecem exatos, e um teste fixa isso. O
+docstring de `to_canonical` promete que aquele campo é **reproduzível** — é o
+trilho de auditoria, não texto de leitura —, e o Pint não sabe ler `kg/m³` de
+volta. Só a unidade de **exibição** é embelezada.
+
+Isto **não** move a linha `Unidades de exibição` da matriz do §5 de
+[`14-plataforma-selecao.md`](14-plataforma-selecao.md), que continua em **2**:
+ela mede se o usuário pode *escolher* a unidade de leitura (MPa em vez de Pa), e
+isso não existe. São duas perguntas diferentes que dividiam o mesmo rótulo.
 
 ---
 
@@ -85,14 +94,14 @@ especificação de caso de uso. (`User` e `Project` saíram desta lista com A5;
 `AuditEvent` saiu com M2; `SavedChart` saiu com B7 — salvar e reabrir
 configurações de mapa; `SelectionStage` saiu com P0-1; `Process`,
 `ProcessClass` e `MaterialProcess` saíram com P0-2;
-`ProcessAttributeDefinition` e `ProcessAttributeValue` saíram com P0-4.)
+`ProcessAttributeDefinition` e `ProcessAttributeValue` saíram com P0-4; `TransportMode` saiu com o Eco Audit e `BatteryChemistry` com o Battery Designer — as duas na mesma forma, vocabulário fechado e semeado fora dos dois universos.)
 
 **Nada de estrutural pendente no roteiro imediato, e a faixa P1 fechou.** Os
 quatro gargalos P0 estão entregues, mais o P1-1 (busca), o P1-2 (Chart Stage), o
 P1-3 (browse) e o P1-4 (`My Records`) — este último o que mexeu na fronteira que
-o D-42 estabeleceu, e o único da faixa a mexer nela. O **P2** saiu em seguida — *Find Similar*, registro de referência e a tabela de
-comparação com diferença percentual —, e o alvo agora é o **resto do P2**:
-Engineering Solver e Performance Index Finder.
+o D-42 estabeleceu, e o único da faixa a mexer nela. O **P2**, a **P3** e o **Battery Designer** (P4) saíram em seguida, e a matriz
+está em 31 de 32. O que resta do roteiro é PDF/DOCX no gerador de relatório —
+formato de saída, não capacidade de método.
 
 ---
 

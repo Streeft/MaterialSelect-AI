@@ -5,6 +5,7 @@ Importing this package registers every model on the shared declarative
 """
 
 from app.models.audit import AuditEvent
+from app.models.battery_chemistry import BatteryChemistry
 from app.models.enums import (
     AuditAction,
     AuditEntityType,
@@ -86,6 +87,7 @@ __all__ = [
     "Source",
     "SourceAuthority",
     "Subscription",
+    "BatteryChemistry",
     "TransportMode",
     "User",
     "UserSession",
