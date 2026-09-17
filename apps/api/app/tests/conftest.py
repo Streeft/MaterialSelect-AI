@@ -13,17 +13,15 @@ from contextlib import contextmanager
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import Connection, create_engine, event, select
+from sqlalchemy import Connection, create_engine, event
 from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
 from app.db.base import Base, get_db, json_serializer
 from app.db.seed import seed
-from app.db.seed_extended import seed_extended_materials
 from app.dependencies import get_current_user, require_active_subscription
 from app.main import app
 from app.models.project import Project
-from app.models.source import Source
 from app.models.user import User
 from app.repositories.material_repository import MaterialRepository
 
@@ -62,17 +60,6 @@ def _create_and_seed_schema() -> Generator[None, None, None]:
     Base.metadata.create_all(bind=_engine)
     with Session(bind=_engine) as db:
         seed(db)  # committed once; becomes the baseline every test starts from
-        # --- 70 materiais estendidos para teste abrangente ---
-        demo_source = (
-            db.execute(
-                select(Source).where(Source.label == "Dataset Demo MaterialSelect")
-            )
-            .scalars()
-            .one_or_none()
-        )
-        if demo_source is not None:
-            seed_extended_materials(db, demo_source)
-            db.commit()
     yield
     Base.metadata.drop_all(bind=_engine)
 
