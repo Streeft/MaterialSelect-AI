@@ -128,7 +128,8 @@ class TestDocxEndpoints:
         assert response.status_code == 200, response.text
         assert response.headers["content-type"].startswith(DOCX_MEDIA_TYPE)
         assert "attachment" in response.headers["content-disposition"]
-        assert "catalogo.docx" in response.headers["content-disposition"]
+        assert ".docx" in response.headers["content-disposition"]
+        assert "catalogo-de-materiais.docx" in response.headers["content-disposition"]
 
         doc = Document(io.BytesIO(response.content))
         all_text = "\n".join(p.text for p in doc.paragraphs)
@@ -139,7 +140,7 @@ class TestDocxEndpoints:
         assert LIMITATION_NOTICE in all_text
 
     def test_study_docx_download_headers(self, client: TestClient) -> None:
-        study_id = client.post(
+        response_post = client.post(
             "/api/selection/studies",
             json={
                 "name": "Estudo DOCX Exportável",
@@ -148,12 +149,16 @@ class TestDocxEndpoints:
                 "combinator": "AND",
                 "constraints": [],
             },
-        ).json()["id"]
+        )
+        assert response_post.status_code == 201, response_post.text
+        study_id = response_post.json()["id"]
 
         response = client.get(f"/api/exports/estudos/{study_id}.docx")
         assert response.status_code == 200, response.text
         assert response.headers["content-type"].startswith(DOCX_MEDIA_TYPE)
         assert "attachment" in response.headers["content-disposition"]
+        assert ".docx" in response.headers["content-disposition"]
+        assert "estudo-docx-exportavel" in response.headers["content-disposition"]
 
         doc = Document(io.BytesIO(response.content))
         all_text = "\n".join(p.text for p in doc.paragraphs)
