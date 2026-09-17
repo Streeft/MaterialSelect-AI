@@ -296,7 +296,7 @@ export const ptBR = {
     // P0-2: o terceiro tipo. "Processos" e não "Fabricação" porque é o registro
     // que se escolhe, e é como o resto da interface e o relatório o chamam.
     stageKindProcess: "Processos",
-    // P0-3: o estágio de travessia visto do lado do processo.
+    // P0-3: o estágio de travessia num estudo de processos.
     stageKindMaterial: "Materiais",
     // P1-2: o quarto tipo. "Gráfico" e não "Mapa" porque é o gesto que se faz —
     // desenhar no gráfico —, e "Mapa" já nomeia a tela `/app/mapas`.
@@ -605,6 +605,7 @@ export const ptBR = {
     title: "Exportar",
     csv: "CSV",
     xlsx: "XLSX",
+    docx: "DOCX",
     html: "HTML para impressão",
     htmlTitle: "Abre em nova aba, pronto para imprimir ou salvar como PDF",
     catalogue: "Exportar catálogo",
@@ -656,7 +657,7 @@ export const ptBR = {
     facetConstraint: "Restrição",
     facetObjective: "Objetivo",
     // D-65: o objetivo deixou de ser propriedade do caso e virou escolha de quem
-    // lê. A faceta diz os dois, senão afirmaria "minimizar massa" numa tela em
+    // lê. A faceta diz os dois, senão afirmaria \"minimizar massa\" numa tela em
     // que o custo está a um seletor de distância.
     facetObjectiveOr: "ou",
     facetFree: "Variável livre",
@@ -940,8 +941,8 @@ export const ptBR = {
     columnValue: "Valor",
     columnRule: "Lei",
     columnQuality: "Qualidade",
-    // A base da lei é impressa junto do valor porque "conservação de massa" e
-    // "ajuste empírico" não são a mesma afirmação sobre o número.
+    // A base da lei é impressa junto do valor porque \"conservação de massa\" e
+    // \"ajuste empírico\" não são a mesma afirmação sobre o número.
     skippedTitle: "O que este registro não vai ter",
     skippedHint:
       "Duas razões diferentes convivem aqui: o constituinte não tem o dado, ou esta propriedade não tem lei honesta para este tipo de síntese.",
@@ -1009,7 +1010,7 @@ export const ptBR = {
     browseHint:
       "Abra uma família para ver o registro dela, as subclasses e os materiais.",
     filterQuality: "Qualidade do dado",
-    // Not "sem lacunas": the catalogue only knows about properties that were
+    // Not \"sem lacunas\": the catalogue only knows about properties that were
     // recorded, so it can say a material has no gap *among the ones cadastradas*
     // and nothing more.
     qualityAny: "Qualquer",
@@ -1035,8 +1036,8 @@ export const ptBR = {
     missing: "ausente",
     uncertainty: "incerteza",
     noProperties: "Este material ainda não possui propriedades cadastradas.",
-    // P0-2: os processos compatíveis na ficha do material. "Compatíveis" e não
-    // "possíveis" porque é uma compatibilidade declarada no catálogo, não uma
+    // P0-2: os processos compatíveis na ficha do material. \"Compatíveis\" e não
+    // \"possíveis\" porque é uma compatibilidade declarada no catálogo, não uma
     // conclusão da ferramenta.
     compatibleProcesses: "Processos compatíveis",
     compatibleProcessesHint:
