@@ -5,6 +5,14 @@
 70 materiais adicionais distribuídos nas cinco famílias, exercitando
 todas as 12 propriedades, conversões de unidade, intervalos, valores
 ausentes e incerteza.
+
+Executar com::
+
+    python -m app.db.seed_extended
+
+Idempotente: não duplica registros em execuções repetidas.
+Pode ser executado antes ou depois do seed principal (python -m app.db.seed).
+O seed principal (5 materiais) permanece inalterado para não quebrar os testes.
 """
 
 from __future__ import annotations
@@ -316,7 +324,7 @@ def _generate_materials() -> list[dict]:
                     and rng.random() < 0.15
                     and slug in ("densidade", "modulo_young")
                 ):
-                    entry["measurement_condition"] = "Temperatura ambiente (25 °C)"
+                    entry["measurement_condition"] = "Temperatura ambiente (25 \u00b0C)"
                     meas_cond_count += 1
 
                 mat["values"].append(entry)
@@ -328,9 +336,11 @@ def _generate_materials() -> list[dict]:
 
 EXTENDED_DEMO_MATERIALS: list[dict] = _generate_materials()
 
+DEMO_SOURCE_LABEL = "Dataset Demo MaterialSelect"
+
 
 # ---------------------------------------------------------------------------
-# Função de semeadura — chamada pelo seed.py principal
+# Função de semeadura
 # ---------------------------------------------------------------------------
 
 
@@ -448,3 +458,39 @@ def seed_extended_materials(db: Session, source: Source) -> int:
 
     db.flush()
     return created
+
+
+def main() -> None:
+    """CLI entry point: semeia os materiais estendidos.
+
+    Pressupõe que o seed principal (python -m app.db.seed) já foi executado,
+    pois depende das classes, propriedades e fonte demo existentes.
+    """
+    from app.db.base import Base, SessionLocal, engine
+
+    Base.metadata.create_all(bind=engine)
+    with SessionLocal() as db:
+        # Busca a fonte demo criada pelo seed principal
+        demo_source = (
+            db.execute(
+                select(Source).where(Source.label == DEMO_SOURCE_LABEL)
+            )
+            .scalars()
+            .one_or_none()
+        )
+        if demo_source is None:
+            print(
+                "[seed_extended] Erro: fonte demo n\u00e3o encontrada. "
+                "Execute primeiro: python -m app.db.seed"
+            )
+            return
+
+        created = seed_extended_materials(db, demo_source)
+        db.commit()
+
+    print(f"[seed_extended] \u26a0\ufe0f  Dados exclusivamente demonstrativos.")
+    print(f"[seed_extended] Conclu\u00eddo: {created} materiais criados.")
+
+
+if __name__ == "__main__":
+    main()
