@@ -69,9 +69,9 @@ Níveis: **0** não existe · **1** rudimentar · **2** existe, precisa melhorar
 | Tabela de comparação | **4** | **Entregue (P2)**: referência, "definir como referência" e diferença percentual por propriedade — calculada só onde a unidade tem zero verdadeiro, e com cada uma das cinco ausências escrita por extenso (D-24). |
 | Engineering Solver | **3** | **Entregue (P2, [D-64](DECISIONS.md))**: tirante (rigidez, resistência, escoamento), viga (rigidez, momento), placa (rigidez) e coluna (flambagem de Euler), respondidos com **massa e variável livre em unidade derivada**, o fator estrutural à vista para a conta poder ser refeita à mão, e ausência tratada como exclusão nomeada. **O objetivo custo saiu** (P3, [D-65](DECISIONS.md)): o mesmo fator estrutural dividido pelo gêmeo de custo do índice responde quanto a peça custa em material, e o resultado diz qual objetivo rodou em palavras — a dimensão sai como massa porque `custo_massa` é adimensional. Faltam seções além de maciça quadrada/retangular e amarrar um dimensionamento a um estudo salvo e ao laudo. |
 | Projetos e notas | **3** | `Project` isola estudos por usuário, e um estágio tem rótulo próprio (P0-1). Falta nota livre por projeto. |
-| Geração de relatório | **4** | Relatório de seleção, laudo, CSV/XLSX/HTML, com mapa, ranking e oito seções de auditoria. Falta PDF e DOCX. |
+| Geração de relatório | **5** | Relatório de seleção, laudo, CSV/XLSX/HTML/DOCX nativo, com mapa, ranking e oito seções de auditoria. DOCX entregue (P4, python-docx puro, sem dependências C de PDF). |
 | Eco Audit | **3** | **Entregue (P3, [D-66](DECISIONS.md))**: cinco fases (material, manufatura, transporte, uso, fim de vida) em energia e carbono, com **dois modelos de uso** que não são variantes de um — no estático a massa não entra, e é por isso que escolher errado inverte a auditoria. A resposta não é o total: é qual fase domina, uma vez em energia e outra em carbono, e faltando uma fase o pódio é **recusado com o motivo escrito**. Faltam a figura de barras por fase, comparar dois materiais lado a lado na mesma auditoria e as rotas de fim de vida que v1 deixou sem energia catalogada.
-| Part Cost Estimator | **3** | **Entregue (P3, [D-65](DECISIONS.md))**: `C = m·Cm/(1−f) + C_t/n + Ċ_oh/ṅ + C_c/(ṅ·t_wo·L)` sobre os processos compatíveis com o material, devolvida **termo a termo** — porque o que o leitor veio buscar é como cada parcela anda com o lote, e o cruzamento entre dois processos conforme *n* cresce. Premissas de oficina são entrada com valor visível; processo sem dado econômico é nomeado, nunca zerado; e a resposta declara a unidade monetária em palavras, porque dinheiro não está em sistema de unidades nenhum. Falta a curva custo × lote desenhada e o custo por família de processo.
+| Part Cost Estimator | **3** | **Entregue (P3, [D-65](DECISIONS.md))**: `C = m·Cm/(1−f) + C_t/n + Ċ_oh/ṅ + C_c/(ṅ·t_wo·L)` sobre os processos compatíveis com o material, devolvida **termo a termo** — porque o que o leitor veio buscar é como cada parcela anda com o lote, e o cruzamento entre dois processos conforme *n* cresce. Premissas de oficina são entrada com valor visível; processo sem dado econômico é nomeado, nunca zerado; e a resposta declara a unidade monetária em palavras, porque dinheiro não está em sistema de unidades nenhum. Falta a curva custo × lote desenhada e o custo por família de processo. |
 | Synthesizer / registros sintetizados | **3** | **Entregue (P3, [D-67](DECISIONS.md))**: compósito de dois constituintes e espuma de um sólido, com a receita inteira gravada e o registro **declarado sintetizado**. Cada valor nomeia a lei que o produziu e a **base** dela — exata, par de limites ou empírica —, e a qualidade do dado é a pior dos pais que a regra leu. A regra de mistura é propriedade da propriedade: densidade por volume, módulo como **par de limites** porque a direção não está catalogada, grandezas por massa por fração mássica, temperatura de serviço pelo mínimo, e resistência de compósito **sem regra nenhuma**, porque quem a controla é a interface. Faltam laminados com orientação declarada, sintetizar sobre um sintetizado e a figura do par de limites no mapa. |
 | Sandwich Panels | **3** | **Entregue (P3, [D-68](DECISIONS.md))**: terceiro tipo do Synthesizer — duas faces sobre um núcleo. Densidade e grandezas por massa saem pelas **mesmas regras do compósito** (massa é massa), e o módulo é o de **flexão equivalente**, que passa do limite de Voigt nas mesmas frações — a prova de que é arranjo e não mistura. Só a razão *t/c* decide, o que é o que torna legítimo plotar o painel ao lado de sólidos. Resistência é recusada com o motivo escrito: ela é competição entre modos de falha e só um é calculável. Faltam a figura do painel em corte, o núcleo em colmeia (que tem escalas próprias) e os modos de falha que pedem dados de cisalhamento do núcleo. |
 | Battery Designer | **3** | **Entregue (P4, [D-69](DECISIONS.md))**: dado um requisito elétrico, quantas células em série e em paralelo o atendem, quanto o conjunto pesa, ocupa e custa, e qual química serve melhor. A álgebra do pack mora em código (é argumento, como os casos de carga do D-64); as nove químicas moram no **catálogo**, cada uma nomeando a sua `Source` e a sua citação própria — porque energia específica é medida, não argumento. Tabela própria e não `Material`, pela mesma razão do `TransportMode`. Faltam a degradação por temperatura e por taxa, o dimensionamento térmico do BMS e química de estado sólido. |
@@ -84,7 +84,7 @@ Níveis: **0** não existe · **1** rudimentar · **2** existe, precisa melhorar
 
 **Cobertura de capacidades inspiradas no EduPack: ~97%** — contado como
 capacidades em nível ≥ 3 sobre as **32** avaliadas (31 de 32). **Nível médio:
-3,53.** O P3 moveu quatro linhas que estavam em **zero**: o Part Cost Estimator,
+3,56.** O P3 moveu quatro linhas que estavam em **zero**: o Part Cost Estimator,
 o Eco Audit, o Synthesizer e os Sandwich Panels. Com o primeiro veio também o
 objetivo custo, que destravou o Engineering Solver e o Performance Index Finder —
 os dois já acima do corte, e por isso invisíveis no percentual embora seja ali
@@ -92,13 +92,13 @@ que a faixa ficou mais completa. É o mesmo descompasso entre métrica e ferrame
 que o P0-4 expôs, na direção oposta. O Synthesizer moveu **duas** linhas: a sua
 própria e `My Records` 3→4, porque os registros sintetizados eram uma das duas
 ausências nomeadas dela. O **P4** moveu a última que estava em zero: o *Battery
-Designer* ([D-69](DECISIONS.md)).
+Designer* ([D-69](DECISIONS.md)), e fechou a exportação nativa em DOCX
+(`app/exporters/docx.py`), elevando `Geração de relatório` a nível 5.
 
 **Sobra uma linha abaixo de 3**, e ela não é capacidade pela metade:
 `Unidades de exibição` (B11, que é uma escolha de leitura e não um módulo).
-**A faixa P3 fechou, e o Battery Designer fechou a P4 do lado da seleção** — o
-que resta da P4 é PDF/DOCX no gerador de relatório, que é formato de saída e não
-capacidade de método.
+**A faixa P3 e a faixa P4 fecharam integralmente** — tanto do lado da seleção
+quanto do lado do gerador de relatório com DOCX nativo.
 
 **O denominador estava errado até o P0-4.** As versões anteriores deste parágrafo
 diziam "30 avaliadas" e publicavam ~57%; a tabela acima sempre teve 32 linhas.
@@ -393,15 +393,15 @@ correção, portão completo, decisão registrada.
 | ~~**P3**~~ | ~~Part Cost Estimator~~ **entregue** (com o objetivo *custo* nos casos de carga) | P | ~~P0-2~~ |
 | ~~**P3**~~ | ~~Synthesizer + Sandwich Panels~~ **entregue** | Q, R | ~~P1 My Records~~ |
 | ~~**P4**~~ | ~~Battery Designer~~ **entregue** | S | ~~P3 Synthesizer~~ |
-| **P4** | PDF e DOCX no gerador de relatório | V | — |
+| ~~**P4**~~ | ~~Exportação nativa em DOCX no gerador de relatório~~ **entregue** (PDF viabilizado via DOCX / HTML de impressão sem libs C) | V | — |
 
-**Ordem de execução:** ~~P0-1~~ → ~~P0-2~~ → ~~P0-3~~ → ~~P0-4~~ → ~~P1-1~~ → ~~P1-2~~ → ~~P1-3 (browse)~~ → ~~P1-4 (`My Records`)~~ → ~~P2 (Find Similar, referência, comparação)~~ → ~~P2 restante (Engineering Solver, Performance Index Finder)~~ → ~~P3 Part Cost Estimator (+ objetivo custo)~~ → ~~P3 Eco Audit~~ → ~~P3 Synthesizer~~ → ~~P3 Sandwich Panels~~ → ~~P4 Battery Designer~~ → **P4 restante (PDF/DOCX)**.
+**Ordem de execução:** ~~P0-1~~ → ~~P0-2~~ → ~~P0-3~~ → ~~P0-4~~ → ~~P1-1~~ → ~~P1-2~~ → ~~P1-3 (browse)~~ → ~~P1-4 (`My Records`)~~ → ~~P2 (Find Similar, referência, comparação)~~ → ~~P2 restante (Engineering Solver, Performance Index Finder)~~ → ~~P3 Part Cost Estimator (+ objetivo custo)~~ → ~~P3 Eco Audit~~ → ~~P3 Synthesizer~~ → ~~P3 Sandwich Panels~~ → ~~P4 Battery Designer~~ → ~~P4 restante (DOCX)~~.
 
 **A faixa P2 fechou, e o Part Cost Estimator saiu junto com o que ele
 destravava.** O custo ficou nomeado como omissão no [D-64](DECISIONS.md) em vez
 de improvisado porque dependia deste módulo; com ele no lugar, trocar ρ por ρ·Cm
 em cada agrupamento material é a mesma fatoração, e um caso de carga passou a
-nomear dois índices em vez de carregar duas derivações
+nnomear dois índices em vez de carregar duas derivações
 ([D-65](DECISIONS.md)). O **Eco Audit** saiu em seguida
 ([D-66](DECISIONS.md)), e o **Synthesizer** depois dele
 ([D-67](DECISIONS.md)) — este levando `My Records` de 3 para 4, porque os
@@ -428,6 +428,13 @@ linha nomeando a sua fonte e a sua citação. O módulo chegou por uma branch es
 fora da sessão, com as nove químicas num dicionário de código; a reconciliação foi
 exatamente mover esse dicionário para o catálogo sem mexer numa vírgula da
 álgebra.
+
+A **exportação nativa em DOCX** fechou a pendência de formato de saída de P4.
+Alinhada à decisão D-20 (rejeição de bibliotecas pesadas de PDF com bindings C
+como WeasyPrint/Cairo/Pango que comprometeriam a portabilidade multiplataforma),
+a implementação adota `python-docx` 100% puro em Python, permitindo edição direta
+no Word e exportação nativa para PDF na máquina do usuário com tabelas formatadas
+(`w:tblHeader`, `w:cantSplit`), avisos obrigatórios e auditoria completa.
 
 ### O que isto não é
 
