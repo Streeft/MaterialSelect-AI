@@ -2,8 +2,8 @@
 
 The schema is created and seeded ONCE per session. Each test then runs inside a
 transaction bound to a single shared connection, which is rolled back afterwards
-— so writes made by CRUD tests never leak into other tests (e.g. the "exactly 5
-materials" assertions remain stable regardless of test order).
+— so writes made by CRUD tests never leak into other tests (e.g. the “exactly 5
+materials” assertions remain stable regardless of test order).
 """
 
 from __future__ import annotations
@@ -13,15 +13,17 @@ from contextlib import contextmanager
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import Connection, create_engine, event
+from sqlalchemy import Connection, create_engine, event, select
 from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
 from app.db.base import Base, get_db, json_serializer
 from app.db.seed import seed
+from app.db.seed_extended import seed_extended_materials
 from app.dependencies import get_current_user, require_active_subscription
 from app.main import app
 from app.models.project import Project
+from app.models.source import Source
 from app.models.user import User
 from app.repositories.material_repository import MaterialRepository
 
@@ -43,7 +45,7 @@ _engine = create_engine(
 # test whose FIRST database statement was a write escaped the rollback below and
 # leaked into every later test, while the same write preceded by a read did not.
 #
-# The fix is SQLAlchemy's documented pysqlite recipe: take BEGIN away from the
+# The fix is SQLAlchemy’s documented pysqlite recipe: take BEGIN away from the
 # driver and emit it ourselves, so savepoints nest inside a real transaction.
 @event.listens_for(_engine, "connect")
 def _sqlite_disable_implicit_begin(dbapi_connection, _record) -> None:
@@ -60,6 +62,17 @@ def _create_and_seed_schema() -> Generator[None, None, None]:
     Base.metadata.create_all(bind=_engine)
     with Session(bind=_engine) as db:
         seed(db)  # committed once; becomes the baseline every test starts from
+        # --- 70 materiais estendidos para teste abrangente ---
+        demo_source = (
+            db.execute(
+                select(Source).where(Source.label == "Dataset Demo MaterialSelect")
+            )
+            .scalars()
+            .one_or_none()
+        )
+        if demo_source is not None:
+            seed_extended_materials(db, demo_source)
+            db.commit()
     yield
     Base.metadata.drop_all(bind=_engine)
 
@@ -206,8 +219,8 @@ def login_as():
     """Context manager to temporarily authenticate ``client`` as another user.
 
     Swaps only the ``get_current_user`` override, so the surrounding test keeps
-    the same ``client``/``db_session`` connection and transaction — only "who is
-    logged in" changes for the duration of the ``with`` block.
+    the same ``client``/``db_session`` connection and transaction — only “who is
+    logged in” changes for the duration of the ``with`` block.
     """
 
     @contextmanager
