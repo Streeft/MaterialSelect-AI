@@ -23,7 +23,7 @@ from docx.oxml.ns import qn
 from docx.shared import Inches, Pt, RGBColor
 
 from app.exporters.cells import format_number
-from app.exporters.report import DEMO_DATA_NOTICE, Report, Sheet
+from app.exporters.report import DEMO_DATA_NOTICE, Report
 
 _PRIMARY_COLOR = RGBColor(15, 23, 42)  # #0f172a (ink)
 _SUBTLE_COLOR = RGBColor(100, 116, 139)  # #64748b (ink-subtle)
