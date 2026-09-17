@@ -99,9 +99,8 @@ configurações de mapa; `SelectionStage` saiu com P0-1; `Process`,
 **Nada de estrutural pendente no roteiro imediato, e a faixa P1 fechou.** Os
 quatro gargalos P0 estão entregues, mais o P1-1 (busca), o P1-2 (Chart Stage), o
 P1-3 (browse) e o P1-4 (`My Records`) — este último o que mexeu na fronteira que
-o D-42 estabeleceu, e o único da faixa a mexer nela. O **P2**, a **P3** e o **Battery Designer** (P4) saíram em seguida, e a matriz
-está em 31 de 32. O que resta do roteiro é PDF/DOCX no gerador de relatório —
-formato de saída, não capacidade de método.
+o D-42 estabeleceu, e o único da faixa a mexer nela. O **P2**, a **P3**, o **Battery Designer** (P4) e o **DOCX** (P4 restante) saíram em seguida, e a matriz
+está em 31 de 32 com `Geração de relatório` em nível 5 (3,56 de nível médio).
 
 ---
 
@@ -109,6 +108,13 @@ formato de saída, não capacidade de método.
 
 Registrados para não voltarem por engano:
 
+- ~~**P4 restante (DOCX)** — exportação nativa em DOCX~~ — `app/exporters/docx.py`
+  renderiza `Report` em documentos Word (.docx) nativos via `python-docx` puro,
+  sem dependências de sistema operacional em C (D-20). Cobertura completa de
+  `/api/exports/catalogo.docx` e `/api/exports/estudos/{id}.docx`, com tabelas
+  formatadas (`w:tblHeader` para repetir cabeçalhos na quebra de página, `w:cantSplit`
+  para não partir linhas), os três avisos de auditoria, e suporte nos botões do
+  frontend (`ExportButtons.tsx`, `api.ts`, `i18n.ts`).
 - ~~**P0-1** — a seleção era de estágio único~~ — o gargalo arquitetural que a
   análise de lacunas apontou, entregue em seis passos
   ([D-56](DECISIONS.md), [07-selecao-deterministica.md](07-selecao-deterministica.md)).
