@@ -144,7 +144,7 @@ function stageFromPayload(stage: StageOut, combinator: Combinator): StageState {
         ...common,
         kind: "tree",
         classSlugs: stage.class_slugs,
-        includeDescendants: stage.include_descendants,
+        includeDescendants: stage.includeDescendants,
       };
     case "process":
       return {
@@ -152,14 +152,14 @@ function stageFromPayload(stage: StageOut, combinator: Combinator): StageState {
         kind: "process",
         processSlugs: stage.process_slugs,
         processClassSlugs: stage.process_class_slugs,
-        includeDescendants: stage.include_descendants,
+        includeDescendants: stage.includeDescendants,
       };
     case "material":
       return {
         ...common,
         kind: "material",
-        materialClassSlugs: stage.material_class_slugs,
-        includeDescendants: stage.include_descendants,
+        materialClassSlugs: stage.materialClassSlugs,
+        includeDescendants: stage.includeDescendants,
       };
     case "chart":
       return {
@@ -270,17 +270,19 @@ function SelectionWizard() {
           kind: "chart",
           label: "",
           enabled: true,
-          x: xProp
-            ? { mode: "property", propertySlug: xProp, expression: "" }
-            : { mode: "index", propertySlug: "", expression: xExpr ?? "" },
-          y: yProp
-            ? { mode: "property", propertySlug: yProp, expression: "" }
-            : { mode: "index", propertySlug: "", expression: yExpr ?? "" },
-          selectionBox: {
-            xMin,
-            xMax,
-            yMin,
-            yMax,
+          x: {
+            mode: xProp ? "property" : "expression",
+            propertySlug: xProp ?? "",
+            expression: xExpr ?? "",
+            min: xMin,
+            max: xMax,
+          },
+          y: {
+            mode: yProp ? "property" : "expression",
+            propertySlug: yProp ?? "",
+            expression: yExpr ?? "",
+            min: yMin,
+            max: yMax,
           },
           indexExpression: "",
           indexGoal: "maximize",
