@@ -108,6 +108,13 @@ está em 31 de 32 com `Geração de relatório` em nível 5 (3,56 de nível méd
 
 Registrados para não voltarem por engano:
 
+- ~~**Atualização do Guia de Estilo (`/app/estilo`)**~~ — As três primitivas
+  novas do barril (`Bar`, `PageHeader`, `PanelShell`), o token de raio
+  `rounded-panel` (24 px / 1.5 rem), os seis tokens de superfície `rail-*`
+  com mini-frame de navegação, e a vitrine completa das 7 paletas por rota de
+  D-49 combinando galeria comparativa simultânea e alternador interativo de
+  matiz (`document.documentElement.dataset.section`). Quita o débito remanescente
+  da revisão final do patch Prisma.
 - ~~**P4 restante (DOCX)** — exportação nativa em DOCX~~ — `app/exporters/docx.py`
   renderiza `Report` em documentos Word (.docx) nativos via `python-docx` puro,
   sem dependências de sistema operacional em C (D-20). Cobertura completa de
@@ -551,16 +558,13 @@ Registrados para não voltarem por engano:
   (intocado por esta tarefa), 193 de frontend, 2 E2E e Lighthouse (11
   rotas, 33 execuções) verdes ao final.
 
-  **Débito aberto pela revisão final de branch, não quitado nesta
-  entrega:** `/app/estilo` (a página viva do guia de estilo, de onde saem
-  as capturas usadas como figuras de interface na monografia) não foi
-  atualizada para este patch — falta nela as três primitivas novas do
-  barril (`Bar`, `PageHeader`, `PanelShell`), o token de raio
-  `rounded-panel`, os seis tokens de superfície `rail-*` e, a lacuna mais
-  visível, ela só mostra a rampa da seção `inicio`, sem forma de ver as
-  outras seis paletas por rota que D-49 introduziu. A nota já existente no
-  `CLAUDE.md` da raiz sobre as figuras da monografia precisarem ser
-  refeitas depois de D-38 agora também vale depois de D-49/Prisma.
+  **Débito aberto pela revisão final de branch — quitado:** `/app/estilo`
+  (a página viva do guia de estilo, de onde saem as capturas usadas como
+  figuras de interface na monografia) foi atualizada com as três primitivas
+  novas do barril (`Bar`, `PageHeader`, `PanelShell`), o token de raio
+  `rounded-panel`, os seis tokens de superfície `rail-*`, e a vitrine
+  comparativa e alternador interativo das sete paletas por rota introduzidas
+  por D-49.
 - ~~**M5** — Métodos multicritério adicionais (TOPSIS, AHP, PROMETHEE)~~ —
   implementado **por pedido explícito do orientador**, revertendo a nota "só
   faça se o orientador pedir" que este item carregava antes: o usuário
