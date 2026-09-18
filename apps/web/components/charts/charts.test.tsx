@@ -8,14 +8,45 @@ import userEvent from "@testing-library/user-event";
 import { ChartToolbar } from "./ChartToolbar";
 import { ComparisonView } from "./ComparisonView";
 import { FigureData } from "./FigureData";
+import { AshbyMap } from "./AshbyMap";
 import { ptBR } from "@/lib/i18n";
 import { findA11yViolations, describeViolations } from "@/lib/testing/axe";
-import type { CompareAxis, CompareCell, CompareMaterial, Comparison } from "@/lib/types";
+import type { CompareAxis, CompareCell, CompareMaterial, Comparison, PropertyMap } from "@/lib/types";
 
 // Plotly pulls WebGL and canvas into a runtime that has neither, and none of
 // what it draws is under test here. Stubbing it also reproduces the reader's
 // situation exactly: the figure is absent, and the page still has to work.
-vi.mock("react-plotly.js", () => ({ default: () => null }));
+vi.mock("react-plotly.js", () => ({
+  default: (props: any) => (
+    <div
+      data-testid="plotly-mock"
+      data-dragmode={props.layout?.dragmode}
+      data-shapes={JSON.stringify(props.layout?.shapes ?? [])}
+    >
+      <button
+        type="button"
+        data-testid="simulate-selection"
+        onClick={() =>
+          props.onSelected?.({
+            range: {
+              x: [2000, 8000],
+              y: [50, 300],
+            },
+          })
+        }
+      >
+        Simulate Select
+      </button>
+      <button
+        type="button"
+        data-testid="simulate-clear"
+        onClick={() => props.onSelected?.(null)}
+      >
+        Simulate Clear
+      </button>
+    </div>
+  ),
+}));
 
 const t = ptBR.chart;
 
@@ -302,4 +333,119 @@ describe("ComparisonView, referência e diferença percentual", () => {
 
     expect(onSetReference).toHaveBeenCalledWith(1);
   });
-})
+});
+
+function makePropertyMap(): PropertyMap {
+  return {
+    x_property: makeAxis({
+      property_slug: "densidade",
+      property_name: "Densidade",
+      canonical_unit: "kg/m**3",
+      allows_log_scale: true,
+    }) as any,
+    y_property: makeAxis({
+      property_slug: "modulo-young",
+      property_name: "Módulo de Young",
+      symbol: "E",
+      canonical_unit: "GPa",
+      allows_log_scale: true,
+      category: "MECANICA",
+    }) as any,
+    points: [
+      {
+        material_id: 1,
+        material_name: "Aço 1020",
+        class_slug: "metais",
+        class_name: "Metais",
+        is_demo: true,
+        x: 7850,
+        y: 210,
+        x_min: null,
+        x_max: null,
+        y_min: null,
+        y_max: null,
+        x_quality: "MEDIDO",
+        y_quality: "MEDIDO",
+      },
+    ],
+    envelopes: [],
+    x_display_range: [1000, 10000],
+    y_display_range: [1, 1000],
+  };
+}
+
+describe("AshbyMap — seleção interativa e cursor", () => {
+  it("não renderiza seletor de cursor quando enableBoxSelect é falso ou omitido", () => {
+    render(<AshbyMap map={makePropertyMap()} />);
+    expect(screen.queryByShadowRole("group", { name: ptBR.chart.dragMode })).not.toBeInTheDocument();
+  });
+
+  it("renderiza o alternador de cursor entre zoom e seleção quando enableBoxSelect está ativo", () => {
+    render(<AshbyMap map={makePropertyMap()} enableBoxSelect />);
+    const group = screen.getByShadowRole("group", { name: ptBR.chart.dragMode });
+    expect(group).toBeInTheDocument();
+  });
+
+  it("passa a caixa de seleção configurada como shape retangular no layout do Plotly", async () => {
+    render(
+      <AshbyMap
+        map={makePropertyMap()}
+        enableBoxSelect
+        selectionBox={{ xMin: 2000, xMax: 8000, yMin: 50, yMax: 300 }}
+      />,
+    );
+
+    const mockPlotly = await screen.findByTestId("plotly-mock");
+    const shapes = JSON.parse(mockPlotly.getAttribute("data-shapes") ?? "[]");
+    expect(shapes.length).toBeGreaterThan(0);
+    const boxShape = shapes.find((s: any) => s.type === "rect");
+    expect(boxShape).toBeDefined();
+    expect(boxShape.x0).toBe(2000);
+    expect(boxShape.x1).toBe(8000);
+    expect(boxShape.y0).toBe(50);
+    expect(boxShape.y1).toBe(300);
+  });
+
+  it("dispara onSelectBox ao simular evento onSelected com coordenadas lineares", async () => {
+    const user = userEvent.setup();
+    const onSelectBox = vi.fn();
+
+    render(
+      <AshbyMap
+        map={makePropertyMap()}
+        displayScale="linear"
+        enableBoxSelect
+        onSelectBox={onSelectBox}
+      />,
+    );
+
+    const selectBtn = await screen.findByTestId("simulate-selection");
+    await user.click(selectBtn);
+
+    expect(onSelectBox).toHaveBeenCalledWith({
+      xMin: 2000,
+      xMax: 8000,
+      yMin: 50,
+      yMax: 300,
+    });
+  });
+
+  it("dispara onSelectBox com null ao limpar seleção", async () => {
+    const user = userEvent.setup();
+    const onSelectBox = vi.fn();
+
+    render(
+      <AshbyMap
+        map={makePropertyMap()}
+        displayScale="linear"
+        enableBoxSelect
+        onSelectBox={onSelectBox}
+      />,
+    );
+
+    const clearBtn = await screen.findByTestId("simulate-clear");
+    await user.click(clearBtn);
+
+    expect(onSelectBox).toHaveBeenCalledWith(null);
+  });
+});
