@@ -82,7 +82,7 @@ volta. Só a unidade de **exibição** é embelezada.
 
 Isto **não** move a linha `Unidades de exibição` da matriz do §5 de
 [`14-plataforma-selecao.md`](14-plataforma-selecao.md), que continua em **2**:
-ela mede se o usuário pode *escolher* a unidade de leitura (MPa em vez de Pa), e
+nela mede se o usuário pode *escolher* a unidade de leitura (MPa em vez de Pa), e
 isso não existe. São duas perguntas diferentes que dividiam o mesmo rótulo.
 
 ---
@@ -379,13 +379,14 @@ Registrados para não voltarem por engano:
   mutação nas duas direções — sem a guarda `kind <> 'chart'` a própria migração
   não roda.
 
-  **O que ficou de fora, e é melhoria e não bloqueio:** desenhar a caixa
-  **arrastando** no gráfico da tela — hoje os limites são digitados, já em
-  coordenadas de dados, que é a metade que importa para a auditoria — e o mapa
+  **O que ficou de fora, e é melhoria e não bloqueio:** ~~desenhar a caixa
+  **arrastando** no gráfico da tela~~ (entregue no Opção A / D-60: seleção
+  interativa por cursor com modo `select2d`, conversão de escala linear/log,
+  sincronização bidirecional de shapes no Plotly, preview dinâmico no estágio e
+  atalho direto "Criar estágio na Seleção" via deep link) — resta o mapa
   do universo de processos: um estudo de processos pode ter um estágio de
   gráfico, mas o plano dele não é desenhado, porque `property_map` lê o catálogo
   de materiais. Esse segundo item já estava registrado em P1 desde o P0-4.
-
 - ~~**S2** — CVEs do toolchain de desenvolvimento~~ — `npm audit` em
   `apps/web` de **27 para 14** achados, com as duas cadeias que tinham caminho
   de upgrade fechadas por inteiro. `vitest` 2 → **5** (com `vite` 7,
