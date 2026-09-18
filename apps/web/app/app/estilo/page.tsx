@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ptBR } from "@/lib/i18n";
 import { paletteSeats } from "@/lib/design/palette";
 import { SECTIONS, type SectionId } from "@/lib/design/sections";
@@ -51,7 +51,6 @@ import {
   ThemeToggle,
   ToggleChip,
   Tr,
-  useResolvedTheme,
   type Provenance,
 } from "@/components/ui";
 import {
@@ -189,7 +188,6 @@ export default function StyleGuidePage() {
   const [view, setView] = useState<"table" | "cards">("table");
   const [step, setStep] = useState("restricoes");
   const [activeSection, setActiveSection] = useState<SectionId>("inicio");
-  const resolvedTheme = useResolvedTheme();
   const seats = paletteSeats();
 
   const handleSelectSection = (id: SectionId) => {
@@ -198,14 +196,6 @@ export default function StyleGuidePage() {
       document.documentElement.dataset.section = id;
     }
   };
-
-  useEffect(() => {
-    return () => {
-      if (typeof document !== "undefined") {
-        document.documentElement.dataset.section = "inicio";
-      }
-    };
-  }, []);
 
   return (
     <div className="flex flex-col gap-10">
@@ -268,7 +258,7 @@ export default function StyleGuidePage() {
 
       <Section
         title="Paletas por rota (D-49)"
-        description="Cada área do produto carrega seu próprio matiz no espaço oklch (croma e luminosidade compartilhados, variando apenas o ângulo). A rampa é invertida no tema escuro, de modo que `bg-brand-50 text-brand-700` continua significando “tom fraco, tinta segura” nos dois temas sem recolorir componentes."
+        description="Cada área do produto carrega seu próprio matiz no espaço oklch (croma e luminosidade compartilhados, variando apenas o ângulo). A rampa é invertida no tema escuro, de modo que bg-brand-50 e text-brand-700 continuam significando tom fraco e tinta legível nos dois temas sem recolorir componentes."
         headingLevel={2}
       >
         <div className="flex flex-col gap-4">
@@ -312,7 +302,6 @@ export default function StyleGuidePage() {
               <div
                 key={sec.id}
                 data-section={sec.id}
-                data-theme={resolvedTheme}
                 className="flex flex-col gap-3 rounded-card border border-edge bg-surface-raised p-4 shadow-card"
               >
                 <div className="flex items-center justify-between">
