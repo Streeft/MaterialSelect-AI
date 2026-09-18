@@ -239,9 +239,10 @@ export default function SelectionPage() {
 function SelectionWizard() {
   const qc = useQueryClient();
   const params = useSearchParams();
-  const [step, setStep] = useState<Step>(
-    () => STEP_BY_SLUG[params.get("etapa") ?? ""] ?? "function",
-  );
+  const [step, setStep] = useState<Step>(() => {
+    if (params.get("novo_estagio") === "chart") return "constraints";
+    return STEP_BY_SLUG[params.get("etapa") ?? ""] ?? "function";
+  });
 
   const [name, setName] = useState("");
   const [functionText, setFunctionText] = useState("");
@@ -250,7 +251,45 @@ function SelectionWizard() {
   // P0-1: the ordered pipeline. It starts as exactly one limit stage holding
   // the nested AND/OR tree M6 introduced, so a simple study looks and behaves
   // as it always did; adding a stage is what turns it into a pipeline.
-  const [stages, setStages] = useState<StageState[]>(() => [emptyLimitStage()]);
+  // P1-2: deep link from chart map (/app/mapas) initializes with a chart stage
+  const [stages, setStages] = useState<StageState[]>(() => {
+    const newStageParam = params.get("novo_estagio");
+    if (newStageParam === "chart") {
+      const xProp = params.get("x_prop");
+      const xExpr = params.get("x_expr");
+      const yProp = params.get("y_prop");
+      const yExpr = params.get("y_expr");
+      const xMin = params.get("x_min") ?? "";
+      const xMax = params.get("x_max") ?? "";
+      const yMin = params.get("y_min") ?? "";
+      const yMax = params.get("y_max") ?? "";
+
+      return [
+        {
+          id: nextEditorId("stage"),
+          kind: "chart",
+          label: "",
+          enabled: true,
+          x: xProp
+            ? { mode: "property", propertySlug: xProp, expression: "" }
+            : { mode: "index", propertySlug: "", expression: xExpr ?? "" },
+          y: yProp
+            ? { mode: "property", propertySlug: yProp, expression: "" }
+            : { mode: "index", propertySlug: "", expression: yExpr ?? "" },
+          selectionBox: {
+            xMin,
+            xMax,
+            yMin,
+            yMax,
+          },
+          indexExpression: "",
+          indexGoal: "maximize",
+          indexLevel: "",
+        },
+      ];
+    }
+    return [emptyLimitStage()];
+  });
   // P0-3: which universe the study returns. Switching it resets the pipeline,
   // because a stage of the other universe is refused by the backend — carrying
   // one across would only produce an error the reader did not ask for.
@@ -528,60 +567,13 @@ function SelectionWizard() {
     loadStudy.mutate(id);
   }, [requestedStudy, loadStudy]);
 
-  // P1-2: deep link from chart map (/app/mapas) to create a chart stage
-  const newStageParam = params.get("novo_estagio");
-  const chartStageCreated = useRef(false);
+  // P1-2: deep link from chart map (/app/mapas) cleans URL after mounting
   useEffect(() => {
-    if (chartStageCreated.current || newStageParam !== "chart") return;
-    chartStageCreated.current = true;
-
-    const xProp = params.get("x_prop");
-    const xExpr = params.get("x_expr");
-    const yProp = params.get("y_prop");
-    const yExpr = params.get("y_expr");
-    const xMin = params.get("x_min") ?? "";
-    const xMax = params.get("x_max") ?? "";
-    const yMin = params.get("y_min") ?? "";
-    const yMax = params.get("y_max") ?? "";
-
-    const newChartStage: StageState = {
-      id: nextEditorId("stage"),
-      kind: "chart",
-      label: "",
-      enabled: true,
-      x: xProp
-        ? { mode: "property", propertySlug: xProp, expression: "" }
-        : { mode: "index", propertySlug: "", expression: xExpr ?? "" },
-      y: yProp
-        ? { mode: "property", propertySlug: yProp, expression: "" }
-        : { mode: "index", propertySlug: "", expression: yExpr ?? "" },
-      selectionBox: {
-        xMin,
-        xMax,
-        yMin,
-        yMax,
-      },
-      indexExpression: "",
-      indexGoal: "maximize",
-      indexLevel: "",
-    };
-
-    setStages((current) => {
-      const isOnlyInitial =
-        current.length === 1 &&
-        current[0].kind === "limit" &&
-        current[0].group.constraints.length === 0 &&
-        current[0].group.subgroups.length === 0;
-      return isOnlyInitial ? [newChartStage] : [...current, newChartStage];
-    });
-
-    setStep("constraints");
-
-    if (typeof window !== "undefined") {
+    if (params.get("novo_estagio") === "chart" && typeof window !== "undefined") {
       const cleanUrl = window.location.pathname;
       window.history.replaceState(null, "", cleanUrl);
     }
-  }, [newStageParam, params]);
+  }, [params]);
 
   /**
    * Merge the suggestions the user ticked into the wizard.

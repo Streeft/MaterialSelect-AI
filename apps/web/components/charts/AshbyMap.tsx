@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState, type ReactNode } from "react";
 import dynamic from "next/dynamic";
-import type { Data, Layout, Shape } from "plotly.js";
+import type { Data, Layout } from "plotly.js";
 import type { ChartScale, MapPoint, PropertyMap } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { formatNumber, prettyUnit } from "@/lib/format";
@@ -33,6 +33,8 @@ export interface BoxSelection {
   yMin: number | null;
   yMax: number | null;
 }
+
+type PlotlyShape = NonNullable<Layout["shapes"]>[number];
 
 interface AshbyMapProps {
   map: PropertyMap;
@@ -198,7 +200,9 @@ export function AshbyMap({
     isFetching && displayScale && displayScale !== map.scale && map.envelopes_alt.length > 0;
   const renderEnvelopes = useAltEnvelopes ? map.envelopes_alt : map.envelopes;
 
-  const handleSelected = (event: any) => {
+  const handleSelected = (
+    event: { range?: { x?: [number, number]; y?: [number, number] } } | null | undefined,
+  ) => {
     if (!event || !event.range || !event.range.x || !event.range.y) {
       onSelectBox?.(null);
       return;
@@ -229,7 +233,7 @@ export function AshbyMap({
     });
   };
 
-  const shapes = useMemo<Partial<Shape>[]>(() => {
+  const shapes = useMemo<PlotlyShape[]>(() => {
     if (!selectionBox) return [];
     const { xMin, xMax, yMin, yMax } = selectionBox;
     const hasAnyBound = xMin !== null || xMax !== null || yMin !== null || yMax !== null;
@@ -408,7 +412,7 @@ export function AshbyMap({
       margin: { l: 80, r: 24, t: 16, b: 60 },
       hovermode: "closest",
       dragmode: enableBoxSelect ? (activeDragMode === "select" ? "select" : "zoom") : "zoom",
-      shapes: shapes as Shape[],
+      shapes,
       legend: { ...base.legend, orientation: "h", y: -0.18, font: { size: 11 } },
       xaxis: {
         ...base.xaxis,
