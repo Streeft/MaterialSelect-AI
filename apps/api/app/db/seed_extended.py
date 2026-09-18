@@ -36,7 +36,6 @@ from app.models.property_definition import PropertyDefinition
 from app.models.source import Source
 from app.repositories.material_repository import MaterialRepository
 
-
 # ---------------------------------------------------------------------------
 # Catálogo de 70 materiais fictícios
 # ---------------------------------------------------------------------------
