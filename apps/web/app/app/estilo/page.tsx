@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ptBR } from "@/lib/i18n";
 import { paletteSeats } from "@/lib/design/palette";
 import { SECTIONS, type SectionId } from "@/lib/design/sections";
@@ -190,12 +190,12 @@ export default function StyleGuidePage() {
   const [activeSection, setActiveSection] = useState<SectionId>("inicio");
   const seats = paletteSeats();
 
-  const handleSelectSection = (id: SectionId) => {
-    setActiveSection(id);
-    if (typeof document !== "undefined") {
-      document.documentElement.dataset.section = id;
-    }
-  };
+  useEffect(() => {
+    document.documentElement.dataset.section = activeSection;
+    return () => {
+      document.documentElement.dataset.section = "inicio";
+    };
+  }, [activeSection]);
 
   return (
     <div className="flex flex-col gap-10">
@@ -209,8 +209,8 @@ export default function StyleGuidePage() {
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {SURFACES.map(([name, cls]) => (
             <Swatch key={name} name={name} className={cls} />
-          ))
-        }</div>
+          ))}
+        </div>
       </Section>
 
       <Section
@@ -268,7 +268,7 @@ export default function StyleGuidePage() {
               <ToggleChip
                 key={sec.id}
                 selected={activeSection === sec.id}
-                onClick={() => handleSelectSection(sec.id)}
+                onClick={() => setActiveSection(sec.id)}
               >
                 {sec.label} ({sec.hue}{"°"})
               </ToggleChip>

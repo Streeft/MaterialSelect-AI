@@ -252,11 +252,7 @@ jobs:
         run: npm run typecheck
 
       - name: Lint
-        run: |
-          npm run lint || {
-            echo "::error title=ESLint::$(npx eslint 'app/**/*.{ts,tsx}' 'components/**/*.{ts,tsx}' 'lib/**/*.{ts,tsx}' 2>&1 | tr '\n' ' ')"
-            exit 1
-          }
+        run: npm run lint
 
       - name: Testes
         run: npm run test
