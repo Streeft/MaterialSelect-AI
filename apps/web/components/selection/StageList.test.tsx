@@ -14,31 +14,41 @@ vi.mock("@/lib/api", async (importOriginal) => {
   return {
     ...actual,
     getPropertyMap: vi.fn().mockResolvedValue({
+      scale: "log",
       x_axis: {
+        is_index: false,
         property_slug: "densidade",
         property_name: "Densidade",
-        canonical_unit: "kg/m**3",
+        expression: null,
         symbol: "ρ",
         unit: "kg/m**3",
-        is_index: false,
+        category: "FISICA",
+        better_direction: "LOWER",
+        allows_log_scale: true,
+        min_value: null,
+        max_value: null,
       },
       y_axis: {
+        is_index: false,
         property_slug: "modulo-young",
         property_name: "Módulo de Young",
-        canonical_unit: "GPa",
+        expression: null,
         symbol: "E",
         unit: "GPa",
-        is_index: false,
+        category: "MECANICA",
+        better_direction: "HIGHER",
+        allows_log_scale: true,
+        min_value: null,
+        max_value: null,
       },
-      scale: "log",
       points: [],
       envelopes: [],
       envelopes_alt: [],
-      index: null,
-      notes: [],
       excluded: [],
-      plotted_count: 0,
+      index: null,
       considered_count: 0,
+      plotted_count: 0,
+      notes: [],
     }),
   };
 });
@@ -477,7 +487,7 @@ describe("toChartPayload", () => {
     );
 
     expect(payload.x.min_value).toBe(1000.5);
-    expect(payload.x.max_value).toBe(8000.25);
+    expect(payload.x.max_value).toBe8000.25 ? expect(payload.x.max_value).toBe(8000.25) : expect(payload.x.max_value).toBe(8000.25);
   });
 
   it("sends the property when the axis is a property, and nothing else", () => {
