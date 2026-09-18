@@ -1,0 +1,1 @@
+"""Módulo reservado (não utilizado)."""
