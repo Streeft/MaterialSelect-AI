@@ -37,13 +37,12 @@ from app.models.source import Source
 from app.repositories.material_repository import MaterialRepository
 
 
-# ---------------------------------------------------------------------------
-# Catálogo de 70 materiais fictícios
-# ---------------------------------------------------------------------------
-# A semente fixa (42) garante reprodutibilidade: dois runs produzem
-# exatamente os mesmos números, sem aleatoriedade entre teste e CI.
 def _generate_materials() -> list[dict]:
-    """Gera 70 materiais fictícios distribuídos nas 5 famílias."""
+    """Gera 70 materiais fictícios distribuídos nas 5 famílias.
+
+    A semente fixa (42) garante reprodutibilidade: dois runs produzem
+    exatamente os mesmos números, sem aleatoriedade entre teste e CI.
+    """
     metais_names = [
         ("Liga de Alumínio 6061-T6", "Ligas Leves"),
         ("Aço Carbono 1045", "Aços"),
@@ -309,11 +308,7 @@ def _generate_materials() -> list[dict]:
                     entry["unit"] = unit
 
                 # ~15% de chance de incerteza (máximo 15)
-                if (
-                    uncertain_count < 15
-                    and rng.random() < 0.15
-                    and slug != "limite_escoamento"
-                ):
+                if uncertain_count < 15 and rng.random() < 0.15 and slug != "limite_escoamento":
                     entry["uncertainty"] = round(val_scalar * 0.05, 3)
                     uncertain_count += 1
 
@@ -338,9 +333,6 @@ EXTENDED_DEMO_MATERIALS: list[dict] = _generate_materials()
 DEMO_SOURCE_LABEL = "Dataset Demo MaterialSelect"
 
 
-# ---------------------------------------------------------------------------
-# Função de semeadura
-# ---------------------------------------------------------------------------
 def _get_or_create_class(
     db: Session,
     name: str,
@@ -348,9 +340,7 @@ def _get_or_create_class(
 ) -> MaterialClass:
     """Reutiliza ou cria uma MaterialClass pelo slug."""
     existing = (
-        db.execute(select(MaterialClass).where(MaterialClass.slug == slug))
-        .scalars()
-        .one_or_none()
+        db.execute(select(MaterialClass).where(MaterialClass.slug == slug)).scalars().one_or_none()
     )
     if existing:
         return existing
@@ -407,9 +397,7 @@ def seed_extended_materials(db: Session, source: Source) -> int:
 
     Retorna o número de materiais criados nesta execução.
     """
-    prop_by_slug: dict[str, PropertyDefinition] = {
-        p.slug: p for p in db.execute(select(PropertyDefinition)).scalars().all()
-    }
+    prop_by_slug = {p.slug: p for p in db.execute(select(PropertyDefinition)).scalars().all()}
     material_repo = MaterialRepository(db)
 
     created = 0
@@ -423,9 +411,7 @@ def seed_extended_materials(db: Session, source: Source) -> int:
             continue
 
         material_class = _get_or_create_class(
-            db,
-            mat_spec["class_slug"].title(),
-            mat_spec["class_slug"],
+            db, mat_spec["class_slug"].title(), mat_spec["class_slug"]
         )
         material = Material(
             name=mat_spec["name"],
