@@ -125,14 +125,6 @@ let counter = 0;
 const nextId = () => `criterion-${counter++}`;
 
 /**
- * How many candidates are still standing, at every step.
- *
- * It used to be a sentence next to the combinator on the constraints step, so
- * the one number the whole method turns on disappeared the moment the reader
- * moved on. Here it is an element, it is always present, and it says what it is
- * doing while it recounts instead of showing a stale number as if it were fresh.
- */
-/**
  * One persisted stage as the editor holds it.
  *
  * A named function with an exhaustive switch, and not the nested ternary this
@@ -152,7 +144,7 @@ function stageFromPayload(stage: StageOut, combinator: Combinator): StageState {
         ...common,
         kind: "tree",
         classSlugs: stage.class_slugs,
-        includeDescendants: stage.include_descendants,
+        includeDescendants: stage.includeDescendants,
       };
     case "process":
       return {
@@ -160,14 +152,14 @@ function stageFromPayload(stage: StageOut, combinator: Combinator): StageState {
         kind: "process",
         processSlugs: stage.process_slugs,
         processClassSlugs: stage.process_class_slugs,
-        includeDescendants: stage.include_descendants,
+        includeDescendants: stage.includeDescendants,
       };
     case "material":
       return {
         ...common,
         kind: "material",
-        materialClassSlugs: stage.material_class_slugs,
-        includeDescendants: stage.include_descendants,
+        materialClassSlugs: stage.materialClassSlugs,
+        includeDescendants: stage.includeDescendants,
       };
     case "chart":
       return {
@@ -192,7 +184,6 @@ function stageFromPayload(stage: StageOut, combinator: Combinator): StageState {
       };
   }
 }
-
 
 function CandidateCounter({
   count,
@@ -248,9 +239,10 @@ export default function SelectionPage() {
 function SelectionWizard() {
   const qc = useQueryClient();
   const params = useSearchParams();
-  const [step, setStep] = useState<Step>(
-    () => STEP_BY_SLUG[params.get("etapa") ?? ""] ?? "function",
-  );
+  const [step, setStep] = useState<Step>(() => {
+    if (params.get("novo_estagio") === "chart") return "constraints";
+    return STEP_BY_SLUG[params.get("etapa") ?? ""] ?? "function";
+  });
 
   const [name, setName] = useState("");
   const [functionText, setFunctionText] = useState("");
@@ -259,7 +251,47 @@ function SelectionWizard() {
   // P0-1: the ordered pipeline. It starts as exactly one limit stage holding
   // the nested AND/OR tree M6 introduced, so a simple study looks and behaves
   // as it always did; adding a stage is what turns it into a pipeline.
-  const [stages, setStages] = useState<StageState[]>(() => [emptyLimitStage()]);
+  // P1-2: deep link from chart map (/app/mapas) initializes with a chart stage
+  const [stages, setStages] = useState<StageState[]>(() => {
+    const newStageParam = params.get("novo_estagio");
+    if (newStageParam === "chart") {
+      const xProp = params.get("x_prop");
+      const xExpr = params.get("x_expr");
+      const yProp = params.get("y_prop");
+      const yExpr = params.get("y_expr");
+      const xMin = params.get("x_min") ?? "";
+      const xMax = params.get("x_max") ?? "";
+      const yMin = params.get("y_min") ?? "";
+      const yMax = params.get("y_max") ?? "";
+
+      return [
+        {
+          id: nextEditorId("stage"),
+          kind: "chart",
+          label: "",
+          enabled: true,
+          x: {
+            mode: xProp ? "property" : "expression",
+            propertySlug: xProp ?? "",
+            expression: xExpr ?? "",
+            min: xMin,
+            max: xMax,
+          },
+          y: {
+            mode: yProp ? "property" : "expression",
+            propertySlug: yProp ?? "",
+            expression: yExpr ?? "",
+            min: yMin,
+            max: yMax,
+          },
+          indexExpression: "",
+          indexGoal: "maximize",
+          indexLevel: "",
+        },
+      ];
+    }
+    return [emptyLimitStage()];
+  });
   // P0-3: which universe the study returns. Switching it resets the pipeline,
   // because a stage of the other universe is refused by the backend — carrying
   // one across would only produce an error the reader did not ask for.
@@ -536,6 +568,14 @@ function SelectionWizard() {
     loadedFromUrl.current = true;
     loadStudy.mutate(id);
   }, [requestedStudy, loadStudy]);
+
+  // P1-2: deep link from chart map (/app/mapas) cleans URL after mounting
+  useEffect(() => {
+    if (params.get("novo_estagio") === "chart" && typeof window !== "undefined") {
+      const cleanUrl = window.location.pathname;
+      window.history.replaceState(null, "", cleanUrl);
+    }
+  }, [params]);
 
   /**
    * Merge the suggestions the user ticked into the wizard.

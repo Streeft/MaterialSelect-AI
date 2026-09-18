@@ -379,6 +379,13 @@ export const ptBR = {
       "Registro sem um dos dois valores não é desenhado no plano e não passa — mesmo onde a caixa não limita aquele eixo.",
     stageChartInvertedBox: (axis: string) =>
       `O mínimo do eixo ${axis} é maior que o máximo: assim nada passa.`,
+    stageChartClearBox: "Limpar caixa",
+    stageChartShowMap: "Ver gráfico interativo",
+    stageChartHideMap: "Ocultar gráfico interativo",
+    stageChartInteractiveHint:
+      "Arraste sobre o gráfico para delimitar a região, ou ajuste os campos numéricos de mínimo e máximo.",
+    stageChartProcessNoMap:
+      "Nenhum mapa é desenhado para o universo de processos: os planos de processo são filtrados numericamente e por expressões.",
     stagePassedAlone: "Admitidos sozinho",
     stageRemaining: "Restantes",
     stageDisabled: "Desligado",
@@ -620,7 +627,7 @@ export const ptBR = {
   },
   similar: {
     title: "Materiais semelhantes",
-    hint: "Escolha em que aspectos \u201Csemelhante\u201D quer dizer. A distância é medida só sobre essas propriedades.",
+    hint: "Escolha em que aspectos “semelhante” quer dizer. A distância é medida só sobre essas propriedades.",
     basisLabel: "Comparar por",
     basisEmpty: "Escolha ao menos uma propriedade para comparar.",
     search: "Buscar semelhantes",
@@ -869,8 +876,8 @@ export const ptBR = {
     comparisonTableTitle: "Comparativo das químicas para os requisitos",
     // Dinheiro não está em sistema de unidades nenhum (D-65): a moeda é dita
     // em palavras, nunca inferida de um símbolo. O catálogo cota em dólares
-    // porque é a moeda da literatura de custo de célula, e a frase diz isso —
-    // e diz também que o número não é orçamento.
+    // porque é a moeda da literatura de custo de célula cota. São ordens de
+    // grandeza de comparação entre químicas, não orçamento.
     currencyNote:
       "Os custos saem do catálogo em dólares dos Estados Unidos (US$), a moeda em que a literatura de custo de célula cota. São ordens de grandeza de comparação entre químicas, não orçamento.",
     lightestBadge: "Mais leve",
@@ -1082,6 +1089,11 @@ export const ptBR = {
       `${title}. Figura; a tabela de dados equivalente está logo abaixo.`,
     columnClass: "Classe",
     thisMaterial: "Este material",
+    dragMode: "Modo do cursor",
+    dragModeSelect: "Selecionar região",
+    dragModeZoom: "Navegar / Zoom",
+    selectedRegion: "Região selecionada",
+    clearBoxSelection: "Limpar seleção",
   },
   map: {
     title: "Mapas de propriedades",
@@ -1166,6 +1178,13 @@ export const ptBR = {
     chartNamePlaceholder: "Ex: Ligas leves e rígidas",
     cancel: "Cancelar",
     ok: "OK",
+    selectedRegionTitle: "Região selecionada no mapa",
+    selectedRegionBounds: (xRange: string, yRange: string) =>
+      `X: ${xRange} · Y: ${yRange}`,
+    selectedCount: (n: number) =>
+      `${n} ${n === 1 ? "material na região" : "materiais na região"}`,
+    useInSelection: "Criar estágio na Seleção",
+    clearSelection: "Limpar seleção",
   },
   dashboard: {
     title: "Painel do catálogo",
