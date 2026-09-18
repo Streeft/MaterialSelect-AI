@@ -324,7 +324,7 @@ def _generate_materials() -> list[dict]:
                     and rng.random() < 0.15
                     and slug in ("densidade", "modulo_young")
                 ):
-                    entry["measurement_condition"] = "Temperatura ambiente (25 \u00b0C)"
+                    entry["measurement_condition"] = "Temperatura ambiente (25 °C)"
                     meas_cond_count += 1
 
                 mat["values"].append(entry)
@@ -385,7 +385,8 @@ def _build_value_row(
             value_typical=spec.get("typical"),
         )
     else:
-        raise ValueError(f"Tipo de valor desconhecido no seed: {kind!r}")
+        msg = f"Tipo de valor desconhecido no seed: {kind!r}"
+        raise ValueError(msg)
 
     return MaterialPropertyValue(
         property_id=prop.id,
@@ -480,7 +481,7 @@ def main() -> None:
         )
         if demo_source is None:
             print(
-                "[seed_extended] Erro: fonte demo n\u00e3o encontrada. "
+                "[seed_extended] Erro: fonte demo não encontrada. "
                 "Execute primeiro: python -m app.db.seed"
             )
             return
@@ -488,8 +489,8 @@ def main() -> None:
         created = seed_extended_materials(db, demo_source)
         db.commit()
 
-    print(f"[seed_extended] \u26a0\ufe0f  Dados exclusivamente demonstrativos.")
-    print(f"[seed_extended] Conclu\u00eddo: {created} materiais criados.")
+    print("[seed_extended] \u26a0\ufe0f  Dados exclusivamente demonstrativos.")
+    print(f"[seed_extended] Concluído: {created} materiais criados.")
 
 
 if __name__ == "__main__":
