@@ -340,23 +340,33 @@ describe("ComparisonView, referência e diferença percentual", () => {
 
 function makePropertyMap(): PropertyMap {
   return {
+    scale: "linear",
     x_axis: {
+      is_index: false,
       property_slug: "densidade",
       property_name: "Densidade",
-      canonical_unit: "kg/m**3",
+      expression: null,
       symbol: "ρ",
       unit: "kg/m**3",
-      is_index: false,
+      category: "FISICA",
+      better_direction: "LOWER",
+      allows_log_scale: true,
+      min_value: null,
+      max_value: null,
     },
     y_axis: {
+      is_index: false,
       property_slug: "modulo-young",
       property_name: "Módulo de Young",
-      canonical_unit: "GPa",
+      expression: null,
       symbol: "E",
       unit: "GPa",
-      is_index: false,
+      category: "MECANICA",
+      better_direction: "HIGHER",
+      allows_log_scale: true,
+      min_value: null,
+      max_value: null,
     },
-    scale: "linear",
     points: [
       {
         material_id: 1,
@@ -372,6 +382,8 @@ function makePropertyMap(): PropertyMap {
         y_max: null,
         x_uncertainty: null,
         y_uncertainty: null,
+        x_is_interval: false,
+        y_is_interval: false,
         x_quality: "MEDIDO",
         y_quality: "MEDIDO",
         index_value: null,
