@@ -17,7 +17,10 @@ import type { CompareAxis, CompareCell, CompareMaterial, Comparison, PropertyMap
 // what it draws is under test here. Stubbing it also reproduces the reader's
 // situation exactly: the figure is absent, and the page still has to work.
 vi.mock("react-plotly.js", () => ({
-  default: (props: any) => (
+  default: (props: {
+    layout?: { dragmode?: string; shapes?: unknown[] };
+    onSelected?: (event: unknown) => void;
+  }) => (
     <div
       data-testid="plotly-mock"
       data-dragmode={props.layout?.dragmode}
@@ -337,20 +340,23 @@ describe("ComparisonView, referência e diferença percentual", () => {
 
 function makePropertyMap(): PropertyMap {
   return {
-    x_property: makeAxis({
+    x_axis: {
       property_slug: "densidade",
       property_name: "Densidade",
       canonical_unit: "kg/m**3",
-      allows_log_scale: true,
-    }) as any,
-    y_property: makeAxis({
+      symbol: "ρ",
+      unit: "kg/m**3",
+      is_index: false,
+    },
+    y_axis: {
       property_slug: "modulo-young",
       property_name: "Módulo de Young",
-      symbol: "E",
       canonical_unit: "GPa",
-      allows_log_scale: true,
-      category: "MECANICA",
-    }) as any,
+      symbol: "E",
+      unit: "GPa",
+      is_index: false,
+    },
+    scale: "linear",
     points: [
       {
         material_id: 1,
@@ -364,13 +370,21 @@ function makePropertyMap(): PropertyMap {
         x_max: null,
         y_min: null,
         y_max: null,
+        x_uncertainty: null,
+        y_uncertainty: null,
         x_quality: "MEDIDO",
         y_quality: "MEDIDO",
+        index_value: null,
+        index_undefined_reason: null,
       },
     ],
     envelopes: [],
-    x_display_range: [1000, 10000],
-    y_display_range: [1, 1000],
+    envelopes_alt: [],
+    index: null,
+    notes: [],
+    excluded: [],
+    plotted_count: 1,
+    considered_count: 1,
   };
 }
 
@@ -398,7 +412,7 @@ describe("AshbyMap — seleção interativa e cursor", () => {
     const mockPlotly = await screen.findByTestId("plotly-mock");
     const shapes = JSON.parse(mockPlotly.getAttribute("data-shapes") ?? "[]");
     expect(shapes.length).toBeGreaterThan(0);
-    const boxShape = shapes.find((s: any) => s.type === "rect");
+    const boxShape = shapes.find((s: Record<string, unknown>) => s.type === "rect");
     expect(boxShape).toBeDefined();
     expect(boxShape.x0).toBe(2000);
     expect(boxShape.x1).toBe(8000);
