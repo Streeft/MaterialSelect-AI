@@ -5,6 +5,7 @@ import { render, within } from "@testing-library/react";
 // plain @testing-library/react queries — same note as ConstraintEditor.test.tsx.
 import { screen } from "shadow-dom-testing-library";
 import userEvent from "@testing-library/user-event";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   StageList,
   type StageState,
@@ -17,6 +18,7 @@ import {
   emptyProcessStage,
   emptyTreeStage,
   isSingleLimitStage,
+  toBound,
   toChartPayload,
   toStagePayload,
 } from "./StageList";
@@ -105,19 +107,32 @@ function Harness({
   universe?: "material" | "process";
 }) {
   const [stages, setStages] = useState<StageState[]>(initial);
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            retry: false,
+          },
+        },
+      }),
+  );
+
   return (
-    <StageList
-      stages={stages}
-      properties={[density]}
-      classes={classes}
-      processes={processes}
-      processClasses={processClasses}
-      universe={universe}
-      onChange={(next) => {
-        setStages(next);
-        onStages?.(next);
-      }}
-    />
+    <QueryClientProvider client={queryClient}>
+      <StageList
+        stages={stages}
+        properties={[density]}
+        classes={classes}
+        processes={processes}
+        processClasses={processClasses}
+        universe={universe}
+        onChange={(next) => {
+          setStages(next);
+          onStages?.(next);
+        }}
+      />
+    </QueryClientProvider>
   );
 }
 
@@ -419,6 +434,15 @@ describe("toChartPayload", () => {
     expect(payload.x.max_value).toBeNull();
   });
 
+  it("aceita vírgula como separador decimal em limites digitados", () => {
+    const payload = toChartPayload(
+      chartStage({ x: { ...chartStage().x, min: "1000,5", max: "8000,25" } }),
+    );
+
+    expect(payload.x.min_value).toBe(1000.5);
+    expect(payload.x.max_value).toBe(8000.25);
+  });
+
   it("sends the property when the axis is a property, and nothing else", () => {
     const payload = toChartPayload(
       chartStage({
@@ -608,5 +632,51 @@ describe("StageList with a chart stage", () => {
       (o) => o.textContent?.trim() ?? "",
     );
     expect(options).toContain("Densidade");
+  });
+
+  it("limpa os limites da caixa ao clicar em 'Limpar caixa'", async () => {
+    const user = userEvent.setup();
+    let last: StageState[] = [];
+    render(
+      <Harness
+        initial={[
+          chartStage({
+            x: { ...chartStage().x, min: "1000", max: "8000" },
+            y: { ...chartStage().y, min: "10", max: "200" },
+          }),
+        ]}
+        onStages={(s) => (last = s)}
+      />,
+    );
+
+    const clearBtn = screen.getByShadowRole("button", { name: t.stageChartClearBox });
+    await user.click(clearBtn);
+
+    const updated = last[0];
+    if (updated?.kind !== "chart") throw new Error("unreachable");
+    expect(updated.x.min).toBe("");
+    expect(updated.x.max).toBe("");
+    expect(updated.y.min).toBe("");
+    expect(updated.y.max).toBe("");
+
+    const payload = toChartPayload(updated);
+    expect(payload.x.min_value).toBeNull();
+    expect(payload.x.max_value).toBeNull();
+  });
+
+  it("oferece alternar o mapa interativo no estágio de gráfico", async () => {
+    const user = userEvent.setup();
+    render(<Harness initial={[chartStage()]} />);
+
+    const toggleBtn = screen.getByShadowRole("button", { name: t.stageChartShowMap });
+    expect(toggleBtn).toBeInTheDocument();
+    await user.click(toggleBtn);
+    expect(screen.getByShadowRole("button", { name: t.stageChartHideMap })).toBeInTheDocument();
+    expect(screen.getByText(t.stageChartInteractiveHint)).toBeInTheDocument();
+  });
+
+  it("avisa que o universo de processos não desenha mapa", () => {
+    render(<Harness initial={[chartStage()]} universe="process" />);
+    expect(screen.getByText(t.stageChartProcessNoMap)).toBeInTheDocument();
   });
 });
