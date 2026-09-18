@@ -22,6 +22,7 @@ import random
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.db.base import Base, SessionLocal, engine
 from app.domain.data_quality import (
     build_interval_value,
     build_scalar_value,
@@ -351,11 +352,7 @@ def _get_or_create_class(
 ) -> MaterialClass:
     """Reutiliza ou cria uma MaterialClass pelo slug."""
     existing = (
-        db.execute(
-            select(MaterialClass).where(MaterialClass.slug == slug)
-        )
-        .scalars()
-        .one_or_none()
+        db.execute(select(MaterialClass).where(MaterialClass.slug == slug)).scalars().one_or_none()
     )
     if existing:
         return existing
@@ -413,17 +410,14 @@ def seed_extended_materials(db: Session, source: Source) -> int:
     Retorna o número de materiais criados nesta execução.
     """
     prop_by_slug: dict[str, PropertyDefinition] = {
-        p.slug: p
-        for p in db.execute(select(PropertyDefinition)).scalars().all()
+        p.slug: p for p in db.execute(select(PropertyDefinition)).scalars().all()
     }
     material_repo = MaterialRepository(db)
 
     created = 0
     for mat_spec in EXTENDED_DEMO_MATERIALS:
         existing = (
-            db.execute(
-                select(Material).where(Material.name == mat_spec["name"])
-            )
+            db.execute(select(Material).where(Material.name == mat_spec["name"]))
             .scalars()
             .one_or_none()
         )
@@ -452,9 +446,7 @@ def seed_extended_materials(db: Session, source: Source) -> int:
             row.material_id = material.id
             db.add(row)
 
-        material_repo.sync_keywords(
-            material.id, mat_spec.get("keywords", [])
-        )
+        material_repo.sync_keywords(material.id, mat_spec.get("keywords", []))
         created += 1
 
     db.flush()
@@ -467,15 +459,11 @@ def main() -> None:
     Pressupõe que o seed principal (python -m app.db.seed) já foi executado,
     pois depende das classes, propriedades e fonte demo existentes.
     """
-    from app.db.base import Base, SessionLocal, engine
-
     Base.metadata.create_all(bind=engine)
     with SessionLocal() as db:
         # Busca a fonte demo criada pelo seed principal
         demo_source = (
-            db.execute(
-                select(Source).where(Source.label == DEMO_SOURCE_LABEL)
-            )
+            db.execute(select(Source).where(Source.label == DEMO_SOURCE_LABEL))
             .scalars()
             .one_or_none()
         )
@@ -489,7 +477,7 @@ def main() -> None:
         created = seed_extended_materials(db, demo_source)
         db.commit()
 
-    print("[seed_extended] \u26a0\ufe0f  Dados exclusivamente demonstrativos.")
+    print("[seed_extended] ⚠️  Dados exclusivamente demonstrativos.")
     print(f"[seed_extended] Concluído: {created} materiais criados.")
 
 
