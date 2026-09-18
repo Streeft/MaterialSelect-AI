@@ -494,9 +494,6 @@ function MapsPageContent() {
 
       // Copy to clipboard.
       await navigator.clipboard.writeText(url);
-
-      // Brief visual feedback (reuse the existing pattern if there is one,
-      // or show a simple inline message).
     } catch (err) {
       console.error("Failed to share:", err);
     }
@@ -824,4 +821,178 @@ function MapsPageContent() {
 
                       {overlay && overlay.levels.length > 0 && (
                         <ul className="flex flex-col gap-1">
-                          {overlay.levels.map((level) => (\n                            <li\n                              key={`${level.value}-${level.material_id ?? \"n\"}`}\n                              className=\"flex flex-wrap items-center gap-2 text-xs text-ink-muted\"\n                            >\n                              <span>\n                                M = {formatNumber(level.value)}\n                                {level.material_name ? ` (${level.material_name})` : \"\"} —{\" \"}\n                                {t.superior(level.superior_material_ids.length)}\n                              </span>\n                              <Button\n                                size=\"sm\"\n                                variant=\"ghost\"\n                                onClick={() => removeLevel(level.material_id, level.value)}\n                                aria-label={`${ptBR.actions.remove}: M = ${formatNumber(level.value)}`}\n                              >\n                                {ptBR.actions.remove}\n                              </Button>\n                            </li>\n                          ))}\n                        </ul>\n                      )}\n                    </div>\n                  )}\n                </>\n              )}\n            </CardBody>\n          </Card>\n        </div>\n      </Section>\n\n      {axisConflict && (\n        <Alert tone=\"warning\" role=\"alert\">\n          {sameExpression ? t.sameExpressionAxis : t.sameAxis}\n        </Alert>\n      )}\n      {map.isLoading && !axisConflict && <LoadingState label={t.loading} />}\n      {map.isError && (\n        <ErrorState\n          title={t.error}\n          description={map.error instanceof Error ? map.error.message : undefined}\n          onRetry={() => void map.refetch()}\n        />\n      )}\n\n      {map.data && (\n        <>\n          {selectedBox && (\n            <Card className=\"border-brand-300 bg-brand-50/40 dark:border-brand-800 dark:bg-brand-950/20\">\n              <CardBody className=\"flex flex-wrap items-center justify-between gap-4 py-3\">\n                <div className=\"flex flex-col gap-1\">\n                  <span className=\"text-xs font-semibold text-brand-700 dark:text-brand-300\">\n                    {t.selectedRegionTitle}\n                  </span>\n                  <span className=\"text-sm text-ink\">\n                    {t.selectedRegionBounds(\n                      `${selectedBox.xMin !== null ? formatNumber(selectedBox.xMin) : \"—\"} a ${selectedBox.xMax !== null ? formatNumber(selectedBox.xMax) : \"—\"} ${prettyUnit(map.data.x_axis.unit)}`,\n                      `${selectedBox.yMin !== null ? formatNumber(selectedBox.yMin) : \"—\"} a ${selectedBox.yMax !== null ? formatNumber(selectedBox.yMax) : \"—\"} ${prettyUnit(map.data.y_axis.unit)}`,\n                    )}\n                  </span>\n                  <span className=\"text-xs text-ink-muted\">\n                    {t.selectedCount(pointsInBox.length)}\n                  </span>\n                </div>\n                <div className=\"flex items-center gap-2\">\n                  <Button\n                    size=\"sm\"\n                    variant=\"ghost\"\n                    onClick={() => setSelectedBox(null)}\n                  >\n                    {t.clearSelection}\n                  </Button>\n                  <Button\n                    size=\"sm\"\n                    variant=\"primary\"\n                    onClick={() => {\n                      const query = new URLSearchParams();\n                      query.set(\"etapa\", \"restricoes\");\n                      query.set(\"novo_estagio\", \"chart\");\n                      if (xAxis.mode === \"property\") {\n                        query.set(\"x_prop\", xAxis.property);\n                      } else if (xAxis.mode === \"index\") {\n                        const res = resolveAxisIndex(xAxis, indices.data ?? []);\n                        if (res) query.set(\"x_expr\", res.expression);\n                      }\n                      if (yAxis.mode === \"property\") {\n                        query.set(\"y_prop\", yAxis.property);\n                      } else if (yAxis.mode === \"index\") {\n                        const res = resolveAxisIndex(yAxis, indices.data ?? []);\n                        if (res) query.set(\"y_expr\", res.expression);\n                      }\n                      if (selectedBox.xMin !== null) query.set(\"x_min\", String(selectedBox.xMin));\n                      if (selectedBox.xMax !== null) query.set(\"x_max\", String(selectedBox.xMax));\n                      if (selectedBox.yMin !== null) query.set(\"y_min\", String(selectedBox.yMin));\n                      if (selectedBox.yMax !== null) query.set(\"y_max\", String(selectedBox.yMax));\n                      router.push(`/app/selecao?${query.toString()}`);\n                    }}\n                  >\n                    {t.useInSelection} →\n                  </Button>\n                </div>\n              </CardBody>\n            </Card>\n          )}\n\n          <AshbyMap\n            map={map.data}\n            displayScale={displayScale}\n            isFetching={map.isFetching}\n            highlightIds={highlightIds}\n            showEnvelopes={showEnvelopes}\n            showIntervals={showIntervals}\n            showLabels={showLabels}\n            enableBoxSelect\n            selectionBox={selectedBox}\n            onSelectBox={setSelectedBox}\n          />\n\n          {map.data.notes.length > 0 && (\n            <Section id=\"observacoes\" title={t.notesTitle} headingLevel={2}>\n              <Card>\n                <CardBody>\n                  <ul className=\"flex flex-col gap-1 text-xs text-ink-muted\">\n                    {map.data.notes.map((note, i) => (\n                      <li key={i}>• {note}</li>\n                    ))}\n                  </ul>\n                </CardBody>\n              </Card>\n            </Section>\n          )}\n\n          {/* Information, not failure: a material outside the map is a fact\n              about the catalogue, and the reader needs the reason to fix it. */}\n          {map.data.excluded.length > 0 && (\n            <Section id=\"excluidos\" title={t.excludedTitle} description={t.excludedHint}>\n              <Card>\n                <CardBody>\n                  <ul className=\"flex flex-col gap-1 text-sm text-ink\">\n                    {map.data.excluded.map((e) => (\n                      <li key={e.material_id}>\n                        <span className=\"font-medium\">{e.name}</span>{\" \"}\n                        <span className=\"text-ink-muted\">— {e.reason}</span>\n                      </li>\n                    ))}\n                  </ul>\n                </CardBody>\n              </Card>\n            </Section>\n          )}\n\n          {map.data.points.length > 0 && (\n            <div>\n              <ButtonLink\n                href={`/app/comparar?materiais=${map.data.points.map((p) => p.material_id).join(\",\")}`}\n                size=\"sm\"\n              >\n                {t.compareSelected} →\n              </ButtonLink>\n            </div>\n          )}\n        </>\n      )}\n    </div>\n  );\n}\n\nexport default function MapsPage() {\n  // useSearchParams needs a Suspense boundary during prerendering.\n  return (\n    <Suspense fallback={<LoadingState label={t.loading} />}>\n      <MapsPageContent />\n    </Suspense>\n  );\n}\n
+                          {overlay.levels.map((level) => (
+                            <li
+                              key={`${level.value}-${level.material_id ?? "n"}`}
+                              className="flex flex-wrap items-center gap-2 text-xs text-ink-muted"
+                            >
+                              <span>
+                                M = {formatNumber(level.value)}
+                                {level.material_name ? ` (${level.material_name})` : ""} —{" "}
+                                {t.superior(level.superior_material_ids.length)}
+                              </span>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => removeLevel(level.material_id, level.value)}
+                                aria-label={`${ptBR.actions.remove}: M = ${formatNumber(level.value)}`}
+                              >
+                                {ptBR.actions.remove}
+                              </Button>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
+            </CardBody>
+          </Card>
+        </div>
+      </Section>
+
+      {axisConflict && (
+        <Alert tone="warning" role="alert">
+          {sameExpression ? t.sameExpressionAxis : t.sameAxis}
+        </Alert>
+      )}
+      {map.isLoading && !axisConflict && <LoadingState label={t.loading} />}
+      {map.isError && (
+        <ErrorState
+          title={t.error}
+          description={map.error instanceof Error ? map.error.message : undefined}
+          onRetry={() => void map.refetch()}
+        />
+      )}
+
+      {map.data && (
+        <>
+          {selectedBox && (
+            <Card className="border-brand-300 bg-brand-50/40 dark:border-brand-800 dark:bg-brand-950/20">
+              <CardBody className="flex flex-wrap items-center justify-between gap-4 py-3">
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs font-semibold text-brand-700 dark:text-brand-300">
+                    {t.selectedRegionTitle}
+                  </span>
+                  <span className="text-sm text-ink">
+                    {t.selectedRegionBounds(
+                      `${selectedBox.xMin !== null ? formatNumber(selectedBox.xMin) : "—"} a ${selectedBox.xMax !== null ? formatNumber(selectedBox.xMax) : "—"} ${prettyUnit(map.data.x_axis.unit)}`,
+                      `${selectedBox.yMin !== null ? formatNumber(selectedBox.yMin) : "—"} a ${selectedBox.yMax !== null ? formatNumber(selectedBox.yMax) : "—"} ${prettyUnit(map.data.y_axis.unit)}`,
+                    )}
+                  </span>
+                  <span className="text-xs text-ink-muted">
+                    {t.selectedCount(pointsInBox.length)}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setSelectedBox(null)}
+                  >
+                    {t.clearSelection}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="primary"
+                    onClick={() => {
+                      const query = new URLSearchParams();
+                      query.set("etapa", "restricoes");
+                      query.set("novo_estagio", "chart");
+                      if (xAxis.mode === "property") {
+                        query.set("x_prop", xAxis.property);
+                      } else if (xAxis.mode === "index") {
+                        const res = resolveAxisIndex(xAxis, indices.data ?? []);
+                        if (res) query.set("x_expr", res.expression);
+                      }
+                      if (yAxis.mode === "property") {
+                        query.set("y_prop", yAxis.property);
+                      } else if (yAxis.mode === "index") {
+                        const res = resolveAxisIndex(yAxis, indices.data ?? []);
+                        if (res) query.set("y_expr", res.expression);
+                      }
+                      if (selectedBox.xMin !== null) query.set("x_min", String(selectedBox.xMin));
+                      if (selectedBox.xMax !== null) query.set("x_max", String(selectedBox.xMax));
+                      if (selectedBox.yMin !== null) query.set("y_min", String(selectedBox.yMin));
+                      if (selectedBox.yMax !== null) query.set("y_max", String(selectedBox.yMax));
+                      router.push(`/app/selecao?${query.toString()}`);
+                    }}
+                  >
+                    {t.useInSelection} →
+                  </Button>
+                </div>
+              </CardBody>
+            </Card>
+          )}
+
+          <AshbyMap
+            map={map.data}
+            displayScale={displayScale}
+            isFetching={map.isFetching}
+            highlightIds={highlightIds}
+            showEnvelopes={showEnvelopes}
+            showIntervals={showIntervals}
+            showLabels={showLabels}
+            enableBoxSelect
+            selectionBox={selectedBox}
+            onSelectBox={setSelectedBox}
+          />
+
+          {map.data.notes.length > 0 && (
+            <Section id="observacoes" title={t.notesTitle} headingLevel={2}>
+              <Card>
+                <CardBody>
+                  <ul className="flex flex-col gap-1 text-xs text-ink-muted">
+                    {map.data.notes.map((note, i) => (
+                      <li key={i}>• {note}</li>
+                    ))}
+                  </ul>
+                </CardBody>
+              </Card>
+            </Section>
+          )}
+
+          {/* Information, not failure: a material outside the map is a fact
+              about the catalogue, and the reader needs the reason to fix it. */}
+          {map.data.excluded.length > 0 && (
+            <Section id="excluidos" title={t.excludedTitle} description={t.excludedHint}>
+              <Card>
+                <CardBody>
+                  <ul className="flex flex-col gap-1 text-sm text-ink">
+                    {map.data.excluded.map((e) => (
+                      <li key={e.material_id}>
+                        <span className="font-medium">{e.name}</span>{" "}
+                        <span className="text-ink-muted">— {e.reason}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </CardBody>
+              </Card>
+            </Section>
+          )}
+
+          {map.data.points.length > 0 && (
+            <div>
+              <ButtonLink
+                href={`/app/comparar?materiais=${map.data.points.map((p) => p.material_id).join(",")}`}
+                size="sm"
+              >
+                {t.compareSelected} →
+              </ButtonLink>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+export default function MapsPage() {
+  // useSearchParams needs a Suspense boundary during prerendering.
+  return (
+    <Suspense fallback={<LoadingState label={t.loading} />}>
+      <MapsPageContent />
+    </Suspense>
+  );
+}
