@@ -36,13 +36,12 @@ from app.models.property_definition import PropertyDefinition
 from app.models.source import Source
 from app.repositories.material_repository import MaterialRepository
 
+
 # ---------------------------------------------------------------------------
 # Catálogo de 70 materiais fictícios
 # ---------------------------------------------------------------------------
 # A semente fixa (42) garante reprodutibilidade: dois runs produzem
 # exatamente os mesmos números, sem aleatoriedade entre teste e CI.
-
-
 def _generate_materials() -> list[dict]:
     """Gera 70 materiais fictícios distribuídos nas 5 famílias."""
     metais_names = [
@@ -342,8 +341,6 @@ DEMO_SOURCE_LABEL = "Dataset Demo MaterialSelect"
 # ---------------------------------------------------------------------------
 # Função de semeadura
 # ---------------------------------------------------------------------------
-
-
 def _get_or_create_class(
     db: Session,
     name: str,
@@ -351,7 +348,9 @@ def _get_or_create_class(
 ) -> MaterialClass:
     """Reutiliza ou cria uma MaterialClass pelo slug."""
     existing = (
-        db.execute(select(MaterialClass).where(MaterialClass.slug == slug)).scalars().one_or_none()
+        db.execute(select(MaterialClass).where(MaterialClass.slug == slug))
+        .scalars()
+        .one_or_none()
     )
     if existing:
         return existing
