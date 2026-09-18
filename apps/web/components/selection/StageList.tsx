@@ -715,8 +715,7 @@ function ChartStageFields({
     stage.x.mode === "property" &&
     stage.x.propertySlug !== "" &&
     stage.y.mode === "property" &&
-    stage.y.propertySlug !== "" &&
-    stage.x.propertySlug !== stage.y.propertySlug;
+    stage.y.propertySlug !== "";
 
   const mapQuery = useQuery({
     queryKey: ["stage-chart-map", stage.x.propertySlug, stage.y.propertySlug],
@@ -724,8 +723,16 @@ function ChartStageFields({
       getPropertyMap({
         x: stage.x.propertySlug,
         y: stage.y.propertySlug,
+        x_index: null,
+        y_index: null,
         scale: "log",
+        envelope_shape: "ellipse",
+        class_slugs: [],
+        material_ids: null,
         include_envelopes: true,
+        index: null,
+        index_levels: [],
+        index_level_material_ids: [],
       }),
     enabled: canPlotMap && showMap,
   });

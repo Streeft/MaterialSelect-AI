@@ -1,11 +1,48 @@
 import { useState } from "react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { render, within } from "@testing-library/react";
 // MWC controls (Button, Checkbox) live inside a shadow root, invisible to
 // plain @testing-library/react queries — same note as ConstraintEditor.test.tsx.
 import { screen } from "shadow-dom-testing-library";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+vi.mock("react-plotly.js", () => ({ default: () => null }));
+
+vi.mock("@/lib/api", async (importOriginal) => {
+  const actual = await importOriginal<Record<string, unknown>>();
+  return {
+    ...actual,
+    getPropertyMap: vi.fn().mockResolvedValue({
+      x_axis: {
+        property_slug: "densidade",
+        property_name: "Densidade",
+        canonical_unit: "kg/m**3",
+        symbol: "ρ",
+        unit: "kg/m**3",
+        is_index: false,
+      },
+      y_axis: {
+        property_slug: "modulo-young",
+        property_name: "Módulo de Young",
+        canonical_unit: "GPa",
+        symbol: "E",
+        unit: "GPa",
+        is_index: false,
+      },
+      scale: "log",
+      points: [],
+      envelopes: [],
+      envelopes_alt: [],
+      index: null,
+      notes: [],
+      excluded: [],
+      plotted_count: 0,
+      considered_count: 0,
+    }),
+  };
+});
+
 import {
   StageList,
   type StageState,

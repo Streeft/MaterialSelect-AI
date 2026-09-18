@@ -410,14 +410,20 @@ describe("AshbyMap — seleção interativa e cursor", () => {
     );
 
     const mockPlotly = await screen.findByTestId("plotly-mock");
-    const shapes = JSON.parse(mockPlotly.getAttribute("data-shapes") ?? "[]");
+    const shapes = JSON.parse(mockPlotly.getAttribute("data-shapes") ?? "[]") as Array<{
+      type?: string;
+      x0?: number;
+      x1?: number;
+      y0?: number;
+      y1?: number;
+    }>;
     expect(shapes.length).toBeGreaterThan(0);
-    const boxShape = shapes.find((s: Record<string, unknown>) => s.type === "rect");
+    const boxShape = shapes.find((s) => s.type === "rect");
     expect(boxShape).toBeDefined();
-    expect(boxShape.x0).toBe(2000);
-    expect(boxShape.x1).toBe(8000);
-    expect(boxShape.y0).toBe(50);
-    expect(boxShape.y1).toBe(300);
+    expect(boxShape?.x0).toBe(2000);
+    expect(boxShape?.x1).toBe(8000);
+    expect(boxShape?.y0).toBe(50);
+    expect(boxShape?.y1).toBe(300);
   });
 
   it("dispara onSelectBox ao simular evento onSelected com coordenadas lineares", async () => {

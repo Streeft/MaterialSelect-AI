@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState, type ReactNode } from "react";
+import { useMemo, useRef, useState, type ComponentProps, type ReactNode } from "react";
 import dynamic from "next/dynamic";
 import type { Data, Layout } from "plotly.js";
 import type { ChartScale, MapPoint, PropertyMap } from "@/lib/types";
@@ -201,19 +201,34 @@ export function AshbyMap({
   const renderEnvelopes = useAltEnvelopes ? map.envelopes_alt : map.envelopes;
 
   const handleSelected = (
-    event: { range?: { x?: [number, number]; y?: [number, number] } } | null | undefined,
+    event: { range?: { x?: number[]; y?: number[] } } | null | undefined,
   ) => {
-    if (!event || !event.range || !event.range.x || !event.range.y) {
+    const rx = event?.range?.x;
+    const ry = event?.range?.y;
+    if (!rx || !ry) {
+      onSelectBox?.(null);
+      return;
+    }
+    const x0 = rx[0];
+    const x1 = rx[1];
+    const y0 = ry[0];
+    const y1 = ry[1];
+    if (
+      x0 === undefined ||
+      x1 === undefined ||
+      y0 === undefined ||
+      y1 === undefined
+    ) {
       onSelectBox?.(null);
       return;
     }
     const axisScale = displayScale || map.scale;
     const isLog = axisScale === "log";
 
-    const rawX0 = Math.min(event.range.x[0], event.range.x[1]);
-    const rawX1 = Math.max(event.range.x[0], event.range.x[1]);
-    const rawY0 = Math.min(event.range.y[0], event.range.y[1]);
-    const rawY1 = Math.max(event.range.y[0], event.range.y[1]);
+    const rawX0 = Math.min(x0, x1);
+    const rawX1 = Math.max(x0, x1);
+    const rawY0 = Math.min(y0, y1);
+    const rawY1 = Math.max(y0, y1);
 
     const xMinVal = isLog ? Math.pow(10, rawX0) : rawX0;
     const xMaxVal = isLog ? Math.pow(10, rawX1) : rawX1;
@@ -537,7 +552,11 @@ export function AshbyMap({
                   responsive: true,
                   modeBarButtonsToAdd: enableBoxSelect ? ["select2d"] : [],
                 }}
-                onSelected={enableBoxSelect ? handleSelected : undefined}
+                onSelected={
+                  enableBoxSelect
+                    ? (handleSelected as unknown as NonNullable<ComponentProps<typeof Plot>["onSelected"]>)
+                    : undefined
+                }
                 style={{ width: "100%" }}
                 useResizeHandler
               />
