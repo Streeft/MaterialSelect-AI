@@ -209,8 +209,8 @@ export default function StyleGuidePage() {
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {SURFACES.map(([name, cls]) => (
             <Swatch key={name} name={name} className={cls} />
-          ))}
-        </div>
+          ))
+        }</div>
       </Section>
 
       <Section
@@ -270,14 +270,14 @@ export default function StyleGuidePage() {
                 selected={activeSection === sec.id}
                 onClick={() => handleSelectSection(sec.id)}
               >
-                {sec.label} ({sec.hue}°)
+                {sec.label} ({sec.hue}{"°"})
               </ToggleChip>
             ))}
           </div>
 
           <div className="rounded-card border border-edge bg-surface-raised p-4">
             <p className="mb-3 text-xs font-medium text-ink-muted">
-              Rampa ativa (seção <strong className="text-ink">{SECTIONS.find((s) => s.id === activeSection)?.label}</strong> · {SECTIONS.find((s) => s.id === activeSection)?.hue}°):
+              Rampa ativa (seção <strong className="text-ink">{SECTIONS.find((s) => s.id === activeSection)?.label}</strong>{" · "}{SECTIONS.find((s) => s.id === activeSection)?.hue}{"°"}):
             </p>
             <div className="flex flex-wrap gap-2">
               {BRAND.map((shade) => (
@@ -310,7 +310,7 @@ export default function StyleGuidePage() {
                     <span className="ml-2 font-mono text-2xs text-ink-muted">{sec.route}</span>
                   </div>
                   <span className="rounded-full border border-edge bg-surface-sunken px-2 py-0.5 font-mono text-2xs text-brand-700">
-                    {sec.hue}°
+                    {sec.hue}{"°"}
                   </span>
                 </div>
 
