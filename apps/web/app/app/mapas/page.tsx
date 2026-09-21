@@ -301,20 +301,30 @@ function MapsPageContent() {
 
   const effectiveXProperty = useMemo(() => {
     if (xAxis.mode === "property") {
-      if (xAxis.property && availableAttributes.some((p) => p.slug === xAxis.property)) {
-        return xAxis.property;
+      if (xAxis.property) {
+        if (
+          availableAttributes.length === 0 ||
+          availableAttributes.some((p) => p.slug === xAxis.property)
+        ) {
+          return xAxis.property;
+        }
       }
-      return availableAttributes[0]?.slug ?? "";
+      return availableAttributes[0]?.slug ?? xAxis.property ?? "";
     }
     return xAxis.property;
   }, [xAxis.mode, xAxis.property, availableAttributes]);
 
   const effectiveYProperty = useMemo(() => {
     if (yAxis.mode === "property") {
-      if (yAxis.property && availableAttributes.some((p) => p.slug === yAxis.property)) {
-        return yAxis.property;
+      if (yAxis.property) {
+        if (
+          availableAttributes.length === 0 ||
+          availableAttributes.some((p) => p.slug === yAxis.property)
+        ) {
+          return yAxis.property;
+        }
       }
-      return (availableAttributes[1] ?? availableAttributes[0])?.slug ?? "";
+      return (availableAttributes[1] ?? availableAttributes[0])?.slug ?? yAxis.property ?? "";
     }
     return yAxis.property;
   }, [yAxis.mode, yAxis.property, availableAttributes]);
@@ -354,7 +364,7 @@ function MapsPageContent() {
     [yAxis, indices.data],
   );
   // The overlay line needs two property axes (ChartService.property_map
-  // rejects the combination) — so it is unavailable, not merely redundant,
+  // rejects the combination) — so it is unavailable, not属 redundant,
   // the moment either axis becomes an index.
   const anyAxisIsIndex = xAxis.mode === "index" || yAxis.mode === "index";
 
