@@ -15,6 +15,8 @@ from sqlalchemy.orm import Session, joinedload
 from app.models.material import Material
 from app.models.material_class import MaterialClass
 from app.models.material_property_value import MaterialPropertyValue
+from app.models.process import Process, ProcessClass
+from app.models.process_attribute import ProcessAttributeDefinition, ProcessAttributeValue
 from app.models.property_definition import PropertyDefinition
 from app.repositories.visibility import visible_materials
 
@@ -62,6 +64,33 @@ class ChartRepository:
             stmt = stmt.where(MaterialClass.slug.in_(class_slugs))
         return list(self.db.execute(stmt).scalars().unique().all())
 
+    def list_processes(
+        self,
+        process_ids: list[int] | None = None,
+        class_slugs: list[str] | None = None,
+    ) -> list[Process]:
+        """Return active processes with attribute values, definitions and class.
+
+        ``process_ids`` and ``class_slugs`` are optional narrowing filters;
+        an empty ``class_slugs`` list means "every class", matching list_materials.
+        """
+        stmt = (
+            select(Process)
+            .join(ProcessClass, Process.class_id == ProcessClass.id)
+            .options(
+                joinedload(Process.process_class),
+                joinedload(Process.attribute_values).joinedload(ProcessAttributeValue.attribute),
+                joinedload(Process.attribute_values).joinedload(ProcessAttributeValue.source),
+            )
+            .where(Process.is_active.is_(True))
+            .order_by(Process.name)
+        )
+        if process_ids is not None:
+            stmt = stmt.where(Process.id.in_(process_ids))
+        if class_slugs:
+            stmt = stmt.where(ProcessClass.slug.in_(class_slugs))
+        return list(self.db.execute(stmt).scalars().unique().all())
+
     def get_property(self, slug: str) -> PropertyDefinition | None:
         stmt = select(PropertyDefinition).where(PropertyDefinition.slug == slug)
         return self.db.execute(stmt).scalars().one_or_none()
@@ -70,8 +99,22 @@ class ChartRepository:
         stmt = select(PropertyDefinition).order_by(PropertyDefinition.slug)
         return list(self.db.execute(stmt).scalars().all())
 
+    def get_process_attribute(self, slug: str) -> ProcessAttributeDefinition | None:
+        stmt = select(ProcessAttributeDefinition).where(ProcessAttributeDefinition.slug == slug)
+        return self.db.execute(stmt).scalars().one_or_none()
+
+    def list_process_attributes(self) -> list[ProcessAttributeDefinition]:
+        stmt = select(ProcessAttributeDefinition).order_by(ProcessAttributeDefinition.slug)
+        return list(self.db.execute(stmt).scalars().all())
+
     def existing_class_slugs(self, slugs: list[str]) -> set[str]:
         if not slugs:
             return set()
         stmt = select(MaterialClass.slug).where(MaterialClass.slug.in_(slugs))
+        return {row[0] for row in self.db.execute(stmt).all()}
+
+    def existing_process_class_slugs(self, slugs: list[str]) -> set[str]:
+        if not slugs:
+            return set()
+        stmt = select(ProcessClass.slug).where(ProcessClass.slug.in_(slugs))
         return {row[0] for row in self.db.execute(stmt).all()}

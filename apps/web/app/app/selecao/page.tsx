@@ -295,7 +295,9 @@ function SelectionWizard() {
   // P0-3: which universe the study returns. Switching it resets the pipeline,
   // because a stage of the other universe is refused by the backend — carrying
   // one across would only produce an error the reader did not ask for.
-  const [universe, setUniverse] = useState<SelectionUniverse>("material");
+  const [universe, setUniverse] = useState<SelectionUniverse>(() => {
+    return params.get("universo") === "process" ? "process" : "material";
+  });
 
   /**
    * Switching universe starts the pipeline over.

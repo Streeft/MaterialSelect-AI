@@ -34,9 +34,10 @@ from app.domain.display_units import Reading, reading_for, readings_for
 from app.domain.errors import NotFoundError, ValidationError
 from app.domain.geometry import Point, convex_hull, fitted_ellipse
 from app.domain.ranking import Direction, Normalization, normalize_column
-from app.models.enums import BetterDirection, DataQuality
+from app.models.enums import BetterDirection, DataQuality, ProcessAttributeKind
 from app.models.material import Material
 from app.models.material_property_value import MaterialPropertyValue
+from app.models.process_attribute import ProcessAttributeDefinition, ProcessAttributeValue
 from app.models.property_definition import PropertyDefinition
 from app.repositories.chart_repository import ChartRepository
 from app.schemas.charts import (
@@ -83,7 +84,7 @@ ELLIPSE_MIN_SEMI_AXIS_FRACTION = 0.055
 
 @dataclass(frozen=True)
 class _AxisSample:
-    """One material's placement on one axis — a property value or an index value.
+    """One material's or process's placement on one axis — a property value or an index value.
 
     ``bounds`` already carries its axis's ``x_``/``y_`` prefix (built by
     :meth:`ChartService._bounds`), so it drops straight into ``MapPointOut`` as
@@ -121,6 +122,11 @@ class ChartService:
     # --- property map -----------------------------------------------------
 
     def property_map(self, request: PropertyMapRequest) -> PropertyMapOut:
+        if request.universe == "process":
+            return self._process_property_map(request)
+        return self._material_property_map(request)
+
+    def _material_property_map(self, request: PropertyMapRequest) -> PropertyMapOut:
         if (request.x is None) == (request.x_index is None):
             raise ValidationError("Informe x ou x_index no eixo X — nunca os dois, nunca nenhum.")
         if (request.y is None) == (request.y_index is None):
@@ -168,6 +174,7 @@ class ChartService:
                 excluded.append(
                     ExcludedPointOut(
                         material_id=material.id,
+                        record_id=material.id,
                         name=material.name,
                         reason=f"Sem valor para: {', '.join(absent)}.",
                     )
@@ -180,6 +187,7 @@ class ChartService:
                 excluded.append(
                     ExcludedPointOut(
                         material_id=material.id,
+                        record_id=material.id,
                         name=material.name,
                         reason="Valor não positivo: indefinido em escala logarítmica.",
                     )
@@ -189,6 +197,7 @@ class ChartService:
             points.append(
                 MapPointOut(
                     material_id=material.id,
+                    record_id=material.id,
                     material_name=material.name,
                     class_name=material.material_class.name,
                     class_slug=material.material_class.slug,
@@ -333,6 +342,179 @@ class ChartService:
                 level.points = [[sx(px), sy(py)] for px, py in level.points]  # type: ignore[misc]
 
         return chart
+
+    def _process_property_map(self, request: PropertyMapRequest) -> PropertyMapOut:
+        """Build an Ashby-style 2D map for the manufacturing process universe (P1-2 / P0-4)."""
+        if request.x_index is not None or request.y_index is not None or request.index is not None:
+            raise ValidationError("Índices de mérito não são suportados no universo de processos.")
+        if request.x is None or request.y is None:
+            raise ValidationError("Informe x e y com os slugs dos atributos de processo a plotar.")
+        if request.x == request.y:
+            raise ValidationError("Escolha dois atributos de processo diferentes para os eixos.")
+
+        self._require_process_classes(request.class_slugs)
+        x_def = self._require_process_attribute(request.x)
+        y_def = self._require_process_attribute(request.y)
+
+        # Regra D-59: dispersão contínua não plota atributos discretos com vocabulário fechado.
+        if x_def.kind is ProcessAttributeKind.DISCRETO:
+            raise ValidationError(
+                f"O atributo '{x_def.name}' é do tipo DISCRETO e não pode "
+                "compor eixos de dispersão contínua (Regra D-59)."
+            )
+        if y_def.kind is ProcessAttributeKind.DISCRETO:
+            raise ValidationError(
+                f"O atributo '{y_def.name}' é do tipo DISCRETO e não pode "
+                "compor eixos de dispersão contínua (Regra D-59)."
+            )
+
+        filter_ids = (
+            request.process_ids if request.process_ids is not None else request.material_ids
+        )
+        processes = self.repo.list_processes(
+            process_ids=filter_ids, class_slugs=request.class_slugs
+        )
+
+        x_meta = MapAxisOut(
+            is_index=False,
+            property_slug=x_def.slug,
+            property_name=x_def.name,
+            symbol=x_def.symbol,
+            unit=x_def.canonical_unit or "",
+            category=None,
+            better_direction=x_def.better_direction,
+            allows_log_scale=True,
+        )
+        y_meta = MapAxisOut(
+            is_index=False,
+            property_slug=y_def.slug,
+            property_name=y_def.name,
+            symbol=y_def.symbol,
+            unit=y_def.canonical_unit or "",
+            category=None,
+            better_direction=y_def.better_direction,
+            allows_log_scale=True,
+        )
+
+        notes: list[str] = []
+        points: list[MapPointOut] = []
+        excluded: list[ExcludedPointOut] = []
+
+        for process in processes:
+            by_slug = {v.attribute.slug: v for v in process.attribute_values}
+            x_sample = self._process_axis_sample(by_slug.get(x_def.slug), x_def, "x")
+            y_sample = self._process_axis_sample(by_slug.get(y_def.slug), y_def, "y")
+
+            absent = [
+                label
+                for label, sample in ((x_def.name, x_sample), (y_def.name, y_sample))
+                if sample.missing
+            ]
+            if absent:
+                excluded.append(
+                    ExcludedPointOut(
+                        material_id=process.id,
+                        record_id=process.id,
+                        name=process.name,
+                        reason=f"Sem valor para: {', '.join(absent)}.",
+                    )
+                )
+                continue
+
+            x = x_sample.value  # type: ignore[assignment]
+            y = y_sample.value  # type: ignore[assignment]
+            if request.scale == "log" and (x <= 0 or y <= 0):
+                excluded.append(
+                    ExcludedPointOut(
+                        material_id=process.id,
+                        record_id=process.id,
+                        name=process.name,
+                        reason="Valor não positivo: indefinido em escala logarítmica.",
+                    )
+                )
+                continue
+
+            points.append(
+                MapPointOut(
+                    material_id=process.id,
+                    record_id=process.id,
+                    material_name=process.name,
+                    class_name=process.process_class.name,
+                    class_slug=process.process_class.slug,
+                    is_demo=process.is_demo,
+                    x=x,
+                    y=y,
+                    **x_sample.bounds,  # type: ignore[arg-type]
+                    **y_sample.bounds,  # type: ignore[arg-type]
+                    x_quality=x_sample.quality,
+                    y_quality=y_sample.quality,
+                )
+            )
+
+        envelopes = (
+            self._envelopes(points, request.scale, request.envelope_shape)
+            if request.include_envelopes
+            else []
+        )
+        alt_scale = "linear" if request.scale == "log" else "log"
+        envelopes_alt = (
+            self._envelopes(
+                [p for p in points if not (alt_scale == "log" and (p.x <= 0 or p.y <= 0))],
+                alt_scale,
+                request.envelope_shape,
+            )
+            if request.include_envelopes
+            else []
+        )
+
+        return PropertyMapOut(
+            scale=request.scale,
+            x_axis=x_meta.model_copy(update=self._range(points, "x")),
+            y_axis=y_meta.model_copy(update=self._range(points, "y")),
+            points=points,
+            envelopes=envelopes,
+            envelopes_alt=envelopes_alt,
+            excluded=excluded,
+            index=None,
+            considered_count=len(processes),
+            plotted_count=len(points),
+            notes=notes,
+        )
+
+    @staticmethod
+    def _process_axis_sample(
+        value: ProcessAttributeValue | None,
+        definition: ProcessAttributeDefinition,
+        axis: str,
+    ) -> _AxisSample:
+        """Extract plottable canonical coordinate and bounds for one process attribute."""
+        if value is None or value.is_missing:
+            return _AxisSample(None, None, {}, True)
+
+        rep: float | None = None
+        if value.normalized_value is not None:
+            rep = value.normalized_value
+        elif value.value_scalar is not None:
+            rep = value.value_scalar
+        elif value.value_typical is not None:
+            rep = value.value_typical
+        elif value.normalized_min is not None and value.normalized_max is not None:
+            rep = (value.normalized_min + value.normalized_max) / 2.0
+        elif value.value_min is not None and value.value_max is not None:
+            rep = (value.value_min + value.value_max) / 2.0
+
+        if rep is None:
+            return _AxisSample(None, None, {}, True)
+
+        low = value.normalized_min if value.normalized_min is not None else value.value_min
+        high = value.normalized_max if value.normalized_max is not None else value.value_max
+        bounds: dict[str, float | bool | None] = {
+            f"{axis}_min": low,
+            f"{axis}_max": high,
+            f"{axis}_uncertainty": value.uncertainty,
+            f"{axis}_is_interval": low is not None and high is not None,
+        }
+        return _AxisSample(rep, value.data_quality, bounds, False)
 
     def _resolve_axis(
         self,
@@ -937,12 +1119,25 @@ class ChartService:
             raise NotFoundError(f"Propriedade não encontrada: {slug}")
         return definition
 
+    def _require_process_attribute(self, slug: str) -> ProcessAttributeDefinition:
+        definition = self.repo.get_process_attribute(slug)
+        if definition is None:
+            raise NotFoundError(f"Atributo de processo não encontrado: {slug}")
+        return definition
+
     def _require_classes(self, slugs: list[str]) -> None:
         if not slugs:
             return
         unknown = sorted(set(slugs) - self.repo.existing_class_slugs(slugs))
         if unknown:
             raise NotFoundError(f"Classes desconhecidas: {', '.join(unknown)}")
+
+    def _require_process_classes(self, slugs: list[str]) -> None:
+        if not slugs:
+            return
+        unknown = sorted(set(slugs) - self.repo.existing_process_class_slugs(slugs))
+        if unknown:
+            raise NotFoundError(f"Classes de processo desconhecidas: {', '.join(unknown)}")
 
 
 def _unique(items: Sequence[T]) -> list[T]:

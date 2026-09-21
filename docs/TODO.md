@@ -190,7 +190,9 @@ Registrados para não voltarem por engano:
   tela** (`GET /api/processes/{slug}` já devolve tudo, falta a rota), catálogo de
   processos **editável** (pede a trilha de auditoria do M2), **intervalo de
   material lido como envelope** (mudaria toda contagem de funil existente, então é
-  item próprio) e gráfico de atributo de processo.
+  item próprio) e ~~gráfico de atributo de processo~~ (entregue: mapa de atributos
+  de processo 2D Ashby completo em `/app/mapas` e estágios de gráfico, com envelopes
+  e respeito às Regras D-59 e D-60).
 - ~~**P1-1** — busca era `LIKE`~~ — analisador próprio com AND/OR/NOT, frase,
   parênteses e curinga ([D-55](DECISIONS.md)). Falta relevância, *fuzzy* e
   destaque do trecho, registrados como melhoria e não como bloqueio.
@@ -388,10 +390,12 @@ Registrados para não voltarem por engano:
   **arrastando** no gráfico da tela~~ (entregue no Opção A / D-60: seleção
   interativa por cursor com modo `select2d`, conversão de escala linear/log,
   sincronização bidirecional de shapes no Plotly, preview dinâmico no estágio e
-  atalho direto "Criar estágio na Seleção" via deep link) — resta o mapa
-  do universo de processos: um estudo de processos pode ter um estágio de
-  gráfico, mas o plano dele não é desenhado, porque `property_map` lê o catálogo
-  de materiais. Esse segundo item já estava registrado em P1 desde o P0-4.
+  atalho direto "Criar estágio na Seleção" via deep link) — ~~resta o mapa
+  do universo de processos~~ (entregue: suporte a `universe="process"` em
+  `property_map`, nuvens e envelopes convexos por família de processos, rejeição
+  estrita de atributos discretos conforme Regra D-59, rejeição de índices
+  analíticos, e preview interativo completo tanto em `/app/mapas` quanto no
+  ChartStage de `/app/selecao`).
 - ~~**S2** — CVEs do toolchain de desenvolvimento~~ — `npm audit` em
   `apps/web` de **27 para 14** achados, com as duas cadeias que tinham caminho
   de upgrade fechadas por inteiro. `vitest` 2 → **5** (com `vite` 7,
