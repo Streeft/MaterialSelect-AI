@@ -23,7 +23,9 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: read
+  contents: write
+  pull-requests: write
+  issues: write
 
 jobs:
   # Portas, token de sessão e variáveis são os mesmos de
@@ -86,8 +88,9 @@ jobs:
           # audita onze vezes a tela de login.
           ENVIRONMENT: development
           E2E_SESSION_TOKEN: e2e-fixed-session-token-nao-use-em-producao
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          python scripts/e2e_server.py &
+          python scripts/e2e_server.py > /tmp/e2e_server.log 2>&1 &
           # Espera de prontidão, não `sleep` fixo: em segundo plano o passo
           # termina com sucesso mesmo se o servidor morreu, e o erro só
           # aparece passos adiante, disfarçado de falha do Lighthouse.
@@ -99,11 +102,23 @@ jobs:
             sleep 1
           done
           echo "::error::A API não respondeu em /api/health depois de 60s."
+          echo "### ❌ Falha no Lighthouse: Servidor E2E não subiu em 60s" > /tmp/lh_comment.md
+          echo "\`\`\`" >> /tmp/lh_comment.md
+          cat /tmp/e2e_server.log >> /tmp/lh_comment.md
+          echo "\`\`\`" >> /tmp/lh_comment.md
+          gh pr comment ${{ github.event.pull_request.number || 62 }} --body-file /tmp/lh_comment.md || true
           exit 1
 
       - name: Rodar Lighthouse CI
         working-directory: apps/web
-        run: npm run lighthouse
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          npm run lighthouse || {
+            echo "### ❌ Falha no Rodar Lighthouse CI" > /tmp/lh_ci_fail.md
+            gh pr comment ${{ github.event.pull_request.number || 62 }} --body-file /tmp/lh_ci_fail.md || true
+            exit 1
+          }
 
       - name: Publicar relatório Lighthouse
         if: always()
@@ -140,25 +155,44 @@ jobs:
         run: pip install -e ".[dev,knowledge]"
 
       - name: Lint (ruff)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if ! ruff check app; then
-            ruff check app | head -n 30 | while IFS= read -r line; do
-              echo "::error title=RuffError::$line"
-            done
+          ruff check app || {
+            echo "### ❌ Falha no ruff (Python ${{ matrix.python-version }})" > /tmp/ruff_fail.md
+            echo "\`\`\`" >> /tmp/ruff_fail.md
+            ruff check app >> /tmp/ruff_fail.md 2>&1 || true
+            echo "\`\`\`" >> /tmp/ruff_fail.md
+            gh pr comment ${{ github.event.pull_request.number || 62 }} --body-file /tmp/ruff_fail.md || true
             exit 1
-          fi
+          }
 
       - name: Formatação (black)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if ! black --check app; then
-            black --diff app | head -n 30 | while IFS= read -r line; do
-              echo "::error title=BlackDiff::$line"
-            done
+          black --check --diff app || {
+            echo "### ❌ Falha no black (Python ${{ matrix.python-version }})" > /tmp/black_fail.md
+            echo "\`\`\`" >> /tmp/black_fail.md
+            black --check --diff app >> /tmp/black_fail.md 2>&1 || true
+            echo "\`\`\`" >> /tmp/black_fail.md
+            gh pr comment ${{ github.event.pull_request.number || 62 }} --body-file /tmp/black_fail.md || true
             exit 1
-          fi
+          }
 
       - name: Testes
-        run: pytest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          pytest -v --tb=short || {
+            pytest -v --tb=short > /tmp/pytest_out.txt 2>&1 || true
+            echo "### ❌ Falha no pytest (Python ${{ matrix.python-version }})" > /tmp/pytest_fail.md
+            echo "\`\`\`" >> /tmp/pytest_fail.md
+            tail -n 120 /tmp/pytest_out.txt >> /tmp/pytest_fail.md
+            echo "\`\`\`" >> /tmp/pytest_fail.md
+            gh pr comment ${{ github.event.pull_request.number || 62 }} --body-file /tmp/pytest_fail.md || true
+            exit 1
+          }
 
       - name: Migrações aplicam e o seed roda
         # Os testes usam SQLite em memória com create_all, então nunca exercitam
@@ -167,9 +201,13 @@ jobs:
         # demonstrativos funciona sobre elas.
         env:
           DATABASE_URL: sqlite:///./ci-check.db
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          python -m alembic upgrade head
-          python -m app.db.seed
+          (python -m alembic upgrade head && python -m app.db.seed) || {
+            echo "### ❌ Falha em Alembic/Seed (Python ${{ matrix.python-version }})" > /tmp/alembic_fail.md
+            gh pr comment ${{ github.event.pull_request.number || 62 }} --body-file /tmp/alembic_fail.md || true
+            exit 1
+          }
 
   migrations-postgres:
     name: Migrações (PostgreSQL)
