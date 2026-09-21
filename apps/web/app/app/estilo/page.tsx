@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ptBR } from "@/lib/i18n";
 import { paletteSeats } from "@/lib/design/palette";
+import { SECTIONS, type SectionId } from "@/lib/design/sections";
 import {
   Alert,
   Badge,
+  Bar,
   Breadcrumb,
   Button,
   ButtonGroup,
@@ -27,9 +29,12 @@ import {
   LoadingState,
   MissingValue,
   NumberInput,
+  PageHeader,
+  PanelShell,
   ProvenancePopover,
   RadioGroup,
   RadioOption,
+  RowHeader,
   Section,
   Select,
   SelectOption,
@@ -43,13 +48,19 @@ import {
   Td,
   Textarea,
   Th,
-  RowHeader,
   ThemeToggle,
   ToggleChip,
   Tr,
   type Provenance,
 } from "@/components/ui";
-import { IconDownload, IconGrid, IconPlus, IconStar, IconTable, IconTrash } from "@/components/ui/icons";
+import {
+  IconDownload,
+  IconGrid,
+  IconPlus,
+  IconStar,
+  IconTable,
+  IconTrash,
+} from "@/components/ui/icons";
 
 /**
  * Living documentation for the design system.
@@ -70,17 +81,28 @@ const SURFACES = [
   ["ink-subtle", "bg-ink-subtle"],
 ] as const;
 
+const RAIL_SURFACES = [
+  ["rail", "bg-rail", "superfície escura da moldura"],
+  ["rail-ink", "bg-rail-ink", "texto de alto contraste"],
+  ["rail-ink-muted", "bg-rail-ink-muted", "rótulos secundários de navegação"],
+  ["rail-ink-subtle", "bg-rail-ink-subtle", "ícones e atalhos de teclado"],
+  ["rail-edge", "bg-rail-edge", "delimitadores e bordas"],
+  ["rail-accent", "bg-rail-accent", "destaque da rota ativa"],
+] as const;
+
 /**
  * The shape scale (D-38), largest last.
  *
  * `seat` is the odd one out and is here so it stays honest: it is the radius of
  * a segment *inside* a `control`, and the only reason it is not simply `control`
  * is that concentric shapes at the same radius read as a printing error.
+ * `panel` is the frame of an entire route (a screen's shell).
  */
 const RADII = [
   ["rounded-seat", "rounded-seat", "8 px"],
   ["rounded-control", "rounded-control", "12 px"],
   ["rounded-card", "rounded-card", "20 px"],
+  ["rounded-panel", "rounded-panel", "24 px"],
   ["rounded-full", "rounded-full", "pílula"],
 ] as const;
 
@@ -148,7 +170,10 @@ function Marker({ symbol, color }: { symbol: string; color: string }) {
         <path d="M4 4l12 12M16 4L4 16" stroke={color} strokeWidth="3.5" strokeLinecap="round" />
       )}
       {symbol === "star" && (
-        <polygon points="10,1 12.4,7.2 19,7.6 13.9,11.8 15.6,18.2 10,14.6 4.4,18.2 6.1,11.8 1,7.6 7.6,7.2" {...common} />
+        <polygon
+          points="10,1 12.4,7.2 19,7.6 13.9,11.8 15.6,18.2 10,14.6 4.4,18.2 6.1,11.8 1,7.6 7.6,7.2"
+          {...common}
+        />
       )}
       {symbol === "hexagon" && (
         <polygon points="10,2 17,6 17,14 10,18 3,14 3,6" {...common} />
@@ -162,17 +187,23 @@ export default function StyleGuidePage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [view, setView] = useState<"table" | "cards">("table");
   const [step, setStep] = useState("restricoes");
+  const [activeSection, setActiveSection] = useState<SectionId>("inicio");
   const seats = paletteSeats();
+
+  useEffect(() => {
+    document.documentElement.dataset.section = activeSection;
+    return () => {
+      document.documentElement.dataset.section = "inicio";
+    };
+  }, [activeSection]);
 
   return (
     <div className="flex flex-col gap-10">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold text-ink">{ptBR.styleGuide.title}</h1>
-          <p className="mt-1 max-w-prose text-sm text-ink-muted">{ptBR.styleGuide.subtitle}</p>
-        </div>
-        <ThemeToggle />
-      </header>
+      <PageHeader
+        title={ptBR.styleGuide.title}
+        description={ptBR.styleGuide.subtitle}
+        actions={<ThemeToggle />}
+      />
 
       <Section title={ptBR.styleGuide.surfaces} headingLevel={2}>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -183,25 +214,137 @@ export default function StyleGuidePage() {
       </Section>
 
       <Section
-        title={ptBR.styleGuide.tokens}
-        description="A rampa é invertida no tema escuro, não recolorida: `bg-brand-50 text-brand-700` continua significando “tom mais fraco, tinta segura” nos dois temas."
+        title="Superfícies de navegação (rail)"
+        description="A barra de navegação é escura nos dois temas — isso a mantém como moldura permanente da aplicação, e faz o matiz da seção ativa saltar contra ela. O token --rail-accent aponta para o tom claro da rampa em cada tema."
         headingLevel={2}
       >
-        <div className="flex flex-wrap gap-2">
-          {BRAND.map((shade) => (
-            <div key={shade} className="flex flex-col items-center gap-1">
-              <span
-                className={`h-10 w-10 rounded border border-edge ${BRAND_CLASS[shade]}`}
-              />
-              <code className="font-mono text-2xs text-ink-subtle">{shade}</code>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {RAIL_SURFACES.map(([name, cls, desc]) => (
+            <div key={name} className="flex items-center gap-2">
+              <span className={`h-8 w-8 shrink-0 rounded border border-edge ${cls}`} />
+              <div className="flex flex-col">
+                <code className="font-mono text-2xs text-ink-muted">{name}</code>
+                <span className="text-2xs text-ink-subtle">{desc}</span>
+              </div>
             </div>
           ))}
+        </div>
+        <div className="rounded-card border border-rail-edge/15 bg-rail p-4 text-rail-ink">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <span className="flex h-8 w-8 items-center justify-center rounded-control bg-rail-accent/15 font-mono text-xs font-bold text-rail-accent">
+                MS
+              </span>
+              <div>
+                <p className="text-xs font-semibold text-rail-ink">MaterialSelect AI</p>
+                <p className="text-2xs text-rail-ink-muted">Moldura fixa de navegação</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-control bg-rail-accent/20 px-3 py-1 text-xs font-medium text-rail-accent">
+                <span className="h-1.5 w-1.5 rounded-full bg-rail-accent" />
+                Rota ativa
+              </span>
+              <span className="inline-flex items-center rounded-control px-3 py-1 text-xs text-rail-ink-muted">
+                Item inativo
+              </span>
+              <span className="font-mono text-2xs text-rail-ink-subtle">
+                ⌘K
+              </span>
+            </div>
+          </div>
+        </div>
+      </Section>
+
+      <Section
+        title="Paletas por rota (D-49)"
+        description="Cada área do produto carrega seu próprio matiz no espaço oklch (croma e luminosidade compartilhados, variando apenas o ângulo). A rampa é invertida no tema escuro, de modo que bg-brand-50 e text-brand-700 continuam significando tom fraco e tinta legível nos dois temas sem recolorir componentes."
+        headingLevel={2}
+      >
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-medium text-ink-muted">Alternar matiz ativo da página:</span>
+            {SECTIONS.map((sec) => (
+              <ToggleChip
+                key={sec.id}
+                selected={activeSection === sec.id}
+                onClick={() => setActiveSection(sec.id)}
+              >
+                {sec.label} ({sec.hue}{"°"})
+              </ToggleChip>
+            ))}
+          </div>
+
+          <div className="rounded-card border border-edge bg-surface-raised p-4">
+            <p className="mb-3 text-xs font-medium text-ink-muted">
+              Rampa ativa (seção <strong className="text-ink">{SECTIONS.find((s) => s.id === activeSection)?.label}</strong>{" · "}{SECTIONS.find((s) => s.id === activeSection)?.hue}{"°"}):
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {BRAND.map((shade) => (
+                <div key={shade} className="flex flex-col items-center gap-1">
+                  <span
+                    className={`h-10 w-10 rounded border border-edge ${BRAND_CLASS[shade]}`}
+                  />
+                  <code className="font-mono text-2xs text-ink-subtle">{shade}</code>
+                </div>
+              ))}
+              <div className="flex flex-col items-center gap-1">
+                <span className="flex h-10 w-10 items-center justify-center rounded border border-edge bg-brand font-mono text-2xs font-bold text-brand-fg">
+                  fg
+                </span>
+                <code className="font-mono text-2xs text-ink-subtle">accent</code>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {SECTIONS.map((sec) => (
+              <div
+                key={sec.id}
+                data-section={sec.id}
+                className="flex flex-col gap-3 rounded-card border border-edge bg-surface-raised p-4 shadow-card"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-sm font-semibold text-ink">{sec.label}</span>
+                    <span className="ml-2 font-mono text-2xs text-ink-muted">{sec.route}</span>
+                  </div>
+                  <span className="rounded-full border border-edge bg-surface-sunken px-2 py-0.5 font-mono text-2xs text-brand-700">
+                    {sec.hue}{"°"}
+                  </span>
+                </div>
+
+                <div className="flex gap-1 overflow-hidden rounded">
+                  {BRAND.map((shade) => (
+                    <span
+                      key={shade}
+                      className={`h-6 flex-1 ${BRAND_CLASS[shade]}`}
+                      title={`${sec.label} ${shade}`}
+                    />
+                  ))}
+                  <span
+                    className="h-6 flex-1 bg-brand"
+                    title={`${sec.label} accent`}
+                  />
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-control bg-brand-50 px-2 py-1 text-2xs font-medium text-brand-700">
+                    bg-brand-50 · text-brand-700
+                  </span>
+                  <span className="rounded-control bg-brand px-2 py-1 text-2xs font-medium text-brand-fg">
+                    accent
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </Section>
 
       <Section
         title={ptBR.styleGuide.shape}
-        description="Dois tokens de raio cobrem quase tudo; o terceiro existe para o que fica dentro de um controle. O movimento é CSS puro — passe o ponteiro e pressione. Quem pede menos movimento no sistema operacional recebe a mesma mudança de estado, sem a animação."
+        description="Dois tokens de raio cobrem quase tudo; o seat existe para o que fica dentro de um controle, e panel para a moldura externa da rota. O movimento é CSS puro — passe o ponteiro e pressione. Quem pede menos movimento no sistema operacional recebe a mesma mudança de estado, sem a animação."
         headingLevel={2}
       >
         <div className="flex flex-wrap items-end gap-4">
@@ -225,6 +368,116 @@ export default function StyleGuidePage() {
             Filtro inativo
           </ToggleChip>
         </div>
+      </Section>
+
+      <Section
+        title="Molduras e cascas (PanelShell, PageHeader)"
+        description="PanelShell delimita a moldura de uma rota completa com raio rounded-panel (24 px / 1.5 rem), distinguindo uma tela inteira de um simples cartão. PageHeader governa o cabeçalho h1, o eyebrow hierárquico com o nome da seção e o slot de ações de página."
+        headingLevel={2}
+      >
+        <div className="rounded-panel border border-edge bg-surface-sunken p-4">
+          <PanelShell className="border border-edge shadow-card">
+            <div className="flex flex-col gap-4 p-6">
+              <div className="flex flex-wrap items-start justify-between gap-3 border-b border-edge-subtle pb-4">
+                <div className="flex min-w-0 flex-col gap-1">
+                  <span className="font-mono text-2xs uppercase tracking-eyebrow text-brand-700">
+                    dados · catálogo
+                  </span>
+                  <p className="text-xl font-bold text-ink">Catálogo de materiais</p>
+                  <p className="text-xs text-ink-muted">
+                    Demonstração de casca canônica de rota com cabeçalho de página e ações.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge tone="brand">ativo</Badge>
+                  <Button size="sm" variant="primary" icon={<IconPlus />}>
+                    Novo material
+                  </Button>
+                </div>
+              </div>
+              <div className="rounded-card border border-edge bg-surface-raised p-4 shadow-card">
+                <p className="text-xs text-ink-muted">
+                  Conteúdo interno da tela encapsulado em <code>PanelShell</code>, onde cartões e tabelas utilizam <code>rounded-card</code> (20 px) para criar hierarquia visual concêntrica clara.
+                </p>
+              </div>
+            </div>
+          </PanelShell>
+        </div>
+      </Section>
+
+      <Section
+        title="Barra de proporção (Bar)"
+        description="Uma proporção desenhada que cresce a partir da origem (.grow-x) em puro CSS. Se o valor for nulo (null), a barra permanece sem preenchimento e acompanhada de texto — ausência nunca se converte em zero (D-24)."
+        headingLevel={2}
+      >
+        <Card>
+          <CardBody className="flex flex-col gap-4">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-medium text-ink">Pontuação alta (84%)</span>
+                  <span className="font-mono tabular-nums text-ink-muted">0,84</span>
+                </div>
+                <Bar value={0.84} label="Pontuação 84%" />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-medium text-ink">Pontuação média (50%)</span>
+                  <span className="font-mono tabular-nums text-ink-muted">0,50</span>
+                </div>
+                <Bar value={0.5} label="Pontuação 50%" />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-medium text-ink">Pontuação baixa (15%)</span>
+                  <span className="font-mono tabular-nums text-ink-muted">0,15</span>
+                </div>
+                <Bar value={0.15} label="Pontuação 15%" />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-medium text-ink">Dado ausente (§1.3 / D-24)</span>
+                  <span className="flex items-center gap-1 text-2xs text-ink-subtle">
+                    <MissingValue /> ausente
+                  </span>
+                </div>
+                <Bar value={null} label="Dado ausente" />
+              </div>
+            </div>
+
+            <div className="border-t border-edge-subtle pt-3">
+              <p className="mb-2 text-xs font-medium text-ink-muted">
+                Barras com cores de classe (paleta Okabe–Ito) e entrada escalonada (delay):
+              </p>
+              <div className="grid gap-2 sm:grid-cols-3">
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center justify-between text-xs">
+                    <ClassBadge name="Metais" color={seats[0]?.color ?? "#0072B2"} />
+                    <span className="font-mono tabular-nums text-ink-muted">75%</span>
+                  </div>
+                  <Bar value={0.75} color="bg-[#0072B2]" delay={40} label="Metais 75%" />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center justify-between text-xs">
+                    <ClassBadge name="Polímeros" color={seats[1]?.color ?? "#E69F00"} />
+                    <span className="font-mono tabular-nums text-ink-muted">60%</span>
+                  </div>
+                  <Bar value={0.6} color="bg-[#E69F00]" delay={80} label="Polímeros 60%" />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center justify-between text-xs">
+                    <ClassBadge name="Cerâmicas" color={seats[2]?.color ?? "#009E73"} />
+                    <span className="font-mono tabular-nums text-ink-muted">90%</span>
+                  </div>
+                  <Bar value={0.9} color="bg-[#009E73]" delay={120} label="Cerâmicas 90%" />
+                </div>
+              </div>
+            </div>
+          </CardBody>
+        </Card>
       </Section>
 
       <Section title={ptBR.styleGuide.semantics} headingLevel={2}>

@@ -524,7 +524,7 @@ export function createPortalSession(): Promise<PortalSession> {
 // and the user prints it to PDF. That is deliberately how the project gets a
 // PDF without taking on a PDF-generation dependency.
 
-export type ExportFormat = "csv" | "xlsx" | "html";
+export type ExportFormat = "csv" | "xlsx" | "html" | "docx";
 
 /** True when the format opens in the browser instead of downloading. */
 export function opensInBrowser(format: ExportFormat): boolean {

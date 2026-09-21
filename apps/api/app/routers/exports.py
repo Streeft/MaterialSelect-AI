@@ -1,4 +1,4 @@
-"""Export endpoints: catalogue and selection studies as CSV, XLSX or HTML.
+"""Export endpoints: catalogue and selection studies as CSV, XLSX, DOCX or HTML.
 
 These return files rather than JSON, so they set their own headers. Three
 details matter and are easy to get wrong:
@@ -28,6 +28,7 @@ from sqlalchemy.orm import Session
 
 from app.db.base import get_db
 from app.dependencies import get_current_project, get_current_user
+from app.exporters.docx import to_docx
 from app.exporters.html import to_html
 from app.exporters.report import Report
 from app.exporters.spreadsheet import to_csv, to_xlsx
@@ -39,9 +40,10 @@ router = APIRouter(prefix="/exports", tags=["exports"])
 
 CSV_MEDIA_TYPE = "text/csv; charset=utf-8"
 XLSX_MEDIA_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+DOCX_MEDIA_TYPE = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 HTML_MEDIA_TYPE = "text/html; charset=utf-8"
 
-SUPPORTED_FORMATS = ("csv", "xlsx", "html")
+SUPPORTED_FORMATS = ("csv", "xlsx", "html", "docx")
 
 # The report needs its own inline stylesheet and nothing else whatsoever.
 HTML_CSP = "default-src 'none'; style-src 'unsafe-inline'"
@@ -63,6 +65,9 @@ def _file_response(report: Report, fmt: str) -> Response:
     if fmt == "xlsx":
         body = to_xlsx(report)
         media_type = XLSX_MEDIA_TYPE
+    elif fmt == "docx":
+        body = to_docx(report)
+        media_type = DOCX_MEDIA_TYPE
     elif fmt == "html":
         body = to_html(report)
         media_type = HTML_MEDIA_TYPE
