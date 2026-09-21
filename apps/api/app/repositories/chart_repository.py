@@ -79,9 +79,7 @@ class ChartRepository:
             .join(ProcessClass, Process.class_id == ProcessClass.id)
             .options(
                 joinedload(Process.process_class),
-                joinedload(Process.attribute_values).joinedload(
-                    ProcessAttributeValue.attribute
-                ),
+                joinedload(Process.attribute_values).joinedload(ProcessAttributeValue.attribute),
                 joinedload(Process.attribute_values).joinedload(ProcessAttributeValue.source),
             )
             .where(Process.is_active.is_(True))
