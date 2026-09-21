@@ -299,16 +299,56 @@ jobs:
         run: npm ci
 
       - name: Tipos (modo estrito)
-        run: npm run typecheck
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          npm run typecheck || {
+            echo "### ❌ Falha no frontend: typecheck" > /tmp/typecheck_fail.md
+            echo "\`\`\`" >> /tmp/typecheck_fail.md
+            npm run typecheck >> /tmp/typecheck_fail.md 2>&1 || true
+            echo "\`\`\`" >> /tmp/typecheck_fail.md
+            gh pr comment ${{ github.event.pull_request.number || 62 }} --body-file /tmp/typecheck_fail.md || true
+            exit 1
+          }
 
       - name: Lint
-        run: npm run lint
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          npm run lint || {
+            echo "### ❌ Falha no frontend: lint" > /tmp/lint_fail.md
+            echo "\`\`\`" >> /tmp/lint_fail.md
+            npm run lint >> /tmp/lint_fail.md 2>&1 || true
+            echo "\`\`\`" >> /tmp/lint_fail.md
+            gh pr comment ${{ github.event.pull_request.number || 62 }} --body-file /tmp/lint_fail.md || true
+            exit 1
+          }
 
       - name: Testes
-        run: npm run test
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          npm run test || {
+            echo "### ❌ Falha no frontend: test" > /tmp/test_fail.md
+            echo "\`\`\`" >> /tmp/test_fail.md
+            npm run test >> /tmp/test_fail.md 2>&1 || true
+            echo "\`\`\`" >> /tmp/test_fail.md
+            gh pr comment ${{ github.event.pull_request.number || 62 }} --body-file /tmp/test_fail.md || true
+            exit 1
+          }
 
       - name: Build de produção
-        run: npm run build
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          npm run build || {
+            echo "### ❌ Falha no frontend: build" > /tmp/build_fail.md
+            echo "\`\`\`" >> /tmp/build_fail.md
+            npm run build >> /tmp/build_fail.md 2>&1 || true
+            echo "\`\`\`" >> /tmp/build_fail.md
+            gh pr comment ${{ github.event.pull_request.number || 62 }} --body-file /tmp/build_fail.md || true
+            exit 1
+          }
 
   e2e:
     name: E2E (Playwright)
