@@ -15,7 +15,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.db.base import get_db
-from app.dependencies import get_current_user
+from app.dependencies import get_current_user, get_unit_choices
 from app.models.user import User
 from app.schemas.charts import CompareOut, CompareRequest, PropertyMapOut, PropertyMapRequest
 from app.services.chart_service import ChartService
@@ -28,9 +28,10 @@ def property_map(
     payload: PropertyMapRequest,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
+    unit_choices: dict[str, str] = Depends(get_unit_choices),
 ) -> PropertyMapOut:
     """Build an Ashby property map: points, envelopes, index line and exclusions."""
-    return ChartService(db, user.id).property_map(payload)
+    return ChartService(db, user.id, unit_choices).property_map(payload)
 
 
 @router.post("/compare", response_model=CompareOut)
@@ -38,6 +39,7 @@ def compare(
     payload: CompareRequest,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
+    unit_choices: dict[str, str] = Depends(get_unit_choices),
 ) -> CompareOut:
     """Build the comparison matrix backing the table, bars, radar and heatmap."""
-    return ChartService(db, user.id).compare(payload)
+    return ChartService(db, user.id, unit_choices).compare(payload)

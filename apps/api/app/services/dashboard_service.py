@@ -24,10 +24,12 @@ counting is in :mod:`app.repositories.dashboard_repository`, the arithmetic is i
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Mapping
 
 from sqlalchemy.orm import Session
 
 from app.calculations.statistics import five_number_summary, share
+from app.domain.display_units import reading_for
 from app.domain.errors import NotFoundError
 from app.models.enums import DataQuality
 from app.repositories.dashboard_repository import DashboardRepository
@@ -69,8 +71,15 @@ def _coverage(filled: int, declared_missing: int, slots: int) -> Coverage:
 class DashboardService:
     """Read-only aggregation over the catalogue."""
 
-    def __init__(self, db: Session, viewer_id: int | None = None) -> None:
+    def __init__(
+        self,
+        db: Session,
+        viewer_id: int | None = None,
+        unit_choices: Mapping[str, str] | None = None,
+    ) -> None:
         self.viewer_id = viewer_id
+        #: Em que unidade este leitor pediu para ler cada grandeza (D-70).
+        self.unit_choices: Mapping[str, str] = unit_choices or {}
         self.repo = DashboardRepository(db, viewer_id)
 
     def overview(self) -> OverviewOut:
@@ -133,10 +142,23 @@ class DashboardService:
         )
 
     def distribution(self, property_slug: str) -> DistributionOut:
-        """One property's five-number summary, per class, in canonical units."""
+        """One property's five-number summary, per class, in the reading unit.
+
+        Os quartis são computados sobre o **canônico** e convertidos no fim: uma
+        conversão linear preserva a ordem, então a caixa sai idêntica em forma e
+        muda só de escala — converter antes de ordenar daria o mesmo resultado
+        por mais trabalho, e converter entre os dois abriria a porta para a
+        mediana de uma unidade ao lado do quartil de outra.
+        """
         definition = self.repo.get_property(property_slug)
         if definition is None:
             raise NotFoundError(f"Propriedade não encontrada: {property_slug}")
+        reading = reading_for(
+            canonical_unit=definition.canonical_unit,
+            display_unit=definition.display_unit,
+            accepted_units=definition.accepted_units or [],
+            requested=self.unit_choices.get(definition.slug),
+        )
 
         grouped: dict[str, list[float]] = defaultdict(list)
         names: dict[str, str] = {}
@@ -157,11 +179,14 @@ class DashboardService:
                     class_slug=class_slug,
                     class_name=names[class_slug],
                     count=summary.count,
-                    minimum=summary.minimum,
-                    q1=summary.q1,
-                    median=summary.median,
-                    q3=summary.q3,
-                    maximum=summary.maximum,
+                    # Os cinco na unidade de leitura: a figura e a tabela que a
+                    # acompanha leem a mesma grandeza (D-31, D-70). Conversão
+                    # linear preserva a ordem, então a caixa continua válida.
+                    minimum=reading.value(summary.minimum),
+                    q1=reading.value(summary.q1),
+                    median=reading.value(summary.median),
+                    q3=reading.value(summary.q3),
+                    maximum=reading.value(summary.maximum),
                 )
             )
 
@@ -184,6 +209,7 @@ class DashboardService:
             property_name=definition.name,
             category=definition.category,
             canonical_unit=definition.canonical_unit,
+            display_unit=reading.unit,
             allows_log_scale=definition.allows_log_scale,
             boxes=boxes,
             classes_without_data=without,

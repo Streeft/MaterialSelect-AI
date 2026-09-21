@@ -47,6 +47,7 @@ new slots is either filled or explicitly missing.
 
 from __future__ import annotations
 
+import pytest
 from fastapi.testclient import TestClient
 
 OVERVIEW_URL = "/api/dashboard/overview"
@@ -220,14 +221,39 @@ class TestDistribution:
     def test_the_two_metal_densities_produce_a_real_five_number_summary(
         self, client: TestClient
     ) -> None:
-        # 2700 kg/m**3 (Liga Alumínio, seeded as 2.70 g/cm**3) and
-        # 7850 kg/m**3 (Aço, seeded already in kg/m**3).
+        """Os mesmos dois materiais, lidos na unidade em que densidade se lê.
+
+        Canonicamente 2700 e 7850 kg/m³ (Liga Alumínio, semeada como
+        2,70 g/cm³, e Aço, semeado já em kg/m³). A caixa sai em **g/cm³**
+        (D-70): a figura e a tabela que a acompanha (D-31) leem a mesma
+        grandeza, então têm de ler na mesma unidade, e o rótulo do eixo nomeia
+        `display_unit`.
+
+        A conversão é linear, então a forma da caixa não se move — os cinco
+        números são os mesmos três mil vezes menores, e a mediana continua sendo
+        a mediana.
+        """
         data = _distribution(client, "densidade")
+        assert data["canonical_unit"] == "kg/m**3"
+        assert data["display_unit"] == "g/cm**3"
+
         metais = next(box for box in data["boxes"] if box["class_slug"] == "metais")
         assert metais["count"] == 2
-        assert metais["minimum"] == 2700.0
-        assert metais["maximum"] == 7850.0
-        assert metais["median"] == 5275.0
+        assert metais["minimum"] == pytest.approx(2.70)
+        assert metais["maximum"] == pytest.approx(7.85)
+        assert metais["median"] == pytest.approx(5.275)
+
+    def test_o_leitor_pode_ler_a_distribuicao_na_canonica(self, client: TestClient) -> None:
+        """A escolha do leitor vence a convenção, aqui como em toda superfície."""
+        resp = client.get(
+            "/api/dashboard/distribution/densidade", params={"unidades": "densidade:kg/m**3"}
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["display_unit"] == "kg/m**3"
+        metais = next(box for box in data["boxes"] if box["class_slug"] == "metais")
+        assert metais["minimum"] == pytest.approx(2700.0)
+        assert metais["maximum"] == pytest.approx(7850.0)
 
     def test_boxes_are_sorted_by_median_descending(self, client: TestClient) -> None:
         data = _distribution(client, "densidade")

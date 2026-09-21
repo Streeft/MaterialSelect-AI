@@ -46,6 +46,7 @@ from app.calculations.synthesis import (
     synthesize_sandwich,
 )
 from app.domain.data_quality import build_interval_value, build_scalar_value
+from app.domain.display_units import reading_for
 from app.domain.errors import ConflictError, NotFoundError, ValidationError
 from app.models.enums import AuditAction, AuditEntityType
 from app.models.material import Material
@@ -64,6 +65,40 @@ from app.schemas.synthesis import (
     SynthesizedValueOut,
 )
 from app.services.audit_service import record_change
+
+
+def _reading_fields(
+    definition: PropertyDefinition | None, value: object
+) -> dict[str, float | str | None]:
+    """Os campos `display_*` de um valor sintetizado (D-70).
+
+    Um sintetizado nasce canônico — a regra de mistura opera sobre os canônicos
+    dos pais —, então a conversão sai direto da canônica e não da original: aqui
+    não existe "o que a fonte disse", porque não houve fonte. A proveniência
+    deste número é a lei que o produziu, e ela não é uma unidade.
+
+    Sem definição no catálogo não há canônica e não há o que converter; os
+    campos saem `None`, que é ausência e nunca zero (D-24).
+    """
+    if definition is None or not definition.canonical_unit:
+        return {
+            "display_unit": None,
+            "display_value": None,
+            "display_min": None,
+            "display_max": None,
+        }
+    reading = reading_for(
+        canonical_unit=definition.canonical_unit,
+        display_unit=definition.display_unit,
+        accepted_units=definition.accepted_units or [],
+        requested=None,
+    )
+    return {
+        "display_unit": reading.unit,
+        "display_value": reading.value(getattr(value, "value", None)),
+        "display_min": reading.value(getattr(value, "value_min", None)),
+        "display_max": reading.value(getattr(value, "value_max", None)),
+    }
 
 
 class SynthesisService:
@@ -339,6 +374,7 @@ class SynthesisService:
                     value_max=value.value_max,
                     rule=_rule_out(value.rule),
                     quality=value.quality.value,
+                    **_reading_fields(definitions.get(value.slug), value),
                 )
                 for value in result.values
                 if value.slug in definitions

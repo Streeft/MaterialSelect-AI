@@ -95,6 +95,9 @@ class ProcessAttributeOut(BaseModel):
     #: NULL exactly when ``kind`` is discrete — a label has no unit.
     canonical_unit: str | None = None
     accepted_units: list[str] = []
+    #: A unidade em que este atributo se lê (D-70). NULL num discreto, que não
+    #: tem unidade nenhuma, e NULL também quando a canônica já é a convenção.
+    display_unit: str | None = None
     #: The closed vocabulary, for a discrete attribute; empty otherwise.
     allowed_labels: list[str] = []
     better_direction: BetterDirection = BetterDirection.NEUTRAL
@@ -127,6 +130,17 @@ class ProcessAttributeValueOut(BaseModel):
     normalized_max: float | None = None
     canonical_unit: str | None = None
     conversion_method: str | None = None
+
+    # --- a mesma medida, lida noutra unidade (D-70) ------------------------
+    #: Acrescentados, nunca substitutos — mesma regra da ficha do material. Os
+    #: campos acima dizem o que a fonte disse e como aquilo virou canônico;
+    #: estes dizem como o leitor pediu para ler.
+    display_unit: str | None = None
+    display_value: float | None = None
+    display_min: float | None = None
+    display_max: float | None = None
+    display_typical: float | None = None
+    display_uncertainty: float | None = None
 
     uncertainty: float | None = None
     measurement_condition: str | None = None

@@ -11,7 +11,7 @@ and a missing comparison cell stays ``None`` all the way to the axis.
 from __future__ import annotations
 
 import math
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import TypeVar
 
@@ -24,6 +24,7 @@ from app.calculations.expressions import (
 from app.calculations.performance import IndexEvaluation, evaluate_index
 from app.calculations.powerlaw import IndexLine, index_line
 from app.calculations.units import UnitError, is_ratio_scale, to_canonical, to_canonical_delta
+from app.domain.display_units import Reading, readings_for
 from app.domain.errors import NotFoundError, ValidationError
 from app.domain.geometry import Point, convex_hull, fitted_ellipse
 from app.domain.ranking import Direction, Normalization, normalize_column
@@ -96,12 +97,19 @@ AxisGetter = Callable[[Material, dict[str, MaterialPropertyValue]], _AxisSample]
 class ChartService:
     """Builds property maps and comparison matrices."""
 
-    def __init__(self, db, viewer_id: int | None = None) -> None:
+    def __init__(
+        self,
+        db,
+        viewer_id: int | None = None,
+        unit_choices: Mapping[str, str] | None = None,
+    ) -> None:
         # Who is looking. A figure shows this reader's own records alongside the
         # shared catalogue and nobody else's (P1-4); `None` is the shared
         # catalogue alone, which is the safe direction for a caller that never
         # said.
         self.viewer_id = viewer_id
+        # E em que unidade este leitor pediu para ler cada grandeza (D-70).
+        self.unit_choices: Mapping[str, str] = unit_choices or {}
         self.repo = ChartRepository(db, viewer_id)
 
     # --- property map -----------------------------------------------------
@@ -700,6 +708,11 @@ class ChartService:
         ratio_scale = {
             slug: is_ratio_scale(definitions[slug].canonical_unit) for slug in property_slugs
         }
+        # A leitura é resolvida ao lado de `ratio_scale` e **não entra nele**: um
+        # é sobre como o número aparece, o outro sobre se uma razão entre dois
+        # números significa algo. Confundi-los faria uma escolha de leitura
+        # ligar ou desligar a coluna de diferença percentual.
+        readings = readings_for([definitions[slug] for slug in property_slugs], self.unit_choices)
         for slug in property_slugs:
             if reference_id is not None and not ratio_scale[slug]:
                 notes.append(
@@ -727,6 +740,7 @@ class ChartService:
                             material_id=material.id,
                             ratio_scale=ratio_scale[slug],
                         ),
+                        reading=readings[slug],
                     )
                     for slug in property_slugs
                 ],
@@ -776,20 +790,31 @@ class ChartService:
         value: MaterialPropertyValue | None,
         normalized: float | None,
         difference: tuple[float | None, DifferenceState] = (None, "sem_referencia"),
+        reading: Reading | None = None,
     ) -> CompareCellOut:
+        """Uma célula da tabela, com a leitura ao lado do registro (D-70).
+
+        `difference_pct` **não** recebe a leitura, e não é esquecimento: ela já
+        chega pronta, calculada sobre o canônico, e é sobre o canônico que ela
+        tem de ser calculada. Ver a nota em `CompareCellOut.difference_pct`.
+        """
         difference_pct, difference_state = difference
+        display = reading.read(value) if (reading is not None and value is not None) else {}
+        display.pop("display_typical", None)
         if value is None:
             return CompareCellOut(
                 property_slug=slug,
                 is_missing=True,
                 difference_pct=difference_pct,
                 difference_state=difference_state,
+                display_unit=reading.unit if reading is not None else None,
             )
         return CompareCellOut(
             property_slug=slug,
             is_missing=False,
             difference_pct=difference_pct,
             difference_state=difference_state,
+            **display,
             value=value.normalized_value,
             normalized=normalized,
             value_min=value.value_min,
