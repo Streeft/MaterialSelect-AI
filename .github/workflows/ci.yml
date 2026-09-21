@@ -144,11 +144,10 @@ jobs:
 
       - name: Formatação (black)
         run: |
-          if ! black --check --diff app; then
-            echo "### Black Diff" >> $GITHUB_STEP_SUMMARY
-            echo '```diff' >> $GITHUB_STEP_SUMMARY
-            black --diff app >> $GITHUB_STEP_SUMMARY 2>&1 || true
-            echo '```' >> $GITHUB_STEP_SUMMARY
+          if ! black --check app; then
+            black --diff app | head -n 120 | while IFS= read -r line; do
+              echo "::error title=BlackDiff::$line"
+            done
             exit 1
           fi
 
