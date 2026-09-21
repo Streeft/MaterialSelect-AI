@@ -277,6 +277,7 @@ def pretty_unit(unit: str | None) -> str:
     - Replaces cubic powers (``** 3``) with ``³`` and square powers (``** 2``) with ``²``;
     - Replaces general power operator (``**``) with ``^``;
     - Replaces multiplication operator (``*``) with a middle dot (``·``);
+    - Renders ``degC``/``degF`` as ``°C``/``°F``;
     - Renders ``dimensionless`` as an em-dash ``—``;
     - Returns an empty string if ``unit`` is None or empty.
     """
@@ -284,7 +285,14 @@ def pretty_unit(unit: str | None) -> str:
         return ""
     if unit == "dimensionless":
         return "—"
-    s = re.sub(r"\s*\*\*\s*3(?![0-9.])", "³", unit)
+    # As duas escalas de temperatura que o Pint escreve por extenso. Um leitor
+    # nunca viu "degC" numa tabela de materiais, e desde o D-70 esta unidade
+    # chega à tela de verdade (é a convenção de leitura de `temp_max_servico`).
+    # Só o **rótulo** muda: `conversion_method` continua guardando `degC`, que é
+    # o que o Pint sabe reler — a regra do B11, intacta.
+    s = re.sub(r"\bdegC\b", "°C", unit)
+    s = re.sub(r"\bdegF\b", "°F", s)
+    s = re.sub(r"\s*\*\*\s*3(?![0-9.])", "³", s)
     s = re.sub(r"\s*\*\*\s*2(?![0-9.])", "²", s)
     s = re.sub(r"\s*\*\*\s*", "^", s)
     return s.replace("*", "·")

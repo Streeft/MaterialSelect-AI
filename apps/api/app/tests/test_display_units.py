@@ -344,3 +344,22 @@ def test_dado_ausente_nao_ganha_leitura():
     fields = reading.read(_Value())
     assert fields["display_unit"] == "GPa"
     assert all(fields[k] is None for k in fields if k != "display_unit")
+
+
+def test_o_rotulo_traduz_as_escalas_de_temperatura_mas_o_trilho_nao():
+    """Um leitor nunca viu "degC" numa tabela de materiais.
+
+    A unidade chega à tela de verdade desde o D-70 — é a convenção de leitura de
+    `temp_max_servico` —, então o rótulo passou a dizer °C. O que **não** muda é
+    `conversion_method`: ele guarda `degC` porque é o que o Pint sabe reler, e
+    aquele campo promete ser reproduzível. A mesma separação do B11, agora com
+    um segundo caso.
+    """
+    from app.calculations.units import pretty_unit, to_canonical
+
+    assert pretty_unit("degC") == "°C"
+    assert pretty_unit("degF") == "°F"
+
+    _, method = to_canonical(25.0, "degC", "kelvin")
+    assert method == "pint:degC->kelvin"
+    assert "°C" not in method
