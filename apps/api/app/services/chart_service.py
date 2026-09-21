@@ -30,7 +30,6 @@ from app.domain.ranking import Direction, Normalization, normalize_column
 from app.models.enums import BetterDirection, DataQuality, ProcessAttributeKind
 from app.models.material import Material
 from app.models.material_property_value import MaterialPropertyValue
-from app.models.process import Process
 from app.models.process_attribute import ProcessAttributeDefinition, ProcessAttributeValue
 from app.models.property_definition import PropertyDefinition
 from app.repositories.chart_repository import ChartRepository
@@ -511,7 +510,7 @@ class ChartService:
         (plain conversion) while the uncertainty is a difference (offset-aware
         conversion), so ±5 °C stays ±5 K instead of becoming ±278 K.
 
-        A conversion failure degrades to "no error bar" rather than failing the
+        A conversion failure degrades to \"no error bar\" rather than failing the
         whole chart — the point itself is already normalised and trustworthy.
         """
         source_unit = value.original_unit or definition.canonical_unit
@@ -554,7 +553,7 @@ class ChartService:
         little air around the outermost grade, and a floor so a class with one
         or two catalogued materials still reads as a family instead of a dot
         or a stroke. The hull stays literal — it is the shape to pick when the
-        question is "exactly which region do these materials occupy".
+        question is \"exactly which region do these materials occupy\".
 
         Both constants are relative to the span of everything plotted, so they
         mean the same thing on a log axis (where the span is in decades) and a
@@ -610,7 +609,7 @@ class ChartService:
             return None
         # Guaranteed by property_map's own guard: the overlay is only ever
         # requested alongside two property axes, never an axis that is itself
-        # an index (see the "Não é possível sobrepor..." check).
+        # an index (see the \"Não é possível sobrepor...\" check).
         assert request.x is not None and request.y is not None
 
         expression = request.index.expression
@@ -935,7 +934,7 @@ class ChartService:
         if reference_id is None:
             return None, "sem_referencia"
         if material_id == reference_id:
-            # Zero by definition — and saying "this is the reference" is more
+            # Zero by definition — and saying \"this is the reference\" is more
             # use to a reader than printing 0 %, which invites the question.
             return None, "referencia"
         if not ratio_scale:
