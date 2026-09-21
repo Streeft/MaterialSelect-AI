@@ -11,7 +11,7 @@ and a missing comparison cell stays ``None`` all the way to the axis.
 from __future__ import annotations
 
 import math
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import TypeVar
 
@@ -23,7 +23,14 @@ from app.calculations.expressions import (
 )
 from app.calculations.performance import IndexEvaluation, evaluate_index
 from app.calculations.powerlaw import IndexLine, index_line
-from app.calculations.units import UnitError, is_ratio_scale, to_canonical, to_canonical_delta
+from app.calculations.units import (
+    UnitError,
+    is_ratio_scale,
+    pretty_unit,
+    to_canonical,
+    to_canonical_delta,
+)
+from app.domain.display_units import Reading, reading_for, readings_for
 from app.domain.errors import NotFoundError, ValidationError
 from app.domain.geometry import Point, convex_hull, fitted_ellipse
 from app.domain.ranking import Direction, Normalization, normalize_column
@@ -97,12 +104,19 @@ AxisGetter = Callable[[Material, dict[str, MaterialPropertyValue]], _AxisSample]
 class ChartService:
     """Builds property maps and comparison matrices."""
 
-    def __init__(self, db, viewer_id: int | None = None) -> None:
+    def __init__(
+        self,
+        db,
+        viewer_id: int | None = None,
+        unit_choices: Mapping[str, str] | None = None,
+    ) -> None:
         # Who is looking. A figure shows this reader's own records alongside the
         # shared catalogue and nobody else's (P1-4); `None` is the shared
         # catalogue alone, which is the safe direction for a caller that never
         # said.
         self.viewer_id = viewer_id
+        # E em que unidade este leitor pediu para ler cada grandeza (D-70).
+        self.unit_choices: Mapping[str, str] = unit_choices or {}
         self.repo = ChartRepository(db, viewer_id)
 
     # --- property map -----------------------------------------------------
@@ -222,19 +236,112 @@ class ChartService:
         )
         overlay = self._index_overlay(request, points, variables, notes)
 
-        return PropertyMapOut(
-            scale=request.scale,
-            x_axis=x_meta.model_copy(update=self._range(points, "x")),
-            y_axis=y_meta.model_copy(update=self._range(points, "y")),
-            points=points,
-            envelopes=envelopes,
-            envelopes_alt=envelopes_alt,
-            excluded=excluded,
-            index=overlay,
-            considered_count=len(materials),
-            plotted_count=len(points),
-            notes=notes,
+        return self._read_map(
+            PropertyMapOut(
+                scale=request.scale,
+                x_axis=x_meta.model_copy(update=self._range(points, "x")),
+                y_axis=y_meta.model_copy(update=self._range(points, "y")),
+                points=points,
+                envelopes=envelopes,
+                envelopes_alt=envelopes_alt,
+                excluded=excluded,
+                index=overlay,
+                considered_count=len(materials),
+                plotted_count=len(points),
+                notes=notes,
+            )
         )
+
+    def _read_map(self, chart: PropertyMapOut) -> PropertyMapOut:
+        """Reescala o mapa inteiro para a unidade de leitura (D-70).
+
+        **Converte-se no fim, e não na entrada.** Toda saída geométrica deste
+        mapa é um par de coordenadas — os vértices do envelope, os extremos de
+        cada linha iso-índice, os pontos e as faixas —, e a imagem afim de um
+        par é o par convertido. Então reescalar no fim é exato, e deixa
+        intocado tudo o que roda antes: o fecho convexo, o ajuste da elipse, a
+        linha de índice e — o que mais importa — a comparação que o Chart Stage
+        faz para reprovar um registro. O [D-60](../../docs/DECISIONS.md) fez
+        figura e funil concordarem por construção; converter a montante os
+        separaria, e o funil passaria a reprovar por um número que a figura não
+        desenha.
+
+        **Uma unidade que não é puro fator de escala é recusada aqui**, com a
+        razão nas notas, e o eixo fica na canônica. Uma escala com offset (°C) é
+        afim mas não linear, e uma lei de potência só é reta num eixo
+        logarítmico enquanto a mudança de unidade for multiplicativa:
+        `log(x − 273,15)` não é `log x` deslocado. Aceitar °C num mapa
+        entortaria a linha de índice sem entortar nada mais, e a figura
+        continuaria parecendo certa.
+        """
+        readings: dict[str, Reading | None] = {}
+        for key, axis in (("x", chart.x_axis), ("y", chart.y_axis)):
+            # Um eixo de índice não tem unidade de catálogo para ler: a dimensão
+            # dele é derivada da expressão, e o D-35 já diz que o índice é lido
+            # do catálogo e nunca reescrito ao lado.
+            if axis.is_index or not axis.property_slug:
+                readings[key] = None
+                continue
+            definition = self._require_property(axis.property_slug)
+            reading = reading_for(
+                canonical_unit=definition.canonical_unit,
+                display_unit=definition.display_unit,
+                accepted_units=definition.accepted_units or [],
+                requested=self.unit_choices.get(definition.slug),
+            )
+            if reading.is_canonical:
+                readings[key] = None
+                continue
+            if not is_ratio_scale(reading.unit):
+                chart.notes.append(
+                    f"'{definition.name}' não é desenhada em {pretty_unit(reading.unit)}: "
+                    "a conversão não é um fator de escala, e uma lei de potência deixaria "
+                    f"de ser reta no eixo. O mapa usa {pretty_unit(definition.canonical_unit)}."
+                )
+                readings[key] = None
+                continue
+            readings[key] = reading
+
+        rx, ry = readings["x"], readings["y"]
+        if rx is None and ry is None:
+            return chart
+
+        def sx(value: float | None) -> float | None:
+            return rx.value(value) if rx is not None else value
+
+        def sy(value: float | None) -> float | None:
+            return ry.value(value) if ry is not None else value
+
+        if rx is not None:
+            chart.x_axis.unit = rx.unit
+            chart.x_axis.min_value = sx(chart.x_axis.min_value)
+            chart.x_axis.max_value = sx(chart.x_axis.max_value)
+        if ry is not None:
+            chart.y_axis.unit = ry.unit
+            chart.y_axis.min_value = sy(chart.y_axis.min_value)
+            chart.y_axis.max_value = sy(chart.y_axis.max_value)
+
+        for point in chart.points:
+            point.x = sx(point.x)  # type: ignore[assignment]
+            point.y = sy(point.y)  # type: ignore[assignment]
+            point.x_min, point.x_max = sx(point.x_min), sx(point.x_max)
+            point.y_min, point.y_max = sy(point.y_min), sy(point.y_max)
+            # Incerteza é **diferença**, e numa escala de razão `delta` e `value`
+            # coincidem — mas dizer qual é qual aqui é o que impede o dia em que
+            # um eixo com offset for aceito de virar um erro silencioso.
+            if rx is not None:
+                point.x_uncertainty = rx.delta(point.x_uncertainty)
+            if ry is not None:
+                point.y_uncertainty = ry.delta(point.y_uncertainty)
+
+        for envelope in (*chart.envelopes, *chart.envelopes_alt):
+            envelope.polygon = [[sx(vx), sy(vy)] for vx, vy in envelope.polygon]  # type: ignore[misc]
+
+        if chart.index is not None:
+            for level in chart.index.levels:
+                level.points = [[sx(px), sy(py)] for px, py in level.points]  # type: ignore[misc]
+
+        return chart
 
     def _process_property_map(self, request: PropertyMapRequest) -> PropertyMapOut:
         """Build an Ashby-style 2D map for the manufacturing process universe (P1-2 / P0-4)."""
@@ -882,6 +989,11 @@ class ChartService:
         ratio_scale = {
             slug: is_ratio_scale(definitions[slug].canonical_unit) for slug in property_slugs
         }
+        # A leitura é resolvida ao lado de `ratio_scale` e **não entra nele**: um
+        # é sobre como o número aparece, o outro sobre se uma razão entre dois
+        # números significa algo. Confundi-los faria uma escolha de leitura
+        # ligar ou desligar a coluna de diferença percentual.
+        readings = readings_for([definitions[slug] for slug in property_slugs], self.unit_choices)
         for slug in property_slugs:
             if reference_id is not None and not ratio_scale[slug]:
                 notes.append(
@@ -909,6 +1021,7 @@ class ChartService:
                             material_id=material.id,
                             ratio_scale=ratio_scale[slug],
                         ),
+                        reading=readings[slug],
                     )
                     for slug in property_slugs
                 ],
@@ -958,20 +1071,31 @@ class ChartService:
         value: MaterialPropertyValue | None,
         normalized: float | None,
         difference: tuple[float | None, DifferenceState] = (None, "sem_referencia"),
+        reading: Reading | None = None,
     ) -> CompareCellOut:
+        """Uma célula da tabela, com a leitura ao lado do registro (D-70).
+
+        `difference_pct` **não** recebe a leitura, e não é esquecimento: ela já
+        chega pronta, calculada sobre o canônico, e é sobre o canônico que ela
+        tem de ser calculada. Ver a nota em `CompareCellOut.difference_pct`.
+        """
         difference_pct, difference_state = difference
+        display = reading.read(value) if (reading is not None and value is not None) else {}
+        display.pop("display_typical", None)
         if value is None:
             return CompareCellOut(
                 property_slug=slug,
                 is_missing=True,
                 difference_pct=difference_pct,
                 difference_state=difference_state,
+                display_unit=reading.unit if reading is not None else None,
             )
         return CompareCellOut(
             property_slug=slug,
             is_missing=False,
             difference_pct=difference_pct,
             difference_state=difference_state,
+            **display,
             value=value.normalized_value,
             normalized=normalized,
             value_min=value.value_min,

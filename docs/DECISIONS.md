@@ -3680,3 +3680,105 @@ como milhar numa coluna e decimal na seguinte (D-30); e — do PR #56 — as 122
 exclusões de `Cérebro/`, o `submeter_pr.bat` e uma segunda implementação de
 painel sanduíche, que teria criado as duas verdades que o [D-68](#d-68) existe
 para impedir.
+
+## D-70 — A unidade de leitura é propriedade da propriedade, e ler não é guardar
+
+**Contexto.** `Unidades de exibição` era a última linha abaixo de 3 na matriz do
+§5 de [`14-plataforma-selecao.md`](14-plataforma-selecao.md). O
+[B11](TODO.md) já tinha consertado a metade tipográfica — o documento imprimia
+`kg/m**3` onde a tela imprimia `kg/m³` —, mas a linha media outra coisa: se o
+usuário pode **escolher** em que unidade lê. Não podia. A ficha mostrava o
+módulo de Young como `210000000000`.
+
+**Decisão.**
+
+**1. Ler não é guardar, e a assimetria é o alicerce.** `to_canonical` roda uma
+vez, quando um número entra, e devolve um par: o valor e a **trilha**
+(`pint:GPa->Pa`). `from_canonical` roda toda vez que alguém olha, e devolve só
+um número. Emitir uma trilha na saída poria passos de leitura num campo que
+promete descrever **origem**, e um leitor trocando Pa por MPa pareceria ter
+aplicado uma segunda conversão ao dado. O valor gravado, a unidade original e
+`conversion_method` nunca se movem.
+
+**2. A unidade de leitura é propriedade da propriedade, não da dimensão.** É a
+decisão que o dado impôs, contra a hipótese inicial. `modulo_young`,
+`limite_escoamento` e `resistencia_tracao` têm a **mesma** dimensão —
+`[mass]/[length]/[time]**2` — e ninguém as lê na mesma unidade: módulo é GPa,
+resistência é MPa. Uma tabela com "210000 MPa" ao lado de "250 MPa" estaria
+tecnicamente correta e seria ilegível. Por isso a convenção mora em
+`PropertyDefinition.display_unit`, ao lado de `better_direction` e
+`allows_log_scale` — a mesma espécie de fato: algo que se sabe sobre a grandeza,
+não sobre o registro nem sobre quem está olhando. `NULL` é resposta legítima
+("lê-se como está guardada"), não configuração faltando: cinco das doze
+propriedades têm convenção, as outras não.
+
+**3. A escolha do leitor é parâmetro da pergunta, e vive na URL.** Nunca numa
+linha de usuário, pela razão que o [D-63](#d-63) fixou para o registro de
+referência: uma preferência guardada no servidor faria a mesma URL desenhar duas
+tabelas diferentes para duas pessoas, e um documento exportado a partir dela
+deixaria de ser reproduzível pelo próprio link. Unidade fora de `accepted_units`
+é **recusada com as admitidas escritas** (D-56), e a recusa é 400 e não 500 —
+ela chega pela URL, então é entrada do cliente como qualquer outra.
+
+**4. A leitura é acrescentada, nunca substitui.** Esta foi a segunda correção que
+o dado impôs: `value_scalar` guarda **o que a fonte disse**, na unidade dela, e
+não o canônico. Reescrevê-lo apagaria o registro. Então os campos `display_*`
+saem **ao lado**, e quem audita continua vendo os dois. Um documento exportado
+carrega as **três** unidades de propósito — a de leitura no cabeçalho da tabela,
+a canônica na folha de proveniência e a exata dentro do método de conversão —, e
+é isso que permite conferir um número lido em g/cm³ contra o que a fonte disse.
+
+**5. Três coisas a leitura não pode tocar**, cada uma com o seu teste:
+
+- **O avaliador de índices.** Um índice é definido sobre slugs canônicos; se uma
+  unidade de leitura chegasse lá, `sqrt(modulo_young)/densidade` mudaria de valor
+  conforme a tela em que foi aberto, e continuaria parecendo plausível.
+- **A diferença percentual.** Ela só existe em escala de razão
+  (`units.is_ratio_scale`), e essa pergunta é feita à unidade **canônica**.
+  `temp_max_servico` é canônica em kelvin: lida em °C, "o dobro da temperatura"
+  viraria uma afirmação falsa com toda a autoridade de um número calculado. A
+  leitura é resolvida *ao lado* de `ratio_scale`, e nunca dentro dele. O teste é
+  de **invariância**: a mesma comparação, lida em duas unidades, devolve
+  exatamente a mesma coluna.
+- **Uma incerteza.** Ela é **diferença** e não valor absoluto: ±5 K lidos em °C
+  são ±5 °C, não ±(−268,15). Daí `from_canonical_delta`, espelho de
+  `to_canonical_delta`. O número errado apareceria ao lado de uma temperatura
+  que converteu certo, e nada na tela pareceria fora do lugar.
+
+**6. No mapa, converte-se no fim — e uma unidade é recusada.** Toda saída
+geométrica do mapa é um par de coordenadas (vértices do envelope, extremos da
+linha iso-índice, pontos, faixas), e a imagem afim de um par é o par convertido.
+Reescalar no fim é exato e deixa intocado o fecho convexo, o ajuste da elipse, a
+linha de índice e — o que mais importa — **a comparação que o Chart Stage faz
+para reprovar um registro**. O [D-60](#d-60) fez figura e funil concordarem por
+construção; converter a montante os separaria, e o funil passaria a reprovar por
+um número que a figura não desenha.
+
+E **uma unidade que não é puro fator de escala não entra num mapa**, com a razão
+nas notas: kelvin→°C é afim mas não linear, e uma lei de potência só é reta num
+eixo logarítmico enquanto a mudança de unidade for multiplicativa —
+`log(x − 273,15)` não é `log x` deslocado. A recusa é **do mapa, não da
+grandeza**: a ficha continua lendo em °C, porque lá não há eixo logarítmico nem
+lei de potência. Duas superfícies, duas respostas, cada uma pela sua razão — o
+mesmo padrão do envelope de capacidade do [D-59](#d-59). Um **eixo de índice**
+também não converte: a dimensão dele é derivada da expressão e não há unidade de
+catálogo para ler (regra do [D-35](#d-35)).
+
+**Como se verifica.** A prova central é a de invariância da diferença
+percentual. Ao lado dela: o ida-e-volta exato entre guardar e ler, com a escala
+com offset incluída de propósito (é onde um inverso escrito à mão erraria, por
+273 unidades — grande demais para passar num teste e pequeno demais para parecer
+absurdo numa tela); a ausência atravessando como ausência e nunca como zero; uma
+convenção dimensionalmente incompatível recusada **na entrada**, porque ela
+imprimiria números plausíveis e falsos em toda a aplicação; e os testes de
+gráfico reescritos para afirmar o **invariante** em vez do valor — eixo e pontos
+na mesma unidade, o retângulo do intervalo pousando onde o ponto pousa, a linha
+vertical caindo sobre a abscissa do material que deu o nível.
+
+**O que se recusou.** Mapear a unidade por **dimensão** (item 2); guardar a
+preferência no servidor (item 3); converter `value_scalar` em vez de acrescentar
+(item 4); tornar os campos `display_*` opcionais no TypeScript para poupar 38
+fixturas de teste — um contrato opcional deixaria uma superfície esquecê-los em
+silêncio, que é exatamente como a tela de baterias divergiu do backend; e
+embelezar `conversion_method`, que continua guardando `degC` porque é o que o
+Pint sabe reler (B11, intacto) mesmo agora que o **rótulo** diz °C.

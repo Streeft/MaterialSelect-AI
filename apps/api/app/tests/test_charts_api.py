@@ -33,23 +33,58 @@ class TestPropertyMapBasics:
         assert data["considered_count"] == 5
         assert data["excluded"] == []
 
-    def test_axes_carry_canonical_units_and_range(self, client: TestClient) -> None:
+    def test_axes_carry_the_reading_unit_and_the_range_of_what_is_drawn(
+        self, client: TestClient
+    ) -> None:
+        """O eixo nomeia a unidade em que os pontos dele estão (D-70).
+
+        A faixa continua sendo a dos pontos desenhados, e é essa a asserção que
+        importa: eixo e pontos não podem ficar em unidades diferentes, porque aí
+        a escala do desenho deixaria de corresponder ao rótulo.
+        """
         data = _map(client)
-        assert data["x_axis"]["unit"] == "kg/m**3"
-        assert data["y_axis"]["unit"] == "Pa"
+        assert data["x_axis"]["unit"] == "g/cm**3"
+        assert data["y_axis"]["unit"] == "GPa"
         assert data["x_axis"]["symbol"] == "ρ"
         xs = [p["x"] for p in data["points"]]
         assert data["x_axis"]["min_value"] == min(xs)
         assert data["x_axis"]["max_value"] == max(xs)
 
-    def test_values_are_normalised_to_canonical_units(self, client: TestClient) -> None:
+    def test_values_are_normalised_then_read_in_the_reading_unit(self, client: TestClient) -> None:
+        """A normalização continua acontecendo; o que mudou é como se lê o eixo.
+
+        O invariante que este teste protege desde sempre é que **dois materiais
+        digitados em unidades diferentes caem numa escala só** — é para isso que
+        a normalização existe. Ela continua: o alumínio entrou em g/cm³ e GPa, o
+        aço em kg/m³ e Pa, e os dois estão no mesmo eixo. O que o D-70 mudou é o
+        nome dessa escala na hora de ler: densidade se lê em g/cm³ e módulo em
+        GPa, e o eixo diz qual é.
+        """
         data = _map(client)
+        assert data["x_axis"]["unit"] == "g/cm**3"
+        assert data["y_axis"]["unit"] == "GPa"
+
         aluminium = next(
             p for p in data["points"] if p["material_name"].startswith("Liga Alumínio")
         )
         # Seeded as 2.70 g/cm**3 and 69 GPa.
-        assert aluminium["x"] == 2700.0
-        assert aluminium["y"] == 69e9
+        assert aluminium["x"] == pytest.approx(2.70)
+        assert aluminium["y"] == pytest.approx(69.0)
+
+    def test_the_reader_can_put_the_map_back_in_canonical_units(self, client: TestClient) -> None:
+        """A escolha do leitor vence a convenção, também na figura."""
+        response = client.post(
+            MAP_URL,
+            json={"x": "densidade", "y": "modulo_young"},
+            params={"unidades": "densidade:kg/m**3,modulo_young:Pa"},
+        )
+        data = response.json()
+        assert data["x_axis"]["unit"] == "kg/m**3"
+        aluminium = next(
+            p for p in data["points"] if p["material_name"].startswith("Liga Alumínio")
+        )
+        assert aluminium["x"] == pytest.approx(2700.0)
+        assert aluminium["y"] == pytest.approx(69e9)
 
     def test_missing_axis_value_excludes_with_a_reason(self, client: TestClient) -> None:
         data = _map(client, y="condutividade_termica")
@@ -88,11 +123,15 @@ class TestIntervalsAndUncertainty:
     def test_interval_bounds_are_converted_to_canonical_units(self, client: TestClient) -> None:
         data = _map(client, x="densidade", y="limite_escoamento", scale="linear")
         polymer = next(p for p in data["points"] if p["material_name"].startswith("Polímero"))
-        # Seeded as 40–60 MPa with a typical of 48 MPa.
+        # Semeado como 40–60 MPa com típico de 48 MPa. O limite de escoamento se
+        # lê em MPa (D-70), então o retângulo do intervalo volta nos mesmos
+        # números que foram digitados — e continua pousando onde o ponto pousa,
+        # que é o que este teste sempre protegeu.
+        assert data["y_axis"]["unit"] == "MPa"
         assert polymer["y_is_interval"] is True
-        assert polymer["y_min"] == 40e6
-        assert polymer["y_max"] == 60e6
-        assert polymer["y"] == 48e6
+        assert polymer["y_min"] == pytest.approx(40.0)
+        assert polymer["y_max"] == pytest.approx(60.0)
+        assert polymer["y"] == pytest.approx(48.0)
 
     def test_uncertainty_is_converted_as_a_difference(self, client: TestClient) -> None:
         # custo_massa is dimensionless: the ±8 must survive untouched.
@@ -351,9 +390,16 @@ class TestIndexOverlay:
         assert overlay["orientation"] == "vertical"
         assert overlay["slope"] is None
 
+        # A linha é desenhada **no mesmo espaço dos pontos** (D-70): o nível
+        # 1/2700 é a densidade do alumínio, então a vertical tem de cair
+        # exatamente sobre a abscissa dele — asserção que vale em qualquer
+        # unidade, e que é precisamente o que a conversão no fim preserva.
+        aluminium = next(
+            p for p in data["points"] if p["material_name"].startswith("Liga Alumínio")
+        )
         (x1, y1), (x2, y2) = overlay["levels"][0]["points"]
-        assert x1 == pytest.approx(2700.0)
-        assert x2 == pytest.approx(2700.0)
+        assert x1 == pytest.approx(aluminium["x"])
+        assert x2 == pytest.approx(aluminium["x"])
         assert y1 != y2  # the segment spans the plotted ordinates
 
     def test_vertical_line_survives_a_non_positive_abscissa(self, client: TestClient) -> None:
@@ -396,9 +442,11 @@ class TestIndexOverlay:
         )
         assert data["plotted_count"] == 1
         assert data["x_axis"]["max_value"] == 0.0  # nothing positive on the x axis
+        # 1/1e-3 = 1000 kg/m³, que na unidade de leitura da densidade é 1 g/cm³.
         level = data["index"]["levels"][0]
-        assert level["points"][0][0] == pytest.approx(1000.0)
-        assert level["points"][1][0] == pytest.approx(1000.0)
+        assert data["x_axis"]["unit"] == "g/cm**3"
+        assert level["points"][0][0] == pytest.approx(1.0)
+        assert level["points"][1][0] == pytest.approx(1.0)
 
     def test_level_for_a_material_outside_the_map_is_reported(self, client: TestClient) -> None:
         data = _map(
@@ -682,3 +730,40 @@ class TestChartAndSelectionAgree:
         from_chart = {p["material_id"]: p["index_value"] for p in chart["points"]}
 
         assert from_chart == {k: v for k, v in from_selection.items() if k in from_chart}
+
+
+class TestReadingUnitOnAMap:
+    """A unidade de leitura no mapa, e a única que ele recusa (D-70)."""
+
+    def test_a_escala_com_offset_e_recusada_com_o_motivo_escrito(self, client: TestClient) -> None:
+        """°C é a convenção de leitura da temperatura, e mesmo assim não entra aqui.
+
+        A conversão kelvin→°C é afim mas **não é um fator de escala**, e uma lei
+        de potência só é reta num eixo logarítmico enquanto a mudança de unidade
+        for multiplicativa: `log(x − 273,15)` não é `log x` deslocado. Aceitá-la
+        entortaria a linha de índice sem entortar mais nada, e a figura
+        continuaria parecendo certa — que é a forma de erro que este projeto
+        recusa em todo lugar.
+
+        Então o eixo fica em kelvin, e o mapa **diz por quê**: uma recusa em
+        silêncio seria indistinguível de uma convenção que ninguém cadastrou.
+        """
+        data = _map(client, x="densidade", y="temp_max_servico", scale="linear")
+
+        assert data["y_axis"]["unit"] == "kelvin"
+        assert any("não é desenhada em °C" in note for note in data["notes"])
+        assert any("fator de escala" in note for note in data["notes"])
+
+    def test_a_ficha_continua_lendo_em_celsius(self, client: TestClient) -> None:
+        """E a recusa é **do mapa**, não da grandeza.
+
+        A ficha do material lê a mesma temperatura em °C sem problema nenhum:
+        lá não há eixo logarítmico nem lei de potência, só um número ao lado de
+        um rótulo. Duas superfícies, duas respostas, e cada uma pela sua razão —
+        é o mesmo padrão do envelope de capacidade do D-59, comparado por
+        alcance num lugar e por ponto representativo noutro.
+        """
+        resp = client.get("/api/properties")
+        temp = next(p for p in resp.json() if p["slug"] == "temp_max_servico")
+        assert temp["canonical_unit"] == "kelvin"
+        assert temp["display_unit"] == "degC"

@@ -122,6 +122,11 @@ def test_both_tables_carry_the_whole_provenance_trail(migrated_url: str) -> None
         "physical_dimension",
         "canonical_unit",
         "accepted_units",
+        # A unidade de leitura (D-70) entra na definição e **não** no valor: é um
+        # fato sobre a grandeza, como `better_direction` logo abaixo, e não sobre
+        # a medida. O trilho de proveniência da linha de valor continua o mesmo,
+        # e é isso que a segunda asserção deste teste fixa.
+        "display_unit",
         "allowed_labels",
         "better_direction",
     }

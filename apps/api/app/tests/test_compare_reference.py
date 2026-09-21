@@ -303,3 +303,68 @@ def test_when_both_sides_lack_the_value_the_reference_is_blamed(
     ).json()
 
     assert _cell(body, barren_row.id)["difference_state"] == "referencia_ausente"
+
+
+# --- A unidade de leitura não toca a diferença percentual (D-70) ------------
+
+
+def test_a_leitura_sai_ao_lado_e_o_registro_nao_se_move(client: TestClient, db_session: Session):
+    """A célula responde às duas perguntas, e nenhuma apaga a outra."""
+    first, second = _two_materials(db_session)
+    resp = _compare(
+        client, material_ids=[first, second], property_slugs=["densidade"], reference_id=first
+    )
+    assert resp.status_code == 200
+    cell = resp.json()["materials"][0]["cells"][0]
+
+    # Densidade se lê em g/cm³, e o registro continua em kg/m³.
+    assert cell["display_unit"] == "g/cm**3"
+    if not cell["is_missing"]:
+        assert cell["display_value"] is not None
+        assert cell["value"] is not None
+        # Três ordens de grandeza separam as duas leituras do mesmo número.
+        assert cell["display_value"] < cell["value"]
+
+
+def test_trocar_a_unidade_de_leitura_nao_move_a_diferenca_percentual(
+    client: TestClient, db_session: Session
+):
+    """O teste que fixa a decisão central do D-70.
+
+    Um percentual só significa algo em escala de razão, e `is_ratio_scale` é
+    perguntado à unidade **canônica**. Se a escolha de leitura chegasse a essa
+    pergunta, pedir °C para `temp_max_servico` ligaria uma coluna que não pode
+    existir — "o dobro da temperatura" é falso numa escala sem zero verdadeiro —,
+    e o número sairia com toda a autoridade de um valor calculado.
+
+    Então a asserção é de invariância: a mesma comparação, lida em duas unidades
+    diferentes, tem de devolver exatamente a mesma coluna de diferença.
+    """
+    first, second = _two_materials(db_session)
+
+    pedido = {
+        "material_ids": [first, second],
+        "property_slugs": ["densidade", "modulo_young"],
+        "reference_id": first,
+    }
+    canonica = client.post("/api/charts/compare", json=pedido).json()
+    lida = client.post(
+        "/api/charts/compare",
+        json=pedido,
+        params={"unidades": "modulo_young:MPa,densidade:kg/m**3"},
+    ).json()
+
+    for linha_a, linha_b in zip(canonica["materials"], lida["materials"], strict=True):
+        assert linha_a["material_id"] == linha_b["material_id"]
+        for cell_a, cell_b in zip(linha_a["cells"], linha_b["cells"], strict=True):
+            assert cell_a["difference_pct"] == cell_b["difference_pct"]
+            assert cell_a["difference_state"] == cell_b["difference_state"]
+            # E o registro canônico também não se move — só a leitura muda.
+            assert cell_a["value"] == cell_b["value"]
+
+    # Prova de que a leitura de fato mudou, senão o teste acima passaria por
+    # não ter acontecido nada.
+    modulo_canonico = canonica["materials"][0]["cells"][1]
+    modulo_lido = lida["materials"][0]["cells"][1]
+    assert modulo_canonico["display_unit"] == "GPa"
+    assert modulo_lido["display_unit"] == "MPa"

@@ -359,7 +359,14 @@ class TestCatalogueExport:
         assert "pint:GPa->Pa" in text
 
     def test_catalogue_export_uses_pretty_units(self, client: TestClient) -> None:
-        """B11: a **unidade** sai legível, e o **método de conversão** não.
+        """B11 e D-70: três unidades no mesmo documento, cada uma no seu lugar.
+
+        A **de leitura** no cabeçalho da tabela, a **canônica** na folha de
+        proveniência e a **exata** dentro do método de conversão. As três
+        aparecem no mesmo arquivo de propósito: é isso que permite a alguém
+        conferir um número que leu em g/cm³ contra o que a fonte disse.
+
+        B11: a **unidade** sai legível, e o **método de conversão** não.
 
         A distinção é o item inteiro. `kg/m³` é rótulo de leitura; já
         `identity:kg/m**3` é o trilho de proveniência do princípio 4, e o
@@ -373,10 +380,17 @@ class TestCatalogueExport:
         """
         text = client.get("/api/exports/catalogo.csv").text
 
+        # A tabela sai na **unidade de leitura** (D-70): densidade se lê em
+        # g/cm³, e é ela que vai entre colchetes no cabeçalho.
+        assert "[g/cm³]" in text
+        assert "[g/cm**3]" not in text
+
+        # A folha de proveniência continua **canônica**, e prettificada: ela
+        # responde "de onde veio este número", e a resposta não muda porque
+        # alguém escolheu outra forma de olhar para ele.
         assert "kg/m³" in text
-        # O cabeçalho da folha de catálogo traz a unidade entre colchetes.
-        assert "[kg/m³]" in text
         assert "[kg/m**3]" not in text
+
         # E o trilho continua exato, com a unidade que o Pint aceita de volta.
         assert "identity:kg/m**3" in text
 

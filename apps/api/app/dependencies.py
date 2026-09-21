@@ -5,10 +5,11 @@ default Project. The single point of truth for "logged in" is a valid
 
 from __future__ import annotations
 
-from fastapi import Depends, Request
+from fastapi import Depends, Query, Request
 from sqlalchemy.orm import Session
 
 from app.db.base import get_db
+from app.domain.display_units import parse_choices
 from app.domain.errors import AuthenticationError, SubscriptionRequiredError
 from app.models.project import Project
 from app.models.user import User
@@ -54,3 +55,28 @@ def require_active_subscription(
         raise SubscriptionRequiredError(
             "É necessária uma assinatura ativa para usar esta funcionalidade."
         )
+
+
+def get_unit_choices(
+    unidades: str | None = Query(
+        default=None,
+        description=(
+            "Unidade de leitura por propriedade, no formato "
+            "'propriedade:unidade,propriedade:unidade'. Omitido, cada grandeza "
+            "sai na sua unidade convencional."
+        ),
+    ),
+) -> dict[str, str]:
+    """A escolha de leitura desta requisição (D-70).
+
+    Vem na **URL** e não de uma linha de usuário, pela razão que o D-63 já
+    fixou para o registro de referência: uma preferência guardada no servidor
+    faria a mesma URL desenhar duas tabelas diferentes para duas pessoas, e um
+    documento exportado a partir dela deixaria de ser reproduzível pelo próprio
+    link.
+
+    Um par malformado é recusado com o formato escrito, em vez de virar
+    silenciosamente "leia tudo em canônico": uma URL truncada não pode mudar os
+    números sem dizer nada.
+    """
+    return parse_choices(unidades)

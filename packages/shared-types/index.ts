@@ -40,6 +40,20 @@ export interface PropertyValueOut {
   notes: string | null;
   data_quality: DataQuality;
   source_label: string | null;
+  /**
+   * A mesma medida, lida na unidade do leitor (D-70).
+   *
+   * **Acrescentada, nunca substituta.** Os campos acima guardam o que a fonte
+   * disse e como aquilo virou canônico; estes guardam como o leitor pediu para
+   * ler. `display_unit` é a unidade em que os `display_*` estão — pode ser a
+   * canônica, e aí os dois conjuntos coincidem.
+   */
+  display_unit: string | null;
+  display_value: number | null;
+  display_min: number | null;
+  display_max: number | null;
+  display_typical: number | null;
+  display_uncertainty: number | null;
 }
 
 export interface PropertyGroup {
@@ -159,6 +173,20 @@ export interface ProcessAttributeValue {
   data_quality: DataQuality;
   /** The fourth state of data quality (D-24): render a written label, never 0. */
   is_missing: boolean;
+  /**
+   * A mesma medida, lida na unidade do leitor (D-70).
+   *
+   * **Acrescentada, nunca substituta.** Os campos acima guardam o que a fonte
+   * disse e como aquilo virou canônico; estes guardam como o leitor pediu para
+   * ler. `display_unit` é a unidade em que os `display_*` estão — pode ser a
+   * canônica, e aí os dois conjuntos coincidem.
+   */
+  display_unit: string | null;
+  display_value: number | null;
+  display_min: number | null;
+  display_max: number | null;
+  display_typical: number | null;
+  display_uncertainty: number | null;
 }
 
 /**
@@ -255,6 +283,14 @@ export interface PropertyDefinition {
   physical_dimension: string;
   canonical_unit: string;
   accepted_units: string[];
+  /**
+   * A unidade em que esta grandeza **se lê** (D-70). `null` quer dizer "lê-se
+   * como está guardada", que é resposta e não configuração faltando.
+   *
+   * É por propriedade e não por dimensão porque o dado obriga: módulo,
+   * escoamento e tração compartilham dimensão e se leem em GPa, MPa e MPa.
+   */
+  display_unit: string | null;
   is_interval: boolean;
   better_direction: BetterDirection;
   allows_log_scale: boolean;
@@ -1012,9 +1048,21 @@ export interface CompareCell {
   data_quality: DataQuality | null;
   source_label: string | null;
   measurement_condition: string | null;
-  /** P2. Null whenever `difference_state` is anything but "calculada". */
+  /**
+   * P2. Null whenever `difference_state` is anything but "calculada".
+   *
+   * **Sempre canônica, nunca na unidade de leitura** (D-70): uma razão só
+   * significa algo em escala de razão, e trocar a unidade de leitura não move
+   * esta coluna.
+   */
   difference_pct: number | null;
   difference_state: DifferenceState;
+  /** A mesma medida, lida na unidade do leitor (D-70). */
+  display_unit: string | null;
+  display_value: number | null;
+  display_min: number | null;
+  display_max: number | null;
+  display_uncertainty: number | null;
 }
 
 export interface CompareMaterial {
@@ -1177,6 +1225,11 @@ export interface PropertyDistribution {
   property_name: string;
   category: PropertyCategory;
   canonical_unit: string | null;
+  /**
+   * A unidade em que os números das caixas estão (D-70). O rótulo do eixo tem
+   * de nomear esta, não a canônica.
+   */
+  display_unit: string | null;
   allows_log_scale: boolean;
   boxes: DistributionBox[];
   classes_without_data: string[];

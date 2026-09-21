@@ -154,8 +154,33 @@ export function listMaterials(search?: string): Promise<MaterialListItem[]> {
   return request<MaterialListItem[]>(`/api/materials${query}`);
 }
 
-export function getMaterial(id: number): Promise<MaterialDetail> {
-  return request<MaterialDetail>(`/api/materials/${id}`);
+/**
+ * Serializa a escolha de unidade de leitura para a URL (D-70).
+ *
+ * O formato é o que o backend lê em `parse_choices`: `slug:unidade`, separados
+ * por vírgula. Um mapa vazio devolve `""` e a requisição sai sem o parâmetro —
+ * que é "leia pela convenção de cada grandeza".
+ */
+export function unitChoicesParam(choices: Record<string, string>): string {
+  const pairs = Object.entries(choices).filter(([, unit]) => Boolean(unit));
+  if (pairs.length === 0) return "";
+  return pairs.map(([slug, unit]) => `${slug}:${unit}`).join(",");
+}
+
+function withUnits(path: string, choices?: Record<string, string>): string {
+  const value = unitChoicesParam(choices ?? {});
+  if (!value) return path;
+  const separator = path.includes("?") ? "&" : "?";
+  return `${path}${separator}unidades=${encodeURIComponent(value)}`;
+}
+
+export function getMaterial(
+  id: number,
+  unitChoices?: Record<string, string>,
+): Promise<MaterialDetail> {
+  return request<MaterialDetail>(
+    withUnits(`/api/materials/${id}`, unitChoices),
+  );
 }
 
 export function getChart(x: string, y: string): Promise<ChartData> {

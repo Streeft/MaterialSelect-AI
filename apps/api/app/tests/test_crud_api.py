@@ -119,6 +119,60 @@ def test_create_property_succeeds(client):
     assert body["value_count"] == 0
 
 
+def test_create_property_accepts_a_reading_unit(client):
+    """A convenção de leitura entra pela mesma rota auditada das outras."""
+    resp = client.post(
+        "/api/properties",
+        json={
+            "name": "Módulo de Cisalhamento Demo",
+            "category": "MECANICA",
+            "physical_dimension": "[mass] / [length] / [time] ** 2",
+            "canonical_unit": "Pa",
+            "accepted_units": ["Pa", "MPa", "GPa"],
+            "display_unit": "GPa",
+        },
+    )
+    assert resp.status_code == 201
+    assert resp.json()["display_unit"] == "GPa"
+
+
+def test_reading_unit_must_be_dimensionally_compatible(client):
+    """Uma convenção errada aqui imprimiria números plausíveis e falsos em toda
+    a aplicação — a ficha, o mapa, o relatório e o laudo —, e nenhuma dessas
+    telas teria como suspeitar. Por isso ela é recusada na entrada."""
+    resp = client.post(
+        "/api/properties",
+        json={
+            "name": "Propriedade com Leitura Errada Demo",
+            "category": "MECANICA",
+            "physical_dimension": "[mass] / [length] / [time] ** 2",
+            "canonical_unit": "Pa",
+            "accepted_units": ["Pa", "meter"],
+            "display_unit": "meter",
+        },
+    )
+    assert resp.status_code == 400
+
+
+def test_reading_unit_must_be_among_the_accepted_ones(client):
+    """É de `accepted_units` que o seletor da tela se alimenta: uma unidade
+    aplicada que o leitor não pode escolher de volta seria um caminho sem
+    volta."""
+    resp = client.post(
+        "/api/properties",
+        json={
+            "name": "Propriedade com Leitura Fora da Lista Demo",
+            "category": "MECANICA",
+            "physical_dimension": "[mass] / [length] / [time] ** 2",
+            "canonical_unit": "Pa",
+            "accepted_units": ["Pa", "MPa"],
+            "display_unit": "GPa",
+        },
+    )
+    assert resp.status_code == 400
+    assert "aceitas" in resp.json()["detail"]
+
+
 def test_delete_property_in_use_conflicts(client):
     props = client.get("/api/properties").json()
     densidade = next(p for p in props if p["slug"] == "densidade")
@@ -613,3 +667,69 @@ def test_update_property_renormalization_is_atomic_on_incompatible_original_unit
     unchanged = db_session.get(PropertyDefinition, prop.id)
     assert unchanged is not None
     assert unchanged.canonical_unit == "kg/m**3"
+
+
+# --- Unidade de leitura (D-70) ---------------------------------------------
+
+
+def test_a_ficha_traz_a_leitura_ao_lado_do_registro(client):
+    """A ficha responde às duas perguntas de uma vez.
+
+    "O que a fonte disse" continua em `value_scalar` + `original_unit`; "como eu
+    quero ler" sai em `display_*`. Nenhum dos dois substitui o outro, e é isso
+    que mantém a ficha auditável enquanto fica legível.
+    """
+    created = client.post("/api/materials", json=_new_material_payload(client)).json()
+    client.put(
+        f"/api/materials/{created['id']}/values",
+        json=[{"property_slug": "modulo_young", "kind": "scalar", "value": 210e9, "unit": "Pa"}],
+    )
+    detail = client.get(f"/api/materials/{created['id']}").json()
+    all_props = [p for g in detail["property_groups"] for p in g["properties"]]
+    modulo = next(p for p in all_props if p["property_slug"] == "modulo_young")
+
+    # O registro, intocado.
+    assert modulo["value_scalar"] == 210e9
+    assert modulo["original_unit"] == "Pa"
+    assert modulo["normalized_value"] == 210e9
+    assert modulo["canonical_unit"] == "Pa"
+
+    # A leitura, na convenção da grandeza: ninguém lê módulo em pascal.
+    assert modulo["display_unit"] == "GPa"
+    assert modulo["display_value"] == pytest.approx(210.0)
+
+
+def test_o_leitor_pode_escolher_outra_unidade_pela_url(client):
+    created = client.post("/api/materials", json=_new_material_payload(client)).json()
+    client.put(
+        f"/api/materials/{created['id']}/values",
+        json=[{"property_slug": "modulo_young", "kind": "scalar", "value": 210e9, "unit": "Pa"}],
+    )
+    detail = client.get(
+        f"/api/materials/{created['id']}", params={"unidades": "modulo_young:MPa"}
+    ).json()
+    all_props = [p for g in detail["property_groups"] for p in g["properties"]]
+    modulo = next(p for p in all_props if p["property_slug"] == "modulo_young")
+
+    assert modulo["display_unit"] == "MPa"
+    assert modulo["display_value"] == pytest.approx(210_000.0)
+    # E o registro continua sendo o que a fonte disse.
+    assert modulo["value_scalar"] == 210e9
+
+
+def test_unidade_de_leitura_invalida_e_400_e_nao_500(client):
+    """Ela chega pela URL, então é entrada do cliente como qualquer outra.
+
+    Sem tratador seria um 500 de corpo em texto puro — o defeito que o
+    `AIUnavailableError` já custou uma vez — e aqui a mensagem importa mais,
+    porque nomeia as unidades que servem.
+    """
+    created = client.post("/api/materials", json=_new_material_payload(client)).json()
+
+    resp = client.get(f"/api/materials/{created['id']}", params={"unidades": "modulo_young:kg"})
+    assert resp.status_code == 400
+    assert "não é admitida" in resp.json()["detail"]
+
+    malformado = client.get(f"/api/materials/{created['id']}", params={"unidades": "modulo_young"})
+    assert malformado.status_code == 400
+    assert "malformado" in malformado.json()["detail"]

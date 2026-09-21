@@ -80,10 +80,11 @@ docstring de `to_canonical` promete que aquele campo é **reproduzível** — é
 trilho de auditoria, não texto de leitura —, e o Pint não sabe ler `kg/m³` de
 volta. Só a unidade de **exibição** é embelezada.
 
-Isto **não** move a linha `Unidades de exibição` da matriz do §5 de
-[`14-plataforma-selecao.md`](14-plataforma-selecao.md), que continua em **2**:
-nela mede se o usuário pode *escolher* a unidade de leitura (MPa em vez de Pa), e
-isso não existe. São duas perguntas diferentes que dividiam o mesmo rótulo.
+A linha `Unidades de exibição` da matriz do §5 de
+[`14-plataforma-selecao.md`](14-plataforma-selecao.md) mede a **outra** metade:
+se o usuário pode *escolher* a unidade de leitura (MPa em vez de Pa). Eram duas
+perguntas dividindo o mesmo rótulo, e a segunda foi fechada depois pelo
+[D-70](DECISIONS.md) — a linha está em **3** e a matriz em 32 de 32.
 
 ---
 
@@ -99,8 +100,12 @@ configurações de mapa; `SelectionStage` saiu com P0-1; `Process`,
 **Nada de estrutural pendente no roteiro imediato, e a faixa P1 fechou.** Os
 quatro gargalos P0 estão entregues, mais o P1-1 (busca), o P1-2 (Chart Stage), o
 P1-3 (browse) e o P1-4 (`My Records`) — este último o que mexeu na fronteira que
-o D-42 estabeleceu, e o único da faixa a mexer nela. O **P2**, a **P3**, o **Battery Designer** (P4) e o **DOCX** (P4 restante) saíram em seguida, e a matriz
-está em 31 de 32 com `Geração de relatório` em nível 5 (3,56 de nível médio).
+o D-42 estabeleceu, e o único da faixa a mexer nela. O **P2**, a **P3**, o
+**Battery Designer** (P4) e o **DOCX** (P4 restante) saíram em seguida, e a
+**unidade de leitura** ([D-70](DECISIONS.md)) fechou a última linha abaixo do
+corte: a matriz está em **32 de 32** (3,59 de nível médio). O que resta em cada
+linha não é capacidade ausente, é profundidade — a lista de "faltam" de cada uma
+continua lá, e a métrica para de medir no 3.
 
 ---
 
