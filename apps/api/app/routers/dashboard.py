@@ -16,7 +16,7 @@ from fastapi import APIRouter, Depends, Path
 from sqlalchemy.orm import Session
 
 from app.db.base import get_db
-from app.dependencies import get_current_user
+from app.dependencies import get_current_user, get_unit_choices
 from app.models.user import User
 from app.schemas.dashboard import DistributionOut, OverviewOut
 from app.services.dashboard_service import DashboardService
@@ -26,7 +26,12 @@ router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
 @router.get("/overview", response_model=OverviewOut)
 def overview(db: Session = Depends(get_db), user: User = Depends(get_current_user)) -> OverviewOut:
-    """Totals, provenance mix and coverage per class and per property."""
+    """Totals, provenance mix and coverage per class and per property.
+
+    Sem escolha de unidade de leitura de propósito (D-70): o panorama conta
+    registros e percentuais de cobertura, e nenhum dos seus números está numa
+    unidade de propriedade. Aceitar o parâmetro aqui sugeriria que ele muda algo.
+    """
     return DashboardService(db, user.id).overview()
 
 
@@ -35,6 +40,7 @@ def distribution(
     property_slug: str = Path(min_length=1, max_length=160, description="Slug da propriedade"),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
+    unit_choices: dict[str, str] = Depends(get_unit_choices),
 ) -> DistributionOut:
     """The five-number summary of one property, per material class."""
-    return DashboardService(db, user.id).distribution(property_slug)
+    return DashboardService(db, user.id, unit_choices).distribution(property_slug)

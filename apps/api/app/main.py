@@ -20,6 +20,7 @@ from app import __version__
 from app.ai.provider import AIUnavailableError
 from app.config import settings
 from app.dependencies import require_active_subscription
+from app.domain.display_units import DisplayUnitError
 from app.domain.errors import (
     AuthenticationError,
     ConflictError,
@@ -81,6 +82,18 @@ async def _handle_not_found(_: Request, exc: NotFoundError) -> JSONResponse:
 
 @app.exception_handler(ValidationError)
 async def _handle_validation(_: Request, exc: ValidationError) -> JSONResponse:
+    return _error_response(400, str(exc))
+
+
+@app.exception_handler(DisplayUnitError)
+async def _handle_display_unit(_: Request, exc: DisplayUnitError) -> JSONResponse:
+    """Unidade de leitura inválida é 400, e não 500 (D-70).
+
+    Ela chega pela URL, então é entrada do cliente como qualquer outra. Sem este
+    tratador seria um 500 de corpo em texto puro — o defeito que o
+    `AIUnavailableError` já custou uma vez — e aqui a mensagem importa mais
+    ainda, porque ela nomeia as unidades que servem.
+    """
     return _error_response(400, str(exc))
 
 

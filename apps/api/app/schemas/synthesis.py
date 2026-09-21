@@ -94,6 +94,16 @@ class SynthesizedValueOut(BaseModel):
     #: A pior qualidade entre os valores dos pais que a regra leu.
     quality: str
 
+    # --- a mesma medida, lida noutra unidade (D-70) ------------------------
+    #: Um valor sintetizado nasce **canônico** — a regra de mistura opera sobre
+    #: os canônicos dos pais —, então aqui não há "o que a fonte disse" para
+    #: preservar: a proveniência deste número é a `rule` acima, e ela não se
+    #: mexe. Os campos abaixo são a mesma grandeza lida na unidade do leitor.
+    display_unit: str | None = None
+    display_value: float | None = None
+    display_min: float | None = None
+    display_max: float | None = None
+
 
 class SkippedPropertyOut(BaseModel):
     """Uma propriedade que o registro derivado não tem, e por quê."""

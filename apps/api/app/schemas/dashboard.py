@@ -88,7 +88,13 @@ class OverviewOut(BaseModel):
 
 
 class BoxOut(BaseModel):
-    """The five-number summary of one class, in canonical units."""
+    """The five-number summary of one class.
+
+    Os cinco números saem na **unidade de leitura** declarada em
+    `DistributionOut.display_unit` (D-70) — a figura e a tabela que a acompanha
+    (D-31) leem a mesma grandeza, então têm de ler na mesma unidade. Cada um é um
+    valor absoluto e converte como tal; nenhum é diferença.
+    """
 
     class_slug: str
     class_name: str
@@ -107,6 +113,9 @@ class DistributionOut(BaseModel):
     property_name: str
     category: PropertyCategory
     canonical_unit: str | None = None
+    #: A unidade em que os números das caixas estão (D-70). Pode diferir da
+    #: canônica; o rótulo do eixo tem de nomear esta, não aquela.
+    display_unit: str | None = None
     # Sent rather than guessed by the client: properties in this catalogue span
     # decades (density and Young's modulus are not on the same kind of axis),
     # and the definition already knows which of its own axes is honest.

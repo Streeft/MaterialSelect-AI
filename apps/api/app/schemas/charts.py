@@ -297,8 +297,21 @@ class CompareCellOut(BaseModel):
     #: Percentage difference from the reference, in canonical units (P2).
     #: ``None`` whenever ``difference_state`` is anything but ``"calculada"`` —
     #: and the state, never a dash, is what the screen renders in that case.
+    #:
+    #: **Sempre canônica, e nunca na unidade de leitura** (D-70). Uma razão só
+    #: significa algo em escala de razão (`units.is_ratio_scale`), e
+    #: `temp_max_servico` é canônica em kelvin: lida em °C, "o dobro da
+    #: temperatura" viraria uma afirmação falsa com toda a autoridade de um
+    #: número calculado. Trocar a unidade de leitura não move esta coluna.
     difference_pct: float | None = None
     difference_state: DifferenceState = "sem_referencia"
+
+    # --- a mesma medida, lida noutra unidade (D-70) ------------------------
+    display_unit: str | None = None
+    display_value: float | None = None
+    display_min: float | None = None
+    display_max: float | None = None
+    display_uncertainty: float | None = None
 
 
 class CompareMaterialOut(BaseModel):
