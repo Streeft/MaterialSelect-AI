@@ -1,5 +1,8 @@
 "use client";
 
+import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { getPropertyMap } from "@/lib/api";
 import type {
   ChartAxisIn,
   ChartStageIn,
@@ -39,6 +42,7 @@ import {
   nextEditorId,
   toConstraintPayload,
 } from "./ConstraintEditor";
+import { AshbyMap, type BoxSelection } from "@/components/charts/AshbyMap";
 
 const t = ptBR.selection;
 
@@ -185,11 +189,14 @@ export function emptyChartStage(): StageState {
  * A value that is not a number at all is also null rather than `NaN`: `NaN`
  * compares false against everything, so it would reject the entire catalogue
  * without a word, and the schema refuses it anyway.
+ *
+ * Supports comma as decimal separator (pt-BR locale) via `.replace(",", ".")`.
  */
-function toBound(text: string): number | null {
+export function toBound(text: string): number | null {
   const trimmed = text.trim();
   if (!trimmed) return null;
-  const value = Number(trimmed);
+  const normalized = trimmed.replace(",", ".");
+  const value = Number(normalized);
   return Number.isFinite(value) ? value : null;
 }
 
@@ -452,6 +459,7 @@ export function StageList({
                 // material property on a process study's plane would be a 404
                 // waiting to happen.
                 properties={isProcessStudy ? processAttributes : properties}
+                universe={universe}
                 onChange={(next) => replace(index, next)}
               />
             )}
@@ -685,18 +693,92 @@ function ProcessStageFields({
 function ChartStageFields({
   stage,
   properties,
+  universe = "material",
   onChange,
 }: {
   stage: Extract<StageState, { kind: "chart" }>;
   properties: { slug: string; name: string; canonical_unit?: string | null }[];
+  universe?: SelectionUniverse;
   onChange: (stage: StageState) => void;
 }) {
+  const [showMap, setShowMap] = useState(false);
+
   const hasBox =
     stage.x.min !== "" || stage.x.max !== "" || stage.y.min !== "" || stage.y.max !== "";
   const hasLine = stage.indexExpression.trim() !== "" && stage.indexLevel.trim() !== "";
   const axesChosen = [stage.x, stage.y].every((axis) =>
     axis.mode === "property" ? axis.propertySlug !== "" : axis.expression.trim() !== "",
   );
+
+  const canPlotMap =
+    universe === "material" &&
+    stage.x.mode === "property" &&
+    stage.x.propertySlug !== "" &&
+    stage.y.mode === "property" &&
+    stage.y.propertySlug !== "";
+
+  const mapQuery = useQuery({
+    queryKey: ["stage-chart-map", stage.x.propertySlug, stage.y.propertySlug],
+    queryFn: () =>
+      getPropertyMap({
+        x: stage.x.propertySlug,
+        y: stage.y.propertySlug,
+        x_index: null,
+        y_index: null,
+        scale: "log",
+        envelope_shape: "ellipse",
+        class_slugs: [],
+        material_ids: null,
+        include_envelopes: true,
+        index: null,
+        index_levels: [],
+        index_level_material_ids: [],
+      }),
+    enabled: canPlotMap && showMap,
+  });
+
+  const currentBox = useMemo<BoxSelection | null>(() => {
+    const xMin = toBound(stage.x.min);
+    const xMax = toBound(stage.x.max);
+    const yMin = toBound(stage.y.min);
+    const yMax = toBound(stage.y.max);
+    if (xMin === null && xMax === null && yMin === null && yMax === null) {
+      return null;
+    }
+    return { xMin, xMax, yMin, yMax };
+  }, [stage.x.min, stage.x.max, stage.y.min, stage.y.max]);
+
+  const handleSelectBox = (box: BoxSelection | null) => {
+    if (!box) {
+      onChange({
+        ...stage,
+        x: { ...stage.x, min: "", max: "" },
+        y: { ...stage.y, min: "", max: "" },
+      });
+      return;
+    }
+    onChange({
+      ...stage,
+      x: {
+        ...stage.x,
+        min: box.xMin !== null ? String(box.xMin) : "",
+        max: box.xMax !== null ? String(box.xMax) : "",
+      },
+      y: {
+        ...stage.y,
+        min: box.yMin !== null ? String(box.yMin) : "",
+        max: box.yMax !== null ? String(box.yMax) : "",
+      },
+    });
+  };
+
+  const handleClearBox = () => {
+    onChange({
+      ...stage,
+      x: { ...stage.x, min: "", max: "" },
+      y: { ...stage.y, min: "", max: "" },
+    });
+  };
 
   return (
     <div className="flex flex-col gap-4">
@@ -716,6 +798,49 @@ function ChartStageFields({
           onChange={(y) => onChange({ ...stage, y })}
         />
       </div>
+
+      {hasBox && (
+        <div>
+          <Button variant="secondary" size="sm" onClick={handleClearBox}>
+            {t.stageChartClearBox}
+          </Button>
+        </div>
+      )}
+
+      {canPlotMap && (
+        <div className="flex flex-col gap-2 rounded-card border border-edge p-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-fg">{t.stageKindChart}</span>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setShowMap((prev) => !prev)}
+            >
+              {showMap ? t.stageChartHideMap : t.stageChartShowMap}
+            </Button>
+          </div>
+          {showMap && (
+            <div className="flex flex-col gap-3">
+              <p className="text-xs text-ink-muted">{t.stageChartInteractiveHint}</p>
+              {mapQuery.isLoading && (
+                <p className="text-xs text-ink-muted">{ptBR.ui.loading}</p>
+              )}
+              {mapQuery.data && (
+                <AshbyMap
+                  map={mapQuery.data}
+                  enableBoxSelect
+                  selectionBox={currentBox}
+                  onSelectBox={handleSelectBox}
+                />
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {universe === "process" && axesChosen && (
+        <p className="text-sm text-fg-muted">{t.stageChartProcessNoMap}</p>
+      )}
 
       <div className="flex flex-col gap-3 rounded-card border border-edge p-3">
         <p className="text-sm font-medium text-fg">{t.stageChartLine}</p>

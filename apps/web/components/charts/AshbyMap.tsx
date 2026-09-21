@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, type ReactNode } from "react";
+import { useMemo, useRef, useState, type ComponentProps, type ReactNode } from "react";
 import dynamic from "next/dynamic";
 import type { Data, Layout } from "plotly.js";
 import type { ChartScale, MapPoint, PropertyMap } from "@/lib/types";
@@ -9,6 +9,8 @@ import { formatNumber, prettyUnit } from "@/lib/format";
 import { chartFileName, escapeHover, toClosedRing, toXY, withAlpha } from "@/lib/charts";
 import { chartTheme, classVisual } from "@/lib/design/palette";
 import {
+  ButtonGroup,
+  ButtonGroupItem,
   Card,
   CardBody,
   CardHeader,
@@ -25,6 +27,15 @@ const Plot = dynamic(() => import("react-plotly.js"), { ssr: false });
 
 const t = ptBR.map;
 
+export interface BoxSelection {
+  xMin: number | null;
+  xMax: number | null;
+  yMin: number | null;
+  yMax: number | null;
+}
+
+type PlotlyShape = NonNullable<Layout["shapes"]>[number];
+
 interface AshbyMapProps {
   map: PropertyMap;
   displayScale?: ChartScale;
@@ -33,6 +44,11 @@ interface AshbyMapProps {
   showEnvelopes?: boolean;
   showIntervals?: boolean;
   showLabels?: boolean;
+  selectionBox?: BoxSelection | null;
+  onSelectBox?: (box: BoxSelection | null) => void;
+  enableBoxSelect?: boolean;
+  dragMode?: "select" | "zoom";
+  onDragModeChange?: (mode: "select" | "zoom") => void;
 }
 
 /** Half-widths of the error bar for one axis, or null when there is nothing to draw. */
@@ -157,6 +173,11 @@ export function AshbyMap({
   showEnvelopes = true,
   showIntervals = true,
   showLabels = false,
+  selectionBox,
+  onSelectBox,
+  enableBoxSelect = false,
+  dragMode,
+  onDragModeChange,
 }: AshbyMapProps) {
   const container = useRef<HTMLDivElement>(null);
   // Colours come from the tokens of whichever theme is on the document, so the
@@ -165,11 +186,121 @@ export function AshbyMap({
   const paint = useMemo(() => chartTheme(theme), [theme]);
   const highlighted = useMemo(() => new Set(highlightIds), [highlightIds]);
 
+  const [localDragMode, setLocalDragMode] = useState<"select" | "zoom">("select");
+  const activeDragMode = dragMode ?? localDragMode;
+
+  const handleDragModeToggle = (mode: "select" | "zoom") => {
+    setLocalDragMode(mode);
+    onDragModeChange?.(mode);
+  };
+
   // When fetching with a different displayScale, use the pre-computed alt envelope
   // instead of the stale one. This enables instant visual feedback on scale toggle.
   const useAltEnvelopes =
     isFetching && displayScale && displayScale !== map.scale && map.envelopes_alt.length > 0;
   const renderEnvelopes = useAltEnvelopes ? map.envelopes_alt : map.envelopes;
+
+  const handleSelected = (
+    event: { range?: { x?: number[]; y?: number[] } } | null | undefined,
+  ) => {
+    const rx = event?.range?.x;
+    const ry = event?.range?.y;
+    if (!rx || !ry) {
+      onSelectBox?.(null);
+      return;
+    }
+    const x0 = rx[0];
+    const x1 = rx[1];
+    const y0 = ry[0];
+    const y1 = ry[1];
+    if (
+      x0 === undefined ||
+      x1 === undefined ||
+      y0 === undefined ||
+      y1 === undefined
+    ) {
+      onSelectBox?.(null);
+      return;
+    }
+    const axisScale = displayScale || map.scale;
+    const isLog = axisScale === "log";
+
+    const rawX0 = Math.min(x0, x1);
+    const rawX1 = Math.max(x0, x1);
+    const rawY0 = Math.min(y0, y1);
+    const rawY1 = Math.max(y0, y1);
+
+    const xMinVal = isLog ? Math.pow(10, rawX0) : rawX0;
+    const xMaxVal = isLog ? Math.pow(10, rawX1) : rawX1;
+    const yMinVal = isLog ? Math.pow(10, rawY0) : rawY0;
+    const yMaxVal = isLog ? Math.pow(10, rawY1) : rawY1;
+
+    const cleanNum = (n: number) => {
+      if (!Number.isFinite(n)) return n;
+      return Number(n.toPrecision(4));
+    };
+
+    onSelectBox?.({
+      xMin: cleanNum(xMinVal),
+      xMax: cleanNum(xMaxVal),
+      yMin: cleanNum(yMinVal),
+      yMax: cleanNum(yMaxVal),
+    });
+  };
+
+  const shapes = useMemo<PlotlyShape[]>(() => {
+    if (!selectionBox) return [];
+    const { xMin, xMax, yMin, yMax } = selectionBox;
+    const hasAnyBound = xMin !== null || xMax !== null || yMin !== null || yMax !== null;
+    if (!hasAnyBound) return [];
+
+    let minX = Infinity;
+    let maxX = -Infinity;
+    let minY = Infinity;
+    let maxY = -Infinity;
+    for (const p of map.points) {
+      if (p.x < minX) minX = p.x;
+      if (p.x > maxX) maxX = p.x;
+      if (p.y < minY) minY = p.y;
+      if (p.y > maxY) maxY = p.y;
+    }
+    if (!Number.isFinite(minX)) {
+      minX = 1;
+      maxX = 1000;
+      minY = 1;
+      maxY = 1000;
+    }
+
+    const axisScale = displayScale || map.scale;
+    const isLog = axisScale === "log";
+
+    const x0 =
+      xMin !== null ? xMin : isLog ? Math.max(1e-12, minX * 0.01) : minX - (maxX - minX) * 0.5;
+    const x1 =
+      xMax !== null ? xMax : isLog ? maxX * 100 : maxX + (maxX - minX) * 0.5;
+    const y0 =
+      yMin !== null ? yMin : isLog ? Math.max(1e-12, minY * 0.01) : minY - (maxY - minY) * 0.5;
+    const y1 =
+      yMax !== null ? yMax : isLog ? maxY * 100 : maxY + (maxY - minY) * 0.5;
+
+    return [
+      {
+        type: "rect",
+        xref: "x",
+        yref: "y",
+        x0,
+        x1,
+        y0,
+        y1,
+        line: {
+          color: paint.highlight,
+          width: 2,
+          dash: "dot",
+        },
+        fillcolor: withAlpha(paint.highlight, 0.12),
+      },
+    ];
+  }, [selectionBox, map.points, displayScale, map.scale, paint.highlight]);
 
   const traces = useMemo<Data[]>(() => {
     const result: Data[] = [];
@@ -295,6 +426,8 @@ export function AshbyMap({
       height: 540,
       margin: { l: 80, r: 24, t: 16, b: 60 },
       hovermode: "closest",
+      dragmode: enableBoxSelect ? (activeDragMode === "select" ? "select" : "zoom") : "zoom",
+      shapes,
       legend: { ...base.legend, orientation: "h", y: -0.18, font: { size: 11 } },
       xaxis: {
         ...base.xaxis,
@@ -313,7 +446,7 @@ export function AshbyMap({
         zeroline: false,
       },
     };
-  }, [map, paint, displayScale]);
+  }, [map, paint, displayScale, enableBoxSelect, activeDragMode, shapes]);
 
   // The figure's own numbers, as columns. The index column only exists when the
   // figure drew one, and a point without an index carries the backend's reason
@@ -358,6 +491,15 @@ export function AshbyMap({
     return result;
   }, [map]);
 
+  const isRegionActive =
+    Boolean(selectionBox) &&
+    (selectionBox?.xMin !== null ||
+      selectionBox?.xMax !== null ||
+      selectionBox?.yMin !== null ||
+      selectionBox?.yMax !== null);
+
+  const figureCaption = isRegionActive ? `${t.figure} — ${ptBR.chart.selectedRegion}` : t.figure;
+
   return (
     <Card>
       <CardHeader
@@ -365,16 +507,32 @@ export function AshbyMap({
         title={t.figure}
         description={t.coverage(map.plotted_count, map.considered_count)}
         actions={
-          <ChartToolbar
-            target={container}
-            disabled={map.points.length === 0}
-            fileName={chartFileName(
-              "mapa",
-              map.y_axis.property_name,
-              map.x_axis.property_name,
-              map.scale,
+          <div className="flex flex-wrap items-center gap-2">
+            {enableBoxSelect && (
+              <ButtonGroup label={ptBR.chart.dragMode}>
+                <ButtonGroupItem
+                  selected={activeDragMode === "select"}
+                  label={ptBR.chart.dragModeSelect}
+                  onClick={() => handleDragModeToggle("select")}
+                />
+                <ButtonGroupItem
+                  selected={activeDragMode === "zoom"}
+                  label={ptBR.chart.dragModeZoom}
+                  onClick={() => handleDragModeToggle("zoom")}
+                />
+              </ButtonGroup>
             )}
-          />
+            <ChartToolbar
+              target={container}
+              disabled={map.points.length === 0}
+              fileName={chartFileName(
+                "mapa",
+                map.y_axis.property_name,
+                map.x_axis.property_name,
+                map.scale,
+              )}
+            />
+          </div>
         }
       />
       <CardBody className="flex flex-col gap-3">
@@ -389,13 +547,22 @@ export function AshbyMap({
               <Plot
                 data={traces}
                 layout={layout}
-                config={{ displaylogo: false, responsive: true }}
+                config={{
+                  displaylogo: false,
+                  responsive: true,
+                  modeBarButtonsToAdd: enableBoxSelect ? ["select2d"] : [],
+                }}
+                onSelected={
+                  enableBoxSelect
+                    ? (handleSelected as unknown as (event: unknown) => void)
+                    : undefined
+                }
                 style={{ width: "100%" }}
                 useResizeHandler
               />
             </div>
             <FigureData
-              caption={t.figure}
+              caption={figureCaption}
               rows={map.points}
               rowKey={(point) => point.material_id}
               rowHeader={{ header: ptBR.compare.columnMaterial, cell: (point) => point.material_name }}
