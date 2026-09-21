@@ -99,6 +99,7 @@ def process_map_fixture(db_session) -> dict[str, int]:
                 canonical_unit="kg",
                 conversion_method="identity:kg",
                 data_quality=DataQuality.ESTIMADO,
+                labels=[],
             ),
             ProcessAttributeValue(
                 process_id=injecao.id,
@@ -109,6 +110,7 @@ def process_map_fixture(db_session) -> dict[str, int]:
                 canonical_unit="dimensionless",
                 conversion_method="identity:dimensionless",
                 data_quality=DataQuality.ESTIMADO,
+                labels=[],
             ),
             ProcessAttributeValue(
                 process_id=injecao.id,
@@ -130,6 +132,7 @@ def process_map_fixture(db_session) -> dict[str, int]:
                 canonical_unit="kg",
                 conversion_method="identity:kg",
                 data_quality=DataQuality.ESTIMADO,
+                labels=[],
             ),
             ProcessAttributeValue(
                 process_id=soprada.id,
@@ -140,6 +143,7 @@ def process_map_fixture(db_session) -> dict[str, int]:
                 canonical_unit="dimensionless",
                 conversion_method="identity:dimensionless",
                 data_quality=DataQuality.ESTIMADO,
+                labels=[],
             ),
             # Fresamento: massa 0.01 a 50 kg (typical 10.0), lote 10
             ProcessAttributeValue(
@@ -155,6 +159,7 @@ def process_map_fixture(db_session) -> dict[str, int]:
                 canonical_unit="kg",
                 conversion_method="identity:kg",
                 data_quality=DataQuality.MEDIDO,
+                labels=[],
             ),
             ProcessAttributeValue(
                 process_id=fresamento.id,
@@ -165,6 +170,7 @@ def process_map_fixture(db_session) -> dict[str, int]:
                 canonical_unit="dimensionless",
                 conversion_method="identity:dimensionless",
                 data_quality=DataQuality.MEDIDO,
+                labels=[],
             ),
             # sem_dados tem massa explicitamente ausente e sem linha de lote
             ProcessAttributeValue(
@@ -172,6 +178,7 @@ def process_map_fixture(db_session) -> dict[str, int]:
                 attribute_id=massa_attr.id,
                 is_missing=True,
                 data_quality=DataQuality.ESTIMADO,
+                labels=[],
             ),
         ]
     )
