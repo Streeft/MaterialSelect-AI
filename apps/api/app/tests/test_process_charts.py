@@ -13,8 +13,8 @@ Verifica:
 
 from __future__ import annotations
 
-import pytest
 from fastapi.testclient import TestClient
+import pytest
 
 from app.models.enums import BetterDirection, DataQuality, ProcessAttributeKind
 from app.models.process import Process, ProcessClass
