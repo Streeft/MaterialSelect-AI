@@ -11,6 +11,7 @@ const t = ptBR.similar;
 
 const properties: PropertyDefinition[] = [
   {
+    display_unit: null,
     id: 1,
     name: "Densidade",
     slug: "densidade",
@@ -26,6 +27,7 @@ const properties: PropertyDefinition[] = [
     value_count: 5,
   },
   {
+    display_unit: null,
     id: 2,
     name: "Módulo de Young",
     slug: "modulo_young",
@@ -60,6 +62,12 @@ const material = {
       category: "FISICA",
       properties: [
         {
+          display_unit: null,
+          display_value: null,
+          display_min: null,
+          display_max: null,
+          display_typical: null,
+          display_uncertainty: null,
           property_slug: "densidade",
           property_name: "Densidade",
           symbol: "ρ",

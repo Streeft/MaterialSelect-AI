@@ -166,6 +166,11 @@ function makeAxis(overrides: Partial<CompareAxis> = {}): CompareAxis {
 
 function makeCell(overrides: Partial<CompareCell> = {}): CompareCell {
   return {
+    display_unit: null,
+    display_value: null,
+    display_min: null,
+    display_max: null,
+    display_uncertainty: null,
     property_slug: "densidade",
     is_missing: false,
     value: 7850,

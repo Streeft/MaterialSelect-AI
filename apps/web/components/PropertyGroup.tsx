@@ -1,4 +1,7 @@
-import type { PropertyGroup as PropertyGroupType, PropertyValueOut } from "@/lib/types";
+import type {
+  PropertyGroup as PropertyGroupType,
+  PropertyValueOut,
+} from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { formatNumber, prettyUnit } from "@/lib/format";
 import {
@@ -14,30 +17,46 @@ import {
 /** The number itself. Everything around it — where it came from, what it was
  * converted from, who recorded it — is in the popover. */
 function ValueText({ p }: { p: PropertyValueOut }) {
-  const unit = prettyUnit(p.original_unit);
+  // A **leitura** (D-70), e não o registro: o backend já converteu a medida para
+  // a unidade em que a grandeza se lê — ninguém lê módulo de Young em pascal, e
+  // esta ficha mostrava 210000000000. O que a fonte disse continua inteiro em
+  // `value_scalar` + `original_unit`, e é o que o popover de proveniência
+  // mostra logo ao lado: a tela ficou legível sem deixar de ser auditável.
+  //
+  // A queda para o registro cobre o caso de um payload antigo em cache, e não
+  // um estado normal: o backend sempre manda os dois conjuntos.
+  const unit = prettyUnit(p.display_unit ?? p.original_unit);
+  const min = p.display_min ?? p.value_min;
+  const max = p.display_max ?? p.value_max;
+  const typical = p.display_typical ?? p.value_typical;
+  const scalar = p.display_value ?? p.value_scalar;
+  const uncertainty = p.display_uncertainty ?? p.uncertainty;
 
-  if (p.is_interval && p.value_min !== null && p.value_max !== null) {
+  if (p.is_interval && min !== null && max !== null) {
     return (
       <span>
         <span className="font-medium tabular-nums">
-          {formatNumber(p.value_min)} – {formatNumber(p.value_max)}
+          {formatNumber(min)} – {formatNumber(max)}
         </span>{" "}
         {unit}
-        {p.value_typical !== null && (
+        {typical !== null && (
           <span className="ml-1 text-xs text-ink-subtle">
-            ({ptBR.detail.typical}: {formatNumber(p.value_typical)})
+            ({ptBR.detail.typical}: {formatNumber(typical)})
           </span>
         )}
       </span>
     );
   }
 
-  if (p.value_scalar !== null) {
+  if (scalar !== null) {
     return (
       <span>
-        <span className="font-medium tabular-nums">{formatNumber(p.value_scalar)}</span> {unit}
-        {p.uncertainty !== null && (
-          <span className="ml-1 text-xs text-ink-subtle">± {formatNumber(p.uncertainty)}</span>
+        <span className="font-medium tabular-nums">{formatNumber(scalar)}</span>{" "}
+        {unit}
+        {uncertainty !== null && (
+          <span className="ml-1 text-xs text-ink-subtle">
+            ± {formatNumber(uncertainty)}
+          </span>
         )}
       </span>
     );
@@ -88,13 +107,22 @@ export function PropertyGroupCard({ group }: { group: PropertyGroupType }) {
         <tbody>
           {group.properties.map((p) => (
             <tr key={p.property_slug} className="align-top">
-              <th scope="row" className="w-1/3 px-4 py-2 text-left font-normal text-ink-muted">
+              <th
+                scope="row"
+                className="w-1/3 px-4 py-2 text-left font-normal text-ink-muted"
+              >
                 {p.property_name}
-                {p.symbol && <span className="ml-1 text-ink-subtle">({p.symbol})</span>}
+                {p.symbol && (
+                  <span className="ml-1 text-ink-subtle">({p.symbol})</span>
+                )}
               </th>
               <td className="px-4 py-2 text-ink">
                 <ValueCell p={p} />
-                {p.notes && <div className="mt-1 text-xs italic text-ink-subtle">{p.notes}</div>}
+                {p.notes && (
+                  <div className="mt-1 text-xs italic text-ink-subtle">
+                    {p.notes}
+                  </div>
+                )}
               </td>
             </tr>
           ))}

@@ -817,6 +817,13 @@ export const ptBR = {
       "Sem total: uma soma sobre quatro das cinco fases não é um total, é uma parcela que parece um.",
   },
 
+  // D-70: a unidade em que o leitor lê.
+  units: {
+    readIn: "Ler em:",
+    readingNote:
+      "Os valores estão na unidade em que cada grandeza se lê. O que a fonte registrou, e a unidade canônica em que o valor é guardado, continuam na proveniência de cada número.",
+    canonicalNote: "Unidade canônica:",
+  },
   battery: {
     title: "Dimensionar bateria",
     subtitle:
