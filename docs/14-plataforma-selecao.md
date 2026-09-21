@@ -76,15 +76,15 @@ Níveis: **0** não existe · **1** rudimentar · **2** existe, precisa melhorar
 | Sandwich Panels | **3** | **Entregue (P3, [D-68](DECISIONS.md))**: terceiro tipo do Synthesizer — duas faces sobre um núcleo. Densidade e grandezas por massa saem pelas **mesmas regras do compósito** (massa é massa), e o módulo é o de **flexão equivalente**, que passa do limite de Voigt nas mesmas frações — a prova de que é arranjo e não mistura. Só a razão *t/c* decide, o que é o que torna legítimo plotar o painel ao lado de sólidos. Resistência é recusada com o motivo escrito: ela é competição entre modos de falha e só um é calculável. Faltam a figura do painel em corte, o núcleo em colmeia (que tem escalas próprias) e os modos de falha que pedem dados de cisalhamento do núcleo. |
 | Battery Designer | **3** | **Entregue (P4, [D-69](DECISIONS.md))**: dado um requisito elétrico, quantas células em série e em paralelo o atendem, quanto o conjunto pesa, ocupa e custa, e qual química serve melhor. A álgebra do pack mora em código (é argumento, como os casos de carga do D-64); as nove químicas moram no **catálogo**, cada uma nomeando a sua `Source` e a sua citação própria — porque energia específica é medida, não argumento. Tabela própria e não `Material`, pela mesma razão do `TransportMode`. Faltam a degradação por temperatura e por taxa, o dimensionamento térmico do BMS e química de estado sólido. |
 | My Records (usuário / sintetizados / favoritos) | **4** | **Entregue (P1-4, [D-62](DECISIONS.md))**: `Material.owner_id` dá registro próprio, `Favorite` e `RecentRecord` dão favoritos e recentes nos dois universos, e `/app/meus-registros` é o espaço. Os **sintetizados** chegaram com o P3 ([D-67](DECISIONS.md)) e são sempre próprios, por `CheckConstraint`. Falta um registro próprio de *processo*, que pede o catálogo de processos editável.
-| Unidades de exibição | **2** | Canônica correta; o usuário não escolhe a unidade de leitura (B11). |
+| Unidades de exibição | **3** | **Entregue ([D-70](DECISIONS.md))**: `PropertyDefinition.display_unit` dá a **convenção de leitura** de cada grandeza — GPa para módulo, MPa para resistência, g/cm³ para densidade, °C para temperatura —, e o leitor troca por um seletor cuja escolha vive na URL. É por propriedade e não por dimensão porque o dado obriga: módulo e resistência compartilham dimensão e se leem em unidades diferentes. Ler não é guardar: os campos `display_*` são acrescentados, e o valor original, a unidade original e `conversion_method` não se movem. Faltam a unidade de leitura por projeto (hoje a escolha é por link) e um sistema de unidades nomeado (SI/imperial) como atalho para trocar tudo de uma vez. |
 | Explicabilidade | **3** | Funil por restrição e por estágio (`in_chart` inclusive) e proveniência por número; falta o *porquê* por registro reprovado. |
 | Camada de IA | **4** | Interpretação e explicação com guardrails, ancoragem numérica e citação verificada. |
 | Testes | **5** | 1683 backend, 356 frontend, E2E e Lighthouse na CI — e desde o P0-1 a migração é exercitada de verdade, nos dois sentidos, contra um banco que já contém dados, conferida por mutação. |
 | Desempenho | **3** | Índices, threadpool, Plotly fatiado. Não preparado para centenas de milhares de registros. |
 
-**Cobertura de capacidades inspiradas no EduPack: ~97%** — contado como
-capacidades em nível ≥ 3 sobre as **32** avaliadas (31 de 32). **Nível médio:
-3,56.** O P3 moveu quatro linhas que estavam em **zero**: o Part Cost Estimator,
+**Cobertura de capacidades inspiradas no EduPack: 100%** — contado como
+capacidades em nível ≥ 3 sobre as **32** avaliadas (32 de 32). **Nível médio:
+3,59.** O P3 moveu quatro linhas que estavam em **zero**: o Part Cost Estimator,
 o Eco Audit, o Synthesizer e os Sandwich Panels. Com o primeiro veio também o
 objetivo custo, que destravou o Engineering Solver e o Performance Index Finder —
 os dois já acima do corte, e por isso invisíveis no percentual embora seja ali
@@ -95,10 +95,20 @@ ausências nomeadas dela. O **P4** moveu a última que estava em zero: o *Batter
 Designer* ([D-69](DECISIONS.md)), e fechou a exportação nativa em DOCX
 (`app/exporters/docx.py`), elevando `Geração de relatório` a nível 5.
 
-**Sobra uma linha abaixo de 3**, e ela não é capacidade pela metade:
-`Unidades de exibição` (B11, que é uma escolha de leitura e não um módulo).
-**A faixa P3 e a faixa P4 fecharam integralmente** — tanto do lado da seleção
-quanto do lado do gerador de relatório com DOCX nativo.
+**Nenhuma linha fica abaixo de 3.** A última era `Unidades de exibição`, e o
+[D-70](DECISIONS.md) a fechou: o usuário escolhe em que unidade lê, e a escolha
+alcança a ficha, a comparação, o painel, o mapa e os documentos exportados de
+uma vez — meio caminho teria deixado a figura discordando da tabela ao lado.
+
+**E 100% aqui não quer dizer "pronto".** A métrica para de medir no 3, e toda
+linha da matriz acima continua carregando a sua lista de "faltam", inclusive as
+que estão em 4 e 5: catálogo de processos editável, o *porquê* por registro
+reprovado, *Science Notes*, similaridade no universo de processos, desempenho
+para centenas de milhares de registros. O que o número diz é que **nenhuma
+capacidade do modelo funcional está ausente ou pela metade** — não que cada uma
+esteja no seu teto. Essa distinção já custou três marcos em que o percentual não
+se moveu enquanto a ferramenta melhorava, e vale registrá-la também no marco em
+que ele chega ao fim.
 
 **O denominador estava errado até o P0-4.** As versões anteriores deste parágrafo
 diziam "30 avaliadas" e publicavam ~57%; a tabela acima sempre teve 32 linhas.
