@@ -876,8 +876,8 @@ export const ptBR = {
     comparisonTableTitle: "Comparativo das químicas para os requisitos",
     // Dinheiro não está em sistema de unidades nenhum (D-65): a moeda é dita
     // em palavras, nunca inferida de um símbolo. O catálogo cota em dólares
-    // porque é a moeda da literatura de custo de célula cota. São ordens de
-    // grandeza de comparação entre químicas, não orçamento.
+    // porque é a moeda da literatura de custo de célula, e a frase diz isso —
+    // e diz também que o número não é orçamento.
     currencyNote:
       "Os custos saem do catálogo em dólares dos Estados Unidos (US$), a moeda em que a literatura de custo de célula cota. São ordens de grandeza de comparação entre químicas, não orçamento.",
     lightestBadge: "Mais leve",
@@ -1099,6 +1099,12 @@ export const ptBR = {
     title: "Mapas de propriedades",
     subtitle:
       "Mapa de Ashby: dois eixos, envelopes por classe e linhas de índice com inclinação calculada no backend.",
+    universeTitle: "Universo",
+    universeMaterials: "Materiais",
+    universeProcesses: "Processos",
+    columnProcess: "Processo",
+    processIndexWarning:
+      "Índices de mérito de Ashby não se aplicam ao universo de processos.",
     axisX: "Eixo X",
     axisY: "Eixo Y",
     axisTypeProperty: "Propriedade",

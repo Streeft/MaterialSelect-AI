@@ -836,6 +836,7 @@ export type ChartScale = "linear" | "log";
 export type CoordinatePair = number[];
 
 export interface PropertyMapRequest {
+  universe?: SelectionUniverse;
   /** Exactly one of `x`/`x_index` must be set — same for `y`/`y_index`. */
   x?: string | null;
   y?: string | null;
@@ -845,12 +846,15 @@ export interface PropertyMapRequest {
   envelope_shape?: "hull" | "ellipse";
   class_slugs?: string[];
   material_ids?: number[] | null;
+  process_ids?: number[] | null;
   highlight_material_ids?: number[];
+  highlight_process_ids?: number[];
   include_envelopes?: boolean;
   /** Incompatible with `x_index`/`y_index`: only two property axes can carry a third, overlaid index. */
   index?: IndexIn | null;
   index_levels?: number[];
   index_level_material_ids?: number[];
+  index_level_process_ids?: number[];
 }
 
 export interface MapAxis {
@@ -871,6 +875,7 @@ export interface MapAxis {
 
 export interface MapPoint {
   material_id: number;
+  record_id?: number;
   material_name: string;
   class_name: string;
   class_slug: string;
@@ -905,6 +910,7 @@ export interface ClassEnvelope {
 
 export interface ExcludedPoint {
   material_id: number;
+  record_id?: number;
   name: string;
   reason: string;
 }
@@ -1653,8 +1659,8 @@ export interface SynthesisRequest {
   relative_density?: number | null;
   /**
    * Espessura de cada face e do núcleo, na mesma unidade. Qual unidade é não
-   * importa: toda regra do painel lê só a razão entre as duas. Mandar estes
-   * campos noutro tipo é recusado, nunca ignorado.
+  * importa: toda regra do painel lê só a razão entre as duas. Mandar estes
+  * campos noutro tipo é recusado, nunca ignorado.
    */
   face_thickness?: number | null;
   core_thickness?: number | null;
