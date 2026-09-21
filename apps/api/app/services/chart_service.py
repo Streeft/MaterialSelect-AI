@@ -238,20 +238,12 @@ class ChartService:
 
     def _process_property_map(self, request: PropertyMapRequest) -> PropertyMapOut:
         """Build an Ashby-style 2D map for the manufacturing process universe (P1-2 / P0-4)."""
-        if (
-            request.x_index is not None
-            or request.y_index is not None
-            or request.index is not None
-        ):
+        if request.x_index is not None or request.y_index is not None or request.index is not None:
             raise ValidationError("Índices de mérito não são suportados no universo de processos.")
         if request.x is None or request.y is None:
-            raise ValidationError(
-                "Informe x e y com os slugs dos atributos de processo a plotar."
-            )
+            raise ValidationError("Informe x e y com os slugs dos atributos de processo a plotar.")
         if request.x == request.y:
-            raise ValidationError(
-                "Escolha dois atributos de processo diferentes para os eixos."
-            )
+            raise ValidationError("Escolha dois atributos de processo diferentes para os eixos.")
 
         self._require_process_classes(request.class_slugs)
         x_def = self._require_process_attribute(request.x)
