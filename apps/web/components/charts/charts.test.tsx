@@ -485,4 +485,9 @@ describe("AshbyMap — seleção interativa e cursor", () => {
 
     expect(onSelectBox).toHaveBeenCalledWith(null);
   });
+
+  it("permite customizar o rótulo da coluna de registro na tabela via recordLabel", () => {
+    render(<AshbyMap map={makePropertyMap()} recordLabel="Processo" />);
+    expect(screen.getByRole("columnheader", { name: "Processo" })).toBeInTheDocument();
+  });
 });
