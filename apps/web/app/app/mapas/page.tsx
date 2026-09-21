@@ -363,17 +363,18 @@ function MapsPageContent() {
 
   const overlay = map.data?.index ?? null;
 
+  const points = map.data?.points;
   const pointsInBox = useMemo(() => {
-    if (!selectedBox || !map.data?.points) return [];
+    if (!selectedBox || !points) return [];
     const { xMin, xMax, yMin, yMax } = selectedBox;
-    return map.data.points.filter((p) => {
+    return points.filter((p) => {
       if (xMin !== null && p.x < xMin) return false;
       if (xMax !== null && p.x > xMax) return false;
       if (yMin !== null && p.y < yMin) return false;
       if (yMax !== null && p.y > yMax) return false;
       return true;
     });
-  }, [selectedBox, map.data?.points]);
+  }, [selectedBox, points]);
 
   function handleXAxisChange(next: AxisState) {
     setSelectedBox(null);
