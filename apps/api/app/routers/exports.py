@@ -27,7 +27,7 @@ from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy.orm import Session
 
 from app.db.base import get_db
-from app.dependencies import get_current_project, get_current_user
+from app.dependencies import get_current_project, get_current_user, get_unit_choices
 from app.exporters.docx import to_docx
 from app.exporters.html import to_html
 from app.exporters.report import Report
@@ -91,10 +91,11 @@ def export_catalogue(
     db: Session = Depends(get_db),
     project: Project = Depends(get_current_project),
     user: User = Depends(get_current_user),
+    unit_choices: dict[str, str] = Depends(get_unit_choices),
 ) -> Response:
     """Export the whole active catalogue with its provenance trail."""
     _require_supported(fmt)
-    return _file_response(ExportService(db, user).catalogue_report(), fmt)
+    return _file_response(ExportService(db, user, unit_choices).catalogue_report(), fmt)
 
 
 @router.get("/estudos/{study_id}.{fmt}")
@@ -104,6 +105,7 @@ def export_study(
     db: Session = Depends(get_db),
     project: Project = Depends(get_current_project),
     user: User = Depends(get_current_user),
+    unit_choices: dict[str, str] = Depends(get_unit_choices),
 ) -> Response:
     """Export a saved study as a full selection report.
 
@@ -111,7 +113,9 @@ def export_study(
     catalogue rather than a remembered result.
     """
     _require_supported(fmt)
-    return _file_response(ExportService(db, user).study_report(study_id, project.id), fmt)
+    return _file_response(
+        ExportService(db, user, unit_choices).study_report(study_id, project.id), fmt
+    )
 
 
 @router.get("/estudos/{study_id}/laudo.html")
@@ -121,6 +125,7 @@ def export_study_laudo(
     db: Session = Depends(get_db),
     project: Project = Depends(get_current_project),
     user: User = Depends(get_current_user),
+    unit_choices: dict[str, str] = Depends(get_unit_choices),
 ) -> Response:
     """The engineering report: a document distinct from the selection report,
     combining a ranking figure, the same audit tables, and — when the AI
@@ -128,7 +133,9 @@ def export_study_laudo(
     report it is built alongside: there is no spreadsheet shape for a figure
     or a paragraph.
     """
-    report = ExportService(db, user).study_laudo(study_id, project.id, responsible=responsavel)
+    report = ExportService(db, user, unit_choices).study_laudo(
+        study_id, project.id, responsible=responsavel
+    )
     return _file_response(report, "html")
 
 

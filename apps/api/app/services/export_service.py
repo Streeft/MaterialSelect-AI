@@ -13,9 +13,12 @@ someone else can check.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
+
 from app.ai.provider import AIUnavailableError
 from app.calculations.expressions import variables_in
 from app.calculations.units import pretty_unit
+from app.domain.display_units import readings_for
 from app.domain.errors import NotFoundError, ValidationError
 from app.exporters.cells import format_number
 from app.exporters.figures import (
@@ -47,7 +50,12 @@ _MISSING = "ausente"
 class ExportService:
     """Builds reports for saved studies and for the catalogue."""
 
-    def __init__(self, db, user: User | None = None) -> None:
+    def __init__(
+        self,
+        db,
+        user: User | None = None,
+        unit_choices: Mapping[str, str] | None = None,
+    ) -> None:
         # The ``User`` and not only their id, because this service constructs a
         # ``SelectionService`` to re-run the study and that one needs the whole
         # object. Carrying two spellings of "who is asking" through the same
@@ -57,6 +65,10 @@ class ExportService:
         self.viewer_id = user.id if user is not None else None
         self.selection_repo = SelectionRepository(db, self.viewer_id)
         self.chart_repo = ChartRepository(db, self.viewer_id)
+        # D-70: em que unidade o leitor pediu para ler. O documento sai como a
+        # tela de onde ele veio — um relatório que discordasse da tela que o
+        # originou seria a pior forma deste recurso falhar.
+        self.unit_choices: Mapping[str, str] = unit_choices or {}
 
     # --- selection study --------------------------------------------------
 
@@ -254,7 +266,7 @@ class ExportService:
             )
 
         try:
-            chart = ChartService(self.db, self.viewer_id).property_map(request)
+            chart = ChartService(self.db, self.viewer_id, self.unit_choices).property_map(request)
         except ValidationError:
             # A property that cannot carry a map (no plottable values, log
             # scale refused) is a reason to omit the figure, never to fail the
@@ -1015,8 +1027,9 @@ class ExportService:
         materials = self.chart_repo.list_materials()
         definitions = self.chart_repo.list_properties()
 
+        readings = readings_for(definitions, self.unit_choices)
         header = ["Material", "Classe", "Demonstrativo", "Registro próprio"] + [
-            f"{d.name} [{pretty_unit(d.canonical_unit)}]" for d in definitions
+            f"{d.name} [{readings[d.slug].label}]" for d in definitions
         ]
         rows: list[list[object]] = []
         provenance: list[list[object]] = []
@@ -1034,7 +1047,7 @@ class ExportService:
                 row.append(
                     _MISSING
                     if value is None or value.is_missing
-                    else format_number(value.normalized_value)
+                    else format_number(readings[definition.slug].value(value.normalized_value))
                 )
                 if value is not None and not value.is_missing:
                     provenance.append(
