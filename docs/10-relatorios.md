@@ -62,12 +62,12 @@ proteções são deliberadamente independentes — uma erra sem levar a outra ju
 
 ## O relatório de seleção
 
-`GET /api/exports/estudos/{id}.{csv|xlsx|html}` reexecuta o estudo pelo pipeline
+`GET /api/exports/estudos/{id}.{csv|xlsx|html|docx}` reexecuta o estudo pelo pipeline
 determinístico e organiza o resultado em seções:
 
 | Seção | O que responde |
 |---|---|
-| Aviso | os três avisos obrigatórios (aba própria no XLSX; cabeçalho no CSV e no HTML) |
+| Aviso | os três avisos obrigatórios (aba própria no XLSX; cabeçalho no CSV, no HTML e no DOCX) |
 | Problema | função, objetivo, variáveis livres, contagens |
 | Restrições e funil | qual restrição eliminou o quê |
 | Candidatos | ordenação, índice e pontuação |
@@ -88,8 +88,8 @@ forma de garantir isso é haver um único lugar que os produz.
 
 ## O relatório imprimível
 
-`…{id}.html` e `…catalogo.html` renderizam **o mesmo `Report`** que alimenta CSV
-e XLSX — não uma versão resumida. CSV e XLSX são formatos para planilha; o que
+`…{id}.html` e `…catalogo.html` renderizam **o mesmo `Report`** que alimenta CSV,
+XLSX e DOCX — não uma versão resumida. CSV e XLSX são formatos para planilha; o que
 se anexa a uma monografia é um documento que alguém lê, e o "imprimir para PDF"
 do navegador transforma este arquivo exatamente nisso. É por isso que o projeto
 **não** carrega uma dependência de geração de PDF.
@@ -111,6 +111,21 @@ A folha de impressão repete o cabeçalho da tabela a cada página
 órfão no pé da página — as duas formas de uma tabela impressa deixar de ser
 legível. As seções são numeradas para que se possa citar "seção 4" sem depender
 da paginação, que é do navegador e não nossa.
+
+## O relatório em DOCX (Word)
+
+`…{id}.docx` e `…catalogo.docx` renderizam **o mesmo `Report`** em documentos
+Word (.docx) formatados nativamente através de `python-docx` (`app/exporters/docx.py`),
+sem necessidade de bibliotecas C pesadas (alinhado a D-20).
+
+Três propriedades de formatação documental:
+
+- **Tabelas estruturadas e paginação:** repete a linha de cabeçalho da tabela a cada
+  página (`w:tblHeader`) e impede a quebra de linhas no meio entre páginas (`w:cantSplit`).
+- **Avisos obrigatórios destacados:** os avisos de limitação de uso, reprodutibilidade e
+  dados demonstrativos abrem o documento com formatação visual destacada.
+- **Formatação de células e ausência explícita:** números formatados com os mesmos 12 dígitos
+  significativos de `cells.py`, e dados ausentes impressos com o texto `"ausente"` explícito (D-24).
 
 ## O laudo de engenharia (Fase 9)
 
@@ -138,15 +153,15 @@ O que isso obriga:
 
 ## Catálogo
 
-`GET /api/exports/catalogo.{csv|xlsx|html}` exporta todos os materiais ativos em
+`GET /api/exports/catalogo.{csv|xlsx|html|docx}` exporta todos os materiais ativos em
 unidade canônica, com uma seção de proveniência completa. Dado não cadastrado
 sai como `ausente` — nunca célula vazia, que um leitor poderia confundir com
 zero.
 
 ## Quantos dígitos, e com que nome
 
-Duas escolhas de renderização que o relatório compartilha com CSV e XLSX, porque
-os três saem do mesmo `Report`.
+Duas escolhas de renderização que o relatório compartilha com CSV, XLSX e DOCX, porque
+os quatro saem do mesmo `Report`.
 
 **Dígitos.** Uma densidade informada como `3.9 g/cm**3` normaliza para
 `3899.9999999999995 kg/m**3` — o valor exato do `double`, não um erro do
@@ -177,22 +192,26 @@ faltando.
   CSV como HTML, o que transformaria nomes de material em marcação.
 - **Nomes de aba do Excel.** Máximo de 31 caracteres, sem `: \ / ? * [ ]`, e
   únicos. Saneados na escrita.
+- **DOCX sem dependências em C.** O formato DOCX é gerado inteiramente em Python
+  puro via `python-docx` (`app/exporters/docx.py`), permitindo edição posterior no
+  Word ou conversão nativa em PDF no leitor de documentos do usuário sem exigir
+  dependências complexas do sistema operacional.
 
 ## Endpoints
 
 | Método | Rota | Função |
 |---|---|---|
-| GET | `/api/exports/catalogo.{csv,xlsx,html}` | catálogo ativo com proveniência |
-| GET | `/api/exports/estudos/{id}.{csv,xlsx,html}` | relatório completo de um estudo |
+| GET | `/api/exports/catalogo.{csv,xlsx,html,docx}` | catálogo ativo com proveniência |
+| GET | `/api/exports/estudos/{id}.{csv,xlsx,html,docx}` | relatório completo de um estudo |
 | GET | `/api/exports/estudos/{id}/laudo.html` | laudo de engenharia (figura, responsável, IA) |
 
-O `html` é o único servido `inline`; os outros dois baixam. O laudo aceita
+O `html` é o único servido `inline`; os outros três baixam. O laudo aceita
 `?responsavel=` — texto livre, escapado, opcional.
 
 ## Ainda fora desta fatia
 
 Exportação de PPTX (B2) segue na Fase 7 e está no [`TODO.md`](TODO.md).
-Autenticação por projeto (A5), auditoria (M2) e os testes end-to-end de
+Autenticação por projeto (A5), auditoria (M2), os testes end-to-end de
 interface (A4 — Playwright cobrindo importar → selecionar → visualizar →
-exportar, `apps/web/e2e/`, check obrigatório de CI em `ci.yml`) já saíram; ver
-"Débitos já quitados" no `TODO.md`.
+exportar, `apps/web/e2e/`, check obrigatório de CI em `ci.yml`) e a exportação
+nativa em DOCX (P4 restante) já saíram; ver "Débitos já quitados" no `TODO.md`.

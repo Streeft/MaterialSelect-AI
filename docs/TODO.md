@@ -82,7 +82,7 @@ volta. Só a unidade de **exibição** é embelezada.
 
 Isto **não** move a linha `Unidades de exibição` da matriz do §5 de
 [`14-plataforma-selecao.md`](14-plataforma-selecao.md), que continua em **2**:
-ela mede se o usuário pode *escolher* a unidade de leitura (MPa em vez de Pa), e
+nela mede se o usuário pode *escolher* a unidade de leitura (MPa em vez de Pa), e
 isso não existe. São duas perguntas diferentes que dividiam o mesmo rótulo.
 
 ---
@@ -99,9 +99,8 @@ configurações de mapa; `SelectionStage` saiu com P0-1; `Process`,
 **Nada de estrutural pendente no roteiro imediato, e a faixa P1 fechou.** Os
 quatro gargalos P0 estão entregues, mais o P1-1 (busca), o P1-2 (Chart Stage), o
 P1-3 (browse) e o P1-4 (`My Records`) — este último o que mexeu na fronteira que
-o D-42 estabeleceu, e o único da faixa a mexer nela. O **P2**, a **P3** e o **Battery Designer** (P4) saíram em seguida, e a matriz
-está em 31 de 32. O que resta do roteiro é PDF/DOCX no gerador de relatório —
-formato de saída, não capacidade de método.
+o D-42 estabeleceu, e o único da faixa a mexer nela. O **P2**, a **P3**, o **Battery Designer** (P4) e o **DOCX** (P4 restante) saíram em seguida, e a matriz
+está em 31 de 32 com `Geração de relatório` em nível 5 (3,56 de nível médio).
 
 ---
 
@@ -109,6 +108,20 @@ formato de saída, não capacidade de método.
 
 Registrados para não voltarem por engano:
 
+- ~~**Atualização do Guia de Estilo (`/app/estilo`)**~~ — As três primitivas
+  novas do barril (`Bar`, `PageHeader`, `PanelShell`), o token de raio
+  `rounded-panel` (24 px / 1.5 rem), os seis tokens de superfície `rail-*`
+  com mini-frame de navegação, e a vitrine completa das 7 paletas por rota de
+  D-49 combinando galeria comparativa simultânea e alternador interativo de
+  matiz (`document.documentElement.dataset.section`). Quita o débito remanescente
+  da revisão final do patch Prisma.
+- ~~**P4 restante (DOCX)** — exportação nativa em DOCX~~ — `app/exporters/docx.py`
+  renderiza `Report` em documentos Word (.docx) nativos via `python-docx` puro,
+  sem dependências de sistema operacional em C (D-20). Cobertura completa de
+  `/api/exports/catalogo.docx` e `/api/exports/estudos/{id}.docx`, com tabelas
+  formatadas (`w:tblHeader` para repetir cabeçalhos na quebra de página, `w:cantSplit`
+  para não partir linhas), os três avisos de auditoria, e suporte nos botões do
+  frontend (`ExportButtons.tsx`, `api.ts`, `i18n.ts`).
 - ~~**P0-1** — a seleção era de estágio único~~ — o gargalo arquitetural que a
   análise de lacunas apontou, entregue em seis passos
   ([D-56](DECISIONS.md), [07-selecao-deterministica.md](07-selecao-deterministica.md)).
@@ -366,13 +379,14 @@ Registrados para não voltarem por engano:
   mutação nas duas direções — sem a guarda `kind <> 'chart'` a própria migração
   não roda.
 
-  **O que ficou de fora, e é melhoria e não bloqueio:** desenhar a caixa
-  **arrastando** no gráfico da tela — hoje os limites são digitados, já em
-  coordenadas de dados, que é a metade que importa para a auditoria — e o mapa
+  **O que ficou de fora, e é melhoria e não bloqueio:** ~~desenhar a caixa
+  **arrastando** no gráfico da tela~~ (entregue no Opção A / D-60: seleção
+  interativa por cursor com modo `select2d`, conversão de escala linear/log,
+  sincronização bidirecional de shapes no Plotly, preview dinâmico no estágio e
+  atalho direto "Criar estágio na Seleção" via deep link) — resta o mapa
   do universo de processos: um estudo de processos pode ter um estágio de
   gráfico, mas o plano dele não é desenhado, porque `property_map` lê o catálogo
   de materiais. Esse segundo item já estava registrado em P1 desde o P0-4.
-
 - ~~**S2** — CVEs do toolchain de desenvolvimento~~ — `npm audit` em
   `apps/web` de **27 para 14** achados, com as duas cadeias que tinham caminho
   de upgrade fechadas por inteiro. `vitest` 2 → **5** (com `vite` 7,
@@ -545,16 +559,13 @@ Registrados para não voltarem por engano:
   (intocado por esta tarefa), 193 de frontend, 2 E2E e Lighthouse (11
   rotas, 33 execuções) verdes ao final.
 
-  **Débito aberto pela revisão final de branch, não quitado nesta
-  entrega:** `/app/estilo` (a página viva do guia de estilo, de onde saem
-  as capturas usadas como figuras de interface na monografia) não foi
-  atualizada para este patch — falta nela as três primitivas novas do
-  barril (`Bar`, `PageHeader`, `PanelShell`), o token de raio
-  `rounded-panel`, os seis tokens de superfície `rail-*` e, a lacuna mais
-  visível, ela só mostra a rampa da seção `inicio`, sem forma de ver as
-  outras seis paletas por rota que D-49 introduziu. A nota já existente no
-  `CLAUDE.md` da raiz sobre as figuras da monografia precisarem ser
-  refeitas depois de D-38 agora também vale depois de D-49/Prisma.
+  **Débito aberto pela revisão final de branch — quitado:** `/app/estilo`
+  (a página viva do guia de estilo, de onde saem as capturas usadas como
+  figuras de interface na monografia) foi atualizada com as três primitivas
+  novas do barril (`Bar`, `PageHeader`, `PanelShell`), o token de raio
+  `rounded-panel`, os seis tokens de superfície `rail-*`, e a vitrine
+  comparativa e alternador interativo das sete paletas por rota introduzidas
+  por D-49.
 - ~~**M5** — Métodos multicritério adicionais (TOPSIS, AHP, PROMETHEE)~~ —
   implementado **por pedido explícito do orientador**, revertendo a nota "só
   faça se o orientador pedir" que este item carregava antes: o usuário
