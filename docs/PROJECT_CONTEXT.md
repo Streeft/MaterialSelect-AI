@@ -441,13 +441,42 @@ dicionário para o catálogo sem mexer numa vírgula da álgebra — e não trou
 122 exclusões de `Cérebro/`, o `submeter_pr.bat` nem a segunda implementação de
 painel sanduíche que vinha junto.
 
-A matriz vai a **31 de 32 (~97%)**, com nível médio **3,53**. **As faixas P3 e a
-metade de método da P4 fecharam**, e sobra uma linha abaixo de 3, que não é
-capacidade pela metade: o B11 (unidades de exibição, escolha de leitura e não
-módulo).
+**A unidade de leitura fechou a última linha** ([D-70](DECISIONS.md)), e o
+desenho inteiro sai de uma assimetria: **ler não é guardar**. `to_canonical`
+roda uma vez, quando um número entra, e devolve valor *mais trilha*;
+`from_canonical` roda toda vez que alguém olha, e devolve só o número — ler não
+cria fato nenhum sobre o material, e emitir uma trilha ali poria passos de
+leitura num campo que promete descrever origem.
 
-**Saúde do código:** 1683 testes de backend (Python 3.11 e 3.12, nenhum skip)
-e 356 de frontend, todos verdes. Desde o P0-1 a suíte também roda as migrações de
+Duas coisas o dado impôs, as duas contra a hipótese inicial. **A unidade de
+leitura é propriedade da propriedade, não da dimensão**: módulo, escoamento e
+tração compartilham `[mass]/[length]/[time]**2` e se leem em GPa, MPa e MPa, e
+mapear por dimensão daria "210000 MPa" ao lado de "250 MPa". E **a leitura é
+acrescentada, nunca substitui**: `value_scalar` guarda o que a fonte disse, na
+unidade dela, então os campos `display_*` saem ao lado e quem audita continua
+vendo os dois. Um documento exportado carrega as **três** unidades de propósito
+— a de leitura no cabeçalho, a canônica na folha de proveniência, a exata no
+método de conversão.
+
+A escolha do leitor vive na **URL** (D-63: senão a mesma URL desenharia duas
+tabelas), e três coisas ela não toca: o avaliador de índices, a diferença
+percentual (computada sobre o canônico, porque `is_ratio_scale` pergunta à
+canônica — `temp_max_servico` lida em °C tornaria "o dobro da temperatura" uma
+afirmação falsa) e a aritmética de uma incerteza, que é **diferença**: ±5 K
+lidos em °C são ±5 °C, não ±268,15. No mapa converte-se **no fim**, porque toda
+saída geométrica é um par de coordenadas — assim o fecho, a elipse, a linha de
+índice e a comparação do Chart Stage continuam em canônico, e o D-60 fica de pé.
+E uma unidade que não é puro fator de escala **não entra num mapa**, com a razão
+escrita: `log(x − 273,15)` não é `log x` deslocado.
+
+A matriz vai a **32 de 32 (100%)**, com nível médio **3,59**. **Nenhuma linha
+fica abaixo de 3** — mas a métrica para de medir no 3, e toda linha continua
+carregando a sua lista de "faltam". O número diz que nenhuma capacidade do
+modelo funcional está ausente ou pela metade, não que cada uma esteja no seu
+teto.
+
+**Saúde do código:** 1727 testes de backend (Python 3.11 e 3.12, nenhum skip)
+e 368 de frontend, todos verdes. Desde o P0-1 a suíte também roda as migrações de
 verdade, nos dois sentidos, contra um banco temporário que já contém dados —
 `test_migration_selection_stage.py`, `test_migration_process_universe.py`,
 `test_migration_selection_universe.py`, `test_migration_process_attributes.py`,
