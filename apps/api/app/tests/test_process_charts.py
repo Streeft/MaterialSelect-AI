@@ -193,9 +193,7 @@ def process_map_fixture(db_session) -> dict[str, int]:
 
 
 class TestProcessPropertyMap:
-    def test_plots_processes_with_both_axes(
-        self, client: TestClient, process_map_fixture
-    ) -> None:
+    def test_plots_processes_with_both_axes(self, client: TestClient, process_map_fixture) -> None:
         payload = {
             "universe": "process",
             "x": MASSA_SLUG,
@@ -238,9 +236,7 @@ class TestProcessPropertyMap:
         assert data["y_axis"]["unit"] == "dimensionless"
 
         injecao_pt = next(
-            p
-            for p in data["points"]
-            if p["material_id"] == process_map_fixture["injecao_id"]
+            p for p in data["points"] if p["material_id"] == process_map_fixture["injecao_id"]
         )
         assert injecao_pt["material_name"] == "Injeção Termoplástica"
         assert injecao_pt["record_id"] == process_map_fixture["injecao_id"]
@@ -290,8 +286,7 @@ class TestProcessPropertyMap:
         res = client.post(MAP_URL, json=payload_overlay)
         assert res.status_code == 400
         assert (
-            "Índices de mérito não são suportados no universo de processos"
-            in res.json()["detail"]
+            "Índices de mérito não são suportados no universo de processos" in res.json()["detail"]
         )
 
         payload_axis_index = {
@@ -307,9 +302,7 @@ class TestProcessPropertyMap:
             in res_axis.json()["detail"]
         )
 
-    def test_filters_by_process_class(
-        self, client: TestClient, process_map_fixture
-    ) -> None:
+    def test_filters_by_process_class(self, client: TestClient, process_map_fixture) -> None:
         payload = {
             "universe": "process",
             "x": MASSA_SLUG,
@@ -326,9 +319,7 @@ class TestProcessPropertyMap:
             process_map_fixture["soprada_id"],
         }
 
-    def test_unknown_process_class_is_404(
-        self, client: TestClient, process_map_fixture
-    ) -> None:
+    def test_unknown_process_class_is_404(self, client: TestClient, process_map_fixture) -> None:
         payload = {
             "universe": "process",
             "x": MASSA_SLUG,
@@ -339,9 +330,7 @@ class TestProcessPropertyMap:
         res = client.post(MAP_URL, json=payload)
         assert res.status_code == 404
 
-    def test_filters_by_process_ids(
-        self, client: TestClient, process_map_fixture
-    ) -> None:
+    def test_filters_by_process_ids(self, client: TestClient, process_map_fixture) -> None:
         payload = {
             "universe": "process",
             "x": MASSA_SLUG,
