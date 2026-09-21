@@ -266,7 +266,7 @@ export function toStagePayload(stage: StageState): StageIn {
     return {
       ...common,
       kind: "tree",
-      class_slugs: stage.class_slugs,
+      class_slugs: stage.classSlugs,
       include_descendants: stage.includeDescendants,
     };
   }
@@ -799,13 +799,7 @@ function ChartStageFields({
         />
       </div>
 
-      {hasBox && (
-        <div>
-          <Button variant="secondary" size="sm" onClick={handleClearBox}>
-            {t.stageChartClearBox}
-          </Button>
-        </div>
-      )}
+      {hasBox && (\n        <div>\n          <Button variant=\"secondary\" size=\"sm\" onClick={handleClearBox}>\n            {t.stageChartClearBox}\n          </Button>\n        </div>\n      )}
 
       {canPlotMap && (
         <div className="flex flex-col gap-2 rounded-card border border-edge p-3">
