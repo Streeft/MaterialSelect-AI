@@ -319,6 +319,11 @@ Três coisas que não são detalhe de configuração:
   `scripts/protect-main.ps1`: a regra do §7 vale para os jobs do `ci.yml`, que
   reportam em todo PR; exigir um job que só roda sob demanda travaria todo
   merge para sempre.
+- **E ninguém dispara esse caminho sozinho.** Mesclar um PR não implanta nada
+  na API nem semeia o banco — só a Vercel publica o frontend automaticamente.
+  13-deploy.md §5-ter é a regra fixa de quando disparar cada workflow depois
+  de um merge; pular esse passo já deixou dado de seed fora do ar por dias
+  com o deploy da API verde o tempo todo.
 - **No Fly, um deploy verde não prova que a aplicação está no ar**
   ([D-52](DECISIONS.md)). Duas armadilhas já custaram tempo, com a mesma
   assinatura: o app sem IP público (o `flyctl deploy` só aloca um sozinho
