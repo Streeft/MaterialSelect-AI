@@ -57,7 +57,9 @@ class PropertyMapRequest(BaseModel):
     scale: ScaleLiteral = "log"
     envelope_shape: Literal["hull", "ellipse"] = Field(
         default="hull",
-        description="Forma do envelope de classe: fecho convexo (literal) ou elipse ajustada (suave)",
+        description=(
+            "Forma do envelope de classe: fecho convexo (literal) ou elipse ajustada (suave)"
+        ),
     )
     class_slugs: list[str] = Field(
         default_factory=list, description="Filtro por classe (vazio = todas)"
@@ -68,7 +70,9 @@ class PropertyMapRequest(BaseModel):
     )
     process_ids: list[int] | None = Field(
         default=None,
-        description="Restringe o mapa a estes processos (ex.: candidatos de uma seleção de processos)",
+        description=(
+            "Restringe o mapa a estes processos (ex.: candidatos de uma seleção de processos)"
+        ),
     )
     highlight_material_ids: list[int] = Field(default_factory=list)
     highlight_process_ids: list[int] = Field(default_factory=list)
@@ -184,7 +188,8 @@ class IndexLevelOut(BaseModel):
     material_name: str | None = None
     points: list[list[float]]
     superior_material_ids: list[int] = Field(
-        default_factory=list, description="Materiais no lado favorável da linha, segundo o objetivo"
+        default_factory=list,
+        description="Materiais no lado favorável da linha, segundo o objetivo",
     )
 
 
