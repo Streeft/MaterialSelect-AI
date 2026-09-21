@@ -1,5 +1,18 @@
-import type { AxisState } from "./page";
 import type { ChartScale, Goal, SelectionUniverse } from "@/lib/types";
+
+/**
+ * What one axis is drawing: a catalogued property, or a computed index — the
+ * same "predefined slug or custom expression" choice the index overlay already
+ * offers, just per axis instead of once for the whole map.
+ */
+export interface AxisState {
+  mode: "property" | "index";
+  property: string;
+  /** "" (nothing chosen yet), a `PerformanceIndex` slug, or "custom". */
+  indexSlug: string;
+  customExpression: string;
+  goal: Goal;
+}
 
 export interface MapUrlState {
   universe?: SelectionUniverse;
