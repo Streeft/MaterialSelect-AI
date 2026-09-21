@@ -487,7 +487,7 @@ describe("toChartPayload", () => {
     );
 
     expect(payload.x.min_value).toBe(1000.5);
-    expect(payload.x.max_value).toBe8000.25 ? expect(payload.x.max_value).toBe(8000.25) : expect(payload.x.max_value).toBe(8000.25);
+    expect(payload.x.max_value).toBe(8000.25);
   });
 
   it("sends the property when the axis is a property, and nothing else", () => {

@@ -554,7 +554,7 @@ export function AshbyMap({
                 }}
                 onSelected={
                   enableBoxSelect
-                    ? (handleSelected as unknown as NonNullable<ComponentProps<typeof Plot>["onSelected"]>)
+                    ? (handleSelected as unknown as (event: unknown) => void)
                     : undefined
                 }
                 style={{ width: "100%" }}
