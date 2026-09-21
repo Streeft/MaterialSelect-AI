@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -10,6 +10,8 @@ import {
   getSavedChart,
   listClasses,
   listPerformanceIndices,
+  listProcessAttributes,
+  listProcessClasses,
   listProperties,
   listSavedCharts,
 } from "@/lib/api";
@@ -21,6 +23,7 @@ import type {
   PropertyDefinition,
   PropertyMapRequest,
   SavedChartIn,
+  SelectionUniverse,
 } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { formatNumber, prettyUnit } from "@/lib/format";
@@ -109,33 +112,37 @@ function AxisControl({
   properties,
   indices,
   dimension,
+  allowIndex = true,
 }: {
   label: string;
   axis: AxisState;
   onChange: (next: AxisState) => void;
-  properties: PropertyDefinition[];
+  properties: { slug: string; name: string; canonical_unit?: string | null }[];
   indices: PerformanceIndex[];
   /** Dimension of the resolved index, once the map has computed it (ADR 0004). */
   dimension?: string | null;
+  allowIndex?: boolean;
 }) {
   const descriptor = describeAxisIndex(axis, indices);
 
   return (
     <div className="flex min-w-[16rem] flex-1 flex-col gap-2">
-      <ButtonGroup label={`${label} — ${t.axisTypeProperty.toLowerCase()}/${t.axisTypeIndex.toLowerCase()}`}>
-        <ButtonGroupItem
-          selected={axis.mode === "property"}
-          label={t.axisTypeProperty}
-          onClick={() => onChange({ ...axis, mode: "property" })}
-        />
-        <ButtonGroupItem
-          selected={axis.mode === "index"}
-          label={t.axisTypeIndex}
-          onClick={() => onChange({ ...axis, mode: "index" })}
-        />
-      </ButtonGroup>
+      {allowIndex && (
+        <ButtonGroup label={`${label} — ${t.axisTypeProperty.toLowerCase()}/${t.axisTypeIndex.toLowerCase()}`}>
+          <ButtonGroupItem
+            selected={axis.mode === "property"}
+            label={t.axisTypeProperty}
+            onClick={() => onChange({ ...axis, mode: "property" })}
+          />
+          <ButtonGroupItem
+            selected={axis.mode === "index"}
+            label={t.axisTypeIndex}
+            onClick={() => onChange({ ...axis, mode: "index" })}
+          />
+        </ButtonGroup>
+      )}
 
-      {axis.mode === "property" ? (
+      {axis.mode === "property" || !allowIndex ? (
         <Select
           label={label}
           className="min-w-0"
@@ -144,7 +151,7 @@ function AxisControl({
         >
           {properties.map((p) => (
             <SelectOption key={p.slug} value={p.slug}>
-              {p.name} [{prettyUnit(p.canonical_unit)}]
+              {p.name} {p.canonical_unit ? `[${prettyUnit(p.canonical_unit)}]` : ""}
             </SelectOption>
           ))}
         </Select>
@@ -204,16 +211,27 @@ function MapsPageContent() {
     return estado ? decodeMapState(estado) : null;
   }, [params]);
 
+  const [universe, setUniverse] = useState<SelectionUniverse>(() => {
+    if (decodedState?.universe) return decodedState.universe;
+    return params.get("universo") === "process" ? "process" : "material";
+  });
+
   const [xAxis, setXAxis] = useState<AxisState>({
     mode: decodedState?.xAxis?.mode ?? "property",
-    property: decodedState?.xAxis?.property ?? params.get("x") ?? "densidade",
+    property:
+      decodedState?.xAxis?.property ??
+      params.get("x") ??
+      (universe === "process" ? "" : "densidade"),
     indexSlug: decodedState?.xAxis?.indexSlug ?? "",
     customExpression: decodedState?.xAxis?.customExpression ?? "",
     goal: decodedState?.xAxis?.goal ?? "maximize",
   });
   const [yAxis, setYAxis] = useState<AxisState>({
     mode: decodedState?.yAxis?.mode ?? "property",
-    property: decodedState?.yAxis?.property ?? params.get("y") ?? "modulo_young",
+    property:
+      decodedState?.yAxis?.property ??
+      params.get("y") ??
+      (universe === "process" ? "" : "modulo_young"),
     indexSlug: decodedState?.yAxis?.indexSlug ?? "",
     customExpression: decodedState?.yAxis?.customExpression ?? "",
     goal: decodedState?.yAxis?.goal ?? "maximize",
@@ -231,34 +249,95 @@ function MapsPageContent() {
   // Selection box state for interactive region dragging (P1-2)
   const [selectedBox, setSelectedBox] = useState<BoxSelection | null>(null);
 
-  // Materials carried over from a selection run, so a study can be read on the map.
-  const restrictedIds = useMemo(() => parseIds(params.get("materiais")), [params]);
+  // Records carried over from a selection run, so a study can be read on the map.
+  const restrictedIds = useMemo(
+    () => parseIds(params.get(universe === "process" ? "processos" : "materiais")),
+    [params, universe],
+  );
   const highlightIds = useMemo(() => parseIds(params.get("destaque")), [params]);
 
-  const properties = useQuery({ queryKey: ["properties"], queryFn: listProperties });
-  const classes = useQuery({ queryKey: ["classes"], queryFn: listClasses });
+  const properties = useQuery({
+    queryKey: ["properties"],
+    queryFn: listProperties,
+    enabled: universe === "material",
+  });
+  const classes = useQuery({
+    queryKey: ["classes"],
+    queryFn: listClasses,
+    enabled: universe === "material",
+  });
   const indices = useQuery({
     queryKey: ["performance-indices"],
     queryFn: listPerformanceIndices,
+    enabled: universe === "material",
+  });
+  const processAttributes = useQuery({
+    queryKey: ["process-attributes"],
+    queryFn: listProcessAttributes,
+    enabled: universe === "process",
+  });
+  const processClasses = useQuery({
+    queryKey: ["process-classes"],
+    queryFn: listProcessClasses,
+    enabled: universe === "process",
   });
 
-  // Fall back to the first two properties if the seeded slugs are absent.
-  // Runs regardless of axis mode: the property field stays ready the moment
-  // the reader switches an axis back from index to property.
-  // Adjusting state during render avoids cascading effects and satisfies
-  // react-hooks/set-state-in-effect.
-  const availableProperties = properties.data;
-  if (availableProperties && availableProperties.length >= 2) {
-    const slugs = availableProperties.map((p) => p.slug);
-    if (!slugs.includes(xAxis.property)) {
-      setXAxis((current) => ({ ...current, property: slugs[0] as string }));
+  const availableAttributes = useMemo(() => {
+    if (universe === "process") {
+      // Regra D-59: discretos não compõem eixos de dispersão contínua
+      return (processAttributes.data ?? [])
+        .filter((a) => a.kind !== "DISCRETO")
+        .map((a) => ({ slug: a.slug, name: a.name, canonical_unit: a.canonical_unit }));
     }
-    if (!slugs.includes(yAxis.property)) {
-      setYAxis((current) => ({
-        ...current,
-        property: (slugs[1] ?? slugs[0]) as string,
-      }));
+    return (properties.data ?? []).map((p) => ({
+      slug: p.slug,
+      name: p.name,
+      canonical_unit: p.canonical_unit,
+    }));
+  }, [universe, processAttributes.data, properties.data]);
+
+  const availableClasses = useMemo(() => {
+    if (universe === "process") {
+      return (processClasses.data ?? []).map((c) => ({ slug: c.slug, name: c.name }));
     }
+    return (classes.data ?? []).map((c) => ({ slug: c.slug, name: c.name }));
+  }, [universe, processClasses.data, classes.data]);
+
+  useEffect(() => {
+    if (availableAttributes.length >= 2) {
+      const slugs = availableAttributes.map((p) => p.slug);
+      if (xAxis.mode === "property" && (!xAxis.property || !slugs.includes(xAxis.property))) {
+        setXAxis((current) => ({ ...current, property: slugs[0] as string }));
+      }
+      if (yAxis.mode === "property" && (!yAxis.property || !slugs.includes(yAxis.property))) {
+        setYAxis((current) => ({
+          ...current,
+          property: (slugs[1] ?? slugs[0]) as string,
+        }));
+      }
+    }
+  }, [availableAttributes, xAxis.mode, xAxis.property, yAxis.mode, yAxis.property]);
+
+  function handleUniverseChange(next: SelectionUniverse) {
+    if (next === universe) return;
+    setUniverse(next);
+    setSelectedClasses([]);
+    setSelectedBox(null);
+    setXAxis((current) => ({
+      ...current,
+      mode: "property",
+      property: "",
+      indexSlug: "",
+      customExpression: "",
+    }));
+    setYAxis((current) => ({
+      ...current,
+      mode: "property",
+      property: "",
+      indexSlug: "",
+      customExpression: "",
+    }));
+    setIndexMode("none");
   }
 
   const [indexMode, setIndexMode] = useState(decodedState?.indexMode ?? "none"); // "none" | slug | "custom"
@@ -309,22 +388,27 @@ function MapsPageContent() {
 
   const request = useMemo<PropertyMapRequest>(
     () => ({
+      universe,
       x: xAxis.mode === "property" ? xAxis.property : null,
       y: yAxis.mode === "property" ? yAxis.property : null,
-      x_index: xAxis.mode === "index" ? xResolvedIndex : null,
-      y_index: yAxis.mode === "index" ? yResolvedIndex : null,
+      x_index: universe === "material" && xAxis.mode === "index" ? xResolvedIndex : null,
+      y_index: universe === "material" && yAxis.mode === "index" ? yResolvedIndex : null,
       scale,
       envelope_shape: envelopeShape,
       class_slugs: selectedClasses,
-      material_ids: restrictedIds.length > 0 ? restrictedIds : null,
+      material_ids: universe === "material" && restrictedIds.length > 0 ? restrictedIds : null,
+      process_ids: universe === "process" && restrictedIds.length > 0 ? restrictedIds : null,
+      highlight_material_ids: universe === "material" ? highlightIds : [],
+      highlight_process_ids: universe === "process" ? highlightIds : [],
       // Always requested; hiding them is a display choice handled in the
       // component, so ticking the box must not cost a round trip.
       include_envelopes: true,
-      index: activeIndex,
-      index_level_material_ids: levelMaterialIds,
-      index_levels: numericLevels,
+      index: universe === "material" ? activeIndex : null,
+      index_level_material_ids: universe === "material" ? levelMaterialIds : [],
+      index_levels: universe === "material" ? numericLevels : [],
     }),
     [
+      universe,
       xAxis,
       yAxis,
       xResolvedIndex,
@@ -333,6 +417,7 @@ function MapsPageContent() {
       envelopeShape,
       selectedClasses,
       restrictedIds,
+      highlightIds,
       activeIndex,
       levelMaterialIds,
       numericLevels,
@@ -363,18 +448,18 @@ function MapsPageContent() {
 
   const overlay = map.data?.index ?? null;
 
-  const points = map.data?.points;
+  const mapPoints = map.data?.points;
   const pointsInBox = useMemo(() => {
-    if (!selectedBox || !points) return [];
+    if (!selectedBox || !mapPoints) return [];
     const { xMin, xMax, yMin, yMax } = selectedBox;
-    return points.filter((p) => {
+    return mapPoints.filter((p) => {
       if (xMin !== null && p.x < xMin) return false;
       if (xMax !== null && p.x > xMax) return false;
       if (yMin !== null && p.y < yMin) return false;
       if (yMax !== null && p.y > yMax) return false;
       return true;
     });
-  }, [selectedBox, points]);
+  }, [selectedBox, mapPoints]);
 
   function handleXAxisChange(next: AxisState) {
     setSelectedBox(null);
@@ -420,6 +505,7 @@ function MapsPageContent() {
   /** Get the current map state as a MapUrlState object. */
   function getCurrentMapState(): MapUrlState {
     return {
+      universe,
       xAxis,
       yAxis,
       scale,
@@ -461,6 +547,7 @@ function MapsPageContent() {
     const defaults = getCurrentMapState();
     const applied = applyMapState(decoded, defaults);
 
+    if (applied.universe) setUniverse(applied.universe);
     if (applied.xAxis) setXAxis(applied.xAxis as AxisState);
     if (applied.yAxis) setYAxis(applied.yAxis as AxisState);
     if (applied.scale) {
@@ -622,12 +709,29 @@ function MapsPageContent() {
           <Card className="lg:col-span-2">
             <CardHeader title={t.groupAxes} />
             <CardBody className="flex flex-wrap items-start gap-4">
+              <div className="flex flex-col gap-1">
+                <span className="text-xs font-medium text-ink-muted">{t.universeTitle}</span>
+                <ButtonGroup label={t.universeTitle}>
+                  <ButtonGroupItem
+                    selected={universe === "material"}
+                    label={t.universeMaterials}
+                    onClick={() => handleUniverseChange("material")}
+                  />
+                  <ButtonGroupItem
+                    selected={universe === "process"}
+                    label={t.universeProcesses}
+                    onClick={() => handleUniverseChange("process")}
+                  />
+                </ButtonGroup>
+              </div>
+
               <AxisControl
                 label={t.axisX}
                 axis={xAxis}
                 onChange={handleXAxisChange}
-                properties={properties.data ?? []}
-                indices={indices.data ?? []}
+                allowIndex={universe === "material"}
+                properties={availableAttributes}
+                indices={universe === "material" ? (indices.data ?? []) : []}
                 dimension={map.data?.x_axis.is_index ? map.data.x_axis.unit : undefined}
               />
 
@@ -635,8 +739,9 @@ function MapsPageContent() {
                 label={t.axisY}
                 axis={yAxis}
                 onChange={handleYAxisChange}
-                properties={properties.data ?? []}
-                indices={indices.data ?? []}
+                allowIndex={universe === "material"}
+                properties={availableAttributes}
+                indices={universe === "material" ? (indices.data ?? []) : []}
                 dimension={map.data?.y_axis.is_index ? map.data.y_axis.unit : undefined}
               />
 
@@ -703,7 +808,7 @@ function MapsPageContent() {
               >
                 {t.allClasses}
               </ToggleChip>
-              {(classes.data ?? []).map((c) => (
+              {availableClasses.map((c) => (
                 <ToggleChip
                   key={c.slug}
                   selected={selectedClasses.includes(c.slug)}
@@ -718,7 +823,9 @@ function MapsPageContent() {
           <Card className="lg:col-span-2">
             <CardHeader title={t.groupIndex} description={t.indexHint} />
             <CardBody className="flex flex-col gap-3">
-              {anyAxisIsIndex ? (
+              {universe === "process" ? (
+                <Alert tone="info">{t.processIndexWarning}</Alert>
+              ) : anyAxisIsIndex ? (
                 <Alert tone="info">{t.indexAxisConflict}</Alert>
               ) : (
                 <>
@@ -901,6 +1008,9 @@ function MapsPageContent() {
                       const query = new URLSearchParams();
                       query.set("etapa", "restricoes");
                       query.set("novo_estagio", "chart");
+                      if (universe === "process") {
+                        query.set("universo", "process");
+                      }
                       if (xAxis.mode === "property") {
                         query.set("x_prop", xAxis.property);
                       } else if (xAxis.mode === "index") {
@@ -938,6 +1048,7 @@ function MapsPageContent() {
             enableBoxSelect
             selectionBox={selectedBox}
             onSelectBox={setSelectedBox}
+            recordLabel={universe === "process" ? t.columnProcess : undefined}
           />
 
           {map.data.notes.length > 0 && (
@@ -962,7 +1073,7 @@ function MapsPageContent() {
                 <CardBody>
                   <ul className="flex flex-col gap-1 text-sm text-ink">
                     {map.data.excluded.map((e) => (
-                      <li key={e.material_id}>
+                      <li key={e.record_id ?? e.material_id}>
                         <span className="font-medium">{e.name}</span>{" "}
                         <span className="text-ink-muted">— {e.reason}</span>
                       </li>
@@ -973,7 +1084,7 @@ function MapsPageContent() {
             </Section>
           )}
 
-          {map.data.points.length > 0 && (
+          {universe === "material" && map.data.points.length > 0 && (
             <div>
               <ButtonLink
                 href={`/app/comparar?materiais=${map.data.points.map((p) => p.material_id).join(",")}`}
