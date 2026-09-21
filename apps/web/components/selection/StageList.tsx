@@ -711,16 +711,16 @@ function ChartStageFields({
   );
 
   const canPlotMap =
-    universe === "material" &&
     stage.x.mode === "property" &&
     stage.x.propertySlug !== "" &&
     stage.y.mode === "property" &&
     stage.y.propertySlug !== "";
 
   const mapQuery = useQuery({
-    queryKey: ["stage-chart-map", stage.x.propertySlug, stage.y.propertySlug],
+    queryKey: ["stage-chart-map", universe, stage.x.propertySlug, stage.y.propertySlug],
     queryFn: () =>
       getPropertyMap({
+        universe,
         x: stage.x.propertySlug,
         y: stage.y.propertySlug,
         x_index: null,
@@ -828,6 +828,7 @@ function ChartStageFields({
               {mapQuery.data && (
                 <AshbyMap
                   map={mapQuery.data}
+                  recordLabel={universe === "process" ? ptBR.map.columnProcess : undefined}
                   enableBoxSelect
                   selectionBox={currentBox}
                   onSelectBox={handleSelectBox}
@@ -836,10 +837,6 @@ function ChartStageFields({
             </div>
           )}
         </div>
-      )}
-
-      {universe === "process" && axesChosen && (
-        <p className="text-sm text-fg-muted">{t.stageChartProcessNoMap}</p>
       )}
 
       <div className="flex flex-col gap-3 rounded-card border border-edge p-3">

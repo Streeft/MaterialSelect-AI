@@ -37,6 +37,7 @@ class PropertyMapRequest(BaseModel):
     than in a Pydantic validator.
     """
 
+    universe: Literal["material", "process"] = "material"
     x: str | None = Field(
         default=None, min_length=1, max_length=160, description="Slug da propriedade do eixo X"
     )
@@ -56,7 +57,9 @@ class PropertyMapRequest(BaseModel):
     scale: ScaleLiteral = "log"
     envelope_shape: Literal["hull", "ellipse"] = Field(
         default="hull",
-        description="Forma do envelope de classe: fecho convexo (literal) ou elipse ajustada (suave)",
+        description=(
+            "Forma do envelope de classe: fecho convexo (literal) ou elipse ajustada (suave)"
+        ),
     )
     class_slugs: list[str] = Field(
         default_factory=list, description="Filtro por classe (vazio = todas)"
@@ -65,7 +68,14 @@ class PropertyMapRequest(BaseModel):
         default=None,
         description="Restringe o mapa a estes materiais (ex.: candidatos de uma seleção)",
     )
+    process_ids: list[int] | None = Field(
+        default=None,
+        description=(
+            "Restringe o mapa a estes processos (ex.: candidatos de uma seleção de processos)"
+        ),
+    )
     highlight_material_ids: list[int] = Field(default_factory=list)
+    highlight_process_ids: list[int] = Field(default_factory=list)
     include_envelopes: bool = True
     index: IndexIn | None = Field(
         default=None,
@@ -78,6 +88,11 @@ class PropertyMapRequest(BaseModel):
         default_factory=list,
         max_length=MAX_INDEX_LEVELS,
         description="Traça a linha que passa exatamente pelo índice destes materiais",
+    )
+    index_level_process_ids: list[int] = Field(
+        default_factory=list,
+        max_length=MAX_INDEX_LEVELS,
+        description="Traça a linha que passa exatamente pelo índice destes processos",
     )
 
 
@@ -104,7 +119,7 @@ class MapAxisOut(BaseModel):
 
 
 class MapPointOut(BaseModel):
-    """One material on the map.
+    """One material or process on the map.
 
     ``x``/``y`` are the canonical representative values (for an interval, the
     typical). ``*_min``/``*_max`` are the interval bounds **converted to the
@@ -113,6 +128,7 @@ class MapPointOut(BaseModel):
     """
 
     material_id: int
+    record_id: int | None = None
     material_name: str
     class_name: str
     class_slug: str
@@ -151,9 +167,10 @@ class ClassEnvelopeOut(BaseModel):
 
 
 class ExcludedPointOut(BaseModel):
-    """A material kept out of the map, and why — coverage is never silently hidden."""
+    """A material or process kept out of the map, and why — coverage is never silently hidden."""
 
     material_id: int
+    record_id: int | None = None
     name: str
     reason: str
 
@@ -171,7 +188,8 @@ class IndexLevelOut(BaseModel):
     material_name: str | None = None
     points: list[list[float]]
     superior_material_ids: list[int] = Field(
-        default_factory=list, description="Materiais no lado favorável da linha, segundo o objetivo"
+        default_factory=list,
+        description="Materiais no lado favorável da linha, segundo o objetivo",
     )
 
 
@@ -216,7 +234,7 @@ class PropertyMapOut(BaseModel):
     )
     excluded: list[ExcludedPointOut] = Field(default_factory=list)
     index: IndexOverlayOut | None = None
-    considered_count: int = Field(description="Materiais avaliados após o filtro de classe/ids")
+    considered_count: int = Field(description="Registros avaliados após o filtro de classe/ids")
     plotted_count: int
     notes: list[str] = Field(default_factory=list)
 

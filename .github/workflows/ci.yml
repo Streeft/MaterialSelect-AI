@@ -23,7 +23,9 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: read
+  contents: write
+  pull-requests: write
+  issues: write
 
 jobs:
   # Portas, token de sessão e variáveis são os mesmos de
@@ -86,8 +88,9 @@ jobs:
           # audita onze vezes a tela de login.
           ENVIRONMENT: development
           E2E_SESSION_TOKEN: e2e-fixed-session-token-nao-use-em-producao
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          python scripts/e2e_server.py &
+          python scripts/e2e_server.py > /tmp/e2e_server.log 2>&1 &
           # Espera de prontidão, não `sleep` fixo: em segundo plano o passo
           # termina com sucesso mesmo se o servidor morreu, e o erro só
           # aparece passos adiante, disfarçado de falha do Lighthouse.
@@ -99,11 +102,23 @@ jobs:
             sleep 1
           done
           echo "::error::A API não respondeu em /api/health depois de 60s."
+          echo "### ❌ Falha no Lighthouse: Servidor E2E não subiu em 60s" > /tmp/lh_comment.md
+          echo "\`\`\`" >> /tmp/lh_comment.md
+          cat /tmp/e2e_server.log >> /tmp/lh_comment.md
+          echo "\`\`\`" >> /tmp/lh_comment.md
+          gh pr comment ${{ github.event.pull_request.number || 62 }} --body-file /tmp/lh_comment.md || true
           exit 1
 
       - name: Rodar Lighthouse CI
         working-directory: apps/web
-        run: npm run lighthouse
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          npm run lighthouse || {
+            echo "### ❌ Falha no Rodar Lighthouse CI" > /tmp/lh_ci_fail.md
+            gh pr comment ${{ github.event.pull_request.number || 62 }} --body-file /tmp/lh_ci_fail.md || true
+            exit 1
+          }
 
       - name: Publicar relatório Lighthouse
         if: always()
@@ -140,13 +155,44 @@ jobs:
         run: pip install -e ".[dev,knowledge]"
 
       - name: Lint (ruff)
-        run: ruff check app
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ruff check app || {
+            echo "### ❌ Falha no ruff (Python ${{ matrix.python-version }})" > /tmp/ruff_fail.md
+            echo "\`\`\`" >> /tmp/ruff_fail.md
+            ruff check app >> /tmp/ruff_fail.md 2>&1 || true
+            echo "\`\`\`" >> /tmp/ruff_fail.md
+            gh pr comment ${{ github.event.pull_request.number || 62 }} --body-file /tmp/ruff_fail.md || true
+            exit 1
+          }
 
       - name: Formatação (black)
-        run: black --check app
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          black --check --diff app || {
+            echo "### ❌ Falha no black (Python ${{ matrix.python-version }})" > /tmp/black_fail.md
+            echo "\`\`\`" >> /tmp/black_fail.md
+            black --check --diff app >> /tmp/black_fail.md 2>&1 || true
+            echo "\`\`\`" >> /tmp/black_fail.md
+            gh pr comment ${{ github.event.pull_request.number || 62 }} --body-file /tmp/black_fail.md || true
+            exit 1
+          }
 
       - name: Testes
-        run: pytest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          pytest -v --tb=short || {
+            pytest -v --tb=short > /tmp/pytest_out.txt 2>&1 || true
+            echo "### ❌ Falha no pytest (Python ${{ matrix.python-version }})" > /tmp/pytest_fail.md
+            echo "\`\`\`" >> /tmp/pytest_fail.md
+            tail -n 120 /tmp/pytest_out.txt >> /tmp/pytest_fail.md
+            echo "\`\`\`" >> /tmp/pytest_fail.md
+            gh pr comment ${{ github.event.pull_request.number || 62 }} --body-file /tmp/pytest_fail.md || true
+            exit 1
+          }
 
       - name: Migrações aplicam e o seed roda
         # Os testes usam SQLite em memória com create_all, então nunca exercitam
@@ -155,9 +201,13 @@ jobs:
         # demonstrativos funciona sobre elas.
         env:
           DATABASE_URL: sqlite:///./ci-check.db
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          python -m alembic upgrade head
-          python -m app.db.seed
+          (python -m alembic upgrade head && python -m app.db.seed) || {
+            echo "### ❌ Falha em Alembic/Seed (Python ${{ matrix.python-version }})" > /tmp/alembic_fail.md
+            gh pr comment ${{ github.event.pull_request.number || 62 }} --body-file /tmp/alembic_fail.md || true
+            exit 1
+          }
 
   migrations-postgres:
     name: Migrações (PostgreSQL)
@@ -249,16 +299,56 @@ jobs:
         run: npm ci
 
       - name: Tipos (modo estrito)
-        run: npm run typecheck
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          npm run typecheck || {
+            echo "### ❌ Falha no frontend: typecheck" > /tmp/typecheck_fail.md
+            echo "\`\`\`" >> /tmp/typecheck_fail.md
+            npm run typecheck >> /tmp/typecheck_fail.md 2>&1 || true
+            echo "\`\`\`" >> /tmp/typecheck_fail.md
+            gh pr comment ${{ github.event.pull_request.number || 62 }} --body-file /tmp/typecheck_fail.md || true
+            exit 1
+          }
 
       - name: Lint
-        run: npm run lint
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          npm run lint || {
+            echo "### ❌ Falha no frontend: lint" > /tmp/lint_fail.md
+            echo "\`\`\`" >> /tmp/lint_fail.md
+            npm run lint >> /tmp/lint_fail.md 2>&1 || true
+            echo "\`\`\`" >> /tmp/lint_fail.md
+            gh pr comment ${{ github.event.pull_request.number || 62 }} --body-file /tmp/lint_fail.md || true
+            exit 1
+          }
 
       - name: Testes
-        run: npm run test
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          npm run test || {
+            echo "### ❌ Falha no frontend: test" > /tmp/test_fail.md
+            echo "\`\`\`" >> /tmp/test_fail.md
+            npm run test >> /tmp/test_fail.md 2>&1 || true
+            echo "\`\`\`" >> /tmp/test_fail.md
+            gh pr comment ${{ github.event.pull_request.number || 62 }} --body-file /tmp/test_fail.md || true
+            exit 1
+          }
 
       - name: Build de produção
-        run: npm run build
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          npm run build || {
+            echo "### ❌ Falha no frontend: build" > /tmp/build_fail.md
+            echo "\`\`\`" >> /tmp/build_fail.md
+            npm run build >> /tmp/build_fail.md 2>&1 || true
+            echo "\`\`\`" >> /tmp/build_fail.md
+            gh pr comment ${{ github.event.pull_request.number || 62 }} --body-file /tmp/build_fail.md || true
+            exit 1
+          }
 
   e2e:
     name: E2E (Playwright)

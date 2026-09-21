@@ -485,4 +485,11 @@ describe("AshbyMap — seleção interativa e cursor", () => {
 
     expect(onSelectBox).toHaveBeenCalledWith(null);
   });
+
+  it("permite customizar o rótulo da coluna de registro na tabela via recordLabel", async () => {
+    const user = userEvent.setup();
+    render(<AshbyMap map={makePropertyMap()} recordLabel="Processo" />);
+    await user.click(screen.getByText(t.dataTable));
+    expect(screen.getByShadowRole("columnheader", { name: "Processo" })).toBeInTheDocument();
+  });
 });
