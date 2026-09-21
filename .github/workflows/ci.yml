@@ -140,13 +140,31 @@ jobs:
         run: pip install -e ".[dev,knowledge]"
 
       - name: Lint (ruff)
-        run: ruff check app
+        run: |
+          if ! ruff check app; then
+            ruff check app | head -n 30 | while IFS= read -r line; do
+              echo "::error title=RuffError::$line"
+            done
+            exit 1
+          fi
 
       - name: Formatação (black)
-        run: black --check app
+        run: |
+          if ! black --check app; then
+            black --diff app | head -n 30 | while IFS= read -r line; do
+              echo "::error title=BlackDiff::$line"
+            done
+            exit 1
+          fi
 
       - name: Testes
-        run: pytest
+        run: |
+          if ! pytest -v --tb=short; then
+            pytest -v --tb=line | grep -E "(FAILED|ERROR)" | head -n 30 | while IFS= read -r line; do
+              echo "::error title=PytestFail::$line"
+            done
+            exit 1
+          fi
 
       - name: Migrações aplicam e o seed roda
         # Os testes usam SQLite em memória com create_all, então nunca exercitam
