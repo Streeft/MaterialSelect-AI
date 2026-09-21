@@ -799,7 +799,13 @@ function ChartStageFields({
         />
       </div>
 
-      {hasBox && (\n        <div>\n          <Button variant=\"secondary\" size=\"sm\" onClick={handleClearBox}>\n            {t.stageChartClearBox}\n          </Button>\n        </div>\n      )}
+      {hasBox && (
+        <div>
+          <Button variant="secondary" size="sm" onClick={handleClearBox}>
+            {t.stageChartClearBox}
+          </Button>
+        </div>
+      )}
 
       {canPlotMap && (
         <div className="flex flex-col gap-2 rounded-card border border-edge p-3">
