@@ -22,6 +22,7 @@ import type { ProcessAttribute, PropertyDefinition, SelectionUniverse } from "@/
 const t = ptBR.selection;
 
 const density: PropertyDefinition = {
+  display_unit: null,
   id: 1,
   name: "Densidade",
   slug: "densidade",

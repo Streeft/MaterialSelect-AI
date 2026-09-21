@@ -14,7 +14,7 @@ from fastapi import APIRouter, Depends, Query, Response, status
 from sqlalchemy.orm import Session
 
 from app.db.base import get_db
-from app.dependencies import get_current_user
+from app.dependencies import get_current_user, get_unit_choices
 from app.models.user import User
 from app.schemas.material import (
     ChartData,
@@ -38,9 +38,10 @@ def list_materials(
     ),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
+    unit_choices: dict[str, str] = Depends(get_unit_choices),
 ) -> list[MaterialListItem]:
     """List active materials, optionally filtered by a search term."""
-    return MaterialService(db, user).list_materials(search)
+    return MaterialService(db, user, unit_choices).list_materials(search)
 
 
 @router.post("", response_model=MaterialDetail, status_code=status.HTTP_201_CREATED)
@@ -48,9 +49,10 @@ def create_material(
     payload: MaterialCreate,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
+    unit_choices: dict[str, str] = Depends(get_unit_choices),
 ) -> MaterialDetail:
     """Create a material together with its property values."""
-    return MaterialService(db, user).create_material(payload)
+    return MaterialService(db, user, unit_choices).create_material(payload)
 
 
 @router.get("/chart", response_model=ChartData)
@@ -59,13 +61,14 @@ def material_chart(
     y: str = Query(description="Slug da propriedade do eixo Y"),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
+    unit_choices: dict[str, str] = Depends(get_unit_choices),
 ) -> ChartData:
     """Return scatter data (normalised values) for two properties.
 
     Declared before ``/{material_id}`` so the literal path wins over the dynamic
     one.
     """
-    return MaterialService(db, user).build_chart(x, y)
+    return MaterialService(db, user, unit_choices).build_chart(x, y)
 
 
 @router.get("/{material_id}", response_model=MaterialDetail)
@@ -73,9 +76,10 @@ def get_material(
     material_id: int,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
+    unit_choices: dict[str, str] = Depends(get_unit_choices),
 ) -> MaterialDetail:
     """Return a material's full sheet, with properties grouped by category."""
-    return MaterialService(db, user).get_material_detail(material_id)
+    return MaterialService(db, user, unit_choices).get_material_detail(material_id)
 
 
 @router.post("/{material_id}/similares", response_model=SimilarOut)
@@ -84,6 +88,7 @@ def similar_materials(
     payload: SimilarRequest,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
+    unit_choices: dict[str, str] = Depends(get_unit_choices),
 ) -> SimilarOut:
     """Rank the catalogue by distance from this material (P2).
 
@@ -100,9 +105,10 @@ def update_material(
     payload: MaterialUpdate,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
+    unit_choices: dict[str, str] = Depends(get_unit_choices),
 ) -> MaterialDetail:
     """Apply a partial update to a material's identity fields."""
-    return MaterialService(db, user).update_material(material_id, payload)
+    return MaterialService(db, user, unit_choices).update_material(material_id, payload)
 
 
 @router.put("/{material_id}/values", response_model=MaterialDetail)
@@ -111,9 +117,10 @@ def replace_values(
     values: list[PropertyValueIn],
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
+    unit_choices: dict[str, str] = Depends(get_unit_choices),
 ) -> MaterialDetail:
     """Replace all property values of a material with the provided set."""
-    return MaterialService(db, user).replace_property_values(material_id, values)
+    return MaterialService(db, user, unit_choices).replace_property_values(material_id, values)
 
 
 @router.delete("/{material_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -121,7 +128,8 @@ def deactivate_material(
     material_id: int,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
+    unit_choices: dict[str, str] = Depends(get_unit_choices),
 ) -> Response:
     """Soft-delete (deactivate) a material."""
-    MaterialService(db, user).deactivate_material(material_id)
+    MaterialService(db, user, unit_choices).deactivate_material(material_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

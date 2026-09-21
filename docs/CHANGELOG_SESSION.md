@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [25](#sessão-25--210926--a-unidade-de-leitura-fecha-a-matriz) | 21/09/2026 | Unidade de leitura por propriedade (D-70) — ler não é guardar. **Matriz a 32 de 32 (100%)** | 1683 → 1727 | 356 → 368 |
 | [24](#sessão-24--160926--p4-o-battery-designer-e-a-reconciliação-do-pr-56) | 16/09/2026 | P4 Battery Designer (D-69) — a álgebra do pack é argumento, a química é dado medido. **Fecha a última linha em zero da matriz**; reconcilia o PR #56 | 1656 → 1683 | 349 → 356 |
 | [23](#sessão-23--160926--p3-os-sandwich-panels-fecham-a-faixa) | 16/09/2026 | P3 Sandwich Panels (D-68) — o painel passa do limite de Voigt, e é assim que se sabe que não é mistura. **Fecha a faixa P3** | 1629 → 1656 | 345 → 349 |
 | [22](#sessão-22--150926-a-160926--p3-o-synthesizer) | 15 e 16/09/2026 | P3 Synthesizer: registro derivado com a derivação a tiracolo (D-67) — a regra é da propriedade, não da receita | 1561 → 1629 | 334 → 345 |
@@ -40,6 +41,86 @@ As sessões entre a 11 e a 12 — o patch de design "Prisma" (D-49, D-50), o
 upgrade de segurança S1 e a rodada de desempenho — **não têm seção própria
 aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
+
+---
+
+## Sessão 25 — 21/09/26 — A unidade de leitura fecha a matriz
+
+**O pedido.** "O que falta para passar de 97% para 100% do EduPack?", e depois
+"pode começar, quero chegar a 100%". A resposta era uma linha só:
+`Unidades de exibição`, em 2. O B11 já tinha consertado a metade tipográfica
+(`kg/m**3` → `kg/m³`); a linha media a outra — se o usuário **escolhe** em que
+unidade lê. Não escolhia, e a ficha mostrava o módulo de Young como
+`210000000000`.
+
+**A assimetria que carrega o item.** `to_canonical` roda uma vez, quando um
+número entra, e devolve valor *mais trilha*. `from_canonical` roda toda vez que
+alguém olha, e devolve só o número. Guardar cria proveniência; ler não cria fato
+nenhum sobre o material, e emitir uma trilha na saída poria passos de leitura num
+campo que promete descrever **origem**.
+
+**Duas correções que o dado impôs, as duas contra a minha hipótese.** Eu comecei
+supondo que a unidade de leitura seria por **dimensão** — um mapa de
+`[mass]/[length]/[time]**2` para MPa e pronto. O catálogo desmentiu na primeira
+consulta: módulo, escoamento e tração têm a mesma dimensão e se leem em GPa, MPa
+e MPa, e uma tabela com "210000 MPa" ao lado de "250 MPa" estaria correta e seria
+ilegível. A convenção é da **grandeza**, ao lado de `better_direction`.
+
+A segunda apareceu quando um teste existente falhou com `9.99e-07 == 999.0`: eu
+tinha convertido `value_scalar` supondo que ele guardasse o canônico. Ele guarda
+**o que a fonte disse**, na unidade dela — reescrevê-lo apagaria o registro.
+Daí os campos `display_*` serem **acrescentados**, e um documento exportado
+carregar as três unidades de propósito.
+
+**A prova central é de invariância.** A mesma comparação, lida em duas unidades
+diferentes, devolve exatamente a mesma coluna de diferença percentual.
+`is_ratio_scale` pergunta à unidade **canônica**; se a escolha de leitura
+chegasse a essa pergunta, pedir °C para `temp_max_servico` ligaria uma coluna que
+não pode existir — "o dobro da temperatura" é falso numa escala sem zero
+verdadeiro — e o número sairia com toda a autoridade de um valor calculado.
+
+**No mapa, converte-se no fim.** Toda saída geométrica é um par de coordenadas, e
+a imagem afim de um par é o par convertido. Reescalar no fim é exato e deixa
+intocado o fecho, a elipse, a linha de índice e **a comparação que o Chart Stage
+faz para reprovar**: o D-60 fez figura e funil concordarem por construção, e
+converter a montante os separaria — o funil reprovaria por um número que a figura
+não desenha. E uma unidade que não é fator de escala **não entra num mapa**, com
+a razão escrita: `log(x − 273,15)` não é `log x` deslocado. A recusa é do mapa e
+não da grandeza — a ficha continua lendo em °C.
+
+**A figura exportada saiu de graça**, e é a prova de que a regra do CLAUDE.md
+estava certa: a geometria do documento vem de `ChartService.property_map`, a
+mesma chamada que serve a tela (D-53), então bastou a escolha atravessar o
+construtor.
+
+**Três armadilhas menores viraram teste.** Uma incerteza é **diferença** (±5 K
+lidos em °C são ±5 °C, não ±268,15), daí `from_canonical_delta`; `pretty_unit`
+aprendeu °C/°F, porque a unidade chega à tela de verdade agora e ninguém viu
+"degC" numa tabela de materiais — mas `conversion_method` continua guardando
+`degC`, que é o que o Pint sabe reler; e as 38 fixturas de teste do frontend
+tiveram de declarar os campos novos, que é a tipagem estrita fazendo o trabalho
+que a tela de baterias mostrou ser necessário.
+
+**Recuperação no meio do caminho.** O container foi reciclado entre sessões:
+clone reiniciado, `venv` e `node_modules` apagados, lista de tarefas zerada. O
+commit da fundação estava a salvo no remoto; só a amarração não commitada se
+perdeu e foi refeita. `main` tinha avançado quatro PRs (#58 DOCX, #59 seed
+estendido, #60 guia de estilo, #61 seleção por arraste) e mesclou sem conflito —
+o avanço foi todo frontend, este trabalho é todo backend até o T6. Cinco testes
+de conhecimento falharam e **não eram regressão**: a CI instala
+`.[dev,knowledge]` e eu tinha reconstruído o ambiente com `.[dev]`.
+
+**Números.** 1683 → **1727** testes de backend (nenhum skip), 356 → **368** de
+frontend. Cobertura EduPack ~97% → **100%** (32 de 32), nível médio 3,56 →
+**3,59**.
+
+**E 100% não quer dizer pronto.** A métrica para de medir no 3, e toda linha da
+matriz continua com a sua lista de "faltam" — catálogo de processos editável, o
+*porquê* por registro reprovado, *Science Notes*, desempenho para centenas de
+milhares de registros. O número diz que nenhuma capacidade do modelo funcional
+está ausente ou pela metade, não que cada uma esteja no seu teto. E a pendência
+da monografia continua sendo o §3.5: nenhuma sessão de teste com usuários foi
+realizada.
 
 ---
 

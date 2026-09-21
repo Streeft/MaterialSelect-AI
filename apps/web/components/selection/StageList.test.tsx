@@ -90,6 +90,7 @@ function reorderButton(label: string): HTMLElement {
 }
 
 const density: PropertyDefinition = {
+  display_unit: null,
   id: 1,
   name: "Densidade",
   slug: "densidade",

@@ -67,7 +67,11 @@ export function countLabel(count: number, one: string, many: string): string {
 export function formatDate(iso: string): string | null {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return null;
-  return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
+  return date.toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
 }
 
 /**
@@ -80,10 +84,20 @@ export function formatDate(iso: string): string | null {
  * may survive to be mangled into `··` by the multiplication rule.
  */
 export function prettyUnit(unit: string | null): string {
-  if (!unit || unit === "dimensionless") return unit === "dimensionless" ? "—" : "";
-  return unit
-    .replace(/\s*\*\*\s*3(?![\d.])/g, "³")
-    .replace(/\s*\*\*\s*2(?![\d.])/g, "²")
-    .replace(/\s*\*\*\s*/g, "^")
-    .replace(/\*/g, "·");
+  if (!unit || unit === "dimensionless")
+    return unit === "dimensionless" ? "—" : "";
+  return (
+    unit
+      // As duas escalas que o Pint escreve por extenso. Desde o D-70 elas chegam
+      // à tela de verdade — °C é a convenção de leitura da temperatura de serviço
+      // —, e ninguém nunca viu "degC" numa tabela de materiais. Espelha
+      // `pretty_unit` em `app/calculations/units.py`; só o rótulo muda, o método
+      // de conversão continua guardando `degC`, que é o que o Pint sabe reler.
+      .replace(/\bdegC\b/g, "°C")
+      .replace(/\bdegF\b/g, "°F")
+      .replace(/\s*\*\*\s*3(?![\d.])/g, "³")
+      .replace(/\s*\*\*\s*2(?![\d.])/g, "²")
+      .replace(/\s*\*\*\s*/g, "^")
+      .replace(/\*/g, "·")
+  );
 }

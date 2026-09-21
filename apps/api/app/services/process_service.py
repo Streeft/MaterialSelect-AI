@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
+
 from sqlalchemy.orm import Session
 
+from app.domain.display_units import Reading, reading_for
 from app.domain.errors import NotFoundError
 from app.domain.taxonomy import lineages
 from app.models.process import Process, ProcessClass
@@ -29,8 +32,27 @@ class ProcessService:
     through here rather than reimplementing the join.
     """
 
-    def __init__(self, db: Session) -> None:
+    def __init__(self, db: Session, unit_choices: Mapping[str, str] | None = None) -> None:
         self.repo = ProcessRepository(db)
+        # D-70: a escolha de leitura vale para a requisição inteira. Argumento de
+        # construtor pela mesma razão do `MaterialService`: um parâmetro por
+        # método deixaria alguma superfície de fora, e é assim que a ficha do
+        # processo passaria a discordar da do material sobre a mesma grandeza.
+        self.unit_choices: Mapping[str, str] = unit_choices or {}
+
+    def _reading(self, attribute: ProcessAttributeDefinition) -> Reading:
+        """Em que unidade este atributo sai nesta requisição.
+
+        Um atributo **discreto** não tem unidade nenhuma — nem canônica, nem de
+        leitura —, e a `Reading` vazia que sai daqui converte nada: pertinência a
+        um vocabulário fechado não se converte.
+        """
+        return reading_for(
+            canonical_unit=attribute.canonical_unit or "",
+            display_unit=attribute.display_unit,
+            accepted_units=attribute.accepted_units or [],
+            requested=self.unit_choices.get(attribute.slug),
+        )
 
     def list_classes(self) -> list[ProcessClassOut]:
         return [
@@ -123,8 +145,7 @@ class ProcessService:
             attributes=[self._attribute_value_to_out(v) for v in values],
         )
 
-    @staticmethod
-    def _attribute_to_out(attribute: ProcessAttributeDefinition) -> ProcessAttributeOut:
+    def _attribute_to_out(self, attribute: ProcessAttributeDefinition) -> ProcessAttributeOut:
         return ProcessAttributeOut(
             id=attribute.id,
             name=attribute.name,
@@ -135,12 +156,14 @@ class ProcessService:
             physical_dimension=attribute.physical_dimension,
             canonical_unit=attribute.canonical_unit,
             accepted_units=list(attribute.accepted_units or []),
+            display_unit=attribute.display_unit,
             allowed_labels=list(attribute.allowed_labels or []),
             better_direction=attribute.better_direction,
         )
 
-    @staticmethod
-    def _attribute_value_to_out(value: ProcessAttributeValue) -> ProcessAttributeValueOut:
+    def _attribute_value_to_out(self, value: ProcessAttributeValue) -> ProcessAttributeValueOut:
+        """Um atributo da ficha, com a leitura ao lado do registro (D-70)."""
+        reading = self._reading(value.attribute)
         return ProcessAttributeValueOut(
             attribute_id=value.attribute_id,
             attribute_name=value.attribute.name,
@@ -163,6 +186,7 @@ class ProcessService:
             source_label=value.source.label if value.source else None,
             data_quality=value.data_quality,
             is_missing=value.is_missing,
+            **reading.read(value),
         )
 
     def processes_for_material(self, material_id: int) -> list[ProcessOut]:

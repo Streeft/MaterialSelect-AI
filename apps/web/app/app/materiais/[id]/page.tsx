@@ -1,9 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { deactivateMaterial, getChart, getMaterial } from "@/lib/api";
+import {
+  deactivateMaterial,
+  getChart,
+  getMaterial,
+  listProperties,
+} from "@/lib/api";
+import {
+  UNITS_PARAM,
+  UnitPicker,
+  parseUnitChoices,
+} from "@/components/UnitPicker";
+import type { MaterialDetail, PropertyGroup } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { FavoriteButton } from "@/components/my-records/FavoriteButton";
 import { SimilarPanel } from "@/components/similar/SimilarPanel";
@@ -33,13 +44,34 @@ export default function MaterialDetailPage() {
   const router = useRouter();
   const qc = useQueryClient();
 
+  // A escolha de unidade de leitura vive na URL (D-70), então ela entra na
+  // chave da consulta: trocar de unidade é uma pergunta diferente, e a resposta
+  // vem do servidor — a conversão é cálculo e não apresentação (ADR 0004).
+  const search = useSearchParams();
+  const unitsParam = search.get(UNITS_PARAM);
+  const unitChoices = parseUnitChoices(unitsParam);
+
   const material = useQuery({
-    queryKey: ["material", id],
-    queryFn: () => getMaterial(id),
+    queryKey: ["material", id, unitsParam],
+    queryFn: () => getMaterial(id, unitChoices),
     enabled: Number.isFinite(id),
+    // Sem isto a ficha pisca de volta para o estado de carregamento a cada
+    // troca de unidade — o mesmo defeito que o B8 corrigiu na escala do mapa.
+    placeholderData: (previous) => previous,
   });
 
   useRecordVisit("material", Number.isFinite(id) ? id : undefined);
+
+  // As unidades que cada grandeza admite. Vêm da definição e não da ficha: é a
+  // mesma lista curada que o backend aceita, então nenhuma escolha oferecida
+  // aqui pode ser recusada lá.
+  const properties = useQuery({
+    queryKey: ["properties"],
+    queryFn: listProperties,
+  });
+  const acceptedBySlug = new Map(
+    (properties.data ?? []).map((d) => [d.slug, d.accepted_units ?? []]),
+  );
 
   // Density × Young's modulus is the demonstrative Ashby-style map for the MVP.
   const chart = useQuery({
@@ -69,7 +101,12 @@ export default function MaterialDetailPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <ButtonLink href="/app/catalogo" variant="link" size="sm" className="self-start">
+      <ButtonLink
+        href="/app/catalogo"
+        variant="link"
+        size="sm"
+        className="self-start"
+      >
         {t.back}
       </ButtonLink>
 
@@ -86,8 +123,12 @@ export default function MaterialDetailPage() {
             <CardBody className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="text-2xl font-semibold text-ink">{data.name}</h1>
-                  {data.is_demo && <Badge tone="warning">{ptBR.demoBadge}</Badge>}
+                  <h1 className="text-2xl font-semibold text-ink">
+                    {data.name}
+                  </h1>
+                  {data.is_demo && (
+                    <Badge tone="warning">{ptBR.demoBadge}</Badge>
+                  )}
                   {/* P1-4: the sheet says whose record this is. Beside the demo
                       badge because they answer the same question — how far this
                       material's numbers may be trusted — and a reader who has
@@ -103,11 +144,15 @@ export default function MaterialDetailPage() {
                     color={classVisual(data.class_slug).color}
                   />
                   {data.subclass && (
-                    <span className="text-sm text-ink-muted">{data.subclass}</span>
+                    <span className="text-sm text-ink-muted">
+                      {data.subclass}
+                    </span>
                   )}
                 </div>
                 {data.description && (
-                  <p className="mt-2 max-w-prose text-sm text-ink-muted">{data.description}</p>
+                  <p className="mt-2 max-w-prose text-sm text-ink-muted">
+                    {data.description}
+                  </p>
                 )}
                 {data.keywords.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-1">
@@ -137,11 +182,19 @@ export default function MaterialDetailPage() {
           </Card>
 
           <div className="grid gap-6 lg:grid-cols-2">
-            <Section id="propriedades" title={t.properties} description={t.provenanceHint}>
+            <Section
+              id="propriedades"
+              title={t.properties}
+              description={t.provenanceHint}
+            >
               {data.property_groups.length === 0 ? (
                 <EmptyState title={t.noProperties} />
               ) : (
                 <>
+                  <UnitChoices
+                    groups={data.property_groups}
+                    acceptedBySlug={acceptedBySlug}
+                  />
                   {data.property_groups.map((g) => (
                     <PropertyGroupCard key={g.category} group={g} />
                   ))}
@@ -176,14 +229,16 @@ export default function MaterialDetailPage() {
                   <Card>
                     <CardBody className="flex flex-col gap-3">
                       {Object.entries(
-                        data.processes.reduce<Record<string, typeof data.processes>>(
-                          (byFamily, process) => {
-                            const family = process.class_name;
-                            byFamily[family] = [...(byFamily[family] ?? []), process];
-                            return byFamily;
-                          },
-                          {},
-                        ),
+                        data.processes.reduce<
+                          Record<string, typeof data.processes>
+                        >((byFamily, process) => {
+                          const family = process.class_name;
+                          byFamily[family] = [
+                            ...(byFamily[family] ?? []),
+                            process,
+                          ];
+                          return byFamily;
+                        }, {}),
                       ).map(([family, list]) => (
                         <div key={family} className="flex flex-col gap-1">
                           <span className="text-xs font-medium uppercase tracking-wide text-fg-muted">
@@ -200,7 +255,10 @@ export default function MaterialDetailPage() {
                                 href={`/app/processos/${process.slug}`}
                                 className="rounded-control focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                               >
-                                <Badge tone="brand" title={process.description ?? undefined}>
+                                <Badge
+                                  tone="brand"
+                                  title={process.description ?? undefined}
+                                >
                                   {process.name}
                                 </Badge>
                               </Link>
@@ -219,7 +277,9 @@ export default function MaterialDetailPage() {
                   screen. */}
               <SimilarPanel material={data} />
 
-              {chart.data && <PropertyChart data={chart.data} highlightMaterialId={id} />}
+              {chart.data && (
+                <PropertyChart data={chart.data} highlightMaterialId={id} />
+              )}
               {chart.data && (
                 <ButtonLink
                   href={`/app/mapas?x=densidade&y=modulo_young&destaque=${id}`}
@@ -234,5 +294,48 @@ export default function MaterialDetailPage() {
         </>
       )}
     </div>
+  );
+}
+
+/**
+ * Em que unidade esta ficha está sendo lida (D-70).
+ *
+ * Um seletor por grandeza que tem alternativa, num lugar só: um `<select>` ao
+ * lado de cada valor transformaria a coluna de números — que é o que a ficha
+ * existe para mostrar — numa fileira de controles. As grandezas com uma unidade
+ * só não aparecem, porque um seletor de uma opção afirma que existe escolha.
+ *
+ * A nota diz o que não mudou: a proveniência de cada número continua guardando
+ * o que a fonte registrou e a unidade canônica. Sem ela, um leitor poderia
+ * concluir que trocar a unidade reescreveu o dado.
+ */
+function UnitChoices({
+  groups,
+  acceptedBySlug,
+}: {
+  groups: MaterialDetail["property_groups"];
+  acceptedBySlug: Map<string, string[]>;
+}) {
+  const choosable = (groups as PropertyGroup[])
+    .flatMap((g) => g.properties)
+    .filter((p) => (acceptedBySlug.get(p.property_slug) ?? []).length > 1);
+
+  if (choosable.length === 0) return null;
+
+  return (
+    <Card>
+      <CardBody className="flex flex-col gap-3">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {choosable.map((p) => (
+            <UnitPicker
+              key={p.property_slug}
+              property={p}
+              acceptedUnits={acceptedBySlug.get(p.property_slug) ?? []}
+            />
+          ))}
+        </div>
+        <p className="text-xs text-ink-muted">{ptBR.units.readingNote}</p>
+      </CardBody>
+    </Card>
   );
 }

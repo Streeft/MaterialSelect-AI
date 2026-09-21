@@ -626,7 +626,29 @@ premissa de oficina** — os três fatores de empacotamento são entrada com val
 visível. Química inexistente é 404; catálogo vazio recusa o pódio com o motivo
 escrito.
 
-1683 testes de backend (nenhum skip) e 356 de frontend, todos verdes. CI no
+**A unidade de leitura fechou a matriz do EduPack em 32 de 32**
+([D-70](docs/DECISIONS.md)), e o desenho sai de uma assimetria: **ler não é
+guardar**. `to_canonical` roda uma vez, quando um número entra, e devolve valor
+*mais trilha*; `from_canonical` roda toda vez que alguém olha, e devolve só o
+número. `PropertyDefinition.display_unit` dá a convenção de leitura de cada
+grandeza — e é **por propriedade e não por dimensão**, porque módulo, escoamento
+e tração compartilham dimensão e se leem em GPa, MPa e MPa. A escolha do leitor
+vive na **URL** (D-63), restrita a `accepted_units`, e unidade fora do conjunto é
+recusada com as admitidas escritas.
+
+**A leitura é acrescentada, nunca substitui:** `value_scalar` guarda o que a
+fonte disse, os campos `display_*` saem ao lado, e um documento exportado carrega
+as três unidades — a de leitura no cabeçalho, a canônica na proveniência, a exata
+no método de conversão. **Três coisas ela não toca:** o avaliador de índices, a
+diferença percentual (computada sobre o canônico, porque `is_ratio_scale`
+pergunta à canônica) e a aritmética de uma incerteza, que é diferença
+(`from_canonical_delta`: ±5 K lidos em °C são ±5 °C). **No mapa converte-se no
+fim**, porque toda saída geométrica é um par de coordenadas — assim o fecho, a
+elipse, a linha de índice e a comparação do Chart Stage continuam canônicos e o
+D-60 fica de pé —, e uma unidade que não é puro fator de escala **não entra num
+mapa**, com a razão escrita.
+
+1727 testes de backend (nenhum skip) e 368 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
 PROJECT_CONTEXT.md).

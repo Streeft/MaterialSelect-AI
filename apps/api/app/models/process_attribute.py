@@ -86,6 +86,14 @@ class ProcessAttributeDefinition(Base):
             "(kind = 'DISCRETO') = (canonical_unit IS NULL)",
             name="ck_process_attribute_definition_unit_by_kind",
         ),
+        # Uma unidade de leitura exige uma canônica para ser lida a partir de
+        # quê. Escrito como implicação em vez de repetir a lógica do `kind`
+        # acima: o invariante real é "não há de onde converter", e amarrá-lo ao
+        # kind faria as duas restrições precisarem mudar juntas.
+        CheckConstraint(
+            "display_unit IS NULL OR canonical_unit IS NOT NULL",
+            name="ck_process_attribute_definition_display_unit_needs_canonical",
+        ),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -104,6 +112,10 @@ class ProcessAttributeDefinition(Base):
     # NULL only for a discrete attribute; see the check constraint above.
     canonical_unit: Mapped[str | None] = mapped_column(String(60), nullable=True)
     accepted_units: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
+    #: A unidade em que este atributo **se lê**, quando não é a canônica. Mesma
+    #: natureza e mesmas regras de `PropertyDefinition.display_unit`; um
+    #: atributo discreto não tem nenhuma das duas, e a restrição acima garante.
+    display_unit: Mapped[str | None] = mapped_column(String(60), nullable=True)
 
     #: The closed vocabulary of a discrete attribute, in display order. Empty
     #: for the numeric kinds. Closed rather than free text so that two spellings

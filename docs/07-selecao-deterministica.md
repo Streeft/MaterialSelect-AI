@@ -538,6 +538,44 @@ no cálculo, porque "não existe" é resposta diferente de "não dimensiona");
 comparar sobre catálogo vazio devolve o motivo por extenso, porque um pódio vazio
 leria como "nenhuma química serve".
 
+## Unidade de leitura (`app/domain/display_units.py`)
+
+O catálogo guarda todo número na **unidade canônica**, e é assim que ele
+continua: é sobre o canônico que o motor compara, que o avaliador de índices
+calcula e que `conversion_method` promete reprodutibilidade. Só que ninguém lê
+módulo de Young em pascal. Esta camada resolve a distância, **na saída**
+([D-70](DECISIONS.md)).
+
+**Ler não é guardar.** `to_canonical` roda uma vez, quando um número entra, e
+devolve valor **mais trilha**. `from_canonical` roda toda vez que alguém olha, e
+devolve só o número: ler não cria fato nenhum sobre o material.
+
+**A unidade de leitura é propriedade da propriedade, não da dimensão.** Módulo,
+escoamento e tração compartilham `[mass]/[length]/[time]**2` e se leem em GPa,
+MPa e MPa — mapear por dimensão daria "210000 MPa" ao lado de "250 MPa". Por
+isso `PropertyDefinition.display_unit`, ao lado de `better_direction` e
+`allows_log_scale`. `NULL` quer dizer "lê-se como está guardada".
+
+**A escolha do leitor vem na URL** (`?unidades=modulo_young:MPa`), restrita a
+`accepted_units`, e unidade fora do conjunto é recusada com as admitidas
+escritas — 400, não 500.
+
+**A leitura é acrescentada.** `value_scalar` guarda o que a fonte disse, na
+unidade dela; os campos `display_*` saem ao lado. Um documento exportado carrega
+as três unidades de propósito: a de leitura no cabeçalho, a canônica na folha de
+proveniência, a exata no método de conversão.
+
+**O que a leitura não toca:** o avaliador de índices, a diferença percentual
+(computada sobre o canônico, porque `is_ratio_scale` pergunta à canônica) e a
+aritmética de uma incerteza, que é **diferença** e usa `from_canonical_delta` —
+±5 K lidos em °C são ±5 °C.
+
+**No mapa, converte-se no fim**, porque toda saída geométrica é um par de
+coordenadas e a imagem afim de um par é o par convertido — o fecho, a elipse, a
+linha de índice e a comparação do Chart Stage continuam em canônico. E uma
+unidade que não é puro fator de escala **não entra num mapa**: `log(x − 273,15)`
+não é `log x` deslocado, e a linha de índice deixaria de ser reta.
+
 ## Ranking multicritério (`app/domain/ranking.py`)
 
 Soma ponderada normalizada. Cada critério tem uma direção (maior/menor é melhor),
