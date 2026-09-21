@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -55,7 +55,13 @@ import {
   describeIndex,
   type IndexDescriptor,
 } from "@/components/selection/IndexCard";
-import { applyMapState, decodeMapState, encodeMapState, type MapUrlState } from "./url-state";
+import {
+  applyMapState,
+  decodeMapState,
+  encodeMapState,
+  type AxisState,
+  type MapUrlState,
+} from "./url-state";
 
 const t = ptBR.map;
 
@@ -66,20 +72,6 @@ function parseIds(raw: string | null): number[] {
     .split(",")
     .map((part) => Number.parseInt(part.trim(), 10))
     .filter((id) => Number.isInteger(id) && id > 0);
-}
-
-/**
- * What one axis is drawing: a catalogued property, or a computed index — the
- * same "predefined slug or custom expression" choice the index overlay already
- * offers, just per axis instead of once for the whole map.
- */
-export interface AxisState {
-  mode: "property" | "index";
-  property: string;
-  /** "" (nothing chosen yet), a `PerformanceIndex` slug, or "custom". */
-  indexSlug: string;
-  customExpression: string;
-  goal: Goal;
 }
 
 /** The axis's index, resolved to a request-ready `IndexIn` — or null while incomplete. */
@@ -216,7 +208,7 @@ function MapsPageContent() {
     return params.get("universo") === "process" ? "process" : "material";
   });
 
-  const [xAxis, setXAxis] = useState<AxisState>({
+  const [xAxis, setXAxis] = useState<AxisState>(() => ({
     mode: decodedState?.xAxis?.mode ?? "property",
     property:
       decodedState?.xAxis?.property ??
@@ -225,8 +217,8 @@ function MapsPageContent() {
     indexSlug: decodedState?.xAxis?.indexSlug ?? "",
     customExpression: decodedState?.xAxis?.customExpression ?? "",
     goal: decodedState?.xAxis?.goal ?? "maximize",
-  });
-  const [yAxis, setYAxis] = useState<AxisState>({
+  }));
+  const [yAxis, setYAxis] = useState<AxisState>(() => ({
     mode: decodedState?.yAxis?.mode ?? "property",
     property:
       decodedState?.yAxis?.property ??
@@ -235,13 +227,17 @@ function MapsPageContent() {
     indexSlug: decodedState?.yAxis?.indexSlug ?? "",
     customExpression: decodedState?.yAxis?.customExpression ?? "",
     goal: decodedState?.yAxis?.goal ?? "maximize",
-  });
+  }));
   const [scale, setScale] = useState<ChartScale>(decodedState?.scale ?? "log");
   const [displayScale, setDisplayScale] = useState<ChartScale>(scale);
   // The cloud is the default because it is what an Ashby chart is read by;
   // the hull stays one click away for "exactly which region do these occupy".
-  const [envelopeShape, setEnvelopeShape] = useState<"hull" | "ellipse">(decodedState?.envelopeShape ?? "ellipse");
-  const [selectedClasses, setSelectedClasses] = useState<string[]>(decodedState?.selectedClasses ?? []);
+  const [envelopeShape, setEnvelopeShape] = useState<"hull" | "ellipse">(
+    decodedState?.envelopeShape ?? "ellipse",
+  );
+  const [selectedClasses, setSelectedClasses] = useState<string[]>(
+    decodedState?.selectedClasses ?? [],
+  );
   const [showEnvelopes, setShowEnvelopes] = useState(decodedState?.showEnvelopes ?? true);
   const [showIntervals, setShowIntervals] = useState(decodedState?.showIntervals ?? true);
   const [showLabels, setShowLabels] = useState(decodedState?.showLabels ?? false);
@@ -303,40 +299,45 @@ function MapsPageContent() {
     return (classes.data ?? []).map((c) => ({ slug: c.slug, name: c.name }));
   }, [universe, processClasses.data, classes.data]);
 
-  useEffect(() => {
-    if (availableAttributes.length >= 2) {
-      const slugs = availableAttributes.map((p) => p.slug);
-      if (xAxis.mode === "property" && (!xAxis.property || !slugs.includes(xAxis.property))) {
-        setXAxis((current) => ({ ...current, property: slugs[0] as string }));
+  const effectiveXProperty = useMemo(() => {
+    if (xAxis.mode === "property") {
+      if (xAxis.property && availableAttributes.some((p) => p.slug === xAxis.property)) {
+        return xAxis.property;
       }
-      if (yAxis.mode === "property" && (!yAxis.property || !slugs.includes(yAxis.property))) {
-        setYAxis((current) => ({
-          ...current,
-          property: (slugs[1] ?? slugs[0]) as string,
-        }));
-      }
+      return availableAttributes[0]?.slug ?? "";
     }
-  }, [availableAttributes, xAxis.mode, xAxis.property, yAxis.mode, yAxis.property]);
+    return xAxis.property;
+  }, [xAxis.mode, xAxis.property, availableAttributes]);
+
+  const effectiveYProperty = useMemo(() => {
+    if (yAxis.mode === "property") {
+      if (yAxis.property && availableAttributes.some((p) => p.slug === yAxis.property)) {
+        return yAxis.property;
+      }
+      return (availableAttributes[1] ?? availableAttributes[0])?.slug ?? "";
+    }
+    return yAxis.property;
+  }, [yAxis.mode, yAxis.property, availableAttributes]);
 
   function handleUniverseChange(next: SelectionUniverse) {
     if (next === universe) return;
     setUniverse(next);
     setSelectedClasses([]);
     setSelectedBox(null);
-    setXAxis((current) => ({
-      ...current,
+    setXAxis({
       mode: "property",
       property: "",
       indexSlug: "",
       customExpression: "",
-    }));
-    setYAxis((current) => ({
-      ...current,
+      goal: "maximize",
+    });
+    setYAxis({
       mode: "property",
       property: "",
       indexSlug: "",
       customExpression: "",
-    }));
+      goal: "maximize",
+    });
     setIndexMode("none");
   }
 
@@ -382,15 +383,17 @@ function MapsPageContent() {
     return chosen ? describeIndex(chosen) : null;
   }, [anyAxisIsIndex, indexMode, customExpression, indexGoal, indices.data]);
 
-  const [levelMaterialIds, setLevelMaterialIds] = useState<number[]>(decodedState?.levelMaterialIds ?? []);
+  const [levelMaterialIds, setLevelMaterialIds] = useState<number[]>(
+    decodedState?.levelMaterialIds ?? [],
+  );
   const [numericLevels, setNumericLevels] = useState<number[]>(decodedState?.numericLevels ?? []);
   const [levelDraft, setLevelDraft] = useState("");
 
   const request = useMemo<PropertyMapRequest>(
     () => ({
       universe,
-      x: xAxis.mode === "property" ? xAxis.property : null,
-      y: yAxis.mode === "property" ? yAxis.property : null,
+      x: xAxis.mode === "property" ? effectiveXProperty : null,
+      y: yAxis.mode === "property" ? effectiveYProperty : null,
       x_index: universe === "material" && xAxis.mode === "index" ? xResolvedIndex : null,
       y_index: universe === "material" && yAxis.mode === "index" ? yResolvedIndex : null,
       scale,
@@ -409,8 +412,10 @@ function MapsPageContent() {
     }),
     [
       universe,
-      xAxis,
-      yAxis,
+      xAxis.mode,
+      effectiveXProperty,
+      yAxis.mode,
+      effectiveYProperty,
       xResolvedIndex,
       yResolvedIndex,
       scale,
@@ -424,10 +429,15 @@ function MapsPageContent() {
     ],
   );
 
-  const xReady = xAxis.mode === "property" ? Boolean(xAxis.property) : xResolvedIndex !== null;
-  const yReady = yAxis.mode === "property" ? Boolean(yAxis.property) : yResolvedIndex !== null;
+  const xReady =
+    xAxis.mode === "property" ? Boolean(effectiveXProperty) : xResolvedIndex !== null;
+  const yReady =
+    yAxis.mode === "property" ? Boolean(effectiveYProperty) : yResolvedIndex !== null;
   const sameProperty =
-    xAxis.mode === "property" && yAxis.mode === "property" && xAxis.property === yAxis.property;
+    xAxis.mode === "property" &&
+    yAxis.mode === "property" &&
+    Boolean(effectiveXProperty) &&
+    effectiveXProperty === effectiveYProperty;
   const sameExpression =
     xAxis.mode === "index" &&
     yAxis.mode === "index" &&
@@ -506,8 +516,14 @@ function MapsPageContent() {
   function getCurrentMapState(): MapUrlState {
     return {
       universe,
-      xAxis,
-      yAxis,
+      xAxis: {
+        ...xAxis,
+        property: xAxis.mode === "property" ? effectiveXProperty : xAxis.property,
+      },
+      yAxis: {
+        ...yAxis,
+        property: yAxis.mode === "property" ? effectiveYProperty : yAxis.property,
+      },
       scale,
       envelopeShape,
       selectedClasses,
@@ -727,7 +743,10 @@ function MapsPageContent() {
 
               <AxisControl
                 label={t.axisX}
-                axis={xAxis}
+                axis={{
+                  ...xAxis,
+                  property: effectiveXProperty,
+                }}
                 onChange={handleXAxisChange}
                 allowIndex={universe === "material"}
                 properties={availableAttributes}
@@ -737,7 +756,10 @@ function MapsPageContent() {
 
               <AxisControl
                 label={t.axisY}
-                axis={yAxis}
+                axis={{
+                  ...yAxis,
+                  property: effectiveYProperty,
+                }}
                 onChange={handleYAxisChange}
                 allowIndex={universe === "material"}
                 properties={availableAttributes}
@@ -1012,13 +1034,13 @@ function MapsPageContent() {
                         query.set("universo", "process");
                       }
                       if (xAxis.mode === "property") {
-                        query.set("x_prop", xAxis.property);
+                        query.set("x_prop", effectiveXProperty);
                       } else if (xAxis.mode === "index") {
                         const res = resolveAxisIndex(xAxis, indices.data ?? []);
                         if (res) query.set("x_expr", res.expression);
                       }
                       if (yAxis.mode === "property") {
-                        query.set("y_prop", yAxis.property);
+                        query.set("y_prop", effectiveYProperty);
                       } else if (yAxis.mode === "index") {
                         const res = resolveAxisIndex(yAxis, indices.data ?? []);
                         if (res) query.set("y_expr", res.expression);
