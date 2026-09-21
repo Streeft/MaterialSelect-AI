@@ -243,6 +243,38 @@ Três detalhes que não são arbitrários:
   público — existe porque o desfecho contrário já aconteceu aqui: deploy verde,
   máquinas saudáveis, aplicação inalcançável.
 
+## 5-ter. Depois de cada PR mesclado: o que disparar
+
+Nenhum dos dois workflows do §5-bis dispara sozinho — mesclar um PR **não**
+implanta nada por si. É regra fixa, para qualquer agente ou pessoa que mesclar
+um PR nesta base:
+
+| O PR tocou em… | Disparar | Por quê |
+|---|---|---|
+| `apps/api/**` (rotas, serviços, modelos, migração) | **Deploy da API** (`deploy-api.yml`, sem entrada nenhuma) | `flyctl deploy` constrói a imagem nova; o `release_command` aplica `alembic upgrade head` antes do primeiro tráfego. |
+| `apps/api/app/db/seed.py` (material novo, química de bateria, modo de transporte, qualquer dado de demonstração) | **Administração do banco** (`admin-banco.yml`, ação `semear`) | O deploy da API **não** roda o seed — só a migração. Sem este passo o código do dado novo está no ar e a linha correspondente não existe no banco. |
+| Só `apps/web/**` | Nada | A Vercel publica sozinha a cada push em `main` — não há workflow manual para o frontend. |
+
+Os dois workflows sobre `apps/api/**` **não dependem um do outro**:
+`admin-banco.yml` faz seu próprio checkout de `main` e fala direto com o
+Postgres, sem passar pelo Fly. Por isso a ordem entre eles não importa. Na
+dúvida sobre se um PR mexeu em `seed.py`, dispare o `semear` de qualquer
+forma — `app.db.seed` é idempotente (não duplica linha existente), então
+rodá-lo "por garantia" depois de qualquer merge em `apps/api/**` não tem
+custo.
+
+Passo a passo, sem terminal, pela aba **Actions** do repositório:
+
+1. `github.com/Streeft/MaterialSelect-AI/actions/workflows/deploy-api.yml` →
+   **Run workflow** → confirmar. Sem campos a preencher.
+2. Se o PR tocou `seed.py` (ou na dúvida):
+   `github.com/Streeft/MaterialSelect-AI/actions/workflows/admin-banco.yml` →
+   **Run workflow** → em "O que executar" escolher **`semear`** → **Run
+   workflow**.
+3. Acompanhar até o ✅ verde em cada um, na lista de execuções no topo da mesma
+   aba — um ❌ aqui significa produção desatualizada até ser refeito, nunca
+   "vai passar na próxima".
+
 ## 6. Conferir que está de pé
 
 Nesta ordem, porque cada uma isola uma camada:
@@ -285,6 +317,7 @@ Depois, no navegador:
 | Primeira requisição demorando segundos | Hibernação — confira `min_machines_running` no `fly.toml`. |
 | Painel de IA em `403` acusando a credencial, com `error code: 1010` no fim da mensagem | **Não é a chave.** `1010` é da Cloudflare, que fica na frente da Groq: ela barrou a assinatura do cliente antes de a API ver a requisição. Ver [09-camada-ia.md](09-camada-ia.md). |
 | Painel de IA com erro genérico ("Falha na requisição …") em vez do texto do provedor | Versão da API anterior ao tratador de `AIUnavailableError`. Reimplante — um *secrets deploy* não basta, porque reusa a imagem. |
+| PR mesclado em `main`, `deploy-api.yml` verde, mas o dado novo (material, química de bateria, modo de transporte) não aparece na tela | `admin-banco.yml` (`semear`) não foi disparado depois do merge — o deploy da API só roda a migração, nunca o seed. Ver §5-ter. |
 
 ### O app sem endereço público
 
