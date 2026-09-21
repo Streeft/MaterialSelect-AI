@@ -723,8 +723,9 @@ describe("StageList with a chart stage", () => {
     expect(screen.getByText(t.stageChartInteractiveHint)).toBeInTheDocument();
   });
 
-  it("avisa que o universo de processos não desenha mapa", () => {
+  it("permite abrir o mapa interativo também no universo de processos", () => {
     render(<Harness initial={[chartStage()]} universe="process" />);
-    expect(screen.getByText(t.stageChartProcessNoMap)).toBeInTheDocument();
+    expect(screen.getByShadowText(t.stageChartShowMap)).toBeInTheDocument();
+    expect(screen.queryByText(t.stageChartProcessNoMap)).not.toBeInTheDocument();
   });
 });

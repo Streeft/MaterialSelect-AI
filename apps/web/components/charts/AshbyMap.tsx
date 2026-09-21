@@ -38,6 +38,7 @@ type PlotlyShape = NonNullable<Layout["shapes"]>[number];
 
 interface AshbyMapProps {
   map: PropertyMap;
+  recordLabel?: string;
   displayScale?: ChartScale;
   isFetching?: boolean;
   highlightIds?: number[];
@@ -167,6 +168,7 @@ function hoverFor(point: MapPoint, map: PropertyMap): string {
  */
 export function AshbyMap({
   map,
+  recordLabel,
   displayScale,
   isFetching = false,
   highlightIds = [],
@@ -564,8 +566,11 @@ export function AshbyMap({
             <FigureData
               caption={figureCaption}
               rows={map.points}
-              rowKey={(point) => point.material_id}
-              rowHeader={{ header: ptBR.compare.columnMaterial, cell: (point) => point.material_name }}
+              rowKey={(point) => point.record_id ?? point.material_id}
+              rowHeader={{
+                header: recordLabel ?? ptBR.compare.columnMaterial,
+                cell: (point) => point.material_name,
+              }}
               columns={columns}
             />
           </>
