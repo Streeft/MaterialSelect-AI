@@ -238,12 +238,20 @@ class ChartService:
 
     def _process_property_map(self, request: PropertyMapRequest) -> PropertyMapOut:
         """Build an Ashby-style 2D map for the manufacturing process universe (P1-2 / P0-4)."""
-        if request.x_index is not None or request.y_index is not None or request.index is not None:
+        if (
+            request.x_index is not None
+            or request.y_index is not None
+            or request.index is not None
+        ):
             raise ValidationError("Índices de mérito não são suportados no universo de processos.")
         if request.x is None or request.y is None:
-            raise ValidationError("Informe x e y com os slugs dos atributos de processo a plotar.")
+            raise ValidationError(
+                "Informe x e y com os slugs dos atributos de processo a plotar."
+            )
         if request.x == request.y:
-            raise ValidationError("Escolha dois atributos de processo diferentes para os eixos.")
+            raise ValidationError(
+                "Escolha dois atributos de processo diferentes para os eixos."
+            )
 
         self._require_process_classes(request.class_slugs)
         x_def = self._require_process_attribute(request.x)
@@ -252,14 +260,18 @@ class ChartService:
         # Regra D-59: dispersão contínua não plota atributos discretos com vocabulário fechado.
         if x_def.kind is ProcessAttributeKind.DISCRETO:
             raise ValidationError(
-                f"O atributo '{x_def.name}' é do tipo DISCRETO e não pode compor eixos de dispersão contínua (Regra D-59)."
+                f"O atributo '{x_def.name}' é do tipo DISCRETO e não pode "
+                "compor eixos de dispersão contínua (Regra D-59)."
             )
         if y_def.kind is ProcessAttributeKind.DISCRETO:
             raise ValidationError(
-                f"O atributo '{y_def.name}' é do tipo DISCRETO e não pode compor eixos de dispersão contínua (Regra D-59)."
+                f"O atributo '{y_def.name}' é do tipo DISCRETO e não pode "
+                "compor eixos de dispersão contínua (Regra D-59)."
             )
 
-        filter_ids = request.process_ids if request.process_ids is not None else request.material_ids
+        filter_ids = (
+            request.process_ids if request.process_ids is not None else request.material_ids
+        )
         processes = self.repo.list_processes(
             process_ids=filter_ids, class_slugs=request.class_slugs
         )
@@ -510,7 +522,7 @@ class ChartService:
         (plain conversion) while the uncertainty is a difference (offset-aware
         conversion), so ±5 °C stays ±5 K instead of becoming ±278 K.
 
-        A conversion failure degrades to \"no error bar\" rather than failing the
+        A conversion failure degrades to "no error bar" rather than failing the
         whole chart — the point itself is already normalised and trustworthy.
         """
         source_unit = value.original_unit or definition.canonical_unit
@@ -553,7 +565,7 @@ class ChartService:
         little air around the outermost grade, and a floor so a class with one
         or two catalogued materials still reads as a family instead of a dot
         or a stroke. The hull stays literal — it is the shape to pick when the
-        question is \"exactly which region do these materials occupy\".
+        question is "exactly which region do these materials occupy".
 
         Both constants are relative to the span of everything plotted, so they
         mean the same thing on a log axis (where the span is in decades) and a
@@ -609,7 +621,7 @@ class ChartService:
             return None
         # Guaranteed by property_map's own guard: the overlay is only ever
         # requested alongside two property axes, never an axis that is itself
-        # an index (see the \"Não é possível sobrepor...\" check).
+        # an index (see the "Não é possível sobrepor..." check).
         assert request.x is not None and request.y is not None
 
         expression = request.index.expression
@@ -934,7 +946,7 @@ class ChartService:
         if reference_id is None:
             return None, "sem_referencia"
         if material_id == reference_id:
-            # Zero by definition — and saying \"this is the reference\" is more
+            # Zero by definition — and saying "this is the reference" is more
             # use to a reader than printing 0 %, which invites the question.
             return None, "referencia"
         if not ratio_scale:

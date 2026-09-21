@@ -5,7 +5,8 @@ Verifica:
 - Tratamento de valores escalares e envelopes (mínimo, máximo e típico)
 - Regra D-59: rejeição de atributos DISCRETO em eixos contínuos de dispersão
 - Rejeição de índices de mérito analíticos no universo de processos
-- Ausência de valor (D-24): processos sem valor para qualquer dos eixos são excluídos com justificativa descritiva, nunca plotados na origem
+- Ausência de valor (D-24): processos sem valor para qualquer dos eixos são excluídos com
+  justificativa descritiva, nunca plotados na origem
 - Filtros por família de processo (ProcessClass) e por process_ids
 - Envelopes por família de processo
 - Não regressão do universo de materiais
@@ -43,7 +44,9 @@ def process_map_fixture(db_session) -> dict[str, int]:
     injecao = Process(name="Injeção Termoplástica", slug=f"{NS}-injecao", class_id=family1.id)
     soprada = Process(name="Moldagem por Sopro", slug=f"{NS}-sopro", class_id=family1.id)
     fresamento = Process(name="Fresamento CNC", slug=f"{NS}-fresamento", class_id=family2.id)
-    sem_dados = Process(name="Processo Experimental", slug=f"{NS}-experimental", class_id=family2.id)
+    sem_dados = Process(
+        name="Processo Experimental", slug=f"{NS}-experimental", class_id=family2.id
+    )
     db_session.add_all([injecao, soprada, fresamento, sem_dados])
     db_session.flush()
 
@@ -183,7 +186,9 @@ def process_map_fixture(db_session) -> dict[str, int]:
 
 
 class TestProcessPropertyMap:
-    def test_plots_processes_with_both_axes(self, client: TestClient, process_map_fixture) -> None:
+    def test_plots_processes_with_both_axes(
+        self, client: TestClient, process_map_fixture
+    ) -> None:
         payload = {
             "universe": "process",
             "x": MASSA_SLUG,
@@ -199,11 +204,20 @@ class TestProcessPropertyMap:
         assert data["considered_count"] >= 4
 
         # O processo sem_dados deve estar em excluded com justificativa descritiva
-        excluded = next((e for e in data["excluded"] if e["material_id"] == process_map_fixture["sem_dados_id"]), None)
+        excluded = next(
+            (
+                e
+                for e in data["excluded"]
+                if e["material_id"] == process_map_fixture["sem_dados_id"]
+            ),
+            None,
+        )
         assert excluded is not None
         assert "Sem valor para" in excluded["reason"]
 
-    def test_axes_carry_canonical_units_and_correct_bounds(self, client: TestClient, process_map_fixture) -> None:
+    def test_axes_carry_canonical_units_and_correct_bounds(
+        self, client: TestClient, process_map_fixture
+    ) -> None:
         payload = {
             "universe": "process",
             "x": MASSA_SLUG,
@@ -216,7 +230,11 @@ class TestProcessPropertyMap:
         assert data["y_axis"]["property_slug"] == LOTE_SLUG
         assert data["y_axis"]["unit"] == "dimensionless"
 
-        injecao_pt = next(p for p in data["points"] if p["material_id"] == process_map_fixture["injecao_id"])
+        injecao_pt = next(
+            p
+            for p in data["points"]
+            if p["material_id"] == process_map_fixture["injecao_id"]
+        )
         assert injecao_pt["material_name"] == "Injeção Termoplástica"
         assert injecao_pt["record_id"] == process_map_fixture["injecao_id"]
         assert injecao_pt["x"] == 5.0
@@ -226,7 +244,9 @@ class TestProcessPropertyMap:
         assert injecao_pt["y"] == 10000.0
         assert injecao_pt["y_is_interval"] is False
 
-    def test_rejects_discrete_attribute_rule_d59(self, client: TestClient, process_map_fixture) -> None:
+    def test_rejects_discrete_attribute_rule_d59(
+        self, client: TestClient, process_map_fixture
+    ) -> None:
         """Regra D-59: Atributos discretos não podem compor eixos contínuos de dispersão."""
         payload = {
             "universe": "process",
@@ -249,7 +269,9 @@ class TestProcessPropertyMap:
         assert res_y.status_code == 400
         assert "DISCRETO" in res_y.json()["detail"]
 
-    def test_rejects_indices_in_process_universe(self, client: TestClient, process_map_fixture) -> None:
+    def test_rejects_indices_in_process_universe(
+        self, client: TestClient, process_map_fixture
+    ) -> None:
         """Fórmulas analíticas de Ashby aplicam-se a materiais; o plano de processos não suporta índices."""
         payload_overlay = {
             "universe": "process",
@@ -260,7 +282,10 @@ class TestProcessPropertyMap:
         }
         res = client.post(MAP_URL, json=payload_overlay)
         assert res.status_code == 400
-        assert "Índices de mérito não são suportados no universo de processos" in res.json()["detail"]
+        assert (
+            "Índices de mérito não são suportados no universo de processos"
+            in res.json()["detail"]
+        )
 
         payload_axis_index = {
             "universe": "process",
@@ -270,9 +295,14 @@ class TestProcessPropertyMap:
         }
         res_axis = client.post(MAP_URL, json=payload_axis_index)
         assert res_axis.status_code == 400
-        assert "Índices de mérito não são suportados no universo de processos" in res_axis.json()["detail"]
+        assert (
+            "Índices de mérito não são suportados no universo de processos"
+            in res_axis.json()["detail"]
+        )
 
-    def test_filters_by_process_class(self, client: TestClient, process_map_fixture) -> None:
+    def test_filters_by_process_class(
+        self, client: TestClient, process_map_fixture
+    ) -> None:
         payload = {
             "universe": "process",
             "x": MASSA_SLUG,
@@ -289,7 +319,9 @@ class TestProcessPropertyMap:
             process_map_fixture["soprada_id"],
         }
 
-    def test_unknown_process_class_is_404(self, client: TestClient, process_map_fixture) -> None:
+    def test_unknown_process_class_is_404(
+        self, client: TestClient, process_map_fixture
+    ) -> None:
         payload = {
             "universe": "process",
             "x": MASSA_SLUG,
@@ -300,7 +332,9 @@ class TestProcessPropertyMap:
         res = client.post(MAP_URL, json=payload)
         assert res.status_code == 404
 
-    def test_filters_by_process_ids(self, client: TestClient, process_map_fixture) -> None:
+    def test_filters_by_process_ids(
+        self, client: TestClient, process_map_fixture
+    ) -> None:
         payload = {
             "universe": "process",
             "x": MASSA_SLUG,
@@ -314,7 +348,9 @@ class TestProcessPropertyMap:
         assert data["plotted_count"] == 1
         assert data["points"][0]["material_id"] == process_map_fixture["fresamento_id"]
 
-    def test_unknown_process_attribute_is_404(self, client: TestClient, process_map_fixture) -> None:
+    def test_unknown_process_attribute_is_404(
+        self, client: TestClient, process_map_fixture
+    ) -> None:
         payload = {
             "universe": "process",
             "x": MASSA_SLUG,
@@ -325,7 +361,9 @@ class TestProcessPropertyMap:
         assert res.status_code == 404
         assert "não encontrado" in res.json()["detail"]
 
-    def test_material_property_in_process_universe_is_404(self, client: TestClient, process_map_fixture) -> None:
+    def test_material_property_in_process_universe_is_404(
+        self, client: TestClient, process_map_fixture
+    ) -> None:
         payload = {
             "universe": "process",
             "x": "densidade",
@@ -335,7 +373,9 @@ class TestProcessPropertyMap:
         res = client.post(MAP_URL, json=payload)
         assert res.status_code == 404
 
-    def test_envelopes_calculated_for_process_classes(self, client: TestClient, process_map_fixture) -> None:
+    def test_envelopes_calculated_for_process_classes(
+        self, client: TestClient, process_map_fixture
+    ) -> None:
         payload = {
             "universe": "process",
             "x": MASSA_SLUG,
