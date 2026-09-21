@@ -1,7 +1,8 @@
 import type { AxisState } from "./page";
-import type { ChartScale, Goal } from "@/lib/types";
+import type { ChartScale, Goal, SelectionUniverse } from "@/lib/types";
 
 export interface MapUrlState {
+  universe?: SelectionUniverse;
   xAxis: AxisState;
   yAxis: AxisState;
   scale: ChartScale;
@@ -49,6 +50,7 @@ export function applyMapState(
 ): Partial<MapUrlState> {
   if (!decoded) return {};
   return {
+    universe: decoded.universe ?? defaults.universe,
     xAxis: decoded.xAxis ?? defaults.xAxis,
     yAxis: decoded.yAxis ?? defaults.yAxis,
     scale: decoded.scale ?? defaults.scale,
