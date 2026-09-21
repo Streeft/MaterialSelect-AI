@@ -696,7 +696,7 @@ describe("StageList with a chart stage", () => {
       />,
     );
 
-    const clearBtn = screen.getByShadowRole("button", { name: t.stageChartClearBox });
+    const clearBtn = screen.getByShadowText(t.stageChartClearBox);
     await user.click(clearBtn);
 
     const updated = last[0];
@@ -715,10 +715,10 @@ describe("StageList with a chart stage", () => {
     const user = userEvent.setup();
     render(<Harness initial={[chartStage()]} />);
 
-    const toggleBtn = screen.getByShadowRole("button", { name: t.stageChartShowMap });
+    const toggleBtn = screen.getByShadowText(t.stageChartShowMap);
     expect(toggleBtn).toBeInTheDocument();
     await user.click(toggleBtn);
-    expect(screen.getByShadowRole("button", { name: t.stageChartHideMap })).toBeInTheDocument();
+    expect(screen.getByShadowText(t.stageChartHideMap)).toBeInTheDocument();
     expect(screen.getByText(t.stageChartInteractiveHint)).toBeInTheDocument();
   });
 
