@@ -24,7 +24,7 @@ import type {
 } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { formatNumber, prettyUnit } from "@/lib/format";
-import { AshbyMap } from "@/components/charts/AshbyMap";
+import { AshbyMap, type BoxSelection } from "@/components/charts/AshbyMap";
 import {
   Alert,
   Button,
@@ -228,6 +228,9 @@ function MapsPageContent() {
   const [showIntervals, setShowIntervals] = useState(decodedState?.showIntervals ?? true);
   const [showLabels, setShowLabels] = useState(decodedState?.showLabels ?? false);
 
+  // Selection box state for interactive region dragging (P1-2)
+  const [selectedBox, setSelectedBox] = useState<BoxSelection | null>(null);
+
   // Materials carried over from a selection run, so a study can be read on the map.
   const restrictedIds = useMemo(() => parseIds(params.get("materiais")), [params]);
   const highlightIds = useMemo(() => parseIds(params.get("destaque")), [params]);
@@ -360,6 +363,29 @@ function MapsPageContent() {
 
   const overlay = map.data?.index ?? null;
 
+  const points = map.data?.points;
+  const pointsInBox = useMemo(() => {
+    if (!selectedBox || !points) return [];
+    const { xMin, xMax, yMin, yMax } = selectedBox;
+    return points.filter((p) => {
+      if (xMin !== null && p.x < xMin) return false;
+      if (xMax !== null && p.x > xMax) return false;
+      if (yMin !== null && p.y < yMin) return false;
+      if (yMax !== null && p.y > yMax) return false;
+      return true;
+    });
+  }, [selectedBox, points]);
+
+  function handleXAxisChange(next: AxisState) {
+    setSelectedBox(null);
+    setXAxis(next);
+  }
+
+  function handleYAxisChange(next: AxisState) {
+    setSelectedBox(null);
+    setYAxis(next);
+  }
+
   function toggleClass(slug: string) {
     setSelectedClasses((current) =>
       current.includes(slug) ? current.filter((s) => s !== slug) : [...current, slug],
@@ -469,12 +495,6 @@ function MapsPageContent() {
 
       // Copy to clipboard.
       await navigator.clipboard.writeText(url);
-
-      // Brief visual feedback (reuse the existing pattern if there is one,
-      // or show a simple inline message).
-      // For now, we'll rely on the browser's native "Copied!" feedback when
-      // available, or nothing if not. A full toast implementation is out of
-      // scope for this task.
     } catch (err) {
       console.error("Failed to share:", err);
     }
@@ -596,10 +616,7 @@ function MapsPageContent() {
         />
       </Dialog>
 
-      {/* One panel, four named groups.
-          The eleven controls used to sit in three anonymous white boxes, in the
-          order they were implemented, so nothing said which of them change the
-          question being asked and which only change the drawing. */}
+      {/* One panel, four named groups */}
       <Section id="controles" title={t.controls} headingLevel={2}>
         <div className="grid gap-4 lg:grid-cols-2">
           <Card className="lg:col-span-2">
@@ -608,7 +625,7 @@ function MapsPageContent() {
               <AxisControl
                 label={t.axisX}
                 axis={xAxis}
-                onChange={setXAxis}
+                onChange={handleXAxisChange}
                 properties={properties.data ?? []}
                 indices={indices.data ?? []}
                 dimension={map.data?.x_axis.is_index ? map.data.x_axis.unit : undefined}
@@ -617,7 +634,7 @@ function MapsPageContent() {
               <AxisControl
                 label={t.axisY}
                 axis={yAxis}
-                onChange={setYAxis}
+                onChange={handleYAxisChange}
                 properties={properties.data ?? []}
                 indices={indices.data ?? []}
                 dimension={map.data?.y_axis.is_index ? map.data.y_axis.unit : undefined}
@@ -852,6 +869,64 @@ function MapsPageContent() {
 
       {map.data && (
         <>
+          {selectedBox && (
+            <Card className="border-brand-300 bg-brand-50/40 dark:border-brand-800 dark:bg-brand-950/20">
+              <CardBody className="flex flex-wrap items-center justify-between gap-4 py-3">
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs font-semibold text-brand-700 dark:text-brand-300">
+                    {t.selectedRegionTitle}
+                  </span>
+                  <span className="text-sm text-ink">
+                    {t.selectedRegionBounds(
+                      `${selectedBox.xMin !== null ? formatNumber(selectedBox.xMin) : "—"} a ${selectedBox.xMax !== null ? formatNumber(selectedBox.xMax) : "—"} ${prettyUnit(map.data.x_axis.unit)}`,
+                      `${selectedBox.yMin !== null ? formatNumber(selectedBox.yMin) : "—"} a ${selectedBox.yMax !== null ? formatNumber(selectedBox.yMax) : "—"} ${prettyUnit(map.data.y_axis.unit)}`,
+                    )}
+                  </span>
+                  <span className="text-xs text-ink-muted">
+                    {t.selectedCount(pointsInBox.length)}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setSelectedBox(null)}
+                  >
+                    {t.clearSelection}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="primary"
+                    onClick={() => {
+                      const query = new URLSearchParams();
+                      query.set("etapa", "restricoes");
+                      query.set("novo_estagio", "chart");
+                      if (xAxis.mode === "property") {
+                        query.set("x_prop", xAxis.property);
+                      } else if (xAxis.mode === "index") {
+                        const res = resolveAxisIndex(xAxis, indices.data ?? []);
+                        if (res) query.set("x_expr", res.expression);
+                      }
+                      if (yAxis.mode === "property") {
+                        query.set("y_prop", yAxis.property);
+                      } else if (yAxis.mode === "index") {
+                        const res = resolveAxisIndex(yAxis, indices.data ?? []);
+                        if (res) query.set("y_expr", res.expression);
+                      }
+                      if (selectedBox.xMin !== null) query.set("x_min", String(selectedBox.xMin));
+                      if (selectedBox.xMax !== null) query.set("x_max", String(selectedBox.xMax));
+                      if (selectedBox.yMin !== null) query.set("y_min", String(selectedBox.yMin));
+                      if (selectedBox.yMax !== null) query.set("y_max", String(selectedBox.yMax));
+                      router.push(`/app/selecao?${query.toString()}`);
+                    }}
+                  >
+                    {t.useInSelection} →
+                  </Button>
+                </div>
+              </CardBody>
+            </Card>
+          )}
+
           <AshbyMap
             map={map.data}
             displayScale={displayScale}
@@ -860,6 +935,9 @@ function MapsPageContent() {
             showEnvelopes={showEnvelopes}
             showIntervals={showIntervals}
             showLabels={showLabels}
+            enableBoxSelect
+            selectionBox={selectedBox}
+            onSelectBox={setSelectedBox}
           />
 
           {map.data.notes.length > 0 && (
