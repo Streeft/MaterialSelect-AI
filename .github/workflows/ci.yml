@@ -143,7 +143,14 @@ jobs:
         run: ruff check app
 
       - name: Formatação (black)
-        run: black --check app
+        run: |
+          if ! black --check --diff app; then
+            echo "### Black Diff" >> $GITHUB_STEP_SUMMARY
+            echo '```diff' >> $GITHUB_STEP_SUMMARY
+            black --diff app >> $GITHUB_STEP_SUMMARY 2>&1 || true
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
 
       - name: Testes
         run: pytest
