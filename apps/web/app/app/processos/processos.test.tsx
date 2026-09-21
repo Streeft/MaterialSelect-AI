@@ -64,6 +64,12 @@ const detail: ProcessDetail = {
   ...fundicao,
   attributes: [
     {
+      display_unit: null,
+      display_value: null,
+      display_min: null,
+      display_max: null,
+      display_typical: null,
+      display_uncertainty: null,
       attribute_id: 1,
       attribute_name: "Faixa de massa",
       attribute_slug: "faixa-massa",
@@ -87,6 +93,12 @@ const detail: ProcessDetail = {
       is_missing: false,
     },
     {
+      display_unit: null,
+      display_value: null,
+      display_min: null,
+      display_max: null,
+      display_typical: null,
+      display_uncertainty: null,
       attribute_id: 2,
       attribute_name: "Forma",
       attribute_slug: "forma",
@@ -110,6 +122,12 @@ const detail: ProcessDetail = {
       is_missing: false,
     },
     {
+      display_unit: null,
+      display_value: null,
+      display_min: null,
+      display_max: null,
+      display_typical: null,
+      display_uncertainty: null,
       attribute_id: 3,
       attribute_name: "Lote econômico",
       attribute_slug: "lote-economico",

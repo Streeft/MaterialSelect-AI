@@ -122,6 +122,7 @@ function property(
   overrides: Partial<PropertyDefinition> = {},
 ): PropertyDefinition {
   return {
+    display_unit: null,
     id: slug === "densidade" ? 1 : 2,
     name,
     slug,
@@ -279,6 +280,11 @@ const comparison: Comparison = {
       complete: true,
       cells: [
         {
+          display_unit: null,
+          display_value: null,
+          display_min: null,
+          display_max: null,
+          display_uncertainty: null,
           property_slug: "densidade",
           is_missing: false,
           value: 7850,
@@ -308,6 +314,11 @@ const comparison: Comparison = {
       // and the figure's data table have to say that in words.
       cells: [
         {
+          display_unit: null,
+          display_value: null,
+          display_min: null,
+          display_max: null,
+          display_uncertainty: null,
           property_slug: "densidade",
           is_missing: true,
           value: null,
@@ -375,6 +386,12 @@ const materialDetail: MaterialDetail = {
       category: "FISICA",
       properties: [
         {
+          display_unit: null,
+          display_value: null,
+          display_min: null,
+          display_max: null,
+          display_typical: null,
+          display_uncertainty: null,
           property_slug: "densidade",
           property_name: "Densidade",
           symbol: "ρ",
@@ -396,6 +413,12 @@ const materialDetail: MaterialDetail = {
           source_label: "ASM",
         },
         {
+          display_unit: null,
+          display_value: null,
+          display_min: null,
+          display_max: null,
+          display_typical: null,
+          display_uncertainty: null,
           property_slug: "modulo_young",
           property_name: "Módulo de Young",
           symbol: "E",
@@ -530,6 +553,7 @@ const overview: DashboardOverview = {
 };
 
 const distribution: PropertyDistribution = {
+  display_unit: null,
   property_slug: "densidade",
   property_name: "Densidade",
   category: "FISICA",
@@ -603,6 +627,12 @@ const processDetail: ProcessDetail = {
   ...(processes[0] as Process),
   attributes: [
     {
+      display_unit: null,
+      display_value: null,
+      display_min: null,
+      display_max: null,
+      display_typical: null,
+      display_uncertainty: null,
       attribute_id: 1,
       attribute_name: "Faixa de massa",
       attribute_slug: "faixa-massa",
@@ -626,6 +656,12 @@ const processDetail: ProcessDetail = {
       is_missing: false,
     },
     {
+      display_unit: null,
+      display_value: null,
+      display_min: null,
+      display_max: null,
+      display_typical: null,
+      display_uncertainty: null,
       attribute_id: 2,
       attribute_name: "Lote econômico",
       attribute_slug: "lote-economico",

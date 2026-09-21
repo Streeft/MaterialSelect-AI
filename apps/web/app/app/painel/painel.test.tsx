@@ -79,6 +79,7 @@ const overview: DashboardOverview = {
 
 const distributions: Record<string, PropertyDistribution> = {
   modulo_young: {
+    display_unit: null,
     property_slug: "modulo_young",
     property_name: "Módulo de Young",
     category: "MECANICA",
@@ -99,6 +100,7 @@ const distributions: Record<string, PropertyDistribution> = {
     classes_without_data: ["Cerâmicas"],
   },
   densidade: {
+    display_unit: null,
     property_slug: "densidade",
     property_name: "Densidade",
     category: "FISICA",

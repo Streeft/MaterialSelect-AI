@@ -15,6 +15,7 @@ const t = ptBR.selection;
 const runSelection = vi.fn<(payload: RunRequest) => Promise<RunResult>>();
 
 const density: PropertyDefinition = {
+  display_unit: null,
   id: 1,
   name: "Densidade",
   slug: "densidade",
