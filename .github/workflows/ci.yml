@@ -143,13 +143,7 @@ jobs:
         run: ruff check app
 
       - name: Formatação (black)
-        run: |
-          if ! black --check app; then
-            black --diff app | head -n 120 | while IFS= read -r line; do
-              echo "::error title=BlackDiff::$line"
-            done
-            exit 1
-          fi
+        run: black --check app
 
       - name: Testes
         run: pytest

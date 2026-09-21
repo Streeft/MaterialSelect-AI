@@ -107,7 +107,8 @@ function renderFigureData() {
       rowKey={(row) => row.id}
       rowHeader={{ header: "Material", cell: (row) => row.name }}
       columns={[
-        {\n          key: "value",
+        {
+          key: "value",
           header: "Densidade",
           numeric: true,
           cell: (row) => (row.value === null ? null : String(row.value)),
@@ -147,7 +148,8 @@ describe("FigureData", () => {
 });
 
 function makeAxis(overrides: Partial<CompareAxis> = {}): CompareAxis {
-  return {\n    property_slug: "densidade",
+  return {
+    property_slug: "densidade",
     property_name: "Densidade",
     symbol: "ρ",
     unit: "kg/m**3",
@@ -163,7 +165,8 @@ function makeAxis(overrides: Partial<CompareAxis> = {}): CompareAxis {
 }
 
 function makeCell(overrides: Partial<CompareCell> = {}): CompareCell {
-  return {\n    property_slug: "densidade",
+  return {
+    property_slug: "densidade",
     is_missing: false,
     value: 7850,
     normalized: 0.75,
@@ -487,6 +490,6 @@ describe("AshbyMap — seleção interativa e cursor", () => {
     const user = userEvent.setup();
     render(<AshbyMap map={makePropertyMap()} recordLabel="Processo" />);
     await user.click(screen.getByText(t.dataTable));
-    expect(screen.getByRole("columnheader", { name: "Processo" })).toBeInTheDocument();
+    expect(screen.getByShadowRole("columnheader", { name: "Processo" })).toBeInTheDocument();
   });
 });
