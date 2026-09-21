@@ -402,14 +402,19 @@ function makePropertyMap(): PropertyMap {
 
 describe("AshbyMap — seleção interativa e cursor", () => {
   it("não renderiza seletor de cursor quando enableBoxSelect é falso ou omitido", () => {
-    render(<AshbyMap map={makePropertyMap()} />);
-    expect(screen.queryByShadowRole("group", { name: ptBR.chart.dragMode })).not.toBeInTheDocument();
+    const { container } = render(<AshbyMap map={makePropertyMap()} />);
+    expect(container.querySelector("md-outlined-segmented-button-set")).toBeNull();
   });
 
   it("renderiza o alternador de cursor entre zoom e seleção quando enableBoxSelect está ativo", () => {
-    render(<AshbyMap map={makePropertyMap()} enableBoxSelect />);
-    const group = screen.getByShadowRole("group", { name: ptBR.chart.dragMode });
-    expect(group).toBeInTheDocument();
+    const { container } = render(<AshbyMap map={makePropertyMap()} enableBoxSelect />);
+    const set = container.querySelector("md-outlined-segmented-button-set");
+    expect(set).toBeInTheDocument();
+    expect(set?.getAttribute("data-aria-label") ?? set?.getAttribute("aria-label")).toBe(
+      ptBR.chart.dragMode,
+    );
+    const buttons = container.querySelectorAll("md-outlined-segmented-button");
+    expect(buttons).toHaveLength(2);
   });
 
   it("passa a caixa de seleção configurada como shape retangular no layout do Plotly", async () => {
