@@ -144,7 +144,7 @@ function stageFromPayload(stage: StageOut, combinator: Combinator): StageState {
         ...common,
         kind: "tree",
         classSlugs: stage.class_slugs,
-        includeDescendants: stage.includeDescendants,
+        includeDescendants: stage.include_descendants,
       };
     case "process":
       return {
@@ -152,14 +152,14 @@ function stageFromPayload(stage: StageOut, combinator: Combinator): StageState {
         kind: "process",
         processSlugs: stage.process_slugs,
         processClassSlugs: stage.process_class_slugs,
-        includeDescendants: stage.includeDescendants,
+        includeDescendants: stage.include_descendants,
       };
     case "material":
       return {
         ...common,
         kind: "material",
-        materialClassSlugs: stage.materialClassSlugs,
-        includeDescendants: stage.includeDescendants,
+        materialClassSlugs: stage.material_class_slugs,
+        includeDescendants: stage.include_descendants,
       };
     case "chart":
       return {

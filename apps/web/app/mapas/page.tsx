@@ -1,5 +1,8 @@
 import { redirect } from "next/navigation";
 
-export default function RedirectMapas() {
+export const dynamic = "force-dynamic";
+
+export default function RedirectMapas(): null {
   redirect("/app/mapas");
+  return null;
 }
