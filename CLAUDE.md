@@ -216,6 +216,20 @@ na CI:
 Antes de abrir um PR, rode os dois conjuntos localmente; nenhum passo da CI é
 meramente informativo.
 
+## Deploy depois de um merge
+
+Mesclar um PR **não implanta nada sozinho** na API nem no banco — só o
+frontend (Vercel) publica automaticamente a cada push em `main`. Depois de
+mesclar qualquer PR que toque `apps/api/**`, dispare os dois workflows
+manuais na aba Actions: **Deploy da API** (`deploy-api.yml`) sempre, e
+**Administração do banco** (`admin-banco.yml`, ação `semear`) sempre que
+mexer em `app/db/seed.py` — na dúvida, dispare os dois; `semear` é
+idempotente. Passo a passo completo e por quê em
+[`docs/13-deploy.md` §5-ter](docs/13-deploy.md). Pular este passo é a causa
+mais provável de "o PR está em `main` mas não aparece no ar" — foi exatamente
+isso que deixou 70 materiais e outros dados de demonstração fora do ar por
+dias depois de mesclados.
+
 ## Estado atual
 
 Fases 1 a 9 concluídas. **Fase 7 (relatórios e qualidade) concluída** — as
