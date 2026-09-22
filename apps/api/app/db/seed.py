@@ -275,10 +275,14 @@ PROPERTIES = [
     },
 ]
 
+#: Rótulo da fonte fictícia de demonstração, nomeado para o seeder não repetir
+#: a string (o mesmo motivo de `BATTERY_SOURCE_LABEL` logo abaixo).
+DEMO_SOURCE_LABEL = "Dataset Demo MaterialSelect"
+
 # --- Sources --------------------------------------------------------------
 SOURCES = [
     {
-        "label": "Dataset Demo MaterialSelect",
+        "label": DEMO_SOURCE_LABEL,
         "reference": DEMO_WARNING,
         "is_demo": True,
         "license_label": "Dado fictício de demonstração — não é conteúdo de terceiro",
@@ -2220,12 +2224,18 @@ def seed(db: Session) -> dict[str, int]:
         )
     for spec in PROPERTIES:
         _get_or_create_property(db, spec)
-    demo_source = None
     for spec in SOURCES:
-        demo_source = _get_or_create_source(db, spec)
+        _get_or_create_source(db, spec)
     for spec in PERFORMANCE_INDICES:
         _get_or_create_index(db, spec)
     db.flush()
+
+    # Looked up explicitly rather than kept from the loop above: `SOURCES` has
+    # grown past one entry (D-69 added the battery-literature source), and the
+    # last iteration's row is not necessarily the demo source.
+    demo_source = (
+        db.execute(select(Source).where(Source.label == DEMO_SOURCE_LABEL)).scalars().one_or_none()
+    )
 
     prop_by_slug = {p.slug: p for p in db.execute(select(PropertyDefinition)).scalars().all()}
 
