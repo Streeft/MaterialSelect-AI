@@ -103,6 +103,15 @@ jobs:
               # tabelas sem carimbo do Alembic — a migração seguinte falharia.
               python -m alembic upgrade head
               python -m app.db.seed
+              # `seed_extended` é um segundo módulo de propósito — os 70
+              # materiais adicionais ficam fora de `app.db.seed` de propósito
+              # (o próprio docstring do arquivo explica: manter o seed
+              # principal em 5 materiais é o que preserva as dezenas de
+              # asserções de contagem fixa em `apps/api/app/tests/`, que
+              # sempre partem de `seed()` via `conftest.py`). Ele depende da
+              # classe/propriedade/fonte que o passo acima acabou de criar,
+              # por isso vem depois, nunca antes.
+              python -m app.db.seed_extended
               ;;
             conceder)
               exigir_email
