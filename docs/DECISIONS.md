@@ -3836,3 +3836,69 @@ teste que o próprio PR #59 tinha o cuidado de preservar. Um terceiro
 mecanismo (flag de ambiente, tabela de "seeds pendentes") para acoplar os
 dois automaticamente — mais uma camada indireta sobre um problema que
 `admin-banco.yml` já resolve com duas linhas em sequência.
+
+---
+
+## D-72 — Apagar dado de demonstração é uma pergunta com uma resposta só: a coluna `is_demo`
+
+**A decisão.** `apps/api/app/db/clear_demo.py` (`python -m app.db.clear_demo`,
+ação `excluir_demo` de `admin-banco.yml`) apaga todo `Material` com
+`is_demo=True`, não importa em qual módulo de seed a linha foi definida.
+Nasceu do mesmo incidente do [D-71](#d-71): se um dado fictício pode viver em
+mais de um arquivo (`app.db.seed` e `app.db.seed_extended`, por uma razão de
+teste que continua válida), **apagá-lo não pode depender de lembrar quais
+arquivos existem** — só depende de uma coluna que já é a declaração de que a
+linha é fictícia (princípio 6). Um humano pediu, nestes termos: não quero
+dificuldade para apagar isto quando for a hora dos materiais oficiais.
+
+**Por que uma exclusão de verdade, e não a desativação que o resto do
+catálogo usa.** `DELETE /api/materiais/{id}` sempre fez `is_active=False` —
+`material_synthesis.py` documenta por quê: um material real carrega receita
+de síntese, estudo salvo, evento de auditoria, e apagar a linha destruiria
+essa história sem necessidade. Isso continua certo para material real.
+`clear_demo` é uma exceção estreita e nomeada a essa regra, não uma segunda
+forma de apagar material: ela só alcança `is_demo=True`, e essa coluna já é a
+prova de que não existe história real para proteger ali. As duas regras
+coexistem porque respondem perguntas diferentes — "isto pode ter sido usado
+de verdade?" (desativar) contra "isto foi sempre fictício?" (apagar) — a
+mesma forma de raciocínio que o D-57 usou para não confundir `in_class` com
+`in_process`.
+
+**Por que a cascata é escrita em Python, e o schema não basta sozinho.** Todo
+`ForeignKey` para `material.id` já declara `ondelete="CASCADE"` ou
+`ondelete="SET NULL"` — o Postgres de produção cumpriria isso sem ajuda. Mas
+o SQLite dos testes só aplica essas ações com `PRAGMA foreign_keys=ON`, que
+`conftest.py` não liga (ligar teria alcance sobre a suíte inteira, para
+resolver um problema de um módulo só). Confiar no schema teria deixado
+`clear_demo` correto em produção e **inverificável em teste** — a mesma
+armadilha que `docs/CLAUDE.md` §10 já registra para migração exercitada só em
+SQLite. A solução não é mudar o `PRAGMA` global; é `clear_demo.py` apagar
+cada tabela filha explicitamente, na ordem que as chaves exigem — o mesmo
+raciocínio que já levou `MaterialRepository.sync_keywords` a um
+delete-then-insert em vez de confiar em cascata de relacionamento do ORM.
+
+**O que fica de fora, e por quê.** `MaterialClass`/`Process`/`ProcessClass` —
+taxonomia, reutilizável pelo material oficial que ocupar a mesma família.
+`BatteryChemistry` e `TransportMode` — dado real de literatura pública
+(`is_demo=False`, D-66/D-69), não fictício; a pergunta "isto é demo?" já
+responde não. A `Source` "Dataset Demo MaterialSelect" — fica órfã sem custo
+algum, e um seed futuro a recria por `get_or_create` se precisar; apagá-la
+exigiria decidir se um `MaterialPropertyValue` de material oficial algum dia
+citaria essa fonte (nunca citaria) só para economizar uma linha sem
+consequência nenhuma de deixar.
+
+**Documentado num lugar que não é só para o Claude Code.**
+`docs/15-dados-demonstrativos.md` registra o checklist de como criar dado de
+demonstração novo sem repetir o D-71, e como apagá-lo quando chegar a hora —
+escrito para qualquer agente ou pessoa que mexer neste repositório, porque
+`CLAUDE.md` da raiz já se descreve como instrução para "agentes/contribuidores",
+não só para uma ferramenta.
+
+**O que se recusou.** Um campo de confirmação (`"digite EXCLUIR"`) na ação
+`excluir_demo` — o pedido foi explícito por menos fricção, não mais, e as
+outras ações administrativas do mesmo workflow (`semear` incluído, que também
+escreve em produção) não têm esse campo; adicionar um só nesta quebraria a
+uniformidade sem um motivo que as outras não tivessem. Apagar
+`MaterialClass`/`Source`/`BatteryChemistry`/`TransportMode` junto — nenhum
+dos quatro é fictício por definição, e apagar taxonomia reutilizável
+obrigaria o catálogo oficial a recriá-la do zero.
