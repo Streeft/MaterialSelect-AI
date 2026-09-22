@@ -252,22 +252,33 @@ um PR nesta base:
 | O PR tocou em… | Disparar | Por quê |
 |---|---|---|
 | `apps/api/**` (rotas, serviços, modelos, migração) | **Deploy da API** (`deploy-api.yml`, sem entrada nenhuma) | `flyctl deploy` constrói a imagem nova; o `release_command` aplica `alembic upgrade head` antes do primeiro tráfego. |
-| `apps/api/app/db/seed.py` (material novo, química de bateria, modo de transporte, qualquer dado de demonstração) | **Administração do banco** (`admin-banco.yml`, ação `semear`) | O deploy da API **não** roda o seed — só a migração. Sem este passo o código do dado novo está no ar e a linha correspondente não existe no banco. |
+| `apps/api/app/db/seed.py` **ou** `apps/api/app/db/seed_extended.py` (material novo, química de bateria, modo de transporte, qualquer dado de demonstração) | **Administração do banco** (`admin-banco.yml`, ação `semear`) | O deploy da API **não** roda seed nenhum — só a migração. Sem este passo o código do dado novo está no ar e a linha correspondente não existe no banco. |
 | Só `apps/web/**` | Nada | A Vercel publica sozinha a cada push em `main` — não há workflow manual para o frontend. |
+
+**Por que dois módulos de seed, e não um.** `app.db.seed` é a base que
+`apps/api/app/tests/conftest.py` reexecuta antes de **todo** teste do backend
+— dezenas de asserções contam materiais/classes/lacunas por número fixo, e
+esse número parte de exatamente 5 materiais de demonstração. Um material
+novo de exercício (os 70 de `seed_extended.py`, por exemplo) **não entra
+ali**, propositalmente — entraria no baseline de todo teste e quebraria
+essas contagens. `semear` roda os dois em sequência (`app.db.seed` depois
+`app.db.seed_extended`, nessa ordem: o segundo lê a classe/propriedade/fonte
+que o primeiro cria) para que a produção tenha tudo, sem que o teste tenha
+mais do que o mínimo que precisa.
 
 Os dois workflows sobre `apps/api/**` **não dependem um do outro**:
 `admin-banco.yml` faz seu próprio checkout de `main` e fala direto com o
 Postgres, sem passar pelo Fly. Por isso a ordem entre eles não importa. Na
-dúvida sobre se um PR mexeu em `seed.py`, dispare o `semear` de qualquer
-forma — `app.db.seed` é idempotente (não duplica linha existente), então
-rodá-lo "por garantia" depois de qualquer merge em `apps/api/**` não tem
-custo.
+dúvida sobre se um PR mexeu em algum dos dois módulos de seed, dispare o
+`semear` de qualquer forma — os dois são idempotentes (não duplicam linha
+existente por nome), então rodá-lo "por garantia" depois de qualquer merge
+em `apps/api/**` não tem custo.
 
 Passo a passo, sem terminal, pela aba **Actions** do repositório:
 
 1. `github.com/Streeft/MaterialSelect-AI/actions/workflows/deploy-api.yml` →
    **Run workflow** → confirmar. Sem campos a preencher.
-2. Se o PR tocou `seed.py` (ou na dúvida):
+2. Se o PR tocou `seed.py` ou `seed_extended.py` (ou na dúvida):
    `github.com/Streeft/MaterialSelect-AI/actions/workflows/admin-banco.yml` →
    **Run workflow** → em "O que executar" escolher **`semear`** → **Run
    workflow**.
@@ -317,7 +328,7 @@ Depois, no navegador:
 | Primeira requisição demorando segundos | Hibernação — confira `min_machines_running` no `fly.toml`. |
 | Painel de IA em `403` acusando a credencial, com `error code: 1010` no fim da mensagem | **Não é a chave.** `1010` é da Cloudflare, que fica na frente da Groq: ela barrou a assinatura do cliente antes de a API ver a requisição. Ver [09-camada-ia.md](09-camada-ia.md). |
 | Painel de IA com erro genérico ("Falha na requisição …") em vez do texto do provedor | Versão da API anterior ao tratador de `AIUnavailableError`. Reimplante — um *secrets deploy* não basta, porque reusa a imagem. |
-| PR mesclado em `main`, `deploy-api.yml` verde, mas o dado novo (material, química de bateria, modo de transporte) não aparece na tela | `admin-banco.yml` (`semear`) não foi disparado depois do merge — o deploy da API só roda a migração, nunca o seed. Ver §5-ter. |
+| PR mesclado em `main`, `deploy-api.yml` verde, mas o dado novo (material, química de bateria, modo de transporte) não aparece na tela | Duas causas possíveis, nessa ordem de verificação. (1) `admin-banco.yml` (`semear`) não foi disparado depois do merge — o deploy da API só roda a migração, nunca o seed. Ver §5-ter. (2) O `semear` rodou mas o log da execução (aba Actions → a execução → job `semear`) mostra a contagem certa em `Concluído: {...}` — se o campo relevante (`materials_created`, `battery_chemistries`, `transport_modes`, …) ficou em `0` quando deveria ter subido, o dado novo não está chegando a nenhum dos dois módulos de seed que `semear` executa (`app.db.seed` e `app.db.seed_extended`, §5-ter): confira se o PR de fato adicionou o dado a um dos dois, e não a um terceiro arquivo nunca importado por nenhum — foi exatamente isso que aconteceu com os 70 materiais do PR #59, que viveram meses em `seed_extended.py` sem que `semear` soubesse que esse módulo existia. |
 
 ### O app sem endereço público
 

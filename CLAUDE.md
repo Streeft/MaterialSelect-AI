@@ -223,12 +223,15 @@ frontend (Vercel) publica automaticamente a cada push em `main`. Depois de
 mesclar qualquer PR que toque `apps/api/**`, dispare os dois workflows
 manuais na aba Actions: **Deploy da API** (`deploy-api.yml`) sempre, e
 **Administração do banco** (`admin-banco.yml`, ação `semear`) sempre que
-mexer em `app/db/seed.py` — na dúvida, dispare os dois; `semear` é
-idempotente. Passo a passo completo e por quê em
-[`docs/13-deploy.md` §5-ter](docs/13-deploy.md). Pular este passo é a causa
-mais provável de "o PR está em `main` mas não aparece no ar" — foi exatamente
-isso que deixou 70 materiais e outros dados de demonstração fora do ar por
-dias depois de mesclados.
+mexer em `app/db/seed.py` ou `app/db/seed_extended.py` — na dúvida, dispare
+os dois; `semear` roda ambos os módulos, e os dois são idempotentes. Passo a
+passo completo e por quê em [`docs/13-deploy.md` §5-ter](docs/13-deploy.md).
+Pular este passo é a causa mais provável de "o PR está em `main` mas não
+aparece no ar". A outra causa, menos visível: um dado de seed que vive num
+módulo que `semear` não executa — job verde não prova que o dado certo foi
+escrito, só que o script executado não lançou exceção; a contagem por
+categoria no log de `semear` (`materials_created`, `battery_chemistries`,
+…) é o que prova ([D-71](docs/DECISIONS.md)).
 
 ## Estado atual
 
@@ -661,6 +664,20 @@ fim**, porque toda saída geométrica é um par de coordenadas — assim o fecho
 elipse, a linha de índice e a comparação do Chart Stage continuam canônicos e o
 D-60 fica de pé —, e uma unidade que não é puro fator de escala **não entra num
 mapa**, com a razão escrita.
+
+**Uma auditoria ao vivo achou os 70 materiais fictícios do PR #59 ausentes em
+produção, e a causa era mais funda do que "esqueceram de rodar o seed"**
+([D-71](docs/DECISIONS.md)): eles viviam em `apps/api/app/db/seed_extended.py`,
+um módulo próprio que nenhum script — nem `admin-banco.yml`, nem
+`scripts/seed.ps1`, nem a CI — jamais chamava. Rodar `semear` terminava verde
+porque o script que ele de fato executava (`app.db.seed`) não lançava erro
+nenhum; só não continha os 70 materiais. A separação em dois módulos
+continua certa — `conftest.py` reexecuta `app.db.seed` como base de todo
+teste do backend, e dobrar esse baseline para 75 materiais quebraria dezenas
+de asserções por contagem fixa —, o que faltava era ligar o segundo módulo a
+algo que roda. `admin-banco.yml` (`semear`) e `scripts/seed.ps1` agora
+executam os dois, em sequência; o stub vestigial `seed_patch.py`, do mesmo
+PR e nunca importado por nada, foi removido.
 
 1727 testes de backend (nenhum skip) e 368 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job

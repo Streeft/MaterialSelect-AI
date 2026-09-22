@@ -3782,3 +3782,57 @@ fixturas de teste — um contrato opcional deixaria uma superfície esquecê-los
 silêncio, que é exatamente como a tela de baterias divergiu do backend; e
 embelezar `conversion_method`, que continua guardando `degC` porque é o que o
 Pint sabe reler (B11, intacto) mesmo agora que o **rótulo** diz °C.
+
+---
+
+## D-71 — Seed de exercício é módulo separado do seed de teste, de propósito — e "sem erro" não provava que rodava
+
+**O achado.** PR #59 acrescentou 70 materiais fictícios de exercício em
+`apps/api/app/db/seed_extended.py` — um módulo com o próprio `main()`,
+pensado para rodar com `python -m app.db.seed_extended` depois do seed
+principal. Nenhum script chamava esse módulo: nem `scripts/seed.ps1`, nem o
+`admin-banco.yml` (a ação `semear` só executava `python -m app.db.seed`),
+nem a CI. Os 70 materiais existiam no repositório e nunca existiram em banco
+nenhum, de desenvolvimento ou de produção — a auditoria que motivou o
+[D-70](#d-70) rodou `semear` contra a produção e reportou sucesso, porque o
+script que ela executava de fato terminou sem erro; só não era o script que
+continha os materiais.
+
+**Por que dois módulos, e não um só.** Não é acidente que os 70 materiais
+ficaram fora de `app.db.seed`: `apps/api/app/tests/conftest.py` chama
+`seed()` como base de **todo** teste do backend, e dezenas de asserções em
+`apps/api/app/tests/` contam materiais, classes e lacunas por número fixo —
+a contagem parte de exatamente 5 materiais de demonstração
+(`test_materials_api.py`, `test_dashboard_api.py`, `test_selection_api.py`,
+`test_isolation.py`, entre outras). Dobrar esse número para 75 no baseline
+de teste quebraria essa faixa inteira de asserções por um motivo que não tem
+nada a ver com o que cada teste verifica. A separação do PR #59 estava
+certa; o que faltou foi ligar o módulo a alguma coisa que roda.
+
+**A correção.** `admin-banco.yml` (ação `semear`) agora executa os dois, em
+sequência — `python -m app.db.seed` primeiro (`seed_extended` lê a
+classe/propriedade/fonte que ele cria), `python -m app.db.seed_extended`
+depois —, e `scripts/seed.ps1` faz o mesmo para quem semeia localmente.
+`seed()` continua intocado, em 5 materiais: a fronteira entre "o que todo
+teste vê" e "o que só o catálogo de demonstração tem" é exatamente essa —
+um módulo, não um `if ENVIRONMENT == "production"` dentro do mesmo. O stub
+`seed_patch.py` (um único docstring, "módulo reservado, não utilizado"),
+deixado pelo mesmo PR e nunca importado por nada, foi removido.
+
+**O que isso muda em como se verifica um deploy de dado.** Job verde não é
+prova de que o dado certo foi escrito — só de que o script executado não
+lançou exceção. `seed()` e `seed_extended_materials()` devolvem (e o `main()`
+de cada módulo imprime) a contagem criada por categoria; o log de uma
+execução de `semear` mostra essas linhas. `0` onde um merge recente deveria
+ter feito crescer um número é o sinal de um módulo desconectado, não de um
+seed já aplicado — a diferença só aparece olhando o número, nunca só a cor
+do círculo na aba Actions. `docs/13-deploy.md` §5-ter e a tabela de "Falhas
+comuns" foram corrigidas para descrever essa verificação, não só "dispare o
+workflow".
+
+**O que se recusou.** Dobrar `DEMO_MATERIALS` dentro de `seed()` para eliminar
+o segundo módulo — resolveria a integração ao custo de quebrar o baseline de
+teste que o próprio PR #59 tinha o cuidado de preservar. Um terceiro
+mecanismo (flag de ambiente, tabela de "seeds pendentes") para acoplar os
+dois automaticamente — mais uma camada indireta sobre um problema que
+`admin-banco.yml` já resolve com duas linhas em sequência.
