@@ -10,8 +10,11 @@ exists (the decision was made once, at registration).
 from __future__ import annotations
 
 import pytest
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from app.config import settings
+from app.models.transport_mode import TransportMode
 
 CSV_CONTENT = b"nome;classe;densidade [g/cm3]\nLiga Fonte Teste A;Metais;2,70\n"
 
@@ -131,3 +134,28 @@ def test_list_sources_includes_seeded_demo_source(client):
 def test_sources_requires_login(anon_client):
     resp = anon_client.get("/api/sources")
     assert resp.status_code == 401
+
+
+def test_demo_material_values_cite_the_demo_source(client):
+    """Regression: ``seed()`` used to overwrite ``demo_source`` on every
+    iteration of the ``SOURCES`` loop, so after D-69 added a second source the
+    variable ended up holding the *last* one (battery literature) instead of
+    the demo source — and every one of the five core demo materials cited
+    "Literatura de baterias (compilação)" for fictitious values.
+    """
+    materials = client.get("/api/materials", params={"search": "Liga Alumínio Demo A"}).json()
+    material = next(m for m in materials if m["name"] == "Liga Alumínio Demo A")
+    detail = client.get(f"/api/materials/{material['id']}").json()
+    all_props = [p for g in detail["property_groups"] for p in g["properties"]]
+    densidade = next(p for p in all_props if p["property_slug"] == "densidade")
+    assert densidade["source_label"] == "Dataset Demo MaterialSelect"
+
+
+def test_transport_modes_cite_the_demo_source(client, db_session: Session):
+    """The four seeded transport modes are ``is_demo=True`` figures (D-66) and
+    must cite the demo source too — same bug, same fix as the test above."""
+    modes = db_session.execute(select(TransportMode)).scalars().all()
+    assert len(modes) == 4
+    for mode in modes:
+        assert mode.source is not None
+        assert mode.source.label == "Dataset Demo MaterialSelect"
