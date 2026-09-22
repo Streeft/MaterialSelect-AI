@@ -91,6 +91,27 @@ revogar de verdade. O catálogo continua compartilhado entre todo usuário
 autenticado; só `SelectionStudy` é escopado por `Project`. Ver
 [D-42](DECISIONS.md).
 
+### 1.11 Dado de demonstração: criar e apagar têm um caminho só
+A regra completa está em [`15-dados-demonstrativos.md`](15-dados-demonstrativos.md)
+— leia antes de escrever um seed novo, qualquer que seja a ferramenta ou
+IDE. Resumo do que não muda:
+
+- **Toda linha fictícia se declara por `is_demo=True`** no seu próprio
+  modelo. Nenhuma outra convenção (nome de arquivo, comentário, prefixo no
+  nome do registro) é lida por código nenhum.
+- **Todo módulo de seed novo tem de estar ligado a `admin-banco.yml`**
+  (ação `semear`) e a `scripts/seed.ps1`, na sequência certa. Um módulo
+  desconectado — mesmo idempotente, mesmo com o próprio `main()` — é
+  invisível: `semear` termina verde sem nunca o executar. Foi exatamente
+  isto, com os 70 materiais de `apps/api/app/db/seed_extended.py`, que
+  ficou fora do ar por dias ([D-71](DECISIONS.md)).
+- **Apagar dado fictício usa `apps/api/app/db/clear_demo.py`**
+  (`python -m app.db.clear_demo`, ação `excluir_demo`), que apaga todo
+  `Material` com `is_demo=True` não importa em qual módulo nasceu — uma
+  exceção estreita e deliberada à regra geral do catálogo (material real se
+  **desativa**, nunca se apaga) válida só porque `is_demo=True` já prova que
+  não há história real para proteger ([D-72](DECISIONS.md)).
+
 ---
 
 ## 2. Idiomas

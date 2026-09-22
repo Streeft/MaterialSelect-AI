@@ -25,7 +25,10 @@ Instruções para agentes/contribuidores trabalhando neste repositório. Esta é
 5. **Sem segredos versionados.** Configuração por variáveis de ambiente
    (`.env`, ignorado). Há `.env.example`.
 6. **Dados de demonstração** são fictícios e marcados (`is_demo`), com aviso na
-   interface e nos arquivos.
+   interface e nos arquivos. Criar dado de demonstração novo, ou apagar o que
+   já existe, segue a regra fixa em
+   [`docs/15-dados-demonstrativos.md`](docs/15-dados-demonstrativos.md) —
+   leia antes de escrever um seed, não importa a ferramenta ou IDE.
 
 ## Idiomas
 
@@ -679,7 +682,23 @@ algo que roda. `admin-banco.yml` (`semear`) e `scripts/seed.ps1` agora
 executam os dois, em sequência; o stub vestigial `seed_patch.py`, do mesmo
 PR e nunca importado por nada, foi removido.
 
-1727 testes de backend (nenhum skip) e 368 de frontend, todos verdes. CI no
+**Apagar dado de demonstração ganhou um único caminho** ([D-72](docs/DECISIONS.md)):
+`apps/api/app/db/clear_demo.py` (`python -m app.db.clear_demo`, ação
+`excluir_demo` de `admin-banco.yml`) apaga todo `Material` com
+`is_demo=True`, não importa em qual módulo de seed a linha nasceu — a
+pergunta "isto é fictício?" tem uma resposta só, a coluna, e não depende de
+lembrar quantos arquivos de seed existem. A cascata (valores, palavras-chave,
+favoritos, processos ligados, receita de síntese) é escrita em Python e não
+só declarada no schema, porque o SQLite dos testes não aplica `ondelete` sem
+uma `PRAGMA` que este projeto não liga. É uma exceção estreita à regra geral
+do catálogo — material real continua **desativado**, nunca excluído — válida
+só porque `is_demo=True` já é a prova de que não existe história real para
+proteger. `docs/15-dados-demonstrativos.md` é a regra completa: como criar
+dado de demonstração sem reabrir o D-71, como apagá-lo quando o catálogo
+oficial chegar, e o que qualquer agente — Antigravity incluído — precisa ler
+antes de escrever um seed novo neste repositório.
+
+1741 testes de backend (nenhum skip) e 368 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
 PROJECT_CONTEXT.md).

@@ -30,6 +30,7 @@ on:
         options:
           - migrar
           - semear
+          - excluir_demo
           - conceder
           - revogar
       email:
@@ -112,6 +113,15 @@ jobs:
               # classe/propriedade/fonte que o passo acima acabou de criar,
               # por isso vem depois, nunca antes.
               python -m app.db.seed_extended
+              ;;
+            excluir_demo)
+              # Irreversível: apaga todo Material com is_demo=True, não
+              # importa em qual módulo de seed ele foi definido — a marca é
+              # a coluna, não o arquivo (D-72). O momento certo de disparar
+              # isto é quando o catálogo oficial estiver pronto para
+              # substituir o de demonstração; ver
+              # docs/15-dados-demonstrativos.md.
+              python -m app.db.clear_demo
               ;;
             conceder)
               exigir_email
