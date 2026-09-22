@@ -210,7 +210,7 @@ disparo manual em `.github/workflows/`, na aba **Actions** do repositório.
 | Workflow | Faz o quê | Substitui |
 |---|---|---|
 | **Deploy da API (Fly.io)** | `flyctl deploy --remote-only` | o `fly deploy` do §2 |
-| **Administração do banco** | `migrar`, `semear`, `conceder`, `revogar` | o `fly ssh console` do §2 e do §5 |
+| **Administração do banco** | `migrar`, `semear`, `excluir_demo`, `conceder`, `revogar` | o `fly ssh console` do §2 e do §5 |
 
 Dois segredos, em *Settings → Secrets and variables → Actions*:
 
@@ -236,6 +236,11 @@ Três detalhes que não são arbitrários:
 - **A ação `semear` roda `alembic upgrade head` antes do seed.** `app.db.seed`
   chama `create_all` por conveniência, e num banco vazio isso criaria as tabelas
   sem carimbo do Alembic — a migração seguinte quebraria.
+- **`excluir_demo` é irreversível**, e não é algo para disparar depois de um
+  merge comum — só quando o catálogo oficial estiver pronto para substituir o
+  de demonstração. Apaga todo `Material` com `is_demo=True`, não importa em
+  qual módulo de seed a linha nasceu ([D-72](DECISIONS.md#d-72)). Ver
+  [`docs/15-dados-demonstrativos.md`](15-dados-demonstrativos.md).
 - **O passo "Garantir endereço público" conta antes de alocar.** `flyctl ips
   allocate-v6` **não é idempotente**: ele aloca outro endereço a cada chamada,
   em silêncio e com sucesso. Escrito como `allocate-v6 || true`, acumulava um

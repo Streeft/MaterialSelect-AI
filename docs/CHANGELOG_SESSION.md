@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [26](#sessão-26--21092026-a-22092026--a-auditoria-de-produção-o-seed-desconectado-d-71-e-a-exclusão-de-demo-por-um-flag-d-72) | 21 e 22/09/2026 | Auditoria ao vivo da produção; o defeito do seed desconectado (D-71) achado e corrigido; mecanismo de exclusão de dado demo por `is_demo` (D-72) e a regra escrita para qualquer agente/IDE | 1727 → 1741 | 368 (inalterado) |
 | [25](#sessão-25--210926--a-unidade-de-leitura-fecha-a-matriz) | 21/09/2026 | Unidade de leitura por propriedade (D-70) — ler não é guardar. **Matriz a 32 de 32 (100%)** | 1683 → 1727 | 356 → 368 |
 | [24](#sessão-24--160926--p4-o-battery-designer-e-a-reconciliação-do-pr-56) | 16/09/2026 | P4 Battery Designer (D-69) — a álgebra do pack é argumento, a química é dado medido. **Fecha a última linha em zero da matriz**; reconcilia o PR #56 | 1656 → 1683 | 349 → 356 |
 | [23](#sessão-23--160926--p3-os-sandwich-panels-fecham-a-faixa) | 16/09/2026 | P3 Sandwich Panels (D-68) — o painel passa do limite de Voigt, e é assim que se sabe que não é mistura. **Fecha a faixa P3** | 1629 → 1656 | 345 → 349 |
@@ -41,6 +42,91 @@ As sessões entre a 11 e a 12 — o patch de design "Prisma" (D-49, D-50), o
 upgrade de segurança S1 e a rodada de desempenho — **não têm seção própria
 aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
+
+---
+
+## Sessão 26 — 21/09/2026 a 22/09/2026 — A auditoria de produção, o seed desconectado (D-71) e a exclusão de demo por um flag (D-72)
+
+**O pedido.** "Verifique se realmente todas as funcionalidades e melhorias
+criadas pelo Antigravity e pelo Claude Code estão rodando em produção — os
+70 itens fictícios criados não estão rodando na aplicação, por exemplo."
+Uma auditoria, não uma implementação — mas ela achou um defeito real, e
+depois o pedido virou dois: corrigir o defeito, e criar um jeito fácil de
+apagar todo o dado fictício quando a base oficial chegar.
+
+**A investigação em duas camadas.** A primeira olhada (histórico do GitHub
+Actions) parecia bastar: `deploy-api.yml` tinha rodado 19 vezes, fielmente,
+a cada merge — inclusive minutos depois do PR #63 (D-70). `admin-banco.yml`
+(a ação `semear`) não rodava desde 09/09, bem antes do PR #59 (os 70
+materiais) existir. Diagnóstico óbvio: ninguém tinha rodado o seed. Rodei
+— e o log voltou `materials_created: 0`. O diagnóstico estava errado.
+
+`git show` no merge do PR #59 revelou por quê: ele criou
+`apps/api/app/db/seed_extended.py`, um módulo com o próprio `main()`,
+pensado para `python -m app.db.seed_extended` — mas nunca ligado a nada.
+Nem `admin-banco.yml`, nem `scripts/seed.ps1`, nem a CI chamavam esse
+comando. `semear` sempre terminou verde porque o script que ele de fato
+executa (`app.db.seed`) nunca lançou erro — só nunca continha os 70
+materiais. **[D-71](DECISIONS.md#d-71)** registra o achado e a correção:
+`admin-banco.yml` e `scripts/seed.ps1` agora rodam os dois módulos em
+sequência. A separação em si continua certa —
+`apps/api/app/tests/conftest.py` reexecuta `app.db.seed` como base de todo
+teste do backend, e dobrar esse baseline para 75 quebraria dezenas de
+asserções de contagem fixa — só faltava ligar o segundo módulo a algo que
+roda. PR #65, mesclado, e a reseeded produção confirmada por log
+(`[seed_extended] Concluído: 70 materiais criados.`) e ao vivo em
+`/app/catalogo`.
+
+**O processo também ficou registrado**, em `docs/13-deploy.md` §5-ter
+(PR #64, antes de achar o defeito real): a regra de qual workflow disparar
+depois de um merge, e por quê job verde não prova que o dado certo foi
+escrito — só que o script executado não lançou exceção.
+
+**O segundo pedido — apagar tudo com um clique, quando chegar a hora.**
+"Assim que eu solicitar para incluir os oficiais, delete todos estes
+fictícios... não quero dificuldade... deixe todos eles num mesmo código."
+A resposta não foi consolidar `seed.py` e `seed_extended.py` num arquivo só
+— isso reabriria o problema que a separação do D-71 resolve. A resposta foi
+reconhecer que **o ponto de consolidação já existia**: a coluna
+`Material.is_demo`, que toda linha fictícia carrega não importa em qual
+módulo nasceu. `apps/api/app/db/clear_demo.py`
+(`python -m app.db.clear_demo`, ação `excluir_demo` de `admin-banco.yml`)
+apaga por essa coluna — um disparo, sem terminal, cobre os dois módulos e
+qualquer futuro terceiro.
+
+Duas decisões técnicas dentro da mesma correção. **A cascata é escrita em
+Python, não só declarada no schema**: todo `ForeignKey` para `material.id`
+já é `ondelete="CASCADE"`/`"SET NULL"`, mas o SQLite dos testes só aplica
+isso com uma `PRAGMA` que este projeto não liga — confiar só no schema
+teria deixado a exclusão correta em produção e inverificável em teste, a
+mesma armadilha que `docs/CLAUDE.md` §10 já registra para migração. **E a
+exclusão de verdade é uma exceção estreita**, não uma mudança de política:
+o catálogo trata material real como algo que se desativa
+(`is_active=False`), nunca apaga — `material_synthesis.py` já documentava
+por quê (receita, estudo, auditoria são história que apagar destrói).
+`clear_demo` só alcança `is_demo=True`, e essa coluna já é a prova de que
+não existe história real para proteger ali. **[D-72](DECISIONS.md#d-72)**
+tem o argumento completo.
+
+**Testado nos dois sentidos** antes do PR: `apps/api/app/tests/test_clear_demo.py`
+(4 testes — remove só `is_demo`, cascata sem órfão, idempotente, material
+real sobrevive) e, à parte, o CLI completo contra um SQLite descartável já
+semeado com os 75: `[clear_demo] 75 materiais fictícios removidos`, segunda
+execução `0`, contagem de materiais e de valores zerada.
+
+**O terceiro pedido — que outra ferramenta de IA não repita o erro.**
+`docs/15-dados-demonstrativos.md` é o documento novo: o checklist de como
+criar dado de demonstração sem reabrir o D-71 (marcar `is_demo`, ligar o
+módulo a `admin-banco.yml`, testar a contagem), como apagar quando chegar a
+hora, e uma seção nomeada para qualquer agente que não seja o Claude Code
+— Antigravity incluído — lendo este repositório pela primeira vez.
+`CLAUDE.md` da raiz e `docs/CLAUDE.md` ganharam os ponteiros cruzados; a
+correção da nota registrada no dia anterior (que atribuía o sumiço dos
+materiais só a "ninguém disparou o workflow") foi substituída pela causa
+real.
+
+**Números.** 1727 → **1741** testes de backend (os 4 de
+`test_clear_demo.py`) — frontend intocado, 368.
 
 ---
 

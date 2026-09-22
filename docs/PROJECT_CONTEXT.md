@@ -475,7 +475,7 @@ carregando a sua lista de "faltam". O número diz que nenhuma capacidade do
 modelo funcional está ausente ou pela metade, não que cada uma esteja no seu
 teto.
 
-**Saúde do código:** 1727 testes de backend (Python 3.11 e 3.12, nenhum skip)
+**Saúde do código:** 1741 testes de backend (Python 3.11 e 3.12, nenhum skip)
 e 368 de frontend, todos verdes. Desde o P0-1 a suíte também roda as migrações de
 verdade, nos dois sentidos, contra um banco temporário que já contém dados —
 `test_migration_selection_stage.py`, `test_migration_process_universe.py`,
@@ -840,12 +840,20 @@ que mais afetam quem for mexer no código:
   chunks, `Plotly` aparece em 2 e `maplibre` em nenhum, verificado com controle
   positivo. **Isto deixa de valer se um traço de mapa for registrado.** Ver
   "S3" em [TODO.md](TODO.md).
-- **Dados demonstrativos são fictícios.** Os 5 materiais semeados existem para
-  exercitar o sistema (conversão, intervalo, ausência, incerteza), não para
-  descrever materiais reais. Marcados com `is_demo` e avisados na interface e em
-  todo arquivo exportado.
+- **Dados demonstrativos são fictícios.** 75 materiais semeados (5 de
+  `app.db.seed`, exercitando conversão/intervalo/ausência/incerteza; 70 de
+  `app.db.seed_extended`, cobertura mais ampla das cinco famílias) existem
+  para exercitar o sistema, não para descrever materiais reais. Marcados com
+  `is_demo` e avisados na interface e em todo arquivo exportado. **Os dois
+  módulos ficaram meses sem chegar à produção** por um defeito de integração
+  registrado no [D-71](DECISIONS.md#d-71) — corrigido, e
+  `docs/15-dados-demonstrativos.md` é a regra para não repeti-lo com o
+  próximo dado de demonstração.
 - **A base definitiva do orientador ainda não chegou.** A camada de importação
-  genérica existe justamente para não depender disso.
+  genérica existe justamente para não depender disso. Quando chegar, a ação
+  `excluir_demo` de `admin-banco.yml` apaga os 75 materiais fictícios num
+  disparo só — não precisa de terminal, não deixa órfão, e não toca material
+  nenhum que não seja `is_demo` ([D-72](DECISIONS.md#d-72)).
 - **Sem multiusuário, sem colaboração.** Login com Google e projetos existem
   (A5), mas cada `Project` tem dono único e nenhuma tela troca entre dois
   projetos de um mesmo usuário ainda ([D-42](DECISIONS.md)).
