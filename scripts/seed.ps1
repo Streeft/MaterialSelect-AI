@@ -10,6 +10,7 @@ Push-Location $api
 try {
     & $py -m alembic upgrade head
     & $py -m app.db.seed
+    & $py -m app.db.seed_extended
 }
 finally {
     Pop-Location
