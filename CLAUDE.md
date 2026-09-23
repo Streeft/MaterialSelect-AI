@@ -719,6 +719,11 @@ reconciliados com os já validados por D-49/D-73, sem nenhuma cor nova. Ainda
 não está ligada a nenhuma tela: `components/ui/*`, `icons.tsx` e
 `AppSidebar.tsx` continuam como estavam, para uma rodada seguinte — ver D-74.
 
+**20 dos 39 glifos de `components/ui/icons.tsx` passaram a usar o path data
+do MSDS** ([D-75](docs/DECISIONS.md)), export por export, sem mudar nome nem
+assinatura. `components/ui/*` e `AppSidebar.tsx` continuam sem tocar — ver
+D-75 para a tabela de mapeamento e o porquê do escopo.
+
 **S1 (upgrade de segurança) entregue:** `next` 14.2.35 → **16.3.4** e `postcss`
 → **8.5.28**, fechando 21 CVEs do Next e 4 do PostCSS. A 14.2.35 é a última da
 linha 14 — não havia patch dentro do major, então subir era a única saída. Deu

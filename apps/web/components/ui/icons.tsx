@@ -40,40 +40,48 @@ function Svg({
   );
 }
 
+// The eight `case`s below carry MSDS's Round-6 glyph data in place of the
+// original hand-drawn shapes (D-75) — same component name and prop
+// signature, just the redrawn path/shape. See docs/DECISIONS.md D-75 for the
+// full name-mapping table between `lib/msds/icons.tsx`'s `msdsIcon(name)`
+// and these exports.
 export const IconCheck = (p: IconProps) => (
   <Svg {...p}>
-    <path d="m4 12 5 5L20 6" />
+    <path d="M4.5 12.8 9.2 17.5 19.5 6.5" />
   </Svg>
 );
 
 export const IconChevronDown = (p: IconProps) => (
   <Svg {...p}>
-    <path d="m6 9 6 6 6-6" />
+    <path d="M6 9.2l6 6 6-6" />
   </Svg>
 );
 
 export const IconChevronRight = (p: IconProps) => (
   <Svg {...p}>
-    <path d="m9 6 6 6-6 6" />
+    <path d="M9 5.2 15.5 12 9 18.8" />
   </Svg>
 );
 
 export const IconClose = (p: IconProps) => (
   <Svg {...p}>
-    <path d="M6 6l12 12M18 6 6 18" />
+    <path d="M6.5 6.5l11 11" />
+    <path d="M17.5 6.5l-11 11" />
   </Svg>
 );
 
 export const IconMenu = (p: IconProps) => (
   <Svg {...p}>
-    <path d="M4 7h16M4 12h16M4 17h16" />
+    <path d="M4.5 7.2h15" />
+    <path d="M4.5 12h15" />
+    <path d="M4.5 16.8h15" />
   </Svg>
 );
 
 export const IconSearch = (p: IconProps) => (
   <Svg {...p}>
-    <circle cx="11" cy="11" r="6" />
-    <path d="m20 20-3.5-3.5" />
+    <circle cx="10.5" cy="10.5" r="6.3" />
+    <path d="M19.6 19.6l-4.4-4.4" />
   </Svg>
 );
 
@@ -85,9 +93,10 @@ export const IconInfo = (p: IconProps) => (
 );
 
 export const IconWarning = (p: IconProps) => (
-  <Svg {...p}>
-    <path d="M10.3 4.2 2.6 17.5A2 2 0 0 0 4.3 20.5h15.4a2 2 0 0 0 1.7-3L13.7 4.2a2 2 0 0 0-3.4 0Z" />
-    <path d="M12 10v4M12 17.5h.01" />
+  <Svg {...p} fill="currentColor" stroke="none">
+    <path d="M10.6 3.8a1.6 1.6 0 0 1 2.8 0l8.2 14.6a1.6 1.6 0 0 1-1.4 2.4H3.8a1.6 1.6 0 0 1-1.4-2.4Z" />
+    <rect x="11" y="9.5" width="2" height="5" rx="1" fill="var(--surface-200, #fff)" />
+    <circle cx="12" cy="17" r="1.1" fill="var(--surface-200, #fff)" />
   </Svg>
 );
 
@@ -139,7 +148,8 @@ export const IconArrowLeft = (p: IconProps) => (
 
 export const IconPlus = (p: IconProps) => (
   <Svg {...p}>
-    <path d="M12 5v14M5 12h14" />
+    <path d="M12 5.5v13" />
+    <path d="M5.5 12h13" />
   </Svg>
 );
 
@@ -157,8 +167,8 @@ export const IconDownload = (p: IconProps) => (
 );
 
 export const IconFilter = (p: IconProps) => (
-  <Svg {...p}>
-    <path d="M3.5 5h17l-6.5 7.6V19l-4 2v-8.4Z" />
+  <Svg {...p} fill="currentColor" stroke="none">
+    <path d="M3.6 4.6A1 1 0 0 1 4.4 4h15.2a1 1 0 0 1 .76 1.65l-6 7v6.6a1 1 0 0 1-1.45.9l-3.5-1.75A1 1 0 0 1 9 17.5v-4.85l-6-7A1 1 0 0 1 3.6 4.6Z" />
   </Svg>
 );
 
@@ -170,11 +180,11 @@ export const IconTable = (p: IconProps) => (
 );
 
 export const IconGrid = (p: IconProps) => (
-  <Svg {...p}>
-    <rect x="3.5" y="3.5" width="7" height="7" rx="1.5" />
-    <rect x="13.5" y="3.5" width="7" height="7" rx="1.5" />
-    <rect x="3.5" y="13.5" width="7" height="7" rx="1.5" />
-    <rect x="13.5" y="13.5" width="7" height="7" rx="1.5" />
+  <Svg {...p} fill="currentColor" stroke="none">
+    <rect x="3.4" y="3.4" width="7.4" height="7.4" rx="2.4" />
+    <rect x="13.2" y="3.4" width="7.4" height="7.4" rx="2.4" opacity={0.55} />
+    <rect x="3.4" y="13.2" width="7.4" height="7.4" rx="2.4" opacity={0.55} />
+    <rect x="13.2" y="13.2" width="7.4" height="7.4" rx="2.4" />
   </Svg>
 );
 
@@ -192,47 +202,53 @@ export const IconBook = (p: IconProps) => (
 // property map, two columns for the comparison.
 
 export const IconHome = (p: IconProps) => (
-  <Svg {...p}>
-    <path d="M4 10.5 12 3.5l8 7V19a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 19Z" />
-    <path d="M9.5 20.5v-6h5v6" />
+  <Svg {...p} fill="currentColor" stroke="none">
+    <path d="M12 3.2a1.5 1.5 0 0 1 .98.36l7 6a1.5 1.5 0 0 1 .52 1.14V19a2 2 0 0 1-2 2h-3.5a1 1 0 0 1-1-1v-4.5a1 1 0 0 0-1-1h-2a1 1 0 0 0-1 1V20a1 1 0 0 1-1 1H5a2 2 0 0 1-2-2v-8.3a1.5 1.5 0 0 1 .52-1.14l7-6A1.5 1.5 0 0 1 12 3.2Z" />
   </Svg>
 );
 
 export const IconScatter = (p: IconProps) => (
   <Svg {...p}>
-    <path d="M4 3.5v15A1.5 1.5 0 0 0 5.5 20h15" />
-    <circle cx="8.5" cy="15.5" r="1.5" />
-    <circle cx="13" cy="11" r="1.5" />
-    <circle cx="17.5" cy="6.5" r="1.5" />
+    <circle cx="12" cy="10" r="3.2" />
+    <path d="M12 21.2c-1.4 0-7.5-6.8-7.5-11.2a7.5 7.5 0 1 1 15 0c0 4.4-6.1 11.2-7.5 11.2Z" />
   </Svg>
 );
 
 export const IconCompare = (p: IconProps) => (
   <Svg {...p}>
-    <rect x="3.5" y="9" width="6.5" height="11.5" rx="1.5" />
-    <rect x="14" y="3.5" width="6.5" height="17" rx="1.5" />
+    <path d="M7.5 4.5v11.5a3 3 0 0 0 3 3H17" />
+    <path d="M16.5 19.5V8a3 3 0 0 0-3-3H7" />
   </Svg>
 );
 
 export const IconUpload = (p: IconProps) => (
   <Svg {...p}>
-    <path d="M12 15.5V3.5M7.5 8 12 3.5 16.5 8" />
-    <path d="M4 17.5v1A2.5 2.5 0 0 0 6.5 21h11a2.5 2.5 0 0 0 2.5-2.5v-1" />
+    <path d="M12 4.2v10.6" />
+    <path d="M7.2 10l4.8 4.8 4.8-4.8" />
+    <path d="M5 19.2h14" />
   </Svg>
 );
 
 export const IconLayers = (p: IconProps) => (
   <Svg {...p}>
-    <path d="m12 3 8.5 4.5L12 12 3.5 7.5Z" />
-    <path d="m3.5 12 8.5 4.5 8.5-4.5" />
-    <path d="m3.5 16.5 8.5 4.5 8.5-4.5" />
+    <path d="M12 3.4 20.6 8 12 12.6 3.4 8Z" />
+    <path d="m4.4 12.4 7.6 4 7.6-4" />
+    <path d="m4.4 16.4 7.6 4 7.6-4" />
   </Svg>
 );
 
 export const IconRuler = (p: IconProps) => (
   <Svg {...p}>
-    <rect x="2.5" y="8.5" width="19" height="7" rx="1.5" />
-    <path d="M7 8.5v3M11 8.5v4.5M15 8.5v3M19 8.5v4.5" />
+    <rect
+      x="3.6"
+      y="9.6"
+      width="16.8"
+      height="4.8"
+      rx="1.8"
+      transform="rotate(-45 12 12)"
+    />
+    <path d="M9.6 12.8l1.6 1.6" />
+    <path d="M12.8 9.6l1.6 1.6" />
   </Svg>
 );
 
@@ -255,8 +271,8 @@ export const IconBlend = (p: IconProps) => (
  */
 export const IconLeaf = (p: IconProps) => (
   <Svg {...p}>
-    <path d="M20 4.5c0 8-5 12.5-11.5 12.5H5.5C5.5 9.5 11 4.5 20 4.5Z" />
-    <path d="M4 20.5c2.5-4 5-6.5 9-8.5" />
+    <path d="M5.2 18.8C4.6 10 10.8 4 19.8 4.2c.6 8.6-5.4 14.8-14.6 14.6Z" />
+    <path d="M5.5 18.5c2.8-4.6 5.6-7.4 10.2-10" />
   </Svg>
 );
 
@@ -271,7 +287,9 @@ export const IconPanelLeft = (p: IconProps) => (
 /** Painel — three bars of uneven height, the shape a coverage bar chart makes. */
 export const IconGauge = (p: IconProps) => (
   <Svg {...p}>
-    <path d="M4 20.5V13M12 20.5V4.5M20 20.5v-9" strokeWidth={2.25} />
+    <path d="M4 15.2a8 8 0 1 1 16 0" />
+    <path d="M12 15.2 15.6 9.4" />
+    <circle cx="12" cy="15.2" r="1.4" fill="currentColor" stroke="none" />
   </Svg>
 );
 
@@ -336,17 +354,16 @@ export const IconStar = ({
 }: IconProps & { filled?: boolean }) => (
   <Svg {...p}>
     <path
-      d="M12 3.6l2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8L3.6 9.7l5.8-.8z"
+      d="M12.7 2.9a.8.8 0 0 0-1.4 0L9.2 8.1l-5.6.6a.8.8 0 0 0-.46 1.4l4.2 3.8-1.2 5.5a.8.8 0 0 0 1.2.87L12 17.2l4.9 3.1a.8.8 0 0 0 1.2-.87l-1.2-5.5 4.2-3.8a.8.8 0 0 0-.46-1.4l-5.6-.6Z"
       fill={filled ? "currentColor" : "none"}
     />
   </Svg>
 );
 
 export const IconBattery = (p: IconProps) => (
-  <Svg {...p}>
-    <rect width="16" height="10" x="2" y="7" rx="2" ry="2" />
-    <line x1="22" x2="22" y1="11" y2="13" />
-    <line x1="6" x2="6" y1="11" y2="13" />
-    <line x1="10" x2="10" y1="11" y2="13" />
+  <Svg {...p} fill="currentColor" stroke="none">
+    <rect x="2.6" y="6.6" width="16.8" height="10.8" rx="3.2" />
+    <rect x="20.4" y="10" width="1.8" height="4" rx="0.9" />
+    <rect x="5" y="9" width="4" height="6" rx="1.2" fill="var(--surface-200, #fff)" />
   </Svg>
 );

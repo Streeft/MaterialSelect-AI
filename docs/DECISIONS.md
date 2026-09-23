@@ -4110,3 +4110,92 @@ filter, layers, ruler, leaf, battery, check, close, menu, search, plus,
 chevronDown, dashboard→gauge); reconstruir `AppSidebar.tsx` sobre
 `NavRail`/`NavDrawer` preservando `--rail-accent` e o colapso existente; e só
 então revisitar se D-48 fica redundante.
+
+## D-75 — MSDS: os glifos entram em `icons.tsx`; `components/ui/*` e `AppSidebar` continuam para outra rodada
+
+**O que esta sessão entregou, do que D-74 deixou de fora.** Só a primeira das
+três frentes que D-74 apontou como próximo passo: o path data de 20 dos 39
+ícones de `components/ui/icons.tsx` foi substituído pelo desenho
+correspondente de `msdsIcon(name)` (Rodada 6 do MSDS), **mantendo o nome do
+export, a assinatura de props e o wrapper `<Svg>` existente** — nenhum
+site de chamada mudou. `components/ui/*` (as ~20 primitivas que hoje
+envolvem `@material/web`) e a reconstrução de `AppSidebar.tsx` sobre
+`NavRail`/`NavDrawer` **não foram tocados nesta rodada** — ver a razão no
+parágrafo de escopo abaixo.
+
+**A tabela de mapeamento**, verificada lendo os `case`s de
+`lib/msds/icons.tsx` e os exports de `components/ui/icons.tsx` lado a lado,
+não presumindo o esboço do relatório de D-74 como completo (ele estava certo
+em 15 dos 16 pares que listou, mas "map" mapeia para `IconScatter` — o ícone
+da rota `/app/mapas`, cujo conceito é literalmente "mapa" mesmo com o glifo
+do MSDS sendo um pino de localização e não um scatter plot — e não havia um
+`IconMap` para receber o nome):
+
+| `msdsIcon` | export em `icons.tsx` | nota |
+|---|---|---|
+| `home` | `IconHome` | vira glifo preenchido (`fill="currentColor" stroke="none"`) |
+| `map` | `IconScatter` | rota `/app/mapas`; pino, não scatter — a rota chama-se "mapa" |
+| `compare` | `IconCompare` | |
+| `catalog`/`grid` | `IconGrid` | usado o `case "grid"` (mais recente); `IconGrid` só era usado em `/app/estilo`, não na navegação (`IconBook` continua a cobrir a rota do catálogo — sem contraparte no MSDS) |
+| `dashboard` | `IconGauge` | rota `/app/painel` |
+| `import` | `IconUpload` | seta do MSDS aponta para baixo (glifo de origem, não corrigido aqui) |
+| `check` | `IconCheck` | |
+| `close` | `IconClose` | |
+| `menu` | `IconMenu` | |
+| `search` | `IconSearch` | |
+| `plus` | `IconPlus` | |
+| `chevronDown` | `IconChevronDown` | |
+| `chevronRight` | `IconChevronRight` | |
+| `alert` | `IconWarning` | vira glifo preenchido com furo em `var(--surface-200)`, igual ao original do MSDS |
+| `filter` | `IconFilter` | vira glifo preenchido |
+| `ruler` | `IconRuler` | |
+| `leaf` | `IconLeaf` | |
+| `battery` | `IconBattery` | vira glifo preenchido, com o indicador de carga em `var(--surface-200)` |
+| `layers` | `IconLayers` | |
+| `star`/`starOutline` | `IconStar` | os dois `case`s do MSDS têm o mesmo `d`; a variante preenchida/contorno já era resolvida pela prop `filled` existente, então só o `d` mudou |
+
+**Ícones sem par, deixados intocados, com o motivo**: `IconInfo`, `IconDanger`,
+`IconSun`, `IconMoon`, `IconMonitor`, `IconExternal`, `IconArrowRight`,
+`IconArrowLeft`, `IconTrash`, `IconDownload`, `IconTable`, `IconBook`,
+`IconBlend`, `IconPanelLeft`, `IconLogout`, `IconQualityMeasured`,
+`IconQualityImported`, `IconQualityEstimated`, `IconQualityMissing` — nenhum
+tem glifo MSDS que responda ao mesmo conceito (o MSDS não tem "informação",
+"perigo", "sol/lua/monitor", "externo", "seta", "lixeira", "baixar", "tabela",
+"livro", "mistura", "sair" nem as quatro marcas de qualidade de dado, que são
+um vocabulário próprio deste app sem equivalente em nenhum sistema de design
+genérico). Do lado do MSDS, `chevrons` (duplo chevron), `minus`, `tag`,
+`gear`, `flask`, `bookmark`, `list`, `dots`, `chevronLeft`, `calendar`,
+`clock` e `panelRight` também ficaram sem par — nenhum tem um export
+correspondente hoje em `icons.tsx` (criar um export novo estava fora do
+escopo: a tarefa é substituir path data de ícone existente, não introduzir
+glifo novo), e `panelRight`/`chevronLeft` especificamente têm direção oposta
+ao que `IconPanelLeft` precisaria (o controle de colapso marca o **lado
+esquerdo** do painel).
+
+**`components/ui/*`, `AppSidebar.tsx` e a pergunta sobre D-48 continuam para
+a próxima rodada**, pela mesma disciplina de escopo que D-73/D-74 já
+registraram: a tarefa completa (~20 arquivos de componente, mais o
+`AppSidebar` sobre `NavRail`/`NavDrawer`, mais atualizar `ui.test.tsx` para
+o DOM/ARIA que cada componente do MSDS realmente produz, mais Playwright
+completo) excede o que esta rodada conseguiu verificar com a mesma disciplina
+de "portão verde a cada passo" que as rodadas anteriores mantiveram — e a
+regra explícita da tarefa (§4, "prioridade/regra de parada") pede exatamente
+isto: entregar o subconjunto que fica totalmente verificado e parar, em vez
+de arriscar um diff grande e quebrado. **`@material/web` continua em uso**
+em todo `components/ui/*` — nenhum arquivo desse diretório foi tocado —, então
+a exceção de D-48 continua válida como estava; não há nada a atualizar ali
+nesta rodada.
+
+**Verificação.** `npm run typecheck` (limpo), `npm run lint` (0 erros — os
+mesmos avisos pré-existentes de `MaterialForm.tsx` e de `lib/msds/msds.tsx`
+de D-74, nada novo), `npm run test` (388 testes, todos verdes — nenhum
+tocado, porque a troca de path data não muda export, prop nem estrutura DOM
+fora do conteúdo interno do `<svg>`) e `npm run build` (23 rotas, sucesso).
+Nenhum teste precisou de atualização porque `ui.test.tsx` não asserta contra
+`d` de `<path>`. E2E do Playwright não foi tentado nesta rodada — a mudança
+não toca nenhum seletor, comportamento ou rota que os specs exercitam, e o
+mesmo bloqueio de proxy das duas rodadas anteriores (instalação do Chromium
+gerenciado pelo Playwright) continua de pé; o escopo entregue não justificou
+reabrir a investigação do Chromium de sistema (`/opt/pw-browsers/`) que D-74
+já documentou como contorno disponível para quando `components/ui/*` de fato
+mudar de comportamento visual ou de DOM.
