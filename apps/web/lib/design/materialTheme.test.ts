@@ -150,6 +150,46 @@ const PER_SECTION: Record<
     light: { accent: "#1d6835", primaryContainer: "#429c5a" },
     dark: { accent: "#89d298", primaryContainer: "#03642b" },
   },
+  // D-73: the 9 new routes. Generated (not hand-picked) by
+  // scripts/design/generate-route-palette.py — see that script and the
+  // header note in app/globals.css for why these aren't ported from the
+  // MSDS Artifact's tokens.json.
+  dimensionar: {
+    light: { accent: "#686800", primaryContainer: "#8c8d12" },
+    dark: { accent: "#c2c46e", primaryContainer: "#585800" },
+  },
+  custo: {
+    light: { accent: "#825b00", primaryContainer: "#af7c00" },
+    dark: { accent: "#e3b667", primaryContainer: "#6f4d00" },
+  },
+  eco: {
+    light: { accent: "#3e7232", primaryContainer: "#599a4a" },
+    dark: { accent: "#98cf8b", primaryContainer: "#29631b" },
+  },
+  baterias: {
+    light: { accent: "#4e6f24", primaryContainer: "#6c9639" },
+    dark: { accent: "#a6cc80", primaryContainer: "#3d6000" },
+  },
+  processos: {
+    light: { accent: "#2a669f", primaryContainer: "#418bd2" },
+    dark: { accent: "#89c3ff", primaryContainer: "#0a5694" },
+  },
+  sintetizar: {
+    light: { accent: "#4b5ea2", primaryContainer: "#6881d6" },
+    dark: { accent: "#a4bbff", primaryContainer: "#3b4d96" },
+  },
+  "meus-registros": {
+    light: { accent: "#7e4d8a", primaryContainer: "#a96bb8" },
+    dark: { accent: "#dda7ea", primaryContainer: "#713a7d" },
+  },
+  classes: {
+    light: { accent: "#864a81", primaryContainer: "#b267ac" },
+    dark: { accent: "#e6a4e0", primaryContainer: "#783773" },
+  },
+  propriedades: {
+    light: { accent: "#984649", primaryContainer: "#ca6365" },
+    dark: { accent: "#fda1a0", primaryContainer: "#8b3237" },
+  },
 };
 
 /** `--accent-fg` is white in light, dark ink in dark — same for all seven sections. */
