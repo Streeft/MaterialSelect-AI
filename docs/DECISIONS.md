@@ -3977,3 +3977,136 @@ cobrindo botão/campo/diálogo/abas/checkbox/radio/select nesta rodada, porque
 `components/ui/*` não foi tocado. D-48 só fica parcial ou totalmente
 redundante quando a Fase de reescrita de componentes (acima) acontecer, e
 esse ponto deve ser revisitado então, não aqui.
+
+## D-74 — MSDS: a biblioteca entra em `lib/msds/`, com dois bugs de origem corrigidos; `components/ui/*` e `AppSidebar` ficam para a próxima rodada
+
+**O que esta sessão entregou, do que D-73 deixou de fora.** `apps/web/lib/msds/`
+existe agora: `msds.tsx` (o `bundle.js` inteiro — ~2600 linhas, Button até
+`ContainerTransformDemo` — convertido de IIFE que lia `window.React` para
+módulo ES com `import * as React from "react"`), `icons.tsx` (a função
+`Icon(name)`, ~32 glifos redesenhados na Rodada 6, extraída para arquivo
+próprio como `msdsIcon`), `msds.css` (o `bundle.css` de ~1400 linhas, portado
+quase byte a byte) e `index.ts` (o barril — `export * from "./msds"` +
+`msdsIcon`). `msds.css` é importado uma vez, de `app/layout.tsx`, depois de
+`globals.css`.
+
+**O que ainda não foi tocado, deliberadamente.** `components/ui/*` (as ~20
+primitivas que hoje envolvem `@material/web`), `components/layout/
+AppSidebar.tsx` sobre `NavRail`/`NavDrawer`, a substituição de path data em
+`components/ui/icons.tsx`, e `lib/motion/useSpring.ts` como arquivo próprio
+(o `useSpring`/`SPRING` do MSDS já existe, mas dentro de `lib/msds/msds.tsx`,
+não extraído). A biblioteca portada hoje **não é importada por nenhuma tela
+do produto** — é uma dependência nova, testada isoladamente (typecheck, lint,
+test, build, spot-check visual em `/` claro e escuro), mas inerte. A razão é
+a mesma do D-73: reescrever 44 rotas × 20 arquivos de componente contra o
+portão de CI inteiro, numa única rodada já gasta portando e corrigindo a
+biblioteca em si, arriscava exatamente o que este arquivo probe contra.
+Fica para uma rodada seguinte, um item por vez, com a suíte verde entre cada
+um — a mesma disciplina de B1–B10.
+
+**Por que `msds.tsx`/`icons.tsx` carregam `@ts-nocheck`.** São porte mecânico
+de módulo, não reescrita: `window.React` → `import`, `function(props)` sem
+tipo em ~80 componentes/hooks. Anotar 2600 linhas de JS alheio com tipos
+verdadeiros não era um bom uso de uma rodada de acompanhamento limitada, e
+`@ts-nocheck` é honesto sobre isso em vez de forçar `any` disperso que só
+esconderia o mesmo fato. `index.ts`, o único arquivo que o resto da aplicação
+deve importar, não carrega a marca.
+
+**A única mudança funcional real: SSR.** O bundle nasceu numa Artifact, que
+nunca roda no servidor; o Next 16 renderiza este módulo no servidor primeiro.
+Auditoria de todo acesso a `window`/`document`/`matchMedia` no arquivo achou
+um ponto de risco real — `prefersReducedMotion()`, chamado tanto de
+manipuladores de evento quanto de corpos de `useEffect` (os dois só rodam no
+cliente, portanto já seguros) quanto potencialmente de render direto — e
+ganhou `typeof window === "undefined"` na entrada. Todo outro acesso a
+`window` no arquivo já vivia dentro de um `useEffect` ou de um manipulador de
+evento; nenhum guard adicional foi necessário além desse.
+
+**Dois bugs reais no material de origem, achados e corrigidos, não só
+copiados.** (1) `bundle.css` tinha um comentário CSS que se fechava sozinho:
+o trecho documentando `outline/surface*/ink*/edge*/cat-*` continha as
+sequências `*/` e `/*` adjacentes (um asterisco de "qualquer sufixo" seguido
+da barra que separa os nomes), o que fecha um comentário `/* */` no primeiro
+`*/` que aparece — a regra é literal em CSS, sem aninhamento. O comentário
+real terminava três linhas depois; tudo entre o fechamento acidental e o
+fechamento pretendido virou CSS de verdade aos olhos de qualquer parser
+real, não só do minificador do Next. Isto **não é uma peculiaridade do
+`cssnano-simple`** que só apareceu em produção — é um bug que já existia no
+arquivo entregue e que teria quebrado a mesma regra em qualquer navegador;
+o build de produção só foi onde ele *apareceu* primeiro, porque o parser de
+desenvolvimento (`postcss` completo, via `next dev`) é mais tolerante e
+segue até o `*/` certo mesmo depois de um falso positivo, enquanto o parser
+simplificado do build de produção não. Corrigido inserindo um espaço nas
+três ocorrências (`surface*/ink*` → `surface* /ink*`, etc.), preservando o
+texto. (2) Nenhum outro comentário do arquivo tinha o mesmo padrão — conferido
+programaticamente (contagem de `/*` vs `*/`, depois busca por
+`[caractere não-espaço]*/[caractere não-espaço]` no arquivo inteiro).
+
+**Reconciliação de tokens CSS — o ponto que a tarefa avisou para checar antes
+de duplicar.** `msds.css` usa `var(--nome)` como **valor CSS direto**
+(`color: var(--ink)`, `background: var(--surface-100)`). Todo token de cor
+existente em `globals.css` é uma **tripla "R G B" crua** (`--ink: 23 26 33`),
+consumida só via `rgb(var(--ink) / <alpha>)` pelo Tailwind — os dois formatos
+não são intercambiáveis sob o mesmo nome. A resolução, em duas partes:
+
+1. Todo nome de token que já existe no app com o mesmo significado (`accent`,
+   `accent-fg`, `brand-50/100/200/700/800`, `danger*`, `edge*`, `info*`,
+   `ink*`, `quality-*`, `success*`, `warning*`) foi **reusado, nunca
+   duplicado**: em `lib/msds/msds.css`, todo `var(--x)` desses nomes foi
+   reescrito para `rgb(var(--x))` (ou `rgb(var(--x) / alpha)` quando já havia
+   um alfa), mecanicamente, preservando qualquer *fallback* existente
+   (`var(--row-accent, var(--accent))` virou
+   `var(--row-accent, rgb(var(--accent)))`).
+2. Todo nome que o MSDS espera e o app não tinha (`--surface-100/200/300`,
+   `--primary`/`--secondary`/`--tertiary` + `-container` + `on-*`,
+   `--radius-card/control/panel/seat/xl/full`, `--space-2..5`,
+   `--shadow-card/float/glow/overlay/raised`, `--row-accent`) ganhou um bloco
+   de ponte em `app/globals.css`, dentro do `:root` de base — não uma cor
+   nova: `--surface-100/200/300` apontam para `rgb(var(--surface))` /
+   `--surface-raised` / `--surface-sunken` já existentes; `--primary` até
+   `--on-tertiary` apontam para `--md-sys-color-primary` etc., o esquema M3
+   por seção já medido por contraste em D-49/D-73 (é literalmente o mesmo
+   papel de cor que o `@material/web` já usa, só por outro nome); as duas
+   exceções sem contraparte exata (`--tertiary-container`,
+   `--on-tertiary-container`, que `--md-sys-color-*` nunca precisou definir)
+   reusam `--brand-100`/`--ink` em vez de introduzir um hexadecimal novo e
+   não medido; `--radius-*` e `--space-*` espelham a escala já existente em
+   `tailwind.config.ts` (`borderRadius`, `spacing` padrão do Tailwind) em vez
+   de abrir uma segunda escala; `--shadow-*` copia as strings de `boxShadow`
+   já existentes. **Nenhuma cor nova, não validada por contraste, foi
+   introduzida** — a regra permanente deste arquivo continua de pé. Como os
+   tokens de ponte são `var()`/`rgb(var())` sobre os originais (nunca uma
+   cópia estática do valor), eles herdam automaticamente qualquer override
+   de tema (`[data-theme="dark"]`) ou de seção (`[data-section="…"]") sem
+   precisar de um bloco de ponte por seção.
+
+`app/layout.tsx` importa `../lib/msds/msds.css` logo depois de `./globals.css`,
+para que o bloco de ponte já esteja na cascata antes de qualquer regra
+`.msds-*` o ler.
+
+**Verificação.** `npm run typecheck`, `npm run lint` (0 erros — os avisos
+pré-existentes de `MaterialForm.tsx` e os novos avisos de
+`react-hooks/exhaustive-deps` dentro de `msds.tsx`, esperados num porte
+mecânico de hooks que a regra não foi desenhada para ler, não bloqueiam),
+`npm run test` (388 testes, nenhum tocado — nada em `components/ui/*` ou
+`app/**` mudou de comportamento) e `npm run build` (valida também que o alias
+do Plotly de D-51 continua resolvendo) passam. `npm run start` + Chromium
+(`/opt/pw-browsers/chromium`, via `playwright-core`) confirmou `/` renderiza
+sem `pageerror` em tema claro e escuro, com `background-color` do `<body>`
+diferente entre os dois — a cascata de tokens de seção/tema continua viva
+depois da importação do CSS novo. Playwright e2e (`apps/web/e2e/`) não foi
+tentado nesta rodada por já ter budget consumido pela investigação acima;
+fica na mesma situação que D-73 registrou (proxy bloqueava a instalação do
+Chromium do Playwright em si — o binário usado no spot-check é um Chromium
+de sistema achado em `/opt/pw-browsers/`, não o gerenciado pelo Playwright).
+
+**O que isto significa para D-48 e para a próxima rodada.** Ainda nada — como
+em D-73, `@material/web` continua cobrindo as primitivas porque
+`components/ui/*` não foi tocado. A próxima rodada é: reescrever cada arquivo
+de `components/ui/*` para delegar a `lib/msds`, mantendo assinatura de export
+e prop; substituir o path data em `components/ui/icons.tsx` pelos ~16 glifos
+que têm equivalente direto no `msdsIcon` (home, map/compare, catalog/grid,
+filter, layers, ruler, leaf, battery, check, close, menu, search, plus,
+chevronDown, dashboard→gauge); reconstruir `AppSidebar.tsx` sobre
+`NavRail`/`NavDrawer` preservando `--rail-accent` e o colapso existente; e só
+então revisitar se D-48 fica redundante.
