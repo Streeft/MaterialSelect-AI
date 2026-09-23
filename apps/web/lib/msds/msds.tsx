@@ -1,4 +1,17 @@
 // @ts-nocheck
+/* eslint-disable react-hooks/refs, react-hooks/immutability -- D-76: the
+   duplicate-declaration fix below let ESLint's React Compiler rules fully
+   analyze this vendored, straight-ported bundle for the first time (they
+   previously aborted silently on the parse-level duplicate identifier, the
+   same reason `tsc` stayed quiet — see the note above the barrel re-export
+   at the bottom of this file). The 34 errors that surfaced are all inside
+   demo-only components (`ContainerTransformDemo`, `ScreenTransitionDemo`,
+   the Dialog/BottomSheet/Popover/Menu/SideSheet/DatePicker family's own
+   internal ref usage) that read a ref's `.current` during render — patterns
+   the source Artifact bundle already used before this port and that this
+   task's scope is a mechanical module-wiring port of, not a behavioral
+   rewrite (D-74). Disabled here, at the same file granularity `@ts-nocheck`
+   already uses, rather than rewritten line by line. */
 "use client";
 /**
  * MSDS component/hook library, ported verbatim from the Artifact-built
@@ -2589,8 +2602,25 @@ const useEffect = React.useEffect;
 // ---------------------------------------------------------------------
 // Barrel re-exports, from the same api object the source bundle used to
 // assign onto `window.MSDS`.
+//
+// D-76: this was `export const { Button, IconButton, ... } = api;` — a
+// destructuring declaration that tries to bind a *new* `const Button` (etc.)
+// in the same top-level module scope that already has `function Button(props)
+// {...}` (and so on for every other name below). Two top-level declarations
+// of the same name in one scope is a SyntaxError in real ECMAScript modules,
+// not merely a TypeScript complaint this file's `@ts-nocheck` could paper
+// over — `tsc --noEmit` stayed quiet only because `@ts-nocheck` also
+// suppresses TS's own duplicate-identifier diagnostic for this file, but
+// Vitest/vite's esbuild parses it for real and refused to build the module
+// the first time anything actually imported from `@/lib/msds` (which nothing
+// did before this pass — `icons.tsx` doesn't import this file, so the defect
+// was latent since D-74). Every name below already has a same-named
+// top-level binding (that's how `var api = { Button: Button, ... }` above it
+// could reference them), so a plain re-export list — which marks existing
+// bindings as exported instead of declaring new ones — is the fix, with the
+// same names and the same values.
 // ---------------------------------------------------------------------
-export const {
+export {
   Button, IconButton, ButtonGroup, Chip, Badge, DataQualityBadge, NotificationBadge,
   Card, CardHeader, CardBody, CardFooter, NavRail, StatTile, BarChart, ScatterMap,
   RadarChart, BoxPlot, Heatmap, ParallelCoords, Input, NumberInput, Textarea, Select,
@@ -2601,5 +2631,5 @@ export const {
   NavDrawer, BottomNavBar, useWindowClass, SPRING, useSpring, useScreenTransition,
   CircularProgress, LoadingIndicator, SideSheet, SplitButton, DatePicker, TimePicker,
   Carousel, ScreenTransitionDemo, useContainerTransform, ContainerTransformDemo,
-} = api;
+};
 export { api as msdsApi };

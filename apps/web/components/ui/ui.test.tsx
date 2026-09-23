@@ -64,6 +64,13 @@ describe("cn", () => {
 });
 
 describe("Button", () => {
+  // D-76: `Button` now renders MSDS's `Button` directly — a plain `<button>`,
+  // not a `@material/web` custom element with a shadow root — so these
+  // assertions moved from `findByShadowRole`/the shadow host to a plain
+  // `getByRole` query against the real DOM button, and from
+  // `data-aria-busy` (the shadow aria-delegation mixin's rewrite of
+  // `aria-busy`) back to the real `aria-busy` attribute MSDS's `Button`
+  // writes directly on the element.
   it("blocks the click while loading and says so", async () => {
     const onClick = vi.fn();
     render(
@@ -71,25 +78,17 @@ describe("Button", () => {
         Executar
       </Button>,
     );
-    const button = await screen.findByShadowRole("button", { name: "Executar" });
-    // getByShadowRole resolves to the shadow-internal <button>; the host
-    // custom element is where @material/web's aria-delegation mixin and our
-    // own `disabled`/`type` props actually land — see the Dialog test's note.
-    const host = (button.getRootNode() as ShadowRoot).host as HTMLElement;
-    expect(host).toHaveAttribute("disabled");
-    // @material/web's aria-delegation mixin moves aria-* off the host onto
-    // data-aria-* (then re-applies it inside the shadow root) to avoid
-    // duplicate announcements — see vitest.config.ts's resolve.conditions note.
-    expect(host).toHaveAttribute("data-aria-busy", "true");
+    const button = screen.getByRole("button", { name: "Executar" });
+    expect(button).toHaveAttribute("disabled");
+    expect(button).toHaveAttribute("aria-busy", "true");
     await userEvent.click(button);
     expect(onClick).not.toHaveBeenCalled();
   });
 
   it("defaults to type=button so it cannot submit a form by accident", async () => {
     render(<Button>Adicionar</Button>);
-    const button = await screen.findByShadowRole("button", { name: "Adicionar" });
-    const host = (button.getRootNode() as ShadowRoot).host as HTMLElement;
-    expect(host).toHaveProperty("type", "button");
+    const button = screen.getByRole("button", { name: "Adicionar" });
+    expect(button).toHaveAttribute("type", "button");
   });
 });
 

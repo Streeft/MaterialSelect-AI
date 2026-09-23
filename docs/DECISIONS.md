@@ -4199,3 +4199,189 @@ gerenciado pelo Playwright) continua de pé; o escopo entregue não justificou
 reabrir a investigação do Chromium de sistema (`/opt/pw-browsers/`) que D-74
 já documentou como contorno disponível para quando `components/ui/*` de fato
 mudar de comportamento visual ou de DOM.
+
+## D-76 — MSDS: `Button`/`ButtonLink` passam a renderizar MSDS por dentro; um bug de nascença em `msds.tsx` é corrigido; o resto de `components/ui/*` fica documentado, não convertido
+
+**Escopo entregue.** De `components/ui/*`, só `Button.tsx` foi convertido —
+e parcialmente: `Button` e `ButtonLink` agora renderizam a `Button` do MSDS
+(ou suas classes CSS, no caso de `ButtonLink`); `IconButton`, `ButtonGroup`/
+`ButtonGroupItem` e `ToggleChip`, no mesmo arquivo, continuam sobre
+`@material/web`, cada um com uma incompatibilidade de API concreta
+registrada no próprio arquivo (resumo abaixo). Nenhum outro arquivo de
+`components/ui/*` foi tocado. A conversão de `Card.tsx`, `Badge.tsx`,
+`DataQualityBadge.tsx`, `Dialog.tsx`, `Tabs.tsx`, `Field.tsx`,
+`Breadcrumb.tsx`, `Stepper.tsx`, `Popover.tsx`, `Feedback.tsx`, `Bar.tsx`,
+`Alert.tsx` e `Table.tsx` **não foi tentada nesta rodada** — a mesma
+disciplina de "portão verde a cada passo, parar em vez de arriscar um diff
+grande" que D-75 já registrou, mais o tempo que o bug de nascença abaixo
+consumiu antes de qualquer componente de aplicação poder sequer importar de
+`@/lib/msds`.
+
+**Um bug real em `lib/msds/msds.tsx`, encontrado ao tentar usá-lo pela
+primeira vez.** O barril de re-exports no fim do arquivo era
+`export const { Button, IconButton, ... } = api;` — uma desestruturação que
+tenta declarar um *novo* `const Button` (e assim por diante, para todo nome
+da lista) no mesmo escopo de módulo que já tem `function Button(props)
+{...}`. Duas declarações do mesmo nome no mesmo escopo top-level é
+`SyntaxError` em ECMAScript de verdade, não só uma reclamação do
+TypeScript que o `@ts-nocheck` do arquivo pudesse encobrir — e foi
+exatamente isso que aconteceu: `tsc --noEmit` ficou quieto porque
+`@ts-nocheck` também desliga o diagnóstico de identificador duplicado do
+TypeScript para este arquivo, mas o esbuild do Vitest/Vite faz o parse de
+verdade e recusou construir o módulo na primeira vez que algo importou de
+`@/lib/msds` — o que nunca tinha acontecido antes: `icons.tsx` (usado desde
+D-75) não importa `msds.tsx`, e nenhum componente de aplicação importava a
+barril até este `Button.tsx`. O defeito era latente desde D-74. Corrigido
+trocando a desestruturação por uma lista simples de reexport
+(`export { Button, IconButton, ... };`), que marca as ligações **já
+existentes** (as mesmas `function Button`, etc.) como exportadas em vez de
+tentar declarar novas — mesmo nome, mesmo valor, sem redeclaração.
+
+Corrigir esse bug teve um efeito colateral que também precisou de correção:
+uma vez que o arquivo passou a fazer parse completo, as regras do ESLint
+React Compiler (`react-hooks/refs`, `react-hooks/immutability`) — que antes
+abortavam a análise em silêncio no mesmo erro de sintaxe — passaram a
+enxergar o resto do arquivo pela primeira vez, e encontraram 34 violações
+reais dentro dos componentes de demonstração do próprio bundle vendorizado
+(`ContainerTransformDemo`, `ScreenTransitionDemo`, e o uso interno de refs
+da família Dialog/BottomSheet/Popover/Menu/SideSheet/DatePicker) — padrões
+que já existiam no Artifact de origem e que reescrever linha a linha
+contradiria o propósito de D-74 (porte mecânico de wiring, não reescrita de
+comportamento). Silenciadas com um `eslint-disable` no topo do arquivo, na
+mesma granularidade que `@ts-nocheck` já usa para o arquivo inteiro —
+`react-hooks/exhaustive-deps` continua como aviso (não erro), sem mudança:
+já existia antes desta sessão e o portão de lint nunca dependeu dele.
+
+**`Button`/`ButtonLink` — o que foi traduzido.** O vocabulário de variante/
+tamanho do MSDS (`msds-btn-{primary,secondary,ghost,danger,link}` ×
+`{sm,md}`, em `lib/msds/msds.css`) já bate um-para-um com
+`ButtonVariant`/`ButtonSize` deste app, inclusive o sublinhado da variante
+`link`, que o MSDS já embute em `.msds-btn-link` — nenhuma classe extra
+precisou ser recriada, ao contrário do mapeamento anterior para
+`@material/web`. Três traduções reais:
+- **`icon`**: a `Button` do MSDS não tem prop `icon` — só desenha os dois
+  glifos que já conhece (spinner de `loading`, check de `state="success"`);
+  um prop `icon` chegaria ao `rest` spread dela e pousaria como atributo
+  inválido no `<button>` real. `icon` nunca é passado à `Button` do MSDS;
+  vira um `<span>` decorativo entre os filhos, para não competir com o
+  `text-overflow: ellipsis` de `.msds-btn-label`.
+- **`ref`**: a `Button` do MSDS é função simples, não `forwardRef` — nunca
+  recebe `ref` de verdade em React 18. Nenhum call site deste app lê ref de
+  `Button` (confirmado por grep antes da reescrita); o parâmetro continua
+  aceito por compatibilidade de tipo e intencionalmente não repassado.
+- **`ButtonLink`**: a `Button` do MSDS não tem prop `as`/polimórfica — é
+  sempre um `<button>` (`h("button", ...)`, checado em `msds.tsx` antes
+  desta decisão). Renderizar um link através dela produziria um botão
+  envolvendo um link ou um link se passando por botão — a regressão de
+  acessibilidade que a tarefa nomeou explicitamente. Em vez disso,
+  `ButtonLink` renderiza um `<a>`/`Link` de verdade, estilizado com as
+  classes CSS `.msds-btn`/`.msds-btn-{variant}`/`.msds-btn-{size}` do MSDS
+  em vez de chamar a função componente — mesma linguagem visual, semântica
+  de link real. O que se perde contra `<MsdsButton>`: o ripple de ponteiro e
+  o morph de forma ao pressionar, dois hooks internos
+  (`useRipple`/`useShapeMorph`) que o MSDS não exporta do seu barril — um
+  floreio cosmético, não uma diferença de correção ou acessibilidade.
+
+**O que ficou em `@material/web`, e por quê, cada um com o motivo escrito no
+próprio arquivo:**
+- **`IconButton`**: o `IconButton` do MSDS recebe `iconOn`/`iconOff` como
+  **nomes** de um vocabulário fechado (`msdsIcon(name)`, um `switch` fixo em
+  `lib/msds/icons.tsx`) e sempre desenha um desses — não tem encaixe para um
+  `ReactNode` arbitrário. O `icon` deste app é sempre um componente de ícone
+  já importado de `components/ui/icons.tsx`; os ~15 call sites passam cerca
+  de uma dúzia de ícones diferentes, nenhum nomeável no `switch` do MSDS sem
+  estender aquele arquivo vendorizado (fora do escopo de uma tradução em
+  wrapper) ou construir uma tabela de nomes — o que não é tradução de API, é
+  um segundo conjunto de ícones.
+- **`ButtonGroup`/`ButtonGroupItem`**: `ButtonGroup` deste app é um
+  componente composto (contêiner + filhos `ButtonGroupItem`, cada um com seu
+  próprio `selected`/`onClick`/`label`/`icon`); o `ButtonGroup` do MSDS
+  recebe um array plano `options: {value, label}[]` mais um par
+  `value`/`onChange`, sem `icon` por opção nem atributo ARIA extra.
+  `ThemeToggle.tsx` (fora do escopo desta rodada, e ele mesmo deixado
+  intocado pela instrução da tarefa) depende exatamente do que a forma do
+  MSDS descarta: seu modo `compact` desenha um botão segmentado só-ícone
+  (`label=""` mais um `aria-label` de verdade) — reduzir ao array do MSDS
+  perderia o ícone ou deixaria um botão sem nome acessível.
+- **`ToggleChip`**: o `Chip` do MSDS não tem tratamento de `disabled`
+  nenhum — checado em `msds.tsx` antes desta decisão, seu `onClick` dispara
+  independente de qualquer prop `disabled`. `/app/comparar` usa
+  `disabled={!chosen && materialsFull}` para impedir de verdade que o
+  leitor selecione além do teto de comparação, não só para acinzentar;
+  ligar esse chip ao `Chip` do MSDS descartaria esse limite em silêncio.
+
+**`DataQualityBadge.tsx` — considerado e recusado, pela regra D-24.** O
+`DataQualityBadge` do MSDS já usa exatamente os quatro tokens de cor deste
+projeto (`--quality-{medido,importado,estimado,ausente}`, incluindo a borda
+tracejada de "ausente") e sempre emite o rótulo escrito — a âncora que a
+tarefa pediu para verificar está de fato presente. Mas o glifo do MSDS é um
+ponto colorido **da mesma forma** para os quatro estados (um círculo cheio,
+exceto o tracejado de "ausente"); a implementação atual deste app usa quatro
+ícones com **formas diferentes** (`IconQualityMeasured` = check,
+`IconQualityImported` = seta para dentro, `IconQualityEstimated` = onda,
+`IconQualityMissing` = círculo tracejado com corte), justamente para que a
+distinção sobreviva sem cor — um leitor com daltonismo ou uma impressão
+monocromática ainda distingue por forma. Trocar pelo glifo do MSDS
+regrediria esse segundo canal, o que o padrão de parada da tarefa proíbe
+explicitamente ("se uma conversão comprometeria D-24, não faça essa
+conversão"). Deixado intocado.
+
+**`Card.tsx`, `Badge.tsx` — não tentados, e por quê.** Nenhum dos dois usa
+`@material/web` hoje — já são Tailwind bespoke, então não há exceção de
+D-48 a fechar ali. `Card`/`CardHeader`/`Section` deste app carregam props
+sem equivalente no MSDS (`as` polimórfico, `riseIndex` com a animação
+escalonada, `headingLevel` para o esboço do documento, `actions` no
+cabeçalho) que uma conversão perderia ou teria que reimplementar por fora —
+mais superfície do que uma tradução em wrapper justifica numa rodada já
+consumida pelo bug de `msds.tsx`. O `Badge` do MSDS, por sua vez, ignora
+qualquer prop além de `tone`/`children` (sem `className`, sem `title`, sem
+slot de ícone) — `DemoDataBadge.tsx` usa `title`, `AppSidebar.tsx` (fora de
+escopo) usa `className`; oferecer os três exigiria um `<span>` externo só
+para carregá-los, uma casca sem função visual. Nenhum dos dois foi
+convertido nesta rodada; ficam para a próxima, com a mesma disciplina.
+
+**Verificação, por passo.**
+1. Depois de reescrever só `Button.tsx` (antes do bug de `msds.tsx` ser
+   corrigido): `npm run typecheck` limpo; `npm run test -- components/ui/
+   ui.test.tsx` falhou com o `SyntaxError` de identificador duplicado
+   descrito acima — o que expôs o bug.
+2. Corrigido o barril de `msds.tsx`: `npm run test -- components/ui/
+   ui.test.tsx` — 21 testes verdes (dois reescritos: a suíte de `Button`
+   trocou `findByShadowRole`/o host do shadow root por `getByRole` direto
+   no `<button>` real, e `data-aria-busy` — a reescrita do mixin de
+   aria-delegation do `@material/web` — pelo `aria-busy` real que a `Button`
+   do MSDS escreve no elemento).
+3. `npm run lint`: 34 erros novos, todos dentro de `lib/msds/msds.tsx`
+   (`react-hooks/refs`/`react-hooks/immutability`, ver acima) — corrigidos
+   com o `eslint-disable` de arquivo; depois, 0 erros, 21 avisos (os mesmos
+   pré-existentes de D-74/D-75, nenhum novo).
+4. `npm run test` (suíte completa): 388 testes, 1 falha —
+   `components/selection/StageList.test.tsx` › "refuses to remove the last
+   remaining stage", que consultava o texto do botão "Remover" por
+   `getByShadowText` e chamava `toBeDisabled()` no `<span
+   class="msds-btn-label">` que o continha — um `<span>` nunca é
+   "disabled" para o `jest-dom`, disabled ou não seu ancestral `<button>`.
+   Reescrito para `getByRole("button", { name: ... })`, que resolve o
+   `<button>` real. Depois: 388 testes, 0 falhas.
+5. `npm run typecheck`, `npm run lint`, `npm run test`, `npm run build`
+   (rodados de novo, todos juntos, como confirmação final): limpo, 0
+   erros/0 falhas, 23 rotas construídas com sucesso.
+6. Verificação ao vivo: `npm run build` + `npm run start`, Chromium de
+   sistema (`/opt/pw-browsers/chromium` via `playwright-core`, o mesmo
+   contorno que D-74 documentou) contra `/` (pública, dois `ButtonLink` no
+   herói mais um no cabeçalho, um deles com ícone) e `/app/estilo` (atrás do
+   portão de login — sem API rodando nesta sessão, caiu no `ErrorState` da
+   tela, cujo botão "Tentar novamente" é o `Button` convertido). Claro e
+   legível nos dois temas (`prefers-color-scheme`), pílula com o raio de
+   `.msds-btn`, contraste de texto correto, ícone de seta visível no CTA da
+   home; nenhum erro de console além de `ERR_CONNECTION_REFUSED`/404 da API
+   ausente, esperado sem backend.
+
+**`@material/web` continua importado** em `Button.tsx` (`MdIconButton`,
+`MdFilterChip`, `MdOutlinedSegmentedButton`, `MdOutlinedSegmentedButtonSet`,
+para `IconButton`/`ButtonGroup`/`ButtonGroupItem`/`ToggleChip`) e em todo o
+resto de `components/ui/*` — nenhum outro arquivo foi tocado. A exceção de
+D-48 continua cobrindo exatamente isso.
+
+Nada foi commitado nem enviado por esta sessão (o repositório orquestrador
+revisa o diff); `apps/api` e `AppSidebar.tsx` não foram tocados.
