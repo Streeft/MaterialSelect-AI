@@ -724,6 +724,15 @@ do MSDS** ([D-75](docs/DECISIONS.md)), export por export, sem mudar nome nem
 assinatura. `components/ui/*` e `AppSidebar.tsx` continuam sem tocar — ver
 D-75 para a tabela de mapeamento e o porquê do escopo.
 
+**`Button`/`ButtonLink` (em `components/ui/Button.tsx`) passaram a renderizar
+o MSDS por dentro** ([D-76](docs/DECISIONS.md)), que também corrigiu um bug
+de nascença em `lib/msds/msds.tsx` (identificador duplicado no barril de
+re-exports — `SyntaxError` real, mascarado até então pelo `@ts-nocheck` do
+arquivo e por nada ter importado a barril antes). `IconButton`,
+`ButtonGroup`/`ButtonGroupItem` e `ToggleChip`, no mesmo arquivo, e todo o
+resto de `components/ui/*` continuam sobre `@material/web` — ver D-76 para a
+incompatibilidade de API específica de cada um.
+
 **S1 (upgrade de segurança) entregue:** `next` 14.2.35 → **16.3.4** e `postcss`
 → **8.5.28**, fechando 21 CVEs do Next e 4 do PostCSS. A 14.2.35 é a última da
 linha 14 — não havia patch dentro do major, então subir era a única saída. Deu
