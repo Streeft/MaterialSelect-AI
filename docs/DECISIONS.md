@@ -3902,3 +3902,78 @@ uniformidade sem um motivo que as outras não tivessem. Apagar
 `MaterialClass`/`Source`/`BatteryChemistry`/`TransportMode` junto — nenhum
 dos quatro é fictício por definição, e apagar taxonomia reutilizável
 obrigaria o catálogo oficial a recriá-la do zero.
+
+---
+
+## D-73 — MSDS (design system da Artifact): tokens de cor por rota entram, o resto fica para outra rodada
+
+**O pedido.** Uma sessão separada de 8 rodadas construiu, inteiramente dentro
+de uma Claude Artifact e sem nunca tocar este repositório, um design system
+próprio ("MSDS") — biblioteca de componentes, folha de ícones M3, paleta
+tonal por rota do NavRail e um hook de física de mola. O usuário pediu que
+esse trabalho fosse portado para `apps/web` de verdade, revogando D-23 ("sem
+biblioteca de componentes") especificamente para o MSDS, do mesmo jeito que
+D-48 já abriu uma exceção pontual para `@material/web`.
+
+**O que esta sessão entregou: só a extensão do mecanismo de cor por rota**
+(D-49) de 6 para as **16** rotas reais de `components/layout/AppSidebar.tsx`
+— os 9 blocos `[data-section="…"]` novos (`dimensionar`, `custo`, `eco`,
+`baterias`, `processos`, `sintetizar`, `meus-registros`, `classes`,
+`propriedades`) em `apps/web/app/globals.css`, mais `lib/design/sections.ts`
+atualizado com os 16 `SectionId`. Todo o resto do pedido — a biblioteca de
+componentes em si (`bundle.js`/`bundle.css`/`index.d.ts` do MSDS), a troca de
+ícones, a reescrita de `components/ui/*` e de `AppSidebar.tsx` sobre um
+`NavRail` do MSDS, e o hook `useSpring` — **não** foi feito nesta rodada;
+ver "o que fica de fora" abaixo.
+
+**Por que os valores de cor não vieram copiados do `tokens.json` do MSDS.**
+O plano original previa portar os 16 valores já validados por contraste da
+Rodada 8 do MSDS. Mas o gerador que produziu esses valores (CIELCh,
+aproximação de HCT/CAM16) não está no material entregue — só o *resultado*
+está, em `bundle.css`. Colar hexadecimais sem conseguir re-derivar ou
+reconferir o método que os produziu teria violado a regra permanente deste
+arquivo: toda cor nova em `globals.css` tem que rastrear a um valor validado,
+ou ser validada de novo por quem a escreve. A saída foi reimplementar, a
+partir dos próprios *stops* RGB já commitados (as 6 rotas originais de
+D-38/D-49), a receita que claramente as gerou — uma escada de luminosidade
+OKLCH fixa por degrau `--brand-*`, uma crominância-alvo cortada no gamute
+sRGB por matiz, e o tema escuro como a rampa clara lida ao contrário — como
+um script pequeno, `scripts/design/generate-route-palette.py`, e usá-lo para
+gerar as 9 rotas novas em ângulos de matiz inéditos. `scripts/design/
+verify-globals-contrast.py` reconfere as 16 rotas × 2 temas direto do
+`globals.css` real (não da saída do gerador) e falha a build se algum par
+cair abaixo de 4,5:1; hoje o pior caso é 5,69:1 (claro) / 9,22:1 (escuro).
+
+**Por que os ângulos de matiz não são os do `tokens.json`, nem escolhidos por
+igualmente espaçados em OKLCH.** Duas exigências vieram explícitas do
+usuário — Eco tem que ler como verde, Custo como laranja — e a Rodada 8 do
+MSDS não as garante (o hue dela pra Eco cai perto de amarelo-esverdeado depois
+de escurecido para contraste). Espaçar por ângulo OKLCH também não bastou: o
+ângulo OKLCH e o matiz HSL percebido não são a mesma escala, sobretudo na
+faixa amarelo-verde, e uma primeira tentativa colocou Custo colado em Painel
+e Eco colado em Importar apesar de "espaçados" em OKLCH. A escolha final
+mede o HSL de *saída* de cada ângulo candidato (a cor depois do corte de
+gamute que o contraste exige) e garante ≥15° de separação de toda rota
+existente — Eco e Custo primeiro pelo requisito semântico, as outras 7 depois
+para preencher os vãos.
+
+**O que fica de fora desta rodada, e por quê não foi tentado pela metade.**
+`apps/web/lib/msds/` (o `bundle.js` de ~152 KB e `bundle.css` de ~80 KB
+convertidos em módulo ES, com guarda de SSR), a reescrita de
+`components/ui/*` (14 arquivos) para delegar ao MSDS mantendo assinatura,
+`AppSidebar.tsx` sobre `MSDS.NavRail`/`NavDrawer`, a troca de ícones em
+`components/ui/icons.tsx`, e `lib/motion/useSpring.ts` exigem, cada um,
+verificação real contra o portão de CI (typecheck/lint/test/build/e2e) depois
+de tocar a superfície inteira que os importa — 44 rotas e 72+ arquivos de
+componente. Entregar isso pela metade, sem rodar a suíte inteira contra cada
+mudança, arriscava exatamente o que este arquivo probe contra: deixar
+`npm run build` ou `npm run typecheck` vermelho. Ficam como trabalho
+seguinte, um de cada vez, cada um terminando com a suíte verde antes do
+próximo começar — o mesmo padrão de "dirigido por subagentes, um item por
+vez" que B1–B10 e M5/M6 já usaram neste projeto.
+
+**O que isto significa para D-48.** Nada ainda — `@material/web` continua
+cobrindo botão/campo/diálogo/abas/checkbox/radio/select nesta rodada, porque
+`components/ui/*` não foi tocado. D-48 só fica parcial ou totalmente
+redundante quando a Fase de reescrita de componentes (acima) acontecer, e
+esse ponto deve ser revisitado então, não aqui.

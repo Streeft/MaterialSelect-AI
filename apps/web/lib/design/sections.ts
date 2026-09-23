@@ -15,9 +15,18 @@ export type SectionId =
   | "selecao"
   | "mapas"
   | "comparar"
+  | "dimensionar"
+  | "custo"
+  | "eco"
+  | "baterias"
   | "catalogo"
+  | "processos"
+  | "sintetizar"
+  | "meus-registros"
   | "painel"
-  | "importar";
+  | "importar"
+  | "classes"
+  | "propriedades";
 
 export interface SectionMeta {
   id: SectionId;
@@ -29,14 +38,30 @@ export interface SectionMeta {
   hue: number;
 }
 
+/**
+ * D-73 extended this from 6 routes to the 16 real ones in
+ * components/layout/AppSidebar.tsx (Início + the 15 nav items across its
+ * three groups). `admin/classes` and `admin/propriedades` get their own
+ * hues rather than sharing "painel"'s — they're a distinct area of the app
+ * (taxonomy administration), not a sub-page of the dashboard.
+ */
 export const SECTIONS = [
   { id: "inicio", label: "Início", route: "/", hue: 262 },
   { id: "selecao", label: "Seleção", route: "/app/selecao", hue: 300 },
   { id: "mapas", label: "Mapas", route: "/app/mapas", hue: 185 },
   { id: "comparar", label: "Comparar", route: "/app/comparar", hue: 350 },
+  { id: "dimensionar", label: "Dimensionar", route: "/app/dimensionar", hue: 110 },
+  { id: "custo", label: "Custo", route: "/app/custo", hue: 80 },
+  { id: "eco", label: "Eco", route: "/app/eco", hue: 140 },
+  { id: "baterias", label: "Baterias", route: "/app/baterias", hue: 130 },
   { id: "catalogo", label: "Catálogo", route: "/app/catalogo", hue: 225 },
+  { id: "processos", label: "Processos", route: "/app/processos", hue: 250 },
+  { id: "sintetizar", label: "Sintetizar", route: "/app/sintetizar", hue: 270 },
+  { id: "meus-registros", label: "Meus registros", route: "/app/meus-registros", hue: 320 },
   { id: "painel", label: "Painel", route: "/app/painel", hue: 40 },
   { id: "importar", label: "Importar", route: "/app/importar", hue: 150 },
+  { id: "classes", label: "Classes", route: "/app/admin/classes", hue: 330 },
+  { id: "propriedades", label: "Propriedades", route: "/app/admin/propriedades", hue: 20 },
 ] as const;
 
 /**

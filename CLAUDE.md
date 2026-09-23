@@ -698,10 +698,18 @@ dado de demonstração sem reabrir o D-71, como apagá-lo quando o catálogo
 oficial chegar, e o que qualquer agente — Antigravity incluído — precisa ler
 antes de escrever um seed novo neste repositório.
 
-1741 testes de backend (nenhum skip) e 368 de frontend, todos verdes. CI no
+1741 testes de backend (nenhum skip) e 388 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
 PROJECT_CONTEXT.md).
+
+**O mecanismo de cor por rota (D-49) cobre as 16 rotas reais, não mais 6**
+([D-73](docs/DECISIONS.md)) — os 9 blocos `[data-section]` novos em
+`apps/web/app/globals.css` foram gerados e revalidados por contraste por
+`scripts/design/generate-route-palette.py`/`verify-globals-contrast.py`, não
+copiados do MSDS (a Artifact de design que motivou o pedido — ver D-73 para
+por quê). O resto do MSDS (biblioteca de componentes, ícones, `useSpring`)
+ainda não foi portado.
 
 **S1 (upgrade de segurança) entregue:** `next` 14.2.35 → **16.3.4** e `postcss`
 → **8.5.28**, fechando 21 CVEs do Next e 4 do PostCSS. A 14.2.35 é a última da
