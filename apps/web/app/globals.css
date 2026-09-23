@@ -188,6 +188,57 @@
   --md-sys-color-scrim: #000000;
   --md-sys-color-inverse-surface: #171a21;
   --md-sys-color-inverse-on-surface: #f2f4f9;
+
+  /* --- MSDS bridge (D-74) --------------------------------------------------
+   * lib/msds/msds.css consumes these as direct CSS color/length values (not
+   * as "R G B" triples fed through Tailwind's rgb(var(x)/<alpha>) pattern),
+   * so a name that already exists above as a triple is never redefined here
+   * under the same name — every color below either reuses an already
+   * contrast-validated token via rgb()/var() or reuses the --md-sys-color-*
+   * scheme (validated per section by D-49/D-73, and already exactly the M3
+   * primary/secondary/tertiary role MSDS expects). Nothing here is a new,
+   * unvalidated color. Shape and spacing tokens (radius/shadow/space) mirror
+   * the equivalent Tailwind scale in tailwind.config.ts instead of
+   * introducing a second scale. */
+  --surface-100: rgb(var(--surface));
+  --surface-200: rgb(var(--surface-raised));
+  --surface-300: rgb(var(--surface-sunken));
+
+  --primary: var(--md-sys-color-primary);
+  --on-primary: var(--md-sys-color-on-primary);
+  --primary-container: var(--md-sys-color-primary-container);
+  --on-primary-container: var(--md-sys-color-on-primary-container);
+  --secondary: var(--md-sys-color-secondary);
+  --on-secondary: var(--md-sys-color-on-secondary);
+  --secondary-container: var(--md-sys-color-secondary-container);
+  --on-secondary-container: var(--md-sys-color-on-secondary-container);
+  --tertiary: var(--md-sys-color-tertiary);
+  --on-tertiary: var(--md-sys-color-on-tertiary);
+  /* No --md-sys-color-tertiary-container exists (never needed by
+   * @material/web usage so far) — reuse the brand-100/ink pair already
+   * measured for the section ramp rather than adding an unmeasured hex. */
+  --tertiary-container: rgb(var(--brand-100));
+  --on-tertiary-container: rgb(var(--ink));
+
+  --row-accent: rgb(var(--brand-100));
+
+  --radius-card: 1.25rem;
+  --radius-control: 0.75rem;
+  --radius-panel: 1.5rem;
+  --radius-seat: 0.5rem;
+  --radius-xl: 1.75rem;
+  --radius-full: 9999px;
+
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+
+  --shadow-card: 0 1px 2px 0 rgb(23 26 33 / 0.05);
+  --shadow-raised: 0 6px 16px -8px rgb(23 26 33 / 0.24);
+  --shadow-float: 0 6px 16px -8px rgb(23 26 33 / 0.24);
+  --shadow-overlay: 0 18px 40px -18px rgb(23 26 33 / 0.35), 0 2px 6px 0 rgb(23 26 33 / 0.12);
+  --shadow-glow: 0 0 0 1px rgb(var(--brand-300) / 0.4), 0 10px 22px -12px rgb(var(--accent) / 0.85);
 }
 
 /* --- Hue by section · light theme -------------------------------------------

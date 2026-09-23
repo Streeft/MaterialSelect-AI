@@ -711,6 +711,14 @@ copiados do MSDS (a Artifact de design que motivou o pedido — ver D-73 para
 por quê). O resto do MSDS (biblioteca de componentes, ícones, `useSpring`)
 ainda não foi portado.
 
+**A biblioteca de componentes do MSDS chegou a `apps/web/lib/msds/`**
+([D-74](docs/DECISIONS.md)) — módulo ES portado de `bundle.js`/`bundle.css`,
+com dois bugs de origem corrigidos (um comentário CSS que se fechava sozinho;
+falta de guarda de SSR em `prefersReducedMotion`) e os tokens de cor
+reconciliados com os já validados por D-49/D-73, sem nenhuma cor nova. Ainda
+não está ligada a nenhuma tela: `components/ui/*`, `icons.tsx` e
+`AppSidebar.tsx` continuam como estavam, para uma rodada seguinte — ver D-74.
+
 **S1 (upgrade de segurança) entregue:** `next` 14.2.35 → **16.3.4** e `postcss`
 → **8.5.28**, fechando 21 CVEs do Next e 4 do PostCSS. A 14.2.35 é a última da
 linha 14 — não havia patch dentro do major, então subir era a única saída. Deu

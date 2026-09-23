@@ -1,6 +1,11 @@
 import type { Metadata } from "next";
 import { Public_Sans, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
+// MSDS component styles (D-74). Imported after globals.css so the token
+// bridge block in globals.css (surface-100/200/300, primary/secondary/
+// tertiary roles, radius/shadow/space scale) is already in the cascade
+// before any .msds-* rule reads it.
+import "../lib/msds/msds.css";
 import { Providers } from "./providers";
 import { SectionTheme } from "@/components/layout/SectionTheme";
 import { ptBR } from "@/lib/i18n";
