@@ -74,24 +74,29 @@ test("importar, selecionar, visualizar e exportar um estudo", async ({ page }) =
   // so the browser's Back button moves one step back instead of leaving.
   const actionBar = page.getByRole("group", { name: "Ações da etapa" });
   const steps = page.getByRole("navigation", { name: "Etapas" });
-  await actionBar.getByRole("button", { name: "Próximo: Restrições" }).click();
+  // D-88: Objetivo is step 2 and Restrições step 3.
   await actionBar.getByRole("button", { name: "Próximo: Objetivo" }).click();
   await expect(page).toHaveURL(/etapa=objetivo/);
-  await page.goBack();
-  await expect(steps.getByRole("button", { name: /Restrições/ })).toHaveAttribute(
-    "aria-current",
-    "step",
-  );
-  await page.goForward();
-  await expect(steps.getByRole("button", { name: /Objetivo/ })).toHaveAttribute(
-    "aria-current",
-    "step",
-  );
 
   // One block at a time: the index, then criteria and weights.
   await page.getByRole("radio", { name: "Rigidez específica" }).check();
   await page.getByRole("button", { name: "Continuar: critérios e pesos" }).click();
   await page.getByRole("button", { name: "Adicionar critério" }).click();
+  // D-87: a single criterion carries the whole budget of 1.
+  await expect(page.getByText("Total 1 de 1 — fechado.")).toBeVisible();
+
+  await actionBar.getByRole("button", { name: "Próximo: Restrições" }).click();
+  await expect(page).toHaveURL(/etapa=restricoes/);
+  await page.goBack();
+  await expect(steps.getByRole("button", { name: /Objetivo/ })).toHaveAttribute(
+    "aria-current",
+    "step",
+  );
+  await page.goForward();
+  await expect(steps.getByRole("button", { name: /Restrições/ })).toHaveAttribute(
+    "aria-current",
+    "step",
+  );
 
   await actionBar.getByRole("button", { name: "Executar seleção" }).click();
   // The result opens on the winner; the full ranking is one tab away.

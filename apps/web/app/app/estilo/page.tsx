@@ -658,8 +658,8 @@ export default function StyleGuidePage() {
           onSelect={setStep}
           steps={[
             { id: "funcao", label: "1. Função", summary: "Viga leve de bicicleta" },
-            { id: "restricoes", label: "2. Restrições" },
-            { id: "objetivo", label: "3. Objetivo" },
+            { id: "objetivo", label: "2. Objetivo" },
+            { id: "restricoes", label: "3. Restrições" },
             {
               id: "resultados",
               label: "4. Resultados",

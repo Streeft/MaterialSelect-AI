@@ -49,7 +49,8 @@ escolher exatamente este caso, e não outro do mesmo livro:
 
 ## 2. Enunciado, no formato Função → Restrições → Objetivo → Variáveis livres
 
-O mesmo formato que `/selecao` pede ao usuário:
+O mesmo formato que `/selecao` pede ao usuário (desde o D-88 a tela pede o
+Objetivo antes das Restrições; o enunciado e o cálculo seguem a ordem de Ashby):
 
 | Campo | Conteúdo |
 |---|---|

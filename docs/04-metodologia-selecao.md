@@ -34,7 +34,10 @@ comparação).
 
 ## Fluxo de seleção
 
-O assistente segue o método **Função → Restrições → Objetivo → Resultados**:
+O método de Ashby é **Função → Restrições → Objetivo → Resultados**, e é nessa
+ordem que o motor calcula: filtra, depois ordena. Desde o [D-88](DECISIONS.md) a
+**tela** pede Objetivo antes de Restrições — a ordem de quem pensa o problema
+("o que quero otimizar?" antes de "o que é inaceitável?") —, sem mudar o cálculo:
 
 ```mermaid
 flowchart TD

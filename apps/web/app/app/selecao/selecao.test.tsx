@@ -159,6 +159,10 @@ beforeEach(() => {
 
 /** Run, once the weight check has answered (D-87): the button waits for it. */
 async function clickRun(user: ReturnType<typeof userEvent.setup>) {
+  // D-88: Run lives on the last input step, Restrições.
+  if (!screen.queryByShadowRole("button", { name: t.run })) {
+    await user.click(stepButton(t.stepConstraints));
+  }
   await waitFor(() => expect(screen.getByShadowRole("button", { name: t.run })).toBeEnabled());
   await user.click(screen.getByShadowRole("button", { name: t.run }));
 }
@@ -172,7 +176,7 @@ describe("assistente de seleção", () => {
     // only next to the constraint editor and vanish the moment anyone moved on.
     await waitFor(() => expect(screen.getByText("5")).toBeInTheDocument());
 
-    await user.click(screen.getByShadowRole("button", { name: new RegExp(t.stepObjective, "i") }));
+    await user.click(stepButton(t.stepObjective));
     expect(screen.getByText("5")).toBeInTheDocument();
     expect(screen.getByText(`${t.of} 12`)).toBeInTheDocument();
   });
@@ -192,7 +196,7 @@ describe("assistente de seleção", () => {
     runSelection.mockResolvedValue(result({ final_count: 2 }));
     render(wrap(<SelectionPage />));
 
-    await user.click(screen.getByShadowRole("button", { name: new RegExp(t.stepObjective, "i") }));
+    await user.click(stepButton(t.stepObjective));
     await clickRun(user);
 
     // The winner card is the first thing the results screen renders (D-85);
@@ -209,7 +213,7 @@ describe("assistente de seleção", () => {
     const user = userEvent.setup();
     render(wrap(<SelectionPage />));
 
-    await user.click(screen.getByShadowRole("button", { name: new RegExp(t.stepObjective, "i") }));
+    await user.click(stepButton(t.stepObjective));
     await clickRun(user);
 
     await waitFor(() =>
@@ -225,9 +229,17 @@ describe("navegação guiada (D-85)", () => {
     render(wrap(<SelectionPage />));
 
     expect(screen.getByShadowRole("link", { name: t.backToHome })).toHaveAttribute("href", "/app");
+    // D-88: Objetivo is step 2, Restrições step 3.
+    await user.click(screen.getByShadowRole("button", { name: t.nextStep(t.stepObjective) }));
+    expect(stepButton(t.stepObjective)).toHaveAttribute("aria-current", "step");
+    expect(window.location.search).toContain("etapa=objetivo");
     await user.click(screen.getByShadowRole("button", { name: t.nextStep(t.stepConstraints) }));
     expect(stepButton(t.stepConstraints)).toHaveAttribute("aria-current", "step");
-    expect(window.location.search).toContain("etapa=restricoes");
+    // Run is on the last input step.
+    expect(screen.getByShadowRole("button", { name: t.run })).toBeInTheDocument();
+
+    await user.click(screen.getByShadowRole("button", { name: t.back }));
+    expect(stepButton(t.stepObjective)).toHaveAttribute("aria-current", "step");
 
     await user.click(screen.getByShadowRole("button", { name: t.back }));
     expect(stepButton(t.stepFunction)).toHaveAttribute("aria-current", "step");
@@ -237,8 +249,8 @@ describe("navegação guiada (D-85)", () => {
     const user = userEvent.setup();
     render(wrap(<SelectionPage />));
 
-    await user.click(screen.getByShadowRole("button", { name: t.nextStep(t.stepConstraints) }));
-    expect(stepButton(t.stepConstraints)).toHaveAttribute("aria-current", "step");
+    await user.click(screen.getByShadowRole("button", { name: t.nextStep(t.stepObjective) }));
+    expect(stepButton(t.stepObjective)).toHaveAttribute("aria-current", "step");
 
     window.history.pushState(null, "", "/app/selecao?etapa=funcao");
     window.dispatchEvent(new PopStateEvent("popstate"));
@@ -321,7 +333,7 @@ describe("método de ranking", () => {
     const user = userEvent.setup();
     render(wrap(<SelectionPage />));
 
-    await user.click(screen.getByShadowRole("button", { name: new RegExp(t.stepObjective, "i") }));
+    await user.click(stepButton(t.stepObjective));
     await user.click(screen.getByShadowRole("button", { name: t.continueToCriteria }));
     await user.click(screen.getByText(ptBR.ui.advancedOptions));
     expect(screen.getByShadowRole("combobox", { name: t.normalization })).toBeInTheDocument();
@@ -338,7 +350,7 @@ describe("método de ranking", () => {
     const user = userEvent.setup();
     render(wrap(<SelectionPage />));
 
-    await user.click(screen.getByShadowRole("button", { name: new RegExp(t.stepObjective, "i") }));
+    await user.click(stepButton(t.stepObjective));
     await user.click(screen.getByShadowRole("button", { name: t.continueToCriteria }));
     await user.click(screen.getByShadowRole("button", { name: t.addCriterion }));
     await user.type(screen.getByRole("combobox", { name: t.criterion }), density.name);
@@ -523,7 +535,7 @@ describe("pesos com limite 1", () => {
   async function twoCriteria(user: ReturnType<typeof userEvent.setup>) {
     propertiesMock = [density, { ...density, id: 2, name: "Módulo de Young", slug: "modulo_young" }];
     render(wrap(<SelectionPage />));
-    await user.click(screen.getByShadowRole("button", { name: new RegExp(t.stepObjective, "i") }));
+    await user.click(stepButton(t.stepObjective));
     await user.click(screen.getByShadowRole("button", { name: t.continueToCriteria }));
     await user.click(screen.getByShadowRole("button", { name: t.addCriterion }));
     await user.type(screen.getAllByRole("combobox", { name: t.criterion })[0]!, "Densidade");
@@ -560,8 +572,19 @@ describe("pesos com limite 1", () => {
     const user = userEvent.setup();
     await twoCriteria(user);
 
+    // D-88: on Objetivo it warns and lets the reader move on…
+    expect(
+      await screen.findByText(t.weights.notBlocking(t.weights.issues.missing_weight)),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByShadowRole("button", { name: t.nextStep(t.stepConstraints) }),
+    ).toBeEnabled();
+    // …and Run, on Restrições, waits with the reason and a way back.
+    await user.click(stepButton(t.stepConstraints));
     await screen.findByText(t.weights.issues.missing_weight, { selector: "#executar-motivo" });
     expect(screen.getByShadowRole("button", { name: t.run })).toBeDisabled();
+    await user.click(screen.getByShadowRole("button", { name: t.weights.fixWeights }));
+    expect(stepButton(t.stepObjective)).toHaveAttribute("aria-current", "step");
 
     await user.click(await screen.findByShadowRole("button", { name: t.weights.suggest.split_equally }));
     const weights = screen.getAllByShadowLabelText(t.weight) as HTMLInputElement[];
