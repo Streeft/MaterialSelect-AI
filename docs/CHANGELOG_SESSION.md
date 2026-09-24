@@ -62,6 +62,19 @@ falso desde o D-59. O passo passou a listar os atributos numéricos como critér
 índice, e `ProcessAttributeOut` ganhou `variable` para a tela não reinventar
 `safe_variable`. Trocar o universo agora limpa também o objetivo.
 
+**Fase 1 — experiência guiada (D-85, D-86).** Primitivas novas em
+`components/ui` (`Disclosure` controlada, `GuidedBlock`, `Combobox`,
+`RemovableChip`, resumo por passo no `Stepper`), todas em `/estilo`. Na Seleção:
+Voltar em todo passo e no navegador (`?etapa=`), resumo no stepper, "Meus estudos"
+e a IA recolhidos, opções avançadas recolhidas sem esconder o que está em uso,
+Objetivo em dois blocos, exemplo "viga leve de bicicleta" com Desfazer, resultado
+que começa pelo vencedor e pelo porquê e segue em abas, busca nos seletores,
+unidade à vista e restrição lida como frase. Fora dela: capa com um botão só
+(a vitrine fica no repositório), login leva a `/app`, menu sem Importar e
+Administrar para quem não é curador, Início enxuto, Mapas com "Personalizar o
+mapa", Comparar por busca e as ferramentas com premissas recolhidas (valores no
+resumo) e motivo em todo botão desabilitado.
+
 ---
 
 ## Sessão 27 — 24/09/26 — O portão vira um modo: acesso aberto para uma turma (D-83)
