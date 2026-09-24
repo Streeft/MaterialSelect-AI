@@ -27,17 +27,9 @@ import {
   SelectOption,
 } from "@/components/ui";
 
-const t = ptBR.catalog;
+import { useDebounced } from "@/lib/useDebounced";
 
-/** Debounce a rapidly-changing value (used for the search box). */
-function useDebounced<T>(value: T, delayMs: number): T {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const id = setTimeout(() => setDebounced(value), delayMs);
-    return () => clearTimeout(id);
-  }, [value, delayMs]);
-  return debounced;
-}
+const t = ptBR.catalog;
 
 /**
  * The quality filter, in the terms a reader thinks in.

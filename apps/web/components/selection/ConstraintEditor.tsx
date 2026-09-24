@@ -487,6 +487,8 @@ function ConstraintGroupEditor({
   universe,
   classes,
   actions,
+  showRootCombinator,
+  showAddGroup,
 }: {
   group: ConstraintGroupState;
   isRoot: boolean;
@@ -495,6 +497,8 @@ function ConstraintGroupEditor({
   universe: SelectionUniverse;
   classes: SelectableFolder[];
   actions: GroupActions;
+  showRootCombinator: boolean;
+  showAddGroup: boolean;
 }) {
   const isEmpty = group.constraints.length === 0 && group.groups.length === 0;
 
@@ -510,6 +514,9 @@ function ConstraintGroupEditor({
     >
       <div className="flex flex-wrap items-center gap-2">
         {isRoot ? (
+          // D-85: the root E/OU is an advanced option — but an OR already in
+          // use is never hidden, or the rows below would read as "all of these".
+          (showRootCombinator || group.operator === "OR") && (
           <div className="flex flex-col gap-1">
             <span className="text-xs font-medium text-ink-muted">{t.combinator}</span>
             <OperatorToggle
@@ -518,6 +525,7 @@ function ConstraintGroupEditor({
               label={t.combinator}
             />
           </div>
+          )
         ) : (
           <>
             <OperatorToggle
@@ -573,6 +581,8 @@ function ConstraintGroupEditor({
                 universe={universe}
                 classes={classes}
                 actions={actions}
+                showRootCombinator={showRootCombinator}
+                showAddGroup={showAddGroup}
               />
             </li>
           ))}
@@ -588,14 +598,16 @@ function ConstraintGroupEditor({
         >
           {t.addConstraint}
         </Button>
-        <Button
-          size="sm"
-          variant="ghost"
-          icon={<IconPlus />}
-          onClick={() => actions.addGroup(group.id)}
-        >
-          {t.addGroup}
-        </Button>
+        {showAddGroup && (
+          <Button
+            size="sm"
+            variant="ghost"
+            icon={<IconPlus />}
+            onClick={() => actions.addGroup(group.id)}
+          >
+            {t.addGroup}
+          </Button>
+        )}
       </div>
     </div>
   );
@@ -613,9 +625,24 @@ interface Props {
   universe?: SelectionUniverse;
   classes: SelectableFolder[];
   onChange: (root: ConstraintGroupState) => void;
+  /**
+   * D-85: the root E/OU and "Adicionar grupo" are advanced options, shown only
+   * when the screen's "Opções avançadas" is open. What is already in use — an
+   * OR root, a nested group — renders regardless.
+   */
+  showRootCombinator?: boolean;
+  showAddGroup?: boolean;
 }
 
-export function ConstraintEditor({ root, properties, classes, universe = "material", onChange }: Props) {
+export function ConstraintEditor({
+  root,
+  properties,
+  classes,
+  universe = "material",
+  onChange,
+  showRootCombinator = true,
+  showAddGroup = true,
+}: Props) {
   const actions: GroupActions = {
     updateOperator: (groupId, operator) =>
       onChange(updateGroupById(root, groupId, (g) => ({ ...g, operator }))),
@@ -647,6 +674,8 @@ export function ConstraintEditor({ root, properties, classes, universe = "materi
       universe={universe}
       classes={classes}
       actions={actions}
+      showRootCombinator={showRootCombinator}
+      showAddGroup={showAddGroup}
     />
   );
 }

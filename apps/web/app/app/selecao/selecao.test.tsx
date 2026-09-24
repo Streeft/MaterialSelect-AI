@@ -110,6 +110,7 @@ beforeEach(() => {
   listProcessAttributes.mockResolvedValue([]);
   listPerformanceIndices.mockResolvedValue([]);
   for (const key of [...searchParams.keys()]) searchParams.delete(key);
+  window.history.replaceState(null, "", "/app/selecao");
 });
 
 describe("assistente de seleção", () => {
@@ -165,12 +166,74 @@ describe("assistente de seleção", () => {
   });
 });
 
+describe("navegação guiada (D-85)", () => {
+  it("names the next step, goes back with Voltar, and offers the home page from step 1", async () => {
+    const user = userEvent.setup();
+    render(wrap(<SelectionPage />));
+
+    expect(screen.getByShadowRole("link", { name: t.backToHome })).toHaveAttribute("href", "/app");
+    await user.click(screen.getByShadowRole("button", { name: t.nextStep(t.stepConstraints) }));
+    expect(stepButton(t.stepConstraints)).toHaveAttribute("aria-current", "step");
+    expect(window.location.search).toContain("etapa=restricoes");
+
+    await user.click(screen.getByShadowRole("button", { name: t.back }));
+    expect(stepButton(t.stepFunction)).toHaveAttribute("aria-current", "step");
+  });
+
+  it("follows the browser's Back button to the previous step", async () => {
+    const user = userEvent.setup();
+    render(wrap(<SelectionPage />));
+
+    await user.click(screen.getByShadowRole("button", { name: t.nextStep(t.stepConstraints) }));
+    expect(stepButton(t.stepConstraints)).toHaveAttribute("aria-current", "step");
+
+    window.history.pushState(null, "", "/app/selecao?etapa=funcao");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+    await waitFor(() =>
+      expect(stepButton(t.stepFunction)).toHaveAttribute("aria-current", "step"),
+    );
+  });
+
+  it("summarizes what each step holds under its name", async () => {
+    const user = userEvent.setup();
+    render(wrap(<SelectionPage />));
+    await user.type(screen.getByShadowRole("textbox", { name: t.studyName }), "Viga de bicicleta");
+    expect(stepButton(t.stepFunction)).toHaveTextContent("Viga de bicicleta");
+  });
+});
+
+describe("opções avançadas (D-85)", () => {
+  it("keeps a non-default method visible with the section closed", async () => {
+    const user = userEvent.setup();
+    render(wrap(<SelectionPage />));
+    await user.click(stepButton(t.stepObjective));
+
+    const details = screen.getByText(ptBR.ui.advancedOptions).closest("details")!;
+    expect(details.open).toBe(false);
+    await user.click(screen.getByText(ptBR.ui.advancedOptions));
+    await user.click(screen.getByShadowRole("button", { name: t.methodTopsis }));
+    await user.click(screen.getByText(ptBR.ui.advancedOptions));
+    expect(details.open).toBe(false);
+    expect(screen.getByText(t.methodInUse(t.methodTopsis))).toBeInTheDocument();
+  });
+
+  it("starts the constraints step with one row and no stage chrome", async () => {
+    const user = userEvent.setup();
+    render(wrap(<SelectionPage />));
+    await user.click(stepButton(t.stepConstraints));
+
+    expect(screen.queryByShadowRole("textbox", { name: ptBR.selection.stageLabel })).not.toBeInTheDocument();
+    expect(screen.queryByShadowRole("button", { name: `+ ${t.stageAddTree}` })).not.toBeVisible();
+  });
+});
+
 describe("método de ranking", () => {
   it("hides normalization for TOPSIS/PROMETHEE, an option that has no effect on either", async () => {
     const user = userEvent.setup();
     render(wrap(<SelectionPage />));
 
     await user.click(screen.getByShadowRole("button", { name: new RegExp(t.stepObjective, "i") }));
+    await user.click(screen.getByText(ptBR.ui.advancedOptions));
     expect(screen.getByShadowRole("combobox", { name: t.normalization })).toBeInTheDocument();
 
     await user.click(screen.getByShadowRole("button", { name: t.methodTopsis }));
@@ -188,6 +251,7 @@ describe("método de ranking", () => {
     await user.click(screen.getByShadowRole("button", { name: new RegExp(t.stepObjective, "i") }));
     await user.click(screen.getByShadowRole("button", { name: t.addCriterion }));
     await userEvent.selectOptions(screen.getByShadowRole("combobox", { name: t.criterion }), density.slug);
+    await user.click(screen.getByText(ptBR.ui.advancedOptions));
     await user.click(screen.getByShadowRole("button", { name: t.methodPromethee }));
     await user.click(screen.getByShadowRole("button", { name: t.run }));
 
@@ -308,7 +372,9 @@ describe("estudo de processos", () => {
     await user.click(screen.getByShadowRole("button", { name: t.addCriterion }));
     expect(screen.getByShadowRole("combobox", { name: t.criterion })).toBeInTheDocument();
 
-    await user.click(stepButton(t.stepConstraints));
+    // The universe lives in step 1's advanced options since D-85.
+    await user.click(stepButton(t.stepFunction));
+    await user.click(screen.getByText(ptBR.ui.advancedOptions));
     await user.click(screen.getByShadowRole("button", { name: t.universeProcess }));
     await user.click(stepButton(t.stepObjective));
 

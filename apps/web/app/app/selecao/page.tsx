@@ -2,6 +2,7 @@
 
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { useDebounced } from "@/lib/useDebounced";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ApiError,
@@ -18,7 +19,6 @@ import {
   listStudies,
   runSelection,
   runStudy,
-  studyExportUrl,
 } from "@/lib/api";
 import type {
   Combinator,
@@ -35,15 +35,17 @@ import type {
   StudyDetail,
 } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
-import { countLabel, prettyUnit } from "@/lib/format";
+import { prettyUnit } from "@/lib/format";
 import {
   Alert,
   Button,
   ButtonGroup,
   ButtonGroupItem,
+  ButtonLink,
   Card,
   CardBody,
   Checkbox,
+  Disclosure,
   EmptyState,
   Input,
   LoadingState,
@@ -52,15 +54,10 @@ import {
   Select,
   SelectOption,
   Stepper,
-  TBody,
-  Table,
-  TableScroll,
-  Td,
-  Tr,
   type Step as StepItem,
   type StepStatus,
 } from "@/components/ui";
-import { IconArrowRight, IconPlus, IconTrash } from "@/components/ui/icons";
+import { IconArrowLeft, IconArrowRight, IconPlus, IconTrash } from "@/components/ui/icons";
 import {
   emptyConstraint,
   emptyGroup,
@@ -68,6 +65,7 @@ import {
   nextEditorId,
 } from "@/components/selection/ConstraintEditor";
 import {
+  StageAddButtons,
   StageList,
   type StageState,
   boundToField,
@@ -85,10 +83,14 @@ import {
   type IndexDescriptor,
 } from "@/components/selection/IndexCard";
 import { ResultsView } from "@/components/selection/ResultsView";
+import { SavedStudiesPanel } from "@/components/selection/SavedStudiesPanel";
+import {
+  constraintsUseAdvanced,
+  functionUsesAdvanced,
+  initialLimitStage,
+  objectiveUsesAdvanced,
+} from "@/lib/selection/advanced";
 import { AIAssistPanel, type AcceptedSuggestions } from "@/components/ai/AIAssistPanel";
-import { StudyExplanation } from "@/components/ai/StudyExplanation";
-import { ExportButtons } from "@/components/ExportButtons";
-import { EngineeringReportLink } from "@/components/EngineeringReportLink";
 
 const t = ptBR.selection;
 type Step = "function" | "constraints" | "objective" | "results";
@@ -113,6 +115,28 @@ const STEPS: StepItem<Step>[] = [
   { id: "objective", label: t.stepObjective },
   { id: "results", label: t.stepResults, blockedReason: t.blockedResults },
 ];
+
+const SLUG_BY_STEP = Object.fromEntries(
+  Object.entries(STEP_BY_SLUG).map(([slug, id]) => [id, slug]),
+) as Record<Step, string>;
+
+/**
+ * Navigation is read off the order of `STEPS`, never written per step (D-85):
+ * the previous and next step are neighbours in the list, and Run sits on the
+ * last step the reader fills in. Reordering the wizard is then reordering the
+ * list — nothing else can drift out of step with it.
+ */
+const INPUT_STEPS = STEPS.filter((s) => s.id !== "results").map((s) => s.id);
+const LAST_INPUT_STEP: Step = INPUT_STEPS[INPUT_STEPS.length - 1] ?? "objective";
+
+function neighbours(step: Step): { prev: Step | null; next: Step | null } {
+  const i = STEPS.findIndex((s) => s.id === step);
+  return { prev: STEPS[i - 1]?.id ?? null, next: STEPS[i + 1]?.id ?? null };
+}
+
+function labelOf(step: Step): string {
+  return STEPS.find((s) => s.id === step)?.label ?? step;
+}
 
 interface CriterionRow {
   id: string;
@@ -244,10 +268,40 @@ function SelectionWizard() {
     return STEP_BY_SLUG[params.get("etapa") ?? ""] ?? "function";
   });
 
+  /**
+   * Move to a step and write it into the URL (D-85), so the browser's Back
+   * button goes back one step instead of leaving the tool — what a reader who
+   * clicks first and asks later reaches for. `replace` for moves that are not
+   * the reader's (landing after a study loads), which should not add history.
+   */
+  const goToStep = useCallback((next: Step, options?: { replace?: boolean }) => {
+    setStep(next);
+    if (typeof window === "undefined") return;
+    const query = new URLSearchParams(window.location.search);
+    query.delete("novo_estagio");
+    query.set("etapa", SLUG_BY_STEP[next]);
+    const url = `${window.location.pathname}?${query.toString()}`;
+    if (options?.replace) window.history.replaceState(null, "", url);
+    else window.history.pushState(null, "", url);
+  }, []);
+
+  // Browser Back/Forward: the history entry changed under us, so follow it.
+  // `popstate` is what those buttons fire, and only they fire it — our own
+  // pushState/replaceState never do — so this cannot echo `goToStep`.
+  useEffect(() => {
+    const onPop = () => {
+      const query = new URLSearchParams(window.location.search);
+      setStep(STEP_BY_SLUG[query.get("etapa") ?? ""] ?? "function");
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+
   const [name, setName] = useState("");
   const [functionText, setFunctionText] = useState("");
   const [objectiveText, setObjectiveText] = useState("");
   const [freeVariables, setFreeVariables] = useState("");
+  const [aiOpen, setAiOpen] = useState(false);
   // P0-1: the ordered pipeline. It starts as exactly one limit stage holding
   // the nested AND/OR tree M6 introduced, so a simple study looks and behaves
   // as it always did; adding a stage is what turns it into a pipeline.
@@ -290,7 +344,7 @@ function SelectionWizard() {
         },
       ];
     }
-    return [emptyLimitStage()];
+    return [initialLimitStage()];
   });
   // P0-3: which universe the study returns. Switching it resets the pipeline,
   // because a stage of the other universe is refused by the backend — carrying
@@ -298,6 +352,11 @@ function SelectionWizard() {
   const [universe, setUniverse] = useState<SelectionUniverse>(() => {
     return params.get("universo") === "process" ? "process" : "material";
   });
+  // D-85: each step's "Opções avançadas". Opened by the screen itself whenever
+  // what it would hide is already in use (see lib/selection/advanced.ts).
+  const [advFunction, setAdvFunction] = useState(() => functionUsesAdvanced(universe));
+  const [advConstraints, setAdvConstraints] = useState(() => constraintsUseAdvanced(stages));
+  const [advObjective, setAdvObjective] = useState(false);
 
   /**
    * Switching universe starts the pipeline over.
@@ -310,7 +369,7 @@ function SelectionWizard() {
   function changeUniverse(next: SelectionUniverse) {
     if (next === universe) return;
     setUniverse(next);
-    setStages([emptyLimitStage()]);
+    setStages([initialLimitStage()]);
     // D-84: the objective names keys of one catalogue — material properties or
     // process attributes — so it cannot cross over either. A property criterion
     // in a process study is refused by the backend by name.
@@ -460,10 +519,19 @@ function SelectionWizard() {
   // The live count, on every step — not only where the constraints are edited.
   // Constraints only: adding the index here would make the number answer a
   // different question from the one the label asks.
+  // Debounced (D-85): typing "70" used to send "7" and "70" as two full runs.
+  // With a class of forty on one small machine that is the difference between a
+  // counter that keeps up and one that queues.
+  const stagesKey = useDebounced(JSON.stringify(stagesPayload()), 300);
   const preview = useQuery({
-    queryKey: ["selection-preview", universe, JSON.stringify(stagesPayload())],
+    queryKey: ["selection-preview", universe, stagesKey],
     queryFn: () =>
-      runSelection({ universe, stages: stagesPayload(), index: null, ranking: null }),
+      runSelection({
+        universe,
+        stages: JSON.parse(stagesKey) as StageIn[],
+        index: null,
+        ranking: null,
+      }),
     // Keep the previous count on screen while the next one is in flight, so the
     // element does not blink between every keystroke.
     placeholderData: (previous) => previous,
@@ -473,7 +541,7 @@ function SelectionWizard() {
     mutationFn: () => runSelection(buildRequest(true)),
     onSuccess: (data) => {
       setResult(data);
-      setStep("results");
+      goToStep("results");
       setError(null);
     },
     onError: fail,
@@ -520,7 +588,7 @@ function SelectionWizard() {
       // real tree, so reopening a nested study restores its parentheses instead
       // of flattening them. A study whose payload somehow has no stage falls
       // back to the flat list — the pre-M6 shape — rather than opening empty.
-      setStages(
+      const reopened: StageState[] =
         s.stages.length > 0
           ? s.stages.map((stage) => stageFromPayload(stage, s.combinator))
           : [
@@ -544,8 +612,9 @@ function SelectionWizard() {
                   })),
                 },
               },
-            ],
-      );
+            ];
+      setStages(reopened);
+      setAdvConstraints(constraintsUseAdvanced(reopened));
       if (s.index) {
         setIndexMode("custom");
         setCustomExpression(s.index.expression);
@@ -564,7 +633,13 @@ function SelectionWizard() {
         })),
       );
       setResult(null);
-      setStep("constraints");
+      setAdvFunction(functionUsesAdvanced(s.universe));
+      setAdvObjective(
+        objectiveUsesAdvanced({ method: s.method, normalization: s.normalization, useAhp: false }),
+      );
+      // Where Run is: a reopened study is one click from running again, and the
+      // step summaries are one click from any part of it.
+      goToStep(LAST_INPUT_STEP, { replace: true });
     },
     onError: fail,
   });
@@ -578,7 +653,7 @@ function SelectionWizard() {
     mutationFn: (id: number) => runStudy(id),
     onSuccess: (data) => {
       setResult(data);
-      setStep("results");
+      goToStep("results");
     },
     onError: fail,
   });
@@ -599,8 +674,9 @@ function SelectionWizard() {
   // P1-2: deep link from chart map (/app/mapas) cleans URL after mounting
   useEffect(() => {
     if (params.get("novo_estagio") === "chart" && typeof window !== "undefined") {
-      const cleanUrl = window.location.pathname;
-      window.history.replaceState(null, "", cleanUrl);
+      // The stage is built; the URL keeps only where the reader is, so a Back
+      // from here does not rebuild the chart stage on top of their edits.
+      window.history.replaceState(null, "", `${window.location.pathname}?etapa=restricoes`);
     }
   }, [params]);
 
@@ -722,72 +798,92 @@ function SelectionWizard() {
     }
   }
 
-  /** The one action this step is for, plus whatever supports it. */
+  /**
+   * Back and forward, the same on every step (D-85): "Voltar" always exists —
+   * on the first step it leaves for the home page — and the primary button
+   * names where it goes ("Próximo: Objetivo"), or runs on the last input step.
+   */
   function actionsForStep() {
-    switch (step) {
-      case "function":
-        return (
+    if (step === "results") {
+      return (
+        <>
+          <Button
+            variant="secondary"
+            icon={<IconArrowLeft />}
+            onClick={() => goToStep(LAST_INPUT_STEP)}
+          >
+            {t.back}
+          </Button>
           <Button
             variant="primary"
-            icon={<IconArrowRight />}
-            onClick={() => setStep("constraints")}
+            disabled={!canSave}
+            loading={save.isPending}
+            onClick={() => {
+              setSaveMessage(null);
+              save.mutate();
+            }}
           >
-            {t.stepConstraints}
+            {t.saveStudy}
           </Button>
-        );
-      case "constraints":
-        // Adding a constraint or a group is now a per-group action inside
-        // ConstraintEditor itself (M6) — operator is a per-group property,
-        // so "add" has to say which group, which only the editor knows.
-        return (
-          <Button variant="primary" icon={<IconArrowRight />} onClick={() => setStep("objective")}>
-            {t.stepObjective}
-          </Button>
-        );
-      case "objective":
-        return (
-          <>
-            <Button variant="secondary" onClick={() => setStep("constraints")}>
-              {t.back}
-            </Button>
-            <Button variant="primary" loading={run.isPending} onClick={() => run.mutate()}>
-              {run.isPending ? t.running : t.run}
-            </Button>
-          </>
-        );
-      case "results":
-        return (
-          <>
-            <Button variant="secondary" onClick={() => setStep("objective")}>
-              {t.back}
-            </Button>
-            <Button
-              variant="primary"
-              disabled={!canSave}
-              loading={save.isPending}
-              onClick={() => {
-                setSaveMessage(null);
-                save.mutate();
-              }}
-            >
-              {t.saveStudy}
-            </Button>
-          </>
-        );
+        </>
+      );
     }
+    const { prev, next } = neighbours(step);
+    return (
+      <>
+        {prev ? (
+          <Button variant="secondary" icon={<IconArrowLeft />} onClick={() => goToStep(prev)}>
+            {t.back}
+          </Button>
+        ) : (
+          <ButtonLink href="/app" variant="secondary" icon={<IconArrowLeft />}>
+            {t.backToHome}
+          </ButtonLink>
+        )}
+        {step === LAST_INPUT_STEP || !next ? (
+          <Button variant="primary" loading={run.isPending} onClick={() => run.mutate()}>
+            {run.isPending ? t.running : t.run}
+          </Button>
+        ) : (
+          <Button variant="primary" icon={<IconArrowRight />} onClick={() => goToStep(next)}>
+            {t.nextStep(labelOf(next))}
+          </Button>
+        )}
+      </>
+    );
   }
+
+  /** What each step already holds, in a few words — the stepper's second line. */
+  const stepSummaries: Record<Step, string | undefined> = {
+    function: name.trim() || functionText.trim() || undefined,
+    objective: hasObjective
+      ? t.summaryObjective(activeIndex?.name ?? null, criteriaPayload().length)
+      : undefined,
+    constraints: hasConstraints
+      ? t.summaryConstraints(countStageConstraints(stages), stages.length)
+      : undefined,
+    results: result ? t.summaryResults(result.final_count) : undefined,
+  };
+  const stepsWithSummary = STEPS.map((s) => ({ ...s, summary: stepSummaries[s.id] }));
 
   return (
     <div className="space-y-6">
       <div className="space-y-4">
         <PageHeader title={t.title} description={t.subtitle} group="estudar" />
 
+        <SavedStudiesPanel
+          studies={studies.data}
+          onRun={(id) => runSaved.mutate(id)}
+          onLoad={(id) => loadStudy.mutate(id)}
+          onDelete={(id) => removeStudy.mutate(id)}
+        />
+
         <Stepper
           label={ptBR.ui.steps}
-          steps={STEPS}
+          steps={stepsWithSummary}
           statusOf={statusOf}
           current={step}
-          onSelect={setStep}
+          onSelect={(next) => goToStep(next)}
         />
 
         {error && (
@@ -803,33 +899,85 @@ function SelectionWizard() {
               <CardBody className="grid gap-3 sm:grid-cols-2">
                 <Input
                   label={t.studyName}
+                  hint={t.studyNameHint}
                   className="sm:col-span-2"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                 />
                 <Input
                   label={t.functionText}
+                  hint={t.functionTextHint}
                   value={functionText}
                   onChange={(e) => setFunctionText(e.target.value)}
                 />
                 <Input
                   label={t.objectiveText}
+                  hint={t.objectiveTextHint}
                   value={objectiveText}
                   onChange={(e) => setObjectiveText(e.target.value)}
                 />
                 <Input
                   label={t.freeVariables}
+                  hint={t.freeVariablesHint}
                   className="sm:col-span-2"
                   value={freeVariables}
                   onChange={(e) => setFreeVariables(e.target.value)}
                 />
               </CardBody>
             </Card>
+            {/* P0-3 put the universe before the stages because it decides which
+                stages exist; since D-84 it also decides what the objective
+                ranks by, so it belongs to the problem, not to one step. It is
+                advanced (D-85): most studies return materials. */}
+            <Disclosure
+              className="mt-4"
+              summary={
+                isProcessStudy ? `${ptBR.ui.advancedOptions} · ${t.universeProcess}` : ptBR.ui.advancedOptions
+              }
+              open={advFunction}
+              onOpenChange={setAdvFunction}
+            >
+              <div className="flex flex-col gap-2">
+                <span className="text-xs font-medium text-ink-muted">{t.universeTitle}</span>
+                <ButtonGroup label={t.universeTitle}>
+                  <ButtonGroupItem
+                    selected={universe === "material"}
+                    label={t.universeMaterial}
+                    onClick={() => changeUniverse("material")}
+                  />
+                  <ButtonGroupItem
+                    selected={universe === "process"}
+                    label={t.universeProcess}
+                    onClick={() => changeUniverse("process")}
+                  />
+                </ButtonGroup>
+                <p className="text-xs text-fg-muted">{t.universeHint}</p>
+                {isProcessStudy && <Alert tone="info">{t.universeProcessNote}</Alert>}
+              </div>
+            </Disclosure>
           </Section>
         )}
 
-        {/* Optional assistance, on the step where a problem is described. */}
-        {step === "function" && <AIAssistPanel onApply={applySuggestions} />}
+        {/* Optional assistance, on the step where a problem is described —
+            behind a button (D-85): a second form open under the first is the
+            clutter this redesign removes, and the reader who wants it asks. */}
+        {step === "function" && (
+          <div className="space-y-3">
+            <Button
+              variant="secondary"
+              aria-expanded={aiOpen}
+              aria-controls={aiOpen ? "ai-assist-panel" : undefined}
+              onClick={() => setAiOpen((open) => !open)}
+            >
+              {aiOpen ? t.aiClose : t.aiOpen}
+            </Button>
+            {aiOpen && (
+              <div id="ai-assist-panel">
+                <AIAssistPanel onApply={applySuggestions} />
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Step 2: constraints */}
         {step === "constraints" && (
@@ -837,35 +985,13 @@ function SelectionWizard() {
             title={stages.length > 1 ? t.stagesTitle : t.constraintsTitle}
             description={stages.length > 1 ? t.stagesHint : t.constraintsHint}
           >
-            {/* P0-3: the universe comes before the stages because it decides
-                which stages exist. Put after them it would read as a filter on
-                a pipeline already written. */}
-            <Card className="mb-4">
-              <CardBody className="flex flex-col gap-2">
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs font-medium text-ink-muted">{t.universeTitle}</span>
-                  <ButtonGroup label={t.universeTitle}>
-                    <ButtonGroupItem
-                      selected={universe === "material"}
-                      label={t.universeMaterial}
-                      onClick={() => changeUniverse("material")}
-                    />
-                    <ButtonGroupItem
-                      selected={universe === "process"}
-                      label={t.universeProcess}
-                      onClick={() => changeUniverse("process")}
-                    />
-                  </ButtonGroup>
-                </div>
-                <p className="text-xs text-fg-muted">{t.universeHint}</p>
-                {/* What a process study cannot do, said here rather than
-                    discovered as an error two steps later. */}
-                {isProcessStudy && <Alert tone="info">{t.universeProcessNote}</Alert>}
-              </CardBody>
-            </Card>
-            {/* The root group's own AND/OR toggle lives inside the editor
-                (M6) — operator is a per-group property, not a study-level
-                one — and since P0-1 each stage owns one such tree. */}
+            {/* What a process study cannot do is said where it matters; the
+                universe itself is chosen on the first step (D-85). */}
+            {isProcessStudy && (
+              <Alert tone="info" className="mb-4">
+                {t.universeProcessNote}
+              </Alert>
+            )}
             <StageList
               stages={stages}
               properties={properties.data ?? []}
@@ -875,7 +1001,21 @@ function SelectionWizard() {
               processClasses={processClasses.data ?? []}
               universe={universe}
               onChange={setStages}
+              showAddButtons={false}
+              compactSingleStage={!advConstraints}
+              constraintAdvanced={advConstraints}
             />
+            <Disclosure
+              className="mt-4"
+              summary={ptBR.ui.advancedOptions}
+              open={advConstraints}
+              onOpenChange={setAdvConstraints}
+            >
+              <div className="flex flex-col gap-3">
+                <p className="text-xs text-ink-muted">{t.advancedConstraintsHint}</p>
+                <StageAddButtons stages={stages} universe={universe} onChange={setStages} />
+              </div>
+            </Disclosure>
           </Section>
         )}
 
@@ -951,52 +1091,16 @@ function SelectionWizard() {
               </Card>
             </Section>
 
-            <Section
-              title={t.rankingTitle}
-              description={t.rankingHint}
-              actions={
-                <div className="flex flex-wrap items-end gap-3">
-                  <div className="flex flex-col gap-1">
-                    <span className="text-xs font-medium text-ink-muted">{t.method}</span>
-                    <ButtonGroup label={t.method}>
-                      <ButtonGroupItem
-                        selected={method === "weighted_sum"}
-                        label={t.methodWeightedSum}
-                        onClick={() => setMethod("weighted_sum")}
-                      />
-                      <ButtonGroupItem
-                        selected={method === "topsis"}
-                        label={t.methodTopsis}
-                        onClick={() => setMethod("topsis")}
-                      />
-                      <ButtonGroupItem
-                        selected={method === "promethee"}
-                        label={t.methodPromethee}
-                        onClick={() => setMethod("promethee")}
-                      />
-                    </ButtonGroup>
-                  </div>
-                  {/* Normalization only means something for weighted_sum —
-                      TOPSIS and PROMETHEE fix their own internally, so
-                      showing this as if it still applied would mislead. */}
-                  {method === "weighted_sum" && (
-                    <Select
-                      label={t.normalization}
-                      className="w-40"
-                      value={normalization}
-                      onChange={(e) => setNormalization(e.target.value as NormalizationMethod)}
-                    >
-                      <SelectOption value="minmax">{t.normMinmax}</SelectOption>
-                      <SelectOption value="vector">{t.normVector}</SelectOption>
-                    </Select>
-                  )}
-                </div>
-              }
-            >
+            <Section title={t.rankingTitle} description={t.rankingHint}>
               <Card>
                 <CardBody className="space-y-3">
-                  {method !== "weighted_sum" && (
-                    <p className="text-xs text-ink-muted">{t.methodHint}</p>
+                  {/* A non-default method stays visible with the section closed:
+                      the rule is that a collapsed section never hides what is
+                      already in use (D-85). */}
+                  {!advObjective && method !== "weighted_sum" && (
+                    <p className="text-xs text-ink-muted">
+                      {t.methodInUse(method === "topsis" ? t.methodTopsis : t.methodPromethee)}
+                    </p>
                   )}
                   {criteria.map((c, position) => (
                     <fieldset key={c.id} className="flex flex-wrap items-end gap-3">
@@ -1083,24 +1187,75 @@ function SelectionWizard() {
                     {t.addCriterion}
                   </Button>
 
-                  {/* AHP derives weights; it never becomes a fourth `method`
-                      (Task 2's scope note) — so it only shows up here, next
-                      to the weight fields it feeds, and only where
-                      "weighted_sum" still reads the weight the same way
-                      TOPSIS/PROMETHEE do internally. */}
-                  {method === "weighted_sum" && (
-                    <div className="space-y-3 border-t border-edge pt-3">
-                      <Checkbox
-                        label={t.ahp.toggle}
-                        hint={t.ahp.toggleHint}
-                        checked={useAhp}
-                        onChange={(e) => setUseAhp(e.target.checked)}
-                      />
-                      {useAhp && (
-                        <AhpMatrixInput criteria={ahpCriteria} onDerived={applyAhpWeights} />
+                  <Disclosure
+                    summary={ptBR.ui.advancedOptions}
+                    open={advObjective}
+                    onOpenChange={setAdvObjective}
+                  >
+                    <div className="flex flex-col gap-4">
+                      <div className="flex flex-wrap items-end gap-3">
+                        <div className="flex flex-col gap-1">
+                          <span className="text-xs font-medium text-ink-muted">{t.method}</span>
+                          <ButtonGroup label={t.method}>
+                            <ButtonGroupItem
+                              selected={method === "weighted_sum"}
+                              label={t.methodWeightedSum}
+                              onClick={() => setMethod("weighted_sum")}
+                            />
+                            <ButtonGroupItem
+                              selected={method === "topsis"}
+                              label={t.methodTopsis}
+                              onClick={() => setMethod("topsis")}
+                            />
+                            <ButtonGroupItem
+                              selected={method === "promethee"}
+                              label={t.methodPromethee}
+                              onClick={() => setMethod("promethee")}
+                            />
+                          </ButtonGroup>
+                          <span className="text-2xs text-ink-subtle">{t.methodFieldHint}</span>
+                        </div>
+                        {/* Normalization only means something for weighted_sum —
+                            TOPSIS and PROMETHEE fix their own internally, so
+                            showing this as if it still applied would mislead. */}
+                        {method === "weighted_sum" && (
+                          <Select
+                            label={t.normalization}
+                            hint={t.normalizationHint}
+                            className="w-56"
+                            value={normalization}
+                            onChange={(e) =>
+                              setNormalization(e.target.value as NormalizationMethod)
+                            }
+                          >
+                            <SelectOption value="minmax">{t.normMinmax}</SelectOption>
+                            <SelectOption value="vector">{t.normVector}</SelectOption>
+                          </Select>
+                        )}
+                      </div>
+                      {method !== "weighted_sum" && (
+                        <p className="text-xs text-ink-muted">{t.methodHint}</p>
+                      )}
+                      {/* AHP derives weights; it never becomes a fourth `method`
+                          (Task 2's scope note) — so it only shows up here, next
+                          to the weight fields it feeds, and only where
+                          "weighted_sum" still reads the weight the same way
+                          TOPSIS/PROMETHEE do internally. */}
+                      {method === "weighted_sum" && (
+                        <div className="space-y-3 border-t border-edge pt-3">
+                          <Checkbox
+                            label={t.ahp.toggle}
+                            hint={t.ahp.toggleHint}
+                            checked={useAhp}
+                            onChange={(e) => setUseAhp(e.target.checked)}
+                          />
+                          {useAhp && (
+                            <AhpMatrixInput criteria={ahpCriteria} onDerived={applyAhpWeights} />
+                          )}
+                        </div>
                       )}
                     </div>
-                  )}
+                  </Disclosure>
                 </CardBody>
               </Card>
             </Section>
@@ -1148,59 +1303,6 @@ function SelectionWizard() {
         </div>
       </div>
 
-      {/* Saved studies */}
-      <Section title={t.savedStudies}>
-        {!studies.data || studies.data.length === 0 ? (
-          <EmptyState title={t.noStudies} />
-        ) : (
-          <TableScroll label={t.savedStudies}>
-            <Table>
-              <TBody>
-                {studies.data.map((s) => (
-                  <Tr key={s.id}>
-                    <Td>
-                      <span className="font-medium text-ink">{s.name}</span>
-                      <div className="mt-1">
-                        <ExportButtons
-                          urlFor={(format) => studyExportUrl(s.id, format)}
-                          label={ptBR.exports.study}
-                        />
-                      </div>
-                      <div className="mt-2">
-                        <EngineeringReportLink studyId={s.id} />
-                      </div>
-                      <StudyExplanation studyId={s.id} />
-                    </Td>
-                    <Td className="align-top text-2xs text-ink-subtle">
-                      {countLabel(s.constraint_count, ptBR.home.constraintOne, ptBR.home.constraintMany)}{" "}
-                      · {countLabel(s.criterion_count, ptBR.home.criterionOne, ptBR.home.criterionMany)}
-                    </Td>
-                    <Td className="align-top">
-                      <div className="flex justify-end gap-2">
-                        <Button size="sm" onClick={() => runSaved.mutate(s.id)}>
-                          {t.runSaved}
-                        </Button>
-                        <Button size="sm" onClick={() => loadStudy.mutate(s.id)}>
-                          {t.load}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="danger"
-                          onClick={() => {
-                            if (window.confirm(t.deleteConfirm)) removeStudy.mutate(s.id);
-                          }}
-                        >
-                          {t.delete}
-                        </Button>
-                      </div>
-                    </Td>
-                  </Tr>
-                ))}
-              </TBody>
-            </Table>
-          </TableScroll>
-        )}
-      </Section>
     </div>
   );
 }
