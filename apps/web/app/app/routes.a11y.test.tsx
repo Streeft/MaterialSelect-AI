@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { ptBR } from "@/lib/i18n";
 import { Landing } from "@/components/marketing/Landing";
+import { StartScreen } from "@/components/marketing/StartScreen";
 import { describeViolations, findA11yViolations } from "@/lib/testing/axe";
 // The load-case picker is an `md-outlined-select`: the real combobox lives in
 // its shadow root, where the plain `screen` above cannot reach.
@@ -1220,7 +1221,7 @@ describe("acessibilidade das telas principais", () => {
   });
 
   it("início", async () => {
-    await auditRoute(<HomePage />, ptBR.home.methodTitle);
+    await auditRoute(<HomePage />, ptBR.appName);
   });
 
   it("catálogo", async () => {
@@ -1363,6 +1364,18 @@ describe("acessibilidade das telas principais", () => {
   it("vitrine pública (/)", async () => {
     const { container } = render(<Landing />);
     await screen.findByRole("heading", { level: 1 });
+    await expectClean(container);
+  });
+
+  // What `/` renders while the tool is shown to a class (D-86). The vitrine
+  // above stays audited: it is kept in the repo, one import away from `/`.
+  it("capa de início (/)", async () => {
+    const { container } = render(<StartScreen />);
+    await screen.findByRole("heading", { level: 1, name: ptBR.appName });
+    expect(screen.getByRole("link", { name: ptBR.home.start })).toHaveAttribute(
+      "href",
+      "/app/selecao",
+    );
     await expectClean(container);
   });
 });

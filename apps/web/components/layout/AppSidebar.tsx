@@ -21,9 +21,11 @@ import {
   IconBlend,
   IconBook,
   IconClose,
+  IconCoins,
   IconCompare,
   IconFilter,
   IconGauge,
+  IconGear,
   IconHome,
   IconLayers,
   IconLeaf,
@@ -33,20 +35,22 @@ import {
   IconRuler,
   IconScatter,
   IconStar,
+  IconTable,
   IconUpload,
 } from "@/components/ui/icons";
+import { useCanEditCatalog } from "@/lib/billing";
 
 const t = ptBR.nav;
 
 type IconComponent = ComponentType<SVGProps<SVGSVGElement>>;
 
-interface NavItem {
+export interface NavItem {
   href: string;
   label: string;
   icon: IconComponent;
 }
 
-interface NavGroup {
+export interface NavGroup {
   id: string;
   label: string;
   items: NavItem[];
@@ -65,7 +69,7 @@ const HOME: NavItem = { href: "/app", label: t.home, icon: IconHome };
  * for the selection funnel, plotted points for the property map — rather than
  * a generic document that would make all eight look the same at 18px.
  */
-const GROUPS: NavGroup[] = [
+export const GROUPS: NavGroup[] = [
   {
     id: "study",
     label: t.groupStudy,
@@ -76,7 +80,7 @@ const GROUPS: NavGroup[] = [
       // P2: o Engineering Solver e o Index Finder moram na mesma tela, porque
       // são a mesma derivação lida de dois jeitos.
       { href: "/app/dimensionar", label: t.solver, icon: IconRuler },
-      { href: "/app/custo", label: t.cost, icon: IconGauge },
+      { href: "/app/custo", label: t.cost, icon: IconCoins },
       // P3: a auditoria ambiental fica ao lado do custo porque as duas
       // respondem à mesma pergunta em moedas diferentes — o que esta peça
       // custa, em dinheiro e em energia.
@@ -93,7 +97,7 @@ const GROUPS: NavGroup[] = [
       { href: "/app/catalogo", label: t.catalog, icon: IconBook },
       // P1-4: o segundo universo passa a ter porta de entrada. Sem isto ele só
       // era alcançável de dentro de um estágio ou da ficha de um material.
-      { href: "/app/processos", label: t.processes, icon: IconLayers },
+      { href: "/app/processos", label: t.processes, icon: IconGear },
       // P3: sintetizar cria um registro, e um registro próprio — por isso
       // fica em "Dados", ao lado de onde ele vai aparecer, e não em
       // "Estudar", que é onde se decide com registros que já existem.
@@ -108,10 +112,27 @@ const GROUPS: NavGroup[] = [
     label: t.groupAdmin,
     items: [
       { href: "/app/admin/classes", label: t.classes, icon: IconLayers },
-      { href: "/app/admin/propriedades", label: t.properties, icon: IconRuler },
+      { href: "/app/admin/propriedades", label: t.properties, icon: IconTable },
     ],
   },
 ];
+
+/**
+ * The destinations this reader can use (D-86). A student admitted by open
+ * access mode (D-83) cannot write the shared catalogue, so "Importar" and the
+ * administration group would open only to say "somente leitura" — noise in the
+ * one place they look for where to go. A curator sees everything, as before.
+ * Hiding by role is not hiding a feature: the student has no use of it.
+ */
+export function visibleGroups(groups: NavGroup[], canEditCatalog: boolean): NavGroup[] {
+  if (canEditCatalog) return groups;
+  return groups
+    .filter((group) => group.id !== "admin")
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => item.href !== "/app/importar"),
+    }));
+}
 
 /** `/app` (the home item's own route) only matches itself; every other route also controls what's below it. */
 function isActive(pathname: string, href: string): boolean {
@@ -345,6 +366,7 @@ function UserFooter({ collapsed = false }: { collapsed?: boolean }) {
  * starting open.
  */
 export function AppSidebar() {
+  const groups = visibleGroups(GROUPS, useCanEditCatalog());
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
@@ -425,7 +447,7 @@ export function AppSidebar() {
               />
             </li>
           </ul>
-          {GROUPS.map((group) => (
+          {groups.map((group) => (
             <NavGroupList
               key={group.id}
               group={group}
@@ -499,7 +521,7 @@ export function AppSidebar() {
                   <NavLink item={HOME} active={isActive(pathname, HOME.href)} />
                 </li>
               </ul>
-              {GROUPS.map((group) => (
+              {groups.map((group) => (
                 <NavGroupList
                   key={group.id}
                   group={group}

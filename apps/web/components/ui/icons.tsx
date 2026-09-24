@@ -293,6 +293,30 @@ export const IconGauge = (p: IconProps) => (
   </Svg>
 );
 
+/**
+ * Custo — two stacked coins seen edge-on (D-86). Custo and Painel shared the
+ * gauge, and in the collapsed rail two identical glyphs are one unlabelled
+ * choice between two screens.
+ */
+export const IconCoins = (p: IconProps) => (
+  <Svg {...p}>
+    <ellipse cx="10" cy="7" rx="6" ry="2.6" />
+    <path d="M4 7v4c0 1.4 2.7 2.6 6 2.6s6-1.2 6-2.6V7" />
+    <path d="M8 16.2c.6 1.3 3.1 2.2 6 2.2 3.3 0 6-1.2 6-2.6v-4c0-1.2-1.9-2.2-4.6-2.5" />
+  </Svg>
+);
+
+/**
+ * Processos — a gear: what shapes, joins and finishes a material (D-86).
+ * Processos and Classes shared the layer stack.
+ */
+export const IconGear = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="12" cy="12" r="3" />
+    <path d="M12 3.5v2.3M12 18.2v2.3M3.5 12h2.3M18.2 12h2.3M6 6l1.6 1.6M16.4 16.4 18 18M6 18l1.6-1.6M16.4 7.6 18 6" />
+  </Svg>
+);
+
 /** Sair — a door with an arrow leaving through it. */
 export const IconLogout = (p: IconProps) => (
   <Svg {...p}>

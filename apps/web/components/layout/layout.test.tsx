@@ -8,7 +8,7 @@ import { render } from "@testing-library/react";
 import { screen, within } from "shadow-dom-testing-library";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { AppSidebar } from "./AppSidebar";
+import { AppSidebar, GROUPS, visibleGroups } from "./AppSidebar";
 import { ptBR } from "@/lib/i18n";
 import type { CurrentUser } from "@/lib/types";
 import { findA11yViolations, describeViolations } from "@/lib/testing/axe";
@@ -32,9 +32,20 @@ const user: CurrentUser = {
 };
 const getCurrentUser = vi.fn(() => Promise.resolve(user));
 const logoutMock = vi.fn(() => Promise.resolve());
+// D-86: the menu depends on whether this reader may curate the catalogue.
+const billing = { can_edit_catalog: true };
 vi.mock("@/lib/api", () => ({
   getCurrentUser: () => getCurrentUser(),
   logout: () => logoutMock(),
+  getBillingStatus: () =>
+    Promise.resolve({
+      active: billing.can_edit_catalog,
+      status: null,
+      current_period_end: null,
+      access_mode: billing.can_edit_catalog ? "subscription" : "open",
+      has_access: true,
+      can_edit_catalog: billing.can_edit_catalog,
+    }),
 }));
 
 function renderSidebar() {
@@ -47,6 +58,7 @@ function renderSidebar() {
 }
 
 beforeEach(() => {
+  billing.can_edit_catalog = true;
   route.pathname = "/app";
   routerReplace.mockClear();
   getCurrentUser.mockClear();
@@ -241,5 +253,31 @@ describe("AppSidebar", () => {
       expect(logoutMock).toHaveBeenCalledTimes(1);
       expect(routerReplace).toHaveBeenCalledWith("/entrar");
     });
+  });
+});
+
+describe("menu por papel e ícones próprios (D-86)", () => {
+  it("hides from a student what only a curator can use", async () => {
+    billing.can_edit_catalog = false;
+    renderSidebar();
+    await vi.waitFor(() =>
+      expect(within(rail()).queryByShadowRole("link", { name: ptBR.nav.imports })).not.toBeInTheDocument(),
+    );
+    expect(within(rail()).queryByShadowRole("list", { name: ptBR.nav.groupAdmin })).not.toBeInTheDocument();
+    // Everything a student uses is still there.
+    expect(within(rail()).getByShadowRole("link", { name: ptBR.nav.selection })).toBeInTheDocument();
+  });
+
+  it("keeps the full menu for a curator", () => {
+    const hrefs = visibleGroups(GROUPS, true).flatMap((g) => g.items.map((i) => i.href));
+    expect(hrefs).toContain("/app/importar");
+    expect(hrefs).toContain("/app/admin/classes");
+  });
+
+  it("gives every destination its own glyph", () => {
+    // In the collapsed rail the glyph is the whole label; two alike are one
+    // unlabelled choice between two screens.
+    const icons = GROUPS.flatMap((g) => g.items.map((i) => i.icon));
+    expect(new Set(icons).size).toBe(icons.length);
   });
 });

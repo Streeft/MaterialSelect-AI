@@ -1640,6 +1640,7 @@ export const ptBR = {
       "Nenhuma propriedade é inventada: todo número na tela veio de um valor cadastrado ou de " +
       "um cálculo determinístico, e a origem de cada um está a um gesto de distância.",
     methodTitle: "O método, em quatro passos",
+    methodDisclosure: "Como funciona: o método em quatro passos",
     methodHint:
       "É o percurso de Ashby: descreva a função, elimine com restrições, ordene por um objetivo e leia o resultado com a proveniência de cada número.",
     step1: "Função",

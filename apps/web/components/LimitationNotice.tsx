@@ -19,8 +19,12 @@ export function LimitationNotice({
   variant = "block",
   className,
 }: {
-  /** `block` states it in full; `footer` is the persistent one-liner. */
-  variant?: "block" | "footer";
+  /**
+   * `block` states it in full; `footer` is the persistent one-liner; `compact`
+   * (D-86) is the short form for the home page, where the full text still
+   * sits in the footer of the same screen. Never dismissible in any variant.
+   */
+  variant?: "block" | "footer" | "compact";
   className?: string;
 }) {
   if (variant === "footer") {
@@ -28,6 +32,14 @@ export function LimitationNotice({
       <p className={cn("text-2xs text-ink-subtle", className)}>
         <span className="font-medium text-ink-muted">{t.title}:</span> {t.full}
       </p>
+    );
+  }
+
+  if (variant === "compact") {
+    return (
+      <Alert tone="info" className={className}>
+        <span className="font-medium">{t.title}:</span> {t.short}
+      </Alert>
     );
   }
 
