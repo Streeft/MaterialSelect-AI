@@ -1,7 +1,6 @@
 import path from "node:path";
 import type { Page } from "@playwright/test";
 import { test, expect } from "./session";
-import { selectMwcOption } from "./mwc";
 
 /**
  * A4 (Fase 7): the one flow no unit or component test can reach on its own —
@@ -39,7 +38,9 @@ test("importar, selecionar, visualizar e exportar um estudo", async ({ page }) =
   // unit the backend already recognises) except the class, which the fixture
   // has no column for — that one needs a default.
   await expect(page.getByRole("heading", { name: "Mapeie as colunas" })).toBeVisible();
-  await selectMwcOption(page, "Classe padrão (quando a coluna estiver vazia)", "Metais");
+  await page
+    .getByLabel("Classe padrão (quando a coluna estiver vazia)")
+    .selectOption({ label: "Metais" });
 
   await page.getByRole("button", { name: "Validar", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Relatório de validação" })).toBeVisible();

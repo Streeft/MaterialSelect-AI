@@ -3902,3 +3902,1002 @@ uniformidade sem um motivo que as outras não tivessem. Apagar
 `MaterialClass`/`Source`/`BatteryChemistry`/`TransportMode` junto — nenhum
 dos quatro é fictício por definição, e apagar taxonomia reutilizável
 obrigaria o catálogo oficial a recriá-la do zero.
+
+---
+
+## D-73 — MSDS (design system da Artifact): tokens de cor por rota entram, o resto fica para outra rodada
+
+**O pedido.** Uma sessão separada de 8 rodadas construiu, inteiramente dentro
+de uma Claude Artifact e sem nunca tocar este repositório, um design system
+próprio ("MSDS") — biblioteca de componentes, folha de ícones M3, paleta
+tonal por rota do NavRail e um hook de física de mola. O usuário pediu que
+esse trabalho fosse portado para `apps/web` de verdade, revogando D-23 ("sem
+biblioteca de componentes") especificamente para o MSDS, do mesmo jeito que
+D-48 já abriu uma exceção pontual para `@material/web`.
+
+**O que esta sessão entregou: só a extensão do mecanismo de cor por rota**
+(D-49) de 6 para as **16** rotas reais de `components/layout/AppSidebar.tsx`
+— os 9 blocos `[data-section="…"]` novos (`dimensionar`, `custo`, `eco`,
+`baterias`, `processos`, `sintetizar`, `meus-registros`, `classes`,
+`propriedades`) em `apps/web/app/globals.css`, mais `lib/design/sections.ts`
+atualizado com os 16 `SectionId`. Todo o resto do pedido — a biblioteca de
+componentes em si (`bundle.js`/`bundle.css`/`index.d.ts` do MSDS), a troca de
+ícones, a reescrita de `components/ui/*` e de `AppSidebar.tsx` sobre um
+`NavRail` do MSDS, e o hook `useSpring` — **não** foi feito nesta rodada;
+ver "o que fica de fora" abaixo.
+
+**Por que os valores de cor não vieram copiados do `tokens.json` do MSDS.**
+O plano original previa portar os 16 valores já validados por contraste da
+Rodada 8 do MSDS. Mas o gerador que produziu esses valores (CIELCh,
+aproximação de HCT/CAM16) não está no material entregue — só o *resultado*
+está, em `bundle.css`. Colar hexadecimais sem conseguir re-derivar ou
+reconferir o método que os produziu teria violado a regra permanente deste
+arquivo: toda cor nova em `globals.css` tem que rastrear a um valor validado,
+ou ser validada de novo por quem a escreve. A saída foi reimplementar, a
+partir dos próprios *stops* RGB já commitados (as 6 rotas originais de
+D-38/D-49), a receita que claramente as gerou — uma escada de luminosidade
+OKLCH fixa por degrau `--brand-*`, uma crominância-alvo cortada no gamute
+sRGB por matiz, e o tema escuro como a rampa clara lida ao contrário — como
+um script pequeno, `scripts/design/generate-route-palette.py`, e usá-lo para
+gerar as 9 rotas novas em ângulos de matiz inéditos. `scripts/design/
+verify-globals-contrast.py` reconfere as 16 rotas × 2 temas direto do
+`globals.css` real (não da saída do gerador) e falha a build se algum par
+cair abaixo de 4,5:1; hoje o pior caso é 5,69:1 (claro) / 9,22:1 (escuro).
+
+**Por que os ângulos de matiz não são os do `tokens.json`, nem escolhidos por
+igualmente espaçados em OKLCH.** Duas exigências vieram explícitas do
+usuário — Eco tem que ler como verde, Custo como laranja — e a Rodada 8 do
+MSDS não as garante (o hue dela pra Eco cai perto de amarelo-esverdeado depois
+de escurecido para contraste). Espaçar por ângulo OKLCH também não bastou: o
+ângulo OKLCH e o matiz HSL percebido não são a mesma escala, sobretudo na
+faixa amarelo-verde, e uma primeira tentativa colocou Custo colado em Painel
+e Eco colado em Importar apesar de "espaçados" em OKLCH. A escolha final
+mede o HSL de *saída* de cada ângulo candidato (a cor depois do corte de
+gamute que o contraste exige) e garante ≥15° de separação de toda rota
+existente — Eco e Custo primeiro pelo requisito semântico, as outras 7 depois
+para preencher os vãos.
+
+**O que fica de fora desta rodada, e por quê não foi tentado pela metade.**
+`apps/web/lib/msds/` (o `bundle.js` de ~152 KB e `bundle.css` de ~80 KB
+convertidos em módulo ES, com guarda de SSR), a reescrita de
+`components/ui/*` (14 arquivos) para delegar ao MSDS mantendo assinatura,
+`AppSidebar.tsx` sobre `MSDS.NavRail`/`NavDrawer`, a troca de ícones em
+`components/ui/icons.tsx`, e `lib/motion/useSpring.ts` exigem, cada um,
+verificação real contra o portão de CI (typecheck/lint/test/build/e2e) depois
+de tocar a superfície inteira que os importa — 44 rotas e 72+ arquivos de
+componente. Entregar isso pela metade, sem rodar a suíte inteira contra cada
+mudança, arriscava exatamente o que este arquivo probe contra: deixar
+`npm run build` ou `npm run typecheck` vermelho. Ficam como trabalho
+seguinte, um de cada vez, cada um terminando com a suíte verde antes do
+próximo começar — o mesmo padrão de "dirigido por subagentes, um item por
+vez" que B1–B10 e M5/M6 já usaram neste projeto.
+
+**O que isto significa para D-48.** Nada ainda — `@material/web` continua
+cobrindo botão/campo/diálogo/abas/checkbox/radio/select nesta rodada, porque
+`components/ui/*` não foi tocado. D-48 só fica parcial ou totalmente
+redundante quando a Fase de reescrita de componentes (acima) acontecer, e
+esse ponto deve ser revisitado então, não aqui.
+
+## D-74 — MSDS: a biblioteca entra em `lib/msds/`, com dois bugs de origem corrigidos; `components/ui/*` e `AppSidebar` ficam para a próxima rodada
+
+**O que esta sessão entregou, do que D-73 deixou de fora.** `apps/web/lib/msds/`
+existe agora: `msds.tsx` (o `bundle.js` inteiro — ~2600 linhas, Button até
+`ContainerTransformDemo` — convertido de IIFE que lia `window.React` para
+módulo ES com `import * as React from "react"`), `icons.tsx` (a função
+`Icon(name)`, ~32 glifos redesenhados na Rodada 6, extraída para arquivo
+próprio como `msdsIcon`), `msds.css` (o `bundle.css` de ~1400 linhas, portado
+quase byte a byte) e `index.ts` (o barril — `export * from "./msds"` +
+`msdsIcon`). `msds.css` é importado uma vez, de `app/layout.tsx`, depois de
+`globals.css`.
+
+**O que ainda não foi tocado, deliberadamente.** `components/ui/*` (as ~20
+primitivas que hoje envolvem `@material/web`), `components/layout/
+AppSidebar.tsx` sobre `NavRail`/`NavDrawer`, a substituição de path data em
+`components/ui/icons.tsx`, e `lib/motion/useSpring.ts` como arquivo próprio
+(o `useSpring`/`SPRING` do MSDS já existe, mas dentro de `lib/msds/msds.tsx`,
+não extraído). A biblioteca portada hoje **não é importada por nenhuma tela
+do produto** — é uma dependência nova, testada isoladamente (typecheck, lint,
+test, build, spot-check visual em `/` claro e escuro), mas inerte. A razão é
+a mesma do D-73: reescrever 44 rotas × 20 arquivos de componente contra o
+portão de CI inteiro, numa única rodada já gasta portando e corrigindo a
+biblioteca em si, arriscava exatamente o que este arquivo probe contra.
+Fica para uma rodada seguinte, um item por vez, com a suíte verde entre cada
+um — a mesma disciplina de B1–B10.
+
+**Por que `msds.tsx`/`icons.tsx` carregam `@ts-nocheck`.** São porte mecânico
+de módulo, não reescrita: `window.React` → `import`, `function(props)` sem
+tipo em ~80 componentes/hooks. Anotar 2600 linhas de JS alheio com tipos
+verdadeiros não era um bom uso de uma rodada de acompanhamento limitada, e
+`@ts-nocheck` é honesto sobre isso em vez de forçar `any` disperso que só
+esconderia o mesmo fato. `index.ts`, o único arquivo que o resto da aplicação
+deve importar, não carrega a marca.
+
+**A única mudança funcional real: SSR.** O bundle nasceu numa Artifact, que
+nunca roda no servidor; o Next 16 renderiza este módulo no servidor primeiro.
+Auditoria de todo acesso a `window`/`document`/`matchMedia` no arquivo achou
+um ponto de risco real — `prefersReducedMotion()`, chamado tanto de
+manipuladores de evento quanto de corpos de `useEffect` (os dois só rodam no
+cliente, portanto já seguros) quanto potencialmente de render direto — e
+ganhou `typeof window === "undefined"` na entrada. Todo outro acesso a
+`window` no arquivo já vivia dentro de um `useEffect` ou de um manipulador de
+evento; nenhum guard adicional foi necessário além desse.
+
+**Dois bugs reais no material de origem, achados e corrigidos, não só
+copiados.** (1) `bundle.css` tinha um comentário CSS que se fechava sozinho:
+o trecho documentando `outline/surface*/ink*/edge*/cat-*` continha as
+sequências `*/` e `/*` adjacentes (um asterisco de "qualquer sufixo" seguido
+da barra que separa os nomes), o que fecha um comentário `/* */` no primeiro
+`*/` que aparece — a regra é literal em CSS, sem aninhamento. O comentário
+real terminava três linhas depois; tudo entre o fechamento acidental e o
+fechamento pretendido virou CSS de verdade aos olhos de qualquer parser
+real, não só do minificador do Next. Isto **não é uma peculiaridade do
+`cssnano-simple`** que só apareceu em produção — é um bug que já existia no
+arquivo entregue e que teria quebrado a mesma regra em qualquer navegador;
+o build de produção só foi onde ele *apareceu* primeiro, porque o parser de
+desenvolvimento (`postcss` completo, via `next dev`) é mais tolerante e
+segue até o `*/` certo mesmo depois de um falso positivo, enquanto o parser
+simplificado do build de produção não. Corrigido inserindo um espaço nas
+três ocorrências (`surface*/ink*` → `surface* /ink*`, etc.), preservando o
+texto. (2) Nenhum outro comentário do arquivo tinha o mesmo padrão — conferido
+programaticamente (contagem de `/*` vs `*/`, depois busca por
+`[caractere não-espaço]*/[caractere não-espaço]` no arquivo inteiro).
+
+**Reconciliação de tokens CSS — o ponto que a tarefa avisou para checar antes
+de duplicar.** `msds.css` usa `var(--nome)` como **valor CSS direto**
+(`color: var(--ink)`, `background: var(--surface-100)`). Todo token de cor
+existente em `globals.css` é uma **tripla "R G B" crua** (`--ink: 23 26 33`),
+consumida só via `rgb(var(--ink) / <alpha>)` pelo Tailwind — os dois formatos
+não são intercambiáveis sob o mesmo nome. A resolução, em duas partes:
+
+1. Todo nome de token que já existe no app com o mesmo significado (`accent`,
+   `accent-fg`, `brand-50/100/200/700/800`, `danger*`, `edge*`, `info*`,
+   `ink*`, `quality-*`, `success*`, `warning*`) foi **reusado, nunca
+   duplicado**: em `lib/msds/msds.css`, todo `var(--x)` desses nomes foi
+   reescrito para `rgb(var(--x))` (ou `rgb(var(--x) / alpha)` quando já havia
+   um alfa), mecanicamente, preservando qualquer *fallback* existente
+   (`var(--row-accent, var(--accent))` virou
+   `var(--row-accent, rgb(var(--accent)))`).
+2. Todo nome que o MSDS espera e o app não tinha (`--surface-100/200/300`,
+   `--primary`/`--secondary`/`--tertiary` + `-container` + `on-*`,
+   `--radius-card/control/panel/seat/xl/full`, `--space-2..5`,
+   `--shadow-card/float/glow/overlay/raised`, `--row-accent`) ganhou um bloco
+   de ponte em `app/globals.css`, dentro do `:root` de base — não uma cor
+   nova: `--surface-100/200/300` apontam para `rgb(var(--surface))` /
+   `--surface-raised` / `--surface-sunken` já existentes; `--primary` até
+   `--on-tertiary` apontam para `--md-sys-color-primary` etc., o esquema M3
+   por seção já medido por contraste em D-49/D-73 (é literalmente o mesmo
+   papel de cor que o `@material/web` já usa, só por outro nome); as duas
+   exceções sem contraparte exata (`--tertiary-container`,
+   `--on-tertiary-container`, que `--md-sys-color-*` nunca precisou definir)
+   reusam `--brand-100`/`--ink` em vez de introduzir um hexadecimal novo e
+   não medido; `--radius-*` e `--space-*` espelham a escala já existente em
+   `tailwind.config.ts` (`borderRadius`, `spacing` padrão do Tailwind) em vez
+   de abrir uma segunda escala; `--shadow-*` copia as strings de `boxShadow`
+   já existentes. **Nenhuma cor nova, não validada por contraste, foi
+   introduzida** — a regra permanente deste arquivo continua de pé. Como os
+   tokens de ponte são `var()`/`rgb(var())` sobre os originais (nunca uma
+   cópia estática do valor), eles herdam automaticamente qualquer override
+   de tema (`[data-theme="dark"]`) ou de seção (`[data-section="…"]") sem
+   precisar de um bloco de ponte por seção.
+
+`app/layout.tsx` importa `../lib/msds/msds.css` logo depois de `./globals.css`,
+para que o bloco de ponte já esteja na cascata antes de qualquer regra
+`.msds-*` o ler.
+
+**Verificação.** `npm run typecheck`, `npm run lint` (0 erros — os avisos
+pré-existentes de `MaterialForm.tsx` e os novos avisos de
+`react-hooks/exhaustive-deps` dentro de `msds.tsx`, esperados num porte
+mecânico de hooks que a regra não foi desenhada para ler, não bloqueiam),
+`npm run test` (388 testes, nenhum tocado — nada em `components/ui/*` ou
+`app/**` mudou de comportamento) e `npm run build` (valida também que o alias
+do Plotly de D-51 continua resolvendo) passam. `npm run start` + Chromium
+(`/opt/pw-browsers/chromium`, via `playwright-core`) confirmou `/` renderiza
+sem `pageerror` em tema claro e escuro, com `background-color` do `<body>`
+diferente entre os dois — a cascata de tokens de seção/tema continua viva
+depois da importação do CSS novo. Playwright e2e (`apps/web/e2e/`) não foi
+tentado nesta rodada por já ter budget consumido pela investigação acima;
+fica na mesma situação que D-73 registrou (proxy bloqueava a instalação do
+Chromium do Playwright em si — o binário usado no spot-check é um Chromium
+de sistema achado em `/opt/pw-browsers/`, não o gerenciado pelo Playwright).
+
+**O que isto significa para D-48 e para a próxima rodada.** Ainda nada — como
+em D-73, `@material/web` continua cobrindo as primitivas porque
+`components/ui/*` não foi tocado. A próxima rodada é: reescrever cada arquivo
+de `components/ui/*` para delegar a `lib/msds`, mantendo assinatura de export
+e prop; substituir o path data em `components/ui/icons.tsx` pelos ~16 glifos
+que têm equivalente direto no `msdsIcon` (home, map/compare, catalog/grid,
+filter, layers, ruler, leaf, battery, check, close, menu, search, plus,
+chevronDown, dashboard→gauge); reconstruir `AppSidebar.tsx` sobre
+`NavRail`/`NavDrawer` preservando `--rail-accent` e o colapso existente; e só
+então revisitar se D-48 fica redundante.
+
+## D-75 — MSDS: os glifos entram em `icons.tsx`; `components/ui/*` e `AppSidebar` continuam para outra rodada
+
+**O que esta sessão entregou, do que D-74 deixou de fora.** Só a primeira das
+três frentes que D-74 apontou como próximo passo: o path data de 20 dos 39
+ícones de `components/ui/icons.tsx` foi substituído pelo desenho
+correspondente de `msdsIcon(name)` (Rodada 6 do MSDS), **mantendo o nome do
+export, a assinatura de props e o wrapper `<Svg>` existente** — nenhum
+site de chamada mudou. `components/ui/*` (as ~20 primitivas que hoje
+envolvem `@material/web`) e a reconstrução de `AppSidebar.tsx` sobre
+`NavRail`/`NavDrawer` **não foram tocados nesta rodada** — ver a razão no
+parágrafo de escopo abaixo.
+
+**A tabela de mapeamento**, verificada lendo os `case`s de
+`lib/msds/icons.tsx` e os exports de `components/ui/icons.tsx` lado a lado,
+não presumindo o esboço do relatório de D-74 como completo (ele estava certo
+em 15 dos 16 pares que listou, mas "map" mapeia para `IconScatter` — o ícone
+da rota `/app/mapas`, cujo conceito é literalmente "mapa" mesmo com o glifo
+do MSDS sendo um pino de localização e não um scatter plot — e não havia um
+`IconMap` para receber o nome):
+
+| `msdsIcon` | export em `icons.tsx` | nota |
+|---|---|---|
+| `home` | `IconHome` | vira glifo preenchido (`fill="currentColor" stroke="none"`) |
+| `map` | `IconScatter` | rota `/app/mapas`; pino, não scatter — a rota chama-se "mapa" |
+| `compare` | `IconCompare` | |
+| `catalog`/`grid` | `IconGrid` | usado o `case "grid"` (mais recente); `IconGrid` só era usado em `/app/estilo`, não na navegação (`IconBook` continua a cobrir a rota do catálogo — sem contraparte no MSDS) |
+| `dashboard` | `IconGauge` | rota `/app/painel` |
+| `import` | `IconUpload` | seta do MSDS aponta para baixo (glifo de origem, não corrigido aqui) |
+| `check` | `IconCheck` | |
+| `close` | `IconClose` | |
+| `menu` | `IconMenu` | |
+| `search` | `IconSearch` | |
+| `plus` | `IconPlus` | |
+| `chevronDown` | `IconChevronDown` | |
+| `chevronRight` | `IconChevronRight` | |
+| `alert` | `IconWarning` | vira glifo preenchido com furo em `var(--surface-200)`, igual ao original do MSDS |
+| `filter` | `IconFilter` | vira glifo preenchido |
+| `ruler` | `IconRuler` | |
+| `leaf` | `IconLeaf` | |
+| `battery` | `IconBattery` | vira glifo preenchido, com o indicador de carga em `var(--surface-200)` |
+| `layers` | `IconLayers` | |
+| `star`/`starOutline` | `IconStar` | os dois `case`s do MSDS têm o mesmo `d`; a variante preenchida/contorno já era resolvida pela prop `filled` existente, então só o `d` mudou |
+
+**Ícones sem par, deixados intocados, com o motivo**: `IconInfo`, `IconDanger`,
+`IconSun`, `IconMoon`, `IconMonitor`, `IconExternal`, `IconArrowRight`,
+`IconArrowLeft`, `IconTrash`, `IconDownload`, `IconTable`, `IconBook`,
+`IconBlend`, `IconPanelLeft`, `IconLogout`, `IconQualityMeasured`,
+`IconQualityImported`, `IconQualityEstimated`, `IconQualityMissing` — nenhum
+tem glifo MSDS que responda ao mesmo conceito (o MSDS não tem "informação",
+"perigo", "sol/lua/monitor", "externo", "seta", "lixeira", "baixar", "tabela",
+"livro", "mistura", "sair" nem as quatro marcas de qualidade de dado, que são
+um vocabulário próprio deste app sem equivalente em nenhum sistema de design
+genérico). Do lado do MSDS, `chevrons` (duplo chevron), `minus`, `tag`,
+`gear`, `flask`, `bookmark`, `list`, `dots`, `chevronLeft`, `calendar`,
+`clock` e `panelRight` também ficaram sem par — nenhum tem um export
+correspondente hoje em `icons.tsx` (criar um export novo estava fora do
+escopo: a tarefa é substituir path data de ícone existente, não introduzir
+glifo novo), e `panelRight`/`chevronLeft` especificamente têm direção oposta
+ao que `IconPanelLeft` precisaria (o controle de colapso marca o **lado
+esquerdo** do painel).
+
+**`components/ui/*`, `AppSidebar.tsx` e a pergunta sobre D-48 continuam para
+a próxima rodada**, pela mesma disciplina de escopo que D-73/D-74 já
+registraram: a tarefa completa (~20 arquivos de componente, mais o
+`AppSidebar` sobre `NavRail`/`NavDrawer`, mais atualizar `ui.test.tsx` para
+o DOM/ARIA que cada componente do MSDS realmente produz, mais Playwright
+completo) excede o que esta rodada conseguiu verificar com a mesma disciplina
+de "portão verde a cada passo" que as rodadas anteriores mantiveram — e a
+regra explícita da tarefa (§4, "prioridade/regra de parada") pede exatamente
+isto: entregar o subconjunto que fica totalmente verificado e parar, em vez
+de arriscar um diff grande e quebrado. **`@material/web` continua em uso**
+em todo `components/ui/*` — nenhum arquivo desse diretório foi tocado —, então
+a exceção de D-48 continua válida como estava; não há nada a atualizar ali
+nesta rodada.
+
+**Verificação.** `npm run typecheck` (limpo), `npm run lint` (0 erros — os
+mesmos avisos pré-existentes de `MaterialForm.tsx` e de `lib/msds/msds.tsx`
+de D-74, nada novo), `npm run test` (388 testes, todos verdes — nenhum
+tocado, porque a troca de path data não muda export, prop nem estrutura DOM
+fora do conteúdo interno do `<svg>`) e `npm run build` (23 rotas, sucesso).
+Nenhum teste precisou de atualização porque `ui.test.tsx` não asserta contra
+`d` de `<path>`. E2E do Playwright não foi tentado nesta rodada — a mudança
+não toca nenhum seletor, comportamento ou rota que os specs exercitam, e o
+mesmo bloqueio de proxy das duas rodadas anteriores (instalação do Chromium
+gerenciado pelo Playwright) continua de pé; o escopo entregue não justificou
+reabrir a investigação do Chromium de sistema (`/opt/pw-browsers/`) que D-74
+já documentou como contorno disponível para quando `components/ui/*` de fato
+mudar de comportamento visual ou de DOM.
+
+## D-76 — MSDS: `Button`/`ButtonLink` passam a renderizar MSDS por dentro; um bug de nascença em `msds.tsx` é corrigido; o resto de `components/ui/*` fica documentado, não convertido
+
+**Escopo entregue.** De `components/ui/*`, só `Button.tsx` foi convertido —
+e parcialmente: `Button` e `ButtonLink` agora renderizam a `Button` do MSDS
+(ou suas classes CSS, no caso de `ButtonLink`); `IconButton`, `ButtonGroup`/
+`ButtonGroupItem` e `ToggleChip`, no mesmo arquivo, continuam sobre
+`@material/web`, cada um com uma incompatibilidade de API concreta
+registrada no próprio arquivo (resumo abaixo). Nenhum outro arquivo de
+`components/ui/*` foi tocado. A conversão de `Card.tsx`, `Badge.tsx`,
+`DataQualityBadge.tsx`, `Dialog.tsx`, `Tabs.tsx`, `Field.tsx`,
+`Breadcrumb.tsx`, `Stepper.tsx`, `Popover.tsx`, `Feedback.tsx`, `Bar.tsx`,
+`Alert.tsx` e `Table.tsx` **não foi tentada nesta rodada** — a mesma
+disciplina de "portão verde a cada passo, parar em vez de arriscar um diff
+grande" que D-75 já registrou, mais o tempo que o bug de nascença abaixo
+consumiu antes de qualquer componente de aplicação poder sequer importar de
+`@/lib/msds`.
+
+**Um bug real em `lib/msds/msds.tsx`, encontrado ao tentar usá-lo pela
+primeira vez.** O barril de re-exports no fim do arquivo era
+`export const { Button, IconButton, ... } = api;` — uma desestruturação que
+tenta declarar um *novo* `const Button` (e assim por diante, para todo nome
+da lista) no mesmo escopo de módulo que já tem `function Button(props)
+{...}`. Duas declarações do mesmo nome no mesmo escopo top-level é
+`SyntaxError` em ECMAScript de verdade, não só uma reclamação do
+TypeScript que o `@ts-nocheck` do arquivo pudesse encobrir — e foi
+exatamente isso que aconteceu: `tsc --noEmit` ficou quieto porque
+`@ts-nocheck` também desliga o diagnóstico de identificador duplicado do
+TypeScript para este arquivo, mas o esbuild do Vitest/Vite faz o parse de
+verdade e recusou construir o módulo na primeira vez que algo importou de
+`@/lib/msds` — o que nunca tinha acontecido antes: `icons.tsx` (usado desde
+D-75) não importa `msds.tsx`, e nenhum componente de aplicação importava a
+barril até este `Button.tsx`. O defeito era latente desde D-74. Corrigido
+trocando a desestruturação por uma lista simples de reexport
+(`export { Button, IconButton, ... };`), que marca as ligações **já
+existentes** (as mesmas `function Button`, etc.) como exportadas em vez de
+tentar declarar novas — mesmo nome, mesmo valor, sem redeclaração.
+
+Corrigir esse bug teve um efeito colateral que também precisou de correção:
+uma vez que o arquivo passou a fazer parse completo, as regras do ESLint
+React Compiler (`react-hooks/refs`, `react-hooks/immutability`) — que antes
+abortavam a análise em silêncio no mesmo erro de sintaxe — passaram a
+enxergar o resto do arquivo pela primeira vez, e encontraram 34 violações
+reais dentro dos componentes de demonstração do próprio bundle vendorizado
+(`ContainerTransformDemo`, `ScreenTransitionDemo`, e o uso interno de refs
+da família Dialog/BottomSheet/Popover/Menu/SideSheet/DatePicker) — padrões
+que já existiam no Artifact de origem e que reescrever linha a linha
+contradiria o propósito de D-74 (porte mecânico de wiring, não reescrita de
+comportamento). Silenciadas com um `eslint-disable` no topo do arquivo, na
+mesma granularidade que `@ts-nocheck` já usa para o arquivo inteiro —
+`react-hooks/exhaustive-deps` continua como aviso (não erro), sem mudança:
+já existia antes desta sessão e o portão de lint nunca dependeu dele.
+
+**`Button`/`ButtonLink` — o que foi traduzido.** O vocabulário de variante/
+tamanho do MSDS (`msds-btn-{primary,secondary,ghost,danger,link}` ×
+`{sm,md}`, em `lib/msds/msds.css`) já bate um-para-um com
+`ButtonVariant`/`ButtonSize` deste app, inclusive o sublinhado da variante
+`link`, que o MSDS já embute em `.msds-btn-link` — nenhuma classe extra
+precisou ser recriada, ao contrário do mapeamento anterior para
+`@material/web`. Três traduções reais:
+- **`icon`**: a `Button` do MSDS não tem prop `icon` — só desenha os dois
+  glifos que já conhece (spinner de `loading`, check de `state="success"`);
+  um prop `icon` chegaria ao `rest` spread dela e pousaria como atributo
+  inválido no `<button>` real. `icon` nunca é passado à `Button` do MSDS;
+  vira um `<span>` decorativo entre os filhos, para não competir com o
+  `text-overflow: ellipsis` de `.msds-btn-label`.
+- **`ref`**: a `Button` do MSDS é função simples, não `forwardRef` — nunca
+  recebe `ref` de verdade em React 18. Nenhum call site deste app lê ref de
+  `Button` (confirmado por grep antes da reescrita); o parâmetro continua
+  aceito por compatibilidade de tipo e intencionalmente não repassado.
+- **`ButtonLink`**: a `Button` do MSDS não tem prop `as`/polimórfica — é
+  sempre um `<button>` (`h("button", ...)`, checado em `msds.tsx` antes
+  desta decisão). Renderizar um link através dela produziria um botão
+  envolvendo um link ou um link se passando por botão — a regressão de
+  acessibilidade que a tarefa nomeou explicitamente. Em vez disso,
+  `ButtonLink` renderiza um `<a>`/`Link` de verdade, estilizado com as
+  classes CSS `.msds-btn`/`.msds-btn-{variant}`/`.msds-btn-{size}` do MSDS
+  em vez de chamar a função componente — mesma linguagem visual, semântica
+  de link real. O que se perde contra `<MsdsButton>`: o ripple de ponteiro e
+  o morph de forma ao pressionar, dois hooks internos
+  (`useRipple`/`useShapeMorph`) que o MSDS não exporta do seu barril — um
+  floreio cosmético, não uma diferença de correção ou acessibilidade.
+
+**O que ficou em `@material/web`, e por quê, cada um com o motivo escrito no
+próprio arquivo:**
+- **`IconButton`**: o `IconButton` do MSDS recebe `iconOn`/`iconOff` como
+  **nomes** de um vocabulário fechado (`msdsIcon(name)`, um `switch` fixo em
+  `lib/msds/icons.tsx`) e sempre desenha um desses — não tem encaixe para um
+  `ReactNode` arbitrário. O `icon` deste app é sempre um componente de ícone
+  já importado de `components/ui/icons.tsx`; os ~15 call sites passam cerca
+  de uma dúzia de ícones diferentes, nenhum nomeável no `switch` do MSDS sem
+  estender aquele arquivo vendorizado (fora do escopo de uma tradução em
+  wrapper) ou construir uma tabela de nomes — o que não é tradução de API, é
+  um segundo conjunto de ícones.
+- **`ButtonGroup`/`ButtonGroupItem`**: `ButtonGroup` deste app é um
+  componente composto (contêiner + filhos `ButtonGroupItem`, cada um com seu
+  próprio `selected`/`onClick`/`label`/`icon`); o `ButtonGroup` do MSDS
+  recebe um array plano `options: {value, label}[]` mais um par
+  `value`/`onChange`, sem `icon` por opção nem atributo ARIA extra.
+  `ThemeToggle.tsx` (fora do escopo desta rodada, e ele mesmo deixado
+  intocado pela instrução da tarefa) depende exatamente do que a forma do
+  MSDS descarta: seu modo `compact` desenha um botão segmentado só-ícone
+  (`label=""` mais um `aria-label` de verdade) — reduzir ao array do MSDS
+  perderia o ícone ou deixaria um botão sem nome acessível.
+- **`ToggleChip`**: o `Chip` do MSDS não tem tratamento de `disabled`
+  nenhum — checado em `msds.tsx` antes desta decisão, seu `onClick` dispara
+  independente de qualquer prop `disabled`. `/app/comparar` usa
+  `disabled={!chosen && materialsFull}` para impedir de verdade que o
+  leitor selecione além do teto de comparação, não só para acinzentar;
+  ligar esse chip ao `Chip` do MSDS descartaria esse limite em silêncio.
+
+**`DataQualityBadge.tsx` — considerado e recusado, pela regra D-24.** O
+`DataQualityBadge` do MSDS já usa exatamente os quatro tokens de cor deste
+projeto (`--quality-{medido,importado,estimado,ausente}`, incluindo a borda
+tracejada de "ausente") e sempre emite o rótulo escrito — a âncora que a
+tarefa pediu para verificar está de fato presente. Mas o glifo do MSDS é um
+ponto colorido **da mesma forma** para os quatro estados (um círculo cheio,
+exceto o tracejado de "ausente"); a implementação atual deste app usa quatro
+ícones com **formas diferentes** (`IconQualityMeasured` = check,
+`IconQualityImported` = seta para dentro, `IconQualityEstimated` = onda,
+`IconQualityMissing` = círculo tracejado com corte), justamente para que a
+distinção sobreviva sem cor — um leitor com daltonismo ou uma impressão
+monocromática ainda distingue por forma. Trocar pelo glifo do MSDS
+regrediria esse segundo canal, o que o padrão de parada da tarefa proíbe
+explicitamente ("se uma conversão comprometeria D-24, não faça essa
+conversão"). Deixado intocado.
+
+**`Card.tsx`, `Badge.tsx` — não tentados, e por quê.** Nenhum dos dois usa
+`@material/web` hoje — já são Tailwind bespoke, então não há exceção de
+D-48 a fechar ali. `Card`/`CardHeader`/`Section` deste app carregam props
+sem equivalente no MSDS (`as` polimórfico, `riseIndex` com a animação
+escalonada, `headingLevel` para o esboço do documento, `actions` no
+cabeçalho) que uma conversão perderia ou teria que reimplementar por fora —
+mais superfície do que uma tradução em wrapper justifica numa rodada já
+consumida pelo bug de `msds.tsx`. O `Badge` do MSDS, por sua vez, ignora
+qualquer prop além de `tone`/`children` (sem `className`, sem `title`, sem
+slot de ícone) — `DemoDataBadge.tsx` usa `title`, `AppSidebar.tsx` (fora de
+escopo) usa `className`; oferecer os três exigiria um `<span>` externo só
+para carregá-los, uma casca sem função visual. Nenhum dos dois foi
+convertido nesta rodada; ficam para a próxima, com a mesma disciplina.
+
+**Verificação, por passo.**
+1. Depois de reescrever só `Button.tsx` (antes do bug de `msds.tsx` ser
+   corrigido): `npm run typecheck` limpo; `npm run test -- components/ui/
+   ui.test.tsx` falhou com o `SyntaxError` de identificador duplicado
+   descrito acima — o que expôs o bug.
+2. Corrigido o barril de `msds.tsx`: `npm run test -- components/ui/
+   ui.test.tsx` — 21 testes verdes (dois reescritos: a suíte de `Button`
+   trocou `findByShadowRole`/o host do shadow root por `getByRole` direto
+   no `<button>` real, e `data-aria-busy` — a reescrita do mixin de
+   aria-delegation do `@material/web` — pelo `aria-busy` real que a `Button`
+   do MSDS escreve no elemento).
+3. `npm run lint`: 34 erros novos, todos dentro de `lib/msds/msds.tsx`
+   (`react-hooks/refs`/`react-hooks/immutability`, ver acima) — corrigidos
+   com o `eslint-disable` de arquivo; depois, 0 erros, 21 avisos (os mesmos
+   pré-existentes de D-74/D-75, nenhum novo).
+4. `npm run test` (suíte completa): 388 testes, 1 falha —
+   `components/selection/StageList.test.tsx` › "refuses to remove the last
+   remaining stage", que consultava o texto do botão "Remover" por
+   `getByShadowText` e chamava `toBeDisabled()` no `<span
+   class="msds-btn-label">` que o continha — um `<span>` nunca é
+   "disabled" para o `jest-dom`, disabled ou não seu ancestral `<button>`.
+   Reescrito para `getByRole("button", { name: ... })`, que resolve o
+   `<button>` real. Depois: 388 testes, 0 falhas.
+5. `npm run typecheck`, `npm run lint`, `npm run test`, `npm run build`
+   (rodados de novo, todos juntos, como confirmação final): limpo, 0
+   erros/0 falhas, 23 rotas construídas com sucesso.
+6. Verificação ao vivo: `npm run build` + `npm run start`, Chromium de
+   sistema (`/opt/pw-browsers/chromium` via `playwright-core`, o mesmo
+   contorno que D-74 documentou) contra `/` (pública, dois `ButtonLink` no
+   herói mais um no cabeçalho, um deles com ícone) e `/app/estilo` (atrás do
+   portão de login — sem API rodando nesta sessão, caiu no `ErrorState` da
+   tela, cujo botão "Tentar novamente" é o `Button` convertido). Claro e
+   legível nos dois temas (`prefers-color-scheme`), pílula com o raio de
+   `.msds-btn`, contraste de texto correto, ícone de seta visível no CTA da
+   home; nenhum erro de console além de `ERR_CONNECTION_REFUSED`/404 da API
+   ausente, esperado sem backend.
+
+**`@material/web` continua importado** em `Button.tsx` (`MdIconButton`,
+`MdFilterChip`, `MdOutlinedSegmentedButton`, `MdOutlinedSegmentedButtonSet`,
+para `IconButton`/`ButtonGroup`/`ButtonGroupItem`/`ToggleChip`) e em todo o
+resto de `components/ui/*` — nenhum outro arquivo foi tocado. A exceção de
+D-48 continua cobrindo exatamente isso.
+
+Nada foi commitado nem enviado por esta sessão (o repositório orquestrador
+revisa o diff); `apps/api` e `AppSidebar.tsx` não foram tocados.
+
+## D-77 — MSDS: `Dialog`/`Tabs`/`Field`/`Breadcrumb`/`Stepper` convertidos; nenhum delega para a função MSDS crua, cada um por um motivo diferente
+
+**Escopo entregue.** Os cinco arquivos que D-76 recomendou como próxima
+rodada foram convertidos, nesta ordem, cada um com o portão completo
+(`typecheck`/`lint`/`test`/`build`) rodado individualmente antes do
+seguinte: `Dialog.tsx`, `Tabs.tsx`, `Field.tsx`, `Breadcrumb.tsx`,
+`Stepper.tsx`. Todos os cinco removeram `@material/web` por completo — o
+único arquivo de `components/ui/*` que ainda o importa é `Button.tsx`
+(`IconButton`/`ButtonGroup`/`ToggleChip`, já documentado em D-76) e
+`ConstraintEditor.tsx` (o `<select multiple>` nativo, exceção deliberada,
+inalterada). Nenhum dos cinco delega para a função exportada por
+`lib/msds/msds.tsx` do mesmo nome — cada um tem um motivo concreto e
+verificado, não uma preferência de estilo; só `Dialog` chegou perto de um
+porte 1:1.
+
+**`Dialog.tsx` — o único que de fato passou a renderizar a `Dialog` do MSDS
+por dentro.** A `Dialog` do MSDS (`lib/msds/msds.tsx`, `useFocusTrap`
+portado em D-74) tem foco preso, Escape fecha e foco volta ao gatilho —
+verificado ao vivo nesta sessão, não presumido do porte: seu próprio
+`useFocusTrap` foca o primeiro elemento focável em ordem do DOM ao abrir, o
+que agora é o `IconButton` "Fechar" do próprio cabeçalho do MSDS (antes era
+o conteúdo, porque a versão em `md-dialog` não tinha botão de fechar
+nenhum) — uma mudança real de comportamento, confirmada e testada, não uma
+regressão. Duas traduções: `description` (que este app tem e o MSDS não)
+vira um `<p>` prefixado ao `children`, no mesmo lugar de sempre; `className`
+(que nenhum call site usa hoje) fica no tipo por estabilidade de assinatura
+e nunca é repassado, mesmo tratamento que `Button.tsx` já dá a um `ref`
+não-encaminhado. O corpo do diálogo encolheu de largura livre para
+`max-width: 420px` (`.msds-dialog`, `msds.css`) — a mesma adoção da
+linguagem visual do MSDS que já valia para `Button`.
+
+**`Tabs.tsx`, `Field.tsx`, `Breadcrumb.tsx`, `Stepper.tsx` — MSDS por
+classe CSS, não pela função.** A função vendorizada de cada um tem uma
+lacuna concreta contra o que este app já garantia, e delegar a ela
+reabriria um bug já corrigido ou derrubaria uma funcionalidade real —
+exatamente o padrão que `ButtonLink` já estabeleceu em D-76 (estilo do MSDS
+via classe, semântica própria via elemento nativo), agora estendido a
+quatro arquivos:
+
+- **`Tabs`**: a `Tabs` do MSDS não liga aba a painel (`role="tab"` sem
+  `id`/`aria-controls`, `role="tabpanel"` sem `id`/`aria-labelledby`) — o
+  bug exato que o teste "links the selected tab to a panel that exists" foi
+  escrito para fixar ("the panel used to be a sibling component with its
+  own id, so `aria-controls` referred to nothing at all"), e só trata
+  ArrowLeft/ArrowRight, sem Home/End (também testado). Delegar reabriria os
+  dois. Reescrito com a própria marcação — ids, `aria-controls`/
+  `aria-labelledby`, roving `tabIndex`, o padrão de teclado completo — e só
+  as classes `.msds-tablist`/`.msds-tab`/`.msds-tabpanel` emprestadas do
+  MSDS. Perdido contra a função do MSDS: a transição fade-through
+  (`useScreenTransition`) e o ripple por aba — nenhum exportado do barril
+  para reúso fora de `msds.tsx`, e os dois cosméticos.
+- **`Field.tsx`**: a maior conversão e a de maior risco real. `Input`/
+  `NumberInput`/`Textarea`/`Select`/`Checkbox`/`RadioGroup` do MSDS são
+  controlados (`onChange: (value: string) => void`, nunca um evento), sem
+  `ref` e sem `...rest` — o que já bastaria para perder `aria-label` (o
+  `Select` de `AhpMatrixInput.tsx`, nomeado só pela célula da tabela, "per
+  Input's own documented aria-label exception") em silêncio, mas o achado
+  que decidiu a conversão foi outro: `MaterialForm.tsx` — o maior
+  formulário real do app, cadastro de material — encadeia **todo** campo
+  por `{...register("name")}` do react-hook-form, que entrega `name`,
+  `onChange(event)`/`onBlur(event)` reais e um `ref` para leitura
+  não-controlada e foco em erro de validação. Passar o `onChange(event)` do
+  `register()` direto para o `onChange(value: string)` do MSDS quebraria em
+  runtime na primeira tecla (`event.target` de uma string é `undefined`) —
+  a "forma de onChange" que a tarefa pediu para verificar, verificada e
+  reprovada. Reescrito com `<input>`/`<select>`/`<textarea>`/`<option>`
+  nativos, `forwardRef`, `...rest` completo e `onChange` como evento real —
+  exatamente o que já havia, só sobre `@material/web` antes — e as classes
+  `.msds-field`/`.msds-field-label`/`.msds-control`/`.msds-field-hint`/
+  `.msds-checkbox`/`.msds-radio` em vez das classes Tailwind que o arquivo
+  escolhia à mão. Um ganho real e não-cosmético saiu de graça: o rótulo
+  passou de flutuante (dentro da borda, truque do `@material/web`) para
+  fixo acima do controle (convenção do MSDS), e o workaround
+  `tabIndex={disabled ? -1 : 0}` — só existia porque o `<input>` do
+  `md-outlined-text-field` vivia atrás de um shadow root que o jsdom não
+  delega foco através — não tem mais nada para contornar contra um
+  `<input>` nativo disabled, então saiu. `Field`/`useWiring`/`CONTROL`
+  (a exceção do `<select multiple>` de `ConstraintEditor.tsx`) e `Fieldset`
+  não usavam `@material/web` e ficaram como estavam. Efeito colateral:
+  `lib/testing/mwc.ts` (`selectMwcOption`/`setMwcTextField`) ficou sem
+  nenhum consumidor — apagado, não deixado como vestígio (a mesma disciplina
+  do `seed_patch.py` em D-71) — e onze arquivos de teste que dependiam dele
+  passaram a usar `userEvent.selectOptions`/`userEvent.clear`+`type`
+  diretos contra o `<select>`/`<input>` real, mais simples do que o
+  contorno que existia só por causa do shadow DOM.
+- **`Breadcrumb`**: o `Breadcrumb` do MSDS nunca navega de verdade — todo
+  item não-atual é `<a href="#" onClick={(e) => { e.preventDefault();
+  it.onClick() }}>`, nunca um `href` real — e os três call sites reais
+  (`catalogo/[slug]`, `processos/[slug]`, `processos/familia/[slug]`) só
+  passam `href`, contando com clique do meio, "abrir em nova aba" e
+  prefetch do `next/link`; a função do MSDS também não usa `<ol>`/`<li>`
+  (uma sequência de `<a>`/`<span>` sem lista) e ignora a prop `label` do
+  chamador, sempre emitindo seu próprio `aria-label` fixo. `<nav>`/`<ol>`/
+  `<li>`, `next/link` de verdade e o `label` configurável ficaram como
+  estavam; só `.msds-breadcrumb`/`.msds-breadcrumb-link`/
+  `.msds-breadcrumb-current`/`.msds-breadcrumb-sep` substituem as classes
+  Tailwind anteriores.
+- **`Stepper`**: o `Stepper` do MSDS é um `<ol>` somente leitura — sem
+  `<button>`, sem `onClick`, sem jeito de o leitor pular de etapa —, e os
+  dois call sites reais (`/app/selecao`, `/app/importar`) dependem
+  exatamente disso via `onSelect`. Também é uma linha do tempo estritamente
+  vertical (conector `::before` dimensionado para coluna), enquanto este
+  componente é uma fileira responsiva de etapas de largura igual acima do
+  conteúdo do assistente. A estrutura de `<button>` por etapa — clique,
+  `disabled` na etapa bloqueada, `aria-current="step"`, `title`/texto
+  `sr-only` para quem não tem cor nem forma — ficou como estava; só a cor da
+  bolinha de cada etapa (antes, classes Tailwind escolhidas à mão por
+  status) passou a reproduzir a mesma fórmula de cor que
+  `.msds-step-dot[data-state=…]` expressa. Não pôde usar a própria classe
+  MSDS com o seletor `data-state` do CSS porque `lib/msds/msds.css` é
+  importado depois de `globals.css` (`app/layout.tsx`, de propósito — ver
+  D-74) — o que, à mesma especificidade, faz a regra do MSDS ganhar de uma
+  utility Tailwind concorrente na ordem da folha de estilo, não o inverso.
+  Por isso a cor por estado é `style` inline (a única coisa que a ordem da
+  folha não derruba), lendo os mesmos tokens (`--success`/`--accent`/
+  `--warning`/`--accent-fg`) que a regra do MSDS lê.
+
+**Verificação, por arquivo — os quatro comandos rodados individualmente
+depois de cada arquivo, antes de seguir para o próximo, mais a suíte
+inteira ao final:**
+1. `Dialog.tsx`: `typecheck` limpo; os dois testes de `describe("Dialog")`
+   em `ui.test.tsx` reescritos para a marcação real do MSDS (sem shadow
+   root: `getByRole` em vez de `getByShadowRole`, e o foco inicial pousa no
+   `IconButton` "Fechar", não mais no wrapper de conteúdo) — 2 testes
+   verdes; `lint` 0 erros/21 avisos (a mesma base de D-76); `test` 388/388;
+   `build` 23 rotas.
+2. `Tabs.tsx`: `typecheck` limpo; os dois testes de `describe("Tabs")`
+   passaram **sem alteração nenhuma** — a prova de que a marcação/ARIA/
+   teclado ficaram idênticos ao que já havia; `lint`/`test`/`build` limpos
+   (388/388, 23 rotas).
+3. `Field.tsx`: `typecheck` limpo depois de trocar os tipos de `ref` para
+   os elementos nativos (`HTMLInputElement`/`HTMLSelectElement`/
+   `HTMLTextAreaElement`/`HTMLOptionElement`). `test` revelou, na primeira
+   rodada, 29 falhas em 11 arquivos — todas `host.select is not a function`
+   (`selectMwcOption` contra um `<select>` real) ou `md-select-option`
+   ausente do DOM (dois helpers de teste, `optionTexts` em
+   `ConstraintEditor.test.tsx`/`StageList.test.tsx`, que liam a tag do
+   elemento custom diretamente). Corrigidos: onze arquivos passaram a usar
+   `userEvent.selectOptions`/`clear`+`type` nativos, os dois helpers
+   passaram a consultar `option` em vez de `md-select-option`,
+   `lib/testing/mwc.ts` apagado (zero consumidores restantes). Depois:
+   `test` 388/388; `lint` 0 erros/21 avisos; `build` 23 rotas.
+4. `Breadcrumb.tsx`: `typecheck` limpo; `test` 388/388 sem nenhuma alteração
+   de teste (nenhum teste dedicado a `Breadcrumb` existia além do que
+   `estilo`/`catalogo`/`processos` já exercitavam indiretamente, e nenhum
+   quebrou); `lint`/`build` limpos.
+5. `Stepper.tsx`: `typecheck` limpo; `test` 388/388 sem alteração de teste;
+   `lint`/`build` limpos.
+6. Suíte completa, rodada de novo ao final como confirmação: `typecheck`
+   limpo; `lint` 0 erros/21 avisos (os mesmos de D-76, nenhum novo);
+   `test` 388/388; `build` 23 rotas, sucesso.
+7. Verificação ao vivo: `npm run build` + `npm run start`, Chromium de
+   sistema (`/opt/pw-browsers/chromium` via `playwright-core`) contra
+   `/app/estilo` em claro e escuro. Sem API nem sessão configuradas nesta
+   sessão, a rota cai no mesmo `ErrorState` que D-76 já documentou (o
+   portão de login por trás de `/app/*` não tem contorno de bypass) — sem
+   nenhum erro de console além dos esperados de rede ausente, nos dois
+   temas. A vitrine viva de `Dialog`/`Tabs`/`Field`/`Breadcrumb`/`Stepper`
+   em `/app/estilo` **não foi verificada com sessão real** nesta rodada
+   (exigiria subir `apps/api` com um venv, o que esta sessão não tinha
+   pronto) — a cobertura de comportamento real vem da suíte de testes
+   (foco/Escape/Tab do Dialog, ARIA/teclado do Tabs, `axe` no Dialog aberto)
+   e do `build` de produção, não de uma captura de tela autenticada.
+
+Nada foi commitado nem enviado por esta sessão (o repositório orquestrador
+revisa o diff); `apps/api`, `AppSidebar.tsx`, `Card.tsx` e `Badge.tsx` não
+foram tocados.
+
+## D-78 — MSDS: `Card`/`Badge` restilizados sem delegar; `Feedback` convertido
+em parte, um bug real de cor achado e revertido ao vivo; `Popover`/`Bar`/
+`Alert`/`Table`/o resto de `Button` ficam documentados, não convertidos
+
+**Escopo entregue.** Quatro arquivos foram alterados, cada um com o portão
+completo (`typecheck`/`lint`/`test`/`build`) rodado individualmente antes do
+seguinte: `Card.tsx`, `Badge.tsx`, `Feedback.tsx` e o teste que a mudança de
+`Feedback.tsx` obrigou a atualizar (`app/app/catalogo/catalogo.test.tsx`).
+Quatro outros arquivos — `Popover.tsx`, `Bar.tsx`, `Alert.tsx`, `Table.tsx` —
+e o restante de `Button.tsx` (`IconButton`/`ButtonGroup`/`ButtonGroupItem`/
+`ToggleChip`, já documentados em D-76) foram deixados como estavam, cada um
+por um motivo verificado contra o código real, não por falta de tempo.
+
+**`Card.tsx` — classes MSDS sobre marcação própria, sem delegar para a
+função `Card`/`Card.Header`/`Card.Body`/`Card.Footer` do MSDS.** `Card`
+precisa de `as` polimórfico — `components/selection/ConstraintEditor.tsx`
+renderiza `<Card as="fieldset">`, agrupando controles de formulário, uma
+exigência semântica e não cosmética — e a `Card` do MSDS
+(`lib/msds/msds.tsx`) é sempre um `<div>` fixo, sem prop `as` nenhuma.
+`CardHeader` precisa de `headingLevel` variável (2/3/4, ~30 call sites reais:
+`AIAssistPanel.tsx`, `app/app/baterias/page.tsx` etc.) e de um slot
+`actions` (~20 arquivos), e a `CardHeader` do MSDS só desenha `title`/
+`description` num `<h3>` fixo sem lugar para ações. `riseIndex` (entrada
+escalonada, `MaterialCards.tsx`, `CoverageSummary.tsx` ×2,
+`meus-registros/page.tsx`) também não existe do lado MSDS. As quatro
+funções continuam com a marcação de sempre; só as classes Tailwind viraram
+`.msds-card`/`.msds-card-header`/`.msds-card-title`/`.msds-card-desc`/
+`.msds-card-body`/`.msds-card-footer` (`lib/msds/msds.css`). `riseIndex`
+continua sendo a animação própria do app (`rise` + `animationDelay`
+inline), independente do MSDS. `PanelShell`/`Section` — sem conceito
+equivalente no MSDS — ficaram intocados.
+
+**`Badge.tsx` — mesmo padrão.** A `Badge` do MSDS só aceita `tone`/
+`children`; call sites reais precisam de `className`
+(`components/layout/AppSidebar.tsx` — arquivo não tocado, mas o componente
+`Badge` continua tendo que servi-lo — e `components/dashboard/
+CoverageSummary.tsx`) e `title` (`components/DemoDataBadge.tsx`). A função
+`Badge` continua um `<span>` próprio com `title`/`icon`/`children`; só as
+classes de tom viraram `msds-badge msds-badge-{tone}` — os seis tons
+existem idênticos dos dois lados (`neutral/brand/success/warning/danger/
+info`, `lib/msds/msds.css:131-140`). `ClassBadge` (selo com swatch de cor
+categórica Okabe–Ito, sem equivalente MSDS) manteve sua lógica de dot
+própria e passou a herdar a casca `msds-badge msds-badge-neutral` por
+consistência visual — decisão de polimento, não obrigatória.
+
+**`Feedback.tsx` — conversão parcial, com um bug real achado e revertido ao
+vivo, não só planejado.** `Spinner` passou a renderizar `CircularProgress`
+do MSDS (indeterminado) em vez de `MdCircularProgress` do `@material/web`
+— removeu o único import de `@material/web` do arquivo. Como a
+`CircularProgress` do MSDS só lê `size`/`strokeWidth`/`value`/`label`/
+`showValue` do seu objeto de props (confirmado lendo `lib/msds/msds.tsx`),
+um `aria-hidden` passado a ela é descartado em silêncio — por isso
+`aria-hidden` foi movido para o `<span>` que a envolve, removendo a
+subárvore inteira da árvore de acessibilidade quando não há `label`; sem
+esse ajuste o `axe` reprovou `/app/painel` com "ARIA progressbar nodes must
+have an accessible name" (achado pela própria suíte, `routes.a11y.test.tsx`).
+`Skeleton` manteve marcação/props (`className` ainda controla o tamanho) e
+só trocou a animação de pulso Tailwind pelo shimmer `.msds-skeleton`.
+`LoadingState` **não** foi delegado ao `LoadingState` do MSDS: o do MSDS
+desenha três linhas de esqueleto fixas e nunca mostra texto visível (só
+`aria-label`), enquanto ~29 call sites reais passam um `label` visível que
+tem que continuar na tela — delegar apagaria esse texto, a mesma classe de
+regressão que D-24 proíbe para dado ausente, agora sobre um estado de
+carregamento. `ErrorState` foi delegado ao MSDS: `title`/`description`
+batem diretamente, e o `action` do MSDS recebe o `Button` que o arquivo já
+construía a partir de `onRetry`; `role="alert"` (que a marcação do MSDS não
+define) foi restaurado num `<div>` por fora.
+
+**`EmptyState` foi delegado, testado ao vivo e revertido — o achado real
+desta rodada.** A versão inicial delegava ao `EmptyState` do MSDS, que
+sempre desenha sua própria arte decorativa (`EmptyStateArt`, um SVG com três
+formas). Um spot-check com o Chromium de sistema contra `npm run start`
+(`/app/estilo`, claro e escuro) mostrou as três formas em **preto sólido**
+nos dois temas, em vez do azul de marca esperado. Causa: `EmptyStateArt`
+usa `fill: "var(--brand-100)"` / `"var(--brand-300)"` / `"var(--accent)"`
+puros, e os tokens deste app (`app/globals.css`) são triplos `"R G B"` sem
+unidade, lidos sempre por `rgb(var(--x))` — nunca sozinhos. Um `var(--x)`
+bruto não é uma cor CSS válida, então o navegador cai no preto padrão de
+`fill`. Fabricar uma cor nova para contornar isso violaria a restrição do
+projeto de nunca inventar cor sem validar contraste; a saída foi reverter
+`EmptyState` para a marcação própria (ícone `IconInfo` por padrão, ou o
+`icon` do chamador — a prop continua na assinatura e com efeito, ao
+contrário do que a primeira tentativa documentava) e só emprestar as
+classes de layout `.msds-state`/`.msds-state-title`/`.msds-state-desc` —
+não a classe `.msds-state-icon`, que fixa `color: rgb(var(--danger))` e
+tingiria de vermelho um ícone neutro de estado vazio. Isto reproduz o
+mesmo layout ícone-à-esquerda/texto-à-direita que `ErrorState` ganhou, sem
+passar pela arte quebrada. Nenhum dos ~23 call sites reais de `EmptyState`
+usa `className` ou `icon` custom hoje (confirmado por grep antes e depois
+da reversão), então a régua de risco era baixa mesmo com o susto.
+
+**Verificação, por arquivo — os quatro comandos rodados individualmente
+depois de cada arquivo, antes de seguir para o próximo:**
+1. `Card.tsx`: `typecheck` limpo; `lint` 0 erros/21 avisos (a mesma base de
+   D-73–D-77); `test` 388/388 sem nenhuma asserção tocada; `build` 23 rotas.
+2. `Badge.tsx`: mesmos quatro comandos, mesmo resultado (`typecheck` limpo,
+   `lint` 0/21, `test` 388/388, `build` 23 rotas) — nenhum teste depende da
+   classe Tailwind antiga de `Badge`/`ClassBadge`.
+3. `Feedback.tsx` (primeira passada, `EmptyState` ainda delegado):
+   `typecheck` limpo; `lint` 0/21; `test` **2 falhas** — `routes.a11y.test.tsx`
+   (`aria-progressbar-name` em `/app/painel`, corrigido movendo
+   `aria-hidden` para o wrapper do `Spinner`) e
+   `app/app/catalogo/catalogo.test.tsx` ("offers a way out when the filters
+   leave nothing on screen", corrigido porque `.closest("div")` a partir do
+   texto do título agora resolve para `.msds-state-title` — um `<div>` no
+   MSDS, onde antes era um `<p>` — em vez do container inteiro; ajustado
+   para `.closest(".msds-state")`, documentado no próprio teste); depois das
+   duas correções, `test` 388/388, `build` 23 rotas.
+4. `Feedback.tsx` (segunda passada, `EmptyState` revertido após o
+   spot-check visual): `typecheck` limpo; `lint` 0/21; `test` 388/388;
+   `build` 23 rotas.
+5. Verificação ao vivo: API local (`apps/api/scripts/e2e_server.py`, SQLite
+   descartável, `ENVIRONMENT=development` + `E2E_SESSION_TOKEN` para semear
+   a sessão fixa de D-77) na porta 8000 (a mesma que `NEXT_PUBLIC_API_URL`
+   assume por padrão) + `npm run build` + `npm run start`, Chromium de
+   sistema (`/opt/pw-browsers/chromium-1194` via `playwright-core`) com o
+   cookie `msai_session` injetado, contra `/app/estilo` (claro e escuro) e
+   `/app/catalogo` (autenticado). Foi essa verificação — não os testes, que
+   não asserram cor — que achou o bug de `EmptyStateArt` acima; depois da
+   reversão, capturas em claro e escuro confirmam `EmptyState`/`ErrorState`/
+   `Card`/`Badge`/`ClassBadge` corretos nos dois temas.
+
+**`Popover.tsx` — não convertido (`Popover` e `Disclosure`).** O único
+consumidor real de `Popover` é `components/ui/ProvenancePopover.tsx`,
+sempre dentro de célula de tabela ou de prosa
+(`PropertyGroup.tsx`, `ComparisonView.tsx`, `processos/[slug]/page.tsx`). O
+próprio docstring do arquivo explica por que existe portal
+(`createPortal` para `document.body`): sem ele, o painel seria cortado pelo
+`overflow-x: auto` do container de tabela. O `Popover` do MSDS
+(`lib/msds/msds.tsx:1432-1445`) não usa portal — `.msds-popover` é
+`position: absolute` dentro do próprio wrapper — cairia exatamente nessa
+armadilha. `Disclosure` envolve `<details>` nativo; o MSDS não tem conceito
+de acordeão/disclosure. Nenhum dos dois usos reais é um menu de ações, então
+`Menu` do MSDS também não se aplica. Mesma classe de decisão que
+Field/Breadcrumb em D-77 (a função vendorizada tem uma lacuna real).
+
+**`Bar.tsx` — não convertido.** Sem `@material/web` para remover (já era
+Tailwind/CSS puro). O `LinearProgress` do MSDS fixa a cor em `--accent`
+(`lib/msds/msds.css:609`) e não tem `delay`. Call sites reais precisam de
+cor arbitrária da paleta Okabe–Ito (`app/app/estilo/page.tsx:461,468,475`:
+`color="bg-[#0072B2]"` etc.) e de `delay` para entrada escalonada —
+exatamente o que a seção de sistema de design deste `CLAUDE.md` marca como
+"paleta categórica... não é da marca e não se mexe".
+
+**`Alert.tsx` — não convertido.** Sem `@material/web` para remover.
+`lib/msds/index.ts` não expõe nenhum banner/alerta persistente — só
+`Toast`/`ToastStack`, transitórios e dispensáveis por desenho
+(`msds-toast.is-leaving`, `dismiss()`). O propósito de `Alert` aqui é o
+oposto: avisos permanentes (dado de demonstração, limite de uso do §3.6)
+que não podem ser dispensados — a mesma distinção que D-76 fez entre
+`Chip`/`ToggleChip`.
+
+**`Table.tsx` — não convertido.** O MSDS só tem `DataTable`, um componente
+de render-prop (`columns`/`rows`/`render`), forma diferente das primitivas
+por elemento (`Table/THead/TBody/Tr/Td/Th/RowHeader/TableScroll/
+TableCaption`) usadas em dezenas de tabelas reais com `thead` `sticky`,
+`scope="row"` em `RowHeader`, `data-numeric` para alinhamento e região de
+scroll nomeada. Reimplementar essas tabelas sobre `DataTable` mudaria
+semântica em massa — alto risco para D-31 ("todo gráfico tem tabela como
+alternativa textual"), baixo retorno; documentado em vez de tentado, dado o
+orçamento já gasto no achado de `EmptyState` acima.
+
+**`Button.tsx` — `IconButton`/`ButtonGroup`/`ButtonGroupItem`/`ToggleChip`
+reexaminados, mantidos.** As três razões do D-76 foram checadas de novo
+contra `lib/msds/msds.tsx` nesta sessão, sem meio-termo novo: `IconButton`
+do MSDS usa `iconOn`/`iconOff` como nomes de um vocabulário fechado
+(`msdsIcon()`), nunca um `ReactNode` arbitrário, e os ~15 call sites do app
+passam ícones já importados de `components/ui/icons.tsx`; `ButtonGroup` do
+MSDS recebe um array chato `options: {value,label}[]` sem ícone por opção, e
+`ThemeToggle.tsx` depende do modo `compact` (segmento só-ícone) que essa
+forma não carrega; `Chip` do MSDS (`lib/msds/msds.tsx:417-452`) nunca lê
+`props.disabled` — `onClick` dispara sempre —, e `/app/comparar` depende de
+`disabled={!chosen && materialsFull}` bloquear de fato o clique no limite
+de comparação. Os quatro continuam exatamente como D-76 os deixou.
+
+Nada foi commitado nem enviado por esta sessão (o repositório orquestrador
+revisa o diff); `apps/api` (só executado localmente, como servidor
+descartável, para o spot-check — nenhum arquivo dele foi editado) e
+`AppSidebar.tsx` não foram tocados.
+
+## D-79 — MSDS: `AppSidebar.tsx` reconstruído sobre a linguagem visual do `NavRail`/`NavDrawer`; nenhum dos dois é usado por dentro; `@material/web` continua load-bearing
+
+**Escopo entregue.** Um arquivo só, `components/layout/AppSidebar.tsx` — o
+último item que D-73 apontou como próxima rodada. `NavLink`/`NavGroupList`
+passaram a usar o vocabulário CSS do MSDS (`.msds-rail-item`,
+`.msds-rail-icon`, `.msds-rail-label`, `.msds-rail-eyebrow`, em
+`lib/msds/msds.css`) em vez das classes Tailwind que o arquivo escrevia à
+mão; nada além disso mudou — mesmos 17 destinos, mesmos três grupos
+(`t.groupStudy`/`t.groupData`/`t.groupAdmin`), mesmo `<Link>` do
+`next/link`, mesmo `useFocusTrap` próprio do app na gaveta modal, mesma
+regra de `sr-only` no colapso.
+
+**Por que nenhum dos dois — `NavRail`/`NavDrawer` — foi delegado, com a
+lacuna concreta de cada um.** A mesma disciplina de D-76/D-77/D-78: delegar
+onde a função vendorizada cobre tudo que o app já garante, restilizar com a
+classe onde não cobre.
+
+1. **`NavRail` (`lib/msds/msds.tsx`) não navega de verdade.** Cada item é um
+   `h("button", { onClick: () => props.onSelect(item.key) })` — nunca um
+   `<a href>`. É exatamente a classe de defeito que o `Breadcrumb` do D-77
+   já tinha (`<a href="#" onClick={preventDefault}>`): sem `href` real, o
+   leitor perde clique do meio, "abrir em nova aba", prefetch do
+   `next/link` e a navegação por teclado nativa de um link — uma
+   regressão de acessibilidade e de funcionalidade real, não cosmética,
+   e inaceitável num componente renderizado em toda rota autenticada.
+   Verificado lendo `NavRailItemButton` (`lib/msds/msds.tsx:516-530`) antes
+   de decidir, não presumido.
+2. **`NavRail`/`msdsIcon` têm um vocabulário fechado de ícones que não cobre
+   dois destinos reais.** A tabela de D-75 já registrou que `IconBook`
+   (Catálogo) e `IconBlend` (Sintetizar) não têm par no `msdsIcon(name)` do
+   MSDS — estender aquele `switch` vendorizado para dois glifos novos estava
+   fora do escopo desta tradução em wrapper, a mesma régua que D-75/D-76 já
+   aplicaram a outros ícones sem par.
+3. **`NavDrawer` (`lib/msds/msds.tsx:2109-2124`) não aceita conteúdo
+   próprio.** Ele sempre chama `h(NavRail, Object.assign({}, props.navProps,
+   {...}))` por dentro — não há slot de `children`. Mesmo que só o item (1)
+   bloqueasse a delegação, o `NavDrawer` não teria como hospedar uma lista
+   de navegação com `<Link>` reais em vez do `NavRail` que ele mesmo
+   constrói. A gaveta modal deste app continua com a própria marcação
+   (`role="dialog"`, `aria-modal`, backdrop clicável, `useFocusTrap` — que já
+   prende foco, fecha com Escape e devolve foco ao gatilho, testado ao vivo
+   nesta sessão) — só os itens de navegação por dentro dela passaram a usar
+   `.msds-rail-item`/`.msds-rail-icon`/`.msds-rail-label`, o mesmo componente
+   `NavLink`/`NavGroupList` compartilhado com o rail.
+
+Por isso o `<aside id="navegacao-lateral">`/`<nav>` continuam com sua própria
+marcação — nunca a classe `.msds-rail` do MSDS, que impõe fundo escuro fixo
+(`#0E1017`, redundante com o `--rail`/`--rail-ink` já tonalizados por tema
+que este arquivo já tinha, mas **não** o mesmo valor sob controle de tema),
+`border-radius: var(--radius-panel)` (arredondaria os quatro cantos de um
+rail que corre até a borda da tela — errado para um rail de borda, certo
+para um painel flutuante) e largura fixa de 248px (o rail deste app
+transiciona entre `w-64`/`w-[68px]`, e o `!important` que
+`.msds-drawer-panel .msds-rail { width: 100% !important }` carrega
+entraria em guerra de especificidade com essa transição).
+
+**A cor do item ativo continua sendo o token de rota do D-73, só lido pela
+regra do MSDS em vez da própria.** `.msds-rail-item[aria-current="page"]`
+(a classe agora emprestada) e seu `::before` (a barra de 3px na borda
+esquerda) leem `var(--row-accent, rgb(var(--accent)))` via `color-mix` —
+`color-mix` já em uso em `msds.css` desde D-74/D-78 (`.msds-quality-*`, o
+próprio `.msds-rail-item`), sem risco novo de suporte de navegador. Nenhuma
+cor nova: o `<nav>` do rail e o `<nav>` da gaveta recebem
+`style={{ "--row-accent": "rgb(var(--rail-accent))" }}` — o mesmo
+`--rail-accent` que D-73 já tonalizou e validou por contraste para as 16
+rotas × 2 temas, só entregue ao seletor do MSDS em vez do seletor Tailwind
+(`bg-rail-accent/20`/`text-rail-accent`) que o arquivo usava antes. Como
+`--row-accent` é uma propriedade customizada, ela herda por toda a subárvore
+sem precisar ser repetida por item — um ponto de ajuste só. O ícone do item
+ativo ganhou, além disso, `text-rail-accent` (a mesma classe de antes): sem
+ela, o `color: #fff` que o MSDS aplica ao item ativo (pensado para um rail
+permanentemente escuro, que este é) apagaria o terceiro canal visual que o
+comentário original do arquivo já documentava — a cor do ícone seguindo a
+rota, ao lado da barra e do preenchimento de fundo.
+
+**O `sr-only` do colapso (D-37) continua sendo o Tailwind do próprio app,
+não a regra `[data-collapsed="true"] .msds-rail-label` do MSDS** — que só
+dispara sob um ancestral com a classe `.msds-rail`, e este arquivo
+deliberadamente não aplica essa classe ao contêiner (parágrafo acima). A
+técnica de recorte que o CSS do MSDS usa ali (`position: absolute; width:
+1px; height: 1px; clip: rect(0,0,0,0)`) é a mesma receita de `sr-only`, só
+não fica acessível pela cadeia de seletor que este arquivo escolheu não
+adotar — então a garantia continua vindo de onde sempre veio.
+
+**Verificação.** `npm run typecheck` limpo; `npm run lint` 0 erros/21
+avisos (a mesma base de D-73–D-78, nenhum novo); `npm run test` — 388/388,
+**nenhum teste tocado ou precisou de ajuste** (`routes.a11y.test.tsx`, que
+exercita o rail em todas as rotas, e `components/layout/layout.test.tsx`
+passaram sem alteração — a marcação/ARIA real não mudou, só a classe CSS);
+`npm run build` — 27 rotas, sucesso.
+
+Verificação ao vivo (a exigida com mais rigor para este arquivo, porque ele
+renderiza em toda rota): API local
+(`apps/api/scripts/e2e_server.py`, SQLite descartável,
+`ENVIRONMENT=development` + `E2E_SESSION_TOKEN`, a mesma receita de D-78) na
+porta 8000, `npm run build` + `npm run start`, Chromium de sistema
+(`/opt/pw-browsers/chromium-1194` via `playwright-core`) dirigido por um
+script descartável (apagado ao final, nunca comitado):
+
+- **Rail em 1440px, tema claro, `/app/selecao`.** 17 links (mais o link da
+  marca) resolvidos em `#navegacao-lateral`; os três *eyebrows*
+  ("Estudar"/"Dados"/"Administrar") presentes; `aria-current="page"` no link
+  de Seleção.
+- **Colapso, com árvore de acessibilidade — não só captura visual.** Depois
+  de clicar em "Recolher a barra lateral": o link "Mapas" continua
+  resolvível por `getByRole("link", { name: "Mapas" })` (nome acessível
+  presente); o `<span class="msds-rail-label">` de cada item continua no
+  DOM (`count() === 1`, `textContent` intacto) com `boundingBox()`
+  `{ width: 1, height: 1 }` — a assinatura exata de `sr-only`, não de um nó
+  removido; o `ariaSnapshot()` da `<nav aria-label="Navegação principal">`
+  imprimiu os 17 links com seus nomes completos e a estrutura de grupo
+  intacta enquanto colapsada — a prova, pela árvore de acessibilidade e não
+  pelo pixel, de que D-37 continua de pé.
+- **Cor por rota, claro e escuro, quatro rotas incluindo Eco e Custo.** O
+  `--row-accent` computado e a cor de fundo do `::before` do item ativo
+  variam por rota como esperado (roxo em Seleção, ciano em Mapas, verde em
+  Eco, laranja em Custo) nos dois temas; Eco e Custo mostraram o mesmo valor
+  entre claro e escuro — conferido contra `app/globals.css` e **não é
+  regressão desta rodada**: para essas duas rotas especificamente, o gerador
+  de D-73 produziu `--brand-300` (claro) e `--brand-700` (escuro) com o
+  mesmo triplo RGB (coincidência do hue, não uma regra geral — Seleção e
+  Mapas, na mesma checagem, mostraram valores diferentes entre os dois
+  temas, como o resto da matriz).
+- **Gaveta modal em 400px.** Abre como `role="dialog"`/`aria-modal="true"`;
+  foco entra na gaveta (`document.activeElement` dentro de `#menu-principal`
+  logo após o clique); 17 links presentes; Escape fecha (`#menu-principal`
+  sai do DOM) **e devolve o foco ao gatilho** (`document.activeElement`
+  volta a ser o botão com `aria-controls="menu-principal"`); reaberta e
+  fechada por clique no backdrop, mesmo resultado.
+- **Console limpo** nos dois viewports e nos dois temas — o único evento
+  registrado em todas as passadas foi um 404 de recurso, esperado (favicon
+  ou afim) e não relacionado a este arquivo.
+
+Servidor da API e servidor Next de produção, ambos descartáveis, encerrados
+ao final da verificação; nenhum arquivo de `apps/api` foi editado.
+
+**Esta é a última peça pendente da integração do MSDS listada por
+D-73–D-78.** `AppSidebar.tsx` era o único item que restava nas listas de
+"fica para a próxima rodada" desde D-73. Uma varredura de todo `apps/web`
+por `@material/web` depois desta mudança encontra só comentários/prosa em
+`components/ui/Button.tsx`, `Dialog.tsx`, `Field.tsx`, `Feedback.tsx`,
+`focusTrap.ts`, `lib/design/materialTheme.ts`, `components/layout/
+SectionTheme.tsx`, `app/globals.css` e cinco arquivos de teste — nenhum
+deles um `import` real — **mais os imports reais que já eram esperados**:
+`components/ui/material/elements.ts` ainda registra os elementos customizados
+do `@material/web`, e `components/ui/Button.tsx` ainda importa
+`MdIconButton`/`MdFilterChip`/`MdOutlinedSegmentedButton`/
+`MdOutlinedSegmentedButtonSet` de lá para `IconButton`/`ButtonGroup`/
+`ButtonGroupItem`/`ToggleChip` — exatamente o que D-76 e D-78 já
+documentaram como mantido, com o motivo de cada um ainda de pé (nenhum
+motivo dependia de `AppSidebar.tsx`). **A dependência `@material/web` do
+`package.json` não pode ser removida** — ela continua load-bearing por esses
+quatro componentes. Uma observação fora do escopo desta rodada, não
+perseguida aqui: `material/elements.ts` também importa e registra
+`MdFilledButton`/`MdOutlinedButton`/`MdTextButton`/`MdCircularProgress`/
+`MdOutlinedTextField`/`MdOutlinedSelect`/`MdSelectOption`/`MdCheckbox`/
+`MdRadio`/`MdDialog`/`MdTabs`/`MdPrimaryTab` — registros que nenhum
+componente de `components/ui/*` mais consome desde as conversões de D-77/
+D-78 (`Field`/`Dialog`/`Tabs`/`Feedback` passaram a usar marcação nativa ou
+MSDS); podar esses registros mortos reduziria o que o bundle do
+`@material/web` ainda carrega, mas é uma limpeza própria, não uma parte de
+"reconstruir `AppSidebar.tsx`".
+
+Nada foi commitado nem enviado por esta sessão (o repositório orquestrador
+revisa o diff); `apps/api` (só executado localmente, como servidor
+descartável, para o spot-check — nenhum arquivo dele foi editado) não foi
+tocado.

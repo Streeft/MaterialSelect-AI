@@ -329,6 +329,20 @@ não tinha decisão registrada reconciliando-o com D-23 ("sem biblioteca de
 componentes"). Resolvido nesta sessão como [D-48](docs/DECISIONS.md):
 exceção pontual aceita, restrita a primitivas de baixo nível.
 
+**`AppSidebar.tsx` fechou a integração do MSDS** ([D-79](docs/DECISIONS.md)):
+`NavLink`/`NavGroupList` passaram a usar as classes de `lib/msds/msds.css`
+(`.msds-rail-item`/`.msds-rail-icon`/`.msds-rail-label`/`.msds-rail-eyebrow`),
+mas nem `NavRail` nem `NavDrawer` do MSDS foram usados por dentro — o
+primeiro só navega por `<button onClick>`, nunca `<a href>`, e o segundo não
+tem slot de conteúdo, só chama `NavRail` por dentro de si mesmo. A cor do
+item ativo continua o token de rota de D-73 (`--rail-accent`), agora
+entregue à regra `[aria-current="page"]` do MSDS via `--row-accent`; o
+`sr-only` do rótulo no colapso (D-37) continua sendo o do próprio app,
+verificado ao vivo pela árvore de acessibilidade, não só visualmente.
+`@material/web` continua load-bearing (`IconButton`/`ButtonGroup`/
+`ButtonGroupItem`/`ToggleChip` em `Button.tsx`, D-76/D-78) — a dependência
+não pôde ser removida.
+
 **Backlog de baixa prioridade B1–B10 entregue por inteiro**, dirigido por
 subagentes. A revisão final de branch pegou dois bugs reais que as revisões
 por tarefa tinham deixado passar — B7 (carregar um `SavedChart` era um
@@ -698,10 +712,65 @@ dado de demonstração sem reabrir o D-71, como apagá-lo quando o catálogo
 oficial chegar, e o que qualquer agente — Antigravity incluído — precisa ler
 antes de escrever um seed novo neste repositório.
 
-1741 testes de backend (nenhum skip) e 368 de frontend, todos verdes. CI no
+1741 testes de backend (nenhum skip) e 388 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
 PROJECT_CONTEXT.md).
+
+**O mecanismo de cor por rota (D-49) cobre as 16 rotas reais, não mais 6**
+([D-73](docs/DECISIONS.md)) — os 9 blocos `[data-section]` novos em
+`apps/web/app/globals.css` foram gerados e revalidados por contraste por
+`scripts/design/generate-route-palette.py`/`verify-globals-contrast.py`, não
+copiados do MSDS (a Artifact de design que motivou o pedido — ver D-73 para
+por quê). O resto do MSDS (biblioteca de componentes, ícones, `useSpring`)
+ainda não foi portado.
+
+**A biblioteca de componentes do MSDS chegou a `apps/web/lib/msds/`**
+([D-74](docs/DECISIONS.md)) — módulo ES portado de `bundle.js`/`bundle.css`,
+com dois bugs de origem corrigidos (um comentário CSS que se fechava sozinho;
+falta de guarda de SSR em `prefersReducedMotion`) e os tokens de cor
+reconciliados com os já validados por D-49/D-73, sem nenhuma cor nova. Ainda
+não está ligada a nenhuma tela: `components/ui/*`, `icons.tsx` e
+`AppSidebar.tsx` continuam como estavam, para uma rodada seguinte — ver D-74.
+
+**20 dos 39 glifos de `components/ui/icons.tsx` passaram a usar o path data
+do MSDS** ([D-75](docs/DECISIONS.md)), export por export, sem mudar nome nem
+assinatura. `components/ui/*` e `AppSidebar.tsx` continuam sem tocar — ver
+D-75 para a tabela de mapeamento e o porquê do escopo.
+
+**`Button`/`ButtonLink` (em `components/ui/Button.tsx`) passaram a renderizar
+o MSDS por dentro** ([D-76](docs/DECISIONS.md)), que também corrigiu um bug
+de nascença em `lib/msds/msds.tsx` (identificador duplicado no barril de
+re-exports — `SyntaxError` real, mascarado até então pelo `@ts-nocheck` do
+arquivo e por nada ter importado a barril antes). `IconButton`,
+`ButtonGroup`/`ButtonGroupItem` e `ToggleChip`, no mesmo arquivo, e todo o
+resto de `components/ui/*` continuam sobre `@material/web` — ver D-76 para a
+incompatibilidade de API específica de cada um.
+
+**`Dialog`/`Tabs`/`Field`/`Breadcrumb`/`Stepper` (em `components/ui/*`)
+removeram `@material/web` por completo** ([D-77](docs/DECISIONS.md)). Só
+`Dialog` delega para a função `Dialog` do MSDS; os outros quatro usam as
+classes CSS do MSDS sobre marcação própria, porque a função vendorizada de
+cada um tem uma lacuna real contra o que o app já garantia (ligação
+aba↔painel e Home/End em `Tabs`; `onChange` de evento/`ref`/`...rest` — de
+que `MaterialForm.tsx`'s `register()` depende — em `Field`; `href` de
+verdade em `Breadcrumb`; `onSelect` clicável em `Stepper`). `Card.tsx`,
+`Badge.tsx`, `DataQualityBadge.tsx`, `Popover.tsx`, `Feedback.tsx`,
+`Bar.tsx`, `Alert.tsx`, `Table.tsx` e `IconButton`/`ButtonGroup`/
+`ToggleChip` (em `Button.tsx`) continuam sobre `@material/web` — ver D-77.
+
+**`Card.tsx` e `Badge.tsx` passaram a usar as classes CSS do MSDS sobre
+marcação própria** ([D-78](docs/DECISIONS.md)) — nenhum dos dois delega
+para a função MSDS crua (`as` polimórfico, `headingLevel`/`actions`/
+`riseIndex` e `className`/`title` reais não cabem nela). Em `Feedback.tsx`,
+`Spinner` e `ErrorState` passaram a usar o MSDS (removendo o
+`@material/web` do arquivo); `Skeleton`/`LoadingState` ficaram com marcação
+própria; `EmptyState` foi delegado, testado ao vivo e **revertido** — a
+arte decorativa do MSDS usa `var(--brand-100)` puro como `fill`, inválido
+contra os tokens `"R G B"` deste app, e caía em preto sólido nos dois
+temas. `Popover.tsx`, `Bar.tsx`, `Alert.tsx`, `Table.tsx` e o resto de
+`Button.tsx` continuam como D-77 os deixou — ver D-78 para o motivo
+reexaminado de cada um.
 
 **S1 (upgrade de segurança) entregue:** `next` 14.2.35 → **16.3.4** e `postcss`
 → **8.5.28**, fechando 21 CVEs do Next e 4 do PostCSS. A 14.2.35 é a última da

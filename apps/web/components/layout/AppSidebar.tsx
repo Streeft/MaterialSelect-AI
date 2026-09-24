@@ -4,6 +4,7 @@ import {
   useRef,
   useState,
   type ComponentType,
+  type CSSProperties,
   type SVGProps,
 } from "react";
 import Link from "next/link";
@@ -119,23 +120,31 @@ function isActive(pathname: string, href: string): boolean {
 }
 
 /**
- * A destination.
+ * A destination, drawn with the MSDS rail vocabulary (`.msds-rail-item`,
+ * `.msds-rail-icon`, `.msds-rail-label` — `lib/msds/msds.css`) instead of
+ * this app's own hand-rolled classes, but never through `lib/msds`'s own
+ * `NavRail` function: that function renders a `<button onClick>`, never an
+ * `<a href>` — no real navigation semantics (no prefetch, no middle-click
+ * or Ctrl-click "open in a new tab"), the same class of gap D-77 found in
+ * the vendored `Breadcrumb`. This stays a real `<Link>`.
  *
- * The rail is dark in both themes (see `--rail-*` tokens in globals.css): that's what
- * keeps it as a frame rather than another panel, and it's against the rail that
- * the section hue pops. The active item says "you are here" three ways, and each
- * one covers a failure mode of the others: the 3px indicator on the left edge survives
- * the collapsed rail, the fill survives a glance, and `aria-current`
- * survives having no color at all.
+ * The active item says "you are here" three ways, and each one covers a
+ * failure mode of the others: `.msds-rail-item[aria-current="page"]::before`
+ * (the left-edge bar, drawn by `lib/msds/msds.css`) survives the collapsed
+ * rail, the background tint survives a glance, and `aria-current` survives
+ * having no color at all. Both read `--row-accent`, which the rail/drawer
+ * container below sets to `rgb(var(--rail-accent))` — the same per-route
+ * token D-73 already validated by contrast, just fed into MSDS's own
+ * active-item rule instead of this file's. No new color is introduced.
  *
- * The indicator is a positioned child, not a `border-left`: a border
- * would push content 3px inward only on the active item, and the row of
- * icons would misalign.
- *
- * The label is never removed when the rail collapses, only becomes `sr-only`. A
- * link whose text disappears is a link without accessible name; a link whose text
- * simply isn't painted still announces itself, and gets a native tooltip for those who
- * see but can't guess the glyph.
+ * The label is never removed when the rail collapses, only becomes `sr-only`
+ * (D-37). MSDS's own `.msds-rail[data-collapsed="true"] .msds-rail-label`
+ * clip rule would do the same thing, but only under a `.msds-rail` ancestor
+ * this file doesn't apply to its `<aside>` (that class also imposes a fixed
+ * dark background, a rounded panel radius and a fixed width — right for a
+ * floating panel, wrong for an edge-to-edge rail with a theme-driven width
+ * transition this app already has). Tailwind's `sr-only` does the identical
+ * job without that ancestor, and is what's actually applied here.
  */
 function NavLink({
   item,
@@ -154,28 +163,14 @@ function NavLink({
       // screen reader users with no idea where they are.
       aria-current={active ? "page" : undefined}
       title={collapsed ? item.label : undefined}
-      className={cn(
-        "group relative flex items-center gap-3 rounded-control py-2 text-sm transition",
-        "origin-left hover:scale-[1.02] active:scale-[0.98]",
-        collapsed ? "justify-center px-2" : "px-3",
-        active
-          ? "bg-rail-accent/20 font-semibold text-rail-ink"
-          : "text-rail-ink-muted hover:bg-rail-edge/[0.07] hover:text-rail-ink",
-      )}
+      className={cn("msds-rail-item text-sm", collapsed && "justify-center")}
     >
-      {active ? (
-        <span
-          aria-hidden
-          className="animate-grow-y absolute inset-y-2 left-0 w-[3px] rounded-full bg-rail-accent"
-        />
-      ) : null}
       <Icon
-        className={cn(
-          "h-[18px] w-[18px] shrink-0 transition-transform group-hover:scale-110",
-          active ? "scale-105 text-rail-accent" : "text-rail-ink-subtle",
-        )}
+        className={cn("msds-rail-icon", active && "text-rail-accent")}
       />
-      <span className={cn(collapsed && "sr-only")}>{item.label}</span>
+      <span className={cn("msds-rail-label", collapsed && "sr-only")}>
+        {item.label}
+      </span>
     </Link>
   );
 }
@@ -197,10 +192,7 @@ function NavGroupList({
     <div className="flex flex-col gap-0.5">
       <span
         id={labelId}
-        className={cn(
-          "px-3 pb-1 font-mono text-2xs uppercase tracking-eyebrow text-rail-ink-subtle",
-          collapsed && "sr-only",
-        )}
+        className={cn("msds-rail-eyebrow", collapsed && "sr-only")}
       >
         {group.label}
       </span>
@@ -218,6 +210,16 @@ function NavGroupList({
     </div>
   );
 }
+
+/**
+ * `--row-accent`, in the shape `lib/msds/msds.css`'s
+ * `.msds-rail-item[aria-current="page"]` expects: a plain CSS color, fed
+ * from this app's own per-route token (D-73) rather than MSDS's own
+ * (unvalidated, brand-only) default. Set once on the nav container — custom
+ * properties inherit, so every `NavLink` below picks it up without carrying
+ * the style itself.
+ */
+const railAccentStyle = { "--row-accent": "rgb(var(--rail-accent))" } as CSSProperties;
 
 /** The brand, which is also the link to home. */
 function BrandLink({
@@ -407,6 +409,7 @@ export function AppSidebar() {
 
         <nav
           aria-label={ptBR.ui.mainNav}
+          style={railAccentStyle}
           className="flex flex-1 flex-col gap-5 overflow-y-auto overscroll-contain"
         >
           <ul className="flex flex-col gap-0.5">
@@ -485,7 +488,7 @@ export function AppSidebar() {
                 onClick={() => setOpen(false)}
               />
             </div>
-            <nav className="flex flex-1 flex-col gap-5">
+            <nav className="flex flex-1 flex-col gap-5" style={railAccentStyle}>
               <ul className="flex flex-col gap-0.5">
                 <li>
                   <NavLink item={HOME} active={isActive(pathname, HOME.href)} />

@@ -14,7 +14,6 @@ import type {
   MaterialListItem,
   TransportMode,
 } from "@/lib/types";
-import { selectMwcOption } from "@/lib/testing/mwc";
 
 const t = ptBR.eco;
 
@@ -261,7 +260,7 @@ describe("Auditoria ambiental", () => {
     const user = userEvent.setup();
     await open();
 
-    selectMwcOption(
+    await userEvent.selectOptions(
       await screen.findByShadowRole("combobox", { name: t.useModelLabel }),
       "estatico",
     );

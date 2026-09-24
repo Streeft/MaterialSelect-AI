@@ -8,7 +8,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { ptBR } from "@/lib/i18n";
 import type { LoadCase, SolveRequest, SolveResult } from "@/lib/types";
-import { selectMwcOption } from "@/lib/testing/mwc";
 
 const t = ptBR.solver;
 
@@ -136,7 +135,7 @@ const { default: SolverPage } = await import("./page");
 async function chooseBeam() {
   render(wrap(<SolverPage />));
   await screen.findByRole("heading", { name: t.title });
-  selectMwcOption(
+  await userEvent.selectOptions(
     await screen.findByShadowRole("combobox", { name: t.caseLabel }),
     "viga-rigidez",
   );
@@ -288,7 +287,7 @@ describe("Dimensionar", () => {
     const user = userEvent.setup();
     await chooseBeam();
 
-    selectMwcOption(
+    await userEvent.selectOptions(
       await screen.findByShadowRole("combobox", { name: t.objectiveLabel }),
       "custo",
     );

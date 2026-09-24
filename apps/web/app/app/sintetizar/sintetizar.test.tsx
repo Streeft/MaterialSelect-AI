@@ -15,7 +15,6 @@ import type {
   SynthesisRequest,
   SynthesisResult,
 } from "@/lib/types";
-import { selectMwcOption } from "@/lib/testing/mwc";
 
 const t = ptBR.synthesis;
 
@@ -236,7 +235,7 @@ describe("Sintetizar material", () => {
     const user = userEvent.setup();
     await open();
 
-    selectMwcOption(
+    await userEvent.selectOptions(
       await screen.findByShadowRole("combobox", { name: t.kindLabel }),
       "espuma",
     );
@@ -348,7 +347,7 @@ describe("Painel sanduíche", () => {
     const user = userEvent.setup();
     await open();
 
-    selectMwcOption(
+    await userEvent.selectOptions(
       await screen.findByShadowRole("combobox", { name: t.kindLabel }),
       "painel",
     );
@@ -376,7 +375,7 @@ describe("Painel sanduíche", () => {
     const user = userEvent.setup();
     await open();
 
-    selectMwcOption(
+    await userEvent.selectOptions(
       await screen.findByShadowRole("combobox", { name: t.kindLabel }),
       "painel",
     );
@@ -391,7 +390,7 @@ describe("Painel sanduíche", () => {
     // trocá-los muda o resultado inteiro.
     await open();
 
-    selectMwcOption(
+    await userEvent.selectOptions(
       await screen.findByShadowRole("combobox", { name: t.kindLabel }),
       "painel",
     );
@@ -409,7 +408,7 @@ describe("Painel sanduíche", () => {
     // leitor procura uma unidade que a tela não pede.
     await open();
 
-    selectMwcOption(
+    await userEvent.selectOptions(
       await screen.findByShadowRole("combobox", { name: t.kindLabel }),
       "painel",
     );

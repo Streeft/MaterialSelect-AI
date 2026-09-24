@@ -4,6 +4,7 @@ import {
   cloneElement,
   forwardRef,
   isValidElement,
+  type AnchorHTMLAttributes,
   type ButtonHTMLAttributes,
   type ElementType,
   type ReactElement,
@@ -11,26 +12,26 @@ import {
 } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/cn";
+import { Button as MsdsButton } from "@/lib/msds";
 import {
-  MdFilledButton,
-  MdOutlinedButton,
-  MdTextButton,
   MdIconButton,
-  MdCircularProgress,
   MdFilterChip,
   MdOutlinedSegmentedButton,
   MdOutlinedSegmentedButtonSet,
 } from "./material/elements";
 
 /**
- * The one button — now the one M3 button.
+ * The one button — D-76: `Button`/`ButtonLink` render MSDS's `Button`
+ * internally. MSDS's own variant/size vocabulary (`msds-btn-{primary,
+ * secondary,ghost,danger,link}` × `{sm,md}`, see `lib/msds/msds.css`)
+ * already matches this app's `ButtonVariant`/`ButtonSize` one-for-one —
+ * including the `link` variant's underline, which MSDS bakes into
+ * `.msds-btn-link` itself, so no extra className is needed for it the way
+ * the old `@material/web` mapping required.
  *
- * Variants map onto @material/web's own emphasis scale (filled/outlined/text)
- * rather than a bespoke colour system, so a call site still cannot invent an
- * eighth spelling of "primary". M3 has no destructive role of its own:
- * `danger` stays a filled button, retargeted to `--danger`/`--ink-inverted`
- * via `.md-btn-danger` in globals.css (kept apart from `--md-sys-color-error`,
- * which Etapa 4 reserves for form validation).
+ * `IconButton`, `ButtonGroup`/`ButtonGroupItem` and `ToggleChip` below stay
+ * on `@material/web` — see the D-76 note on each for the specific prop-API
+ * gap that made converting them unsafe in this pass.
  */
 
 export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "link";
@@ -41,25 +42,25 @@ export type ButtonSize = "sm" | "md";
 // them at render time has no single precise type to give the JSX tag beyond
 // this — the per-call-site prop shapes are still fully typed at ButtonProps /
 // ButtonLink's own parameter list, only this internal indirection loses precision.
-const VARIANT_ELEMENT: Record<ButtonVariant, ElementType> = {
-  primary: MdFilledButton,
-  secondary: MdOutlinedButton,
-  ghost: MdTextButton,
-  danger: MdFilledButton,
-  link: MdTextButton,
-};
 
-function variantClassName(variant: ButtonVariant, size: ButtonSize, className?: string) {
-  return cn(
-    size === "sm" && "md-btn-sm",
-    variant === "danger" && "md-btn-danger",
-    // Text-button is M3's closest fit for an inline "back" link (see the
-    // component-mapping table in the migration plan), but M3 gives it no
-    // underline of its own — add the one visual cue prose links still need.
-    // text-decoration is one of the few properties that paints across a
-    // shadow boundary from a light-DOM ancestor, so this reaches the label.
-    variant === "link" && "underline underline-offset-2",
-    className,
+function msdsButtonClassName(variant: ButtonVariant, size: ButtonSize, className?: string) {
+  return cn("msds-btn", `msds-btn-${variant}`, `msds-btn-${size}`, className);
+}
+
+/**
+ * A decorative icon rendered next to a button's label. MSDS's `Button`
+ * itself only ever draws two built-in icons of its own (a loading spinner, a
+ * success check) — it has no `icon` prop, and an arbitrary prop named `icon`
+ * would fall through its own `rest` spread onto the real DOM `<button>` as
+ * an invalid attribute. So this app's `icon` is never passed to MSDS's
+ * `Button`; it is rendered as an explicit child instead, wrapped so it never
+ * competes with `.msds-btn-label`'s `text-overflow: ellipsis` for space.
+ */
+function ButtonIcon({ children }: { children: ReactNode }) {
+  return (
+    <span className="mr-1.5 inline-flex shrink-0 items-center align-[-2px]" aria-hidden>
+      {children}
+    </span>
   );
 }
 
@@ -80,38 +81,26 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 export const Button = forwardRef<HTMLElement, ButtonProps>(function Button(
   { variant = "secondary", size = "md", loading = false, icon, className, children, type, disabled, ...rest },
-  ref,
+  // MSDS's `Button` is a plain function component, not built with
+  // `forwardRef` — it never receives a `ref` at all in React 18. No call
+  // site in this app reads a ref off `Button` (confirmed by grep before this
+  // rewrite), so `ref` is accepted for type-compatibility with existing
+  // callers and intentionally not forwarded further.
+  _ref,
 ) {
-  const Element = VARIANT_ELEMENT[variant];
   return (
-    <Element
-      // @lit/react types this ref to whichever single variant a wrapper was
-      // built for; Element is chosen dynamically here, and no call site in
-      // this app reads the ref (confirmed by grep before this rewrite), so a
-      // loosened type is the pragmatic choice over a per-variant union.
-      ref={ref as never}
+    <MsdsButton
+      variant={variant}
+      size={size}
       type={type ?? "button"}
-      // `disabled` alone would drop the button out of the tab order mid-interaction,
-      // moving focus somewhere the reader did not ask for. `aria-busy` announces
-      // the wait; the handler is what actually stops firing.
-      aria-busy={loading || undefined}
-      disabled={disabled || loading}
-      // delegatesFocus makes this a real Tab stop in a browser without any
-      // tabIndex of its own — jsdom doesn't implement that delegation, so
-      // Vitest/user-event (and the focus-trap wrap-around in focusTrap.ts)
-      // need it spelled out explicitly here. Harmless in a real browser: a
-      // delegatesFocus host with tabIndex="0" is still one Tab stop, not two.
-      tabIndex={disabled || loading ? -1 : 0}
+      loading={loading}
+      disabled={disabled}
+      className={className}
       {...rest}
-      className={variantClassName(variant, size, className)}
     >
-      {loading ? (
-        <MdCircularProgress slot="icon" indeterminate aria-hidden />
-      ) : icon ? (
-        withIconSlot(icon)
-      ) : null}
+      {icon && !loading ? <ButtonIcon>{icon}</ButtonIcon> : null}
       {children}
-    </Element>
+    </MsdsButton>
   );
 });
 
@@ -149,6 +138,19 @@ export const Button = forwardRef<HTMLElement, ButtonProps>(function Button(
  * `download` — skips `next/link` entirely and renders the bare element, so
  * the click never reaches Link's guard and the browser handles it natively,
  * exactly as a plain `<a target="_blank">`/`<a download>` would.
+ *
+ * D-76: MSDS's own `Button` hardcodes a `<button>` element (`h("button",
+ * ...)`, no `as`/polymorphic prop — checked in `lib/msds/msds.tsx` before
+ * this rewrite), so it cannot itself render an `<a>` without becoming a
+ * button wrapping a link or a link posing as a button — the exact
+ * accessibility regression the task instructions warn against. This renders
+ * a real `<a>` (native, or Next's `Link`) styled with MSDS's own
+ * `.msds-btn`/`.msds-btn-{variant}`/`.msds-btn-{size}` classes instead of
+ * calling the MSDS component function — same visual language, real link
+ * semantics. What is lost against `<MsdsButton>`: the pointer ripple and the
+ * pressed-state shape morph, both internal hooks (`useRipple`/
+ * `useShapeMorph`) MSDS does not export from its barrel — a cosmetic
+ * flourish, not a correctness or accessibility difference.
  */
 export function ButtonLink({
   href,
@@ -170,39 +172,40 @@ export function ButtonLink({
   target?: "_blank" | "_parent" | "_self" | "_top";
   download?: boolean | string;
 } & Omit<ButtonHTMLAttributes<HTMLButtonElement>, "type" | "target">) {
-  const Element = VARIANT_ELEMENT[variant];
   const opensOutsideSpa = (target != null && target !== "_self") || Boolean(download);
+  const linkClassName = msdsButtonClassName(variant, size, className);
+  // `rest` is typed against `ButtonHTMLAttributes<HTMLButtonElement>` (this
+  // function's own prop contract, unchanged by this rewrite) but is spread
+  // onto a real `<a>`/`Link` below; a few button-only handler types (e.g.
+  // `onToggle`) don't structurally match their anchor equivalents, which the
+  // previous `<Element>` (typed as a loose `ElementType`) never surfaced.
+  // Every call site in this app passes only anchor-compatible attributes
+  // (href, target, download, onClick, aria-*, data-*) — confirmed by grep —
+  // so this narrows the type at the spread rather than the prop contract.
+  const anchorRest = rest as Omit<
+    AnchorHTMLAttributes<HTMLAnchorElement>,
+    "href" | "target" | "download" | "className"
+  >;
 
   if (opensOutsideSpa) {
     return (
-      <Element
+      <a
         href={href}
         target={target}
         download={download}
-        // See the matching comment on Button above: makes this a Tab stop
-        // under jsdom, harmless alongside the real delegatesFocus behavior.
-        tabIndex={0}
-        {...rest}
-        className={variantClassName(variant, size, className)}
+        {...anchorRest}
+        className={linkClassName}
       >
-        {icon ? withIconSlot(icon) : null}
-        {children}
-      </Element>
+        {icon ? <ButtonIcon>{icon}</ButtonIcon> : null}
+        <span className="msds-btn-label">{children}</span>
+      </a>
     );
   }
 
   return (
-    <Link href={href} passHref legacyBehavior>
-      <Element
-        // See the matching comment on Button above: makes this a Tab stop
-        // under jsdom, harmless alongside the real delegatesFocus behavior.
-        tabIndex={0}
-        {...rest}
-        className={variantClassName(variant, size, className)}
-      >
-        {icon ? withIconSlot(icon) : null}
-        {children}
-      </Element>
+    <Link href={href} {...anchorRest} className={linkClassName}>
+      {icon ? <ButtonIcon>{icon}</ButtonIcon> : null}
+      <span className="msds-btn-label">{children}</span>
     </Link>
   );
 }
@@ -238,6 +241,19 @@ export interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement>
  * the old default `variant="ghost"`). Filled/outlined/tonal icon buttons
  * exist in @material/web if a future screen needs a louder one; add the
  * mapping then rather than carrying an unused prop now.
+ *
+ * D-76: kept on `@material/web`, not converted to MSDS's `IconButton`.
+ * MSDS's version takes `iconOn`/`iconOff` as **names** out of its own closed
+ * glyph vocabulary (`msdsIcon(name)` — a fixed `switch` in `lib/msds/icons.tsx`,
+ * checked before this decision) and always renders one of those; it has no
+ * slot for an arbitrary `ReactNode`. This app's `icon` prop, by contrast, is
+ * always a specific already-imported icon component from `components/ui/
+ * icons.tsx` — the ~15 call sites pass roughly a dozen different icons, none
+ * of them nameable in MSDS's switch without either extending that vendored,
+ * `@ts-nocheck` file (out of scope for a wrapper-level conversion) or
+ * building a name-lookup table mapping each of this app's icon components
+ * back to an MSDS glyph name, which is not a prop-API translation, it is a
+ * second icon set. Left untouched.
  */
 const IconButtonElement = MdIconButton as ElementType;
 
@@ -285,6 +301,20 @@ export const IconButton = forwardRef<HTMLElement, IconButtonProps>(function Icon
  * the next render (from the caller's own `onClick`-driven state change)
  * reasserts the true value. Same "uncontrolled-but-externally-settable"
  * tolerance already accepted for `md-filter-chip`'s own auto-toggle.
+ *
+ * D-76: kept on `@material/web`, not converted to MSDS's `ButtonGroup`.
+ * This app's `ButtonGroup` is a compound component — a container plus
+ * {@link ButtonGroupItem} children, each carrying its own `selected`/
+ * `onClick`/`label`/`icon` — while MSDS's `ButtonGroup` takes a flat
+ * `options: {value, label}[]` array plus one `value`/`onChange` pair up
+ * front, with no per-option `icon` or extra ARIA attribute. `ThemeToggle.tsx`
+ * (out of scope for this pass, and itself left alone per the task's
+ * instructions) depends on exactly what MSDS's shape drops: its `compact`
+ * mode renders an icon-only segmented button (`label=""` plus a real
+ * `aria-label`) — collapsing to MSDS's `options` array would either lose the
+ * icon or leave a same-shaped, unlabelled button. Converting `ButtonGroup`
+ * without regressing `ThemeToggle`'s compact toggle needs a props
+ * translation MSDS's shape cannot carry, so both stay as they were.
  */
 export function ButtonGroup({
   label,
@@ -311,6 +341,14 @@ export function ButtonGroup({
  * — set here as a controlled prop, same tolerance as {@link ButtonGroup}
  * above: the chip auto-toggles on click internally, and the next
  * caller-driven render reasserts the true value.
+ *
+ * D-76: kept on `@material/web`, not converted to MSDS's `Chip`
+ * (`variant="filter"`). MSDS's `Chip` has no `disabled` handling at all —
+ * checked in `lib/msds/msds.tsx` before this decision, its `onClick` fires
+ * regardless of any prop named `disabled`. `/app/comparar` relies on this
+ * app's `disabled={!chosen && materialsFull}` to actually stop a reader from
+ * selecting past the comparison cap, not just grey it out; wiring that chip
+ * through MSDS's `Chip` would silently drop that limit. Left untouched.
  */
 export function ToggleChip({
   selected,
