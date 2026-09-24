@@ -1299,7 +1299,20 @@ export const ptBR = {
     // nothing about which of them change the question and which change only the
     // drawing.
     controls: "Controles do mapa",
-    groupAxes: "Eixos e escala",
+    axesHint: "Escolha o que vai em cada eixo. O mapa aparece logo abaixo.",
+    customize: "Personalizar o mapa",
+    customizeHint:
+      "Universo, escala, forma do envelope, camadas, classes e linha de índice. Aqui um eixo também pode virar um índice.",
+    customizeInUse: (items: string[]) => `Em uso: ${items.join(" · ")}.`,
+    customizationLabels: {
+      universe: "universo de processos",
+      scale: "escala linear",
+      envelope: "fecho convexo",
+      classes: "classes filtradas",
+      layers: "camadas alteradas",
+      index: "linha de índice",
+    },
+    groupUniverseScale: "Universo, escala e envelope",
     groupClasses: "Classes exibidas",
     groupDisplay: "O que desenhar",
     groupIndex: "Linha de índice",
