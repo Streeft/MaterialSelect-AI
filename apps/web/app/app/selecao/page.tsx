@@ -311,6 +311,14 @@ function SelectionWizard() {
     if (next === universe) return;
     setUniverse(next);
     setStages([emptyLimitStage()]);
+    // D-84: the objective names keys of one catalogue — material properties or
+    // process attributes — so it cannot cross over either. A property criterion
+    // in a process study is refused by the backend by name.
+    setCriteria([]);
+    setIndexMode("none");
+    setCustomExpression("");
+    setValidation(null);
+    setUseAhp(false);
   }
 
   const isProcessStudy = universe === "process";
@@ -354,6 +362,23 @@ function SelectionWizard() {
 
   const fail = (err: unknown) => setError(err instanceof ApiError ? err.message : t.genericError);
 
+  /**
+   * What a ranking criterion may name, in this study's universe (D-84).
+   *
+   * A process study ranks by process attributes — but only the numeric ones: a
+   * discrete attribute is a set of labels with no order, and the backend
+   * refuses it by name. Offering it would be offering a 400.
+   */
+  const criterionOptions = useMemo<{ slug: string; name: string; variable: string }[]>(
+    () =>
+      isProcessStudy
+        ? (processAttributes.data ?? [])
+            .filter((a) => a.kind !== "DISCRETO")
+            .map((a) => ({ slug: a.slug, name: a.name, variable: a.variable }))
+        : (properties.data ?? []).map((p) => ({ slug: p.slug, name: p.name, variable: p.slug })),
+    [isProcessStudy, processAttributes.data, properties.data],
+  );
+
   // Resolve the active index (prebuilt or custom) into an IndexIn payload.
   const activeIndex = useMemo<IndexIn | null>(() => {
     if (indexMode === "none") return null;
@@ -392,9 +417,9 @@ function SelectionWizard() {
           label:
             c.key === "__index__"
               ? t.useIndexCriterion
-              : properties.data?.find((p) => p.slug === c.key)?.name ?? c.key,
+              : criterionOptions.find((p) => p.slug === c.key)?.name ?? c.key,
         })),
-    [criteria, properties.data],
+    [criteria, criterionOptions],
   );
 
   // Functional update, no `criteria` in the dependency list: this keeps the
@@ -854,23 +879,18 @@ function SelectionWizard() {
           </Section>
         )}
 
-        {/* Step 3: objective (index + ranking) */}
-        {/* P0-3: a process study has no objective step to fill in. Said here,
-            in the step the reader opened, rather than discovered as a 400 when
-            they press Run. */}
-        {step === "objective" && isProcessStudy && (
-          <Section title={t.objectiveTitle}>
-            <Alert tone="info">{t.universeProcessNote}</Alert>
-          </Section>
-        )}
-
-        {step === "objective" && !isProcessStudy && (
+        {/* Step 3: objective (index + ranking). D-84: both universes — a
+            process study ranks by its numeric attributes since P0-4 (D-59). */}
+        {step === "objective" && (
           <div className="space-y-5">
             <Section title={t.objectiveTitle}>
               <Card>
                 <CardBody className="space-y-3">
+                  {isProcessStudy && (
+                    <Alert tone="info">{t.processIndexNote}</Alert>
+                  )}
                   <IndexPicker
-                    indices={indices.data ?? []}
+                    indices={isProcessStudy ? [] : (indices.data ?? [])}
                     value={indexMode}
                     onChange={(next) => {
                       setIndexMode(next);
@@ -885,7 +905,11 @@ function SelectionWizard() {
                             className="w-72"
                             value={customExpression}
                             onChange={(e) => setCustomExpression(e.target.value)}
-                            placeholder="modulo_young / densidade"
+                            placeholder={
+                              isProcessStudy
+                                ? (criterionOptions[0]?.variable ?? "")
+                                : "modulo_young / densidade"
+                            }
                           />
                           <Select
                             label={t.goal}
@@ -896,16 +920,23 @@ function SelectionWizard() {
                             <SelectOption value="maximize">{t.maximize}</SelectOption>
                             <SelectOption value="minimize">{t.minimize}</SelectOption>
                           </Select>
-                          <Button onClick={() => validateExpr.mutate()} loading={validateExpr.isPending}>
-                            {t.validate}
-                          </Button>
+                          {/* `/selection/index` evaluates over materials only, so
+                              in a process study its sole outcome would be a 400. */}
+                          {!isProcessStudy && (
+                            <Button
+                              onClick={() => validateExpr.mutate()}
+                              loading={validateExpr.isPending}
+                            >
+                              {t.validate}
+                            </Button>
+                          )}
                         </div>
                         <p className="mt-2 text-xs text-ink-muted">
-                          {t.expressionHint}{" "}
-                          {properties.data && (
+                          {isProcessStudy ? t.expressionCheckedOnRun : t.expressionHint}{" "}
+                          {criterionOptions.length > 0 && (
                             <span className="text-ink-subtle">
                               ({t.variablesAvailable}:{" "}
-                              {properties.data.map((p) => p.slug).join(", ")})
+                              {criterionOptions.map((p) => p.variable).join(", ")})
                             </span>
                           )}
                         </p>
@@ -988,7 +1019,7 @@ function SelectionWizard() {
                         {activeIndex && (
                           <SelectOption value="__index__">{t.useIndexCriterion}</SelectOption>
                         )}
-                        {(properties.data ?? []).map((p) => (
+                        {criterionOptions.map((p) => (
                           <SelectOption key={p.slug} value={p.slug}>
                             {p.name}
                           </SelectOption>

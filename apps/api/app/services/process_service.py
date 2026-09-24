@@ -6,6 +6,7 @@ from collections.abc import Mapping
 
 from sqlalchemy.orm import Session
 
+from app.calculations.expressions import safe_variable
 from app.domain.display_units import Reading, reading_for
 from app.domain.errors import NotFoundError
 from app.domain.taxonomy import lineages
@@ -153,6 +154,7 @@ class ProcessService:
             symbol=attribute.symbol,
             description=attribute.description,
             kind=attribute.kind,
+            variable=safe_variable(attribute.slug),
             physical_dimension=attribute.physical_dimension,
             canonical_unit=attribute.canonical_unit,
             accepted_units=list(attribute.accepted_units or []),

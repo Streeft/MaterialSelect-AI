@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import pytest
 
+from app.calculations.expressions import safe_variable
 from app.models.enums import BetterDirection, DataQuality, ProcessAttributeKind
 from app.models.process import Process, ProcessClass
 from app.models.process_attribute import ProcessAttributeDefinition, ProcessAttributeValue
@@ -187,6 +188,28 @@ def test_the_attribute_catalogue_says_which_shape_each_value_has(client, attribu
     # A label has no unit, and the vocabulary is closed.
     assert by_slug[FORMA]["canonical_unit"] is None
     assert by_slug[FORMA]["allowed_labels"] == ["Maciço 3D", "Oco 3D", "Chapa conformada"]
+
+
+def test_each_attribute_carries_the_name_an_index_expression_uses(client, attributes) -> None:
+    """D-84: a slug has hyphens and an expression needs an identifier. The
+    catalogue sends the identifier, so the screen that lists the variables and
+    the evaluator that reads them cannot disagree — and a process study run with
+    an index written from that list must go through."""
+    catalogue = {a["slug"]: a for a in client.get("/api/processes/attributes").json()}
+    assert catalogue[LOTE]["variable"] == safe_variable(LOTE)
+    assert "-" not in catalogue[MASSA]["variable"]
+
+    resp = client.post(
+        "/api/selection/run",
+        json={
+            "universe": "process",
+            "stages": [_limit([{"operator": "exists", "property_slug": LOTE}])],
+            "index": {"expression": catalogue[LOTE]["variable"], "goal": "minimize"},
+            "ranking": {"criteria": [{"key": "__index__", "weight": 1.0}]},
+        },
+    )
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["ranking"]["ranked"][0]["name"] == "Micro-usinagem de teste"
 
 
 def test_the_material_property_catalogue_does_not_carry_process_attributes(

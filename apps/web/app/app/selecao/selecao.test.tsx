@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, waitFor } from "@testing-library/react";
+import { render, waitFor, within } from "@testing-library/react";
 // See the note in components/layout/layout.test.tsx: MWC button roles live
 // inside a shadow root, invisible to plain @testing-library/react queries.
 import { screen } from "shadow-dom-testing-library";
@@ -7,11 +7,19 @@ import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { ptBR } from "@/lib/i18n";
-import type { PropertyDefinition, RunRequest, RunResult } from "@/lib/types";
+import type {
+  PerformanceIndex,
+  ProcessAttribute,
+  PropertyDefinition,
+  RunRequest,
+  RunResult,
+} from "@/lib/types";
 
 const t = ptBR.selection;
 
 const runSelection = vi.fn<(payload: RunRequest) => Promise<RunResult>>();
+const listProcessAttributes = vi.fn<() => Promise<ProcessAttribute[]>>();
+const listPerformanceIndices = vi.fn<() => Promise<PerformanceIndex[]>>();
 
 const density: PropertyDefinition = {
   display_unit: null,
@@ -42,8 +50,8 @@ vi.mock("@/lib/api", () => ({
   listClasses: () => Promise.resolve([]),
   listProcesses: () => Promise.resolve([]),
   listProcessClasses: () => Promise.resolve([]),
-  listProcessAttributes: () => Promise.resolve([]),
-  listPerformanceIndices: () => Promise.resolve([]),
+  listProcessAttributes: () => listProcessAttributes(),
+  listPerformanceIndices: () => listPerformanceIndices(),
   listStudies: () => Promise.resolve([]),
   getStudy: () => Promise.resolve(null),
   createStudy: () => Promise.resolve(null),
@@ -81,6 +89,13 @@ function result(overrides: Partial<RunResult> = {}): RunResult {
   };
 }
 
+/** A step of the Stepper itself — the action bar may carry a button with the
+ * same name (its "next" action), so the query is scoped to the steps nav. */
+function stepButton(label: string) {
+  const nav = screen.getByRole("navigation", { name: ptBR.ui.steps });
+  return within(nav).getByRole("button", { name: new RegExp(label, "i") });
+}
+
 function wrap(node: ReactNode) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return <QueryClientProvider client={client}>{node}</QueryClientProvider>;
@@ -92,6 +107,9 @@ const { default: SelectionPage } = await import("./page");
 beforeEach(() => {
   runSelection.mockReset();
   runSelection.mockResolvedValue(result());
+  listProcessAttributes.mockResolvedValue([]);
+  listPerformanceIndices.mockResolvedValue([]);
+  for (const key of [...searchParams.keys()]) searchParams.delete(key);
 });
 
 describe("assistente de seleção", () => {
@@ -182,5 +200,118 @@ describe("método de ranking", () => {
         }),
       }),
     );
+  });
+});
+
+// --- D-84: a process study ranks by its numeric attributes -------------------
+
+function attribute(overrides: Partial<ProcessAttribute>): ProcessAttribute {
+  return {
+    id: 1,
+    name: "Lote econômico",
+    slug: "lote-economico",
+    symbol: null,
+    description: null,
+    kind: "ESCALAR",
+    variable: "lote_economico",
+    physical_dimension: "dimensionless",
+    canonical_unit: "dimensionless",
+    accepted_units: ["dimensionless"],
+    allowed_labels: [],
+    better_direction: "LOWER",
+    ...overrides,
+  };
+}
+
+const beamIndex: PerformanceIndex = {
+  id: 1,
+  name: "Viga leve e rígida",
+  slug: "viga-leve-rigidez",
+  expression: "modulo_young ** 0.5 / densidade",
+  goal: "maximize",
+  description: null,
+  assumptions: null,
+  dimension: null,
+  is_demo: true,
+};
+
+describe("estudo de processos", () => {
+  it("offers the numeric process attributes as criteria, never a discrete one", async () => {
+    const user = userEvent.setup();
+    searchParams.set("universo", "process");
+    listProcessAttributes.mockResolvedValue([
+      attribute({}),
+      attribute({ id: 2, name: "Faixa de massa", slug: "faixa-massa", kind: "ENVELOPE", variable: "faixa_massa" }),
+      attribute({
+        id: 3,
+        name: "Forma",
+        slug: "forma",
+        kind: "DISCRETO",
+        variable: "forma",
+        canonical_unit: null,
+        accepted_units: [],
+        allowed_labels: ["Oco 3D"],
+      }),
+    ]);
+    listPerformanceIndices.mockResolvedValue([beamIndex]);
+    render(wrap(<SelectionPage />));
+
+    await user.click(stepButton(t.stepObjective));
+    // The objective step is there — not the old "cannot rank" notice.
+    expect(screen.getByText(t.processIndexNote)).toBeInTheDocument();
+    await user.click(screen.getByShadowRole("button", { name: t.addCriterion }));
+
+    const criterion = screen.getByShadowRole("combobox", { name: t.criterion });
+    await waitFor(() =>
+      expect(within(criterion).getByRole("option", { name: "Lote econômico" })).toBeInTheDocument(),
+    );
+    expect(within(criterion).getByRole("option", { name: "Faixa de massa" })).toBeInTheDocument();
+    expect(within(criterion).queryByRole("option", { name: "Forma" })).not.toBeInTheDocument();
+    expect(within(criterion).queryByRole("option", { name: density.name })).not.toBeInTheDocument();
+
+    // Catalogue indices are written over material properties: not offered.
+    expect(screen.queryByText(beamIndex.name)).not.toBeInTheDocument();
+  });
+
+  it("sends a process-attribute criterion on the run", async () => {
+    const user = userEvent.setup();
+    searchParams.set("universo", "process");
+    listProcessAttributes.mockResolvedValue([attribute({})]);
+    render(wrap(<SelectionPage />));
+
+    await user.click(stepButton(t.stepObjective));
+    await user.click(screen.getByShadowRole("button", { name: t.addCriterion }));
+    const criterion = screen.getByShadowRole("combobox", { name: t.criterion });
+    await waitFor(() =>
+      expect(within(criterion).getByRole("option", { name: "Lote econômico" })).toBeInTheDocument(),
+    );
+    await userEvent.selectOptions(criterion, "lote-economico");
+    await user.click(screen.getByShadowRole("button", { name: t.run }));
+
+    await waitFor(() =>
+      expect(runSelection).toHaveBeenCalledWith(
+        expect.objectContaining({
+          universe: "process",
+          ranking: expect.objectContaining({
+            criteria: [expect.objectContaining({ key: "lote-economico" })],
+          }),
+        }),
+      ),
+    );
+  });
+
+  it("clears the objective when the universe changes, since its keys would be refused", async () => {
+    const user = userEvent.setup();
+    render(wrap(<SelectionPage />));
+
+    await user.click(stepButton(t.stepObjective));
+    await user.click(screen.getByShadowRole("button", { name: t.addCriterion }));
+    expect(screen.getByShadowRole("combobox", { name: t.criterion })).toBeInTheDocument();
+
+    await user.click(stepButton(t.stepConstraints));
+    await user.click(screen.getByShadowRole("button", { name: t.universeProcess }));
+    await user.click(stepButton(t.stepObjective));
+
+    expect(screen.queryByShadowRole("combobox", { name: t.criterion })).not.toBeInTheDocument();
   });
 });

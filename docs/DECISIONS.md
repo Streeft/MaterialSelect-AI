@@ -5334,3 +5334,46 @@ classe, propriedade, as seis rotas de importação e a ingestão), o assinante
 continuando curador no modo aberto, e o modo `subscription` não ganhando um
 segundo portão por cima do D-46. Frontend: o portão admitindo no modo aberto,
 `/assinatura` nos dois modos e o aviso de somente leitura.
+
+## D-84 — Estudo de processos volta a ter o passo Objetivo: ranqueia por atributo numérico, e o discreto fica de fora pelo nome
+
+**O defeito.** Desde o P0-4 ([D-59](#d-59)) um processo tem atributo, e a recusa de
+ranqueamento do [D-58](#d-58) foi **retirada** — `test_process_attributes.py` prova
+que um estudo de processos ranqueia (`test_ranking_a_process_study_works_now`), que
+um envelope entra pelo ponto representativo e que só o atributo **discreto** é
+recusado, com o motivo escrito. A tela não acompanhou: com o universo em
+"Processos", o passo Objetivo inteiro era trocado por um aviso que dizia
+"processo não tem atributo cadastrado" — falso havia semanas, e escondendo uma
+capacidade que o backend entrega.
+
+**A decisão.** O passo Objetivo é o mesmo nos dois universos; o que muda é o
+catálogo de que ele lê:
+
+- **Critério de ranking** num estudo de processos lista os atributos de processo
+  **numéricos** (`ESCALAR` e `ENVELOPE`). O `DISCRETO` não aparece: é um conjunto
+  de rótulos sem ordem, o backend o recusa pelo nome, e oferecê-lo seria oferecer
+  um 400.
+- **Índice**: os índices do catálogo são escritos sobre propriedades de material,
+  então num estudo de processos sobram "Nenhum índice" e "Expressão
+  personalizada", com uma frase dizendo por quê. O botão **Validar** some ali,
+  porque `POST /api/selection/index` avalia sobre materiais e o único desfecho
+  seria um 400; a frase diz que a expressão é conferida ao executar.
+- **O nome de variável vem do backend.** Um slug de atributo tem hífen
+  (`faixa-massa`) e uma expressão precisa de identificador; a conversão é a de
+  `safe_variable`. `ProcessAttributeOut` passou a carregar `variable`, calculado por
+  ela, para a lista de variáveis da tela e o avaliador não poderem discordar — a
+  mesma razão pela qual a geometria e a unidade de leitura saem do backend.
+- **Trocar o universo limpa o objetivo** (critérios, índice, expressão, AHP), além
+  dos estágios. Um critério de propriedade de material num estudo de processos é
+  recusado pelo backend; carregá-lo através da troca só produziria o erro.
+
+**Verificação.** Backend: `test_each_attribute_carries_the_name_an_index_expression_uses`
+(o `variable` servido é o de `safe_variable`, e um índice escrito com ele executa
+num estudo de processos). Frontend, em `selecao.test.tsx`: o seletor lista os
+atributos numéricos e não o discreto nem as propriedades de material, os índices do
+catálogo não aparecem, o critério de atributo chega à requisição com
+`universe: "process"`, e trocar o universo limpa os critérios (conferido por
+mutação).
+
+**Depois do merge** a API precisa do **Deploy da API**: sem ele o catálogo de
+atributos não traz `variable`, e a lista de variáveis da expressão sai vazia.
