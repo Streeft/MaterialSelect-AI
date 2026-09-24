@@ -73,6 +73,8 @@ import type {
   Universe,
   UploadResult,
   ValidationReport,
+  WeightsPreview,
+  WeightsPreviewRequest,
 } from "./types";
 
 /**
@@ -427,6 +429,14 @@ export function createImportTemplate(
 
 export function runSelection(payload: RunRequest): Promise<RunResult> {
   return request<RunResult>(`/api/selection/run`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+/** The weight budget of the criteria as typed, plus the top-N they rank (D-87). */
+export function previewWeights(payload: WeightsPreviewRequest): Promise<WeightsPreview> {
+  return request<WeightsPreview>(`/api/selection/weights-preview`, {
     method: "POST",
     body: JSON.stringify(payload),
   });

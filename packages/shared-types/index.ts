@@ -695,6 +695,90 @@ export interface RunRequest {
   ranking?: RankingIn | null;
 }
 
+// --- Weight budget and top-N preview (D-87) ---------------------------------
+
+/** A criterion row as the reader has it while typing — every field may still be empty. */
+export interface WeightCriterionIn {
+  key: string;
+  label?: string | null;
+  direction?: "max" | "min" | null;
+  weight: number | null;
+}
+
+export interface WeightsPreviewRequest {
+  universe: SelectionUniverse;
+  stages: StageIn[] | null;
+  index: IndexIn | null;
+  method: MethodLiteral;
+  normalization: NormalizationMethod;
+  criteria: WeightCriterionIn[];
+  top_n?: number;
+}
+
+export type WeightIssue =
+  | "missing_key"
+  | "missing_weight"
+  | "zero"
+  | "negative"
+  | "duplicate_key"
+  | "unknown_key"
+  | "index_missing";
+
+export interface WeightRow {
+  position: number;
+  key: string | null;
+  weight: number | null;
+  /** Fraction of the weighted average; null when the row has no usable weight (never 0). */
+  share: number | null;
+  share_percent: number | null;
+  issue: WeightIssue | null;
+}
+
+export type WeightSuggestionKind =
+  | "fill_blanks"
+  | "spread_remaining"
+  | "split_equally"
+  | "scale_to_limit";
+
+export interface WeightSuggestion {
+  kind: WeightSuggestionKind;
+  /** One weight per row, in row order, summing to exactly 1. */
+  weights: number[];
+}
+
+export interface WeightBudget {
+  limit: number;
+  tolerance: number;
+  total: number;
+  remaining: number;
+  excess: number;
+  status: "empty" | "incomplete" | "complete" | "exceeds";
+  rows: WeightRow[];
+  suggestion: WeightSuggestion | null;
+  can_run: boolean;
+}
+
+export interface PreviewCandidate {
+  rank: number;
+  record_id: number;
+  name: string;
+  class_name: string | null;
+  score: number;
+}
+
+export interface WeightsPreview {
+  budget: WeightBudget;
+  method: string;
+  top: PreviewCandidate[];
+  initial_count: number;
+  candidate_count: number;
+  ranked_count: number;
+  constraints_applied: boolean;
+  renormalized: boolean;
+  unavailable_reason: "no_criteria" | "no_candidates" | "all_excluded" | "pipeline_error" | null;
+  unavailable_message: string | null;
+}
+
 export interface FunnelStep {
   label: string;
   operator: string;

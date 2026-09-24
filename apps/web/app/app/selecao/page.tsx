@@ -17,6 +17,7 @@ import {
   listProcesses,
   listProperties,
   listStudies,
+  previewWeights,
   runSelection,
   runStudy,
 } from "@/lib/api";
@@ -33,6 +34,7 @@ import type {
   StageIn,
   StageOut,
   StudyDetail,
+  WeightsPreviewRequest,
 } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { prettyUnit } from "@/lib/format";
@@ -94,6 +96,8 @@ import {
   objectiveUsesAdvanced,
 } from "@/lib/selection/advanced";
 import { AIAssistPanel, type AcceptedSuggestions } from "@/components/ai/AIAssistPanel";
+import { WeightBudget } from "@/components/selection/WeightBudget";
+import { parseWeightInput, weightsGate } from "@/lib/selection/weightsGate";
 
 const t = ptBR.selection;
 type Step = "function" | "constraints" | "objective" | "results";
@@ -548,6 +552,65 @@ function SelectionWizard() {
     placeholderData: (previous) => previous,
   });
 
+  // D-87: the weight budget and the top five, computed in the backend while
+  // the reader types. Debounced on the serialized key, never the object — a
+  // new object every render would be a new request every render.
+  const weightsRequest: WeightsPreviewRequest = {
+    universe,
+    stages: stagesPayload(),
+    index: activeIndex,
+    method,
+    normalization,
+    criteria: criteria.map((c) => {
+      const parsed = parseWeightInput(c.weight);
+      return {
+        key: c.key,
+        direction: c.direction || null,
+        weight: typeof parsed === "number" ? parsed : null,
+      };
+    }),
+  };
+  const weightsKeyNow = JSON.stringify(weightsRequest);
+  const weightsKey = useDebounced(weightsKeyNow, 300);
+  const weightsPreview = useQuery({
+    queryKey: ["weights-preview", weightsKey],
+    queryFn: () => previewWeights(JSON.parse(weightsKey) as WeightsPreviewRequest),
+    enabled: criteria.length > 0,
+    placeholderData: (previous) => previous,
+    retry: false,
+  });
+  const weightsPending =
+    criteria.length > 0 &&
+    (weightsKeyNow !== weightsKey ||
+      weightsPreview.isPlaceholderData ||
+      (!weightsPreview.data && !weightsPreview.isError));
+  const gate = weightsGate({
+    criteriaCount: criteria.length,
+    pending: weightsPending,
+    failed: weightsPreview.isError && !weightsPending,
+    budget: weightsPreview.data?.budget ?? null,
+  });
+  // The rows as they were before a suggestion was applied, for "Desfazer".
+  const [beforeSuggestion, setBeforeSuggestion] = useState<CriterionRow[] | null>(null);
+
+  function applyWeightSuggestion(weights: number[]) {
+    setBeforeSuggestion(criteria);
+    setCriteria(
+      criteria.map((c, i) => {
+        const w = weights[i];
+        // Written back as the reader would type it: a decimal comma, no
+        // grouping — the input parses it again, exactly.
+        return w === undefined ? c : { ...c, weight: String(w).replace(".", ",") };
+      }),
+    );
+  }
+
+  const criterionLabel = (key: string | null): string => {
+    if (!key) return t.weights.noCriterion;
+    if (key === "__index__") return activeIndex?.name ?? t.useIndexCriterion;
+    return criterionOptions.find((p) => p.slug === key)?.name ?? key;
+  };
+
   const run = useMutation({
     mutationFn: () => runSelection(buildRequest(true)),
     onSuccess: (data) => {
@@ -911,7 +974,7 @@ function SelectionWizard() {
       case "constraints":
         return hasConstraints ? "done" : "upcoming";
       case "objective":
-        return hasObjective ? "done" : "upcoming";
+        return hasObjective && gate.canRun ? "done" : "upcoming";
       case "results":
         return result ? "done" : "blocked";
     }
@@ -960,9 +1023,31 @@ function SelectionWizard() {
           </ButtonLink>
         )}
         {step === LAST_INPUT_STEP || !next ? (
-          <Button variant="primary" loading={run.isPending} onClick={() => run.mutate()}>
-            {run.isPending ? t.running : t.run}
-          </Button>
+          <>
+            {gate.reason ? (
+              <>
+                <p id="executar-motivo" className="text-2xs text-ink-muted">
+                  {gate.reason}
+                </p>
+                {step !== "objective" && (
+                  <Button variant="secondary" onClick={() => goToStep("objective")}>
+                    {t.weights.fixWeights}
+                  </Button>
+                )}
+              </>
+            ) : gate.note ? (
+              <p className="text-2xs text-ink-muted">{gate.note}</p>
+            ) : null}
+            <Button
+              variant="primary"
+              loading={run.isPending}
+              disabled={!gate.canRun}
+              aria-describedby={gate.reason ? "executar-motivo" : undefined}
+              onClick={() => run.mutate()}
+            >
+              {run.isPending ? t.running : t.run}
+            </Button>
+          </>
         ) : (
           <Button variant="primary" icon={<IconArrowRight />} onClick={() => goToStep(next)}>
             {t.nextStep(labelOf(next))}
@@ -1319,13 +1404,19 @@ function SelectionWizard() {
                         className="w-40 tabular-nums"
                         inputMode="decimal"
                         value={c.weight}
-                        onChange={(e) =>
+                        error={
+                          parseWeightInput(c.weight) === "invalid"
+                            ? t.weights.invalidNumber
+                            : undefined
+                        }
+                        onChange={(e) => {
+                          setBeforeSuggestion(null);
                           setCriteria(
                             criteria.map((x) =>
                               x.id === c.id ? { ...x, weight: e.target.value } : x,
                             ),
-                          )
-                        }
+                          );
+                        }}
                       />
                       <Button
                         size="sm"
@@ -1346,13 +1437,34 @@ function SelectionWizard() {
                           id: nextId(),
                           key: activeIndex && !indexIsCriterion ? "__index__" : "",
                           direction: "",
-                          weight: "1",
+                          // The first criterion is the whole budget; the next
+                          // ones start blank, so the table says what is left
+                          // instead of a total that silently went to 2 (D-87).
+                          weight: criteria.length === 0 ? "1" : "",
                         },
                       ])
                     }
                   >
                     {t.addCriterion}
                   </Button>
+
+                  {criteria.length > 0 && (
+                    <WeightBudget
+                      preview={weightsPreview.data ?? null}
+                      pending={weightsPending}
+                      failed={weightsPreview.isError && !weightsPending}
+                      labelOf={criterionLabel}
+                      onApplySuggestion={applyWeightSuggestion}
+                      onUndo={
+                        beforeSuggestion
+                          ? () => {
+                              setCriteria(beforeSuggestion);
+                              setBeforeSuggestion(null);
+                            }
+                          : null
+                      }
+                    />
+                  )}
 
                   <Disclosure
                     summary={ptBR.ui.advancedOptions}

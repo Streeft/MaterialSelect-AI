@@ -75,6 +75,14 @@ Administrar para quem não é curador, Início enxuto, Mapas com "Personalizar o
 mapa", Comparar por busca e as ferramentas com premissas recolhidas (valores no
 resumo) e motivo em todo botão desabilitado.
 
+**Fase 2 — pesos com limite 1 (D-87).** `app/domain/weights.py` (orçamento em
+Decimal, problema por linha, sugestão que fecha 1 exatamente) e
+`POST /api/selection/weights-preview` (orçamento sempre, top 5 quando há o que
+ordenar, motivo em vez de erro). Na tela, `WeightBudget` com total, participação,
+sugestão com Desfazer e prévia do top 5; "Executar" espera a soma fechar 1, com o
+motivo, e falha aberta se a conferência não responder. `/run` e o salvamento
+recusam critério repetido; estudos antigos continuam reexecutando.
+
 ---
 
 ## Sessão 27 — 24/09/26 — O portão vira um modo: acesso aberto para uma turma (D-83)
