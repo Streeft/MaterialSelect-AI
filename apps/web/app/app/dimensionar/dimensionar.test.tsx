@@ -148,6 +148,17 @@ beforeEach(() => {
 });
 
 describe("Dimensionar", () => {
+  it("abre com o primeiro caso já escolhido, como o seletor mostra", async () => {
+    // O <select> exibe o primeiro caso; com o estado vazio a tela não
+    // desenhava nada abaixo dele até o leitor trocar de caso e voltar.
+    render(wrap(<SolverPage />));
+    expect(
+      await screen.findByRole("heading", { name: t.inputsStep }),
+    ).toBeInTheDocument();
+    expect(screen.getByShadowLabelText(/Comprimento/)).toBeInTheDocument();
+  });
+
+
   it("mostra as facetas do fluxo função → restrição → objetivo", async () => {
     await chooseBeam();
 
@@ -208,6 +219,12 @@ describe("Dimensionar", () => {
     await screen.findByRole("heading", { name: t.resultStep });
     expect(screen.getByText("Alumínio 6061")).toBeInTheDocument();
     expect(screen.getByText("0,402")).toBeInTheDocument();
+    // A ficha do registro, não a página de família (/app/catalogo/[slug]),
+    // onde um id cairia numa família que não existe.
+    expect(screen.getByRole("link", { name: "Alumínio 6061" })).toHaveAttribute(
+      "href",
+      "/app/materiais/1",
+    );
   });
 
   it("envia os números na unidade canônica, como números", async () => {

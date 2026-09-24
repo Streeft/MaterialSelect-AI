@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useRef, useState, type ComponentProps, type ReactNode } from "react";
+import { useMemo, useReducer, useState, type ReactNode } from "react";
 import dynamic from "next/dynamic";
-import type { Data, Layout } from "plotly.js";
+import type { Data, Layout, LayoutAxis } from "plotly.js";
 import type { ChartScale, MapPoint, PropertyMap } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { formatNumber, prettyUnit } from "@/lib/format";
@@ -11,15 +11,13 @@ import { chartTheme, classVisual } from "@/lib/design/palette";
 import {
   ButtonGroup,
   ButtonGroupItem,
-  Card,
-  CardBody,
-  CardHeader,
   DataQualityBadge,
   EmptyState,
   MissingValue,
   useResolvedTheme,
 } from "@/components/ui";
-import { ChartToolbar } from "./ChartToolbar";
+import { ChartFrame } from "./ChartFrame";
+import { ChartLegend, type LegendItem } from "./ChartLegend";
 import { FigureData, type FigureColumn } from "./FigureData";
 
 // Plotly touches window/document, so it must never render on the server.
@@ -154,6 +152,12 @@ function hoverFor(point: MapPoint, map: PropertyMap): string {
   return lines.join("<br>");
 }
 
+/** An axis title that keeps the theme's title font instead of replacing it. */
+function titled(axis: Partial<LayoutAxis> | undefined, text: string): Partial<LayoutAxis> {
+  const base = axis?.title;
+  return { ...axis, title: { ...(typeof base === "object" ? base : {}), text } };
+}
+
 /**
  * The Ashby property map.
  *
@@ -165,6 +169,16 @@ function hoverFor(point: MapPoint, map: PropertyMap): string {
  * Colours, marker shapes and dashes come from the design tokens, so the figure
  * follows the theme instead of staying white inside a dark page — and so a class
  * keeps the same identity here, in the comparator and in `/estilo`.
+ *
+ * **Still Plotly, dressed as MSDS's `ScatterMap` (D-80).** MSDS's scatter is a
+ * fixed linear SVG; this map needs log–log axes, zoom and pan, and — for the
+ * Chart Stage (D-60) — a box drawn in data coordinates that becomes a
+ * selection criterion. So the engine stays and the look moves: the MSDS chart
+ * card, the app's face, recessive gridlines, markers in a thin dark ring,
+ * envelopes at 14 % fill / 50 % stroke of the class colour, the hover label as
+ * `.msds-tooltip`, and Plotly's own legend replaced by MSDS legend buttons.
+ * Hiding a class there sets `visible: false` on its traces; it never touches the
+ * selection, which reads only `event.range` — the box, not the points in it.
  */
 export function AshbyMap({
   map,
@@ -181,7 +195,6 @@ export function AshbyMap({
   dragMode,
   onDragModeChange,
 }: AshbyMapProps) {
-  const container = useRef<HTMLDivElement>(null);
   // Colours come from the tokens of whichever theme is on the document, so the
   // figure has to be rebuilt when the reader switches — not only recoloured.
   const theme = useResolvedTheme();
@@ -190,11 +203,43 @@ export function AshbyMap({
 
   const [localDragMode, setLocalDragMode] = useState<"select" | "zoom">("select");
   const activeDragMode = dragMode ?? localDragMode;
+  // What "Navegar / Zoom" means right now: the modebar still offers pan, and a
+  // pan picked there must not be undone by the next render.
+  const [navMode, setNavMode] = useState<"zoom" | "pan">("zoom");
+  const plotDragMode = enableBoxSelect && activeDragMode === "select" ? "select" : navMode;
+  const [hidden, setHidden] = useState<ReadonlySet<string>>(new Set());
+  // `react-plotly.js` keeps its bound handlers across an unmount it purged, so
+  // after React's development double-mount (StrictMode) it believes
+  // `onSelected` is still attached and skips it — the first box drawn after a
+  // page load was silently ignored in `next dev`. One re-render once Plotly has
+  // initialised hands it fresh handler identities, which it does rebind.
+  // Harmless in production, where the component mounts once.
+  const [, rebindHandlers] = useReducer((n: number) => n + 1, 0);
 
   const handleDragModeToggle = (mode: "select" | "zoom") => {
     setLocalDragMode(mode);
+    if (mode === "zoom") setNavMode("zoom");
     onDragModeChange?.(mode);
   };
+
+  // Keep the toggle honest when the reader switches tool in Plotly's modebar.
+  const handleRelayout = (event: Record<string, unknown>) => {
+    const next = event.dragmode;
+    if (next !== "zoom" && next !== "pan") return;
+    setNavMode(next);
+    if (enableBoxSelect && activeDragMode === "select") {
+      setLocalDragMode("zoom");
+      onDragModeChange?.("zoom");
+    }
+  };
+
+  const toggleSeries = (key: string) =>
+    setHidden((current) => {
+      const next = new Set(current);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
 
   // When fetching with a different displayScale, use the pre-computed alt envelope
   // instead of the stale one. This enables instant visual feedback on scale toggle.
@@ -205,6 +250,14 @@ export function AshbyMap({
   const handleSelected = (
     event: { range?: { x?: number[]; y?: number[] } } | null | undefined,
   ) => {
+    // Two different events arrive here with no box, and only one is a clear.
+    // A click on the plot in select mode sends *nothing* (`undefined`): the
+    // reader cleared the region. But every `Plotly.react` — including the one
+    // this very selection causes, when the new region reaches the layout as a
+    // shape — re-runs Plotly's reselect pass, which emits an event *object*
+    // (`{ points: [] }`) with no `range`. Treating that as a clear wiped every
+    // region the instant it was drawn (found live, D-80); it is ignored.
+    if (event && !event.range) return;
     const rx = event?.range?.x;
     const ry = event?.range?.y;
     if (!rx || !ry) {
@@ -224,18 +277,13 @@ export function AshbyMap({
       onSelectBox?.(null);
       return;
     }
-    const axisScale = displayScale || map.scale;
-    const isLog = axisScale === "log";
-
-    const rawX0 = Math.min(x0, x1);
-    const rawX1 = Math.max(x0, x1);
-    const rawY0 = Math.min(y0, y1);
-    const rawY1 = Math.max(y0, y1);
-
-    const xMinVal = isLog ? Math.pow(10, rawX0) : rawX0;
-    const xMaxVal = isLog ? Math.pow(10, rawX1) : rawX1;
-    const yMinVal = isLog ? Math.pow(10, rawY0) : rawY0;
-    const yMaxVal = isLog ? Math.pow(10, rawY1) : rawY1;
+    // Plotly reports a box on a log axis in *data* units, not as exponents
+    // (`selections/helpers.js`: `p2r` is `ax.p2d` for log axes). Raising 10 to
+    // it — what this used to do — turned 2,5 g/cm³ into 316 (D-80).
+    const xMinVal = Math.min(x0, x1);
+    const xMaxVal = Math.max(x0, x1);
+    const yMinVal = Math.min(y0, y1);
+    const yMaxVal = Math.max(y0, y1);
 
     const cleanNum = (n: number) => {
       if (!Number.isFinite(n)) return n;
@@ -299,10 +347,12 @@ export function AshbyMap({
           width: 2,
           dash: "dot",
         },
-        fillcolor: withAlpha(paint.highlight, 0.12),
+        // `withAlpha` reads `#rrggbb`; a token arrives as `rgb(…)`, so the
+        // theme hands over the translucent fill itself.
+        fillcolor: paint.highlightFill,
       },
     ];
-  }, [selectionBox, map.points, displayScale, map.scale, paint.highlight]);
+  }, [selectionBox, map.points, displayScale, map.scale, paint.highlight, paint.highlightFill]);
 
   const traces = useMemo<Data[]>(() => {
     const result: Data[] = [];
@@ -319,12 +369,14 @@ export function AshbyMap({
           type: "scatter",
           mode: "lines",
           fill: xs.length > 2 ? "toself" : undefined,
-          fillcolor: withAlpha(visual.color, 0.08),
+          // MSDS `ScatterMap` envelope: 14 % fill, 50 % stroke, 1.5 px.
+          fillcolor: withAlpha(visual.color, 0.14),
           // The dash is the class's, not a generic dot: on a monochrome
           // printout it is the only thing left telling two envelopes apart.
-          line: { color: visual.color, width: 1, dash: visual.dash },
+          line: { color: withAlpha(visual.color, 0.5), width: 1.5, dash: visual.dash },
           hoverinfo: "skip",
           showlegend: false,
+          visible: !hidden.has(`class:${envelope.class_slug}`),
           name: envelope.class_name,
         });
       }
@@ -356,8 +408,11 @@ export function AshbyMap({
         textposition: "top center",
         textfont: { size: 10, color: paint.label },
         name: members[0]?.class_name ?? classSlug,
+        // The MSDS legend below the figure is the class filter now.
+        showlegend: false,
+        visible: !hidden.has(`class:${classSlug}`),
         marker: {
-          size: members.map((p) => (highlighted.has(p.material_id) ? 16 : 11)),
+          size: members.map((p) => (highlighted.has(p.material_id) ? 16 : 10)),
           color: visual.color,
           symbol: visual.symbol,
           line: {
@@ -406,9 +461,11 @@ export function AshbyMap({
           type: "scatter",
           mode: "lines",
           name: label,
+          showlegend: false,
+          visible: !hidden.has(`level:${position}`),
           line: {
             color: paint.ink,
-            width: 2,
+            width: 1.5,
             dash: position === 0 ? "solid" : "dash",
           },
           hovertemplate: `${label}<extra></extra>`,
@@ -417,7 +474,7 @@ export function AshbyMap({
     }
 
     return result;
-  }, [map, renderEnvelopes, highlighted, showEnvelopes, showIntervals, showLabels, paint]);
+  }, [map, renderEnvelopes, highlighted, showEnvelopes, showIntervals, showLabels, paint, hidden]);
 
   const layout = useMemo<Partial<Layout>>(() => {
     const base = paint.layout;
@@ -428,27 +485,59 @@ export function AshbyMap({
       height: 540,
       margin: { l: 80, r: 24, t: 16, b: 60 },
       hovermode: "closest",
-      dragmode: enableBoxSelect ? (activeDragMode === "select" ? "select" : "zoom") : "zoom",
+      dragmode: plotDragMode,
       shapes,
-      legend: { ...base.legend, orientation: "h", y: -0.18, font: { size: 11 } },
+      showlegend: false,
+      // Zoom survives a legend toggle (same revision), and resets — with
+      // Plotly's own selection outline — when the axes or the selected box
+      // change, which is what every Plotly.react used to do before (D-80).
+      uirevision: [
+        map.x_axis.property_slug ?? map.x_axis.expression,
+        map.y_axis.property_slug ?? map.y_axis.expression,
+        axisScale,
+        JSON.stringify(selectionBox ?? null),
+      ].join("|"),
       xaxis: {
-        ...base.xaxis,
-        title: {
-          text: axisTitle(map.x_axis.property_name, map.x_axis.symbol, map.x_axis.unit),
-        },
+        ...titled(base.xaxis, axisTitle(map.x_axis.property_name, map.x_axis.symbol, map.x_axis.unit)),
         type: axisScale,
         zeroline: false,
       },
       yaxis: {
-        ...base.yaxis,
-        title: {
-          text: axisTitle(map.y_axis.property_name, map.y_axis.symbol, map.y_axis.unit),
-        },
+        ...titled(base.yaxis, axisTitle(map.y_axis.property_name, map.y_axis.symbol, map.y_axis.unit)),
         type: axisScale,
         zeroline: false,
       },
     };
-  }, [map, paint, displayScale, enableBoxSelect, activeDragMode, shapes]);
+  }, [map, paint, displayScale, plotDragMode, shapes, selectionBox]);
+
+  // The legend MSDS draws under its scatter: one button per class (colour *and*
+  // marker shape, D-28), then one per index level the backend traced.
+  const legendItems = useMemo<LegendItem[]>(() => {
+    const classes = new Map<string, string>();
+    for (const point of map.points) {
+      if (!classes.has(point.class_slug)) classes.set(point.class_slug, point.class_name);
+    }
+    const items: LegendItem[] = Array.from(classes.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([slug, name]) => {
+        const visual = classVisual(slug);
+        return { key: `class:${slug}`, label: name, color: visual.color, symbol: visual.symbol };
+      });
+    if (map.index?.available) {
+      map.index.levels.forEach((level, position) => {
+        if (toXY(level.points).xs.length < 2) return;
+        items.push({
+          key: `level:${position}`,
+          label: level.material_name
+            ? `M = ${formatNumber(level.value)} (${level.material_name})`
+            : `M = ${formatNumber(level.value)}`,
+          color: paint.ink,
+          line: position === 0 ? "solid" : "dash",
+        });
+      });
+    }
+    return items;
+  }, [map, paint.ink]);
 
   // The figure's own numbers, as columns. The index column only exists when the
   // figure drew one, and a point without an index carries the backend's reason
@@ -503,79 +592,71 @@ export function AshbyMap({
   const figureCaption = isRegionActive ? `${t.figure} — ${ptBR.chart.selectedRegion}` : t.figure;
 
   return (
-    <Card>
-      <CardHeader
-        headingLevel={2}
-        title={t.figure}
-        description={t.coverage(map.plotted_count, map.considered_count)}
-        actions={
-          <div className="flex flex-wrap items-center gap-2">
-            {enableBoxSelect && (
-              <ButtonGroup label={ptBR.chart.dragMode}>
-                <ButtonGroupItem
-                  selected={activeDragMode === "select"}
-                  label={ptBR.chart.dragModeSelect}
-                  onClick={() => handleDragModeToggle("select")}
-                />
-                <ButtonGroupItem
-                  selected={activeDragMode === "zoom"}
-                  label={ptBR.chart.dragModeZoom}
-                  onClick={() => handleDragModeToggle("zoom")}
-                />
-              </ButtonGroup>
-            )}
-            <ChartToolbar
-              target={container}
-              disabled={map.points.length === 0}
-              fileName={chartFileName(
-                "mapa",
-                map.y_axis.property_name,
-                map.x_axis.property_name,
-                map.scale,
-              )}
+    <ChartFrame
+      title={t.figure}
+      description={t.coverage(map.plotted_count, map.considered_count)}
+      exportName={chartFileName("mapa", map.y_axis.property_name, map.x_axis.property_name, map.scale)}
+      exportDisabled={map.points.length === 0}
+      controls={
+        enableBoxSelect ? (
+          <ButtonGroup label={ptBR.chart.dragMode}>
+            <ButtonGroupItem
+              selected={activeDragMode === "select"}
+              label={ptBR.chart.dragModeSelect}
+              onClick={() => handleDragModeToggle("select")}
             />
-          </div>
-        }
-      />
-      <CardBody className="flex flex-col gap-3">
-        {map.points.length === 0 ? (
-          <EmptyState title={t.empty} />
-        ) : (
-          <>
-            {/* `role="img"` collapses Plotly's thousands of `<path>` and tick
-                nodes into one object for assistive technology. What replaces
-                them is the table below, not a longer label. */}
-            <div ref={container} role="img" aria-label={ptBR.chart.figureLabel(t.figure)}>
-              <Plot
-                data={traces}
-                layout={layout}
-                config={{
-                  displaylogo: false,
-                  responsive: true,
-                  modeBarButtonsToAdd: enableBoxSelect ? ["select2d"] : [],
-                }}
-                onSelected={
-                  enableBoxSelect
-                    ? (handleSelected as unknown as (event: unknown) => void)
-                    : undefined
-                }
-                style={{ width: "100%" }}
-                useResizeHandler
-              />
-            </div>
-            <FigureData
-              caption={figureCaption}
-              rows={map.points}
-              rowKey={(point) => point.record_id ?? point.material_id}
-              rowHeader={{
-                header: recordLabel ?? ptBR.compare.columnMaterial,
-                cell: (point) => point.material_name,
-              }}
-              columns={columns}
+            <ButtonGroupItem
+              selected={activeDragMode === "zoom"}
+              label={ptBR.chart.dragModeZoom}
+              onClick={() => handleDragModeToggle("zoom")}
             />
-          </>
-        )}
-      </CardBody>
-    </Card>
+          </ButtonGroup>
+        ) : null
+      }
+      empty={map.points.length === 0 ? <EmptyState title={t.empty} /> : undefined}
+      table={
+        <FigureData
+          caption={figureCaption}
+          rows={map.points}
+          rowKey={(point) => point.record_id ?? point.material_id}
+          rowHeader={{
+            header: recordLabel ?? ptBR.compare.columnMaterial,
+            cell: (point) => point.material_name,
+          }}
+          columns={columns}
+        />
+      }
+    >
+      {/* `role="img"` collapses Plotly's thousands of `<path>` and tick nodes
+          into one object for assistive technology. What replaces them is the
+          data table behind "Ver tabela de dados", not a longer label. */}
+      <div
+        className="chart-plotly"
+        role="img"
+        aria-label={ptBR.chart.figureLabel(t.figure)}
+      >
+        <Plot
+          data={traces}
+          layout={layout}
+          config={{
+            displaylogo: false,
+            responsive: true,
+            // Export lives in the card's toolbar (with the legend and title the
+            // modebar's camera would leave out); the box is drawn through the
+            // "Selecionar região" toggle, and lasso has no meaning for a
+            // region stage. Zoom, pan and reset stay — nothing else offers them.
+            modeBarButtonsToRemove: ["toImage", "lasso2d", "select2d"],
+          }}
+          onSelected={
+            enableBoxSelect ? (handleSelected as unknown as (event: unknown) => void) : undefined
+          }
+          onRelayout={handleRelayout as unknown as (event: unknown) => void}
+          onInitialized={() => rebindHandlers()}
+          style={{ width: "100%" }}
+          useResizeHandler
+        />
+      </div>
+      <ChartLegend items={legendItems} hidden={hidden} onToggle={toggleSeries} />
+    </ChartFrame>
   );
 }

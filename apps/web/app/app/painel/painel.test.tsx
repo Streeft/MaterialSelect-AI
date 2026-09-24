@@ -159,9 +159,14 @@ describe("painel", () => {
   it("shows the catalogue's own numbers, not a placeholder", async () => {
     await renderDashboard();
 
-    expect(screen.getByText("5")).toBeInTheDocument(); // materiais ativos
+    // The MSDS stat tile counts up (D-80); a screen reader gets the final value
+    // at once, in its own node, instead of the animation read aloud.
+    const tileOf = (label: string) => screen.getByText(label).closest(".msds-stat") as HTMLElement;
+    expect(within(tileOf(t.materials)).getByText("5", { selector: ".sr-only" })).toBeInTheDocument();
     expect(screen.getByText(t.demoNote(5))).toBeInTheDocument();
-    expect(screen.getByText("60,0%")).toBeInTheDocument(); // cobertura geral
+    expect(
+      within(tileOf(t.overallCoverage)).getByText("60,0%", { selector: ".sr-only" }),
+    ).toBeInTheDocument();
   });
 
   it("names all five states of the quality mix, including the one that is not a quality", async () => {
@@ -181,9 +186,33 @@ describe("painel", () => {
   it("lists coverage per class in a table a screen reader can follow", async () => {
     await renderDashboard();
 
+    // The MSDS chart card swaps the figure for its table (D-80).
+    const card = screen
+      .getByShadowRole("heading", { name: t.classCoverageTitle })
+      .closest(".msds-chart-card") as HTMLElement;
+    await userEvent.click(within(card).getByShadowRole("button", { name: ptBR.chart.showTable }));
+
     const table = screen.getByShadowRole("table", { name: t.classCoverageFigure });
     expect(within(table).getByShadowRole("rowheader", { name: "Metais" })).toBeInTheDocument();
     expect(within(table).getByShadowRole("rowheader", { name: "Cerâmicas" })).toBeInTheDocument();
+  });
+
+  it("never prints a percentage for a class with no slots (D-24)", async () => {
+    getDashboardOverview.mockResolvedValueOnce({
+      ...overview,
+      by_class: [
+        ...overview.by_class,
+        {
+          slug: "vidros",
+          name: "Vidros",
+          materials: 0,
+          coverage: { filled: 0, declared_missing: 0, not_recorded: 0, slots: 0, filled_pct: null },
+        },
+      ],
+    });
+    render(wrap(<DashboardPage />));
+
+    expect(await screen.findByText(t.noSlots)).toBeInTheDocument();
   });
 
   it("ranks the least-filled property first among the gaps", async () => {

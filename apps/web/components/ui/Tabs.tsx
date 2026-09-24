@@ -94,7 +94,13 @@ export function Tabs<T extends string>({
 
   return (
     <>
-      <div role="tablist" aria-label={label} className={cn("msds-tablist", className)}>
+      {/* The strip scrolls in its own box: five views ("Coordenadas
+          paralelas" alone is 169 px) pushed the whole page sideways at 375 px. */}
+      <div
+        role="tablist"
+        aria-label={label}
+        className={cn("msds-tablist overflow-x-auto [scrollbar-width:thin]", className)}
+      >
         {items.map((item, index) => {
           const selected = item.id === value;
           return (

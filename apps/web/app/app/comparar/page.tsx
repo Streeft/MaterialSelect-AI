@@ -143,7 +143,9 @@ function ComparePageContent() {
       <PageHeader title={t.title} description={t.subtitle} group="estudar" />
 
       <Section id="controles" title={t.controls} headingLevel={2}>
-        <div className="grid gap-4 lg:grid-cols-2">
+        {/* `items-start`: the two cards hold lists of very different length,
+            and stretched to one height the shorter was a tall blank box. */}
+        <div className="grid items-start gap-4 lg:grid-cols-2">
           <Card>
             <CardHeader
               title={t.groupMaterials}
@@ -162,7 +164,6 @@ function ComparePageContent() {
                   type="search"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder={t.search}
                 />
                 <Button
                   size="sm"
@@ -181,7 +182,10 @@ function ComparePageContent() {
               {!materials.isLoading && visibleMaterials.length === 0 && (
                 <p className="text-sm text-ink-muted">{t.noMaterialsFound}</p>
               )}
-              <div className="flex flex-wrap gap-2">
+              {/* A catalogue of 75 was a wall of chips twice the height of the
+                  screen; the filter above is how one is found, and the list
+                  scrolls in its own box. */}
+              <div className="-mr-1 flex max-h-72 flex-wrap content-start gap-2 overflow-y-auto pr-1">
                 {visibleMaterials.map((m) => {
                   const chosen = selectedMaterials.includes(m.id);
                   return (

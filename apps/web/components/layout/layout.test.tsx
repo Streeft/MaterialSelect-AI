@@ -166,10 +166,6 @@ describe("AppSidebar", () => {
       renderSidebar();
 
       const trigger = await screen.findByShadowRole("button", { name: ptBR.ui.openMenu });
-      // jsdom doesn't implement shadow DOM focus delegation, so Tab/focus lands
-      // on the host custom element, not the shadow-internal <button> that
-      // findByShadowRole resolves to — see Button.tsx's tabIndex note.
-      const triggerHost = (trigger.getRootNode() as ShadowRoot).host as HTMLElement;
       expect(trigger).toHaveAttribute("aria-expanded", "false");
 
       await user.click(trigger);
@@ -182,7 +178,7 @@ describe("AppSidebar", () => {
       expect(screen.queryByShadowRole("dialog")).not.toBeInTheDocument();
       // The reader pressed Esc; the focus has to come back to what they opened,
       // not to the top of the document.
-      expect(triggerHost).toHaveFocus();
+      expect(trigger).toHaveFocus();
       expect(trigger).toHaveAttribute("aria-expanded", "false");
     });
 

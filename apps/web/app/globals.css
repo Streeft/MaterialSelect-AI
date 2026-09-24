@@ -1183,41 +1183,70 @@
     transform-origin: left;
     @apply animate-grow-x;
   }
-
-  .md-btn-sm {
-    --md-filled-button-container-height: 2rem;
-    --md-filled-button-label-text-size: 0.75rem;
-    --md-filled-button-icon-size: 1rem;
-    --md-outlined-button-container-height: 2rem;
-    --md-outlined-button-label-text-size: 0.75rem;
-    --md-outlined-button-icon-size: 1rem;
-    --md-text-button-container-height: 2rem;
-    --md-text-button-label-text-size: 0.75rem;
-    --md-text-button-icon-size: 1rem;
-  }
-
-  .md-icon-btn-sm {
-    --md-icon-button-state-layer-height: 2rem;
-    --md-icon-button-state-layer-width: 2rem;
-    --md-icon-button-icon-size: 1.125rem;
-  }
-
-  /* M3 has no destructive role. --danger/--ink-inverted map exactly
-   * to the tokens a filled button uses to paint. */
-  .md-btn-danger {
-    --md-filled-button-container-color: rgb(var(--danger));
-    --md-filled-button-label-text-color: rgb(var(--ink-inverted));
-    --md-filled-button-hover-label-text-color: rgb(var(--ink-inverted));
-    --md-filled-button-focus-label-text-color: rgb(var(--ink-inverted));
-    --md-filled-button-pressed-label-text-color: rgb(var(--ink-inverted));
-    --md-filled-button-hover-state-layer-color: rgb(var(--ink-inverted));
-    --md-filled-button-pressed-state-layer-color: rgb(var(--ink-inverted));
-    --md-filled-button-icon-color: rgb(var(--ink-inverted));
-    --md-filled-button-hover-icon-color: rgb(var(--ink-inverted));
-    --md-filled-button-focus-icon-color: rgb(var(--ink-inverted));
-    --md-filled-button-pressed-icon-color: rgb(var(--ink-inverted));
-  }
 }
+
+/* Plain CSS, outside @layer: Tailwind purges @layer rules by class
+ * candidate, and a [data-surface] selector has none of its own. */
+/* D-80: the small icon button (rail chrome, stage reorder arrows). */
+.msds-icon-btn-sm {
+  width: 2rem;
+  height: 2rem;
+}
+.msds-icon-btn-sm svg {
+  width: 1rem;
+  height: 1rem;
+}
+.msds-segmented-item-icon {
+  padding: 6px 10px;
+}
+.msds-icon-btn:disabled,
+.msds-chip:disabled,
+.msds-segmented-item:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+  transform: none;
+}
+
+/* The rail is dark in both themes (see --rail above), and MSDS's controls
+ * read the page tokens — ink-muted on the rail is dark on dark. Inside a
+ * [data-surface="rail"] container they read the rail tokens instead, the
+ * same ones the nav links already use. */
+[data-surface="rail"] .msds-icon-btn {
+  color: rgb(var(--rail-ink-muted));
+}
+[data-surface="rail"] .msds-icon-btn:hover {
+  color: rgb(var(--rail-ink));
+  background: rgb(var(--rail-edge) / 0.08);
+  border-color: transparent;
+}
+[data-surface="rail"] .msds-segmented {
+  background: rgb(var(--rail-edge) / 0.06);
+  border-color: rgb(var(--rail-edge) / 0.12);
+}
+[data-surface="rail"] .msds-segmented-item {
+  color: rgb(var(--rail-ink-muted));
+}
+[data-surface="rail"] .msds-segmented-item:hover {
+  color: rgb(var(--rail-ink));
+}
+[data-surface="rail"] .msds-segmented-item[data-active="true"] {
+  background: rgb(var(--rail-edge) / 0.14);
+  color: rgb(var(--rail-accent));
+  box-shadow: none;
+}
+/* The permanent rail (desktop only — the drawer keeps touch-sized rows):
+ * 17 destinations at 38 px left the admin group behind a scrollbar on a
+ * 900 px screen. 32 px rows and tighter group gaps fit the whole map. */
+aside[data-surface="rail"] .msds-rail-item {
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+[data-surface="rail"],
+[data-surface="rail"] * {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--rail-edge) / 0.18) transparent;
+}
+
 
 @media (prefers-reduced-motion: reduce) {
   *,

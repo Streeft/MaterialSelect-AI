@@ -110,10 +110,11 @@ pode carregar token.
 
 ## Sistema de design (frontend)
 
-A interface tem um sistema de design próprio, **sem biblioteca de componentes**
-(D-23) — exceto as primitivas de baixo nível envolvidas por `@material/web`
-(botão, checkbox, radio, select, chip, diálogo, abas), exceção pontual aceita
-em D-48. Três regras que não são questão de gosto:
+A interface tem um sistema de design próprio, **sem biblioteca de componentes
+externa** (D-23): o MSDS (`apps/web/lib/msds/`, D-74) é código deste
+repositório, e desde [D-80](docs/DECISIONS.md) nenhuma primitiva depende mais
+de `@material/web` — a dependência saiu do `package.json` e a exceção de D-48
+ficou sem objeto. Três regras que não são questão de gosto:
 
 - **Cor só via token.** Todo valor de cor vive em `apps/web/app/globals.css` como
   triplo `"R G B"`; o Tailwind lê pelo `tailwind.config.ts` e a camada de gráfico
@@ -157,13 +158,16 @@ célula vazia** — é o quarto estado da qualidade do dado, com rótulo escrito
 (D-24). Número na tela usa a convenção do pt-BR (D-30), e todo gráfico tem como
 alternativa textual a tabela que o originou (D-31).
 
-**O Plotly é montado à la carte.** `apps/web/lib/plotly-custom.ts` registra
-exatamente as cinco famílias de traço que as figuras usam (`bar`, `box`,
-`heatmap`, `scatter`, `scatterpolar`), e o `webpack.resolve.alias` do
-`next.config.mjs` aponta para lá o `plotly.js/dist/plotly` que o
-`react-plotly.js` exige — a build completa custava 4,5 MB, 79% de todo o
-JavaScript da aplicação. Três consequências que não são opcionais: **um sexto
-tipo de traço tem de ser registrado ali**, ou o Plotly falha em runtime com
+**O Plotly é montado à la carte, e desde D-80 só desenha os mapas.**
+`apps/web/lib/plotly-custom.ts` registra exatamente a família de traço que as
+figuras ainda usam (`scatter` — `AshbyMap` e `PropertyChart`, que precisam de
+log–log, zoom e da caixa do Chart Stage); barras, box-plot, radar, coordenadas
+paralelas e heatmap do painel e do comparador são SVG próprio no desenho do
+MSDS (`components/charts/`). O `webpack.resolve.alias` do `next.config.mjs`
+aponta para lá o `plotly.js/dist/plotly` que o `react-plotly.js` exige — a
+build completa custava 4,5 MB, 79% de todo o JavaScript da aplicação. Três
+consequências que não são opcionais: **um segundo tipo de traço tem de ser
+registrado ali**, ou o Plotly falha em runtime com
 "Trace type not found" — o verificador de tipos não pega isso —; o alias vale
 **só para o cliente** (`if (!isServer)`), porque aplicá-lo ao grafo do servidor
 quebra o runtime de desenvolvimento com um erro que **não reproduz em
@@ -339,9 +343,9 @@ item ativo continua o token de rota de D-73 (`--rail-accent`), agora
 entregue à regra `[aria-current="page"]` do MSDS via `--row-accent`; o
 `sr-only` do rótulo no colapso (D-37) continua sendo o do próprio app,
 verificado ao vivo pela árvore de acessibilidade, não só visualmente.
-`@material/web` continua load-bearing (`IconButton`/`ButtonGroup`/
-`ButtonGroupItem`/`ToggleChip` em `Button.tsx`, D-76/D-78) — a dependência
-não pôde ser removida.
+Na época `@material/web` ainda era load-bearing (`IconButton`/`ButtonGroup`/
+`ButtonGroupItem`/`ToggleChip`); D-80 converteu os quatro e removeu a
+dependência.
 
 **Backlog de baixa prioridade B1–B10 entregue por inteiro**, dirigido por
 subagentes. A revisão final de branch pegou dois bugs reais que as revisões
@@ -712,7 +716,26 @@ dado de demonstração sem reabrir o D-71, como apagá-lo quando o catálogo
 oficial chegar, e o que qualquer agente — Antigravity incluído — precisa ler
 antes de escrever um seed novo neste repositório.
 
-1741 testes de backend (nenhum skip) e 388 de frontend, todos verdes. CI no
+**D-80 aplicou o MSDS de verdade depois de um relatório do autor com o app no
+ar** ([D-80](docs/DECISIONS.md)): `msds.css` redefinia `--accent` em hex e
+anulava a paleta de D-73 (o "M" preto) — removido, uma paleta só; `msds.css`
+é importado **antes** de `globals.css`; `@material/web` saiu (a fonte
+serifada e o seletor de tema ilegível no trilho vinham dele); `className` num
+`Input`/`Select` volta a estilizar o **campo inteiro**, não o controle; a
+coluna principal foi a 1536 px; as telas de ferramenta viraram `StepCard`s
+com o resultado na tela desde o início; e cinco falhas funcionais saíram no
+caminho (prévia do Sintetizar que nunca rodava, Dimensionar sem caso inicial,
+links de material para família inexistente, seletor de processo vazio em Eco,
+limite ausente impresso como `0`).
+
+**D-81 fechou o pendente do D-80** ([D-81](docs/DECISIONS.md)): a caixa do
+Chart Stage atravessa entre a unidade de leitura do mapa (g/cm³, GPa) e a
+canônica do estágio (kg/m³, Pa) por `POST /api/charts/map-box`, nos dois
+sentidos, e **pela mesma regra que desenha o mapa** (`ChartService._map_reading`):
+eixo de índice, unidade com offset e universo de processos não se movem num
+nem noutro. O cliente nunca aplica fator.
+
+1755 testes de backend (nenhum skip) e 422 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
 PROJECT_CONTEXT.md).
@@ -821,7 +844,8 @@ escuro sem erro nenhum. Corrigidos e confirmados ao vivo em Chromium, não
 só relidos no código.
 
 **Desempenho medido**, com os números em `docs/PROJECT_CONTEXT.md §12`: o maior
-*chunk* de JavaScript caiu de 4,5 MB para 981 KB (o Plotly completo era 79% de
+*chunk* de JavaScript caiu de 4,5 MB para 981 KB (865 KB desde D-80, com só
+`scatter` registrado) (o Plotly completo era 79% de
 todo o JS), as chaves estrangeiras ganharam índice, e o `upload` — único endpoint
 `async` da aplicação — passou a rodar o serviço em *threadpool*, porque inline
 ele congelava o event loop inteiro e não só a própria requisição. Duas

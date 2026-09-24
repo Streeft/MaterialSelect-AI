@@ -2631,5 +2631,8 @@ export {
   NavDrawer, BottomNavBar, useWindowClass, SPRING, useSpring, useScreenTransition,
   CircularProgress, LoadingIndicator, SideSheet, SplitButton, DatePicker, TimePicker,
   Carousel, ScreenTransitionDemo, useContainerTransform, ContainerTransformDemo,
+  // D-80: the app's native IconButton/ToggleChip wear MSDS's classes and
+  // need its press feedback without calling the MSDS component functions.
+  useRipple, useShapeMorph,
 };
 export { api as msdsApi };

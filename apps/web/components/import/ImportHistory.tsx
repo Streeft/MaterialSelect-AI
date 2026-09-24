@@ -6,6 +6,7 @@ import { ptBR } from "@/lib/i18n";
 import {
   Badge,
   Button,
+  EmptyState,
   RowHeader,
   TBody,
   THead,
@@ -51,7 +52,7 @@ export function ImportHistory() {
 
   if (isLoading) return null;
   if (!data || data.length === 0) {
-    return <p className="text-sm text-ink-muted">{ptBR.importer.historyEmpty}</p>;
+    return <EmptyState title={ptBR.importer.historyEmpty} />;
   }
 
   return (

@@ -148,8 +148,8 @@ const FALLBACK: Record<ResolvedTheme, Record<string, string>> = {
 /**
  * Read a design token as a CSS colour.
  *
- * Returns `rgb(r g b)` because that is what Plotly accepts and what the token
- * already stores; callers that need alpha pass one. `theme` only decides which
+ * Returns `rgb(r, g, b)` (or `rgba(…)` with an alpha) because that is what
+ * Plotly accepts; callers that need alpha pass one. `theme` only decides which
  * fallback applies — whenever the document is available, the document wins.
  */
 export function token(name: string, alpha = 1, theme: ResolvedTheme = "light"): string {
@@ -158,31 +158,11 @@ export function token(name: string, alpha = 1, theme: ResolvedTheme = "light"): 
     const read = window.getComputedStyle(document.documentElement).getPropertyValue(name).trim();
     if (read) triple = read;
   }
-  return alpha === 1 ? `rgb(${triple})` : `rgb(${triple} / ${alpha})`;
-}
-
-/**
- * The dashboard's five-bucket vocabulary, as a colour.
- *
- * Four buckets reuse the same tokens `DataQualityBadge` paints with, so a
- * segment in the panel's chart and the badge on a material sheet cannot
- * disagree about what "estimado" looks like. `NAO_REGISTRADO` is not a quality
- * at all — it is a slot with no row behind it — so it borrows `--edge-strong`,
- * a neutral already used for structure rather than for data, instead of a
- * sixth quality token invented just for this one chart.
- */
-export function qualityBucketColor(
-  bucket: "MEDIDO" | "IMPORTADO" | "ESTIMADO" | "AUSENTE" | "NAO_REGISTRADO",
-  theme: ResolvedTheme,
-): string {
-  const names: Record<typeof bucket, string> = {
-    MEDIDO: "--quality-medido",
-    IMPORTADO: "--quality-importado",
-    ESTIMADO: "--quality-estimado",
-    AUSENTE: "--quality-ausente",
-    NAO_REGISTRADO: "--edge-strong",
-  };
-  return token(names[bucket], 1, theme);
+  // Comma syntax on purpose: Plotly parses some colours itself (tinycolor),
+  // and the space-separated `rgb(r g b / a)` of CSS Color 4 is not one of the
+  // forms it reads — a modebar colour written that way silently falls back.
+  const [r = "0", g = "0", b = "0"] = triple.split(/[\s,]+/).filter(Boolean);
+  return alpha === 1 ? `rgb(${r}, ${g}, ${b})` : `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
 /** Everything a figure needs from the theme, read once per render. */
@@ -191,6 +171,8 @@ export interface ChartTheme {
   layout: Partial<Layout>;
   /** The colour that marks "this is the material you asked about". */
   highlight: string;
+  /** The same colour as a translucent fill (a selected region's ground). */
+  highlightFill: string;
   /** Outline around a marker, so overlapping points stay countable. */
   markerEdge: string;
   /** Point labels and other secondary text drawn inside the figure. */
@@ -200,24 +182,61 @@ export interface ChartTheme {
 }
 
 /**
- * The chart-side view of the current theme.
+ * The app's sans-serif, as the family name the page actually loaded.
+ *
+ * `next/font` publishes it as `--font-sans` on `<html>` (`'Public Sans',
+ * 'Public Sans Fallback'`). Plotly draws into an SVG and cannot resolve a
+ * custom property, so the family is read here and handed over by name, with
+ * the same fallback chain `tailwind.config.ts` uses. Before D-80 this named
+ * Inter — a face the app never loaded — so every Plotly figure was set in the
+ * system fallback beside a Public Sans table.
+ */
+export function chartFontFamily(): string {
+  const fallback = "ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
+  if (typeof window === "undefined") return `'Public Sans', ${fallback}`;
+  const loaded = window
+    .getComputedStyle(document.documentElement)
+    .getPropertyValue("--font-sans")
+    .trim();
+  return `${loaded || "'Public Sans'"}, ${fallback}`;
+}
+
+/**
+ * The chart-side view of the current theme, in MSDS clothing (D-80).
  *
  * Takes the resolved theme rather than reading it, for two reasons: it decides
  * the fallback when there is no document to measure, and it makes the value a
  * real input, so a component that re-renders on theme change also rebuilds its
  * figure instead of keeping the colours it computed on first paint.
+ *
+ * What MSDS's `ScatterMap` asks of a figure, mapped onto Plotly:
+ * gridlines in `--edge` (recessive — MSDS's radar rings), the axis rule in
+ * `--edge-strong`, tick labels in `--ink-subtle` and axis titles in
+ * `--ink-muted`; markers outlined in a thin dark ring (`rgba(0,0,0,0.25)`, the
+ * MSDS `Marker`); the hover label as `.msds-tooltip` (ink ground, surface text,
+ * the app's face at 12px); and the modebar on the card's own surface instead of
+ * a grey strip, in ink-subtle with the section accent for the active tool.
  */
 export function chartTheme(theme: ResolvedTheme): ChartTheme {
   const read = (name: string, alpha = 1) => token(name, alpha, theme);
   const ink = read("--ink");
   const muted = read("--ink-muted");
-  // `--edge-strong`, not `--edge`: the hairline that separates two panels sitting
-  // side by side is not the same job as a gridline a reader has to follow across
-  // a figure. On the near-black surface the softer token disappears entirely.
-  const grid = read("--edge-strong");
+  const subtle = read("--ink-subtle");
+  const grid = read("--edge");
+  const rule = read("--edge-strong");
+  const family = chartFontFamily();
+  const axis = {
+    gridcolor: grid,
+    zerolinecolor: rule,
+    linecolor: rule,
+    showline: true,
+    tickfont: { color: subtle, size: 11, family },
+    title: { font: { color: muted, size: 12, family } },
+  };
   return {
     highlight: read("--danger"),
-    markerEdge: read("--surface-raised"),
+    highlightFill: read("--danger", 0.12),
+    markerEdge: "rgba(0,0,0,0.25)",
     label: muted,
     ink,
     layout: {
@@ -225,23 +244,19 @@ export function chartTheme(theme: ResolvedTheme): ChartTheme {
       // rectangle through it.
       paper_bgcolor: "rgba(0,0,0,0)",
       plot_bgcolor: "rgba(0,0,0,0)",
-      font: {
-        // Plotly draws into an SVG and cannot resolve `var(--font-sans)`, so the
-        // family is named here. Inter first, then the same fallback chain the
-        // stylesheet uses — a figure set in a different face than the table
-        // beside it is the drift this module exists to prevent.
-        family:
-          "Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
-        color: ink,
-        size: 12,
-      },
-      xaxis: { gridcolor: grid, zerolinecolor: grid, linecolor: grid, tickfont: { color: muted } },
-      yaxis: { gridcolor: grid, zerolinecolor: grid, linecolor: grid, tickfont: { color: muted } },
-      legend: { font: { color: muted } },
+      font: { family, color: ink, size: 12 },
+      xaxis: axis,
+      yaxis: axis,
+      legend: { font: { color: muted, family } },
       hoverlabel: {
-        bgcolor: read("--surface-raised"),
-        bordercolor: read("--edge-strong"),
-        font: { color: ink },
+        bgcolor: ink,
+        bordercolor: ink,
+        font: { color: read("--surface"), family, size: 12 },
+      },
+      modebar: {
+        bgcolor: "rgba(0,0,0,0)",
+        color: read("--ink-subtle", 0.75),
+        activecolor: read("--accent"),
       },
     },
   };

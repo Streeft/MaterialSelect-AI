@@ -53,6 +53,9 @@ from app.schemas.charts import (
     IndexLevelOut,
     IndexOverlayOut,
     MapAxisOut,
+    MapBoxIn,
+    MapBoxOut,
+    MapBoxRequest,
     MapPointOut,
     PropertyMapOut,
     PropertyMapRequest,
@@ -252,6 +255,95 @@ class ChartService:
             )
         )
 
+    def _map_reading(self, slug: str | None) -> tuple[Reading | None, str | None]:
+        """The reading a map axis is drawn in, or ``None`` when it stays canonical.
+
+        One rule for everything that crosses a map's coordinates: :meth:`_read_map`
+        draws with it and :meth:`map_box` converts a Chart Stage region with it
+        (D-81). Two copies of this decision could disagree about which axes move,
+        and a region would then land on a different place than the points it
+        was drawn around — plausibly, with nothing on screen to show it.
+
+        Returns the reading (``None`` for an index axis, an axis already read in
+        its canonical unit, or a unit that is not a pure scale factor) and, for
+        that last case, the note the map prints about it.
+        """
+        # Um eixo de índice não tem unidade de catálogo para ler: a dimensão
+        # dele é derivada da expressão, e o D-35 já diz que o índice é lido
+        # do catálogo e nunca reescrito ao lado.
+        if not slug:
+            return None, None
+        definition = self._require_property(slug)
+        reading = reading_for(
+            canonical_unit=definition.canonical_unit,
+            display_unit=definition.display_unit,
+            accepted_units=definition.accepted_units or [],
+            requested=self.unit_choices.get(definition.slug),
+        )
+        if reading.is_canonical:
+            return None, None
+        if not is_ratio_scale(reading.unit):
+            return None, (
+                f"'{definition.name}' não é desenhada em {pretty_unit(reading.unit)}: "
+                "a conversão não é um fator de escala, e uma lei de potência deixaria "
+                f"de ser reta no eixo. O mapa usa {pretty_unit(definition.canonical_unit)}."
+            )
+        return reading, None
+
+    def map_box(self, request: MapBoxRequest) -> MapBoxOut:
+        """Move a Chart Stage region between map coordinates and canonical units (D-81).
+
+        The stage compares in canonical units (D-60) and the map draws in reading
+        units (D-70). Only the region's own numbers move: an index axis and an axis
+        the map keeps canonical pass through untouched — exactly the axes
+        :meth:`_read_map` leaves alone, because both ask :meth:`_map_reading`.
+
+        A process map is never rescaled (only the material map reads in D-70
+        units), so a process region passes through whole.
+
+        ``None`` bounds stay ``None``: no limit is not a limit of zero.
+        """
+        box = request.box
+        if request.universe == "process":
+            units = [
+                self._require_process_attribute(slug).canonical_unit if slug else None
+                for slug in (request.x, request.y)
+            ]
+            return MapBoxOut(box=box.model_copy(), x_unit=units[0], y_unit=units[1])
+
+        def convert(value: float | None, reading: Reading | None) -> float | None:
+            if value is None or reading is None:
+                return value
+            if request.to == "display":
+                converted = reading.value(value)
+            else:
+                converted, _method = to_canonical(value, reading.unit, reading.canonical_unit)
+            # A region's edge is where a reader let go of the mouse, not a
+            # measured value: 1.646 g/cm³ must reach the stage as 1646, not as
+            # the 1645.9999999999998 the float factor leaves behind. Twelve
+            # significant digits drop that noise and nothing a reader drew.
+            return float(f"{converted:.12g}")
+
+        def unit_of(slug: str | None, reading: Reading | None) -> str | None:
+            if not slug:
+                return None
+            if reading is None:
+                return self._require_property(slug).canonical_unit
+            return reading.unit if request.to == "display" else reading.canonical_unit
+
+        rx, _ = self._map_reading(request.x)
+        ry, _ = self._map_reading(request.y)
+        return MapBoxOut(
+            box=MapBoxIn(
+                x_min=convert(box.x_min, rx),
+                x_max=convert(box.x_max, rx),
+                y_min=convert(box.y_min, ry),
+                y_max=convert(box.y_max, ry),
+            ),
+            x_unit=unit_of(request.x, rx),
+            y_unit=unit_of(request.y, ry),
+        )
+
     def _read_map(self, chart: PropertyMapOut) -> PropertyMapOut:
         """Reescala o mapa inteiro para a unidade de leitura (D-70).
 
@@ -276,31 +368,10 @@ class ChartService:
         """
         readings: dict[str, Reading | None] = {}
         for key, axis in (("x", chart.x_axis), ("y", chart.y_axis)):
-            # Um eixo de índice não tem unidade de catálogo para ler: a dimensão
-            # dele é derivada da expressão, e o D-35 já diz que o índice é lido
-            # do catálogo e nunca reescrito ao lado.
-            if axis.is_index or not axis.property_slug:
-                readings[key] = None
-                continue
-            definition = self._require_property(axis.property_slug)
-            reading = reading_for(
-                canonical_unit=definition.canonical_unit,
-                display_unit=definition.display_unit,
-                accepted_units=definition.accepted_units or [],
-                requested=self.unit_choices.get(definition.slug),
-            )
-            if reading.is_canonical:
-                readings[key] = None
-                continue
-            if not is_ratio_scale(reading.unit):
-                chart.notes.append(
-                    f"'{definition.name}' não é desenhada em {pretty_unit(reading.unit)}: "
-                    "a conversão não é um fator de escala, e uma lei de potência deixaria "
-                    f"de ser reta no eixo. O mapa usa {pretty_unit(definition.canonical_unit)}."
-                )
-                readings[key] = None
-                continue
-            readings[key] = reading
+            slug = None if axis.is_index else axis.property_slug
+            readings[key], note = self._map_reading(slug)
+            if note:
+                chart.notes.append(note)
 
         rx, ry = readings["x"], readings["y"]
         if rx is None and ry is None:

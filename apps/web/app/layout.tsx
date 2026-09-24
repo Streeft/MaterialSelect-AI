@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import { Public_Sans, IBM_Plex_Mono } from "next/font/google";
-import "./globals.css";
-// MSDS component styles (D-74). Imported after globals.css so the token
-// bridge block in globals.css (surface-100/200/300, primary/secondary/
-// tertiary roles, radius/shadow/space scale) is already in the cascade
-// before any .msds-* rule reads it.
+// MSDS component styles (D-74) first, globals.css second (D-80): Tailwind's
+// output is unlayered, so on an equal-specificity tie the later file wins,
+// and a utility class at a call site (`w-full`, `text-accent`) has to beat
+// the `.msds-*` default it refines. Custom properties resolve at computed-
+// value time, so the token bridge in globals.css reaches msds.css either way.
 import "../lib/msds/msds.css";
+import "./globals.css";
 import { Providers } from "./providers";
 import { SectionTheme } from "@/components/layout/SectionTheme";
 import { ptBR } from "@/lib/i18n";

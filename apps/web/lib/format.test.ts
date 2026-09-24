@@ -12,11 +12,11 @@ describe("formatNumber", () => {
   });
 
   it("switches to scientific notation for large magnitudes", () => {
-    expect(formatNumber(69e9)).toBe("6,9 × 10^10");
+    expect(formatNumber(69e9)).toBe("6,9 × 10¹⁰");
   });
 
   it("switches to scientific notation for very small magnitudes", () => {
-    expect(formatNumber(0.00001)).toBe("1 × 10^-5");
+    expect(formatNumber(0.00001)).toBe("1 × 10⁻⁵");
   });
 
   it("keeps the sign of negative values", () => {
