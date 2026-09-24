@@ -26,6 +26,7 @@ import {
   Card,
   CardBody,
   CardHeader,
+  Disclosure,
   EmptyState,
   ErrorState,
   Field,
@@ -75,13 +76,7 @@ const SAFETY_TONE: Record<ThermalSafetyLevel, BadgeTone> = {
   MUITO_ALTA: "success",
 };
 
-const SAFETY_LABEL: Record<ThermalSafetyLevel, string> = {
-  BAIXA: "Baixa",
-  MODERADA: "Moderada",
-  MEDIA: "Média",
-  ALTA: "Alta",
-  MUITO_ALTA: "Muito alta",
-};
+const SAFETY_LABEL: Record<ThermalSafetyLevel, string> = t.safety;
 
 /**
  * As seis facetas do pódio, numa tabela só.
@@ -111,41 +106,46 @@ const PODIUM_FACETS: readonly {
     slugKey: "lightest_slug",
     badge: t.lightestBadge,
     tone: "success",
-    detail: (item) => `Massa: ${formatNumber(item.pack_mass_kg)} kg`,
+    detail: (item) => t.podiumDetail.mass(formatNumber(item.pack_mass_kg)),
   },
   {
     slugKey: "most_compact_slug",
     badge: t.compactBadge,
     tone: "info",
-    detail: (item) => `Volume: ${formatNumber(item.pack_volume_l)} L`,
+    detail: (item) => t.podiumDetail.volume(formatNumber(item.pack_volume_l)),
   },
   {
     slugKey: "lowest_upfront_cost_slug",
     badge: t.cheapestBadge,
     tone: "brand",
-    detail: (item) => `Custo inicial: US$ ${formatNumber(item.pack_cost_usd)}`,
+    detail: (item) => t.podiumDetail.upfront(formatNumber(item.pack_cost_usd)),
   },
   {
     slugKey: "most_durable_slug",
     badge: t.durableBadge,
     tone: "brand",
-    detail: (item) => `Vida útil: ${formatNumber(item.cycle_life)} ciclos`,
+    detail: (item) => t.podiumDetail.life(formatNumber(item.cycle_life)),
   },
   {
     slugKey: "lowest_levelized_cost_slug",
     badge: t.levelizedBadge,
     tone: "success",
     detail: (item) =>
-      `Custo nivelado: US$ ${formatScore(item.levelized_cost_per_kwh_cycle, 4)}/kWh·ciclo`,
+      t.podiumDetail.levelized(formatScore(item.levelized_cost_per_kwh_cycle, 4)),
   },
   {
     slugKey: "safest_slug",
     badge: t.safestBadge,
     tone: "success",
-    detail: (item) =>
-      `Estabilidade térmica intrínseca: ${SAFETY_LABEL[item.thermal_safety]}`,
+    detail: (item) => t.podiumDetail.safety(SAFETY_LABEL[item.thermal_safety]),
   },
 ];
+
+/** A premise as the reader typed it, in the pt-BR form — never recomputed. */
+function printable(raw: string): string {
+  const value = Number(raw);
+  return raw.trim() !== "" && Number.isFinite(value) ? formatNumber(value) : raw || "…";
+}
 
 function StatTile({
   label,
@@ -228,39 +228,34 @@ export default function BateriasPage() {
     setCellCapacity(String(chosen.default_cell_capacity_ah));
   };
 
-  // Readiness validation
-  const ready = useMemo(() => {
-    const v = Number(targetVoltage);
-    const e = Number(targetEnergy);
-    const p = Number(targetPower);
-    const d = Number(dod);
-    const fm = Number(massPacking);
-    const fv = Number(volPacking);
-    const fc = Number(costPacking);
-    const cap = cellCapacity ? Number(cellCapacity) : null;
-
-    return (
-      Boolean(chemistrySlug) &&
-      Number.isFinite(v) &&
-      v > 0 &&
-      Number.isFinite(e) &&
-      e > 0 &&
-      Number.isFinite(p) &&
-      p > 0 &&
-      Number.isFinite(d) &&
-      d > 0 &&
-      d <= 1 &&
-      Number.isFinite(fm) &&
-      fm > 0 &&
-      fm <= 1 &&
-      Number.isFinite(fv) &&
-      fv > 0 &&
-      fv <= 1 &&
-      Number.isFinite(fc) &&
-      fc > 0 &&
-      fc <= 1 &&
-      (cap === null || (Number.isFinite(cap) && cap > 0))
-    );
+  // The first unmet requirement, in words (D-86), and whether it lives in the
+  // folded premises — which then never stay folded. Input validation only: the
+  // pack is sized in the backend.
+  const blocked = useMemo((): { reason: string; inPremises: boolean } | null => {
+    const positive = (raw: string) => {
+      const value = Number(raw);
+      return raw.trim() !== "" && Number.isFinite(value) && value > 0;
+    };
+    const fraction = (raw: string) => positive(raw) && Number(raw) <= 1;
+    if (!chemistrySlug) return { reason: t.blocked.chemistry, inPremises: false };
+    for (const [raw, label] of [
+      [targetVoltage, t.targetVoltage],
+      [targetEnergy, t.targetEnergy],
+      [targetPower, t.targetPower],
+    ] as const) {
+      if (!positive(raw)) return { reason: t.blocked.positive(label), inPremises: false };
+    }
+    if (!fraction(dod)) return { reason: t.blocked.fraction(t.dod), inPremises: false };
+    if (cellCapacity.trim() !== "" && !positive(cellCapacity))
+      return { reason: t.blocked.capacity, inPremises: true };
+    for (const [raw, label] of [
+      [massPacking, t.massPackingFactor],
+      [volPacking, t.volumePackingFactor],
+      [costPacking, t.costPackingFactor],
+    ] as const) {
+      if (!fraction(raw)) return { reason: t.blocked.fraction(label), inPremises: true };
+    }
+    return null;
   }, [
     chemistrySlug,
     targetVoltage,
@@ -272,6 +267,8 @@ export default function BateriasPage() {
     costPacking,
     cellCapacity,
   ]);
+  const ready = blocked === null;
+  const [premisesOpen, setPremisesOpen] = useState(false);
 
   // Design query
   const designRequest = useMemo<PackDesignRequest | null>(() => {
@@ -364,7 +361,7 @@ export default function BateriasPage() {
 
       {/* Archetype and Requirements Section */}
       <StepCard title={t.archetypesTitle} description={t.archetypesHint} bodyClassName="flex flex-col">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <Select
             label={t.archetypesTitle}
             value={archetypeSlug}
@@ -379,7 +376,6 @@ export default function BateriasPage() {
               </SelectOption>
             ))}
           </Select>
-
           <Select
             label={t.chemistryTitle}
             value={chemistrySlug}
@@ -394,7 +390,6 @@ export default function BateriasPage() {
               </SelectOption>
             ))}
           </Select>
-
           <NumberInput
             label={t.targetVoltage}
             value={targetVoltage}
@@ -405,7 +400,6 @@ export default function BateriasPage() {
               setArchetypeSlug("custom");
             }}
           />
-
           <NumberInput
             label={t.targetEnergy}
             value={targetEnergy}
@@ -416,9 +410,6 @@ export default function BateriasPage() {
               setArchetypeSlug("custom");
             }}
           />
-        </div>
-
-        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <NumberInput
             label={t.targetPower}
             value={targetPower}
@@ -429,80 +420,88 @@ export default function BateriasPage() {
               setArchetypeSlug("custom");
             }}
           />
-
           <NumberInput
             label={t.dod}
             value={dod}
             min={0.1}
             max={1.0}
             step={0.05}
-            hint="Fração recomendada: 0,8 a 0,9"
+            hint={t.dodHint}
             onChange={(e) => {
               setDod((e.target as HTMLInputElement).value);
-              setArchetypeSlug("custom");
-            }}
-          />
-
-          <NumberInput
-            label={t.cellCapacity}
-            value={cellCapacity}
-            min={0.1}
-            step="any"
-            hint="Vazio: formato comercial típico para a escala de energia"
-            onChange={(e) => {
-              setCellCapacity((e.target as HTMLInputElement).value);
-              setArchetypeSlug("custom");
-            }}
-          />
-
-          <NumberInput
-            label={t.massPackingFactor}
-            value={massPacking}
-            min={0.1}
-            max={1.0}
-            step={0.05}
-            hint="Massa das células / massa do pack"
-            onChange={(e) => {
-              setMassPacking((e.target as HTMLInputElement).value);
               setArchetypeSlug("custom");
             }}
           />
         </div>
 
         {/*
-          Os três fatores de empacotamento são **premissa de oficina**, e a regra
-          do D-65 vale igual aqui: premissa é entrada com valor visível. Deixar o
-          volumétrico e o de custo só no estado do componente poria dois números
-          mexendo na resposta sem que ninguém os visse — o volume e o
-          investimento do pack saem ambos divididos por eles.
+          Os três fatores de empacotamento (e a capacidade da célula) são
+          **premissa de oficina**, e a regra do D-65 vale igual aqui: premissa é
+          entrada com valor visível. Recolhidos (D-86), mas com cada valor
+          impresso no resumo — o volume e o investimento do pack saem divididos
+          por eles, e nenhum número mexe na resposta sem que alguém o veja.
         */}
-        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <NumberInput
-            label={t.volumePackingFactor}
-            value={volPacking}
-            min={0.1}
-            max={1.0}
-            step={0.05}
-            hint="Volume das células / volume do pack"
-            onChange={(e) => {
-              setVolPacking((e.target as HTMLInputElement).value);
-              setArchetypeSlug("custom");
-            }}
-          />
-
-          <NumberInput
-            label={t.costPackingFactor}
-            value={costPacking}
-            min={0.1}
-            max={1.0}
-            step={0.05}
-            hint="Custo das células / custo do pack"
-            onChange={(e) => {
-              setCostPacking((e.target as HTMLInputElement).value);
-              setArchetypeSlug("custom");
-            }}
-          />
-        </div>
+        <Disclosure
+          className="mt-4"
+          summary={t.premisesSummary(
+            cellCapacity.trim() ? `${printable(cellCapacity)} Ah` : t.typicalCell,
+            printable(massPacking),
+            printable(volPacking),
+            printable(costPacking),
+          )}
+          open={premisesOpen || Boolean(blocked?.inPremises)}
+          onOpenChange={setPremisesOpen}
+        >
+          <div className="grid gap-4 pt-2 sm:grid-cols-2 lg:grid-cols-4">
+              <NumberInput
+                label={t.cellCapacity}
+                value={cellCapacity}
+                min={0.1}
+                step="any"
+                hint={t.cellCapacityHint}
+                onChange={(e) => {
+                  setCellCapacity((e.target as HTMLInputElement).value);
+                  setArchetypeSlug("custom");
+                }}
+              />
+              <NumberInput
+                label={t.massPackingFactor}
+                value={massPacking}
+                min={0.1}
+                max={1.0}
+                step={0.05}
+                hint={t.massPackingHint}
+                onChange={(e) => {
+                  setMassPacking((e.target as HTMLInputElement).value);
+                  setArchetypeSlug("custom");
+                }}
+              />
+              <NumberInput
+                label={t.volumePackingFactor}
+                value={volPacking}
+                min={0.1}
+                max={1.0}
+                step={0.05}
+                hint={t.volumePackingHint}
+                onChange={(e) => {
+                  setVolPacking((e.target as HTMLInputElement).value);
+                  setArchetypeSlug("custom");
+                }}
+              />
+              <NumberInput
+                label={t.costPackingFactor}
+                value={costPacking}
+                min={0.1}
+                max={1.0}
+                step={0.05}
+                hint={t.costPackingHint}
+                onChange={(e) => {
+                  setCostPacking((e.target as HTMLInputElement).value);
+                  setArchetypeSlug("custom");
+                }}
+              />
+          </div>
+        </Disclosure>
       </StepCard>
 
       {/* Tabs navigation */}
@@ -516,7 +515,7 @@ export default function BateriasPage() {
         {/* Tab 1: Pack Sizing */}
         {activeTab === "design" && (
           <>
-            {!ready && <EmptyState title={t.empty} />}
+            {!ready && <EmptyState title={t.empty} description={blocked?.reason} />}
             {designQuery.isLoading && ready && (
               <LoadingState label={t.loading} />
             )}
@@ -642,22 +641,22 @@ export default function BateriasPage() {
                   <CardBody className="flex flex-col gap-4">
                     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                       <StatTile
-                        label="Tensão nominal da célula"
+                        label={t.cellVoltage}
                         value={formatNumber(design.chemistry.nominal_voltage)}
                         unit="V"
                       />
                       <StatTile
-                        label="Energia específica da célula"
+                        label={t.cellSpecificEnergy}
                         value={formatNumber(design.chemistry.specific_energy)}
                         unit="Wh/kg"
                       />
                       <StatTile
-                        label="Densidade energética da célula"
+                        label={t.cellEnergyDensity}
                         value={formatNumber(design.chemistry.energy_density)}
                         unit="Wh/L"
                       />
                       <StatTile
-                        label="Custo por kWh de célula"
+                        label={t.cellCostPerKwh}
                         value={`US$ ${formatNumber(design.chemistry.cell_cost_per_kwh)}`}
                       />
                     </div>
@@ -727,19 +726,19 @@ export default function BateriasPage() {
                     <CardBody className="flex flex-col gap-4">
                       <div className="grid grid-cols-2 gap-3">
                         <StatTile
-                          label="Volume das células"
+                          label={t.cellsVolume}
                           value={formatNumber(design.cells_volume_l)}
                           unit="L"
                         />
                         <StatTile
-                          label="Sobrecarga volumétrica"
+                          label={t.volumeOverhead}
                           value={formatNumber(design.volume_overhead_l)}
                           unit="L"
                         />
                       </div>
                       <div className="grid grid-cols-2 gap-3">
                         <StatTile
-                          label="Volume total do pack"
+                          label={t.totalPackVolume}
                           value={formatNumber(design.pack_volume_l)}
                           unit="L"
                           highlight
@@ -823,7 +822,7 @@ export default function BateriasPage() {
         {/* Tab 2: Chemistry Trade-offs */}
         {activeTab === "compare" && (
           <>
-            {!ready && <EmptyState title={t.empty} />}
+            {!ready && <EmptyState title={t.empty} description={blocked?.reason} />}
             {comparisonQuery.isLoading && ready && (
               <LoadingState label={t.loading} />
             )}
@@ -925,7 +924,7 @@ export default function BateriasPage() {
                                 <div className="flex items-center gap-2">
                                   <span>{item.chemistry_name}</span>
                                   {isSelected ? (
-                                    <Badge tone="brand">Selecionada</Badge>
+                                    <Badge tone="brand">{t.selectedBadge}</Badge>
                                   ) : null}
                                 </div>
                               </Td>

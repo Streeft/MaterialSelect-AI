@@ -795,6 +795,10 @@ export const ptBR = {
     solving: "Dimensionando…",
     resultStep: "3. O resultado",
     resultEmpty: "Nenhum material pôde ser dimensionado com estes dados.",
+    resultIdleTitle: "Nada dimensionado ainda",
+    resultIdleHint:
+      "Preencha os números do projeto e clique em Dimensionar: cada material aparece aqui com a massa (ou o custo) e a seção necessária.",
+    blockedVariable: (label: string) => `Informe ${label}, maior que zero.`,
     // Fator estrutural: só geometria e carga, igual para todo material do run.
     // Mostrá-lo é o que permite conferir uma massa à mão.
     structuralFactor: "Fator estrutural",
@@ -837,6 +841,17 @@ export const ptBR = {
     loadFactorLabel: "Fator de carga (0 a 1)",
     loadFactorHint:
       "Fração do tempo disponível em que o equipamento roda de fato.",
+    // D-86: recolhidas, mas com cada valor à vista no resumo (D-65).
+    assumptionsSummary: (writeOff: string, loadFactor: string) =>
+      `Amortização em ${writeOff} anos · fator de carga ${loadFactor}`,
+    materialHint: "Digite parte do nome do material.",
+    blocked: {
+      material: "Escolha um material no passo 1.",
+      mass: "Informe a massa da peça, maior que zero.",
+      batch: "Informe o lote: pelo menos 1 peça.",
+      writeOff: "A amortização precisa ser maior que zero (premissas).",
+      loadFactor: "O fator de carga vai de 0 a 1, sem incluir o zero (premissas).",
+    },
     estimate: "Estimar",
     estimating: "Estimando…",
     resultStep: "3. O custo, termo a termo",
@@ -904,6 +919,20 @@ export const ptBR = {
     eolIncineration: "Incineração",
     eolHint:
       "Aterro e incineração não têm energia catalogada nesta versão, e não viram zero: enterrar uma peça pareceria a coisa mais barata a fazer com ela.",
+    // D-86: os números do uso ficam recolhidos, com cada valor no resumo.
+    materialHint: "Digite parte do nome do material.",
+    useSummaryStatic: (life: string, power: string, duty: string, carbon: string) =>
+      `Premissas: ${life} anos · ${power} W · ciclo ${duty} · ${carbon} kg CO₂/MJ`,
+    useSummaryMobile: (life: string, travel: string, intensity: string, carbon: string) =>
+      `Premissas: ${life} anos · ${travel} km · ${intensity} MJ/(kg·km) · ${carbon} kg CO₂/MJ`,
+    blocked: {
+      process: "Este material não tem processo cadastrado: escolha outro material no passo 1.",
+      mode: "Escolha o modal de transporte no passo 2.",
+      mass: "Informe a massa da peça, maior que zero.",
+      recycled: "O teor reciclado vai de 0 a 1.",
+      duty: "O ciclo de trabalho vai de 0 a 1, sem incluir o zero (premissas).",
+      positive: (label: string) => `${label}: informe um valor maior que zero.`,
+    },
     run: "Auditar",
     running: "Auditando…",
     resultStep: "4. As cinco fases",
@@ -1012,9 +1041,49 @@ export const ptBR = {
     tableColLife: "Ciclos (80% DoD)",
     tableColLevelized: "US$/kWh·ciclo",
     tableColSafety: "Segurança Térmica",
-    empty: "Selecione uma química ou arquétipo para dimensionar o pack.",
+    empty: "O pack aparece aqui assim que os requisitos estiverem completos.",
     loading: "Carregando catálogo eletroquímico…",
     error: "Erro ao processar dimensionamento do pack.",
+    // Rótulo térmico ordinal, nunca número (D-69): a tela só traduz.
+    safety: {
+      BAIXA: "Baixa",
+      MODERADA: "Moderada",
+      MEDIA: "Média",
+      ALTA: "Alta",
+      MUITO_ALTA: "Muito alta",
+    },
+    dodHint: "Fração recomendada: 0,8 a 0,9.",
+    cellCapacityHint: "Vazio: formato comercial típico para a escala de energia.",
+    massPackingHint: "Massa das células ÷ massa do pack.",
+    volumePackingHint: "Volume das células ÷ volume do pack.",
+    costPackingHint: "Custo das células ÷ custo do pack.",
+    cellVoltage: "Tensão nominal da célula",
+    cellSpecificEnergy: "Energia específica da célula",
+    cellEnergyDensity: "Densidade energética da célula",
+    cellCostPerKwh: "Custo por kWh de célula",
+    cellsVolume: "Volume das células",
+    volumeOverhead: "Sobrecarga volumétrica",
+    totalPackVolume: "Volume total do pack",
+    selectedBadge: "Selecionada",
+    podiumDetail: {
+      mass: (value: string) => `Massa: ${value} kg`,
+      volume: (value: string) => `Volume: ${value} L`,
+      upfront: (value: string) => `Custo inicial: US$ ${value}`,
+      life: (value: string) => `Vida útil: ${value} ciclos`,
+      levelized: (value: string) => `Custo nivelado: US$ ${value}/kWh·ciclo`,
+      safety: (label: string) => `Estabilidade térmica intrínseca: ${label}`,
+    },
+    // D-86: premissas recolhidas, com cada valor impresso no resumo (D-69).
+    premisesSummary: (capacity: string, mass: string, volume: string, cost: string) =>
+      `Premissas do pack: célula ${capacity} · empacotamento — massa ${mass}, volume ${volume}, custo ${cost}`,
+    typicalCell: "típica da escala",
+    blocked: {
+      chemistry: "Escolha uma química.",
+      positive: (label: string) => `${label}: informe um valor maior que zero.`,
+      fraction: (label: string) => `${label}: vai de 0 a 1, sem incluir o zero.`,
+      capacity:
+        "Capacidade da célula: deixe em branco ou informe um valor maior que zero (premissas).",
+    },
   },
   synthesis: {
     title: "Sintetizar material",
@@ -1082,6 +1151,17 @@ export const ptBR = {
       "Ele é seu, fica declarado como sintetizado e já aparece no catálogo.",
     openRecord: "Abrir a ficha",
     parentsLabel: "Constituintes",
+    materialHint: "Digite parte do nome do material.",
+    // D-86: um botão desabilitado diz por quê.
+    blocked: {
+      parentA: "Escolha o primeiro constituinte.",
+      parentB: "Escolha um segundo constituinte, diferente do primeiro.",
+      fraction: "A fração volumétrica fica entre 0 e 1, sem incluir os extremos.",
+      density: "A densidade relativa fica entre 0 e 1, sem incluir os extremos.",
+      thickness: "Informe as duas espessuras, maiores que zero.",
+      class: "Escolha a classe do registro.",
+      name: "Dê um nome ao registro.",
+    },
   },
 
   myRecords: {

@@ -329,6 +329,20 @@ describe("Sintetizar material", () => {
     expect(
       await screen.findByShadowRole("button", { name: t.save }),
     ).toBeDisabled();
+    // D-86: the disabled button says why.
+    expect(screen.getByText(t.blocked.name)).toBeInTheDocument();
+  });
+
+  it("diz por que não prevê quando a fração sai do intervalo", async () => {
+    const user = userEvent.setup();
+    await open();
+
+    const fraction = await screen.findByShadowLabelText(t.fractionLabel);
+    await user.clear(fraction);
+    await user.type(fraction, "1");
+
+    expect(await screen.findByShadowRole("button", { name: t.preview })).toBeDisabled();
+    expect(screen.getByText(t.blocked.fraction)).toBeInTheDocument();
   });
 
   it("grava e aponta para a ficha do registro criado", async () => {

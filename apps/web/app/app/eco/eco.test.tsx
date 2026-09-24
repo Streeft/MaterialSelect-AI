@@ -212,6 +212,15 @@ describe("Auditoria ambiental", () => {
     expect(
       await screen.findByShadowRole("button", { name: t.run }),
     ).toBeDisabled();
+    // D-86: the disabled button says why.
+    expect(await screen.findByText(t.blocked.mass)).toBeInTheDocument();
+  });
+
+  it("recolhe as premissas do uso, com cada valor no resumo", async () => {
+    await open();
+
+    const summary = await screen.findByText(t.useSummaryMobile("10", "200.000", "0,0025", "0,07"));
+    expect((summary.closest("details") as HTMLDetailsElement).open).toBe(false);
   });
 
   it("aceita material e massa pela URL, que é como o dimensionamento liga aqui", async () => {
@@ -234,6 +243,7 @@ describe("Auditoria ambiental", () => {
 
     expect(await screen.findByText(t.noProcess)).toBeInTheDocument();
     expect(await screen.findByShadowRole("button", { name: t.run })).toBeDisabled();
+    expect(screen.getByText(t.blocked.process)).toBeInTheDocument();
   });
 
   it("só oferece processos que fazem este material", async () => {

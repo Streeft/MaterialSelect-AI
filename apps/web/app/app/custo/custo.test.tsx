@@ -105,6 +105,16 @@ describe("Custo da peça", () => {
     await open();
 
     expect(await screen.findByShadowRole("button", { name: t.estimate })).toBeDisabled();
+    // D-86: the disabled button says why.
+    expect(screen.getByText(t.blocked.mass)).toBeInTheDocument();
+  });
+
+  it("recolhe as premissas, mas imprime cada valor no resumo", async () => {
+    nav.query = "material=7&massa=2";
+    await open();
+
+    const summary = screen.getByText(t.assumptionsSummary("5", "0,5"));
+    expect((summary.closest("details") as HTMLDetailsElement).open).toBe(false);
   });
 
   it("aceita a peça e o lote pela URL, que é como o dimensionamento liga aqui", async () => {
@@ -189,5 +199,11 @@ describe("Custo da peça", () => {
 
     expect(await screen.findByShadowRole("button", { name: t.estimate })).toBeDisabled();
     expect(estimatePartCost).not.toHaveBeenCalled();
+    // The premise that blocks is never left folded away.
+    expect(screen.getByText(t.blocked.loadFactor)).toBeInTheDocument();
+    expect(
+      (screen.getByText(t.assumptionsSummary("5", "1,5")).closest("details") as HTMLDetailsElement)
+        .open,
+    ).toBe(true);
   });
 });
