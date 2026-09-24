@@ -4733,3 +4733,171 @@ Nada foi commitado nem enviado por esta sessão (o repositório orquestrador
 revisa o diff); `apps/api` (só executado localmente, como servidor
 descartável, para o spot-check — nenhum arquivo dele foi editado) e
 `AppSidebar.tsx` não foram tocados.
+
+## D-79 — MSDS: `AppSidebar.tsx` reconstruído sobre a linguagem visual do `NavRail`/`NavDrawer`; nenhum dos dois é usado por dentro; `@material/web` continua load-bearing
+
+**Escopo entregue.** Um arquivo só, `components/layout/AppSidebar.tsx` — o
+último item que D-73 apontou como próxima rodada. `NavLink`/`NavGroupList`
+passaram a usar o vocabulário CSS do MSDS (`.msds-rail-item`,
+`.msds-rail-icon`, `.msds-rail-label`, `.msds-rail-eyebrow`, em
+`lib/msds/msds.css`) em vez das classes Tailwind que o arquivo escrevia à
+mão; nada além disso mudou — mesmos 17 destinos, mesmos três grupos
+(`t.groupStudy`/`t.groupData`/`t.groupAdmin`), mesmo `<Link>` do
+`next/link`, mesmo `useFocusTrap` próprio do app na gaveta modal, mesma
+regra de `sr-only` no colapso.
+
+**Por que nenhum dos dois — `NavRail`/`NavDrawer` — foi delegado, com a
+lacuna concreta de cada um.** A mesma disciplina de D-76/D-77/D-78: delegar
+onde a função vendorizada cobre tudo que o app já garante, restilizar com a
+classe onde não cobre.
+
+1. **`NavRail` (`lib/msds/msds.tsx`) não navega de verdade.** Cada item é um
+   `h("button", { onClick: () => props.onSelect(item.key) })` — nunca um
+   `<a href>`. É exatamente a classe de defeito que o `Breadcrumb` do D-77
+   já tinha (`<a href="#" onClick={preventDefault}>`): sem `href` real, o
+   leitor perde clique do meio, "abrir em nova aba", prefetch do
+   `next/link` e a navegação por teclado nativa de um link — uma
+   regressão de acessibilidade e de funcionalidade real, não cosmética,
+   e inaceitável num componente renderizado em toda rota autenticada.
+   Verificado lendo `NavRailItemButton` (`lib/msds/msds.tsx:516-530`) antes
+   de decidir, não presumido.
+2. **`NavRail`/`msdsIcon` têm um vocabulário fechado de ícones que não cobre
+   dois destinos reais.** A tabela de D-75 já registrou que `IconBook`
+   (Catálogo) e `IconBlend` (Sintetizar) não têm par no `msdsIcon(name)` do
+   MSDS — estender aquele `switch` vendorizado para dois glifos novos estava
+   fora do escopo desta tradução em wrapper, a mesma régua que D-75/D-76 já
+   aplicaram a outros ícones sem par.
+3. **`NavDrawer` (`lib/msds/msds.tsx:2109-2124`) não aceita conteúdo
+   próprio.** Ele sempre chama `h(NavRail, Object.assign({}, props.navProps,
+   {...}))` por dentro — não há slot de `children`. Mesmo que só o item (1)
+   bloqueasse a delegação, o `NavDrawer` não teria como hospedar uma lista
+   de navegação com `<Link>` reais em vez do `NavRail` que ele mesmo
+   constrói. A gaveta modal deste app continua com a própria marcação
+   (`role="dialog"`, `aria-modal`, backdrop clicável, `useFocusTrap` — que já
+   prende foco, fecha com Escape e devolve foco ao gatilho, testado ao vivo
+   nesta sessão) — só os itens de navegação por dentro dela passaram a usar
+   `.msds-rail-item`/`.msds-rail-icon`/`.msds-rail-label`, o mesmo componente
+   `NavLink`/`NavGroupList` compartilhado com o rail.
+
+Por isso o `<aside id="navegacao-lateral">`/`<nav>` continuam com sua própria
+marcação — nunca a classe `.msds-rail` do MSDS, que impõe fundo escuro fixo
+(`#0E1017`, redundante com o `--rail`/`--rail-ink` já tonalizados por tema
+que este arquivo já tinha, mas **não** o mesmo valor sob controle de tema),
+`border-radius: var(--radius-panel)` (arredondaria os quatro cantos de um
+rail que corre até a borda da tela — errado para um rail de borda, certo
+para um painel flutuante) e largura fixa de 248px (o rail deste app
+transiciona entre `w-64`/`w-[68px]`, e o `!important` que
+`.msds-drawer-panel .msds-rail { width: 100% !important }` carrega
+entraria em guerra de especificidade com essa transição).
+
+**A cor do item ativo continua sendo o token de rota do D-73, só lido pela
+regra do MSDS em vez da própria.** `.msds-rail-item[aria-current="page"]`
+(a classe agora emprestada) e seu `::before` (a barra de 3px na borda
+esquerda) leem `var(--row-accent, rgb(var(--accent)))` via `color-mix` —
+`color-mix` já em uso em `msds.css` desde D-74/D-78 (`.msds-quality-*`, o
+próprio `.msds-rail-item`), sem risco novo de suporte de navegador. Nenhuma
+cor nova: o `<nav>` do rail e o `<nav>` da gaveta recebem
+`style={{ "--row-accent": "rgb(var(--rail-accent))" }}` — o mesmo
+`--rail-accent` que D-73 já tonalizou e validou por contraste para as 16
+rotas × 2 temas, só entregue ao seletor do MSDS em vez do seletor Tailwind
+(`bg-rail-accent/20`/`text-rail-accent`) que o arquivo usava antes. Como
+`--row-accent` é uma propriedade customizada, ela herda por toda a subárvore
+sem precisar ser repetida por item — um ponto de ajuste só. O ícone do item
+ativo ganhou, além disso, `text-rail-accent` (a mesma classe de antes): sem
+ela, o `color: #fff` que o MSDS aplica ao item ativo (pensado para um rail
+permanentemente escuro, que este é) apagaria o terceiro canal visual que o
+comentário original do arquivo já documentava — a cor do ícone seguindo a
+rota, ao lado da barra e do preenchimento de fundo.
+
+**O `sr-only` do colapso (D-37) continua sendo o Tailwind do próprio app,
+não a regra `[data-collapsed="true"] .msds-rail-label` do MSDS** — que só
+dispara sob um ancestral com a classe `.msds-rail`, e este arquivo
+deliberadamente não aplica essa classe ao contêiner (parágrafo acima). A
+técnica de recorte que o CSS do MSDS usa ali (`position: absolute; width:
+1px; height: 1px; clip: rect(0,0,0,0)`) é a mesma receita de `sr-only`, só
+não fica acessível pela cadeia de seletor que este arquivo escolheu não
+adotar — então a garantia continua vindo de onde sempre veio.
+
+**Verificação.** `npm run typecheck` limpo; `npm run lint` 0 erros/21
+avisos (a mesma base de D-73–D-78, nenhum novo); `npm run test` — 388/388,
+**nenhum teste tocado ou precisou de ajuste** (`routes.a11y.test.tsx`, que
+exercita o rail em todas as rotas, e `components/layout/layout.test.tsx`
+passaram sem alteração — a marcação/ARIA real não mudou, só a classe CSS);
+`npm run build` — 27 rotas, sucesso.
+
+Verificação ao vivo (a exigida com mais rigor para este arquivo, porque ele
+renderiza em toda rota): API local
+(`apps/api/scripts/e2e_server.py`, SQLite descartável,
+`ENVIRONMENT=development` + `E2E_SESSION_TOKEN`, a mesma receita de D-78) na
+porta 8000, `npm run build` + `npm run start`, Chromium de sistema
+(`/opt/pw-browsers/chromium-1194` via `playwright-core`) dirigido por um
+script descartável (apagado ao final, nunca comitado):
+
+- **Rail em 1440px, tema claro, `/app/selecao`.** 17 links (mais o link da
+  marca) resolvidos em `#navegacao-lateral`; os três *eyebrows*
+  ("Estudar"/"Dados"/"Administrar") presentes; `aria-current="page"` no link
+  de Seleção.
+- **Colapso, com árvore de acessibilidade — não só captura visual.** Depois
+  de clicar em "Recolher a barra lateral": o link "Mapas" continua
+  resolvível por `getByRole("link", { name: "Mapas" })` (nome acessível
+  presente); o `<span class="msds-rail-label">` de cada item continua no
+  DOM (`count() === 1`, `textContent` intacto) com `boundingBox()`
+  `{ width: 1, height: 1 }` — a assinatura exata de `sr-only`, não de um nó
+  removido; o `ariaSnapshot()` da `<nav aria-label="Navegação principal">`
+  imprimiu os 17 links com seus nomes completos e a estrutura de grupo
+  intacta enquanto colapsada — a prova, pela árvore de acessibilidade e não
+  pelo pixel, de que D-37 continua de pé.
+- **Cor por rota, claro e escuro, quatro rotas incluindo Eco e Custo.** O
+  `--row-accent` computado e a cor de fundo do `::before` do item ativo
+  variam por rota como esperado (roxo em Seleção, ciano em Mapas, verde em
+  Eco, laranja em Custo) nos dois temas; Eco e Custo mostraram o mesmo valor
+  entre claro e escuro — conferido contra `app/globals.css` e **não é
+  regressão desta rodada**: para essas duas rotas especificamente, o gerador
+  de D-73 produziu `--brand-300` (claro) e `--brand-700` (escuro) com o
+  mesmo triplo RGB (coincidência do hue, não uma regra geral — Seleção e
+  Mapas, na mesma checagem, mostraram valores diferentes entre os dois
+  temas, como o resto da matriz).
+- **Gaveta modal em 400px.** Abre como `role="dialog"`/`aria-modal="true"`;
+  foco entra na gaveta (`document.activeElement` dentro de `#menu-principal`
+  logo após o clique); 17 links presentes; Escape fecha (`#menu-principal`
+  sai do DOM) **e devolve o foco ao gatilho** (`document.activeElement`
+  volta a ser o botão com `aria-controls="menu-principal"`); reaberta e
+  fechada por clique no backdrop, mesmo resultado.
+- **Console limpo** nos dois viewports e nos dois temas — o único evento
+  registrado em todas as passadas foi um 404 de recurso, esperado (favicon
+  ou afim) e não relacionado a este arquivo.
+
+Servidor da API e servidor Next de produção, ambos descartáveis, encerrados
+ao final da verificação; nenhum arquivo de `apps/api` foi editado.
+
+**Esta é a última peça pendente da integração do MSDS listada por
+D-73–D-78.** `AppSidebar.tsx` era o único item que restava nas listas de
+"fica para a próxima rodada" desde D-73. Uma varredura de todo `apps/web`
+por `@material/web` depois desta mudança encontra só comentários/prosa em
+`components/ui/Button.tsx`, `Dialog.tsx`, `Field.tsx`, `Feedback.tsx`,
+`focusTrap.ts`, `lib/design/materialTheme.ts`, `components/layout/
+SectionTheme.tsx`, `app/globals.css` e cinco arquivos de teste — nenhum
+deles um `import` real — **mais os imports reais que já eram esperados**:
+`components/ui/material/elements.ts` ainda registra os elementos customizados
+do `@material/web`, e `components/ui/Button.tsx` ainda importa
+`MdIconButton`/`MdFilterChip`/`MdOutlinedSegmentedButton`/
+`MdOutlinedSegmentedButtonSet` de lá para `IconButton`/`ButtonGroup`/
+`ButtonGroupItem`/`ToggleChip` — exatamente o que D-76 e D-78 já
+documentaram como mantido, com o motivo de cada um ainda de pé (nenhum
+motivo dependia de `AppSidebar.tsx`). **A dependência `@material/web` do
+`package.json` não pode ser removida** — ela continua load-bearing por esses
+quatro componentes. Uma observação fora do escopo desta rodada, não
+perseguida aqui: `material/elements.ts` também importa e registra
+`MdFilledButton`/`MdOutlinedButton`/`MdTextButton`/`MdCircularProgress`/
+`MdOutlinedTextField`/`MdOutlinedSelect`/`MdSelectOption`/`MdCheckbox`/
+`MdRadio`/`MdDialog`/`MdTabs`/`MdPrimaryTab` — registros que nenhum
+componente de `components/ui/*` mais consome desde as conversões de D-77/
+D-78 (`Field`/`Dialog`/`Tabs`/`Feedback` passaram a usar marcação nativa ou
+MSDS); podar esses registros mortos reduziria o que o bundle do
+`@material/web` ainda carrega, mas é uma limpeza própria, não uma parte de
+"reconstruir `AppSidebar.tsx`".
+
+Nada foi commitado nem enviado por esta sessão (o repositório orquestrador
+revisa o diff); `apps/api` (só executado localmente, como servidor
+descartável, para o spot-check — nenhum arquivo dele foi editado) não foi
+tocado.
