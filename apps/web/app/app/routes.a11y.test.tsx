@@ -1070,6 +1070,15 @@ vi.mock("@/lib/api", async (importOriginal) => ({
   removeFavorite: () =>
     Promise.resolve({ favorites: [], recents: [], own_records: [] }),
   touchRecent: () => Promise.resolve(undefined),
+  getBillingStatus: () =>
+    Promise.resolve({
+      active: true,
+      status: "active",
+      current_period_end: null,
+      access_mode: "subscription",
+      has_access: true,
+      can_edit_catalog: true,
+    }),
   listMaterials: () => Promise.resolve(materials),
   listClasses: () => Promise.resolve(classes),
   listProcesses: () => Promise.resolve(processes),

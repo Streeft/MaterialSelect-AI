@@ -8,9 +8,15 @@ from __future__ import annotations
 from fastapi import Depends, Query, Request
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.db.base import get_db
+from app.domain import access
 from app.domain.display_units import parse_choices
-from app.domain.errors import AuthenticationError, SubscriptionRequiredError
+from app.domain.errors import (
+    AuthenticationError,
+    CatalogReadOnlyError,
+    SubscriptionRequiredError,
+)
 from app.models.project import Project
 from app.models.user import User
 from app.repositories.project_repository import ProjectRepository
@@ -47,14 +53,40 @@ def get_current_project(
     return project
 
 
+def has_active_subscription(user: User, db: Session) -> bool:
+    subscription = SubscriptionRepository(db).get_by_user_id(user.id)
+    return subscription is not None and subscription.status == "active"
+
+
 def require_active_subscription(
     user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ) -> None:
-    subscription = SubscriptionRepository(db).get_by_user_id(user.id)
-    if subscription is None or subscription.status != "active":
+    """The product gate (D-46). In open mode (D-82) login alone admits.
+
+    ``get_current_user`` stays a dependency in both modes: opening the tool to
+    a class never means opening it to anonymous traffic.
+    """
+    if settings.access_mode == "open":
+        return
+    if not has_active_subscription(user, db):
         raise SubscriptionRequiredError(
             "É necessária uma assinatura ativa para usar esta funcionalidade."
         )
+
+
+def can_edit_shared_catalog(
+    user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> bool:
+    """Whether this user may write the shared catalogue (``owner_id`` NULL)."""
+    if settings.access_mode != "open":
+        # Skips the query, not the rule: see access.can_edit_shared_catalog.
+        return True
+    return access.can_edit_shared_catalog(settings.access_mode, has_active_subscription(user, db))
+
+
+def require_catalog_curator(allowed: bool = Depends(can_edit_shared_catalog)) -> None:
+    if not allowed:
+        raise CatalogReadOnlyError()
 
 
 def get_unit_choices(

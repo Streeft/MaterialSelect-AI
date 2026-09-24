@@ -28,6 +28,7 @@ import {
   Th,
   Tr,
 } from "@/components/ui";
+import { CatalogReadOnlyNotice } from "@/components/auth/CatalogReadOnlyNotice";
 
 const CATEGORIES: PropertyCategory[] = [
   "FISICA",
@@ -91,6 +92,7 @@ export default function PropertiesAdminPage() {
   return (
     <div className="flex flex-col gap-5">
       <PageHeader title={ptBR.admin.propertiesTitle} />
+      <CatalogReadOnlyNotice />
 
       <form
         onSubmit={(e) => {

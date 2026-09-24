@@ -207,6 +207,25 @@ def test_other_users_study_events_are_not_visible(client, other_user, login_as):
     assert other_study["id"] not in {e["entity_id"] for e in mixed}
 
 
+def test_other_users_own_record_events_are_not_visible(client, other_user, login_as):
+    # An own record (P1-4) is 404 to everyone but its owner, so its history —
+    # which names it and carries the owner's e-mail — must be too (D-82).
+    with login_as(other_user):
+        private = client.post(
+            "/api/materials",
+            json=_new_material_payload(client, name="Liga Particular", is_own_record=True),
+        ).json()
+        own_view = _audit_events(client, entity_type="material", entity_id=private["id"])
+        assert [e["action"] for e in own_view] == ["CRIADO"]
+
+    assert _audit_events(client, entity_type="material", entity_id=private["id"]) == []
+    mixed = _audit_events(client, entity_type="material")
+    assert private["id"] not in {e["entity_id"] for e in mixed}
+
+    shared = client.post("/api/materials", json=_new_material_payload(client)).json()
+    assert _audit_events(client, entity_type="material", entity_id=shared["id"]) != []
+
+
 def test_own_study_events_stay_visible_after_deletion(client):
     created = client.post("/api/selection/studies", json=_study_payload()).json()
     client.delete(f"/api/selection/studies/{created['id']}")

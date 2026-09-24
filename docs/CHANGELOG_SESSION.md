@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [27](#sessão-27--240926--o-portão-vira-um-modo-acesso-aberto-para-uma-turma-d-82) | 24/09/2026 | Acesso aberto para estudantes com qualquer conta Google, catálogo compartilhado protegido, e o workflow que abre e fecha (D-82) | 1755 → 1785 | 422 → 427 |
 | [26](#sessão-26--21092026-a-22092026--a-auditoria-de-produção-o-seed-desconectado-d-71-e-a-exclusão-de-demo-por-um-flag-d-72) | 21 e 22/09/2026 | Auditoria ao vivo da produção; o defeito do seed desconectado (D-71) achado e corrigido; mecanismo de exclusão de dado demo por `is_demo` (D-72) e a regra escrita para qualquer agente/IDE | 1727 → 1741 | 368 (inalterado) |
 | [25](#sessão-25--210926--a-unidade-de-leitura-fecha-a-matriz) | 21/09/2026 | Unidade de leitura por propriedade (D-70) — ler não é guardar. **Matriz a 32 de 32 (100%)** | 1683 → 1727 | 356 → 368 |
 | [24](#sessão-24--160926--p4-o-battery-designer-e-a-reconciliação-do-pr-56) | 16/09/2026 | P4 Battery Designer (D-69) — a álgebra do pack é argumento, a química é dado medido. **Fecha a última linha em zero da matriz**; reconcilia o PR #56 | 1656 → 1683 | 349 → 356 |
@@ -42,6 +43,67 @@ As sessões entre a 11 e a 12 — o patch de design "Prisma" (D-49, D-50), o
 upgrade de segurança S1 e a rodada de desempenho — **não têm seção própria
 aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
+
+---
+
+## Sessão 27 — 24/09/26 — O portão vira um modo: acesso aberto para uma turma (D-82)
+
+**O pedido.** "Gostaria de abrir o app para os estudantes testarem com suas
+contas do Google […] liberar o acesso quando qualquer pessoa logar […] após os
+testes, criar no git um job para voltar a configuração original, em que a pessoa
+só pode ter acesso se adquire o pacote."
+
+**A pergunta que decidiu o desenho.** Abrir o portão desfaz uma equivalência
+que o D-62 usava sem dizer: "quem passou pelo portão pode alterar o catálogo"
+valia porque todo mundo que passava era assinante. Perguntado, o autor escolheu
+**usar tudo, proteger o catálogo** — o estudante usa toda a ferramenta e cria os
+próprios registros e estudos; alterar o catálogo compartilhado, classes,
+propriedades e importar continua com quem tem assinatura ativa.
+
+**O que saiu.**
+
+- `ACCESS_MODE` (`subscription`, o padrão; ou `open`) em `app/config.py`, e a
+  regra pura em `app/domain/access.py`, lida pelo portão e por
+  `/billing/status`.
+- `require_catalog_curator` nas rotas de classe, propriedade, as seis de
+  importação e a ingestão do Cérebro; `can_edit_shared` no `MaterialService`,
+  porque `POST /materials` escreve no catálogo ou num registro próprio
+  conforme o payload. Recusa: `CatalogReadOnlyError` → 403, mensagem em
+  português definida uma vez.
+- `/billing/status` passou a separar `active` (a assinatura) de `has_access`
+  (o portão) e `can_edit_catalog` (a interface); `/api/health` passou a dizer
+  `access_mode`.
+- Interface: `AuthGate` lê `has_access`; `/assinatura` manda o estudante para a
+  ferramenta em vez do checkout; a ficha de material compartilhado esconde
+  *editar*/*desativar* de quem não pode; importar e administração mostram o
+  aviso de somente leitura; e o formulário de material novo grava registro
+  próprio para o estudante, dizendo isso na tela.
+- `.github/workflows/modo-acesso.yml`: `abrir` / `restaurar_assinatura` gravam
+  o segredo no Fly e **só ficam verdes depois de ler o modo novo em
+  `/api/health`**.
+
+**Um achado no caminho.** O formulário "Novo material" nunca enviava
+`is_own_record` — criava sempre no catálogo compartilhado; registro próprio só
+nascia pelo Synthesizer. Sem mexer nisso, o modo aberto deixaria o estudante
+sem nenhum jeito de cadastrar um material pela tela.
+
+**Um vazamento que o modo aberto teria multiplicado.** `/api/audit` mostrava
+a qualquer usuário os eventos de material — inclusive os de **registro
+próprio alheio**, com o nome do registro e o e-mail do dono —, embora as rotas
+de material respondessem 404 para esse mesmo leitor. O canário do D-62 varre
+rotas de material, não o feed de auditoria. Com uma turma inteira dentro,
+cada estudante veria o e-mail e os registros particulares dos colegas.
+`AuditRepository.list_events` passou a excluir eventos de material que é
+registro próprio de outra pessoa; teste novo em `test_audit.py`, conferido por
+mutação.
+
+**Verificação.** Backend 1755 → 1785 (29 em `test_open_access.py`, 1 em
+`test_audit.py`), frontend
+422 → 427; `ruff`, `black --check`, `typecheck` e `lint` limpos (os 21 avisos
+de lint são os mesmos de `main`).
+
+**Depois do merge:** **Deploy da API** e, para abrir, **Modo de acesso** →
+`abrir` ([13-deploy.md §5-quater](13-deploy.md)).
 
 ---
 
