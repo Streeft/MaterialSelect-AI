@@ -5334,3 +5334,312 @@ classe, propriedade, as seis rotas de importação e a ingestão), o assinante
 continuando curador no modo aberto, e o modo `subscription` não ganhando um
 segundo portão por cima do D-46. Frontend: o portão admitindo no modo aberto,
 `/assinatura` nos dois modos e o aviso de somente leitura.
+
+## D-84 — Estudo de processos volta a ter o passo Objetivo: ranqueia por atributo numérico, e o discreto fica de fora pelo nome
+
+**O defeito.** Desde o P0-4 ([D-59](#d-59)) um processo tem atributo, e a recusa de
+ranqueamento do [D-58](#d-58) foi **retirada** — `test_process_attributes.py` prova
+que um estudo de processos ranqueia (`test_ranking_a_process_study_works_now`), que
+um envelope entra pelo ponto representativo e que só o atributo **discreto** é
+recusado, com o motivo escrito. A tela não acompanhou: com o universo em
+"Processos", o passo Objetivo inteiro era trocado por um aviso que dizia
+"processo não tem atributo cadastrado" — falso havia semanas, e escondendo uma
+capacidade que o backend entrega.
+
+**A decisão.** O passo Objetivo é o mesmo nos dois universos; o que muda é o
+catálogo de que ele lê:
+
+- **Critério de ranking** num estudo de processos lista os atributos de processo
+  **numéricos** (`ESCALAR` e `ENVELOPE`). O `DISCRETO` não aparece: é um conjunto
+  de rótulos sem ordem, o backend o recusa pelo nome, e oferecê-lo seria oferecer
+  um 400.
+- **Índice**: os índices do catálogo são escritos sobre propriedades de material,
+  então num estudo de processos sobram "Nenhum índice" e "Expressão
+  personalizada", com uma frase dizendo por quê. O botão **Validar** some ali,
+  porque `POST /api/selection/index` avalia sobre materiais e o único desfecho
+  seria um 400; a frase diz que a expressão é conferida ao executar.
+- **O nome de variável vem do backend.** Um slug de atributo tem hífen
+  (`faixa-massa`) e uma expressão precisa de identificador; a conversão é a de
+  `safe_variable`. `ProcessAttributeOut` passou a carregar `variable`, calculado por
+  ela, para a lista de variáveis da tela e o avaliador não poderem discordar — a
+  mesma razão pela qual a geometria e a unidade de leitura saem do backend.
+- **Trocar o universo limpa o objetivo** (critérios, índice, expressão, AHP), além
+  dos estágios. Um critério de propriedade de material num estudo de processos é
+  recusado pelo backend; carregá-lo através da troca só produziria o erro.
+
+**Verificação.** Backend: `test_each_attribute_carries_the_name_an_index_expression_uses`
+(o `variable` servido é o de `safe_variable`, e um índice escrito com ele executa
+num estudo de processos). Frontend, em `selecao.test.tsx`: o seletor lista os
+atributos numéricos e não o discreto nem as propriedades de material, os índices do
+catálogo não aparecem, o critério de atributo chega à requisição com
+`universe: "process"`, e trocar o universo limpa os critérios (conferido por
+mutação).
+
+**Depois do merge** a API precisa do **Deploy da API**: sem ele o catálogo de
+atributos não traz `variable`, e a lista de variáveis da expressão sai vazia.
+
+## D-85 — Seleção guiada: um passo de cada vez, sempre com volta, e o recolhido nunca esconde o que está em uso
+
+**O pedido.** A ferramenta vai ser usada por uma turma de graduação (29/09), e o
+autor pediu uma experiência "super intuitiva, passo a passo, que mostre menos coisa
+na tela", em que o aluno complete um passo para ver o seguinte mas possa sempre
+voltar — **sem perder nenhuma funcionalidade**. A pesquisa que sustenta o desenho
+(Nielsen Norman Group sobre jovens adultos e sobre assistentes; Baymard sobre o
+botão voltar; estudos de *onboarding* na CHI 2023) é consistente em cinco pontos:
+voltar tem de ser sempre possível e errar tem de ser barato; tela esparsa, com
+ajuda no contexto e nunca tour; assistente só onde a tarefa é sequencial; total
+corrente ao vivo; botão desabilitado sempre com o motivo à vista.
+
+**As regras, que valem para qualquer tela que adotar o padrão:**
+
+- **Recolhido esconde só como *acrescentar* complexidade, nunca o que já está em
+  uso.** "Opções avançadas" (universo em Função; estágios extras, grupos e E/OU
+  da raiz em Restrições; método, normalização e AHP em Objetivo) abre sozinha
+  quando um estudo carregado, o exemplo ou um link já usa o recurso. Os
+  predicados são puros, em `lib/selection/advanced.ts`, com teste. Fechada com um
+  método diferente da soma ponderada, uma linha diz qual está em uso.
+- **A navegação deriva da ordem de `STEPS`.** Anterior e próximo saem da posição
+  (`neighbours`), o Executar fica no último passo de entrada (`LAST_INPUT_STEP`),
+  "Voltar" existe em todo passo — no primeiro, "Voltar ao início" — e o botão
+  principal diz para onde vai ("Próximo: Objetivo"). Reordenar os passos é mexer
+  numa lista.
+- **O passo vive na URL** (`?etapa=`, com `pushState`), e o botão Voltar do
+  navegador volta um passo. A sincronia é um ouvinte de `popstate`, não um efeito
+  sobre `useSearchParams`: o efeito seria um `setState` dentro de `useEffect`, que
+  a regra de lint deste repositório recusa com razão.
+- **O Stepper é a faixa-resumo.** Cada passo ganhou uma segunda linha com o que já
+  guarda (nome, índice e número de critérios, número de restrições, candidatos),
+  e continua clicável.
+- **Objetivo em dois blocos** (`GuidedBlock`): o índice, depois critérios e pesos,
+  travado com o motivo escrito até o índice ser confirmado — "Nenhum índice" é
+  confirmação válida. Confirmado, o bloco recolhe a grade mas **o `IndexCard` com
+  as hipóteses fica à vista** ([D-25](#d-25)).
+- **O resultado começa pelo vencedor e pelo porquê**, com números do backend
+  apenas: a pontuação, as contribuições ou a frase do TOPSIS/PROMETHEE, o valor do
+  índice, "passou em N restrições". Escolher o primeiro de uma lista já ordenada é
+  comparação, não cálculo. Empate nomeia todos; sem índice nem ranking, a tela não
+  declara vencedor e diz por quê. Depois vêm o top 5 e as abas (Resumo, Ranking,
+  Eliminados, Sensibilidade, Origem dos dados); os ids antigos de seção abrem a aba
+  certa, e o **`LimitationNotice` fica fora das abas** (REDESIGN §13).
+- **Busca em vez de lista longa** (`Combobox`, padrão ARIA 1.2, busca sem acento,
+  lista em portal porque o cartão corta o transbordo). Não `<datalist>`: ele não
+  dobra acento, devolve o rótulo em vez do slug e varia de navegador para
+  navegador. Um critério já escolhido some das opções.
+- **Unidade à vista.** A unidade de uma restrição sobre propriedade de material é
+  um seletor sobre `accepted_units`, pré-escolhido na unidade de leitura: em
+  branco ela valia a canônica, e "70" num módulo virava 70 Pa. Cada linha se lê
+  como frase embaixo ("Módulo de Young ≥ 70 GPa", `describeConstraintRow`).
+- **O exemplo é constante do frontend** (`lib/selection/examples.ts`): são
+  escolhas de entrada, não dado de material, e por isso não violam o princípio 1
+  nem dependem de deploy. Antes de aplicar, confere que os slugs existem; se
+  faltar algum, diz o quê e não aplica nada; aplicado, tem **Desfazer**. Um teste
+  lê `seed.py` para que o exemplo não envelheça em silêncio.
+- **Estudos salvos e IA saem do fluxo**: "Meus estudos (N)" é um painel recolhido
+  no topo, com o conteúdo de antes inteiro; o assistente de IA fica atrás de um
+  botão com `aria-expanded`.
+- **Uma dica de uma linha por campo**, pela prop `hint` que já existia.
+
+O contador de candidatos passou a ter *debounce* sobre a chave serializada dos
+estágios — ele disparava uma requisição por tecla, e a aula põe quarenta pessoas
+numa máquina só.
+
+**Nada saiu.** Tudo que existia continua alcançável: o que mudou foi a ordem em
+que aparece e o que fica recolhido até alguém pedir.
+
+## D-86 — Superfícies enxutas: capa com um botão, menu por papel, Início, Mapas, Comparar e as ferramentas
+
+Mesmo pedido e mesma pesquisa do [D-85](#d-85), aplicados ao resto do produto.
+
+- **A capa (`/`) deixou de ser vitrine de venda** (revê o [D-50](#d-50) no que ele
+  punha em `/`). A ferramenta não está sendo vendida agora, e quem chega pelo
+  link do professor precisa de uma coisa: entrar. `StartScreen` tem o nome, uma
+  linha e **um** botão "Começar um estudo", com os dois avisos em letra miúda —
+  são compromissos da proposta, não marketing. A vitrine (`Landing.tsx` e o que
+  ela usa) **fica no repositório e continua auditada**: voltar é trocar um import.
+  Depois do login o aluno cai em `/app`, não de volta na capa.
+- **O menu mostra a cada um o que ele pode usar.** Para quem não é curador
+  (`can_edit_catalog`, [D-83](#d-83)) somem "Importar" e o grupo "Administrar" —
+  telas só de leitura para o aluno. **Não é segurança**: o backend já recusa;
+  é ruído a menos. Cada item tem ícone próprio (Custo, Processos e Propriedades
+  dividiam glifos).
+- **Início**: um botão principal, o aviso de dados fictícios, o aviso de limitação
+  em forma compacta (o texto integral continua no rodapé), "retomar um estudo",
+  três atalhos e os quatro passos do método recolhidos em "Como funciona".
+- **Mapas**: os eixos são a pergunta e ficam à vista; universo, escala, forma do
+  envelope, camadas, classes, linha de índice e a troca de um eixo por índice vão
+  para "Personalizar o mapa". O painel abre sozinho quando o link ou um mapa salvo
+  já personaliza algo (`mapUsesCustomization`, puro, com teste) e, fechado, diz em
+  palavras o que está em uso. Um eixo desenhado como índice mantém o próprio
+  seletor à vista.
+- **Comparar** em três passos: os materiais entram por busca, e só os escolhidos
+  aparecem, como chips removíveis (`RemovableChip`, primitiva nova, em `/estilo`)
+  cujo botão carrega o nome do item. Os passos seguintes dizem em palavras o que
+  esperam. Um link com `?materiais=` abre com os três preenchidos.
+- **Ferramentas** (Custo, Eco, Baterias, Dimensionar, Sintetizar):
+  - **Premissas recolhidas, com cada valor impresso no resumo** — a regra do
+    [D-65](#d-65)/[D-69](#d-69) é "premissa é entrada com valor visível", e o
+    resumo a cumpre. Uma premissa que bloqueia a execução abre o painel sozinha.
+  - **Todo botão desabilitado diz o primeiro requisito que falta**, ao lado dele
+    e ligado por `aria-describedby`. É validação de entrada, não conta.
+  - A **condição de apoio** do Dimensionar continua à vista ([D-64](#d-64)): é a
+    constante que faz dois briefings iguais darem respostas diferentes.
+  - O **cartão de resultado fica na tela desde o início** ([D-80](#d-80) mantido
+    no que ele protege) — Dimensionar, que só o mostrava depois de executar,
+    passou a seguir a regra. Dimensionar e Sintetizar usam `StepCard`.
+  - Material por busca onde a lista é o catálogo inteiro.
+  - **O que o plano previa e ficou de fora de propósito:** revelar o cartão
+    seguinte de uma ferramenta só depois do anterior. As ferramentas têm dois ou
+    três cartões curtos e um resultado que depende de todos; esconder o segundo
+    esconderia justamente as premissas de que o número depende. O que tornava as
+    telas pesadas eram as premissas abertas e as listas longas, e é isso que
+    mudou.
+
+## D-87 — Pesos do ranking com limite 1: orçamento calculado no backend, tabela viva, prévia do top 5 e uma trava que falha aberta
+
+**O pedido.** Em "Critérios de ranking", mostrar o peso total ao lado dos campos,
+uma tabela da distribuição da média ponderada que muda conforme se digita,
+calculada no backend, e o limite: "se o total é 1, informar que o limite é 1, não
+podendo extrapolar". Perguntado, o autor escolheu **total 1**, **bloquear a
+execução até fechar 1** com o motivo à vista e um botão "Distribuir o restante
+igualmente", e **tabela mais prévia do top 5**.
+
+**O domínio** (`app/domain/weights.py`, puro) lê os critérios como um orçamento
+contra o limite:
+
+- **Decimal, não float**: cada peso entra como `Decimal(repr(w))`, para 0,1 + 0,2 +
+  0,7 fechar exatamente 1. A tela que dissesse "faltam 0,0000000000000001" depois
+  de três pesos que somam 1 estaria mentindo.
+- **Tolerância de 0,001**, a do arredondamento do AHP (quatro casas), para 0,9999 e
+  1,0001 contarem como fechados. O ranking renormaliza de qualquer jeito.
+- **Participação** de cada linha é o peso sobre o total dos pesos válidos — o que o
+  `/run` usaria depois de renormalizar. Linha sem peso utilizável **não tem**
+  participação; nunca "0 %" (D-24).
+- **O problema de cada linha tem nome** (sem critério, sem peso, zero, negativo,
+  repetido, desconhecido, índice ausente), e só pesos positivos somam.
+- **Uma sugestão, escolhida pelo que está errado**: preencher os vazios com o
+  restante (os pesos digitados ficam), distribuir o restante igualmente, dividir
+  por igual (quando não sobra nada para os vazios) ou ajustar ao limite mantendo a
+  proporção — a conversão de um estudo salvo como 1, 1, 1. Toda sugestão soma
+  **exatamente** 1 por maior resto, em duas casas (quatro, se o leitor já digitou
+  quatro); o arredondamento cai nas últimas linhas (0,33 · 0,33 · 0,34).
+
+**Um endpoint só**, `POST /api/selection/weights-preview`, com as dependências do
+`/run` (quem pode executar pode prever, inclusive o estudante do acesso aberto).
+O orçamento é calculado **primeiro e nunca falha por causa da seleção**; depois o
+pipeline roda com os estágios de agora e ranqueia com a sensibilidade desligada e
+os pesos renormalizados. Um erro no meio da digitação (uma expressão pela metade)
+vira `unavailable_reason` com a mensagem do backend numa resposta **200**: um 400
+por tecla diria que o leitor errou, e ele só não terminou.
+
+**O `/run` continua renormalizando e não ganhou regra de soma.** O laudo e
+"Executar" em "Meus estudos" reexecutam estudos salvos antes desta decisão (pesos
+1, 1, 1); pôr "soma = 1" no `RunRequest` os quebraria. A regra vale **na entrada**,
+na tela. O que o backend passou a recusar é o **critério repetido**, em `run` e
+`create_study` — dois pesos para a mesma coluna, com duas linhas iguais na tabela
+de contribuições —, e não em `run_study` nem nos exportadores, pela mesma razão.
+
+**A tela** (`WeightBudget`, `lib/selection/weightsGate.ts`) só imprime: total com
+`role="status"` ("faltam 0,2", "passa do limite em 0,15"), a tabela com barra, a
+sugestão com os valores que ela daria e **Desfazer**, e o top 5 com duas notas
+honestas — sem restrições a prévia ordena o catálogo inteiro e as notas vão mudar
+(a normalização é sobre quem sobra); com pesos que não fecham, a prévia usou os
+renormalizados. O primeiro critério nasce com peso 1 e os seguintes **em branco**,
+para o total não ir a 2 em silêncio. Peso que não é número tem erro no campo.
+
+**A trava falha aberta.** "Executar" espera a conferência ("Conferindo a soma dos
+pesos…") e fica bloqueado com o motivo e "Corrigir pesos" enquanto o backend disser
+`can_run: false`. Se a conferência **falhar** (rede, ou a API ainda sem o deploy
+deste endpoint), o botão é liberado com uma nota: a regra é uma ajuda de entrada,
+não uma garantia de que o servidor precise, e uma turma não pode ficar trancada
+porque a prévia está fora do ar.
+
+**Depois do merge** o **Deploy da API** é obrigatório: sem ele a prévia responde
+404 e a trava cai na falha aberta — funciona, mas sem tabela.
+
+## D-88 — Na tela da Seleção, Objetivo é o passo 2 e Restrições o passo 3; o método não mudou
+
+**O pedido.** "Na aba de Seleção, quero que o botão de Objetivo esteja antes do
+Restrição: Objetivo 2 e Restrição 3."
+
+**O que mudou é a ordem da tela, não a do cálculo.** O motor continua filtrando e
+só então ordenando — a normalização de cada critério é feita sobre quem sobrou das
+restrições, e isso não se mexe. O que a nova ordem muda é a pergunta que o aluno
+responde primeiro: "o que eu quero otimizar?" antes de "o que é inaceitável?".
+Os documentos que descrevem o **método** (04, 07, 12, REDESIGN) continuam dizendo
+Função → Restrições → Objetivo e ganharam uma frase sobre a tela; os que
+descrevem a **tela** (README, o dicionário, a vitrine, `/estilo`) passaram a dizer
+Função → Objetivo → Restrições → Resultados.
+
+**Como ficou barato.** A navegação do [D-85](#d-85) deriva da ordem de `STEPS`:
+trocar dois itens da lista moveu o "Próximo: …", o Executar (que fica no último
+passo de entrada, agora Restrições) e o passo em que um estudo carregado abre. Os
+slugs da URL (`?etapa=objetivo`, `?etapa=restricoes`) não mudaram, então links
+antigos continuam abrindo o passo certo.
+
+**Duas consequências, ditas na tela:**
+
+- **Os pesos avisam em Objetivo e travam em Restrições.** Com Objetivo antes, não
+  faz sentido impedir o aluno de seguir enquanto os pesos não fecham 1 ([D-87](#d-87)):
+  o passo mostra o motivo como nota ("você pode seguir…"), e o Executar, no passo
+  seguinte, é que espera — com "Corrigir pesos" levando de volta.
+- **A prévia do top 5 vem antes das restrições**, então ordena o catálogo inteiro
+  — e diz isso, com o número de registros, e que as notas vão mudar quando as
+  restrições reduzirem a lista.
+
+As chaves do Início (`home.step1..4`) viraram nomes (`stepFunction`,
+`stepObjective`…): uma chave posicional passaria a querer dizer outra coisa na
+primeira reordenação.
+
+Em `docs/11-usabilidade.md` a ordem de T2 e T3 acompanhou a tela, com o aviso de
+que o exemplo em um clique resolve T1–T3 sozinho.
+
+## D-89 — A explicação por IA só pede `sources` quando há o que citar, e um erro de geração tem mensagem própria
+
+**O sintoma.** Na instância publicada (Groq por `openai-compat`, `AI_JSON_MODE`
+padrão `schema`), a seção 7 do laudo dizia: "O servidor recusou a requisição
+(400). Generated JSON does not match the expected schema… missing properties:
+'sources'… Se a queixa for sobre response_format ou json_schema, este modelo não
+suporta saída estruturada: defina AI_JSON_MODE=object…".
+
+**A causa, em duas partes.**
+
+1. `EXPLAIN_SCHEMA` exigia `sources` sempre, e o esquema viaja em modo
+   **estrito**: a Groq confere o JSON gerado contra ele no servidor e descarta a
+   resposta inteira por um campo obrigatório ausente. Sem trechos de referência
+   para citar — o caso comum, porque a busca só roda com Cérebro ingerido —,
+   deixar a lista de citações de fora é a resposta natural do modelo, não um
+   erro. `model_base.explain` já lia `sources` ausente como "nenhum"; só o
+   esquema o exigia.
+2. A mensagem culpava a configuração. O 400 era o modelo errando o formato uma
+   vez, e o texto mandava o operador degradar o modo JSON — o mesmo tipo de
+   diagnóstico errado que o 401/403 do [D-52](#d-52) já tinha custado.
+
+**A decisão.**
+
+- **O contrato pede só o que o prompt torna respondível.** `explain_schema(context)`
+  e `explain_system(context)` substituem as constantes: `sources` (no esquema, no
+  `required` e no parágrafo que ensina a preenchê-lo) existe **só quando
+  `context.retrieved` não está vazio**. Sem trecho, a pergunta não existe e o
+  modelo não tem como errá-la. É o mesmo princípio de `interpret_schema`, que já
+  era montado a partir do catálogo. Todo campo do esquema continua em `required`
+  — o invariante do modo estrito —, com teste.
+- **Uma nova tentativa, com limite de uma.** Um 400 em que o servidor diz que a
+  **geração** falhou na validação (`error.code == "json_validate_failed"` ou
+  `failed_generation` no corpo) leva o `openai-compat` a repetir a chamada uma
+  vez. `temperature` é 0, mas um servidor hospedado não é determinístico, e o
+  segundo pedido costuma passar.
+- **`failed_generation` nunca é aproveitado.** Ele traz um JSON que às vezes até
+  faz parse; usá-lo seria degradar o contrato sem o operador decidir, e o D-36
+  reserva essa decisão a `AI_JSON_MODE`.
+- **Mensagens separadas.** Duas falhas seguidas dizem "o modelo gerou uma resposta
+  fora do formato pedido, mesmo após uma nova tentativa. Não é configuração…". O
+  texto que manda trocar `AI_JSON_MODE` fica só para o 400 que de fato reclama de
+  `response_format`/`json_schema` — e esse não é repetido.
+
+Nada disso toca as garantias da camada: a explicação continua passando pelos
+guardrails (números ancorados, ressalvas do backend), e a citação continua
+verificada por índice (D-47).
+
+**Depois do merge**, o **Deploy da API**; conferir gerando o laudo de um estudo
+salvo (seção 7 com o texto da IA) e o "Preencher a partir de um texto (IA)" no
+passo Função.

@@ -21,6 +21,8 @@ import { formatNumber } from "@/lib/format";
 import {
   Alert,
   Button,
+  Combobox,
+  Disclosure,
   EmptyState,
   ErrorState,
   LoadingState,
@@ -60,6 +62,12 @@ const DEFAULTS = {
   intensity: "0.0025",
   carbonPerEnergy: "0.07",
 };
+
+/** A premise as the reader typed it, in the pt-BR form — never recomputed. */
+function printable(raw: string): string {
+  const value = Number(raw);
+  return raw.trim() !== "" && Number.isFinite(value) ? formatNumber(value) : raw || "…";
+}
 
 /** An absent quantity is never a blank cell: it is a written reason (D-24). */
 function Quantity({
@@ -232,24 +240,42 @@ export default function EcoPage() {
     onSuccess: setResult,
   });
 
-  const ready = useMemo(() => {
-    const common = [mass, distance, life, carbonPerEnergy].map(Number);
-    const perModel =
+  // The first unmet requirement, in words (D-86), and whether it lives in the
+  // folded premises — which then never stay folded. Input validation only: the
+  // audit is the backend's.
+  const blocked = useMemo((): { reason: string; inPremises: boolean } | null => {
+    const positive = (raw: string) => {
+      const value = Number(raw);
+      return raw.trim() !== "" && Number.isFinite(value) && value > 0;
+    };
+    if (selectedMaterial === "" || selectedProcess === "")
+      return { reason: t.blocked.process, inPremises: false };
+    if (!positive(mass)) return { reason: t.blocked.mass, inPremises: false };
+    const recycledValue = Number(recycled);
+    if (recycled.trim() === "" || !(recycledValue >= 0 && recycledValue <= 1))
+      return { reason: t.blocked.recycled, inPremises: false };
+    if (selectedMode === "") return { reason: t.blocked.mode, inPremises: false };
+    if (!positive(distance))
+      return { reason: t.blocked.positive(t.transportDistanceLabel), inPremises: false };
+    const premises: [string, string][] =
       useModel === "estatico"
-        ? [power, duty].map(Number)
-        : [travel, intensity].map(Number);
-    return (
-      selectedMaterial !== "" &&
-      selectedProcess !== "" &&
-      selectedMode !== "" &&
-      Number(mass) > 0 &&
-      Number(recycled) >= 0 &&
-      Number(recycled) <= 1 &&
-      [...common, ...perModel].every(
-        (value) => Number.isFinite(value) && value > 0,
-      ) &&
-      (useModel !== "estatico" || Number(duty) <= 1)
-    );
+        ? [
+            [life, t.lifeLabel],
+            [power, t.powerLabel],
+          ]
+        : [
+            [life, t.lifeLabel],
+            [travel, t.travelLabel],
+            [intensity, t.intensityLabel],
+          ];
+    for (const [raw, label] of premises) {
+      if (!positive(raw)) return { reason: t.blocked.positive(label), inPremises: true };
+    }
+    if (useModel === "estatico" && (!positive(duty) || Number(duty) > 1))
+      return { reason: t.blocked.duty, inPremises: true };
+    if (!positive(carbonPerEnergy))
+      return { reason: t.blocked.positive(t.carbonPerEnergyLabel), inPremises: true };
+    return null;
   }, [
     selectedMaterial,
     selectedProcess,
@@ -265,6 +291,19 @@ export default function EcoPage() {
     travel,
     intensity,
   ]);
+  const ready = blocked === null;
+  const [premisesOpen, setPremisesOpen] = useState(false);
+
+  const materialOptions = useMemo(
+    () =>
+      (materials.data ?? []).map((material) => ({
+        value: String(material.id),
+        label: material.name,
+        description: material.class_name,
+        keywords: [material.class_name],
+      })),
+    [materials.data],
+  );
 
   if (materials.isLoading || modes.isLoading)
     return <LoadingState label={t.title} />;
@@ -278,22 +317,18 @@ export default function EcoPage() {
 
       <div className="grid items-start gap-6 lg:grid-cols-2">
         <StepCard title={t.briefStep} bodyClassName="grid gap-4 sm:grid-cols-2">
-          <Select
+          <Combobox
             label={t.materialLabel}
+            hint={t.materialHint}
+            options={materialOptions}
             value={selectedMaterial}
-            onChange={(event) => {
-              setMaterialId((event.target as HTMLSelectElement).value);
+            onChange={(value) => {
+              setMaterialId(value);
               // The process list belongs to the material; keeping a stale id
               // would send a process that does not make it, and earn a 404.
               setProcessId("");
             }}
-          >
-            {(materials.data ?? []).map((material) => (
-              <SelectOption key={material.id} value={String(material.id)}>
-                {material.name}
-              </SelectOption>
-            ))}
-          </Select>
+          />
           {detail.isSuccess && processes.length === 0 ? (
             // D-24: an empty <select> read as a control that failed to load.
             // A material with no process can't be audited, and the screen
@@ -369,96 +404,126 @@ export default function EcoPage() {
       <StepCard
         title={t.useStep}
         description={t.useHint}
-        bodyClassName="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
         footer={
-          <Button
-            variant="primary"
-            onClick={() => audit.mutate()}
-            disabled={!ready || audit.isPending}
-          >
-            {audit.isPending ? t.running : t.run}
-          </Button>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button
+              variant="primary"
+              onClick={() => audit.mutate()}
+              disabled={!ready || audit.isPending}
+              aria-describedby={blocked ? "eco-motivo" : undefined}
+            >
+              {audit.isPending ? t.running : t.run}
+            </Button>
+            {blocked ? (
+              <p id="eco-motivo" className="text-2xs text-ink-muted">
+                {blocked.reason}
+              </p>
+            ) : null}
+          </div>
         }
       >
-        <Select
-          label={t.useModelLabel}
-          value={useModel}
-          onChange={(event) =>
-            setUseModel((event.target as HTMLSelectElement).value as UseModel)
+        {/* The two choices stay in view; the numbers behind the use phase are
+            premises with visible defaults, folded with every value printed in
+            the summary (D-86). */}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Select
+            label={t.useModelLabel}
+            value={useModel}
+            onChange={(event) =>
+              setUseModel((event.target as HTMLSelectElement).value as UseModel)
+            }
+          >
+            <SelectOption value="estatico">{t.useStatic}</SelectOption>
+            <SelectOption value="movel">{t.useMobile}</SelectOption>
+          </Select>
+          <Select
+            label={t.eolLabel}
+            hint={t.eolHint}
+            value={endOfLife}
+            onChange={(event) =>
+              setEndOfLife((event.target as HTMLSelectElement).value)
+            }
+          >
+            <SelectOption value="reciclagem">{t.eolRecycle}</SelectOption>
+            <SelectOption value="aterro">{t.eolLandfill}</SelectOption>
+            <SelectOption value="incineracao">{t.eolIncineration}</SelectOption>
+          </Select>
+        </div>
+        <Disclosure
+          summary={
+            useModel === "estatico"
+              ? t.useSummaryStatic(
+                  printable(life),
+                  printable(power),
+                  printable(duty),
+                  printable(carbonPerEnergy),
+                )
+              : t.useSummaryMobile(
+                  printable(life),
+                  printable(travel),
+                  printable(intensity),
+                  printable(carbonPerEnergy),
+                )
           }
+          open={premisesOpen || Boolean(blocked?.inPremises)}
+          onOpenChange={setPremisesOpen}
         >
-          <SelectOption value="estatico">{t.useStatic}</SelectOption>
-          <SelectOption value="movel">{t.useMobile}</SelectOption>
-        </Select>
-        <NumberInput
-          label={t.lifeLabel}
-          value={life}
-          min={0}
-          step="any"
-          onChange={(event) => setLife(event.target.value)}
-        />
-        {useModel === "estatico" ? (
-          <>
+          <div className="grid gap-4 pt-2 sm:grid-cols-2 xl:grid-cols-3">
             <NumberInput
-              label={t.powerLabel}
-              value={power}
+              label={t.lifeLabel}
+              value={life}
               min={0}
               step="any"
-              onChange={(event) => setPower(event.target.value)}
+              onChange={(event) => setLife(event.target.value)}
             />
+            {useModel === "estatico" ? (
+              <>
+                <NumberInput
+                  label={t.powerLabel}
+                  value={power}
+                  min={0}
+                  step="any"
+                  onChange={(event) => setPower(event.target.value)}
+                />
+                <NumberInput
+                  label={t.dutyLabel}
+                  hint={t.dutyHint}
+                  value={duty}
+                  min={0}
+                  max={1}
+                  step="any"
+                  onChange={(event) => setDuty(event.target.value)}
+                />
+              </>
+            ) : (
+              <>
+                <NumberInput
+                  label={t.travelLabel}
+                  value={travel}
+                  min={0}
+                  step="any"
+                  onChange={(event) => setTravel(event.target.value)}
+                />
+                <NumberInput
+                  label={t.intensityLabel}
+                  value={intensity}
+                  min={0}
+                  step="any"
+                  onChange={(event) => setIntensity(event.target.value)}
+                />
+              </>
+            )}
             <NumberInput
-              label={t.dutyLabel}
-              hint={t.dutyHint}
-              value={duty}
-              min={0}
-              max={1}
-              step="any"
-              onChange={(event) => setDuty(event.target.value)}
-            />
-          </>
-        ) : (
-          <>
-            <NumberInput
-              label={t.travelLabel}
-              value={travel}
+              label={t.carbonPerEnergyLabel}
+              hint={t.carbonPerEnergyHint}
+              value={carbonPerEnergy}
               min={0}
               step="any"
-              onChange={(event) => setTravel(event.target.value)}
+              onChange={(event) => setCarbonPerEnergy(event.target.value)}
             />
-            <NumberInput
-              label={t.intensityLabel}
-              value={intensity}
-              min={0}
-              step="any"
-              onChange={(event) => setIntensity(event.target.value)}
-            />
-          </>
-        )}
-        <NumberInput
-          label={t.carbonPerEnergyLabel}
-          hint={t.carbonPerEnergyHint}
-          value={carbonPerEnergy}
-          min={0}
-          step="any"
-          onChange={(event) => setCarbonPerEnergy(event.target.value)}
-        />
-        <Select
-          label={t.eolLabel}
-          hint={t.eolHint}
-          value={endOfLife}
-          onChange={(event) =>
-            setEndOfLife((event.target as HTMLSelectElement).value)
-          }
-        >
-          <SelectOption value="reciclagem">{t.eolRecycle}</SelectOption>
-          <SelectOption value="aterro">{t.eolLandfill}</SelectOption>
-          <SelectOption value="incineracao">{t.eolIncineration}</SelectOption>
-        </Select>
-        {audit.isError ? (
-          <Alert tone="danger" className="sm:col-span-2 xl:col-span-3">
-            {String(audit.error)}
-          </Alert>
-        ) : null}
+          </div>
+        </Disclosure>
+        {audit.isError ? <Alert tone="danger">{String(audit.error)}</Alert> : null}
       </StepCard>
 
       <StepCard title={t.resultStep}>

@@ -11,6 +11,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/cn";
+import { IconChevronRight } from "./icons";
 
 const PANEL_WIDTH = 288; // w-72, in pixels — the positioner needs a number.
 const GAP = 6;
@@ -157,26 +158,51 @@ export function Popover({
 
 /**
  * Progressive disclosure for a block of detail that is not worth a popover —
- * long lists, secondary tables, the "why was this excluded" explanations.
+ * long lists, secondary tables, the "why was this excluded" explanations — and,
+ * since D-85, the "Opções avançadas" of a guided screen.
+ *
+ * Uncontrolled by default (`defaultOpen`), which is all a static block needs.
+ * Controlled (`open` + `onOpenChange`) when the screen has to open it itself —
+ * a loaded study that already uses an advanced option must never keep that
+ * option hidden behind a closed summary.
  */
 export function Disclosure({
   summary,
   defaultOpen = false,
+  open,
+  onOpenChange,
+  id,
   className,
   children,
 }: {
   summary: ReactNode;
   defaultOpen?: boolean;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  id?: string;
   className?: string;
   children: ReactNode;
 }) {
+  const controlled = open !== undefined;
   return (
     <details
-      open={defaultOpen}
-      className={cn("rounded-card border border-edge bg-surface-raised", className)}
+      id={id}
+      open={controlled ? open : defaultOpen}
+      onToggle={(event) => {
+        const next = event.currentTarget.open;
+        // `toggle` also fires when React itself sets `open`; only report a
+        // change the reader made, or a controlled parent loops on its own echo.
+        if (controlled && next === open) return;
+        onOpenChange?.(next);
+      }}
+      className={cn("group rounded-card border border-edge bg-surface-raised", className)}
     >
-      <summary className="cursor-pointer list-none px-4 py-2.5 text-sm font-medium text-ink marker:content-['']">
-        {summary}
+      <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-2.5 text-sm font-medium text-ink marker:content-[''] [&::-webkit-details-marker]:hidden">
+        <IconChevronRight
+          aria-hidden
+          className="h-4 w-4 shrink-0 text-ink-muted transition-transform group-open:rotate-90"
+        />
+        <span className="min-w-0 flex-1">{summary}</span>
       </summary>
       <div className="border-t border-edge-subtle p-4">{children}</div>
     </details>

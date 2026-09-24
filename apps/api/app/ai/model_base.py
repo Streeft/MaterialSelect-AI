@@ -29,9 +29,9 @@ from abc import abstractmethod
 
 from app.ai.caveats import standard_caveats
 from app.ai.prompts import (
-    EXPLAIN_SCHEMA,
-    EXPLAIN_SYSTEM,
     INTERPRET_SYSTEM,
+    explain_schema,
+    explain_system,
     explain_user,
     interpret_schema,
     interpret_user,
@@ -94,7 +94,9 @@ class ModelProviderBase(AIProvider):
         return read_interpretation(raw, context)
 
     def explain(self, context: ResultContext) -> dict:
-        raw = self._complete(EXPLAIN_SYSTEM, explain_user(context), EXPLAIN_SCHEMA)
+        raw = self._complete(
+            explain_system(context), explain_user(context), explain_schema(context)
+        )
         return {
             "summary": _text(raw.get("summary")) or "",
             "paragraphs": [

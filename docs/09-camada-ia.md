@@ -248,6 +248,22 @@ A saída é pedida como JSON contra um esquema montado a partir do catálogo viv
 enumerados. Isso reduz recusas; não substitui nenhuma. Tudo continua passando
 pelos guardrails.
 
+**O esquema pede só o que o prompt torna respondível** ([D-89](DECISIONS.md)).
+`explain_schema(context)` inclui `sources` — e o parágrafo que ensina a
+preenchê-lo — **só quando há trechos de referência** para citar. Com o campo
+sempre obrigatório, a Groq em modo `schema` (estrito, validado no servidor)
+descartava a explicação inteira quando o modelo, sem nada para citar, deixava a
+lista de fora: foi assim que a seção 7 do laudo sumiu em produção.
+
+**Um erro de geração não divide mensagem com um erro de configuração.** Um 400 em
+que o servidor diz que o JSON **gerado** não bate com o esquema
+(`code: json_validate_failed`, ou `failed_generation` no corpo) é o modelo errando
+o formato uma vez: o `openai-compat` pede de novo, **uma** vez, e, se errar outra,
+diz exatamente isso ("fora do formato pedido… não é configuração"). O texto que
+manda trocar `AI_JSON_MODE` fica para o 400 que reclama de `response_format` —
+esse sim é o servidor sem suporte a saída estruturada. O `failed_generation`
+**nunca** é aproveitado: degradar o contrato é escolha do operador (D-36).
+
 **Um provedor real não é determinístico.** O mesmo enunciado pode ser lido de
 dois jeitos, e é por isso que `mock` continua sendo o padrão — é sobre ele que o
 argumento de reprodutibilidade se apoia. A ressalva mostrada ao usuário diz

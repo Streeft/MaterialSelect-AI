@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [28](#sessão-28--240926-a-280926--turma-de-terça-processos-no-objetivo-ux-guiada-pesos-com-limite-e-a-ia) | 24 a 28/09/2026 | Preparação para a turma: processos no Objetivo, Seleção guiada, superfícies enxutas, pesos com limite 1, Objetivo antes de Restrições e a IA do laudo (D-84 a D-89) | 1785 → 1856 | 431 → 505 |
 | [27](#sessão-27--240926--o-portão-vira-um-modo-acesso-aberto-para-uma-turma-d-83) | 24/09/2026 | Acesso aberto para estudantes com qualquer conta Google, catálogo compartilhado protegido, e o workflow que abre e fecha (D-83) | 1755 → 1785 | 422 → 427 |
 | [26](#sessão-26--21092026-a-22092026--a-auditoria-de-produção-o-seed-desconectado-d-71-e-a-exclusão-de-demo-por-um-flag-d-72) | 21 e 22/09/2026 | Auditoria ao vivo da produção; o defeito do seed desconectado (D-71) achado e corrigido; mecanismo de exclusão de dado demo por `is_demo` (D-72) e a regra escrita para qualquer agente/IDE | 1727 → 1741 | 368 (inalterado) |
 | [25](#sessão-25--210926--a-unidade-de-leitura-fecha-a-matriz) | 21/09/2026 | Unidade de leitura por propriedade (D-70) — ler não é guardar. **Matriz a 32 de 32 (100%)** | 1683 → 1727 | 356 → 368 |
@@ -43,6 +44,55 @@ As sessões entre a 11 e a 12 — o patch de design "Prisma" (D-49, D-50), o
 upgrade de segurança S1 e a rodada de desempenho — **não têm seção própria
 aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
+
+---
+
+## Sessão 28 — 24/09/26 a 28/09/26 — Turma de terça: processos no Objetivo, UX guiada, pesos com limite e a IA
+
+**O pedido.** Preparar a ferramenta para a apresentação à turma de graduação de
+terça-feira (29/09), em ordem: (1) uma experiência mais intuitiva — passo a passo,
+menos coisa na tela, sempre com volta atrás —, (2) pesos dos critérios de ranking
+com total 1, limite à vista e tabela viva calculada no backend, (3) Objetivo antes
+de Restrições; e, depois de tudo, revisar a IA do laudo. No meio veio um pedido
+avulso: o passo Objetivo sumia num estudo de processos.
+
+**Fase 0 — processos no Objetivo (D-84).** O aviso "processo não tem atributo" era
+falso desde o D-59. O passo passou a listar os atributos numéricos como critério
+(o discreto fica de fora pelo nome), a oferecer só expressão personalizada como
+índice, e `ProcessAttributeOut` ganhou `variable` para a tela não reinventar
+`safe_variable`. Trocar o universo agora limpa também o objetivo.
+
+**Fase 1 — experiência guiada (D-85, D-86).** Primitivas novas em
+`components/ui` (`Disclosure` controlada, `GuidedBlock`, `Combobox`,
+`RemovableChip`, resumo por passo no `Stepper`), todas em `/estilo`. Na Seleção:
+Voltar em todo passo e no navegador (`?etapa=`), resumo no stepper, "Meus estudos"
+e a IA recolhidos, opções avançadas recolhidas sem esconder o que está em uso,
+Objetivo em dois blocos, exemplo "viga leve de bicicleta" com Desfazer, resultado
+que começa pelo vencedor e pelo porquê e segue em abas, busca nos seletores,
+unidade à vista e restrição lida como frase. Fora dela: capa com um botão só
+(a vitrine fica no repositório), login leva a `/app`, menu sem Importar e
+Administrar para quem não é curador, Início enxuto, Mapas com "Personalizar o
+mapa", Comparar por busca e as ferramentas com premissas recolhidas (valores no
+resumo) e motivo em todo botão desabilitado.
+
+**Fase 2 — pesos com limite 1 (D-87).** `app/domain/weights.py` (orçamento em
+Decimal, problema por linha, sugestão que fecha 1 exatamente) e
+`POST /api/selection/weights-preview` (orçamento sempre, top 5 quando há o que
+ordenar, motivo em vez de erro). Na tela, `WeightBudget` com total, participação,
+sugestão com Desfazer e prévia do top 5; "Executar" espera a soma fechar 1, com o
+motivo, e falha aberta se a conferência não responder. `/run` e o salvamento
+recusam critério repetido; estudos antigos continuam reexecutando.
+
+**Fase 3 — Objetivo antes de Restrições (D-88).** `STEPS` reordenado; como a
+navegação deriva dele, o Executar foi sozinho para Restrições e um estudo aberto
+cai lá. Os pesos avisam em Objetivo e travam no Executar. Início, vitrine,
+`/estilo`, README e docs 04/07/11/12 acompanham; o motor não mudou.
+
+**Fase 4 — a IA do laudo (D-89).** O 400 da Groq ("missing properties:
+'sources'") vinha de um campo sempre obrigatório num esquema estrito: agora
+`sources` só existe no esquema e no prompt quando há trechos para citar. Um 400
+em que o servidor rejeita a *geração* é repetido uma vez e, se persistir, tem
+mensagem própria — não culpa mais a configuração.
 
 ---
 

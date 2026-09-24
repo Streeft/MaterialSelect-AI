@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { IndexCard, IndexPicker, describeCustomIndex, describeIndex } from "./IndexCard";
-import { ResultsView } from "./ResultsView";
+import { ResultsView, type ResultsTab } from "./ResultsView";
 import { ptBR } from "@/lib/i18n";
 import { findA11yViolations, describeViolations } from "@/lib/testing/axe";
 import type { PerformanceIndex, RunResult } from "@/lib/types";
@@ -188,7 +188,7 @@ function block(container: HTMLElement, id: string): HTMLElement {
 
 describe("ResultsView", () => {
   it("shows how many candidates each stage eliminated", () => {
-    const { container } = render(<ResultsView result={makeResult()} />);
+    const { container } = render(<ResultsView result={makeResult()} initialTab="eliminados" />);
 
     const funnel = block(container, "funil");
     // 10 → 6 → 3: the two stages dropped 4 and 3.
@@ -196,20 +196,105 @@ describe("ResultsView", () => {
     expect(within(funnel).getByText(`−3 ${s.eliminated}`)).toBeInTheDocument();
   });
 
-  it("gives every block a title and an address someone can link to", () => {
-    const { container } = render(<ResultsView result={makeResult()} />);
-
-    // The screen gets referenced out loud ("look at the funnel"), and a block
-    // with no id is a block nobody can point at.
-    const nav = screen.getByRole("navigation", { name: s.onThisPage });
-    for (const id of ["funil", "candidatos", "proveniencia"]) {
+  it("keeps every block reachable in a tab, under the address it always had", async () => {
+    // D-85: the six stacked blocks became tabs. Nothing was removed, and each
+    // block kept its id, so a link pasted before ("…#proveniencia") still lands.
+    const cases: [ResultsTab, string][] = [
+      ["eliminados", "funil"],
+      ["ranking", "candidatos"],
+      ["origem", "proveniencia"],
+    ];
+    for (const [tab, id] of cases) {
+      const { container, unmount } = render(<ResultsView result={makeResult()} initialTab={tab} />);
       expect(block(container, id)).toBeInTheDocument();
-      expect(nav.querySelector(`a[href="#${id}"]`)).toBeTruthy();
+      unmount();
+    }
+    render(<ResultsView result={makeResult()} />);
+    for (const name of [s.tabSummary, s.tabRanking, s.tabExcluded, s.tabSensitivity, s.tabProvenance]) {
+      expect(screen.getByRole("tab", { name: new RegExp(name) })).toBeInTheDocument();
     }
   });
 
+  it("opens the tab a pasted address points at", () => {
+    window.history.replaceState(null, "", "/app/selecao?etapa=resultados#excluidos");
+    render(<ResultsView result={makeResult()} />);
+    expect(screen.getByRole("tab", { name: new RegExp(s.tabExcluded) })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    window.history.replaceState(null, "", "/");
+  });
+
+  it("names the winner and why, from the backend's numbers", () => {
+    render(
+      <ResultsView
+        result={makeResult({
+          ranking: {
+            normalization: "minmax",
+            method: "weighted_sum",
+            criteria: ["densidade", "modulo_young"],
+            ranked: [
+              {
+                record_id: 1,
+                name: "Liga A",
+                score: 0.9,
+                rank: 1,
+                contributions: [
+                  { key: "densidade", label: "Densidade", raw: 2.7, normalized: 0.8, weight: 0.5, contribution: 0.4 },
+                  { key: "modulo_young", label: "Módulo de Young", raw: 70, normalized: 1, weight: 0.5, contribution: 0.5 },
+                ],
+              },
+            ],
+            excluded: [],
+            sensitivity: [],
+          },
+        })}
+      />,
+    );
+    expect(screen.getByRole("heading", { name: s.winnerTitle("Liga A") })).toBeInTheDocument();
+    expect(screen.getByText(s.winnerWeighted("0,900"))).toBeInTheDocument();
+    expect(screen.getByText(s.winnerPassed(10, 3))).toBeInTheDocument();
+  });
+
+  it("names every material tied at first place", () => {
+    const tie = (id: number, name: string) => ({
+      record_id: id,
+      name,
+      score: 0.5,
+      rank: 1,
+      contributions: [],
+    });
+    render(
+      <ResultsView
+        result={makeResult({
+          ranking: {
+            normalization: "topsis",
+            method: "topsis",
+            criteria: ["densidade"],
+            ranked: [tie(1, "Liga A"), tie(2, "Liga B")],
+            excluded: [],
+            sensitivity: [],
+          },
+        })}
+      />,
+    );
+    expect(screen.getByRole("heading", { name: s.winnerTie("Liga A e Liga B") })).toBeInTheDocument();
+  });
+
+  it("declares no winner when the run only filtered, and says why", () => {
+    render(<ResultsView result={makeResult({ index: null, ranking: null })} />);
+    expect(screen.getByRole("heading", { name: s.winnerNoneTitle })).toBeInTheDocument();
+    expect(screen.getByText(s.winnerNone.no_objective)).toBeInTheDocument();
+  });
+
+  it("with an index and no ranking, names the best defined index value", () => {
+    render(<ResultsView result={makeResult()} />);
+    // Liga B's index is undefined; the winner is read from the defined values only.
+    expect(screen.getByRole("heading", { name: s.winnerTitle("Liga A") })).toBeInTheDocument();
+  });
+
   it("says what produced the numbers, and stays silent about what was not used", () => {
-    const { container } = render(<ResultsView result={makeResult()} />);
+    const { container } = render(<ResultsView result={makeResult()} initialTab="origem" />);
 
     const provenance = block(container, "proveniencia");
     expect(within(provenance).getByText("modulo_young / densidade")).toBeInTheDocument();
@@ -274,7 +359,7 @@ describe("ResultsView", () => {
         sensitivity: [],
       },
     });
-    const { container } = render(<ResultsView result={result} />);
+    const { container } = render(<ResultsView result={result} initialTab="ranking" />);
 
     // The breakdown is its own block now: inside the ranking table it competed
     // with the ranking for the same glance, and it is the part people argue
@@ -325,7 +410,7 @@ describe("ResultsView", () => {
           sensitivity: [],
         },
       });
-      const { container } = render(<ResultsView result={result} />);
+      const { container } = render(<ResultsView result={result} initialTab="origem" />);
 
       const provenance = block(container, "proveniencia");
       expect(within(provenance).getByText(methodLabel)).toBeInTheDocument();
@@ -346,7 +431,7 @@ describe("ResultsView", () => {
         sensitivity: [],
       },
     });
-    const { container } = render(<ResultsView result={result} />);
+    const { container } = render(<ResultsView result={result} initialTab="origem" />);
 
     const provenance = block(container, "proveniencia");
     expect(within(provenance).getByText(s.methodWeightedSum)).toBeInTheDocument();

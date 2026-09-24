@@ -247,7 +247,7 @@ export const ptBR = {
   selection: {
     title: "Seleção de materiais",
     subtitle:
-      "Função → Restrições → Objetivo → Ranking (determinístico, sem IA)",
+      "Função → Objetivo → Restrições → Resultados (determinístico, sem IA)",
     // The stepper numbers the steps itself; a "1." in the label would print twice.
     stepFunction: "Função",
     stepConstraints: "Restrições",
@@ -257,6 +257,55 @@ export const ptBR = {
     blockedResults: "Execute a seleção para ver os resultados.",
     back: "Voltar",
     advance: "Avançar",
+    // D-85: navegação lida da ordem dos passos, e o resumo embaixo de cada um.
+    backToHome: "Voltar ao início",
+    advancedConstraintsHint:
+      "Para estudos com mais de uma etapa: estágios por classe, por processo ou por região de um gráfico, e grupos E/OU entre restrições.",
+    methodInUse: (label: string) => `Método de ranking: ${label} (em Opções avançadas).`,
+    methodFieldHint: "Como os critérios viram uma nota única. Na dúvida, soma ponderada.",
+    normalizationHint: "Como cada critério é posto na mesma escala antes de somar.",
+    indexBlockTitle: "1. Índice de desempenho",
+    criteriaBlockTitle: "2. Critérios e pesos",
+    continueToCriteria: "Continuar: critérios e pesos",
+    indexLockedReason: "Escolha um índice (ou “Nenhum índice”) e clique em Continuar.",
+    noIndexChosen: "Sem índice: o ranking usa só os critérios abaixo.",
+    indexChosen: (name: string, maximize: boolean) =>
+      `${name} — ${maximize ? "maximizar" : "minimizar"}`,
+    criterionHint: "O que entra na nota final. O índice acima também pode ser um critério.",
+    directionHint: "Maior é melhor, ou menor é melhor.",
+    weightHint: "Quanto este critério pesa na nota.",
+    exampleIntro: "Primeira vez? Veja um estudo completo funcionando e depois mude o que quiser.",
+    loadExample: "Carregar exemplo: viga leve de bicicleta",
+    exampleLoaded:
+      "Exemplo carregado: função, índice, critério e três restrições. Avance pelos passos ou execute.",
+    exampleUndo: "Desfazer",
+    exampleUnavailable: (missing: string) =>
+      `O exemplo não pôde ser carregado: o catálogo não tem ${missing}. Nada foi alterado.`,
+    aiOpen: "Preencher a partir de um texto (IA)",
+    aiClose: "Fechar o assistente de IA",
+    // Uma linha por campo (D-85): o que ele pede, sem virar parágrafo.
+    studyNameHint: "Só para você achar o estudo depois. Ex.: Viga de bicicleta.",
+    functionTextHint: "O que a peça faz. Ex.: viga em flexão.",
+    objectiveTextHint: "O que você quer otimizar. Ex.: mínima massa.",
+    freeVariablesHint: "O que o projeto deixa variar, separado por vírgula. Ex.: espessura.",
+    myStudies: (n: number) =>
+      n === 0 ? "Meus estudos (nenhum salvo)" : n === 1 ? "Meus estudos (1)" : `Meus estudos (${n})`,
+    nextStep: (label: string) => `Próximo: ${label}`,
+    summaryObjective: (index: string | null, criteria: number) =>
+      [
+        index ? `Índice: ${index}` : null,
+        criteria > 0 ? (criteria === 1 ? "1 critério" : `${criteria} critérios`) : null,
+      ]
+        .filter(Boolean)
+        .join(" · "),
+    summaryConstraints: (constraints: number, stages: number) =>
+      [
+        constraints === 1 ? "1 restrição" : `${constraints} restrições`,
+        stages > 1 ? `${stages} estágios` : null,
+      ]
+        .filter(Boolean)
+        .join(" · "),
+    summaryResults: (n: number) => (n === 1 ? "1 candidato" : `${n} candidatos`),
     functionTitle: "Descrição do problema",
     studyName: "Nome do estudo",
     functionText: "Função do componente",
@@ -284,11 +333,17 @@ export const ptBR = {
     // o relatório também usa — a tela e o documento não podem divergir.
     universeTitle: "Universo do resultado",
     universeHint:
-      "O que a seleção devolve. Trocar reinicia os estágios: cada universo tem os seus, e um estágio do outro seria recusado.",
+      "O que a seleção devolve. Trocar reinicia os estágios, os critérios e o índice: cada universo tem os seus, e o do outro seria recusado.",
     universeMaterial: "Materiais",
     universeProcess: "Processos",
+    // D-84: desde o P0-4 (D-59) processo tem atributo e ranqueia. O que fica de
+    // fora é o atributo discreto, que é rótulo e não tem ordem.
     universeProcessNote:
-      "Um estudo de processos ainda não ranqueia nem aceita índice de desempenho: processo não tem atributo cadastrado, e a ferramenta não inventa valor.",
+      "Um estudo de processos ranqueia por atributos numéricos (valor ou faixa de capacidade). Atributos discretos são rótulos sem ordem e não entram como critério nem em índice.",
+    processIndexNote:
+      "Os índices prontos do catálogo são escritos sobre propriedades de material e não se aplicam a processos. Para ranquear por um índice, escreva uma expressão com os atributos numéricos.",
+    expressionCheckedOnRun:
+      "A expressão é conferida quando você executa a seleção.",
     stagesTitle: "Estágios da seleção",
     stagesHint:
       "Os estágios se aplicam em ordem, e o resultado é a interseção dos habilitados. Desligar um estágio mostra o efeito dele sem apagar o que você escreveu.",
@@ -414,6 +469,21 @@ export const ptBR = {
       has_no_label: "∉ não tem nenhum dos rótulos",
     },
     constraintNumber: (n: number) => `Restrição ${n}`,
+    // D-85: a linha lida como frase, e uma dica por campo na primeira linha.
+    operatorSymbols: { gte: "≥", gt: ">", lte: "≤", lt: "<" },
+    sentenceLead: "Lê-se:",
+    sentenceRange: (name: string, inside: boolean, min: string, max: string) =>
+      `${name} ${inside ? "entre" : "fora de"} ${min} e ${max}`,
+    sentenceClasses: (inside: boolean, names: string) =>
+      `${inside ? "Classe é uma de" : "Classe não é nenhuma de"}: ${names}`,
+    sentenceLabels: (name: string, any: boolean, labels: string) =>
+      `${name} ${any ? "tem algum de" : "não tem nenhum de"}: ${labels}`,
+    sentenceText: (text: string) => `O texto contém “${text}”`,
+    propertyHint: "Digite parte do nome para buscar.",
+    operatorHint: "Como comparar com o valor.",
+    valueHint: "Use vírgula ou ponto. Ex.: 70 ou 2,7.",
+    unitHint: "A unidade do valor que você digitou.",
+    unitCanonical: (unit: string) => `${unit} (padrão)`,
     selectProperty: "Selecione uma propriedade",
     // P0-4: in a process study the row selects on a process *attribute*, which
     // is a different catalogue — the field is named for what it holds.
@@ -453,7 +523,60 @@ export const ptBR = {
     variablesAvailable: "Variáveis disponíveis",
     rankingTitle: "Critérios de ranking",
     rankingHint:
-      "Some ponderada normalizada. Pesos são renormalizados para somar 1.",
+      "Média ponderada dos critérios. Os pesos somam 1: a tabela abaixo mostra quanto cada um vale na nota.",
+    // D-87: o orçamento de pesos, calculado no backend enquanto se digita.
+    weights: {
+      title: "Pesos dos critérios",
+      tableLabel: "Distribuição dos pesos na média ponderada",
+      limit: "Limite: 1",
+      columnCriterion: "Critério",
+      columnWeight: "Peso",
+      columnShare: "Participação",
+      noCriterion: "Sem critério",
+      noWeight: "sem peso",
+      noShare: "sem participação",
+      totalComplete: (total: string) => `Total ${total} de 1 — fechado.`,
+      totalMissing: (total: string, missing: string) =>
+        `Total ${total} de 1 — faltam ${missing}.`,
+      totalWithBlanks: (total: string) =>
+        `Total ${total} de 1 — mas há critério sem peso.`,
+      totalExceeds: (total: string, excess: string) =>
+        `Total ${total} de 1 — passa do limite em ${excess}.`,
+      checking: "Conferindo a soma dos pesos…",
+      unavailable:
+        "Não foi possível conferir a soma agora. Executar continua liberado: o ranking usa os pesos renormalizados.",
+      invalidNumber: "Use um número, como 0,25.",
+      issues: {
+        missing_key: "Escolha o critério desta linha.",
+        missing_weight: "Dê um peso a este critério.",
+        zero: "Peso zero tira o critério da nota: remova a linha ou dê um peso.",
+        negative: "O peso não pode ser negativo.",
+        duplicate_key: "Critério repetido: some os pesos numa linha só.",
+        unknown_key: "Este critério não pode ser ranqueado neste estudo.",
+        index_missing: "Não há índice escolhido: defina um índice ou troque o critério.",
+      },
+      suggest: {
+        fill_blanks: "Preencher os pesos vazios com o restante",
+        spread_remaining: "Distribuir o restante igualmente",
+        split_equally: "Dividir igualmente",
+        scale_to_limit: "Ajustar ao limite, mantendo a proporção",
+      },
+      suggestionValues: (values: string) => `Fica: ${values}`,
+      undo: "Desfazer",
+      applied: "Pesos ajustados.",
+      previewTitle: "Prévia do ranking — top 5",
+      previewScore: "Nota",
+      previewWholeCatalogue: (n: number) =>
+        `Sem restrições ainda, a prévia ordena o catálogo inteiro (${n}). As restrições vão reduzir a lista, e as notas podem mudar, porque a normalização é feita sobre quem sobra.`,
+      previewConstrained: (candidates: number, initial: number) =>
+        `Ordenando os ${candidates} de ${initial} que passam pelas restrições atuais.`,
+      previewRenormalized:
+        "Os pesos ainda não fecham 1: a prévia usa os pesos renormalizados, como o ranking faria.",
+      blockedRun: "Os pesos precisam fechar 1 antes de executar.",
+      notBlocking: (reason: string) =>
+        `${reason} Você pode seguir; o Executar só libera quando a soma fechar 1.`,
+      fixWeights: "Corrigir pesos",
+    },
     addCriterion: "Adicionar critério",
     useIndexCriterion: "Usar o índice como critério",
     criterion: "Critério",
@@ -503,6 +626,38 @@ export const ptBR = {
     unchanged: "estável",
     // The results screen is long; these are the blocks someone jumps between.
     onThisPage: "Nesta página",
+    // D-85: o resultado resumido primeiro, o resto em abas.
+    resultsTabs: "Seções do resultado",
+    tabSummary: "Resumo",
+    tabRanking: "Ranking",
+    tabExcluded: "Eliminados",
+    tabSensitivity: "Sensibilidade",
+    tabProvenance: "Origem dos dados",
+    top5Title: "Os 5 primeiros",
+    winnerEyebrow: "Resultado",
+    winnerTitle: (name: string) => `Vencedor: ${name}`,
+    winnerTie: (names: string) => `Empate no 1º lugar: ${names}`,
+    winnerWeighted: (score: string) => `Maior nota ponderada: ${score} (de 0 a 1).`,
+    winnerTopsis: (score: string) => `Mais próximo do ideal pelo TOPSIS: ${score} (de 0 a 1).`,
+    winnerPromethee: (score: string) => `Maior fluxo líquido pelo PROMETHEE II: ${score}.`,
+    winnerHeaviest: "O que mais pesou na nota:",
+    winnerIndexValue: (index: string, value: string) => `${index}: ${value}.`,
+    winnerByIndex: (index: string, value: string, maximize: boolean) =>
+      `${maximize ? "Maior" : "Menor"} valor de ${index}: ${value}.`,
+    winnerPassed: (initial: number, final: number) =>
+      `Passou em todas as restrições: de ${initial} ${initial === 1 ? "registro" : "registros"}, ${final === 1 ? "sobrou 1" : `sobraram ${final}`}.`,
+    winnerNoneTitle: "Nenhum vencedor declarado",
+    winnerNone: {
+      no_candidates: "Nenhum candidato passou nas restrições. Veja na aba Eliminados o que cortou cada um.",
+      no_objective:
+        "Sem índice nem critério de ranking, a seleção só filtrou: os candidatos estão na aba Ranking, sem ordem.",
+      no_defined_index:
+        "O índice não pôde ser calculado para nenhum candidato (falta dado). A aba Ranking mostra o motivo de cada um.",
+    },
+    funnelLine: (initial: number, final: number) =>
+      `Funil: ${initial} → ${final}. Detalhes na aba Eliminados.`,
+    sensitivityNone:
+      "Sem análise de sensibilidade: ela só existe quando há critérios de ranking com peso.",
     provenanceTitle: "Proveniência do resultado",
     provenanceHint:
       "O que gerou exatamente estes números. É o mesmo conteúdo que vai para o relatório exportado.",
@@ -693,6 +848,10 @@ export const ptBR = {
     solving: "Dimensionando…",
     resultStep: "3. O resultado",
     resultEmpty: "Nenhum material pôde ser dimensionado com estes dados.",
+    resultIdleTitle: "Nada dimensionado ainda",
+    resultIdleHint:
+      "Preencha os números do projeto e clique em Dimensionar: cada material aparece aqui com a massa (ou o custo) e a seção necessária.",
+    blockedVariable: (label: string) => `Informe ${label}, maior que zero.`,
     // Fator estrutural: só geometria e carga, igual para todo material do run.
     // Mostrá-lo é o que permite conferir uma massa à mão.
     structuralFactor: "Fator estrutural",
@@ -735,6 +894,17 @@ export const ptBR = {
     loadFactorLabel: "Fator de carga (0 a 1)",
     loadFactorHint:
       "Fração do tempo disponível em que o equipamento roda de fato.",
+    // D-86: recolhidas, mas com cada valor à vista no resumo (D-65).
+    assumptionsSummary: (writeOff: string, loadFactor: string) =>
+      `Amortização em ${writeOff} anos · fator de carga ${loadFactor}`,
+    materialHint: "Digite parte do nome do material.",
+    blocked: {
+      material: "Escolha um material no passo 1.",
+      mass: "Informe a massa da peça, maior que zero.",
+      batch: "Informe o lote: pelo menos 1 peça.",
+      writeOff: "A amortização precisa ser maior que zero (premissas).",
+      loadFactor: "O fator de carga vai de 0 a 1, sem incluir o zero (premissas).",
+    },
     estimate: "Estimar",
     estimating: "Estimando…",
     resultStep: "3. O custo, termo a termo",
@@ -802,6 +972,20 @@ export const ptBR = {
     eolIncineration: "Incineração",
     eolHint:
       "Aterro e incineração não têm energia catalogada nesta versão, e não viram zero: enterrar uma peça pareceria a coisa mais barata a fazer com ela.",
+    // D-86: os números do uso ficam recolhidos, com cada valor no resumo.
+    materialHint: "Digite parte do nome do material.",
+    useSummaryStatic: (life: string, power: string, duty: string, carbon: string) =>
+      `Premissas: ${life} anos · ${power} W · ciclo ${duty} · ${carbon} kg CO₂/MJ`,
+    useSummaryMobile: (life: string, travel: string, intensity: string, carbon: string) =>
+      `Premissas: ${life} anos · ${travel} km · ${intensity} MJ/(kg·km) · ${carbon} kg CO₂/MJ`,
+    blocked: {
+      process: "Este material não tem processo cadastrado: escolha outro material no passo 1.",
+      mode: "Escolha o modal de transporte no passo 2.",
+      mass: "Informe a massa da peça, maior que zero.",
+      recycled: "O teor reciclado vai de 0 a 1.",
+      duty: "O ciclo de trabalho vai de 0 a 1, sem incluir o zero (premissas).",
+      positive: (label: string) => `${label}: informe um valor maior que zero.`,
+    },
     run: "Auditar",
     running: "Auditando…",
     resultStep: "4. As cinco fases",
@@ -910,9 +1094,49 @@ export const ptBR = {
     tableColLife: "Ciclos (80% DoD)",
     tableColLevelized: "US$/kWh·ciclo",
     tableColSafety: "Segurança Térmica",
-    empty: "Selecione uma química ou arquétipo para dimensionar o pack.",
+    empty: "O pack aparece aqui assim que os requisitos estiverem completos.",
     loading: "Carregando catálogo eletroquímico…",
     error: "Erro ao processar dimensionamento do pack.",
+    // Rótulo térmico ordinal, nunca número (D-69): a tela só traduz.
+    safety: {
+      BAIXA: "Baixa",
+      MODERADA: "Moderada",
+      MEDIA: "Média",
+      ALTA: "Alta",
+      MUITO_ALTA: "Muito alta",
+    },
+    dodHint: "Fração recomendada: 0,8 a 0,9.",
+    cellCapacityHint: "Vazio: formato comercial típico para a escala de energia.",
+    massPackingHint: "Massa das células ÷ massa do pack.",
+    volumePackingHint: "Volume das células ÷ volume do pack.",
+    costPackingHint: "Custo das células ÷ custo do pack.",
+    cellVoltage: "Tensão nominal da célula",
+    cellSpecificEnergy: "Energia específica da célula",
+    cellEnergyDensity: "Densidade energética da célula",
+    cellCostPerKwh: "Custo por kWh de célula",
+    cellsVolume: "Volume das células",
+    volumeOverhead: "Sobrecarga volumétrica",
+    totalPackVolume: "Volume total do pack",
+    selectedBadge: "Selecionada",
+    podiumDetail: {
+      mass: (value: string) => `Massa: ${value} kg`,
+      volume: (value: string) => `Volume: ${value} L`,
+      upfront: (value: string) => `Custo inicial: US$ ${value}`,
+      life: (value: string) => `Vida útil: ${value} ciclos`,
+      levelized: (value: string) => `Custo nivelado: US$ ${value}/kWh·ciclo`,
+      safety: (label: string) => `Estabilidade térmica intrínseca: ${label}`,
+    },
+    // D-86: premissas recolhidas, com cada valor impresso no resumo (D-69).
+    premisesSummary: (capacity: string, mass: string, volume: string, cost: string) =>
+      `Premissas do pack: célula ${capacity} · empacotamento — massa ${mass}, volume ${volume}, custo ${cost}`,
+    typicalCell: "típica da escala",
+    blocked: {
+      chemistry: "Escolha uma química.",
+      positive: (label: string) => `${label}: informe um valor maior que zero.`,
+      fraction: (label: string) => `${label}: vai de 0 a 1, sem incluir o zero.`,
+      capacity:
+        "Capacidade da célula: deixe em branco ou informe um valor maior que zero (premissas).",
+    },
   },
   synthesis: {
     title: "Sintetizar material",
@@ -980,6 +1204,17 @@ export const ptBR = {
       "Ele é seu, fica declarado como sintetizado e já aparece no catálogo.",
     openRecord: "Abrir a ficha",
     parentsLabel: "Constituintes",
+    materialHint: "Digite parte do nome do material.",
+    // D-86: um botão desabilitado diz por quê.
+    blocked: {
+      parentA: "Escolha o primeiro constituinte.",
+      parentB: "Escolha um segundo constituinte, diferente do primeiro.",
+      fraction: "A fração volumétrica fica entre 0 e 1, sem incluir os extremos.",
+      density: "A densidade relativa fica entre 0 e 1, sem incluir os extremos.",
+      thickness: "Informe as duas espessuras, maiores que zero.",
+      class: "Escolha a classe do registro.",
+      name: "Dê um nome ao registro.",
+    },
   },
 
   myRecords: {
@@ -1197,7 +1432,20 @@ export const ptBR = {
     // nothing about which of them change the question and which change only the
     // drawing.
     controls: "Controles do mapa",
-    groupAxes: "Eixos e escala",
+    axesHint: "Escolha o que vai em cada eixo. O mapa aparece logo abaixo.",
+    customize: "Personalizar o mapa",
+    customizeHint:
+      "Universo, escala, forma do envelope, camadas, classes e linha de índice. Aqui um eixo também pode virar um índice.",
+    customizeInUse: (items: string[]) => `Em uso: ${items.join(" · ")}.`,
+    customizationLabels: {
+      universe: "universo de processos",
+      scale: "escala linear",
+      envelope: "fecho convexo",
+      classes: "classes filtradas",
+      layers: "camadas alteradas",
+      index: "linha de índice",
+    },
+    groupUniverseScale: "Universo, escala e envelope",
     groupClasses: "Classes exibidas",
     groupDisplay: "O que desenhar",
     groupIndex: "Linha de índice",
@@ -1327,8 +1575,6 @@ export const ptBR = {
     missing: "ausente",
     incomplete: "dados incompletos",
     clear: "Limpar seleção",
-    search: "Filtrar materiais…",
-    empty: "Escolha ao menos um material e uma propriedade.",
     loading: "Comparando…",
     error: "Não foi possível montar a comparação.",
     notesTitle: "Observações sobre os dados",
@@ -1340,10 +1586,17 @@ export const ptBR = {
     heatHigh: "1 (melhor)",
     radarSkipsMissing:
       "Materiais sem valor em alguma propriedade não são traçados no radar; veja a tabela.",
-    controls: "O que comparar",
-    groupMaterials: "Materiais",
-    groupProperties: "Propriedades",
-    groupView: "Como ver",
+    // D-86: três passos, e só os escolhidos à vista.
+    stepMaterials: "1. Materiais",
+    stepProperties: "2. Propriedades",
+    stepView: "3. Como ver",
+    addMaterial: "Buscar e adicionar material",
+    addMaterialHint: "Digite parte do nome ou da classe; cada escolha entra na lista abaixo.",
+    chosenMaterials: "Materiais escolhidos",
+    noneChosen: "Nenhum material escolhido ainda.",
+    removeMaterial: "Remover da comparação",
+    lockedUntilMaterial: "Escolha ao menos um material no passo 1.",
+    lockedUntilProperty: "Escolha ao menos uma propriedade no passo 2.",
     selectedCount: (chosen: number, max: number) => `${chosen} de ${max}`,
     limitReached: "Limite atingido. Desmarque um item para escolher outro.",
     noMaterialsFound: "Nenhum material corresponde ao filtro.",
@@ -1395,6 +1648,12 @@ export const ptBR = {
     views: "Visualizações",
     stepDone: "concluída",
     stepBlocked: "bloqueada",
+    // D-85: o vocabulário da tela guiada.
+    change: "Alterar",
+    advancedOptions: "Opções avançadas",
+    comboboxPlaceholder: "Digite para buscar…",
+    comboboxNoMatch: (query: string) =>
+      query.trim() ? `Nada encontrado para “${query.trim()}”.` : "Nenhuma opção disponível.",
     theme: {
       label: "Tema",
       light: "Claro",
@@ -1532,16 +1791,19 @@ export const ptBR = {
       "Nenhuma propriedade é inventada: todo número na tela veio de um valor cadastrado ou de " +
       "um cálculo determinístico, e a origem de cada um está a um gesto de distância.",
     methodTitle: "O método, em quatro passos",
+    methodDisclosure: "Como funciona: o método em quatro passos",
     methodHint:
-      "É o percurso de Ashby: descreva a função, elimine com restrições, ordene por um objetivo e leia o resultado com a proveniência de cada número.",
-    step1: "Função",
-    step1Hint: "O que o componente faz e o que se quer otimizar.",
-    step2: "Restrições",
-    step2Hint: "Cada uma elimina candidatos, e o funil mostra quantos.",
-    step3: "Objetivo",
-    step3Hint: "Um índice de mérito e os critérios de ranking.",
-    step4: "Resultados",
-    step4Hint: "Ranking, contribuições, excluídos e sensibilidade.",
+      "É o percurso de Ashby: descreva a função, diga o que se quer otimizar, elimine com restrições e leia o resultado com a proveniência de cada número. O cálculo filtra e só então ordena — a ordem da tela é a de quem pensa o problema.",
+    // D-88: chaves por nome, não por posição — a ordem da tela mudou uma vez e
+    // "step2" passaria a querer dizer outra coisa.
+    stepFunction: "Função",
+    stepFunctionHint: "O que o componente faz e o que se quer otimizar.",
+    stepObjective: "Objetivo",
+    stepObjectiveHint: "Um índice de mérito e os critérios de ranking, com os pesos somando 1.",
+    stepConstraints: "Restrições",
+    stepConstraintsHint: "Cada uma elimina candidatos, e o funil mostra quantos.",
+    stepResults: "Resultados",
+    stepResultsHint: "Ranking, contribuições, excluídos e sensibilidade.",
     start: "Começar um estudo",
     browse: "Explorar o catálogo",
     savedTitle: "Retomar um estudo",

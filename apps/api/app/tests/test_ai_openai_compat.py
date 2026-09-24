@@ -419,3 +419,75 @@ class TestStripFence:
     )
     def test_only_the_fence_is_removed(self, raw: str, expected: str) -> None:
         assert _strip_fence(raw) == expected
+
+
+# --- D-89: a generation the server rejects against the schema ----------------
+
+
+class _ScriptedServer:
+    """Answers each call with the next item: an exception is raised, a string
+    is the body."""
+
+    def __init__(self, *script: object) -> None:
+        self.script = list(script)
+        self.calls = 0
+
+    def __call__(self, request: object, timeout: float | None = None) -> _Response:
+        self.calls += 1
+        item = self.script.pop(0)
+        if isinstance(item, Exception):
+            raise item
+        return _Response(str(item))
+
+
+def _groq_rejection() -> urllib.error.HTTPError:
+    """The 400 Groq sent in production when the model left out ``sources``."""
+    return _http_error(
+        400,
+        {
+            "error": {
+                "message": (
+                    "Generated JSON does not match the expected schema. Please adjust "
+                    "your prompt. See 'failed_generation' for more details."
+                ),
+                "type": "invalid_request_error",
+                "code": "json_validate_failed",
+                "failed_generation": '{"summary": "x", "paragraphs": []}',
+            }
+        },
+    )
+
+
+_INTERPRETATION = json.dumps({"constraints": [], "charts": []})
+
+
+class TestAGenerationTheServerRejectsIsAskedAgain:
+    def test_one_rejection_then_an_answer_succeeds(self) -> None:
+        server = _ScriptedServer(_groq_rejection(), _answer(_INTERPRETATION))
+        _provider(server).interpret(_context())
+        assert server.calls == 2
+
+    def test_two_rejections_are_named_as_the_models_miss_not_configuration(self) -> None:
+        server = _ScriptedServer(_groq_rejection(), _groq_rejection())
+        with pytest.raises(AIUnavailableError) as exc:
+            _provider(server).interpret(_context())
+        message = str(exc.value)
+        assert server.calls == 2
+        assert "fora do formato pedido" in message
+        assert "Não é configuração" in message
+        # The old text blamed the model's lack of structured output.
+        assert "não suporta saída estruturada" not in message
+
+    def test_the_rejected_text_is_never_salvaged(self) -> None:
+        # `failed_generation` carries JSON that parses; using it would be
+        # degrading the contract without the operator deciding it (D-36).
+        server = _ScriptedServer(_groq_rejection(), _groq_rejection())
+        with pytest.raises(AIUnavailableError):
+            _provider(server).interpret(_context())
+
+    def test_an_unsupported_response_format_is_not_retried(self) -> None:
+        error = _http_error(400, {"error": {"message": "response_format not supported"}})
+        server = _ScriptedServer(error)
+        with pytest.raises(AIUnavailableError, match="AI_JSON_MODE=object ou AI_JSON_MODE=prompt"):
+            _provider(server).interpret(_context())
+        assert server.calls == 1

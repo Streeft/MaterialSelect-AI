@@ -111,6 +111,8 @@ def test_google_callback_completes_login_and_sets_a_session_cookie(
     )
     assert resp.status_code == 302
     assert "msai_session" in resp.headers.get("set-cookie", "")
+    # D-86: straight into the tool, not back to the public front door.
+    assert resp.headers["location"].endswith("/app")
 
     me = anon_client.get("/api/auth/me")
     assert me.status_code == 200

@@ -38,6 +38,12 @@ export interface Step<T extends string> {
   label: string;
   /** Why this step cannot be opened yet. Required when status is "blocked". */
   blockedReason?: string;
+  /**
+   * What was chosen in this step, in a few words (D-85). The stepper doubles as
+   * the summary of the study so far — one row, every step clickable — instead
+   * of a second strip of chips competing with it.
+   */
+  summary?: string;
 }
 
 /**
@@ -120,6 +126,8 @@ export function Stepper<T extends string>({
                   <span className="msds-step-label block truncate">{step.label}</span>
                   {disabled && step.blockedReason ? (
                     <span className="msds-step-blocked block truncate">{step.blockedReason}</span>
+                  ) : step.summary ? (
+                    <span className="block truncate text-2xs text-ink-muted">{step.summary}</span>
                   ) : null}
                 </span>
                 {/* Status in words, for a reader who gets no colour and no shape. */}

@@ -23,10 +23,7 @@ import {
   Alert,
   Badge,
   Button,
-  Card,
-  CardBody,
-  CardFooter,
-  CardHeader,
+  Combobox,
   DataQualityBadge,
   EmptyState,
   ErrorState,
@@ -38,6 +35,7 @@ import {
   RadioCard,
   Select,
   SelectOption,
+  StepCard,
   TBody,
   THead,
   Table,
@@ -46,6 +44,7 @@ import {
   Td,
   Th,
   Tr,
+  type ComboboxOption,
   type QualityState,
 } from "@/components/ui";
 
@@ -259,21 +258,28 @@ export default function SintetizarPage() {
     },
   });
 
-  const recipeReady = useMemo(() => {
-    if (selectedA === "" || selectedClass === "") return false;
+  // The first unmet requirement of the recipe, in words: a disabled button
+  // with no reason reads as broken (D-86). Input validation only — every value
+  // is computed in the backend.
+  const recipeBlocked = useMemo(() => {
+    if (selectedA === "") return t.blocked.parentA;
+    if (kind === "composito" || kind === "painel") {
+      if (selectedB === "" || selectedB === selectedA) return t.blocked.parentB;
+    }
     if (kind === "composito") {
       const f = Number(fraction);
-      return selectedB !== "" && selectedB !== selectedA && f > 0 && f < 1;
-    }
-    if (kind === "painel") {
+      if (!(f > 0 && f < 1)) return t.blocked.fraction;
+    } else if (kind === "painel") {
       // Sem teto: um painel de 200 mm é tão legítimo quanto um de 2 mm, e é a
       // razão entre as duas espessuras que decide o resultado.
-      const t = Number(faceThickness);
-      const c = Number(coreThickness);
-      return selectedB !== "" && selectedB !== selectedA && t > 0 && c > 0;
+      if (!(Number(faceThickness) > 0 && Number(coreThickness) > 0))
+        return t.blocked.thickness;
+    } else {
+      const r = Number(density);
+      if (!(r > 0 && r < 1)) return t.blocked.density;
     }
-    const r = Number(density);
-    return r > 0 && r < 1;
+    if (selectedClass === "") return t.blocked.class;
+    return null;
   }, [
     kind,
     selectedA,
@@ -284,10 +290,12 @@ export default function SintetizarPage() {
     faceThickness,
     coreThickness,
   ]);
+  const recipeReady = recipeBlocked === null;
 
   // Gravar exige nome; a prévia não, porque ela não cria registro nenhum e a
   // pergunta "o que sairia daqui" não depende de como o resultado se chamaria.
-  const canSave = recipeReady && name.trim().length > 0;
+  const saveBlocked = recipeBlocked ?? (name.trim().length > 0 ? null : t.blocked.name);
+  const canSave = saveBlocked === null;
 
   if (kinds.isLoading || materials.isLoading || classes.isLoading) {
     return <LoadingState label={t.title} />;
@@ -301,11 +309,12 @@ export default function SintetizarPage() {
   const noteOf = (value: SynthesisKind) =>
     (kinds.data ?? []).find((item) => item.kind === value)?.note;
 
-  const materialOptions = options.map((material) => (
-    <SelectOption key={material.id} value={String(material.id)}>
-      {material.name}
-    </SelectOption>
-  ));
+  const materialOptions: ComboboxOption[] = options.map((material) => ({
+    value: String(material.id),
+    label: material.name,
+    description: material.class_name,
+    keywords: [material.class_name],
+  }));
 
   return (
     <div className="flex flex-col gap-6">
@@ -313,9 +322,7 @@ export default function SintetizarPage() {
 
       <Alert tone="info">{t.principle}</Alert>
 
-      <Card>
-        <CardHeader headingLevel={2} title={t.kindStep} />
-        <CardBody>
+      <StepCard title={t.kindStep}>
           {/* Cards, not a <select>: the rule each kind follows is what the
               reader is choosing between, and a <select> hides it until after
               the choice. */}
@@ -347,15 +354,32 @@ export default function SintetizarPage() {
               })}
             </div>
           </fieldset>
-        </CardBody>
-      </Card>
+      </StepCard>
 
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
         <div className="flex min-w-0 flex-col gap-6">
-          <Card>
-            <CardHeader headingLevel={2} title={t.recipeStep} />
-            <CardBody className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
-              <Select
+          <StepCard
+            title={t.recipeStep}
+            bodyClassName="grid gap-4 sm:grid-cols-2 xl:grid-cols-1"
+            footer={
+              <div className="flex flex-wrap items-center gap-3">
+                <Button
+                  variant="primary"
+                  onClick={() => runPreview.mutate()}
+                  disabled={!recipeReady || runPreview.isPending}
+                  aria-describedby={recipeBlocked ? "sintetizar-motivo-receita" : undefined}
+                >
+                  {runPreview.isPending ? t.previewing : t.preview}
+                </Button>
+                {recipeBlocked ? (
+                  <p id="sintetizar-motivo-receita" className="text-2xs text-ink-muted">
+                    {recipeBlocked}
+                  </p>
+                ) : null}
+              </div>
+            }
+          >
+              <Combobox
                 label={
                   kind === "composito"
                     ? t.parentALabel
@@ -363,13 +387,11 @@ export default function SintetizarPage() {
                       ? t.faceLabel
                       : t.parentASolidLabel
                 }
+                hint={t.materialHint}
+                options={materialOptions}
                 value={selectedA}
-                onChange={(event) =>
-                  setParentA((event.target as HTMLSelectElement).value)
-                }
-              >
-                {materialOptions}
-              </Select>
+                onChange={setParentA}
+              />
               {kind === "espuma" ? (
                 <NumberInput
                   label={t.densityLabel}
@@ -381,15 +403,13 @@ export default function SintetizarPage() {
                   onChange={(event) => setDensity(event.target.value)}
                 />
               ) : (
-                <Select
+                <Combobox
                   label={kind === "painel" ? t.coreLabel : t.parentBLabel}
+                  hint={t.materialHint}
+                  options={materialOptions}
                   value={selectedB}
-                  onChange={(event) =>
-                    setParentB((event.target as HTMLSelectElement).value)
-                  }
-                >
-                  {materialOptions}
-                </Select>
+                  onChange={setParentB}
+                />
               )}
               {kind === "composito" ? (
                 <div className="sm:col-span-2 xl:col-span-1">
@@ -430,22 +450,30 @@ export default function SintetizarPage() {
                   {String(runPreview.error)}
                 </Alert>
               ) : null}
-            </CardBody>
-            <CardFooter className="justify-start">
-              <Button
-                variant="primary"
-                onClick={() => runPreview.mutate()}
-                disabled={!recipeReady || runPreview.isPending}
-              >
-                {runPreview.isPending ? t.previewing : t.preview}
-              </Button>
-            </CardFooter>
-          </Card>
+          </StepCard>
 
           {preview ? (
-            <Card>
-              <CardHeader headingLevel={2} title={t.identityStep} />
-              <CardBody className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
+            <StepCard
+              title={t.identityStep}
+              bodyClassName="grid gap-4 sm:grid-cols-2 xl:grid-cols-1"
+              footer={
+                <div className="flex flex-wrap items-center gap-3">
+                  <Button
+                    variant="primary"
+                    onClick={() => save.mutate()}
+                    disabled={!canSave || save.isPending}
+                    aria-describedby={saveBlocked ? "sintetizar-motivo-gravar" : undefined}
+                  >
+                    {save.isPending ? t.saving : t.save}
+                  </Button>
+                  {saveBlocked ? (
+                    <p id="sintetizar-motivo-gravar" className="text-2xs text-ink-muted">
+                      {saveBlocked}
+                    </p>
+                  ) : null}
+                </div>
+              }
+            >
                 <Input
                   label={t.nameLabel}
                   hint={t.nameHint}
@@ -478,17 +506,7 @@ export default function SintetizarPage() {
                     {String(save.error)}
                   </Alert>
                 ) : null}
-              </CardBody>
-              <CardFooter className="justify-start">
-                <Button
-                  variant="primary"
-                  onClick={() => save.mutate()}
-                  disabled={!canSave || save.isPending}
-                >
-                  {save.isPending ? t.saving : t.save}
-                </Button>
-              </CardFooter>
-            </Card>
+            </StepCard>
           ) : null}
 
           {saved ? (
@@ -510,15 +528,13 @@ export default function SintetizarPage() {
 
         {/* The result sits beside the recipe, not under it: changing a
             fraction and reading what moved should not cost a scroll. */}
-        <Card className="min-w-0 xl:sticky xl:top-6">
-          <CardHeader
-            headingLevel={2}
-            title={t.previewStep}
-            description={
-              preview ? `${t.parentsLabel}: ${preview.parents.join(" · ")}` : undefined
-            }
-          />
-          <CardBody className="flex flex-col gap-4">
+        <StepCard
+          className="xl:sticky xl:top-6"
+          title={t.previewStep}
+          description={
+            preview ? `${t.parentsLabel}: ${preview.parents.join(" · ")}` : undefined
+          }
+        >
             {preview ? (
               <>
                 <PreviewTable preview={preview} />
@@ -542,8 +558,7 @@ export default function SintetizarPage() {
             ) : (
               <EmptyState title={t.previewIdleTitle} description={t.previewIdleHint} />
             )}
-          </CardBody>
-        </Card>
+        </StepCard>
       </div>
     </div>
   );
