@@ -329,6 +329,20 @@ não tinha decisão registrada reconciliando-o com D-23 ("sem biblioteca de
 componentes"). Resolvido nesta sessão como [D-48](docs/DECISIONS.md):
 exceção pontual aceita, restrita a primitivas de baixo nível.
 
+**`AppSidebar.tsx` fechou a integração do MSDS** ([D-79](docs/DECISIONS.md)):
+`NavLink`/`NavGroupList` passaram a usar as classes de `lib/msds/msds.css`
+(`.msds-rail-item`/`.msds-rail-icon`/`.msds-rail-label`/`.msds-rail-eyebrow`),
+mas nem `NavRail` nem `NavDrawer` do MSDS foram usados por dentro — o
+primeiro só navega por `<button onClick>`, nunca `<a href>`, e o segundo não
+tem slot de conteúdo, só chama `NavRail` por dentro de si mesmo. A cor do
+item ativo continua o token de rota de D-73 (`--rail-accent`), agora
+entregue à regra `[aria-current="page"]` do MSDS via `--row-accent`; o
+`sr-only` do rótulo no colapso (D-37) continua sendo o do próprio app,
+verificado ao vivo pela árvore de acessibilidade, não só visualmente.
+`@material/web` continua load-bearing (`IconButton`/`ButtonGroup`/
+`ButtonGroupItem`/`ToggleChip` em `Button.tsx`, D-76/D-78) — a dependência
+não pôde ser removida.
+
 **Backlog de baixa prioridade B1–B10 entregue por inteiro**, dirigido por
 subagentes. A revisão final de branch pegou dois bugs reais que as revisões
 por tarefa tinham deixado passar — B7 (carregar um `SavedChart` era um
