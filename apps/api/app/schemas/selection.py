@@ -517,3 +517,110 @@ class AhpWeightsOut(BaseModel):
     lambda_max: float
     consistency_index: float
     consistency_ratio: float
+
+
+# --- Weight budget and top-N preview (D-87) ---------------------------------
+
+#: Mirrors ``app.domain.weights.MAX_WEIGHT_CRITERIA`` (and ``MAX_AHP_CRITERIA``):
+#: past a dozen criteria a weighted average stops meaning anything a reader can
+#: check.
+MAX_WEIGHT_CRITERIA = 12
+
+
+class WeightCriterionIn(BaseModel):
+    """A criterion row **as the reader has it while typing**.
+
+    Unlike ``CriterionIn`` — which is what a ranking runs on, and so requires a
+    key and a positive weight — every field here may still be empty: the preview
+    exists to say what is missing, and refusing the request with a 422 would
+    turn "you have not typed the weight yet" into an error.
+    """
+
+    key: str = Field(default="", max_length=160)
+    label: str | None = Field(default=None, max_length=200)
+    direction: DirectionLiteral | None = None
+    weight: float | None = Field(default=None, allow_inf_nan=False)
+
+
+class WeightsPreviewRequest(BaseModel):
+    universe: UniverseLiteral = "material"
+    # The stages the screen holds right now; none (or an empty list) means the
+    # whole catalogue — the preview is often read before any constraint exists.
+    stages: list[StageIn] | None = Field(default=None, max_length=MAX_STAGES)
+    index: IndexIn | None = None
+    method: MethodLiteral = "weighted_sum"
+    normalization: NormalizationLiteral = "minmax"
+    criteria: list[WeightCriterionIn] = Field(default_factory=list, max_length=MAX_WEIGHT_CRITERIA)
+    top_n: int = Field(default=5, ge=1, le=10)
+
+
+class WeightRowOut(BaseModel):
+    position: int
+    key: str | None = None
+    weight: float | None = None
+    share: float | None = None
+    share_percent: float | None = None
+    issue: (
+        Literal[
+            "missing_key",
+            "missing_weight",
+            "zero",
+            "negative",
+            "duplicate_key",
+            "unknown_key",
+            "index_missing",
+        ]
+        | None
+    ) = None
+
+
+class WeightSuggestionOut(BaseModel):
+    kind: Literal["fill_blanks", "spread_remaining", "split_equally", "scale_to_limit"]
+    weights: list[float]
+
+
+class WeightBudgetOut(BaseModel):
+    limit: float
+    tolerance: float
+    total: float
+    remaining: float
+    excess: float
+    status: Literal["empty", "incomplete", "complete", "exceeds"]
+    rows: list[WeightRowOut]
+    suggestion: WeightSuggestionOut | None = None
+    can_run: bool
+
+
+class PreviewCandidateOut(BaseModel):
+    rank: int
+    record_id: int
+    name: str
+    class_name: str | None = None
+    score: float
+
+
+class WeightsPreviewOut(BaseModel):
+    """The budget always; the top-N when there is something to rank.
+
+    ``unavailable_reason`` says why there is no top-N instead of an error: a
+    reader half-way through typing a constraint or an expression is not doing
+    anything wrong, and a 400 on every keystroke would say they were.
+    """
+
+    budget: WeightBudgetOut
+    method: str
+    top: list[PreviewCandidateOut] = Field(default_factory=list)
+    initial_count: int = 0
+    candidate_count: int = 0
+    ranked_count: int = 0
+    #: Whether any constraint narrowed the list the preview ranks. Before the
+    #: constraints exist, the top-N is over the whole catalogue — and since the
+    #: normalization is over the survivors, the scores will move once they do.
+    constraints_applied: bool = False
+    #: Whether the typed weights did not close at 1 and the preview ranked with
+    #: them renormalized (what ``/run`` does).
+    renormalized: bool = False
+    unavailable_reason: (
+        Literal["no_criteria", "no_candidates", "all_excluded", "pipeline_error"] | None
+    ) = None
+    unavailable_message: str | None = None
