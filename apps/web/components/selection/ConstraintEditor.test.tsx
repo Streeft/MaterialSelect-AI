@@ -8,6 +8,7 @@ import { screen, within } from "shadow-dom-testing-library";
 import userEvent from "@testing-library/user-event";
 import {
   ConstraintEditor,
+  describeConstraintRow,
   emptyConstraint,
   emptyGroup,
   fromConstraintPayload,
@@ -319,14 +320,15 @@ describe("restrição sobre atributo de processo (P0-4)", () => {
     expect(optionTexts(material.container)).not.toContain(t.operators.has_any_label);
   });
 
-  it("offers the chosen operator's attributes, by name, in the row", () => {
+  it("offers the chosen operator's attributes, by name, in the row", async () => {
     // The rendered picker and `selectableFor` have to agree: the rule below is
-    // only worth testing if it is the rule the row actually uses.
-    const { container } = render(
-      <Harness initial={rowWith({})} properties={[massRange, shape]} universe="process" />,
-    );
-    expect(optionTexts(container)).toContain(massRange.name);
-    expect(optionTexts(container)).not.toContain(shape.name);
+    // only worth testing if it is the rule the row actually uses. Since D-85
+    // the picker is a search field whose list opens on focus.
+    render(<Harness initial={rowWith({})} properties={[massRange, shape]} universe="process" />);
+    await userEvent.click(screen.getByRole("combobox", { name: t.attribute }));
+    const listbox = screen.getByRole("listbox");
+    expect(within(listbox).getByRole("option", { name: new RegExp(massRange.name) })).toBeInTheDocument();
+    expect(within(listbox).queryByRole("option", { name: new RegExp(shape.name) })).not.toBeInTheDocument();
   });
 
   it("offers only the attributes the chosen operator can compare", () => {
@@ -393,5 +395,61 @@ describe("restrição sobre atributo de processo (P0-4)", () => {
     expect(toConstraintPayload(reopened).constraints).toEqual([
       { operator: "has_no_label", property_slug: "forma", labels: ["Maciço 3D"] },
     ]);
+  });
+});
+
+describe("restrição lida como frase, com a unidade à vista (D-85)", () => {
+  const young: PropertyDefinition = {
+    ...density,
+    id: 2,
+    name: "Módulo de Young",
+    slug: "modulo_young",
+    canonical_unit: "Pa",
+    accepted_units: ["Pa", "MPa", "GPa"],
+    display_unit: "GPa",
+  };
+
+  it("finds a property without the accent and sets the unit it is read in", async () => {
+    let last: ConstraintGroupState | null = null;
+    render(
+      <Harness
+        initial={{ ...emptyGroup(nextEditorId("group")), constraints: [{ ...emptyConstraint("r1"), operator: "gte" }] }}
+        properties={[density, young]}
+        onRoot={(root) => (last = root)}
+      />,
+    );
+    await userEvent.type(screen.getByRole("combobox", { name: t.property }), "modulo");
+    await userEvent.keyboard("{Enter}");
+
+    const row = (last as ConstraintGroupState | null)?.constraints[0];
+    expect(row?.property_slug).toBe("modulo_young");
+    // Explicit, never a blank that silently means Pa.
+    expect(row?.unit).toBe("GPa");
+    expect(screen.getByRole("combobox", { name: t.unit })).toHaveValue("GPa");
+  });
+
+  it("reads the row back as the sentence the reader meant", () => {
+    const row = { ...emptyConstraint("r"), operator: "gte" as const, property_slug: "modulo_young", value: "70", unit: "GPa" };
+    expect(describeConstraintRow(row, young, [])).toBe("Módulo de Young ≥ 70 GPa");
+    expect(describeConstraintRow({ ...row, value: "" }, young, [])).toBe("");
+    expect(
+      describeConstraintRow({ ...row, operator: "between", value_min: "1", value_max: "3", unit: "" }, density, []),
+    ).toBe(t.sentenceRange("Densidade", true, "1", "3 kg/m³"));
+  });
+
+  it("keeps an older study's blank unit representable, named as the canonical", () => {
+    render(
+      <Harness
+        initial={{
+          ...emptyGroup(nextEditorId("group")),
+          constraints: [{ ...emptyConstraint("r1"), operator: "gte", property_slug: "modulo_young", value: "70", unit: "" }],
+        }}
+        properties={[young]}
+      />,
+    );
+    const unit = screen.getByRole("combobox", { name: t.unit });
+    expect(unit).toHaveValue("");
+    expect(within(unit).getByRole("option", { name: t.unitCanonical("Pa") })).toBeInTheDocument();
+    expect(screen.getByText("Módulo de Young ≥ 70 Pa")).toBeInTheDocument();
   });
 });
