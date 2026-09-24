@@ -52,6 +52,15 @@ vi.mock("react-plotly.js", () => ({
       >
         Simulate Clear
       </button>
+      {/* What Plotly's reselect pass emits on every Plotly.react: an event
+          object with points and no range. Not a clear. */}
+      <button
+        type="button"
+        data-testid="simulate-reselect"
+        onClick={() => props.onSelected?.({ points: [] })}
+      >
+        Simulate Reselect
+      </button>
     </div>
   ),
 }));
@@ -609,6 +618,32 @@ describe("AshbyMap — seleção interativa e cursor", () => {
     await user.click(clearBtn);
 
     expect(onSelectBox).toHaveBeenCalledWith(null);
+  });
+
+  it("lê a caixa num eixo log em unidades de dado, sem elevar 10 ao valor", async () => {
+    // Plotly reports a log-axis box in data units (selections/helpers.js:
+    // p2r → ax.p2d). 10^2000 would be Infinity.
+    const user = userEvent.setup();
+    const onSelectBox = vi.fn();
+    render(
+      <AshbyMap map={makePropertyMap()} displayScale="log" enableBoxSelect onSelectBox={onSelectBox} />,
+    );
+
+    await user.click(await screen.findByTestId("simulate-selection"));
+
+    expect(onSelectBox).toHaveBeenCalledWith({ xMin: 2000, xMax: 8000, yMin: 50, yMax: 300 });
+  });
+
+  it("não apaga a região quando o Plotly reemite a seleção num re-render", async () => {
+    const user = userEvent.setup();
+    const onSelectBox = vi.fn();
+    render(
+      <AshbyMap map={makePropertyMap()} displayScale="linear" enableBoxSelect onSelectBox={onSelectBox} />,
+    );
+
+    await user.click(await screen.findByTestId("simulate-reselect"));
+
+    expect(onSelectBox).not.toHaveBeenCalled();
   });
 
   it("permite customizar o rótulo da coluna de registro na tabela via recordLabel", async () => {
