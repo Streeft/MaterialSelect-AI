@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { decodeMapState, encodeMapState, type MapUrlState } from "./url-state";
+import {
+  customizationsInUse,
+  decodeMapState,
+  encodeMapState,
+  mapUsesCustomization,
+  type MapUrlState,
+} from "./url-state";
 
 const sample: MapUrlState = {
   xAxis: { mode: "property", property: "densidade", indexSlug: "", customExpression: "", goal: "maximize" },
@@ -31,5 +37,42 @@ describe("encodeMapState / decodeMapState", () => {
 
   it("returns null for garbage input instead of throwing", () => {
     expect(decodeMapState("not-valid-base64!!!")).toBeNull();
+  });
+});
+
+describe("customizationsInUse / mapUsesCustomization", () => {
+  it("reads the default map as not customised", () => {
+    expect(mapUsesCustomization(null)).toBe(false);
+    expect(mapUsesCustomization({})).toBe(false);
+    expect(
+      mapUsesCustomization({
+        universe: "material",
+        scale: "log",
+        envelopeShape: "ellipse",
+        selectedClasses: [],
+        showEnvelopes: true,
+        showIntervals: true,
+        showLabels: false,
+        indexMode: "none",
+        levelMaterialIds: [],
+        numericLevels: [],
+      }),
+    ).toBe(false);
+  });
+
+  it("names every collapsed control that holds something", () => {
+    expect(customizationsInUse(sample)).toEqual(["envelope", "classes", "layers", "index"]);
+    expect(customizationsInUse({ universe: "process" })).toEqual(["universe"]);
+    expect(customizationsInUse({ scale: "linear" })).toEqual(["scale"]);
+    expect(customizationsInUse({ showLabels: true })).toEqual(["layers"]);
+    expect(customizationsInUse({ indexMode: "viga-leve-rigidez" })).toEqual(["index"]);
+  });
+
+  it("leaves the axes out: they are never collapsed", () => {
+    expect(
+      mapUsesCustomization({
+        xAxis: { mode: "index", property: "", indexSlug: "custom", customExpression: "a/b", goal: "maximize" },
+      }),
+    ).toBe(false);
   });
 });

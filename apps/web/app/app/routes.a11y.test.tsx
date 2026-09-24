@@ -1233,6 +1233,44 @@ describe("acessibilidade das telas principais", () => {
     await auditRoute(<MapsPage />, new RegExp(`^${ptBR.map.figure}\\b.*×`));
   });
 
+  // D-86: the axes and the chart are the screen; everything else waits in
+  // "Personalizar o mapa" — unless the link already uses it.
+  it("mapas: personalização recolhida, a não ser que o link a use", async () => {
+    const { unmount } = render(wrap(<MapsPage />, makeClient()));
+    const summary = await screen.findByText(ptBR.map.customize);
+    const details = summary.closest("details") as HTMLDetailsElement;
+    expect(details.open).toBe(false);
+    expect(screen.getByRole("combobox", { name: ptBR.map.axisX })).toBeInTheDocument();
+    // An axis can become an index only from inside the panel.
+    expect(screen.queryByRole("group", { name: new RegExp(`^${ptBR.map.axisX} — `) })).toBeNull();
+    unmount();
+
+    const { encodeMapState } = await import("./mapas/url-state");
+    nav.query = `estado=${encodeMapState({
+      xAxis: { mode: "property", property: "densidade", indexSlug: "", customExpression: "", goal: "maximize" },
+      yAxis: { mode: "property", property: "modulo_young", indexSlug: "", customExpression: "", goal: "maximize" },
+      scale: "linear",
+      envelopeShape: "ellipse",
+      selectedClasses: [],
+      showEnvelopes: true,
+      showIntervals: true,
+      showLabels: false,
+      indexMode: "none",
+      customExpression: "",
+      indexGoal: "maximize",
+      levelMaterialIds: [],
+      numericLevels: [],
+    })}`;
+    render(wrap(<MapsPage />, makeClient()));
+    const opened = (await screen.findByText(ptBR.map.customize)).closest(
+      "details",
+    ) as HTMLDetailsElement;
+    expect(opened.open).toBe(true);
+    expect(
+      screen.getByRole("group", { name: new RegExp(`^${ptBR.map.axisX} — `) }),
+    ).toBeInTheDocument();
+  });
+
   it("comparador, na tabela e numa figura", async () => {
     // With no materials chosen the page is an empty state, which is not the
     // screen worth auditing.
