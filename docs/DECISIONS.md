@@ -5592,3 +5592,54 @@ primeira reordenação.
 
 Em `docs/11-usabilidade.md` a ordem de T2 e T3 acompanhou a tela, com o aviso de
 que o exemplo em um clique resolve T1–T3 sozinho.
+
+## D-89 — A explicação por IA só pede `sources` quando há o que citar, e um erro de geração tem mensagem própria
+
+**O sintoma.** Na instância publicada (Groq por `openai-compat`, `AI_JSON_MODE`
+padrão `schema`), a seção 7 do laudo dizia: "O servidor recusou a requisição
+(400). Generated JSON does not match the expected schema… missing properties:
+'sources'… Se a queixa for sobre response_format ou json_schema, este modelo não
+suporta saída estruturada: defina AI_JSON_MODE=object…".
+
+**A causa, em duas partes.**
+
+1. `EXPLAIN_SCHEMA` exigia `sources` sempre, e o esquema viaja em modo
+   **estrito**: a Groq confere o JSON gerado contra ele no servidor e descarta a
+   resposta inteira por um campo obrigatório ausente. Sem trechos de referência
+   para citar — o caso comum, porque a busca só roda com Cérebro ingerido —,
+   deixar a lista de citações de fora é a resposta natural do modelo, não um
+   erro. `model_base.explain` já lia `sources` ausente como "nenhum"; só o
+   esquema o exigia.
+2. A mensagem culpava a configuração. O 400 era o modelo errando o formato uma
+   vez, e o texto mandava o operador degradar o modo JSON — o mesmo tipo de
+   diagnóstico errado que o 401/403 do [D-52](#d-52) já tinha custado.
+
+**A decisão.**
+
+- **O contrato pede só o que o prompt torna respondível.** `explain_schema(context)`
+  e `explain_system(context)` substituem as constantes: `sources` (no esquema, no
+  `required` e no parágrafo que ensina a preenchê-lo) existe **só quando
+  `context.retrieved` não está vazio**. Sem trecho, a pergunta não existe e o
+  modelo não tem como errá-la. É o mesmo princípio de `interpret_schema`, que já
+  era montado a partir do catálogo. Todo campo do esquema continua em `required`
+  — o invariante do modo estrito —, com teste.
+- **Uma nova tentativa, com limite de uma.** Um 400 em que o servidor diz que a
+  **geração** falhou na validação (`error.code == "json_validate_failed"` ou
+  `failed_generation` no corpo) leva o `openai-compat` a repetir a chamada uma
+  vez. `temperature` é 0, mas um servidor hospedado não é determinístico, e o
+  segundo pedido costuma passar.
+- **`failed_generation` nunca é aproveitado.** Ele traz um JSON que às vezes até
+  faz parse; usá-lo seria degradar o contrato sem o operador decidir, e o D-36
+  reserva essa decisão a `AI_JSON_MODE`.
+- **Mensagens separadas.** Duas falhas seguidas dizem "o modelo gerou uma resposta
+  fora do formato pedido, mesmo após uma nova tentativa. Não é configuração…". O
+  texto que manda trocar `AI_JSON_MODE` fica só para o 400 que de fato reclama de
+  `response_format`/`json_schema` — e esse não é repetido.
+
+Nada disso toca as garantias da camada: a explicação continua passando pelos
+guardrails (números ancorados, ressalvas do backend), e a citação continua
+verificada por índice (D-47).
+
+**Depois do merge**, o **Deploy da API**; conferir gerando o laudo de um estudo
+salvo (seção 7 com o texto da IA) e o "Preencher a partir de um texto (IA)" no
+passo Função.

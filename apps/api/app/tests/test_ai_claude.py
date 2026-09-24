@@ -23,7 +23,7 @@ from app.ai import claude_cli, factory
 from app.ai.claude_api import ClaudeAPIProvider
 from app.ai.claude_cli import ClaudeCLIProvider, _read_payload
 from app.ai.model_base import ModelProviderBase, parse_json_object
-from app.ai.prompts import EXPLAIN_SCHEMA, explain_user, format_decimal, interpret_schema
+from app.ai.prompts import explain_user, format_decimal, interpret_schema
 from app.ai.provider import (
     AIUnavailableError,
     ClassFacts,
@@ -384,7 +384,7 @@ class TestExplanationThroughTheService:
             name = "claude-papagaio"
 
             def _complete(self, system: str, user: str, schema: dict) -> dict:
-                if schema is EXPLAIN_SCHEMA:
+                if "paragraphs" in schema.get("properties", {}):
                     return {"summary": user.splitlines()[0], "paragraphs": user.splitlines()}
                 return {}
 

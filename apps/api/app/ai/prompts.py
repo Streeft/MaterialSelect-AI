@@ -83,18 +83,30 @@ percentuais, médias, arredondamentos ou ordens de grandeza — nem quando a con
 estiver certa. Uma cifra que não esteja no bloco faz o backend descartar a \
 resposta inteira, e o usuário fica sem explicação nenhuma.
 
-Se houver "Trechos de referência", você pode citá-los para dar contexto — \
-preencha sources com os números entre colchetes dos trechos que realmente \
-usou (ex.: [1], [2]). Isso não muda a regra sobre números: cifra continua \
-tendo que vir do bloco de dados, nunca de um trecho de referência.
-
-Não afirme que um material é adequado à aplicação, não sugira substituições e \
+{sources_rule}Não afirme que um material é adequado à aplicação, não sugira substituições e \
 não estime propriedade. O ranking mede o índice declarado sobre os valores \
 cadastrados; ele não decide um projeto.
 
 Formato: summary com uma frase; paragraphs com dois a quatro parágrafos curtos. \
 As ressalvas do relatório são escritas pelo backend — não as repita.\
 """
+
+#: Only when there are reference passages to cite (D-89). Without them the
+#: question does not exist, and asking it anyway is how a strict-schema server
+#: came to reject a whole explanation for a missing ``sources``.
+_EXPLAIN_SOURCES_RULE = """Há "Trechos de referência" na mensagem: você pode citá-los para dar contexto — \
+preencha sources com os números entre colchetes dos trechos que realmente \
+usou (ex.: [1], [2]), ou deixe a lista vazia se não usou nenhum. Isso não muda \
+a regra sobre números: cifra continua tendo que vir do bloco de dados, nunca \
+de um trecho de referência.
+
+"""
+
+
+def explain_system(context: ResultContext) -> str:
+    """The explanation's instructions, with the citation rule only when there
+    is something to cite."""
+    return EXPLAIN_SYSTEM.format(sources_rule=_EXPLAIN_SOURCES_RULE if context.retrieved else "")
 
 
 # --- interpretation --------------------------------------------------------
@@ -350,27 +362,45 @@ def _reference_block(retrieved: tuple) -> str:
 
 # --- explanation -----------------------------------------------------------
 
-EXPLAIN_SCHEMA = {
-    "type": "object",
-    "additionalProperties": False,
-    "required": ["summary", "paragraphs", "sources"],
-    "properties": {
+
+def explain_schema(context: ResultContext) -> dict:
+    """The explanation's JSON contract, built for this context (D-89).
+
+    ``sources`` is part of it **only when there are reference passages**. A
+    strict-schema server (Groq, ``AI_JSON_MODE=schema``) checks the generated
+    JSON against this schema and throws the whole answer away when a required
+    field is missing — and with nothing to cite, a model leaving out the list of
+    citations is the natural answer, not an error. ``model_base.explain``
+    already reads a missing ``sources`` as none; only the schema demanded it.
+
+    Built per call rather than kept as a constant for the same reason
+    ``interpret_schema`` is: the contract depends on what the prompt contains.
+    """
+    properties: dict = {
         "summary": {"type": "string", "description": "Uma frase."},
         "paragraphs": {
             "type": "array",
             "items": {"type": "string"},
             "description": "De dois a quatro parágrafos curtos.",
         },
-        "sources": {
+    }
+    required = ["summary", "paragraphs"]
+    if context.retrieved:
+        properties["sources"] = {
             "type": "array",
             "items": {"type": "integer"},
             "description": (
                 "Índices (1, 2, ...) dos trechos de referência de fato usados. "
-                "Vazio se nenhum foi citado ou se não havia nenhum disponível."
+                "Vazio se nenhum foi citado."
             ),
-        },
-    },
-}
+        }
+        required.append("sources")
+    return {
+        "type": "object",
+        "additionalProperties": False,
+        "required": required,
+        "properties": properties,
+    }
 
 
 def explain_user(context: ResultContext) -> str:
