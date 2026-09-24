@@ -871,6 +871,31 @@ export type ChartScale = "linear" | "log";
 /** A pair of data coordinates, as returned by the API (`[x, y]`). */
 export type CoordinatePair = number[];
 
+/** A Chart Stage region: one optional limit per side, in data coordinates.
+ *  `null` is "no limit on this side", never `0` (D-60). */
+export interface MapBox {
+  x_min: number | null;
+  x_max: number | null;
+  y_min: number | null;
+  y_max: number | null;
+}
+
+/** Convert a region between the map's reading units and canonical units (D-81).
+ *  `x`/`y` name the property on each axis; `null` is an index axis. */
+export interface MapBoxRequest {
+  universe?: "material" | "process";
+  x: string | null;
+  y: string | null;
+  box: MapBox;
+  to: "canonical" | "display";
+}
+
+export interface MapBoxOut {
+  box: MapBox;
+  x_unit: string | null;
+  y_unit: string | null;
+}
+
 export interface PropertyMapRequest {
   universe?: SelectionUniverse;
   /** Exactly one of `x`/`x_index` must be set — same for `y`/`y_index`. */

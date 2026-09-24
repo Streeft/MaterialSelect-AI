@@ -54,14 +54,12 @@ export function FavoriteButton({
   return (
     <IconButton
       // A real toggle, not a button whose label happens to change: the state
-      // has to be announced, and `md-icon-button`'s own `toggle`/`selected` is
-      // what puts `aria-pressed` on the button inside the shadow root — an
-      // `aria-pressed` written on the host would name an element no screen
-      // reader reads.
+      // has to be announced, and `toggle`/`selected` is what puts
+      // `aria-pressed` on the button.
       toggle
       selected={favorited}
-      // The name says what the click will do, and `aria-pressed` (rendered by
-      // the element itself) says what the state is. Both, because a name alone
+      // The name says what the click will do, and `aria-pressed` says what
+      // the state is. Both, because a name alone
       // makes a listener infer the state from a verb.
       label={favorited ? t.removeFavorite : t.addFavorite}
       disabled={mutation.isPending}

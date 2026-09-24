@@ -184,3 +184,37 @@ export function Section({
     </section>
   );
 }
+
+/**
+ * One numbered step of a tool screen (D-80): a card whose title is the page's
+ * `h2`, with its action — when it has one — in the footer, where the eye
+ * lands after the last field. Every calculator screen (dimensionar, custo,
+ * eco, baterias, sintetizar) is a short sequence of these beside or above a
+ * result card, so the screen reads as structure instead of loose fields on
+ * the page background.
+ */
+export function StepCard({
+  title,
+  description,
+  actions,
+  footer,
+  className,
+  bodyClassName,
+  children,
+}: {
+  title: ReactNode;
+  description?: ReactNode;
+  actions?: ReactNode;
+  footer?: ReactNode;
+  className?: string;
+  bodyClassName?: string;
+  children: ReactNode;
+}) {
+  return (
+    <Card className={cn("min-w-0", className)}>
+      <CardHeader headingLevel={2} title={title} description={description} actions={actions} />
+      <CardBody className={bodyClassName ?? "flex flex-col gap-4"}>{children}</CardBody>
+      {footer ? <CardFooter className="justify-start">{footer}</CardFooter> : null}
+    </Card>
+  );
+}

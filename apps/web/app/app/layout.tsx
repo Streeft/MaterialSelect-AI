@@ -24,11 +24,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </a>
         <AppSidebar />
         <div className="flex min-w-0 flex-1 flex-col">
-          <main id="conteudo" tabIndex={-1} className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
+          {/* D-80: 1536 px, not 1152. A data screen at 1920 left a third of the
+              window blank beside a map squeezed to 1100 px; prose keeps its
+              own measure through `max-w-prose` where it appears. */}
+          <main
+            id="conteudo"
+            tabIndex={-1}
+            className="mx-auto w-full max-w-screen-2xl flex-1 px-4 py-6 sm:px-6 lg:px-8"
+          >
             {children}
           </main>
           <footer className="border-t border-edge bg-surface-raised">
-            <div className="mx-auto max-w-6xl space-y-2 px-4 py-3">
+            <div className="mx-auto max-w-screen-2xl space-y-2 px-4 py-3 sm:px-6 lg:px-8">
               <p className="text-xs text-warning-fg">⚠️ {ptBR.demoWarning}</p>
               <LimitationNotice variant="footer" />
             </div>

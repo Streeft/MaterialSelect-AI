@@ -135,6 +135,14 @@ const CONTROL =
 /** Exported for the one native `<select multiple>` exception. */
 export { CONTROL, useWiring };
 
+/**
+ * D-80: `className` on Input/NumberInput/Textarea/Select styles the whole
+ * field (label + control + hint), not the control. Every call site passes
+ * layout — `sm:col-span-2`, `w-40`, `flex-1` — which is what it did under
+ * `@material/web`, where the element *was* the field. Routed to the control
+ * after D-77, a `col-span` landed on an <input> inside a one-column wrapper
+ * and did nothing, and a `w-40` shrank the box under a full-width label.
+ */
 interface FieldTextExtras {
   /**
    * The visible label, rendered above the control (MSDS's fixed-position
@@ -198,7 +206,7 @@ export const Input = forwardRef<
   const inputId = id ?? generated;
   const hintId = hint || error ? `${inputId}-hint` : undefined;
   return (
-    <div className="msds-field">
+    <div className={cn("msds-field", className)}>
       <FieldLabel htmlFor={inputId} label={label} required={required} />
       <input
         ref={ref}
@@ -208,7 +216,7 @@ export const Input = forwardRef<
         aria-invalid={Boolean(error) || undefined}
         aria-describedby={hintId}
         {...rest}
-        className={cn("msds-control", className)}
+        className="msds-control"
       />
       <FieldFooter hintId={hintId} hint={hint} error={error} />
     </div>
@@ -229,7 +237,7 @@ export const NumberInput = forwardRef<
   const inputId = id ?? generated;
   const hintId = hint || error ? `${inputId}-hint` : undefined;
   return (
-    <div className="msds-field">
+    <div className={cn("msds-field", className)}>
       <FieldLabel htmlFor={inputId} label={label} required={required} />
       <input
         ref={ref}
@@ -240,7 +248,7 @@ export const NumberInput = forwardRef<
         aria-invalid={Boolean(error) || undefined}
         aria-describedby={hintId}
         {...rest}
-        className={cn("msds-control tabular-nums", className)}
+        className="msds-control tabular-nums"
       />
       <FieldFooter hintId={hintId} hint={hint} error={error} />
     </div>
@@ -256,7 +264,7 @@ export const Textarea = forwardRef<
   const inputId = id ?? generated;
   const hintId = hint || error ? `${inputId}-hint` : undefined;
   return (
-    <div className="msds-field">
+    <div className={cn("msds-field", className)}>
       <FieldLabel htmlFor={inputId} label={label} required={required} />
       <textarea
         ref={ref}
@@ -267,7 +275,7 @@ export const Textarea = forwardRef<
         aria-invalid={Boolean(error) || undefined}
         aria-describedby={hintId}
         {...rest}
-        className={cn("msds-control msds-textarea", className)}
+        className="msds-control msds-textarea"
       />
       <FieldFooter hintId={hintId} hint={hint} error={error} />
     </div>
@@ -303,7 +311,7 @@ export const Select = forwardRef<
   const hintId = hint || error ? `${selectId}-hint` : undefined;
   const SelectElement = "select" as ElementType;
   return (
-    <div className="msds-field">
+    <div className={cn("msds-field", className)}>
       <FieldLabel htmlFor={selectId} label={label} required={required} />
       <div className="msds-select-wrap">
         <SelectElement
@@ -314,7 +322,7 @@ export const Select = forwardRef<
           aria-invalid={Boolean(error) || undefined}
           aria-describedby={hintId}
           {...rest}
-          className={cn("msds-control msds-select", className)}
+          className="msds-control msds-select"
         >
           {children}
         </SelectElement>

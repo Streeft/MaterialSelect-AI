@@ -1,30 +1,23 @@
 "use client";
 
-import { useMemo, useRef } from "react";
-import dynamic from "next/dynamic";
-import type { Data, Layout } from "plotly.js";
+import { useMemo } from "react";
 import type { ChartScale, DistributionBox, PropertyCoverage, PropertyDistribution } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { formatNumber, prettyUnit } from "@/lib/format";
 import { chartFileName } from "@/lib/charts";
-import { chartTheme, classVisual } from "@/lib/design/palette";
+import { classVisual } from "@/lib/design/palette";
 import {
   ButtonGroup,
   ButtonGroupItem,
-  Card,
-  CardBody,
-  CardHeader,
   EmptyState,
   ErrorState,
   LoadingState,
   Select,
   SelectOption,
-  useResolvedTheme,
 } from "@/components/ui";
-import { ChartToolbar } from "../charts/ChartToolbar";
+import { ChartFrame } from "../charts/ChartFrame";
 import { FigureData, type FigureColumn } from "../charts/FigureData";
-
-const Plot = dynamic(() => import("react-plotly.js"), { ssr: false });
+import { BoxPlotChart, type BoxRow } from "../charts/BoxPlotChart";
 
 const t = ptBR.dashboard;
 
@@ -34,12 +27,13 @@ function titleFor(name: string, unit: string | null): string {
 }
 
 /**
- * One property, one box per class that has it.
+ * One property, one box per class that has it — MSDS `BoxPlot` (D-80).
  *
  * The five numbers behind every box — min, Q1, median, Q3, max — come from
  * `apps/api/app/calculations/statistics.py` already computed (ADR 0004): this
- * component only hands them to Plotly's precomputed-quartile box trace, it
- * never derives a quantile itself.
+ * component only places them on an axis, it never derives a quantile itself.
+ * The axis names `display_unit` when the backend sent one — the unit the box
+ * numbers are actually in (D-70) — and the canonical unit otherwise.
  */
 export function PropertyDistributionPanel({
   properties,
@@ -64,58 +58,33 @@ export function PropertyDistributionPanel({
   error: unknown;
   onRetry: () => void;
 }) {
-  const container = useRef<HTMLDivElement>(null);
-  const theme = useResolvedTheme();
-  const paint = useMemo(() => chartTheme(theme), [theme]);
-
   const boxes = useMemo(() => distribution?.boxes ?? [], [distribution]);
   const sortedProperties = useMemo(
     () => [...properties].sort((a, b) => a.name.localeCompare(b.name, "pt-BR")),
     [properties],
   );
+  const unit = distribution ? (distribution.display_unit ?? distribution.canonical_unit) : null;
+  const unitLabel = prettyUnit(unit);
 
-  const traces = useMemo<Data[]>(
+  const rows = useMemo<BoxRow[]>(
     () =>
       boxes.map((box) => {
         const visual = classVisual(box.class_slug);
         return {
-          type: "box",
-          name: box.class_name,
-          x: [box.class_name],
-          q1: [box.q1],
-          median: [box.median],
-          q3: [box.q3],
-          lowerfence: [box.minimum],
-          upperfence: [box.maximum],
-          boxpoints: false,
-          marker: { color: visual.color },
-          line: { color: visual.color },
-          fillcolor: visual.color,
-          showlegend: false,
-        } as unknown as Data;
+          key: box.class_slug,
+          label: box.class_name,
+          color: visual.color,
+          symbol: visual.symbol,
+          count: box.count,
+          minimum: box.minimum,
+          q1: box.q1,
+          median: box.median,
+          q3: box.q3,
+          maximum: box.maximum,
+        };
       }),
     [boxes],
   );
-
-  const layout = useMemo<Partial<Layout>>(() => {
-    const base = paint.layout;
-    return {
-      ...base,
-      autosize: true,
-      height: 460,
-      margin: { l: 80, r: 24, t: 16, b: 60 },
-      showlegend: false,
-      xaxis: { ...base.xaxis, automargin: true },
-      yaxis: {
-        ...base.yaxis,
-        title: {
-          text: distribution ? titleFor(distribution.property_name, distribution.canonical_unit) : "",
-        },
-        type: scale,
-        zeroline: false,
-      },
-    };
-  }, [paint, distribution, scale]);
 
   const columns = useMemo<FigureColumn<DistributionBox>[]>(
     () => [
@@ -130,94 +99,96 @@ export function PropertyDistributionPanel({
   );
 
   const figureTitle = distribution ? t.distributionFigure(distribution.property_name) : t.distributionTitle;
+  const withUnit = (value: number) => (unitLabel ? `${formatNumber(value)} ${unitLabel}` : formatNumber(value));
 
   return (
-    <Card>
-      <CardHeader
-        headingLevel={2}
-        title={t.distributionTitle}
-        description={t.distributionSubtitle}
-        actions={
-          <ChartToolbar
-            target={container}
-            disabled={boxes.length === 0}
-            fileName={chartFileName("painel", "distribuicao", distribution?.property_name, scale)}
-          />
-        }
-      />
-      <CardBody className="flex flex-col gap-4">
-        <div className="flex flex-wrap items-end gap-4">
-          <Select
-            label={t.property}
-            className="min-w-[14rem] flex-1"
-            value={selected}
-            onChange={(e) => onSelect(e.target.value)}
-          >
-            {sortedProperties.map((p) => (
-              <SelectOption key={p.slug} value={p.slug}>
-                {p.name}
-              </SelectOption>
-            ))}
-          </Select>
-          <div className="flex flex-col gap-1">
-            <span className="text-xs font-medium text-ink-muted">{t.scale}</span>
-            <ButtonGroup label={t.scale}>
-              {(["linear", "log"] as ChartScale[]).map((option) => (
-                <ButtonGroupItem
-                  key={option}
-                  selected={scale === option}
-                  label={option === "linear" ? t.linear : t.log}
-                  disabled={option === "log" && distribution?.allows_log_scale === false}
-                  onClick={() => onScaleChange(option)}
-                />
-              ))}
-            </ButtonGroup>
-          </div>
-        </div>
-
-        {distribution?.allows_log_scale === false && (
-          <p className="text-xs text-ink-muted">{t.logDisabled}</p>
-        )}
-
-        {isLoading && <LoadingState label={t.loading} />}
-        {isError && (
-          <ErrorState
-            title={t.error}
-            description={error instanceof Error ? error.message : undefined}
-            onRetry={onRetry}
-          />
-        )}
-
-        {distribution && boxes.length === 0 && <EmptyState title={t.distributionEmpty} />}
-
-        {distribution && boxes.length > 0 && (
-          <>
-            <div ref={container} role="img" aria-label={ptBR.chart.figureLabel(figureTitle)}>
-              <Plot
-                data={traces}
-                layout={layout}
-                config={{ displaylogo: false, responsive: true }}
-                style={{ width: "100%" }}
-                useResizeHandler
-              />
-            </div>
-            <FigureData
-              caption={figureTitle}
-              rows={boxes}
-              rowKey={(b) => b.class_slug}
-              rowHeader={{ header: t.columnClass, cell: (b) => b.class_name }}
-              columns={columns}
+    <ChartFrame
+      title={t.distributionTitle}
+      description={t.distributionSubtitle}
+      exportName={chartFileName("painel", "distribuicao", distribution?.property_name, scale)}
+      exportDisabled={boxes.length === 0}
+      controls={
+        <ButtonGroup label={t.scale}>
+          {(["linear", "log"] as ChartScale[]).map((option) => (
+            <ButtonGroupItem
+              key={option}
+              selected={scale === option}
+              label={option === "linear" ? t.linear : t.log}
+              disabled={option === "log" && distribution?.allows_log_scale === false}
+              onClick={() => onScaleChange(option)}
             />
-          </>
-        )}
-
-        {distribution && distribution.classes_without_data.length > 0 && (
-          <div className="text-xs text-ink-muted">
+          ))}
+        </ButtonGroup>
+      }
+      notice={
+        <div className="mb-3 flex flex-col gap-2">
+          <div className="w-full max-w-md">
+            <Select label={t.property} value={selected} onChange={(e) => onSelect(e.target.value)}>
+              {sortedProperties.map((p) => (
+                <SelectOption key={p.slug} value={p.slug}>
+                  {p.name}
+                </SelectOption>
+              ))}
+            </Select>
+          </div>
+          {distribution?.allows_log_scale === false && (
+            <p className="text-xs text-ink-muted">{t.logDisabled}</p>
+          )}
+          {isLoading && <LoadingState label={t.loading} />}
+          {isError && (
+            <ErrorState
+              title={t.error}
+              description={error instanceof Error ? error.message : undefined}
+              onRetry={onRetry}
+            />
+          )}
+        </div>
+      }
+      empty={
+        !distribution ? (
+          <></>
+        ) : boxes.length === 0 ? (
+          <EmptyState title={t.distributionEmpty} />
+        ) : undefined
+      }
+      table={
+        <FigureData
+          caption={figureTitle}
+          rows={boxes}
+          rowKey={(b) => b.class_slug}
+          rowHeader={{ header: t.columnClass, cell: (b) => b.class_name }}
+          columns={columns}
+        />
+      }
+      footer={
+        distribution && distribution.classes_without_data.length > 0 ? (
+          <div className="mt-3 text-xs text-ink-muted">
             <p className="font-medium text-ink-subtle">{t.classesWithoutData}</p>
             <p>{distribution.classes_without_data.join(", ")}</p>
           </div>
-        )}
-      </CardBody>
-    </Card>
+        ) : null
+      }
+    >
+      {distribution ? (
+        <BoxPlotChart
+            figureLabel={ptBR.chart.figureLabel(figureTitle)}
+            rows={rows}
+            scale={scale}
+            axisTitle={titleFor(distribution.property_name, unit)}
+            describe={(row) => ({
+              aria: `${row.label}: ${t.columnMin} ${withUnit(row.minimum)}, ${t.columnQ1} ${withUnit(row.q1)}, ${t.columnMedian} ${withUnit(row.median)}, ${t.columnQ3} ${withUnit(row.q3)}, ${t.columnMax} ${withUnit(row.maximum)}; ${row.count} ${t.columnCountBox.toLowerCase()}`,
+              info: (
+                <>
+                  <strong>{row.label}</strong> — {t.columnMin.toLowerCase()} {formatNumber(row.minimum)} ·{" "}
+                  {t.columnQ1} {formatNumber(row.q1)} · {t.columnMedian.toLowerCase()}{" "}
+                  <strong>{formatNumber(row.median)}</strong> · {t.columnQ3} {formatNumber(row.q3)} ·{" "}
+                  {t.columnMax.toLowerCase()} {formatNumber(row.maximum)}
+                  {unitLabel ? ` ${unitLabel}` : ""} · n = {row.count}
+                </>
+              ),
+            })}
+          />
+      ) : null}
+    </ChartFrame>
   );
 }

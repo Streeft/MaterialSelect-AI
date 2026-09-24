@@ -107,36 +107,24 @@ export function chartFileName(...parts: (string | null | undefined)[]): string {
 }
 
 /**
- * Export the Plotly figure inside `container` as a PNG or SVG download.
+ * Export the figure inside `container` as a PNG or SVG download.
  *
- * Imports the same custom bundle `react-plotly.js` is aliased to in
- * `next.config.mjs`, so this is the very instance that drew the figure and no
- * second copy of the library is pulled in. PNG is rendered at 2× for
- * legibility in printed reports; SVG is resolution-independent and is the right
- * choice for the monograph.
+ * Works for both kinds of figure the application draws since D-80: a Plotly
+ * map (asked for its own SVG through the same custom bundle `react-plotly.js`
+ * is aliased to in `next.config.mjs`, so no second copy of the library is
+ * pulled in) and an MSDS SVG figure (cloned with every colour resolved, because
+ * the app's `rgb(var(--token))` colours mean nothing outside the page). Both
+ * leave with the card's title above, the legend below and an opaque background;
+ * PNG is rasterised at 2× for legibility in printed reports, SVG is
+ * resolution-independent and is the right choice for the monograph.
+ *
+ * Imported lazily: the export code is only needed on a click.
  */
-export async function downloadPlotImage(
+export async function downloadChartImage(
   container: HTMLElement | null,
   format: "png" | "svg",
   fileName: string,
 ): Promise<void> {
-  const graph = container?.querySelector<HTMLElement>(".js-plotly-plot");
-  // English on purpose: this never reaches a reader. The toolbar catches it and
-  // shows `ptBR.chart.exportError`, which is where the pt-BR sentence lives.
-  if (!graph) throw new Error("Plot not rendered yet.");
-
-  const plotly = (await import("@/lib/plotly-custom")).default;
-  const dataUrl = await plotly.toImage(graph, {
-    format,
-    width: graph.clientWidth || 1100,
-    height: graph.clientHeight || 640,
-    scale: format === "png" ? 2 : 1,
-  });
-
-  const link = document.createElement("a");
-  link.href = dataUrl;
-  link.download = `${fileName}.${format}`;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
+  const { exportFigure } = await import("./figureExport");
+  await exportFigure(container, format, fileName);
 }

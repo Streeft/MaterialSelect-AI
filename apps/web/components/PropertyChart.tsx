@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import dynamic from "next/dynamic";
-import type { Layout } from "plotly.js";
+import type { Layout, LayoutAxis } from "plotly.js";
 import type { ChartData } from "@/lib/types";
 import type { ChartPoint } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
@@ -13,13 +13,11 @@ import {
   Badge,
   ButtonGroup,
   ButtonGroupItem,
-  Card,
-  CardBody,
-  CardHeader,
   EmptyState,
   useResolvedTheme,
 } from "@/components/ui";
-import { ChartToolbar } from "@/components/charts/ChartToolbar";
+import { ChartFrame } from "@/components/charts/ChartFrame";
+import { ChartLegend } from "@/components/charts/ChartLegend";
 import { FigureData, type FigureColumn } from "@/components/charts/FigureData";
 
 // Plotly touches the DOM/window, so it must not render on the server.
@@ -41,10 +39,20 @@ interface PropertyChartProps {
  * being read drawn larger and in the highlight colour. Under log scale,
  * non-positive values are dropped — they are undefined on a log axis — and the
  * omission is disclosed rather than silently shrinking the population.
+ *
+ * Plotly still draws it (log axes, zoom), in MSDS's `ScatterMap` clothing
+ * (D-80): the chart card, the app's face, recessive grid, markers in a thin dark
+ * ring and a written legend for the two kinds of point. The points carry no
+ * class colour because `ChartPoint` carries no class slug, and a colour guessed
+ * from the class *name* would disagree with every other figure's seat.
  */
+function titled(axis: Partial<LayoutAxis> | undefined, text: string): Partial<LayoutAxis> {
+  const base = axis?.title;
+  return { ...axis, title: { ...(typeof base === "object" ? base : {}), text } };
+}
+
 export function PropertyChart({ data, highlightMaterialId }: PropertyChartProps) {
   const [scale, setScale] = useState<Scale>("log");
-  const container = useRef<HTMLDivElement>(null);
   const theme = useResolvedTheme();
   const paint = useMemo(() => chartTheme(theme), [theme]);
 
@@ -69,7 +77,7 @@ export function PropertyChart({ data, highlightMaterialId }: PropertyChartProps)
       labels.push(escapeHover(`${point.material_name} (${point.class_name})`));
       colors.push(isThisOne ? paint.highlight : paint.label);
       // Size as well as colour: the highlight has to survive a greyscale print.
-      sizes.push(isThisOne ? 16 : 9);
+      sizes.push(isThisOne ? 15 : 9);
     }
     return { plotted, xs, ys, labels, colors, sizes, droppedForLog };
   }, [data, scale, highlightMaterialId, paint]);
@@ -101,14 +109,13 @@ export function PropertyChart({ data, highlightMaterialId }: PropertyChartProps)
       height: 380,
       margin: { l: 70, r: 20, t: 10, b: 55 },
       showlegend: false,
+      uirevision: `${data.x_property_slug}|${data.y_property_slug}|${scale}`,
       xaxis: {
-        ...paint.layout.xaxis,
-        title: { text: `${data.x_property_name} [${prettyUnit(data.x_unit)}]` },
+        ...titled(paint.layout.xaxis, `${data.x_property_name} [${prettyUnit(data.x_unit)}]`),
         type: scale,
       },
       yaxis: {
-        ...paint.layout.yaxis,
-        title: { text: `${data.y_property_name} [${prettyUnit(data.y_unit)}]` },
+        ...titled(paint.layout.yaxis, `${data.y_property_name} [${prettyUnit(data.y_unit)}]`),
         type: scale,
       },
     }),
@@ -118,61 +125,25 @@ export function PropertyChart({ data, highlightMaterialId }: PropertyChartProps)
   const hasPoints = xs.length > 0;
 
   return (
-    <Card>
-      <CardHeader
-        headingLevel={2}
-        title={ptBR.detail.position}
-        description={ptBR.detail.positionHint}
-        actions={
-          <div className="flex flex-wrap items-center gap-2">
-            <ButtonGroup label={t.scale}>
-              {(["linear", "log"] as Scale[]).map((s) => (
-                <ButtonGroupItem
-                  key={s}
-                  selected={scale === s}
-                  label={s === "linear" ? t.linear : t.log}
-                  onClick={() => setScale(s)}
-                />
-              ))}
-            </ButtonGroup>
-            <ChartToolbar
-              target={container}
-              disabled={!hasPoints}
-              fileName={chartFileName(
-                "posicao",
-                data.y_property_name,
-                data.x_property_name,
-                scale,
-              )}
+    <ChartFrame
+      title={ptBR.detail.position}
+      description={ptBR.detail.positionHint}
+      exportName={chartFileName("posicao", data.y_property_name, data.x_property_name, scale)}
+      exportDisabled={!hasPoints}
+      controls={
+        <ButtonGroup label={t.scale}>
+          {(["linear", "log"] as Scale[]).map((s) => (
+            <ButtonGroupItem
+              key={s}
+              selected={scale === s}
+              label={s === "linear" ? t.linear : t.log}
+              onClick={() => setScale(s)}
             />
-          </div>
-        }
-      />
-      <CardBody className="flex flex-col gap-2">
-        {hasPoints ? (
-          <div ref={container} role="img" aria-label={t.figureLabel(ptBR.detail.position)}>
-            <Plot
-              data={[
-                {
-                  x: xs,
-                  y: ys,
-                  text: labels,
-                  type: "scatter",
-                  mode: "markers",
-                  marker: { size: sizes, color: colors },
-                  hovertemplate: "%{text}<br>%{x}<br>%{y}<extra></extra>",
-                },
-              ]}
-              layout={layout}
-              config={{ displaylogo: false, responsive: true, toImageButtonOptions: { format: "png" } }}
-              style={{ width: "100%" }}
-              useResizeHandler
-            />
-          </div>
-        ) : (
-          <EmptyState title={t.empty} />
-        )}
-
+          ))}
+        </ButtonGroup>
+      }
+      empty={hasPoints ? undefined : <EmptyState title={t.empty} />}
+      table={
         <FigureData
           caption={ptBR.detail.position}
           rows={plotted}
@@ -192,14 +163,55 @@ export function PropertyChart({ data, highlightMaterialId }: PropertyChartProps)
           }}
           columns={columns}
         />
-
-        <div className="flex flex-col gap-0.5 text-2xs text-ink-subtle">
-          {data.excluded_material_ids.length > 0 && (
-            <p>{t.excludedNote(data.excluded_material_ids.length)}</p>
-          )}
-          {scale === "log" && droppedForLog > 0 && <p>{t.logNote}</p>}
-        </div>
-      </CardBody>
-    </Card>
+      }
+      footer={
+        data.excluded_material_ids.length > 0 || (scale === "log" && droppedForLog > 0) ? (
+          <div className="mt-2 flex flex-col gap-0.5 text-2xs text-ink-subtle">
+            {data.excluded_material_ids.length > 0 && (
+              <p>{t.excludedNote(data.excluded_material_ids.length)}</p>
+            )}
+            {scale === "log" && droppedForLog > 0 && <p>{t.logNote}</p>}
+          </div>
+        ) : null
+      }
+    >
+      <div className="chart-plotly" role="img" aria-label={t.figureLabel(ptBR.detail.position)}>
+        <Plot
+          data={[
+            {
+              x: xs,
+              y: ys,
+              text: labels,
+              type: "scatter",
+              mode: "markers",
+              marker: {
+                size: sizes,
+                color: colors,
+                line: { width: 1, color: paint.markerEdge },
+              },
+              hovertemplate: "%{text}<br>%{x}<br>%{y}<extra></extra>",
+            },
+          ]}
+          layout={layout}
+          config={{
+            displaylogo: false,
+            responsive: true,
+            // Export is the card's (with title and legend); there is no region
+            // to select on a material sheet.
+            modeBarButtonsToRemove: ["toImage", "lasso2d", "select2d"],
+          }}
+          style={{ width: "100%" }}
+          useResizeHandler
+        />
+      </div>
+      <ChartLegend
+        items={[
+          ...(plotted.some((point) => point.material_id === highlightMaterialId)
+            ? [{ key: "this", label: t.thisMaterial, color: paint.highlight, symbol: "circle" as const }]
+            : []),
+          { key: "others", label: t.otherMaterials, color: paint.label, symbol: "circle" as const },
+        ]}
+      />
+    </ChartFrame>
   );
 }

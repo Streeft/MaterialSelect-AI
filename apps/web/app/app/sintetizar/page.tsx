@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import type {
@@ -18,21 +18,24 @@ import {
   previewSynthesis,
 } from "@/lib/api";
 import { ptBR } from "@/lib/i18n";
-import { formatNumber } from "@/lib/format";
+import { formatNumber, prettyUnit } from "@/lib/format";
 import {
   Alert,
   Badge,
   Button,
   Card,
   CardBody,
+  CardFooter,
+  CardHeader,
+  DataQualityBadge,
   EmptyState,
   ErrorState,
-  Field,
   Input,
   LoadingState,
+  MissingValue,
   NumberInput,
   PageHeader,
-  Section,
+  RadioCard,
   Select,
   SelectOption,
   TBody,
@@ -43,22 +46,61 @@ import {
   Td,
   Th,
   Tr,
+  type QualityState,
 } from "@/components/ui";
 
 const t = ptBR.synthesis;
+
+const QUALITY_STATES: readonly string[] = ["MEDIDO", "IMPORTADO", "ESTIMADO", "AUSENTE"];
+
+function isQualityState(value: string): value is QualityState {
+  return QUALITY_STATES.includes(value);
+}
 
 /** Um valor pode ser escalar ou um par de limites; os dois se leem diferente. */
 function Value({ value }: { value: SynthesizedValue }) {
   if (value.value !== null) {
     return <span className="tabular-nums">{formatNumber(value.value)}</span>;
   }
+  // D-24: a missing bound is labelled, never printed as 0.
+  if (value.value_min === null || value.value_max === null) {
+    return <MissingValue />;
+  }
   return (
     <span className="tabular-nums">
-      {formatNumber(value.value_min ?? 0)} –{" "}
-      {formatNumber(value.value_max ?? 0)}
+      {formatNumber(value.value_min)} – {formatNumber(value.value_max)}
     </span>
   );
 }
+
+/**
+ * The kind notes come from the API with `**bold**` and `*italic*` markers in
+ * them; printed raw, the asterisks read as corruption. Only those two markers
+ * are honoured — this is emphasis in a sentence, not a markdown renderer.
+ */
+function Emphasis({ text }: { text: string }) {
+  const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g);
+  const nodes: ReactNode[] = parts.map((part, index) => {
+    if (part.startsWith("**") && part.endsWith("**") && part.length > 4) {
+      return (
+        <strong key={index} className="font-semibold text-ink">
+          {part.slice(2, -2)}
+        </strong>
+      );
+    }
+    if (part.startsWith("*") && part.endsWith("*") && part.length > 2) {
+      return <em key={index}>{part.slice(1, -1)}</em>;
+    }
+    return part;
+  });
+  return <>{nodes}</>;
+}
+
+const KINDS: { kind: SynthesisKind; label: string }[] = [
+  { kind: "composito", label: t.kindComposite },
+  { kind: "espuma", label: t.kindFoam },
+  { kind: "painel", label: t.kindPanel },
+];
 
 function PreviewTable({ preview }: { preview: SynthesisPreview }) {
   if (preview.values.length === 0) {
@@ -81,10 +123,12 @@ function PreviewTable({ preview }: { preview: SynthesisPreview }) {
             <Tr key={value.slug}>
               <Td className="font-medium">
                 {value.name}
-                {value.canonical_unit ? (
-                  <span className="text-ink-muted">
+                {/* An adimensional quantity says nothing by printing
+                    "(dimensionless)"; the others read as the rest of the app. */}
+                {value.canonical_unit && value.canonical_unit !== "dimensionless" ? (
+                  <span className="font-normal text-ink-muted">
                     {" "}
-                    ({value.canonical_unit})
+                    ({prettyUnit(value.canonical_unit)})
                   </span>
                 ) : null}
               </Td>
@@ -94,15 +138,21 @@ function PreviewTable({ preview }: { preview: SynthesisPreview }) {
               <Td className="text-xs text-ink-muted">
                 {/* A base vem junto da fórmula: "conservação de massa" e "ajuste
                     empírico" não são a mesma afirmação sobre o número. */}
-                <div className="flex flex-col gap-1">
+                <div className="flex flex-col items-start gap-1">
                   <span className="text-ink">{value.rule.label}</span>
-                  <code className="rounded-control bg-surface-muted px-2 py-0.5">
+                  <code className="rounded-control bg-surface-sunken px-2 py-0.5 font-mono text-2xs">
                     {value.rule.formula}
                   </code>
                   <Badge>{value.rule.basis_label}</Badge>
                 </div>
               </Td>
-              <Td className="text-xs text-ink-muted">{value.quality}</Td>
+              <Td className="text-xs text-ink-muted">
+                {isQualityState(value.quality) ? (
+                  <DataQualityBadge state={value.quality} />
+                ) : (
+                  value.quality
+                )}
+              </Td>
             </Tr>
           ))}
         </TBody>
@@ -122,6 +172,7 @@ export default function SintetizarPage() {
   });
   const classes = useQuery({ queryKey: ["classes"], queryFn: listClasses });
 
+  const kindName = useId();
   const [kind, setKind] = useState<SynthesisKind>("composito");
   const [parentA, setParentA] = useState("");
   const [parentB, setParentB] = useState("");
@@ -187,7 +238,12 @@ export default function SintetizarPage() {
   ]);
 
   const runPreview = useMutation({
-    mutationFn: () => previewSynthesis(body),
+    // A prévia não cria registro, então não pede nome — mas a API valida o
+    // mesmo corpo da gravação e recusa `name` vazio com 422. Sem este nome
+    // provisório a prévia nunca rodava: o campo de nome só aparece depois
+    // dela. O nome provisório não é gravado em lugar nenhum.
+    mutationFn: () =>
+      previewSynthesis({ ...body, name: body.name || t.previewName }),
     onSuccess: (result) => {
       setPreview(result);
       setSaved(null);
@@ -242,7 +298,14 @@ export default function SintetizarPage() {
   if (classes.isError)
     return <ErrorState description={String(classes.error)} />;
 
-  const info = (kinds.data ?? []).find((item) => item.kind === kind);
+  const noteOf = (value: SynthesisKind) =>
+    (kinds.data ?? []).find((item) => item.kind === value)?.note;
+
+  const materialOptions = options.map((material) => (
+    <SelectOption key={material.id} value={String(material.id)}>
+      {material.name}
+    </SelectOption>
+  ));
 
   return (
     <div className="flex flex-col gap-6">
@@ -250,84 +313,101 @@ export default function SintetizarPage() {
 
       <Alert tone="info">{t.principle}</Alert>
 
-      <Section title={t.kindStep}>
-        <Select
-          label={t.kindLabel}
-          value={kind}
-          onChange={(event) => {
-            setKind((event.target as HTMLSelectElement).value as SynthesisKind);
-            setPreview(null);
-            setSaved(null);
-          }}
-        >
-          <SelectOption value="composito">{t.kindComposite}</SelectOption>
-          <SelectOption value="espuma">{t.kindFoam}</SelectOption>
-          <SelectOption value="painel">{t.kindPanel}</SelectOption>
-        </Select>
-        {info ? <p className="text-sm text-ink-muted">{info.note}</p> : null}
-      </Section>
+      <Card>
+        <CardHeader headingLevel={2} title={t.kindStep} />
+        <CardBody>
+          {/* Cards, not a <select>: the rule each kind follows is what the
+              reader is choosing between, and a <select> hides it until after
+              the choice. */}
+          <fieldset className="min-w-0">
+            <legend className="msds-field-label">{t.kindLabel}</legend>
+            <div className="mt-2 grid gap-3 md:grid-cols-3">
+              {KINDS.map((item) => {
+                const note = noteOf(item.kind);
+                return (
+                  <RadioCard
+                    key={item.kind}
+                    name={kindName}
+                    value={item.kind}
+                    checked={kind === item.kind}
+                    onChange={(value) => {
+                      setKind(value as SynthesisKind);
+                      setPreview(null);
+                      setSaved(null);
+                    }}
+                    title={item.label}
+                  >
+                    {note ? (
+                      <p className="text-xs leading-relaxed text-ink-muted">
+                        <Emphasis text={note} />
+                      </p>
+                    ) : null}
+                  </RadioCard>
+                );
+              })}
+            </div>
+          </fieldset>
+        </CardBody>
+      </Card>
 
-      <Section title={t.recipeStep}>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Select
-            label={
-              kind === "composito"
-                ? t.parentALabel
-                : kind === "painel"
-                  ? t.faceLabel
-                  : t.parentASolidLabel
-            }
-            value={selectedA}
-            onChange={(event) =>
-              setParentA((event.target as HTMLSelectElement).value)
-            }
-          >
-            {options.map((material) => (
-              <SelectOption key={material.id} value={String(material.id)}>
-                {material.name}
-              </SelectOption>
-            ))}
-          </Select>
-          {kind === "espuma" ? (
-            <NumberInput
-              label={t.densityLabel}
-              hint={t.densityHint}
-              value={density}
-              min={0}
-              max={1}
-              step="any"
-              onChange={(event) => setDensity(event.target.value)}
-            />
-          ) : (
-            <>
+      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+        <div className="flex min-w-0 flex-col gap-6">
+          <Card>
+            <CardHeader headingLevel={2} title={t.recipeStep} />
+            <CardBody className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
               <Select
-                label={kind === "painel" ? t.coreLabel : t.parentBLabel}
-                value={selectedB}
+                label={
+                  kind === "composito"
+                    ? t.parentALabel
+                    : kind === "painel"
+                      ? t.faceLabel
+                      : t.parentASolidLabel
+                }
+                value={selectedA}
                 onChange={(event) =>
-                  setParentB((event.target as HTMLSelectElement).value)
+                  setParentA((event.target as HTMLSelectElement).value)
                 }
               >
-                {options.map((material) => (
-                  <SelectOption key={material.id} value={String(material.id)}>
-                    {material.name}
-                  </SelectOption>
-                ))}
+                {materialOptions}
               </Select>
-              {kind === "composito" ? (
+              {kind === "espuma" ? (
                 <NumberInput
-                  label={t.fractionLabel}
-                  hint={t.fractionHint}
-                  value={fraction}
+                  label={t.densityLabel}
+                  hint={t.densityHint}
+                  value={density}
                   min={0}
                   max={1}
                   step="any"
-                  onChange={(event) => setFraction(event.target.value)}
+                  onChange={(event) => setDensity(event.target.value)}
                 />
               ) : (
+                <Select
+                  label={kind === "painel" ? t.coreLabel : t.parentBLabel}
+                  value={selectedB}
+                  onChange={(event) =>
+                    setParentB((event.target as HTMLSelectElement).value)
+                  }
+                >
+                  {materialOptions}
+                </Select>
+              )}
+              {kind === "composito" ? (
+                <div className="sm:col-span-2 xl:col-span-1">
+                  <NumberInput
+                    label={t.fractionLabel}
+                    hint={t.fractionHint}
+                    value={fraction}
+                    min={0}
+                    max={1}
+                    step="any"
+                    onChange={(event) => setFraction(event.target.value)}
+                  />
+                </div>
+              ) : null}
+              {kind === "painel" ? (
                 <>
                   <NumberInput
                     label={t.faceThicknessLabel}
-                    hint={t.thicknessHint}
                     value={faceThickness}
                     min={0}
                     step="any"
@@ -340,112 +420,131 @@ export default function SintetizarPage() {
                     step="any"
                     onChange={(event) => setCoreThickness(event.target.value)}
                   />
+                  <p className="text-xs text-ink-muted sm:col-span-2 xl:col-span-1">
+                    {t.thicknessHint}
+                  </p>
                 </>
-              )}
-            </>
-          )}
-        </div>
-        <div>
-          <Button
-            onClick={() => runPreview.mutate()}
-            disabled={!recipeReady || runPreview.isPending}
-          >
-            {runPreview.isPending ? t.previewing : t.preview}
-          </Button>
-        </div>
-        {runPreview.isError ? (
-          <Alert tone="danger">{String(runPreview.error)}</Alert>
-        ) : null}
-      </Section>
+              ) : null}
+              {runPreview.isError ? (
+                <Alert tone="danger" className="sm:col-span-2 xl:col-span-1">
+                  {String(runPreview.error)}
+                </Alert>
+              ) : null}
+            </CardBody>
+            <CardFooter className="justify-start">
+              <Button
+                variant="primary"
+                onClick={() => runPreview.mutate()}
+                disabled={!recipeReady || runPreview.isPending}
+              >
+                {runPreview.isPending ? t.previewing : t.preview}
+              </Button>
+            </CardFooter>
+          </Card>
 
-      {preview ? (
-        <Section title={t.previewStep}>
-          <p className="text-sm text-ink-muted">
-            {t.parentsLabel}: {preview.parents.join(" · ")}
-          </p>
-          <PreviewTable preview={preview} />
-
-          {preview.skipped.length > 0 ? (
+          {preview ? (
             <Card>
-              <CardBody className="flex flex-col gap-2">
-                <span className="text-sm font-medium text-ink">
-                  {t.skippedTitle}
-                </span>
-                <span className="text-xs text-ink-muted">{t.skippedHint}</span>
-                <ul className="flex flex-col gap-1 text-sm text-ink">
-                  {preview.skipped.map((item) => (
-                    <li key={item.slug}>
-                      <span className="font-medium">{item.name}</span> —{" "}
-                      {item.reason}
-                    </li>
+              <CardHeader headingLevel={2} title={t.identityStep} />
+              <CardBody className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
+                <Input
+                  label={t.nameLabel}
+                  hint={t.nameHint}
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                />
+                <Select
+                  label={t.classLabel}
+                  hint={t.classHint}
+                  value={selectedClass}
+                  onChange={(event) =>
+                    setClassId((event.target as HTMLSelectElement).value)
+                  }
+                >
+                  {(classes.data ?? []).map((item) => (
+                    <SelectOption key={item.id} value={String(item.id)}>
+                      {item.name}
+                    </SelectOption>
                   ))}
-                </ul>
+                </Select>
+                <div className="sm:col-span-2 xl:col-span-1">
+                  <Input
+                    label={t.descriptionLabel}
+                    value={description}
+                    onChange={(event) => setDescription(event.target.value)}
+                  />
+                </div>
+                {save.isError ? (
+                  <Alert tone="danger" className="sm:col-span-2 xl:col-span-1">
+                    {String(save.error)}
+                  </Alert>
+                ) : null}
               </CardBody>
+              <CardFooter className="justify-start">
+                <Button
+                  variant="primary"
+                  onClick={() => save.mutate()}
+                  disabled={!canSave || save.isPending}
+                >
+                  {save.isPending ? t.saving : t.save}
+                </Button>
+              </CardFooter>
             </Card>
           ) : null}
-        </Section>
-      ) : null}
 
-      {preview ? (
-        <Section title={t.identityStep}>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Input
-              label={t.nameLabel}
-              hint={t.nameHint}
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-            />
-            <Field label={t.classLabel} hint={t.classHint}>
-              <Select
-                label={t.classLabel}
-                value={selectedClass}
-                onChange={(event) =>
-                  setClassId((event.target as HTMLSelectElement).value)
-                }
-              >
-                {(classes.data ?? []).map((item) => (
-                  <SelectOption key={item.id} value={String(item.id)}>
-                    {item.name}
-                  </SelectOption>
-                ))}
-              </Select>
-            </Field>
-            <Input
-              label={t.descriptionLabel}
-              value={description}
-              onChange={(event) => setDescription(event.target.value)}
-            />
-          </div>
-          <div>
-            <Button
-              onClick={() => save.mutate()}
-              disabled={!canSave || save.isPending}
-            >
-              {save.isPending ? t.saving : t.save}
-            </Button>
-          </div>
-          {save.isError ? (
-            <Alert tone="danger">{String(save.error)}</Alert>
+          {saved ? (
+            <Alert tone="success" title={t.savedTitle}>
+              <span className="flex flex-col gap-1">
+                <span>{t.savedHint}</span>
+                {/* A ficha de um registro é `/app/materiais/[id]`; `/app/catalogo/[slug]`
+                    é a *família*, e apontar para lá cairia numa família de slug "77". */}
+                <Link
+                  className="font-medium text-accent underline underline-offset-2"
+                  href={`/app/materiais/${saved.material_id}`}
+                >
+                  {t.openRecord}: {saved.material_name}
+                </Link>
+              </span>
+            </Alert>
           ) : null}
-        </Section>
-      ) : null}
+        </div>
 
-      {saved ? (
-        <Card>
-          <CardBody className="flex flex-col gap-2">
-            <span className="text-sm font-medium text-ink">{t.savedTitle}</span>
-            <span className="text-xs text-ink-muted">{t.savedHint}</span>
-            {/* A ficha de um registro é `/app/materiais/[id]`; `/app/catalogo/[slug]`
-                é a *família*, e apontar para lá cairia numa família de slug "77". */}
-            <Link
-              className="text-sm text-accent underline underline-offset-2"
-              href={`/app/materiais/${saved.material_id}`}
-            >
-              {t.openRecord}: {saved.material_name}
-            </Link>
+        {/* The result sits beside the recipe, not under it: changing a
+            fraction and reading what moved should not cost a scroll. */}
+        <Card className="min-w-0 xl:sticky xl:top-6">
+          <CardHeader
+            headingLevel={2}
+            title={t.previewStep}
+            description={
+              preview ? `${t.parentsLabel}: ${preview.parents.join(" · ")}` : undefined
+            }
+          />
+          <CardBody className="flex flex-col gap-4">
+            {preview ? (
+              <>
+                <PreviewTable preview={preview} />
+                {preview.skipped.length > 0 ? (
+                  <div className="flex flex-col gap-2 rounded-card border border-edge bg-surface-sunken p-4">
+                    <span className="text-sm font-medium text-ink">
+                      {t.skippedTitle}
+                    </span>
+                    <span className="text-xs text-ink-muted">{t.skippedHint}</span>
+                    <ul className="flex flex-col gap-1 text-sm text-ink">
+                      {preview.skipped.map((item) => (
+                        <li key={item.slug}>
+                          <span className="font-medium">{item.name}</span> —{" "}
+                          {item.reason}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+              </>
+            ) : (
+              <EmptyState title={t.previewIdleTitle} description={t.previewIdleHint} />
+            )}
           </CardBody>
         </Card>
-      ) : null}
+      </div>
     </div>
   );
 }

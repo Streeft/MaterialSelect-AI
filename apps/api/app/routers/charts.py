@@ -17,7 +17,14 @@ from sqlalchemy.orm import Session
 from app.db.base import get_db
 from app.dependencies import get_current_user, get_unit_choices
 from app.models.user import User
-from app.schemas.charts import CompareOut, CompareRequest, PropertyMapOut, PropertyMapRequest
+from app.schemas.charts import (
+    CompareOut,
+    CompareRequest,
+    MapBoxOut,
+    MapBoxRequest,
+    PropertyMapOut,
+    PropertyMapRequest,
+)
 from app.services.chart_service import ChartService
 
 router = APIRouter(prefix="/charts", tags=["charts"])
@@ -32,6 +39,17 @@ def property_map(
 ) -> PropertyMapOut:
     """Build an Ashby property map: points, envelopes, index line and exclusions."""
     return ChartService(db, user.id, unit_choices).property_map(payload)
+
+
+@router.post("/map-box", response_model=MapBoxOut)
+def map_box(
+    payload: MapBoxRequest,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+    unit_choices: dict[str, str] = Depends(get_unit_choices),
+) -> MapBoxOut:
+    """Convert a Chart Stage region between map reading units and canonical units (D-81)."""
+    return ChartService(db, user.id, unit_choices).map_box(payload)
 
 
 @router.post("/compare", response_model=CompareOut)

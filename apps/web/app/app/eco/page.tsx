@@ -21,17 +21,14 @@ import { formatNumber } from "@/lib/format";
 import {
   Alert,
   Button,
-  Card,
-  CardBody,
   EmptyState,
   ErrorState,
-  Field,
   LoadingState,
   NumberInput,
   PageHeader,
-  Section,
   Select,
   SelectOption,
+  StepCard,
   TBody,
   THead,
   Table,
@@ -279,8 +276,8 @@ export default function EcoPage() {
     <div className="flex flex-col gap-6">
       <PageHeader title={t.title} description={t.subtitle} />
 
-      <Section title={t.briefStep}>
-        <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid items-start gap-6 lg:grid-cols-2">
+        <StepCard title={t.briefStep} bodyClassName="grid gap-4 sm:grid-cols-2">
           <Select
             label={t.materialLabel}
             value={selectedMaterial}
@@ -297,10 +294,20 @@ export default function EcoPage() {
               </SelectOption>
             ))}
           </Select>
-          <Field label={t.processLabel} hint={t.processHint}>
+          {detail.isSuccess && processes.length === 0 ? (
+            // D-24: an empty <select> read as a control that failed to load.
+            // A material with no process can't be audited, and the screen
+            // says so where the process would have been chosen.
+            <div className="flex flex-col gap-1">
+              <span className="msds-field-label">{t.processLabel}</span>
+              <Alert tone="warning">{t.noProcess}</Alert>
+            </div>
+          ) : (
             <Select
               label={t.processLabel}
+              hint={t.processHint}
               value={selectedProcess}
+              disabled={processes.length === 0}
               onChange={(event) =>
                 setProcessId((event.target as HTMLSelectElement).value)
               }
@@ -311,7 +318,7 @@ export default function EcoPage() {
                 </SelectOption>
               ))}
             </Select>
-          </Field>
+          )}
           <NumberInput
             label={t.massLabel}
             hint={t.massHint}
@@ -329,11 +336,13 @@ export default function EcoPage() {
             step="any"
             onChange={(event) => setRecycled(event.target.value)}
           />
-        </div>
-      </Section>
+        </StepCard>
 
-      <Section title={t.transportStep} description={t.transportHint}>
-        <div className="grid gap-4 sm:grid-cols-2">
+        <StepCard
+          title={t.transportStep}
+          description={t.transportHint}
+          bodyClassName="grid gap-4 sm:grid-cols-2"
+        >
           <Select
             label={t.transportModeLabel}
             value={selectedMode}
@@ -354,108 +363,111 @@ export default function EcoPage() {
             step="any"
             onChange={(event) => setDistance(event.target.value)}
           />
-        </div>
-      </Section>
+        </StepCard>
+      </div>
 
-      <Section title={t.useStep} description={t.useHint}>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Select
-            label={t.useModelLabel}
-            value={useModel}
-            onChange={(event) =>
-              setUseModel((event.target as HTMLSelectElement).value as UseModel)
-            }
-          >
-            <SelectOption value="estatico">{t.useStatic}</SelectOption>
-            <SelectOption value="movel">{t.useMobile}</SelectOption>
-          </Select>
-          <NumberInput
-            label={t.lifeLabel}
-            value={life}
-            min={0}
-            step="any"
-            onChange={(event) => setLife(event.target.value)}
-          />
-          {useModel === "estatico" ? (
-            <>
-              <NumberInput
-                label={t.powerLabel}
-                value={power}
-                min={0}
-                step="any"
-                onChange={(event) => setPower(event.target.value)}
-              />
-              <NumberInput
-                label={t.dutyLabel}
-                hint={t.dutyHint}
-                value={duty}
-                min={0}
-                max={1}
-                step="any"
-                onChange={(event) => setDuty(event.target.value)}
-              />
-            </>
-          ) : (
-            <>
-              <NumberInput
-                label={t.travelLabel}
-                value={travel}
-                min={0}
-                step="any"
-                onChange={(event) => setTravel(event.target.value)}
-              />
-              <NumberInput
-                label={t.intensityLabel}
-                value={intensity}
-                min={0}
-                step="any"
-                onChange={(event) => setIntensity(event.target.value)}
-              />
-            </>
-          )}
-          <NumberInput
-            label={t.carbonPerEnergyLabel}
-            hint={t.carbonPerEnergyHint}
-            value={carbonPerEnergy}
-            min={0}
-            step="any"
-            onChange={(event) => setCarbonPerEnergy(event.target.value)}
-          />
-          <Field label={t.eolLabel} hint={t.eolHint}>
-            <Select
-              label={t.eolLabel}
-              value={endOfLife}
-              onChange={(event) =>
-                setEndOfLife((event.target as HTMLSelectElement).value)
-              }
-            >
-              <SelectOption value="reciclagem">{t.eolRecycle}</SelectOption>
-              <SelectOption value="aterro">{t.eolLandfill}</SelectOption>
-              <SelectOption value="incineracao">
-                {t.eolIncineration}
-              </SelectOption>
-            </Select>
-          </Field>
-        </div>
-        <div>
+      <StepCard
+        title={t.useStep}
+        description={t.useHint}
+        bodyClassName="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
+        footer={
           <Button
+            variant="primary"
             onClick={() => audit.mutate()}
             disabled={!ready || audit.isPending}
           >
             {audit.isPending ? t.running : t.run}
           </Button>
-        </div>
+        }
+      >
+        <Select
+          label={t.useModelLabel}
+          value={useModel}
+          onChange={(event) =>
+            setUseModel((event.target as HTMLSelectElement).value as UseModel)
+          }
+        >
+          <SelectOption value="estatico">{t.useStatic}</SelectOption>
+          <SelectOption value="movel">{t.useMobile}</SelectOption>
+        </Select>
+        <NumberInput
+          label={t.lifeLabel}
+          value={life}
+          min={0}
+          step="any"
+          onChange={(event) => setLife(event.target.value)}
+        />
+        {useModel === "estatico" ? (
+          <>
+            <NumberInput
+              label={t.powerLabel}
+              value={power}
+              min={0}
+              step="any"
+              onChange={(event) => setPower(event.target.value)}
+            />
+            <NumberInput
+              label={t.dutyLabel}
+              hint={t.dutyHint}
+              value={duty}
+              min={0}
+              max={1}
+              step="any"
+              onChange={(event) => setDuty(event.target.value)}
+            />
+          </>
+        ) : (
+          <>
+            <NumberInput
+              label={t.travelLabel}
+              value={travel}
+              min={0}
+              step="any"
+              onChange={(event) => setTravel(event.target.value)}
+            />
+            <NumberInput
+              label={t.intensityLabel}
+              value={intensity}
+              min={0}
+              step="any"
+              onChange={(event) => setIntensity(event.target.value)}
+            />
+          </>
+        )}
+        <NumberInput
+          label={t.carbonPerEnergyLabel}
+          hint={t.carbonPerEnergyHint}
+          value={carbonPerEnergy}
+          min={0}
+          step="any"
+          onChange={(event) => setCarbonPerEnergy(event.target.value)}
+        />
+        <Select
+          label={t.eolLabel}
+          hint={t.eolHint}
+          value={endOfLife}
+          onChange={(event) =>
+            setEndOfLife((event.target as HTMLSelectElement).value)
+          }
+        >
+          <SelectOption value="reciclagem">{t.eolRecycle}</SelectOption>
+          <SelectOption value="aterro">{t.eolLandfill}</SelectOption>
+          <SelectOption value="incineracao">{t.eolIncineration}</SelectOption>
+        </Select>
         {audit.isError ? (
-          <Alert tone="danger">{String(audit.error)}</Alert>
+          <Alert tone="danger" className="sm:col-span-2 xl:col-span-3">
+            {String(audit.error)}
+          </Alert>
         ) : null}
-      </Section>
+      </StepCard>
 
-      {result ? (
-        <Section title={t.resultStep}>
-          {/* The answer is not the total — it is which phase dominates, and the
-              two quantities get their own podium because they can disagree. */}
-          <Card>
-            <CardBody className="flex flex-col gap-3">
+      <StepCard title={t.resultStep}>
+        {result ? (
+          <>
+            {/* The answer is not the total — it is which phase dominates, and
+                the two quantities get their own podium because they can
+                disagree. */}
+            <div className="flex flex-col gap-3">
               <span className="text-sm font-medium text-ink">
                 {t.dominanceTitle}
               </span>
@@ -469,13 +481,11 @@ export default function EcoPage() {
                   dominance={result.carbon_dominance}
                 />
               </div>
-            </CardBody>
-          </Card>
+            </div>
 
-          <PhaseTable result={result} />
+            <PhaseTable result={result} />
 
-          <Card>
-            <CardBody className="flex flex-col gap-2 text-xs text-ink-muted">
+            <div className="flex flex-col gap-2 rounded-card border border-edge bg-surface-sunken p-4 text-xs text-ink-muted">
               <span>
                 <strong className="text-ink">{t.massBought}:</strong>{" "}
                 {formatNumber(result.mass_bought)} kg — {t.massBoughtHint}
@@ -484,16 +494,18 @@ export default function EcoPage() {
               <span>
                 <Link
                   className="text-accent underline underline-offset-2"
-                  href={`/app/catalogo/${result.material_id}`}
+                  href={`/app/materiais/${result.material_id}`}
                 >
                   {result.material_name}
                 </Link>{" "}
                 · {result.process_name} · {result.transport_mode.name}
               </span>
-            </CardBody>
-          </Card>
-        </Section>
-      ) : null}
+            </div>
+          </>
+        ) : (
+          <EmptyState title={t.resultIdleTitle} description={t.resultIdleHint} />
+        )}
+      </StepCard>
     </div>
   );
 }

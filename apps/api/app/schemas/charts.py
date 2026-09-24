@@ -118,6 +118,52 @@ class MapAxisOut(BaseModel):
     max_value: float | None = None
 
 
+class MapBoxIn(BaseModel):
+    """A Chart Stage region: one optional limit per side, in data coordinates.
+
+    ``None`` is "no limit on this side", never ``0`` (D-60): ``0`` is a limit.
+    """
+
+    x_min: float | None = None
+    x_max: float | None = None
+    y_min: float | None = None
+    y_max: float | None = None
+
+
+class MapBoxRequest(BaseModel):
+    """Convert a region between the map's reading units and canonical units (D-81).
+
+    The map draws in each property's reading unit (D-70); the Chart Stage stores
+    and compares in canonical units (D-60). A region crosses that border in both
+    directions — drawn on the map, stored on the stage; loaded from the stage,
+    drawn on the map — and the conversion lives here, beside the one the map
+    itself uses, never in the client.
+
+    ``x``/``y`` name the property on each axis; ``None`` is an index axis, whose
+    coordinates are never converted.
+    """
+
+    universe: Literal["material", "process"] = "material"
+    x: str | None = Field(default=None, description="Slug da propriedade no eixo X")
+    y: str | None = Field(default=None, description="Slug da propriedade no eixo Y")
+    box: MapBoxIn
+    to: Literal["canonical", "display"] = Field(
+        description="'canonical' converte uma região desenhada no mapa; "
+        "'display' converte uma região guardada para desenhá-la."
+    )
+
+
+class MapBoxOut(BaseModel):
+    """The converted region and the unit each axis is now expressed in.
+
+    A unit is ``None`` for an index axis (its dimension is derived, D-35).
+    """
+
+    box: MapBoxIn
+    x_unit: str | None = None
+    y_unit: str | None = None
+
+
 class MapPointOut(BaseModel):
     """One material or process on the map.
 

@@ -11,16 +11,14 @@ import { formatNumber } from "@/lib/format";
 import {
   Alert,
   Button,
-  Card,
-  CardBody,
   EmptyState,
   ErrorState,
   LoadingState,
   NumberInput,
   PageHeader,
-  Section,
   Select,
   SelectOption,
+  StepCard,
   TBody,
   THead,
   Table,
@@ -135,19 +133,21 @@ export default function CustoPage() {
     <div className="flex flex-col gap-6">
       <PageHeader title={t.title} description={t.subtitle} />
 
-      <Section title={t.briefStep}>
-        <div className="grid gap-4 sm:grid-cols-3">
-          <Select
-            label={t.materialLabel}
-            value={selectedId}
-            onChange={(event) => setMaterialId((event.target as HTMLSelectElement).value)}
-          >
-            {(materials.data ?? []).map((material) => (
-              <SelectOption key={material.id} value={String(material.id)}>
-                {material.name}
-              </SelectOption>
-            ))}
-          </Select>
+      <div className="grid items-start gap-6 lg:grid-cols-2">
+        <StepCard title={t.briefStep} bodyClassName="grid gap-4 sm:grid-cols-2">
+          <div className="sm:col-span-2">
+            <Select
+              label={t.materialLabel}
+              value={selectedId}
+              onChange={(event) => setMaterialId((event.target as HTMLSelectElement).value)}
+            >
+              {(materials.data ?? []).map((material) => (
+                <SelectOption key={material.id} value={String(material.id)}>
+                  {material.name}
+                </SelectOption>
+              ))}
+            </Select>
+          </div>
           <NumberInput
             label={t.massLabel}
             hint={t.massHint}
@@ -164,11 +164,22 @@ export default function CustoPage() {
             step="any"
             onChange={(event) => setBatch(event.target.value)}
           />
-        </div>
-      </Section>
+        </StepCard>
 
-      <Section title={t.assumptionsStep} description={t.assumptionsHint}>
-        <div className="grid gap-4 sm:grid-cols-2">
+        <StepCard
+          title={t.assumptionsStep}
+          description={t.assumptionsHint}
+          bodyClassName="grid gap-4 sm:grid-cols-2"
+          footer={
+            <Button
+              variant="primary"
+              onClick={() => estimate.mutate()}
+              disabled={!ready || estimate.isPending}
+            >
+              {estimate.isPending ? t.estimating : t.estimate}
+            </Button>
+          }
+        >
           <NumberInput
             label={t.writeOffLabel}
             value={writeOff}
@@ -185,21 +196,23 @@ export default function CustoPage() {
             step="any"
             onChange={(event) => setLoadFactor(event.target.value)}
           />
-        </div>
-        <div>
-          <Button onClick={() => estimate.mutate()} disabled={!ready || estimate.isPending}>
-            {estimate.isPending ? t.estimating : t.estimate}
-          </Button>
-        </div>
-        {estimate.isError ? <Alert tone="danger">{String(estimate.error)}</Alert> : null}
-      </Section>
+          {estimate.isError ? (
+            <Alert tone="danger" className="sm:col-span-2">
+              {String(estimate.error)}
+            </Alert>
+          ) : null}
+        </StepCard>
+      </div>
 
-      {result ? (
-        <Section title={t.resultStep}>
-          <ResultTable result={result} />
-          {result.uncosted.length > 0 ? (
-            <Card>
-              <CardBody className="flex flex-col gap-2">
+      {/* The result card is on screen before there is a result: an empty page
+          under two forms reads as "nothing here", a card that says what will
+          appear reads as the next step. */}
+      <StepCard title={t.resultStep}>
+        {result ? (
+          <>
+            <ResultTable result={result} />
+            {result.uncosted.length > 0 ? (
+              <div className="flex flex-col gap-2 rounded-card border border-edge bg-surface-sunken p-4">
                 <span className="text-sm font-medium text-ink">{t.uncostedTitle}</span>
                 <span className="text-xs text-ink-muted">{t.uncostedHint}</span>
                 <ul className="flex flex-col gap-1 text-sm text-ink">
@@ -209,11 +222,13 @@ export default function CustoPage() {
                     </li>
                   ))}
                 </ul>
-              </CardBody>
-            </Card>
-          ) : null}
-        </Section>
-      ) : null}
+              </div>
+            ) : null}
+          </>
+        ) : (
+          <EmptyState title={t.resultIdleTitle} description={t.resultIdleHint} />
+        )}
+      </StepCard>
     </div>
   );
 }

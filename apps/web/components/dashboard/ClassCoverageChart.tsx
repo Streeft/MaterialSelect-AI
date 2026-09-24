@@ -1,73 +1,67 @@
 "use client";
 
-import { useMemo, useRef } from "react";
-import dynamic from "next/dynamic";
-import type { Data, Layout } from "plotly.js";
+import { useMemo } from "react";
 import type { ClassCoverage } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { formatPercent } from "@/lib/format";
 import { chartFileName } from "@/lib/charts";
-import { chartTheme, token } from "@/lib/design/palette";
-import { Card, CardBody, CardHeader, EmptyState, useResolvedTheme } from "@/components/ui";
-import { ChartToolbar } from "../charts/ChartToolbar";
+import { EmptyState } from "@/components/ui";
+import { ChartFrame } from "../charts/ChartFrame";
 import { FigureData, type FigureColumn } from "../charts/FigureData";
-
-const Plot = dynamic(() => import("react-plotly.js"), { ssr: false });
+import { HorizontalBars, type BarRow, type BarSegment } from "../charts/HorizontalBars";
+import { tok } from "../charts/figureKit";
 
 const t = ptBR.dashboard;
 
+type SegmentKey = "filled" | "declared_missing" | "not_recorded";
+
 /**
- * How complete each material class is, as three stacked segments per class.
+ * How complete each material class is, as three stacked segments per class —
+ * MSDS `BarChart` (D-80).
  *
  * These three colours are not the quality palette — `QualityMixChart` already
  * owns MEDIDO/IMPORTADO/ESTIMADO/AUSENTE/NAO_REGISTRADO. Here the question is
  * coarser (is the slot filled at all?), so the segments borrow neutral tokens
  * instead of introducing a colour that means two different things on the same
  * page.
+ *
+ * The number at the end of each row is `coverage.filled_pct`, computed by the
+ * backend. A class with no slots has no percentage, and says so in words —
+ * never "0%" (D-24).
  */
 export function ClassCoverageChart({ classes }: { classes: ClassCoverage[] }) {
-  const container = useRef<HTMLDivElement>(null);
-  const theme = useResolvedTheme();
-  const paint = useMemo(() => chartTheme(theme), [theme]);
-
   const sorted = useMemo(
     () => [...classes].sort((a, b) => a.name.localeCompare(b.name, "pt-BR")),
     [classes],
   );
   const hasSlots = sorted.some((c) => c.coverage.slots > 0);
 
-  const traces = useMemo<Data[]>(() => {
-    if (!hasSlots) return [];
-    const names = sorted.map((c) => c.name);
-    const segments: { key: "filled" | "declared_missing" | "not_recorded"; label: string; color: string }[] = [
-      { key: "filled", label: t.filled, color: token("--success", 1, theme) },
-      { key: "declared_missing", label: t.declaredMissing, color: token("--quality-ausente", 1, theme) },
-      { key: "not_recorded", label: t.notRecorded, color: token("--edge-strong", 1, theme) },
-    ];
-    return segments.map((segment) => ({
-      type: "bar",
-      orientation: "h",
-      name: segment.label,
-      y: names,
-      x: sorted.map((c) => c.coverage[segment.key]),
-      marker: { color: segment.color },
-      hovertemplate: `%{y}<br>${segment.label}: %{x}<extra></extra>`,
-    }));
-  }, [sorted, hasSlots, theme]);
+  const segments = useMemo<BarSegment[]>(
+    () => [
+      { key: "filled", label: t.filled, color: tok("--success") },
+      { key: "declared_missing", label: t.declaredMissing, color: tok("--quality-ausente") },
+      { key: "not_recorded", label: t.notRecorded, color: tok("--edge-strong") },
+    ],
+    [],
+  );
 
-  const layout = useMemo<Partial<Layout>>(() => {
-    const base = paint.layout;
-    return {
-      ...base,
-      autosize: true,
-      barmode: "stack",
-      height: Math.max(220, 60 + sorted.length * 36),
-      margin: { l: 140, r: 24, t: 16, b: 40 },
-      xaxis: { ...base.xaxis, title: { text: t.columnCoverage }, zeroline: false },
-      yaxis: { ...base.yaxis, automargin: true },
-      legend: { ...base.legend, orientation: "h", y: -0.2 },
-    };
-  }, [paint, sorted.length]);
+  const rows = useMemo<BarRow[]>(
+    () =>
+      sorted.map((c) => ({
+        key: c.slug,
+        label: c.name,
+        values: {
+          filled: c.coverage.filled,
+          declared_missing: c.coverage.declared_missing,
+          not_recorded: c.coverage.not_recorded,
+        },
+        valueLabel:
+          c.coverage.filled_pct === null ? t.noSlots : formatPercent(c.coverage.filled_pct),
+      })),
+    [sorted],
+  );
+
+  const bySlug = useMemo(() => new Map(sorted.map((c) => [c.slug, c])), [sorted]);
 
   const columns = useMemo<FigureColumn<ClassCoverage>[]>(
     () => [
@@ -106,47 +100,42 @@ export function ClassCoverageChart({ classes }: { classes: ClassCoverage[] }) {
   );
 
   return (
-    <Card className="min-w-0">
-      <CardHeader
-        headingLevel={2}
-        title={t.classCoverageTitle}
-        description={t.classCoverageHint}
-        actions={
-          <ChartToolbar
-            target={container}
-            disabled={!hasSlots}
-            fileName={chartFileName("painel", "cobertura-por-classe")}
-          />
-        }
+    <ChartFrame
+      title={t.classCoverageTitle}
+      description={t.classCoverageHint}
+      exportName={chartFileName("painel", "cobertura-por-classe")}
+      exportDisabled={!hasSlots}
+      empty={sorted.length === 0 ? <EmptyState title={t.empty} /> : undefined}
+      table={
+        <FigureData
+          caption={t.classCoverageFigure}
+          rows={sorted}
+          rowKey={(c) => c.slug}
+          rowHeader={{ header: t.columnClass, cell: (c) => c.name }}
+          columns={columns}
+        />
+      }
+    >
+      <HorizontalBars
+        figureLabel={ptBR.chart.figureLabel(t.classCoverageFigure)}
+        segments={segments}
+        rows={rows}
+        toggleable
+        axisTitle={t.columnCount}
+        describe={(row, segment) => {
+          const slots = bySlug.get(row.key)?.coverage.slots ?? 0;
+          const count = row.values[segment.key as SegmentKey] ?? 0;
+          return {
+            aria: `${row.label}: ${segment.label}, ${count.toLocaleString("pt-BR")} ${t.ofSlots(slots)}`,
+            info: (
+              <>
+                <strong>{row.label}</strong> — {segment.label}:{" "}
+                <strong>{count.toLocaleString("pt-BR")}</strong> {t.ofSlots(slots)}
+              </>
+            ),
+          };
+        }}
       />
-      <CardBody className="flex flex-col gap-3">
-        {sorted.length === 0 ? (
-          <EmptyState title={t.empty} />
-        ) : (
-          <>
-            <div
-              ref={container}
-              role="img"
-              aria-label={ptBR.chart.figureLabel(t.classCoverageFigure)}
-            >
-              <Plot
-                data={traces}
-                layout={layout}
-                config={{ displaylogo: false, responsive: true }}
-                style={{ width: "100%" }}
-                useResizeHandler
-              />
-            </div>
-            <FigureData
-              caption={t.classCoverageFigure}
-              rows={sorted}
-              rowKey={(c) => c.slug}
-              rowHeader={{ header: t.columnClass, cell: (c) => c.name }}
-              columns={columns}
-            />
-          </>
-        )}
-      </CardBody>
-    </Card>
+    </ChartFrame>
   );
 }

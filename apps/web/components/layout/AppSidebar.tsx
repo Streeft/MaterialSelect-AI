@@ -370,7 +370,10 @@ export function AppSidebar() {
       {/* Narrow screens: a thin bar that carries only the path to the drawer.
           Theme control is not duplicated here — it lives inside the drawer, beside
           everything else that's navigation chrome. */}
-      <header className="sticky top-0 z-30 flex items-center gap-2 bg-rail px-3 py-2 lg:hidden">
+      <header
+        data-surface="rail"
+        className="sticky top-0 z-30 flex items-center gap-2 bg-rail px-3 py-2 lg:hidden"
+      >
         {/* The label doesn't change to "close": while the drawer is open this
             button sits behind the overlay, and the drawer carries its own
             close control. Two buttons with the same name and function are a maze
@@ -393,8 +396,9 @@ export function AppSidebar() {
           while the content column scrolls beneath. */}
       <aside
         id="navegacao-lateral"
+        data-surface="rail"
         className={cn(
-          "sticky top-0 hidden h-screen shrink-0 flex-col gap-5 bg-rail px-3 py-4 transition-[width] ease-emphasized duration-slow lg:flex",
+          "sticky top-0 hidden h-screen shrink-0 flex-col gap-4 bg-rail px-3 py-4 transition-[width] ease-emphasized duration-slow lg:flex",
           collapsed ? "w-[68px]" : "w-64",
         )}
       >
@@ -410,7 +414,7 @@ export function AppSidebar() {
         <nav
           aria-label={ptBR.ui.mainNav}
           style={railAccentStyle}
-          className="flex flex-1 flex-col gap-5 overflow-y-auto overscroll-contain"
+          className="flex flex-1 flex-col gap-3 overflow-y-auto overscroll-contain"
         >
           <ul className="flex flex-col gap-0.5">
             <li>
@@ -477,6 +481,7 @@ export function AppSidebar() {
             aria-modal="true"
             aria-label={ptBR.ui.mainNav}
             tabIndex={-1}
+            data-surface="rail"
             className="absolute left-0 top-0 flex h-full w-72 max-w-[85vw] flex-col gap-5 overflow-y-auto bg-rail p-4 shadow-overlay"
           >
             <div className="flex items-center justify-between gap-2">

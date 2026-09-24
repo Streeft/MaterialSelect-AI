@@ -18,13 +18,18 @@ import type { CompareAxis, CompareCell, CompareMaterial, Comparison, PropertyMap
 // situation exactly: the figure is absent, and the page still has to work.
 vi.mock("react-plotly.js", () => ({
   default: (props: {
-    layout?: { dragmode?: string; shapes?: unknown[] };
+    data?: { name?: string; visible?: boolean }[];
+    layout?: { dragmode?: string; shapes?: unknown[]; showlegend?: boolean };
     onSelected?: (event: unknown) => void;
   }) => (
     <div
       data-testid="plotly-mock"
       data-dragmode={props.layout?.dragmode}
       data-shapes={JSON.stringify(props.layout?.shapes ?? [])}
+      data-showlegend={String(props.layout?.showlegend)}
+      data-hidden-traces={JSON.stringify(
+        (props.data ?? []).filter((trace) => trace.visible === false).map((trace) => trace.name),
+      )}
     >
       <button
         type="button"
@@ -46,6 +51,15 @@ vi.mock("react-plotly.js", () => ({
         onClick={() => props.onSelected?.(null)}
       >
         Simulate Clear
+      </button>
+      {/* What Plotly's reselect pass emits on every Plotly.react: an event
+          object with points and no range. Not a clear. */}
+      <button
+        type="button"
+        data-testid="simulate-reselect"
+        onClick={() => props.onSelected?.({ points: [] })}
+      >
+        Simulate Reselect
       </button>
     </div>
   ),
@@ -119,13 +133,10 @@ function renderFigureData() {
 }
 
 describe("FigureData", () => {
-  it("hands the figure's numbers to a reader who cannot see the figure", async () => {
-    const user = userEvent.setup();
+  it("hands the figure's numbers to a reader who cannot see the figure", () => {
+    // Only the table: since D-80 the chart card's "Ver tabela de dados" toggle
+    // shows it in place of the figure (see ChartFrame below).
     renderFigureData();
-
-    // Closed by default, and one activation away — that is what "acessível a
-    // partir da figura" has to mean for a keyboard reader.
-    await user.click(screen.getByText(t.dataTable));
 
     const table = screen.getByShadowRole("table", { name: "Densidade × módulo" });
     expect(within(table).getByShadowRole("rowheader", { name: "Aço 1020" })).toBeInTheDocument();
@@ -216,32 +227,155 @@ function makeComparison(): Comparison {
   return { normalization: "minmax", properties: [makeAxis()], materials, notes: [] };
 }
 
+/** Three properties, so the radar has a figure to draw; Alumina lacks one. */
+function makeWideComparison(): Comparison {
+  const slugs = ["densidade", "modulo-young", "custo"] as const;
+  const properties = slugs.map((slug, i) =>
+    makeAxis({
+      property_slug: slug,
+      property_name: ["Densidade", "Módulo de Young", "Custo"][i] ?? slug,
+      symbol: ["ρ", "E", "C"][i] ?? null,
+      missing_material_ids: slug === "custo" ? [2] : [],
+    }),
+  );
+  const materials: CompareMaterial[] = [
+    {
+      material_id: 1,
+      name: "Aço 1020",
+      class_name: "Metais",
+      class_slug: "metais",
+      is_demo: true,
+      cells: slugs.map((slug, i) => makeCell({ property_slug: slug, normalized: [0.75, 1, 0][i] ?? 0 })),
+      complete: true,
+    },
+    {
+      material_id: 2,
+      name: "Alumina",
+      class_name: "Cerâmicas",
+      class_slug: "ceramicas",
+      is_demo: true,
+      cells: slugs.map((slug, i) =>
+        slug === "custo"
+          ? makeCell({ property_slug: slug, is_missing: true, value: null, normalized: null })
+          : makeCell({ property_slug: slug, normalized: [0.25, 0.5][i] ?? 0 }),
+      ),
+      complete: false,
+    },
+  ];
+  return { normalization: "minmax", properties, materials, notes: [] };
+}
+
 /**
- * The comparator in a chart mode: Plotly never renders under jsdom (it is
- * dynamically imported with `ssr: false`), which is precisely the reader's
- * situation. What is left on the page has to be enough.
+ * The comparator in a chart mode (D-80): the four figures are the app's own
+ * MSDS SVG, so under jsdom they render for real — marks, legend and all.
  */
 describe("ComparisonView, chart modes", () => {
-  it("carries the plotted numbers as a table", async () => {
+  it("carries the plotted numbers as a table, one toggle away", async () => {
     const user = userEvent.setup();
     render(<ComparisonView comparison={makeComparison()} mode="bars" />);
 
-    await user.click(screen.getByText(t.dataTable));
-
     const caption = `${ptBR.compare.figure} — ${ptBR.compare.normalizedScale}`;
+    // Hidden while the figure shows — and never absent from the page.
+    expect(screen.queryByShadowRole("table", { name: caption })).not.toBeInTheDocument();
+    await user.click(screen.getByShadowRole("button", { name: t.showTable }));
+
     const table = screen.getByShadowRole("table", { name: caption });
     expect(within(table).getByText("0,75")).toBeInTheDocument();
     // The material the figure could not plot is in the table all the same.
     const row = within(table).getByShadowRole("rowheader", { name: /Alumina/ }).closest("tr");
     expect(within(row as HTMLElement).getByText(ptBR.quality.AUSENTE)).toBeInTheDocument();
+    // And the way back is the same button, renamed.
+    expect(screen.getByShadowRole("button", { name: t.showFigure })).toBeInTheDocument();
   });
 
-  it("presents the figure as a single object, not as a wall of paths", () => {
-    render(<ComparisonView comparison={makeComparison()} mode="radar" />);
+  it("presents the figure as one named figure", () => {
+    render(<ComparisonView comparison={makeComparison()} mode="bars" />);
 
     expect(
-      screen.getByShadowRole("img", { name: t.figureLabel(ptBR.compare.figure) }),
+      screen.getByShadowRole("figure", { name: t.figureLabel(ptBR.compare.figure) }),
     ).toBeInTheDocument();
+  });
+
+  it("writes a missing score as absence in the bars, never as a short bar (D-24)", () => {
+    render(<ComparisonView comparison={makeComparison()} mode="bars" />);
+
+    expect(
+      screen.getByShadowRole("img", { name: new RegExp(`Alumina.*${ptBR.quality.AUSENTE}`) }),
+    ).toBeInTheDocument();
+    expect(screen.getByShadowRole("img", { name: /Aço 1020.*0,75/ })).toBeInTheDocument();
+  });
+
+  it("keeps a whole figure to one tab stop, and walks its marks with the arrows", async () => {
+    const user = userEvent.setup();
+    render(<ComparisonView comparison={makeWideComparison()} mode="bars" />);
+
+    const figure = screen.getByShadowRole("figure", { name: t.figureLabel(ptBR.compare.figure) });
+    const marks = within(figure).getAllByShadowRole("img");
+    expect(marks.filter((mark) => mark.getAttribute("tabindex") === "0")).toHaveLength(1);
+
+    const first = marks[0] as HTMLElement;
+    first.focus();
+    await user.keyboard("{ArrowRight}");
+    expect(document.activeElement).toBe(marks[1]);
+    await user.keyboard("{End}");
+    expect(document.activeElement).toBe(marks[marks.length - 1]);
+  });
+
+  it("draws only complete materials on the radar, and lists the rest", () => {
+    render(<ComparisonView comparison={makeWideComparison()} mode="radar" />);
+
+    expect(screen.getByText(new RegExp(ptBR.compare.radarSkipsMissing.slice(0, 30)))).toHaveTextContent(
+      "Alumina",
+    );
+    const legend = screen.getByShadowRole("group", { name: t.legendToggle });
+    expect(within(legend).getByShadowRole("button", { name: "Aço 1020" })).toBeInTheDocument();
+    expect(within(legend).queryByShadowRole("button", { name: "Alumina" })).not.toBeInTheDocument();
+    // No vertex of the incomplete material, so no invented zero on its gap.
+    expect(screen.queryByShadowRole("img", { name: /Alumina/ })).not.toBeInTheDocument();
+  });
+
+  it("hides and restores a series from the legend", async () => {
+    const user = userEvent.setup();
+    render(<ComparisonView comparison={makeWideComparison()} mode="parallel" />);
+
+    const button = screen.getByShadowRole("button", { name: "Alumina" });
+    expect(button).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getAllByShadowRole("img", { name: /Alumina/ }).length).toBeGreaterThan(0);
+
+    await user.click(button);
+    expect(button).toHaveAttribute("aria-pressed", "false");
+    expect(screen.queryByShadowRole("img", { name: /Alumina/ })).not.toBeInTheDocument();
+
+    await user.click(button);
+    expect(button).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("says under the axis how many materials the parallel line skips", () => {
+    render(<ComparisonView comparison={makeWideComparison()} mode="parallel" />);
+
+    expect(screen.getByText(t.missingOnAxis(1))).toBeInTheDocument();
+  });
+
+  it("names a missing heatmap cell, and the scale names the absence", () => {
+    render(<ComparisonView comparison={makeWideComparison()} mode="heatmap" />);
+
+    expect(
+      screen.getByShadowRole("img", { name: new RegExp(`Alumina.*Custo: ${ptBR.quality.AUSENTE}`) }),
+    ).toBeInTheDocument();
+    const figure = screen.getByShadowRole("figure", { name: t.figureLabel(ptBR.compare.figure) });
+    // The written legend entry beside the ramp — absence is never an empty square.
+    expect(within(figure).getAllByText(ptBR.quality.AUSENTE).length).toBeGreaterThan(0);
+  });
+
+  it("has no accessibility violations in any chart mode", async () => {
+    for (const mode of ["bars", "radar", "parallel", "heatmap"] as const) {
+      const { container, unmount } = render(
+        <ComparisonView comparison={makeWideComparison()} mode={mode} />,
+      );
+      const violations = await findA11yViolations(container);
+      expect(violations, `${mode}: ${describeViolations(violations)}`).toHaveLength(0);
+      unmount();
+    }
   });
 });
 
@@ -408,18 +542,13 @@ function makePropertyMap(): PropertyMap {
 describe("AshbyMap — seleção interativa e cursor", () => {
   it("não renderiza seletor de cursor quando enableBoxSelect é falso ou omitido", () => {
     const { container } = render(<AshbyMap map={makePropertyMap()} />);
-    expect(container.querySelector("md-outlined-segmented-button-set")).toBeNull();
+    expect(container.querySelector(".msds-segmented")).toBeNull();
   });
 
   it("renderiza o alternador de cursor entre zoom e seleção quando enableBoxSelect está ativo", () => {
-    const { container } = render(<AshbyMap map={makePropertyMap()} enableBoxSelect />);
-    const set = container.querySelector("md-outlined-segmented-button-set");
-    expect(set).toBeInTheDocument();
-    expect(set?.getAttribute("data-aria-label") ?? set?.getAttribute("aria-label")).toBe(
-      ptBR.chart.dragMode,
-    );
-    const buttons = container.querySelectorAll("md-outlined-segmented-button");
-    expect(buttons).toHaveLength(2);
+    render(<AshbyMap map={makePropertyMap()} enableBoxSelect />);
+    const set = screen.getByRole("group", { name: ptBR.chart.dragMode });
+    expect(within(set).getAllByRole("button")).toHaveLength(2);
   });
 
   it("passa a caixa de seleção configurada como shape retangular no layout do Plotly", async () => {
@@ -491,10 +620,56 @@ describe("AshbyMap — seleção interativa e cursor", () => {
     expect(onSelectBox).toHaveBeenCalledWith(null);
   });
 
+  it("lê a caixa num eixo log em unidades de dado, sem elevar 10 ao valor", async () => {
+    // Plotly reports a log-axis box in data units (selections/helpers.js:
+    // p2r → ax.p2d). 10^2000 would be Infinity.
+    const user = userEvent.setup();
+    const onSelectBox = vi.fn();
+    render(
+      <AshbyMap map={makePropertyMap()} displayScale="log" enableBoxSelect onSelectBox={onSelectBox} />,
+    );
+
+    await user.click(await screen.findByTestId("simulate-selection"));
+
+    expect(onSelectBox).toHaveBeenCalledWith({ xMin: 2000, xMax: 8000, yMin: 50, yMax: 300 });
+  });
+
+  it("não apaga a região quando o Plotly reemite a seleção num re-render", async () => {
+    const user = userEvent.setup();
+    const onSelectBox = vi.fn();
+    render(
+      <AshbyMap map={makePropertyMap()} displayScale="linear" enableBoxSelect onSelectBox={onSelectBox} />,
+    );
+
+    await user.click(await screen.findByTestId("simulate-reselect"));
+
+    expect(onSelectBox).not.toHaveBeenCalled();
+  });
+
   it("permite customizar o rótulo da coluna de registro na tabela via recordLabel", async () => {
     const user = userEvent.setup();
     render(<AshbyMap map={makePropertyMap()} recordLabel="Processo" />);
-    await user.click(screen.getByText(t.dataTable));
+    await user.click(screen.getByShadowRole("button", { name: t.showTable }));
     expect(screen.getByShadowRole("columnheader", { name: "Processo" })).toBeInTheDocument();
+  });
+
+  it("troca a legenda do Plotly pelos botões MSDS, que ocultam a classe sem mexer na seleção", async () => {
+    const user = userEvent.setup();
+    const onSelectBox = vi.fn();
+    render(<AshbyMap map={makePropertyMap()} enableBoxSelect onSelectBox={onSelectBox} />);
+
+    const mock = await screen.findByTestId("plotly-mock");
+    expect(mock).toHaveAttribute("data-showlegend", "false");
+
+    const legend = screen.getByShadowRole("group", { name: t.legendToggle });
+    const metals = within(legend).getByShadowRole("button", { name: "Metais" });
+    expect(metals).toHaveAttribute("aria-pressed", "true");
+
+    await user.click(metals);
+
+    expect(metals).toHaveAttribute("aria-pressed", "false");
+    expect(JSON.parse(mock.getAttribute("data-hidden-traces") ?? "[]")).toContain("Metais");
+    // Hiding a class is a view choice, not a region: the selection is untouched.
+    expect(onSelectBox).not.toHaveBeenCalled();
   });
 });

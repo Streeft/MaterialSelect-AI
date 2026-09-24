@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getPropertyMap } from "@/lib/api";
+import { convertMapBox, getPropertyMap } from "@/lib/api";
+import { fromMapBox, toMapBox } from "@/lib/mapBox";
 import type {
   ChartAxisIn,
   ChartStageIn,
@@ -18,6 +19,7 @@ import type {
 } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import {
+  Alert,
   Badge,
   type BadgeTone,
   Button,
@@ -748,7 +750,35 @@ function ChartStageFields({
     return { xMin, xMax, yMin, yMax };
   }, [stage.x.min, stage.x.max, stage.y.min, stage.y.max]);
 
+  // D-81: the stage's fields are canonical (kg/m³, Pa) and the map draws in
+  // reading units (g/cm³, GPa, D-70). A region crosses that border through the
+  // backend in both directions — never through a factor applied here.
+  const boxAxes = {
+    universe,
+    x: stage.x.mode === "property" ? stage.x.propertySlug : null,
+    y: stage.y.mode === "property" ? stage.y.propertySlug : null,
+  };
+  const displayBoxQuery = useQuery({
+    queryKey: ["stage-chart-box", boxAxes, currentBox],
+    queryFn: () =>
+      convertMapBox({ ...boxAxes, box: toMapBox(currentBox!), to: "display" }),
+    enabled: canPlotMap && showMap && currentBox !== null,
+    // A drawn box round-trips (drawn → canonical → drawn); keeping the last
+    // one on screen while it does stops the region blinking off and on.
+    placeholderData: (previous) => previous,
+  });
+  const displayBox =
+    currentBox !== null && displayBoxQuery.data ? fromMapBox(displayBoxQuery.data.box) : null;
+
+  // The stage may change while a conversion is in flight; write onto the latest.
+  const latestStage = useRef(stage);
+  useEffect(() => {
+    latestStage.current = stage;
+  }, [stage]);
+  const [boxError, setBoxError] = useState<string | null>(null);
+
   const handleSelectBox = (box: BoxSelection | null) => {
+    setBoxError(null);
     if (!box) {
       onChange({
         ...stage,
@@ -757,19 +787,27 @@ function ChartStageFields({
       });
       return;
     }
-    onChange({
-      ...stage,
-      x: {
-        ...stage.x,
-        min: box.xMin !== null ? String(box.xMin) : "",
-        max: box.xMax !== null ? String(box.xMax) : "",
-      },
-      y: {
-        ...stage.y,
-        min: box.yMin !== null ? String(box.yMin) : "",
-        max: box.yMax !== null ? String(box.yMax) : "",
-      },
-    });
+    convertMapBox({ ...boxAxes, box: toMapBox(box), to: "canonical" })
+      .then(({ box: stored }) => {
+        const current = latestStage.current;
+        onChange({
+          ...current,
+          x: {
+            ...current.x,
+            min: stored.x_min !== null ? String(stored.x_min) : "",
+            max: stored.x_max !== null ? String(stored.x_max) : "",
+          },
+          y: {
+            ...current.y,
+            min: stored.y_min !== null ? String(stored.y_min) : "",
+            max: stored.y_max !== null ? String(stored.y_max) : "",
+          },
+        });
+      })
+      .catch((error: unknown) => {
+        // Never fall back to writing the drawn numbers: they are in another unit.
+        setBoxError(error instanceof Error ? error.message : String(error));
+      });
   };
 
   const handleClearBox = () => {
@@ -830,10 +868,11 @@ function ChartStageFields({
                   map={mapQuery.data}
                   recordLabel={universe === "process" ? ptBR.map.columnProcess : undefined}
                   enableBoxSelect
-                  selectionBox={currentBox}
+                  selectionBox={displayBox}
                   onSelectBox={handleSelectBox}
                 />
               )}
+              {boxError ? <Alert tone="danger">{boxError}</Alert> : null}
             </div>
           )}
         </div>

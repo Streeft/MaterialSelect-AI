@@ -164,7 +164,7 @@ const result: EcoAuditResult = {
     "A reciclagem aparece duas vezes e nunca se cancela. Este documento não abate crédito de reciclagem do total.",
 };
 
-const nav = vi.hoisted(() => ({ query: "" }));
+const nav = vi.hoisted(() => ({ query: "", noProcess: false }));
 
 // `PageHeader` reads the pathname for the route palette (D-49); without this it
 // gets null and the header throws before anything renders.
@@ -176,7 +176,7 @@ vi.mock("next/navigation", () => ({
 
 vi.mock("@/lib/api", () => ({
   listMaterials: () => Promise.resolve(materials),
-  getMaterial: () => Promise.resolve(detail),
+  getMaterial: () => Promise.resolve(nav.noProcess ? { ...detail, processes: [] } : detail),
   listTransportModes: () => Promise.resolve(modes),
   runEcoAudit: (payload: EcoAuditRequest) => runEcoAudit(payload),
 }));
@@ -196,6 +196,7 @@ async function open() {
 }
 
 beforeEach(() => {
+  nav.noProcess = false;
   nav.query = "material=7&massa=2";
   runEcoAudit.mockReset();
   runEcoAudit.mockResolvedValue(result);
@@ -224,6 +225,15 @@ describe("Auditoria ambiental", () => {
       material_id: 7,
       part_mass: 2,
     });
+  });
+
+  it("diz que não há processo, em vez de um seletor vazio", async () => {
+    // D-24: um <select> vazio parecia controle que falhou ao carregar.
+    nav.noProcess = true;
+    await open();
+
+    expect(await screen.findByText(t.noProcess)).toBeInTheDocument();
+    expect(await screen.findByShadowRole("button", { name: t.run })).toBeDisabled();
   });
 
   it("só oferece processos que fazem este material", async () => {
@@ -281,7 +291,8 @@ describe("Auditoria ambiental", () => {
 
     await user.click(await screen.findByShadowRole("button", { name: t.run }));
 
-    await screen.findByRole("heading", { name: t.resultStep });
+    // The result card is always on screen; the podium is what the run adds.
+    await screen.findByText(t.dominanceTitle);
     // Scoped to the table, and read in order: "Material" is also the label of
     // the picker in step 1, so an unscoped query could pass on the wrong node —
     // and the order is itself the claim, since the phases are never sorted by
@@ -349,7 +360,8 @@ describe("Auditoria ambiental", () => {
 
     await user.click(await screen.findByShadowRole("button", { name: t.run }));
 
-    await screen.findByRole("heading", { name: t.resultStep });
+    // The result card is always on screen; the podium is what the run adds.
+    await screen.findByText(t.dominanceTitle);
     expect(
       screen.getByText(/Dados ausentes: intensidade-carbono-do-modal/),
     ).toBeInTheDocument();
@@ -369,7 +381,8 @@ describe("Auditoria ambiental", () => {
 
     await user.click(await screen.findByShadowRole("button", { name: t.run }));
 
-    await screen.findByRole("heading", { name: t.resultStep });
+    // The result card is always on screen; the podium is what the run adds.
+    await screen.findByText(t.dominanceTitle);
     expect(
       screen.getAllByText(new RegExp("não é um total")).length,
     ).toBeGreaterThan(0);
@@ -387,13 +400,26 @@ describe("Auditoria ambiental", () => {
     expect(screen.getByText(/2,5 kg/)).toBeInTheDocument();
   });
 
+  it("leva o nome do material à ficha do registro, não a uma família", async () => {
+    // /app/catalogo/[slug] é a família; um id ali cairia numa família inexistente.
+    const user = userEvent.setup();
+    await open();
+
+    await user.click(await screen.findByShadowRole("button", { name: t.run }));
+
+    expect(
+      await screen.findByRole("link", { name: "Liga Alumínio Demo A" }),
+    ).toHaveAttribute("href", "/app/materiais/7");
+  });
+
   it("diz em que unidade o carbono está e por quê", async () => {
     const user = userEvent.setup();
     await open();
 
     await user.click(await screen.findByShadowRole("button", { name: t.run }));
 
-    await screen.findByRole("heading", { name: t.resultStep });
+    // The result card is always on screen; the podium is what the run adds.
+    await screen.findByText(t.dominanceTitle);
     expect(screen.getByText(/adimensional no catálogo/)).toBeInTheDocument();
   });
 
@@ -403,7 +429,8 @@ describe("Auditoria ambiental", () => {
 
     await user.click(await screen.findByShadowRole("button", { name: t.run }));
 
-    await screen.findByRole("heading", { name: t.resultStep });
+    // The result card is always on screen; the podium is what the run adds.
+    await screen.findByText(t.dominanceTitle);
     expect(
       screen.getByText(/não abate crédito de reciclagem/),
     ).toBeInTheDocument();
