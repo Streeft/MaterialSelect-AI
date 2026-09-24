@@ -9,6 +9,8 @@ ranks candidates — delegating the arithmetic to the pure ``domain`` /
 
 from __future__ import annotations
 
+from dataclasses import asdict
+
 from app.calculations.expressions import (
     ExpressionError,
     result_dimension,
@@ -17,7 +19,7 @@ from app.calculations.expressions import (
 )
 from app.calculations.performance import evaluate_index
 from app.calculations.units import UnitError, to_canonical
-from app.domain.errors import ConflictError, NotFoundError, ValidationError
+from app.domain.errors import ConflictError, DomainError, NotFoundError, ValidationError
 from app.domain.filters import (
     ChartAxis,
     ChartSelection,
@@ -46,6 +48,7 @@ from app.domain.ranking import (
 )
 from app.domain.slug import slugify
 from app.domain.taxonomy import lineages
+from app.domain.weights import WeightEntry, weight_budget
 
 # The one number formatter in the codebase, and the same one the report and the
 # laudo print with — `describe_pipeline` and the chart-stage sentence below feed
@@ -86,6 +89,7 @@ from app.schemas.selection import (
     IndexResultOut,
     IndexValueOut,
     PerformanceIndexOut,
+    PreviewCandidateOut,
     RankedMaterialOut,
     RankingIn,
     RankingResultOut,
@@ -98,6 +102,9 @@ from app.schemas.selection import (
     StudyIn,
     StudyOut,
     StudySummaryOut,
+    WeightBudgetOut,
+    WeightsPreviewOut,
+    WeightsPreviewRequest,
 )
 from app.services.audit_service import record_change
 
@@ -1687,6 +1694,7 @@ class SelectionService:
         self._check_stage_conflict(request.constraints, request.root_group, request.stages)
         self._check_root_group_conflict(request.constraints, request.root_group)
         self._load_catalogue(request.universe)
+        self._check_unique_criteria(request.ranking.criteria if request.ranking else [])
         stages = self._request_stages(
             request.combinator,
             request.constraints,
@@ -1776,6 +1784,141 @@ class SelectionService:
             index=index_out,
             ranking=ranking_out,
         )
+
+    # --- weight budget and top-N preview (D-87) ---------------------------
+
+    def _check_unique_criteria(self, criteria: list[CriterionIn]) -> None:
+        """Refuse a ranking that names the same criterion twice.
+
+        Two rows for one property double its weight behind the reader's back,
+        and the contributions table then shows two lines that are the same
+        column. Checked where a ranking *enters* (``run``, ``create_study``) and
+        deliberately not in ``run_study`` or the exporters: a study saved before
+        this rule has to keep opening and re-running.
+        """
+        seen: set[str] = set()
+        for criterion in criteria:
+            if criterion.key in seen:
+                if criterion.key == INDEX_KEY:
+                    name = "índice de desempenho"
+                else:
+                    prop = self._props.get(criterion.key)
+                    name = prop.name if prop is not None else criterion.key
+                raise ValidationError(
+                    f"Critério repetido: {name}. Cada critério entra uma vez no ranking — "
+                    "some os pesos numa linha só."
+                )
+            seen.add(criterion.key)
+
+    def _rankable_keys(self) -> set[str]:
+        """What may be a criterion in the catalogue in force: every material
+        property, every process attribute except the discrete ones (D-59)."""
+        return {
+            slug
+            for slug, prop in self._props.items()
+            if getattr(prop, "kind", None) is not ProcessAttributeKind.DISCRETO
+        }
+
+    @staticmethod
+    def _stage_constrains(stage: SelectionStageNode) -> bool:
+        """Whether an enabled stage narrows anything — a limit stage with no
+        constraint in its tree admits everyone and does not count."""
+        if not stage.enabled:
+            return False
+        if stage.kind != "limit":
+            return True
+
+        def has_items(group: ConstraintGroupNode | None) -> bool:
+            if group is None:
+                return False
+            return bool(group.constraints) or any(has_items(c) for c in group.children)
+
+        return has_items(stage.root)
+
+    def weights_preview(self, request: WeightsPreviewRequest) -> WeightsPreviewOut:
+        """The weight budget of the criteria as typed, and the top-N they rank.
+
+        The budget is computed first and never fails because of the selection:
+        whatever goes wrong in the pipeline (a constraint half-typed, an
+        expression that does not parse) becomes ``unavailable_reason`` with the
+        backend's own message, and the budget still reaches the screen.
+
+        The ranking runs over the rows that are already sound, with sensitivity
+        off (this answers on every pause in the typing), and with the weights
+        renormalized when they do not close — exactly what ``/run`` would do.
+        """
+        self._load_catalogue(request.universe)
+        budget = weight_budget(
+            [WeightEntry(key=c.key, weight=c.weight) for c in request.criteria],
+            self._rankable_keys(),
+            index_available=request.index is not None,
+        )
+        out = WeightsPreviewOut(
+            budget=WeightBudgetOut.model_validate(asdict(budget)),
+            method=request.method,
+            renormalized=budget.status not in ("empty", "complete"),
+        )
+
+        sound = [
+            CriterionIn(key=c.key, label=c.label, direction=c.direction, weight=c.weight)
+            for c, row in zip(request.criteria, budget.rows, strict=True)
+            if row.issue is None and c.weight is not None and c.weight > 0
+        ]
+        if not sound:
+            out.unavailable_reason = "no_criteria"
+            out.unavailable_message = (
+                "Escolha um critério e dê um peso a ele para ver a prévia do ranking."
+            )
+            return out
+
+        try:
+            stages = self._request_stages("AND", [], None, request.stages or None, request.universe)
+            snapshots = self._records(request.universe)
+            _, _, candidates = self._apply_stages(snapshots, stages)
+            out.initial_count = len(snapshots)
+            out.candidate_count = len(candidates)
+            out.constraints_applied = any(self._stage_constrains(s) for s in stages)
+            if not candidates:
+                out.unavailable_reason = "no_candidates"
+                out.unavailable_message = (
+                    "Nenhum registro passa pelas restrições atuais: não há o que ordenar."
+                )
+                return out
+            ranking = self._rank(
+                candidates,
+                RankingIn(
+                    normalization=request.normalization,
+                    method=request.method,
+                    criteria=sound,
+                    run_sensitivity=False,
+                ),
+                request.index,
+            )
+        except (DomainError, UnitError) as exc:
+            out.unavailable_reason = "pipeline_error"
+            out.unavailable_message = str(exc)
+            return out
+
+        out.ranked_count = len(ranking.ranked)
+        if not ranking.ranked:
+            out.unavailable_reason = "all_excluded"
+            out.unavailable_message = (
+                "Nenhum candidato tem valor em todos os critérios escolhidos: "
+                "não há o que ordenar."
+            )
+            return out
+        class_by_id = {c.id: c.class_name for c in candidates}
+        out.top = [
+            PreviewCandidateOut(
+                rank=r.rank,
+                record_id=r.record_id,
+                name=r.name,
+                class_name=class_by_id.get(r.record_id),
+                score=r.score,
+            )
+            for r in ranking.ranked[: request.top_n]
+        ]
+        return out
 
     @staticmethod
     def _pipeline_combinator(stages: list[SelectionStageNode]) -> str:
@@ -1869,6 +2012,7 @@ class SelectionService:
         self._check_root_group_conflict(payload.constraints, payload.root_group)
         if self.repo.study_name_exists(payload.name, self.project_id):
             raise ConflictError(f"Já existe um estudo com o nome: {payload.name}")
+        self._check_unique_criteria(payload.criteria)
         # Refused at save time, not only at run time: a study that cannot be run
         # is not a study worth storing, and finding out later is worse.
         self._check_ranking_inputs(

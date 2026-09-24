@@ -206,6 +206,23 @@ def test_a_selection_run_never_admits_another_persons_record(
     assert PRIVATE_NAME not in response.text
 
 
+def test_the_weights_preview_never_ranks_another_persons_record(
+    client, login_as, other_user: User, private_record: Material
+) -> None:
+    """D-87: the preview ranks the catalogue on every pause in the typing, so it
+    is a POST surface like the run. Both directions: invisible to the stranger,
+    ranked for the owner — ``top_n`` wide enough that only visibility decides."""
+    payload = {"criteria": [{"key": "modulo_young", "weight": 1}], "top_n": 10}
+
+    stranger = client.post("/api/selection/weights-preview", json=payload)
+    assert stranger.status_code == 200, stranger.text
+    assert PRIVATE_NAME not in stranger.text
+
+    with login_as(other_user):
+        owner = client.post("/api/selection/weights-preview", json=payload)
+    assert PRIVATE_NAME in owner.text
+
+
 def test_the_panel_does_not_count_another_persons_record(
     client, login_as, other_user: User, private_record: Material
 ) -> None:

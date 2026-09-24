@@ -99,6 +99,16 @@ def test_health_reports_the_mode_publicly(anon_client, monkeypatch):
     assert anon_client.get("/api/health").json()["access_mode"] == "open"
 
 
+def test_open_mode_lets_a_student_preview_weights(client_without_subscription, open_mode):
+    # D-87: the preview is read while typing a study, which a student may do.
+    response = client_without_subscription.post(
+        "/api/selection/weights-preview",
+        json={"criteria": [{"key": "densidade", "weight": 1}]},
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["budget"]["can_run"] is True
+
+
 def test_open_mode_still_requires_login(anon_client, open_mode):
     assert anon_client.get("/api/materials").status_code == 401
 

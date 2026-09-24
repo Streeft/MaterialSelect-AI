@@ -30,6 +30,8 @@ from app.schemas.selection import (
     StudyIn,
     StudyOut,
     StudySummaryOut,
+    WeightsPreviewOut,
+    WeightsPreviewRequest,
 )
 from app.services.selection_service import SelectionService
 
@@ -95,6 +97,22 @@ def run_selection(
 ) -> RunResultOut:
     """Run the full pipeline: filter → index → ranking (with sensitivity)."""
     return SelectionService(db, project.id, user).run(payload)
+
+
+@router.post("/weights-preview", response_model=WeightsPreviewOut)
+def preview_weights(
+    payload: WeightsPreviewRequest,
+    db: Session = Depends(get_db),
+    project: Project = Depends(get_current_project),
+    user: User = Depends(get_current_user),
+) -> WeightsPreviewOut:
+    """The weight budget of the criteria as typed, plus the top-N they rank (D-87).
+
+    Called while the reader types, so it answers 200 with the reason when there
+    is nothing to rank yet, instead of an error per keystroke. Same dependencies
+    as ``/run``: whoever may run a selection may preview one.
+    """
+    return SelectionService(db, project.id, user).weights_preview(payload)
 
 
 # --- saved studies ---------------------------------------------------------
