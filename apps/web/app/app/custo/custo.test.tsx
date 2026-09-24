@@ -130,7 +130,8 @@ describe("Custo da peça", () => {
 
     await user.click(await screen.findByShadowRole("button", { name: t.estimate }));
 
-    await screen.findByRole("heading", { name: t.resultStep });
+    // The result card is always on screen; the table is what the run adds.
+    await screen.findByRole("table");
     for (const value of ["20", "12", "7,08", "0,95", "40,03"]) {
       expect(screen.getByText(value)).toBeInTheDocument();
     }
@@ -144,7 +145,8 @@ describe("Custo da peça", () => {
 
     await user.click(await screen.findByShadowRole("button", { name: t.estimate }));
 
-    await screen.findByRole("heading", { name: t.resultStep });
+    // The result card is always on screen; the table is what the run adds.
+    await screen.findByRole("table");
     expect(screen.getByText(new RegExp("unidade monetária não especificada"))).toBeInTheDocument();
   });
 

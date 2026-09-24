@@ -110,10 +110,11 @@ pode carregar token.
 
 ## Sistema de design (frontend)
 
-A interface tem um sistema de design próprio, **sem biblioteca de componentes**
-(D-23) — exceto as primitivas de baixo nível envolvidas por `@material/web`
-(botão, checkbox, radio, select, chip, diálogo, abas), exceção pontual aceita
-em D-48. Três regras que não são questão de gosto:
+A interface tem um sistema de design próprio, **sem biblioteca de componentes
+externa** (D-23): o MSDS (`apps/web/lib/msds/`, D-74) é código deste
+repositório, e desde [D-80](docs/DECISIONS.md) nenhuma primitiva depende mais
+de `@material/web` — a dependência saiu do `package.json` e a exceção de D-48
+ficou sem objeto. Três regras que não são questão de gosto:
 
 - **Cor só via token.** Todo valor de cor vive em `apps/web/app/globals.css` como
   triplo `"R G B"`; o Tailwind lê pelo `tailwind.config.ts` e a camada de gráfico
@@ -339,9 +340,9 @@ item ativo continua o token de rota de D-73 (`--rail-accent`), agora
 entregue à regra `[aria-current="page"]` do MSDS via `--row-accent`; o
 `sr-only` do rótulo no colapso (D-37) continua sendo o do próprio app,
 verificado ao vivo pela árvore de acessibilidade, não só visualmente.
-`@material/web` continua load-bearing (`IconButton`/`ButtonGroup`/
-`ButtonGroupItem`/`ToggleChip` em `Button.tsx`, D-76/D-78) — a dependência
-não pôde ser removida.
+Na época `@material/web` ainda era load-bearing (`IconButton`/`ButtonGroup`/
+`ButtonGroupItem`/`ToggleChip`); D-80 converteu os quatro e removeu a
+dependência.
 
 **Backlog de baixa prioridade B1–B10 entregue por inteiro**, dirigido por
 subagentes. A revisão final de branch pegou dois bugs reais que as revisões
@@ -711,6 +712,18 @@ proteger. `docs/15-dados-demonstrativos.md` é a regra completa: como criar
 dado de demonstração sem reabrir o D-71, como apagá-lo quando o catálogo
 oficial chegar, e o que qualquer agente — Antigravity incluído — precisa ler
 antes de escrever um seed novo neste repositório.
+
+**D-80 aplicou o MSDS de verdade depois de um relatório do autor com o app no
+ar** ([D-80](docs/DECISIONS.md)): `msds.css` redefinia `--accent` em hex e
+anulava a paleta de D-73 (o "M" preto) — removido, uma paleta só; `msds.css`
+é importado **antes** de `globals.css`; `@material/web` saiu (a fonte
+serifada e o seletor de tema ilegível no trilho vinham dele); `className` num
+`Input`/`Select` volta a estilizar o **campo inteiro**, não o controle; a
+coluna principal foi a 1536 px; as telas de ferramenta viraram `StepCard`s
+com o resultado na tela desde o início; e cinco falhas funcionais saíram no
+caminho (prévia do Sintetizar que nunca rodava, Dimensionar sem caso inicial,
+links de material para família inexistente, seletor de processo vazio em Eco,
+limite ausente impresso como `0`).
 
 1741 testes de backend (nenhum skip) e 388 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job

@@ -97,11 +97,35 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * The readable part of a FastAPI error body: a string `detail` as is, or — for
+ * a 422 — each validation entry as `field: message`. Without the second form
+ * every validation failure reached the screen as "Falha na requisição /path",
+ * which names the URL and hides the one field that was wrong.
+ */
+export function readErrorDetail(detail: unknown): string | null {
+  if (typeof detail === "string") return detail;
+  if (!Array.isArray(detail)) return null;
+  const lines = detail
+    .map((entry) => {
+      if (typeof entry !== "object" || entry === null) return null;
+      const { loc, msg } = entry as { loc?: unknown; msg?: unknown };
+      if (typeof msg !== "string") return null;
+      const field = Array.isArray(loc)
+        ? loc.filter((part) => part !== "body").join(".")
+        : "";
+      return field ? `${field}: ${msg}` : msg;
+    })
+    .filter((line): line is string => line !== null);
+  return lines.length > 0 ? lines.join("; ") : null;
+}
+
 /** Extract a human-readable error message from a failed response body. */
 async function errorMessage(res: Response, fallback: string): Promise<string> {
   try {
     const body = (await res.json()) as { detail?: unknown };
-    if (typeof body.detail === "string") return body.detail;
+    const detail = readErrorDetail(body.detail);
+    if (detail) return detail;
   } catch {
     // non-JSON body; use the fallback
   }

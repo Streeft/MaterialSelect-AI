@@ -14,10 +14,11 @@ import {
   Button,
   Card,
   CardBody,
+  CardFooter,
+  CardHeader,
   ClassBadge,
   EmptyState,
   ErrorState,
-  Field,
   LoadingState,
   NumberInput,
   PageHeader,
@@ -74,36 +75,36 @@ function Facet({
   );
 }
 
-function CaseCard({ loadCase }: { loadCase: LoadCase }) {
+function CaseFacts({ loadCase }: { loadCase: LoadCase }) {
   return (
-    <Card>
-      <CardBody className="flex flex-col gap-4">
-        <p className="text-sm text-ink-muted">{loadCase.summary}</p>
+    <div className="flex flex-col gap-4">
+      <p className="text-sm text-ink-muted">{loadCase.summary}</p>
 
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Facet label={t.facetFunction}>{loadCase.function_label}</Facet>
-          {/* Both readings, because the objective is a choice in step 2 now
-              (D-65) and naming only the mass here would contradict it. */}
-          <Facet label={t.facetObjective}>
-            {loadCase.objective_label} {t.facetObjectiveOr}{" "}
-            {loadCase.cost_objective_label.toLocaleLowerCase("pt-BR")}
-          </Facet>
-          <Facet label={t.facetConstraint}>{loadCase.constraint_label}</Facet>
-          <Facet label={t.facetFree}>{loadCase.free_variable_label}</Facet>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Facet label={t.facetFunction}>{loadCase.function_label}</Facet>
+        {/* Both readings, because the objective is a choice in step 2 now
+            (D-65) and naming only the mass here would contradict it. */}
+        <Facet label={t.facetObjective}>
+          {loadCase.objective_label} {t.facetObjectiveOr}{" "}
+          {loadCase.cost_objective_label.toLocaleLowerCase("pt-BR")}
+        </Facet>
+        <Facet label={t.facetConstraint}>{loadCase.constraint_label}</Facet>
+        <Facet label={t.facetFree}>{loadCase.free_variable_label}</Facet>
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">
+          {t.facetFixed}
+        </span>
+        <div className="flex flex-wrap gap-1">
+          {loadCase.fixed_labels.map((label) => (
+            <Badge key={label}>{label}</Badge>
+          ))}
         </div>
+      </div>
 
-        <div className="flex flex-col gap-1">
-          <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">
-            {t.facetFixed}
-          </span>
-          <div className="flex flex-wrap gap-1">
-            {loadCase.fixed_labels.map((label) => (
-              <Badge key={label}>{label}</Badge>
-            ))}
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-2 rounded-card bg-surface-muted p-3">
+      <div className="grid gap-3 md:grid-cols-2">
+        <div className="flex flex-col gap-2 rounded-card bg-surface-sunken p-3">
           <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">
             {t.indexTitle}
           </span>
@@ -126,7 +127,7 @@ function CaseCard({ loadCase }: { loadCase: LoadCase }) {
             the objective toggle: the point of the item is that these are two
             readings of one derivation, and a reader who cannot see both at once
             has no way to notice that the structural factor never moved. */}
-        <div className="flex flex-col gap-2 rounded-card bg-surface-muted p-3">
+        <div className="flex flex-col gap-2 rounded-card bg-surface-sunken p-3">
           <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">
             {t.costIndexTitle}
           </span>
@@ -145,21 +146,21 @@ function CaseCard({ loadCase }: { loadCase: LoadCase }) {
           </div>
           <span className="text-xs text-ink-muted">{t.costIndexHint}</span>
         </div>
+      </div>
 
-        <details className="group">
-          <summary className="cursor-pointer text-sm font-medium text-ink">
-            {t.derivationTitle}
-          </summary>
-          <p className="mt-2 text-xs text-ink-muted">{t.derivationHint}</p>
-          <ol className="mt-2 flex list-decimal flex-col gap-1 pl-5 text-sm text-ink">
-            {loadCase.derivation.map((step) => (
-              <li key={step}>{step}</li>
-            ))}
-          </ol>
-          <p className="mt-2 text-xs text-ink-muted">{loadCase.reference}</p>
-        </details>
-      </CardBody>
-    </Card>
+      <details className="group">
+        <summary className="cursor-pointer text-sm font-medium text-ink">
+          {t.derivationTitle}
+        </summary>
+        <p className="mt-2 text-xs text-ink-muted">{t.derivationHint}</p>
+        <ol className="mt-2 flex list-decimal flex-col gap-1 pl-5 text-sm text-ink">
+          {loadCase.derivation.map((step) => (
+            <li key={step}>{step}</li>
+          ))}
+        </ol>
+        <p className="mt-2 text-xs text-ink-muted">{loadCase.reference}</p>
+      </details>
+    </div>
   );
 }
 
@@ -197,7 +198,10 @@ function ResultTable({ result }: { result: SolveResult }) {
                 <div className="flex flex-wrap items-center gap-2">
                   <Link
                     className="font-medium text-accent underline underline-offset-2"
-                    href={`/app/catalogo/${record.record_id}`}
+                    // A record's page is /app/materiais/[id]; /app/catalogo/[slug]
+                    // is a *family*, and an id there lands on a family that
+                    // does not exist.
+                    href={`/app/materiais/${record.record_id}`}
                   >
                     {record.name}
                   </Link>
@@ -249,14 +253,26 @@ function ResultTable({ result }: { result: SolveResult }) {
 
 export default function DimensionarPage() {
   const cases = useQuery({ queryKey: ["load-cases"], queryFn: listLoadCases });
-  const [caseKey, setCaseKey] = useState<string>("");
-  const [inputs, setInputs] = useState<Record<string, string>>({});
+  const [chosenKey, setCaseKey] = useState<string>("");
+  const [typed, setInputs] = useState<Record<string, string>>({});
   const [objective, setObjective] = useState<SolverObjective>("massa");
   const [result, setResult] = useState<SolveResult | null>(null);
 
+  // An empty choice *means* the first case: the <select> already shows it as
+  // chosen, and a screen that painted it selected while holding "" rendered
+  // nothing under it until the reader picked another case and came back.
+  // Derived, not written by an effect (same reasoning as /app/sintetizar).
+  const caseKey = chosenKey || cases.data?.[0]?.key || "";
   const selected = useMemo(
     () => cases.data?.find((item) => item.key === caseKey) ?? null,
     [cases.data, caseKey],
+  );
+  const inputs = useMemo(
+    () =>
+      chosenKey === "" && selected
+        ? { ...initialInputs(selected), ...typed }
+        : typed,
+    [chosenKey, selected, typed],
   );
 
   function chooseCase(key: string) {
@@ -297,39 +313,41 @@ export default function DimensionarPage() {
     <div className="flex flex-col gap-6">
       <PageHeader title={t.title} description={t.subtitle} />
 
-      <Section title={t.caseStep} description={t.caseHint}>
-        <Select
-          label={t.caseLabel}
-          value={caseKey}
-          onChange={(event) =>
-            chooseCase((event.target as HTMLSelectElement).value)
-          }
-        >
-          {(cases.data ?? []).map((item) => (
-            <SelectOption key={item.key} value={item.key}>
-              {item.label}
-            </SelectOption>
-          ))}
-        </Select>
-        {selected ? <CaseCard loadCase={selected} /> : null}
-      </Section>
+      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
+        <Card>
+          <CardHeader headingLevel={2} title={t.caseStep} description={t.caseHint} />
+          <CardBody className="flex flex-col gap-4">
+            <Select
+              label={t.caseLabel}
+              value={caseKey}
+              onChange={(event) =>
+                chooseCase((event.target as HTMLSelectElement).value)
+              }
+            >
+              {(cases.data ?? []).map((item) => (
+                <SelectOption key={item.key} value={item.key}>
+                  {item.label}
+                </SelectOption>
+              ))}
+            </Select>
+            {selected ? <CaseFacts loadCase={selected} /> : null}
+          </CardBody>
+        </Card>
 
-      {selected ? (
-        <Section title={t.inputsStep} description={t.inputsHint}>
-          <div className="grid gap-4 sm:grid-cols-2">
-            {selected.variables.map((variable) => {
-              const support = selected.supports.filter(
-                (s) => s.variable_key === variable.key,
-              );
-              if (support.length > 0) {
-                return (
-                  <Field
-                    key={variable.key}
-                    label={t.supportLabel}
-                    hint={variable.help_text}
-                  >
+        {selected ? (
+          <Card className="xl:sticky xl:top-6">
+            <CardHeader headingLevel={2} title={t.inputsStep} description={t.inputsHint} />
+            <CardBody className="flex flex-col gap-4">
+              {selected.variables.map((variable) => {
+                const support = selected.supports.filter(
+                  (s) => s.variable_key === variable.key,
+                );
+                if (support.length > 0) {
+                  return (
                     <Select
+                      key={variable.key}
                       label={t.supportLabel}
+                      hint={variable.help_text}
                       value={inputs[variable.key] ?? ""}
                       onChange={(event) =>
                         setInputs((current) => ({
@@ -350,31 +368,28 @@ export default function DimensionarPage() {
                         </SelectOption>
                       ))}
                     </Select>
-                  </Field>
+                  );
+                }
+                return (
+                  <NumberInput
+                    key={variable.key}
+                    label={`${variable.label} (${variable.unit})`}
+                    hint={variable.help_text}
+                    value={inputs[variable.key] ?? ""}
+                    min={0}
+                    step="any"
+                    onChange={(event) =>
+                      setInputs((current) => ({
+                        ...current,
+                        [variable.key]: event.target.value,
+                      }))
+                    }
+                  />
                 );
-              }
-              return (
-                <NumberInput
-                  key={variable.key}
-                  label={`${variable.label} (${variable.unit})`}
-                  hint={variable.help_text}
-                  value={inputs[variable.key] ?? ""}
-                  min={0}
-                  step="any"
-                  onChange={(event) =>
-                    setInputs((current) => ({
-                      ...current,
-                      [variable.key]: event.target.value,
-                    }))
-                  }
-                />
-              );
-            })}
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label={t.objectiveLabel} hint={t.objectiveHint}>
+              })}
               <Select
                 label={t.objectiveLabel}
+                hint={t.objectiveHint}
                 value={objective}
                 onChange={(event) =>
                   setObjective(
@@ -388,21 +403,22 @@ export default function DimensionarPage() {
                   {selected.cost_objective_label}
                 </SelectOption>
               </Select>
-            </Field>
-          </div>
-          <div>
-            <Button
-              onClick={() => solve.mutate()}
-              disabled={!ready || solve.isPending}
-            >
-              {solve.isPending ? t.solving : t.solve}
-            </Button>
-          </div>
-          {solve.isError ? (
-            <Alert tone="danger">{String(solve.error)}</Alert>
-          ) : null}
-        </Section>
-      ) : null}
+              {solve.isError ? (
+                <Alert tone="danger">{String(solve.error)}</Alert>
+              ) : null}
+            </CardBody>
+            <CardFooter className="justify-start">
+              <Button
+                variant="primary"
+                onClick={() => solve.mutate()}
+                disabled={!ready || solve.isPending}
+              >
+                {solve.isPending ? t.solving : t.solve}
+              </Button>
+            </CardFooter>
+          </Card>
+        ) : null}
+      </div>
 
       {result ? (
         <Section title={t.resultStep} description={t.structuralFactorHint}>
@@ -418,7 +434,7 @@ export default function DimensionarPage() {
               {result.index_name ?? result.index_slug}
             </Link>
             {result.index_expression ? (
-              <code className="ml-2 rounded-control bg-surface-muted px-2 py-0.5 text-ink">
+              <code className="ml-2 rounded-control bg-surface-sunken px-2 py-0.5 text-ink">
                 {result.index_expression}
               </code>
             ) : null}

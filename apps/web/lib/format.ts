@@ -5,14 +5,33 @@
  * scientific notation for very large or very small magnitudes (common with SI
  * canonical units such as Pa).
  */
+const SUPERSCRIPT: Record<string, string> = {
+  "-": "⁻",
+  "0": "⁰",
+  "1": "¹",
+  "2": "²",
+  "3": "³",
+  "4": "⁴",
+  "5": "⁵",
+  "6": "⁶",
+  "7": "⁷",
+  "8": "⁸",
+  "9": "⁹",
+};
+
 export function formatNumber(value: number): string {
   if (value === 0) return "0";
   const abs = Math.abs(value);
   if (abs >= 1e6 || abs < 1e-3) {
-    // Scientific notation, e.g. 2,10 × 10^11
+    // Scientific notation, e.g. 2,1 × 10¹¹. The exponent is a real superscript
+    // (D-80): "10^11" is how a keyboard writes it, not how a reader reads it.
     const exponent = Math.floor(Math.log10(abs));
     const mantissa = value / Math.pow(10, exponent);
-    return `${mantissa.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} × 10^${exponent}`;
+    const power = String(exponent)
+      .split("")
+      .map((char) => SUPERSCRIPT[char] ?? char)
+      .join("");
+    return `${mantissa.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} × 10${power}`;
   }
   return value.toLocaleString("pt-BR", { maximumFractionDigits: 4 });
 }

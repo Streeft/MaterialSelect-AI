@@ -810,6 +810,9 @@ function MapsPageContent() {
             </CardBody>
           </Card>
 
+          {/* "O que desenhar" and "Classes exibidas" share a row: alone, the
+              three checkboxes held half the width and left the other half
+              blank beside them. */}
           <Card>
             <CardHeader title={t.groupDisplay} />
             <CardBody className="flex flex-col gap-2">
@@ -831,7 +834,7 @@ function MapsPageContent() {
             </CardBody>
           </Card>
 
-          <Card className="lg:col-span-2">
+          <Card>
             <CardHeader title={t.groupClasses} />
             <CardBody className="flex flex-wrap gap-2">
               <ToggleChip

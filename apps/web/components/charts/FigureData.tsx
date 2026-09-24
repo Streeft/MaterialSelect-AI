@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 import { ptBR } from "@/lib/i18n";
 import {
-  Disclosure,
   MissingValue,
   RowHeader,
   TBody,
@@ -34,14 +33,17 @@ export interface FigureColumn<Row> {
 }
 
 /**
- * The data behind a figure, as a table, reachable from the figure itself.
+ * The data behind a figure, as a table (D-31).
  *
- * A Plotly chart is a canvas of `<path>` elements: to a screen reader it is
- * either silence or an unreadable stream of tick labels. The alternative that
- * actually works is not a longer `alt` text — it is the numbers, and they are
- * already on the client, so nothing here is recomputed or summarised. Wrapped in
- * a disclosure because a sighted reader who has the figure does not need the
- * table open, and a keyboard reader needs it one Enter away.
+ * A chart is a picture of `<path>` elements: to a screen reader it is either
+ * silence or an unreadable stream of tick labels. The alternative that actually
+ * works is not a longer `alt` text — it is the numbers, and they are already on
+ * the client, so nothing here is recomputed or summarised.
+ *
+ * Since D-80 the figure's card (`ChartFrame`) shows this table in place of the
+ * figure through MSDS's "Ver tabela de dados" toggle, instead of a disclosure
+ * under it; this component is only the table, so the two can never carry
+ * different numbers.
  */
 export function FigureData<Row>({
   caption,
@@ -62,8 +64,8 @@ export function FigureData<Row>({
   if (rows.length === 0) return null;
 
   return (
-    <Disclosure summary={t.dataTable} className="bg-surface">
-      <p className="mb-2 text-xs text-ink-muted">{t.dataTableHint}</p>
+    <div className="flex flex-col gap-2">
+      <p className="text-xs text-ink-muted">{t.dataTableHint}</p>
       <TableScroll label={caption}>
         <Table>
           <TableCaption>{caption}</TableCaption>
@@ -94,6 +96,6 @@ export function FigureData<Row>({
           </TBody>
         </Table>
       </TableScroll>
-    </Disclosure>
+    </div>
   );
 }

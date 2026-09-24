@@ -101,10 +101,13 @@ export default function CatalogPage() {
 
       <Card>
         <CardHeader headingLevel={2} title={t.filters} />
-        <CardBody className="flex flex-wrap items-end gap-4">
+        {/* One row at lg: the search takes what is left. `className` on a
+            field styles its control, not its wrapper, so the columns come from
+            the grid; `items-start` keeps the three labels on one line even
+            though only the search carries a hint under it. */}
+        <CardBody className="grid items-start gap-4 md:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_12rem_14rem_auto]">
           <Input
             label={t.searchLabel}
-            className="min-w-[14rem] flex-1"
             type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -114,7 +117,6 @@ export default function CatalogPage() {
 
           <Select
             label={t.filterClass}
-            className="min-w-[10rem]"
             value={classSlug}
             onChange={(e) => setClassSlug(e.target.value)}
           >
@@ -128,7 +130,6 @@ export default function CatalogPage() {
 
           <Select
             label={t.filterQuality}
-            className="min-w-[13rem]"
             value={quality}
             onChange={(e) => setQuality(e.target.value as QualityFilter)}
           >
@@ -141,6 +142,7 @@ export default function CatalogPage() {
           <Button
             variant="ghost"
             size="sm"
+            className="justify-self-start lg:mt-[1.4rem]"
             disabled={!filtered && !search}
             onClick={() => {
               setSearch("");

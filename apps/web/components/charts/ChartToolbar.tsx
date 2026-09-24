@@ -2,8 +2,7 @@
 
 import { useState, type RefObject } from "react";
 import { ptBR } from "@/lib/i18n";
-import { downloadPlotImage } from "@/lib/charts";
-import { Button } from "@/components/ui";
+import { downloadChartImage } from "@/lib/charts";
 
 const t = ptBR.chart;
 
@@ -37,7 +36,7 @@ export function ChartToolbar({
     setError(null);
     setExporting(format);
     try {
-      await downloadPlotImage(target.current, format, fileName);
+      await downloadChartImage(target.current, format, fileName);
     } catch {
       setError(t.exportError);
     } finally {
@@ -47,17 +46,21 @@ export function ChartToolbar({
 
   return (
     <div className={className}>
-      <div role="group" aria-label={t.toolbar} className="flex items-center gap-2">
+      {/* MSDS chart-card actions (D-80): text actions in the section accent,
+          the same weight as "Ver tabela de dados" beside them, so the toolbar
+          reads as one row of verbs instead of two outlined buttons crowding
+          the title. */}
+      <div role="group" aria-label={t.toolbar} className="flex items-center gap-3">
         {(["png", "svg"] as const).map((format) => (
-          <Button
+          <button
             key={format}
-            size="sm"
-            variant="secondary"
+            type="button"
+            className="msds-table-toggle chart-action"
             disabled={disabled || exporting !== null}
             onClick={() => void handleExport(format)}
           >
             {exporting === format ? t.exporting : format === "png" ? t.exportPng : t.exportSvg}
-          </Button>
+          </button>
         ))}
       </div>
       {error ? (
