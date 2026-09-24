@@ -251,6 +251,23 @@ describe("objetivo em blocos (D-85)", () => {
   });
 });
 
+describe("critério sem repetição (D-85)", () => {
+  it("does not offer a key another row already uses", async () => {
+    const user = userEvent.setup();
+    render(wrap(<SelectionPage />));
+    await user.click(stepButton(t.stepObjective));
+    await user.click(screen.getByShadowRole("button", { name: t.continueToCriteria }));
+    await user.click(screen.getByShadowRole("button", { name: t.addCriterion }));
+    await user.type(screen.getByRole("combobox", { name: t.criterion }), density.name);
+    await user.keyboard("{Enter}");
+
+    await user.click(screen.getByShadowRole("button", { name: t.addCriterion }));
+    const [, second] = screen.getAllByRole("combobox", { name: t.criterion });
+    await user.click(second!);
+    expect(screen.getByText(ptBR.ui.comboboxNoMatch(""))).toBeInTheDocument();
+  });
+});
+
 describe("método de ranking", () => {
   it("hides normalization for TOPSIS/PROMETHEE, an option that has no effect on either", async () => {
     const user = userEvent.setup();
@@ -276,7 +293,8 @@ describe("método de ranking", () => {
     await user.click(screen.getByShadowRole("button", { name: new RegExp(t.stepObjective, "i") }));
     await user.click(screen.getByShadowRole("button", { name: t.continueToCriteria }));
     await user.click(screen.getByShadowRole("button", { name: t.addCriterion }));
-    await userEvent.selectOptions(screen.getByShadowRole("combobox", { name: t.criterion }), density.slug);
+    await user.type(screen.getByRole("combobox", { name: t.criterion }), density.name);
+    await user.keyboard("{Enter}");
     await user.click(screen.getByText(ptBR.ui.advancedOptions));
     await user.click(screen.getByShadowRole("button", { name: t.methodPromethee }));
     await user.click(screen.getByShadowRole("button", { name: t.run }));
@@ -348,17 +366,19 @@ describe("estudo de processos", () => {
 
     await user.click(stepButton(t.stepObjective));
     // The objective step is there — not the old "cannot rank" notice.
-    expect(screen.getByText(t.processIndexNote)).toBeInTheDocument();
+    expect(screen.getAllByText(t.processIndexNote).length).toBeGreaterThan(0);
     await user.click(screen.getByShadowRole("button", { name: t.continueToCriteria }));
     await user.click(screen.getByShadowRole("button", { name: t.addCriterion }));
 
-    const criterion = screen.getByShadowRole("combobox", { name: t.criterion });
+    await waitFor(() => expect(listProcessAttributes).toHaveBeenCalled());
+    await user.click(screen.getByRole("combobox", { name: t.criterion }));
+    const list = await screen.findByRole("listbox");
     await waitFor(() =>
-      expect(within(criterion).getByRole("option", { name: "Lote econômico" })).toBeInTheDocument(),
+      expect(within(list).getByRole("option", { name: "Lote econômico" })).toBeInTheDocument(),
     );
-    expect(within(criterion).getByRole("option", { name: "Faixa de massa" })).toBeInTheDocument();
-    expect(within(criterion).queryByRole("option", { name: "Forma" })).not.toBeInTheDocument();
-    expect(within(criterion).queryByRole("option", { name: density.name })).not.toBeInTheDocument();
+    expect(within(list).getByRole("option", { name: "Faixa de massa" })).toBeInTheDocument();
+    expect(within(list).queryByRole("option", { name: "Forma" })).not.toBeInTheDocument();
+    expect(within(list).queryByRole("option", { name: density.name })).not.toBeInTheDocument();
 
     // Catalogue indices are written over material properties: not offered.
     expect(screen.queryByText(beamIndex.name)).not.toBeInTheDocument();
@@ -373,11 +393,9 @@ describe("estudo de processos", () => {
     await user.click(stepButton(t.stepObjective));
     await user.click(screen.getByShadowRole("button", { name: t.continueToCriteria }));
     await user.click(screen.getByShadowRole("button", { name: t.addCriterion }));
-    const criterion = screen.getByShadowRole("combobox", { name: t.criterion });
-    await waitFor(() =>
-      expect(within(criterion).getByRole("option", { name: "Lote econômico" })).toBeInTheDocument(),
-    );
-    await userEvent.selectOptions(criterion, "lote-economico");
+    await waitFor(() => expect(listProcessAttributes).toHaveBeenCalled());
+    await user.type(screen.getByRole("combobox", { name: t.criterion }), "lote");
+    await user.keyboard("{Enter}");
     await user.click(screen.getByShadowRole("button", { name: t.run }));
 
     await waitFor(() =>
@@ -399,7 +417,7 @@ describe("estudo de processos", () => {
     await user.click(stepButton(t.stepObjective));
     await user.click(screen.getByShadowRole("button", { name: t.continueToCriteria }));
     await user.click(screen.getByShadowRole("button", { name: t.addCriterion }));
-    expect(screen.getByShadowRole("combobox", { name: t.criterion })).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: t.criterion })).toBeInTheDocument();
 
     // The universe lives in step 1's advanced options since D-85.
     await user.click(stepButton(t.stepFunction));
@@ -407,7 +425,7 @@ describe("estudo de processos", () => {
     await user.click(screen.getByShadowRole("button", { name: t.universeProcess }));
     await user.click(stepButton(t.stepObjective));
 
-    expect(screen.queryByShadowRole("combobox", { name: t.criterion })).not.toBeInTheDocument();
+    expect(screen.queryByRole("combobox", { name: t.criterion })).not.toBeInTheDocument();
   });
 });
 

@@ -45,6 +45,7 @@ import {
   Card,
   CardBody,
   Checkbox,
+  Combobox,
   Disclosure,
   EmptyState,
   GuidedBlock,
@@ -1269,29 +1270,30 @@ function SelectionWizard() {
                       <legend className="sr-only">
                         {t.criterion} {position + 1}
                       </legend>
-                      <Select
+                      {/* D-85: a search field, and a key already used by another
+                          row is not offered — the backend would count it twice. */}
+                      <Combobox
                         label={t.criterion}
                         hint={position === 0 ? t.criterionHint : undefined}
-                        className="w-56"
+                        className="w-64"
                         value={c.key}
-                        onChange={(e) =>
-                          setCriteria(
-                            criteria.map((x) =>
-                              x.id === c.id ? { ...x, key: e.target.value } : x,
-                            ),
-                          )
-                        }
-                      >
-                        <SelectOption value="">{t.selectCriterion}</SelectOption>
-                        {activeIndex && (
-                          <SelectOption value="__index__">{t.useIndexCriterion}</SelectOption>
+                        placeholder={t.selectCriterion}
+                        options={[
+                          ...(activeIndex
+                            ? [{ value: "__index__", label: t.useIndexCriterion }]
+                            : []),
+                          ...criterionOptions.map((p) => ({
+                            value: p.slug,
+                            label: p.name,
+                            keywords: [p.slug],
+                          })),
+                        ].filter(
+                          (o) => o.value === c.key || !criteria.some((x) => x.key === o.value),
                         )}
-                        {criterionOptions.map((p) => (
-                          <SelectOption key={p.slug} value={p.slug}>
-                            {p.name}
-                          </SelectOption>
-                        ))}
-                      </Select>
+                        onChange={(key) =>
+                          setCriteria(criteria.map((x) => (x.id === c.id ? { ...x, key } : x)))
+                        }
+                      />
                       <Select
                         label={t.direction}
                         hint={position === 0 ? t.directionHint : undefined}

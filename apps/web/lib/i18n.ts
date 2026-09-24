@@ -469,6 +469,21 @@ export const ptBR = {
       has_no_label: "∉ não tem nenhum dos rótulos",
     },
     constraintNumber: (n: number) => `Restrição ${n}`,
+    // D-85: a linha lida como frase, e uma dica por campo na primeira linha.
+    operatorSymbols: { gte: "≥", gt: ">", lte: "≤", lt: "<" },
+    sentenceLead: "Lê-se:",
+    sentenceRange: (name: string, inside: boolean, min: string, max: string) =>
+      `${name} ${inside ? "entre" : "fora de"} ${min} e ${max}`,
+    sentenceClasses: (inside: boolean, names: string) =>
+      `${inside ? "Classe é uma de" : "Classe não é nenhuma de"}: ${names}`,
+    sentenceLabels: (name: string, any: boolean, labels: string) =>
+      `${name} ${any ? "tem algum de" : "não tem nenhum de"}: ${labels}`,
+    sentenceText: (text: string) => `O texto contém “${text}”`,
+    propertyHint: "Digite parte do nome para buscar.",
+    operatorHint: "Como comparar com o valor.",
+    valueHint: "Use vírgula ou ponto. Ex.: 70 ou 2,7.",
+    unitHint: "A unidade do valor que você digitou.",
+    unitCanonical: (unit: string) => `${unit} (padrão)`,
     selectProperty: "Selecione uma propriedade",
     // P0-4: in a process study the row selects on a process *attribute*, which
     // is a different catalogue — the field is named for what it holds.

@@ -17,6 +17,7 @@ import {
   ButtonGroup,
   ButtonGroupItem,
   CONTROL,
+  Combobox,
   Card,
   CardBody,
   Field,
@@ -83,6 +84,10 @@ export interface SelectableAttribute {
   canonical_unit: string | null;
   kind?: ProcessAttribute["kind"];
   allowed_labels?: string[];
+  /** D-85: the units a material property accepts, and the one it is read in —
+   * so the row offers a unit list instead of a free box whose blank meant Pa. */
+  accepted_units?: string[];
+  display_unit?: string | null;
 }
 
 /**
@@ -267,6 +272,52 @@ function removeConstraintById(group: ConstraintGroupState, rowId: string): Const
 
 // --- One constraint row ------------------------------------------------------
 
+/**
+ * The row read back as a sentence (D-85): "Módulo de Young ≥ 70 GPa".
+ *
+ * Only the reader's own input, re-worded — no conversion, no arithmetic. It is
+ * what a student checks the row against, and "70" with no unit next to it is
+ * exactly what this line exists to make visible. Empty while the row is still
+ * too incomplete to say anything true.
+ */
+export function describeConstraintRow(
+  row: ConstraintRow,
+  attribute: SelectableAttribute | undefined,
+  classes: SelectableFolder[],
+): string {
+  const unit = row.unit.trim()
+    ? prettyUnit(row.unit.trim())
+    : attribute?.canonical_unit
+      ? prettyUnit(attribute.canonical_unit)
+      : "";
+  const withUnit = (value: string) => (unit ? `${value} ${unit}` : value);
+  const name = attribute?.name;
+  const op = row.operator;
+  if (NUMERIC.has(op)) {
+    if (!name) return "";
+    if (op === "between" || op === "outside") {
+      if (!row.value_min.trim() || !row.value_max.trim()) return "";
+      return t.sentenceRange(name, op === "between", row.value_min.trim(), withUnit(row.value_max.trim()));
+    }
+    if (!row.value.trim()) return "";
+    return `${name} ${t.operatorSymbols[op as "gte" | "gt" | "lte" | "lt"]} ${withUnit(row.value.trim())}`;
+  }
+  if (op === "exists" || op === "not_exists") {
+    return name ? `${name} ${t.operators[op]}` : "";
+  }
+  if (CLASS_OPS.has(op)) {
+    const names = row.class_slugs.map((slug) => classes.find((c) => c.slug === slug)?.name ?? slug);
+    return names.length ? t.sentenceClasses(op === "in_class", names.join(", ")) : "";
+  }
+  if (LABEL_OPS.has(op)) {
+    return name && row.labels.length ? t.sentenceLabels(name, op === "has_any_label", row.labels.join(", ")) : "";
+  }
+  if (op === "text_contains") {
+    return row.text.trim() ? t.sentenceText(row.text.trim()) : "";
+  }
+  return "";
+}
+
 function ConstraintRowFields({
   row,
   rowLabel,
@@ -275,6 +326,7 @@ function ConstraintRowFields({
   universe,
   onUpdate,
   onRemove,
+  showHints = false,
 }: {
   row: ConstraintRow;
   rowLabel: string;
@@ -283,6 +335,8 @@ function ConstraintRowFields({
   universe: SelectionUniverse;
   onUpdate: (patch: Partial<ConstraintRow>) => void;
   onRemove: () => void;
+  /** One-line hints on the fields — the first row only, so they teach once. */
+  showHints?: boolean;
 }) {
   const isNumeric = NUMERIC.has(row.operator);
   const isRange = row.operator === "between" || row.operator === "outside";
@@ -291,6 +345,39 @@ function ConstraintRowFields({
   const isProcessStudy = universe === "process";
   const operators = isProcessStudy ? [...OPERATORS, ...LABEL_OPERATORS] : OPERATORS;
   const offered = selectableFor(row.operator, properties);
+  const unitChoices = !isProcessStudy ? (prop?.accepted_units ?? []) : [];
+  const sentence = describeConstraintRow(row, prop, classes);
+
+  const propertyField = (
+    <Combobox
+      label={isProcessStudy ? t.attribute : t.property}
+      hint={showHints ? t.propertyHint : undefined}
+      className="w-60"
+      value={row.property_slug}
+      placeholder={isProcessStudy ? t.selectAttribute : t.selectProperty}
+      options={offered.map((p) => ({
+        value: p.slug,
+        label: p.name,
+        keywords: [p.slug],
+        description: p.canonical_unit ? prettyUnit(p.display_unit ?? p.canonical_unit) : undefined,
+      }))}
+      onChange={(slug) => {
+        const next = properties.find((p) => p.slug === slug);
+        // Changing the attribute drops the labels that belonged to the old
+        // one: a vocabulary is per-attribute, so carrying them over would
+        // send labels the new attribute has never heard of. For a material
+        // property the unit is set to the one it is read in (D-85) — said
+        // explicitly, so "70" is 70 GPa and never a silent 70 Pa.
+        onUpdate({
+          property_slug: slug,
+          labels: [],
+          ...(!isProcessStudy && next?.accepted_units?.length
+            ? { unit: next.display_unit ?? next.canonical_unit ?? "" }
+            : {}),
+        });
+      }}
+    />
+  );
 
   return (
     <Card as="fieldset">
@@ -299,8 +386,13 @@ function ConstraintRowFields({
           fieldset's first child to be read as its caption. */}
       <legend className="sr-only">{rowLabel}</legend>
       <CardBody className="flex flex-wrap items-end gap-3">
+        {/* D-85: the property first, so the row reads as the sentence it
+            becomes ("Módulo de Young ≥ 70 GPa"); class and text rows keep the
+            operator first because there the operator is the subject. */}
+        {NEEDS_PROPERTY.has(row.operator) && propertyField}
         <Select
           label={t.operator}
+          hint={showHints ? t.operatorHint : undefined}
           className="w-48"
           value={row.operator}
           onChange={(e) => onUpdate({ operator: e.target.value as ConstraintOperator })}
@@ -312,29 +404,6 @@ function ConstraintRowFields({
           ))}
         </Select>
 
-        {NEEDS_PROPERTY.has(row.operator) && (
-          <Select
-            label={isProcessStudy ? t.attribute : t.property}
-            className="w-56"
-            value={row.property_slug}
-            onChange={(e) =>
-              // Changing the attribute drops the labels that belonged to the old
-              // one: a vocabulary is per-attribute, so carrying them over would
-              // send labels the new attribute has never heard of.
-              onUpdate({ property_slug: e.target.value, labels: [] })
-            }
-          >
-            <SelectOption value="">
-              {isProcessStudy ? t.selectAttribute : t.selectProperty}
-            </SelectOption>
-            {offered.map((p) => (
-              <SelectOption key={p.slug} value={p.slug}>
-                {p.name}
-              </SelectOption>
-            ))}
-          </Select>
-        )}
-
         {/* Text input with a decimal keypad, not `type="number"`: a
             pt-BR reader types "2,7", and a number input silently
             discards the value it cannot parse. The payload builder
@@ -342,6 +411,7 @@ function ConstraintRowFields({
         {isNumeric && !isRange && (
           <Input
             label={t.value}
+            hint={showHints ? t.valueHint : undefined}
             className="w-28 tabular-nums"
             inputMode="decimal"
             value={row.value}
@@ -366,7 +436,31 @@ function ConstraintRowFields({
             />
           </>
         )}
-        {isNumeric && (
+        {isNumeric && unitChoices.length > 0 && (
+          // D-85: a list of the units this property accepts, not a free box.
+          // A blank unit (an older study) stays representable, named as the
+          // canonical unit it has always meant.
+          <Select
+            label={t.unit}
+            hint={showHints ? t.unitHint : undefined}
+            className="w-32"
+            value={row.unit}
+            onChange={(e) => onUpdate({ unit: e.target.value })}
+          >
+            {row.unit === "" && prop?.canonical_unit ? (
+              <SelectOption value="">{t.unitCanonical(prettyUnit(prop.canonical_unit))}</SelectOption>
+            ) : null}
+            {row.unit !== "" && !unitChoices.includes(row.unit) ? (
+              <SelectOption value={row.unit}>{prettyUnit(row.unit)}</SelectOption>
+            ) : null}
+            {unitChoices.map((u) => (
+              <SelectOption key={u} value={u}>
+                {prettyUnit(u)}
+              </SelectOption>
+            ))}
+          </Select>
+        )}
+        {isNumeric && unitChoices.length === 0 && (
           // The unit is not decoration: an empty box means "canonical",
           // and the placeholder is the only place that says which one.
           <Input
@@ -429,6 +523,11 @@ function ConstraintRowFields({
           icon={<IconTrash />}
           onClick={onRemove}
         />
+        {sentence ? (
+          <p className="w-full text-xs text-ink-muted" aria-live="polite">
+            <span className="font-medium text-ink">{t.sentenceLead}</span> {sentence}
+          </p>
+        ) : null}
       </CardBody>
     </Card>
   );
@@ -557,6 +656,7 @@ function ConstraintGroupEditor({
                 <ConstraintRowFields
                   row={row}
                   rowLabel={rowLabel}
+                  showHints={isRoot && position === 0}
                   properties={properties}
                   universe={universe}
                   classes={classes}

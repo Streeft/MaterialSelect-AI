@@ -70,14 +70,33 @@ test("importar, selecionar, visualizar e exportar um estudo", async ({ page }) =
 
   await page.getByLabel("Nome do estudo").fill(STUDY_NAME);
 
+  // D-85: the action bar names the next step, and the step lives in the URL,
+  // so the browser's Back button moves one step back instead of leaving.
   const actionBar = page.getByRole("group", { name: "Ações da etapa" });
-  await actionBar.getByRole("button", { name: "Restrições" }).click();
-  await actionBar.getByRole("button", { name: "Objetivo" }).click();
+  const steps = page.getByRole("navigation", { name: "Etapas" });
+  await actionBar.getByRole("button", { name: "Próximo: Restrições" }).click();
+  await actionBar.getByRole("button", { name: "Próximo: Objetivo" }).click();
+  await expect(page).toHaveURL(/etapa=objetivo/);
+  await page.goBack();
+  await expect(steps.getByRole("button", { name: /Restrições/ })).toHaveAttribute(
+    "aria-current",
+    "step",
+  );
+  await page.goForward();
+  await expect(steps.getByRole("button", { name: /Objetivo/ })).toHaveAttribute(
+    "aria-current",
+    "step",
+  );
 
+  // One block at a time: the index, then criteria and weights.
   await page.getByRole("radio", { name: "Rigidez específica" }).check();
+  await page.getByRole("button", { name: "Continuar: critérios e pesos" }).click();
   await page.getByRole("button", { name: "Adicionar critério" }).click();
 
   await actionBar.getByRole("button", { name: "Executar seleção" }).click();
+  // The result opens on the winner; the full ranking is one tab away.
+  await expect(page.getByRole("heading", { name: /^Vencedor: / })).toBeVisible();
+  await page.getByRole("tab", { name: /Ranking/ }).click();
   await expect(page.getByRole("heading", { name: "Ranking", exact: true })).toBeVisible();
 
   const rankRigido = await rankOf(page, MATERIAL_RIGIDO);
@@ -95,6 +114,7 @@ test("importar, selecionar, visualizar e exportar um estudo", async ({ page }) =
   // First visit to /mapas in a fresh `next dev` process compiles that route
   // on demand — several seconds, well past a default expect timeout — before
   // the client-side transition completes.
+  await page.getByRole("tab", { name: "Resumo" }).click();
   await page.getByRole("link", { name: "Ver candidatos no mapa" }).click();
   await page.waitForURL(/\/mapas/, { timeout: 20_000 });
   await expect(page.getByRole("heading", { name: "Mapas de propriedades" })).toBeVisible();
@@ -107,6 +127,8 @@ test("importar, selecionar, visualizar e exportar um estudo", async ({ page }) =
   // "Estudos salvos" list is populated from a clean page, not from wizard
   // state left over from the run above.
   await page.goto("/app/selecao");
+  // Saved studies live in "Meus estudos", collapsed at the top (D-85).
+  await page.getByText(/^Meus estudos \(/).click();
   const savedRow = page.getByRole("row").filter({ hasText: STUDY_NAME });
   await expect(savedRow).toBeVisible();
 
