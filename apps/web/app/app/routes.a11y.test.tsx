@@ -1296,6 +1296,37 @@ describe("acessibilidade das telas principais", () => {
     await expectClean(container);
   });
 
+  // D-86: materials are found by search, and only the chosen ones are on screen.
+  it("comparador: a busca adiciona, o chip remove, e os passos seguintes esperam", async () => {
+    const user = userEvent.setup();
+    const { container } = render(wrap(<ComparePage />, makeClient()));
+
+    const search = await screen.findByRole("combobox", { name: ptBR.compare.addMaterial });
+    expect(screen.getByText(ptBR.compare.noneChosen)).toBeInTheDocument();
+    // Nothing to compare yet: steps 2 and 3 say what they wait for.
+    expect(screen.getAllByText(ptBR.compare.lockedUntilMaterial)).toHaveLength(2);
+    expect(screen.queryByRole("tab")).toBeNull();
+
+    await user.type(search, "ceramicas");
+    await user.keyboard("{Enter}");
+
+    const chosen = screen.getByRole("list", { name: ptBR.compare.chosenMaterials });
+    expect(chosen).toHaveTextContent("Alumina");
+    // The search is empty again and no longer offers what was just chosen.
+    expect(search).toHaveValue("");
+    await user.click(search);
+    expect(screen.queryByRole("option", { name: /Alumina/ })).toBeNull();
+    await user.keyboard("{Escape}");
+
+    await screen.findByRole("tab", { name: ptBR.compare.viewTable });
+    await expectClean(container);
+
+    await user.click(
+      screen.getByRole("button", { name: `${ptBR.compare.removeMaterial}: Alumina` }),
+    );
+    expect(screen.getByText(ptBR.compare.noneChosen)).toBeInTheDocument();
+  });
+
   it("ficha do material", async () => {
     await auditRoute(<MaterialPage />, ptBR.detail.position);
   });
