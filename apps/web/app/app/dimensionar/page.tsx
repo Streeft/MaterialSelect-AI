@@ -14,17 +14,15 @@ import {
   Button,
   Card,
   CardBody,
-  CardFooter,
-  CardHeader,
   ClassBadge,
   EmptyState,
   ErrorState,
   LoadingState,
   NumberInput,
   PageHeader,
-  Section,
   Select,
   SelectOption,
+  StepCard,
   TBody,
   THead,
   Table,
@@ -294,17 +292,22 @@ export default function DimensionarPage() {
     onSuccess: setResult,
   });
 
-  const ready =
-    selected !== null &&
-    selected.variables.every((variable) => {
+  // The first variable still missing, named: a disabled button with no reason
+  // reads as broken (D-86). Input validation only — the sizing is the backend's.
+  const missingVariable =
+    selected?.variables.find((variable) => {
       const raw = inputs[variable.key];
-      return (
+      return !(
         raw !== undefined &&
         raw !== "" &&
         Number.isFinite(Number(raw)) &&
         Number(raw) > 0
       );
-    });
+    }) ?? null;
+  const ready = selected !== null && missingVariable === null;
+  const blockedReason = missingVariable
+    ? t.blockedVariable(`${missingVariable.label} (${missingVariable.unit})`)
+    : null;
 
   if (cases.isLoading) return <LoadingState label={t.title} />;
   if (cases.isError) return <ErrorState description={String(cases.error)} />;
@@ -314,154 +317,168 @@ export default function DimensionarPage() {
       <PageHeader title={t.title} description={t.subtitle} />
 
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
-        <Card>
-          <CardHeader headingLevel={2} title={t.caseStep} description={t.caseHint} />
-          <CardBody className="flex flex-col gap-4">
-            <Select
-              label={t.caseLabel}
-              value={caseKey}
-              onChange={(event) =>
-                chooseCase((event.target as HTMLSelectElement).value)
-              }
-            >
-              {(cases.data ?? []).map((item) => (
-                <SelectOption key={item.key} value={item.key}>
-                  {item.label}
-                </SelectOption>
-              ))}
-            </Select>
-            {selected ? <CaseFacts loadCase={selected} /> : null}
-          </CardBody>
-        </Card>
+        <StepCard title={t.caseStep} description={t.caseHint}>
+          <Select
+            label={t.caseLabel}
+            value={caseKey}
+            onChange={(event) =>
+              chooseCase((event.target as HTMLSelectElement).value)
+            }
+          >
+            {(cases.data ?? []).map((item) => (
+              <SelectOption key={item.key} value={item.key}>
+                {item.label}
+              </SelectOption>
+            ))}
+          </Select>
+          {selected ? <CaseFacts loadCase={selected} /> : null}
+        </StepCard>
 
         {selected ? (
-          <Card className="xl:sticky xl:top-6">
-            <CardHeader headingLevel={2} title={t.inputsStep} description={t.inputsHint} />
-            <CardBody className="flex flex-col gap-4">
-              {selected.variables.map((variable) => {
-                const support = selected.supports.filter(
-                  (s) => s.variable_key === variable.key,
-                );
-                if (support.length > 0) {
-                  return (
-                    <Select
-                      key={variable.key}
-                      label={t.supportLabel}
-                      hint={variable.help_text}
-                      value={inputs[variable.key] ?? ""}
-                      onChange={(event) =>
-                        setInputs((current) => ({
-                          ...current,
-                          [variable.key]: (event.target as HTMLSelectElement)
-                            .value,
-                        }))
-                      }
-                    >
-                      {support.map((condition) => (
-                        <SelectOption
-                          key={condition.key}
-                          value={String(condition.value)}
-                        >
-                          {condition.note
-                            ? `${condition.label} — ${condition.note}`
-                            : condition.label}
-                        </SelectOption>
-                      ))}
-                    </Select>
-                  );
-                }
+          <StepCard
+            className="xl:sticky xl:top-6"
+            title={t.inputsStep}
+            description={t.inputsHint}
+            footer={
+              <div className="flex flex-wrap items-center gap-3">
+                <Button
+                  variant="primary"
+                  onClick={() => solve.mutate()}
+                  disabled={!ready || solve.isPending}
+                  aria-describedby={blockedReason ? "dimensionar-motivo" : undefined}
+                >
+                  {solve.isPending ? t.solving : t.solve}
+                </Button>
+                {blockedReason ? (
+                  <p id="dimensionar-motivo" className="text-2xs text-ink-muted">
+                    {blockedReason}
+                  </p>
+                ) : null}
+              </div>
+            }
+          >
+            {/* The support condition stays in view, never folded: it is the
+                constant that makes two identical briefs differ (D-64). */}
+            {selected.variables.map((variable) => {
+              const support = selected.supports.filter(
+                (s) => s.variable_key === variable.key,
+              );
+              if (support.length > 0) {
                 return (
-                  <NumberInput
+                  <Select
                     key={variable.key}
-                    label={`${variable.label} (${variable.unit})`}
+                    label={t.supportLabel}
                     hint={variable.help_text}
                     value={inputs[variable.key] ?? ""}
-                    min={0}
-                    step="any"
                     onChange={(event) =>
                       setInputs((current) => ({
                         ...current,
-                        [variable.key]: event.target.value,
+                        [variable.key]: (event.target as HTMLSelectElement)
+                          .value,
                       }))
                     }
-                  />
+                  >
+                    {support.map((condition) => (
+                      <SelectOption
+                        key={condition.key}
+                        value={String(condition.value)}
+                      >
+                        {condition.note
+                          ? `${condition.label} — ${condition.note}`
+                          : condition.label}
+                      </SelectOption>
+                    ))}
+                  </Select>
                 );
-              })}
-              <Select
-                label={t.objectiveLabel}
-                hint={t.objectiveHint}
-                value={objective}
-                onChange={(event) =>
-                  setObjective(
-                    (event.target as HTMLSelectElement)
-                      .value as SolverObjective,
-                  )
-                }
-              >
-                <SelectOption value="massa">{t.objectiveMass}</SelectOption>
-                <SelectOption value="custo">
-                  {selected.cost_objective_label}
-                </SelectOption>
-              </Select>
-              {solve.isError ? (
-                <Alert tone="danger">{String(solve.error)}</Alert>
-              ) : null}
-            </CardBody>
-            <CardFooter className="justify-start">
-              <Button
-                variant="primary"
-                onClick={() => solve.mutate()}
-                disabled={!ready || solve.isPending}
-              >
-                {solve.isPending ? t.solving : t.solve}
-              </Button>
-            </CardFooter>
-          </Card>
+              }
+              return (
+                <NumberInput
+                  key={variable.key}
+                  label={`${variable.label} (${variable.unit})`}
+                  hint={variable.help_text}
+                  value={inputs[variable.key] ?? ""}
+                  min={0}
+                  step="any"
+                  onChange={(event) =>
+                    setInputs((current) => ({
+                      ...current,
+                      [variable.key]: event.target.value,
+                    }))
+                  }
+                />
+              );
+            })}
+            <Select
+              label={t.objectiveLabel}
+              hint={t.objectiveHint}
+              value={objective}
+              onChange={(event) =>
+                setObjective(
+                  (event.target as HTMLSelectElement)
+                    .value as SolverObjective,
+                )
+              }
+            >
+              <SelectOption value="massa">{t.objectiveMass}</SelectOption>
+              <SelectOption value="custo">
+                {selected.cost_objective_label}
+              </SelectOption>
+            </Select>
+            {solve.isError ? (
+              <Alert tone="danger">{String(solve.error)}</Alert>
+            ) : null}
+          </StepCard>
         ) : null}
       </div>
 
-      {result ? (
-        <Section title={t.resultStep} description={t.structuralFactorHint}>
-          {/* Which index produced these numbers, on the result and not read off
-              the case: a case carries two, and showing the other one would make
-              the screen disagree with the column under it. */}
-          <p className="text-xs text-ink-muted">
-            {result.objective_label} · {t.indexRan}:{" "}
-            <Link
-              className="text-accent underline underline-offset-2"
-              href={`/app/mapas?indice=${encodeURIComponent(result.index_slug)}`}
-            >
-              {result.index_name ?? result.index_slug}
-            </Link>
-            {result.index_expression ? (
-              <code className="ml-2 rounded-control bg-surface-sunken px-2 py-0.5 text-ink">
-                {result.index_expression}
-              </code>
+      {/* The result card is on screen before there is a result (D-80): a card
+          that says what will appear reads as the next step. */}
+      <StepCard title={t.resultStep} description={result ? t.structuralFactorHint : undefined}>
+        {result ? (
+          <>
+            {/* Which index produced these numbers, on the result and not read
+                off the case: a case carries two, and showing the other one
+                would make the screen disagree with the column under it. */}
+            <p className="text-xs text-ink-muted">
+              {result.objective_label} · {t.indexRan}:{" "}
+              <Link
+                className="text-accent underline underline-offset-2"
+                href={`/app/mapas?indice=${encodeURIComponent(result.index_slug)}`}
+              >
+                {result.index_name ?? result.index_slug}
+              </Link>
+              {result.index_expression ? (
+                <code className="ml-2 rounded-control bg-surface-sunken px-2 py-0.5 text-ink">
+                  {result.index_expression}
+                </code>
+              ) : null}
+            </p>
+            <ResultTable result={result} />
+            {result.excluded.length > 0 ? (
+              <Card>
+                <CardBody className="flex flex-col gap-2">
+                  <span className="text-sm font-medium text-ink">
+                    {t.excludedTitle}
+                  </span>
+                  <span className="text-xs text-ink-muted">{t.excludedHint}</span>
+                  <ul className="flex flex-col gap-1 text-sm text-ink">
+                    {result.excluded.map((item) => (
+                      <li key={item.record_id}>
+                        {item.name}
+                        {item.missing_labels.length > 0
+                          ? ` — ${item.missing_labels.join(", ")}`
+                          : ` — ${item.reason}`}
+                      </li>
+                    ))}
+                  </ul>
+                </CardBody>
+              </Card>
             ) : null}
-          </p>
-          <ResultTable result={result} />
-          {result.excluded.length > 0 ? (
-            <Card>
-              <CardBody className="flex flex-col gap-2">
-                <span className="text-sm font-medium text-ink">
-                  {t.excludedTitle}
-                </span>
-                <span className="text-xs text-ink-muted">{t.excludedHint}</span>
-                <ul className="flex flex-col gap-1 text-sm text-ink">
-                  {result.excluded.map((item) => (
-                    <li key={item.record_id}>
-                      {item.name}
-                      {item.missing_labels.length > 0
-                        ? ` — ${item.missing_labels.join(", ")}`
-                        : ` — ${item.reason}`}
-                    </li>
-                  ))}
-                </ul>
-              </CardBody>
-            </Card>
-          ) : null}
-        </Section>
-      ) : null}
+          </>
+        ) : (
+          <EmptyState title={t.resultIdleTitle} description={t.resultIdleHint} />
+        )}
+      </StepCard>
     </div>
   );
 }

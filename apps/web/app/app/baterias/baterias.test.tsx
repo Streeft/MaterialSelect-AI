@@ -239,6 +239,24 @@ describe("BateriasPage (dimensionamento de bateria)", () => {
     ).toBeDefined();
     expect(screen.getByShadowLabelText(t.volumePackingFactor)).toBeDefined();
     expect(screen.getByShadowLabelText(t.costPackingFactor)).toBeDefined();
+    // D-86: folded, but every value stays on screen in the summary.
+    const summary = screen.getByText(t.premisesSummary(t.typicalCell, "0,65", "0,5", "0,7"));
+    expect((summary.closest("details") as HTMLDetailsElement).open).toBe(false);
+  });
+
+  it("diz o que falta quando um requisito está vazio, e abre a premissa que bloqueia", async () => {
+    const user = userEvent.setup();
+    render(wrap(<BateriasPage />));
+
+    const massPacking = await screen.findByShadowLabelText(t.massPackingFactor);
+    await user.clear(massPacking);
+    await user.type(massPacking, "1.5");
+
+    expect(
+      await screen.findByText(t.blocked.fraction(t.massPackingFactor)),
+    ).toBeDefined();
+    const summary = screen.getByText(t.premisesSummary(t.typicalCell, "1,5", "0,5", "0,7"));
+    expect((summary.closest("details") as HTMLDetailsElement).open).toBe(true);
   });
 
   it("declara de onde vieram os números da química e em que moeda", async () => {

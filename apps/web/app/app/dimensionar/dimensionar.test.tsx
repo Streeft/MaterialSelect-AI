@@ -198,6 +198,10 @@ describe("Dimensionar", () => {
     expect(
       await screen.findByShadowRole("button", { name: t.solve }),
     ).toBeDisabled();
+    // D-86: the button says which number is missing, and the result card is
+    // already on screen saying what will appear there.
+    expect(screen.getByText(t.blockedVariable("Comprimento (m)"))).toBeInTheDocument();
+    expect(screen.getByText(t.resultIdleTitle)).toBeInTheDocument();
   });
 
   it("dimensiona e mostra a massa de cada material", async () => {
