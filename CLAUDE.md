@@ -158,13 +158,16 @@ célula vazia** — é o quarto estado da qualidade do dado, com rótulo escrito
 (D-24). Número na tela usa a convenção do pt-BR (D-30), e todo gráfico tem como
 alternativa textual a tabela que o originou (D-31).
 
-**O Plotly é montado à la carte.** `apps/web/lib/plotly-custom.ts` registra
-exatamente as cinco famílias de traço que as figuras usam (`bar`, `box`,
-`heatmap`, `scatter`, `scatterpolar`), e o `webpack.resolve.alias` do
-`next.config.mjs` aponta para lá o `plotly.js/dist/plotly` que o
-`react-plotly.js` exige — a build completa custava 4,5 MB, 79% de todo o
-JavaScript da aplicação. Três consequências que não são opcionais: **um sexto
-tipo de traço tem de ser registrado ali**, ou o Plotly falha em runtime com
+**O Plotly é montado à la carte, e desde D-80 só desenha os mapas.**
+`apps/web/lib/plotly-custom.ts` registra exatamente a família de traço que as
+figuras ainda usam (`scatter` — `AshbyMap` e `PropertyChart`, que precisam de
+log–log, zoom e da caixa do Chart Stage); barras, box-plot, radar, coordenadas
+paralelas e heatmap do painel e do comparador são SVG próprio no desenho do
+MSDS (`components/charts/`). O `webpack.resolve.alias` do `next.config.mjs`
+aponta para lá o `plotly.js/dist/plotly` que o `react-plotly.js` exige — a
+build completa custava 4,5 MB, 79% de todo o JavaScript da aplicação. Três
+consequências que não são opcionais: **um segundo tipo de traço tem de ser
+registrado ali**, ou o Plotly falha em runtime com
 "Trace type not found" — o verificador de tipos não pega isso —; o alias vale
 **só para o cliente** (`if (!isServer)`), porque aplicá-lo ao grafo do servidor
 quebra o runtime de desenvolvimento com um erro que **não reproduz em
@@ -725,7 +728,7 @@ caminho (prévia do Sintetizar que nunca rodava, Dimensionar sem caso inicial,
 links de material para família inexistente, seletor de processo vazio em Eco,
 limite ausente impresso como `0`).
 
-1741 testes de backend (nenhum skip) e 388 de frontend, todos verdes. CI no
+1741 testes de backend (nenhum skip) e 419 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
 PROJECT_CONTEXT.md).
@@ -834,7 +837,8 @@ escuro sem erro nenhum. Corrigidos e confirmados ao vivo em Chromium, não
 só relidos no código.
 
 **Desempenho medido**, com os números em `docs/PROJECT_CONTEXT.md §12`: o maior
-*chunk* de JavaScript caiu de 4,5 MB para 981 KB (o Plotly completo era 79% de
+*chunk* de JavaScript caiu de 4,5 MB para 981 KB (865 KB desde D-80, com só
+`scatter` registrado) (o Plotly completo era 79% de
 todo o JS), as chaves estrangeiras ganharam índice, e o `upload` — único endpoint
 `async` da aplicação — passou a rodar o serviço em *threadpool*, porque inline
 ele congelava o event loop inteiro e não só a própria requisição. Duas
