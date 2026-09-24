@@ -8,7 +8,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { ptBR } from "@/lib/i18n";
 import type { PropertyDefinition, RunRequest, RunResult } from "@/lib/types";
-import { selectMwcOption } from "@/lib/testing/mwc";
 
 const t = ptBR.selection;
 
@@ -170,7 +169,7 @@ describe("método de ranking", () => {
 
     await user.click(screen.getByShadowRole("button", { name: new RegExp(t.stepObjective, "i") }));
     await user.click(screen.getByShadowRole("button", { name: t.addCriterion }));
-    selectMwcOption(screen.getByShadowRole("combobox", { name: t.criterion }), density.slug);
+    await userEvent.selectOptions(screen.getByShadowRole("combobox", { name: t.criterion }), density.slug);
     await user.click(screen.getByShadowRole("button", { name: t.methodPromethee }));
     await user.click(screen.getByShadowRole("button", { name: t.run }));
 

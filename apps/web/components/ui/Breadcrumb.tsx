@@ -11,26 +11,28 @@ export interface Crumb {
 }
 
 /**
- * Where you are in a hierarchy, and the way back up (P1-4).
+ * Where you are in a hierarchy, and the way back up (P1-4), restyled with
+ * MSDS's breadcrumb classes (D-77) — not delegated to MSDS's own
+ * `Breadcrumb` function (`lib/msds/msds.tsx`).
  *
- * Three things here are accessibility rather than taste, and each has a wrong
- * version that looks identical on screen:
+ * MSDS's `Breadcrumb` takes `onClick` per item and renders every non-current
+ * crumb as `<a href="#" onClick={(e) => { e.preventDefault(); it.onClick() }}>`
+ * — never a real navigable link. Every real call site in this app
+ * (`app/app/catalogo/[slug]`, `app/app/processos/[slug]`,
+ * `app/app/processos/familia/[slug]`) passes `href`, not `onClick`, and
+ * relies on that `href` being a real link — middle-click, "open in new tab",
+ * `next/link` prefetch-on-visible, all the things a fake `href="#"` breaks.
+ * MSDS's version is also a flat sequence of `<a>`/`<span>` with no `<ol>`, so
+ * a screen reader gets no "this is a list of N steps" — and it hardcodes its
+ * own `aria-label` ("Trilha de navegação"), ignoring a caller's `label`
+ * entirely, which happens to match this component's own default but would
+ * silently stop tracking it if the default ever changed here.
  *
- * * **The trail is a `<nav>` with a name.** A screen-reader user lands on a
- *   list of links with no idea what they are a list *of*; the landmark and its
- *   label are what say "this is the path to this page".
- * * **The current page is not a link.** It is marked `aria-current="page"` and
- *   rendered as text, because a link back to the page you are on announces a
- *   destination that does not exist. That is why `href` is optional on `Crumb`
- *   rather than required: the shape makes the last step unrepresentable as a
- *   link by accident.
- * * **The separator is `aria-hidden`.** A "/" between every pair is read aloud
- *   as "slash" otherwise, which turns a four-level path into eight
- *   announcements. The `<ol>` already carries the order.
- *
- * Wrapping: a deep taxonomy on a phone is the case this has to survive, so the
- * list wraps and each label may shrink rather than the row scrolling sideways —
- * the page body never scrolls horizontally (the design system's rule).
+ * So the `<nav>`/`<ol>`/`<li>` structure, the real `next/link` navigation,
+ * and the customizable landmark label all stay exactly what they were; only
+ * `.msds-breadcrumb`/`.msds-breadcrumb-link`/`.msds-breadcrumb-current`/
+ * `.msds-breadcrumb-sep` (`msds.css`) replace the Tailwind classes this file
+ * used to hand-pick for the same look.
  */
 export function Breadcrumb({
   items,
@@ -46,28 +48,25 @@ export function Breadcrumb({
 
   return (
     <nav aria-label={label} className={cn("min-w-0", className)}>
-      <ol className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-ink-muted">
+      <ol className="msds-breadcrumb flex-wrap gap-y-1">
         {items.map((item, index) => {
           const last = index === items.length - 1;
           return (
             <li key={`${item.label}-${index}`} className="flex min-w-0 items-center gap-x-1.5">
               {index > 0 ? (
-                <span aria-hidden className="select-none text-ink-subtle">
+                <span aria-hidden className="msds-breadcrumb-sep select-none">
                   /
                 </span>
               ) : null}
               {item.href && !last ? (
-                <Link
-                  href={item.href}
-                  className="truncate rounded-control underline-offset-2 hover:text-brand-800 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-                >
+                <Link href={item.href} className="msds-breadcrumb-link truncate">
                   {item.label}
                 </Link>
               ) : (
                 <span
                   // The page the reader is on: text, never a link to itself.
                   aria-current={last ? "page" : undefined}
-                  className={cn("truncate", last && "font-medium text-ink")}
+                  className={cn("truncate", last ? "msds-breadcrumb-current" : "msds-breadcrumb-link")}
                 >
                   {item.label}
                 </span>

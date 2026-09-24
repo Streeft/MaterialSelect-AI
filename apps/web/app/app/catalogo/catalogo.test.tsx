@@ -8,7 +8,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { ptBR } from "@/lib/i18n";
 import type { MaterialListItem } from "@/lib/types";
-import { selectMwcOption } from "@/lib/testing/mwc";
 
 // PageHeader reads its section from the current route (Task 1) — the mock
 // needs a real pathname so `sectionForPath` doesn't crash on `null`.
@@ -114,7 +113,7 @@ describe("catálogo", () => {
   it("filters by data quality, not only by name", async () => {
     const { table } = await renderCatalog();
 
-    selectMwcOption(screen.getByShadowRole("combobox", { name: t.filterQuality }), "gaps");
+    await userEvent.selectOptions(screen.getByShadowRole("combobox", { name: t.filterQuality }), "gaps");
 
     await waitFor(() => {
       expect(within(table).queryByShadowRole("link", { name: /Aço 1020/ })).not.toBeInTheDocument();
@@ -126,8 +125,8 @@ describe("catálogo", () => {
   it("offers a way out when the filters leave nothing on screen", async () => {
     const { user } = await renderCatalog();
 
-    selectMwcOption(screen.getByShadowRole("combobox", { name: t.filterClass }), "ceramicas");
-    selectMwcOption(screen.getByShadowRole("combobox", { name: t.filterQuality }), "measured");
+    await userEvent.selectOptions(screen.getByShadowRole("combobox", { name: t.filterClass }), "ceramicas");
+    await userEvent.selectOptions(screen.getByShadowRole("combobox", { name: t.filterQuality }), "measured");
 
     const empty = (await screen.findByText(t.emptyFiltered)).closest("div");
     expect(empty).not.toBeNull();

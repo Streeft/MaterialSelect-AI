@@ -733,6 +733,18 @@ arquivo e por nada ter importado a barril antes). `IconButton`,
 resto de `components/ui/*` continuam sobre `@material/web` — ver D-76 para a
 incompatibilidade de API específica de cada um.
 
+**`Dialog`/`Tabs`/`Field`/`Breadcrumb`/`Stepper` (em `components/ui/*`)
+removeram `@material/web` por completo** ([D-77](docs/DECISIONS.md)). Só
+`Dialog` delega para a função `Dialog` do MSDS; os outros quatro usam as
+classes CSS do MSDS sobre marcação própria, porque a função vendorizada de
+cada um tem uma lacuna real contra o que o app já garantia (ligação
+aba↔painel e Home/End em `Tabs`; `onChange` de evento/`ref`/`...rest` — de
+que `MaterialForm.tsx`'s `register()` depende — em `Field`; `href` de
+verdade em `Breadcrumb`; `onSelect` clicável em `Stepper`). `Card.tsx`,
+`Badge.tsx`, `DataQualityBadge.tsx`, `Popover.tsx`, `Feedback.tsx`,
+`Bar.tsx`, `Alert.tsx`, `Table.tsx` e `IconButton`/`ButtonGroup`/
+`ToggleChip` (em `Button.tsx`) continuam sobre `@material/web` — ver D-77.
+
 **S1 (upgrade de segurança) entregue:** `next` 14.2.35 → **16.3.4** e `postcss`
 → **8.5.28**, fechando 21 CVEs do Next e 4 do PostCSS. A 14.2.35 é a última da
 linha 14 — não havia patch dentro do major, então subir era a única saída. Deu

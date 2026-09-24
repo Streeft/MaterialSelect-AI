@@ -9,7 +9,6 @@ import { describeViolations, findA11yViolations } from "@/lib/testing/axe";
 // The load-case picker is an `md-outlined-select`: the real combobox lives in
 // its shadow root, where the plain `screen` above cannot reach.
 import { screen as shadowScreen } from "shadow-dom-testing-library";
-import { selectMwcOption } from "@/lib/testing/mwc";
 import type {
   AIStatus,
   ApplicationArchetype,
@@ -1312,7 +1311,7 @@ describe("acessibilidade das telas principais", () => {
     await screen.findByRole("heading", { name: ptBR.solver.title });
     await waitFor(() => expect(client.isFetching()).toBe(0));
 
-    selectMwcOption(
+    await userEvent.selectOptions(
       await shadowScreen.findByShadowRole("combobox", {
         name: ptBR.solver.caseLabel,
       }),

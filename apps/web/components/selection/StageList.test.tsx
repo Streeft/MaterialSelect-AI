@@ -683,7 +683,8 @@ describe("StageList with a chart stage", () => {
   it("offers the study's own attributes on the plane", () => {
     const { container } = render(<Harness initial={[emptyChartStage()]} />);
 
-    const options = Array.from(container.querySelectorAll("md-select-option")).map(
+    // D-77: SelectOption is a plain native <option> now.
+    const options = Array.from(container.querySelectorAll("option")).map(
       (o) => o.textContent?.trim() ?? "",
     );
     expect(options).toContain("Densidade");
