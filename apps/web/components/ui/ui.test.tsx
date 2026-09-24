@@ -29,6 +29,7 @@ import {
   ProvenanceDetails,
   RadioGroup,
   RadioOption,
+  RemovableChip,
   Section,
   Select,
   SelectOption,
@@ -598,6 +599,23 @@ describe("acessibilidade das primitivas", () => {
         <p>Confirma?</p>
       </Dialog>,
     );
+    await expectAccessible(container);
+  });
+});
+
+describe("RemovableChip", () => {
+  it("names its remove button after the item and reports the removal", async () => {
+    const onRemove = vi.fn();
+    const user = userEvent.setup();
+    const { container } = render(
+      <ul aria-label="Escolhidos">
+        <li>
+          <RemovableChip onRemove={onRemove}>Aço 1020</RemovableChip>
+        </li>
+      </ul>,
+    );
+    await user.click(screen.getByRole("button", { name: `${ptBR.actions.remove}: Aço 1020` }));
+    expect(onRemove).toHaveBeenCalledTimes(1);
     await expectAccessible(container);
   });
 });

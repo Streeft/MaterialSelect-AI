@@ -47,6 +47,7 @@ export {
   useWiring,
 } from "./Field";
 export { GuidedBlock, type GuidedBlockState } from "./GuidedBlock";
+export { RemovableChip } from "./RemovableChip";
 export { PageHeader } from "./PageHeader";
 export { RadioCard } from "./RadioCard";
 export { Disclosure, Popover } from "./Popover";

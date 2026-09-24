@@ -34,6 +34,7 @@ import {
   PageHeader,
   PanelShell,
   ProvenancePopover,
+  RemovableChip,
   RadioGroup,
   RadioOption,
   RowHeader,
@@ -865,8 +866,18 @@ function GuidedDemo() {
   const [indexDone, setIndexDone] = useState(false);
   const [property, setProperty] = useState("");
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [chosen, setChosen] = useState(["Aço 1020", "Alumina"]);
   return (
     <div className="flex flex-col gap-3">
+      <ul aria-label="Materiais escolhidos" className="flex flex-wrap gap-2">
+        {chosen.map((name) => (
+          <li key={name}>
+            <RemovableChip onRemove={() => setChosen(chosen.filter((c) => c !== name))}>
+              {name}
+            </RemovableChip>
+          </li>
+        ))}
+      </ul>
       <GuidedBlock
         title="1. Índice de desempenho"
         state={indexDone ? "done" : "active"}
