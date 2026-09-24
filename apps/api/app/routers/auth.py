@@ -60,7 +60,12 @@ def google_callback(
     cookie_state = request.cookies.get(OAUTH_STATE_COOKIE_NAME)
     session = AuthService(db).handle_callback(code=code, state=state, cookie_state=cookie_state)
 
-    response = RedirectResponse(settings.frontend_url, status_code=status.HTTP_302_FOUND)
+    # Into the tool, not back to the public front door (D-86): that page is one
+    # button that leads here, and landing on it again right after logging in
+    # read as "the login did not work".
+    response = RedirectResponse(
+        f"{settings.frontend_url.rstrip('/')}/app", status_code=status.HTTP_302_FOUND
+    )
     response.delete_cookie(OAUTH_STATE_COOKIE_NAME)
     response.set_cookie(
         SESSION_COOKIE_NAME,
