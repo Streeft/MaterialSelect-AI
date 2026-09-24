@@ -128,10 +128,13 @@ const config: Config = {
       },
 
       boxShadow: {
-        card: "0 1px 2px 0 rgb(23 26 33 / 0.05)",
-        raised: "0 6px 16px -8px rgb(23 26 33 / 0.24)",
-        overlay: "0 18px 40px -18px rgb(23 26 33 / 0.35), 0 2px 6px 0 rgb(23 26 33 / 0.12)",
-        lift: "0 16px 34px -18px rgb(23 26 33 / 0.30)",
+        // Read from globals.css so each theme sets its own (D-90): the light
+        // theme leans on shadow to separate panels from the page.
+        card: "var(--shadow-card)",
+        control: "var(--shadow-control)",
+        raised: "var(--shadow-raised)",
+        overlay: "var(--shadow-overlay)",
+        lift: "var(--shadow-lift)",
         // What sits under the navigation item you're on, and under a primary button.
         // Reads the brand token, so follows the section hue instead of darkening:
         // that's what makes "you are here" survive a glance.

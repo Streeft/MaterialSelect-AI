@@ -70,8 +70,8 @@ body {
 .msds-btn-primary { background: rgb(var(--accent)); color: rgb(var(--accent-fg)); box-shadow: var(--shadow-card); }
 .msds-btn-primary:hover:not(:disabled) { transform: translateY(-1px) scale(1.01); box-shadow: var(--shadow-glow); }
 
-.msds-btn-secondary { background: var(--surface-200); color: rgb(var(--ink)); border-color: rgb(var(--edge-control)); }
-.msds-btn-secondary:hover:not(:disabled) { border-color: rgb(var(--accent)); color: rgb(var(--accent)); transform: translateY(-1px); }
+.msds-btn-secondary { background: var(--surface-200); color: rgb(var(--ink)); border-color: rgb(var(--edge-control)); box-shadow: var(--shadow-control); }
+.msds-btn-secondary:hover:not(:disabled) { border-color: rgb(var(--accent)); color: rgb(var(--accent)); transform: translateY(-1px); box-shadow: var(--shadow-raised); }
 
 .msds-btn-ghost { background: transparent; color: rgb(var(--ink)); }
 .msds-btn-ghost:hover:not(:disabled) { background: rgb(var(--brand-50)); color: rgb(var(--accent)); }
@@ -94,6 +94,7 @@ body {
   appearance: none; border: 1px solid rgb(var(--edge-control)); background: var(--surface-200);
   color: rgb(var(--ink-muted)); width: 40px; height: 40px; border-radius: var(--radius-full);
   display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
+  box-shadow: var(--shadow-control);
   transition: all var(--msds-dur) var(--msds-ease);
 }
 .msds-icon-btn:hover { transform: scale(1.06); color: rgb(var(--accent)); border-color: rgb(var(--accent)); }
@@ -103,7 +104,7 @@ body {
 /* ---------- Segmented control ---------- */
 .msds-segmented {
   display: inline-flex; padding: 3px; background: var(--surface-300);
-  border-radius: var(--radius-control); gap: 2px; border: 1px solid rgb(var(--edge));
+  border-radius: var(--radius-control); gap: 2px; border: 1px solid rgb(var(--edge-strong));
 }
 .msds-segmented-item {
   appearance: none; border: none; background: transparent; color: rgb(var(--ink-muted));
@@ -121,7 +122,7 @@ body {
   appearance: none; display: inline-flex; align-items: center; gap: var(--space-2); white-space: nowrap; max-width: 100%;
   border: 1px solid rgb(var(--edge-control)); background: var(--surface-200); color: rgb(var(--ink));
   border-radius: var(--radius-full); padding: 6px 12px 6px 10px; font-size: 13px; font-weight: 500;
-  cursor: pointer; transition: all var(--msds-dur) var(--msds-ease);
+  cursor: pointer; box-shadow: var(--shadow-control); transition: all var(--msds-dur) var(--msds-ease);
 }
 .msds-chip:hover { transform: translateY(-1px); border-color: rgb(var(--accent)); }
 .msds-chip[aria-pressed="true"] { background: rgb(var(--brand-50)); border-color: rgb(var(--accent)); color: rgb(var(--brand-800)); }
@@ -306,11 +307,11 @@ body {
 
 .msds-checkbox, .msds-radio { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: rgb(var(--ink)); cursor: pointer; }
 .msds-checkbox input, .msds-radio input { position: absolute; opacity: 0; width: 1px; height: 1px; }
-.msds-checkbox-box { width: 18px; height: 18px; border: 1px solid rgb(var(--edge-control)); border-radius: 5px; display: inline-flex; align-items: center; justify-content: center; color: transparent; transition: all var(--msds-dur) var(--msds-ease); flex: none; }
+.msds-checkbox-box { width: 18px; height: 18px; border: 1.5px solid rgb(var(--edge-control)); background: var(--surface-200); box-shadow: var(--shadow-control); border-radius: 5px; display: inline-flex; align-items: center; justify-content: center; color: transparent; transition: all var(--msds-dur) var(--msds-ease); flex: none; }
 .msds-checkbox-box svg { width: 13px; height: 13px; }
 .msds-checkbox input:checked + .msds-checkbox-box { background: rgb(var(--accent)); border-color: rgb(var(--accent)); color: rgb(var(--accent-fg)); }
 .msds-checkbox input:focus-visible + .msds-checkbox-box, .msds-radio input:focus-visible + .msds-radio-dot { outline: 2px solid rgb(var(--accent)); outline-offset: 2px; }
-.msds-radio-dot { width: 18px; height: 18px; border: 1px solid rgb(var(--edge-control)); border-radius: 50%; position: relative; flex: none; transition: border-color var(--msds-dur) var(--msds-ease); }
+.msds-radio-dot { width: 18px; height: 18px; border: 1.5px solid rgb(var(--edge-control)); background: var(--surface-200); box-shadow: var(--shadow-control); border-radius: 50%; position: relative; flex: none; transition: border-color var(--msds-dur) var(--msds-ease); }
 .msds-radio input:checked + .msds-radio-dot { border-color: rgb(var(--accent)); border-width: 5px; }
 
 /* RangeFilter */
