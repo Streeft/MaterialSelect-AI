@@ -247,7 +247,7 @@ export const ptBR = {
   selection: {
     title: "Seleção de materiais",
     subtitle:
-      "Função → Restrições → Objetivo → Ranking (determinístico, sem IA)",
+      "Função → Objetivo → Restrições → Resultados (determinístico, sem IA)",
     // The stepper numbers the steps itself; a "1." in the label would print twice.
     stepFunction: "Função",
     stepConstraints: "Restrições",
@@ -573,6 +573,8 @@ export const ptBR = {
       previewRenormalized:
         "Os pesos ainda não fecham 1: a prévia usa os pesos renormalizados, como o ranking faria.",
       blockedRun: "Os pesos precisam fechar 1 antes de executar.",
+      notBlocking: (reason: string) =>
+        `${reason} Você pode seguir; o Executar só libera quando a soma fechar 1.`,
       fixWeights: "Corrigir pesos",
     },
     addCriterion: "Adicionar critério",
@@ -1791,15 +1793,17 @@ export const ptBR = {
     methodTitle: "O método, em quatro passos",
     methodDisclosure: "Como funciona: o método em quatro passos",
     methodHint:
-      "É o percurso de Ashby: descreva a função, elimine com restrições, ordene por um objetivo e leia o resultado com a proveniência de cada número.",
-    step1: "Função",
-    step1Hint: "O que o componente faz e o que se quer otimizar.",
-    step2: "Restrições",
-    step2Hint: "Cada uma elimina candidatos, e o funil mostra quantos.",
-    step3: "Objetivo",
-    step3Hint: "Um índice de mérito e os critérios de ranking.",
-    step4: "Resultados",
-    step4Hint: "Ranking, contribuições, excluídos e sensibilidade.",
+      "É o percurso de Ashby: descreva a função, diga o que se quer otimizar, elimine com restrições e leia o resultado com a proveniência de cada número. O cálculo filtra e só então ordena — a ordem da tela é a de quem pensa o problema.",
+    // D-88: chaves por nome, não por posição — a ordem da tela mudou uma vez e
+    // "step2" passaria a querer dizer outra coisa.
+    stepFunction: "Função",
+    stepFunctionHint: "O que o componente faz e o que se quer otimizar.",
+    stepObjective: "Objetivo",
+    stepObjectiveHint: "Um índice de mérito e os critérios de ranking, com os pesos somando 1.",
+    stepConstraints: "Restrições",
+    stepConstraintsHint: "Cada uma elimina candidatos, e o funil mostra quantos.",
+    stepResults: "Resultados",
+    stepResultsHint: "Ranking, contribuições, excluídos e sensibilidade.",
     start: "Começar um estudo",
     browse: "Explorar o catálogo",
     savedTitle: "Retomar um estudo",

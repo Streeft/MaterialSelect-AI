@@ -49,8 +49,8 @@ export const marketing = {
       "É o percurso de Ashby, e você vê o efeito de cada decisão no momento em que a toma: quantos candidatos a restrição eliminou, quanto cada critério contribuiu, e a partir de que peso o ranking mudaria de primeiro lugar.",
     steps: [
       { n: "01", title: "Função", body: "O que o componente faz e o que se quer otimizar." },
-      { n: "02", title: "Restrições", body: "Cada uma elimina candidatos, e o funil mostra quantos." },
-      { n: "03", title: "Objetivo", body: "Um índice de mérito e os critérios de ranking." },
+      { n: "02", title: "Objetivo", body: "Um índice de mérito e os critérios de ranking." },
+      { n: "03", title: "Restrições", body: "Cada uma elimina candidatos, e o funil mostra quantos." },
       { n: "04", title: "Resultados", body: "Ranking, contribuições, excluídos e sensibilidade." },
     ],
   },

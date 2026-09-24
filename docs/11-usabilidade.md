@@ -101,8 +101,8 @@ lista vazia, e não o método — o que é um teste válido, mas outro.
 | # | Tarefa | Concluída quando… | O que observar |
 |---|---|---|---|
 | T1 | Encontre a ferramenta e comece um estudo a partir do enunciado | O participante chega a `/selecao` e registra a função | Ele entendeu a home como método ou como menu? |
-| T2 | Registre as três restrições | As três aparecem na lista, com unidade | Ele digitou "70" esperando GPa? Percebeu a unidade? O contador de candidatos foi notado? |
-| T3 | Escolha o objetivo | Um índice de desempenho está selecionado | Ele leu as hipóteses do índice antes de escolher? Sabe dizer o que o índice supõe? |
+| T2 | Escolha o objetivo | Um índice de desempenho está selecionado e os pesos fecham 1 | Ele leu as hipóteses do índice antes de escolher? Sabe dizer o que o índice supõe? Entendeu a tabela de pesos e o limite 1? |
+| T3 | Registre as três restrições | As três aparecem na lista, com unidade | Ele conferiu a unidade (GPa, MPa) antes de digitar? Leu a frase "Lê-se: …"? O contador de candidatos foi notado? |
 | T4 | Execute e leia o resultado | Ele nomeia o primeiro colocado **e diz por quê** | Ele achou o funil? Entendeu quem foi excluído e por quê? Reparou nos materiais excluídos por **dado ausente**? |
 | T5 | Verifique de onde veio um número | Ele abre a proveniência de um valor e diz a unidade original e a fonte | Ele descobriu que o valor é clicável? |
 | T6 | Exporte o relatório | O arquivo é baixado ou aberto | Ele escolheu o formato conscientemente? Notou o aviso de limitação? |
@@ -110,6 +110,12 @@ lista vazia, e não o método — o que é um teste válido, mas outro.
 
 Registre por tarefa: **concluída sem ajuda / concluída com dificuldade / não
 concluída**, o tempo, e a frase mais reveladora que o participante disse.
+
+> **Desde o D-88 a ordem de T2 e T3 é a da tela** (Objetivo antes de Restrições).
+> E o botão **"Carregar exemplo: viga leve de bicicleta"** (D-85) resolve sozinho
+> T1 a T3: peça ao participante que **não** o use nessas tarefas, ou registre o
+> uso como achado — ele diz que o participante preferiu ver um estudo pronto a
+> montar um.
 
 ---
 

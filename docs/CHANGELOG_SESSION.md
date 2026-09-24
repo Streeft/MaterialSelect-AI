@@ -83,6 +83,11 @@ sugestão com Desfazer e prévia do top 5; "Executar" espera a soma fechar 1, co
 motivo, e falha aberta se a conferência não responder. `/run` e o salvamento
 recusam critério repetido; estudos antigos continuam reexecutando.
 
+**Fase 3 — Objetivo antes de Restrições (D-88).** `STEPS` reordenado; como a
+navegação deriva dele, o Executar foi sozinho para Restrições e um estudo aberto
+cai lá. Os pesos avisam em Objetivo e travam no Executar. Início, vitrine,
+`/estilo`, README e docs 04/07/11/12 acompanham; o motor não mudou.
+
 ---
 
 ## Sessão 27 — 24/09/26 — O portão vira um modo: acesso aberto para uma turma (D-83)

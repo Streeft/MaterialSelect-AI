@@ -116,10 +116,13 @@ const STEP_BY_SLUG: Record<string, Step> = {
   resultados: "results",
 };
 
+// D-88: Objetivo before Restrições. The order of the screen, not of the
+// method: the engine still filters and only then ranks. Navigation, the Run
+// button and the step a loaded study opens on all derive from this list.
 const STEPS: StepItem<Step>[] = [
   { id: "function", label: t.stepFunction },
-  { id: "constraints", label: t.stepConstraints },
   { id: "objective", label: t.stepObjective },
+  { id: "constraints", label: t.stepConstraints },
   { id: "results", label: t.stepResults, blockedReason: t.blockedResults },
 ];
 
@@ -134,7 +137,7 @@ const SLUG_BY_STEP = Object.fromEntries(
  * list — nothing else can drift out of step with it.
  */
 const INPUT_STEPS = STEPS.filter((s) => s.id !== "results").map((s) => s.id);
-const LAST_INPUT_STEP: Step = INPUT_STEPS[INPUT_STEPS.length - 1] ?? "objective";
+const LAST_INPUT_STEP: Step = INPUT_STEPS[INPUT_STEPS.length - 1] ?? "constraints";
 
 function neighbours(step: Step): { prev: Step | null; next: Step | null } {
   const i = STEPS.findIndex((s) => s.id === step);
@@ -1049,9 +1052,17 @@ function SelectionWizard() {
             </Button>
           </>
         ) : (
-          <Button variant="primary" icon={<IconArrowRight />} onClick={() => goToStep(next)}>
-            {t.nextStep(labelOf(next))}
-          </Button>
+          <>
+            {/* D-88: Objetivo comes before Restrições now, so the weights are
+                warned about here but never block moving on — the Run button,
+                on the last input step, is what waits for them. */}
+            {step === "objective" && gate.reason && gate.reason !== t.weights.checking ? (
+              <p className="text-2xs text-ink-muted">{t.weights.notBlocking(gate.reason)}</p>
+            ) : null}
+            <Button variant="primary" icon={<IconArrowRight />} onClick={() => goToStep(next)}>
+              {t.nextStep(labelOf(next))}
+            </Button>
+          </>
         )}
       </>
     );

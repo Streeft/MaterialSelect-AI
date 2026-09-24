@@ -15,10 +15,10 @@ const t = ptBR.home;
  * and with the reason each one exists.
  */
 const STEPS = [
-  { href: "/app/selecao?etapa=funcao", label: t.step1, hint: t.step1Hint },
-  { href: "/app/selecao?etapa=restricoes", label: t.step2, hint: t.step2Hint },
-  { href: "/app/selecao?etapa=objetivo", label: t.step3, hint: t.step3Hint },
-  { href: "/app/selecao?etapa=resultados", label: t.step4, hint: t.step4Hint },
+  { href: "/app/selecao?etapa=funcao", label: t.stepFunction, hint: t.stepFunctionHint },
+  { href: "/app/selecao?etapa=objetivo", label: t.stepObjective, hint: t.stepObjectiveHint },
+  { href: "/app/selecao?etapa=restricoes", label: t.stepConstraints, hint: t.stepConstraintsHint },
+  { href: "/app/selecao?etapa=resultados", label: t.stepResults, hint: t.stepResultsHint },
 ];
 
 export default function HomePage() {

@@ -16,8 +16,10 @@ flowchart LR
   B -. contagem restante .-> B
 ```
 
-Wizard: **Função → Restrições → Objetivo → Resultados**. A cada restrição, o
-funil de eliminação mostra quantos candidatos restam.
+Wizard: **Função → Objetivo → Restrições → Resultados** (ordem da tela, D-88; o
+motor continua filtrando e só então ordenando). Os pesos dos critérios somam 1,
+com orçamento e prévia do top 5 calculados em `POST /api/selection/weights-preview`
+(D-87). A cada restrição, o funil de eliminação mostra quantos candidatos restam.
 
 ## Restrições (`app/domain/filters.py`)
 

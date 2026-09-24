@@ -5555,3 +5555,40 @@ porque a prévia está fora do ar.
 
 **Depois do merge** o **Deploy da API** é obrigatório: sem ele a prévia responde
 404 e a trava cai na falha aberta — funciona, mas sem tabela.
+
+## D-88 — Na tela da Seleção, Objetivo é o passo 2 e Restrições o passo 3; o método não mudou
+
+**O pedido.** "Na aba de Seleção, quero que o botão de Objetivo esteja antes do
+Restrição: Objetivo 2 e Restrição 3."
+
+**O que mudou é a ordem da tela, não a do cálculo.** O motor continua filtrando e
+só então ordenando — a normalização de cada critério é feita sobre quem sobrou das
+restrições, e isso não se mexe. O que a nova ordem muda é a pergunta que o aluno
+responde primeiro: "o que eu quero otimizar?" antes de "o que é inaceitável?".
+Os documentos que descrevem o **método** (04, 07, 12, REDESIGN) continuam dizendo
+Função → Restrições → Objetivo e ganharam uma frase sobre a tela; os que
+descrevem a **tela** (README, o dicionário, a vitrine, `/estilo`) passaram a dizer
+Função → Objetivo → Restrições → Resultados.
+
+**Como ficou barato.** A navegação do [D-85](#d-85) deriva da ordem de `STEPS`:
+trocar dois itens da lista moveu o "Próximo: …", o Executar (que fica no último
+passo de entrada, agora Restrições) e o passo em que um estudo carregado abre. Os
+slugs da URL (`?etapa=objetivo`, `?etapa=restricoes`) não mudaram, então links
+antigos continuam abrindo o passo certo.
+
+**Duas consequências, ditas na tela:**
+
+- **Os pesos avisam em Objetivo e travam em Restrições.** Com Objetivo antes, não
+  faz sentido impedir o aluno de seguir enquanto os pesos não fecham 1 ([D-87](#d-87)):
+  o passo mostra o motivo como nota ("você pode seguir…"), e o Executar, no passo
+  seguinte, é que espera — com "Corrigir pesos" levando de volta.
+- **A prévia do top 5 vem antes das restrições**, então ordena o catálogo inteiro
+  — e diz isso, com o número de registros, e que as notas vão mudar quando as
+  restrições reduzirem a lista.
+
+As chaves do Início (`home.step1..4`) viraram nomes (`stepFunction`,
+`stepObjective`…): uma chave posicional passaria a querer dizer outra coisa na
+primeira reordenação.
+
+Em `docs/11-usabilidade.md` a ordem de T2 e T3 acompanhou a tela, com o aviso de
+que o exemplo em um clique resolve T1–T3 sozinho.
