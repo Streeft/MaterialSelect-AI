@@ -140,6 +140,9 @@ export interface ProcessAttribute {
   symbol: string | null;
   description: string | null;
   kind: ProcessAttributeKind;
+  /** The identifier this attribute takes inside an index expression (D-84).
+   * Sent by the backend so the screen never re-derives `safe_variable`. */
+  variable: string;
   physical_dimension: string;
   /** Null exactly when `kind` is `DISCRETO` — a label has no unit. */
   canonical_unit: string | null;

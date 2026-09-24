@@ -91,6 +91,11 @@ class ProcessAttributeOut(BaseModel):
     symbol: str | None = None
     description: str | None = None
     kind: ProcessAttributeKind
+    #: The name this attribute takes inside an index expression (D-84). Slugs
+    #: carry hyphens (``faixa-massa``) and an expression needs an identifier;
+    #: the mapping is ``safe_variable``'s, sent from here so the screen never
+    #: re-derives it and cannot disagree with the evaluator.
+    variable: str
     physical_dimension: str = ""
     #: NULL exactly when ``kind`` is discrete — a label has no unit.
     canonical_unit: str | None = None

@@ -284,11 +284,17 @@ export const ptBR = {
     // o relatório também usa — a tela e o documento não podem divergir.
     universeTitle: "Universo do resultado",
     universeHint:
-      "O que a seleção devolve. Trocar reinicia os estágios: cada universo tem os seus, e um estágio do outro seria recusado.",
+      "O que a seleção devolve. Trocar reinicia os estágios, os critérios e o índice: cada universo tem os seus, e o do outro seria recusado.",
     universeMaterial: "Materiais",
     universeProcess: "Processos",
+    // D-84: desde o P0-4 (D-59) processo tem atributo e ranqueia. O que fica de
+    // fora é o atributo discreto, que é rótulo e não tem ordem.
     universeProcessNote:
-      "Um estudo de processos ainda não ranqueia nem aceita índice de desempenho: processo não tem atributo cadastrado, e a ferramenta não inventa valor.",
+      "Um estudo de processos ranqueia por atributos numéricos (valor ou faixa de capacidade). Atributos discretos são rótulos sem ordem e não entram como critério nem em índice.",
+    processIndexNote:
+      "Os índices prontos do catálogo são escritos sobre propriedades de material e não se aplicam a processos. Para ranquear por um índice, escreva uma expressão com os atributos numéricos.",
+    expressionCheckedOnRun:
+      "A expressão é conferida quando você executa a seleção.",
     stagesTitle: "Estágios da seleção",
     stagesHint:
       "Os estágios se aplicam em ordem, e o resultado é a interseção dos habilitados. Desligar um estágio mostra o efeito dele sem apagar o que você escreveu.",
