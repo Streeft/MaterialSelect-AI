@@ -1219,7 +1219,8 @@ describe("acessibilidade das telas principais", () => {
   });
 
   it("mapas", async () => {
-    await auditRoute(<MapsPage />, ptBR.map.figure);
+    // The figure heading carries its kind before its axes (the D-80 eyebrow).
+    await auditRoute(<MapsPage />, new RegExp(`^${ptBR.map.figure}\\b.*×`));
   });
 
   it("comparador, na tabela e numa figura", async () => {
