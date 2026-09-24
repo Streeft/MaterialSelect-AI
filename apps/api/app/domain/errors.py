@@ -34,7 +34,7 @@ class SubscriptionRequiredError(DomainError):
 class CatalogReadOnlyError(DomainError):
     """A write to the shared catalogue by someone who may only read it. -> HTTP 403.
 
-    Only reachable in open access mode (D-82). The default message lives here
+    Only reachable in open access mode (D-83). The default message lives here
     so the route guard and the material service cannot word it differently.
     """
 

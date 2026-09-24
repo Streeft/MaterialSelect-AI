@@ -37,7 +37,7 @@ function wrap(node: ReactNode) {
 
 beforeEach(() => getBillingStatus.mockReset());
 
-describe("acesso aberto (D-82)", () => {
+describe("acesso aberto (D-83)", () => {
   it("/assinatura sends a student to the tool instead of the checkout", async () => {
     getBillingStatus.mockResolvedValue(student);
     wrap(<BillingPage />);

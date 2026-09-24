@@ -128,3 +128,36 @@ export async function downloadChartImage(
   const { exportFigure } = await import("./figureExport");
   await exportFigure(container, format, fileName);
 }
+
+/**
+ * Tick positions for a logarithmic map axis, the way the showcase map reads:
+ * one mark per decade, plus the 3× mark between decades when the axis spans
+ * few enough of them to hold it (100, 300, 1 000, 3 000 …), and 2× and 5× when
+ * it spans a single decade. Plotly's own log
+ * ticks label every 2 and 5 as well, which on a 5-decade modulus axis is a
+ * column of digits nobody reads.
+ *
+ * Presentation only: where a tick sits says nothing about the data, and the
+ * labels are formatted with the app's pt-BR convention (D-30) by the caller.
+ * Returns `null` when the range is unusable (non-positive or non-finite), so
+ * the caller can leave the axis to Plotly.
+ */
+export function logTicks(min: number | null, max: number | null): number[] | null {
+  if (min === null || max === null) return null;
+  if (!(min > 0) || !(max > 0) || !Number.isFinite(min) || !Number.isFinite(max)) return null;
+  const low = Math.floor(Math.log10(Math.min(min, max)));
+  const high = Math.ceil(Math.log10(Math.max(min, max)));
+  const decades = Math.max(high - low, 1);
+  // One decade holds 2 and 5 as well; up to four hold the 3; more hold only
+  // the decades themselves.
+  const between = decades <= 1 ? [2, 5] : decades <= 4 ? [3] : [];
+  const ticks: number[] = [];
+  for (let exponent = low; exponent <= high; exponent++) {
+    const decade = 10 ** exponent;
+    ticks.push(Number(decade.toPrecision(12)));
+    if (exponent < high) {
+      for (const step of between) ticks.push(Number((step * decade).toPrecision(12)));
+    }
+  }
+  return ticks;
+}

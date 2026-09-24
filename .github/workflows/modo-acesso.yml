@@ -1,4 +1,4 @@
-# Abre ou fecha o acesso à ferramenta em produção (D-82), disparado à mão.
+# Abre ou fecha o acesso à ferramenta em produção (D-83), disparado à mão.
 #
 #   abrir                 qualquer pessoa que entrar com uma conta Google usa a
 #                         ferramenta, sem assinatura — para uma turma testar. O
@@ -14,7 +14,7 @@
 # frontend lê o modo em `/billing/status` — nada na Vercel precisa ser refeito.
 #
 # **O job só fica verde depois de ler o modo novo em `/api/health`.** Um segredo
-# gravado numa API anterior ao D-82 seria ignorado em silêncio (a configuração
+# gravado numa API anterior ao D-83 seria ignorado em silêncio (a configuração
 # descarta variável desconhecida), e o job passaria com a porta ainda fechada —
 # a mesma assinatura das armadilhas do Fly no D-52. Se este passo falhar com
 # "modo ausente", dispare antes o "Deploy da API".
@@ -99,7 +99,7 @@ jobs:
             sleep 5
           done
           if [ "$modo" = "ausente" ]; then
-            echo "::error::A API publicada não informa access_mode: ela é anterior ao D-82. Dispare 'Deploy da API' e rode este workflow de novo."
+            echo "::error::A API publicada não informa access_mode: ela é anterior ao D-83. Dispare 'Deploy da API' e rode este workflow de novo."
           else
             echo "::error::A API publicada continua em '$modo', não em '$ACCESS_MODE'."
           fi

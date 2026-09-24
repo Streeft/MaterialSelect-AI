@@ -299,7 +299,7 @@ Passo a passo, sem terminal, pela aba **Actions** do repositório:
 ## 5-quater. Abrir para uma turma, e fechar depois
 
 Para estudantes testarem com a própria conta Google, sem assinatura
-([D-82](DECISIONS.md#d-82)). O login continua obrigatório; o que deixa de ser
+([D-83](DECISIONS.md#d-83)). O login continua obrigatório; o que deixa de ser
 exigido é a assinatura. **O catálogo compartilhado continua protegido:** no
 modo aberto, só quem tem assinatura ativa altera material compartilhado,
 classe, propriedade, importa planilha ou ingere documento. O estudante usa
@@ -310,7 +310,7 @@ toda a ferramenta e cria os próprios registros, estudos e gráficos.
 1. Garanta que a **sua** conta tem assinatura ativa (**Administração do
    banco** → `conceder` com o seu e-mail). É ela que mantém você como curador
    do catálogo durante a abertura, e que deixa você entrar depois de fechar.
-2. Se a API publicada ainda não tem o D-82 (primeira vez), dispare **Deploy da
+2. Se a API publicada ainda não tem o D-83 (primeira vez), dispare **Deploy da
    API** antes.
 3. **Modo de acesso** → **Run workflow** → `abrir`.
 4. O job grava `ACCESS_MODE=open` no Fly (as máquinas reiniciam, sem deploy) e

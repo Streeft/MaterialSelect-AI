@@ -46,7 +46,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
     isError: billingIsError,
     refetch: refetchBilling,
   } = useBillingStatus({ enabled: billingEnabled });
-  // `has_access` and not `active`: in open mode (D-82) the server admits a
+  // `has_access` and not `active`: in open mode (D-83) the server admits a
   // login with no subscription, and the rule lives there, not here.
   const isNotSubscribed =
     billingEnabled && !billingLoading && !billingIsError && billing?.has_access === false;

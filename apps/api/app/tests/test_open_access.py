@@ -1,4 +1,4 @@
-"""Open access mode (D-82): any Google login uses the tool, only subscribers
+"""Open access mode (D-83): any Google login uses the tool, only subscribers
 write the shared catalogue.
 
 Every test here runs with the real subscription gate (``client_without_subscription``)

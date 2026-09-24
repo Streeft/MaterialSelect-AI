@@ -167,7 +167,7 @@ export default function MaterialDetailPage() {
               </div>
               <div className="flex shrink-0 flex-wrap items-center gap-2">
                 <FavoriteButton universe="material" recordId={data.id} />
-                {/* D-82: in open access mode a shared material is read-only for
+                {/* D-83: in open access mode a shared material is read-only for
                     a student; the server refuses the write, this only avoids
                     offering a button that cannot work. */}
                 {(data.is_own_record || canEditCatalog) && (

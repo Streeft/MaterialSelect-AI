@@ -179,6 +179,17 @@ export interface ChartTheme {
   label: string;
   /** Foreground ink, for lines the backend computed (index levels). */
   ink: string;
+  /** The section accent (D-49/D-73): index guide line, highlight halo, region. */
+  accent: string;
+  /** The accent as a translucent fill, for a selected region's ground. */
+  accentFill: string;
+  /** The card's own surface: the ring that separates overlapping markers. */
+  surface: string;
+  /** The rail's dark ground and ink — the hover label, as on the showcase map. */
+  tooltipBg: string;
+  tooltipInk: string;
+  /** The app's monospace face, by name, for tick labels. */
+  monoFamily: string;
 }
 
 /**
@@ -191,6 +202,17 @@ export interface ChartTheme {
  * Inter — a face the app never loaded — so every Plotly figure was set in the
  * system fallback beside a Public Sans table.
  */
+/** The app's monospace (`--font-mono`), resolved by name like {@link chartFontFamily}. */
+export function chartMonoFamily(): string {
+  const fallback = "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace";
+  if (typeof window === "undefined") return `'IBM Plex Mono', ${fallback}`;
+  const loaded = window
+    .getComputedStyle(document.documentElement)
+    .getPropertyValue("--font-mono")
+    .trim();
+  return `${loaded || "'IBM Plex Mono'"}, ${fallback}`;
+}
+
 export function chartFontFamily(): string {
   const fallback = "ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
   if (typeof window === "undefined") return `'Public Sans', ${fallback}`;
@@ -239,6 +261,12 @@ export function chartTheme(theme: ResolvedTheme): ChartTheme {
     markerEdge: "rgba(0,0,0,0.25)",
     label: muted,
     ink,
+    accent: read("--accent"),
+    accentFill: read("--accent", 0.1),
+    surface: read("--surface-raised"),
+    tooltipBg: read("--rail"),
+    tooltipInk: read("--rail-ink"),
+    monoFamily: chartMonoFamily(),
     layout: {
       // Transparent, so the figure sits on the card instead of punching a white
       // rectangle through it.

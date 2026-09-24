@@ -1206,6 +1206,7 @@ export const ptBR = {
     levelsHint:
       "Cada nível traçado vira uma reta paralela; o lado favorável é contado abaixo.",
     figure: "Mapa de Ashby",
+    guide: "guia",
     share: "Compartilhar",
     shareTooltip: "Copia um link com os filtros atuais",
     save: "Salvar",
@@ -1588,7 +1589,7 @@ export const ptBR = {
     // arrives as an ApiError with its own PT-BR message and is shown as-is.
     checkoutError: "Não foi possível iniciar a assinatura.",
     portalError: "Não foi possível abrir o gerenciamento da assinatura.",
-    // D-82: acesso aberto para testes — qualquer login Google usa a ferramenta.
+    // D-83: acesso aberto para testes — qualquer login Google usa a ferramenta.
     openSubtitle:
       "O acesso está aberto para testes: com a sua conta Google você já pode usar a ferramenta, sem assinatura.",
     openButton: "Ir para a ferramenta",

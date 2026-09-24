@@ -76,7 +76,7 @@ const inactiveBilling: BillingStatus = {
   has_access: false,
   can_edit_catalog: true,
 };
-// D-82: a student under open access mode — no subscription, admitted anyway.
+// D-83: a student under open access mode — no subscription, admitted anyway.
 const openAccessBilling: BillingStatus = {
   active: false,
   status: null,

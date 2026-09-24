@@ -182,7 +182,7 @@ class Settings(BaseSettings):
     # na interface.
     stripe_price_id: str = ""
 
-    # --- Access mode (D-82) -----------------------------------------------
+    # --- Access mode (D-83) -----------------------------------------------
     # subscription  the D-46 gate: every product route needs an active
     #               subscription. The default, so a deployment that never set
     #               the variable stays closed.

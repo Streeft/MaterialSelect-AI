@@ -22,7 +22,7 @@ export function useBillingStatus(options?: { enabled?: boolean }) {
 }
 
 /**
- * Whether to offer controls that write the shared catalogue (D-82).
+ * Whether to offer controls that write the shared catalogue (D-83).
  *
  * Only hides what a student admitted by open access mode could not use; the
  * server refuses the write either way. Unknown (loading, error) reads as yes,

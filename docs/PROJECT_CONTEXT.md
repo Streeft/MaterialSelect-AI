@@ -512,7 +512,7 @@ O roteiro completo está em [13-deploy.md](13-deploy.md) e o desenho em
   (`deploy-api.yml` e `admin-banco.yml`), não por terminal — o operador deste
   projeto não tem shell disponível. Eles cobrem `fly deploy`, migrações, seed e
   a concessão de acesso — e um terceiro, `modo-acesso.yml`, abre a ferramenta
-  a qualquer conta Google para uma turma e a fecha de novo ([D-82](DECISIONS.md)).
+  a qualquer conta Google para uma turma e a fecha de novo ([D-83](DECISIONS.md)).
 - **Publicar exigiu corrigir cinco defeitos que nenhum teste pegava**, todos
   invisíveis fora de produção: a migração que não subia em Postgres, o
   `psycopg` não declarado, o `requirements.txt` que tinha derivado, o
@@ -718,7 +718,7 @@ resto da fase — trazidas depois, íntegras, verificadas caminho a caminho:
   **completou um checkout real de ponta a ponta** (login → checkout →
   pagamento de teste → webhook → assinatura ativa), o que expôs e corrigiu
   um bug real no processamento do webhook (PR #21, ver [D-46](DECISIONS.md)).
-- **Modo de acesso aberto** ([D-82](DECISIONS.md)) — `ACCESS_MODE=open`
+- **Modo de acesso aberto** ([D-83](DECISIONS.md)) — `ACCESS_MODE=open`
   deixa uma turma usar a ferramenta com qualquer conta Google, sem
   assinatura; login continua obrigatório e **escrever no catálogo
   compartilhado continua exigindo assinatura** (material compartilhado,

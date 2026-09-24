@@ -209,7 +209,7 @@ def test_other_users_study_events_are_not_visible(client, other_user, login_as):
 
 def test_other_users_own_record_events_are_not_visible(client, other_user, login_as):
     # An own record (P1-4) is 404 to everyone but its owner, so its history —
-    # which names it and carries the owner's e-mail — must be too (D-82).
+    # which names it and carries the owner's e-mail — must be too (D-83).
     with login_as(other_user):
         private = client.post(
             "/api/materials",
