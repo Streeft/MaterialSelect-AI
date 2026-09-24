@@ -201,6 +201,10 @@ credencial de banco — privilégio bem menor e mais visível que uma variável 
 desliga o portão inteiro. Ver o cabeçalho de
 `app/admin/grant_subscription.py`.
 
+**Para uma turma inteira, a concessão não serve** — a lista de e-mails não
+existe antes da aula, e cada um precisaria ter entrado antes. Para isso há o
+modo de acesso aberto, no §5-quater.
+
 ## 5-bis. Sem terminal: o mesmo deploy pelo navegador
 
 Tudo acima pressupõe um shell com `flyctl` instalado. Quem não tem — máquina
@@ -211,6 +215,7 @@ disparo manual em `.github/workflows/`, na aba **Actions** do repositório.
 |---|---|---|
 | **Deploy da API (Fly.io)** | `flyctl deploy --remote-only` | o `fly deploy` do §2 |
 | **Administração do banco** | `migrar`, `semear`, `excluir_demo`, `conceder`, `revogar` | o `fly ssh console` do §2 e do §5 |
+| **Modo de acesso** | `abrir`, `restaurar_assinatura` — grava `ACCESS_MODE` no Fly e confere em `/api/health` | o `fly secrets set` do §5-quater |
 
 Dois segredos, em *Settings → Secrets and variables → Actions*:
 
@@ -290,6 +295,40 @@ Passo a passo, sem terminal, pela aba **Actions** do repositório:
 3. Acompanhar até o ✅ verde em cada um, na lista de execuções no topo da mesma
    aba — um ❌ aqui significa produção desatualizada até ser refeito, nunca
    "vai passar na próxima".
+
+## 5-quater. Abrir para uma turma, e fechar depois
+
+Para estudantes testarem com a própria conta Google, sem assinatura
+([D-83](DECISIONS.md#d-83)). O login continua obrigatório; o que deixa de ser
+exigido é a assinatura. **O catálogo compartilhado continua protegido:** no
+modo aberto, só quem tem assinatura ativa altera material compartilhado,
+classe, propriedade, importa planilha ou ingere documento. O estudante usa
+toda a ferramenta e cria os próprios registros, estudos e gráficos.
+
+**Abrir** — pela aba **Actions**:
+
+1. Garanta que a **sua** conta tem assinatura ativa (**Administração do
+   banco** → `conceder` com o seu e-mail). É ela que mantém você como curador
+   do catálogo durante a abertura, e que deixa você entrar depois de fechar.
+2. Se a API publicada ainda não tem o D-83 (primeira vez), dispare **Deploy da
+   API** antes.
+3. **Modo de acesso** → **Run workflow** → `abrir`.
+4. O job grava `ACCESS_MODE=open` no Fly (as máquinas reiniciam, sem deploy) e
+   **só fica verde depois de ler `"access_mode": "open"`** em
+   `https://materialselect-ai.fly.dev/api/health`. Se falhar dizendo que a API
+   não informa o modo, é o passo 2 que faltou.
+
+Opcional: para restringir a abertura a uma instituição, defina
+`GOOGLE_ALLOWED_DOMAIN` (por exemplo `ufrgs.br`) nos segredos do app no Fly.
+
+**Fechar (voltar a exigir o pacote)** — **Modo de acesso** → **Run workflow**
+→ `restaurar_assinatura`. Mesmo mecanismo, mesma conferência. Os registros e
+estudos que os estudantes criaram continuam no banco, só deixam de ser
+alcançáveis por eles sem assinatura. Para dar acesso contínuo a alguém
+específico depois disso, use `conceder` (§5).
+
+A interface acompanha sozinha: ela lê o modo em `/billing/status`, então nada
+na Vercel precisa ser refeito em nenhum dos dois sentidos.
 
 ## 6. Conferir que está de pé
 

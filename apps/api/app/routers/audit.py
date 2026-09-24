@@ -36,6 +36,7 @@ def list_audit_events(
         entity_type=entity_type,
         entity_id=entity_id,
         project_id=project.id,
+        viewer_id=project.owner_id,
         limit=limit,
         offset=offset,
     )

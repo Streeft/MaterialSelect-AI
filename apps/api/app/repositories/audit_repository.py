@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.models.audit import AuditEvent
 from app.models.enums import AuditEntityType
+from app.models.material import Material
 
 
 class AuditRepository:
@@ -24,6 +25,7 @@ class AuditRepository:
         entity_type: AuditEntityType | None = None,
         entity_id: int | None = None,
         project_id: int,
+        viewer_id: int,
         limit: int = 50,
         offset: int = 0,
     ) -> list[AuditEvent]:
@@ -34,11 +36,22 @@ class AuditRepository:
         visible only when its own ``project_id`` snapshot matches the
         caller's. Catalogue entity types (material, material_class,
         property_definition, performance_index) have no owner and stay
-        visible to any logged-in user, same as the endpoints that read them.
+        visible to any logged-in user, same as the endpoints that read them —
+        except a material that is someone else's own record (P1-4, D-62): its
+        events would name the record and its owner's e-mail to a reader the
+        material endpoints answer 404, and in open access mode (D-83) that
+        reader is any classmate.
         """
+        others_records = select(Material.id).where(
+            Material.owner_id.is_not(None), Material.owner_id != viewer_id
+        )
         stmt = select(AuditEvent).where(
             (AuditEvent.entity_type != AuditEntityType.SELECTION_STUDY)
-            | (AuditEvent.project_id == project_id)
+            | (AuditEvent.project_id == project_id),
+            ~(
+                (AuditEvent.entity_type == AuditEntityType.MATERIAL)
+                & AuditEvent.entity_id.in_(others_records)
+            ),
         )
         if entity_type is not None:
             stmt = stmt.where(AuditEvent.entity_type == entity_type)

@@ -28,6 +28,7 @@ import {
   Th,
   Tr,
 } from "@/components/ui";
+import { CatalogReadOnlyNotice } from "@/components/auth/CatalogReadOnlyNotice";
 
 export default function ClassesAdminPage() {
   const qc = useQueryClient();
@@ -69,6 +70,7 @@ export default function ClassesAdminPage() {
   return (
     <div className="flex flex-col gap-5">
       <PageHeader title={ptBR.admin.classesTitle} />
+      <CatalogReadOnlyNotice />
 
       <form
         onSubmit={(e) => {

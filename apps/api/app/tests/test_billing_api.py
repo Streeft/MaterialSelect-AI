@@ -24,7 +24,14 @@ from app.tests.test_billing_service import _FakeStripeClient
 def test_billing_status_reports_inactive_with_no_subscription(client):
     response = client.get("/api/billing/status")
     assert response.status_code == 200
-    assert response.json() == {"active": False, "status": None, "current_period_end": None}
+    assert response.json() == {
+        "active": False,
+        "status": None,
+        "current_period_end": None,
+        "access_mode": "subscription",
+        "has_access": False,
+        "can_edit_catalog": True,
+    }
 
 
 def test_billing_status_does_not_require_an_active_subscription(client_without_subscription):

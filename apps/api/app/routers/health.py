@@ -19,4 +19,5 @@ def health() -> HealthResponse:
         app_name=settings.app_name,
         version=__version__,
         environment=settings.environment,
+        access_mode=settings.access_mode,
     )

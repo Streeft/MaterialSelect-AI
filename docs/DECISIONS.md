@@ -5236,3 +5236,101 @@ D-28) — a paleta Okabe–Ito sozinha não basta num relatório impresso em ton
 cinza. A vitrine pode abrir mão disso porque é uma figura ilustrativa de dez
 pontos; o mapa é o instrumento. Pela mesma razão o contorno do envelope continua
 com o traço da classe, só mais tênue.
+
+## D-83 — Acesso aberto para uma turma: o portão vira um modo, e o catálogo compartilhado continua com quem assina
+
+**O pedido.** Abrir a ferramenta para estudantes testarem com a própria conta
+Google, sem assinatura, e poder voltar depois à configuração original — só
+entra quem adquiriu o pacote — por um job no GitHub, sem PR.
+
+**A decisão: `ACCESS_MODE`, com dois valores e padrão fechado.** `subscription`
+é o portão de [D-46](#d-46), intacto, e é o padrão do código: uma implantação
+que nunca definiu a variável continua fechada. `open` faz
+`require_active_subscription` admitir qualquer sessão válida. **Login continua
+obrigatório nos dois modos** — `get_current_user` segue como dependência do
+portão —, porque abrir para uma turma nunca quis dizer abrir para tráfego
+anônimo. Quem quiser restringir a abertura a uma instituição já tem
+`GOOGLE_ALLOWED_DOMAIN`.
+
+**O que o modo aberto não abre: escrever no catálogo compartilhado.** Até aqui
+"quem passou pelo portão pode alterar o catálogo" ([D-62](#d-62)) valia porque
+todo mundo que passava era assinante. Com o portão aberto essa equivalência
+some, e um estudante poderia renomear, desativar ou substituir os valores de um
+material que a turma inteira lê. O autor escolheu, entre as alternativas, "usar
+tudo, proteger o catálogo": no modo aberto, **só quem tem assinatura ativa**
+cria, altera ou desativa material compartilhado (`owner_id` NULL), cria, altera
+ou apaga classe e propriedade, importa planilha e ingere documento no Cérebro. O
+estudante usa toda a ferramenta, cria e edita **os próprios registros** (P1-4),
+estudos, gráficos salvos e sínteses. No modo `subscription` a regra devolve
+"sim" sem consultar nada — o portão já admitiu só assinantes —, então o D-62
+fica exatamente como era.
+
+**Uma regra só, pura, lida pelos dois lados.** `app/domain/access.py` tem
+`grants_access(mode, subscribed)` e `can_edit_shared_catalog(mode,
+subscribed)`; o portão HTTP e `/billing/status` perguntam a elas, e a tela que
+diz "você entrou" não pode discordar da API que deixou entrar. As rotas de
+curadoria ganharam `require_catalog_curator` como dependência de rota; o
+`MaterialService` recebe `can_edit_shared` pelo construtor, porque a mesma rota
+(`POST /materials`) escreve no catálogo ou num registro próprio conforme o
+payload, e só o serviço sabe qual. A recusa é `CatalogReadOnlyError` → **403**,
+com a mensagem em português definida uma vez, na própria exceção.
+
+**`/billing/status` separa assinatura de acesso.** `active` continua sendo a
+verdade da assinatura e nada mais; `has_access` é o que o portão lê;
+`can_edit_catalog`, o que a interface lê para não oferecer botão que não
+funcionaria. Colapsar os dois em `active=true` no modo aberto faria um
+assinante e um estudante parecerem iguais — e a página `/assinatura` mostraria
+"gerenciar assinatura" a quem não tem nenhuma. Na interface: `AuthGate` lê
+`has_access`; `/assinatura` no modo aberto manda para a ferramenta em vez do
+checkout; a ficha de um material compartilhado esconde *editar* e *desativar*
+de quem não pode; `/app/importar` e as duas telas de administração avisam que o
+catálogo é somente leitura; e o formulário de material novo, para um
+estudante, grava **registro próprio** e diz isso antes de ele digitar — a única
+propriedade que ele pode declarar (a regra "declarada, nunca inferida" do P1-4
+continua de pé: o formulário não adivinha, ele só tem uma opção para oferecer, e
+a escreve na tela). Esconder é conveniência; quem recusa é o servidor.
+
+**Por que uma variável, se o §5 de `13-deploy.md` preferia a concessão por
+linha de banco.** Aquele texto comparava a concessão com "uma variável que
+desliga o portão inteiro". Esta não desliga o portão inteiro: o login continua
+exigido e o catálogo continua protegido. E ela resolve um problema que a
+concessão não resolve: uma turma não é uma lista de e-mails conhecida antes da
+aula, e cada `conceder` exige que a pessoa já tenha entrado uma vez. A
+concessão continua sendo o caminho para uma banca ou para os participantes de
+uma sessão de usabilidade.
+
+**A troca é um workflow, e ele só fica verde depois de ler o modo novo.**
+`.github/workflows/modo-acesso.yml` (`abrir` / `restaurar_assinatura`) grava o
+segredo `ACCESS_MODE` no Fly — o que reinicia as máquinas, sem deploy de código
+e sem PR — e então lê `access_mode` em `/api/health` até ver o valor pedido. O
+campo é público de propósito: diz só se a ferramenta está aberta, e é o que
+prova que a troca pegou. Sem essa leitura, um segredo gravado numa API anterior
+a esta decisão seria descartado em silêncio pela configuração (que ignora
+variável desconhecida), e o job passaria com a porta ainda fechada — a mesma
+assinatura das armadilhas do Fly no [D-52](#d-52). O workflow divide o grupo de
+concorrência com o deploy, porque os dois reiniciam as mesmas máquinas.
+
+**O feed de auditoria deixou de mostrar registro próprio alheio.** Achado ao
+revisar o que um estudante passaria a alcançar: `/api/audit` devolvia a
+qualquer usuário os eventos de material, inclusive de um registro próprio de
+outra pessoa — com o nome dele e o e-mail do dono —, enquanto as rotas de
+material respondiam 404 ao mesmo leitor. Era um defeito desde o P1-4 (o
+canário do D-62 varre as rotas de material, não o feed), e o modo aberto o
+transformaria em "todo estudante vê o e-mail e os registros particulares dos
+colegas". `AuditRepository.list_events` recebe o observador e exclui eventos
+de material que seja registro próprio de outro; evento de catálogo
+compartilhado continua visível a todos, como antes.
+
+**Antes de restaurar**, a conta do autor precisa de assinatura ativa
+(`admin-banco.yml` → `conceder`), ou o portão fecha para ele também — e, no
+modo aberto, é essa assinatura que o mantém como curador do catálogo.
+
+**Verificação.** Backend: 29 testes novos em `app/tests/test_open_access.py` —
+a tabela da regra, o padrão fechado, o 403 do portão no modo `subscription`, a
+entrada do estudante no modo aberto, o 401 sem login, o `/billing/status` e o
+`/api/health` nos dois modos, o estudante criando/editando/desativando o
+próprio registro, o 403 em toda escrita no catálogo compartilhado (material,
+classe, propriedade, as seis rotas de importação e a ingestão), o assinante
+continuando curador no modo aberto, e o modo `subscription` não ganhando um
+segundo portão por cima do D-46. Frontend: o portão admitindo no modo aberto,
+`/assinatura` nos dois modos e o aviso de somente leitura.

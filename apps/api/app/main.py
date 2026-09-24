@@ -23,6 +23,7 @@ from app.dependencies import require_active_subscription
 from app.domain.display_units import DisplayUnitError
 from app.domain.errors import (
     AuthenticationError,
+    CatalogReadOnlyError,
     ConflictError,
     NotFoundError,
     ServiceUnavailableError,
@@ -109,6 +110,11 @@ async def _handle_authentication(_: Request, exc: AuthenticationError) -> JSONRe
 
 @app.exception_handler(SubscriptionRequiredError)
 async def _handle_subscription_required(_: Request, exc: SubscriptionRequiredError) -> JSONResponse:
+    return _error_response(403, str(exc))
+
+
+@app.exception_handler(CatalogReadOnlyError)
+async def _handle_catalog_read_only(_: Request, exc: CatalogReadOnlyError) -> JSONResponse:
     return _error_response(403, str(exc))
 
 

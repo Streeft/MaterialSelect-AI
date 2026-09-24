@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import type { MaterialClass, MaterialDetail, PropertyDefinition } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { ApiError, createMaterial, replaceMaterialValues, updateMaterial } from "@/lib/api";
+import { useCanEditCatalog } from "@/lib/billing";
 import {
   emptyValueRow,
   formSchema,
@@ -38,6 +39,11 @@ export function MaterialForm({ classes, properties, initial }: MaterialFormProps
   const router = useRouter();
   const qc = useQueryClient();
   const [submitError, setSubmitError] = useState<string | null>(null);
+  // D-83: a student admitted by open access mode may only add to their own
+  // records, so that is the one ownership this form can declare for them —
+  // and the notice below says so before they type anything.
+  const canEditCatalog = useCanEditCatalog();
+  const ownRecordOnly = !initial && !canEditCatalog;
 
   const {
     register,
@@ -96,6 +102,7 @@ export function MaterialForm({ classes, properties, initial }: MaterialFormProps
           description: data.description || null,
           keywords: parseKeywords(data.keywords),
           is_demo: false,
+          is_own_record: ownRecordOnly,
           values: apiValues,
         });
         qc.setQueryData(["material", created.id], created);
@@ -112,6 +119,7 @@ export function MaterialForm({ classes, properties, initial }: MaterialFormProps
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      {ownRecordOnly && <Alert tone="info">{ptBR.billing.ownRecordOnly}</Alert>}
       <Card>
         <CardHeader title={ptBR.form.identification} headingLevel={2} />
         <CardBody className="grid gap-4 sm:grid-cols-2">

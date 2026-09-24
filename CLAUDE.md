@@ -700,6 +700,19 @@ algo que roda. `admin-banco.yml` (`semear`) e `scripts/seed.ps1` agora
 executam os dois, em sequência; o stub vestigial `seed_patch.py`, do mesmo
 PR e nunca importado por nada, foi removido.
 
+**O portão virou um modo** ([D-83](docs/DECISIONS.md)): `ACCESS_MODE`
+(`subscription`, o padrão e o D-46 intacto; ou `open`) deixa uma turma usar a
+ferramenta com qualquer conta Google, sem assinatura. Login continua
+obrigatório, e **escrever no catálogo compartilhado continua exigindo
+assinatura** — material compartilhado, classe, propriedade, importação e
+ingestão; o estudante cria os próprios registros e estudos. A regra é uma só,
+pura, em `app/domain/access.py`, lida pelo portão e por `/billing/status`
+(que agora separa `active` — a assinatura — de `has_access` — o que o portão
+lê — e de `can_edit_catalog`). **Rota nova que escreva no catálogo
+compartilhado precisa de `require_catalog_curator`.** A troca em produção é o
+workflow **Modo de acesso** (`modo-acesso.yml`, `abrir`/`restaurar_assinatura`),
+que só fica verde depois de ler o modo novo em `/api/health`.
+
 **Apagar dado de demonstração ganhou um único caminho** ([D-72](docs/DECISIONS.md)):
 `apps/api/app/db/clear_demo.py` (`python -m app.db.clear_demo`, ação
 `excluir_demo` de `admin-banco.yml`) apaga todo `Material` com
@@ -735,7 +748,7 @@ sentidos, e **pela mesma regra que desenha o mapa** (`ChartService._map_reading`
 eixo de índice, unidade com offset e universo de processos não se movem num
 nem noutro. O cliente nunca aplica fator.
 
-1755 testes de backend (nenhum skip) e 422 de frontend, todos verdes. CI no
+1785 testes de backend (nenhum skip) e 427 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
 PROJECT_CONTEXT.md).

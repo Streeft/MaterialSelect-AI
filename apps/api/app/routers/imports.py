@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.db.base import get_db
-from app.dependencies import get_current_user
+from app.dependencies import get_current_user, require_catalog_curator
 from app.domain.errors import ValidationError
 from app.importers.service import ImportService
 from app.models.user import User
@@ -31,7 +31,9 @@ router = APIRouter(prefix="/imports", tags=["imports"])
 templates_router = APIRouter(prefix="/import-templates", tags=["imports"])
 
 
-@router.post("/upload", response_model=UploadResult)
+@router.post(
+    "/upload", response_model=UploadResult, dependencies=[Depends(require_catalog_curator)]
+)
 async def upload_file(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
@@ -60,7 +62,11 @@ class PreviewRequest(BaseModel):
     sheet_name: str | None = None
 
 
-@router.post("/{job_id}/preview", response_model=UploadResult)
+@router.post(
+    "/{job_id}/preview",
+    response_model=UploadResult,
+    dependencies=[Depends(require_catalog_curator)],
+)
 def preview(
     job_id: int,
     payload: PreviewRequest,
@@ -76,7 +82,11 @@ class ValidateRequest(BaseModel):
     sheet_name: str | None = None
 
 
-@router.post("/{job_id}/validate", response_model=ValidationReport)
+@router.post(
+    "/{job_id}/validate",
+    response_model=ValidationReport,
+    dependencies=[Depends(require_catalog_curator)],
+)
 def validate(
     job_id: int,
     payload: ValidateRequest,
@@ -87,7 +97,9 @@ def validate(
     return ImportService(db, user).validate(job_id, payload.mapping, payload.sheet_name)
 
 
-@router.post("/{job_id}/commit", response_model=CommitResult)
+@router.post(
+    "/{job_id}/commit", response_model=CommitResult, dependencies=[Depends(require_catalog_curator)]
+)
 def commit(
     job_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)
 ) -> CommitResult:
@@ -95,14 +107,20 @@ def commit(
     return ImportService(db, user).commit(job_id)
 
 
-@router.post("/{job_id}/cancel", response_model=ImportJobOut)
+@router.post(
+    "/{job_id}/cancel", response_model=ImportJobOut, dependencies=[Depends(require_catalog_curator)]
+)
 def cancel(
     job_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)
 ) -> ImportJobOut:
     return ImportService(db, user).cancel(job_id)
 
 
-@router.post("/{job_id}/rollback", response_model=ImportJobOut)
+@router.post(
+    "/{job_id}/rollback",
+    response_model=ImportJobOut,
+    dependencies=[Depends(require_catalog_curator)],
+)
 def rollback(
     job_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)
 ) -> ImportJobOut:

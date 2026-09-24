@@ -54,6 +54,7 @@ import {
 } from "@/components/import/MappingEditor";
 import { ValidationReportView } from "@/components/import/ValidationReportView";
 import { ImportHistory } from "@/components/import/ImportHistory";
+import { CatalogReadOnlyNotice } from "@/components/auth/CatalogReadOnlyNotice";
 
 type Step = "upload" | "mapping" | "report" | "done";
 
@@ -291,6 +292,7 @@ export default function ImportPage() {
   return (
     <div className="space-y-6">
       <PageHeader title={t.title} description={t.subtitle} group="dados" />
+      <CatalogReadOnlyNotice />
 
       <Stepper label={ptBR.ui.steps} steps={STEPS} statusOf={statusOf} current={step} onSelect={setStep} />
 
