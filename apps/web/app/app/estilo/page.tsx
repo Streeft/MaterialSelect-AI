@@ -18,10 +18,12 @@ import {
   CardHeader,
   Checkbox,
   ClassBadge,
+  Combobox,
   DataQualityBadge,
   DataQualityLegend,
   Dialog,
   Disclosure,
+  GuidedBlock,
   EmptyState,
   ErrorState,
   IconButton,
@@ -654,7 +656,7 @@ export default function StyleGuidePage() {
           current={step}
           onSelect={setStep}
           steps={[
-            { id: "funcao", label: "1. Função" },
+            { id: "funcao", label: "1. Função", summary: "Viga leve de bicicleta" },
             { id: "restricoes", label: "2. Restrições" },
             { id: "objetivo", label: "3. Objetivo" },
             {
@@ -684,6 +686,10 @@ export default function StyleGuidePage() {
           filho do próprio componente: assim o <code className="font-mono">aria-controls</code> da
           aba não tem como apontar para um elemento que não existe.
         </Tabs>
+      </Section>
+
+      <Section title="Revelação progressiva e busca" headingLevel={2}>
+        <GuidedDemo />
       </Section>
 
       <Section title="Trilha de navegação" headingLevel={2}>
@@ -846,6 +852,56 @@ export default function StyleGuidePage() {
           O foco entra no diálogo, não sai dele enquanto está aberto e volta ao botão que o abriu.
         </p>
       </Dialog>
+    </div>
+  );
+}
+
+/**
+ * The D-85 primitives, live: one block at a time, "Alterar" to go back, a
+ * search field instead of a long select, and advanced options that stay
+ * collapsed until someone asks for them.
+ */
+function GuidedDemo() {
+  const [indexDone, setIndexDone] = useState(false);
+  const [property, setProperty] = useState("");
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  return (
+    <div className="flex flex-col gap-3">
+      <GuidedBlock
+        title="1. Índice de desempenho"
+        state={indexDone ? "done" : "active"}
+        summary="Viga leve e rígida — √E/ρ, maximizar"
+        onEdit={() => setIndexDone(false)}
+      >
+        <p className="text-sm text-ink-muted">Escolha um índice ou siga sem índice.</p>
+        <Button className="mt-3" variant="primary" onClick={() => setIndexDone(true)}>
+          Continuar: critérios e pesos
+        </Button>
+      </GuidedBlock>
+      <GuidedBlock
+        title="2. Critérios e pesos"
+        state={indexDone ? "active" : "locked"}
+        lockedReason="Confirme o índice acima para liberar este bloco."
+      >
+        <Combobox
+          label="Propriedade"
+          hint="Digite parte do nome: “modulo” encontra Módulo de Young."
+          value={property}
+          onChange={setProperty}
+          options={[
+            { value: "modulo_young", label: "Módulo de Young", description: "GPa" },
+            { value: "densidade", label: "Densidade", description: "g/cm³" },
+            { value: "limite_escoamento", label: "Limite de escoamento", description: "MPa" },
+          ]}
+        />
+      </GuidedBlock>
+      <Disclosure
+        summary={ptBR.ui.advancedOptions}
+        open={advancedOpen}
+        onOpenChange={setAdvancedOpen}
+      >
+        <p className="text-sm text-ink-muted">Método de ranking, normalização e AHP.</p>
+      </Disclosure>
     </div>
   );
 }
