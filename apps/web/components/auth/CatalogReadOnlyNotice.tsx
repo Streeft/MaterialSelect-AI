@@ -4,7 +4,7 @@ import { useCanEditCatalog } from "@/lib/billing";
 import { ptBR } from "@/lib/i18n";
 import { Alert } from "@/components/ui";
 
-/** Says up front why a curation screen's writes will be refused (D-82). */
+/** Says up front why a curation screen's writes will be refused (D-83). */
 export function CatalogReadOnlyNotice() {
   const canEdit = useCanEditCatalog();
   if (canEdit) return null;

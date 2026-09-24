@@ -1,4 +1,4 @@
-"""Who may use the tool, and who may write the shared catalogue (D-46, D-82).
+"""Who may use the tool, and who may write the shared catalogue (D-46, D-83).
 
 Pure rules, read by the HTTP gate and by ``/billing/status`` alike, so the
 screen that says "you are in" and the API that lets you in cannot disagree.

@@ -63,7 +63,7 @@ export default function BillingPage() {
               </Button>
             </>
           ) : data?.access_mode === "open" ? (
-            // D-82: no checkout while the tool is open to a class — the
+            // D-83: no checkout while the tool is open to a class — the
             // student has nothing to buy to get in.
             <>
               <p className="text-sm text-ink-muted">{t.openSubtitle}</p>

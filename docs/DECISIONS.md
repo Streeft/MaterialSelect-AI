@@ -5205,7 +5205,39 @@ mesma caixa virava "1,646 kg/m³" e não admitia nenhum.
 instância publicada até lá, e o frontend publicado pela Vercel chamaria uma rota
 inexistente — o estágio mostraria o erro em vez de gravar números errados.
 
-## D-82 — Acesso aberto para uma turma: o portão vira um modo, e o catálogo compartilhado continua com quem assina
+## D-82 — O mapa de `/app/mapas` veste o desenho do mapa da vitrine, sem perder a forma por classe
+
+**Pedido.** Depois do D-80, o autor pediu que o mapa de Ashby de `/app/mapas`
+fosse esteticamente semelhante ao da página inicial (`components/marketing/
+AshbyPreview.tsx`). O motor continua o Plotly — log–log, zoom e a caixa do
+Chart Stage (D-60/D-81) dependem dele —; muda a roupa, e toda a mudança é de
+apresentação: nenhuma coordenada, envelope ou linha de índice passou a ser
+calculada no cliente (ADR 0004).
+
+**O que vem da vitrine.** Cabeçalho com sobrescrito mono "MAPA DE ASHBY", título
+"Y × X" e a guia do índice à direita (`guia: E / ρ` — a expressão com os slugs
+dos eixos lidos como símbolos; se ela nomeia outra propriedade, cai no nome do
+índice, porque um slug ao lado de símbolos leria como erro de digitação). O
+sobrescrito fica **dentro** do `<h2>`, então o leitor de tela ouve "Mapa de
+Ashby, Módulo de Young × Densidade". Eixos rotulados "Densidade · g/cm³", marcas
+só em décadas (mais 3× até quatro décadas, 2× e 5× numa só — `lib/charts.ts`
+`logTicks`), números no padrão pt-BR (D-30, também no `separators` do Plotly),
+fonte mono nas marcas. Pontos maiores com anel na cor do cartão, destaque como
+um anel na cor da seção em volta do ponto (e não mais o contorno vermelho de
+perigo), envelopes a 15 % com contorno tênue, linha-guia do índice na cor da
+seção a 2 px, rótulo de hover no fundo escuro do trilho, e a região do Chart
+Stage na cor da seção.
+
+**O que não vem, de propósito: o círculo para todo mundo.** A vitrine desenha
+toda classe como círculo; o mapa do produto mantém a **forma por classe**
+(losango, triângulo, xis, círculo, quadrado). É a metade da codificação que
+sobrevive a daltonismo e a impressão monocromática (`lib/design/palette.ts`,
+D-28) — a paleta Okabe–Ito sozinha não basta num relatório impresso em tons de
+cinza. A vitrine pode abrir mão disso porque é uma figura ilustrativa de dez
+pontos; o mapa é o instrumento. Pela mesma razão o contorno do envelope continua
+com o traço da classe, só mais tênue.
+
+## D-83 — Acesso aberto para uma turma: o portão vira um modo, e o catálogo compartilhado continua com quem assina
 
 **O pedido.** Abrir a ferramenta para estudantes testarem com a própria conta
 Google, sem assinatura, e poder voltar depois à configuração original — só

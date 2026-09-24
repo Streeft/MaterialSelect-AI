@@ -39,7 +39,7 @@ export function MaterialForm({ classes, properties, initial }: MaterialFormProps
   const router = useRouter();
   const qc = useQueryClient();
   const [submitError, setSubmitError] = useState<string | null>(null);
-  // D-82: a student admitted by open access mode may only add to their own
+  // D-83: a student admitted by open access mode may only add to their own
   // records, so that is the one ownership this form can declare for them —
   // and the notice below says so before they type anything.
   const canEditCatalog = useCanEditCatalog();

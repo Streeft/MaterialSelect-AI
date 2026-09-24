@@ -6,7 +6,7 @@ import type { Data, Layout, LayoutAxis } from "plotly.js";
 import type { ChartScale, MapPoint, PropertyMap } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { formatNumber, prettyUnit } from "@/lib/format";
-import { chartFileName, escapeHover, toClosedRing, toXY, withAlpha } from "@/lib/charts";
+import { chartFileName, escapeHover, logTicks, toClosedRing, toXY, withAlpha } from "@/lib/charts";
 import { chartTheme, classVisual } from "@/lib/design/palette";
 import {
   ButtonGroup,
@@ -74,6 +74,49 @@ function axisTitle(name: string, symbol: string | null, unit: string): string {
   const pretty = prettyUnit(unit);
   const head = symbol ? `${name}, ${symbol}` : name;
   return pretty ? `${head} [${pretty}]` : head;
+}
+
+/** `Name · unit` — the axis label drawn in the figure, as on the showcase map. */
+function axisLabel(name: string, unit: string): string {
+  const pretty = prettyUnit(unit);
+  return pretty ? `${name} · ${pretty}` : name;
+}
+
+/**
+ * The index expression as the showcase prints its guide (`E / ρ`): the two
+ * axes' slugs read as their symbols. An expression that names anything else
+ * falls back to the index's name — a slug next to symbols would read as a typo.
+ */
+function guideText(map: PropertyMap): string | undefined {
+  const index = map.index;
+  if (!index) return undefined;
+  let text = index.expression;
+  for (const axis of [map.x_axis, map.y_axis]) {
+    if (!axis.property_slug || !axis.symbol) continue;
+    text = text.replace(new RegExp(`\\b${axis.property_slug}\\b`, "g"), axis.symbol);
+  }
+  // Anything still spelled like a slug (three or more lowercase letters) that
+  // is not a function name was a property off these two axes.
+  const functions = new Set(["sqrt", "log", "ln", "exp", "abs", "min", "max"]);
+  const leftovers = (text.match(/[a-z_][a-z0-9_]{2,}/g) ?? []).filter((w) => !functions.has(w));
+  if (leftovers.length > 0) return index.name ?? index.expression;
+  return text;
+}
+
+/**
+ * Log-axis ticks at decades (and 3× on short axes), labelled in pt-BR (D-30).
+ * The range is widened by a third of a decade each way, so a tick is ready
+ * wherever Plotly's autorange stops; Plotly only draws the ones in view.
+ */
+function logAxisTicks(min: number | null, max: number | null) {
+  const values =
+    min !== null && max !== null ? logTicks(min / 3, max * 3) : null;
+  if (!values) return {};
+  return {
+    tickmode: "array" as const,
+    tickvals: values,
+    ticktext: values.map((value) => formatNumber(value)),
+  };
 }
 
 /**
@@ -343,16 +386,16 @@ export function AshbyMap({
         y0,
         y1,
         line: {
-          color: paint.highlight,
+          color: paint.accent,
           width: 2,
           dash: "dot",
         },
         // `withAlpha` reads `#rrggbb`; a token arrives as `rgb(…)`, so the
         // theme hands over the translucent fill itself.
-        fillcolor: paint.highlightFill,
+        fillcolor: paint.accentFill,
       },
     ];
-  }, [selectionBox, map.points, displayScale, map.scale, paint.highlight, paint.highlightFill]);
+  }, [selectionBox, map.points, displayScale, map.scale, paint.accent, paint.accentFill]);
 
   const traces = useMemo<Data[]>(() => {
     const result: Data[] = [];
@@ -369,11 +412,11 @@ export function AshbyMap({
           type: "scatter",
           mode: "lines",
           fill: xs.length > 2 ? "toself" : undefined,
-          // MSDS `ScatterMap` envelope: 14 % fill, 50 % stroke, 1.5 px.
-          fillcolor: withAlpha(visual.color, 0.14),
-          // The dash is the class's, not a generic dot: on a monochrome
-          // printout it is the only thing left telling two envelopes apart.
-          line: { color: withAlpha(visual.color, 0.5), width: 1.5, dash: visual.dash },
+          // The showcase's soft cloud: 15 % fill and a faint outline. The
+          // outline stays, in the class's own dash: on a monochrome printout
+          // it is the only thing left telling two envelopes apart.
+          fillcolor: withAlpha(visual.color, 0.15),
+          line: { color: withAlpha(visual.color, 0.35), width: 1, dash: visual.dash },
           hoverinfo: "skip",
           showlegend: false,
           visible: !hidden.has(`class:${envelope.class_slug}`),
@@ -411,16 +454,15 @@ export function AshbyMap({
         // The MSDS legend below the figure is the class filter now.
         showlegend: false,
         visible: !hidden.has(`class:${classSlug}`),
+        // The showcase's marker: the class colour ringed in the card's own
+        // surface, so overlapping points stay countable. The class *shape*
+        // stays — it is the colour-blind- and greyscale-safe half of the
+        // encoding (palette.ts), which a circle-only map would drop.
         marker: {
-          size: members.map((p) => (highlighted.has(p.material_id) ? 16 : 10)),
+          size: 12,
           color: visual.color,
           symbol: visual.symbol,
-          line: {
-            width: members.map((p) => (highlighted.has(p.material_id) ? 3 : 1)),
-            color: members.map((p) =>
-              highlighted.has(p.material_id) ? paint.highlight : paint.markerEdge,
-            ),
-          },
+          line: { width: 2, color: paint.surface },
         },
         error_x: hasX
           ? {
@@ -447,7 +489,29 @@ export function AshbyMap({
       });
     }
 
-    // 3. Index lines. Slope and endpoints come from the backend untouched.
+    // 3. The showcase's highlight: a ring around the point, in the section
+    // accent, drawn as its own open marker so the point keeps its colour.
+    const halo = map.points.filter(
+      (p) => highlighted.has(p.material_id) && !hidden.has(`class:${p.class_slug}`),
+    );
+    if (halo.length > 0) {
+      result.push({
+        x: halo.map((p) => p.x),
+        y: halo.map((p) => p.y),
+        type: "scatter",
+        mode: "markers",
+        marker: {
+          size: 26,
+          symbol: "circle-open",
+          color: paint.accent,
+          line: { width: 2, color: paint.accent },
+        },
+        hoverinfo: "skip",
+        showlegend: false,
+      });
+    }
+
+    // 4. Index lines. Slope and endpoints come from the backend untouched.
     if (map.index?.available) {
       map.index.levels.forEach((level, position) => {
         const { xs, ys } = toXY(level.points);
@@ -463,9 +527,10 @@ export function AshbyMap({
           name: label,
           showlegend: false,
           visible: !hidden.has(`level:${position}`),
+          // The showcase's guide line: the section accent, 2 px.
           line: {
-            color: paint.ink,
-            width: 1.5,
+            color: paint.accent,
+            width: 2,
             dash: position === 0 ? "solid" : "dash",
           },
           hovertemplate: `${label}<extra></extra>`,
@@ -479,11 +544,21 @@ export function AshbyMap({
   const layout = useMemo<Partial<Layout>>(() => {
     const base = paint.layout;
     const axisScale = displayScale || map.scale;
+    const isLog = axisScale === "log";
+    const tickfont = { ...base.xaxis?.tickfont, family: paint.monoFamily, size: 10 };
     return {
       ...base,
+      // pt-BR (D-30): decimal comma, thousands point — Plotly's own ticks on a
+      // linear axis and its hover numbers follow the rest of the app.
+      separators: ",.",
       autosize: true,
       height: 540,
-      margin: { l: 80, r: 24, t: 16, b: 60 },
+      margin: { l: 76, r: 24, t: 16, b: 56 },
+      hoverlabel: {
+        bgcolor: paint.tooltipBg,
+        bordercolor: paint.tooltipBg,
+        font: { color: paint.tooltipInk, family: base.font?.family, size: 12 },
+      },
       hovermode: "closest",
       dragmode: plotDragMode,
       shapes,
@@ -498,14 +573,18 @@ export function AshbyMap({
         JSON.stringify(selectionBox ?? null),
       ].join("|"),
       xaxis: {
-        ...titled(base.xaxis, axisTitle(map.x_axis.property_name, map.x_axis.symbol, map.x_axis.unit)),
+        ...titled(base.xaxis, axisLabel(map.x_axis.property_name, map.x_axis.unit)),
         type: axisScale,
         zeroline: false,
+        tickfont,
+        ...(isLog ? logAxisTicks(map.x_axis.min_value, map.x_axis.max_value) : {}),
       },
       yaxis: {
-        ...titled(base.yaxis, axisTitle(map.y_axis.property_name, map.y_axis.symbol, map.y_axis.unit)),
+        ...titled(base.yaxis, axisLabel(map.y_axis.property_name, map.y_axis.unit)),
         type: axisScale,
         zeroline: false,
+        tickfont,
+        ...(isLog ? logAxisTicks(map.y_axis.min_value, map.y_axis.max_value) : {}),
       },
     };
   }, [map, paint, displayScale, plotDragMode, shapes, selectionBox]);
@@ -531,13 +610,13 @@ export function AshbyMap({
           label: level.material_name
             ? `M = ${formatNumber(level.value)} (${level.material_name})`
             : `M = ${formatNumber(level.value)}`,
-          color: paint.ink,
+          color: paint.accent,
           line: position === 0 ? "solid" : "dash",
         });
       });
     }
     return items;
-  }, [map, paint.ink]);
+  }, [map, paint.accent]);
 
   // The figure's own numbers, as columns. The index column only exists when the
   // figure drew one, and a point without an index carries the backend's reason
@@ -593,7 +672,9 @@ export function AshbyMap({
 
   return (
     <ChartFrame
-      title={t.figure}
+      eyebrow={t.figure}
+      title={`${map.y_axis.property_name} × ${map.x_axis.property_name}`}
+      meta={map.index ? `${t.guide}: ${guideText(map)}` : undefined}
       description={t.coverage(map.plotted_count, map.considered_count)}
       exportName={chartFileName("mapa", map.y_axis.property_name, map.x_axis.property_name, map.scale)}
       exportDisabled={map.points.length === 0}

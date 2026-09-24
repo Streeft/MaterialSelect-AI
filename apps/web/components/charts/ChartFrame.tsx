@@ -29,6 +29,8 @@ const t = ptBR.chart;
  *   the document outline matches what the eye sees.
  */
 export function ChartFrame({
+  eyebrow,
+  meta,
   title,
   description,
   headingLevel = 2,
@@ -42,6 +44,10 @@ export function ChartFrame({
   className,
   children,
 }: {
+  /** A small mono label above the title — what kind of figure this is. */
+  eyebrow?: ReactNode;
+  /** A mono aside at the right of the heading, e.g. the index guide's expression. */
+  meta?: ReactNode;
   title: ReactNode;
   description?: ReactNode;
   headingLevel?: 2 | 3 | 4;
@@ -85,7 +91,16 @@ export function ChartFrame({
         {/* A basis, not just `flex-1`: on a half-width card the actions wrap
             under the title instead of squeezing it into a two-word column. */}
         <div className="min-w-0 flex-[1_1_18rem]">
+          {/* The eyebrow lives inside the heading, so the figure is announced
+              as what it is ("Mapa de Ashby, Módulo de Young × Densidade"),
+              not only by its axes. */}
           <Heading id={headingId} className="msds-chart-title">
+            {eyebrow ? (
+              <span className="block font-mono text-[0.625rem] font-normal uppercase tracking-eyebrow text-brand-700">
+                {eyebrow}
+                <span className="sr-only">, </span>
+              </span>
+            ) : null}
             {title}
           </Heading>
           {description ? (
@@ -93,6 +108,7 @@ export function ChartFrame({
           ) : null}
         </div>
         <div className="flex max-w-full flex-wrap items-center gap-2">
+          {meta ? <span className="mr-1 font-mono text-2xs text-ink-subtle">{meta}</span> : null}
           {controls}
           <ChartToolbar
             target={figure}

@@ -39,7 +39,7 @@ class AuditRepository:
         visible to any logged-in user, same as the endpoints that read them —
         except a material that is someone else's own record (P1-4, D-62): its
         events would name the record and its owner's e-mail to a reader the
-        material endpoints answer 404, and in open access mode (D-82) that
+        material endpoints answer 404, and in open access mode (D-83) that
         reader is any classmate.
         """
         others_records = select(Material.id).where(

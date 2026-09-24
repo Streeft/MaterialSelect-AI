@@ -87,7 +87,7 @@ class MaterialService:
         can_edit_shared: bool = True,
     ) -> None:
         self.viewer_id = user.id if user is not None else None
-        # D-82: False only for a user admitted by open access mode without a
+        # D-83: False only for a user admitted by open access mode without a
         # subscription. True is the default because every caller outside the
         # materials router (importer, seed, tests) acts as a curator already.
         self.can_edit_shared = can_edit_shared

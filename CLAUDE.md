@@ -700,7 +700,7 @@ algo que roda. `admin-banco.yml` (`semear`) e `scripts/seed.ps1` agora
 executam os dois, em sequência; o stub vestigial `seed_patch.py`, do mesmo
 PR e nunca importado por nada, foi removido.
 
-**O portão virou um modo** ([D-82](docs/DECISIONS.md)): `ACCESS_MODE`
+**O portão virou um modo** ([D-83](docs/DECISIONS.md)): `ACCESS_MODE`
 (`subscription`, o padrão e o D-46 intacto; ou `open`) deixa uma turma usar a
 ferramenta com qualquer conta Google, sem assinatura. Login continua
 obrigatório, e **escrever no catálogo compartilhado continua exigindo

@@ -61,7 +61,7 @@ def has_active_subscription(user: User, db: Session) -> bool:
 def require_active_subscription(
     user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ) -> None:
-    """The product gate (D-46). In open mode (D-82) login alone admits.
+    """The product gate (D-46). In open mode (D-83) login alone admits.
 
     ``get_current_user`` stays a dependency in both modes: opening the tool to
     a class never means opening it to anonymous traffic.
