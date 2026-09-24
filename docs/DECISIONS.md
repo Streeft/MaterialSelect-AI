@@ -5054,10 +5054,81 @@ Nenhuma delas era de layout, e todas estavam em produção:
   o mesmo `<input type="file">` (fora da tela, mas no fluxo de tabulação, com
   o anel de foco seguindo-o).
 
-### 7. Gráficos
+### 7. Gráficos: os desenhos do MSDS entram; os dois mapas ficam no Plotly vestidos de MSDS
 
-_(preenchido ao fim da rodada)_
+As figuras do painel e do comparador passam a ser os desenhos do MSDS
+(BarChart, BoxPlot, StatTile, RadarChart, ParallelCoords, Heatmap)
+**reimplementados em TSX tipado** em `components/charts/` (`ChartFrame`,
+`ChartLegend`, `HorizontalBars`, `BoxPlotChart`, `ComparisonFigures`,
+`figureKit`, `figures.css`). As funções vendorizadas **não** são chamadas:
+elas pintam com `var(--x)` cru, que neste app é um triplo `"R G B"` e vira
+preto (a armadilha de D-78); toda cor passa por `rgb(var(--x))`. Só
+`useSpring`/`SPRING` vêm de `@/lib/msds`. São SVG desenhado na largura
+medida (`ResizeObserver`), não as `<div>`s do MSDS, porque uma `<div>` não se
+exporta como figura.
+
+- **Um cartão só** (`ChartFrame`): título, "Exportar PNG/SVG" e "Ver tabela de
+  dados", que troca a figura pela tabela no mesmo lugar. A tabela (D-31) fica
+  sempre montada, só oculta.
+- **Ausência (D-24) em cada forma:** nas barras, uma pílula "Ausente"
+  tracejada; o radar desenha só os materiais completos e lista os outros (o
+  `|| 0` do MSDS foi recusado); nas coordenadas paralelas a linha quebra, com
+  "N ausentes" sob o eixo; no heatmap a célula é hachurada e a rampa começa em
+  `brand-50`, para o pior valor não parecer ausente. Uma classe sem pares diz
+  "sem pares", não 0 %.
+- **O cliente só escala pixel** (ADR 0004): quartis, percentuais e escores
+  normalizados chegam prontos. **Teclado:** um ponto de Tab por figura e setas
+  entre as marcas — um heatmap 12×12 seriam 144 paradas.
+- **`AshbyMap` e `PropertyChart` continuam no Plotly**, porque precisam de
+  log–log, zoom e da caixa do Chart Stage (D-60), que o ScatterMap fixo do MSDS
+  não faz. Muda a roupa: fonte de `--font-sans` (antes nomeava Inter, que o app
+  nunca carregou), grade nos tokens de borda, contorno fino nos marcadores,
+  envelope a 14 %/50 %, *hover* no desenho do tooltip do MSDS e legenda MSDS no
+  lugar da do Plotly. A barra de ferramentas do Plotly fica, transparente,
+  porque pan, zoom e reset não existem em outro lugar; saem só câmera, laço e
+  seleção, que duplicam controles do cartão. `uirevision` preserva o zoom ao
+  ligar e desligar classes.
+- **Exportação única** (`lib/figureExport.ts`): Plotly e SVG próprio saem com o
+  mesmo título, a legenda só das séries ligadas, fundo opaco e as fontes do app
+  embutidas; cores computadas, nunca `var(--`; PNG a 2×.
+- **O Plotly registra só `scatter`** (`bar`, `box`, `heatmap` e
+  `scatterpolar` saíram depois de busca no repositório): o *chunk* dele foi de
+  981 KB para 864.731 B, medido no `next build`.
+
+**Três defeitos do D-60, achados ao vivo** (os *mocks* dos testes os
+escondiam; dois ganharam teste de regressão): (1) a cada `Plotly.react` a
+passada de reseleção reemite `plotly_selected` sem `range`, e o *handler* lia
+isso como "limpar" — a região sumia no instante em que era desenhada; (2) em
+eixo log o Plotly informa a caixa em unidades de dado, e o código elevava 10
+ao valor (2,5 g/cm³ virava 316); (3) no `next dev`, o `react-plotly.js` não
+religava `onSelected` depois do duplo *mount* do StrictMode. Com as correções,
+uma caixa desenhada fica em `/app/mapas` e preenche o estágio em
+`/app/selecao`.
+
+**Pendente, registrado e não corrigido aqui:** o mapa mostra a unidade de
+leitura (D-70), mas os campos do Chart Stage dizem unidade canônica — uma caixa
+desenhada em g/cm³ chega num campo de kg/m³. A correção precisa do fator de
+leitura vindo do backend; converter no cliente violaria a regra de que
+conversão só existe em `units.py`.
 
 ### Verificação
 
-_(preenchido ao fim da rodada)_
+- `npx tsc --noEmit`: limpo. `npm run lint`: 0 erros (os 21 avisos são do
+  `lib/msds/msds.tsx` vendorizado, anteriores). `npx vitest run`: 419 testes em
+  37 arquivos, todos verdes — incluindo teste novo para cada falha funcional da
+  §6 (prévia com nome provisório, caso inicial de Dimensionar, links para
+  `/app/materiais/<id>`, Eco sem processo, `readErrorDetail`) e para a seleção
+  por caixa do §7. `npm run build`: 23 páginas.
+- Ao vivo (API e Next descartáveis, Chromium do *sandbox*): todas as rotas de
+  `/app` em 1440 px nos dois temas e em 375 px; nenhuma rola para o lado em
+  375 px (medido por `scrollWidth`). Dois transbordos achados e corrigidos
+  nessa medição: a faixa de abas de Comparar (agora rola na própria caixa) e os
+  rótulos `sr-only` dos selos de qualidade dentro de tabelas largas — com
+  `position: absolute` e sem ancestral posicionado, escapavam da caixa de
+  rolagem do `TableScroll` e alargavam a página para 990 px; o `TableScroll`
+  passou a ser `relative`.
+- Os testes de componente continuam usando `shadow-dom-testing-library`: as
+  consultas `*ByShadow*` também encontram DOM comum, então nenhum teste precisou
+  mudar só por isso, e os comentários que ainda falam do shadow root do MWC
+  ficaram como estavam para não inflar o diff.
+- Nenhum arquivo de `apps/api` foi alterado.

@@ -30,8 +30,12 @@ export function TableScroll({
       tabIndex={0}
       role="region"
       aria-label={label}
+      // `relative`: an `sr-only` label (position: absolute) inside a cell has
+      // this box as its containing block and is clipped by its overflow. Without
+      // it the label's containing block was the page, and every badge in a wide
+      // table widened the whole document on a phone (990 px at 375, /comparar).
       className={cn(
-        "scroll-x rounded-card border border-edge bg-surface-raised",
+        "scroll-x relative rounded-card border border-edge bg-surface-raised",
         className,
       )}
     >
