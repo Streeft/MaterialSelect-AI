@@ -4,7 +4,7 @@ guardrail, não aqui — este teste cobre só a construção do texto)."""
 
 from __future__ import annotations
 
-from app.ai.prompts import EXPLAIN_SCHEMA, explain_user, interpret_user
+from app.ai.prompts import explain_schema, explain_system, explain_user, interpret_user
 from app.ai.provider import ProblemContext, ResultContext
 from app.knowledge.retrieval import RetrievedChunk
 from app.models.enums import DocumentKind, SourceAuthority
@@ -88,7 +88,51 @@ class TestExplainPrompt:
         assert "Trechos de referência" in explain_user(context)
 
 
+def _result_context(**overrides) -> ResultContext:
+    options = dict(
+        study_name="Estudo",
+        universe="material",
+        function_text=None,
+        objective_text=None,
+        constraint_labels=[],
+        index_name=None,
+        index_expression=None,
+        index_dimension=None,
+        initial_count=5,
+        final_count=5,
+        funnel=[],
+        ranked=[],
+        excluded_for_missing=[],
+        sensitivity_changed=False,
+    )
+    options.update(overrides)
+    return ResultContext(**options)
+
+
 class TestExplainSchema:
-    def test_sources_field_is_present(self) -> None:
-        assert "sources" in EXPLAIN_SCHEMA["properties"]
-        assert EXPLAIN_SCHEMA["properties"]["sources"]["type"] == "array"
+    """D-89: ``sources`` is asked for only when there is something to cite.
+
+    A strict-schema server rejects a whole answer for a missing required field,
+    and with no reference passage a model leaving the citations out is the
+    natural answer — that is what took the laudo's section 7 down in production.
+    """
+
+    def test_without_passages_there_is_no_sources_field(self) -> None:
+        schema = explain_schema(_result_context())
+        assert "sources" not in schema["properties"]
+        assert schema["required"] == ["summary", "paragraphs"]
+        assert "sources" not in explain_system(_result_context())
+
+    def test_with_passages_sources_is_asked_for_and_required(self) -> None:
+        context = _result_context(retrieved=(_CHUNK,))
+        schema = explain_schema(context)
+        assert schema["properties"]["sources"]["type"] == "array"
+        assert "sources" in schema["required"]
+        assert "sources" in explain_system(context)
+
+    def test_strict_mode_invariant_every_property_is_required(self) -> None:
+        # OpenAI-style strict schemas require every property to be listed.
+        for context in (_result_context(), _result_context(retrieved=(_CHUNK,))):
+            schema = explain_schema(context)
+            assert set(schema["required"]) == set(schema["properties"])
+            assert schema["additionalProperties"] is False

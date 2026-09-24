@@ -88,6 +88,12 @@ navegação deriva dele, o Executar foi sozinho para Restrições e um estudo ab
 cai lá. Os pesos avisam em Objetivo e travam no Executar. Início, vitrine,
 `/estilo`, README e docs 04/07/11/12 acompanham; o motor não mudou.
 
+**Fase 4 — a IA do laudo (D-89).** O 400 da Groq ("missing properties:
+'sources'") vinha de um campo sempre obrigatório num esquema estrito: agora
+`sources` só existe no esquema e no prompt quando há trechos para citar. Um 400
+em que o servidor rejeita a *geração* é repetido uma vez e, se persistir, tem
+mensagem própria — não culpa mais a configuração.
+
 ---
 
 ## Sessão 27 — 24/09/26 — O portão vira um modo: acesso aberto para uma turma (D-83)
