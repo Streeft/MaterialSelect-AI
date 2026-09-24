@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ApiError, createCheckoutSession, createPortalSession } from "@/lib/api";
 import { useBillingStatus } from "@/lib/billing";
 import { ptBR } from "@/lib/i18n";
-import { Button, Card, CardBody, ErrorState, LoadingState } from "@/components/ui";
+import { Button, ButtonLink, Card, CardBody, ErrorState, LoadingState } from "@/components/ui";
 
 const t = ptBR.billing;
 
@@ -61,6 +61,15 @@ export default function BillingPage() {
               <Button variant="primary" onClick={handlePortal} disabled={redirecting}>
                 {redirecting ? t.redirecting : t.manageButton}
               </Button>
+            </>
+          ) : data?.access_mode === "open" ? (
+            // D-83: no checkout while the tool is open to a class — the
+            // student has nothing to buy to get in.
+            <>
+              <p className="text-sm text-ink-muted">{t.openSubtitle}</p>
+              <ButtonLink href="/app" variant="primary">
+                {t.openButton}
+              </ButtonLink>
             </>
           ) : (
             <>

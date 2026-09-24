@@ -1589,6 +1589,15 @@ export const ptBR = {
     // arrives as an ApiError with its own PT-BR message and is shown as-is.
     checkoutError: "Não foi possível iniciar a assinatura.",
     portalError: "Não foi possível abrir o gerenciamento da assinatura.",
+    // D-83: acesso aberto para testes — qualquer login Google usa a ferramenta.
+    openSubtitle:
+      "O acesso está aberto para testes: com a sua conta Google você já pode usar a ferramenta, sem assinatura.",
+    openButton: "Ir para a ferramenta",
+    catalogReadOnlyTitle: "Catálogo compartilhado somente leitura",
+    catalogReadOnly:
+      "Durante o acesso aberto para testes, alterar o catálogo compartilhado — materiais, classes, propriedades e importações — fica com a curadoria. Você pode criar e editar os seus próprios registros e estudos.",
+    ownRecordOnly:
+      "Durante o acesso aberto para testes, este material será salvo como registro próprio: só você o vê, e ele não entra no catálogo compartilhado.",
   },
 
   styleGuide: {

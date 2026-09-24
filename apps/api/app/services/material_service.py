@@ -17,7 +17,12 @@ from app.domain.data_quality import (
     missing_value,
 )
 from app.domain.display_units import Reading, reading_for
-from app.domain.errors import ConflictError, NotFoundError, ValidationError
+from app.domain.errors import (
+    CatalogReadOnlyError,
+    ConflictError,
+    NotFoundError,
+    ValidationError,
+)
 from app.domain.search_query import SearchQueryError
 from app.models.enums import AuditAction, AuditEntityType, DataQuality, PropertyCategory
 from app.models.material import Material
@@ -79,8 +84,13 @@ class MaterialService:
         db: Session,
         user: User | None = None,
         unit_choices: Mapping[str, str] | None = None,
+        can_edit_shared: bool = True,
     ) -> None:
         self.viewer_id = user.id if user is not None else None
+        # D-83: False only for a user admitted by open access mode without a
+        # subscription. True is the default because every caller outside the
+        # materials router (importer, seed, tests) acts as a curator already.
+        self.can_edit_shared = can_edit_shared
         # D-70: em que unidade este leitor pediu para ler cada propriedade.
         # Argumento de construtor pela mesma razão que `viewer_id` é: a escolha
         # vale para a requisição inteira, e um parâmetro por método deixaria
@@ -163,6 +173,8 @@ class MaterialService:
             raise ValidationError(
                 "Um registro próprio precisa de um usuário; nenhum foi identificado."
             )
+        if not payload.is_own_record and not self.can_edit_shared:
+            raise CatalogReadOnlyError()
         if self.repo.get_class(payload.class_id) is None:
             raise NotFoundError(f"Classe não encontrada: {payload.class_id}")
         if self.repo.name_exists(payload.name):
@@ -207,6 +219,7 @@ class MaterialService:
         material = self.repo.get_material(material_id)
         if material is None:
             raise NotFoundError(f"Material não encontrado: {material_id}")
+        self._ensure_writable(material)
         before = self._identity_snapshot(material)
 
         data = payload.model_dump(exclude_unset=True)
@@ -248,6 +261,7 @@ class MaterialService:
         material = self.repo.get_material(material_id)
         if material is None:
             raise NotFoundError(f"Material não encontrado: {material_id}")
+        self._ensure_writable(material)
         was_active = material.is_active
         material.is_active = False
         if was_active:
@@ -260,6 +274,12 @@ class MaterialService:
                 action=AuditAction.EXCLUIDO,
             )
         self.repo.commit()
+
+    def _ensure_writable(self, material: Material) -> None:
+        # A row another user owns never reaches here: the visibility filter
+        # already answered 404. What is left to decide is the shared catalogue.
+        if material.owner_id is None and not self.can_edit_shared:
+            raise CatalogReadOnlyError()
 
     @staticmethod
     def _identity_snapshot(material: Material) -> dict:
@@ -280,6 +300,7 @@ class MaterialService:
         material = self.repo.get_material(material_id)
         if material is None:
             raise NotFoundError(f"Material não encontrado: {material_id}")
+        self._ensure_writable(material)
         self._ensure_unique_slugs(values)
         before = self._values_snapshot(material)
 

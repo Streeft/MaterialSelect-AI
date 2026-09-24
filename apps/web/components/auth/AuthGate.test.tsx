@@ -60,8 +60,31 @@ const user: CurrentUser = {
   project_id: 1,
 };
 
-const activeBilling: BillingStatus = { active: true, status: "active", current_period_end: null };
-const inactiveBilling: BillingStatus = { active: false, status: null, current_period_end: null };
+const activeBilling: BillingStatus = {
+  active: true,
+  status: "active",
+  current_period_end: null,
+  access_mode: "subscription",
+  has_access: true,
+  can_edit_catalog: true,
+};
+const inactiveBilling: BillingStatus = {
+  active: false,
+  status: null,
+  current_period_end: null,
+  access_mode: "subscription",
+  has_access: false,
+  can_edit_catalog: true,
+};
+// D-83: a student under open access mode — no subscription, admitted anyway.
+const openAccessBilling: BillingStatus = {
+  active: false,
+  status: null,
+  current_period_end: null,
+  access_mode: "open",
+  has_access: true,
+  can_edit_catalog: false,
+};
 
 function renderGate(children: ReactNode) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -158,9 +181,19 @@ describe("AuthGate — assinatura", () => {
     expect(routerReplace).not.toHaveBeenCalled();
   });
 
+  it("admits a user with no subscription while access is open", async () => {
+    getCurrentUser.mockResolvedValue(user);
+    getBillingStatus.mockResolvedValue(openAccessBilling);
+
+    renderGate(<p>Conteúdo protegido</p>);
+
+    expect(await screen.findByText("Conteúdo protegido")).toBeInTheDocument();
+    expect(routerReplace).not.toHaveBeenCalled();
+  });
+
   it("does not render protected content when the check settled without a status", async () => {
     // Neither loading, nor error, nor an explicit `active: false` — the state a
-    // paused query lands in. The gate must confirm `active === true`, never
+    // paused query lands in. The gate must confirm `has_access === true`, never
     // reach the page by elimination.
     getCurrentUser.mockResolvedValue(user);
     getBillingStatus.mockResolvedValue(undefined);

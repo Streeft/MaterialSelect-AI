@@ -14,7 +14,7 @@ from fastapi import APIRouter, Depends, Query, Response, status
 from sqlalchemy.orm import Session
 
 from app.db.base import get_db
-from app.dependencies import get_current_user, get_unit_choices
+from app.dependencies import can_edit_shared_catalog, get_current_user, get_unit_choices
 from app.models.user import User
 from app.schemas.material import (
     ChartData,
@@ -50,9 +50,10 @@ def create_material(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
     unit_choices: dict[str, str] = Depends(get_unit_choices),
+    can_edit_shared: bool = Depends(can_edit_shared_catalog),
 ) -> MaterialDetail:
     """Create a material together with its property values."""
-    return MaterialService(db, user, unit_choices).create_material(payload)
+    return MaterialService(db, user, unit_choices, can_edit_shared).create_material(payload)
 
 
 @router.get("/chart", response_model=ChartData)
@@ -106,9 +107,12 @@ def update_material(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
     unit_choices: dict[str, str] = Depends(get_unit_choices),
+    can_edit_shared: bool = Depends(can_edit_shared_catalog),
 ) -> MaterialDetail:
     """Apply a partial update to a material's identity fields."""
-    return MaterialService(db, user, unit_choices).update_material(material_id, payload)
+    return MaterialService(db, user, unit_choices, can_edit_shared).update_material(
+        material_id, payload
+    )
 
 
 @router.put("/{material_id}/values", response_model=MaterialDetail)
@@ -118,9 +122,12 @@ def replace_values(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
     unit_choices: dict[str, str] = Depends(get_unit_choices),
+    can_edit_shared: bool = Depends(can_edit_shared_catalog),
 ) -> MaterialDetail:
     """Replace all property values of a material with the provided set."""
-    return MaterialService(db, user, unit_choices).replace_property_values(material_id, values)
+    return MaterialService(db, user, unit_choices, can_edit_shared).replace_property_values(
+        material_id, values
+    )
 
 
 @router.delete("/{material_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -129,7 +136,8 @@ def deactivate_material(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
     unit_choices: dict[str, str] = Depends(get_unit_choices),
+    can_edit_shared: bool = Depends(can_edit_shared_catalog),
 ) -> Response:
     """Soft-delete (deactivate) a material."""
-    MaterialService(db, user, unit_choices).deactivate_material(material_id)
+    MaterialService(db, user, unit_choices, can_edit_shared).deactivate_material(material_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

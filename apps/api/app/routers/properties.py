@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy.orm import Session
 
 from app.db.base import get_db
-from app.dependencies import get_current_user
+from app.dependencies import get_current_user, require_catalog_curator
 from app.models.user import User
 from app.schemas.property import PropertyDefinitionIn, PropertyDefinitionOut
 from app.services.property_service import PropertyService
@@ -26,7 +26,12 @@ def list_properties(
     return PropertyService(db, user).list_properties()
 
 
-@router.post("", response_model=PropertyDefinitionOut, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=PropertyDefinitionOut,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_catalog_curator)],
+)
 def create_property(
     payload: PropertyDefinitionIn,
     db: Session = Depends(get_db),
@@ -36,7 +41,11 @@ def create_property(
     return PropertyService(db, user).create_property(payload)
 
 
-@router.put("/{property_id}", response_model=PropertyDefinitionOut)
+@router.put(
+    "/{property_id}",
+    response_model=PropertyDefinitionOut,
+    dependencies=[Depends(require_catalog_curator)],
+)
 def update_property(
     property_id: int,
     payload: PropertyDefinitionIn,
@@ -47,7 +56,11 @@ def update_property(
     return PropertyService(db, user).update_property(property_id, payload)
 
 
-@router.delete("/{property_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{property_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_catalog_curator)],
+)
 def delete_property(
     property_id: int,
     db: Session = Depends(get_db),
