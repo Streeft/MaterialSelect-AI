@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
-import { Landing } from "@/components/marketing/Landing";
+// D-86: while the tool is shown to a class, the front door is one button. The
+// full showcase is kept — swap `StartScreen` back for `Landing` to restore it.
+import { StartScreen } from "@/components/marketing/StartScreen";
 import { ptBR } from "@/lib/i18n";
 
 /**
@@ -28,5 +30,5 @@ export const metadata: Metadata = {
 };
 
 export default function HomePage() {
-  return <Landing />;
+  return <StartScreen />;
 }

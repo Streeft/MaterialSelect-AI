@@ -748,7 +748,19 @@ sentidos, e **pela mesma regra que desenha o mapa** (`ChartService._map_reading`
 eixo de índice, unidade com offset e universo de processos não se movem num
 nem noutro. O cliente nunca aplica fator.
 
-1785 testes de backend (nenhum skip) e 427 de frontend, todos verdes. CI no
+**Preparação para a turma de 29/09 (D-84 a D-89).** Um estudo de processos voltou
+a ter o passo Objetivo (D-84). A Seleção virou assistente guiado — um passo de
+cada vez, Voltar em todo passo e no navegador, **o recolhido nunca esconde o que
+está em uso**, exemplo em um clique, resultado que começa pelo vencedor (D-85) —,
+e o resto do produto ficou enxuto: capa com um botão, menu por papel, Mapas com
+"Personalizar", Comparar por busca, ferramentas com premissas recolhidas **e os
+valores no resumo** (D-86). Os pesos do ranking somam 1, com orçamento, sugestão e
+top 5 calculados em `POST /api/selection/weights-preview`; **o `/run` continua
+renormalizando**, porque o laudo reexecuta estudos antigos (D-87). Na tela,
+Objetivo é o passo 2 e Restrições o 3 — o motor não mudou (D-88). E a explicação
+por IA só pede `sources` quando há trecho para citar (D-89).
+
+1856 testes de backend (nenhum skip) e 505 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
 PROJECT_CONTEXT.md).

@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { ptBR } from "@/lib/i18n";
 import { Landing } from "@/components/marketing/Landing";
+import { StartScreen } from "@/components/marketing/StartScreen";
 import { describeViolations, findA11yViolations } from "@/lib/testing/axe";
 // The load-case picker is an `md-outlined-select`: the real combobox lives in
 // its shadow root, where the plain `screen` above cannot reach.
@@ -1220,7 +1221,7 @@ describe("acessibilidade das telas principais", () => {
   });
 
   it("início", async () => {
-    await auditRoute(<HomePage />, ptBR.home.methodTitle);
+    await auditRoute(<HomePage />, ptBR.appName);
   });
 
   it("catálogo", async () => {
@@ -1230,6 +1231,44 @@ describe("acessibilidade das telas principais", () => {
   it("mapas", async () => {
     // The figure heading carries its kind before its axes (the D-80 eyebrow).
     await auditRoute(<MapsPage />, new RegExp(`^${ptBR.map.figure}\\b.*×`));
+  });
+
+  // D-86: the axes and the chart are the screen; everything else waits in
+  // "Personalizar o mapa" — unless the link already uses it.
+  it("mapas: personalização recolhida, a não ser que o link a use", async () => {
+    const { unmount } = render(wrap(<MapsPage />, makeClient()));
+    const summary = await screen.findByText(ptBR.map.customize);
+    const details = summary.closest("details") as HTMLDetailsElement;
+    expect(details.open).toBe(false);
+    expect(screen.getByRole("combobox", { name: ptBR.map.axisX })).toBeInTheDocument();
+    // An axis can become an index only from inside the panel.
+    expect(screen.queryByRole("group", { name: new RegExp(`^${ptBR.map.axisX} — `) })).toBeNull();
+    unmount();
+
+    const { encodeMapState } = await import("./mapas/url-state");
+    nav.query = `estado=${encodeMapState({
+      xAxis: { mode: "property", property: "densidade", indexSlug: "", customExpression: "", goal: "maximize" },
+      yAxis: { mode: "property", property: "modulo_young", indexSlug: "", customExpression: "", goal: "maximize" },
+      scale: "linear",
+      envelopeShape: "ellipse",
+      selectedClasses: [],
+      showEnvelopes: true,
+      showIntervals: true,
+      showLabels: false,
+      indexMode: "none",
+      customExpression: "",
+      indexGoal: "maximize",
+      levelMaterialIds: [],
+      numericLevels: [],
+    })}`;
+    render(wrap(<MapsPage />, makeClient()));
+    const opened = (await screen.findByText(ptBR.map.customize)).closest(
+      "details",
+    ) as HTMLDetailsElement;
+    expect(opened.open).toBe(true);
+    expect(
+      screen.getByRole("group", { name: new RegExp(`^${ptBR.map.axisX} — `) }),
+    ).toBeInTheDocument();
   });
 
   it("comparador, na tabela e numa figura", async () => {
@@ -1255,6 +1294,37 @@ describe("acessibilidade das telas principais", () => {
     await user.click(screen.getByRole("tab", { name: ptBR.compare.viewBars }));
     await screen.findByRole("heading", { name: ptBR.compare.figure });
     await expectClean(container);
+  });
+
+  // D-86: materials are found by search, and only the chosen ones are on screen.
+  it("comparador: a busca adiciona, o chip remove, e os passos seguintes esperam", async () => {
+    const user = userEvent.setup();
+    const { container } = render(wrap(<ComparePage />, makeClient()));
+
+    const search = await screen.findByRole("combobox", { name: ptBR.compare.addMaterial });
+    expect(screen.getByText(ptBR.compare.noneChosen)).toBeInTheDocument();
+    // Nothing to compare yet: steps 2 and 3 say what they wait for.
+    expect(screen.getAllByText(ptBR.compare.lockedUntilMaterial)).toHaveLength(2);
+    expect(screen.queryByRole("tab")).toBeNull();
+
+    await user.type(search, "ceramicas");
+    await user.keyboard("{Enter}");
+
+    const chosen = screen.getByRole("list", { name: ptBR.compare.chosenMaterials });
+    expect(chosen).toHaveTextContent("Alumina");
+    // The search is empty again and no longer offers what was just chosen.
+    expect(search).toHaveValue("");
+    await user.click(search);
+    expect(screen.queryByRole("option", { name: /Alumina/ })).toBeNull();
+    await user.keyboard("{Escape}");
+
+    await screen.findByRole("tab", { name: ptBR.compare.viewTable });
+    await expectClean(container);
+
+    await user.click(
+      screen.getByRole("button", { name: `${ptBR.compare.removeMaterial}: Alumina` }),
+    );
+    expect(screen.getByText(ptBR.compare.noneChosen)).toBeInTheDocument();
   });
 
   it("ficha do material", async () => {
@@ -1363,6 +1433,18 @@ describe("acessibilidade das telas principais", () => {
   it("vitrine pública (/)", async () => {
     const { container } = render(<Landing />);
     await screen.findByRole("heading", { level: 1 });
+    await expectClean(container);
+  });
+
+  // What `/` renders while the tool is shown to a class (D-86). The vitrine
+  // above stays audited: it is kept in the repo, one import away from `/`.
+  it("capa de início (/)", async () => {
+    const { container } = render(<StartScreen />);
+    await screen.findByRole("heading", { level: 1, name: ptBR.appName });
+    expect(screen.getByRole("link", { name: ptBR.home.start })).toHaveAttribute(
+      "href",
+      "/app/selecao",
+    );
     await expectClean(container);
   });
 });

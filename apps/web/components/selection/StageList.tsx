@@ -329,6 +329,29 @@ interface Props {
    */
   universe?: SelectionUniverse;
   onChange: (stages: StageState[]) => void;
+  /** D-85: the "add a stage" row; the page moves it into "Opções avançadas". */
+  showAddButtons?: boolean;
+  /**
+   * D-85: with one plain limit stage, draw just its constraints — no stage
+   * card, name field or on/off switch, which only mean something once there is
+   * a pipeline. A stage with a name, switched off, or of another kind always
+   * keeps its chrome: that is information already given, never hidden.
+   */
+  compactSingleStage?: boolean;
+  /** Passed to each limit stage's editor (root E/OU, "Adicionar grupo"). */
+  constraintAdvanced?: boolean;
+}
+
+/** Whether a stage carries anything its card chrome is needed to show. */
+function stageNeedsChrome(stages: StageState[]): boolean {
+  const only = stages[0];
+  return (
+    stages.length !== 1 ||
+    only === undefined ||
+    only.kind !== "limit" ||
+    only.label.trim() !== "" ||
+    !only.enabled
+  );
 }
 
 export function StageList({
@@ -340,6 +363,9 @@ export function StageList({
   processClasses = [],
   universe = "material",
   onChange,
+  showAddButtons = true,
+  compactSingleStage = false,
+  constraintAdvanced = true,
 }: Props) {
   const isProcessStudy = universe === "process";
   // A tree stage selects folders of the study's own universe.
@@ -357,6 +383,30 @@ export function StageList({
     next[target] = moved;
     onChange(next);
   };
+
+  const only = stages[0];
+  if (compactSingleStage && !stageNeedsChrome(stages) && only?.kind === "limit") {
+    return (
+      <div className="flex flex-col gap-4">
+        <Card>
+          <CardBody>
+            <ConstraintEditor
+              root={only.group}
+              properties={isProcessStudy ? processAttributes : properties}
+              classes={ownFolders}
+              universe={universe}
+              onChange={(group) => replace(0, { ...only, group })}
+              showRootCombinator={constraintAdvanced}
+              showAddGroup={constraintAdvanced}
+            />
+          </CardBody>
+        </Card>
+        {showAddButtons && (
+          <StageAddButtons stages={stages} universe={universe} onChange={onChange} />
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -428,6 +478,8 @@ export function StageList({
                 classes={ownFolders}
                 universe={universe}
                 onChange={(group) => replace(index, { ...stage, group })}
+                showRootCombinator={constraintAdvanced}
+                showAddGroup={constraintAdvanced}
               />
             )}
             {stage.kind === "tree" && (
@@ -469,31 +521,9 @@ export function StageList({
         </Card>
       ))}
 
-      <div className="flex flex-wrap gap-2">
-        <Button size="sm" onClick={() => onChange([...stages, emptyLimitStage()])}>
-          + {t.stageAddLimit}
-        </Button>
-        <Button size="sm" onClick={() => onChange([...stages, emptyTreeStage()])}>
-          + {t.stageAddTree}
-        </Button>
-        {/* Offered in both universes: a process has had magnitudes since P0-4,
-            so a region of one of its planes selects the same way. */}
-        <Button size="sm" onClick={() => onChange([...stages, emptyChartStage()])}>
-          + {t.stageAddChart}
-        </Button>
-        {/* One cross stage per universe, and only the one that applies: the
-            backend refuses the other, so offering it would be a button whose
-            only outcome is an error message. */}
-        {isProcessStudy ? (
-          <Button size="sm" onClick={() => onChange([...stages, emptyMaterialStage()])}>
-            + {t.stageAddMaterial}
-          </Button>
-        ) : (
-          <Button size="sm" onClick={() => onChange([...stages, emptyProcessStage()])}>
-            + {t.stageAddProcess}
-          </Button>
-        )}
-      </div>
+      {showAddButtons && (
+        <StageAddButtons stages={stages} universe={universe} onChange={onChange} />
+      )}
     </div>
   );
 }
@@ -1054,6 +1084,51 @@ function TreeStageFields({
 
       {stage.classSlugs.length === 0 && (
         <p className="text-sm text-fg-muted">{t.stageNoClasses}</p>
+      )}
+    </div>
+  );
+}
+
+/**
+ * The "add a stage" row (D-85: extracted so the page can place it inside
+ * "Opções avançadas"). One cross stage per universe, and only the one that
+ * applies: the backend refuses the other, so offering it would be a button
+ * whose only outcome is an error message.
+ */
+export function StageAddButtons({
+  stages,
+  universe = "material",
+  onChange,
+}: {
+  stages: StageState[];
+  universe?: SelectionUniverse;
+  onChange: (stages: StageState[]) => void;
+}) {
+  const isProcessStudy = universe === "process";
+  return (
+    <div className="flex flex-wrap gap-2">
+      <Button size="sm" onClick={() => onChange([...stages, emptyLimitStage()])}>
+        + {t.stageAddLimit}
+      </Button>
+      <Button size="sm" onClick={() => onChange([...stages, emptyTreeStage()])}>
+        + {t.stageAddTree}
+      </Button>
+      {/* Offered in both universes: a process has had magnitudes since P0-4,
+          so a region of one of its planes selects the same way. */}
+      <Button size="sm" onClick={() => onChange([...stages, emptyChartStage()])}>
+        + {t.stageAddChart}
+      </Button>
+      {/* One cross stage per universe, and only the one that applies: the
+          backend refuses the other, so offering it would be a button whose
+          only outcome is an error message. */}
+      {isProcessStudy ? (
+        <Button size="sm" onClick={() => onChange([...stages, emptyMaterialStage()])}>
+          + {t.stageAddMaterial}
+        </Button>
+      ) : (
+        <Button size="sm" onClick={() => onChange([...stages, emptyProcessStage()])}>
+          + {t.stageAddProcess}
+        </Button>
       )}
     </div>
   );

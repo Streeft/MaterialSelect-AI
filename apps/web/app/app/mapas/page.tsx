@@ -41,6 +41,7 @@ import {
   CardHeader,
   Checkbox,
   Dialog,
+  Disclosure,
   ErrorState,
   Input,
   LoadingState,
@@ -59,8 +60,10 @@ import {
 } from "@/components/selection/IndexCard";
 import {
   applyMapState,
+  customizationsInUse,
   decodeMapState,
   encodeMapState,
+  mapUsesCustomization,
   type AxisState,
   type MapUrlState,
 } from "./url-state";
@@ -209,6 +212,13 @@ function MapsPageContent() {
     if (decodedState?.universe) return decodedState.universe;
     return params.get("universo") === "process" ? "process" : "material";
   });
+
+  // Collapsed by default, open by itself when the link already customises
+  // something: collapsed hides the ways to add complexity, never what is in use
+  // (D-85, D-86).
+  const [customizeOpen, setCustomizeOpen] = useState(() =>
+    mapUsesCustomization({ ...decodedState, universe }),
+  );
 
   const [xAxis, setXAxis] = useState<AxisState>(() => ({
     mode: decodedState?.xAxis?.mode ?? "property",
@@ -598,6 +608,7 @@ function MapsPageContent() {
     if (applied.indexGoal) setIndexGoal(applied.indexGoal);
     if (applied.levelMaterialIds) setLevelMaterialIds(applied.levelMaterialIds);
     if (applied.numericLevels) setNumericLevels(applied.numericLevels);
+    if (mapUsesCustomization(applied)) setCustomizeOpen(true);
   }
 
   /** Build and share the current map state as a URL. */
@@ -632,6 +643,8 @@ function MapsPageContent() {
       setLevelMaterialIds(levelMaterialIds.filter((id) => id !== materialId));
     }
   }
+
+  const inUse = customizationsInUse(getCurrentMapState());
 
   return (
     <div className="flex flex-col gap-6">
@@ -733,269 +746,297 @@ function MapsPageContent() {
         />
       </Dialog>
 
-      {/* One panel, four named groups */}
+      {/* The axes are the question and stay in view; everything else only
+          changes the drawing and waits in "Personalizar o mapa" (D-86). */}
       <Section id="controles" title={t.controls} headingLevel={2}>
-        <div className="grid gap-4 lg:grid-cols-2">
-          <Card className="lg:col-span-2">
-            <CardHeader title={t.groupAxes} />
-            <CardBody className="flex flex-wrap items-start gap-4">
-              <div className="flex flex-col gap-1">
-                <span className="text-xs font-medium text-ink-muted">{t.universeTitle}</span>
-                <ButtonGroup label={t.universeTitle}>
-                  <ButtonGroupItem
-                    selected={universe === "material"}
-                    label={t.universeMaterials}
-                    onClick={() => handleUniverseChange("material")}
-                  />
-                  <ButtonGroupItem
-                    selected={universe === "process"}
-                    label={t.universeProcesses}
-                    onClick={() => handleUniverseChange("process")}
-                  />
-                </ButtonGroup>
-              </div>
-
-              <AxisControl
-                label={t.axisX}
-                axis={{
-                  ...xAxis,
-                  property: effectiveXProperty,
-                }}
-                onChange={handleXAxisChange}
-                allowIndex={universe === "material"}
-                properties={availableAttributes}
-                indices={universe === "material" ? (indices.data ?? []) : []}
-                dimension={map.data?.x_axis.is_index ? map.data.x_axis.unit : undefined}
-              />
-
-              <AxisControl
-                label={t.axisY}
-                axis={{
-                  ...yAxis,
-                  property: effectiveYProperty,
-                }}
-                onChange={handleYAxisChange}
-                allowIndex={universe === "material"}
-                properties={availableAttributes}
-                indices={universe === "material" ? (indices.data ?? []) : []}
-                dimension={map.data?.y_axis.is_index ? map.data.y_axis.unit : undefined}
-              />
-
-              <div className="flex flex-col gap-1">
-                <span className="text-xs font-medium text-ink-muted">{t.scale}</span>
-                <ButtonGroup label={t.scale}>
-                  {(["linear", "log"] as ChartScale[]).map((option) => (
-                    <ButtonGroupItem
-                      key={option}
-                      selected={displayScale === option}
-                      label={option === "linear" ? t.linear : t.log}
-                      onClick={() => {
-                        setDisplayScale(option);
-                        setScale(option);
-                      }}
-                    />
-                  ))}
-                </ButtonGroup>
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <span className="text-xs font-medium text-ink-muted">{t.envelope}</span>
-                <ButtonGroup label={t.envelope}>
-                  {(["hull", "ellipse"] as const).map((option) => (
-                    <ButtonGroupItem
-                      key={option}
-                      selected={envelopeShape === option}
-                      label={option === "hull" ? t.convexHull : t.adjustedEllipse}
-                      onClick={() => setEnvelopeShape(option)}
-                    />
-                  ))}
-                </ButtonGroup>
-              </div>
-            </CardBody>
-          </Card>
-
-          {/* "O que desenhar" and "Classes exibidas" share a row: alone, the
-              three checkboxes held half the width and left the other half
-              blank beside them. */}
+        <div className="flex flex-col gap-4">
           <Card>
-            <CardHeader title={t.groupDisplay} />
-            <CardBody className="flex flex-col gap-2">
-              <Checkbox
-                label={t.envelopes}
-                checked={showEnvelopes}
-                onChange={(e) => setShowEnvelopes(e.target.checked)}
-              />
-              <Checkbox
-                label={t.intervals}
-                checked={showIntervals}
-                onChange={(e) => setShowIntervals(e.target.checked)}
-              />
-              <Checkbox
-                label={t.labels}
-                checked={showLabels}
-                onChange={(e) => setShowLabels(e.target.checked)}
-              />
-            </CardBody>
-          </Card>
-
-          <Card>
-            <CardHeader title={t.groupClasses} />
-            <CardBody className="flex flex-wrap gap-2">
-              <ToggleChip
-                selected={selectedClasses.length === 0}
-                onClick={() => setSelectedClasses([])}
-              >
-                {t.allClasses}
-              </ToggleChip>
-              {availableClasses.map((c) => (
-                <ToggleChip
-                  key={c.slug}
-                  selected={selectedClasses.includes(c.slug)}
-                  onClick={() => toggleClass(c.slug)}
-                >
-                  {c.name}
-                </ToggleChip>
-              ))}
-            </CardBody>
-          </Card>
-
-          <Card className="lg:col-span-2">
-            <CardHeader title={t.groupIndex} description={t.indexHint} />
             <CardBody className="flex flex-col gap-3">
-              {universe === "process" ? (
-                <Alert tone="info">{t.processIndexWarning}</Alert>
-              ) : anyAxisIsIndex ? (
-                <Alert tone="info">{t.indexAxisConflict}</Alert>
-              ) : (
-                <>
-                  <IndexPicker
-                    indices={indices.data ?? []}
-                    value={indexMode}
-                    onChange={setIndexMode}
-                    customSlot={
-                      <div className="flex flex-wrap items-end gap-3">
-                        <Input
-                          label={t.expression}
-                          className="min-w-[16rem] flex-1"
-                          value={customExpression}
-                          onChange={(e) => setCustomExpression(e.target.value)}
-                          placeholder="modulo_young / densidade"
-                        />
-                        <Select
-                          label={t.goal}
-                          value={indexGoal}
-                          onChange={(e) => setIndexGoal(e.target.value as Goal)}
-                        >
-                          <SelectOption value="maximize">{t.maximize}</SelectOption>
-                          <SelectOption value="minimize">{t.minimize}</SelectOption>
-                        </Select>
-                      </div>
-                    }
-                  />
+              <p className="text-2xs text-ink-muted">{t.axesHint}</p>
+              <div className="flex flex-wrap items-start gap-4">
+                <AxisControl
+                  label={t.axisX}
+                  axis={{
+                    ...xAxis,
+                    property: effectiveXProperty,
+                  }}
+                  onChange={handleXAxisChange}
+                  allowIndex={
+                    universe === "material" && (customizeOpen || xAxis.mode === "index")
+                  }
+                  properties={availableAttributes}
+                  indices={universe === "material" ? (indices.data ?? []) : []}
+                  dimension={map.data?.x_axis.is_index ? map.data.x_axis.unit : undefined}
+                />
 
-                  {/* The slope shown here is the one the backend computed for these
-                      two axes — the card never derives it (ADR 0004). */}
-                  {indexDescriptor && (
-                    <IndexCard
-                      index={indexDescriptor}
-                      dimension={overlay?.dimension}
-                      indexLine={
-                        overlay
-                          ? {
-                              available: overlay.available,
-                              orientation: overlay.orientation,
-                              slope: overlay.slope,
-                              unavailableReason: overlay.unavailable_reason,
-                            }
-                          : null
-                      }
+                <AxisControl
+                  label={t.axisY}
+                  axis={{
+                    ...yAxis,
+                    property: effectiveYProperty,
+                  }}
+                  onChange={handleYAxisChange}
+                  allowIndex={
+                    universe === "material" && (customizeOpen || yAxis.mode === "index")
+                  }
+                  properties={availableAttributes}
+                  indices={universe === "material" ? (indices.data ?? []) : []}
+                  dimension={map.data?.y_axis.is_index ? map.data.y_axis.unit : undefined}
+                />
+              </div>
+            </CardBody>
+          </Card>
+
+          <Disclosure
+            summary={t.customize}
+            open={customizeOpen}
+            onOpenChange={setCustomizeOpen}
+          >
+            <div className="flex flex-col gap-4 pt-2">
+              <p className="text-2xs text-ink-muted">{t.customizeHint}</p>
+              <div className="grid gap-4 lg:grid-cols-2">
+                <Card className="lg:col-span-2">
+                  <CardHeader title={t.groupUniverseScale} />
+                  <CardBody className="flex flex-wrap items-start gap-4">
+                    <div className="flex flex-col gap-1">
+                      <span className="text-xs font-medium text-ink-muted">{t.universeTitle}</span>
+                      <ButtonGroup label={t.universeTitle}>
+                        <ButtonGroupItem
+                          selected={universe === "material"}
+                          label={t.universeMaterials}
+                          onClick={() => handleUniverseChange("material")}
+                        />
+                        <ButtonGroupItem
+                          selected={universe === "process"}
+                          label={t.universeProcesses}
+                          onClick={() => handleUniverseChange("process")}
+                        />
+                      </ButtonGroup>
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                      <span className="text-xs font-medium text-ink-muted">{t.scale}</span>
+                      <ButtonGroup label={t.scale}>
+                        {(["linear", "log"] as ChartScale[]).map((option) => (
+                          <ButtonGroupItem
+                            key={option}
+                            selected={displayScale === option}
+                            label={option === "linear" ? t.linear : t.log}
+                            onClick={() => {
+                              setDisplayScale(option);
+                              setScale(option);
+                            }}
+                          />
+                        ))}
+                      </ButtonGroup>
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                      <span className="text-xs font-medium text-ink-muted">{t.envelope}</span>
+                      <ButtonGroup label={t.envelope}>
+                        {(["hull", "ellipse"] as const).map((option) => (
+                          <ButtonGroupItem
+                            key={option}
+                            selected={envelopeShape === option}
+                            label={option === "hull" ? t.convexHull : t.adjustedEllipse}
+                            onClick={() => setEnvelopeShape(option)}
+                          />
+                        ))}
+                      </ButtonGroup>
+                    </div>
+                  </CardBody>
+                </Card>
+                {/* "O que desenhar" and "Classes exibidas" share a row: alone, the
+                    three checkboxes held half the width and left the other half
+                    blank beside them. */}
+                <Card>
+                  <CardHeader title={t.groupDisplay} />
+                  <CardBody className="flex flex-col gap-2">
+                    <Checkbox
+                      label={t.envelopes}
+                      checked={showEnvelopes}
+                      onChange={(e) => setShowEnvelopes(e.target.checked)}
                     />
-                  )}
+                    <Checkbox
+                      label={t.intervals}
+                      checked={showIntervals}
+                      onChange={(e) => setShowIntervals(e.target.checked)}
+                    />
+                    <Checkbox
+                      label={t.labels}
+                      checked={showLabels}
+                      onChange={(e) => setShowLabels(e.target.checked)}
+                    />
+                  </CardBody>
+                </Card>
 
-                  {activeIndex && (
-                    <div className="flex flex-col gap-2">
-                      <div className="flex flex-wrap items-end gap-3">
-                        <Select
-                          label={t.levelThrough}
-                          hint={t.levelsHint}
-                          className="min-w-[14rem]"
-                          value=""
-                          onChange={(e) => {
-                            const id = Number(e.target.value);
-                            if (Number.isInteger(id) && !levelMaterialIds.includes(id)) {
-                              setLevelMaterialIds([...levelMaterialIds, id]);
-                            }
-                          }}
-                        >
-                          <SelectOption value="">{t.levelNone}</SelectOption>
-                          {(map.data?.points ?? [])
-                            .filter(
-                              (p) =>
-                                p.index_value !== null &&
-                                !levelMaterialIds.includes(p.material_id),
-                            )
-                            .map((p) => (
-                              <SelectOption key={p.material_id} value={String(p.material_id)}>
-                                {p.material_name}
-                              </SelectOption>
-                            ))}
-                        </Select>
+                <Card>
+                  <CardHeader title={t.groupClasses} />
+                  <CardBody className="flex flex-wrap gap-2">
+                    <ToggleChip
+                      selected={selectedClasses.length === 0}
+                      onClick={() => setSelectedClasses([])}
+                    >
+                      {t.allClasses}
+                    </ToggleChip>
+                    {availableClasses.map((c) => (
+                      <ToggleChip
+                        key={c.slug}
+                        selected={selectedClasses.includes(c.slug)}
+                        onClick={() => toggleClass(c.slug)}
+                      >
+                        {c.name}
+                      </ToggleChip>
+                    ))}
+                  </CardBody>
+                </Card>
 
-                        {/* Text with a decimal keypad, not `type="number"`: a
-                            pt-BR reader types "2,7" and a number input drops what
-                            it cannot parse, without saying so. */}
-                        <Input
-                          label={t.levelValue}
-                          className="w-40"
-                          value={levelDraft}
-                          inputMode="decimal"
-                          onChange={(e) => setLevelDraft(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              e.preventDefault();
-                              addNumericLevel();
-                            }
-                          }}
+                <Card className="lg:col-span-2">
+                  <CardHeader title={t.groupIndex} description={t.indexHint} />
+                  <CardBody className="flex flex-col gap-3">
+                    {universe === "process" ? (
+                      <Alert tone="info">{t.processIndexWarning}</Alert>
+                    ) : anyAxisIsIndex ? (
+                      <Alert tone="info">{t.indexAxisConflict}</Alert>
+                    ) : (
+                      <>
+                        <IndexPicker
+                          indices={indices.data ?? []}
+                          value={indexMode}
+                          onChange={setIndexMode}
+                          customSlot={
+                            <div className="flex flex-wrap items-end gap-3">
+                              <Input
+                                label={t.expression}
+                                className="min-w-[16rem] flex-1"
+                                value={customExpression}
+                                onChange={(e) => setCustomExpression(e.target.value)}
+                                placeholder="modulo_young / densidade"
+                              />
+                              <Select
+                                label={t.goal}
+                                value={indexGoal}
+                                onChange={(e) => setIndexGoal(e.target.value as Goal)}
+                              >
+                                <SelectOption value="maximize">{t.maximize}</SelectOption>
+                                <SelectOption value="minimize">{t.minimize}</SelectOption>
+                              </Select>
+                            </div>
+                          }
                         />
-                        <Button
-                          size="sm"
-                          onClick={addNumericLevel}
-                          disabled={!Number.isFinite(Number(levelDraft.replace(",", ".")))}
-                        >
-                          {t.levelAdd}
-                        </Button>
-                      </div>
 
-                      {overlay && overlay.levels.length > 0 && (
-                        <ul className="flex flex-col gap-1">
-                          {overlay.levels.map((level) => (
-                            <li
-                              key={`${level.value}-${level.material_id ?? "n"}`}
-                              className="flex flex-wrap items-center gap-2 text-xs text-ink-muted"
-                            >
-                              <span>
-                                M = {formatNumber(level.value)}
-                                {level.material_name ? ` (${level.material_name})` : ""} —{" "}
-                                {t.superior(level.superior_material_ids.length)}
-                              </span>
+                        {/* The slope shown here is the one the backend computed for these
+                            two axes — the card never derives it (ADR 0004). */}
+                        {indexDescriptor && (
+                          <IndexCard
+                            index={indexDescriptor}
+                            dimension={overlay?.dimension}
+                            indexLine={
+                              overlay
+                                ? {
+                                    available: overlay.available,
+                                    orientation: overlay.orientation,
+                                    slope: overlay.slope,
+                                    unavailableReason: overlay.unavailable_reason,
+                                  }
+                                : null
+                            }
+                          />
+                        )}
+
+                        {activeIndex && (
+                          <div className="flex flex-col gap-2">
+                            <div className="flex flex-wrap items-end gap-3">
+                              <Select
+                                label={t.levelThrough}
+                                hint={t.levelsHint}
+                                className="min-w-[14rem]"
+                                value=""
+                                onChange={(e) => {
+                                  const id = Number(e.target.value);
+                                  if (Number.isInteger(id) && !levelMaterialIds.includes(id)) {
+                                    setLevelMaterialIds([...levelMaterialIds, id]);
+                                  }
+                                }}
+                              >
+                                <SelectOption value="">{t.levelNone}</SelectOption>
+                                {(map.data?.points ?? [])
+                                  .filter(
+                                    (p) =>
+                                      p.index_value !== null &&
+                                      !levelMaterialIds.includes(p.material_id),
+                                  )
+                                  .map((p) => (
+                                    <SelectOption key={p.material_id} value={String(p.material_id)}>
+                                      {p.material_name}
+                                    </SelectOption>
+                                  ))}
+                              </Select>
+
+                              {/* Text with a decimal keypad, not `type="number"`: a
+                                  pt-BR reader types "2,7" and a number input drops what
+                                  it cannot parse, without saying so. */}
+                              <Input
+                                label={t.levelValue}
+                                className="w-40"
+                                value={levelDraft}
+                                inputMode="decimal"
+                                onChange={(e) => setLevelDraft(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    addNumericLevel();
+                                  }
+                                }}
+                              />
                               <Button
                                 size="sm"
-                                variant="ghost"
-                                onClick={() => removeLevel(level.material_id, level.value)}
-                                aria-label={`${ptBR.actions.remove}: M = ${formatNumber(level.value)}`}
+                                onClick={addNumericLevel}
+                                disabled={!Number.isFinite(Number(levelDraft.replace(",", ".")))}
                               >
-                                {ptBR.actions.remove}
+                                {t.levelAdd}
                               </Button>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
-                  )}
-                </>
-              )}
-            </CardBody>
-          </Card>
+                            </div>
+
+                            {overlay && overlay.levels.length > 0 && (
+                              <ul className="flex flex-col gap-1">
+                                {overlay.levels.map((level) => (
+                                  <li
+                                    key={`${level.value}-${level.material_id ?? "n"}`}
+                                    className="flex flex-wrap items-center gap-2 text-xs text-ink-muted"
+                                  >
+                                    <span>
+                                      M = {formatNumber(level.value)}
+                                      {level.material_name ? ` (${level.material_name})` : ""} —{" "}
+                                      {t.superior(level.superior_material_ids.length)}
+                                    </span>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => removeLevel(level.material_id, level.value)}
+                                      aria-label={`${ptBR.actions.remove}: M = ${formatNumber(level.value)}`}
+                                    >
+                                      {ptBR.actions.remove}
+                                    </Button>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </CardBody>
+                </Card>
+              </div>
+            </div>
+          </Disclosure>
+
+          {!customizeOpen && inUse.length > 0 ? (
+            <p className="text-2xs text-ink-muted" role="status">
+              {t.customizeInUse(inUse.map((key) => t.customizationLabels[key]))}
+            </p>
+          ) : null}
         </div>
       </Section>
 

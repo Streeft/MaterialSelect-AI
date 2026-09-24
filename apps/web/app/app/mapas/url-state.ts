@@ -79,3 +79,43 @@ export function applyMapState(
     numericLevels: decoded.numericLevels ?? defaults.numericLevels,
   };
 }
+
+/** What the reader changed in "Personalizar o mapa", named rather than counted. */
+export type MapCustomization = "universe" | "scale" | "envelope" | "classes" | "layers" | "index";
+
+/**
+ * Which of the collapsed controls hold something other than the map a reader
+ * lands on with no link (D-86). Missing fields are the defaults, so a partial
+ * state decoded from an old link reads the same way.
+ *
+ * The axes are not here: they are never collapsed, and an axis drawn as an
+ * index keeps its own property/index toggle on screen.
+ */
+export function customizationsInUse(state: Partial<MapUrlState> | null): MapCustomization[] {
+  if (!state) return [];
+  const used: MapCustomization[] = [];
+  if ((state.universe ?? "material") !== "material") used.push("universe");
+  if ((state.scale ?? "log") !== "log") used.push("scale");
+  if ((state.envelopeShape ?? "ellipse") !== "ellipse") used.push("envelope");
+  if ((state.selectedClasses ?? []).length > 0) used.push("classes");
+  if (
+    state.showEnvelopes === false ||
+    state.showIntervals === false ||
+    state.showLabels === true
+  ) {
+    used.push("layers");
+  }
+  if (
+    (state.indexMode ?? "none") !== "none" ||
+    (state.levelMaterialIds ?? []).length > 0 ||
+    (state.numericLevels ?? []).length > 0
+  ) {
+    used.push("index");
+  }
+  return used;
+}
+
+/** Whether "Personalizar o mapa" opens by itself: collapsed never hides what is in use. */
+export function mapUsesCustomization(state: Partial<MapUrlState> | null): boolean {
+  return customizationsInUse(state).length > 0;
+}

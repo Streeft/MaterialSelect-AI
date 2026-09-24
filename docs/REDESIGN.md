@@ -306,7 +306,8 @@ número, para que se veja **o que** empurrou cada material para cima.
 
 **`/` (hoje 37 linhas, estática).** Vira a porta de entrada didática: o que a
 ferramenta faz em duas frases, o método de Ashby em quatro passos
-(Função → Restrições → Objetivo → Resultados) como caminho clicável, **lista dos
+(Função → Restrições → Objetivo → Resultados — na tela, desde o D-88, Objetivo
+vem antes de Restrições) como caminho clicável, **lista dos
 estudos salvos** para retomar (§4.2 pede "persistência de análises como projetos
 reabríveis"), atalho para o roteiro didático, e os dois avisos.
 

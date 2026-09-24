@@ -117,7 +117,25 @@ class OpenAICompatProvider(ModelProviderBase):
         elif mode == "object":
             body["response_format"] = {"type": "json_object"}
 
-        return parse_json_object(_strip_fence(_answer_of(self._post(body))))
+        try:
+            payload = self._post(body)
+        except _GenerationRejected:
+            # The server checked the generated JSON against the schema and
+            # threw it away (D-89). That is the model missing the shape once,
+            # not the configuration being wrong: ask again, once. A second
+            # miss is reported for what it is. `failed_generation` is never
+            # salvaged — degrading the contract is the operator's call (D-36).
+            try:
+                payload = self._post(body)
+            except _GenerationRejected as exc:
+                raise AIUnavailableError(
+                    (
+                        "O modelo gerou uma resposta fora do formato pedido, mesmo após "
+                        "uma nova tentativa. Não é configuração: tente de novo; se "
+                        f"persistir, AI_JSON_MODE=object é a alternativa. {exc.detail}"
+                    ).strip()
+                ) from exc
+        return parse_json_object(_strip_fence(_answer_of(payload)))
 
     def _json_mode(self) -> str:
         mode = self.settings.ai_json_mode.strip().lower() or "schema"
@@ -140,7 +158,11 @@ class OpenAICompatProvider(ModelProviderBase):
             with opener(request, timeout=self.settings.ai_timeout_seconds) as response:
                 payload = response.read().decode("utf-8", errors="replace")
         except urllib.error.HTTPError as exc:
-            raise AIUnavailableError(self._http_message(exc)) from exc
+            # The body can be read once, so it is read here and handed on.
+            detail, generation_rejected = _error_of(exc)
+            if exc.code == 400 and generation_rejected:
+                raise _GenerationRejected(detail) from exc
+            raise AIUnavailableError(self._http_message(exc, detail)) from exc
         except TimeoutError as exc:
             raise AIUnavailableError(
                 f"O servidor não respondeu em {self.settings.ai_timeout_seconds:g}s. "
@@ -191,8 +213,7 @@ class OpenAICompatProvider(ModelProviderBase):
             headers["Authorization"] = f"Bearer {key}"
         return headers
 
-    def _http_message(self, exc: urllib.error.HTTPError) -> str:
-        detail = _detail_of(exc)
+    def _http_message(self, exc: urllib.error.HTTPError, detail: str) -> str:
         if exc.code == 401:
             return (
                 "O servidor recusou a credencial (401). Defina AI_API_KEY com uma "
@@ -287,20 +308,37 @@ def _strip_fence(text: str) -> str:
     return (without_open[:closing] if closing != -1 else without_open).strip()
 
 
-def _detail_of(exc: urllib.error.HTTPError) -> str:
-    """The server's own explanation, when it sent one."""
+class _GenerationRejected(Exception):
+    """A 400 in which the server rejected the *generated* JSON against the
+    schema — the model's miss, not a malformed request (D-89)."""
+
+    def __init__(self, detail: str) -> None:
+        super().__init__(detail)
+        self.detail = detail
+
+
+#: Error codes with which a server says the generation, not the request, failed
+#: schema validation. Groq's is ``json_validate_failed``, sent together with the
+#: rejected text under ``failed_generation``.
+_GENERATION_REJECTED_CODES = {"json_validate_failed"}
+
+
+def _error_of(exc: urllib.error.HTTPError) -> tuple[str, bool]:
+    """The server's own explanation, and whether it says the generated JSON —
+    rather than the request — failed the schema."""
     try:
         body = exc.read().decode("utf-8", errors="replace")
     except Exception:  # the body was already consumed, or never arrived
-        return ""
+        return "", False
     try:
         payload = json.loads(body)
     except ValueError:
-        return body.strip()[:300]
+        return body.strip()[:300], False
     error = payload.get("error") if isinstance(payload, dict) else None
     if isinstance(error, dict):
-        return str(error.get("message", ""))[:300]
-    return str(error or "")[:300]
+        rejected = error.get("code") in _GENERATION_REJECTED_CODES or "failed_generation" in error
+        return str(error.get("message", ""))[:300], rejected
+    return str(error or "")[:300], False
 
 
 def _host_of(base_url: str) -> str:

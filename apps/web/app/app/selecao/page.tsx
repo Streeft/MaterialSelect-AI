@@ -2,6 +2,7 @@
 
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { useDebounced } from "@/lib/useDebounced";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ApiError,
@@ -16,9 +17,9 @@ import {
   listProcesses,
   listProperties,
   listStudies,
+  previewWeights,
   runSelection,
   runStudy,
-  studyExportUrl,
 } from "@/lib/api";
 import type {
   Combinator,
@@ -33,18 +34,23 @@ import type {
   StageIn,
   StageOut,
   StudyDetail,
+  WeightsPreviewRequest,
 } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
-import { countLabel, prettyUnit } from "@/lib/format";
+import { prettyUnit } from "@/lib/format";
 import {
   Alert,
   Button,
   ButtonGroup,
   ButtonGroupItem,
+  ButtonLink,
   Card,
   CardBody,
   Checkbox,
+  Combobox,
+  Disclosure,
   EmptyState,
+  GuidedBlock,
   Input,
   LoadingState,
   PageHeader,
@@ -52,15 +58,10 @@ import {
   Select,
   SelectOption,
   Stepper,
-  TBody,
-  Table,
-  TableScroll,
-  Td,
-  Tr,
   type Step as StepItem,
   type StepStatus,
 } from "@/components/ui";
-import { IconArrowRight, IconPlus, IconTrash } from "@/components/ui/icons";
+import { IconArrowLeft, IconArrowRight, IconPlus, IconTrash } from "@/components/ui/icons";
 import {
   emptyConstraint,
   emptyGroup,
@@ -68,6 +69,7 @@ import {
   nextEditorId,
 } from "@/components/selection/ConstraintEditor";
 import {
+  StageAddButtons,
   StageList,
   type StageState,
   boundToField,
@@ -85,10 +87,17 @@ import {
   type IndexDescriptor,
 } from "@/components/selection/IndexCard";
 import { ResultsView } from "@/components/selection/ResultsView";
+import { SavedStudiesPanel } from "@/components/selection/SavedStudiesPanel";
+import { BIKE_BEAM_EXAMPLE, missingForExample } from "@/lib/selection/examples";
+import {
+  constraintsUseAdvanced,
+  functionUsesAdvanced,
+  initialLimitStage,
+  objectiveUsesAdvanced,
+} from "@/lib/selection/advanced";
 import { AIAssistPanel, type AcceptedSuggestions } from "@/components/ai/AIAssistPanel";
-import { StudyExplanation } from "@/components/ai/StudyExplanation";
-import { ExportButtons } from "@/components/ExportButtons";
-import { EngineeringReportLink } from "@/components/EngineeringReportLink";
+import { WeightBudget } from "@/components/selection/WeightBudget";
+import { parseWeightInput, weightsGate } from "@/lib/selection/weightsGate";
 
 const t = ptBR.selection;
 type Step = "function" | "constraints" | "objective" | "results";
@@ -107,12 +116,37 @@ const STEP_BY_SLUG: Record<string, Step> = {
   resultados: "results",
 };
 
+// D-88: Objetivo before Restrições. The order of the screen, not of the
+// method: the engine still filters and only then ranks. Navigation, the Run
+// button and the step a loaded study opens on all derive from this list.
 const STEPS: StepItem<Step>[] = [
   { id: "function", label: t.stepFunction },
-  { id: "constraints", label: t.stepConstraints },
   { id: "objective", label: t.stepObjective },
+  { id: "constraints", label: t.stepConstraints },
   { id: "results", label: t.stepResults, blockedReason: t.blockedResults },
 ];
+
+const SLUG_BY_STEP = Object.fromEntries(
+  Object.entries(STEP_BY_SLUG).map(([slug, id]) => [id, slug]),
+) as Record<Step, string>;
+
+/**
+ * Navigation is read off the order of `STEPS`, never written per step (D-85):
+ * the previous and next step are neighbours in the list, and Run sits on the
+ * last step the reader fills in. Reordering the wizard is then reordering the
+ * list — nothing else can drift out of step with it.
+ */
+const INPUT_STEPS = STEPS.filter((s) => s.id !== "results").map((s) => s.id);
+const LAST_INPUT_STEP: Step = INPUT_STEPS[INPUT_STEPS.length - 1] ?? "constraints";
+
+function neighbours(step: Step): { prev: Step | null; next: Step | null } {
+  const i = STEPS.findIndex((s) => s.id === step);
+  return { prev: STEPS[i - 1]?.id ?? null, next: STEPS[i + 1]?.id ?? null };
+}
+
+function labelOf(step: Step): string {
+  return STEPS.find((s) => s.id === step)?.label ?? step;
+}
 
 interface CriterionRow {
   id: string;
@@ -244,10 +278,40 @@ function SelectionWizard() {
     return STEP_BY_SLUG[params.get("etapa") ?? ""] ?? "function";
   });
 
+  /**
+   * Move to a step and write it into the URL (D-85), so the browser's Back
+   * button goes back one step instead of leaving the tool — what a reader who
+   * clicks first and asks later reaches for. `replace` for moves that are not
+   * the reader's (landing after a study loads), which should not add history.
+   */
+  const goToStep = useCallback((next: Step, options?: { replace?: boolean }) => {
+    setStep(next);
+    if (typeof window === "undefined") return;
+    const query = new URLSearchParams(window.location.search);
+    query.delete("novo_estagio");
+    query.set("etapa", SLUG_BY_STEP[next]);
+    const url = `${window.location.pathname}?${query.toString()}`;
+    if (options?.replace) window.history.replaceState(null, "", url);
+    else window.history.pushState(null, "", url);
+  }, []);
+
+  // Browser Back/Forward: the history entry changed under us, so follow it.
+  // `popstate` is what those buttons fire, and only they fire it — our own
+  // pushState/replaceState never do — so this cannot echo `goToStep`.
+  useEffect(() => {
+    const onPop = () => {
+      const query = new URLSearchParams(window.location.search);
+      setStep(STEP_BY_SLUG[query.get("etapa") ?? ""] ?? "function");
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+
   const [name, setName] = useState("");
   const [functionText, setFunctionText] = useState("");
   const [objectiveText, setObjectiveText] = useState("");
   const [freeVariables, setFreeVariables] = useState("");
+  const [aiOpen, setAiOpen] = useState(false);
   // P0-1: the ordered pipeline. It starts as exactly one limit stage holding
   // the nested AND/OR tree M6 introduced, so a simple study looks and behaves
   // as it always did; adding a stage is what turns it into a pipeline.
@@ -290,7 +354,7 @@ function SelectionWizard() {
         },
       ];
     }
-    return [emptyLimitStage()];
+    return [initialLimitStage()];
   });
   // P0-3: which universe the study returns. Switching it resets the pipeline,
   // because a stage of the other universe is refused by the backend — carrying
@@ -298,6 +362,11 @@ function SelectionWizard() {
   const [universe, setUniverse] = useState<SelectionUniverse>(() => {
     return params.get("universo") === "process" ? "process" : "material";
   });
+  // D-85: each step's "Opções avançadas". Opened by the screen itself whenever
+  // what it would hide is already in use (see lib/selection/advanced.ts).
+  const [advFunction, setAdvFunction] = useState(() => functionUsesAdvanced(universe));
+  const [advConstraints, setAdvConstraints] = useState(() => constraintsUseAdvanced(stages));
+  const [advObjective, setAdvObjective] = useState(false);
 
   /**
    * Switching universe starts the pipeline over.
@@ -310,12 +379,24 @@ function SelectionWizard() {
   function changeUniverse(next: SelectionUniverse) {
     if (next === universe) return;
     setUniverse(next);
-    setStages([emptyLimitStage()]);
+    setStages([initialLimitStage()]);
+    // D-84: the objective names keys of one catalogue — material properties or
+    // process attributes — so it cannot cross over either. A property criterion
+    // in a process study is refused by the backend by name.
+    setCriteria([]);
+    setIndexMode("none");
+    setIndexConfirmed(false);
+    setCustomExpression("");
+    setValidation(null);
+    setUseAhp(false);
   }
 
   const isProcessStudy = universe === "process";
 
   const [indexMode, setIndexMode] = useState<string>("none"); // "none" | slug | "custom"
+  // D-85: the index block folds once the reader confirms it (or a study or the
+  // example arrives with it already decided).
+  const [indexConfirmed, setIndexConfirmed] = useState(false);
   const [customExpression, setCustomExpression] = useState("");
   const [indexGoal, setIndexGoal] = useState<Goal>("maximize");
   const [validation, setValidation] = useState<string | null>(null);
@@ -354,6 +435,23 @@ function SelectionWizard() {
 
   const fail = (err: unknown) => setError(err instanceof ApiError ? err.message : t.genericError);
 
+  /**
+   * What a ranking criterion may name, in this study's universe (D-84).
+   *
+   * A process study ranks by process attributes — but only the numeric ones: a
+   * discrete attribute is a set of labels with no order, and the backend
+   * refuses it by name. Offering it would be offering a 400.
+   */
+  const criterionOptions = useMemo<{ slug: string; name: string; variable: string }[]>(
+    () =>
+      isProcessStudy
+        ? (processAttributes.data ?? [])
+            .filter((a) => a.kind !== "DISCRETO")
+            .map((a) => ({ slug: a.slug, name: a.name, variable: a.variable }))
+        : (properties.data ?? []).map((p) => ({ slug: p.slug, name: p.name, variable: p.slug })),
+    [isProcessStudy, processAttributes.data, properties.data],
+  );
+
   // Resolve the active index (prebuilt or custom) into an IndexIn payload.
   const activeIndex = useMemo<IndexIn | null>(() => {
     if (indexMode === "none") return null;
@@ -381,6 +479,10 @@ function SelectionWizard() {
 
   const stagesPayload = (): StageIn[] => stages.map(toStagePayload);
 
+  const indexSummary = activeIndex
+    ? t.indexChosen(activeIndex.name ?? t.customIndex, activeIndex.goal === "maximize")
+    : t.noIndexChosen;
+
   // Only the criteria that already name a property (or the index) are worth
   // comparing pairwise — an empty row has nothing for AHP to weigh.
   const ahpCriteria = useMemo<AhpCriterionRef[]>(
@@ -392,9 +494,9 @@ function SelectionWizard() {
           label:
             c.key === "__index__"
               ? t.useIndexCriterion
-              : properties.data?.find((p) => p.slug === c.key)?.name ?? c.key,
+              : criterionOptions.find((p) => p.slug === c.key)?.name ?? c.key,
         })),
-    [criteria, properties.data],
+    [criteria, criterionOptions],
   );
 
   // Functional update, no `criteria` in the dependency list: this keeps the
@@ -435,20 +537,88 @@ function SelectionWizard() {
   // The live count, on every step — not only where the constraints are edited.
   // Constraints only: adding the index here would make the number answer a
   // different question from the one the label asks.
+  // Debounced (D-85): typing "70" used to send "7" and "70" as two full runs.
+  // With a class of forty on one small machine that is the difference between a
+  // counter that keeps up and one that queues.
+  const stagesKey = useDebounced(JSON.stringify(stagesPayload()), 300);
   const preview = useQuery({
-    queryKey: ["selection-preview", universe, JSON.stringify(stagesPayload())],
+    queryKey: ["selection-preview", universe, stagesKey],
     queryFn: () =>
-      runSelection({ universe, stages: stagesPayload(), index: null, ranking: null }),
+      runSelection({
+        universe,
+        stages: JSON.parse(stagesKey) as StageIn[],
+        index: null,
+        ranking: null,
+      }),
     // Keep the previous count on screen while the next one is in flight, so the
     // element does not blink between every keystroke.
     placeholderData: (previous) => previous,
   });
 
+  // D-87: the weight budget and the top five, computed in the backend while
+  // the reader types. Debounced on the serialized key, never the object — a
+  // new object every render would be a new request every render.
+  const weightsRequest: WeightsPreviewRequest = {
+    universe,
+    stages: stagesPayload(),
+    index: activeIndex,
+    method,
+    normalization,
+    criteria: criteria.map((c) => {
+      const parsed = parseWeightInput(c.weight);
+      return {
+        key: c.key,
+        direction: c.direction || null,
+        weight: typeof parsed === "number" ? parsed : null,
+      };
+    }),
+  };
+  const weightsKeyNow = JSON.stringify(weightsRequest);
+  const weightsKey = useDebounced(weightsKeyNow, 300);
+  const weightsPreview = useQuery({
+    queryKey: ["weights-preview", weightsKey],
+    queryFn: () => previewWeights(JSON.parse(weightsKey) as WeightsPreviewRequest),
+    enabled: criteria.length > 0,
+    placeholderData: (previous) => previous,
+    retry: false,
+  });
+  const weightsPending =
+    criteria.length > 0 &&
+    (weightsKeyNow !== weightsKey ||
+      weightsPreview.isPlaceholderData ||
+      (!weightsPreview.data && !weightsPreview.isError));
+  const gate = weightsGate({
+    criteriaCount: criteria.length,
+    pending: weightsPending,
+    failed: weightsPreview.isError && !weightsPending,
+    budget: weightsPreview.data?.budget ?? null,
+  });
+  // The rows as they were before a suggestion was applied, for "Desfazer".
+  const [beforeSuggestion, setBeforeSuggestion] = useState<CriterionRow[] | null>(null);
+
+  function applyWeightSuggestion(weights: number[]) {
+    setBeforeSuggestion(criteria);
+    setCriteria(
+      criteria.map((c, i) => {
+        const w = weights[i];
+        // Written back as the reader would type it: a decimal comma, no
+        // grouping — the input parses it again, exactly.
+        return w === undefined ? c : { ...c, weight: String(w).replace(".", ",") };
+      }),
+    );
+  }
+
+  const criterionLabel = (key: string | null): string => {
+    if (!key) return t.weights.noCriterion;
+    if (key === "__index__") return activeIndex?.name ?? t.useIndexCriterion;
+    return criterionOptions.find((p) => p.slug === key)?.name ?? key;
+  };
+
   const run = useMutation({
     mutationFn: () => runSelection(buildRequest(true)),
     onSuccess: (data) => {
       setResult(data);
-      setStep("results");
+      goToStep("results");
       setError(null);
     },
     onError: fail,
@@ -495,7 +665,7 @@ function SelectionWizard() {
       // real tree, so reopening a nested study restores its parentheses instead
       // of flattening them. A study whose payload somehow has no stage falls
       // back to the flat list — the pre-M6 shape — rather than opening empty.
-      setStages(
+      const reopened: StageState[] =
         s.stages.length > 0
           ? s.stages.map((stage) => stageFromPayload(stage, s.combinator))
           : [
@@ -519,8 +689,9 @@ function SelectionWizard() {
                   })),
                 },
               },
-            ],
-      );
+            ];
+      setStages(reopened);
+      setAdvConstraints(constraintsUseAdvanced(reopened));
       if (s.index) {
         setIndexMode("custom");
         setCustomExpression(s.index.expression);
@@ -528,6 +699,7 @@ function SelectionWizard() {
       } else {
         setIndexMode("none");
       }
+      setIndexConfirmed(true);
       setNormalization(s.normalization);
       setMethod(s.method);
       setCriteria(
@@ -539,7 +711,13 @@ function SelectionWizard() {
         })),
       );
       setResult(null);
-      setStep("constraints");
+      setAdvFunction(functionUsesAdvanced(s.universe));
+      setAdvObjective(
+        objectiveUsesAdvanced({ method: s.method, normalization: s.normalization, useAhp: false }),
+      );
+      // Where Run is: a reopened study is one click from running again, and the
+      // step summaries are one click from any part of it.
+      goToStep(LAST_INPUT_STEP, { replace: true });
     },
     onError: fail,
   });
@@ -553,7 +731,7 @@ function SelectionWizard() {
     mutationFn: (id: number) => runStudy(id),
     onSuccess: (data) => {
       setResult(data);
-      setStep("results");
+      goToStep("results");
     },
     onError: fail,
   });
@@ -574,10 +752,118 @@ function SelectionWizard() {
   // P1-2: deep link from chart map (/app/mapas) cleans URL after mounting
   useEffect(() => {
     if (params.get("novo_estagio") === "chart" && typeof window !== "undefined") {
-      const cleanUrl = window.location.pathname;
-      window.history.replaceState(null, "", cleanUrl);
+      // The stage is built; the URL keeps only where the reader is, so a Back
+      // from here does not rebuild the chart stage on top of their edits.
+      window.history.replaceState(null, "", `${window.location.pathname}?etapa=restricoes`);
     }
   }, [params]);
+
+  // D-85: the example, and the way back from it. A snapshot rather than a
+  // confirm dialog: loading is one click and undoing is one click.
+  interface WizardSnapshot {
+    name: string;
+    functionText: string;
+    objectiveText: string;
+    freeVariables: string;
+    universe: SelectionUniverse;
+    stages: StageState[];
+    indexMode: string;
+    customExpression: string;
+    indexGoal: Goal;
+    indexConfirmed: boolean;
+    criteria: CriterionRow[];
+    method: MethodLiteral;
+    normalization: NormalizationMethod;
+    useAhp: boolean;
+  }
+  const [beforeExample, setBeforeExample] = useState<WizardSnapshot | null>(null);
+  const [exampleMessage, setExampleMessage] = useState<string | null>(null);
+
+  function restore(snapshot: WizardSnapshot) {
+    setName(snapshot.name);
+    setFunctionText(snapshot.functionText);
+    setObjectiveText(snapshot.objectiveText);
+    setFreeVariables(snapshot.freeVariables);
+    setUniverse(snapshot.universe);
+    setStages(snapshot.stages);
+    setIndexMode(snapshot.indexMode);
+    setCustomExpression(snapshot.customExpression);
+    setIndexGoal(snapshot.indexGoal);
+    setIndexConfirmed(snapshot.indexConfirmed);
+    setCriteria(snapshot.criteria);
+    setMethod(snapshot.method);
+    setNormalization(snapshot.normalization);
+    setUseAhp(snapshot.useAhp);
+    setAdvFunction(functionUsesAdvanced(snapshot.universe));
+    setAdvConstraints(constraintsUseAdvanced(snapshot.stages));
+  }
+
+  function applyExample() {
+    const example = BIKE_BEAM_EXAMPLE;
+    const missing = missingForExample(example, {
+      indexSlugs: (indices.data ?? []).map((i) => i.slug),
+      propertySlugs: (properties.data ?? []).map((p) => p.slug),
+    });
+    if (missing.length > 0) {
+      // Half an example teaches the wrong thing; say what is missing instead.
+      setExampleMessage(t.exampleUnavailable(missing.join(", ")));
+      setBeforeExample(null);
+      return;
+    }
+    setBeforeExample({
+      name,
+      functionText,
+      objectiveText,
+      freeVariables,
+      universe,
+      stages,
+      indexMode,
+      customExpression,
+      indexGoal,
+      indexConfirmed,
+      criteria,
+      method,
+      normalization,
+      useAhp,
+    });
+    const stagesFromExample: StageState[] = [
+      {
+        id: nextEditorId("stage"),
+        kind: "limit",
+        label: "",
+        enabled: true,
+        group: fromConstraintPayload({
+          operator: "AND",
+          constraints: example.constraints,
+          groups: [],
+        }),
+      },
+    ];
+    setName(example.name);
+    setFunctionText(example.functionText);
+    setObjectiveText(example.objectiveText);
+    setFreeVariables(example.freeVariables.join(", "));
+    setUniverse("material");
+    setStages(stagesFromExample);
+    setIndexMode(example.indexSlug);
+    setCustomExpression("");
+    setIndexConfirmed(true);
+    setCriteria(example.criteria.map((c) => ({ id: nextId(), direction: "", ...c })));
+    setMethod("weighted_sum");
+    setNormalization("minmax");
+    setUseAhp(false);
+    setAdvFunction(false);
+    setAdvConstraints(constraintsUseAdvanced(stagesFromExample));
+    setAdvObjective(false);
+    setResult(null);
+    setExampleMessage(t.exampleLoaded);
+  }
+
+  function undoExample() {
+    if (beforeExample) restore(beforeExample);
+    setBeforeExample(null);
+    setExampleMessage(null);
+  }
 
   /**
    * Merge the suggestions the user ticked into the wizard.
@@ -691,78 +977,128 @@ function SelectionWizard() {
       case "constraints":
         return hasConstraints ? "done" : "upcoming";
       case "objective":
-        return hasObjective ? "done" : "upcoming";
+        return hasObjective && gate.canRun ? "done" : "upcoming";
       case "results":
         return result ? "done" : "blocked";
     }
   }
 
-  /** The one action this step is for, plus whatever supports it. */
+  /**
+   * Back and forward, the same on every step (D-85): "Voltar" always exists —
+   * on the first step it leaves for the home page — and the primary button
+   * names where it goes ("Próximo: Objetivo"), or runs on the last input step.
+   */
   function actionsForStep() {
-    switch (step) {
-      case "function":
-        return (
+    if (step === "results") {
+      return (
+        <>
+          <Button
+            variant="secondary"
+            icon={<IconArrowLeft />}
+            onClick={() => goToStep(LAST_INPUT_STEP)}
+          >
+            {t.back}
+          </Button>
           <Button
             variant="primary"
-            icon={<IconArrowRight />}
-            onClick={() => setStep("constraints")}
+            disabled={!canSave}
+            loading={save.isPending}
+            onClick={() => {
+              setSaveMessage(null);
+              save.mutate();
+            }}
           >
-            {t.stepConstraints}
+            {t.saveStudy}
           </Button>
-        );
-      case "constraints":
-        // Adding a constraint or a group is now a per-group action inside
-        // ConstraintEditor itself (M6) — operator is a per-group property,
-        // so "add" has to say which group, which only the editor knows.
-        return (
-          <Button variant="primary" icon={<IconArrowRight />} onClick={() => setStep("objective")}>
-            {t.stepObjective}
+        </>
+      );
+    }
+    const { prev, next } = neighbours(step);
+    return (
+      <>
+        {prev ? (
+          <Button variant="secondary" icon={<IconArrowLeft />} onClick={() => goToStep(prev)}>
+            {t.back}
           </Button>
-        );
-      case "objective":
-        return (
+        ) : (
+          <ButtonLink href="/app" variant="secondary" icon={<IconArrowLeft />}>
+            {t.backToHome}
+          </ButtonLink>
+        )}
+        {step === LAST_INPUT_STEP || !next ? (
           <>
-            <Button variant="secondary" onClick={() => setStep("constraints")}>
-              {t.back}
-            </Button>
-            <Button variant="primary" loading={run.isPending} onClick={() => run.mutate()}>
+            {gate.reason ? (
+              <>
+                <p id="executar-motivo" className="text-2xs text-ink-muted">
+                  {gate.reason}
+                </p>
+                {step !== "objective" && (
+                  <Button variant="secondary" onClick={() => goToStep("objective")}>
+                    {t.weights.fixWeights}
+                  </Button>
+                )}
+              </>
+            ) : gate.note ? (
+              <p className="text-2xs text-ink-muted">{gate.note}</p>
+            ) : null}
+            <Button
+              variant="primary"
+              loading={run.isPending}
+              disabled={!gate.canRun}
+              aria-describedby={gate.reason ? "executar-motivo" : undefined}
+              onClick={() => run.mutate()}
+            >
               {run.isPending ? t.running : t.run}
             </Button>
           </>
-        );
-      case "results":
-        return (
+        ) : (
           <>
-            <Button variant="secondary" onClick={() => setStep("objective")}>
-              {t.back}
-            </Button>
-            <Button
-              variant="primary"
-              disabled={!canSave}
-              loading={save.isPending}
-              onClick={() => {
-                setSaveMessage(null);
-                save.mutate();
-              }}
-            >
-              {t.saveStudy}
+            {/* D-88: Objetivo comes before Restrições now, so the weights are
+                warned about here but never block moving on — the Run button,
+                on the last input step, is what waits for them. */}
+            {step === "objective" && gate.reason && gate.reason !== t.weights.checking ? (
+              <p className="text-2xs text-ink-muted">{t.weights.notBlocking(gate.reason)}</p>
+            ) : null}
+            <Button variant="primary" icon={<IconArrowRight />} onClick={() => goToStep(next)}>
+              {t.nextStep(labelOf(next))}
             </Button>
           </>
-        );
-    }
+        )}
+      </>
+    );
   }
+
+  /** What each step already holds, in a few words — the stepper's second line. */
+  const stepSummaries: Record<Step, string | undefined> = {
+    function: name.trim() || functionText.trim() || undefined,
+    objective: hasObjective
+      ? t.summaryObjective(activeIndex?.name ?? null, criteriaPayload().length)
+      : undefined,
+    constraints: hasConstraints
+      ? t.summaryConstraints(countStageConstraints(stages), stages.length)
+      : undefined,
+    results: result ? t.summaryResults(result.final_count) : undefined,
+  };
+  const stepsWithSummary = STEPS.map((s) => ({ ...s, summary: stepSummaries[s.id] }));
 
   return (
     <div className="space-y-6">
       <div className="space-y-4">
         <PageHeader title={t.title} description={t.subtitle} group="estudar" />
 
+        <SavedStudiesPanel
+          studies={studies.data}
+          onRun={(id) => runSaved.mutate(id)}
+          onLoad={(id) => loadStudy.mutate(id)}
+          onDelete={(id) => removeStudy.mutate(id)}
+        />
+
         <Stepper
           label={ptBR.ui.steps}
-          steps={STEPS}
+          steps={stepsWithSummary}
           statusOf={statusOf}
           current={step}
-          onSelect={setStep}
+          onSelect={(next) => goToStep(next)}
         />
 
         {error && (
@@ -773,38 +1109,110 @@ function SelectionWizard() {
 
         {/* Step 1: function */}
         {step === "function" && (
+          <div className="flex flex-wrap items-center gap-3 rounded-card border border-dashed border-edge-strong px-4 py-3">
+            <span className="text-sm text-ink-muted">{t.exampleIntro}</span>
+            <Button variant="secondary" onClick={applyExample}>
+              {t.loadExample}
+            </Button>
+          </div>
+        )}
+        {exampleMessage && (
+          <Alert tone={beforeExample ? "success" : "warning"} role="status">
+            <div className="flex flex-wrap items-center gap-3">
+              <span>{exampleMessage}</span>
+              {beforeExample && (
+                <Button size="sm" variant="secondary" onClick={undoExample}>
+                  {t.exampleUndo}
+                </Button>
+              )}
+            </div>
+          </Alert>
+        )}
+        {step === "function" && (
           <Section title={t.functionTitle} description={t.functionHint}>
             <Card>
               <CardBody className="grid gap-3 sm:grid-cols-2">
                 <Input
                   label={t.studyName}
+                  hint={t.studyNameHint}
                   className="sm:col-span-2"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                 />
                 <Input
                   label={t.functionText}
+                  hint={t.functionTextHint}
                   value={functionText}
                   onChange={(e) => setFunctionText(e.target.value)}
                 />
                 <Input
                   label={t.objectiveText}
+                  hint={t.objectiveTextHint}
                   value={objectiveText}
                   onChange={(e) => setObjectiveText(e.target.value)}
                 />
                 <Input
                   label={t.freeVariables}
+                  hint={t.freeVariablesHint}
                   className="sm:col-span-2"
                   value={freeVariables}
                   onChange={(e) => setFreeVariables(e.target.value)}
                 />
               </CardBody>
             </Card>
+            {/* P0-3 put the universe before the stages because it decides which
+                stages exist; since D-84 it also decides what the objective
+                ranks by, so it belongs to the problem, not to one step. It is
+                advanced (D-85): most studies return materials. */}
+            <Disclosure
+              className="mt-4"
+              summary={
+                isProcessStudy ? `${ptBR.ui.advancedOptions} · ${t.universeProcess}` : ptBR.ui.advancedOptions
+              }
+              open={advFunction}
+              onOpenChange={setAdvFunction}
+            >
+              <div className="flex flex-col gap-2">
+                <span className="text-xs font-medium text-ink-muted">{t.universeTitle}</span>
+                <ButtonGroup label={t.universeTitle}>
+                  <ButtonGroupItem
+                    selected={universe === "material"}
+                    label={t.universeMaterial}
+                    onClick={() => changeUniverse("material")}
+                  />
+                  <ButtonGroupItem
+                    selected={universe === "process"}
+                    label={t.universeProcess}
+                    onClick={() => changeUniverse("process")}
+                  />
+                </ButtonGroup>
+                <p className="text-xs text-fg-muted">{t.universeHint}</p>
+                {isProcessStudy && <Alert tone="info">{t.universeProcessNote}</Alert>}
+              </div>
+            </Disclosure>
           </Section>
         )}
 
-        {/* Optional assistance, on the step where a problem is described. */}
-        {step === "function" && <AIAssistPanel onApply={applySuggestions} />}
+        {/* Optional assistance, on the step where a problem is described —
+            behind a button (D-85): a second form open under the first is the
+            clutter this redesign removes, and the reader who wants it asks. */}
+        {step === "function" && (
+          <div className="space-y-3">
+            <Button
+              variant="secondary"
+              aria-expanded={aiOpen}
+              aria-controls={aiOpen ? "ai-assist-panel" : undefined}
+              onClick={() => setAiOpen((open) => !open)}
+            >
+              {aiOpen ? t.aiClose : t.aiOpen}
+            </Button>
+            {aiOpen && (
+              <div id="ai-assist-panel">
+                <AIAssistPanel onApply={applySuggestions} />
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Step 2: constraints */}
         {step === "constraints" && (
@@ -812,35 +1220,13 @@ function SelectionWizard() {
             title={stages.length > 1 ? t.stagesTitle : t.constraintsTitle}
             description={stages.length > 1 ? t.stagesHint : t.constraintsHint}
           >
-            {/* P0-3: the universe comes before the stages because it decides
-                which stages exist. Put after them it would read as a filter on
-                a pipeline already written. */}
-            <Card className="mb-4">
-              <CardBody className="flex flex-col gap-2">
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs font-medium text-ink-muted">{t.universeTitle}</span>
-                  <ButtonGroup label={t.universeTitle}>
-                    <ButtonGroupItem
-                      selected={universe === "material"}
-                      label={t.universeMaterial}
-                      onClick={() => changeUniverse("material")}
-                    />
-                    <ButtonGroupItem
-                      selected={universe === "process"}
-                      label={t.universeProcess}
-                      onClick={() => changeUniverse("process")}
-                    />
-                  </ButtonGroup>
-                </div>
-                <p className="text-xs text-fg-muted">{t.universeHint}</p>
-                {/* What a process study cannot do, said here rather than
-                    discovered as an error two steps later. */}
-                {isProcessStudy && <Alert tone="info">{t.universeProcessNote}</Alert>}
-              </CardBody>
-            </Card>
-            {/* The root group's own AND/OR toggle lives inside the editor
-                (M6) — operator is a per-group property, not a study-level
-                one — and since P0-1 each stage owns one such tree. */}
+            {/* What a process study cannot do is said where it matters; the
+                universe itself is chosen on the first step (D-85). */}
+            {isProcessStudy && (
+              <Alert tone="info" className="mb-4">
+                {t.universeProcessNote}
+              </Alert>
+            )}
             <StageList
               stages={stages}
               properties={properties.data ?? []}
@@ -850,27 +1236,45 @@ function SelectionWizard() {
               processClasses={processClasses.data ?? []}
               universe={universe}
               onChange={setStages}
+              showAddButtons={false}
+              compactSingleStage={!advConstraints}
+              constraintAdvanced={advConstraints}
             />
+            <Disclosure
+              className="mt-4"
+              summary={ptBR.ui.advancedOptions}
+              open={advConstraints}
+              onOpenChange={setAdvConstraints}
+            >
+              <div className="flex flex-col gap-3">
+                <p className="text-xs text-ink-muted">{t.advancedConstraintsHint}</p>
+                <StageAddButtons stages={stages} universe={universe} onChange={setStages} />
+              </div>
+            </Disclosure>
           </Section>
         )}
 
-        {/* Step 3: objective (index + ranking) */}
-        {/* P0-3: a process study has no objective step to fill in. Said here,
-            in the step the reader opened, rather than discovered as a 400 when
-            they press Run. */}
-        {step === "objective" && isProcessStudy && (
-          <Section title={t.objectiveTitle}>
-            <Alert tone="info">{t.universeProcessNote}</Alert>
-          </Section>
-        )}
-
-        {step === "objective" && !isProcessStudy && (
-          <div className="space-y-5">
-            <Section title={t.objectiveTitle}>
-              <Card>
-                <CardBody className="space-y-3">
+        {/* Step 3: objective (index + ranking). D-84: both universes — a
+            process study ranks by its numeric attributes since P0-4 (D-59). */}
+        {step === "objective" && (
+          <div className="space-y-4">
+            {/* D-85: one decision at a time. The index first — "Nenhum índice"
+                is a valid answer — then criteria and weights. A decided block
+                folds into its summary with "Alterar", and nothing typed in it
+                is lost. */}
+            <GuidedBlock
+              headingLevel={2}
+              title={t.indexBlockTitle}
+              state={indexConfirmed ? "done" : "active"}
+              summary={indexSummary}
+              onEdit={() => setIndexConfirmed(false)}
+            >
+              <div className="space-y-3">
+                  {isProcessStudy && (
+                    <Alert tone="info">{t.processIndexNote}</Alert>
+                  )}
                   <IndexPicker
-                    indices={indices.data ?? []}
+                    indices={isProcessStudy ? [] : (indices.data ?? [])}
                     value={indexMode}
                     onChange={(next) => {
                       setIndexMode(next);
@@ -885,7 +1289,11 @@ function SelectionWizard() {
                             className="w-72"
                             value={customExpression}
                             onChange={(e) => setCustomExpression(e.target.value)}
-                            placeholder="modulo_young / densidade"
+                            placeholder={
+                              isProcessStudy
+                                ? (criterionOptions[0]?.variable ?? "")
+                                : "modulo_young / densidade"
+                            }
                           />
                           <Select
                             label={t.goal}
@@ -896,16 +1304,23 @@ function SelectionWizard() {
                             <SelectOption value="maximize">{t.maximize}</SelectOption>
                             <SelectOption value="minimize">{t.minimize}</SelectOption>
                           </Select>
-                          <Button onClick={() => validateExpr.mutate()} loading={validateExpr.isPending}>
-                            {t.validate}
-                          </Button>
+                          {/* `/selection/index` evaluates over materials only, so
+                              in a process study its sole outcome would be a 400. */}
+                          {!isProcessStudy && (
+                            <Button
+                              onClick={() => validateExpr.mutate()}
+                              loading={validateExpr.isPending}
+                            >
+                              {t.validate}
+                            </Button>
+                          )}
                         </div>
                         <p className="mt-2 text-xs text-ink-muted">
-                          {t.expressionHint}{" "}
-                          {properties.data && (
+                          {isProcessStudy ? t.expressionCheckedOnRun : t.expressionHint}{" "}
+                          {criterionOptions.length > 0 && (
                             <span className="text-ink-subtle">
                               ({t.variablesAvailable}:{" "}
-                              {properties.data.map((p) => p.slug).join(", ")})
+                              {criterionOptions.map((p) => p.variable).join(", ")})
                             </span>
                           )}
                         </p>
@@ -916,86 +1331,68 @@ function SelectionWizard() {
                   {/* The conditions of validity, shown without asking for a click —
                       an index that does not fit the problem is worse than no index. */}
                   {indexDescriptor && <IndexCard index={indexDescriptor} />}
-                </CardBody>
-              </Card>
-            </Section>
+                  <Button
+                    variant="primary"
+                    icon={<IconArrowRight />}
+                    onClick={() => setIndexConfirmed(true)}
+                  >
+                    {t.continueToCriteria}
+                  </Button>
+              </div>
+            </GuidedBlock>
+            {/* The index's conditions of validity stay on screen after the
+                block folds (D-25): an index that does not fit the problem is
+                worse than none, and the reader must not need a click to see why. */}
+            {indexConfirmed && indexDescriptor && <IndexCard index={indexDescriptor} />}
 
-            <Section
-              title={t.rankingTitle}
-              description={t.rankingHint}
-              actions={
-                <div className="flex flex-wrap items-end gap-3">
-                  <div className="flex flex-col gap-1">
-                    <span className="text-xs font-medium text-ink-muted">{t.method}</span>
-                    <ButtonGroup label={t.method}>
-                      <ButtonGroupItem
-                        selected={method === "weighted_sum"}
-                        label={t.methodWeightedSum}
-                        onClick={() => setMethod("weighted_sum")}
-                      />
-                      <ButtonGroupItem
-                        selected={method === "topsis"}
-                        label={t.methodTopsis}
-                        onClick={() => setMethod("topsis")}
-                      />
-                      <ButtonGroupItem
-                        selected={method === "promethee"}
-                        label={t.methodPromethee}
-                        onClick={() => setMethod("promethee")}
-                      />
-                    </ButtonGroup>
-                  </div>
-                  {/* Normalization only means something for weighted_sum —
-                      TOPSIS and PROMETHEE fix their own internally, so
-                      showing this as if it still applied would mislead. */}
-                  {method === "weighted_sum" && (
-                    <Select
-                      label={t.normalization}
-                      className="w-40"
-                      value={normalization}
-                      onChange={(e) => setNormalization(e.target.value as NormalizationMethod)}
-                    >
-                      <SelectOption value="minmax">{t.normMinmax}</SelectOption>
-                      <SelectOption value="vector">{t.normVector}</SelectOption>
-                    </Select>
-                  )}
-                </div>
-              }
+            <GuidedBlock
+              headingLevel={2}
+              title={t.criteriaBlockTitle}
+              state={indexConfirmed ? "active" : "locked"}
+              lockedReason={t.indexLockedReason}
             >
-              <Card>
-                <CardBody className="space-y-3">
-                  {method !== "weighted_sum" && (
-                    <p className="text-xs text-ink-muted">{t.methodHint}</p>
+                <div className="space-y-3">
+                  <p className="text-xs text-ink-muted">{t.rankingHint}</p>
+                  {/* A non-default method stays visible with the section closed:
+                      the rule is that a collapsed section never hides what is
+                      already in use (D-85). */}
+                  {!advObjective && method !== "weighted_sum" && (
+                    <p className="text-xs text-ink-muted">
+                      {t.methodInUse(method === "topsis" ? t.methodTopsis : t.methodPromethee)}
+                    </p>
                   )}
                   {criteria.map((c, position) => (
                     <fieldset key={c.id} className="flex flex-wrap items-end gap-3">
                       <legend className="sr-only">
                         {t.criterion} {position + 1}
                       </legend>
-                      <Select
+                      {/* D-85: a search field, and a key already used by another
+                          row is not offered — the backend would count it twice. */}
+                      <Combobox
                         label={t.criterion}
-                        className="w-56"
+                        hint={position === 0 ? t.criterionHint : undefined}
+                        className="w-64"
                         value={c.key}
-                        onChange={(e) =>
-                          setCriteria(
-                            criteria.map((x) =>
-                              x.id === c.id ? { ...x, key: e.target.value } : x,
-                            ),
-                          )
-                        }
-                      >
-                        <SelectOption value="">{t.selectCriterion}</SelectOption>
-                        {activeIndex && (
-                          <SelectOption value="__index__">{t.useIndexCriterion}</SelectOption>
+                        placeholder={t.selectCriterion}
+                        options={[
+                          ...(activeIndex
+                            ? [{ value: "__index__", label: t.useIndexCriterion }]
+                            : []),
+                          ...criterionOptions.map((p) => ({
+                            value: p.slug,
+                            label: p.name,
+                            keywords: [p.slug],
+                          })),
+                        ].filter(
+                          (o) => o.value === c.key || !criteria.some((x) => x.key === o.value),
                         )}
-                        {(properties.data ?? []).map((p) => (
-                          <SelectOption key={p.slug} value={p.slug}>
-                            {p.name}
-                          </SelectOption>
-                        ))}
-                      </Select>
+                        onChange={(key) =>
+                          setCriteria(criteria.map((x) => (x.id === c.id ? { ...x, key } : x)))
+                        }
+                      />
                       <Select
                         label={t.direction}
+                        hint={position === 0 ? t.directionHint : undefined}
                         className="w-52"
                         value={c.direction}
                         onChange={(e) =>
@@ -1014,16 +1411,23 @@ function SelectionWizard() {
                       </Select>
                       <Input
                         label={t.weight}
-                        className="w-24 tabular-nums"
+                        hint={position === 0 ? t.weightHint : undefined}
+                        className="w-40 tabular-nums"
                         inputMode="decimal"
                         value={c.weight}
-                        onChange={(e) =>
+                        error={
+                          parseWeightInput(c.weight) === "invalid"
+                            ? t.weights.invalidNumber
+                            : undefined
+                        }
+                        onChange={(e) => {
+                          setBeforeSuggestion(null);
                           setCriteria(
                             criteria.map((x) =>
                               x.id === c.id ? { ...x, weight: e.target.value } : x,
                             ),
-                          )
-                        }
+                          );
+                        }}
                       />
                       <Button
                         size="sm"
@@ -1044,7 +1448,10 @@ function SelectionWizard() {
                           id: nextId(),
                           key: activeIndex && !indexIsCriterion ? "__index__" : "",
                           direction: "",
-                          weight: "1",
+                          // The first criterion is the whole budget; the next
+                          // ones start blank, so the table says what is left
+                          // instead of a total that silently went to 2 (D-87).
+                          weight: criteria.length === 0 ? "1" : "",
                         },
                       ])
                     }
@@ -1052,27 +1459,95 @@ function SelectionWizard() {
                     {t.addCriterion}
                   </Button>
 
-                  {/* AHP derives weights; it never becomes a fourth `method`
-                      (Task 2's scope note) — so it only shows up here, next
-                      to the weight fields it feeds, and only where
-                      "weighted_sum" still reads the weight the same way
-                      TOPSIS/PROMETHEE do internally. */}
-                  {method === "weighted_sum" && (
-                    <div className="space-y-3 border-t border-edge pt-3">
-                      <Checkbox
-                        label={t.ahp.toggle}
-                        hint={t.ahp.toggleHint}
-                        checked={useAhp}
-                        onChange={(e) => setUseAhp(e.target.checked)}
-                      />
-                      {useAhp && (
-                        <AhpMatrixInput criteria={ahpCriteria} onDerived={applyAhpWeights} />
+                  {criteria.length > 0 && (
+                    <WeightBudget
+                      preview={weightsPreview.data ?? null}
+                      pending={weightsPending}
+                      failed={weightsPreview.isError && !weightsPending}
+                      labelOf={criterionLabel}
+                      onApplySuggestion={applyWeightSuggestion}
+                      onUndo={
+                        beforeSuggestion
+                          ? () => {
+                              setCriteria(beforeSuggestion);
+                              setBeforeSuggestion(null);
+                            }
+                          : null
+                      }
+                    />
+                  )}
+
+                  <Disclosure
+                    summary={ptBR.ui.advancedOptions}
+                    open={advObjective}
+                    onOpenChange={setAdvObjective}
+                  >
+                    <div className="flex flex-col gap-4">
+                      <div className="flex flex-wrap items-end gap-3">
+                        <div className="flex flex-col gap-1">
+                          <span className="text-xs font-medium text-ink-muted">{t.method}</span>
+                          <ButtonGroup label={t.method}>
+                            <ButtonGroupItem
+                              selected={method === "weighted_sum"}
+                              label={t.methodWeightedSum}
+                              onClick={() => setMethod("weighted_sum")}
+                            />
+                            <ButtonGroupItem
+                              selected={method === "topsis"}
+                              label={t.methodTopsis}
+                              onClick={() => setMethod("topsis")}
+                            />
+                            <ButtonGroupItem
+                              selected={method === "promethee"}
+                              label={t.methodPromethee}
+                              onClick={() => setMethod("promethee")}
+                            />
+                          </ButtonGroup>
+                          <span className="text-2xs text-ink-subtle">{t.methodFieldHint}</span>
+                        </div>
+                        {/* Normalization only means something for weighted_sum —
+                            TOPSIS and PROMETHEE fix their own internally, so
+                            showing this as if it still applied would mislead. */}
+                        {method === "weighted_sum" && (
+                          <Select
+                            label={t.normalization}
+                            hint={t.normalizationHint}
+                            className="w-56"
+                            value={normalization}
+                            onChange={(e) =>
+                              setNormalization(e.target.value as NormalizationMethod)
+                            }
+                          >
+                            <SelectOption value="minmax">{t.normMinmax}</SelectOption>
+                            <SelectOption value="vector">{t.normVector}</SelectOption>
+                          </Select>
+                        )}
+                      </div>
+                      {method !== "weighted_sum" && (
+                        <p className="text-xs text-ink-muted">{t.methodHint}</p>
+                      )}
+                      {/* AHP derives weights; it never becomes a fourth `method`
+                          (Task 2's scope note) — so it only shows up here, next
+                          to the weight fields it feeds, and only where
+                          "weighted_sum" still reads the weight the same way
+                          TOPSIS/PROMETHEE do internally. */}
+                      {method === "weighted_sum" && (
+                        <div className="space-y-3 border-t border-edge pt-3">
+                          <Checkbox
+                            label={t.ahp.toggle}
+                            hint={t.ahp.toggleHint}
+                            checked={useAhp}
+                            onChange={(e) => setUseAhp(e.target.checked)}
+                          />
+                          {useAhp && (
+                            <AhpMatrixInput criteria={ahpCriteria} onDerived={applyAhpWeights} />
+                          )}
+                        </div>
                       )}
                     </div>
-                  )}
-                </CardBody>
-              </Card>
-            </Section>
+                  </Disclosure>
+                </div>
+            </GuidedBlock>
           </div>
         )}
 
@@ -1117,59 +1592,6 @@ function SelectionWizard() {
         </div>
       </div>
 
-      {/* Saved studies */}
-      <Section title={t.savedStudies}>
-        {!studies.data || studies.data.length === 0 ? (
-          <EmptyState title={t.noStudies} />
-        ) : (
-          <TableScroll label={t.savedStudies}>
-            <Table>
-              <TBody>
-                {studies.data.map((s) => (
-                  <Tr key={s.id}>
-                    <Td>
-                      <span className="font-medium text-ink">{s.name}</span>
-                      <div className="mt-1">
-                        <ExportButtons
-                          urlFor={(format) => studyExportUrl(s.id, format)}
-                          label={ptBR.exports.study}
-                        />
-                      </div>
-                      <div className="mt-2">
-                        <EngineeringReportLink studyId={s.id} />
-                      </div>
-                      <StudyExplanation studyId={s.id} />
-                    </Td>
-                    <Td className="align-top text-2xs text-ink-subtle">
-                      {countLabel(s.constraint_count, ptBR.home.constraintOne, ptBR.home.constraintMany)}{" "}
-                      · {countLabel(s.criterion_count, ptBR.home.criterionOne, ptBR.home.criterionMany)}
-                    </Td>
-                    <Td className="align-top">
-                      <div className="flex justify-end gap-2">
-                        <Button size="sm" onClick={() => runSaved.mutate(s.id)}>
-                          {t.runSaved}
-                        </Button>
-                        <Button size="sm" onClick={() => loadStudy.mutate(s.id)}>
-                          {t.load}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="danger"
-                          onClick={() => {
-                            if (window.confirm(t.deleteConfirm)) removeStudy.mutate(s.id);
-                          }}
-                        >
-                          {t.delete}
-                        </Button>
-                      </div>
-                    </Td>
-                  </Tr>
-                ))}
-              </TBody>
-            </Table>
-          </TableScroll>
-        )}
-      </Section>
     </div>
   );
 }

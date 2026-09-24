@@ -17,17 +17,18 @@ import {
   Button,
   Card,
   CardBody,
-  CardHeader,
-  EmptyState,
+  Combobox,
   ErrorState,
-  Input,
   LoadingState,
   PageHeader,
+  RemovableChip,
   Section,
   Select,
   SelectOption,
+  StepCard,
   Tabs,
   ToggleChip,
+  type ComboboxOption,
 } from "@/components/ui";
 
 const t = ptBR.compare;
@@ -62,7 +63,6 @@ function ComparePageContent() {
   });
   const [normalization, setNormalization] = useState<NormalizationMethod>("minmax");
   const [mode, setMode] = useState<ComparisonMode>("table");
-  const [search, setSearch] = useState("");
 
   const materials = useQuery({ queryKey: ["materials", ""], queryFn: () => listMaterials() });
   const properties = useQuery({ queryKey: ["properties"], queryFn: listProperties });
@@ -81,15 +81,25 @@ function ComparePageContent() {
 
   const selectedProperties = userSelectedProperties ?? defaultProperties;
 
-  const visibleMaterials = useMemo(() => {
-    const all = materials.data ?? [];
-    const term = search.trim().toLowerCase();
-    if (!term) return all;
-    return all.filter(
-      (m) =>
-        m.name.toLowerCase().includes(term) || m.class_name.toLowerCase().includes(term),
-    );
-  }, [materials.data, search]);
+  // The search offers only what is not chosen yet: the chosen ones are the
+  // chips below it, each with its own way out (D-86).
+  const materialOptions = useMemo<ComboboxOption[]>(
+    () =>
+      (materials.data ?? [])
+        .filter((m) => !selectedMaterials.includes(m.id))
+        .map((m) => ({
+          value: String(m.id),
+          label: m.name,
+          description: m.class_name,
+          keywords: [m.class_name],
+        })),
+    [materials.data, selectedMaterials],
+  );
+
+  const chosenMaterials = useMemo(() => {
+    const byId = new Map((materials.data ?? []).map((m) => [m.id, m.name]));
+    return selectedMaterials.map((id) => ({ id, name: byId.get(id) ?? `#${id}` }));
+  }, [materials.data, selectedMaterials]);
 
   // A reference that is no longer among the compared materials is dropped
   // rather than sent: the API refuses it, and the reader removing a row should
@@ -142,78 +152,73 @@ function ComparePageContent() {
     <div className="flex flex-col gap-6">
       <PageHeader title={t.title} description={t.subtitle} group="estudar" />
 
-      <Section id="controles" title={t.controls} headingLevel={2}>
-        {/* `items-start`: the two cards hold lists of very different length,
-            and stretched to one height the shorter was a tall blank box. */}
-        <div className="grid items-start gap-4 lg:grid-cols-2">
-          <Card>
-            <CardHeader
-              title={t.groupMaterials}
-              description={t.pickMaterials}
-              actions={
-                <Badge tone={materialsFull ? "warning" : "neutral"}>
-                  {t.selectedCount(selectedMaterials.length, MAX_MATERIALS)}
-                </Badge>
-              }
+      {/* Three steps, each open once the one before it has something in it; a
+          link with `?materiais=` arrives with all three filled (D-86). */}
+      <div id="controles" className="grid items-start gap-4 lg:grid-cols-2">
+        <StepCard
+          title={t.stepMaterials}
+          description={t.pickMaterials}
+          actions={
+            <Badge tone={materialsFull ? "warning" : "neutral"}>
+              {t.selectedCount(selectedMaterials.length, MAX_MATERIALS)}
+            </Badge>
+          }
+        >
+          {materials.isLoading ? (
+            <LoadingState label={ptBR.catalog.loading} />
+          ) : (
+            <Combobox
+              label={t.addMaterial}
+              hint={materialsFull ? t.limitReached : t.addMaterialHint}
+              options={materialOptions}
+              value=""
+              onChange={(value) => toggleMaterial(Number(value))}
+              clearOnSelect
+              disabled={materialsFull}
+              noMatchText={() => t.noMaterialsFound}
             />
-            <CardBody className="flex flex-col gap-3">
-              <div className="flex flex-wrap items-end gap-2">
-                <Input
-                  label={t.search}
-                  className="min-w-[12rem] flex-1"
-                  type="search"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => setSelectedMaterials([])}
-                  disabled={selectedMaterials.length === 0}
-                >
+          )}
+
+          {chosenMaterials.length === 0 ? (
+            <p className="text-sm text-ink-muted">{t.noneChosen}</p>
+          ) : (
+            <div className="flex flex-col gap-2">
+              <ul aria-label={t.chosenMaterials} className="flex flex-wrap gap-2">
+                {chosenMaterials.map((m) => (
+                  <li key={m.id}>
+                    <RemovableChip
+                      removeLabel={t.removeMaterial}
+                      onRemove={() => toggleMaterial(m.id)}
+                    >
+                      {m.name}
+                    </RemovableChip>
+                  </li>
+                ))}
+              </ul>
+              <div>
+                <Button size="sm" variant="ghost" onClick={() => setSelectedMaterials([])}>
                   {t.clear}
                 </Button>
               </div>
+            </div>
+          )}
+        </StepCard>
 
-              {materials.isLoading && <LoadingState label={ptBR.catalog.loading} />}
+        <StepCard
+          title={t.stepProperties}
+          description={t.pickProperties}
+          actions={
+            <Badge tone={propertiesFull ? "warning" : "neutral"}>
+              {t.selectedCount(selectedProperties.length, MAX_PROPERTIES)}
+            </Badge>
+          }
+        >
+          {selectedMaterials.length === 0 ? (
+            <p className="text-sm text-ink-muted">{t.lockedUntilMaterial}</p>
+          ) : (
+            <>
               {/* The cap is stated before it bites: a chip that simply stops
                   responding reads as a broken button. */}
-              {materialsFull && <p className="text-2xs text-ink-subtle">{t.limitReached}</p>}
-              {!materials.isLoading && visibleMaterials.length === 0 && (
-                <p className="text-sm text-ink-muted">{t.noMaterialsFound}</p>
-              )}
-              {/* A catalogue of 75 was a wall of chips twice the height of the
-                  screen; the filter above is how one is found, and the list
-                  scrolls in its own box. */}
-              <div className="-mr-1 flex max-h-72 flex-wrap content-start gap-2 overflow-y-auto pr-1">
-                {visibleMaterials.map((m) => {
-                  const chosen = selectedMaterials.includes(m.id);
-                  return (
-                    <ToggleChip
-                      key={m.id}
-                      selected={chosen}
-                      disabled={!chosen && materialsFull}
-                      onClick={() => toggleMaterial(m.id)}
-                    >
-                      {m.name}
-                    </ToggleChip>
-                  );
-                })}
-              </div>
-            </CardBody>
-          </Card>
-
-          <Card>
-            <CardHeader
-              title={t.groupProperties}
-              description={t.pickProperties}
-              actions={
-                <Badge tone={propertiesFull ? "warning" : "neutral"}>
-                  {t.selectedCount(selectedProperties.length, MAX_PROPERTIES)}
-                </Badge>
-              }
-            />
-            <CardBody className="flex flex-col gap-3">
               {propertiesFull && <p className="text-2xs text-ink-subtle">{t.limitReached}</p>}
               <div className="flex flex-wrap gap-2">
                 {(properties.data ?? []).map((p) => {
@@ -231,57 +236,64 @@ function ComparePageContent() {
                   );
                 })}
               </div>
-            </CardBody>
-          </Card>
-        </div>
-      </Section>
+            </>
+          )}
+        </StepCard>
+      </div>
 
       <Section
         id="visualizacao"
-        title={t.groupView}
+        title={t.stepView}
         actions={
-          <Select
-            label={t.normalization}
-            value={normalization}
-            onChange={(e) => setNormalization(e.target.value as NormalizationMethod)}
-          >
-            <SelectOption value="minmax">{t.normMinmax}</SelectOption>
-            <SelectOption value="vector">{t.normVector}</SelectOption>
-          </Select>
+          ready ? (
+            <Select
+              label={t.normalization}
+              value={normalization}
+              onChange={(e) => setNormalization(e.target.value as NormalizationMethod)}
+            >
+              <SelectOption value="minmax">{t.normMinmax}</SelectOption>
+              <SelectOption value="vector">{t.normVector}</SelectOption>
+            </Select>
+          ) : undefined
         }
       >
-        {/* Real tabs, not a row of buttons: arrows move between the five views
-            and only the selected one is in the tab order. Everything the chosen
-            view renders is the panel — including the wait and the failure, which
-            are also states of that view and not of the page. */}
-        <Tabs
-          label={ptBR.ui.views}
-          items={COMPARISON_MODES.map((m) => ({ id: m.key, label: m.label }))}
-          value={mode}
-          onChange={setMode}
-          panelClassName="flex flex-col gap-3 pt-3"
-        >
-          {!ready && <EmptyState title={t.empty} />}
-          {comparison.isLoading && ready && <LoadingState label={t.loading} />}
-          {comparison.isError && (
-            <ErrorState
-              title={t.error}
-              description={
-                comparison.error instanceof Error ? comparison.error.message : undefined
-              }
-              onRetry={() => void comparison.refetch()}
-            />
-          )}
+        {!ready ? (
+          <p className="text-sm text-ink-muted">
+            {selectedMaterials.length === 0 ? t.lockedUntilMaterial : t.lockedUntilProperty}
+          </p>
+        ) : (
+          /* Real tabs, not a row of buttons: arrows move between the five views
+             and only the selected one is in the tab order. Everything the chosen
+             view renders is the panel — including the wait and the failure, which
+             are also states of that view and not of the page. */
+          <Tabs
+            label={ptBR.ui.views}
+            items={COMPARISON_MODES.map((m) => ({ id: m.key, label: m.label }))}
+            value={mode}
+            onChange={setMode}
+            panelClassName="flex flex-col gap-3 pt-3"
+          >
+            {comparison.isLoading && <LoadingState label={t.loading} />}
+            {comparison.isError && (
+              <ErrorState
+                title={t.error}
+                description={
+                  comparison.error instanceof Error ? comparison.error.message : undefined
+                }
+                onRetry={() => void comparison.refetch()}
+              />
+            )}
 
-          {comparison.data && (
-            <ComparisonView
-              comparison={comparison.data}
-              mode={mode}
-              referenceId={activeReference}
-              onSetReference={setReferenceId}
-            />
-          )}
-        </Tabs>
+            {comparison.data && (
+              <ComparisonView
+                comparison={comparison.data}
+                mode={mode}
+                referenceId={activeReference}
+                onSetReference={setReferenceId}
+              />
+            )}
+          </Tabs>
+        )}
       </Section>
 
       {comparison.data && comparison.data.notes.length > 0 && (

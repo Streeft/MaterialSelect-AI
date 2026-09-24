@@ -1,5 +1,7 @@
-import type { ReactNode } from "react";
-import type { Contribution, RunResult } from "@/lib/types";
+"use client";
+
+import { useState, type ReactNode } from "react";
+import type { Candidate, Contribution, RunResult } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { formatNumber, formatScore, prettyUnit } from "@/lib/format";
 import { OKABE_ITO } from "@/lib/design/palette";
@@ -8,6 +10,9 @@ import {
   Badge,
   Bar,
   ButtonLink,
+  Card,
+  CardBody,
+  EmptyState,
   MissingValue,
   Section,
   TBody,
@@ -17,7 +22,9 @@ import {
   Td,
   Th,
   RowHeader,
+  Tabs,
   Tr,
+  type TabItem,
 } from "@/components/ui";
 import { LimitationNotice } from "@/components/LimitationNotice";
 
@@ -129,7 +136,234 @@ function ProvenanceItem({ term, children }: { term: string; children: ReactNode 
   );
 }
 
-export function ResultsView({ result }: { result: RunResult }) {
+
+/**
+ * Who won, read off numbers the backend already computed (D-85).
+ *
+ * Nothing here scores anything: a ranked run names its rank-1 rows (all of
+ * them — a tie is a tie), an index-only run names the best defined index value
+ * in the direction the index declares, and a run with neither names nobody and
+ * says why. Choosing the largest of numbers the server produced is a
+ * comparison, not a computation (ADR 0004).
+ */
+export type Winner =
+  | {
+      kind: "ranked";
+      names: string[];
+      score: number;
+      method: string;
+      contributions: Contribution[];
+      indexValue: number | null;
+    }
+  | { kind: "index"; names: string[]; value: number; maximize: boolean }
+  | { kind: "none"; reason: "no_candidates" | "no_objective" | "no_defined_index" };
+
+export function winnerOf(result: RunResult): Winner {
+  const { candidates, ranking, index } = result;
+  if (candidates.length === 0) return { kind: "none", reason: "no_candidates" };
+  const top = ranking?.ranked.filter((r) => r.rank === 1) ?? [];
+  const first = top[0];
+  if (ranking && first) {
+    return {
+      kind: "ranked",
+      names: top.map((r) => r.name),
+      score: first.score,
+      method: ranking.method,
+      contributions: first.contributions,
+      indexValue: candidates.find((c) => c.record_id === first.record_id)?.index_value ?? null,
+    };
+  }
+  if (index) {
+    const defined = candidates.filter(
+      (c): c is Candidate & { index_value: number } => c.index_value !== null,
+    );
+    if (defined.length === 0) return { kind: "none", reason: "no_defined_index" };
+    const better = (a: number, b: number) => (index.goal === "minimize" ? a < b : a > b);
+    const best = defined.reduce(
+      (acc, c) => (better(c.index_value, acc) ? c.index_value : acc),
+      defined[0]!.index_value,
+    );
+    return {
+      kind: "index",
+      names: defined.filter((c) => c.index_value === best).map((c) => c.name),
+      value: best,
+      maximize: index.goal !== "minimize",
+    };
+  }
+  return { kind: "none", reason: "no_objective" };
+}
+
+function WinnerCard({ result, winner }: { result: RunResult; winner: Winner }) {
+  const passed = t.winnerPassed(result.initial_count, result.final_count);
+  if (winner.kind === "none") {
+    return (
+      <Card>
+        <CardBody className="space-y-1">
+          <h2 className="text-base font-semibold text-ink">{t.winnerNoneTitle}</h2>
+          <p className="text-sm text-ink-muted">{t.winnerNone[winner.reason]}</p>
+          <p className="text-xs text-ink-muted">{passed}</p>
+        </CardBody>
+      </Card>
+    );
+  }
+  const title =
+    winner.names.length > 1
+      ? t.winnerTie(winner.names.join(" e "))
+      : t.winnerTitle(winner.names[0] ?? "");
+  // The criteria that weighed most, for display only: ordered, never recomputed.
+  const heaviest =
+    winner.kind === "ranked" && winner.method === "weighted_sum"
+      ? [...winner.contributions].sort((a, b) => b.contribution - a.contribution).slice(0, 3)
+      : [];
+  return (
+    <Card className="border-success">
+      <CardBody className="space-y-2">
+        <p className="text-2xs font-semibold uppercase tracking-wide text-success-fg">
+          {t.winnerEyebrow}
+        </p>
+        <h2 className="text-lg font-semibold text-ink">{title}</h2>
+        <ul className="space-y-1 text-sm text-ink-muted">
+          {winner.kind === "ranked" && (
+            <li>
+              {winner.method === "topsis"
+                ? t.winnerTopsis(formatScore(winner.score, 3))
+                : winner.method === "promethee"
+                  ? t.winnerPromethee(formatScore(winner.score, 3))
+                  : t.winnerWeighted(formatScore(winner.score, 3))}
+            </li>
+          )}
+          {heaviest.length > 0 && (
+            <li>
+              {t.winnerHeaviest}{" "}
+              {heaviest.map((c, i) => (
+                <span key={c.key} className="whitespace-nowrap">
+                  {i > 0 ? " · " : ""}
+                  {c.label} <span className="tabular-nums">{formatScore(c.contribution, 3)}</span>
+                </span>
+              ))}
+            </li>
+          )}
+          {winner.kind === "ranked" && winner.indexValue !== null && result.index && (
+            <li>{t.winnerIndexValue(result.index.name ?? t.customIndex, formatNumber(winner.indexValue))}</li>
+          )}
+          {winner.kind === "index" && (
+            <li>
+              {t.winnerByIndex(
+                result.index?.name ?? t.customIndex,
+                formatNumber(winner.value),
+                winner.maximize,
+              )}
+            </li>
+          )}
+          <li>{passed}</li>
+        </ul>
+      </CardBody>
+    </Card>
+  );
+}
+
+/** The first five, as the backend ordered them — the rest is in "Ranking". */
+function TopCandidates({
+  result,
+  undefinedReasonById,
+}: {
+  result: RunResult;
+  undefinedReasonById: Map<number, string | null>;
+}) {
+  const { candidates, ranking, index } = result;
+  const top = candidates.slice(0, 5);
+  return (
+    <TableScroll label={t.top5Title}>
+      <Table>
+        <THead>
+          <Tr>
+            {ranking && <Th numeric>{t.rank}</Th>}
+            <Th>{ptBR.catalog.columnName}</Th>
+            <Th>{ptBR.catalog.columnClass}</Th>
+            {index && <Th numeric>{t.indexValue}</Th>}
+            {ranking && <Th>{t.score}</Th>}
+          </Tr>
+        </THead>
+        <TBody>
+          {top.map((c) => {
+            const reason = undefinedReasonById.get(c.record_id);
+            return (
+              <Tr key={c.record_id} className={c.rank === 1 ? "bg-success-soft" : undefined}>
+                {ranking && (
+                  <Td numeric className="font-semibold">
+                    {c.rank ?? <MissingValue />}
+                  </Td>
+                )}
+                <RowHeader className="text-brand-700">{c.name}</RowHeader>
+                <Td className="text-ink-muted">{c.class_name}</Td>
+                {index && (
+                  <Td numeric>
+                    {c.index_value === null ? (
+                      <span className="inline-flex flex-col items-end gap-0.5">
+                        <MissingValue />
+                        {reason ? (
+                          <span className="text-2xs font-normal text-ink-muted">{reason}</span>
+                        ) : null}
+                      </span>
+                    ) : (
+                      formatNumber(c.index_value)
+                    )}
+                  </Td>
+                )}
+                {ranking && (
+                  <Td>
+                    <span className="tabular-nums text-ink-muted">
+                      {c.score !== null ? formatScore(c.score, 3) : <MissingValue />}
+                    </span>
+                  </Td>
+                )}
+              </Tr>
+            );
+          })}
+        </TBody>
+      </Table>
+    </TableScroll>
+  );
+}
+
+/** The tabs of the results screen (D-85), in reading order. */
+export type ResultsTab = "resumo" | "ranking" | "eliminados" | "sensibilidade" | "origem";
+
+/**
+ * Where each old section address now lives. The blocks kept their ids, so a
+ * link pasted before the tabs existed ("…#excluidos") still lands on the right
+ * content: the hash chooses the tab, and the tab holds the block.
+ */
+const TAB_BY_HASH: Record<string, ResultsTab> = {
+  resumo: "resumo",
+  vencedor: "resumo",
+  candidatos: "ranking",
+  contribuicoes: "ranking",
+  funil: "eliminados",
+  excluidos: "eliminados",
+  sensibilidade: "sensibilidade",
+  proveniencia: "origem",
+};
+
+function tabFromHash(): ResultsTab | null {
+  if (typeof window === "undefined") return null;
+  return TAB_BY_HASH[window.location.hash.replace(/^#/, "")] ?? null;
+}
+
+/**
+ * The run's answer, summary first (D-85): who won and why, the top five, then
+ * everything else in tabs — the full ranking, what was eliminated, the
+ * sensitivity check and where every number came from. Nothing that was on the
+ * old six-block page is gone; it is one tab away instead of one long scroll.
+ */
+export function ResultsView({
+  result,
+  initialTab,
+}: {
+  result: RunResult;
+  initialTab?: ResultsTab;
+}) {
+  const [tab, setTab] = useState<ResultsTab>(() => initialTab ?? tabFromHash() ?? "resumo");
   const { funnel, candidates, index, ranking } = result;
   // P0-1: the per-stage summary only appears when there is a pipeline to
   // summarise. For a single-stage study the funnel below already *is* the
@@ -153,122 +387,53 @@ export function ResultsView({ result }: { result: RunResult }) {
   // reports them; the first one that has a breakdown at all is enough.
   const weightRows = withContributions[0]?.contributions ?? [];
 
-  /**
-   * The blocks this screen is made of, in the order they appear.
-   *
-   * The results screen is the longest in the application and gets referenced out
-   * loud ("look at the funnel", "who got excluded"), so each block needs a title
-   * of its own and an address someone can jump to or paste into a message.
-   */
-  const sections: { id: string; label: string }[] = [
-    { id: "funil", label: t.funnel },
-    ...(candidates.length > 0 ? [{ id: "candidatos", label: t.candidates }] : []),
-    ...(withContributions.length > 0 ? [{ id: "contribuicoes", label: t.contributions }] : []),
-    ...(ranking && ranking.excluded.length > 0
-      ? [{ id: "excluidos", label: t.excludedTitle }]
-      : []),
-    ...(ranking && ranking.sensitivity.length > 0
-      ? [{ id: "sensibilidade", label: t.sensitivity }]
-      : []),
-    { id: "proveniencia", label: t.provenanceTitle },
+  const winner = winnerOf(result);
+
+  const tabs: TabItem<ResultsTab>[] = [
+    { id: "resumo", label: t.tabSummary },
+    { id: "ranking", label: t.tabRanking, meta: candidates.length },
+    { id: "eliminados", label: t.tabExcluded },
+    { id: "sensibilidade", label: t.tabSensitivity },
+    { id: "origem", label: t.tabProvenance },
   ];
 
   return (
     <div className="space-y-6">
-      <nav aria-label={t.onThisPage} className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <span className="text-2xs font-semibold uppercase tracking-wide text-ink-subtle">
-          {t.onThisPage}
-        </span>
-        {sections.map((s) => (
-          <a
-            key={s.id}
-            href={`#${s.id}`}
-            className="rounded-control text-xs text-brand underline underline-offset-2 hover:text-brand-700"
-          >
-            {s.label}
-          </a>
-        ))}
-      </nav>
+      {/* The answer first: who won, and why — or, honestly, that nobody did. */}
+      <WinnerCard result={result} winner={winner} />
 
-      <Section
-        id="funil"
-        title={t.funnel}
-        description={t.funnelHint}
-        actions={
-          <span className="text-xs text-ink-muted">
-            {t.candidates}: <strong className="text-brand-700">{result.final_count}</strong> {t.of}{" "}
-            {result.initial_count}
-          </span>
-        }
-      >
-        <ol className="space-y-2">
-          <FunnelRow
-            label={t.initial}
-            remaining={result.initial_count}
-            initial={result.initial_count}
-            eliminated={null}
-            tone="neutral"
-          />
-          {funnel.map((step, i) => (
-            <FunnelRow
-              key={i}
-              label={step.label}
-              remaining={step.remaining}
-              initial={result.initial_count}
-              // What this stage removed, from the counts the backend sent.
-              eliminated={(funnel[i - 1]?.remaining ?? result.initial_count) - step.remaining}
-            />
-          ))}
-        </ol>
-
-        {stages.length > 0 && (
-          <div className="mt-5 overflow-x-auto">
-            <table className="w-full text-sm">
-              <caption className="mb-2 text-left text-xs text-ink-muted">
-                {t.stagesHint}
-              </caption>
-              <thead>
-                <tr className="text-left text-xs uppercase tracking-wide text-ink-muted">
-                  <th className="py-1 pr-3">{t.stagesTitle}</th>
-                  <th className="py-1 pr-3">{t.stagePassedAlone}</th>
-                  <th className="py-1 pr-3">{t.stageRemaining}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {stages.map((stage) => (
-                  <tr key={stage.position} className="border-t border-edge">
-                    <td className="py-1 pr-3">
-                      {stage.label || t.stageNumber(stage.position + 1, stage.kind)}
-                      {!stage.enabled && (
-                        <span className="ml-2 text-xs text-ink-muted">({t.stageDisabled})</span>
-                      )}
-                    </td>
-                    <td className="py-1 pr-3 tabular-nums">{formatNumber(stage.passed)}</td>
-                    <td className="py-1 pr-3 tabular-nums">{formatNumber(stage.remaining)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      <Tabs label={t.resultsTabs} items={tabs} value={tab} onChange={setTab} panelClassName="pt-4">
+        {tab === "resumo" && (
+          <div className="space-y-5">
+            {candidates.length === 0 ? (
+              <Alert tone="warning">{t.emptyResults}</Alert>
+            ) : (
+              <>
+                <TopCandidates result={result} undefinedReasonById={undefinedReasonById} />
+      {candidates.length > 0 && (
+                  <div className="flex flex-wrap gap-3">
+                    <ButtonLink
+                      href={`/app/mapas?materiais=${candidateIds}${topId ? `&destaque=${topId}` : ""}`}
+                      variant="secondary"
+                    >
+                      {t.viewOnMap}
+                    </ButtonLink>
+                    <ButtonLink href={`/app/comparar?materiais=${candidateIds}`} variant="secondary">
+                      {t.compareCandidates}
+                    </ButtonLink>
+                  </div>
+                )}
+              </>
+            )}
+            <p className="text-xs text-ink-muted">
+              {t.funnelLine(result.initial_count, result.final_count)}
+            </p>
           </div>
         )}
-      </Section>
 
-      {candidates.length === 0 && <Alert tone="warning">{t.emptyResults}</Alert>}
-
-      {candidates.length > 0 && (
-        <div className="flex flex-wrap gap-3">
-          <ButtonLink
-            href={`/app/mapas?materiais=${candidateIds}${topId ? `&destaque=${topId}` : ""}`}
-            variant="secondary"
-          >
-            {t.viewOnMap}
-          </ButtonLink>
-          <ButtonLink href={`/app/comparar?materiais=${candidateIds}`} variant="secondary">
-            {t.compareCandidates}
-          </ButtonLink>
-        </div>
-      )}
-
+        {tab === "ranking" && (
+          <div className="space-y-6">
+            {candidates.length === 0 && <Alert tone="warning">{t.emptyResults}</Alert>}
       {/* Candidates + ranking */}
       {candidates.length > 0 && (
         <Section id="candidatos" title={ranking ? t.ranking : t.candidates}>
@@ -360,6 +525,74 @@ export function ResultsView({ result }: { result: RunResult }) {
         </Section>
       )}
 
+          </div>
+        )}
+
+        {tab === "eliminados" && (
+          <div className="space-y-6">
+      <Section
+        id="funil"
+        title={t.funnel}
+        description={t.funnelHint}
+        actions={
+          <span className="text-xs text-ink-muted">
+            {t.candidates}: <strong className="text-brand-700">{result.final_count}</strong> {t.of}{" "}
+            {result.initial_count}
+          </span>
+        }
+      >
+        <ol className="space-y-2">
+          <FunnelRow
+            label={t.initial}
+            remaining={result.initial_count}
+            initial={result.initial_count}
+            eliminated={null}
+            tone="neutral"
+          />
+          {funnel.map((step, i) => (
+            <FunnelRow
+              key={i}
+              label={step.label}
+              remaining={step.remaining}
+              initial={result.initial_count}
+              // What this stage removed, from the counts the backend sent.
+              eliminated={(funnel[i - 1]?.remaining ?? result.initial_count) - step.remaining}
+            />
+          ))}
+        </ol>
+
+        {stages.length > 0 && (
+          <div className="mt-5 overflow-x-auto">
+            <table className="w-full text-sm">
+              <caption className="mb-2 text-left text-xs text-ink-muted">
+                {t.stagesHint}
+              </caption>
+              <thead>
+                <tr className="text-left text-xs uppercase tracking-wide text-ink-muted">
+                  <th className="py-1 pr-3">{t.stagesTitle}</th>
+                  <th className="py-1 pr-3">{t.stagePassedAlone}</th>
+                  <th className="py-1 pr-3">{t.stageRemaining}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {stages.map((stage) => (
+                  <tr key={stage.position} className="border-t border-edge">
+                    <td className="py-1 pr-3">
+                      {stage.label || t.stageNumber(stage.position + 1, stage.kind)}
+                      {!stage.enabled && (
+                        <span className="ml-2 text-xs text-ink-muted">({t.stageDisabled})</span>
+                      )}
+                    </td>
+                    <td className="py-1 pr-3 tabular-nums">{formatNumber(stage.passed)}</td>
+                    <td className="py-1 pr-3 tabular-nums">{formatNumber(stage.remaining)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Section>
+
       {/* Excluded for missing data */}
       {ranking && ranking.excluded.length > 0 && (
         <Section id="excluidos" title={t.excludedTitle} description={t.excludedHint}>
@@ -379,6 +612,14 @@ export function ResultsView({ result }: { result: RunResult }) {
         </Section>
       )}
 
+          </div>
+        )}
+
+        {tab === "sensibilidade" && (
+          <div className="space-y-6">
+            {!(ranking && ranking.sensitivity.length > 0) && (
+              <EmptyState title={t.sensitivityNone} />
+            )}
       {/* Sensitivity */}
       {ranking && ranking.sensitivity.length > 0 && (
         <Section id="sensibilidade" title={t.sensitivity} description={t.sensitivityHint}>
@@ -411,6 +652,11 @@ export function ResultsView({ result }: { result: RunResult }) {
         </Section>
       )}
 
+          </div>
+        )}
+
+        {tab === "origem" && (
+          <div className="space-y-6">
       {/* What produced these numbers. Everything here is echoed back from the
           run itself — nothing is recomputed, and nothing is filled in when the
           study did not use it. */}
@@ -499,8 +745,13 @@ export function ResultsView({ result }: { result: RunResult }) {
         </dl>
       </Section>
 
+          </div>
+        )}
+      </Tabs>
+
       {/* Item 5 of the proposal: the notice belongs on the screen that produces
-          a recommendation, not only on the file exported from it. */}
+          a recommendation, not only on the file exported from it — outside the
+          tabs, so no tab can be the one where it is missing. */}
       <LimitationNotice />
     </div>
   );

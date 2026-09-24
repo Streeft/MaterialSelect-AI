@@ -242,11 +242,12 @@ dados ausentes ficam como lacuna, nunca como zero. Todos os gráficos exportam e
 
 ## Seleção de materiais (Fase 4 — disponível)
 
-Acesse **Seleção** no menu (`/selecao`): um assistente **Função → Restrições →
-Objetivo → Resultados**. Aplique restrições (com contagem de candidatos em tempo
-real), escolha um índice de desempenho (E/ρ, σ/ρ, E^(1/2)/ρ… ou uma expressão
-sua, validada por um parser seguro sem `eval`), defina critérios de ranking com
-pesos e veja o funil, o ranking com contribuições, os excluídos por dados
+Acesse **Seleção** no menu (`/selecao`): um assistente **Função → Objetivo →
+Restrições → Resultados** (a ordem da tela desde o D-88; o cálculo continua
+filtrando e só então ordenando). Escolha um índice de desempenho (E/ρ, σ/ρ,
+E^(1/2)/ρ… ou uma expressão sua, validada por um parser seguro sem `eval`),
+defina critérios de ranking com pesos que somam 1 (tabela viva e prévia do top 5,
+D-87), aplique restrições (com contagem de candidatos em tempo real) e veja o funil, o ranking com contribuições, os excluídos por dados
 ausentes e a análise de sensibilidade. Análises podem ser **salvas e
 reexecutadas**. Detalhes em [`docs/07-selecao-deterministica.md`](docs/07-selecao-deterministica.md).
 
