@@ -558,6 +558,38 @@ export const ptBR = {
     unchanged: "estável",
     // The results screen is long; these are the blocks someone jumps between.
     onThisPage: "Nesta página",
+    // D-85: o resultado resumido primeiro, o resto em abas.
+    resultsTabs: "Seções do resultado",
+    tabSummary: "Resumo",
+    tabRanking: "Ranking",
+    tabExcluded: "Eliminados",
+    tabSensitivity: "Sensibilidade",
+    tabProvenance: "Origem dos dados",
+    top5Title: "Os 5 primeiros",
+    winnerEyebrow: "Resultado",
+    winnerTitle: (name: string) => `Vencedor: ${name}`,
+    winnerTie: (names: string) => `Empate no 1º lugar: ${names}`,
+    winnerWeighted: (score: string) => `Maior nota ponderada: ${score} (de 0 a 1).`,
+    winnerTopsis: (score: string) => `Mais próximo do ideal pelo TOPSIS: ${score} (de 0 a 1).`,
+    winnerPromethee: (score: string) => `Maior fluxo líquido pelo PROMETHEE II: ${score}.`,
+    winnerHeaviest: "O que mais pesou na nota:",
+    winnerIndexValue: (index: string, value: string) => `${index}: ${value}.`,
+    winnerByIndex: (index: string, value: string, maximize: boolean) =>
+      `${maximize ? "Maior" : "Menor"} valor de ${index}: ${value}.`,
+    winnerPassed: (initial: number, final: number) =>
+      `Passou em todas as restrições: de ${initial} ${initial === 1 ? "registro" : "registros"}, ${final === 1 ? "sobrou 1" : `sobraram ${final}`}.`,
+    winnerNoneTitle: "Nenhum vencedor declarado",
+    winnerNone: {
+      no_candidates: "Nenhum candidato passou nas restrições. Veja na aba Eliminados o que cortou cada um.",
+      no_objective:
+        "Sem índice nem critério de ranking, a seleção só filtrou: os candidatos estão na aba Ranking, sem ordem.",
+      no_defined_index:
+        "O índice não pôde ser calculado para nenhum candidato (falta dado). A aba Ranking mostra o motivo de cada um.",
+    },
+    funnelLine: (initial: number, final: number) =>
+      `Funil: ${initial} → ${final}. Detalhes na aba Eliminados.`,
+    sensitivityNone:
+      "Sem análise de sensibilidade: ela só existe quando há critérios de ranking com peso.",
     provenanceTitle: "Proveniência do resultado",
     provenanceHint:
       "O que gerou exatamente estes números. É o mesmo conteúdo que vai para o relatório exportado.",

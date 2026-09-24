@@ -147,8 +147,11 @@ describe("assistente de seleção", () => {
     await user.click(screen.getByShadowRole("button", { name: new RegExp(t.stepObjective, "i") }));
     await user.click(screen.getByShadowRole("button", { name: t.run }));
 
-    // The funnel block is the first thing the results screen renders.
-    await waitFor(() => expect(screen.getByShadowRole("heading", { name: t.funnel })).toBeInTheDocument());
+    // The winner card is the first thing the results screen renders (D-85);
+    // this run has no objective, so it says honestly that nobody won.
+    await waitFor(() =>
+      expect(screen.getByShadowRole("heading", { name: t.winnerNoneTitle })).toBeInTheDocument(),
+    );
     expect(
       screen.getByShadowRole("button", { name: new RegExp(t.stepResults, "i") }),
     ).not.toBeDisabled();
