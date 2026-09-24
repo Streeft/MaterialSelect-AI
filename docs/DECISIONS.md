@@ -5105,11 +5105,9 @@ religava `onSelected` depois do duplo *mount* do StrictMode. Com as correções,
 uma caixa desenhada fica em `/app/mapas` e preenche o estágio em
 `/app/selecao`.
 
-**Pendente, registrado e não corrigido aqui:** o mapa mostra a unidade de
-leitura (D-70), mas os campos do Chart Stage dizem unidade canônica — uma caixa
-desenhada em g/cm³ chega num campo de kg/m³. A correção precisa do fator de
-leitura vindo do backend; converter no cliente violaria a regra de que
-conversão só existe em `units.py`.
+**Pendente quando esta entrada foi escrita, corrigido em [D-81](#d-81):** o mapa
+mostra a unidade de leitura (D-70), mas os campos do Chart Stage dizem unidade
+canônica — uma caixa desenhada em g/cm³ chegava num campo de kg/m³.
 
 ### Verificação
 
@@ -5132,3 +5130,77 @@ conversão só existe em `units.py`.
   mudar só por isso, e os comentários que ainda falam do shadow root do MWC
   ficaram como estavam para não inflar o diff.
 - Nenhum arquivo de `apps/api` foi alterado.
+
+## D-81 — A região do Chart Stage atravessa a fronteira entre leitura e canônico pelo backend, pela mesma regra que desenha o mapa
+
+**O defeito.** Desde o [D-70](#d-70) o mapa desenha cada eixo na **unidade de
+leitura** da propriedade (densidade em g/cm³, módulo em GPa), e desde o
+[D-60](#d-60) o Chart Stage guarda e compara a caixa em **unidade canônica**
+(kg/m³, Pa) — os campos dele dizem isso. As duas coisas estavam certas sozinhas
+e erradas juntas: uma caixa desenhada em 1,646–3,022 g/cm³ era gravada como
+"1,646–3,022 kg/m³" e não admitia material nenhum; uma região vinda da URL
+(2000–8000 kg/m³) era desenhada fora da escala de um eixo em g/cm³. O mesmo
+valia para o botão "Criar estágio na Seleção" de `/app/mapas`, que passava para
+a URL os números da tela. Achado ao vivo durante o D-80 e deixado de fora de
+propósito, porque a correção pertence ao backend.
+
+**A decisão: a caixa atravessa pelo backend, nos dois sentidos.**
+`POST /api/charts/map-box` recebe os slugs dos dois eixos, a caixa e o sentido
+(`to: "canonical"` para uma região desenhada, `to: "display"` para uma região
+guardada) e devolve a caixa convertida mais a unidade em que cada eixo passou a
+estar. A escolha de leitura da URL (`unidades`, D-70) é respeitada como no
+próprio mapa. O cliente não multiplica nada — o princípio 4 (conversão só em
+`units.py`) continua literal: um *fator* devolvido para o React aplicar seria
+uma conversão fora de `units.py`, só que com mais um lugar para errar.
+
+**Uma regra só para desenhar e para converter.** A decisão de quais eixos se
+movem já existia, dentro de `ChartService._read_map`. Ela foi extraída para
+`ChartService._map_reading(slug)`, e **tanto o desenho do mapa quanto a
+conversão da caixa perguntam a ela**. Duas cópias dessa regra poderiam discordar
+sobre um eixo, e a região apareceria num lugar diferente dos pontos em torno dos
+quais foi desenhada — plausível, sem nada na tela que o denunciasse. Por isso o
+que não se move no mapa também não se move na caixa:
+
+- **Eixo de índice** (`x`/`y` nulo): dimensão derivada da expressão (D-35),
+  nunca reescalada — atravessa intacto, com unidade `null`.
+- **Unidade que não é fator de escala** (°C, com offset): o mapa mantém a
+  temperatura de serviço em kelvin (D-70), e a caixa também. Convertê-la para
+  °C enquanto o mapa desenha kelvin a deslocaria em 273 unidades.
+- **Universo de processos:** só o mapa de materiais lê em unidade de leitura;
+  uma caixa de processo atravessa inteira (os slugs ainda são validados, e um
+  atributo inexistente é 404).
+- **Lado aberto continua aberto** nos dois sentidos: `null` é "sem limite", e
+  `0` é um limite (D-60).
+
+**Ruído de ponto flutuante sai no backend.** 1,646 g/cm³ vezes o fator do Pint
+dá `1645.9999999999998`, e era isso que aparecia no campo do estágio. A borda de
+uma região é onde alguém soltou o mouse, não um valor medido; o resultado é
+arredondado a 12 algarismos significativos — o que tira o ruído e não tira nada
+que alguém tenha desenhado. Não se aplica a valor de material, que continua com
+a conversão exata de sempre.
+
+**No cliente.** O editor do Chart Stage (`StageList.tsx`) converte a caixa
+guardada para desenhá-la (`useQuery`, com o valor anterior mantido enquanto a
+conversão de uma caixa recém-desenhada volta, para a região não piscar) e
+converte a caixa desenhada antes de escrever nos campos; se a conversão falhar,
+mostra o erro e **não** escreve os números da tela, que estão em outra unidade.
+`/app/mapas` converte antes de montar a URL do novo estágio. `lib/mapBox.ts` só
+troca nomes de campo (`xMin` ↔ `x_min`); nenhum número é tocado no cliente.
+
+**Verificação.** Backend: 14 testes novos em `app/tests/test_map_box.py` — os
+dois sentidos, o invariante que importa (uma caixa desenhada em volta das
+coordenadas *plotadas* de um material contém os valores *canônicos* dele), ida
+e volta exata, lado aberto, eixo de índice, °C que fica em kelvin como no mapa,
+escolha de leitura da URL, universo de processos, 404 e ausência de ruído.
+Frontend: dois testes no `StageList` (a região guardada chega ao mapa na unidade
+do mapa; a desenhada chega aos campos em unidade canônica) e um do cliente da
+API. Ao vivo: uma caixa arrastada no mapa real em 1,646–3,022 g/cm³ e
+16,59–107,6 GPa virou 1646–3022 kg/m³ e 1,659e10–1,076e11 Pa nos campos,
+voltou desenhada em 1,646–3,022 g/cm³ no mapa do estágio e admitiu 1 dos 5
+materiais de demonstração (a liga de alumínio, 2700 kg/m³ e 69 GPa) — antes, a
+mesma caixa virava "1,646 kg/m³" e não admitia nenhum.
+
+**Depois do merge** a API precisa do workflow manual **Deploy da API**
+([`docs/13-deploy.md` §5-ter](13-deploy.md)): o endpoint novo não existe na
+instância publicada até lá, e o frontend publicado pela Vercel chamaria uma rota
+inexistente — o estágio mostraria o erro em vez de gravar números errados.

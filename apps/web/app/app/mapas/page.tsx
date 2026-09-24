@@ -4,6 +4,7 @@ import { Suspense, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  convertMapBox,
   createSavedChart,
   deleteSavedChart,
   getPropertyMap,
@@ -26,6 +27,7 @@ import type {
   SelectionUniverse,
 } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
+import { toMapBox } from "@/lib/mapBox";
 import { formatNumber, prettyUnit } from "@/lib/format";
 import { AshbyMap, type BoxSelection } from "@/components/charts/AshbyMap";
 import {
@@ -244,6 +246,8 @@ function MapsPageContent() {
 
   // Selection box state for interactive region dragging (P1-2)
   const [selectedBox, setSelectedBox] = useState<BoxSelection | null>(null);
+  const [handingOff, setHandingOff] = useState(false);
+  const [handoffError, setHandoffError] = useState<string | null>(null);
 
   // Records carried over from a selection run, so a study can be read on the map.
   const restrictedIds = useMemo(
@@ -1039,7 +1043,30 @@ function MapsPageContent() {
                   <Button
                     size="sm"
                     variant="primary"
-                    onClick={() => {
+                    loading={handingOff}
+                    onClick={async () => {
+                      // D-81: the box on screen is in reading units (g/cm³, GPa);
+                      // the stage stores canonical ones. The backend converts it
+                      // by the same rule the map was drawn with.
+                      setHandoffError(null);
+                      setHandingOff(true);
+                      let stored;
+                      try {
+                        stored = (
+                          await convertMapBox({
+                            universe,
+                            x: xAxis.mode === "property" ? effectiveXProperty : null,
+                            y: yAxis.mode === "property" ? effectiveYProperty : null,
+                            box: toMapBox(selectedBox),
+                            to: "canonical",
+                          })
+                        ).box;
+                      } catch (error) {
+                        setHandoffError(error instanceof Error ? error.message : String(error));
+                        return;
+                      } finally {
+                        setHandingOff(false);
+                      }
                       const query = new URLSearchParams();
                       query.set("etapa", "restricoes");
                       query.set("novo_estagio", "chart");
@@ -1058,16 +1085,17 @@ function MapsPageContent() {
                         const res = resolveAxisIndex(yAxis, indices.data ?? []);
                         if (res) query.set("y_expr", res.expression);
                       }
-                      if (selectedBox.xMin !== null) query.set("x_min", String(selectedBox.xMin));
-                      if (selectedBox.xMax !== null) query.set("x_max", String(selectedBox.xMax));
-                      if (selectedBox.yMin !== null) query.set("y_min", String(selectedBox.yMin));
-                      if (selectedBox.yMax !== null) query.set("y_max", String(selectedBox.yMax));
+                      if (stored.x_min !== null) query.set("x_min", String(stored.x_min));
+                      if (stored.x_max !== null) query.set("x_max", String(stored.x_max));
+                      if (stored.y_min !== null) query.set("y_min", String(stored.y_min));
+                      if (stored.y_max !== null) query.set("y_max", String(stored.y_max));
                       router.push(`/app/selecao?${query.toString()}`);
                     }}
                   >
                     {t.useInSelection} →
                   </Button>
                 </div>
+                {handoffError ? <Alert tone="danger">{handoffError}</Alert> : null}
               </CardBody>
             </Card>
           )}

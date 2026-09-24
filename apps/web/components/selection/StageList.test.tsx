@@ -9,10 +9,51 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 vi.mock("react-plotly.js", () => ({ default: () => null }));
 
+// The map, reduced to what the Chart Stage hands it and takes back from it:
+// the region it is told to draw, and a region "drawn" by the reader.
+vi.mock("@/components/charts/AshbyMap", () => ({
+  AshbyMap: ({
+    selectionBox,
+    onSelectBox,
+  }: {
+    selectionBox?: unknown;
+    onSelectBox?: (box: unknown) => void;
+  }) => (
+    <div>
+      <output data-testid="drawn-region">{JSON.stringify(selectionBox ?? null)}</output>
+      <button
+        type="button"
+        onClick={() => onSelectBox?.({ xMin: 2, xMax: 3, yMin: null, yMax: 80 })}
+      >
+        desenhar caixa
+      </button>
+    </div>
+  ),
+}));
+
+// A stand-in for the backend's D-81 conversion. It answers with fixed numbers
+// on purpose: the component must pass them through, never compute them.
+const convertMapBox = vi.hoisted(() =>
+  vi.fn(async (payload: { to: "canonical" | "display" }) =>
+    payload.to === "display"
+      ? {
+          box: { x_min: 2, x_max: 8, y_min: null, y_max: null },
+          x_unit: "g/cm**3",
+          y_unit: "g/cm**3",
+        }
+      : {
+          box: { x_min: 2000, x_max: 3000, y_min: null, y_max: 80000 },
+          x_unit: "kg/m**3",
+          y_unit: "kg/m**3",
+        },
+  ),
+);
+
 vi.mock("@/lib/api", async (importOriginal) => {
   const actual = await importOriginal<Record<string, unknown>>();
   return {
     ...actual,
+    convertMapBox: (...args: [{ to: "canonical" | "display" }]) => convertMapBox(...args),
     getPropertyMap: vi.fn().mockResolvedValue({
       scale: "log",
       x_axis: {
@@ -729,6 +770,63 @@ describe("StageList with a chart stage", () => {
     await user.click(toggleBtn);
     expect(screen.getByShadowText(t.stageChartHideMap)).toBeInTheDocument();
     expect(screen.getByText(t.stageChartInteractiveHint)).toBeInTheDocument();
+  });
+
+  it("desenha a região guardada em unidade canônica na unidade do mapa (D-81)", async () => {
+    // O estágio guarda kg/m³; o mapa desenha em g/cm³. A caixa que chega ao mapa
+    // é a que o backend converteu — 2000–8000 kg/m³ desenhados como 2–8.
+    const user = userEvent.setup();
+    convertMapBox.mockClear();
+    render(
+      <Harness
+        initial={[chartStage({ x: { ...chartStage().x, min: "2000", max: "8000" } })]}
+      />,
+    );
+
+    await user.click(screen.getByShadowText(t.stageChartShowMap));
+
+    await vi.waitFor(() =>
+      expect(screen.getByTestId("drawn-region").textContent).toBe(
+        JSON.stringify({ xMin: 2, xMax: 8, yMin: null, yMax: null }),
+      ),
+    );
+    expect(convertMapBox).toHaveBeenCalledWith(
+      expect.objectContaining({
+        x: "densidade",
+        to: "display",
+        box: { x_min: 2000, x_max: 8000, y_min: null, y_max: null },
+      }),
+    );
+  });
+
+  it("guarda a caixa desenhada no mapa em unidade canônica (D-81)", async () => {
+    // Desenhada em g/cm³ (2–3), a caixa chega aos campos do estágio em kg/m³
+    // (2000–3000) — nunca como "2 kg/m³".
+    const user = userEvent.setup();
+    convertMapBox.mockClear();
+    let last: StageState[] = [];
+    render(<Harness initial={[chartStage()]} onStages={(s) => (last = s)} />);
+
+    await user.click(screen.getByShadowText(t.stageChartShowMap));
+    await user.click(await screen.findByRole("button", { name: "desenhar caixa" }));
+
+    await vi.waitFor(() => {
+      const updated = last[0];
+      if (updated?.kind !== "chart") throw new Error("unreachable");
+      expect(updated.x.min).toBe("2000");
+    });
+    const updated = last[0];
+    if (updated?.kind !== "chart") throw new Error("unreachable");
+    expect(updated.x.max).toBe("3000");
+    // Lado aberto continua aberto: nenhum limite não é limite zero (D-60).
+    expect(updated.y.min).toBe("");
+    expect(updated.y.max).toBe("80000");
+    expect(convertMapBox).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: "canonical",
+        box: { x_min: 2, x_max: 3, y_min: null, y_max: 80 },
+      }),
+    );
   });
 
   it("permite abrir o mapa interativo também no universo de processos", () => {

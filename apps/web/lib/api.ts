@@ -49,6 +49,8 @@ import type {
   PropertyDefinitionIn,
   PropertyDistribution,
   PropertyMap,
+  MapBoxOut,
+  MapBoxRequest,
   PropertyMapRequest,
   PropertyValueIn,
   RunRequest,
@@ -505,6 +507,22 @@ export function getPropertyMap(
   payload: PropertyMapRequest,
 ): Promise<PropertyMap> {
   return request<PropertyMap>(`/api/charts/property-map`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+/**
+ * Move a Chart Stage region between the map's reading units and canonical
+ * units (D-81). The map draws in g/cm³ and GPa (D-70); the stage stores and
+ * compares in kg/m³ and Pa (D-60). The conversion is the backend's — the same
+ * rule the map is drawn with — and never a factor applied here.
+ */
+export function convertMapBox(
+  payload: MapBoxRequest,
+  unitChoices?: Record<string, string>,
+): Promise<MapBoxOut> {
+  return request<MapBoxOut>(withUnits(`/api/charts/map-box`, unitChoices), {
     method: "POST",
     body: JSON.stringify(payload),
   });

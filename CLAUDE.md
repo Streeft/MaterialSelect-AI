@@ -728,7 +728,14 @@ caminho (prévia do Sintetizar que nunca rodava, Dimensionar sem caso inicial,
 links de material para família inexistente, seletor de processo vazio em Eco,
 limite ausente impresso como `0`).
 
-1741 testes de backend (nenhum skip) e 419 de frontend, todos verdes. CI no
+**D-81 fechou o pendente do D-80** ([D-81](docs/DECISIONS.md)): a caixa do
+Chart Stage atravessa entre a unidade de leitura do mapa (g/cm³, GPa) e a
+canônica do estágio (kg/m³, Pa) por `POST /api/charts/map-box`, nos dois
+sentidos, e **pela mesma regra que desenha o mapa** (`ChartService._map_reading`):
+eixo de índice, unidade com offset e universo de processos não se movem num
+nem noutro. O cliente nunca aplica fator.
+
+1755 testes de backend (nenhum skip) e 422 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
 PROJECT_CONTEXT.md).
