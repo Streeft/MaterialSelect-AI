@@ -19,6 +19,7 @@ const t = ptBR.selection;
 
 const runSelection = vi.fn<(payload: RunRequest) => Promise<RunResult>>();
 const listProcessAttributes = vi.fn<() => Promise<ProcessAttribute[]>>();
+let propertiesMock: PropertyDefinition[] = [];
 const listPerformanceIndices = vi.fn<() => Promise<PerformanceIndex[]>>();
 
 const density: PropertyDefinition = {
@@ -46,7 +47,7 @@ const density: PropertyDefinition = {
 vi.mock("@/lib/api", () => ({
   ApiError: class ApiError extends Error {},
   runSelection: (payload: RunRequest) => runSelection(payload),
-  listProperties: () => Promise.resolve([density]),
+  listProperties: () => Promise.resolve(propertiesMock),
   listClasses: () => Promise.resolve([]),
   listProcesses: () => Promise.resolve([]),
   listProcessClasses: () => Promise.resolve([]),
@@ -108,6 +109,7 @@ beforeEach(() => {
   runSelection.mockReset();
   runSelection.mockResolvedValue(result());
   listProcessAttributes.mockResolvedValue([]);
+  propertiesMock = [density];
   listPerformanceIndices.mockResolvedValue([]);
   for (const key of [...searchParams.keys()]) searchParams.delete(key);
   window.history.replaceState(null, "", "/app/selecao");
@@ -207,6 +209,7 @@ describe("opções avançadas (D-85)", () => {
     const user = userEvent.setup();
     render(wrap(<SelectionPage />));
     await user.click(stepButton(t.stepObjective));
+    await user.click(screen.getByShadowRole("button", { name: t.continueToCriteria }));
 
     const details = screen.getByText(ptBR.ui.advancedOptions).closest("details")!;
     expect(details.open).toBe(false);
@@ -227,12 +230,31 @@ describe("opções avançadas (D-85)", () => {
   });
 });
 
+describe("objetivo em blocos (D-85)", () => {
+  it("locks criteria until the index is confirmed, then folds the index with Alterar", async () => {
+    const user = userEvent.setup();
+    render(wrap(<SelectionPage />));
+    await user.click(stepButton(t.stepObjective));
+
+    expect(screen.getByText(t.indexLockedReason)).toBeInTheDocument();
+    expect(screen.queryByShadowRole("button", { name: t.addCriterion })).not.toBeInTheDocument();
+
+    await user.click(screen.getByShadowRole("button", { name: t.continueToCriteria }));
+    expect(screen.getByText(t.noIndexChosen)).toBeInTheDocument();
+    expect(screen.getByShadowRole("button", { name: t.addCriterion })).toBeInTheDocument();
+
+    await user.click(screen.getByShadowRole("button", { name: ptBR.ui.change }));
+    expect(screen.getByShadowRole("button", { name: t.continueToCriteria })).toBeInTheDocument();
+  });
+});
+
 describe("método de ranking", () => {
   it("hides normalization for TOPSIS/PROMETHEE, an option that has no effect on either", async () => {
     const user = userEvent.setup();
     render(wrap(<SelectionPage />));
 
     await user.click(screen.getByShadowRole("button", { name: new RegExp(t.stepObjective, "i") }));
+    await user.click(screen.getByShadowRole("button", { name: t.continueToCriteria }));
     await user.click(screen.getByText(ptBR.ui.advancedOptions));
     expect(screen.getByShadowRole("combobox", { name: t.normalization })).toBeInTheDocument();
 
@@ -249,6 +271,7 @@ describe("método de ranking", () => {
     render(wrap(<SelectionPage />));
 
     await user.click(screen.getByShadowRole("button", { name: new RegExp(t.stepObjective, "i") }));
+    await user.click(screen.getByShadowRole("button", { name: t.continueToCriteria }));
     await user.click(screen.getByShadowRole("button", { name: t.addCriterion }));
     await userEvent.selectOptions(screen.getByShadowRole("combobox", { name: t.criterion }), density.slug);
     await user.click(screen.getByText(ptBR.ui.advancedOptions));
@@ -323,6 +346,7 @@ describe("estudo de processos", () => {
     await user.click(stepButton(t.stepObjective));
     // The objective step is there — not the old "cannot rank" notice.
     expect(screen.getByText(t.processIndexNote)).toBeInTheDocument();
+    await user.click(screen.getByShadowRole("button", { name: t.continueToCriteria }));
     await user.click(screen.getByShadowRole("button", { name: t.addCriterion }));
 
     const criterion = screen.getByShadowRole("combobox", { name: t.criterion });
@@ -344,6 +368,7 @@ describe("estudo de processos", () => {
     render(wrap(<SelectionPage />));
 
     await user.click(stepButton(t.stepObjective));
+    await user.click(screen.getByShadowRole("button", { name: t.continueToCriteria }));
     await user.click(screen.getByShadowRole("button", { name: t.addCriterion }));
     const criterion = screen.getByShadowRole("combobox", { name: t.criterion });
     await waitFor(() =>
@@ -369,6 +394,7 @@ describe("estudo de processos", () => {
     render(wrap(<SelectionPage />));
 
     await user.click(stepButton(t.stepObjective));
+    await user.click(screen.getByShadowRole("button", { name: t.continueToCriteria }));
     await user.click(screen.getByShadowRole("button", { name: t.addCriterion }));
     expect(screen.getByShadowRole("combobox", { name: t.criterion })).toBeInTheDocument();
 
@@ -379,5 +405,45 @@ describe("estudo de processos", () => {
     await user.click(stepButton(t.stepObjective));
 
     expect(screen.queryByShadowRole("combobox", { name: t.criterion })).not.toBeInTheDocument();
+  });
+});
+
+describe("exemplo em um clique (D-85)", () => {
+  const prop = (slug: string, name: string): PropertyDefinition => ({ ...density, slug, name });
+
+  it("loads the bicycle beam, and Desfazer puts back what was there", async () => {
+    const user = userEvent.setup();
+    propertiesMock = [
+      density,
+      prop("modulo_young", "Módulo de Young"),
+      prop("limite_escoamento", "Limite de escoamento"),
+      prop("temp_max_servico", "Temperatura máxima de serviço"),
+    ];
+    listPerformanceIndices.mockResolvedValue([beamIndex]);
+    render(wrap(<SelectionPage />));
+
+    const nameField = screen.getByShadowRole("textbox", { name: t.studyName });
+    await user.type(nameField, "Meu estudo");
+    await waitFor(() => expect(listPerformanceIndices).toHaveBeenCalled());
+    await user.click(screen.getByShadowRole("button", { name: t.loadExample }));
+
+    expect(screen.getByText(t.exampleLoaded)).toBeInTheDocument();
+    expect(nameField).toHaveValue("Viga leve de bicicleta (exemplo)");
+    expect(stepButton(t.stepObjective)).toHaveTextContent(beamIndex.name);
+    expect(stepButton(t.stepConstraints)).toHaveTextContent("3 restrições");
+
+    await user.click(screen.getByShadowRole("button", { name: t.exampleUndo }));
+    expect(nameField).toHaveValue("Meu estudo");
+    expect(stepButton(t.stepConstraints)).not.toHaveTextContent("3 restrições");
+  });
+
+  it("refuses to load half an example, naming what the catalogue lacks", async () => {
+    const user = userEvent.setup();
+    render(wrap(<SelectionPage />));
+    await waitFor(() => expect(listPerformanceIndices).toHaveBeenCalled());
+    await user.click(screen.getByShadowRole("button", { name: t.loadExample }));
+
+    expect(screen.getByText(/O exemplo não pôde ser carregado/)).toHaveTextContent("viga-leve-rigidez");
+    expect(screen.getByShadowRole("textbox", { name: t.studyName })).toHaveValue("");
   });
 });

@@ -47,6 +47,7 @@ import {
   Checkbox,
   Disclosure,
   EmptyState,
+  GuidedBlock,
   Input,
   LoadingState,
   PageHeader,
@@ -84,6 +85,7 @@ import {
 } from "@/components/selection/IndexCard";
 import { ResultsView } from "@/components/selection/ResultsView";
 import { SavedStudiesPanel } from "@/components/selection/SavedStudiesPanel";
+import { BIKE_BEAM_EXAMPLE, missingForExample } from "@/lib/selection/examples";
 import {
   constraintsUseAdvanced,
   functionUsesAdvanced,
@@ -375,6 +377,7 @@ function SelectionWizard() {
     // in a process study is refused by the backend by name.
     setCriteria([]);
     setIndexMode("none");
+    setIndexConfirmed(false);
     setCustomExpression("");
     setValidation(null);
     setUseAhp(false);
@@ -383,6 +386,9 @@ function SelectionWizard() {
   const isProcessStudy = universe === "process";
 
   const [indexMode, setIndexMode] = useState<string>("none"); // "none" | slug | "custom"
+  // D-85: the index block folds once the reader confirms it (or a study or the
+  // example arrives with it already decided).
+  const [indexConfirmed, setIndexConfirmed] = useState(false);
   const [customExpression, setCustomExpression] = useState("");
   const [indexGoal, setIndexGoal] = useState<Goal>("maximize");
   const [validation, setValidation] = useState<string | null>(null);
@@ -464,6 +470,10 @@ function SelectionWizard() {
   }, [indexMode, customExpression, indexGoal, indices.data]);
 
   const stagesPayload = (): StageIn[] => stages.map(toStagePayload);
+
+  const indexSummary = activeIndex
+    ? t.indexChosen(activeIndex.name ?? t.customIndex, activeIndex.goal === "maximize")
+    : t.noIndexChosen;
 
   // Only the criteria that already name a property (or the index) are worth
   // comparing pairwise — an empty row has nothing for AHP to weigh.
@@ -622,6 +632,7 @@ function SelectionWizard() {
       } else {
         setIndexMode("none");
       }
+      setIndexConfirmed(true);
       setNormalization(s.normalization);
       setMethod(s.method);
       setCriteria(
@@ -679,6 +690,113 @@ function SelectionWizard() {
       window.history.replaceState(null, "", `${window.location.pathname}?etapa=restricoes`);
     }
   }, [params]);
+
+  // D-85: the example, and the way back from it. A snapshot rather than a
+  // confirm dialog: loading is one click and undoing is one click.
+  interface WizardSnapshot {
+    name: string;
+    functionText: string;
+    objectiveText: string;
+    freeVariables: string;
+    universe: SelectionUniverse;
+    stages: StageState[];
+    indexMode: string;
+    customExpression: string;
+    indexGoal: Goal;
+    indexConfirmed: boolean;
+    criteria: CriterionRow[];
+    method: MethodLiteral;
+    normalization: NormalizationMethod;
+    useAhp: boolean;
+  }
+  const [beforeExample, setBeforeExample] = useState<WizardSnapshot | null>(null);
+  const [exampleMessage, setExampleMessage] = useState<string | null>(null);
+
+  function restore(snapshot: WizardSnapshot) {
+    setName(snapshot.name);
+    setFunctionText(snapshot.functionText);
+    setObjectiveText(snapshot.objectiveText);
+    setFreeVariables(snapshot.freeVariables);
+    setUniverse(snapshot.universe);
+    setStages(snapshot.stages);
+    setIndexMode(snapshot.indexMode);
+    setCustomExpression(snapshot.customExpression);
+    setIndexGoal(snapshot.indexGoal);
+    setIndexConfirmed(snapshot.indexConfirmed);
+    setCriteria(snapshot.criteria);
+    setMethod(snapshot.method);
+    setNormalization(snapshot.normalization);
+    setUseAhp(snapshot.useAhp);
+    setAdvFunction(functionUsesAdvanced(snapshot.universe));
+    setAdvConstraints(constraintsUseAdvanced(snapshot.stages));
+  }
+
+  function applyExample() {
+    const example = BIKE_BEAM_EXAMPLE;
+    const missing = missingForExample(example, {
+      indexSlugs: (indices.data ?? []).map((i) => i.slug),
+      propertySlugs: (properties.data ?? []).map((p) => p.slug),
+    });
+    if (missing.length > 0) {
+      // Half an example teaches the wrong thing; say what is missing instead.
+      setExampleMessage(t.exampleUnavailable(missing.join(", ")));
+      setBeforeExample(null);
+      return;
+    }
+    setBeforeExample({
+      name,
+      functionText,
+      objectiveText,
+      freeVariables,
+      universe,
+      stages,
+      indexMode,
+      customExpression,
+      indexGoal,
+      indexConfirmed,
+      criteria,
+      method,
+      normalization,
+      useAhp,
+    });
+    const stagesFromExample: StageState[] = [
+      {
+        id: nextEditorId("stage"),
+        kind: "limit",
+        label: "",
+        enabled: true,
+        group: fromConstraintPayload({
+          operator: "AND",
+          constraints: example.constraints,
+          groups: [],
+        }),
+      },
+    ];
+    setName(example.name);
+    setFunctionText(example.functionText);
+    setObjectiveText(example.objectiveText);
+    setFreeVariables(example.freeVariables.join(", "));
+    setUniverse("material");
+    setStages(stagesFromExample);
+    setIndexMode(example.indexSlug);
+    setCustomExpression("");
+    setIndexConfirmed(true);
+    setCriteria(example.criteria.map((c) => ({ id: nextId(), direction: "", ...c })));
+    setMethod("weighted_sum");
+    setNormalization("minmax");
+    setUseAhp(false);
+    setAdvFunction(false);
+    setAdvConstraints(constraintsUseAdvanced(stagesFromExample));
+    setAdvObjective(false);
+    setResult(null);
+    setExampleMessage(t.exampleLoaded);
+  }
+
+  function undoExample() {
+    if (beforeExample) restore(beforeExample);
+    setBeforeExample(null);
+    setExampleMessage(null);
+  }
 
   /**
    * Merge the suggestions the user ticked into the wizard.
@@ -894,6 +1012,26 @@ function SelectionWizard() {
 
         {/* Step 1: function */}
         {step === "function" && (
+          <div className="flex flex-wrap items-center gap-3 rounded-card border border-dashed border-edge-strong px-4 py-3">
+            <span className="text-sm text-ink-muted">{t.exampleIntro}</span>
+            <Button variant="secondary" onClick={applyExample}>
+              {t.loadExample}
+            </Button>
+          </div>
+        )}
+        {exampleMessage && (
+          <Alert tone={beforeExample ? "success" : "warning"} role="status">
+            <div className="flex flex-wrap items-center gap-3">
+              <span>{exampleMessage}</span>
+              {beforeExample && (
+                <Button size="sm" variant="secondary" onClick={undoExample}>
+                  {t.exampleUndo}
+                </Button>
+              )}
+            </div>
+          </Alert>
+        )}
+        {step === "function" && (
           <Section title={t.functionTitle} description={t.functionHint}>
             <Card>
               <CardBody className="grid gap-3 sm:grid-cols-2">
@@ -1022,10 +1160,19 @@ function SelectionWizard() {
         {/* Step 3: objective (index + ranking). D-84: both universes — a
             process study ranks by its numeric attributes since P0-4 (D-59). */}
         {step === "objective" && (
-          <div className="space-y-5">
-            <Section title={t.objectiveTitle}>
-              <Card>
-                <CardBody className="space-y-3">
+          <div className="space-y-4">
+            {/* D-85: one decision at a time. The index first — "Nenhum índice"
+                is a valid answer — then criteria and weights. A decided block
+                folds into its summary with "Alterar", and nothing typed in it
+                is lost. */}
+            <GuidedBlock
+              headingLevel={2}
+              title={t.indexBlockTitle}
+              state={indexConfirmed ? "done" : "active"}
+              summary={indexSummary}
+              onEdit={() => setIndexConfirmed(false)}
+            >
+              <div className="space-y-3">
                   {isProcessStudy && (
                     <Alert tone="info">{t.processIndexNote}</Alert>
                   )}
@@ -1087,13 +1234,28 @@ function SelectionWizard() {
                   {/* The conditions of validity, shown without asking for a click —
                       an index that does not fit the problem is worse than no index. */}
                   {indexDescriptor && <IndexCard index={indexDescriptor} />}
-                </CardBody>
-              </Card>
-            </Section>
+                  <Button
+                    variant="primary"
+                    icon={<IconArrowRight />}
+                    onClick={() => setIndexConfirmed(true)}
+                  >
+                    {t.continueToCriteria}
+                  </Button>
+              </div>
+            </GuidedBlock>
+            {/* The index's conditions of validity stay on screen after the
+                block folds (D-25): an index that does not fit the problem is
+                worse than none, and the reader must not need a click to see why. */}
+            {indexConfirmed && indexDescriptor && <IndexCard index={indexDescriptor} />}
 
-            <Section title={t.rankingTitle} description={t.rankingHint}>
-              <Card>
-                <CardBody className="space-y-3">
+            <GuidedBlock
+              headingLevel={2}
+              title={t.criteriaBlockTitle}
+              state={indexConfirmed ? "active" : "locked"}
+              lockedReason={t.indexLockedReason}
+            >
+                <div className="space-y-3">
+                  <p className="text-xs text-ink-muted">{t.rankingHint}</p>
                   {/* A non-default method stays visible with the section closed:
                       the rule is that a collapsed section never hides what is
                       already in use (D-85). */}
@@ -1109,6 +1271,7 @@ function SelectionWizard() {
                       </legend>
                       <Select
                         label={t.criterion}
+                        hint={position === 0 ? t.criterionHint : undefined}
                         className="w-56"
                         value={c.key}
                         onChange={(e) =>
@@ -1131,6 +1294,7 @@ function SelectionWizard() {
                       </Select>
                       <Select
                         label={t.direction}
+                        hint={position === 0 ? t.directionHint : undefined}
                         className="w-52"
                         value={c.direction}
                         onChange={(e) =>
@@ -1149,7 +1313,8 @@ function SelectionWizard() {
                       </Select>
                       <Input
                         label={t.weight}
-                        className="w-24 tabular-nums"
+                        hint={position === 0 ? t.weightHint : undefined}
+                        className="w-40 tabular-nums"
                         inputMode="decimal"
                         value={c.weight}
                         onChange={(e) =>
@@ -1256,9 +1421,8 @@ function SelectionWizard() {
                       )}
                     </div>
                   </Disclosure>
-                </CardBody>
-              </Card>
-            </Section>
+                </div>
+            </GuidedBlock>
           </div>
         )}
 
