@@ -257,6 +257,38 @@ export const ptBR = {
     blockedResults: "Execute a seleção para ver os resultados.",
     back: "Voltar",
     advance: "Avançar",
+    // D-85: navegação lida da ordem dos passos, e o resumo embaixo de cada um.
+    backToHome: "Voltar ao início",
+    advancedConstraintsHint:
+      "Para estudos com mais de uma etapa: estágios por classe, por processo ou por região de um gráfico, e grupos E/OU entre restrições.",
+    methodInUse: (label: string) => `Método de ranking: ${label} (em Opções avançadas).`,
+    methodFieldHint: "Como os critérios viram uma nota única. Na dúvida, soma ponderada.",
+    normalizationHint: "Como cada critério é posto na mesma escala antes de somar.",
+    aiOpen: "Preencher a partir de um texto (IA)",
+    aiClose: "Fechar o assistente de IA",
+    // Uma linha por campo (D-85): o que ele pede, sem virar parágrafo.
+    studyNameHint: "Só para você achar o estudo depois. Ex.: Viga de bicicleta.",
+    functionTextHint: "O que a peça faz. Ex.: viga em flexão.",
+    objectiveTextHint: "O que você quer otimizar. Ex.: mínima massa.",
+    freeVariablesHint: "O que o projeto deixa variar, separado por vírgula. Ex.: espessura.",
+    myStudies: (n: number) =>
+      n === 0 ? "Meus estudos (nenhum salvo)" : n === 1 ? "Meus estudos (1)" : `Meus estudos (${n})`,
+    nextStep: (label: string) => `Próximo: ${label}`,
+    summaryObjective: (index: string | null, criteria: number) =>
+      [
+        index ? `Índice: ${index}` : null,
+        criteria > 0 ? (criteria === 1 ? "1 critério" : `${criteria} critérios`) : null,
+      ]
+        .filter(Boolean)
+        .join(" · "),
+    summaryConstraints: (constraints: number, stages: number) =>
+      [
+        constraints === 1 ? "1 restrição" : `${constraints} restrições`,
+        stages > 1 ? `${stages} estágios` : null,
+      ]
+        .filter(Boolean)
+        .join(" · "),
+    summaryResults: (n: number) => (n === 1 ? "1 candidato" : `${n} candidatos`),
     functionTitle: "Descrição do problema",
     studyName: "Nome do estudo",
     functionText: "Função do componente",
