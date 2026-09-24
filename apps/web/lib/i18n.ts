@@ -1401,6 +1401,12 @@ export const ptBR = {
     views: "Visualizações",
     stepDone: "concluída",
     stepBlocked: "bloqueada",
+    // D-85: o vocabulário da tela guiada.
+    change: "Alterar",
+    advancedOptions: "Opções avançadas",
+    comboboxPlaceholder: "Digite para buscar…",
+    comboboxNoMatch: (query: string) =>
+      query.trim() ? `Nada encontrado para “${query.trim()}”.` : "Nenhuma opção disponível.",
     theme: {
       label: "Tema",
       light: "Claro",

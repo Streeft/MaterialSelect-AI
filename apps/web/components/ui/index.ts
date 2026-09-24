@@ -22,6 +22,7 @@ export {
   type ButtonSize,
   type ButtonVariant,
 } from "./Button";
+export { Combobox, type ComboboxOption } from "./Combobox";
 export { Card, CardBody, CardFooter, CardHeader, PanelShell, Section, StepCard } from "./Card";
 export {
   DataQualityBadge,
@@ -45,6 +46,7 @@ export {
   CONTROL,
   useWiring,
 } from "./Field";
+export { GuidedBlock, type GuidedBlockState } from "./GuidedBlock";
 export { PageHeader } from "./PageHeader";
 export { RadioCard } from "./RadioCard";
 export { Disclosure, Popover } from "./Popover";

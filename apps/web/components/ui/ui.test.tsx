@@ -15,11 +15,14 @@ import {
   Card,
   CardBody,
   CardHeader,
+  Combobox,
   DataQualityBadge,
   DataQualityLegend,
   Dialog,
+  Disclosure,
   EmptyState,
   Field,
+  GuidedBlock,
   Input,
   MissingValue,
   Popover,
@@ -373,6 +376,159 @@ describe("Stepper", () => {
     expect(blocked).toHaveTextContent("Execute a seleção primeiro.");
     await userEvent.click(blocked);
     expect(onSelect).not.toHaveBeenCalled();
+  });
+});
+
+describe("Stepper — resumo das escolhas (D-85)", () => {
+  it("shows what was chosen under a step that is not blocked", () => {
+    render(
+      <Stepper
+        label="Etapas"
+        steps={[
+          { id: "a", label: "Função", summary: "Viga leve" },
+          { id: "b", label: "Resultados", summary: "ignorado", blockedReason: "Execute primeiro." },
+        ]}
+        current="a"
+        onSelect={() => {}}
+        statusOf={(step) => (step.id === "a" ? "current" : "blocked")}
+      />,
+    );
+    expect(screen.getByShadowRole("button", { name: /função/i })).toHaveTextContent("Viga leve");
+    // A blocked step says why it is blocked, not a summary of nothing.
+    expect(screen.getByShadowRole("button", { name: /resultados/i })).not.toHaveTextContent(
+      "ignorado",
+    );
+  });
+});
+
+describe("Disclosure controlada (D-85)", () => {
+  it("opens when the screen says so and reports the reader's toggle", async () => {
+    const onOpenChange = vi.fn();
+    const { rerender } = render(
+      <Disclosure summary="Opções avançadas" open={false} onOpenChange={onOpenChange}>
+        <p>Método</p>
+      </Disclosure>,
+    );
+    const details = screen.getByText("Opções avançadas").closest("details")!;
+    expect(details.open).toBe(false);
+
+    rerender(
+      <Disclosure summary="Opções avançadas" open onOpenChange={onOpenChange}>
+        <p>Método</p>
+      </Disclosure>,
+    );
+    expect(details.open).toBe(true);
+  });
+});
+
+describe("GuidedBlock (D-85)", () => {
+  it("keeps what was typed while collapsed, and offers Alterar when done", async () => {
+    function Harness() {
+      const [done, setDone] = useState(false);
+      const [text, setText] = useState("");
+      return (
+        <GuidedBlock
+          title="Índice"
+          state={done ? "done" : "active"}
+          summary={`Escolhido: ${text}`}
+          onEdit={() => setDone(false)}
+        >
+          <Input label="Expressão" value={text} onChange={(e) => setText(e.target.value)} />
+          <Button onClick={() => setDone(true)}>Continuar</Button>
+        </GuidedBlock>
+      );
+    }
+    render(<Harness />);
+    await userEvent.type(screen.getByShadowRole("textbox", { name: "Expressão" }), "E/rho");
+    await userEvent.click(screen.getByShadowRole("button", { name: "Continuar" }));
+
+    expect(screen.getByText("Escolhido: E/rho")).toBeInTheDocument();
+    await userEvent.click(screen.getByShadowRole("button", { name: ptBR.ui.change }));
+    expect(screen.getByShadowRole("textbox", { name: "Expressão" })).toHaveValue("E/rho");
+  });
+
+  it("says why a locked block is waiting, instead of drawing a dead control", () => {
+    render(
+      <GuidedBlock title="Critérios" state="locked" lockedReason="Escolha o índice primeiro.">
+        <Button>Adicionar</Button>
+      </GuidedBlock>,
+    );
+    expect(screen.getByText("Escolha o índice primeiro.")).toBeInTheDocument();
+    expect(screen.queryByShadowRole("button", { name: "Adicionar" })).not.toBeInTheDocument();
+  });
+});
+
+describe("Combobox (D-85)", () => {
+  const options = [
+    { value: "modulo_young", label: "Módulo de Young" },
+    { value: "densidade", label: "Densidade", keywords: ["rho"] },
+    { value: "limite_escoamento", label: "Limite de escoamento" },
+  ];
+
+  function Harness({ clearOnSelect = false }: { clearOnSelect?: boolean }) {
+    const [value, setValue] = useState("");
+    return (
+      <>
+        <Combobox
+          label="Propriedade"
+          options={options}
+          value={value}
+          onChange={setValue}
+          clearOnSelect={clearOnSelect}
+        />
+        <output>{value}</output>
+      </>
+    );
+  }
+
+  it("finds an option without the accent and chooses it with the keyboard", async () => {
+    render(<Harness />);
+    const input = screen.getByRole("combobox", { name: "Propriedade" });
+    await userEvent.type(input, "modulo");
+    expect(screen.getByRole("listbox")).toBeInTheDocument();
+    expect(screen.getAllByRole("option")).toHaveLength(1);
+    await userEvent.keyboard("{Enter}");
+    expect(document.querySelector("output")).toHaveTextContent("modulo_young");
+    expect(input).toHaveValue("Módulo de Young");
+    expect(input).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("matches on keywords and says so when nothing matches", async () => {
+    render(<Harness />);
+    const input = screen.getByRole("combobox", { name: "Propriedade" });
+    await userEvent.type(input, "rho");
+    expect(screen.getByRole("option", { name: "Densidade" })).toBeInTheDocument();
+    await userEvent.clear(input);
+    await userEvent.type(input, "xyz");
+    expect(screen.getByText(ptBR.ui.comboboxNoMatch("xyz"))).toBeInTheDocument();
+  });
+
+  it("restores the chosen label on Escape", async () => {
+    render(<Harness />);
+    const input = screen.getByRole("combobox", { name: "Propriedade" });
+    await userEvent.click(input);
+    await userEvent.click(screen.getByRole("option", { name: "Densidade" }));
+    await userEvent.type(input, "lim");
+    await userEvent.keyboard("{Escape}");
+    expect(input).toHaveValue("Densidade");
+    expect(document.querySelector("output")).toHaveTextContent("densidade");
+  });
+
+  it("empties itself after a choice in 'add' mode", async () => {
+    render(<Harness clearOnSelect />);
+    const input = screen.getByRole("combobox", { name: "Propriedade" });
+    await userEvent.type(input, "dens");
+    await userEvent.keyboard("{Enter}");
+    expect(document.querySelector("output")).toHaveTextContent("densidade");
+    expect(input).toHaveValue("");
+  });
+
+  it("passes axe with the list open", async () => {
+    const { container } = render(<Harness />);
+    await userEvent.click(screen.getByRole("combobox", { name: "Propriedade" }));
+    expect(screen.getByRole("listbox")).toBeInTheDocument();
+    await expectAccessible(container);
+    await expectAccessible(document.body);
   });
 });
 
