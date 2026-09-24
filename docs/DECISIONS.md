@@ -5377,3 +5377,119 @@ mutação).
 
 **Depois do merge** a API precisa do **Deploy da API**: sem ele o catálogo de
 atributos não traz `variable`, e a lista de variáveis da expressão sai vazia.
+
+## D-85 — Seleção guiada: um passo de cada vez, sempre com volta, e o recolhido nunca esconde o que está em uso
+
+**O pedido.** A ferramenta vai ser usada por uma turma de graduação (29/09), e o
+autor pediu uma experiência "super intuitiva, passo a passo, que mostre menos coisa
+na tela", em que o aluno complete um passo para ver o seguinte mas possa sempre
+voltar — **sem perder nenhuma funcionalidade**. A pesquisa que sustenta o desenho
+(Nielsen Norman Group sobre jovens adultos e sobre assistentes; Baymard sobre o
+botão voltar; estudos de *onboarding* na CHI 2023) é consistente em cinco pontos:
+voltar tem de ser sempre possível e errar tem de ser barato; tela esparsa, com
+ajuda no contexto e nunca tour; assistente só onde a tarefa é sequencial; total
+corrente ao vivo; botão desabilitado sempre com o motivo à vista.
+
+**As regras, que valem para qualquer tela que adotar o padrão:**
+
+- **Recolhido esconde só como *acrescentar* complexidade, nunca o que já está em
+  uso.** "Opções avançadas" (universo em Função; estágios extras, grupos e E/OU
+  da raiz em Restrições; método, normalização e AHP em Objetivo) abre sozinha
+  quando um estudo carregado, o exemplo ou um link já usa o recurso. Os
+  predicados são puros, em `lib/selection/advanced.ts`, com teste. Fechada com um
+  método diferente da soma ponderada, uma linha diz qual está em uso.
+- **A navegação deriva da ordem de `STEPS`.** Anterior e próximo saem da posição
+  (`neighbours`), o Executar fica no último passo de entrada (`LAST_INPUT_STEP`),
+  "Voltar" existe em todo passo — no primeiro, "Voltar ao início" — e o botão
+  principal diz para onde vai ("Próximo: Objetivo"). Reordenar os passos é mexer
+  numa lista.
+- **O passo vive na URL** (`?etapa=`, com `pushState`), e o botão Voltar do
+  navegador volta um passo. A sincronia é um ouvinte de `popstate`, não um efeito
+  sobre `useSearchParams`: o efeito seria um `setState` dentro de `useEffect`, que
+  a regra de lint deste repositório recusa com razão.
+- **O Stepper é a faixa-resumo.** Cada passo ganhou uma segunda linha com o que já
+  guarda (nome, índice e número de critérios, número de restrições, candidatos),
+  e continua clicável.
+- **Objetivo em dois blocos** (`GuidedBlock`): o índice, depois critérios e pesos,
+  travado com o motivo escrito até o índice ser confirmado — "Nenhum índice" é
+  confirmação válida. Confirmado, o bloco recolhe a grade mas **o `IndexCard` com
+  as hipóteses fica à vista** ([D-25](#d-25)).
+- **O resultado começa pelo vencedor e pelo porquê**, com números do backend
+  apenas: a pontuação, as contribuições ou a frase do TOPSIS/PROMETHEE, o valor do
+  índice, "passou em N restrições". Escolher o primeiro de uma lista já ordenada é
+  comparação, não cálculo. Empate nomeia todos; sem índice nem ranking, a tela não
+  declara vencedor e diz por quê. Depois vêm o top 5 e as abas (Resumo, Ranking,
+  Eliminados, Sensibilidade, Origem dos dados); os ids antigos de seção abrem a aba
+  certa, e o **`LimitationNotice` fica fora das abas** (REDESIGN §13).
+- **Busca em vez de lista longa** (`Combobox`, padrão ARIA 1.2, busca sem acento,
+  lista em portal porque o cartão corta o transbordo). Não `<datalist>`: ele não
+  dobra acento, devolve o rótulo em vez do slug e varia de navegador para
+  navegador. Um critério já escolhido some das opções.
+- **Unidade à vista.** A unidade de uma restrição sobre propriedade de material é
+  um seletor sobre `accepted_units`, pré-escolhido na unidade de leitura: em
+  branco ela valia a canônica, e "70" num módulo virava 70 Pa. Cada linha se lê
+  como frase embaixo ("Módulo de Young ≥ 70 GPa", `describeConstraintRow`).
+- **O exemplo é constante do frontend** (`lib/selection/examples.ts`): são
+  escolhas de entrada, não dado de material, e por isso não violam o princípio 1
+  nem dependem de deploy. Antes de aplicar, confere que os slugs existem; se
+  faltar algum, diz o quê e não aplica nada; aplicado, tem **Desfazer**. Um teste
+  lê `seed.py` para que o exemplo não envelheça em silêncio.
+- **Estudos salvos e IA saem do fluxo**: "Meus estudos (N)" é um painel recolhido
+  no topo, com o conteúdo de antes inteiro; o assistente de IA fica atrás de um
+  botão com `aria-expanded`.
+- **Uma dica de uma linha por campo**, pela prop `hint` que já existia.
+
+O contador de candidatos passou a ter *debounce* sobre a chave serializada dos
+estágios — ele disparava uma requisição por tecla, e a aula põe quarenta pessoas
+numa máquina só.
+
+**Nada saiu.** Tudo que existia continua alcançável: o que mudou foi a ordem em
+que aparece e o que fica recolhido até alguém pedir.
+
+## D-86 — Superfícies enxutas: capa com um botão, menu por papel, Início, Mapas, Comparar e as ferramentas
+
+Mesmo pedido e mesma pesquisa do [D-85](#d-85), aplicados ao resto do produto.
+
+- **A capa (`/`) deixou de ser vitrine de venda** (revê o [D-50](#d-50) no que ele
+  punha em `/`). A ferramenta não está sendo vendida agora, e quem chega pelo
+  link do professor precisa de uma coisa: entrar. `StartScreen` tem o nome, uma
+  linha e **um** botão "Começar um estudo", com os dois avisos em letra miúda —
+  são compromissos da proposta, não marketing. A vitrine (`Landing.tsx` e o que
+  ela usa) **fica no repositório e continua auditada**: voltar é trocar um import.
+  Depois do login o aluno cai em `/app`, não de volta na capa.
+- **O menu mostra a cada um o que ele pode usar.** Para quem não é curador
+  (`can_edit_catalog`, [D-83](#d-83)) somem "Importar" e o grupo "Administrar" —
+  telas só de leitura para o aluno. **Não é segurança**: o backend já recusa;
+  é ruído a menos. Cada item tem ícone próprio (Custo, Processos e Propriedades
+  dividiam glifos).
+- **Início**: um botão principal, o aviso de dados fictícios, o aviso de limitação
+  em forma compacta (o texto integral continua no rodapé), "retomar um estudo",
+  três atalhos e os quatro passos do método recolhidos em "Como funciona".
+- **Mapas**: os eixos são a pergunta e ficam à vista; universo, escala, forma do
+  envelope, camadas, classes, linha de índice e a troca de um eixo por índice vão
+  para "Personalizar o mapa". O painel abre sozinho quando o link ou um mapa salvo
+  já personaliza algo (`mapUsesCustomization`, puro, com teste) e, fechado, diz em
+  palavras o que está em uso. Um eixo desenhado como índice mantém o próprio
+  seletor à vista.
+- **Comparar** em três passos: os materiais entram por busca, e só os escolhidos
+  aparecem, como chips removíveis (`RemovableChip`, primitiva nova, em `/estilo`)
+  cujo botão carrega o nome do item. Os passos seguintes dizem em palavras o que
+  esperam. Um link com `?materiais=` abre com os três preenchidos.
+- **Ferramentas** (Custo, Eco, Baterias, Dimensionar, Sintetizar):
+  - **Premissas recolhidas, com cada valor impresso no resumo** — a regra do
+    [D-65](#d-65)/[D-69](#d-69) é "premissa é entrada com valor visível", e o
+    resumo a cumpre. Uma premissa que bloqueia a execução abre o painel sozinha.
+  - **Todo botão desabilitado diz o primeiro requisito que falta**, ao lado dele
+    e ligado por `aria-describedby`. É validação de entrada, não conta.
+  - A **condição de apoio** do Dimensionar continua à vista ([D-64](#d-64)): é a
+    constante que faz dois briefings iguais darem respostas diferentes.
+  - O **cartão de resultado fica na tela desde o início** ([D-80](#d-80) mantido
+    no que ele protege) — Dimensionar, que só o mostrava depois de executar,
+    passou a seguir a regra. Dimensionar e Sintetizar usam `StepCard`.
+  - Material por busca onde a lista é o catálogo inteiro.
+  - **O que o plano previa e ficou de fora de propósito:** revelar o cartão
+    seguinte de uma ferramenta só depois do anterior. As ferramentas têm dois ou
+    três cartões curtos e um resultado que depende de todos; esconder o segundo
+    esconderia justamente as premissas de que o número depende. O que tornava as
+    telas pesadas eram as premissas abertas e as listas longas, e é isso que
+    mudou.
