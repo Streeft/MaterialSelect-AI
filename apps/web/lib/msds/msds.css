@@ -1,0 +1,1428 @@
+/* MaterialSelect AI — Design System 2.0 — component styles.
+   Every color/shape/shadow value below is a var() onto a token from tokens.json —
+   never a literal, so switching data-theme retints everything. */
+
+:root {
+  --msds-ease: cubic-bezier(0.2, 0, 0, 1);
+  --msds-dur: 180ms;
+  --msds-dur-slow: 320ms;
+  /* Extraídas da M3: quem entra desacelera, quem sai acelera — nunca a mesma curva
+     nos dois sentidos (a curva única acima segue valendo para o resto do sistema). */
+  --msds-ease-out: cubic-bezier(0.05, 0.7, 0.1, 1);
+  --msds-ease-in: cubic-bezier(0.3, 0, 0.8, 0.15);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--surface-100);
+  color: rgb(var(--ink));
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+.msds-row { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
+.msds-col { display: flex; flex-direction: column; gap: var(--space-3); }
+.msds-sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--surface-100), 0 0 0 4px rgb(var(--accent));
+  border-radius: var(--radius-seat);
+}
+
+/* ---------- Button ---------- */
+.msds-btn {
+  appearance: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  font-family: var(--font-sans);
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  white-space: nowrap;
+  max-width: 100%;
+  transition: transform var(--msds-dur) var(--msds-ease), box-shadow var(--msds-dur) var(--msds-ease),
+    background var(--msds-dur) var(--msds-ease), border-color var(--msds-dur) var(--msds-ease);
+}
+.msds-btn-label { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.msds-btn:active:not(:disabled) { transform: scale(0.97) translateY(1px); }
+.msds-btn:disabled { cursor: not-allowed; opacity: 0.5; }
+.msds-btn-md { height: 40px; padding: 0 var(--space-4); font-size: 14px; }
+.msds-btn-sm { height: 32px; padding: 0 var(--space-3); font-size: 13px; }
+
+.msds-btn-primary { background: rgb(var(--accent)); color: rgb(var(--accent-fg)); box-shadow: var(--shadow-card); }
+.msds-btn-primary:hover:not(:disabled) { transform: translateY(-1px) scale(1.01); box-shadow: var(--shadow-glow); }
+
+.msds-btn-secondary { background: var(--surface-200); color: rgb(var(--ink)); border-color: rgb(var(--edge-control)); }
+.msds-btn-secondary:hover:not(:disabled) { border-color: rgb(var(--accent)); color: rgb(var(--accent)); transform: translateY(-1px); }
+
+.msds-btn-ghost { background: transparent; color: rgb(var(--ink)); }
+.msds-btn-ghost:hover:not(:disabled) { background: rgb(var(--brand-50)); color: rgb(var(--accent)); }
+
+.msds-btn-danger { background: rgb(var(--danger)); color: rgb(var(--accent-fg)); box-shadow: var(--shadow-card); }
+.msds-btn-danger:hover:not(:disabled) { transform: translateY(-1px) scale(1.01); filter: brightness(1.06); }
+
+.msds-btn-link { background: transparent; color: rgb(var(--accent)); text-decoration: underline; text-underline-offset: 3px; padding-left: 2px; padding-right: 2px; }
+.msds-btn-link:hover:not(:disabled) { color: rgb(var(--brand-800)); }
+
+.msds-spinner {
+  width: 14px; height: 14px; border-radius: 50%;
+  border: 2px solid currentColor; border-right-color: transparent;
+  animation: msds-spin 700ms linear infinite;
+}
+@keyframes msds-spin { to { transform: rotate(360deg); } }
+
+/* ---------- IconButton ---------- */
+.msds-icon-btn {
+  appearance: none; border: 1px solid rgb(var(--edge-control)); background: var(--surface-200);
+  color: rgb(var(--ink-muted)); width: 40px; height: 40px; border-radius: var(--radius-full);
+  display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
+  transition: all var(--msds-dur) var(--msds-ease);
+}
+.msds-icon-btn:hover { transform: scale(1.06); color: rgb(var(--accent)); border-color: rgb(var(--accent)); }
+.msds-icon-btn[aria-pressed="true"] { background: rgb(var(--brand-50)); color: rgb(var(--accent)); border-color: rgb(var(--accent)); }
+.msds-icon-btn svg { width: 18px; height: 18px; }
+
+/* ---------- Segmented control ---------- */
+.msds-segmented {
+  display: inline-flex; padding: 3px; background: var(--surface-300);
+  border-radius: var(--radius-control); gap: 2px; border: 1px solid rgb(var(--edge));
+}
+.msds-segmented-item {
+  appearance: none; border: none; background: transparent; color: rgb(var(--ink-muted));
+  font-family: var(--font-sans); font-size: 13px; font-weight: 600;
+  padding: 6px 14px; border-radius: var(--radius-seat); cursor: pointer; white-space: nowrap;
+  transition: all var(--msds-dur) var(--msds-ease);
+}
+.msds-segmented-item:hover { color: rgb(var(--ink)); }
+.msds-segmented-item[data-active="true"] {
+  background: var(--surface-200); color: rgb(var(--accent)); box-shadow: var(--shadow-card);
+}
+
+/* ---------- Chip ---------- */
+.msds-chip {
+  appearance: none; display: inline-flex; align-items: center; gap: var(--space-2); white-space: nowrap; max-width: 100%;
+  border: 1px solid rgb(var(--edge-control)); background: var(--surface-200); color: rgb(var(--ink));
+  border-radius: var(--radius-full); padding: 6px 12px 6px 10px; font-size: 13px; font-weight: 500;
+  cursor: pointer; transition: all var(--msds-dur) var(--msds-ease);
+}
+.msds-chip:hover { transform: translateY(-1px); border-color: rgb(var(--accent)); }
+.msds-chip[aria-pressed="true"] { background: rgb(var(--brand-50)); border-color: rgb(var(--accent)); color: rgb(var(--brand-800)); }
+.msds-chip-dot { width: 8px; height: 8px; border-radius: 50%; border: 1px solid rgba(0,0,0,0.2); flex: none; }
+
+/* ---------- Badge ---------- */
+.msds-badge {
+  display: inline-flex; align-items: center; gap: 5px; border-radius: var(--radius-full); white-space: nowrap;
+  border: 1px solid transparent; padding: 2px 9px; font-size: 11px; font-weight: 600; line-height: 16px;
+}
+.msds-badge-neutral { background: var(--surface-300); color: rgb(var(--ink-muted)); border-color: rgb(var(--edge)); }
+.msds-badge-brand { background: rgb(var(--brand-50)); color: rgb(var(--brand-700)); border-color: rgb(var(--brand-200)); }
+.msds-badge-success { background: rgb(var(--success-soft)); color: rgb(var(--success-fg)); border-color: rgb(var(--success)); }
+.msds-badge-warning { background: rgb(var(--warning-soft)); color: rgb(var(--warning-fg)); border-color: rgb(var(--warning)); }
+.msds-badge-danger { background: rgb(var(--danger-soft)); color: rgb(var(--danger-fg)); border-color: rgb(var(--danger)); }
+.msds-badge-info { background: rgb(var(--info-soft)); color: rgb(var(--info-fg)); border-color: rgb(var(--info)); }
+
+/* ---------- DataQualityBadge (o "quarto estado") ---------- */
+.msds-quality { display: inline-flex; align-items: center; gap: 6px; border-radius: var(--radius-full);
+  padding: 2px 10px 2px 8px; font-size: 11px; font-weight: 600; border: 1px solid transparent; white-space: nowrap; }
+.msds-quality-glyph { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.msds-quality-medido { background: rgb(var(--quality-medido-soft)); color: rgb(var(--quality-medido)); border-color: color-mix(in srgb, rgb(var(--quality-medido)) 35%, transparent); }
+.msds-quality-medido .msds-quality-glyph { background: rgb(var(--quality-medido)); }
+.msds-quality-importado { background: rgb(var(--quality-importado-soft)); color: rgb(var(--quality-importado)); border-color: color-mix(in srgb, rgb(var(--quality-importado)) 35%, transparent); }
+.msds-quality-importado .msds-quality-glyph { background: rgb(var(--quality-importado)); }
+.msds-quality-estimado { background: rgb(var(--quality-estimado-soft)); color: rgb(var(--quality-estimado)); border-color: color-mix(in srgb, rgb(var(--quality-estimado)) 35%, transparent); }
+.msds-quality-estimado .msds-quality-glyph { background: rgb(var(--quality-estimado)); }
+.msds-quality-ausente { background: rgb(var(--quality-ausente-soft)); color: rgb(var(--quality-ausente)); border: 1px dashed rgb(var(--quality-ausente)); }
+.msds-quality-ausente .msds-quality-glyph { border: 1.5px dashed rgb(var(--quality-ausente)); background: transparent; }
+
+/* ---------- Card ---------- */
+.msds-card {
+  background: var(--surface-200); border: 1px solid rgb(var(--edge)); border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card); overflow: hidden;
+  transition: box-shadow var(--msds-dur-slow) var(--msds-ease), transform var(--msds-dur-slow) var(--msds-ease);
+}
+.msds-card[data-interactive="true"]:hover { box-shadow: var(--shadow-float); transform: translateY(-3px); }
+.msds-card-header { padding: var(--space-4) var(--space-4) var(--space-3); border-bottom: 1px solid rgb(var(--edge-subtle)); }
+.msds-card-title { margin: 0; font-size: 16px; font-weight: 600; color: rgb(var(--ink)); }
+.msds-card-desc { margin: 4px 0 0; font-size: 13px; color: rgb(var(--ink-muted)); }
+.msds-card-body { padding: var(--space-4); }
+.msds-card-footer { padding: var(--space-3) var(--space-4); background: var(--surface-300); border-top: 1px solid rgb(var(--edge-subtle)); }
+
+/* ---------- NavRail ---------- */
+.msds-rail {
+  background: #0E1017; color: #F2F4F9; border-radius: var(--radius-panel);
+  padding: var(--space-4) var(--space-3); display: flex; flex-direction: column; gap: var(--space-5);
+  width: 248px; transition: width var(--msds-dur-slow) var(--msds-ease);
+}
+.msds-rail[data-collapsed="true"] { width: 76px; }
+.msds-rail-group { display: flex; flex-direction: column; gap: 2px; }
+.msds-rail-eyebrow { font-size: 11px; letter-spacing: 0.16em; font-weight: 600; color: rgba(242,244,249,0.45);
+  padding: 0 10px; margin-bottom: 4px; text-transform: uppercase; }
+.msds-rail[data-collapsed="true"] .msds-rail-eyebrow { opacity: 0; height: 0; margin: 0; overflow: hidden; }
+.msds-rail-item {
+  position: relative; display: flex; align-items: center; gap: var(--space-3);
+  padding: 9px 10px; border-radius: var(--radius-control); color: rgba(242,244,249,0.72);
+  cursor: pointer; border: none; background: transparent; text-align: left; font: inherit;
+  transition: background var(--msds-dur) var(--msds-ease), color var(--msds-dur) var(--msds-ease);
+}
+.msds-rail-item:hover { background: rgba(255,255,255,0.06); color: #fff; }
+.msds-rail-item[aria-current="page"] {
+  background: color-mix(in srgb, var(--row-accent, rgb(var(--accent))) 20%, transparent);
+  color: #fff; font-weight: 600;
+}
+.msds-rail-item[aria-current="page"]::before {
+  content: ""; position: absolute; left: -12px; top: 6px; bottom: 6px; width: 3px;
+  border-radius: var(--radius-full); background: var(--row-accent, rgb(var(--accent)));
+  animation: msds-grow-y var(--msds-dur-slow) var(--msds-ease) both;
+}
+@keyframes msds-grow-y { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+.msds-rail-icon { width: 20px; height: 20px; flex: none; display: flex; align-items: center; justify-content: center; }
+.msds-rail-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 14px; display: block; }
+.msds-rail[data-collapsed="true"] .msds-rail-label { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0,0,0,0); }
+.msds-rail-toggle { align-self: flex-end; background: rgba(255,255,255,0.08); border: none; color: #fff;
+  width: 32px; height: 32px; border-radius: var(--radius-full); cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: transform var(--msds-dur-slow) var(--msds-ease); }
+.msds-rail[data-collapsed="true"] .msds-rail-toggle svg { transform: rotate(180deg); }
+
+/* ---------- StatTile ---------- */
+.msds-stat {
+  background: var(--surface-200); border: 1px solid rgb(var(--edge)); border-radius: var(--radius-card);
+  padding: var(--space-4); min-width: 200px; box-shadow: var(--shadow-card);
+}
+.msds-stat-label { font-size: 11px; letter-spacing: 0.16em; font-weight: 600; color: rgb(var(--ink-subtle)); text-transform: uppercase; }
+.msds-stat-value { font-family: var(--font-mono); font-size: 30px; font-weight: 600; color: rgb(var(--ink)); margin-top: 6px; font-variant-numeric: tabular-nums; }
+.msds-stat-unit { font-size: 14px; color: rgb(var(--ink-muted)); margin-left: 4px; }
+.msds-stat-row { display: flex; align-items: flex-end; justify-content: space-between; margin-top: var(--space-3); gap: var(--space-3); }
+.msds-stat-trend { font-size: 12px; font-weight: 600; border-radius: var(--radius-full); padding: 2px 8px; white-space: nowrap; }
+.msds-stat-trend[data-dir="up"] { color: rgb(var(--success-fg)); background: rgb(var(--success-soft)); }
+.msds-stat-trend[data-dir="down"] { color: rgb(var(--danger-fg)); background: rgb(var(--danger-soft)); }
+.msds-stat-spark { flex: 1; height: 32px; }
+
+/* ---------- Charts (shared) ---------- */
+.msds-chart-card { background: var(--surface-200); border: 1px solid rgb(var(--edge)); border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card); padding: var(--space-4); }
+.msds-chart-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-3); gap: var(--space-3); flex-wrap: wrap; }
+.msds-chart-title { font-size: 14px; font-weight: 600; color: rgb(var(--ink)); margin: 0; }
+.msds-tooltip {
+  position: absolute; pointer-events: none; background: rgb(var(--ink)); color: var(--surface-100);
+  font-size: 12px; padding: 6px 10px; border-radius: var(--radius-seat); box-shadow: var(--shadow-overlay);
+  transform: translate(-50%, calc(-100% - 10px)); white-space: nowrap; z-index: 5;
+  transition: opacity 120ms var(--msds-ease); font-family: var(--font-sans);
+}
+.msds-tooltip strong { font-family: var(--font-mono); font-weight: 600; }
+.msds-chart-table { width: 100%; border-collapse: collapse; margin-top: var(--space-3); font-size: 12px; }
+.msds-chart-table th, .msds-chart-table td { text-align: left; padding: 5px 8px; border-bottom: 1px solid rgb(var(--edge-subtle)); }
+.msds-chart-table th { color: rgb(var(--ink-subtle)); font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; font-size: 10px; }
+.msds-chart-table td[data-numeric="true"] { text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.msds-table-toggle { font-size: 12px; font-weight: 600; color: rgb(var(--accent)); background: none; border: none; cursor: pointer; padding: 4px 0; }
+.msds-table-toggle:hover { text-decoration: underline; }
+.msds-legend { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-3); }
+.msds-legend-item { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: rgb(var(--ink-muted));
+  background: none; border: none; cursor: pointer; padding: 2px 0; }
+.msds-legend-item[data-off="true"] { opacity: 0.4; text-decoration: line-through; }
+.msds-legend-swatch { width: 10px; height: 10px; border-radius: 3px; border: 1px solid rgba(0,0,0,0.15); flex: none; }
+
+/* BarChart */
+.msds-bar-row { display: grid; grid-template-columns: 120px 1fr; align-items: center; gap: var(--space-3); padding: 5px 0; }
+.msds-bar-name { font-size: 12px; color: rgb(var(--ink-muted)); text-align: right; }
+.msds-bar-track { position: relative; height: 20px; background: var(--surface-300); border-radius: var(--radius-seat); overflow: hidden; display: flex; }
+.msds-bar-seg { height: 100%; transform-origin: left; animation: msds-grow-x var(--msds-dur-slow) var(--msds-ease) both;
+  cursor: pointer; transition: filter 120ms var(--msds-ease); border-right: 1px solid rgba(255,255,255,0.35); }
+.msds-bar-seg:last-child { border-right: none; }
+.msds-bar-seg:hover, .msds-bar-seg[data-focus="true"] { filter: brightness(1.12); }
+@keyframes msds-grow-x { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+/* ScatterMap */
+.msds-scatter-wrap { position: relative; }
+.msds-scatter-point { cursor: pointer; transition: r 120ms var(--msds-ease), filter 120ms var(--msds-ease); }
+.msds-scatter-point[data-dim="true"] { opacity: 0.25; }
+.msds-scatter-point:hover, .msds-scatter-point[data-active="true"] { filter: drop-shadow(0 2px 4px rgba(0,0,0,0.35)); }
+.msds-scatter-envelope { animation: msds-fade-in 420ms var(--msds-ease-out) both; }
+@keyframes msds-fade-in { from { opacity: 0; } to { opacity: 1; } }
+.msds-index-line { stroke-dasharray: 5 4; }
+
+/* RadarChart */
+/* opacity/transform vêm da mola (useSpring) via style inline, não daqui —
+   fill-opacity fica em CSS só porque é constante, não parte da animação. */
+.msds-radar-series { fill-opacity: 0.18; }
+.msds-radar-vertex { cursor: pointer; }
+.msds-radar-axis-label { font-size: 11px; fill: rgb(var(--ink-subtle)); font-family: var(--font-sans); }
+
+/* Cover */
+.msds-cover-tag { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.08em; }
+
+/* ============ Rodada 2: formulário, sobreposições, estados, gráficos, assinaturas ============ */
+
+/* Button — estado de sucesso (metamorfose) */
+.msds-btn-check { display: inline-flex; animation: msds-pop 320ms var(--msds-ease) both; }
+@keyframes msds-pop { from { transform: scale(0.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.msds-btn.is-success { background: rgb(var(--success)); color: rgb(var(--accent-fg)); }
+.msds-kbd { font-family: var(--font-mono); font-size: 11px; background: rgba(255,255,255,0.18); border-radius: var(--radius-seat); padding: 1px 6px; margin-left: 4px; }
+.msds-btn-secondary .msds-kbd { background: var(--surface-300); color: rgb(var(--ink-muted)); }
+
+/* Form controls */
+.msds-field { display: flex; flex-direction: column; gap: 5px; max-width: 320px; }
+.msds-field-label { font-size: 12px; font-weight: 600; color: rgb(var(--ink-muted)); }
+.msds-field-hint { font-size: 12px; color: rgb(var(--ink-subtle)); margin: 0; }
+.msds-field-hint-error { color: rgb(var(--danger-fg)); }
+/* Rodada 8, item 5: contador de caracteres — só existe quando showCount+
+   maxLength estão presentes (FieldShell.counter); sem isso o rodapé do
+   campo é só o <p> de hint/error de sempre, pixel-idêntico a antes. */
+.msds-field-footer { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); }
+.msds-field-footer .msds-field-hint { flex: 1 1 auto; }
+.msds-field-counter { font-size: 12px; font-variant-numeric: tabular-nums; color: rgb(var(--ink-subtle)); flex: 0 0 auto; white-space: nowrap; margin-left: auto; }
+.msds-field-counter-warning { color: rgb(var(--warning-fg)); }
+.msds-field-counter-danger { color: rgb(var(--danger-fg)); font-weight: 600; }
+.msds-field-unit { font-size: 13px; color: rgb(var(--ink-muted)); }
+.msds-control {
+  width: 100%; border: 1px solid rgb(var(--edge-control)); border-radius: var(--radius-control);
+  background: var(--surface-200); color: rgb(var(--ink)); font: 400 14px var(--font-sans);
+  padding: 8px 10px; transition: border-color var(--msds-dur) var(--msds-ease);
+}
+.msds-control:hover { border-color: rgb(var(--ink-subtle)); }
+.msds-control[aria-invalid="true"] { border-color: rgb(var(--danger)); }
+.msds-control:disabled { background: var(--surface-300); color: rgb(var(--ink-subtle)); cursor: not-allowed; }
+.msds-textarea { resize: vertical; min-height: 64px; font-family: var(--font-sans); }
+.msds-select-wrap { position: relative; }
+.msds-select { appearance: none; padding-right: 30px; cursor: pointer; }
+.msds-select-chevron { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: rgb(var(--ink-subtle)); pointer-events: none; }
+
+.msds-checkbox, .msds-radio { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: rgb(var(--ink)); cursor: pointer; }
+.msds-checkbox input, .msds-radio input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.msds-checkbox-box { width: 18px; height: 18px; border: 1px solid rgb(var(--edge-control)); border-radius: 5px; display: inline-flex; align-items: center; justify-content: center; color: transparent; transition: all var(--msds-dur) var(--msds-ease); flex: none; }
+.msds-checkbox-box svg { width: 13px; height: 13px; }
+.msds-checkbox input:checked + .msds-checkbox-box { background: rgb(var(--accent)); border-color: rgb(var(--accent)); color: rgb(var(--accent-fg)); }
+.msds-checkbox input:focus-visible + .msds-checkbox-box, .msds-radio input:focus-visible + .msds-radio-dot { outline: 2px solid rgb(var(--accent)); outline-offset: 2px; }
+.msds-radio-dot { width: 18px; height: 18px; border: 1px solid rgb(var(--edge-control)); border-radius: 50%; position: relative; flex: none; transition: border-color var(--msds-dur) var(--msds-ease); }
+.msds-radio input:checked + .msds-radio-dot { border-color: rgb(var(--accent)); border-width: 5px; }
+
+/* RangeFilter */
+.msds-rangefilter { max-width: 320px; }
+.msds-rangefilter-track { position: relative; height: 44px; margin-top: 10px; }
+.msds-rangefilter-hist { position: absolute; inset: 0; display: flex; align-items: flex-end; gap: 2px; opacity: 0.55; }
+.msds-rangefilter-bar { flex: 1; background: rgb(var(--brand-200)); border-radius: 2px 2px 0 0; }
+.msds-rangefilter-fill { position: absolute; top: 18px; height: 4px; background: rgb(var(--accent)); border-radius: var(--radius-full); }
+.msds-rangefilter-input { position: absolute; top: 12px; left: 0; width: 100%; height: 16px; margin: 0; appearance: none; background: transparent; pointer-events: none; }
+.msds-rangefilter-input::-webkit-slider-thumb { appearance: none; pointer-events: auto; width: 16px; height: 16px; border-radius: 50%; background: var(--surface-200); border: 2px solid rgb(var(--accent)); cursor: grab; box-shadow: var(--shadow-card); }
+.msds-rangefilter-input::-moz-range-thumb { pointer-events: auto; width: 16px; height: 16px; border-radius: 50%; background: var(--surface-200); border: 2px solid rgb(var(--accent)); cursor: grab; box-shadow: var(--shadow-card); }
+.msds-rangefilter-values { display: flex; justify-content: space-between; font: 500 12px var(--font-mono); color: rgb(var(--ink-muted)); margin-top: 4px; }
+
+/* Dialog */
+.msds-dialog-backdrop { position: fixed; inset: 0; background: rgba(10,12,16,0.5); display: flex; align-items: center; justify-content: center; z-index: 50; padding: 20px; animation: msds-fade-in 160ms var(--msds-ease-out) both; }
+.msds-dialog { background: var(--surface-200); border-radius: var(--radius-card); box-shadow: var(--shadow-overlay); max-width: 420px; width: 100%; animation: msds-rise-in 200ms var(--msds-ease-out) both; }
+/* Rodada 8, item 4: enquanto useContainerTransform está ativo, a mola física
+   já está animando top/left/width/height por estilo inline — a animação
+   CSS de entrada (que também mexe em transform) desligada, ou as duas
+   brigariam pela mesma propriedade. */
+.msds-dialog[data-container-transform="true"] { animation: none; overflow: hidden; }
+@keyframes msds-rise-in { from { opacity: 0; transform: translateY(10px) scale(0.98); } to { opacity: 1; transform: none; } }
+.msds-dialog-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 16px 8px; }
+.msds-dialog-body { padding: 4px 16px 16px; font-size: 14px; color: rgb(var(--ink-muted)); }
+.msds-dialog-footer { padding: 12px 16px; border-top: 1px solid rgb(var(--edge-subtle)); display: flex; justify-content: flex-end; gap: 8px; }
+
+/* Tabs */
+.msds-tablist { display: flex; gap: 4px; border-bottom: 1px solid rgb(var(--edge)); }
+.msds-tab { appearance: none; background: none; border: none; padding: 9px 14px; font: 600 13px var(--font-sans); color: rgb(var(--ink-muted)); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; }
+.msds-tab[data-active="true"] { color: rgb(var(--accent)); border-bottom-color: rgb(var(--accent)); }
+.msds-tabpanel { padding: 14px 2px; font-size: 14px; color: rgb(var(--ink-muted)); }
+
+/* Popover */
+.msds-popover-wrap { position: relative; display: inline-block; }
+.msds-popover-trigger { appearance: none; border: none; background: none; cursor: pointer; color: rgb(var(--accent)); font: 600 13px var(--font-sans); }
+.msds-popover { position: absolute; top: calc(100% + 8px); left: 0; z-index: 10; background: var(--surface-200); border: 1px solid rgb(var(--edge)); border-radius: var(--radius-control); box-shadow: var(--shadow-overlay); padding: 12px; min-width: 220px; font-size: 13px; color: rgb(var(--ink-muted)); animation: msds-fade-in 120ms var(--msds-ease-out) both; }
+
+/* Breadcrumb */
+.msds-breadcrumb { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+.msds-breadcrumb-link { color: rgb(var(--ink-muted)); text-decoration: none; }
+.msds-breadcrumb-link:hover { color: rgb(var(--accent)); text-decoration: underline; }
+.msds-breadcrumb-current { color: rgb(var(--ink)); font-weight: 600; }
+.msds-breadcrumb-sep { color: rgb(var(--ink-subtle)); }
+
+/* Stepper */
+.msds-stepper { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0; }
+.msds-step { display: flex; gap: 12px; padding-bottom: 20px; position: relative; }
+.msds-step:not(:last-child)::before { content: ""; position: absolute; left: 13px; top: 28px; bottom: 0; width: 2px; background: rgb(var(--edge)); }
+.msds-step-dot { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font: 600 12px var(--font-sans); flex: none; background: var(--surface-300); color: rgb(var(--ink-subtle)); border: 2px solid rgb(var(--edge)); }
+.msds-step-dot svg { width: 14px; height: 14px; }
+.msds-step[data-state="complete"] .msds-step-dot { background: rgb(var(--success)); border-color: rgb(var(--success)); color: rgb(var(--accent-fg)); }
+.msds-step[data-state="active"] .msds-step-dot { background: rgb(var(--accent)); border-color: rgb(var(--accent)); color: rgb(var(--accent-fg)); }
+.msds-step[data-state="blocked"] .msds-step-dot { border-color: rgb(var(--warning)); color: rgb(var(--warning-fg)); border-style: dashed; }
+.msds-step-label { font: 600 14px var(--font-sans); color: rgb(var(--ink)); padding-top: 4px; }
+.msds-step-blocked { font-size: 12px; color: rgb(var(--warning-fg)); margin-top: 2px; }
+
+/* Loading / Error / Empty */
+.msds-skeleton { border-radius: var(--radius-seat); background: linear-gradient(90deg, var(--surface-300) 25%, var(--surface-200) 37%, var(--surface-300) 63%); background-size: 300% 100%; animation: msds-shimmer 1.4s ease-in-out infinite; }
+@keyframes msds-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+.msds-state { display: flex; align-items: center; gap: 16px; padding: 24px; text-align: left; }
+.msds-state-icon { color: rgb(var(--danger)); flex: none; }
+.msds-state-title { font: 600 14px var(--font-sans); color: rgb(var(--ink)); }
+.msds-state-desc { font-size: 13px; color: rgb(var(--ink-muted)); margin-top: 2px; }
+
+/* Toast */
+.msds-toast-stack { position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 8px; z-index: 60; max-width: 320px; }
+.msds-toast { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--radius-control); box-shadow: var(--shadow-overlay); font-size: 13px; animation: msds-rise-in 200ms var(--msds-ease-out) both; }
+.msds-toast-message { flex: 1; min-width: 0; }
+.msds-toast-neutral { background: var(--surface-200); color: rgb(var(--ink)); border: 1px solid rgb(var(--edge)); }
+.msds-toast-success { background: rgb(var(--success-soft)); color: rgb(var(--success-fg)); border: 1px solid rgb(var(--success)); }
+.msds-toast-warning { background: rgb(var(--warning-soft)); color: rgb(var(--warning-fg)); border: 1px solid rgb(var(--warning)); }
+.msds-toast-danger { background: rgb(var(--danger-soft)); color: rgb(var(--danger-fg)); border: 1px solid rgb(var(--danger)); }
+.msds-toast-action { background: none; border: none; cursor: pointer; color: rgb(var(--accent)); font-weight: 700; font-size: 13px; flex: none; white-space: nowrap; }
+.msds-toast-action:hover { text-decoration: underline; }
+.msds-toast-close { background: none; border: none; cursor: pointer; color: inherit; opacity: 0.7; display: flex; flex: none; }
+.msds-toast-close:hover { opacity: 1; }
+.msds-toast-close svg { width: 14px; height: 14px; }
+
+/* CommandPalette */
+.msds-command { background: var(--surface-200); border-radius: var(--radius-card); box-shadow: var(--shadow-overlay); width: 100%; max-width: 440px; animation: msds-rise-in 180ms var(--msds-ease-out) both; overflow: hidden; }
+.msds-command-input-row { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid rgb(var(--edge-subtle)); color: rgb(var(--ink-subtle)); }
+.msds-command-input { flex: 1; border: none; outline: none; background: none; font: 400 15px var(--font-sans); color: rgb(var(--ink)); }
+.msds-command-list { list-style: none; margin: 0; padding: 6px; max-height: 280px; overflow-y: auto; }
+.msds-command-item { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: var(--radius-seat); cursor: pointer; font-size: 14px; color: rgb(var(--ink)); }
+.msds-command-item > span:first-of-type + span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.msds-command-item:hover { background: rgb(var(--brand-50)); }
+.msds-command-cls { margin-left: auto; font-size: 12px; color: rgb(var(--ink-subtle)); }
+.msds-command-empty { padding: 20px; text-align: center; color: rgb(var(--ink-subtle)); font-size: 13px; }
+
+/* ComparisonTray */
+.msds-tray { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); background: var(--surface-200); border: 1px solid rgb(var(--edge)); border-radius: var(--radius-panel); box-shadow: var(--shadow-overlay); padding: 10px 12px; display: flex; align-items: center; gap: 12px; z-index: 40; animation: msds-rise-in 220ms var(--msds-ease-out) both; }
+.msds-tray-items { display: flex; gap: 6px; flex-wrap: wrap; max-width: 360px; }
+.msds-tray-chip { display: inline-flex; align-items: center; gap: 6px; background: var(--surface-300); border-radius: var(--radius-full); padding: 4px 8px 4px 10px; font-size: 12px; color: rgb(var(--ink)); white-space: nowrap; }
+.msds-tray-remove { background: none; border: none; cursor: pointer; color: rgb(var(--ink-subtle)); display: flex; padding: 2px; }
+.msds-tray-remove svg { width: 12px; height: 12px; }
+
+/* BoxPlot */
+.msds-box-row { display: grid; grid-template-columns: 120px 1fr; align-items: center; gap: var(--space-3); padding: 8px 0; }
+.msds-box-track { position: relative; height: 22px; }
+.msds-box-whisker { position: absolute; top: 50%; height: 1px; background: rgb(var(--ink-subtle)); transform: translateY(-50%); }
+.msds-box-box { position: absolute; top: 3px; height: 16px; border-radius: 4px; opacity: 0.85; }
+.msds-box-track[data-active="true"] .msds-box-box { opacity: 1; outline: 2px solid rgb(var(--ink)); outline-offset: 1px; }
+.msds-box-median { position: absolute; top: 0; width: 2px; height: 22px; background: rgb(var(--ink)); }
+
+/* ============ Rodada 3: extraído da Material Design 3 ============ */
+
+/* State layer + ripple — a "fluidez" de resposta ao toque. Todo elemento que a
+   recebe precisa de position:relative + overflow:hidden (a própria regra .msds-ripple-host
+   dá isso) para o círculo nascer contido dentro do próprio botão/chip/item. */
+.msds-ripple-host { position: relative; isolation: isolate; }
+/* A camada de clip é uma envelope própria (não o host inteiro) para nunca cortar
+   um detalhe que o host desenha fora da própria caixa — como a barra de item
+   ativo do NavRail, que sangra -12px à esquerda por desenho. */
+.msds-ripple-clip { position: absolute; inset: 0; overflow: hidden; border-radius: inherit; pointer-events: none; }
+.msds-ripple {
+  position: absolute; border-radius: 50%; background: currentColor; opacity: 0.16;
+  transform: scale(0); pointer-events: none; animation: msds-ripple 550ms var(--msds-ease-out) forwards;
+}
+@keyframes msds-ripple { to { transform: scale(1); opacity: 0; } }
+.msds-state-layer { position: absolute; inset: 0; background: currentColor; opacity: 0; pointer-events: none;
+  transition: opacity 120ms var(--msds-ease); border-radius: inherit; }
+.msds-ripple-host:hover .msds-state-layer { opacity: 0.06; }
+.msds-ripple-host:active .msds-state-layer, .msds-ripple-host:focus-visible .msds-state-layer { opacity: 0.10; }
+
+/* FAB — ação primária da tela, fixa sobre o conteúdo. */
+.msds-fab {
+  position: fixed; right: 24px; bottom: 24px; z-index: 30;
+  display: inline-flex; align-items: center; gap: 10px; white-space: nowrap; max-width: calc(100vw - 48px);
+  height: 56px; padding: 0 20px; border: none; border-radius: var(--radius-xl);
+  background: rgb(var(--accent)); color: rgb(var(--accent-fg)); box-shadow: var(--shadow-raised);
+  font: 600 14px var(--font-sans); cursor: pointer;
+  transition: transform var(--msds-dur) var(--msds-ease), box-shadow var(--msds-dur) var(--msds-ease);
+}
+.msds-fab[data-icon-only="true"] { width: 56px; padding: 0; justify-content: center; border-radius: var(--radius-xl); }
+.msds-fab:hover { transform: translateY(-2px); box-shadow: var(--shadow-glow); }
+.msds-fab:active { transform: translateY(0) scale(0.97); }
+.msds-fab[data-raised-above-tray="true"] { bottom: 96px; }
+
+/* Elevação tonal — movida para a seção "Rodada 5" abaixo (data-tonal-hover),
+   quando a prop foi renomeada de "elevated" para não colidir com o novo
+   Card variant="elevated". */
+
+/* Toast / ComparisonTray saindo — curva de aceleração (M3: quem sai acelera). */
+.msds-toast.is-leaving, .msds-tray.is-leaving {
+  animation: msds-leave 160ms var(--msds-ease-in) forwards;
+}
+@keyframes msds-leave { to { opacity: 0; transform: translateY(6px) scale(0.98); } }
+
+/* ============ Rodada 4: mais componentes M3 (sem cor M3 nenhuma) ============ */
+
+/* Switch */
+.msds-switch { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; }
+.msds-switch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.msds-switch-track { width: 40px; height: 24px; border-radius: var(--radius-full); background: var(--surface-300);
+  border: 1px solid rgb(var(--edge-control)); position: relative; transition: background var(--msds-dur) var(--msds-ease), border-color var(--msds-dur) var(--msds-ease); flex: none; }
+.msds-switch-thumb { position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%;
+  background: var(--surface-200); box-shadow: var(--shadow-card); transition: transform var(--msds-dur-slow) var(--msds-ease-out), background var(--msds-dur) var(--msds-ease); }
+.msds-switch input:checked + .msds-switch-track { background: rgb(var(--accent)); border-color: rgb(var(--accent)); }
+.msds-switch input:checked + .msds-switch-track .msds-switch-thumb { transform: translateX(16px); background: rgb(var(--accent-fg)); }
+.msds-switch input:focus-visible + .msds-switch-track { outline: 2px solid rgb(var(--accent)); outline-offset: 2px; }
+.msds-switch-label { font-size: 14px; color: rgb(var(--ink)); }
+
+/* Slider */
+.msds-slider { max-width: 280px; }
+.msds-slider-track { position: relative; height: 20px; margin-top: 8px; }
+.msds-slider-track::before { content: ""; position: absolute; top: 9px; left: 0; right: 0; height: 4px; border-radius: var(--radius-full); background: var(--surface-300); }
+.msds-slider-fill { position: absolute; top: 9px; left: 0; height: 4px; border-radius: var(--radius-full); background: rgb(var(--accent)); pointer-events: none; }
+.msds-slider-input { position: relative; width: 100%; height: 20px; margin: 0; appearance: none; background: transparent; }
+.msds-slider-input::-webkit-slider-thumb { appearance: none; width: 18px; height: 18px; border-radius: 50%; background: rgb(var(--accent)); border: 3px solid var(--surface-200); box-shadow: var(--shadow-card); cursor: grab; margin-top: -1px; }
+.msds-slider-input::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: rgb(var(--accent)); border: 3px solid var(--surface-200); box-shadow: var(--shadow-card); cursor: grab; }
+.msds-slider-input::-moz-range-track { background: transparent; }
+
+/* Menu */
+.msds-menu-wrap { position: relative; display: inline-block; }
+.msds-menu-trigger { appearance: none; border: 1px solid rgb(var(--edge-control)); background: var(--surface-200); color: rgb(var(--ink));
+  border-radius: var(--radius-control); padding: 8px 12px; font: 500 13px var(--font-sans); cursor: pointer; white-space: nowrap; }
+.msds-menu-trigger:hover { border-color: rgb(var(--accent)); }
+.msds-menu { position: absolute; top: calc(100% + 6px); left: 0; z-index: 20; margin: 0; padding: 6px; list-style: none;
+  min-width: 180px; background: var(--surface-200); border: 1px solid rgb(var(--edge)); border-radius: var(--radius-control);
+  box-shadow: var(--shadow-overlay); animation: msds-fade-in 120ms var(--msds-ease-out) both; }
+.msds-menu-item { width: 100%; display: flex; align-items: center; gap: 8px; appearance: none; border: none; background: none;
+  text-align: left; padding: 8px 10px; border-radius: var(--radius-seat); font-size: 13px; color: rgb(var(--ink)); cursor: pointer; white-space: nowrap; }
+.msds-menu-item:hover:not(:disabled) { background: rgb(var(--brand-50)); color: rgb(var(--accent)); }
+.msds-menu-item:disabled { color: rgb(var(--ink-subtle)); cursor: not-allowed; }
+.msds-menu-icon { display: flex; color: rgb(var(--ink-subtle)); flex: none; }
+
+/* Tooltip */
+.msds-tooltip-wrap { position: relative; display: inline-flex; }
+.msds-tooltip-bubble { position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+  background: rgb(var(--ink)); color: var(--surface-100); font-size: 12px; padding: 5px 9px; border-radius: var(--radius-seat);
+  white-space: nowrap; z-index: 15; pointer-events: none; animation: msds-fade-in 100ms var(--msds-ease-out) both; }
+
+/* List */
+.msds-list { display: flex; flex-direction: column; }
+.msds-list-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: var(--radius-control); position: relative; }
+button.msds-list-item, [role="button"].msds-list-item { cursor: pointer; text-align: left; width: 100%; border: none; background: none; font: inherit; color: inherit; }
+.msds-list-item[role="button"]:hover, .msds-list-item:is(button):hover { background: var(--surface-300); }
+.msds-list-icon { display: flex; color: rgb(var(--ink-subtle)); flex: none; }
+.msds-list-body { flex: 1; min-width: 0; }
+.msds-list-label { font-size: 14px; color: rgb(var(--ink)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.msds-list-desc { font-size: 12px; color: rgb(var(--ink-muted)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.msds-list-meta { font-size: 12px; color: rgb(var(--ink-subtle)); flex: none; white-space: nowrap; }
+
+/* Divider */
+.msds-divider { height: 1px; background: rgb(var(--edge)); width: 100%; border: none; }
+.msds-divider-v { width: 1px; height: 100%; align-self: stretch; }
+
+/* SearchBar */
+.msds-searchbar { display: flex; align-items: center; gap: 8px; border: 1px solid rgb(var(--edge-control));
+  background: var(--surface-200); border-radius: var(--radius-full); padding: 8px 14px; color: rgb(var(--ink-subtle)); max-width: 360px; }
+.msds-searchbar-input { flex: 1; border: none; outline: none; background: none; font: 400 14px var(--font-sans); color: rgb(var(--ink)); min-width: 0; }
+.msds-searchbar-clear { border: none; background: none; color: rgb(var(--ink-subtle)); cursor: pointer; display: flex; padding: 2px; }
+
+/* TopAppBar — cabeçalho de largura compact */
+.msds-appbar { background: var(--surface-200); border-bottom: 1px solid rgb(var(--edge-subtle)); }
+.msds-appbar-title { font: 600 16px var(--font-sans); color: rgb(var(--ink)); margin: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.msds-appbar-actions { display: flex; align-items: center; gap: 6px; flex: none; }
+
+/* NavDrawer — variante modal do NavRail (compact/medium) */
+.msds-drawer-backdrop { position: fixed; inset: 0; background: rgba(10,12,16,0.5); z-index: 45; animation: msds-fade-in 160ms var(--msds-ease-out) both; }
+.msds-drawer-panel { position: fixed; inset: 0 auto 0 0; width: 280px; max-width: 85vw; padding: 12px; box-sizing: border-box;
+  animation: msds-drawer-in 220ms var(--msds-ease-out) both; }
+@keyframes msds-drawer-in { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+.msds-drawer-panel .msds-rail { height: 100%; width: 100% !important; }
+
+/* Heatmap */
+.msds-heat-cell { border-radius: 4px; display: flex; align-items: center; justify-content: center; transition: outline-color 120ms var(--msds-ease); cursor: pointer; outline: 2px solid transparent; outline-offset: -2px; }
+.msds-heat-cell[data-active="true"] { outline-color: rgb(var(--ink)); }
+.msds-heat-value { font: 600 10px var(--font-mono); color: rgb(var(--ink)); background: var(--surface-200); padding: 1px 3px; border-radius: 3px; }
+.msds-heat-scale { display: flex; align-items: center; gap: 3px; margin-top: 12px; font-size: 11px; color: rgb(var(--ink-subtle)); }
+.msds-heat-swatch { width: 16px; height: 10px; border-radius: 2px; }
+
+/* ============ Rodada 5: variantes que faltavam + componentes novos ============ */
+
+/* Chip — variantes (a "filter" original é o default e não muda) */
+.msds-chip-filter { /* aparência original, sem regra própria além da .msds-chip de base */ }
+.msds-chip-assist { background: transparent; }
+.msds-chip-assist .msds-chip-icon { display: flex; color: rgb(var(--ink-muted)); flex: none; }
+.msds-chip-assist .msds-chip-icon svg { width: 15px; height: 15px; }
+.msds-chip-suggestion { background: rgb(var(--brand-50)); border-color: transparent; color: rgb(var(--brand-800)); }
+.msds-chip-suggestion:hover { border-color: rgb(var(--accent)); }
+.msds-chip-input { padding-right: 6px; }
+.msds-chip-input .msds-chip-text { display: inline-flex; }
+.msds-chip-remove {
+  appearance: none; border: none; background: rgba(0,0,0,0.08); color: inherit; cursor: pointer;
+  width: 18px; height: 18px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+  flex: none; padding: 0; transition: background var(--msds-dur) var(--msds-ease);
+}
+.msds-chip-remove svg { width: 11px; height: 11px; }
+.msds-chip-remove:hover { background: rgba(0,0,0,0.16); }
+
+/* Card — variantes ("elevated" é o default = aparência original) */
+.msds-card-filled { background: var(--surface-300); border-color: transparent; box-shadow: none; }
+.msds-card-outlined { background: var(--surface-200); border: 1px solid rgb(var(--edge-control)); box-shadow: none; }
+/* "tonalHover" (antes nomeada "elevated" — renomeada na Rodada 5 para não colidir com variant="elevated") */
+.msds-card[data-tonal-hover="true"]:hover {
+  box-shadow: var(--shadow-float);
+  background: color-mix(in srgb, rgb(var(--accent)) 4%, var(--surface-200));
+  border-color: color-mix(in srgb, rgb(var(--accent)) 20%, rgb(var(--edge)));
+}
+
+/* IconButton — variantes ("outlined" é o default = aparência original) */
+.msds-icon-btn-standard { background: transparent; border-color: transparent; }
+.msds-icon-btn-standard:hover { background: var(--surface-300); border-color: transparent; }
+.msds-icon-btn-filled { background: rgb(var(--accent)); color: rgb(var(--accent-fg)); border-color: transparent; }
+.msds-icon-btn-filled:hover { color: rgb(var(--accent-fg)); filter: brightness(1.08); border-color: transparent; }
+.msds-icon-btn-filled[aria-pressed="true"] { background: rgb(var(--brand-800)); color: rgb(var(--accent-fg)); border-color: transparent; }
+.msds-icon-btn-tonal { background: rgb(var(--brand-50)); color: rgb(var(--brand-700)); border-color: transparent; }
+.msds-icon-btn-tonal:hover { border-color: transparent; background: rgb(var(--brand-100)); }
+
+/* Text fields — variantes ("outlined" é o default = aparência original) */
+.msds-control-filled {
+  border: none; border-bottom: 2px solid rgb(var(--edge-control)); border-radius: var(--radius-control) var(--radius-control) 0 0;
+  background: var(--surface-300);
+}
+.msds-control-filled:hover { border-bottom-color: rgb(var(--ink-subtle)); }
+.msds-control-filled[aria-invalid="true"] { border-bottom-color: rgb(var(--danger)); }
+.msds-control-filled:focus-visible, .msds-control-filled:focus { border-bottom-color: rgb(var(--accent)); }
+
+/* Checkbox — indeterminate (dash em vez de check) */
+.msds-checkbox-box[data-indeterminate="true"] { background: rgb(var(--accent)); border-color: rgb(var(--accent)); color: rgb(var(--accent-fg)); }
+
+/* NotificationBadge — pense em "posicionado pelo host": este componente só
+   é a bolinha/contador; quem chama envolve o alvo (ícone/avatar) num
+   container position:relative e este elemento senta no canto por CSS. */
+.msds-notif-badge {
+  position: absolute; top: -4px; right: -4px; min-width: 16px; height: 16px; padding: 0 4px;
+  border-radius: var(--radius-full); background: rgb(var(--danger)); color: rgb(var(--accent-fg));
+  font: 700 10px var(--font-mono); line-height: 16px; text-align: center;
+  border: 2px solid var(--surface-200); box-shadow: var(--shadow-card);
+}
+.msds-notif-badge-dot { min-width: 0; width: 10px; height: 10px; padding: 0; top: -1px; right: -1px; }
+
+/* LinearProgress */
+.msds-linprog-track { position: relative; height: 4px; border-radius: var(--radius-full); background: var(--surface-300); overflow: hidden; }
+.msds-linprog-fill { height: 100%; border-radius: var(--radius-full); background: rgb(var(--accent)); transition: width var(--msds-dur-slow) var(--msds-ease); }
+.msds-linprog-sweep { position: absolute; top: 0; bottom: 0; width: 40%; border-radius: var(--radius-full); background: rgb(var(--accent)); animation: msds-linprog-sweep 1.4s var(--msds-ease) infinite; }
+@keyframes msds-linprog-sweep {
+  0% { left: -40%; }
+  100% { left: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .msds-linprog-sweep { animation: none; left: 0; width: 40%; }
+}
+
+/* BottomSheet — mesma base de backdrop/entrada do Dialog, geometria de rodapé */
+.msds-sheet-backdrop { position: fixed; inset: 0; background: rgba(10,12,16,0.5); display: flex; align-items: flex-end; justify-content: center; z-index: 50; animation: msds-fade-in 160ms var(--msds-ease-out) both; }
+.msds-sheet {
+  background: var(--surface-200); border-radius: var(--radius-card) var(--radius-card) 0 0; box-shadow: var(--shadow-overlay);
+  width: 100%; max-width: 560px; max-height: 85vh; overflow-y: auto;
+  animation: msds-sheet-in 220ms var(--msds-ease-out) both;
+}
+@keyframes msds-sheet-in { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.msds-sheet-handle { width: 36px; height: 4px; border-radius: var(--radius-full); background: rgb(var(--edge-strong)); margin: 10px auto 0; }
+.msds-sheet-body { padding: 4px 16px 20px; font-size: 14px; color: rgb(var(--ink-muted)); }
+
+/* BottomNavBar — 3 a 5 destinos, teto documentado (não imposto em runtime) */
+.msds-bottomnav {
+  display: flex; align-items: stretch; height: 64px; background: var(--surface-200);
+  border-top: 1px solid rgb(var(--edge-subtle)); box-shadow: var(--shadow-overlay);
+}
+.msds-bottomnav-item {
+  flex: 1; appearance: none; border: none; background: transparent; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  color: rgb(var(--ink-subtle)); font: 600 11px var(--font-sans); padding: 6px 4px;
+  transition: color var(--msds-dur) var(--msds-ease);
+}
+.msds-bottomnav-item:hover { color: rgb(var(--ink-muted)); }
+.msds-bottomnav-item[aria-current="page"] { color: rgb(var(--accent)); }
+.msds-bottomnav-icon { display: flex; }
+.msds-bottomnav-icon svg { width: 22px; height: 22px; }
+.msds-bottomnav-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+
+/* DataTable */
+.msds-datatable-wrap { overflow-x: auto; border: 1px solid rgb(var(--edge)); border-radius: var(--radius-control); }
+.msds-datatable { width: 100%; border-collapse: collapse; font-size: 13px; }
+.msds-datatable th, .msds-datatable td { text-align: left; padding: 9px 12px; border-bottom: 1px solid rgb(var(--edge-subtle)); }
+.msds-datatable th { background: var(--surface-300); color: rgb(var(--ink-subtle)); font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase; font-size: 11px; }
+.msds-datatable tbody tr:last-child td { border-bottom: none; }
+.msds-datatable tbody tr:hover { background: var(--surface-300); }
+.msds-datatable td[data-numeric="true"], .msds-datatable th[data-numeric="true"] { text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.msds-datatable-empty { text-align: center; color: rgb(var(--ink-subtle)); padding: 20px; }
+
+/* TopAppBar — size (small é o default = aparência original) */
+.msds-appbar-row { display: flex; align-items: center; gap: 12px; height: 56px; padding: 0 12px; }
+.msds-appbar[data-centered="true"] .msds-appbar-row { justify-content: center; position: relative; }
+.msds-appbar[data-centered="true"] .msds-appbar-title { flex: none; }
+.msds-appbar-medium, .msds-appbar-large { height: auto; padding-bottom: 12px; }
+.msds-appbar-medium .msds-appbar-row, .msds-appbar-large .msds-appbar-row { height: 52px; }
+.msds-appbar-actions-spacer { flex: 1; }
+.msds-appbar-title-large { margin: 0; padding: 4px 16px 0; color: rgb(var(--ink)); font-weight: 600; }
+.msds-appbar-medium .msds-appbar-title-large { font-size: 24px; line-height: 30px; }
+.msds-appbar-large .msds-appbar-title-large { font-size: 28px; line-height: 34px; padding-top: 8px; }
+
+/* BottomAppBar */
+.msds-bottombar {
+  display: flex; align-items: center; justify-content: space-between; height: 64px; padding: 0 8px 0 16px;
+  background: var(--surface-200); border-top: 1px solid rgb(var(--edge-subtle)); box-shadow: var(--shadow-overlay);
+}
+.msds-bottombar-actions { display: flex; align-items: center; gap: 4px; }
+.msds-bottombar-fab-slot { display: flex; align-items: center; }
+.msds-bottombar[data-docked="true"] .msds-bottombar-fab-slot { margin-left: 8px; }
+
+/* ============ Rodada 6: cor M3, ícones M3, forma expressive, elevação
+   tonal e 7 componentes/padrões novos (CircularProgress, SideSheet,
+   SplitButton, DatePicker, TimePicker, Carousel, ScreenTransitionDemo) ============ */
+
+/* FAB — size (small/large aditivos; "default" preserva a regra .msds-fab
+   original inteira, sem overrides aqui). border-radius vem inline (mola de
+   forma expressive), então nada aqui redefine raio. */
+.msds-fab-small { height: 40px; padding: 0 16px; gap: 8px; }
+.msds-fab-small[data-icon-only="true"] { width: 40px; }
+.msds-fab-small svg { width: 18px; height: 18px; }
+.msds-fab-large { height: 96px; padding: 0 28px; gap: 14px; font-size: 16px; }
+.msds-fab-large[data-icon-only="true"] { width: 96px; }
+.msds-fab-large svg { width: 28px; height: 28px; }
+
+/* Elevação tonal (item 4) — tint de --accent sobre a superfície, somado à
+   sombra existente (nunca a substitui: shadow-* continua nas regras base de
+   cada componente). Opt-in via data-tonal-elevation="true"; nunca aplicado a
+   Card filled/outlined (Card só lê a prop quando variant="elevated", em JS).
+   Intensidade cresce um pouco no escuro, como a M3 faz. */
+.msds-card[data-tonal-elevation="true"] { background: color-mix(in srgb, rgb(var(--accent)) 4%, var(--surface-200)); }
+.msds-dialog[data-tonal-elevation="true"],
+.msds-command[data-tonal-elevation="true"],
+.msds-sheet[data-tonal-elevation="true"] { background: color-mix(in srgb, rgb(var(--accent)) 8%, var(--surface-200)); }
+.msds-menu[data-tonal-elevation="true"],
+.msds-popover[data-tonal-elevation="true"] { background: color-mix(in srgb, rgb(var(--accent)) 6%, var(--surface-200)); }
+[data-theme="dark"] .msds-card[data-tonal-elevation="true"] { background: color-mix(in srgb, rgb(var(--accent)) 7%, var(--surface-200)); }
+[data-theme="dark"] .msds-dialog[data-tonal-elevation="true"],
+[data-theme="dark"] .msds-command[data-tonal-elevation="true"],
+[data-theme="dark"] .msds-sheet[data-tonal-elevation="true"] { background: color-mix(in srgb, rgb(var(--accent)) 13%, var(--surface-200)); }
+[data-theme="dark"] .msds-menu[data-tonal-elevation="true"],
+[data-theme="dark"] .msds-popover[data-tonal-elevation="true"] { background: color-mix(in srgb, rgb(var(--accent)) 10%, var(--surface-200)); }
+
+/* CircularProgress */
+.msds-circprog { position: relative; display: inline-flex; align-items: center; justify-content: center; flex: none; color: rgb(var(--accent)); }
+.msds-circprog-svg { transform: rotate(-90deg); }
+.msds-circprog-track { stroke: var(--surface-300); }
+.msds-circprog-fill { stroke: currentColor; transition: stroke-dashoffset var(--msds-dur-slow) var(--msds-ease); }
+.msds-circprog-value { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font: 600 11px var(--font-mono); color: rgb(var(--ink)); font-variant-numeric: tabular-nums; }
+.msds-circprog.is-indeterminate .msds-circprog-svg { animation: msds-circprog-spin 1.1s linear infinite; }
+.msds-circprog.is-indeterminate .msds-circprog-fill { animation: msds-circprog-dash 1.6s var(--msds-ease) infinite; }
+@keyframes msds-circprog-spin { to { transform: rotate(270deg); } }
+@keyframes msds-circprog-dash {
+  0% { stroke-dashoffset: 0; }
+  50% { stroke-dashoffset: -60; }
+  100% { stroke-dashoffset: -120; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .msds-circprog.is-indeterminate .msds-circprog-svg { animation: none; transform: rotate(-90deg); }
+  .msds-circprog.is-indeterminate .msds-circprog-fill { animation: none; stroke-dasharray: 25% 100%; }
+}
+
+/* SideSheet — modo modal (backdrop + foco preso, geometria lateral do
+   Dialog/BottomSheet) e standalone (sem backdrop, painel no próprio fluxo —
+   quem chama monta as duas colunas). */
+.msds-sidesheet-backdrop { position: fixed; inset: 0; background: rgba(10,12,16,0.5); z-index: 50; display: flex; animation: msds-fade-in 160ms var(--msds-ease-out) both; }
+.msds-sidesheet {
+  background: var(--surface-200); box-shadow: var(--shadow-overlay); width: 360px; max-width: 90vw;
+  height: 100%; display: flex; flex-direction: column; overflow-y: auto;
+}
+.msds-sidesheet-modal.msds-sidesheet-right { margin-left: auto; border-radius: var(--radius-card) 0 0 var(--radius-card); animation: msds-sidesheet-in-right 220ms var(--msds-ease-out) both; }
+.msds-sidesheet-modal.msds-sidesheet-left { margin-right: auto; border-radius: 0 var(--radius-card) var(--radius-card) 0; animation: msds-sidesheet-in-left 220ms var(--msds-ease-out) both; }
+@keyframes msds-sidesheet-in-right { from { transform: translateX(100%); } to { transform: translateX(0); } }
+@keyframes msds-sidesheet-in-left { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+.msds-sidesheet-standalone { border: 1px solid rgb(var(--edge)); border-radius: var(--radius-card); box-shadow: none; height: auto; max-height: 100%; }
+.msds-sidesheet-body { padding: 4px 16px 20px; font-size: 14px; color: rgb(var(--ink-muted)); flex: 1; }
+
+/* SplitButton — dois segmentos de um botão só, divididos por --edge (nunca
+   uma cor nova). O segmento da seta reaproveita a base visual de Menu. */
+.msds-splitbtn { display: inline-flex; align-items: stretch; border-radius: var(--radius-control); overflow: hidden; box-shadow: var(--shadow-card); }
+.msds-splitbtn-main {
+  appearance: none; border: 1px solid transparent; background: rgb(var(--accent)); color: rgb(var(--accent-fg));
+  font: 600 14px var(--font-sans); padding: 0 var(--space-4); height: 40px; cursor: pointer; border-radius: var(--radius-control) 0 0 var(--radius-control);
+}
+.msds-splitbtn-divider { width: 1px; background: color-mix(in srgb, rgb(var(--accent-fg)) 35%, transparent); align-self: stretch; }
+.msds-splitbtn .msds-menu-wrap { display: flex; }
+.msds-splitbtn .msds-menu-trigger {
+  border: none; border-radius: 0 var(--radius-control) var(--radius-control) 0; background: rgb(var(--accent)); color: rgb(var(--accent-fg));
+  height: 40px; width: 40px; padding: 0; display: flex; align-items: center; justify-content: center;
+}
+.msds-splitbtn .msds-menu-trigger:hover { filter: brightness(1.06); border-color: transparent; }
+.msds-splitbtn-secondary .msds-splitbtn-main, .msds-splitbtn-secondary .msds-menu-trigger { background: var(--surface-200); color: rgb(var(--ink)); border-color: rgb(var(--edge-control)); }
+.msds-splitbtn-secondary .msds-splitbtn-divider { background: rgb(var(--edge-control)); }
+
+/* DatePicker / TimePicker */
+.msds-datepicker-trigger-inner { display: inline-flex; align-items: center; gap: 8px; }
+.msds-datepicker { width: 268px; }
+.msds-datepicker-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.msds-datepicker-month { font: 600 13px var(--font-sans); color: rgb(var(--ink)); text-transform: capitalize; }
+.msds-datepicker-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.msds-datepicker-weekdays { margin-bottom: 4px; font: 600 11px var(--font-sans); color: rgb(var(--ink-subtle)); text-align: center; }
+.msds-datepicker-weekdays span { text-align: center; }
+.msds-datepicker-cell {
+  appearance: none; border: none; background: none; height: 30px; border-radius: var(--radius-seat); cursor: pointer;
+  font: 500 12px var(--font-sans); color: rgb(var(--ink)); display: flex; align-items: center; justify-content: center;
+}
+.msds-datepicker-cell.is-empty { cursor: default; }
+.msds-datepicker-cell:not(.is-empty):hover { background: var(--surface-300); }
+.msds-datepicker-cell[data-today="true"] { color: rgb(var(--accent)); font-weight: 700; }
+.msds-datepicker-cell[data-selected="true"] { background: rgb(var(--accent)); color: rgb(var(--accent-fg)); font-weight: 700; }
+.msds-timepicker { display: inline-flex; align-items: center; gap: 8px; color: rgb(var(--ink-subtle)); }
+.msds-timepicker-sep { font: 700 16px var(--font-mono); color: rgb(var(--ink)); }
+.msds-timepicker-field { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.msds-timepicker-input { width: 52px; text-align: center; font-family: var(--font-mono); font-variant-numeric: tabular-nums; padding: 6px 4px; }
+.msds-timepicker-step {
+  appearance: none; border: 1px solid rgb(var(--edge-control)); background: var(--surface-200); color: rgb(var(--ink-muted));
+  width: 24px; height: 20px; border-radius: var(--radius-seat); cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+.msds-timepicker-step:hover { color: rgb(var(--accent)); border-color: rgb(var(--accent)); }
+.msds-timepicker-step svg { width: 12px; height: 12px; }
+
+/* Carousel — scroll-snap nativo, sem biblioteca de swipe. */
+.msds-carousel { display: flex; flex-direction: column; gap: var(--space-3); }
+.msds-carousel-viewport { position: relative; }
+.msds-carousel-track {
+  display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: var(--space-4);
+  scrollbar-width: none; -ms-overflow-style: none; scroll-behavior: smooth; border-radius: var(--radius-card);
+}
+.msds-carousel-track::-webkit-scrollbar { display: none; }
+.msds-carousel-item { flex: 0 0 min(320px, 86%); scroll-snap-align: start; }
+.msds-carousel-arrow {
+  position: absolute; top: 50%; transform: translateY(-50%); border: 1px solid rgb(var(--edge)); background: var(--surface-200);
+  color: rgb(var(--ink)); width: 36px; height: 36px; border-radius: var(--radius-full); box-shadow: var(--shadow-raised);
+  cursor: pointer; display: flex; align-items: center; justify-content: center; transition: opacity var(--msds-dur) var(--msds-ease);
+}
+.msds-carousel-arrow:disabled { opacity: 0.35; cursor: not-allowed; }
+.msds-carousel-arrow-prev { left: -8px; }
+.msds-carousel-arrow-next { right: -8px; }
+.msds-carousel-dots { display: flex; justify-content: center; gap: 6px; }
+.msds-carousel-dot {
+  appearance: none; border: none; width: 8px; height: 8px; border-radius: 50%; background: rgb(var(--edge-strong));
+  cursor: pointer; padding: 0; transition: background var(--msds-dur) var(--msds-ease), width var(--msds-dur) var(--msds-ease);
+}
+.msds-carousel-dot[data-active="true"] { background: rgb(var(--accent)); width: 20px; border-radius: var(--radius-full); }
+
+/* ScreenTransitionDemo — shared axis num mini-wizard de 3 passos. */
+.msds-screentransition-demo { display: flex; flex-direction: column; gap: var(--space-5); max-width: 420px; }
+.msds-screentransition-viewport { position: relative; overflow: hidden; border-radius: var(--radius-card); border: 1px solid rgb(var(--edge)); background: var(--surface-200); min-height: 96px; }
+.msds-screentransition-panel { padding: var(--space-4); }
+
+/* ============ Rodada 7: FAB menu, indicador "expressive", tooltip rich,
+   submenu em cascata, ícones em campo de texto ============ */
+
+/* FABMenu — a lista fica fixa acima do FAB, "bottom" calculado em JS a
+   partir do tamanho do FAB (a mesma regra .msds-fab de sempre continua
+   dando a posição/tamanho do próprio botão). Um wrapper simples, sem
+   position própria — um <div> sem transform/filter não cria containing
+   block novo, então os filhos position:fixed continuam ancorados ao
+   viewport (mesma nota do preview do FAB simples). */
+.msds-fabmenu-wrap { display: contents; }
+.msds-fabmenu-list {
+  position: fixed; right: 24px; z-index: 31;
+  display: flex; flex-direction: column-reverse; align-items: flex-end; gap: 10px;
+  list-style: none; margin: 0; padding: 0;
+}
+.msds-fabmenu-item {
+  appearance: none; border: 1px solid rgb(var(--edge-control)); background: var(--surface-200); color: rgb(var(--ink));
+  border-radius: var(--radius-full); padding: 6px 6px 6px 14px; display: inline-flex; align-items: center; gap: 10px;
+  font: 600 13px var(--font-sans); white-space: nowrap; cursor: pointer; box-shadow: var(--shadow-raised);
+  transition: border-color var(--msds-dur) var(--msds-ease), color var(--msds-dur) var(--msds-ease);
+}
+.msds-fabmenu-item:hover:not(:disabled) { border-color: rgb(var(--accent)); color: rgb(var(--accent)); }
+.msds-fabmenu-item:disabled { opacity: 0.5; cursor: not-allowed; }
+.msds-fabmenu-item-label { pointer-events: none; }
+.msds-fabmenu-item-icon {
+  width: 28px; height: 28px; border-radius: 50%; background: var(--surface-300); color: inherit;
+  display: flex; align-items: center; justify-content: center; flex: none; pointer-events: none;
+}
+.msds-fabmenu-item-icon svg { width: 16px; height: 16px; }
+
+/* LoadingIndicator — indicador "expressive": um <path> só, preenchido,
+   cuja geometria a própria mola resolve por ponto de controle (nenhuma
+   regra de animação em CSS aqui — ao contrário do CircularProgress). */
+.msds-loadingindicator { display: inline-flex; color: rgb(var(--accent)); flex: none; }
+.msds-loadingindicator-svg { display: block; }
+
+/* Tooltip "rich" — título + corpo + ação opcional, role="dialog" (não
+   role="tooltip", que nunca leva foco/interação). */
+.msds-tooltip-rich {
+  position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+  background: var(--surface-200); color: rgb(var(--ink)); border: 1px solid rgb(var(--edge)); border-radius: var(--radius-control);
+  box-shadow: var(--shadow-overlay); padding: 10px 12px; min-width: 200px; max-width: 260px; z-index: 15;
+  animation: msds-fade-in 120ms var(--msds-ease-out) both;
+}
+.msds-tooltip-rich-title { font: 600 13px var(--font-sans); color: rgb(var(--ink)); }
+.msds-tooltip-rich-body { font-size: 12px; color: rgb(var(--ink-muted)); line-height: 1.4; margin-top: 2px; }
+.msds-tooltip-rich-action {
+  display: block; margin-top: 8px; appearance: none; border: none; background: none; color: rgb(var(--accent));
+  font: 700 12px var(--font-sans); cursor: pointer; padding: 0;
+}
+.msds-tooltip-rich-action:hover { text-decoration: underline; }
+
+/* Menu — submenu em cascata: ancorado ao lado do item (direita por padrão,
+   esquerda quando não há espaço — medido em JS contra o viewport, não
+   aqui). A seta (msds-menu-item-caret) é o mesmo glifo chevronRight/Left
+   já usado no DatePicker/Carousel, nenhum ícone novo. */
+.msds-menu-item-caret { margin-left: auto; display: flex; color: rgb(var(--ink-subtle)); flex: none; }
+.msds-menu-item-caret svg { width: 14px; height: 14px; }
+.msds-menu-submenu { position: absolute; top: -6px; z-index: 21; }
+.msds-menu-submenu-right { left: calc(100% + 4px); }
+.msds-menu-submenu-left { right: calc(100% + 4px); }
+
+/* Text fields — leadingIcon/trailingIcon/trailingAction (Input/Textarea/
+   Select; NumberInput não muda — o sufixo de unidade é outro mecanismo).
+   Cada regra só existe quando o wrapper .msds-control-wrap está presente,
+   então o caso sem ícone (sem wrapper, controle puro) nunca lê nada daqui. */
+.msds-control-wrap { position: relative; }
+.msds-control-wrap .msds-control { width: 100%; }
+.msds-control-icon {
+  position: absolute; top: 50%; transform: translateY(-50%); display: flex; align-items: center; justify-content: center;
+  color: rgb(var(--ink-subtle));
+}
+.msds-control-icon svg { width: 18px; height: 18px; }
+.msds-control-icon-leading { left: 10px; pointer-events: none; }
+.msds-control-icon-trailing { right: 10px; pointer-events: none; }
+.msds-control-action { appearance: none; border: none; background: none; cursor: pointer; padding: 0; pointer-events: auto; }
+.msds-control-action:hover { color: rgb(var(--accent)); }
+.msds-control-has-leading { padding-left: 36px; }
+.msds-control-has-trailing { padding-right: 36px; }
+/* Textarea: ícone ancorado ao topo, nunca ao centro vertical de uma caixa
+   que pode ter várias linhas. */
+.msds-control-icon-top { top: 10px; transform: none; }
+/* Select: o chevron já ocupa o canto direito (right:10px, regra original);
+   um trailingIcon/trailingAction some por baixo dele sem esta correção —
+   as regras abaixo os empurram para a esquerda do chevron, e o próprio
+   <select> ganha o padding extra para o texto nunca passar por baixo dos
+   dois ícones empilhados. */
+.msds-select-wrap-has-leading .msds-select { padding-left: 36px; }
+.msds-control-has-trailing-action { padding-right: 60px; }
+.msds-select-trailing-icon, .msds-select-trailing-action { right: 30px; }
+
+/* ---------- Rodada 8: cor dinâmica por rota (M3 por seção) ----------
+   Revive o mecanismo [data-section] (D-49, pré-Rodada-6): quem monta a
+   aplicação real troca o atributo data-section no <html> ao navegar (ver
+   README 'Rodada 8' / applyRouteAccent no preview de NavRail) e estas
+   regras substituem só os papéis de cor primary/secondary/tertiary (+
+   on-* / *-container e os alias accent/accent-fg) — outline/surface* /ink* /
+   edge* /cat-* continuam vindo só de tokens.css, sem variar por rota.
+   Seletor SEMPRE composto no mesmo elemento (:root[data-theme="dark"]
+   [data-section]), nunca descendente — foi um bug real do Prisma antes
+   da Rodada 6 (ver CLAUDE.md/README) e não se repete aqui. */
+:root[data-section="home"] {
+  --primary: #664CB5;
+  --on-primary: #FFFFFF;
+  --primary-container: #F4CEFF;
+  --on-primary-container: #040766;
+  --secondary: #655784;
+  --on-secondary: #FFFFFF;
+  --secondary-container: #ECDAFF;
+  --on-secondary-container: #1E153B;
+  --tertiary: #99405A;
+  --on-tertiary: #FFFFFF;
+  --tertiary-container: #FFC5DD;
+  --on-tertiary-container: #480018;
+  --accent: var(--primary);
+  --accent-fg: var(--on-primary);
+}
+:root[data-theme="dark"][data-section="home"] {
+  --primary: #D7B3FF;
+  --on-primary: #2D1D7F;
+  --primary-container: #4A349A;
+  --on-primary-container: #F4CEFF;
+  --secondary: #D0BEF1;
+  --on-secondary: #352952;
+  --secondary-container: #4D406A;
+  --on-secondary-container: #ECDAFF;
+  --tertiary: #FFAAC2;
+  --on-tertiary: #62082D;
+  --tertiary-container: #7E2743;
+  --on-tertiary-container: #FFC5DD;
+  --accent: var(--primary);
+  --accent-fg: var(--on-primary);
+}
+:root[data-section="selecao"] {
+  --primary: #B8154B;
+  --on-primary: #FFFFFF;
+  --primary-container: #FFAFCB;
+  --on-primary-container: #5E0008;
+  --secondary: #8A4C55;
+  --on-secondary: #FFFFFF;
+  --secondary-container: #FFCFD8;
+  --on-secondary-container: #3C0514;
+  --tertiary: #80561D;
+  --on-tertiary: #FFFFFF;
+  --tertiary-container: #FFD89A;
+  --on-tertiary-container: #361300;
+  --accent: var(--primary);
+  --accent-fg: var(--on-primary);
+}
+:root[data-theme="dark"][data-section="selecao"] {
+  --primary: #FF92B0;
+  --on-primary: #7C0020;
+  --primary-container: #9A0035;
+  --on-primary-container: #FFAFCB;
+  --secondary: #FBB4BC;
+  --on-secondary: #551D29;
+  --secondary-container: #6F343E;
+  --on-secondary-container: #FFCFD8;
+  --tertiary: #F2BD80;
+  --on-tertiary: #4B2800;
+  --tertiary-container: #643E04;
+  --on-tertiary-container: #FFD89A;
+  --accent: var(--primary);
+  --accent-fg: var(--on-primary);
+}
+:root[data-section="mapas"] {
+  --primary: #9F4200;
+  --on-primary: #FFFFFF;
+  --primary-container: #FFC67E;
+  --on-primary-container: #4D0000;
+  --secondary: #815439;
+  --on-secondary: #FFFFFF;
+  --secondary-container: #FFD7B7;
+  --on-secondary-container: #351100;
+  --tertiary: #54651F;
+  --on-tertiary: #FFFFFF;
+  --tertiary-container: #DAEA9D;
+  --on-tertiary-container: #192000;
+  --accent: var(--primary);
+  --accent-fg: var(--on-primary);
+}
+:root[data-theme="dark"][data-section="mapas"] {
+  --primary: #FFAA64;
+  --on-primary: #660E00;
+  --primary-container: #812900;
+  --on-primary-container: #FFC67E;
+  --secondary: #F2BB9C;
+  --on-secondary: #4C260E;
+  --secondary-container: #663C23;
+  --on-secondary-container: #FFD7B7;
+  --tertiary: #BECE82;
+  --on-tertiary: #253600;
+  --tertiary-container: #3B4D05;
+  --on-tertiary-container: #DAEA9D;
+  --accent: var(--primary);
+  --accent-fg: var(--on-primary);
+}
+:root[data-section="comparar"] {
+  --primary: #865400;
+  --on-primary: #FFFFFF;
+  --primary-container: #FFD668;
+  --on-primary-container: #3E0F00;
+  --secondary: #755931;
+  --on-secondary: #FFFFFF;
+  --secondary-container: #FFDDAF;
+  --on-secondary-container: #2E1700;
+  --tertiary: #38692F;
+  --on-tertiary: #FFFFFF;
+  --tertiary-container: #BBF1AD;
+  --on-tertiary-container: #002400;
+  --accent: var(--primary);
+  --accent-fg: var(--on-primary);
+}
+:root[data-theme="dark"][data-section="comparar"] {
+  --primary: #FEBA4E;
+  --on-primary: #522600;
+  --primary-container: #6A3C00;
+  --on-primary-container: #FFD668;
+  --secondary: #E4C194;
+  --on-secondary: #422C03;
+  --secondary-container: #5B421B;
+  --on-secondary-container: #FFDDAF;
+  --tertiary: #A0D492;
+  --on-tertiary: #023900;
+  --tertiary-container: #1F5119;
+  --on-tertiary-container: #BBF1AD;
+  --accent: var(--primary);
+  --accent-fg: var(--on-primary);
+}
+:root[data-section="dimensionar"] {
+  --primary: #676100;
+  --on-primary: #FFFFFF;
+  --primary-container: #F7E464;
+  --on-primary-container: #2D1C00;
+  --secondary: #675F30;
+  --on-secondary: #FFFFFF;
+  --secondary-container: #EFE3AD;
+  --on-secondary-container: #241C00;
+  --tertiary: #016C45;
+  --on-tertiary: #FFFFFF;
+  --tertiary-container: #9BF5C4;
+  --on-tertiary-container: #002600;
+  --accent: var(--primary);
+  --accent-fg: var(--on-primary);
+}
+:root[data-theme="dark"][data-section="dimensionar"] {
+  --primary: #D9C849;
+  --on-primary: #393200;
+  --primary-container: #4E4900;
+  --on-primary-container: #F7E464;
+  --secondary: #D3C793;
+  --on-secondary: #363101;
+  --secondary-container: #4E471A;
+  --on-secondary-container: #EFE3AD;
+  --tertiary: #80D8A9;
+  --on-tertiary: #003C19;
+  --tertiary-container: #00542E;
+  --on-tertiary-container: #9BF5C4;
+  --accent: var(--primary);
+  --accent-fg: var(--on-primary);
+}
+:root[data-section="custo"] {
+  --primary: #B12C25;
+  --on-primary: #FFFFFF;
+  --primary-container: #FFB79F;
+  --on-primary-container: #590000;
+  --secondary: #884F45;
+  --on-secondary: #FFFFFF;
+  --secondary-container: #FFD2C5;
+  --on-secondary-container: #3A0A00;
+  --tertiary: #6B5E18;
+  --on-tertiary: #FFFFFF;
+  --tertiary-container: #F6E296;
+  --on-tertiary-container: #291B00;
+  --accent: var(--primary);
+  --accent-fg: var(--on-primary);
+}
+:root[data-theme="dark"][data-section="custo"] {
+  --primary: #FF9B85;
+  --on-primary: #740000;
+  --primary-container: #920410;
+  --on-primary-container: #FFB79F;
+  --secondary: #FAB6AA;
+  --on-secondary: #53211A;
+  --secondary-container: #6D372F;
+  --on-secondary-container: #FFD2C5;
+  --tertiary: #D9C67B;
+  --on-tertiary: #3A3100;
+  --tertiary-container: #514700;
+  --on-tertiary-container: #F6E296;
+  --accent: var(--primary);
+  --accent-fg: var(--on-primary);
+}
+:root[data-section="eco"] {
+  --primary: #006F0E;
+  --on-primary: #FFFFFF;
+  --primary-container: #96F991;
+  --on-primary-container: #002900;
+  --secondary: #436740;
+  --on-secondary: #FFFFFF;
+  --secondary-container: #C5EDBF;
+  --on-secondary-container: #002200;
+  --tertiary: #006E74;
+  --on-tertiary: #FFFFFF;
+  --tertiary-container: #65F7FB;
+  --on-tertiary-container: #00282D;
+  --accent: var(--primary);
+  --accent-fg: var(--on-primary);
+}
+:root[data-theme="dark"][data-section="eco"] {
+  --primary: #7ADC76;
+  --on-primary: #003D00;
+  --primary-container: #005600;
+  --on-primary-container: #96F991;
+  --secondary: #A9D1A4;
+  --on-secondary: #143814;
+  --secondary-container: #2C4F2A;
+  --on-secondary-container: #C5EDBF;
+  --tertiary: #3FDADF;
+  --on-tertiary: #003D44;
+  --tertiary-container: #00555B;
+  --on-tertiary-container: #65F7FB;
+  --accent: var(--primary);
+  --accent-fg: var(--on-primary);
+}
+:root[data-section="baterias"] {
+  --primary: #406A00;
+  --on-primary: #FFFFFF;
+  --primary-container: #CAF073;
+  --on-primary-container: #112300;
+  --secondary: #566335;
+  --on-secondary: #FFFFFF;
+  --secondary-container: #DBE9B3;
+  --on-secondary-container: #171F00;
+  --tertiary: #006E5C;
+  --on-tertiary: #FFFFFF;
+  --tertiary-container: #7CF7E0;
+  --on-tertiary-container: #00281A;
+  --accent: var(--primary);
+  --accent-fg: var(--on-primary);
+}
+:root[data-theme="dark"][data-section="baterias"] {
+  --primary: #AED458;
+  --on-primary: #173900;
+  --primary-container: #285100;
+  --on-primary-container: #CAF073;
+  --secondary: #BECC98;
+  --on-secondary: #273508;
+  --secondary-container: #3E4C1F;
+  --on-secondary-container: #DBE9B3;
+  --tertiary: #5EDAC4;
+  --on-tertiary: #003D2E;
+  --tertiary-container: #005545;
+  --on-tertiary-container: #7CF7E0;
+  --accent: var(--primary);
+  --accent-fg: var(--on-primary);
+}
+:root[data-section="catalogo"] {
+  --primary: #00733F;
+  --on-primary: #FFFFFF;
+  --primary-container: #3EFFBE;
+  --on-primary-container: #002C00;
+  --secondary: #2A6951;
+  --on-secondary: #FFFFFF;
+  --secondary-container: #AEF1D2;
+  --on-secondary-container: #00240F;
+  --tertiary: #006C8B;
+  --on-tertiary: #FFFFFF;
+  --tertiary-container: #64F4FF;
+  --on-tertiary-container: #002741;
+  --accent: var(--primary);
+  --accent-fg: var(--on-primary);
+}
+:root[data-theme="dark"][data-section="catalogo"] {
+  --primary: #00E2A2;
+  --on-primary: #004013;
+  --primary-container: #005928;
+  --on-primary-container: #3EFFBE;
+  --secondary: #93D4B7;
+  --on-secondary: #003924;
+  --secondary-container: #0C513A;
+  --on-secondary-container: #AEF1D2;
+  --tertiary: #3BD8F9;
+  --on-tertiary: #003C58;
+  --tertiary-container: #005471;
+  --on-tertiary-container: #64F4FF;
+  --accent: var(--primary);
+  --accent-fg: var(--on-primary);
+}
+:root[data-section="processos"] {
+  --primary: #00746A;
+  --on-primary: #FFFFFF;
+  --primary-container: #00FFF0;
+  --on-primary-container: #002E25;
+  --secondary: #006A63;
+  --on-secondary: #FFFFFF;
+  --secondary-container: #9DF2E8;
+  --on-secondary-container: #002520;
+  --tertiary: #00689A;
+  --on-tertiary: #FFFFFF;
+  --tertiary-container: #83EEFF;
+  --on-tertiary-container: #00244E;
+  --accent: var(--primary);
+  --accent-fg: var(--on-primary);
+}
+:root[data-theme="dark"][data-section="processos"] {
+  --primary: #00E4D3;
+  --on-primary: #00413B;
+  --primary-container: #005A52;
+  --on-primary-container: #00FFF0;
+  --secondary: #81D5CC;
+  --on-secondary: #003A35;
+  --secondary-container: #00524B;
+  --on-secondary-container: #9DF2E8;
+  --tertiary: #62D2FF;
+  --on-tertiary: #003967;
+  --tertiary-container: #005080;
+  --on-tertiary-container: #83EEFF;
+  --accent: var(--primary);
+  --accent-fg: var(--on-primary);
+}
+:root[data-section="sintetizar"] {
+  --primary: #007493;
+  --on-primary: #FFFFFF;
+  --primary-container: #00FFFF;
+  --on-primary-container: #002D48;
+  --secondary: #006A75;
+  --on-secondary: #FFFFFF;
+  --secondary-container: #96F1FD;
+  --on-secondary-container: #00242E;
+  --tertiary: #0962A0;
+  --on-tertiary: #FFFFFF;
+  --tertiary-container: #B0E6FF;
+  --on-tertiary-container: #002053;
+  --accent: var(--primary);
+  --accent-fg: var(--on-primary);
+}
+:root[data-theme="dark"][data-section="sintetizar"] {
+  --primary: #00E3FF;
+  --on-primary: #004160;
+  --primary-container: #005A79;
+  --on-primary-container: #00FFFF;
+  --secondary: #79D4E0;
+  --on-secondary: #003A45;
+  --secondary-container: #00515C;
+  --on-secondary-container: #96F1FD;
+  --tertiary: #93CAFF;
+  --on-tertiary: #00346C;
+  --tertiary-container: #004A85;
+  --on-tertiary-container: #B0E6FF;
+  --accent: var(--primary);
+  --accent-fg: var(--on-primary);
+}
+:root[data-section="meus-registros"] {
+  --primary: #0072B3;
+  --on-primary: #FFFFFF;
+  --primary-container: #00FBFF;
+  --on-primary-container: #002C64;
+  --secondary: #006783;
+  --on-secondary: #FFFFFF;
+  --secondary-container: #9FEDFF;
+  --on-secondary-container: #00233A;
+  --tertiary: #54589A;
+  --on-tertiary: #FFFFFF;
+  --tertiary-container: #DDDBFF;
+  --on-tertiary-container: #00174E;
+  --accent: var(--primary);
+  --accent-fg: var(--on-primary);
+}
+:root[data-theme="dark"][data-section="meus-registros"] {
+  --primary: #00DEFF;
+  --on-primary: #00417E;
+  --primary-container: #005998;
+  --on-primary-container: #00FBFF;
+  --secondary: #82D1F0;
+  --on-secondary: #003851;
+  --secondary-container: #004F69;
+  --on-secondary-container: #9FEDFF;
+  --tertiary: #C1BFFF;
+  --on-tertiary: #1F2B66;
+  --tertiary-container: #3A4180;
+  --on-tertiary-container: #DDDBFF;
+  --accent: var(--primary);
+  --accent-fg: var(--on-primary);
+}
+:root[data-section="painel"] {
+  --primary: #006BC5;
+  --on-primary: #FFFFFF;
+  --primary-container: #00F0FF;
+  --on-primary-container: #002874;
+  --secondary: #26638B;
+  --on-secondary: #FFFFFF;
+  --secondary-container: #B4E8FF;
+  --on-secondary-container: #002041;
+  --tertiary: #794D8A;
+  --on-tertiary: #FFFFFF;
+  --tertiary-container: #FFD1FF;
+  --on-tertiary-container: #2E0740;
+  --accent: var(--primary);
+  --accent-fg: var(--on-primary);
+}
+:root[data-theme="dark"][data-section="painel"] {
+  --primary: #00D4FF;
+  --on-primary: #003D8F;
+  --primary-container: #0053AA;
+  --on-primary-container: #00F0FF;
+  --secondary: #98CCF9;
+  --on-secondary: #003558;
+  --secondary-container: #004C71;
+  --on-secondary-container: #B4E8FF;
+  --tertiary: #E6B5F9;
+  --on-tertiary: #461F58;
+  --tertiary-container: #5F3671;
+  --on-tertiary-container: #FFD1FF;
+  --accent: var(--primary);
+  --accent-fg: var(--on-primary);
+}
+:root[data-section="importar"] {
+  --primary: #005FC6;
+  --on-primary: #FFFFFF;
+  --primary-container: #A4E1FF;
+  --on-primary-container: #001F75;
+  --secondary: #4A5E8B;
+  --on-secondary: #FFFFFF;
+  --secondary-container: #D0E1FF;
+  --on-secondary-container: #001C41;
+  --tertiary: #8F4474;
+  --on-tertiary: #FFFFFF;
+  --tertiary-container: #FFC9FC;
+  --on-tertiary-container: #41002D;
+  --accent: var(--primary);
+  --accent-fg: var(--on-primary);
+}
+:root[data-theme="dark"][data-section="importar"] {
+  --primary: #84C5FF;
+  --on-primary: #00328F;
+  --primary-container: #0048AA;
+  --on-primary-container: #A4E1FF;
+  --secondary: #B4C5F9;
+  --on-secondary: #153059;
+  --secondary-container: #304671;
+  --on-secondary-container: #D0E1FF;
+  --tertiary: #FFADDF;
+  --on-tertiary: #5A1144;
+  --tertiary-container: #742B5B;
+  --on-tertiary-container: #FFC9FC;
+  --accent: var(--primary);
+  --accent-fg: var(--on-primary);
+}
+:root[data-section="classes"] {
+  --primary: #973497;
+  --on-primary: #FFFFFF;
+  --primary-container: #FFBDFF;
+  --on-primary-container: #46004C;
+  --secondary: #795177;
+  --on-secondary: #FFFFFF;
+  --secondary-container: #FFD4FF;
+  --on-secondary-container: #300D30;
+  --tertiary: #994442;
+  --on-tertiary: #FFFFFF;
+  --tertiary-container: #FFC8C1;
+  --on-tertiary-container: #470000;
+  --accent: var(--primary);
+  --accent-fg: var(--on-primary);
+}
+:root[data-theme="dark"][data-section="classes"] {
+  --primary: #FFA1FF;
+  --on-primary: #600064;
+  --primary-container: #7B147D;
+  --on-primary-container: #FFBDFF;
+  --secondary: #E6B8E3;
+  --on-secondary: #472347;
+  --secondary-container: #60395E;
+  --on-secondary-container: #FFD4FF;
+  --tertiary: #FFACA6;
+  --on-tertiary: #611117;
+  --tertiary-container: #7D2B2C;
+  --on-tertiary-container: #FFC8C1;
+  --accent: var(--primary);
+  --accent-fg: var(--on-primary);
+}
+:root[data-section="propriedades"] {
+  --primary: #B11A72;
+  --on-primary: #FFFFFF;
+  --primary-container: #FFB1FA;
+  --on-primary-container: #5A002C;
+  --secondary: #854D67;
+  --on-secondary: #FFFFFF;
+  --secondary-container: #FFD0ED;
+  --on-secondary-container: #390623;
+  --tertiary: #904C2D;
+  --on-tertiary: #FFFFFF;
+  --tertiary-container: #FFCFA9;
+  --on-tertiary-container: #400500;
+  --accent: var(--primary);
+  --accent-fg: var(--on-primary);
+}
+:root[data-theme="dark"][data-section="propriedades"] {
+  --primary: #FF94DD;
+  --on-primary: #770042;
+  --primary-container: #93005A;
+  --on-primary-container: #FFB1FA;
+  --secondary: #F5B4D0;
+  --on-secondary: #521E38;
+  --secondary-container: #6B354F;
+  --on-secondary-container: #FFD0ED;
+  --tertiary: #FFB38F;
+  --on-tertiary: #581D00;
+  --tertiary-container: #743417;
+  --on-tertiary-container: #FFCFA9;
+  --accent: var(--primary);
+  --accent-fg: var(--on-primary);
+}

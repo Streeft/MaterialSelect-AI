@@ -291,12 +291,13 @@ describe("restrição sobre atributo de processo (P0-4)", () => {
   /**
    * The options a row renders, by the words a reader sees.
    *
-   * Their `value` is set as a *property* on the upgraded `md-select-option`, not
-   * as an attribute, so `getAttribute("value")` comes back empty for every one
-   * of them — reading the text is both correct and closer to what is offered.
+   * D-77: `SelectOption` is a plain native `<option>` now (it used to be an
+   * upgraded `md-select-option` custom element, whose `value` lived as a
+   * property rather than an attribute — reading the text was the reliable
+   * query then, and stays the reliable query now).
    */
   function optionTexts(container: HTMLElement): string[] {
-    return Array.from(container.querySelectorAll("md-select-option")).map(
+    return Array.from(container.querySelectorAll("option")).map(
       (o) => o.textContent?.trim() ?? "",
     );
   }

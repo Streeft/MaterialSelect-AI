@@ -4,9 +4,9 @@ import { render, waitFor } from "@testing-library/react";
 // a shadow root, invisible to plain @testing-library/react queries.
 import { screen } from "shadow-dom-testing-library";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { ptBR } from "@/lib/i18n";
-import { selectMwcOption } from "@/lib/testing/mwc";
 import type { AhpWeightsIn, AhpWeightsOut } from "@/lib/types";
 
 const t = ptBR.selection.ahp;
@@ -60,17 +60,15 @@ describe("AhpMatrixInput", () => {
     deriveAhpWeights.mockResolvedValue(ok());
     render(wrap(<AhpMatrixInput criteria={criteria} onDerived={vi.fn()} />));
 
-    // Each pair's `<select>` carries its accessible name only via `aria-label`
-    // (per Input's own documented "named by the table" exception — see the
-    // component) — MWC's aria-delegation shifts that onto the shadow-internal
-    // combobox in a way this environment's accessible-name computation
-    // doesn't resolve, so tests address cells by their fixed render order
+    // Each pair's native `<select>` carries its accessible name only via
+    // `aria-label` (per Input's own documented "named by the table"
+    // exception — see the component); addressed here by fixed render order
     // (upper triangle, row-major: (densidade,modulo_young), (densidade,custo),
-    // (modulo_young,custo)) instead of by name.
+    // (modulo_young,custo)) rather than by name, kept unchanged by D-77.
     const comboboxes = await screen.findAllByShadowRole("combobox");
     expect(comboboxes).toHaveLength(3);
     // (densidade, modulo_young): "5 — fortemente mais importante".
-    selectMwcOption(comboboxes.at(0)!, "5");
+    await userEvent.selectOptions(comboboxes.at(0)!, "5");
 
     await waitFor(() => expect(deriveAhpWeights).toHaveBeenCalled());
     const payload = deriveAhpWeights.mock.calls.at(-1)?.[0];

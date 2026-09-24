@@ -1,6 +1,5 @@
 import path from "node:path";
 import { test, expect } from "./session";
-import { selectMwcOption } from "./mwc";
 
 /**
  * A4 (Fase 7): the row-level validation path — a row that never becomes a
@@ -18,7 +17,9 @@ test("uma linha sem nome é rejeitada, não importada como vazio", async ({ page
     .setInputFiles(FIXTURE_CSV);
 
   await expect(page.getByRole("heading", { name: "Mapeie as colunas" })).toBeVisible();
-  await selectMwcOption(page, "Classe padrão (quando a coluna estiver vazia)", "Metais");
+  await page
+    .getByLabel("Classe padrão (quando a coluna estiver vazia)")
+    .selectOption({ label: "Metais" });
 
   await page.getByRole("button", { name: "Validar", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Relatório de validação" })).toBeVisible();

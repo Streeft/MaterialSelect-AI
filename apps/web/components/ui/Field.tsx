@@ -7,29 +7,49 @@ import {
   useId,
   type ElementType,
   type InputHTMLAttributes,
+  type OptionHTMLAttributes,
   type ReactNode,
   type SelectHTMLAttributes,
   type TextareaHTMLAttributes,
 } from "react";
 import { cn } from "@/lib/cn";
-import { MdOutlinedSelect, MdOutlinedTextField, MdSelectOption, MdCheckbox, MdRadio } from "./material/elements";
+import { IconChevronDown } from "./icons";
 
 /**
- * Form primitives.
+ * Form primitives, styled with MSDS's field classes (D-77) — not delegated to
+ * MSDS's own `Input`/`NumberInput`/`Textarea`/`Select`/`Checkbox`/
+ * `RadioGroup` functions (`lib/msds/msds.tsx`). Those are controlled-only
+ * (`onChange: (value: string) => void`, not an event) and accept a fixed
+ * prop list with no `ref` and no `...rest` spread — which is fine for the
+ * MSDS demo bundle's own state, but incompatible with how this app's real
+ * forms drive these controls: `MaterialForm.tsx` (material data entry, the
+ * biggest real consumer) wires every field through react-hook-form's
+ * `{...register("name")}` spread, which hands the element `name`, a real
+ * `onChange(event)`/`onBlur(event)` pair, and a `ref` it uses for
+ * uncontrolled reads and focus-on-error. Passing `register()`'s `onChange`
+ * straight into MSDS's `Input` would call it with a bare string instead of
+ * an event (`props.onChange(e.target.value)` inside `msds.tsx`) — a runtime
+ * crash the first time RHF's handler does `event.target.value` on a string.
+ * `AhpMatrixInput.tsx`'s table-cell `Select` (`aria-label`, no visible
+ * `label`) is a second, narrower case: MSDS's functions read a fixed list of
+ * named props, never an arbitrary `aria-label`, so it would silently lose
+ * its accessible name.
  *
- * `md-outlined-text-field` and `md-outlined-select` carry their own floating
- * `label`, `supportingText` and `errorText` — unlike the hand-rolled controls
- * these replace, {@link Input}/{@link NumberInput}/{@link Textarea}/
- * {@link Select} take `label`/`hint`/`error` directly as props instead of
- * being wrapped in an external {@link Field}. `md-checkbox`/`md-radio` are,
- * in M3's own words, bare controls with no label of their own — so
- * {@link Checkbox} and {@link RadioOption} stay exactly what they always
- * were: self-labeled compositions, only the inner native control swapped out.
+ * So these controls keep exactly what they had — real native
+ * `<input>`/`<select>`/`<textarea>`/`<option>`, `forwardRef`, a full
+ * `...rest` spread, `onChange` as a real DOM event — and only take MSDS's
+ * `.msds-field`/`.msds-field-label`/`.msds-control`/`.msds-field-hint`/
+ * `.msds-checkbox`/`.msds-radio` classes for the visual language. This also
+ * *drops* the one jsdom-only workaround the `@material/web` version needed
+ * (`tabIndex={disabled ? -1 : 0}`, there because `md-outlined-text-field`'s
+ * shadow-hosted `<input>` doesn't participate in `delegatesFocus` under
+ * jsdom) — a plain native `disabled` input is correctly out of the tab order
+ * on its own, in every environment, so the workaround has nothing left to
+ * work around.
  *
  * {@link Field} survives only for the one control that stays outside this
- * migration: a native `<select multiple>` has no MWC equivalent
- * (`md-select` never grew a multi-selection mode), so
- * `ConstraintEditor.tsx`'s class filter is kept on the old wiring on
+ * migration: a native `<select multiple>` has no MSDS equivalent either, so
+ * `ConstraintEditor.tsx`'s class filter is kept on its own bespoke wiring on
  * purpose — an explicit, single exception, not a silent gap.
  */
 
@@ -104,7 +124,7 @@ export function Field({
 // raised surface as the card around it, so this outline carries the whole of
 // "there is a control here" and owes the reader 3:1 (WCAG 1.4.11). The hairline
 // tokens are a tenth of that. Only the ConstraintEditor multi-select still uses
-// this — every other control gets its outline from the MWC field itself.
+// this — every other control gets its outline from `.msds-control` itself.
 const CONTROL =
   "w-full rounded-control border border-edge-control bg-surface-raised px-2.5 text-sm text-ink " +
   "placeholder:text-ink-subtle transition " +
@@ -115,23 +135,12 @@ const CONTROL =
 /** Exported for the one native `<select multiple>` exception. */
 export { CONTROL, useWiring };
 
-// Same widening as Button.tsx's IconButtonElement: HTMLAttributes-style spread
-// props carry handler types (e.g. onCopy) the MWC element's own class doesn't
-// match, and no call site here reads a ref off any of these.
-const TextFieldElement = MdOutlinedTextField as ElementType;
-const SelectElement = MdOutlinedSelect as ElementType;
-const SelectOptionElement = MdSelectOption as ElementType;
-const CheckboxElement = MdCheckbox as ElementType;
-const RadioElement = MdRadio as ElementType;
-
 interface FieldTextExtras {
   /**
-   * The floating visible label. Optional: a control inside a table, where the
-   * column header already names it, passes `aria-label` instead and leaves
-   * this unset — `md-outlined-text-field`'s own docs say as much ("the
-   * accessible label is overridden by `aria-label`"), so an empty floating
-   * label with an explicit `aria-label` is a supported combination, not a
-   * gap.
+   * The visible label, rendered above the control (MSDS's fixed-position
+   * label, not the floating one `@material/web` drew). Optional: a control
+   * inside a table, where the row/column header already names it, passes
+   * `aria-label` instead via the rest spread and leaves this unset.
    */
   label?: string;
   /** Explanatory text. Replaced by `error` when the value is rejected. */
@@ -140,145 +149,187 @@ interface FieldTextExtras {
   error?: string;
 }
 
-/**
- * `md-outlined-text-field` fires its real-time `input` event on every
- * keystroke and only fires `change` on commit (blur/Enter) — the opposite of
- * what every call site here expects from `onChange`, which was always
- * keystroke-level under the plain `<input>` this replaces. So `onChange` is
- * wired to the element's `input` listener, not its `change` listener; nothing
- * at any call site needed to change to keep that behavior. `event.target` is
- * the text field host itself (the `input`/`change` events are re-dispatched
- * `composed` across the shadow boundary), and it carries the same `.value`
- * string property a plain `<input>` does, so `e.target.value` still works.
- */
+function FieldLabel({
+  htmlFor,
+  label,
+  required,
+}: {
+  htmlFor: string;
+  label?: string;
+  required?: boolean;
+}) {
+  if (!label) return null;
+  return (
+    <label htmlFor={htmlFor} className="msds-field-label">
+      {label}
+      {required ? (
+        <span className="ml-0.5 text-danger" aria-hidden>
+          *
+        </span>
+      ) : null}
+    </label>
+  );
+}
+
+function FieldFooter({ hintId, hint, error }: { hintId?: string; hint?: string; error?: string }) {
+  if (error) {
+    return (
+      <p id={hintId} role="alert" className="msds-field-hint msds-field-hint-error">
+        {error}
+      </p>
+    );
+  }
+  if (hint) {
+    return (
+      <p id={hintId} className="msds-field-hint">
+        {hint}
+      </p>
+    );
+  }
+  return null;
+}
+
 export const Input = forwardRef<
-  HTMLElement,
+  HTMLInputElement,
   Omit<InputHTMLAttributes<HTMLInputElement>, "onChange"> &
     FieldTextExtras & { onChange?: InputHTMLAttributes<HTMLInputElement>["onChange"] }
->(function Input({ label, hint, error, required, className, disabled, onChange, ...rest }, ref) {
+>(function Input({ label, hint, error, required, className, id, disabled, ...rest }, ref) {
+  const generated = useId();
+  const inputId = id ?? generated;
+  const hintId = hint || error ? `${inputId}-hint` : undefined;
   return (
-    <TextFieldElement
-      ref={ref as never}
-      label={label}
-      supportingText={hint}
-      error={Boolean(error)}
-      errorText={error}
-      required={required}
-      disabled={disabled}
-      // See Button's matching comment: jsdom doesn't implement delegatesFocus.
-      tabIndex={disabled ? -1 : 0}
-      onInput={onChange}
-      {...rest}
-      className={cn("w-full", className)}
-    />
+    <div className="msds-field">
+      <FieldLabel htmlFor={inputId} label={label} required={required} />
+      <input
+        ref={ref}
+        id={inputId}
+        required={required}
+        disabled={disabled}
+        aria-invalid={Boolean(error) || undefined}
+        aria-describedby={hintId}
+        {...rest}
+        className={cn("msds-control", className)}
+      />
+      <FieldFooter hintId={hintId} hint={hint} error={error} />
+    </div>
   );
 });
 
 /**
- * Numeric entry. `step="any"` because material properties are not integers and
- * a browser that rejects `2.7` on a step-1 input rejects it silently.
+ * Numeric entry. `step="any"` (passed by call sites via the rest spread, as
+ * before) because material properties are not integers and a browser that
+ * rejects `2.7` on a step-1 input rejects it silently.
  */
 export const NumberInput = forwardRef<
-  HTMLElement,
-  Omit<InputHTMLAttributes<HTMLInputElement>, "onChange"> &
+  HTMLInputElement,
+  Omit<InputHTMLAttributes<HTMLInputElement>, "onChange" | "type"> &
     FieldTextExtras & { onChange?: InputHTMLAttributes<HTMLInputElement>["onChange"] }
->(function NumberInput({ label, hint, error, required, className, disabled, onChange, ...rest }, ref) {
+>(function NumberInput({ label, hint, error, required, className, id, disabled, ...rest }, ref) {
+  const generated = useId();
+  const inputId = id ?? generated;
+  const hintId = hint || error ? `${inputId}-hint` : undefined;
   return (
-    <TextFieldElement
-      ref={ref as never}
-      type="number"
-      label={label}
-      supportingText={hint}
-      error={Boolean(error)}
-      errorText={error}
-      required={required}
-      disabled={disabled}
-      tabIndex={disabled ? -1 : 0}
-      onInput={onChange}
-      {...rest}
-      className={cn("w-full tabular-nums", className)}
-    />
+    <div className="msds-field">
+      <FieldLabel htmlFor={inputId} label={label} required={required} />
+      <input
+        ref={ref}
+        id={inputId}
+        type="number"
+        required={required}
+        disabled={disabled}
+        aria-invalid={Boolean(error) || undefined}
+        aria-describedby={hintId}
+        {...rest}
+        className={cn("msds-control tabular-nums", className)}
+      />
+      <FieldFooter hintId={hintId} hint={hint} error={error} />
+    </div>
   );
 });
 
 export const Textarea = forwardRef<
-  HTMLElement,
+  HTMLTextAreaElement,
   Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "onChange"> &
     FieldTextExtras & { onChange?: TextareaHTMLAttributes<HTMLTextAreaElement>["onChange"] }
->(function Textarea({ label, hint, error, required, className, rows = 3, disabled, onChange, ...rest }, ref) {
+>(function Textarea({ label, hint, error, required, className, id, rows = 3, disabled, ...rest }, ref) {
+  const generated = useId();
+  const inputId = id ?? generated;
+  const hintId = hint || error ? `${inputId}-hint` : undefined;
   return (
-    <TextFieldElement
-      ref={ref as never}
-      type="textarea"
-      rows={rows}
-      label={label}
-      supportingText={hint}
-      error={Boolean(error)}
-      errorText={error}
-      required={required}
-      disabled={disabled}
-      tabIndex={disabled ? -1 : 0}
-      onInput={onChange}
-      {...rest}
-      className={cn("w-full", className)}
-    />
+    <div className="msds-field">
+      <FieldLabel htmlFor={inputId} label={label} required={required} />
+      <textarea
+        ref={ref}
+        id={inputId}
+        rows={rows}
+        required={required}
+        disabled={disabled}
+        aria-invalid={Boolean(error) || undefined}
+        aria-describedby={hintId}
+        {...rest}
+        className={cn("msds-control msds-textarea", className)}
+      />
+      <FieldFooter hintId={hintId} hint={hint} error={error} />
+    </div>
   );
 });
 
 /**
- * One choice in a {@link Select}. Plain text children (no slot) become the
- * visible/typeahead label — `md-select-option` forwards its default slot into
- * `md-item`'s own default slot, same as every other MWC list item.
+ * One choice in a {@link Select}. Plain text children become the visible
+ * option label, same as a bare `<option>` always did.
  */
-export const SelectOption = forwardRef<
-  HTMLElement,
-  { value: string; children: ReactNode; disabled?: boolean; selected?: boolean }
->(function SelectOption({ children, ...rest }, ref) {
-  return (
-    <SelectOptionElement ref={ref as never} {...rest}>
-      {children}
-    </SelectOptionElement>
-  );
-});
+export const SelectOption = forwardRef<HTMLOptionElement, OptionHTMLAttributes<HTMLOptionElement>>(
+  function SelectOption({ children, ...rest }, ref) {
+    return (
+      <option ref={ref} {...rest}>
+        {children}
+      </option>
+    );
+  },
+);
 
 /**
- * `md-outlined-select` has no multi-selection mode (confirmed by reading
- * `select.js`: `selectedOptions` is documented "md-select only supports
- * single selection"). The one call site that needs multi-select
- * (`ConstraintEditor.tsx`'s class filter) stays on the native `<select
- * multiple>` + {@link Field} pair instead of this component — an explicit
+ * A native `<select multiple>` covers the one call site that needs
+ * multi-selection (`ConstraintEditor.tsx`'s class filter) — it stays on its
+ * own bespoke wiring with {@link Field}, not this component; an explicit
  * exception, not a silent gap.
- *
- * `onChange` fires from the element's real `change` event (unlike
- * {@link Input}, a selection commits immediately, there is no keystroke
- * granularity to preserve), and `e.target.value` reads the same way a native
- * `<select>`'s would.
  */
 export const Select = forwardRef<
-  HTMLElement,
+  HTMLSelectElement,
   Omit<SelectHTMLAttributes<HTMLSelectElement>, "multiple"> & FieldTextExtras
->(function Select({ label, hint, error, required, className, disabled, children, ...rest }, ref) {
+>(function Select({ label, hint, error, required, className, id, disabled, children, ...rest }, ref) {
+  const generated = useId();
+  const selectId = id ?? generated;
+  const hintId = hint || error ? `${selectId}-hint` : undefined;
+  const SelectElement = "select" as ElementType;
   return (
-    <SelectElement
-      ref={ref as never}
-      label={label}
-      supportingText={hint}
-      error={Boolean(error)}
-      errorText={error}
-      required={required}
-      disabled={disabled}
-      tabIndex={disabled ? -1 : 0}
-      {...rest}
-      className={cn("w-full", className)}
-    >
-      {children}
-    </SelectElement>
+    <div className="msds-field">
+      <FieldLabel htmlFor={selectId} label={label} required={required} />
+      <div className="msds-select-wrap">
+        <SelectElement
+          ref={ref}
+          id={selectId}
+          required={required}
+          disabled={disabled}
+          aria-invalid={Boolean(error) || undefined}
+          aria-describedby={hintId}
+          {...rest}
+          className={cn("msds-control msds-select", className)}
+        >
+          {children}
+        </SelectElement>
+        <span className="msds-select-chevron" aria-hidden="true">
+          <IconChevronDown />
+        </span>
+      </div>
+      <FieldFooter hintId={hintId} hint={hint} error={error} />
+    </div>
   );
 });
 
 /** Checkbox with its own inline label — it is never wrapped in a Field. */
 export const Checkbox = forwardRef<
-  HTMLElement,
+  HTMLInputElement,
   Omit<InputHTMLAttributes<HTMLInputElement>, "type" | "checked" | "onChange"> & {
     label: ReactNode;
     hint?: ReactNode;
@@ -290,35 +341,45 @@ export const Checkbox = forwardRef<
   const inputId = id ?? generated;
   const hintId = hint ? `${inputId}-hint` : undefined;
   return (
-    <div className={cn("flex items-start gap-2", className)}>
-      {/* mixinDelegatesAria "does not yet support ID reference attributes,
-          such as aria-labelledby" (its own doc comment) — the visible
-          <label for> below never crosses the shadow boundary to the real
-          <input> inside, so the accessible name has to travel as a plain
-          string via aria-label instead. */}
-      <CheckboxElement
-        ref={ref as never}
-        id={inputId}
-        checked={checked}
-        onChange={onChange}
-        aria-label={typeof label === "string" ? label : undefined}
-        aria-describedby={hintId}
-        {...rest}
-        className="mt-0.5 shrink-0"
-      />
-      <div className="min-w-0">
-        <label htmlFor={inputId} className="text-sm text-ink">
-          {label}
-        </label>
-        {hint ? (
-          <p id={hintId} className="text-2xs text-ink-subtle">
-            {hint}
-          </p>
-        ) : null}
-      </div>
+    <div className={cn("flex flex-col", className)}>
+      <label htmlFor={inputId} className="msds-checkbox">
+        <input
+          ref={ref}
+          id={inputId}
+          type="checkbox"
+          checked={checked}
+          onChange={(e) => onChange?.({ target: { checked: e.target.checked } })}
+          aria-describedby={hintId}
+          {...rest}
+        />
+        <span className="msds-checkbox-box" aria-hidden="true">
+          <IconCheckGlyph />
+        </span>
+        <span className="msds-checkbox-label">{label}</span>
+      </label>
+      {hint ? (
+        <p id={hintId} className="ml-[26px] text-2xs text-ink-subtle">
+          {hint}
+        </p>
+      ) : null}
     </div>
   );
 });
+
+/** The check glyph inside `.msds-checkbox-box` — MSDS's own SVG (`icons.tsx`
+ * has one via `msdsIcon("check")`; this is the same shape drawn locally so
+ * `Checkbox` doesn't need to pull in the whole `msdsIcon` switch for one
+ * mark). Always present in the DOM; `.msds-checkbox-box`'s `color:
+ * transparent` (unchecked) → `color: rgb(var(--accent-fg))` (checked, via
+ * the `input:checked + .msds-checkbox-box` CSS rule in `msds.css`) is what
+ * shows or hides it — no conditional render needed. */
+function IconCheckGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4.5 12.8 9.2 17.5 19.5 6.5" />
+    </svg>
+  );
+}
 
 /**
  * Radio group as a real fieldset. A pile of radios with no `<legend>` reads as
@@ -339,9 +400,9 @@ export function RadioGroup({
   const hintId = hint ? `${id}-hint` : undefined;
   return (
     <fieldset aria-describedby={hintId} className={cn("flex flex-col gap-1.5", className)}>
-      <legend className="text-xs font-medium text-ink-muted">{legend}</legend>
+      <legend className="msds-field-label">{legend}</legend>
       {hint ? (
-        <p id={hintId} className="text-2xs text-ink-subtle">
+        <p id={hintId} className="msds-field-hint">
           {hint}
         </p>
       ) : null}
@@ -351,7 +412,7 @@ export function RadioGroup({
 }
 
 export const RadioOption = forwardRef<
-  HTMLElement,
+  HTMLInputElement,
   Omit<InputHTMLAttributes<HTMLInputElement>, "type" | "checked" | "onChange"> & {
     label: ReactNode;
     checked?: boolean;
@@ -361,21 +422,18 @@ export const RadioOption = forwardRef<
   const generated = useId();
   const inputId = id ?? generated;
   return (
-    <div className={cn("flex items-center gap-1.5", className)}>
-      {/* Same shadow-boundary gap as Checkbox above: aria-label, not the
-          visible <label for>, is what gives the real radio its name. */}
-      <RadioElement
-        ref={ref as never}
+    <label htmlFor={inputId} className={cn("msds-radio", className)}>
+      <input
+        ref={ref}
         id={inputId}
+        type="radio"
         checked={checked}
-        onChange={onChange}
-        aria-label={typeof label === "string" ? label : undefined}
+        onChange={(e) => onChange?.({ target: { checked: e.target.checked } })}
         {...rest}
       />
-      <label htmlFor={inputId} className="text-sm text-ink">
-        {label}
-      </label>
-    </div>
+      <span className="msds-radio-dot" aria-hidden="true" />
+      <span>{label}</span>
+    </label>
   );
 });
 

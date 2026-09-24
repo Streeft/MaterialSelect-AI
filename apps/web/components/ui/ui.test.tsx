@@ -64,6 +64,13 @@ describe("cn", () => {
 });
 
 describe("Button", () => {
+  // D-76: `Button` now renders MSDS's `Button` directly — a plain `<button>`,
+  // not a `@material/web` custom element with a shadow root — so these
+  // assertions moved from `findByShadowRole`/the shadow host to a plain
+  // `getByRole` query against the real DOM button, and from
+  // `data-aria-busy` (the shadow aria-delegation mixin's rewrite of
+  // `aria-busy`) back to the real `aria-busy` attribute MSDS's `Button`
+  // writes directly on the element.
   it("blocks the click while loading and says so", async () => {
     const onClick = vi.fn();
     render(
@@ -71,25 +78,17 @@ describe("Button", () => {
         Executar
       </Button>,
     );
-    const button = await screen.findByShadowRole("button", { name: "Executar" });
-    // getByShadowRole resolves to the shadow-internal <button>; the host
-    // custom element is where @material/web's aria-delegation mixin and our
-    // own `disabled`/`type` props actually land — see the Dialog test's note.
-    const host = (button.getRootNode() as ShadowRoot).host as HTMLElement;
-    expect(host).toHaveAttribute("disabled");
-    // @material/web's aria-delegation mixin moves aria-* off the host onto
-    // data-aria-* (then re-applies it inside the shadow root) to avoid
-    // duplicate announcements — see vitest.config.ts's resolve.conditions note.
-    expect(host).toHaveAttribute("data-aria-busy", "true");
+    const button = screen.getByRole("button", { name: "Executar" });
+    expect(button).toHaveAttribute("disabled");
+    expect(button).toHaveAttribute("aria-busy", "true");
     await userEvent.click(button);
     expect(onClick).not.toHaveBeenCalled();
   });
 
   it("defaults to type=button so it cannot submit a form by accident", async () => {
     render(<Button>Adicionar</Button>);
-    const button = await screen.findByShadowRole("button", { name: "Adicionar" });
-    const host = (button.getRootNode() as ShadowRoot).host as HTMLElement;
-    expect(host).toHaveProperty("type", "button");
+    const button = screen.getByRole("button", { name: "Adicionar" });
+    expect(button).toHaveAttribute("type", "button");
   });
 });
 
@@ -253,50 +252,42 @@ describe("Dialog", () => {
   }
 
   it("moves focus in, closes on Escape and gives focus back", async () => {
-    const { container } = render(<Harness />);
-    const opener = screen.getByShadowRole("button", { name: "Abrir" });
+    render(<Harness />);
+    const opener = screen.getByRole("button", { name: "Abrir" });
     await userEvent.click(opener);
 
-    // md-dialog has no dialog-role container we can put tabIndex/focus on
-    // ourselves; the light-DOM content wrapper (marked `autofocus`, see
-    // Dialog.tsx) is what actually receives focus on open, so the assertion
-    // is containment within the host rather than focus on the role itself.
-    // The role is queryable as soon as md-dialog's shadow root first renders
-    // (the native <dialog> keeps an implicit role whether or not it's open),
-    // which is earlier than its own async show() — awaiting isConnected and
-    // Lit's updateComplete before calling querySelector('[autofocus]').focus()
-    // — actually moves focus, so the assertion has to poll rather than check
-    // immediately after the role appears.
-    await screen.findByShadowRole("dialog", { name: "Confirmar" });
-    const host = container.querySelector("md-dialog") as HTMLElement;
-    await waitFor(() => expect(host.contains(document.activeElement)).toBe(true));
+    // D-77: MSDS's Dialog is plain light-DOM, no shadow root — its own
+    // useFocusTrap (lib/msds/msds.tsx) focuses the first focusable
+    // descendant on open, in DOM order. Its own "Fechar" IconButton is
+    // first in that order (rendered in the header, ahead of this
+    // component's children), so that's what receives focus here — not the
+    // content, unlike the old md-dialog version this replaces.
+    const dialog = await screen.findByRole("dialog", { name: "Confirmar" });
+    await waitFor(() => expect(dialog.contains(document.activeElement)).toBe(true));
+    expect(screen.getByRole("button", { name: "Fechar" })).toHaveFocus();
 
     await userEvent.keyboard("{Escape}");
-    expect(screen.queryByShadowRole("dialog")).not.toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(opener).toHaveFocus();
   });
 
   it("keeps Tab inside the dialog", async () => {
     render(<Harness />);
-    await userEvent.click(screen.getByShadowRole("button", { name: "Abrir" }));
-    await screen.findByShadowRole("dialog");
-    // md-dialog has no built-in "Fechar" — closing an M3 dialog is via
-    // Escape, the scrim, or an explicit action; this harness's own content
-    // is what Tab should cycle across.
-    const primeiro = screen.getByShadowRole("button", { name: "Primeiro" });
-    const ultimo = screen.getByShadowRole("button", { name: "Último" });
+    await userEvent.click(screen.getByRole("button", { name: "Abrir" }));
+    await screen.findByRole("dialog");
+    const fechar = screen.getByRole("button", { name: "Fechar" });
+    const primeiro = screen.getByRole("button", { name: "Primeiro" });
+    const ultimo = screen.getByRole("button", { name: "Último" });
 
-    await userEvent.tab(); // content wrapper (autofocus, tabIndex -1) -> Primeiro
+    await waitFor(() => expect(fechar).toHaveFocus());
+    await userEvent.tab(); // Fechar -> Primeiro
     expect(primeiro).toHaveFocus();
     await userEvent.tab(); // Primeiro -> Último
     expect(ultimo).toHaveFocus();
-    // md-dialog's own wrap-around (Último -> a sentinel div -> back to
-    // Primeiro) lives inside its shadow root. @testing-library/user-event
-    // computes the next Tab stop via document.querySelectorAll (see
-    // getTabDestination.js), which never crosses a shadow boundary, so it
-    // cannot see those sentinels — this step is not exercisable here.
-    // Verified live in a real browser instead; see the M3 migration plan's
-    // Etapa 6 note.
+    await userEvent.tab(); // Último wraps back to Fechar — useFocusTrap's own trap
+    expect(fechar).toHaveFocus();
+    await userEvent.tab({ shift: true }); // Shift+Tab wraps the other way
+    expect(ultimo).toHaveFocus();
   });
 });
 

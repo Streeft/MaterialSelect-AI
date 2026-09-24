@@ -265,7 +265,14 @@ describe("StageList", () => {
 
   it("refuses to remove the last remaining stage", () => {
     render(<Harness initial={[emptyLimitStage()]} />);
-    expect(screen.getByShadowText(t.stageRemove)).toBeDisabled();
+    // D-76: `Button` now renders MSDS's `Button` — a plain `<button>` whose
+    // visible text sits in an inner `<span class="msds-btn-label">`, not the
+    // `@material/web` shadow-DOM text node `getByShadowText` used to resolve
+    // directly. `toBeDisabled()` only recognizes the element it's called on,
+    // and a `<span>` never carries `disabled` — so this now asks for the
+    // `<button>` itself by its accessible name instead of the text node
+    // inside it.
+    expect(screen.getByRole("button", { name: t.stageRemove })).toBeDisabled();
   });
 
   it("removes a stage when there is more than one", async () => {
@@ -676,7 +683,8 @@ describe("StageList with a chart stage", () => {
   it("offers the study's own attributes on the plane", () => {
     const { container } = render(<Harness initial={[emptyChartStage()]} />);
 
-    const options = Array.from(container.querySelectorAll("md-select-option")).map(
+    // D-77: SelectOption is a plain native <option> now.
+    const options = Array.from(container.querySelectorAll("option")).map(
       (o) => o.textContent?.trim() ?? "",
     );
     expect(options).toContain("Densidade");
