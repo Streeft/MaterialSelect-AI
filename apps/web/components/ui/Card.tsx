@@ -20,7 +20,18 @@ const ACTIONS = "flex max-w-full shrink-0 flex-wrap items-center gap-2";
 const STAGGER_LIMIT = 6;
 const STAGGER_STEP = 40;
 
-/** A raised panel. The default container for everything that isn't prose. */
+/**
+ * A raised panel. The default container for everything that isn't prose.
+ *
+ * D-78: this renders `.msds-card` (MSDS's raised-panel styling — see
+ * `lib/msds/msds.css`) on the app's own markup rather than delegating to
+ * MSDS's `Card` component function. MSDS's `Card` hardcodes a `<div>` with no
+ * polymorphic `as` — `components/selection/ConstraintEditor.tsx` renders
+ * `<Card as="fieldset">`, a semantic requirement (grouping form controls), not
+ * a cosmetic one, that a fixed `<div>` cannot satisfy. `riseIndex`'s stagger
+ * is this app's own animation (`rise` + inline `animationDelay`, in
+ * `globals.css`), independent of MSDS and kept as-is.
+ */
 export function Card({
   as: Tag = "div",
   className,
@@ -40,11 +51,7 @@ export function Card({
   const staggered = riseIndex != null && riseIndex < STAGGER_LIMIT;
   return (
     <Tag
-      className={cn(
-        "rounded-card border border-edge bg-surface-raised shadow-card",
-        riseIndex != null && "rise",
-        className,
-      )}
+      className={cn("msds-card", riseIndex != null && "rise", className)}
       style={staggered ? { animationDelay: `${riseIndex * STAGGER_STEP}ms` } : undefined}
     >
       {children}
@@ -95,15 +102,13 @@ export function CardHeader({
   return (
     <div
       className={cn(
-        "flex flex-wrap items-start justify-between gap-3 border-b border-edge-subtle px-4 py-3",
+        "msds-card-header flex flex-wrap items-start justify-between gap-3",
         className,
       )}
     >
       <div className="min-w-0">
-        <Heading className="text-sm font-semibold text-ink">{title}</Heading>
-        {description ? (
-          <p className="mt-0.5 max-w-prose text-xs text-ink-muted">{description}</p>
-        ) : null}
+        <Heading className="msds-card-title">{title}</Heading>
+        {description ? <p className="msds-card-desc max-w-prose">{description}</p> : null}
       </div>
       {actions ? <div className={ACTIONS}>{actions}</div> : null}
     </div>
@@ -111,14 +116,14 @@ export function CardHeader({
 }
 
 export function CardBody({ className, children }: { className?: string; children: ReactNode }) {
-  return <div className={cn("p-4", className)}>{children}</div>;
+  return <div className={cn("msds-card-body", className)}>{children}</div>;
 }
 
 export function CardFooter({ className, children }: { className?: string; children: ReactNode }) {
   return (
     <div
       className={cn(
-        "flex flex-wrap items-center justify-end gap-2 border-t border-edge-subtle bg-surface-sunken px-4 py-3",
+        "msds-card-footer flex flex-wrap items-center justify-end gap-2",
         className,
       )}
     >

@@ -3,18 +3,17 @@ import { cn } from "@/lib/cn";
 
 export type BadgeTone = "neutral" | "brand" | "success" | "warning" | "danger" | "info";
 
-const TONES: Record<BadgeTone, string> = {
-  neutral: "border-edge bg-surface-sunken text-ink-muted",
-  brand: "border-brand-200 bg-brand-50 text-brand-700",
-  success: "border-success/30 bg-success-soft text-success-fg",
-  warning: "border-warning/30 bg-warning-soft text-warning-fg",
-  danger: "border-danger/30 bg-danger-soft text-danger-fg",
-  info: "border-info/30 bg-info-soft text-info-fg",
-};
-
 /**
  * A short status label. Always carries words — a bare coloured dot would put
  * the whole meaning in the one channel a colour-blind or printing reader loses.
+ *
+ * D-78: renders MSDS's `.msds-badge msds-badge-{tone}` classes (the six tones
+ * exist on both sides — `lib/msds/msds.css`) on the app's own markup, rather
+ * than delegating to MSDS's `Badge` component function, which only takes
+ * `tone`/`children`. Real call sites need `className`
+ * (`components/layout/AppSidebar.tsx`, `components/dashboard/
+ * CoverageSummary.tsx`) and `title` (`components/DemoDataBadge.tsx`); `icon`
+ * has no real call site today but stays in the signature for API stability.
  */
 export function Badge({
   tone = "neutral",
@@ -35,14 +34,7 @@ export function Badge({
   children: ReactNode;
 }) {
   return (
-    <span
-      title={title}
-      className={cn(
-        "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-2xs font-medium leading-4",
-        TONES[tone],
-        className,
-      )}
-    >
+    <span title={title} className={cn("msds-badge", `msds-badge-${tone}`, className)}>
       {icon}
       {children}
     </span>
@@ -65,12 +57,7 @@ export function ClassBadge({
   className?: string;
 }) {
   return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border border-edge bg-surface-sunken px-2 py-0.5 text-2xs font-medium leading-4 text-ink-muted",
-        className,
-      )}
-    >
+    <span className={cn("msds-badge msds-badge-neutral", className)}>
       {/* `ink/20`, not a fixed black: the hairline exists so a pale seat (the
           Okabe–Ito yellow) still reads as a disc against the badge, and on the
           dark theme's graphite a black hairline is the one colour that cannot do

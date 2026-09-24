@@ -745,6 +745,19 @@ verdade em `Breadcrumb`; `onSelect` clicável em `Stepper`). `Card.tsx`,
 `Bar.tsx`, `Alert.tsx`, `Table.tsx` e `IconButton`/`ButtonGroup`/
 `ToggleChip` (em `Button.tsx`) continuam sobre `@material/web` — ver D-77.
 
+**`Card.tsx` e `Badge.tsx` passaram a usar as classes CSS do MSDS sobre
+marcação própria** ([D-78](docs/DECISIONS.md)) — nenhum dos dois delega
+para a função MSDS crua (`as` polimórfico, `headingLevel`/`actions`/
+`riseIndex` e `className`/`title` reais não cabem nela). Em `Feedback.tsx`,
+`Spinner` e `ErrorState` passaram a usar o MSDS (removendo o
+`@material/web` do arquivo); `Skeleton`/`LoadingState` ficaram com marcação
+própria; `EmptyState` foi delegado, testado ao vivo e **revertido** — a
+arte decorativa do MSDS usa `var(--brand-100)` puro como `fill`, inválido
+contra os tokens `"R G B"` deste app, e caía em preto sólido nos dois
+temas. `Popover.tsx`, `Bar.tsx`, `Alert.tsx`, `Table.tsx` e o resto de
+`Button.tsx` continuam como D-77 os deixou — ver D-78 para o motivo
+reexaminado de cada um.
+
 **S1 (upgrade de segurança) entregue:** `next` 14.2.35 → **16.3.4** e `postcss`
 → **8.5.28**, fechando 21 CVEs do Next e 4 do PostCSS. A 14.2.35 é a última da
 linha 14 — não havia patch dentro do major, então subir era a única saída. Deu
