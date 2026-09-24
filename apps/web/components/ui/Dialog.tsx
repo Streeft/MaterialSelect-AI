@@ -1,36 +1,44 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
-import { cn } from "@/lib/cn";
-import { MdDialog } from "./material/elements";
+import { type ReactNode } from "react";
+import { Dialog as MsdsDialog } from "@/lib/msds";
 
 /**
- * Dialog, on top of @material/web's md-dialog.
+ * Dialog, on top of MSDS's own `Dialog` (D-77).
  *
- * md-dialog renders a native <dialog> internally and owns the whole open/close
- * lifecycle itself: Escape dispatches a cancelable `cancel` event on that
- * native element (real browsers do this for free; jsdom needs the polyfill in
- * vitest.setup.ts), the scrim is its own, and closing either way redispatches
- * as the host's `close` event — which is all `onClose` below listens for
- * (`events: {onClose: "close"}` in material/elements.ts). There is no
- * "Fechar" button of our own to render or trap Tab into; closing is Escape,
- * the scrim, or an explicit `footer` action.
+ * Unlike the `@material/web` version this replaces, MSDS's `Dialog` is not a
+ * wrapper around a native `<dialog>` — it is a plain backdrop/surface pair
+ * (`.msds-dialog-backdrop` / `.msds-dialog`) with its own focus handling,
+ * ported in D-74 (`useFocusTrap`, `lib/msds/msds.tsx`):
+ * - **Focus enters.** On open, `useFocusTrap` queries every focusable
+ *   descendant of the dialog surface (in DOM order) and focuses the first
+ *   one. Because MSDS's `Dialog` renders its own "Fechar" `IconButton` in
+ *   the header *before* this component's `children`, that close button is
+ *   what receives focus first — a real change from the old md-dialog version
+ *   (which had no close button of its own and autofocused the content area),
+ *   verified live and in the updated test below, not assumed.
+ * - **Tab is trapped.** The same hook's `keydown` listener on the surface
+ *   wraps Tab/Shift+Tab between the first and last focusable descendant.
+ * - **Escape closes.** A second `keydown` listener, scoped to `props.open`,
+ *   calls `onClose` on `Escape` — same behavior as before, different
+ *   mechanism (a document listener instead of the native `<dialog>` cancel
+ *   event).
+ * - **Focus returns.** `useFocusTrap`'s effect captures
+ *   `document.activeElement` when it runs (dialog opens) and restores it in
+ *   its cleanup (dialog closes) — this component owned that restoration
+ *   itself before; MSDS's `Dialog` now does, so the local `useEffect` this
+ *   file used to have for it is gone, not reimplemented redundantly.
  *
- * Two things this component still owns, because md-dialog does not:
- * - Focus restoration. md-dialog moves focus in on open (see below) and
- *   traps it while open, but never remembers what had focus before — that's
- *   this `useEffect`, the same "remember, then give back" shape the old
- *   hand-rolled dialog used.
- * - Marking what should receive focus on open. md-dialog's own show() does
- *   `this.querySelector('[autofocus]')` on the *host* element, which sees
- *   slotted light-DOM content because it queries before slot distribution —
- *   a shadow-root-scoped query could not. That query wants the literal
- *   `autofocus` HTML attribute; React's `autoFocus` prop does not set it on
- *   a plain `<div>` — it only calls `.focus()` once at mount, which for this
- *   always-mounted wrapper fires while the native <dialog> is still closed
- *   and does nothing. The `ref` below sets the real attribute instead, so
- *   it's there whenever show() actually queries for it. `tabIndex={-1}`
- *   keeps it a legitimate focus target without joining the Tab order itself.
+ * Two props this app's call sites use that MSDS's `Dialog` does not have:
+ * - **`description`**: MSDS's `Dialog` has a single `children` slot (no
+ *   separate headline/description split beyond `title`). Folded into
+ *   `children` here, as the same `<p>` this file always rendered for it,
+ *   ahead of the caller's own content — no behavior change for a caller.
+ * - **`className`**: MSDS's `Dialog` does not accept one (no `...rest`
+ *   spread) and no call site in this app passes one today (confirmed by
+ *   grep before this conversion) — kept in the prop type for signature
+ *   stability, intentionally not forwarded, the same treatment Button.tsx
+ *   gives an unused `ref`.
  */
 export function Dialog({
   open,
@@ -38,7 +46,7 @@ export function Dialog({
   title,
   description,
   footer,
-  className,
+  className: _className,
   children,
 }: {
   open: boolean;
@@ -49,25 +57,16 @@ export function Dialog({
   className?: string;
   children: ReactNode;
 }) {
-  const previouslyFocused = useRef<HTMLElement | null>(null);
-
-  useEffect(() => {
-    if (open) {
-      previouslyFocused.current = document.activeElement as HTMLElement | null;
-    } else if (previouslyFocused.current) {
-      previouslyFocused.current.focus();
-      previouslyFocused.current = null;
-    }
-  }, [open]);
-
   return (
-    <MdDialog open={open} onClose={onClose} className={cn(className)}>
-      <div slot="headline">{title}</div>
-      <div slot="content" ref={(el) => el?.setAttribute("autofocus", "")} tabIndex={-1}>
-        {description ? <p className="mb-2 text-sm text-ink-muted">{description}</p> : null}
-        {children}
-      </div>
-      {footer ? <div slot="actions">{footer}</div> : null}
-    </MdDialog>
+    <MsdsDialog open={open} onClose={onClose} title={title} footer={footer}>
+      {description ? (
+        <>
+          <p className="mb-2 text-sm text-ink-muted">{description}</p>
+          {children}
+        </>
+      ) : (
+        children
+      )}
+    </MsdsDialog>
   );
 }

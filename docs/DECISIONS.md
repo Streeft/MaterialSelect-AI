@@ -4385,3 +4385,171 @@ D-48 continua cobrindo exatamente isso.
 
 Nada foi commitado nem enviado por esta sessão (o repositório orquestrador
 revisa o diff); `apps/api` e `AppSidebar.tsx` não foram tocados.
+
+## D-77 — MSDS: `Dialog`/`Tabs`/`Field`/`Breadcrumb`/`Stepper` convertidos; nenhum delega para a função MSDS crua, cada um por um motivo diferente
+
+**Escopo entregue.** Os cinco arquivos que D-76 recomendou como próxima
+rodada foram convertidos, nesta ordem, cada um com o portão completo
+(`typecheck`/`lint`/`test`/`build`) rodado individualmente antes do
+seguinte: `Dialog.tsx`, `Tabs.tsx`, `Field.tsx`, `Breadcrumb.tsx`,
+`Stepper.tsx`. Todos os cinco removeram `@material/web` por completo — o
+único arquivo de `components/ui/*` que ainda o importa é `Button.tsx`
+(`IconButton`/`ButtonGroup`/`ToggleChip`, já documentado em D-76) e
+`ConstraintEditor.tsx` (o `<select multiple>` nativo, exceção deliberada,
+inalterada). Nenhum dos cinco delega para a função exportada por
+`lib/msds/msds.tsx` do mesmo nome — cada um tem um motivo concreto e
+verificado, não uma preferência de estilo; só `Dialog` chegou perto de um
+porte 1:1.
+
+**`Dialog.tsx` — o único que de fato passou a renderizar a `Dialog` do MSDS
+por dentro.** A `Dialog` do MSDS (`lib/msds/msds.tsx`, `useFocusTrap`
+portado em D-74) tem foco preso, Escape fecha e foco volta ao gatilho —
+verificado ao vivo nesta sessão, não presumido do porte: seu próprio
+`useFocusTrap` foca o primeiro elemento focável em ordem do DOM ao abrir, o
+que agora é o `IconButton` "Fechar" do próprio cabeçalho do MSDS (antes era
+o conteúdo, porque a versão em `md-dialog` não tinha botão de fechar
+nenhum) — uma mudança real de comportamento, confirmada e testada, não uma
+regressão. Duas traduções: `description` (que este app tem e o MSDS não)
+vira um `<p>` prefixado ao `children`, no mesmo lugar de sempre; `className`
+(que nenhum call site usa hoje) fica no tipo por estabilidade de assinatura
+e nunca é repassado, mesmo tratamento que `Button.tsx` já dá a um `ref`
+não-encaminhado. O corpo do diálogo encolheu de largura livre para
+`max-width: 420px` (`.msds-dialog`, `msds.css`) — a mesma adoção da
+linguagem visual do MSDS que já valia para `Button`.
+
+**`Tabs.tsx`, `Field.tsx`, `Breadcrumb.tsx`, `Stepper.tsx` — MSDS por
+classe CSS, não pela função.** A função vendorizada de cada um tem uma
+lacuna concreta contra o que este app já garantia, e delegar a ela
+reabriria um bug já corrigido ou derrubaria uma funcionalidade real —
+exatamente o padrão que `ButtonLink` já estabeleceu em D-76 (estilo do MSDS
+via classe, semântica própria via elemento nativo), agora estendido a
+quatro arquivos:
+
+- **`Tabs`**: a `Tabs` do MSDS não liga aba a painel (`role="tab"` sem
+  `id`/`aria-controls`, `role="tabpanel"` sem `id`/`aria-labelledby`) — o
+  bug exato que o teste "links the selected tab to a panel that exists" foi
+  escrito para fixar ("the panel used to be a sibling component with its
+  own id, so `aria-controls` referred to nothing at all"), e só trata
+  ArrowLeft/ArrowRight, sem Home/End (também testado). Delegar reabriria os
+  dois. Reescrito com a própria marcação — ids, `aria-controls`/
+  `aria-labelledby`, roving `tabIndex`, o padrão de teclado completo — e só
+  as classes `.msds-tablist`/`.msds-tab`/`.msds-tabpanel` emprestadas do
+  MSDS. Perdido contra a função do MSDS: a transição fade-through
+  (`useScreenTransition`) e o ripple por aba — nenhum exportado do barril
+  para reúso fora de `msds.tsx`, e os dois cosméticos.
+- **`Field.tsx`**: a maior conversão e a de maior risco real. `Input`/
+  `NumberInput`/`Textarea`/`Select`/`Checkbox`/`RadioGroup` do MSDS são
+  controlados (`onChange: (value: string) => void`, nunca um evento), sem
+  `ref` e sem `...rest` — o que já bastaria para perder `aria-label` (o
+  `Select` de `AhpMatrixInput.tsx`, nomeado só pela célula da tabela, "per
+  Input's own documented aria-label exception") em silêncio, mas o achado
+  que decidiu a conversão foi outro: `MaterialForm.tsx` — o maior
+  formulário real do app, cadastro de material — encadeia **todo** campo
+  por `{...register("name")}` do react-hook-form, que entrega `name`,
+  `onChange(event)`/`onBlur(event)` reais e um `ref` para leitura
+  não-controlada e foco em erro de validação. Passar o `onChange(event)` do
+  `register()` direto para o `onChange(value: string)` do MSDS quebraria em
+  runtime na primeira tecla (`event.target` de uma string é `undefined`) —
+  a "forma de onChange" que a tarefa pediu para verificar, verificada e
+  reprovada. Reescrito com `<input>`/`<select>`/`<textarea>`/`<option>`
+  nativos, `forwardRef`, `...rest` completo e `onChange` como evento real —
+  exatamente o que já havia, só sobre `@material/web` antes — e as classes
+  `.msds-field`/`.msds-field-label`/`.msds-control`/`.msds-field-hint`/
+  `.msds-checkbox`/`.msds-radio` em vez das classes Tailwind que o arquivo
+  escolhia à mão. Um ganho real e não-cosmético saiu de graça: o rótulo
+  passou de flutuante (dentro da borda, truque do `@material/web`) para
+  fixo acima do controle (convenção do MSDS), e o workaround
+  `tabIndex={disabled ? -1 : 0}` — só existia porque o `<input>` do
+  `md-outlined-text-field` vivia atrás de um shadow root que o jsdom não
+  delega foco através — não tem mais nada para contornar contra um
+  `<input>` nativo disabled, então saiu. `Field`/`useWiring`/`CONTROL`
+  (a exceção do `<select multiple>` de `ConstraintEditor.tsx`) e `Fieldset`
+  não usavam `@material/web` e ficaram como estavam. Efeito colateral:
+  `lib/testing/mwc.ts` (`selectMwcOption`/`setMwcTextField`) ficou sem
+  nenhum consumidor — apagado, não deixado como vestígio (a mesma disciplina
+  do `seed_patch.py` em D-71) — e onze arquivos de teste que dependiam dele
+  passaram a usar `userEvent.selectOptions`/`userEvent.clear`+`type`
+  diretos contra o `<select>`/`<input>` real, mais simples do que o
+  contorno que existia só por causa do shadow DOM.
+- **`Breadcrumb`**: o `Breadcrumb` do MSDS nunca navega de verdade — todo
+  item não-atual é `<a href="#" onClick={(e) => { e.preventDefault();
+  it.onClick() }}>`, nunca um `href` real — e os três call sites reais
+  (`catalogo/[slug]`, `processos/[slug]`, `processos/familia/[slug]`) só
+  passam `href`, contando com clique do meio, "abrir em nova aba" e
+  prefetch do `next/link`; a função do MSDS também não usa `<ol>`/`<li>`
+  (uma sequência de `<a>`/`<span>` sem lista) e ignora a prop `label` do
+  chamador, sempre emitindo seu próprio `aria-label` fixo. `<nav>`/`<ol>`/
+  `<li>`, `next/link` de verdade e o `label` configurável ficaram como
+  estavam; só `.msds-breadcrumb`/`.msds-breadcrumb-link`/
+  `.msds-breadcrumb-current`/`.msds-breadcrumb-sep` substituem as classes
+  Tailwind anteriores.
+- **`Stepper`**: o `Stepper` do MSDS é um `<ol>` somente leitura — sem
+  `<button>`, sem `onClick`, sem jeito de o leitor pular de etapa —, e os
+  dois call sites reais (`/app/selecao`, `/app/importar`) dependem
+  exatamente disso via `onSelect`. Também é uma linha do tempo estritamente
+  vertical (conector `::before` dimensionado para coluna), enquanto este
+  componente é uma fileira responsiva de etapas de largura igual acima do
+  conteúdo do assistente. A estrutura de `<button>` por etapa — clique,
+  `disabled` na etapa bloqueada, `aria-current="step"`, `title`/texto
+  `sr-only` para quem não tem cor nem forma — ficou como estava; só a cor da
+  bolinha de cada etapa (antes, classes Tailwind escolhidas à mão por
+  status) passou a reproduzir a mesma fórmula de cor que
+  `.msds-step-dot[data-state=…]` expressa. Não pôde usar a própria classe
+  MSDS com o seletor `data-state` do CSS porque `lib/msds/msds.css` é
+  importado depois de `globals.css` (`app/layout.tsx`, de propósito — ver
+  D-74) — o que, à mesma especificidade, faz a regra do MSDS ganhar de uma
+  utility Tailwind concorrente na ordem da folha de estilo, não o inverso.
+  Por isso a cor por estado é `style` inline (a única coisa que a ordem da
+  folha não derruba), lendo os mesmos tokens (`--success`/`--accent`/
+  `--warning`/`--accent-fg`) que a regra do MSDS lê.
+
+**Verificação, por arquivo — os quatro comandos rodados individualmente
+depois de cada arquivo, antes de seguir para o próximo, mais a suíte
+inteira ao final:**
+1. `Dialog.tsx`: `typecheck` limpo; os dois testes de `describe("Dialog")`
+   em `ui.test.tsx` reescritos para a marcação real do MSDS (sem shadow
+   root: `getByRole` em vez de `getByShadowRole`, e o foco inicial pousa no
+   `IconButton` "Fechar", não mais no wrapper de conteúdo) — 2 testes
+   verdes; `lint` 0 erros/21 avisos (a mesma base de D-76); `test` 388/388;
+   `build` 23 rotas.
+2. `Tabs.tsx`: `typecheck` limpo; os dois testes de `describe("Tabs")`
+   passaram **sem alteração nenhuma** — a prova de que a marcação/ARIA/
+   teclado ficaram idênticos ao que já havia; `lint`/`test`/`build` limpos
+   (388/388, 23 rotas).
+3. `Field.tsx`: `typecheck` limpo depois de trocar os tipos de `ref` para
+   os elementos nativos (`HTMLInputElement`/`HTMLSelectElement`/
+   `HTMLTextAreaElement`/`HTMLOptionElement`). `test` revelou, na primeira
+   rodada, 29 falhas em 11 arquivos — todas `host.select is not a function`
+   (`selectMwcOption` contra um `<select>` real) ou `md-select-option`
+   ausente do DOM (dois helpers de teste, `optionTexts` em
+   `ConstraintEditor.test.tsx`/`StageList.test.tsx`, que liam a tag do
+   elemento custom diretamente). Corrigidos: onze arquivos passaram a usar
+   `userEvent.selectOptions`/`clear`+`type` nativos, os dois helpers
+   passaram a consultar `option` em vez de `md-select-option`,
+   `lib/testing/mwc.ts` apagado (zero consumidores restantes). Depois:
+   `test` 388/388; `lint` 0 erros/21 avisos; `build` 23 rotas.
+4. `Breadcrumb.tsx`: `typecheck` limpo; `test` 388/388 sem nenhuma alteração
+   de teste (nenhum teste dedicado a `Breadcrumb` existia além do que
+   `estilo`/`catalogo`/`processos` já exercitavam indiretamente, e nenhum
+   quebrou); `lint`/`build` limpos.
+5. `Stepper.tsx`: `typecheck` limpo; `test` 388/388 sem alteração de teste;
+   `lint`/`build` limpos.
+6. Suíte completa, rodada de novo ao final como confirmação: `typecheck`
+   limpo; `lint` 0 erros/21 avisos (os mesmos de D-76, nenhum novo);
+   `test` 388/388; `build` 23 rotas, sucesso.
+7. Verificação ao vivo: `npm run build` + `npm run start`, Chromium de
+   sistema (`/opt/pw-browsers/chromium` via `playwright-core`) contra
+   `/app/estilo` em claro e escuro. Sem API nem sessão configuradas nesta
+   sessão, a rota cai no mesmo `ErrorState` que D-76 já documentou (o
+   portão de login por trás de `/app/*` não tem contorno de bypass) — sem
+   nenhum erro de console além dos esperados de rede ausente, nos dois
+   temas. A vitrine viva de `Dialog`/`Tabs`/`Field`/`Breadcrumb`/`Stepper`
+   em `/app/estilo` **não foi verificada com sessão real** nesta rodada
+   (exigiria subir `apps/api` com um venv, o que esta sessão não tinha
+   pronto) — a cobertura de comportamento real vem da suíte de testes
+   (foco/Escape/Tab do Dialog, ARIA/teclado do Tabs, `axe` no Dialog aberto)
+   e do `build` de produção, não de uma captura de tela autenticada.
+
+Nada foi commitado nem enviado por esta sessão (o repositório orquestrador
+revisa o diff); `apps/api`, `AppSidebar.tsx`, `Card.tsx` e `Badge.tsx` não
+foram tocados.

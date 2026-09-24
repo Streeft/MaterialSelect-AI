@@ -8,7 +8,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { ptBR } from "@/lib/i18n";
 import type { CostRequest, CostResult, MaterialListItem } from "@/lib/types";
-import { setMwcTextField } from "@/lib/testing/mwc";
 
 const t = ptBR.cost;
 
@@ -182,7 +181,9 @@ describe("Custo da peça", () => {
     nav.query = "material=7&massa=2";
     await open();
 
-    setMwcTextField(await screen.findByShadowLabelText(/Fator de carga/), "1.5");
+    const loadFactor = await screen.findByShadowLabelText(/Fator de carga/);
+    await userEvent.clear(loadFactor);
+    await userEvent.type(loadFactor, "1.5");
 
     expect(await screen.findByShadowRole("button", { name: t.estimate })).toBeDisabled();
     expect(estimatePartCost).not.toHaveBeenCalled();
