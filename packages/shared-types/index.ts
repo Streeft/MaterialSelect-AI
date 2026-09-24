@@ -1272,10 +1272,19 @@ export interface CurrentUser {
 
 // --- Billing (assinatura Stripe) --------------------------------------------
 
+/** `subscription` é o portão de D-46; `open` libera o uso a qualquer login Google (D-82). */
+export type AccessMode = "subscription" | "open";
+
 export interface BillingStatus {
+  /** A verdade da assinatura, e só ela — não diz se o portão admite. */
   active: boolean;
   status: string | null;
   current_period_end: string | null;
+  access_mode: AccessMode;
+  /** O que o portão lê: assinatura ativa, ou acesso aberto. */
+  has_access: boolean;
+  /** Se este usuário pode alterar o catálogo compartilhado. */
+  can_edit_catalog: boolean;
 }
 
 export interface CheckoutSession {

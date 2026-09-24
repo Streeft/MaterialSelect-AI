@@ -16,6 +16,7 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from app.config import Settings, settings
+from app.domain import access
 from app.domain.errors import AuthenticationError, ServiceUnavailableError, ValidationError
 from app.models.subscription import Subscription
 from app.models.user import User
@@ -95,10 +96,15 @@ class BillingService:
 
     def status(self, user: User) -> BillingStatusOut:
         subscription = self.subscriptions.get_by_user_id(user.id)
+        active = subscription is not None and subscription.status == "active"
+        mode = self.settings.access_mode
         return BillingStatusOut(
-            active=subscription is not None and subscription.status == "active",
+            active=active,
             status=subscription.status if subscription else None,
             current_period_end=subscription.current_period_end if subscription else None,
+            access_mode=mode,
+            has_access=access.grants_access(mode, active),
+            can_edit_catalog=access.can_edit_shared_catalog(mode, active),
         )
 
     # --- webhook -------------------------------------------------------------

@@ -17,6 +17,7 @@ import {
 import type { MaterialDetail, PropertyGroup } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { FavoriteButton } from "@/components/my-records/FavoriteButton";
+import { useCanEditCatalog } from "@/lib/billing";
 import { SimilarPanel } from "@/components/similar/SimilarPanel";
 import { useRecordVisit } from "@/components/my-records/useRecordVisit";
 import { classVisual } from "@/lib/design/palette";
@@ -78,6 +79,8 @@ export default function MaterialDetailPage() {
     queryKey: ["chart", "densidade", "modulo_young"],
     queryFn: () => getChart("densidade", "modulo_young"),
   });
+
+  const canEditCatalog = useCanEditCatalog();
 
   const deactivate = useMutation({
     mutationFn: () => deactivateMaterial(id),
@@ -164,10 +167,15 @@ export default function MaterialDetailPage() {
               </div>
               <div className="flex shrink-0 flex-wrap items-center gap-2">
                 <FavoriteButton universe="material" recordId={data.id} />
-                <ButtonLink href={`/app/materiais/${id}/editar`} size="sm">
-                  {ptBR.actions.edit}
-                </ButtonLink>
-                {data.is_active && (
+                {/* D-82: in open access mode a shared material is read-only for
+                    a student; the server refuses the write, this only avoids
+                    offering a button that cannot work. */}
+                {(data.is_own_record || canEditCatalog) && (
+                  <ButtonLink href={`/app/materiais/${id}/editar`} size="sm">
+                    {ptBR.actions.edit}
+                  </ButtonLink>
+                )}
+                {data.is_active && (data.is_own_record || canEditCatalog) && (
                   <Button
                     size="sm"
                     variant="danger"

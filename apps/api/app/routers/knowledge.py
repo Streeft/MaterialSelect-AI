@@ -14,7 +14,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.db.base import get_db
-from app.dependencies import get_current_user
+from app.dependencies import get_current_user, require_catalog_curator
 from app.domain.errors import ConflictError
 from app.knowledge.service import KnowledgeService
 from app.models.user import User
@@ -30,7 +30,9 @@ router = APIRouter(prefix="/knowledge", tags=["knowledge"])
 _ingest_lock = threading.Lock()
 
 
-@router.post("/ingest", response_model=IngestReportOut)
+@router.post(
+    "/ingest", response_model=IngestReportOut, dependencies=[Depends(require_catalog_curator)]
+)
 def ingest(
     db: Session = Depends(get_db), user: User = Depends(get_current_user)
 ) -> IngestReportOut:

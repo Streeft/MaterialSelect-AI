@@ -1,0 +1,106 @@
+# Abre ou fecha o acesso à ferramenta em produção (D-82), disparado à mão.
+#
+#   abrir                 qualquer pessoa que entrar com uma conta Google usa a
+#                         ferramenta, sem assinatura — para uma turma testar. O
+#                         catálogo compartilhado (materiais, classes,
+#                         propriedades, importação) continua sendo alterado só
+#                         por quem tem assinatura ativa; o estudante cria e
+#                         edita os próprios registros e estudos.
+#   restaurar_assinatura  volta ao portão de D-46: só entra quem tem assinatura
+#                         ativa. É a configuração original, e o padrão do código.
+#
+# O que muda é um único segredo do app no Fly, `ACCESS_MODE`. Não há PR, não há
+# deploy de código: trocar o segredo reinicia as máquinas com o valor novo, e o
+# frontend lê o modo em `/billing/status` — nada na Vercel precisa ser refeito.
+#
+# **O job só fica verde depois de ler o modo novo em `/api/health`.** Um segredo
+# gravado numa API anterior ao D-82 seria ignorado em silêncio (a configuração
+# descarta variável desconhecida), e o job passaria com a porta ainda fechada —
+# a mesma assinatura das armadilhas do Fly no D-52. Se este passo falhar com
+# "modo ausente", dispare antes o "Deploy da API".
+#
+# **Antes de restaurar:** confira que a sua própria conta tem assinatura ativa
+# (Administração do banco → conceder). Sem ela, o portão fecha para você também.
+#
+# **Só `workflow_dispatch`**, e não entra em `scripts/protect-main.ps1` — ver a
+# mesma nota em `deploy-api.yml`. Pré-requisito: o secret `FLY_API_TOKEN`, o
+# mesmo do deploy.
+name: Modo de acesso
+
+on:
+  workflow_dispatch:
+    inputs:
+      modo:
+        description: "abrir = qualquer conta Google entra; restaurar_assinatura = só quem assinou"
+        required: true
+        type: choice
+        options:
+          - abrir
+          - restaurar_assinatura
+
+# Divide o grupo com o deploy: um reinício de segredo no meio de um deploy
+# disputaria as mesmas máquinas.
+concurrency:
+  group: deploy-api
+  cancel-in-progress: false
+
+jobs:
+  modo:
+    name: Modo de acesso
+    runs-on: ubuntu-latest
+    steps:
+      # Traz o fly.toml, de onde o flyctl lê o nome do app.
+      - uses: actions/checkout@v7
+
+      - name: Preparar flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Conferir que o token existe
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${FLY_API_TOKEN:-}" ]; then
+            echo "::error::O secret FLY_API_TOKEN não está definido. Crie-o em Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+
+      # A escolha chega por variável de ambiente, nunca interpolada no `run:`
+      # (mesma regra de admin-banco.yml), e é traduzida por uma tabela fechada:
+      # nenhum texto digitado vira valor de segredo.
+      - name: Gravar ACCESS_MODE
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          MODO: ${{ inputs.modo }}
+        run: |
+          set -euo pipefail
+          case "$MODO" in
+            abrir) valor=open ;;
+            restaurar_assinatura) valor=subscription ;;
+            *) echo "::error::Modo desconhecido: $MODO"; exit 1 ;;
+          esac
+          echo "ACCESS_MODE=$valor" >> "$GITHUB_ENV"
+          flyctl secrets set "ACCESS_MODE=$valor"
+
+      - name: Confirmar o modo na API publicada
+        run: |
+          set -euo pipefail
+          app="$(grep -E '^app *= *"' fly.toml | sed -E 's/^app *= *"([^"]+)".*/\1/')"
+          url="https://${app}.fly.dev/api/health"
+          # As máquinas reiniciam uma a uma; até três minutos cobre o reinício
+          # sem esconder uma API que nunca volta.
+          for tentativa in $(seq 1 36); do
+            modo="$(curl -fsS --max-time 10 "$url" | jq -r '.access_mode // "ausente"' || echo "sem resposta")"
+            echo "Tentativa $tentativa: access_mode=$modo"
+            if [ "$modo" = "$ACCESS_MODE" ]; then
+              echo "A API publicada está em '$modo'."
+              exit 0
+            fi
+            sleep 5
+          done
+          if [ "$modo" = "ausente" ]; then
+            echo "::error::A API publicada não informa access_mode: ela é anterior ao D-82. Dispare 'Deploy da API' e rode este workflow de novo."
+          else
+            echo "::error::A API publicada continua em '$modo', não em '$ACCESS_MODE'."
+          fi
+          exit 1

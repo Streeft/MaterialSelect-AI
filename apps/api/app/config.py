@@ -182,6 +182,18 @@ class Settings(BaseSettings):
     # na interface.
     stripe_price_id: str = ""
 
+    # --- Access mode (D-82) -----------------------------------------------
+    # subscription  the D-46 gate: every product route needs an active
+    #               subscription. The default, so a deployment that never set
+    #               the variable stays closed.
+    # open          any Google login uses the tool (a class testing it), while
+    #               writes to the shared catalogue stay with subscribers — a
+    #               student's own records and studies are theirs, the catalogue
+    #               everyone reads is not.
+    # Switched in production by .github/workflows/modo-acesso.yml, never by
+    # editing code: reverting is one dispatch, not a PR.
+    access_mode: Literal["subscription", "open"] = "subscription"
+
     @property
     def google_oauth_enabled(self) -> bool:
         """True when a Google OAuth client is configured."""

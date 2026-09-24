@@ -31,6 +31,23 @@ class SubscriptionRequiredError(DomainError):
     """Raised when a route needs an active subscription and the user has none."""
 
 
+class CatalogReadOnlyError(DomainError):
+    """A write to the shared catalogue by someone who may only read it. -> HTTP 403.
+
+    Only reachable in open access mode (D-82). The default message lives here
+    so the route guard and the material service cannot word it differently.
+    """
+
+    def __init__(
+        self,
+        message: str = (
+            "Durante o acesso aberto para testes, o catálogo compartilhado é somente "
+            "leitura. Você pode criar e editar os seus próprios registros e estudos."
+        ),
+    ) -> None:
+        super().__init__(message)
+
+
 class ServiceUnavailableError(DomainError):
     """A required external dependency is not configured. -> HTTP 503.
 

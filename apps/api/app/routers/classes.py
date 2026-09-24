@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy.orm import Session
 
 from app.db.base import get_db
-from app.dependencies import get_current_user
+from app.dependencies import get_current_user, require_catalog_curator
 from app.models.user import User
 from app.schemas.material_class import (
     MaterialClassDetailOut,
@@ -41,7 +41,12 @@ def get_class(
     return TaxonomyService(db, user).get_class(slug)
 
 
-@router.post("", response_model=MaterialClassOut, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=MaterialClassOut,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_catalog_curator)],
+)
 def create_class(
     payload: MaterialClassIn,
     db: Session = Depends(get_db),
@@ -51,7 +56,9 @@ def create_class(
     return TaxonomyService(db, user).create_class(payload)
 
 
-@router.put("/{class_id}", response_model=MaterialClassOut)
+@router.put(
+    "/{class_id}", response_model=MaterialClassOut, dependencies=[Depends(require_catalog_curator)]
+)
 def update_class(
     class_id: int,
     payload: MaterialClassIn,
@@ -62,7 +69,11 @@ def update_class(
     return TaxonomyService(db, user).update_class(class_id, payload)
 
 
-@router.delete("/{class_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{class_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_catalog_curator)],
+)
 def delete_class(
     class_id: int,
     db: Session = Depends(get_db),

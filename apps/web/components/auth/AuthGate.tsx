@@ -46,8 +46,10 @@ export function AuthGate({ children }: { children: ReactNode }) {
     isError: billingIsError,
     refetch: refetchBilling,
   } = useBillingStatus({ enabled: billingEnabled });
+  // `has_access` and not `active`: in open mode (D-82) the server admits a
+  // login with no subscription, and the rule lives there, not here.
   const isNotSubscribed =
-    billingEnabled && !billingLoading && !billingIsError && billing?.active === false;
+    billingEnabled && !billingLoading && !billingIsError && billing?.has_access === false;
 
   useEffect(() => {
     if (!isLoginRoute && isUnauthenticated) {
@@ -106,7 +108,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
   // paused by `networkMode` while offline is one. Reaching `children` by
   // elimination would render the whole application with no subscription ever
   // confirmed, which is exactly what this component exists to prevent.
-  if (billing?.active !== true) {
+  if (billing?.has_access !== true) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
         <LoadingState label={ptBR.auth.checkingSubscription} />

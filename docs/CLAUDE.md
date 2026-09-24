@@ -257,6 +257,7 @@ A lista completa, com as receitas prontas de cada provedor, está em
 | `AI_CLI_COMMAND` | `claude` | Executável do `claude-cli`, resolvido no PATH. |
 | `NEXT_PUBLIC_API_URL` | `http://localhost:8000` | URL da API no frontend. |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | vazio | Login desligado (503) sem os dois. Sem padrão de propósito — não existe cliente OAuth que sirva para todo mundo ([D-42](DECISIONS.md)). |
+| `ACCESS_MODE` | `subscription` | `open` libera a ferramenta a qualquer login Google, com o catálogo compartilhado ainda restrito a quem assina ([D-82](DECISIONS.md)). Em produção, trocado pelo workflow `modo-acesso.yml`. |
 | `GOOGLE_ALLOWED_DOMAIN` | vazio | Vazio permite qualquer conta Google; setado, restringe por sufixo de e-mail (ex.: antes de hospedar para uma turma). |
 | `BACKEND_BASE_URL` | `http://localhost:8000` | Monta o `redirect_uri` exato que o Google exige pré-registrado (`{BACKEND_BASE_URL}/api/auth/google/callback`). |
 | `FRONTEND_URL` | `http://localhost:3000` | Para onde o navegador volta após o login. |
@@ -333,6 +334,13 @@ Três coisas que não são detalhe de configuração:
 - **Ninguém entra sem concessão.** O portão de D-46 não tem exceção e o Stripe
   responde 503 sem chave (D-36): use
   `python -m app.admin.grant_subscription --email …` depois do primeiro login.
+  A exceção deliberada é o **modo aberto** ([D-82](DECISIONS.md)), para uma
+  turma: `ACCESS_MODE=open`, trocado pelo workflow **Modo de acesso**
+  (`modo-acesso.yml`, `abrir`/`restaurar_assinatura`) — login continua
+  obrigatório, e escrever no catálogo compartilhado continua exigindo
+  assinatura. **Rota nova que escreve no catálogo compartilhado precisa de
+  `require_catalog_curator`** (ou, no caso de material, do `can_edit_shared`
+  do `MaterialService`); sem isso, no modo aberto, qualquer estudante a usa.
 - **Há um caminho sem terminal.** `.github/workflows/deploy-api.yml` e
   `admin-banco.yml` fazem o `fly deploy` e as operações de banco (migrar,
   semear, conceder, revogar) por disparo manual na aba Actions (13-deploy.md

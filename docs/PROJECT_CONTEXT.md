@@ -475,8 +475,8 @@ carregando a sua lista de "faltam". O número diz que nenhuma capacidade do
 modelo funcional está ausente ou pela metade, não que cada uma esteja no seu
 teto.
 
-**Saúde do código:** 1741 testes de backend (Python 3.11 e 3.12, nenhum skip)
-e 368 de frontend, todos verdes. Desde o P0-1 a suíte também roda as migrações de
+**Saúde do código:** 1785 testes de backend (Python 3.11 e 3.12, nenhum skip)
+e 427 de frontend, todos verdes. Desde o P0-1 a suíte também roda as migrações de
 verdade, nos dois sentidos, contra um banco temporário que já contém dados —
 `test_migration_selection_stage.py`, `test_migration_process_universe.py`,
 `test_migration_selection_universe.py`, `test_migration_process_attributes.py`,
@@ -511,7 +511,8 @@ O roteiro completo está em [13-deploy.md](13-deploy.md) e o desenho em
 - **O deploy é feito por dois workflows de disparo manual**
   (`deploy-api.yml` e `admin-banco.yml`), não por terminal — o operador deste
   projeto não tem shell disponível. Eles cobrem `fly deploy`, migrações, seed e
-  a concessão de acesso.
+  a concessão de acesso — e um terceiro, `modo-acesso.yml`, abre a ferramenta
+  a qualquer conta Google para uma turma e a fecha de novo ([D-82](DECISIONS.md)).
 - **Publicar exigiu corrigir cinco defeitos que nenhum teste pegava**, todos
   invisíveis fora de produção: a migração que não subia em Postgres, o
   `psycopg` não declarado, o `requirements.txt` que tinha derivado, o
@@ -717,6 +718,14 @@ resto da fase — trazidas depois, íntegras, verificadas caminho a caminho:
   **completou um checkout real de ponta a ponta** (login → checkout →
   pagamento de teste → webhook → assinatura ativa), o que expôs e corrigiu
   um bug real no processamento do webhook (PR #21, ver [D-46](DECISIONS.md)).
+- **Modo de acesso aberto** ([D-82](DECISIONS.md)) — `ACCESS_MODE=open`
+  deixa uma turma usar a ferramenta com qualquer conta Google, sem
+  assinatura; login continua obrigatório e **escrever no catálogo
+  compartilhado continua exigindo assinatura** (material compartilhado,
+  classe, propriedade, importação, ingestão). O padrão é `subscription`, o
+  D-46 intacto. Em produção a troca é o workflow **Modo de acesso**
+  (`modo-acesso.yml`, `abrir`/`restaurar_assinatura`), que confere o modo em
+  `/api/health` antes de ficar verde — [13-deploy.md §5-quater](13-deploy.md).
 
 ### Estudo de caso didático (A2)
 O tirante leve e rígido ("light, stiff tie") de Ashby — o exemplo introdutório
