@@ -11,7 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
-| [28](#sessão-28--240926-a-280926--turma-de-terça-processos-no-objetivo-ux-guiada-pesos-com-limite-e-a-ia) | 24 a 28/09/2026 | Preparação para a turma: processos voltam a ter Objetivo (D-84) | 1785 → … | 431 → … |
+| [28](#sessão-28--240926-a-280926--turma-de-terça-processos-no-objetivo-ux-guiada-pesos-com-limite-e-a-ia) | 24 a 28/09/2026 | Preparação para a turma: processos no Objetivo, Seleção guiada, superfícies enxutas, pesos com limite 1, Objetivo antes de Restrições e a IA do laudo (D-84 a D-89) | 1785 → 1856 | 431 → 505 |
 | [27](#sessão-27--240926--o-portão-vira-um-modo-acesso-aberto-para-uma-turma-d-83) | 24/09/2026 | Acesso aberto para estudantes com qualquer conta Google, catálogo compartilhado protegido, e o workflow que abre e fecha (D-83) | 1755 → 1785 | 422 → 427 |
 | [26](#sessão-26--21092026-a-22092026--a-auditoria-de-produção-o-seed-desconectado-d-71-e-a-exclusão-de-demo-por-um-flag-d-72) | 21 e 22/09/2026 | Auditoria ao vivo da produção; o defeito do seed desconectado (D-71) achado e corrigido; mecanismo de exclusão de dado demo por `is_demo` (D-72) e a regra escrita para qualquer agente/IDE | 1727 → 1741 | 368 (inalterado) |
 | [25](#sessão-25--210926--a-unidade-de-leitura-fecha-a-matriz) | 21/09/2026 | Unidade de leitura por propriedade (D-70) — ler não é guardar. **Matriz a 32 de 32 (100%)** | 1683 → 1727 | 356 → 368 |
