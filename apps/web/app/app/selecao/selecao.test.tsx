@@ -13,12 +13,51 @@ import type {
   PropertyDefinition,
   RunRequest,
   RunResult,
+  WeightBudget,
+  WeightsPreview,
+  WeightsPreviewRequest,
 } from "@/lib/types";
 
 const t = ptBR.selection;
 
 const runSelection = vi.fn<(payload: RunRequest) => Promise<RunResult>>();
 const listProcessAttributes = vi.fn<() => Promise<ProcessAttribute[]>>();
+const previewWeights = vi.fn<(payload: WeightsPreviewRequest) => Promise<WeightsPreview>>();
+
+/** A budget that closes: every row sound, `can_run` true — the backend's answer
+ * to any well-formed set of criteria, unless a test says otherwise. */
+function closedPreview(payload: WeightsPreviewRequest, budget: Partial<WeightBudget> = {}): WeightsPreview {
+  return {
+    budget: {
+      limit: 1,
+      tolerance: 0.001,
+      total: 1,
+      remaining: 0,
+      excess: 0,
+      status: "complete",
+      rows: payload.criteria.map((c, position) => ({
+        position,
+        key: c.key || null,
+        weight: c.weight,
+        share: null,
+        share_percent: null,
+        issue: c.weight === null ? "missing_weight" : null,
+      })),
+      suggestion: null,
+      can_run: true,
+      ...budget,
+    },
+    method: payload.method,
+    top: [],
+    initial_count: 12,
+    candidate_count: 12,
+    ranked_count: 0,
+    constraints_applied: false,
+    renormalized: false,
+    unavailable_reason: "no_criteria",
+    unavailable_message: "Escolha um critério.",
+  };
+}
 let propertiesMock: PropertyDefinition[] = [];
 const listPerformanceIndices = vi.fn<() => Promise<PerformanceIndex[]>>();
 
@@ -47,6 +86,7 @@ const density: PropertyDefinition = {
 vi.mock("@/lib/api", () => ({
   ApiError: class ApiError extends Error {},
   runSelection: (payload: RunRequest) => runSelection(payload),
+  previewWeights: (payload: WeightsPreviewRequest) => previewWeights(payload),
   listProperties: () => Promise.resolve(propertiesMock),
   listClasses: () => Promise.resolve([]),
   listProcesses: () => Promise.resolve([]),
@@ -108,12 +148,20 @@ const { default: SelectionPage } = await import("./page");
 beforeEach(() => {
   runSelection.mockReset();
   runSelection.mockResolvedValue(result());
+  previewWeights.mockReset();
+  previewWeights.mockImplementation(async (payload) => closedPreview(payload));
   listProcessAttributes.mockResolvedValue([]);
   propertiesMock = [density];
   listPerformanceIndices.mockResolvedValue([]);
   for (const key of [...searchParams.keys()]) searchParams.delete(key);
   window.history.replaceState(null, "", "/app/selecao");
 });
+
+/** Run, once the weight check has answered (D-87): the button waits for it. */
+async function clickRun(user: ReturnType<typeof userEvent.setup>) {
+  await waitFor(() => expect(screen.getByShadowRole("button", { name: t.run })).toBeEnabled());
+  await user.click(screen.getByShadowRole("button", { name: t.run }));
+}
 
 describe("assistente de seleção", () => {
   it("keeps the candidate count on screen after leaving the constraints step", async () => {
@@ -145,7 +193,7 @@ describe("assistente de seleção", () => {
     render(wrap(<SelectionPage />));
 
     await user.click(screen.getByShadowRole("button", { name: new RegExp(t.stepObjective, "i") }));
-    await user.click(screen.getByShadowRole("button", { name: t.run }));
+    await clickRun(user);
 
     // The winner card is the first thing the results screen renders (D-85);
     // this run has no objective, so it says honestly that nobody won.
@@ -162,7 +210,7 @@ describe("assistente de seleção", () => {
     render(wrap(<SelectionPage />));
 
     await user.click(screen.getByShadowRole("button", { name: new RegExp(t.stepObjective, "i") }));
-    await user.click(screen.getByShadowRole("button", { name: t.run }));
+    await clickRun(user);
 
     await waitFor(() =>
       expect(screen.getByShadowRole("button", { name: t.saveStudy })).toBeDisabled(),
@@ -297,7 +345,7 @@ describe("método de ranking", () => {
     await user.keyboard("{Enter}");
     await user.click(screen.getByText(ptBR.ui.advancedOptions));
     await user.click(screen.getByShadowRole("button", { name: t.methodPromethee }));
-    await user.click(screen.getByShadowRole("button", { name: t.run }));
+    await clickRun(user);
 
     await waitFor(() => expect(runSelection).toHaveBeenCalled());
     expect(runSelection).toHaveBeenCalledWith(
@@ -396,7 +444,7 @@ describe("estudo de processos", () => {
     await waitFor(() => expect(listProcessAttributes).toHaveBeenCalled());
     await user.type(screen.getByRole("combobox", { name: t.criterion }), "lote");
     await user.keyboard("{Enter}");
-    await user.click(screen.getByShadowRole("button", { name: t.run }));
+    await clickRun(user);
 
     await waitFor(() =>
       expect(runSelection).toHaveBeenCalledWith(
@@ -466,5 +514,95 @@ describe("exemplo em um clique (D-85)", () => {
 
     expect(screen.getByText(/O exemplo não pôde ser carregado/)).toHaveTextContent("viga-leve-rigidez");
     expect(screen.getByShadowRole("textbox", { name: t.studyName })).toHaveValue("");
+  });
+});
+
+// --- D-87: the weights close at 1 before a run --------------------------------
+
+describe("pesos com limite 1", () => {
+  async function twoCriteria(user: ReturnType<typeof userEvent.setup>) {
+    propertiesMock = [density, { ...density, id: 2, name: "Módulo de Young", slug: "modulo_young" }];
+    render(wrap(<SelectionPage />));
+    await user.click(screen.getByShadowRole("button", { name: new RegExp(t.stepObjective, "i") }));
+    await user.click(screen.getByShadowRole("button", { name: t.continueToCriteria }));
+    await user.click(screen.getByShadowRole("button", { name: t.addCriterion }));
+    await user.type(screen.getAllByRole("combobox", { name: t.criterion })[0]!, "Densidade");
+    await user.keyboard("{Enter}");
+    await user.click(screen.getByShadowRole("button", { name: t.addCriterion }));
+    await user.type(screen.getAllByRole("combobox", { name: t.criterion })[1]!, "Módulo");
+    await user.keyboard("{Enter}");
+  }
+
+  it("starts the second criterion blank, so the total does not silently reach 2", async () => {
+    const user = userEvent.setup();
+    await twoCriteria(user);
+    const weights = screen.getAllByShadowLabelText(t.weight) as HTMLInputElement[];
+    expect(weights.map((w) => w.value)).toEqual(["1", ""]);
+    // Debounced: the latest call is the one that carries both rows.
+    await waitFor(() =>
+      expect(previewWeights.mock.calls.at(-1)?.[0].criteria.map((c) => c.weight)).toEqual([
+        1,
+        null,
+      ]),
+    );
+  });
+
+  it("blocks Run with the reason, and the suggestion closes the total", async () => {
+    previewWeights.mockImplementation(async (payload) =>
+      payload.criteria.some((c) => c.weight === null)
+        ? closedPreview(payload, {
+            status: "incomplete",
+            can_run: false,
+            suggestion: { kind: "split_equally", weights: [0.5, 0.5] },
+          })
+        : closedPreview(payload),
+    );
+    const user = userEvent.setup();
+    await twoCriteria(user);
+
+    await screen.findByText(t.weights.issues.missing_weight, { selector: "#executar-motivo" });
+    expect(screen.getByShadowRole("button", { name: t.run })).toBeDisabled();
+
+    await user.click(await screen.findByShadowRole("button", { name: t.weights.suggest.split_equally }));
+    const weights = screen.getAllByShadowLabelText(t.weight) as HTMLInputElement[];
+    expect(weights.map((w) => w.value)).toEqual(["0,5", "0,5"]);
+
+    await clickRun(user);
+    await waitFor(() => expect(runSelection).toHaveBeenCalled());
+    const ranking = runSelection.mock.calls.at(-1)![0].ranking;
+    expect(ranking?.criteria.map((c) => c.weight)).toEqual([0.5, 0.5]);
+  });
+
+  it("undoes a suggestion", async () => {
+    previewWeights.mockImplementation(async (payload) =>
+      closedPreview(payload, {
+        status: "incomplete",
+        can_run: false,
+        suggestion: { kind: "split_equally", weights: [0.5, 0.5] },
+      }),
+    );
+    const user = userEvent.setup();
+    await twoCriteria(user);
+    await user.click(await screen.findByShadowRole("button", { name: t.weights.suggest.split_equally }));
+    await user.click(screen.getByShadowRole("button", { name: t.weights.undo }));
+    const weights = screen.getAllByShadowLabelText(t.weight) as HTMLInputElement[];
+    expect(weights.map((w) => w.value)).toEqual(["1", ""]);
+  });
+
+  it("names a weight that is not a number", async () => {
+    const user = userEvent.setup();
+    await twoCriteria(user);
+    const second = (screen.getAllByShadowLabelText(t.weight) as HTMLInputElement[])[1]!;
+    await user.type(second, "abc");
+    expect(await screen.findByText(t.weights.invalidNumber)).toBeInTheDocument();
+  });
+
+  it("fails open when the check cannot be made", async () => {
+    previewWeights.mockRejectedValue(new Error("rede"));
+    const user = userEvent.setup();
+    await twoCriteria(user);
+    await clickRun(user);
+    await waitFor(() => expect(runSelection).toHaveBeenCalled());
+    expect(screen.queryByText(t.weights.checking)).toBeNull();
   });
 });

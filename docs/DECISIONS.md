@@ -5493,3 +5493,65 @@ Mesmo pedido e mesma pesquisa do [D-85](#d-85), aplicados ao resto do produto.
     esconderia justamente as premissas de que o número depende. O que tornava as
     telas pesadas eram as premissas abertas e as listas longas, e é isso que
     mudou.
+
+## D-87 — Pesos do ranking com limite 1: orçamento calculado no backend, tabela viva, prévia do top 5 e uma trava que falha aberta
+
+**O pedido.** Em "Critérios de ranking", mostrar o peso total ao lado dos campos,
+uma tabela da distribuição da média ponderada que muda conforme se digita,
+calculada no backend, e o limite: "se o total é 1, informar que o limite é 1, não
+podendo extrapolar". Perguntado, o autor escolheu **total 1**, **bloquear a
+execução até fechar 1** com o motivo à vista e um botão "Distribuir o restante
+igualmente", e **tabela mais prévia do top 5**.
+
+**O domínio** (`app/domain/weights.py`, puro) lê os critérios como um orçamento
+contra o limite:
+
+- **Decimal, não float**: cada peso entra como `Decimal(repr(w))`, para 0,1 + 0,2 +
+  0,7 fechar exatamente 1. A tela que dissesse "faltam 0,0000000000000001" depois
+  de três pesos que somam 1 estaria mentindo.
+- **Tolerância de 0,001**, a do arredondamento do AHP (quatro casas), para 0,9999 e
+  1,0001 contarem como fechados. O ranking renormaliza de qualquer jeito.
+- **Participação** de cada linha é o peso sobre o total dos pesos válidos — o que o
+  `/run` usaria depois de renormalizar. Linha sem peso utilizável **não tem**
+  participação; nunca "0 %" (D-24).
+- **O problema de cada linha tem nome** (sem critério, sem peso, zero, negativo,
+  repetido, desconhecido, índice ausente), e só pesos positivos somam.
+- **Uma sugestão, escolhida pelo que está errado**: preencher os vazios com o
+  restante (os pesos digitados ficam), distribuir o restante igualmente, dividir
+  por igual (quando não sobra nada para os vazios) ou ajustar ao limite mantendo a
+  proporção — a conversão de um estudo salvo como 1, 1, 1. Toda sugestão soma
+  **exatamente** 1 por maior resto, em duas casas (quatro, se o leitor já digitou
+  quatro); o arredondamento cai nas últimas linhas (0,33 · 0,33 · 0,34).
+
+**Um endpoint só**, `POST /api/selection/weights-preview`, com as dependências do
+`/run` (quem pode executar pode prever, inclusive o estudante do acesso aberto).
+O orçamento é calculado **primeiro e nunca falha por causa da seleção**; depois o
+pipeline roda com os estágios de agora e ranqueia com a sensibilidade desligada e
+os pesos renormalizados. Um erro no meio da digitação (uma expressão pela metade)
+vira `unavailable_reason` com a mensagem do backend numa resposta **200**: um 400
+por tecla diria que o leitor errou, e ele só não terminou.
+
+**O `/run` continua renormalizando e não ganhou regra de soma.** O laudo e
+"Executar" em "Meus estudos" reexecutam estudos salvos antes desta decisão (pesos
+1, 1, 1); pôr "soma = 1" no `RunRequest` os quebraria. A regra vale **na entrada**,
+na tela. O que o backend passou a recusar é o **critério repetido**, em `run` e
+`create_study` — dois pesos para a mesma coluna, com duas linhas iguais na tabela
+de contribuições —, e não em `run_study` nem nos exportadores, pela mesma razão.
+
+**A tela** (`WeightBudget`, `lib/selection/weightsGate.ts`) só imprime: total com
+`role="status"` ("faltam 0,2", "passa do limite em 0,15"), a tabela com barra, a
+sugestão com os valores que ela daria e **Desfazer**, e o top 5 com duas notas
+honestas — sem restrições a prévia ordena o catálogo inteiro e as notas vão mudar
+(a normalização é sobre quem sobra); com pesos que não fecham, a prévia usou os
+renormalizados. O primeiro critério nasce com peso 1 e os seguintes **em branco**,
+para o total não ir a 2 em silêncio. Peso que não é número tem erro no campo.
+
+**A trava falha aberta.** "Executar" espera a conferência ("Conferindo a soma dos
+pesos…") e fica bloqueado com o motivo e "Corrigir pesos" enquanto o backend disser
+`can_run: false`. Se a conferência **falhar** (rede, ou a API ainda sem o deploy
+deste endpoint), o botão é liberado com uma nota: a regra é uma ajuda de entrada,
+não uma garantia de que o servidor precise, e uma turma não pode ficar trancada
+porque a prévia está fora do ar.
+
+**Depois do merge** o **Deploy da API** é obrigatório: sem ele a prévia responde
+404 e a trava cai na falha aberta — funciona, mas sem tabela.

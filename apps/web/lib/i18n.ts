@@ -523,7 +523,58 @@ export const ptBR = {
     variablesAvailable: "Variáveis disponíveis",
     rankingTitle: "Critérios de ranking",
     rankingHint:
-      "Some ponderada normalizada. Pesos são renormalizados para somar 1.",
+      "Média ponderada dos critérios. Os pesos somam 1: a tabela abaixo mostra quanto cada um vale na nota.",
+    // D-87: o orçamento de pesos, calculado no backend enquanto se digita.
+    weights: {
+      title: "Pesos dos critérios",
+      tableLabel: "Distribuição dos pesos na média ponderada",
+      limit: "Limite: 1",
+      columnCriterion: "Critério",
+      columnWeight: "Peso",
+      columnShare: "Participação",
+      noCriterion: "Sem critério",
+      noWeight: "sem peso",
+      noShare: "sem participação",
+      totalComplete: (total: string) => `Total ${total} de 1 — fechado.`,
+      totalMissing: (total: string, missing: string) =>
+        `Total ${total} de 1 — faltam ${missing}.`,
+      totalWithBlanks: (total: string) =>
+        `Total ${total} de 1 — mas há critério sem peso.`,
+      totalExceeds: (total: string, excess: string) =>
+        `Total ${total} de 1 — passa do limite em ${excess}.`,
+      checking: "Conferindo a soma dos pesos…",
+      unavailable:
+        "Não foi possível conferir a soma agora. Executar continua liberado: o ranking usa os pesos renormalizados.",
+      invalidNumber: "Use um número, como 0,25.",
+      issues: {
+        missing_key: "Escolha o critério desta linha.",
+        missing_weight: "Dê um peso a este critério.",
+        zero: "Peso zero tira o critério da nota: remova a linha ou dê um peso.",
+        negative: "O peso não pode ser negativo.",
+        duplicate_key: "Critério repetido: some os pesos numa linha só.",
+        unknown_key: "Este critério não pode ser ranqueado neste estudo.",
+        index_missing: "Não há índice escolhido: defina um índice ou troque o critério.",
+      },
+      suggest: {
+        fill_blanks: "Preencher os pesos vazios com o restante",
+        spread_remaining: "Distribuir o restante igualmente",
+        split_equally: "Dividir igualmente",
+        scale_to_limit: "Ajustar ao limite, mantendo a proporção",
+      },
+      suggestionValues: (values: string) => `Fica: ${values}`,
+      undo: "Desfazer",
+      applied: "Pesos ajustados.",
+      previewTitle: "Prévia do ranking — top 5",
+      previewScore: "Nota",
+      previewWholeCatalogue: (n: number) =>
+        `Sem restrições ainda, a prévia ordena o catálogo inteiro (${n}). As restrições vão reduzir a lista, e as notas podem mudar, porque a normalização é feita sobre quem sobra.`,
+      previewConstrained: (candidates: number, initial: number) =>
+        `Ordenando os ${candidates} de ${initial} que passam pelas restrições atuais.`,
+      previewRenormalized:
+        "Os pesos ainda não fecham 1: a prévia usa os pesos renormalizados, como o ranking faria.",
+      blockedRun: "Os pesos precisam fechar 1 antes de executar.",
+      fixWeights: "Corrigir pesos",
+    },
     addCriterion: "Adicionar critério",
     useIndexCriterion: "Usar o índice como critério",
     criterion: "Critério",
