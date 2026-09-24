@@ -3,6 +3,7 @@ import {
   axisLabels,
   chartFileName,
   escapeHover,
+  logTicks,
   toClosedRing,
   toXY,
   withAlpha,
@@ -138,5 +139,25 @@ describe("chartFileName", () => {
   it("never leaves leading or trailing hyphens", () => {
     const name = chartFileName("— Densidade —");
     expect(name).toBe("densidade");
+  });
+});
+
+describe("logTicks", () => {
+  it("marks decades and the 3× between them on a short axis", () => {
+    expect(logTicks(150, 8000)).toEqual([100, 300, 1000, 3000, 10000]);
+  });
+
+  it("adds 2 and 5 when the axis holds a single decade", () => {
+    expect(logTicks(1.2, 4.5)).toEqual([1, 2, 5, 10]);
+  });
+
+  it("keeps only decades on a long axis", () => {
+    expect(logTicks(0.02, 400)).toEqual([0.01, 0.1, 1, 10, 100, 1000]);
+  });
+
+  it("gives up on a range a log axis cannot hold", () => {
+    expect(logTicks(0, 10)).toBeNull();
+    expect(logTicks(null, 10)).toBeNull();
+    expect(logTicks(-1, 10)).toBeNull();
   });
 });
