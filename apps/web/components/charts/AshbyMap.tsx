@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useReducer, useState, type ReactNode } from "react";
 import dynamic from "next/dynamic";
 import type { Data, Layout, LayoutAxis } from "plotly.js";
 import type { ChartScale, MapPoint, PropertyMap } from "@/lib/types";
@@ -208,6 +208,13 @@ export function AshbyMap({
   const [navMode, setNavMode] = useState<"zoom" | "pan">("zoom");
   const plotDragMode = enableBoxSelect && activeDragMode === "select" ? "select" : navMode;
   const [hidden, setHidden] = useState<ReadonlySet<string>>(new Set());
+  // `react-plotly.js` keeps its bound handlers across an unmount it purged, so
+  // after React's development double-mount (StrictMode) it believes
+  // `onSelected` is still attached and skips it — the first box drawn after a
+  // page load was silently ignored in `next dev`. One re-render once Plotly has
+  // initialised hands it fresh handler identities, which it does rebind.
+  // Harmless in production, where the component mounts once.
+  const [, rebindHandlers] = useReducer((n: number) => n + 1, 0);
 
   const handleDragModeToggle = (mode: "select" | "zoom") => {
     setLocalDragMode(mode);
@@ -243,6 +250,14 @@ export function AshbyMap({
   const handleSelected = (
     event: { range?: { x?: number[]; y?: number[] } } | null | undefined,
   ) => {
+    // Two different events arrive here with no box, and only one is a clear.
+    // A click on the plot in select mode sends *nothing* (`undefined`): the
+    // reader cleared the region. But every `Plotly.react` — including the one
+    // this very selection causes, when the new region reaches the layout as a
+    // shape — re-runs Plotly's reselect pass, which emits an event *object*
+    // (`{ points: [] }`) with no `range`. Treating that as a clear wiped every
+    // region the instant it was drawn (found live, D-80); it is ignored.
+    if (event && !event.range) return;
     const rx = event?.range?.x;
     const ry = event?.range?.y;
     if (!rx || !ry) {
@@ -262,18 +277,13 @@ export function AshbyMap({
       onSelectBox?.(null);
       return;
     }
-    const axisScale = displayScale || map.scale;
-    const isLog = axisScale === "log";
-
-    const rawX0 = Math.min(x0, x1);
-    const rawX1 = Math.max(x0, x1);
-    const rawY0 = Math.min(y0, y1);
-    const rawY1 = Math.max(y0, y1);
-
-    const xMinVal = isLog ? Math.pow(10, rawX0) : rawX0;
-    const xMaxVal = isLog ? Math.pow(10, rawX1) : rawX1;
-    const yMinVal = isLog ? Math.pow(10, rawY0) : rawY0;
-    const yMaxVal = isLog ? Math.pow(10, rawY1) : rawY1;
+    // Plotly reports a box on a log axis in *data* units, not as exponents
+    // (`selections/helpers.js`: `p2r` is `ax.p2d` for log axes). Raising 10 to
+    // it — what this used to do — turned 2,5 g/cm³ into 316 (D-80).
+    const xMinVal = Math.min(x0, x1);
+    const xMaxVal = Math.max(x0, x1);
+    const yMinVal = Math.min(y0, y1);
+    const yMaxVal = Math.max(y0, y1);
 
     const cleanNum = (n: number) => {
       if (!Number.isFinite(n)) return n;
@@ -481,7 +491,12 @@ export function AshbyMap({
       // Zoom survives a legend toggle (same revision), and resets — with
       // Plotly's own selection outline — when the axes or the selected box
       // change, which is what every Plotly.react used to do before (D-80).
-      // TEMP-NO-UIREV
+      uirevision: [
+        map.x_axis.property_slug ?? map.x_axis.expression,
+        map.y_axis.property_slug ?? map.y_axis.expression,
+        axisScale,
+        JSON.stringify(selectionBox ?? null),
+      ].join("|"),
       xaxis: {
         ...titled(base.xaxis, axisTitle(map.x_axis.property_name, map.x_axis.symbol, map.x_axis.unit)),
         type: axisScale,
@@ -636,6 +651,7 @@ export function AshbyMap({
             enableBoxSelect ? (handleSelected as unknown as (event: unknown) => void) : undefined
           }
           onRelayout={handleRelayout as unknown as (event: unknown) => void}
+          onInitialized={() => rebindHandlers()}
           style={{ width: "100%" }}
           useResizeHandler
         />
