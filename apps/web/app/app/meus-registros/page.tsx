@@ -11,13 +11,12 @@ import { MaterialCards } from "@/components/catalog/MaterialCards";
 import {
   Alert,
   Badge,
-  Card,
-  CardBody,
   EmptyState,
   ErrorState,
   LoadingState,
   PageHeader,
   Section,
+  StepCard,
 } from "@/components/ui";
 
 const t = ptBR.myRecords;
@@ -64,8 +63,11 @@ function BookmarkRow({ bookmark, index }: { bookmark: Bookmark; index: number })
   const isOwn = bookmark.material?.is_own_record ?? false;
 
   return (
-    <Card riseIndex={index}>
-      <CardBody className="flex flex-wrap items-center justify-between gap-3">
+    // A row, not a card: the list already lives in a card (D-80).
+    <div
+      className="rise flex flex-wrap items-center justify-between gap-3 rounded-control border border-edge px-3 py-2.5"
+      style={index < 6 ? { animationDelay: `${index * 40}ms` } : undefined}
+    >
         <span className="flex min-w-0 flex-wrap items-center gap-2">
           <Link href={href} className="text-[0.9375rem] font-semibold text-brand-700">
             {name}
@@ -88,8 +90,7 @@ function BookmarkRow({ bookmark, index }: { bookmark: Bookmark; index: number })
             {klass.name}
           </span>
         ) : null}
-      </CardBody>
-    </Card>
+    </div>
   );
 }
 
@@ -156,21 +157,25 @@ export default function MyRecordsPage() {
 
       {query.data && (
         <>
-          <Section title={t.favorites} description={t.favoritesHint}>
-            <BookmarkList
-              bookmarks={query.data.favorites}
-              emptyTitle={t.favoritesEmpty}
-              emptyHint={t.favoritesHint}
-            />
-          </Section>
+          {/* Side by side: two short lists stacked left most of the screen
+              blank, and favourites and recents are read together anyway. */}
+          <div className="grid items-start gap-6 lg:grid-cols-2">
+            <StepCard title={t.favorites} description={t.favoritesHint}>
+              <BookmarkList
+                bookmarks={query.data.favorites}
+                emptyTitle={t.favoritesEmpty}
+                emptyHint={t.favoritesHint}
+              />
+            </StepCard>
 
-          <Section title={t.recents} description={t.recentsHint}>
-            <BookmarkList
-              bookmarks={query.data.recents}
-              emptyTitle={t.recentsEmpty}
-              emptyHint={t.recentsHint}
-            />
-          </Section>
+            <StepCard title={t.recents} description={t.recentsHint}>
+              <BookmarkList
+                bookmarks={query.data.recents}
+                emptyTitle={t.recentsEmpty}
+                emptyHint={t.recentsHint}
+              />
+            </StepCard>
+          </div>
 
           <Section title={t.ownRecords} description={t.ownRecordsHint}>
             <OwnRecords records={query.data.own_records} />

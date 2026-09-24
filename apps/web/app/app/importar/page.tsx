@@ -22,6 +22,8 @@ import type {
   ValidationReport,
 } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
+import { cn } from "@/lib/cn";
+import { IconUpload } from "@/components/ui/icons";
 import {
   Alert,
   Button,
@@ -29,7 +31,6 @@ import {
   Card,
   CardBody,
   Disclosure,
-  Field,
   Input,
   PageHeader,
   Section,
@@ -153,6 +154,7 @@ export default function ImportPage() {
   const qc = useQueryClient();
   const fileInput = useRef<HTMLInputElement>(null);
   const fileInputId = useId();
+  const [dragging, setDragging] = useState(false);
 
   const [step, setStep] = useState<Step>("upload");
   const [upload, setUpload] = useState<UploadResult | null>(null);
@@ -301,9 +303,37 @@ export default function ImportPage() {
       {step === "upload" && (
         <Card>
           <CardBody className="space-y-3">
-            {/* A file input manages its own id, so the Field is told which one
-                to point at rather than guessing through the control context. */}
-            <Field label={t.dropHint} htmlFor={fileInputId}>
+            {/* A drop area that is a real <label> for a real file input: the
+                browser's own button printed "Choose File / No file chosen" in
+                English on a Portuguese screen, and took a sliver of a card that
+                is otherwise the whole step. The input stays in the tab order
+                (sr-only, not hidden) and the ring follows its focus. */}
+            <label
+              htmlFor={fileInputId}
+              onDragOver={(e) => {
+                e.preventDefault();
+                setDragging(true);
+              }}
+              onDragLeave={() => setDragging(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setDragging(false);
+                const file = e.dataTransfer.files?.[0];
+                if (file) doUpload.mutate(file);
+              }}
+              className={cn(
+                "flex cursor-pointer flex-col items-center justify-center gap-2 rounded-card border-2 border-dashed px-6 py-12 text-center transition",
+                "has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-brand has-[:focus-visible]:ring-offset-2",
+                dragging
+                  ? "border-brand bg-brand-50"
+                  : "border-edge-control hover:border-brand hover:bg-brand-50/60",
+              )}
+            >
+              <span className="grid h-12 w-12 place-items-center rounded-full bg-brand-50 text-accent">
+                <IconUpload className="h-6 w-6" />
+              </span>
+              <span className="text-sm font-semibold text-ink">{t.dropTitle}</span>
+              <span className="text-xs text-ink-muted">{t.dropHint}</span>
               <input
                 ref={fileInput}
                 id={fileInputId}
@@ -313,9 +343,9 @@ export default function ImportPage() {
                   const file = e.target.files?.[0];
                   if (file) doUpload.mutate(file);
                 }}
-                className="text-sm text-ink file:mr-3 file:rounded-control file:border-0 file:bg-brand file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-brand-fg"
+                className="sr-only"
               />
-            </Field>
+            </label>
             {doUpload.isPending && <p className="text-sm text-ink-muted">{t.uploading}</p>}
           </CardBody>
         </Card>

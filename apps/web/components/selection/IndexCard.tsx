@@ -4,7 +4,7 @@ import { useId, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { ptBR } from "@/lib/i18n";
 import { formatScore, prettyUnit } from "@/lib/format";
-import { Alert, Badge } from "@/components/ui";
+import { Alert, Badge, RadioCard } from "@/components/ui";
 import { IconBook } from "@/components/ui/icons";
 import type { PerformanceIndex } from "@/lib/types";
 
@@ -258,72 +258,6 @@ function OptionSummary({ index }: { index: PerformanceIndex }) {
 }
 
 /**
- * One selectable option.
- *
- * The hypotheses sit *outside* the `<label>` on purpose. A `<label>` only
- * accepts phrasing content, and the summary is a definition list — nesting it
- * would be invalid markup and would also drag four lines of prose into the
- * radio's accessible name. It is wired as the description instead, so a screen
- * reader announces the index and then why it applies.
- */
-function OptionCard({
-  name,
-  value,
-  checked,
-  onChange,
-  title,
-  badge,
-  children,
-}: {
-  name: string;
-  value: string;
-  checked: boolean;
-  onChange: (value: string) => void;
-  title: string;
-  badge?: ReactNode;
-  children?: ReactNode;
-}) {
-  const id = useId();
-  const descriptionId = `${id}-desc`;
-
-  return (
-    <div
-      onClick={() => onChange(value)}
-      className={cn(
-        "cursor-pointer rounded-card border p-3 transition",
-        // The border carries the state, but never alone: the radio dot is
-        // rendered, and the checked option is the one the browser announces.
-        checked
-          ? "border-brand bg-brand-50 shadow-card"
-          : "border-edge bg-surface-raised hover:border-edge-strong",
-      )}
-    >
-      <div className="flex items-start gap-2">
-        <input
-          id={id}
-          type="radio"
-          name={name}
-          value={value}
-          checked={checked}
-          onChange={() => onChange(value)}
-          aria-describedby={children ? descriptionId : undefined}
-          className="mt-0.5 h-4 w-4 shrink-0 border-edge-strong accent-brand"
-        />
-        <label htmlFor={id} className="flex-1 cursor-pointer text-sm font-medium text-ink">
-          {title}
-        </label>
-        {badge}
-      </div>
-      {children ? (
-        <div id={descriptionId} className="mt-1 pl-6">
-          {children}
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-/**
  * Index chooser.
  *
  * A `<select>` cannot show why an index applies, so the hypotheses only ever
@@ -360,7 +294,7 @@ export function IndexPicker({
       ) : null}
 
       <div className="mt-3 grid gap-2 sm:grid-cols-2">
-        <OptionCard
+        <RadioCard
           name={name}
           value="none"
           checked={value === "none"}
@@ -368,10 +302,10 @@ export function IndexPicker({
           title={t.none}
         >
           <p className="text-2xs text-ink-muted">{t.noneHint}</p>
-        </OptionCard>
+        </RadioCard>
 
         {indices.map((index) => (
-          <OptionCard
+          <RadioCard
             key={index.slug}
             name={name}
             value={index.slug}
@@ -386,10 +320,10 @@ export function IndexPicker({
           >
             <Expression>{index.expression}</Expression>
             <OptionSummary index={index} />
-          </OptionCard>
+          </RadioCard>
         ))}
 
-        <OptionCard
+        <RadioCard
           name={name}
           value="custom"
           checked={value === "custom"}
@@ -397,7 +331,7 @@ export function IndexPicker({
           title={t.custom}
         >
           <p className="text-2xs text-ink-muted">{t.customHint}</p>
-        </OptionCard>
+        </RadioCard>
       </div>
 
       {value === "custom" && customSlot ? <div className="mt-3">{customSlot}</div> : null}

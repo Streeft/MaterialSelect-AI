@@ -198,7 +198,14 @@ async function runPreview(user: ReturnType<typeof userEvent.setup>) {
   await user.click(
     await screen.findByShadowRole("button", { name: t.preview }),
   );
-  await screen.findByRole("heading", { name: t.previewStep });
+  // The result card is always on screen (empty until asked); what appears only
+  // after a preview is the line naming the parents it was computed from.
+  await screen.findByText(new RegExp(`^${t.parentsLabel}:`));
+}
+
+/** The kind is a radio card now — the rule of each kind shows before the choice. */
+async function chooseKind(label: string) {
+  await userEvent.click(await screen.findByRole("radio", { name: label }));
 }
 
 beforeEach(() => {
@@ -231,14 +238,23 @@ describe("Sintetizar material", () => {
     expect(sent.relative_density).toBeUndefined();
   });
 
+  it("prevê sem nome, com um nome provisório que a API aceita", async () => {
+    // A API valida o mesmo corpo da gravação e recusa nome vazio; o campo de
+    // nome só aparece depois da prévia. Mandar "" fazia a prévia falhar sempre.
+    const user = userEvent.setup();
+    await open();
+
+    await runPreview(user);
+
+    expect(previewSynthesis.mock.calls[0]![0]!.name).toBe(t.previewName);
+    expect(createSynthesis).not.toHaveBeenCalled();
+  });
+
   it("troca os campos ao escolher espuma", async () => {
     const user = userEvent.setup();
     await open();
 
-    await userEvent.selectOptions(
-      await screen.findByShadowRole("combobox", { name: t.kindLabel }),
-      "espuma",
-    );
+    await chooseKind(t.kindFoam);
 
     expect(
       await screen.findByShadowLabelText(/Densidade relativa/),
@@ -347,10 +363,7 @@ describe("Painel sanduíche", () => {
     const user = userEvent.setup();
     await open();
 
-    await userEvent.selectOptions(
-      await screen.findByShadowRole("combobox", { name: t.kindLabel }),
-      "painel",
-    );
+    await chooseKind(t.kindPanel);
 
     expect(
       await screen.findByShadowLabelText(new RegExp(t.faceThicknessLabel)),
@@ -375,10 +388,7 @@ describe("Painel sanduíche", () => {
     const user = userEvent.setup();
     await open();
 
-    await userEvent.selectOptions(
-      await screen.findByShadowRole("combobox", { name: t.kindLabel }),
-      "painel",
-    );
+    await chooseKind(t.kindPanel);
     await screen.findByShadowLabelText(new RegExp(t.faceThicknessLabel));
     await runPreview(user);
 
@@ -390,10 +400,7 @@ describe("Painel sanduíche", () => {
     // trocá-los muda o resultado inteiro.
     await open();
 
-    await userEvent.selectOptions(
-      await screen.findByShadowRole("combobox", { name: t.kindLabel }),
-      "painel",
-    );
+    await chooseKind(t.kindPanel);
 
     expect(
       await screen.findByShadowRole("combobox", { name: t.faceLabel }),
@@ -408,10 +415,7 @@ describe("Painel sanduíche", () => {
     // leitor procura uma unidade que a tela não pede.
     await open();
 
-    await userEvent.selectOptions(
-      await screen.findByShadowRole("combobox", { name: t.kindLabel }),
-      "painel",
-    );
+    await chooseKind(t.kindPanel);
 
     // `findAllBy…`: o texto de apoio do campo aparece no host e dentro do
     // shadow root do MWC, como a nota do topo deste arquivo explica.

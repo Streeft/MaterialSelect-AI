@@ -117,7 +117,7 @@ export const ptBR = {
     noParent: "Nenhuma (classe raiz)",
     materialCount: "Materiais",
     valueCount: "Valores",
-    slug: "Slug (opcional)",
+    slug: "Slug",
     symbol: "Símbolo",
     category: "Categoria",
     canonicalUnit: "Unidade canônica",
@@ -145,6 +145,7 @@ export const ptBR = {
     blockedMapping: "Envie um arquivo para mapear as colunas.",
     blockedReport: "Valide o mapeamento para ver o relatório.",
     blockedDone: "Importe as linhas válidas para concluir.",
+    dropTitle: "Arraste o arquivo para cá ou clique para escolher",
     dropHint: "Selecione um arquivo CSV ou XLSX (até 5 MB).",
     uploading: "Enviando…",
     sheet: "Aba",
@@ -739,6 +740,9 @@ export const ptBR = {
     resultStep: "3. O custo, termo a termo",
     resultEmpty:
       "Nenhum processo compatível pôde ser precificado com estes dados.",
+    resultIdleTitle: "Nada estimado ainda",
+    resultIdleHint:
+      "Informe a massa da peça e o lote e peça a estimativa: cada processo compatível aparece aqui com o custo decomposto em material, ferramental, operação e capital.",
     columnProcess: "Processo",
     columnMaterial: "Material",
     columnTooling: "Ferramental",
@@ -764,6 +768,8 @@ export const ptBR = {
     processLabel: "Processo que faz a peça",
     processHint:
       "Auditar uma peça é auditar fazer a peça: é o processo que diz quanta energia a conformação gasta e quanto material foi preciso comprar.",
+    noProcess:
+      "Nenhum processo cadastrado faz este material, e sem processo não há auditoria: é o processo que diz quanta energia a conformação gasta e quanto material foi preciso comprar.",
     massLabel: "Massa da peça (kg)",
     massHint:
       "A massa acabada. O dimensionamento calcula esta massa para você.",
@@ -799,6 +805,9 @@ export const ptBR = {
     run: "Auditar",
     running: "Auditando…",
     resultStep: "4. As cinco fases",
+    resultIdleTitle: "Nada auditado ainda",
+    resultIdleHint:
+      "Preencha a peça, o transporte e o uso e peça a auditoria: as cinco fases aparecem aqui, com a fase que domina a energia e a que domina o carbono.",
     columnPhase: "Fase",
     columnEnergy: "Energia",
     columnCarbon: "Carbono",
@@ -951,6 +960,12 @@ export const ptBR = {
     previewStep: "4. O que sairia",
     previewEmpty:
       "Esta receita não produziu valor nenhum com os dados que os pais têm.",
+    // Nome provisório da prévia: a API exige nome no corpo, a prévia não
+    // grava nada, e o leitor ainda não chegou ao passo em que dá nome.
+    previewName: "Prévia sem nome",
+    previewIdleTitle: "Nada calculado ainda",
+    previewIdleHint:
+      "Monte a receita e peça para ver o que sairia: cada valor calculado aparece aqui com a lei que o produziu, e o que o registro não vai ter aparece com o motivo.",
     columnProperty: "Propriedade",
     columnValue: "Valor",
     columnRule: "Lei",
@@ -1092,8 +1107,18 @@ export const ptBR = {
     // aberta a partir da própria figura.
     dataTable: "Tabela de dados da figura",
     dataTableHint: "Os mesmos números que a figura desenha, em texto.",
+    // D-80: o cartão MSDS troca a figura pela tabela no mesmo lugar, em vez de
+    // abrir a tabela embaixo dela.
+    showTable: "Ver tabela de dados",
+    showFigure: "Ver gráfico",
     figureLabel: (title: string) =>
-      `${title}. Figura; a tabela de dados equivalente está logo abaixo.`,
+      `${title}. Figura; a tabela de dados equivalente abre pelo botão “Ver tabela de dados”.`,
+    legend: "Legenda",
+    legendToggle: "Legenda — clique num item para mostrar ou ocultar a série",
+    interactHint: "Passe o cursor sobre a figura, ou use Tab e as setas, para ler cada valor.",
+    otherMaterials: "Demais materiais",
+    missingOnAxis: (n: number) => `${n} ${n === 1 ? "ausente" : "ausentes"}`,
+    indexLevel: "Linha de índice",
     columnClass: "Classe",
     thisMaterial: "Este material",
     dragMode: "Modo do cursor",
@@ -1213,6 +1238,10 @@ export const ptBR = {
     overallCoverage: "Cobertura geral",
     coverageOf: (filled: number, slots: number) =>
       `${filled} de ${slots} pares preenchidos`,
+    // A classe sem nenhum par material×propriedade não tem percentual: escrito,
+    // nunca "0%" (D-24).
+    noSlots: "sem pares",
+    ofSlots: (slots: number) => `de ${slots} ${slots === 1 ? "par" : "pares"}`,
     coverageEmpty: "Sem pares material×propriedade para cobrir.",
     // A composição por qualidade.
     qualityMixTitle: "Composição por qualidade do dado",
@@ -1305,6 +1334,9 @@ export const ptBR = {
     original: "Valor original",
     canonical: "Valor normalizado (unidade canônica)",
     radarNeedsThree: "O radar precisa de ao menos três propriedades.",
+    // A escala sequencial do heatmap (D-80): a rampa da seção, do pior ao melhor.
+    heatLow: "0 (pior)",
+    heatHigh: "1 (melhor)",
     radarSkipsMissing:
       "Materiais sem valor em alguma propriedade não são traçados no radar; veja a tabela.",
     controls: "O que comparar",

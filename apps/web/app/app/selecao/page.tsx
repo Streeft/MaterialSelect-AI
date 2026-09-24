@@ -1092,8 +1092,10 @@ function SelectionWizard() {
             Sticky rather than fixed: pinned to the bottom of the viewport while
             the wizard is on screen, and out of the way when the reader reaches
             the footer — where the two standing notices live and must not be
-            covered by a floating strip. */}
-        <div className="sticky bottom-0 z-20 -mx-4 border-t border-edge bg-surface-raised/95 px-4 py-3 backdrop-blur">
+            covered by a floating strip. A card inside the content column, not
+            a band bleeding past it: the band's negative margin no longer
+            matched the column's padding once that grew with the screen. */}
+        <div className="sticky bottom-3 z-20 rounded-card border border-edge bg-surface-raised/95 px-4 py-3 shadow-overlay backdrop-blur">
           <div
             role="group"
             aria-label={t.actionBar}
@@ -1118,7 +1120,7 @@ function SelectionWizard() {
       {/* Saved studies */}
       <Section title={t.savedStudies}>
         {!studies.data || studies.data.length === 0 ? (
-          <p className="text-sm text-ink-muted">{t.noStudies}</p>
+          <EmptyState title={t.noStudies} />
         ) : (
           <TableScroll label={t.savedStudies}>
             <Table>

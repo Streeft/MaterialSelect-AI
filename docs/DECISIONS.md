@@ -1912,6 +1912,11 @@ de `CHANGELOG_SESSION.md`.
 
 ## D-48 — `@material/web` para primitivas de baixo nível — exceção pontual a D-23
 
+> **Status (D-80): sem objeto.** Os últimos usuários (`IconButton`,
+> `ButtonGroup`/`ButtonGroupItem`, `ToggleChip`) viraram `<button>` nativos com
+> as classes do MSDS e `@material/web` saiu do `package.json`. O texto abaixo
+> fica como registro de por que a exceção existiu.
+
 **Contexto.** [D-23](#d-23--sistema-de-design-próprio-sem-biblioteca-de-componentes)
 decidiu escrever as primitivas de interface neste repositório, sem biblioteca
 de componentes — decisão reafirmada no §13 de `REDESIGN.md` ("nenhuma
@@ -4901,3 +4906,158 @@ Nada foi commitado nem enviado por esta sessão (o repositório orquestrador
 revisa o diff); `apps/api` (só executado localmente, como servidor
 descartável, para o spot-check — nenhum arquivo dele foi editado) não foi
 tocado.
+
+## D-80 — MSDS aplicado de verdade: uma paleta só, `@material/web` removido, campos que ocupam o grid e as falhas funcionais que o relatório do usuário expôs
+
+**Contexto.** Depois do merge da PR #68 (D-73–D-79), o autor abriu o app no ar
+e relatou sete problemas: o "M" da marca ficava preto ao trocar de seção; as
+formas não aproveitavam a tela (muito espaço em branco); os gráficos
+continuavam os antigos; várias abas estavam "mal otimizadas e bugadas"; ao
+clicar no sol do seletor de tema os outros ícones sumiam; a tela Sintetizar
+estava "totalmente mal otimizada"; e o pedido de fundo — "aplique
+corretamente o design system que projetamos". Cada item foi reproduzido ao
+vivo (API e Next descartáveis, Chromium do sandbox) antes de qualquer
+correção, e cada um tinha uma causa concreta, não de gosto.
+
+### 1. Duas paletas por rota brigavam, e a errada ganhava
+
+`lib/msds/msds.css` trazia, da Rodada 8 da Artifact, 32 blocos
+`:root[data-section=…]` que redefiniam `--accent: var(--primary)` **em hex**.
+O app lê `--accent` como triplo `"R G B"` (`rgb(var(--accent))`, D-28); com
+hex ali, toda declaração que o usava ficava inválida no tempo de cálculo e
+caía no valor inicial — o fundo do "M" (`bg-brand`) virava transparente sobre
+o trilho escuro (o "preto" do relato), e os botões primários perdiam o
+preenchimento. Como `msds.css` era importado **depois** de `globals.css`, os
+blocos da Artifact venciam os de D-73 no empate de especificidade. Os 32
+blocos foram removidos; `app/globals.css` (os `[data-section]` gerados e
+medidos por contraste em D-73) é a única fonte de cor por rota. Um efeito
+colateral que confirma a escolha: na paleta da Artifact, Custo saía
+vermelho (`#B12C25`); na de D-73, laranja, como foi validado.
+
+### 2. Ordem de CSS: `msds.css` antes de `globals.css`
+
+A saída do Tailwind 3 não é *layered*, então num empate de especificidade
+vence o arquivo carregado por último. Com `msds.css` por último, um
+`.msds-*` padrão vencia o utilitário que a chamada passava para refiná-lo
+(`w-full`, `text-accent`). `app/layout.tsx` agora importa `msds.css`
+primeiro; propriedades customizadas se resolvem no valor computado, então a
+ponte de tokens de `globals.css` alcança o `msds.css` em qualquer ordem.
+
+### 3. `@material/web` removido — D-48 deixa de ter objeto
+
+`IconButton`, `ButtonGroup`/`ButtonGroupItem` e `ToggleChip`
+(`components/ui/Button.tsx`) eram os últimos usuários reais. Viraram
+`<button>` nativos com as classes do MSDS (`.msds-icon-btn-standard`,
+`.msds-segmented`/`.msds-segmented-item`, `.msds-chip`), `aria-pressed` no
+próprio botão e o *ripple* + a morfologia de pressão do MSDS (`useRipple`/
+`useShapeMorph`, agora exportados do barril `@/lib/msds`). As lacunas de API
+que D-76 registrou continuam verdadeiras — por isso as **funções** MSDS
+desses quatro seguem sem uso —, mas as classes carregam o desenho sem elas.
+Dois defeitos de interface tinham a mesma raiz e somem junto:
+
+- **A fonte serifada** nos controles segmentados de Mapas: `@material/web`
+  lê `--md-ref-typeface-*`, que este app nunca definiu, e caía no padrão do
+  navegador.
+- **O seletor de tema "some" ao clicar no sol**: o `md-outlined-segmented-button`
+  pinta com `--md-sys-color-on-surface` (escuro), e o trilho é escuro nos dois
+  temas. Agora qualquer controle MSDS dentro de `[data-surface="rail"]` lê os
+  tokens do trilho (`--rail-ink-muted`, `--rail-accent`) — os mesmos que os
+  links de navegação já usavam.
+
+Com zero imports reais restantes, saíram do `package.json` `@material/web`,
+`@lit/react`, `lit` e o `element-internals-polyfill` (só existia para os
+elementos do MWC em jsdom); `components/ui/material/elements.ts` e seu teste
+foram apagados, e os *shims* de `ElementInternals` do `vitest.setup.ts` também.
+Os tokens `--md-sys-color-*` ficam: a ponte de D-74 os lê. **D-48 fica sem
+objeto** — a exceção a D-23 que resta é a biblioteca interna do MSDS (D-74),
+não uma dependência externa.
+
+### 4. `className` num campo volta a estilizar o campo
+
+Depois de D-77, `Input`/`NumberInput`/`Textarea`/`Select` passavam `className`
+para o `<input>`, não para o invólucro `.msds-field`. Toda chamada no app
+(~30) usava a classe para **layout** — `sm:col-span-2`, `w-40`, `flex-1` —,
+que é o que ela fazia sob o `@material/web`, onde o elemento *era* o campo.
+Aplicado ao controle, um `col-span` caía num `<input>` dentro de um invólucro
+de uma coluna e não fazia nada (Nome do estudo e Variáveis livres em Seleção,
+Descrição em Classes), e um `w-40` encolhia a caixa sob um rótulo de largura
+inteira. A classe voltou ao invólucro; o limite `max-width: 320px` de
+`.msds-field` (herança da Artifact) também saiu — era ele que estreitava os
+campos de Seleção no relato.
+
+### 5. Espaço de tela
+
+- A coluna principal de `/app/*` passou de `max-w-6xl` (1152 px) para
+  `max-w-screen-2xl` (1536 px) com respiro lateral crescente
+  (`px-4 sm:px-6 lg:px-8`): numa tela de 1920 px um terço da janela ficava
+  vazio ao lado de um mapa espremido. Texto corrido continua com a própria
+  medida (`max-w-prose`).
+- As telas de ferramenta (Sintetizar, Dimensionar, Custo, Eco, Baterias) eram
+  campos soltos sobre o fundo e um resultado que só aparecia no fim da
+  rolagem. Agora cada passo é um `StepCard` (novo em `components/ui/Card.tsx`)
+  com a ação no rodapé, e o cartão de resultado está na tela **desde o
+  início**, com um estado vazio que diz o que vai aparecer ali — página
+  vazia sob dois formulários lia como "não há nada aqui". Sintetizar e
+  Dimensionar põem receita e resultado lado a lado a partir de `xl`.
+- Escolhas que precisam de uma frase para serem feitas (tipo de síntese,
+  índice de desempenho) usam `RadioCard` (novo, `components/ui/RadioCard.tsx`,
+  que `IndexPicker` também passou a usar): um `<select>` esconde a regra de
+  cada opção até depois da escolha. O `<input>` real cobre o ponto desenhado
+  e o ponto ignora o ponteiro, para o clique no ponto ser clique no rádio —
+  inclusive para o *hit-target* do Playwright.
+- Comparar: a lista de 75 materiais rola na própria caixa (era um muro de
+  chips com o dobro da altura da tela), e os dois cartões não se esticam mais
+  à mesma altura. Catálogo: os filtros numa linha só. Processos: famílias em
+  grade, processos como linhas clicáveis. Meus registros: favoritos e
+  recentes lado a lado, em linhas e não cartão dentro de cartão. Mapas:
+  "O que desenhar" divide a linha com "Classes exibidas". Seleção: a barra
+  "Candidatos restantes" virou um cartão flutuante dentro da coluna (a faixa
+  com margem negativa não acompanhava o novo respiro lateral).
+- O trilho: 17 destinos em linhas de 38 px deixavam o grupo Administração
+  atrás de uma barra de rolagem numa tela de 900 px; no trilho permanente as
+  linhas têm 32 px (a gaveta de toque mantém a altura maior), e a barra de
+  rolagem, quando existe, é fina e nas cores do trilho.
+
+### 6. Falhas funcionais encontradas no caminho
+
+Nenhuma delas era de layout, e todas estavam em produção:
+
+- **A prévia do Sintetizar nunca rodava.** A API valida o corpo da prévia com
+  o mesmo esquema da gravação e recusa `name` vazio (422); o campo de nome só
+  aparece *depois* da prévia. A prévia agora manda um nome provisório
+  (`"Prévia sem nome"`, nunca gravado). E uma 422 deixou de chegar à tela como
+  "Falha na requisição /api/…": `readErrorDetail` (`lib/api.ts`) lê a lista
+  de validação do FastAPI como `campo: mensagem`.
+- **Dimensionar abria sem nada abaixo do seletor.** O `<select>` mostrava o
+  primeiro caso como escolhido enquanto o estado era `""`; só trocar de caso e
+  voltar desenhava o resto. O primeiro caso agora é derivado, como o
+  material padrão de Custo.
+- **Links de material levavam a uma família inexistente.** Dimensionar e Eco
+  apontavam para `/app/catalogo/<id>` — rota de *família* por slug —; a ficha
+  de um registro é `/app/materiais/<id>`.
+- **Eco com material sem processo mostrava um seletor vazio** (ABS, por
+  exemplo). D-24: agora diz que não há processo e por que isso impede a
+  auditoria.
+- **Rótulo duplicado** em Eco ("Processo que faz a peça", "Fim de vida"): um
+  `Select`, que já desenha o próprio rótulo, embrulhado num `Field`.
+- **Sintetizar:** as notas de tipo chegavam com `**negrito**`/`*itálico*` do
+  backend impressos crus; um limite ausente de um par era impresso como `0`
+  (`value_min ?? 0`, violação direta de D-24) e agora é `MissingValue`;
+  unidades como `kg/m**3` e `(dimensionless)` saem por `prettyUnit` (e a
+  adimensional é omitida); a qualidade é o selo de qualidade, não o texto cru.
+- `formatNumber` escreve o expoente como sobrescrito (`2,1 × 10¹¹`, não
+  `10^11`).
+- Classes: a coluna dizia "Slug (opcional)" — o rótulo de um campo que nem
+  existe no formulário.
+- Importar: o seletor de arquivo nativo imprimia "Choose File / No file
+  chosen" em inglês; virou uma área de soltar arquivo que é um `<label>` para
+  o mesmo `<input type="file">` (fora da tela, mas no fluxo de tabulação, com
+  o anel de foco seguindo-o).
+
+### 7. Gráficos
+
+_(preenchido ao fim da rodada)_
+
+### Verificação
+
+_(preenchido ao fim da rodada)_

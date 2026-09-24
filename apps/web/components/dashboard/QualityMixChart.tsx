@@ -1,18 +1,15 @@
 "use client";
 
-import { useMemo, useRef } from "react";
-import dynamic from "next/dynamic";
-import type { Data, Layout } from "plotly.js";
+import { useMemo } from "react";
 import type { QualityBucket, QualitySlice } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { formatPercent } from "@/lib/format";
 import { chartFileName } from "@/lib/charts";
-import { chartTheme, qualityBucketColor } from "@/lib/design/palette";
-import { Card, CardBody, CardHeader, EmptyState, useResolvedTheme } from "@/components/ui";
-import { ChartToolbar } from "../charts/ChartToolbar";
+import { EmptyState } from "@/components/ui";
+import { ChartFrame } from "../charts/ChartFrame";
 import { FigureData, type FigureColumn } from "../charts/FigureData";
-
-const Plot = dynamic(() => import("react-plotly.js"), { ssr: false });
+import { HorizontalBars, type BarRow, type BarSegment } from "../charts/HorizontalBars";
+import { tok } from "../charts/figureKit";
 
 const t = ptBR.dashboard;
 
@@ -22,18 +19,31 @@ const t = ptBR.dashboard;
 const ORDER: QualityBucket[] = ["MEDIDO", "IMPORTADO", "ESTIMADO", "AUSENTE", "NAO_REGISTRADO"];
 
 /**
+ * The colour of each bucket, as the same tokens `DataQualityBadge` paints with,
+ * so a bar here and the badge on a material sheet cannot disagree about what
+ * "estimado" looks like. `NAO_REGISTRADO` is not a quality at all — it is a
+ * slot with no row behind it — so it borrows `--edge-strong`, a neutral already
+ * used for structure, instead of a sixth quality token invented for one chart.
+ */
+const BUCKET_TOKEN: Record<QualityBucket, `--${string}`> = {
+  MEDIDO: "--quality-medido",
+  IMPORTADO: "--quality-importado",
+  ESTIMADO: "--quality-estimado",
+  AUSENTE: "--quality-ausente",
+  NAO_REGISTRADO: "--edge-strong",
+};
+
+/**
  * How the whole catalogue's (material, property) pairs split across the
- * panel's five-state vocabulary.
+ * panel's five-state vocabulary — MSDS `BarChart`, one row per state (D-80).
  *
  * A horizontal bar rather than a pie: five categories on a pie ask the eye to
  * compare angles, and the two smallest slices here (imported, estimated) are
- * usually the ones a reader most needs to see clearly.
+ * usually the ones a reader most needs to see clearly. Each row is labelled in
+ * words, so the figure needs no legend; the share at the end of each row is
+ * the backend's `share_pct`, printed as sent.
  */
 export function QualityMixChart({ slices }: { slices: QualitySlice[] }) {
-  const container = useRef<HTMLDivElement>(null);
-  const theme = useResolvedTheme();
-  const paint = useMemo(() => chartTheme(theme), [theme]);
-
   const bySlug = useMemo(() => new Map(slices.map((s) => [s.bucket, s])), [slices]);
   const ordered = useMemo(
     () => ORDER.map((bucket) => bySlug.get(bucket)).filter((s): s is QualitySlice => Boolean(s)),
@@ -41,34 +51,30 @@ export function QualityMixChart({ slices }: { slices: QualitySlice[] }) {
   );
   const total = ordered.reduce((sum, s) => sum + s.count, 0);
 
-  const traces = useMemo<Data[]>(() => {
-    if (ordered.length === 0) return [];
-    return [
-      {
-        type: "bar",
-        orientation: "h",
-        x: ordered.map((s) => s.count),
-        y: ordered.map((s) => ptBR.quality[s.bucket]),
-        marker: { color: ordered.map((s) => qualityBucketColor(s.bucket, theme)) },
-        text: ordered.map((s) => (s.share_pct === null ? "" : formatPercent(s.share_pct))),
-        textposition: "auto",
-        hovertemplate: "%{y}: %{x}<extra></extra>",
-      },
-    ];
-  }, [ordered, theme]);
+  // One segment per row: each row is its own bucket, in its own colour.
+  const segments = useMemo<BarSegment[]>(
+    () =>
+      ordered.map((s) => ({
+        key: s.bucket,
+        label: ptBR.quality[s.bucket],
+        color: tok(BUCKET_TOKEN[s.bucket]),
+      })),
+    [ordered],
+  );
 
-  const layout = useMemo<Partial<Layout>>(() => {
-    const base = paint.layout;
-    return {
-      ...base,
-      autosize: true,
-      height: 260,
-      margin: { l: 120, r: 24, t: 16, b: 40 },
-      xaxis: { ...base.xaxis, title: { text: t.columnCount }, zeroline: false },
-      yaxis: { ...base.yaxis, automargin: true },
-      showlegend: false,
-    };
-  }, [paint]);
+  const rows = useMemo<BarRow[]>(
+    () =>
+      ordered.map((s) => ({
+        key: s.bucket,
+        label: ptBR.quality[s.bucket],
+        values: { [s.bucket]: s.count },
+        valueLabel:
+          s.share_pct === null
+            ? s.count.toLocaleString("pt-BR")
+            : `${s.count.toLocaleString("pt-BR")} · ${formatPercent(s.share_pct)}`,
+      })),
+    [ordered],
+  );
 
   const columns = useMemo<FigureColumn<QualitySlice>[]>(
     () => [
@@ -89,43 +95,45 @@ export function QualityMixChart({ slices }: { slices: QualitySlice[] }) {
   );
 
   return (
-    <Card className="min-w-0">
-      <CardHeader
-        headingLevel={2}
-        title={t.qualityMixTitle}
-        description={t.qualityMixHint}
-        actions={
-          <ChartToolbar
-            target={container}
-            disabled={total === 0}
-            fileName={chartFileName("painel", "composicao-qualidade")}
-          />
-        }
+    <ChartFrame
+      title={t.qualityMixTitle}
+      description={t.qualityMixHint}
+      exportName={chartFileName("painel", "composicao-qualidade")}
+      exportDisabled={total === 0}
+      empty={total === 0 ? <EmptyState title={t.empty} /> : undefined}
+      table={
+        <FigureData
+          caption={t.qualityMixFigure}
+          rows={ordered}
+          rowKey={(s) => s.bucket}
+          rowHeader={{ header: t.columnBucket, cell: (s) => ptBR.quality[s.bucket] }}
+          columns={columns}
+        />
+      }
+    >
+      <HorizontalBars
+        figureLabel={ptBR.chart.figureLabel(t.qualityMixFigure)}
+        segments={segments}
+        rows={rows}
+        showLegend={false}
+        axisTitle={t.columnCount}
+        describe={(row) => {
+          const slice = bySlug.get(row.key as QualityBucket);
+          const count = slice?.count ?? 0;
+          const share =
+            slice && slice.share_pct !== null ? ` (${formatPercent(slice.share_pct)})` : "";
+          return {
+            aria: `${row.label}: ${count.toLocaleString("pt-BR")}${share}`,
+            info: (
+              <>
+                <strong>{row.label}</strong> — {t.columnCount}:{" "}
+                <strong>{count.toLocaleString("pt-BR")}</strong>
+                {share}
+              </>
+            ),
+          };
+        }}
       />
-      <CardBody className="flex flex-col gap-3">
-        {total === 0 ? (
-          <EmptyState title={t.empty} />
-        ) : (
-          <>
-            <div ref={container} role="img" aria-label={ptBR.chart.figureLabel(t.qualityMixFigure)}>
-              <Plot
-                data={traces}
-                layout={layout}
-                config={{ displaylogo: false, responsive: true }}
-                style={{ width: "100%" }}
-                useResizeHandler
-              />
-            </div>
-            <FigureData
-              caption={t.qualityMixFigure}
-              rows={ordered}
-              rowKey={(s) => s.bucket}
-              rowHeader={{ header: t.columnBucket, cell: (s) => ptBR.quality[s.bucket] }}
-              columns={columns}
-            />
-          </>
-        )}
-      </CardBody>
-    </Card>
+    </ChartFrame>
   );
 }

@@ -32,7 +32,7 @@ import {
   LoadingState,
   NumberInput,
   PageHeader,
-  Section,
+  StepCard,
   Select,
   SelectOption,
   TBody,
@@ -363,7 +363,7 @@ export default function BateriasPage() {
       <PageHeader title={t.title} description={t.subtitle} />
 
       {/* Archetype and Requirements Section */}
-      <Section title={t.archetypesTitle} description={t.archetypesHint}>
+      <StepCard title={t.archetypesTitle} description={t.archetypesHint} bodyClassName="flex flex-col">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Select
             label={t.archetypesTitle}
@@ -503,7 +503,7 @@ export default function BateriasPage() {
             }}
           />
         </div>
-      </Section>
+      </StepCard>
 
       {/* Tabs navigation */}
       <Tabs

@@ -734,9 +734,8 @@ export default function StyleGuidePage() {
             Duas coisas dizem o estado, e são precisas as duas: o nome acessível diz o que o
             clique vai fazer, e o <code className="font-mono">aria-pressed</code> diz em que
             estado se está — quem ouve não deveria ter de inferir isso da troca do verbo. O
-            atributo é desenhado pelo próprio <code className="font-mono">md-icon-button</code>,
-            no <em>botão de dentro</em> do shadow root; escrito aqui no hospedeiro ficaria num
-            elemento que leitor de tela nenhum lê. O contorno e a estrela cheia são a mesma
+            atributo fica no próprio <code className="font-mono">&lt;button&gt;</code> nativo,
+            onde o leitor de tela o lê. O contorno e a estrela cheia são a mesma
             forma no mesmo tamanho, para o que estiver ao lado não se deslocar a cada clique.
           </p>
         </div>

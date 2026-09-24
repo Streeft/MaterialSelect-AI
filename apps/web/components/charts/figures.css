@@ -1,0 +1,82 @@
+/*
+ * D-80 — the MSDS figures, as the app draws them.
+ *
+ * Extends the chart vocabulary in lib/msds/msds.css (.msds-chart-card,
+ * .msds-chart-toolbar, .msds-legend, @keyframes msds-grow-x / msds-fade-in)
+ * with the SVG-side rules that file never needed: MSDS drew its bars and boxes
+ * as <div>s, and a <div> cannot be exported as a figure. Every colour is
+ * rgb(var(--token)) — this app's tokens are "R G B" triples, and a bare
+ * var(--token) as an SVG fill is black (D-78).
+ */
+
+.chart-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+  font-family: var(--font-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+}
+.chart-svg text { font-family: inherit; }
+
+.chart-tick { font-size: 11px; fill: rgb(var(--ink-subtle)); font-variant-numeric: tabular-nums; }
+.chart-label { font-size: 12px; fill: rgb(var(--ink-muted)); }
+.chart-label[data-active="true"] { fill: rgb(var(--ink)); font-weight: 600; }
+.chart-axis-title { font-size: 12px; font-weight: 500; fill: rgb(var(--ink-muted)); }
+.chart-value { font-family: var(--font-mono), ui-monospace, monospace; font-size: 11px; fill: rgb(var(--ink)); font-variant-numeric: tabular-nums; }
+.chart-missing-text { font-size: 10px; font-weight: 600; fill: rgb(var(--quality-ausente)); }
+.chart-grid { stroke: rgb(var(--edge)); stroke-width: 1; fill: none; }
+.chart-axis { stroke: rgb(var(--edge-strong)); stroke-width: 1; fill: none; }
+.chart-track { fill: var(--surface-300); }
+
+/* A mark is keyboard-reachable (roving tab index) and pointer-reachable. The
+   global :focus-visible ring is a box-shadow, which SVG never paints — the
+   figure draws its own ring (.chart-focus-ring) around the active mark. */
+.chart-mark { cursor: pointer; outline: none; }
+.chart-mark:focus, .chart-mark:focus-visible { outline: none; box-shadow: none; }
+.chart-focus-ring { fill: none; stroke: rgb(var(--ink)); stroke-width: 2; pointer-events: none; }
+
+/* MSDS BarChart: a segment grows from its baseline, staggered by row. */
+.chart-bar-seg {
+  transform-box: fill-box;
+  transform-origin: left center;
+  animation: msds-grow-x var(--msds-dur-slow) var(--msds-ease) both;
+  transition: filter 120ms var(--msds-ease);
+}
+.chart-mark:hover .chart-bar-seg,
+.chart-bar-seg:hover,
+.chart-bar-seg[data-active="true"] { filter: brightness(1.12); }
+
+/* MSDS BoxPlot */
+.chart-box { opacity: 0.85; transition: opacity 120ms var(--msds-ease); }
+.chart-box-row[data-active="true"] .chart-box { opacity: 1; }
+
+/* MSDS RadarChart: the fill is constant; opacity/scale come from the spring. */
+.chart-radar-series { fill-opacity: 0.18; }
+
+.chart-fade-in { animation: msds-fade-in 360ms var(--msds-ease-out) both; }
+
+/* The written absence (D-24): hatched, dashed, never a blank square. */
+.chart-hatch-swatch {
+  background:
+    repeating-linear-gradient(135deg, rgb(var(--quality-ausente) / 0.6) 0 1.5px, transparent 1.5px 4px),
+    var(--surface-300);
+  border: 1px dashed rgb(var(--quality-ausente));
+}
+
+/* MSDS's hover line under a bar chart, with a hint while nothing is active. */
+.chart-info-line { font-size: 12px; line-height: 18px; min-height: 18px; margin-top: 8px; color: rgb(var(--ink)); }
+.chart-info-line[data-empty="true"] { color: rgb(var(--ink-subtle)); }
+.chart-info-line strong { font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* Plotly figures in MSDS clothing: the modebar sits on the card, not on a
+   grey strip, and only shows on hover (Plotly's default). */
+.chart-plotly .modebar { background: transparent !important; }
+.chart-plotly .modebar-group { background: transparent !important; padding-left: 0 !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  .chart-bar-seg, .chart-fade-in { animation: none; }
+}
+
+/* The toolbar's text actions (export, table toggle) share one look. */
+.msds-table-toggle:disabled { color: rgb(var(--ink-subtle)); cursor: not-allowed; text-decoration: none; opacity: 0.7; }
+.msds-table-toggle:focus-visible { border-radius: var(--radius-seat); }

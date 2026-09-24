@@ -1,20 +1,15 @@
 "use client";
 
-import { useCallback, useMemo, useRef } from "react";
-import dynamic from "next/dynamic";
-import type { Data, Layout } from "plotly.js";
+import { useCallback, useMemo } from "react";
 import type { CompareCell, CompareMaterial, Comparison } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { formatNumber, formatScore, prettyUnit } from "@/lib/format";
-import { axisLabels as buildAxisLabels, chartFileName, escapeHover } from "@/lib/charts";
-import { chartTheme, classVisual } from "@/lib/design/palette";
+import { axisLabels as buildAxisLabels, chartFileName } from "@/lib/charts";
+import { classVisual } from "@/lib/design/palette";
 import {
   Alert,
   Badge,
   Button,
-  Card,
-  CardBody,
-  CardHeader,
   DataQualityBadge,
   MissingValue,
   ProvenancePopover,
@@ -29,12 +24,17 @@ import {
   Tr,
   provenanceOfCell,
   qualityState,
-  useResolvedTheme,
 } from "@/components/ui";
-import { ChartToolbar } from "./ChartToolbar";
+import { ChartFrame } from "./ChartFrame";
 import { FigureData, type FigureColumn } from "./FigureData";
-
-const Plot = dynamic(() => import("react-plotly.js"), { ssr: false });
+import {
+  GroupedBarsFigure,
+  HeatmapFigure,
+  ParallelFigure,
+  RadarFigure,
+  type CompareAxisView,
+  type CompareSeries,
+} from "./ComparisonFigures";
 
 const t = ptBR.compare;
 
@@ -99,10 +99,6 @@ export function ComparisonView({
   referenceId = null,
   onSetReference,
 }: ComparisonViewProps) {
-  const container = useRef<HTMLDivElement>(null);
-  const theme = useResolvedTheme();
-  const paint = useMemo(() => chartTheme(theme), [theme]);
-
   const { properties, materials } = comparison;
   const lookup = useMemo(
     () => new Map(materials.map((m) => [m.material_id, cellsBySlug(m)])),
@@ -117,117 +113,38 @@ export function ComparisonView({
 
   const incomplete = materials.filter((m) => !m.complete);
 
-  const figure = useMemo<{ data: Data[]; layout: Partial<Layout> } | null>(() => {
-    // Symbols only when unambiguous: two identical labels would collapse into
-    // one categorical column and silently merge the two series.
-    const axisLabels = buildAxisLabels(properties);
-    const baseLayout: Partial<Layout> = {
-      ...paint.layout,
-      autosize: true,
-      height: 480,
-      margin: { l: 70, r: 24, t: 20, b: 90 },
-      legend: { ...paint.layout.legend, orientation: "h", y: -0.25, font: { size: 11 } },
-    };
+  // What every figure draws: one series per material (class colour and marker
+  // shape, D-28) and one axis per property. Symbols only when unambiguous: two
+  // identical labels on one axis would be read as the same property.
+  const series = useMemo<CompareSeries[]>(
+    () =>
+      materials.map((m) => {
+        const visual = classVisual(m.class_slug);
+        return {
+          id: m.material_id,
+          name: m.name,
+          className: m.class_name,
+          color: visual.color,
+          symbol: visual.symbol,
+          complete: m.complete,
+        };
+      }),
+    [materials],
+  );
+  const axes = useMemo<CompareAxisView[]>(() => {
+    const labels = buildAxisLabels(properties);
+    return properties.map((p, i) => ({
+      slug: p.property_slug,
+      label: labels[i] ?? p.property_name,
+      name: p.property_name,
+      missing: p.missing_material_ids.length,
+    }));
+  }, [properties]);
 
-    if (mode === "bars") {
-      return {
-        data: materials.map((material) => ({
-          type: "bar",
-          name: material.name,
-          x: axisLabels,
-          y: properties.map((p) => normalizedOf(material.material_id, p.property_slug)),
-          marker: { color: classVisual(material.class_slug).color },
-          hovertemplate: `<b>${escapeHover(material.name)}</b><br>%{x}: %{y:.3f}<extra></extra>`,
-        })),
-        layout: {
-          ...baseLayout,
-          barmode: "group",
-          yaxis: { ...baseLayout.yaxis, title: { text: t.normalizedScale }, range: [0, 1.05] },
-        },
-      };
-    }
-
-    if (mode === "radar") {
-      // scatterpolar closes a polygon; a gap in it would be read as a value.
-      // Only materials with every property are drawn, and the rest are listed.
-      const complete = materials.filter((m) => m.complete);
-      return {
-        data: complete.map((material) => {
-          const values = properties.map(
-            (p) => normalizedOf(material.material_id, p.property_slug) ?? 0,
-          );
-          return {
-            type: "scatterpolar",
-            name: material.name,
-            // Repeat the first vertex so the outline closes.
-            r: [...values, values[0] ?? 0],
-            theta: [...axisLabels, axisLabels[0] ?? ""],
-            fill: "toself",
-            opacity: 0.35,
-            line: { color: classVisual(material.class_slug).color },
-            marker: { symbol: classVisual(material.class_slug).symbol },
-            hovertemplate: `<b>${escapeHover(material.name)}</b><br>%{theta}: %{r:.3f}<extra></extra>`,
-          } as Data;
-        }),
-        layout: {
-          ...baseLayout,
-          polar: { radialaxis: { visible: true, range: [0, 1] } },
-        },
-      };
-    }
-
-    if (mode === "parallel") {
-      // Implemented as a line chart rather than Plotly's `parcoords`: the latter
-      // cannot express a missing coordinate, and inventing one would break the
-      // core rule of the project. Here a gap simply breaks the line.
-      return {
-        data: materials.map((material) => ({
-          type: "scatter",
-          mode: "lines+markers",
-          name: material.name,
-          x: axisLabels,
-          y: properties.map((p) => normalizedOf(material.material_id, p.property_slug)),
-          connectgaps: false,
-          line: { color: classVisual(material.class_slug).color, width: 2 },
-          marker: { size: 8, symbol: classVisual(material.class_slug).symbol },
-          hovertemplate: `<b>${escapeHover(material.name)}</b><br>%{x}: %{y:.3f}<extra></extra>`,
-        })),
-        layout: {
-          ...baseLayout,
-          yaxis: { ...baseLayout.yaxis, title: { text: t.normalizedScale }, range: [0, 1.05] },
-          xaxis: { ...baseLayout.xaxis, type: "category" },
-        },
-      };
-    }
-
-    if (mode === "heatmap") {
-      return {
-        data: [
-          {
-            type: "heatmap",
-            x: axisLabels,
-            y: materials.map((m) => m.name),
-            z: materials.map((m) =>
-              properties.map((p) => normalizedOf(m.material_id, p.property_slug)),
-            ),
-            zmin: 0,
-            zmax: 1,
-            colorscale: "Viridis",
-            hoverongaps: false,
-            colorbar: { title: { text: "0 – 1" }, thickness: 12 },
-            hovertemplate: "%{y}<br>%{x}: %{z:.3f}<extra></extra>",
-          },
-        ],
-        layout: {
-          ...baseLayout,
-          height: Math.max(260, 60 + materials.length * 34),
-          margin: { l: 160, r: 24, t: 20, b: 70 },
-        },
-      };
-    }
-
-    return null; // table mode is plain HTML
-  }, [mode, materials, properties, paint, normalizedOf]);
+  const canDraw =
+    mode === "radar"
+      ? properties.length >= 3 && materials.some((m) => m.complete)
+      : materials.length > 0 && properties.length > 0;
 
   const fileName = chartFileName(
     "comparacao",
@@ -369,36 +286,29 @@ export function ComparisonView({
     );
   }
 
+  const figureLabel = ptBR.chart.figureLabel(t.figure);
+  const figureProps = { figureLabel, series, axes, score: normalizedOf };
+
   return (
-    <Card>
-      <CardHeader
-        headingLevel={2}
-        title={t.figure}
-        description={t.normalizedScale}
-        actions={<ChartToolbar target={container} fileName={fileName} disabled={!figure} />}
-      />
-      <CardBody className="flex flex-col gap-3">
-        {mode === "radar" && properties.length < 3 && (
-          <Alert tone="warning">{t.radarNeedsThree}</Alert>
-        )}
-        {mode === "radar" && incomplete.length > 0 && (
-          <Alert tone="warning">
-            {t.radarSkipsMissing} ({incomplete.map((m) => m.name).join(", ")})
-          </Alert>
-        )}
-
-        {figure && (
-          <div ref={container} role="img" aria-label={ptBR.chart.figureLabel(t.figure)}>
-            <Plot
-              data={figure.data}
-              layout={figure.layout}
-              config={{ displaylogo: false, responsive: true }}
-              style={{ width: "100%" }}
-              useResizeHandler
-            />
+    <ChartFrame
+      title={t.figure}
+      description={t.normalizedScale}
+      exportName={fileName}
+      exportDisabled={!canDraw}
+      notice={
+        mode === "radar" && (properties.length < 3 || incomplete.length > 0) ? (
+          <div className="mb-3 flex flex-col gap-2">
+            {properties.length < 3 && <Alert tone="warning">{t.radarNeedsThree}</Alert>}
+            {incomplete.length > 0 && (
+              <Alert tone="warning">
+                {t.radarSkipsMissing} ({incomplete.map((m) => m.name).join(", ")})
+              </Alert>
+            )}
           </div>
-        )}
-
+        ) : null
+      }
+      empty={canDraw ? undefined : <></>}
+      table={
         <FigureData
           caption={`${t.figure} — ${t.normalizedScale}`}
           rows={materials}
@@ -416,7 +326,12 @@ export function ComparisonView({
           }}
           columns={figureColumns}
         />
-      </CardBody>
-    </Card>
+      }
+    >
+      {mode === "bars" && <GroupedBarsFigure {...figureProps} />}
+      {mode === "radar" && <RadarFigure {...figureProps} />}
+      {mode === "parallel" && <ParallelFigure {...figureProps} />}
+      {mode === "heatmap" && <HeatmapFigure {...figureProps} />}
+    </ChartFrame>
   );
 }

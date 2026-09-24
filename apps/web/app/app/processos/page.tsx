@@ -7,7 +7,6 @@ import type { Process, ProcessClass } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { descendantSlugs, roots } from "@/lib/taxonomy";
 import {
-  Badge,
   Card,
   CardBody,
   EmptyState,
@@ -57,7 +56,9 @@ export default function ProcessesPage() {
           {classes.data.length === 0 ? (
             <EmptyState title={t.empty} />
           ) : (
-            <div className="flex flex-col gap-3">
+            // A grid, not a stack: three families at full width were three
+            // thin strips of tiny badges with the right half of each empty.
+            <div className="grid items-start gap-4 md:grid-cols-2 xl:grid-cols-3">
               {roots(classes.data).map((root) => (
                 <FamilyCard
                   key={root.slug}
@@ -105,17 +106,21 @@ function FamilyCard({
           // Written out, never a blank card: an empty family is a state.
           <p className="text-sm text-ink-muted">{t.emptyFolder}</p>
         ) : (
-          <div className="flex flex-wrap gap-2">
+          <ul className="-mx-2 flex flex-col">
             {inFamily.map((process) => (
-              <Link
-                key={process.slug}
-                href={`/app/processos/${process.slug}`}
-                className="rounded-control focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-              >
-                <Badge tone="brand">{process.name}</Badge>
-              </Link>
+              <li key={process.slug}>
+                <Link
+                  href={`/app/processos/${process.slug}`}
+                  className="flex items-center justify-between gap-2 rounded-control px-2 py-1.5 text-sm text-ink transition hover:bg-brand-50 hover:text-brand-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                >
+                  <span>{process.name}</span>
+                  <span aria-hidden className="text-ink-subtle">
+                    →
+                  </span>
+                </Link>
+              </li>
             ))}
-          </div>
+          </ul>
         )}
       </CardBody>
     </Card>
