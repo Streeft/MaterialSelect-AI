@@ -128,7 +128,12 @@ describe("catálogo", () => {
     await userEvent.selectOptions(screen.getByShadowRole("combobox", { name: t.filterClass }), "ceramicas");
     await userEvent.selectOptions(screen.getByShadowRole("combobox", { name: t.filterQuality }), "measured");
 
-    const empty = (await screen.findByText(t.emptyFiltered)).closest("div");
+    // D-78: EmptyState's title now renders inside `.msds-state-title` (a
+    // `<div>`, delegated to MSDS), so `.closest("div")` from the title text
+    // would return that inner div alone instead of the whole state — the
+    // action button lives as a sibling of the title's parent, inside
+    // `.msds-state`.
+    const empty = (await screen.findByText(t.emptyFiltered)).closest(".msds-state");
     expect(empty).not.toBeNull();
     // The empty state clears the filters rather than only apologising — the
     // button inside it, not the one in the filter card above.

@@ -4553,3 +4553,183 @@ inteira ao final:**
 Nada foi commitado nem enviado por esta sessão (o repositório orquestrador
 revisa o diff); `apps/api`, `AppSidebar.tsx`, `Card.tsx` e `Badge.tsx` não
 foram tocados.
+
+## D-78 — MSDS: `Card`/`Badge` restilizados sem delegar; `Feedback` convertido
+em parte, um bug real de cor achado e revertido ao vivo; `Popover`/`Bar`/
+`Alert`/`Table`/o resto de `Button` ficam documentados, não convertidos
+
+**Escopo entregue.** Quatro arquivos foram alterados, cada um com o portão
+completo (`typecheck`/`lint`/`test`/`build`) rodado individualmente antes do
+seguinte: `Card.tsx`, `Badge.tsx`, `Feedback.tsx` e o teste que a mudança de
+`Feedback.tsx` obrigou a atualizar (`app/app/catalogo/catalogo.test.tsx`).
+Quatro outros arquivos — `Popover.tsx`, `Bar.tsx`, `Alert.tsx`, `Table.tsx` —
+e o restante de `Button.tsx` (`IconButton`/`ButtonGroup`/`ButtonGroupItem`/
+`ToggleChip`, já documentados em D-76) foram deixados como estavam, cada um
+por um motivo verificado contra o código real, não por falta de tempo.
+
+**`Card.tsx` — classes MSDS sobre marcação própria, sem delegar para a
+função `Card`/`Card.Header`/`Card.Body`/`Card.Footer` do MSDS.** `Card`
+precisa de `as` polimórfico — `components/selection/ConstraintEditor.tsx`
+renderiza `<Card as="fieldset">`, agrupando controles de formulário, uma
+exigência semântica e não cosmética — e a `Card` do MSDS
+(`lib/msds/msds.tsx`) é sempre um `<div>` fixo, sem prop `as` nenhuma.
+`CardHeader` precisa de `headingLevel` variável (2/3/4, ~30 call sites reais:
+`AIAssistPanel.tsx`, `app/app/baterias/page.tsx` etc.) e de um slot
+`actions` (~20 arquivos), e a `CardHeader` do MSDS só desenha `title`/
+`description` num `<h3>` fixo sem lugar para ações. `riseIndex` (entrada
+escalonada, `MaterialCards.tsx`, `CoverageSummary.tsx` ×2,
+`meus-registros/page.tsx`) também não existe do lado MSDS. As quatro
+funções continuam com a marcação de sempre; só as classes Tailwind viraram
+`.msds-card`/`.msds-card-header`/`.msds-card-title`/`.msds-card-desc`/
+`.msds-card-body`/`.msds-card-footer` (`lib/msds/msds.css`). `riseIndex`
+continua sendo a animação própria do app (`rise` + `animationDelay`
+inline), independente do MSDS. `PanelShell`/`Section` — sem conceito
+equivalente no MSDS — ficaram intocados.
+
+**`Badge.tsx` — mesmo padrão.** A `Badge` do MSDS só aceita `tone`/
+`children`; call sites reais precisam de `className`
+(`components/layout/AppSidebar.tsx` — arquivo não tocado, mas o componente
+`Badge` continua tendo que servi-lo — e `components/dashboard/
+CoverageSummary.tsx`) e `title` (`components/DemoDataBadge.tsx`). A função
+`Badge` continua um `<span>` próprio com `title`/`icon`/`children`; só as
+classes de tom viraram `msds-badge msds-badge-{tone}` — os seis tons
+existem idênticos dos dois lados (`neutral/brand/success/warning/danger/
+info`, `lib/msds/msds.css:131-140`). `ClassBadge` (selo com swatch de cor
+categórica Okabe–Ito, sem equivalente MSDS) manteve sua lógica de dot
+própria e passou a herdar a casca `msds-badge msds-badge-neutral` por
+consistência visual — decisão de polimento, não obrigatória.
+
+**`Feedback.tsx` — conversão parcial, com um bug real achado e revertido ao
+vivo, não só planejado.** `Spinner` passou a renderizar `CircularProgress`
+do MSDS (indeterminado) em vez de `MdCircularProgress` do `@material/web`
+— removeu o único import de `@material/web` do arquivo. Como a
+`CircularProgress` do MSDS só lê `size`/`strokeWidth`/`value`/`label`/
+`showValue` do seu objeto de props (confirmado lendo `lib/msds/msds.tsx`),
+um `aria-hidden` passado a ela é descartado em silêncio — por isso
+`aria-hidden` foi movido para o `<span>` que a envolve, removendo a
+subárvore inteira da árvore de acessibilidade quando não há `label`; sem
+esse ajuste o `axe` reprovou `/app/painel` com "ARIA progressbar nodes must
+have an accessible name" (achado pela própria suíte, `routes.a11y.test.tsx`).
+`Skeleton` manteve marcação/props (`className` ainda controla o tamanho) e
+só trocou a animação de pulso Tailwind pelo shimmer `.msds-skeleton`.
+`LoadingState` **não** foi delegado ao `LoadingState` do MSDS: o do MSDS
+desenha três linhas de esqueleto fixas e nunca mostra texto visível (só
+`aria-label`), enquanto ~29 call sites reais passam um `label` visível que
+tem que continuar na tela — delegar apagaria esse texto, a mesma classe de
+regressão que D-24 proíbe para dado ausente, agora sobre um estado de
+carregamento. `ErrorState` foi delegado ao MSDS: `title`/`description`
+batem diretamente, e o `action` do MSDS recebe o `Button` que o arquivo já
+construía a partir de `onRetry`; `role="alert"` (que a marcação do MSDS não
+define) foi restaurado num `<div>` por fora.
+
+**`EmptyState` foi delegado, testado ao vivo e revertido — o achado real
+desta rodada.** A versão inicial delegava ao `EmptyState` do MSDS, que
+sempre desenha sua própria arte decorativa (`EmptyStateArt`, um SVG com três
+formas). Um spot-check com o Chromium de sistema contra `npm run start`
+(`/app/estilo`, claro e escuro) mostrou as três formas em **preto sólido**
+nos dois temas, em vez do azul de marca esperado. Causa: `EmptyStateArt`
+usa `fill: "var(--brand-100)"` / `"var(--brand-300)"` / `"var(--accent)"`
+puros, e os tokens deste app (`app/globals.css`) são triplos `"R G B"` sem
+unidade, lidos sempre por `rgb(var(--x))` — nunca sozinhos. Um `var(--x)`
+bruto não é uma cor CSS válida, então o navegador cai no preto padrão de
+`fill`. Fabricar uma cor nova para contornar isso violaria a restrição do
+projeto de nunca inventar cor sem validar contraste; a saída foi reverter
+`EmptyState` para a marcação própria (ícone `IconInfo` por padrão, ou o
+`icon` do chamador — a prop continua na assinatura e com efeito, ao
+contrário do que a primeira tentativa documentava) e só emprestar as
+classes de layout `.msds-state`/`.msds-state-title`/`.msds-state-desc` —
+não a classe `.msds-state-icon`, que fixa `color: rgb(var(--danger))` e
+tingiria de vermelho um ícone neutro de estado vazio. Isto reproduz o
+mesmo layout ícone-à-esquerda/texto-à-direita que `ErrorState` ganhou, sem
+passar pela arte quebrada. Nenhum dos ~23 call sites reais de `EmptyState`
+usa `className` ou `icon` custom hoje (confirmado por grep antes e depois
+da reversão), então a régua de risco era baixa mesmo com o susto.
+
+**Verificação, por arquivo — os quatro comandos rodados individualmente
+depois de cada arquivo, antes de seguir para o próximo:**
+1. `Card.tsx`: `typecheck` limpo; `lint` 0 erros/21 avisos (a mesma base de
+   D-73–D-77); `test` 388/388 sem nenhuma asserção tocada; `build` 23 rotas.
+2. `Badge.tsx`: mesmos quatro comandos, mesmo resultado (`typecheck` limpo,
+   `lint` 0/21, `test` 388/388, `build` 23 rotas) — nenhum teste depende da
+   classe Tailwind antiga de `Badge`/`ClassBadge`.
+3. `Feedback.tsx` (primeira passada, `EmptyState` ainda delegado):
+   `typecheck` limpo; `lint` 0/21; `test` **2 falhas** — `routes.a11y.test.tsx`
+   (`aria-progressbar-name` em `/app/painel`, corrigido movendo
+   `aria-hidden` para o wrapper do `Spinner`) e
+   `app/app/catalogo/catalogo.test.tsx` ("offers a way out when the filters
+   leave nothing on screen", corrigido porque `.closest("div")` a partir do
+   texto do título agora resolve para `.msds-state-title` — um `<div>` no
+   MSDS, onde antes era um `<p>` — em vez do container inteiro; ajustado
+   para `.closest(".msds-state")`, documentado no próprio teste); depois das
+   duas correções, `test` 388/388, `build` 23 rotas.
+4. `Feedback.tsx` (segunda passada, `EmptyState` revertido após o
+   spot-check visual): `typecheck` limpo; `lint` 0/21; `test` 388/388;
+   `build` 23 rotas.
+5. Verificação ao vivo: API local (`apps/api/scripts/e2e_server.py`, SQLite
+   descartável, `ENVIRONMENT=development` + `E2E_SESSION_TOKEN` para semear
+   a sessão fixa de D-77) na porta 8000 (a mesma que `NEXT_PUBLIC_API_URL`
+   assume por padrão) + `npm run build` + `npm run start`, Chromium de
+   sistema (`/opt/pw-browsers/chromium-1194` via `playwright-core`) com o
+   cookie `msai_session` injetado, contra `/app/estilo` (claro e escuro) e
+   `/app/catalogo` (autenticado). Foi essa verificação — não os testes, que
+   não asserram cor — que achou o bug de `EmptyStateArt` acima; depois da
+   reversão, capturas em claro e escuro confirmam `EmptyState`/`ErrorState`/
+   `Card`/`Badge`/`ClassBadge` corretos nos dois temas.
+
+**`Popover.tsx` — não convertido (`Popover` e `Disclosure`).** O único
+consumidor real de `Popover` é `components/ui/ProvenancePopover.tsx`,
+sempre dentro de célula de tabela ou de prosa
+(`PropertyGroup.tsx`, `ComparisonView.tsx`, `processos/[slug]/page.tsx`). O
+próprio docstring do arquivo explica por que existe portal
+(`createPortal` para `document.body`): sem ele, o painel seria cortado pelo
+`overflow-x: auto` do container de tabela. O `Popover` do MSDS
+(`lib/msds/msds.tsx:1432-1445`) não usa portal — `.msds-popover` é
+`position: absolute` dentro do próprio wrapper — cairia exatamente nessa
+armadilha. `Disclosure` envolve `<details>` nativo; o MSDS não tem conceito
+de acordeão/disclosure. Nenhum dos dois usos reais é um menu de ações, então
+`Menu` do MSDS também não se aplica. Mesma classe de decisão que
+Field/Breadcrumb em D-77 (a função vendorizada tem uma lacuna real).
+
+**`Bar.tsx` — não convertido.** Sem `@material/web` para remover (já era
+Tailwind/CSS puro). O `LinearProgress` do MSDS fixa a cor em `--accent`
+(`lib/msds/msds.css:609`) e não tem `delay`. Call sites reais precisam de
+cor arbitrária da paleta Okabe–Ito (`app/app/estilo/page.tsx:461,468,475`:
+`color="bg-[#0072B2]"` etc.) e de `delay` para entrada escalonada —
+exatamente o que a seção de sistema de design deste `CLAUDE.md` marca como
+"paleta categórica... não é da marca e não se mexe".
+
+**`Alert.tsx` — não convertido.** Sem `@material/web` para remover.
+`lib/msds/index.ts` não expõe nenhum banner/alerta persistente — só
+`Toast`/`ToastStack`, transitórios e dispensáveis por desenho
+(`msds-toast.is-leaving`, `dismiss()`). O propósito de `Alert` aqui é o
+oposto: avisos permanentes (dado de demonstração, limite de uso do §3.6)
+que não podem ser dispensados — a mesma distinção que D-76 fez entre
+`Chip`/`ToggleChip`.
+
+**`Table.tsx` — não convertido.** O MSDS só tem `DataTable`, um componente
+de render-prop (`columns`/`rows`/`render`), forma diferente das primitivas
+por elemento (`Table/THead/TBody/Tr/Td/Th/RowHeader/TableScroll/
+TableCaption`) usadas em dezenas de tabelas reais com `thead` `sticky`,
+`scope="row"` em `RowHeader`, `data-numeric` para alinhamento e região de
+scroll nomeada. Reimplementar essas tabelas sobre `DataTable` mudaria
+semântica em massa — alto risco para D-31 ("todo gráfico tem tabela como
+alternativa textual"), baixo retorno; documentado em vez de tentado, dado o
+orçamento já gasto no achado de `EmptyState` acima.
+
+**`Button.tsx` — `IconButton`/`ButtonGroup`/`ButtonGroupItem`/`ToggleChip`
+reexaminados, mantidos.** As três razões do D-76 foram checadas de novo
+contra `lib/msds/msds.tsx` nesta sessão, sem meio-termo novo: `IconButton`
+do MSDS usa `iconOn`/`iconOff` como nomes de um vocabulário fechado
+(`msdsIcon()`), nunca um `ReactNode` arbitrário, e os ~15 call sites do app
+passam ícones já importados de `components/ui/icons.tsx`; `ButtonGroup` do
+MSDS recebe um array chato `options: {value,label}[]` sem ícone por opção, e
+`ThemeToggle.tsx` depende do modo `compact` (segmento só-ícone) que essa
+forma não carrega; `Chip` do MSDS (`lib/msds/msds.tsx:417-452`) nunca lê
+`props.disabled` — `onClick` dispara sempre —, e `/app/comparar` depende de
+`disabled={!chosen && materialsFull}` bloquear de fato o clique no limite
+de comparação. Os quatro continuam exatamente como D-76 os deixou.
+
+Nada foi commitado nem enviado por esta sessão (o repositório orquestrador
+revisa o diff); `apps/api` (só executado localmente, como servidor
+descartável, para o spot-check — nenhum arquivo dele foi editado) e
+`AppSidebar.tsx` não foram tocados.
