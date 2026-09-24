@@ -264,6 +264,23 @@ export const ptBR = {
     methodInUse: (label: string) => `Método de ranking: ${label} (em Opções avançadas).`,
     methodFieldHint: "Como os critérios viram uma nota única. Na dúvida, soma ponderada.",
     normalizationHint: "Como cada critério é posto na mesma escala antes de somar.",
+    indexBlockTitle: "1. Índice de desempenho",
+    criteriaBlockTitle: "2. Critérios e pesos",
+    continueToCriteria: "Continuar: critérios e pesos",
+    indexLockedReason: "Escolha um índice (ou “Nenhum índice”) e clique em Continuar.",
+    noIndexChosen: "Sem índice: o ranking usa só os critérios abaixo.",
+    indexChosen: (name: string, maximize: boolean) =>
+      `${name} — ${maximize ? "maximizar" : "minimizar"}`,
+    criterionHint: "O que entra na nota final. O índice acima também pode ser um critério.",
+    directionHint: "Maior é melhor, ou menor é melhor.",
+    weightHint: "Quanto este critério pesa na nota.",
+    exampleIntro: "Primeira vez? Veja um estudo completo funcionando e depois mude o que quiser.",
+    loadExample: "Carregar exemplo: viga leve de bicicleta",
+    exampleLoaded:
+      "Exemplo carregado: função, índice, critério e três restrições. Avance pelos passos ou execute.",
+    exampleUndo: "Desfazer",
+    exampleUnavailable: (missing: string) =>
+      `O exemplo não pôde ser carregado: o catálogo não tem ${missing}. Nada foi alterado.`,
     aiOpen: "Preencher a partir de um texto (IA)",
     aiClose: "Fechar o assistente de IA",
     // Uma linha por campo (D-85): o que ele pede, sem virar parágrafo.
