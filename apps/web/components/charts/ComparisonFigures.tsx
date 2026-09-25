@@ -69,7 +69,7 @@ function scoreWords(series: CompareSeries, axis: CompareAxisView, value: number 
 }
 
 /**
- * The shared readout of one property (D-94, the AI Studio tooltip): the
+ * The shared readout of one property (D-95, the AI Studio tooltip): the
  * property on top, then every drawn material's normalised score on it, the
  * one under the pointer emphasised. A material with no value says so in words
  * (D-24) — never a zero.

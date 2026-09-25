@@ -24,6 +24,7 @@ from app.calculations.part_cost import (
     TOOLING_COST,
     PartCostError,
     ShopAssumptions,
+    cost_curve,
     cost_terms,
 )
 from app.domain.errors import NotFoundError, ValidationError
@@ -31,6 +32,7 @@ from app.models.process import Process
 from app.repositories.chart_repository import ChartRepository
 from app.repositories.process_repository import ProcessRepository
 from app.schemas.part_cost import (
+    CostCurvePointOut,
     CostedProcessOut,
     CostRequest,
     CostResultOut,
@@ -121,6 +123,14 @@ class PartCostService:
                     )
                 )
                 continue
+
+            base_cost = terms.material + terms.overhead + terms.capital
+            curve_points = cost_curve(
+                base_cost=base_cost,
+                tooling_cost=values[TOOLING_COST],
+                current_batch=request.batch_size,
+            )
+
             costed.append(
                 CostedProcessOut(
                     process_id=process.id,
@@ -136,6 +146,10 @@ class PartCostService:
                         total=terms.total,
                         batch_sensitive=terms.batch_sensitive,
                     ),
+                    curve=[
+                        CostCurvePointOut(batch_size=pt.batch_size, cost=pt.cost)
+                        for pt in curve_points
+                    ],
                 )
             )
 

@@ -1391,8 +1391,114 @@ export const ptBR = {
       table: "Tabela de dados",
     },
     soon: "Em breve",
-    studioSoon:
-      "O Estúdio chega na próxima etapa: relatórios, cartões, testes, mapa mental e mais, gerados das suas fontes.",
+    studioSoon: "Em breve: resumo em áudio e em vídeo, apresentação de slides e infográfico.",
+    studio: {
+      panelHint: "Gerado das fontes marcadas; cada item cita o trecho de onde veio.",
+      create: (label: string) => `Criar: ${label}`,
+      createTitle: {
+        report: "Criar relatório",
+        flashcards: "Criar cartões didáticos",
+        quiz: "Criar teste",
+        table: "Criar tabela de dados",
+        mindmap: "Criar mapa mental",
+      } as Record<string, string>,
+      format: "Formato",
+      template: "Modelo",
+      editTemplate: (label: string) => `Editar o modelo “${label}”`,
+      templateInstructions: "Instruções do modelo",
+      templateInstructionsHint:
+        "O que você escrever aqui orienta o estilo e a estrutura. As regras de citação e de números valem sempre.",
+      customPlaceholder:
+        "Ex.: um resumo para a prova, com as definições primeiro e exemplos de engenharia depois.",
+      restore: "Restaurar o padrão",
+      columns: "Colunas",
+      columnsHint: "Sem colunas, a IA escolhe as que organizam o que as fontes trazem.",
+      columnLabel: (n: number) => `Coluna ${n}`,
+      removeColumn: (name: string) => `Remover a coluna “${name}”`,
+      addColumn: "Adicionar coluna",
+      count: { flashcards: "Número de cartões", quiz: "Número de questões" } as Record<string, string>,
+      difficulty: "Nível de dificuldade",
+      topic: "Foco (opcional)",
+      topicPlaceholder: {
+        report: "Ex.: só a parte sobre ligas de alumínio.",
+        flashcards: "Ex.: os termos da aula 3 sobre tratamentos térmicos.",
+        quiz: "Ex.: propriedades mecânicas dos polímeros.",
+        table: "Ex.: uma linha por liga de alumínio citada nas fontes.",
+        mindmap: "Ex.: seleção de materiais para estruturas leves.",
+      } as Record<string, string>,
+      generate: "Gerar",
+      usage: (used: number, limit: number) => `${used} de ${limit} gerações hoje`,
+      generated: "Gerados",
+      generating: "Gerando…",
+      generatingHint: "Pode continuar conversando; aparece aqui quando ficar pronto.",
+      failed: "Falhou",
+      retry: "Tentar de novo",
+      open: (title: string) => `Abrir “${title}”`,
+      remove: "Excluir",
+      removeItem: (title: string) => `Excluir “${title}”`,
+      removeConfirm: (title: string) => `Excluir “${title}”? Isso não pode ser desfeito.`,
+      backToStudio: "Voltar ao Estúdio",
+      rename: "Renomear",
+      renameLabel: "Título",
+      saveNote: "Salvar como nota",
+      savedNote: "Salvo nas notas.",
+      export: "Exportar",
+      exportLabels: {
+        docx: "DOCX (Word)",
+        csv: "CSV",
+        xlsx: "XLSX (Excel)",
+        svg: "SVG (imagem)",
+      } as Record<string, string>,
+      withheldTitle: "Parte do que foi gerado foi omitida",
+      meta: (sources: number, date: string) =>
+        `${sources === 1 ? "1 fonte" : `${sources} fontes`} · ${date}`,
+      items: {
+        report: (n: number) => (n === 1 ? "1 seção" : `${n} seções`),
+        flashcards: (n: number) => (n === 1 ? "1 cartão" : `${n} cartões`),
+        quiz: (n: number) => (n === 1 ? "1 questão" : `${n} questões`),
+        table: (n: number) => (n === 1 ? "1 linha" : `${n} linhas`),
+        mindmap: (n: number) => (n === 1 ? "1 ramo" : `${n} ramos`),
+      } as Record<string, (n: number) => string>,
+      // Cartões
+      cardPosition: (i: number, n: number) => `Cartão ${i} de ${n}`,
+      frontFace: "Frente",
+      backFace: "Verso",
+      flip: "Virar",
+      previous: "Anterior",
+      next: "Próximo",
+      shuffle: "Embaralhar",
+      restart: "Recomeçar",
+      cardHint: "Clique no cartão ou em Virar para ver o outro lado.",
+      sources: "Fontes:",
+      // Teste
+      questionPosition: (i: number, n: number) => `Questão ${i} de ${n}`,
+      options: "Alternativas",
+      hint: "Dica",
+      explain: "Explicar",
+      correct: "Correta!",
+      wrong: (letter: string) => `Não é essa. A correta é a ${letter}).`,
+      yourAnswer: "Sua resposta",
+      rightAnswer: "Resposta correta",
+      nextQuestion: "Próxima",
+      previousQuestion: "Anterior",
+      finish: "Ver resultado",
+      score: (right: number, total: number) => `Você acertou ${right} de ${total}.`,
+      retake: "Refazer",
+      // Tabela
+      absent: "não consta nas fontes",
+      withheldCell: "omitida: número fora do trecho citado",
+      tableLabel: (title: string) => `Tabela “${title}”`,
+      // Mapa mental
+      viewMap: "Mapa",
+      viewList: "Lista",
+      viewLabel: "Como ver o mapa",
+      zoomIn: "Aproximar",
+      zoomOut: "Afastar",
+      askAbout: (label: string) => `Perguntar sobre “${label}” na conversa`,
+      askPrompt: (label: string) => `Explique “${label}” com base nas fontes.`,
+      mapHint: "Clique num ramo para levar a pergunta à conversa.",
+      mapLabel: (title: string) => `Mapa mental “${title}”`,
+    },
     notes: "Notas",
     addNote: "Adicionar nota",
     noNotes: "Nenhuma nota. Salve uma resposta da conversa ou escreva a sua.",
@@ -1402,6 +1508,7 @@ export const ptBR = {
     editNote: (title: string) => `Editar a nota “${title}”`,
     removeNote: (title: string) => `Excluir a nota “${title}”`,
     fromChat: "Da conversa",
+    fromStudio: "Do Estúdio",
   },
 
   catalog: {
@@ -1497,9 +1604,9 @@ export const ptBR = {
     // Shared by every figure in the application: the map, the comparator and
     // the thumbnail on the material sheet.
     toolbar: "Ações do gráfico",
-    // D-94: the comparator's tooltip, under the scores.
+    // D-95: the comparator's tooltip, under the scores.
     normalizedNote: "Escala normalizada: 1 = melhor entre os comparados.",
-    // D-94: the chart-type switch in a figure's corner.
+    // D-95: the chart-type switch in a figure's corner.
     viewColumns: "Colunas",
     viewBars: "Barras horizontais",
     // D-91: the two formats sit in one "Exportar" menu.
@@ -1588,7 +1695,7 @@ export const ptBR = {
     superior: (n: number) =>
       `${n} ${n === 1 ? "material no lado favorável" : "materiais no lado favorável"}`,
     indexUnavailable: "Linha de índice indisponível",
-    // D-94: the tooltip over an index line.
+    // D-95: the tooltip over an index line.
     indexLine: "Linha de índice",
     coverage: (plotted: number, considered: number) =>
       `${plotted} de ${considered} ${considered === 1 ? "material plotado" : "materiais plotados"}`,

@@ -44,6 +44,13 @@ class CostTermsOut(BaseModel):
     batch_sensitive: float
 
 
+class CostCurvePointOut(BaseModel):
+    """One coordinate pair on the cost vs batch size curve (ADR 0004)."""
+
+    batch_size: float
+    cost: float
+
+
 class CostedProcessOut(BaseModel):
     process_id: int
     process_slug: str
@@ -51,6 +58,7 @@ class CostedProcessOut(BaseModel):
     class_name: str
     rank: int
     terms: CostTermsOut
+    curve: list[CostCurvePointOut] = Field(default_factory=list)
 
 
 class UncostedProcessOut(BaseModel):

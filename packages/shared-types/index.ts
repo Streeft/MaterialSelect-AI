@@ -1647,6 +1647,17 @@ export interface CostTerms {
   batch_sensitive: number;
 }
 
+/**
+ * One point on the unit cost × batch size curve C(n) (ADR 0004).
+ *
+ * Computed strictly on the server:
+ * C(n) = C_base + C_t / n
+ */
+export interface CostCurvePoint {
+  batch_size: number;
+  cost: number;
+}
+
 export interface CostedProcess {
   process_id: number;
   process_slug: string;
@@ -1654,6 +1665,7 @@ export interface CostedProcess {
   class_name: string;
   rank: number;
   terms: CostTerms;
+  curve?: CostCurvePoint[];
 }
 
 /** A process that could not be priced, and what it lacked. */
@@ -2130,5 +2142,174 @@ export interface NotebookUpdate {
 export interface NotebookChat {
   question: NotebookMessage;
   answer: NotebookMessage;
+  usage: NotebookUsage;
+}
+
+// --- Estúdio (D-94) ----------------------------------------------------------
+
+export type StudioTool = "report" | "flashcards" | "quiz" | "table" | "mindmap";
+/** `gerando` past its deadline arrives as `falhou`, derived by the API. */
+export type StudioStatus = "gerando" | "pronto" | "falhou";
+export type StudioExport = "docx" | "csv" | "xlsx" | "svg";
+
+/** One card of the "Criar …" modal: a format, a template, a count, a level. */
+export interface StudioChoice {
+  slug: string;
+  label: string;
+  description: string;
+  /** The template's instruction — what the pencil shows, and the model gets. */
+  instructions: string;
+  /** A data table template's columns. */
+  columns: string[];
+  amount: number | null;
+}
+
+export interface StudioToolSpec {
+  slug: StudioTool;
+  label: string;
+  description: string;
+  formats: StudioChoice[];
+  templates: StudioChoice[];
+  counts: StudioChoice[];
+  difficulties: StudioChoice[];
+  /** Whether the student picks the columns. */
+  columns: boolean;
+  exports: StudioExport[];
+}
+
+export interface StudioCatalog {
+  tools: StudioToolSpec[];
+  max_columns: number;
+}
+
+export interface StudioRequest {
+  tool: StudioTool;
+  format?: string | null;
+  template?: string | null;
+  instructions?: string | null;
+  topic?: string | null;
+  count?: string | null;
+  difficulty?: string | null;
+  columns?: string[];
+}
+
+/** The choices an artifact was made with, as the API stored them. */
+export interface StudioOptions {
+  format?: string | null;
+  template?: string | null;
+  instructions?: string | null;
+  topic?: string | null;
+  count?: string | null;
+  difficulty?: string | null;
+  columns?: string[];
+}
+
+export interface StudioArtifactSummary {
+  id: number;
+  tool: StudioTool;
+  format: string | null;
+  template: string | null;
+  title: string;
+  status: StudioStatus;
+  error: string | null;
+  source_count: number;
+  /** Sections, cards, questions, rows or nodes; `null` until ready. */
+  item_count: number | null;
+  options: StudioOptions;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface StudioReportContent {
+  sections: { heading: string; paragraphs: NotebookParagraph[] }[];
+}
+
+export interface StudioFlashcard {
+  front: string;
+  back: string;
+  citations: number[];
+}
+
+export interface StudioFlashcardsContent {
+  cards: StudioFlashcard[];
+}
+
+export interface StudioQuestion {
+  prompt: string;
+  options: string[];
+  /** 0-based position of the right option. */
+  answer_index: number;
+  hint: string;
+  explanation: string;
+  citations: number[];
+}
+
+export interface StudioQuizContent {
+  questions: StudioQuestion[];
+}
+
+/** `ausente`: the sources do not have it. `omitida`: the check refused it.
+ * Never an empty cell (D-24). */
+export type StudioCellStatus = "ok" | "ausente" | "omitida";
+
+export interface StudioCell {
+  text: string | null;
+  citations: number[];
+  status: StudioCellStatus;
+}
+
+export interface StudioTableContent {
+  columns: string[];
+  rows: { cells: StudioCell[] }[];
+}
+
+export interface StudioMindMapNode {
+  label: string;
+  citations: number[];
+  children: StudioMindMapNode[];
+}
+
+export interface StudioMindMapContent {
+  root: StudioMindMapNode | null;
+}
+
+/** The mind map's geometry, computed by the API for the screen and the SVG
+ * export alike — the client draws it and never lays it out. */
+export interface MindMapLayout {
+  width: number;
+  height: number;
+  nodes: {
+    id: number;
+    parent: number | null;
+    label: string;
+    lines: string[];
+    depth: number;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    citations: number[];
+  }[];
+  edges: { source: number; target: number; x1: number; y1: number; x2: number; y2: number }[];
+}
+
+export type StudioContent =
+  | StudioReportContent
+  | StudioFlashcardsContent
+  | StudioQuizContent
+  | StudioTableContent
+  | StudioMindMapContent;
+
+export interface StudioArtifact extends StudioArtifactSummary {
+  content: StudioContent | null;
+  citations: NotebookCitation[];
+  withheld: string[];
+  exports: StudioExport[];
+  layout: MindMapLayout | null;
+}
+
+export interface StudioList {
+  artifacts: StudioArtifactSummary[];
+  /** Finished today against the daily limit; running ones already count. */
   usage: NotebookUsage;
 }

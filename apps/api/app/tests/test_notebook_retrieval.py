@@ -8,7 +8,7 @@ from types import SimpleNamespace
 
 from app.config import Settings
 from app.knowledge.lexical import fold
-from app.notebooks.retrieval import openings, search
+from app.notebooks.retrieval import openings, search, spread
 
 
 def _chunk(chunk_id: int, source_id: int, ordinal: int, text: str):
@@ -53,3 +53,32 @@ def test_nothing_to_search_is_nothing_found():
 def test_semantic_without_embeddings_configured_is_lexical():
     found = search(CHUNKS, "polímeros", top_k=1, settings=Settings(), semantic=True)
     assert [c.id for c in found.chunks] == [3]
+
+
+# --- spread (D-94): what the Studio reads when no topic narrows it ----------
+
+LONG = [_chunk(100 + i, 30, i, f"Trecho {i}.") for i in range(10)] + [
+    _chunk(200 + i, 40, i, f"Outro {i}.") for i in range(2)
+]
+
+
+def test_spread_reaches_past_the_opening_of_a_long_source():
+    picked = [c.id for c in spread(LONG, 6)]
+    # The short source gives both of its passages; the long one gets the
+    # other four, evenly spaced from its first passage to its last third.
+    assert picked == [100, 102, 105, 107, 200, 201]
+
+
+def test_spread_never_repeats_and_stops_at_what_there_is():
+    picked = spread(LONG, 50)
+    assert len(picked) == len(LONG)
+    assert len({c.id for c in picked}) == len(LONG)
+
+
+def test_spread_reads_each_source_in_order():
+    ordinals = [(c.source_id, c.ordinal) for c in spread(LONG, 8)]
+    assert ordinals == sorted(ordinals)
+
+
+def test_spread_of_nothing_is_nothing():
+    assert spread([], 5) == []

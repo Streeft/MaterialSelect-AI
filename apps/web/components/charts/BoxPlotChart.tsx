@@ -218,7 +218,7 @@ export function BoxPlotChart({
       ) : (
         <div style={{ height: top + rows.length * ROW + 50 }} />
       )}
-      {/* D-94: the five numbers of the box under the pointer or focus. */}
+      {/* D-95: the five numbers of the box under the pointer or focus. */}
       <ChartTooltip content={activeRow ? (describe(activeRow).tip ?? describe(activeRow).info ?? null) : null} />
     </div>
   );

@@ -33,11 +33,31 @@ const t = ptBR.notebooks;
  * conversation. Every answer comes checked from the server; this panel only
  * sends questions and draws what came back.
  */
-export function ChatPanel({ notebook }: { notebook: Notebook }) {
+export function ChatPanel({
+  notebook,
+  draft = null,
+}: {
+  notebook: Notebook;
+  /** A question brought from elsewhere (a mind map branch): put in the box
+   * and focused, never sent — sending is the student's call and their quota. */
+  draft?: { text: string; nonce: number } | null;
+}) {
   const client = useQueryClient();
   const [question, setQuestion] = useState("");
   const [pending, setPending] = useState<string | null>(null);
   const [savedId, setSavedId] = useState<number | null>(null);
+  const box = useRef<HTMLTextAreaElement>(null);
+
+  // A brought question replaces the box's text once per `nonce` — adjusted
+  // while rendering, as React recommends for state that follows a prop.
+  const [seenDraft, setSeenDraft] = useState<number | null>(null);
+  if (draft && draft.nonce !== seenDraft) {
+    setSeenDraft(draft.nonce);
+    setQuestion(draft.text);
+  }
+  useEffect(() => {
+    if (draft) box.current?.focus();
+  }, [draft]);
 
   const messages = useQuery({
     queryKey: messagesKey(notebook.id),
@@ -261,6 +281,7 @@ export function ChatPanel({ notebook }: { notebook: Notebook }) {
           }}
         >
           <Textarea
+            ref={box}
             label=""
             aria-label={t.askLabel}
             rows={2}

@@ -158,6 +158,73 @@ class NotebookRepository:
             )
         ).scalar_one_or_none()
 
+    def chunks_of(self, notebook_id: int, source_ids: list[int]) -> list[NotebookChunk]:
+        """The passages of these sources, still readable — what a Studio job reads.
+
+        By id and not by the current selection: the student may untick a
+        source while the job runs, and the artifact says what it was made from.
+        """
+        if not source_ids:
+            return []
+        return list(
+            self.db.execute(
+                select(NotebookChunk)
+                .join(NotebookSource, NotebookSource.id == NotebookChunk.source_id)
+                .join(Notebook, Notebook.id == NotebookSource.notebook_id)
+                .options(selectinload(NotebookChunk.embedding), selectinload(NotebookChunk.source))
+                .where(
+                    Notebook.id == notebook_id,
+                    Notebook.owner_id == self.owner_id,
+                    NotebookSource.id.in_(source_ids),
+                    NotebookSource.status == "pronto",
+                )
+                .order_by(NotebookChunk.source_id, NotebookChunk.ordinal)
+            ).scalars()
+        )
+
+    # --- studio --------------------------------------------------------------
+
+    def artifacts(self, notebook_id: int) -> list[StudioArtifact]:
+        return list(
+            self.db.execute(
+                select(StudioArtifact)
+                .join(Notebook, Notebook.id == StudioArtifact.notebook_id)
+                .where(Notebook.id == notebook_id, Notebook.owner_id == self.owner_id)
+                .order_by(StudioArtifact.id.desc())
+            ).scalars()
+        )
+
+    def get_artifact(self, notebook_id: int, artifact_id: int) -> StudioArtifact | None:
+        return self.db.execute(
+            select(StudioArtifact)
+            .join(Notebook, Notebook.id == StudioArtifact.notebook_id)
+            .where(
+                StudioArtifact.id == artifact_id,
+                Notebook.id == notebook_id,
+                Notebook.owner_id == self.owner_id,
+            )
+        ).scalar_one_or_none()
+
+    def find_artifact(self, artifact_id: int) -> StudioArtifact | None:
+        """An artifact by id alone — still only among the owner's. What a job
+        has in hand."""
+        return self.db.execute(
+            select(StudioArtifact)
+            .join(Notebook, Notebook.id == StudioArtifact.notebook_id)
+            .where(StudioArtifact.id == artifact_id, Notebook.owner_id == self.owner_id)
+        ).scalar_one_or_none()
+
+    def running(self) -> list[StudioArtifact]:
+        """Every generation of the owner's still marked as running, in any
+        notebook. Whether one is stuck is the service's call."""
+        return list(
+            self.db.execute(
+                select(StudioArtifact)
+                .join(Notebook, Notebook.id == StudioArtifact.notebook_id)
+                .where(Notebook.owner_id == self.owner_id, StudioArtifact.status == "gerando")
+            ).scalars()
+        )
+
     # --- quota ---------------------------------------------------------------
 
     def usage(self, day: date) -> AIUsage | None:
@@ -171,5 +238,14 @@ class NotebookRepository:
             usage = AIUsage(user_id=self.owner_id, day=day, requests=0, artifacts=0)
             self.db.add(usage)
         usage.requests += 1
+        self.db.flush()
+        return usage
+
+    def count_artifact(self, day: date) -> AIUsage:
+        usage = self.usage(day)
+        if usage is None:
+            usage = AIUsage(user_id=self.owner_id, day=day, requests=0, artifacts=0)
+            self.db.add(usage)
+        usage.artifacts += 1
         self.db.flush()
         return usage

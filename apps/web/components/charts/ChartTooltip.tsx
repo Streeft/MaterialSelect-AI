@@ -49,7 +49,7 @@ export const SERIES_SYMBOLS: readonly ClassSymbol[] = [
 ];
 
 /**
- * The floating readout of a figure (D-94) — the Google AI Studio tooltip,
+ * The floating readout of a figure (D-95) — the Google AI Studio tooltip,
  * in this app's own panel colours: a panel beside the pointer, the category
  * on top, then one row per series with its marker, its name and its value.
  *

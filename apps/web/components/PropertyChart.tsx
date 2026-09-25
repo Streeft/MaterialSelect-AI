@@ -126,7 +126,7 @@ export function PropertyChart({ data, highlightMaterialId }: PropertyChartProps)
 
   const hasPoints = xs.length > 0;
 
-  // D-94: the app's own readout instead of Plotly's hover label.
+  // D-95: the app's own readout instead of Plotly's hover label.
   const [tip, setTip] = useState<TooltipContent | null>(null);
   const handleHover = (event: { points?: { customdata?: unknown }[] }) => {
     const index = event.points?.[0]?.customdata;

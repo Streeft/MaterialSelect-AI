@@ -17,7 +17,7 @@ from sqlalchemy import Connection, create_engine, event
 from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
-from app.db.base import Base, get_db, json_serializer
+from app.db.base import Base, get_db, get_session_factory, json_serializer
 from app.db.seed import seed
 from app.dependencies import get_current_user, require_active_subscription
 from app.main import app
@@ -152,6 +152,7 @@ def client(_connection: Connection, test_user: User) -> Generator[TestClient, No
             session.close()
 
     app.dependency_overrides[get_db] = _override_get_db
+    app.dependency_overrides[get_session_factory] = lambda: lambda: _session_for(_connection)
     app.dependency_overrides[get_current_user] = lambda: test_user
     app.dependency_overrides[require_active_subscription] = lambda: None
     with TestClient(app) as test_client:
@@ -175,6 +176,7 @@ def client_without_subscription(
             session.close()
 
     app.dependency_overrides[get_db] = _override_get_db
+    app.dependency_overrides[get_session_factory] = lambda: lambda: _session_for(_connection)
     app.dependency_overrides[get_current_user] = lambda: test_user
     with TestClient(app) as test_client:
         yield test_client
@@ -196,6 +198,7 @@ def anon_client(_connection: Connection) -> Generator[TestClient, None, None]:
             session.close()
 
     app.dependency_overrides[get_db] = _override_get_db
+    app.dependency_overrides[get_session_factory] = lambda: lambda: _session_for(_connection)
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()

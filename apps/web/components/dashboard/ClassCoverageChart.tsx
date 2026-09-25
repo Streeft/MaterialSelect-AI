@@ -105,7 +105,7 @@ export function ClassCoverageChart({ classes }: { classes: ClassCoverage[] }) {
     [],
   );
 
-  // D-94: columns by default (the AI Studio figure); the corner switches to
+  // D-95: columns by default (the AI Studio figure); the corner switches to
   // horizontal bars, which read better when category names are long.
   const [orientation, setOrientation] = useState<BarOrientation>("vertical");
 
