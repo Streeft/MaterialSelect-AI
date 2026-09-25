@@ -1497,6 +1497,11 @@ export const ptBR = {
     // Shared by every figure in the application: the map, the comparator and
     // the thumbnail on the material sheet.
     toolbar: "Ações do gráfico",
+    // D-94: the comparator's tooltip, under the scores.
+    normalizedNote: "Escala normalizada: 1 = melhor entre os comparados.",
+    // D-94: the chart-type switch in a figure's corner.
+    viewColumns: "Colunas",
+    viewBars: "Barras horizontais",
     // D-91: the two formats sit in one "Exportar" menu.
     exportMenu: "Exportar",
     exportPng: "PNG",
@@ -1520,7 +1525,6 @@ export const ptBR = {
       `${title}. Figura; a tabela de dados equivalente abre pela alternância “Tabela”.`,
     legend: "Legenda",
     legendToggle: "Legenda — clique num item para mostrar ou ocultar a série",
-    interactHint: "Passe o cursor sobre a figura, ou use Tab e as setas, para ler cada valor.",
     otherMaterials: "Demais materiais",
     missingOnAxis: (n: number) => `${n} ${n === 1 ? "ausente" : "ausentes"}`,
     indexLevel: "Linha de índice",
@@ -1584,6 +1588,8 @@ export const ptBR = {
     superior: (n: number) =>
       `${n} ${n === 1 ? "material no lado favorável" : "materiais no lado favorável"}`,
     indexUnavailable: "Linha de índice indisponível",
+    // D-94: the tooltip over an index line.
+    indexLine: "Linha de índice",
     coverage: (plotted: number, considered: number) =>
       `${plotted} de ${considered} ${considered === 1 ? "material plotado" : "materiais plotados"}`,
     excludedTitle: "Materiais fora do mapa",

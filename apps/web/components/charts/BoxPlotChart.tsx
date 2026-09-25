@@ -3,7 +3,8 @@
 import { useMemo, useState, type ReactNode } from "react";
 import type { ClassSymbol } from "@/lib/design/palette";
 import { formatNumber } from "@/lib/format";
-import { ChartInfoLine, MarkerSymbol } from "./ChartLegend";
+import { MarkerSymbol } from "./ChartLegend";
+import { ChartTooltip, type TooltipContent } from "./ChartTooltip";
 import { linearTicks, logTicks, makeScale, truncate, useChartWidth, useRovingFocus } from "./figureKit";
 
 export interface BoxRow {
@@ -45,7 +46,7 @@ export function BoxPlotChart({
   rows: BoxRow[];
   scale: "linear" | "log";
   axisTitle: string;
-  describe: (row: BoxRow) => { aria: string; info: ReactNode };
+  describe: (row: BoxRow) => { aria: string; info?: ReactNode; tip?: TooltipContent };
 }) {
   const [measure, width] = useChartWidth();
   const [active, setActive] = useState<{ key: string; focus: boolean } | null>(null);
@@ -93,7 +94,7 @@ export function BoxPlotChart({
   const activeRow = active ? rows.find((row) => row.key === active.key) : undefined;
 
   return (
-    <div ref={measure} className="min-w-0">
+    <div ref={measure} className="relative min-w-0">
       {width !== null ? (
         <svg
           data-chart-figure
@@ -217,7 +218,8 @@ export function BoxPlotChart({
       ) : (
         <div style={{ height: top + rows.length * ROW + 50 }} />
       )}
-      <ChartInfoLine>{activeRow ? describe(activeRow).info : null}</ChartInfoLine>
+      {/* D-94: the five numbers of the box under the pointer or focus. */}
+      <ChartTooltip content={activeRow ? (describe(activeRow).tip ?? describe(activeRow).info ?? null) : null} />
     </div>
   );
 }

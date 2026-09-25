@@ -18,7 +18,9 @@ import {
   useResolvedTheme,
 } from "@/components/ui";
 import { ChartFrame } from "./ChartFrame";
+import { IconChartScatter } from "@/components/ui/icons";
 import { ChartLegend, type LegendItem } from "./ChartLegend";
+import { ChartTooltip, type TooltipContent } from "./ChartTooltip";
 import { FigureData, type FigureColumn } from "./FigureData";
 
 // Plotly touches window/document, so it must never render on the server.
@@ -156,32 +158,40 @@ function axisCell(point: MapPoint, axis: "x" | "y"): ReactNode {
   );
 }
 
-function hoverFor(point: MapPoint, map: PropertyMap): string {
+/**
+ * The readout of one point (D-94, the AI Studio tooltip): the material on top,
+ * its class keyed by colour *and* shape, then the two coordinates in the
+ * map's reading units, the index when there is one, and the evidence behind
+ * each side. Rendered by React, so catalogue names are text, never markup.
+ */
+function tipFor(point: MapPoint, map: PropertyMap): TooltipContent {
   const xUnit = prettyUnit(map.x_axis.unit);
   const yUnit = prettyUnit(map.y_axis.unit);
-  // Names and property labels are catalogue/import data: escape before they
-  // enter Plotly's rich-text pipeline.
-  const lines = [
-    `<b>${escapeHover(point.material_name)}</b>`,
-    escapeHover(point.class_name),
-    `${escapeHover(map.x_axis.property_name)}: ${formatNumber(point.x)} ${xUnit}`,
-    `${escapeHover(map.y_axis.property_name)}: ${formatNumber(point.y)} ${yUnit}`,
+  const visual = classVisual(point.class_slug);
+  const rows: TooltipContent["rows"] = [
+    { key: "class", label: point.class_name, value: "", color: visual.color, symbol: visual.symbol },
+    { key: "x", label: map.x_axis.property_name, value: `${formatNumber(point.x)} ${xUnit}`.trim() },
+    { key: "y", label: map.y_axis.property_name, value: `${formatNumber(point.y)} ${yUnit}`.trim() },
   ];
   if (point.x_min !== null && point.x_max !== null) {
-    lines.push(
-      `${t.interval} X: ${formatNumber(point.x_min)} – ${formatNumber(point.x_max)} ${xUnit}`,
-    );
+    rows.push({ key: "ix", label: `${t.interval} X`, value: `${formatNumber(point.x_min)} – ${formatNumber(point.x_max)} ${xUnit}`.trim() });
   }
   if (point.y_min !== null && point.y_max !== null) {
-    lines.push(
-      `${t.interval} Y: ${formatNumber(point.y_min)} – ${formatNumber(point.y_max)} ${yUnit}`,
-    );
+    rows.push({ key: "iy", label: `${t.interval} Y`, value: `${formatNumber(point.y_min)} – ${formatNumber(point.y_max)} ${yUnit}`.trim() });
   }
   if (point.x_uncertainty !== null) {
-    lines.push(`${t.uncertainty} X: ±${formatNumber(point.x_uncertainty)} ${xUnit}`);
+    rows.push({ key: "ux", label: `${t.uncertainty} X`, value: `±${formatNumber(point.x_uncertainty)} ${xUnit}`.trim() });
   }
   if (point.y_uncertainty !== null) {
-    lines.push(`${t.uncertainty} Y: ±${formatNumber(point.y_uncertainty)} ${yUnit}`);
+    rows.push({ key: "uy", label: `${t.uncertainty} Y`, value: `±${formatNumber(point.y_uncertainty)} ${yUnit}`.trim() });
+  }
+  if (map.index) {
+    rows.push({
+      key: "index",
+      label: t.indexValue,
+      value: point.index_value === null ? ptBR.quality.AUSENTE : formatNumber(point.index_value),
+      emphasis: true,
+    });
   }
   // Null exactly when that axis is an index — it has no single provenance of
   // its own, so the side is omitted rather than badged with an invented state.
@@ -189,17 +199,13 @@ function hoverFor(point: MapPoint, map: PropertyMap): string {
     point.x_quality !== null ? `X: ${ptBR.quality[point.x_quality]}` : null,
     point.y_quality !== null ? `Y: ${ptBR.quality[point.y_quality]}` : null,
   ].filter((part): part is string => part !== null);
-  if (qualityParts.length > 0) {
-    lines.push(`${t.quality}: ${qualityParts.join(" / ")}`);
-  }
-  if (map.index) {
-    lines.push(
-      point.index_value === null
-        ? `${t.indexValue}: ${escapeHover(point.index_undefined_reason ?? t.undefinedIndex)}`
-        : `${t.indexValue}: ${formatNumber(point.index_value)}`,
-    );
-  }
-  return lines.join("<br>");
+  const notes = [
+    qualityParts.length > 0 ? `${t.quality}: ${qualityParts.join(" / ")}` : null,
+    map.index && point.index_value === null
+      ? point.index_undefined_reason ?? t.undefinedIndex
+      : null,
+  ].filter((note): note is string => note !== null);
+  return { title: point.material_name, rows, note: notes.length > 0 ? notes.join(" · ") : undefined };
 }
 
 /** An axis title that keeps the theme's title font instead of replacing it. */
@@ -274,6 +280,36 @@ export function AshbyMap({
   };
 
   // Keep the toggle honest when the reader switches tool in Plotly's modebar.
+  // D-94: the readout under the pointer, drawn by the app instead of Plotly's
+  // hover label — the same panel every other figure uses.
+  const [tip, setTip] = useState<TooltipContent | null>(null);
+  const handleHover = (event: { points?: { customdata?: unknown }[] }) => {
+    const data = event.points?.[0]?.customdata;
+    if (typeof data === "number") {
+      const point = map.points[data];
+      setTip(point ? tipFor(point, map) : null);
+      return;
+    }
+    if (typeof data === "string" && data.startsWith("level:")) {
+      const level = map.index?.levels[Number(data.slice("level:".length))];
+      if (!level) return setTip(null);
+      setTip({
+        title: t.indexLine,
+        rows: [
+          {
+            key: "level",
+            label: level.material_name ?? "M",
+            value: `M = ${formatNumber(level.value)}`,
+            color: paint.accent,
+            line: true,
+          },
+        ],
+      });
+      return;
+    }
+    setTip(null);
+  };
+
   const handleRelayout = (event: Record<string, unknown>) => {
     const next = event.dragmode;
     if (next !== "zoom" && next !== "pan") return;
@@ -452,8 +488,10 @@ export function AshbyMap({
         x: members.map((p) => p.x),
         y: members.map((p) => p.y),
         text: members.map((p) => p.material_name),
-        hovertext: members.map((p) => hoverFor(p, map)),
-        hoverinfo: "text",
+        // D-94: Plotly finds the point; the readout is the app's own tooltip.
+        // `none` (not `skip`) keeps the hover events firing.
+        customdata: members.map((p) => map.points.indexOf(p)),
+        hoverinfo: "none",
         type: "scatter",
         mode: showLabels ? "text+markers" : "markers",
         textposition: "top center",
@@ -541,7 +579,8 @@ export function AshbyMap({
             width: 2,
             dash: position === 0 ? "solid" : "dash",
           },
-          hovertemplate: `${label}<extra></extra>`,
+          customdata: xs.map(() => `level:${position}`),
+          hoverinfo: "none",
         });
       });
     }
@@ -682,6 +721,7 @@ export function AshbyMap({
 
   return (
     <ChartFrame
+      figureIcon={<IconChartScatter />}
       eyebrow={t.figure}
       title={`${map.y_axis.property_name} × ${map.x_axis.property_name}`}
       meta={map.index ? `${t.guide}: ${guideText(map)}` : undefined}
@@ -723,7 +763,7 @@ export function AshbyMap({
           data table behind "Ver tabela de dados", not a longer label. */}
       <div
         className={cn(
-          "chart-plotly",
+          "chart-plotly relative",
           // Viewport height minus the page header and the card's own toolbar
           // and legend, never shorter than a readable plot nor taller than a
           // square-ish one on a very tall screen.
@@ -748,10 +788,13 @@ export function AshbyMap({
             enableBoxSelect ? (handleSelected as unknown as (event: unknown) => void) : undefined
           }
           onRelayout={handleRelayout as unknown as (event: unknown) => void}
+          onHover={handleHover as unknown as (event: unknown) => void}
+          onUnhover={() => setTip(null)}
           onInitialized={() => rebindHandlers()}
           style={{ width: "100%", height: fillHeight ? "100%" : undefined }}
           useResizeHandler
         />
+        <ChartTooltip content={tip} />
       </div>
       <ChartLegend items={legendItems} hidden={hidden} onToggle={toggleSeries} />
     </ChartFrame>

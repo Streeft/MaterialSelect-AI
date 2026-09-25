@@ -48,13 +48,13 @@ export function ChartToolbar({
 
   return (
     <div className={className}>
-      {/* D-91: one "Exportar ▾" instead of two text links. The toolbar row
-          keeps a single verb for the file and a single switch for the view,
-          so it no longer crowds the title on a half-width card. */}
+      {/* D-91: one "Exportar" menu instead of two text links; D-94: as a
+          round icon button in the figure's corner, the AI Studio way. */}
       <div role="group" aria-label={t.toolbar} className="flex items-center">
         <MenuButton
+          iconOnly
           label={exporting ? t.exporting : t.exportMenu}
-          icon={<IconDownload className="h-4 w-4" />}
+          icon={<IconDownload />}
           disabled={disabled || exporting !== null}
         >
           <MenuItem hint={t.exportPngHint} onSelect={() => void handleExport("png")}>

@@ -5940,3 +5940,67 @@ envelhecer com um número; o workflow **confere o modelo com a própria chave an
 de tocar no Fly** e, se ele não responder, falha com o motivo e a lista do que a
 chave enxerga; e um modelo de embedding que não responde vira aviso, não falha —
 os embeddings são opcionais (D-47).
+
+## D-94 — Os gráficos se comportam como os do Google AI Studio, nas cores do app
+
+**O pedido.** O autor pediu que todos os gráficos tivessem o design e as
+funcionalidades dos gráficos do Google AI Studio: responsivos, um resumo dos
+dados ao passar o mouse e um botão no canto para trocar o tipo de gráfico.
+Durante o trabalho, precisou que o tooltip **não** fosse escuro como o do AI
+Studio: "a mesma paleta de cores atuais, só as funcionalidades e o design".
+Por isso o tooltip usa `--surface-panel`/`--text-*` e acompanha os dois
+temas como qualquer outro painel.
+
+**O que foi tirado do AI Studio:**
+
+1. **Tooltip compartilhado** (`components/charts/ChartTooltip.tsx`).
+   - É um painel ao lado do ponteiro: a categoria em cima, depois uma linha
+     por série, com marcador (cor **e** forma, D-28), nome e valor. O valor
+     vem em destaque, e a série sob o ponteiro fica enfatizada.
+   - Ele se posiciona sozinho: lê o ponteiro, ou a caixa da marca em foco, no
+     próprio contêiner, e troca de lado antes de sair da figura.
+   - O teclado vê a mesma coisa que o mouse. `aria-hidden`, porque cada marca
+     tem seu `aria-label` e a tabela carrega todos os números (D-31). O
+     tooltip melhora a leitura, mas nunca é o único caminho até um número.
+   - Substitui a linha de leitura do MSDS (`ChartInfoLine`), que saiu.
+2. **Canto de ícones.** O `ChartFrame` desenha, no canto do cartão, botões
+   redondos de ícone:
+   - um por tipo de desenho (`views`), ou um "Gráfico" só;
+   - "Tabela" como mais uma posição do mesmo seletor;
+   - "Exportar" como ícone com menu (`MenuButton iconOnly`).
+   
+   Cada botão tem o nome como `aria-label` e como `title`, porque só o
+   glifo aparece.
+3. **Troca de tipo.** `HorizontalBars` desenha as mesmas linhas como barras
+   horizontais ou como **colunas** (o padrão, como no AI Studio). Os dois
+   gráficos do painel oferecem a troca. Nada é recalculado: a orientação é
+   apresentação (ADR 0004).
+4. **Face do gráfico.**
+   - Fios de grade mais apagados (`--edge-subtle`) e nenhuma caixa em volta
+     do plano, inclusive no Plotly.
+   - Barras com a ponta de dado arredondada e a base reta, e um vão de 2 px
+     entre segmentos empilhados.
+   - A **faixa inteira da categoria** é o alvo do hover e se ilumina, não só
+     os pixels pintados.
+   - Título do cartão com peso médio.
+5. **Mapas.** No mapa de Ashby e no gráfico da ficha, o Plotly continua
+   achando o ponto (`hoverinfo: "none"` mantém os eventos), mas quem mostra
+   o resumo é o `ChartTooltip`:
+   - material, classe com o marcador, as duas coordenadas na unidade de
+     leitura (D-70), o índice em destaque, intervalos e incerteza quando
+     existem, e a qualidade do dado em nota;
+   - o texto é renderizado pelo React, então o nome de catálogo chega como
+     texto, nunca como marcação.
+
+**Onde não há troca de tipo, e por quê.** Mapa e box-plot têm um desenho
+só, porque é a pergunta deles: dispersão em log–log e cinco números. O canto
+oferece o gráfico e a tabela. O comparador já troca de forma pelas abas
+(barras, radar, paralelas, heatmap), e um segundo seletor no canto repetiria
+essas abas.
+
+**O que o AI Studio faz e aqui não entrou.**
+- **Eixo duplo** (solicitações + taxa de sucesso). Dois eixos Y com escalas
+  diferentes deixam o leitor comparar o que não é comparável.
+- **O painel escuro do tooltip**, por pedido do autor.
+
+A paleta categórica e as cores por rota não mudaram.

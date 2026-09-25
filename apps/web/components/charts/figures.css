@@ -18,14 +18,19 @@
 }
 .chart-svg text { font-family: inherit; }
 
+/* D-94: the Google AI Studio chart face — recessive grid (horizontal
+   hairlines only, no box), muted ticks, no axis line but the baseline. */
 .chart-tick { font-size: 11px; fill: rgb(var(--ink-subtle)); font-variant-numeric: tabular-nums; }
 .chart-label { font-size: 12px; fill: rgb(var(--ink-muted)); }
 .chart-label[data-active="true"] { fill: rgb(var(--ink)); font-weight: 600; }
 .chart-axis-title { font-size: 12px; font-weight: 500; fill: rgb(var(--ink-muted)); }
 .chart-value { font-family: var(--font-mono), ui-monospace, monospace; font-size: 11px; fill: rgb(var(--ink)); font-variant-numeric: tabular-nums; }
 .chart-missing-text { font-size: 10px; font-weight: 600; fill: rgb(var(--quality-ausente)); }
-.chart-grid { stroke: rgb(var(--edge)); stroke-width: 1; fill: none; }
-.chart-axis { stroke: rgb(var(--edge-strong)); stroke-width: 1; fill: none; }
+.chart-grid { stroke: rgb(var(--edge-subtle)); stroke-width: 1; fill: none; }
+.chart-axis { stroke: rgb(var(--edge)); stroke-width: 1; fill: none; }
+/* The crosshair on a column chart: the category the pointer is on. */
+.chart-crosshair { stroke: rgb(var(--ink-subtle)); stroke-width: 1; stroke-dasharray: 4 3; pointer-events: none; }
+.chart-band { fill: rgb(var(--ink) / 0.04); pointer-events: none; }
 .chart-track { fill: var(--surface-300); }
 
 /* A mark is keyboard-reachable (roving tab index) and pointer-reachable. The
@@ -42,6 +47,9 @@
   animation: msds-grow-x var(--msds-dur-slow) var(--msds-ease) both;
   transition: filter 120ms var(--msds-ease);
 }
+/* D-94: a column grows up from the baseline, not sideways. */
+.chart-bar-seg[data-orientation="vertical"] { transform-origin: center bottom; animation-name: chart-grow-y; }
+@keyframes chart-grow-y { from { transform: scaleY(0); } to { transform: scaleY(1); } }
 .chart-mark:hover .chart-bar-seg,
 .chart-bar-seg:hover,
 .chart-bar-seg[data-active="true"] { filter: brightness(1.12); }
@@ -63,10 +71,6 @@
   border: 1px dashed rgb(var(--quality-ausente));
 }
 
-/* MSDS's hover line under a bar chart, with a hint while nothing is active. */
-.chart-info-line { font-size: 12px; line-height: 18px; min-height: 18px; margin-top: 8px; color: rgb(var(--ink)); }
-.chart-info-line[data-empty="true"] { color: rgb(var(--ink-subtle)); }
-.chart-info-line strong { font-weight: 600; font-variant-numeric: tabular-nums; }
 
 /* Plotly figures in MSDS clothing: the modebar sits on the card, not on a
    grey strip, and only shows on hover (Plotly's default). */
@@ -80,3 +84,48 @@
 /* The toolbar's text actions (export, table toggle) share one look. */
 .msds-table-toggle:disabled { color: rgb(var(--ink-subtle)); cursor: not-allowed; text-decoration: none; opacity: 0.7; }
 .msds-table-toggle:focus-visible { border-radius: var(--radius-seat); }
+
+/* ---------- D-94: the AI Studio chart chrome ---------- */
+
+/* The floating readout, in the app's own panel colours (the author's call:
+   the AI Studio behaviour and layout, not its dark panel), so it follows the
+   light and the dark theme like every other surface. */
+.chart-tooltip {
+  position: absolute; left: 0; top: 0; z-index: 20; pointer-events: none;
+  min-width: 180px; max-width: 300px;
+  background: rgb(var(--surface-panel)); color: rgb(var(--text-primary));
+  border: 1px solid rgb(var(--border-panel)); border-radius: 10px;
+  box-shadow: var(--shadow-overlay);
+  padding: 10px 12px; font-size: 12.5px; line-height: 1.35;
+  opacity: 0; visibility: hidden;
+  transition: opacity 120ms var(--msds-ease), visibility 0s linear 120ms;
+}
+.chart-tooltip[data-visible="true"] { opacity: 1; visibility: visible; transition: opacity 120ms var(--msds-ease); }
+.chart-tooltip-title { color: rgb(var(--text-secondary)); font-size: 12px; margin-bottom: 6px; }
+.chart-tooltip-row { display: grid; grid-template-columns: 12px minmax(0, 1fr) auto; align-items: center; gap: 8px; min-height: 22px; }
+.chart-tooltip-key { display: inline-flex; width: 12px; height: 12px; }
+.chart-tooltip-label { color: rgb(var(--text-secondary)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chart-tooltip-value { color: rgb(var(--text-primary)); font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; padding-left: 12px; }
+.chart-tooltip-row[data-emphasis="true"] .chart-tooltip-label { color: rgb(var(--text-primary)); font-weight: 600; }
+.chart-tooltip-note { margin-top: 6px; padding-top: 6px; border-top: 1px solid rgb(var(--border-divider)); color: rgb(var(--text-tertiary)); font-size: 11.5px; }
+.chart-tooltip-text { color: rgb(var(--text-primary)); }
+.chart-tooltip-text strong { font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* The round icon buttons in a figure's corner: chart type, table, export. */
+.chart-iconbar { display: inline-flex; align-items: center; gap: 2px; padding: 2px; border-radius: var(--radius-full); background: rgb(var(--surface-well)); }
+.chart-icon-btn {
+  appearance: none; border: 0; background: transparent; color: rgb(var(--ink-muted));
+  width: 32px; height: 32px; border-radius: var(--radius-full);
+  display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
+  transition: background var(--msds-dur) var(--msds-ease), color var(--msds-dur) var(--msds-ease);
+}
+.chart-icon-btn svg { width: 18px; height: 18px; }
+.chart-icon-btn:hover:not(:disabled) { color: rgb(var(--ink)); background: rgb(var(--ink) / 0.06); }
+.chart-icon-btn[aria-pressed="true"] { color: rgb(var(--accent)); background: rgb(var(--surface-panel)); box-shadow: var(--shadow-control); }
+.chart-icon-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.chart-icon-btn[aria-expanded="true"] { color: rgb(var(--ink)); background: rgb(var(--ink) / 0.08); }
+/* A lone icon button (export) sits on the same well as the switch beside it. */
+.chart-icon-btn-solo { background: rgb(var(--surface-well)); }
+
+/* The legend under a figure: marker and name, no box — the AI Studio row. */
+.chart-legend-row { margin-top: var(--space-3); gap: 6px 16px; }
