@@ -1647,6 +1647,17 @@ export interface CostTerms {
   batch_sensitive: number;
 }
 
+/**
+ * One point on the unit cost × batch size curve C(n) (ADR 0004).
+ *
+ * Computed strictly on the server:
+ * C(n) = C_base + C_t / n
+ */
+export interface CostCurvePoint {
+  batch_size: number;
+  cost: number;
+}
+
 export interface CostedProcess {
   process_id: number;
   process_slug: string;
@@ -1654,6 +1665,7 @@ export interface CostedProcess {
   class_name: string;
   rank: number;
   terms: CostTerms;
+  curve?: CostCurvePoint[];
 }
 
 /** A process that could not be priced, and what it lacked. */
