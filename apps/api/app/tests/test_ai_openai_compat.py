@@ -93,7 +93,11 @@ def _http_error(code: int, payload: object = None) -> urllib.error.HTTPError:
 def _provider(server: _Server, **overrides: object) -> OpenAICompatProvider:
     options: dict[str, object] = {"ai_provider": "openai-compat", "ai_base_url": GROQ}
     options.update(overrides)
-    return OpenAICompatProvider(settings=Settings(**options), opener=server)  # type: ignore[arg-type]
+    return OpenAICompatProvider(
+        settings=Settings(**options),
+        opener=server,  # type: ignore[arg-type]
+        sleep=lambda _seconds: None,
+    )
 
 
 def _sent(server: _Server) -> dict:
@@ -607,3 +611,97 @@ def test_embedding_errors_in_a_list_carry_the_reason() -> None:
 
     body = [{"error": {"code": 404, "message": "models/emb is not found"}}]
     assert _detail_of(_http_error(404, body)) == "models/emb is not found"
+
+
+class _Sequence:
+    """Answers each call with the next reply in line: an exception to raise,
+    or a body to return. Records how many calls it received."""
+
+    def __init__(self, *replies: object) -> None:
+        self.replies = list(replies)
+        self.calls = 0
+
+    def __call__(self, request: object, timeout: float | None = None) -> _Response:
+        reply = self.replies[min(self.calls, len(self.replies) - 1)]
+        self.calls += 1
+        if isinstance(reply, Exception):
+            raise reply
+        return _Response(str(reply))
+
+
+def _overloaded(retry_after: str | None = None) -> urllib.error.HTTPError:
+    body = json.dumps(
+        [
+            {
+                "error": {
+                    "code": 503,
+                    "message": "This model is currently experiencing high demand.",
+                    "status": "UNAVAILABLE",
+                }
+            }
+        ]
+    )
+    headers = {"Retry-After": retry_after} if retry_after is not None else {}
+    return urllib.error.HTTPError(
+        f"{GROQ}/chat/completions", 503, "erro", headers, io.BytesIO(body.encode("utf-8"))  # type: ignore[arg-type]
+    )
+
+
+class TestOverloadedServer:
+    """A free hosted model answers 503 "high demand" in bursts (Gemini, 2026).
+    That is the server's state, not the configuration, and it passes."""
+
+    def _answer(self) -> str:
+        return _answer(json.dumps({"paragraphs": [], "not_found": True}))
+
+    def _question(self):
+        from app.ai.notebook import NotebookQuestion
+
+        return NotebookQuestion(question="?", passages=())
+
+    def test_a_503_is_asked_again_and_the_answer_arrives(self) -> None:
+        waits: list[float] = []
+        server = _Sequence(_overloaded(), self._answer())
+        provider = OpenAICompatProvider(
+            settings=Settings(ai_provider="openai-compat", ai_base_url=GROQ),
+            opener=server,  # type: ignore[arg-type]
+            sleep=waits.append,
+        )
+        assert provider.answer(self._question())["not_found"] is True
+        assert server.calls == 2
+        assert waits == [2.0]
+
+    def test_three_503s_say_it_is_the_servers_load_not_the_configuration(self) -> None:
+        server = _Sequence(_overloaded(), _overloaded(), _overloaded())
+        with pytest.raises(AIUnavailableError) as exc:
+            _provider(server).answer(self._question())  # type: ignore[arg-type]
+        message = str(exc.value)
+        assert server.calls == 3
+        assert "sobrecarregado" in message
+        assert "repetido 2 vezes" in message
+        assert "high demand" in message
+        assert "gemini-flash-lite-latest" in message
+
+    def test_retry_after_is_honoured_when_short(self) -> None:
+        waits: list[float] = []
+        provider = OpenAICompatProvider(
+            settings=Settings(ai_provider="openai-compat", ai_base_url=GROQ),
+            opener=_Sequence(_overloaded("7"), self._answer()),  # type: ignore[arg-type]
+            sleep=waits.append,
+        )
+        provider.answer(self._question())
+        assert waits == [7.0]
+
+    def test_a_long_retry_after_is_not_waited_out_inside_a_request(self) -> None:
+        server = _Sequence(_overloaded("120"), self._answer())
+        with pytest.raises(AIUnavailableError) as exc:
+            _provider(server).answer(self._question())  # type: ignore[arg-type]
+        assert server.calls == 1
+        assert "sobrecarregado" in str(exc.value)
+
+    @pytest.mark.parametrize("code", [401, 404, 429])
+    def test_a_permanent_error_is_not_retried(self, code: int) -> None:
+        server = _Sequence(_http_error(code), self._answer())
+        with pytest.raises(AIUnavailableError):
+            _provider(server).answer(self._question())  # type: ignore[arg-type]
+        assert server.calls == 1
