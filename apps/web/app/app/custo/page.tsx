@@ -28,6 +28,7 @@ import {
   Th,
   Tr,
 } from "@/components/ui";
+import { CostCurveChart } from "@/components/charts/CostCurveChart";
 
 const t = ptBR.cost;
 
@@ -251,6 +252,7 @@ export default function CustoPage() {
         {result ? (
           <>
             <ResultTable result={result} />
+            <CostCurveChart result={result} />
             {result.uncosted.length > 0 ? (
               <div className="well flex flex-col gap-2">
                 <span className="text-sm font-medium text-ink">{t.uncostedTitle}</span>

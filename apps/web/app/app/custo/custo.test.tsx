@@ -52,6 +52,15 @@ const result: CostResult = {
         total: 40.03,
         batch_sensitive: 12,
       },
+      curve: [
+        { batch_size: 1, cost: 12028.03 },
+        { batch_size: 10, cost: 1228.03 },
+        { batch_size: 100, cost: 148.03 },
+        { batch_size: 1000, cost: 40.03 },
+        { batch_size: 10000, cost: 29.23 },
+        { batch_size: 100000, cost: 28.15 },
+        { batch_size: 1000000, cost: 28.04 },
+      ],
     },
   ],
   uncosted: [
@@ -205,5 +214,16 @@ describe("Custo da peça", () => {
       (screen.getByText(t.assumptionsSummary("5", "1,5")).closest("details") as HTMLDetailsElement)
         .open,
     ).toBe(true);
+  });
+
+  it("desenha a curva de custo por lote com a alternância para a tabela", async () => {
+    nav.query = "material=7&massa=2";
+    const user = userEvent.setup();
+    await open();
+
+    await user.click(await screen.findByShadowRole("button", { name: t.estimate }));
+
+    expect(await screen.findByRole("figure", { name: /Curva Custo/i })).toBeInTheDocument();
+    expect(screen.getByShadowRole("button", { name: "Tabela" })).toBeInTheDocument();
   });
 });
