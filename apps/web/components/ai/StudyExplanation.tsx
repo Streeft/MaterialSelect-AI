@@ -82,7 +82,7 @@ export function StudyExplanation({ studyId }: { studyId: number }) {
             </div>
           )}
 
-          <p className="max-w-prose text-2xs text-ink-subtle">{explanation.disclaimer}</p>
+          <p className="max-w-prose text-support text-ink-subtle">{explanation.disclaimer}</p>
         </CardBody>
       </Card>
     );

@@ -58,18 +58,31 @@ export function QualityBar({ quality }: { quality: DataQualitySummary }) {
   );
 }
 
-function MaterialName({ material }: { material: MaterialListItem }) {
+function MaterialName({
+  material,
+  demoBadge,
+}: {
+  material: MaterialListItem;
+  demoBadge: boolean;
+}) {
   return (
     <span className="flex flex-wrap items-center gap-2">
       <Link href={`/app/materiais/${material.id}`} className="font-medium text-brand hover:underline">
         {material.name}
       </Link>
-      {material.is_demo && <Badge tone="warning">{ptBR.demoBadge}</Badge>}
+      {demoBadge && material.is_demo && <Badge tone="warning">{ptBR.demoBadge}</Badge>}
     </span>
   );
 }
 
-export function MaterialTable({ materials }: { materials: MaterialListItem[] }) {
+export function MaterialTable({
+  materials,
+  demoBadge = true,
+}: {
+  materials: MaterialListItem[];
+  /** False when the list already says, once, that every row is fictitious. */
+  demoBadge?: boolean;
+}) {
   return (
     <TableScroll label={t.title}>
       <Table>
@@ -86,7 +99,7 @@ export function MaterialTable({ materials }: { materials: MaterialListItem[] }) 
           {materials.map((m) => (
             <Tr key={m.id}>
               <RowHeader>
-                <MaterialName material={m} />
+                <MaterialName material={m} demoBadge={demoBadge} />
                 {m.subclass && <span className="block text-xs text-ink-subtle">{m.subclass}</span>}
               </RowHeader>
               <Td>

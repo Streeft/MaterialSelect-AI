@@ -364,7 +364,7 @@ export default function SintetizarPage() {
             footer={
               <div className="flex flex-wrap items-center gap-3">
                 <Button
-                  variant="primary"
+                  variant="secondary"
                   onClick={() => runPreview.mutate()}
                   disabled={!recipeReady || runPreview.isPending}
                   aria-describedby={recipeBlocked ? "sintetizar-motivo-receita" : undefined}
@@ -372,7 +372,7 @@ export default function SintetizarPage() {
                   {runPreview.isPending ? t.previewing : t.preview}
                 </Button>
                 {recipeBlocked ? (
-                  <p id="sintetizar-motivo-receita" className="text-2xs text-ink-muted">
+                  <p id="sintetizar-motivo-receita" className="text-support text-ink-muted">
                     {recipeBlocked}
                   </p>
                 ) : null}
@@ -467,7 +467,7 @@ export default function SintetizarPage() {
                     {save.isPending ? t.saving : t.save}
                   </Button>
                   {saveBlocked ? (
-                    <p id="sintetizar-motivo-gravar" className="text-2xs text-ink-muted">
+                    <p id="sintetizar-motivo-gravar" className="text-support text-ink-muted">
                       {saveBlocked}
                     </p>
                   ) : null}
@@ -539,7 +539,7 @@ export default function SintetizarPage() {
               <>
                 <PreviewTable preview={preview} />
                 {preview.skipped.length > 0 ? (
-                  <div className="flex flex-col gap-2 rounded-card border border-edge bg-surface-sunken p-4">
+                  <div className="well flex flex-col gap-2">
                     <span className="text-sm font-medium text-ink">
                       {t.skippedTitle}
                     </span>

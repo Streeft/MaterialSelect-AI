@@ -203,7 +203,7 @@ export default function CustoPage() {
                 {estimate.isPending ? t.estimating : t.estimate}
               </Button>
               {blockedReason ? (
-                <p id="custo-motivo" className="text-2xs text-ink-muted">
+                <p id="custo-motivo" className="text-support text-ink-muted">
                   {blockedReason}
                 </p>
               ) : null}
@@ -221,7 +221,7 @@ export default function CustoPage() {
             onOpenChange={setAssumptionsOpen}
           >
             <div className="grid gap-4 pt-2 sm:grid-cols-2">
-              <p className="text-2xs text-ink-muted sm:col-span-2">{t.assumptionsHint}</p>
+              <p className="text-support text-ink-muted sm:col-span-2">{t.assumptionsHint}</p>
               <NumberInput
                 label={t.writeOffLabel}
                 value={writeOff}
@@ -252,7 +252,7 @@ export default function CustoPage() {
           <>
             <ResultTable result={result} />
             {result.uncosted.length > 0 ? (
-              <div className="flex flex-col gap-2 rounded-card border border-edge bg-surface-sunken p-4">
+              <div className="well flex flex-col gap-2">
                 <span className="text-sm font-medium text-ink">{t.uncostedTitle}</span>
                 <span className="text-xs text-ink-muted">{t.uncostedHint}</span>
                 <ul className="flex flex-col gap-1 text-sm text-ink">

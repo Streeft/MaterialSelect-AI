@@ -160,13 +160,11 @@ function StatTile({
 }) {
   return (
     <div
-      className={`flex flex-col gap-1 rounded-card border p-3 ${
-        highlight
-          ? "border-brand-300 bg-brand-50/50 dark:border-brand-800 dark:bg-brand-950/20"
-          : "border-edge bg-surface-raised"
+      className={`flex flex-col gap-1 rounded-control p-3 ${
+        highlight ? "bg-brand-50" : "bg-well"
       }`}
     >
-      <span className="text-2xs font-medium uppercase tracking-wide text-ink-muted">
+      <span className="text-caption font-semibold text-ink-muted">
         {label}
       </span>
       <div className="flex items-baseline gap-1">
@@ -551,7 +549,7 @@ export default function BateriasPage() {
                     {/* Big Ns x Np visual banner */}
                     <div className="flex flex-wrap items-center justify-around gap-4 rounded-xl border border-edge bg-surface-sunken p-4 text-center">
                       <div className="flex flex-col">
-                        <span className="text-xs uppercase tracking-wider text-ink-muted">
+                        <span className="text-caption font-medium text-ink-muted">
                           {t.seriesLabel}
                         </span>
                         <span className="text-3xl font-bold tabular-nums text-brand-600 dark:text-brand-400">
@@ -567,7 +565,7 @@ export default function BateriasPage() {
                       </span>
 
                       <div className="flex flex-col">
-                        <span className="text-xs uppercase tracking-wider text-ink-muted">
+                        <span className="text-caption font-medium text-ink-muted">
                           {t.parallelLabel}
                         </span>
                         <span className="text-3xl font-bold tabular-nums text-brand-600 dark:text-brand-400">
@@ -584,7 +582,7 @@ export default function BateriasPage() {
                       </span>
 
                       <div className="flex flex-col">
-                        <span className="text-xs uppercase tracking-wider text-ink-muted">
+                        <span className="text-caption font-medium text-ink-muted">
                           {t.totalCellsLabel}
                         </span>
                         <span className="text-3xl font-bold tabular-nums text-ink">
@@ -660,7 +658,7 @@ export default function BateriasPage() {
                         value={`US$ ${formatNumber(design.chemistry.cell_cost_per_kwh)}`}
                       />
                     </div>
-                    <dl className="flex flex-col gap-2 rounded-card bg-surface-sunken p-3 text-xs">
+                    <dl className="well flex flex-col gap-2 text-xs">
                       <div className="flex flex-col gap-0.5">
                         <dt className="font-semibold text-ink">
                           {t.citationLabel}
@@ -855,7 +853,7 @@ export default function BateriasPage() {
                         return (
                           <div
                             key={facet.slugKey}
-                            className="flex flex-col gap-1 rounded-card border border-edge bg-surface-raised p-3"
+                            className="well flex flex-col gap-1"
                           >
                             <Badge tone={facet.tone}>{facet.badge}</Badge>
                             {/*

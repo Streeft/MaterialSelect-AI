@@ -608,7 +608,7 @@ function ConstraintGroupEditor({
         // The border is the boundary of a group with its own AND/OR — the
         // one D-34 calls information, not a decorative divider — so it is
         // `border-edge-control`, not the `border-edge` a plain card uses.
-        !isRoot && "rounded-card border border-edge-control bg-surface-raised p-3",
+        !isRoot && "rounded-control border border-edge-control bg-panel p-3",
       )}
     >
       <div className="flex flex-wrap items-center gap-2">
