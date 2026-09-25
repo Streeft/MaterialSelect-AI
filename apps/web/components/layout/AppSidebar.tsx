@@ -31,6 +31,7 @@ import {
   IconLeaf,
   IconLogout,
   IconMenu,
+  IconNotebook,
   IconPanelLeft,
   IconRuler,
   IconScatter,
@@ -77,6 +78,9 @@ export const GROUPS: NavGroup[] = [
       { href: "/app/selecao", label: t.selection, icon: IconFilter },
       { href: "/app/mapas", label: t.maps, icon: IconScatter },
       { href: "/app/comparar", label: t.compare, icon: IconCompare },
+      // D-90: os cadernos ficam em "Estudar" — são onde se estuda com as
+      // próprias fontes, não onde os registros do catálogo moram.
+      { href: "/app/cadernos", label: t.notebooks, icon: IconNotebook },
       // P2: o Engineering Solver e o Index Finder moram na mesma tela, porque
       // são a mesma derivação lida de dois jeitos.
       { href: "/app/dimensionar", label: t.solver, icon: IconRuler },

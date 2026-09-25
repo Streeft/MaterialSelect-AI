@@ -50,6 +50,8 @@ export const ptBR = {
     // P1-4: o espaço do usuário. Fica em "Dados" e não em "Estudar" porque é
     // onde os registros moram, não uma ferramenta de decidir com eles.
     myRecords: "Meus registros",
+    // D-90: o caderno de estudo com fontes próprias (o NotebookLM do app).
+    notebooks: "Cadernos",
     // Eight links in a row said nothing about what belongs with what. The
     // groups are the three things someone does here, in the order they do them.
     groupStudy: "Estudar",
@@ -1244,6 +1246,157 @@ export const ptBR = {
     favorited: "Favoritado",
     universeMaterial: "Material",
     universeProcess: "Processo",
+  },
+
+  // D-90: Cadernos — fontes do aluno, conversa citada, notas e Estúdio.
+  notebooks: {
+    title: "Cadernos",
+    description:
+      "Traga suas fontes — apostilas, artigos, fichas e estudos — e converse com elas. Toda resposta cita o trecho de onde veio.",
+    create: "Criar caderno",
+    creating: "Criando…",
+    listLabel: "Seus cadernos",
+    emptyTitle: "Nenhum caderno ainda",
+    emptyDescription:
+      "Crie um caderno e adicione as fontes da sua disciplina para perguntar sobre elas.",
+    sourceCount: (n: number) => (n === 1 ? "1 fonte" : `${n} fontes`),
+    updated: (date: string) => `atualizado em ${date}`,
+    privateNote: "Só você vê os seus cadernos.",
+    back: "Todos os cadernos",
+    titleLabel: "Título do caderno",
+    settings: "Configurar conversa",
+    remove: "Excluir caderno",
+    removeConfirm: (title: string) =>
+      `Excluir “${title}”? As fontes, a conversa e as notas deste caderno serão apagadas.`,
+    cancel: "Cancelar",
+    panelTabs: "Painéis do caderno",
+    panels: { sources: "Fontes", chat: "Conversa", studio: "Estúdio" },
+    collapse: (panel: string) => `Recolher ${panel}`,
+    expand: (panel: string) => `Expandir ${panel}`,
+
+    // Fontes
+    addSources: "Adicionar fontes",
+    selectAll: "Selecionar tudo",
+    noSources:
+      "Nenhuma fonte ainda. Adicione um arquivo, cole um texto ou traga uma ficha do catálogo.",
+    sourceKinds: {
+      arquivo: "Arquivo",
+      texto: "Texto colado",
+      ficha: "Ficha de material",
+      estudo: "Estudo de seleção",
+    } as Record<string, string>,
+    sourceSize: (chars: number, pages: number | null) =>
+      pages ? `${pages} ${pages === 1 ? "página" : "páginas"}` : `${chars.toLocaleString("pt-BR")} caracteres`,
+    truncated: "cortada no limite por fonte",
+    useSource: (title: string) => `Usar “${title}” nas respostas`,
+    openSource: (title: string) => `Ler a fonte “${title}”`,
+    removeSource: (title: string) => `Remover a fonte “${title}”`,
+    sourceLimit: (n: number, max: number) => `${n} de ${max} fontes`,
+    webSearch: "Pesquise novas fontes na web",
+    webSearchSoon: "Em breve: artigos (OpenAlex), Wikipédia e busca na web.",
+    readerTitle: "Fonte",
+
+    // Adicionar fontes
+    addTitle: "Adicionar fontes",
+    addDescription: "As fontes ficam só neste caderno, visíveis apenas para você.",
+    tabUpload: "Arquivo",
+    tabText: "Colar texto",
+    tabApp: "Do MaterialSelect",
+    dropTitle: "Arraste arquivos para cá",
+    dropHint:
+      "PDF, DOCX, TXT ou Markdown, até 15 MB cada. Um PDF digitalizado (só imagem) não tem texto para ler.",
+    chooseFiles: "Escolher arquivos",
+    uploads: "Envios",
+    uploading: "Enviando",
+    reading: "Lendo o texto",
+    uploaded: "Pronto",
+    uploadFailed: "Falhou",
+    textTitle: "Título",
+    textTitleDefault: "Texto colado",
+    textBody: "Texto",
+    addText: "Adicionar texto",
+    appKind: "O que trazer",
+    appMaterial: "Ficha de material",
+    appStudy: "Estudo salvo",
+    appPick: "Registro",
+    addApp: "Adicionar ao caderno",
+    noStudies: "Você ainda não salvou nenhum estudo de seleção.",
+    added: (title: string) => `“${title}” adicionada ao caderno.`,
+
+    // Conversa
+    summaryTitle: "Guia do caderno",
+    writingSummary: "Lendo as fontes para escrever o guia…",
+    writeSummary: "Escrever guia",
+    rewriteSummary: "Reescrever guia",
+    summaryEmpty: "O guia resume as fontes marcadas e sugere perguntas.",
+    suggested: "Perguntas sugeridas",
+    askLabel: "Pergunta às fontes",
+    askPlaceholder: "Faça uma pergunta às fontes…",
+    send: "Enviar",
+    thinking: "Lendo as fontes…",
+    selectedCount: (n: number) => (n === 1 ? "1 fonte marcada" : `${n} fontes marcadas`),
+    accuracy: "A IA pode errar. Confira cada resposta no trecho citado.",
+    notFound: "As fontes marcadas não respondem a isso.",
+    withheldTitle: "Parte da resposta foi omitida",
+    saveNote: "Salvar como nota",
+    savedNote: "Resposta salva nas notas.",
+    clearChat: "Limpar conversa",
+    you: "Você",
+    assistant: "Caderno",
+    messagesLabel: "Conversa com as fontes",
+    citation: (n: number, title: string) => `Trecho ${n}, de “${title}”`,
+    pages: (start: number, end: number | null) =>
+      end && end !== start ? `páginas ${start}–${end}` : `página ${start}`,
+    citationGone: "A fonte deste trecho foi removida do caderno.",
+    usage: (used: number, limit: number) => `${used} de ${limit} perguntas hoje`,
+    noSelected: "Marque ao menos uma fonte para perguntar.",
+    noSourcesYet: "Adicione uma fonte para começar a conversa.",
+
+    // Configurar conversa
+    settingsDescription: "Como o caderno responde. As regras de citação valem sempre.",
+    goal: "Objetivo da conversa",
+    goals: {
+      padrao: { title: "Padrão", description: "Respostas diretas e didáticas." },
+      guia: {
+        title: "Guia de estudo",
+        description: "Explica em passos e termina com uma pergunta para você conferir.",
+      },
+      personalizado: {
+        title: "Personalizado",
+        description: "Você descreve o estilo: um monitor, uma revisão para a prova…",
+      },
+    },
+    instructions: "Instruções",
+    instructionsHint:
+      "Ex.: responda como um monitor de Ciência dos Materiais, com exemplos de engenharia.",
+    length: "Tamanho da resposta",
+    lengths: { curta: "Curta", padrao: "Padrão", longa: "Longa" },
+    save: "Salvar",
+
+    // Estúdio
+    studioTools: {
+      audio: "Resumo em Áudio",
+      slides: "Apresentação de slides",
+      video: "Resumo em Vídeo",
+      mindmap: "Mapa mental",
+      report: "Relatórios",
+      flashcards: "Cartões didáticos",
+      quiz: "Teste",
+      infographic: "Infográfico",
+      table: "Tabela de dados",
+    },
+    soon: "Em breve",
+    studioSoon:
+      "O Estúdio chega na próxima etapa: relatórios, cartões, testes, mapa mental e mais, gerados das suas fontes.",
+    notes: "Notas",
+    addNote: "Adicionar nota",
+    noNotes: "Nenhuma nota. Salve uma resposta da conversa ou escreva a sua.",
+    noteTitle: "Título",
+    noteBody: "Nota",
+    noteDefaultTitle: "Nova nota",
+    editNote: (title: string) => `Editar a nota “${title}”`,
+    removeNote: (title: string) => `Excluir a nota “${title}”`,
+    fromChat: "Da conversa",
   },
 
   catalog: {

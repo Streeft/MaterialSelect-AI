@@ -391,3 +391,125 @@ export const IconBattery = (p: IconProps) => (
     <rect x="5" y="9" width="4" height="6" rx="1.2" fill="var(--surface-200, #fff)" />
   </Svg>
 );
+
+// --- Cadernos (D-90) --------------------------------------------------------
+// The notebook itself, and one glyph per Studio tool, each drawing what the
+// tool makes: a waveform for audio, a screen for slides, a play mark for video.
+
+export const IconNotebook = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="5" y="3.2" width="14" height="17.6" rx="2.6" />
+    <path d="M9 3.2v17.6" />
+    <path d="M12.2 8h3.8" />
+    <path d="M12.2 11.4h3.8" />
+  </Svg>
+);
+
+export const IconSend = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M4.2 11.6 19.4 4.6a.6.6 0 0 1 .8.8l-7 15.2a.6.6 0 0 1-1.1-.06l-1.9-5.9-5.9-1.9a.6.6 0 0 1-.1-1.1Z" />
+    <path d="m10.2 13.8 4.4-4.4" />
+  </Svg>
+);
+
+export const IconSparkle = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M12 3.5c.5 3.9 2.6 6 6.5 6.5-3.9.5-6 2.6-6.5 6.5-.5-3.9-2.6-6-6.5-6.5 3.9-.5 6-2.6 6.5-6.5Z" />
+    <path d="M18.5 15.5c.2 1.5 1 2.3 2.5 2.5-1.5.2-2.3 1-2.5 2.5-.2-1.5-1-2.3-2.5-2.5 1.5-.2 2.3-1 2.5-2.5Z" />
+  </Svg>
+);
+
+export const IconNote = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M5 4.5h14v9.8L13.8 19.5H5Z" />
+    <path d="M13.8 19.5v-5.2H19" />
+    <path d="M8.4 8.6h7.2" />
+    <path d="M8.4 11.8h4.4" />
+  </Svg>
+);
+
+export const IconFileText = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M6.5 3.5h7.3l4.7 4.7v11.3a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1v-15a1 1 0 0 1 1-1Z" />
+    <path d="M13.5 3.7v4.8h4.8" />
+    <path d="M8.8 12.6h6.4" />
+    <path d="M8.8 15.8h6.4" />
+  </Svg>
+);
+
+export const IconPencil = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M15.2 5.2l3.6 3.6" />
+    <path d="M4.5 19.5l1-4.4L16.4 4.2a1.6 1.6 0 0 1 2.3 0l1.1 1.1a1.6 1.6 0 0 1 0 2.3L8.9 18.5Z" />
+  </Svg>
+);
+
+export const IconAudio = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M4.5 10.5v3" />
+    <path d="M8.2 7.5v9" />
+    <path d="M12 4.5v15" />
+    <path d="M15.8 7.5v9" />
+    <path d="M19.5 10.5v3" />
+  </Svg>
+);
+
+export const IconSlides = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="3.5" y="4.5" width="17" height="11.5" rx="2" />
+    <path d="M12 16v3.5" />
+    <path d="M8.5 19.5h7" />
+  </Svg>
+);
+
+export const IconVideo = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="3.5" y="5" width="17" height="14" rx="3" />
+    <path d="M10.3 9.4v5.2a.4.4 0 0 0 .6.35l4.3-2.6a.4.4 0 0 0 0-.7l-4.3-2.6a.4.4 0 0 0-.6.35Z" />
+  </Svg>
+);
+
+export const IconMindMap = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="6" cy="12" r="2.4" />
+    <circle cx="18" cy="6" r="2.2" />
+    <circle cx="18" cy="12" r="2.2" />
+    <circle cx="18" cy="18" r="2.2" />
+    <path d="M8.4 12h7.4" />
+    <path d="M8 10.6c2.5-2.5 4.5-4.6 7.8-4.6" />
+    <path d="M8 13.4c2.5 2.5 4.5 4.6 7.8 4.6" />
+  </Svg>
+);
+
+export const IconReport = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="5" y="3.5" width="14" height="17" rx="2" />
+    <path d="M8.5 8h7" />
+    <path d="M8.5 11.5h7" />
+    <path d="M8.5 15h4" />
+  </Svg>
+);
+
+export const IconCards = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="7" y="6.5" width="13" height="13" rx="2.2" />
+    <path d="M4 16.5V6a2 2 0 0 1 2-2h10.5" />
+  </Svg>
+);
+
+export const IconQuiz = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="12" cy="12" r="8.5" />
+    <path d="M9.6 9.6a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.5v.4" />
+    <path d="M12 16.9v.1" />
+  </Svg>
+);
+
+export const IconInfographic = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M5 19.5V13" />
+    <path d="M10 19.5V8.5" />
+    <path d="M15 19.5v-8" />
+    <path d="M20 19.5V4.5" />
+  </Svg>
+);
