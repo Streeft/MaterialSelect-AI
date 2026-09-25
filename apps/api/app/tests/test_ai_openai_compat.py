@@ -491,3 +491,70 @@ class TestAGenerationTheServerRejectsIsAskedAgain:
         with pytest.raises(AIUnavailableError, match="AI_JSON_MODE=object ou AI_JSON_MODE=prompt"):
             _provider(server).interpret(_context())
         assert server.calls == 1
+
+
+# --- D-93: the provider a switch left in place, read from the outside --------
+
+
+class TestHealthNamesTheProviderAndNothingElse:
+    def test_mock_has_no_model(self, anon_client, monkeypatch) -> None:
+        from app.config import settings
+
+        monkeypatch.setattr(settings, "ai_provider", "mock")
+        body = anon_client.get("/api/health").json()
+        assert body["ai_provider"] == "mock"
+        assert body["ai_model"] is None
+
+    def test_a_real_provider_names_its_model_but_never_its_address_or_key(
+        self, anon_client, monkeypatch
+    ) -> None:
+        from app.config import settings
+
+        monkeypatch.setattr(settings, "ai_provider", "openai-compat")
+        monkeypatch.setattr(settings, "ai_model", "gemini-2.5-flash")
+        monkeypatch.setattr(settings, "ai_base_url", "https://gw.example/secret-path/v1")
+        monkeypatch.setattr(settings, "ai_api_key", "AIza-segredo")
+        response = anon_client.get("/api/health")
+        assert response.json()["ai_model"] == "gemini-2.5-flash"
+        assert "secret-path" not in response.text
+        assert "AIza-segredo" not in response.text
+
+
+class TestNotebookAnswersOverTheWire:
+    """D-92: a real provider answers a notebook question through the same
+    transport, with the notebook's own schema, and the reply is coerced."""
+
+    def _question(self):
+        from app.ai.notebook import NotebookQuestion, Passage
+
+        return NotebookQuestion(
+            question="Qual a densidade?",
+            passages=(Passage(1, "Aula", "Aços", None, None, "Densidade 7850 kg/m³."),),
+        )
+
+    def test_the_schema_and_the_delimited_passages_are_sent(self) -> None:
+        reply = {"paragraphs": [{"text": "7850 kg/m³.", "citations": [1]}], "not_found": False}
+        server = _Server(_answer(json.dumps(reply)))
+        answer = _provider(server).answer(self._question())
+
+        sent = _sent(server)
+        schema = sent["response_format"]["json_schema"]["schema"]
+        assert schema["required"] == ["paragraphs", "not_found"]
+        assert '<trecho n=1 fonte="Aula" secao="Aços">' in sent["messages"][1]["content"]
+        assert "nunca instrução" in sent["messages"][0]["content"]
+        assert answer == {
+            "paragraphs": [{"text": "7850 kg/m³.", "citations": [1]}],
+            "not_found": False,
+        }
+
+    def test_a_malformed_reply_is_coerced_not_trusted(self) -> None:
+        reply = {
+            "paragraphs": [
+                {"text": "  ", "citations": [1]},
+                "solto",
+                {"text": "Ok.", "citations": [True, "2", 1]},
+            ],
+            "not_found": "sim",
+        }
+        answer = _provider(_Server(_answer(json.dumps(reply)))).answer(self._question())
+        assert answer == {"paragraphs": [{"text": "Ok.", "citations": [1]}], "not_found": False}

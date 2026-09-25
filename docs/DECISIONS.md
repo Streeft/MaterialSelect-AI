@@ -5802,3 +5802,129 @@ das classes e o formato por classe no mapa (D-28/D-82) também não mudaram.
 
 **Pendência herdada.** As figuras da monografia que são capturas de
 `/estilo` precisam ser refeitas também por este D-91.
+
+## D-92 — Cadernos: o NotebookLM dentro do app, com fontes privadas, citação por trecho e número só quando o trecho o traz
+
+**O pedido.** A camada de IA com as funções do Google NotebookLM (hoje "Gemini
+Notebook") e o layout dele: Fontes | Conversa | Estúdio, cada aluno com os
+próprios cadernos, e **nenhum gasto** com tecnologia de IA agora (D-93). A
+fase 1, entregue aqui, é a fundação: cadernos, fontes, conversa citada, guia,
+notas e cota. O Estúdio aparece na grade e diz "em breve"; as fases 2 a 4 estão
+em `docs/TODO.md`.
+
+**Tabelas próprias, não o Cérebro.** A busca do Cérebro (D-47) não tem dono:
+`retrieval.search` lê todo trecho que existe, porque é a estante comum que toda
+chamada de IA consulta. Um PDF de aluno ali apareceria na resposta de outro.
+Então os trechos de caderno moram em `notebook_chunk`, sob um `Notebook` com
+`owner_id` NOT NULL, e o que se reaproveita são as **funções** — leitor,
+fatiador, BM25, embeddings e a fusão RRF, as duas últimas tornadas públicas
+(`lexical_rank`, `reciprocal_rank_fusion`). Só o texto extraído é guardado; o
+arquivo nunca vai ao disco.
+
+**O escopo é por construção.** `notebooks.retrieval.search` recebe a lista de
+trechos e ranqueia só ela — não tem sessão de banco para buscar mais. A lista
+vem de `NotebookRepository`, que não se constrói sem dono e filtra toda leitura
+por ele, e só das fontes **marcadas**. Caderno, fonte, mensagem ou nota de outra
+pessoa respondem 404, como um id inexistente (D-62). O canário
+`test_my_records_isolation.py` ganhou um caderno alheio na varredura de todas as
+rotas GET, e os deletes são escritos tabela por tabela (o SQLite dos testes não
+aplica `ondelete`, e um trecho órfão poderia ser herdado pela próxima fonte que
+reusasse o id — de outra pessoa; a razão do D-72).
+
+**Número só do trecho que o parágrafo cita.** O modelo responde parágrafos que
+apontam trechos **por número** (D-47); número fora da lista cai. Cada número
+escrito é procurado nos trechos **que aquele parágrafo cita**, mais a pergunta
+do aluno — um número que existe noutro trecho continua sem chão, porque o
+parágrafo mandaria o aluno conferir no lugar errado. A checagem é a de sempre
+(`guardrails.ungrounded_numbers`). Falhou: **uma** nova tentativa dizendo quais
+números; falhou de novo: o parágrafo sai e a resposta diz que saiu e por quê.
+Nunca consertado, nunca omitido em silêncio. Nada dali vira dado do catálogo
+(princípio 1): uma ficha trazida como fonte é texto gerado pelos mesmos
+serviços da tela, com ausência escrita e nunca `0` (D-24).
+
+**Fonte é dado, nunca instrução.** Cada trecho vai dentro de `<trecho>`, com os
+atributos escapados e o fechamento neutralizado, e o prompt diz que o conteúdo
+ali é leitura. Isso não torna injeção impossível — nada num prompt torna —, mas
+não há ferramenta nenhuma para um trecho acionar: o modelo só escreve
+parágrafos, e todo parágrafo é conferido.
+
+**Cota por aluno, contada no sucesso.** No plano gratuito uma chave serve a
+turma inteira; `notebook_daily_requests` (60) por pessoa e por dia impede que um
+aluno gaste o dia de todos. Uma pergunta é uma requisição, nova tentativa
+incluída. O guia é guardado e só é reescrito a pedido — ou quando uma fonte
+entra ou sai, porque guia velho é pior que nenhum. A tela escreve o guia sozinha
+**uma vez por conjunto de fontes**: uma falha (cota, provedor desligado) não
+vira laço.
+
+**Acesso aberto (D-83).** Os Cadernos passam pelo mesmo portão de toda rota do
+produto; no modo aberto o aluno sem assinatura entra. Caderno não é catálogo
+compartilhado, então nenhuma rota pede `require_catalog_curator`.
+
+**A tela.** Três painéis a partir de `lg`, com os laterais recolhíveis; abaixo
+disso um de cada vez, escolhido por controle segmentado — o mesmo DOM nas duas
+larguras, então a pergunta digitada sobrevive à troca. Primitivas novas no
+barril, sem biblioteca (D-23): `ChatLog` (`role="log"`), `CitationChip` (sobre o
+`Popover`), `FileDrop`/`UploadList` (progresso real por XHR — `fetch` ainda não
+tem progresso de envio), `ToolTile` (ferramenta indisponível continua focável e
+diz por quê), `PanelHeader` e `RichText` (negrito, itálico e lista, **nunca**
+HTML cru — o texto vem de um modelo lendo um arquivo de aluno). O plano previa
+um `OptionCard` para o modal de Formato/Modelo; o `RadioCard` existente já é
+isso, e a fase 2 o usa. A seção de cor `cadernos` tem matiz 285 (percebido
+~245°, 18° da seção mais próxima), gerada e medida pelos scripts de paleta.
+
+**Aviso.** O caderno mostra sempre de onde vem a resposta: com o provedor
+simulado, que nada sai do servidor; com um real no plano gratuito, que não se
+envia material sigiloso nem dado pessoal (D-93).
+
+## D-93 — O Gemini, no plano gratuito, é a IA oficial do projeto, por configuração do `openai-compat`
+
+**O pedido.** O autor quis o Gemini como IA de todo o projeto, no lugar da Groq,
+e com uma restrição que manda em todo o resto: **nenhum gasto**, nem do crédito
+que acompanha a assinatura dele.
+
+**O que a assinatura não dá.** Uma assinatura do Gemini (app no navegador,
+Antigravity) usa uma cota que um servidor não enxerga; a API é outro produto,
+cobrado por token. O que a assinatura inclui é um crédito mensal no Google Cloud
+— que só vale num projeto com faturamento ligado, e faturamento ligado é
+exatamente o que pode cobrar um cartão quando o crédito acaba. Ficou fora.
+
+**A decisão.**
+
+- **Chave do Google AI Studio, criada num projeto sem faturamento.** Sem
+  faturamento, passar do limite devolve 429; nunca cobra. É essa ausência, e
+  não uma configuração do código, que garante o custo zero — por isso o passo a
+  passo em [13-deploy.md §5-quinquies](13-deploy.md) diz o que **não** clicar.
+- **Nenhum provedor novo.** O Gemini fala o protocolo compatível com OpenAI em
+  `https://generativelanguage.googleapis.com/v1beta/openai`, então a troca é
+  `AI_BASE_URL`/`AI_MODEL`/`AI_API_KEY` do `openai-compat` que já existe (D-36).
+  Os embeddings do Cérebro (D-47) vêm da mesma chave, por `gemini-embedding-001`
+  no `/embeddings` compatível. As garantias da camada — índice por slug,
+  ressalvas do backend, guardrails, citação por índice — não dependem de
+  fornecedor e continuam as mesmas.
+- **A troca é um workflow, não um terminal.** `provedor-ia.yml` grava os
+  segredos do Fly para `gemini`, `groq` ou `mock` e **só fica verde depois de
+  ler o provedor e o modelo novos em `/api/health`** — a regra do
+  `modo-acesso.yml` (D-83), pelo mesmo motivo: um segredo que a API publicada
+  não lê passaria verde em silêncio. `/api/health` passa a nomear
+  `ai_provider` e `ai_model`; **nunca** a URL (um caminho de gateway pode
+  carregar token, D-36) nem a chave.
+- **`mock` continua o padrão do código e dos testes.** Um provedor real não é
+  determinístico, e os testes não dependem de rede.
+
+**O que o gratuito cobra em troca, e fica dito.**
+
+- **Limite.** Poucas requisições por minuto e algumas centenas por dia. Um 429
+  não diz qual dos dois estourou, então a mensagem nomeia os dois e quando cada
+  um volta. O `flash-lite` é selecionável no workflow para uma aula cheia.
+- **Privacidade.** No plano gratuito o Google pode usar o conteúdo enviado para
+  melhorar os modelos, e revisores humanos podem lê-lo. Toda tela que envia
+  material do usuário à IA avisa para não enviar nada sigiloso nem dado pessoal.
+
+**O que fica para depois.** A busca na web por *grounding* com Google Search
+também é gratuita, mas só existe na API **nativa** do Gemini — o endpoint
+compatível não expõe a ferramenta. Um provedor `gemini` nativo entra quando essa
+busca for usada, e não antes: hoje ele seria um segundo caminho para o mesmo
+resultado.
+
+**Depois do merge**, o **Deploy da API**; depois, criar o segredo
+`GEMINI_API_KEY` e rodar **Provedor de IA** → `gemini`.

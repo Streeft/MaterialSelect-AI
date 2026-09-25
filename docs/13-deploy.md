@@ -330,6 +330,51 @@ específico depois disso, use `conceder` (§5).
 A interface acompanha sozinha: ela lê o modo em `/billing/status`, então nada
 na Vercel precisa ser refeito em nenhum dos dois sentidos.
 
+## 5-quinquies. Trocar a IA: Gemini, de graça
+
+A IA oficial do projeto é o **Gemini no plano gratuito do Google AI Studio**
+([D-93](DECISIONS.md#d-93)), falando pelo mesmo `openai-compat` que antes
+servia a Groq. Nada disso custa dinheiro — **desde que o faturamento continue
+desligado**.
+
+**Uma vez só — criar a chave:**
+
+1. Entre em `aistudio.google.com` com a sua conta Google → **Get API key** →
+   **Create API key**. Deixe o Google criar um projeto novo.
+2. **Não** clique em "Set up billing", "Upgrade" nem ative crédito nenhum —
+   nem o crédito do Google Developer Program que vem com a assinatura. Um
+   projeto sem faturamento fica no plano gratuito para sempre: ao passar do
+   limite, a API responde 429, nunca cobra.
+3. Copie a chave (`AIza…`) e grave-a em **Settings → Secrets and variables →
+   Actions → New repository secret**, com o nome `GEMINI_API_KEY`. Ela não vai
+   para o código nem para `.env` versionado.
+
+**Ligar** — pela aba **Actions**:
+
+1. Se a API publicada ainda não tem o D-93 (primeira vez), dispare **Deploy da
+   API** antes.
+2. **Provedor de IA** → **Run workflow** → `gemini`. O modelo padrão é
+   `gemini-2.5-flash`; o `gemini-2.5-flash-lite` aguenta mais pedidos por dia,
+   útil numa aula cheia.
+3. O job grava os segredos no Fly (as máquinas reiniciam, sem deploy) e **só
+   fica verde depois de ler o provedor e o modelo novos** em
+   `https://materialselect-ai.fly.dev/api/health`. A mesma chave serve a busca
+   semântica do Cérebro (`gemini-embedding-001`).
+
+**Voltar** — o mesmo workflow com `groq` (precisa do segredo `GROQ_API_KEY`)
+ou `mock` (simulado, sem rede nem chave).
+
+**O que o plano gratuito cobra em troca, e a tela diz:**
+
+- **Limites.** Algumas requisições por minuto e algumas centenas por dia. Ao
+  estourar, a mensagem diz qual dos dois limites pode ter sido e quando volta.
+- **Privacidade.** No plano gratuito o Google pode usar o conteúdo enviado para
+  melhorar os modelos, e revisores humanos podem lê-lo. Não envie material
+  sigiloso nem dados pessoais.
+
+Se a IA responder que o servidor recusou `response_format`/`json_schema`, rode
+o **Provedor de IA** de novo com "Saída estruturada" em `object`.
+
 ## 6. Conferir que está de pé
 
 Nesta ordem, porque cada uma isola uma camada:

@@ -159,6 +159,27 @@ vocabulário do enunciado para slugs do catálogo — a UI já mostra, para cada
 restrição sugerida, o `evidence` copiado do próprio enunciado do usuário, e
 não há de onde um trecho do Cérebro entraria nessa tela.
 
+## Cadernos (`app/notebooks/`, `app/ai/notebook.py`)
+
+Os Cadernos ([D-92](DECISIONS.md)) são a mesma camada lendo outra coisa: em vez
+do catálogo e de um estudo, as fontes que o aluno trouxe. O provedor ganha dois
+métodos — `answer` (pergunta) e `digest` (guia do caderno) — com a mesma fronteira
+de sempre: recebe a pergunta e os trechos escolhidos, nunca uma sessão de banco.
+As regras que pesam:
+
+- **Trecho de caderno não é trecho do Cérebro.** Tabelas próprias, porque a busca
+  do Cérebro não tem dono; `notebooks.retrieval.search` só ranqueia a lista que
+  recebe — as fontes marcadas de um caderno do próprio aluno.
+- **Citação por número de trecho** (a regra do D-47), e **todo número de um
+  parágrafo tem de estar nos trechos que ele cita** ou na pergunta —
+  `ungrounded_numbers` com `allowed` tirado desses trechos. Uma nova tentativa
+  nomeando o número; depois, o parágrafo sai e a resposta diz por quê.
+- **Trecho é leitura, nunca instrução**: vai dentro de `<trecho>`, com atributos
+  escapados e o fechamento neutralizado.
+- **O simulado responde citando**: copia o começo dos trechos mais relevantes,
+  então passa na checagem de número por construção, como o `interpret`.
+- **Cota diária por aluno** (`NOTEBOOK_DAILY_REQUESTS`), contada só no sucesso.
+
 ## Provedor simulado (`app/ai/mock.py`)
 
 É a implementação de referência e a que o produto entrega. Lê o enunciado com
@@ -204,6 +225,20 @@ rodando nesta máquina, OpenRouter ou a OpenAI, e quem escolhe é `AI_BASE_URL` 
 que **não tem padrão**, porque um padrão escolheria um fornecedor pelo operador.
 O aviso que o usuário vê nomeia **o host** de destino, nunca o caminho: um
 caminho de gateway pode carregar token.
+
+**Na instância publicada, esse servidor é o Gemini** ([D-93](DECISIONS.md)):
+o plano gratuito do Google AI Studio, por
+`AI_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai`, com
+`AI_MODEL=gemini-2.5-flash` e os embeddings do Cérebro em
+`gemini-embedding-001` pela mesma chave. É configuração, não código: o
+workflow **Provedor de IA** (`provedor-ia.yml`) troca os segredos do Fly entre
+`gemini`, `groq` e `mock` e confere o resultado em `/api/health`, que desde o
+D-93 nomeia o provedor e o modelo — nunca a URL nem a chave. O plano gratuito
+tem dois custos que não são dinheiro: **limite** (o 429 diz que há um por
+minuto e outro por dia) e **privacidade** (o Google pode usar o conteúdo para
+treino). A chave é criada **sem faturamento**, e é só isso que a mantém
+gratuita. Um provedor Gemini *nativo* fica para quando a busca na web
+(*grounding*) for usada: o endpoint compatível não a expõe.
 
 **A requisição se identifica**, com `User-Agent: MaterialSelect-AI/{versão}`.
 Isso parece detalhe e não é: sem o cabeçalho, o `urllib` anuncia

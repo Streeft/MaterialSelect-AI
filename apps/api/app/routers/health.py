@@ -20,4 +20,7 @@ def health() -> HealthResponse:
         version=__version__,
         environment=settings.environment,
         access_mode=settings.access_mode,
+        ai_provider=settings.ai_provider,
+        # The simulated provider has no model; naming the default would claim one.
+        ai_model=None if settings.ai_provider == "mock" else settings.ai_model,
     )

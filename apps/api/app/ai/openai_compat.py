@@ -44,6 +44,9 @@ from app.config import settings as default_settings
 # The error a misconfiguration produces is the only documentation anyone reads,
 # so it carries the URLs rather than pointing at a file that carries them.
 KNOWN_ENDPOINTS = (
+    "  Gemini (gratuito pelo Google AI Studio, sem cartão; a IA oficial do projeto, D-93):\n"
+    "    AI_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai\n"
+    "    AI_MODEL=gemini-2.5-flash\n"
     "  Groq (gratuito, cadastro sem cartão):\n"
     "    AI_BASE_URL=https://api.groq.com/openai/v1\n"
     "    AI_MODEL=openai/gpt-oss-20b\n"
@@ -240,9 +243,12 @@ class OpenAICompatProvider(ModelProviderBase):
                 f"existe nesse servidor. {detail}"
             ).strip()
         if exc.code == 429:
+            # A free plan limits per minute *and* per day, and the reader cannot
+            # tell which from a 429 alone — both are named, with what each means.
             return (
-                "Limite de requisições do plano gratuito atingido (429). Tente de novo "
-                f"em instantes ou use AI_PROVIDER=mock, que não tem limite. {detail}"
+                "Limite de requisições do plano gratuito atingido (429): o limite por "
+                "minuto volta em instantes; o diário, no dia seguinte. Tente de novo "
+                f"em alguns minutos ou use AI_PROVIDER=mock, que não tem limite. {detail}"
             ).strip()
         if exc.code == 400:
             return (
