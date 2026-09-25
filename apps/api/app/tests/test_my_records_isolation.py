@@ -43,6 +43,9 @@ PATH_VALUES = {
     "study_id": "1",
     "job_id": "1",
     "chart_id": "1",
+    # D-90: filled with the private notebook's own ids by `_sweep`.
+    "notebook_id": "1",
+    "source_id": "1",
 }
 
 #: Query strings for the GETs that need one to return anything at all.
@@ -116,9 +119,22 @@ def _documented_get_paths() -> list[str]:
     return sorted(path for path, operations in schema["paths"].items() if "get" in operations)
 
 
-def _sweep(client, material_id: int) -> dict[str, str]:
+@pytest.fixture()
+def private_notebook(client, login_as, other_user: User) -> dict[str, str]:
+    """A notebook of the *other* user (D-90), titled and filled with the same
+    distinctive name, so the sweep asks every GET about it too."""
+    with login_as(other_user):
+        notebook = client.post("/api/notebooks", json={"title": PRIVATE_NAME}).json()
+        source = client.post(
+            f"/api/notebooks/{notebook['id']}/sources/text",
+            json={"title": "Fonte", "text": f"{PRIVATE_NAME} resiste a 900 °C."},
+        ).json()
+    return {"notebook_id": str(notebook["id"]), "source_id": str(source["id"])}
+
+
+def _sweep(client, material_id: int, notebook: dict[str, str] | None = None) -> dict[str, str]:
     """Call every documented GET and return ``path -> response body``."""
-    values = {**PATH_VALUES, "material_id": str(material_id)}
+    values = {**PATH_VALUES, **(notebook or {}), "material_id": str(material_id)}
     bodies: dict[str, str] = {}
     for path in _documented_get_paths():
         url = path
@@ -142,15 +158,18 @@ def test_the_sweep_covers_the_whole_documented_get_surface() -> None:
 
 
 def test_the_owner_finds_their_record_across_the_api(
-    client, login_as, other_user: User, private_record: Material
+    client, login_as, other_user: User, private_record: Material, private_notebook
 ) -> None:
     """The positive control, and the half that makes the other half mean
     something. Without it, hiding the record from *everyone* would read as a
     pass."""
     with login_as(other_user):
-        bodies = _sweep(client, private_record.id)
+        bodies = _sweep(client, private_record.id, private_notebook)
 
     carrying = sorted(path for path, body in bodies.items() if PRIVATE_NAME in body)
+    assert "/api/notebooks" in carrying
+    assert "/api/notebooks/{notebook_id}" in carrying
+    assert "/api/notebooks/{notebook_id}/sources/{source_id}" in carrying
     assert "/api/materials" in carrying
     assert "/api/materials/{material_id}" in carrying
     assert "/api/exports/catalogo.{fmt}" in carrying
@@ -158,7 +177,7 @@ def test_the_owner_finds_their_record_across_the_api(
 
 
 def test_no_documented_get_route_leaks_another_persons_record(
-    client, private_record: Material
+    client, private_record: Material, private_notebook
 ) -> None:
     """The whole feature, asserted over the whole surface at once.
 
@@ -166,7 +185,7 @@ def test_no_documented_get_route_leaks_another_persons_record(
     ``other_user``. Any path that comes back carrying the name is a leak, and
     the failure names it.
     """
-    bodies = _sweep(client, private_record.id)
+    bodies = _sweep(client, private_record.id, private_notebook)
 
     leaking = sorted(path for path, body in bodies.items() if PRIVATE_NAME in body)
     assert leaking == [], f"rotas vazando registro alheio: {leaking}"

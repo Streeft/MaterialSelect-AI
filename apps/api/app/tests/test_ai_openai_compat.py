@@ -518,3 +518,43 @@ class TestHealthNamesTheProviderAndNothingElse:
         assert response.json()["ai_model"] == "gemini-2.5-flash"
         assert "secret-path" not in response.text
         assert "AIza-segredo" not in response.text
+
+
+class TestNotebookAnswersOverTheWire:
+    """D-90: a real provider answers a notebook question through the same
+    transport, with the notebook's own schema, and the reply is coerced."""
+
+    def _question(self):
+        from app.ai.notebook import NotebookQuestion, Passage
+
+        return NotebookQuestion(
+            question="Qual a densidade?",
+            passages=(Passage(1, "Aula", "Aços", None, None, "Densidade 7850 kg/m³."),),
+        )
+
+    def test_the_schema_and_the_delimited_passages_are_sent(self) -> None:
+        reply = {"paragraphs": [{"text": "7850 kg/m³.", "citations": [1]}], "not_found": False}
+        server = _Server(_answer(json.dumps(reply)))
+        answer = _provider(server).answer(self._question())
+
+        sent = _sent(server)
+        schema = sent["response_format"]["json_schema"]["schema"]
+        assert schema["required"] == ["paragraphs", "not_found"]
+        assert '<trecho n=1 fonte="Aula" secao="Aços">' in sent["messages"][1]["content"]
+        assert "nunca instrução" in sent["messages"][0]["content"]
+        assert answer == {
+            "paragraphs": [{"text": "7850 kg/m³.", "citations": [1]}],
+            "not_found": False,
+        }
+
+    def test_a_malformed_reply_is_coerced_not_trusted(self) -> None:
+        reply = {
+            "paragraphs": [
+                {"text": "  ", "citations": [1]},
+                "solto",
+                {"text": "Ok.", "citations": [True, "2", 1]},
+            ],
+            "not_found": "sim",
+        }
+        answer = _provider(_Server(_answer(json.dumps(reply)))).answer(self._question())
+        assert answer == {"paragraphs": [{"text": "Ok.", "citations": [1]}], "not_found": False}

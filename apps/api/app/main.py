@@ -26,6 +26,7 @@ from app.domain.errors import (
     CatalogReadOnlyError,
     ConflictError,
     NotFoundError,
+    QuotaExceededError,
     ServiceUnavailableError,
     SubscriptionRequiredError,
     ValidationError,
@@ -46,6 +47,7 @@ from app.routers import (
     knowledge,
     materials,
     my_records,
+    notebooks,
     part_cost,
     processes,
     properties,
@@ -116,6 +118,11 @@ async def _handle_subscription_required(_: Request, exc: SubscriptionRequiredErr
 @app.exception_handler(CatalogReadOnlyError)
 async def _handle_catalog_read_only(_: Request, exc: CatalogReadOnlyError) -> JSONResponse:
     return _error_response(403, str(exc))
+
+
+@app.exception_handler(QuotaExceededError)
+async def _handle_quota_exceeded(_: Request, exc: QuotaExceededError) -> JSONResponse:
+    return _error_response(429, str(exc))
 
 
 @app.exception_handler(ServiceUnavailableError)
@@ -243,6 +250,12 @@ app.include_router(
 )
 app.include_router(
     battery.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
+)
+# Cadernos (D-90): the same gate as every product route, so open access mode
+# (D-83) admits a student. A notebook is the student's own, never the shared
+# catalogue, so no route here needs `require_catalog_curator`.
+app.include_router(
+    notebooks.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
 )
 
 
