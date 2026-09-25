@@ -789,7 +789,7 @@ padrão do código e dos testes**. O Estúdio (relatórios, cartões, teste, map
 mental, tabela, slides, infográfico, áudio e vídeo pela voz do navegador) e as
 fontes da web são as fases 2 a 4, em `docs/TODO.md`.
 
-1906 testes de backend (nenhum skip) e 530 de frontend, todos verdes. CI no
+1906 testes de backend (nenhum skip) e 536 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
 PROJECT_CONTEXT.md).
