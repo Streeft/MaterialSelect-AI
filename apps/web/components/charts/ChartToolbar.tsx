@@ -3,6 +3,8 @@
 import { useState, type RefObject } from "react";
 import { ptBR } from "@/lib/i18n";
 import { downloadChartImage } from "@/lib/charts";
+import { MenuButton, MenuItem } from "@/components/ui/Menu";
+import { IconDownload } from "@/components/ui/icons";
 
 const t = ptBR.chart;
 
@@ -46,25 +48,25 @@ export function ChartToolbar({
 
   return (
     <div className={className}>
-      {/* MSDS chart-card actions (D-80): text actions in the section accent,
-          the same weight as "Ver tabela de dados" beside them, so the toolbar
-          reads as one row of verbs instead of two outlined buttons crowding
-          the title. */}
-      <div role="group" aria-label={t.toolbar} className="flex items-center gap-3">
-        {(["png", "svg"] as const).map((format) => (
-          <button
-            key={format}
-            type="button"
-            className="msds-table-toggle chart-action"
-            disabled={disabled || exporting !== null}
-            onClick={() => void handleExport(format)}
-          >
-            {exporting === format ? t.exporting : format === "png" ? t.exportPng : t.exportSvg}
-          </button>
-        ))}
+      {/* D-91: one "Exportar ▾" instead of two text links. The toolbar row
+          keeps a single verb for the file and a single switch for the view,
+          so it no longer crowds the title on a half-width card. */}
+      <div role="group" aria-label={t.toolbar} className="flex items-center">
+        <MenuButton
+          label={exporting ? t.exporting : t.exportMenu}
+          icon={<IconDownload className="h-4 w-4" />}
+          disabled={disabled || exporting !== null}
+        >
+          <MenuItem hint={t.exportPngHint} onSelect={() => void handleExport("png")}>
+            {t.exportPng}
+          </MenuItem>
+          <MenuItem hint={t.exportSvgHint} onSelect={() => void handleExport("svg")}>
+            {t.exportSvg}
+          </MenuItem>
+        </MenuButton>
       </div>
       {error ? (
-        <p role="alert" className="mt-1 text-2xs text-danger-fg">
+        <p role="alert" className="mt-1 text-caption text-danger-fg">
           {error}
         </p>
       ) : null}

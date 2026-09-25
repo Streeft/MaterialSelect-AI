@@ -21,6 +21,7 @@ import {
   Combobox,
   DataQualityBadge,
   DataQualityLegend,
+  DensityToggle,
   Dialog,
   Disclosure,
   GuidedBlock,
@@ -29,6 +30,8 @@ import {
   IconButton,
   Input,
   LoadingState,
+  MenuButton,
+  MenuItem,
   MissingValue,
   NumberInput,
   PageHeader,
@@ -101,12 +104,40 @@ const RAIL_SURFACES = [
  * is that concentric shapes at the same radius read as a printing error.
  * `panel` is the frame of an entire route (a screen's shell).
  */
+// D-91: the radius names the role — dense cell, control, card, screen.
 const RADII = [
-  ["rounded-seat", "rounded-seat", "8 px"],
-  ["rounded-control", "rounded-control", "12 px"],
-  ["rounded-card", "rounded-card", "20 px"],
-  ["rounded-panel", "rounded-panel", "24 px"],
+  ["rounded-seat", "rounded-seat", "6 px · célula, chip denso"],
+  ["rounded-control", "rounded-control", "10 px · campo, botão, poço"],
+  ["rounded-card", "rounded-card", "16 px · cartão"],
+  ["rounded-panel", "rounded-panel", "20 px · moldura da tela"],
   ["rounded-full", "rounded-full", "pílula"],
+] as const;
+
+// D-91: the type scale by role. Tailwind's numeric steps stay for what is
+// sized by fit (a badge, a tick label).
+const TYPE_ROLES = [
+  ["text-display", "28/36 · bold", "Título de página"],
+  ["text-title", "20/28 · semibold", "Título de seção"],
+  ["text-heading", "17/24 · semibold", "Título de cartão"],
+  ["text-body", "14/22", "Corpo de texto, tamanho padrão da interface."],
+  ["text-support", "13/20", "Ajuda sob um campo ou título: o que preencher e por quê."],
+  ["text-caption", "12/16", "Legenda, cabeçalho de coluna, rótulo de dado."],
+] as const;
+
+// D-91: every state of a button, side by side. `data-force-state` makes the
+// real hover/focus/pressed rules apply without a pointer (see msds.css).
+const BUTTON_STATES = [
+  ["Repouso", undefined],
+  ["Hover", "hover"],
+  ["Foco", "focus"],
+  ["Pressionado", "pressed"],
+] as const;
+const BUTTON_VARIANTS = [
+  ["primary", "Primário", "A ação da tela. No máximo um visível."],
+  ["secondary", "Secundário", "Alternativa real, ou o passo antes do primário."],
+  ["ghost", "Fantasma", "Terciário: cancelar, limpar, carregar."],
+  ["danger-quiet", "Perigo discreto", "Porta de entrada de uma exclusão, numa lista."],
+  ["danger", "Perigo", "A confirmação da exclusão, dentro do diálogo."],
 ] as const;
 
 const BRAND = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950] as const;
@@ -347,7 +378,7 @@ export default function StyleGuidePage() {
 
       <Section
         title={ptBR.styleGuide.shape}
-        description="Dois tokens de raio cobrem quase tudo; o seat existe para o que fica dentro de um controle, e panel para a moldura externa da rota. O movimento é CSS puro — passe o ponteiro e pressione. Quem pede menos movimento no sistema operacional recebe a mesma mudança de estado, sem a animação."
+        description="O raio diz que tipo de coisa é (D-91): o cartão que agrupa trabalho é mais redondo que o controle dentro dele, e a célula de uma tabela densa é mais reta ainda. Dentro de um cartão não entra outro cartão — entra um poço (fundo, sem borda) ou uma subseção (espaço e um fio). O movimento é CSS puro — passe o ponteiro e pressione. Quem pede menos movimento no sistema operacional recebe a mesma mudança de estado, sem a animação."
         headingLevel={2}
       >
         <div className="flex flex-wrap items-end gap-4">
@@ -355,7 +386,7 @@ export default function StyleGuidePage() {
             <div key={name} className="flex flex-col items-center gap-1">
               <span className={`h-14 w-14 border border-edge-control bg-surface-sunken ${cls}`} />
               <code className="font-mono text-2xs text-ink-subtle">{name}</code>
-              <span className="text-2xs text-ink-subtle">{size}</span>
+              <span className="max-w-[8rem] text-center text-caption text-ink-subtle">{size}</span>
             </div>
           ))}
         </div>
@@ -375,7 +406,7 @@ export default function StyleGuidePage() {
 
       <Section
         title="Molduras e cascas (PanelShell, PageHeader)"
-        description="PanelShell delimita a moldura de uma rota completa com raio rounded-panel (24 px / 1.5 rem), distinguindo uma tela inteira de um simples cartão. PageHeader governa o cabeçalho h1, o eyebrow hierárquico com o nome da seção e o slot de ações de página."
+        description="PanelShell delimita a moldura de uma rota completa com raio rounded-panel (20 px / 1,25 rem), distinguindo uma tela inteira de um simples cartão. PageHeader governa o cabeçalho h1, o eyebrow hierárquico com o nome da seção e o slot de ações de página."
         headingLevel={2}
       >
         <div className="rounded-panel border border-edge bg-surface-sunken p-4">
@@ -544,13 +575,23 @@ export default function StyleGuidePage() {
         </div>
       </Section>
 
-      <Section title={ptBR.styleGuide.typography} headingLevel={2}>
+      <Section
+        title={ptBR.styleGuide.typography}
+        description="Seis papéis, cada um com tamanho e entrelinha fixos (D-91). A fonte mono fica só para números e expressões; o sobrescrito em caixa alta e espaçado pertence ao cabeçalho da página e a nenhum outro lugar."
+        headingLevel={2}
+      >
+        <dl className="flex flex-col divide-y divide-line-divider">
+          {TYPE_ROLES.map(([cls, metrics, sample]) => (
+            <div key={cls} className="grid gap-1 py-2 sm:grid-cols-[10rem_1fr] sm:items-baseline">
+              <dt className="flex flex-col">
+                <code className="font-mono text-caption text-ink-muted">{cls}</code>
+                <span className="text-caption text-ink-subtle">{metrics}</span>
+              </dt>
+              <dd className={`${cls} text-ink`}>{sample}</dd>
+            </div>
+          ))}
+        </dl>
         <div className="space-y-1">
-          <p className="text-2xl font-semibold text-ink">Seleção de materiais</p>
-          <p className="text-lg font-semibold text-ink">Índice de desempenho e ranking</p>
-          <p className="text-sm text-ink">Corpo de texto, tamanho padrão da interface.</p>
-          <p className="text-sm text-ink-muted">Texto secundário.</p>
-          <p className="text-2xs text-ink-subtle">Linha de proveniência e legendas.</p>
           <p className="font-mono text-sm text-ink">sqrt(modulo_young) / densidade</p>
           <p className="tabular-nums text-sm text-ink">
             1,0 · 10,5 · 100,25 · 1000,5 — alinham em coluna
@@ -568,13 +609,63 @@ export default function StyleGuidePage() {
           </Button>
           <Button variant="link">Ver no mapa</Button>
         </div>
+        <div className="scroll-x">
+          <table className="w-full min-w-[40rem] border-collapse text-left">
+            <caption className="sr-only">Estados de cada variante de botão</caption>
+            <thead>
+              <tr className="text-caption text-ink-muted">
+                <th scope="col" className="py-2 pr-3 font-semibold">Variante</th>
+                {BUTTON_STATES.map(([label]) => (
+                  <th key={label} scope="col" className="px-2 py-2 font-semibold">
+                    {label}
+                  </th>
+                ))}
+                <th scope="col" className="px-2 py-2 font-semibold">Desabilitado</th>
+                <th scope="col" className="px-2 py-2 font-semibold">Carregando</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-line-divider">
+              {BUTTON_VARIANTS.map(([variant, name, use]) => (
+                <tr key={variant}>
+                  <th scope="row" className="py-3 pr-3 align-middle">
+                    <span className="block text-sm font-semibold text-ink">{name}</span>
+                    <span className="block max-w-[14rem] text-caption font-normal text-ink-subtle">
+                      {use}
+                    </span>
+                  </th>
+                  {BUTTON_STATES.map(([label, state]) => (
+                    <td key={label} className="px-2 py-3 align-middle">
+                      <Button size="sm" variant={variant} data-force-state={state} tabIndex={-1}>
+                        {name}
+                      </Button>
+                    </td>
+                  ))}
+                  <td className="px-2 py-3 align-middle">
+                    <Button size="sm" variant={variant} disabled>
+                      {name}
+                    </Button>
+                  </td>
+                  <td className="px-2 py-3 align-middle">
+                    <Button size="sm" variant={variant} loading tabIndex={-1}>
+                      {name}
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button size="sm" variant="primary" icon={<IconPlus />}>
             Adicionar restrição
           </Button>
-          <Button size="sm" variant="secondary" icon={<IconDownload />}>
-            Exportar
-          </Button>
+          <MenuButton label="Exportar" icon={<IconDownload className="h-4 w-4" />}>
+            <MenuItem onSelect={() => {}}>CSV</MenuItem>
+            <MenuItem onSelect={() => {}}>XLSX</MenuItem>
+            <MenuItem onSelect={() => {}} hint="Abre em nova aba, para imprimir ou salvar em PDF">
+              HTML para impressão
+            </MenuItem>
+          </MenuButton>
           <Button variant="primary" loading>
             Executando
           </Button>
@@ -623,12 +714,12 @@ export default function StyleGuidePage() {
               required
               placeholder="Viga leve para bicicleta"
             />
-            <NumberInput label="Peso" hint="Renormalizado para somar 1" value={0.5} />
-            <Select label="Propriedade" value="densidade">
+            <NumberInput label="Peso" hint="Renormalizado para somar 1" defaultValue={0.5} />
+            <Select label="Propriedade" defaultValue="densidade">
               <SelectOption value="densidade">Densidade</SelectOption>
               <SelectOption value="modulo_young">Módulo de Young</SelectOption>
             </Select>
-            <Input label="Valor" error="Informe um número." required value="abc" />
+            <Input label="Valor" error="Informe um número." required defaultValue="abc" />
             <Textarea
               label="Observações"
               className="sm:col-span-2"
@@ -748,7 +839,12 @@ export default function StyleGuidePage() {
         </div>
       </Section>
 
-      <Section title={ptBR.styleGuide.tables} headingLevel={2}>
+      <Section
+        title={ptBR.styleGuide.tables}
+        description="Cabeçalho em caixa normal, 12 px. A densidade é escolha do leitor e vale para todas as tabelas do app (D-91)."
+        actions={<DensityToggle />}
+        headingLevel={2}
+      >
         <TableScroll label="Exemplo de ranking">
           <Table>
             <THead>

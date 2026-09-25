@@ -7,8 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getClass, listClasses, listMaterials } from "@/lib/api";
 import { ptBR } from "@/lib/i18n";
 import { descendantSlugs } from "@/lib/taxonomy";
-import { MaterialCards } from "@/components/catalog/MaterialCards";
-import { MaterialTable } from "@/components/catalog/MaterialRows";
+import { MaterialList } from "@/components/catalog/MaterialList";
 import { FamilyProseCard } from "@/components/browse/FamilyProse";
 import {
   Breadcrumb,
@@ -117,13 +116,7 @@ export default function MaterialFamilyPage() {
             {hasChildren ? f.emptyFolderWithChildren : f.emptyFolder}
           </p>
         ) : (
-          <>
-            {/* Both render; the breakpoint picks one (D-50). */}
-            <MaterialCards materials={shown} />
-            <div className="hidden sm:block">
-              <MaterialTable materials={shown} />
-            </div>
-          </>
+          <MaterialList materials={shown} />
         )}
 
         <Card>

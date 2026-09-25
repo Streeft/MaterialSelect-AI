@@ -172,6 +172,7 @@ export function Disclosure({
   open,
   onOpenChange,
   id,
+  flush = false,
   className,
   children,
 }: {
@@ -180,6 +181,11 @@ export function Disclosure({
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   id?: string;
+  /**
+   * D-91: inside a card, the disclosure is a divider and a summary line, not
+   * a second bordered box — no card inside a card.
+   */
+  flush?: boolean;
   className?: string;
   children: ReactNode;
 }) {
@@ -195,16 +201,25 @@ export function Disclosure({
         if (controlled && next === open) return;
         onOpenChange?.(next);
       }}
-      className={cn("group rounded-card border border-edge bg-surface-raised", className)}
+      className={cn(
+        "group",
+        flush ? "border-t border-line-divider" : "rounded-card border border-line bg-panel",
+        className,
+      )}
     >
-      <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-2.5 text-sm font-medium text-ink marker:content-[''] [&::-webkit-details-marker]:hidden">
+      <summary
+        className={cn(
+          "flex cursor-pointer list-none items-center gap-2 py-2.5 text-sm font-medium text-ink marker:content-[''] [&::-webkit-details-marker]:hidden",
+          flush ? "px-0 pt-3" : "px-4",
+        )}
+      >
         <IconChevronRight
           aria-hidden
           className="h-4 w-4 shrink-0 text-ink-muted transition-transform group-open:rotate-90"
         />
         <span className="min-w-0 flex-1">{summary}</span>
       </summary>
-      <div className="border-t border-edge-subtle p-4">{children}</div>
+      <div className={flush ? "pt-2" : "border-t border-line-divider p-4"}>{children}</div>
     </details>
   );
 }

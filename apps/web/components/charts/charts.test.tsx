@@ -83,22 +83,50 @@ describe("ChartToolbar", () => {
       </>,
     );
 
-    await user.click(await screen.findByShadowRole("button", { name: t.exportPng }));
+    await user.click(await screen.findByShadowRole("button", { name: t.exportMenu }));
+    await user.click(await screen.findByShadowRole("menuitem", { name: new RegExp(`^${t.exportPng}`) }));
 
     expect(await screen.findByShadowRole("alert")).toHaveTextContent(t.exportError);
   });
 
-  it("offers both formats under one labelled group", async () => {
+  it("offers both formats in one Exportar menu (D-91)", async () => {
+    const user = userEvent.setup();
+    const target = createRef<HTMLDivElement>();
+    render(<ChartToolbar target={target} fileName="mapa" />);
+
+    expect(screen.getByShadowRole("group", { name: t.toolbar })).toBeInTheDocument();
+    const trigger = screen.getByShadowRole("button", { name: t.exportMenu });
+    expect(trigger).toHaveAttribute("aria-haspopup", "menu");
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+
+    await user.click(trigger);
+    const menu = await screen.findByShadowRole("menu", { name: t.exportMenu });
+    const items = within(menu).getAllByShadowRole("menuitem");
+    expect(items.map((item) => item.textContent)).toEqual([
+      `${t.exportPng}${t.exportPngHint}`,
+      `${t.exportSvg}${t.exportSvgHint}`,
+    ]);
+    // Opening lands the keyboard inside the list; Escape gives focus back.
+    expect(items[0]).toHaveFocus();
+    await user.keyboard("{ArrowDown}");
+    expect(items[1]).toHaveFocus();
+    await user.keyboard("{Escape}");
+    expect(screen.queryByShadowRole("menu")).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
+
+    // Tab leaves from the trigger, not from the end of <body> where the
+    // portalled list lives: Shift+Tab out of the list lands back on it.
+    await user.click(trigger);
+    await screen.findByShadowRole("menu");
+    await user.keyboard("{Shift>}{Tab}{/Shift}");
+    expect(screen.queryByShadowRole("menu")).not.toBeInTheDocument();
+  });
+
+  it("disables the menu while there is no figure to export", () => {
     const target = createRef<HTMLDivElement>();
     render(<ChartToolbar target={target} fileName="mapa" disabled />);
-
-    const group = screen.getByShadowRole("group", { name: t.toolbar });
-    expect(group).toBeInTheDocument();
-    // Disabled while the figure is empty: a button that can only fail is worse
-    // than no button.
-    for (const name of [t.exportPng, t.exportSvg]) {
-      expect(await screen.findByShadowRole("button", { name })).toBeDisabled();
-    }
+    // A button that can only fail is worse than no button.
+    expect(screen.getByShadowRole("button", { name: t.exportMenu })).toBeDisabled();
   });
 });
 
@@ -284,8 +312,15 @@ describe("ComparisonView, chart modes", () => {
     // The material the figure could not plot is in the table all the same.
     const row = within(table).getByShadowRole("rowheader", { name: /Alumina/ }).closest("tr");
     expect(within(row as HTMLElement).getByText(ptBR.quality.AUSENTE)).toBeInTheDocument();
-    // And the way back is the same button, renamed.
-    expect(screen.getByShadowRole("button", { name: t.showFigure })).toBeInTheDocument();
+    // And the way back is the other position of the same switch (D-91).
+    expect(screen.getByShadowRole("button", { name: t.showFigure })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+    expect(screen.getByShadowRole("button", { name: t.showTable })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
   });
 
   it("presents the figure as one named figure", () => {
@@ -541,8 +576,10 @@ function makePropertyMap(): PropertyMap {
 
 describe("AshbyMap — seleção interativa e cursor", () => {
   it("não renderiza seletor de cursor quando enableBoxSelect é falso ou omitido", () => {
-    const { container } = render(<AshbyMap map={makePropertyMap()} />);
-    expect(container.querySelector(".msds-segmented")).toBeNull();
+    render(<AshbyMap map={makePropertyMap()} />);
+    // The "Gráfico | Tabela" switch is segmented too (D-91); the cursor one is
+    // found by its name.
+    expect(screen.queryByRole("group", { name: ptBR.chart.dragMode })).toBeNull();
   });
 
   it("renderiza o alternador de cursor entre zoom e seleção quando enableBoxSelect está ativo", () => {

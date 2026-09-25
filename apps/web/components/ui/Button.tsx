@@ -27,7 +27,21 @@ import { Button as MsdsButton, useRipple, useShapeMorph } from "@/lib/msds";
  * array, no `disabled` on `Chip`); the classes carry the design without them.
  */
 
-export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "link";
+/**
+ * The hierarchy (D-91), which is a rule and not a palette:
+ *
+ * - `primary` — the one action the screen (or the open dialog) is for. At most
+ *   one is visible at a time; a second one makes the reader choose between two
+ *   "most important" things.
+ * - `secondary` — a real alternative, or the step before the primary one.
+ * - `ghost` — tertiary: cancel, clear, load, remove-one-item.
+ * - `danger` — the confirmation of a destructive act, inside the dialog that
+ *   asks for it.
+ * - `danger-quiet` — the destructive *entry point* in a list or header: red
+ *   text, no fill, so a table of rows is not a column of red buttons.
+ * - `link` — navigation that reads as prose.
+ */
+export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "danger-quiet" | "link";
 export type ButtonSize = "sm" | "md";
 
 function msdsButtonClassName(variant: ButtonVariant, size: ButtonSize, className?: string) {
