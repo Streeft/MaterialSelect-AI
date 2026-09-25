@@ -30,8 +30,10 @@ every proposal still passes ``app/ai/guardrails.py``. Those live in
 from __future__ import annotations
 
 import json
+import time
 import urllib.error
 import urllib.request
+from collections.abc import Callable
 from typing import Any
 
 from app import __version__
@@ -62,6 +64,17 @@ KNOWN_ENDPOINTS = (
 # Modes for constraining the answer's shape, in decreasing order of guarantee.
 JSON_MODES = ("schema", "object", "prompt")
 
+#: Statuses that say "the server is struggling right now", not "the request is
+#: wrong". A free hosted model answers 503 "high demand" in bursts (Gemini,
+#: 2026), and one click should not have to become three.
+_TRANSIENT_STATUSES = frozenset({500, 502, 503, 504})
+#: Waits before each new attempt, in seconds — two retries, short enough that
+#: the whole call stays well inside the request timeout of the page.
+_RETRY_DELAYS = (2.0, 5.0)
+#: A ``Retry-After`` longer than this is not waited out inside a request; the
+#: message tells the reader to try again later instead.
+_MAX_RETRY_AFTER = 10.0
+
 
 class OpenAICompatProvider(ModelProviderBase):
     """A model behind an OpenAI-compatible ``/chat/completions`` endpoint."""
@@ -69,10 +82,17 @@ class OpenAICompatProvider(ModelProviderBase):
     name = "openai-compat"
     simulated = False
 
-    def __init__(self, settings: Settings = default_settings, opener: Any | None = None) -> None:
+    def __init__(
+        self,
+        settings: Settings = default_settings,
+        opener: Any | None = None,
+        sleep: Callable[[float], None] = time.sleep,
+    ) -> None:
         self.settings = settings
         # Injectable so the request can be exercised without a network call.
         self._opener = opener
+        # Injectable so a test of the retries does not wait for them.
+        self._sleep = sleep
 
     @classmethod
     def from_settings(cls, settings: Settings) -> AIProvider:
@@ -150,6 +170,43 @@ class OpenAICompatProvider(ModelProviderBase):
         return mode
 
     def _post(self, body: dict) -> dict:
+        """One request, retried while the server says it is only overloaded.
+
+        A transient status (``_TRANSIENT_STATUSES``) is asked again after a
+        short wait, twice at most. Anything else — a wrong key, a missing
+        model, a quota — is not going to change in five seconds, and is
+        reported at once.
+        """
+        attempts = len(_RETRY_DELAYS) + 1
+        for attempt in range(attempts):
+            try:
+                return self._post_once(body)
+            except _Transient as exc:
+                if attempt == attempts - 1 or exc.retry_after > _MAX_RETRY_AFTER:
+                    raise AIUnavailableError(self._transient_message(exc, retried=attempt)) from exc
+                self._sleep(max(_RETRY_DELAYS[attempt], exc.retry_after))
+        raise AssertionError("unreachable")  # pragma: no cover
+
+    def _transient_message(self, exc: _Transient, retried: int) -> str:
+        tried = (
+            f" O pedido foi repetido {retried} {'vez' if retried == 1 else 'vezes'}."
+            if retried
+            else ""
+        )
+        if exc.code == 503:
+            return (
+                "O modelo está sobrecarregado agora (503) — é passageiro e do lado "
+                f"do servidor, não da configuração.{tried} Tente de novo em alguns "
+                "minutos; se continuar, um modelo mais leve costuma ter menos fila "
+                "(no Gemini, gemini-flash-lite-latest pelo workflow Provedor de IA). "
+                f"Motivo do servidor: {exc.detail or 'não informado'}"
+            ).strip()
+        return (
+            f"O servidor falhou ao responder ({exc.code}).{tried} Costuma ser "
+            f"passageiro: tente de novo em alguns minutos. {exc.detail}"
+        ).strip()
+
+    def _post_once(self, body: dict) -> dict:
         request = urllib.request.Request(
             self._endpoint(),
             data=json.dumps(body, ensure_ascii=False).encode("utf-8"),
@@ -165,6 +222,8 @@ class OpenAICompatProvider(ModelProviderBase):
             detail, generation_rejected = _error_of(exc)
             if exc.code == 400 and generation_rejected:
                 raise _GenerationRejected(detail) from exc
+            if exc.code in _TRANSIENT_STATUSES:
+                raise _Transient(exc.code, detail, _retry_after(exc)) from exc
             raise AIUnavailableError(self._http_message(exc, detail)) from exc
         except TimeoutError as exc:
             raise AIUnavailableError(
@@ -316,6 +375,31 @@ def _strip_fence(text: str) -> str:
     without_open = stripped.split("\n", 1)[1] if "\n" in stripped else ""
     closing = without_open.rfind("```")
     return (without_open[:closing] if closing != -1 else without_open).strip()
+
+
+class _Transient(Exception):
+    """A status that says the server is overloaded, not that the request is
+    wrong — asked again by ``_post``."""
+
+    def __init__(self, code: int, detail: str, retry_after: float) -> None:
+        super().__init__(detail)
+        self.code = code
+        self.detail = detail
+        self.retry_after = retry_after
+
+
+def _retry_after(exc: urllib.error.HTTPError) -> float:
+    """``Retry-After`` in seconds when the server sent one as a number; 0 if not.
+
+    The HTTP-date form is not parsed: a server that asks to be left alone
+    until a given date is not one to wait for inside a request anyway.
+    """
+    headers = getattr(exc, "headers", None)
+    value = headers.get("Retry-After") if headers is not None else None
+    try:
+        return max(float(value), 0.0) if value is not None else 0.0
+    except (TypeError, ValueError):
+        return 0.0
 
 
 class _GenerationRejected(Exception):
