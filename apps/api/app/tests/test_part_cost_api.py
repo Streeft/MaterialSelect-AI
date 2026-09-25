@@ -135,7 +135,8 @@ def _own_material(db_session: Session, user: User, name: str) -> Material:
     material = Material(
         name=name,
         class_id=metal_class.id,
-        created_by_user_id=user.id,
+        owner_id=user.id,
+        is_active=True,
     )
     db_session.add(material)
     db_session.flush()
