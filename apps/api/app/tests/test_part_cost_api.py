@@ -71,6 +71,43 @@ def test_cost_estimator_ranks_cheapest_process_first(
     assert [item["rank"] for item in costed] == list(range(1, len(costed) + 1))
 
 
+def test_a_bigger_batch_never_raises_any_total(client: TestClient, db_session: Session) -> None:
+    """Only the tooling term moves, and it moves down. Nothing else may drift."""
+    material_id = _aluminium_id(db_session)
+    small = {
+        i["process_slug"]: i["terms"]
+        for i in _estimate(client, material_id, batch_size=10).json()["costed"]
+    }
+    large = {
+        i["process_slug"]: i["terms"]
+        for i in _estimate(client, material_id, batch_size=100_000).json()["costed"]
+    }
+
+    assert small and small.keys() == large.keys()
+    for slug, terms in small.items():
+        assert large[slug]["total"] <= terms["total"]
+        assert large[slug]["material"] == terms["material"]
+        assert large[slug]["overhead"] == terms["overhead"]
+        assert large[slug]["capital"] == terms["capital"]
+
+
+def test_the_batch_can_reorder_the_answer(client: TestClient, db_session: Session) -> None:
+    """The crossover is what the estimator — and its curve — exist to show.
+
+    A tooling-heavy, fast process loses at ten parts and wins at a hundred
+    thousand. If the ranking never changed with the batch, the curve the D-96
+    chart draws would have nothing to show.
+    """
+    material_id = _aluminium_id(db_session)
+    few = [i["process_slug"] for i in _estimate(client, material_id, batch_size=1).json()["costed"]]
+    many = [
+        i["process_slug"]
+        for i in _estimate(client, material_id, batch_size=1_000_000).json()["costed"]
+    ]
+
+    assert few != many, "nenhum cruzamento: o lote não reordenou nada"
+
+
 def test_cost_estimator_excludes_processes_with_missing_attributes(
     client: TestClient, db_session: Session
 ) -> None:
@@ -128,6 +165,10 @@ def test_cost_estimator_validates_batch_size_and_mass(
     assert _estimate(client, material_id, write_off_years=0).status_code == 422
     assert _estimate(client, material_id, load_factor=0).status_code == 422
     assert _estimate(client, material_id, load_factor=1.5).status_code == 422
+
+
+def test_an_unknown_material_is_a_404(client: TestClient) -> None:
+    assert _estimate(client, 999_999).status_code == 404
 
 
 def _own_material(db_session: Session, user: User, name: str) -> Material:

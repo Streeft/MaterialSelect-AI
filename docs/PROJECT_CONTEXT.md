@@ -476,7 +476,7 @@ modelo funcional está ausente ou pela metade, não que cada uma esteja no seu
 teto.
 
 **Saúde do código:** 1966 testes de backend (Python 3.11 e 3.12, nenhum skip)
-e 554 de frontend, todos verdes. Desde o P0-1 a suíte também roda as migrações de
+e 563 de frontend, todos verdes. Desde o P0-1 a suíte também roda as migrações de
 verdade, nos dois sentidos, contra um banco temporário que já contém dados —
 `test_migration_selection_stage.py`, `test_migration_process_universe.py`,
 `test_migration_selection_universe.py`, `test_migration_process_attributes.py`,

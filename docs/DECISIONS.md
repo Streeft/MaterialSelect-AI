@@ -6097,3 +6097,48 @@ essas abas.
 - **O painel escuro do tooltip**, por pedido do autor.
 
 A paleta categórica e as cores por rota não mudaram.
+
+## D-96 — A curva custo × lote reamostra a mesma decomposição do D-65, e o PR que a trouxe teve a cobertura de teste auditada
+
+**O que entrou** (PR #78, `feat/custo-curva-lote`): `/app/custo` ganhou um
+segundo desenho abaixo da tabela de termos — a curva do custo unitário C(n)
+contra o tamanho do lote n, em escala log–log, com o lote pedido destacado.
+Fecha uma lacuna que `docs/TODO.md` já registrava como deixada de fora no
+item do Part Cost Estimator (D-65): "ver" o lote de transição econômica sem
+alterar o campo manualmente a cada tentativa.
+
+**Não é uma segunda derivação.** `cost_curve()` em
+`app/calculations/part_cost.py` lê `base_cost = material + overhead +
+capital` — os três termos que `cost_terms()` já calcula para a tabela — e
+soma `tooling_cost / n` para cada `n` da amostra. A curva é a mesma
+decomposição termo a termo do D-65, só reamostrada num eixo que a tabela de
+um lote só não mostra; o termo de ferramental é o único que se move,
+exatamente a regra que a tabela já ilustra coluna por coluna. Os pontos vêm
+espaçados em log (1, 2, 5 por década) de 1 a 10⁶, com o lote pedido inserido
+mesmo que não caia numa marcação redonda — sem isso o ponto em destaque no
+desenho poderia não ter par de dado.
+
+**Sem moeda inventada** (a regra do D-65 continua): o eixo Y lê "unidade
+monetária" e `formatNumber`, nunca um símbolo de moeda. A tabela alternativa
+(D-31) é obrigatória, como em todo gráfico do app — `FigureData` com uma
+linha por tamanho de lote, os valores exatamente os do traço.
+
+**A auditoria pós-merge achou duas lacunas, nenhuma no comportamento.** O PR
+veio de execução agêntica (Antigravity) com uma rodada de correção humana no
+meio (`0d6b0d2`, um parêntese sobrando que `ruff` pegou) e reescreveu
+`test_part_cost_api.py` inteiro em vez de estender — 16 testes viraram 8.
+Três não tinham substituto: a prova de que só o termo de ferramental se
+move com o lote, a prova do **cruzamento** (a razão de existir da própria
+curva — sem reordenar nada com o lote, o desenho não teria nada para
+mostrar) e o 404 de um id de material inexistente (distinto do 404 de
+registro alheio do P1-4, que sobreviveu). Reinstalados aqui, sem alterar o
+código de `part_cost.py` — os três passaram de primeira contra o que já
+estava em `main`, então o comportamento nunca esteve errado, só a prova
+dele tinha sumido. A segunda lacuna era de registro: nenhuma decisão,
+nenhuma linha de sessão, e `docs/TODO.md` continuava listando "a curva
+desenhada" como pendência de um item já quitado — corrigidas junto com
+esta entrada.
+
+**O que fica para depois**, como o D-65 já dizia: custo por família de
+processo, e custo como objetivo num estudo de *processos* — que não têm
+`custo_massa`.
