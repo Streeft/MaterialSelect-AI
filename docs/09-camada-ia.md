@@ -300,6 +300,16 @@ manda trocar `AI_JSON_MODE` fica para o 400 que reclama de `response_format` —
 esse sim é o servidor sem suporte a saída estruturada. O `failed_generation`
 **nunca** é aproveitado: degradar o contrato é escolha do operador (D-36).
 
+**Sobrecarga não é configuração.** Um modelo gratuito hospedado responde 503
+("high demand") em rajadas — foi o que o Gemini fez na primeira semana dos
+Cadernos. O `openai-compat` repete sozinho os status passageiros (500, 502, 503,
+504) **duas vezes**, depois de 2 s e de 5 s, respeitando um `Retry-After` curto;
+um `Retry-After` acima de 10 s não é esperado dentro da requisição. Esgotadas as
+tentativas, a mensagem diz que é carga do servidor, quantas vezes o pedido foi
+repetido e que um modelo mais leve costuma ter menos fila. Chave, modelo e cota
+(401, 404, 429) **não** são repetidos: não mudam em cinco segundos. Uma pergunta
+que falhou assim não conta na cota do aluno.
+
 **Um provedor real não é determinístico.** O mesmo enunciado pode ser lido de
 dois jeitos, e é por isso que `mock` continua sendo o padrão — é sobre ele que o
 argumento de reprodutibilidade se apoia. A ressalva mostrada ao usuário diz
