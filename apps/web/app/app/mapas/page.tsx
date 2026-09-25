@@ -146,15 +146,20 @@ function AxisControl({
           value={axis.property}
           onChange={(e) => onChange({ ...axis, property: e.target.value })}
         >
+          {/* D-91: no unit in the option. The map reads in D-70 units
+              (g/cm³, GPa) and an offset unit stays canonical, so the stored
+              unit here ("[kg/m³]") contradicted the axis beside it. The
+              axis title, drawn from the map itself, is the one place the
+              unit is stated. */}
           {properties.map((p) => (
             <SelectOption key={p.slug} value={p.slug}>
-              {p.name} {p.canonical_unit ? `[${prettyUnit(p.canonical_unit)}]` : ""}
+              {p.name}
             </SelectOption>
           ))}
         </Select>
       ) : (
         <div className="flex flex-col gap-2">
-          <p className="text-2xs text-ink-muted">{t.axisIndexHint}</p>
+          <p className="text-support text-ink-muted">{t.axisIndexHint}</p>
           <Select
             label={label}
             className="min-w-0"
@@ -648,57 +653,31 @@ function MapsPageContent() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <PageHeader
-          title={t.title}
-          description={t.subtitle}
-          group="estudar"
-          actions={
-            <>
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={() => setSaveDialogOpen(true)}
-                title={t.saveTooltip}
-              >
-                {t.save}
-              </Button>
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={() => void shareMap()}
-                title={t.shareTooltip}
-              >
-                {t.share}
-              </Button>
-            </>
-          }
-        />
-
-        {/* Saved charts picker */}
-        {(savedCharts.data?.length ?? 0) > 0 && (
-          <div className="flex items-end gap-2">
-            <Select
-              label={t.savedCharts}
-              value=""
-              onChange={(e) => {
-                const id = Number(e.target.value);
-                if (Number.isInteger(id) && id > 0) {
-                  void handleLoadChart(id);
-                }
-              }}
-              className="min-w-[16rem]"
+      <PageHeader
+        title={t.title}
+        description={t.subtitle}
+        group="estudar"
+        actions={
+          <>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => setSaveDialogOpen(true)}
+              title={t.saveTooltip}
             >
-              <SelectOption value="">{t.savedCharts}</SelectOption>
-              {(savedCharts.data ?? []).map((chart) => (
-                <SelectOption key={chart.id} value={String(chart.id)}>
-                  {chart.name}
-                </SelectOption>
-              ))}
-            </Select>
-          </div>
-        )}
-      </div>
+              {t.save}
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => void shareMap()}
+              title={t.shareTooltip}
+            >
+              {t.share}
+            </Button>
+          </>
+        }
+      />
 
       {/* Save chart dialog */}
       <Dialog
@@ -746,460 +725,495 @@ function MapsPageContent() {
         />
       </Dialog>
 
-      {/* The axes are the question and stay in view; everything else only
-          changes the drawing and waits in "Personalizar o mapa" (D-86). */}
-      <Section id="controles" title={t.controls} headingLevel={2}>
-        <div className="flex flex-col gap-4">
-          <Card>
-            <CardBody className="flex flex-col gap-3">
-              <p className="text-2xs text-ink-muted">{t.axesHint}</p>
-              <div className="flex flex-wrap items-start gap-4">
-                <AxisControl
-                  label={t.axisX}
-                  axis={{
-                    ...xAxis,
-                    property: effectiveXProperty,
-                  }}
-                  onChange={handleXAxisChange}
-                  allowIndex={
-                    universe === "material" && (customizeOpen || xAxis.mode === "index")
-                  }
-                  properties={availableAttributes}
-                  indices={universe === "material" ? (indices.data ?? []) : []}
-                  dimension={map.data?.x_axis.is_index ? map.data.x_axis.unit : undefined}
-                />
+      {/* D-91: the map is the screen. It takes the main column at the
+          viewport's height; the axes and "Personalizar" live in a panel
+          beside it on wide screens, and under it on a phone — where the map
+          still comes first, because the default axes already draw one. */}
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_21rem] 2xl:grid-cols-[minmax(0,1fr)_24rem]">
+        <div className="flex min-w-0 flex-col gap-4">
+          {axisConflict && (
+            <Alert tone="warning" role="alert">
+              {sameExpression ? t.sameExpressionAxis : t.sameAxis}
+            </Alert>
+          )}
+          {map.isLoading && !axisConflict && <LoadingState label={t.loading} />}
+          {map.isError && (
+            <ErrorState
+              title={t.error}
+              description={map.error instanceof Error ? map.error.message : undefined}
+              onRetry={() => void map.refetch()}
+            />
+          )}
 
-                <AxisControl
-                  label={t.axisY}
-                  axis={{
-                    ...yAxis,
-                    property: effectiveYProperty,
-                  }}
-                  onChange={handleYAxisChange}
-                  allowIndex={
-                    universe === "material" && (customizeOpen || yAxis.mode === "index")
-                  }
-                  properties={availableAttributes}
-                  indices={universe === "material" ? (indices.data ?? []) : []}
-                  dimension={map.data?.y_axis.is_index ? map.data.y_axis.unit : undefined}
-                />
-              </div>
-            </CardBody>
-          </Card>
-
-          <Disclosure
-            summary={t.customize}
-            open={customizeOpen}
-            onOpenChange={setCustomizeOpen}
-          >
-            <div className="flex flex-col gap-4 pt-2">
-              <p className="text-2xs text-ink-muted">{t.customizeHint}</p>
-              <div className="grid gap-4 lg:grid-cols-2">
-                <Card className="lg:col-span-2">
-                  <CardHeader title={t.groupUniverseScale} />
-                  <CardBody className="flex flex-wrap items-start gap-4">
+          {map.data && (
+            <>
+              {selectedBox && (
+                <Card className="border-brand-300 bg-brand-50/40 dark:border-brand-800 dark:bg-brand-950/20">
+                  <CardBody className="flex flex-wrap items-center justify-between gap-4 py-3">
                     <div className="flex flex-col gap-1">
-                      <span className="text-xs font-medium text-ink-muted">{t.universeTitle}</span>
-                      <ButtonGroup label={t.universeTitle}>
-                        <ButtonGroupItem
-                          selected={universe === "material"}
-                          label={t.universeMaterials}
-                          onClick={() => handleUniverseChange("material")}
-                        />
-                        <ButtonGroupItem
-                          selected={universe === "process"}
-                          label={t.universeProcesses}
-                          onClick={() => handleUniverseChange("process")}
-                        />
-                      </ButtonGroup>
+                      <span className="text-xs font-semibold text-brand-700 dark:text-brand-300">
+                        {t.selectedRegionTitle}
+                      </span>
+                      <span className="text-sm text-ink">
+                        {t.selectedRegionBounds(
+                          `${selectedBox.xMin !== null ? formatNumber(selectedBox.xMin) : "—"} a ${selectedBox.xMax !== null ? formatNumber(selectedBox.xMax) : "—"} ${prettyUnit(map.data.x_axis.unit)}`,
+                          `${selectedBox.yMin !== null ? formatNumber(selectedBox.yMin) : "—"} a ${selectedBox.yMax !== null ? formatNumber(selectedBox.yMax) : "—"} ${prettyUnit(map.data.y_axis.unit)}`,
+                        )}
+                      </span>
+                      <span className="text-xs text-ink-muted">
+                        {t.selectedCount(pointsInBox.length)}
+                      </span>
                     </div>
-
-                    <div className="flex flex-col gap-1">
-                      <span className="text-xs font-medium text-ink-muted">{t.scale}</span>
-                      <ButtonGroup label={t.scale}>
-                        {(["linear", "log"] as ChartScale[]).map((option) => (
-                          <ButtonGroupItem
-                            key={option}
-                            selected={displayScale === option}
-                            label={option === "linear" ? t.linear : t.log}
-                            onClick={() => {
-                              setDisplayScale(option);
-                              setScale(option);
-                            }}
-                          />
-                        ))}
-                      </ButtonGroup>
-                    </div>
-
-                    <div className="flex flex-col gap-1">
-                      <span className="text-xs font-medium text-ink-muted">{t.envelope}</span>
-                      <ButtonGroup label={t.envelope}>
-                        {(["hull", "ellipse"] as const).map((option) => (
-                          <ButtonGroupItem
-                            key={option}
-                            selected={envelopeShape === option}
-                            label={option === "hull" ? t.convexHull : t.adjustedEllipse}
-                            onClick={() => setEnvelopeShape(option)}
-                          />
-                        ))}
-                      </ButtonGroup>
-                    </div>
-                  </CardBody>
-                </Card>
-                {/* "O que desenhar" and "Classes exibidas" share a row: alone, the
-                    three checkboxes held half the width and left the other half
-                    blank beside them. */}
-                <Card>
-                  <CardHeader title={t.groupDisplay} />
-                  <CardBody className="flex flex-col gap-2">
-                    <Checkbox
-                      label={t.envelopes}
-                      checked={showEnvelopes}
-                      onChange={(e) => setShowEnvelopes(e.target.checked)}
-                    />
-                    <Checkbox
-                      label={t.intervals}
-                      checked={showIntervals}
-                      onChange={(e) => setShowIntervals(e.target.checked)}
-                    />
-                    <Checkbox
-                      label={t.labels}
-                      checked={showLabels}
-                      onChange={(e) => setShowLabels(e.target.checked)}
-                    />
-                  </CardBody>
-                </Card>
-
-                <Card>
-                  <CardHeader title={t.groupClasses} />
-                  <CardBody className="flex flex-wrap gap-2">
-                    <ToggleChip
-                      selected={selectedClasses.length === 0}
-                      onClick={() => setSelectedClasses([])}
-                    >
-                      {t.allClasses}
-                    </ToggleChip>
-                    {availableClasses.map((c) => (
-                      <ToggleChip
-                        key={c.slug}
-                        selected={selectedClasses.includes(c.slug)}
-                        onClick={() => toggleClass(c.slug)}
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setSelectedBox(null)}
                       >
-                        {c.name}
-                      </ToggleChip>
-                    ))}
-                  </CardBody>
-                </Card>
-
-                <Card className="lg:col-span-2">
-                  <CardHeader title={t.groupIndex} description={t.indexHint} />
-                  <CardBody className="flex flex-col gap-3">
-                    {universe === "process" ? (
-                      <Alert tone="info">{t.processIndexWarning}</Alert>
-                    ) : anyAxisIsIndex ? (
-                      <Alert tone="info">{t.indexAxisConflict}</Alert>
-                    ) : (
-                      <>
-                        <IndexPicker
-                          indices={indices.data ?? []}
-                          value={indexMode}
-                          onChange={setIndexMode}
-                          customSlot={
-                            <div className="flex flex-wrap items-end gap-3">
-                              <Input
-                                label={t.expression}
-                                className="min-w-[16rem] flex-1"
-                                value={customExpression}
-                                onChange={(e) => setCustomExpression(e.target.value)}
-                                placeholder="modulo_young / densidade"
-                              />
-                              <Select
-                                label={t.goal}
-                                value={indexGoal}
-                                onChange={(e) => setIndexGoal(e.target.value as Goal)}
-                              >
-                                <SelectOption value="maximize">{t.maximize}</SelectOption>
-                                <SelectOption value="minimize">{t.minimize}</SelectOption>
-                              </Select>
-                            </div>
+                        {t.clearSelection}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="primary"
+                        loading={handingOff}
+                        onClick={async () => {
+                          // D-81: the box on screen is in reading units (g/cm³, GPa);
+                          // the stage stores canonical ones. The backend converts it
+                          // by the same rule the map was drawn with.
+                          setHandoffError(null);
+                          setHandingOff(true);
+                          let stored;
+                          try {
+                            stored = (
+                              await convertMapBox({
+                                universe,
+                                x: xAxis.mode === "property" ? effectiveXProperty : null,
+                                y: yAxis.mode === "property" ? effectiveYProperty : null,
+                                box: toMapBox(selectedBox),
+                                to: "canonical",
+                              })
+                            ).box;
+                          } catch (error) {
+                            setHandoffError(error instanceof Error ? error.message : String(error));
+                            return;
+                          } finally {
+                            setHandingOff(false);
                           }
-                        />
-
-                        {/* The slope shown here is the one the backend computed for these
-                            two axes — the card never derives it (ADR 0004). */}
-                        {indexDescriptor && (
-                          <IndexCard
-                            index={indexDescriptor}
-                            dimension={overlay?.dimension}
-                            indexLine={
-                              overlay
-                                ? {
-                                    available: overlay.available,
-                                    orientation: overlay.orientation,
-                                    slope: overlay.slope,
-                                    unavailableReason: overlay.unavailable_reason,
-                                  }
-                                : null
-                            }
-                          />
-                        )}
-
-                        {activeIndex && (
-                          <div className="flex flex-col gap-2">
-                            <div className="flex flex-wrap items-end gap-3">
-                              <Select
-                                label={t.levelThrough}
-                                hint={t.levelsHint}
-                                className="min-w-[14rem]"
-                                value=""
-                                onChange={(e) => {
-                                  const id = Number(e.target.value);
-                                  if (Number.isInteger(id) && !levelMaterialIds.includes(id)) {
-                                    setLevelMaterialIds([...levelMaterialIds, id]);
-                                  }
-                                }}
-                              >
-                                <SelectOption value="">{t.levelNone}</SelectOption>
-                                {(map.data?.points ?? [])
-                                  .filter(
-                                    (p) =>
-                                      p.index_value !== null &&
-                                      !levelMaterialIds.includes(p.material_id),
-                                  )
-                                  .map((p) => (
-                                    <SelectOption key={p.material_id} value={String(p.material_id)}>
-                                      {p.material_name}
-                                    </SelectOption>
-                                  ))}
-                              </Select>
-
-                              {/* Text with a decimal keypad, not `type="number"`: a
-                                  pt-BR reader types "2,7" and a number input drops what
-                                  it cannot parse, without saying so. */}
-                              <Input
-                                label={t.levelValue}
-                                className="w-40"
-                                value={levelDraft}
-                                inputMode="decimal"
-                                onChange={(e) => setLevelDraft(e.target.value)}
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter") {
-                                    e.preventDefault();
-                                    addNumericLevel();
-                                  }
-                                }}
-                              />
-                              <Button
-                                size="sm"
-                                onClick={addNumericLevel}
-                                disabled={!Number.isFinite(Number(levelDraft.replace(",", ".")))}
-                              >
-                                {t.levelAdd}
-                              </Button>
-                            </div>
-
-                            {overlay && overlay.levels.length > 0 && (
-                              <ul className="flex flex-col gap-1">
-                                {overlay.levels.map((level) => (
-                                  <li
-                                    key={`${level.value}-${level.material_id ?? "n"}`}
-                                    className="flex flex-wrap items-center gap-2 text-xs text-ink-muted"
-                                  >
-                                    <span>
-                                      M = {formatNumber(level.value)}
-                                      {level.material_name ? ` (${level.material_name})` : ""} —{" "}
-                                      {t.superior(level.superior_material_ids.length)}
-                                    </span>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      onClick={() => removeLevel(level.material_id, level.value)}
-                                      aria-label={`${ptBR.actions.remove}: M = ${formatNumber(level.value)}`}
-                                    >
-                                      {ptBR.actions.remove}
-                                    </Button>
-                                  </li>
-                                ))}
-                              </ul>
-                            )}
-                          </div>
-                        )}
-                      </>
-                    )}
+                          const query = new URLSearchParams();
+                          query.set("etapa", "restricoes");
+                          query.set("novo_estagio", "chart");
+                          if (universe === "process") {
+                            query.set("universo", "process");
+                          }
+                          if (xAxis.mode === "property") {
+                            query.set("x_prop", effectiveXProperty);
+                          } else if (xAxis.mode === "index") {
+                            const res = resolveAxisIndex(xAxis, indices.data ?? []);
+                            if (res) query.set("x_expr", res.expression);
+                          }
+                          if (yAxis.mode === "property") {
+                            query.set("y_prop", effectiveYProperty);
+                          } else if (yAxis.mode === "index") {
+                            const res = resolveAxisIndex(yAxis, indices.data ?? []);
+                            if (res) query.set("y_expr", res.expression);
+                          }
+                          if (stored.x_min !== null) query.set("x_min", String(stored.x_min));
+                          if (stored.x_max !== null) query.set("x_max", String(stored.x_max));
+                          if (stored.y_min !== null) query.set("y_min", String(stored.y_min));
+                          if (stored.y_max !== null) query.set("y_max", String(stored.y_max));
+                          router.push(`/app/selecao?${query.toString()}`);
+                        }}
+                      >
+                        {t.useInSelection} →
+                      </Button>
+                    </div>
+                    {handoffError ? <Alert tone="danger">{handoffError}</Alert> : null}
                   </CardBody>
                 </Card>
-              </div>
-            </div>
-          </Disclosure>
+              )}
 
-          {!customizeOpen && inUse.length > 0 ? (
-            <p className="text-2xs text-ink-muted" role="status">
-              {t.customizeInUse(inUse.map((key) => t.customizationLabels[key]))}
-            </p>
-          ) : null}
-        </div>
-      </Section>
+              <AshbyMap
+                map={map.data}
+                displayScale={displayScale}
+                isFetching={map.isFetching}
+                highlightIds={highlightIds}
+                showEnvelopes={showEnvelopes}
+                showIntervals={showIntervals}
+                showLabels={showLabels}
+                enableBoxSelect
+                selectionBox={selectedBox}
+                onSelectBox={setSelectedBox}
+                recordLabel={universe === "process" ? t.columnProcess : undefined}
+              />
 
-      {axisConflict && (
-        <Alert tone="warning" role="alert">
-          {sameExpression ? t.sameExpressionAxis : t.sameAxis}
-        </Alert>
-      )}
-      {map.isLoading && !axisConflict && <LoadingState label={t.loading} />}
-      {map.isError && (
-        <ErrorState
-          title={t.error}
-          description={map.error instanceof Error ? map.error.message : undefined}
-          onRetry={() => void map.refetch()}
-        />
-      )}
+              {map.data.notes.length > 0 && (
+                <Section id="observacoes" title={t.notesTitle} headingLevel={2}>
+                  <Card>
+                    <CardBody>
+                      <ul className="flex flex-col gap-1 text-xs text-ink-muted">
+                        {map.data.notes.map((note, i) => (
+                          <li key={i}>• {note}</li>
+                        ))}
+                      </ul>
+                    </CardBody>
+                  </Card>
+                </Section>
+              )}
 
-      {map.data && (
-        <>
-          {selectedBox && (
-            <Card className="border-brand-300 bg-brand-50/40 dark:border-brand-800 dark:bg-brand-950/20">
-              <CardBody className="flex flex-wrap items-center justify-between gap-4 py-3">
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs font-semibold text-brand-700 dark:text-brand-300">
-                    {t.selectedRegionTitle}
-                  </span>
-                  <span className="text-sm text-ink">
-                    {t.selectedRegionBounds(
-                      `${selectedBox.xMin !== null ? formatNumber(selectedBox.xMin) : "—"} a ${selectedBox.xMax !== null ? formatNumber(selectedBox.xMax) : "—"} ${prettyUnit(map.data.x_axis.unit)}`,
-                      `${selectedBox.yMin !== null ? formatNumber(selectedBox.yMin) : "—"} a ${selectedBox.yMax !== null ? formatNumber(selectedBox.yMax) : "—"} ${prettyUnit(map.data.y_axis.unit)}`,
-                    )}
-                  </span>
-                  <span className="text-xs text-ink-muted">
-                    {t.selectedCount(pointsInBox.length)}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button
+              {/* Information, not failure: a material outside the map is a fact
+                  about the catalogue, and the reader needs the reason to fix it. */}
+              {map.data.excluded.length > 0 && (
+                <Section id="excluidos" title={t.excludedTitle} description={t.excludedHint}>
+                  <Card>
+                    <CardBody>
+                      <ul className="flex flex-col gap-1 text-sm text-ink">
+                        {map.data.excluded.map((e) => (
+                          <li key={e.record_id ?? e.material_id}>
+                            <span className="font-medium">{e.name}</span>{" "}
+                            <span className="text-ink-muted">— {e.reason}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </CardBody>
+                  </Card>
+                </Section>
+              )}
+
+              {universe === "material" && map.data.points.length > 0 && (
+                <div>
+                  <ButtonLink
+                    href={`/app/comparar?materiais=${map.data.points.map((p) => p.material_id).join(",")}`}
                     size="sm"
-                    variant="ghost"
-                    onClick={() => setSelectedBox(null)}
                   >
-                    {t.clearSelection}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="primary"
-                    loading={handingOff}
-                    onClick={async () => {
-                      // D-81: the box on screen is in reading units (g/cm³, GPa);
-                      // the stage stores canonical ones. The backend converts it
-                      // by the same rule the map was drawn with.
-                      setHandoffError(null);
-                      setHandingOff(true);
-                      let stored;
-                      try {
-                        stored = (
-                          await convertMapBox({
-                            universe,
-                            x: xAxis.mode === "property" ? effectiveXProperty : null,
-                            y: yAxis.mode === "property" ? effectiveYProperty : null,
-                            box: toMapBox(selectedBox),
-                            to: "canonical",
-                          })
-                        ).box;
-                      } catch (error) {
-                        setHandoffError(error instanceof Error ? error.message : String(error));
-                        return;
-                      } finally {
-                        setHandingOff(false);
+                    {t.compareSelected} →
+                  </ButtonLink>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* The axes are the question and stay in view; everything else only
+            changes the drawing and waits in "Personalizar o mapa" (D-86). */}
+        <aside
+          id="controles"
+          aria-labelledby="controles-titulo"
+          className="lg:sticky lg:top-6 lg:max-h-[calc(100dvh-3rem)] lg:overflow-y-auto lg:overscroll-contain"
+        >
+          <Card>
+            <CardHeader
+              headingLevel={2}
+              title={<span id="controles-titulo">{t.controls}</span>}
+              description={t.axesHint}
+            />
+            <CardBody className="flex flex-col gap-4">
+              <AxisControl
+                label={t.axisX}
+                axis={{
+                  ...xAxis,
+                  property: effectiveXProperty,
+                }}
+                onChange={handleXAxisChange}
+                allowIndex={
+                  universe === "material" && (customizeOpen || xAxis.mode === "index")
+                }
+                properties={availableAttributes}
+                indices={universe === "material" ? (indices.data ?? []) : []}
+                dimension={map.data?.x_axis.is_index ? map.data.x_axis.unit : undefined}
+              />
+
+              <AxisControl
+                label={t.axisY}
+                axis={{
+                  ...yAxis,
+                  property: effectiveYProperty,
+                }}
+                onChange={handleYAxisChange}
+                allowIndex={
+                  universe === "material" && (customizeOpen || yAxis.mode === "index")
+                }
+                properties={availableAttributes}
+                indices={universe === "material" ? (indices.data ?? []) : []}
+                dimension={map.data?.y_axis.is_index ? map.data.y_axis.unit : undefined}
+              />
+              {/* Saved charts picker */}
+              {(savedCharts.data?.length ?? 0) > 0 && (
+                <div className="subsection flex flex-col gap-2">
+                  <Select
+                    label={t.savedCharts}
+                    value=""
+                    onChange={(e) => {
+                      const id = Number(e.target.value);
+                      if (Number.isInteger(id) && id > 0) {
+                        void handleLoadChart(id);
                       }
-                      const query = new URLSearchParams();
-                      query.set("etapa", "restricoes");
-                      query.set("novo_estagio", "chart");
-                      if (universe === "process") {
-                        query.set("universo", "process");
-                      }
-                      if (xAxis.mode === "property") {
-                        query.set("x_prop", effectiveXProperty);
-                      } else if (xAxis.mode === "index") {
-                        const res = resolveAxisIndex(xAxis, indices.data ?? []);
-                        if (res) query.set("x_expr", res.expression);
-                      }
-                      if (yAxis.mode === "property") {
-                        query.set("y_prop", effectiveYProperty);
-                      } else if (yAxis.mode === "index") {
-                        const res = resolveAxisIndex(yAxis, indices.data ?? []);
-                        if (res) query.set("y_expr", res.expression);
-                      }
-                      if (stored.x_min !== null) query.set("x_min", String(stored.x_min));
-                      if (stored.x_max !== null) query.set("x_max", String(stored.x_max));
-                      if (stored.y_min !== null) query.set("y_min", String(stored.y_min));
-                      if (stored.y_max !== null) query.set("y_max", String(stored.y_max));
-                      router.push(`/app/selecao?${query.toString()}`);
                     }}
                   >
-                    {t.useInSelection} →
-                  </Button>
+                    <SelectOption value="">{t.savedCharts}</SelectOption>
+                    {(savedCharts.data ?? []).map((chart) => (
+                      <SelectOption key={chart.id} value={String(chart.id)}>
+                        {chart.name}
+                      </SelectOption>
+                    ))}
+                  </Select>
                 </div>
-                {handoffError ? <Alert tone="danger">{handoffError}</Alert> : null}
-              </CardBody>
-            </Card>
-          )}
+              )}
 
-          <AshbyMap
-            map={map.data}
-            displayScale={displayScale}
-            isFetching={map.isFetching}
-            highlightIds={highlightIds}
-            showEnvelopes={showEnvelopes}
-            showIntervals={showIntervals}
-            showLabels={showLabels}
-            enableBoxSelect
-            selectionBox={selectedBox}
-            onSelectBox={setSelectedBox}
-            recordLabel={universe === "process" ? t.columnProcess : undefined}
-          />
-
-          {map.data.notes.length > 0 && (
-            <Section id="observacoes" title={t.notesTitle} headingLevel={2}>
-              <Card>
-                <CardBody>
-                  <ul className="flex flex-col gap-1 text-xs text-ink-muted">
-                    {map.data.notes.map((note, i) => (
-                      <li key={i}>• {note}</li>
-                    ))}
-                  </ul>
-                </CardBody>
-              </Card>
-            </Section>
-          )}
-
-          {/* Information, not failure: a material outside the map is a fact
-              about the catalogue, and the reader needs the reason to fix it. */}
-          {map.data.excluded.length > 0 && (
-            <Section id="excluidos" title={t.excludedTitle} description={t.excludedHint}>
-              <Card>
-                <CardBody>
-                  <ul className="flex flex-col gap-1 text-sm text-ink">
-                    {map.data.excluded.map((e) => (
-                      <li key={e.record_id ?? e.material_id}>
-                        <span className="font-medium">{e.name}</span>{" "}
-                        <span className="text-ink-muted">— {e.reason}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </CardBody>
-              </Card>
-            </Section>
-          )}
-
-          {universe === "material" && map.data.points.length > 0 && (
-            <div>
-              <ButtonLink
-                href={`/app/comparar?materiais=${map.data.points.map((p) => p.material_id).join(",")}`}
-                size="sm"
+              <Disclosure
+                flush
+                summary={t.customize}
+                open={customizeOpen}
+                onOpenChange={setCustomizeOpen}
               >
-                {t.compareSelected} →
-              </ButtonLink>
-            </div>
-          )}
-        </>
-      )}
+                <div className="flex flex-col gap-4 pt-2">
+                  <p className="text-support text-ink-muted">{t.customizeHint}</p>
+                  <div className="flex flex-col gap-4">
+                    <div className="subsection flex flex-col gap-3">
+                      <h3 className="text-sm font-semibold text-ink">{t.groupUniverseScale}</h3>
+                      <div className="flex flex-wrap items-start gap-4">
+                        <div className="flex flex-col gap-1">
+                          <span className="text-xs font-medium text-ink-muted">{t.universeTitle}</span>
+                          <ButtonGroup label={t.universeTitle}>
+                            <ButtonGroupItem
+                              selected={universe === "material"}
+                              label={t.universeMaterials}
+                              onClick={() => handleUniverseChange("material")}
+                            />
+                            <ButtonGroupItem
+                              selected={universe === "process"}
+                              label={t.universeProcesses}
+                              onClick={() => handleUniverseChange("process")}
+                            />
+                          </ButtonGroup>
+                        </div>
+
+                        <div className="flex flex-col gap-1">
+                          <span className="text-xs font-medium text-ink-muted">{t.scale}</span>
+                          <ButtonGroup label={t.scale}>
+                            {(["linear", "log"] as ChartScale[]).map((option) => (
+                              <ButtonGroupItem
+                                key={option}
+                                selected={displayScale === option}
+                                label={option === "linear" ? t.linear : t.log}
+                                onClick={() => {
+                                  setDisplayScale(option);
+                                  setScale(option);
+                                }}
+                              />
+                            ))}
+                          </ButtonGroup>
+                        </div>
+
+                        <div className="flex flex-col gap-1">
+                          <span className="text-xs font-medium text-ink-muted">{t.envelope}</span>
+                          <ButtonGroup label={t.envelope}>
+                            {(["hull", "ellipse"] as const).map((option) => (
+                              <ButtonGroupItem
+                                key={option}
+                                selected={envelopeShape === option}
+                                label={option === "hull" ? t.convexHull : t.adjustedEllipse}
+                                onClick={() => setEnvelopeShape(option)}
+                              />
+                            ))}
+                          </ButtonGroup>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="subsection flex flex-col gap-3">
+                      <h3 className="text-sm font-semibold text-ink">{t.groupDisplay}</h3>
+                      <div className="flex flex-col gap-2">
+                        <Checkbox
+                          label={t.envelopes}
+                          checked={showEnvelopes}
+                          onChange={(e) => setShowEnvelopes(e.target.checked)}
+                        />
+                        <Checkbox
+                          label={t.intervals}
+                          checked={showIntervals}
+                          onChange={(e) => setShowIntervals(e.target.checked)}
+                        />
+                        <Checkbox
+                          label={t.labels}
+                          checked={showLabels}
+                          onChange={(e) => setShowLabels(e.target.checked)}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="subsection flex flex-col gap-3">
+                      <h3 className="text-sm font-semibold text-ink">{t.groupClasses}</h3>
+                      <div className="flex flex-wrap gap-2">
+                        <ToggleChip
+                          selected={selectedClasses.length === 0}
+                          onClick={() => setSelectedClasses([])}
+                        >
+                          {t.allClasses}
+                        </ToggleChip>
+                        {availableClasses.map((c) => (
+                          <ToggleChip
+                            key={c.slug}
+                            selected={selectedClasses.includes(c.slug)}
+                            onClick={() => toggleClass(c.slug)}
+                          >
+                            {c.name}
+                          </ToggleChip>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="subsection flex flex-col gap-3">
+                      <div>
+                        <h3 className="text-sm font-semibold text-ink">{t.groupIndex}</h3>
+                        <p className="text-support text-ink-muted">{t.indexHint}</p>
+                      </div>
+                      <div className="flex flex-col gap-3">
+                        {universe === "process" ? (
+                          <Alert tone="info">{t.processIndexWarning}</Alert>
+                        ) : anyAxisIsIndex ? (
+                          <Alert tone="info">{t.indexAxisConflict}</Alert>
+                        ) : (
+                          <>
+                            <IndexPicker
+                              indices={indices.data ?? []}
+                              value={indexMode}
+                              onChange={setIndexMode}
+                              customSlot={
+                                <div className="flex flex-wrap items-end gap-3">
+                                  <Input
+                                    label={t.expression}
+                                    className="min-w-[16rem] flex-1"
+                                    value={customExpression}
+                                    onChange={(e) => setCustomExpression(e.target.value)}
+                                    placeholder="modulo_young / densidade"
+                                  />
+                                  <Select
+                                    label={t.goal}
+                                    value={indexGoal}
+                                    onChange={(e) => setIndexGoal(e.target.value as Goal)}
+                                  >
+                                    <SelectOption value="maximize">{t.maximize}</SelectOption>
+                                    <SelectOption value="minimize">{t.minimize}</SelectOption>
+                                  </Select>
+                                </div>
+                              }
+                            />
+
+                            {/* The slope shown here is the one the backend computed for these
+                                two axes — the card never derives it (ADR 0004). */}
+                            {indexDescriptor && (
+                              <IndexCard
+                                index={indexDescriptor}
+                                dimension={overlay?.dimension}
+                                indexLine={
+                                  overlay
+                                    ? {
+                                        available: overlay.available,
+                                        orientation: overlay.orientation,
+                                        slope: overlay.slope,
+                                        unavailableReason: overlay.unavailable_reason,
+                                      }
+                                    : null
+                                }
+                              />
+                            )}
+
+                            {activeIndex && (
+                              <div className="flex flex-col gap-2">
+                                <div className="flex flex-wrap items-end gap-3">
+                                  <Select
+                                    label={t.levelThrough}
+                                    hint={t.levelsHint}
+                                    className="min-w-[14rem]"
+                                    value=""
+                                    onChange={(e) => {
+                                      const id = Number(e.target.value);
+                                      if (Number.isInteger(id) && !levelMaterialIds.includes(id)) {
+                                        setLevelMaterialIds([...levelMaterialIds, id]);
+                                      }
+                                    }}
+                                  >
+                                    <SelectOption value="">{t.levelNone}</SelectOption>
+                                    {(map.data?.points ?? [])
+                                      .filter(
+                                        (p) =>
+                                          p.index_value !== null &&
+                                          !levelMaterialIds.includes(p.material_id),
+                                      )
+                                      .map((p) => (
+                                        <SelectOption key={p.material_id} value={String(p.material_id)}>
+                                          {p.material_name}
+                                        </SelectOption>
+                                      ))}
+                                  </Select>
+
+                                  {/* Text with a decimal keypad, not `type="number"`: a
+                                      pt-BR reader types "2,7" and a number input drops what
+                                      it cannot parse, without saying so. */}
+                                  <Input
+                                    label={t.levelValue}
+                                    className="w-40"
+                                    value={levelDraft}
+                                    inputMode="decimal"
+                                    onChange={(e) => setLevelDraft(e.target.value)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter") {
+                                        e.preventDefault();
+                                        addNumericLevel();
+                                      }
+                                    }}
+                                  />
+                                  <Button
+                                    size="sm"
+                                    onClick={addNumericLevel}
+                                    disabled={!Number.isFinite(Number(levelDraft.replace(",", ".")))}
+                                  >
+                                    {t.levelAdd}
+                                  </Button>
+                                </div>
+
+                                {overlay && overlay.levels.length > 0 && (
+                                  <ul className="flex flex-col gap-1">
+                                    {overlay.levels.map((level) => (
+                                      <li
+                                        key={`${level.value}-${level.material_id ?? "n"}`}
+                                        className="flex flex-wrap items-center gap-2 text-xs text-ink-muted"
+                                      >
+                                        <span>
+                                          M = {formatNumber(level.value)}
+                                          {level.material_name ? ` (${level.material_name})` : ""} —{" "}
+                                          {t.superior(level.superior_material_ids.length)}
+                                        </span>
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          onClick={() => removeLevel(level.material_id, level.value)}
+                                          aria-label={`${ptBR.actions.remove}: M = ${formatNumber(level.value)}`}
+                                        >
+                                          {ptBR.actions.remove}
+                                        </Button>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                )}
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </Disclosure>
+
+              {!customizeOpen && inUse.length > 0 ? (
+                <p className="text-support text-ink-muted" role="status">
+                  {t.customizeInUse(inUse.map((key) => t.customizationLabels[key]))}
+                </p>
+              ) : null}
+            </CardBody>
+          </Card>
+        </aside>
+      </div>
     </div>
   );
 }

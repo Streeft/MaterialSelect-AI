@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import type { Data, Layout, LayoutAxis } from "plotly.js";
 import type { ChartScale, MapPoint, PropertyMap } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
+import { cn } from "@/lib/cn";
 import { formatNumber, prettyUnit } from "@/lib/format";
 import { chartFileName, escapeHover, logTicks, toClosedRing, toXY, withAlpha } from "@/lib/charts";
 import { chartTheme, classVisual } from "@/lib/design/palette";
@@ -48,6 +49,12 @@ interface AshbyMapProps {
   enableBoxSelect?: boolean;
   dragMode?: "select" | "zoom";
   onDragModeChange?: (mode: "select" | "zoom") => void;
+  /**
+   * D-91: fill the viewport's height instead of a fixed 540 px — the map is
+   * the whole point of `/app/mapas`, so it takes the screen there. Other
+   * screens embed the map beside other content and keep the fixed height.
+   */
+  fillHeight?: boolean;
 }
 
 /** Half-widths of the error bar for one axis, or null when there is nothing to draw. */
@@ -237,6 +244,7 @@ export function AshbyMap({
   enableBoxSelect = false,
   dragMode,
   onDragModeChange,
+  fillHeight = false,
 }: AshbyMapProps) {
   // Colours come from the tokens of whichever theme is on the document, so the
   // figure has to be rebuilt when the reader switches — not only recoloured.
@@ -552,7 +560,9 @@ export function AshbyMap({
       // linear axis and its hover numbers follow the rest of the app.
       separators: ",.",
       autosize: true,
-      height: 540,
+      // With `fillHeight` the container sets the height and Plotly's own
+      // resize handler follows it; a number here would win over the CSS.
+      height: fillHeight ? undefined : 540,
       margin: { l: 76, r: 24, t: 16, b: 56 },
       hoverlabel: {
         bgcolor: paint.tooltipBg,
@@ -587,7 +597,7 @@ export function AshbyMap({
         ...(isLog ? logAxisTicks(map.y_axis.min_value, map.y_axis.max_value) : {}),
       },
     };
-  }, [map, paint, displayScale, plotDragMode, shapes, selectionBox]);
+  }, [map, paint, displayScale, plotDragMode, shapes, selectionBox, fillHeight]);
 
   // The legend MSDS draws under its scatter: one button per class (colour *and*
   // marker shape, D-28), then one per index level the backend traced.
@@ -712,7 +722,13 @@ export function AshbyMap({
           into one object for assistive technology. What replaces them is the
           data table behind "Ver tabela de dados", not a longer label. */}
       <div
-        className="chart-plotly"
+        className={cn(
+          "chart-plotly",
+          // Viewport height minus the page header and the card's own toolbar
+          // and legend, never shorter than a readable plot nor taller than a
+          // square-ish one on a very tall screen.
+          fillHeight && "h-[clamp(26rem,calc(100dvh-17rem),54rem)]",
+        )}
         role="img"
         aria-label={ptBR.chart.figureLabel(t.figure)}
       >
@@ -733,7 +749,7 @@ export function AshbyMap({
           }
           onRelayout={handleRelayout as unknown as (event: unknown) => void}
           onInitialized={() => rebindHandlers()}
-          style={{ width: "100%" }}
+          style={{ width: "100%", height: fillHeight ? "100%" : undefined }}
           useResizeHandler
         />
       </div>

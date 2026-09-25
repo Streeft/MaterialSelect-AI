@@ -134,9 +134,9 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="grid grid-cols-[7rem_1fr] gap-x-3 gap-y-0.5 sm:grid-cols-[8.5rem_1fr]">
       {/* `ink-subtle` clears AA on plain `surface` but not on the brand tint
-          this card sits on — measured 4.46:1. The term is small and uppercase,
-          so no large-text exemption applies. */}
-      <dt className="text-2xs uppercase tracking-wide text-ink-muted">{label}</dt>
+          this card sits on — measured 4.46:1. The term is small (12 px), so no
+          large-text exemption applies. */}
+      <dt className="text-caption font-medium text-ink-muted">{label}</dt>
       <dd className="text-xs text-ink">{children}</dd>
     </div>
   );
@@ -184,7 +184,7 @@ export function IndexCard({
 
   return (
     <div
-      className={cn("rounded-card border border-brand-200 bg-brand-50/60 p-4", className)}
+      className={cn("rounded-control bg-brand-50/60 p-4", className)}
       data-testid="index-card"
     >
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
@@ -206,7 +206,7 @@ export function IndexCard({
 
       {rows.length > 0 ? (
         <>
-          <p className="mt-4 text-2xs font-semibold uppercase tracking-wide text-brand-700">
+          <p className="mt-4 text-caption font-semibold text-brand-700">
             {t.validity}
           </p>
           <dl className="mt-1.5 space-y-1.5">
@@ -216,7 +216,7 @@ export function IndexCard({
               </Row>
             ))}
           </dl>
-          <p className="mt-3 text-2xs text-ink-muted">{t.warning}</p>
+          <p className="mt-3 text-support text-ink-muted">{t.warning}</p>
         </>
       ) : (
         // Not an error: a custom expression legitimately has no declared
@@ -228,7 +228,7 @@ export function IndexCard({
       )}
 
       {reference ? (
-        <p className="mt-3 flex items-start gap-1.5 text-2xs text-ink-muted">
+        <p className="mt-3 flex items-start gap-1.5 text-support text-ink-muted">
           <IconBook className="mt-0.5 shrink-0" />
           <span>
             <span className="font-medium">{t.assumptionReferencia}:</span> {reference}
@@ -243,7 +243,7 @@ export function IndexCard({
 function OptionSummary({ index }: { index: PerformanceIndex }) {
   const { rows } = readAssumptions(index.assumptions);
   if (rows.length === 0) {
-    return <p className="mt-2 text-2xs text-ink-muted">{t.noAssumptions}</p>;
+    return <p className="mt-2 text-support text-ink-muted">{t.noAssumptions}</p>;
   }
   return (
     <dl className="mt-2 space-y-0.5">
@@ -301,7 +301,7 @@ export function IndexPicker({
           onChange={onChange}
           title={t.none}
         >
-          <p className="text-2xs text-ink-muted">{t.noneHint}</p>
+          <p className="text-support text-ink-muted">{t.noneHint}</p>
         </RadioCard>
 
         {indices.map((index) => (
@@ -330,7 +330,7 @@ export function IndexPicker({
           onChange={onChange}
           title={t.custom}
         >
-          <p className="text-2xs text-ink-muted">{t.customHint}</p>
+          <p className="text-support text-ink-muted">{t.customHint}</p>
         </RadioCard>
       </div>
 

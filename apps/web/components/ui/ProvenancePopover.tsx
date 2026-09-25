@@ -121,7 +121,7 @@ export function qualityState(p: Pick<Provenance, "isMissing" | "quality">): Qual
 function Row({ term, children }: { term: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 border-t border-edge-subtle py-1 first:border-t-0">
-      <dt className="w-28 shrink-0 text-2xs uppercase tracking-wide text-ink-subtle">{term}</dt>
+      <dt className="w-28 shrink-0 text-caption font-medium text-ink-subtle">{term}</dt>
       <dd className="min-w-0 flex-1 text-xs text-ink">{children}</dd>
     </div>
   );
@@ -230,7 +230,7 @@ export function ProvenancePopover({
         </span>
       }
     >
-      <p className="mb-2 text-2xs font-semibold uppercase tracking-wide text-ink-subtle">
+      <p className="mb-2 text-caption font-semibold text-ink-subtle">
         {ptBR.provenance.title}
       </p>
       <ProvenanceDetails p={provenance} />

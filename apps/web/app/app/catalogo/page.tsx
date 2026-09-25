@@ -8,12 +8,12 @@ import type { MaterialListItem } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { descendantSlugs, roots } from "@/lib/taxonomy";
 import { ExportButtons } from "@/components/ExportButtons";
-import { MaterialTable } from "@/components/catalog/MaterialRows";
-import { MaterialCards } from "@/components/catalog/MaterialCards";
+import { MaterialList } from "@/components/catalog/MaterialList";
 import {
   Button,
   ButtonLink,
   Card,
+  DensityToggle,
   CardBody,
   CardHeader,
   DataQualityLegend,
@@ -181,7 +181,13 @@ export default function CatalogPage() {
         id="materiais"
         title={t.count(shown.length)}
         description={shown.length === total ? undefined : t.showing(shown.length, total)}
-        actions={<ExportButtons urlFor={catalogueExportUrl} label={ptBR.exports.catalogue} />}
+        actions={
+          <>
+            {/* The table exists from `sm` up; the cards below it have no rows to densify. */}
+            <DensityToggle className="hidden sm:inline-flex" />
+            <ExportButtons urlFor={catalogueExportUrl} label={ptBR.exports.catalogue} />
+          </>
+        }
       >
         {materials.isLoading && <LoadingState label={t.loading} />}
         {materials.isError && (
@@ -212,12 +218,7 @@ export default function CatalogPage() {
               }
             />
           ) : (
-            <>
-              <MaterialCards materials={shown} />
-              <div className="hidden sm:block">
-                <MaterialTable materials={shown} />
-              </div>
-            </>
+            <MaterialList materials={shown} />
           ))}
 
         {/* The legend belongs on the screen that shows many values at once —

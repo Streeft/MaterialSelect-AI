@@ -137,9 +137,12 @@ test("importar, selecionar, visualizar e exportar um estudo", async ({ page }) =
   const savedRow = page.getByRole("row").filter({ hasText: STUDY_NAME });
   await expect(savedRow).toBeVisible();
 
+  // D-91: the four formats sit behind one "Exportar relatório" menu. The
+  // list is portalled to <body>, so the item is found on the page.
+  await savedRow.getByRole("button", { name: "Exportar relatório" }).click();
   const [download] = await Promise.all([
     page.waitForEvent("download"),
-    savedRow.getByRole("link", { name: "CSV", exact: true }).click(),
+    page.getByRole("menuitem", { name: "CSV", exact: true }).click(),
   ]);
   expect(download.suggestedFilename()).toMatch(/\.csv$/i);
 

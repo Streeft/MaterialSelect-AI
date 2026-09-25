@@ -162,7 +162,7 @@ export function MaterialForm({ classes, properties, initial }: MaterialFormProps
           title={ptBR.form.values}
           headingLevel={2}
           actions={
-            <Button size="sm" variant="primary" onClick={() => append(emptyValueRow())}>
+            <Button size="sm" variant="secondary" onClick={() => append(emptyValueRow())}>
               {ptBR.form.addValue}
             </Button>
           }

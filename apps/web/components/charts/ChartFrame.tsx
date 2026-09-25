@@ -11,14 +11,14 @@ const t = ptBR.chart;
 /**
  * The MSDS chart card (D-80): `.msds-chart-card` chrome, a toolbar with the
  * title on the left and the figure's own controls on the right, and the
- * "Ver tabela de dados" toggle that swaps the figure for the table it was
+ * "Gráfico | Tabela" switch (D-91) that swaps the figure for the table it was
  * drawn from.
  *
  * Every figure in the application goes through here, so the three promises a
  * figure makes are kept in one place instead of in each chart:
  *
  * - **D-31.** The table is not optional. It is rendered even while the figure
- *   is showing (only `hidden`), so the toggle's `aria-controls` always points at
+ *   is showing (only `hidden`), so the switch's `aria-controls` always points at
  *   something and the table is never re-derived on a click.
  * - **Export.** `ChartToolbar` receives the element that wraps the figure, and
  *   `lib/figureExport.ts` finds either a Plotly graph or an `svg[data-chart-figure]`
@@ -44,7 +44,7 @@ export function ChartFrame({
   className,
   children,
 }: {
-  /** A small mono label above the title — what kind of figure this is. */
+  /** What kind of figure this is. Announced before the title; not drawn (D-91). */
   eyebrow?: ReactNode;
   /** A mono aside at the right of the heading, e.g. the index guide's expression. */
   meta?: ReactNode;
@@ -91,44 +91,55 @@ export function ChartFrame({
         {/* A basis, not just `flex-1`: on a half-width card the actions wrap
             under the title instead of squeezing it into a two-word column. */}
         <div className="min-w-0 flex-[1_1_18rem]">
-          {/* The eyebrow lives inside the heading, so the figure is announced
-              as what it is ("Mapa de Ashby, Módulo de Young × Densidade"),
-              not only by its axes. */}
+          {/* D-91: the small-caps eyebrow is the page header's alone. The
+              figure's kind stays in the heading for assistive technology, so
+              it is still announced as "Mapa de Ashby, Módulo de Young ×
+              Densidade" — only the visual label is gone. */}
           <Heading id={headingId} className="msds-chart-title">
             {eyebrow ? (
-              <span className="block font-mono text-[0.625rem] font-normal uppercase tracking-eyebrow text-brand-700">
+              <span className="sr-only">
                 {eyebrow}
-                <span className="sr-only">, </span>
+                {", "}
               </span>
             ) : null}
             {title}
           </Heading>
           {description ? (
-            <p className="mt-1 max-w-prose text-xs text-ink-muted">{description}</p>
+            <p className="mt-1 max-w-prose text-support text-ink-muted">{description}</p>
           ) : null}
         </div>
         <div className="flex max-w-full flex-wrap items-center gap-2">
-          {meta ? <span className="mr-1 font-mono text-2xs text-ink-subtle">{meta}</span> : null}
+          {meta ? <span className="mr-1 font-mono text-xs text-ink-subtle">{meta}</span> : null}
           {controls}
+          {hasFigure && table ? (
+            // D-91: a two-position switch instead of a link that renamed
+            // itself. Both positions are always visible, so the reader sees
+            // there is a table before choosing it.
+            <div role="group" aria-label={t.view} className="msds-segmented">
+              {([false, true] as const).map((tableView) => (
+                <button
+                  key={String(tableView)}
+                  type="button"
+                  className="msds-segmented-item"
+                  data-active={showTable === tableView}
+                  aria-pressed={showTable === tableView}
+                  aria-controls={tableView ? tableId : undefined}
+                  onClick={() => {
+                    if (showTable === tableView) return;
+                    toggled.current = true;
+                    setShowTable(tableView);
+                  }}
+                >
+                  {tableView ? t.showTable : t.showFigure}
+                </button>
+              ))}
+            </div>
+          ) : null}
           <ChartToolbar
             target={figure}
             fileName={exportName}
             disabled={exportDisabled || !hasFigure}
           />
-          {hasFigure && table ? (
-            <button
-              type="button"
-              className="msds-table-toggle"
-              aria-controls={tableId}
-              aria-expanded={showTable}
-              onClick={() => {
-                toggled.current = true;
-                setShowTable((open) => !open);
-              }}
-            >
-              {showTable ? t.showFigure : t.showTable}
-            </button>
-          ) : null}
         </div>
       </div>
 

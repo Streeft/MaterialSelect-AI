@@ -18,6 +18,7 @@ import {
   Card,
   CardBody,
   Combobox,
+  DensityToggle,
   ErrorState,
   LoadingState,
   PageHeader,
@@ -219,7 +220,7 @@ function ComparePageContent() {
             <>
               {/* The cap is stated before it bites: a chip that simply stops
                   responding reads as a broken button. */}
-              {propertiesFull && <p className="text-2xs text-ink-subtle">{t.limitReached}</p>}
+              {propertiesFull && <p className="text-support text-ink-subtle">{t.limitReached}</p>}
               <div className="flex flex-wrap gap-2">
                 {(properties.data ?? []).map((p) => {
                   const chosen = selectedProperties.includes(p.slug);
@@ -273,6 +274,11 @@ function ComparePageContent() {
             onChange={setMode}
             panelClassName="flex flex-col gap-3 pt-3"
           >
+            {mode === "table" && comparison.data ? (
+              <div className="flex justify-end">
+                <DensityToggle />
+              </div>
+            ) : null}
             {comparison.isLoading && <LoadingState label={t.loading} />}
             {comparison.isError && (
               <ErrorState

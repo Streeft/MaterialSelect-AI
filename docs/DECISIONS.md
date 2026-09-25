@@ -5691,3 +5691,114 @@ separa pouco, e o relato era sobre o tema claro.
 
 **Pendência herdada.** As figuras da monografia que são capturas de `/estilo`
 precisam ser refeitas também por este D-90, não só pelo D-38.
+
+## D-91 — Hierarquia, forma e tipografia por papel; o mapa ocupa a tela
+
+**Origem.** Uma avaliação de UX pedida pelo autor apontou sete problemas. O
+autor escolheu seis e deixou um de fora: a cor por rota (D-49/D-73) fica,
+porque ele gosta dela. Os seis têm a mesma causa: o sistema tinha tokens de
+cor, mas não tinha regra de **papel**. Todo botão tinha o mesmo peso, toda
+caixa era um cartão de 20 px, e todo rótulo pequeno era um sobrescrito mono
+em caixa alta. Quando tudo se destaca, nada se destaca.
+
+**1. Hierarquia de botões.** Os papéis estão escritos em `ButtonVariant`
+(`components/ui/Button.tsx`):
+- `primary` é a ação da tela, e fica no máximo **um** visível por vez;
+- `secondary` é uma alternativa real ou o passo anterior ao primário;
+- `ghost` é o terciário;
+- `danger` é a confirmação dentro do diálogo;
+- `danger-quiet` é novo: a porta de entrada de uma exclusão numa lista, para
+  uma tabela de estudos não virar uma coluna de botões vermelhos.
+
+Primários redundantes foram rebaixados no formulário de material, no
+orçamento de pesos, no painel de IA e na prévia do Sintetizar. As
+exportações viraram **um** botão "Exportar ▾" (`MenuButton`/`MenuItem`, o
+padrão de botão de menu da WAI-ARIA, com lista em *portal*): quatro botões no
+catálogo e na linha do estudo salvo, dois links de texto em cada gráfico. O
+link "Ver tabela de dados", que mudava de nome ao ser clicado, virou a
+alternância de duas posições **Gráfico | Tabela**. A tabela continua sempre
+montada (D-31).
+
+**2. Nada de cartão dentro de cartão.** O que fica dentro de um cartão é um
+**poço** (`.well`: fundo, sem borda) ou uma **subseção** (`.subsection`:
+espaço e um fio). Foi aplicado em Dimensionar, Custo, Eco, Sintetizar,
+Baterias, nos estágios da Seleção, no orçamento de pesos, no cartão de
+índice e no "Personalizar" de Mapas. `Disclosure` ganhou `flush` para
+aparecer dentro de um cartão como um fio e uma linha de resumo. A exceção
+continua sendo o grupo aninhado de restrições: a borda dele é informação
+(D-34).
+
+O raio passou a dizer o papel:
+
+| Token | Antes | D-91 | Uso |
+|---|---|---|---|
+| `rounded-panel` | 24 px | 20 px | moldura da tela |
+| `rounded-card` | 20 px | 16 px | cartão |
+| `rounded-control` | 12 px | 10 px | campo, botão, poço |
+| `rounded-seat` | 8 px | 6 px | célula, chip denso |
+
+O Tailwind lê os raios de `globals.css` em vez de repeti-los.
+
+**3. Tipografia por papel.** Seis papéis no `tailwind.config.ts`: `display`,
+`title`, `heading`, `body`, `support` (13 px) e `caption` (12 px). O
+`tailwind-merge` de `lib/cn.ts` conhece os seis. Sem isso,
+`cn("text-support", "text-ink-muted")` descartaria o tamanho, como se fosse
+uma cor, e há teste para isso.
+- Ajuda de campo e de título foi de 11–12 px para **13 px**.
+- O **sobrescrito mono em caixa alta ficou só no `PageHeader`**. Cabeçalho de
+  coluna, rótulo de indicador e rótulo de faceta passaram a usar caixa
+  normal.
+- Nos gráficos, o tipo da figura ("Mapa de Ashby") saiu da tela mas continua
+  no `<h2>` como `sr-only`. O leitor de tela ainda anuncia "Mapa de Ashby,
+  Módulo de Young × Densidade".
+- A fonte mono fica para números e expressões.
+- Quatro usos de `text-fg`/`text-fg-muted`, classes que nunca existiram,
+  foram trocados por `text-ink`/`text-ink-muted`.
+
+**4. O mapa ocupa a tela** (`/app/mapas`). O mapa fica na coluna principal
+com a altura da janela (`AshbyMap fillHeight`). Eixos, gráficos salvos e
+"Personalizar" ficam num painel lateral fixo a partir de `lg`, e abaixo do
+mapa no celular: os eixos padrão já desenham um mapa, então a figura vem
+primeiro. O seletor de eixo deixou de mostrar a unidade guardada
+("[kg/m³]"). O mapa lê em g/cm³ (D-70), e o título do eixo, que vem do
+próprio mapa, é o único lugar que diz a unidade.
+
+**5. Celular.** A barra do assistente cabe numa linha:
+- "Restam 75 de 75";
+- o Voltar só com ícone;
+- "Próximo" em uma palavra, com o nome completo preservado para o leitor de
+  tela.
+
+A navegação inferior some ao rolar para baixo e volta ao rolar para cima.
+Ela só é deslocada (`translate`), nunca removida, e volta ao receber foco. A
+variável `--bottom-nav-offset` em `<html>` diz à barra do assistente quanto
+espaço a navegação ocupa naquele momento. Antes, as duas barras se
+sobrepunham.
+
+**6. Menores.**
+- **Aviso de demonstração.** Quando todos os materiais da lista são
+  fictícios, o catálogo diz isso **uma vez** (`MaterialList`), e o selo por
+  linha volta quando a lista mistura dado real e fictício. O princípio 6
+  continua cumprido: o dado fictício segue marcado na tela.
+- **Densidade de tabela.** Confortável ou compacta, escolha do leitor, vale
+  para todas as tabelas (`lib/density.ts`). Fica em `localStorage`, envolto
+  em `try`, porque é conveniência por visitante.
+- **`/estilo`** mostra cada variante de botão em repouso, hover, foco,
+  pressionado, desabilitado e carregando, lado a lado. O `data-force-state`
+  faz as **mesmas** regras de `msds.css` valerem sem ponteiro, e não uma
+  cópia delas que poderia divergir.
+- **Tokens semânticos.** Os papéis ficam em `globals.css`
+  (`--surface-page/panel/well`, `--border-panel/divider/control`,
+  `--action-primary`, `--text-primary/secondary/tertiary`) e no Tailwind
+  (`bg-page`, `bg-panel`, `bg-well`, `border-line`, `border-line-control`,
+  `bg-action`). Eles só apontam para a paleta, então a cor por rota continua
+  passando por `--accent`. As primitivas do MSDS já os usam, e código novo
+  deve usá-los.
+- **Capa.** Ganhou o mapa de Ashby estático ao lado do botão.
+
+**O que não mudou.** A paleta de cada rota e o método de medição (D-38/D-49):
+`verify-globals-contrast.py` segue passando nas 15 rotas. A paleta categórica
+das classes e o formato por classe no mapa (D-28/D-82) também não mudaram.
+
+**Pendência herdada.** As figuras da monografia que são capturas de
+`/estilo` precisam ser refeitas também por este D-91.
