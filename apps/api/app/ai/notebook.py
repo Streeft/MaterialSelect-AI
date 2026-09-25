@@ -1,4 +1,4 @@
-"""What a provider sees and answers when a student asks a notebook (D-90).
+"""What a provider sees and answers when a student asks a notebook (D-92).
 
 The same narrow boundary as the rest of the layer: a provider receives the
 question, the passages retrieval chose and the student's preferences — never a

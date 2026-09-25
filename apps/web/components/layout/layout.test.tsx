@@ -207,7 +207,7 @@ describe("AppSidebar", () => {
       // entrada no P1-4, o espaço do usuário ("Meus registros") também, o grupo
       // de estudo recebeu "Dimensionar" (P2), "Custo" e "Eco" (P3) e agora
       // "Baterias" (P4), e "Dados" recebeu "Sintetizar" — que cria registro, e
-      // por isso mora ali. Dezessete desde o D-90: "Cadernos", em "Estudar".
+      // por isso mora ali. Dezessete desde o D-92: "Cadernos", em "Estudar".
       expect(within(drawer).getAllByShadowRole("link")).toHaveLength(18); // 17 + o wordmark
     });
 

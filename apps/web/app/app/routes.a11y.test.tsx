@@ -1239,7 +1239,7 @@ vi.mock("@/lib/api", async (importOriginal) => ({
   createProperty: () => Promise.resolve(properties[0]),
   updateProperty: () => Promise.resolve(properties[0]),
   deleteProperty: () => Promise.resolve(),
-  // D-90: os cadernos. Um caderno com uma fonte, o guia escrito (com citação)
+  // D-92: os cadernos. Um caderno com uma fonte, o guia escrito (com citação)
   // e uma resposta na conversa — os três painéis cheios, que é onde moram os
   // rótulos que a auditoria confere.
   listNotebooks: () => Promise.resolve([notebookSummary]),
@@ -1486,7 +1486,7 @@ describe("acessibilidade das telas principais", () => {
     await auditRoute(<MyRecordsPage />, ptBR.myRecords.title);
   });
 
-  // D-90: a lista e o caderno com os três painéis cheios — guia com citação,
+  // D-92: a lista e o caderno com os três painéis cheios — guia com citação,
   // uma resposta, uma nota e as ferramentas do Estúdio "em breve".
   it("cadernos", async () => {
     await auditRoute(<NotebooksPage />, ptBR.notebooks.title);

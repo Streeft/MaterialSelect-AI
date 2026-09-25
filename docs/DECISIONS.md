@@ -5644,11 +5644,11 @@ verificada por índice (D-47).
 salvo (seção 7 com o texto da IA) e o "Preencher a partir de um texto (IA)" no
 passo Função.
 
-## D-90 — Cadernos: o NotebookLM dentro do app, com fontes privadas, citação por trecho e número só quando o trecho o traz
+## D-92 — Cadernos: o NotebookLM dentro do app, com fontes privadas, citação por trecho e número só quando o trecho o traz
 
 **O pedido.** A camada de IA com as funções do Google NotebookLM (hoje "Gemini
 Notebook") e o layout dele: Fontes | Conversa | Estúdio, cada aluno com os
-próprios cadernos, e **nenhum gasto** com tecnologia de IA agora (D-91). A
+próprios cadernos, e **nenhum gasto** com tecnologia de IA agora (D-93). A
 fase 1, entregue aqui, é a fundação: cadernos, fontes, conversa citada, guia,
 notas e cota. O Estúdio aparece na grade e diz "em breve"; as fases 2 a 4 estão
 em `docs/TODO.md`.
@@ -5715,9 +5715,9 @@ isso, e a fase 2 o usa. A seção de cor `cadernos` tem matiz 285 (percebido
 
 **Aviso.** O caderno mostra sempre de onde vem a resposta: com o provedor
 simulado, que nada sai do servidor; com um real no plano gratuito, que não se
-envia material sigiloso nem dado pessoal (D-91).
+envia material sigiloso nem dado pessoal (D-93).
 
-## D-91 — O Gemini, no plano gratuito, é a IA oficial do projeto, por configuração do `openai-compat`
+## D-93 — O Gemini, no plano gratuito, é a IA oficial do projeto, por configuração do `openai-compat`
 
 **O pedido.** O autor quis o Gemini como IA de todo o projeto, no lugar da Groq,
 e com uma restrição que manda em todo o resto: **nenhum gasto**, nem do crédito

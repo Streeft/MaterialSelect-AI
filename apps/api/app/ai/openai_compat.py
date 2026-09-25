@@ -44,7 +44,7 @@ from app.config import settings as default_settings
 # The error a misconfiguration produces is the only documentation anyone reads,
 # so it carries the URLs rather than pointing at a file that carries them.
 KNOWN_ENDPOINTS = (
-    "  Gemini (gratuito pelo Google AI Studio, sem cartão; a IA oficial do projeto, D-91):\n"
+    "  Gemini (gratuito pelo Google AI Studio, sem cartão; a IA oficial do projeto, D-93):\n"
     "    AI_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai\n"
     "    AI_MODEL=gemini-2.5-flash\n"
     "  Groq (gratuito, cadastro sem cartão):\n"

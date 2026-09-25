@@ -333,7 +333,7 @@ na Vercel precisa ser refeito em nenhum dos dois sentidos.
 ## 5-quinquies. Trocar a IA: Gemini, de graça
 
 A IA oficial do projeto é o **Gemini no plano gratuito do Google AI Studio**
-([D-91](DECISIONS.md#d-91)), falando pelo mesmo `openai-compat` que antes
+([D-93](DECISIONS.md#d-93)), falando pelo mesmo `openai-compat` que antes
 servia a Groq. Nada disso custa dinheiro — **desde que o faturamento continue
 desligado**.
 
@@ -351,7 +351,7 @@ desligado**.
 
 **Ligar** — pela aba **Actions**:
 
-1. Se a API publicada ainda não tem o D-91 (primeira vez), dispare **Deploy da
+1. Se a API publicada ainda não tem o D-93 (primeira vez), dispare **Deploy da
    API** antes.
 2. **Provedor de IA** → **Run workflow** → `gemini`. O modelo padrão é
    `gemini-2.5-flash`; o `gemini-2.5-flash-lite` aguenta mais pedidos por dia,

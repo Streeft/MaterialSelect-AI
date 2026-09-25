@@ -2014,7 +2014,7 @@ export interface BatteryComparisonResult {
   technical_summary: string;
 }
 
-// --- Cadernos (D-90) ---------------------------------------------------------
+// --- Cadernos (D-92) ---------------------------------------------------------
 
 export type NotebookChatGoal = "padrao" | "guia" | "personalizado";
 export type NotebookResponseLength = "curta" | "padrao" | "longa";

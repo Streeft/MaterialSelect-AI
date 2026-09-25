@@ -1,4 +1,4 @@
-"""Cadernos (D-90): sources, chat with checked citations, guide, notes, quota
+"""Cadernos (D-92): sources, chat with checked citations, guide, notes, quota
 and — the part that cannot fail quietly — one student never reaching another's
 notebook."""
 

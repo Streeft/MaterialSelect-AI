@@ -1,4 +1,4 @@
-"""Retrieval inside one notebook (D-90).
+"""Retrieval inside one notebook (D-92).
 
 The Cérebro's hybrid search (D-47) — BM25 plus embeddings, fused by reciprocal
 rank — over a corpus of exactly one notebook's **selected** sources.

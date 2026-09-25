@@ -1,4 +1,4 @@
-"""Cadernos (D-90): a student's private notebooks — sources, chat, notes.
+"""Cadernos (D-92): a student's private notebooks — sources, chat, notes.
 
 The NotebookLM shape, on top of pieces this codebase already had: the
 Cérebro's readers, chunker, BM25 and embeddings do the text work; the AI

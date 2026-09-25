@@ -43,7 +43,7 @@ PATH_VALUES = {
     "study_id": "1",
     "job_id": "1",
     "chart_id": "1",
-    # D-90: filled with the private notebook's own ids by `_sweep`.
+    # D-92: filled with the private notebook's own ids by `_sweep`.
     "notebook_id": "1",
     "source_id": "1",
 }
@@ -121,7 +121,7 @@ def _documented_get_paths() -> list[str]:
 
 @pytest.fixture()
 def private_notebook(client, login_as, other_user: User) -> dict[str, str]:
-    """A notebook of the *other* user (D-90), titled and filled with the same
+    """A notebook of the *other* user (D-92), titled and filled with the same
     distinctive name, so the sweep asks every GET about it too."""
     with login_as(other_user):
         notebook = client.post("/api/notebooks", json={"title": PRIVATE_NAME}).json()

@@ -1,4 +1,4 @@
-# Troca a IA da API em produção (D-91), disparado à mão — sem terminal.
+# Troca a IA da API em produção (D-93), disparado à mão — sem terminal.
 #
 #   gemini  a IA oficial do projeto: o plano GRATUITO do Google AI Studio, pelo
 #           endpoint compatível com OpenAI. A mesma chave serve a busca
@@ -18,7 +18,7 @@
 #
 # **O job só fica verde depois de ler o provedor e o modelo novos em
 # `/api/health`** — a mesma regra do `modo-acesso.yml`: um segredo gravado numa
-# API anterior ao D-91 seria ignorado em silêncio e o job passaria verde. Se
+# API anterior ao D-93 seria ignorado em silêncio e o job passaria verde. Se
 # falhar com "provedor ausente", dispare antes o "Deploy da API".
 #
 # Pré-requisitos (Settings → Secrets and variables → Actions):
@@ -159,7 +159,7 @@ jobs:
             sleep 5
           done
           if [ "$provedor" = "ausente" ]; then
-            echo "::error::A API publicada não informa o provedor: ela é anterior ao D-91. Dispare 'Deploy da API' e rode este workflow de novo."
+            echo "::error::A API publicada não informa o provedor: ela é anterior ao D-93. Dispare 'Deploy da API' e rode este workflow de novo."
           else
             echo "::error::A API publicada continua em $provedor ($modelo)."
           fi

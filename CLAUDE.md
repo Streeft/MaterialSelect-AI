@@ -91,7 +91,7 @@ Há quatro provedores: `mock` (padrão, determinístico, sem rede), `claude-api`
 (API da Anthropic, chave própria), `claude-cli` (o Claude Code instalado na
 máquina, pela assinatura já autenticada) e `openai-compat` (qualquer servidor que
 fale `/chat/completions`, escolhido por `AI_BASE_URL` — o Gemini no plano
-gratuito do Google AI Studio, que é a IA oficial do projeto desde o D-91, Groq,
+gratuito do Google AI Studio, que é a IA oficial do projeto desde o D-93, Groq,
 Ollama local, OpenRouter, OpenAI). O que os provedores reais compartilham está em
 `app/ai/model_base.py` — **não** em um arquivo com "claude" no nome, porque as
 garantias são da camada. Duas delas não são negociáveis (D-35): **o modelo
@@ -761,8 +761,8 @@ renormalizando**, porque o laudo reexecuta estudos antigos (D-87). Na tela,
 Objetivo é o passo 2 e Restrições o 3 — o motor não mudou (D-88). E a explicação
 por IA só pede `sources` quando há trecho para citar (D-89).
 
-**Cadernos: o NotebookLM dentro do app, fase 1** ([D-90](docs/DECISIONS.md)), e
-**o Gemini gratuito como IA oficial** ([D-91](docs/DECISIONS.md)). Cada aluno tem
+**Cadernos: o NotebookLM dentro do app, fase 1** ([D-92](docs/DECISIONS.md)), e
+**o Gemini gratuito como IA oficial** ([D-93](docs/DECISIONS.md)). Cada aluno tem
 cadernos privados (`/app/cadernos`) com fontes próprias — PDF, DOCX, TXT, MD,
 texto colado, ficha de material, estudo salvo —, conversa citada e notas, na tela
 de três painéis do NotebookLM (Fontes | Conversa | Estúdio). Três regras não se
@@ -907,7 +907,7 @@ workflows de disparo manual (`deploy-api.yml`, `admin-banco.yml`), não por
 terminal. Publicar exigiu corrigir cinco defeitos que nenhum teste pegava, e
 duas armadilhas do Fly cuja assinatura é a mesma: **o job fica verde e a
 aplicação não funciona**. Na instância publicada a camada de IA usava a Groq por
-`openai-compat` — desde o D-91 a oficial é o Gemini gratuito, pelo mesmo
+`openai-compat` — desde o D-93 a oficial é o Gemini gratuito, pelo mesmo
 provedor — (o `mock` segue sendo o padrão do código e o que os testes
 exercitam) e o Stripe responde 503 — configuração, não defeito. **Ligar a IA
 em produção custou mais dois defeitos do mesmo feitio**: o `AIUnavailableError`

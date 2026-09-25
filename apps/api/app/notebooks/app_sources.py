@@ -1,4 +1,4 @@
-"""A record of this app, written out as a notebook source (D-90).
+"""A record of this app, written out as a notebook source (D-92).
 
 A datasheet or a saved study becomes plain text a student can ask about. The
 text is generated **deterministically** from what the existing services

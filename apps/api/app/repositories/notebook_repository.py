@@ -1,4 +1,4 @@
-"""Data access for the Cadernos (D-90), always through the owner.
+"""Data access for the Cadernos (D-92), always through the owner.
 
 The owner is a **constructor argument with no default**, and every read joins
 through ``Notebook.owner_id``. There is no method here that takes a notebook

@@ -813,7 +813,7 @@ export default function StyleGuidePage() {
         </TableScroll>
       </Section>
 
-      {/* D-90: as primitivas dos Cadernos. */}
+      {/* D-92: as primitivas dos Cadernos. */}
       <Section title="Conversa com fontes (Cadernos)" headingLevel={2}>
         <div className="grid gap-3 lg:grid-cols-2">
           <PanelShell className="border border-edge">
