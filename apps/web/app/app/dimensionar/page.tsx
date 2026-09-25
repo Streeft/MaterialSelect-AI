@@ -65,7 +65,7 @@ function Facet({
 }) {
   return (
     <div className="flex flex-col gap-0.5">
-      <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">
+      <span className="text-caption font-semibold text-ink-muted">
         {label}
       </span>
       <span className="text-sm text-ink">{children}</span>
@@ -91,7 +91,7 @@ function CaseFacts({ loadCase }: { loadCase: LoadCase }) {
       </div>
 
       <div className="flex flex-col gap-1">
-        <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">
+        <span className="text-caption font-semibold text-ink-muted">
           {t.facetFixed}
         </span>
         <div className="flex flex-wrap gap-1">
@@ -101,9 +101,11 @@ function CaseFacts({ loadCase }: { loadCase: LoadCase }) {
         </div>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-2">
-        <div className="flex flex-col gap-2 rounded-card bg-surface-sunken p-3">
-          <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">
+      {/* D-91: two readings side by side, split by a hairline — not two boxes
+          inside the card. */}
+      <div className="subsection grid gap-4 md:grid-cols-2 md:divide-x md:divide-line-divider md:[&>*+*]:pl-4">
+        <div className="flex flex-col gap-2">
+          <span className="text-caption font-semibold text-ink-muted">
             {t.indexTitle}
           </span>
           <div className="flex flex-wrap items-baseline gap-2">
@@ -114,7 +116,7 @@ function CaseFacts({ loadCase }: { loadCase: LoadCase }) {
               {loadCase.index_name ?? loadCase.index_slug}
             </Link>
             {loadCase.index_expression ? (
-              <code className="rounded-control bg-surface px-2 py-0.5 text-xs text-ink">
+              <code className="rounded-seat bg-well px-2 py-0.5 font-mono text-xs text-ink">
                 {loadCase.index_expression}
               </code>
             ) : null}
@@ -125,8 +127,8 @@ function CaseFacts({ loadCase }: { loadCase: LoadCase }) {
             the objective toggle: the point of the item is that these are two
             readings of one derivation, and a reader who cannot see both at once
             has no way to notice that the structural factor never moved. */}
-        <div className="flex flex-col gap-2 rounded-card bg-surface-sunken p-3">
-          <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">
+        <div className="flex flex-col gap-2">
+          <span className="text-caption font-semibold text-ink-muted">
             {t.costIndexTitle}
           </span>
           <div className="flex flex-wrap items-baseline gap-2">
@@ -137,7 +139,7 @@ function CaseFacts({ loadCase }: { loadCase: LoadCase }) {
               {loadCase.cost_index_name ?? loadCase.cost_index_slug}
             </Link>
             {loadCase.cost_index_expression ? (
-              <code className="rounded-control bg-surface px-2 py-0.5 text-xs text-ink">
+              <code className="rounded-seat bg-well px-2 py-0.5 font-mono text-xs text-ink">
                 {loadCase.cost_index_expression}
               </code>
             ) : null}
@@ -350,7 +352,7 @@ export default function DimensionarPage() {
                   {solve.isPending ? t.solving : t.solve}
                 </Button>
                 {blockedReason ? (
-                  <p id="dimensionar-motivo" className="text-2xs text-ink-muted">
+                  <p id="dimensionar-motivo" className="text-support text-ink-muted">
                     {blockedReason}
                   </p>
                 ) : null}

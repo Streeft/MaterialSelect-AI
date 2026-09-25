@@ -65,29 +65,34 @@
 [data-theme="light"] {
   color-scheme: light;
 
-  /* Blue-gray, not warm paper: Ashby's chart and dense tables read better
-   * on slightly cool white, and the section hue doesn't compete with an already
-   * warm background. */
-  --surface: 244 246 250;
+  /* Faint warm paper, a step darker than the white panels (D-90). The
+   * blue-gray of D-38 (244 246 250) sat so close to the white card that a
+   * panel, a button and the page read as one sheet; the beige gives the page
+   * a color of its own, so every raised surface separates from it. Chosen
+   * against the section accents: the weakest (--accent of the initial route)
+   * still reads 4.79:1 on --surface and 4.53:1 on --surface-sunken. */
+  --surface: 241 237 229;
   --surface-raised: 255 255 255;
-  --surface-sunken: 235 238 245;
+  --surface-sunken: 235 231 223;
   --surface-inverted: 23 26 33;
 
-  --edge: 220 225 234;
-  --edge-subtle: 231 234 241;
-  --edge-strong: 195 202 214;
+  /* Darker hairlines, warm like the page (D-90): at 220 225 234 a card edge
+   * was 1.2:1 against the page and vanished. */
+  --edge: 204 198 187;
+  --edge-subtle: 221 216 206;
+  --edge-strong: 166 160 148;
   /* A field border is the only thing that says a control exists there,
    * which puts it under 1.4.11 (3:1), not the hairline budget of the others.
-   * 4.49:1 on the raised panel, the lighter of the two surfaces
-   * a control rests on. */
-  --edge-control: 111 119 137;
+   * Darkened in D-90 from 111 119 137 (4.49:1 on white, 4.15:1 on the page)
+   * so a button, a field and a checkbox read as controls at a glance:
+   * 6.50:1 on the raised panel, 5.56:1 on the page. */
+  --edge-control: 88 94 108;
 
   --ink: 23 26 33;
   --ink-muted: 74 81 98;
-  /* 4.95:1 over --surface. Darkened from D-38's gray:
-   * over the lightest surface in this palette, the previous value fell
-   * to 4.3:1 — rejected. */
-  --ink-subtle: 99 107 124;
+  /* 5.16:1 over --surface, 4.89:1 over --surface-sunken. Darkened again in
+   * D-90: on the beige sunken well the D-38 value fell to 4.2:1. */
+  --ink-subtle: 92 99 114;
   --ink-inverted: 242 244 249;
 
   /* The rail is dark in both themes — that's what keeps it as a frame rather than
@@ -170,14 +175,14 @@
   --md-sys-color-on-error: #ffffff;
   --md-sys-color-error-container: #ffdad6;
   --md-sys-color-on-error-container: #93000a;
-  --md-sys-color-background: #f4f6fa;
+  --md-sys-color-background: #f1ede5;
   --md-sys-color-on-background: #171a21;
   --md-sys-color-surface: #ffffff;
   --md-sys-color-on-surface: #171a21;
   --md-sys-color-surface-variant: #ebeef5;
   --md-sys-color-on-surface-variant: #4a5162;
   --md-sys-color-surface-container-lowest: #ffffff;
-  --md-sys-color-surface-container-low: #f4f6fa;
+  --md-sys-color-surface-container-low: #f1ede5;
   --md-sys-color-surface-container: #ebeef5;
   --md-sys-color-surface-container-high: #e7eaf1;
   --md-sys-color-surface-container-highest: #dce1ea;
@@ -222,22 +227,50 @@
 
   --row-accent: rgb(var(--brand-100));
 
-  --radius-card: 1.25rem;
-  --radius-control: 0.75rem;
-  --radius-panel: 1.5rem;
-  --radius-seat: 0.5rem;
-  --radius-xl: 1.75rem;
+  /* Radius by role (D-91). A panel that groups work is rounder than the
+   * control inside it, and a cell or chip in a dense table is squarer still:
+   * the radius says what kind of thing it is. At 20/12/8 px everything read
+   * as the same soft card, and a table looked like a pile of pills. */
+  --radius-card: 1rem;
+  --radius-control: 0.625rem;
+  --radius-panel: 1.25rem;
+  --radius-seat: 0.375rem;
+  --radius-xl: 1.5rem;
   --radius-full: 9999px;
+
+  /* The semantic layer (D-91). Components name the *role* — the page, a
+   * panel, a well, the border of something operable, the main action — and
+   * this block says which palette token plays it. A change like D-90's
+   * becomes a few lines here instead of a hunt through components. The
+   * palette tokens above stay the source of every value; these only point at
+   * them, so the per-route hue (D-49) still flows through --accent. */
+  --surface-page: var(--surface);
+  --surface-panel: var(--surface-raised);
+  --surface-well: var(--surface-sunken);
+  --border-panel: var(--edge);
+  --border-divider: var(--edge-subtle);
+  --border-control: var(--edge-control);
+  --action-primary: var(--accent);
+  --action-primary-ink: var(--accent-fg);
+  --text-primary: var(--ink);
+  --text-secondary: var(--ink-muted);
+  --text-tertiary: var(--ink-subtle);
 
   --space-2: 0.5rem;
   --space-3: 0.75rem;
   --space-4: 1rem;
   --space-5: 1.25rem;
 
-  --shadow-card: 0 1px 2px 0 rgb(23 26 33 / 0.05);
-  --shadow-raised: 0 6px 16px -8px rgb(23 26 33 / 0.24);
-  --shadow-float: 0 6px 16px -8px rgb(23 26 33 / 0.24);
-  --shadow-overlay: 0 18px 40px -18px rgb(23 26 33 / 0.35), 0 2px 6px 0 rgb(23 26 33 / 0.12);
+  /* Light theme shadows carry separation, not just depth (D-90): a card
+   * lifts off the page and a control sits proud of the card. Tinted with
+   * the page's warm ink rather than pure black, so they read as shade on
+   * paper and not as dirt. The dark theme restates the pre-D-90 values. */
+  --shadow-card: 0 1px 2px 0 rgb(46 38 26 / 0.10), 0 2px 8px -2px rgb(46 38 26 / 0.12);
+  --shadow-control: 0 1px 2px 0 rgb(46 38 26 / 0.14), 0 1px 0 0 rgb(46 38 26 / 0.04);
+  --shadow-raised: 0 8px 18px -8px rgb(46 38 26 / 0.30), 0 1px 3px 0 rgb(46 38 26 / 0.10);
+  --shadow-float: 0 10px 22px -8px rgb(46 38 26 / 0.32), 0 1px 3px 0 rgb(46 38 26 / 0.10);
+  --shadow-overlay: 0 18px 40px -18px rgb(46 38 26 / 0.40), 0 2px 6px 0 rgb(46 38 26 / 0.14);
+  --shadow-lift: 0 16px 34px -18px rgb(46 38 26 / 0.36);
   --shadow-glow: 0 0 0 1px rgb(var(--brand-300) / 0.4), 0 10px 22px -12px rgb(var(--accent) / 0.85);
 }
 
@@ -663,6 +696,15 @@
   --edge-strong: 58 63 76;
   /* 4.10:1 over the raised panel. */
   --edge-control: 118 126 146;
+
+  /* Pre-D-90 shadows: on charcoal a shadow separates little, and the dark
+   * theme was not what the D-90 report was about. */
+  --shadow-card: 0 1px 2px 0 rgb(23 26 33 / 0.05);
+  --shadow-control: none;
+  --shadow-raised: 0 6px 16px -8px rgb(23 26 33 / 0.24);
+  --shadow-float: 0 6px 16px -8px rgb(23 26 33 / 0.24);
+  --shadow-overlay: 0 18px 40px -18px rgb(23 26 33 / 0.35), 0 2px 6px 0 rgb(23 26 33 / 0.12);
+  --shadow-lift: 0 16px 34px -18px rgb(23 26 33 / 0.30);
 
   --ink: 231 233 240;
   --ink-muted: 183 190 206;
@@ -1189,7 +1231,8 @@
 
   /* A focus ring for the whole app, and it follows the section hue:
    * `ring-brand` reads --accent, which [data-section] block rewrote. */
-  :focus-visible {
+  :focus-visible,
+  [data-force-state="focus"] {
     @apply outline-none ring-2 ring-brand ring-offset-2 ring-offset-surface;
   }
 
@@ -1231,6 +1274,38 @@
     transform-origin: left;
     @apply animate-grow-x;
   }
+
+  /* D-91: what sits *inside* a card. Never another card (border + shadow):
+   * a well is a tinted area without a border, a subsection is separated by
+   * space and one hairline. Two tools, so no screen reaches for a box. */
+  .well {
+    @apply rounded-control bg-well p-3;
+  }
+  .subsection {
+    @apply border-t border-line-divider pt-4;
+  }
+}
+
+/* D-91: a custom property that points at another is resolved where it is
+ * declared, so the semantic aliases above (declared on :root) would carry the
+ * root's hue into any element that sets its own `data-section` — the
+ * per-route specimens in /estilo do. Re-pointing the hue-bearing ones there
+ * keeps a button inside a specimen in that specimen's hue. */
+[data-section] {
+  --action-primary: var(--accent);
+  --action-primary-ink: var(--accent-fg);
+}
+
+/* D-91: compact table density, the reader's choice (lib/density.ts). An
+ * attribute selector on the scroll container outranks the cells' `py-2`
+ * utility by specificity, so no cell has to know about density. */
+[data-density="compact"] :is(th, td) {
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+}
+[data-density="compact"] table {
+  font-size: 0.8125rem;
+  line-height: 1.25rem;
 }
 
 /* Plain CSS, outside @layer: Tailwind purges @layer rules by class

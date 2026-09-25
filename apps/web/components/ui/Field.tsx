@@ -106,7 +106,7 @@ export function Field({
         </label>
         {children}
         {hint ? (
-          <p id={hintId} className="text-2xs text-ink-subtle">
+          <p id={hintId} className="text-support text-ink-subtle">
             {hint}
           </p>
         ) : null}
@@ -366,7 +366,7 @@ export const Checkbox = forwardRef<
         <span className="msds-checkbox-label">{label}</span>
       </label>
       {hint ? (
-        <p id={hintId} className="ml-[26px] text-2xs text-ink-subtle">
+        <p id={hintId} className="ml-[26px] text-support text-ink-subtle">
           {hint}
         </p>
       ) : null}

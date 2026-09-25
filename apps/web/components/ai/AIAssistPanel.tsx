@@ -142,7 +142,7 @@ export function AIAssistPanel({ onApply }: AIAssistPanelProps) {
         />
 
         <Button
-          variant="primary"
+          variant="secondary"
           disabled={!statement.trim()}
           loading={interpret.isPending}
           onClick={() => interpret.mutate()}
@@ -211,7 +211,7 @@ export function AIAssistPanel({ onApply }: AIAssistPanelProps) {
 
               {proposal.constraints.length > 0 && (
                 <div>
-                  <h4 className="text-2xs font-semibold uppercase tracking-wide text-ink-subtle">
+                  <h4 className="text-caption font-semibold text-ink-subtle">
                     {t.constraintsRead}
                   </h4>
                   <ul className="mt-1 space-y-1.5">
@@ -231,7 +231,7 @@ export function AIAssistPanel({ onApply }: AIAssistPanelProps) {
 
               {proposal.indices.length > 0 && (
                 <fieldset>
-                  <legend className="text-2xs font-semibold uppercase tracking-wide text-ink-subtle">
+                  <legend className="text-caption font-semibold text-ink-subtle">
                     {t.indicesRead}
                   </legend>
                   <ul className="mt-1 space-y-1.5">
@@ -261,14 +261,14 @@ export function AIAssistPanel({ onApply }: AIAssistPanelProps) {
 
               {proposal.chart && (
                 <p className="text-xs text-ink-muted">
-                  <strong className="uppercase tracking-wide">{t.chartRead}:</strong>{" "}
+                  <strong className="font-semibold">{t.chartRead}:</strong>{" "}
                   {proposal.chart.y} × {proposal.chart.x} ({proposal.chart.scale}) —{" "}
                   {proposal.chart.rationale}
                 </p>
               )}
 
               <div className="flex flex-wrap items-center gap-3 border-t border-edge-subtle pt-3">
-                <Button variant="primary" onClick={apply} disabled={selectedCount === 0}>
+                <Button variant="secondary" onClick={apply} disabled={selectedCount === 0}>
                   {t.apply}
                 </Button>
                 {selectedCount === 0 && (

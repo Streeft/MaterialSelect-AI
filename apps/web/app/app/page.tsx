@@ -74,7 +74,7 @@ export default function HomePage() {
                 href={step.href}
                 className="flex h-full flex-col gap-1 rounded-card border border-edge bg-surface-raised p-4 shadow-card transition hover:border-brand hover:bg-brand-50"
               >
-                <span className="text-2xs font-semibold uppercase tracking-wide text-brand-700">
+                <span className="text-caption font-semibold text-brand-700">
                   {i + 1}
                 </span>
                 <span className="text-sm font-medium text-ink">{step.label}</span>

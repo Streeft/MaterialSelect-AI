@@ -218,7 +218,7 @@ function WinnerCard({ result, winner }: { result: RunResult; winner: Winner }) {
   return (
     <Card className="border-success">
       <CardBody className="space-y-2">
-        <p className="text-2xs font-semibold uppercase tracking-wide text-success-fg">
+        <p className="text-caption font-semibold text-success-fg">
           {t.winnerEyebrow}
         </p>
         <h2 className="text-lg font-semibold text-ink">{title}</h2>
@@ -568,7 +568,7 @@ export function ResultsView({
                 {t.stagesHint}
               </caption>
               <thead>
-                <tr className="text-left text-xs uppercase tracking-wide text-ink-muted">
+                <tr className="text-left text-caption font-semibold text-ink-muted">
                   <th className="py-1 pr-3">{t.stagesTitle}</th>
                   <th className="py-1 pr-3">{t.stagePassedAlone}</th>
                   <th className="py-1 pr-3">{t.stageRemaining}</th>

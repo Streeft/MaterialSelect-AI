@@ -29,7 +29,7 @@ export function LimitationNotice({
 }) {
   if (variant === "footer") {
     return (
-      <p className={cn("text-2xs text-ink-subtle", className)}>
+      <p className={cn("text-support text-ink-subtle", className)}>
         <span className="font-medium text-ink-muted">{t.title}:</span> {t.full}
       </p>
     );

@@ -65,6 +65,13 @@ describe("cn", () => {
     expect(cn("shadow-card", "shadow-overlay")).toBe("shadow-overlay");
     expect(cn("text-2xs", "text-sm")).toBe("text-sm");
   });
+
+  it("keeps a D-91 type role beside a colour (they are different groups)", () => {
+    // Unregistered, `text-support` reads as a colour to tailwind-merge and the
+    // later `text-ink-muted` would silently drop the size.
+    expect(cn("text-support", "text-ink-muted")).toBe("text-support text-ink-muted");
+    expect(cn("text-caption", "text-support")).toBe("text-support");
+  });
 });
 
 describe("Button", () => {

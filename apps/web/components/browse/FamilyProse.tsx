@@ -39,7 +39,7 @@ export function FamilyProseCard({
 function Field({ label, value }: { label: string; value: string | null }) {
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-1">
-      <span className="text-xs font-medium uppercase tracking-wide text-ink-subtle">{label}</span>
+      <span className="text-caption font-semibold text-ink-subtle">{label}</span>
       {value === null ? (
         <p className="max-w-prose text-sm italic text-ink-muted">{f.unwritten}</p>
       ) : (
