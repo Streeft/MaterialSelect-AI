@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [31](#sessão-31--250926--auditoria-do-pr-78-curva-custo--lote-do-antigravity) | 25/09/2026 | Auditoria do PR #78 (curva custo × lote, execução agêntica externa): comportamento correto, cobertura de teste devolvida e o registro que faltava, escrito (D-96) | 1963 → 1966 | 563 (inalterado) |
 | [30](#sessão-30--250926--o-estúdio-de-texto-dos-cadernos) | 25/09/2026 | Cadernos, fase 2: o Estúdio de texto — relatório, cartões, teste, tabela e mapa mental, gerados em segundo plano e conferidos item a item (D-94) | 1917 → 1966 | 536 → 554 |
 | [29](#sessão-29--250926--cadernos-o-notebooklm-dentro-do-app-e-o-gemini-gratuito) | 25/09/2026 | Cadernos, fase 1: fontes privadas, conversa citada com número conferido, guia, notas e cota, na tela de três painéis do NotebookLM (D-92); o Gemini gratuito como IA oficial, por configuração (D-93) | 1856 → 1906 | 505 → 536 (com os 6 do D-91, mesclado de main) |
 | [28](#sessão-28--240926-a-280926--turma-de-terça-processos-no-objetivo-ux-guiada-pesos-com-limite-e-a-ia) | 24 a 28/09/2026 | Preparação para a turma: processos no Objetivo, Seleção guiada, superfícies enxutas, pesos com limite 1, Objetivo antes de Restrições e a IA do laudo (D-84 a D-89) | 1785 → 1856 | 431 → 505 |
@@ -46,6 +47,39 @@ As sessões entre a 11 e a 12 — o patch de design "Prisma" (D-49, D-50), o
 upgrade de segurança S1 e a rodada de desempenho — **não têm seção própria
 aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
+
+---
+
+## Sessão 31 — 25/09/26 — Auditoria do PR #78 (curva custo × lote, do Antigravity)
+
+**O pedido.** Antes de começar a fase 3 dos Cadernos, verificar se o PR #78
+— `/app/custo` ganhou uma curva de custo unitário × tamanho do lote,
+enviado por execução agêntica externa (Antigravity) e já mesclado pelo
+autor — está rodando corretamente.
+
+**O que a auditoria achou.** O cálculo está certo: `cost_curve()` reamostra
+os mesmos quatro termos de `cost_terms()` (D-65) em vez de duplicar a
+derivação, sem moeda inventada e com a tabela alternativa (D-31) de sempre.
+CI verde no merge e na ponta atual de `main`; testes, lint e format locais
+batem com a CI.
+
+Duas lacunas, nenhuma no comportamento. **Cobertura de teste**: o PR
+reescreveu `test_part_cost_api.py` inteiro em vez de estender (16 testes →
+8), e três ficaram sem substituto — a prova de que só o termo de
+ferramental se move com o lote, a prova do cruzamento de ranking entre
+lotes (a razão de existir da própria curva) e o 404 de um material
+inexistente. Reinstalados sem tocar `part_cost.py`: passaram de primeira
+contra o código já em `main`, confirmando que o comportamento nunca esteve
+errado. Os comentários da CI no PR mostram uma iteração agêntica típica —
+um `SyntaxError` corrigido só pelo autor humano, depois duas rodadas de
+teste vermelho por um material semeado não encontrado — e é nessa
+iteração que a suíte de teste foi provavelmente simplificada de mais em
+vez de consertada. **Registro**: o PR não tocou `docs/`, e `TODO.md`
+continuava listando a curva como pendência de um item já quitado.
+Corrigido com [D-96](DECISIONS.md).
+
+**Números.** Backend 1963 → 1966 (os três testes devolvidos); frontend
+inalterado, 563.
 
 ---
 

@@ -313,9 +313,13 @@ Registrados para não voltarem por engano:
   a dimensão da massa nas duas execuções; ela prova a álgebra e deixou de nomear
   a resposta.
 
-  **O que ficou de fora:** a curva custo × lote desenhada, o custo por família de
-  processo, e custo como objetivo em estudo de **processos** — um processo não
-  tem `custo_massa`, e ali a pergunta é a do estimador.
+  A **curva custo × lote** saiu depois, num PR à parte ([D-96](DECISIONS.md)):
+  `/app/custo` desenha C(n) em log–log, reamostrando os mesmos quatro termos —
+  não uma segunda derivação.
+
+  **O que ficou de fora:** o custo por família de processo, e custo como
+  objetivo em estudo de **processos** — um processo não tem `custo_massa`, e
+  ali a pergunta é a do estimador.
 - ~~**P3 (segundo item)** — o Eco Audit~~ — `POST /api/eco/auditar` e
   `/app/eco` somam energia e carbono da peça em cinco fases
   ([D-66](DECISIONS.md)). A resposta não é o total: é **qual fase domina**, uma
