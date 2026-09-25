@@ -200,7 +200,7 @@ def curve_batch_sizes(current_batch: float = 1.0) -> list[float]:
 
     max_batch = max(batches)
     if max_batch > 1_000_000.0:
-        highest_decade = 10 ** int(len(str(int(max_batch)))))
+        highest_decade = 10 ** len(str(int(max_batch)))
         for decade_mult in (10_000_000.0, 100_000_000.0, 1_000_000_000.0):
             for mult in (1.0, 2.0, 5.0):
                 val = mult * (decade_mult / 10.0)

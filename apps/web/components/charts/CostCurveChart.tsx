@@ -6,7 +6,7 @@ import { formatNumber } from "@/lib/format";
 import { paletteSeats } from "@/lib/design/palette";
 import { ChartFrame } from "./ChartFrame";
 import { ChartInfoLine, ChartLegend, type LegendItem, MarkerSymbol } from "./ChartLegend";
-import { FigureData } from "./FigureData";
+import { FigureData, type FigureColumn } from "./FigureData";
 import { logTicks, makeScale, useChartWidth, useRovingFocus } from "./figureKit";
 
 const t = {
@@ -25,6 +25,11 @@ interface CostCurveChartProps {
   result: CostResult;
   title?: string;
   description?: string;
+}
+
+interface CostTableRow {
+  batch_size: number;
+  costs: Record<number, number>;
 }
 
 export function CostCurveChart({
@@ -139,7 +144,7 @@ export function CostCurveChart({
     result.batch_size >= domainX[0] && result.batch_size <= domainX[1];
 
   // Table rows for FigureData (D-31)
-  const tableRows = useMemo(() => {
+  const tableRows: CostTableRow[] = useMemo(() => {
     return allBatchSizes.map((bSize) => {
       const costsByProcess: Record<number, number> = {};
       for (const p of costed) {
@@ -155,8 +160,20 @@ export function CostCurveChart({
     });
   }, [allBatchSizes, costed]);
 
+  const tableColumns: FigureColumn<CostTableRow>[] = useMemo(() => {
+    return visibleProcesses.map((p) => ({
+      key: String(p.process_id),
+      header: p.process_name,
+      numeric: true,
+      cell: (row: CostTableRow) => {
+        const val = row.costs[p.process_id];
+        return val !== undefined ? formatNumber(val) : null;
+      },
+    }));
+  }, [visibleProcesses]);
+
   const tableComponent = (
-    <FigureData
+    <FigureData<CostTableRow>
       caption={t.chartFigureLabel}
       rows={tableRows}
       rowKey={(row) => row.batch_size}
@@ -167,15 +184,7 @@ export function CostCurveChart({
             ? `${formatNumber(row.batch_size)} (${t.chartCurrentBatch(row.batch_size)})`
             : formatNumber(row.batch_size),
       }}
-      columns={visibleProcesses.map((p) => ({
-        key: String(p.process_id),
-        header: p.process_name,
-        numeric: true,
-        cell: (row) => {
-          const val = row.costs[p.process_id];
-          return val !== undefined ? formatNumber(val) : null;
-        },
-      }))}
+      columns={tableColumns}
     />
   );
 

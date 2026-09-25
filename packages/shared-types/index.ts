@@ -266,7 +266,7 @@ export interface MaterialClass {
   /**
    * Materials filed **directly** here, so an empty branch reads as empty
    * instead of borrowing its children's contents. The subtree total is
-   * `MaterialClassDetail.descendant_material_count``.
+   * `MaterialClassDetail.descendant_material_count`.
    */
   material_count: number;
 }
@@ -1665,7 +1665,7 @@ export interface CostedProcess {
   class_name: string;
   rank: number;
   terms: CostTerms;
-  curve: CostCurvePoint[];
+  curve?: CostCurvePoint[];
 }
 
 /** A process that could not be priced, and what it lacked. */
