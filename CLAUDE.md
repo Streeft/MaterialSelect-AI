@@ -808,7 +808,7 @@ mapa mental é calculado em `app/notebooks/mindmap.py` e serve a tela e o SVG
 exportado — não recalcule no cliente. Cota própria (`NOTEBOOK_DAILY_ARTIFACTS`),
 com as gerações em andamento já descontadas.
 
-1966 testes de backend (nenhum skip) e 554 de frontend, todos verdes. CI no
+1966 testes de backend (nenhum skip) e 563 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
 PROJECT_CONTEXT.md).
