@@ -8,7 +8,7 @@ connection across FastAPI's threadpool; this flag is ignored for other backends.
 from __future__ import annotations
 
 import json
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from typing import Any
 
 from sqlalchemy import create_engine
@@ -51,3 +51,14 @@ def get_db() -> Generator[Session, None, None]:
         yield db
     finally:
         db.close()
+
+
+def get_session_factory() -> Callable[[], Session]:
+    """FastAPI dependency: how a background job opens a session of its own.
+
+    A job that runs after the response (the Studio's generations, D-94) cannot
+    use the request's session — it is closed by then. It asks for this factory
+    instead, which the tests replace with one bound to their rolled-back
+    connection, so a job's writes stay inside the test like any request's.
+    """
+    return SessionLocal

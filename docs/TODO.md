@@ -13,16 +13,11 @@ os vizinhos — outros documentos citam esses códigos.
 
 ## Alta prioridade
 
-**Cadernos — fases 2 a 4 (D-92).** ▃ A fase 1 entregou cadernos privados,
-fontes (arquivo, texto, ficha, estudo), conversa citada, guia, notas e cota. O
-que falta, tudo sem custo (D-93):
+**Cadernos — fases 3 e 4 (D-92).** ▃ A fase 1 entregou cadernos privados,
+fontes, conversa citada, guia, notas e cota; a fase 2 (D-94), o Estúdio de
+texto — relatório, cartões, teste, tabela e mapa mental, gerados em segundo
+plano e conferidos item a item. O que falta, tudo sem custo (D-93):
 
-- **Fase 2 — Estúdio de texto (D-94).** O modal Formato/Modelo das capturas
-  (sobre o `RadioCard`), gerando e guardando em `StudioArtifact` (a tabela já
-  existe): Relatórios (visão geral, guia de estudo, resumo, FAQ, glossário,
-  personalizado), Cartões didáticos, Teste, Tabela de dados (cada célula citada
-  e conferida) e Mapa mental (SVG próprio com tabela alternativa, D-31). A cota
-  de artefatos usa `ai_usage.artifacts`. Exportações com o aviso de limitação.
 - **Fase 3 — fontes externas (D-95).** URL com proteção contra SSRF, YouTube
   (legenda pública; se falhar, colar a transcrição), OpenAlex e Wikipédia pelas
   APIs gratuitas, e busca na web por *grounding* com Google Search — o que
@@ -133,6 +128,14 @@ continua lá, e a métrica para de medir no 3.
 
 Registrados para não voltarem por engano:
 
+- ~~**Cadernos, fase 2 — Estúdio de texto (D-94)**~~ — Relatório (seis
+  modelos, texto corrido ou tópicos), Cartões didáticos, Teste (múltipla escolha
+  ou V/F), Tabela de dados (colunas escolhidas) e Mapa mental, no modal
+  Formato/Modelo com lápis. Geração em segundo plano com artefato preso lido
+  como falho; todo número de todo item conferido contra o trecho que ele cita,
+  distratores inclusive; célula sem valor com rótulo escrito; layout do mapa no
+  backend para a tela e o SVG; cota própria. Exportações DOCX/CSV/XLSX/SVG com
+  os avisos.
 - ~~**Atualização do Guia de Estilo (`/app/estilo`)**~~ — As três primitivas
   novas do barril (`Bar`, `PageHeader`, `PanelShell`), o token de raio
   `rounded-panel` (24 px / 1.5 rem), os seis tokens de superfície `rail-*`

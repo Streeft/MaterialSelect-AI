@@ -785,11 +785,24 @@ número, depois o parágrafo sai com o motivo escrito. Cota diária por aluno
 (`NOTEBOOK_DAILY_REQUESTS`). O Gemini entra por configuração do `openai-compat`
 (chave do AI Studio **sem faturamento**, trocada pelo workflow **Provedor de
 IA**, `provedor-ia.yml`, que confere em `/api/health`); **o `mock` continua o
-padrão do código e dos testes**. O Estúdio (relatórios, cartões, teste, mapa
-mental, tabela, slides, infográfico, áudio e vídeo pela voz do navegador) e as
-fontes da web são as fases 2 a 4, em `docs/TODO.md`.
+padrão do código e dos testes**. Slides, infográfico, áudio e vídeo (pela voz
+do navegador) e as fontes da web são as fases 3 e 4, em `docs/TODO.md`.
 
-1906 testes de backend (nenhum skip) e 536 de frontend, todos verdes. CI no
+**O Estúdio de texto é a fase 2** ([D-94](docs/DECISIONS.md)): relatório,
+cartões didáticos, teste, tabela de dados e mapa mental, no modal "Criar …" de
+Formato e Modelo com lápis (a instrução do modelo mora no catálogo do backend,
+`app/ai/studio.py`, e a tela a lê por `GET /notebooks/studio-catalog`). A
+geração **responde 202 e roda em segundo plano** numa sessão própria
+(`get_session_factory`, que os testes sobrescrevem); artefato `gerando` além do
+prazo é **lido** como falho, nunca escrito por um GET. **Todo número de todo
+item tem de estar no trecho que o item cita — distratores do teste inclusive**
+(`app/notebooks/grounding.py`, a regra do chat); a célula de tabela que falha
+**fica**, com rótulo escrito ("não consta nas fontes" ≠ "omitida"). O layout do
+mapa mental é calculado em `app/notebooks/mindmap.py` e serve a tela e o SVG
+exportado — não recalcule no cliente. Cota própria (`NOTEBOOK_DAILY_ARTIFACTS`),
+com as gerações em andamento já descontadas.
+
+1966 testes de backend (nenhum skip) e 554 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
 PROJECT_CONTEXT.md).

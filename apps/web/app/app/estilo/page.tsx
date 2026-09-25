@@ -40,6 +40,7 @@ import {
   NumberInput,
   PageHeader,
   PanelHeader,
+  RadioCard,
   PanelShell,
   ProvenancePopover,
   RemovableChip,
@@ -72,6 +73,7 @@ import {
   IconCards,
   IconDownload,
   IconGrid,
+  IconPencil,
   IconQuiz,
   IconReport,
   IconPlus,
@@ -965,6 +967,30 @@ export default function StyleGuidePage() {
               <ToolTile icon={<IconCards />} label="Cartões didáticos" tone="danger" onClick={() => {}} />
               <ToolTile icon={<IconQuiz />} label="Teste" tone="info" onClick={() => {}} />
             </div>
+            {/* D-94: o cartão de modelo do "Criar …", com o lápis como ação. */}
+            <fieldset className="grid gap-2 sm:grid-cols-2">
+              <legend className="mb-2 text-sm font-semibold text-ink">Modelo</legend>
+              <RadioCard
+                name="estilo-modelo"
+                value="guia"
+                checked
+                onChange={() => {}}
+                title="Guia de estudo"
+                action={<IconButton size="sm" label="Editar o modelo “Guia de estudo”" icon={<IconPencil />} />}
+              >
+                <p className="text-support text-ink-muted">Conceitos-chave explicados.</p>
+              </RadioCard>
+              <RadioCard
+                name="estilo-modelo"
+                value="glossario"
+                checked={false}
+                onChange={() => {}}
+                title="Glossário"
+                action={<IconButton size="sm" label="Editar o modelo “Glossário”" icon={<IconPencil />} />}
+              >
+                <p className="text-support text-ink-muted">Os termos, definidos pelas fontes.</p>
+              </RadioCard>
+            </fieldset>
           </div>
         </div>
       </Section>
