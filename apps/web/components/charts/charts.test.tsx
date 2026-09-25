@@ -9,6 +9,8 @@ import { ChartToolbar } from "./ChartToolbar";
 import { ComparisonView } from "./ComparisonView";
 import { FigureData } from "./FigureData";
 import { AshbyMap } from "./AshbyMap";
+import { ChartFrame } from "./ChartFrame";
+import { HorizontalBars } from "./HorizontalBars";
 import { ptBR } from "@/lib/i18n";
 import { findA11yViolations, describeViolations } from "@/lib/testing/axe";
 import type { CompareAxis, CompareCell, CompareMaterial, Comparison, PropertyMap } from "@/lib/types";
@@ -708,5 +710,105 @@ describe("AshbyMap — seleção interativa e cursor", () => {
     expect(JSON.parse(mock.getAttribute("data-hidden-traces") ?? "[]")).toContain("Metais");
     // Hiding a class is a view choice, not a region: the selection is untouched.
     expect(onSelectBox).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * D-94: the AI Studio chart behaviour — a readout that lists every series of
+ * the category under the pointer, and a corner switch between two drawings of
+ * the same rows.
+ */
+describe("HorizontalBars — tooltip and orientation (D-94)", () => {
+  const segments = [
+    { key: "a", label: "Preenchido", color: "rgb(0 0 0)" },
+    { key: "b", label: "Ausente", color: "rgb(1 1 1)" },
+  ];
+  const rows = [
+    { key: "metais", label: "Metais", values: { a: 7, b: 2 }, valueLabel: "77,8%" },
+    { key: "polimeros", label: "Polímeros", values: { a: 3, b: 0 }, valueLabel: "100,0%" },
+  ];
+  const describe_ = (row: { label: string }, segment: { label: string }) => ({
+    aria: `${row.label}: ${segment.label}`,
+  });
+
+  for (const orientation of ["horizontal", "vertical"] as const) {
+    it(`lists every segment of the hovered category (${orientation})`, async () => {
+      const user = userEvent.setup();
+      const { container } = render(
+        <HorizontalBars
+          figureLabel="Cobertura"
+          segments={segments}
+          rows={rows}
+          orientation={orientation}
+          describe={describe_}
+        />,
+      );
+      const tooltip = container.querySelector(".chart-tooltip") as HTMLElement;
+      expect(tooltip.textContent).toBe("");
+
+      await user.hover(screen.getByShadowRole("img", { name: "Metais: Ausente" }));
+      expect(tooltip).toHaveTextContent("Metais");
+      expect(tooltip).toHaveTextContent("Preenchido7");
+      expect(tooltip).toHaveTextContent("Ausente2");
+      expect(tooltip).toHaveTextContent("77,8%");
+      // The segment under the pointer is the emphasised row.
+      const emphasised = tooltip.querySelector('[data-emphasis="true"]');
+      expect(emphasised).toHaveTextContent("Ausente");
+    });
+  }
+
+  it("keeps one keyboard mark per segment in both orientations", () => {
+    for (const orientation of ["horizontal", "vertical"] as const) {
+      const { unmount } = render(
+        <HorizontalBars
+          figureLabel="Cobertura"
+          segments={segments}
+          rows={rows}
+          orientation={orientation}
+          describe={describe_}
+        />,
+      );
+      // Polímeros has no "Ausente": a zero is not drawn as a mark.
+      expect(screen.getAllByShadowRole("img")).toHaveLength(3);
+      unmount();
+    }
+  });
+});
+
+describe("ChartFrame — chart-type switch (D-94)", () => {
+  it("offers each drawing as a round button, and the table beside them", async () => {
+    const user = userEvent.setup();
+    const onViewChange = vi.fn();
+    render(
+      <ChartFrame
+        title="Cobertura por classe"
+        exportName="painel"
+        views={[
+          { key: "vertical", label: t.viewColumns, icon: null },
+          { key: "horizontal", label: t.viewBars, icon: null },
+        ]}
+        view="vertical"
+        onViewChange={onViewChange}
+        table={<p>tabela</p>}
+      >
+        <svg data-chart-figure />
+      </ChartFrame>,
+    );
+
+    const group = screen.getByShadowRole("group", { name: t.view });
+    const columns = within(group).getByShadowRole("button", { name: t.viewColumns });
+    const bars = within(group).getByShadowRole("button", { name: t.viewBars });
+    expect(columns).toHaveAttribute("aria-pressed", "true");
+    expect(bars).toHaveAttribute("aria-pressed", "false");
+
+    await user.click(bars);
+    expect(onViewChange).toHaveBeenCalledWith("horizontal");
+
+    // The table is a third seat of the same switch; leaving it goes back to
+    // the drawing that was chosen.
+    await user.click(within(group).getByShadowRole("button", { name: t.showTable }));
+    expect(columns).toHaveAttribute("aria-pressed", "false");
+    await user.click(columns);
+    expect(columns).toHaveAttribute("aria-pressed", "true");
   });
 });

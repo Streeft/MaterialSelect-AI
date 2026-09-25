@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { QualityBucket, QualitySlice } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { formatPercent } from "@/lib/format";
@@ -8,7 +8,13 @@ import { chartFileName } from "@/lib/charts";
 import { EmptyState } from "@/components/ui";
 import { ChartFrame } from "../charts/ChartFrame";
 import { FigureData, type FigureColumn } from "../charts/FigureData";
-import { HorizontalBars, type BarRow, type BarSegment } from "../charts/HorizontalBars";
+import {
+  HorizontalBars,
+  type BarOrientation,
+  type BarRow,
+  type BarSegment,
+} from "../charts/HorizontalBars";
+import { IconChartBarsHorizontal, IconChartColumns } from "@/components/ui/icons";
 import { tok } from "../charts/figureKit";
 
 const t = ptBR.dashboard;
@@ -94,8 +100,18 @@ export function QualityMixChart({ slices }: { slices: QualitySlice[] }) {
     [],
   );
 
+  // D-94: columns by default (the AI Studio figure); the corner switches to
+  // horizontal bars, which read better when category names are long.
+  const [orientation, setOrientation] = useState<BarOrientation>("vertical");
+
   return (
     <ChartFrame
+      views={[
+        { key: "vertical", label: ptBR.chart.viewColumns, icon: <IconChartColumns /> },
+        { key: "horizontal", label: ptBR.chart.viewBars, icon: <IconChartBarsHorizontal /> },
+      ]}
+      view={orientation}
+      onViewChange={(key) => setOrientation(key as BarOrientation)}
       title={t.qualityMixTitle}
       description={t.qualityMixHint}
       exportName={chartFileName("painel", "composicao-qualidade")}
@@ -112,6 +128,7 @@ export function QualityMixChart({ slices }: { slices: QualitySlice[] }) {
       }
     >
       <HorizontalBars
+        orientation={orientation}
         figureLabel={ptBR.chart.figureLabel(t.qualityMixFigure)}
         segments={segments}
         rows={rows}
@@ -122,15 +139,23 @@ export function QualityMixChart({ slices }: { slices: QualitySlice[] }) {
           const count = slice?.count ?? 0;
           const share =
             slice && slice.share_pct !== null ? ` (${formatPercent(slice.share_pct)})` : "";
+          const segment = segments.find((s) => s.key === row.key);
           return {
             aria: `${row.label}: ${count.toLocaleString("pt-BR")}${share}`,
-            info: (
-              <>
-                <strong>{row.label}</strong> — {t.columnCount}:{" "}
-                <strong>{count.toLocaleString("pt-BR")}</strong>
-                {share}
-              </>
-            ),
+            tip: {
+              title: row.label,
+              rows: [
+                {
+                  key: "count",
+                  label: t.columnCount,
+                  value: count.toLocaleString("pt-BR"),
+                  color: segment?.color,
+                },
+                ...(slice && slice.share_pct !== null
+                  ? [{ key: "share", label: t.columnShare, value: formatPercent(slice.share_pct) }]
+                  : []),
+              ],
+            },
           };
         }}
       />

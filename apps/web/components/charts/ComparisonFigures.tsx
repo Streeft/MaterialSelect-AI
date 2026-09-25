@@ -5,7 +5,8 @@ import type { ClassSymbol } from "@/lib/design/palette";
 import { ptBR } from "@/lib/i18n";
 import { formatScore } from "@/lib/format";
 import { SPRING, useSpring } from "@/lib/msds";
-import { ChartInfoLine, ChartLegend, MarkerSymbol, type LegendItem } from "./ChartLegend";
+import { ChartLegend, MarkerSymbol, type LegendItem } from "./ChartLegend";
+import { ChartTooltip, type TooltipContent } from "./ChartTooltip";
 import { makeScale, tok, truncate, useChartWidth, useRovingFocus } from "./figureKit";
 
 const t = ptBR.compare;
@@ -64,13 +65,35 @@ function useHiddenSeries() {
 
 function scoreWords(series: CompareSeries, axis: CompareAxisView, value: number | null) {
   const shown = value === null ? absent : formatScore(value);
+  return { aria: `${series.name} (${series.className}) — ${axis.name}: ${shown}` };
+}
+
+/**
+ * The shared readout of one property (D-94, the AI Studio tooltip): the
+ * property on top, then every drawn material's normalised score on it, the
+ * one under the pointer emphasised. A material with no value says so in words
+ * (D-24) — never a zero.
+ */
+function scoreTip(
+  axis: CompareAxisView,
+  drawn: CompareSeries[],
+  activeId: number,
+  score: ScoreOf,
+): TooltipContent {
   return {
-    aria: `${series.name} (${series.className}) — ${axis.name}: ${shown}`,
-    info: (
-      <>
-        <strong>{series.name}</strong> — {axis.name}: <strong>{shown}</strong>
-      </>
-    ),
+    title: axis.name,
+    rows: drawn.map((s) => {
+      const value = score(s.id, axis.slug);
+      return {
+        key: String(s.id),
+        label: s.name,
+        value: value === null ? absent : formatScore(value),
+        color: s.color,
+        symbol: s.symbol,
+        emphasis: s.id === activeId,
+      };
+    }),
+    note: tc.normalizedNote,
   };
 }
 
@@ -122,7 +145,7 @@ export function GroupedBarsFigure({ figureLabel, series, axes, score }: FigurePr
     : undefined;
 
   return (
-    <div ref={measure} className="min-w-0">
+    <div ref={measure} className="relative min-w-0">
       {width !== null && visible.length > 0 ? (
         <svg
           data-chart-figure
@@ -243,11 +266,9 @@ export function GroupedBarsFigure({ figureLabel, series, axes, score }: FigurePr
       ) : (
         <div style={{ height: Math.max(80, height) }} />
       )}
-      <ChartInfoLine>
-        {activeMark
-          ? scoreWords(activeMark.series, activeMark.axis, score(activeMark.series.id, activeMark.axis.slug)).info
-          : null}
-      </ChartInfoLine>
+      <ChartTooltip
+        content={activeMark ? scoreTip(activeMark.axis, visible, activeMark.series.id, score) : null}
+      />
       <ChartLegend
         items={legendItems(series)}
         hidden={hidden}
@@ -345,7 +366,7 @@ export function RadarFigure({ figureLabel, series, axes, score }: FigureProps) {
     : undefined;
 
   return (
-    <div ref={measure} className="min-w-0">
+    <div ref={measure} className="relative min-w-0">
       {width !== null && drawn.length > 0 ? (
         <svg
           data-chart-figure
@@ -449,11 +470,9 @@ export function RadarFigure({ figureLabel, series, axes, score }: FigureProps) {
       ) : null}
       {drawn.length > 0 ? (
         <>
-          <ChartInfoLine>
-            {activeMark
-              ? scoreWords(activeMark.series, activeMark.axis, score(activeMark.series.id, activeMark.axis.slug)).info
-              : null}
-          </ChartInfoLine>
+          <ChartTooltip
+            content={activeMark ? scoreTip(activeMark.axis, visible, activeMark.series.id, score) : null}
+          />
           <ChartLegend items={legendItems(drawn)} hidden={hidden} onToggle={toggle} onHover={(key) => setHoverSeries(key === null ? null : Number(key))} />
         </>
       ) : null}
@@ -509,7 +528,7 @@ export function ParallelFigure({ figureLabel, series, axes, score }: FigureProps
     : undefined;
 
   return (
-    <div ref={measure} className="min-w-0">
+    <div ref={measure} className="relative min-w-0">
       {width !== null ? (
         <svg
           data-chart-figure
@@ -641,11 +660,9 @@ export function ParallelFigure({ figureLabel, series, axes, score }: FigureProps
       ) : (
         <div style={{ height }} />
       )}
-      <ChartInfoLine>
-        {activeMark
-          ? scoreWords(activeMark.series, activeMark.axis, score(activeMark.series.id, activeMark.axis.slug)).info
-          : null}
-      </ChartInfoLine>
+      <ChartTooltip
+        content={activeMark ? scoreTip(activeMark.axis, visible, activeMark.series.id, score) : null}
+      />
       <ChartLegend
         items={legendItems(series)}
         hidden={hidden}
@@ -728,7 +745,7 @@ export function HeatmapFigure({ figureLabel, series, axes, score }: FigureProps)
   const height = absentY + 22;
 
   return (
-    <div ref={measure} className="min-w-0">
+    <div ref={measure} className="relative min-w-0">
       {width !== null ? (
         <svg
           data-chart-figure
@@ -897,19 +914,9 @@ export function HeatmapFigure({ figureLabel, series, axes, score }: FigureProps)
       ) : (
         <div style={{ height: 200 }} />
       )}
-      <ChartInfoLine>
-        {activeSeries && activeAxis ? (
-          <>
-            <strong>{activeSeries.name}</strong> × {activeAxis.name}:{" "}
-            <strong>
-              {(() => {
-                const value = score(activeSeries.id, activeAxis.slug);
-                return value === null ? absent : formatScore(value);
-              })()}
-            </strong>
-          </>
-        ) : null}
-      </ChartInfoLine>
+      <ChartTooltip
+        content={activeSeries && activeAxis ? scoreTip(activeAxis, series, activeSeries.id, score) : null}
+      />
     </div>
   );
 }

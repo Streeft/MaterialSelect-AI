@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useState, type ElementType, type ReactNode } 
 import { ptBR } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
 import { ChartToolbar } from "./ChartToolbar";
+import { IconChartColumns, IconTable } from "@/components/ui/icons";
 import "./figures.css";
 
 const t = ptBR.chart;
@@ -28,7 +29,19 @@ const t = ptBR.chart;
  * - **One heading per figure,** at the level the page needs (`headingLevel`), so
  *   the document outline matches what the eye sees.
  */
+/** One way to draw the figure — a seat of the chart-type switch (D-94). */
+export interface ChartView {
+  key: string;
+  /** The button's name, e.g. "Barras horizontais". */
+  label: string;
+  icon: ReactNode;
+}
+
 export function ChartFrame({
+  views,
+  view,
+  onViewChange,
+  figureIcon,
   eyebrow,
   meta,
   title,
@@ -44,6 +57,16 @@ export function ChartFrame({
   className,
   children,
 }: {
+  /**
+   * D-94: the ways this figure can be drawn (bars ↔ columns…). Each becomes a
+   * round icon button in the corner, beside the table. Without it the corner
+   * offers one "Gráfico" button — the figure as it is — and the table.
+   */
+  views?: ChartView[];
+  view?: string;
+  onViewChange?: (key: string) => void;
+  /** The icon of the lone "Gráfico" button, when there are no `views`. */
+  figureIcon?: ReactNode;
   /** What kind of figure this is. Announced before the title; not drawn (D-91). */
   eyebrow?: ReactNode;
   /** A mono aside at the right of the heading, e.g. the index guide's expression. */
@@ -111,28 +134,54 @@ export function ChartFrame({
         <div className="flex max-w-full flex-wrap items-center gap-2">
           {meta ? <span className="mr-1 font-mono text-xs text-ink-subtle">{meta}</span> : null}
           {controls}
-          {hasFigure && table ? (
-            // D-91: a two-position switch instead of a link that renamed
-            // itself. Both positions are always visible, so the reader sees
-            // there is a table before choosing it.
-            <div role="group" aria-label={t.view} className="msds-segmented">
-              {([false, true] as const).map((tableView) => (
+          {hasFigure && (table || (views && views.length > 1)) ? (
+            // D-94: the AI Studio corner — round icon buttons, one per way to
+            // draw the figure, then the table (D-31). Each has its name as
+            // `aria-label` and as the native title, since the glyph is all
+            // that shows.
+            <div role="group" aria-label={t.view} className="chart-iconbar">
+              {(views && views.length > 0
+                ? views
+                : [{ key: "figure", label: t.showFigure, icon: figureIcon ?? <IconChartColumns /> }]
+              ).map((option) => {
+                const pressed = !showTable && (!views || option.key === view);
+                return (
+                  <button
+                    key={option.key}
+                    type="button"
+                    className="chart-icon-btn"
+                    aria-label={option.label}
+                    title={option.label}
+                    aria-pressed={pressed}
+                    onClick={() => {
+                      if (views) onViewChange?.(option.key);
+                      if (showTable) {
+                        toggled.current = true;
+                        setShowTable(false);
+                      }
+                    }}
+                  >
+                    {option.icon}
+                  </button>
+                );
+              })}
+              {table ? (
                 <button
-                  key={String(tableView)}
                   type="button"
-                  className="msds-segmented-item"
-                  data-active={showTable === tableView}
-                  aria-pressed={showTable === tableView}
-                  aria-controls={tableView ? tableId : undefined}
+                  className="chart-icon-btn"
+                  aria-label={t.showTable}
+                  title={t.showTable}
+                  aria-pressed={showTable}
+                  aria-controls={tableId}
                   onClick={() => {
-                    if (showTable === tableView) return;
+                    if (showTable) return;
                     toggled.current = true;
-                    setShowTable(tableView);
+                    setShowTable(true);
                   }}
                 >
-                  {tableView ? t.showTable : t.showFigure}
+                  <IconTable />
                 </button>
-              ))}
+              ) : null}
             </div>
           ) : null}
           <ChartToolbar

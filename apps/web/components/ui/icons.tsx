@@ -513,3 +513,38 @@ export const IconInfographic = (p: IconProps) => (
     <path d="M20 19.5V4.5" />
   </Svg>
 );
+
+// D-94: the chart-type switch in a figure's corner, drawn like the rest of
+// this set (1.75 stroke, round caps). Each always sits in a button whose
+// `aria-label` names the view, so the glyph itself stays decorative.
+export const IconChartColumns = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M4 20h16" />
+    <path d="M7 16.5v-5M12 16.5V6.5M17 16.5v-8" strokeWidth={2.6} />
+  </Svg>
+);
+
+export const IconChartBarsHorizontal = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M4 4v16" />
+    <path d="M7.5 7h9M7.5 12h12M7.5 17h6" strokeWidth={2.6} />
+  </Svg>
+);
+
+export const IconChartScatter = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M4 4v16h16" />
+    <circle cx="9" cy="14" r="1.6" fill="currentColor" />
+    <circle cx="13" cy="9.5" r="1.6" fill="currentColor" />
+    <circle cx="17.5" cy="7" r="1.6" fill="currentColor" />
+    <circle cx="15" cy="14.5" r="1.6" fill="currentColor" />
+  </Svg>
+);
+
+export const IconChartBox = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M4 12h3M17 12h3" />
+    <rect x="7" y="8" width="10" height="8" rx="1.5" />
+    <path d="M11 8v8" />
+  </Svg>
+);

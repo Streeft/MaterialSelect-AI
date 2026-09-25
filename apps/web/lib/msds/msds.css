@@ -229,7 +229,8 @@ body {
 .msds-chart-card { background: var(--surface-200); border: 1px solid rgb(var(--edge)); border-radius: var(--radius-card);
   box-shadow: var(--shadow-card); padding: var(--space-4); }
 .msds-chart-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-3); gap: var(--space-3); flex-wrap: wrap; }
-.msds-chart-title { font-size: 15px; font-weight: 600; color: rgb(var(--text-primary)); margin: 0; }
+/* D-94: the AI Studio title — medium weight, not bold; the figure is the loud part. */
+.msds-chart-title { font-size: 15px; font-weight: 500; color: rgb(var(--text-primary)); margin: 0; }
 .msds-tooltip {
   position: absolute; pointer-events: none; background: rgb(var(--ink)); color: var(--surface-100);
   font-size: 12px; padding: 6px 10px; border-radius: var(--radius-seat); box-shadow: var(--shadow-overlay);

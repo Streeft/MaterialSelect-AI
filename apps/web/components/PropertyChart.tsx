@@ -17,7 +17,9 @@ import {
   useResolvedTheme,
 } from "@/components/ui";
 import { ChartFrame } from "@/components/charts/ChartFrame";
+import { IconChartScatter } from "@/components/ui/icons";
 import { ChartLegend } from "@/components/charts/ChartLegend";
+import { ChartTooltip, type TooltipContent } from "@/components/charts/ChartTooltip";
 import { FigureData, type FigureColumn } from "@/components/charts/FigureData";
 
 // Plotly touches the DOM/window, so it must not render on the server.
@@ -124,8 +126,32 @@ export function PropertyChart({ data, highlightMaterialId }: PropertyChartProps)
 
   const hasPoints = xs.length > 0;
 
+  // D-94: the app's own readout instead of Plotly's hover label.
+  const [tip, setTip] = useState<TooltipContent | null>(null);
+  const handleHover = (event: { points?: { customdata?: unknown }[] }) => {
+    const index = event.points?.[0]?.customdata;
+    const point = typeof index === "number" ? plotted[index] : undefined;
+    if (!point) return setTip(null);
+    const isThisOne = point.material_id === highlightMaterialId;
+    setTip({
+      title: point.material_name,
+      rows: [
+        {
+          key: "class",
+          label: isThisOne ? `${point.class_name} · ${t.thisMaterial}` : point.class_name,
+          value: "",
+          color: isThisOne ? paint.highlight : paint.label,
+          emphasis: isThisOne,
+        },
+        { key: "x", label: data.x_property_name, value: `${formatNumber(point.x)} ${prettyUnit(data.x_unit)}`.trim() },
+        { key: "y", label: data.y_property_name, value: `${formatNumber(point.y)} ${prettyUnit(data.y_unit)}`.trim() },
+      ],
+    });
+  };
+
   return (
     <ChartFrame
+      figureIcon={<IconChartScatter />}
       title={ptBR.detail.position}
       description={ptBR.detail.positionHint}
       exportName={chartFileName("posicao", data.y_property_name, data.x_property_name, scale)}
@@ -175,7 +201,7 @@ export function PropertyChart({ data, highlightMaterialId }: PropertyChartProps)
         ) : null
       }
     >
-      <div className="chart-plotly" role="img" aria-label={t.figureLabel(ptBR.detail.position)}>
+      <div className="chart-plotly relative" role="img" aria-label={t.figureLabel(ptBR.detail.position)}>
         <Plot
           data={[
             {
@@ -189,7 +215,8 @@ export function PropertyChart({ data, highlightMaterialId }: PropertyChartProps)
                 color: colors,
                 line: { width: 1, color: paint.markerEdge },
               },
-              hovertemplate: "%{text}<br>%{x}<br>%{y}<extra></extra>",
+              customdata: plotted.map((_, i) => i),
+              hoverinfo: "none",
             },
           ]}
           layout={layout}
@@ -202,7 +229,10 @@ export function PropertyChart({ data, highlightMaterialId }: PropertyChartProps)
           }}
           style={{ width: "100%" }}
           useResizeHandler
+          onHover={handleHover as unknown as (event: unknown) => void}
+          onUnhover={() => setTip(null)}
         />
+        <ChartTooltip content={tip} />
       </div>
       <ChartLegend
         items={[
