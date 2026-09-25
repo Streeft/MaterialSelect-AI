@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [30](#sessão-30--250926--o-estúdio-de-texto-dos-cadernos) | 25/09/2026 | Cadernos, fase 2: o Estúdio de texto — relatório, cartões, teste, tabela e mapa mental, gerados em segundo plano e conferidos item a item (D-94) | 1917 → 1966 | 536 → 554 |
 | [29](#sessão-29--250926--cadernos-o-notebooklm-dentro-do-app-e-o-gemini-gratuito) | 25/09/2026 | Cadernos, fase 1: fontes privadas, conversa citada com número conferido, guia, notas e cota, na tela de três painéis do NotebookLM (D-92); o Gemini gratuito como IA oficial, por configuração (D-93) | 1856 → 1906 | 505 → 536 (com os 6 do D-91, mesclado de main) |
 | [28](#sessão-28--240926-a-280926--turma-de-terça-processos-no-objetivo-ux-guiada-pesos-com-limite-e-a-ia) | 24 a 28/09/2026 | Preparação para a turma: processos no Objetivo, Seleção guiada, superfícies enxutas, pesos com limite 1, Objetivo antes de Restrições e a IA do laudo (D-84 a D-89) | 1785 → 1856 | 431 → 505 |
 | [27](#sessão-27--240926--o-portão-vira-um-modo-acesso-aberto-para-uma-turma-d-83) | 24/09/2026 | Acesso aberto para estudantes com qualquer conta Google, catálogo compartilhado protegido, e o workflow que abre e fecha (D-83) | 1755 → 1785 | 422 → 427 |
@@ -45,6 +46,40 @@ As sessões entre a 11 e a 12 — o patch de design "Prisma" (D-49, D-50), o
 upgrade de segurança S1 e a rodada de desempenho — **não têm seção própria
 aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
+
+---
+
+## Sessão 30 — 25/09/26 — O Estúdio de texto dos Cadernos
+
+**O pedido.** "Funcionou, agora vamos fazer o Estúdio": a fase 2 dos Cadernos,
+com o modal "Criar …" das capturas do NotebookLM.
+
+**O que entrou (D-94).** Cinco ferramentas — relatório (seis modelos, texto
+corrido ou tópicos), cartões didáticos, teste (múltipla escolha ou V/F), tabela
+de dados (colunas escolhidas pelo aluno) e mapa mental — no modal de Formato e
+Modelo, com o lápis abrindo a instrução do modelo, que vem do catálogo do
+backend. A geração responde 202 e roda em segundo plano; a lista do Estúdio
+mostra "Gerando…", "Falhou" com o motivo e "Tentar de novo", e o item pronto
+abre dentro do painel: cartões que viram e embaralham, teste com dica,
+correção em palavras e "Explicar", tabela com a ausência escrita, mapa
+desenhado das coordenadas do backend com a lista como alternativa e um clique
+que leva a pergunta à conversa sem enviá-la. Exportações DOCX, CSV, XLSX e SVG
+com os dois avisos.
+
+**A regra que atravessa tudo.** O conferidor de números do chat virou módulo
+(`grounding.py`) e passou a valer por item. O caso que parece exceção — o
+distrator do teste — não é: número inventado numa alternativa errada é número
+inventado.
+
+**Achados no navegador de verdade.** O E2E pegou que o modal do MSDS não tinha
+altura máxima: com o lápis aberto, o botão Gerar ficava abaixo da dobra, fora do
+alcance. Agora todo diálogo rola por dentro. As capturas mostraram a conversa
+espremida a 1280 px com um item aberto: as Fontes recolhem enquanto o item está
+aberto e voltam quando ele fecha.
+
+**Números.** Backend 1917 → 1966; frontend 536 → 554; E2E + 1.
+
+**Depois do merge:** Deploy da API. Sem migração nem seed.
 
 ---
 

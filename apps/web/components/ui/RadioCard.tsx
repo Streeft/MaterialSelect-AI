@@ -16,6 +16,12 @@ import { cn } from "@/lib/cn";
  * The dot is MSDS's `.msds-radio-dot`, driven by the real `<input>` beside it
  * (`input:checked + .msds-radio-dot`), so keyboard selection and the focus
  * ring are the browser's own. The whole card is a click target as well.
+ *
+ * `action` is a control of its own at the end of the title row — the Studio's
+ * pencil that opens a template's instruction (D-94). It is a sibling of the
+ * radio, never inside the `<label>`, and its clicks stop there: pressing the
+ * pencil must not also be read as choosing the card (the pencil's handler
+ * decides whether it selects too).
  */
 export function RadioCard({
   name,
@@ -24,6 +30,7 @@ export function RadioCard({
   onChange,
   title,
   badge,
+  action,
   children,
   className,
 }: {
@@ -33,6 +40,7 @@ export function RadioCard({
   onChange: (value: string) => void;
   title: ReactNode;
   badge?: ReactNode;
+  action?: ReactNode;
   children?: ReactNode;
   className?: string;
 }) {
@@ -75,6 +83,12 @@ export function RadioCard({
           {title}
         </label>
         {badge}
+        {action ? (
+          // Clicks on the action are its own, not the card's.
+          <span className="-my-1 shrink-0" onClick={(event) => event.stopPropagation()}>
+            {action}
+          </span>
+        ) : null}
       </div>
       {children ? (
         <div id={descriptionId} className="mt-1 pl-7">

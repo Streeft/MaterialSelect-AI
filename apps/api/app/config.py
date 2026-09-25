@@ -141,6 +141,16 @@ class Settings(BaseSettings):
     # Passages handed to the model per question. Each one is citable; more of
     # them costs tokens on a free plan and makes each citation harder to check.
     notebook_context_passages: int = 8
+    # The Studio (D-94). Generations one student may finish per day — counted
+    # apart from questions, because one report reads three times the passages
+    # a question does. A failed generation is not counted.
+    notebook_daily_artifacts: int = 10
+    # Passages one generation reads: a report or a quiz has to hear the whole
+    # of the sources, not the eight passages that best match one question.
+    notebook_studio_passages: int = 24
+    # Generations one student may have running at once. The free plan limits
+    # requests per minute for the whole class.
+    notebook_studio_in_flight: int = 2
 
     # --- Auth (A5): login with Google, project-scoped studies -------------
     # Empty client id/secret means OAuth is off: the login endpoint answers

@@ -126,6 +126,15 @@ vi.mock("@/lib/api", () => ({
   addNotebookAppSource: vi.fn(),
   listMaterials: vi.fn(() => Promise.resolve([])),
   listStudies: vi.fn(() => Promise.resolve([])),
+  // D-94: the Studio, empty — its own tests live in estudio.test.tsx.
+  getStudioCatalog: vi.fn(async () => (await import("@/components/notebooks/studio/__fixtures__/studio")).studioCatalog),
+  listStudio: vi.fn(() => Promise.resolve({ artifacts: [], usage: { used: 0, limit: 10, remaining: 10 } })),
+  createStudioArtifact: vi.fn(),
+  getStudioArtifact: vi.fn(),
+  renameStudioArtifact: vi.fn(),
+  deleteStudioArtifact: vi.fn(),
+  saveStudioArtifactAsNote: vi.fn(),
+  studioExportUrl: vi.fn(() => "#"),
 }));
 
 function wrap(node: ReactNode) {
@@ -173,9 +182,11 @@ describe("caderno", () => {
     // The guide, with its citation chip.
     expect(screen.getByText("aços").tagName).toBe("STRONG");
     expect(screen.getAllByRole("button", { name: t.citation(1, "Aula de aços") })).toHaveLength(1);
-    // Studio tools are there and say they are coming.
-    const tile = screen.getByRole("button", { name: new RegExp(t.studioTools.report) });
-    expect(tile).toHaveAttribute("aria-disabled", "true");
+    // The text tools open "Criar …"; audio and video say they are coming.
+    const report = await screen.findByRole("button", { name: new RegExp(t.studioTools.report) });
+    await waitFor(() => expect(report).not.toHaveAttribute("aria-disabled"));
+    const audio = screen.getByRole("button", { name: new RegExp(t.studioTools.audio) });
+    expect(audio).toHaveAttribute("aria-disabled", "true");
     // A guide already written is not written again.
     expect(api.summarizeNotebook).not.toHaveBeenCalled();
   });

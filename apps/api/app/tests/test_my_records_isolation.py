@@ -46,6 +46,8 @@ PATH_VALUES = {
     # D-92: filled with the private notebook's own ids by `_sweep`.
     "notebook_id": "1",
     "source_id": "1",
+    # D-94: filled with the private notebook's Studio artifact.
+    "artifact_id": "1",
 }
 
 #: Query strings for the GETs that need one to return anything at all.
@@ -129,7 +131,16 @@ def private_notebook(client, login_as, other_user: User) -> dict[str, str]:
             f"/api/notebooks/{notebook['id']}/sources/text",
             json={"title": "Fonte", "text": f"{PRIVATE_NAME} resiste a 900 °C."},
         ).json()
-    return {"notebook_id": str(notebook["id"]), "source_id": str(source["id"])}
+        # Flashcards export as CSV — the `fmt` the sweep fills in — so the
+        # export route is asked about the private name too (D-94).
+        artifact = client.post(
+            f"/api/notebooks/{notebook['id']}/studio", json={"tool": "flashcards"}
+        ).json()
+    return {
+        "notebook_id": str(notebook["id"]),
+        "source_id": str(source["id"]),
+        "artifact_id": str(artifact["id"]),
+    }
 
 
 def _sweep(client, material_id: int, notebook: dict[str, str] | None = None) -> dict[str, str]:
@@ -170,6 +181,9 @@ def test_the_owner_finds_their_record_across_the_api(
     assert "/api/notebooks" in carrying
     assert "/api/notebooks/{notebook_id}" in carrying
     assert "/api/notebooks/{notebook_id}/sources/{source_id}" in carrying
+    assert "/api/notebooks/{notebook_id}/studio" in carrying
+    assert "/api/notebooks/{notebook_id}/studio/{artifact_id}" in carrying
+    assert "/api/notebooks/{notebook_id}/studio/{artifact_id}/export.{fmt}" in carrying
     assert "/api/materials" in carrying
     assert "/api/materials/{material_id}" in carrying
     assert "/api/exports/catalogo.{fmt}" in carrying
