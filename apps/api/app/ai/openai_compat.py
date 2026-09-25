@@ -46,7 +46,7 @@ from app.config import settings as default_settings
 KNOWN_ENDPOINTS = (
     "  Gemini (gratuito pelo Google AI Studio, sem cartão; a IA oficial do projeto, D-93):\n"
     "    AI_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai\n"
-    "    AI_MODEL=gemini-2.5-flash\n"
+    "    AI_MODEL=gemini-flash-latest\n"
     "  Groq (gratuito, cadastro sem cartão):\n"
     "    AI_BASE_URL=https://api.groq.com/openai/v1\n"
     "    AI_MODEL=openai/gpt-oss-20b\n"
@@ -237,10 +237,14 @@ class OpenAICompatProvider(ModelProviderBase):
                 f"forma de um erro da API, é esse o caso, e a chave não é o problema. {detail}"
             ).strip()
         if exc.code == 404:
+            # The model is the usual culprit — a retired or restricted model
+            # answers 404 on a perfectly good URL (Gemini 2.5, for a new key,
+            # in 2026) — and the server's own reason, below, says which.
             return (
-                f"Endpoint ou modelo não encontrado (404). Confira se AI_BASE_URL "
-                f"termina na raiz da API (…/v1) e se AI_MODEL='{self.settings.ai_model}' "
-                f"existe nesse servidor. {detail}"
+                f"Modelo ou endpoint não encontrado (404). Confira se "
+                f"AI_MODEL='{self.settings.ai_model}' está disponível para esta chave "
+                f"e se AI_BASE_URL aponta para a raiz da API. Motivo do servidor: "
+                f"{detail or 'não informado'}"
             ).strip()
         if exc.code == 429:
             # A free plan limits per minute *and* per day, and the reader cannot
@@ -340,11 +344,24 @@ def _error_of(exc: urllib.error.HTTPError) -> tuple[str, bool]:
         payload = json.loads(body)
     except ValueError:
         return body.strip()[:300], False
-    error = payload.get("error") if isinstance(payload, dict) else None
+    error = error_object(payload)
     if isinstance(error, dict):
         rejected = error.get("code") in _GENERATION_REJECTED_CODES or "failed_generation" in error
         return str(error.get("message", ""))[:300], rejected
     return str(error or "")[:300], False
+
+
+def error_object(payload: object) -> object:
+    """The ``error`` member of an error body, in either shape a server sends.
+
+    OpenAI and Groq answer ``{"error": {...}}``. Gemini's OpenAI-compatible
+    endpoint answers the same object **inside a list** — ``[{"error": {...}}]``
+    — and reading only the first shape left every Gemini failure without its
+    reason: a 404 said "model not found" and never which model, or why.
+    """
+    if isinstance(payload, list) and payload:
+        payload = payload[0]
+    return payload.get("error") if isinstance(payload, dict) else None
 
 
 def _host_of(base_url: str) -> str:

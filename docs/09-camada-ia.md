@@ -229,7 +229,8 @@ caminho de gateway pode carregar token.
 **Na instância publicada, esse servidor é o Gemini** ([D-93](DECISIONS.md)):
 o plano gratuito do Google AI Studio, por
 `AI_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai`, com
-`AI_MODEL=gemini-2.5-flash` e os embeddings do Cérebro em
+`AI_MODEL=gemini-flash-latest` (apelido que acompanha o Flash vigente; o 2.5
+ficou restrito a quem já o usava) e os embeddings do Cérebro em
 `gemini-embedding-001` pela mesma chave. É configuração, não código: o
 workflow **Provedor de IA** (`provedor-ia.yml`) troca os segredos do Fly entre
 `gemini`, `groq` e `mock` e confere o resultado em `/api/health`, que desde o
