@@ -88,7 +88,7 @@ export function DataQualityLegend({ className }: { className?: string }) {
   const states: QualityState[] = ["MEDIDO", "IMPORTADO", "ESTIMADO", "AUSENTE"];
   return (
     <div className={cn("flex flex-col gap-1.5", className)}>
-      <p className="text-2xs font-semibold uppercase tracking-wide text-ink-subtle">
+      <p className="text-caption font-semibold text-ink-subtle">
         {ptBR.provenance.legendTitle}
       </p>
       <dl className="flex flex-col gap-1">

@@ -94,7 +94,7 @@ function Podium({
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">
+      <span className="text-caption font-semibold text-ink-muted">
         {label}
       </span>
       {dominance.phase ? (
@@ -415,7 +415,7 @@ export default function EcoPage() {
               {audit.isPending ? t.running : t.run}
             </Button>
             {blocked ? (
-              <p id="eco-motivo" className="text-2xs text-ink-muted">
+              <p id="eco-motivo" className="text-support text-ink-muted">
                 {blocked.reason}
               </p>
             ) : null}
@@ -550,7 +550,7 @@ export default function EcoPage() {
 
             <PhaseTable result={result} />
 
-            <div className="flex flex-col gap-2 rounded-card border border-edge bg-surface-sunken p-4 text-xs text-ink-muted">
+            <div className="well flex flex-col gap-2 text-xs text-ink-muted">
               <span>
                 <strong className="text-ink">{t.massBought}:</strong>{" "}
                 {formatNumber(result.mass_bought)} kg — {t.massBoughtHint}

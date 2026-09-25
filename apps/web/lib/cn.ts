@@ -8,9 +8,14 @@ import { extendTailwindMerge } from "tailwind-merge";
 const twMerge = extendTailwindMerge({
   extend: {
     classGroups: {
-      rounded: [{ rounded: ["card", "control"] }],
-      shadow: [{ shadow: ["card", "raised", "overlay"] }],
-      "font-size": [{ text: ["2xs"] }],
+      rounded: [{ rounded: ["card", "control", "panel", "seat"] }],
+      shadow: [{ shadow: ["card", "control", "raised", "overlay", "lift", "glow"] }],
+      // The D-91 type roles. Without them `text-support` reads as a colour to
+      // tailwind-merge, and `cn("text-support", "text-ink-muted")` would drop
+      // the size.
+      "font-size": [
+        { text: ["2xs", "display", "title", "heading", "body", "support", "caption"] },
+      ],
     },
   },
 });

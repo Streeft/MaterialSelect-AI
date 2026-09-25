@@ -227,12 +227,34 @@
 
   --row-accent: rgb(var(--brand-100));
 
-  --radius-card: 1.25rem;
-  --radius-control: 0.75rem;
-  --radius-panel: 1.5rem;
-  --radius-seat: 0.5rem;
-  --radius-xl: 1.75rem;
+  /* Radius by role (D-91). A panel that groups work is rounder than the
+   * control inside it, and a cell or chip in a dense table is squarer still:
+   * the radius says what kind of thing it is. At 20/12/8 px everything read
+   * as the same soft card, and a table looked like a pile of pills. */
+  --radius-card: 1rem;
+  --radius-control: 0.625rem;
+  --radius-panel: 1.25rem;
+  --radius-seat: 0.375rem;
+  --radius-xl: 1.5rem;
   --radius-full: 9999px;
+
+  /* The semantic layer (D-91). Components name the *role* — the page, a
+   * panel, a well, the border of something operable, the main action — and
+   * this block says which palette token plays it. A change like D-90's
+   * becomes a few lines here instead of a hunt through components. The
+   * palette tokens above stay the source of every value; these only point at
+   * them, so the per-route hue (D-49) still flows through --accent. */
+  --surface-page: var(--surface);
+  --surface-panel: var(--surface-raised);
+  --surface-well: var(--surface-sunken);
+  --border-panel: var(--edge);
+  --border-divider: var(--edge-subtle);
+  --border-control: var(--edge-control);
+  --action-primary: var(--accent);
+  --action-primary-ink: var(--accent-fg);
+  --text-primary: var(--ink);
+  --text-secondary: var(--ink-muted);
+  --text-tertiary: var(--ink-subtle);
 
   --space-2: 0.5rem;
   --space-3: 0.75rem;
@@ -1161,7 +1183,8 @@
 
   /* A focus ring for the whole app, and it follows the section hue:
    * `ring-brand` reads --accent, which [data-section] block rewrote. */
-  :focus-visible {
+  :focus-visible,
+  [data-force-state="focus"] {
     @apply outline-none ring-2 ring-brand ring-offset-2 ring-offset-surface;
   }
 
@@ -1203,6 +1226,38 @@
     transform-origin: left;
     @apply animate-grow-x;
   }
+
+  /* D-91: what sits *inside* a card. Never another card (border + shadow):
+   * a well is a tinted area without a border, a subsection is separated by
+   * space and one hairline. Two tools, so no screen reaches for a box. */
+  .well {
+    @apply rounded-control bg-well p-3;
+  }
+  .subsection {
+    @apply border-t border-line-divider pt-4;
+  }
+}
+
+/* D-91: a custom property that points at another is resolved where it is
+ * declared, so the semantic aliases above (declared on :root) would carry the
+ * root's hue into any element that sets its own `data-section` — the
+ * per-route specimens in /estilo do. Re-pointing the hue-bearing ones there
+ * keeps a button inside a specimen in that specimen's hue. */
+[data-section] {
+  --action-primary: var(--accent);
+  --action-primary-ink: var(--accent-fg);
+}
+
+/* D-91: compact table density, the reader's choice (lib/density.ts). An
+ * attribute selector on the scroll container outranks the cells' `py-2`
+ * utility by specificity, so no cell has to know about density. */
+[data-density="compact"] :is(th, td) {
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+}
+[data-density="compact"] table {
+  font-size: 0.8125rem;
+  line-height: 1.25rem;
 }
 
 /* Plain CSS, outside @layer: Tailwind purges @layer rules by class

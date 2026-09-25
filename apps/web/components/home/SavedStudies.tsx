@@ -55,7 +55,7 @@ export function SavedStudies() {
                   <p className="truncate text-sm font-medium text-ink" title={study.name}>
                     {study.name}
                   </p>
-                  {created && <p className="text-2xs text-ink-muted">{created}</p>}
+                  {created && <p className="text-support text-ink-muted">{created}</p>}
                 </div>
                 <div className="flex flex-wrap items-center gap-1.5">
                   <Badge>

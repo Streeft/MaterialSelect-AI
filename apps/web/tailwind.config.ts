@@ -35,6 +35,23 @@ const config: Config = {
           inverted: v("--ink-inverted"),
         },
 
+        // The semantic layer (D-91): the role, not the palette step. `bg-page`,
+        // `bg-panel`, `bg-well`, `border-line`, `border-line-control`,
+        // `bg-action`. New code names these; the palette names above stay for
+        // what has no role yet (a chart swatch, a spec sample).
+        page: v("--surface-page"),
+        panel: v("--surface-panel"),
+        well: v("--surface-well"),
+        line: {
+          DEFAULT: v("--border-panel"),
+          divider: v("--border-divider"),
+          control: v("--border-control"),
+        },
+        action: {
+          DEFAULT: v("--action-primary"),
+          ink: v("--action-primary-ink"),
+        },
+
         // The navigation frame, dark in both themes. `accent` follows the
         // section hue — see the note in app/globals.css.
         rail: {
@@ -110,6 +127,17 @@ const config: Config = {
 
       fontSize: {
         "2xs": ["0.6875rem", { lineHeight: "1rem" }],
+        // The type scale by role (D-91). Tailwind's numeric steps stay for
+        // what is sized by fit (a badge, a tick); anything a reader reads as
+        // sentence uses a role. `support` is the helper line under a field or
+        // a heading: 13 px, because at 11–12 px a form's hints were the part
+        // readers skipped.
+        display: ["1.75rem", { lineHeight: "2.25rem", fontWeight: "700", letterSpacing: "-0.015em" }],
+        title: ["1.25rem", { lineHeight: "1.75rem", fontWeight: "600" }],
+        heading: ["1.0625rem", { lineHeight: "1.5rem", fontWeight: "600" }],
+        body: ["0.875rem", { lineHeight: "1.375rem" }],
+        support: ["0.8125rem", { lineHeight: "1.25rem" }],
+        caption: ["0.75rem", { lineHeight: "1rem" }],
       },
 
       letterSpacing: {
@@ -121,10 +149,12 @@ const config: Config = {
         // Prisma. `card` and `control` cover almost every rounded call site in the
         // app; `panel` is the frame of an entire screen (a route's shell), `seat`
         // the seats inside a ButtonGroup.
-        panel: "1.5rem",
-        card: "1.25rem",
-        control: "0.75rem",
-        seat: "0.5rem",
+        // Read from globals.css (D-91), so the scale lives in one place and
+        // MSDS's own rules and the utilities cannot disagree.
+        panel: "var(--radius-panel)",
+        card: "var(--radius-card)",
+        control: "var(--radius-control)",
+        seat: "var(--radius-seat)",
       },
 
       boxShadow: {
