@@ -18,7 +18,7 @@
 }
 .chart-svg text { font-family: inherit; }
 
-/* D-94: the Google AI Studio chart face — recessive grid (horizontal
+/* D-95: the Google AI Studio chart face — recessive grid (horizontal
    hairlines only, no box), muted ticks, no axis line but the baseline. */
 .chart-tick { font-size: 11px; fill: rgb(var(--ink-subtle)); font-variant-numeric: tabular-nums; }
 .chart-label { font-size: 12px; fill: rgb(var(--ink-muted)); }
@@ -47,7 +47,7 @@
   animation: msds-grow-x var(--msds-dur-slow) var(--msds-ease) both;
   transition: filter 120ms var(--msds-ease);
 }
-/* D-94: a column grows up from the baseline, not sideways. */
+/* D-95: a column grows up from the baseline, not sideways. */
 .chart-bar-seg[data-orientation="vertical"] { transform-origin: center bottom; animation-name: chart-grow-y; }
 @keyframes chart-grow-y { from { transform: scaleY(0); } to { transform: scaleY(1); } }
 .chart-mark:hover .chart-bar-seg,
@@ -85,7 +85,7 @@
 .msds-table-toggle:disabled { color: rgb(var(--ink-subtle)); cursor: not-allowed; text-decoration: none; opacity: 0.7; }
 .msds-table-toggle:focus-visible { border-radius: var(--radius-seat); }
 
-/* ---------- D-94: the AI Studio chart chrome ---------- */
+/* ---------- D-95: the AI Studio chart chrome ---------- */
 
 /* The floating readout, in the app's own panel colours (the author's call:
    the AI Studio behaviour and layout, not its dark panel), so it follows the

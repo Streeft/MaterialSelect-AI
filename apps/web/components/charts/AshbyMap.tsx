@@ -159,7 +159,7 @@ function axisCell(point: MapPoint, axis: "x" | "y"): ReactNode {
 }
 
 /**
- * The readout of one point (D-94, the AI Studio tooltip): the material on top,
+ * The readout of one point (D-95, the AI Studio tooltip): the material on top,
  * its class keyed by colour *and* shape, then the two coordinates in the
  * map's reading units, the index when there is one, and the evidence behind
  * each side. Rendered by React, so catalogue names are text, never markup.
@@ -280,7 +280,7 @@ export function AshbyMap({
   };
 
   // Keep the toggle honest when the reader switches tool in Plotly's modebar.
-  // D-94: the readout under the pointer, drawn by the app instead of Plotly's
+  // D-95: the readout under the pointer, drawn by the app instead of Plotly's
   // hover label — the same panel every other figure uses.
   const [tip, setTip] = useState<TooltipContent | null>(null);
   const handleHover = (event: { points?: { customdata?: unknown }[] }) => {
@@ -488,7 +488,7 @@ export function AshbyMap({
         x: members.map((p) => p.x),
         y: members.map((p) => p.y),
         text: members.map((p) => p.material_name),
-        // D-94: Plotly finds the point; the readout is the app's own tooltip.
+        // D-95: Plotly finds the point; the readout is the app's own tooltip.
         // `none` (not `skip`) keeps the hover events firing.
         customdata: members.map((p) => map.points.indexOf(p)),
         hoverinfo: "none",

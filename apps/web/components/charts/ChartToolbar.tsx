@@ -48,7 +48,7 @@ export function ChartToolbar({
 
   return (
     <div className={className}>
-      {/* D-91: one "Exportar" menu instead of two text links; D-94: as a
+      {/* D-91: one "Exportar" menu instead of two text links; D-95: as a
           round icon button in the figure's corner, the AI Studio way. */}
       <div role="group" aria-label={t.toolbar} className="flex items-center">
         <MenuButton

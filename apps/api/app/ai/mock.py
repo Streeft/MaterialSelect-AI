@@ -21,6 +21,7 @@ import unicodedata
 from app.ai.caveats import standard_caveats
 from app.ai.notebook import NotebookDigestContext, NotebookQuestion, Passage
 from app.ai.provider import AIProvider, ProblemContext, PropertyFacts, ResultContext
+from app.ai.studio import CATALOG, CUSTOM, StudioRequest, read_studio
 from app.calculations.expressions import ExpressionError, safe_variable
 from app.calculations.powerlaw import as_monomial
 
@@ -593,6 +594,137 @@ class MockAIProvider(AIProvider):
             if len(questions) == 3:
                 break
         return {"paragraphs": paragraphs, "questions": questions}
+
+    # --- Estúdio (D-94) -----------------------------------------------------
+    #
+    # The same contract: every sentence with content is a verbatim quote of the
+    # passage it cites, so the figure check passes by construction. It answers
+    # in the model's JSON shape and goes through the same reader, so the reader
+    # is exercised offline too.
+
+    def studio(self, request: StudioRequest) -> dict:
+        passages = request.passages
+        builders = {
+            "report": _mock_report,
+            "flashcards": _mock_flashcards,
+            "quiz": _mock_quiz,
+            "table": _mock_table,
+            "mindmap": _mock_mindmap,
+        }
+        raw = builders[request.tool](request, passages) if passages else {}
+        spec = CATALOG[request.tool]
+        template = spec.template(request.template)
+        label = template.label if template and template.slug != CUSTOM else spec.label
+        raw.setdefault("title", f"{label} — {request.notebook_title}")
+        return read_studio(request, raw)
+
+
+def _topic(passage: Passage) -> str:
+    return passage.heading or passage.source_title
+
+
+def _by_source(passages: tuple[Passage, ...]) -> dict[str, list[Passage]]:
+    grouped: dict[str, list[Passage]] = {}
+    for passage in passages:
+        grouped.setdefault(passage.source_title, []).append(passage)
+    return grouped
+
+
+def _mock_report(request: StudioRequest, passages: tuple[Passage, ...]) -> dict:
+    limit = 200 if request.format == "topicos" else 400
+    return {
+        "sections": [
+            {
+                "heading": source,
+                "paragraphs": [
+                    {"text": _quote(p, limit), "citations": [p.number]} for p in group[:2]
+                ],
+            }
+            for source, group in list(_by_source(passages).items())[:6]
+        ]
+    }
+
+
+def _mock_flashcards(request: StudioRequest, passages: tuple[Passage, ...]) -> dict:
+    cards = []
+    for passage in passages[: request.count or 10]:
+        front = (
+            _topic(passage)
+            if request.format == "termo"
+            else f"O que as fontes dizem sobre “{_topic(passage)}”?"
+        )
+        cards.append({"front": front, "back": _quote(passage, 300), "citations": [passage.number]})
+    return {"cards": cards}
+
+
+def _mock_quiz(request: StudioRequest, passages: tuple[Passage, ...]) -> dict:
+    questions = []
+    for i, passage in enumerate(passages[: request.count or 5]):
+        if request.format == "vf" or len(passages) < 2:
+            questions.append(
+                {
+                    "prompt": f"Segundo as fontes: “{_quote(passage, 200)}”",
+                    "options": ["Verdadeiro", "Falso"],
+                    "answer_index": 0,
+                    "hint": f"Releia “{passage.source_title}”.",
+                    "explanation": "A afirmação copia o trecho citado.",
+                    "citations": [passage.number],
+                }
+            )
+            continue
+        others = [passages[(i + k) % len(passages)] for k in range(1, min(4, len(passages)))]
+        chosen = [passage, *others]
+        options = [_quote(p, 140) for p in chosen]
+        answer = i % len(options)
+        options.insert(answer, options.pop(0))
+        questions.append(
+            {
+                "prompt": f"Qual destes trechos fala de “{_topic(passage)}”?",
+                "options": options,
+                "answer_index": answer,
+                "hint": f"Procure em “{passage.source_title}”.",
+                "explanation": f"É o trecho de “{passage.source_title}”.",
+                "citations": [p.number for p in chosen],
+            }
+        )
+    return {"questions": questions}
+
+
+def _mock_table(request: StudioRequest, passages: tuple[Passage, ...]) -> dict:
+    columns = list(request.columns) or ["Tema", "Trecho"]
+    rows = []
+    for passage in passages[:8]:
+        filled = [_topic(passage), _quote(passage, 160)][: len(columns)]
+        cells = [{"text": text, "citations": [passage.number]} for text in filled]
+        cells.extend({"text": "", "citations": []} for _ in range(len(columns) - len(cells)))
+        rows.append({"cells": cells})
+    return {"columns": columns, "rows": rows}
+
+
+def _mock_mindmap(request: StudioRequest, passages: tuple[Passage, ...]) -> dict:
+    nodes = [{"id": 1, "parent": 0, "label": request.notebook_title, "citations": []}]
+    for source, group in _by_source(passages).items():
+        source_id = len(nodes) + 1
+        nodes.append(
+            {"id": source_id, "parent": 1, "label": source, "citations": [group[0].number]}
+        )
+        if request.depth < 2:
+            continue
+        seen: set[str] = set()
+        for passage in group:
+            label = passage.heading or " ".join(_quote(passage, 60).split()[:6])
+            if label in seen or len(seen) == 4:
+                continue
+            seen.add(label)
+            nodes.append(
+                {
+                    "id": len(nodes) + 1,
+                    "parent": source_id,
+                    "label": label,
+                    "citations": [passage.number],
+                }
+            )
+    return {"nodes": nodes}
 
 
 def _quote(passage: Passage, limit: int = 400) -> str:

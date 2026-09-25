@@ -514,7 +514,7 @@ export const IconInfographic = (p: IconProps) => (
   </Svg>
 );
 
-// D-94: the chart-type switch in a figure's corner, drawn like the rest of
+// D-95: the chart-type switch in a figure's corner, drawn like the rest of
 // this set (1.75 stroke, round caps). Each always sits in a button whose
 // `aria-label` names the view, so the glyph itself stays decorative.
 export const IconChartColumns = (p: IconProps) => (

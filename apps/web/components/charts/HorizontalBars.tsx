@@ -36,7 +36,7 @@ const RADIUS = 4;
 
 /**
  * A rectangle whose data end is rounded and whose baseline end is square — the
- * bar grows out of the axis, it does not float over it (D-94).
+ * bar grows out of the axis, it does not float over it (D-95).
  */
 function barPath(x: number, y: number, w: number, h: number, end: "right" | "top", r: number) {
   const rr = Math.max(0, Math.min(r, end === "right" ? w / 2 : h / 2, end === "right" ? h / 2 : w / 2));
@@ -48,7 +48,7 @@ function barPath(x: number, y: number, w: number, h: number, end: "right" | "top
 
 /**
  * The bar chart of the panel — stacked segments per category, drawn as
- * horizontal bars or as columns (D-94, the Google AI Studio figure).
+ * horizontal bars or as columns (D-95, the Google AI Studio figure).
  *
  * Both orientations read the same rows: the reader flips between them with the
  * chart-type switch in the card's corner, and nothing is recomputed. The

@@ -7,18 +7,23 @@ exist. Thin on purpose: the rules live in ``NotebookService``.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, File, Response, UploadFile, status
+from collections.abc import Callable
+from typing import Literal
+
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Response, UploadFile, status
 from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
 
 from app.config import settings
-from app.db.base import get_db
+from app.db.base import get_db, get_session_factory
 from app.dependencies import get_current_project, get_current_user
 from app.domain.errors import ValidationError
 from app.models.project import Project
 from app.models.user import User
 from app.schemas.notebook import (
     AppSourceIn,
+    ArtifactOut,
+    ArtifactUpdate,
     AskIn,
     ChatOut,
     MessageOut,
@@ -33,9 +38,13 @@ from app.schemas.notebook import (
     SourceDetailOut,
     SourceOut,
     SourceUpdate,
+    StudioCatalogOut,
+    StudioIn,
+    StudioListOut,
     TextSourceIn,
 )
 from app.services.notebook_service import NotebookService
+from app.services.studio_service import StudioService, run_job
 
 router = APIRouter(prefix="/notebooks", tags=["notebooks"])
 
@@ -46,6 +55,23 @@ def _service(
     project: Project = Depends(get_current_project),
 ) -> NotebookService:
     return NotebookService(db, user, project_id=project.id)
+
+
+def _studio(db: Session = Depends(get_db), user: User = Depends(get_current_user)) -> StudioService:
+    return StudioService(db, user)
+
+
+# --- the Studio's catalogue ----------------------------------------------------
+#
+# Declared before ``/{notebook_id}``: the path would otherwise be read as a
+# notebook id and answer 422.
+
+
+@router.get("/studio-catalog", response_model=StudioCatalogOut)
+def studio_catalog() -> StudioCatalogOut:
+    """The Studio's tools, formats, templates and their default instructions —
+    the one truth the "Criar …" modal reads."""
+    return StudioService.catalog()
 
 
 # --- notebooks ---------------------------------------------------------------
@@ -226,3 +252,88 @@ def delete_note(
 ) -> Response:
     service.delete_note(notebook_id, note_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+# --- studio (D-94) -------------------------------------------------------------
+
+
+@router.get("/{notebook_id}/studio", response_model=StudioListOut)
+def list_artifacts(notebook_id: int, service: StudioService = Depends(_studio)) -> StudioListOut:
+    return service.list(notebook_id)
+
+
+@router.post(
+    "/{notebook_id}/studio", response_model=ArtifactOut, status_code=status.HTTP_202_ACCEPTED
+)
+def create_artifact(
+    notebook_id: int,
+    payload: StudioIn,
+    background: BackgroundTasks,
+    service: StudioService = Depends(_studio),
+    user: User = Depends(get_current_user),
+    factory: Callable[[], Session] = Depends(get_session_factory),
+) -> ArtifactOut:
+    """Start a generation. Answers at once with the artifact ``gerando``; the
+    work runs after the response, in a session of its own, and the list shows
+    ``pronto`` or ``falhou`` when it ends."""
+    artifact = service.create(notebook_id, payload)
+    background.add_task(run_job, factory, user.id, artifact.id)
+    return artifact
+
+
+@router.get("/{notebook_id}/studio/{artifact_id}", response_model=ArtifactOut)
+def get_artifact(
+    notebook_id: int, artifact_id: int, service: StudioService = Depends(_studio)
+) -> ArtifactOut:
+    return service.get(notebook_id, artifact_id)
+
+
+@router.patch("/{notebook_id}/studio/{artifact_id}", response_model=ArtifactOut)
+def rename_artifact(
+    notebook_id: int,
+    artifact_id: int,
+    payload: ArtifactUpdate,
+    service: StudioService = Depends(_studio),
+) -> ArtifactOut:
+    return service.rename(notebook_id, artifact_id, payload)
+
+
+@router.delete("/{notebook_id}/studio/{artifact_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_artifact(
+    notebook_id: int, artifact_id: int, service: StudioService = Depends(_studio)
+) -> Response:
+    service.delete(notebook_id, artifact_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post(
+    "/{notebook_id}/studio/{artifact_id}/note",
+    response_model=NoteOut,
+    status_code=status.HTTP_201_CREATED,
+)
+def save_artifact_as_note(
+    notebook_id: int, artifact_id: int, service: StudioService = Depends(_studio)
+) -> NoteOut:
+    return service.save_as_note(notebook_id, artifact_id)
+
+
+@router.get("/{notebook_id}/studio/{artifact_id}/export.{fmt}")
+def export_artifact(
+    notebook_id: int,
+    artifact_id: int,
+    fmt: Literal["docx", "csv", "xlsx", "svg"],
+    service: StudioService = Depends(_studio),
+) -> Response:
+    """The artifact as a file, with the limitation notice inside. An SVG is
+    served as an attachment under ``default-src 'none'``, like the HTML report:
+    a layer independent of the escaping."""
+    exported = service.export(notebook_id, artifact_id, fmt)
+    return Response(
+        content=exported.body,
+        media_type=exported.media_type,
+        headers={
+            "Content-Disposition": f'attachment; filename="{exported.filename}"',
+            "Content-Security-Policy": "default-src 'none'",
+            "X-Content-Type-Options": "nosniff",
+        },
+    )

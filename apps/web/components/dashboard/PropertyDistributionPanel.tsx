@@ -179,7 +179,7 @@ export function PropertyDistributionPanel({
             axisTitle={titleFor(distribution.property_name, unit)}
             describe={(row) => ({
               aria: `${row.label}: ${t.columnMin} ${withUnit(row.minimum)}, ${t.columnQ1} ${withUnit(row.q1)}, ${t.columnMedian} ${withUnit(row.median)}, ${t.columnQ3} ${withUnit(row.q3)}, ${t.columnMax} ${withUnit(row.maximum)}; ${row.count} ${t.columnCountBox.toLowerCase()}`,
-              // D-94: the class, then its five numbers — the median emphasised,
+              // D-95: the class, then its five numbers — the median emphasised,
               // the unit once in the title rather than on every row.
               tip: {
                 title: unitLabel ? `${row.label} · ${unitLabel}` : row.label,

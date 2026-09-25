@@ -29,7 +29,7 @@ const t = ptBR.chart;
  * - **One heading per figure,** at the level the page needs (`headingLevel`), so
  *   the document outline matches what the eye sees.
  */
-/** One way to draw the figure — a seat of the chart-type switch (D-94). */
+/** One way to draw the figure — a seat of the chart-type switch (D-95). */
 export interface ChartView {
   key: string;
   /** The button's name, e.g. "Barras horizontais". */
@@ -58,7 +58,7 @@ export function ChartFrame({
   children,
 }: {
   /**
-   * D-94: the ways this figure can be drawn (bars ↔ columns…). Each becomes a
+   * D-95: the ways this figure can be drawn (bars ↔ columns…). Each becomes a
    * round icon button in the corner, beside the table. Without it the corner
    * offers one "Gráfico" button — the figure as it is — and the table.
    */
@@ -135,7 +135,7 @@ export function ChartFrame({
           {meta ? <span className="mr-1 font-mono text-xs text-ink-subtle">{meta}</span> : null}
           {controls}
           {hasFigure && (table || (views && views.length > 1)) ? (
-            // D-94: the AI Studio corner — round icon buttons, one per way to
+            // D-95: the AI Studio corner — round icon buttons, one per way to
             // draw the figure, then the table (D-31). Each has its name as
             // `aria-label` and as the native title, since the glyph is all
             // that shows.

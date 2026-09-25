@@ -232,7 +232,7 @@ export function chartFontFamily(): string {
  * figure instead of keeping the colours it computed on first paint.
  *
  * What MSDS's `ScatterMap` asks of a figure, mapped onto Plotly:
- * gridlines in `--edge-subtle` and no box (D-94, the AI Studio grid), the rule in
+ * gridlines in `--edge-subtle` and no box (D-95, the AI Studio grid), the rule in
  * `--edge`, tick labels in `--ink-subtle` and axis titles in
  * `--ink-muted`; markers outlined in a thin dark ring (`rgba(0,0,0,0.25)`, the
  * MSDS `Marker`); the hover label as `.msds-tooltip` (ink ground, surface text,
@@ -244,7 +244,7 @@ export function chartTheme(theme: ResolvedTheme): ChartTheme {
   const ink = read("--ink");
   const muted = read("--ink-muted");
   const subtle = read("--ink-subtle");
-  // D-94: the AI Studio grid — hairlines one step fainter, and no box around
+  // D-95: the AI Studio grid — hairlines one step fainter, and no box around
   // the plot; the ticks and the grid are enough to read a position.
   const grid = read("--edge-subtle");
   const rule = read("--edge");

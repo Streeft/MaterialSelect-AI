@@ -56,7 +56,7 @@ export function MenuButton({
   /** The trigger's visible text — also the menu's accessible name. */
   label: string;
   /**
-   * D-94: a round icon button (a figure's corner). The label stays the
+   * D-95: a round icon button (a figure's corner). The label stays the
    * button's and the menu's accessible name, and shows as the native title.
    */
   iconOnly?: boolean;

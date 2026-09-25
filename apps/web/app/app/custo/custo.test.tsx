@@ -2,7 +2,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, waitFor } from "@testing-library/react";
 // See the note in components/layout/layout.test.tsx: MWC roles live inside a
 // shadow root, invisible to plain @testing-library/react queries.
-import { screen } from "shadow-dom-testing-library";
+import { screen, within } from "shadow-dom-testing-library";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
@@ -52,6 +52,15 @@ const result: CostResult = {
         total: 40.03,
         batch_sensitive: 12,
       },
+      curve: [
+        { batch_size: 1, cost: 12028.03 },
+        { batch_size: 10, cost: 1228.03 },
+        { batch_size: 100, cost: 148.03 },
+        { batch_size: 1000, cost: 40.03 },
+        { batch_size: 10000, cost: 29.23 },
+        { batch_size: 100000, cost: 28.15 },
+        { batch_size: 1000000, cost: 28.04 },
+      ],
     },
   ],
   uncosted: [
@@ -141,9 +150,9 @@ describe("Custo da peça", () => {
     await user.click(await screen.findByShadowRole("button", { name: t.estimate }));
 
     // The result card is always on screen; the table is what the run adds.
-    await screen.findByRole("table");
+    const table = await screen.findByRole("table");
     for (const value of ["20", "12", "7,08", "0,95", "40,03"]) {
-      expect(screen.getByText(value)).toBeInTheDocument();
+      expect(within(table).getByText(value)).toBeInTheDocument();
     }
   });
 
@@ -205,5 +214,16 @@ describe("Custo da peça", () => {
       (screen.getByText(t.assumptionsSummary("5", "1,5")).closest("details") as HTMLDetailsElement)
         .open,
     ).toBe(true);
+  });
+
+  it("desenha a curva de custo por lote com a alternância para a tabela", async () => {
+    nav.query = "material=7&massa=2";
+    const user = userEvent.setup();
+    await open();
+
+    await user.click(await screen.findByShadowRole("button", { name: t.estimate }));
+
+    expect(await screen.findByRole("figure", { name: /Curva Custo/i })).toBeInTheDocument();
+    expect(screen.getByShadowRole("button", { name: "Tabela" })).toBeInTheDocument();
   });
 });

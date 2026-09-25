@@ -714,11 +714,11 @@ describe("AshbyMap — seleção interativa e cursor", () => {
 });
 
 /**
- * D-94: the AI Studio chart behaviour — a readout that lists every series of
+ * D-95: the AI Studio chart behaviour — a readout that lists every series of
  * the category under the pointer, and a corner switch between two drawings of
  * the same rows.
  */
-describe("HorizontalBars — tooltip and orientation (D-94)", () => {
+describe("HorizontalBars — tooltip and orientation (D-95)", () => {
   const segments = [
     { key: "a", label: "Preenchido", color: "rgb(0 0 0)" },
     { key: "b", label: "Ausente", color: "rgb(1 1 1)" },
@@ -775,7 +775,7 @@ describe("HorizontalBars — tooltip and orientation (D-94)", () => {
   });
 });
 
-describe("ChartFrame — chart-type switch (D-94)", () => {
+describe("ChartFrame — chart-type switch (D-95)", () => {
   it("offers each drawing as a round button, and the table beside them", async () => {
     const user = userEvent.setup();
     const onViewChange = vi.fn();
