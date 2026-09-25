@@ -32,6 +32,7 @@ export {
   MissingValue,
   type QualityState,
 } from "./DataQualityBadge";
+export { DensityToggle } from "./DensityToggle";
 export { Dialog } from "./Dialog";
 export { EmptyState, ErrorState, LoadingState, Skeleton, Spinner } from "./Feedback";
 export {
@@ -50,6 +51,7 @@ export {
 } from "./Field";
 export { FileDrop, UploadList, type UploadItem } from "./FileDrop";
 export { GuidedBlock, type GuidedBlockState } from "./GuidedBlock";
+export { MenuButton, MenuItem } from "./Menu";
 export { RemovableChip } from "./RemovableChip";
 export { PageHeader } from "./PageHeader";
 export { PanelHeader } from "./PanelHeader";

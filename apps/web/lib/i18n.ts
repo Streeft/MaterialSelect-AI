@@ -293,6 +293,8 @@ export const ptBR = {
     myStudies: (n: number) =>
       n === 0 ? "Meus estudos (nenhum salvo)" : n === 1 ? "Meus estudos (1)" : `Meus estudos (${n})`,
     nextStep: (label: string) => `Próximo: ${label}`,
+    // D-91: what a phone shows; the full label stays the accessible name.
+    nextShort: "Próximo",
     summaryObjective: (index: string | null, criteria: number) =>
       [
         index ? `Índice: ${index}` : null,
@@ -503,6 +505,8 @@ export const ptBR = {
     classes: "Classes",
     text: "Texto",
     remaining: "Candidatos restantes",
+    // D-91: the phone's one-line action bar.
+    remainingShort: "Restam",
     of: "de",
     counterHint: "Atualizado a cada mudança nas restrições.",
     counterPending: "Recalculando…",
@@ -773,6 +777,7 @@ export const ptBR = {
     docx: "DOCX",
     html: "HTML para impressão",
     htmlTitle: "Abre em nova aba, pronto para imprimir ou salvar como PDF",
+    htmlHint: "Abre em nova aba, para imprimir ou salvar em PDF",
     catalogue: "Exportar catálogo",
     study: "Exportar relatório",
     hint: "O relatório traz o mapa de seleção, restrições, funil, índice, ranking, excluídos por dado ausente, sensibilidade e a proveniência de cada número — com o aviso de limitação exigido.",
@@ -1401,6 +1406,12 @@ export const ptBR = {
 
   catalog: {
     title: "Catálogo de materiais",
+    // D-91: said once above the list, instead of a badge on every row.
+    allDemo:
+      "Todos os materiais desta lista são fictícios — dados de demonstração, que não devem ser usados em projetos reais.",
+    densityLabel: "Densidade da tabela",
+    densityComfortable: "Confortável",
+    densityCompact: "Compacta",
     subtitle: "O que existe cadastrado, e com que qualidade de dado.",
     searchPlaceholder: "Buscar por nome, classe ou palavra-chave…",
     searchHint:
@@ -1486,8 +1497,12 @@ export const ptBR = {
     // Shared by every figure in the application: the map, the comparator and
     // the thumbnail on the material sheet.
     toolbar: "Ações do gráfico",
-    exportPng: "Exportar PNG",
-    exportSvg: "Exportar SVG",
+    // D-91: the two formats sit in one "Exportar" menu.
+    exportMenu: "Exportar",
+    exportPng: "PNG",
+    exportPngHint: "Imagem, para slides e documentos",
+    exportSvg: "SVG",
+    exportSvgHint: "Vetor, editável sem perder nitidez",
     exporting: "Exportando…",
     exportError: "Não foi possível exportar a imagem.",
     // A figura é uma tela de vetores: para quem usa leitor de tela ela é
@@ -1496,11 +1511,13 @@ export const ptBR = {
     dataTable: "Tabela de dados da figura",
     dataTableHint: "Os mesmos números que a figura desenha, em texto.",
     // D-80: o cartão MSDS troca a figura pela tabela no mesmo lugar, em vez de
-    // abrir a tabela embaixo dela.
-    showTable: "Ver tabela de dados",
-    showFigure: "Ver gráfico",
+    // abrir a tabela embaixo dela. D-91: a troca é uma alternância de duas
+    // posições, "Gráfico | Tabela", e não mais um link solto.
+    view: "Visualização",
+    showTable: "Tabela",
+    showFigure: "Gráfico",
     figureLabel: (title: string) =>
-      `${title}. Figura; a tabela de dados equivalente abre pelo botão “Ver tabela de dados”.`,
+      `${title}. Figura; a tabela de dados equivalente abre pela alternância “Tabela”.`,
     legend: "Legenda",
     legendToggle: "Legenda — clique num item para mostrar ou ocultar a série",
     interactHint: "Passe o cursor sobre a figura, ou use Tab e as setas, para ler cada valor.",

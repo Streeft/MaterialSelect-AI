@@ -178,7 +178,7 @@ export default function MaterialDetailPage() {
                 {data.is_active && (data.is_own_record || canEditCatalog) && (
                   <Button
                     size="sm"
-                    variant="danger"
+                    variant="danger-quiet"
                     onClick={handleDeactivate}
                     loading={deactivate.isPending}
                   >
@@ -249,7 +249,7 @@ export default function MaterialDetailPage() {
                         }, {}),
                       ).map(([family, list]) => (
                         <div key={family} className="flex flex-col gap-1">
-                          <span className="text-xs font-medium uppercase tracking-wide text-fg-muted">
+                          <span className="text-caption font-semibold text-ink-muted">
                             {family}
                           </span>
                           <div className="flex flex-wrap gap-2">

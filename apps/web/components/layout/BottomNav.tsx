@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/cn";
@@ -40,6 +41,52 @@ function isActive(pathname: string, href: string): boolean {
 }
 
 /**
+ * D-91: the bar gets out of the way while the reader scrolls down — reading
+ * or filling a form — and comes back on the first scroll up, the gesture that
+ * means "I want to go somewhere". On the selection wizard it and the wizard's
+ * own action bar used to stack into a third of a 812 px screen.
+ *
+ * `--bottom-nav-offset` on <html> tells anything pinned to the bottom (the
+ * wizard's action bar) how much room the nav is taking right now — 48 px
+ * targets plus their padding — so the two never overlap. It is only read
+ * below `lg`, where this bar exists.
+ */
+const HIDE_AFTER = 80; // px from the top before hiding is allowed at all
+const THRESHOLD = 8; // px of travel that counts as a direction
+
+function useHideOnScrollDown(pathname: string): boolean {
+  const [hidden, setHidden] = useState(false);
+  // A new route starts with the bar in view (state derived during render,
+  // not in an effect, so there is no frame with the bar hidden).
+  const [path, setPath] = useState(pathname);
+  if (path !== pathname) {
+    setPath(pathname);
+    setHidden(false);
+  }
+  useEffect(() => {
+    let last = window.scrollY;
+    let frame = 0;
+    const onScroll = () => {
+      if (frame) return;
+      frame = window.requestAnimationFrame(() => {
+        frame = 0;
+        const y = window.scrollY;
+        const delta = y - last;
+        if (Math.abs(delta) < THRESHOLD) return;
+        setHidden(delta > 0 && y > HIDE_AFTER);
+        last = y;
+      });
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (frame) window.cancelAnimationFrame(frame);
+    };
+  }, []);
+  return hidden;
+}
+
+/**
  * The primary navigation on narrow screens.
  *
  * Replaces the two taps the modal drawer charged for every screen switch —
@@ -57,11 +104,26 @@ function isActive(pathname: string, href: string): boolean {
  */
 export function BottomNav() {
   const pathname = usePathname();
+  const hide = useHideOnScrollDown(pathname);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    root.style.setProperty("--bottom-nav-offset", hide ? "0px" : "4.25rem");
+    return () => {
+      root.style.removeProperty("--bottom-nav-offset");
+    };
+  }, [hide]);
 
   return (
     <nav
       aria-label={ptBR.ui.mainNav}
-      className="sticky bottom-0 z-30 grid grid-cols-5 gap-0.5 bg-rail px-1.5 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:hidden"
+      data-hidden={hide || undefined}
+      className={cn(
+        "sticky bottom-0 z-30 grid grid-cols-5 gap-0.5 bg-rail px-1.5 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] transition-transform duration-slow ease-emphasized lg:hidden",
+        // Moved, never removed: the links stay in the tab order and in the
+        // accessibility tree, and focusing one brings the bar back.
+        hide && "translate-y-full focus-within:translate-y-0",
+      )}
     >
       {ITEMS.map((item) => {
         const active = isActive(pathname, item.href);

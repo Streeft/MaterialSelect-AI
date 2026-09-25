@@ -63,12 +63,12 @@ const LEGEND = [
 
 export function AshbyPreview() {
   return (
-    <figure className="rounded-[1.375rem] border border-rail-edge/15 bg-surface-raised p-5 shadow-overlay">
+    <figure className="rounded-panel border border-rail-edge/15 bg-surface-raised p-5 shadow-overlay">
       <figcaption className="flex flex-wrap items-baseline justify-between gap-4 border-b border-edge-subtle pb-3.5">
         <div className="flex flex-col gap-0.5">
-          <span className="font-mono text-[0.625rem] uppercase tracking-eyebrow text-brand-700">
-            mapa de ashby
-          </span>
+          {/* D-91: the kind is announced, not drawn — the small-caps eyebrow
+              belongs to the page header, as on every chart card. */}
+          <span className="sr-only">Mapa de Ashby, </span>
           <span className="text-[0.9375rem] font-semibold text-ink">
             Módulo de Young × Densidade
           </span>

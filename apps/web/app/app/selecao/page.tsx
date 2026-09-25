@@ -236,11 +236,16 @@ function CandidateCounter({
     <div
       aria-live="polite"
       className={
-        "flex items-baseline gap-2 rounded-control border border-edge bg-surface-sunken px-3 py-1.5 " +
+        "flex shrink-0 items-baseline gap-1.5 rounded-control bg-well px-2.5 py-1.5 sm:gap-2 sm:px-3 " +
         (className ?? "")
       }
     >
-      <span className="text-2xs uppercase tracking-wide text-ink-muted">{t.remaining}</span>
+      {/* D-91: one word on a phone, so the counter and the step's buttons
+          share one line of the action bar. */}
+      <span className="text-caption font-medium text-ink-muted">
+        <span className="sm:hidden">{t.remainingShort}</span>
+        <span className="hidden sm:inline">{t.remaining}</span>
+      </span>
       {failed ? (
         <span className="text-xs text-danger-fg">{t.counterError}</span>
       ) : count === null || total === null ? (
@@ -995,9 +1000,10 @@ function SelectionWizard() {
           <Button
             variant="secondary"
             icon={<IconArrowLeft />}
+            className="max-sm:px-3"
             onClick={() => goToStep(LAST_INPUT_STEP)}
           >
-            {t.back}
+            <span className="max-sm:sr-only">{t.back}</span>
           </Button>
           <Button
             variant="primary"
@@ -1017,19 +1023,24 @@ function SelectionWizard() {
     return (
       <>
         {prev ? (
-          <Button variant="secondary" icon={<IconArrowLeft />} onClick={() => goToStep(prev)}>
-            {t.back}
+          <Button
+            variant="secondary"
+            icon={<IconArrowLeft />}
+            className="max-sm:px-3"
+            onClick={() => goToStep(prev)}
+          >
+            <span className="max-sm:sr-only">{t.back}</span>
           </Button>
         ) : (
-          <ButtonLink href="/app" variant="secondary" icon={<IconArrowLeft />}>
-            {t.backToHome}
+          <ButtonLink href="/app" variant="secondary" icon={<IconArrowLeft />} className="max-sm:px-3">
+            <span className="max-sm:sr-only">{t.backToHome}</span>
           </ButtonLink>
         )}
         {step === LAST_INPUT_STEP || !next ? (
           <>
             {gate.reason ? (
               <>
-                <p id="executar-motivo" className="text-2xs text-ink-muted">
+                <p id="executar-motivo" className="basis-full text-right text-support text-ink-muted sm:basis-auto">
                   {gate.reason}
                 </p>
                 {step !== "objective" && (
@@ -1039,7 +1050,7 @@ function SelectionWizard() {
                 )}
               </>
             ) : gate.note ? (
-              <p className="text-2xs text-ink-muted">{gate.note}</p>
+              <p className="basis-full text-right text-support text-ink-muted sm:basis-auto">{gate.note}</p>
             ) : null}
             <Button
               variant="primary"
@@ -1057,10 +1068,15 @@ function SelectionWizard() {
                 warned about here but never block moving on — the Run button,
                 on the last input step, is what waits for them. */}
             {step === "objective" && gate.reason && gate.reason !== t.weights.checking ? (
-              <p className="text-2xs text-ink-muted">{t.weights.notBlocking(gate.reason)}</p>
+              <p className="basis-full text-right text-support text-ink-muted sm:basis-auto">{t.weights.notBlocking(gate.reason)}</p>
             ) : null}
             <Button variant="primary" icon={<IconArrowRight />} onClick={() => goToStep(next)}>
-              {t.nextStep(labelOf(next))}
+              {/* D-91: one word on a phone, so the bar stays one line; the
+                  full "Próximo: Objetivo" is still the button's name. */}
+              <span aria-hidden className="sm:hidden">
+                {t.nextShort}
+              </span>
+              <span className="max-sm:sr-only">{t.nextStep(labelOf(next))}</span>
             </Button>
           </>
         )}
@@ -1109,7 +1125,7 @@ function SelectionWizard() {
 
         {/* Step 1: function */}
         {step === "function" && (
-          <div className="flex flex-wrap items-center gap-3 rounded-card border border-dashed border-edge-strong px-4 py-3">
+          <div className="flex flex-wrap items-center gap-3">
             <span className="text-sm text-ink-muted">{t.exampleIntro}</span>
             <Button variant="secondary" onClick={applyExample}>
               {t.loadExample}
@@ -1186,7 +1202,7 @@ function SelectionWizard() {
                     onClick={() => changeUniverse("process")}
                   />
                 </ButtonGroup>
-                <p className="text-xs text-fg-muted">{t.universeHint}</p>
+                <p className="text-xs text-ink-muted">{t.universeHint}</p>
                 {isProcessStudy && <Alert tone="info">{t.universeProcessNote}</Alert>}
               </div>
             </Disclosure>
@@ -1570,11 +1586,14 @@ function SelectionWizard() {
             covered by a floating strip. A card inside the content column, not
             a band bleeding past it: the band's negative margin no longer
             matched the column's padding once that grew with the screen. */}
-        <div className="sticky bottom-3 z-20 rounded-card border border-edge bg-surface-raised/95 px-4 py-3 shadow-overlay backdrop-blur">
+        {/* D-91: above the phone's bottom nav while it shows
+            (`--bottom-nav-offset`, set by BottomNav), and down to the edge
+            when the nav slides away — never underneath it. */}
+        <div className="sticky bottom-[calc(var(--bottom-nav-offset,0px)+0.5rem)] z-20 rounded-card border border-line bg-panel/95 px-3 py-2 shadow-overlay backdrop-blur transition-[bottom] duration-slow ease-emphasized sm:px-4 sm:py-3 lg:bottom-3">
           <div
             role="group"
             aria-label={t.actionBar}
-            className="flex flex-wrap items-center justify-between gap-3"
+            className="flex flex-wrap items-center justify-between gap-2 sm:gap-3"
           >
             <CandidateCounter
               count={preview.data?.final_count ?? null}
@@ -1582,7 +1601,7 @@ function SelectionWizard() {
               pending={preview.isFetching}
               failed={preview.isError}
             />
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2">
               {step === "results" && !canSave && (
                 <span className="text-2xs text-ink-muted">{t.saveNeedsName}</span>
               )}

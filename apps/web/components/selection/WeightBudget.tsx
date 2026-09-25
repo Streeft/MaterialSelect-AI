@@ -62,7 +62,7 @@ export function WeightBudget({
     <section
       aria-labelledby="pesos-titulo"
       aria-busy={pending || undefined}
-      className="flex flex-col gap-3 rounded-card border border-edge bg-surface-sunken p-4"
+      className="well flex flex-col gap-3"
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 id="pesos-titulo" className="text-sm font-semibold text-ink">
@@ -148,7 +148,7 @@ export function WeightBudget({
         <div className="flex flex-wrap items-center gap-3">
           {suggestion ? (
             <>
-              <Button size="sm" variant="primary" onClick={() => onApplySuggestion(suggestion.weights)}>
+              <Button size="sm" variant="secondary" onClick={() => onApplySuggestion(suggestion.weights)}>
                 {t.suggest[suggestion.kind]}
               </Button>
               <span className="text-2xs text-ink-muted">
@@ -189,13 +189,13 @@ export function WeightBudget({
                 </li>
               ))}
             </ol>
-            <p className="text-2xs text-ink-muted">
+            <p className="text-support text-ink-muted">
               {preview.constraints_applied
                 ? t.previewConstrained(preview.candidate_count, preview.initial_count)
                 : t.previewWholeCatalogue(preview.initial_count)}
             </p>
             {preview.renormalized ? (
-              <p className="text-2xs text-ink-muted">{t.previewRenormalized}</p>
+              <p className="text-support text-ink-muted">{t.previewRenormalized}</p>
             ) : null}
           </>
         )}

@@ -150,6 +150,16 @@ ficou sem objeto. Três regras que não são questão de gosto:
   que existe um controle ali: ela responde à WCAG 1.4.11 (3:1), e não ao
   orçamento de fio de cabelo dos outros contornos. Use `border-edge-control` no
   contorno do que se opera e nunca num divisor decorativo.
+- **Papel antes de aparência** ([D-91](docs/DECISIONS.md)):
+  - **Botões:** no máximo **um** `primary` visível por tela.
+  - **Exportações:** um "Exportar ▾" (`MenuButton`), nunca uma fileira de
+    botões.
+  - **Dentro de um cartão:** um poço (`.well`) ou uma subseção
+    (`.subsection`), **nunca outro cartão**.
+  - **Texto:** o tamanho vem de um papel (`text-support`, `text-caption`…).
+    O sobrescrito mono em caixa alta só aparece no cabeçalho da página.
+  - **Código novo** usa os tokens semânticos (`bg-page`, `bg-panel`,
+    `bg-well`, `border-line`, `bg-action`), e não os passos da paleta.
 
 E as proibições do §13 de [`docs/REDESIGN.md`](docs/REDESIGN.md), que continuam
 valendo depois da Fase 8: nenhuma biblioteca de componentes, **nenhum framework

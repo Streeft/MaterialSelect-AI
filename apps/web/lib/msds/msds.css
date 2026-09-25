@@ -45,6 +45,9 @@ body {
 }
 
 /* ---------- Button ---------- */
+/* D-91: every hover/pressed rule below also answers to [data-force-state],
+   which only the states specimen in /estilo sets. The specimen then shows the
+   real rule, not a copy of it that could drift. */
 .msds-btn {
   appearance: none;
   border: 1px solid transparent;
@@ -62,25 +65,30 @@ body {
     background var(--msds-dur) var(--msds-ease), border-color var(--msds-dur) var(--msds-ease);
 }
 .msds-btn-label { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
-.msds-btn:active:not(:disabled) { transform: scale(0.97) translateY(1px); }
+.msds-btn:active:not(:disabled), .msds-btn[data-force-state="pressed"] { transform: scale(0.97) translateY(1px); }
 .msds-btn:disabled { cursor: not-allowed; opacity: 0.5; }
 .msds-btn-md { height: 40px; padding: 0 var(--space-4); font-size: 14px; }
 .msds-btn-sm { height: 32px; padding: 0 var(--space-3); font-size: 13px; }
 
-.msds-btn-primary { background: rgb(var(--accent)); color: rgb(var(--accent-fg)); box-shadow: var(--shadow-card); }
-.msds-btn-primary:hover:not(:disabled) { transform: translateY(-1px) scale(1.01); box-shadow: var(--shadow-glow); }
+.msds-btn-primary { background: rgb(var(--action-primary)); color: rgb(var(--action-primary-ink)); box-shadow: var(--shadow-card); }
+.msds-btn-primary:hover:not(:disabled), .msds-btn-primary[data-force-state="hover"] { transform: translateY(-1px) scale(1.01); box-shadow: var(--shadow-glow); }
 
-.msds-btn-secondary { background: var(--surface-200); color: rgb(var(--ink)); border-color: rgb(var(--edge-control)); }
-.msds-btn-secondary:hover:not(:disabled) { border-color: rgb(var(--accent)); color: rgb(var(--accent)); transform: translateY(-1px); }
+.msds-btn-secondary { background: var(--surface-200); color: rgb(var(--ink)); border-color: rgb(var(--border-control)); box-shadow: var(--shadow-control); }
+.msds-btn-secondary:hover:not(:disabled), .msds-btn-secondary[data-force-state="hover"] { border-color: rgb(var(--accent)); color: rgb(var(--accent)); transform: translateY(-1px); box-shadow: var(--shadow-raised); }
 
 .msds-btn-ghost { background: transparent; color: rgb(var(--ink)); }
-.msds-btn-ghost:hover:not(:disabled) { background: rgb(var(--brand-50)); color: rgb(var(--accent)); }
+.msds-btn-ghost:hover:not(:disabled), .msds-btn-ghost[data-force-state="hover"] { background: rgb(var(--brand-50)); color: rgb(var(--accent)); }
 
 .msds-btn-danger { background: rgb(var(--danger)); color: rgb(var(--accent-fg)); box-shadow: var(--shadow-card); }
-.msds-btn-danger:hover:not(:disabled) { transform: translateY(-1px) scale(1.01); filter: brightness(1.06); }
+.msds-btn-danger:hover:not(:disabled), .msds-btn-danger[data-force-state="hover"] { transform: translateY(-1px) scale(1.01); filter: brightness(1.06); }
+
+/* D-91: the destructive *entry point* in a list or header — quiet until
+   hovered. The filled danger button is for the confirmation itself. */
+.msds-btn-danger-quiet { background: transparent; color: rgb(var(--danger-fg)); }
+.msds-btn-danger-quiet:hover:not(:disabled), .msds-btn-danger-quiet[data-force-state="hover"] { background: rgb(var(--danger-soft)); }
 
 .msds-btn-link { background: transparent; color: rgb(var(--accent)); text-decoration: underline; text-underline-offset: 3px; padding-left: 2px; padding-right: 2px; }
-.msds-btn-link:hover:not(:disabled) { color: rgb(var(--brand-800)); }
+.msds-btn-link:hover:not(:disabled), .msds-btn-link[data-force-state="hover"] { color: rgb(var(--brand-800)); }
 
 .msds-spinner {
   width: 14px; height: 14px; border-radius: 50%;
@@ -91,9 +99,10 @@ body {
 
 /* ---------- IconButton ---------- */
 .msds-icon-btn {
-  appearance: none; border: 1px solid rgb(var(--edge-control)); background: var(--surface-200);
+  appearance: none; border: 1px solid rgb(var(--border-control)); background: var(--surface-200);
   color: rgb(var(--ink-muted)); width: 40px; height: 40px; border-radius: var(--radius-full);
   display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
+  box-shadow: var(--shadow-control);
   transition: all var(--msds-dur) var(--msds-ease);
 }
 .msds-icon-btn:hover { transform: scale(1.06); color: rgb(var(--accent)); border-color: rgb(var(--accent)); }
@@ -103,7 +112,7 @@ body {
 /* ---------- Segmented control ---------- */
 .msds-segmented {
   display: inline-flex; padding: 3px; background: var(--surface-300);
-  border-radius: var(--radius-control); gap: 2px; border: 1px solid rgb(var(--edge));
+  border-radius: var(--radius-control); gap: 2px; border: 1px solid rgb(var(--edge-strong));
 }
 .msds-segmented-item {
   appearance: none; border: none; background: transparent; color: rgb(var(--ink-muted));
@@ -119,11 +128,11 @@ body {
 /* ---------- Chip ---------- */
 .msds-chip {
   appearance: none; display: inline-flex; align-items: center; gap: var(--space-2); white-space: nowrap; max-width: 100%;
-  border: 1px solid rgb(var(--edge-control)); background: var(--surface-200); color: rgb(var(--ink));
+  border: 1px solid rgb(var(--border-control)); background: var(--surface-200); color: rgb(var(--ink));
   border-radius: var(--radius-full); padding: 6px 12px 6px 10px; font-size: 13px; font-weight: 500;
-  cursor: pointer; transition: all var(--msds-dur) var(--msds-ease);
+  cursor: pointer; box-shadow: var(--shadow-control); transition: all var(--msds-dur) var(--msds-ease);
 }
-.msds-chip:hover { transform: translateY(-1px); border-color: rgb(var(--accent)); }
+.msds-chip:hover, .msds-chip[data-force-state="hover"] { transform: translateY(-1px); border-color: rgb(var(--accent)); }
 .msds-chip[aria-pressed="true"] { background: rgb(var(--brand-50)); border-color: rgb(var(--accent)); color: rgb(var(--brand-800)); }
 .msds-chip-dot { width: 8px; height: 8px; border-radius: 50%; border: 1px solid rgba(0,0,0,0.2); flex: none; }
 
@@ -154,14 +163,14 @@ body {
 
 /* ---------- Card ---------- */
 .msds-card {
-  background: var(--surface-200); border: 1px solid rgb(var(--edge)); border-radius: var(--radius-card);
+  background: rgb(var(--surface-panel)); border: 1px solid rgb(var(--border-panel)); border-radius: var(--radius-card);
   box-shadow: var(--shadow-card); overflow: hidden;
   transition: box-shadow var(--msds-dur-slow) var(--msds-ease), transform var(--msds-dur-slow) var(--msds-ease);
 }
 .msds-card[data-interactive="true"]:hover { box-shadow: var(--shadow-float); transform: translateY(-3px); }
-.msds-card-header { padding: var(--space-4) var(--space-4) var(--space-3); border-bottom: 1px solid rgb(var(--edge-subtle)); }
-.msds-card-title { margin: 0; font-size: 16px; font-weight: 600; color: rgb(var(--ink)); }
-.msds-card-desc { margin: 4px 0 0; font-size: 13px; color: rgb(var(--ink-muted)); }
+.msds-card-header { padding: var(--space-4) var(--space-4) var(--space-3); border-bottom: 1px solid rgb(var(--border-divider)); }
+.msds-card-title { margin: 0; font-size: 16px; font-weight: 600; color: rgb(var(--text-primary)); }
+.msds-card-desc { margin: 4px 0 0; font-size: 13px; line-height: 1.25rem; color: rgb(var(--text-secondary)); }
 .msds-card-body { padding: var(--space-4); }
 .msds-card-footer { padding: var(--space-3) var(--space-4); background: var(--surface-300); border-top: 1px solid rgb(var(--edge-subtle)); }
 
@@ -206,7 +215,8 @@ body {
   background: var(--surface-200); border: 1px solid rgb(var(--edge)); border-radius: var(--radius-card);
   padding: var(--space-4); min-width: 200px; box-shadow: var(--shadow-card);
 }
-.msds-stat-label { font-size: 11px; letter-spacing: 0.16em; font-weight: 600; color: rgb(var(--ink-subtle)); text-transform: uppercase; }
+/* D-91: sentence case. The small-caps eyebrow is the page header's alone. */
+.msds-stat-label { font-size: 13px; font-weight: 600; color: rgb(var(--text-secondary)); }
 .msds-stat-value { font-family: var(--font-mono); font-size: 30px; font-weight: 600; color: rgb(var(--ink)); margin-top: 6px; font-variant-numeric: tabular-nums; }
 .msds-stat-unit { font-size: 14px; color: rgb(var(--ink-muted)); margin-left: 4px; }
 .msds-stat-row { display: flex; align-items: flex-end; justify-content: space-between; margin-top: var(--space-3); gap: var(--space-3); }
@@ -219,7 +229,7 @@ body {
 .msds-chart-card { background: var(--surface-200); border: 1px solid rgb(var(--edge)); border-radius: var(--radius-card);
   box-shadow: var(--shadow-card); padding: var(--space-4); }
 .msds-chart-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-3); gap: var(--space-3); flex-wrap: wrap; }
-.msds-chart-title { font-size: 14px; font-weight: 600; color: rgb(var(--ink)); margin: 0; }
+.msds-chart-title { font-size: 15px; font-weight: 600; color: rgb(var(--text-primary)); margin: 0; }
 .msds-tooltip {
   position: absolute; pointer-events: none; background: rgb(var(--ink)); color: var(--surface-100);
   font-size: 12px; padding: 6px 10px; border-radius: var(--radius-seat); box-shadow: var(--shadow-overlay);
@@ -229,7 +239,7 @@ body {
 .msds-tooltip strong { font-family: var(--font-mono); font-weight: 600; }
 .msds-chart-table { width: 100%; border-collapse: collapse; margin-top: var(--space-3); font-size: 12px; }
 .msds-chart-table th, .msds-chart-table td { text-align: left; padding: 5px 8px; border-bottom: 1px solid rgb(var(--edge-subtle)); }
-.msds-chart-table th { color: rgb(var(--ink-subtle)); font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; font-size: 10px; }
+.msds-chart-table th { color: rgb(var(--text-secondary)); font-weight: 600; font-size: 12px; }
 .msds-chart-table td[data-numeric="true"] { text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 .msds-table-toggle { font-size: 12px; font-weight: 600; color: rgb(var(--accent)); background: none; border: none; cursor: pointer; padding: 4px 0; }
 .msds-table-toggle:hover { text-decoration: underline; }
@@ -279,8 +289,9 @@ body {
 
 /* Form controls */
 .msds-field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
-.msds-field-label { font-size: 12px; font-weight: 600; color: rgb(var(--ink-muted)); }
-.msds-field-hint { font-size: 12px; color: rgb(var(--ink-subtle)); margin: 0; }
+/* D-91: 13 px. At 12 px the labels and hints were the part of a form readers skipped. */
+.msds-field-label { font-size: 13px; font-weight: 600; color: rgb(var(--text-secondary)); }
+.msds-field-hint { font-size: 13px; line-height: 1.25rem; color: rgb(var(--text-tertiary)); margin: 0; }
 .msds-field-hint-error { color: rgb(var(--danger-fg)); }
 /* Rodada 8, item 5: contador de caracteres — só existe quando showCount+
    maxLength estão presentes (FieldShell.counter); sem isso o rodapé do
@@ -292,11 +303,11 @@ body {
 .msds-field-counter-danger { color: rgb(var(--danger-fg)); font-weight: 600; }
 .msds-field-unit { font-size: 13px; color: rgb(var(--ink-muted)); }
 .msds-control {
-  width: 100%; border: 1px solid rgb(var(--edge-control)); border-radius: var(--radius-control);
+  width: 100%; border: 1px solid rgb(var(--border-control)); border-radius: var(--radius-control);
   background: var(--surface-200); color: rgb(var(--ink)); font: 400 14px var(--font-sans);
   padding: 8px 10px; transition: border-color var(--msds-dur) var(--msds-ease);
 }
-.msds-control:hover { border-color: rgb(var(--ink-subtle)); }
+.msds-control:hover, .msds-control[data-force-state="hover"] { border-color: rgb(var(--ink-subtle)); }
 .msds-control[aria-invalid="true"] { border-color: rgb(var(--danger)); }
 .msds-control:disabled { background: var(--surface-300); color: rgb(var(--ink-subtle)); cursor: not-allowed; }
 .msds-textarea { resize: vertical; min-height: 64px; font-family: var(--font-sans); }
@@ -306,11 +317,11 @@ body {
 
 .msds-checkbox, .msds-radio { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: rgb(var(--ink)); cursor: pointer; }
 .msds-checkbox input, .msds-radio input { position: absolute; opacity: 0; width: 1px; height: 1px; }
-.msds-checkbox-box { width: 18px; height: 18px; border: 1px solid rgb(var(--edge-control)); border-radius: 5px; display: inline-flex; align-items: center; justify-content: center; color: transparent; transition: all var(--msds-dur) var(--msds-ease); flex: none; }
+.msds-checkbox-box { width: 18px; height: 18px; border: 1.5px solid rgb(var(--border-control)); background: var(--surface-200); box-shadow: var(--shadow-control); border-radius: 5px; display: inline-flex; align-items: center; justify-content: center; color: transparent; transition: all var(--msds-dur) var(--msds-ease); flex: none; }
 .msds-checkbox-box svg { width: 13px; height: 13px; }
 .msds-checkbox input:checked + .msds-checkbox-box { background: rgb(var(--accent)); border-color: rgb(var(--accent)); color: rgb(var(--accent-fg)); }
 .msds-checkbox input:focus-visible + .msds-checkbox-box, .msds-radio input:focus-visible + .msds-radio-dot { outline: 2px solid rgb(var(--accent)); outline-offset: 2px; }
-.msds-radio-dot { width: 18px; height: 18px; border: 1px solid rgb(var(--edge-control)); border-radius: 50%; position: relative; flex: none; transition: border-color var(--msds-dur) var(--msds-ease); }
+.msds-radio-dot { width: 18px; height: 18px; border: 1.5px solid rgb(var(--border-control)); background: var(--surface-200); box-shadow: var(--shadow-control); border-radius: 50%; position: relative; flex: none; transition: border-color var(--msds-dur) var(--msds-ease); }
 .msds-radio input:checked + .msds-radio-dot { border-color: rgb(var(--accent)); border-width: 5px; }
 
 /* RangeFilter */
@@ -465,7 +476,7 @@ body {
 .msds-switch { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; }
 .msds-switch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
 .msds-switch-track { width: 40px; height: 24px; border-radius: var(--radius-full); background: var(--surface-300);
-  border: 1px solid rgb(var(--edge-control)); position: relative; transition: background var(--msds-dur) var(--msds-ease), border-color var(--msds-dur) var(--msds-ease); flex: none; }
+  border: 1px solid rgb(var(--border-control)); position: relative; transition: background var(--msds-dur) var(--msds-ease), border-color var(--msds-dur) var(--msds-ease); flex: none; }
 .msds-switch-thumb { position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%;
   background: var(--surface-200); box-shadow: var(--shadow-card); transition: transform var(--msds-dur-slow) var(--msds-ease-out), background var(--msds-dur) var(--msds-ease); }
 .msds-switch input:checked + .msds-switch-track { background: rgb(var(--accent)); border-color: rgb(var(--accent)); }
@@ -485,7 +496,7 @@ body {
 
 /* Menu */
 .msds-menu-wrap { position: relative; display: inline-block; }
-.msds-menu-trigger { appearance: none; border: 1px solid rgb(var(--edge-control)); background: var(--surface-200); color: rgb(var(--ink));
+.msds-menu-trigger { appearance: none; border: 1px solid rgb(var(--border-control)); background: var(--surface-200); color: rgb(var(--ink));
   border-radius: var(--radius-control); padding: 8px 12px; font: 500 13px var(--font-sans); cursor: pointer; white-space: nowrap; }
 .msds-menu-trigger:hover { border-color: rgb(var(--accent)); }
 .msds-menu { position: absolute; top: calc(100% + 6px); left: 0; z-index: 20; margin: 0; padding: 6px; list-style: none;
@@ -519,7 +530,7 @@ button.msds-list-item, [role="button"].msds-list-item { cursor: pointer; text-al
 .msds-divider-v { width: 1px; height: 100%; align-self: stretch; }
 
 /* SearchBar */
-.msds-searchbar { display: flex; align-items: center; gap: 8px; border: 1px solid rgb(var(--edge-control));
+.msds-searchbar { display: flex; align-items: center; gap: 8px; border: 1px solid rgb(var(--border-control));
   background: var(--surface-200); border-radius: var(--radius-full); padding: 8px 14px; color: rgb(var(--ink-subtle)); max-width: 360px; }
 .msds-searchbar-input { flex: 1; border: none; outline: none; background: none; font: 400 14px var(--font-sans); color: rgb(var(--ink)); min-width: 0; }
 .msds-searchbar-clear { border: none; background: none; color: rgb(var(--ink-subtle)); cursor: pointer; display: flex; padding: 2px; }
@@ -564,7 +575,7 @@ button.msds-list-item, [role="button"].msds-list-item { cursor: pointer; text-al
 
 /* Card — variantes ("elevated" é o default = aparência original) */
 .msds-card-filled { background: var(--surface-300); border-color: transparent; box-shadow: none; }
-.msds-card-outlined { background: var(--surface-200); border: 1px solid rgb(var(--edge-control)); box-shadow: none; }
+.msds-card-outlined { background: var(--surface-200); border: 1px solid rgb(var(--border-control)); box-shadow: none; }
 /* "tonalHover" (antes nomeada "elevated" — renomeada na Rodada 5 para não colidir com variant="elevated") */
 .msds-card[data-tonal-hover="true"]:hover {
   box-shadow: var(--shadow-float);
@@ -583,7 +594,7 @@ button.msds-list-item, [role="button"].msds-list-item { cursor: pointer; text-al
 
 /* Text fields — variantes ("outlined" é o default = aparência original) */
 .msds-control-filled {
-  border: none; border-bottom: 2px solid rgb(var(--edge-control)); border-radius: var(--radius-control) var(--radius-control) 0 0;
+  border: none; border-bottom: 2px solid rgb(var(--border-control)); border-radius: var(--radius-control) var(--radius-control) 0 0;
   background: var(--surface-300);
 }
 .msds-control-filled:hover { border-bottom-color: rgb(var(--ink-subtle)); }
@@ -648,7 +659,7 @@ button.msds-list-item, [role="button"].msds-list-item { cursor: pointer; text-al
 .msds-datatable-wrap { overflow-x: auto; border: 1px solid rgb(var(--edge)); border-radius: var(--radius-control); }
 .msds-datatable { width: 100%; border-collapse: collapse; font-size: 13px; }
 .msds-datatable th, .msds-datatable td { text-align: left; padding: 9px 12px; border-bottom: 1px solid rgb(var(--edge-subtle)); }
-.msds-datatable th { background: var(--surface-300); color: rgb(var(--ink-subtle)); font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase; font-size: 11px; }
+.msds-datatable th { background: var(--surface-300); color: rgb(var(--text-secondary)); font-weight: 600; font-size: 12px; }
 .msds-datatable tbody tr:last-child td { border-bottom: none; }
 .msds-datatable tbody tr:hover { background: var(--surface-300); }
 .msds-datatable td[data-numeric="true"], .msds-datatable th[data-numeric="true"] { text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
@@ -754,8 +765,8 @@ button.msds-list-item, [role="button"].msds-list-item { cursor: pointer; text-al
   height: 40px; width: 40px; padding: 0; display: flex; align-items: center; justify-content: center;
 }
 .msds-splitbtn .msds-menu-trigger:hover { filter: brightness(1.06); border-color: transparent; }
-.msds-splitbtn-secondary .msds-splitbtn-main, .msds-splitbtn-secondary .msds-menu-trigger { background: var(--surface-200); color: rgb(var(--ink)); border-color: rgb(var(--edge-control)); }
-.msds-splitbtn-secondary .msds-splitbtn-divider { background: rgb(var(--edge-control)); }
+.msds-splitbtn-secondary .msds-splitbtn-main, .msds-splitbtn-secondary .msds-menu-trigger { background: var(--surface-200); color: rgb(var(--ink)); border-color: rgb(var(--border-control)); }
+.msds-splitbtn-secondary .msds-splitbtn-divider { background: rgb(var(--border-control)); }
 
 /* DatePicker / TimePicker */
 .msds-datepicker-trigger-inner { display: inline-flex; align-items: center; gap: 8px; }
@@ -778,7 +789,7 @@ button.msds-list-item, [role="button"].msds-list-item { cursor: pointer; text-al
 .msds-timepicker-field { display: flex; flex-direction: column; align-items: center; gap: 2px; }
 .msds-timepicker-input { width: 52px; text-align: center; font-family: var(--font-mono); font-variant-numeric: tabular-nums; padding: 6px 4px; }
 .msds-timepicker-step {
-  appearance: none; border: 1px solid rgb(var(--edge-control)); background: var(--surface-200); color: rgb(var(--ink-muted));
+  appearance: none; border: 1px solid rgb(var(--border-control)); background: var(--surface-200); color: rgb(var(--ink-muted));
   width: 24px; height: 20px; border-radius: var(--radius-seat); cursor: pointer; display: flex; align-items: center; justify-content: center;
 }
 .msds-timepicker-step:hover { color: rgb(var(--accent)); border-color: rgb(var(--accent)); }
@@ -829,7 +840,7 @@ button.msds-list-item, [role="button"].msds-list-item { cursor: pointer; text-al
   list-style: none; margin: 0; padding: 0;
 }
 .msds-fabmenu-item {
-  appearance: none; border: 1px solid rgb(var(--edge-control)); background: var(--surface-200); color: rgb(var(--ink));
+  appearance: none; border: 1px solid rgb(var(--border-control)); background: var(--surface-200); color: rgb(var(--ink));
   border-radius: var(--radius-full); padding: 6px 6px 6px 14px; display: inline-flex; align-items: center; gap: 10px;
   font: 600 13px var(--font-sans); white-space: nowrap; cursor: pointer; box-shadow: var(--shadow-raised);
   transition: border-color var(--msds-dur) var(--msds-ease), color var(--msds-dur) var(--msds-ease);

@@ -19,7 +19,15 @@ const t = ptBR.catalog;
  * `Bar` receives `null` when no property at all is registered — a 0% bar
  * would read as a verdict on a material nobody has filled in yet.
  */
-function MaterialCard({ material, index }: { material: MaterialListItem; index: number }) {
+function MaterialCard({
+  material,
+  index,
+  demoBadge,
+}: {
+  material: MaterialListItem;
+  index: number;
+  demoBadge: boolean;
+}) {
   const { quality } = material;
   const filled = quality.medido + quality.importado + quality.estimado;
   const total = filled + quality.missing;
@@ -36,7 +44,7 @@ function MaterialCard({ material, index }: { material: MaterialListItem; index: 
               >
                 {material.name}
               </Link>
-              {material.is_demo && <Badge tone="warning">{ptBR.demoBadge}</Badge>}
+              {demoBadge && material.is_demo && <Badge tone="warning">{ptBR.demoBadge}</Badge>}
             </span>
             {material.subclass ? (
               <span className="text-xs text-ink-subtle">{material.subclass}</span>
@@ -98,12 +106,19 @@ function MaterialCard({ material, index }: { material: MaterialListItem; index: 
  * if the page ever shows hundreds of rows, switch to a `useMediaQuery` that
  * renders only one of the two.
  */
-export function MaterialCards({ materials }: { materials: MaterialListItem[] }) {
+export function MaterialCards({
+  materials,
+  demoBadge = true,
+}: {
+  materials: MaterialListItem[];
+  /** False when the list already says, once, that every row is fictitious. */
+  demoBadge?: boolean;
+}) {
   return (
     <ul className="flex flex-col gap-3 sm:hidden">
       {materials.map((material, index) => (
         <li key={material.id}>
-          <MaterialCard material={material} index={index} />
+          <MaterialCard material={material} index={index} demoBadge={demoBadge} />
         </li>
       ))}
     </ul>

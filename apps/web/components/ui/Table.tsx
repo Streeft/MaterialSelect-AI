@@ -1,5 +1,8 @@
+"use client";
+
 import type { HTMLAttributes, ReactNode, TdHTMLAttributes, ThHTMLAttributes } from "react";
 import { cn } from "@/lib/cn";
+import { useTableDensity } from "@/lib/density";
 
 /**
  * Tables.
@@ -23,6 +26,8 @@ export function TableScroll({
   className?: string;
   children: ReactNode;
 }) {
+  // D-91: every table follows the reader's density choice (`DensityToggle`).
+  const density = useTableDensity();
   return (
     <div
       // tabindex makes an overflowing box reachable — and therefore scrollable —
@@ -35,9 +40,10 @@ export function TableScroll({
       // it the label's containing block was the page, and every badge in a wide
       // table widened the whole document on a phone (990 px at 375, /comparar).
       className={cn(
-        "scroll-x relative rounded-card border border-edge bg-surface-raised",
+        "scroll-x relative rounded-card border border-line bg-panel",
         className,
       )}
+      data-density={density}
     >
       {children}
     </div>
@@ -57,7 +63,10 @@ export function THead({ className, children, ...rest }: HTMLAttributes<HTMLTable
     <thead
       {...rest}
       className={cn(
-        "sticky top-0 z-10 bg-surface-sunken text-left text-2xs uppercase tracking-wide text-ink-subtle",
+        // D-91: sentence case, 12 px, secondary ink. Uppercase column heads
+        // shouted over the values they name; the small caps are the page
+        // header's alone.
+        "sticky top-0 z-10 bg-well text-left text-caption text-ink-muted",
         className,
       )}
     >

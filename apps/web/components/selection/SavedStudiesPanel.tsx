@@ -15,6 +15,7 @@ import {
   Tr,
 } from "@/components/ui";
 import { ExportButtons } from "@/components/ExportButtons";
+import { IconTrash } from "@/components/ui/icons";
 import { EngineeringReportLink } from "@/components/EngineeringReportLink";
 import { StudyExplanation } from "@/components/ai/StudyExplanation";
 
@@ -73,12 +74,13 @@ export function SavedStudiesPanel({
                       <Button size="sm" onClick={() => onRun(s.id)}>
                         {t.runSaved}
                       </Button>
-                      <Button size="sm" onClick={() => onLoad(s.id)}>
+                      <Button size="sm" variant="ghost" onClick={() => onLoad(s.id)}>
                         {t.load}
                       </Button>
                       <Button
                         size="sm"
-                        variant="danger"
+                        variant="danger-quiet"
+                        icon={<IconTrash className="h-4 w-4" />}
                         onClick={() => {
                           if (window.confirm(t.deleteConfirm)) onDelete(s.id);
                         }}

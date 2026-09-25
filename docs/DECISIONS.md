@@ -5644,6 +5644,165 @@ verificada por índice (D-47).
 salvo (seção 7 com o texto da IA) e o "Preencher a partir de um texto (IA)" no
 passo Função.
 
+## D-90 — O tema claro ganha fundo de papel bege, bordas mais escuras e sombra que separa
+
+**O sintoma.** Relato do autor com o app no ar: no tema claro ficava "quase
+indistinguível qual caixa, qual botão pertence". A medida confirma. A página
+(`--surface` 244 246 250) e o cartão (`--surface-raised`, branco) ficavam a
+1,1:1 um do outro. O contorno do cartão (`--edge` 220 225 234) dava 1,2:1
+contra a página. E a sombra do cartão (`0 1px 2px` a 5 %) não aparecia. Um
+botão secundário é branco sobre branco, então só a borda o distinguia, e essa
+borda (`--edge-control`) dava 4,15:1 sobre a página.
+
+**A decisão**, só no tema claro:
+
+- **A página vira papel bege claro** (`--surface` 241 237 229,
+  `--surface-sunken` 235 231 223), um degrau abaixo do cartão branco. Isso
+  revoga a justificativa do D-38 ("cinza-azulado, não papel quente"): o
+  argumento dele era a leitura do gráfico, mas o mapa e as tabelas moram
+  dentro de cartões brancos, que não mudaram. O matiz de seção continua a
+  ser a única cor de marca na tela.
+- **Os fios escurecem e ficam quentes como a página**: `--edge` 204 198 187,
+  `--edge-subtle` 221 216 206 e `--edge-strong` 166 160 148.
+  `--edge-control` passa de 111 119 137 para **88 94 108**, com 6,50:1 sobre o
+  cartão e 5,56:1 sobre a página. Pelo D-34, é essa borda que diz que um
+  controle existe ali.
+- **A sombra passa a separar, não só dar profundidade.** `--shadow-card` e as
+  outras sombras são mais fortes e tingidas do marrom da página, não do preto.
+  O novo `--shadow-control` fica sob o botão secundário, o botão de ícone, o
+  chip, a caixa de seleção e o círculo do botão de opção. A caixa de seleção e
+  o círculo do botão de opção ganham borda de 1,5 px e fundo branco próprio,
+  para não sumirem sobre o bege. O contorno do controle segmentado passa a
+  `--edge-strong`.
+- **O Tailwind lê as sombras dos tokens** (`shadow-card` →
+  `var(--shadow-card)` etc.). Antes eram literais no `tailwind.config.ts`, o
+  que obrigava a mudar cada tema em dois lugares.
+
+**O que isso custou e onde foi medido.** Contra o bege, o `--ink-subtle` do
+D-38 caía para 4,2:1 no poço (`--surface-sunken`). Por isso passou a
+92 99 114 (5,16:1 na página e 4,89:1 no poço). O tom do poço foi escolhido
+para que o `--accent` mais fraco das 15 rotas continuasse acima de 4,5:1 nele
+(4,53:1); na página ele dá 4,79:1. `verify-globals-contrast.py` passa nas 15
+rotas.
+
+**O tema escuro não muda.** O bloco `[data-theme="dark"]` repete as sombras
+de antes do D-90, e `--shadow-control` ali é `none`: sobre carvão, sombra
+separa pouco, e o relato era sobre o tema claro.
+
+**Pendência herdada.** As figuras da monografia que são capturas de `/estilo`
+precisam ser refeitas também por este D-90, não só pelo D-38.
+
+## D-91 — Hierarquia, forma e tipografia por papel; o mapa ocupa a tela
+
+**Origem.** Uma avaliação de UX pedida pelo autor apontou sete problemas. O
+autor escolheu seis e deixou um de fora: a cor por rota (D-49/D-73) fica,
+porque ele gosta dela. Os seis têm a mesma causa: o sistema tinha tokens de
+cor, mas não tinha regra de **papel**. Todo botão tinha o mesmo peso, toda
+caixa era um cartão de 20 px, e todo rótulo pequeno era um sobrescrito mono
+em caixa alta. Quando tudo se destaca, nada se destaca.
+
+**1. Hierarquia de botões.** Os papéis estão escritos em `ButtonVariant`
+(`components/ui/Button.tsx`):
+- `primary` é a ação da tela, e fica no máximo **um** visível por vez;
+- `secondary` é uma alternativa real ou o passo anterior ao primário;
+- `ghost` é o terciário;
+- `danger` é a confirmação dentro do diálogo;
+- `danger-quiet` é novo: a porta de entrada de uma exclusão numa lista, para
+  uma tabela de estudos não virar uma coluna de botões vermelhos.
+
+Primários redundantes foram rebaixados no formulário de material, no
+orçamento de pesos, no painel de IA e na prévia do Sintetizar. As
+exportações viraram **um** botão "Exportar ▾" (`MenuButton`/`MenuItem`, o
+padrão de botão de menu da WAI-ARIA, com lista em *portal*): quatro botões no
+catálogo e na linha do estudo salvo, dois links de texto em cada gráfico. O
+link "Ver tabela de dados", que mudava de nome ao ser clicado, virou a
+alternância de duas posições **Gráfico | Tabela**. A tabela continua sempre
+montada (D-31).
+
+**2. Nada de cartão dentro de cartão.** O que fica dentro de um cartão é um
+**poço** (`.well`: fundo, sem borda) ou uma **subseção** (`.subsection`:
+espaço e um fio). Foi aplicado em Dimensionar, Custo, Eco, Sintetizar,
+Baterias, nos estágios da Seleção, no orçamento de pesos, no cartão de
+índice e no "Personalizar" de Mapas. `Disclosure` ganhou `flush` para
+aparecer dentro de um cartão como um fio e uma linha de resumo. A exceção
+continua sendo o grupo aninhado de restrições: a borda dele é informação
+(D-34).
+
+O raio passou a dizer o papel:
+
+| Token | Antes | D-91 | Uso |
+|---|---|---|---|
+| `rounded-panel` | 24 px | 20 px | moldura da tela |
+| `rounded-card` | 20 px | 16 px | cartão |
+| `rounded-control` | 12 px | 10 px | campo, botão, poço |
+| `rounded-seat` | 8 px | 6 px | célula, chip denso |
+
+O Tailwind lê os raios de `globals.css` em vez de repeti-los.
+
+**3. Tipografia por papel.** Seis papéis no `tailwind.config.ts`: `display`,
+`title`, `heading`, `body`, `support` (13 px) e `caption` (12 px). O
+`tailwind-merge` de `lib/cn.ts` conhece os seis. Sem isso,
+`cn("text-support", "text-ink-muted")` descartaria o tamanho, como se fosse
+uma cor, e há teste para isso.
+- Ajuda de campo e de título foi de 11–12 px para **13 px**.
+- O **sobrescrito mono em caixa alta ficou só no `PageHeader`**. Cabeçalho de
+  coluna, rótulo de indicador e rótulo de faceta passaram a usar caixa
+  normal.
+- Nos gráficos, o tipo da figura ("Mapa de Ashby") saiu da tela mas continua
+  no `<h2>` como `sr-only`. O leitor de tela ainda anuncia "Mapa de Ashby,
+  Módulo de Young × Densidade".
+- A fonte mono fica para números e expressões.
+- Quatro usos de `text-fg`/`text-fg-muted`, classes que nunca existiram,
+  foram trocados por `text-ink`/`text-ink-muted`.
+
+**4. O mapa ocupa a tela** (`/app/mapas`). O mapa fica na coluna principal
+com a altura da janela (`AshbyMap fillHeight`). Eixos, gráficos salvos e
+"Personalizar" ficam num painel lateral fixo a partir de `lg`, e abaixo do
+mapa no celular: os eixos padrão já desenham um mapa, então a figura vem
+primeiro. O seletor de eixo deixou de mostrar a unidade guardada
+("[kg/m³]"). O mapa lê em g/cm³ (D-70), e o título do eixo, que vem do
+próprio mapa, é o único lugar que diz a unidade.
+
+**5. Celular.** A barra do assistente cabe numa linha:
+- "Restam 75 de 75";
+- o Voltar só com ícone;
+- "Próximo" em uma palavra, com o nome completo preservado para o leitor de
+  tela.
+
+A navegação inferior some ao rolar para baixo e volta ao rolar para cima.
+Ela só é deslocada (`translate`), nunca removida, e volta ao receber foco. A
+variável `--bottom-nav-offset` em `<html>` diz à barra do assistente quanto
+espaço a navegação ocupa naquele momento. Antes, as duas barras se
+sobrepunham.
+
+**6. Menores.**
+- **Aviso de demonstração.** Quando todos os materiais da lista são
+  fictícios, o catálogo diz isso **uma vez** (`MaterialList`), e o selo por
+  linha volta quando a lista mistura dado real e fictício. O princípio 6
+  continua cumprido: o dado fictício segue marcado na tela.
+- **Densidade de tabela.** Confortável ou compacta, escolha do leitor, vale
+  para todas as tabelas (`lib/density.ts`). Fica em `localStorage`, envolto
+  em `try`, porque é conveniência por visitante.
+- **`/estilo`** mostra cada variante de botão em repouso, hover, foco,
+  pressionado, desabilitado e carregando, lado a lado. O `data-force-state`
+  faz as **mesmas** regras de `msds.css` valerem sem ponteiro, e não uma
+  cópia delas que poderia divergir.
+- **Tokens semânticos.** Os papéis ficam em `globals.css`
+  (`--surface-page/panel/well`, `--border-panel/divider/control`,
+  `--action-primary`, `--text-primary/secondary/tertiary`) e no Tailwind
+  (`bg-page`, `bg-panel`, `bg-well`, `border-line`, `border-line-control`,
+  `bg-action`). Eles só apontam para a paleta, então a cor por rota continua
+  passando por `--accent`. As primitivas do MSDS já os usam, e código novo
+  deve usá-los.
+- **Capa.** Ganhou o mapa de Ashby estático ao lado do botão.
+
+**O que não mudou.** A paleta de cada rota e o método de medição (D-38/D-49):
+`verify-globals-contrast.py` segue passando nas 15 rotas. A paleta categórica
+das classes e o formato por classe no mapa (D-28/D-82) também não mudaram.
+
+**Pendência herdada.** As figuras da monografia que são capturas de
+`/estilo` precisam ser refeitas também por este D-91.
+
 ## D-92 — Cadernos: o NotebookLM dentro do app, com fontes privadas, citação por trecho e número só quando o trecho o traz
 
 **O pedido.** A camada de IA com as funções do Google NotebookLM (hoje "Gemini
