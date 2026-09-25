@@ -159,6 +159,27 @@ vocabulário do enunciado para slugs do catálogo — a UI já mostra, para cada
 restrição sugerida, o `evidence` copiado do próprio enunciado do usuário, e
 não há de onde um trecho do Cérebro entraria nessa tela.
 
+## Cadernos (`app/notebooks/`, `app/ai/notebook.py`)
+
+Os Cadernos ([D-90](DECISIONS.md)) são a mesma camada lendo outra coisa: em vez
+do catálogo e de um estudo, as fontes que o aluno trouxe. O provedor ganha dois
+métodos — `answer` (pergunta) e `digest` (guia do caderno) — com a mesma fronteira
+de sempre: recebe a pergunta e os trechos escolhidos, nunca uma sessão de banco.
+As regras que pesam:
+
+- **Trecho de caderno não é trecho do Cérebro.** Tabelas próprias, porque a busca
+  do Cérebro não tem dono; `notebooks.retrieval.search` só ranqueia a lista que
+  recebe — as fontes marcadas de um caderno do próprio aluno.
+- **Citação por número de trecho** (a regra do D-47), e **todo número de um
+  parágrafo tem de estar nos trechos que ele cita** ou na pergunta —
+  `ungrounded_numbers` com `allowed` tirado desses trechos. Uma nova tentativa
+  nomeando o número; depois, o parágrafo sai e a resposta diz por quê.
+- **Trecho é leitura, nunca instrução**: vai dentro de `<trecho>`, com atributos
+  escapados e o fechamento neutralizado.
+- **O simulado responde citando**: copia o começo dos trechos mais relevantes,
+  então passa na checagem de número por construção, como o `interpret`.
+- **Cota diária por aluno** (`NOTEBOOK_DAILY_REQUESTS`), contada só no sucesso.
+
 ## Provedor simulado (`app/ai/mock.py`)
 
 É a implementação de referência e a que o produto entrega. Lê o enunciado com
