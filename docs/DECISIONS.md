@@ -5643,3 +5643,56 @@ verificada por índice (D-47).
 **Depois do merge**, o **Deploy da API**; conferir gerando o laudo de um estudo
 salvo (seção 7 com o texto da IA) e o "Preencher a partir de um texto (IA)" no
 passo Função.
+
+## D-91 — O Gemini, no plano gratuito, é a IA oficial do projeto, por configuração do `openai-compat`
+
+**O pedido.** O autor quis o Gemini como IA de todo o projeto, no lugar da Groq,
+e com uma restrição que manda em todo o resto: **nenhum gasto**, nem do crédito
+que acompanha a assinatura dele.
+
+**O que a assinatura não dá.** Uma assinatura do Gemini (app no navegador,
+Antigravity) usa uma cota que um servidor não enxerga; a API é outro produto,
+cobrado por token. O que a assinatura inclui é um crédito mensal no Google Cloud
+— que só vale num projeto com faturamento ligado, e faturamento ligado é
+exatamente o que pode cobrar um cartão quando o crédito acaba. Ficou fora.
+
+**A decisão.**
+
+- **Chave do Google AI Studio, criada num projeto sem faturamento.** Sem
+  faturamento, passar do limite devolve 429; nunca cobra. É essa ausência, e
+  não uma configuração do código, que garante o custo zero — por isso o passo a
+  passo em [13-deploy.md §5-quinquies](13-deploy.md) diz o que **não** clicar.
+- **Nenhum provedor novo.** O Gemini fala o protocolo compatível com OpenAI em
+  `https://generativelanguage.googleapis.com/v1beta/openai`, então a troca é
+  `AI_BASE_URL`/`AI_MODEL`/`AI_API_KEY` do `openai-compat` que já existe (D-36).
+  Os embeddings do Cérebro (D-47) vêm da mesma chave, por `gemini-embedding-001`
+  no `/embeddings` compatível. As garantias da camada — índice por slug,
+  ressalvas do backend, guardrails, citação por índice — não dependem de
+  fornecedor e continuam as mesmas.
+- **A troca é um workflow, não um terminal.** `provedor-ia.yml` grava os
+  segredos do Fly para `gemini`, `groq` ou `mock` e **só fica verde depois de
+  ler o provedor e o modelo novos em `/api/health`** — a regra do
+  `modo-acesso.yml` (D-83), pelo mesmo motivo: um segredo que a API publicada
+  não lê passaria verde em silêncio. `/api/health` passa a nomear
+  `ai_provider` e `ai_model`; **nunca** a URL (um caminho de gateway pode
+  carregar token, D-36) nem a chave.
+- **`mock` continua o padrão do código e dos testes.** Um provedor real não é
+  determinístico, e os testes não dependem de rede.
+
+**O que o gratuito cobra em troca, e fica dito.**
+
+- **Limite.** Poucas requisições por minuto e algumas centenas por dia. Um 429
+  não diz qual dos dois estourou, então a mensagem nomeia os dois e quando cada
+  um volta. O `flash-lite` é selecionável no workflow para uma aula cheia.
+- **Privacidade.** No plano gratuito o Google pode usar o conteúdo enviado para
+  melhorar os modelos, e revisores humanos podem lê-lo. Toda tela que envia
+  material do usuário à IA avisa para não enviar nada sigiloso nem dado pessoal.
+
+**O que fica para depois.** A busca na web por *grounding* com Google Search
+também é gratuita, mas só existe na API **nativa** do Gemini — o endpoint
+compatível não expõe a ferramenta. Um provedor `gemini` nativo entra quando essa
+busca for usada, e não antes: hoje ele seria um segundo caminho para o mesmo
+resultado.
+
+**Depois do merge**, o **Deploy da API**; depois, criar o segredo
+`GEMINI_API_KEY` e rodar **Provedor de IA** → `gemini`.

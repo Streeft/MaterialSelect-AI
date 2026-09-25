@@ -491,3 +491,30 @@ class TestAGenerationTheServerRejectsIsAskedAgain:
         with pytest.raises(AIUnavailableError, match="AI_JSON_MODE=object ou AI_JSON_MODE=prompt"):
             _provider(server).interpret(_context())
         assert server.calls == 1
+
+
+# --- D-91: the provider a switch left in place, read from the outside --------
+
+
+class TestHealthNamesTheProviderAndNothingElse:
+    def test_mock_has_no_model(self, anon_client, monkeypatch) -> None:
+        from app.config import settings
+
+        monkeypatch.setattr(settings, "ai_provider", "mock")
+        body = anon_client.get("/api/health").json()
+        assert body["ai_provider"] == "mock"
+        assert body["ai_model"] is None
+
+    def test_a_real_provider_names_its_model_but_never_its_address_or_key(
+        self, anon_client, monkeypatch
+    ) -> None:
+        from app.config import settings
+
+        monkeypatch.setattr(settings, "ai_provider", "openai-compat")
+        monkeypatch.setattr(settings, "ai_model", "gemini-2.5-flash")
+        monkeypatch.setattr(settings, "ai_base_url", "https://gw.example/secret-path/v1")
+        monkeypatch.setattr(settings, "ai_api_key", "AIza-segredo")
+        response = anon_client.get("/api/health")
+        assert response.json()["ai_model"] == "gemini-2.5-flash"
+        assert "secret-path" not in response.text
+        assert "AIza-segredo" not in response.text

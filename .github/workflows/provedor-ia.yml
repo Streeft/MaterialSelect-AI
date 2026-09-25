@@ -1,0 +1,166 @@
+# Troca a IA da API em produção (D-91), disparado à mão — sem terminal.
+#
+#   gemini  a IA oficial do projeto: o plano GRATUITO do Google AI Studio, pelo
+#           endpoint compatível com OpenAI. A mesma chave serve a busca
+#           semântica (embeddings), então basta um segredo.
+#   groq    o provedor anterior, plano gratuito da Groq. Sem embeddings.
+#   mock    o simulado: determinístico, sem rede, sem chave. É o padrão do
+#           código e o que os testes exercitam.
+#
+# **Grátis de propósito.** A chave do Gemini é criada no Google AI Studio SEM
+# faturamento ligado ao projeto do Google Cloud — é isso que a mantém gratuita.
+# Ligar o faturamento (inclusive com o crédito da assinatura) muda o plano e
+# passa a cobrar. No plano gratuito o Google pode usar o conteúdo enviado para
+# melhorar os modelos; a interface avisa os alunos disso.
+#
+# O que muda são segredos do app no Fly. Não há PR nem deploy de código: gravar
+# os segredos reinicia as máquinas com os valores novos.
+#
+# **O job só fica verde depois de ler o provedor e o modelo novos em
+# `/api/health`** — a mesma regra do `modo-acesso.yml`: um segredo gravado numa
+# API anterior ao D-91 seria ignorado em silêncio e o job passaria verde. Se
+# falhar com "provedor ausente", dispare antes o "Deploy da API".
+#
+# Pré-requisitos (Settings → Secrets and variables → Actions):
+#   FLY_API_TOKEN   o mesmo do deploy
+#   GEMINI_API_KEY  para `gemini` (Google AI Studio → Get API key)
+#   GROQ_API_KEY    para `groq`
+#
+# **Só `workflow_dispatch`**, pela mesma razão do `deploy-api.yml`.
+name: Provedor de IA
+
+on:
+  workflow_dispatch:
+    inputs:
+      provedor:
+        description: "gemini = IA oficial (grátis); groq = anterior; mock = simulado, sem rede"
+        required: true
+        type: choice
+        options:
+          - gemini
+          - groq
+          - mock
+      modelo_gemini:
+        description: "Modelo do Gemini (só vale para gemini). O flash-lite aguenta mais pedidos por dia no plano gratuito."
+        required: false
+        type: choice
+        default: gemini-2.5-flash
+        options:
+          - gemini-2.5-flash
+          - gemini-2.5-flash-lite
+      modo_json:
+        description: "Saída estruturada. Troque para object só se a IA disser que o servidor recusou response_format/json_schema."
+        required: false
+        type: choice
+        default: schema
+        options:
+          - schema
+          - object
+
+# Divide o grupo com o deploy e com o modo de acesso: todos reiniciam as mesmas
+# máquinas.
+concurrency:
+  group: deploy-api
+  cancel-in-progress: false
+
+jobs:
+  provedor:
+    name: Provedor de IA
+    runs-on: ubuntu-latest
+    steps:
+      # Traz o fly.toml, de onde o flyctl lê o nome do app.
+      - uses: actions/checkout@v7
+
+      - name: Preparar flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      # As escolhas chegam por variável de ambiente, nunca interpoladas no
+      # `run:`, e são traduzidas por tabelas fechadas: nenhum texto digitado
+      # vira valor de segredo. As chaves nunca são impressas.
+      - name: Gravar os segredos da IA
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          PROVEDOR: ${{ inputs.provedor }}
+          MODELO_GEMINI: ${{ inputs.modelo_gemini }}
+          MODO_JSON: ${{ inputs.modo_json }}
+        run: |
+          set -euo pipefail
+          if [ -z "${FLY_API_TOKEN:-}" ]; then
+            echo "::error::O secret FLY_API_TOKEN não está definido."
+            exit 1
+          fi
+          case "$MODELO_GEMINI" in
+            gemini-2.5-flash|gemini-2.5-flash-lite) ;;
+            *) echo "::error::Modelo desconhecido: $MODELO_GEMINI"; exit 1 ;;
+          esac
+          case "$MODO_JSON" in
+            schema|object) ;;
+            *) echo "::error::Modo JSON desconhecido: $MODO_JSON"; exit 1 ;;
+          esac
+          case "$PROVEDOR" in
+            gemini)
+              if [ -z "${GEMINI_API_KEY:-}" ]; then
+                echo "::error::Crie o secret GEMINI_API_KEY (Google AI Studio → Get API key, sem faturamento)."
+                exit 1
+              fi
+              echo "ESPERADO_PROVEDOR=openai-compat" >> "$GITHUB_ENV"
+              echo "ESPERADO_MODELO=$MODELO_GEMINI" >> "$GITHUB_ENV"
+              flyctl secrets set \
+                AI_PROVIDER=openai-compat \
+                AI_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai \
+                AI_MODEL="$MODELO_GEMINI" \
+                AI_JSON_MODE="$MODO_JSON" \
+                AI_API_KEY="$GEMINI_API_KEY" \
+                KNOWLEDGE_EMBEDDING_MODEL=gemini-embedding-001 \
+                > /dev/null
+              ;;
+            groq)
+              if [ -z "${GROQ_API_KEY:-}" ]; then
+                echo "::error::Crie o secret GROQ_API_KEY."
+                exit 1
+              fi
+              echo "ESPERADO_PROVEDOR=openai-compat" >> "$GITHUB_ENV"
+              echo "ESPERADO_MODELO=openai/gpt-oss-20b" >> "$GITHUB_ENV"
+              flyctl secrets set \
+                AI_PROVIDER=openai-compat \
+                AI_BASE_URL=https://api.groq.com/openai/v1 \
+                AI_MODEL=openai/gpt-oss-20b \
+                AI_JSON_MODE="$MODO_JSON" \
+                AI_API_KEY="$GROQ_API_KEY" \
+                > /dev/null
+              # A Groq não serve embeddings: sem modelo, a busca cai para a
+              # léxica (D-47), em vez de chamar um /embeddings que não existe.
+              flyctl secrets unset KNOWLEDGE_EMBEDDING_MODEL > /dev/null 2>&1 || true
+              ;;
+            mock)
+              echo "ESPERADO_PROVEDOR=mock" >> "$GITHUB_ENV"
+              echo "ESPERADO_MODELO=null" >> "$GITHUB_ENV"
+              flyctl secrets set AI_PROVIDER=mock > /dev/null
+              ;;
+            *) echo "::error::Provedor desconhecido: $PROVEDOR"; exit 1 ;;
+          esac
+
+      - name: Confirmar o provedor na API publicada
+        run: |
+          set -euo pipefail
+          app="$(grep -E '^app *= *"' fly.toml | sed -E 's/^app *= *"([^"]+)".*/\1/')"
+          url="https://${app}.fly.dev/api/health"
+          for tentativa in $(seq 1 36); do
+            corpo="$(curl -fsS --max-time 10 "$url" || echo '{}')"
+            provedor="$(echo "$corpo" | jq -r '.ai_provider // "ausente"')"
+            modelo="$(echo "$corpo" | jq -r '.ai_model // "null"')"
+            echo "Tentativa $tentativa: provedor=$provedor modelo=$modelo"
+            if [ "$provedor" = "$ESPERADO_PROVEDOR" ] && [ "$modelo" = "$ESPERADO_MODELO" ]; then
+              echo "A API publicada usa $provedor ($modelo)."
+              exit 0
+            fi
+            sleep 5
+          done
+          if [ "$provedor" = "ausente" ]; then
+            echo "::error::A API publicada não informa o provedor: ela é anterior ao D-91. Dispare 'Deploy da API' e rode este workflow de novo."
+          else
+            echo "::error::A API publicada continua em $provedor ($modelo)."
+          fi
+          exit 1

@@ -205,6 +205,20 @@ que **não tem padrão**, porque um padrão escolheria um fornecedor pelo operad
 O aviso que o usuário vê nomeia **o host** de destino, nunca o caminho: um
 caminho de gateway pode carregar token.
 
+**Na instância publicada, esse servidor é o Gemini** ([D-91](DECISIONS.md)):
+o plano gratuito do Google AI Studio, por
+`AI_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai`, com
+`AI_MODEL=gemini-2.5-flash` e os embeddings do Cérebro em
+`gemini-embedding-001` pela mesma chave. É configuração, não código: o
+workflow **Provedor de IA** (`provedor-ia.yml`) troca os segredos do Fly entre
+`gemini`, `groq` e `mock` e confere o resultado em `/api/health`, que desde o
+D-91 nomeia o provedor e o modelo — nunca a URL nem a chave. O plano gratuito
+tem dois custos que não são dinheiro: **limite** (o 429 diz que há um por
+minuto e outro por dia) e **privacidade** (o Google pode usar o conteúdo para
+treino). A chave é criada **sem faturamento**, e é só isso que a mantém
+gratuita. Um provedor Gemini *nativo* fica para quando a busca na web
+(*grounding*) for usada: o endpoint compatível não a expõe.
+
 **A requisição se identifica**, com `User-Agent: MaterialSelect-AI/{versão}`.
 Isso parece detalhe e não é: sem o cabeçalho, o `urllib` anuncia
 `Python-urllib/3.x`, e um WAF na frente da API recusa antes de a API ver

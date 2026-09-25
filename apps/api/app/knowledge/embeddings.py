@@ -41,6 +41,9 @@ from app.domain.errors import ValidationError
 #: absent because it does not offer one — the whole reason this setting is
 #: separate from AI_BASE_URL.
 KNOWN_EMBEDDING_ENDPOINTS = (
+    "  Gemini (gratuito pelo Google AI Studio; usa a mesma chave de AI_API_KEY):\n"
+    "    KNOWLEDGE_EMBEDDING_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai\n"
+    "    KNOWLEDGE_EMBEDDING_MODEL=gemini-embedding-001\n"
     "  Ollama (local, nenhuma credencial, funciona sem internet):\n"
     "    KNOWLEDGE_EMBEDDING_BASE_URL=http://localhost:11434/v1\n"
     "    KNOWLEDGE_EMBEDDING_MODEL=nomic-embed-text\n"
