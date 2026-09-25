@@ -5940,3 +5940,97 @@ envelhecer com um número; o workflow **confere o modelo com a própria chave an
 de tocar no Fly** e, se ele não responder, falha com o motivo e a lista do que a
 chave enxerga; e um modelo de embedding que não responde vira aviso, não falha —
 os embeddings são opcionais (D-47).
+
+## D-94 — O Estúdio de texto: gerado em segundo plano, conferido item a item, e a ausência escrita célula por célula
+
+**O pedido.** A fase 2 dos Cadernos (D-92): o painel da direita deixa de dizer
+"em breve" para as cinco ferramentas de texto — **Relatório, Cartões didáticos,
+Teste, Tabela de dados e Mapa mental** — com o comportamento das capturas do
+NotebookLM. Clicar num ladrilho abre "Criar …" com cartões de **Formato**,
+cartões de **Modelo** com um lápis que abre a instrução do modelo, as opções da
+ferramenta e um botão **Gerar**; o que foi gerado fica guardado numa lista e abre
+dentro do próprio painel. Áudio, vídeo, slides e infográfico continuam "em
+breve" (D-96). Custo zero, como no D-93.
+
+**Gerado depois da resposta.** Um relatório ou um teste de quinze questões,
+com a nova tentativa e as repetições do 503 do plano gratuito, pode passar do
+tempo que o proxy da Vercel espera por uma resposta. Então `POST …/studio` grava
+o artefato como `gerando` e responde **202 na hora**; um `BackgroundTasks` do
+FastAPI gera, confere e grava `pronto` ou `falhou`, e o painel pergunta a cada
+2,5 s enquanto houver algo gerando. É o que o NotebookLM faz, e o aluno continua
+conversando enquanto isso. O job abre **a própria sessão** por uma dependência
+nova, `get_session_factory()` — a do request já fechou —, que os testes
+sobrescrevem para ligá-la à conexão revertida, como qualquer request.
+
+**Artefato preso é lido como falho, nunca escrito por um GET.** Um deploy
+reinicia a máquina e mata o job no meio. Um artefato `gerando` há mais de
+`ai_timeout_seconds × 3 + 60` s sai como `falhou`, com "a geração foi
+interrompida", **derivado na leitura** — a regra do D-62 contra GET que escreve.
+Ele também deixa de contar como "em andamento".
+
+**Cota própria, e o que está rodando já conta.** `ai_usage.artifacts` (coluna da
+F1) conta **no sucesso**, e uma geração que falha não custa nada. Mas a checagem
+na criação soma as que estão rodando: sem isso, dez cliques antes da primeira
+terminar furariam o limite. Dez gerações por aluno por dia
+(`notebook_daily_artifacts`), no máximo duas ao mesmo tempo
+(`notebook_studio_in_flight`, 409 além disso) — o limite por minuto do plano
+gratuito é da turma inteira.
+
+**Todo número de todo item vem do trecho que aquele item cita.** A regra do
+chat (D-92), agora em `app/notebooks/grounding.py` para as duas camadas lerem a
+mesma. O que é "item" muda por ferramenta: o parágrafo; o cartão (frente e verso
+juntos); a questão — enunciado, dica, explicação e **cada alternativa, inclusive
+as erradas**; a célula da tabela; o nó do mapa. O distrator é o caso que parece
+exceção e não é: "999 GPa" numa alternativa errada é um número que o modelo
+inventou, diga o gabarito o que disser. O prompt manda tirar distratores de
+outros valores que as fontes trazem; a checagem derruba a questão que não fez
+isso. Uma nova tentativa nomeando os números; depois, o item sai e o artefato
+diz, por tipo, quantos saíram e quais números — "Uma questão foi omitida porque
+citava números que não aparecem nos trechos citados: 999." Um trecho citado
+empresta também os **rótulos** que o modelo viu ao lado dele (título da seção e
+da fonte), lidos um por um — juntos, "Tabela 3" e "5 ligas" poderiam ser lidos
+como "3 5". O texto estrutural (título, cabeçalho de seção, nome de coluna, tema
+central do mapa) não cita nada: é conferido contra todos os trechos entregues e,
+se falhar, vira um rótulo neutro. Artefato sem nenhum item que passe é
+`falhou`, com os números no motivo.
+
+**Na tabela a célula fica, e diz por quê.** Uma linha é um registro: tirar a
+célula deslocaria as outras para a coluna errada, e tirar a linha esconderia as
+células que **passaram**. Então a célula continua, sem valor e com rótulo
+escrito (D-24), e são dois rótulos diferentes: "não consta nas fontes" é o
+silêncio das fontes; "omitida: número fora do trecho citado" é a recusa da
+checagem. Nunca vazia, `0` ou `—`, nem na tela nem na planilha exportada.
+
+**O catálogo de modelos mora no backend.** `app/ai/studio.py` tem, por
+ferramenta, os formatos, os modelos com o **texto de instrução padrão** e as
+opções válidas, e a tela lê isso por `GET /notebooks/studio-catalog`. É uma
+verdade só: o que o lápis mostra é exatamente o que o modelo recebe. A instrução
+editada entra **abaixo** das regras, como estilo, igual ao objetivo
+personalizado do chat. Escolha que a ferramenta não tem é **recusada, nunca
+ignorada** (a regra do D-56): cartões não têm modelo, relatório não tem
+quantidade, só a tabela tem colunas.
+
+**O mapa vem plano e é desenhado de um layout só.** O modelo devolve
+`id`/`parent` em vez de árvore aninhada, porque o modo JSON estrito do Gemini não
+promete esquema recursivo; o leitor monta a árvore e descarta órfão, ciclo,
+profundidade além da escolhida e o que passar de 60 nós. O layout (árvore
+arrumada, um nível por coluna, texto quebrado por contagem de caracteres) é
+calculado em `app/notebooks/mindmap.py` e vai na resposta: **a tela e o SVG
+exportado desenham as mesmas coordenadas** — calcular de novo no cliente ou no
+exportador daria duas verdades para uma figura (a regra do D-53). A alternativa
+textual é a lista aninhada, a um clique (D-31). Clicar num ramo **preenche** a
+caixa da conversa com a pergunta, sem enviar: enviar gastaria a cota do aluno.
+
+**Exportações com os dois avisos.** DOCX (relatório; teste com as questões e
+depois o gabarito; cartões), CSV (cartões — importável no Anki —, teste,
+tabela), XLSX (tabela) e SVG (mapa). Todo arquivo leva o `LIMITATION_NOTICE` e um
+aviso de IA ("gerado a partir das fontes do caderno; confira cada item no trecho
+citado"), mais as referências. O escape é por formato: planilha pelo
+`Report`/`Sheet` de sempre, que neutraliza fórmula; SVG por `html.escape` e
+servido com `default-src 'none'`.
+
+**O que ficou de fora.** Os "formatos sugeridos" que o NotebookLM oferece no
+modal custariam uma chamada de IA a cada abertura — num plano com limite diário
+por turma, não. Áudio, vídeo, slides e infográfico são o D-96. Nenhuma migração:
+opções, citações e `withheld` cabem nos campos JSON que a F1 já criou.
+
