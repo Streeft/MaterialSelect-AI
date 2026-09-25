@@ -12,9 +12,12 @@ from __future__ import annotations
 import pytest
 
 from app.calculations.part_cost import (
+    DEFAULT_CURVE_BATCH_SIZES,
     PartCostError,
     ShopAssumptions,
+    cost_curve,
     cost_terms,
+    curve_batch_sizes,
 )
 
 SHOP = ShopAssumptions(write_off_years=5.0, load_factor=0.5)
@@ -105,6 +108,45 @@ def test_the_load_factor_and_the_horizon_are_separate_knobs() -> None:
 
     assert idle.capital == pytest.approx(base.capital * 2.0)
     assert short.capital == pytest.approx(base.capital * 2.0)
+
+
+def test_curve_batch_sizes_includes_current_batch_in_sorted_order() -> None:
+    sizes = curve_batch_sizes(current_batch=350.0)
+    assert 350.0 in sizes
+    assert sizes == sorted(sizes)
+    assert sizes[0] == 1.0
+    assert 1_000_000.0 in sizes
+
+
+def test_curve_batch_sizes_expands_if_current_batch_exceeds_million() -> None:
+    sizes = curve_batch_sizes(current_batch=5_000_000.0)
+    assert 5_000_000.0 in sizes
+    assert max(sizes) >= 5_000_000.0
+
+
+def test_cost_curve_monotonically_decreases_with_batch_size() -> None:
+    base = 25.0
+    tooling = 10_000.0
+    curve = cost_curve(base_cost=base, tooling_cost=tooling)
+    assert len(curve) == len(DEFAULT_CURVE_BATCH_SIZES)
+    for i in range(len(curve) - 1):
+        assert curve[i].cost > curve[i + 1].cost
+    # Asymptotes towards base_cost
+    assert curve[-1].cost > base
+    assert curve[-1].cost == pytest.approx(base + tooling / 1_000_000.0)
+
+
+def test_cost_curve_matches_total_at_current_batch() -> None:
+    terms = _terms(batch_size=250.0)
+    base_cost = terms.material + terms.overhead + terms.capital
+    curve = cost_curve(base_cost=base_cost, tooling_cost=BRIEF["tooling_cost"], current_batch=250.0)
+    pt = next(p for p in curve if p.batch_size == 250.0)
+    assert pt.cost == pytest.approx(terms.total)
+
+
+def test_cost_curve_with_zero_tooling_is_flat() -> None:
+    curve = cost_curve(base_cost=15.0, tooling_cost=0.0)
+    assert all(pt.cost == 15.0 for pt in curve)
 
 
 # --- refusals --------------------------------------------------------------
