@@ -321,6 +321,9 @@ def _detail_of(exc: urllib.error.HTTPError) -> str:
         payload = json.loads(body)
     except ValueError:
         return body.strip()[:300]
+    # Gemini wraps the error object in a list; see openai_compat.error_object.
+    if isinstance(payload, list) and payload:
+        payload = payload[0]
     error = payload.get("error") if isinstance(payload, dict) else None
     if isinstance(error, dict):
         return str(error.get("message", ""))[:300]

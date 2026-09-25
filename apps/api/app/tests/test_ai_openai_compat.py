@@ -511,11 +511,11 @@ class TestHealthNamesTheProviderAndNothingElse:
         from app.config import settings
 
         monkeypatch.setattr(settings, "ai_provider", "openai-compat")
-        monkeypatch.setattr(settings, "ai_model", "gemini-2.5-flash")
+        monkeypatch.setattr(settings, "ai_model", "gemini-flash-latest")
         monkeypatch.setattr(settings, "ai_base_url", "https://gw.example/secret-path/v1")
         monkeypatch.setattr(settings, "ai_api_key", "AIza-segredo")
         response = anon_client.get("/api/health")
-        assert response.json()["ai_model"] == "gemini-2.5-flash"
+        assert response.json()["ai_model"] == "gemini-flash-latest"
         assert "secret-path" not in response.text
         assert "AIza-segredo" not in response.text
 
@@ -558,3 +558,52 @@ class TestNotebookAnswersOverTheWire:
         }
         answer = _provider(_Server(_answer(json.dumps(reply)))).answer(self._question())
         assert answer == {"paragraphs": [{"text": "Ok.", "citations": [1]}], "not_found": False}
+
+
+class TestGeminiErrorBodies:
+    """Gemini's OpenAI-compatible endpoint wraps the error object in a list.
+
+    Reading only ``{"error": ...}`` dropped its reason entirely, and a 404 in
+    production reached the screen as "modelo não encontrado" with nothing to
+    say which model, or why (a restricted Gemini 2.5 for a new key).
+    """
+
+    GEMINI_404 = [
+        {
+            "error": {
+                "code": 404,
+                "message": "models/gemini-2.5-flash is not found for API version v1beta",
+                "status": "NOT_FOUND",
+            }
+        }
+    ]
+
+    def test_a_404_in_a_list_carries_the_servers_reason(self) -> None:
+        with pytest.raises(AIUnavailableError) as exc:
+            _provider(
+                _Server(error=_http_error(404, self.GEMINI_404)), ai_model="gemini-2.5-flash"
+            ).interpret(_context())
+        message = str(exc.value)
+        assert "gemini-2.5-flash" in message
+        assert "is not found for API version v1beta" in message
+
+    def test_a_404_without_a_body_says_so(self) -> None:
+        with pytest.raises(AIUnavailableError) as exc:
+            _provider(_Server(error=_http_error(404, {}))).interpret(_context())
+        assert "não informado" in str(exc.value)
+
+    def test_a_generation_failure_in_a_list_is_still_recognised(self) -> None:
+        from app.ai.openai_compat import _error_of
+
+        detail, rejected = _error_of(
+            _http_error(400, [{"error": {"code": "json_validate_failed", "message": "x"}}])
+        )
+        assert rejected is True
+        assert detail == "x"
+
+
+def test_embedding_errors_in_a_list_carry_the_reason() -> None:
+    from app.knowledge.embeddings import _detail_of
+
+    body = [{"error": {"code": 404, "message": "models/emb is not found"}}]
+    assert _detail_of(_http_error(404, body)) == "models/emb is not found"

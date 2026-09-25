@@ -354,12 +354,19 @@ desligado**.
 1. Se a API publicada ainda não tem o D-93 (primeira vez), dispare **Deploy da
    API** antes.
 2. **Provedor de IA** → **Run workflow** → `gemini`. O modelo padrão é
-   `gemini-2.5-flash`; o `gemini-2.5-flash-lite` aguenta mais pedidos por dia,
-   útil numa aula cheia.
-3. O job grava os segredos no Fly (as máquinas reiniciam, sem deploy) e **só
+   `gemini-flash-latest`, o apelido do Google que acompanha o Flash vigente; o
+   `gemini-flash-lite-latest` aguenta mais pedidos por dia, útil numa aula
+   cheia. Para um modelo específico, escreva o nome em "modelo_personalizado".
+3. **Antes de mexer no Fly, o job pergunta ao Google, com a própria chave, se
+   o modelo responde.** Se não responder, o job falha com o motivo do Google e
+   a lista dos modelos Flash que a chave enxerga — escolha um e rode de novo.
+   Foi o que faltou na primeira troca: em 2026 o Google restringe o Gemini 2.5
+   a quem já o usava, e uma chave nova recebia 404 com a URL certa.
+4. O job grava os segredos no Fly (as máquinas reiniciam, sem deploy) e **só
    fica verde depois de ler o provedor e o modelo novos** em
    `https://materialselect-ai.fly.dev/api/health`. A mesma chave serve a busca
-   semântica do Cérebro (`gemini-embedding-001`).
+   semântica do Cérebro (`gemini-embedding-001`); se esse modelo não responder,
+   o job avisa e a busca segue só léxica, sem falhar a troca.
 
 **Voltar** — o mesmo workflow com `groq` (precisa do segredo `GROQ_API_KEY`)
 ou `mock` (simulado, sem rede nem chave).

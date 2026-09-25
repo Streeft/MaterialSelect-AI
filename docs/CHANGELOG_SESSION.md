@@ -104,6 +104,12 @@ restaurado num commit à parte.
 `GEMINI_API_KEY` no AI Studio **sem faturamento** e rodar **Provedor de IA** →
 `gemini` (passo a passo em `13-deploy.md` §5-quinquies).
 
+**Depois do merge, a primeira troca em produção deu 404.** O `gemini-2.5-flash`
+está restrito a quem já o usava, e o motivo do Google não chegava à tela porque o
+Gemini devolve o erro dentro de uma lista. Correção num PR à parte: leitura das
+duas formas de erro, modelo `gemini-flash-latest` e conferência do modelo no
+workflow antes de gravar os segredos (adendo da D-93).
+
 ---
 
 ## Sessão 28 — 24/09/26 a 28/09/26 — Turma de terça: processos no Objetivo, UX guiada, pesos com limite e a IA

@@ -41,13 +41,19 @@ on:
           - groq
           - mock
       modelo_gemini:
-        description: "Modelo do Gemini (só vale para gemini). O flash-lite aguenta mais pedidos por dia no plano gratuito."
+        description: "Modelo do Gemini (só vale para gemini). Os -latest acompanham o Flash vigente; o lite aguenta mais pedidos por dia."
         required: false
         type: choice
-        default: gemini-2.5-flash
+        default: gemini-flash-latest
         options:
-          - gemini-2.5-flash
-          - gemini-2.5-flash-lite
+          - gemini-flash-latest
+          - gemini-flash-lite-latest
+          - gemini-3.5-flash
+      modelo_personalizado:
+        description: "Opcional: outro modelo do Gemini (ex.: gemini-3.5-flash-lite). Se preenchido, vale no lugar do de cima."
+        required: false
+        type: string
+        default: ""
       modo_json:
         description: "Saída estruturada. Troque para object só se a IA disser que o servidor recusou response_format/json_schema."
         required: false
@@ -74,6 +80,66 @@ jobs:
       - name: Preparar flyctl
         uses: superfly/flyctl-actions/setup-flyctl@master
 
+      # Antes de tocar no Fly, a própria chave pergunta ao Google se o modelo
+      # responde. Um modelo aposentado ou restrito (o Gemini 2.5, para uma
+      # chave nova, em 2026) responde 404 com a URL certa — e sem esta
+      # conferência o job ficava verde e o caderno mostrava o erro.
+      - name: Conferir o modelo com a chave
+        if: inputs.provedor == 'gemini'
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          MODELO_GEMINI: ${{ inputs.modelo_gemini }}
+          MODELO_PERSONALIZADO: ${{ inputs.modelo_personalizado }}
+        run: |
+          set -euo pipefail
+          if [ -z "${GEMINI_API_KEY:-}" ]; then
+            echo "::error::Crie o secret GEMINI_API_KEY (Settings → Secrets and variables → Actions → New repository secret; a chave vem do Google AI Studio, sem faturamento)."
+            exit 1
+          fi
+          modelo="${MODELO_PERSONALIZADO:-}"
+          if [ -z "$modelo" ]; then
+            modelo="$MODELO_GEMINI"
+          fi
+          if ! printf '%s' "$modelo" | grep -Eq '^[a-z0-9][a-z0-9.-]{0,79}$'; then
+            echo "::error::Nome de modelo inválido: use só letras minúsculas, números, ponto e hífen."
+            exit 1
+          fi
+          base=https://generativelanguage.googleapis.com/v1beta/openai
+          motivo() {
+            jq -r 'if type == "array" then .[0].error.message else .error.message end // "sem detalhe"' "$1" 2>/dev/null || head -c 300 "$1"
+          }
+
+          corpo=$(mktemp)
+          status=$(curl -sS --max-time 60 -o "$corpo" -w '%{http_code}' \
+            -H "Authorization: Bearer $GEMINI_API_KEY" -H "Content-Type: application/json" \
+            -d "{\"model\": \"$modelo\", \"messages\": [{\"role\": \"user\", \"content\": \"Responda apenas: ok\"}], \"max_tokens\": 16}" \
+            "$base/chat/completions" || true)
+          if [ "$status" != "200" ]; then
+            echo "::error::O Gemini recusou o modelo '$modelo' (HTTP $status): $(motivo "$corpo")"
+            lista=$(mktemp)
+            if curl -sS --max-time 30 -o "$lista" -H "Authorization: Bearer $GEMINI_API_KEY" "$base/models"; then
+              echo "Modelos que esta chave enxerga (escolha um no campo 'modelo_personalizado'):"
+              jq -r '.data[]?.id' "$lista" | sed 's#^models/##' | grep -Ei 'flash|embedding' | sort || true
+            fi
+            exit 1
+          fi
+          echo "O modelo '$modelo' respondeu com esta chave."
+          echo "MODELO=$modelo" >> "$GITHUB_ENV"
+
+          # Os embeddings são opcionais (D-47): sem eles a busca cai para a
+          # léxica. Se o modelo de embedding não responder, o job avisa e
+          # não o grava, em vez de falhar a troca inteira.
+          status=$(curl -sS --max-time 60 -o "$corpo" -w '%{http_code}' \
+            -H "Authorization: Bearer $GEMINI_API_KEY" -H "Content-Type: application/json" \
+            -d '{"model": "gemini-embedding-001", "input": ["teste"]}' \
+            "$base/embeddings" || true)
+          if [ "$status" = "200" ]; then
+            echo "EMBEDDING=gemini-embedding-001" >> "$GITHUB_ENV"
+          else
+            echo "::warning::gemini-embedding-001 não respondeu (HTTP $status): $(motivo "$corpo"). A busca dos cadernos segue só léxica."
+            echo "EMBEDDING=" >> "$GITHUB_ENV"
+          fi
+
       # As escolhas chegam por variável de ambiente, nunca interpoladas no
       # `run:`, e são traduzidas por tabelas fechadas: nenhum texto digitado
       # vira valor de segredo. As chaves nunca são impressas.
@@ -83,7 +149,6 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           PROVEDOR: ${{ inputs.provedor }}
-          MODELO_GEMINI: ${{ inputs.modelo_gemini }}
           MODO_JSON: ${{ inputs.modo_json }}
         run: |
           set -euo pipefail
@@ -91,10 +156,6 @@ jobs:
             echo "::error::O secret FLY_API_TOKEN não está definido."
             exit 1
           fi
-          case "$MODELO_GEMINI" in
-            gemini-2.5-flash|gemini-2.5-flash-lite) ;;
-            *) echo "::error::Modelo desconhecido: $MODELO_GEMINI"; exit 1 ;;
-          esac
           case "$MODO_JSON" in
             schema|object) ;;
             *) echo "::error::Modo JSON desconhecido: $MODO_JSON"; exit 1 ;;
@@ -105,16 +166,22 @@ jobs:
                 echo "::error::Crie o secret GEMINI_API_KEY (Google AI Studio → Get API key, sem faturamento)."
                 exit 1
               fi
+              # MODELO e EMBEDDING vêm do passo de conferência, que já validou
+              # o nome e ouviu a resposta do Google com esta chave.
               echo "ESPERADO_PROVEDOR=openai-compat" >> "$GITHUB_ENV"
-              echo "ESPERADO_MODELO=$MODELO_GEMINI" >> "$GITHUB_ENV"
+              echo "ESPERADO_MODELO=$MODELO" >> "$GITHUB_ENV"
               flyctl secrets set \
                 AI_PROVIDER=openai-compat \
                 AI_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai \
-                AI_MODEL="$MODELO_GEMINI" \
+                AI_MODEL="$MODELO" \
                 AI_JSON_MODE="$MODO_JSON" \
                 AI_API_KEY="$GEMINI_API_KEY" \
-                KNOWLEDGE_EMBEDDING_MODEL=gemini-embedding-001 \
                 > /dev/null
+              if [ -n "${EMBEDDING:-}" ]; then
+                flyctl secrets set KNOWLEDGE_EMBEDDING_MODEL="$EMBEDDING" > /dev/null
+              else
+                flyctl secrets unset KNOWLEDGE_EMBEDDING_MODEL > /dev/null 2>&1 || true
+              fi
               ;;
             groq)
               if [ -z "${GROQ_API_KEY:-}" ]; then
