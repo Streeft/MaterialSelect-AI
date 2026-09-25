@@ -56,3 +56,57 @@ test("criar um caderno, colar uma fonte, perguntar e abrir a citação", async (
   await panels.getByRole("button", { name: "Conversa" }).click();
   await expect(log.getByText("Segundo as fontes", { exact: false })).toBeVisible();
 });
+
+/**
+ * D-94: the Studio end to end — the generation runs after the response, in the
+ * API's background, and the panel polls until it is ready. The mock quotes the
+ * passages, so every item passes the figure check with the source's own
+ * numbers.
+ */
+test("gerar um relatório e cartões no Estúdio, abrir e exportar", async ({ page }) => {
+  await page.goto("/app/cadernos");
+  await page.getByRole("button", { name: "Criar caderno" }).first().click();
+  await page.waitForURL(/\/app\/cadernos\/\d+/, { timeout: 20_000 });
+  await page.getByRole("button", { name: "Adicionar fontes" }).click();
+  await page.getByRole("tab", { name: "Colar texto" }).click();
+  await page.getByLabel("Título").fill("Aula de aços");
+  await page.getByRole("textbox", { name: "Texto" }).fill(SOURCE);
+  await page.getByRole("button", { name: "Adicionar texto" }).click();
+  await expect(page.getByRole("button", { name: "Ler a fonte “Aula de aços”" })).toBeVisible();
+
+  // Relatórios → "Criar relatório": format, template with its pencil, Gerar.
+  await page.getByRole("button", { name: /^Relatórios/ }).click();
+  const dialog = page.getByRole("dialog", { name: "Criar relatório" });
+  await expect(dialog.getByRole("radio", { name: "Texto corrido" })).toBeChecked();
+  await dialog.getByRole("button", { name: "Editar o modelo “Guia de estudo”" }).click();
+  await expect(dialog.getByRole("textbox", { name: "Instruções do modelo" })).toHaveValue(
+    /guia de estudo/,
+  );
+  await page.screenshot({ path: "test-results/estudio-criar.png", fullPage: true });
+  await dialog.getByRole("button", { name: "Gerar" }).click();
+  await expect(dialog).toBeHidden();
+
+  // It lands in the list when the background job ends, and opens in the panel.
+  const report = page.getByRole("button", { name: /^Abrir “Guia de estudo/ });
+  await expect(report).toBeVisible({ timeout: 30_000 });
+  await report.click();
+  await expect(page.getByRole("button", { name: "Trecho 1, de “Aula de aços”" }).first()).toBeVisible();
+  await page.getByRole("button", { name: "Exportar" }).click();
+  await expect(page.getByRole("menuitem", { name: "DOCX (Word)" })).toHaveAttribute(
+    "href",
+    /\/studio\/\d+\/export\.docx$/,
+  );
+  await page.screenshot({ path: "test-results/estudio-relatorio.png", fullPage: true });
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Voltar ao Estúdio" }).click();
+
+  // Cartões didáticos, with the defaults, then turned over.
+  await page.getByRole("button", { name: /^Cartões didáticos/ }).click();
+  await page.getByRole("dialog", { name: "Criar cartões didáticos" }).getByRole("button", { name: "Gerar" }).click();
+  const cards = page.getByRole("button", { name: /^Abrir “Cartões didáticos/ });
+  await expect(cards).toBeVisible({ timeout: 30_000 });
+  await cards.click();
+  await page.getByRole("button", { name: "Virar" }).click();
+  await expect(page.getByText(/Cartão 1 de \d+ · Verso/)).toBeVisible();
+  await page.screenshot({ path: "test-results/estudio-cartoes.png", fullPage: true });
+});

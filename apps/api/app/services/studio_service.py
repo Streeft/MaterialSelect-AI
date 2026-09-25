@@ -449,6 +449,7 @@ class StudioService:
             error=INTERRUPTED if status != artifact.status else artifact.error,
             source_count=len(artifact.source_ids or []),
             item_count=item_count(artifact.tool, body),
+            options=dict(artifact.options or {}),
             created_at=artifact.created_at,
             updated_at=artifact.updated_at,
         )
@@ -460,7 +461,6 @@ class StudioService:
         drawn = mindmap.layout(body.get("root")) if body and artifact.tool == "mindmap" else None
         return ArtifactOut(
             **summary.model_dump(),
-            options=dict(artifact.options or {}),
             content=body,
             citations=[CitationOut.model_validate(c) for c in content.get("citations") or []],
             withheld=list(content.get("withheld") or []),

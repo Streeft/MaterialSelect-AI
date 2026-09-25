@@ -218,6 +218,8 @@ class ArtifactSummaryOut(BaseModel):
     source_count: int
     #: Sections, cards, questions, rows or nodes. ``None`` until it is ready.
     item_count: int | None = None
+    #: The choices it was made with — what "Tentar de novo" sends back.
+    options: dict = {}
     created_at: datetime
     updated_at: datetime
 
@@ -257,7 +259,6 @@ class MindMapLayoutOut(BaseModel):
 
 
 class ArtifactOut(ArtifactSummaryOut):
-    options: dict = {}
     #: The tool's content (see ``app.notebooks.studio_content``).
     content: dict | None = None
     citations: list[CitationOut] = []

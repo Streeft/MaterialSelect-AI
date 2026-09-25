@@ -1262,6 +1262,19 @@ vi.mock("@/lib/api", async (importOriginal) => ({
   updateNotebookNote: () => Promise.resolve(null),
   deleteNotebookNote: () => Promise.resolve(),
   saveAnswerAsNote: () => Promise.resolve(null),
+  // D-94: the Studio with one artifact of each tool, one running and one
+  // failed — every state the list and the viewers can be in.
+  getStudioCatalog: async () =>
+    (await import("@/components/notebooks/studio/__fixtures__/studio")).studioCatalog,
+  listStudio: async () =>
+    (await import("@/components/notebooks/studio/__fixtures__/studio")).studioList,
+  getStudioArtifact: async (_id: number, artifactId: number) =>
+    (await import("@/components/notebooks/studio/__fixtures__/studio")).artifactById(artifactId),
+  createStudioArtifact: () => Promise.resolve(null),
+  renameStudioArtifact: () => Promise.resolve(null),
+  deleteStudioArtifact: () => Promise.resolve(),
+  saveStudioArtifactAsNote: () => Promise.resolve(null),
+  studioExportUrl: () => "#",
 }));
 
 // Imported after the mocks so each page picks them up.
@@ -1494,6 +1507,52 @@ describe("acessibilidade das telas principais", () => {
 
   it("caderno, nos três painéis", async () => {
     await auditRoute(<NotebookPage />, ptBR.notebooks.panels.studio);
+  });
+
+  // D-94: each viewer the Studio opens in its panel — the table (headers and
+  // written absence), the quiz (answered, so the verdict and the explanation
+  // are on screen), the mind map in both views — and the "Criar …" modal.
+  it.each([
+    ["tabela", "Densidades", null],
+    ["teste respondido", "Teste — aços", "2700 kg/m³"],
+    ["mapa mental", "Mapa — aços", null],
+    ["mapa mental como lista", "Mapa — aços", ptBR.notebooks.studio.viewList],
+    ["cartões", "Cartões — aços", ptBR.notebooks.studio.flip],
+    ["relatório", "Guia de estudo — aços", null],
+  ])("caderno, com %s do Estúdio aberto", async (_what, title, click) => {
+    const client = makeClient();
+    const user = userEvent.setup();
+    const { container } = render(wrap(<NotebookPage />, client));
+    await user.click(
+      await screen.findByRole("button", { name: ptBR.notebooks.studio.open(title) }),
+    );
+    await screen.findByRole("heading", { name: title });
+    if (click) await user.click(screen.getByRole("button", { name: new RegExp(click) }));
+    if (click === ptBR.notebooks.studio.flip || click === "2700 kg/m³") {
+      await user.click(
+        screen.getByRole("button", {
+          name: click === "2700 kg/m³" ? ptBR.notebooks.studio.explain : ptBR.notebooks.studio.flip,
+        }),
+      );
+    }
+    await waitFor(() => expect(client.isFetching()).toBe(0));
+    await expectClean(container);
+  });
+
+  it("caderno, com o modal Criar relatório", async () => {
+    const client = makeClient();
+    const user = userEvent.setup();
+    render(wrap(<NotebookPage />, client));
+    const tile = await screen.findByRole("button", {
+      name: new RegExp(ptBR.notebooks.studioTools.report),
+    });
+    await waitFor(() => expect(tile).not.toHaveAttribute("aria-disabled"));
+    await user.click(tile);
+    await screen.findByRole("heading", { name: ptBR.notebooks.studio.createTitle.report });
+    await user.click(
+      screen.getByRole("button", { name: ptBR.notebooks.studio.editTemplate("Guia de estudo") }),
+    );
+    await expectClean(document.body);
   });
 
   // P2: sem caso escolhido a tela é um <select> e nada mais — auditá-la ali
