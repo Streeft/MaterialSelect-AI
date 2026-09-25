@@ -5928,3 +5928,15 @@ resultado.
 
 **Depois do merge**, o **Deploy da API**; depois, criar o segredo
 `GEMINI_API_KEY` e rodar **Provedor de IA** → `gemini`.
+
+**Adendo (25/09, primeira troca em produção).** O caderno respondeu "modelo ou
+endpoint não encontrado (404)" com `AI_MODEL=gemini-2.5-flash`: em 2026 o Google
+restringe o 2.5 a quem já o usava, e uma chave nova recebe 404 com a URL certa. O
+motivo do Google não aparecia porque o endpoint compatível devolve o erro **dentro
+de uma lista** (`[{"error": {...}}]`), forma que `_error_of` e `_detail_of` não
+liam — agora leem as duas. Três mudanças seguem disso: o modelo passa a ser o
+apelido **`gemini-flash-latest`**, que acompanha o Flash vigente em vez de
+envelhecer com um número; o workflow **confere o modelo com a própria chave antes
+de tocar no Fly** e, se ele não responder, falha com o motivo e a lista do que a
+chave enxerga; e um modelo de embedding que não responde vira aviso, não falha —
+os embeddings são opcionais (D-47).
