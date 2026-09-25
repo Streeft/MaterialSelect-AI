@@ -177,3 +177,123 @@ class NoteIn(BaseModel):
 class NoteUpdate(BaseModel):
     title: str | None = Field(default=None, min_length=1, max_length=200)
     body: str | None = Field(default=None, max_length=20_000)
+
+
+# --- Estúdio (D-94) ----------------------------------------------------------
+
+StudioTool = Literal["report", "flashcards", "quiz", "table", "mindmap"]
+ArtifactStatus = Literal["gerando", "pronto", "falhou"]
+
+
+class StudioIn(BaseModel):
+    """What the "Criar …" modal sends. Every choice is a slug from the catalogue;
+    a choice the tool does not have is refused, never ignored (the D-56 rule)."""
+
+    tool: StudioTool
+    format: str | None = Field(default=None, max_length=32)
+    template: str | None = Field(default=None, max_length=64)
+    #: The template's instruction as the student left it under the pencil.
+    #: Omitted means the template's own.
+    instructions: str | None = Field(default=None, max_length=2000)
+    topic: str | None = Field(default=None, max_length=500)
+    count: str | None = Field(default=None, max_length=16)
+    difficulty: str | None = Field(default=None, max_length=16)
+    columns: list[str] | None = Field(default=None, max_length=8)
+
+
+class ArtifactUpdate(BaseModel):
+    title: str = Field(min_length=1, max_length=200)
+
+
+class ArtifactSummaryOut(BaseModel):
+    id: int
+    tool: StudioTool
+    format: str | None = None
+    template: str | None = None
+    title: str
+    #: "gerando" past its deadline reads as "falhou" — derived, never written by
+    #: a GET.
+    status: ArtifactStatus
+    error: str | None = None
+    source_count: int
+    #: Sections, cards, questions, rows or nodes. ``None`` until it is ready.
+    item_count: int | None = None
+    created_at: datetime
+    updated_at: datetime
+
+
+class MindMapNodeOut(BaseModel):
+    id: int
+    parent: int | None = None
+    label: str
+    #: The label broken into lines by the backend, so the screen wraps where
+    #: the SVG export does.
+    lines: list[str]
+    depth: int
+    x: float
+    y: float
+    width: float
+    height: float
+    citations: list[int] = []
+
+
+class MindMapEdgeOut(BaseModel):
+    source: int
+    target: int
+    x1: float
+    y1: float
+    x2: float
+    y2: float
+
+
+class MindMapLayoutOut(BaseModel):
+    """The mind map's geometry, computed once in the backend for the screen and
+    the SVG export alike (one truth for one figure, the D-53 rule)."""
+
+    width: float
+    height: float
+    nodes: list[MindMapNodeOut]
+    edges: list[MindMapEdgeOut]
+
+
+class ArtifactOut(ArtifactSummaryOut):
+    options: dict = {}
+    #: The tool's content (see ``app.notebooks.studio_content``).
+    content: dict | None = None
+    citations: list[CitationOut] = []
+    withheld: list[str] = []
+    exports: list[str] = []
+    layout: MindMapLayoutOut | None = None
+
+
+class StudioListOut(BaseModel):
+    artifacts: list[ArtifactSummaryOut]
+    #: Generations finished today against the daily limit; ones still running
+    #: are already taken out of ``remaining``.
+    usage: UsageOut
+
+
+class StudioChoiceOut(BaseModel):
+    slug: str
+    label: str
+    description: str
+    instructions: str = ""
+    columns: list[str] = []
+    amount: int | None = None
+
+
+class StudioToolOut(BaseModel):
+    slug: StudioTool
+    label: str
+    description: str
+    formats: list[StudioChoiceOut]
+    templates: list[StudioChoiceOut]
+    counts: list[StudioChoiceOut]
+    difficulties: list[StudioChoiceOut]
+    columns: bool
+    exports: list[str]
+
+
+class StudioCatalogOut(BaseModel):
+    tools: list[StudioToolOut]
+    max_columns: int

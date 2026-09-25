@@ -56,16 +56,27 @@ def ungrounded(
     """Figures in ``texts`` found neither in the cited passages nor in ``extra``.
 
     ``cited`` holds 1-based passage numbers already filtered by
-    :func:`take_citations`. Small integers are exempt, as everywhere in the
-    guardrails — "3 de 5" is the shape of a list, not a measurement.
+    :func:`take_citations`. A cited passage lends its text **and its labels** —
+    the section heading and the source title the model saw beside it — so
+    "a seção 3.2" is grounded by the passage headed "3.2 Ligas". Small integers
+    are exempt, as everywhere in the guardrails — "3 de 5" is the shape of a
+    list, not a measurement.
     """
     allowed = set(extra)
     for number in cited:
-        allowed |= numbers_in(passages[number - 1].text)
+        allowed |= passage_numbers(passages[number - 1])
     invented: set[float] = set()
     for text in texts:
         invented.update(ungrounded_numbers(text, allowed))
     return sorted(invented)
+
+
+def passage_numbers(passage: Passage) -> set[float]:
+    """Every figure one passage states, in its text or in its labels."""
+    # Read one by one: joined, "Tabela 3" and "5 ligas" could read as "3 5",
+    # a thousands-grouped figure nobody wrote.
+    found = numbers_in(passage.text) | numbers_in(passage.source_title)
+    return found | numbers_in(passage.heading) if passage.heading else found
 
 
 def format_figures(values: Iterable[float]) -> list[str]:
