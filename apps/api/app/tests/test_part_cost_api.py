@@ -33,7 +33,7 @@ def _estimate(client: TestClient, material_id: int, **overrides):
         "load_factor": 0.5,
         **overrides,
     }
-    return client.post("/api/part-cost/estimate", json=payload)
+    return client.post("/api/custo/estimar", json=payload)
 
 
 def test_cost_estimator_returns_200_for_seeded_aluminium(
