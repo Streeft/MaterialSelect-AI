@@ -90,6 +90,39 @@ def openings(chunks: list[NotebookChunk], limit: int) -> list[NotebookChunk]:
     return picked
 
 
+def spread(chunks: list[NotebookChunk], limit: int) -> list[NotebookChunk]:
+    """Up to ``limit`` passages spaced evenly through every source (D-94).
+
+    What the Studio reads when no topic narrows it. :func:`openings` is right
+    for the notebook guide — a guide says what the sources are about — but a
+    report or a quiz built from openings would only ever ask about chapter one.
+    The slots are dealt round-robin, so three sources share them evenly and a
+    short source gives all it has; inside a source the picks are evenly spaced,
+    starting at its first passage. Returned in reading order, source by source,
+    so the model reads each one as it was written.
+    """
+    by_source: dict[int, list[NotebookChunk]] = {}
+    for chunk in sorted(chunks, key=lambda c: (c.source_id, c.ordinal)):
+        by_source.setdefault(chunk.source_id, []).append(chunk)
+    quota = dict.fromkeys(by_source, 0)
+    remaining = limit
+    while remaining > 0:
+        dealt = False
+        for source_id, passages in by_source.items():
+            if remaining > 0 and quota[source_id] < len(passages):
+                quota[source_id] += 1
+                remaining -= 1
+                dealt = True
+        if not dealt:
+            break
+    picked: list[NotebookChunk] = []
+    for source_id, passages in by_source.items():
+        share = quota[source_id]
+        # i·n // share is strictly increasing when share <= n: no repeats.
+        picked.extend(passages[i * len(passages) // share] for i in range(share))
+    return picked
+
+
 def _semantic_rank(
     chunks: list[NotebookChunk], query: str, settings: Settings
 ) -> list[tuple[int, float]]:

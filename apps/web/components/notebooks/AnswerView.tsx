@@ -15,6 +15,42 @@ export function citationLocator(citation: NotebookCitation): string | null {
 }
 
 /**
+ * The chips of the passages one item rests on — a paragraph, a card, a cell.
+ * A citation whose source left the notebook still opens (it is a copy), and
+ * says the source is gone.
+ */
+export function CitationChips({
+  numbers,
+  byNumber,
+  liveSourceIds,
+}: {
+  numbers: number[];
+  byNumber: ReadonlyMap<number, NotebookCitation>;
+  liveSourceIds: ReadonlySet<number>;
+}) {
+  return (
+    <>
+      {numbers.map((number) => {
+        const citation = byNumber.get(number);
+        if (!citation) return null;
+        const gone = !liveSourceIds.has(citation.source_id);
+        return (
+          <CitationChip
+            key={number}
+            number={number}
+            label={t.citation(number, citation.source_title)}
+            title={citation.source_title}
+            locator={gone ? t.citationGone : citationLocator(citation)}
+          >
+            {citation.excerpt}
+          </CitationChip>
+        );
+      })}
+    </>
+  );
+}
+
+/**
  * An answer as the backend checked it: paragraphs, each ending in the chips of
  * the passages it rests on. Nothing here decides what is grounded — the
  * numbers were checked on the server, and a paragraph that failed is not in
@@ -39,22 +75,13 @@ export function AnswerView({
         <RichText
           key={index}
           text={paragraph.text}
-          trailing={paragraph.citations.map((number) => {
-            const citation = byNumber.get(number);
-            if (!citation) return null;
-            const gone = !liveSourceIds.has(citation.source_id);
-            return (
-              <CitationChip
-                key={number}
-                number={number}
-                label={t.citation(number, citation.source_title)}
-                title={citation.source_title}
-                locator={gone ? t.citationGone : citationLocator(citation)}
-              >
-                {citation.excerpt}
-              </CitationChip>
-            );
-          })}
+          trailing={
+            <CitationChips
+              numbers={paragraph.citations}
+              byNumber={byNumber}
+              liveSourceIds={liveSourceIds}
+            />
+          }
         />
       ))}
       {answer.withheld.length > 0 ? (

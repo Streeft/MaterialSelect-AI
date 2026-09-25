@@ -22,7 +22,6 @@ from __future__ import annotations
 import dataclasses
 import hashlib
 import logging
-import re
 from collections.abc import Callable
 from datetime import UTC, date, datetime
 
@@ -54,6 +53,7 @@ from app.models.notebook import (
 )
 from app.models.user import User
 from app.notebooks import app_sources
+from app.notebooks.grounding import format_figures, take_citations, ungrounded
 from app.notebooks.retrieval import openings, search
 from app.repositories.notebook_repository import NotebookRepository
 from app.schemas.notebook import (
@@ -83,10 +83,6 @@ logger = logging.getLogger(__name__)
 #: Earlier turns sent with a question, so "e o segundo?" can be understood.
 _HISTORY_MESSAGES = 6
 _HISTORY_CHARS = 1000
-
-#: A citation marker the model wrote into its prose ("… [2]" or "[1, 3]"). The
-#: screen draws citations from the list, so the marker is moved there.
-_INLINE_CITATION = re.compile(r"\s*\[(\d+(?:\s*,\s*\d+)*)\]")
 
 PRIVACY_NOTICE = (
     "Não envie material sigiloso ou dados pessoais: no plano gratuito, o provedor "
@@ -405,7 +401,7 @@ class NotebookService:
             settings=self.settings,
             semantic=not provider.simulated,
         )
-        passages = _passages(found.chunks)
+        passages = passages_for(found.chunks)
         history = tuple(
             (message.role, _message_text(message)[:_HISTORY_CHARS])
             for message in self.repo.messages(notebook_id, limit=_HISTORY_MESSAGES)
@@ -452,7 +448,7 @@ class NotebookService:
         self._check_quota()
 
         picked = openings(chunks, self.settings.notebook_context_passages)
-        passages = _passages(picked)
+        passages = passages_for(picked)
         titles = tuple(dict.fromkeys(chunk.source.title for chunk in picked))
         context = NotebookDigestContext(
             notebook_title=notebook.title, source_titles=titles, passages=passages
@@ -592,7 +588,7 @@ class NotebookService:
 # --- checking an answer ------------------------------------------------------
 
 
-def _passages(chunks: list[NotebookChunk]) -> tuple[Passage, ...]:
+def passages_for(chunks: list[NotebookChunk]) -> tuple[Passage, ...]:
     return tuple(
         Passage(
             number=position,
@@ -614,53 +610,49 @@ def _check(
     Citation markers written into the prose are moved to the list; numbers
     outside the passages handed over are dropped. Then every figure a paragraph
     writes is looked for in the passages *that paragraph* cites, plus the
-    question: a figure found only in some other passage is still ungrounded —
-    the paragraph would be telling the student where to check, and pointing at
-    the wrong place.
+    question (``app.notebooks.grounding``).
     """
-    known = range(1, len(passages) + 1)
     question_numbers = numbers_in(question)
     kept: list[ParagraphOut] = []
     withheld: list[str] = []
     for item in raw.get("paragraphs") or []:
         if not isinstance(item, dict):
             continue
-        text = str(item.get("text") or "")
-        cited = [n for n in item.get("citations") or [] if isinstance(n, int)]
-        for marker in _INLINE_CITATION.findall(text):
-            cited.extend(int(n) for n in marker.split(","))
-        text = _INLINE_CITATION.sub("", text).strip()
+        text, cited = take_citations(
+            str(item.get("text") or ""), item.get("citations"), len(passages)
+        )
         if not text:
             continue
-        cited = list(dict.fromkeys(n for n in cited if n in known))
-        allowed = set(question_numbers)
-        for number in cited:
-            allowed |= numbers_in(passages[number - 1].text)
-        invented = ungrounded_numbers(text, allowed)
+        invented = ungrounded([text], cited, passages, question_numbers)
         if invented:
-            withheld.extend(_format_figure(value) for value in invented)
+            withheld.extend(format_figures(invented))
             continue
         kept.append(ParagraphOut(text=text, citations=cited))
 
     # Numbered as handed to the model; `_finalise` renumbers for the screen.
     return AnswerOut(
         paragraphs=kept,
-        citations=[
-            CitationOut(
-                number=passage.number,
-                chunk_id=chunk.id,
-                source_id=chunk.source_id,
-                source_title=passage.source_title,
-                heading=passage.heading,
-                page_start=passage.page_start,
-                page_end=passage.page_end,
-                excerpt=passage.text,
-            )
-            for passage, chunk in zip(passages, chunks, strict=True)
-        ],
+        citations=citations_for(passages, chunks),
         not_found=raw.get("not_found") is True,
         withheld=list(dict.fromkeys(withheld)),
     )
+
+
+def citations_for(passages: tuple[Passage, ...], chunks: list[NotebookChunk]) -> list[CitationOut]:
+    """Every passage handed over, as a citation numbered as the model saw it."""
+    return [
+        CitationOut(
+            number=passage.number,
+            chunk_id=chunk.id,
+            source_id=chunk.source_id,
+            source_title=passage.source_title,
+            heading=passage.heading,
+            page_start=passage.page_start,
+            page_end=passage.page_end,
+            excerpt=passage.text,
+        )
+        for passage, chunk in zip(passages, chunks, strict=True)
+    ]
 
 
 def _finalise(checked: AnswerOut) -> AnswerOut:
@@ -691,10 +683,6 @@ def _finalise(checked: AnswerOut) -> AnswerOut:
         not_found=checked.not_found,
         withheld=withheld,
     )
-
-
-def _format_figure(value: float) -> str:
-    return app_sources.format_number(value)
 
 
 def _truncate(pages: list[str], limit: int) -> tuple[list[str], bool]:

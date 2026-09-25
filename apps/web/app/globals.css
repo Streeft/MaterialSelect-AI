@@ -1371,6 +1371,27 @@ aside[data-surface="rail"] .msds-rail-item {
 }
 
 
+/* D-94: a dialog taller than the screen scrolls inside, with its title and
+ * footer in place. MSDS's dialog had no height limit, so a long form — the
+ * Studio's "Criar …" with a template open under the pencil — pushed its own
+ * submit button below the fold, out of reach of the pointer and the page
+ * scroll alike (the backdrop is fixed). */
+.msds-dialog {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 40px);
+}
+.msds-dialog-body {
+  min-height: 0;
+  overflow-y: auto;
+}
+/* A dialog whose content asks for room: "Criar …" lays its cards two by two,
+ * as NotebookLM's modal does. Opt-in by a class on the content, because the
+ * MSDS dialog takes no className of its own. */
+.msds-dialog:has(.dialog-wide) {
+  max-width: 44rem;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
