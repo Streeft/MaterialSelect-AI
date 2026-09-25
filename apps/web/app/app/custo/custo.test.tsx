@@ -2,7 +2,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, waitFor } from "@testing-library/react";
 // See the note in components/layout/layout.test.tsx: MWC roles live inside a
 // shadow root, invisible to plain @testing-library/react queries.
-import { screen } from "shadow-dom-testing-library";
+import { screen, within } from "shadow-dom-testing-library";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
@@ -150,9 +150,9 @@ describe("Custo da peça", () => {
     await user.click(await screen.findByShadowRole("button", { name: t.estimate }));
 
     // The result card is always on screen; the table is what the run adds.
-    await screen.findByRole("table");
+    const table = await screen.findByRole("table");
     for (const value of ["20", "12", "7,08", "0,95", "40,03"]) {
-      expect(screen.getByText(value)).toBeInTheDocument();
+      expect(within(table).getByText(value)).toBeInTheDocument();
     }
   });
 
