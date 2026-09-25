@@ -55,6 +55,7 @@ from app.ai.provider import (
     ProblemContext,
     ResultContext,
 )
+from app.ai.studio import StudioRequest, read_studio, schema_for, studio_system, studio_user
 
 # Longest free-text field the schemas accept (``SuggestedConstraint.evidence``
 # and every ``rationale``). Clipping beats letting one verbose sentence turn an
@@ -130,6 +131,10 @@ class ModelProviderBase(AIProvider):
     def digest(self, context: NotebookDigestContext) -> dict:
         raw = self._complete(digest_system(context), digest_user(context), DIGEST_SCHEMA)
         return read_digest(raw)
+
+    def studio(self, request: StudioRequest) -> dict:
+        raw = self._complete(studio_system(request), studio_user(request), schema_for(request))
+        return read_studio(request, raw)
 
 
 def read_interpretation(raw: dict, context: ProblemContext) -> dict:

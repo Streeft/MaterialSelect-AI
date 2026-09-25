@@ -43,6 +43,11 @@ import type {
   NotebookSourceDetail,
   NotebookSummary,
   NotebookUpdate,
+  StudioArtifact,
+  StudioCatalog,
+  StudioExport,
+  StudioList,
+  StudioRequest,
   PerformanceIndex,
   PortalSession,
   MaterialClassDetail,
@@ -1003,4 +1008,50 @@ export function deleteNotebookNote(id: number, noteId: number): Promise<void> {
 
 export function saveAnswerAsNote(id: number, messageId: number): Promise<NotebookNote> {
   return request<NotebookNote>(`${nb(id)}/messages/${messageId}/note`, { method: "POST" });
+}
+
+// --- Estúdio (D-94) ------------------------------------------------------------
+
+export function getStudioCatalog(): Promise<StudioCatalog> {
+  return request<StudioCatalog>("/api/notebooks/studio-catalog");
+}
+
+export function listStudio(id: number): Promise<StudioList> {
+  return request<StudioList>(`${nb(id)}/studio`);
+}
+
+/** Starts a generation: answers at once with the artifact `gerando`. */
+export function createStudioArtifact(id: number, body: StudioRequest): Promise<StudioArtifact> {
+  return request<StudioArtifact>(`${nb(id)}/studio`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export function getStudioArtifact(id: number, artifactId: number): Promise<StudioArtifact> {
+  return request<StudioArtifact>(`${nb(id)}/studio/${artifactId}`);
+}
+
+export function renameStudioArtifact(
+  id: number,
+  artifactId: number,
+  title: string,
+): Promise<StudioArtifact> {
+  return request<StudioArtifact>(`${nb(id)}/studio/${artifactId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ title }),
+  });
+}
+
+export function deleteStudioArtifact(id: number, artifactId: number): Promise<void> {
+  return request<void>(`${nb(id)}/studio/${artifactId}`, { method: "DELETE" });
+}
+
+export function saveStudioArtifactAsNote(id: number, artifactId: number): Promise<NotebookNote> {
+  return request<NotebookNote>(`${nb(id)}/studio/${artifactId}/note`, { method: "POST" });
+}
+
+/** A plain link: the browser honours the API's `Content-Disposition`. */
+export function studioExportUrl(id: number, artifactId: number, format: StudioExport): string {
+  return `${API_URL}${nb(id)}/studio/${artifactId}/export.${format}`;
 }

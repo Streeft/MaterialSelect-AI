@@ -17,6 +17,7 @@ from dataclasses import dataclass, field
 
 from app.ai.guardrails import Catalogue
 from app.ai.notebook import NotebookDigestContext, NotebookQuestion
+from app.ai.studio import StudioRequest
 from app.config import Settings
 from app.knowledge.retrieval import RetrievedChunk
 
@@ -167,3 +168,8 @@ class AIProvider(ABC):
     def digest(self, context: NotebookDigestContext) -> dict:
         """Write a notebook's guide and suggested questions."""
         raise AIUnavailableError(f"O provedor '{self.name}' não escreve o guia de cadernos.")
+
+    def studio(self, request: StudioRequest) -> dict:
+        """Make one Studio artifact from the passages given (D-94). See
+        ``app.ai.studio``."""
+        raise AIUnavailableError(f"O provedor '{self.name}' não gera itens do Estúdio.")

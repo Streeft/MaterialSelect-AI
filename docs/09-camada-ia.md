@@ -180,6 +180,29 @@ As regras que pesam:
   então passa na checagem de número por construção, como o `interpret`.
 - **Cota diária por aluno** (`NOTEBOOK_DAILY_REQUESTS`), contada só no sucesso.
 
+### Estúdio (`app/ai/studio.py`, `app/services/studio_service.py`)
+
+O terceiro método do provedor é `studio(request)` ([D-94](DECISIONS.md)): o
+mesmo contrato, para relatório, cartões, teste, tabela e mapa mental.
+
+- **O catálogo é a verdade do modal.** Formatos, modelos, a instrução padrão de
+  cada modelo e as opções válidas moram em `CATALOG`; a tela lê por
+  `GET /notebooks/studio-catalog`, e o que o lápis mostra é o que o modelo recebe.
+  Instrução editada entra abaixo das regras, como estilo.
+- **Em segundo plano.** `POST …/studio` grava `gerando` e responde 202; o job
+  (`run_job`) abre sessão própria. Um provedor lento ou o 503 do plano gratuito
+  não esbarram no tempo do proxy.
+- **Conferência por item** (`app/notebooks/studio_content.py`): parágrafo,
+  cartão, questão (todas as alternativas), célula, nó. Uma nova tentativa com os
+  números; depois o item sai — ou, na tabela, a célula fica sem valor e rotulada.
+  Uma falha na nova tentativa mantém a primeira resposta, que é válida.
+- **Mapa plano.** O esquema pede `id`/`parent`, não árvore aninhada: o modo JSON
+  estrito do Gemini não garante esquema recursivo.
+- **O simulado copia**, como no chat: `MockAIProvider.studio` monta cada
+  ferramenta com trechos citados e passa pelo mesmo leitor dos provedores reais.
+- **Cota própria** (`NOTEBOOK_DAILY_ARTIFACTS`, 10), no máximo
+  `NOTEBOOK_STUDIO_IN_FLIGHT` (2) ao mesmo tempo.
+
 ## Provedor simulado (`app/ai/mock.py`)
 
 É a implementação de referência e a que o produto entrega. Lê o enunciado com
