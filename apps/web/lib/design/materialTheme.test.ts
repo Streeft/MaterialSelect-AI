@@ -190,6 +190,10 @@ const PER_SECTION: Record<
     light: { accent: "#984649", primaryContainer: "#ca6365" },
     dark: { accent: "#fda1a0", primaryContainer: "#8b3237" },
   },
+  cadernos: {
+    light: { accent: "#5e589f", primaryContainer: "#807ad2" },
+    dark: { accent: "#b6b4ff", primaryContainer: "#4f4793" },
+  },
 };
 
 /** `--accent-fg` is white in light, dark ink in dark — same for all seven sections. */

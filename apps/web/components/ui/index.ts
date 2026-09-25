@@ -22,6 +22,8 @@ export {
   type ButtonSize,
   type ButtonVariant,
 } from "./Button";
+export { ChatLog, ChatMessage } from "./ChatLog";
+export { CitationChip } from "./CitationChip";
 export { Combobox, type ComboboxOption } from "./Combobox";
 export { Card, CardBody, CardFooter, CardHeader, PanelShell, Section, StepCard } from "./Card";
 export {
@@ -46,10 +48,13 @@ export {
   CONTROL,
   useWiring,
 } from "./Field";
+export { FileDrop, UploadList, type UploadItem } from "./FileDrop";
 export { GuidedBlock, type GuidedBlockState } from "./GuidedBlock";
 export { RemovableChip } from "./RemovableChip";
 export { PageHeader } from "./PageHeader";
+export { PanelHeader } from "./PanelHeader";
 export { RadioCard } from "./RadioCard";
+export { RichText } from "./RichText";
 export { Disclosure, Popover } from "./Popover";
 export {
   ProvenanceDetails,
@@ -74,3 +79,4 @@ export {
 } from "./Table";
 export { Tabs, type TabItem } from "./Tabs";
 export { ThemeToggle, useResolvedTheme } from "./ThemeToggle";
+export { ToolTile, type ToolTone } from "./ToolTile";

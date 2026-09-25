@@ -16,7 +16,10 @@ import {
   CardBody,
   CardFooter,
   CardHeader,
+  ChatLog,
+  ChatMessage,
   Checkbox,
+  CitationChip,
   ClassBadge,
   Combobox,
   DataQualityBadge,
@@ -26,17 +29,20 @@ import {
   GuidedBlock,
   EmptyState,
   ErrorState,
+  FileDrop,
   IconButton,
   Input,
   LoadingState,
   MissingValue,
   NumberInput,
   PageHeader,
+  PanelHeader,
   PanelShell,
   ProvenancePopover,
   RemovableChip,
   RadioGroup,
   RadioOption,
+  RichText,
   RowHeader,
   Section,
   Select,
@@ -53,12 +59,18 @@ import {
   Th,
   ThemeToggle,
   ToggleChip,
+  ToolTile,
   Tr,
+  UploadList,
   type Provenance,
 } from "@/components/ui";
 import {
+  IconAudio,
+  IconCards,
   IconDownload,
   IconGrid,
+  IconQuiz,
+  IconReport,
   IconPlus,
   IconStar,
   IconTable,
@@ -799,6 +811,66 @@ export default function StyleGuidePage() {
             </TBody>
           </Table>
         </TableScroll>
+      </Section>
+
+      {/* D-90: as primitivas dos Cadernos. */}
+      <Section title="Conversa com fontes (Cadernos)" headingLevel={2}>
+        <div className="grid gap-3 lg:grid-cols-2">
+          <PanelShell className="border border-edge">
+            <PanelHeader
+              title="Conversa"
+              headingId="estilo-conversa"
+              expanded
+              onToggle={() => {}}
+              toggleLabel="Recolher Conversa"
+              controls="estilo-conversa-corpo"
+            />
+            <div id="estilo-conversa-corpo" className="p-4">
+              <ChatLog label="Exemplo de conversa" className="max-h-72">
+                <ChatMessage from="user" author="Você">
+                  Qual a densidade do aço carbono?
+                </ChatMessage>
+                <ChatMessage from="assistant" author="Caderno">
+                  <RichText
+                    text="Segundo as fontes, o **aço carbono** tem densidade de 7850 kg/m³."
+                    trailing={
+                      <CitationChip
+                        number={1}
+                        label="Trecho 1, de “Aula de aços”"
+                        title="Aula de aços"
+                        locator="Aços · página 2"
+                      >
+                        O aço carbono tem densidade de 7850 kg/m³ e módulo de 210 GPa.
+                      </CitationChip>
+                    }
+                  />
+                </ChatMessage>
+              </ChatLog>
+            </div>
+          </PanelShell>
+          <div className="flex flex-col gap-3">
+            <FileDrop
+              title="Arraste arquivos para cá"
+              hint="PDF, DOCX, TXT ou Markdown."
+              buttonLabel="Escolher arquivos"
+              onFiles={() => {}}
+            />
+            <UploadList
+              label="Envios de exemplo"
+              statusLabels={{ sending: "Enviando", reading: "Lendo o texto", done: "Pronto", failed: "Falhou" }}
+              items={[
+                { key: "a", name: "apostila.pdf", progress: 0.6, status: "sending" },
+                { key: "b", name: "resumo.docx", progress: 1, status: "done" },
+              ]}
+            />
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <ToolTile icon={<IconAudio />} label="Resumo em Áudio" tone="brand" badge="Em breve" unavailable />
+              <ToolTile icon={<IconReport />} label="Relatórios" tone="warning" onClick={() => {}} />
+              <ToolTile icon={<IconCards />} label="Cartões didáticos" tone="danger" onClick={() => {}} />
+              <ToolTile icon={<IconQuiz />} label="Teste" tone="info" onClick={() => {}} />
+            </div>
+          </div>
+        </div>
       </Section>
 
       <Section title={ptBR.styleGuide.feedback} headingLevel={2}>

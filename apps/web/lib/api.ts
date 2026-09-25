@@ -35,6 +35,14 @@ import type {
   MaterialListItem,
   MaterialUpdate,
   MyRecords,
+  Notebook,
+  NotebookChat,
+  NotebookMessage,
+  NotebookNote,
+  NotebookSource,
+  NotebookSourceDetail,
+  NotebookSummary,
+  NotebookUpdate,
   PerformanceIndex,
   PortalSession,
   MaterialClassDetail,
@@ -824,4 +832,175 @@ export function compareBatteries(
     method: "POST",
     body: JSON.stringify(body),
   });
+}
+
+// --- Cadernos (D-90) ----------------------------------------------------------
+
+const nb = (id: number) => `/api/notebooks/${id}`;
+
+export function listNotebooks(): Promise<NotebookSummary[]> {
+  return request<NotebookSummary[]>("/api/notebooks");
+}
+
+export function createNotebook(title?: string): Promise<Notebook> {
+  return request<Notebook>("/api/notebooks", {
+    method: "POST",
+    body: JSON.stringify(title ? { title } : {}),
+  });
+}
+
+export function getNotebook(id: number): Promise<Notebook> {
+  return request<Notebook>(nb(id));
+}
+
+export function updateNotebook(id: number, patch: NotebookUpdate): Promise<Notebook> {
+  return request<Notebook>(nb(id), { method: "PATCH", body: JSON.stringify(patch) });
+}
+
+export function deleteNotebook(id: number): Promise<void> {
+  return request<void>(nb(id), { method: "DELETE" });
+}
+
+export function addNotebookText(
+  id: number,
+  title: string,
+  text: string,
+): Promise<NotebookSource> {
+  return request<NotebookSource>(`${nb(id)}/sources/text`, {
+    method: "POST",
+    body: JSON.stringify({ title, text }),
+  });
+}
+
+export function addNotebookAppSource(
+  id: number,
+  kind: "ficha" | "estudo",
+  recordId: number,
+): Promise<NotebookSource> {
+  return request<NotebookSource>(`${nb(id)}/sources/app`, {
+    method: "POST",
+    body: JSON.stringify({ kind, record_id: recordId }),
+  });
+}
+
+/**
+ * Upload one file with progress.
+ *
+ * XHR and not `fetch`: `fetch` still has no upload progress in browsers, and a
+ * 15 MB PDF on a school's Wi-Fi with no sign of life reads as a frozen page.
+ * Same-origin cookie rules as `request` (`withCredentials`).
+ */
+export function uploadNotebookSource(
+  id: number,
+  file: File,
+  onProgress?: (fraction: number) => void,
+): Promise<NotebookSource> {
+  return new Promise((resolve, reject) => {
+    const form = new FormData();
+    form.append("file", file);
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", `${API_URL}${nb(id)}/sources/upload`);
+    xhr.withCredentials = true;
+    xhr.setRequestHeader("Accept", "application/json");
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable && onProgress) onProgress(event.loaded / event.total);
+    };
+    xhr.onload = () => {
+      let body: { detail?: unknown } | null = null;
+      try {
+        body = JSON.parse(xhr.responseText) as { detail?: unknown };
+      } catch {
+        body = null;
+      }
+      if (xhr.status >= 200 && xhr.status < 300 && body) {
+        resolve(body as unknown as NotebookSource);
+        return;
+      }
+      reject(
+        new ApiError(
+          readErrorDetail(body?.detail) ?? `Falha no envio de ${file.name}`,
+          xhr.status,
+        ),
+      );
+    };
+    xhr.onerror = () => reject(new ApiError(`Falha de rede ao enviar ${file.name}`, 0));
+    xhr.send(form);
+  });
+}
+
+export function getNotebookSource(id: number, sourceId: number): Promise<NotebookSourceDetail> {
+  return request<NotebookSourceDetail>(`${nb(id)}/sources/${sourceId}`);
+}
+
+export function updateNotebookSource(
+  id: number,
+  sourceId: number,
+  patch: { title?: string; selected?: boolean },
+): Promise<NotebookSource> {
+  return request<NotebookSource>(`${nb(id)}/sources/${sourceId}`, {
+    method: "PATCH",
+    body: JSON.stringify(patch),
+  });
+}
+
+export function selectAllNotebookSources(
+  id: number,
+  selected: boolean,
+): Promise<NotebookSource[]> {
+  return request<NotebookSource[]>(`${nb(id)}/sources/selection`, {
+    method: "PUT",
+    body: JSON.stringify({ selected }),
+  });
+}
+
+export function deleteNotebookSource(id: number, sourceId: number): Promise<void> {
+  return request<void>(`${nb(id)}/sources/${sourceId}`, { method: "DELETE" });
+}
+
+export function listNotebookMessages(id: number): Promise<NotebookMessage[]> {
+  return request<NotebookMessage[]>(`${nb(id)}/messages`);
+}
+
+export function clearNotebookMessages(id: number): Promise<void> {
+  return request<void>(`${nb(id)}/messages`, { method: "DELETE" });
+}
+
+export function askNotebook(id: number, question: string): Promise<NotebookChat> {
+  return request<NotebookChat>(`${nb(id)}/chat`, {
+    method: "POST",
+    body: JSON.stringify({ question }),
+  });
+}
+
+export function summarizeNotebook(id: number): Promise<Notebook> {
+  return request<Notebook>(`${nb(id)}/summary`, { method: "POST" });
+}
+
+export function addNotebookNote(
+  id: number,
+  note: { title?: string; body?: string },
+): Promise<NotebookNote> {
+  return request<NotebookNote>(`${nb(id)}/notes`, {
+    method: "POST",
+    body: JSON.stringify(note),
+  });
+}
+
+export function updateNotebookNote(
+  id: number,
+  noteId: number,
+  patch: { title?: string; body?: string },
+): Promise<NotebookNote> {
+  return request<NotebookNote>(`${nb(id)}/notes/${noteId}`, {
+    method: "PATCH",
+    body: JSON.stringify(patch),
+  });
+}
+
+export function deleteNotebookNote(id: number, noteId: number): Promise<void> {
+  return request<void>(`${nb(id)}/notes/${noteId}`, { method: "DELETE" });
+}
+
+export function saveAnswerAsNote(id: number, messageId: number): Promise<NotebookNote> {
+  return request<NotebookNote>(`${nb(id)}/messages/${messageId}/note`, { method: "POST" });
 }

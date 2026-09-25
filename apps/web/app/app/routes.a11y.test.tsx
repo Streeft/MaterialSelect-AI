@@ -1059,6 +1059,87 @@ const batteryArchetypes: ApplicationArchetype[] = [
   },
 ];
 
+const notebookCitation = {
+  number: 1,
+  chunk_id: 90,
+  source_id: 11,
+  source_title: "Aula de aços",
+  heading: "Aços",
+  page_start: 2,
+  page_end: 2,
+  excerpt: "O aço carbono tem densidade de 7850 kg/m³.",
+};
+
+const notebookSummary = {
+  id: 4,
+  title: "Materiais estruturais",
+  emoji: "📓",
+  source_count: 1,
+  created_at: "2026-09-25T10:00:00Z",
+  updated_at: "2026-09-25T10:00:00Z",
+};
+
+const notebookFull = {
+  ...notebookSummary,
+  chat_goal: "padrao" as const,
+  chat_instructions: null,
+  response_length: "padrao" as const,
+  summary: {
+    paragraphs: [{ text: "As fontes tratam de **aços** estruturais.", citations: [1] }],
+    citations: [notebookCitation],
+    not_found: false,
+    withheld: [],
+  },
+  suggested_questions: ["Qual a densidade do aço?"],
+  sources: [
+    {
+      id: 11,
+      kind: "arquivo",
+      title: "Aula de aços",
+      origin: "aula.pdf",
+      status: "pronto",
+      error: null,
+      char_count: 1800,
+      page_count: 4,
+      selected: true,
+      truncated: false,
+      created_at: "2026-09-25T10:00:00Z",
+    },
+  ],
+  notes: [
+    {
+      id: 5,
+      title: "Revisar densidade",
+      body: "O aço tem 7850 kg/m³. [1]",
+      origin: "chat",
+      citations: [notebookCitation],
+      created_at: "2026-09-25T10:00:00Z",
+      updated_at: "2026-09-25T10:00:00Z",
+    },
+  ],
+  usage: { used: 1, limit: 60, remaining: 59 },
+  max_sources: 50,
+  ai_enabled: true,
+  ai_simulated: false,
+  ai_notice: "Não envie material sigiloso ou dados pessoais.",
+};
+
+const notebookMessages = [
+  { id: 1, role: "user" as const, created_at: "2026-09-25T10:01:00Z", text: "Qual a densidade?", answer: null },
+  {
+    id: 2,
+    role: "assistant" as const,
+    created_at: "2026-09-25T10:01:01Z",
+    text: null,
+    answer: {
+      paragraphs: [{ text: "O aço tem 7850 kg/m³.", citations: [1] }],
+      citations: [notebookCitation],
+      not_found: false,
+      withheld: [],
+    },
+  },
+];
+
 vi.mock("@/lib/api", async (importOriginal) => ({
   ApiError: (await importOriginal<typeof import("@/lib/api")>()).ApiError,
   // P1-4: a ficha traz a estrela e anota a visita, então toda tela de registro
@@ -1158,6 +1239,29 @@ vi.mock("@/lib/api", async (importOriginal) => ({
   createProperty: () => Promise.resolve(properties[0]),
   updateProperty: () => Promise.resolve(properties[0]),
   deleteProperty: () => Promise.resolve(),
+  // D-90: os cadernos. Um caderno com uma fonte, o guia escrito (com citação)
+  // e uma resposta na conversa — os três painéis cheios, que é onde moram os
+  // rótulos que a auditoria confere.
+  listNotebooks: () => Promise.resolve([notebookSummary]),
+  createNotebook: () => Promise.resolve(notebookFull),
+  getNotebook: () => Promise.resolve(notebookFull),
+  updateNotebook: () => Promise.resolve(notebookFull),
+  deleteNotebook: () => Promise.resolve(),
+  listNotebookMessages: () => Promise.resolve(notebookMessages),
+  askNotebook: () => Promise.resolve(null),
+  summarizeNotebook: () => Promise.resolve(notebookFull),
+  clearNotebookMessages: () => Promise.resolve(),
+  addNotebookText: () => Promise.resolve(null),
+  addNotebookAppSource: () => Promise.resolve(null),
+  uploadNotebookSource: () => Promise.resolve(null),
+  getNotebookSource: () => Promise.resolve(null),
+  updateNotebookSource: () => Promise.resolve(null),
+  selectAllNotebookSources: () => Promise.resolve([]),
+  deleteNotebookSource: () => Promise.resolve(),
+  addNotebookNote: () => Promise.resolve(null),
+  updateNotebookNote: () => Promise.resolve(null),
+  deleteNotebookNote: () => Promise.resolve(),
+  saveAnswerAsNote: () => Promise.resolve(null),
 }));
 
 // Imported after the mocks so each page picks them up.
@@ -1181,6 +1285,8 @@ const { default: CostPage } = await import("./custo/page");
 const { default: EcoPage } = await import("./eco/page");
 const { default: SynthesisPage } = await import("./sintetizar/page");
 const { default: BatteryPage } = await import("./baterias/page");
+const { default: NotebooksPage } = await import("./cadernos/page");
+const { default: NotebookPage } = await import("./cadernos/[id]/page");
 
 function makeClient() {
   return new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -1378,6 +1484,16 @@ describe("acessibilidade das telas principais", () => {
   // justamente o estado que um teste de conteúdo tenderia a pular.
   it("meus registros", async () => {
     await auditRoute(<MyRecordsPage />, ptBR.myRecords.title);
+  });
+
+  // D-90: a lista e o caderno com os três painéis cheios — guia com citação,
+  // uma resposta, uma nota e as ferramentas do Estúdio "em breve".
+  it("cadernos", async () => {
+    await auditRoute(<NotebooksPage />, ptBR.notebooks.title);
+  });
+
+  it("caderno, nos três painéis", async () => {
+    await auditRoute(<NotebookPage />, ptBR.notebooks.panels.studio);
   });
 
   // P2: sem caso escolhido a tela é um <select> e nada mais — auditá-la ali
