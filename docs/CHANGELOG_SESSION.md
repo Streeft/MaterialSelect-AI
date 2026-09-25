@@ -108,7 +108,10 @@ restaurado num commit à parte.
 está restrito a quem já o usava, e o motivo do Google não chegava à tela porque o
 Gemini devolve o erro dentro de uma lista. Correção num PR à parte: leitura das
 duas formas de erro, modelo `gemini-flash-latest` e conferência do modelo no
-workflow antes de gravar os segredos (adendo da D-93).
+workflow antes de gravar os segredos (adendo da D-93). Com o modelo certo, veio o
+503 "high demand" do plano gratuito — carga do Google, não configuração: o
+`openai-compat` passou a repetir sozinho os status passageiros (duas vezes, 2 s e
+5 s) e a dizer isso em palavras quando não adianta (`docs/09`).
 
 ---
 
