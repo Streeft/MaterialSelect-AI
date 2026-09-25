@@ -49,11 +49,17 @@ export function MenuButton({
   size = "sm",
   disabled = false,
   align = "end",
+  iconOnly = false,
   className,
   children,
 }: {
   /** The trigger's visible text — also the menu's accessible name. */
   label: string;
+  /**
+   * D-95: a round icon button (a figure's corner). The label stays the
+   * button's and the menu's accessible name, and shows as the native title.
+   */
+  iconOnly?: boolean;
   icon?: ReactNode;
   size?: "sm" | "md";
   disabled?: boolean;
@@ -204,18 +210,25 @@ export function MenuButton({
             setOpen(true);
           }
         }}
-        className={cn("msds-btn msds-btn-secondary", `msds-btn-${size}`, className)}
+        title={iconOnly ? label : undefined}
+        className={cn(
+          iconOnly ? "chart-icon-btn chart-icon-btn-solo" : "msds-btn msds-btn-secondary",
+          !iconOnly && `msds-btn-${size}`,
+          className,
+        )}
       >
         {icon ? (
           <span className="inline-flex shrink-0 items-center" aria-hidden>
             {icon}
           </span>
         ) : null}
-        <span className="msds-btn-label">{label}</span>
-        <IconChevronDown
-          aria-hidden
-          className={cn("h-3.5 w-3.5 shrink-0 transition-transform", open && "rotate-180")}
-        />
+        <span className={iconOnly ? "sr-only" : "msds-btn-label"}>{label}</span>
+        {iconOnly ? null : (
+          <IconChevronDown
+            aria-hidden
+            className={cn("h-3.5 w-3.5 shrink-0 transition-transform", open && "rotate-180")}
+          />
+        )}
       </button>
       {menu}
     </>

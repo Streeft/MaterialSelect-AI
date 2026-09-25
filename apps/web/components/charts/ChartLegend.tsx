@@ -196,19 +196,3 @@ export function ChartLegend({
     </div>
   );
 }
-
-/**
- * The line under a figure that reads the mark under the pointer or the focus.
- *
- * MSDS's `BarChart` hover line. `aria-hidden` on purpose: the focused mark
- * already announces its own `aria-label`, and a live region on top of it would
- * read every value twice. When nothing is active it says how to read the
- * figure, rather than holding an empty 18px strip.
- */
-export function ChartInfoLine({ children }: { children: ReactNode | null }) {
-  return (
-    <div aria-hidden className="chart-info-line" data-empty={children ? "false" : "true"}>
-      {children ?? t.interactHint}
-    </div>
-  );
-}

@@ -5,7 +5,8 @@ import type { CostResult } from "@/lib/types";
 import { formatNumber } from "@/lib/format";
 import { paletteSeats } from "@/lib/design/palette";
 import { ChartFrame } from "./ChartFrame";
-import { ChartInfoLine, ChartLegend, type LegendItem, MarkerSymbol } from "./ChartLegend";
+import { ChartLegend, type LegendItem, MarkerSymbol } from "./ChartLegend";
+import { ChartTooltip } from "./ChartTooltip";
 import { FigureData, type FigureColumn } from "./FigureData";
 import { logTicks, makeScale, useChartWidth, useRovingFocus } from "./figureKit";
 
@@ -208,7 +209,7 @@ export function CostCurveChart({
         />
       }
     >
-      <div ref={measure} className="min-w-0">
+      <div ref={measure} className="relative min-w-0">
         <svg
           data-chart-figure
           role="figure"
@@ -419,11 +420,27 @@ export function CostCurveChart({
             );
           })}
         </svg>
-        <ChartInfoLine>
-          {activeMark
-            ? `${activeMark.processName} — Lote: ${formatNumber(activeMark.batchSize)} un · Custo: ${formatNumber(activeMark.cost)}`
-            : null}
-        </ChartInfoLine>
+        {/* D-95: the readout floats beside the point, like every other figure. */}
+        <ChartTooltip
+          content={(() => {
+            if (!activeMark) return null;
+            const index = costed.findIndex((c) => c.process_id === activeMark.processId);
+            const seat = seats[index % seats.length];
+            return {
+              title: activeMark.processName,
+              rows: [
+                {
+                  key: "batch",
+                  label: t.chartTableBatch,
+                  value: `${formatNumber(activeMark.batchSize)} un`,
+                  color: seat?.color,
+                  symbol: seat?.symbol,
+                },
+                { key: "cost", label: "Custo unitário", value: formatNumber(activeMark.cost) },
+              ],
+            };
+          })()}
+        />
       </div>
     </ChartFrame>
   );

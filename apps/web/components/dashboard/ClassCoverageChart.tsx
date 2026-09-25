@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { ClassCoverage } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { formatPercent } from "@/lib/format";
@@ -8,7 +8,13 @@ import { chartFileName } from "@/lib/charts";
 import { EmptyState } from "@/components/ui";
 import { ChartFrame } from "../charts/ChartFrame";
 import { FigureData, type FigureColumn } from "../charts/FigureData";
-import { HorizontalBars, type BarRow, type BarSegment } from "../charts/HorizontalBars";
+import {
+  HorizontalBars,
+  type BarOrientation,
+  type BarRow,
+  type BarSegment,
+} from "../charts/HorizontalBars";
+import { IconChartBarsHorizontal, IconChartColumns } from "@/components/ui/icons";
 import { tok } from "../charts/figureKit";
 
 const t = ptBR.dashboard;
@@ -99,8 +105,18 @@ export function ClassCoverageChart({ classes }: { classes: ClassCoverage[] }) {
     [],
   );
 
+  // D-95: columns by default (the AI Studio figure); the corner switches to
+  // horizontal bars, which read better when category names are long.
+  const [orientation, setOrientation] = useState<BarOrientation>("vertical");
+
   return (
     <ChartFrame
+      views={[
+        { key: "vertical", label: ptBR.chart.viewColumns, icon: <IconChartColumns /> },
+        { key: "horizontal", label: ptBR.chart.viewBars, icon: <IconChartBarsHorizontal /> },
+      ]}
+      view={orientation}
+      onViewChange={(key) => setOrientation(key as BarOrientation)}
       title={t.classCoverageTitle}
       description={t.classCoverageHint}
       exportName={chartFileName("painel", "cobertura-por-classe")}
@@ -117,6 +133,7 @@ export function ClassCoverageChart({ classes }: { classes: ClassCoverage[] }) {
       }
     >
       <HorizontalBars
+        orientation={orientation}
         figureLabel={ptBR.chart.figureLabel(t.classCoverageFigure)}
         segments={segments}
         rows={rows}
@@ -125,14 +142,22 @@ export function ClassCoverageChart({ classes }: { classes: ClassCoverage[] }) {
         describe={(row, segment) => {
           const slots = bySlug.get(row.key)?.coverage.slots ?? 0;
           const count = row.values[segment.key as SegmentKey] ?? 0;
+          // The default tooltip lists every segment of the class; the note
+          // says out of how many pairs, and the coverage the backend computed.
           return {
             aria: `${row.label}: ${segment.label}, ${count.toLocaleString("pt-BR")} ${t.ofSlots(slots)}`,
-            info: (
-              <>
-                <strong>{row.label}</strong> — {segment.label}:{" "}
-                <strong>{count.toLocaleString("pt-BR")}</strong> {t.ofSlots(slots)}
-              </>
-            ),
+            tip: {
+              title: row.label,
+              rows: segments.map((s, i) => ({
+                key: s.key,
+                label: s.label,
+                value: (row.values[s.key as SegmentKey] ?? 0).toLocaleString("pt-BR"),
+                color: s.color,
+                symbol: (["circle", "square", "diamond"] as const)[i],
+                emphasis: s.key === segment.key,
+              })),
+              note: `${t.columnCoverage}: ${row.valueLabel ?? ""} · ${t.ofSlots(slots)}`,
+            },
           };
         }}
       />
