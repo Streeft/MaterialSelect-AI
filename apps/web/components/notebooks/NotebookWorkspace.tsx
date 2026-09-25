@@ -43,6 +43,26 @@ export function NotebookWorkspace({ id }: { id: number }) {
   const [sourcesOpen, setSourcesOpen] = useState(true);
   const [studioOpen, setStudioOpen] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  // The Studio artifact open in the right panel, which widens while it is —
+  // and folds the sources to their rail meanwhile, as NotebookLM does, or the
+  // conversation between them is squeezed to a column of single words. The
+  // sources come back when the artifact closes, if it was this that folded them.
+  const [viewing, setViewing] = useState<number | null>(null);
+  const [foldedForViewer, setFoldedForViewer] = useState(false);
+  const view = (artifactId: number | null) => {
+    if (artifactId !== null && viewing === null && sourcesOpen) {
+      setSourcesOpen(false);
+      setFoldedForViewer(true);
+    }
+    if (artifactId === null && foldedForViewer) {
+      setSourcesOpen(true);
+      setFoldedForViewer(false);
+    }
+    setViewing(artifactId);
+  };
+  // A question a mind map branch brought to the chat box; `nonce` lets the
+  // same one be brought twice.
+  const [draft, setDraft] = useState<{ text: string; nonce: number } | null>(null);
 
   if (notebook.isPending) return <LoadingState />;
   if (notebook.error || !notebook.data) {
@@ -83,7 +103,10 @@ export function NotebookWorkspace({ id }: { id: number }) {
           <SourcesPanel
             notebook={data}
             expanded={sourcesOpen || mobilePanel === "sources"}
-            onToggle={() => setSourcesOpen((v) => !v)}
+            onToggle={() => {
+              setSourcesOpen((v) => !v);
+              setFoldedForViewer(false);
+            }}
           />
         </div>
         <div
@@ -92,19 +115,29 @@ export function NotebookWorkspace({ id }: { id: number }) {
             mobilePanel === "chat" ? "flex" : "hidden",
           )}
         >
-          <ChatPanel notebook={data} />
+          <ChatPanel notebook={data} draft={draft} />
         </div>
         <div
           className={cn(
             "min-h-0 flex-col overflow-hidden rounded-panel border border-edge bg-surface lg:flex",
             mobilePanel === "studio" ? "flex w-full" : "hidden",
-            studioOpen ? "lg:w-72 lg:shrink-0 xl:w-80" : "lg:w-14 lg:shrink-0",
+            !studioOpen
+              ? "lg:w-14 lg:shrink-0"
+              : viewing !== null
+                ? "lg:w-[26rem] lg:shrink-0 xl:w-[32rem] 2xl:w-[40rem]"
+                : "lg:w-72 lg:shrink-0 xl:w-80",
           )}
         >
           <StudioPanel
             notebook={data}
             expanded={studioOpen || mobilePanel === "studio"}
             onToggle={() => setStudioOpen((v) => !v)}
+            viewing={viewing}
+            onView={view}
+            onAsk={(text) => {
+              setDraft({ text, nonce: Date.now() });
+              setMobilePanel("chat");
+            }}
           />
         </div>
       </div>
