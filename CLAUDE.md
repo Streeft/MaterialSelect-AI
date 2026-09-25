@@ -90,7 +90,8 @@ sentido do enunciado).
 Há quatro provedores: `mock` (padrão, determinístico, sem rede), `claude-api`
 (API da Anthropic, chave própria), `claude-cli` (o Claude Code instalado na
 máquina, pela assinatura já autenticada) e `openai-compat` (qualquer servidor que
-fale `/chat/completions`, escolhido por `AI_BASE_URL` — Groq no plano gratuito,
+fale `/chat/completions`, escolhido por `AI_BASE_URL` — o Gemini no plano
+gratuito do Google AI Studio, que é a IA oficial do projeto desde o D-91, Groq,
 Ollama local, OpenRouter, OpenAI). O que os provedores reais compartilham está em
 `app/ai/model_base.py` — **não** em um arquivo com "claude" no nome, porque as
 garantias são da camada. Duas delas não são negociáveis (D-35): **o modelo
@@ -760,7 +761,25 @@ renormalizando**, porque o laudo reexecuta estudos antigos (D-87). Na tela,
 Objetivo é o passo 2 e Restrições o 3 — o motor não mudou (D-88). E a explicação
 por IA só pede `sources` quando há trecho para citar (D-89).
 
-1856 testes de backend (nenhum skip) e 505 de frontend, todos verdes. CI no
+**Cadernos: o NotebookLM dentro do app, fase 1** ([D-90](docs/DECISIONS.md)), e
+**o Gemini gratuito como IA oficial** ([D-91](docs/DECISIONS.md)). Cada aluno tem
+cadernos privados (`/app/cadernos`) com fontes próprias — PDF, DOCX, TXT, MD,
+texto colado, ficha de material, estudo salvo —, conversa citada e notas, na tela
+de três painéis do NotebookLM (Fontes | Conversa | Estúdio). Três regras não se
+afrouxam: **os trechos de caderno moram em tabelas próprias** (a busca do Cérebro
+não tem dono; as funções dela são reaproveitadas, os dados não), **a busca só
+ranqueia a lista que recebe** (as fontes marcadas de um caderno, carregadas pelo
+repositório que não existe sem dono), e **todo número de uma resposta tem de
+estar no trecho que aquele parágrafo cita** — uma nova tentativa nomeando o
+número, depois o parágrafo sai com o motivo escrito. Cota diária por aluno
+(`NOTEBOOK_DAILY_REQUESTS`). O Gemini entra por configuração do `openai-compat`
+(chave do AI Studio **sem faturamento**, trocada pelo workflow **Provedor de
+IA**, `provedor-ia.yml`, que confere em `/api/health`); **o `mock` continua o
+padrão do código e dos testes**. O Estúdio (relatórios, cartões, teste, mapa
+mental, tabela, slides, infográfico, áudio e vídeo pela voz do navegador) e as
+fontes da web são as fases 2 a 4, em `docs/TODO.md`.
+
+1906 testes de backend (nenhum skip) e 530 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
 PROJECT_CONTEXT.md).
@@ -887,8 +906,9 @@ sem erro em log nenhum. O deploy e as operações de banco são feitos por dois
 workflows de disparo manual (`deploy-api.yml`, `admin-banco.yml`), não por
 terminal. Publicar exigiu corrigir cinco defeitos que nenhum teste pegava, e
 duas armadilhas do Fly cuja assinatura é a mesma: **o job fica verde e a
-aplicação não funciona**. Na instância publicada a camada de IA usa a Groq por
-`openai-compat` (o `mock` segue sendo o padrão do código e o que os testes
+aplicação não funciona**. Na instância publicada a camada de IA usava a Groq por
+`openai-compat` — desde o D-91 a oficial é o Gemini gratuito, pelo mesmo
+provedor — (o `mock` segue sendo o padrão do código e o que os testes
 exercitam) e o Stripe responde 503 — configuração, não defeito. **Ligar a IA
 em produção custou mais dois defeitos do mesmo feitio**: o `AIUnavailableError`
 sem tratador, que virava 500 de corpo em texto puro e apagava a mensagem do
