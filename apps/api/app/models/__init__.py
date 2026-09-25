@@ -26,6 +26,16 @@ from app.models.material_keyword import MaterialKeyword
 from app.models.material_property_value import MaterialPropertyValue
 from app.models.material_synthesis import MaterialSynthesis
 from app.models.my_records import Favorite, RecentRecord
+from app.models.notebook import (
+    AIUsage,
+    Notebook,
+    NotebookChunk,
+    NotebookEmbedding,
+    NotebookMessage,
+    NotebookNote,
+    NotebookSource,
+    StudioArtifact,
+)
 from app.models.performance_index import PerformanceIndex
 from app.models.process import MaterialProcess, Process, ProcessClass
 from app.models.process_attribute import (
@@ -48,6 +58,14 @@ from app.models.transport_mode import TransportMode
 from app.models.user import User, UserSession
 
 __all__ = [
+    "AIUsage",
+    "Notebook",
+    "NotebookChunk",
+    "NotebookEmbedding",
+    "NotebookMessage",
+    "NotebookNote",
+    "NotebookSource",
+    "StudioArtifact",
     "AuditAction",
     "AuditEntityType",
     "AuditEvent",

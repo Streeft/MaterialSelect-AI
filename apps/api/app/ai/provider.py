@@ -16,6 +16,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 
 from app.ai.guardrails import Catalogue
+from app.ai.notebook import NotebookDigestContext, NotebookQuestion
 from app.config import Settings
 from app.knowledge.retrieval import RetrievedChunk
 
@@ -152,3 +153,17 @@ class AIProvider(ABC):
     @abstractmethod
     def explain(self, context: ResultContext) -> dict:
         """Write prose about an already-computed result."""
+
+    # --- Cadernos (D-90) ----------------------------------------------------
+    #
+    # Not abstract: a provider that predates the notebooks — or a test double
+    # written for interpretation alone — stays valid, and says plainly that it
+    # does not answer notebook questions instead of failing to instantiate.
+
+    def answer(self, context: NotebookQuestion) -> dict:
+        """Answer a question from the passages given. See ``app.ai.notebook``."""
+        raise AIUnavailableError(f"O provedor '{self.name}' não responde perguntas de cadernos.")
+
+    def digest(self, context: NotebookDigestContext) -> dict:
+        """Write a notebook's guide and suggested questions."""
+        raise AIUnavailableError(f"O provedor '{self.name}' não escreve o guia de cadernos.")

@@ -19,6 +19,7 @@ import re
 import unicodedata
 
 from app.ai.caveats import standard_caveats
+from app.ai.notebook import NotebookDigestContext, NotebookQuestion, Passage
 from app.ai.provider import AIProvider, ProblemContext, PropertyFacts, ResultContext
 from app.calculations.expressions import ExpressionError, safe_variable
 from app.calculations.powerlaw import as_monomial
@@ -541,6 +542,78 @@ class MockAIProvider(AIProvider):
             else f"{context.final_count} candidatos após as restrições."
         )
         return {"summary": summary, "paragraphs": paragraphs, "caveats": caveats}
+
+    # --- Cadernos (D-90) ----------------------------------------------------
+    #
+    # Deterministic and offline like everything above: it quotes the opening of
+    # the passages retrieval ranked first, verbatim. Quoting is what makes the
+    # number check pass by construction — every figure it writes was copied
+    # from the passage it cites.
+
+    def answer(self, context: NotebookQuestion) -> dict:
+        if not context.passages or context.fallback:
+            return {
+                "paragraphs": [
+                    {
+                        "text": (
+                            "Não encontrei nas fontes selecionadas um trecho que responda "
+                            "a isso. Tente reformular a pergunta ou marcar outras fontes."
+                        ),
+                        "citations": [],
+                    }
+                ],
+                "not_found": True,
+            }
+        openings = ("Segundo as fontes, ", "Além disso, ", "Outro trecho acrescenta: ")
+        count = 1 if context.length == "curta" else 3 if context.length == "longa" else 2
+        paragraphs = [
+            {"text": opening + _quote(passage), "citations": [passage.number]}
+            for opening, passage in zip(openings, context.passages[:count], strict=False)
+        ]
+        if context.goal == "guia":
+            paragraphs.append(
+                {
+                    "text": "Para conferir: você consegue explicar isso com as suas palavras?",
+                    "citations": [],
+                }
+            )
+        return {"paragraphs": paragraphs, "not_found": False}
+
+    def digest(self, context: NotebookDigestContext) -> dict:
+        paragraphs = [
+            {"text": _quote(passage), "citations": [passage.number]}
+            for passage in context.passages[:3]
+        ]
+        questions = []
+        for passage in context.passages:
+            topic = passage.heading or passage.source_title
+            question = f"O que as fontes dizem sobre “{topic}”?"
+            if question not in questions:
+                questions.append(question)
+            if len(questions) == 3:
+                break
+        return {"paragraphs": paragraphs, "questions": questions}
+
+
+def _quote(passage: Passage, limit: int = 400) -> str:
+    """The opening sentences of a passage, whole, up to about ``limit`` chars.
+
+    Cut at a sentence end when there is one and at a space otherwise — never in
+    the middle of a word, where a number could lose its digits.
+    """
+    text = " ".join(passage.text.split())
+    sentences = re.split(r"(?<=[.!?])\s+", text)
+    quoted = ""
+    for sentence in sentences:
+        if quoted and len(quoted) + len(sentence) + 1 > limit:
+            break
+        quoted = f"{quoted} {sentence}".strip()
+        if len(quoted) >= limit // 3:
+            break
+    if len(quoted) > limit:
+        cut = quoted[:limit].rsplit(" ", 1)[0]
+        quoted = cut + "…"
+    return quoted
 
 
 def _index_rationale(function_tag: str | None, objective_tag: str | None, overlap: set[str]) -> str:
