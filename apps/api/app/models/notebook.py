@@ -1,4 +1,4 @@
-"""Cadernos (D-90): a student's private notebook of sources, chat and notes.
+"""Cadernos (D-92): a student's private notebook of sources, chat and notes.
 
 The NotebookLM shape inside this product. A notebook holds sources the student
 brought — an uploaded file, pasted text, a material datasheet, a saved study —

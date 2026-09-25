@@ -1,4 +1,4 @@
-"""Cadernos (D-90): cadernos privados, fontes, trechos, conversa, notas e cota.
+"""Cadernos (D-92): cadernos privados, fontes, trechos, conversa, notas e cota.
 
 Oito tabelas novas e nenhuma coluna tocada nas existentes. Os trechos dos
 cadernos ficam **fora** de `knowledge_chunk` de propósito: a busca do Cérebro

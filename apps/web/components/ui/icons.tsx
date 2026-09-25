@@ -392,7 +392,7 @@ export const IconBattery = (p: IconProps) => (
   </Svg>
 );
 
-// --- Cadernos (D-90) --------------------------------------------------------
+// --- Cadernos (D-92) --------------------------------------------------------
 // The notebook itself, and one glyph per Studio tool, each drawing what the
 // tool makes: a waveform for audio, a screen for slides, a play mark for video.
 

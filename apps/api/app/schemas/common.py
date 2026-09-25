@@ -18,7 +18,7 @@ class HealthResponse(BaseModel):
     # login, and it is what modo-acesso.yml reads to prove the switch took —
     # a secret set on an API too old to read it would otherwise pass green.
     access_mode: Literal["subscription", "open"]
-    # D-91: public for the same reason — `provedor-ia.yml` reads them to prove a
+    # D-93: public for the same reason — `provedor-ia.yml` reads them to prove a
     # provider switch took. The provider name and the model name only; never the
     # base URL (a gateway path can carry a token) and never anything about keys.
     ai_provider: str

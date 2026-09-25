@@ -1,7 +1,7 @@
 import { test, expect } from "./session";
 
 /**
- * D-90: a notebook end to end — create it, paste a source, read the guide the
+ * D-92: a notebook end to end — create it, paste a source, read the guide the
  * (simulated) AI writes, ask, and open the passage a citation points at. The
  * backend runs `AI_PROVIDER=mock`, which quotes the passages it cites, so the
  * figures below are the source's own.

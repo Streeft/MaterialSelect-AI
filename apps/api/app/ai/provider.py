@@ -154,7 +154,7 @@ class AIProvider(ABC):
     def explain(self, context: ResultContext) -> dict:
         """Write prose about an already-computed result."""
 
-    # --- Cadernos (D-90) ----------------------------------------------------
+    # --- Cadernos (D-92) ----------------------------------------------------
     #
     # Not abstract: a provider that predates the notebooks — or a test double
     # written for interpretation alone — stays valid, and says plainly that it

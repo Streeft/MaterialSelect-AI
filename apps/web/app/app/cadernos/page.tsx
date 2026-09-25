@@ -21,7 +21,7 @@ import { NOTEBOOKS_KEY, notebookKey } from "@/components/notebooks/keys";
 const t = ptBR.notebooks;
 
 /**
- * Cadernos (D-90): the student's notebooks, newest first. Creating one goes
+ * Cadernos (D-92): the student's notebooks, newest first. Creating one goes
  * straight into it — an empty notebook is where its sources are added.
  */
 export default function NotebooksPage() {

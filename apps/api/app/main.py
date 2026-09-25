@@ -251,7 +251,7 @@ app.include_router(
 app.include_router(
     battery.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
 )
-# Cadernos (D-90): the same gate as every product route, so open access mode
+# Cadernos (D-92): the same gate as every product route, so open access mode
 # (D-83) admits a student. A notebook is the student's own, never the shared
 # catalogue, so no route here needs `require_catalog_curator`.
 app.include_router(

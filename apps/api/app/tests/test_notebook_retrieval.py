@@ -1,4 +1,4 @@
-"""Retrieval inside one notebook (D-90): it ranks what it is handed and nothing
+"""Retrieval inside one notebook (D-92): it ranks what it is handed and nothing
 else, and falls back to each source's opening — round-robin — when nothing
 matches."""
 

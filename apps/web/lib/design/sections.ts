@@ -49,7 +49,7 @@ export interface SectionMeta {
 export const SECTIONS = [
   { id: "inicio", label: "Início", route: "/", hue: 262 },
   { id: "selecao", label: "Seleção", route: "/app/selecao", hue: 300 },
-  // D-90: hue 285 reads as ~245° in sRGB, 18° from the nearest section.
+  // D-92: hue 285 reads as ~245° in sRGB, 18° from the nearest section.
   { id: "cadernos", label: "Cadernos", route: "/app/cadernos", hue: 285 },
   { id: "mapas", label: "Mapas", route: "/app/mapas", hue: 185 },
   { id: "comparar", label: "Comparar", route: "/app/comparar", hue: 350 },

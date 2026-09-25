@@ -13,23 +13,23 @@ os vizinhos — outros documentos citam esses códigos.
 
 ## Alta prioridade
 
-**Cadernos — fases 2 a 4 (D-90).** ▃ A fase 1 entregou cadernos privados,
+**Cadernos — fases 2 a 4 (D-92).** ▃ A fase 1 entregou cadernos privados,
 fontes (arquivo, texto, ficha, estudo), conversa citada, guia, notas e cota. O
-que falta, tudo sem custo (D-91):
+que falta, tudo sem custo (D-93):
 
-- **Fase 2 — Estúdio de texto (D-92).** O modal Formato/Modelo das capturas
+- **Fase 2 — Estúdio de texto (D-94).** O modal Formato/Modelo das capturas
   (sobre o `RadioCard`), gerando e guardando em `StudioArtifact` (a tabela já
   existe): Relatórios (visão geral, guia de estudo, resumo, FAQ, glossário,
   personalizado), Cartões didáticos, Teste, Tabela de dados (cada célula citada
   e conferida) e Mapa mental (SVG próprio com tabela alternativa, D-31). A cota
   de artefatos usa `ai_usage.artifacts`. Exportações com o aviso de limitação.
-- **Fase 3 — fontes externas (D-93).** URL com proteção contra SSRF, YouTube
+- **Fase 3 — fontes externas (D-95).** URL com proteção contra SSRF, YouTube
   (legenda pública; se falhar, colar a transcrição), OpenAlex e Wikipédia pelas
   APIs gratuitas, e busca na web por *grounding* com Google Search — o que
   exige um provedor `gemini` **nativo** (o endpoint compatível não expõe a
   ferramenta). A caixa "Pesquise novas fontes na web" já está na tela, marcada
   "em breve".
-- **Fase 4 — visual e sonoro (D-94).** Slides + PPTX, Infográfico, e Resumo em
+- **Fase 4 — visual e sonoro (D-96).** Slides + PPTX, Infográfico, e Resumo em
   Áudio e em Vídeo com roteiro do backend e a voz do navegador
   (`speechSynthesis`), sem TTS pago.
 

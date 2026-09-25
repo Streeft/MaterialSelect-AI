@@ -1,4 +1,4 @@
-"""Cadernos (D-90): sources, chat, guide and notes of one student's notebooks.
+"""Cadernos (D-92): sources, chat, guide and notes of one student's notebooks.
 
 The rules this service exists to keep, in the order a request meets them:
 

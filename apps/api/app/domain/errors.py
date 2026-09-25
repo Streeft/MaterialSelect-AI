@@ -49,7 +49,7 @@ class CatalogReadOnlyError(DomainError):
 
 
 class QuotaExceededError(DomainError):
-    """A per-user daily limit is spent (the Cadernos' AI quota, D-90). -> HTTP 429."""
+    """A per-user daily limit is spent (the Cadernos' AI quota, D-92). -> HTTP 429."""
 
 
 class ServiceUnavailableError(DomainError):

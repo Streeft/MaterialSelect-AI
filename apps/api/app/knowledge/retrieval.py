@@ -97,7 +97,7 @@ def search(db: Session, query: str, *, top_k: int, settings: Settings) -> list[R
 
 def lexical_rank(chunks: list[KnowledgeChunk], query_tokens: list[str]) -> list[tuple[int, float]]:
     """BM25 over ``chunks`` alone. Duck-typed on ``id`` and ``search_text``, so
-    a notebook's passages (D-90) are ranked by the same function over *their*
+    a notebook's passages (D-92) are ranked by the same function over *their*
     corpus — the document frequencies are the notebook's, never the Cérebro's.
     """
     if not chunks:

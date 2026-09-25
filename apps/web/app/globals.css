@@ -616,7 +616,7 @@
 }
 
 [data-section="cadernos"] {
-  /* Cadernos · hue 285 (D-90). accent/white 6.23:1 · brand-700/brand-50 7.11:1 */
+  /* Cadernos · hue 285 (D-92). accent/white 6.23:1 · brand-700/brand-50 7.11:1 */
   --brand-50: 241 242 255;
   --brand-100: 228 229 255;
   --brand-200: 210 211 255;
@@ -1131,7 +1131,7 @@
 }
 
 [data-theme="dark"][data-section="cadernos"] {
-  /* Cadernos · hue 285 (D-90). accent/surface 9.44:1 · brand-700/brand-50 9.74:1 */
+  /* Cadernos · hue 285 (D-92). accent/surface 9.44:1 · brand-700/brand-50 9.74:1 */
   --brand-50: 25 22 54;
   --brand-100: 43 39 85;
   --brand-200: 63 57 118;

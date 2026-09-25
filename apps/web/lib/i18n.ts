@@ -50,7 +50,7 @@ export const ptBR = {
     // P1-4: o espaço do usuário. Fica em "Dados" e não em "Estudar" porque é
     // onde os registros moram, não uma ferramenta de decidir com eles.
     myRecords: "Meus registros",
-    // D-90: o caderno de estudo com fontes próprias (o NotebookLM do app).
+    // D-92: o caderno de estudo com fontes próprias (o NotebookLM do app).
     notebooks: "Cadernos",
     // Eight links in a row said nothing about what belongs with what. The
     // groups are the three things someone does here, in the order they do them.
@@ -1248,7 +1248,7 @@ export const ptBR = {
     universeProcess: "Processo",
   },
 
-  // D-90: Cadernos — fontes do aluno, conversa citada, notas e Estúdio.
+  // D-92: Cadernos — fontes do aluno, conversa citada, notas e Estúdio.
   notebooks: {
     title: "Cadernos",
     description:

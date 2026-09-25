@@ -124,7 +124,7 @@ class Settings(BaseSettings):
     # a da Groq, que o servidor de embeddings nem aceitaria.
     knowledge_embedding_api_key: str = ""
 
-    # --- Cadernos (D-90) --------------------------------------------------
+    # --- Cadernos (D-92) --------------------------------------------------
     # AI calls one student may make per day (chat answers and notebook guides
     # together). On the free Gemini plan the whole class shares one key's daily
     # limit; this is what keeps one curious student from spending everybody's.

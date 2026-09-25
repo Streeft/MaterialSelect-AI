@@ -543,7 +543,7 @@ class MockAIProvider(AIProvider):
         )
         return {"summary": summary, "paragraphs": paragraphs, "caveats": caveats}
 
-    # --- Cadernos (D-90) ----------------------------------------------------
+    # --- Cadernos (D-92) ----------------------------------------------------
     #
     # Deterministic and offline like everything above: it quotes the opening of
     # the passages retrieval ranked first, verbatim. Quoting is what makes the

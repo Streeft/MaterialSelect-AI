@@ -19,7 +19,7 @@ async function expectAccessible(container: Element) {
   expect(violations, describeViolations(violations)).toHaveLength(0);
 }
 
-describe("RichText (D-90)", () => {
+describe("RichText (D-92)", () => {
   it("renders bold, italic, lists and paragraphs", () => {
     const { container } = render(
       <RichText text={"O **aço** é *tenaz*.\n\n- dúctil\n- barato"} />,
@@ -49,7 +49,7 @@ describe("RichText (D-90)", () => {
   });
 });
 
-describe("CitationChip (D-90)", () => {
+describe("CitationChip (D-92)", () => {
   it("opens the passage it cites", async () => {
     const user = userEvent.setup();
     render(
@@ -67,7 +67,7 @@ describe("CitationChip (D-90)", () => {
   });
 });
 
-describe("ChatLog (D-90)", () => {
+describe("ChatLog (D-92)", () => {
   it("is an announced log whose turns name their author", async () => {
     const { container } = render(
       <ChatLog label="Conversa">
@@ -87,7 +87,7 @@ describe("ChatLog (D-90)", () => {
   });
 });
 
-describe("FileDrop and UploadList (D-90)", () => {
+describe("FileDrop and UploadList (D-92)", () => {
   it("hands chosen files to onFiles and can be chosen again", async () => {
     const onFiles = vi.fn();
     const user = userEvent.setup();
@@ -127,7 +127,7 @@ describe("FileDrop and UploadList (D-90)", () => {
   });
 });
 
-describe("ToolTile (D-90)", () => {
+describe("ToolTile (D-92)", () => {
   it("stays focusable when unavailable, says why, and does nothing", async () => {
     const onClick = vi.fn();
     const user = userEvent.setup();
@@ -150,7 +150,7 @@ describe("ToolTile (D-90)", () => {
   });
 });
 
-describe("PanelHeader (D-90)", () => {
+describe("PanelHeader (D-92)", () => {
   it("ties the toggle to the region it folds", async () => {
     const onToggle = vi.fn();
     const user = userEvent.setup();

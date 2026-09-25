@@ -2,7 +2,7 @@
 
 Returns the same shape for every format — :class:`ExtractedText`, a list of
 pages — so the chunker never learns what a PDF is. Today only PDF is
-the Cérebro's only format, while a notebook (D-90) also takes DOCX, TXT and
+the Cérebro's only format, while a notebook (D-92) also takes DOCX, TXT and
 Markdown — read from **bytes**, because an upload is never written to disk.
 
 ``pypdf`` was chosen over ``pymupdf``: it is pure Python, small, and
@@ -75,7 +75,7 @@ def extract_text(path: Path) -> ExtractedText:
     raise ValidationError(f"Formato não suportado para extração: {suffix or path.name}")
 
 
-# --- uploads (D-90) --------------------------------------------------------
+# --- uploads (D-92) --------------------------------------------------------
 
 #: What a notebook accepts, by extension. The content is checked too: an
 #: extension is a claim the uploader makes, the first bytes are a fact.

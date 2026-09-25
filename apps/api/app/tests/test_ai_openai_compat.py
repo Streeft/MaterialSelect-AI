@@ -493,7 +493,7 @@ class TestAGenerationTheServerRejectsIsAskedAgain:
         assert server.calls == 1
 
 
-# --- D-91: the provider a switch left in place, read from the outside --------
+# --- D-93: the provider a switch left in place, read from the outside --------
 
 
 class TestHealthNamesTheProviderAndNothingElse:
@@ -521,7 +521,7 @@ class TestHealthNamesTheProviderAndNothingElse:
 
 
 class TestNotebookAnswersOverTheWire:
-    """D-90: a real provider answers a notebook question through the same
+    """D-92: a real provider answers a notebook question through the same
     transport, with the notebook's own schema, and the reply is coerced."""
 
     def _question(self):

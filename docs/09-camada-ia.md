@@ -161,7 +161,7 @@ não há de onde um trecho do Cérebro entraria nessa tela.
 
 ## Cadernos (`app/notebooks/`, `app/ai/notebook.py`)
 
-Os Cadernos ([D-90](DECISIONS.md)) são a mesma camada lendo outra coisa: em vez
+Os Cadernos ([D-92](DECISIONS.md)) são a mesma camada lendo outra coisa: em vez
 do catálogo e de um estudo, as fontes que o aluno trouxe. O provedor ganha dois
 métodos — `answer` (pergunta) e `digest` (guia do caderno) — com a mesma fronteira
 de sempre: recebe a pergunta e os trechos escolhidos, nunca uma sessão de banco.
@@ -226,14 +226,14 @@ que **não tem padrão**, porque um padrão escolheria um fornecedor pelo operad
 O aviso que o usuário vê nomeia **o host** de destino, nunca o caminho: um
 caminho de gateway pode carregar token.
 
-**Na instância publicada, esse servidor é o Gemini** ([D-91](DECISIONS.md)):
+**Na instância publicada, esse servidor é o Gemini** ([D-93](DECISIONS.md)):
 o plano gratuito do Google AI Studio, por
 `AI_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai`, com
 `AI_MODEL=gemini-2.5-flash` e os embeddings do Cérebro em
 `gemini-embedding-001` pela mesma chave. É configuração, não código: o
 workflow **Provedor de IA** (`provedor-ia.yml`) troca os segredos do Fly entre
 `gemini`, `groq` e `mock` e confere o resultado em `/api/health`, que desde o
-D-91 nomeia o provedor e o modelo — nunca a URL nem a chave. O plano gratuito
+D-93 nomeia o provedor e o modelo — nunca a URL nem a chave. O plano gratuito
 tem dois custos que não são dinheiro: **limite** (o 429 diz que há um por
 minuto e outro por dia) e **privacidade** (o Google pode usar o conteúdo para
 treino). A chave é criada **sem faturamento**, e é só isso que a mantém

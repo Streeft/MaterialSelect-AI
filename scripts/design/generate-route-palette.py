@@ -99,7 +99,7 @@ ROUTE_HUES = {
  # for explicitly).
  'dimensionar': 110, 'custo': 80, 'eco': 140, 'baterias': 130, 'processos': 250,
  'sintetizar': 270, 'meus-registros': 320, 'classes': 330, 'propriedades': 20,
- # D-90: Cadernos. 285 is the free OKLCH angle whose perceived hue (~245°)
+ # D-92: Cadernos. 285 is the free OKLCH angle whose perceived hue (~245°)
  # clears every other section by >=15° (18° from selecao).
  'cadernos': 285,
 }
