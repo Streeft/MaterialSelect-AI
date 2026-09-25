@@ -160,6 +160,12 @@ ficou sem objeto. Três regras que não são questão de gosto:
     O sobrescrito mono em caixa alta só aparece no cabeçalho da página.
   - **Código novo** usa os tokens semânticos (`bg-page`, `bg-panel`,
     `bg-well`, `border-line`, `bg-action`), e não os passos da paleta.
+- **Gráfico é o do AI Studio, nas cores do app** ([D-95](docs/DECISIONS.md)):
+  - **Resumo:** vem do `ChartTooltip` (categoria e uma linha por série),
+    nunca do hover do Plotly.
+  - **Canto do cartão:** botões de ícone (`ChartFrame` `views` para trocar o
+    tipo, "Tabela", "Exportar").
+  - **Eixo:** um só, **nunca eixo duplo**.
 
 E as proibições do §13 de [`docs/REDESIGN.md`](docs/REDESIGN.md), que continuam
 valendo depois da Fase 8: nenhuma biblioteca de componentes, **nenhum framework

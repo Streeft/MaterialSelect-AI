@@ -1,5 +1,6 @@
 "use client";
 
+import { IconChartBox } from "@/components/ui/icons";
 import { useMemo } from "react";
 import type { ChartScale, DistributionBox, PropertyCoverage, PropertyDistribution } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
@@ -103,6 +104,7 @@ export function PropertyDistributionPanel({
 
   return (
     <ChartFrame
+      figureIcon={<IconChartBox />}
       title={t.distributionTitle}
       description={t.distributionSubtitle}
       exportName={chartFileName("painel", "distribuicao", distribution?.property_name, scale)}
@@ -177,15 +179,26 @@ export function PropertyDistributionPanel({
             axisTitle={titleFor(distribution.property_name, unit)}
             describe={(row) => ({
               aria: `${row.label}: ${t.columnMin} ${withUnit(row.minimum)}, ${t.columnQ1} ${withUnit(row.q1)}, ${t.columnMedian} ${withUnit(row.median)}, ${t.columnQ3} ${withUnit(row.q3)}, ${t.columnMax} ${withUnit(row.maximum)}; ${row.count} ${t.columnCountBox.toLowerCase()}`,
-              info: (
-                <>
-                  <strong>{row.label}</strong> — {t.columnMin.toLowerCase()} {formatNumber(row.minimum)} ·{" "}
-                  {t.columnQ1} {formatNumber(row.q1)} · {t.columnMedian.toLowerCase()}{" "}
-                  <strong>{formatNumber(row.median)}</strong> · {t.columnQ3} {formatNumber(row.q3)} ·{" "}
-                  {t.columnMax.toLowerCase()} {formatNumber(row.maximum)}
-                  {unitLabel ? ` ${unitLabel}` : ""} · n = {row.count}
-                </>
-              ),
+              // D-95: the class, then its five numbers — the median emphasised,
+              // the unit once in the title rather than on every row.
+              tip: {
+                title: unitLabel ? `${row.label} · ${unitLabel}` : row.label,
+                rows: [
+                  { key: "max", label: t.columnMax, value: formatNumber(row.maximum) },
+                  { key: "q3", label: t.columnQ3, value: formatNumber(row.q3) },
+                  {
+                    key: "median",
+                    label: t.columnMedian,
+                    value: formatNumber(row.median),
+                    color: row.color,
+                    symbol: row.symbol,
+                    emphasis: true,
+                  },
+                  { key: "q1", label: t.columnQ1, value: formatNumber(row.q1) },
+                  { key: "min", label: t.columnMin, value: formatNumber(row.minimum) },
+                ],
+                note: `n = ${row.count}`,
+              },
             })}
           />
       ) : null}
