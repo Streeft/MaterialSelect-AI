@@ -41,7 +41,7 @@ cost would make the most capital-intensive process look free.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 #: Attribute slugs the model reads from a process, and what each one is.
 TOOLING_COST = "custo-ferramental"
@@ -67,6 +67,29 @@ MATERIAL_COST_SLUG = "custo_massa"
 #: has to name it — this estimator, and the cost objective of the solver, which
 #: divides by an index built on the same dimensionless ``custo_massa``.
 MONETARY_UNIT = "unidade monetária não especificada"
+
+#: Standard batch sizes sampled for the cost vs batch size curve: 1, 2, 5 per decade.
+DEFAULT_CURVE_BATCH_SIZES: tuple[float, ...] = (
+    1.0,
+    2.0,
+    5.0,
+    10.0,
+    20.0,
+    50.0,
+    100.0,
+    200.0,
+    500.0,
+    1_000.0,
+    2_000.0,
+    5_000.0,
+    10_000.0,
+    20_000.0,
+    50_000.0,
+    100_000.0,
+    200_000.0,
+    500_000.0,
+    1_000_000.0,
+)
 
 
 class PartCostError(ValueError):
@@ -117,6 +140,14 @@ class CostTerms:
 
 
 @dataclass(frozen=True)
+class CostCurvePoint:
+    """One point of the unit cost vs batch size (n) curve (Ashby/ADR 0004)."""
+
+    batch_size: float
+    cost: float
+
+
+@dataclass(frozen=True)
 class CostedProcess:
     """One process priced for this part, at this batch size."""
 
@@ -125,6 +156,7 @@ class CostedProcess:
     process_name: str
     rank: int
     terms: CostTerms
+    curve: list[CostCurvePoint] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -153,6 +185,52 @@ def _hours_per_year(write_off_years: float) -> float:
     reader change one without silently changing the other.
     """
     return HOURS_PER_YEAR * write_off_years
+
+
+def curve_batch_sizes(current_batch: float = 1.0) -> list[float]:
+    """Span of batch sizes for drawing the C(n) curve.
+
+    Covers 1 to 10⁶ in 1, 2, 5 steps per decade (the standard log spacing),
+    and inserts the user-requested ``current_batch`` in sorted order if not already
+    present. If ``current_batch`` exceeds 10⁶, decades are extended to cover it.
+    """
+    batches = set(DEFAULT_CURVE_BATCH_SIZES)
+    if current_batch > 0:
+        batches.add(float(current_batch))
+
+    max_batch = max(batches)
+    if max_batch > 1_000_000.0:
+        highest_decade = 10 ** int(len(str(int(max_batch)))))
+        for decade_mult in (10_000_000.0, 100_000_000.0, 1_000_000_000.0):
+            for mult in (1.0, 2.0, 5.0):
+                val = mult * (decade_mult / 10.0)
+                if val <= highest_decade * 2.0:
+                    batches.add(val)
+
+    return sorted(batches)
+
+
+def cost_curve(
+    *,
+    base_cost: float,
+    tooling_cost: float,
+    batch_sizes: list[float] | None = None,
+    current_batch: float = 1.0,
+) -> list[CostCurvePoint]:
+    """Calculate unit cost points across batch sizes: C(n) = C_base + C_t / n.
+
+    The curve asymptotes to ``base_cost`` (material + overhead + capital) as
+    ``n -> infinity``, and climbs as ``1/n`` for small batches.
+    """
+    sizes = batch_sizes if batch_sizes is not None else curve_batch_sizes(current_batch)
+    return [
+        CostCurvePoint(
+            batch_size=n,
+            cost=base_cost + (tooling_cost / n if n > 0 else 0.0),
+        )
+        for n in sizes
+        if n >= 1.0
+    ]
 
 
 def cost_terms(
