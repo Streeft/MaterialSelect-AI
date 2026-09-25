@@ -5643,3 +5643,51 @@ verificada por índice (D-47).
 **Depois do merge**, o **Deploy da API**; conferir gerando o laudo de um estudo
 salvo (seção 7 com o texto da IA) e o "Preencher a partir de um texto (IA)" no
 passo Função.
+
+## D-90 — O tema claro ganha fundo de papel bege, bordas mais escuras e sombra que separa
+
+**O sintoma.** Relato do autor com o app no ar: no tema claro ficava "quase
+indistinguível qual caixa, qual botão pertence". A medida confirma. A página
+(`--surface` 244 246 250) e o cartão (`--surface-raised`, branco) ficavam a
+1,1:1 um do outro. O contorno do cartão (`--edge` 220 225 234) dava 1,2:1
+contra a página. E a sombra do cartão (`0 1px 2px` a 5 %) não aparecia. Um
+botão secundário é branco sobre branco, então só a borda o distinguia, e essa
+borda (`--edge-control`) dava 4,15:1 sobre a página.
+
+**A decisão**, só no tema claro:
+
+- **A página vira papel bege claro** (`--surface` 241 237 229,
+  `--surface-sunken` 235 231 223), um degrau abaixo do cartão branco. Isso
+  revoga a justificativa do D-38 ("cinza-azulado, não papel quente"): o
+  argumento dele era a leitura do gráfico, mas o mapa e as tabelas moram
+  dentro de cartões brancos, que não mudaram. O matiz de seção continua a
+  ser a única cor de marca na tela.
+- **Os fios escurecem e ficam quentes como a página**: `--edge` 204 198 187,
+  `--edge-subtle` 221 216 206 e `--edge-strong` 166 160 148.
+  `--edge-control` passa de 111 119 137 para **88 94 108**, com 6,50:1 sobre o
+  cartão e 5,56:1 sobre a página. Pelo D-34, é essa borda que diz que um
+  controle existe ali.
+- **A sombra passa a separar, não só dar profundidade.** `--shadow-card` e as
+  outras sombras são mais fortes e tingidas do marrom da página, não do preto.
+  O novo `--shadow-control` fica sob o botão secundário, o botão de ícone, o
+  chip, a caixa de seleção e o círculo do botão de opção. A caixa de seleção e
+  o círculo do botão de opção ganham borda de 1,5 px e fundo branco próprio,
+  para não sumirem sobre o bege. O contorno do controle segmentado passa a
+  `--edge-strong`.
+- **O Tailwind lê as sombras dos tokens** (`shadow-card` →
+  `var(--shadow-card)` etc.). Antes eram literais no `tailwind.config.ts`, o
+  que obrigava a mudar cada tema em dois lugares.
+
+**O que isso custou e onde foi medido.** Contra o bege, o `--ink-subtle` do
+D-38 caía para 4,2:1 no poço (`--surface-sunken`). Por isso passou a
+92 99 114 (5,16:1 na página e 4,89:1 no poço). O tom do poço foi escolhido
+para que o `--accent` mais fraco das 15 rotas continuasse acima de 4,5:1 nele
+(4,53:1); na página ele dá 4,79:1. `verify-globals-contrast.py` passa nas 15
+rotas.
+
+**O tema escuro não muda.** O bloco `[data-theme="dark"]` repete as sombras
+de antes do D-90, e `--shadow-control` ali é `none`: sobre carvão, sombra
+separa pouco, e o relato era sobre o tema claro.
+
+**Pendência herdada.** As figuras da monografia que são capturas de `/estilo`
+precisam ser refeitas também por este D-90, não só pelo D-38.
