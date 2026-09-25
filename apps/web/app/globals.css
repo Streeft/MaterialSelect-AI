@@ -648,6 +648,30 @@
   --md-sys-color-surface-tint: #984649;
 }
 
+[data-section="cadernos"] {
+  /* Cadernos · hue 285 (D-92). accent/white 6.23:1 · brand-700/brand-50 7.11:1 */
+  --brand-50: 241 242 255;
+  --brand-100: 228 229 255;
+  --brand-200: 210 211 255;
+  --brand-300: 189 188 253;
+  --brand-400: 157 154 231;
+  --brand-500: 128 122 210;
+  --brand-600: 111 104 191;
+  --brand-700: 79 71 147;
+  --brand-800: 63 57 118;
+  --brand-900: 43 39 85;
+  --brand-950: 25 22 54;
+  --accent: 94 88 159;
+  --accent-fg: 255 255 255;
+  --md-sys-color-primary: #5e589f;
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #807ad2;
+  --md-sys-color-on-primary-container: #ffffff;
+  --md-sys-color-secondary-container: #d2d3ff;
+  --md-sys-color-on-secondary-container: #3f3976;
+  --md-sys-color-surface-tint: #5e589f;
+}
+
 
 
 
@@ -1146,6 +1170,30 @@
   --md-sys-color-secondary-container: #6f292c;
   --md-sys-color-on-secondary-container: #ffdfde;
   --md-sys-color-surface-tint: #fda1a0;
+}
+
+[data-theme="dark"][data-section="cadernos"] {
+  /* Cadernos · hue 285 (D-92). accent/surface 9.44:1 · brand-700/brand-50 9.74:1 */
+  --brand-50: 25 22 54;
+  --brand-100: 43 39 85;
+  --brand-200: 63 57 118;
+  --brand-300: 79 71 147;
+  --brand-400: 111 104 191;
+  --brand-500: 128 122 210;
+  --brand-600: 157 154 231;
+  --brand-700: 189 188 253;
+  --brand-800: 210 211 255;
+  --brand-900: 228 229 255;
+  --brand-950: 241 242 255;
+  --accent: 182 180 255;
+  --accent-fg: 20 22 28;
+  --md-sys-color-primary: #b6b4ff;
+  --md-sys-color-on-primary: #2b2755;
+  --md-sys-color-primary-container: #4f4793;
+  --md-sys-color-on-primary-container: #ffffff;
+  --md-sys-color-secondary-container: #3f3976;
+  --md-sys-color-on-secondary-container: #e4e5ff;
+  --md-sys-color-surface-tint: #b6b4ff;
 }
 
 

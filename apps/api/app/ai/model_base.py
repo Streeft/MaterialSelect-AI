@@ -28,6 +28,18 @@ import math
 from abc import abstractmethod
 
 from app.ai.caveats import standard_caveats
+from app.ai.notebook import (
+    ANSWER_SCHEMA,
+    DIGEST_SCHEMA,
+    NotebookDigestContext,
+    NotebookQuestion,
+    answer_system,
+    answer_user,
+    digest_system,
+    digest_user,
+    read_answer,
+    read_digest,
+)
 from app.ai.prompts import (
     INTERPRET_SYSTEM,
     explain_schema,
@@ -110,6 +122,14 @@ class ModelProviderBase(AIProvider):
             # Not the model's to write, and not the model's to leave out.
             "caveats": standard_caveats(context),
         }
+
+    def answer(self, context: NotebookQuestion) -> dict:
+        raw = self._complete(answer_system(context), answer_user(context), ANSWER_SCHEMA)
+        return read_answer(raw)
+
+    def digest(self, context: NotebookDigestContext) -> dict:
+        raw = self._complete(digest_system(context), digest_user(context), DIGEST_SCHEMA)
+        return read_digest(raw)
 
 
 def read_interpretation(raw: dict, context: ProblemContext) -> dict:

@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [29](#sessão-29--250926--cadernos-o-notebooklm-dentro-do-app-e-o-gemini-gratuito) | 25/09/2026 | Cadernos, fase 1: fontes privadas, conversa citada com número conferido, guia, notas e cota, na tela de três painéis do NotebookLM (D-92); o Gemini gratuito como IA oficial, por configuração (D-93) | 1856 → 1906 | 505 → 536 (com os 6 do D-91, mesclado de main) |
 | [28](#sessão-28--240926-a-280926--turma-de-terça-processos-no-objetivo-ux-guiada-pesos-com-limite-e-a-ia) | 24 a 28/09/2026 | Preparação para a turma: processos no Objetivo, Seleção guiada, superfícies enxutas, pesos com limite 1, Objetivo antes de Restrições e a IA do laudo (D-84 a D-89) | 1785 → 1856 | 431 → 505 |
 | [27](#sessão-27--240926--o-portão-vira-um-modo-acesso-aberto-para-uma-turma-d-83) | 24/09/2026 | Acesso aberto para estudantes com qualquer conta Google, catálogo compartilhado protegido, e o workflow que abre e fecha (D-83) | 1755 → 1785 | 422 → 427 |
 | [26](#sessão-26--21092026-a-22092026--a-auditoria-de-produção-o-seed-desconectado-d-71-e-a-exclusão-de-demo-por-um-flag-d-72) | 21 e 22/09/2026 | Auditoria ao vivo da produção; o defeito do seed desconectado (D-71) achado e corrigido; mecanismo de exclusão de dado demo por `is_demo` (D-72) e a regra escrita para qualquer agente/IDE | 1727 → 1741 | 368 (inalterado) |
@@ -44,6 +45,64 @@ As sessões entre a 11 e a 12 — o patch de design "Prisma" (D-49, D-50), o
 upgrade de segurança S1 e a rodada de desempenho — **não têm seção própria
 aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
+
+---
+
+## Sessão 29 — 25/09/26 — Cadernos: o NotebookLM dentro do app, e o Gemini gratuito
+
+**O pedido.** "Quero que a IA faça as mesmas funcionalidades do Google
+NotebookLM", com o layout dele ("parecido ou até igual", com capturas), e o
+Gemini como IA oficial do projeto no lugar da Groq. As respostas às perguntas
+fecharam o escopo: cadernos **privados por aluno**; Estúdio completo (relatórios,
+cartões, teste, mapa mental, tabela, slides, infográfico, áudio e vídeo); fontes
+em PDF, DOCX, TXT, MD, texto colado, dados do app, sites e YouTube; números **só
+copiados da fonte, citados**; busca em OpenAlex, Wikipédia e web. E, por último,
+a restrição que manda em tudo: **nada no cartão, nem o crédito da assinatura**.
+
+**A pesquisa.** O NotebookLM é RAG sobre as fontes do usuário com citação em
+linha; o Estúdio gera artefatos a partir delas. A assinatura Google AI Pro do
+autor **não** dá cota de API (só um crédito do Google Cloud, recusado por ele);
+o plano gratuito do AI Studio, sem faturamento, dá Gemini Flash e embeddings de
+graça, com limites diários e o conteúdo podendo ser usado para treino. Áudio e
+vídeo sem custo: roteiro no backend e a voz do navegador.
+
+**F1a — Gemini por configuração (D-93).** O Gemini fala o protocolo OpenAI, então
+a troca é `AI_BASE_URL`/`AI_MODEL`/`AI_API_KEY` do `openai-compat` e
+`gemini-embedding-001` nos embeddings. `/api/health` passou a nomear provedor e
+modelo, e o workflow **Provedor de IA** troca os segredos do Fly e só fica verde
+lendo o provedor novo ali. O 429 ganhou a mensagem dos dois limites.
+
+**F1b — o backend (D-92).** Oito tabelas (caderno, fonte, trecho, embedding,
+mensagem, nota, artefato do Estúdio, cota) — **fora** do Cérebro, porque a busca
+dele não tem dono. Leitores a partir de bytes com o tipo conferido pelo conteúdo;
+pypdf virou dependência principal (a produção não o instalava). Busca restrita às
+fontes marcadas de um caderno; resposta por parágrafo com citação por número;
+todo número conferido contra o trecho que **aquele** parágrafo cita, com uma nova
+tentativa e depois a omissão declarada. Guia com perguntas sugeridas, notas,
+salvar resposta como nota, cota diária. O canário de isolamento varre as rotas
+novas com um caderno alheio.
+
+Um defeito real apareceu no teste do provedor de verdade: os atributos do
+`<trecho>` saíam com os acentos escapados (`A\u00e7os`), porque `json.dumps` usa
+ASCII por padrão. Corrigido com `ensure_ascii=False`.
+
+**F1c — a tela.** `/app/cadernos` e `/app/cadernos/[id]` no desenho das capturas,
+com seis primitivas novas no barril e em `/estilo`, a seção de cor `cadernos`
+(matiz 285, medido pelo script de contraste) e o item no menu. Conferido num
+Chromium de verdade pelo E2E novo (criar → colar texto → guia → perguntar → abrir
+a citação → telefone), com capturas: a conversa ficava estreita a 1280 px e os
+painéis laterais encolheram para `w-64`/`w-72` em `lg`.
+
+**Tropeços.** O `black` rodado em `alembic/` reformatou migrações antigas — revertido
+(a CI só formata `app`). O servidor do E2E reescreveu `next-env.d.ts` com o
+caminho `.next-e2e` e ele entrou num commit, a mesma armadilha da sessão 28 —
+restaurado num commit à parte.
+
+**Números.** Backend 1856 → 1906; frontend 505 → 530 nesta sessão, 536 depois de mesclar o D-91 de `main`; E2E + 1. As decisões nasceram como D-90 e D-91 e foram renumeradas para D-92 e D-93 porque `main` recebeu essas duas enquanto o PR estava aberto.
+
+**Depois do merge:** Deploy da API (migração nova); criar o segredo
+`GEMINI_API_KEY` no AI Studio **sem faturamento** e rodar **Provedor de IA** →
+`gemini` (passo a passo em `13-deploy.md` §5-quinquies).
 
 ---
 

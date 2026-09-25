@@ -48,6 +48,10 @@ class CatalogReadOnlyError(DomainError):
         super().__init__(message)
 
 
+class QuotaExceededError(DomainError):
+    """A per-user daily limit is spent (the Cadernos' AI quota, D-92). -> HTTP 429."""
+
+
 class ServiceUnavailableError(DomainError):
     """A required external dependency is not configured. -> HTTP 503.
 

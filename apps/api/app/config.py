@@ -124,6 +124,24 @@ class Settings(BaseSettings):
     # a da Groq, que o servidor de embeddings nem aceitaria.
     knowledge_embedding_api_key: str = ""
 
+    # --- Cadernos (D-92) --------------------------------------------------
+    # AI calls one student may make per day (chat answers and notebook guides
+    # together). On the free Gemini plan the whole class shares one key's daily
+    # limit; this is what keeps one curious student from spending everybody's.
+    notebook_daily_requests: int = 60
+    # Sources per notebook — NotebookLM's own free-plan number.
+    notebook_max_sources: int = 50
+    # One upload's bytes and pages. The API machine has 512 MB and the file is
+    # read in memory, so these are about the machine, not about the student.
+    notebook_max_upload_bytes: int = 15 * 1024 * 1024
+    notebook_max_pages: int = 400
+    # Characters kept per source after extraction. A 400-page book is about a
+    # million; past this the rest is cut and the source says so.
+    notebook_max_source_chars: int = 800_000
+    # Passages handed to the model per question. Each one is citable; more of
+    # them costs tokens on a free plan and makes each citation harder to check.
+    notebook_context_passages: int = 8
+
     # --- Auth (A5): login with Google, project-scoped studies -------------
     # Empty client id/secret means OAuth is off: the login endpoint answers
     # 503 with a clear reason instead of crashing into Google with bad

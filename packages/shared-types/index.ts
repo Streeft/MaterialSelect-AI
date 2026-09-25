@@ -2013,3 +2013,122 @@ export interface BatteryComparisonResult {
   safest_slug: string;
   technical_summary: string;
 }
+
+// --- Cadernos (D-92) ---------------------------------------------------------
+
+export type NotebookChatGoal = "padrao" | "guia" | "personalizado";
+export type NotebookResponseLength = "curta" | "padrao" | "longa";
+export type NotebookSourceKind = "arquivo" | "texto" | "ficha" | "estudo";
+
+/** One passage an answer cites, copied into the answer so it stays readable
+ * after its source is removed. */
+export interface NotebookCitation {
+  number: number;
+  chunk_id: number;
+  source_id: number;
+  source_title: string;
+  heading: string | null;
+  page_start: number | null;
+  page_end: number | null;
+  excerpt: string;
+}
+
+export interface NotebookParagraph {
+  text: string;
+  /** Numbers of `citations`, 1-based, in reading order. */
+  citations: number[];
+}
+
+export interface NotebookAnswer {
+  paragraphs: NotebookParagraph[];
+  citations: NotebookCitation[];
+  not_found: boolean;
+  /** Why a paragraph was left out — never silently repaired. */
+  withheld: string[];
+}
+
+export interface NotebookMessage {
+  id: number;
+  role: "user" | "assistant";
+  created_at: string;
+  text: string | null;
+  answer: NotebookAnswer | null;
+}
+
+export interface NotebookSource {
+  id: number;
+  kind: NotebookSourceKind | string;
+  title: string;
+  origin: string | null;
+  status: string;
+  error: string | null;
+  char_count: number;
+  page_count: number | null;
+  selected: boolean;
+  truncated: boolean;
+  created_at: string;
+}
+
+export interface NotebookSourceDetail extends NotebookSource {
+  content: string;
+}
+
+export interface NotebookNote {
+  id: number;
+  title: string;
+  body: string;
+  origin: "manual" | "chat" | "estudio" | string;
+  citations: NotebookCitation[] | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface NotebookUsage {
+  used: number;
+  limit: number;
+  remaining: number;
+}
+
+export interface NotebookSummary {
+  id: number;
+  title: string;
+  emoji: string;
+  source_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Notebook {
+  id: number;
+  title: string;
+  emoji: string;
+  created_at: string;
+  updated_at: string;
+  chat_goal: NotebookChatGoal;
+  chat_instructions: string | null;
+  response_length: NotebookResponseLength;
+  /** The notebook guide. `null` is "not written yet", never "nothing to say". */
+  summary: NotebookAnswer | null;
+  suggested_questions: string[];
+  sources: NotebookSource[];
+  notes: NotebookNote[];
+  usage: NotebookUsage;
+  max_sources: number;
+  ai_enabled: boolean;
+  ai_simulated: boolean;
+  ai_notice: string;
+}
+
+export interface NotebookUpdate {
+  title?: string;
+  emoji?: string;
+  chat_goal?: NotebookChatGoal;
+  chat_instructions?: string;
+  response_length?: NotebookResponseLength;
+}
+
+export interface NotebookChat {
+  question: NotebookMessage;
+  answer: NotebookMessage;
+  usage: NotebookUsage;
+}

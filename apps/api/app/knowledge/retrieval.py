@@ -74,10 +74,10 @@ def search(db: Session, query: str, *, top_k: int, settings: Settings) -> list[R
     # is loaded whole (see list_all_chunks_for_lexical_search's docstring).
     all_chunks = repo.list_all_chunks_for_lexical_search()
 
-    lexical_ranked = _lexical_rank(all_chunks, query_tokens)
+    lexical_ranked = lexical_rank(all_chunks, query_tokens)
     semantic_ranked = _semantic_rank(repo, query, settings)
 
-    fused = _reciprocal_rank_fusion([lexical_ranked, semantic_ranked])
+    fused = reciprocal_rank_fusion([lexical_ranked, semantic_ranked])
     if not fused:
         return []
 
@@ -95,7 +95,11 @@ def search(db: Session, query: str, *, top_k: int, settings: Settings) -> list[R
     return results[:top_k]
 
 
-def _lexical_rank(chunks: list[KnowledgeChunk], query_tokens: list[str]) -> list[tuple[int, float]]:
+def lexical_rank(chunks: list[KnowledgeChunk], query_tokens: list[str]) -> list[tuple[int, float]]:
+    """BM25 over ``chunks`` alone. Duck-typed on ``id`` and ``search_text``, so
+    a notebook's passages (D-92) are ranked by the same function over *their*
+    corpus — the document frequencies are the notebook's, never the Cérebro's.
+    """
     if not chunks:
         return []
     documents = {chunk.id: tokenize(chunk.search_text) for chunk in chunks}
@@ -142,7 +146,8 @@ def _semantic_rank(
     return scored[:_CANDIDATES]
 
 
-def _reciprocal_rank_fusion(rankings: list[list[tuple[int, float]]]) -> list[tuple[int, float]]:
+def reciprocal_rank_fusion(rankings: list[list[tuple[int, float]]]) -> list[tuple[int, float]]:
+    """RRF over any number of ``(id, score)`` rankings; shared with the notebooks."""
     fused: dict[int, float] = {}
     for ranking in rankings:
         for position, (chunk_id, _score) in enumerate(ranking):
