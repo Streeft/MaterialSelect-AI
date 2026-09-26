@@ -2030,7 +2030,16 @@ export interface BatteryComparisonResult {
 
 export type NotebookChatGoal = "padrao" | "guia" | "personalizado";
 export type NotebookResponseLength = "curta" | "padrao" | "longa";
-export type NotebookSourceKind = "arquivo" | "texto" | "ficha" | "estudo";
+/** Phase 1 kinds, then the external ones of phase 3 (D-97). */
+export type NotebookSourceKind =
+  | "arquivo"
+  | "texto"
+  | "ficha"
+  | "estudo"
+  | "site"
+  | "youtube"
+  | "artigo"
+  | "wikipedia";
 
 /** One passage an answer cites, copied into the answer so it stays readable
  * after its source is removed. */
@@ -2039,6 +2048,11 @@ export interface NotebookCitation {
   chunk_id: number;
   source_id: number;
   source_title: string;
+  /** An external source's address and the credit its licence asks for (D-97),
+   * copied like the title. `null`/absent for the phase 1 kinds and for
+   * citations stored before phase 3. */
+  source_url?: string | null;
+  source_attribution?: string | null;
   heading: string | null;
   page_start: number | null;
   page_end: number | null;
@@ -2079,6 +2093,31 @@ export interface NotebookSource {
   selected: boolean;
   truncated: boolean;
   created_at: string;
+  /** External sources only (D-97); `null`/absent when the source has none. */
+  url?: string | null;
+  attribution?: string | null;
+  license?: string | null;
+  /** The curated part of where it came from. Only keys with a value are
+   * present — an absent key is unknown, to be written out as such (D-24). */
+  details?: NotebookSourceDetails | null;
+}
+
+export interface NotebookSourceDetails {
+  authors?: string[];
+  year?: number;
+  venue?: string;
+  doi?: string;
+  /** Where an open-access copy of an article lives. */
+  oa_url?: string;
+  channel?: string;
+  video_id?: string;
+  /** How a video's transcript arrived — pasted by the student today. */
+  transcript_origin?: "automatica" | "colada" | string;
+  found_via?: "link" | "busca_web" | string;
+  site_name?: string;
+  revision_id?: number | string;
+  /** ISO 8601 moment the server fetched it. */
+  fetched_at?: string;
 }
 
 export interface NotebookSourceDetail extends NotebookSource {
@@ -2125,6 +2164,8 @@ export interface Notebook {
   sources: NotebookSource[];
   notes: NotebookNote[];
   usage: NotebookUsage;
+  /** Requests to outside sources today — pages, videos, searches (D-97). */
+  fetch_usage: NotebookUsage;
   max_sources: number;
   ai_enabled: boolean;
   ai_simulated: boolean;
@@ -2143,6 +2184,78 @@ export interface NotebookChat {
   question: NotebookMessage;
   answer: NotebookMessage;
   usage: NotebookUsage;
+}
+
+// --- Fontes externas (D-97) --------------------------------------------------
+
+export type NotebookSearchProvider = "openalex" | "wikipedia" | "web";
+
+/** A web page, by its address; the server fetches it. `url` ≤ 500 chars. */
+export interface NotebookUrlSourceRequest {
+  url: string;
+}
+
+/** A video. There is no automatic transcript: without `transcript` the
+ * answer asks for it (`needs_transcript`). */
+export interface NotebookYoutubeSourceRequest {
+  url: string;
+  transcript?: string;
+}
+
+export interface NotebookYoutubeResult {
+  /** `null` exactly when `needs_transcript` is true. */
+  source: NotebookSource | null;
+  needs_transcript: boolean;
+  video_title: string | null;
+  reason: string | null;
+}
+
+/** `query` ≤ 300 chars. */
+export interface NotebookSearchRequest {
+  provider: NotebookSearchProvider;
+  query: string;
+}
+
+export interface NotebookSearchResult {
+  provider: NotebookSearchProvider;
+  /** What `NotebookExternalSourceRequest.key` sends back. */
+  key: string;
+  title: string;
+  subtitle: string | null;
+  snippet: string | null;
+  url: string | null;
+  license: string | null;
+  /** False when there is no text to add — shown, not selectable. */
+  has_text: boolean;
+  already_added: boolean;
+}
+
+export interface NotebookSearch {
+  results: NotebookSearchResult[];
+  notice: string | null;
+  /** Google's Search Suggestions for a web search — third-party HTML, to be
+   * rendered only inside a sandboxed `<iframe srcdoc>`. */
+  search_entry_point_html: string | null;
+}
+
+/** A search result, added: the server fetches again by `key` (≤ 500 chars). */
+export interface NotebookExternalSourceRequest {
+  provider: NotebookSearchProvider;
+  key: string;
+}
+
+export interface NotebookSourceCapability {
+  enabled: boolean;
+  /** Why it is off, in pt-BR; `null` when it is on. */
+  reason: string | null;
+}
+
+export interface NotebookSourceCapabilities {
+  link: NotebookSourceCapability;
+  youtube: NotebookSourceCapability;
+  openalex: NotebookSourceCapability;
+  wikipedia: NotebookSourceCapability;
+  web: NotebookSourceCapability;
 }
 
 // --- Estúdio (D-94) ----------------------------------------------------------
