@@ -49,6 +49,9 @@ def _settings(**overrides: Any) -> SimpleNamespace:
         "web_search_provider": "gemini",
         "web_search_api_key": KEY,
         "ai_api_key": "",
+        # The AI layer on the Gemini API: the only case in which AI_API_KEY may
+        # stand in for WEB_SEARCH_API_KEY (the rule in ``resolve_key``).
+        "ai_base_url": "https://generativelanguage.googleapis.com/v1beta/openai/",
         "web_search_model": "gemini-flash-latest",
         "web_search_base_url": BASE,
         "web_search_timeout_seconds": 25.0,
@@ -240,6 +243,7 @@ def test_a_real_settings_object_is_read_too(monkeypatch: pytest.MonkeyPatch) -> 
         web_search_provider="gemini",
         web_search_api_key="",
         ai_api_key=KEY,
+        ai_base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
         _env_file=None,  # type: ignore[call-arg]
     )
     recorder = _Recorder(_ok(_grounded([])))

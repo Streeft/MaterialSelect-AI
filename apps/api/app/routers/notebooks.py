@@ -7,9 +7,10 @@ exist. Thin on purpose: the rules live in ``NotebookService``.
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Generator
 from typing import Literal
 
+import httpx
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Response, UploadFile, status
 from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
@@ -18,6 +19,8 @@ from app.config import settings
 from app.db.base import get_db, get_session_factory
 from app.dependencies import get_current_project, get_current_user
 from app.domain.errors import ValidationError
+from app.integrations.http import build_client, get_http_transport, get_resolver
+from app.integrations.safe_fetch import Resolver
 from app.models.project import Project
 from app.models.user import User
 from app.schemas.notebook import (
@@ -26,6 +29,7 @@ from app.schemas.notebook import (
     ArtifactUpdate,
     AskIn,
     ChatOut,
+    ExternalSourceIn,
     MessageOut,
     NotebookIn,
     NotebookOut,
@@ -34,7 +38,10 @@ from app.schemas.notebook import (
     NoteIn,
     NoteOut,
     NoteUpdate,
+    SearchIn,
+    SearchOut,
     SelectAllIn,
+    SourceCapabilitiesOut,
     SourceDetailOut,
     SourceOut,
     SourceUpdate,
@@ -42,7 +49,11 @@ from app.schemas.notebook import (
     StudioIn,
     StudioListOut,
     TextSourceIn,
+    UrlSourceIn,
+    YoutubeOut,
+    YoutubeSourceIn,
 )
+from app.services.external_source_service import ExternalSourceService
 from app.services.notebook_service import NotebookService
 from app.services.studio_service import StudioService, run_job
 
@@ -61,6 +72,23 @@ def _studio(db: Session = Depends(get_db), user: User = Depends(get_current_user
     return StudioService(db, user)
 
 
+def _external(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+    project: Project = Depends(get_current_project),
+    transport: httpx.BaseTransport | None = Depends(get_http_transport),
+    resolver: Resolver | None = Depends(get_resolver),
+) -> Generator[ExternalSourceService, None, None]:
+    """The outside-sources service with a client of its own, closed after the
+    request. Transport and resolver are dependencies so tests can replace them
+    and no test ever reaches the network (D-97)."""
+    client = build_client(settings, transport)
+    try:
+        yield ExternalSourceService(db, user, settings, client, resolver, project_id=project.id)
+    finally:
+        client.close()
+
+
 # --- the Studio's catalogue ----------------------------------------------------
 #
 # Declared before ``/{notebook_id}``: the path would otherwise be read as a
@@ -72,6 +100,13 @@ def studio_catalog() -> StudioCatalogOut:
     """The Studio's tools, formats, templates and their default instructions —
     the one truth the "Criar …" modal reads."""
     return StudioService.catalog()
+
+
+@router.get("/source-capabilities", response_model=SourceCapabilitiesOut)
+def source_capabilities() -> SourceCapabilitiesOut:
+    """Which outside sources this server has switched on, and why not — from
+    configuration alone, the same for every student (D-97)."""
+    return ExternalSourceService.capabilities(settings)
 
 
 # --- notebooks ---------------------------------------------------------------
@@ -152,6 +187,56 @@ def add_app_source(
 ) -> SourceOut:
     """A material datasheet or a saved study, written out as text."""
     return service.add_app_source(notebook_id, payload)
+
+
+@router.post(
+    "/{notebook_id}/sources/url", response_model=SourceOut, status_code=status.HTTP_201_CREATED
+)
+def add_url_source(
+    notebook_id: int, payload: UrlSourceIn, service: ExternalSourceService = Depends(_external)
+) -> SourceOut:
+    """A web page by its link: fetched once by the server, under the SSRF
+    policy of ``safe_fetch``, and kept as text. Spends one outside request."""
+    return service.add_url(notebook_id, payload)
+
+
+@router.post("/{notebook_id}/sources/youtube", response_model=YoutubeOut)
+def add_youtube_source(
+    notebook_id: int,
+    payload: YoutubeSourceIn,
+    response: Response,
+    service: ExternalSourceService = Depends(_external),
+) -> YoutubeOut:
+    """A YouTube video with its pasted transcript. Without one the answer is
+    ``needs_transcript`` (200, nothing stored); with one, the source (201)."""
+    result = service.add_youtube(notebook_id, payload)
+    if result.source is not None:
+        response.status_code = status.HTTP_201_CREATED
+    return result
+
+
+@router.post("/{notebook_id}/search", response_model=SearchOut)
+def search_sources(
+    notebook_id: int, payload: SearchIn, service: ExternalSourceService = Depends(_external)
+) -> SearchOut:
+    """Articles (OpenAlex), Wikipedia or the web. A POST because it spends the
+    day's quota of outside requests."""
+    return service.search(notebook_id, payload)
+
+
+@router.post(
+    "/{notebook_id}/sources/external",
+    response_model=SourceOut,
+    status_code=status.HTTP_201_CREATED,
+)
+def add_external_source(
+    notebook_id: int,
+    payload: ExternalSourceIn,
+    service: ExternalSourceService = Depends(_external),
+) -> SourceOut:
+    """A search result, by its key. The server fetches it again rather than
+    trusting anything the browser sends about it."""
+    return service.add_external(notebook_id, payload)
 
 
 @router.put("/{notebook_id}/sources/selection", response_model=list[SourceOut])

@@ -340,7 +340,8 @@ def test_web_search_key_falls_back_to_the_ai_key(clean_env):
         lambda: YoutubeSourceIn(url="https://youtu.be/x", transcript="a" * 800_001),
         lambda: SearchIn(provider="openalex", query="q" * 301),
         lambda: SearchIn(provider="google", query="titânio"),
-        lambda: ExternalSourceIn(provider="wikipedia", key="k" * 501),
+        # A web key is a grounding redirect link, capped with safe_fetch at 2048.
+        lambda: ExternalSourceIn(provider="web", key="k" * 2049),
     ],
 )
 def test_request_contracts_refuse_what_is_too_long_or_unknown(build):

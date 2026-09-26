@@ -11,6 +11,7 @@ from __future__ import annotations
 from collections.abc import Generator
 from contextlib import contextmanager
 
+import httpx
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import Connection, create_engine, event
@@ -20,6 +21,7 @@ from sqlalchemy.pool import StaticPool
 from app.db.base import Base, get_db, get_session_factory, json_serializer
 from app.db.seed import seed
 from app.dependencies import get_current_user, require_active_subscription
+from app.integrations.http import get_http_transport, get_resolver
 from app.main import app
 from app.models.project import Project
 from app.models.user import User
@@ -53,6 +55,49 @@ def _sqlite_disable_implicit_begin(dbapi_connection, _record) -> None:
 @event.listens_for(_engine, "begin")
 def _sqlite_emit_begin(conn) -> None:
     conn.exec_driver_sql("BEGIN")
+
+
+class NetworkBannedError(AssertionError):
+    """A test tried to leave the machine."""
+
+
+#: Every attempt the ban caught, so that one swallowed by an ``except
+#: Exception`` on the way still fails the test that made it (see below).
+_banned_attempts: list[str] = []
+
+
+def _no_network(request: httpx.Request) -> httpx.Response:
+    attempt = f"{request.method} {request.url}"
+    _banned_attempts.append(attempt)
+    raise NetworkBannedError(f"um teste tentou sair para a rede: {attempt}")
+
+
+def _no_dns(host: str, port: int) -> list[str]:
+    attempt = f"DNS {host}:{port}"
+    _banned_attempts.append(attempt)
+    raise NetworkBannedError(f"um teste tentou resolver um nome: {attempt}")
+
+
+def _ban_network() -> None:
+    """No test reaches the network (D-97): every outbound client the API builds
+    gets a transport that refuses any request, and ``safe_fetch`` a resolver
+    that refuses any lookup. The error is an ``AssertionError``, which no
+    integration catches (they catch ``httpx.HTTPError`` and ``OSError``), and
+    the attempt is also recorded, so ``_network_stays_banned`` fails the test
+    even if something on the way swallowed it. A test that exercises an
+    outside source installs its own handlers over these two dependencies."""
+    app.dependency_overrides[get_http_transport] = lambda: httpx.MockTransport(_no_network)
+    app.dependency_overrides[get_resolver] = lambda: _no_dns
+
+
+@pytest.fixture(autouse=True)
+def _network_stays_banned() -> Generator[None, None, None]:
+    _banned_attempts.clear()
+    yield
+    attempts = list(_banned_attempts)
+    _banned_attempts.clear()
+    if attempts:
+        pytest.fail(f"um teste tentou sair para a rede: {attempts}")
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -155,6 +200,7 @@ def client(_connection: Connection, test_user: User) -> Generator[TestClient, No
     app.dependency_overrides[get_session_factory] = lambda: lambda: _session_for(_connection)
     app.dependency_overrides[get_current_user] = lambda: test_user
     app.dependency_overrides[require_active_subscription] = lambda: None
+    _ban_network()
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()
@@ -178,6 +224,7 @@ def client_without_subscription(
     app.dependency_overrides[get_db] = _override_get_db
     app.dependency_overrides[get_session_factory] = lambda: lambda: _session_for(_connection)
     app.dependency_overrides[get_current_user] = lambda: test_user
+    _ban_network()
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()
@@ -199,6 +246,7 @@ def anon_client(_connection: Connection) -> Generator[TestClient, None, None]:
 
     app.dependency_overrides[get_db] = _override_get_db
     app.dependency_overrides[get_session_factory] = lambda: lambda: _session_for(_connection)
+    _ban_network()
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()

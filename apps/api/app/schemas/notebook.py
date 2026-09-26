@@ -274,7 +274,10 @@ class ExternalSourceIn(BaseModel):
     id, or — for a web result — the page's URL."""
 
     provider: SearchProvider
-    key: str = Field(min_length=1, max_length=MAX_URL_CHARS)
+    # A web result's key is Google's grounding redirect link, which can run far
+    # past what a student would type; it goes through ``safe_fetch``, whose own
+    # cap is 2048, and is never stored as it is (D-97).
+    key: str = Field(min_length=1, max_length=2048)
 
 
 class SourceCapabilityOut(BaseModel):
