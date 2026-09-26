@@ -46,8 +46,12 @@ MAX_QUERY_CHARS = 200
 #: The chunker reads a heading only up to this length.
 MAX_HEADING_CHARS = 120
 #: Section markers stay at or below this. The guardrails exempt integers up to
-#: 100 from numeric grounding ("o 1º colocado"), so a marker this small lends a
-#: passage no figure the article did not state.
+#: 100 from numeric grounding ("o 1º colocado"), and a heading's figures count as
+#: its passages' own (``grounding.passage_numbers``). A marker is therefore kept
+#: small *and* written ``"3. "`` — with the full stop — because the guardrail
+#: tokenizer reads space-grouped thousands: ``"3 200 anos"`` would read as 3200,
+#: a figure the article never stated, and lose the 200 it did. ``"3. 200 anos"``
+#: reads as 3 and 200, and the chunker still takes it as a numbered heading.
 MAX_SECTION_MARKER = 100
 
 #: Wikipedia language codes: ``pt``, ``en``, ``simple``, ``zh-yue``. Checked
@@ -309,11 +313,13 @@ def format_extract(extract: str) -> str:
     line that is numbered or in capitals. So:
 
     * every paragraph becomes its own block (blank line between);
-    * every section title becomes a numbered block, ``"3 Propriedades"``, and a
-      subsection carries its parents, ``"3 Propriedades › Mecânicas"`` — the
+    * every section title becomes a numbered block, ``"3. Propriedades"``, and a
+      subsection carries its parents, ``"3. Propriedades › Mecânicas"`` — the
       number is the top-level section's position in the article (every
       top-level title counts, even an empty one), wrapped to stay at or below
-      :data:`MAX_SECTION_MARKER`; trailing ``.:;,`` is dropped from a title,
+      :data:`MAX_SECTION_MARKER` and followed by a full stop so it never merges
+      with a title that starts with a figure (see the constant); trailing
+      ``.:;,`` is dropped from a title,
       or the chunker would read it as the end of a sentence;
     * a section with no text is not emitted;
     * a *paragraph* the chunker would mistake for a heading (a list item such
@@ -372,11 +378,11 @@ def _sections(extract: str) -> list[_Section]:
 
 
 def _label(top: int, trail: list[str]) -> str:
-    """``"3 Propriedades › Mecânicas"``, short enough to be read as a heading."""
+    """``"3. Propriedades › Mecânicas"``, short enough to be read as a heading."""
     marker = (top - 1) % MAX_SECTION_MARKER + 1
-    label = f"{marker} {' › '.join(trail)}"
+    label = f"{marker}. {' › '.join(trail)}"
     if len(label) > MAX_HEADING_CHARS:
-        label = f"{marker} {trail[-1]}"
+        label = f"{marker}. {trail[-1]}"
     if len(label) > MAX_HEADING_CHARS:
         label = label[: MAX_HEADING_CHARS - 1].rstrip(_TRAILING_PUNCTUATION) + "…"
     return label
