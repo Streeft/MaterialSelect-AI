@@ -76,6 +76,16 @@ MISSING_KEY_REASON = (
     "A busca na web está ligada, mas falta a chave do Google AI Studio "
     "(WEB_SEARCH_API_KEY, ou AI_API_KEY quando aquela estiver vazia)."
 )
+FOREIGN_AI_KEY_REASON = (
+    "A busca na web está ligada, mas não tem chave própria (WEB_SEARCH_API_KEY), e a "
+    "chave de IA deste servidor (AI_API_KEY) é de outro provedor, que não o Google AI "
+    "Studio: ela não é enviada ao Google. Defina WEB_SEARCH_API_KEY com uma chave do "
+    "Google AI Studio."
+)
+#: The host of the Gemini API. ``AI_API_KEY`` stands in for ``WEB_SEARCH_API_KEY``
+#: only when ``AI_BASE_URL`` points here: a Groq or OpenRouter key would be sent
+#: to Google for nothing — refused every time, and handed to a third party.
+GOOGLE_AI_HOST = "generativelanguage.googleapis.com"
 _ALTERNATIVE = "Enquanto isso, você ainda pode colar o link de uma página que já conhece."
 _QUOTA = (
     "Cota gratuita da busca na web esgotada: o limite por minuto volta em instantes; "
@@ -151,9 +161,27 @@ class WebSearchResult:
 
 def resolve_key(settings: Any) -> str:
     """The key web search sends: ``WEB_SEARCH_API_KEY``, or ``AI_API_KEY`` when
-    that is empty — the fallback ``KNOWLEDGE_EMBEDDING_API_KEY`` has."""
+    that is empty **and** ``AI_BASE_URL`` is the Gemini API — the only case in
+    which the AI key is a Google AI Studio key. Otherwise ``""``.
+
+    This is the one rule for the fallback: :func:`enabled` (and so the
+    ``web`` capability the screen reads) and :func:`search` both go through it.
+    """
     own = str(getattr(settings, "web_search_api_key", "") or "").strip()
-    return own or str(getattr(settings, "ai_api_key", "") or "").strip()
+    if own:
+        return own
+    return _google_ai_key(settings)
+
+
+def _google_ai_key(settings: Any) -> str:
+    """``AI_API_KEY`` when ``AI_BASE_URL``'s host is the Gemini API, else ``""``."""
+    key = str(getattr(settings, "ai_api_key", "") or "").strip()
+    base = str(getattr(settings, "ai_base_url", "") or "").strip()
+    try:
+        host = (urlsplit(base).hostname or "").lower().rstrip(".")
+    except ValueError:
+        return ""
+    return key if key and host == GOOGLE_AI_HOST else ""
 
 
 def enabled(settings: Any) -> tuple[bool, str | None]:
@@ -167,6 +195,8 @@ def enabled(settings: Any) -> tuple[bool, str | None]:
             f"não é suportado. O único provedor de busca na web é '{PROVIDER}'."
         )
     if not resolve_key(settings):
+        if str(getattr(settings, "ai_api_key", "") or "").strip():
+            return False, FOREIGN_AI_KEY_REASON
         return False, MISSING_KEY_REASON
     return True, None
 
