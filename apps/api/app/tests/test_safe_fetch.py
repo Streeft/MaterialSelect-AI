@@ -17,6 +17,7 @@ to inject one of the fakes fails instead of going out.
 from __future__ import annotations
 
 import gzip
+import logging
 import socket
 import tracemalloc
 import zlib
@@ -684,6 +685,51 @@ def test_a_client_built_to_follow_redirects_is_not_obeyed() -> None:
     assert len(web.requests) == 1
 
 
+# --- cookies ------------------------------------------------------------------------
+
+
+def test_a_cookie_set_by_one_site_never_reaches_another_on_the_same_ip() -> None:
+    # A shared CDN serves many sites from one address, and the request URL is
+    # that address: a jar would file a-site's cookie under it for b-site.
+    web = Web()
+    resolver = FakeResolver({"a-site.com": [PUBLIC], "b-site.com": [PUBLIC]})
+    web.page(
+        "a-site.com", "/", b"<p>a</p>", headers={"content-type": HTML, "set-cookie": "sess=abc"}
+    )
+    web.page("b-site.com", "/", b"<p>b</p>")
+
+    with web.client() as client:
+        for url in ("https://a-site.com/", "https://b-site.com/", "https://a-site.com/"):
+            fetch(url, client=client, resolver=resolver, settings=SETTINGS, limits=LIMITS)
+        assert len(client.cookies.jar) == 0
+
+    assert [request.headers.get("cookie") for request in web.requests] == [None, None, None]
+
+
+def test_a_cookie_is_not_carried_across_a_redirect_hop() -> None:
+    web = Web()
+    resolver = FakeResolver({"a-site.com": [PUBLIC], "b-site.com": [PUBLIC]})
+    web.routes[("a-site.com", "/")] = lambda _r: httpx.Response(
+        302, headers={"location": "https://b-site.com/", "set-cookie": "sess=abc; Path=/"}
+    )
+    web.page("b-site.com", "/", b"<p>b</p>")
+
+    _fetch("https://a-site.com/", web, resolver)
+
+    assert [request.headers.get("cookie") for request in web.requests] == [None, None]
+
+
+def test_a_client_built_elsewhere_does_not_send_its_cookies() -> None:
+    web, resolver = Web(), FakeResolver({"b-site.com": [PUBLIC]})
+    web.page("b-site.com", "/")
+    client = httpx.Client(transport=httpx.MockTransport(web.handle), cookies={"sess": "abc"})
+
+    with client:
+        fetch("https://b-site.com/", client=client, resolver=resolver, settings=SETTINGS)
+
+    assert "cookie" not in web.requests[0].headers
+
+
 # --- connection failures ----------------------------------------------------------
 
 
@@ -893,6 +939,35 @@ def test_unsupported_or_stacked_encodings_are_refused(encoding: str) -> None:
     assert "compressão" in _refused("https://example.com/", web, resolver)
 
 
+def test_a_multi_member_gzip_body_is_decoded_whole_and_still_capped() -> None:
+    body = gzip.compress(b"primeiro ") + gzip.compress(b"segundo")
+    web, resolver = Web(), FakeResolver({"example.com": [PUBLIC]})
+    pieces = [body[i : i + 5] for i in range(0, len(body), 5)]
+    web.page(
+        "example.com",
+        "/",
+        iter(pieces),
+        headers={"content-type": "text/plain", "content-encoding": "gzip"},
+    )
+    assert _fetch("https://example.com/", web, resolver).body == b"primeiro segundo"
+
+    # A second member cannot smuggle past the cap the first one left.
+    bomb = gzip.compress(b"x" * 3_000) + gzip.compress(b"\0" * 3_000)
+    web.page("example.com", "/b", bomb, headers={"content-type": HTML, "content-encoding": "gzip"})
+    assert "limite de" in _refused("https://example.com/b", web, resolver)
+
+
+def test_junk_after_a_gzip_member_is_refused() -> None:
+    web, resolver = Web(), FakeResolver({"example.com": [PUBLIC]})
+    web.page(
+        "example.com",
+        "/",
+        gzip.compress(b"texto") + b"<script>junk</script>",
+        headers={"content-type": HTML, "content-encoding": "gzip"},
+    )
+    assert "corrompido" in _refused("https://example.com/", web, resolver)
+
+
 def test_a_corrupt_gzip_body_is_refused() -> None:
     web, resolver = Web(), FakeResolver({"example.com": [PUBLIC]})
     web.page(
@@ -995,6 +1070,14 @@ def test_the_request_timeout_is_what_is_left_of_the_deadline() -> None:
         ("text/plain; charset=utf-8", "text/plain", "utf-8"),
         ("text/markdown", "text/markdown", None),
         ("text/x-markdown", "text/markdown", None),
+        # Codecs Python knows that are not a page's charset.
+        ("text/html; charset=zlib", "text/html", None),
+        ("text/html; charset=base64", "text/html", None),
+        ("text/html; charset=rot13", "text/html", None),
+        ("text/html; charset=unicode_escape", "text/html", None),
+        ("text/html; charset=raw-unicode-escape", "text/html", None),
+        ("text/html; charset=punycode", "text/html", None),
+        ("text/html; charset=utf-7", "text/html", None),
     ],
 )
 def test_allowed_content_types_and_charset(header: str, media: str, charset: str | None) -> None:
@@ -1088,6 +1171,27 @@ def test_build_client_neither_trusts_the_environment_nor_follows_redirects() -> 
         assert client.headers["user-agent"] == (
             f"MaterialSelectAI/{__version__} (+https://app.example.org; https://app.example.org)"
         )
+
+
+def test_build_client_stays_on_http_1_1() -> None:
+    # Connection: close is what keeps one name's TLS session from serving
+    # another name on the same IP; HTTP/2 would multiplex past it.
+    with build_client(SETTINGS) as client:
+        assert client._transport._pool._http2 is False  # type: ignore[attr-defined]
+
+
+def test_request_urls_with_keys_are_not_logged_at_info(
+    caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Start from a configuration that would print them (another module may
+    # already have quieted the logger in this process).
+    for name in ("httpx", "httpcore"):
+        monkeypatch.setattr(logging.getLogger(name), "level", logging.NOTSET)
+    caplog.set_level(logging.INFO)
+    transport = httpx.MockTransport(lambda _r: httpx.Response(200, json={}))
+    with build_client(SETTINGS, transport) as client:
+        client.get("https://api.openalex.org/works", params={"api_key": "segredo"})
+    assert "segredo" not in caplog.text
 
 
 def test_user_agent_names_the_contact_and_cannot_be_used_to_inject_headers() -> None:
