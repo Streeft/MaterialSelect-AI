@@ -87,6 +87,30 @@ class NotebookRepository:
             )
         ).scalar_one_or_none()
 
+    def source_with_origin(self, notebook_id: int, origin: str) -> NotebookSource | None:
+        """The owner's source in this notebook that came from ``origin``, if any.
+
+        What an external source is deduplicated by (D-97) — *before* the fetch,
+        so adding the same page twice costs no request and no quota. ``origin``
+        is compared as written: the caller normalises it (the canonical URL of a
+        page, video, work or article). The checksum check still runs after the
+        fetch, for the same text reached by two addresses.
+        """
+        return (
+            self.db.execute(
+                select(NotebookSource)
+                .join(Notebook, Notebook.id == NotebookSource.notebook_id)
+                .where(
+                    NotebookSource.notebook_id == notebook_id,
+                    NotebookSource.origin == origin,
+                    Notebook.owner_id == self.owner_id,
+                )
+                .order_by(NotebookSource.id)
+            )
+            .scalars()
+            .first()
+        )
+
     def source_checksum_exists(self, notebook_id: int, checksum: str) -> NotebookSource | None:
         return self.db.execute(
             select(NotebookSource).where(
@@ -228,24 +252,34 @@ class NotebookRepository:
     # --- quota ---------------------------------------------------------------
 
     def usage(self, day: date) -> AIUsage | None:
+        """Today's counters — ``requests``, ``artifacts`` and ``fetches`` — or
+        ``None`` when nothing was counted yet (the service reads that as 0)."""
         return self.db.execute(
             select(AIUsage).where(AIUsage.user_id == self.owner_id, AIUsage.day == day)
         ).scalar_one_or_none()
 
-    def count_request(self, day: date) -> AIUsage:
+    def _usage_row(self, day: date) -> AIUsage:
         usage = self.usage(day)
         if usage is None:
-            usage = AIUsage(user_id=self.owner_id, day=day, requests=0, artifacts=0)
+            usage = AIUsage(user_id=self.owner_id, day=day, requests=0, artifacts=0, fetches=0)
             self.db.add(usage)
+        return usage
+
+    def count_request(self, day: date) -> AIUsage:
+        usage = self._usage_row(day)
         usage.requests += 1
         self.db.flush()
         return usage
 
     def count_artifact(self, day: date) -> AIUsage:
-        usage = self.usage(day)
-        if usage is None:
-            usage = AIUsage(user_id=self.owner_id, day=day, requests=0, artifacts=0)
-            self.db.add(usage)
+        usage = self._usage_row(day)
         usage.artifacts += 1
+        self.db.flush()
+        return usage
+
+    def count_fetch(self, day: date) -> AIUsage:
+        """One request that left the server for an external source (D-97)."""
+        usage = self._usage_row(day)
+        usage.fetches += 1
         self.db.flush()
         return usage

@@ -24,6 +24,7 @@ import hashlib
 import logging
 from collections.abc import Callable
 from datetime import UTC, date, datetime
+from typing import Any
 
 from sqlalchemy.orm import Session
 
@@ -57,6 +58,7 @@ from app.notebooks.grounding import format_figures, take_citations, ungrounded
 from app.notebooks.retrieval import openings, search
 from app.repositories.notebook_repository import NotebookRepository
 from app.schemas.notebook import (
+    SOURCE_DETAIL_KEYS,
     AnswerOut,
     AppSourceIn,
     AskIn,
@@ -146,6 +148,7 @@ class NotebookService:
             sources=[_source_out(source) for source in notebook.sources],
             notes=[_note_out(note) for note in notebook.notes],
             usage=self.usage(),
+            fetch_usage=self.fetch_usage(),
             max_sources=self.settings.notebook_max_sources,
             ai_enabled=ai_enabled,
             ai_simulated=simulated,
@@ -250,7 +253,15 @@ class NotebookService:
         origin: str | None,
         extracted: ExtractedText,
         paged: bool,
+        meta: dict | None = None,
     ) -> SourceOut:
+        """Cut ``extracted`` into passages and store it as a ready source.
+
+        ``meta`` is where an external source came from and on what terms
+        (D-97), built by the backend from what the fetch returned — stored as
+        given, shown through ``_source_out`` and copied into every citation of
+        its passages. ``None`` for the kinds that have nothing to attribute.
+        """
         if extracted.is_empty:
             raise ValidationError(
                 "Nenhum texto foi extraído deste arquivo. Se é um PDF digitalizado (imagem), "
@@ -278,6 +289,7 @@ class NotebookService:
             selected=True,
             truncated=truncated,
             content=content,
+            meta=meta or None,
         )
         self.db.add(source)
         self.db.flush()
@@ -547,6 +559,25 @@ class NotebookService:
         limit = self.settings.notebook_daily_requests
         return UsageOut(used=used, limit=limit, remaining=max(limit - used, 0))
 
+    def fetch_usage(self) -> UsageOut:
+        """Today's requests to outside sources against ``notebook_daily_fetches``
+        (D-97) — a quota apart from the AI one: a page fetched costs no model
+        call, and a search on the web costs one of each."""
+        usage = self.repo.usage(_today())
+        used = usage.fetches if usage is not None else 0
+        limit = self.settings.notebook_daily_fetches
+        return UsageOut(used=used, limit=limit, remaining=max(limit - used, 0))
+
+    def check_fetch_quota(self) -> None:
+        """Refuse before anything leaves the server once today's fetches are
+        spent. Counting is the caller's (``repo.count_fetch``), once the
+        request is sent."""
+        if self.fetch_usage().remaining <= 0:
+            raise QuotaExceededError(
+                f"Você usou as {self.settings.notebook_daily_fetches} buscas de fontes externas "
+                "de hoje. O limite volta amanhã; colar o texto como fonte continua disponível."
+            )
+
     def _check_quota(self) -> None:
         if self.usage().remaining <= 0:
             raise QuotaExceededError(
@@ -639,13 +670,20 @@ def _check(
 
 
 def citations_for(passages: tuple[Passage, ...], chunks: list[NotebookChunk]) -> list[CitationOut]:
-    """Every passage handed over, as a citation numbered as the model saw it."""
+    """Every passage handed over, as a citation numbered as the model saw it.
+
+    An external source's address and attribution travel with each of its
+    passages (D-97): a licence that asks for credit asks for it wherever the
+    text is quoted, and a citation outlives its source.
+    """
     return [
         CitationOut(
             number=passage.number,
             chunk_id=chunk.id,
             source_id=chunk.source_id,
             source_title=passage.source_title,
+            source_url=_meta_text(chunk.source.meta, "url"),
+            source_attribution=_meta_text(chunk.source.meta, "attribution"),
             heading=passage.heading,
             page_start=passage.page_start,
             page_end=passage.page_end,
@@ -728,6 +766,7 @@ def _message_out(message: NotebookMessage) -> MessageOut:
 
 
 def _source_out(source: NotebookSource) -> SourceOut:
+    meta = source.meta
     return SourceOut(
         id=source.id,
         kind=source.kind,
@@ -740,7 +779,38 @@ def _source_out(source: NotebookSource) -> SourceOut:
         selected=source.selected,
         truncated=source.truncated,
         created_at=source.created_at,
+        url=_meta_text(meta, "url"),
+        attribution=_meta_text(meta, "attribution"),
+        license=_meta_text(meta, "license"),
+        details=_source_details(meta),
     )
+
+
+def _meta_text(meta: dict | None, key: str) -> str | None:
+    """A text field of a source's ``meta``, or ``None`` — never ``""``, which
+    the screen would draw as a link or a credit that says nothing."""
+    if not isinstance(meta, dict):
+        return None
+    value = meta.get(key)
+    if not isinstance(value, str) or not value.strip():
+        return None
+    return value.strip()
+
+
+def _source_details(meta: dict | None) -> dict[str, Any] | None:
+    """The curated part of ``meta`` the screen shows (``SOURCE_DETAIL_KEYS``).
+
+    Only keys with a value: an absent year is absent, never ``null`` or ``""``
+    the screen could print as a value (D-24). ``None`` when nothing is left.
+    """
+    if not isinstance(meta, dict):
+        return None
+    details = {
+        key: meta[key]
+        for key in SOURCE_DETAIL_KEYS
+        if meta.get(key) is not None and meta.get(key) != "" and meta.get(key) != []
+    }
+    return details or None
 
 
 def _note_out(note: NotebookNote) -> NoteOut:

@@ -3,13 +3,28 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
 ChatGoal = Literal["padrao", "guia", "personalizado"]
 ResponseLength = Literal["curta", "padrao", "longa"]
-SourceKind = Literal["arquivo", "texto", "ficha", "estudo"]
+#: Phase 1 kinds, then the external ones of phase 3 (D-97). ``SourceOut.kind``
+#: stays ``str``: a stored row outlives this list.
+SourceKind = Literal[
+    "arquivo", "texto", "ficha", "estudo", "site", "youtube", "artigo", "wikipedia"
+]
+#: Where a search looks (D-97): OpenAlex works, Wikipedia articles, or the web
+#: through the Gemini grounding tool.
+SearchProvider = Literal["openalex", "wikipedia", "web"]
+
+#: The longest URL accepted from a student, and the column that keeps it
+#: (``NotebookSource.origin``). A longer one is refused, never cut: a cut URL
+#: is another address.
+MAX_URL_CHARS = 500
+#: Pasted text, a pasted transcript included — the same ceiling as
+#: ``notebook_max_source_chars``' default.
+MAX_PASTED_CHARS = 800_000
 
 
 class NotebookIn(BaseModel):
@@ -40,6 +55,12 @@ class CitationOut(BaseModel):
     chunk_id: int
     source_id: int
     source_title: str
+    #: Where an external source came from, and the attribution its licence
+    #: asks for (D-97) — copied like the title, so a CC BY-SA passage keeps its
+    #: credit in every answer, note and export that quotes it. ``None`` for the
+    #: phase 1 kinds and for every citation stored before phase 3.
+    source_url: str | None = None
+    source_attribution: str | None = None
     heading: str | None = None
     page_start: int | None = None
     page_end: int | None = None
@@ -84,6 +105,15 @@ class SourceOut(BaseModel):
     selected: bool
     truncated: bool = False
     created_at: datetime
+    #: External sources only (D-97); ``None`` means the source has none — a
+    #: pasted text has no address and no licence to state.
+    url: str | None = None
+    attribution: str | None = None
+    license: str | None = None
+    #: What else is known about where it came from, keyed as in
+    #: ``SOURCE_DETAIL_KEYS``. Only keys with a value are present; ``None``
+    #: when there is nothing.
+    details: dict[str, Any] | None = None
 
 
 class SourceDetailOut(SourceOut):
@@ -132,6 +162,8 @@ class NotebookOut(BaseModel):
     sources: list[SourceOut]
     notes: list[NoteOut]
     usage: UsageOut
+    #: Requests to outside sources today — pages, transcripts, searches (D-97).
+    fetch_usage: UsageOut
     max_sources: int
     #: Whether the AI layer is on and whether it is the simulated provider — the
     #: screen shows the free-plan privacy notice only for a real one.
@@ -142,12 +174,123 @@ class NotebookOut(BaseModel):
 
 class TextSourceIn(BaseModel):
     title: str = Field(min_length=1, max_length=300)
-    text: str = Field(min_length=1, max_length=800_000)
+    text: str = Field(min_length=1, max_length=MAX_PASTED_CHARS)
 
 
 class AppSourceIn(BaseModel):
     kind: Literal["ficha", "estudo"]
     record_id: int = Field(gt=0)
+
+
+# --- Fontes externas (D-97) --------------------------------------------------
+
+#: The ``NotebookSource.meta`` keys ``SourceOut.details`` shows. A curated list
+#: and not the whole column: ``meta`` is the backend's record of a fetch, and
+#: what reaches the screen is decided here, key by key.
+SOURCE_DETAIL_KEYS: tuple[str, ...] = (
+    "authors",
+    "year",
+    "venue",
+    "doi",
+    "oa_url",
+    "channel",
+    "video_id",
+    "transcript_origin",
+    "found_via",
+    "site_name",
+    "revision_id",
+    "fetched_at",
+)
+
+
+class UrlSourceIn(BaseModel):
+    """A web page, by its address. The server fetches it; nothing the client
+    says about the page is trusted."""
+
+    url: str = Field(min_length=1, max_length=MAX_URL_CHARS)
+
+
+class YoutubeSourceIn(BaseModel):
+    """A video. ``transcript`` is the one the student pasted — there is no
+    automatic transcript (YouTube asks for a token a server cannot produce), so
+    omitted means "tell me the title and ask for it"."""
+
+    url: str = Field(min_length=1, max_length=MAX_URL_CHARS)
+    transcript: str | None = Field(default=None, max_length=MAX_PASTED_CHARS)
+
+
+class YoutubeOut(BaseModel):
+    """A video added, or what the student still has to do.
+
+    ``source`` is ``None`` exactly when ``needs_transcript`` is true — no
+    transcript was sent —, ``reason`` says so in pt-BR, and pasting it is the
+    way forward. ``video_title`` is the video's own (oEmbed), or ``None`` when
+    YouTube did not say."""
+
+    source: SourceOut | None = None
+    needs_transcript: bool = False
+    video_title: str | None = None
+    reason: str | None = None
+
+
+class SearchIn(BaseModel):
+    provider: SearchProvider
+    query: str = Field(min_length=1, max_length=300)
+
+
+class SearchResultOut(BaseModel):
+    """One thing a search found. ``key`` is what ``ExternalSourceIn`` sends back
+    — the server fetches again by it, never from text the client holds."""
+
+    provider: SearchProvider
+    key: str
+    title: str
+    #: Authors and year of a work, the site of a page. ``None`` when unknown —
+    #: the screen writes that out.
+    subtitle: str | None = None
+    snippet: str | None = None
+    url: str | None = None
+    license: str | None = None
+    #: False when there is no text to add — a work without an abstract. Shown,
+    #: not selectable.
+    has_text: bool = True
+    #: This notebook already has a source from the same origin.
+    already_added: bool = False
+
+
+class SearchOut(BaseModel):
+    results: list[SearchResultOut] = []
+    #: What the student should know about these results — the provider's
+    #: privacy terms, or why a search found nothing.
+    notice: str | None = None
+    #: Google's Search Suggestions for a web search, which its terms require to
+    #: be shown with grounded results. Third-party HTML: the screen renders it
+    #: only inside a sandboxed ``<iframe srcdoc>``, never into the page.
+    search_entry_point_html: str | None = None
+
+
+class ExternalSourceIn(BaseModel):
+    """A search result, added. ``key`` is an OpenAlex work id, a Wikipedia page
+    id, or — for a web result — the page's URL."""
+
+    provider: SearchProvider
+    key: str = Field(min_length=1, max_length=MAX_URL_CHARS)
+
+
+class SourceCapabilityOut(BaseModel):
+    enabled: bool
+    #: Why it is off, in pt-BR. ``None`` when it is on.
+    reason: str | None = None
+
+
+class SourceCapabilitiesOut(BaseModel):
+    """What the "add a source" screens can offer on this server, and why not."""
+
+    link: SourceCapabilityOut
+    youtube: SourceCapabilityOut
+    openalex: SourceCapabilityOut
+    wikipedia: SourceCapabilityOut
+    web: SourceCapabilityOut
 
 
 class SourceUpdate(BaseModel):

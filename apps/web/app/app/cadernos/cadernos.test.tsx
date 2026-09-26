@@ -63,6 +63,7 @@ function notebook(overrides: Partial<Notebook> = {}): Notebook {
     sources: [source],
     notes: [],
     usage: { used: 0, limit: 60, remaining: 60 },
+    fetch_usage: { used: 0, limit: 30, remaining: 30 },
     max_sources: 50,
     ai_enabled: true,
     ai_simulated: true,
