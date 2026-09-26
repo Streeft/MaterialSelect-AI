@@ -178,6 +178,12 @@ _ALLOWED_TYPES = frozenset(
 )
 _TYPE_ALIASES = {"text/x-markdown": "text/markdown"}
 
+#: Text codecs Python knows that no page may name as its charset: they decode
+#: escape sequences (or IDNA/punycode labels), not an encoding of the text.
+_NOT_A_CHARSET = frozenset(
+    {"unicode-escape", "raw-unicode-escape", "punycode", "idna", "utf-7", "undefined"}
+)
+
 _ACCEPT = (
     "text/html,application/xhtml+xml,text/plain;q=0.9,text/markdown;q=0.9,application/pdf;q=0.8"
 )
@@ -594,6 +600,11 @@ def _send(
             )
         except httpx.InvalidURL:
             raise ValidationError(_MSG_MALFORMED) from None
+        # Cookies are keyed by the URL host, and the URL host here is the
+        # pinned IP, which a shared CDN gives to many sites: a cookie set by
+        # one would be sent to the next. build_client's jar refuses them
+        # all; this covers a client built elsewhere.
+        request.headers.pop("cookie", None)
         try:
             # follow_redirects is passed, not inherited: a client built with
             # it on would otherwise follow a redirect none of the checks saw.
@@ -658,7 +669,19 @@ class _Inflate:
         parts: list[bytes] = []
         produced = 0
         pending = data
-        while pending and not self._decoder.eof:
+        while True:
+            if self._decoder.eof:
+                # A gzip body may be several members back to back (RFC 1952
+                # §2.2); each one is decoded under the same room, and junk
+                # after the last one fails the next header as corrupt. A zlib
+                # stream has one member, so what follows it is ignored.
+                rest = self._decoder.unused_data + pending
+                if not self._gzip or not rest:
+                    break
+                self._decoder = zlib.decompressobj(16 + zlib.MAX_WBITS)
+                pending = rest
+            if not pending:
+                break
             chunk = self._decoder.decompress(pending, room - produced + 1)
             produced += len(chunk)
             if produced > room:
@@ -766,8 +789,13 @@ def _content_type(value: str | None) -> tuple[str, str | None]:
             continue
         label = raw.strip().strip("\"'").strip().lower()
         try:
-            codecs.lookup(label)
+            info = codecs.lookup(label)
         except (LookupError, ValueError):
+            continue
+        # codecs.lookup also knows zlib, base64, rot13 (not text encodings at
+        # all) and the escape codecs, which would turn the page's own bytes
+        # into characters it never contained. None of them is a web charset.
+        if not getattr(info, "_is_text_encoding", True) or info.name in _NOT_A_CHARSET:
             continue
         charset = label
     return media, charset

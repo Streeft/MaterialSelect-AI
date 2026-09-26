@@ -10,7 +10,17 @@ opening its own, for three reasons that do not change per integration:
   caller knows how to validate one (``safe_fetch`` also passes the flag on each
   ``send``, so a client built elsewhere cannot re-enable it behind its back);
 * one ``User-Agent`` that says who is calling and how to reach the operator,
-  which public APIs such as Wikipedia's require and every server is owed.
+  which public APIs such as Wikipedia's require and every server is owed;
+* **no cookies**, ever stored or sent. ``safe_fetch`` requests the pinned IP,
+  so a jar would file a site's cookie under an address that a shared CDN
+  gives to many other sites, and hand it to the next one;
+* **HTTP/1.1 only**. ``safe_fetch`` sends ``Connection: close`` so a TLS
+  session opened for one name is never reused for another name pinned to
+  the same IP; HTTP/2 multiplexes over the pooled session and ignores that
+  header, so turning it on would reopen exactly that reuse.
+
+The ``httpx`` and ``httpcore`` loggers are held at WARNING: at INFO httpx logs
+every request's full URL, and OpenAlex takes its key in the query string.
 
 :func:`get_http_transport` and :func:`get_resolver` are FastAPI dependencies
 that return ``None`` in production — the real transport and the system
@@ -20,7 +30,9 @@ which is how no test in the suite ever reaches the network.
 
 from __future__ import annotations
 
+import logging
 import re
+from http.cookiejar import CookieJar, DefaultCookiePolicy
 from typing import Any
 
 import httpx
@@ -29,6 +41,19 @@ from app import __version__
 from app.integrations.safe_fetch import FetchLimits, Resolver
 
 _PRODUCT = "MaterialSelectAI"
+
+
+def _quiet_request_logs() -> None:
+    """Hold httpx's per-request INFO lines (full URL, query included) back.
+
+    Called by :func:`build_client` rather than once at import, so a logging
+    configuration applied after import cannot bring the URLs back.
+    """
+    for name in ("httpx", "httpcore"):
+        logger = logging.getLogger(name)
+        if logger.getEffectiveLevel() < logging.WARNING:
+            logger.setLevel(logging.WARNING)
+
 
 #: What a ``User-Agent`` comment may carry: printable ASCII without the
 #: parentheses and semicolon that delimit it. A value from the environment is
@@ -69,13 +94,21 @@ def build_client(settings: Any, transport: httpx.BaseTransport | None = None) ->
     client.
     """
     limits = FetchLimits.from_settings(settings)
+    _quiet_request_logs()
     return httpx.Client(
         transport=transport,
         trust_env=False,
         follow_redirects=False,
+        http2=False,
+        cookies=_refuse_all_cookies(),
         headers={"User-Agent": user_agent(settings)},
         timeout=httpx.Timeout(limits.timeout_seconds),
     )
+
+
+def _refuse_all_cookies() -> CookieJar:
+    """A jar whose policy admits no domain: nothing is stored, nothing is sent."""
+    return CookieJar(policy=DefaultCookiePolicy(allowed_domains=[]))
 
 
 def get_http_transport() -> httpx.BaseTransport | None:
