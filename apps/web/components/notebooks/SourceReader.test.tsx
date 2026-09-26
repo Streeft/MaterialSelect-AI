@@ -117,6 +117,7 @@ describe("SourceReader (D-97)", () => {
     await screen.findByText("Texto inteiro da fonte.");
     expect(screen.getByText(t.search.noAuthors)).toBeInTheDocument();
     expect(screen.getByText(t.search.noYear)).toBeInTheDocument();
+    expect(screen.getByText(t.reader.noVenue)).toBeInTheDocument();
     expect(screen.queryByText("0")).toBeNull();
     expect(screen.queryByText("—")).toBeNull();
     await expectAccessible(baseElement);
@@ -135,6 +136,36 @@ describe("SourceReader (D-97)", () => {
     expect(screen.getByText("2021")).toBeInTheDocument();
     expect(screen.getByText("Revista de Materiais")).toBeInTheDocument();
     expect(screen.queryByText(t.search.noAuthors)).toBeNull();
+  });
+
+  it("links an article's open copy only when it is http(s)", async () => {
+    const { baseElement, unmount } = renderReader({
+      ...base,
+      kind: "artigo",
+      title: "Fadiga em aços",
+      url: "https://openalex.org/W123",
+      details: { oa_url: "https://repositorio.exemplo.org/fadiga.pdf" },
+    });
+    await screen.findByText("Texto inteiro da fonte.");
+    const link = screen.getByRole("link", { name: /repositorio\.exemplo\.org/ });
+    expect(link).toHaveAttribute("href", "https://repositorio.exemplo.org/fadiga.pdf");
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link).toHaveAttribute("rel", "noopener noreferrer nofollow");
+    expect(link).toHaveAccessibleName(
+      `repositorio.exemplo.org — ${t.reader.openOpenAccess("Fadiga em aços")}`,
+    );
+    await expectAccessible(baseElement);
+    unmount();
+
+    renderReader({
+      ...base,
+      kind: "artigo",
+      title: "Fadiga em aços",
+      details: { oa_url: "javascript:alert(1)" },
+    });
+    await screen.findByText("Texto inteiro da fonte.");
+    expect(screen.getByText("javascript:alert(1)")).toBeInTheDocument();
+    expect(document.querySelector("a[href]")).toBeNull();
   });
 
   it("says a video's transcript was pasted by the student", async () => {

@@ -9,19 +9,13 @@ import {
   updateNotebookSource,
 } from "@/lib/api";
 import { ptBR } from "@/lib/i18n";
-import {
-  Alert,
-  Button,
-  Checkbox,
-  IconButton,
-  Input,
-  PanelHeader,
-} from "@/components/ui";
-import { IconPlus, IconSearch, IconTrash } from "@/components/ui/icons";
+import { Alert, Button, Checkbox, IconButton, PanelHeader } from "@/components/ui";
+import { IconPlus, IconTrash } from "@/components/ui/icons";
 import { AddSourcesDialog } from "./AddSourcesDialog";
 import { notebookKey } from "./keys";
 import { SourceIcon } from "./sourceIcon";
 import { SourceReader } from "./SourceReader";
+import { SourceSearch } from "./SourceSearch";
 
 const t = ptBR.notebooks;
 
@@ -88,19 +82,7 @@ export function SourcesPanel({
             {t.addSources}
           </Button>
 
-          <div className="flex flex-col gap-1 rounded-card border border-edge bg-surface-sunken p-2.5">
-            <div className="flex items-center gap-2 text-ink-subtle">
-              <IconSearch />
-              <Input
-                aria-label={t.webSearch}
-                label=""
-                placeholder={t.webSearch}
-                disabled
-                className="flex-1"
-              />
-            </div>
-            <p className="text-2xs text-ink-muted">{t.webSearchSoon}</p>
-          </div>
+          <SourceSearch notebook={notebook} />
 
           {error ? (
             <Alert tone="danger" role="alert">

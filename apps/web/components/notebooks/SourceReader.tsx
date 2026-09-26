@@ -99,23 +99,10 @@ function SourceOrigin({ source }: { source: NotebookSource }) {
   const rows: { key: string; label: string; value: ReactNode }[] = [];
 
   if (url) {
-    const link = webLink(url);
     rows.push({
       key: "url",
       label: r.origin,
-      value: link ? (
-        <a
-          href={link.href}
-          target="_blank"
-          rel="noopener noreferrer nofollow"
-          className="break-all font-medium text-accent underline underline-offset-2"
-        >
-          {link.host}
-          <span className="sr-only"> — {r.openOrigin(source.title)}</span>
-        </a>
-      ) : (
-        <span className="break-all">{url}</span>
-      ),
+      value: <ExternalLink url={url} name={r.openOrigin(source.title)} />,
     });
   }
 
@@ -144,8 +131,19 @@ function SourceOrigin({ source }: { source: NotebookSource }) {
           <Absent>{t.search.noYear}</Absent>
         ),
     });
-    if (present(details?.venue)) rows.push({ key: "venue", label: r.venue, value: details.venue });
+    rows.push({
+      key: "venue",
+      label: r.venue,
+      value: present(details?.venue) ? details.venue : <Absent>{r.noVenue}</Absent>,
+    });
     if (present(details?.doi)) rows.push({ key: "doi", label: r.doi, value: details.doi });
+    if (present(details?.oa_url)) {
+      rows.push({
+        key: "oa",
+        label: r.openAccess,
+        value: <ExternalLink url={details.oa_url} name={r.openOpenAccess(source.title)} />,
+      });
+    }
   }
 
   if (source.kind === "wikipedia" && details?.revision_id != null && String(details.revision_id) !== "") {
@@ -183,6 +181,23 @@ function SourceOrigin({ source }: { source: NotebookSource }) {
       {transcript ? <p className="text-caption text-ink-muted">{transcript}</p> : null}
       {fetched ? <p className="text-caption text-ink-muted">{r.fetchedAt(fetched)}</p> : null}
     </section>
+  );
+}
+
+/** An address as a link only when it is http(s); anything else stays text. */
+function ExternalLink({ url, name }: { url: string; name: string }) {
+  const link = webLink(url);
+  if (!link) return <span className="break-all">{url}</span>;
+  return (
+    <a
+      href={link.href}
+      target="_blank"
+      rel="noopener noreferrer nofollow"
+      className="break-all font-medium text-accent underline underline-offset-2"
+    >
+      {link.host}
+      <span className="sr-only"> — {name}</span>
+    </a>
   );
 }
 

@@ -98,6 +98,18 @@ vi.mock("@/lib/api", () => ({
   addNotebookAppSource: vi.fn(),
   listMaterials: vi.fn(() => Promise.resolve([])),
   listStudies: vi.fn(() => Promise.resolve([])),
+  // D-97: the search well in the sources panel reads what is switched on.
+  getSourceCapabilities: vi.fn(() =>
+    Promise.resolve({
+      link: { enabled: true, reason: null },
+      youtube: { enabled: true, reason: null },
+      openalex: { enabled: false, reason: "Sem chave do OpenAlex." },
+      wikipedia: { enabled: true, reason: null },
+      web: { enabled: false, reason: "Busca na web desligada." },
+    }),
+  ),
+  searchSources: vi.fn(),
+  addExternalSource: vi.fn(),
 }));
 
 function wrap(node: ReactNode) {

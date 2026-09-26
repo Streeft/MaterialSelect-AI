@@ -1301,8 +1301,6 @@ export const ptBR = {
     openSource: (title: string) => `Ler a fonte “${title}”`,
     removeSource: (title: string) => `Remover a fonte “${title}”`,
     sourceLimit: (n: number, max: number) => `${n} de ${max} fontes`,
-    webSearch: "Pesquise novas fontes na web",
-    webSearchSoon: "Em breve: artigos (OpenAlex), Wikipédia e busca na web.",
     readerTitle: "Fonte",
 
     // D-97: fontes externas — link, vídeo e pesquisa.
@@ -1349,6 +1347,8 @@ export const ptBR = {
       noYear: "ano não informado",
       noAuthors: "autoria não informada",
       noTitle: "sem título",
+      noSnippet: "sem trecho de prévia",
+      searchLink: "link da busca do Google",
       alreadyAdded: "já está no caderno",
       openResult: (title: string) => `Abrir “${title}” em outra aba`,
       usage: (used: number, limit: number) => `${used} de ${limit} buscas hoje`,
@@ -1375,6 +1375,9 @@ export const ptBR = {
       authors: "Autoria",
       year: "Ano",
       venue: "Publicado em",
+      noVenue: "publicação não informada",
+      openAccess: "Cópia aberta",
+      openOpenAccess: (title: string) => `Abrir a cópia aberta de “${title}” em outra aba`,
       doi: "DOI",
       channel: "Canal",
       site: "Site",
