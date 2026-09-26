@@ -469,6 +469,36 @@ export const IconVideo = (p: IconProps) => (
   </Svg>
 );
 
+// D-97: glyphs for sources brought from outside the notebook — a web page, a
+// scholarly article, an encyclopedia entry. Each sits beside the written kind
+// of the source, so the glyph stays decorative.
+export const IconGlobe = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="12" cy="12" r="8.5" />
+    <path d="M3.5 12h17" />
+    <path d="M12 3.5c2.3 2.4 3.5 5.2 3.5 8.5s-1.2 6.1-3.5 8.5c-2.3-2.4-3.5-5.2-3.5-8.5s1.2-6.1 3.5-8.5Z" />
+  </Svg>
+);
+
+export const IconArticle = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="4.5" y="3.5" width="15" height="17" rx="2" />
+    <path d="M8 7.5h8" strokeWidth={2.6} />
+    <path d="M8 11.5h3.2M12.8 11.5H16" />
+    <path d="M8 14.5h3.2M12.8 14.5H16" />
+    <path d="M8 17.5h3.2M12.8 17.5H16" />
+  </Svg>
+);
+
+export const IconEncyclopedia = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M12 6.2c-2-1.5-4.6-2-7.5-1.7v13.8c2.9-.3 5.5.2 7.5 1.7 2-1.5 4.6-2 7.5-1.7V4.5c-2.9-.3-5.5.2-7.5 1.7Z" />
+    <path d="M12 6.2V20" />
+    <path d="M7.2 9.4h2.2" />
+    <path d="M14.6 9.4h2.2" />
+  </Svg>
+);
+
 export const IconMindMap = (p: IconProps) => (
   <Svg {...p}>
     <circle cx="6" cy="12" r="2.4" />

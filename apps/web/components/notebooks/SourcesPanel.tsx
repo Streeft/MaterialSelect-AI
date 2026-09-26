@@ -1,11 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Notebook, NotebookSource } from "@/lib/types";
 import {
   deleteNotebookSource,
-  getNotebookSource,
   selectAllNotebookSources,
   updateNotebookSource,
 } from "@/lib/api";
@@ -14,16 +13,15 @@ import {
   Alert,
   Button,
   Checkbox,
-  Dialog,
   IconButton,
   Input,
-  LoadingState,
   PanelHeader,
 } from "@/components/ui";
 import { IconPlus, IconSearch, IconTrash } from "@/components/ui/icons";
 import { AddSourcesDialog } from "./AddSourcesDialog";
 import { notebookKey } from "./keys";
 import { SourceIcon } from "./sourceIcon";
+import { SourceReader } from "./SourceReader";
 
 const t = ptBR.notebooks;
 
@@ -163,47 +161,5 @@ export function SourcesPanel({
       <AddSourcesDialog notebookId={notebook.id} open={adding} onClose={() => setAdding(false)} />
       <SourceReader notebookId={notebook.id} source={reading} onClose={() => setReading(null)} />
     </section>
-  );
-}
-
-function SourceReader({
-  notebookId,
-  source,
-  onClose,
-}: {
-  notebookId: number;
-  source: NotebookSource | null;
-  onClose: () => void;
-}) {
-  const detail = useQuery({
-    queryKey: [...notebookKey(notebookId), "source", source?.id],
-    queryFn: () => getNotebookSource(notebookId, source!.id),
-    enabled: source !== null,
-  });
-  return (
-    <Dialog open={source !== null} onClose={onClose} title={source?.title ?? t.readerTitle}>
-      {source ? (
-        <div className="flex flex-col gap-3">
-          <p className="text-xs text-ink-muted">
-            {t.sourceKinds[source.kind] ?? source.kind} ·{" "}
-            {t.sourceSize(source.char_count, source.page_count)}
-            {source.truncated ? ` · ${t.truncated}` : ""}
-          </p>
-          {detail.isPending ? (
-            <LoadingState />
-          ) : detail.error ? (
-            <Alert tone="danger">{detail.error.message}</Alert>
-          ) : (
-            <div
-              tabIndex={0}
-              aria-label={source.title}
-              className="max-h-[60vh] overflow-y-auto whitespace-pre-wrap rounded-control bg-surface-sunken p-3 text-sm text-ink"
-            >
-              {detail.data?.content}
-            </div>
-          )}
-        </div>
-      ) : null}
-    </Dialog>
   );
 }
