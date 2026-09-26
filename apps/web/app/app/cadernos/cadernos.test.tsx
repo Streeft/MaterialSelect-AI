@@ -63,6 +63,7 @@ function notebook(overrides: Partial<Notebook> = {}): Notebook {
     sources: [source],
     notes: [],
     usage: { used: 0, limit: 60, remaining: 60 },
+    fetch_usage: { used: 0, limit: 30, remaining: 30 },
     max_sources: 50,
     ai_enabled: true,
     ai_simulated: true,
@@ -135,6 +136,18 @@ vi.mock("@/lib/api", () => ({
   deleteStudioArtifact: vi.fn(),
   saveStudioArtifactAsNote: vi.fn(),
   studioExportUrl: vi.fn(() => "#"),
+  // D-97: the search well in the sources panel reads what is switched on.
+  getSourceCapabilities: vi.fn(() =>
+    Promise.resolve({
+      link: { enabled: true, reason: null },
+      youtube: { enabled: true, reason: null },
+      openalex: { enabled: false, reason: "Sem chave do OpenAlex." },
+      wikipedia: { enabled: true, reason: null },
+      web: { enabled: false, reason: "Busca na web desligada." },
+    }),
+  ),
+  searchSources: vi.fn(),
+  addExternalSource: vi.fn(),
 }));
 
 function wrap(node: ReactNode) {

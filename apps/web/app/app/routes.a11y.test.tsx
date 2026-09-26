@@ -1118,6 +1118,7 @@ const notebookFull = {
     },
   ],
   usage: { used: 1, limit: 60, remaining: 59 },
+  fetch_usage: { used: 2, limit: 30, remaining: 28 },
   max_sources: 50,
   ai_enabled: true,
   ai_simulated: false,
@@ -1197,6 +1198,17 @@ vi.mock("@/lib/api", async (importOriginal) => ({
   getDashboardOverview: () => Promise.resolve(overview),
   getDashboardDistribution: () => Promise.resolve(distribution),
   deactivateMaterial: () => Promise.resolve(),
+  // D-97: the search well in the sources panel reads what is switched on.
+  getSourceCapabilities: () =>
+    Promise.resolve({
+      link: { enabled: true, reason: null },
+      youtube: { enabled: true, reason: null },
+      openalex: { enabled: false, reason: "Sem chave do OpenAlex." },
+      wikipedia: { enabled: true, reason: null },
+      web: { enabled: false, reason: "Busca na web desligada." },
+    }),
+  searchSources: vi.fn(),
+  addExternalSource: vi.fn(),
   // Saved charts endpoints (B7)
   listSavedCharts: () => Promise.resolve([]),
   getSavedChart: () => Promise.resolve(null),

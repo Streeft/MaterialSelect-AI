@@ -13,11 +13,19 @@ The same two promises as every other export of this project:
 The mind map is drawn from the layout the screen draws
 (``app.notebooks.mindmap``, handed over on ``ArtifactOut.layout``) — never laid
 out again here.
+
+An external source's address and the attribution its licence asks for (D-97)
+travel on each citation, and every "Referências" block prints them: a CC BY-SA
+passage keeps its credit in every file that quotes it. They are text like any
+other and go through the same per-format escape. A citation without them —
+every phase 1 kind, and every citation stored before phase 3 — renders exactly
+as it did before.
 """
 
 from __future__ import annotations
 
 import io
+import re
 from html import escape
 
 from docx import Document
@@ -43,6 +51,18 @@ _MEDIA = {
     "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     "svg": "image/svg+xml",
 }
+
+#: Written in a references column when *another* citation of the same file
+#: fills it (D-24: absence is a phrase, never a blank cell). "Registrada", not
+#: "exigida": an absent attribution says nothing was recorded, not that the
+#: source's licence asks for none.
+NO_URL_LABEL = "sem endereço externo"
+NO_ATTRIBUTION_LABEL = "sem atribuição registrada"
+
+#: Characters XML cannot carry. python-docx and openpyxl raise on them and an
+#: SVG holding one does not parse, so an address or attribution read from
+#: outside becomes a space instead of breaking the export.
+_NOT_XML = re.compile("[\x00-\x08\x0b\x0c\x0e-\x1f\ufffe\uffff]")
 
 _INK = RGBColor(15, 23, 42)
 _SUBTLE = RGBColor(100, 116, 139)
@@ -81,14 +101,46 @@ def _reference(citation: CitationOut) -> str:
     return where
 
 
+def _plain(text: str | None) -> str | None:
+    """An external address or attribution, XML-legal; ``None`` stays ``None``."""
+    return _NOT_XML.sub(" ", text) if text else None
+
+
+def _credit(citation: CitationOut) -> tuple[str | None, str | None]:
+    """The citation's address and attribution, ready for any format."""
+    return _plain(citation.source_url), _plain(citation.source_attribution)
+
+
 # --- spreadsheets --------------------------------------------------------------
 
 
 def _references_sheet(artifact: ArtifactOut) -> Sheet:
+    """The references, one row per citation.
+
+    An "Endereço" or "Atribuição" column exists only when some citation fills
+    it, so an artifact made from phase 1 sources keeps the three columns it
+    always had. The cells are handed over raw: the spreadsheet writer puts
+    every one through ``cells.safe_text`` — escaping here too would print the
+    apostrophe twice.
+    """
+    credits = [_credit(c) for c in artifact.citations]
+    with_url = any(url for url, _ in credits)
+    with_attribution = any(attribution for _, attribution in credits)
+    header = ["Nº", "Fonte", "Trecho citado"]
+    header += ["Endereço"] if with_url else []
+    header += ["Atribuição"] if with_attribution else []
+    rows: list[list[object]] = []
+    for citation, (url, attribution) in zip(artifact.citations, credits, strict=True):
+        row: list[object] = [citation.number, _reference(citation), citation.excerpt]
+        if with_url:
+            row.append(url or NO_URL_LABEL)
+        if with_attribution:
+            row.append(attribution or NO_ATTRIBUTION_LABEL)
+        rows.append(row)
     return Sheet(
         name="Referências",
-        header=["Nº", "Fonte", "Trecho citado"],
-        rows=[[c.number, _reference(c), c.excerpt] for c in artifact.citations],
+        header=header,
+        rows=rows,
         notes=[] if artifact.citations else ["Nenhum trecho citado."],
     )
 
@@ -206,6 +258,12 @@ def _docx(artifact: ArtifactOut, subtitle: str) -> bytes:
     for citation in artifact.citations:
         paragraph = doc.add_paragraph()
         paragraph.add_run(f"[{citation.number}] {_reference(citation)}").bold = True
+        # Address and credit on their own lines, before the excerpt: they say
+        # whose the text below is. python-docx writes them as text runs.
+        for line in _credit(citation):
+            if line:
+                credit = paragraph.add_run(f"\n{line}")
+                credit.font.size = Pt(9)
         excerpt = paragraph.add_run(f"\n{citation.excerpt}")
         excerpt.font.size, excerpt.font.color.rgb = Pt(9), _SUBTLE
 
@@ -234,6 +292,21 @@ def _t(text: object) -> str:
     return escape(str(text), quote=True)
 
 
+def _svg_reference(citation: CitationOut, chars: int) -> list[str]:
+    """One citation's lines under the map: the reference, then its address and
+    attribution on lines of their own. The address is cut at the width and
+    never hyphenated — a hyphen would be read as part of it —, and the
+    attribution is never shortened: a licence credit cut with "…" is not the
+    credit the licence asks for."""
+    lines = wrap(f"[{citation.number}] {_reference(citation)}", chars, 2)
+    url, attribution = _credit(citation)
+    if url:
+        lines += [url[i : i + chars] for i in range(0, len(url), chars)]
+    if attribution:
+        lines += wrap(attribution, chars, max_lines=len(attribution))
+    return lines
+
+
 def mindmap_svg(artifact: ArtifactOut, subtitle: str) -> str:
     """The mind map as a standalone SVG, drawn from the backend's layout."""
     layout = artifact.layout
@@ -249,9 +322,7 @@ def mindmap_svg(artifact: ArtifactOut, subtitle: str) -> str:
     # The references go below the map: an SVG carried alone still says where
     # every bracketed number points.
     references = [
-        line
-        for citation in artifact.citations
-        for line in wrap(f"[{citation.number}] {_reference(citation)}", chars, 2)
+        line for citation in artifact.citations for line in _svg_reference(citation, chars)
     ]
     bottom = top + layout.height
     height = bottom + (len(references) * 14 + 24 if references else 0)

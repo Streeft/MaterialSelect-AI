@@ -27,17 +27,19 @@ import {
   type UploadItem,
 } from "@/components/ui";
 import { notebookKey } from "./keys";
+import { LinkTab } from "./LinkTab";
 
 const t = ptBR.notebooks;
 
-type Tab = "upload" | "text" | "app";
+type Tab = "upload" | "text" | "link" | "app";
 
 const ACCEPT = ".pdf,.docx,.txt,.md,.markdown";
 
 /**
- * "Adicionar fontes": a file, a pasted text, or a record of this app. Every
- * path ends on the server, which reads the text and answers with the source
- * or with the reason it could not — the reason is shown as the server wrote it.
+ * "Adicionar fontes": a file, a pasted text, a link (a page or a YouTube
+ * video, D-97), or a record of this app. Every path ends on the server, which
+ * reads the text and answers with the source or with the reason it could not
+ * — the reason is shown as the server wrote it.
  */
 export function AddSourcesDialog({
   notebookId,
@@ -58,6 +60,7 @@ export function AddSourcesDialog({
         items={[
           { id: "upload", label: t.tabUpload },
           { id: "text", label: t.tabText },
+          { id: "link", label: t.link.tab },
           { id: "app", label: t.tabApp },
         ]}
       >
@@ -65,6 +68,8 @@ export function AddSourcesDialog({
           <UploadTab notebookId={notebookId} />
         ) : tab === "text" ? (
           <TextTab notebookId={notebookId} onDone={onClose} />
+        ) : tab === "link" ? (
+          <LinkTab notebookId={notebookId} onDone={onClose} />
         ) : (
           <AppTab notebookId={notebookId} />
         )}
