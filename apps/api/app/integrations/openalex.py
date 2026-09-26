@@ -80,8 +80,8 @@ _SELECT = ",".join(
     )
 )
 
-_WORK_ID = re.compile(r"W\d{1,15}")
-_WORK_URL = re.compile(r"https://openalex\.org/(W\d{1,15})")
+_WORK_ID = re.compile(r"W[0-9]{1,15}")
+_WORK_URL = re.compile(r"https://openalex\.org/(W[0-9]{1,15})")
 _TAG = re.compile(r"<[^>]*>")
 _DOI_PREFIXES = ("https://doi.org/", "http://doi.org/", "doi:")
 
@@ -257,6 +257,9 @@ def rebuild_abstract(inverted_index: object) -> str | None:
     word put back at its positions, in order, joined by single spaces. When two
     words claim one position the first listed keeps it. No index, an empty one,
     or one with no usable position is ``None`` — no abstract, not an empty one.
+    So is an index with a position beyond :data:`MAX_ABSTRACT_WORDS`: keeping
+    only the words below the cap would be a cut the text does not admit to, so
+    the abstract is refused whole rather than truncated.
     """
     if not isinstance(inverted_index, dict) or not inverted_index:
         return None
@@ -265,13 +268,11 @@ def rebuild_abstract(inverted_index: object) -> str | None:
         if not isinstance(word, str) or not isinstance(places, list):
             continue
         for place in places:
-            if (
-                isinstance(place, int)
-                and not isinstance(place, bool)
-                and 0 <= place <= MAX_ABSTRACT_WORDS
-                and place not in by_position
-            ):
-                by_position[place] = word
+            if not isinstance(place, int) or isinstance(place, bool) or place < 0:
+                continue
+            if place > MAX_ABSTRACT_WORDS:
+                return None
+            by_position.setdefault(place, word)
     text = " ".join(" ".join(by_position[p] for p in sorted(by_position)).split())
     return text or None
 

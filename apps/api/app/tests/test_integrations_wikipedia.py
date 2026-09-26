@@ -15,11 +15,13 @@ import httpx
 import pytest
 
 from app.ai.guardrails import numbers_in, ungrounded_numbers
+from app.ai.notebook import Passage
 from app.domain.errors import NotFoundError, ServiceUnavailableError, ValidationError
 from app.integrations import wikipedia
 from app.integrations.errors import ExternalUnavailableError
 from app.knowledge.chunking import chunk_text
 from app.knowledge.readers import ExtractedText
+from app.notebooks.grounding import passage_numbers
 
 UA = "MaterialSelectAI/test (+https://example.org; contato@example.org)"
 TODAY = date(2026, 9, 26)
@@ -234,8 +236,8 @@ def test_page_returns_the_text_laid_out_and_the_credit_cc_by_sa_requires() -> No
     assert article.lang == "pt"
     assert article.retrieved_on == TODAY
     assert "== " not in article.text
-    assert "\n\n1 História\n\n" in article.text
-    assert "\n\n2 Propriedades › Propriedades mecânicas\n\n" in article.text
+    assert "\n\n1. História\n\n" in article.text
+    assert "\n\n2. Propriedades › Propriedades mecânicas\n\n" in article.text
 
     credit = article.attribution
     for expected in (
@@ -401,12 +403,12 @@ def test_section_titles_become_the_headings_the_chunker_reads() -> None:
     headings = [chunk.heading for chunk in chunks]
     assert headings == [
         None,
-        "1 História",
-        "2 Propriedades",
-        "2 Propriedades › Propriedades mecânicas",
+        "1. História",
+        "2. Propriedades",
+        "2. Propriedades › Propriedades mecânicas",
         # "Referências" is empty and not emitted, but it still counts: the
         # numbers follow the article's own list of sections.
-        "4 Ver também",
+        "4. Ver também",
     ]
     # Titles are labels, not passage text; every line of prose is in a passage.
     joined = " ".join(chunk.text for chunk in chunks)
@@ -429,7 +431,7 @@ def test_a_paragraph_that_would_read_as_a_heading_is_joined_to_its_neighbour() -
         "AÇO INOX 304\n"
     )
     chunks = _chunks(wikipedia.format_extract(extract))
-    assert {chunk.heading for chunk in chunks} == {"1 Produção"}
+    assert {chunk.heading for chunk in chunks} == {"1. Produção"}
     joined = " ".join(chunk.text for chunk in chunks)
     for fragment in ("1990 Fundação da usina", "Depois veio a expansão.", "AÇO INOX 304"):
         assert fragment in joined
@@ -438,16 +440,16 @@ def test_a_paragraph_that_would_read_as_a_heading_is_joined_to_its_neighbour() -
 def test_a_paragraph_that_opens_a_section_as_a_heading_takes_the_next_one_along() -> None:
     extract = "== Linha do tempo ==\n1913 Primeira liga\nA liga foi patenteada depois.\n"
     chunks = _chunks(wikipedia.format_extract(extract))
-    assert [c.heading for c in chunks] == ["1 Linha do tempo"]
+    assert [c.heading for c in chunks] == ["1. Linha do tempo"]
     assert "1913 Primeira liga" in chunks[0].text
 
 
 def test_a_section_that_reads_as_a_heading_keeps_its_title_in_front() -> None:
     extract = "Introdução do artigo.\n\n\n== Cronologia ==\n1990 Fundação\n2000 Expansão\n"
     text = wikipedia.format_extract(extract)
-    assert "1 Cronologia\n\nCronologia\n1990 Fundação\n2000 Expansão" in text
+    assert "1. Cronologia\n\nCronologia\n1990 Fundação\n2000 Expansão" in text
     chunks = _chunks(text)
-    assert chunks[-1].heading == "1 Cronologia"
+    assert chunks[-1].heading == "1. Cronologia"
     assert "1990 Fundação" in chunks[-1].text
 
 
@@ -468,9 +470,9 @@ def test_trailing_punctuation_and_long_titles_still_read_as_headings() -> None:
     )
     chunks = _chunks(wikipedia.format_extract(extract))
     headings = [chunk.heading for chunk in chunks]
-    assert headings[0] == "1 Etimologia"
+    assert headings[0] == "1. Etimologia"
     assert all(h is not None and len(h) <= wikipedia.MAX_HEADING_CHARS for h in headings)
-    assert headings[1] is not None and headings[1].startswith("2 Palavra")
+    assert headings[1] is not None and headings[1].startswith("2. Palavra")
     assert headings[1].endswith("…")
 
 
@@ -479,7 +481,7 @@ def test_section_markers_never_lend_a_passage_a_figure() -> None:
     extract += "=== Sub ===\nTexto final.\n"
     text = wikipedia.format_extract(extract)
     headings = {chunk.heading for chunk in _chunks(text)}
-    markers = {int(h.split(" ", 1)[0]) for h in headings if h}
+    markers = {int(h.split(" ", 1)[0].rstrip(".")) for h in headings if h}
     assert markers and max(markers) <= wikipedia.MAX_SECTION_MARKER
     # A marker is an integer the guardrails already exempt, so a figure in the
     # heading's text is the article's own — "Seção 101" is the title.
@@ -487,13 +489,50 @@ def test_section_markers_never_lend_a_passage_a_figure() -> None:
         assert heading is not None
         marker = heading.split(" ", 1)[0]
         assert ungrounded_numbers(marker, set()) == []
-    assert "30 Seção 130 › Sub" in headings
-    assert 130.0 in numbers_in("30 Seção 130 › Sub")
+    assert "30. Seção 130 › Sub" in headings
+    assert 130.0 in numbers_in("30. Seção 130 › Sub")
+
+
+@pytest.mark.parametrize(
+    ("section", "title", "stated"),
+    [
+        # The review's cases: "3 200 anos" read as 3200 and "2 1990" as 2199 + 0.
+        (3, "200 anos de siderurgia", {200.0}),
+        (2, "1990 em diante", {1990.0}),
+        (1, "1 000 toneladas por dia", {1000.0}),
+        (4, "1.500 ligas", {1.5, 1500.0}),
+        (5, "0,2 % de carbono", {0.2, 2.0}),
+    ],
+)
+def test_a_title_that_opens_with_a_figure_keeps_its_figure_and_gains_none(
+    section: int, title: str, stated: set[float]
+) -> None:
+    extract = "Introdução.\n" + "".join(
+        f"== Seção {n} ==\nTexto da seção.\n" for n in range(1, section)
+    )
+    extract += f"== {title} ==\nO texto da seção fala do assunto.\n"
+    chunks = _chunks(wikipedia.format_extract(extract))
+
+    # The chunker takes the numbered label as the heading, not as prose...
+    heading = chunks[-1].heading
+    assert heading == f"{section}. {title}"
+    assert title not in chunks[-1].text
+    # ...and the guardrails read exactly the article's figure plus the marker.
+    passage = Passage(
+        number=1,
+        source_title="Wikipédia",
+        heading=heading,
+        page_start=None,
+        page_end=None,
+        text="Texto sem figuras.",
+    )
+    assert passage_numbers(passage) == stated | {float(section)}
+    assert numbers_in(heading) == stated | {float(section)}
 
 
 def test_a_leading_subsection_opens_the_first_section() -> None:
     text = wikipedia.format_extract("=== Solta ===\nTexto.\n== Depois ==\nMais.\n")
-    assert [c.heading for c in _chunks(text)] == ["1 Solta", "2 Depois"]
+    assert [c.heading for c in _chunks(text)] == ["1. Solta", "2. Depois"]
 
 
 def test_an_empty_extract_lays_out_to_nothing() -> None:

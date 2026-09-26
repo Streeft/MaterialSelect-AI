@@ -90,9 +90,10 @@ def test_rebuild_abstract_first_listed_word_keeps_a_contested_position() -> None
     assert openalex.rebuild_abstract({"um": [0], "dois": [0, 1]}) == "um dois"
 
 
-def test_rebuild_abstract_ignores_positions_no_abstract_has() -> None:
+def test_rebuild_abstract_refuses_rather_than_truncates_past_the_cap() -> None:
     index = {"curto": [0], "absurdo": [openalex.MAX_ABSTRACT_WORDS + 1]}
-    assert openalex.rebuild_abstract(index) == "curto"
+    assert openalex.rebuild_abstract(index) is None
+    assert openalex.rebuild_abstract({"ok": [openalex.MAX_ABSTRACT_WORDS]}) == "ok"
 
 
 def test_rebuild_abstract_leaves_gaps_closed_and_collapses_spaces() -> None:
@@ -127,6 +128,8 @@ def test_normalise_work_id_accepts_the_short_and_public_forms(value: str, expect
         "http://openalex.org/W1",
         "https://openalex.org/W1?x=1",
         "W" + "1" * 16,
+        "W١٢٣",
+        "https://openalex.org/W١٢٣",
         None,
     ],
 )
