@@ -69,10 +69,17 @@ import {
   type Provenance,
 } from "@/components/ui";
 import {
+  IconArticle,
   IconAudio,
+  IconBook,
   IconCards,
   IconDownload,
+  IconEncyclopedia,
+  IconFileText,
+  IconFilter,
+  IconGlobe,
   IconGrid,
+  IconNote,
   IconPencil,
   IconQuiz,
   IconReport,
@@ -80,6 +87,7 @@ import {
   IconStar,
   IconTable,
   IconTrash,
+  IconVideo,
 } from "@/components/ui/icons";
 
 /**
@@ -89,6 +97,18 @@ import {
  * this work, and for the monograph — the figures showing the interface language
  * are screenshots of this page, so they cannot go stale relative to the code.
  */
+
+/** The source kinds of a notebook (D-92, D-97) and the glyph each wears. */
+const SOURCE_KIND_GLYPHS = [
+  ["arquivo", IconFileText],
+  ["texto", IconNote],
+  ["ficha", IconBook],
+  ["estudo", IconFilter],
+  ["site", IconGlobe],
+  ["youtube", IconVideo],
+  ["artigo", IconArticle],
+  ["wikipedia", IconEncyclopedia],
+] as const;
 
 const SURFACES = [
   ["surface", "bg-surface"],
@@ -961,6 +981,15 @@ export default function StyleGuidePage() {
                 { key: "b", name: "resumo.docx", progress: 1, status: "done" },
               ]}
             />
+            {/* D-97: um glifo por tipo de fonte, sempre ao lado do nome escrito. */}
+            <ul aria-label="Tipos de fonte" className="well grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {SOURCE_KIND_GLYPHS.map(([kind, Glyph]) => (
+                <li key={kind} className="flex items-center gap-2 text-support text-ink">
+                  <Glyph className="text-brand-700" />
+                  {ptBR.notebooks.sourceKinds[kind]}
+                </li>
+              ))}
+            </ul>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               <ToolTile icon={<IconAudio />} label="Resumo em Áudio" tone="brand" badge="Em breve" unavailable />
               <ToolTile icon={<IconReport />} label="Relatórios" tone="warning" onClick={() => {}} />
