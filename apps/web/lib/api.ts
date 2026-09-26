@@ -39,10 +39,16 @@ import type {
   NotebookChat,
   NotebookMessage,
   NotebookNote,
+  NotebookSearch,
+  NotebookSearchRequest,
   NotebookSource,
+  NotebookSourceCapabilities,
   NotebookSourceDetail,
   NotebookSummary,
   NotebookUpdate,
+  NotebookExternalSourceRequest,
+  NotebookYoutubeResult,
+  NotebookYoutubeSourceRequest,
   StudioArtifact,
   StudioCatalog,
   StudioExport,
@@ -1008,6 +1014,60 @@ export function deleteNotebookNote(id: number, noteId: number): Promise<void> {
 
 export function saveAnswerAsNote(id: number, messageId: number): Promise<NotebookNote> {
   return request<NotebookNote>(`${nb(id)}/messages/${messageId}/note`, { method: "POST" });
+}
+
+// --- Fontes externas (D-97) ----------------------------------------------------
+//
+// Every call that fetches or searches is a POST: it spends the student's daily
+// quota of outside requests, and the server re-fetches by `key` rather than
+// trusting any text sent from here.
+
+/** What is switched on — link, video, articles, Wikipedia, web — and why not. */
+export function getSourceCapabilities(): Promise<NotebookSourceCapabilities> {
+  return request<NotebookSourceCapabilities>("/api/notebooks/source-capabilities");
+}
+
+/** A web page by its address; the server fetches and reads it. */
+export function addUrlSource(id: number, url: string): Promise<NotebookSource> {
+  return request<NotebookSource>(`${nb(id)}/sources/url`, {
+    method: "POST",
+    body: JSON.stringify({ url }),
+  });
+}
+
+/**
+ * A YouTube video. Without `transcript` the answer comes back with
+ * `needs_transcript` and no source: YouTube does not let a server fetch it.
+ */
+export function addYoutubeSource(
+  id: number,
+  body: NotebookYoutubeSourceRequest,
+): Promise<NotebookYoutubeResult> {
+  const payload: NotebookYoutubeSourceRequest = body.transcript
+    ? { url: body.url, transcript: body.transcript }
+    : { url: body.url };
+  return request<NotebookYoutubeResult>(`${nb(id)}/sources/youtube`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function searchSources(id: number, body: NotebookSearchRequest): Promise<NotebookSearch> {
+  return request<NotebookSearch>(`${nb(id)}/search`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+/** One search result, added by its `key`. */
+export function addExternalSource(
+  id: number,
+  body: NotebookExternalSourceRequest,
+): Promise<NotebookSource> {
+  return request<NotebookSource>(`${nb(id)}/sources/external`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
 }
 
 // --- Estúdio (D-94) ------------------------------------------------------------
