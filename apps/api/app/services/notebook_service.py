@@ -132,7 +132,7 @@ class NotebookService:
         return self.get(notebook.id)
 
     def get(self, notebook_id: int) -> NotebookOut:
-        notebook = self._notebook(notebook_id)
+        notebook = self.notebook(notebook_id)
         ai_enabled, simulated, notice = self._ai_state()
         return NotebookOut(
             id=notebook.id,
@@ -156,7 +156,7 @@ class NotebookService:
         )
 
     def update(self, notebook_id: int, payload: NotebookUpdate) -> NotebookOut:
-        notebook = self._notebook(notebook_id)
+        notebook = self.notebook(notebook_id)
         if payload.title is not None:
             notebook.title = payload.title.strip()
         if payload.emoji is not None:
@@ -176,10 +176,10 @@ class NotebookService:
         return self.get(notebook_id)
 
     def delete(self, notebook_id: int) -> None:
-        self.repo.delete(self._notebook(notebook_id))
+        self.repo.delete(self.notebook(notebook_id))
         self.db.commit()
 
-    def _notebook(self, notebook_id: int) -> Notebook:
+    def notebook(self, notebook_id: int) -> Notebook:
         notebook = self.repo.get(notebook_id)
         if notebook is None:
             raise NotFoundError(f"Caderno não encontrado: {notebook_id}")
@@ -191,18 +191,18 @@ class NotebookService:
     # --- sources -----------------------------------------------------------
 
     def add_upload(self, notebook_id: int, filename: str, data: bytes) -> SourceOut:
-        notebook = self._notebook(notebook_id)
-        self._check_room(notebook)
+        notebook = self.notebook(notebook_id)
+        self.check_room(notebook)
         extracted = read_upload(filename, data, max_pages=self.settings.notebook_max_pages)
         paged = filename.lower().endswith(".pdf")
         title = filename.rsplit(".", 1)[0].strip() or filename
-        return self._ingest(notebook, "arquivo", title[:300], filename[:500], extracted, paged)
+        return self.ingest(notebook, "arquivo", title[:300], filename[:500], extracted, paged)
 
     def add_text(self, notebook_id: int, payload: TextSourceIn) -> SourceOut:
-        notebook = self._notebook(notebook_id)
-        self._check_room(notebook)
+        notebook = self.notebook(notebook_id)
+        self.check_room(notebook)
         extracted = ExtractedText(pages=[payload.text])
-        return self._ingest(notebook, "texto", payload.title.strip(), None, extracted, False)
+        return self.ingest(notebook, "texto", payload.title.strip(), None, extracted, False)
 
     def add_app_source(self, notebook_id: int, payload: AppSourceIn) -> SourceOut:
         """A datasheet or a saved study, written out as text.
@@ -212,8 +212,8 @@ class NotebookService:
         it is on its datasheet (D-62), and a study outside this user's project
         does not exist.
         """
-        notebook = self._notebook(notebook_id)
-        self._check_room(notebook)
+        notebook = self.notebook(notebook_id)
+        self.check_room(notebook)
         if payload.kind == "ficha":
             from app.services.material_service import MaterialService
 
@@ -234,18 +234,18 @@ class NotebookService:
             text = app_sources.study_text(study, pipeline, result)
             title = f"Estudo: {study.name}"
             origin = f"estudo:{study.id}"
-        return self._ingest(
+        return self.ingest(
             notebook, payload.kind, title[:300], origin, ExtractedText(pages=[text]), False
         )
 
-    def _check_room(self, notebook: Notebook) -> None:
+    def check_room(self, notebook: Notebook) -> None:
         if len(notebook.sources) >= self.settings.notebook_max_sources:
             raise ValidationError(
                 f"O caderno já tem {len(notebook.sources)} fontes, o limite. Remova uma "
                 "antes de adicionar outra."
             )
 
-    def _ingest(
+    def ingest(
         self,
         notebook: Notebook,
         kind: str,
@@ -361,7 +361,7 @@ class NotebookService:
         return _source_out(source)
 
     def select_all(self, notebook_id: int, selected: bool) -> list[SourceOut]:
-        notebook = self._notebook(notebook_id)
+        notebook = self.notebook(notebook_id)
         for source in notebook.sources:
             source.selected = selected
         self.db.commit()
@@ -369,7 +369,7 @@ class NotebookService:
 
     def delete_source(self, notebook_id: int, source_id: int) -> None:
         source = self._source(notebook_id, source_id)
-        notebook = self._notebook(notebook_id)
+        notebook = self.notebook(notebook_id)
         self.repo.delete_source(source)
         notebook.summary = None
         notebook.suggested_questions = None
@@ -385,16 +385,16 @@ class NotebookService:
     # --- chat --------------------------------------------------------------
 
     def messages(self, notebook_id: int) -> list[MessageOut]:
-        self._notebook(notebook_id)
+        self.notebook(notebook_id)
         return [_message_out(message) for message in self.repo.messages(notebook_id)]
 
     def clear_messages(self, notebook_id: int) -> None:
-        self._notebook(notebook_id)
+        self.notebook(notebook_id)
         self.repo.clear_messages(notebook_id)
         self.db.commit()
 
     def ask(self, notebook_id: int, payload: AskIn) -> ChatOut:
-        notebook = self._notebook(notebook_id)
+        notebook = self.notebook(notebook_id)
         question = payload.question.strip()
         if not question:
             raise ValidationError("Escreva uma pergunta.")
@@ -404,7 +404,7 @@ class NotebookService:
                 "Nenhuma fonte marcada. Adicione uma fonte ou marque ao menos uma na lista."
             )
         provider = self._provider()
-        self._check_quota()
+        self.check_quota()
 
         found = search(
             chunks,
@@ -452,12 +452,12 @@ class NotebookService:
     # --- the notebook guide ------------------------------------------------
 
     def summarize(self, notebook_id: int) -> NotebookOut:
-        notebook = self._notebook(notebook_id)
+        notebook = self.notebook(notebook_id)
         chunks = self.repo.selected_chunks(notebook_id)
         if not chunks:
             raise ValidationError("Marque ao menos uma fonte para escrever o guia do caderno.")
         provider = self._provider()
-        self._check_quota()
+        self.check_quota()
 
         picked = openings(chunks, self.settings.notebook_context_passages)
         passages = passages_for(picked)
@@ -489,7 +489,7 @@ class NotebookService:
     # --- notes -------------------------------------------------------------
 
     def add_note(self, notebook_id: int, payload: NoteIn) -> NoteOut:
-        notebook = self._notebook(notebook_id)
+        notebook = self.notebook(notebook_id)
         note = NotebookNote(
             notebook_id=notebook.id, title=payload.title.strip(), body=payload.body, origin="manual"
         )
@@ -514,7 +514,7 @@ class NotebookService:
 
     def save_message_as_note(self, notebook_id: int, message_id: int) -> NoteOut:
         """An answer kept as a note, with its citations copied along."""
-        notebook = self._notebook(notebook_id)
+        notebook = self.notebook(notebook_id)
         message = self.repo.get_message(notebook_id, message_id)
         if message is None or message.role != "assistant":
             raise NotFoundError(f"Resposta não encontrada: {message_id}")
@@ -578,7 +578,7 @@ class NotebookService:
                 "de hoje. O limite volta amanhã; colar o texto como fonte continua disponível."
             )
 
-    def _check_quota(self) -> None:
+    def check_quota(self) -> None:
         if self.usage().remaining <= 0:
             raise QuotaExceededError(
                 f"Você usou as {self.settings.notebook_daily_requests} perguntas de hoje nos "

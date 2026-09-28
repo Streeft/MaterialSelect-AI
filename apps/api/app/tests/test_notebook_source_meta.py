@@ -2,7 +2,7 @@
 a atribuição que viaja com cada citação, a deduplicação pela origem sem sair do
 dono, a cota de buscas e os padrões de configuração que não custam nada.
 
-Nada aqui sai para a rede: as fontes externas entram por ``_ingest`` com um
+Nada aqui sai para a rede: as fontes externas entram por ``ingest`` com um
 ``meta`` montado à mão, que é exatamente o que o serviço de fontes externas
 entrega depois de buscar.
 """
@@ -20,6 +20,7 @@ from pydantic import ValidationError as PydanticValidationError
 from alembic import command
 from app.config import Settings, settings
 from app.domain.errors import QuotaExceededError
+from app.integrations import gemini_search
 from app.knowledge.readers import ExtractedText
 from app.models.notebook import AIUsage, NotebookSource
 from app.repositories.notebook_repository import NotebookRepository
@@ -77,8 +78,8 @@ def _service(db_session, user, **overrides) -> NotebookService:
 
 
 def _ingest(service: NotebookService, notebook_id: int, meta=META, text=WIKI_TEXT):
-    notebook = service._notebook(notebook_id)
-    return service._ingest(
+    notebook = service.notebook(notebook_id)
+    return service.ingest(
         notebook,
         "wikipedia",
         "Titânio",
@@ -275,6 +276,8 @@ def test_a_new_usage_row_starts_every_counter_at_zero(db_session, test_user):
 # --- configuration: nothing that costs money is on by default -------------------
 
 _EXTERNAL_ENV = (
+    "AI_API_KEY",
+    "AI_BASE_URL",
     "NOTEBOOK_EXTERNAL_SOURCES",
     "NOTEBOOK_DAILY_FETCHES",
     "NOTEBOOK_FETCH_MAX_BYTES",
@@ -304,7 +307,7 @@ def test_defaults_spend_nothing(clean_env):
     defaults = Settings(_env_file=None)
     assert defaults.web_search_provider == ""  # web search is off
     assert defaults.openalex_api_key == ""  # article search is off, reason on screen
-    assert defaults.web_search_key == ""
+    assert gemini_search.resolve_key(defaults) == ""
     assert defaults.notebook_external_sources is True  # the free paths are on
     assert defaults.wikipedia_lang == "pt"
     assert defaults.external_contact == ""
@@ -321,12 +324,18 @@ def test_defaults_spend_nothing(clean_env):
     assert "notebook_youtube_auto_transcript" not in Settings.model_fields
 
 
-def test_web_search_key_falls_back_to_the_ai_key(clean_env):
-    assert Settings(_env_file=None, ai_api_key=" AIza-ai ").web_search_key == "AIza-ai"
-    assert (
-        Settings(_env_file=None, ai_api_key="AIza-ai", web_search_api_key="AIza-web").web_search_key
-        == "AIza-web"
+def test_web_search_key_falls_back_to_the_ai_key_only_on_the_gemini_api(clean_env):
+    """One fallback rule, in ``gemini_search.resolve_key`` — Settings has none."""
+    gemini = "https://generativelanguage.googleapis.com/v1beta/openai/"
+    assert not hasattr(Settings, "web_search_key")
+    on_gemini = Settings(_env_file=None, ai_api_key=" AIza-ai ", ai_base_url=gemini)
+    assert gemini_search.resolve_key(on_gemini) == "AIza-ai"
+    on_groq = Settings(
+        _env_file=None, ai_api_key="gsk-ai", ai_base_url="https://api.groq.com/openai/v1"
     )
+    assert gemini_search.resolve_key(on_groq) == ""
+    own = Settings(_env_file=None, ai_api_key="AIza-ai", web_search_api_key="AIza-web")
+    assert gemini_search.resolve_key(own) == "AIza-web"
 
 
 # --- request contracts -----------------------------------------------------------
