@@ -13,20 +13,16 @@ os vizinhos — outros documentos citam esses códigos.
 
 ## Alta prioridade
 
-**Cadernos — fases 3 e 4 (D-92).** ▃ A fase 1 entregou cadernos privados,
-fontes, conversa citada, guia, notas e cota; a fase 2 (D-94), o Estúdio de
-texto — relatório, cartões, teste, tabela e mapa mental, gerados em segundo
-plano e conferidos item a item. O que falta, tudo sem custo (D-93):
-
-- **Fase 3 — fontes externas (D-95).** URL com proteção contra SSRF, YouTube
-  (legenda pública; se falhar, colar a transcrição), OpenAlex e Wikipédia pelas
-  APIs gratuitas, e busca na web por *grounding* com Google Search — o que
-  exige um provedor `gemini` **nativo** (o endpoint compatível não expõe a
-  ferramenta). A caixa "Pesquise novas fontes na web" já está na tela, marcada
-  "em breve".
-- **Fase 4 — visual e sonoro (D-96).** Slides + PPTX, Infográfico, e Resumo em
-  Áudio e em Vídeo com roteiro do backend e a voz do navegador
-  (`speechSynthesis`), sem TTS pago.
+**Cadernos — fase 4 (D-98).** ▃ A fase 1 (D-92) entregou cadernos privados,
+fontes, conversa citada, guia, notas e cota. A fase 2 (D-94) entregou o Estúdio
+de texto: relatório, cartões, teste, tabela e mapa mental, gerados em segundo
+plano e conferidos item a item. A fase 3 (D-97) entregou as fontes externas —
+site, YouTube, OpenAlex, Wikipédia e web (ver "Débitos já quitados"). Falta a
+fase 4, também sem custo (D-93): **visual e sonoro**, com Slides + PPTX,
+Infográfico, e Resumo em Áudio e em Vídeo, com roteiro do backend e a voz do
+navegador (`speechSynthesis`), sem TTS pago. O texto do D-94 chama essa fase de
+"D-96", mas o número foi usado para a auditoria do PR #78; a fase 4 é o
+**D-98**.
 
 **S3 — as cadeias de CVE que nenhum upgrade fecha.** ▃ O S2 (ver "Débitos já
 quitados") derrubou o `npm audit` de 27 para **14** achados e fechou as duas
@@ -83,6 +79,38 @@ Nenhum item aberto no momento — M6 foi entregue nesta sessão (ver
 
 ## Baixa prioridade
 
+**Cadernos — pendências deixadas pela fase 3 (D-97).** Nenhuma bloqueia o uso;
+cada uma tem o motivo de ter ficado de fora.
+
+- **Linha de tabela lida como título pelo fatiador.** ▁
+  `looks_like_heading`, em `app/knowledge/chunking.py`, trata como título uma
+  linha curta que começa por número ou está em caixa alta. Uma linha de tabela
+  como `1 | Aço | 200`, vinda do DOCX (`readers._read_docx`) ou de uma página,
+  sai do texto do trecho e vai para o lugar do título. O conserto é uma linha:
+  uma linha que contém `" | "` nunca é título. Ficou de fora porque o fatiador
+  é compartilhado com o Cérebro, e mexer nele muda a fatia de todo documento já
+  ingerido. Enquanto isso, o extrator de HTML põe um `;` no fim da linha
+  ameaçada; com a guarda no lugar, esse `;` pode sair.
+- **Transcrição automática do YouTube.** ▆ Hoje é impossível sem custo: desde
+  2025–26 o endpoint de legendas exige um token *Proof-of-Origin* que só o
+  BotGuard de um navegador gera, e responde 200 vazio sem ele; IP de datacenter
+  é bloqueado. As saídas conhecidas (navegador *headless*, serviço pago)
+  quebram o custo zero. O aluno cola a transcrição. Reavalie só se o YouTube
+  voltar a servir legenda sem o token.
+- **Trafilatura no lugar do extrator de HTML.** ▁ `app/notebooks/html_text.py`
+  é o ponto único de troca, com a assinatura `extract_html(data, charset) ->
+  (title, ExtractedText)`. Troque se a qualidade da extração em páginas reais
+  não bastar. A regra de descartar nós ocultos (defesa contra injeção de prompt)
+  tem de sobreviver à troca.
+- **Conferir ao vivo as "Sugestões da Pesquisa Google".** ▁ Quando
+  `WEB_SEARCH_PROVIDER=gemini` for ligado em produção, faça uma busca no modo
+  Web e confirme que a faixa de sugestões aparece legível na moldura isolada
+  (sem script) e que uma ficha abre a pesquisa numa aba nova. O formato do HTML
+  do Google foi deduzido da documentação, porque os testes não têm rede, e os
+  termos do *grounding* exigem que ele seja mostrado. Se as fichas precisarem de
+  script, a saída é `allow-scripts` **sem** `allow-same-origin`, nunca as duas
+  juntas. Passo a passo em [13-deploy.md §5-sexies](13-deploy.md).
+
 **B11 — a unidade canônica impressa como o Pint a escreve — quitado (P4).** ▁
 `app/calculations/units.py` ganhou `pretty_unit()`, e o `export_service` o aplica
 nas tabelas do relatório, nas do laudo, na folha de proveniência e nos rótulos de
@@ -128,6 +156,28 @@ continua lá, e a métrica para de medir no 3.
 
 Registrados para não voltarem por engano:
 
+- ~~**Cadernos, fase 3 — fontes externas (D-97)**~~ — A aba **Link** acrescenta
+  um site ou um vídeo do YouTube, e a caixa de pesquisa das Fontes busca
+  **Artigos** (OpenAlex), **Wikipédia** e **Web** (*grounding* do Gemini) e
+  acrescenta os resultados marcados.
+  - **A rede do servidor só se abre por um portão:** `safe_fetch`, com lista de
+    bloqueio explícita, IP fixado com `Host` + SNI, cada redirecionamento
+    conferido de novo, tetos de tamanho e de prazo (DNS incluído), sem cookies
+    e com `Connection: close`.
+  - **A duplicata é barrada antes da rede**, pela origem canônica. A cota
+    diária (`NOTEBOOK_DAILY_FETCHES`) conta quando a requisição sai do
+    servidor, e é gravada antes do erro.
+  - **O extrator de HTML** usa só a biblioteca padrão e descarta os nós
+    ocultos.
+  - **A atribuição CC BY-SA 4.0** da Wikipédia vai para as citações e as
+    exportações do Estúdio.
+  - **O YouTube funciona pela transcrição colada.**
+  - **O Gemini só busca**: o texto gerado é descartado, e as Sugestões da
+    Pesquisa ficam numa moldura sem script.
+  - **Custo zero:** OpenAlex e web vêm desligadas até haver uma chave gratuita,
+    de conta sem forma de pagamento.
+
+  O que ficou pendente está em "Baixa prioridade".
 - ~~**Cadernos, fase 2 — Estúdio de texto (D-94)**~~ — Relatório (seis
   modelos, texto corrido ou tópicos), Cartões didáticos, Teste (múltipla escolha
   ou V/F), Tabela de dados (colunas escolhidas) e Mapa mental, no modal

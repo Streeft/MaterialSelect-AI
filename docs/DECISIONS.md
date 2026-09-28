@@ -6142,3 +6142,283 @@ esta entrada.
 **O que fica para depois**, como o D-65 já dizia: custo por família de
 processo, e custo como objetivo num estudo de *processos* — que não têm
 `custo_massa`.
+
+## D-97 — Fontes externas nos Cadernos: a rede do servidor só se abre por um portão, e a origem viaja com o texto
+
+**O pedido.** A fase 3 dos Cadernos (D-92): o aluno traz fontes de fora para um
+caderno privado, como no NotebookLM. São três caminhos: o **link de um site**,
+um **vídeo do YouTube** e a **pesquisa** de artigos (OpenAlex), verbetes
+(Wikipédia) e páginas da web (o *grounding* do Gemini com a Pesquisa Google).
+Custo zero, como no D-93. Quatro tipos novos de fonte — `site`, `youtube`,
+`artigo` e `wikipedia` — cabem em `NotebookSource.kind`, que é texto sem CHECK,
+então não pedem migração de enum.
+
+**Um portão só para endereço escrito pelo aluno.** Pedir ao servidor que leia
+um endereço que o usuário digitou é a forma clássica de SSRF. O servidor fica
+numa rede que o aluno não alcança — a rede privada do Fly e o serviço de
+metadados — e um link para `169.254.169.254` ou para um nome que resolve para
+`10.x` faria o servidor ler aquilo em nome do aluno. Então
+`app/integrations/safe_fetch.py` é **o único código que busca uma URL
+arbitrária**. OpenAlex, Wikipédia, oEmbed do YouTube e Gemini falam com hosts
+fixos. As regras, cada uma pelo motivo que a sustenta:
+
+- **A lista de bloqueio é explícita**, v4 e v6: redes privadas, laço local,
+  link-local, CGNAT (`100.64/10`), documentação, multicast, NAT64, 6to4,
+  Teredo e o endereço de metadados em IPv6 (`fd00:ec2::254`). Não se usa `ipaddress.is_global` nem
+  `is_private`, porque essas propriedades mudaram entre patches do Python 3.11
+  e do 3.12, e a CI roda os dois: a mesma entrada seria aceita numa perna e
+  recusada na outra. IPv4 mapeado em IPv6 é desembrulhado e conferido como v4.
+  A recusa vale se **qualquer** endereço resolvido não for público, não só o
+  primeiro.
+- **O host é lido antes de ser resolvido.** IDNA roda antes da checagem, o que
+  pega dígitos de largura total. Um host numérico em grafia exótica
+  (`2130706433`, `0x7f.1`, `127.1`) é recusado antes da resolução, e os
+  sufixos locais também (`localhost`, `.local`, `.internal`, `.flycast`…). Só
+  as portas 80 e 443, e nada de userinfo.
+- **O IP fica fixado.** O nome é resolvido uma vez e conferido, e a requisição
+  vai **ao IP validado**, com o nome no `Host` e no `sni_hostname` do TLS. O
+  httpcore usa esse valor tanto para o SNI quanto para a verificação do
+  certificado. Sem a fixação, o httpx resolveria o nome de novo, e um DNS que
+  muda de resposta entre a checagem e a conexão (*rebinding*) levaria a
+  requisição a `127.0.0.1` depois de a checagem aprovar outra coisa.
+- **Cada salto de redirecionamento é conferido de novo**, como se fosse o
+  primeiro endereço: no máximo 3. `follow_redirects=False` vai também em cada
+  requisição, para que um cliente injetado construído para seguir
+  redirecionamentos não pule a checagem.
+- **Tetos:** 5 MB **depois** de descomprimir, prazo total de 10 s cobrindo os
+  saltos, e Content-Type na lista (HTML, XHTML, texto, markdown e PDF, este
+  também pelo `%PDF-` nos primeiros bytes). A descompressão é feita aqui, com
+  `max_length`: o decodificador do httpx infla um bloco inteiro da rede antes
+  de alguém poder contar, e uma bomba de gzip de 64 KB vira 64 MB ali.
+- **Nenhum cookie, `Connection: close` e só HTTP/1.1.** A URL da requisição é o
+  IP, então o jar do httpx guardaria um cookie **sob o IP** e o devolveria a
+  outro site servido pelo mesmo IP de CDN. A revisão reproduziu isso: o cookie
+  de `a-site.com` chegou a `b-site.com`. Hoje o jar recusa tudo, e o cabeçalho
+  `Cookie` é retirado de cada requisição. `Connection: close` impede que uma
+  conexão TLS aberta com o SNI de um nome seja reusada para outro nome fixado
+  no mesmo IP; se fosse reusada, o certificado do segundo nunca seria
+  conferido. O HTTP/2 multiplexaria da mesma forma, e por isso fica desligado
+  de modo explícito.
+- **`trust_env=False`.** Um `HTTPS_PROXY` no ambiente mandaria a requisição
+  para um intermediário, e ali a fixação não vale nada.
+- **O DNS também tem prazo.** `getaddrinfo` não tem timeout. Em produção, a
+  resolução roda num pool de 4 threads e é abandonada no prazo da leitura, e o
+  aluno recebe a mesma recusa de "endereço não encontrado". Falha fechada, com
+  um custo dito: a thread abandonada fica presa até o sistema desistir.
+- **A mensagem de recusa nunca ecoa o IP resolvido**, nem host nenhum. Ecoar
+  diria ao aluno o que existe na rede interna.
+
+**`meta`: a origem de cada fonte.** `notebook_source.meta` é uma coluna JSON
+anulável. Ela guarda `url`, `final_url`, `fetched_at`, `site_name`, `license`,
+`attribution`, `authors`, `year`, `venue`, `doi`, `oa_url`, `video_id`,
+`channel`, `transcript_origin`, `revision_id`, `pageid` e `found_via` (`link` ou
+`busca_web`). É NULL nos tipos da fase 1, que não mudam em nada. A tela recebe
+um subconjunto curado (`details`): `final_url` e chaves desconhecidas não saem,
+e todo link em `meta` é só http(s), porque o que vem de uma API de terceiros
+não tem esquema garantido. A migração `4dbd71e64b6b` cria `meta` e
+`ai_usage.fetches`, esta com `server_default 0` **mantido no banco**. Num
+deploy do Fly, uma máquina ainda com o código velho continua inserindo linhas
+em `ai_usage` sem a coluna nova, e sem o padrão no banco essas inserções
+violariam o NOT NULL.
+
+**Duplicata pela origem canônica, antes da rede.** Cada tipo tem uma forma
+canônica: a URL normalizada (sem fragmento, `utm_*`, `fbclid` e `gclid`),
+`https://www.youtube.com/watch?v=ID`, `https://openalex.org/W…` e a URL do
+verbete. A Wikipédia é deduplicada antes pelo `pageid` já guardado no `meta` —
+a chave que o navegador manda é o `pageid`, e o título não é aceito do cliente.
+Uma duplicata é 409 **sem sair do servidor e sem gastar cota**, e o checksum da
+fase 1 continua valendo depois. A exceção é o resultado da busca na web. O link
+que o Google devolve é um redirecionamento único por busca e que expira, então
+não pode ser a origem: a página é guardada, e deduplicada, pelo `final_url`
+depois do redirecionamento. Só ali a duplicata aparece depois da rede, e é
+contada. Uma origem com mais de 500 caracteres depois de normalizada é
+**recusada, nunca cortada**, porque endereço cortado é outro endereço e
+quebraria a deduplicação.
+
+**Cota: conta quando a requisição sai do servidor.** `NOTEBOOK_DAILY_FETCHES`
+(30) por aluno e por dia, em `ai_usage.fetches`. A regra é o oposto da do chat,
+que conta no sucesso (D-92), e o motivo é que é **pela falha** que se sonda uma
+rede interna: contar só o sucesso deixaria a sondagem de graça. Não é
+adivinhado. Um *event hook* de requisição no cliente httpx marca que algo saiu,
+e uma operação vale uma unidade, com redirecionamentos e novas tentativas de
+conexão incluídos. A contagem é **gravada com commit antes de a exceção
+seguir**, porque o rollback do request apagaria a contagem justamente da falha;
+um teste de mutação confirma. Recusa antes da rede e duplicata não custam nada.
+A busca na web gasta também uma `requests` da cota de IA, porque é uma chamada
+de modelo. A ordem das checagens é: dono (404, caderno alheio não dispara rede
+nenhuma), chave geral, espaço no caderno, provedor ligado, validação da
+entrada, duplicata, cota e só então rede.
+
+**Ingestão síncrona.** O Estúdio (D-94) responde 202 e gera em segundo plano;
+uma fonte externa não. Uma leitura tem prazo de 10 s, com o DNS dentro dele, e
+o proxy da Vercel espera 120 s em todos os planos, inclusive o gratuito. O aluno
+espera no diálogo e recebe a fonte `pronto` ou a razão da recusa. Um job traria
+estado `gerando`, *polling* e fonte presa para uma coisa que cabe numa resposta.
+
+**O extrator de HTML usa só a biblioteca padrão.** `app/notebooks/html_text.py`
+é um `HTMLParser` com as regras do WHATWG que decidem onde o texto cai (`</p>`
+implícito, fim de tag limitado por escopo, `<div hidden/>` que continua aberto).
+Ele descarta script, style, nav, aside, form, o cabeçalho e o rodapé da página e
+os papéis de navegação, banner e diálogo — e também os **nós ocultos**
+(`hidden`, `aria-hidden="true"`, `display:none` e `visibility:hidden` inline).
+Texto que o leitor da página não vê é o esconderijo natural de uma injeção de
+prompt. O custo foi aceito e fica escrito: abas inativas e especificações
+recolhidas somem junto. Estilo vindo de folha CSS não é visto, porque não há
+motor de CSS; a defesa real continua sendo o trecho tratado como dado (D-92).
+O extrator prefere `<article>`, desde que tenha ao menos 25% do texto da página
+(senão um cartão de "leia também" venceria a matéria), e depois `<main>`. Uma
+página com menos de 200 letras e dígitos, típica de aplicação feita em
+JavaScript, é recusada pedindo para o aluno colar o texto. Dígito nunca cola em
+dígito: `10<sup>3</sup>` vira `10³`, e uma nota de rodapé depois de `7850` não
+vira `78502`, que a checagem de número do D-92 leria como outro número. É o
+**ponto único de troca**: se a qualidade não bastar, o trafilatura entra ali,
+com a mesma assinatura.
+
+**Wikipédia: a licença viaja com o texto.** A CC BY-SA 4.0 exige crédito. A
+atribuição gravada no `meta` traz o título, "Wikipédia em português,
+colaboradores", a licença com o link, o link do verbete, a revisão, a data de
+obtenção e a nota de que o conteúdo não foi alterado — só dividido em trechos
+para busca, com as seções numeradas. Dali ela vai para `CitationOut.source_url`
+e `source_attribution`, e a citação da conversa, do guia e de todo artefato do
+Estúdio a carrega. As exportações a imprimem:
+
+- no DOCX, o endereço e o crédito em linhas próprias;
+- nas planilhas, as colunas *Endereço* e *Atribuição*, que só aparecem quando
+  alguma citação as tem, e com rótulo escrito na linha que não tem (D-24);
+- no SVG do mapa, o crédito quebrado em linhas, mas **nunca cortado** com "…".
+
+O User-Agent se identifica com contato, como pede a política da Wikimedia:
+`EXTERNAL_CONTACT`, ou `FRONTEND_URL` na falta dele. O e-mail do autor nunca
+entra por padrão, porque viajaria em toda requisição.
+
+**O marcador de seção é "N.", e não "N ".** O fatiador só reconhece título
+numerado ou em caixa alta, então `== Propriedades ==` vira `3. Propriedades`. O
+ponto não é enfeite. A leitura de números do conferidor junta dígitos
+separados por espaço como milhar (`1 000`), e `3 200 anos de siderurgia` era
+lido como **3200**: inventava um número que uma resposta poderia "ancorar" e
+escondia o 200 verdadeiro. Com `3. 200 anos` saem {3, 200}. O N não passa de
+100, porque inteiros até 100 já são isentos pela checagem, e um marcador
+hierárquico como `2.1` emprestaria um número ao trecho. Isso foi achado na
+revisão e está coberto por teste parametrizado. As sobras de LaTeX
+(`{\displaystyle …}`) do texto puro da Wikipédia ficam como vieram: o texto não
+é limpo.
+
+**OpenAlex: a chave é obrigatória, e sem ela a busca fica desligada.** Desde
+13/02/2026 toda chamada exige chave, e a conta gratuita traz um crédito diário.
+Sem `OPENALEX_API_KEY`, "Artigos" aparece desligado com o motivo, e nenhuma
+requisição sai. A chave vai no parâmetro `api_key`, que é a forma documentada.
+Como o httpx registra a URL inteira em nível INFO, os loggers `httpx` e
+`httpcore` sobem para WARNING a cada cliente construído, e as exceções do httpx,
+que carregam a URL, são relançadas sem ela: a chave não chega a log nem a
+mensagem. Cada falha tem sua frase: 429 é o crédito do dia que acabou (volta
+amanhã), 403 é um limite de instantes, 401 é a chave recusada. **Artigo sem
+resumo é recusado**, porque metadado sozinho não é fonte, e a mensagem aponta a
+cópia aberta (`oa_url`) para o aluno acrescentar como link. O resumo é
+reconstruído do índice invertido; acima de 20 000 posições ele é recusado
+inteiro, nunca cortado em silêncio. A licença é dita como é: metadados CC0, e o
+resumo pertence aos autores ou à editora.
+
+**YouTube: sem transcrição automática.** O plano previa tentar a legenda
+pública uma vez. A pesquisa derrubou isso: desde 2025–26 o endpoint de legendas
+(`timedtext`) exige um token *Proof-of-Origin*, gerado pelo BotGuard, e sem ele
+responde 200 com corpo vazio; IP de datacenter ainda é bloqueado para quem
+raspa. As saídas (navegador *headless*, serviço pago) quebram o custo zero.
+Então o servidor reconhece o id do vídeo nas formas conhecidas, busca título e
+canal pelo oEmbed público, que não pede chave (se falhar, o título vira "Vídeo
+do YouTube (ID)" e a fonte entra assim mesmo), e o aluno **cola a transcrição**
+de "Mostrar transcrição". `clean_pasted_transcript` tira marcas de tempo,
+formatos SRT, VTT e SBV e as repetições da legenda rolante, **sem mudar,
+reordenar nem omitir palavra**. Menos de 200 caracteres (uns 15 s de fala) é
+recusado. `transcript_origin = "colada"`, e o leitor da fonte diz isso.
+
+**Busca na web: um cliente nativo do Gemini que só busca.** O D-93 adiou um
+provedor `gemini` nativo até a busca ser usada. Ela chegou, e o que entrou **não
+é um provedor**. `app/integrations/gemini_search.py` chama o `generateContent`
+nativo com a ferramenta `google_search` e lê só
+`groundingMetadata.groundingChunks`: endereço e título. **O texto gerado é
+descartado**; ele nem cabe nas estruturas que o cliente devolve, e um teste com
+uma frase-sentinela prova isso. O texto gerado seria número sem fonte, e o que
+se quer dali são endereços, que passam cada um pelo mesmo `safe_fetch` de um
+link colado. A conversa continua pelo `openai-compat` (D-93). Mais quatro
+coisas sustentam o desenho:
+
+- **As Sugestões da Pesquisa Google aparecem, e presas.** Os termos do
+  *grounding* exigem mostrar `searchEntryPoint.renderedContent` junto dos
+  resultados. Esse HTML vem do Google e não é sanitizado, então é desenhado só
+  num `<iframe srcdoc sandbox="allow-popups allow-popups-to-escape-sandbox">`,
+  **sem `allow-scripts` e sem `allow-same-origin`**, com uma CSP
+  `default-src 'none'` dentro e `<base target="_blank">`. As fichas de sugestão
+  são âncoras estilizadas por CSS e não precisam de script. O formato foi
+  deduzido da documentação, não de uma resposta real, porque os testes não têm
+  rede; conferir ao vivo é pendência escrita em `docs/TODO.md`.
+- **A chave de outro fornecedor nunca vai ao Google.** A chave é
+  `WEB_SEARCH_API_KEY`. Vazia, cai para `AI_API_KEY` **só** quando `AI_BASE_URL`
+  é `generativelanguage.googleapis.com`, isto é, quando aquela já é uma chave
+  do AI Studio. Com a IA na Groq, a queda mandaria a chave da Groq ao Google
+  num cabeçalho, a um terceiro. A regra mora num lugar só,
+  `gemini_search.resolve_key`, e a chave vai no cabeçalho `x-goog-api-key`,
+  nunca na URL.
+- **Um resultado web só é aceito se for o redirecionamento do Google.**
+  `POST …/sources/external` com `provider=web` aceita só um link
+  `https://vertexaisearch.cloud.google.com/grounding-api-redirect/…`, e a busca
+  não oferece resultado de outro host. O motivo não é SSRF, porque qualquer URL
+  passaria pelo `safe_fetch`. É fazer `found_via = "busca_web"` ser verdade de
+  toda fonte que o declara. Se o Google mudar o host, os resultados deixam de
+  ser oferecidos, em vez de virarem fontes com procedência falsa.
+- **O aviso de privacidade do D-93** aparece assim que o modo Web é escolhido,
+  antes de qualquer busca: a consulta vai ao Google no plano gratuito.
+
+**Custo zero: desligado onde pode custar.** O que é gratuito e não pede conta
+vem ligado: link, YouTube e Wikipédia. O que depende de chave vem desligado: a
+OpenAlex sem chave, e a web com `WEB_SEARCH_PROVIDER` vazio. Toda chave sai de
+uma conta ou de um projeto **sem forma de pagamento cadastrada**. Quando o
+gratuito acaba, a função para com o motivo escrito — 503 com a razão em pt-BR,
+ou 429 da cota do aluno —, nunca com 500, e nenhum texto, nem na tela nem na
+documentação, sugere ligar faturamento ou comprar crédito.
+`GET /notebooks/source-capabilities` diz o que está ligado e por quê, só pela
+configuração, e a tela deixa o provedor desligado focável, com o motivo.
+`NOTEBOOK_EXTERNAL_SOURCES=false` desliga tudo, também com motivo.
+
+**O robots.txt não é consultado.** Uma leitura é **uma página**, pedida pelo
+aluno que colou o link, exatamente o que o navegador dele faria. Não é um robô
+rastreando um site. O User-Agent se identifica com contato. Seguir links de uma
+página para outra não existe aqui; se um dia existir, o robots.txt passa a
+valer.
+
+**Rotas.** Toda rota que busca ou acrescenta é **POST**: gasta cota, e o
+canário do D-62 varre as rotas GET chamando cada uma.
+
+| Rota | O que faz |
+|---|---|
+| `GET /notebooks/source-capabilities` | O que está ligado e por quê (`link`, `youtube`, `openalex`, `wikipedia`, `web`). Estática, declarada antes de `/{id}`. |
+| `POST /{id}/sources/url` | Um site. Um link do YouTube ali é recusado e aponta a opção de vídeo. |
+| `POST /{id}/sources/youtube` | `{url, transcript?}`. Sem transcrição, responde `needs_transcript` com o título, e nada é gravado. |
+| `POST /{id}/search` | `{provider, query}`, com `provider` sendo `openalex`, `wikipedia` ou `web`. |
+| `POST /{id}/sources/external` | `{provider, key}`. O servidor busca de novo pela chave e nunca aceita do cliente o texto nem o título. |
+
+**Testes sem rede, por construção.** O `conftest.py` troca o transporte e o
+resolvedor por versões que recusam tudo, e um *fixture* automático reprova
+qualquer teste que tenha tentado sair, mesmo que o erro tenha sido engolido. Os
+listeners de BEGIN não foram tocados. O canário de isolamento ganhou um caderno
+alheio com uma fonte de site, e as quatro rotas POST sobre ele respondem 404 sem
+rede nenhuma.
+
+**O que ficou de fora.**
+
+- **A fase 4** — slides, infográfico, áudio e vídeo — é o **D-98**. O texto do
+  D-94 chama isso de "o D-96", mas o número acabou indo para a auditoria do PR
+  #78, e o D-94 não é reescrito.
+- **A transcrição automática do YouTube**, enquanto exigir o token.
+- **Rastrear um site** (e, com ele, o robots.txt).
+- **O trafilatura**, que entra no ponto de troca se o extrator não bastar.
+- **Uma guarda para `" | "` no fatiador.** Uma linha de tabela que começa por
+  número ou está em caixa alta é lida como título por `looks_like_heading`, e
+  isso vale também para o DOCX. O conserto seria uma linha em
+  `app/knowledge/chunking.py`, mas esse arquivo é compartilhado com o Cérebro e
+  ficou fora do escopo. O extrator de HTML contorna com um `;` no fim da linha
+  ameaçada.
+
+**Depois do merge**, o **Deploy da API**: o `release_command` aplica a migração
+`4dbd71e64b6b`. Não há seed. As chaves opcionais (`OPENALEX_API_KEY`,
+`WEB_SEARCH_*`, `EXTERNAL_CONTACT`) estão em
+[13-deploy.md §5-sexies](13-deploy.md).

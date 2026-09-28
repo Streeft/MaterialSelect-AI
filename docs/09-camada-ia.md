@@ -203,6 +203,102 @@ mesmo contrato, para relatório, cartões, teste, tabela e mapa mental.
 - **Cota própria** (`NOTEBOOK_DAILY_ARTIFACTS`, 10), no máximo
   `NOTEBOOK_STUDIO_IN_FLIGHT` (2) ao mesmo tempo.
 
+### Fontes externas (`app/integrations/`, `app/services/external_source_service.py`)
+
+A fase 3 ([D-97](DECISIONS.md)) deixa o aluno trazer fontes de fora: o link de
+um **site**, um **vídeo do YouTube** e a **pesquisa** de artigos (OpenAlex),
+verbetes (Wikipédia) e páginas da web (o *grounding* do Gemini). Depois de
+entrar, uma fonte externa é uma fonte como as outras: vira trechos, é citada
+por número, e todo número de uma resposta continua tendo de estar no trecho que
+o parágrafo cita. O que muda é o caminho até ela.
+
+- **Um portão só para endereço escrito pelo aluno.** `safe_fetch.fetch` é o
+  único código que busca uma URL arbitrária; os outros clientes falam com hosts
+  fixos. Ele aceita só http/https nas portas 80/443, recusa um nome que resolva
+  para **qualquer** endereço não público (a lista é explícita, v4 e v6, e não
+  `is_global`, que mudou entre o 3.11 e o 3.12), fixa o IP validado com `Host`
+  e `sni_hostname`, confere de novo cada redirecionamento (no máximo 3) e para
+  em 5 MB descomprimidos ou 10 s. Sem cookies, com `Connection: close`,
+  `trust_env=False` e prazo também para o DNS. A mensagem de recusa nunca ecoa
+  o IP.
+- **O texto de uma página** sai de `app/notebooks/html_text.py`, só com a
+  biblioteca padrão. Ele descarta a navegação e os **nós ocultos**, porque texto
+  que ninguém vê é onde se esconde injeção de prompt. Uma página que depende de
+  JavaScript é recusada pedindo para colar o texto. É o ponto único de troca,
+  se um dia entrar o trafilatura.
+- **A origem viaja com o texto.** `notebook_source.meta` guarda endereço,
+  licença, atribuição, autores, revisão e procedência. `citations_for` copia o
+  endereço e a atribuição para `source_url`/`source_attribution` de toda
+  citação — conversa, guia e Estúdio —, e as exportações do Estúdio os
+  imprimem. A Wikipédia leva a atribuição CC BY-SA 4.0 completa.
+- **O marcador de seção da Wikipédia é `N.`**, porque `numeric_tokens` junta
+  dígitos separados por espaço: `3 200 anos` seria lido como 3200.
+- **Gemini só busca.** `gemini_search.py` chama o `generateContent` nativo com
+  `google_search` e lê só `groundingMetadata.groundingChunks`. **O texto gerado
+  é descartado**, porque seria número sem fonte, e cada endereço passa pelo
+  `safe_fetch`. A conversa continua no `openai-compat`. As Sugestões da
+  Pesquisa Google, que os termos exigem mostrar, vão numa moldura
+  `sandbox` sem `allow-scripts` nem `allow-same-origin`.
+- **YouTube sem transcrição automática**: a legenda exige um token que só um
+  navegador gera. Título e canal vêm do oEmbed, e o aluno cola a transcrição.
+
+**Configuração** (tudo em `apps/api/.env.example`, na seção "Cadernos: fontes
+externas"):
+
+| Variável | Padrão | Efeito |
+|---|---|---|
+| `NOTEBOOK_EXTERNAL_SOURCES` | `true` | chave geral; `false` desliga as cinco, com motivo escrito |
+| `NOTEBOOK_DAILY_FETCHES` | `30` | requisições para fora por aluno por dia, contadas quando **saem** do servidor, com ou sem sucesso |
+| `NOTEBOOK_FETCH_MAX_BYTES` | `5000000` | teto da página, já descomprimida |
+| `NOTEBOOK_FETCH_TIMEOUT_SECONDS` | `10` | prazo total da leitura, redirecionamentos incluídos |
+| `NOTEBOOK_FETCH_MAX_REDIRECTS` | `3` | saltos seguidos, cada um conferido de novo |
+| `EXTERNAL_CONTACT` | vazio | contato no `User-Agent`; vazio usa `FRONTEND_URL` |
+| `WIKIPEDIA_LANG` | `pt` | edição da Wikipédia |
+| `OPENALEX_API_KEY` | vazio | **obrigatória** para a busca de artigos; vazia a desliga |
+| `OPENALEX_MAILTO` | vazio | contato opcional enviado à OpenAlex |
+| `WEB_SEARCH_PROVIDER` | vazio | busca na web **desligada**; `gemini` liga |
+| `WEB_SEARCH_API_KEY` | vazio | vazia usa `AI_API_KEY` **só** se `AI_BASE_URL` for o Gemini — a chave de outro fornecedor nunca vai ao Google |
+| `WEB_SEARCH_MODEL` | `gemini-flash-latest` | modelo que faz a busca |
+| `WEB_SEARCH_BASE_URL` | `https://generativelanguage.googleapis.com/v1beta` | API nativa do Gemini |
+| `WEB_SEARCH_TIMEOUT_SECONDS` | `25` | uma chamada com *grounding* pesquisa antes de responder |
+| `WEB_SEARCH_MAX_RESULTS` | `8` | resultados por busca |
+
+**Endpoints** (sob `/api/notebooks`; tudo que busca ou acrescenta é POST, porque
+gasta cota e o canário varre as rotas GET):
+
+| Método | Rota | Função |
+|---|---|---|
+| GET | `/source-capabilities` | `link`, `youtube`, `openalex`, `wikipedia` e `web`, cada um com `enabled` e o motivo; lido da configuração |
+| POST | `/{id}/sources/url` | acrescenta um site |
+| POST | `/{id}/sources/youtube` | `{url, transcript?}`; sem transcrição devolve `needs_transcript` com o título |
+| POST | `/{id}/search` | `{provider, query}`, com `provider` sendo `openalex`, `wikipedia` ou `web` |
+| POST | `/{id}/sources/external` | `{provider, key}`; o servidor busca de novo pela chave |
+
+**Degradação.** Nada aqui vira 500:
+
+- caderno alheio é 404, antes de qualquer rede;
+- endereço recusado, página ilegível e artigo sem resumo são 400, com a frase
+  que diz o que fazer;
+- duplicata é 409, sem rede e sem cota;
+- a cota do aluno é 429;
+- provedor desligado, chave recusada ou franquia gratuita esgotada é 503, com o
+  serviço e o motivo escritos, via `ExternalUnavailableError`, que herda o
+  tratador de `ServiceUnavailableError`.
+
+A tela deixa um provedor desligado focável e mostra o motivo. A busca na web
+gasta também uma requisição da cota de IA (`NOTEBOOK_DAILY_REQUESTS`).
+
+**Custo zero.** O que não pede conta vem ligado: link, YouTube e Wikipédia. O
+que pede chave vem desligado: OpenAlex e web. Toda chave sai de conta ou
+projeto **sem forma de pagamento**, e quando a franquia gratuita acaba a função
+para com o motivo escrito — nenhuma mensagem sugere faturamento. O passo a
+passo das chaves está em [13-deploy.md §5-sexies](13-deploy.md).
+
+**Testes sem rede.** O `conftest.py` troca o transporte httpx e o resolvedor por
+versões que recusam tudo, e reprova qualquer teste que tenha tentado sair,
+mesmo que o erro tenha sido engolido. Os clientes são testados com
+`httpx.MockTransport`.
+
 ## Provedor simulado (`app/ai/mock.py`)
 
 É a implementação de referência e a que o produto entrega. Lê o enunciado com
@@ -261,8 +357,9 @@ D-93 nomeia o provedor e o modelo — nunca a URL nem a chave. O plano gratuito
 tem dois custos que não são dinheiro: **limite** (o 429 diz que há um por
 minuto e outro por dia) e **privacidade** (o Google pode usar o conteúdo para
 treino). A chave é criada **sem faturamento**, e é só isso que a mantém
-gratuita. Um provedor Gemini *nativo* fica para quando a busca na web
-(*grounding*) for usada: o endpoint compatível não a expõe.
+gratuita. A busca na web (*grounding*) só existe na API nativa, e ela entrou
+([D-97](DECISIONS.md)) como um **cliente que só busca**, não como provedor: ele
+descarta o texto gerado e fica com os endereços. A conversa continua aqui.
 
 **A requisição se identifica**, com `User-Agent: MaterialSelect-AI/{versão}`.
 Isso parece detalhe e não é: sem o cabeçalho, o `urllib` anuncia
