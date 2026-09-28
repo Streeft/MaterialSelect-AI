@@ -78,7 +78,7 @@ def test_pt_br_grouping_is_read_as_the_guardrails_read_it():
 
 
 def test_the_unit_is_the_value_s_shape_without_its_figures():
-    assert value_unit("210 GPa") == "#gpa"
+    assert value_unit("210 GPa") == "#GPa"
     assert value_unit("25 %") == "#%"
     assert value_unit("1.200") == ""
 
@@ -86,7 +86,7 @@ def test_the_unit_is_the_value_s_shape_without_its_figures():
 def test_a_unit_the_cited_passage_does_not_write_is_foreign():
     assert foreign_unit("210 MPa", [1], PASSAGES)
     assert not foreign_unit("210 GPa", [1], PASSAGES)
-    assert not foreign_unit("210 gpa", [1], PASSAGES)  # case and NBSP
+    assert not foreign_unit("210\u00a0GPa", [1], PASSAGES)  # NBSP
     # Bounded: "Pa" is not found inside "GPa", nor "m" inside "mm".
     assert foreign_unit("210 Pa", [1], PASSAGES)
     assert foreign_unit("120 °F", [2], PASSAGES)
@@ -98,6 +98,24 @@ def test_a_unit_the_cited_passage_does_not_write_is_foreign():
     sheet = Passage(1, "Chapa", None, None, None, "Espessura de 5 mm.")
     assert foreign_unit("5 m", [1], (sheet,))
     assert not foreign_unit("5 mm", [1], (sheet,))
+
+
+def test_case_is_the_si_prefix_and_is_compared_exactly():
+    mega = Passage(1, "Ensaio", None, None, None, "Escoamento de 210 MPa; potência de 5 MW.")
+    assert foreign_unit("210 mPa", [1], (mega,))  # milli, not mega
+    assert foreign_unit("5 mW", [1], (mega,))
+    assert foreign_unit("210 GPa", [1], PASSAGES) is False
+    assert foreign_unit("210 gpa", [1], PASSAGES)
+    assert not foreign_unit("210 MPa", [1], (mega,))
+
+
+def test_spaces_and_the_degree_sign_s_variants_are_normalised():
+    nbsp = Passage(1, "Ensaio", None, None, None, "Escoamento de 210\u00a0MPa a 120 ºC.")
+    assert not foreign_unit("210 MPa", [1], (nbsp,))
+    assert not foreign_unit("210\u202fMPa", [1], (nbsp,))
+    assert not foreign_unit("120 °C", [1], (nbsp,))
+    assert not foreign_unit("120 ℃", [1], (nbsp,))
+    assert foreign_unit("120 °F", [1], (nbsp,))
 
 
 def test_an_approximation_sign_the_passage_lacks_is_part_of_the_unit():
@@ -274,6 +292,29 @@ def test_a_video_scene_is_the_same_item_named_as_a_scene():
     assert withheld_sentences(checked) == [
         "Uma cena foi omitida porque citava números que não aparecem nos trechos citados: 777."
     ]
+
+
+def test_a_deck_s_title_is_structural_not_an_item():
+    checked = check(
+        _request("slides"),
+        {"title": "Os 7 aços de 2024", "slides": [_slide()]},
+        set(),
+        "Reserva",
+    )
+    assert checked.title == "Reserva"
+    assert checked.body["title"] == "Reserva"
+    assert checked.items == 1
+    assert not checked.withheld
+
+
+def test_an_audio_title_is_structural_not_an_item():
+    read = {"title": "Aço 1020", "lines": [{"speaker": 1, "text": "Oi.", "citations": [1]}]}
+    checked = check(_request("audio"), read, set(), "Reserva")
+    assert checked.body == {
+        "title": "Aço 1020",
+        "lines": [{"speaker": 1, "text": "Oi.", "citations": [1]}],
+    }
+    assert checked.items == 1
 
 
 def test_a_slide_counts_as_one_item():
