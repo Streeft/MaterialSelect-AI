@@ -1486,9 +1486,19 @@ export const ptBR = {
         quiz: "Criar teste",
         table: "Criar tabela de dados",
         mindmap: "Criar mapa mental",
+        audio: "Criar resumo em áudio",
+        video: "Criar resumo em vídeo",
+        slides: "Criar apresentação de slides",
+        infographic: "Criar infográfico",
       } as Record<string, string>,
       format: "Formato",
       template: "Modelo",
+      // D-98: a tool whose choices read better under another heading. The audio
+      // tool's templates (conversa, resumo, crítica, debate) are what the
+      // student thinks of as the format; the infographic's formats are only an
+      // orientation. A tool not listed uses `format` / `template`.
+      formatLegend: { infographic: "Orientação" } as Record<string, string>,
+      templateLegend: { audio: "Formato" } as Record<string, string>,
       editTemplate: (label: string) => `Editar o modelo “${label}”`,
       templateInstructions: "Instruções do modelo",
       templateInstructionsHint:
@@ -1501,7 +1511,13 @@ export const ptBR = {
       columnLabel: (n: number) => `Coluna ${n}`,
       removeColumn: (name: string) => `Remover a coluna “${name}”`,
       addColumn: "Adicionar coluna",
-      count: { flashcards: "Número de cartões", quiz: "Número de questões" } as Record<string, string>,
+      count: {
+        flashcards: "Número de cartões",
+        quiz: "Número de questões",
+        audio: "Duração",
+        slides: "Número de slides",
+        infographic: "Nível de detalhe",
+      } as Record<string, string>,
       difficulty: "Nível de dificuldade",
       topic: "Foco (opcional)",
       topicPlaceholder: {
@@ -1510,6 +1526,10 @@ export const ptBR = {
         quiz: "Ex.: propriedades mecânicas dos polímeros.",
         table: "Ex.: uma linha por liga de alumínio citada nas fontes.",
         mindmap: "Ex.: seleção de materiais para estruturas leves.",
+        audio: "Ex.: por que o titânio custa tanto mais que o aço.",
+        video: "Ex.: como ler um mapa de Ashby, passo a passo.",
+        slides: "Ex.: uma aula sobre corrosão em estruturas metálicas.",
+        infographic: "Ex.: os números-chave das ligas de alumínio citadas.",
       } as Record<string, string>,
       generate: "Gerar",
       usage: (used: number, limit: number) => `${used} de ${limit} gerações hoje`,
@@ -1533,7 +1553,19 @@ export const ptBR = {
         csv: "CSV",
         xlsx: "XLSX (Excel)",
         svg: "SVG (imagem)",
+        pptx: "PPTX (apresentação)",
+        txt: "TXT (roteiro)",
       } as Record<string, string>,
+      // D-98: the audio script also goes out as DOCX, under a label that says
+      // what the file holds; a tool not listed here reads `exportLabels`.
+      exportLabelsByTool: {
+        audio: { docx: "DOCX (roteiro)" },
+      } as Record<string, Record<string, string>>,
+      // Made in the browser, not by the API: PNG from the backend's SVG, PDF by
+      // printing the deck.
+      exportPng: "PNG (imagem)",
+      exportPdf: "PDF (imprimir)",
+      pngFailed: "Não foi possível gerar a imagem neste navegador. Baixe o SVG.",
       withheldTitle: "Parte do que foi gerado foi omitida",
       meta: (sources: number, date: string) =>
         `${sources === 1 ? "1 fonte" : `${sources} fontes`} · ${date}`,
@@ -1543,7 +1575,17 @@ export const ptBR = {
         quiz: (n: number) => (n === 1 ? "1 questão" : `${n} questões`),
         table: (n: number) => (n === 1 ? "1 linha" : `${n} linhas`),
         mindmap: (n: number) => (n === 1 ? "1 ramo" : `${n} ramos`),
+        audio: (n: number) => (n === 1 ? "1 fala" : `${n} falas`),
+        slides: (n: number) => (n === 1 ? "1 slide" : `${n} slides`),
+        video: (n: number) => (n === 1 ? "1 cena" : `${n} cenas`),
+        // An infographic's count is its highlighted figures, points and steps together.
+        infographic: (n: number) => (n === 1 ? "1 item" : `${n} itens`),
       } as Record<string, (n: number) => string>,
+      infographicItems: {
+        stats: (n: number) => (n === 1 ? "1 dado em destaque" : `${n} dados em destaque`),
+        points: (n: number) => (n === 1 ? "1 ponto" : `${n} pontos`),
+        steps: (n: number) => (n === 1 ? "1 etapa" : `${n} etapas`),
+      },
       // Cartões
       cardPosition: (i: number, n: number) => `Cartão ${i} de ${n}`,
       frontFace: "Frente",
@@ -1583,6 +1625,55 @@ export const ptBR = {
       askPrompt: (label: string) => `Explique “${label}” com base nas fontes.`,
       mapHint: "Clique num ramo para levar a pergunta à conversa.",
       mapLabel: (title: string) => `Mapa mental “${title}”`,
+      // Resumo em áudio (D-98): the browser's own voice reads the script; no
+      // audio file exists, so no voice means transcript only, said in words.
+      play: "Reproduzir",
+      pause: "Pausar",
+      resume: "Continuar",
+      previousLine: "Fala anterior",
+      nextLine: "Próxima fala",
+      speed: "Velocidade",
+      speedValue: (rate: string) => `${rate}×`,
+      linePosition: (i: number, n: number) => `Fala ${i} de ${n}`,
+      speaker: (n: number) => `Apresentador(a) ${n}`,
+      transcript: "Transcrição",
+      playFromLine: "Ouvir a partir desta fala",
+      playFromLineLabel: (i: number) => `Ouvir a partir da fala ${i}`,
+      speechUnsupported:
+        "Este navegador não lê texto em voz alta. A transcrição abaixo traz o roteiro inteiro.",
+      speechApproximate:
+        "Não há voz em português do Brasil neste aparelho; a leitura usa a voz em português mais próxima e pode soar com outro sotaque.",
+      speechNoVoice:
+        "Nenhuma voz em português está disponível neste aparelho. A transcrição abaixo traz o roteiro inteiro.",
+      // Apresentação de slides
+      previousSlide: "Slide anterior",
+      nextSlide: "Próximo slide",
+      slidePosition: (i: number, n: number) => `Slide ${i} de ${n}`,
+      showNotes: "Mostrar notas",
+      hideNotes: "Ocultar notas",
+      speakerNotes: "Notas do apresentador",
+      fullscreen: "Tela cheia",
+      exitFullscreen: "Sair da tela cheia",
+      printDeck: "Imprimir / PDF",
+      printHint:
+        "Na janela de impressão, escolha “Salvar como PDF” para guardar um arquivo. Cada slide sai numa página, com os avisos e as fontes no fim.",
+      deckLabel: (title: string) => `Apresentação “${title}”`,
+      // Resumo em vídeo
+      playVideo: "Reproduzir vídeo",
+      scenePosition: (i: number, n: number) => `Cena ${i} de ${n}`,
+      caption: "Legenda",
+      showTranscript: "Mostrar transcrição",
+      hideTranscript: "Ocultar transcrição",
+      videoManual:
+        "Sem voz disponível neste aparelho, o vídeo não avança sozinho: use Próximo slide e Slide anterior e leia a legenda de cada cena.",
+      // Infográfico
+      viewAsText: "Ver como texto",
+      viewAsImage: "Ver como imagem",
+      stats: "Dados em destaque",
+      points: "Pontos principais",
+      steps: "Etapas",
+      infographicLabel: (title: string) => `Infográfico “${title}”`,
+      infographicWithheldTitle: "Alguns dados em destaque foram omitidos",
     },
     notes: "Notas",
     addNote: "Adicionar nota",
