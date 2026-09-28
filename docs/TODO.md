@@ -110,6 +110,28 @@ cada uma tem o motivo de ter ficado de fora.
   termos do *grounding* exigem que ele seja mostrado. Se as fichas precisarem de
   script, a saída é `allow-scripts` **sem** `allow-same-origin`, nunca as duas
   juntas. Passo a passo em [13-deploy.md §5-sexies](13-deploy.md).
+- **Artigo da OpenAlex mesclado gasta uma busca antes do 409.** ▁ A
+  duplicata é conferida antes da rede pelo id **pedido**, mas a fonte é
+  guardada sob `work.url`, o id que sobreviveu à mesclagem. Acrescentar de novo
+  o id antigo gasta uma unidade antes de o checksum recusar a repetição. O
+  conserto é chamar também `_refuse_duplicate(notebook, work.url)` depois da
+  busca quando ele difere do pedido, em `external_source_service._add_work`:
+  continua custando uma unidade, mas a resposta vira um 409 claro.
+- **Trocar de provedor na pesquisa deixa os resultados anteriores na tela.** ▁
+  Em `SourceSearch.tsx`, a troca chama `search.reset()` mas mantém `answer`: os
+  resultados da Wikipédia ficam visíveis sob o aviso de privacidade da Web.
+  Acrescentá-los continua certo (cada resultado leva o próprio provedor), só a
+  tela lê estranho. O conserto é `setAnswer(null)` na troca.
+- **A citação da conversa não mostra a atribuição.** ▁ `source_attribution`
+  está na API, nas exportações e no leitor da fonte, mas o balão de citação da
+  conversa não a desenha. Para a CC BY-SA ("razoável para o meio") o crédito a
+  um clique basta; uma linha de crédito sob o excerto seria o reforço.
+- **Nós ocultos por `opacity:0` e `font-size:0` passam pelo extrator.** ▁
+  `html_text._HIDING_STYLE` pega `display:none` e `visibility:hidden` inline;
+  `opacity:0`, `font-size:0`, `clip`, posicionamento fora da tela e um
+  comentário `/**/` no meio da regra passam. O D-97 já aceita que ocultação por
+  folha CSS é invisível ao extrator, então isto é só defesa em profundidade; os
+  dois primeiros são baratos de acrescentar.
 
 **B11 — a unidade canônica impressa como o Pint a escreve — quitado (P4).** ▁
 `app/calculations/units.py` ganhou `pretty_unit()`, e o `export_service` o aplica
@@ -166,7 +188,8 @@ Registrados para não voltarem por engano:
     e com `Connection: close`.
   - **A duplicata é barrada antes da rede**, pela origem canônica. A cota
     diária (`NOTEBOOK_DAILY_FETCHES`) conta quando a requisição sai do
-    servidor, e é gravada antes do erro.
+    servidor — a consulta ao DNS de um nome inclusive —, e é gravada antes do
+    erro.
   - **O extrator de HTML** usa só a biblioteca padrão e descarta os nós
     ocultos.
   - **A atribuição CC BY-SA 4.0** da Wikipédia vai para as citações e as

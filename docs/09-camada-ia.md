@@ -219,8 +219,8 @@ o parágrafo cita. O que muda é o caminho até ela.
   `is_global`, que mudou entre o 3.11 e o 3.12), fixa o IP validado com `Host`
   e `sni_hostname`, confere de novo cada redirecionamento (no máximo 3) e para
   em 5 MB descomprimidos ou 10 s. Sem cookies, com `Connection: close`,
-  `trust_env=False` e prazo também para o DNS. A mensagem de recusa nunca ecoa
-  o IP.
+  `trust_env=False` e o DNS dentro do prazo: cada consulta recebe só o que
+  resta dos 10 s, num pool de 16 threads. A mensagem de recusa nunca ecoa o IP.
 - **O texto de uma página** sai de `app/notebooks/html_text.py`, só com a
   biblioteca padrão. Ele descarta a navegação e os **nós ocultos**, porque texto
   que ninguém vê é onde se esconde injeção de prompt. Uma página que depende de
@@ -248,9 +248,9 @@ externas"):
 | Variável | Padrão | Efeito |
 |---|---|---|
 | `NOTEBOOK_EXTERNAL_SOURCES` | `true` | chave geral; `false` desliga as cinco, com motivo escrito |
-| `NOTEBOOK_DAILY_FETCHES` | `30` | requisições para fora por aluno por dia, contadas quando **saem** do servidor, com ou sem sucesso |
+| `NOTEBOOK_DAILY_FETCHES` | `30` | requisições para fora por aluno por dia, contadas quando **saem** do servidor, com ou sem sucesso; a consulta ao DNS de um nome também conta |
 | `NOTEBOOK_FETCH_MAX_BYTES` | `5000000` | teto da página, já descomprimida |
-| `NOTEBOOK_FETCH_TIMEOUT_SECONDS` | `10` | prazo total da leitura, redirecionamentos incluídos |
+| `NOTEBOOK_FETCH_TIMEOUT_SECONDS` | `10` | prazo total da leitura, redirecionamentos e consultas ao DNS incluídos |
 | `NOTEBOOK_FETCH_MAX_REDIRECTS` | `3` | saltos seguidos, cada um conferido de novo |
 | `EXTERNAL_CONTACT` | vazio | contato no `User-Agent`; vazio usa `FRONTEND_URL` |
 | `WIKIPEDIA_LANG` | `pt` | edição da Wikipédia |
@@ -280,6 +280,8 @@ gasta cota e o canário varre as rotas GET):
 - endereço recusado, página ilegível e artigo sem resumo são 400, com a frase
   que diz o que fazer;
 - duplicata é 409, sem rede e sem cota;
+- recusa decidida sem consultar a rede — nem o DNS — não gasta cota; um nome
+  que foi consultado gasta, resolva ele para fora, para dentro ou para nada;
 - a cota do aluno é 429;
 - provedor desligado, chave recusada ou franquia gratuita esgotada é 503, com o
   serviço e o motivo escritos, via `ExternalUnavailableError`, que herda o
