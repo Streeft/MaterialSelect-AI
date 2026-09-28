@@ -827,7 +827,9 @@ def fetch(
     The deadline is total: resolution, redirects and reading all spend it. It
     is checked before every request and between chunks, so the worst case is
     the deadline plus one read or one blocking resolution —
-    :func:`socket.getaddrinfo` takes no timeout.
+    :func:`socket.getaddrinfo` takes no timeout. A caller that needs the
+    resolution inside the deadline passes a resolver bounded by the time left,
+    as the notebook service does (``resolver_with_deadline``).
     """
     limits = limits or FetchLimits.from_settings(settings)
     resolve = resolver or default_resolver

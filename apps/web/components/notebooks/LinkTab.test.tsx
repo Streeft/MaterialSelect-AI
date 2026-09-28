@@ -134,12 +134,15 @@ describe("LinkTab — YouTube", () => {
       reason,
     });
     const onDone = vi.fn();
+    const invalidate = vi.spyOn(client, "invalidateQueries");
     const user = userEvent.setup();
     render(wrap(<LinkTab notebookId={4} onDone={onDone} />));
     await user.type(urlField(), "https://www.youtube.com/watch?v=abc123");
     await user.click(screen.getByRole("button", { name: t.link.addVideo }));
 
     expect(await screen.findByText(reason)).toBeInTheDocument();
+    // The title lookup was counted: the daily fetch line is refreshed.
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: notebookKey(4) });
     expect(screen.getByText(t.link.videoTitle("Ensaio de tração"))).toBeInTheDocument();
     const transcript = screen.getByLabelText(new RegExp(t.link.transcriptLabel));
     await waitFor(() => expect(transcript).toHaveFocus());

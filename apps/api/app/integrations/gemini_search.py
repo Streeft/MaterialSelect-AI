@@ -47,6 +47,7 @@ simply search again.
 from __future__ import annotations
 
 import logging
+import re
 from dataclasses import dataclass
 from typing import Any
 from urllib.parse import quote, urlsplit
@@ -308,9 +309,13 @@ def _endpoint(settings: Any) -> str:
     return f"{base}/models/{quote(model, safe='')}:generateContent"
 
 
+_CONSULTA_TAG = re.compile(r"<(\s*/?\s*consulta)\b", re.IGNORECASE)
+
+
 def _body(query: str) -> dict[str, Any]:
-    # A closing tag inside the query must not close the element early.
-    safe = query.replace("</consulta>", "</ consulta>")
+    # A tag inside the query must not close the element early, in any case or
+    # spacing (``</CONSULTA>``, ``</ consulta >``): its ``<`` is escaped.
+    safe = _CONSULTA_TAG.sub(r"&lt;\1", query)
     return {
         "contents": [{"role": "user", "parts": [{"text": _PROMPT.format(query=safe)}]}],
         "tools": [{"google_search": {}}],

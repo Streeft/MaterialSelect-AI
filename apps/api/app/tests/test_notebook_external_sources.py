@@ -305,7 +305,11 @@ def test_an_internal_address_is_refused_before_the_network(client, notebook, net
     assert _fetch_usage(client, notebook) == 0
 
 
-def test_a_name_that_resolves_inside_is_refused_without_a_request(client, notebook, net) -> None:
+def test_a_name_that_resolves_inside_is_refused_without_a_request_but_counted(
+    client, notebook, net
+) -> None:
+    """No HTTP request is sent, but the lookup left the server — and "resolves
+    inside" is itself an answer about a network, so it is not free."""
     net.addresses["interno.exemplo.org"] = [PUBLIC_IP, "10.0.0.7"]
     response = client.post(
         f"{_nb(notebook)}/sources/url", json={"url": "https://interno.exemplo.org/"}
@@ -313,7 +317,56 @@ def test_a_name_that_resolves_inside_is_refused_without_a_request(client, notebo
     assert response.status_code == 400
     assert "10.0.0.7" not in response.text
     assert net.requests == []
-    assert _fetch_usage(client, notebook) == 0
+    assert net.lookups == ["interno.exemplo.org"]
+    assert _fetch_usage(client, notebook) == 1
+
+
+def test_a_name_that_does_not_resolve_is_counted(client, notebook, net, monkeypatch) -> None:
+    def no_answer(host: str, port: int) -> list[str]:
+        net.lookups.append(host)
+        raise OSError("Name or service not known")
+
+    monkeypatch.setattr(net, "resolve", no_answer)
+    app.dependency_overrides[get_resolver] = lambda: net.resolve
+    response = client.post(f"{_nb(notebook)}/sources/url", json={"url": PAGE_URL})
+    assert response.status_code == 400
+    assert net.requests == []
+    assert net.lookups == [SITE]
+    assert _fetch_usage(client, notebook) == 1
+
+
+def test_a_timed_out_lookup_is_counted(client, notebook, net, monkeypatch) -> None:
+    """The production path: the system resolver behind the per-fetch deadline.
+    A name whose nameserver never answers holds a pool thread until the
+    deadline, so it costs a unit like any lookup that answered."""
+    release = threading.Event()
+
+    def never_answers(host: str, port: int) -> list[str]:
+        net.lookups.append(host)
+        release.wait(5)
+        return [PUBLIC_IP]
+
+    monkeypatch.setattr(external.safe_fetch, "default_resolver", never_answers)
+    monkeypatch.setattr(settings, "notebook_fetch_timeout_seconds", 0.05)
+    app.dependency_overrides[get_resolver] = lambda: None
+    try:
+        response = client.post(f"{_nb(notebook)}/sources/url", json={"url": PAGE_URL})
+    finally:
+        release.set()
+    assert response.status_code == 400
+    assert net.requests == []
+    assert net.lookups == [SITE]
+    assert _fetch_usage(client, notebook) == 1
+
+
+def test_an_address_typed_as_an_ip_needs_no_lookup(client, notebook, net) -> None:
+    """IP literals stay without a lookup: one unit for the request, none for DNS."""
+    net.routes[PUBLIC_IP] = _html_response()
+    response = client.post(f"{_nb(notebook)}/sources/url", json={"url": f"http://{PUBLIC_IP}/p"})
+    assert response.status_code == 201, response.text
+    assert net.lookups == []
+    assert len(net.requests) == 1
+    assert _fetch_usage(client, notebook) == 1
 
 
 def test_a_redirect_inside_is_refused_and_counted(client, notebook, net) -> None:
@@ -908,13 +961,38 @@ def test_a_hanging_resolver_is_abandoned_at_the_deadline() -> None:
         release.wait(5)
         return [PUBLIC_IP]
 
-    bounded = external.resolver_with_deadline(hanging, 0.05)
+    bounded = external.resolver_with_deadline(hanging, external.time.monotonic() + 0.05)
     try:
         with pytest.raises(OSError):
             bounded("exemplo.org", 443)
     finally:
         release.set()
-    assert external.resolver_with_deadline(lambda h, p: [PUBLIC_IP], 1)("x.org", 443) == [PUBLIC_IP]
+    later = external.time.monotonic() + 1
+    assert external.resolver_with_deadline(lambda h, p: [PUBLIC_IP], later)("x.org", 443) == [
+        PUBLIC_IP
+    ]
+
+
+def test_a_lookup_gets_only_the_time_left_of_the_fetch() -> None:
+    """The deadline is the fetch's, not a fresh one per lookup: a redirect hop
+    looked up when the time is spent is refused without asking the resolver."""
+    asked: list[str] = []
+    now = [100.0]
+
+    def resolve(host: str, _port: int) -> list[str]:
+        asked.append(host)
+        return [PUBLIC_IP]
+
+    bounded = external.resolver_with_deadline(resolve, 110.0, clock=lambda: now[0])
+    assert bounded("a.org", 443) == [PUBLIC_IP]
+    now[0] = 110.0
+    with pytest.raises(OSError):
+        bounded("b.org", 443)
+    assert asked == ["a.org"]
+
+
+def test_the_lookup_pool_is_not_a_handful_of_threads() -> None:
+    assert external._DNS_POOL._max_workers >= 16
 
 
 def test_capabilities_are_read_from_configuration_alone() -> None:
