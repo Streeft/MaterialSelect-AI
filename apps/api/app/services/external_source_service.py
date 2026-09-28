@@ -95,6 +95,15 @@ ORIGIN_TOO_LONG = (
     f"O endereço desta fonte passa de {MAX_URL_CHARS} caracteres depois de "
     "normalizado e não pode ser guardado. Procure um link mais curto para a mesma página."
 )
+NOT_A_WEB_RESULT = (
+    "Este item não é um resultado da busca na web. Para ler uma página qualquer, "
+    "cole o endereço dela na opção de link."
+)
+#: Where every link of a grounded search points: Google's redirect to the page.
+#: A web result's key must be one of these, so ``found_via="busca_web"`` is
+#: true of every source that claims it.
+GROUNDING_HOST = "vertexaisearch.cloud.google.com"
+GROUNDING_PATH = "/grounding-api-redirect/"
 UNTITLED_WEB_HIT = "Página sem título informado pela busca"
 WEB_HIT_SUBTITLE = "Página encontrada pela busca do Google"
 NO_AUTHORS = "autoria não informada"
@@ -236,7 +245,7 @@ class ExternalSourceService:
                 "vídeo; aqui ele só foi dividido em trechos para busca."
             ),
         }
-        source = self.notebooks._ingest(
+        source = self.notebooks.ingest(
             notebook,
             "youtube",
             title[:300],
@@ -277,11 +286,12 @@ class ExternalSourceService:
 
         self._require(gemini_search.enabled)
         self.notebooks.check_fetch_quota()
-        self.notebooks._check_quota()
+        self.notebooks.check_quota()
         with self._spending(ai_request=True):
             found = gemini_search.search(self.client, self.settings, query)
         return SearchOut(
-            results=[_web_result(hit) for hit in found.hits],
+            # A hit that is not a redirect link could not be added back.
+            results=[_web_result(hit) for hit in found.hits if is_grounding_link(hit.url)],
             notice=WEB_SEARCH_NOTICE,
             search_entry_point_html=found.search_entry_point_html,
         )
@@ -297,6 +307,8 @@ class ExternalSourceService:
         if payload.provider == "wikipedia":
             return self._add_article(notebook, payload.key)
         self._require(gemini_search.enabled)
+        if not is_grounding_link(payload.key):
+            raise ValidationError(NOT_A_WEB_RESULT)
         # A hit is Google's redirect link: unique per search and short-lived,
         # so it cannot be the origin. The page is stored — and deduplicated —
         # by the address the redirect led to (``final_url``), after the fetch.
@@ -333,7 +345,7 @@ class ExternalSourceService:
             "attribution": openalex.attribution(work),
             "fetched_at": _now(),
         }
-        return self.notebooks._ingest(
+        return self.notebooks.ingest(
             notebook,
             "artigo",
             work.title[:300],
@@ -375,7 +387,7 @@ class ExternalSourceService:
             "pageid": article.pageid,
             "fetched_at": _now(),
         }
-        return self.notebooks._ingest(
+        return self.notebooks.ingest(
             notebook,
             "wikipedia",
             article.title[:300],
@@ -419,7 +431,7 @@ class ExternalSourceService:
                 "em trechos para busca."
             ),
         }
-        return self.notebooks._ingest(notebook, "site", title, origin, extracted, paged, meta=meta)
+        return self.notebooks.ingest(notebook, "site", title, origin, extracted, paged, meta=meta)
 
     def _read(self, fetched: safe_fetch.Fetched) -> tuple[str | None, ExtractedText, bool]:
         """The text of a fetched page by its media type, with the readers the
@@ -445,11 +457,11 @@ class ExternalSourceService:
 
     def _open(self, notebook_id: int, *, need_room: bool = True) -> Notebook:
         """Owner check, then the master switch, then room for one more source."""
-        notebook = self.notebooks._notebook(notebook_id)
+        notebook = self.notebooks.notebook(notebook_id)
         if not self.settings.notebook_external_sources:
             raise ExternalUnavailableError(SWITCHED_OFF)
         if need_room:
-            self.notebooks._check_room(notebook)
+            self.notebooks.check_room(notebook)
         return notebook
 
     def _require(self, check: Callable[[Any], tuple[bool, str | None]]) -> None:
@@ -557,6 +569,26 @@ def _web_result(hit: gemini_search.WebHit) -> SearchResultOut:
         subtitle=WEB_HIT_SUBTITLE,
         url=hit.url,
         has_text=True,
+    )
+
+
+def is_grounding_link(value: str) -> bool:
+    """Whether ``value`` is a grounded search's redirect link: https, on
+    Google's redirect host exactly, default port, no user information, and the
+    redirect path. Checked before any network, so a refusal costs nothing."""
+    try:
+        parts = urlsplit(value.strip())
+        port = parts.port
+    except ValueError:
+        return False
+    return (
+        parts.scheme.lower() == "https"
+        and (parts.hostname or "").lower() == GROUNDING_HOST
+        and parts.username is None
+        and parts.password is None
+        and port in (None, 443)
+        and parts.path.startswith(GROUNDING_PATH)
+        and len(parts.path) > len(GROUNDING_PATH)
     )
 
 

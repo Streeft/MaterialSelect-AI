@@ -191,9 +191,10 @@ class Settings(BaseSettings):
     # and when it runs out web search stops with the reason written. Billing
     # is never assumed, nor suggested.
     web_search_provider: str = ""
-    # Empty falls back to AI_API_KEY, as KNOWLEDGE_EMBEDDING_API_KEY does: with
-    # the D-93 setup that is already an AI Studio key. Read it through
-    # ``web_search_key``, which applies the fallback.
+    # Empty falls back to AI_API_KEY only when AI_BASE_URL is the Gemini API
+    # (the D-93 setup, where that is already an AI Studio key): a Groq or
+    # OpenRouter key is never sent to Google. The one place that rule lives is
+    # ``app.integrations.gemini_search.resolve_key``.
     web_search_api_key: str = ""
     web_search_model: str = "gemini-flash-latest"
     web_search_base_url: str = "https://generativelanguage.googleapis.com/v1beta"
@@ -294,12 +295,6 @@ class Settings(BaseSettings):
     def knowledge_enabled(self) -> bool:
         """True when a knowledge-base root is configured."""
         return bool(self.knowledge_dir.strip())
-
-    @property
-    def web_search_key(self) -> str:
-        """The key web search sends: its own, or AI_API_KEY when that is empty —
-        the fallback ``knowledge_embedding_api_key`` has, in one place."""
-        return self.web_search_api_key.strip() or self.ai_api_key.strip()
 
     @model_validator(mode="after")
     def _samesite_none_requires_secure(self) -> Settings:

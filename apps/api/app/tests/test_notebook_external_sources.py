@@ -829,6 +829,59 @@ def test_a_web_hit_long_redirect_link_is_accepted(client, notebook, net, monkeyp
     assert added.status_code == 201, added.text
 
 
+@pytest.mark.parametrize(
+    "key",
+    [
+        PAGE_URL,
+        "http://vertexaisearch.cloud.google.com/grounding-api-redirect/AbC",
+        "https://vertexaisearch.cloud.google.com/outra-coisa/AbC",
+        "https://vertexaisearch.cloud.google.com/grounding-api-redirect/",
+        "https://u@vertexaisearch.cloud.google.com/grounding-api-redirect/AbC",
+        "https://vertexaisearch.cloud.google.com.exemplo.org/grounding-api-redirect/AbC",
+        "https://vertexaisearch.cloud.google.com:8443/grounding-api-redirect/AbC",
+        "http://127.0.0.1/grounding-api-redirect/AbC",
+    ],
+)
+def test_a_web_result_key_must_be_a_grounding_redirect(
+    client, notebook, net, monkeypatch, key: str
+) -> None:
+    """Ruling: only Google's redirect link is a web result; anything else is the
+    link option's job. Refused before the network, so it costs nothing."""
+    _web_on(monkeypatch)
+    response = client.post(
+        f"{_nb(notebook)}/sources/external", json={"provider": "web", "key": key}
+    )
+    assert response.status_code == 400
+    assert response.json()["detail"] == external.NOT_A_WEB_RESULT
+    assert net.silent
+    assert _fetch_usage(client, notebook) == 0
+
+
+def test_a_web_search_drops_hits_that_are_not_redirect_links(
+    client, notebook, net, monkeypatch
+) -> None:
+    _web_on(monkeypatch)
+    net.routes[GEMINI_HOST] = lambda _r: httpx.Response(
+        200,
+        json={
+            "candidates": [
+                {
+                    "groundingMetadata": {
+                        "groundingChunks": [
+                            {"web": {"uri": PAGE_URL, "title": "direto"}},
+                            {"web": {"uri": REDIRECT, "title": "redirecionado"}},
+                        ]
+                    }
+                }
+            ]
+        },
+    )
+    body = client.post(
+        f"{_nb(notebook)}/search", json={"provider": "web", "query": "titânio"}
+    ).json()
+    assert [r["key"] for r in body["results"]] == [REDIRECT]
+
+
 # --- small pieces -------------------------------------------------------------------------------
 
 
