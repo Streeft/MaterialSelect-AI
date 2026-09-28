@@ -2260,10 +2260,19 @@ export interface NotebookSourceCapabilities {
 
 // --- Estúdio (D-94) ----------------------------------------------------------
 
-export type StudioTool = "report" | "flashcards" | "quiz" | "table" | "mindmap";
+export type StudioTool =
+  | "report"
+  | "flashcards"
+  | "quiz"
+  | "table"
+  | "mindmap"
+  | "audio"
+  | "video"
+  | "slides"
+  | "infographic";
 /** `gerando` past its deadline arrives as `falhou`, derived by the API. */
 export type StudioStatus = "gerando" | "pronto" | "falhou";
-export type StudioExport = "docx" | "csv" | "xlsx" | "svg";
+export type StudioExport = "docx" | "csv" | "xlsx" | "svg" | "pptx" | "txt";
 
 /** One card of the "Criar …" modal: a format, a template, a count, a level. */
 export interface StudioChoice {
@@ -2406,12 +2415,93 @@ export interface MindMapLayout {
   edges: { source: number; target: number; x1: number; y1: number; x2: number; y2: number }[];
 }
 
+/** A two-host script (D-98): the browser's voice reads it, one line at a time.
+ * The video reuses the deck and reads the slides' notes instead. */
+export interface StudioAudioContent {
+  title: string;
+  lines: { speaker: 1 | 2; text: string; citations: number[] }[];
+}
+
+/** Slides — and the video, which narrates the same deck. */
+export interface StudioDeckContent {
+  title: string;
+  slides: { title: string; bullets: string[]; notes: string; citations: number[] }[];
+}
+
+export interface StudioInfographicContent {
+  title: string;
+  subtitle: string;
+  stats: { value: string; label: string; citations: number[] }[];
+  points: { heading: string; text: string; citations: number[] }[];
+  steps: { text: string; citations: number[] }[];
+}
+
+export type InfographicBlockKind = "title" | "subtitle" | "stat" | "point" | "step";
+
+export interface InfographicBlock {
+  kind: InfographicBlockKind;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  /** A stat's value, a point's heading, a step's number; the title's text. */
+  heading_lines: string[];
+  /** A stat's label, a point's or a step's text; the subtitle's text. */
+  body_lines: string[];
+  citations: number[];
+  /** Palette tone, `0..5` — mapped to a token on screen. */
+  tone: number;
+  /** Position within its band, from 0. */
+  index: number;
+}
+
+/** A line from one step to the next, arrowhead at `(x2, y2)`. */
+export interface InfographicConnector {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+}
+
+/** How one kind of block is typeset, in pixels. Text x is `x + pad_x`;
+ * heading line k starts at `y + pad_y + k * heading_line`; the body follows
+ * the headings plus `gap` (only when both are non-empty). */
+export interface InfographicStyle {
+  pad_x: number;
+  pad_y: number;
+  heading_size: number;
+  heading_line: number;
+  heading_char: number;
+  heading_max_lines: number;
+  body_size: number;
+  body_line: number;
+  body_char: number;
+  body_max_lines: number;
+  gap: number;
+}
+
+/** The infographic's geometry, computed by the API for the screen and the SVG
+ * export alike — the client draws it, with the API's typesetting, and never
+ * lays it out. */
+export interface InfographicLayout {
+  width: number;
+  height: number;
+  /** The orientation actually used (unknown ones fall back to `paisagem`). */
+  orientation: string;
+  blocks: InfographicBlock[];
+  connectors: InfographicConnector[];
+  styles: Record<InfographicBlockKind, InfographicStyle>;
+}
+
 export type StudioContent =
   | StudioReportContent
   | StudioFlashcardsContent
   | StudioQuizContent
   | StudioTableContent
-  | StudioMindMapContent;
+  | StudioMindMapContent
+  | StudioAudioContent
+  | StudioDeckContent
+  | StudioInfographicContent;
 
 export interface StudioArtifact extends StudioArtifactSummary {
   content: StudioContent | null;
@@ -2419,6 +2509,8 @@ export interface StudioArtifact extends StudioArtifactSummary {
   withheld: string[];
   exports: StudioExport[];
   layout: MindMapLayout | null;
+  /** The infographic's geometry; absent or `null` for every other tool. */
+  infographic?: InfographicLayout | null;
 }
 
 export interface StudioList {
