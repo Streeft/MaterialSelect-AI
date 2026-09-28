@@ -23,7 +23,7 @@ a model can do here is write paragraphs, and every paragraph is checked.
 
 from __future__ import annotations
 
-import json
+import re
 from dataclasses import dataclass
 
 #: Longest paragraph kept from a model. A runaway answer is clipped, not
@@ -165,25 +165,50 @@ def digest_user(context: NotebookDigestContext) -> str:
     )
 
 
+#: A ``trecho`` tag inside a passage, in any case and spacing a model might
+#: still read as one (``</TRECHO>``, ``</trecho >``, ``</ trecho>``). Phase 3
+#: made passage text third-party web content, so an exact-lowercase replace no
+#: longer covers what a page can contain. The ``<`` is escaped rather than
+#: spaced: with spacing tolerated on the way in, a spaced tag would still be a
+#: tag on the way out.
+_TRECHO_TAG = re.compile(r"<(\s*/?\s*trecho)\b", re.IGNORECASE)
+
+
+def _attribute(value: str) -> str:
+    """A quoted attribute value that cannot end the quote or the element.
+
+    ``json.dumps`` escapes a quote but not ``<``, so a page title carrying
+    ``</trecho><trecho n=9 ...>`` would still read as a tag. The four markup
+    characters are escaped as entities instead: every ``<`` goes, so no tag
+    survives in any case or spacing, and ``&`` first so an entity already in
+    the title stays literal. Only the prompt changes — grounding reads the raw
+    ``source_title`` — and a plain title comes out as it went in."""
+    escaped = (
+        value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
+    )
+    return f'"{escaped}"'
+
+
 def render_passages(passages: tuple[Passage, ...]) -> str:
     """Passages as delimited, numbered elements. Attribute values go through
-    ``json.dumps`` so a title with a quote cannot close the attribute."""
+    ``_attribute`` so a title or heading — web content since phase 3 — cannot
+    close the quote or the tag."""
     blocks = []
     for passage in passages:
         attributes = [
             f"n={passage.number}",
-            f"fonte={json.dumps(passage.source_title, ensure_ascii=False)}",
+            f"fonte={_attribute(passage.source_title)}",
         ]
         if passage.heading:
-            attributes.append(f"secao={json.dumps(passage.heading, ensure_ascii=False)}")
+            attributes.append(f"secao={_attribute(passage.heading)}")
         if passage.page_start is not None:
             pages = (
                 str(passage.page_start)
                 if passage.page_end in (None, passage.page_start)
                 else f"{passage.page_start}-{passage.page_end}"
             )
-            attributes.append(f"paginas={json.dumps(pages, ensure_ascii=False)}")
-        text = passage.text.replace("</trecho>", "</ trecho>")
+            attributes.append(f"paginas={_attribute(pages)}")
+        text = _TRECHO_TAG.sub(r"&lt;\1", passage.text)
         blocks.append(f"<trecho {' '.join(attributes)}>\n{text}\n</trecho>")
     return "\n\n".join(blocks) if blocks else "(nenhum trecho)"
 

@@ -106,7 +106,9 @@ class NotebookSource(Base):
     """One source in a notebook, as text.
 
     ``kind`` names where the text came from: "arquivo", "texto", "ficha",
-    "estudo" — and, from phase 3, "url", "youtube", "openalex", "wikipedia".
+    "estudo" — and, from phase 3 (D-97), the sources fetched from outside:
+    "site" (a web page), "youtube" (a video's transcript), "artigo" (an
+    OpenAlex work's abstract) and "wikipedia" (an article's plain text).
     ``selected`` is the checkbox beside it: only selected sources are searched
     when the student asks.
     """
@@ -135,6 +137,13 @@ class NotebookSource(Base):
     truncated: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     #: The whole extracted text, so the student can read the source in place.
     content: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    #: Where an external source came from and on what terms (D-97): ``url``,
+    #: ``final_url``, ``fetched_at``, ``license``, ``attribution``, ``authors``,
+    #: ``year``, ``doi``, ``video_id``, ``transcript_origin``, ``revision_id``…
+    #: Written by the backend from what the fetch returned, never by the
+    #: client. NULL for the phase 1 kinds, which have nothing to attribute —
+    #: an empty object would read as "fetched, and nothing was known".
+    meta: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
 
     notebook: Mapped[Notebook] = relationship(back_populates="sources")
@@ -269,6 +278,10 @@ class AIUsage(Base):
     One row per (user, day), counted up. The free plan's limit is shared by
     every student behind one key, and a counter per person is what keeps one
     curious student from spending the class's day.
+
+    ``fetches`` (D-97) counts requests that left the server for an external
+    source — a page, a transcript, a search — success or failure alike: a
+    failed fetch is exactly how the server would be used to probe a network.
     """
 
     __tablename__ = "ai_usage"
@@ -281,3 +294,4 @@ class AIUsage(Base):
     day: Mapped[date] = mapped_column(Date, nullable=False)
     requests: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     artifacts: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    fetches: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)

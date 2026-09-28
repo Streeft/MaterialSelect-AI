@@ -475,8 +475,18 @@ carregando a sua lista de "faltam". O número diz que nenhuma capacidade do
 modelo funcional está ausente ou pela metade, não que cada uma esteja no seu
 teto.
 
-**Saúde do código:** 1966 testes de backend (Python 3.11 e 3.12, nenhum skip)
-e 563 de frontend, todos verdes. Desde o P0-1 a suíte também roda as migrações de
+**Cadernos, fase 3 — fontes externas** ([D-97](DECISIONS.md)). O aluno traz
+para um caderno o link de um site, um vídeo do YouTube (com a transcrição
+colada) e resultados da pesquisa de artigos (OpenAlex), verbetes (Wikipédia) e
+páginas da web (*grounding* do Gemini). Todo endereço escrito pelo aluno passa
+por um portão só, `app/integrations/safe_fetch.py` (lista de bloqueio
+explícita, IP fixado, cada redirecionamento conferido de novo). A cota diária
+conta o que sai do servidor, falha e consulta ao DNS inclusive, e a origem e a
+licença de cada fonte viajam até a citação e as exportações do Estúdio. Custo
+zero: OpenAlex e web vêm desligadas até haver uma chave gratuita.
+
+**Saúde do código:** 2651 testes de backend (Python 3.11 e 3.12, nenhum skip)
+e 608 de frontend, todos verdes. Desde o P0-1 a suíte também roda as migrações de
 verdade, nos dois sentidos, contra um banco temporário que já contém dados —
 `test_migration_selection_stage.py`, `test_migration_process_universe.py`,
 `test_migration_selection_universe.py`, `test_migration_process_attributes.py`,
@@ -821,6 +831,7 @@ que mais afetam quem for mexer no código:
 | A licença de uma fonte é decidida uma vez, no registro; reusar o rótulo não reabre a decisão | [D-44](DECISIONS.md) |
 | Portão de assinatura: o desenho binário do plano de 18/08, não o Free/Pro do de 21/08 | [D-46](DECISIONS.md) |
 | Trecho recuperado do Cérebro é vocabulário, nunca número; citação verificada por índice | [D-47](DECISIONS.md) |
+| Fonte externa dos Cadernos: URL do aluno só pelo `safe_fetch`; a cota conta o que sai, DNS inclusive; a origem viaja com o texto | [D-97](DECISIONS.md) |
 
 ## 9. Limitações atuais
 

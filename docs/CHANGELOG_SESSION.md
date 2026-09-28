@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [32](#sessão-32--250926-a-280926--cadernos-fase-3-fontes-externas) | 25 a 28/09/2026 | Cadernos, fase 3: site, YouTube com transcrição colada, OpenAlex, Wikipédia e busca na web pelo Gemini. Tudo por um portão anti-SSRF, com a origem e a licença coladas à citação e custo zero (D-97) | 1966 → 2651 | 563 → 608 |
 | [31](#sessão-31--250926--auditoria-do-pr-78-curva-custo--lote-do-antigravity) | 25/09/2026 | Auditoria do PR #78 (curva custo × lote, execução agêntica externa): comportamento correto, cobertura de teste devolvida e o registro que faltava, escrito (D-96) | 1963 → 1966 | 563 (inalterado) |
 | [30](#sessão-30--250926--o-estúdio-de-texto-dos-cadernos) | 25/09/2026 | Cadernos, fase 2: o Estúdio de texto — relatório, cartões, teste, tabela e mapa mental, gerados em segundo plano e conferidos item a item (D-94) | 1917 → 1966 | 536 → 554 |
 | [29](#sessão-29--250926--cadernos-o-notebooklm-dentro-do-app-e-o-gemini-gratuito) | 25/09/2026 | Cadernos, fase 1: fontes privadas, conversa citada com número conferido, guia, notas e cota, na tela de três painéis do NotebookLM (D-92); o Gemini gratuito como IA oficial, por configuração (D-93) | 1856 → 1906 | 505 → 536 (com os 6 do D-91, mesclado de main) |
@@ -47,6 +48,87 @@ As sessões entre a 11 e a 12 — o patch de design "Prisma" (D-49, D-50), o
 upgrade de segurança S1 e a rodada de desempenho — **não têm seção própria
 aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
+
+---
+
+## Sessão 32 — 25/09/26 a 28/09/26 — Cadernos, fase 3: fontes externas
+
+**O pedido.** A fase 3 dos Cadernos, no estilo do NotebookLM: acrescentar a um
+caderno privado o link de um site, um vídeo do YouTube (tentar a transcrição e,
+se falhar, o aluno cola) e resultados de pesquisa em artigos (OpenAlex),
+verbetes (Wikipédia) e na web (*grounding* do Gemini). As decisões do autor:
+OpenAlex com chave opcional, desligada sem ela; busca web incluída mas
+desligada por padrão, só com a chave gratuita do AI Studio. No meio do
+trabalho, a restrição de sempre ficou mais forte: **gasto zero**, toda chave de
+conta sem forma de pagamento, e nenhum texto sugerindo faturamento.
+
+**A pesquisa mudou o plano em três pontos.**
+
+- **YouTube.** A legenda pública agora exige um token *Proof-of-Origin* do
+  BotGuard e responde 200 vazio sem ele. A transcrição automática saiu: título
+  pelo oEmbed, e o aluno cola.
+- **OpenAlex.** A chave virou obrigatória em 13/02/2026, com um crédito diário
+  na conta gratuita.
+- **Gemini.** Os termos do *grounding* exigem mostrar as Sugestões da Pesquisa
+  Google junto dos resultados. Elas entraram numa moldura `sandbox` sem script.
+
+**O que entrou (D-97).**
+
+- **Backend.**
+  - `app/integrations/`: `safe_fetch` e `http`, mais os clientes da OpenAlex,
+    da Wikipédia, do YouTube e do Gemini.
+  - `app/notebooks/html_text.py`: o extrator de texto de página.
+  - O serviço `ExternalSourceService` e cinco rotas, com o POST em tudo que
+    gasta cota.
+  - A migração `4dbd71e64b6b`: `notebook_source.meta` e `ai_usage.fetches`.
+  - O endereço e a atribuição da fonte nas citações e nas exportações do
+    Estúdio (DOCX, CSV/XLSX, SVG).
+- **Frontend.**
+  - A aba **Link** no diálogo de fontes.
+  - A pesquisa de fontes no painel: Artigos | Wikipédia | Web, marcação por
+    item, "Adicionar N" um por vez com estado por item e "N de 30 buscas hoje".
+  - O leitor de fonte com o bloco **Origem** (link só http/https, licença,
+    atribuição, de onde veio a transcrição).
+  - Três ícones novos em `/estilo`.
+- **Testes.** O `conftest.py` passou a proibir rede: transporte e resolvedor
+  que recusam tudo, e um *fixture* que reprova quem tentou. O canário de
+  isolamento ganhou um caderno alheio com fonte de site.
+
+**O que as revisões pegaram.** Cada achado foi corrigido na própria
+branch.
+
+- **Cookie entre sites.** Como a requisição vai ao IP fixado, o jar do httpx
+  guardava o cookie de um site sob o IP e o mandava a outro site do mesmo CDN.
+  Agora o jar recusa todo cookie.
+- **Marcador de seção da Wikipédia.** `3 200 anos` era lido como **3200** pelo
+  conferidor de números, que junta dígitos separados por espaço. O marcador
+  virou `3.`.
+- **Chave de outro fornecedor.** A queda de `WEB_SEARCH_API_KEY` para
+  `AI_API_KEY` mandaria uma chave da Groq ao Google. Agora ela só vale quando
+  `AI_BASE_URL` é o próprio Gemini.
+- **Contagem da cota.** Ela só dava `flush`, e o rollback de uma falha a
+  apagava: sondar a rede sairia de graça. Agora é gravada com commit antes de o
+  erro seguir.
+- **Resultado web.** A chave de um resultado web foi restrita ao
+  redirecionamento do Google, para `found_via = "busca_web"` ser sempre
+  verdade.
+- **DNS de graça** (revisão final). A consulta ao DNS não gastava cota e
+  dividia um pool de 4 threads com o processo inteiro: um nome cujo servidor
+  nunca responde travava as leituras de todos os alunos, e "não resolve" versus
+  "resolve para dentro" era sondagem gratuita. Agora toda consulta de um nome
+  conta uma unidade, recebe só o que resta do prazo da leitura, e o pool tem 16
+  threads. Na mesma rodada: a tag `<trecho>`/`<consulta>` passou a ser
+  neutralizada em qualquer caixa e espaçamento — no texto e nos atributos
+  `fonte`/`secao`, que numa página vêm do título —, a linha "N de 30 buscas hoje"
+  atualiza depois de um vídeo sem transcrição, e o `.env.example` e a tabela de
+  ambiente do `docs/CLAUDE.md` descrevem as variáveis novas como o código as lê.
+
+**Números.** Backend 1966 → 2651, frontend 563 → 608, conferidos na rodada
+final; mais os cenários E2E da fase.
+
+**Depois do merge:** o **Deploy da API**, que aplica a migração pelo
+`release_command`. Não há seed. As chaves da OpenAlex e da busca web são
+opcionais e ficam para o autor ([13-deploy.md §5-sexies](13-deploy.md)).
 
 ---
 
