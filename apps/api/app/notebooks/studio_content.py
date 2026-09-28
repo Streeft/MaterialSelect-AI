@@ -279,7 +279,7 @@ def _audio(checked: Checked, read: dict, passages, extra, structural) -> None:
             checked.refuse("line", invented)
             continue
         lines.append({"speaker": line["speaker"], "text": text, "citations": cited})
-    checked.body = {"lines": lines}
+    checked.body = {"title": checked.title, "lines": lines}
     checked.items = len(lines)
 
 
@@ -311,7 +311,7 @@ def _deck(kind: str, fallback: str, checked: Checked, read, passages, extra, str
                 "citations": cited,
             }
         )
-    checked.body = {"slides": slides}
+    checked.body = {"title": checked.title, "slides": slides}
     checked.items = len(slides)
 
 

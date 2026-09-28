@@ -116,25 +116,29 @@ def strict_ungrounded(
 
 
 #: Stands in for every written numeral when a value and a passage are compared
-#: for their unit: "210 GPa" and "7 850 kg/m³" become "# gpa" and "# kg/m³".
+#: for their unit: "210 GPa" and "7 850 kg/m³" become "# GPa" and "# kg/m³".
 _FIGURE = "#"
 #: Any run of spaces — NBSP and the narrow ones included, which ``\s`` covers.
 _SPACES = re.compile(r"\s+")
-#: Neither side of a unit may run on into a letter: "pa" is not in "gpa".
+#: The ways a source writes the degree sign, read as one: the masculine ordinal
+#: "º" that pt-BR keyboards type, the spacing ring "˚" and the one-glyph "℃"/"℉".
+_DEGREES = str.maketrans({"º": "°", "˚": "°", "℃": "°C", "℉": "°F"})
+#: Neither side of a unit may run on into a letter: "Pa" is not in "GPa".
 _NOT_AFTER_LETTER = r"(?<![^\W\d_])"
 _NOT_BEFORE_LETTER = r"(?![^\W\d_])"
 
 
 def _unit_shape(text: str) -> str:
-    """Numerals replaced by :data:`_FIGURE`, case folded, spaces made one."""
-    return _SPACES.sub(" ", _NUMBER_TOKEN.sub(_FIGURE, text)).casefold().strip()
+    """Numerals replaced by :data:`_FIGURE`, degree signs made one, spaces made
+    one. Case is kept: it is the SI prefix — "mPa" is milli, "MPa" mega."""
+    return _SPACES.sub(" ", _NUMBER_TOKEN.sub(_FIGURE, text.translate(_DEGREES))).strip()
 
 
 def value_unit(value: str) -> str:
     """What a value writes besides its figures — its unit and signs — or ``""``.
 
     Spaces are dropped, so the result is a shape to look for, not to show:
-    ``"210 GPa"`` → ``"#gpa"``; ``"45 %"`` → ``"#%"``; ``"1.200"`` → ``""``.
+    ``"210 GPa"`` → ``"#GPa"``; ``"45 %"`` → ``"#%"``; ``"1.200"`` → ``""``.
     """
     shape = _unit_shape(value).replace(" ", "")
     return shape if shape.strip(_FIGURE) else ""
@@ -144,12 +148,13 @@ def foreign_unit(value: str, cited: Iterable[int], passages: Sequence[Passage]) 
     """True when ``value``'s unit is written in none of the passages it cites.
 
     The comparison is by shape: numerals stand in for any figure (whether the
-    figure itself is there is :func:`strict_ungrounded`'s question), case is
-    ignored, a space may or may not separate any two characters ("210GPa",
-    "210 GPa", "210\u00a0GPa"), and the unit may not run on into a letter on
-    either side — "#pa" is not found in "# gpa", nor "#m" in "# mm". Everything
-    besides the figures counts: "≈ 45%" asks for the "≈" too, because the model
-    was told to copy value and unit exactly.
+    figure itself is there is :func:`strict_ungrounded`'s question), a space —
+    NBSP included — may or may not separate any two characters ("210GPa",
+    "210 GPa"), "ºC" reads as "°C", and the unit may not run on into a letter on
+    either side — "#Pa" is not found in "# GPa", nor "#m" in "# mm". Letters are
+    compared exactly, because case is the SI prefix: "210 mPa" is not
+    "210 MPa". Everything besides the figures counts: "≈ 45%" asks for the "≈"
+    too, because the model was told to copy value and unit exactly.
     """
     unit = value_unit(value)
     if not unit:
