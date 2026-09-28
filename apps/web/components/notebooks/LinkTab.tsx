@@ -85,6 +85,9 @@ export function LinkTab({ notebookId, onDone }: { notebookId: number; onDone: ()
       if (!outcome.done) {
         if (outcome.title) setVideoTitle(outcome.title);
         setPrompt({ reason: outcome.reason });
+        // Asking for the video's title left the server and was counted, so
+        // "N de 30 buscas hoje" moves even though nothing was added yet.
+        void client.invalidateQueries({ queryKey: notebookKey(notebookId) });
         return;
       }
       await client.invalidateQueries({ queryKey: notebookKey(notebookId) });

@@ -19,7 +19,11 @@ service adds is the order in which a request meets the outside world:
    session is closed without a commit when an error propagates, so a failed
    fetch would otherwise be free and a failing link could be probed forever.
    "Left" is measured, not guessed: a request hook on the client counts what
-   was actually handed to the transport.
+   was actually handed to the transport, and the resolver is wrapped so that
+   looking a name up counts too — a DNS query leaves the server, a name that
+   never answers holds a thread, and "resolves inside" versus "does not
+   resolve" is itself an answer about a network. Only an address typed as an
+   IP literal reaches the connection without a lookup.
 4. **Source content is data.** The fetched text is chunked like a pasted text;
    nothing in it is read as an instruction, and the model's own text from a
    web search is never kept (``gemini_search``).
@@ -31,6 +35,7 @@ the other integrations call fixed public API hosts.
 from __future__ import annotations
 
 import logging
+import time
 from collections.abc import Callable, Iterator
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import TimeoutError as FutureTimeout
@@ -119,20 +124,35 @@ _HTML_TYPES = frozenset({"text/html", "application/xhtml+xml"})
 #: A thread pool for name resolution with a deadline: ``getaddrinfo`` takes no
 #: timeout, and a resolver that hangs would hold the request past the fetch
 #: deadline. A lookup that overruns is abandoned (its thread finishes on its
-#: own) and the fetch is refused as a name that could not be found.
-_DNS_POOL = ThreadPoolExecutor(max_workers=4, thread_name_prefix="notebook-dns")
+#: own) and the fetch is refused as a name that could not be found. The pool is
+#: shared by the whole process, so it is sized well above what one student's
+#: lookups can hold: every lookup is also counted against the day's quota
+#: (``ExternalSourceService._resolver_for_fetch``), so a name that never
+#: answers is not a free way to keep the pool busy.
+_DNS_POOL = ThreadPoolExecutor(max_workers=16, thread_name_prefix="notebook-dns")
 
 
 def resolver_with_deadline(
-    resolve: safe_fetch.Resolver, seconds: float, pool: ThreadPoolExecutor = _DNS_POOL
+    resolve: safe_fetch.Resolver,
+    deadline: float,
+    pool: ThreadPoolExecutor = _DNS_POOL,
+    clock: Callable[[], float] = time.monotonic,
 ) -> safe_fetch.Resolver:
-    """``resolve``, abandoned after ``seconds``. A timeout is an ``OSError``,
-    which ``safe_fetch`` already turns into its pt-BR "not found" refusal."""
+    """``resolve``, abandoned at ``deadline`` (a ``clock()`` reading).
+
+    Each lookup is given only the time left, so the lookup of a redirect hop
+    cannot carry the fetch past its deadline: resolution sits inside the fetch
+    deadline, not after it. A timeout is an ``OSError``, which ``safe_fetch``
+    already turns into its pt-BR "not found" refusal.
+    """
 
     def bounded(host: str, port: int) -> list[str]:
+        remaining = deadline - clock()
+        if remaining <= 0:
+            raise OSError("name resolution timed out")
         future = pool.submit(resolve, host, port)
         try:
-            return future.result(timeout=seconds)
+            return future.result(timeout=remaining)
         except FutureTimeout:
             future.cancel()
             raise OSError("name resolution timed out") from None
@@ -161,9 +181,9 @@ class ExternalSourceService:
         self.user = user
         self.settings = settings
         self.client = client
-        self.resolver = resolver or resolver_with_deadline(
-            safe_fetch.default_resolver, float(settings.notebook_fetch_timeout_seconds)
-        )
+        # ``None`` is the system resolver, bounded per fetch by the time left
+        # (``_resolver_for_fetch``); a fake in tests is used as given.
+        self._resolver = resolver
         self.notebooks = NotebookService(db, user, settings, project_id=project_id)
         self.repo = self.notebooks.repo
         self._sent = 0
@@ -403,7 +423,7 @@ class ExternalSourceService:
         self.notebooks.check_fetch_quota()
         with self._spending():
             fetched = safe_fetch.fetch(
-                url, client=self.client, resolver=self.resolver, settings=self.settings
+                url, client=self.client, resolver=self._resolver_for_fetch(), settings=self.settings
             )
         final = fetched.final_url
         typed = url if found_via == "link" else None
@@ -493,12 +513,35 @@ class ExternalSourceService:
     def _on_request(self, _request: httpx.Request) -> None:
         self._sent += 1
 
+    def _resolver_for_fetch(self) -> safe_fetch.Resolver:
+        """The resolver for one fetch: every lookup counts as something that
+        left the server, and in production each one gets only the time left of
+        this fetch's deadline.
+
+        Counted before the lookup, so a lookup that fails or times out is paid
+        for like one that answered. ``safe_fetch`` calls the resolver only for a
+        name — an IP literal is checked and pinned without a lookup — so an
+        address refused on its face stays free. The deadline mirrors the one
+        ``safe_fetch.fetch`` sets for itself from the same settings.
+        """
+        base = self._resolver
+        if base is None:
+            seconds = safe_fetch.FetchLimits.from_settings(self.settings).timeout_seconds
+            base = resolver_with_deadline(safe_fetch.default_resolver, time.monotonic() + seconds)
+        resolve = base
+
+        def counted(host: str, port: int) -> list[str]:
+            self._sent += 1
+            return resolve(host, port)
+
+        return counted
+
     @contextmanager
     def _spending(self, *, ai_request: bool = False) -> Iterator[None]:
         """Count one outside request (and, for a web search, one AI request)
-        if anything was sent inside the block — however the block ended — and
-        commit it before any error travels on. One operation is one unit, a
-        redirect or a retried address included."""
+        if anything was sent inside the block — a request or a name lookup,
+        however the block ended — and commit it before any error travels on.
+        One operation is one unit, a redirect or a retried address included."""
         before = self._sent
         try:
             yield

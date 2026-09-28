@@ -24,6 +24,7 @@ a model can do here is write paragraphs, and every paragraph is checked.
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass
 
 #: Longest paragraph kept from a model. A runaway answer is clipped, not
@@ -165,6 +166,15 @@ def digest_user(context: NotebookDigestContext) -> str:
     )
 
 
+#: A ``trecho`` tag inside a passage, in any case and spacing a model might
+#: still read as one (``</TRECHO>``, ``</trecho >``, ``</ trecho>``). Phase 3
+#: made passage text third-party web content, so an exact-lowercase replace no
+#: longer covers what a page can contain. The ``<`` is escaped rather than
+#: spaced: with spacing tolerated on the way in, a spaced tag would still be a
+#: tag on the way out.
+_TRECHO_TAG = re.compile(r"<(\s*/?\s*trecho)\b", re.IGNORECASE)
+
+
 def render_passages(passages: tuple[Passage, ...]) -> str:
     """Passages as delimited, numbered elements. Attribute values go through
     ``json.dumps`` so a title with a quote cannot close the attribute."""
@@ -183,7 +193,7 @@ def render_passages(passages: tuple[Passage, ...]) -> str:
                 else f"{passage.page_start}-{passage.page_end}"
             )
             attributes.append(f"paginas={json.dumps(pages, ensure_ascii=False)}")
-        text = passage.text.replace("</trecho>", "</ trecho>")
+        text = _TRECHO_TAG.sub(r"&lt;\1", passage.text)
         blocks.append(f"<trecho {' '.join(attributes)}>\n{text}\n</trecho>")
     return "\n\n".join(blocks) if blocks else "(nenhum trecho)"
 
