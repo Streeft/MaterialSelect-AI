@@ -485,7 +485,7 @@ conta o que sai do servidor, falha e consulta ao DNS inclusive, e a origem e a
 licença de cada fonte viajam até a citação e as exportações do Estúdio. Custo
 zero: OpenAlex e web vêm desligadas até haver uma chave gratuita.
 
-**Saúde do código:** 2642 testes de backend (Python 3.11 e 3.12, nenhum skip)
+**Saúde do código:** 2651 testes de backend (Python 3.11 e 3.12, nenhum skip)
 e 608 de frontend, todos verdes. Desde o P0-1 a suíte também roda as migrações de
 verdade, nos dois sentidos, contra um banco temporário que já contém dados —
 `test_migration_selection_stage.py`, `test_migration_process_universe.py`,

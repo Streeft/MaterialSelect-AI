@@ -132,6 +132,16 @@ cada uma tem o motivo de ter ficado de fora.
   comentário `/**/` no meio da regra passam. O D-97 já aceita que ocultação por
   folha CSS é invisível ao extrator, então isto é só defesa em profundidade; os
   dois primeiros são baratos de acrescentar.
+- **A cota é conferida e depois contada, sem atomicidade.** ▁
+  `check_fetch_quota` lê o uso e `count_fetch` o incrementa depois da rede
+  (`usage.fetches += 1`, ler-e-escrever). Uma rajada simultânea de um aluno
+  passa inteira pela conferência antes do primeiro commit, e incrementos
+  concorrentes podem se perder: a conta estoura o teto por um instante e pode
+  ocupar as 16 threads de DNS (com `ACCESS_MODE=open`, uma vez por conta
+  Google). O padrão é anterior à fase 3 e é o mesmo das cotas da conversa e do
+  Estúdio (D-92/D-94). O conserto é um incremento atômico (`UPDATE … SET
+  fetches = fetches + 1 … RETURNING`) antes da rede, ou um teto de consultas
+  em andamento por usuário.
 
 **B11 — a unidade canônica impressa como o Pint a escreve — quitado (P4).** ▁
 `app/calculations/units.py` ganhou `pretty_unit()`, e o `export_service` o aplica
