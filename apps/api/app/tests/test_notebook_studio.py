@@ -8,6 +8,7 @@ from __future__ import annotations
 import csv
 import io
 from datetime import UTC, datetime, timedelta
+from xml.etree import ElementTree
 
 import pytest
 from docx import Document
@@ -17,10 +18,17 @@ from sqlalchemy import select
 from app.ai.provider import AIProvider, AIUnavailableError
 from app.ai.studio import CATALOG, build_tree, read_studio
 from app.config import settings
+from app.exporters import studio as studio_exporter
 from app.exporters.report import LIMITATION_NOTICE
-from app.exporters.studio import AI_NOTICE
-from app.models.notebook import StudioArtifact
+from app.exporters.studio import (
+    AI_NOTICE,
+    NO_ATTRIBUTION_LABEL,
+    NO_URL_LABEL,
+    render,
+)
+from app.models.notebook import NotebookSource, StudioArtifact
 from app.notebooks import mindmap
+from app.schemas.notebook import ArtifactOut
 from app.services import studio_service
 
 TEXT = (
@@ -522,6 +530,231 @@ def test_an_artifact_that_is_not_ready_does_not_export(client, db_session):
     running = _running(db_session, notebook_id)
     response = _export(client, notebook_id, {"id": running.id}, "docx")
     assert response.status_code == 400
+
+
+# --- exports: an external source's address and credit (D-97) ---------------------
+
+WIKI_URL = "https://pt.wikipedia.org/wiki/A%C3%A7o"
+WIKI_CREDIT = (
+    "Texto de “Aço”, da Wikipédia em português, escrito por colaboradores da "
+    "Wikipédia e publicado sob a licença CC BY-SA 4.0 "
+    "(https://creativecommons.org/licenses/by-sa/4.0/); revisão 123, obtido em 25/09/2026."
+)
+#: Formula, markup and an XML-illegal control character, all at once.
+HOSTILE = '=HYPERLINK("http://mal.example")<script>alert(1)</script></w:t>\x0b&amp;'
+
+
+def _external(client, db_session, tool: str, url=WIKI_URL, attribution=WIKI_CREDIT, **extra):
+    """An artifact made from a source carrying a ``meta`` as the external-source
+    service stores it — nothing leaves for the network."""
+    notebook_id = _notebook(client)
+    source = db_session.scalars(
+        select(NotebookSource).where(NotebookSource.notebook_id == notebook_id)
+    ).one()
+    source.meta = {"url": url, "attribution": attribution, "license": "CC BY-SA 4.0"}
+    db_session.flush()
+    return notebook_id, _generate(client, notebook_id, tool=tool, **extra)
+
+
+def _with_credit(artifact: dict, url=None, attribution=None, only_first=False) -> ArtifactOut:
+    """The artifact, its citations given (or stripped of) an address and credit."""
+    citations = []
+    for index, citation in enumerate(artifact["citations"]):
+        credited = not only_first or index == 0
+        citations.append(
+            {
+                **citation,
+                "source_url": url if credited else None,
+                "source_attribution": attribution if credited else None,
+            }
+        )
+    return ArtifactOut.model_validate({**artifact, "citations": citations})
+
+
+def _csv_rows(data: bytes) -> list[list[str]]:
+    return list(csv.reader(io.StringIO(data.decode("utf-8-sig"))))
+
+
+def _references(rows: list[list[str]]) -> list[list[str]]:
+    """The rows after the "Referências" title of a CSV export."""
+    start = rows.index(["Referências"])
+    return rows[start + 1 :]
+
+
+def _docx_text(data: bytes) -> str:
+    return "\n".join(p.text for p in Document(io.BytesIO(data)).paragraphs)
+
+
+def test_the_address_and_credit_survive_into_the_stored_artifact_and_its_docx(client, db_session):
+    notebook_id, artifact = _external(client, db_session, "report", template="guia_estudo")
+    assert artifact["citations"]
+    assert all(c["source_url"] == WIKI_URL for c in artifact["citations"])
+    assert all(c["source_attribution"] == WIKI_CREDIT for c in artifact["citations"])
+    text = _docx_text(_export(client, notebook_id, artifact, "docx").content)
+    assert LIMITATION_NOTICE in text and AI_NOTICE in text
+    references = text[text.index("Referências") :]
+    # On lines of their own, after the reference and before the excerpt.
+    first = artifact["citations"][0]
+    assert f"[1] Aula 1\n{WIKI_URL}\n{WIKI_CREDIT}\n{first['excerpt']}" in references
+
+
+def test_the_spreadsheets_add_an_address_and_a_credit_column(client, db_session):
+    notebook_id, artifact = _external(client, db_session, "flashcards")
+    rows = _csv_rows(_export(client, notebook_id, artifact, "csv").content)
+    assert [LIMITATION_NOTICE] in rows and [AI_NOTICE] in rows
+    header, *body = _references(rows)
+    assert header == ["Nº", "Fonte", "Trecho citado", "Endereço", "Atribuição"]
+    assert body and all(row[3:] == [WIKI_URL, WIKI_CREDIT] for row in body)
+
+    notebook_id, artifact = _external(client, db_session, "table", template="propriedades")
+    workbook = load_workbook(io.BytesIO(_export(client, notebook_id, artifact, "xlsx").content))
+    cover = [row[0] for row in workbook["Aviso"].iter_rows(values_only=True)]
+    assert LIMITATION_NOTICE in cover and AI_NOTICE in cover
+    header, *body = list(workbook["Referências"].iter_rows(values_only=True))
+    assert list(header) == ["Nº", "Fonte", "Trecho citado", "Endereço", "Atribuição"]
+    assert body and all(list(row[3:]) == [WIKI_URL, WIKI_CREDIT] for row in body)
+
+
+def test_a_citation_without_them_is_written_in_words_beside_one_with_them(client):
+    notebook_id = _notebook(client)
+    artifact = _generate(client, notebook_id, tool="quiz", count="menos")
+    first = artifact["citations"][0]
+    # A second citation from a phase 1 source, beside the external one.
+    plain = {**first, "number": 2, "source_id": first["source_id"] + 1, "source_title": "Aula 2"}
+    mixed = ArtifactOut.model_validate(
+        {
+            **artifact,
+            "citations": [
+                {**first, "source_url": WIKI_URL, "source_attribution": WIKI_CREDIT},
+                {**plain, "source_url": None, "source_attribution": None},
+            ],
+        }
+    )
+    header, *body = _references(_csv_rows(render(mixed, "csv", "Caderno")[0]))
+    assert header[3:] == ["Endereço", "Atribuição"]
+    assert body[0][3:] == [WIKI_URL, WIKI_CREDIT]
+    # Never a blank cell (D-24).
+    assert body[1][3:] == [NO_URL_LABEL, NO_ATTRIBUTION_LABEL]
+    text = _docx_text(render(mixed, "docx", "Caderno")[0])
+    assert f"[2] Aula 2\n{first['excerpt']}" in text
+
+
+def test_a_citation_from_before_phase_3_renders_as_it_always_did(client):
+    notebook_id = _notebook(client)
+    for tool in ("report", "flashcards", "mindmap"):
+        artifact = _generate(client, notebook_id, tool=tool)
+        # A citation stored without the two keys at all, as phase 2 stored it.
+        stored = {
+            **artifact,
+            "citations": [
+                {k: v for k, v in c.items() if k not in ("source_url", "source_attribution")}
+                for c in artifact["citations"]
+            ],
+        }
+        old = ArtifactOut.model_validate(stored)
+        assert old.citations
+        assert all(c.source_url is None and c.source_attribution is None for c in old.citations)
+        for fmt in CATALOG[tool].exports:
+            data = render(old, fmt, "Caderno")[0]
+            if fmt == "csv":
+                header, *body = _references(_csv_rows(data))
+                assert header == ["Nº", "Fonte", "Trecho citado"]
+                assert body and all(len(row) == 3 for row in body)
+            elif fmt == "xlsx":
+                sheet = load_workbook(io.BytesIO(data))["Referências"]
+                assert sheet.max_column == 3
+            elif fmt == "docx":
+                text = _docx_text(data)
+                references = text[text.index("\nReferências") :]
+                expected = "\n".join(
+                    f"[{c.number}] {studio_exporter._reference(c)}\n{c.excerpt}"
+                    for c in old.citations
+                )
+                assert references == f"\nReferências\n{expected}"
+            else:
+                below = data.decode("utf-8").split("</g>")[-1]
+                layout = old.layout
+                chars = int((max(layout.width, 640.0) - 32) // 6.4)
+                expected = [
+                    line
+                    for c in old.citations
+                    for line in mindmap.wrap(
+                        f"[{c.number}] {studio_exporter._reference(c)}", chars, 2
+                    )
+                ]
+                assert below.count("<text") == len(expected)
+
+
+def test_a_hostile_credit_is_inert_in_the_csv_and_the_xlsx(client):
+    notebook_id = _notebook(client)
+    artifact = _with_credit(
+        _generate(client, notebook_id, tool="flashcards"),
+        url="=cmd|'/c calc'!A1",
+        attribution=HOSTILE,
+    )
+    rows = _csv_rows(render(artifact, "csv", "Caderno")[0])
+    assert [LIMITATION_NOTICE] in rows and [AI_NOTICE] in rows
+    body = _references(rows)[1:]
+    assert body
+    for row in body:
+        # One apostrophe, visible: the writer's, never a second one from here.
+        assert row[3] == "'=cmd|'/c calc'!A1"
+        assert row[4].startswith("'=HYPERLINK(") and not row[4].startswith("''")
+        assert "\x0b" not in row[4]
+    for prefix in ("+", "-", "@"):
+        rows = _csv_rows(
+            render(_with_credit(artifact.model_dump(), attribution=f"{prefix}1+1"), "csv", "C")[0]
+        )
+        assert all(row[-1] == f"'{prefix}1+1" for row in _references(rows)[1:])
+
+    workbook = load_workbook(io.BytesIO(render(artifact, "xlsx", "Caderno")[0]))
+    cover = [row[0] for row in workbook["Aviso"].iter_rows(values_only=True)]
+    assert LIMITATION_NOTICE in cover and AI_NOTICE in cover
+    _, *body = list(workbook["Referências"].iter_rows(values_only=True))
+    for row in body:
+        assert row[3] == "'=cmd|'/c calc'!A1"
+        assert row[4].startswith("'=HYPERLINK(")
+
+
+def test_a_hostile_credit_is_text_in_the_docx(client):
+    notebook_id = _notebook(client)
+    artifact = _with_credit(
+        _generate(client, notebook_id, tool="report"), url=WIKI_URL, attribution=HOSTILE
+    )
+    data = render(artifact, "docx", "Caderno")[0]
+    text = _docx_text(data)
+    assert LIMITATION_NOTICE in text and AI_NOTICE in text
+    # Every character but the control one, literally, as text.
+    assert HOSTILE.replace("\x0b", " ") in text
+    document = Document(io.BytesIO(data))
+    xml = document.element.xml
+    assert "<script>" not in xml and "&lt;script&gt;" in xml
+    assert "&amp;amp;" in xml
+
+
+def test_a_hostile_credit_is_escaped_in_the_svg_and_kept_whole(client):
+    notebook_id = _notebook(client)
+    generated = _generate(client, notebook_id, tool="mindmap")
+    artifact = _with_credit(
+        generated, url='https://x.example/"><script>alert(1)</script>', attribution=HOSTILE
+    )
+    svg = render(artifact, "svg", "Caderno")[0].decode("utf-8")
+    assert "Esta ferramenta destina-se a apoio didático" in svg
+    assert "<script>" not in svg and "&lt;script&gt;" in svg
+    assert '"><' not in svg.split("</g>")[-1]
+    assert "\x0b" not in svg
+    # Well-formed: an XML parser reads it, and every text reads back literally.
+    root = ElementTree.fromstring(svg)
+    texts = "".join(t.text or "" for t in root.iter("{http://www.w3.org/2000/svg}text"))
+    assert "</w:t>" in texts and "&amp;" in texts
+
+    # A long credit is wrapped, never cut with "…"; an address is never hyphenated.
+    credited = _with_credit(generated, url=WIKI_URL + "x" * 200, attribution=WIKI_CREDIT * 2)
+    root = ElementTree.fromstring(render(credited, "svg", "Caderno")[0].decode("utf-8"))
+    lines = [t.text or "" for t in root.iter("{http://www.w3.org/2000/svg}text")]
+    joined = " ".join(lines)
+    assert "obtido em 25/09/2026." in joined and not joined.endswith("…")
+    assert (WIKI_URL + "x" * 200) in "".join(lines)
 
 
 # --- isolation -------------------------------------------------------------------

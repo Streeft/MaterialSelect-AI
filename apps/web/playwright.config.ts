@@ -67,6 +67,14 @@ export default defineConfig({
         // the `msai_session` cookie before each spec's first navigation.
         ENVIRONMENT: "development",
         E2E_SESSION_TOKEN,
+        // D-97: outside sources, pinned so a developer's `apps/api/.env` cannot
+        // change what `e2e/cadernos.spec.ts` asserts. Article and web search
+        // stay off (the spec asserts their written reasons, and an E2E run
+        // must never depend on the internet); the daily quota it reads is 30.
+        NOTEBOOK_EXTERNAL_SOURCES: "true",
+        NOTEBOOK_DAILY_FETCHES: "30",
+        OPENALEX_API_KEY: "",
+        WEB_SEARCH_PROVIDER: "",
       },
     },
     {

@@ -264,6 +264,24 @@ A lista completa, com as receitas prontas de cada provedor, está em
 | `SESSION_COOKIE_SECURE` | `true` | Seguro por padrão (só HTTPS); dev local em HTTP precisa `false` explicitamente. |
 | `SESSION_TTL_HOURS` | `336` (14 dias) | Vida fixa da sessão desde a criação, sem renovação deslizante. |
 | `OAUTH_STATE_TTL_SECONDS` | `600` | Janela entre o redirect ao Google e o callback voltar. |
+| `NOTEBOOK_EXTERNAL_SOURCES` | `true` | Chave geral das fontes externas dos Cadernos ([D-97](DECISIONS.md)); `false` desliga link, YouTube e pesquisa, com o motivo escrito na tela. |
+| `NOTEBOOK_DAILY_FETCHES` | `30` | Saídas para fora por aluno por dia (página, título de vídeo, busca, resultado acrescentado), contadas quando saem do servidor, com ou sem sucesso — a consulta ao DNS de um nome inclusive. Só a recusa decidida sem consultar a rede é de graça. |
+| `NOTEBOOK_FETCH_MAX_BYTES` | `5000000` | Teto de uma página, já descomprimida. |
+| `NOTEBOOK_FETCH_TIMEOUT_SECONDS` | `10.0` | Prazo total de uma leitura, redirecionamentos e consultas ao DNS incluídos. |
+| `NOTEBOOK_FETCH_MAX_REDIRECTS` | `3` | Saltos seguidos, cada um conferido de novo como se fosse o primeiro endereço. |
+| `EXTERNAL_CONTACT` | vazio | Contato no `User-Agent` (a Wikimedia pede um); vazio usa `FRONTEND_URL`, nunca um e-mail pessoal. |
+| `WIKIPEDIA_LANG` | `pt` | Edição da Wikipédia pesquisada e lida. Gratuita, sem chave. |
+| `OPENALEX_API_KEY` | vazio | Obrigatória para a busca de artigos; vazia a desliga, com o motivo escrito. Só a chave gratuita, de conta sem forma de pagamento. |
+| `OPENALEX_MAILTO` | vazio | Contato opcional enviado à OpenAlex junto da chave. |
+| `WEB_SEARCH_PROVIDER` | vazio | Busca na web desligada; `gemini` liga o *grounding* com a Pesquisa Google. |
+| `WEB_SEARCH_API_KEY` | vazio | Chave gratuita do AI Studio, de projeto sem faturamento. Vazia usa `AI_API_KEY` **só** quando o host de `AI_BASE_URL` é `generativelanguage.googleapis.com`; a chave de outro fornecedor nunca vai ao Google, e a busca fica desligada com o motivo escrito (`gemini_search.resolve_key`). |
+| `WEB_SEARCH_MODEL` | `gemini-flash-latest` | Modelo que faz a busca; o texto gerado é descartado. |
+| `WEB_SEARCH_BASE_URL` | `https://generativelanguage.googleapis.com/v1beta` | API nativa do Gemini; só https. |
+| `WEB_SEARCH_TIMEOUT_SECONDS` | `25.0` | Uma chamada com *grounding* pesquisa antes de responder. |
+| `WEB_SEARCH_MAX_RESULTS` | `8` | Resultados por busca. |
+
+As fontes externas estão descritas por inteiro em
+[09-camada-ia.md](09-camada-ia.md), seção "Fontes externas".
 
 ---
 

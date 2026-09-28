@@ -17,16 +17,19 @@ record from everybody would pass the second half and fail the first.
 
 from __future__ import annotations
 
+import httpx
 import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.integrations.http import get_http_transport, get_resolver
 from app.main import app
 from app.models.material import Material
 from app.models.material_class import MaterialClass
 from app.models.material_property_value import MaterialPropertyValue
 from app.models.property_definition import PropertyDefinition
 from app.models.user import User
+from app.tests.conftest import _ban_network
 
 #: Distinctive enough that finding it in any response body is unambiguous —
 #: it cannot collide with a class name, a slug or a seeded material.
@@ -121,10 +124,30 @@ def _documented_get_paths() -> list[str]:
     return sorted(path for path, operations in schema["paths"].items() if "get" in operations)
 
 
+#: A page the private notebook reads from outside (D-97), under the private name.
+PRIVATE_PAGE = "https://exemplo.org/superliga"
+
+
+def _private_page(_request: httpx.Request) -> httpx.Response:
+    paragraph = f"<p>{PRIVATE_NAME} resiste a 900 °C em serviço contínuo. " + "Texto " * 60
+    return httpx.Response(
+        200,
+        headers={"content-type": "text/html; charset=utf-8"},
+        content=(
+            f"<html><head><title>{PRIVATE_NAME}</title></head>"
+            f"<body><article>{paragraph}</p></article></body></html>"
+        ).encode(),
+    )
+
+
 @pytest.fixture()
 def private_notebook(client, login_as, other_user: User) -> dict[str, str]:
     """A notebook of the *other* user (D-92), titled and filled with the same
-    distinctive name, so the sweep asks every GET about it too."""
+    distinctive name, so the sweep asks every GET about it too. It also holds a
+    page read from outside (D-97), whose title, link and credit carry the name —
+    an external source is a record like any other and must not travel either."""
+    app.dependency_overrides[get_http_transport] = lambda: httpx.MockTransport(_private_page)
+    app.dependency_overrides[get_resolver] = lambda: lambda _host, _port: ["93.184.216.34"]
     with login_as(other_user):
         notebook = client.post("/api/notebooks", json={"title": PRIVATE_NAME}).json()
         source = client.post(
@@ -136,10 +159,16 @@ def private_notebook(client, login_as, other_user: User) -> dict[str, str]:
         artifact = client.post(
             f"/api/notebooks/{notebook['id']}/studio", json={"tool": "flashcards"}
         ).json()
+        site = client.post(
+            f"/api/notebooks/{notebook['id']}/sources/url", json={"url": PRIVATE_PAGE}
+        )
+        assert site.status_code == 201, site.text
+    _ban_network()
     return {
         "notebook_id": str(notebook["id"]),
         "source_id": str(source["id"]),
         "artifact_id": str(artifact["id"]),
+        "site_source_id": str(site.json()["id"]),
     }
 
 
@@ -166,6 +195,8 @@ def test_the_sweep_covers_the_whole_documented_get_surface() -> None:
     assert len(paths) >= 30
     assert "/api/materials" in paths
     assert "/api/exports/catalogo.{fmt}" in paths
+    # D-97: the one GET of the outside sources is swept like every other.
+    assert "/api/notebooks/source-capabilities" in paths
 
 
 def test_the_owner_finds_their_record_across_the_api(
@@ -203,6 +234,31 @@ def test_no_documented_get_route_leaks_another_persons_record(
 
     leaking = sorted(path for path, body in bodies.items() if PRIVATE_NAME in body)
     assert leaking == [], f"rotas vazando registro alheio: {leaking}"
+
+
+def test_another_persons_outside_source_neither_leaks_nor_fetches(
+    client, login_as, other_user: User, private_notebook
+) -> None:
+    """D-97. The outside source is read back by its owner — link, credit and
+    all — and is a 404 for anybody else. Every POST that would reach outside is
+    refused on the stranger's behalf before any network: the conftest ban would
+    fail this test on the first lookup or request."""
+    notebook = f"/api/notebooks/{private_notebook['notebook_id']}"
+    site = f"{notebook}/sources/{private_notebook['site_source_id']}"
+    with login_as(other_user):
+        owned = client.get(site).json()
+    assert owned["url"] == PRIVATE_PAGE and PRIVATE_NAME in owned["attribution"]
+
+    assert client.get(site).status_code == 404
+    for path, payload in (
+        ("/sources/url", {"url": PRIVATE_PAGE}),
+        ("/sources/youtube", {"url": "https://youtu.be/dQw4w9WgXcQ"}),
+        ("/search", {"provider": "wikipedia", "query": "superliga"}),
+        ("/sources/external", {"provider": "wikipedia", "key": "1"}),
+    ):
+        response = client.post(notebook + path, json=payload)
+        assert response.status_code == 404, (path, response.text)
+        assert PRIVATE_NAME not in response.text
 
 
 def test_the_datasheet_of_another_persons_record_is_not_found(

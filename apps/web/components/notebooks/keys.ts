@@ -6,3 +6,5 @@ export const STUDIO_CATALOG_KEY = ["notebooks", "studio-catalog"] as const;
 export const studioKey = (id: number) => ["notebook", id, "studio"] as const;
 export const artifactKey = (id: number, artifactId: number) =>
   ["notebook", id, "studio", artifactId] as const;
+/** What outside sources are switched on — static per deployment (D-97). */
+export const SOURCE_CAPABILITIES_KEY = ["notebooks", "source-capabilities"] as const;

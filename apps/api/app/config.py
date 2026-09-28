@@ -152,6 +152,56 @@ class Settings(BaseSettings):
     # requests per minute for the whole class.
     notebook_studio_in_flight: int = 2
 
+    # --- Cadernos: external sources (D-97) ---------------------------------
+    # Everything that costs money is off by default; everything free is on,
+    # and each switch that is off says why on screen instead of failing.
+    #
+    # Master switch for sources fetched from outside (a link, a video, a
+    # search). Off is said on screen, never hidden.
+    notebook_external_sources: bool = True
+    # Requests one student may send out per day — a page, a video's title, a
+    # search, a result added. Counted when the request leaves the server,
+    # success or failure: failing requests are how a fetcher is used to probe
+    # a network, so they are not free.
+    notebook_daily_fetches: int = 30
+    # One fetch: decoded bytes (also what stops a gzip bomb), total seconds
+    # from the first byte asked to the last read, and redirects followed —
+    # each hop checked again as if it were the first address.
+    notebook_fetch_max_bytes: int = 5_000_000
+    notebook_fetch_timeout_seconds: float = 10.0
+    notebook_fetch_max_redirects: int = 3
+    # Who to write to about this client, sent in the User-Agent (Wikimedia's
+    # policy asks for a contact). Empty uses FRONTEND_URL — never the author's
+    # personal e-mail by default.
+    external_contact: str = ""
+    # Wikipedia edition searched and read.
+    wikipedia_lang: str = "pt"
+    # OpenAlex requires a key. Only the free one, from an account with no
+    # payment method: it carries a daily credit, and when that runs out article
+    # search stops until the next day with the reason written. Empty turns
+    # article search off, reason written too; there is no keyless fallback.
+    openalex_api_key: str = ""
+    # Optional contact OpenAlex asks for alongside the key.
+    openalex_mailto: str = ""
+    # Web search through the Gemini API's Google Search grounding. "" is off
+    # (the default); "gemini" turns it on. Only the result links are kept —
+    # the generated text is discarded — and every link is then fetched like
+    # one the student pasted. Only the free AI Studio key, from a project with
+    # no billing and no payment method: grounding has its own free allowance,
+    # and when it runs out web search stops with the reason written. Billing
+    # is never assumed, nor suggested.
+    web_search_provider: str = ""
+    # Empty falls back to AI_API_KEY only when AI_BASE_URL is the Gemini API
+    # (the D-93 setup, where that is already an AI Studio key): a Groq or
+    # OpenRouter key is never sent to Google. The one place that rule lives is
+    # ``app.integrations.gemini_search.resolve_key``.
+    web_search_api_key: str = ""
+    web_search_model: str = "gemini-flash-latest"
+    web_search_base_url: str = "https://generativelanguage.googleapis.com/v1beta"
+    # A grounded call searches before it answers, so it is slower than a fetch.
+    web_search_timeout_seconds: float = 25.0
+    web_search_max_results: int = 8
+
     # --- Auth (A5): login with Google, project-scoped studies -------------
     # Empty client id/secret means OAuth is off: the login endpoint answers
     # 503 with a clear reason instead of crashing into Google with bad

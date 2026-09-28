@@ -382,6 +382,75 @@ ou `mock` (simulado, sem rede nem chave).
 Se a IA responder que o servidor recusou `response_format`/`json_schema`, rode
 o **Provedor de IA** de novo com "Saída estruturada" em `object`.
 
+## 5-sexies. Fontes externas dos Cadernos: as chaves opcionais
+
+As fontes externas ([D-97](DECISIONS.md#d-97)) chegam com o **Deploy da API**
+(§5-ter): o `release_command` aplica a migração que elas trazem, e não há seed.
+Sem nenhuma chave nova já funcionam o **link de site**, o **vídeo do YouTube**
+(com a transcrição colada pelo aluno) e a **Wikipédia**, todos gratuitos e sem
+conta. As outras duas buscas vêm **desligadas**, e a tela diz por quê.
+
+**A regra de custo não tem exceção.** Toda chave desta seção sai de uma conta
+ou de um projeto **sem nenhuma forma de pagamento cadastrada e sem faturamento
+ligado**. É essa ausência que garante o custo zero: quando a franquia gratuita
+acaba, a função para até a franquia voltar, com o motivo escrito na tela, e as
+outras fontes continuam funcionando. Nada aqui se resolve contratando plano ou
+comprando crédito.
+
+Os segredos vão **no app do Fly**, não no GitHub, pela aba *Secrets* do painel
+do Fly ou por `fly secrets set NOME='…'`. Gravar um segredo reinicia as
+máquinas com a imagem que já está no ar. Por isso, na primeira vez, o **Deploy
+da API** vem antes.
+
+| Segredo | Liga o quê | Sem ele |
+|---|---|---|
+| `EXTERNAL_CONTACT` | Nada; é o contato que vai no `User-Agent` de toda requisição para fora. A política da Wikimedia pede um. | Vai o `FRONTEND_URL`, que já basta. Não ponha um e-mail pessoal que você não queira divulgado. |
+| `OPENALEX_API_KEY` | A busca de **Artigos** (OpenAlex). | "Artigos" aparece desligado, com o motivo. |
+| `OPENALEX_MAILTO` | Nada; é o contato opcional que a OpenAlex aceita junto da chave. | — |
+| `WEB_SEARCH_PROVIDER=gemini` | A busca na **Web** (*grounding* do Gemini). | Vazio é o padrão: "Web" aparece desligado, com o motivo. |
+| `WEB_SEARCH_API_KEY` | A chave dessa busca. | Com a IA oficial do §5-quinquies (`AI_BASE_URL` no Google), vale a própria `AI_API_KEY`. Com a IA em outro fornecedor, a busca fica desligada: a chave dele **nunca** é enviada ao Google. |
+
+**OpenAlex — uma vez só:**
+
+1. Crie uma conta gratuita em `openalex.org` e copie a chave em
+   `openalex.org/settings/api`. Não cadastre forma de pagamento: a conta
+   gratuita traz um crédito diário, e quando ele acaba a busca de artigos para
+   até o dia seguinte.
+2. Grave `OPENALEX_API_KEY` (e, se quiser, `OPENALEX_MAILTO`) nos segredos do
+   app no Fly.
+
+A chave nunca aparece em log nem em mensagem de erro: ela vai na URL, que é a
+forma documentada, e os loggers do httpx ficam em WARNING justamente para não
+registrá-la.
+
+**Busca na web — só se for usar:**
+
+1. Com a IA já no Gemini (§5-quinquies), basta gravar
+   `WEB_SEARCH_PROVIDER=gemini`: a chave gratuita do AI Studio que já está em
+   `AI_API_KEY` serve. Com a IA em outro fornecedor, crie uma chave no AI
+   Studio **num projeto sem faturamento**, pelo mesmo passo a passo e com os
+   mesmos cuidados do §5-quinquies, e grave-a como `WEB_SEARCH_API_KEY`.
+2. O plano gratuito tem uma cota própria de buscas com *grounding*, e cada busca
+   também gasta do limite por minuto e por dia **da mesma chave** que a turma
+   usa na conversa. Numa aula cheia, a conversa e a busca disputam a mesma
+   franquia.
+3. **Confira ao vivo, uma vez, as "Sugestões da Pesquisa Google".** Os termos
+   do *grounding* exigem mostrá-las junto dos resultados, e a tela as desenha
+   numa moldura isolada, sem script. O formato foi deduzido da documentação,
+   porque os testes não têm rede. Faça uma busca no modo Web e confirme que a
+   faixa de sugestões aparece legível e que uma ficha abre a pesquisa do Google
+   numa aba nova. Se não aparecer, é a pendência registrada em
+   [TODO.md](TODO.md).
+
+**Desligar** é apagar o segredo, ou deixar `WEB_SEARCH_PROVIDER` vazio. Para
+desligar todas as fontes externas de uma vez, grave
+`NOTEBOOK_EXTERNAL_SOURCES=false`: as telas continuam lá e dizem que está
+desligado.
+
+**Onde conferir:** no caderno, a caixa de pesquisa das Fontes mostra Artigos,
+Wikipédia e Web. Um provedor desligado continua visível e diz o motivo, que é
+exatamente o texto de `GET /api/notebooks/source-capabilities`.
+
 ## 6. Conferir que está de pé
 
 Nesta ordem, porque cada uma isola uma camada:
@@ -423,6 +492,7 @@ Depois, no navegador:
 | Toda rota em 403 mesmo logado | Falta a concessão do §5. |
 | Primeira requisição demorando segundos | Hibernação — confira `min_machines_running` no `fly.toml`. |
 | Painel de IA em `403` acusando a credencial, com `error code: 1010` no fim da mensagem | **Não é a chave.** `1010` é da Cloudflare, que fica na frente da Groq: ela barrou a assinatura do cliente antes de a API ver a requisição. Ver [09-camada-ia.md](09-camada-ia.md). |
+| No caderno, a busca de Artigos ou da Web diz que a cota gratuita acabou, ou que está desligada | Nenhum defeito. É a franquia gratuita do dia que acabou, ou a chave que não está configurada (§5-sexies). Espere a franquia voltar, ou configure a chave. **Não** ligue faturamento. |
 | Painel de IA com erro genérico ("Falha na requisição …") em vez do texto do provedor | Versão da API anterior ao tratador de `AIUnavailableError`. Reimplante — um *secrets deploy* não basta, porque reusa a imagem. |
 | PR mesclado em `main`, `deploy-api.yml` verde, mas o dado novo (material, química de bateria, modo de transporte) não aparece na tela | Duas causas possíveis, nessa ordem de verificação. (1) `admin-banco.yml` (`semear`) não foi disparado depois do merge — o deploy da API só roda a migração, nunca o seed. Ver §5-ter. (2) O `semear` rodou mas o log da execução (aba Actions → a execução → job `semear`) mostra a contagem certa em `Concluído: {...}` — se o campo relevante (`materials_created`, `battery_chemistries`, `transport_modes`, …) ficou em `0` quando deveria ter subido, o dado novo não está chegando a nenhum dos dois módulos de seed que `semear` executa (`app.db.seed` e `app.db.seed_extended`, §5-ter): confira se o PR de fato adicionou o dado a um dos dois, e não a um terceiro arquivo nunca importado por nenhum — foi exatamente isso que aconteceu com os 70 materiais do PR #59, que viveram meses em `seed_extended.py` sem que `semear` soubesse que esse módulo existia. |
 

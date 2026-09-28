@@ -22,6 +22,10 @@ dependencies = [
     # the `tokeninfo` endpoint on every login (that endpoint is rate-limited
     # and meant for debugging, not production traffic).
     "httpx>=0.27",
+    # Cadernos (D-97): safe_fetch encodes a student's link with UTS-46 before
+    # any address check. httpx pulls idna in today, but an import this file
+    # depends on for a security boundary is declared, not inherited.
+    "idna>=3",
     "google-auth>=2.29",
     "charset-normalizer>=3,<4",
     # Cadernos (D-92): a student uploads a PDF in production, so the reader can
