@@ -837,7 +837,7 @@ afrouxam:
   motivo escrito, e nada sugere faturamento.
 - **Os testes não têm rede:** o `conftest.py` reprova quem tentar sair.
 
-1966 testes de backend (nenhum skip) e 563 de frontend, todos verdes. CI no
+2642 testes de backend (nenhum skip) e 608 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
 PROJECT_CONTEXT.md).
