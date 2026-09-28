@@ -209,6 +209,15 @@ noutro bundler, com outro fatiamento de chunks ([D-51](docs/DECISIONS.md)).
   listeners que tiram o BEGIN do driver, um teste cuja *primeira* instrução seja
   uma escrita escapa do rollback e vaza para todos os testes seguintes.
   `app/tests/test_isolation.py` é o canário que protege isso.
+- **Documentação anda junto do código, no mesmo PR.** Toda mudança de código ou
+  funcionalidade nova atualiza o texto que ela tornou falso: `README.md`,
+  `docs/DECISIONS.md` (decisão nova quando se escolhe um desenho),
+  `docs/TODO.md`, `docs/CHANGELOG_SESSION.md`, `docs/PROJECT_CONTEXT.md`, o
+  documento da área (`docs/09-camada-ia.md`, `docs/13-deploy.md`…), este
+  arquivo (Estado atual e contagem de testes) e `.env.example` quando a
+  configuração muda. PR sem isso está incompleto — regra completa em
+  [`docs/CLAUDE.md`](docs/CLAUDE.md) §1.12. Outras ferramentas de IA chegam
+  aqui por [`AGENTS.md`](AGENTS.md).
 
 ## Comandos rápidos
 
