@@ -21,7 +21,25 @@ import unicodedata
 from app.ai.caveats import standard_caveats
 from app.ai.notebook import NotebookDigestContext, NotebookQuestion, Passage
 from app.ai.provider import AIProvider, ProblemContext, PropertyFacts, ResultContext
-from app.ai.studio import CATALOG, CUSTOM, StudioRequest, read_studio
+from app.ai.studio import (
+    CATALOG,
+    CUSTOM,
+    MAX_BULLET,
+    MAX_BULLETS,
+    MAX_LABEL,
+    MAX_LINES,
+    MAX_POINTS,
+    MAX_SLIDES,
+    MAX_STAT_LABEL,
+    MAX_STAT_VALUE,
+    MAX_STATS,
+    MAX_STEPS,
+    MAX_SUBTITLE,
+    MAX_TITLE,
+    StudioRequest,
+    amount_for,
+    read_studio,
+)
 from app.calculations.expressions import ExpressionError, safe_variable
 from app.calculations.powerlaw import as_monomial
 
@@ -610,6 +628,10 @@ class MockAIProvider(AIProvider):
             "quiz": _mock_quiz,
             "table": _mock_table,
             "mindmap": _mock_mindmap,
+            "audio": _mock_audio,
+            "slides": _mock_deck,
+            "video": _mock_deck,
+            "infographic": _mock_infographic,
         }
         raw = builders[request.tool](request, passages) if passages else {}
         spec = CATALOG[request.tool]
@@ -725,6 +747,139 @@ def _mock_mindmap(request: StudioRequest, passages: tuple[Passage, ...]) -> dict
                 }
             )
     return {"nodes": nodes}
+
+
+# --- Estúdio, phase 4 (D-98) -------------------------------------------------
+#
+# The same contract as the text tools: every figure is copied from the passage
+# its item cites, and every cut falls between words — and never right after a
+# number, where "1 200" could be left as "1".
+
+#: A figure as the text writes it, then the word that follows it: "210 GPa",
+#: "45 %", "7 850 kg/m³", "-196 °C". Never the tail of a longer token — the
+#: "6" of "Ti-6Al" would read as a different figure from the "-6" the passage
+#: states, and the strict rule would (rightly) refuse it.
+_STAT = re.compile(
+    r"(?<![\w.,+\-])[+-]?(?:\d{1,3}(?:[.\u00a0 ]\d{3})+(?:,\d+)?|\d+(?:[.,]\d+)?)"
+    r"\s?(?:%|‰|°\s?[CFK]|[^\W\d_][^\s,;:()\[\]]*)"
+)
+_NUMBER_PART = re.compile(r"^[+-]?[\d.,\u00a0 ]+")
+_TRAILING = ".,;:!?)»”\"'"
+_SENTENCE_END = re.compile(r"(?<=[.!?])\s+")
+
+
+def _clip(text: str, limit: int) -> str:
+    """``text`` cut between words to at most ``limit`` chars, with "…" when cut.
+
+    A word holding a digit is not left at the end of a cut: it may be the first
+    half of a figure written with a thousands space.
+    """
+    text = " ".join(text.split())
+    if len(text) <= limit:
+        return text
+    words = text[: limit - 1].split(" ")[:-1]
+    while words and any(ch.isdigit() for ch in words[-1]):
+        words.pop()
+    return (" ".join(words) + "…") if words else ""
+
+
+def _sentences(passage: Passage) -> list[str]:
+    return [s for s in _SENTENCE_END.split(" ".join(passage.text.split())) if s]
+
+
+def _subject(request: StudioRequest, passage: Passage) -> str:
+    """What the conversation is about: the student's topic, else the notebook's
+    title — unless the title states a figure, which no passage would ground."""
+    if request.topic:
+        return request.topic
+    if any(ch.isdigit() for ch in request.notebook_title):
+        return _topic(passage)
+    return request.notebook_title
+
+
+def _mock_audio(request: StudioRequest, passages: tuple[Passage, ...]) -> dict:
+    wanted = amount_for(request.tool, request.format, request.count) or 2 * len(passages)
+    pairs = max(1, min(wanted, MAX_LINES) // 2)
+    lines = []
+    for passage in passages[:pairs]:
+        opening = (
+            f"Vamos ver o que a fonte “{passage.source_title}” diz sobre "
+            f"“{_subject(request, passage)}”."
+        )
+        lines.append({"speaker": 1, "text": opening, "citations": [passage.number]})
+        lines.append({"speaker": 2, "text": _quote(passage, 240), "citations": [passage.number]})
+    return {"lines": lines}
+
+
+def _mock_deck(request: StudioRequest, passages: tuple[Passage, ...]) -> dict:
+    wanted = amount_for(request.tool, request.format, request.count) or len(passages)
+    slides = []
+    for passage in passages[: min(wanted, MAX_SLIDES)]:
+        bullets = [b for s in _sentences(passage) if (b := _clip(s, MAX_BULLET))]
+        slides.append(
+            {
+                "title": _clip(_topic(passage), MAX_TITLE),
+                "bullets": bullets[:MAX_BULLETS],
+                "notes": _quote(passage),
+                "citations": [passage.number],
+            }
+        )
+    return {"slides": slides}
+
+
+def _looks_like_unit(value: str) -> bool:
+    """ "210 GPa", "45 %", "7 850 kg/m³", "3 mm" — not "1020 tem"."""
+    word = _NUMBER_PART.sub("", value).strip()
+    return len(word) <= 2 or not word.isalpha() or not word.islower()
+
+
+def _stat(passage: Passage) -> dict | None:
+    """The passage's first figure-and-word, copied, with its sentence as label.
+
+    A figure followed by a unit wins over an earlier one followed by a plain
+    word ("o aço 1020 tem módulo de 210 GPa" gives "210 GPa"); a passage with
+    only the latter still gives its first.
+    """
+    found = []
+    for sentence in _sentences(passage):
+        for match in _STAT.finditer(sentence):
+            value = match.group().rstrip(_TRAILING)
+            if len(value) <= MAX_STAT_VALUE:
+                found.append((value, sentence))
+    if not found:
+        return None
+    value, sentence = next(((v, s) for v, s in found if _looks_like_unit(v)), found[0])
+    return {
+        "value": value,
+        "label": _clip(sentence, MAX_STAT_LABEL),
+        "citations": [passage.number],
+    }
+
+
+def _mock_infographic(request: StudioRequest, passages: tuple[Passage, ...]) -> dict:
+    wanted = amount_for(request.tool, request.format, request.count) or MAX_POINTS
+    stats = [stat for passage in passages if (stat := _stat(passage))][:MAX_STATS]
+    points = [
+        {
+            "heading": _clip(_topic(passage), MAX_LABEL),
+            "text": _quote(passage, 240),
+            "citations": [passage.number],
+        }
+        for passage in passages[: min(wanted, MAX_POINTS)]
+    ]
+    steps: list[dict] = []
+    seen: set[str] = set()
+    for passage in passages:
+        heading = _clip(_topic(passage), MAX_LABEL)
+        if heading and heading not in seen and len(steps) < MAX_STEPS:
+            seen.add(heading)
+            steps.append({"text": heading, "citations": [passage.number]})
+    return {
+        "subtitle": _clip(" · ".join(dict.fromkeys(request.source_titles)), MAX_SUBTITLE),
+        "stats": stats,
+        "points": points,
+        "steps": steps,
+    }
 
 
 def _quote(passage: Passage, limit: int = 400) -> str:
