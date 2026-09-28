@@ -406,10 +406,12 @@ def save_artifact_as_note(
 def export_artifact(
     notebook_id: int,
     artifact_id: int,
-    fmt: Literal["docx", "csv", "xlsx", "svg"],
+    fmt: Literal["docx", "csv", "xlsx", "svg", "pptx", "txt"],
     service: StudioService = Depends(_studio),
 ) -> Response:
-    """The artifact as a file, with the limitation notice inside. An SVG is
+    """The artifact as a file, with the limitation notice inside. A format the
+    tool does not export (its ``exports`` in the catalogue) is a 400 naming the
+    accepted ones; a format no tool has is a 422 here. An SVG is
     served as an attachment under ``default-src 'none'``, like the HTML report:
     a layer independent of the escaping."""
     exported = service.export(notebook_id, artifact_id, fmt)

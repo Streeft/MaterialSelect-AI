@@ -98,7 +98,17 @@ def test_the_catalogue_is_the_one_truth_the_modal_reads(client):
     response = client.get("/api/notebooks/studio-catalog")
     assert response.status_code == 200
     tools = {tool["slug"]: tool for tool in response.json()["tools"]}
-    assert list(tools) == ["report", "flashcards", "quiz", "table", "mindmap"]
+    assert list(tools) == [
+        "report",
+        "flashcards",
+        "quiz",
+        "table",
+        "mindmap",
+        "audio",
+        "video",
+        "slides",
+        "infographic",
+    ]
     guide = next(t for t in tools["report"]["templates"] if t["slug"] == "guia_estudo")
     # What the pencil shows is what the model receives.
     assert guide["instructions"] == CATALOG["report"].template("guia_estudo").instructions
@@ -347,7 +357,7 @@ def test_a_choice_the_tool_does_not_have_is_refused(client, payload, fragment):
 
 
 def test_an_unknown_tool_is_refused(client):
-    response = client.post(f"/api/notebooks/{_notebook(client)}/studio", json={"tool": "audio"})
+    response = client.post(f"/api/notebooks/{_notebook(client)}/studio", json={"tool": "podcast"})
     assert response.status_code == 422
 
 
