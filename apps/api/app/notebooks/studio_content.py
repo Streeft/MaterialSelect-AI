@@ -6,18 +6,23 @@ must be in a passage **that item** cites, or in the student's own words.
 
 What an item is, and what happens when it fails:
 
-========== ================================================ ===================
-Tool       Item (every text of it is checked together)      When a figure fails
-========== ================================================ ===================
-report     a paragraph                                      it is left out
-flashcards a card — front and back                          it is left out
-quiz       a question — prompt, every option, hint,         it is left out
-           explanation
-table      one cell                                         the cell stays, as
-                                                            "omitida"
-mindmap    a node's label                                   it is left out with
-                                                            its branch
-========== ================================================ ===================
+=========== ================================================ ===================
+Tool        Item (every text of it is checked together)      When a figure fails
+=========== ================================================ ===================
+report      a paragraph                                      it is left out
+flashcards  a card — front and back                          it is left out
+quiz        a question — prompt, every option, hint,         it is left out
+            explanation
+table       one cell                                         the cell stays, as
+                                                             "omitida"
+mindmap     a node's label                                   it is left out with
+                                                             its branch
+audio       a line of the script                             it is left out
+slides      a slide — title, every bullet, speaker notes     it is left out
+video       a scene — title, every bullet, narration         it is left out
+infographic a statistic (strict rule, and its unit), a       it is left out
+            point — heading and text —, or a step
+=========== ================================================ ===================
 
 A table cell is the exception because a row is a record: dropping one cell
 would shift the others under the wrong column, and dropping the row would hide
@@ -26,19 +31,37 @@ with why (D-24) — and a cell the sources simply do not have is labelled too,
 differently: "não consta nas fontes" is the sources' silence, "omitida" is the
 check's refusal.
 
+A slide goes whole: a bullet with an invented figure is a slide that says it,
+and a slide with a hole where a bullet was would read as complete. A statistic
+of an infographic is held to the strict rule (``grounding.strict_ungrounded``
+and ``grounding.foreign_unit``): shown big and alone, "45%" is a finding, so
+neither the student's words nor the small-integer allowance can ground it, and
+a unit the cited passage does not write is a different claim. An infographic
+whose statistics all fail keeps its points and steps — the band of statistics
+is simply not drawn.
+
 Structural text — the artifact's title, a report's section headings, a table's
-column headers, the mind map's central theme — cites nothing. Its figures are
-checked against every passage handed over and the student's words; one that
-fails there is replaced by a neutral label, never kept.
+column headers, the mind map's central theme, an infographic's subtitle — cites
+nothing. Its figures are checked against every passage handed over and the
+student's words; one that fails there is replaced by a neutral label, never
+kept.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from functools import partial
 
-from app.ai.guardrails import numbers_in, ungrounded_numbers
+from app.ai.guardrails import numbers_in, numeric_tokens, ungrounded_numbers
 from app.ai.studio import StudioRequest
-from app.notebooks.grounding import format_figures, passage_numbers, take_citations, ungrounded
+from app.notebooks.grounding import (
+    foreign_unit,
+    format_figures,
+    passage_numbers,
+    strict_ungrounded,
+    take_citations,
+    ungrounded,
+)
 from app.schemas.notebook import CitationOut
 
 #: A table cell's state, as the screen and the exports label it.
@@ -56,7 +79,16 @@ _NOUNS = {
     "question": ("Uma questão", "questões", "foi omitida", "foram omitidas"),
     "cell": ("Uma célula", "células", "ficou sem valor", "ficaram sem valor"),
     "node": ("Um ramo do mapa", "ramos do mapa", "foi omitido", "foram omitidos"),
+    "line": ("Uma fala", "falas", "foi omitida", "foram omitidas"),
+    "slide": ("Um slide", "slides", "foi omitido", "foram omitidos"),
+    "scene": ("Uma cena", "cenas", "foi omitida", "foram omitidas"),
+    "stat": ("Um dado em destaque", "dados em destaque", "foi omitido", "foram omitidos"),
+    "point": ("Um ponto", "pontos", "foi omitido", "foram omitidos"),
+    "step": ("Uma etapa", "etapas", "foi omitida", "foram omitidas"),
 }
+
+#: Withheld kinds whose reason is a unit, not a figure — (kind of item it counts).
+_UNIT_KINDS = {"stat_unit": "stat"}
 
 
 @dataclass
@@ -74,8 +106,15 @@ class Checked:
         return list(dict.fromkeys(f for _, figures in self.withheld.values() for f in figures))
 
     def refuse(self, kind: str, figures: list[float]) -> None:
+        self._withhold(kind, format_figures(figures))
+
+    def refuse_unit(self, value: str) -> None:
+        """A statistic whose unit no cited passage writes — named whole."""
+        self._withhold("stat_unit", [value])
+
+    def _withhold(self, kind: str, named: list[str]) -> None:
         count, seen = self.withheld.get(kind, (0, []))
-        self.withheld[kind] = (count + 1, [*seen, *format_figures(figures)])
+        self.withheld[kind] = (count + 1, [*seen, *named])
 
 
 def check(request: StudioRequest, read: dict, extra: set[float], fallback_title: str) -> Checked:
@@ -229,12 +268,111 @@ def _mindmap(checked: Checked, read: dict, passages, extra, structural) -> None:
     }
 
 
+def _audio(checked: Checked, read: dict, passages, extra, structural) -> None:
+    lines = []
+    for line in read.get("lines") or []:
+        text, cited = take_citations(line["text"], line["citations"], len(passages))
+        if not text:
+            continue
+        invented = ungrounded([text], cited, passages, extra)
+        if invented:
+            checked.refuse("line", invented)
+            continue
+        lines.append({"speaker": line["speaker"], "text": text, "citations": cited})
+    checked.body = {"lines": lines}
+    checked.items = len(lines)
+
+
+def _deck(kind: str, fallback: str, checked: Checked, read, passages, extra, structural) -> None:
+    """Slides and video scenes: a slide is one item, title to notes."""
+    slides = []
+    for slide in read.get("slides") or []:
+        title, cited = take_citations(slide["title"], slide["citations"], len(passages))
+        bullets = []
+        for bullet in slide["bullets"]:
+            text, found = take_citations(bullet, [], len(passages))
+            cited.extend(found)
+            if text:
+                bullets.append(text)
+        notes, found = take_citations(slide["notes"], [], len(passages))
+        cited = list(dict.fromkeys([*cited, *found]))
+        if not (title or bullets or notes):
+            continue
+        # The whole slide: a bullet with an invented figure is a slide saying it.
+        invented = ungrounded([title, *bullets, notes], cited, passages, extra)
+        if invented:
+            checked.refuse(kind, invented)
+            continue
+        slides.append(
+            {
+                "title": title or f"{fallback} {len(slides) + 1}",
+                "bullets": bullets,
+                "notes": notes,
+                "citations": cited,
+            }
+        )
+    checked.body = {"slides": slides}
+    checked.items = len(slides)
+
+
+def _infographic(checked: Checked, read: dict, passages, extra, structural) -> None:
+    stats = []
+    for stat in read.get("stats") or []:
+        value, cited = take_citations(stat["value"], stat["citations"], len(passages))
+        label, found = take_citations(stat["label"], [], len(passages))
+        cited = list(dict.fromkeys([*cited, *found]))
+        if not value or not numeric_tokens(value):
+            continue
+        invented = strict_ungrounded([value, label], cited, passages)
+        if invented:
+            checked.refuse("stat", invented)
+            continue
+        if foreign_unit(value, cited, passages):
+            checked.refuse_unit(value)
+            continue
+        stats.append({"value": value, "label": label, "citations": cited})
+    points = []
+    for point in read.get("points") or []:
+        heading, cited = take_citations(point["heading"], point["citations"], len(passages))
+        text, found = take_citations(point["text"], [], len(passages))
+        cited = list(dict.fromkeys([*cited, *found]))
+        if not (heading or text):
+            continue
+        invented = ungrounded([heading, text], cited, passages, extra)
+        if invented:
+            checked.refuse("point", invented)
+            continue
+        points.append({"heading": heading, "text": text, "citations": cited})
+    steps = []
+    for step in read.get("steps") or []:
+        text, cited = take_citations(step["text"], step["citations"], len(passages))
+        if not text:
+            continue
+        invented = ungrounded([text], cited, passages, extra)
+        if invented:
+            checked.refuse("step", invented)
+            continue
+        steps.append({"text": text, "citations": cited})
+    checked.body = {
+        "title": checked.title,
+        "subtitle": structural(read.get("subtitle") or "", ""),
+        "stats": stats,
+        "points": points,
+        "steps": steps,
+    }
+    checked.items = len(stats) + len(points) + len(steps)
+
+
 _HANDLERS = {
     "report": _report,
     "flashcards": _flashcards,
     "quiz": _quiz,
     "table": _table,
     "mindmap": _mindmap,
+    "audio": _audio,
+    "slides": partial(_deck, "slide", "Slide"),
+    "video": partial(_deck, "scene", "Cena"),
+    "infographic": _infographic,
 }
 
 
@@ -262,6 +400,12 @@ def _items(tool: str, body: dict) -> list[dict]:
 
         walk(body.get("root"))
         return found
+    if tool == "audio":
+        return list(body.get("lines", []))
+    if tool in ("slides", "video"):
+        return list(body.get("slides", []))
+    if tool == "infographic":
+        return [*body.get("stats", []), *body.get("points", []), *body.get("steps", [])]
     return []
 
 
@@ -292,10 +436,18 @@ def finalise(
 def withheld_sentences(checked: Checked) -> list[str]:
     sentences = []
     for kind, (count, figures) in checked.withheld.items():
-        one, many, verb_one, verb_many = _NOUNS[kind]
+        one, many, verb_one, verb_many = _NOUNS[_UNIT_KINDS.get(kind, kind)]
         subject, verb = (one, verb_one) if count == 1 else (f"{count} {many}", verb_many)
-        cited = "citava" if count == 1 else "citavam"
         listed = ", ".join(dict.fromkeys(figures))
+        if kind in _UNIT_KINDS:
+            reason = (
+                "sua unidade não aparece no trecho citado"
+                if count == 1
+                else "suas unidades não aparecem nos trechos citados"
+            )
+            sentences.append(f"{subject} {verb} porque {reason}: {listed}.")
+            continue
+        cited = "citava" if count == 1 else "citavam"
         sentences.append(
             f"{subject} {verb} porque {cited} números que não aparecem nos trechos "
             f"citados: {listed}."
@@ -304,7 +456,8 @@ def withheld_sentences(checked: Checked) -> list[str]:
 
 
 def item_count(tool: str, body: dict | None) -> int | None:
-    """Items of a stored body, for the list — cards, questions, rows, nodes."""
+    """Items of a stored body, for the list — cards, questions, rows, nodes,
+    lines, slides, scenes, and an infographic's statistics, points and steps."""
     if not body:
         return None
     if tool == "report":
