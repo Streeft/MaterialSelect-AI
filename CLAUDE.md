@@ -821,8 +821,9 @@ afrouxam:
   cookie, `Connection: close` e `trust_env=False`.
 - **A duplicata é barrada pela origem canônica, antes da rede.**
 - **A cota `NOTEBOOK_DAILY_FETCHES` conta quando a requisição sai do
-  servidor**, e é gravada com commit antes de o erro seguir: é pela falha que
-  se sonda uma rede interna.
+  servidor** — a consulta ao DNS de um nome também, respondida ou não —, e é
+  gravada com commit antes de o erro seguir: é pela falha que se sonda uma rede
+  interna. Só a recusa decidida sem consultar a rede, nem o DNS, é de graça.
 - **O extrator de HTML descarta nós ocultos**, onde se esconde injeção de
   prompt.
 - **A atribuição vai do `meta` da fonte a `CitationOut`** e às exportações do

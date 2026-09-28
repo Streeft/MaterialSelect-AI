@@ -6201,10 +6201,18 @@ fixos. As regras, cada uma pelo motivo que a sustenta:
   de modo explícito.
 - **`trust_env=False`.** Um `HTTPS_PROXY` no ambiente mandaria a requisição
   para um intermediário, e ali a fixação não vale nada.
-- **O DNS também tem prazo.** `getaddrinfo` não tem timeout. Em produção, a
-  resolução roda num pool de 4 threads e é abandonada no prazo da leitura, e o
-  aluno recebe a mesma recusa de "endereço não encontrado". Falha fechada, com
-  um custo dito: a thread abandonada fica presa até o sistema desistir.
+- **O DNS também tem prazo, e é cobrado.** `getaddrinfo` não tem timeout. Em
+  produção, a resolução roda num pool de 16 threads e cada consulta recebe só
+  **o que resta** do prazo da leitura — a de um salto de redirecionamento
+  também —, então o DNS fica dentro dos 10 s, e não depois deles. O aluno
+  recebe a mesma recusa de "endereço não encontrado". Falha fechada, com um
+  custo dito: a thread abandonada fica presa até o sistema desistir. Por isso
+  **toda consulta de um nome gasta uma unidade da cota**, respondida ou não
+  (ver "Cota" abaixo). A revisão final achou o furo: com o DNS de graça, um
+  nome cujo servidor nunca responde prendia as 4 threads do pool de então sem
+  mexer na cota de ninguém, e as leituras dos outros alunos falhavam; e a
+  diferença entre "não resolve" e "resolve para dentro" dava de graça a
+  sondagem que a cota existe para cobrar.
 - **A mensagem de recusa nunca ecoa o IP resolvido**, nem host nenhum. Ecoar
   diria ao aluno o que existe na rede interna.
 
@@ -6240,10 +6248,15 @@ quebraria a deduplicação.
 que conta no sucesso (D-92), e o motivo é que é **pela falha** que se sonda uma
 rede interna: contar só o sucesso deixaria a sondagem de graça. Não é
 adivinhado. Um *event hook* de requisição no cliente httpx marca que algo saiu,
-e uma operação vale uma unidade, com redirecionamentos e novas tentativas de
-conexão incluídos. A contagem é **gravada com commit antes de a exceção
-seguir**, porque o rollback do request apagaria a contagem justamente da falha;
-um teste de mutação confirma. Recusa antes da rede e duplicata não custam nada.
+e o resolvedor é embrulhado para marcar também **a consulta ao DNS de um nome**
+— a consulta sai do servidor, e "resolve para dentro" já é uma resposta sobre
+uma rede. Uma operação vale uma unidade, com redirecionamentos, consultas e
+novas tentativas de conexão incluídos. A contagem é **gravada com commit antes
+de a exceção seguir**, porque o rollback do request apagaria a contagem
+justamente da falha; um teste de mutação confirma. **Recusa decidida sem
+consultar a rede — nem o DNS — e duplicata não custam nada.** Um endereço
+digitado como IP literal é conferido sem consulta, então recusado ali continua
+de graça.
 A busca na web gasta também uma `requests` da cota de IA, porque é uma chamada
 de modelo. A ordem das checagens é: dono (404, caderno alheio não dispara rede
 nenhuma), chave geral, espaço no caderno, provedor ligado, validação da
@@ -6411,6 +6424,11 @@ rede nenhuma.
 - **A transcrição automática do YouTube**, enquanto exigir o token.
 - **Rastrear um site** (e, com ele, o robots.txt).
 - **O trafilatura**, que entra no ponto de troca se o extrator não bastar.
+- **O E2E não está 100% fora da rede.** A API do E2E faz uma requisição real
+  ao oEmbed do YouTube por execução da CI (o vídeo fictício `E2Eoffline0`), cujo
+  resultado nunca decide o teste: sem rede a conexão falha, com rede o id não
+  existe, e nos dois casos o título cai para "Vídeo do YouTube (id)". Os testes
+  do backend continuam sem rede nenhuma.
 - **Uma guarda para `" | "` no fatiador.** Uma linha de tabela que começa por
   número ou está em caixa alta é lida como título por `looks_like_heading`, e
   isso vale também para o DOCX. O conserto seria uma linha em
