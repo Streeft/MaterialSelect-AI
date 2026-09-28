@@ -791,8 +791,9 @@ número, depois o parágrafo sai com o motivo escrito. Cota diária por aluno
 (`NOTEBOOK_DAILY_REQUESTS`). O Gemini entra por configuração do `openai-compat`
 (chave do AI Studio **sem faturamento**, trocada pelo workflow **Provedor de
 IA**, `provedor-ia.yml`, que confere em `/api/health`); **o `mock` continua o
-padrão do código e dos testes**. Slides, infográfico, áudio e vídeo (pela voz
-do navegador) e as fontes da web são as fases 3 e 4, em `docs/TODO.md`.
+padrão do código e dos testes**. As fontes da web são a fase 3 (D-97, abaixo);
+slides, infográfico, áudio e vídeo (pela voz do navegador) são a fase 4
+(D-98), em `docs/TODO.md`.
 
 **O Estúdio de texto é a fase 2** ([D-94](docs/DECISIONS.md)): relatório,
 cartões didáticos, teste, tabela de dados e mapa mental, no modal "Criar …" de
@@ -807,6 +808,33 @@ item tem de estar no trecho que o item cita — distratores do teste inclusive**
 mapa mental é calculado em `app/notebooks/mindmap.py` e serve a tela e o SVG
 exportado — não recalcule no cliente. Cota própria (`NOTEBOOK_DAILY_ARTIFACTS`),
 com as gerações em andamento já descontadas.
+
+**As fontes externas são a fase 3** ([D-97](docs/DECISIONS.md)): o link de um
+site, o YouTube (a transcrição é colada; a legenda automática exige um token
+*Proof-of-Origin*) e a pesquisa em OpenAlex, Wikipédia e web. Regras que não se
+afrouxam:
+
+- **URL escrita pelo aluno só passa por `app/integrations/safe_fetch.py`.** A
+  lista de bloqueio é explícita (nunca `is_global`, que muda entre o 3.11 e o
+  3.12). O IP fica fixado com `Host` + SNI, e cada redirecionamento é
+  conferido de novo. Há tetos de tamanho e de prazo, DNS incluído, nada de
+  cookie, `Connection: close` e `trust_env=False`.
+- **A duplicata é barrada pela origem canônica, antes da rede.**
+- **A cota `NOTEBOOK_DAILY_FETCHES` conta quando a requisição sai do
+  servidor**, e é gravada com commit antes de o erro seguir: é pela falha que
+  se sonda uma rede interna.
+- **O extrator de HTML descarta nós ocultos**, onde se esconde injeção de
+  prompt.
+- **A atribuição vai do `meta` da fonte a `CitationOut`** e às exportações do
+  Estúdio, CC BY-SA 4.0 inteira para a Wikipédia. O marcador de seção é `N.`,
+  porque o conferidor lê `3 200` como 3200.
+- **O Gemini só busca**: um cliente nativo que descarta o texto gerado. As
+  Sugestões da Pesquisa ficam num `iframe` `sandbox` sem script, e a chave de
+  outro fornecedor **nunca** vai ao Google.
+- **Custo zero.** OpenAlex e web vêm desligadas até haver uma chave gratuita,
+  de conta sem forma de pagamento. Esgotada a franquia, a função para com o
+  motivo escrito, e nada sugere faturamento.
+- **Os testes não têm rede:** o `conftest.py` reprova quem tentar sair.
 
 1966 testes de backend (nenhum skip) e 563 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
