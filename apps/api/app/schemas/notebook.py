@@ -327,7 +327,17 @@ class NoteUpdate(BaseModel):
 
 # --- Estúdio (D-94) ----------------------------------------------------------
 
-StudioTool = Literal["report", "flashcards", "quiz", "table", "mindmap"]
+StudioTool = Literal[
+    "report",
+    "flashcards",
+    "quiz",
+    "table",
+    "mindmap",
+    "audio",
+    "video",
+    "slides",
+    "infographic",
+]
 ArtifactStatus = Literal["gerando", "pronto", "falhou"]
 
 
@@ -404,13 +414,78 @@ class MindMapLayoutOut(BaseModel):
     edges: list[MindMapEdgeOut]
 
 
+InfographicBlockKind = Literal["title", "subtitle", "stat", "point", "step"]
+
+
+class InfographicBlockOut(BaseModel):
+    """One box of the poster (see ``app.notebooks.infographic.Block``)."""
+
+    kind: InfographicBlockKind
+    x: int
+    y: int
+    width: int
+    height: int
+    #: Already broken into lines by the backend. A stat's value, a point's
+    #: heading, a step's number; the title's text.
+    heading_lines: list[str] = []
+    #: A stat's label, a point's or a step's text; the subtitle's text.
+    body_lines: list[str] = []
+    citations: list[int] = []
+    #: Palette tone, ``0..TONES-1`` — the screen maps it to a token.
+    tone: int
+    #: Position within its band, from 0.
+    index: int
+
+
+class InfographicConnectorOut(BaseModel):
+    """A line from one step to the next, arrowhead at ``(x2, y2)``."""
+
+    x1: int
+    y1: int
+    x2: int
+    y2: int
+
+
+class InfographicStyleOut(BaseModel):
+    """How one kind of block is typeset, in pixels (``infographic.Style``)."""
+
+    pad_x: int
+    pad_y: int
+    heading_size: int
+    heading_line: int
+    heading_char: float
+    heading_max_lines: int
+    body_size: int
+    body_line: int
+    body_char: float
+    body_max_lines: int
+    gap: int
+
+
+class InfographicLayoutOut(BaseModel):
+    """The infographic's geometry, computed once in the backend for the screen
+    and the SVG export alike (D-98, the D-53 rule). ``styles`` travels with it
+    so the screen places text without a typesetting constant of its own."""
+
+    width: int
+    height: int
+    #: The orientation actually used (an unknown one falls back to landscape).
+    orientation: str
+    blocks: list[InfographicBlockOut]
+    connectors: list[InfographicConnectorOut]
+    styles: dict[InfographicBlockKind, InfographicStyleOut]
+
+
 class ArtifactOut(ArtifactSummaryOut):
     #: The tool's content (see ``app.notebooks.studio_content``).
     content: dict | None = None
     citations: list[CitationOut] = []
     withheld: list[str] = []
     exports: list[str] = []
+    #: The mind map's geometry; ``None`` for every other tool.
     layout: MindMapLayoutOut | None = None
+    #: The infographic's geometry; ``None`` for every other tool.
+    infographic: InfographicLayoutOut | None = None
 
 
 class StudioListOut(BaseModel):
