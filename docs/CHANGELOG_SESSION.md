@@ -11,7 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
-| [32](#sessão-32--250926-a-280926--cadernos-fase-3-fontes-externas) | 25 a 28/09/2026 | Cadernos, fase 3: site, YouTube com transcrição colada, OpenAlex, Wikipédia e busca na web pelo Gemini. Tudo por um portão anti-SSRF, com a origem e a licença coladas à citação e custo zero (D-97) | 1966 → 2642 | 563 → 608 |
+| [32](#sessão-32--250926-a-280926--cadernos-fase-3-fontes-externas) | 25 a 28/09/2026 | Cadernos, fase 3: site, YouTube com transcrição colada, OpenAlex, Wikipédia e busca na web pelo Gemini. Tudo por um portão anti-SSRF, com a origem e a licença coladas à citação e custo zero (D-97) | 1966 → 2651 | 563 → 608 |
 | [31](#sessão-31--250926--auditoria-do-pr-78-curva-custo--lote-do-antigravity) | 25/09/2026 | Auditoria do PR #78 (curva custo × lote, execução agêntica externa): comportamento correto, cobertura de teste devolvida e o registro que faltava, escrito (D-96) | 1963 → 1966 | 563 (inalterado) |
 | [30](#sessão-30--250926--o-estúdio-de-texto-dos-cadernos) | 25/09/2026 | Cadernos, fase 2: o Estúdio de texto — relatório, cartões, teste, tabela e mapa mental, gerados em segundo plano e conferidos item a item (D-94) | 1917 → 1966 | 536 → 554 |
 | [29](#sessão-29--250926--cadernos-o-notebooklm-dentro-do-app-e-o-gemini-gratuito) | 25/09/2026 | Cadernos, fase 1: fontes privadas, conversa citada com número conferido, guia, notas e cota, na tela de três painéis do NotebookLM (D-92); o Gemini gratuito como IA oficial, por configuração (D-93) | 1856 → 1906 | 505 → 536 (com os 6 do D-91, mesclado de main) |
@@ -118,11 +118,12 @@ branch.
   "resolve para dentro" era sondagem gratuita. Agora toda consulta de um nome
   conta uma unidade, recebe só o que resta do prazo da leitura, e o pool tem 16
   threads. Na mesma rodada: a tag `<trecho>`/`<consulta>` passou a ser
-  neutralizada em qualquer caixa e espaçamento, a linha "N de 30 buscas hoje"
+  neutralizada em qualquer caixa e espaçamento — no texto e nos atributos
+  `fonte`/`secao`, que numa página vêm do título —, a linha "N de 30 buscas hoje"
   atualiza depois de um vídeo sem transcrição, e o `.env.example` e a tabela de
   ambiente do `docs/CLAUDE.md` descrevem as variáveis novas como o código as lê.
 
-**Números.** Backend 1966 → 2642, frontend 563 → 608, conferidos na rodada
+**Números.** Backend 1966 → 2651, frontend 563 → 608, conferidos na rodada
 final; mais os cenários E2E da fase.
 
 **Depois do merge:** o **Deploy da API**, que aplica a migração pelo
