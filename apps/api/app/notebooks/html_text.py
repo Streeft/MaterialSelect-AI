@@ -28,7 +28,9 @@ Three rules shape what is kept:
   (``font-size:0``, ``color:transparent``, inherited until a child sets them
   back — see ``_mark_style``), is the classic place to hide an instruction
   aimed at a model, so it is dropped. Any declaration that hides counts, not
-  only the last one. Text hidden by a *stylesheet* class cannot
+  only the last one, and a style the reader cannot follow — past one of its
+  budgets (``_MAX_STYLE_CHARS`` and the rest), or math it cannot evaluate in
+  a property that hides — hides too. Text hidden by a *stylesheet* class cannot
   be seen without a CSS engine; that is why every source is framed as data, never
   instruction, further down — this is defence in depth, not the defence.
 * **Chrome is dropped, content is preferred.** Navigation, page header and
@@ -46,6 +48,7 @@ fills in — is refused with a message that says what to do instead.
 from __future__ import annotations
 
 import codecs
+import itertools
 import math
 import re
 import unicodedata
@@ -151,6 +154,19 @@ _IMPORTANT = re.compile(r"!\s*important$")
 _CSS_NUMBER = re.compile(r"^([+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?)([a-z%]*)$")
 _CSS_FUNCTION = re.compile(r"([a-z0-9-]+)\(([^()]*)\)")
 _CSS_MATH = frozenset({"calc", "min", "max", "clamp"})
+#: Every CSS math function, the ones :func:`_math` evaluates and the ones it
+#: does not (N-5): a value that is one of these and cannot be evaluated is
+#: not a reason to keep a node it would hide.
+_CSS_MATH_ALL = _CSS_MATH | frozenset(
+    "round mod rem abs sign sin cos tan asin acos atan atan2 pow sqrt hypot log exp "
+    "calc-size".split()
+)
+_MATH_CALL = re.compile(r"([a-z-]+)\(")
+#: A negative length written as such — ``-9999px``, not the ``- 9999px`` of a
+#: subtraction, which CSS spells with spaces around the operator.
+_NEGATIVE_LITERAL = re.compile(
+    r"(?:^|(?<=[(,\s*/]))(-(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?[a-z%]*)"
+)
 #: Absolute lengths in CSS pixels; a font-relative one at the 16 px default.
 _PX_PER = {"px": 1.0, "pt": 4 / 3, "pc": 16.0, "in": 96.0, "cm": 96 / 2.54, "mm": 96 / 25.4}
 _PX_PER |= {"q": 96 / 101.6, "em": 16.0, "rem": 16.0, "ex": 8.0, "ch": 8.0}
@@ -171,11 +187,33 @@ _INVISIBLE_OPACITY = 0.1
 #: A transform that shrinks a box below this factor leaves nothing to read;
 #: ``scale(0.5)`` is a small label, ``scale(0.01)`` is a dot.
 _VANISHING_SCALE = 0.05
-#: ``var()`` references expanded per value, and how deep one may point to the
-#: next. Past either, the style is read as hiding: a page that needs more to
+#: Budgets of the inline-style reader. A page chooses its own styles, and a
+#: reader that follows ``var()`` can be made to build values far larger than
+#: the page (one custom property declared thousands of times, referenced in a
+#: long value) or to copy a growing scope at every node. Past any budget the
+#: node is read as hiding — the direction of D-99: a page that needs more to
 #: say what a declaration means is not one to trust with the benefit of doubt.
+#: Real inline styles stay far below each one.
+#:
+#: One ``style`` attribute: its length, and how many declarations it makes.
+_MAX_STYLE_CHARS = 8192
+_MAX_DECLARATIONS = 64
+#: Custom properties in scope at a node, its ancestors' included.
+_MAX_CUSTOM_PROPERTIES = 256
+#: One ``var()`` expansion: the values a declaration may take, how deeply one
+#: reference may point into the next (references side by side in one value do
+#: not add up — their breadth is what the work budget pays for), and the length
+#: of any value it builds.
 _MAX_CANDIDATES = 64
 _MAX_VAR_DEPTH = 8
+_MAX_VALUE_CHARS = 8192
+#: The work of expanding — characters scanned and built, plus a fixed cost per
+#: step — for one attribute and for the whole page. The page's budget is what
+#: bounds the time a hostile page costs: past it, every later value that still
+#: needs a ``var()`` expanded hides its node.
+_ATTRIBUTE_WORK = 1 << 16
+_DOCUMENT_WORK = 1 << 22
+_STEP_WORK = 32
 #: ``font-size`` keywords, in CSS pixels at the 16 px default.
 _FONT_KEYWORDS = {"xx-small": 9.0, "x-small": 10.0, "small": 13.0, "medium": 16.0}
 _FONT_KEYWORDS |= {"large": 18.0, "x-large": 24.0, "xx-large": 32.0, "xxx-large": 48.0}
@@ -552,11 +590,66 @@ def _hidden(node: _Node) -> bool:
 # counts the other way round: only when every declaration of it rescues.
 
 
+@dataclass(frozen=True, eq=False)
+class _Scope:
+    """The custom properties in scope at a node: its own, then its ancestors'
+    through ``parent``.
+
+    Shared, never copied. A child that declares one more links to its parent's
+    scope instead of copying it, so a page of nested declarations costs what
+    it weighs and not its square (N-3); :data:`_MAX_CUSTOM_PROPERTIES` bounds
+    how far a lookup walks.
+    """
+
+    own: dict[str, tuple[str, ...]] = field(default_factory=dict)
+    parent: _Scope | None = None
+    #: Declarations here and above — a name declared again counts again.
+    size: int = 0
+    #: Scopes in the chain, this one included: what a lookup may walk.
+    links: int = 0
+
+    def get(self, name: str) -> tuple[str, ...]:
+        scope: _Scope | None = self
+        while scope is not None:
+            values = scope.own.get(name)
+            if values is not None:
+                return values
+            scope = scope.parent
+        return ()
+
+
+_NO_SCOPE = _Scope()
+
+
+class _Unfollowable(Exception):
+    """A ``var()`` expansion past one of the reader's budgets."""
+
+
+class _Budget:
+    """What expanding ``var()`` may still cost, on this attribute and on the
+    page (:data:`_ATTRIBUTE_WORK`, :data:`_DOCUMENT_WORK`)."""
+
+    def __init__(self, document: int | None = None) -> None:
+        self.document = _DOCUMENT_WORK if document is None else document
+        self.attribute = _ATTRIBUTE_WORK
+
+    def start_attribute(self) -> None:
+        self.attribute = _ATTRIBUTE_WORK
+
+    def spend(self, amount: int) -> None:
+        """Take ``amount`` plus the cost of a step; past either budget, raise."""
+        amount += _STEP_WORK
+        self.attribute -= amount
+        self.document -= amount
+        if self.attribute < 0 or self.document < 0:
+            raise _Unfollowable
+
+
 @dataclass(frozen=True)
 class _Inherited:
     """What an element's inline style hands down to its children."""
 
-    custom: dict[str, tuple[str, ...]] = field(default_factory=dict)
+    scope: _Scope = _NO_SCOPE
     font_px: float = 16.0
     root_px: float = 16.0
     scale: float = 1.0
@@ -584,18 +677,31 @@ def _mark_style(root: _Node) -> None:
     takes only the element's own text, because a child may set a readable font
     size or colour again — the ``font-size:0`` container of an inline-block
     layout holds columns that are perfectly legible.
+
+    A style this reader cannot follow — past one of its budgets, or one that
+    trips it in a way nobody foresaw — hides its node: the page is still read,
+    and what could not be judged is not handed to the model (D-99).
     """
+    budget = _Budget()
     stack: list[tuple[_Node, _Inherited]] = [(root, _Inherited())]
     while stack:
         node, outer = stack.pop()
         style = node.attrs.get("style")
         inner = outer
         if style:
-            css, custom, ambiguous = _declarations(style, outer.custom)
-            inner = _inherit(node.tag, css, custom, outer)
-            node.concealed = ambiguous or _conceals(css) or inner.opacity < _INVISIBLE_OPACITY
+            try:
+                css, scope, ambiguous = _declarations(style, outer.scope, budget)
+                inner = _inherit(node.tag, css, scope, outer)
+                node.concealed = ambiguous or _conceals(css) or inner.opacity < _INVISIBLE_OPACITY
+            except Exception:  # a style the reader trips on hides its node, never the page
+                inner = outer
+                node.concealed = True
         node.mute = _unreadable(inner)
-        stack.extend((child, inner) for child in node.children if isinstance(child, _Node))
+        # Reversed onto the stack, so nodes are read in document order: once
+        # the page's budget is spent, what hides is the end of the page.
+        stack.extend(
+            (child, inner) for child in reversed(node.children) if isinstance(child, _Node)
+        )
 
 
 def _style_hides(style: str) -> bool:
@@ -613,23 +719,31 @@ def _style_hides(style: str) -> bool:
     reach without a CSS engine, and the defence there is that a source is
     data, never instruction (D-97). Thresholds err towards keeping text: a
     muted ``opacity:0.5``, a ``-1em`` hanging indent or the ``translateY(-100%)``
-    of a tooltip stays.
+    of a tooltip stays. A style the reader cannot follow hides (D-99).
     """
-    css, _, ambiguous = _declarations(style, {})
-    return ambiguous or _conceals(css)
+    try:
+        css, _, ambiguous = _declarations(style, _NO_SCOPE, _Budget())
+        return ambiguous or _conceals(css)
+    except Exception:  # the same fail-safe as :func:`_mark_style`
+        return True
 
 
 def _declarations(
-    style: str, custom: dict[str, tuple[str, ...]]
-) -> tuple[dict[str, list[str]], dict[str, tuple[str, ...]], bool]:
+    style: str, scope: _Scope, budget: _Budget
+) -> tuple[dict[str, list[str]], _Scope, bool]:
     """Every value of every declaration of an inline style, lower-cased.
 
     Returns the values per property (``var()`` references expanded against
-    ``custom`` and the style's own custom properties), the custom properties
-    in scope for the children, and whether expanding a reference went past
-    :data:`_MAX_CANDIDATES` or :data:`_MAX_VAR_DEPTH` — which the caller reads
-    as hiding. ``!important`` changes nothing: every value is looked at.
+    ``scope`` and the style's own custom properties; a value that expands to
+    nothing is no value), the scope for the children, and whether the style
+    is *ambiguous* — which the caller reads as hiding: longer than
+    :data:`_MAX_STYLE_CHARS`, more than :data:`_MAX_DECLARATIONS`
+    declarations, more than :data:`_MAX_CUSTOM_PROPERTIES` in scope, or an
+    expansion past the budgets of :func:`_resolve`. ``!important`` changes
+    nothing: every value is looked at.
     """
+    if len(style) > _MAX_STYLE_CHARS:
+        return {}, scope, True
     text = _CSS_ESCAPE.sub(_unescape, _CSS_COMMENT.sub(" ", style)).lower()
     declared: list[tuple[str, str]] = []
     for declaration in text.split(";"):
@@ -638,22 +752,34 @@ def _declarations(
         value = _IMPORTANT.sub("", value).strip()
         if colon and name and value:
             declared.append((name, value))
+    if len(declared) > _MAX_DECLARATIONS:
+        return {}, scope, True
     own: dict[str, list[str]] = {}
     for name, value in declared:
         if name.startswith("--"):
             own.setdefault(name, []).append(value)
-    scope = custom | {name: tuple(values) for name, values in own.items()} if own else custom
+    inner = scope
+    if own:
+        size = scope.size + sum(len(values) for values in own.values())
+        if size > _MAX_CUSTOM_PROPERTIES:
+            return {}, scope, True
+        own_scope = {name: tuple(values) for name, values in own.items()}
+        inner = _Scope(own_scope, scope, size, scope.links + 1)
+    budget.start_attribute()
     css: dict[str, list[str]] = {}
-    ambiguous = False
     for name, value in declared:
         if name.startswith("--"):
             continue
-        resolved = _resolve(value, scope)
-        if resolved is None:
-            ambiguous = True
-        elif resolved:
-            css.setdefault(name, []).extend(resolved)
-    return css, scope, ambiguous
+        try:
+            resolved = _resolve(value, inner, budget)
+        except _Unfollowable:
+            return {}, scope, True
+        # ``var(--x,)`` expands to nothing, which a browser treats as invalid
+        # at computed-value time: it is no value, not an empty one (N-2).
+        values = [candidate for raw in resolved if (candidate := " ".join(raw.split()))]
+        if values:
+            css.setdefault(name, []).extend(values)
+    return css, inner, False
 
 
 def _unescape(match: re.Match[str]) -> str:
@@ -667,32 +793,58 @@ def _unescape(match: re.Match[str]) -> str:
 _VAR_CALL = re.compile(r"(?<![a-z0-9_-])var\(")
 
 
-def _resolve(value: str, scope: dict[str, tuple[str, ...]]) -> list[str] | None:
+def _resolve(value: str, scope: _Scope, budget: _Budget, depth: int = 0) -> list[str]:
     """``value`` with each ``var()`` replaced by every value it may take — the
     custom property's declared values and its fallback. A reference with
     neither makes the declaration invalid, as in a browser (no value).
-    ``None`` when the expansion is too large or too deep to follow."""
-    pending = [(value, 0)]
-    done: list[str] = []
-    while pending:
-        text, depth = pending.pop()
-        call = _VAR_CALL.search(text)
-        if call is None:
-            done.append(text)
-            continue
+
+    Each value a reference may take is expanded on its own, one level deeper,
+    before it is spliced in, so ``depth`` is how deeply one reference points
+    into the next, never how many stand side by side (N-4). Nothing is built
+    before it is known to fit: the number of values (:data:`_MAX_CANDIDATES`)
+    and the longest one (:data:`_MAX_VALUE_CHARS`) are counted from the parts
+    first, and every scan and every build is paid from ``budget`` (N-1).
+
+    Raises:
+        _Unfollowable: past any of those, or deeper than :data:`_MAX_VAR_DEPTH`.
+    """
+    if "var(" not in value:
+        return [value]
+    budget.spend(len(value))
+    segments: list[list[str]] = []
+    count = 1
+    longest = 0
+    position = 0
+    while (call := _VAR_CALL.search(value, position)) is not None:
         if depth >= _MAX_VAR_DEPTH:
-            return None
-        end, inner = _call_body(text, call.end())
+            raise _Unfollowable
+        end, inner = _call_body(value, call.end())
         name, comma, fallback = inner.partition(",")
-        options = list(scope.get(name.strip(), ()))
+        budget.spend(scope.links)
+        options = list(scope.get(name.strip()))
         if comma:
             options.append(fallback.strip())
-        pending.extend(
-            (text[: call.start()] + option + text[end:], depth + 1) for option in options
-        )
-        if len(pending) + len(done) > _MAX_CANDIDATES:
-            return None
-    return done
+        alternatives: list[str] = []
+        for option in options:
+            alternatives += _resolve(option, scope, budget, depth + 1)
+            if len(alternatives) > _MAX_CANDIDATES:
+                raise _Unfollowable
+        if not alternatives:
+            return []  # a reference with no value: the declaration has none
+        literal = value[position : call.start()]
+        segments += [[literal], alternatives]
+        count *= len(alternatives)
+        longest += len(literal) + max(map(len, alternatives))
+        if count > _MAX_CANDIDATES or longest > _MAX_VALUE_CHARS:
+            raise _Unfollowable
+        position = end
+    tail = value[position:]
+    segments.append([tail])
+    longest += len(tail)
+    if longest > _MAX_VALUE_CHARS:
+        raise _Unfollowable
+    budget.spend(count * longest)
+    return ["".join(parts) for parts in itertools.product(*segments)]
 
 
 def _call_body(text: str, start: int) -> tuple[int, str]:
@@ -736,7 +888,7 @@ def _conceals(css: dict[str, list[str]]) -> bool:
         _far_negative(v) for v in offsets
     ):
         return True
-    if any(_far_negative(v.split()[0]) for v in values("text-indent")):
+    if any(_far_negative(_first(v)) for v in values("text-indent")):
         return True
     # A margin percentage is of the container's width: ``margin-left:-100%``
     # is how the holy-grail layout places a visible sidebar. Only a length.
@@ -747,10 +899,10 @@ def _conceals(css: dict[str, list[str]]) -> bool:
     clip = ("hidden", "clip")
     overflow = values("overflow")
     clipped_x = any(v in clip for v in values("overflow-x")) or any(
-        v.split()[0] in clip for v in overflow
+        _first(v) in clip for v in overflow
     )
     clipped_y = any(v in clip for v in values("overflow-y")) or any(
-        v.split()[-1] in clip for v in overflow
+        _last(v) in clip for v in overflow
     )
     if clipped_x and any(_sliver(v) for v in values("width", "max-width")):
         return True
@@ -763,6 +915,17 @@ def _conceals(css: dict[str, list[str]]) -> bool:
     return any(_far_negative(v, percent=False) for v in _translations(css))
 
 
+def _first(value: str) -> str:
+    """The first word of a value; ``""`` for a blank one."""
+    words = value.split()
+    return words[0] if words else ""
+
+
+def _last(value: str) -> str:
+    words = value.split()
+    return words[-1] if words else ""
+
+
 def _starts(shorthands: list[str]) -> list[str]:
     """The top and left of box shorthands (``inset``, ``margin``)."""
     starts: list[str] = []
@@ -773,9 +936,7 @@ def _starts(shorthands: list[str]) -> list[str]:
     return starts
 
 
-def _inherit(
-    tag: str, css: dict[str, list[str]], custom: dict[str, tuple[str, ...]], outer: _Inherited
-) -> _Inherited:
+def _inherit(tag: str, css: dict[str, list[str]], scope: _Scope, outer: _Inherited) -> _Inherited:
     """What an element with these declarations hands to its children."""
     font = outer.font_px
     sizes = css.get("font-size", []) + [
@@ -816,7 +977,7 @@ def _inherit(
     backdrop = outer.backdrop or (bool(clips) and all("text" in value for value in clips))
 
     return _Inherited(
-        custom=custom,
+        scope=scope,
         font_px=font,
         root_px=font if tag == "html" else outer.root_px,
         scale=outer.scale * _scale_factor(css),
@@ -1121,9 +1282,27 @@ class _MathParser:
 
 
 def _opacity(value: str | None) -> float | None:
-    """An opacity, clamped to 0–1 as a browser clamps it (``-1`` is 0)."""
+    """An opacity, clamped to 0–1 as a browser clamps it (``-1`` is 0).
+
+    Math this reader cannot evaluate is read as 0 (N-5): an opacity has no
+    percentage base or unit to be missing, so what is left unevaluable is an
+    unknown function or a nesting past the parser's bound, and D-99 reads a
+    value it cannot judge in a property that hides as hiding. A keyword it does
+    not know is ``None`` — a browser drops that declaration.
+    """
     fraction = _fraction(value)
-    return None if fraction is None else min(max(fraction, 0.0), 1.0)
+    if fraction is None:
+        return 0.0 if _unevaluable_math(value) else None
+    return min(max(fraction, 0.0), 1.0)
+
+
+def _factor(value: str | None) -> float | None:
+    """A scale factor (``0.5``, ``50%``); unevaluable math is 0, as for
+    :func:`_opacity` — a factor has no base to be missing either."""
+    fraction = _fraction(value)
+    if fraction is None and _unevaluable_math(value):
+        return 0.0
+    return fraction
 
 
 def _own_opacity(css: dict[str, list[str]]) -> float:
@@ -1157,7 +1336,26 @@ def _far_negative(value: str | None, *, percent: bool = True) -> bool:
         if unit in _VIEWPORT:
             return number <= -100
     px = _px(value)
-    return px is not None and px <= -_FAR_PX
+    if px is not None:
+        return px <= -_FAR_PX
+    # Math this reader cannot evaluate — an unknown function (``sign()``,
+    # ``round()``), or one nested past :data:`_MATH_MAX_NESTING` — does not
+    # keep a node it throws off the page: a far-negative length written
+    # inside it hides (N-5). Only with such a literal, because the common
+    # unevaluable offset is a percentage with no base here — the
+    # ``calc(50% - 10px)`` that centres a box — and it is visible.
+    return _unevaluable_math(value) and any(
+        _far_negative(literal, percent=percent)
+        for literal in _NEGATIVE_LITERAL.findall(value or "")
+    )
+
+
+def _unevaluable_math(value: str | None) -> bool:
+    """A CSS math function call (:data:`_CSS_MATH_ALL`) that :func:`_px` and
+    :func:`_fraction` could not reduce to a number — the caller has already
+    tried."""
+    match = _MATH_CALL.match(value or "")
+    return match is not None and match.group(1) in _CSS_MATH_ALL
 
 
 def _sliver(value: str | None) -> bool:
@@ -1262,7 +1460,7 @@ def _scale_factor(css: dict[str, list[str]]) -> float:
     transform = min((_transform_scale(value) for value in css.get("transform", ())), default=1.0)
     scale = 1.0
     for value in css.get("scale", ()):
-        factors = [_fraction(arg) for arg in _split_top(value, " ")[:2]]
+        factors = [_factor(arg) for arg in _split_top(value, " ")[:2]]
         known = [abs(factor) for factor in factors if factor is not None]
         if known:
             scale = min(scale, *known)
@@ -1279,7 +1477,7 @@ def _transform_scale(value: str) -> float:
     skews aside, which do not shrink a box to nothing)."""
     x = y = 1.0
     for name, args in _functions(value):
-        numbers = [_fraction(arg) for arg in args]
+        numbers = [_factor(arg) for arg in args]
         if any(number is None for number in numbers):
             continue
         values = [number for number in numbers if number is not None]
