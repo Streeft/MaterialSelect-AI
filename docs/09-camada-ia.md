@@ -330,11 +330,13 @@ o parágrafo cita. O que muda é o caminho até ela.
   `font-size:0` de layout ficam. **Qualquer declaração que oculta conta**, não
   só a última: o navegador descarta um valor que não aceita e mantém o
   anterior, e `display:none;display:x` passava. `var()`, `calc()` e escapes CSS
-  são resolvidos, **com orçamento**: um atributo de mais de 8 KB ou 64
-  declarações, mais de 256 propriedades personalizadas em escopo, uma expansão
-  de `var()` grande ou funda demais, o teto de trabalho da página esgotado ou
-  um erro imprevisto ao ler o estilo — em todos, o nó é lido como oculto, nunca
-  uma exceção (D-99). O custo conhecido de ler só o inline: uma coluna sob um
+  são resolvidos — o valor vazio incluído: `--off: ;` é válido, e o *space
+  toggle* `display:var(--off) none` oculta —, **com orçamento**: um atributo de
+  mais de 8 KB ou de 64 declarações comuns (propriedade personalizada conta só
+  no tamanho), mais de 4096 declarações de propriedades personalizadas em
+  escopo, uma expansão de `var()` grande ou funda demais, o teto de trabalho
+  da página esgotado ou um erro imprevisto ao ler o estilo — em todos, o nó é
+  lido como oculto, nunca uma exceção (D-99). O custo conhecido de ler só o inline: uma coluna sob um
   `font-size:0` que volta ao tamanho legível por classe de folha de estilo é
   descartada. Ocultação por folha de estilo continua fora de alcance, e a
   defesa ali é a fonte ser dado, nunca instrução. Uma página que depende de

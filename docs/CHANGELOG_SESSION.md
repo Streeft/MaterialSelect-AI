@@ -11,7 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
-| [34](#sessão-34--290926--cadernos-o-lote-de-pendências-das-fases-3-e-4) | 29/09/2026 | Cadernos: nove pendências das fases 3 e 4 (velocidade no vídeo, um rasterizador só, corte da nota, cor das marcas, duplicata da OpenAlex, troca de provedor, atribuição na conversa, nós ocultos por CSS inline, cota atômica) e as duas rodadas de correção da revisão final (D-99) | 2979 → 3244 | 735 → 751 |
+| [34](#sessão-34--290926--cadernos-o-lote-de-pendências-das-fases-3-e-4) | 29/09/2026 | Cadernos: nove pendências das fases 3 e 4 (velocidade no vídeo, um rasterizador só, corte da nota, cor das marcas, duplicata da OpenAlex, troca de provedor, atribuição na conversa, nós ocultos por CSS inline, cota atômica) e as três rodadas de correção da revisão final (D-99) | 2979 → 3270 | 735 → 751 |
 | [33](#sessão-33--280926-a-290926--cadernos-fase-4-o-estúdio-visual-e-sonoro) | 28 e 29/09/2026 | Cadernos, fase 4: resumo em áudio e em vídeo pela voz do navegador, apresentação de slides com PPTX e infográfico com layout do backend; o dado em destaque sem isenção e a unidade com maiúsculas (D-98) | 2651 → 2979 | 608 → 735 |
 | [32](#sessão-32--250926-a-280926--cadernos-fase-3-fontes-externas) | 25 a 28/09/2026 | Cadernos, fase 3: site, YouTube com transcrição colada, OpenAlex, Wikipédia e busca na web pelo Gemini. Tudo por um portão anti-SSRF, com a origem e a licença coladas à citação e custo zero (D-97) | 1966 → 2651 | 563 → 608 |
 | [31](#sessão-31--250926--auditoria-do-pr-78-curva-custo--lote-do-antigravity) | 25/09/2026 | Auditoria do PR #78 (curva custo × lote, execução agêntica externa): comportamento correto, cobertura de teste devolvida e o registro que faltava, escrito (D-96) | 1963 → 1966 | 563 (inalterado) |
@@ -149,10 +149,39 @@ regressão (`test_html_css_budgets.py`, feito das reproduções do revisor).
 
 A direção de todos é a do D-99: passou do orçamento, o nó é lido como oculto.
 
-**Números.** Backend 2979 → 3244 e frontend 735 → 751, todos verdes, nenhum
+**A terceira revisão: 0 crítico, 1 importante e 2 menores**, de novo no leitor
+de CSS inline, e todos corrigidos.
+
+- **B-1 (importante).** O *space toggle*: `--off: ;` é uma propriedade
+  personalizada válida e vazia, e `display:var(--off) none` vale `none` no
+  navegador. O leitor descartava toda declaração de valor vazio, a
+  personalizada também, e o texto oculto chegava ao modelo — a mesma classe do
+  I-1. Agora a propriedade vazia entra no escopo e a ocultação vale, no próprio
+  nó ou herdada de um ancestral, em `display`, `visibility`, `opacity` e
+  `font-size`. As formas irmãs saíram junto: `inherit`, `unset`, `revert` e
+  `revert-layer` numa propriedade personalizada somam o valor do pai, e
+  `initial` fica sem valor, o que manda o `var()` para a reserva. Os controles
+  (`--on:initial; display:var(--on) none` e o vazio sozinho) continuam
+  visíveis, como no navegador.
+- **M-1.** Os tetos recusavam páginas que escrevem tokens de design inline: mais
+  de 64 propriedades personalizadas no `<html>` levavam a página inteira, e uma
+  página do Framer perdia a subárvore a 43 níveis. Propriedade personalizada
+  deixou de contar nas 64 declarações (conta no limite de 8 KB), e o teto do
+  escopo foi de 256 para 4096, porque desde o N-3 ele não protege o tempo —
+  cada consulta paga ao orçamento os escopos que percorre e os valores que
+  traz. As reproduções do N-1 e do N-3 continuam limitadas (0,00 s, 0,41 s e
+  0,34 s), e formas hostis novas contra os tetos relaxados — 1200 valores de um
+  nome lidos por 200 mil filhos, uma corrente de 4000 escopos com 100 mil
+  consultas, uma de `inherit` com 4000 níveis — rodam no mesmo tempo e na mesma
+  memória que antes da mudança.
+- **M-2.** O D-99 dizia que "nenhuma página real" escreve estilo além dos
+  tetos. Passou a dizer "raro, não impossível", com os tetos escritos.
+
+**Números.** Backend 2979 → 3270 e frontend 735 → 751, todos verdes, nenhum
 skip. O back-end tinha 3091 antes da primeira rodada de correção, que
 acrescentou casos de CSS, os testes de forma do SQL e os de devolução única
-(3189); a segunda acrescentou os 55 dos orçamentos.
+(3189); a segunda acrescentou os 55 dos orçamentos (3244), e a terceira os 26
+do *space toggle* e dos tokens inline.
 
 **Depois do merge:** o **Deploy da API**. Não há migração nem seed.
 
