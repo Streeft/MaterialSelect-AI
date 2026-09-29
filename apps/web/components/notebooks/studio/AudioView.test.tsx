@@ -142,7 +142,8 @@ describe("AudioView (D-98)", () => {
     const f = install();
     renderView();
     fireEvent.click(screen.getByRole("button", { name: t.playFromLineLabel(3) }));
-    expect(lastSpoken(f)).toBe("Fica em 7850 kg/m³.");
+    // Spoken once, by the click itself — never the old line first.
+    expect(f.spoken.map((u) => u.text)).toEqual(["Fica em 7850 kg/m³."]);
     expect(currentRow()).toBe(2);
     expect(screen.getByRole("button", { name: t.pause })).toBeInTheDocument();
 

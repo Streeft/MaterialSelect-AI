@@ -73,6 +73,12 @@ export interface SpeechPlayer {
   prev(): void;
   /** Go to the first segment of line `i` (or of the first later line that has text). */
   seekLine(i: number): void;
+  /**
+   * Go to the first segment of line `i` and speak it, in the same call — so a
+   * first play started from a line stays inside the user's tap (iOS). Without a
+   * voice it only moves, like `seekLine`.
+   */
+  playLine(i: number): void;
   /** Change speed; if playing, the current segment restarts at the new speed. */
   setRate(rate: number): void;
 }
@@ -343,6 +349,17 @@ export function useSpeech({
     [segments, jumpTo],
   );
 
+  const playLine = useCallback(
+    (line: number) => {
+      const target = firstSegmentOfLine(segments, line);
+      if (target === -1) return;
+      setError(null);
+      if (speakAt(target, currentVoices(), segments)) return;
+      jumpTo(target);
+    },
+    [segments, speakAt, currentVoices, jumpTo],
+  );
+
   const setRate = useCallback(
     (value: number) => {
       const next = clampRate(value);
@@ -397,6 +414,7 @@ export function useSpeech({
     next,
     prev,
     seekLine,
+    playLine,
     setRate,
   };
 }
