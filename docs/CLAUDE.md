@@ -475,5 +475,5 @@ Três coisas que não são detalhe de configuração:
 | Unidades e proveniência | [05-tratamento-unidades.md](05-tratamento-unidades.md) |
 | Detalhe de uma fase | `06-` a `10-` |
 | Como começar, para quem chega de fora | [README.md](../README.md) |
-| Ordem de leitura para qualquer agente de IA | [AGENTS.md](../AGENTS.md) — o padrão aberto; `GEMINI.md`, `.agent/rules/`, `.cursor/rules/`, `.github/copilot-instructions.md`, `.windsurf/rules/`, `.clinerules/`, `.rules` e `CONVENTIONS.md` só apontam para ele e para os dois `CLAUDE.md`. Nenhum copia regra: uma regra nova entra aqui ou no `CLAUDE.md` da raiz, nunca num desses arquivos. |
+| Ordem de leitura para qualquer agente de IA | [AGENTS.md](../AGENTS.md) — o padrão aberto; `GEMINI.md`, `.agents/rules/` e `.agent/rules/` (Antigravity, versões novas e antigas), `.cursor/rules/`, `.github/copilot-instructions.md`, `.windsurf/rules/`, `.clinerules/`, `.rules` e `CONVENTIONS.md` só apontam para ele e para os dois `CLAUDE.md`. Nenhum copia regra: uma regra nova entra aqui ou no `CLAUDE.md` da raiz, nunca num desses arquivos. |
 | O que um PR tem de trazer | [.github/pull_request_template.md](../.github/pull_request_template.md) |

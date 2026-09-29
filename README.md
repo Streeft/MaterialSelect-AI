@@ -39,9 +39,20 @@ Google). Estado detalhado em [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md
   próprias (PDF, DOCX, TXT, MD, texto colado, ficha de material, estudo salvo)
   e **fontes externas** (link de site, vídeo do YouTube com a transcrição
   colada, Wikipédia, artigos da OpenAlex, busca na web). Conversa com citação
-  por trecho e um **Estúdio** que gera relatório, cartões didáticos, teste,
-  tabela de dados e mapa mental. Todo número de uma resposta tem de estar no
-  trecho que ela cita.
+  por trecho e um **Estúdio** que gera, a partir das fontes:
+  - **relatório**, **cartões didáticos**, **teste**, **tabela de dados** e
+    **mapa mental** (DOCX, CSV/XLSX, SVG e PNG);
+  - **resumo em áudio** — dois apresentadores lidos pela voz do navegador, com
+    transcrição e velocidade (roteiro em DOCX e TXT);
+  - **resumo em vídeo** — os slides avançam com a narração, com legenda
+    (PPTX com a narração nas notas);
+  - **apresentação de slides** — com notas do apresentador e tela cheia (PPTX,
+    e PDF pela impressão do navegador);
+  - **infográfico** — dados em destaque, pontos e etapas em paisagem, retrato
+    ou quadrado (SVG e PNG).
+
+  Todo número de uma resposta ou de um item tem de estar no trecho que ele
+  cita, e todo arquivo exportado leva os avisos e as referências.
 
 **Ferramentas**
 
@@ -174,7 +185,7 @@ npm run test:e2e                            # Playwright, API e banco próprios
 
 Os testes do backend rodam em SQLite em memória e **não têm rede** — o
 `conftest.py` reprova quem tentar sair. Pelo último registro em
-[`CLAUDE.md`](CLAUDE.md), são 2651 testes de backend e 608 de frontend.
+[`CLAUDE.md`](CLAUDE.md), são 2883 testes de backend e 732 de frontend.
 
 [`.github/workflows/ci.yml`](.github/workflows/ci.yml) roda em todo PR e em
 todo push para `main`: **Backend** (Python 3.11 e 3.12: ruff, black, pytest,
@@ -217,6 +228,10 @@ Roteiro completo, com o porquê de cada passo, em
   provedor `openai-compat`. A chave sai de um projeto **sem faturamento**: ao
   passar do limite a API responde 429, nunca cobra. **Nunca ligue o
   faturamento** — nem crédito promocional.
+- O **áudio e o vídeo do Estúdio falam pela voz do navegador**
+  (`speechSynthesis`), sem TTS pago — por isso não há MP3 nem MP4 para baixar,
+  só o roteiro e o deck. As vozes em português dependem do sistema do aluno; a
+  tela avisa quando não há voz pt-BR e a transcrição continua lá.
 - A **busca na web** e a **OpenAlex** dos Cadernos vêm **desligadas** até haver
   uma chave gratuita de conta sem forma de pagamento. Esgotada a franquia, a
   função para com o motivo escrito na tela.
@@ -260,7 +275,7 @@ de leitura obrigatória. As regras vivem em [`CLAUDE.md`](CLAUDE.md) e
 | [`docs/06-importacao.md`](docs/06-importacao.md) | Importação e segurança. |
 | [`docs/07-selecao-deterministica.md`](docs/07-selecao-deterministica.md) | Estágios, índices, ranking. |
 | [`docs/08-visualizacao.md`](docs/08-visualizacao.md) | Mapas, linhas de índice, comparador. |
-| [`docs/09-camada-ia.md`](docs/09-camada-ia.md) | Camada de IA, guardrails, Cadernos e fontes externas. |
+| [`docs/09-camada-ia.md`](docs/09-camada-ia.md) | Camada de IA, guardrails, Cadernos, o Estúdio e as fontes externas. |
 | [`docs/10-relatorios.md`](docs/10-relatorios.md) | Exportação, relatório e laudo. |
 | [`docs/11-usabilidade.md`](docs/11-usabilidade.md) | Instrumento do teste com usuários. |
 | [`docs/12-estudo-de-caso.md`](docs/12-estudo-de-caso.md) | O tirante leve e rígido, do enunciado ao relatório. |

@@ -183,7 +183,9 @@ As regras que pesam:
 ### Estúdio (`app/ai/studio.py`, `app/services/studio_service.py`)
 
 O terceiro método do provedor é `studio(request)` ([D-94](DECISIONS.md)): o
-mesmo contrato, para relatório, cartões, teste, tabela e mapa mental.
+mesmo contrato, para relatório, cartões, teste, tabela e mapa mental — e, desde
+o [D-98](DECISIONS.md), para resumo em áudio, resumo em vídeo, apresentação de
+slides e infográfico (abaixo).
 
 - **O catálogo é a verdade do modal.** Formatos, modelos, a instrução padrão de
   cada modelo e as opções válidas moram em `CATALOG`; a tela lê por
@@ -202,6 +204,60 @@ mesmo contrato, para relatório, cartões, teste, tabela e mapa mental.
   ferramenta com trechos citados e passa pelo mesmo leitor dos provedores reais.
 - **Cota própria** (`NOTEBOOK_DAILY_ARTIFACTS`, 10), no máximo
   `NOTEBOOK_STUDIO_IN_FLIGHT` (2) ao mesmo tempo.
+- **Instrução só onde o modelo tem instrução.** O lápis e o campo
+  `instructions` valem para toda ferramenta cujo modelo escolhido traz texto de
+  instrução (relatório, áudio, slides); nas outras, `instructions` é 400.
+
+#### Áudio, vídeo, slides e infográfico ([D-98](DECISIONS.md))
+
+A fase 4 acrescenta ao catálogo as quatro ferramentas visuais e sonoras, sem
+provedor novo e sem custo:
+
+| Ferramenta | O modelo devolve | Item conferido | Exporta |
+|---|---|---|---|
+| Resumo em áudio | `{title, lines:[{speaker, text, citations}]}` — dois apresentadores sem nome; Conversa, Resumo, Crítica ou Debate; 12/24/40 falas | cada fala | DOCX e TXT (o roteiro) |
+| Resumo em vídeo | o deck dos slides, com `notes` = a narração falada; Explicativo (8 cenas) ou Resumo (5) | a cena inteira | PPTX, narração nas notas |
+| Apresentação de slides | `{title, slides:[{title, bullets, notes, citations}]}`; 6/10/15 slides | o slide inteiro (título, tópicos e notas) | PPTX com notas; PDF pela impressão do navegador |
+| Infográfico | `{title, subtitle, stats, points, steps}`; 3/5/7 pontos | cada dado em destaque, ponto e etapa | SVG; PNG rasterizado no navegador |
+
+- **A voz é a do navegador** (`speechSynthesis`). O backend gera e confere o
+  roteiro; o navegador fala, com as vozes pt-BR que o sistema do aluno tiver
+  (`lib/speech/voices.ts` escolhe duas, cai para outra variante `pt-*` dizendo
+  isso, e sem voz nenhuma a transcrição continua na tela). Custo zero, e por
+  isso **não há MP3 nem MP4**: a Web Speech API não entrega o áudio que produz.
+  `useSpeech` fala uma frase por vez (o Chrome corta fala longa), pausa com
+  `cancel()` guardando o índice e tem `playLine(i)`, que move e fala na mesma
+  chamada — o iOS só fala dentro do toque.
+- **O vídeo é uma chamada só**: slides e narração saem juntos, então a cena
+  mostrada e a frase dita não discordam. Sem voz, a navegação é manual, com a
+  narração como legenda; nada avança sozinho.
+- **Marcação fora da voz.** Falas, notas e narração passam por `strip_markup`
+  antes do limite de tamanho: SSML ou HTML do modelo nunca chega ao
+  `speechSynthesis`.
+- **O dado em destaque segue a regra estrita.** `grounding.strict_ungrounded`
+  não tem a isenção de inteiros até 100 do `ungrounded_numbers` ("45 %" no
+  infográfico é manchete, não contagem), não aceita as palavras do aluno como
+  fonte e só lê o **texto** do trecho, nunca o título ("Tabela 45").
+  `grounding.foreign_unit` exige a unidade escrita num trecho citado,
+  **diferenciando maiúsculas** — mPa ≠ MPa, porque a caixa é o prefixo do SI.
+  O reprovado pela unidade tem frase própria no `withheld`. Valor sem algarismo
+  ou com mais de 24 caracteres é descartado, nunca cortado.
+- **A orientação do infográfico não vai ao modelo**: é só desenho.
+- **O desenho sai do backend.** `app/notebooks/infographic.py` calcula o layout
+  (faixas, caixas, conectores, texto quebrado) e o manda em
+  `ArtifactOut.infographic`, com os **`styles`** de cada tipo de bloco, para a
+  tela não repetir tipografia no cliente. A tela e o `infographic_svg` desenham
+  as mesmas coordenadas (a regra do mapa mental).
+- **PNG no navegador, PDF pela impressão.** A imagem do Fly não tem libcairo,
+  então `lib/rasterize.ts` desenha o SVG exportado num `canvas` e baixa o PNG;
+  por isso o SVG não tem `foreignObject` nem referência externa, e tem fundo.
+  O PDF dos slides é a impressão do navegador, em página paisagem nomeada.
+- **Exportações** (`app/exporters/studio.py`, `studio_pptx.py`): todas com
+  `LIMITATION_NOTICE`, o aviso de IA, o que foi omitido e as referências com
+  endereço e atribuição (D-97). Escape por formato — `html.escape` no SVG,
+  filtro de caracteres de controle no PPTX e no DOCX.
+- **O simulado copia**: o dado em destaque do `mock` é um "número + palavra"
+  copiado do trecho, então passa na regra estrita por construção.
 
 ### Fontes externas (`app/integrations/`, `app/services/external_source_service.py`)
 
