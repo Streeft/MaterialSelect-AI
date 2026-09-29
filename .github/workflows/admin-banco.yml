@@ -31,6 +31,8 @@ on:
           - migrar
           - semear
           - excluir_demo
+          - conhecimento_simular_remocao
+          - conhecimento_remover
           - conceder
           - revogar
       email:
@@ -122,6 +124,19 @@ jobs:
               # substituir o de demonstração; ver
               # docs/15-dados-demonstrativos.md.
               python -m app.db.clear_demo
+              ;;
+            conhecimento_simular_remocao)
+              # Só lê: lista cada documento do Cérebro que casa com
+              # Cérebro/removidos.txt, com trechos e embeddings, e os totais.
+              # Rode antes de `conhecimento_remover` e confira o log (D-100).
+              python -m app.knowledge.prune --list "$GITHUB_WORKSPACE/Cérebro/removidos.txt"
+              ;;
+            conhecimento_remover)
+              # Irreversível: apaga do banco, numa transação, os documentos da
+              # lista de remoção e os trechos e embeddings deles. A ingestão só
+              # acrescenta; tirar o arquivo do repositório não tira o texto do
+              # RAG — isto tira. O log imprime os totais apagados (D-71, D-100).
+              python -m app.knowledge.prune --list "$GITHUB_WORKSPACE/Cérebro/removidos.txt" --apply
               ;;
             conceder)
               exigir_email
