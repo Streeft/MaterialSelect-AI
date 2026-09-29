@@ -22,7 +22,7 @@ from __future__ import annotations
 
 import pytest
 
-from app.notebooks.html_text import _style_hides, extract_html
+from app.notebooks.html_text import _MAX_STYLE_CHARS, _style_hides, extract_html
 
 PROSE = (
     "O alumínio 6061 é uma liga endurecível por precipitação, com magnésio e "
@@ -336,7 +336,9 @@ def test_an_expansion_too_large_to_follow_is_read_as_hiding() -> None:
 def test_hostile_math_does_not_break_the_reader() -> None:
     deep = "calc(" * 500 + "1px" + ")" * 500
     assert not _style_hides(f"position:absolute;left:{deep}")
-    long = "calc(" + " - ".join(["1px"] * 2000) + ")"
+    # Past the parser's 200 tokens, still under the attribute's 8 KB budget.
+    long = "calc(" + " - ".join(["1px"] * 1000) + ")"
+    assert len(long) < _MAX_STYLE_CHARS
     assert not _style_hides(f"position:absolute;left:{long}")
     assert not _style_hides("position:absolute;left:calc(1px / 0)")
 
