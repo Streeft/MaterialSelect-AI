@@ -1,4 +1,4 @@
-"""Exporting what the Studio made (D-94): DOCX, CSV, XLSX and SVG.
+"""Exporting what the Studio made (D-94, D-98): DOCX, CSV, XLSX, SVG, PPTX and TXT.
 
 The same two promises as every other export of this project:
 
@@ -13,6 +13,12 @@ The same two promises as every other export of this project:
 The mind map is drawn from the layout the screen draws
 (``app.notebooks.mindmap``, handed over on ``ArtifactOut.layout``) — never laid
 out again here.
+
+The infographic (D-98) follows the same rule: its SVG draws the layout of
+``app.notebooks.infographic`` — the very call the service makes for the
+screen —, so screen and file cannot disagree about where a box is. Slides and
+video go to :mod:`app.exporters.studio_pptx`; the audio script is a DOCX or a
+plain TXT.
 
 An external source's address and the attribution its licence asks for (D-97)
 travel on each citation, and every "Referências" block prints them: a CC BY-SA
@@ -33,6 +39,8 @@ from docx.shared import Pt, RGBColor
 
 from app.exporters.report import LIMITATION_NOTICE, Report, Sheet
 from app.exporters.spreadsheet import to_csv, to_xlsx
+from app.exporters.studio_pptx import deck_to_pptx
+from app.notebooks import infographic
 from app.notebooks.mindmap import wrap
 from app.notebooks.studio_content import cell_text
 from app.schemas.notebook import ArtifactOut, CitationOut
@@ -50,7 +58,19 @@ _MEDIA = {
     "csv": "text/csv; charset=utf-8",
     "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     "svg": "image/svg+xml",
+    "pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    "txt": "text/plain; charset=utf-8",
 }
+
+#: How a line of the audio script names who says it. The hosts are unnamed
+#: (D-98): the screen says "Apresentador(a) 1/2", and so does every file.
+SPEAKER_LABEL = "Apresentador(a)"
+
+#: Printed where an artifact cites nothing (D-24: absence is a sentence).
+NO_CITATIONS = "Nenhum trecho citado."
+
+#: Heading over the sentences the grounding check withheld — the screen's words.
+WITHHELD_TITLE = "Parte do que foi gerado foi omitida"
 
 #: Written in a references column when *another* citation of the same file
 #: fills it (D-24: absence is a phrase, never a blank cell). "Registrada", not
@@ -72,9 +92,23 @@ def render(artifact: ArtifactOut, fmt: str, notebook_title: str) -> tuple[bytes,
     """One ready artifact as the bytes of ``fmt`` and its media type."""
     subtitle = f"Caderno “{notebook_title}” — Estúdio do MaterialSelect AI"
     if fmt == "svg":
-        return mindmap_svg(artifact, subtitle).encode("utf-8"), _MEDIA["svg"]
+        draw = infographic_svg if artifact.tool == "infographic" else mindmap_svg
+        return draw(artifact, subtitle).encode("utf-8"), _MEDIA["svg"]
     if fmt == "docx":
         return _docx(artifact, subtitle), _MEDIA["docx"]
+    if fmt == "pptx":
+        deck = deck_to_pptx(
+            artifact.title,
+            artifact.content,
+            artifact.citations,
+            artifact.withheld,
+            notices=NOTICES,
+            narration=artifact.tool == "video",
+            subtitle=subtitle,
+        )
+        return deck, _MEDIA["pptx"]
+    if fmt == "txt":
+        return _txt(artifact, subtitle).encode("utf-8"), _MEDIA["txt"]
     report = _report(artifact, subtitle)
     if fmt == "csv":
         return to_csv(report).encode("utf-8"), _MEDIA["csv"]
@@ -99,6 +133,14 @@ def _reference(citation: CitationOut) -> str:
     if citation.heading:
         where += f" — {citation.heading}"
     return where
+
+
+def _script(body: dict) -> list[str]:
+    """The audio script, one line per spoken turn: "Apresentador(a) 1: … [n]"."""
+    return [
+        f"{SPEAKER_LABEL} {line['speaker']}: {line['text']} {_marks(line['citations'])}".strip()
+        for line in body.get("lines", [])
+    ]
 
 
 def _plain(text: str | None) -> str | None:
@@ -249,12 +291,16 @@ def _docx(artifact: ArtifactOut, subtitle: str) -> bytes:
             if question["explanation"]:
                 text += f" — {question['explanation']}"
             doc.add_paragraph(f"{text} {_marks(question['citations'])}".strip())
+    elif artifact.tool == "audio":
+        doc.add_heading("Roteiro", level=2)
+        for line in _script(body):
+            doc.add_paragraph(_NOT_XML.sub(" ", line))
     else:  # pragma: no cover - the service offers only the tool's formats
         raise ValueError(f"{artifact.tool} não tem DOCX")
 
     doc.add_heading("Referências", level=2)
     if not artifact.citations:
-        doc.add_paragraph("Nenhum trecho citado.")
+        doc.add_paragraph(NO_CITATIONS)
     for citation in artifact.citations:
         paragraph = doc.add_paragraph()
         paragraph.add_run(f"[{citation.number}] {_reference(citation)}").bold = True
@@ -270,6 +316,29 @@ def _docx(artifact: ArtifactOut, subtitle: str) -> bytes:
     buffer = io.BytesIO()
     doc.save(buffer)
     return buffer.getvalue()
+
+
+# --- TXT -----------------------------------------------------------------------
+
+
+def _txt(artifact: ArtifactOut, subtitle: str) -> str:
+    """The audio script as plain text: notices first, then the script, then
+    the references — the file a student pastes into a text-to-speech tool or a
+    podcast editor, still saying what it is and where each line came from."""
+    if artifact.tool != "audio":  # pragma: no cover - the service offers only the tool's formats
+        raise ValueError(f"{artifact.tool} não tem TXT")
+    lines = [artifact.title, subtitle, "", *NOTICES]
+    if artifact.withheld:
+        lines += ["", f"{WITHHELD_TITLE}:", *(f"- {sentence}" for sentence in artifact.withheld)]
+    lines += ["", *_script(artifact.content or {}), "", "Referências"]
+    if not artifact.citations:
+        lines.append(NO_CITATIONS)
+    for citation in artifact.citations:
+        lines.append(f"[{citation.number}] {_reference(citation)}")
+        lines += [line for line in _credit(citation) if line]
+        lines += [f"    {excerpt}" for excerpt in citation.excerpt.splitlines() if excerpt]
+        lines.append("")
+    return "\n".join(lines).rstrip() + "\n"
 
 
 # --- SVG -----------------------------------------------------------------------
@@ -373,6 +442,151 @@ def mindmap_svg(artifact: ArtifactOut, subtitle: str) -> str:
         parts.append(
             f'<text x="16" y="{bottom + 8 + (index + 1) * 14:g}" font-size="10" '
             f'fill="{_SVG_SUBTLE}">{_t(line)}</text>'
+        )
+    parts.append("</svg>")
+    return "".join(parts)
+
+
+# --- infographic SVG -----------------------------------------------------------
+
+#: One tone per ``Block.tone`` (``infographic.TONES``): card fill, card stroke
+#: and the heading's ink. The screen maps the same index to its tokens; a file
+#: carries fixed colours, light fills under dark ink so it prints and reads on
+#: any viewer. Every heading ink is well above 4.5:1 on its own fill.
+_INFOGRAPHIC_TONES = (
+    ("#dbeafe", "#1d4ed8", "#1e3a8a"),
+    ("#ccfbf1", "#0f766e", "#134e4a"),
+    ("#ede9fe", "#6d28d9", "#4c1d95"),
+    ("#fef3c7", "#b45309", "#78350f"),
+    ("#ffe4e6", "#be123c", "#881337"),
+    ("#dcfce7", "#15803d", "#14532d"),
+)
+#: A generic family only: the file must not depend on a font it cannot carry
+#: (no external reference), and the layout measures text by character count.
+_INFOGRAPHIC_FONT = "Arial, Helvetica, sans-serif"
+_FOOTER_LINE = 15
+_FOOTER_CHAR = 6.4
+
+
+def _baseline(top: float, line_height: int) -> int:
+    """Where to put a text baseline so the glyphs sit inside their line box."""
+    return round(top + line_height * 0.75)
+
+
+def _arrow(x1: int, y1: int, x2: int, y2: int) -> str:
+    """A small arrowhead at ``(x2, y2)`` pointing along the connector, drawn as
+    a polygon — no ``<marker>``, so every rasteriser draws the same thing."""
+    dx, dy = x2 - x1, y2 - y1
+    length = (dx * dx + dy * dy) ** 0.5 or 1.0
+    ux, uy = dx / length, dy / length
+    size = 8.0
+    bx, by = x2 - ux * size, y2 - uy * size
+    px, py = -uy * size / 2, ux * size / 2
+    return f"{x2:g},{y2:g} {bx + px:g},{by + py:g} {bx - px:g},{by - py:g}"
+
+
+def _infographic_footer(artifact: ArtifactOut, subtitle: str, chars: int) -> list[tuple]:
+    """Lines under the poster: subtitle, notices, what was withheld, and the
+    references — the file carried alone still says what it is and where every
+    bracketed number points."""
+    lines: list[tuple[str, int, str, str]] = []
+    lines += [(line, 11, "600", _SVG_SUBTLE) for line in wrap(subtitle, chars, 2)]
+    for notice in NOTICES:
+        lines += [(line, 10, "400", _SVG_SUBTLE) for line in wrap(notice, chars, 6)]
+    if artifact.withheld:
+        lines.append((WITHHELD_TITLE, 11, "600", _SVG_INK))
+        for sentence in artifact.withheld:
+            lines += [
+                (line, 10, "400", _SVG_SUBTLE)
+                for line in wrap(sentence, chars, max_lines=len(sentence) or 1)
+            ]
+    lines.append(("Referências", 11, "600", _SVG_INK))
+    if not artifact.citations:
+        lines.append((NO_CITATIONS, 10, "400", _SVG_SUBTLE))
+    for citation in artifact.citations:
+        lines += [(line, 10, "400", _SVG_SUBTLE) for line in _svg_reference(citation, chars)]
+    return lines
+
+
+def infographic_svg(artifact: ArtifactOut, subtitle: str) -> str:
+    """The infographic as a standalone SVG, drawn from the backend's layout.
+
+    The layout is ``infographic.layout(content, format)`` — the call the service
+    makes for the screen, so there is one poster with two renderings (D-53).
+    Text is placed with the layout's own ``STYLES``. The canvas starts with an
+    opaque rectangle: the PNG made from this file in the browser would
+    otherwise be transparent. No ``foreignObject`` and no external reference,
+    so a canvas can rasterise it without tainting.
+    """
+    layout = infographic.layout(artifact.content, artifact.format)
+    if layout is None:  # pragma: no cover - a ready infographic always has content
+        raise ValueError("Infográfico sem conteúdo")
+    width = layout.width
+    margin = infographic.MARGIN
+    chars = int((width - 2 * margin) // _FOOTER_CHAR)
+    footer = _infographic_footer(artifact, subtitle, chars)
+    top = layout.height + 8
+    height = top + len(footer) * _FOOTER_LINE + margin
+
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}" '
+        f'width="{width}" height="{height}" role="img" aria-label="{_t(artifact.title)}" '
+        f'font-family="{_INFOGRAPHIC_FONT}">',
+        f"<title>{_t(artifact.title)}</title>",
+        f"<desc>{_t(AI_NOTICE)}</desc>",
+        f'<rect x="0" y="0" width="{width}" height="{height}" fill="{_SVG_SURFACE}"/>',
+    ]
+    for connector in layout.connectors:
+        parts.append(
+            f'<line x1="{connector.x1}" y1="{connector.y1}" x2="{connector.x2}" '
+            f'y2="{connector.y2}" stroke="{_SVG_EDGE}" stroke-width="2"/>'
+        )
+        parts.append(
+            f'<polygon points="{_arrow(connector.x1, connector.y1, connector.x2, connector.y2)}" '
+            f'fill="{_SVG_EDGE}"/>'
+        )
+    for block in layout.blocks:
+        style = infographic.STYLES[block.kind]
+        carded = block.kind in ("stat", "point", "step")
+        fill, stroke, accent = _INFOGRAPHIC_TONES[block.tone % len(_INFOGRAPHIC_TONES)]
+        if carded:
+            parts.append(
+                f'<rect x="{block.x}" y="{block.y}" width="{block.width}" '
+                f'height="{block.height}" rx="14" fill="{fill}" stroke="{stroke}"/>'
+            )
+        heading_ink = _SVG_INK if block.kind == "title" else accent
+        x = block.x + style.pad_x
+        y = block.y + style.pad_y
+        for line in block.heading_lines:
+            parts.append(
+                f'<text x="{x}" y="{_baseline(y, style.heading_line)}" '
+                f'font-size="{style.heading_size}" font-weight="700" fill="{heading_ink}">'
+                f"{_t(line)}</text>"
+            )
+            y += style.heading_line
+        if block.heading_lines and block.body_lines:
+            y += style.gap
+        body_ink = _SVG_SUBTLE if block.kind == "subtitle" else _SVG_INK
+        for line in block.body_lines:
+            parts.append(
+                f'<text x="{x}" y="{_baseline(y, style.body_line)}" '
+                f'font-size="{style.body_size}" fill="{body_ink}">{_t(line)}</text>'
+            )
+            y += style.body_line
+        marks = _marks(block.citations)
+        if carded and marks:
+            parts.append(
+                f'<text x="{block.x + block.width - 8}" y="{block.y + block.height - 6}" '
+                f'font-size="10" text-anchor="end" fill="{accent}">{_t(marks)}</text>'
+            )
+    parts.append(
+        f'<line x1="{margin}" y1="{layout.height}" x2="{width - margin}" '
+        f'y2="{layout.height}" stroke="{_SVG_EDGE}" stroke-width="1"/>'
+    )
+    for index, (line, size, weight, colour) in enumerate(footer):
+        parts.append(
+            f'<text x="{margin}" y="{_baseline(top + index * _FOOTER_LINE, _FOOTER_LINE)}" '
+            f'font-size="{size}" font-weight="{weight}" fill="{colour}">{_t(line)}</text>'
         )
     parts.append("</svg>")
     return "".join(parts)
