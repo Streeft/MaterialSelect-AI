@@ -6596,9 +6596,18 @@ espaçamento e onde ficam as marcas `[n]` (`marks_size`, `marks_right`,
 cliente as constantes com que o backend quebrou o texto, e a primeira mudança
 num lado só faria a linha quebrada no servidor transbordar a caixa na tela. O
 `tone` de cada bloco é um índice: a tela o traduz em tokens (D-28), o
-exportador em hex fixo. A manchete desenhada é `artifact.title` — o do aluno,
-depois de renomear —, o mesmo do cabeçalho da página, do nome do arquivo e do
-`<title>` do SVG.
+exportador em hex fixo. **Os seis tons ficam em passos da paleta** (`brand-50`,
+`brand-700`, `info-soft`…), e não nos tokens semânticos que o D-91 pede a
+código novo: um tom é amostra de uma figura, não papel da interface, e nenhum
+token semântico (`panel`, `well`, `action`) nomeia seis preenchimentos que se
+alternam. É a exceção de figura ao D-91, a mesma leitura da paleta categórica
+dos mapas, e está comentada em `INFOGRAPHIC_TONES`. Cada par é um já medido em
+`globals.css`, e a escala inverte no tema escuro. A manchete desenhada é
+`artifact.title` — o do aluno, depois de renomear —, o mesmo do cabeçalho da
+página, do nome do arquivo e do `<title>` do SVG; e a alternativa textual
+(D-31) mostra o mesmo título, não o `title` do corpo, que é o original do
+modelo e discordaria do desenho depois de um renomear. As marcas `[n]` da tela
+também são postas pelos `marks_*` do estilo, e não por constantes do cliente.
 
 **Nenhuma linha quebra dentro de um número, e nenhum texto é cortado.** A
 primeira versão quebrava por caractere: hifenizava "12.345.678.901 kWh" em
@@ -6617,6 +6626,19 @@ menos dados ou pontos por linha, as etapas empilhadas em vez de lado a lado —,
 e um bloco que ainda passe dele na forma mais larga cresce. Um nó do mapa
 também cresce para caber um número longo. Tudo determinístico, calculado uma
 vez para a tela e o SVG.
+
+**O leitor também não corta dentro de um número.** Antes do layout, cada campo
+de texto do modelo passa por um teto de tamanho (`MAX_TITLE`, `MAX_LINE`…), e o
+teto cortava por caractere: um título de 125 caracteres terminado em
+"1 200 MPa" virava "… 1 20" já na leitura — e o que se confere é o texto
+cortado, então um "2" solto passaria pela regra do item, que isenta inteiros
+pequenos. `_cap` (`app/ai/studio.py`) corta entre os mesmos átomos de
+`mindmap.atoms`: o que sobra é um prefixo de palavras inteiras, e um número com
+a unidade que o segue entra inteiro ou não entra. Um átomo sozinho mais longo
+que o teto **sai, não é partido** — o campo fica vazio, e o item vazio cai
+pela regra de sempre. O valor de um dado em destaque continua lido inteiro e
+descartado se passar de 24 caracteres: encurtá-lo, mesmo entre átomos, seria
+uma afirmação que o modelo não fez.
 
 **O PNG é rasterizado no navegador**, a partir do mesmo SVG que o backend
 exporta. `cairosvg` exigiria a libcairo, que a imagem `python:3.12-slim` do Fly

@@ -11,7 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
-| [33](#sessão-33--280926-a-290926--cadernos-fase-4-o-estúdio-visual-e-sonoro) | 28 e 29/09/2026 | Cadernos, fase 4: resumo em áudio e em vídeo pela voz do navegador, apresentação de slides com PPTX e infográfico com layout do backend; o dado em destaque sem isenção e a unidade com maiúsculas (D-98) | 2651 → 2883 | 608 → 732 |
+| [33](#sessão-33--280926-a-290926--cadernos-fase-4-o-estúdio-visual-e-sonoro) | 28 e 29/09/2026 | Cadernos, fase 4: resumo em áudio e em vídeo pela voz do navegador, apresentação de slides com PPTX e infográfico com layout do backend; o dado em destaque sem isenção e a unidade com maiúsculas (D-98) | 2651 → 2972 | 608 → 735 |
 | [32](#sessão-32--250926-a-280926--cadernos-fase-3-fontes-externas) | 25 a 28/09/2026 | Cadernos, fase 3: site, YouTube com transcrição colada, OpenAlex, Wikipédia e busca na web pelo Gemini. Tudo por um portão anti-SSRF, com a origem e a licença coladas à citação e custo zero (D-97) | 1966 → 2651 | 563 → 608 |
 | [31](#sessão-31--250926--auditoria-do-pr-78-curva-custo--lote-do-antigravity) | 25/09/2026 | Auditoria do PR #78 (curva custo × lote, execução agêntica externa): comportamento correto, cobertura de teste devolvida e o registro que faltava, escrito (D-96) | 1963 → 1966 | 563 (inalterado) |
 | [30](#sessão-30--250926--o-estúdio-de-texto-dos-cadernos) | 25/09/2026 | Cadernos, fase 2: o Estúdio de texto — relatório, cartões, teste, tabela e mapa mental, gerados em segundo plano e conferidos item a item (D-94) | 1917 → 1966 | 536 → 554 |
@@ -113,9 +113,45 @@ trabalho foi interrompido uma vez pelo limite de uso e retomado de onde parou.
 - **A tabela passou a recusar `instructions`** (400): o "Crie a sua" dela
   escolhe colunas, e a tela nunca as mandou.
 
-**Números.** Backend 2651 → 2883, frontend 608 → 732, mais os três cenários
-E2E da fase em `apps/web/e2e/cadernos.spec.ts` (slides ao PPTX, infográfico ao
-SVG com a assinatura do PNG, e áudio com a voz falsa).
+**A rodada de correção da revisão final do PR #83.** A revisão do branch
+inteiro achou três furos importantes e onze menores; todos fechados antes do
+merge.
+
+- **I-1, a manchete sem isenção.** O título e o subtítulo do infográfico — e o
+  título de capa do deck e do vídeo — passavam pela regra estrutural do D-94,
+  com a isenção de inteiros pequenos e as palavras do aluno: "45% das falhas
+  são por fadiga" chegava ao pôster sem frase de omissão. Agora seguem
+  `strict_ungrounded` contra o texto dos trechos que os itens mantidos citam;
+  reprovado, o título vira o neutro, o subtítulo sai, e o `withheld` diz por
+  quê. A nova tentativa passou a nomear o tipo da falha (número, unidade ou
+  manchete).
+- **I-2, número inteiro.** `mindmap.wrap` quebrava por caractere e hifenizava
+  "12.345.678.901 kWh"; agora quebra entre átomos (`mindmap.atoms`), nunca
+  dentro de um número, e o infográfico não corta nada: a faixa fica mais larga
+  ou o bloco cresce. Na mesma linha, o **teto de tamanho do leitor**
+  (`app/ai/studio.py`) cortava por caractere e transformava "1 200 MPa" em
+  "1 2" antes da conferência; `_cap` corta entre os mesmos átomos, e um átomo
+  maior que o teto sai inteiro em vez de ser partido.
+- **I-3, caracteres de controle.** Saem na leitura, em todo campo de toda
+  ferramenta; o DOCX e o SVG filtram de novo. Antes, um `\x02` de PDF derrubava
+  o DOCX do áudio com 500.
+- **Menores.** M-1 ("Quantidade desconhecida", com a concordância certa); M-2
+  (a nota salva do áudio usa o "Apresentador(a) N" dos arquivos, de uma
+  constante só, `SPEAKER_LABEL`); M-3 (os três cenários E2E citados aqui);
+  M-4 (título do alerta de omissão do infográfico); M-5 (nota de nova tentativa
+  por tipo de falha); M-6 (fala e cena atuais saem do poço para o painel, sem
+  cartão dentro de cartão, e os tons do infográfico ficam em passos da paleta
+  como exceção de figura, agora escrita no D-98); M-7 (o pôster desenha o
+  título renomeado, e a alternativa textual mostra o mesmo); M-8 (as marcas
+  `[n]` postas pelos `marks_*` do layout, na tela e no SVG); M-9 ("Toque em
+  Continuar", o rótulo que o botão tem depois do erro); M-10 (a impressão do
+  deck diz "Nenhum trecho citado."); M-11 (o `/estilo` mostra o áudio ativo e
+  o estado indisponível num ladrilho neutro).
+
+**Números.** Backend 2651 → 2972, frontend 608 → 735 (2883 e 732 antes da
+rodada de correção), mais os três cenários E2E da fase em
+`apps/web/e2e/cadernos.spec.ts` (slides ao PPTX, infográfico ao SVG com a
+assinatura do PNG, e áudio com a voz falsa).
 
 **Depois do merge:** o **Deploy da API**. Não há migração nem seed.
 

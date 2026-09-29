@@ -254,11 +254,15 @@ provedor novo e sem custo:
   `ArtifactOut.infographic`, com os **`styles`** de cada tipo de bloco (as
   marcas `[n]` incluídas), para a tela não repetir tipografia no cliente. A tela
   e o `infographic_svg` desenham as mesmas coordenadas (a regra do mapa mental),
-  com o `artifact.title` como manchete.
+  com o `artifact.title` como manchete — que é também o título da alternativa
+  textual (D-31), para o desenho e o texto dizerem o mesmo depois de renomear.
 - **Número não se quebra, texto não se corta.** `mindmap.wrap` quebra entre
   átomos: "1 200 MPa", "12.345.678.901" e "3,5" nunca são partidos nem
   hifenizados. O infográfico não corta nada: uma faixa que não cabe fica mais
-  larga (menos colunas, etapas empilhadas) e o bloco cresce.
+  larga (menos colunas, etapas empilhadas) e o bloco cresce. E o teto de
+  tamanho do leitor (`_cap`, em `app/ai/studio.py`) corta entre os mesmos
+  átomos: o que passa do teto sai inteiro, e um átomo maior que o teto deixa o
+  campo vazio em vez de ser partido.
 - **PNG no navegador, PDF pela impressão.** A imagem do Fly não tem libcairo,
   então `lib/rasterize.ts` desenha o SVG exportado num `canvas` e baixa o PNG;
   por isso o SVG não tem `foreignObject` nem referência externa, e tem fundo.
