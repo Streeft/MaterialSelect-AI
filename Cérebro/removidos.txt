@@ -1,0 +1,45 @@
+# Lista de remoção do Cérebro (D-100) — fonte única de verdade.
+#
+# O que está aqui saiu da base de conhecimento e não volta. Três consumidores
+# leem este arquivo, e nenhum deles tem uma cópia própria da lista:
+#
+#   1. `python -m app.knowledge.prune --list <este arquivo> [--apply]` apaga do
+#      banco (produção incluída) os documentos, trechos e embeddings que casam.
+#      Workflow "Administração do banco", ações `conhecimento_simular_remocao`
+#      e `conhecimento_remover` (docs/13-deploy.md).
+#   2. A ingestão (`app.knowledge.service`) pula todo arquivo que casa, mesmo
+#      que ele reapareça no disco — a ingestão só acrescenta, e sem isto uma
+#      cópia local esquecida devolveria o texto ao RAG.
+#   3. A limpeza do histórico do git (docs/17-limpeza-historico-cerebro.md)
+#      converte esta lista para o `--paths-from-file` do git-filter-repo.
+#
+# Formato: um caminho por linha, relativo a KNOWLEDGE_DIR (a pasta Cérebro/),
+# com barra normal. Linha terminada em "/" é prefixo de pasta e casa tudo que
+# está dentro dela; qualquer outra linha casa só aquele caminho exato. Linhas
+# em branco e linhas que começam com "#" são ignoradas. A comparação normaliza
+# Unicode (NFC), então um caminho gravado em NFD por um macOS também casa.
+
+# Material de curso da disciplina ENG02016 — Seleção de Materiais A (2026/1):
+# tópicos de aula, plano de aulas, instruções e grupos das ferramentas
+# avaliativas e os trabalhos entregues pelos alunos. Retirado a pedido do
+# professor, que não quer o material de sua autoria no RAG, e por decisão do
+# autor, que estendeu a retirada a todo o material de curso, trabalhos dos
+# alunos inclusive.
+02-Material-de-Curso-ENG02016/
+
+# Cópia dos trabalhos entregues, fora da pasta numerada.
+⚙Seleção de Materiais/
+
+# Cópias avulsas do mesmo material na raiz do Cérebro.
+Plano de Aulas - ENG02016 Seleção de Materiais - 2026-1 - atualizado 12-05-2026.pdf
+Tópico 1 - Introdução a Seleção de Materiais e Evolução dos Materiais e produtos - atualizado em 17-03-26.pdf
+Tópico 1 - Introdução a Seleção de Materiais e Evolução dos Materiais e produtos.pdf
+Tópico 2 - Materiais de engenharia e suas propriedades.pdf
+Tópico 3 - Estratégias de Seleção de Materiais e estudos de caso.pdf
+Tópico 4 - Diagramas de Seleção de propriedades e índices de mérito em estudos de caso.pdf
+Topico 5 - Seleção de processos na seleção de materiais.pdf
+Topico 6 - Seleção de processos e o meio ambiente.pdf
+Instruções - Ferramenta avaliativa 1B - Mapeamento de materiais em produtos.pdf
+Instruções - Ferramenta avaliativa 2B - PROJETO DE SELEÇÃO DE MATERIAIS.pdf
+GRUPOS E CENÁRIOS DEFINIDOS PARA A F.A.2 B - PROJETO DE SELEÇÃO DE MATERIAIS.pdf
+trios definidos para a FA1B -  Mapeamento de materiais em produtos.pdf
