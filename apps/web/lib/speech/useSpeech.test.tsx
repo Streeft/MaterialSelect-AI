@@ -210,6 +210,59 @@ describe("useSpeech", () => {
     expect(result.current.lineIndex).toBe(2);
   });
 
+  it("playLine() seeks and speaks in the same call, from any state", () => {
+    const f = install();
+    const { result } = renderHook(() => useSpeech({ segments: SEGMENTS }));
+
+    // Stopped: the first utterance is spoken inside the call (the user's tap).
+    act(() => {
+      result.current.playLine(2);
+      expect(spokenTexts(f)).toEqual(["C1."]);
+    });
+    expect(result.current.status).toBe("playing");
+    expect(result.current.index).toBe(3);
+
+    // Playing: jumps and speaks the new line, one utterance queued.
+    act(() => result.current.playLine(1));
+    expect(spokenTexts(f)).toEqual(["C1.", "B1."]);
+    expect(f.queue).toHaveLength(1);
+    expect(result.current.lineIndex).toBe(1);
+
+    // Paused: speaks again, and clears a previous engine error.
+    act(() => f.error("not-allowed"));
+    expect(result.current.error).toBe("not-allowed");
+    act(() => result.current.playLine(0));
+    expect(result.current.status).toBe("playing");
+    expect(result.current.error).toBeNull();
+    expect(result.current.index).toBe(0);
+
+    // Ended: plays the asked line, not from the start.
+    act(() => result.current.playLine(2));
+    act(() => f.end());
+    act(() => f.end());
+    expect(result.current.status).toBe("ended");
+    act(() => result.current.playLine(1));
+    expect(result.current.status).toBe("playing");
+    expect(f.current()?.text).toBe("B1.");
+  });
+
+  it("playLine() ignores a line past the end", () => {
+    const f = install();
+    const { result } = renderHook(() => useSpeech({ segments: SEGMENTS }));
+    act(() => result.current.playLine(9));
+    expect(result.current.status).toBe("idle");
+    expect(result.current.index).toBe(0);
+    expect(f.spoken).toHaveLength(0);
+  });
+
+  it("playLine() only moves without a voice", () => {
+    install([{ name: "Emma", lang: "en-US" }]);
+    const { result } = renderHook(() => useSpeech({ segments: SEGMENTS }));
+    act(() => result.current.playLine(1));
+    expect(result.current.status).toBe("no-voice");
+    expect(result.current.lineIndex).toBe(1);
+  });
+
   it("restarts the current segment at the new rate", () => {
     const f = install();
     const { result } = renderHook(() =>

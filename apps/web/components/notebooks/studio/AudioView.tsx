@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef } from "react";
 import type { StudioAudioContent } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
@@ -27,7 +27,8 @@ export const SPEEDS = [0.75, 1, 1.25, 1.5] as const;
 // TODO(i18n): move to `ptBR.notebooks.studio` — lib/i18n.ts belongs to another
 // task of this round. An engine error (iOS refusing a speak outside a gesture,
 // a synthesis failure) pauses the player; the reader is told what to do.
-const SPEECH_ERROR =
+// Shared with the video player.
+export const SPEECH_ERROR =
   "O navegador interrompeu a leitura em voz alta. Toque em Reproduzir para tentar de novo.";
 
 function prefersReducedMotion(): boolean {
@@ -63,24 +64,9 @@ export function AudioView({
   const total = content.lines.length;
   const current = player.lineIndex;
 
-  // "Ouvir a partir desta fala" while not playing: the hook's `play` reads the
-  // position of the render it came from, so the seek has to land before it runs.
-  const [playRequest, setPlayRequest] = useState(0);
-  const latest = useRef(player);
-  useEffect(() => {
-    latest.current = player;
-  });
-  useEffect(() => {
-    // Only a new request plays; `latest` is the player of this very commit.
-    if (playRequest === 0) return;
-    if (latest.current.status !== "playing") latest.current.play();
-  }, [playRequest]);
-
-  const playFrom = (line: number) => {
-    player.seekLine(line);
-    // While playing, the seek itself speaks the new line.
-    if (status !== "playing") setPlayRequest((n) => n + 1);
-  };
+  // "Ouvir a partir desta fala": `playLine` seeks and speaks in the same call,
+  // so even a first play from a line stays inside the tap (iOS).
+  const playFrom = (line: number) => player.playLine(line);
 
   // Chrome can stop speaking in a hidden tab without ever firing `onend`, which
   // would leave the player stuck on "playing". Pausing keeps the position.
