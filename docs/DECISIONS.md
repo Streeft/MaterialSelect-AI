@@ -6440,3 +6440,195 @@ rede nenhuma.
 `4dbd71e64b6b`. Não há seed. As chaves opcionais (`OPENALEX_API_KEY`,
 `WEB_SEARCH_*`, `EXTERNAL_CONTACT`) estão em
 [13-deploy.md §5-sexies](13-deploy.md).
+
+## D-98 — O Estúdio visual e sonoro: a voz é a do navegador, o desenho sai do backend e o dado em destaque não tem isenção
+
+**O pedido.** A fase 4 dos Cadernos (D-92), a última das quatro: os ladrilhos
+que ainda diziam "em breve" no Estúdio — **Resumo em áudio, Resumo em vídeo,
+Apresentação de slides e Infográfico** — passam a gerar, no mesmo modal
+"Criar …" do D-94 e com o mesmo comportamento das capturas do NotebookLM. Custo
+zero, como no D-93: o mesmo provedor (`openai-compat` → Gemini gratuito),
+nenhum TTS pago, e o `mock` continua o padrão determinístico. O texto do D-94
+chama esta fase de "o D-96"; o número foi para a auditoria do PR #78, e o D-94
+não é reescrito.
+
+**O catálogo cresce, e a verdade continua uma só.** As quatro ferramentas
+entram em `CATALOG` (`app/ai/studio.py`), e isso basta para acender os
+ladrilhos: a tela lê o catálogo, não uma lista própria.
+
+| Ferramenta | Escolhas | Quantidade | Exporta |
+|---|---|---|---|
+| `audio` | modelos Conversa aprofundada, Resumo, Crítica e Debate (sob a legenda "Formato"), cada um com lápis | curto/padrão/longo = 12/24/40 falas | DOCX, TXT |
+| `video` | formatos Explicativo (8 cenas) e Resumo (5 cenas) | — (o formato é a duração) | PPTX |
+| `slides` | modelos Apresentação detalhada e Resumo para o apresentador, com lápis | menos/padrão/mais = 6/10/15 slides | PPTX (e PDF pela impressão) |
+| `infographic` | orientação paisagem, retrato ou quadrado | conciso/padrão/detalhado = 3/5/7 pontos | SVG (e PNG no navegador) |
+
+Nenhuma delas tem "Crie o seu": o modelo livre só faz sentido onde a
+instrução é o produto (o relatório). A regra "instrução só no relatório" virou
+**"instrução só onde o modelo escolhido tem instrução"**, no serviço
+(`studio_service`) e no diálogo, pela mesma leitura do catálogo. Uma
+consequência foi aceita e fica escrita: a tabela, cujo "Crie a sua" é uma
+escolha de **colunas** e não uma instrução, passa a recusar `instructions` com
+400 — a tela nunca as mandou. **A orientação do infográfico nunca vai ao
+modelo**: é só desenho, e um teste confere que as palavras paisagem, retrato,
+quadrado e orientação não aparecem no prompt.
+
+**A voz é a do navegador, e por isso não existe arquivo de áudio.** O roteiro
+(falas, narração) é gerado e conferido no backend; quem fala é o
+`speechSynthesis` do navegador do aluno, com as vozes que o sistema dele tem.
+É o único caminho que custa zero de verdade: um TTS no servidor ou é pago, ou é
+um modelo pesado numa máquina do Fly que não o comporta. O preço, declarado:
+
+- **Não há MP3 nem MP4**, por decisão. A Web Speech API não entrega o fluxo de
+  áudio que produz, então gravar o que o navegador falou não é possível sem
+  capturar a tela. O que se baixa é o **roteiro**: DOCX e TXT do áudio; PPTX
+  com a narração nas notas do vídeo.
+- **A voz varia.** A disponibilidade de uma voz pt-BR muda com o sistema e o
+  navegador (o Windows tem vozes naturais; macOS, Android e iOS variam; o
+  Chromium *headless* não tem nenhuma). `pickVoices` (`lib/speech/voices.ts`)
+  procura duas vozes pt-BR distintas, preferindo as locais; com uma só, o
+  segundo apresentador usa a mesma voz com tom 0,8 e ritmo × 0,95; sem pt-BR,
+  usa outra variante `pt-*` e **diz isso na tela**; sem nenhuma, a tela diz que
+  não há voz em português e a transcrição continua lá (D-24). O apresentador
+  não tem nome: "Apresentador(a) 1" e "2".
+- **Uma frase por enunciado.** O Chrome corta em silêncio uma fala longa
+  (~15 s), e o `pause()`/`resume()` nativos falham no Android e em aba oculta.
+  Então `toSegments` quebra cada fala em frases de até 180 caracteres — sem
+  partir "3,5", "1.200" ou "Fig." —, `useSpeech` fala **uma de cada vez** e
+  encadeia no `onend`, e pausar é `cancel()` guardando o índice: continuar fala
+  a frase de novo, do começo. Um *token* de geração descarta o `onend`/`onerror`
+  atrasado de uma frase que já foi cancelada, e a aba oculta pausa sozinha
+  (`visibilitychange`), porque ali o Chrome pode parar sem avisar.
+- **`playLine` existe por causa do iOS.** O Safari do iPhone só fala se o
+  primeiro `speak()` acontecer **dentro** do toque. "Ouvir a partir desta fala"
+  movia o índice e pedia para tocar num efeito seguinte — fora do gesto, e a
+  primeira fala saía muda com `not-allowed`. `playLine(i)` move e fala na mesma
+  chamada.
+
+**O vídeo é o deck mais a narração, numa chamada só.** Slides e vídeo
+compartilham o esquema (`{title, slides:[{title, bullets, notes, citations}]}`);
+no vídeo, `notes` **é** a narração falada, de duas a quatro frases. Uma geração
+produz os dois juntos, então o slide mostrado e a frase dita não podem
+discordar, e o vídeo custa uma unidade da cota como qualquer artefato. Na tela,
+a cena exibida é a da frase que está sendo falada, com a legenda da frase
+embaixo. **Sem voz, o vídeo não avança sozinho**: navegação manual com a
+narração inteira da cena como legenda — um cronômetro adivinharia o tempo de
+leitura de cada aluno.
+
+**O que é "item" em cada ferramenta** (a regra do D-94: todo número de todo item
+vem do trecho que aquele item cita, uma nova tentativa nomeando os números, e
+depois o item sai com a frase escrita):
+
+- **áudio:** cada fala ("Uma fala foi omitida…");
+- **slides:** o slide inteiro — título, tópicos e notas juntos. Tirar só o
+  tópico reprovado deixaria o slide dizendo metade do que o modelo quis e as
+  notas falando de um tópico que sumiu;
+- **vídeo:** a cena inteira, pela mesma razão, e com mais força: a narração é o
+  que o aluno ouve;
+- **infográfico:** cada dado em destaque, cada ponto e cada etapa. Título e
+  subtítulo são estruturais, como no D-94.
+
+A narração, as falas e as notas passam por `strip_markup` antes do limite de
+tamanho: um `<speak>` ou `<break/>` vindo do modelo (ou de uma fonte que o
+modelo copiou) nunca chega à voz.
+
+**O dado em destaque não tem isenção.** A regra do chat isenta inteiros até 100
+(`guardrails`): num parágrafo, "3 ligas" ou "2 passos" são contagem, não
+medida. Num infográfico o número **é** a manchete, em fonte de 30 pt, sozinho —
+"45 %" ou "12 ciclos" ali é resultado, por menor que seja. Então
+`strict_ungrounded` (`app/notebooks/grounding.py`) confere o valor e o rótulo de
+cada dado com três regras a mais que o `ungrounded`:
+
+- **sem a isenção dos pequenos inteiros**;
+- **sem as palavras do aluno**: o tema e a instrução dizem o que procurar, não
+  podem ser a fonte de um número mostrado como achado. "45" no tema ancora um
+  ponto, nunca um dado em destaque;
+- **só o texto do trecho**, não os rótulos dele: "Tabela 45" ou "3.2 Ligas" é
+  onde um número está, não um número.
+
+E a **unidade** tem de estar escrita num trecho citado. `foreign_unit` compara a
+forma do valor sem os algarismos ("210 GPa" → "#GPa"), com espaço opcional,
+NBSP e as variantes do grau normalizados, e sem deixar a unidade emendar numa
+letra ("210 Pa" não se acha em "210 GPa"; "5 m" não se acha em "5 mm"). **A
+comparação diferencia maiúsculas**, porque a caixa é o prefixo do SI:
+**mPa ≠ MPa**, mW ≠ MW. A primeira versão ignorava a caixa e foi corrigida na
+revisão. O dado reprovado pela unidade tem frase própria — "Um dado em destaque
+foi omitido porque sua unidade não aparece no trecho citado: 210 MPa." — na
+tela e no rodapé do SVG. Um valor sem algarismo é descartado na leitura, e um
+valor com mais de 24 caracteres **é descartado, não cortado**: cortar
+"1.200 MPa a 1.500 MPa" imprimiria um número que nenhuma fonte afirma. Se todos
+os dados caem, a faixa some e os pontos e as etapas ficam; se nada passa, o
+artefato é `falhou`, com o motivo.
+
+**O desenho do infográfico sai do backend, com a tipografia junto.**
+`app/notebooks/infographic.py` faz o que o `mindmap.py` faz pelo mapa (D-94, a
+regra do D-53): **um layout só**, desenhado pela tela e pelo SVG exportado.
+Largura fixa por orientação (1200/800/1000), faixas de cabeçalho → dados em
+destaque (4, 2 ou 3 por linha) → pontos (2 ou 1 coluna) → etapas numeradas com
+conectores, texto quebrado por contagem de caracteres e cada bloco com a sua
+caixa em coordenadas inteiras. O layout vai em `ArtifactOut.infographic`,
+separado do `layout` do mapa, e traz **`styles`** — margem, corpo, entrelinha e
+espaçamento de cada tipo de bloco. Sem eles, a tela teria de repetir no cliente
+as constantes com que o backend quebrou o texto, e a primeira mudança num lado
+só faria a linha quebrada no servidor transbordar a caixa na tela. O `tone` de
+cada bloco é um índice: a tela o traduz em tokens (D-28), o exportador em hex
+fixo.
+
+**O PNG é rasterizado no navegador**, a partir do mesmo SVG que o backend
+exporta. `cairosvg` exigiria a libcairo, que a imagem `python:3.12-slim` do Fly
+não tem — seria pacote de sistema e imagem maior para um arquivo que o
+navegador do aluno já sabe desenhar. `lib/rasterize.ts` busca o SVG com a
+sessão, desenha num `canvas` a 2× (com teto de área para o iOS) e baixa. Duas
+exigências vêm daí e estão no SVG: nenhum `foreignObject` e nenhuma referência
+externa (fonte, imagem, `url(#…)`), que "sujariam" o `canvas` e fariam o
+`toBlob` recusar; e um retângulo de fundo, sem o qual o PNG sairia
+transparente. Se ainda assim o navegador recusar, a tela diz para baixar o SVG.
+O mapa mental ganhou o mesmo "PNG (imagem)".
+
+**O PDF dos slides é a impressão do navegador.** "Imprimir / PDF" monta um
+portal com todos os slides, as citações e os avisos, em tema claro, e usa uma
+página nomeada em paisagem (`@page deck`) — imprimir qualquer outra tela do app
+continua em retrato. Um PDF gerado no servidor traria outra biblioteca de
+sistema pela mesma razão do PNG.
+
+**O PPTX leva as notas.** `app/exporters/studio_pptx.py`, 16:9: slide de
+título; um slide por slide do deck, com os tópicos e as marcas `[n]`; as
+**notas do apresentador** com as notas (ou "Narração: …", no vídeo) e as
+fontes citadas por extenso; as referências, 8 por slide, com endereço e
+atribuição (D-97) nunca encurtados; os avisos; e o que foi omitido. Todo texto
+passa por um filtro de caracteres de controle, que o XML recusa. As constantes
+de 16:9 e o slide de avisos foram promovidos a nome público em
+`app/exporters/pptx.py` e reaproveitados. **O PPTX do `Report` (B2) continua
+sem rota**: o deck do Estúdio não é aquele renderizador, e ligá-lo segue sendo
+decisão à parte.
+
+**Toda exportação com os dois avisos e as referências.** DOCX e TXT do áudio
+(o roteiro, "Apresentador(a) 1: … [n]"), PPTX de slides e vídeo, SVG do
+infográfico: `LIMITATION_NOTICE`, o aviso de IA, as frases do que foi omitido e
+as referências com o endereço e a atribuição da fonte. O escape é por formato:
+`html.escape` em todo texto do SVG, servido com `default-src 'none'`; filtro de
+controle no PPTX e no DOCX.
+
+**Nenhuma migração.** `StudioArtifact.tool` é `String(32)` e conteúdo, opções,
+citações e `withheld` são JSON: as quatro ferramentas cabem no que a fase 1
+criou.
+
+**O simulado copia.** `MockAIProvider.studio` monta as quatro com texto copiado
+dos trechos — o dado em destaque é o primeiro "número + palavra seguinte" de um
+trecho, escrito como o conferidor o lê —, então passa até na regra estrita por
+construção e continua determinístico.
+
+**O que ficou de fora.**
+
+- **MP3 e MP4**, pela razão acima. Se um dia houver TTS gratuito no servidor, é
+  outra decisão.
+- **Velocidade no vídeo.** O áudio tem 0,75×–1,5×; o hook já suporta, a tela do
+  vídeo não pede.
+- **"Crie o seu" nas quatro ferramentas novas.**
+- **Um rasterizador só.** `lib/figureExport.ts` tem o seu, privado, para as
+  figuras da página; poderia usar `svgToPngBlob`.
+- **A voz não é testada num navegador real na CI**: o Chromium *headless* não
+  tem vozes, e os testes usam um motor falso (`lib/testing/fakeSpeech.ts`).
+  Conferir num celular com voz pt-BR é tarefa manual.
+
+**Depois do merge**, o **Deploy da API** (não há migração nem seed).

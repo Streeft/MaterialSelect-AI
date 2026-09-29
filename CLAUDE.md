@@ -802,7 +802,7 @@ número, depois o parágrafo sai com o motivo escrito. Cota diária por aluno
 IA**, `provedor-ia.yml`, que confere em `/api/health`); **o `mock` continua o
 padrão do código e dos testes**. As fontes da web são a fase 3 (D-97, abaixo);
 slides, infográfico, áudio e vídeo (pela voz do navegador) são a fase 4
-(D-98), em `docs/TODO.md`.
+(D-98, abaixo).
 
 **O Estúdio de texto é a fase 2** ([D-94](docs/DECISIONS.md)): relatório,
 cartões didáticos, teste, tabela de dados e mapa mental, no modal "Criar …" de
@@ -846,7 +846,29 @@ afrouxam:
   motivo escrito, e nada sugere faturamento.
 - **Os testes não têm rede:** o `conftest.py` reprova quem tentar sair.
 
-2651 testes de backend (nenhum skip) e 608 de frontend, todos verdes. CI no
+**O Estúdio visual e sonoro é a fase 4** ([D-98](docs/DECISIONS.md)): resumo em
+áudio, resumo em vídeo, apresentação de slides e infográfico, no mesmo catálogo
+e no mesmo modal do D-94. Regras que não se afrouxam:
+
+- **A voz é a do navegador** (`speechSynthesis`), por custo zero — e por isso
+  **não há MP3 nem MP4**: baixa-se o roteiro (DOCX/TXT) e o deck com a narração
+  nas notas (PPTX). As vozes variam por aparelho; a tela diz quando não há
+  pt-BR. `useSpeech` fala uma frase por vez, e `playLine` move e fala na mesma
+  chamada, porque o iOS só fala dentro do toque.
+- **O vídeo é o deck mais a narração, numa chamada só**; o item conferido é a
+  fala, o slide inteiro, a cena inteira e cada dado, ponto e etapa.
+- **O dado em destaque do infográfico segue a regra estrita**
+  (`grounding.strict_ungrounded`): sem a isenção de inteiros até 100, sem as
+  palavras do aluno, e a unidade tem de estar no trecho, **comparada com
+  maiúsculas** — mPa ≠ MPa. Não afrouxe nenhuma das três.
+- **O layout do infográfico é do backend** (`app/notebooks/infographic.py`),
+  com os `styles` de tipografia: a tela e o SVG desenham as mesmas coordenadas —
+  não recalcule nem fixe tipografia no cliente. O PNG é rasterizado no
+  navegador (o Fly não tem libcairo), então o SVG não pode ter `foreignObject`
+  nem referência externa. O PDF dos slides é a impressão do navegador.
+- **Nenhuma migração**: as quatro cabem nos campos JSON da fase 1.
+
+2883 testes de backend (nenhum skip) e 732 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
 PROJECT_CONTEXT.md).

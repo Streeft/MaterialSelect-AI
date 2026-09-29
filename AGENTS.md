@@ -64,7 +64,7 @@ este arquivo e para os `CLAUDE.md`; nenhum copia regra. Uma regra nova entra no
 | Codex, Jules, Copilot, Zed e o padrão aberto | `AGENTS.md` (este) |
 | Claude Code | `CLAUDE.md` (carregado automaticamente) |
 | Gemini CLI / Gemini Code Assist | `GEMINI.md` |
-| Google Antigravity | `.agent/rules/leia-antes.md` e `GEMINI.md` |
+| Google Antigravity | `.agents/rules/leia-antes.md` (versões recentes), `.agent/rules/leia-antes.md` (anteriores) e `GEMINI.md` |
 | Cursor | `.cursor/rules/leia-antes.mdc` |
 | GitHub Copilot | `.github/copilot-instructions.md` |
 | Windsurf | `.windsurf/rules/leia-antes.md` |
@@ -76,8 +76,10 @@ este arquivo e para os `CLAUDE.md`; nenhum copia regra. Uma regra nova entra no
 documentação dele diz sobre regras de workspace: uma pasta de regras na raiz do
 projeto, com cabeçalho `trigger: always_on` (sem ele a regra é descartada em
 silêncio), e o `GEMINI.md`. Versões recentes preferem `.agents/rules/` e ainda
-leem `.agent/rules/`. Confirme na primeira sessão que a regra aparece como
-ativa; se não aparecer, é aqui que o ajuste entra.
+leem `.agent/rules/`, então as duas pastas têm a mesma regra, com o mesmo
+cabeçalho — se uma mudar, a outra muda junto. Confirme na primeira sessão que a
+regra aparece como ativa; se aparecer duas vezes, é inofensivo (é o mesmo
+ponteiro), e se não aparecer, é aqui que o ajuste entra.
 
 `apps/web/AGENTS.md` e `apps/web/CLAUDE.md` são outra coisa: são gerados pelo
 Next 16 a cada `next dev` e avisam que a API do Next mudou. Não os edite — ver
