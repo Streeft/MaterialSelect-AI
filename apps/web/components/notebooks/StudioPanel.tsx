@@ -77,6 +77,10 @@ const ICONS: Record<StudioTool, ReactNode> = {
   quiz: <IconQuiz />,
   table: <IconTable />,
   mindmap: <IconMindMap />,
+  slides: <IconSlides />,
+  infographic: <IconInfographic />,
+  audio: <IconAudio />,
+  video: <IconVideo />,
 };
 
 /** How often the list asks again while something is being generated. */
