@@ -154,10 +154,10 @@ cada uma tem o motivo de ter ficado de fora.
   o inline: uma coluna sob um `font-size:0` de layout que volta ao tamanho
   legível por **classe** de folha de estilo, ou por um `var()` que só a folha
   declara, herda o 0 e é descartada; o navegador a mostra. E os orçamentos do
-  leitor (8 KB e 64 declarações por atributo, 256 propriedades personalizadas
-  em escopo, o trabalho de expansão por página) descartam o nó que os passa,
-  visível ou não. Os dois erram para o lado de tirar texto, e um teste fixa
-  cada um.
+  leitor (8 KB e 64 declarações comuns por atributo, 4096 declarações de
+  propriedades personalizadas em escopo, o trabalho de expansão por página)
+  descartam o nó que os passa, visível ou não. Os dois erram para o lado de
+  tirar texto, e um teste fixa cada um.
 
 **B11 — a unidade canônica impressa como o Pint a escreve — quitado (P4).** ▁
 `app/calculations/units.py` ganhou `pretty_unit()`, e o `export_service` o aplica

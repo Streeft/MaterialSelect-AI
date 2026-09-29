@@ -6763,7 +6763,15 @@ deixar passar. O preço é um estilo que oculta e desfaz no mesmo atributo
 (`display:none;display:block`): raro num atributo `style`, e esse nó é
 descartado. O que *resgata* texto (sombra, contorno, fundo recortado no texto)
 conta ao contrário: só quando toda declaração resgata. `var()` é expandido em
-todos os valores que pode assumir, e escapes CSS são decodificados.
+todos os valores que pode assumir, e escapes CSS são decodificados. **O vazio é
+um desses valores:** `--off: ;` é uma propriedade personalizada válida, e o
+*space toggle* `display:var(--off) none` vale `none` no navegador. A terceira
+revisão achou o leitor descartando a declaração vazia — e com ela a ocultação
+(B-1). Agora a propriedade vazia entra no escopo; `initial` entra sem valor
+nenhum (o valor garantidamente inválido, que manda o `var()` para a reserva);
+e `inherit`, `unset`, `revert` e `revert-layer` somam o valor do pai, porque
+propriedade personalizada é herdada. Declaração comum vazia continua não sendo
+declaração.
 
 **O leitor tem orçamento, e o que ele não consegue seguir oculta.** A página
 escolhe o próprio estilo, e a segunda revisão mostrou o que isso custa a um
@@ -6773,11 +6781,17 @@ referenciada num valor longo fazia uma página de 0,2 MB pedir 402 MB (N-1); um
 propriedades personalizadas, copiado a cada nó, custava o quadrado da página —
 43 s para 1,3 MB (N-3). Os orçamentos, todos em `html_text.py`:
 
-- **o atributo:** até 8 KB e 64 declarações (`_MAX_STYLE_CHARS`,
-  `_MAX_DECLARATIONS`);
-- **o escopo:** até 256 propriedades personalizadas visíveis num nó, somadas as
-  dos ancestrais (`_MAX_CUSTOM_PROPERTIES`). O escopo do filho **aponta** para
-  o do pai em vez de copiá-lo, então o custo é linear;
+- **o atributo:** até 8 KB (`_MAX_STYLE_CHARS`) e 64 declarações comuns
+  (`_MAX_DECLARATIONS`). Propriedade personalizada conta só no tamanho, não
+  nas 64: um tema que escreve a paleta de tokens inline no `<html>` escreve uma
+  centena delas;
+- **o escopo:** até 4096 declarações de propriedades personalizadas visíveis
+  num nó, somadas as dos ancestrais (`_MAX_CUSTOM_PROPERTIES`). O escopo do
+  filho **aponta** para o do pai em vez de copiá-lo, então o custo é linear, e
+  cada consulta paga ao orçamento de trabalho os escopos que percorre e os
+  valores que traz. O teto não protege o tempo — isso é do orçamento —, só
+  limita até onde uma consulta anda; era 256 e caía numa página do Framer a
+  43 níveis de profundidade;
 - **a expansão:** até 64 valores possíveis por declaração, 8 níveis de
   **aninhamento** — uma referência que aponta para outra; referências lado a
   lado no mesmo valor não somam profundidade (N-4) — e 8 KB por valor
@@ -6791,11 +6805,13 @@ propriedades personalizadas, copiado a cada nó, custava o quadrado da página �
 uma exceção e nunca o texto hostil mantido. Qualquer erro imprevisto ao ler um
 estilo tem o mesmo destino: o nó é ocultado e o resto da página é lido. Um
 valor que se expande em nada (`var(--x,)`) é valor nenhum, como no navegador,
-que o trata como inválido. O preço é descartar texto visível só em estilo que
-nenhuma página real escreve inline: mais de 8 KB ou 64 declarações num
-atributo, mais de 256 propriedades personalizadas em escopo, ou dezenas de
-milhares de expansões numa página só. Um `<html>` assim leva a página inteira,
-e a recusa pede para colar o texto.
+que o trata como inválido. O preço é descartar texto visível num estilo raro
+inline, não impossível: um atributo com mais de 8 KB ou mais de 64 declarações
+comuns, mais de 4096 declarações de propriedades personalizadas em escopo, ou
+uma página que esgote os 4 Mi de trabalho — medido, cerca de 12 mil nós que
+expandem `var()` sob um escopo de 10 níveis; o que vem depois disso some sem
+aviso. Um `<html>` fora desses tetos (um estilo inline de mais de 8 KB, por
+exemplo) leva a página inteira, e a recusa pede para colar o texto.
 
 **Matemática que o leitor não avalia oculta onde não há base faltando** (N-5).
 Uma opacidade ou um fator de escala não têm porcentagem de base nem unidade;
