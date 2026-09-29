@@ -288,7 +288,7 @@ A lista completa, com as receitas prontas de cada provedor, está em
 | `SESSION_TTL_HOURS` | `336` (14 dias) | Vida fixa da sessão desde a criação, sem renovação deslizante. |
 | `OAUTH_STATE_TTL_SECONDS` | `600` | Janela entre o redirect ao Google e o callback voltar. |
 | `NOTEBOOK_EXTERNAL_SOURCES` | `true` | Chave geral das fontes externas dos Cadernos ([D-97](DECISIONS.md)); `false` desliga link, YouTube e pesquisa, com o motivo escrito na tela. |
-| `NOTEBOOK_DAILY_FETCHES` | `30` | Saídas para fora por aluno por dia (página, título de vídeo, busca, resultado acrescentado), contadas quando saem do servidor, com ou sem sucesso — a consulta ao DNS de um nome inclusive. Só a recusa decidida sem consultar a rede é de graça. |
+| `NOTEBOOK_DAILY_FETCHES` | `30` | Saídas para fora por aluno por dia (página, título de vídeo, busca, resultado acrescentado), **reservadas** antes de sair, por um `UPDATE … WHERE fetches < limite` atômico gravado com commit, e devolvidas só se nada saiu do servidor — a consulta ao DNS de um nome conta, com ou sem sucesso. Só a recusa decidida sem consultar a rede é de graça. |
 | `NOTEBOOK_FETCH_MAX_BYTES` | `5000000` | Teto de uma página, já descomprimida. |
 | `NOTEBOOK_FETCH_TIMEOUT_SECONDS` | `10.0` | Prazo total de uma leitura, redirecionamentos e consultas ao DNS incluídos. |
 | `NOTEBOOK_FETCH_MAX_REDIRECTS` | `3` | Saltos seguidos, cada um conferido de novo como se fosse o primeiro endereço. |

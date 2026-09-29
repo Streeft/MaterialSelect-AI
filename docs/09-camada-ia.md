@@ -178,7 +178,10 @@ As regras que pesam:
   escapados e o fechamento neutralizado.
 - **O simulado responde citando**: copia o começo dos trechos mais relevantes,
   então passa na checagem de número por construção, como o `interpret`.
-- **Cota diária por aluno** (`NOTEBOOK_DAILY_REQUESTS`), contada só no sucesso.
+- **Cota diária por aluno** (`NOTEBOOK_DAILY_REQUESTS`), **reservada** antes da
+  chamada por um `UPDATE … WHERE requests < limite` atômico
+  (`NotebookRepository.reserve`) e devolvida se a chamada falhar — uma pergunta
+  que falha continua de graça, e uma rajada não passa do teto.
 
 ### Estúdio (`app/ai/studio.py`, `app/services/studio_service.py`)
 
@@ -203,7 +206,18 @@ slides e infográfico (abaixo).
 - **O simulado copia**, como no chat: `MockAIProvider.studio` monta cada
   ferramenta com trechos citados e passa pelo mesmo leitor dos provedores reais.
 - **Cota própria** (`NOTEBOOK_DAILY_ARTIFACTS`, 10), no máximo
-  `NOTEBOOK_STUDIO_IN_FLIGHT` (2) ao mesmo tempo.
+  `NOTEBOOK_STUDIO_IN_FLIGHT` (2) ao mesmo tempo. A unidade é **reservada** ao
+  criar o artefato, na mesma transação que grava `gerando`, e devolvida na
+  falha, ao apagar uma geração em andamento ou o caderno dela — **uma vez só**:
+  devolve quem tira a linha de `gerando`, num `UPDATE`/`DELETE` condicionado ao
+  status (`settle_running`/`delete_running`), então a falha do job e a exclusão
+  correndo juntas não devolvem duas vezes. Uma geração presa por reinício é
+  descontada na leitura, sem que um GET escreva.
+- **"Salvar como nota"** encurta um artefato maior que o editor de notas
+  (`studio_service.note_body`): corta numa quebra de linha que guarde ao menos
+  metade do espaço, senão no último espaço, **nunca dentro de um número**
+  (`guardrails.NUMBER_TOKEN`, o mesmo átomo da conferência e do mapa mental), e
+  termina com a frase que diz que encurtou, com o limite em pt-BR ("20.000").
 - **Instrução só onde o modelo tem instrução.** O lápis e o campo
   `instructions` valem para toda ferramenta cujo modelo escolhido traz texto de
   instrução (relatório, áudio, slides); nas outras, `instructions` é 400.
@@ -229,8 +243,10 @@ provedor novo e sem custo:
   `cancel()` guardando o índice e tem `playLine(i)`, que move e fala na mesma
   chamada — o iOS só fala dentro do toque.
 - **O vídeo é uma chamada só**: slides e narração saem juntos, então a cena
-  mostrada e a frase dita não discordam. Sem voz, a navegação é manual, com a
-  narração como legenda; nada avança sozinho.
+  mostrada e a frase dita não discordam. Com voz, o vídeo tem o mesmo controle
+  de velocidade do áudio (0,75×–1,5×), e trocar a velocidade fala de novo a
+  frase atual na cena atual. Sem voz, a navegação é manual, com a narração como
+  legenda; nada avança sozinho.
 - **Marcação fora da voz.** Falas, notas e narração passam por `strip_markup`
   antes do limite de tamanho: SSML ou HTML do modelo nunca chega ao
   `speechSynthesis`.
@@ -252,7 +268,9 @@ provedor novo e sem custo:
 - **O desenho sai do backend.** `app/notebooks/infographic.py` calcula o layout
   (faixas, caixas, conectores, texto quebrado) e o manda em
   `ArtifactOut.infographic`, com os **`styles`** de cada tipo de bloco (as
-  marcas `[n]` incluídas), para a tela não repetir tipografia no cliente. A tela
+  marcas `[n]` incluídas, na tinta esmaecida do tema claro — `#4a5162`,
+  `--ink-muted`, a mesma da tela), para a tela não repetir tipografia no
+  cliente. A tela
   e o `infographic_svg` desenham as mesmas coordenadas (a regra do mapa mental),
   com o `artifact.title` como manchete — que é também o título da alternativa
   textual (D-31), para o desenho e o texto dizerem o mesmo depois de renomear.
@@ -264,7 +282,10 @@ provedor novo e sem custo:
   átomos: o que passa do teto sai inteiro, e um átomo maior que o teto deixa o
   campo vazio em vez de ser partido.
 - **PNG no navegador, PDF pela impressão.** A imagem do Fly não tem libcairo,
-  então `lib/rasterize.ts` desenha o SVG exportado num `canvas` e baixa o PNG;
+  então `lib/rasterize.ts` desenha o SVG exportado num `canvas` e baixa o PNG —
+  o **único** rasterizador do app: as figuras dos gráficos
+  (`lib/figureExport.ts`) passam por ele também, com o mesmo teto de `canvas`
+  do iOS, o mesmo erro tipado e o mesmo download por URL de blob;
   por isso o SVG não tem `foreignObject` nem referência externa, e tem fundo.
   O PDF dos slides é a impressão do navegador, em página paisagem nomeada.
 - **Exportações** (`app/exporters/studio.py`, `studio_pptx.py`): todas com
@@ -298,14 +319,28 @@ o parágrafo cita. O que muda é o caminho até ela.
   resta dos 10 s, num pool de 16 threads. A mensagem de recusa nunca ecoa o IP.
 - **O texto de uma página** sai de `app/notebooks/html_text.py`, só com a
   biblioteca padrão. Ele descarta a navegação e os **nós ocultos**, porque texto
-  que ninguém vê é onde se esconde injeção de prompt. Uma página que depende de
+  que ninguém vê é onde se esconde injeção de prompt: atributo `hidden`,
+  `aria-hidden` e estilo inline — `display`, `visibility`, opacidade (também
+  por `filter`), `clip`/`clip-path` sem área, deslocamento para fora da página
+  (`left`/`top` de qualquer caixa posicionada, `inset`, `text-indent`,
+  `margin`, `translate` em comprimento — não em `%`, que é do próprio
+  elemento), caixa zero com overflow cortado e escala a quase nada. Fonte
+  minúscula (`font-size`, `font: 0/0 a`) e tinta transparente são herdadas e o
+  filho pode desfazê-las, então sai só o texto ilegível — as colunas de um
+  `font-size:0` de layout ficam. **Qualquer declaração que oculta conta**, não
+  só a última: o navegador descarta um valor que não aceita e mantém o
+  anterior, e `display:none;display:x` passava. `var()`, `calc()` e escapes CSS
+  são resolvidos. Ocultação por folha de estilo continua fora de alcance, e a
+  defesa ali é a fonte ser dado, nunca instrução. Uma página que depende de
   JavaScript é recusada pedindo para colar o texto. É o ponto único de troca,
   se um dia entrar o trafilatura.
 - **A origem viaja com o texto.** `notebook_source.meta` guarda endereço,
   licença, atribuição, autores, revisão e procedência. `citations_for` copia o
   endereço e a atribuição para `source_url`/`source_attribution` de toda
   citação — conversa, guia e Estúdio —, e as exportações do Estúdio os
-  imprimem. A Wikipédia leva a atribuição CC BY-SA 4.0 completa.
+  imprimem. A Wikipédia leva a atribuição CC BY-SA 4.0 completa, e o balão de
+  citação (`CitationChips`: conversa, guia e Estúdio) a mostra numa linha sob o
+  excerto; sem atribuição, não há linha.
 - **O marcador de seção da Wikipédia é `N.`**, porque `numeric_tokens` junta
   dígitos separados por espaço: `3 200 anos` seria lido como 3200.
 - **Gemini só busca.** `gemini_search.py` chama o `generateContent` nativo com
@@ -354,7 +389,12 @@ gasta cota e o canário varre as rotas GET):
 - caderno alheio é 404, antes de qualquer rede;
 - endereço recusado, página ilegível e artigo sem resumo são 400, com a frase
   que diz o que fazer;
-- duplicata é 409, sem rede e sem cota;
+- duplicata é 409, sem rede e sem cota — o id mesclado de um artigo da
+  OpenAlex também (guardado em `meta.merged_from`), a partir da segunda vez; a
+  primeira descoberta gasta a unidade, porque só a busca revela a mesclagem;
+- a cota de buscas (`NOTEBOOK_DAILY_FETCHES`) é **reservada** antes de a
+  requisição sair, por um `UPDATE` atômico gravado com commit, e só volta se
+  nada saiu do servidor;
 - recusa decidida sem consultar a rede — nem o DNS — não gasta cota; um nome
   que foi consultado gasta, resolva ele para fora, para dentro ou para nada;
 - a cota do aluno é 429;

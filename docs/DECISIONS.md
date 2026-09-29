@@ -6710,3 +6710,76 @@ um caderno que tenha.
   Conferir num celular com voz pt-BR é tarefa manual.
 
 **Depois do merge**, o **Deploy da API** (não há migração nem seed).
+
+## D-99 — Lote de pendências das fases 3 e 4: a cota é reservada e devolvida uma vez, e o CSS inline oculta por qualquer declaração
+
+**O pedido.** Fechar nove itens da "Baixa prioridade" que o D-97 e o D-98
+deixaram (lista e uma linha por item em `TODO.md`, "Débitos já quitados"). Sete
+são de execução. Dois pediram escolher um desenho, e é deles que trata esta
+decisão.
+
+**A cota é uma reserva, não uma contagem.** As três cotas diárias dos Cadernos
+(conversa, D-92; Estúdio, D-94; buscas, D-97) eram conferidas num passo e
+contadas noutro, com um ler-e-escrever em Python. Uma rajada de um aluno passava
+inteira pela conferência, e dois incrementos concorrentes podiam perder um.
+Agora cada unidade é tomada por `NotebookRepository.reserve`: **um**
+`UPDATE ai_usage SET c = c + 1 WHERE … AND c < limite`, cujo número de linhas
+diz se tomou. A linha do dia nasce com `INSERT … ON CONFLICT DO NOTHING` sobre o
+par único que já existia. No PostgreSQL em READ COMMITTED, o bloqueio da linha
+faz o perdedor reler o `WHERE` contra o valor gravado; no SQLite, os escritores
+fazem fila. O que a operação acaba não cobrando volta por `release` (`c - 1`,
+nunca abaixo de zero). O que cada cota cobra não mudou: pergunta que falha é de
+graça; busca conta quando sai do servidor, DNS incluído; geração conta desde que
+existe, porque o que está rodando também ocupa. Nenhuma migração.
+
+Descartados: `SELECT … FOR UPDATE` seguido de escrita, que precisa de dois
+comandos e cujo bloqueio o SQLite ignora; e um teto de
+requisições em andamento por usuário, que limitaria a rajada sem corrigir o
+incremento perdido.
+
+**A devolução de uma geração acontece uma vez só.** Três caminhos devolvem a
+unidade de uma geração em andamento: a falha do job, a exclusão do artefato e a
+exclusão do caderno. Dois deles podem correr juntos. Por isso **quem tira a
+linha de `gerando` é quem devolve**: `settle_running` e `delete_running` são um
+`UPDATE`/`DELETE` condicionado a `status = 'gerando'`, e só o que mudou uma
+linha devolve. Um status lido antes não decide nada.
+
+**O que prova a atomicidade é a forma do SQL.** A corrida de threads da suíte
+roda com `BEGIN IMMEDIATE`, que serializa a transação inteira, e passaria também
+com um ler-e-escrever. A revisão mostrou isso trocando o `reserve` por um
+não atômico. O teste que decide captura o SQL enviado: um `INSERT … ON CONFLICT
+DO NOTHING` e um `UPDATE … WHERE … < ?`, sem `SELECT` do contador antes. Com a
+troca, ele falha e todos os outros passam.
+
+**O CSS inline oculta quando qualquer declaração oculta.** A primeira versão lia
+"a última declaração vence", como a cascata. Mas o navegador descarta uma
+declaração cujo valor não aceita e mantém a anterior, então
+`display:none;display:x` ocultava na tela e passava no extrator. Um validador
+por propriedade corrigiria o caso, mas reabriria o furo onde discordasse do
+navegador: um `left:5` sem unidade é inválido no modo padrão e válido no modo
+quirks. O valor que o navegador aplica é sempre um dos declarados. Então
+conferir **todos** não depende de parse nenhum e não pode errar para o lado de
+deixar passar. O preço é um estilo que oculta e desfaz no mesmo atributo
+(`display:none;display:block`): raro num atributo `style`, e esse nó é
+descartado. O que *resgata* texto (sombra, contorno, fundo recortado no texto)
+conta ao contrário: só quando toda declaração resgata. `var()` é expandido em
+todos os valores que pode assumir. Uma expansão grande demais ou funda demais
+(64 candidatos, 8 níveis) é lida como ocultação. Escapes CSS são decodificados.
+
+**Fonte e cor são herdadas, e o filho pode desfazê-las.** `font-size:0` num
+contêiner é o truque clássico para tirar o espaço entre colunas `inline-block`,
+e cada coluna volta a um tamanho legível. Descartar a subárvore apagava texto
+visível sem aviso. Por isso fonte minúscula (`font-size`, `font: 0/0 a`, escala
+acumulada) e tinta transparente (`color`, `-webkit-text-fill-color`) viajam
+como estado herdado numa passada de cima para baixo (`_mark_style`), e sai só o
+texto cujo tamanho efetivo fica abaixo de 2 px ou cuja tinta não tem quem a
+pinte. No lugar do texto fica um espaço, para "12", "3", "45" não virarem
+"1245". Porcentagem de `translate` é do próprio elemento: o `translateY(-100%)`
+de uma dica de ferramenta fica. Porcentagem de `margin` é do contêiner, e a
+barra lateral do layout "holy grail" usa `margin-left:-100%`. Nos dois, só um
+comprimento conta como fora da página.
+
+**O que ficou de fora.** A prova da concorrência das cotas contra um PostgreSQL
+real, um `visibility:visible` que desfaz o `hidden` do ancestral e o
+deslocamento positivo grande. Estão em `TODO.md`, com o dia do deploy, em que as
+gerações que já estavam rodando nunca reservaram unidade.

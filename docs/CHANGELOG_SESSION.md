@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [34](#sessão-34--290926--cadernos-o-lote-de-pendências-das-fases-3-e-4) | 29/09/2026 | Cadernos: nove pendências das fases 3 e 4 (velocidade no vídeo, um rasterizador só, corte da nota, cor das marcas, duplicata da OpenAlex, troca de provedor, atribuição na conversa, nós ocultos por CSS inline, cota atômica) e a rodada de correção da revisão final (D-99) | 2979 → 3189 | 735 → 751 |
 | [33](#sessão-33--280926-a-290926--cadernos-fase-4-o-estúdio-visual-e-sonoro) | 28 e 29/09/2026 | Cadernos, fase 4: resumo em áudio e em vídeo pela voz do navegador, apresentação de slides com PPTX e infográfico com layout do backend; o dado em destaque sem isenção e a unidade com maiúsculas (D-98) | 2651 → 2979 | 608 → 735 |
 | [32](#sessão-32--250926-a-280926--cadernos-fase-3-fontes-externas) | 25 a 28/09/2026 | Cadernos, fase 3: site, YouTube com transcrição colada, OpenAlex, Wikipédia e busca na web pelo Gemini. Tudo por um portão anti-SSRF, com a origem e a licença coladas à citação e custo zero (D-97) | 1966 → 2651 | 563 → 608 |
 | [31](#sessão-31--250926--auditoria-do-pr-78-curva-custo--lote-do-antigravity) | 25/09/2026 | Auditoria do PR #78 (curva custo × lote, execução agêntica externa): comportamento correto, cobertura de teste devolvida e o registro que faltava, escrito (D-96) | 1963 → 1966 | 563 (inalterado) |
@@ -49,6 +50,83 @@ As sessões entre a 11 e a 12 — o patch de design "Prisma" (D-49, D-50), o
 upgrade de segurança S1 e a rodada de desempenho — **não têm seção própria
 aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
+
+---
+
+## Sessão 34 — 29/09/26 — Cadernos: o lote de pendências das fases 3 e 4
+
+**O pedido.** Fechar, num PR só, nove pendências de baixa prioridade que o D-97
+e o D-98 deixaram em `TODO.md`, e fazer a documentação andar junto.
+
+**Como foi feito.** Por subagentes. O front-end e o back-end foram em paralelo,
+porque não mexiam nos mesmos arquivos (`apps/web` e `apps/api`). O back-end
+perdeu o agente num reinício do contêiner, com o trabalho ainda sem commit. Um
+segundo agente retomou do que estava em disco, julgou item por item e desfez
+uma mudança desnecessária em `schemas/notebook.py`. Depois vieram uma revisão
+final de branch e uma rodada de correção com a documentação.
+
+**O que entrou.**
+
+- **Velocidade no vídeo** (D-98). É o mesmo controle do áudio, 0,75×–1,5×, e só
+  aparece quando há voz. Trocar a velocidade fala de novo a frase atual na cena
+  atual.
+- **Um rasterizador só** (D-98). `lib/figureExport.ts` passou a usar
+  `svgToPngBlob`/`downloadBlob` de `lib/rasterize.ts`. Com isso, os gráficos
+  ganharam o teto de `canvas` do iOS, o erro tipado ("Baixe o SVG.") e a
+  revogação da URL. De quebra saiu um `xmlns` duplicado que o compositor
+  emitia: é XML malformado, e o novo caminho, que relê o SVG, recusava.
+- **Corte da nota** (D-98). O corte cai numa quebra de linha, nunca dentro de um
+  número, e a nota termina com a frase que diz que foi encurtada.
+- **Cor das marcas** (D-98). As marcas `[n]` usam a tinta esmaecida da tela
+  também no SVG. O menor contraste é 6,51:1.
+- **Duplicata da OpenAlex** (D-97). O id mesclado fica em `meta.merged_from`
+  e, da segunda vez, é recusado antes da cota e da rede.
+- **Troca de provedor na pesquisa** (D-97). A troca limpa o resultado anterior
+  e descarta a busca que ainda estava em andamento sob o provedor antigo.
+- **Atribuição na conversa** (D-97). A linha de crédito aparece sob o excerto de
+  toda `CitationChips`.
+- **Nós ocultos por CSS inline** (D-97). O extrator passou a ler opacidade, clip,
+  deslocamento para fora da página, caixa zero e escala.
+- **Cota atômica** (D-92/D-94/D-97). As três cotas passaram a ser reservadas por
+  um `UPDATE … WHERE c < limite` e devolvidas quando a operação não cobra. Não
+  foi preciso migração.
+
+**A revisão final: 0 crítico, 4 importantes e 8 menores.** Todos os
+importantes foram corrigidos com teste de regressão.
+
+- **I-1.** O extrator deixava a última declaração vencer, então
+  `display:none;display:x` passava. O navegador descarta o valor inválido e
+  mantém o anterior. Agora **qualquer** declaração que oculta conta, e o D-99
+  explica por que essa regra não pode ser derrotada e um validador poderia.
+  `var()`, `calc()` e escapes CSS também são resolvidos.
+- **I-2.** `position: relative` e `sticky` com deslocamento grande não eram
+  lidos como fora da página.
+- **I-3.** Os testes de corrida passavam com um `reserve` não atômico, porque o
+  `BEGIN IMMEDIATE` serializa a transação. O teste novo captura o SQL enviado e
+  exige um `UPDATE` condicional sem `SELECT` antes. Para conferir, o `reserve`
+  foi trocado por um ler-e-escrever: os três casos do teste novo falharam e os
+  outros 22 passaram. Depois o atômico foi restaurado.
+- **I-4.** Um `font-size:0` de layout apagava colunas visíveis. Fonte e tinta
+  viraram estado herdado, e só sai o texto de fato ilegível.
+
+Dos menores, sete foram corrigidos:
+
+- tinta transparente, `font: 0/0 a`, `filter: opacity()`, `matrix()`/`scale()`
+  a quase nada e `margin` muito negativo;
+- o `translate(-100%)` de uma dica de ferramenta, que era descartado por engano;
+- o `NUMBER_TOKEN` público, que antes era importado pelo nome privado;
+- a nota que jogava fora o espaço por causa de uma quebra de linha cedo demais;
+- o "20.000" em pt-BR;
+- a devolução em dobro quando se apaga uma geração enquanto o job falha;
+- a unidade presa quando se apaga o caderno.
+
+O oitavo, o dia do deploy, foi aceito e está em `TODO.md`.
+
+**Números.** Backend 2979 → 3189 e frontend 735 → 751, todos verdes, nenhum
+skip. O back-end tinha 3091 antes da rodada de correção; a rodada acrescentou
+casos de CSS, os testes de forma do SQL e os de devolução única.
+
+**Depois do merge:** o **Deploy da API**. Não há migração nem seed.
 
 ---
 
