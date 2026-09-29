@@ -1,4 +1,4 @@
-"""Budgets of the inline-CSS reader, and its fail-safe (D-99, N-1 to N-6).
+"""Budgets of the inline-CSS reader, and its fail-safe (D-99, N-1 to N-6, B-1, M-1).
 
 The reader of ``test_html_hidden_css.py`` follows ``var()`` references and
 evaluates ``calc()``, and a page chooses its own styles. A re-review found
@@ -8,6 +8,12 @@ the custom-property scope at every node was quadratic (N-3). Each budget
 below is a regression test built from that reproduction, and the direction is
 always the same: past a budget, or on an error nobody foresaw, **the node
 hides** — never an exception, never hostile text kept.
+
+A second re-review found the reverse, text a browser hides and the reader
+kept: an empty custom property — the "space toggle" ``--off: ;`` — was
+dropped as no declaration at all (B-1). And the caps counted custom
+properties so tightly that a theme writing its design tokens inline on
+``<html>`` lost the whole page (M-1); they now leave real token palettes alone.
 
 The time bounds are generous (the fixed code runs these in well under a tenth
 of them) so that a loaded CI runner does not flake; the reproductions took
@@ -297,8 +303,8 @@ def test_a_child_scope_links_to_its_parent_instead_of_copying_it() -> None:
 
 
 def test_too_many_custom_properties_in_scope_hide_the_node() -> None:
-    per_level = 50
-    levels = _MAX_CUSTOM_PROPERTIES // per_level  # 5 levels: 250 in scope
+    per_level = 64
+    levels = _MAX_CUSTOM_PROPERTIES // per_level  # 64 levels: 4,096 in scope
 
     def open_level(level: int) -> str:
         declarations = ";".join(f"--p{level}x{index}:1" for index in range(per_level))
@@ -392,3 +398,107 @@ def test_a_column_sized_by_a_stylesheet_under_an_inline_zero_font_is_dropped() -
     assert column not in _extract(
         f'<div style="font-size:0"><div style="font-size:var(--fs)">{column}</div></div>'
     )
+
+
+# --- B-1: an empty custom property is a value, and the toggle hides ------------
+
+
+SPACE_TOGGLES = [
+    '<p style="--off: ;display:var(--off) none">{}</p>',
+    '<p style="--off: ;visibility:var(--off) hidden">{}</p>',
+    '<p style="--off: ;opacity:var(--off) 0">{}</p>',
+    '<p style="--off:;display:var(--off)none">{}</p>',  # no space at all
+    '<p style="--off:/**/;display:var(--off) none">{}</p>',
+    '<p style="--off: !important;display:var(--off) none">{}</p>',
+    # declared on an ancestor, used below it
+    '<div style="--off: ;"><p style="display:var(--off) none">{}</p></div>',
+    '<div style="--off: ;"><div><p style="visibility:var(--off) hidden">{}</p></div></div>',
+    '<div style="--off: ;"><p style="opacity:var(--off) 0">{}</p></div>',
+    '<div style="--off: ;"><p style="font-size:var(--off) 0">{}</p></div>',
+    # sibling forms: inherited back through a CSS-wide keyword, or built empty
+    '<div style="--off: ;"><p style="--off:inherit;display:var(--off) none">{}</p></div>',
+    '<div style="--off: ;"><p style="--off:unset;opacity:var(--off) 0">{}</p></div>',
+    '<div style="--off: ;"><p style="--off:revert;display:var(--off) none">{}</p></div>',
+    '<p style="--a:var(--b,);display:var(--a) none">{}</p>',
+    '<p style="display:var(--missing,) none">{}</p>',
+    '<p style="--on:initial;display:var(--on, none)">{}</p>',  # initial: the fallback
+]
+
+
+@pytest.mark.parametrize("markup", SPACE_TOGGLES)
+def test_the_space_toggle_hides_as_in_a_browser(markup: str) -> None:
+    """``--off: ;`` is a valid custom property whose value is empty, so
+    ``var(--off) none`` computes to ``none``. The reader dropped the empty
+    declaration, found no value for ``var(--off)`` and kept the text."""
+    text = _extract(markup.format(INJECTION))
+    assert INJECTION not in text and PROSE in text
+
+
+def test_the_space_toggle_on_the_root_reaches_the_whole_page() -> None:
+    page = (
+        '<!doctype html><html style="--off: ;"><body>'
+        f'<p>{PROSE}</p><div><p style="display:var(--off) none">{INJECTION}</p></div>'
+        "</body></html>"
+    )
+    text = extract_html(page, None)[1].pages[0]
+    assert INJECTION not in text and PROSE in text
+
+
+SPACE_TOGGLES_OFF = [
+    # ``initial`` is the guaranteed-invalid value: ``initial none`` is no
+    # display at all, and the paragraph is shown
+    '<p style="--on:initial;display:var(--on) none">{}</p>',
+    '<div style="--off: ;"><p style="--off:initial;display:var(--off) none">{}</p></div>',
+    # an empty value on its own is invalid at computed-value time: no value
+    '<p style="--off: ;display:var(--off)">{}</p>',
+    '<p style="--off: ;opacity:var(--off)">{}</p>',
+    # and an empty ordinary declaration is still no declaration
+    '<p style="display: ;opacity:">{}</p>',
+]
+
+
+@pytest.mark.parametrize("markup", SPACE_TOGGLES_OFF)
+def test_a_toggle_switched_off_leaves_the_text(markup: str) -> None:
+    assert INJECTION in _extract(markup.format(INJECTION))
+
+
+def test_an_empty_custom_property_is_in_scope_and_initial_is_not() -> None:
+    _, scope, ambiguous = _declarations("--off: ;--on:initial", html_text._NO_SCOPE, _Budget())
+    assert not ambiguous
+    assert scope.get("--off") == ("",) and scope.get("--on") == ()
+    _, child, _ = _declarations("--off:inherit;--on:inherit", scope, _Budget())
+    assert child.get("--off") == ("",) and child.get("--on") == ()
+
+
+# --- M-1: design tokens written inline do not cost the page -------------------
+
+
+def test_two_hundred_custom_properties_on_the_root_keep_the_page() -> None:
+    """A theme provider that server-renders its token palette as ``style`` on
+    ``<html>``: past 64 declarations the whole page used to be refused."""
+    tokens = ";".join(f"--token-{index}:#{index:06x}" for index in range(200))
+    assert len(tokens) < _MAX_STYLE_CHARS
+    page = (
+        f'<!doctype html><html style="{tokens}"><body style="color:var(--token-7)">'
+        f"<main><p>{PROSE}</p></main></body></html>"
+    )
+    assert PROSE in extract_html(page, None)[1].pages[0]
+
+
+def test_custom_properties_do_not_count_as_declarations() -> None:
+    ordinary = ";".join(f"x{index}:1" for index in range(_MAX_DECLARATIONS))
+    tokens = ";".join(f"--t{index}:1px" for index in range(3 * _MAX_DECLARATIONS))
+    assert not _style_hides(f"{tokens};{ordinary}")
+    assert _style_hides(f"{tokens};{ordinary};one-more:1")
+
+
+def test_a_deep_chain_of_page_builder_variables_is_kept() -> None:
+    """Six custom properties per container, sixty containers deep: the old
+    cap of 256 in scope dropped this subtree 43 levels down."""
+    level = (
+        ";".join(f"--border-{side}:1px" for side in range(6))
+        + ";background-color:var(--token-bg, #fff)"
+    )
+    depth = 60
+    body = f'<div style="{level}">' * depth + f"<p>{INJECTION}</p>" + "</div>" * depth
+    assert INJECTION in _extract(body)
