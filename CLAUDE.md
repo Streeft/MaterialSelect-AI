@@ -844,7 +844,10 @@ afrouxam:
   opacidade, `clip`, fora da página, caixa zero, escala a nada). **Qualquer**
   declaração que oculta conta, não só a última (o navegador ignora um valor
   inválido e mantém o anterior, D-99). Fonte minúscula e tinta transparente
-  são herdadas: sai só o texto ilegível, nunca o filho que as desfaz.
+  são herdadas: sai só o texto ilegível, nunca o filho que as desfaz. **O
+  leitor tem orçamento** (atributo, escopo, expansão de `var()`, trabalho por
+  página), e o que passa dele — ou o faz tropeçar — **oculta o nó**, nunca
+  lança exceção. Não afrouxe essa direção (D-99).
 - **A atribuição vai do `meta` da fonte a `CitationOut`** e às exportações do
   Estúdio, CC BY-SA 4.0 inteira para a Wikipédia. O marcador de seção é `N.`,
   porque o conferidor lê `3 200` como 3200.
@@ -890,7 +893,7 @@ e no mesmo modal do D-94. Regras que não se afrouxam:
   o átomo da conferência), e diz que encurtou (`studio_service.note_body`).
 - **Nenhuma migração**: as quatro cabem nos campos JSON da fase 1.
 
-3189 testes de backend (nenhum skip) e 751 de frontend, todos verdes. CI no
+3244 testes de backend (nenhum skip) e 751 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
 PROJECT_CONTEXT.md).

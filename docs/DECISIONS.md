@@ -6763,8 +6763,53 @@ deixar passar. O preço é um estilo que oculta e desfaz no mesmo atributo
 (`display:none;display:block`): raro num atributo `style`, e esse nó é
 descartado. O que *resgata* texto (sombra, contorno, fundo recortado no texto)
 conta ao contrário: só quando toda declaração resgata. `var()` é expandido em
-todos os valores que pode assumir. Uma expansão grande demais ou funda demais
-(64 candidatos, 8 níveis) é lida como ocultação. Escapes CSS são decodificados.
+todos os valores que pode assumir, e escapes CSS são decodificados.
+
+**O leitor tem orçamento, e o que ele não consegue seguir oculta.** A página
+escolhe o próprio estilo, e a segunda revisão mostrou o que isso custa a um
+leitor sem teto: uma propriedade personalizada declarada milhares de vezes e
+referenciada num valor longo fazia uma página de 0,2 MB pedir 402 MB (N-1); um
+`var(--x,)` com reserva vazia derrubava a extração com 500 (N-2); e o escopo de
+propriedades personalizadas, copiado a cada nó, custava o quadrado da página —
+43 s para 1,3 MB (N-3). Os orçamentos, todos em `html_text.py`:
+
+- **o atributo:** até 8 KB e 64 declarações (`_MAX_STYLE_CHARS`,
+  `_MAX_DECLARATIONS`);
+- **o escopo:** até 256 propriedades personalizadas visíveis num nó, somadas as
+  dos ancestrais (`_MAX_CUSTOM_PROPERTIES`). O escopo do filho **aponta** para
+  o do pai em vez de copiá-lo, então o custo é linear;
+- **a expansão:** até 64 valores possíveis por declaração, 8 níveis de
+  **aninhamento** — uma referência que aponta para outra; referências lado a
+  lado no mesmo valor não somam profundidade (N-4) — e 8 KB por valor
+  construído. Quantidade e comprimento são contados **antes** de construir;
+- **o trabalho:** caracteres lidos e construídos, mais um custo fixo por passo,
+  com teto por atributo (64 Ki) e por página (4 Mi). É o teto da página que
+  limita o tempo: esgotado, todo valor seguinte que ainda precise expandir um
+  `var()` oculta o nó. Declaração sem `var()` não paga nada.
+
+**A direção é uma só: passou de um orçamento, o nó é lido como oculto.** Nunca
+uma exceção e nunca o texto hostil mantido. Qualquer erro imprevisto ao ler um
+estilo tem o mesmo destino: o nó é ocultado e o resto da página é lido. Um
+valor que se expande em nada (`var(--x,)`) é valor nenhum, como no navegador,
+que o trata como inválido. O preço é descartar texto visível só em estilo que
+nenhuma página real escreve inline: mais de 8 KB ou 64 declarações num
+atributo, mais de 256 propriedades personalizadas em escopo, ou dezenas de
+milhares de expansões numa página só. Um `<html>` assim leva a página inteira,
+e a recusa pede para colar o texto.
+
+**Matemática que o leitor não avalia oculta onde não há base faltando** (N-5).
+Uma opacidade ou um fator de escala não têm porcentagem de base nem unidade;
+se o valor é uma função matemática (`calc()`, `round()`, `sign()`, as
+trigonométricas…) que o leitor não reduz a número, ele é lido como 0. Num
+deslocamento, margem, recuo ou translação a regra é mais estreita, e isso é
+decisão: a matemática mais comum que o leitor não avalia ali é uma
+porcentagem sem base, o `calc(50% - 10px)` que centraliza uma caixa visível, e
+ocultar todo valor não avaliado apagaria esse texto. Então só oculta quando
+traz um comprimento literal muito negativo (`-9999px`, e não o `- 600px` de
+uma subtração) — o que cobre `round(-9999px, 1px)`, `calc(-9999px * sign(1))`
+e um `calc()` aninhado além de 64 níveis. `font-size` e caixa zero continuam
+deixando passar o que não avaliam, pelo mesmo motivo: `max(1em, 5cqi)` e
+`calc(100% - 20px)` são tipografia e layout de páginas reais.
 
 **Fonte e cor são herdadas, e o filho pode desfazê-las.** `font-size:0` num
 contêiner é o truque clássico para tirar o espaço entre colunas `inline-block`,
@@ -6783,3 +6828,12 @@ comprimento conta como fora da página.
 real, um `visibility:visible` que desfaz o `hidden` do ancestral e o
 deslocamento positivo grande. Estão em `TODO.md`, com o dia do deploy, em que as
 gerações que já estavam rodando nunca reservaram unidade.
+
+**E um excesso que fica, por ler só o inline** (N-6). As colunas de um
+`font-size:0` de layout só ficam quando **elas mesmas** voltam a um tamanho
+legível no atributo `style`. Uma coluna dimensionada por classe de folha de
+estilo, ou por um `var()` que só a folha de estilo declara, herda o 0 do pai e
+é descartada — o navegador a mostraria, e antes do lote o extrator também. É o
+custo de não ter motor de CSS, aceito: o erro é para o lado de tirar texto,
+nunca de entregar ao modelo o que o aluno não vê. Um teste o fixa, para que uma
+mudança seja notada.

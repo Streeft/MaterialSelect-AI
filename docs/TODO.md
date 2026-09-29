@@ -142,11 +142,22 @@ cada uma tem o motivo de ter ficado de fora.
   `visibility:hidden` num ancestral cujo filho diz `visibility:visible` (o
   extrator descarta o filho também — excesso, anterior ao lote); um
   deslocamento **positivo** grande (`right:9999px`, `left:9999px`), que numa
-  caixa larga pode ser legítimo; e um `calc()` aninhado mais de 64 níveis ou um
-  `var()` que se expande além de 64 candidatos (a expansão grande demais é lida
-  como ocultação; o `calc()` fundo demais, não). Ocultação por folha de estilo
-  continua fora de alcance por decisão (D-97): a defesa ali é a fonte ser dado,
-  nunca instrução.
+  caixa larga pode ser legítimo; e matemática que o leitor não avalia num
+  deslocamento **sem** literal muito negativo — `calc(50% - 20000px)`, uma
+  porcentagem sem base menos um número grande, passa, porque é a forma do
+  `calc(50% - 10px)` que centraliza caixas visíveis (D-99, N-5). Uma função
+  desconhecida ou um `calc()` fundo demais com `-9999px` dentro já oculta, e
+  numa opacidade ou escala qualquer matemática não avaliada oculta. Ocultação
+  por folha de estilo continua fora de alcance por decisão (D-97): a defesa ali
+  é a fonte ser dado, nunca instrução.
+- **CSS inline que o extrator lê a mais** (D-99, N-6). ▁ O outro lado de ler só
+  o inline: uma coluna sob um `font-size:0` de layout que volta ao tamanho
+  legível por **classe** de folha de estilo, ou por um `var()` que só a folha
+  declara, herda o 0 e é descartada; o navegador a mostra. E os orçamentos do
+  leitor (8 KB e 64 declarações por atributo, 256 propriedades personalizadas
+  em escopo, o trabalho de expansão por página) descartam o nó que os passa,
+  visível ou não. Os dois erram para o lado de tirar texto, e um teste fixa
+  cada um.
 
 **B11 — a unidade canônica impressa como o Pint a escreve — quitado (P4).** ▁
 `app/calculations/units.py` ganhou `pretty_unit()`, e o `export_service` o aplica
@@ -195,7 +206,9 @@ Registrados para não voltarem por engano:
 
 - ~~**Cadernos — lote de pendências das fases 3 e 4 (D-97/D-98)**~~ — nove
   itens da "Baixa prioridade" fechados num PR, com uma revisão final que achou
-  quatro problemas importantes, todos corrigidos com teste de regressão.
+  quatro problemas importantes e uma segunda revisão que achou um crítico e
+  dois importantes no leitor de CSS inline, todos corrigidos com teste de
+  regressão.
   - **Velocidade no vídeo** (D-98): o resumo em vídeo oferece 0,75×–1,5× com o
     mesmo controle do áudio, só quando há voz.
   - **Dois rasterizadores** (D-98): `lib/figureExport.ts` passou a usar
@@ -226,6 +239,13 @@ Registrados para não voltarem por engano:
     linha `font-size:0` fica. **Qualquer** declaração que oculta conta, não só a
     última (`display:none;display:x` passava), com `var()`, `calc()` e escapes
     CSS resolvidos.
+  - **O leitor de CSS inline sem teto** (D-99, segunda revisão): a expansão de
+    `var()` que pedia gigabytes a uma página de 0,2 MB (N-1), o `var(--x,)`
+    que derrubava a extração com 500 (N-2), o escopo copiado a cada nó (N-3),
+    a profundidade que contava referências lado a lado (N-4) e a matemática
+    não avaliada que deixava passar (N-5). Orçamentos por atributo, escopo,
+    expansão e página; o que passa deles, ou faz o leitor tropeçar, oculta o
+    nó. Os testes de regressão estão em `test_html_css_budgets.py`.
   - **Cota não atômica** (D-92/D-94/D-97): as três cotas são **reservadas** por
     um `UPDATE … WHERE contador < limite` e devolvidas quando a operação não
     cobra; um teste da forma do SQL falha se o código voltar a
