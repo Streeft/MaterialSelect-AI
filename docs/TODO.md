@@ -82,23 +82,22 @@ Nenhum item aberto no momento — M6 foi entregue nesta sessão (ver
   se baixa é o roteiro (DOCX/TXT) e o deck com a narração nas notas (PPTX).
   Reavalie só se aparecer um TTS gratuito que rode no servidor sem conta com
   forma de pagamento.
-- **Dois rasterizadores.** ▁ `lib/figureExport.ts` tem um `rasterise` privado
-  para as figuras da página, e `lib/rasterize.ts` (`svgToPngBlob`) nasceu no
-  D-98 para o infográfico e o mapa mental, com teto de `canvas` para o iOS e o
-  erro tipado de `canvas` "sujo". O primeiro pode passar a usar o segundo.
-- **Velocidade no vídeo.** ▁ O áudio tem 0,75×–1,5×; `useSpeech.setRate` já
-  serve ao vídeo, a tela só não oferece.
-- **"Salvar como nota" corta o corpo em 20 000 caracteres.** ▁ Em
-  `app/services/studio_service.py` (`save_as_note`), o texto do artefato vai
-  para a nota com `[:20_000]`, e o corte pode cair no meio de um número. Não é
-  furo na conferência de números: uma nota nunca é fonte nem volta ao modelo, e
-  20 000 é o teto do próprio editor de notas. Quando for feito, cortar numa
-  quebra de linha e acrescentar uma frase dizendo que a nota foi encurtada. Não
-  reaproveite o `_cap` de `app/ai/studio.py`: ele achata as quebras de linha.
-- **As marcas de citação do infográfico têm a mesma posição e o mesmo tamanho
-  na tela e no SVG, mas não a mesma cor.** ▁ A tela usa um token de tinta
-  esmaecida, e o SVG usa a cor de destaque do cartão. Falta escolher uma e
-  usá-la nos dois.
+- **Conferir ao vivo os downloads por URL de blob no Safari/iOS.** ▁ Desde o
+  lote de pendências, os gráficos baixam PNG e SVG pelo mesmo caminho do
+  Estúdio (`lib/rasterize.ts`, `downloadBlob`, URL revogada em 30 s), e não mais
+  por URL `data:`. Os testes usam jsdom; falta baixar um gráfico e um
+  infográfico num iPhone e num Safari de desktop e registrar o que aconteceu. O
+  `xmlns` duplicado que o compositor de figuras emitia também só foi reproduzido
+  no jsdom — a correção é inócua em qualquer navegador, mas não se sabe se
+  algum deles duplicava.
+- **O dia do deploy do lote de pendências deixa passar algumas gerações a
+  mais.** ▁ Aceito, sem código. Uma geração do Estúdio que estava rodando no
+  momento do deploy nasceu no modelo antigo, que contava no sucesso, e por isso
+  nunca reservou unidade; o deploy reinicia a máquina, ela fica presa e é
+  descontada como `slack` de um contador que nunca a teve. Resultado: no
+  máximo `NOTEBOOK_STUDIO_IN_FLIGHT` gerações a mais naquele dia, e apagar uma
+  delas devolve uma unidade que não foi tirada (o contador nunca fica abaixo de
+  zero). Some sozinho no dia seguinte.
 
 **Cadernos — pendências deixadas pela fase 3 (D-97).** Nenhuma bloqueia o uso;
 cada uma tem o motivo de ter ficado de fora.
@@ -131,38 +130,23 @@ cada uma tem o motivo de ter ficado de fora.
   termos do *grounding* exigem que ele seja mostrado. Se as fichas precisarem de
   script, a saída é `allow-scripts` **sem** `allow-same-origin`, nunca as duas
   juntas. Passo a passo em [13-deploy.md §5-sexies](13-deploy.md).
-- **Artigo da OpenAlex mesclado gasta uma busca antes do 409.** ▁ A
-  duplicata é conferida antes da rede pelo id **pedido**, mas a fonte é
-  guardada sob `work.url`, o id que sobreviveu à mesclagem. Acrescentar de novo
-  o id antigo gasta uma unidade antes de o checksum recusar a repetição. O
-  conserto é chamar também `_refuse_duplicate(notebook, work.url)` depois da
-  busca quando ele difere do pedido, em `external_source_service._add_work`:
-  continua custando uma unidade, mas a resposta vira um 409 claro.
-- **Trocar de provedor na pesquisa deixa os resultados anteriores na tela.** ▁
-  Em `SourceSearch.tsx`, a troca chama `search.reset()` mas mantém `answer`: os
-  resultados da Wikipédia ficam visíveis sob o aviso de privacidade da Web.
-  Acrescentá-los continua certo (cada resultado leva o próprio provedor), só a
-  tela lê estranho. O conserto é `setAnswer(null)` na troca.
-- **A citação da conversa não mostra a atribuição.** ▁ `source_attribution`
-  está na API, nas exportações e no leitor da fonte, mas o balão de citação da
-  conversa não a desenha. Para a CC BY-SA ("razoável para o meio") o crédito a
-  um clique basta; uma linha de crédito sob o excerto seria o reforço.
-- **Nós ocultos por `opacity:0` e `font-size:0` passam pelo extrator.** ▁
-  `html_text._HIDING_STYLE` pega `display:none` e `visibility:hidden` inline;
-  `opacity:0`, `font-size:0`, `clip`, posicionamento fora da tela e um
-  comentário `/**/` no meio da regra passam. O D-97 já aceita que ocultação por
-  folha CSS é invisível ao extrator, então isto é só defesa em profundidade; os
-  dois primeiros são baratos de acrescentar.
-- **A cota é conferida e depois contada, sem atomicidade.** ▁
-  `check_fetch_quota` lê o uso e `count_fetch` o incrementa depois da rede
-  (`usage.fetches += 1`, ler-e-escrever). Uma rajada simultânea de um aluno
-  passa inteira pela conferência antes do primeiro commit, e incrementos
-  concorrentes podem se perder: a conta estoura o teto por um instante e pode
-  ocupar as 16 threads de DNS (com `ACCESS_MODE=open`, uma vez por conta
-  Google). O padrão é anterior à fase 3 e é o mesmo das cotas da conversa e do
-  Estúdio (D-92/D-94). O conserto é um incremento atômico (`UPDATE … SET
-  fetches = fetches + 1 … RETURNING`) antes da rede, ou um teto de consultas
-  em andamento por usuário.
+- **A concorrência das cotas não é exercitada contra PostgreSQL.** ▁ O teste de
+  forma (`test_notebook_quota_atomic.py`) prova que a reserva é **um** `UPDATE …
+  WHERE contador < limite` sem `SELECT` antes — o que a torna atômica no
+  PostgreSQL em READ COMMITTED —, e ele falha se o código voltar a
+  ler-e-escrever. A prova real seria uma corrida de threads contra o Postgres de
+  serviço da CI, cujo job hoje só roda migração e seed. Vale se a CI ganhar um
+  job de testes em Postgres por outro motivo.
+- **Ocultação por CSS inline que o extrator ainda não lê.** ▁ Três casos,
+  todos de baixo risco e deixados de fora para não descartar texto visível: um
+  `visibility:hidden` num ancestral cujo filho diz `visibility:visible` (o
+  extrator descarta o filho também — excesso, anterior ao lote); um
+  deslocamento **positivo** grande (`right:9999px`, `left:9999px`), que numa
+  caixa larga pode ser legítimo; e um `calc()` aninhado mais de 64 níveis ou um
+  `var()` que se expande além de 64 candidatos (a expansão grande demais é lida
+  como ocultação; o `calc()` fundo demais, não). Ocultação por folha de estilo
+  continua fora de alcance por decisão (D-97): a defesa ali é a fonte ser dado,
+  nunca instrução.
 
 **B11 — a unidade canônica impressa como o Pint a escreve — quitado (P4).** ▁
 `app/calculations/units.py` ganhou `pretty_unit()`, e o `export_service` o aplica
@@ -209,6 +193,47 @@ continua lá, e a métrica para de medir no 3.
 
 Registrados para não voltarem por engano:
 
+- ~~**Cadernos — lote de pendências das fases 3 e 4 (D-97/D-98)**~~ — nove
+  itens da "Baixa prioridade" fechados num PR, com uma revisão final que achou
+  quatro problemas importantes, todos corrigidos com teste de regressão.
+  - **Velocidade no vídeo** (D-98): o resumo em vídeo oferece 0,75×–1,5× com o
+    mesmo controle do áudio, só quando há voz.
+  - **Dois rasterizadores** (D-98): `lib/figureExport.ts` passou a usar
+    `svgToPngBlob`/`downloadBlob` de `lib/rasterize.ts`; os gráficos ganharam o
+    teto de `canvas` do iOS, o erro tipado ("Baixe o SVG.") e a revogação da
+    URL, e o compositor deixou de emitir `xmlns` duplicado.
+  - **Corte da nota** (D-98): "Salvar como nota" corta numa quebra de linha que
+    guarde ao menos metade do espaço (senão no último espaço), nunca dentro de
+    um número (`guardrails.NUMBER_TOKEN`), e termina dizendo que encurtou — com
+    o limite escrito "20.000", na convenção do D-30.
+  - **Cor das marcas** (D-98): as marcas `[n]` do infográfico usam a tinta
+    esmaecida do tema claro (`#4a5162`, `--ink-muted`) na tela e no SVG; o menor
+    contraste é 6,51:1.
+  - **Duplicata da OpenAlex** (D-97): o id mesclado fica em `meta.merged_from` e
+    é recusado antes da cota e da rede; só a primeira descoberta gasta a
+    unidade, e vira um 409 claro.
+  - **Resultados velhos na troca de provedor** (D-97): trocar de provedor limpa
+    resposta, marcações e erro, e descarta a busca em andamento feita sob o
+    outro (guarda por geração).
+  - **Atribuição na conversa** (D-97): a linha de crédito aparece sob o excerto
+    em toda `CitationChips` (conversa, resumo, Estúdio); sem atribuição, nada.
+  - **Nós ocultos por CSS inline** (D-97): além de `display`/`visibility`,
+    opacidade (também em `filter`), `clip`/`clip-path`, deslocamento para fora
+    da página (qualquer caixa posicionada, `margin`, `translate` em
+    comprimento), caixa zero com overflow cortado e escala a quase nada. Fonte
+    minúscula e tinta transparente são **herdadas** e o filho pode desfazê-las,
+    então só o texto ilegível sai — a coluna de `font-size:16px` dentro de uma
+    linha `font-size:0` fica. **Qualquer** declaração que oculta conta, não só a
+    última (`display:none;display:x` passava), com `var()`, `calc()` e escapes
+    CSS resolvidos.
+  - **Cota não atômica** (D-92/D-94/D-97): as três cotas são **reservadas** por
+    um `UPDATE … WHERE contador < limite` e devolvidas quando a operação não
+    cobra; um teste da forma do SQL falha se o código voltar a
+    ler-e-escrever. A devolução de uma geração é idempotente — só quem tira a
+    linha de `gerando` devolve —, e apagar um caderno devolve as gerações em
+    andamento dele.
+
+  O que ficou pendente está em "Baixa prioridade".
 - ~~**Cadernos, fase 4 — Estúdio visual e sonoro (D-98)**~~ — Resumo em
   áudio (quatro modelos, dois apresentadores), Resumo em vídeo (deck + narração
   numa chamada), Apresentação de slides e Infográfico (três orientações), no

@@ -44,8 +44,8 @@ Google). Estado detalhado em [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md
     **mapa mental** (DOCX, CSV/XLSX, SVG e PNG);
   - **resumo em áudio** — dois apresentadores lidos pela voz do navegador, com
     transcrição e velocidade (roteiro em DOCX e TXT);
-  - **resumo em vídeo** — os slides avançam com a narração, com legenda
-    (PPTX com a narração nas notas);
+  - **resumo em vídeo** — os slides avançam com a narração, com legenda e
+    velocidade (PPTX com a narração nas notas);
   - **apresentação de slides** — com notas do apresentador e tela cheia (PPTX,
     e PDF pela impressão do navegador);
   - **infográfico** — dados em destaque, pontos e etapas em paisagem, retrato
@@ -185,7 +185,7 @@ npm run test:e2e                            # Playwright, API e banco próprios
 
 Os testes do backend rodam em SQLite em memória e **não têm rede** — o
 `conftest.py` reprova quem tentar sair. Pelo último registro em
-[`CLAUDE.md`](CLAUDE.md), são 2979 testes de backend e 735 de frontend.
+[`CLAUDE.md`](CLAUDE.md), são 3189 testes de backend e 751 de frontend.
 
 [`.github/workflows/ci.yml`](.github/workflows/ci.yml) roda em todo PR e em
 todo push para `main`: **Backend** (Python 3.11 e 3.12: ruff, black, pytest,
