@@ -1729,6 +1729,18 @@ não sobre **como a IA o usa** — essas são questões independentes.
   conteúdo que ele tem razão para manter (seus próprios trabalhos
   entregues).
 
+**Emenda (29/09/2026, [D-100](#d-100--o-material-de-curso-da-eng02016-sai-do-cérebro-do-repositório-do-banco-e-depois-do-histórico)).**
+O professor da ENG02016 pediu que o material de sua autoria não ficasse no RAG,
+e o autor retirou **todo** o material de curso — tópicos de aula, plano de
+aulas, ferramentas avaliativas e os trabalhos entregues, que nomeiam colegas.
+Para esse material, e só para ele, o autor também decidiu **purgar o
+histórico**: a reescrita acontece **depois** do merge do PR do D-100, como passo
+separado e manual, pelo guia
+[`17-limpeza-historico-cerebro.md`](17-limpeza-historico-cerebro.md), que lê a
+mesma lista de remoção (`Cérebro/removidos.txt`). O resto do Cérebro — livros,
+extratos, fichas Granta, diagramas e artigos — **continua no histórico como
+antes**; a decisão acima vale para ele sem mudança.
+
 ## D-46 — M9 resolvido: o portão global de assinatura (plano de 18/08) é o que fica ligado
 
 **Contexto.** O PR #18 trouxe duas arquiteturas de cobrança nunca reconciliadas:
@@ -6853,3 +6865,100 @@ estilo, ou por um `var()` que só a folha de estilo declara, herda o 0 do pai e
 custo de não ter motor de CSS, aceito: o erro é para o lado de tirar texto,
 nunca de entregar ao modelo o que o aluno não vê. Um teste o fixa, para que uma
 mudança seja notada.
+
+## D-100 — O material de curso da ENG02016 sai do Cérebro: do repositório, do banco e, depois, do histórico
+
+**29/09/2026. O pedido.** O professor da disciplina ENG02016 pediu que o
+material de sua autoria não estivesse no RAG: é conteúdo próprio, preparado para
+a turma, e não material publicado. O autor — aluno da disciplina — decidiu ir
+além do pedido e retirar **todo** o material de curso, inclusive os trabalhos
+entregues pelos grupos, que nomeiam colegas que nunca consentiram em estar numa
+base pública.
+
+**O que saiu e o que fica.** Saíram 71 arquivos: a pasta
+`02-Material-de-Curso-ENG02016/` inteira (tópicos de aula 1 a 6, plano de aulas,
+instruções e grupos das ferramentas avaliativas, trabalhos entregues), a pasta
+`⚙Seleção de Materiais/` (cópia dos trabalhos) e as 12 cópias avulsas desse
+material na raiz de `Cérebro/`. O manifesto perdeu as 21 entradas
+correspondentes. **Ficam** os livros publicados, os extratos de capítulo, as
+fichas do Granta EduPack, os diagramas de Ashby e os artigos científicos — nada
+disso é autoria do professor nem trabalho de aluno. `Links.md` também fica: é
+uma lista de endereços públicos (vídeos, MatWeb, Khan Academy), não conteúdo
+autoral, e não é indexado (a ingestão só lê PDF).
+
+**A lista de remoção é a fonte única.** `Cérebro/removidos.txt` diz o que saiu,
+um caminho por linha, relativo a `KNOWLEDGE_DIR` — a mesma forma que
+`knowledge_document.path` guarda —, com linha terminada em `/` valendo como
+prefixo de pasta e `#` como comentário. Três consumidores a leem e nenhum tem
+cópia própria: a ferramenta de remoção do banco, a ingestão e a limpeza do
+histórico. Os prefixos cobrem as duas pastas, então a lista **não** repete nome
+de aluno. O `.gitignore` ganhou uma guarda com os mesmos padrões, mas ela é
+cinto, não fonte: só impede que uma cópia local esquecida volte num
+`git add -A`.
+
+**Tirar do repositório não tira do RAG.** A ingestão só acrescenta: um arquivo
+que some do disco deixa o `knowledge_document`, os trechos e os embeddings onde
+estavam, e a busca continua citando o texto. Por isso a remoção tem ferramenta
+própria, `python -m app.knowledge.prune --list <lista> [--apply]`, e duas ações
+no workflow **Administração do banco**: `conhecimento_simular_remocao` e
+`conhecimento_remover`.
+
+- **Simulação primeiro, por padrão.** Sem `--apply`, o comando lista cada
+  documento que casa, com trechos e embeddings, as entradas que não casaram
+  nada e os totais, e desfaz a transação. Com `--apply`, apaga numa transação
+  só e imprime os totais apagados — o log do workflow é a prova, a lição do
+  [D-71](#d-71): job verde só prova que nada lançou exceção.
+- **A cascata é escrita em Python** (vetores, trechos, documentos), e não
+  deixada ao `ondelete`, pela razão do `clear_demo.py` do D-72: o SQLite dos
+  testes não aplica `ondelete`, e confiar no schema deixaria o código certo em
+  produção e inverificável em teste.
+- **A comparação normaliza Unicode (NFC).** Um caminho ingerido num macOS pode
+  estar gravado decomposto (NFD), e "Tópico" nas duas formas imprime igual e
+  compara diferente — uma lista que falhasse em casá-lo diria "nada a remover"
+  com o texto ainda no RAG. Por isso também a comparação é feita em Python, não
+  em SQL.
+- **Caminho exato ou prefixo com `/`**, nada entre os dois: `Tópico 1.pdf` não
+  leva `Tópico 10.pdf`, e `02-Material-de-Curso-ENG02016/` não leva uma pasta
+  vizinha de nome parecido.
+- **Sem `pypdf` e sem corpus.** O workflow instala só `postgres,billing`, como a
+  imagem de produção, e a ferramenta só lê a lista e fala com o banco.
+- **Quando nada casa**, a saída mostra por onde começam os caminhos gravados,
+  porque a causa provável é uma lista escrita contra outra raiz.
+
+**E a ingestão pula a lista.** Um arquivo que case com `removidos.txt` na raiz
+do corpus sai do relatório como `ignorado`, com o motivo escrito, e não é
+indexado — mesmo que uma cópia local esquecida o ponha de volta no disco. Sem
+isso, uma ingestão rodada de uma pasta antiga desfaria a remoção em silêncio.
+O gerador do manifesto (`scripts/generate_knowledge_manifest.py`) segue a mesma
+regra, e perdeu as regras de tipo da pasta `02-`.
+
+**O histórico ainda guarda os arquivos.** `git rm` tira da árvore atual, não dos
+commits antigos: até a limpeza, qualquer um que abra um commit desde o `764b0af`
+(20/08/2026, a primeira versão do Cérebro) ou o `565a6d2` (PR #17) lê os
+arquivos. O autor decidiu purgá-los (emenda do
+[D-45](#d-45--o-cérebro-livros-comerciais-fichas-granta-edupack-fica-versionado-em-main-por-decisão-explícita-do-autor)),
+e a reescrita é passo **separado, manual e posterior ao merge**, pelo guia
+[`17-limpeza-historico-cerebro.md`](17-limpeza-historico-cerebro.md): primeiro
+`conhecimento_remover` em produção, depois `git filter-repo` num clone espelho
+alimentado pela mesma lista, depois o *force-push*. A mesma execução troca, com
+`--replace-text`, as entradas das versões antigas do manifesto que citam os
+trabalhos — uma delas com nomes de colegas no caminho —, porque apagar um
+arquivo do histórico não altera o texto de outro; as regras casam pela forma, e
+o guia não precisa repetir os nomes. Dois limites que o guia diz
+sem rodeio: reescrever o histórico **não** apaga os objetos Git LFS já
+guardados no GitHub (só o suporte do GitHub, ou apagar e recriar o repositório),
+e as visões em cache e as refs de PR continuam servindo os arquivos até o
+suporte limpá-las.
+
+**Alternativas descartadas.**
+- Retirar só o que o professor escreveu, mantendo os trabalhos dos alunos:
+  cumpriria o pedido, mas deixaria nomes de colegas numa base pública, que foi
+  o motivo do autor para ir além.
+- Uma rota `DELETE` na API: remoção de base de conhecimento é operação de
+  operador, rara e irreversível, e o workflow manual já dá o registro e a
+  permissão de escrita no repositório como porta. Uma rota ficaria exposta a
+  todo curador para uma operação que acontece uma vez.
+- Sincronizar a ingestão com o disco (apagar do banco o que sumiu da pasta):
+  mudaria a semântica de uma ingestão rodada de uma pasta incompleta — um disco
+  sem os livros grandes apagaria os livros do banco. A remoção precisa de uma
+  lista explícita, não de uma ausência.

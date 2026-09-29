@@ -141,6 +141,31 @@ nenhum sozinha; o princípio 2 do `CLAUDE.md` continua valendo tanto quanto
 antes de ela existir. Ver [D-45](DECISIONS.md) sobre por que o material
 licenciado que ela indexa está hospedado em `main`.
 
+### O que saiu do Cérebro, e como sai do banco ([D-100](DECISIONS.md))
+
+O Cérebro guarda bibliografia publicada, extratos de capítulo, fichas do Granta
+EduPack, diagramas de Ashby e artigos. **Material de curso não entra**: o
+material da ENG02016 (tópicos de aula, plano de aulas, ferramentas avaliativas,
+trabalhos entregues) saiu a pedido do professor e por decisão do autor.
+`Cérebro/removidos.txt` é a lista do que saiu — um caminho por linha, relativo
+a `KNOWLEDGE_DIR`, com `/` no fim valendo como prefixo de pasta e `#` como
+comentário —, e três coisas a leem:
+
+- **`python -m app.knowledge.prune --list <lista> [--apply]`** tira do banco o
+  que a lista nomeia. A ingestão só acrescenta, então apagar o arquivo não apaga
+  o texto do RAG; isto apaga. Sem `--apply` só simula: lista cada documento que
+  casa, com trechos e embeddings, as entradas que não casaram e os totais. Com
+  `--apply`, apaga documento, trechos e embeddings numa transação, com a cascata
+  escrita em Python. A comparação normaliza Unicode (NFC contra NFD) e não
+  precisa de `pypdf` nem do corpus. Em produção, pelas ações
+  `conhecimento_simular_remocao` e `conhecimento_remover` do workflow
+  **Administração do banco** ([13-deploy.md](13-deploy.md) §5-bis).
+- **A ingestão** pula todo arquivo que casa com `removidos.txt` na raiz do
+  corpus e o declara `ignorado`, com o motivo — uma cópia local esquecida não
+  desfaz a remoção.
+- **A limpeza do histórico do git**, passo manual e posterior, pelo guia
+  [`17-limpeza-historico-cerebro.md`](17-limpeza-historico-cerebro.md).
+
 ### Citação verificada, só em `explain()`
 
 `explain()` pode citar os trechos que efetivamente usou: o esquema pede só o
