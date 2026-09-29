@@ -3,6 +3,7 @@
 import { useState, type RefObject } from "react";
 import { ptBR } from "@/lib/i18n";
 import { downloadChartImage } from "@/lib/charts";
+import { RasterizeError } from "@/lib/rasterize";
 import { MenuButton, MenuItem } from "@/components/ui/Menu";
 import { IconDownload } from "@/components/ui/icons";
 
@@ -39,8 +40,9 @@ export function ChartToolbar({
     setExporting(format);
     try {
       await downloadChartImage(target.current, format, fileName);
-    } catch {
-      setError(t.exportError);
+    } catch (caught) {
+      // A PNG the browser would not rasterise still exists as SVG: say so.
+      setError(caught instanceof RasterizeError ? t.exportPngFailed : t.exportError);
     } finally {
       setExporting(null);
     }
