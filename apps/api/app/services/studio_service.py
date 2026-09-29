@@ -14,9 +14,13 @@ The rules, in the order a generation meets them:
 1. **Owner first**, as everywhere in the notebooks: an artifact is read only
    through ``NotebookRepository``; somebody else's is a 404.
 2. **A choice the tool does not have is refused, never ignored** (D-56).
-3. **Quota before the call, counted on success.** Running generations are
-   already subtracted, so ten clicks cannot overshoot the day's limit; a failed
-   one costs nothing.
+3. **Quota reserved at creation, handed back on failure.** ``create`` takes
+   the unit with one conditional ``UPDATE`` (the repository's ``reserve``), in
+   the transaction that writes the artifact, so running generations already
+   count and ten concurrent clicks cannot overshoot the day's limit; a
+   generation that fails, is deleted while running (alone or with its
+   notebook), or was interrupted by a restart costs nothing — and is handed
+   back once: only the statement that moves the row out of ``gerando`` refunds.
 4. **Every figure of every item is in a passage that item cites**
    (``app.notebooks.studio_content``) — one retry naming the figures, then the
    item is left out and the artifact says so.
@@ -37,7 +41,7 @@ from datetime import UTC, date, datetime, timedelta
 from sqlalchemy.orm import Session
 
 from app.ai.factory import get_provider
-from app.ai.guardrails import numbers_in
+from app.ai.guardrails import NUMBER_TOKEN, numbers_in
 from app.ai.provider import AIProvider, AIUnavailableError
 from app.ai.studio import (
     CATALOG,
@@ -75,7 +79,7 @@ from app.schemas.notebook import (
     StudioToolOut,
     UsageOut,
 )
-from app.services.notebook_service import _note_out, citations_for, passages_for
+from app.services.notebook_service import _note_out, citations_for, created_day, passages_for
 
 logger = logging.getLogger(__name__)
 
@@ -151,10 +155,17 @@ class StudioService:
         return self._out(self._artifact(notebook_id, artifact_id))
 
     def usage(self) -> UsageOut:
-        usage = self.repo.usage(_today())
-        used = usage.artifacts if usage is not None else 0
+        """``used`` is what finished today; ``remaining`` also takes out what is
+        still running. The counter holds every reservation of the day, so a
+        generation interrupted by a restart — still ``gerando`` in the table,
+        read as failed — is subtracted here rather than written back."""
+        today = _today()
+        usage = self.repo.usage(today)
+        reserved = usage.artifacts if usage is not None else 0
+        stuck, running = self._in_flight(today)
+        held = max(reserved - stuck, 0)
         limit = self.settings.notebook_daily_artifacts
-        return UsageOut(used=used, limit=limit, remaining=max(limit - used - self._running(), 0))
+        return UsageOut(used=max(held - running, 0), limit=limit, remaining=max(limit - held, 0))
 
     # --- creating ----------------------------------------------------------
 
@@ -173,13 +184,20 @@ class StudioService:
             raise ConflictError(
                 "Já há gerações em andamento. Espere uma terminar para começar outra."
             )
-        if self.usage().remaining <= 0:
+        now = datetime.now(UTC)
+        stuck, _ = self._in_flight(now.date())
+        limit = self.settings.notebook_daily_artifacts
+        if not self.repo.reserve(now.date(), "artifacts", limit, slack=stuck):
+            self.db.rollback()
             raise QuotaExceededError(
-                f"Você usou as {self.settings.notebook_daily_artifacts} gerações de hoje no "
-                "Estúdio. O limite volta amanhã; o que você já gerou continua disponível."
+                f"Você usou as {limit} gerações de hoje no Estúdio. O limite volta amanhã; "
+                "o que você já gerou continua disponível."
             )
         template = spec.template(payload.template)
         artifact = StudioArtifact(
+            # The reservation's day is the artifact's: a failure hands the
+            # unit back to the day it was taken from.
+            created_at=now,
             notebook_id=notebook.id,
             tool=spec.slug,
             format=options["format"],
@@ -357,7 +375,7 @@ class StudioService:
         }
         artifact.status = "pronto"
         artifact.error = None
-        self.repo.count_artifact(_today())
+        # Counted already: the unit was reserved when the artifact was created.
         self.db.commit()
 
     @staticmethod
@@ -368,9 +386,14 @@ class StudioService:
         return raw
 
     def _fail(self, artifact: StudioArtifact, reason: str) -> None:
+        # Read before the rollback: the row may be gone (deleted meanwhile),
+        # and an expired attribute would then try to load it.
+        artifact_id, day = artifact.id, _created_day(artifact)
         self.db.rollback()
-        artifact.status = "falhou"
-        artifact.error = reason[:500]
+        # A failure costs nothing — handed back only by whoever moves the row
+        # out of ``gerando``, so a delete racing this failure cannot refund too.
+        if self.repo.settle_running(artifact_id, status="falhou", error=reason[:500]):
+            self.repo.release(day, "artifacts")
         self.db.commit()
 
     # --- editing -----------------------------------------------------------
@@ -387,7 +410,16 @@ class StudioService:
         return self._out(artifact)
 
     def delete(self, notebook_id: int, artifact_id: int) -> None:
-        self.db.delete(self._artifact(notebook_id, artifact_id))
+        artifact = self._artifact(notebook_id, artifact_id)
+        day = _created_day(artifact)
+        if self.repo.delete_running(artifact.id):
+            # Its job will find nothing to finish, so nothing would ever hand
+            # the unit back — and an unfinished generation costs nothing. The
+            # delete is conditioned on ``gerando`` in the same statement: if
+            # the job finished or failed first, this is an ordinary delete.
+            self.repo.release(day, "artifacts")
+        else:
+            self.db.delete(artifact)
         self.db.commit()
 
     def save_as_note(self, notebook_id: int, artifact_id: int) -> NoteOut:
@@ -397,7 +429,7 @@ class StudioService:
         note = NotebookNote(
             notebook_id=artifact.notebook_id,
             title=artifact.title[:200],
-            body=plain_text(artifact.tool, content.get("body") or {})[:20_000],
+            body=note_body(plain_text(artifact.tool, content.get("body") or {})),
             origin="estudio",
             citations=list(content.get("citations") or []),
         )
@@ -451,10 +483,20 @@ class StudioService:
         return timedelta(seconds=self.settings.ai_timeout_seconds * 3 + 60)
 
     def _stuck(self, artifact: StudioArtifact) -> bool:
-        created = artifact.created_at
-        if created.tzinfo is None:  # SQLite hands timestamps back naive, in UTC
-            created = created.replace(tzinfo=UTC)
-        return datetime.now(UTC) - created > self._deadline()
+        return datetime.now(UTC) - _created(artifact) > self._deadline()
+
+    def _in_flight(self, day: date) -> tuple[int, int]:
+        """(stuck, running) generations reserved on ``day`` — still ``gerando``
+        in the table, past their deadline or not."""
+        stuck = running = 0
+        for artifact in self.repo.running():
+            if _created_day(artifact) != day:
+                continue
+            if self._stuck(artifact):
+                stuck += 1
+            else:
+                running += 1
+        return stuck, running
 
     def _status(self, artifact: StudioArtifact) -> str:
         if artifact.status == "gerando" and self._stuck(artifact):
@@ -505,6 +547,18 @@ class StudioService:
             layout=_layout_out(drawn) if drawn else None,
             infographic=InfographicLayoutOut.model_validate(sheet.to_dict()) if sheet else None,
         )
+
+
+def _created(artifact: StudioArtifact) -> datetime:
+    created = artifact.created_at
+    if created.tzinfo is None:  # SQLite hands timestamps back naive, in UTC
+        created = created.replace(tzinfo=UTC)
+    return created
+
+
+def _created_day(artifact: StudioArtifact) -> date:
+    """The day whose counter the artifact's unit was reserved on."""
+    return created_day(artifact.created_at)
 
 
 def run_job(factory: Callable[[], Session], user_id: int, artifact_id: int) -> None:
@@ -634,6 +688,76 @@ def plain_text(tool: str, body: dict) -> str:
                 for number, step in enumerate(body["steps"], start=1)
             )
     return "\n".join(lines).strip()
+
+
+#: A note's ceiling: the ``max_length`` of ``NoteIn.body`` and
+#: ``NoteUpdate.body``. It must agree with them — a longer note could not be
+#: edited and saved back —, which a test holds rather than a shared import.
+MAX_NOTE_CHARS = 20_000
+
+#: The sentence a shortened note ends with — in words, so a note cut to the
+#: editor's ceiling never reads as the whole artifact. The figure follows the
+#: pt-BR convention of the screen (D-30): "20.000", which no line wrap splits.
+NOTE_SHORTENED = (
+    "(Nota encurtada: o artefato completo passa do limite de "
+    + f"{MAX_NOTE_CHARS:_}".replace("_", ".")
+    + " caracteres de uma nota.)"
+)
+
+
+def note_body(text: str, limit: int = MAX_NOTE_CHARS) -> str:
+    """``text`` as a note's body: whole when it fits, else shortened to fit.
+
+    The cut falls on the last line break that fits — an artifact's plain text
+    is one item per line — as long as it keeps at least half the room; on the
+    last whitespace when there is none, or when the only line break is so early
+    that keeping to it would throw most of the room away (a short heading over
+    one very long paragraph would otherwise become a note of the heading); and
+    **never inside a number**: "1 200 MPa" cut after "1" would print a figure
+    the artifact never stated. The number is the grounding check's own token
+    (``guardrails.NUMBER_TOKEN``, the one ``mindmap.atoms`` keeps whole); a
+    figure the cut would split goes out whole. ``studio._cap`` is not reused:
+    it flattens line breaks, and a note keeps the artifact's lines.
+
+    The shortened body ends with :data:`NOTE_SHORTENED`, and the total —
+    sentence included — fits ``limit``.
+    """
+    if len(text) <= limit:
+        return text
+    tail = "\n\n" + NOTE_SHORTENED
+    budget = max(limit - len(tail), 0)
+    cut = text.rfind("\n", 0, budget + 1)
+    if cut < budget // 2:
+        cut = _last_space(text, budget)
+    if cut <= 0:
+        cut = budget
+    # A figure never spans a line break (its separators are spaces and dots),
+    # so only the line holding the cut can hold one the cut would split.
+    line_start = text.rfind("\n", 0, cut) + 1
+    line_end = text.find("\n", cut)
+    line_end = len(text) if line_end < 0 else line_end
+    while True:
+        inside = next(
+            (
+                m
+                for m in NUMBER_TOKEN.finditer(text, line_start, line_end)
+                if m.start() < cut < m.end()
+            ),
+            None,
+        )
+        if inside is None:
+            break
+        cut = max(_last_space(text, inside.start()), 0)
+    head = text[:cut].rstrip()
+    return f"{head}{tail}" if head else NOTE_SHORTENED
+
+
+def _last_space(text: str, end: int) -> int:
+    """Index of the last whitespace character before ``end``, or -1."""
+    for index in range(min(end, len(text)) - 1, -1, -1):
+        if text[index].isspace():
+            return index
+    return -1
 
 
 def _slug(title: str) -> str:

@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [34](#sessão-34--290926--cadernos-o-lote-de-pendências-das-fases-3-e-4) | 29/09/2026 | Cadernos: nove pendências das fases 3 e 4 (velocidade no vídeo, um rasterizador só, corte da nota, cor das marcas, duplicata da OpenAlex, troca de provedor, atribuição na conversa, nós ocultos por CSS inline, cota atômica) e as três rodadas de correção da revisão final (D-99) | 2979 → 3270 | 735 → 751 |
 | [33](#sessão-33--280926-a-290926--cadernos-fase-4-o-estúdio-visual-e-sonoro) | 28 e 29/09/2026 | Cadernos, fase 4: resumo em áudio e em vídeo pela voz do navegador, apresentação de slides com PPTX e infográfico com layout do backend; o dado em destaque sem isenção e a unidade com maiúsculas (D-98) | 2651 → 2979 | 608 → 735 |
 | [32](#sessão-32--250926-a-280926--cadernos-fase-3-fontes-externas) | 25 a 28/09/2026 | Cadernos, fase 3: site, YouTube com transcrição colada, OpenAlex, Wikipédia e busca na web pelo Gemini. Tudo por um portão anti-SSRF, com a origem e a licença coladas à citação e custo zero (D-97) | 1966 → 2651 | 563 → 608 |
 | [31](#sessão-31--250926--auditoria-do-pr-78-curva-custo--lote-do-antigravity) | 25/09/2026 | Auditoria do PR #78 (curva custo × lote, execução agêntica externa): comportamento correto, cobertura de teste devolvida e o registro que faltava, escrito (D-96) | 1963 → 1966 | 563 (inalterado) |
@@ -49,6 +50,140 @@ As sessões entre a 11 e a 12 — o patch de design "Prisma" (D-49, D-50), o
 upgrade de segurança S1 e a rodada de desempenho — **não têm seção própria
 aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
+
+---
+
+## Sessão 34 — 29/09/26 — Cadernos: o lote de pendências das fases 3 e 4
+
+**O pedido.** Fechar, num PR só, nove pendências de baixa prioridade que o D-97
+e o D-98 deixaram em `TODO.md`, e fazer a documentação andar junto.
+
+**Como foi feito.** Por subagentes. O front-end e o back-end foram em paralelo,
+porque não mexiam nos mesmos arquivos (`apps/web` e `apps/api`). O back-end
+perdeu o agente num reinício do contêiner, com o trabalho ainda sem commit. Um
+segundo agente retomou do que estava em disco, julgou item por item e desfez
+uma mudança desnecessária em `schemas/notebook.py`. Depois vieram uma revisão
+final de branch e uma rodada de correção com a documentação.
+
+**O que entrou.**
+
+- **Velocidade no vídeo** (D-98). É o mesmo controle do áudio, 0,75×–1,5×, e só
+  aparece quando há voz. Trocar a velocidade fala de novo a frase atual na cena
+  atual.
+- **Um rasterizador só** (D-98). `lib/figureExport.ts` passou a usar
+  `svgToPngBlob`/`downloadBlob` de `lib/rasterize.ts`. Com isso, os gráficos
+  ganharam o teto de `canvas` do iOS, o erro tipado ("Baixe o SVG.") e a
+  revogação da URL. De quebra saiu um `xmlns` duplicado que o compositor
+  emitia: é XML malformado, e o novo caminho, que relê o SVG, recusava.
+- **Corte da nota** (D-98). O corte cai numa quebra de linha, nunca dentro de um
+  número, e a nota termina com a frase que diz que foi encurtada.
+- **Cor das marcas** (D-98). As marcas `[n]` usam a tinta esmaecida da tela
+  também no SVG. O menor contraste é 6,51:1.
+- **Duplicata da OpenAlex** (D-97). O id mesclado fica em `meta.merged_from`
+  e, da segunda vez, é recusado antes da cota e da rede.
+- **Troca de provedor na pesquisa** (D-97). A troca limpa o resultado anterior
+  e descarta a busca que ainda estava em andamento sob o provedor antigo.
+- **Atribuição na conversa** (D-97). A linha de crédito aparece sob o excerto de
+  toda `CitationChips`.
+- **Nós ocultos por CSS inline** (D-97). O extrator passou a ler opacidade, clip,
+  deslocamento para fora da página, caixa zero e escala.
+- **Cota atômica** (D-92/D-94/D-97). As três cotas passaram a ser reservadas por
+  um `UPDATE … WHERE c < limite` e devolvidas quando a operação não cobra. Não
+  foi preciso migração.
+
+**A revisão final: 0 crítico, 4 importantes e 8 menores.** Todos os
+importantes foram corrigidos com teste de regressão.
+
+- **I-1.** O extrator deixava a última declaração vencer, então
+  `display:none;display:x` passava. O navegador descarta o valor inválido e
+  mantém o anterior. Agora **qualquer** declaração que oculta conta, e o D-99
+  explica por que essa regra não pode ser derrotada e um validador poderia.
+  `var()`, `calc()` e escapes CSS também são resolvidos.
+- **I-2.** `position: relative` e `sticky` com deslocamento grande não eram
+  lidos como fora da página.
+- **I-3.** Os testes de corrida passavam com um `reserve` não atômico, porque o
+  `BEGIN IMMEDIATE` serializa a transação. O teste novo captura o SQL enviado e
+  exige um `UPDATE` condicional sem `SELECT` antes. Para conferir, o `reserve`
+  foi trocado por um ler-e-escrever: os três casos do teste novo falharam e os
+  outros 22 passaram. Depois o atômico foi restaurado.
+- **I-4.** Um `font-size:0` de layout apagava colunas visíveis. Fonte e tinta
+  viraram estado herdado, e só sai o texto de fato ilegível.
+
+Dos menores, sete foram corrigidos:
+
+- tinta transparente, `font: 0/0 a`, `filter: opacity()`, `matrix()`/`scale()`
+  a quase nada e `margin` muito negativo;
+- o `translate(-100%)` de uma dica de ferramenta, que era descartado por engano;
+- o `NUMBER_TOKEN` público, que antes era importado pelo nome privado;
+- a nota que jogava fora o espaço por causa de uma quebra de linha cedo demais;
+- o "20.000" em pt-BR;
+- a devolução em dobro quando se apaga uma geração enquanto o job falha;
+- a unidade presa quando se apaga o caderno.
+
+O oitavo, o dia do deploy, foi aceito e está em `TODO.md`.
+
+**A segunda revisão: 1 crítico, 2 importantes e 3 menores**, todos no leitor de
+CSS inline que a primeira rodada escreveu, e todos corrigidos com teste de
+regressão (`test_html_css_budgets.py`, feito das reproduções do revisor).
+
+- **N-1 (crítico).** A expansão de `var()` construía todas as cópias antes de
+  conferir o teto: uma página de 0,2 MB pedia 402 MB, e uma de 0,9 MB dava
+  `MemoryError`. Em produção, é derrubar a API por um "adicionar link". Agora
+  há orçamento por atributo (8 KB, 64 declarações), por expansão (64 valores,
+  8 KB cada, contados antes de construir) e de trabalho por atributo e por
+  página. A mesma página roda em milissegundos, com pico de memória de 1 MB.
+- **N-2.** `var(--x,)` virava valor vazio, e `"".split()[0]` dava 500. Valor
+  que se expande em nada é valor nenhum, e **qualquer** erro imprevisto ao ler
+  um estilo oculta o nó em vez de derrubar a página.
+- **N-3.** O escopo de propriedades personalizadas era copiado a cada nó: 43 s
+  para 1,3 MB. Agora o filho aponta para o escopo do pai, com teto de 256: 0,3 s.
+- **N-4.** A profundidade contava referências lado a lado, e nove `var()` com
+  reserva num `box-shadow` descartavam um parágrafo visível. Agora conta só o
+  aninhamento.
+- **N-5.** Matemática que o leitor não avalia deixava passar. Numa opacidade ou
+  escala, agora oculta; num deslocamento, só com um comprimento literal muito
+  negativo, porque `calc(50% - 10px)` centraliza caixas visíveis.
+- **N-6.** O excesso de ler só o inline — a coluna dimensionada por classe sob
+  um `font-size:0` é descartada — foi escrito no D-99 e em `TODO.md`, e um
+  teste o fixa.
+
+A direção de todos é a do D-99: passou do orçamento, o nó é lido como oculto.
+
+**A terceira revisão: 0 crítico, 1 importante e 2 menores**, de novo no leitor
+de CSS inline, e todos corrigidos.
+
+- **B-1 (importante).** O *space toggle*: `--off: ;` é uma propriedade
+  personalizada válida e vazia, e `display:var(--off) none` vale `none` no
+  navegador. O leitor descartava toda declaração de valor vazio, a
+  personalizada também, e o texto oculto chegava ao modelo — a mesma classe do
+  I-1. Agora a propriedade vazia entra no escopo e a ocultação vale, no próprio
+  nó ou herdada de um ancestral, em `display`, `visibility`, `opacity` e
+  `font-size`. As formas irmãs saíram junto: `inherit`, `unset`, `revert` e
+  `revert-layer` numa propriedade personalizada somam o valor do pai, e
+  `initial` fica sem valor, o que manda o `var()` para a reserva. Os controles
+  (`--on:initial; display:var(--on) none` e o vazio sozinho) continuam
+  visíveis, como no navegador.
+- **M-1.** Os tetos recusavam páginas que escrevem tokens de design inline: mais
+  de 64 propriedades personalizadas no `<html>` levavam a página inteira, e uma
+  página do Framer perdia a subárvore a 43 níveis. Propriedade personalizada
+  deixou de contar nas 64 declarações (conta no limite de 8 KB), e o teto do
+  escopo foi de 256 para 4096, porque desde o N-3 ele não protege o tempo —
+  cada consulta paga ao orçamento os escopos que percorre e os valores que
+  traz. As reproduções do N-1 e do N-3 continuam limitadas (0,00 s, 0,41 s e
+  0,34 s), e formas hostis novas contra os tetos relaxados — 1200 valores de um
+  nome lidos por 200 mil filhos, uma corrente de 4000 escopos com 100 mil
+  consultas, uma de `inherit` com 4000 níveis — rodam no mesmo tempo e na mesma
+  memória que antes da mudança.
+- **M-2.** O D-99 dizia que "nenhuma página real" escreve estilo além dos
+  tetos. Passou a dizer "raro, não impossível", com os tetos escritos.
+
+**Números.** Backend 2979 → 3270 e frontend 735 → 751, todos verdes, nenhum
+skip. O back-end tinha 3091 antes da primeira rodada de correção, que
+acrescentou casos de CSS, os testes de forma do SQL e os de devolução única
+(3189); a segunda acrescentou os 55 dos orçamentos (3244), e a terceira os 26
+do *space toggle* e dos tokens inline.
+
+**Depois do merge:** o **Deploy da API**. Não há migração nem seed.
 
 ---
 

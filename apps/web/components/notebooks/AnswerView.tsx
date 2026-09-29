@@ -17,7 +17,10 @@ export function citationLocator(citation: NotebookCitation): string | null {
 /**
  * The chips of the passages one item rests on — a paragraph, a card, a cell.
  * A citation whose source left the notebook still opens (it is a copy), and
- * says the source is gone.
+ * says the source is gone. A passage from an external source carries the
+ * credit its licence asks for under the excerpt (D-97) — the full CC BY-SA 4.0
+ * line for Wikipédia — copied with the citation, so it survives the source's
+ * removal like the title does. A citation without one draws no credit line.
  */
 export function CitationChips({
   numbers,
@@ -34,6 +37,7 @@ export function CitationChips({
         const citation = byNumber.get(number);
         if (!citation) return null;
         const gone = !liveSourceIds.has(citation.source_id);
+        const attribution = citation.source_attribution?.trim();
         return (
           <CitationChip
             key={number}
@@ -41,6 +45,13 @@ export function CitationChips({
             label={t.citation(number, citation.source_title)}
             title={citation.source_title}
             locator={gone ? t.citationGone : citationLocator(citation)}
+            credit={
+              attribution ? (
+                <>
+                  <span className="font-semibold">{t.reader.attribution}:</span> {attribution}
+                </>
+              ) : null
+            }
           >
             {citation.excerpt}
           </CitationChip>

@@ -1800,6 +1800,10 @@ export const ptBR = {
     exportSvgHint: "Vetor, editável sem perder nitidez",
     exporting: "Exportando…",
     exportError: "Não foi possível exportar a imagem.",
+    // The PNG is drawn on a canvas, and a browser can refuse it (tainted
+    // canvas, no canvas at all); the SVG needs neither — same sentence as the
+    // Studio's `pngFailed`.
+    exportPngFailed: "Não foi possível gerar a imagem neste navegador. Baixe o SVG.",
     // A figura é uma tela de vetores: para quem usa leitor de tela ela é
     // silêncio. A alternativa textual de verdade é a tabela que a originou,
     // aberta a partir da própria figura.

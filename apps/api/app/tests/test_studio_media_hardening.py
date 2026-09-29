@@ -25,7 +25,7 @@ import pytest
 from docx import Document
 from openpyxl import load_workbook
 
-from app.ai.guardrails import _NUMBER_TOKEN, numeric_tokens
+from app.ai.guardrails import NUMBER_TOKEN, numeric_tokens
 from app.ai.notebook import Passage
 from app.ai.studio import (
     MAX_LINE,
@@ -466,8 +466,8 @@ def test_the_cap_never_prints_a_figure_the_text_does_not_write(limit):
     cut = _cap(text, limit)
     assert len(cut) <= limit
     assert text.startswith(cut)
-    written = [m.group() for m in _NUMBER_TOKEN.finditer(text)]
-    printed = [m.group() for m in _NUMBER_TOKEN.finditer(cut)]
+    written = [m.group() for m in NUMBER_TOKEN.finditer(text)]
+    printed = [m.group() for m in NUMBER_TOKEN.finditer(cut)]
     # Every figure printed is one the text writes, whole and in order.
     assert printed == written[: len(printed)], (limit, cut)
 

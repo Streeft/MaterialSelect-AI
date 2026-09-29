@@ -13,8 +13,11 @@ The rules this service exists to keep, in the order a request meets them:
    that guards the explanation of a study. A paragraph that fails it gets one
    retry, told exactly which figures; a paragraph that fails twice is left out
    and the answer says so. Never repaired, never silently dropped.
-5. **The daily quota is checked before the call and counted after a success.**
-   One question is one request, retry included.
+5. **The daily quota is reserved before the call and handed back on a
+   failure.** The reservation is one conditional ``UPDATE`` (the repository's
+   ``reserve``), so two questions racing for the last unit cannot both have
+   it; a call that fails costs nothing, as before. One question is one
+   request, retry included.
 """
 
 from __future__ import annotations
@@ -22,7 +25,8 @@ from __future__ import annotations
 import dataclasses
 import hashlib
 import logging
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from datetime import UTC, date, datetime
 from typing import Any
 
@@ -176,7 +180,18 @@ class NotebookService:
         return self.get(notebook_id)
 
     def delete(self, notebook_id: int) -> None:
-        self.repo.delete(self.notebook(notebook_id))
+        notebook = self.notebook(notebook_id)
+        # A generation still running holds a reserved unit, and its job will
+        # find no artifact to finish or fail: hand the unit back here, as
+        # deleting the artifact alone does — through the same guarded delete,
+        # so a job failing at this very moment cannot refund it a second time.
+        for artifact in self.repo.running():
+            if artifact.notebook_id != notebook.id:
+                continue
+            day = created_day(artifact.created_at)
+            if self.repo.delete_running(artifact.id):
+                self.repo.release(day, "artifacts")
+        self.repo.delete(notebook)
         self.db.commit()
 
     def notebook(self, notebook_id: int) -> Notebook:
@@ -404,8 +419,16 @@ class NotebookService:
                 "Nenhuma fonte marcada. Adicione uma fonte ou marque ao menos uma na lista."
             )
         provider = self._provider()
-        self.check_quota()
+        with self.reserved_request():
+            asked, answered = self._answer(notebook, question, chunks, provider)
+        return ChatOut(
+            question=_message_out(asked), answer=_message_out(answered), usage=self.usage()
+        )
 
+    def _answer(
+        self, notebook: Notebook, question: str, chunks: list[NotebookChunk], provider: AIProvider
+    ) -> tuple[NotebookMessage, NotebookMessage]:
+        notebook_id = notebook.id
         found = search(
             chunks,
             question,
@@ -442,12 +465,9 @@ class NotebookService:
             notebook_id=notebook.id, role="assistant", content=answer.model_dump()
         )
         self.db.add_all([asked, answered])
-        self.repo.count_request(_today())
         self._touch(notebook)
         self.db.commit()
-        return ChatOut(
-            question=_message_out(asked), answer=_message_out(answered), usage=self.usage()
-        )
+        return asked, answered
 
     # --- the notebook guide ------------------------------------------------
 
@@ -457,8 +477,13 @@ class NotebookService:
         if not chunks:
             raise ValidationError("Marque ao menos uma fonte para escrever o guia do caderno.")
         provider = self._provider()
-        self.check_quota()
+        with self.reserved_request():
+            self._write_guide(notebook, chunks, provider)
+        return self.get(notebook_id)
 
+    def _write_guide(
+        self, notebook: Notebook, chunks: list[NotebookChunk], provider: AIProvider
+    ) -> None:
         picked = openings(chunks, self.settings.notebook_context_passages)
         passages = passages_for(picked)
         titles = tuple(dict.fromkeys(chunk.source.title for chunk in picked))
@@ -482,9 +507,7 @@ class NotebookService:
 
         notebook.summary = _finalise(guide).model_dump()
         notebook.suggested_questions = questions
-        self.repo.count_request(_today())
         self.db.commit()
-        return self.get(notebook_id)
 
     # --- notes -------------------------------------------------------------
 
@@ -569,21 +592,58 @@ class NotebookService:
         return UsageOut(used=used, limit=limit, remaining=max(limit - used, 0))
 
     def check_fetch_quota(self) -> None:
-        """Refuse before anything leaves the server once today's fetches are
-        spent. Counting is the caller's (``repo.count_fetch``), once the
-        request is sent."""
+        """Refuse early, before any other work, once today's fetches are spent.
+        Only a first answer: the unit itself is taken by ``reserve_fetch``,
+        which is what two concurrent requests cannot both pass."""
         if self.fetch_usage().remaining <= 0:
-            raise QuotaExceededError(
-                f"Você usou as {self.settings.notebook_daily_fetches} buscas de fontes externas "
-                "de hoje. O limite volta amanhã; colar o texto como fonte continua disponível."
-            )
+            raise QuotaExceededError(self._fetches_spent())
 
     def check_quota(self) -> None:
+        """Refuse early once today's questions are spent — the unit itself is
+        taken by ``reserve_request``."""
         if self.usage().remaining <= 0:
-            raise QuotaExceededError(
-                f"Você usou as {self.settings.notebook_daily_requests} perguntas de hoje nos "
-                "cadernos. O limite volta amanhã; suas fontes e notas continuam disponíveis."
-            )
+            raise QuotaExceededError(self._requests_spent())
+
+    def reserve_fetch(self, day: date) -> None:
+        """Take one of today's fetches, atomically, or refuse. Committed at
+        once: the unit is spent from the moment a request may leave (D-97)."""
+        if not self.repo.reserve(day, "fetches", self.settings.notebook_daily_fetches):
+            self.db.rollback()
+            raise QuotaExceededError(self._fetches_spent())
+        self.db.commit()
+
+    def reserve_request(self, day: date) -> None:
+        """Take one of today's AI requests, atomically, or refuse; committed."""
+        if not self.repo.reserve(day, "requests", self.settings.notebook_daily_requests):
+            self.db.rollback()
+            raise QuotaExceededError(self._requests_spent())
+        self.db.commit()
+
+    @contextmanager
+    def reserved_request(self) -> Iterator[None]:
+        """One AI request held for the block and handed back if it fails — a
+        failed call costs nothing, and a success keeps the unit it reserved."""
+        day = _today()
+        self.reserve_request(day)
+        try:
+            yield
+        except BaseException:
+            self.db.rollback()
+            self.repo.release(day, "requests")
+            self.db.commit()
+            raise
+
+    def _fetches_spent(self) -> str:
+        return (
+            f"Você usou as {self.settings.notebook_daily_fetches} buscas de fontes externas "
+            "de hoje. O limite volta amanhã; colar o texto como fonte continua disponível."
+        )
+
+    def _requests_spent(self) -> str:
+        return (
+            f"Você usou as {self.settings.notebook_daily_requests} perguntas de hoje nos "
+            "cadernos. O limite volta amanhã; suas fontes e notas continuam disponíveis."
+        )
 
     def _provider(self) -> AIProvider:
         try:
@@ -740,6 +800,14 @@ def _truncate(pages: list[str], limit: int) -> tuple[list[str], bool]:
 
 def _today() -> date:
     return datetime.now(UTC).date()
+
+
+def created_day(moment: datetime) -> date:
+    """The UTC day of a stored timestamp — the day a quota unit taken at that
+    moment was counted on. SQLite hands timestamps back naive, in UTC."""
+    if moment.tzinfo is None:
+        moment = moment.replace(tzinfo=UTC)
+    return moment.astimezone(UTC).date()
 
 
 def _message_text(message: NotebookMessage) -> str:

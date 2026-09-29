@@ -176,6 +176,85 @@ describe("SourceSearch — searching", () => {
   });
 });
 
+describe("SourceSearch — switching provider", () => {
+  it("clears the previous results and ticks: a new provider is a new question", async () => {
+    api.searchSources.mockResolvedValue(
+      answer([
+        work({
+          provider: "wikipedia",
+          key: "Aço",
+          title: "Aço",
+          url: "https://pt.wikipedia.org/wiki/A%C3%A7o",
+        }),
+      ]),
+    );
+    const user = userEvent.setup();
+    render(wrap(<SourceSearch notebook={notebook} />));
+    await user.click(screen.getByRole("button", { name: s.providers.wikipedia }));
+    await searchFor(user, "aço");
+    await screen.findByText(s.resultsCount(1));
+    await user.click(screen.getByRole("checkbox", { name: s.select("Aço") }));
+    expect(screen.getByRole("button", { name: s.add(1) })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: s.providers.web }));
+    // The Web's privacy notice is there, with nothing of Wikipédia's under it.
+    expect(screen.getByText(s.webPrivacy)).toBeInTheDocument();
+    expect(screen.queryByText(s.resultsCount(1))).not.toBeInTheDocument();
+    expect(screen.queryByRole("list", { name: s.results })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: s.add(1) })).not.toBeInTheDocument();
+
+    // Coming back does not resurrect the old answer either.
+    await user.click(screen.getByRole("button", { name: s.providers.wikipedia }));
+    expect(screen.queryByText(s.resultsCount(1))).not.toBeInTheDocument();
+    // The typed question stays, ready to be asked of the new provider.
+    expect(queryField()).toHaveValue("aço");
+  });
+
+  it("clears a stale error", async () => {
+    const message = "Limite diário de buscas atingido: 30 por dia.";
+    api.searchSources.mockRejectedValue(new ApiError(message, 429));
+    const user = userEvent.setup();
+    render(wrap(<SourceSearch notebook={notebook} />));
+    await searchFor(user, "fadiga");
+    expect(await screen.findByRole("alert")).toHaveTextContent(message);
+
+    await user.click(screen.getByRole("button", { name: s.providers.wikipedia }));
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("drops the answer of a search still in flight when the provider changes", async () => {
+    let resolve: (value: NotebookSearch) => void = () => undefined;
+    api.searchSources.mockReturnValue(
+      new Promise<NotebookSearch>((done) => {
+        resolve = done;
+      }),
+    );
+    const user = userEvent.setup();
+    render(wrap(<SourceSearch notebook={notebook} />));
+    await searchFor(user, "fadiga");
+    expect(api.searchSources).toHaveBeenCalledWith(4, { provider: "openalex", query: "fadiga" });
+
+    await user.click(screen.getByRole("button", { name: s.providers.wikipedia }));
+    resolve(answer([work()]));
+    // Give the late answer every chance to land.
+    await new Promise((done) => setTimeout(done, 0));
+    await new Promise((done) => setTimeout(done, 0));
+    expect(screen.queryByText(s.resultsCount(1))).not.toBeInTheDocument();
+    expect(screen.queryByRole("list", { name: s.results })).not.toBeInTheDocument();
+  });
+
+  it("re-picking the provider already chosen keeps its results", async () => {
+    api.searchSources.mockResolvedValue(answer([work()]));
+    const user = userEvent.setup();
+    render(wrap(<SourceSearch notebook={notebook} />));
+    await searchFor(user, "fadiga");
+    await screen.findByText(s.resultsCount(1));
+
+    await user.click(screen.getByRole("button", { name: s.providers.openalex }));
+    expect(screen.getByText(s.resultsCount(1))).toBeInTheDocument();
+  });
+});
+
 describe("SourceSearch — results", () => {
   it("a result without text is shown, not selectable, with its open link", async () => {
     api.searchSources.mockResolvedValue(

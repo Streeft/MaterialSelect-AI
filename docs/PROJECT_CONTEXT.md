@@ -504,8 +504,33 @@ desenhado igual na tela e no SVG, marcas `[n]` e título renomeado incluídos; o
 migração. A oferta de vozes pt-BR depende do aparelho do aluno, e a tela diz
 quando não há.
 
-**Saúde do código:** 2979 testes de backend (Python 3.11 e 3.12, nenhum skip)
-e 735 de frontend, todos verdes. Desde o P0-1 a suíte também roda as migrações de
+**Cadernos — o lote de pendências das fases 3 e 4** (D-97/D-98). Nove itens da
+baixa prioridade fechados num PR. No Estúdio: velocidade no resumo em vídeo, um
+rasterizador só (`lib/rasterize.ts`, agora também para as figuras dos
+gráficos), "Salvar como nota" que encurta numa quebra de linha sem partir
+número e diz que encurtou, e as marcas `[n]` do infográfico na mesma tinta na
+tela e no SVG. Nas fontes externas: o id mesclado de um artigo da OpenAlex
+recusado antes da cota e da rede, a troca de provedor que limpa o resultado
+anterior, a atribuição sob o excerto na citação da conversa e o extrator de HTML
+que descarta texto oculto por **CSS inline** — qualquer declaração que oculta
+conta, não só a última, e fonte minúscula ou tinta transparente só tiram o texto
+que de fato não se lê. E as três cotas diárias passaram a ser **reservadas** por
+um `UPDATE … WHERE contador < limite` atômico, com a devolução de uma geração
+feita uma vez só, por quem a tira de `gerando`. A revisão final achou quatro
+problemas importantes (uma declaração inválida que desfazia a ocultação,
+`position: relative` fora da página, testes de corrida que passavam com o código
+não atômico, e colunas visíveis descartadas sob um `font-size:0`), todos
+corrigidos com teste. Uma segunda revisão achou o leitor de CSS inline sem teto
+— uma página pequena que pedia gigabytes, um `var(--x,)` que dava 500 e um
+escopo copiado a cada nó —, e ele ganhou orçamentos cujo excesso oculta o nó
+(D-99). A terceira achou o *space toggle* (`--off: ;` com
+`display:var(--off) none`) passando, porque a propriedade vazia era descartada,
+e tetos que recusavam páginas com tokens de design inline no `<html>`: a vazia
+passou a valer, e propriedade personalizada deixou de contar nas 64
+declarações do atributo, com o escopo indo a 4096.
+
+**Saúde do código:** 3270 testes de backend (Python 3.11 e 3.12, nenhum skip)
+e 751 de frontend, todos verdes. Desde o P0-1 a suíte também roda as migrações de
 verdade, nos dois sentidos, contra um banco temporário que já contém dados —
 `test_migration_selection_stage.py`, `test_migration_process_universe.py`,
 `test_migration_selection_universe.py`, `test_migration_process_attributes.py`,
@@ -852,6 +877,7 @@ que mais afetam quem for mexer no código:
 | Trecho recuperado do Cérebro é vocabulário, nunca número; citação verificada por índice | [D-47](DECISIONS.md) |
 | Fonte externa dos Cadernos: URL do aluno só pelo `safe_fetch`; a cota conta o que sai, DNS inclusive; a origem viaja com o texto | [D-97](DECISIONS.md) |
 | Estúdio visual e sonoro: a voz é a do navegador (sem MP3/MP4); o dado em destaque não tem isenção e a unidade é comparada com maiúsculas; o layout do infográfico e a tipografia vêm do backend | [D-98](DECISIONS.md) |
+| Cotas dos Cadernos reservadas por um `UPDATE` condicional e devolvidas uma vez, por quem tira a geração de `gerando`; CSS inline oculta por qualquer declaração, e fonte e cor são estado herdado | [D-99](DECISIONS.md) |
 
 ## 9. Limitações atuais
 
@@ -938,7 +964,7 @@ que mais afetam quem for mexer no código:
 | Dependência de provedor de IA | Arquitetura desacoplada com provedor simulado; funciona sem chave. |
 | Incorporação inadvertida de dado protegido | Triagem de licenciamento (M1, item 4.2 da proposta) — `Source` registra licença/procedência, e uma fonte nova sem licença ou marcada como possivelmente protegida sem confirmação humana é recusada antes de qualquer linha ser escrita ([D-44](DECISIONS.md)). |
 | Resultado não reproduzível por interferência de IA | Cálculo determinístico + guardrails executáveis + confirmação do usuário. |
-| Regressão silenciosa | CI com 831 testes de backend e 165 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
+| Regressão silenciosa | CI com 3270 testes de backend e 751 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
 | Material licenciado do Cérebro exposto em `main` (repositório público) | Risco aceito por decisão explícita do autor, não mitigado — o Cérebro é a base de conhecimento da camada de IA ([D-45](DECISIONS.md)). |
 | Uso sem cobrança | Portão binário ligado ([D-46](DECISIONS.md)), checkout testado ao vivo em modo de teste — falta só configurar `STRIPE_API_KEY`/`STRIPE_WEBHOOK_SECRET`/`STRIPE_PRICE_ID` em **modo de produção** para vender de verdade. |
 

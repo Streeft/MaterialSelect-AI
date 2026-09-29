@@ -4,11 +4,20 @@ import { useEffect, useId, useMemo, useState } from "react";
 import type { StudioDeckContent } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
+import { formatNumber } from "@/lib/format";
 import { toSegments } from "@/lib/speech/voices";
 import { useSpeech } from "@/lib/speech/useSpeech";
-import { Alert, Button, IconButton, RichText } from "@/components/ui";
+import {
+  Alert,
+  Button,
+  ButtonGroup,
+  ButtonGroupItem,
+  IconButton,
+  RichText,
+} from "@/components/ui";
 import { IconArrowLeft, IconArrowRight } from "@/components/ui/icons";
 import { CitationChips } from "../AnswerView";
+import { SPEEDS } from "./AudioView";
 import { SlideFrame, type DeckSlide } from "./DeckView";
 import type { Cites } from "./views";
 
@@ -38,6 +47,10 @@ function narrationOf(slide: DeckSlide): string {
  *
  * The live region says where the reader is ("Cena 2 de 5"), never the text:
  * a screen reader repeating the caption would talk over the voice.
+ *
+ * The speed choice is the audio's (`SPEEDS`, same control, same words): a new
+ * speed restarts the sentence being read, which is `useSpeech.setRate`'s rule.
+ * Offered only with a voice — without one there is nothing to speed up.
  */
 export function VideoView({ content, cites }: { content: StudioDeckContent; cites: Cites }) {
   const slides = content.slides;
@@ -125,10 +138,22 @@ export function VideoView({ content, cites }: { content: StudioDeckContent; cite
         <p className="text-caption text-ink-muted" aria-live="polite">
           {t.scenePosition(scene + 1, total)}
         </p>
+        {!voiceless ? (
+          <ButtonGroup label={t.speed} className="ml-auto">
+            {SPEEDS.map((speed) => (
+              <ButtonGroupItem
+                key={speed}
+                selected={player.rate === speed}
+                label={t.speedValue(formatNumber(speed))}
+                onClick={() => player.setRate(speed)}
+              />
+            ))}
+          </ButtonGroup>
+        ) : null}
         <Button
           variant="ghost"
           size="sm"
-          className="ml-auto"
+          className={cn(voiceless && "ml-auto")}
           aria-expanded={transcriptOpen}
           aria-controls={transcriptId}
           onClick={() => setTranscriptOpen((open) => !open)}

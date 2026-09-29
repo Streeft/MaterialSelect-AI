@@ -6710,3 +6710,146 @@ um caderno que tenha.
   Conferir num celular com voz pt-BR é tarefa manual.
 
 **Depois do merge**, o **Deploy da API** (não há migração nem seed).
+
+## D-99 — Lote de pendências das fases 3 e 4: a cota é reservada e devolvida uma vez, e o CSS inline oculta por qualquer declaração
+
+**O pedido.** Fechar nove itens da "Baixa prioridade" que o D-97 e o D-98
+deixaram (lista e uma linha por item em `TODO.md`, "Débitos já quitados"). Sete
+são de execução. Dois pediram escolher um desenho, e é deles que trata esta
+decisão.
+
+**A cota é uma reserva, não uma contagem.** As três cotas diárias dos Cadernos
+(conversa, D-92; Estúdio, D-94; buscas, D-97) eram conferidas num passo e
+contadas noutro, com um ler-e-escrever em Python. Uma rajada de um aluno passava
+inteira pela conferência, e dois incrementos concorrentes podiam perder um.
+Agora cada unidade é tomada por `NotebookRepository.reserve`: **um**
+`UPDATE ai_usage SET c = c + 1 WHERE … AND c < limite`, cujo número de linhas
+diz se tomou. A linha do dia nasce com `INSERT … ON CONFLICT DO NOTHING` sobre o
+par único que já existia. No PostgreSQL em READ COMMITTED, o bloqueio da linha
+faz o perdedor reler o `WHERE` contra o valor gravado; no SQLite, os escritores
+fazem fila. O que a operação acaba não cobrando volta por `release` (`c - 1`,
+nunca abaixo de zero). O que cada cota cobra não mudou: pergunta que falha é de
+graça; busca conta quando sai do servidor, DNS incluído; geração conta desde que
+existe, porque o que está rodando também ocupa. Nenhuma migração.
+
+Descartados: `SELECT … FOR UPDATE` seguido de escrita, que precisa de dois
+comandos e cujo bloqueio o SQLite ignora; e um teto de
+requisições em andamento por usuário, que limitaria a rajada sem corrigir o
+incremento perdido.
+
+**A devolução de uma geração acontece uma vez só.** Três caminhos devolvem a
+unidade de uma geração em andamento: a falha do job, a exclusão do artefato e a
+exclusão do caderno. Dois deles podem correr juntos. Por isso **quem tira a
+linha de `gerando` é quem devolve**: `settle_running` e `delete_running` são um
+`UPDATE`/`DELETE` condicionado a `status = 'gerando'`, e só o que mudou uma
+linha devolve. Um status lido antes não decide nada.
+
+**O que prova a atomicidade é a forma do SQL.** A corrida de threads da suíte
+roda com `BEGIN IMMEDIATE`, que serializa a transação inteira, e passaria também
+com um ler-e-escrever. A revisão mostrou isso trocando o `reserve` por um
+não atômico. O teste que decide captura o SQL enviado: um `INSERT … ON CONFLICT
+DO NOTHING` e um `UPDATE … WHERE … < ?`, sem `SELECT` do contador antes. Com a
+troca, ele falha e todos os outros passam.
+
+**O CSS inline oculta quando qualquer declaração oculta.** A primeira versão lia
+"a última declaração vence", como a cascata. Mas o navegador descarta uma
+declaração cujo valor não aceita e mantém a anterior, então
+`display:none;display:x` ocultava na tela e passava no extrator. Um validador
+por propriedade corrigiria o caso, mas reabriria o furo onde discordasse do
+navegador: um `left:5` sem unidade é inválido no modo padrão e válido no modo
+quirks. O valor que o navegador aplica é sempre um dos declarados. Então
+conferir **todos** não depende de parse nenhum e não pode errar para o lado de
+deixar passar. O preço é um estilo que oculta e desfaz no mesmo atributo
+(`display:none;display:block`): raro num atributo `style`, e esse nó é
+descartado. O que *resgata* texto (sombra, contorno, fundo recortado no texto)
+conta ao contrário: só quando toda declaração resgata. `var()` é expandido em
+todos os valores que pode assumir, e escapes CSS são decodificados. **O vazio é
+um desses valores:** `--off: ;` é uma propriedade personalizada válida, e o
+*space toggle* `display:var(--off) none` vale `none` no navegador. A terceira
+revisão achou o leitor descartando a declaração vazia — e com ela a ocultação
+(B-1). Agora a propriedade vazia entra no escopo; `initial` entra sem valor
+nenhum (o valor garantidamente inválido, que manda o `var()` para a reserva);
+e `inherit`, `unset`, `revert` e `revert-layer` somam o valor do pai, porque
+propriedade personalizada é herdada. Declaração comum vazia continua não sendo
+declaração.
+
+**O leitor tem orçamento, e o que ele não consegue seguir oculta.** A página
+escolhe o próprio estilo, e a segunda revisão mostrou o que isso custa a um
+leitor sem teto: uma propriedade personalizada declarada milhares de vezes e
+referenciada num valor longo fazia uma página de 0,2 MB pedir 402 MB (N-1); um
+`var(--x,)` com reserva vazia derrubava a extração com 500 (N-2); e o escopo de
+propriedades personalizadas, copiado a cada nó, custava o quadrado da página —
+43 s para 1,3 MB (N-3). Os orçamentos, todos em `html_text.py`:
+
+- **o atributo:** até 8 KB (`_MAX_STYLE_CHARS`) e 64 declarações comuns
+  (`_MAX_DECLARATIONS`). Propriedade personalizada conta só no tamanho, não
+  nas 64: um tema que escreve a paleta de tokens inline no `<html>` escreve uma
+  centena delas;
+- **o escopo:** até 4096 declarações de propriedades personalizadas visíveis
+  num nó, somadas as dos ancestrais (`_MAX_CUSTOM_PROPERTIES`). O escopo do
+  filho **aponta** para o do pai em vez de copiá-lo, então o custo é linear, e
+  cada consulta paga ao orçamento de trabalho os escopos que percorre e os
+  valores que traz. O teto não protege o tempo — isso é do orçamento —, só
+  limita até onde uma consulta anda; era 256 e caía numa página do Framer a
+  43 níveis de profundidade;
+- **a expansão:** até 64 valores possíveis por declaração, 8 níveis de
+  **aninhamento** — uma referência que aponta para outra; referências lado a
+  lado no mesmo valor não somam profundidade (N-4) — e 8 KB por valor
+  construído. Quantidade e comprimento são contados **antes** de construir;
+- **o trabalho:** caracteres lidos e construídos, mais um custo fixo por passo,
+  com teto por atributo (64 Ki) e por página (4 Mi). É o teto da página que
+  limita o tempo: esgotado, todo valor seguinte que ainda precise expandir um
+  `var()` oculta o nó. Declaração sem `var()` não paga nada.
+
+**A direção é uma só: passou de um orçamento, o nó é lido como oculto.** Nunca
+uma exceção e nunca o texto hostil mantido. Qualquer erro imprevisto ao ler um
+estilo tem o mesmo destino: o nó é ocultado e o resto da página é lido. Um
+valor que se expande em nada (`var(--x,)`) é valor nenhum, como no navegador,
+que o trata como inválido. O preço é descartar texto visível num estilo raro
+inline, não impossível: um atributo com mais de 8 KB ou mais de 64 declarações
+comuns, mais de 4096 declarações de propriedades personalizadas em escopo, ou
+uma página que esgote os 4 Mi de trabalho — medido, cerca de 12 mil nós que
+expandem `var()` sob um escopo de 10 níveis; o que vem depois disso some sem
+aviso. Um `<html>` fora desses tetos (um estilo inline de mais de 8 KB, por
+exemplo) leva a página inteira, e a recusa pede para colar o texto.
+
+**Matemática que o leitor não avalia oculta onde não há base faltando** (N-5).
+Uma opacidade ou um fator de escala não têm porcentagem de base nem unidade;
+se o valor é uma função matemática (`calc()`, `round()`, `sign()`, as
+trigonométricas…) que o leitor não reduz a número, ele é lido como 0. Num
+deslocamento, margem, recuo ou translação a regra é mais estreita, e isso é
+decisão: a matemática mais comum que o leitor não avalia ali é uma
+porcentagem sem base, o `calc(50% - 10px)` que centraliza uma caixa visível, e
+ocultar todo valor não avaliado apagaria esse texto. Então só oculta quando
+traz um comprimento literal muito negativo (`-9999px`, e não o `- 600px` de
+uma subtração) — o que cobre `round(-9999px, 1px)`, `calc(-9999px * sign(1))`
+e um `calc()` aninhado além de 64 níveis. `font-size` e caixa zero continuam
+deixando passar o que não avaliam, pelo mesmo motivo: `max(1em, 5cqi)` e
+`calc(100% - 20px)` são tipografia e layout de páginas reais.
+
+**Fonte e cor são herdadas, e o filho pode desfazê-las.** `font-size:0` num
+contêiner é o truque clássico para tirar o espaço entre colunas `inline-block`,
+e cada coluna volta a um tamanho legível. Descartar a subárvore apagava texto
+visível sem aviso. Por isso fonte minúscula (`font-size`, `font: 0/0 a`, escala
+acumulada) e tinta transparente (`color`, `-webkit-text-fill-color`) viajam
+como estado herdado numa passada de cima para baixo (`_mark_style`), e sai só o
+texto cujo tamanho efetivo fica abaixo de 2 px ou cuja tinta não tem quem a
+pinte. No lugar do texto fica um espaço, para "12", "3", "45" não virarem
+"1245". Porcentagem de `translate` é do próprio elemento: o `translateY(-100%)`
+de uma dica de ferramenta fica. Porcentagem de `margin` é do contêiner, e a
+barra lateral do layout "holy grail" usa `margin-left:-100%`. Nos dois, só um
+comprimento conta como fora da página.
+
+**O que ficou de fora.** A prova da concorrência das cotas contra um PostgreSQL
+real, um `visibility:visible` que desfaz o `hidden` do ancestral e o
+deslocamento positivo grande. Estão em `TODO.md`, com o dia do deploy, em que as
+gerações que já estavam rodando nunca reservaram unidade.
+
+**E um excesso que fica, por ler só o inline** (N-6). As colunas de um
+`font-size:0` de layout só ficam quando **elas mesmas** voltam a um tamanho
+legível no atributo `style`. Uma coluna dimensionada por classe de folha de
+estilo, ou por um `var()` que só a folha de estilo declara, herda o 0 do pai e
+é descartada — o navegador a mostraria, e antes do lote o extrator também. É o
+custo de não ter motor de CSS, aceito: o erro é para o lado de tirar texto,
+nunca de entregar ao modelo o que o aluno não vê. Um teste o fixa, para que uma
+mudança seja notada.
