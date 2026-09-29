@@ -5,11 +5,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
   Notebook,
   StudioArtifact,
+  StudioAudioContent,
+  StudioDeckContent,
   StudioFlashcardsContent,
   StudioMindMapContent,
   StudioQuizContent,
   StudioReportContent,
   StudioTableContent,
+  StudioTool,
 } from "@/lib/types";
 import {
   deleteStudioArtifact,
@@ -19,6 +22,7 @@ import {
   studioExportUrl,
 } from "@/lib/api";
 import { ptBR } from "@/lib/i18n";
+import { RasterizeError, svgToPngDownload } from "@/lib/rasterize";
 import {
   Alert,
   Button,
@@ -32,6 +36,10 @@ import {
 } from "@/components/ui";
 import { IconArrowLeft, IconDownload, IconPencil, IconTrash } from "@/components/ui/icons";
 import { artifactKey, notebookKey, studioKey } from "../keys";
+import { AudioView } from "./AudioView";
+import { SlidesView } from "./DeckView";
+import { InfographicView } from "./InfographicView";
+import { VideoView } from "./VideoView";
 import {
   FlashcardsView,
   MindMapView,
@@ -44,6 +52,29 @@ import {
 const t = ptBR.notebooks.studio;
 
 const date = (iso: string) => new Date(iso).toLocaleDateString("pt-BR");
+
+/** The tools whose SVG export can also be saved as a PNG, made in the browser
+ * (D-98: the API's image has no Cairo to rasterise with). */
+const PNG_TOOLS = new Set<StudioTool>(["infographic", "mindmap"]);
+
+/** The tools whose view says what was withheld itself — the deck also prints
+ * it with the notices — so the viewer does not say it a second time. */
+const OWN_WITHHELD = new Set<StudioTool>(["slides", "infographic"]);
+
+/** The PNG's name, as the API names its exports: ASCII letters, digits and
+ * hyphens from the title, or the tool when nothing is left. */
+function pngFilename(title: string, tool: StudioTool): string {
+  const words = title
+    .normalize("NFKD")
+    // The accents NFKD split off are dropped, not read as word breaks.
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  return `${words.join("-").slice(0, 60) || tool}.png`;
+}
 
 /**
  * An artifact opened inside the Studio panel, as NotebookLM opens one: a way
@@ -69,6 +100,8 @@ export function ArtifactViewer({
   const [renaming, setRenaming] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [saved, setSaved] = useState(false);
+  // Bumped by "PDF (imprimir)": each new value prints the deck once.
+  const [printRequest, setPrintRequest] = useState(0);
 
   const refreshList = () => client.invalidateQueries({ queryKey: studioKey(notebook.id), exact: true });
   const rename = useMutation({
@@ -91,6 +124,14 @@ export function ArtifactViewer({
       setSaved(true);
       await client.invalidateQueries({ queryKey: notebookKey(notebook.id), exact: true });
     },
+  });
+
+  const png = useMutation({
+    mutationFn: (artifact: StudioArtifact) =>
+      svgToPngDownload(
+        studioExportUrl(notebook.id, artifact.id, "svg"),
+        pngFilename(artifact.title, artifact.tool),
+      ),
   });
 
   const liveSourceIds = useMemo(() => new Set(notebook.sources.map((s) => s.id)), [notebook.sources]);
@@ -178,9 +219,19 @@ export function ArtifactViewer({
           <MenuButton label={t.export} icon={<IconDownload className="h-4 w-4" />} align="start">
             {data.exports.map((format) => (
               <MenuItem key={format} href={studioExportUrl(notebook.id, data.id, format)} download>
-                {t.exportLabels[format] ?? format.toUpperCase()}
+                {t.exportLabelsByTool[data.tool]?.[format] ??
+                  t.exportLabels[format] ??
+                  format.toUpperCase()}
               </MenuItem>
             ))}
+            {PNG_TOOLS.has(data.tool) && data.exports.includes("svg") ? (
+              <MenuItem disabled={png.isPending} onSelect={() => png.mutate(data)}>
+                {t.exportPng}
+              </MenuItem>
+            ) : null}
+            {data.tool === "slides" ? (
+              <MenuItem onSelect={() => setPrintRequest((n) => n + 1)}>{t.exportPdf}</MenuItem>
+            ) : null}
           </MenuButton>
           <Button
             variant="ghost"
@@ -203,7 +254,12 @@ export function ArtifactViewer({
           </Alert>
         ) : null,
       )}
-      {data.withheld.length > 0 ? (
+      {png.error ? (
+        <Alert tone="danger" role="alert">
+          {png.error instanceof RasterizeError ? t.pngFailed : png.error.message}
+        </Alert>
+      ) : null}
+      {data.withheld.length > 0 && !OWN_WITHHELD.has(data.tool) ? (
         <Alert tone="warning" title={t.withheldTitle}>
           {data.withheld.join(" ")}
         </Alert>
@@ -215,7 +271,7 @@ export function ArtifactViewer({
       ) : null}
 
       {data.status === "pronto" && data.content ? (
-        <Body data={data} cites={cites} onAsk={onAsk} />
+        <Body data={data} cites={cites} onAsk={onAsk} printRequest={printRequest} />
       ) : null}
 
       <Dialog
@@ -248,10 +304,12 @@ function Body({
   data,
   cites,
   onAsk,
+  printRequest,
 }: {
   data: StudioArtifact;
   cites: Cites;
   onAsk?: (question: string) => void;
+  printRequest: number;
 }) {
   switch (data.tool) {
     case "report":
@@ -278,6 +336,24 @@ function Body({
           onAsk={onAsk}
         />
       ) : null;
+    // The audio and the video leave what was withheld to the Alert above.
+    case "audio":
+      return <AudioView content={data.content as StudioAudioContent} cites={cites} />;
+    case "video":
+      return <VideoView content={data.content as StudioDeckContent} cites={cites} />;
+    // The deck and the infographic say it themselves (the deck also prints it).
+    case "slides":
+      return (
+        <SlidesView
+          content={data.content as StudioDeckContent}
+          title={data.title}
+          cites={cites}
+          withheld={data.withheld}
+          printRequest={printRequest}
+        />
+      );
+    case "infographic":
+      return <InfographicView artifact={data} cites={cites} />;
     default:
       return null;
   }

@@ -15,11 +15,6 @@ import { CitationChips } from "../AnswerView";
 
 const t = ptBR.notebooks.studio;
 
-// TODO(i18n): move to `ptBR.notebooks.studio` — lib/i18n.ts belongs to another
-// task in this round, so the sentence lives here until then.
-const NO_DRAWING =
-  "Este infográfico não tem desenho. O conteúdo está abaixo, como texto, com as fontes de cada item.";
-
 /**
  * The six tones the API numbers `0..5`, as token classes (D-28): a card fill,
  * its outline and the colour of its emphasised line. The palette is the
@@ -67,7 +62,7 @@ export function InfographicView({ artifact, cites }: { artifact: StudioArtifact;
     return (
       <div className="flex flex-col gap-3">
         {withheld}
-        <p className="well text-support text-ink-muted">{NO_DRAWING}</p>
+        <p className="well text-support text-ink-muted">{t.infographicNoDrawing}</p>
         {content ? <InfographicText content={content} cites={cites} /> : null}
       </div>
     );

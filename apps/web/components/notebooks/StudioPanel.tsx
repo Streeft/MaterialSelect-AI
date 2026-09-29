@@ -57,8 +57,8 @@ const s = t.studio;
 type ToolId = keyof typeof t.studioTools;
 
 /** The Studio's tools, in NotebookLM's order. Tone tells tiles apart; the name
- * always says what the tool is. The ones the API's catalogue does not list —
- * audio, video, slides, the infographic (D-96) — say they are coming. */
+ * always says what the tool is. Every one is in the API's catalogue since D-98;
+ * a tile waits for the catalogue before it opens anything. */
 const TOOLS: { id: ToolId; icon: ReactNode; tone: ToolTone }[] = [
   { id: "audio", icon: <IconAudio />, tone: "brand" },
   { id: "slides", icon: <IconSlides />, tone: "warning" },
@@ -171,9 +171,8 @@ export function StudioPanel({
                       icon={tool.icon}
                       label={t.studioTools[tool.id]}
                       tone={tool.tone}
-                      badge={spec ? undefined : t.soon}
                       unavailable={!spec}
-                      description={spec ? spec.description : t.studioSoon}
+                      description={spec?.description}
                       onClick={spec ? () => setCreating(spec) : undefined}
                     />
                   );
@@ -275,7 +274,8 @@ function requestFrom(artifact: StudioArtifactSummary): StudioRequest {
   const request: StudioRequest = { tool: artifact.tool };
   if (o.format) request.format = o.format;
   if (o.template) request.template = o.template;
-  if (o.instructions && artifact.tool === "report") request.instructions = o.instructions;
+  // Stored only for a tool whose template carries instructions (D-98).
+  if (o.instructions) request.instructions = o.instructions;
   if (o.topic) request.topic = o.topic;
   if (o.count) request.count = o.count;
   if (o.difficulty) request.difficulty = o.difficulty;

@@ -24,13 +24,6 @@ const t = ptBR.notebooks.studio;
 /** The speeds offered; 1 is the voice's own pace. */
 export const SPEEDS = [0.75, 1, 1.25, 1.5] as const;
 
-// TODO(i18n): move to `ptBR.notebooks.studio` — lib/i18n.ts belongs to another
-// task of this round. An engine error (iOS refusing a speak outside a gesture,
-// a synthesis failure) pauses the player; the reader is told what to do.
-// Shared with the video player.
-export const SPEECH_ERROR =
-  "O navegador interrompeu a leitura em voz alta. Toque em Reproduzir para tentar de novo.";
-
 function prefersReducedMotion(): boolean {
   if (typeof window === "undefined" || typeof window.matchMedia !== "function") return false;
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -112,7 +105,7 @@ export function AudioView({
 
       {player.error ? (
         <Alert tone="warning" role="alert">
-          {SPEECH_ERROR}
+          {t.speechError}
         </Alert>
       ) : null}
 

@@ -1475,8 +1475,6 @@ export const ptBR = {
       infographic: "Infográfico",
       table: "Tabela de dados",
     },
-    soon: "Em breve",
-    studioSoon: "Em breve: resumo em áudio e em vídeo, apresentação de slides e infográfico.",
     studio: {
       panelHint: "Gerado das fontes marcadas; cada item cita o trecho de onde veio.",
       create: (label: string) => `Criar: ${label}`,
@@ -1645,6 +1643,10 @@ export const ptBR = {
         "Não há voz em português do Brasil neste aparelho; a leitura usa a voz em português mais próxima e pode soar com outro sotaque.",
       speechNoVoice:
         "Nenhuma voz em português está disponível neste aparelho. A transcrição abaixo traz o roteiro inteiro.",
+      // An engine error (iOS refusing a speak outside a gesture, a synthesis
+      // failure) pauses the player; the reader is told what to do. Audio and video.
+      speechError:
+        "O navegador interrompeu a leitura em voz alta. Toque em Reproduzir para tentar de novo.",
       // Apresentação de slides
       previousSlide: "Slide anterior",
       nextSlide: "Próximo slide",
@@ -1674,6 +1676,8 @@ export const ptBR = {
       steps: "Etapas",
       infographicLabel: (title: string) => `Infográfico “${title}”`,
       infographicWithheldTitle: "Alguns dados em destaque foram omitidos",
+      infographicNoDrawing:
+        "Este infográfico não tem desenho. O conteúdo está abaixo, como texto, com as fontes de cada item.",
     },
     notes: "Notas",
     addNote: "Adicionar nota",
