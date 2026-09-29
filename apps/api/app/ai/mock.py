@@ -637,8 +637,17 @@ class MockAIProvider(AIProvider):
         spec = CATALOG[request.tool]
         template = spec.template(request.template)
         label = template.label if template and template.slug != CUSTOM else spec.label
-        raw.setdefault("title", f"{label} — {request.notebook_title}")
+        # Unless the notebook's name writes a figure: a deck's or an
+        # infographic's title is a headline, and no passage grounds that one.
+        named = f"{label} — {request.notebook_title}"
+        headline = request.tool in ("slides", "video", "infographic")
+        plain = headline and _has_figure(request.notebook_title)
+        raw.setdefault("title", label if plain else named)
         return read_studio(request, raw)
+
+
+def _has_figure(text: str) -> bool:
+    return any(char.isdecimal() for char in text)
 
 
 def _topic(passage: Passage) -> str:
@@ -875,7 +884,13 @@ def _mock_infographic(request: StudioRequest, passages: tuple[Passage, ...]) -> 
             seen.add(heading)
             steps.append({"text": heading, "citations": [passage.number]})
     return {
-        "subtitle": _clip(" · ".join(dict.fromkeys(request.source_titles)), MAX_SUBTITLE),
+        # A headline is held to the strict rule (D-98): the name of a source
+        # ("Notas de ligas 2024") is where a figure is, never a figure, so a
+        # source whose name writes one is left out of the subtitle.
+        "subtitle": _clip(
+            " · ".join(t for t in dict.fromkeys(request.source_titles) if not _has_figure(t)),
+            MAX_SUBTITLE,
+        ),
         "stats": stats,
         "points": points,
         "steps": steps,

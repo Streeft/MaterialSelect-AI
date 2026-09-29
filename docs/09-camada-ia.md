@@ -242,12 +242,23 @@ provedor novo e sem custo:
   **diferenciando maiúsculas** — mPa ≠ MPa, porque a caixa é o prefixo do SI.
   O reprovado pela unidade tem frase própria no `withheld`. Valor sem algarismo
   ou com mais de 24 caracteres é descartado, nunca cortado.
+- **A manchete também.** Título e subtítulo do infográfico e o título de um
+  deck ou vídeo (a capa) seguem a mesma regra estrita, contra o texto dos
+  trechos que os itens mantidos citam. Reprovado, o título vira o neutro (o
+  nome da ferramenta ou do modelo) e o subtítulo sai, sempre com a frase no
+  `withheld`. A nova tentativa diz o que falhou por tipo: número, unidade ou
+  manchete (`studio_content.retry_note`).
 - **A orientação do infográfico não vai ao modelo**: é só desenho.
 - **O desenho sai do backend.** `app/notebooks/infographic.py` calcula o layout
   (faixas, caixas, conectores, texto quebrado) e o manda em
-  `ArtifactOut.infographic`, com os **`styles`** de cada tipo de bloco, para a
-  tela não repetir tipografia no cliente. A tela e o `infographic_svg` desenham
-  as mesmas coordenadas (a regra do mapa mental).
+  `ArtifactOut.infographic`, com os **`styles`** de cada tipo de bloco (as
+  marcas `[n]` incluídas), para a tela não repetir tipografia no cliente. A tela
+  e o `infographic_svg` desenham as mesmas coordenadas (a regra do mapa mental),
+  com o `artifact.title` como manchete.
+- **Número não se quebra, texto não se corta.** `mindmap.wrap` quebra entre
+  átomos: "1 200 MPa", "12.345.678.901" e "3,5" nunca são partidos nem
+  hifenizados. O infográfico não corta nada: uma faixa que não cabe fica mais
+  larga (menos colunas, etapas empilhadas) e o bloco cresce.
 - **PNG no navegador, PDF pela impressão.** A imagem do Fly não tem libcairo,
   então `lib/rasterize.ts` desenha o SVG exportado num `canvas` e baixa o PNG;
   por isso o SVG não tem `foreignObject` nem referência externa, e tem fundo.
@@ -255,9 +266,13 @@ provedor novo e sem custo:
 - **Exportações** (`app/exporters/studio.py`, `studio_pptx.py`): todas com
   `LIMITATION_NOTICE`, o aviso de IA, o que foi omitido e as referências com
   endereço e atribuição (D-97). Escape por formato — `html.escape` no SVG,
-  filtro de caracteres de controle no PPTX e no DOCX.
+  filtro de caracteres de controle no PPTX e no DOCX. Os caracteres de controle
+  já saem na leitura (`app/ai/studio.py`), em todo campo de toda ferramenta; o
+  DOCX (toda string) e o SVG (antes do escape) filtram de novo, para o que foi
+  guardado antes e o que o aluno digita.
 - **O simulado copia**: o dado em destaque do `mock` é um "número + palavra"
-  copiado do trecho, então passa na regra estrita por construção.
+  copiado do trecho, então passa na regra estrita por construção; e a manchete
+  dele não traz número (fonte ou caderno com algarismo no nome fica de fora).
 
 ### Fontes externas (`app/integrations/`, `app/services/external_source_service.py`)
 

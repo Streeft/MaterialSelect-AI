@@ -10,8 +10,18 @@ Text is measured by character count, never by a font (the backend has none,
 and the SVG must not depend on one). Every block is a box with optional
 heading lines on top and body lines below; the lines are part of the layout,
 so the screen breaks them where the export does. How a kind is typeset —
-padding, font size, line height — is in ``STYLES`` and travels in
-``to_dict()``, so a renderer places text without a constant of its own.
+padding, font size, line height, where the citation marks sit — is in
+``STYLES`` and travels in ``to_dict()``, so a renderer places text without a
+constant of its own.
+
+**Nothing is cut.** Every item was checked on its whole text, so the poster
+prints the whole text: a line never breaks inside a figure (``mindmap.wrap``),
+and no text ends in "…" — a cut in "1 200 MPa" would print "1 20", a number no
+source states. What the layout does instead is make room. A style's
+``*_max_lines`` is the budget of a block, not a limit on it: a band whose items
+would run past their budget, or hold a figure wider than a line, is laid out
+wider — fewer stats or points per row, the steps stacked instead of side by
+side — and a block that still runs past it at the widest grows taller.
 
 A band with nothing in it is omitted and takes no height: zero stats (every
 one withheld by the grounding check) is a poster without a stats band, never
@@ -46,7 +56,11 @@ TONES = 6
 
 @dataclass(frozen=True)
 class Style:
-    """How one kind of block is typeset; all sizes in pixels."""
+    """How one kind of block is typeset; all sizes in pixels.
+
+    ``heading_max_lines``/``body_max_lines`` are a budget, not a cut: a band
+    whose text would run past them is laid out wider (see the module).
+    """
 
     pad_x: int
     pad_y: int
@@ -60,6 +74,12 @@ class Style:
     body_max_lines: int
     #: Space between the last heading line and the first body line.
     gap: int
+    #: The citation marks ("[1] [2]") of a card: font size, and where the end
+    #: of their baseline sits — this far from the card's right and bottom
+    #: edges. Zero for a kind drawn without marks (title, subtitle).
+    marks_size: int = 0
+    marks_right: int = 0
+    marks_bottom: int = 0
 
 
 #: Character widths are generous averages for a proportional sans-serif at
@@ -67,9 +87,9 @@ class Style:
 STYLES: dict[str, Style] = {
     "title": Style(0, 0, 30, 36, 16.5, 3, 0, 0, 0.0, 0, 0),
     "subtitle": Style(0, 0, 0, 0, 0.0, 0, 17, 24, 9.4, 4, 0),
-    "stat": Style(18, 16, 30, 36, 17.0, 2, 13, 18, 7.2, 4, 6),
-    "point": Style(18, 16, 15, 20, 8.6, 3, 13, 18, 7.2, 12, 8),
-    "step": Style(18, 16, 15, 20, 8.6, 1, 13, 18, 7.2, 8, 8),
+    "stat": Style(18, 16, 30, 36, 17.0, 2, 13, 18, 7.2, 6, 6, 10, 8, 6),
+    "point": Style(18, 16, 15, 20, 8.6, 3, 13, 18, 7.2, 12, 8, 10, 8, 6),
+    "step": Style(18, 16, 15, 20, 8.6, 1, 13, 18, 7.2, 8, 8, 10, 8, 6),
 }
 
 
@@ -116,10 +136,31 @@ class Layout:
         }
 
 
-def _lines(text: str, width: int, char: float, max_lines: int) -> list[str]:
-    if not text or not text.strip() or max_lines <= 0:
+def _chars(width: int, char: float) -> int:
+    return max(1, int(width // char))
+
+
+def _lines(text: str, width: int, char: float) -> list[str]:
+    """``text`` in lines of ``width`` pixels — all of it: never cut, never
+    broken inside a figure."""
+    if not text or not text.strip():
         return []
-    return wrap(text, max(1, int(width // char)), max_lines)
+    return wrap(text, _chars(width, char), max_lines=len(text))
+
+
+def _fits(kind: str, width: int, heading: str, body: str) -> bool:
+    """True when a ``kind`` block ``width`` wide holds ``heading`` and ``body``
+    within its budget of lines, every line within the box."""
+    style = STYLES[kind]
+    inner = width - 2 * style.pad_x
+    for text, char, budget in (
+        (heading, style.heading_char, style.heading_max_lines),
+        (body, style.body_char, style.body_max_lines),
+    ):
+        lines = _lines(text, inner, char)
+        if len(lines) > budget or any(len(line) > _chars(inner, char) for line in lines):
+            return False
+    return True
 
 
 def _block(
@@ -134,8 +175,8 @@ def _block(
 ) -> Block:
     style = STYLES[kind]
     inner = width - 2 * style.pad_x
-    heading_lines = _lines(heading, inner, style.heading_char, style.heading_max_lines)
-    body_lines = _lines(body, inner, style.body_char, style.body_max_lines)
+    heading_lines = _lines(heading, inner, style.heading_char)
+    body_lines = _lines(body, inner, style.body_char)
     height = 2 * style.pad_y
     height += len(heading_lines) * style.heading_line + len(body_lines) * style.body_line
     if heading_lines and body_lines:
@@ -163,13 +204,22 @@ def _with(block: Block, **changes: int) -> Block:
 def _grid(
     kind: str,
     items: list[tuple[str, str, list[int] | None]],
-    columns: int,
+    most_columns: int,
     content_width: int,
     top: int,
 ) -> tuple[list[Block], int]:
-    """Lay ``items`` in rows of ``columns``; every block in a row as tall as the
-    tallest, so the grid reads as a grid. Return the blocks and the bottom."""
-    cell = (content_width - (columns - 1) * GAP) // columns
+    """Lay ``items`` in rows of at most ``most_columns``; every block in a row as
+    tall as the tallest, so the grid reads as a grid. Return the blocks and the
+    bottom.
+
+    The band takes the most columns at which every item fits (:func:`_fits`),
+    down to one — so a long figure widens its whole band, never only its own
+    card, and the grid stays a grid.
+    """
+    for columns in range(most_columns, 0, -1):
+        cell = (content_width - (columns - 1) * GAP) // columns
+        if columns == 1 or all(_fits(kind, cell, heading, body) for heading, body, _ in items):
+            break
     blocks: list[Block] = []
     y = top
     for start in range(0, len(items), columns):
@@ -188,7 +238,16 @@ def _steps(
 ) -> tuple[list[Block], list[Connector], int]:
     count = len(steps)
     horizontal_width = (content_width - (count - 1) * STEP_GAP) // count
-    horizontal = orientation != "retrato" and horizontal_width >= MIN_STEP_WIDTH
+    # Side by side only while every step fits its card: a step that would run
+    # past its budget there stacks the flow, where a line is five times wider.
+    horizontal = (
+        orientation != "retrato"
+        and horizontal_width >= MIN_STEP_WIDTH
+        and all(
+            _fits("step", horizontal_width, str(i + 1), step.get("text") or "")
+            for i, step in enumerate(steps)
+        )
+    )
     blocks: list[Block] = []
     connectors: list[Connector] = []
     if horizontal:

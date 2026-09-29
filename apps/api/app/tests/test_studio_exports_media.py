@@ -182,7 +182,8 @@ def _svg(artifact: ArtifactOut) -> tuple[str, ElementTree.Element]:
 
 
 def test_infographic_svg_parses_escapes_and_has_no_foreign_object():
-    text, root = _svg(_artifact("infographic", INFOGRAPHIC, format="paisagem"))
+    artifact = _artifact("infographic", INFOGRAPHIC, format="paisagem", title=INFOGRAPHIC["title"])
+    text, root = _svg(artifact)
     assert "<script>" not in text
     assert "&lt;script&gt;" in text and "&amp; aço" in text
     assert "foreignObject" not in text

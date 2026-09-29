@@ -294,7 +294,8 @@ def test_a_video_scene_is_the_same_item_named_as_a_scene():
     ]
 
 
-def test_a_deck_s_title_is_structural_not_an_item():
+def test_a_deck_s_title_is_a_headline_not_an_item():
+    # The cover slide shows it alone: the strict rule, and a written reason.
     checked = check(
         _request("slides"),
         {"title": "Os 7 aços de 2024", "slides": [_slide()]},
@@ -304,7 +305,10 @@ def test_a_deck_s_title_is_structural_not_an_item():
     assert checked.title == "Reserva"
     assert checked.body["title"] == "Reserva"
     assert checked.items == 1
-    assert not checked.withheld
+    assert withheld_sentences(checked) == [
+        "O título gerado foi trocado por um título neutro porque trazia números que não "
+        "aparecem nos trechos citados: 7, 2024."
+    ]
 
 
 def test_an_audio_title_is_structural_not_an_item():

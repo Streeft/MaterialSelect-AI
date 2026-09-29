@@ -432,8 +432,21 @@ MAX_SUBTITLE = 200
 #: The two hosts of an audio overview. They have no names: the screen calls
 #: them "Apresentador(a) 1" and "2".
 SPEAKERS = (1, 2)
+#: How a line of the script names who says it — in every file and in a note
+#: saved from the artifact, so the two can never disagree.
+SPEAKER_LABEL = "Apresentador(a)"
 
 # --- prompts -----------------------------------------------------------------
+
+#: The rule of a headline (``app.notebooks.studio_content``): the title of a
+#: deck, a video or an infographic, and the infographic's subtitle, cite
+#: nothing and are shown big, so a figure there must be written in a passage
+#: some item cites — small numbers and the student's words included.
+_HEADLINE_RULE = (
+    "O título (e o subtítulo, quando houver) não cita trechos: só use nele um número que "
+    "esteja escrito num trecho citado pelos itens, copiado exatamente; na dúvida, "
+    "escreva-o sem número."
+)
 
 _DIFFICULTY_TEXT = {
     "facil": "Nível fácil: definições e fatos diretos das fontes.",
@@ -479,7 +492,7 @@ def _task(request: StudioRequest) -> str:
             "curtos), notes (as notas do apresentador) e citations (os trechos que "
             "sustentam título, tópicos e notas daquele slide, juntos). Não inclua slide "
             f"de capa nem de referências: eles são montados à parte. {_MEDIA_RULES} Dê "
-            "à apresentação um título curto (title)."
+            f"à apresentação um título curto (title). {_HEADLINE_RULE}"
         )
     if request.tool == "video":
         shape = (
@@ -493,7 +506,7 @@ def _task(request: StudioRequest) -> str:
             "mostrados na tela), notes (a narração falada da cena, de duas a quatro "
             "frases) e citations (os trechos que sustentam título, tópicos e narração, "
             f"juntos). Na narração: {_SPOKEN} {_MEDIA_RULES} Dê ao vídeo um título curto "
-            "(title)."
+            f"(title). {_HEADLINE_RULE}"
         )
     if request.tool == "infographic":
         # The orientation (request.format) is layout and is never written here.
@@ -509,7 +522,7 @@ def _task(request: StudioRequest) -> str:
             "pontos, cada um com heading (até oito palavras), text (uma ou duas frases) e "
             "citations. steps: se as fontes descrevem um processo ou uma sequência, até "
             f"{MAX_STEPS} etapas em ordem, cada uma com text (uma frase) e citations; se "
-            f"não descrevem, steps fica vazio. {_MEDIA_RULES}"
+            f"não descrevem, steps fica vazio. {_MEDIA_RULES} {_HEADLINE_RULE}"
         )
     if request.tool == "report":
         shape = (
@@ -754,8 +767,23 @@ def schema_for(request: StudioRequest) -> dict:
 # --- readers -----------------------------------------------------------------
 
 
+#: Characters no stored text keeps: the C0 controls (``\t``, ``\n`` and ``\r``
+#: are whitespace, and every reader collapses whitespace anyway), DEL and the
+#: C1 controls, lone surrogates and the two non-characters. Text extracted
+#: from a PDF carries some of them (``\x02`` from a ligature), the model copies
+#: them, and each one breaks an export: python-docx refuses the string, an SVG
+#: holding one is not well-formed XML, and a lone surrogate cannot be encoded
+#: as UTF-8 at all. Stripped once, here, for every text field of every tool.
+_CONTROL = re.compile("[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f\ud800-\udfff￾￿]")
+
+
+def _clean(value: str) -> str:
+    """``value`` without :data:`_CONTROL` characters, whitespace collapsed."""
+    return " ".join(_CONTROL.sub(" ", value).split())
+
+
 def _text(value: object, limit: int) -> str:
-    return " ".join(str(value or "").split())[:limit] if isinstance(value, str) else ""
+    return _clean(value)[:limit] if isinstance(value, str) else ""
 
 
 def _list(value: object) -> list:
@@ -777,8 +805,9 @@ _MARKUP = re.compile(r"<!--.*?-->|</?[A-Za-z][^<>]*>|<[?!][^<>]*>", re.DOTALL)
 
 
 def strip_markup(value: str) -> str:
-    """Text with anything tag-shaped removed and its whitespace collapsed."""
-    return " ".join(_MARKUP.sub(" ", value).split())
+    """Text with anything tag-shaped and every control character removed, and
+    its whitespace collapsed."""
+    return _clean(_MARKUP.sub(" ", value))
 
 
 def _spoken(value: object, limit: int) -> str:
