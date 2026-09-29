@@ -113,8 +113,9 @@ trabalho foi interrompido uma vez pelo limite de uso e retomado de onde parou.
 - **A tabela passou a recusar `instructions`** (400): o "Crie a sua" dela
   escolhe colunas, e a tela nunca as mandou.
 
-**Números.** Backend 2651 → 2883, frontend 608 → 732, mais os cenários
-E2E da fase (em andamento no fechamento deste registro).
+**Números.** Backend 2651 → 2883, frontend 608 → 732, mais os três cenários
+E2E da fase em `apps/web/e2e/cadernos.spec.ts` (slides ao PPTX, infográfico ao
+SVG com a assinatura do PNG, e áudio com a voz falsa).
 
 **Depois do merge:** o **Deploy da API**. Não há migração nem seed.
 

@@ -271,6 +271,7 @@ describe("SlidesView (D-98)", () => {
     );
     expect(seen.text).toContain("[1] Fonte 1");
     expect(seen.text).toContain("[2] Fonte 2");
+    expect(seen.text).not.toContain(t.noCitations);
     // The portal hangs from <body>, outside the view, where the print CSS can find it.
     expect(document.body.querySelector(":scope > .deck-print")).not.toBeNull();
     expect(document.body.querySelector(":scope > .deck-print")).toHaveAttribute(
@@ -283,6 +284,21 @@ describe("SlidesView (D-98)", () => {
     });
     expect(document.body.classList.contains(PRINTING_CLASS)).toBe(false);
     expect(document.body.querySelector(".deck-print")).toBeNull();
+  });
+
+  it("says in words that nothing was cited when the printed deck has no sources (D-24)", () => {
+    let text = "";
+    window.print = vi.fn(() => {
+      text = document.body.querySelector(".deck-print")?.textContent ?? "";
+    });
+    renderDeck({ cites: { byNumber: new Map(), liveSourceIds: new Set() } });
+    fireEvent.click(screen.getByRole("button", { name: t.printDeck }));
+    expect(window.print).toHaveBeenCalledTimes(1);
+    expect(text).toContain(t.sources);
+    expect(text).toContain(t.noCitations);
+    act(() => {
+      window.dispatchEvent(new Event("afterprint"));
+    });
   });
 
   it("prints when the export menu asks, once per request", () => {

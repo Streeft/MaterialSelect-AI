@@ -990,11 +990,20 @@ export default function StyleGuidePage() {
                 </li>
               ))}
             </ul>
+            {/* D-98: toda ferramenta do Estúdio está aberta. O estado indisponível
+                continua documentado, num rótulo que nenhuma ferramenta real usa. */}
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              <ToolTile icon={<IconAudio />} label="Resumo em Áudio" tone="brand" badge="Em breve" unavailable />
+              <ToolTile icon={<IconAudio />} label="Resumo em Áudio" tone="brand" onClick={() => {}} />
               <ToolTile icon={<IconReport />} label="Relatórios" tone="warning" onClick={() => {}} />
               <ToolTile icon={<IconCards />} label="Cartões didáticos" tone="danger" onClick={() => {}} />
-              <ToolTile icon={<IconQuiz />} label="Teste" tone="info" onClick={() => {}} />
+              <ToolTile
+                icon={<IconQuiz />}
+                label="Ferramenta de exemplo"
+                tone="info"
+                badge="Indisponível"
+                unavailable
+                description="Exemplo do estado indisponível."
+              />
             </div>
             {/* D-94: o cartão de modelo do "Criar …", com o lápis como ação. */}
             <fieldset className="grid gap-2 sm:grid-cols-2">

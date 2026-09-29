@@ -137,9 +137,11 @@ export function AudioView({
                   key={index}
                   data-line={index}
                   aria-current={isCurrent ? "true" : undefined}
+                  // The current line lifts from the well onto the panel
+                  // surface, with the action stripe: roles, not palette steps (D-91).
                   className={cn(
                     "flex items-start gap-2 rounded-control border-l-4 px-2 py-2",
-                    isCurrent ? "border-action bg-brand-50" : "border-transparent",
+                    isCurrent ? "border-action bg-panel" : "border-transparent",
                   )}
                 >
                   {!voiceless ? (
@@ -156,7 +158,7 @@ export function AudioView({
                     <span
                       className={cn(
                         "text-caption font-semibold",
-                        line.speaker === 2 ? "text-ink-muted" : "text-brand-700",
+                        line.speaker === 2 ? "text-ink-muted" : "text-ink",
                       )}
                     >
                       {t.speaker(line.speaker)}
