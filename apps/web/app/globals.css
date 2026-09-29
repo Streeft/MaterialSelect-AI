@@ -1402,3 +1402,99 @@ aside[data-surface="rail"] .msds-rail-item {
     scroll-behavior: auto !important;
   }
 }
+
+/* D-98: the Studio's slide deck.
+ *
+ * The fade between slides is opacity only — nothing moves, so nothing can
+ * make a reader seasick — and it is off under reduced motion (the block
+ * above only shortens it; this removes it). */
+@keyframes deck-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.deck-slide-enter {
+  animation: deck-fade 180ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .deck-slide-enter {
+    animation: none;
+  }
+}
+
+/* "Imprimir / PDF": SlidesView renders every slide into a portal on <body>
+ * (`.deck-print`) and puts `printing-deck` on the body only while the print
+ * dialog is open, so printing any other page is untouched. The portal carries
+ * data-theme="light", which re-declares the light tokens on it: dark ink on
+ * white paper even when the screen is in the dark theme.
+ *
+ * The landscape page is a *named* page, so it applies to the deck's sheets
+ * only; a browser without named pages prints them in its default
+ * orientation, still one slide per sheet. */
+.deck-print {
+  display: none;
+}
+@page deck {
+  size: landscape;
+  margin: 12mm;
+}
+@media print {
+  body.printing-deck > :not(.deck-print) {
+    display: none !important;
+  }
+  body.printing-deck > .deck-print {
+    display: block;
+    background: rgb(var(--surface-raised));
+    color: rgb(var(--ink));
+    font-size: 12pt;
+    line-height: 1.4;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .deck-print-slide,
+  .deck-print-notices {
+    page: deck;
+    break-after: page;
+    break-inside: avoid;
+  }
+  .deck-print-notices {
+    break-inside: auto;
+    break-after: auto;
+  }
+  .deck-print-slide {
+    display: flex;
+    flex-direction: column;
+    gap: 10pt;
+    border-top: 4pt solid rgb(var(--accent));
+    padding-top: 12pt;
+  }
+  .deck-print h2 {
+    font-size: 24pt;
+    font-weight: 600;
+    line-height: 1.2;
+  }
+  .deck-print h3 {
+    margin-top: 12pt;
+    font-size: 14pt;
+    font-weight: 600;
+  }
+  .deck-print-slide ul {
+    margin-left: 1.2em;
+    list-style: disc;
+    font-size: 16pt;
+  }
+  .deck-print-slide li + li {
+    margin-top: 6pt;
+  }
+  .deck-print-notices p,
+  .deck-print-notices ol {
+    margin-top: 6pt;
+  }
+  .deck-print-meta {
+    color: rgb(var(--ink-muted));
+    font-size: 10pt;
+  }
+}

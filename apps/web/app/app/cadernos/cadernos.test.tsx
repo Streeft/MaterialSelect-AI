@@ -195,11 +195,11 @@ describe("caderno", () => {
     // The guide, with its citation chip.
     expect(screen.getByText("aços").tagName).toBe("STRONG");
     expect(screen.getAllByRole("button", { name: t.citation(1, "Aula de aços") })).toHaveLength(1);
-    // The text tools open "Criar …"; audio and video say they are coming.
+    // Every tool opens "Criar …", audio and video included (D-98).
     const report = await screen.findByRole("button", { name: new RegExp(t.studioTools.report) });
     await waitFor(() => expect(report).not.toHaveAttribute("aria-disabled"));
     const audio = screen.getByRole("button", { name: new RegExp(t.studioTools.audio) });
-    expect(audio).toHaveAttribute("aria-disabled", "true");
+    expect(audio).not.toHaveAttribute("aria-disabled");
     // A guide already written is not written again.
     expect(api.summarizeNotebook).not.toHaveBeenCalled();
   });

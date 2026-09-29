@@ -112,6 +112,29 @@ IDE. Resumo do que não muda:
   **desativa**, nunca se apaga) válida só porque `is_demo=True` já prova que
   não há história real para proteger ([D-72](DECISIONS.md)).
 
+### 1.12 Documentação anda junto do código, no mesmo PR
+Toda mudança de código ou funcionalidade nova atualiza, **no mesmo PR**, o
+texto que ela tornou falso. Documento desatualizado não é neutro: o próximo
+agente o lê como regra e reintroduz o defeito que a mudança corrigiu — foi
+assim que o `README.md` passou meses dizendo que a Fase 7 estava parcial e que
+o seed carregava 5 materiais.
+
+| Arquivo | Quando atualizar |
+|---|---|
+| `README.md` | Funcionalidade visível, comando, requisito, workflow ou configuração que o leitor de fora precisa conhecer. |
+| `docs/DECISIONS.md` | Sempre que se escolhe um desenho entre alternativas: decisão nova (`D-NN`), com o porquê e o que foi descartado. Nunca reescreva uma decisão antiga para concordar com o código; registre a que a substitui. |
+| `docs/TODO.md` | Item entregue, item novo descoberto, pendência que mudou de estado. |
+| `docs/CHANGELOG_SESSION.md` | Toda sessão de trabalho, no topo. |
+| `docs/PROJECT_CONTEXT.md` | Estado atual, funcionalidades, limitações e riscos que mudaram. |
+| Documento da área | O de número que cobre o que foi tocado — `07-selecao-deterministica.md`, `09-camada-ia.md`, `10-relatorios.md`, `13-deploy.md`, `15-dados-demonstrativos.md`… |
+| `CLAUDE.md` (raiz) | "Estado atual" e a contagem de testes; uma regra nova só se ela valer para toda sessão. |
+| `.env.example` (`apps/api/`, raiz) | Toda variável de ambiente nova, renomeada ou com padrão novo, e a tabela do §6 deste arquivo. |
+
+**Um PR sem isso está incompleto**, do mesmo jeito que um PR sem teste — e o
+modelo em `.github/pull_request_template.md` pede a confirmação. Mudança
+puramente mecânica (formatação, renomeação interna sem efeito visível) não
+precisa tocar documento nenhum; na dúvida, ela precisa.
+
 ---
 
 ## 2. Idiomas
@@ -403,6 +426,9 @@ Três coisas que não são detalhe de configuração:
   de IA foi um deles).
 - **Documentar o defeito junto da regra que ele originou** — ver a regra 4 em
   `09-camada-ia.md`.
+- **Documentação no mesmo PR que o código** (§1.12). O `README.md`, as decisões,
+  o backlog, o registro de sessão e o documento da área são parte da entrega,
+  não uma tarefa seguinte.
 
 ---
 
@@ -448,3 +474,6 @@ Três coisas que não são detalhe de configuração:
 | Metodologia de Ashby | [04-metodologia-selecao.md](04-metodologia-selecao.md) |
 | Unidades e proveniência | [05-tratamento-unidades.md](05-tratamento-unidades.md) |
 | Detalhe de uma fase | `06-` a `10-` |
+| Como começar, para quem chega de fora | [README.md](../README.md) |
+| Ordem de leitura para qualquer agente de IA | [AGENTS.md](../AGENTS.md) — o padrão aberto; `GEMINI.md`, `.agents/rules/` e `.agent/rules/` (Antigravity, versões novas e antigas), `.cursor/rules/`, `.github/copilot-instructions.md`, `.windsurf/rules/`, `.clinerules/`, `.rules` e `CONVENTIONS.md` só apontam para ele e para os dois `CLAUDE.md`. Nenhum copia regra: uma regra nova entra aqui ou no `CLAUDE.md` da raiz, nunca num desses arquivos. |
+| O que um PR tem de trazer | [.github/pull_request_template.md](../.github/pull_request_template.md) |

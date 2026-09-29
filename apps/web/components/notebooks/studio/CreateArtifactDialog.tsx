@@ -98,11 +98,13 @@ function CreateForm({
   const chosen = tool.templates.find((c) => c.slug === template) ?? null;
   const instructions = template ? (drafts[template] ?? "") : "";
   const columns = template ? (columnDrafts[template] ?? []) : [];
-  // The report's custom template is nothing without the student's words; the
-  // table's may leave the columns to the model.
+  // A tool whose templates tell the model how to write (a report's study
+  // guide, an audio's debate) takes instructions; a table's templates are
+  // columns. The custom template of such a tool is nothing without the
+  // student's words; the table's may leave the columns to the model.
+  const takesInstructions = tool.templates.some((c) => c.instructions);
   const editorOpen = template !== null && (editing === template || template === CUSTOM);
-  const missingInstructions =
-    tool.slug === "report" && template === CUSTOM && !instructions.trim();
+  const missingInstructions = takesInstructions && template === CUSTOM && !instructions.trim();
 
   const create = useMutation({
     mutationFn: () => createStudioArtifact(notebookId, buildRequest()),
@@ -117,7 +119,9 @@ function CreateForm({
     const request: StudioRequest = { tool: tool.slug };
     if (format) request.format = format;
     if (template) request.template = template;
-    if (tool.slug === "report" && chosen && instructions.trim() !== chosen.instructions) {
+    // Only an edit is sent: the API reads the template's own text otherwise.
+    const editable = chosen && (chosen.instructions || (takesInstructions && chosen.slug === CUSTOM));
+    if (editable && instructions.trim() !== chosen.instructions) {
       request.instructions = instructions.trim();
     }
     if (tool.columns) request.columns = columns.map((c) => c.trim()).filter(Boolean);
@@ -141,7 +145,9 @@ function CreateForm({
     >
       {tool.formats.length > 0 ? (
         <fieldset className="flex flex-col gap-2">
-          <legend className="mb-2 text-sm font-semibold text-ink">{t.format}</legend>
+          <legend className="mb-2 text-sm font-semibold text-ink">
+            {t.formatLegend[tool.slug] ?? t.format}
+          </legend>
           <div className="grid gap-2 sm:grid-cols-2">
             {tool.formats.map((choice) => (
               <RadioCard
@@ -161,7 +167,9 @@ function CreateForm({
 
       {tool.templates.length > 0 ? (
         <fieldset className="flex flex-col gap-2">
-          <legend className="mb-2 text-sm font-semibold text-ink">{t.template}</legend>
+          <legend className="mb-2 text-sm font-semibold text-ink">
+            {t.templateLegend[tool.slug] ?? t.template}
+          </legend>
           <div className="grid gap-2 sm:grid-cols-2">
             {tool.templates.map((choice) => (
               <RadioCard

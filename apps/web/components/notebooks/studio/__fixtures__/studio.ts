@@ -1,9 +1,11 @@
 /**
- * Studio data for tests (D-94): a catalogue shaped like the API's and one
+ * Studio data for tests (D-94, D-98): a catalogue shaped like the API's and one
  * artifact of each tool, plus one running and one failed. Shared by the
  * notebook tests and the accessibility audit, so both look at the same states.
  */
 import type {
+  InfographicLayout,
+  InfographicStyle,
   NotebookCitation,
   StudioArtifact,
   StudioArtifactSummary,
@@ -114,6 +116,92 @@ export const studioCatalog: StudioCatalog = {
       ],
       templates: [],
       counts: [],
+      difficulties: [],
+      columns: false,
+      exports: ["svg"],
+    },
+    // D-98
+    {
+      slug: "audio",
+      label: "Resumo em áudio",
+      description: "Uma conversa entre dois apresentadores, lida pela voz do navegador.",
+      formats: [],
+      templates: [
+        choice("conversa", "Conversa aprofundada", "Dois apresentadores destrincham as fontes juntos.", {
+          instructions: "Escreva uma conversa aprofundada entre dois apresentadores.",
+        }),
+        choice("resumo", "Resumo", "Uma passada rápida pelas ideias principais.", {
+          instructions: "Escreva um resumo rápido em forma de conversa.",
+        }),
+        choice("critica", "Crítica", "Uma leitura crítica: pontos fortes, limites e lacunas.", {
+          instructions: "Escreva uma leitura crítica das fontes em forma de conversa.",
+        }),
+        choice("debate", "Debate", "Dois pontos de vista, cada um apoiado nas fontes.", {
+          instructions: "Escreva um debate entre dois pontos de vista.",
+        }),
+      ],
+      counts: [
+        choice("curto", "Curto", "Cerca de 12 falas", { amount: 12 }),
+        choice("padrao", "Padrão", "Cerca de 24 falas", { amount: 24 }),
+        choice("longo", "Longo", "Cerca de 40 falas", { amount: 40 }),
+      ],
+      difficulties: [],
+      columns: false,
+      exports: ["docx", "txt"],
+    },
+    {
+      slug: "video",
+      label: "Resumo em vídeo",
+      description: "Slides narrados cena a cena, com legenda e a voz do navegador.",
+      formats: [
+        choice("explicativo", "Explicativo", "Oito cenas que explicam os conceitos passo a passo.", {
+          amount: 8,
+        }),
+        choice("resumo", "Resumo", "Cinco cenas com as ideias principais.", { amount: 5 }),
+      ],
+      templates: [],
+      counts: [],
+      difficulties: [],
+      columns: false,
+      exports: ["pptx"],
+    },
+    {
+      slug: "slides",
+      label: "Apresentação de slides",
+      description: "Slides com tópicos, notas do apresentador e as fontes de cada um.",
+      formats: [],
+      templates: [
+        choice("detalhada", "Apresentação detalhada", "Slides completos, para ler sozinho.", {
+          instructions: "Monte uma apresentação detalhada, que se entenda sem apresentador.",
+        }),
+        choice("apresentador", "Resumo para o apresentador", "Tópicos curtos no slide.", {
+          instructions: "Monte slides para apoiar quem apresenta.",
+        }),
+      ],
+      counts: [
+        choice("menos", "Menos", "6 slides", { amount: 6 }),
+        choice("padrao", "Padrão", "10 slides", { amount: 10 }),
+        choice("mais", "Mais", "15 slides", { amount: 15 }),
+      ],
+      difficulties: [],
+      columns: false,
+      exports: ["pptx"],
+    },
+    {
+      slug: "infographic",
+      label: "Infográfico",
+      description: "Dados em destaque, ideias e etapas numa só imagem, com as fontes.",
+      formats: [
+        choice("paisagem", "Paisagem", "Mais largo que alto, para tela e slide."),
+        choice("retrato", "Retrato", "Mais alto que largo, para celular e cartaz."),
+        choice("quadrado", "Quadrado", "Lados iguais, para publicar."),
+      ],
+      templates: [],
+      counts: [
+        choice("conciso", "Conciso", "3 pontos", { amount: 3 }),
+        choice("padrao", "Padrão", "5 pontos", { amount: 5 }),
+        choice("detalhado", "Detalhado", "7 pontos", { amount: 7 }),
+      ],
       difficulties: [],
       columns: false,
       exports: ["svg"],
@@ -271,8 +359,140 @@ export const mindmapArtifact: StudioArtifact = {
   },
 };
 
-const summaryOf = ({ content: _c, citations: _ci, withheld: _w, exports: _e, layout: _l, ...summary }: StudioArtifact): StudioArtifactSummary =>
-  summary;
+// D-98: the audio, the video, the slides and the infographic.
+export const audioArtifact: StudioArtifact = {
+  ...base,
+  id: 28,
+  tool: "audio",
+  format: null,
+  template: "conversa",
+  title: "Conversa — aços",
+  status: "pronto",
+  item_count: 2,
+  options: { template: "conversa", count: "curto" },
+  exports: ["docx", "txt"],
+  withheld: ["Uma fala foi omitida porque citava números que não aparecem nos trechos citados: 42."],
+  content: {
+    title: "Conversa — aços",
+    lines: [
+      { speaker: 1, text: "Hoje falamos do aço carbono.", citations: [] },
+      { speaker: 2, text: "A fonte diz que ele tem 7850 kg/m³.", citations: [1] },
+    ],
+  },
+};
+
+export const videoArtifact: StudioArtifact = {
+  ...base,
+  id: 29,
+  tool: "video",
+  format: "resumo",
+  template: null,
+  title: "Vídeo — aços",
+  status: "pronto",
+  item_count: 2,
+  options: { format: "resumo" },
+  exports: ["pptx"],
+  content: {
+    title: "Vídeo — aços",
+    slides: [
+      { title: "Aço carbono", bullets: ["Liga de ferro e carbono"], notes: "O aço carbono é uma liga.", citations: [1] },
+      { title: "Densidade", bullets: ["7850 kg/m³"], notes: "A densidade é 7850 kg/m³.", citations: [1] },
+    ],
+  },
+};
+
+export const slidesArtifact: StudioArtifact = {
+  ...base,
+  id: 30,
+  tool: "slides",
+  format: null,
+  template: "detalhada",
+  title: "Slides — aços",
+  status: "pronto",
+  item_count: 2,
+  options: { template: "detalhada", count: "menos" },
+  exports: ["pptx"],
+  withheld: ["Um slide foi omitido porque citava números que não aparecem nos trechos citados: 999."],
+  content: {
+    title: "Slides — aços",
+    slides: [
+      { title: "Aço carbono", bullets: ["Liga de ferro e carbono"], notes: "Comece pela definição.", citations: [1] },
+      { title: "Densidade", bullets: ["7850 kg/m³"], notes: "", citations: [1] },
+    ],
+  },
+};
+
+const style = (over: Partial<InfographicStyle>): InfographicStyle => ({
+  pad_x: 18,
+  pad_y: 16,
+  heading_size: 15,
+  heading_line: 20,
+  heading_char: 0.6,
+  heading_max_lines: 3,
+  body_size: 13,
+  body_line: 18,
+  body_char: 0.55,
+  body_max_lines: 12,
+  gap: 8,
+  marks_size: 10,
+  marks_right: 8,
+  marks_bottom: 6,
+  ...over,
+});
+
+const infographicLayout: InfographicLayout = {
+  width: 1200,
+  height: 400,
+  orientation: "paisagem",
+  styles: {
+    title: style({ pad_x: 0, pad_y: 0, heading_size: 30, heading_line: 36, gap: 0, marks_size: 0, marks_right: 0, marks_bottom: 0 }),
+    subtitle: style({ pad_x: 0, pad_y: 0, body_size: 17, body_line: 24, gap: 0, marks_size: 0, marks_right: 0, marks_bottom: 0 }),
+    stat: style({ heading_size: 30, heading_line: 36, gap: 6 }),
+    point: style({}),
+    step: style({}),
+  },
+  blocks: [
+    { kind: "title", x: 40, y: 40, width: 1120, height: 36, heading_lines: ["Infográfico — aços"], body_lines: [], citations: [], tone: 0, index: 0 },
+    { kind: "subtitle", x: 40, y: 88, width: 1120, height: 24, heading_lines: [], body_lines: ["O que as fontes dizem"], citations: [], tone: 0, index: 0 },
+    { kind: "stat", x: 40, y: 144, width: 262, height: 94, heading_lines: ["7850 kg/m³"], body_lines: ["densidade do aço carbono"], citations: [1], tone: 0, index: 0 },
+    { kind: "point", x: 40, y: 270, width: 548, height: 80, heading_lines: ["Soldabilidade"], body_lines: ["Cai com o teor de carbono."], citations: [1], tone: 1, index: 0 },
+  ],
+  connectors: [],
+};
+
+export const infographicArtifact: StudioArtifact = {
+  ...base,
+  id: 31,
+  tool: "infographic",
+  format: "paisagem",
+  template: null,
+  title: "Infográfico — aços",
+  status: "pronto",
+  item_count: 2,
+  options: { format: "paisagem", count: "conciso" },
+  exports: ["svg"],
+  withheld: [
+    "Um dado em destaque foi omitido porque sua unidade não aparece no trecho citado: 210 MPa.",
+  ],
+  content: {
+    title: "Aços estruturais",
+    subtitle: "O que as fontes dizem",
+    stats: [{ value: "7850 kg/m³", label: "densidade do aço carbono", citations: [1] }],
+    points: [{ heading: "Soldabilidade", text: "Cai com o teor de carbono.", citations: [1] }],
+    steps: [],
+  },
+  infographic: infographicLayout,
+};
+
+const summaryOf = ({
+  content: _c,
+  citations: _ci,
+  withheld: _w,
+  exports: _e,
+  layout: _l,
+  infographic: _i,
+  ...summary
+}: StudioArtifact): StudioArtifactSummary => summary;
 
 export const runningArtifact: StudioArtifactSummary = {
   ...summaryOf(reportArtifact),
@@ -297,6 +517,10 @@ export const readyArtifacts = [
   quizArtifact,
   tableArtifact,
   mindmapArtifact,
+  audioArtifact,
+  videoArtifact,
+  slidesArtifact,
+  infographicArtifact,
 ];
 
 export const studioList: StudioList = {
