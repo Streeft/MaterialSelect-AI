@@ -22,10 +22,13 @@ Three rules shape what is kept:
 
 * **What the student cannot see, the model does not read.** Text in a
   ``hidden`` or ``aria-hidden="true"`` subtree, or one an inline style hides
-  (``display:none``, ``visibility:hidden``, ``opacity:0``, ``font-size:0``, an
-  empty ``clip``/``clip-path``, an off-page offset, a zero-size clipped box, a
-  ``scale(0)`` — see ``_style_hides``), is the classic place to hide an
-  instruction aimed at a model, so it is dropped. Text hidden by a *stylesheet* class cannot
+  (``display:none``, ``visibility:hidden``, ``opacity:0``, an empty
+  ``clip``/``clip-path``, an off-page offset, a zero-size clipped box, a
+  ``scale(0)`` — see ``_style_hides``), and text too small or too clear to read
+  (``font-size:0``, ``color:transparent``, inherited until a child sets them
+  back — see ``_mark_style``), is the classic place to hide an instruction
+  aimed at a model, so it is dropped. Any declaration that hides counts, not
+  only the last one. Text hidden by a *stylesheet* class cannot
   be seen without a CSS engine; that is why every source is framed as data, never
   instruction, further down — this is defence in depth, not the defence.
 * **Chrome is dropped, content is preferred.** Navigation, page header and
@@ -43,11 +46,13 @@ fills in — is refused with a message that says what to do instead.
 from __future__ import annotations
 
 import codecs
+import math
 import re
 import unicodedata
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
 from html.parser import HTMLParser
+from typing import TypeVar
 
 from app.domain.errors import ValidationError
 from app.knowledge.chunking import looks_like_heading
@@ -140,12 +145,18 @@ _HEAD_CONTENT = frozenset("base link meta noscript script style template title".
 #: a space, never by nothing: ``display:/**/none`` is ``display: none`` to a
 #: browser, but ``dis/**/play`` is two tokens and no property at all.
 _CSS_COMMENT = re.compile(r"/\*.*?(?:\*/|$)", re.DOTALL)
+#: A CSS escape: ``displ\61y`` is ``display`` to a browser, so it is to us.
+_CSS_ESCAPE = re.compile(r"\\(?:([0-9a-f]{1,6})[ \t\n\r\f]?|(.))", re.IGNORECASE | re.DOTALL)
 _IMPORTANT = re.compile(r"!\s*important$")
-_CSS_NUMBER = re.compile(r"^([+-]?(?:\d+(?:\.\d*)?|\.\d+))([a-z%]*)$")
+_CSS_NUMBER = re.compile(r"^([+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?)([a-z%]*)$")
 _CSS_FUNCTION = re.compile(r"([a-z0-9-]+)\(([^()]*)\)")
+_CSS_MATH = frozenset({"calc", "min", "max", "clamp"})
 #: Absolute lengths in CSS pixels; a font-relative one at the 16 px default.
 _PX_PER = {"px": 1.0, "pt": 4 / 3, "pc": 16.0, "in": 96.0, "cm": 96 / 2.54, "mm": 96 / 25.4}
-_PX_PER |= {"em": 16.0, "rem": 16.0, "ex": 8.0, "ch": 8.0}
+_PX_PER |= {"q": 96 / 101.6, "em": 16.0, "rem": 16.0, "ex": 8.0, "ch": 8.0}
+#: A viewport unit read on a 1000 px viewport: a page cannot know the reader's.
+_VIEWPORT = frozenset({"vw", "vh", "vmin", "vmax", "svw", "svh", "lvw", "lvh", "dvw", "dvh"})
+_PX_PER |= dict.fromkeys(_VIEWPORT, 10.0)
 #: How far off the page an offset has to throw a node to hide it: past any
 #: plausible layout nudge (-10px, a hanging -1em indent), well short of the
 #: -9999px of the image-replacement and "off-screen" idioms.
@@ -157,6 +168,21 @@ _TINY_FONT_PX = 2.0
 _SLIVER_PX = 1.0
 #: Below this opacity text is not legible; 0.5 is a muted label, not a hidden one.
 _INVISIBLE_OPACITY = 0.1
+#: A transform that shrinks a box below this factor leaves nothing to read;
+#: ``scale(0.5)`` is a small label, ``scale(0.01)`` is a dot.
+_VANISHING_SCALE = 0.05
+#: ``var()`` references expanded per value, and how deep one may point to the
+#: next. Past either, the style is read as hiding: a page that needs more to
+#: say what a declaration means is not one to trust with the benefit of doubt.
+_MAX_CANDIDATES = 64
+_MAX_VAR_DEPTH = 8
+#: ``font-size`` keywords, in CSS pixels at the 16 px default.
+_FONT_KEYWORDS = {"xx-small": 9.0, "x-small": 10.0, "small": 13.0, "medium": 16.0}
+_FONT_KEYWORDS |= {"large": 18.0, "x-large": 24.0, "xx-large": 32.0, "xxx-large": 48.0}
+_CSS_WIDE = frozenset({"inherit", "unset", "revert", "revert-layer"})
+_COLOR_FUNCTIONS = frozenset(
+    "rgb rgba hsl hsla hwb lab lch oklab oklch color color-mix light-dark".split()
+)
 _ASCII_WHITESPACE = re.compile(r"[ \t\n\r\f]+")
 #: Invisible characters that only break words apart for search: soft hyphen,
 #: zero-width space, word joiner, byte-order mark, and NUL.
@@ -271,6 +297,12 @@ class _Node:
     #: Holds a table, a heading or a sectioning element somewhere below — what
     #: makes a table one used for layout (:func:`_is_data_table`).
     structured: bool = False
+    #: Its inline style takes it and everything under it out of view
+    #: (:func:`_mark_style`).
+    concealed: bool = False
+    #: Its own text cannot be read — an effective font size of about nothing,
+    #: or ink with nothing to paint it —, though a child may set it back.
+    mute: bool = False
 
 
 #: Groups of tags the builder asks about, kept as positions like a tag is.
@@ -453,6 +485,7 @@ def _parse(markup: str) -> _Node:
     builder.close()
     root = builder.root
     _mark_structure(root)
+    _mark_style(root)
     return root
 
 
@@ -498,72 +531,422 @@ def _hidden(node: _Node) -> bool:
         return True
     if node.tag == "dialog" and "open" not in attrs:
         return True
-    style = attrs.get("style")
-    return bool(style) and _style_hides(style)
+    return node.concealed
+
+
+# --- inline style -----------------------------------------------------------
+#
+# **A node is hidden when any declaration of its inline style hides it,**
+# whatever comes before or after that declaration. A browser drops a
+# declaration whose value it does not accept and keeps the one before, so
+# reading "the last one wins" let ``display:none;display:bogus`` through as
+# visible. Knowing which values a browser accepts would mean re-implementing
+# its grammar, and any disagreement — a unitless ``left:5`` is invalid in
+# standards mode and valid in quirks mode — reopens the hole. The value a
+# browser ends up applying is always one of the declared ones, so checking
+# them all cannot miss it: the rule has no parse to get wrong. Its price is a
+# style that hides a node and then shows it again in the same attribute
+# (``display:none;display:block``), which is rare there, and is dropped.
+#
+# What *rescues* text (a shadow, a stroke, a background clipped to the glyphs)
+# counts the other way round: only when every declaration of it rescues.
+
+
+@dataclass(frozen=True)
+class _Inherited:
+    """What an element's inline style hands down to its children."""
+
+    custom: dict[str, tuple[str, ...]] = field(default_factory=dict)
+    font_px: float = 16.0
+    root_px: float = 16.0
+    scale: float = 1.0
+    opacity: float = 1.0
+    ink_clear: bool = False
+    #: ``-webkit-text-fill-color``: ``True`` clear, ``False`` opaque, ``None``
+    #: unset (the fill is ``color``).
+    fill: bool | None = None
+    shadow: bool = False
+    stroke_width: bool = False
+    stroke_color: bool = False
+    #: An ancestor paints its background through the glyphs
+    #: (``background-clip: text``, the gradient-heading idiom).
+    backdrop: bool = False
+
+
+def _mark_style(root: _Node) -> None:
+    """Read every inline style once, top-down, into ``concealed`` and ``mute``.
+
+    Top-down because a font size, a colour, an opacity and a custom property
+    reach the children: whether a node's text can be read depends on its
+    ancestors, and :func:`_render` may start at an ``<article>`` deep inside
+    the page. ``concealed`` takes the subtree away (nothing a child declares
+    brings back what ``display:none`` or a clipped box removed); ``mute``
+    takes only the element's own text, because a child may set a readable font
+    size or colour again — the ``font-size:0`` container of an inline-block
+    layout holds columns that are perfectly legible.
+    """
+    stack: list[tuple[_Node, _Inherited]] = [(root, _Inherited())]
+    while stack:
+        node, outer = stack.pop()
+        style = node.attrs.get("style")
+        inner = outer
+        if style:
+            css, custom, ambiguous = _declarations(style, outer.custom)
+            inner = _inherit(node.tag, css, custom, outer)
+            node.concealed = ambiguous or _conceals(css) or inner.opacity < _INVISIBLE_OPACITY
+        node.mute = _unreadable(inner)
+        stack.extend((child, inner) for child in node.children if isinstance(child, _Node))
 
 
 def _style_hides(style: str) -> bool:
-    """Whether an inline ``style`` takes its node out of what a reader sees.
+    """Whether an inline ``style`` takes its node, and its subtree, out of view.
 
-    Covers the ways to hide text inline that need no stylesheet: ``display``,
-    ``visibility`` and ``content-visibility``; an opacity or a font size too
-    small to read; a ``clip`` or ``clip-path`` with no area left; an offset
-    that throws the node far off the page (``left``/``top`` of a positioned
-    node, ``text-indent``, a ``translate``); a zero-width or zero-height box
-    whose overflow is clipped; and a transform that scales it to nothing.
+    Covers ``display``, ``visibility`` and ``content-visibility``; an opacity
+    too low to read (``opacity``, ``filter: opacity()``); a ``clip`` or
+    ``clip-path`` with no area left; an offset that throws the node far off
+    the page (``left``/``top`` of any positioned node, ``inset``,
+    ``text-indent``, a negative ``margin``, a ``translate``); a zero-width or
+    zero-height box whose overflow is clipped; and a transform, ``scale`` or
+    ``zoom`` that shrinks it to nothing. Text too small or too faint to read
+    is decided per text by :func:`_mark_style`, since a child can set it back.
     Written for the inline attribute only — the stylesheet case is out of
-    reach without a CSS engine, and the defence there is that a source is data,
-    never instruction (D-97). Thresholds err towards keeping text: a muted
-    ``opacity:0.5`` or a ``-1em`` hanging indent stays.
+    reach without a CSS engine, and the defence there is that a source is
+    data, never instruction (D-97). Thresholds err towards keeping text: a
+    muted ``opacity:0.5``, a ``-1em`` hanging indent or the ``translateY(-100%)``
+    of a tooltip stays.
     """
-    css = _declarations(style)
-    if css.get("display") == "none":
-        return True
-    if css.get("visibility") in ("hidden", "collapse"):
-        return True
-    if css.get("content-visibility") == "hidden":
-        return True
-    opacity = _opacity(css.get("opacity"))
-    if opacity is not None and opacity < _INVISIBLE_OPACITY:
-        return True
-    font = _length_px(css.get("font-size"), percent_of=16.0)
-    if font is not None and font < _TINY_FONT_PX:
-        return True
-    positioned = css.get("position") in ("absolute", "fixed")
-    if positioned and _empty_rect(css.get("clip")):
-        return True
-    if _empty_clip_path(css.get("clip-path")):
-        return True
-    if positioned and any(_far_negative(css.get(side)) for side in ("left", "top")):
-        return True
-    if _far_negative(css.get("text-indent")):
-        return True
-    overflow = (css.get("overflow") or "").split()
-    clipped_x = css.get("overflow-x", overflow[0] if overflow else "") in ("hidden", "clip")
-    clipped_y = css.get("overflow-y", overflow[-1] if overflow else "") in ("hidden", "clip")
-    if clipped_x and any(_sliver(css.get(p)) for p in ("width", "max-width")):
-        return True
-    if clipped_y and any(_sliver(css.get(p)) for p in ("height", "max-height")):
-        return True
-    return _collapsing_transform(css.get("transform"), css.get("scale"), css.get("translate"))
+    css, _, ambiguous = _declarations(style, {})
+    return ambiguous or _conceals(css)
 
 
-def _declarations(style: str) -> dict[str, str]:
-    """The declarations of an inline style, lower-cased, one value per
-    property: the last one wins unless an earlier one is ``!important`` (any
-    spacing or case), as in the cascade."""
-    found: dict[str, tuple[bool, str]] = {}
-    for declaration in _CSS_COMMENT.sub(" ", style.lower()).split(";"):
+def _declarations(
+    style: str, custom: dict[str, tuple[str, ...]]
+) -> tuple[dict[str, list[str]], dict[str, tuple[str, ...]], bool]:
+    """Every value of every declaration of an inline style, lower-cased.
+
+    Returns the values per property (``var()`` references expanded against
+    ``custom`` and the style's own custom properties), the custom properties
+    in scope for the children, and whether expanding a reference went past
+    :data:`_MAX_CANDIDATES` or :data:`_MAX_VAR_DEPTH` — which the caller reads
+    as hiding. ``!important`` changes nothing: every value is looked at.
+    """
+    text = _CSS_ESCAPE.sub(_unescape, _CSS_COMMENT.sub(" ", style)).lower()
+    declared: list[tuple[str, str]] = []
+    for declaration in text.split(";"):
         name, colon, value = declaration.partition(":")
         name, value = name.strip(), " ".join(value.split())
-        if not colon or not name or not value:
-            continue
-        important = bool(_IMPORTANT.search(value))
         value = _IMPORTANT.sub("", value).strip()
-        if not value or (name in found and found[name][0] and not important):
+        if colon and name and value:
+            declared.append((name, value))
+    own: dict[str, list[str]] = {}
+    for name, value in declared:
+        if name.startswith("--"):
+            own.setdefault(name, []).append(value)
+    scope = custom | {name: tuple(values) for name, values in own.items()} if own else custom
+    css: dict[str, list[str]] = {}
+    ambiguous = False
+    for name, value in declared:
+        if name.startswith("--"):
             continue
-        found[name] = (important, value)
-    return {name: value for name, (_, value) in found.items()}
+        resolved = _resolve(value, scope)
+        if resolved is None:
+            ambiguous = True
+        elif resolved:
+            css.setdefault(name, []).extend(resolved)
+    return css, scope, ambiguous
+
+
+def _unescape(match: re.Match[str]) -> str:
+    hexadecimal, char = match.groups()
+    if hexadecimal is None:
+        return char
+    code = int(hexadecimal, 16)
+    return "�" if code == 0 or code > 0x10FFFF or 0xD800 <= code <= 0xDFFF else chr(code)
+
+
+_VAR_CALL = re.compile(r"(?<![a-z0-9_-])var\(")
+
+
+def _resolve(value: str, scope: dict[str, tuple[str, ...]]) -> list[str] | None:
+    """``value`` with each ``var()`` replaced by every value it may take — the
+    custom property's declared values and its fallback. A reference with
+    neither makes the declaration invalid, as in a browser (no value).
+    ``None`` when the expansion is too large or too deep to follow."""
+    pending = [(value, 0)]
+    done: list[str] = []
+    while pending:
+        text, depth = pending.pop()
+        call = _VAR_CALL.search(text)
+        if call is None:
+            done.append(text)
+            continue
+        if depth >= _MAX_VAR_DEPTH:
+            return None
+        end, inner = _call_body(text, call.end())
+        name, comma, fallback = inner.partition(",")
+        options = list(scope.get(name.strip(), ()))
+        if comma:
+            options.append(fallback.strip())
+        pending.extend(
+            (text[: call.start()] + option + text[end:], depth + 1) for option in options
+        )
+        if len(pending) + len(done) > _MAX_CANDIDATES:
+            return None
+    return done
+
+
+def _call_body(text: str, start: int) -> tuple[int, str]:
+    """The inside of a function call opened just before ``start``, and the
+    index past its closing parenthesis (the end of ``text`` when unclosed)."""
+    depth = 1
+    for index in range(start, len(text)):
+        if text[index] == "(":
+            depth += 1
+        elif text[index] == ")":
+            depth -= 1
+            if depth == 0:
+                return index + 1, text[start:index]
+    return len(text), text[start:]
+
+
+def _conceals(css: dict[str, list[str]]) -> bool:
+    """Whether any declaration takes the node and its subtree out of view."""
+
+    def values(*names: str) -> list[str]:
+        return [value for name in names for value in css.get(name, ())]
+
+    if "none" in values("display"):
+        return True
+    if any(value in ("hidden", "collapse") for value in values("visibility")):
+        return True
+    if "hidden" in values("content-visibility"):
+        return True
+    if _own_opacity(css) < _INVISIBLE_OPACITY:
+        return True
+    positions = set(values("position"))
+    if positions & {"absolute", "fixed"} and any(_empty_rect(v) for v in values("clip")):
+        return True  # ``clip`` applies to an absolutely positioned box only
+    if any(_empty_clip_path(v) for v in values("clip-path", "-webkit-clip-path")):
+        return True
+    # ``left``/``top`` move any box that is not ``static``: a relative or
+    # sticky one is thrown off the page as surely as an absolute one.
+    offsets = values("left", "top", "inset-inline-start", "inset-block-start")
+    offsets += _starts(values("inset"))
+    if positions & {"absolute", "fixed", "relative", "sticky"} and any(
+        _far_negative(v) for v in offsets
+    ):
+        return True
+    if any(_far_negative(v.split()[0]) for v in values("text-indent")):
+        return True
+    # A margin percentage is of the container's width: ``margin-left:-100%``
+    # is how the holy-grail layout places a visible sidebar. Only a length.
+    margins = values("margin-left", "margin-top", "margin-inline-start", "margin-block-start")
+    margins += _starts(values("margin"))
+    if any(_far_negative(v, percent=False) for v in margins):
+        return True
+    clip = ("hidden", "clip")
+    overflow = values("overflow")
+    clipped_x = any(v in clip for v in values("overflow-x")) or any(
+        v.split()[0] in clip for v in overflow
+    )
+    clipped_y = any(v in clip for v in values("overflow-y")) or any(
+        v.split()[-1] in clip for v in overflow
+    )
+    if clipped_x and any(_sliver(v) for v in values("width", "max-width")):
+        return True
+    if clipped_y and any(_sliver(v) for v in values("height", "max-height")):
+        return True
+    if _scale_factor(css) < _VANISHING_SCALE:
+        return True
+    # A translation percentage is of the element's own size:
+    # ``translateY(-100%)`` puts a tooltip just above its anchor. Only a length.
+    return any(_far_negative(v, percent=False) for v in _translations(css))
+
+
+def _starts(shorthands: list[str]) -> list[str]:
+    """The top and left of box shorthands (``inset``, ``margin``)."""
+    starts: list[str] = []
+    for value in shorthands:
+        sides = _box_sides(_split_top(value, " "))
+        if len(sides) == 4:
+            starts += [sides[0], sides[3]]
+    return starts
+
+
+def _inherit(
+    tag: str, css: dict[str, list[str]], custom: dict[str, tuple[str, ...]], outer: _Inherited
+) -> _Inherited:
+    """What an element with these declarations hands to its children."""
+    font = outer.font_px
+    sizes = css.get("font-size", []) + [
+        size for value in css.get("font", ()) if (size := _font_shorthand_size(value))
+    ]
+    if sizes:
+        font = min(_font_px(value, outer.font_px, outer.root_px) for value in sizes)
+
+    ink_clear = _clear(css.get("color"), outer.ink_clear)
+    fill = outer.fill
+    fills = css.get("-webkit-text-fill-color")
+    if fills:
+        if all(value == "currentcolor" for value in fills):
+            fill = None
+        else:
+            fill = _clear(fills, outer.fill)
+
+    shadow = outer.shadow
+    shadows = [value for value in css.get("text-shadow", ()) if value not in _CSS_WIDE]
+    if shadows:
+        shadow = all(_shadow_paints(value) for value in shadows)
+
+    stroke_width, stroke_color = outer.stroke_width, outer.stroke_color
+    for value in css.get("-webkit-text-stroke", ()):
+        parts = _split_top(value, " ")
+        widths = [_stroke_px(part) for part in parts]
+        stroke_width = any(width is not None and width > 0 for width in widths)
+        colors = [part for part, width in zip(parts, widths, strict=True) if width is None]
+        stroke_color = bool(colors) and all(_visible_color(part) for part in colors)
+    widths = [_stroke_px(value) for value in css.get("-webkit-text-stroke-width", ())]
+    if widths:
+        stroke_width = all(width is not None and width > 0 for width in widths)
+    stroke_colors = css.get("-webkit-text-stroke-color")
+    if stroke_colors:
+        stroke_color = all(_visible_color(value) for value in stroke_colors)
+
+    clips = css.get("background-clip", []) + css.get("-webkit-background-clip", [])
+    backdrop = outer.backdrop or (bool(clips) and all("text" in value for value in clips))
+
+    return _Inherited(
+        custom=custom,
+        font_px=font,
+        root_px=font if tag == "html" else outer.root_px,
+        scale=outer.scale * _scale_factor(css),
+        opacity=outer.opacity * _own_opacity(css),
+        ink_clear=ink_clear,
+        fill=fill,
+        shadow=shadow,
+        stroke_width=stroke_width,
+        stroke_color=stroke_color,
+        backdrop=backdrop,
+    )
+
+
+def _unreadable(state: _Inherited) -> bool:
+    """Text too small to read, or drawn in ink with nothing to paint it."""
+    if state.font_px * state.scale < _TINY_FONT_PX:
+        return True
+    clear = state.ink_clear if state.fill is None else state.fill
+    painted = state.shadow or (state.stroke_width and state.stroke_color) or state.backdrop
+    return clear and not painted
+
+
+def _clear(values: list[str] | None, inherited: bool | None) -> bool | None:
+    """Whether a colour property leaves the text clear: any clear value makes
+    it so; all opaque values make it opaque; otherwise it stays as inherited
+    (``inherit``, ``currentcolor``, a value this module cannot read)."""
+    if not values:
+        return inherited
+    alphas = [_alpha(value) for value in values]
+    if any(alpha is not None and alpha < _INVISIBLE_OPACITY for alpha in alphas):
+        return True
+    if all(alpha is not None for alpha in alphas):
+        return False
+    return inherited
+
+
+def _alpha(value: str) -> float | None:
+    """A colour's alpha, 0 to 1; ``None`` for ``currentcolor``, a CSS-wide
+    keyword or a value this module cannot read."""
+    value = value.strip()
+    if value == "transparent":
+        return 0.0
+    if value == "currentcolor" or value in _CSS_WIDE:
+        return None
+    if value.startswith("#"):
+        digits = value[1:]
+        if not re.fullmatch(r"[0-9a-f]+", digits):
+            return None
+        if len(digits) == 4:
+            return int(digits[3] * 2, 16) / 255
+        if len(digits) == 8:
+            return int(digits[6:], 16) / 255
+        return 1.0 if len(digits) in (3, 6) else None
+    match = _CSS_FUNCTION.fullmatch(value)
+    if match is not None:
+        name, args = match.groups()
+        if name not in _COLOR_FUNCTIONS:
+            return None
+        if "/" in args:
+            return _alpha_channel(args.rsplit("/", 1)[1])
+        parts = args.split(",")
+        if name in ("rgb", "rgba", "hsl", "hsla") and len(parts) == 4:
+            return _alpha_channel(parts[3])
+        return 1.0
+    return 1.0 if re.fullmatch(r"[a-z]+", value) else None  # a named colour
+
+
+def _alpha_channel(value: str) -> float | None:
+    value = value.strip()
+    if value == "none":
+        return 0.0
+    alpha = _fraction(value)
+    return None if alpha is None else min(max(alpha, 0.0), 1.0)
+
+
+def _visible_color(value: str) -> bool:
+    alpha = _alpha(value)
+    return alpha is not None and alpha >= _INVISIBLE_OPACITY
+
+
+def _shadow_paints(value: str) -> bool:
+    """A ``text-shadow`` that draws the glyphs in a colour of its own. One in
+    ``currentcolor`` (no colour given) is as clear as the text it shadows."""
+    if value == "none":
+        return False
+    for shadow in _split_top(value, ","):
+        colors = [part for part in _split_top(shadow, " ") if _number(part) is None]
+        if any(_visible_color(color) for color in colors):
+            return True
+    return False
+
+
+def _stroke_px(value: str) -> float | None:
+    keyword = {"thin": 1.0, "medium": 3.0, "thick": 5.0}.get(value)
+    return keyword if keyword is not None else _px(value)
+
+
+def _font_shorthand_size(value: str) -> str | None:
+    """The size in a ``font`` shorthand: ``0/0 a`` → ``0``, ``bold 12px/1.5
+    serif`` → ``12px``; ``None`` for a system font (``caption``)."""
+    size = None
+    for token in re.sub(r"\s*/\s*", "/", value).split():
+        if token.startswith(("'", '"')) or "," in token:
+            break  # the family list has begun
+        head = token.split("/", 1)[0]
+        parsed = _number(head)
+        is_size = parsed is not None and (parsed[1] != "" or parsed[0] == 0)
+        if is_size or head in _FONT_KEYWORDS or head in ("smaller", "larger"):
+            size = head
+        elif head.startswith(tuple(f"{name}(" for name in _CSS_MATH)):
+            size = head
+        if "/" in token:
+            break
+    return size
+
+
+def _font_px(value: str, parent: float, root: float) -> float:
+    """A ``font-size`` in CSS pixels, given the parent's and the root's. What
+    cannot be read — or is invalid, like a negative size — is the parent's,
+    which is what a browser does with a declaration it drops."""
+    if value in _FONT_KEYWORDS:
+        return _FONT_KEYWORDS[value]
+    if value == "initial":
+        return 16.0
+    if value == "smaller":
+        return parent / 1.2
+    if value == "larger":
+        return parent * 1.2
+    px = _px(value, em=parent, rem=root, percent_of=parent)
+    return parent if px is None or px < 0 else px
 
 
 def _number(value: str | None) -> tuple[float, str] | None:
@@ -572,39 +955,208 @@ def _number(value: str | None) -> tuple[float, str] | None:
     return (float(match.group(1)), match.group(2)) if match else None
 
 
-def _length_px(value: str | None, *, percent_of: float | None = None) -> float | None:
-    """A length in CSS pixels; ``None`` for a keyword, a ``calc()`` or a unit
-    with no fixed size. A bare ``0`` is a length; a percentage only when
-    ``percent_of`` gives it a base."""
-    parsed = _number(value)
-    if parsed is None:
+def _px(
+    value: str | None,
+    *,
+    em: float = 16.0,
+    rem: float = 16.0,
+    percent_of: float | None = None,
+) -> float | None:
+    """A length in CSS pixels; ``None`` for a keyword or a unit with no fixed
+    size. A bare ``0`` is a length; a percentage only when ``percent_of``
+    gives it a base. ``calc()``, ``min()``, ``max()`` and ``clamp()`` are
+    evaluated, so ``calc(-9999px)`` is not a way around ``-9999px``."""
+    if not value:
         return None
-    number, unit = parsed
-    if unit == "":
-        return number if number == 0 else None
-    if unit == "%":
-        return number * percent_of / 100 if percent_of is not None else None
-    per = _PX_PER.get(unit)
-    return number * per if per is not None else None
+
+    def unit_px(number: float, unit: str) -> float | None:
+        if unit == "":
+            return number if number == 0 else None
+        if unit == "%":
+            return number * percent_of / 100 if percent_of is not None else None
+        if unit == "em":
+            return number * em
+        if unit == "rem":
+            return number * rem
+        if unit in ("ex", "ch"):
+            return number * em / 2
+        per = _PX_PER.get(unit)
+        return number * per if per is not None else None
+
+    parsed = _number(value)
+    if parsed is not None:
+        return unit_px(*parsed)
+    return _math(value, unit_px)
+
+
+def _fraction(value: str | None) -> float | None:
+    """A number or a percentage as a plain number (``50%`` → 0.5)."""
+    parsed = _number(value)
+    if parsed is not None:
+        number, unit = parsed
+        return number / 100 if unit == "%" else number if unit == "" else None
+    return _math(value or "", lambda number, unit: number / 100 if unit == "%" else None, True)
+
+
+_MATH_TOKEN = re.compile(
+    r"\s*(?:((?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?)([a-z%]*)|([a-z-]+)\(|([-+*/(),]))"
+)
+_MATH_MAX_TOKENS = 200
+_MATH_MAX_NESTING = 64
+
+
+def _math(
+    value: str, unit_px: Callable[[float, str], float | None], unitless: bool = False
+) -> float | None:
+    """A ``calc()``, ``min()``, ``max()`` or ``clamp()`` evaluated, with each
+    dimension converted by ``unit_px``; ``None`` for anything else. The result
+    is a length unless ``unitless``, where it is a plain number."""
+    if not value.startswith(tuple(f"{name}(" for name in _CSS_MATH)):
+        return None
+    if value.count("(") > _MATH_MAX_NESTING:
+        return None
+    tokens: list[tuple[float, bool] | str] = []
+    position = 0
+    while position < len(value):
+        match = _MATH_TOKEN.match(value, position)
+        if match is None:
+            if value[position:].strip():
+                return None
+            break
+        position = match.end()
+        number, unit, function, symbol = match.groups()
+        if number is not None:
+            if unit:
+                converted = unit_px(float(number), unit)
+                if converted is None:
+                    return None
+                tokens.append((converted, not unitless))
+            else:
+                tokens.append((float(number), False))
+        elif function is not None:
+            if function not in _CSS_MATH:
+                return None
+            tokens.append(function + "(")
+        else:
+            tokens.append(symbol)
+        if len(tokens) > _MATH_MAX_TOKENS:
+            return None
+    parser = _MathParser(tokens)
+    try:
+        result, is_length = parser.sum()
+    except (ValueError, IndexError, ZeroDivisionError):
+        return None
+    if parser.at != len(tokens):
+        return None
+    if unitless:
+        return None if is_length else result
+    return result if is_length or result == 0 else None
+
+
+class _MathParser:
+    """Recursive descent over :func:`_math`'s tokens; a value is a number and
+    whether it is a length."""
+
+    def __init__(self, tokens: list[tuple[float, bool] | str]) -> None:
+        self.tokens = tokens
+        self.at = 0
+
+    def _peek(self) -> tuple[float, bool] | str | None:
+        return self.tokens[self.at] if self.at < len(self.tokens) else None
+
+    def _take(self, expected: str | None = None) -> tuple[float, bool] | str:
+        token = self.tokens[self.at]
+        if expected is not None and token != expected:
+            raise ValueError(token)
+        self.at += 1
+        return token
+
+    def sum(self) -> tuple[float, bool]:
+        value, length = self._product()
+        while self._peek() in ("+", "-"):
+            sign = self._take()
+            other, other_length = self._product()
+            value = value + other if sign == "+" else value - other
+            length = length or other_length
+        return value, length
+
+    def _product(self) -> tuple[float, bool]:
+        value, length = self._factor()
+        while self._peek() in ("*", "/"):
+            operator = self._take()
+            other, other_length = self._factor()
+            value = value * other if operator == "*" else value / other
+            length = length or other_length
+        return value, length
+
+    def _factor(self) -> tuple[float, bool]:
+        token = self._take()
+        if isinstance(token, tuple):
+            return token
+        if token == "-":
+            value, length = self._factor()
+            return -value, length
+        if token == "+":
+            return self._factor()
+        if token in ("(", "calc("):
+            value = self.sum()
+            self._take(")")
+            return value
+        if token in ("min(", "max(", "clamp("):
+            args = [self.sum()]
+            while self._peek() == ",":
+                self._take()
+                args.append(self.sum())
+            self._take(")")
+            numbers = [number for number, _ in args]
+            length = any(is_length for _, is_length in args)
+            if token == "min(":
+                return min(numbers), length
+            if token == "max(":
+                return max(numbers), length
+            if len(numbers) != 3:
+                raise ValueError(token)
+            return max(numbers[0], min(numbers[1], numbers[2])), length
+        raise ValueError(token)
 
 
 def _opacity(value: str | None) -> float | None:
-    parsed = _number(value)
-    if parsed is None or parsed[1] not in ("", "%"):
-        return None
-    return parsed[0] / 100 if parsed[1] == "%" else parsed[0]
+    """An opacity, clamped to 0–1 as a browser clamps it (``-1`` is 0)."""
+    fraction = _fraction(value)
+    return None if fraction is None else min(max(fraction, 0.0), 1.0)
 
 
-def _far_negative(value: str | None) -> bool:
+def _own_opacity(css: dict[str, list[str]]) -> float:
+    """The lowest opacity the declarations can give: ``opacity`` times the
+    ``opacity()`` functions of a ``filter``."""
+    opacity = min(
+        (o for value in css.get("opacity", ()) if (o := _opacity(value)) is not None),
+        default=1.0,
+    )
+    filtered = 1.0
+    for value in css.get("filter", []) + css.get("-webkit-filter", []):
+        product = 1.0
+        for function in _split_top(value, " "):
+            name, _, rest = function.partition("(")
+            if name == "opacity":
+                amount = _opacity(rest[:-1].strip() or "1")
+                product *= 1.0 if amount is None else amount
+        filtered = min(filtered, product)
+    return opacity * filtered
+
+
+def _far_negative(value: str | None, *, percent: bool = True) -> bool:
     """An offset that moves a node off the page: far past any layout nudge,
-    or at least a whole box (-100%) or viewport (-100vw) away."""
+    at least a viewport (-100vw) away, or — where ``percent`` says a
+    percentage is of the page's width — a whole box (-100%) away."""
     parsed = _number(value)
-    if parsed is None:
-        return False
-    number, unit = parsed
-    if unit in ("%", "vw", "vh", "vmin", "vmax"):
-        return number <= -100
-    px = _length_px(value)
+    if parsed is not None:
+        number, unit = parsed
+        if unit == "%":
+            return percent and number <= -100
+        if unit in _VIEWPORT:
+            return number <= -100
+    px = _px(value)
     return px is not None and px <= -_FAR_PX
 
 
@@ -612,12 +1164,41 @@ def _sliver(value: str | None) -> bool:
     parsed = _number(value)
     if parsed is not None and parsed[1] == "%":
         return parsed[0] <= 0
-    px = _length_px(value)
+    px = _px(value)
     return px is not None and px <= _SLIVER_PX
 
 
 def _arguments(text: str) -> list[str]:
     return [part for part in re.split(r"[\s,]+", text.strip()) if part]
+
+
+def _split_top(value: str, separator: str) -> list[str]:
+    """``value`` split on ``separator`` (a space means any whitespace) outside
+    parentheses: ``scale(calc(0)) rotate(3deg)`` is two functions."""
+    parts: list[str] = []
+    depth = start = 0
+    for index, char in enumerate(value):
+        if char == "(":
+            depth += 1
+        elif char == ")":
+            depth = max(depth - 1, 0)
+        elif depth == 0 and (char == separator or (separator == " " and char.isspace())):
+            parts.append(value[start:index])
+            start = index + 1
+    parts.append(value[start:])
+    return [part.strip() for part in parts if part.strip()]
+
+
+def _functions(value: str) -> list[tuple[str, list[str]]]:
+    """The top-level function calls of a value and their arguments, split on
+    commas and spaces outside parentheses."""
+    calls: list[tuple[str, list[str]]] = []
+    for part in _split_top(value, " "):
+        name, paren, rest = part.partition("(")
+        if paren and rest.endswith(")"):
+            args = [arg for chunk in _split_top(rest[:-1], ",") for arg in _split_top(chunk, " ")]
+            calls.append((name, args))
+    return calls
 
 
 def _empty_rect(value: str | None) -> bool:
@@ -629,7 +1210,7 @@ def _empty_rect(value: str | None) -> bool:
     edges = _arguments(match.group(2))
     if len(edges) != 4:
         return False
-    top, right, bottom, left = (_length_px(edge) for edge in edges)
+    top, right, bottom, left = (_px(edge) for edge in edges)
     collapsed_y = top is not None and bottom is not None and bottom <= top
     collapsed_x = left is not None and right is not None and right <= left
     return collapsed_x or collapsed_y
@@ -653,7 +1234,7 @@ def _empty_clip_path(value: str | None) -> bool:
         top, right, bottom, left = _box_sides(percents)
         return top + bottom >= 100 or left + right >= 100
     if shape in ("circle", "ellipse") and args:
-        radii = [_length_px(arg, percent_of=100.0) for arg in args[:2]]
+        radii = [_px(arg, percent_of=100.0) for arg in args[:2]]
         return any(radius is not None and radius <= 0 for radius in radii)
     if shape == "polygon":
         points = {point.strip() for point in match.group(2).split(",") if point.strip()}
@@ -661,7 +1242,10 @@ def _empty_clip_path(value: str | None) -> bool:
     return False
 
 
-def _box_sides(values: list[float]) -> list[float]:
+_T = TypeVar("_T")
+
+
+def _box_sides(values: list[_T]) -> list[_T]:
     """One to four values as top, right, bottom, left — the CSS box shorthand."""
     if len(values) == 1:
         return values * 4
@@ -669,36 +1253,69 @@ def _box_sides(values: list[float]) -> list[float]:
         return [values[0], values[1], values[0], values[1]]
     if len(values) == 3:
         return [values[0], values[1], values[2], values[1]]
-    return values
+    return values[:4]
 
 
-def _collapsing_transform(transform: str | None, scale: str | None, translate: str | None) -> bool:
-    """A transform that leaves nothing to see: a scale factor of zero on
-    either axis, or a translation far off the page — in ``transform`` or in the
-    individual ``scale`` and ``translate`` properties."""
+def _scale_factor(css: dict[str, list[str]]) -> float:
+    """The smallest factor by which the declarations can shrink the box along
+    an axis: ``transform`` (``scale*``, ``matrix*``), ``scale`` and ``zoom``."""
+    transform = min((_transform_scale(value) for value in css.get("transform", ())), default=1.0)
+    scale = 1.0
+    for value in css.get("scale", ()):
+        factors = [_fraction(arg) for arg in _split_top(value, " ")[:2]]
+        known = [abs(factor) for factor in factors if factor is not None]
+        if known:
+            scale = min(scale, *known)
+    zoom = 1.0
+    for value in css.get("zoom", ()):
+        factor = _fraction(value)
+        if factor is not None and factor > 0:  # ``zoom: 0`` is read as 1
+            zoom = min(zoom, factor)
+    return transform * scale * zoom
+
+
+def _transform_scale(value: str) -> float:
+    """The factor of the axis a transform list shrinks most (rotations and
+    skews aside, which do not shrink a box to nothing)."""
+    x = y = 1.0
+    for name, args in _functions(value):
+        numbers = [_fraction(arg) for arg in args]
+        if any(number is None for number in numbers):
+            continue
+        values = [number for number in numbers if number is not None]
+        if name == "scale" and values:
+            x, y = x * values[0], y * (values[1] if len(values) > 1 else values[0])
+        elif name == "scale3d" and len(values) >= 2:
+            x, y = x * values[0], y * values[1]
+        elif name == "scalex" and values:
+            x *= values[0]
+        elif name == "scaley" and values:
+            y *= values[0]
+        elif name == "matrix" and len(values) == 6:
+            x, y = x * math.hypot(values[0], values[1]), y * math.hypot(values[2], values[3])
+        elif name == "matrix3d" and len(values) == 16:
+            x *= math.hypot(values[0], values[1], values[2])
+            y *= math.hypot(values[4], values[5], values[6])
+    return min(abs(x), abs(y))
+
+
+def _translations(css: dict[str, list[str]]) -> list[str]:
+    """Every distance a ``transform`` or ``translate`` moves the box by, along
+    x and y — a matrix's translation included, in pixels."""
     moves: list[str] = []
-    for name, args in _CSS_FUNCTION.findall(transform or ""):
-        values = _arguments(args)
-        if name in ("scale", "scale3d") and _zero_scale(values[:2]):
-            return True
-        if name in ("scalex", "scaley") and _zero_scale(values[:1]):
-            return True
-        if name in ("translate", "translate3d"):
-            moves += values[:2]
-        elif name in ("translatex", "translatey"):
-            moves += values[:1]
-    if scale and _zero_scale(_arguments(scale)[:2]):
-        return True
-    moves += _arguments(translate or "")[:2]
-    return any(_far_negative(move) for move in moves)
-
-
-def _zero_scale(values: list[str]) -> bool:
-    for value in values:
-        parsed = _number(value)
-        if parsed is not None and parsed[1] in ("", "%") and parsed[0] == 0:
-            return True
-    return False
+    for value in css.get("transform", ()):
+        for name, args in _functions(value):
+            if name in ("translate", "translate3d"):
+                moves += args[:2]
+            elif name in ("translatex", "translatey"):
+                moves += args[:1]
+            elif name == "matrix" and len(args) == 6:
+                moves += [f"{arg}px" if _number(arg) else arg for arg in args[4:6]]
+            elif name == "matrix3d" and len(args) == 16:
+                moves += [f"{arg}px" if _number(arg) else arg for arg in args[12:14]]
+    for value in css.get("translate", ()):
+        moves += _split_top(value, " ")[:2]
+    return moves
 
 
 def _visible(root: _Node, tag: str, outermost: bool) -> Iterator[_Node]:
@@ -917,7 +1534,7 @@ def _walk(root: _Node, writer: _Writer, sectioning: bool) -> None:
         if tag == "math":
             # MathML flattened would glue <mn>10</mn><mn>3</mn> into "103"; the
             # author's own linear form, when given, is the safe reading.
-            writer.text(f" {node.attrs.get('alttext', '')} ", pre=False)
+            writer.text(f" {'' if node.mute else node.attrs.get('alttext', '')} ", pre=False)
             continue
         if tag in _HEADINGS and not writer.flat:
             writer.heading(_flat(node, in_section))
@@ -937,7 +1554,13 @@ def _walk(root: _Node, writer: _Writer, sectioning: bool) -> None:
             stack.append(tag)
         inner_section = in_section or tag in _SECTIONING
         inner_pre = in_pre or tag in {"pre", "listing"}
-        stack.extend((child, inner_section, inner_pre) for child in reversed(node.children))
+        # Unreadable text goes, its children stay (they may set the font size
+        # or the colour back); a space keeps the words on either side apart,
+        # so dropping "1" between "2" and "3" never writes "23".
+        stack.extend(
+            (" " if node.mute and isinstance(child, str) else child, inner_section, inner_pre)
+            for child in reversed(node.children)
+        )
 
 
 def _is_data_table(table: _Node) -> bool:
