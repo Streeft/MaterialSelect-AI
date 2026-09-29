@@ -18,8 +18,9 @@ The rules, in the order a generation meets them:
    the unit with one conditional ``UPDATE`` (the repository's ``reserve``), in
    the transaction that writes the artifact, so running generations already
    count and ten concurrent clicks cannot overshoot the day's limit; a
-   generation that fails, is deleted while running, or was interrupted by a
-   restart costs nothing.
+   generation that fails, is deleted while running (alone or with its
+   notebook), or was interrupted by a restart costs nothing — and is handed
+   back once: only the statement that moves the row out of ``gerando`` refunds.
 4. **Every figure of every item is in a passage that item cites**
    (``app.notebooks.studio_content``) — one retry naming the figures, then the
    item is left out and the artifact says so.
@@ -78,7 +79,7 @@ from app.schemas.notebook import (
     StudioToolOut,
     UsageOut,
 )
-from app.services.notebook_service import _note_out, citations_for, passages_for
+from app.services.notebook_service import _note_out, citations_for, created_day, passages_for
 
 logger = logging.getLogger(__name__)
 
@@ -385,10 +386,14 @@ class StudioService:
         return raw
 
     def _fail(self, artifact: StudioArtifact, reason: str) -> None:
+        # Read before the rollback: the row may be gone (deleted meanwhile),
+        # and an expired attribute would then try to load it.
+        artifact_id, day = artifact.id, _created_day(artifact)
         self.db.rollback()
-        artifact.status = "falhou"
-        artifact.error = reason[:500]
-        self.repo.release(_created_day(artifact), "artifacts")  # a failure costs nothing
+        # A failure costs nothing — handed back only by whoever moves the row
+        # out of ``gerando``, so a delete racing this failure cannot refund too.
+        if self.repo.settle_running(artifact_id, status="falhou", error=reason[:500]):
+            self.repo.release(day, "artifacts")
         self.db.commit()
 
     # --- editing -----------------------------------------------------------
@@ -406,11 +411,15 @@ class StudioService:
 
     def delete(self, notebook_id: int, artifact_id: int) -> None:
         artifact = self._artifact(notebook_id, artifact_id)
-        if artifact.status == "gerando":
+        day = _created_day(artifact)
+        if self.repo.delete_running(artifact.id):
             # Its job will find nothing to finish, so nothing would ever hand
-            # the unit back — and an unfinished generation costs nothing.
-            self.repo.release(_created_day(artifact), "artifacts")
-        self.db.delete(artifact)
+            # the unit back — and an unfinished generation costs nothing. The
+            # delete is conditioned on ``gerando`` in the same statement: if
+            # the job finished or failed first, this is an ordinary delete.
+            self.repo.release(day, "artifacts")
+        else:
+            self.db.delete(artifact)
         self.db.commit()
 
     def save_as_note(self, notebook_id: int, artifact_id: int) -> NoteOut:
@@ -549,7 +558,7 @@ def _created(artifact: StudioArtifact) -> datetime:
 
 def _created_day(artifact: StudioArtifact) -> date:
     """The day whose counter the artifact's unit was reserved on."""
-    return _created(artifact).astimezone(UTC).date()
+    return created_day(artifact.created_at)
 
 
 def run_job(factory: Callable[[], Session], user_id: int, artifact_id: int) -> None:

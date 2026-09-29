@@ -251,6 +251,38 @@ class NotebookRepository:
             ).scalars()
         )
 
+    # A running generation holds one reserved unit, handed back when it fails
+    # or is deleted unfinished. Two of those can race — the job failing while
+    # the student deletes it — and both would hand the unit back. So leaving
+    # ``gerando`` is itself the guard: one statement conditioned on the status,
+    # whose row count says whether *this* caller moved the row out of it and so
+    # owns the refund. On PostgreSQL the loser waits on the row lock and then
+    # finds the status changed; on SQLite the writers queue.
+
+    def _owned_artifact(self, artifact_id: int):
+        owned = select(Notebook.id).where(Notebook.owner_id == self.owner_id)
+        return (StudioArtifact.id == artifact_id, StudioArtifact.notebook_id.in_(owned))
+
+    def settle_running(self, artifact_id: int, **values: object) -> bool:
+        """Write ``values`` (a final status and its error) on a generation only
+        if it is still ``gerando``; whether it was."""
+        result = self.db.execute(
+            update(StudioArtifact)
+            .where(*self._owned_artifact(artifact_id), StudioArtifact.status == "gerando")
+            .values(**values)
+            .execution_options(synchronize_session="fetch")
+        )
+        return result.rowcount == 1
+
+    def delete_running(self, artifact_id: int) -> bool:
+        """Delete a generation only if it is still ``gerando``; whether it was."""
+        result = self.db.execute(
+            delete(StudioArtifact)
+            .where(*self._owned_artifact(artifact_id), StudioArtifact.status == "gerando")
+            .execution_options(synchronize_session="fetch")
+        )
+        return result.rowcount == 1
+
     # --- quota ---------------------------------------------------------------
     #
     # Every change to a counter is one SQL statement, never read-then-write in
