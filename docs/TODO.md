@@ -59,24 +59,41 @@ quitados".
 
 **A7 — Tirar o material de curso da ENG02016 do banco de produção e do
 histórico (D-100).** ▁ O PR do D-100 tirou os 71 arquivos do repositório e
-entregou as ferramentas; os três passos que faltam são do autor, nesta ordem, e
+entregou as ferramentas; os passos que faltam são do autor, nesta ordem, e
 nenhum acontece sozinho com o merge:
 
-1. **Banco de produção.** Workflow **Administração do banco** →
-   `conhecimento_simular_remocao`, conferir no log os documentos e os totais, e
-   então `conhecimento_remover`. O log tem de terminar em
+1. **Pastas locais.** O banco foi povoado do seu disco, não da árvore do git:
+   abra `Cérebro/_Duplicados-Para-Revisao/` e qualquer outra pasta local (uma
+   cópia renomeada, um layout antigo) e apague as cópias de material de curso.
+   As linhas `sha256:` da lista pegam no banco uma cópia de bytes idênticos em
+   qualquer caminho; uma cópia de bytes diferentes, não.
+2. **Banco de produção.** Workflow **Administração do banco** →
+   `conhecimento_simular_remocao`, conferir no log os documentos, os totais e
+   **a lista do que fica** (`[prune] ficaria: …` e a contagem por pasta), e
+   então `conhecimento_remover`. O log tem de conter
    `[prune] REMOVIDOS: …` com os mesmos totais da simulação
    ([13-deploy.md](13-deploy.md) §5-bis). Se a base de produção estiver vazia
    (o `KNOWLEDGE_DIR` da instância nunca foi populado), a simulação diz
    `0 documentos` e o passo termina aí.
-2. **Histórico do git.** Seguir
+3. **Bases locais e de desenvolvimento.** Toda base em que já rodou uma
+   ingestão (a do seu computador, um Postgres de desenvolvimento) guarda os
+   mesmos trechos: `python -m app.knowledge.prune --list ../../Cérebro/removidos.txt`
+   e, conferida a simulação, `--apply`, com `DATABASE_URL` apontando para cada
+   uma. Uma ingestão local também avisa (`[ingest] IGNORADO …`, e "rode o
+   prune" quando o arquivo ainda tem linha ali).
+4. **Histórico do git.** Seguir
    [`17-limpeza-historico-cerebro.md`](17-limpeza-historico-cerebro.md):
-   `git filter-repo` num clone espelho, alimentado por `Cérebro/removidos.txt`,
-   e `git push --force --mirror`. Reescreve todos os SHAs; todo clone precisa
+   `git filter-repo` num clone espelho, alimentado pelos caminhos de
+   `Cérebro/removidos.txt`, e `git push --force --atomic` das branches e
+   tags, com a *ruleset* `CI obrigatoria em main` suspensa e ninguém enviando
+   nada entre o clone e o *push*. Reescreve todos os SHAs; todo clone precisa
    ser refeito.
-3. **GitHub.** Pedir ao suporte do GitHub a remoção dos objetos Git LFS órfãos,
+5. **GitHub.** Pedir ao suporte do GitHub a remoção dos objetos Git LFS órfãos,
    das visões em cache e das refs de PR que ainda servem os arquivos —
    reescrever o histórico não apaga nada disso.
+
+A próxima ingestão (`python -m app.knowledge.ingest`, operação offline) também
+indexa o `Cérebro/Links.md`, que o autor decidiu manter e pôr no RAG (D-100).
 
 ---
 

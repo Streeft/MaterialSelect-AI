@@ -6882,9 +6882,25 @@ instruções e grupos das ferramentas avaliativas, trabalhos entregues), a pasta
 material na raiz de `Cérebro/`. O manifesto perdeu as 21 entradas
 correspondentes. **Ficam** os livros publicados, os extratos de capítulo, as
 fichas do Granta EduPack, os diagramas de Ashby e os artigos científicos — nada
-disso é autoria do professor nem trabalho de aluno. `Links.md` também fica: é
-uma lista de endereços públicos (vídeos, MatWeb, Khan Academy), não conteúdo
-autoral, e não é indexado (a ingestão só lê PDF).
+disso é autoria do professor nem trabalho de aluno.
+
+**`Links.md` fica, e passa a ser indexado — decisão do autor.** É a lista de
+links indicados na disciplina (vídeos, MatWeb, Khan Academy, a página do
+EduPack), e tem uma frase copiada da página do curso. A revisão do PR o
+apontou como pendente; o autor o revisou e decidiu **mantê-lo como está e
+indexá-lo no RAG**, e por isso ele **não** está na lista de remoção. O arquivo
+contém um link de compartilhamento do OneDrive com o token de acesso na URL
+(`redeem=`), e, indexado, esse link pode aparecer numa resposta citada: é
+escolha aceita pelo autor, não pendência. A ingestão passou a ler Markdown para
+isso, com escopo fechado: **um `.md` só entra se o `manifesto.json` o
+declara**, e os arquivos de operação (`README.md`, `manifesto.json`,
+`removidos.txt`) nunca entram, nem declarados. A lista branca pelo manifesto,
+e não "todo `.md` menos o README", porque um `.md` de anotação largado na pasta
+viraria fonte citável sem ninguém decidir isso — e decidir o que é fonte já é
+o papel do manifesto. A entrada é tipo `LINK`, autoridade `SECUNDARIA`
+(vídeos, blog técnico, bases de divulgação). A extração tira só a marcação
+(`#`, marcadores de lista, `[rótulo](url)` vira `rótulo (url)`) e guarda cada
+linha como parágrafo, para que uma descrição não se cole ao endereço seguinte.
 
 **A lista de remoção é a fonte única.** `Cérebro/removidos.txt` diz o que saiu,
 um caminho por linha, relativo a `KNOWLEDGE_DIR` — a mesma forma que
@@ -6892,7 +6908,26 @@ um caminho por linha, relativo a `KNOWLEDGE_DIR` — a mesma forma que
 prefixo de pasta e `#` como comentário. Três consumidores a leem e nenhum tem
 cópia própria: a ferramenta de remoção do banco, a ingestão e a limpeza do
 histórico. Os prefixos cobrem as duas pastas, então a lista **não** repete nome
-de aluno. O `.gitignore` ganhou uma guarda com os mesmos padrões, mas ela é
+de aluno. É lida como UTF-8 com ou sem BOM (o PowerShell 5.1 grava um, e ele
+colava na primeira entrada).
+
+**E ela casa pelo conteúdo, não só pelo caminho.** O caminho gravado no banco
+é o do disco que fez a ingestão, não o da árvore do git — e esse disco tem uma
+pasta de triagem só local (`_Duplicados-Para-Revisao/`) e já teve outro
+layout. Um PDF de aula ingerido de lá sobreviveria a uma remoção por caminho,
+e o job ficaria verde com o log parecendo completo, a falha do D-71. Por isso a
+lista tem também uma linha `sha256:<hex>` para cada conteúdo removido: 34
+digests para 71 arquivos (as cópias idênticas coincidem), tirados do histórico
+— o `oid sha256:` do ponteiro Git LFS dos 23 PDF/PPTX, que é o SHA-256 dos
+bytes, e o SHA-256 do blob dos 11 PNG, que não estavam no LFS.
+`knowledge_document.checksum` é o SHA-256 dos bytes, então os dois se comparam
+direto. A remoção casa por caminho **ou** conteúdo, e diz qual; a ingestão
+pula um arquivo de conteúdo listado em qualquer caminho. Os digests vão sem o
+nome do arquivo ao lado, porque o nome de um trabalho traz nomes de alunos.
+**Os 12 títulos avulsos da raiz continuam listados, de propósito**: o conteúdo
+deles já é coberto pelos digests, mas a limpeza do histórico só remove por
+caminho, e sem o nome ela não os tiraria. São títulos, não conteúdo, e já eram
+públicos. O `.gitignore` ganhou uma guarda com os mesmos padrões, mas ela é
 cinto, não fonte: só impede que uma cópia local esquecida volte num
 `git add -A`.
 
@@ -6922,20 +6957,32 @@ no workflow **Administração do banco**: `conhecimento_simular_remocao` e
   vizinha de nome parecido.
 - **Sem `pypdf` e sem corpus.** O workflow instala só `postgres,billing`, como a
   imagem de produção, e a ferramenta só lê a lista e fala com o banco.
-- **Quando nada casa**, a saída mostra por onde começam os caminhos gravados,
-  porque a causa provável é uma lista escrita contra outra raiz.
+- **Toda execução lista o que fica**: cada caminho que permanece na base e a
+  contagem por pasta de primeiro nível — não só quando nada casa. Uma lista
+  escrita contra outro layout imprime os acertos e cala os erros; o que fica é
+  onde um `_Duplicados-Para-Revisao (N)` inesperado aparece.
+- **Uma linha que é pasta sem a `/` é avisada.** `⚙Seleção de Materiais` sem a
+  barra não casa nada aqui, enquanto o git-filter-repo lê o mesmo literal como
+  a pasta inteira; os consumidores discordariam em silêncio. A remoção e a
+  ingestão dizem quando uma entrada exata tem documentos abaixo dela.
+- **Banco sem as tabelas do Cérebro** para com a mensagem para rodar `migrar`,
+  e saída diferente de zero, em vez do `ProgrammingError` cru.
 
 **E a ingestão pula a lista.** Um arquivo que case com `removidos.txt` na raiz
-do corpus sai do relatório como `ignorado`, com o motivo escrito, e não é
-indexado — mesmo que uma cópia local esquecida o ponha de volta no disco. Sem
-isso, uma ingestão rodada de uma pasta antiga desfaria a remoção em silêncio.
+do corpus — pelo caminho ou pelo conteúdo — sai do relatório como `ignorado`,
+com o motivo escrito, e não é indexado — mesmo que uma cópia local esquecida o
+ponha de volta no disco. Sem isso, uma ingestão rodada de uma pasta antiga
+desfaria a remoção em silêncio. O CLI imprime cada arquivo pulado e o motivo, e,
+se ele ainda tiver linha na base daquela execução (a base local do autor, por
+exemplo), diz para rodar o `prune` ali: pular não apaga.
 O gerador do manifesto (`scripts/generate_knowledge_manifest.py`) segue a mesma
 regra, e perdeu as regras de tipo da pasta `02-`.
 
 **O histórico ainda guarda os arquivos.** `git rm` tira da árvore atual, não dos
-commits antigos: até a limpeza, qualquer um que abra um commit desde o `764b0af`
-(20/08/2026, a primeira versão do Cérebro) ou o `565a6d2` (PR #17) lê os
-arquivos. O autor decidiu purgá-los (emenda do
+commits antigos: até a limpeza, qualquer um que abra um commit anterior à
+reescrita — eles entraram no `764b0af` e no `7e34b24` (20/08/2026, a primeira
+versão do Cérebro) e no `565a6d2` (PR #17), e ficaram em todos os que descendem
+deles — lê os arquivos. O autor decidiu purgá-los (emenda do
 [D-45](#d-45--o-cérebro-livros-comerciais-fichas-granta-edupack-fica-versionado-em-main-por-decisão-explícita-do-autor)),
 e a reescrita é passo **separado, manual e posterior ao merge**, pelo guia
 [`17-limpeza-historico-cerebro.md`](17-limpeza-historico-cerebro.md): primeiro
@@ -6948,7 +6995,12 @@ o guia não precisa repetir os nomes. Dois limites que o guia diz
 sem rodeio: reescrever o histórico **não** apaga os objetos Git LFS já
 guardados no GitHub (só o suporte do GitHub, ou apagar e recriar o repositório),
 e as visões em cache e as refs de PR continuam servindo os arquivos até o
-suporte limpá-las.
+suporte limpá-las. O envio é `git push --force --atomic` de `refs/heads/*` e
+`refs/tags/*`, não `--mirror`: o `--mirror` não é atômico e sempre tem as refs
+de PR recusadas, e uma `main` recusada deixaria o resto reescrito ao lado da
+`main` antiga. A proteção a suspender é a *ruleset* `CI obrigatoria em main`
+(*required status checks*: nenhum SHA reescrito tem checks), não uma chave de
+*force-push* que este repositório não tem.
 
 **Alternativas descartadas.**
 - Retirar só o que o professor escreveu, mantendo os trabalhos dos alunos:

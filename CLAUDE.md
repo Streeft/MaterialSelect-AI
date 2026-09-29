@@ -341,17 +341,25 @@ a pedido do professor, que não quer o material de sua autoria no RAG, e por
 decisão do autor, que estendeu a retirada aos trabalhos dos alunos. Saíram 71
 arquivos; livros, extratos, fichas Granta, diagramas e artigos ficam.
 **`Cérebro/removidos.txt` é a fonte única do que saiu** — caminho exato ou
-prefixo terminado em `/`, relativo a `KNOWLEDGE_DIR`, comparado em NFC — e três
-coisas a leem, nenhuma com cópia própria: `python -m app.knowledge.prune`
-(**simulação por padrão**; `--apply` apaga documento, trechos e embeddings numa
-transação, com a cascata em Python; ações `conhecimento_simular_remocao` e
-`conhecimento_remover` de `admin-banco.yml`), a ingestão (que pula o que casa
-e o declara `ignorado`) e a limpeza do histórico
-([`docs/17-limpeza-historico-cerebro.md`](docs/17-limpeza-historico-cerebro.md)).
-**A ingestão só acrescenta**: tirar um arquivo do repositório não tira o texto
-dele do RAG — quem tira é o `prune`. Rodar a remoção em produção e reescrever o
-histórico são passos do autor, depois do merge (TODO A7); reescrever o histórico
-não apaga os objetos Git LFS já guardados no GitHub.
+prefixo terminado em `/`, relativo a `KNOWLEDGE_DIR`, comparado em NFC, e uma
+linha `sha256:<hex>` por conteúdo removido, porque o caminho gravado no banco é
+o do disco que fez a ingestão, não o do git — e três coisas a leem, nenhuma com
+cópia própria: `python -m app.knowledge.prune` (**simulação por padrão**, que
+lista também **tudo o que fica**; casa por caminho **ou** conteúdo; `--apply`
+apaga documento, trechos e embeddings numa transação, com a cascata em Python;
+ações `conhecimento_simular_remocao` e `conhecimento_remover` de
+`admin-banco.yml`), a ingestão (que pula o que casa, em qualquer caminho, e o
+declara `ignorado`) e a limpeza do histórico, que só lê as linhas de caminho
+([`docs/17-limpeza-historico-cerebro.md`](docs/17-limpeza-historico-cerebro.md):
+`push --force --atomic` de branches e tags, nunca `--mirror`, com a *ruleset*
+suspensa). **A ingestão só acrescenta**: tirar um arquivo do repositório não
+tira o texto dele do RAG — quem tira é o `prune`. Rodar a remoção em produção e
+nas bases locais e reescrever o histórico são passos do autor, depois do merge
+(TODO A7); reescrever o histórico não apaga os objetos Git LFS já guardados no
+GitHub. **`Links.md` fica e é indexado**, por decisão do autor, com o link do
+OneDrive que ele contém: a ingestão lê PDF e **só o Markdown que o
+`manifesto.json` declara**; `README.md`, `manifesto.json` e `removidos.txt`
+nunca entram.
 
 **O portão global de assinatura está ligado** ([D-46](docs/DECISIONS.md)):
 entre os dois desenhos que o PR #18 deixou coexistindo em código, o autor
@@ -914,7 +922,7 @@ e no mesmo modal do D-94. Regras que não se afrouxam:
   o átomo da conferência), e diz que encurtou (`studio_service.note_body`).
 - **Nenhuma migração**: as quatro cabem nos campos JSON da fase 1.
 
-3297 testes de backend (nenhum skip) e 751 de frontend, todos verdes. CI no
+3326 testes de backend (nenhum skip) e 751 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
 PROJECT_CONTEXT.md).

@@ -4,13 +4,19 @@ Guia passo a passo para o autor apagar do **histórico inteiro** do git os
 arquivos que saíram do Cérebro no [D-100](DECISIONS.md) — o material de curso da
 ENG02016 e os trabalhos entregues. O PR do D-100 tirou esses arquivos da árvore
 atual, mas `git rm` não reescreve o passado: até esta limpeza, quem abrir um
-commit antigo ainda lê os 71 arquivos. Eles entraram em dois momentos: as
-cópias da raiz e a pasta `⚙Seleção de Materiais/` no `764b0af` (20/08/2026,
-primeira versão do Cérebro), e a pasta `02-Material-de-Curso-ENG02016/` no
-`565a6d2` (PR #17).
+commit antigo ainda lê os 71 arquivos. Eles entraram por mais de um caminho:
+as cópias da raiz e a pasta `⚙Seleção de Materiais/` no `764b0af` (20/08/2026,
+primeira versão do Cérebro) e de novo no `7e34b24`, do mesmo dia, noutra linha
+do histórico; a pasta `02-Material-de-Curso-ENG02016/` no `565a6d2` (PR #17). A
+partir daí eles estão em **todo commit anterior à reescrita** que descende de um
+desses — é essa a formulação que vale para o suporte do GitHub (passo 10), e
+não uma lista de SHAs.
 
 A lista do que sai é a mesma que a remoção do banco usa:
-[`Cérebro/removidos.txt`](../Cérebro/removidos.txt). Não mantenha outra.
+[`Cérebro/removidos.txt`](../Cérebro/removidos.txt). Não mantenha outra. Ela
+tem dois tipos de linha: caminhos, que este guia usa, e `sha256:<conteúdo>`,
+que só o banco e a ingestão usam — o git-filter-repo remove por caminho, e o
+passo 4 descarta essas linhas.
 
 > **Nada aqui é feito por agente nem por CI.** É uma operação manual, feita uma
 > vez, pelo dono do repositório, depois do merge do PR do D-100. Ela reescreve
@@ -46,21 +52,56 @@ O resto do Cérebro — livros, extratos, fichas Granta, diagramas, artigos —
 
 1. **O PR do D-100 está mesclado em `main`.** A lista de remoção que o passo 4
    lê vem de `main`.
-2. **A remoção em produção já rodou.** Na aba **Actions** →
+2. **Confira as suas pastas locais antes de tudo.** O banco foi povoado do
+   **seu disco**, não da árvore do git, e o caminho gravado em cada documento é
+   o do disco: uma cópia do material de curso em
+   `Cérebro/_Duplicados-Para-Revisao/` (a pasta de triagem que o `.gitignore`
+   deixa só local), numa pasta renomeada ou num layout antigo tem um caminho
+   que nenhuma linha da lista nomeia. As linhas `sha256:` da lista pegam essas
+   cópias pelo conteúdo, desde que os bytes sejam os mesmos — então, antes da
+   remoção, abra essas pastas, apague as cópias de material de curso que
+   encontrar, e leia a simulação do item 3 inteira, não só o total. Se ela
+   mostrar, entre o que fica, um documento de material de curso que nenhuma
+   linha casou (uma cópia com bytes diferentes, por exemplo), acrescente o
+   caminho dele, **como aparece na base**, a `removidos.txt` num PR, antes do
+   `conhecimento_remover`.
+3. **A remoção em produção já rodou.** Na aba **Actions** →
    **Administração do banco** → **Run workflow**: primeiro
    `conhecimento_simular_remocao`, conferir no log os documentos e os totais, e
-   depois `conhecimento_remover`. O log tem de terminar em
+   depois `conhecimento_remover`. A simulação lista **cada documento que
+   fica** (`[prune] ficaria: …`) e a contagem por pasta de primeiro nível: é ali
+   que aparece uma pasta que ninguém esperava, como
+   `_Duplicados-Para-Revisao (N)`. O log do `conhecimento_remover` tem de conter
    `[prune] REMOVIDOS: N documentos, M trechos, K embeddings.` com os mesmos
    totais da simulação ([13-deploy.md](13-deploy.md) §5-bis). Faça isso
    **antes** do *force-push*: depois dele, o workflow roda sobre o histórico
    novo, e é melhor não misturar as duas operações.
-3. **Nenhum PR aberto.** Mescle ou feche todos. Um PR aberto sobre o histórico
+4. **E nas bases locais e de desenvolvimento.** Toda base em que você já rodou
+   `python -m app.knowledge.ingest` (a do seu computador, uma de teste, um
+   Postgres de desenvolvimento) guarda os mesmos trechos. Rode, apontando
+   `DATABASE_URL` para cada uma:
+
+   ```bash
+   cd apps/api
+   python -m app.knowledge.prune --list "../../Cérebro/removidos.txt"           # simulação
+   python -m app.knowledge.prune --list "../../Cérebro/removidos.txt" --apply   # apaga
+   ```
+
+   Uma ingestão local também avisa: todo arquivo pulado pela lista sai como
+   `[ingest] IGNORADO …`, e, se ele ainda tiver linha naquela base, a mensagem
+   diz para rodar o `prune`.
+5. **Nenhum PR aberto.** Mescle ou feche todos. Um PR aberto sobre o histórico
    antigo fica impossível de mesclar depois, e reabri-lo traria os arquivos de
    volta.
-4. **Avise quem tem clone.** Depois do *force-push*, todo clone existente está
-   do lado errado da reescrita e **precisa ser refeito do zero** (passo 9).
-   Isso inclui os seus, os de outras máquinas e os ambientes de agente.
-5. **Instale o git-filter-repo** (é um script Python; exige Python 3):
+6. **Avise quem tem clone, e que ninguém envia nada até o fim.** Depois do
+   *force-push*, todo clone existente está do lado errado da reescrita e
+   **precisa ser refeito do zero** (passo 9). Isso inclui os seus, os de outras
+   máquinas e os ambientes de agente. E, do clone do passo 2 até o *push* do
+   passo 8, **ninguém pode enviar nada ao GitHub** — nem você de outra máquina,
+   nem um agente, nem um bot: um commit que chegue a `main` nesse intervalo é
+   sobrescrito pelo *force-push* e se perde, e uma branch criada nesse
+   intervalo continua com o histórico antigo inteiro.
+7. **Instale o git-filter-repo** (é um script Python; exige Python 3):
 
    ```bash
    pip install git-filter-repo        # ou: brew install git-filter-repo
@@ -106,11 +147,19 @@ comentários e linhas em branco e pôr `Cérebro/` na frente:
 
 ```bash
 git -C repo.git show 'HEAD:Cérebro/removidos.txt' \
+  | sed '1s/^\xEF\xBB\xBF//' \
   | tr -d '\r' \
-  | grep -v -e '^#' -e '^[[:space:]]*$' \
+  | grep -v -e '^#' -e '^[[:space:]]*$' -e '^sha256:' \
   | sed 's|^|Cérebro/|' > caminhos-para-remover.txt
 cat caminhos-para-remover.txt
 ```
+
+As linhas `sha256:` saem aqui de propósito: o `--paths-from-file` só entende
+caminho, e uma linha `sha256:…` viraria um caminho que não existe. É por isso
+que os 12 arquivos avulsos da raiz continuam listados pelo nome na lista, mesmo
+tendo o conteúdo coberto pelas linhas `sha256:` — sem o nome, este passo não os
+tiraria do histórico. O primeiro `sed` tira uma eventual marca de ordem de
+bytes (BOM), que o PowerShell 5.1 grava e que colaria na primeira linha.
 
 O resultado são 14 linhas: as duas pastas
 (`Cérebro/02-Material-de-Curso-ENG02016/` e `Cérebro/⚙Seleção de Materiais/`) e
@@ -127,7 +176,9 @@ done < caminhos-para-remover.txt
 ```
 
 Toda linha deve casar pelo menos um caminho. As duas pastas somam 59 arquivos, e
-cada arquivo avulso casa 1.
+cada arquivo avulso casa 1. A exceção é uma linha acrescentada por causa de uma
+cópia que só existia no seu disco (passo 1.2): ela casa 0 aqui, e está certo —
+aquele caminho nunca esteve no git.
 
 ## 5. Os nomes que ficam no texto de outros arquivos
 
@@ -140,11 +191,15 @@ git-filter-repo **na mesma execução** do passo 6.
 As duas regras abaixo trocam, em todo o histórico, o valor de toda entrada
 `"path"` do material de curso e o título do trabalho F.A.2B por um marcador. Elas
 casam pela forma, não pelos nomes, e por isso podem ficar escritas aqui sem
-publicar de novo o que se quer apagar. Salve-as como `substituicoes.txt`, ao
+publicar de novo o que se quer apagar. A primeira termina em `\.pdf"` de
+propósito: o `--replace-text` vale para **todo** arquivo de todo commit, este
+guia incluído, e uma regra que casasse o próprio texto se reescreveria no
+histórico novo. Assim ela ainda pega as 21 entradas do manifesto antigo (todas
+PDF) e não a si mesma. Salve-as como `substituicoes.txt`, ao
 lado de `repo.git`:
 
 ```text
-regex:"path": "02-Material-de-Curso-ENG02016/[^"]*"==>"path": "[material de curso removido]"
+regex:"path": "02-Material-de-Curso-ENG02016/[^"]*\.pdf"==>"path": "[material de curso removido]"
 regex:"titulo": "F\.A\.2B [^"]*"==>"titulo": "[material de curso removido]"
 ```
 
@@ -183,7 +238,11 @@ cd ..
   passo 8 envia; apagá-las apagaria `main` no GitHub.
 - Os comandos deste guia foram ensaiados num espelho descartável do
   repositório em 29/09/2026 (git-filter-repo 2.47.0): as 14 linhas casaram, o
-  resultado da verificação do passo 7 foi o descrito, e nada foi enviado.
+  resultado da verificação do passo 7 foi o descrito, e nada foi enviado. Duas
+  coisas mudaram depois do ensaio, na revisão: a primeira regra do passo 5
+  ganhou o `\.pdf"` final (conferido contra o histórico: casa as mesmas linhas
+  do manifesto antigo que a versão ensaiada, e nenhuma deste guia), e o envio
+  do passo 8 deixou de ser `--mirror`, que o ensaio não chegou a executar.
 
 ## 7. Verifique antes de enviar
 
@@ -218,26 +277,53 @@ segundo deve ser `0` se o passo 5 foi feito.
 
 ## 8. Envie: o *force-push*
 
-1. **Desligue a proteção de `main` que impede *force-push*.** Em *Settings →
-   Branches* (ou *Settings → Rules → Rulesets*, conforme como a proteção foi
-   criada — ver `scripts/protect-main.ps1`), permita *force-push* em `main`
-   temporariamente. Sem isso, o GitHub recusa a atualização de `main`.
-2. Envie todas as refs reescritas:
+1. **Suspenda a proteção de `main`.** A proteção deste repositório é a
+   *ruleset* **`CI obrigatoria em main`** (criada por
+   `scripts/protect-main.ps1`), e ela tem uma regra só: *required status
+   checks*. Não há chave "permitir *force-push*" para ligar — o que barra o
+   envio é essa regra: todo SHA reescrito é novo, nenhum tem checks verdes, e o
+   GitHub recusa a atualização de `main`. Então:
+   - em **Settings → Rules → Rulesets → `CI obrigatoria em main`**, mude
+     **Enforcement status** para **Disabled** e salve; **ou** acrescente você
+     mesmo em **Bypass list** (*Add bypass* → o seu usuário ou o papel
+     *Repository admin*), o que deixa a regra valendo para os outros;
+   - em **Settings → Branches**, veja se existe também uma *branch protection
+     rule* clássica para `main`. O projeto não cria uma, mas, se houver, ela
+     precisa permitir *force-push* (*Allow force pushes*) ou ser apagada
+     temporariamente — anote como estava.
+2. **Envie as branches e as tags, numa operação atômica:**
 
    ```bash
-   git -C repo.git push --force --mirror https://github.com/Streeft/MaterialSelect-AI.git
+   git -C repo.git push --force --atomic https://github.com/Streeft/MaterialSelect-AI.git \
+     'refs/heads/*:refs/heads/*' 'refs/tags/*:refs/tags/*'
    ```
 
-   Erros `! [remote rejected] refs/pull/…/head (deny updating a hidden ref)` são
-   **esperados**: as refs de PR são do GitHub e não aceitam *push*. Elas
-   continuam apontando para o histórico antigo — é uma das coisas que só o
-   suporte limpa (passo 10). Qualquer outra ref recusada é problema real:
-   pare e investigue.
-3. **Religue a proteção de `main`** do jeito que estava (reaplicar
-   `scripts/protect-main.ps1` restaura as regras do projeto).
+   Por que assim e não `--mirror`: o `--mirror` também tenta enviar as refs de
+   PR (`refs/pull/*`), que o GitHub sempre recusa — e não é atômico, então uma
+   `main` recusada deixaria as outras branches e as tags já reescritas ao lado
+   da `main` antiga, com os arquivos, como branch padrão. Nomeando só
+   `refs/heads/*` e `refs/tags/*`, nenhuma recusa é esperada, e o `--atomic`
+   garante que ou **todas** as refs são atualizadas, ou **nenhuma**. (O
+   `--mirror` também apagaria no GitHub qualquer branch criada depois do clone;
+   este comando não apaga nada — mais um motivo para ninguém enviar nada no
+   intervalo, passo 1.6.)
+
+   **Se o push for recusado**, a saída diz `! [remote rejected]` (ou
+   `atomic push failed`) e o GitHub **fica exatamente como estava**: nenhuma
+   ref mudou, e o histórico antigo continua lá, inteiro. O motivo mais provável
+   é a proteção do item 1 ainda ativa (a mensagem cita *rule violations* ou
+   *protected branch*). Corrija e repita o mesmo comando; `repo.git` não
+   precisa ser refeito. Se o seu git for antigo demais para `--atomic` (a
+   mensagem diz que o servidor ou o cliente não o suporta), **não** tire o
+   `--atomic`: atualize o git.
+3. **Religue a proteção de `main`** do jeito que estava: **Enforcement status**
+   de volta para **Active** (ou tire você da *Bypass list*), e a regra clássica,
+   se havia uma, como você anotou. Reaplicar `scripts/protect-main.ps1` também
+   restaura a *ruleset* do projeto.
 4. Confira no GitHub: a página de `main` mostra o histórico novo, e
    `github.com/Streeft/MaterialSelect-AI/tree/main/Cérebro` não tem as pastas
-   removidas.
+   removidas. As refs de PR (`refs/pull/*`) continuam apontando para o
+   histórico antigo — só o suporte as limpa (passo 10).
 
 ## 9. O que quebra, e o que fazer com cada coisa
 
@@ -267,9 +353,11 @@ dono do repositório, peça:
    zera issues, PRs, estrelas e a configuração do GitHub Actions.
 2. **A remoção das visões em cache e das refs de PR** que ainda servem os
    arquivos antigos. Informe o nome do repositório, que o histórico foi
-   reescrito com git-filter-repo para retirar material de terceiros, os PRs
-   afetados (os PRs anteriores à reescrita) e o primeiro commit que tinha os
-   arquivos (`764b0af`, de 20/08/2026) e o do PR #17 (`565a6d2`).
+   reescrito com git-filter-repo para retirar material de terceiros, e que são
+   afetados **todos os commits e todos os PRs anteriores à reescrita** — não
+   uma lista de SHAs: os arquivos entraram por mais de um commit (`764b0af` e
+   `7e34b24`, de 20/08/2026, e `565a6d2`, do PR #17) e ficaram em todos os que
+   descendem deles.
 
 Os PNG dos gráficos dos trabalhos não eram LFS, eram objetos comuns do git; a
 reescrita já os tira do histórico, e o suporte cuida da cópia que o GitHub ainda

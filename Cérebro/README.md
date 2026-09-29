@@ -44,7 +44,7 @@ Cérebro/
 ├── 03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/   Banco de dados licenciado ANSYS/Granta (no git, via LFS)
 ├── 04-Ferramentas-e-Diagramas/             Diagramas de Ashby, diagrama de barras de preço
 ├── 05-Artigos-Cientificos/                 Artigos avulsos de periódico (bromélias, impressão 3D de terra)
-├── Links.md                                Links de referência (vídeos, sites, MatWeb, Khan Academy…)
+├── Links.md                                Links indicados na disciplina (indexado; declarado no manifesto)
 ├── manifesto.json                          Proveniência declarada de cada documento
 ├── removidos.txt                           O que saiu da base e não volta (D-100)
 └── README.md                               Este arquivo
@@ -57,6 +57,12 @@ subfamília) já veio bem organizada do EduPack e foi mantida como estava —
 não precisa de retrabalho.
 
 ## Recomendação de ingestão — evitar travamentos
+
+**O que a ingestão lê:** todo PDF desta pasta e, de Markdown, só o que o
+`manifesto.json` declara — hoje, `Links.md`. Este README, o `manifesto.json` e o
+`removidos.txt` são arquivos de operação e nunca são indexados, mesmo que alguém
+os declare. Um `.md` novo só vira fonte citável quando ganha entrada no
+manifesto.
 
 Os arquivos aqui variam de ~20 KB (fichas técnicas) a **151 MB** (o maior
 livro). Indexar tudo com o mesmo pipeline, do mesmo jeito, é a causa mais
@@ -83,7 +89,7 @@ conteúdo — abra os dois e decida se um deles pode sair.
 
 | Conjunto | Origem | No git? |
 |---|---|---|
-| `Links.md` | links de referência (vídeos, sites, MatWeb, Khan Academy…) | sim |
+| `Links.md` | links indicados na disciplina (vídeos, sites, MatWeb, Khan Academy…) | sim |
 | `05-Artigos-Cientificos/`, `04-Ferramentas-e-Diagramas/` | periódicos e material didático | sim |
 | `01-Bibliografia/` (11 livros comerciais: Ashby, Callister, Apelian…) | bibliografia indicada | sim (LFS) |
 | `01-Bibliografia/Extratos-de-Capitulos/` | capítulos extraídos da bibliografia | sim (LFS) |
