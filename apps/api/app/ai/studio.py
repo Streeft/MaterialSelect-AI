@@ -51,6 +51,7 @@ import re
 from dataclasses import dataclass, field
 
 from app.ai.notebook import _RULES, Passage, render_passages
+from app.notebooks.mindmap import atoms
 
 # --- catalogue ---------------------------------------------------------------
 
@@ -782,8 +783,33 @@ def _clean(value: str) -> str:
     return " ".join(_CONTROL.sub(" ", value).split())
 
 
+def _cap(text: str, limit: int) -> str:
+    """``text`` cut to at most ``limit`` characters, **never inside a number**.
+
+    A character cap would turn "1 200 MPa" into "1 2" — a figure no passage
+    states, and one the lenient item rule may even ground (small integers are
+    exempt there). So the cut falls between the pieces of
+    :func:`app.notebooks.mindmap.atoms` — the same unbreakable pieces the
+    layouts wrap by: a word, or a figure however it is written together with
+    the unit after it. A piece that does not fit is dropped whole, never split,
+    and so is everything after it: the kept text is a prefix of what the model
+    wrote. A single piece longer than ``limit`` leaves the field empty.
+    """
+    if len(text) <= limit:
+        return text
+    kept: list[str] = []
+    length = 0
+    for piece in atoms(text):
+        grown = length + len(piece) + (1 if kept else 0)
+        if grown > limit:
+            break
+        kept.append(piece)
+        length = grown
+    return " ".join(kept)
+
+
 def _text(value: object, limit: int) -> str:
-    return _clean(value)[:limit] if isinstance(value, str) else ""
+    return _cap(_clean(value), limit) if isinstance(value, str) else ""
 
 
 def _list(value: object) -> list:
@@ -813,7 +839,7 @@ def strip_markup(value: str) -> str:
 def _spoken(value: object, limit: int) -> str:
     """Text that will be read aloud: markup stripped *before* the cap, so a tag
     never eats the room of the words."""
-    return strip_markup(value)[:limit] if isinstance(value, str) else ""
+    return _cap(strip_markup(value), limit) if isinstance(value, str) else ""
 
 
 def _has_digit(value: str) -> bool:
@@ -889,7 +915,10 @@ def read_infographic(raw: dict, points: int | None = None) -> dict:
             break
         if not isinstance(stat, dict):
             continue
-        value = _text(stat.get("value"), MAX_STAT_VALUE + 1)
+        # Read whole, not capped: a value over the cap is dropped, never
+        # shortened into a claim the model did not make.
+        raw_value = stat.get("value")
+        value = _clean(raw_value) if isinstance(raw_value, str) else ""
         if not value or len(value) > MAX_STAT_VALUE or not _has_digit(value):
             continue
         stats.append(

@@ -24,10 +24,14 @@ from xml.etree import ElementTree
 import pytest
 from docx import Document
 
-from app.ai.guardrails import numeric_tokens
+from app.ai.guardrails import _NUMBER_TOKEN, numeric_tokens
 from app.ai.notebook import Passage
 from app.ai.studio import (
+    MAX_LINE,
+    MAX_SHORT,
+    MAX_TITLE,
     StudioRequest,
+    _cap,
     read_audio,
     read_deck,
     read_infographic,
@@ -387,3 +391,56 @@ def test_the_marks_are_placed_by_the_layout_s_style():
     assert int(marks.get("x")) == stat.x + stat.width - style.marks_right
     assert int(marks.get("y")) == stat.y + stat.height - style.marks_bottom
     assert marks.get("font-size") == str(style.marks_size)
+
+
+# --- The reader's cap never cuts inside a figure -----------------------------------------
+
+
+def test_the_reader_s_cap_never_cuts_a_figure():
+    # A title whose 120th character falls inside "1 200": a character cap kept
+    # "… 1 20" — figures no passage states.
+    head = ("Aço " * 29).strip()  # 115 chars
+    title = f"{head} 1 200 MPa"
+    assert title[:MAX_TITLE].endswith("1 20")  # the old behaviour
+    deck = read_deck({"title": title, "slides": []})
+    assert deck["title"] == head
+    assert not any(ch.isdigit() for ch in deck["title"])
+
+
+def test_the_reader_s_cap_keeps_a_figure_that_fits_with_its_unit():
+    text = ("palavra " * 48).strip() + " chega a 12.345.678 kWh"  # 383 + 23 = 406 chars
+    board = read_infographic({"points": [{"text": text}]})
+    kept = board["points"][0]["text"]
+    assert len(kept) <= MAX_SHORT
+    # "12.345.678 kWh" does not fit, so it goes whole: no stray "12.345".
+    assert kept.endswith("chega a")
+    assert "12" not in kept
+    # And a text that fits is untouched.
+    fits = read_infographic({"points": [{"text": "O aço chega a 1 200 MPa."}]})
+    assert fits["points"][0]["text"] == "O aço chega a 1 200 MPa."
+
+
+def test_a_single_piece_longer_than_the_cap_is_dropped_not_split():
+    assert _cap("x" * (MAX_TITLE + 5), MAX_TITLE) == ""
+    assert _cap("1" * 30, 10) == ""
+    assert read_audio({"title": "9" * (MAX_TITLE + 1), "lines": []})["title"] == ""
+
+
+def test_a_spoken_line_is_capped_on_a_boundary_too():
+    text = "<b>" + "fala " * 119 + "1 200 MPa</b>"
+    audio = read_audio({"title": "T", "lines": [{"speaker": 1, "text": text}]})
+    line = audio["lines"][0]["text"]
+    assert len(line) <= MAX_LINE
+    assert not any(ch.isdigit() for ch in line)
+
+
+@pytest.mark.parametrize("limit", range(1, 60))
+def test_the_cap_never_prints_a_figure_the_text_does_not_write(limit):
+    text = "A liga 7075 resiste a 1 200 MPa e pesa 2,81 g/cm³ a 20 °C"
+    cut = _cap(text, limit)
+    assert len(cut) <= limit
+    assert text.startswith(cut)
+    written = [m.group() for m in _NUMBER_TOKEN.finditer(text)]
+    printed = [m.group() for m in _NUMBER_TOKEN.finditer(cut)]
+    # Every figure printed is one the text writes, whole and in order.
+    assert printed == written[: len(printed)], (limit, cut)
