@@ -1007,3 +1007,75 @@ def test_capabilities_are_read_from_configuration_alone() -> None:
     )
     caps = ExternalSourceService.capabilities(config)  # type: ignore[arg-type]
     assert caps.openalex.enabled and caps.wikipedia.enabled and not caps.web.enabled
+
+
+# --- a merged OpenAlex work (pendência da fase 3) ----------------------------------------
+
+MERGED_ID = "W1000000001"
+
+
+def _openalex_with_merge() -> Callable[[httpx.Request], httpx.Response]:
+    """``MERGED_ID`` was merged into ``WORK_ID``: the API redirects to the survivor."""
+
+    def handle(request: httpx.Request) -> httpx.Response:
+        if request.url.path == f"/works/{MERGED_ID}":
+            return httpx.Response(
+                301, headers={"location": f"https://api.openalex.org/works/{WORK_ID}"}
+            )
+        assert request.url.path == f"/works/{WORK_ID}"
+        return httpx.Response(200, json=_work())
+
+    return handle
+
+
+def _add_work(client, notebook: dict, key: str):
+    return client.post(
+        f"{_nb(notebook)}/sources/external", json={"provider": "openalex", "key": key}
+    )
+
+
+def test_a_merged_id_added_again_is_refused_before_quota_and_network(
+    client, notebook, net, monkeypatch
+) -> None:
+    """The TODO case: the source is stored under the survivor's page, so asking
+    for the merged id again used to spend a unit before the checksum refused it."""
+    monkeypatch.setattr(settings, "openalex_api_key", "chave-openalex")
+    net.routes["api.openalex.org"] = _openalex_with_merge()
+
+    added = _add_work(client, notebook, MERGED_ID)
+    assert added.status_code == 201, added.text
+    assert added.json()["url"] == f"https://openalex.org/{WORK_ID}"
+    assert _fetch_usage(client, notebook) == 1
+    sent = len(net.requests)
+
+    for key in (MERGED_ID, f"https://openalex.org/{MERGED_ID}", WORK_ID):
+        again = _add_work(client, notebook, key)
+        assert again.status_code == 409, key
+        assert "já está no caderno" in again.json()["detail"]
+    assert len(net.requests) == sent
+    assert _fetch_usage(client, notebook) == 1
+
+
+def test_a_merged_id_whose_survivor_is_here_is_a_clear_409_and_remembered(
+    client, notebook, net, monkeypatch
+) -> None:
+    """The survivor added first: only the fetch can tell that the merged id
+    leads to it. That costs the unit — it did leave — but the answer is the
+    duplicate's 409, and the next ask is refused for free."""
+    monkeypatch.setattr(settings, "openalex_api_key", "chave-openalex")
+    net.routes["api.openalex.org"] = _openalex_with_merge()
+    assert _add_work(client, notebook, WORK_ID).status_code == 201
+    assert _fetch_usage(client, notebook) == 1
+
+    first = _add_work(client, notebook, MERGED_ID)
+    assert first.status_code == 409
+    assert "Fadiga de ligas de titânio" in first.json()["detail"]
+    assert _fetch_usage(client, notebook) == 2
+    sent = len(net.requests)
+
+    second = _add_work(client, notebook, MERGED_ID)
+    assert second.status_code == 409
+    assert len(net.requests) == sent
+    assert _fetch_usage(client, notebook) == 2
+    sources = client.get(_nb(notebook)).json()["sources"]
+    assert len(sources) == 1

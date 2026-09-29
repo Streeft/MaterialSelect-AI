@@ -338,10 +338,21 @@ class ExternalSourceService:
         self._require(openalex.enabled)
         work_id = openalex.normalise_work_id(key)
         origin = openalex.landing_url(work_id)
+        # Both refusals before the quota and the network (D-97): the id asked
+        # for may be a source's own page, or an id OpenAlex merged into a work
+        # this notebook already holds under the survivor's page — the merged
+        # id is kept in that source's ``meta`` for exactly this check.
         self._refuse_duplicate(notebook, origin)
+        self._refuse_merged_work(notebook, origin)
         self.notebooks.check_fetch_quota()
         with self._spending():
             work = openalex.work(self.client, self.settings, work_id)
+        if work.url != origin:
+            # A merged id met for the first time: only the fetch could say it
+            # leads to a work already here. The unit is spent, but the answer
+            # is a clear 409 rather than the checksum's, and the id is
+            # remembered so asking for it again is refused for free.
+            self._refuse_survivor(notebook, work.url, origin)
         if not work.has_text:
             open_copy = _http(work.oa_url)
             where = (
@@ -365,6 +376,11 @@ class ExternalSourceService:
             "attribution": openalex.attribution(work),
             "fetched_at": _now(),
         }
+        if work.url != origin:
+            # The id asked for, when OpenAlex answered with the work it was
+            # merged into: the origin is the survivor's page, and this is what
+            # lets the merged id be refused before the network next time.
+            meta["merged_from"] = [origin]
         return self.notebooks.ingest(
             notebook,
             "artigo",
@@ -505,6 +521,25 @@ class ExternalSourceService:
         if existing is not None:
             raise ConflictError(f"Esta fonte já está no caderno: {existing.title}")
 
+    def _refuse_merged_work(self, notebook: Notebook, origin: str) -> None:
+        """409 when ``origin`` is a merged OpenAlex id an article here was
+        already added under. Read from the sources' ``meta``, so free."""
+        for source in notebook.sources:
+            if source.kind == "artigo" and origin in _merged_from(source.meta):
+                raise ConflictError(f"Esta fonte já está no caderno: {source.title}")
+
+    def _refuse_survivor(self, notebook: Notebook, survivor: str, asked: str) -> None:
+        """409 when the work ``asked`` was merged into is already a source here,
+        recording ``asked`` on it first (committed, since the 409 rolls back)."""
+        existing = self.repo.source_with_origin(notebook.id, survivor)
+        if existing is None:
+            return
+        known = _merged_from(existing.meta)
+        if asked not in known:
+            existing.meta = {**(existing.meta or {}), "merged_from": [*known, asked]}
+            self.db.commit()
+        raise ConflictError(f"Esta fonte já está no caderno: {existing.title}")
+
     def _origins(self, notebook: Notebook) -> set[str]:
         return {source.origin for source in notebook.sources if source.origin}
 
@@ -642,6 +677,11 @@ def _wikipedia_pageids(notebook: Notebook) -> set[int]:
         if isinstance(value, int):
             pageids.add(value)
     return pageids
+
+
+def _merged_from(meta: dict | None) -> list[str]:
+    value = (meta or {}).get("merged_from")
+    return [item for item in value if isinstance(item, str)] if isinstance(value, list) else []
 
 
 def _snippet(text: str | None) -> str | None:
