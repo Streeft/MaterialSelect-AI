@@ -1079,3 +1079,79 @@ def test_a_merged_id_whose_survivor_is_here_is_a_clear_409_and_remembered(
     assert _fetch_usage(client, notebook) == 2
     sources = client.get(_nb(notebook)).json()["sources"]
     assert len(sources) == 1
+
+
+# --- the fetch quota is taken atomically (pendência da fase 3) --------------------------
+
+
+def _service(db_session: Session, user: User, notebook_id: int) -> ExternalSourceService:
+    client = build_client(settings, httpx.MockTransport(lambda _r: httpx.Response(200)))
+    return ExternalSourceService(db_session, user, settings, client, lambda h, p: [PUBLIC_IP])
+
+
+def test_two_requests_racing_for_the_last_fetch_get_one(
+    db_session: Session, test_user: User, monkeypatch
+) -> None:
+    """The race the TODO describes, replayed in order: both requests pass the
+    early check while one unit is left — the window the old check-then-count
+    left open —, then both try to spend. Only one may; the other is refused
+    before anything leaves."""
+    monkeypatch.setattr(settings, "notebook_daily_fetches", 3)
+    notebook = Notebook(owner_id=test_user.id, title="Corrida")
+    db_session.add(notebook)
+    db_session.flush()
+    first = _service(db_session, test_user, notebook.id)
+    second = _service(db_session, test_user, notebook.id)
+    first.repo.count_fetch(external._today())
+    first.repo.count_fetch(external._today())  # limit − 1 spent
+
+    first.notebooks.check_fetch_quota()
+    second.notebooks.check_fetch_quota()  # both see one unit left
+
+    with first._spending():
+        first.client.get("https://exemplo.org/")  # a request leaves
+    body_ran = False
+    with pytest.raises(external.QuotaExceededError, match="buscas de fontes externas"):
+        with second._spending():
+            body_ran = True
+    assert body_ran is False
+    assert first.notebooks.fetch_usage().used == 3
+    first.client.close()
+    second.client.close()
+
+
+def test_a_reserved_fetch_that_sends_nothing_is_handed_back(
+    db_session: Session, test_user: User
+) -> None:
+    notebook = Notebook(owner_id=test_user.id, title="Recusa")
+    db_session.add(notebook)
+    db_session.flush()
+    service = _service(db_session, test_user, notebook.id)
+    with pytest.raises(external.ValidationError):
+        with service._spending():
+            raise external.ValidationError("recusado sem rede")
+    assert service.notebooks.fetch_usage().used == 0
+
+    with pytest.raises(external.ValidationError):
+        with service._spending():
+            service.client.get("https://exemplo.org/")
+            raise external.ValidationError("recusado depois da rede")
+    assert service.notebooks.fetch_usage().used == 1  # it left: it is paid for
+    service.client.close()
+
+
+def test_a_web_search_without_an_ai_request_left_hands_the_fetch_back(
+    db_session: Session, test_user: User, monkeypatch
+) -> None:
+    monkeypatch.setattr(settings, "notebook_daily_requests", 1)
+    notebook = Notebook(owner_id=test_user.id, title="Web")
+    db_session.add(notebook)
+    db_session.flush()
+    service = _service(db_session, test_user, notebook.id)
+    service.repo.count_request(external._today())
+    with pytest.raises(external.QuotaExceededError, match="perguntas de hoje"):
+        with service._spending(ai_request=True):
+            pytest.fail("nothing may leave")
+    assert service.notebooks.fetch_usage().used == 0
+    assert service.notebooks.usage().used == 1
+    service.client.close()

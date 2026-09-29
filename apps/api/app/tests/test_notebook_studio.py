@@ -26,8 +26,9 @@ from app.exporters.studio import (
     NO_URL_LABEL,
     render,
 )
-from app.models.notebook import NotebookSource, StudioArtifact
+from app.models.notebook import Notebook, NotebookSource, StudioArtifact
 from app.notebooks import mindmap
+from app.repositories.notebook_repository import NotebookRepository
 from app.schemas.notebook import ArtifactOut
 from app.services import studio_service
 
@@ -373,15 +374,20 @@ def test_nothing_selected_is_refused_before_anything_runs(client):
 
 
 def _running(db_session, notebook_id: int, minutes_ago: float = 0) -> StudioArtifact:
+    """A generation as ``create`` leaves it: ``gerando``, with its unit of the
+    day's quota reserved on the day it was created."""
+    created = datetime.now(UTC) - timedelta(minutes=minutes_ago)
     artifact = StudioArtifact(
         notebook_id=notebook_id,
         tool="report",
         title="Relatório",
         status="gerando",
         source_ids=[],
-        created_at=datetime.now(UTC) - timedelta(minutes=minutes_ago),
+        created_at=created,
     )
     db_session.add(artifact)
+    owner = db_session.get(Notebook, notebook_id).owner_id
+    NotebookRepository(db_session, owner).count_artifact(created.date())
     db_session.flush()
     return artifact
 

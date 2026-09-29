@@ -14,9 +14,12 @@ The rules, in the order a generation meets them:
 1. **Owner first**, as everywhere in the notebooks: an artifact is read only
    through ``NotebookRepository``; somebody else's is a 404.
 2. **A choice the tool does not have is refused, never ignored** (D-56).
-3. **Quota before the call, counted on success.** Running generations are
-   already subtracted, so ten clicks cannot overshoot the day's limit; a failed
-   one costs nothing.
+3. **Quota reserved at creation, handed back on failure.** ``create`` takes
+   the unit with one conditional ``UPDATE`` (the repository's ``reserve``), in
+   the transaction that writes the artifact, so running generations already
+   count and ten concurrent clicks cannot overshoot the day's limit; a
+   generation that fails, is deleted while running, or was interrupted by a
+   restart costs nothing.
 4. **Every figure of every item is in a passage that item cites**
    (``app.notebooks.studio_content``) — one retry naming the figures, then the
    item is left out and the artifact says so.
@@ -151,10 +154,17 @@ class StudioService:
         return self._out(self._artifact(notebook_id, artifact_id))
 
     def usage(self) -> UsageOut:
-        usage = self.repo.usage(_today())
-        used = usage.artifacts if usage is not None else 0
+        """``used`` is what finished today; ``remaining`` also takes out what is
+        still running. The counter holds every reservation of the day, so a
+        generation interrupted by a restart — still ``gerando`` in the table,
+        read as failed — is subtracted here rather than written back."""
+        today = _today()
+        usage = self.repo.usage(today)
+        reserved = usage.artifacts if usage is not None else 0
+        stuck, running = self._in_flight(today)
+        held = max(reserved - stuck, 0)
         limit = self.settings.notebook_daily_artifacts
-        return UsageOut(used=used, limit=limit, remaining=max(limit - used - self._running(), 0))
+        return UsageOut(used=max(held - running, 0), limit=limit, remaining=max(limit - held, 0))
 
     # --- creating ----------------------------------------------------------
 
@@ -173,13 +183,20 @@ class StudioService:
             raise ConflictError(
                 "Já há gerações em andamento. Espere uma terminar para começar outra."
             )
-        if self.usage().remaining <= 0:
+        now = datetime.now(UTC)
+        stuck, _ = self._in_flight(now.date())
+        limit = self.settings.notebook_daily_artifacts
+        if not self.repo.reserve(now.date(), "artifacts", limit, slack=stuck):
+            self.db.rollback()
             raise QuotaExceededError(
-                f"Você usou as {self.settings.notebook_daily_artifacts} gerações de hoje no "
-                "Estúdio. O limite volta amanhã; o que você já gerou continua disponível."
+                f"Você usou as {limit} gerações de hoje no Estúdio. O limite volta amanhã; "
+                "o que você já gerou continua disponível."
             )
         template = spec.template(payload.template)
         artifact = StudioArtifact(
+            # The reservation's day is the artifact's: a failure hands the
+            # unit back to the day it was taken from.
+            created_at=now,
             notebook_id=notebook.id,
             tool=spec.slug,
             format=options["format"],
@@ -357,7 +374,7 @@ class StudioService:
         }
         artifact.status = "pronto"
         artifact.error = None
-        self.repo.count_artifact(_today())
+        # Counted already: the unit was reserved when the artifact was created.
         self.db.commit()
 
     @staticmethod
@@ -371,6 +388,7 @@ class StudioService:
         self.db.rollback()
         artifact.status = "falhou"
         artifact.error = reason[:500]
+        self.repo.release(_created_day(artifact), "artifacts")  # a failure costs nothing
         self.db.commit()
 
     # --- editing -----------------------------------------------------------
@@ -387,7 +405,12 @@ class StudioService:
         return self._out(artifact)
 
     def delete(self, notebook_id: int, artifact_id: int) -> None:
-        self.db.delete(self._artifact(notebook_id, artifact_id))
+        artifact = self._artifact(notebook_id, artifact_id)
+        if artifact.status == "gerando":
+            # Its job will find nothing to finish, so nothing would ever hand
+            # the unit back — and an unfinished generation costs nothing.
+            self.repo.release(_created_day(artifact), "artifacts")
+        self.db.delete(artifact)
         self.db.commit()
 
     def save_as_note(self, notebook_id: int, artifact_id: int) -> NoteOut:
@@ -451,10 +474,20 @@ class StudioService:
         return timedelta(seconds=self.settings.ai_timeout_seconds * 3 + 60)
 
     def _stuck(self, artifact: StudioArtifact) -> bool:
-        created = artifact.created_at
-        if created.tzinfo is None:  # SQLite hands timestamps back naive, in UTC
-            created = created.replace(tzinfo=UTC)
-        return datetime.now(UTC) - created > self._deadline()
+        return datetime.now(UTC) - _created(artifact) > self._deadline()
+
+    def _in_flight(self, day: date) -> tuple[int, int]:
+        """(stuck, running) generations reserved on ``day`` — still ``gerando``
+        in the table, past their deadline or not."""
+        stuck = running = 0
+        for artifact in self.repo.running():
+            if _created_day(artifact) != day:
+                continue
+            if self._stuck(artifact):
+                stuck += 1
+            else:
+                running += 1
+        return stuck, running
 
     def _status(self, artifact: StudioArtifact) -> str:
         if artifact.status == "gerando" and self._stuck(artifact):
@@ -505,6 +538,18 @@ class StudioService:
             layout=_layout_out(drawn) if drawn else None,
             infographic=InfographicLayoutOut.model_validate(sheet.to_dict()) if sheet else None,
         )
+
+
+def _created(artifact: StudioArtifact) -> datetime:
+    created = artifact.created_at
+    if created.tzinfo is None:  # SQLite hands timestamps back naive, in UTC
+        created = created.replace(tzinfo=UTC)
+    return created
+
+
+def _created_day(artifact: StudioArtifact) -> date:
+    """The day whose counter the artifact's unit was reserved on."""
+    return _created(artifact).astimezone(UTC).date()
 
 
 def run_job(factory: Callable[[], Session], user_id: int, artifact_id: int) -> None:

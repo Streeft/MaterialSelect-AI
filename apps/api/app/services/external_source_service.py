@@ -15,10 +15,12 @@ service adds is the order in which a request meets the outside world:
    duplicate check on the canonical origin all run first. None of them costs
    quota: a refusal the server decided alone spent nothing outside.
 3. **Quota is counted when a request leaves the server** — success or failure
-   — and committed at once. ``count_fetch`` only flushes, and the request's
-   session is closed without a commit when an error propagates, so a failed
-   fetch would otherwise be free and a failing link could be probed forever.
-   "Left" is measured, not guessed: a request hook on the client counts what
+   — and committed at once. The unit is *reserved* before the network, by one
+   conditional ``UPDATE`` that two concurrent requests cannot both pass, and
+   committed there; it is handed back only when nothing left after all. The
+   request's session is closed without a commit when an error propagates, so
+   a fetch counted after it would be free and a failing link could be probed
+   forever. "Left" is measured, not guessed: a request hook on the client counts what
    was actually handed to the transport, and the resolver is wrapped so that
    looking a name up counts too — a DNS query leaves the server, a name that
    never answers holds a thread, and "resolves inside" versus "does not
@@ -48,7 +50,7 @@ import httpx
 from sqlalchemy.orm import Session
 
 from app.config import Settings
-from app.domain.errors import ConflictError, ValidationError
+from app.domain.errors import ConflictError, QuotaExceededError, ValidationError
 from app.integrations import gemini_search, openalex, safe_fetch, wikipedia, youtube
 from app.integrations.errors import ExternalUnavailableError
 from app.knowledge.readers import ExtractedText, decode_text, read_upload
@@ -245,8 +247,11 @@ class ExternalSourceService:
 
         info = youtube.VideoInfo(video_id=video, title=None, channel=None)
         if self.notebooks.fetch_usage().remaining > 0:
-            with self._spending():
-                info = youtube.oembed(self.client, video)
+            try:
+                with self._spending():
+                    info = youtube.oembed(self.client, video)
+            except QuotaExceededError:
+                pass  # the last unit went to a concurrent request: no title, as above
         title = youtube.display_title(info)
         if text is None:
             return YoutubeOut(needs_transcript=True, video_title=title, reason=NEEDS_TRANSCRIPT)
@@ -573,19 +578,35 @@ class ExternalSourceService:
 
     @contextmanager
     def _spending(self, *, ai_request: bool = False) -> Iterator[None]:
-        """Count one outside request (and, for a web search, one AI request)
-        if anything was sent inside the block — a request or a name lookup,
-        however the block ended — and commit it before any error travels on.
-        One operation is one unit, a redirect or a retried address included."""
+        """One outside request (and, for a web search, one AI request), paid
+        for if anything was sent inside the block — a request or a name
+        lookup, however the block ended. One operation is one unit, a redirect
+        or a retried address included.
+
+        The units are reserved and committed *before* the block, atomically
+        (``NotebookService.reserve_fetch``), so a burst of concurrent requests
+        cannot all pass a check made before the first one is counted; a
+        ``QuotaExceededError`` here means nothing was sent. When the block
+        sent nothing — a refusal decided without the network — the units are
+        handed back: such a refusal stays free.
+        """
+        day = _today()
+        self.notebooks.reserve_fetch(day)
+        if ai_request:
+            try:
+                self.notebooks.reserve_request(day)
+            except QuotaExceededError:
+                self.repo.release(day, "fetches")
+                self.db.commit()
+                raise
         before = self._sent
         try:
             yield
         finally:
-            if self._sent > before:
-                day = _today()
-                self.repo.count_fetch(day)
+            if self._sent == before:
+                self.repo.release(day, "fetches")
                 if ai_request:
-                    self.repo.count_request(day)
+                    self.repo.release(day, "requests")
                 self.db.commit()
 
 
