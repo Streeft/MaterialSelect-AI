@@ -40,7 +40,7 @@ from datetime import UTC, date, datetime, timedelta
 from sqlalchemy.orm import Session
 
 from app.ai.factory import get_provider
-from app.ai.guardrails import _NUMBER_TOKEN, numbers_in
+from app.ai.guardrails import NUMBER_TOKEN, numbers_in
 from app.ai.provider import AIProvider, AIUnavailableError
 from app.ai.studio import (
     CATALOG,
@@ -687,10 +687,12 @@ def plain_text(tool: str, body: dict) -> str:
 MAX_NOTE_CHARS = 20_000
 
 #: The sentence a shortened note ends with — in words, so a note cut to the
-#: editor's ceiling never reads as the whole artifact.
+#: editor's ceiling never reads as the whole artifact. The figure follows the
+#: pt-BR convention of the screen (D-30): "20.000", which no line wrap splits.
 NOTE_SHORTENED = (
     "(Nota encurtada: o artefato completo passa do limite de "
-    f"{MAX_NOTE_CHARS:,}".replace(",", " ") + " caracteres de uma nota.)"
+    + f"{MAX_NOTE_CHARS:_}".replace("_", ".")
+    + " caracteres de uma nota.)"
 )
 
 
@@ -698,10 +700,13 @@ def note_body(text: str, limit: int = MAX_NOTE_CHARS) -> str:
     """``text`` as a note's body: whole when it fits, else shortened to fit.
 
     The cut falls on the last line break that fits — an artifact's plain text
-    is one item per line —, on the last whitespace when there is none, and
+    is one item per line — as long as it keeps at least half the room; on the
+    last whitespace when there is none, or when the only line break is so early
+    that keeping to it would throw most of the room away (a short heading over
+    one very long paragraph would otherwise become a note of the heading); and
     **never inside a number**: "1 200 MPa" cut after "1" would print a figure
     the artifact never stated. The number is the grounding check's own token
-    (``guardrails._NUMBER_TOKEN``, the one ``mindmap.atoms`` keeps whole); a
+    (``guardrails.NUMBER_TOKEN``, the one ``mindmap.atoms`` keeps whole); a
     figure the cut would split goes out whole. ``studio._cap`` is not reused:
     it flattens line breaks, and a note keeps the artifact's lines.
 
@@ -713,7 +718,7 @@ def note_body(text: str, limit: int = MAX_NOTE_CHARS) -> str:
     tail = "\n\n" + NOTE_SHORTENED
     budget = max(limit - len(tail), 0)
     cut = text.rfind("\n", 0, budget + 1)
-    if cut <= 0:
+    if cut < budget // 2:
         cut = _last_space(text, budget)
     if cut <= 0:
         cut = budget
@@ -726,7 +731,7 @@ def note_body(text: str, limit: int = MAX_NOTE_CHARS) -> str:
         inside = next(
             (
                 m
-                for m in _NUMBER_TOKEN.finditer(text, line_start, line_end)
+                for m in NUMBER_TOKEN.finditer(text, line_start, line_end)
                 if m.start() < cut < m.end()
             ),
             None,

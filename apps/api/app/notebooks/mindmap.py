@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from app.ai.guardrails import _NUMBER_TOKEN
+from app.ai.guardrails import NUMBER_TOKEN
 
 #: Pixels per character at the 13 px label size — a generous average for a
 #: proportional sans-serif, so a label is never clipped by its own box.
@@ -97,7 +97,7 @@ def atoms(text: str, units: bool = True) -> list[str]:
         starts.append(position)
         position += len(word) + 1
     glued = [False] * len(words)
-    for match in _NUMBER_TOKEN.finditer(joined):
+    for match in NUMBER_TOKEN.finditer(joined):
         for index, start in enumerate(starts):
             if match.start() < start < match.end():
                 glued[index] = True

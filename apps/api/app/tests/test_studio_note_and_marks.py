@@ -16,7 +16,7 @@ from xml.etree import ElementTree
 
 import pytest
 
-from app.ai.guardrails import _NUMBER_TOKEN
+from app.ai.guardrails import NUMBER_TOKEN
 from app.exporters import studio as studio_exporter
 from app.exporters.studio import infographic_svg
 from app.models.notebook import StudioArtifact
@@ -27,7 +27,7 @@ SVG = "{http://www.w3.org/2000/svg}"
 
 
 def _figures(text: str) -> list[str]:
-    return [m.group(0) for m in _NUMBER_TOKEN.finditer(text)]
+    return [m.group(0) for m in NUMBER_TOKEN.finditer(text)]
 
 
 # --- the note's body ------------------------------------------------------------------
@@ -51,7 +51,7 @@ def test_the_ceiling_is_the_note_editor_s():
     assert MAX_NOTE_CHARS == 20_000
     assert _max_length(NoteIn, "body") == MAX_NOTE_CHARS
     assert _max_length(NoteUpdate, "body") == MAX_NOTE_CHARS
-    assert "20 000 caracteres" in NOTE_SHORTENED
+    assert "20.000 caracteres" in NOTE_SHORTENED  # pt-BR, as the screen (D-30)
     assert NOTE_SHORTENED.startswith("(Nota encurtada:")
 
 
@@ -105,6 +105,19 @@ def test_no_way_of_writing_a_figure_is_split(figure):
         assert set(_figures(kept)) <= set(_figures(text)), (shift, tail)
 
 
+def test_an_early_line_break_does_not_throw_the_room_away():
+    """A short heading over one paragraph longer than the room: the cut falls
+    on the paragraph's last whitespace that fits, not after the heading."""
+    body = note_body("linha 1\n" + "palavra " * 40, 200)
+    kept = body.removesuffix("\n\n" + NOTE_SHORTENED)
+    assert len(body) <= 200
+    assert kept.startswith("linha 1\npalavra")
+    assert len(kept) >= 200 - len("\n\n" + NOTE_SHORTENED) - len("palavra ")
+    # Past half the room, a line break still wins over a later space.
+    text = "a" * 100 + "\n" + "b " * 200
+    assert note_body(text, 200).startswith("a" * 100 + "\n\n")
+
+
 def test_a_body_without_any_break_still_fits():
     text = "9" * (MAX_NOTE_CHARS + 50)
     body = note_body(text)
@@ -136,7 +149,7 @@ def test_saving_a_long_artifact_as_a_note_goes_through_the_rule(client, db_sessi
     assert len(body) <= MAX_NOTE_CHARS
     assert body.endswith("\n\n" + NOTE_SHORTENED)
     assert body.startswith("Frente: Pergunta 0?")
-    assert set(_figures(body)) <= {"0", "1 200", "20 000", *(str(i) for i in range(600))}
+    assert set(_figures(body)) <= {"0", "1 200", "20.000", *(str(i) for i in range(600))}
 
 
 # --- the infographic's marks ------------------------------------------------------------
