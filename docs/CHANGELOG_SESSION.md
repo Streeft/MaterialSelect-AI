@@ -11,7 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
-| [34](#sessão-34--290926--cadernos-o-lote-de-pendências-das-fases-3-e-4) | 29/09/2026 | Cadernos: nove pendências das fases 3 e 4 (velocidade no vídeo, um rasterizador só, corte da nota, cor das marcas, duplicata da OpenAlex, troca de provedor, atribuição na conversa, nós ocultos por CSS inline, cota atômica) e a rodada de correção da revisão final (D-99) | 2979 → 3189 | 735 → 751 |
+| [34](#sessão-34--290926--cadernos-o-lote-de-pendências-das-fases-3-e-4) | 29/09/2026 | Cadernos: nove pendências das fases 3 e 4 (velocidade no vídeo, um rasterizador só, corte da nota, cor das marcas, duplicata da OpenAlex, troca de provedor, atribuição na conversa, nós ocultos por CSS inline, cota atômica) e as duas rodadas de correção da revisão final (D-99) | 2979 → 3244 | 735 → 751 |
 | [33](#sessão-33--280926-a-290926--cadernos-fase-4-o-estúdio-visual-e-sonoro) | 28 e 29/09/2026 | Cadernos, fase 4: resumo em áudio e em vídeo pela voz do navegador, apresentação de slides com PPTX e infográfico com layout do backend; o dado em destaque sem isenção e a unidade com maiúsculas (D-98) | 2651 → 2979 | 608 → 735 |
 | [32](#sessão-32--250926-a-280926--cadernos-fase-3-fontes-externas) | 25 a 28/09/2026 | Cadernos, fase 3: site, YouTube com transcrição colada, OpenAlex, Wikipédia e busca na web pelo Gemini. Tudo por um portão anti-SSRF, com a origem e a licença coladas à citação e custo zero (D-97) | 1966 → 2651 | 563 → 608 |
 | [31](#sessão-31--250926--auditoria-do-pr-78-curva-custo--lote-do-antigravity) | 25/09/2026 | Auditoria do PR #78 (curva custo × lote, execução agêntica externa): comportamento correto, cobertura de teste devolvida e o registro que faltava, escrito (D-96) | 1963 → 1966 | 563 (inalterado) |
@@ -122,9 +122,37 @@ Dos menores, sete foram corrigidos:
 
 O oitavo, o dia do deploy, foi aceito e está em `TODO.md`.
 
-**Números.** Backend 2979 → 3189 e frontend 735 → 751, todos verdes, nenhum
-skip. O back-end tinha 3091 antes da rodada de correção; a rodada acrescentou
-casos de CSS, os testes de forma do SQL e os de devolução única.
+**A segunda revisão: 1 crítico, 2 importantes e 3 menores**, todos no leitor de
+CSS inline que a primeira rodada escreveu, e todos corrigidos com teste de
+regressão (`test_html_css_budgets.py`, feito das reproduções do revisor).
+
+- **N-1 (crítico).** A expansão de `var()` construía todas as cópias antes de
+  conferir o teto: uma página de 0,2 MB pedia 402 MB, e uma de 0,9 MB dava
+  `MemoryError`. Em produção, é derrubar a API por um "adicionar link". Agora
+  há orçamento por atributo (8 KB, 64 declarações), por expansão (64 valores,
+  8 KB cada, contados antes de construir) e de trabalho por atributo e por
+  página. A mesma página roda em milissegundos, com pico de memória de 1 MB.
+- **N-2.** `var(--x,)` virava valor vazio, e `"".split()[0]` dava 500. Valor
+  que se expande em nada é valor nenhum, e **qualquer** erro imprevisto ao ler
+  um estilo oculta o nó em vez de derrubar a página.
+- **N-3.** O escopo de propriedades personalizadas era copiado a cada nó: 43 s
+  para 1,3 MB. Agora o filho aponta para o escopo do pai, com teto de 256: 0,3 s.
+- **N-4.** A profundidade contava referências lado a lado, e nove `var()` com
+  reserva num `box-shadow` descartavam um parágrafo visível. Agora conta só o
+  aninhamento.
+- **N-5.** Matemática que o leitor não avalia deixava passar. Numa opacidade ou
+  escala, agora oculta; num deslocamento, só com um comprimento literal muito
+  negativo, porque `calc(50% - 10px)` centraliza caixas visíveis.
+- **N-6.** O excesso de ler só o inline — a coluna dimensionada por classe sob
+  um `font-size:0` é descartada — foi escrito no D-99 e em `TODO.md`, e um
+  teste o fixa.
+
+A direção de todos é a do D-99: passou do orçamento, o nó é lido como oculto.
+
+**Números.** Backend 2979 → 3244 e frontend 735 → 751, todos verdes, nenhum
+skip. O back-end tinha 3091 antes da primeira rodada de correção, que
+acrescentou casos de CSS, os testes de forma do SQL e os de devolução única
+(3189); a segunda acrescentou os 55 dos orçamentos.
 
 **Depois do merge:** o **Deploy da API**. Não há migração nem seed.
 
