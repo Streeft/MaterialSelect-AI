@@ -49,6 +49,11 @@ export function toneOf(tone: number) {
  * computed — this only draws them (ADR 0004), so the screen and the exported
  * SVG cannot disagree. Its text alternative (D-31) is a click away: the same
  * content as headed lists, each item with its citation chips.
+ *
+ * The headline is `artifact.title` in both: the API lays the drawing out with
+ * it (so a renamed poster draws its new name, M-7), and the text alternative
+ * has to say what the drawing says — the body's own `title` is the model's
+ * original and would disagree after a rename.
  */
 export function InfographicView({ artifact, cites }: { artifact: StudioArtifact; cites: Cites }) {
   const [asText, setAsText] = useState(false);
@@ -67,7 +72,7 @@ export function InfographicView({ artifact, cites }: { artifact: StudioArtifact;
       <div className="flex flex-col gap-3">
         {withheld}
         <p className="well text-support text-ink-muted">{t.infographicNoDrawing}</p>
-        {content ? <InfographicText content={content} cites={cites} /> : null}
+        {content ? <InfographicText content={content} title={artifact.title} cites={cites} /> : null}
       </div>
     );
   }
@@ -81,7 +86,7 @@ export function InfographicView({ artifact, cites }: { artifact: StudioArtifact;
         </Button>
       </div>
       {asText && content ? (
-        <InfographicText content={content} cites={cites} />
+        <InfographicText content={content} title={artifact.title} cites={cites} />
       ) : (
         <>
           <InfographicDrawing layout={layout} title={artifact.title} />
@@ -176,9 +181,6 @@ function Block({ block, style }: { block: InfographicBlock; style: InfographicSt
   const tone = toneOf(block.tone);
   const headingClass = card ? tone.accent : "fill-ink";
   const bodyClass = block.kind === "subtitle" ? "fill-ink-muted" : "fill-ink";
-  // The citation marks sit in the card's bottom padding, which the layout
-  // reserves on every card, in a size derived from the body's.
-  const markSize = style.body_size * 0.75;
 
   return (
     <g data-kind={block.kind} data-tone={card ? block.tone : undefined}>
@@ -217,13 +219,17 @@ function Block({ block, style }: { block: InfographicBlock; style: InfographicSt
           {line}
         </text>
       ))}
-      {card && block.citations.length > 0 ? (
+      {/* The marks' size and anchor come with the API's typesetting, the same
+          numbers the exported SVG uses (ADR 0004); a kind drawn without marks
+          has `marks_size` 0. */}
+      {card && block.citations.length > 0 && style.marks_size > 0 ? (
         <text
-          x={block.x + block.width - style.pad_x / 2}
-          y={block.y + block.height - (style.pad_y - markSize) / 2}
-          fontSize={markSize}
+          x={block.x + block.width - style.marks_right}
+          y={block.y + block.height - style.marks_bottom}
+          fontSize={style.marks_size}
           textAnchor="end"
           className="fill-ink-muted"
+          data-part="marks"
         >
           {block.citations.map((n) => `[${n}]`).join(" ")}
         </text>
@@ -252,9 +258,12 @@ function SourcesLegend({ layout, cites }: { layout: InfographicLayout; cites: Ci
 
 export function InfographicText({
   content,
+  title,
   cites,
 }: {
   content: StudioInfographicContent;
+  /** The headline the drawing shows: the artifact's title, not the body's. */
+  title: string;
   cites: Cites;
 }) {
   const chips = (numbers: number[]) => (
@@ -262,9 +271,9 @@ export function InfographicText({
   );
   return (
     <div className="flex flex-col gap-4">
-      {content.title || content.subtitle ? (
+      {title || content.subtitle ? (
         <div className="flex flex-col gap-1">
-          {content.title ? <p className="text-heading text-ink">{content.title}</p> : null}
+          {title ? <p className="text-heading text-ink">{title}</p> : null}
           {content.subtitle ? <p className="text-support text-ink-muted">{content.subtitle}</p> : null}
         </div>
       ) : null}
