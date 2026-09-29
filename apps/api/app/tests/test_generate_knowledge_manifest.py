@@ -4,6 +4,7 @@ declara autor a não ser que o nome do arquivo deixe isso inequívoco.
 
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 
@@ -109,3 +110,26 @@ class TestRemovalList:
         paths = [entry["path"] for entry in payload["documentos"]]
         assert paths == ["01-Bibliografia/livro.pdf"]
         assert (declared, added, dropped) == (1, 1, 1)
+
+    def test_a_removed_file_under_another_name_is_not_declared(self, tmp_path: Path) -> None:
+        (tmp_path / "_Duplicados").mkdir()
+        (tmp_path / "_Duplicados" / "copia.pdf").write_bytes(b"%PDF slides do professor")
+        digest = hashlib.sha256(b"%PDF slides do professor").hexdigest()
+        (tmp_path / "removidos.txt").write_text(f"sha256:{digest}\n", encoding="utf-8")
+
+        declared, added, _ = update_manifest(tmp_path)
+
+        assert (declared, added) == (0, 0)
+
+    def test_a_hand_declared_markdown_entry_is_kept(self, tmp_path: Path) -> None:
+        (tmp_path / "Links.md").write_text("https://matweb.com/\n", encoding="utf-8")
+        (tmp_path / "removidos.txt").write_text("02-Curso/\n", encoding="utf-8")
+        entry = {"path": "Links.md", "titulo": "Links", "tipo": "LINK"}
+        (tmp_path / "manifesto.json").write_text(
+            json.dumps({"documentos": [entry]}), encoding="utf-8"
+        )
+
+        update_manifest(tmp_path)
+
+        payload = json.loads((tmp_path / "manifesto.json").read_text(encoding="utf-8"))
+        assert payload["documentos"] == [entry]

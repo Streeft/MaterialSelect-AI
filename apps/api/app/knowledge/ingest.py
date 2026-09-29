@@ -27,8 +27,17 @@ def main() -> None:
     print(
         f"[ingest] {report.created} criados, {report.updated} atualizados, "
         f"{report.unchanged} inalterados, {report.failed} falharam, "
+        f"{report.skipped} ignorados, "
         f"{report.total_chunks} trechos, {report.embedded_chunks} embedados."
     )
+    # What the removal list kept out is named, with the reason: a count alone
+    # would not tell the operator *which* copy of the course material was on
+    # disk, nor that an old row of it still needs the prune (D-100).
+    for outcome in report.outcomes:
+        if outcome.action == "ignorado":
+            print(f"[ingest] IGNORADO {outcome.path}: {outcome.detail}")
+    for warning in report.removal_list_warnings:
+        print(f"[ingest] ATENÇÃO na lista de remoção: {warning}")
     if report.embeddings_skipped_reason:
         print(
             f"[ingest] busca semântica indisponível nesta execução: {report.embeddings_skipped_reason}"

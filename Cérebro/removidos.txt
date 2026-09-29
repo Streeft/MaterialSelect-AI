@@ -18,6 +18,11 @@
 # está dentro dela; qualquer outra linha casa só aquele caminho exato. Linhas
 # em branco e linhas que começam com "#" são ignoradas. A comparação normaliza
 # Unicode (NFC), então um caminho gravado em NFD por um macOS também casa.
+#
+# Uma linha "sha256:<64 dígitos hexadecimais>" casa pelo CONTEÚDO: qualquer
+# documento cujos bytes tenham esse SHA-256, em qualquer caminho. O banco e a
+# ingestão leem essas linhas; a limpeza do histórico, que só entende caminho,
+# as descarta (docs/17, passo 4).
 
 # Material de curso da disciplina ENG02016 — Seleção de Materiais A (2026/1):
 # tópicos de aula, plano de aulas, instruções e grupos das ferramentas
@@ -30,7 +35,9 @@
 # Cópia dos trabalhos entregues, fora da pasta numerada.
 ⚙Seleção de Materiais/
 
-# Cópias avulsas do mesmo material na raiz do Cérebro.
+# Cópias avulsas do mesmo material na raiz do Cérebro. As linhas sha256: do
+# fim já as casam no banco e na ingestão; os nomes ficam aqui de propósito,
+# porque a limpeza do histórico (git filter-repo) só remove por caminho.
 Plano de Aulas - ENG02016 Seleção de Materiais - 2026-1 - atualizado 12-05-2026.pdf
 Tópico 1 - Introdução a Seleção de Materiais e Evolução dos Materiais e produtos - atualizado em 17-03-26.pdf
 Tópico 1 - Introdução a Seleção de Materiais e Evolução dos Materiais e produtos.pdf
@@ -43,3 +50,51 @@ Instruções - Ferramenta avaliativa 1B - Mapeamento de materiais em produtos.pd
 Instruções - Ferramenta avaliativa 2B - PROJETO DE SELEÇÃO DE MATERIAIS.pdf
 GRUPOS E CENÁRIOS DEFINIDOS PARA A F.A.2 B - PROJETO DE SELEÇÃO DE MATERIAIS.pdf
 trios definidos para a FA1B -  Mapeamento de materiais em produtos.pdf
+
+# Os mesmos arquivos, pelo conteúdo. O caminho gravado no banco é o do disco
+# que fez a ingestão, não o da árvore do git: uma cópia numa pasta local de
+# triagem (Cérebro/_Duplicados-Para-Revisao/, por exemplo) ou com outro nome
+# escaparia das linhas acima. `knowledge_document.checksum` é o SHA-256 dos
+# bytes do arquivo, e esse é exatamente o `oid sha256:` do ponteiro Git LFS.
+#
+# De onde vieram: dos 71 arquivos removidos, lidos no histórico do git
+# (`git log --all --raw` sobre Cérebro/, conferido em 29/09/2026, cada caminho
+# teve uma versão só). 23 são o oid do ponteiro LFS dos PDF e PPTX; 11 são o
+# SHA-256 do blob dos PNG, que não estavam no LFS. São 34 e não 71 porque as
+# cópias idênticas (a raiz, as duas pastas) têm o mesmo conteúdo. Em ordem
+# alfabética, sem o nome do arquivo ao lado de propósito: o nome de um dos
+# trabalhos traz nomes de alunos.
+sha256:004f3f7676f97f394802cd09e62137480906bfc7d975622de3ce58b4ea8cfecf
+sha256:0358bc672d507f71bb1930f40b942235e21d692716672bb9731f12682c37d945
+sha256:1cfc586709ed46202ebf787970ff4dc8a6ce461357bab459579e28cb6b0e4091
+sha256:2245cf2f8a8ab65b8d7c10a758963293394ad198c1cf535f59a37c350b17a325
+sha256:231d166eea7c1a4bb921561a4954cd79cf895bb2385f57cce7ae136d47cb62a7
+sha256:2445b78ace4dd9c91bd78b05732215879455a8fdde6d7e4585c345afe98f94ff
+sha256:2bfbdee3ea29c61b1b4db12b1c5dd61809ff996dcdd98e2a6f28fd348e0846a2
+sha256:2cae95609082ab105114d00c5994819818c8f199e53b9bf69ea5ddd26f0c677f
+sha256:34b97510f15e5a5b69f60addd60c75a4f32ae27f697ca43a2996518af4f9aaac
+sha256:3b014e4ac35b7c5608a607ea34118b2c23579f558b71ed63c270339721eb0f2c
+sha256:44a71f79d5a564ae85c00e60fc0cbea69bd0f767a4872e6097d3d57c6af8052a
+sha256:4a4f6e79de2e74bd1e0081a9d0b694f56fc0b5ac12a32998ef9271ad9fa684ea
+sha256:4b1d37fdf94aed23c866b3e5a4469e44627263343d046ccb21acfc87c7ca4dfb
+sha256:4f78b8ab30647349f623205c3735c4a94a295fd50d5778c91183e7e9bbe8ca00
+sha256:5668d67c85001f4dad38c65de5ba60e086a5148c55ccd75a7d41f7e89c32a346
+sha256:5f51dfb4a0058dd479d9c20f6e819e27cb009d998ee9f2154cfbd2127f86eb12
+sha256:5f7d2bfa7a3843b1c937295f167c5652aa9c94b0c4bbeda04a64b0dfbdd60b51
+sha256:63079517105a32d0aa50443e46b7da823b5de51c9b77642551623c80b51b9e3c
+sha256:6753e7539594301c877678c8e1ee91279c948f00b565a624c1b6671cf9e3f101
+sha256:89335d4500098f9d2c9c06ecf70e1fb944ea8242627edba053e7e23624130f38
+sha256:94040d5cefd4b70af5a4efa315965d6d778cc7e934a8012aa4f378fef8ef343e
+sha256:99dc3427c3ddb611b4d446de00a90dd9005bfb420f32869f0edb025b61885261
+sha256:9e16ed813b2bb43e879373bf84f2e993e5e9e9cb379f2b4cc3017560fac3a0ff
+sha256:a3a17818b6ae7cd0bbd7c741337c379a23946de822ff56f965511478259e88f9
+sha256:a872d76cd36a7be2d847b4008220986efe4dda3757cd941d47fe5f155cd686ae
+sha256:aefa5f437f5f88a918c08d5d891df67ffc606c305771666c670e2642fe9dff61
+sha256:b460fce909c6519b89bf31dc374339caa63b7255e3b864f0a8df48f3c5831330
+sha256:bbe90cc29b3179f6ad4e9ca97956c38e22220b0858153d6883018f2e6957d3a5
+sha256:c61f50c072d9077e92dfb9403514c6ae3957c1c3026c635b507cb90a91bafdbe
+sha256:de4656d7c240ae9f81627ed4f58810054cd163ecbaef39ff7b95243a9a06bcdd
+sha256:e4f5334dd77c94fc26a523684de62a1f88a77be6430ff0e6190c6e55efcaeb0c
+sha256:f388cf9bbb4c5a2d12ea78221f36fa820f0f3f72307167feb924e5015394dc3d
+sha256:f48a05dd93be3697ea27c00a28513797c5cb244f23782ed5f59db290a8188742
+sha256:ff42ed5022746578ea08fd3c70a6ca17d460feb34b21f724e59a428472cc1b75

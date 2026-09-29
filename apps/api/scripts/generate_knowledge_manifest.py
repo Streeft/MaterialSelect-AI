@@ -9,9 +9,14 @@ Rodar de novo não sobrescreve entrada já presente no manifesto: se um humano
 editou `titulo`/`autor`/`autoridade` à mão, a edição fica. Só caminhos ainda
 não declarados são adicionados.
 
-O que está em `Cérebro/removidos.txt` (D-100) nunca é declarado, e uma entrada
-que já estivesse no manifesto sai: o manifesto descreve a base, e o que saiu
-dela não é mais parte dela.
+O que está em `Cérebro/removidos.txt` (D-100) nunca é declarado — pelo caminho
+ou pelo conteúdo (as linhas `sha256:`) —, e uma entrada que já estivesse no
+manifesto sai: o manifesto descreve a base, e o que saiu dela não é mais parte
+dela.
+
+Só PDFs são descobertos aqui. Um Markdown entra na base apenas quando alguém o
+declara à mão (D-100, `Links.md`), e uma entrada declarada à mão nunca é
+tocada.
 
 Uso::
 
@@ -20,6 +25,7 @@ Uso::
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import sys
@@ -93,6 +99,10 @@ def update_manifest(root: Path) -> tuple[int, int, int]:
     for path in sorted(root.rglob("*.pdf")):
         relative = path.relative_to(root).as_posix()
         if relative in existing or removed.matches(relative):
+            continue
+        if removed.checksums and removed.matches_checksum(
+            hashlib.sha256(path.read_bytes()).hexdigest()
+        ):
             continue
         existing[relative] = infer_provenance(relative)
         added += 1

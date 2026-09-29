@@ -164,6 +164,183 @@ class TestRemovalList:
         report = KnowledgeService(db_session).ingest()
         assert (report.created, report.skipped) == (1, 0)
 
+    def test_a_listed_checksum_is_skipped_under_any_path(self, db_session, corpus: Path) -> None:
+        # O banco foi povoado do disco do autor, não da árvore do git: uma
+        # cópia numa pasta local de triagem tem outro caminho e os mesmos bytes.
+        copy = _write(corpus, "_Duplicados-Para-Revisao/renomeado.pdf", ["Slide do professor."])
+        _write(corpus, "01-Bibliografia/livro.pdf", ["O módulo de Young mede a rigidez."])
+        (corpus / "removidos.txt").write_text(
+            f"02-Curso/\nsha256:{checksum_of(copy).upper()}\n", encoding="utf-8"
+        )
+
+        report = KnowledgeService(db_session).ingest()
+
+        assert (report.created, report.skipped) == (1, 1)
+        (outcome,) = [o for o in report.outcomes if o.action == "ignorado"]
+        assert outcome.path == "_Duplicados-Para-Revisao/renomeado.pdf"
+        assert "conteúdo (sha256)" in (outcome.detail or "")
+        repo = KnowledgeRepository(db_session)
+        assert repo.get_by_path("_Duplicados-Para-Revisao/renomeado.pdf") is None
+
+    def test_a_skipped_file_already_in_the_base_says_to_prune(
+        self, db_session, corpus: Path
+    ) -> None:
+        _write(corpus, "02-Curso/aula.pdf", ["Slide do professor."])
+        KnowledgeService(db_session).ingest()  # antes da lista existir
+        (corpus / "removidos.txt").write_text("02-Curso/\n", encoding="utf-8")
+
+        report = KnowledgeService(db_session).ingest()
+
+        (outcome,) = report.outcomes
+        assert outcome.action == "ignorado"
+        assert "app.knowledge.prune" in (outcome.detail or "")
+
+    def test_a_folder_written_without_its_slash_is_warned(self, db_session, corpus: Path) -> None:
+        _write(corpus, "02-Curso/aula.pdf", ["Slide do professor."])
+        (corpus / "removidos.txt").write_text("02-Curso\n", encoding="utf-8")
+
+        report = KnowledgeService(db_session).ingest()
+
+        assert report.skipped == 0
+        assert len(report.removal_list_warnings) == 1
+        assert '"02-Curso"' in report.removal_list_warnings[0]
+
+    def test_a_bom_does_not_hide_the_first_entry(self, db_session, corpus: Path) -> None:
+        _write(corpus, "02-Curso/aula.pdf", ["Slide do professor."])
+        (corpus / "removidos.txt").write_bytes("02-Curso/\n".encode("utf-8-sig"))
+
+        assert KnowledgeService(db_session).ingest().skipped == 1
+
+    def test_cli_names_each_skipped_file_and_why(
+        self, db_session, corpus: Path, monkeypatch: pytest.MonkeyPatch, capsys
+    ) -> None:
+        from app.knowledge import ingest as ingest_module
+
+        _write(corpus, "02-Curso/aula.pdf", ["Slide do professor."])
+        (corpus / "removidos.txt").write_text("02-Curso/\n", encoding="utf-8")
+        monkeypatch.setattr(db_session, "commit", db_session.flush)
+        monkeypatch.setattr(db_session, "close", lambda: None)
+        monkeypatch.setattr(ingest_module, "SessionLocal", lambda: db_session)
+
+        ingest_module.main()
+
+        out = capsys.readouterr().out
+        assert "1 ignorados" in out
+        assert "[ingest] IGNORADO 02-Curso/aula.pdf: Na lista de remoção" in out
+
+
+def _declare(root: Path, *entries: dict) -> None:
+    (root / "manifesto.json").write_text(
+        json.dumps({"documentos": list(entries)}), encoding="utf-8"
+    )
+
+
+LINKS_MD = """## Links
+
+https://www.youtube.com/watch?v=g1BpNasM-os
+https://ansys.synopsys.com/products/materials/granta-edupack
+O EduPack inclui um banco de dados de materiais e informações de processo.
+- [MatWeb](https://matweb.com/)
+"""
+
+
+class TestMarkdown:
+    """D-100: o Cérebro indexa o Markdown que o manifesto declara, e só ele."""
+
+    LINKS = {"path": "Links.md", "titulo": "Links indicados", "tipo": "LINK"}
+
+    def test_declared_markdown_is_ingested_with_its_urls(self, db_session, corpus: Path) -> None:
+        (corpus / "Links.md").write_text(LINKS_MD, encoding="utf-8")
+        _declare(corpus, self.LINKS)
+
+        report = KnowledgeService(db_session).ingest()
+
+        assert report.created == 1
+        repo = KnowledgeRepository(db_session)
+        document = repo.get_by_path("Links.md")
+        assert document is not None
+        assert document.status == IngestStatus.EXTRAIDO
+        assert document.kind == DocumentKind.LINK
+        assert document.chunk_count >= 1
+        text = " ".join(c.text for c in repo.list_chunks(document.id))
+        assert "https://www.youtube.com/watch?v=g1BpNasM-os" in text
+        assert "O EduPack inclui um banco de dados de materiais" in text
+        # A marcação sai, o rótulo e o endereço do link ficam.
+        assert "MatWeb (https://matweb.com/)" in text
+        assert "##" not in text
+
+    def test_undeclared_markdown_is_not_ingested(self, db_session, corpus: Path) -> None:
+        (corpus / "notas.md").write_text("rascunho do autor", encoding="utf-8")
+        _write(corpus, "livro.pdf", ["conteúdo"])
+
+        report = KnowledgeService(db_session).ingest()
+
+        assert [o.path for o in report.outcomes] == ["livro.pdf"]
+
+    def test_readme_is_never_ingested_even_if_declared(self, db_session, corpus: Path) -> None:
+        (corpus / "README.md").write_text("# Cérebro\n\nComo a pasta funciona.", encoding="utf-8")
+        (corpus / "sub").mkdir()
+        (corpus / "sub" / "readme.md").write_text("outro", encoding="utf-8")
+        (corpus / "Links.md").write_text(LINKS_MD, encoding="utf-8")
+        _declare(
+            corpus,
+            self.LINKS,
+            {"path": "README.md", "titulo": "Leia-me"},
+            {"path": "sub/readme.md", "titulo": "Leia-me"},
+        )
+        (corpus / "removidos.txt").write_text("# nada\n", encoding="utf-8")
+
+        paths = [p.relative_to(corpus).as_posix() for p in KnowledgeService(db_session).discover()]
+
+        assert paths == ["Links.md"]
+
+    def test_operational_files_are_not_candidates(self, db_session, corpus: Path) -> None:
+        # removidos.txt e manifesto.json nem são .md; a exclusão é explícita
+        # mesmo assim, para que uma extensão nova um dia não os traga junto.
+        from app.knowledge.service import OPERATIONAL_FILES
+
+        assert {"readme.md", "manifesto.json", "removidos.txt"} <= OPERATIONAL_FILES
+
+    def test_a_listed_markdown_is_skipped(self, db_session, corpus: Path) -> None:
+        (corpus / "Links.md").write_text(LINKS_MD, encoding="utf-8")
+        _declare(corpus, self.LINKS)
+        (corpus / "removidos.txt").write_text("Links.md\n", encoding="utf-8")
+
+        report = KnowledgeService(db_session).ingest()
+
+        assert (report.created, report.skipped) == (0, 1)
+        assert KnowledgeRepository(db_session).get_by_path("Links.md") is None
+
+    def test_reingesting_markdown_is_idempotent(self, db_session, corpus: Path) -> None:
+        (corpus / "Links.md").write_text(LINKS_MD, encoding="utf-8")
+        _declare(corpus, self.LINKS)
+        service = KnowledgeService(db_session)
+        first = service.ingest()
+
+        second = service.ingest()
+
+        assert (first.created, second.created, second.unchanged) == (1, 0, 1)
+        assert KnowledgeRepository(db_session).count_documents() == 1
+
+
+class TestVersionedCerebro:
+    """O Links.md e o manifesto reais: o Links.md entra, o README não."""
+
+    CEREBRO = Path(__file__).resolve().parents[4] / "Cérebro"
+
+    def test_links_md_is_ingested_and_readme_is_not(self, db_session, corpus: Path) -> None:
+        for name in ("Links.md", "README.md", "manifesto.json", "removidos.txt"):
+            (corpus / name).write_bytes((self.CEREBRO / name).read_bytes())
+
+        report = KnowledgeService(db_session).ingest()
+
+        assert [(o.path, o.action) for o in report.outcomes] == [("Links.md", "criado")]
+        document = KnowledgeRepository(db_session).get_by_path("Links.md")
+        assert document is not None
+        assert document.title == "Links indicados na disciplina ENG02016"
+        assert document.kind == DocumentKind.LINK
+        assert document.chunk_count >= 1
+
 
 class TestIngest:
     def test_catalogues_and_extracts(self, db_session, corpus: Path) -> None:

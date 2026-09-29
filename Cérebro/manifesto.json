@@ -719,6 +719,12 @@
       "titulo": "The selection and design of earthen materials for 3D printing 2023",
       "tipo": "ARTIGO",
       "autoridade": "CIENTIFICA"
+    },
+    {
+      "path": "Links.md",
+      "titulo": "Links indicados na disciplina ENG02016",
+      "tipo": "LINK",
+      "autoridade": "SECUNDARIA"
     }
   ]
 }

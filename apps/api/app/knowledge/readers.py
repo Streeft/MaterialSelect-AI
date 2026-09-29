@@ -1,9 +1,10 @@
 """Text extraction from reference documents.
 
 Returns the same shape for every format — :class:`ExtractedText`, a list of
-pages — so the chunker never learns what a PDF is. Today only PDF is
-the Cérebro's only format, while a notebook (D-92) also takes DOCX, TXT and
-Markdown — read from **bytes**, because an upload is never written to disk.
+pages — so the chunker never learns what a PDF is. The Cérebro reads PDF and
+the Markdown files its manifest declares (D-100: ``Links.md``); a notebook
+(D-92) also takes DOCX and TXT — read from **bytes**, because an upload is never
+written to disk.
 
 ``pypdf`` was chosen over ``pymupdf``: it is pure Python, small, and
 permissively licensed, where pymupdf is AGPL and would put a copyleft term on a
@@ -20,12 +21,26 @@ invented to fill the gap.
 from __future__ import annotations
 
 import io
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
 from app.domain.errors import ValidationError
 
-SUPPORTED_EXTENSIONS = {".pdf"}
+#: Extensions the Cérebro ingests. A PDF is ingested wherever it sits; a
+#: Markdown file only when the manifest declares it (see
+#: :data:`MARKDOWN_EXTENSIONS` and ``KnowledgeService.discover``), because the
+#: corpus folder also holds operational Markdown — its README — that is not
+#: knowledge.
+SUPPORTED_EXTENSIONS = {".pdf", ".md"}
+#: The subset of :data:`SUPPORTED_EXTENSIONS` that needs a manifest entry.
+MARKDOWN_EXTENSIONS = {".md"}
+
+# ``[label](url)`` → ``label (url)``: the label is what a reader searches for,
+# the address is what a citation has to hand back — both stay.
+_MD_LINK = re.compile(r"\[([^\]]*)\]\(([^)\s]+)\)")
+# Leading ``#``s of a heading, ``>`` of a quote, ``-``/``*``/``+`` of a list item.
+_MD_LINE_MARK = re.compile(r"^\s{0,3}(?:#{1,6}\s+|>\s?|[-*+]\s+)")
 
 
 @dataclass
@@ -67,11 +82,32 @@ def read_pdf(path: Path | io.BytesIO) -> ExtractedText:
     return ExtractedText(pages=pages)
 
 
+def read_markdown(data: bytes) -> ExtractedText:
+    """A Markdown file as one page of plain text, one paragraph per line.
+
+    The markup that is only layout goes (heading hashes, list bullets, quote
+    marks); every word and every URL stays, verbatim. Each non-blank line
+    becomes its own paragraph because a Markdown list of links is
+    line-oriented: joined by the chunker's soft-wrap rule, a description would
+    run into the next address and the chunker could only cut the result at an
+    arbitrary space.
+    """
+    lines = []
+    for raw in decode_text(data).splitlines():
+        line = _MD_LINE_MARK.sub("", raw)
+        line = _MD_LINK.sub(r"\1 (\2)", line).strip()
+        if line:
+            lines.append(line)
+    return ExtractedText(pages=["\n\n".join(lines)])
+
+
 def extract_text(path: Path) -> ExtractedText:
     """Dispatch to the reader for ``path``'s extension."""
     suffix = path.suffix.lower()
     if suffix == ".pdf":
         return read_pdf(path)
+    if suffix in MARKDOWN_EXTENSIONS:
+        return read_markdown(path.read_bytes())
     raise ValidationError(f"Formato não suportado para extração: {suffix or path.name}")
 
 

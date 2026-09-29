@@ -192,9 +192,91 @@ class TestEmptyAndUnmatched:
 
     def test_nothing_matched_shows_where_the_stored_paths_start(self, base: Session) -> None:
         lines = format_report(find_matches(base, parse_removal_list("Cérebro/")))
-        hint = next(line for line in lines if "começam por" in line)
+        hint = next(line for line in lines if "por pasta de primeiro nível" in line)
         assert "01-Bibliografia (1)" in hint
         assert "02-Material-de-Curso-ENG02016 (2)" in hint
+
+    def test_every_run_lists_what_stays_and_the_histogram(self, base: Session) -> None:
+        # I1: a lista que casou *alguma* coisa não pode esconder o resto. O que
+        # fica é impresso sempre, caminho a caminho, e agrupado por pasta.
+        lines = format_report(find_matches(base, parse_removal_list(LIST)))
+        assert "[prune] ficaria: 01-Bibliografia/Ashby.pdf" in lines
+        assert "[prune] ficaria: 02-Material-de-Curso-ENG02016-bis/outro.pdf" in lines
+        assert not any(line.startswith("[prune] ficaria: " + COURSE) for line in lines)
+        hint = next(line for line in lines if "por pasta de primeiro nível" in line)
+        assert "01-Bibliografia (1)" in hint
+        assert "02-Material-de-Curso-ENG02016-bis (1)" in hint
+
+    def test_applied_run_says_fica(self, base: Session) -> None:
+        lines = format_report(prune(base, parse_removal_list(LIST), apply=True))
+        assert "[prune] fica: 01-Bibliografia/Ashby.pdf" in lines
+
+    def test_folder_written_without_slash_is_warned(self, base: Session) -> None:
+        report = find_matches(base, parse_removal_list("02-Material-de-Curso-ENG02016"))
+        assert report.documents == 0
+        assert report.folder_like_entries == {"02-Material-de-Curso-ENG02016": 2}
+        lines = format_report(report)
+        assert any(
+            "ATENÇÃO" in line and '"02-Material-de-Curso-ENG02016/"' in line for line in lines
+        )
+
+
+DIGEST = "ab" * 32
+
+
+class TestChecksum:
+    """I1: casar pelo conteúdo, qualquer que seja o caminho gravado."""
+
+    def test_checksum_matches_under_an_unrelated_path(self, db_session: Session) -> None:
+        stray = _document(db_session, "_Duplicados-Para-Revisao/aula (1).pdf")
+        stray.checksum = DIGEST
+        _document(db_session, "01-Bibliografia/Ashby.pdf")
+        db_session.flush()
+
+        report = prune(db_session, parse_removal_list(f"{COURSE}\nsha256:{DIGEST}\n"), apply=True)
+        db_session.flush()
+
+        assert [(m.path, m.reason) for m in report.matched] == [
+            ("_Duplicados-Para-Revisao/aula (1).pdf", "conteúdo (sha256)")
+        ]
+        assert (report.checksum_entries, report.checksums_matched) == (1, 1)
+        assert _paths(db_session) == ["01-Bibliografia/Ashby.pdf"]
+        lines = format_report(report)
+        assert any("casou por conteúdo (sha256)" in line for line in lines)
+        assert "[prune] conteúdo: 1 de 1 entradas sha256 casaram algum documento." in lines
+
+    def test_path_match_is_reported_as_path(self, base: Session) -> None:
+        report = find_matches(base, parse_removal_list(LIST))
+        assert {m.reason for m in report.matched} == {"caminho"}
+
+    def test_checksum_is_case_insensitive(self) -> None:
+        removal = parse_removal_list(f"sha256:{DIGEST.upper()}")
+        assert removal.matches_checksum(DIGEST)
+        assert removal.matches_checksum(DIGEST.upper())
+        assert not removal.matches_checksum("")
+        assert not removal.matches_checksum(None)
+
+    @pytest.mark.parametrize("line", ["sha256:abc", "sha256:" + "g" * 64, "sha256:"])
+    def test_malformed_checksum_is_refused(self, line: str) -> None:
+        with pytest.raises(ValidationError, match="64 dígitos"):
+            parse_removal_list(line)
+
+    def test_a_list_of_only_checksums_is_not_empty(self) -> None:
+        removal = parse_removal_list(f"sha256:{DIGEST}")
+        assert not removal.is_empty
+        assert removal.entries == ()
+
+
+class TestEncoding:
+    def test_bom_does_not_glue_to_the_first_entry(self, tmp_path: Path) -> None:
+        listing = tmp_path / "removidos.txt"
+        listing.write_bytes(f"{COURSE}\n".encode("utf-8-sig"))
+        from app.knowledge.removal import load_removal_list
+
+        assert load_removal_list(listing).prefixes == (COURSE,)
+
+    def test_bom_in_text_is_stripped_too(self) -> None:
+        assert parse_removal_list("\ufeff" + COURSE).prefixes == (COURSE,)
 
 
 class TestCLI:
@@ -264,6 +346,28 @@ class TestCLI:
             main(["--list", str(tmp_path / "nao-existe.txt")])
         assert exc.value.code != 0
 
+    def test_missing_tables_say_to_migrate(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str],
+    ) -> None:
+        # M6: um banco sem as tabelas do Cérebro não pode estourar com o
+        # ProgrammingError cru; o operador precisa ler "rode migrar".
+        from sqlalchemy import create_engine
+
+        engine = create_engine("sqlite://")
+        listing = tmp_path / "removidos.txt"
+        listing.write_text(LIST, encoding="utf-8")
+        monkeypatch.setattr(prune_module, "SessionLocal", lambda: Session(engine))
+
+        with pytest.raises(SystemExit) as exc:
+            main(["--list", str(listing)])
+
+        assert exc.value.code == 1
+        assert "migrar" in capsys.readouterr().out
+        engine.dispose()
+
 
 class TestRepositoryList:
     """A lista versionada no repositório casa o que ela diz casar."""
@@ -280,3 +384,18 @@ class TestRepositoryList:
         )
         assert not removal.matches("01-Bibliografia/Materiais e Design.pdf")
         assert not removal.matches("05-Artigos-Cientificos/qualquer.pdf")
+
+    def test_versioned_list_carries_the_content_of_every_removed_file(self) -> None:
+        removal = parse_removal_list(self.LIST_PATH.read_text(encoding="utf-8"))
+        # 71 arquivos, 34 conteúdos distintos: as cópias idênticas coincidem.
+        assert len(removal.checksums) == 34
+        # O Tópico 1 sem "atualizado" só existia na raiz; o conteúdo dele
+        # também está na lista, e não só o nome.
+        assert removal.matches_checksum(
+            "aefa5f437f5f88a918c08d5d891df67ffc606c305771666c670e2642fe9dff61"
+        )
+
+    def test_links_md_is_not_on_the_list(self) -> None:
+        # D-100: o autor revisou o Links.md e decidiu mantê-lo e indexá-lo.
+        removal = parse_removal_list(self.LIST_PATH.read_text(encoding="utf-8"))
+        assert not removal.matches("Links.md")

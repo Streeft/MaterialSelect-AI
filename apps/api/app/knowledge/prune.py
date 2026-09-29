@@ -14,11 +14,23 @@ where they were, and retrieval keeps citing them. Taking a document out of the
 repository without running this takes it out of nowhere that matters to the RAG.
 
 **Dry run is the default.** Without ``--apply`` the command lists every
-matching document with its passage and vector counts, the totals, and the list
-entries that matched nothing, then rolls back. The same output with ``--apply``
-is the proof in the workflow log of what was deleted — the lesson of D-71: a
-green job only proves the script did not raise, the counts prove it did the
-right thing.
+matching document with its passage and vector counts and why it matched, the
+totals, and the list entries that matched nothing, then rolls back. The same
+output with ``--apply`` is the proof in the workflow log of what was deleted —
+the lesson of D-71: a green job only proves the script did not raise, the
+counts prove it did the right thing.
+
+**A document matches by path or by content.** ``knowledge_document.path`` is
+where the file sat on the disk that ingested it, which is not the git tree: a
+course PDF ingested from a local triage folder has a path no list entry names.
+Its checksum is the SHA-256 of its bytes, and the list carries the digest of
+every removed file (``sha256:`` lines), so that copy matches all the same.
+
+**And every run prints what stays.** Each remaining path, plus how many start
+with each top-level folder — the base is a few hundred rows. A list written
+against another layout otherwise looks complete: the matches it did find are
+printed, and the ones it missed are silent. Reading what stays is how an
+operator catches the second kind.
 
 **The cascade is explicit, not left to ``ondelete``.** Both foreign keys are
 ``ondelete="CASCADE"`` and PostgreSQL would honour them, but the SQLite the
@@ -39,7 +51,7 @@ from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, func, inspect, select
 from sqlalchemy.orm import Session
 
 from app.db.base import SessionLocal
@@ -56,6 +68,9 @@ class MatchedDocument:
     path: str
     chunks: int
     embeddings: int
+    #: ``"caminho"`` or ``"conteúdo (sha256)"`` — a content-only match is the
+    #: copy the path entries would have missed, and the log should say so.
+    reason: str = "caminho"
 
 
 @dataclass
@@ -65,11 +80,19 @@ class PruneReport:
     applied: bool
     documents_in_base: int
     matched: list[MatchedDocument] = field(default_factory=list)
-    #: List entries that matched no document: a typo, or never ingested.
+    #: Path entries that matched no document: a typo, or never ingested.
     unmatched_entries: list[str] = field(default_factory=list)
-    #: How many stored paths start with each top-level segment. Printed when
-    #: nothing matched, because the likeliest cause then is a list written
-    #: against another root than the one the base was ingested from.
+    #: Exact entries that are folders in the base, written without the ``/``.
+    folder_like_entries: dict[str, int] = field(default_factory=dict)
+    #: How many content (``sha256:``) entries the list has, and how many of
+    #: them matched a stored document.
+    checksum_entries: int = 0
+    checksums_matched: int = 0
+    #: Every path that is not matched — what stays in the base.
+    remaining: list[str] = field(default_factory=list)
+    #: How many *remaining* paths start with each top-level segment. Always
+    #: printed: a list written against another layout than the one the base
+    #: was ingested from shows up here as a folder nobody expected.
     top_level: dict[str, int] = field(default_factory=dict)
 
     @property
@@ -93,22 +116,38 @@ def find_matches(db: Session, removal: RemovalList) -> PruneReport:
     spelling. The base is a few hundred documents; reading their paths is
     nothing.
     """
-    rows = db.execute(select(KnowledgeDocument.id, KnowledgeDocument.path)).all()
+    rows = db.execute(
+        select(KnowledgeDocument.id, KnowledgeDocument.path, KnowledgeDocument.checksum)
+    ).all()
+    hits: list[tuple[int, str, str]] = []
+    remaining: list[str] = []
+    for doc_id, path, checksum in rows:
+        reason = removal.match_reason(path, checksum)
+        if reason is None:
+            remaining.append(path)
+        else:
+            hits.append((doc_id, path, reason))
+
     report = PruneReport(
         applied=False,
         documents_in_base=len(rows),
-        top_level=dict(Counter(path.split("/")[0] for _, path in rows)),
+        remaining=sorted(remaining),
+        top_level=dict(Counter(path.split("/")[0] for path in remaining)),
+        checksum_entries=len(removal.checksums),
+        checksums_matched=len(
+            {c.strip().lower() for _, _, c in rows if removal.matches_checksum(c)}
+        ),
+        folder_like_entries=removal.folder_like_exact_entries(path for _, path, _ in rows),
     )
-    hits = [(doc_id, path) for doc_id, path in rows if removal.matches(path)]
     report.unmatched_entries = [
         entry
         for entry in removal.entries
-        if not any(removal.entry_matches(entry, path) for _, path in hits)
+        if not any(removal.entry_matches(entry, path) for _, path, _ in rows)
     ]
     if not hits:
         return report
 
-    ids = [doc_id for doc_id, _ in hits]
+    ids = [doc_id for doc_id, _, _ in hits]
     chunk_counts = dict(
         db.execute(
             select(KnowledgeChunk.document_id, func.count(KnowledgeChunk.id))
@@ -131,8 +170,9 @@ def find_matches(db: Session, removal: RemovalList) -> PruneReport:
                 path=path,
                 chunks=chunk_counts.get(doc_id, 0),
                 embeddings=embedding_counts.get(doc_id, 0),
+                reason=reason,
             )
-            for doc_id, path in hits
+            for doc_id, path, reason in hits
         ),
         key=lambda m: m.path,
     )
@@ -164,9 +204,23 @@ def format_report(report: PruneReport) -> list[str]:
     lines: list[str] = []
     verb = "removido" if report.applied else "seria removido"
     for m in report.matched:
-        lines.append(f"[prune] {verb}: {m.path} ({m.chunks} trechos, {m.embeddings} embeddings)")
+        lines.append(
+            f"[prune] {verb}: {m.path} ({m.chunks} trechos, {m.embeddings} embeddings; "
+            f"casou por {m.reason})"
+        )
     for entry in report.unmatched_entries:
         lines.append(f"[prune] sem correspondência na base: {entry}")
+    for entry, below in report.folder_like_entries.items():
+        lines.append(
+            f'[prune] ATENÇÃO: "{entry}" é uma pasta na base ({below} documentos dentro), '
+            f'mas a linha não termina em "/" e por isso não casa nada. Se é a pasta '
+            f'inteira que sai, escreva "{entry}/".'
+        )
+    if report.checksum_entries:
+        lines.append(
+            f"[prune] conteúdo: {report.checksums_matched} de {report.checksum_entries} "
+            f"entradas sha256 casaram algum documento."
+        )
 
     if report.applied:
         lines.append(
@@ -183,12 +237,25 @@ def format_report(report: PruneReport) -> list[str]:
         f"[prune] a base tinha {report.documents_in_base} documentos; "
         f"ficam {report.documents_in_base - (report.documents if report.applied else 0)}."
     )
-    if not report.matched and report.top_level:
+    stays = "fica" if report.applied else "ficaria"
+    for path in report.remaining:
+        lines.append(f"[prune] {stays}: {path}")
+    if report.top_level:
         lines.append(
-            "[prune] nada casou; os caminhos na base começam por: "
+            f"[prune] o que {stays} na base, por pasta de primeiro nível: "
             + ", ".join(f"{name} ({n})" for name, n in sorted(report.top_level.items()))
+            + ". Confira que nenhuma pasta aqui guarda material que devia sair."
         )
     return lines
+
+
+def knowledge_tables_present(db: Session) -> bool:
+    """Whether the knowledge tables exist in the database ``db`` talks to."""
+    inspector = inspect(db.connection())
+    return all(
+        inspector.has_table(model.__tablename__)
+        for model in (KnowledgeDocument, KnowledgeChunk, KnowledgeEmbedding)
+    )
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -219,8 +286,20 @@ def main(argv: list[str] | None = None) -> None:
         print(f"[prune] a lista {args.list} não tem nenhuma entrada; nada a fazer.")
         return
 
-    print(f"[prune] lista: {args.list} ({len(removal.entries)} entradas)")
+    print(
+        f"[prune] lista: {args.list} ({len(removal.entries)} caminhos, "
+        f"{len(removal.checksums)} sha256)"
+    )
     with SessionLocal() as db:
+        if not knowledge_tables_present(db):
+            # A database never migrated past the knowledge revision would fail
+            # with a bare ProgrammingError; the fix is one workflow action.
+            print(
+                "[prune] ERRO: as tabelas da base de conhecimento não existem neste banco. "
+                "Rode as migrações primeiro (ação `migrar` do workflow Administração do "
+                "banco, ou `python -m alembic upgrade head`) e depois repita."
+            )
+            sys.exit(1)
         report = prune(db, removal, apply=args.apply)
         if report.applied:
             db.commit()
