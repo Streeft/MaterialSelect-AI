@@ -860,15 +860,22 @@ e no mesmo modal do D-94. Regras que não se afrouxam:
 - **O dado em destaque do infográfico segue a regra estrita**
   (`grounding.strict_ungrounded`): sem a isenção de inteiros até 100, sem as
   palavras do aluno, e a unidade tem de estar no trecho, **comparada com
-  maiúsculas** — mPa ≠ MPa. Não afrouxe nenhuma das três.
+  maiúsculas** — mPa ≠ MPa. Não afrouxe nenhuma das três. A **manchete**
+  (título e subtítulo do infográfico, título de capa do deck e do vídeo) segue
+  a mesma regra, e reprovada vira o título neutro com a frase no `withheld`.
+- **Nenhum texto é partido dentro de um número**: `mindmap.wrap` quebra entre
+  átomos ("1 200 MPa" é um só), e o teto do leitor (`_cap`, em
+  `app/ai/studio.py`) corta entre os mesmos átomos — o que não cabe sai
+  inteiro, nunca "1 2".
 - **O layout do infográfico é do backend** (`app/notebooks/infographic.py`),
-  com os `styles` de tipografia: a tela e o SVG desenham as mesmas coordenadas —
+  com os `styles` de tipografia (as marcas `[n]` incluídas, `marks_*`) e o
+  `artifact.title` como manchete: a tela e o SVG desenham as mesmas coordenadas —
   não recalcule nem fixe tipografia no cliente. O PNG é rasterizado no
   navegador (o Fly não tem libcairo), então o SVG não pode ter `foreignObject`
   nem referência externa. O PDF dos slides é a impressão do navegador.
 - **Nenhuma migração**: as quatro cabem nos campos JSON da fase 1.
 
-2883 testes de backend (nenhum skip) e 732 de frontend, todos verdes. CI no
+2972 testes de backend (nenhum skip) e 735 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
 PROJECT_CONTEXT.md).

@@ -496,14 +496,16 @@ zero, e por isso sem MP3 nem MP4: baixa-se o roteiro em DOCX/TXT e o deck em
 PPTX, com a narração ou as notas nas notas do apresentador. O item conferido é a
 fala, o slide inteiro e a cena inteira; o dado em destaque do infográfico segue
 uma regra mais estrita que a do chat (sem a isenção de inteiros até 100, sem as
-palavras do aluno, e com a unidade escrita no trecho, comparada com maiúsculas).
-O layout do infográfico é calculado no backend e desenhado igual na tela e no
-SVG; o PNG é rasterizado no navegador e o PDF dos slides é a impressão. Nenhuma
+palavras do aluno, e com a unidade escrita no trecho, comparada com maiúsculas),
+e a manchete — título e subtítulo do pôster, capa do deck e do vídeo — também.
+Nenhum texto é partido dentro de um número, nem na quebra de linha nem no teto
+de tamanho da leitura. O layout do infográfico é calculado no backend e
+desenhado igual na tela e no SVG, marcas `[n]` e título renomeado incluídos; o PNG é rasterizado no navegador e o PDF dos slides é a impressão. Nenhuma
 migração. A oferta de vozes pt-BR depende do aparelho do aluno, e a tela diz
 quando não há.
 
-**Saúde do código:** 2883 testes de backend (Python 3.11 e 3.12, nenhum skip)
-e 732 de frontend, todos verdes. Desde o P0-1 a suíte também roda as migrações de
+**Saúde do código:** 2972 testes de backend (Python 3.11 e 3.12, nenhum skip)
+e 735 de frontend, todos verdes. Desde o P0-1 a suíte também roda as migrações de
 verdade, nos dois sentidos, contra um banco temporário que já contém dados —
 `test_migration_selection_stage.py`, `test_migration_process_universe.py`,
 `test_migration_selection_universe.py`, `test_migration_process_attributes.py`,
