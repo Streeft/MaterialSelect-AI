@@ -1,17 +1,25 @@
-// SVG → PNG in the browser, for the Studio's "PNG (imagem)" export (D-98).
+// SVG → PNG in the browser: the one rasteriser of the application.
 //
-// The backend draws the infographic and the mind map as SVG and serves them as
-// an export; the PNG is that same file rasterised here, so the picture on the
-// page, the SVG download and the PNG download can never disagree. Strictly
-// presentation: nothing here reads or recomputes a value.
+// Two callers, one implementation (D-98 left two, and the page figures' copy
+// had neither the canvas ceiling nor the typed error):
 //
-// The URL is whatever the existing "Exportar ▾" menu links to for SVG
-// (`studioExportUrl(…, "svg")` in `lib/api.ts`), fetched with the session
-// cookie. The SVG is then turned into a same-origin `blob:` URL — never drawn
-// from the network address — so the canvas is not tainted by the fetch itself.
-// If it still is (an external `<image>` or font inside the file, or a browser
-// that taints on `foreignObject`), the export fails with a typed error and the
-// UI tells the reader to download the SVG instead.
+// - the Studio's "PNG (imagem)" export (D-98). The backend draws the
+//   infographic and the mind map as SVG and serves them as an export; the PNG
+//   is that same file rasterised here, so the picture on the page, the SVG
+//   download and the PNG download can never disagree. `svgToPngDownload`
+//   fetches whatever the "Exportar ▾" menu links to for SVG
+//   (`studioExportUrl(…, "svg")` in `lib/api.ts`) with the session cookie;
+// - every chart's "Exportar ▾ → PNG" (`lib/figureExport.ts`, D-80), which
+//   composes the figure into one standalone SVG and hands the markup to
+//   `svgToPngBlob`.
+//
+// Strictly presentation: nothing here reads or recomputes a value. The SVG is
+// drawn as it is — its own background rectangle included, the canvas is never
+// cleared or filled — from a same-origin `blob:` URL, never from a network
+// address, so the canvas is not tainted by the fetch itself. If it still is (an
+// external `<image>` or font inside the file, or a browser that taints on
+// `foreignObject`), the export fails with a typed error (`RasterizeError`,
+// reason `tainted`) and the UI tells the reader to download the SVG instead.
 
 /** iOS Safari refuses canvases above this many pixels (4096 × 4096). */
 export const MAX_CANVAS_PIXELS = 16_777_216;
@@ -21,6 +29,9 @@ export const MAX_CANVAS_SIDE = 16_384;
 
 /** How long a download's object URL outlives the click (Safari/Firefox need it to). */
 export const DOWNLOAD_REVOKE_DELAY_MS = 30_000;
+
+/** Grace period after an image decodes, for the fonts embedded in it. */
+const FONT_SETTLE_MS = 60;
 
 /**
  * Why a rasterisation failed — each one a different sentence for the reader.
@@ -96,6 +107,9 @@ async function loadImageElement(src: string): Promise<CanvasImageSource> {
       // engines reject it for SVG sources that draw fine.
     }
   }
+  // An embedded font (the chart exports inline the app's faces as data URLs)
+  // can finish decoding a frame after the image does.
+  await new Promise((resolve) => window.setTimeout(resolve, FONT_SETTLE_MS));
   return image;
 }
 
@@ -331,11 +345,23 @@ export async function svgToPngDownload(
   }
 
   const png = await svgToPngBlob(svgText, scale, env);
+  downloadBlob(png, filename, env);
+}
 
+/**
+ * Hand `blob` to the reader as a download named `filename`.
+ *
+ * The object URL outlives the click by `DOWNLOAD_REVOKE_DELAY_MS`: Safari and
+ * Firefox read the blob after `click()` returns, and an early revoke cancels
+ * the download silently. Revoked all the same — a URL left alive holds the
+ * whole file in memory for as long as the page is open.
+ */
+export function downloadBlob(blob: Blob, filename: string, deps?: Partial<RasterizeDeps>): void {
+  const env = resolveDeps(deps);
   const doc = env.document;
-  const pngUrl = env.createObjectURL(png);
+  const url = env.createObjectURL(blob);
   const anchor = doc.createElement("a");
-  anchor.href = pngUrl;
+  anchor.href = url;
   anchor.download = filename;
   anchor.rel = "noopener";
   anchor.style.display = "none";
@@ -344,8 +370,6 @@ export async function svgToPngDownload(
     anchor.click();
   } finally {
     anchor.remove();
-    // Revoked later, not now: Safari and Firefox read the blob after `click()`
-    // returns, and an early revoke cancels the download silently.
-    env.setTimeout(() => env.revokeObjectURL(pngUrl), DOWNLOAD_REVOKE_DELAY_MS);
+    env.setTimeout(() => env.revokeObjectURL(url), DOWNLOAD_REVOKE_DELAY_MS);
   }
 }

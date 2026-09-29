@@ -40,7 +40,9 @@ _MATCH_TOLERANCE = 1e-9
 # Numeric literals, in the forms an engineering brief actually uses:
 # grouped thousands ("1.234.567,89", "1 234,5") first, so the greedy grouped
 # form wins over the plain form, then plain decimals and scientific notation.
-_NUMBER_TOKEN = re.compile(
+# Public: the grounding checks, the mind map's line wrap and the note cut must
+# agree on what one figure is, so they share this pattern rather than copy it.
+NUMBER_TOKEN = re.compile(
     r"[+-]?\d{1,3}(?:[.  ]\d{3})+(?:,\d+)?" r"|[+-]?\d+(?:[.,]\d+)?(?:[eE][+-]?\d+)?"
 )
 
@@ -109,7 +111,7 @@ def numeric_tokens(text: str) -> list[set[float]]:
     alternative readings as separate figures — "0.847" offers the readings 0.847
     and 847, and finding either one is enough to accept the token.
     """
-    return [_interpretations(match.group()) for match in _NUMBER_TOKEN.finditer(text or "")]
+    return [_interpretations(match.group()) for match in NUMBER_TOKEN.finditer(text or "")]
 
 
 def numbers_in(text: str) -> set[float]:

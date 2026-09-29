@@ -17,7 +17,9 @@ from __future__ import annotations
 
 from datetime import date
 
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, func, select, update
+from sqlalchemy.dialects.postgresql import insert as postgresql_insert
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.orm import Session, selectinload
 
 from app.models.notebook import (
@@ -249,37 +251,140 @@ class NotebookRepository:
             ).scalars()
         )
 
+    # A running generation holds one reserved unit, handed back when it fails
+    # or is deleted unfinished. Two of those can race — the job failing while
+    # the student deletes it — and both would hand the unit back. So leaving
+    # ``gerando`` is itself the guard: one statement conditioned on the status,
+    # whose row count says whether *this* caller moved the row out of it and so
+    # owns the refund. On PostgreSQL the loser waits on the row lock and then
+    # finds the status changed; on SQLite the writers queue.
+
+    def _owned_artifact(self, artifact_id: int):
+        owned = select(Notebook.id).where(Notebook.owner_id == self.owner_id)
+        return (StudioArtifact.id == artifact_id, StudioArtifact.notebook_id.in_(owned))
+
+    def settle_running(self, artifact_id: int, **values: object) -> bool:
+        """Write ``values`` (a final status and its error) on a generation only
+        if it is still ``gerando``; whether it was."""
+        result = self.db.execute(
+            update(StudioArtifact)
+            .where(*self._owned_artifact(artifact_id), StudioArtifact.status == "gerando")
+            .values(**values)
+            .execution_options(synchronize_session="fetch")
+        )
+        return result.rowcount == 1
+
+    def delete_running(self, artifact_id: int) -> bool:
+        """Delete a generation only if it is still ``gerando``; whether it was."""
+        result = self.db.execute(
+            delete(StudioArtifact)
+            .where(*self._owned_artifact(artifact_id), StudioArtifact.status == "gerando")
+            .execution_options(synchronize_session="fetch")
+        )
+        return result.rowcount == 1
+
     # --- quota ---------------------------------------------------------------
+    #
+    # Every change to a counter is one SQL statement, never read-then-write in
+    # Python (``usage.fetches += 1`` loses an increment to a concurrent one).
+    # Spending is a *reservation*: ``reserve`` adds one only while the counter
+    # is under the limit, in the same ``UPDATE … WHERE counter < limit``, and
+    # says by its row count whether it did — so two requests racing for the
+    # last unit cannot both have it, on PostgreSQL (the row lock re-checks the
+    # condition against the committed value) as on SQLite (one writer at a
+    # time). What the caller decides not to charge in the end is handed back
+    # with ``release``.
+
+    _COUNTERS = ("requests", "artifacts", "fetches")
 
     def usage(self, day: date) -> AIUsage | None:
         """Today's counters — ``requests``, ``artifacts`` and ``fetches`` — or
-        ``None`` when nothing was counted yet (the service reads that as 0)."""
+        ``None`` when nothing was counted yet (the service reads that as 0).
+
+        Always read from the database: the counters change by ``UPDATE``
+        statements that bypass the identity map, and a session that loaded the
+        row earlier would otherwise keep answering with its old numbers."""
         return self.db.execute(
-            select(AIUsage).where(AIUsage.user_id == self.owner_id, AIUsage.day == day)
+            select(AIUsage)
+            .where(AIUsage.user_id == self.owner_id, AIUsage.day == day)
+            .execution_options(populate_existing=True)
         ).scalar_one_or_none()
 
-    def _usage_row(self, day: date) -> AIUsage:
-        usage = self.usage(day)
-        if usage is None:
-            usage = AIUsage(user_id=self.owner_id, day=day, requests=0, artifacts=0, fetches=0)
-            self.db.add(usage)
-        return usage
+    def reserve(self, day: date, counter: str, limit: int, *, slack: int = 0) -> bool:
+        """Add one to ``counter`` if it is below ``limit + slack``; whether it did.
+
+        ``slack`` is what the counter holds that the caller does not charge
+        (a Studio generation interrupted by a restart), so the comparison is
+        ``counter - slack < limit`` without a second statement.
+        """
+        column = self._column(counter)
+        self._ensure_row(day)
+        result = self.db.execute(
+            update(AIUsage)
+            .where(
+                AIUsage.user_id == self.owner_id,
+                AIUsage.day == day,
+                column < limit + slack,
+            )
+            .values({counter: column + 1})
+            .execution_options(synchronize_session=False)
+        )
+        return result.rowcount == 1
+
+    def release(self, day: date, counter: str) -> None:
+        """Hand back one unit reserved and not spent — never below zero."""
+        column = self._column(counter)
+        self.db.execute(
+            update(AIUsage)
+            .where(AIUsage.user_id == self.owner_id, AIUsage.day == day, column > 0)
+            .values({counter: column - 1})
+            .execution_options(synchronize_session=False)
+        )
 
     def count_request(self, day: date) -> AIUsage:
-        usage = self._usage_row(day)
-        usage.requests += 1
-        self.db.flush()
-        return usage
+        return self._count(day, "requests")
 
     def count_artifact(self, day: date) -> AIUsage:
-        usage = self._usage_row(day)
-        usage.artifacts += 1
-        self.db.flush()
-        return usage
+        return self._count(day, "artifacts")
 
     def count_fetch(self, day: date) -> AIUsage:
         """One request that left the server for an external source (D-97)."""
-        usage = self._usage_row(day)
-        usage.fetches += 1
-        self.db.flush()
+        return self._count(day, "fetches")
+
+    def _count(self, day: date, counter: str) -> AIUsage:
+        """Add one unconditionally — still one statement, never read-then-write."""
+        column = self._column(counter)
+        self._ensure_row(day)
+        self.db.execute(
+            update(AIUsage)
+            .where(AIUsage.user_id == self.owner_id, AIUsage.day == day)
+            .values({counter: column + 1})
+            .execution_options(synchronize_session=False)
+        )
+        usage = self.usage(day)
+        assert usage is not None  # the row was just ensured
         return usage
+
+    def _column(self, counter: str):
+        if counter not in self._COUNTERS:  # pragma: no cover - a programming error
+            raise ValueError(f"unknown quota counter: {counter}")
+        return getattr(AIUsage, counter)
+
+    def _ensure_row(self, day: date) -> None:
+        """The (user, day) row, created if missing without racing a concurrent
+        creation: ``INSERT … ON CONFLICT DO NOTHING`` on the unique pair, in
+        the dialects this project runs on (SQLite in development and tests,
+        PostgreSQL in production)."""
+        values = {"user_id": self.owner_id, "day": day, "requests": 0, "artifacts": 0}
+        values |= {"fetches": 0}
+        dialect = self.db.get_bind().dialect.name
+        if dialect in ("sqlite", "postgresql"):
+            insert = sqlite_insert if dialect == "sqlite" else postgresql_insert
+            self.db.execute(
+                insert(AIUsage.__table__)
+                .values(**values)
+                .on_conflict_do_nothing(index_elements=["user_id", "day"])
+            )
+        elif self.usage(day) is None:  # pragma: no cover - no third dialect in use
+            self.db.add(AIUsage(**values))
+            self.db.flush()

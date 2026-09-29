@@ -7,6 +7,10 @@
 // title band, the same legend and the same background.
 //
 // Strictly presentation: nothing here reads, converts or recomputes a value.
+// The rasterising and the download itself are `lib/rasterize.ts`, the one
+// implementation shared with the Studio's PNG export.
+
+import { downloadBlob, svgToPngBlob, type RasterizeDeps } from "@/lib/rasterize";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
@@ -282,7 +286,9 @@ function compose(
   const top = title?.height ?? 8;
   const total = top + height + (legend ? legend.height + 8 : 8);
 
-  root.setAttribute("xmlns", SVG_NS);
+  // No explicit `xmlns` attribute: the root is created in the SVG namespace, so
+  // the serialiser declares it already, and a second declaration is a duplicate
+  // attribute — malformed XML that the rasteriser's parser refuses.
   root.setAttribute("width", String(Math.round(width)));
   root.setAttribute("height", String(Math.round(total)));
   root.setAttribute("viewBox", `0 0 ${Math.round(width)} ${Math.round(total)}`);
@@ -385,39 +391,6 @@ async function embeddedFontCss(markup: string): Promise<string> {
   return rules.join("");
 }
 
-async function rasterise(markup: string, width: number, height: number, scale = 2): Promise<string> {
-  const image = new Image();
-  const loaded = new Promise<void>((resolve, reject) => {
-    image.onload = () => resolve();
-    image.onerror = () => reject(new Error("SVG could not be rasterised."));
-  });
-  image.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(markup)}`;
-  await loaded;
-  try {
-    await image.decode();
-  } catch {
-    // `onload` already fired; decode() is only a stricter wait.
-  }
-  // An embedded font can finish decoding a frame after the image does.
-  await new Promise((resolve) => setTimeout(resolve, 60));
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.round(width * scale);
-  canvas.height = Math.round(height * scale);
-  const context = canvas.getContext("2d");
-  if (!context) throw new Error("Canvas unavailable.");
-  context.drawImage(image, 0, 0, canvas.width, canvas.height);
-  return canvas.toDataURL("image/png");
-}
-
-function triggerDownload(href: string, fileName: string): void {
-  const link = document.createElement("a");
-  link.href = href;
-  link.download = fileName;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-}
-
 /**
  * The figure inside `container` as one standalone SVG document.
  *
@@ -466,23 +439,27 @@ export async function figureMarkup(
   return fontCss ? compose(container, figure, width, height, fontCss) : draft;
 }
 
-/** Download the figure inside `container` as PNG (2×) or SVG. */
+/**
+ * Download the figure inside `container` as PNG (2×) or SVG.
+ *
+ * A PNG that cannot be produced rejects with `RasterizeError` (a tainted canvas
+ * is reason `tainted`), so the toolbar can tell the reader to take the SVG.
+ * `deps` exists for tests only (jsdom has no canvas); call sites never pass it.
+ */
 export async function exportFigure(
   container: HTMLElement | null,
   format: "png" | "svg",
   fileName: string,
+  deps?: Partial<RasterizeDeps>,
 ): Promise<void> {
   if (!container) throw new Error("Figure not rendered yet.");
-  const { markup, width, height } = await figureMarkup(container);
+  const { markup } = await figureMarkup(container);
   if (format === "svg") {
     const blob = new Blob([`<?xml version="1.0" encoding="UTF-8"?>\n${markup}`], {
       type: "image/svg+xml;charset=utf-8",
     });
-    const url = URL.createObjectURL(blob);
-    triggerDownload(url, `${fileName}.svg`);
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    downloadBlob(blob, `${fileName}.svg`, deps);
     return;
   }
-  const png = await rasterise(markup, width, height);
-  triggerDownload(png, `${fileName}.png`);
+  downloadBlob(await svgToPngBlob(markup, 2, deps), `${fileName}.png`, deps);
 }

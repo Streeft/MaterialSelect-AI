@@ -5,6 +5,7 @@ import {
   MAX_CANVAS_SIDE,
   RasterizeError,
   canvasSize,
+  downloadBlob,
   fitScale,
   svgDimensions,
   svgToPngBlob,
@@ -301,6 +302,28 @@ describe("svgToPngDownload", () => {
     const h = harness({ toBlobError: securityError() });
     expect(await reasonOf(svgToPngDownload("/x.svg", "x.png", 2, h.deps))).toBe("tainted");
     expect(document.querySelectorAll("a").length).toBe(0);
+    expect(h.revoked).toEqual(["blob:test/1"]);
+  });
+});
+
+describe("downloadBlob", () => {
+  it("clicks a detached-afterwards anchor and revokes its URL only after the delay", () => {
+    const h = harness();
+    const clicks: Array<{ href: string; download: string; attached: boolean }> = [];
+    const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (this: HTMLAnchorElement) {
+      clicks.push({ href: this.getAttribute("href") ?? "", download: this.download, attached: this.isConnected });
+    });
+    try {
+      downloadBlob(new Blob(["<svg/>"], { type: "image/svg+xml" }), "figura.svg", h.deps);
+    } finally {
+      click.mockRestore();
+    }
+
+    expect(clicks).toEqual([{ href: "blob:test/1", download: "figura.svg", attached: true }]);
+    expect(document.querySelectorAll("a").length).toBe(0);
+    expect(h.revoked).toEqual([]);
+    expect(h.timers.map((timer) => timer.ms)).toEqual([DOWNLOAD_REVOKE_DELAY_MS]);
+    h.timers[0]!.callback();
     expect(h.revoked).toEqual(["blob:test/1"]);
   });
 });

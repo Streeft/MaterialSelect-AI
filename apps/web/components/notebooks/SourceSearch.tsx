@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState, type ReactNode } from "react";
+import { useId, useRef, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { addExternalSource, getSourceCapabilities, searchSources } from "@/lib/api";
 import { cn } from "@/lib/cn";
@@ -91,9 +91,21 @@ export function SourceSearch({ notebook }: { notebook: Notebook }) {
   const active = capability(provider);
   const blocked = active ? !active.enabled : false;
 
-  const search = useMutation<Answer, Error, { provider: NotebookSearchProvider; query: string }>({
-    mutationFn: async (asked) => ({ ...asked, data: await searchSources(notebook.id, asked) }),
-    onSuccess: (found) => {
+  // Bumped on every provider switch, so a search still in flight when the
+  // student switches cannot land its answer under the new provider.
+  const generation = useRef(0);
+
+  const search = useMutation<
+    Answer,
+    Error,
+    { provider: NotebookSearchProvider; query: string; generation: number }
+  >({
+    mutationFn: async ({ generation: _asked, ...asked }) => ({
+      ...asked,
+      data: await searchSources(notebook.id, asked),
+    }),
+    onSuccess: (found, asked) => {
+      if (asked.generation !== generation.current) return;
       setAnswer(found);
       setSelected([]);
       setItems({});
@@ -131,7 +143,18 @@ export function SourceSearch({ notebook }: { notebook: Notebook }) {
   const submit = () => {
     const text = query.trim();
     if (!text || blocked || search.isPending) return;
-    search.mutate({ provider, query: text });
+    search.mutate({ provider, query: text, generation: generation.current });
+  };
+
+  // A new provider is a new question: the last answer, its ticks and its error
+  // belonged to the old one. Left on screen, Wikipédia's results would sit
+  // under the Web's privacy notice as if the Web had found them.
+  const switchProvider = () => {
+    generation.current += 1;
+    search.reset();
+    setAnswer(null);
+    setSelected([]);
+    setItems({});
   };
 
   const usage = notebook.fetch_usage;
@@ -160,8 +183,9 @@ export function SourceSearch({ notebook }: { notebook: Notebook }) {
               aria-disabled={off || undefined}
               aria-describedby={off && cap?.reason ? `${reasonId}-${p}` : undefined}
               onClick={() => {
+                if (p === provider) return;
                 setChosen(p);
-                search.reset();
+                switchProvider();
               }}
             />
           );

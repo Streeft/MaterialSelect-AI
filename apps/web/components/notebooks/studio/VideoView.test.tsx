@@ -137,6 +137,41 @@ describe("VideoView (D-98)", () => {
     ]);
   });
 
+  it("offers the audio's speeds, and a new speed restarts the sentence at that rate", () => {
+    const f = install();
+    const { container } = renderView();
+    const speed = screen.getByRole("group", { name: t.speed });
+    expect(within(speed).getAllByRole("button").map((b) => b.textContent)).toEqual(
+      ["0,75", "1", "1,25", "1,5"].map((value) => t.speedValue(value)),
+    );
+    const normal = within(speed).getByRole("button", { name: t.speedValue("1") });
+    expect(normal).toHaveAttribute("aria-pressed", "true");
+
+    // Stopped: the speed is kept for later, nothing is spoken.
+    const slow = within(speed).getByRole("button", { name: t.speedValue("0,75") });
+    fireEvent.click(slow);
+    expect(slow).toHaveAttribute("aria-pressed", "true");
+    expect(f.spoken).toHaveLength(0);
+
+    click(t.playVideo);
+    act(() => f.end());
+    expect(lastSpoken(f)).toBe("Tem pouco carbono.");
+    expect(f.spoken[f.spoken.length - 1]?.rate).toBeCloseTo(0.75);
+
+    // Playing: the sentence being read starts over at the new rate, same scene.
+    const fast = within(speed).getByRole("button", { name: t.speedValue("1,5") });
+    fireEvent.click(fast);
+    expect(fast).toHaveAttribute("aria-pressed", "true");
+    expect(normal).toHaveAttribute("aria-pressed", "false");
+    expect(lastSpoken(f)).toBe("Tem pouco carbono.");
+    expect(f.spoken[f.spoken.length - 1]?.rate).toBeCloseTo(1.5);
+    expect(f.queue).toHaveLength(1);
+    expect(slideTitle()).toBe("O que é aço");
+
+    // The speed control adds no second primary button (D-91).
+    expect(container.querySelectorAll(".msds-btn-primary")).toHaveLength(1);
+  });
+
   it("toggles the transcript with every scene's narration and its chips", () => {
     install();
     renderView();
@@ -171,6 +206,9 @@ describe("VideoView (D-98)", () => {
     expect(screen.queryByRole("button", { name: t.playVideo })).not.toBeInTheDocument();
     // The whole narration of the scene, not one sentence.
     expect(caption()).toBe(`${t.caption}: O aço é uma liga de ferro. Tem pouco carbono.`);
+
+    // Nothing to speed up without a voice.
+    expect(screen.queryByRole("group", { name: t.speed })).not.toBeInTheDocument();
 
     // No timer advances it.
     act(() => vi.advanceTimersByTime(60_000));

@@ -16,6 +16,7 @@ export function CitationChip({
   label,
   title,
   locator,
+  credit,
   children,
 }: {
   number: number;
@@ -25,6 +26,10 @@ export function CitationChip({
   title: string;
   /** Section and page, when known. */
   locator?: string | null;
+  /** The credit the source's licence asks for (CC BY-SA, D-97), under the
+   * passage as secondary text. Optional metadata, not a data value: when there
+   * is none, nothing is drawn — never a dash or an empty line. */
+  credit?: ReactNode;
   /** The passage itself. */
   children: ReactNode;
 }) {
@@ -45,6 +50,7 @@ export function CitationChip({
         <blockquote className="whitespace-pre-line border-l-2 border-brand-300 pl-2 text-xs text-ink">
           {children}
         </blockquote>
+        {credit ? <p className="text-caption text-ink-muted">{credit}</p> : null}
       </div>
     </Popover>
   );
