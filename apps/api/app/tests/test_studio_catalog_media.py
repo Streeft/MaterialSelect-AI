@@ -269,10 +269,15 @@ def test_the_audio_keeps_hosts_1_and_2_and_strips_markup():
 
 
 def test_the_audio_is_capped():
-    raw = {"lines": [{"speaker": 1 + i % 2, "text": "x" * 900} for i in range(MAX_LINES + 5)]}
+    # The cap falls between words (never inside a figure, see
+    # test_studio_media_hardening), so a capped line is a prefix of whole words.
+    long = ("fala " * 200).strip()
+    raw = {"lines": [{"speaker": 1 + i % 2, "text": long} for i in range(MAX_LINES + 5)]}
     lines = read_audio(raw)["lines"]
     assert len(lines) == MAX_LINES
-    assert all(len(line["text"]) == MAX_LINE for line in lines)
+    for line in lines:
+        assert MAX_LINE - len("fala ") < len(line["text"]) <= MAX_LINE
+        assert long.startswith(line["text"]) and line["text"].endswith("fala")
 
 
 def test_a_deck_drops_empty_slides_and_caps_bullets():
@@ -287,14 +292,15 @@ def test_a_deck_drops_empty_slides_and_caps_bullets():
                 "notes": "<p>Fale isto.</p>",
                 "citations": [1],
             },
-            {"title": "Sem notas", "bullets": ["x" * 500], "notes": "", "citations": [2]},
+            {"title": "Sem notas", "bullets": ["termo " * 100], "notes": "", "citations": [2]},
         ],
     }
     slides = read_deck(raw)["slides"]
     assert [s["title"] for s in slides] == ["Cheio", "Sem notas"]
     assert slides[0]["bullets"] == [f"b{i}" for i in range(MAX_BULLETS)]
     assert slides[0]["notes"] == "Fale isto."
-    assert len(slides[1]["bullets"][0]) == MAX_BULLET
+    bullet = slides[1]["bullets"][0]
+    assert MAX_BULLET - len("termo ") < len(bullet) <= MAX_BULLET and bullet.endswith("termo")
 
 
 def test_a_video_scene_without_narration_is_dropped():
@@ -311,13 +317,13 @@ def test_a_video_scene_without_narration_is_dropped():
 def test_a_deck_is_capped():
     raw = {
         "slides": [
-            {"title": f"S{i}", "bullets": ["a"], "notes": "n" * 2000, "citations": [1]}
+            {"title": f"S{i}", "bullets": ["a"], "notes": "nota " * 400, "citations": [1]}
             for i in range(MAX_SLIDES + 3)
         ]
     }
     slides = read_deck(raw)["slides"]
     assert len(slides) == MAX_SLIDES
-    assert all(len(s["notes"]) == MAX_NOTES for s in slides)
+    assert all(MAX_NOTES - len("nota ") < len(s["notes"]) <= MAX_NOTES for s in slides)
 
 
 def test_a_stat_without_a_digit_or_too_long_is_dropped():
