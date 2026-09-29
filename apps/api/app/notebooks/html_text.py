@@ -193,13 +193,17 @@ _VANISHING_SCALE = 0.05
 #: long value) or to copy a growing scope at every node. Past any budget the
 #: node is read as hiding — the direction of D-99: a page that needs more to
 #: say what a declaration means is not one to trust with the benefit of doubt.
-#: Real inline styles stay far below each one.
 #:
-#: One ``style`` attribute: its length, and how many declarations it makes.
+#: One ``style`` attribute: its length, and how many ordinary declarations it
+#: makes. Custom properties do not count here — a theme that writes its design
+#: tokens inline on ``<html>`` writes a hundred of them —, only in the length.
 _MAX_STYLE_CHARS = 8192
 _MAX_DECLARATIONS = 64
-#: Custom properties in scope at a node, its ancestors' included.
-_MAX_CUSTOM_PROPERTIES = 256
+#: Custom-property declarations in scope at a node, its ancestors' included.
+#: Not a cost bound — a lookup walks the scopes of the chain and pays that to
+#: the work budget — but a ceiling on how far one may walk, set past what a
+#: page builder writes (a Framer page reaches 256 about 43 levels down).
+_MAX_CUSTOM_PROPERTIES = 4096
 #: One ``var()`` expansion: the values a declaration may take, how deeply one
 #: reference may point into the next (references side by side in one value do
 #: not add up — their breadth is what the work budget pays for), and the length
@@ -599,6 +603,13 @@ class _Scope:
     scope instead of copying it, so a page of nested declarations costs what
     it weighs and not its square (N-3); :data:`_MAX_CUSTOM_PROPERTIES` bounds
     how far a lookup walks.
+
+    A value may be empty — ``--off: ;`` is a valid custom property, and the
+    "space toggle" ``display: var(--off) none`` reads ``none`` (B-1). A name
+    declared ``initial`` is here with no value at all (the guaranteed-invalid
+    value: ``var()`` takes its fallback), and one declared ``inherit`` —
+    ``unset``, ``revert`` and ``revert-layer`` too, custom properties being
+    inherited — is in ``inherits`` and adds its parent's values to its own.
     """
 
     own: dict[str, tuple[str, ...]] = field(default_factory=dict)
@@ -607,15 +618,20 @@ class _Scope:
     size: int = 0
     #: Scopes in the chain, this one included: what a lookup may walk.
     links: int = 0
+    #: Names this scope hands on from its parent as well as its own values.
+    inherits: frozenset[str] = frozenset()
 
     def get(self, name: str) -> tuple[str, ...]:
+        found: list[str] = []
         scope: _Scope | None = self
         while scope is not None:
             values = scope.own.get(name)
             if values is not None:
-                return values
+                if name not in scope.inherits:
+                    return tuple(found) + values if found else values
+                found += values
             scope = scope.parent
-        return ()
+        return tuple(found)
 
 
 _NO_SCOPE = _Scope()
@@ -737,39 +753,45 @@ def _declarations(
     ``scope`` and the style's own custom properties; a value that expands to
     nothing is no value), the scope for the children, and whether the style
     is *ambiguous* — which the caller reads as hiding: longer than
-    :data:`_MAX_STYLE_CHARS`, more than :data:`_MAX_DECLARATIONS`
-    declarations, more than :data:`_MAX_CUSTOM_PROPERTIES` in scope, or an
-    expansion past the budgets of :func:`_resolve`. ``!important`` changes
-    nothing: every value is looked at.
+    :data:`_MAX_STYLE_CHARS`, more than :data:`_MAX_DECLARATIONS` ordinary
+    declarations, more than :data:`_MAX_CUSTOM_PROPERTIES` custom ones in
+    scope, or an expansion past the budgets of :func:`_resolve`.
+    ``!important`` changes nothing: every value is looked at. A custom
+    property may be empty, an ordinary declaration may not (B-1).
     """
     if len(style) > _MAX_STYLE_CHARS:
         return {}, scope, True
     text = _CSS_ESCAPE.sub(_unescape, _CSS_COMMENT.sub(" ", style)).lower()
     declared: list[tuple[str, str]] = []
+    own: dict[str, list[str]] = {}
     for declaration in text.split(";"):
         name, colon, value = declaration.partition(":")
         name, value = name.strip(), " ".join(value.split())
         value = _IMPORTANT.sub("", value).strip()
-        if colon and name and value:
+        if not colon or not name:
+            continue
+        if name.startswith("--"):
+            own.setdefault(name, []).append(value)
+        elif value:
             declared.append((name, value))
     if len(declared) > _MAX_DECLARATIONS:
         return {}, scope, True
-    own: dict[str, list[str]] = {}
-    for name, value in declared:
-        if name.startswith("--"):
-            own.setdefault(name, []).append(value)
     inner = scope
     if own:
         size = scope.size + sum(len(values) for values in own.values())
         if size > _MAX_CUSTOM_PROPERTIES:
             return {}, scope, True
-        own_scope = {name: tuple(values) for name, values in own.items()}
-        inner = _Scope(own_scope, scope, size, scope.links + 1)
+        own_scope = {
+            name: tuple(dict.fromkeys(v for v in values if v not in _CSS_WIDE and v != "initial"))
+            for name, values in own.items()
+        }
+        inherits = frozenset(
+            name for name, values in own.items() if any(v in _CSS_WIDE for v in values)
+        )
+        inner = _Scope(own_scope, scope, size, scope.links + 1, inherits)
     budget.start_attribute()
     css: dict[str, list[str]] = {}
     for name, value in declared:
-        if name.startswith("--"):
-            continue
         try:
             resolved = _resolve(value, inner, budget)
         except _Unfollowable:
@@ -820,8 +842,9 @@ def _resolve(value: str, scope: _Scope, budget: _Budget, depth: int = 0) -> list
             raise _Unfollowable
         end, inner = _call_body(value, call.end())
         name, comma, fallback = inner.partition(",")
-        budget.spend(scope.links)
-        options = list(scope.get(name.strip()))
+        values = scope.get(name.strip())
+        budget.spend(scope.links + len(values))
+        options = list(values)
         if comma:
             options.append(fallback.strip())
         alternatives: list[str] = []
