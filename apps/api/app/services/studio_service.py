@@ -40,7 +40,7 @@ from datetime import UTC, date, datetime, timedelta
 from sqlalchemy.orm import Session
 
 from app.ai.factory import get_provider
-from app.ai.guardrails import numbers_in
+from app.ai.guardrails import _NUMBER_TOKEN, numbers_in
 from app.ai.provider import AIProvider, AIUnavailableError
 from app.ai.studio import (
     CATALOG,
@@ -420,7 +420,7 @@ class StudioService:
         note = NotebookNote(
             notebook_id=artifact.notebook_id,
             title=artifact.title[:200],
-            body=plain_text(artifact.tool, content.get("body") or {})[:20_000],
+            body=note_body(plain_text(artifact.tool, content.get("body") or {})),
             origin="estudio",
             citations=list(content.get("citations") or []),
         )
@@ -679,6 +679,71 @@ def plain_text(tool: str, body: dict) -> str:
                 for number, step in enumerate(body["steps"], start=1)
             )
     return "\n".join(lines).strip()
+
+
+#: A note's ceiling: the ``max_length`` of ``NoteIn.body`` and
+#: ``NoteUpdate.body``. It must agree with them — a longer note could not be
+#: edited and saved back —, which a test holds rather than a shared import.
+MAX_NOTE_CHARS = 20_000
+
+#: The sentence a shortened note ends with — in words, so a note cut to the
+#: editor's ceiling never reads as the whole artifact.
+NOTE_SHORTENED = (
+    "(Nota encurtada: o artefato completo passa do limite de "
+    f"{MAX_NOTE_CHARS:,}".replace(",", " ") + " caracteres de uma nota.)"
+)
+
+
+def note_body(text: str, limit: int = MAX_NOTE_CHARS) -> str:
+    """``text`` as a note's body: whole when it fits, else shortened to fit.
+
+    The cut falls on the last line break that fits — an artifact's plain text
+    is one item per line —, on the last whitespace when there is none, and
+    **never inside a number**: "1 200 MPa" cut after "1" would print a figure
+    the artifact never stated. The number is the grounding check's own token
+    (``guardrails._NUMBER_TOKEN``, the one ``mindmap.atoms`` keeps whole); a
+    figure the cut would split goes out whole. ``studio._cap`` is not reused:
+    it flattens line breaks, and a note keeps the artifact's lines.
+
+    The shortened body ends with :data:`NOTE_SHORTENED`, and the total —
+    sentence included — fits ``limit``.
+    """
+    if len(text) <= limit:
+        return text
+    tail = "\n\n" + NOTE_SHORTENED
+    budget = max(limit - len(tail), 0)
+    cut = text.rfind("\n", 0, budget + 1)
+    if cut <= 0:
+        cut = _last_space(text, budget)
+    if cut <= 0:
+        cut = budget
+    # A figure never spans a line break (its separators are spaces and dots),
+    # so only the line holding the cut can hold one the cut would split.
+    line_start = text.rfind("\n", 0, cut) + 1
+    line_end = text.find("\n", cut)
+    line_end = len(text) if line_end < 0 else line_end
+    while True:
+        inside = next(
+            (
+                m
+                for m in _NUMBER_TOKEN.finditer(text, line_start, line_end)
+                if m.start() < cut < m.end()
+            ),
+            None,
+        )
+        if inside is None:
+            break
+        cut = max(_last_space(text, inside.start()), 0)
+    head = text[:cut].rstrip()
+    return f"{head}{tail}" if head else NOTE_SHORTENED
+
+
+def _last_space(text: str, end: int) -> int:
+    """Index of the last whitespace character before ``end``, or -1."""
+    for index in range(min(end, len(text)) - 1, -1, -1):
+        if text[index].isspace():
+            return index
+    return -1
 
 
 def _slug(title: str) -> str:

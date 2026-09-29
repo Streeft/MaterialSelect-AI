@@ -487,6 +487,13 @@ _INFOGRAPHIC_TONES = (
     ("#ffe4e6", "#be123c", "#881337"),
     ("#dcfce7", "#15803d", "#14532d"),
 )
+#: The ``[n]`` marks on a card. They are secondary metadata — the references
+#: under the poster say where each number points —, so the file draws them as
+#: the screen does: in the light theme's muted ink (``--ink-muted: 74 81 98``
+#: in ``apps/web/app/globals.css``), not in the card's accent, which would give
+#: a bracketed number the weight of a heading. 6.51:1 on the palest card fill
+#: (``#dbeafe``) and 7.94:1 on white, well above 4.5:1 for 10 px text.
+_INFOGRAPHIC_MARKS_INK = "#4a5162"
 #: A generic family only: the file must not depend on a font it cannot carry
 #: (no external reference), and the layout measures text by character count.
 _INFOGRAPHIC_FONT = "Arial, Helvetica, sans-serif"
@@ -608,7 +615,8 @@ def infographic_svg(artifact: ArtifactOut, subtitle: str) -> str:
             parts.append(
                 f'<text x="{block.x + block.width - style.marks_right}" '
                 f'y="{block.y + block.height - style.marks_bottom}" '
-                f'font-size="{style.marks_size}" text-anchor="end" fill="{accent}">'
+                f'font-size="{style.marks_size}" text-anchor="end" '
+                f'fill="{_INFOGRAPHIC_MARKS_INK}">'
                 f"{_t(marks)}</text>"
             )
     parts.append(
