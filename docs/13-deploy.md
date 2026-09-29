@@ -249,16 +249,22 @@ Três detalhes que não são arbitrários:
 - **`conhecimento_simular_remocao` antes de `conhecimento_remover`, sempre.**
   As duas leem `Cérebro/removidos.txt`, a lista do que saiu do Cérebro
   ([D-100](DECISIONS.md)), e rodam `python -m app.knowledge.prune`. A primeira
-  só lê: imprime cada documento que casa, com trechos e embeddings, as entradas
-  que não casaram nada e os totais. A segunda apaga do banco, numa transação,
+  só lê: imprime cada documento que casa — pelo caminho ou pelo conteúdo (as
+  linhas `sha256:` da lista), e diz qual —, com trechos e embeddings, as
+  entradas que não casaram nada, os totais e **cada documento que fica**
+  (`[prune] ficaria: …`), com a contagem por pasta de primeiro nível. Leia essa
+  parte: o caminho gravado é o do disco que fez a ingestão, e uma pasta que
+  ninguém esperava (`_Duplicados-Para-Revisao (N)`, uma cópia renomeada)
+  aparece ali, não nos acertos. A segunda apaga do banco, numa transação,
   esses documentos com os trechos e embeddings deles, e é **irreversível** — o
   que ela apaga só volta por uma nova ingestão, que a própria lista impede. O
-  log da segunda termina em `[prune] REMOVIDOS: N documentos, M trechos, K
-  embeddings.`, e é essa linha, não o ✅, que prova o que foi apagado (a lição
+  log da segunda contém `[prune] REMOVIDOS: N documentos, M trechos, K
+  embeddings.` (seguida da lista do que fica e de `a base tinha X documentos;
+  ficam Y.`), e é essa linha, não o ✅, que prova o que foi apagado (a lição
   do D-71). Existe porque a ingestão só acrescenta: tirar um arquivo do
-  repositório deixa o texto dele no RAG. Se a simulação não casar nada mas a
-  base não estiver vazia, a saída mostra por onde começam os caminhos
-  gravados — a lista foi escrita contra outra raiz.
+  repositório deixa o texto dele no RAG. Um banco sem as tabelas do Cérebro
+  para com a mensagem para rodar `migrar`, e uma linha da lista que é pasta sem
+  a `/` final sai como `ATENÇÃO`.
 - **O passo "Garantir endereço público" conta antes de alocar.** `flyctl ips
   allocate-v6` **não é idempotente**: ele aloca outro endereço a cada chamada,
   em silêncio e com sucesso. Escrito como `allocate-v6 || true`, acumulava um
@@ -541,5 +547,9 @@ administração (§5-bis).
 - **Backup do banco.** O Neon tem *point-in-time restore* no plano pago; no
   gratuito, exporte com `pg_dump` antes de qualquer coisa importante.
 - **O Cérebro.** `KNOWLEDGE_DIR` fica vazio: a ingestão é operação offline e o
-  RAG só liga com provedor de IA real. A **remoção**, ao contrário, tem ação no
-  workflow de administração (§5-bis), porque ela é o que a ingestão não faz.
+  RAG só liga com provedor de IA real. Ela lê os PDFs e o Markdown que o
+  `manifesto.json` declara — hoje o `Links.md` ([D-100](DECISIONS.md)). A
+  **remoção**, ao contrário, tem ação no workflow de administração (§5-bis),
+  porque ela é o que a ingestão não faz; e uma base local ou de
+  desenvolvimento que já recebeu ingestão precisa do mesmo `prune`, rodado à
+  mão contra ela.

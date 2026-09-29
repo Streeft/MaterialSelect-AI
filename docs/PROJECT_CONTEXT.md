@@ -123,14 +123,19 @@ da ENG02016 pediu que o material de sua autoria não estivesse no RAG, e o autor
 retirou todo o material de curso, trabalhos dos alunos inclusive: 71 arquivos
 (a pasta `02-Material-de-Curso-ENG02016/`, a cópia `⚙Seleção de Materiais/` e
 as cópias avulsas na raiz). Livros, extratos, fichas Granta, diagramas e
-artigos ficam. `Cérebro/removidos.txt` é a lista do que saiu, e três coisas a
-leem: `python -m app.knowledge.prune` (simulação por padrão, `--apply` apaga
+artigos ficam. `Cérebro/removidos.txt` é a lista do que saiu — por caminho e,
+em linhas `sha256:`, por conteúdo, porque o caminho gravado no banco é o do
+disco que fez a ingestão —, e três coisas a leem: `python -m app.knowledge.prune`
+(simulação por padrão, que lista também tudo o que fica; `--apply` apaga
 documento, trechos e embeddings numa transação; ações
 `conhecimento_simular_remocao` e `conhecimento_remover` do workflow de
-administração), a ingestão (que pula o que está na lista) e o guia de limpeza do
-histórico, [`17-limpeza-historico-cerebro.md`](17-limpeza-historico-cerebro.md).
-Rodar a remoção em produção e reescrever o histórico são passos do autor, depois
-do merge (TODO A7).
+administração), a ingestão (que pula o que está na lista, em qualquer caminho) e
+o guia de limpeza do histórico,
+[`17-limpeza-historico-cerebro.md`](17-limpeza-historico-cerebro.md). Rodar a
+remoção em produção e nas bases locais e reescrever o histórico são passos do
+autor, depois do merge (TODO A7). O `Links.md` **fica e passa a ser indexado**,
+por decisão do autor: a ingestão lê PDF e o Markdown que o `manifesto.json`
+declara, nunca o `README.md`.
 
 **A falta que resta no trabalho como um todo não é de código** e não pode ser
 fechada por quem programa sozinho: a sessão de teste com usuários do §3.5 da
@@ -546,7 +551,7 @@ e tetos que recusavam páginas com tokens de design inline no `<html>`: a vazia
 passou a valer, e propriedade personalizada deixou de contar nas 64
 declarações do atributo, com o escopo indo a 4096.
 
-**Saúde do código:** 3297 testes de backend (Python 3.11 e 3.12, nenhum skip)
+**Saúde do código:** 3326 testes de backend (Python 3.11 e 3.12, nenhum skip)
 e 751 de frontend, todos verdes. Desde o P0-1 a suíte também roda as migrações de
 verdade, nos dois sentidos, contra um banco temporário que já contém dados —
 `test_migration_selection_stage.py`, `test_migration_process_universe.py`,
@@ -895,7 +900,7 @@ que mais afetam quem for mexer no código:
 | Fonte externa dos Cadernos: URL do aluno só pelo `safe_fetch`; a cota conta o que sai, DNS inclusive; a origem viaja com o texto | [D-97](DECISIONS.md) |
 | Estúdio visual e sonoro: a voz é a do navegador (sem MP3/MP4); o dado em destaque não tem isenção e a unidade é comparada com maiúsculas; o layout do infográfico e a tipografia vêm do backend | [D-98](DECISIONS.md) |
 | Cotas dos Cadernos reservadas por um `UPDATE` condicional e devolvidas uma vez, por quem tira a geração de `gerando`; CSS inline oculta por qualquer declaração, e fonte e cor são estado herdado | [D-99](DECISIONS.md) |
-| Material de curso fora do Cérebro; `Cérebro/removidos.txt` é a fonte única do que saiu, lida pela remoção do banco (simulação primeiro), pela ingestão e pela limpeza do histórico | [D-100](DECISIONS.md) |
+| Material de curso fora do Cérebro; `Cérebro/removidos.txt` é a fonte única do que saiu, por caminho e por conteúdo (`sha256:`), lida pela remoção do banco (simulação primeiro, que lista o que fica), pela ingestão e pela limpeza do histórico; a ingestão lê PDF e o Markdown declarado no manifesto (`Links.md`) | [D-100](DECISIONS.md) |
 
 ## 9. Limitações atuais
 
@@ -973,7 +978,7 @@ que mais afetam quem for mexer no código:
   feito em `fase-9-ia-e-laudo` antes daquela branch chegar a `main`. Ver
   [D-45](DECISIONS.md). **O material de curso da ENG02016 também ainda está no
   histórico**: saiu da árvore atual no D-100, e a reescrita do histórico é passo
-  do autor depois do merge (TODO A7). Até lá, os commits antigos (desde o `764b0af`) ainda o servem.
+  do autor depois do merge (TODO A7). Até lá, todo commit anterior à reescrita (desde o `764b0af`) ainda o serve.
 
 ## 10. Riscos conhecidos
 
@@ -984,7 +989,7 @@ que mais afetam quem for mexer no código:
 | Dependência de provedor de IA | Arquitetura desacoplada com provedor simulado; funciona sem chave. |
 | Incorporação inadvertida de dado protegido | Triagem de licenciamento (M1, item 4.2 da proposta) — `Source` registra licença/procedência, e uma fonte nova sem licença ou marcada como possivelmente protegida sem confirmação humana é recusada antes de qualquer linha ser escrita ([D-44](DECISIONS.md)). |
 | Resultado não reproduzível por interferência de IA | Cálculo determinístico + guardrails executáveis + confirmação do usuário. |
-| Regressão silenciosa | CI com 3297 testes de backend e 751 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
+| Regressão silenciosa | CI com 3326 testes de backend e 751 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
 | Material licenciado do Cérebro exposto em `main` (repositório público) | Risco aceito por decisão explícita do autor, não mitigado — o Cérebro é a base de conhecimento da camada de IA ([D-45](DECISIONS.md)). |
 | Uso sem cobrança | Portão binário ligado ([D-46](DECISIONS.md)), checkout testado ao vivo em modo de teste — falta só configurar `STRIPE_API_KEY`/`STRIPE_WEBHOOK_SECRET`/`STRIPE_PRICE_ID` em **modo de produção** para vender de verdade. |
 
