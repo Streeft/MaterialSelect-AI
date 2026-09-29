@@ -8,24 +8,41 @@ one. Each unit is now *reserved* by one ``UPDATE … WHERE counter < limit``
 whose row count says whether it was taken, and handed back when the operation
 ends up not charging it.
 
-Two kinds of proof here. The in-memory SQLite of the suite runs every session
-on one connection, so a true race cannot happen there: the service tests
-replay the race in order (both requests pass the early check, then both try
-to spend). The repository test runs a real one — threads released together
-against a database file, each on its own connection —, with ``BEGIN
-IMMEDIATE`` so that SQLite's writers queue the way PostgreSQL's row lock makes
-them queue (a deferred SQLite transaction would instead fail the loser with
-"database is locked", which says nothing about the statement under test).
+Three kinds of proof here, and only the first is about atomicity itself.
+
+* **The statement's shape.** A listener on the connection records what
+  ``reserve`` sends: one ``INSERT … ON CONFLICT DO NOTHING`` for the day's row
+  and one ``UPDATE … SET c = c + 1 WHERE … AND c < limit``, with no ``SELECT``
+  of the counter before it. That is what makes the reservation atomic on
+  PostgreSQL under READ COMMITTED (the row lock re-checks the ``WHERE`` against
+  the committed value), and it is the test that fails if ``reserve`` ever goes
+  back to reading the counter and writing it from Python — checked by swapping
+  a read-then-write ``reserve`` in: this test failed, every other one passed.
+* **Replayed races.** The in-memory SQLite of the suite runs every session on
+  one connection, so a true race cannot happen there: the service tests replay
+  it in order (both requests pass the early check, then both try to spend).
+* **A threaded race** on a database file, each thread on its own connection,
+  with ``BEGIN IMMEDIATE`` so that SQLite's writers queue (a deferred
+  transaction would fail the loser with "database is locked"). ``BEGIN
+  IMMEDIATE`` serialises the whole transaction, so a read-then-write would
+  pass it too: it proves the statement is *correct* under serialisation, not
+  that it is atomic without it.
+
+A refund is guarded the same way: the unit of a running generation is handed
+back only by whoever moves its row out of ``gerando`` — the job failing, the
+artifact or its notebook being deleted —, so two of them racing refund once.
 """
 
 from __future__ import annotations
 
+import re
 import threading
 from datetime import UTC, date, datetime, timedelta
 
 import pytest
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.attributes import set_committed_value
 
 from app.config import settings
 from app.domain.errors import QuotaExceededError
@@ -41,6 +58,60 @@ TEXT = (
 
 
 # --- the repository statement ------------------------------------------------------------
+
+
+def _statements(db_session, action) -> list[tuple[str, tuple]]:
+    """The SQL ``action`` sends that touches ``ai_usage``, whitespace folded."""
+    connection = db_session.connection()
+    seen: list[tuple[str, tuple]] = []
+
+    def record(_conn, _cursor, statement, parameters, _context, _many) -> None:
+        if "ai_usage" in statement:
+            seen.append((" ".join(statement.split()), tuple(parameters)))
+
+    event.listen(connection, "before_cursor_execute", record)
+    try:
+        action()
+    finally:
+        event.remove(connection, "before_cursor_execute", record)
+    return seen
+
+
+@pytest.mark.parametrize("counter", ["requests", "artifacts", "fetches"])
+def test_reserve_is_one_conditional_update_never_a_read_then_write(db_session, test_user, counter):
+    """The test that fails if the reservation goes back to lost updates:
+    ``SELECT`` the counter, compare in Python, write ``c + 1``."""
+    repo = NotebookRepository(db_session, test_user.id)
+    day = _today()
+    repo.reserve(day, counter, 50)  # the day's row exists, as on any later request
+
+    for limit, taken in ((50, True), (1, False)):
+        outcome: list[bool] = []
+        seen = _statements(
+            db_session,
+            lambda limit=limit, outcome=outcome: outcome.append(repo.reserve(day, counter, limit)),
+        )
+        assert outcome == [taken]
+        kinds = [statement.split()[0].upper() for statement, _ in seen]
+        assert kinds == ["INSERT", "UPDATE"], seen  # no SELECT of the counter
+        insert, _ = seen[0]
+        assert "ON CONFLICT (user_id, day) DO NOTHING" in insert
+        update, parameters = seen[1]
+        assert re.search(rf"SET {counter}=\(ai_usage\.{counter} \+ \?\)", update), update
+        assert re.search(rf"WHERE .*ai_usage\.{counter} < \?", update), update
+        assert limit in parameters  # the limit is compared in the statement
+    assert getattr(repo.usage(day), counter) == 2  # the first call took, the second did not
+
+
+def test_release_is_one_conditional_update(db_session, test_user):
+    repo = NotebookRepository(db_session, test_user.id)
+    day = _today()
+    repo.reserve(day, "fetches", 5)
+    seen = _statements(db_session, lambda: repo.release(day, "fetches"))
+    assert len(seen) == 1, seen
+    update, _ = seen[0]
+    assert update.startswith("UPDATE ai_usage SET fetches=(ai_usage.fetches - ?)")
+    assert "ai_usage.fetches > ?" in update
 
 
 def test_reserve_takes_units_only_under_the_limit(db_session, test_user):
@@ -307,3 +378,102 @@ def test_an_interrupted_generation_costs_nothing(client, db_session, test_user, 
     base = f"/api/notebooks/{notebook_id}/studio"
     assert client.get(base).json()["usage"] == {"used": 0, "limit": 1, "remaining": 1}
     assert client.post(base, json={"tool": "flashcards"}).status_code == 202
+
+
+# --- a refund happens once, whoever races for it -------------------------------------------
+
+
+def _running_generation(db_session, test_user, *, reserved: int = 2):
+    """A notebook with one generation still running, its unit reserved — and
+    ``reserved - 1`` other units taken that day, so a double refund shows."""
+    service = StudioService(db_session, test_user, settings)
+    notebook = Notebook(owner_id=test_user.id, title="Corrida")
+    db_session.add(notebook)
+    db_session.flush()
+    now = datetime.now(UTC)
+    for _ in range(reserved):
+        assert service.repo.reserve(now.date(), "artifacts", 10)
+    artifact = StudioArtifact(
+        notebook_id=notebook.id,
+        tool="report",
+        title="Relatório",
+        status="gerando",
+        source_ids=[],  # its sources are gone: the job fails
+        created_at=now,
+    )
+    db_session.add(artifact)
+    db_session.commit()
+    return service, notebook, artifact
+
+
+def _reserved(service: StudioService) -> int:
+    usage = service.repo.usage(_today())
+    return usage.artifacts if usage is not None else 0
+
+
+def test_a_delete_after_the_job_failed_does_not_refund_again(db_session, test_user):
+    """The race of the review: the delete read the row as running, the job
+    failed (and refunded) before the delete committed."""
+    service, notebook, artifact = _running_generation(db_session, test_user)
+    service.run(artifact.id)  # the job fails and hands its unit back
+    assert _reserved(service) == 1
+    set_committed_value(artifact, "status", "gerando")  # what the delete had read
+    service.delete(notebook.id, artifact.id)
+    assert _reserved(service) == 1
+    assert service.repo.find_artifact(artifact.id) is None
+
+
+def test_a_job_failing_after_the_delete_does_not_refund_again(db_session, test_user):
+    service, notebook, artifact = _running_generation(db_session, test_user)
+    job = StudioService(db_session, test_user, settings)
+    service.delete(notebook.id, artifact.id)  # hands the unit back
+    assert _reserved(service) == 1
+    job._fail(artifact, "provedor fora do ar")  # the job, with the row it had loaded
+    assert _reserved(service) == 1
+
+
+def test_a_finished_generation_is_not_refunded_by_a_stale_delete(db_session, test_user):
+    service, notebook, artifact = _running_generation(db_session, test_user)
+    artifact.status = "pronto"
+    db_session.commit()
+    set_committed_value(artifact, "status", "gerando")
+    service.delete(notebook.id, artifact.id)
+    assert _reserved(service) == 2
+
+
+def test_deleting_a_notebook_hands_back_its_running_generations(db_session, test_user):
+    service, notebook, artifact = _running_generation(db_session, test_user)
+    finished = StudioArtifact(
+        notebook_id=notebook.id,
+        tool="report",
+        title="Pronto",
+        status="pronto",
+        source_ids=[],
+        created_at=datetime.now(UTC),
+    )
+    db_session.add(finished)
+    db_session.commit()
+    NotebookService(db_session, test_user, settings).delete(notebook.id)
+    assert _reserved(service) == 1  # the running one only; the finished one stays charged
+    service.run(artifact.id)  # its job finds nothing to finish
+    assert _reserved(service) == 1
+
+
+def test_deleting_a_notebook_after_its_job_failed_refunds_once(db_session, test_user):
+    service, notebook, artifact = _running_generation(db_session, test_user)
+    service.run(artifact.id)
+    assert _reserved(service) == 1
+    NotebookService(db_session, test_user, settings).delete(notebook.id)
+    assert _reserved(service) == 1
+
+
+def test_deleting_a_notebook_through_the_api_hands_the_unit_back(client, monkeypatch):
+    monkeypatch.setattr(settings, "notebook_daily_artifacts", 1)
+    monkeypatch.setattr("app.routers.notebooks.run_job", lambda *a, **k: None)
+    notebook_id = _studio_notebook(client)
+    started = client.post(f"/api/notebooks/{notebook_id}/studio", json={"tool": "flashcards"})
+    assert started.status_code == 202
+    assert client.delete(f"/api/notebooks/{notebook_id}").status_code == 204
+    other = _studio_notebook(client)
+    usage = client.get(f"/api/notebooks/{other}/studio").json()["usage"]
+    assert usage == {"used": 0, "limit": 1, "remaining": 1}

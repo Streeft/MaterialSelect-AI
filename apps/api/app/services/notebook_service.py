@@ -180,7 +180,18 @@ class NotebookService:
         return self.get(notebook_id)
 
     def delete(self, notebook_id: int) -> None:
-        self.repo.delete(self.notebook(notebook_id))
+        notebook = self.notebook(notebook_id)
+        # A generation still running holds a reserved unit, and its job will
+        # find no artifact to finish or fail: hand the unit back here, as
+        # deleting the artifact alone does — through the same guarded delete,
+        # so a job failing at this very moment cannot refund it a second time.
+        for artifact in self.repo.running():
+            if artifact.notebook_id != notebook.id:
+                continue
+            day = created_day(artifact.created_at)
+            if self.repo.delete_running(artifact.id):
+                self.repo.release(day, "artifacts")
+        self.repo.delete(notebook)
         self.db.commit()
 
     def notebook(self, notebook_id: int) -> Notebook:
@@ -789,6 +800,14 @@ def _truncate(pages: list[str], limit: int) -> tuple[list[str], bool]:
 
 def _today() -> date:
     return datetime.now(UTC).date()
+
+
+def created_day(moment: datetime) -> date:
+    """The UTC day of a stored timestamp — the day a quota unit taken at that
+    moment was counted on. SQLite hands timestamps back naive, in UTC."""
+    if moment.tzinfo is None:
+        moment = moment.replace(tzinfo=UTC)
+    return moment.astimezone(UTC).date()
 
 
 def _message_text(message: NotebookMessage) -> str:
