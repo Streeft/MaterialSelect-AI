@@ -361,23 +361,24 @@ function DeckPrint({
             ))}
           </>
         ) : null}
+        <h3>{t.sources}</h3>
         {sources.length > 0 ? (
-          <>
-            <h3>{t.sources}</h3>
-            <ol>
-              {sources.map((citation) => (
-                <li key={citation.number}>
-                  [{citation.number}] {citation.source_title}
-                  {citation.heading ? ` — ${citation.heading}` : ""}
-                  {citation.source_url ? ` — ${citation.source_url}` : ""}
-                  {citation.source_attribution
-                    ? ` — ${citation.source_attribution}`
-                    : ""}
-                </li>
-              ))}
-            </ol>
-          </>
-        ) : null}
+          <ol>
+            {sources.map((citation) => (
+              <li key={citation.number}>
+                [{citation.number}] {citation.source_title}
+                {citation.heading ? ` — ${citation.heading}` : ""}
+                {citation.source_url ? ` — ${citation.source_url}` : ""}
+                {citation.source_attribution
+                  ? ` — ${citation.source_attribution}`
+                  : ""}
+              </li>
+            ))}
+          </ol>
+        ) : (
+          // D-24: a deck with nothing cited says so in words, as the PPTX does.
+          <p>{t.noCitations}</p>
+        )}
       </section>
     </div>
   );

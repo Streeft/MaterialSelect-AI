@@ -1646,7 +1646,7 @@ export const ptBR = {
       // An engine error (iOS refusing a speak outside a gesture, a synthesis
       // failure) pauses the player; the reader is told what to do. Audio and video.
       speechError:
-        "O navegador interrompeu a leitura em voz alta. Toque em Reproduzir para tentar de novo.",
+        "O navegador interrompeu a leitura em voz alta. Toque em Continuar para tentar de novo.",
       // Apresentação de slides
       previousSlide: "Slide anterior",
       nextSlide: "Próximo slide",
@@ -1657,6 +1657,7 @@ export const ptBR = {
       fullscreen: "Tela cheia",
       exitFullscreen: "Sair da tela cheia",
       printDeck: "Imprimir / PDF",
+      noCitations: "Nenhum trecho citado.",
       printHint:
         "Na janela de impressão, escolha “Salvar como PDF” para guardar um arquivo. Cada slide sai numa página, com os avisos e as fontes no fim.",
       deckLabel: (title: string) => `Apresentação “${title}”`,
@@ -1675,7 +1676,9 @@ export const ptBR = {
       points: "Pontos principais",
       steps: "Etapas",
       infographicLabel: (title: string) => `Infográfico “${title}”`,
-      infographicWithheldTitle: "Alguns dados em destaque foram omitidos",
+      // A stat, a point or a step may be withheld, one or several: the
+      // heading names the whole, never one kind or a count.
+      infographicWithheldTitle: "Parte do infográfico foi omitida",
       infographicNoDrawing:
         "Este infográfico não tem desenho. O conteúdo está abaixo, como texto, com as fontes de cada item.",
     },

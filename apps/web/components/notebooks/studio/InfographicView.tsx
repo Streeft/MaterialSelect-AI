@@ -24,6 +24,10 @@ const t = ptBR.notebooks.studio;
  * pair is one already measured for text in `globals.css` (`brand-700` on
  * `brand-50`, `info-fg` on `info-soft`, …), and the ramp inverts in dark theme,
  * so the same classes hold there.
+ *
+ * These are palette steps on purpose, the one exception D-91 keeps for new
+ * code: a tone is a swatch of a figure, not a role of the interface, and no
+ * semantic token (`panel`, `well`, `action`) names six alternating fills.
  */
 export const INFOGRAPHIC_TONES = [
   { card: "fill-brand-50 stroke-brand-300", accent: "fill-brand-700" },

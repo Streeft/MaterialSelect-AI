@@ -161,10 +161,10 @@ export function VideoView({ content, cites }: { content: StudioDeckContent; cite
                   aria-current={isCurrent ? "true" : undefined}
                   className={cn(
                     "flex flex-col gap-0.5 rounded-control border-l-4 px-2 py-2",
-                    isCurrent ? "border-action bg-brand-50" : "border-transparent",
+                    isCurrent ? "border-action bg-panel" : "border-transparent",
                   )}
                 >
-                  <span className="text-caption font-semibold text-brand-700">
+                  <span className="text-caption font-semibold text-ink-muted">
                     {t.scenePosition(index + 1, total)} · {item.title}
                   </span>
                   <RichText
