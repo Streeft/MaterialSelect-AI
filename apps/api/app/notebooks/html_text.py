@@ -21,9 +21,11 @@ nothing else changes, exactly as ``app.knowledge.readers`` is for PDF.
 Three rules shape what is kept:
 
 * **What the student cannot see, the model does not read.** Text in a
-  ``hidden``, ``aria-hidden="true"`` or inline ``display:none`` /
-  ``visibility:hidden`` subtree is the classic place to hide an instruction
-  aimed at a model, so it is dropped. Text hidden by a *stylesheet* class cannot
+  ``hidden`` or ``aria-hidden="true"`` subtree, or one an inline style hides
+  (``display:none``, ``visibility:hidden``, ``opacity:0``, ``font-size:0``, an
+  empty ``clip``/``clip-path``, an off-page offset, a zero-size clipped box, a
+  ``scale(0)`` — see ``_style_hides``), is the classic place to hide an
+  instruction aimed at a model, so it is dropped. Text hidden by a *stylesheet* class cannot
   be seen without a CSS engine; that is why every source is framed as data, never
   instruction, further down — this is defence in depth, not the defence.
 * **Chrome is dropped, content is preferred.** Navigation, page header and
@@ -134,7 +136,27 @@ _CLOSES_P = frozenset(
 #: What may sit in ``<head>``; any other start tag means the body has begun.
 _HEAD_CONTENT = frozenset("base link meta noscript script style template title".split())
 
-_HIDING_STYLE = re.compile(r"(?:^|;)(?:display:none|visibility:(?:hidden|collapse))")
+#: A CSS comment — an unterminated one runs to the end, as in CSS. Replaced by
+#: a space, never by nothing: ``display:/**/none`` is ``display: none`` to a
+#: browser, but ``dis/**/play`` is two tokens and no property at all.
+_CSS_COMMENT = re.compile(r"/\*.*?(?:\*/|$)", re.DOTALL)
+_IMPORTANT = re.compile(r"!\s*important$")
+_CSS_NUMBER = re.compile(r"^([+-]?(?:\d+(?:\.\d*)?|\.\d+))([a-z%]*)$")
+_CSS_FUNCTION = re.compile(r"([a-z0-9-]+)\(([^()]*)\)")
+#: Absolute lengths in CSS pixels; a font-relative one at the 16 px default.
+_PX_PER = {"px": 1.0, "pt": 4 / 3, "pc": 16.0, "in": 96.0, "cm": 96 / 2.54, "mm": 96 / 25.4}
+_PX_PER |= {"em": 16.0, "rem": 16.0, "ex": 8.0, "ch": 8.0}
+#: How far off the page an offset has to throw a node to hide it: past any
+#: plausible layout nudge (-10px, a hanging -1em indent), well short of the
+#: -9999px of the image-replacement and "off-screen" idioms.
+_FAR_PX = 500.0
+#: Text this small is not text a reader can read.
+_TINY_FONT_PX = 2.0
+#: A box this narrow, with its overflow clipped, shows nothing (the
+#: ``width:1px; overflow:hidden`` of a visually-hidden label).
+_SLIVER_PX = 1.0
+#: Below this opacity text is not legible; 0.5 is a muted label, not a hidden one.
+_INVISIBLE_OPACITY = 0.1
 _ASCII_WHITESPACE = re.compile(r"[ \t\n\r\f]+")
 #: Invisible characters that only break words apart for search: soft hyphen,
 #: zero-width space, word joiner, byte-order mark, and NUL.
@@ -477,7 +499,206 @@ def _hidden(node: _Node) -> bool:
     if node.tag == "dialog" and "open" not in attrs:
         return True
     style = attrs.get("style")
-    return bool(style and _HIDING_STYLE.search("".join(style.lower().split())))
+    return bool(style) and _style_hides(style)
+
+
+def _style_hides(style: str) -> bool:
+    """Whether an inline ``style`` takes its node out of what a reader sees.
+
+    Covers the ways to hide text inline that need no stylesheet: ``display``,
+    ``visibility`` and ``content-visibility``; an opacity or a font size too
+    small to read; a ``clip`` or ``clip-path`` with no area left; an offset
+    that throws the node far off the page (``left``/``top`` of a positioned
+    node, ``text-indent``, a ``translate``); a zero-width or zero-height box
+    whose overflow is clipped; and a transform that scales it to nothing.
+    Written for the inline attribute only — the stylesheet case is out of
+    reach without a CSS engine, and the defence there is that a source is data,
+    never instruction (D-97). Thresholds err towards keeping text: a muted
+    ``opacity:0.5`` or a ``-1em`` hanging indent stays.
+    """
+    css = _declarations(style)
+    if css.get("display") == "none":
+        return True
+    if css.get("visibility") in ("hidden", "collapse"):
+        return True
+    if css.get("content-visibility") == "hidden":
+        return True
+    opacity = _opacity(css.get("opacity"))
+    if opacity is not None and opacity < _INVISIBLE_OPACITY:
+        return True
+    font = _length_px(css.get("font-size"), percent_of=16.0)
+    if font is not None and font < _TINY_FONT_PX:
+        return True
+    positioned = css.get("position") in ("absolute", "fixed")
+    if positioned and _empty_rect(css.get("clip")):
+        return True
+    if _empty_clip_path(css.get("clip-path")):
+        return True
+    if positioned and any(_far_negative(css.get(side)) for side in ("left", "top")):
+        return True
+    if _far_negative(css.get("text-indent")):
+        return True
+    overflow = (css.get("overflow") or "").split()
+    clipped_x = css.get("overflow-x", overflow[0] if overflow else "") in ("hidden", "clip")
+    clipped_y = css.get("overflow-y", overflow[-1] if overflow else "") in ("hidden", "clip")
+    if clipped_x and any(_sliver(css.get(p)) for p in ("width", "max-width")):
+        return True
+    if clipped_y and any(_sliver(css.get(p)) for p in ("height", "max-height")):
+        return True
+    return _collapsing_transform(css.get("transform"), css.get("scale"), css.get("translate"))
+
+
+def _declarations(style: str) -> dict[str, str]:
+    """The declarations of an inline style, lower-cased, one value per
+    property: the last one wins unless an earlier one is ``!important`` (any
+    spacing or case), as in the cascade."""
+    found: dict[str, tuple[bool, str]] = {}
+    for declaration in _CSS_COMMENT.sub(" ", style.lower()).split(";"):
+        name, colon, value = declaration.partition(":")
+        name, value = name.strip(), " ".join(value.split())
+        if not colon or not name or not value:
+            continue
+        important = bool(_IMPORTANT.search(value))
+        value = _IMPORTANT.sub("", value).strip()
+        if not value or (name in found and found[name][0] and not important):
+            continue
+        found[name] = (important, value)
+    return {name: value for name, (_, value) in found.items()}
+
+
+def _number(value: str | None) -> tuple[float, str] | None:
+    """A CSS number and its unit (``""`` for none), or ``None``."""
+    match = _CSS_NUMBER.match(value.strip()) if value else None
+    return (float(match.group(1)), match.group(2)) if match else None
+
+
+def _length_px(value: str | None, *, percent_of: float | None = None) -> float | None:
+    """A length in CSS pixels; ``None`` for a keyword, a ``calc()`` or a unit
+    with no fixed size. A bare ``0`` is a length; a percentage only when
+    ``percent_of`` gives it a base."""
+    parsed = _number(value)
+    if parsed is None:
+        return None
+    number, unit = parsed
+    if unit == "":
+        return number if number == 0 else None
+    if unit == "%":
+        return number * percent_of / 100 if percent_of is not None else None
+    per = _PX_PER.get(unit)
+    return number * per if per is not None else None
+
+
+def _opacity(value: str | None) -> float | None:
+    parsed = _number(value)
+    if parsed is None or parsed[1] not in ("", "%"):
+        return None
+    return parsed[0] / 100 if parsed[1] == "%" else parsed[0]
+
+
+def _far_negative(value: str | None) -> bool:
+    """An offset that moves a node off the page: far past any layout nudge,
+    or at least a whole box (-100%) or viewport (-100vw) away."""
+    parsed = _number(value)
+    if parsed is None:
+        return False
+    number, unit = parsed
+    if unit in ("%", "vw", "vh", "vmin", "vmax"):
+        return number <= -100
+    px = _length_px(value)
+    return px is not None and px <= -_FAR_PX
+
+
+def _sliver(value: str | None) -> bool:
+    parsed = _number(value)
+    if parsed is not None and parsed[1] == "%":
+        return parsed[0] <= 0
+    px = _length_px(value)
+    return px is not None and px <= _SLIVER_PX
+
+
+def _arguments(text: str) -> list[str]:
+    return [part for part in re.split(r"[\s,]+", text.strip()) if part]
+
+
+def _empty_rect(value: str | None) -> bool:
+    """``clip: rect(top, right, bottom, left)`` with no area left; ``auto``
+    is the box's own edge, so it never collapses a side on its own."""
+    match = _CSS_FUNCTION.fullmatch(value or "")
+    if match is None or match.group(1) != "rect":
+        return False
+    edges = _arguments(match.group(2))
+    if len(edges) != 4:
+        return False
+    top, right, bottom, left = (_length_px(edge) for edge in edges)
+    collapsed_y = top is not None and bottom is not None and bottom <= top
+    collapsed_x = left is not None and right is not None and right <= left
+    return collapsed_x or collapsed_y
+
+
+def _empty_clip_path(value: str | None) -> bool:
+    """``inset()`` that meets itself (the insets of one axis reach 100%), a
+    ``circle()``/``ellipse()`` of zero radius, or a ``polygon()`` of one point."""
+    match = _CSS_FUNCTION.match(value or "")
+    if match is None:
+        return False
+    shape = match.group(1)
+    args = _arguments(match.group(2).split(" at ")[0].split(" round ")[0])
+    if shape == "inset" and 1 <= len(args) <= 4:
+        percents: list[float] = []
+        for arg in args:
+            parsed = _number(arg)
+            if parsed is None or (parsed[1] != "%" and parsed[0] != 0):
+                return False  # a fixed inset cannot be weighed against the box
+            percents.append(parsed[0])
+        top, right, bottom, left = _box_sides(percents)
+        return top + bottom >= 100 or left + right >= 100
+    if shape in ("circle", "ellipse") and args:
+        radii = [_length_px(arg, percent_of=100.0) for arg in args[:2]]
+        return any(radius is not None and radius <= 0 for radius in radii)
+    if shape == "polygon":
+        points = {point.strip() for point in match.group(2).split(",") if point.strip()}
+        return len(points) == 1
+    return False
+
+
+def _box_sides(values: list[float]) -> list[float]:
+    """One to four values as top, right, bottom, left — the CSS box shorthand."""
+    if len(values) == 1:
+        return values * 4
+    if len(values) == 2:
+        return [values[0], values[1], values[0], values[1]]
+    if len(values) == 3:
+        return [values[0], values[1], values[2], values[1]]
+    return values
+
+
+def _collapsing_transform(transform: str | None, scale: str | None, translate: str | None) -> bool:
+    """A transform that leaves nothing to see: a scale factor of zero on
+    either axis, or a translation far off the page — in ``transform`` or in the
+    individual ``scale`` and ``translate`` properties."""
+    moves: list[str] = []
+    for name, args in _CSS_FUNCTION.findall(transform or ""):
+        values = _arguments(args)
+        if name in ("scale", "scale3d") and _zero_scale(values[:2]):
+            return True
+        if name in ("scalex", "scaley") and _zero_scale(values[:1]):
+            return True
+        if name in ("translate", "translate3d"):
+            moves += values[:2]
+        elif name in ("translatex", "translatey"):
+            moves += values[:1]
+    if scale and _zero_scale(_arguments(scale)[:2]):
+        return True
+    moves += _arguments(translate or "")[:2]
+    return any(_far_negative(move) for move in moves)
+
+
+def _zero_scale(values: list[str]) -> bool:
+    for value in values:
+        parsed = _number(value)
+        if parsed is not None and parsed[1] in ("", "%") and parsed[0] == 0:
+            return True
+    return False
 
 
 def _visible(root: _Node, tag: str, outermost: bool) -> Iterator[_Node]:
