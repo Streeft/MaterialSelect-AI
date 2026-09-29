@@ -88,6 +88,17 @@ Nenhum item aberto no momento — M6 foi entregue nesta sessão (ver
   erro tipado de `canvas` "sujo". O primeiro pode passar a usar o segundo.
 - **Velocidade no vídeo.** ▁ O áudio tem 0,75×–1,5×; `useSpeech.setRate` já
   serve ao vídeo, a tela só não oferece.
+- **"Salvar como nota" corta o corpo em 20 000 caracteres.** ▁ Em
+  `app/services/studio_service.py` (`save_as_note`), o texto do artefato vai
+  para a nota com `[:20_000]`, e o corte pode cair no meio de um número. Não é
+  furo na conferência de números: uma nota nunca é fonte nem volta ao modelo, e
+  20 000 é o teto do próprio editor de notas. Quando for feito, cortar numa
+  quebra de linha e acrescentar uma frase dizendo que a nota foi encurtada. Não
+  reaproveite o `_cap` de `app/ai/studio.py`: ele achata as quebras de linha.
+- **As marcas de citação do infográfico têm a mesma posição e o mesmo tamanho
+  na tela e no SVG, mas não a mesma cor.** ▁ A tela usa um token de tinta
+  esmaecida, e o SVG usa a cor de destaque do cartão. Falta escolher uma e
+  usá-la nos dois.
 
 **Cadernos — pendências deixadas pela fase 3 (D-97).** Nenhuma bloqueia o uso;
 cada uma tem o motivo de ter ficado de fora.
