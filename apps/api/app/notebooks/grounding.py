@@ -27,7 +27,7 @@ import re
 from collections.abc import Iterable, Sequence
 
 from app.ai.guardrails import (
-    _NUMBER_TOKEN,
+    NUMBER_TOKEN,
     is_grounded,
     numbers_in,
     numeric_tokens,
@@ -131,7 +131,7 @@ _NOT_BEFORE_LETTER = r"(?![^\W\d_])"
 def _unit_shape(text: str) -> str:
     """Numerals replaced by :data:`_FIGURE`, degree signs made one, spaces made
     one. Case is kept: it is the SI prefix — "mPa" is milli, "MPa" mega."""
-    return _SPACES.sub(" ", _NUMBER_TOKEN.sub(_FIGURE, text.translate(_DEGREES))).strip()
+    return _SPACES.sub(" ", NUMBER_TOKEN.sub(_FIGURE, text.translate(_DEGREES))).strip()
 
 
 def value_unit(value: str) -> str:
