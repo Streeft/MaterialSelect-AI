@@ -1,8 +1,14 @@
 # Cérebro
 
 > Base de conhecimento de Engenharia de Materiais que fundamenta a camada de IA
-> do MaterialSelect AI. Material da disciplina **ENG02016 — Seleção de Materiais
-> A (Turma U, 2026/1)**, UFRGS, mais a bibliografia por ela indicada.
+> do MaterialSelect AI: bibliografia publicada, extratos de capítulos, fichas do
+> Granta EduPack, diagramas de Ashby e artigos científicos.
+>
+> **Material de curso não entra aqui** ([D-100](../docs/DECISIONS.md)). Os
+> slides, o plano de aulas, as instruções das ferramentas avaliativas e os
+> trabalhos entregues da disciplina ENG02016 foram retirados a pedido do
+> professor e por decisão do autor; a lista do que saiu é
+> [`removidos.txt`](removidos.txt), e a ingestão pula tudo o que casar com ela.
 
 ## Por que existe
 
@@ -25,24 +31,22 @@ Ver [`docs/09-camada-ia.md`](../docs/09-camada-ia.md) §5.
 Reorganizada em 2026-08 por categoria de conteúdo — critério: **de onde vem o
 documento e qual autoridade ele tem**, não o formato do arquivo. Isso importa
 porque quem consulta esta base (a IA e você) precisa saber diferenciar
-"bibliografia com peer review / editora" de "material de aula do professor" de
-"trabalho de aluno" — os três podem coexistir, mas carregam pesos de confiança
-diferentes.
+"bibliografia com peer review / editora" de "banco de dados licenciado" de
+"artigo avulso" — podem coexistir, mas carregam pesos de confiança diferentes.
+A numeração pula o `02-` de propósito: era a pasta do material de curso,
+retirada no D-100, e renumerar as outras mudaria o caminho — a chave — de todo
+documento já indexado.
 
 ```
 Cérebro/
 ├── 01-Bibliografia/                        Livros comerciais completos (no git, via LFS)
 │   └── Extratos-de-Capitulos/              Capítulos avulsos extraídos de um dos livros (versionados)
-├── 02-Material-de-Curso-ENG02016/          Tudo que é específico desta oferta da disciplina
-│   ├── Plano de Aulas...pdf
-│   ├── Topicos-de-Aula/                    Tópico 1 a 6 (slides do professor)
-│   ├── Ferramentas-Avaliativas/            Instruções, grupos e trios das F.A. 1B/2B
-│   └── Trabalhos-Entregues/                Produção dos alunos (F.A.1B, F.A.2B) — NÃO é fonte de verdade,
-│                                            é contexto de curso; pode ter erros dos próprios autores
 ├── 03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/   Banco de dados licenciado ANSYS/Granta (no git, via LFS)
 ├── 04-Ferramentas-e-Diagramas/             Diagramas de Ashby, diagrama de barras de preço
 ├── 05-Artigos-Cientificos/                 Artigos avulsos de periódico (bromélias, impressão 3D de terra)
-├── Links.md                                Links indicados na disciplina
+├── Links.md                                Links de referência (vídeos, sites, MatWeb, Khan Academy…)
+├── manifesto.json                          Proveniência declarada de cada documento
+├── removidos.txt                           O que saiu da base e não volta (D-100)
 └── README.md                               Este arquivo
 ```
 
@@ -61,8 +65,6 @@ provável de travamento/timeout numa consulta:
 - **`03-*` (fichas Granta) e `04-*`/`05-*`**: arquivos pequenos (a maioria
   < 1 MB, nenhum > 20 MB). Seguros para indexação direta, arquivo inteiro de
   uma vez.
-- **`02-*` (material de curso)**: pequenos/médios (a maioria < 10 MB). Também
-  seguros para indexação direta.
 - **`01-Bibliografia/` (livros completos)**: vários arquivos entre 40 MB e
   151 MB. **Não indexar o PDF inteiro de uma vez.** Ou (a) fatiar por
   capítulo/faixa de página antes de indexar — o padrão já existe nos
@@ -81,21 +83,29 @@ conteúdo — abra os dois e decida se um deles pode sair.
 
 | Conjunto | Origem | No git? |
 |---|---|---|
-| `02-Material-de-Curso-ENG02016/Topicos-de-Aula/` (Tópico 1 a 6) | slides do professor | sim |
-| `02-Material-de-Curso-ENG02016/` (Plano de Aulas, Ferramentas-Avaliativas) | material da disciplina | sim |
-| `02-Material-de-Curso-ENG02016/Trabalhos-Entregues/` | trabalhos dos alunos (F.A.1B, F.A.2B) e os gráficos gerados | sim |
-| `Links.md` | links indicados na disciplina (vídeos, sites, MatWeb, Khan Academy…) | sim |
+| `Links.md` | links de referência (vídeos, sites, MatWeb, Khan Academy…) | sim |
 | `05-Artigos-Cientificos/`, `04-Ferramentas-e-Diagramas/` | periódicos e material didático | sim |
 | `01-Bibliografia/` (11 livros comerciais: Ashby, Callister, Apelian…) | bibliografia indicada | sim (LFS) |
 | `01-Bibliografia/Extratos-de-Capitulos/` | capítulos extraídos da bibliografia | sim (LFS) |
 | `03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/` (103 fichas) | banco de dados licenciado ANSYS/Granta | sim (LFS) |
-| 6 fichas EduPack avulsas em `Trabalhos-Entregues/Trabalho 2/Arquivos para gerar slide/` | idem | sim (LFS) |
+| `Fichas descritivas de materiais - Granta Edupack - Nível 2/` | cópia idêntica das 103 fichas acima | sim (LFS) |
+| Cópias avulsas na raiz (livros, extratos, diagramas, artigos) | as mesmas obras das pastas numeradas | sim (LFS) |
+
+**O que saiu** ([D-100](../docs/DECISIONS.md)): a pasta
+`02-Material-de-Curso-ENG02016/` inteira (tópicos de aula 1 a 6, plano de aulas,
+ferramentas avaliativas, trabalhos entregues), a pasta `⚙Seleção de Materiais/`
+(cópia dos trabalhos) e as cópias avulsas desse material na raiz — 71 arquivos.
+Sair do repositório não basta: o que já foi indexado continua no banco até a ação
+`conhecimento_remover` do workflow de administração, e continua no histórico do
+git até a limpeza descrita em
+[`docs/17-limpeza-historico-cerebro.md`](../docs/17-limpeza-historico-cerebro.md).
 
 ## Tudo está versionado — e o que isso custa
 
 Por decisão explícita, o Cérebro inteiro está no git: os 11 livros comerciais
 de `01-Bibliografia/`, as 103 fichas do Granta EduPack e todo o resto. Nada
-fica só no disco. Três consequências que é melhor conhecer antes de esbarrar
+fica só no disco — e o que saiu (o material de curso, D-100) saiu do disco
+também, não ficou fora do git. Três consequências que é melhor conhecer antes de esbarrar
 nelas.
 
 **Git LFS não é opcional aqui.** Todo `*.pdf` e `*.pptx` é ponteiro, não blob —
@@ -126,12 +136,13 @@ publicados nele. É o item **M1** do backlog ([`docs/TODO.md`](../docs/TODO.md))
 — "triagem de licenciamento das bases incorporadas" —, e ele não foi resolvido,
 só adiado: quem revisar decide arquivo a arquivo o que pode continuar aqui.
 Tirar um arquivo do histórico depois de publicado exige reescrever o histórico,
-não basta um `git rm`.
+não basta um `git rm` — o passo a passo está em
+[`docs/17-limpeza-historico-cerebro.md`](../docs/17-limpeza-historico-cerebro.md).
 
 Um detalhe de Windows que custa uma hora se pegar de surpresa: os nomes de
-arquivo desta pasta são descritivos de propósito, e o caminho mais longo
-(`.../Trabalho 2/Arquivos para gerar slide/GRUPOS E CENÁRIOS...pdf`) passa de
-180 caracteres. Somado a um diretório de clone fundo, estoura o `MAX_PATH` de
+arquivo desta pasta são descritivos de propósito, e os caminhos mais longos
+(as fichas Granta de `Fichas descritivas de materiais - Granta Edupack - Nível 2/`)
+passam de 190 caracteres. Somado a um diretório de clone fundo, estoura o `MAX_PATH` de
 260 e o git falha com `Filename too long`. A correção é por clone, uma vez:
 
 ```bash
@@ -156,8 +167,9 @@ Novo material sempre entra pela categoria certa:
   grande, considere já chegar fatiado por capítulo).
 - Capítulo avulso, artigo de periódico com peer review → `01-Bibliografia/Extratos-de-Capitulos/`
   ou `05-Artigos-Cientificos/`, conforme a origem.
-- Slide/material desta ou de outra oferta da disciplina → `02-Material-de-Curso-ENG02016/`,
-  na subpasta correspondente.
+- Material de curso (slides de aula, plano de aulas, enunciados, trabalhos de
+  alunos) **não entra** — é conteúdo autoral do professor e dos colegas, não
+  fonte publicada (D-100).
 - Ficha técnica de material (Granta ou outra base licenciada) → `03-Fichas-Tecnicas-*/`,
   seguindo a taxonomia por família já existente.
 - Diagrama, ferramenta de apoio, referência metodológica → `04-Ferramentas-e-Diagramas/`.

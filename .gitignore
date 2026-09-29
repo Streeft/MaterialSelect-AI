@@ -72,13 +72,17 @@ Cérebro/01-Bibliografia/*.pdf
 # Banco de dados licenciado ANSYS/Granta EduPack.
 Cérebro/03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/
 
-# As mesmas fichas Granta, cópias avulsas usadas no Trabalho 2.
-Cérebro/02-Material-de-Curso-ENG02016/Trabalhos-Entregues/Trabalho 2/Arquivos para gerar slide/ABS_capacete.pdf
-Cérebro/02-Material-de-Curso-ENG02016/Trabalhos-Entregues/Trabalho 2/Arquivos para gerar slide/alumínio.pdf
-Cérebro/02-Material-de-Curso-ENG02016/Trabalhos-Entregues/Trabalho 2/Arquivos para gerar slide/cobre_1.pdf
-Cérebro/02-Material-de-Curso-ENG02016/Trabalhos-Entregues/Trabalho 2/Arquivos para gerar slide/cobre_2.pdf
-Cérebro/02-Material-de-Curso-ENG02016/Trabalhos-Entregues/Trabalho 2/Arquivos para gerar slide/injection.pdf
-Cérebro/02-Material-de-Curso-ENG02016/Trabalhos-Entregues/Trabalho 2/Arquivos para gerar slide/thermoforming.pdf
+# Material de curso da ENG02016, retirado do Cérebro (D-100). A fonte de verdade
+# é `Cérebro/removidos.txt`; estas linhas só impedem que uma cópia local
+# esquecida volte ao repositório num `git add -A`.
+Cérebro/02-Material-de-Curso-ENG02016/
+Cérebro/⚙Seleção de Materiais/
+Cérebro/Plano de Aulas - ENG02016*
+Cérebro/Tópico [0-9] - *
+Cérebro/Topico [0-9] - *
+Cérebro/Instruções - Ferramenta avaliativa *
+Cérebro/GRUPOS E CENÁRIOS DEFINIDOS PARA A F.A.2 B*
+Cérebro/trios definidos para a FA1B*
 
 # Pasta de triagem de duplicatas — provisória, não versionar enquanto não for
 # revisada.
