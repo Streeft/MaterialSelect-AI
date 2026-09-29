@@ -214,7 +214,7 @@ disparo manual em `.github/workflows/`, na aba **Actions** do repositório.
 | Workflow | Faz o quê | Substitui |
 |---|---|---|
 | **Deploy da API (Fly.io)** | `flyctl deploy --remote-only` | o `fly deploy` do §2 |
-| **Administração do banco** | `migrar`, `semear`, `excluir_demo`, `conceder`, `revogar` | o `fly ssh console` do §2 e do §5 |
+| **Administração do banco** | `migrar`, `semear`, `excluir_demo`, `conhecimento_simular_remocao`, `conhecimento_remover`, `conceder`, `revogar` | o `fly ssh console` do §2 e do §5 |
 | **Modo de acesso** | `abrir`, `restaurar_assinatura` — grava `ACCESS_MODE` no Fly e confere em `/api/health` | o `fly secrets set` do §5-quater |
 
 Dois segredos, em *Settings → Secrets and variables → Actions*:
@@ -246,6 +246,19 @@ Três detalhes que não são arbitrários:
   de demonstração. Apaga todo `Material` com `is_demo=True`, não importa em
   qual módulo de seed a linha nasceu ([D-72](DECISIONS.md#d-72)). Ver
   [`docs/15-dados-demonstrativos.md`](15-dados-demonstrativos.md).
+- **`conhecimento_simular_remocao` antes de `conhecimento_remover`, sempre.**
+  As duas leem `Cérebro/removidos.txt`, a lista do que saiu do Cérebro
+  ([D-100](DECISIONS.md)), e rodam `python -m app.knowledge.prune`. A primeira
+  só lê: imprime cada documento que casa, com trechos e embeddings, as entradas
+  que não casaram nada e os totais. A segunda apaga do banco, numa transação,
+  esses documentos com os trechos e embeddings deles, e é **irreversível** — o
+  que ela apaga só volta por uma nova ingestão, que a própria lista impede. O
+  log da segunda termina em `[prune] REMOVIDOS: N documentos, M trechos, K
+  embeddings.`, e é essa linha, não o ✅, que prova o que foi apagado (a lição
+  do D-71). Existe porque a ingestão só acrescenta: tirar um arquivo do
+  repositório deixa o texto dele no RAG. Se a simulação não casar nada mas a
+  base não estiver vazia, a saída mostra por onde começam os caminhos
+  gravados — a lista foi escrita contra outra raiz.
 - **O passo "Garantir endereço público" conta antes de alocar.** `flyctl ips
   allocate-v6` **não é idempotente**: ele aloca outro endereço a cada chamada,
   em silêncio e com sucesso. Escrito como `allocate-v6 || true`, acumulava um
@@ -263,6 +276,7 @@ um PR nesta base:
 |---|---|---|
 | `apps/api/**` (rotas, serviços, modelos, migração) | **Deploy da API** (`deploy-api.yml`, sem entrada nenhuma) | `flyctl deploy` constrói a imagem nova; o `release_command` aplica `alembic upgrade head` antes do primeiro tráfego. |
 | `apps/api/app/db/seed.py` **ou** `apps/api/app/db/seed_extended.py` (material novo, química de bateria, modo de transporte, qualquer dado de demonstração) | **Administração do banco** (`admin-banco.yml`, ação `semear`) | O deploy da API **não** roda seed nenhum — só a migração. Sem este passo o código do dado novo está no ar e a linha correspondente não existe no banco. |
+| `Cérebro/removidos.txt` (algo saiu da base de conhecimento) | **Administração do banco**, `conhecimento_simular_remocao`, conferir o log, depois `conhecimento_remover` | A ingestão só acrescenta: sem este passo o documento sai do repositório e continua sendo citado pelo RAG ([D-100](DECISIONS.md)). |
 | Só `apps/web/**` | Nada | A Vercel publica sozinha a cada push em `main` — não há workflow manual para o frontend. |
 
 **Por que dois módulos de seed, e não um.** `app.db.seed` é a base que
@@ -527,4 +541,5 @@ administração (§5-bis).
 - **Backup do banco.** O Neon tem *point-in-time restore* no plano pago; no
   gratuito, exporte com `pg_dump` antes de qualquer coisa importante.
 - **O Cérebro.** `KNOWLEDGE_DIR` fica vazio: a ingestão é operação offline e o
-  RAG só liga com provedor de IA real.
+  RAG só liga com provedor de IA real. A **remoção**, ao contrário, tem ação no
+  workflow de administração (§5-bis), porque ela é o que a ingestão não faz.

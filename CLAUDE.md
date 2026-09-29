@@ -257,7 +257,9 @@ mesclar qualquer PR que toque `apps/api/**`, dispare os dois workflows
 manuais na aba Actions: **Deploy da API** (`deploy-api.yml`) sempre, e
 **Administração do banco** (`admin-banco.yml`, ação `semear`) sempre que
 mexer em `app/db/seed.py` ou `app/db/seed_extended.py` — na dúvida, dispare
-os dois; `semear` roda ambos os módulos, e os dois são idempotentes. Passo a
+os dois; `semear` roda ambos os módulos, e os dois são idempotentes. Se o PR
+mudou `Cérebro/removidos.txt`, a mesma aba tem `conhecimento_simular_remocao`
+e, conferido o log, `conhecimento_remover` (D-100). Passo a
 passo completo e por quê em [`docs/13-deploy.md` §5-ter](docs/13-deploy.md).
 Pular este passo é a causa mais provável de "o PR está em `main` mas não
 aparece no ar". A outra causa, menos visível: um dado de seed que vive num
@@ -331,7 +333,25 @@ caminho, o PR #17, e **continua no histórico de `main` por decisão explícita
 do autor** — é a base de conhecimento da camada de IA, e ele optou por
 mantê-la hospedada sabendo da exposição, ao contrário de
 `fase-9-ia-e-laudo`, purgada antes do merge. Risco aceito, não pendência
-([D-45](docs/DECISIONS.md)).
+([D-45](docs/DECISIONS.md)) — **exceto o material de curso**, que saiu
+(D-100, abaixo) e vai sair também do histórico.
+
+**O material de curso da ENG02016 saiu do Cérebro** ([D-100](docs/DECISIONS.md)):
+a pedido do professor, que não quer o material de sua autoria no RAG, e por
+decisão do autor, que estendeu a retirada aos trabalhos dos alunos. Saíram 71
+arquivos; livros, extratos, fichas Granta, diagramas e artigos ficam.
+**`Cérebro/removidos.txt` é a fonte única do que saiu** — caminho exato ou
+prefixo terminado em `/`, relativo a `KNOWLEDGE_DIR`, comparado em NFC — e três
+coisas a leem, nenhuma com cópia própria: `python -m app.knowledge.prune`
+(**simulação por padrão**; `--apply` apaga documento, trechos e embeddings numa
+transação, com a cascata em Python; ações `conhecimento_simular_remocao` e
+`conhecimento_remover` de `admin-banco.yml`), a ingestão (que pula o que casa
+e o declara `ignorado`) e a limpeza do histórico
+([`docs/17-limpeza-historico-cerebro.md`](docs/17-limpeza-historico-cerebro.md)).
+**A ingestão só acrescenta**: tirar um arquivo do repositório não tira o texto
+dele do RAG — quem tira é o `prune`. Rodar a remoção em produção e reescrever o
+histórico são passos do autor, depois do merge (TODO A7); reescrever o histórico
+não apaga os objetos Git LFS já guardados no GitHub.
 
 **O portão global de assinatura está ligado** ([D-46](docs/DECISIONS.md)):
 entre os dois desenhos que o PR #18 deixou coexistindo em código, o autor
@@ -894,7 +914,7 @@ e no mesmo modal do D-94. Regras que não se afrouxam:
   o átomo da conferência), e diz que encurtou (`studio_service.note_body`).
 - **Nenhuma migração**: as quatro cabem nos campos JSON da fase 1.
 
-3270 testes de backend (nenhum skip) e 751 de frontend, todos verdes. CI no
+3297 testes de backend (nenhum skip) e 751 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
 PROJECT_CONTEXT.md).

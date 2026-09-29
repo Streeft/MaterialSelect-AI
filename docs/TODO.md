@@ -57,6 +57,27 @@ react-hook-form não é memoizável) que é informativo e não tem correção lo
 A6 (Cérebro em `main`) foi decidido, não executado: ver "Débitos já
 quitados".
 
+**A7 — Tirar o material de curso da ENG02016 do banco de produção e do
+histórico (D-100).** ▁ O PR do D-100 tirou os 71 arquivos do repositório e
+entregou as ferramentas; os três passos que faltam são do autor, nesta ordem, e
+nenhum acontece sozinho com o merge:
+
+1. **Banco de produção.** Workflow **Administração do banco** →
+   `conhecimento_simular_remocao`, conferir no log os documentos e os totais, e
+   então `conhecimento_remover`. O log tem de terminar em
+   `[prune] REMOVIDOS: …` com os mesmos totais da simulação
+   ([13-deploy.md](13-deploy.md) §5-bis). Se a base de produção estiver vazia
+   (o `KNOWLEDGE_DIR` da instância nunca foi populado), a simulação diz
+   `0 documentos` e o passo termina aí.
+2. **Histórico do git.** Seguir
+   [`17-limpeza-historico-cerebro.md`](17-limpeza-historico-cerebro.md):
+   `git filter-repo` num clone espelho, alimentado por `Cérebro/removidos.txt`,
+   e `git push --force --mirror`. Reescreve todos os SHAs; todo clone precisa
+   ser refeito.
+3. **GitHub.** Pedir ao suporte do GitHub a remoção dos objetos Git LFS órfãos,
+   das visões em cache e das refs de PR que ainda servem os arquivos —
+   reescrever o histórico não apaga nada disso.
+
 ---
 
 ## Média prioridade
@@ -940,7 +961,9 @@ Registrados para não voltarem por engano:
   comerciais, 103 fichas Granta EduPack, material de curso e trabalhos
   entregues) como base de conhecimento da camada de IA, com informação
   completa sobre a exposição. Risco aceito, não descuido. Ver
-  [D-45](DECISIONS.md).
+  [D-45](DECISIONS.md). **Emendado pelo D-100:** o material de curso e os
+  trabalhos entregues saíram do repositório e vão sair do histórico (A7); os
+  livros e as fichas continuam como a decisão os deixou.
 - ~~**M8** — Desempenho medido (Lighthouse)~~ — job `Lighthouse` em `ci.yml`:
   build de produção, API e frontend em portas isoladas (8811), sessão fixa via
   `E2E_SESSION_TOKEN` para que as 11 rotas auditadas sejam as telas reais
