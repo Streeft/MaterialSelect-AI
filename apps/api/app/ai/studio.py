@@ -999,15 +999,21 @@ def read_studio(request: StudioRequest, raw: dict) -> dict:
             if not isinstance(item, dict):
                 continue
             prompt = _text(item.get("prompt"), MAX_TEXT)
+            answer = _int(item.get("answer_index"))
             if request.format == "vf":
                 options = ["Verdadeiro", "Falso"]
             else:
-                options = [
-                    text
-                    for o in _list(item.get("options"))[:MAX_OPTIONS]
-                    if (text := _text(o, MAX_SHORT))
-                ]
-            answer = _int(item.get("answer_index"))
+                # The model's index counts every option it wrote, empty ones
+                # included, so it is read against that list and then moved to
+                # the options that survive. Dropping an empty option without
+                # moving the index would mark the next one as correct; and if
+                # the correct option itself came back empty, the question has
+                # no answer to keep.
+                read = [_text(o, MAX_SHORT) for o in _list(item.get("options"))[:MAX_OPTIONS]]
+                if answer is None or not 0 <= answer < len(read) or not read[answer]:
+                    continue
+                answer = sum(1 for text in read[:answer] if text)
+                options = [text for text in read if text]
             if not prompt or len(options) < 2 or answer is None or not 0 <= answer < len(options):
                 continue
             if len(set(options)) != len(options):

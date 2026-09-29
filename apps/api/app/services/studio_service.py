@@ -39,7 +39,15 @@ from sqlalchemy.orm import Session
 from app.ai.factory import get_provider
 from app.ai.guardrails import numbers_in
 from app.ai.provider import AIProvider, AIUnavailableError
-from app.ai.studio import CATALOG, CUSTOM, SPEAKER_LABEL, StudioRequest, ToolSpec, amount_for
+from app.ai.studio import (
+    CATALOG,
+    CUSTOM,
+    SPEAKER_LABEL,
+    StudioRequest,
+    ToolSpec,
+    _clean,
+    amount_for,
+)
 from app.config import Settings
 from app.config import settings as default_settings
 from app.domain.errors import ConflictError, NotFoundError, QuotaExceededError, ValidationError
@@ -369,7 +377,12 @@ class StudioService:
 
     def rename(self, notebook_id: int, artifact_id: int, payload: ArtifactUpdate) -> ArtifactOut:
         artifact = self._artifact(notebook_id, artifact_id)
-        artifact.title = payload.title.strip()
+        # The reader's own cleaning: a control character typed into a title
+        # would otherwise break every export that writes it (N-1).
+        title = _clean(payload.title)
+        if not title:
+            raise ValidationError("O título não pode ficar vazio.")
+        artifact.title = title
         self.db.commit()
         return self._out(artifact)
 

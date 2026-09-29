@@ -448,6 +448,32 @@ def test_rename_save_as_note_and_delete(client):
     assert client.get(base).status_code == 404
 
 
+def test_a_control_character_in_a_renamed_title_does_not_break_the_xlsx(client):
+    """N-1: the rename stored the title unfiltered, and openpyxl raised on the
+    ``\\x07`` in it — the XLSX download became a 500."""
+    notebook_id = _notebook(client)
+    artifact = _generate(client, notebook_id, tool="table", template="propriedades")
+    base = f"/api/notebooks/{notebook_id}/studio/{artifact['id']}"
+
+    renamed = client.patch(base, json={"title": "Revisão\x07 de sexta"})
+    assert renamed.status_code == 200
+    assert renamed.json()["title"] == "Revisão de sexta"
+
+    response = _export(client, notebook_id, artifact, "xlsx")
+    assert response.status_code == 200
+    workbook = load_workbook(io.BytesIO(response.content))
+    cover = [row[0] for row in workbook["Aviso"].iter_rows(values_only=True)]
+    assert "Revisão de sexta" in cover
+
+
+def test_a_title_of_control_characters_only_is_refused(client):
+    notebook_id = _notebook(client)
+    artifact = _generate(client, notebook_id, tool="flashcards")
+    base = f"/api/notebooks/{notebook_id}/studio/{artifact['id']}"
+    assert client.patch(base, json={"title": "\x07\x01"}).status_code == 400
+    assert client.get(base).json()["title"] == artifact["title"]
+
+
 def test_deleting_a_notebook_deletes_its_artifacts(client, db_session):
     notebook_id = _notebook(client)
     _generate(client, notebook_id, tool="report")
