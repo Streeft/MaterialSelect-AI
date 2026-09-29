@@ -1,4 +1,6 @@
-import type { Page } from "@playwright/test";
+import { readFile } from "node:fs/promises";
+import type { Download, Page } from "@playwright/test";
+import { installFakeSpeech } from "../lib/testing/fakeSpeech";
 import { test, expect } from "./session";
 
 /**
@@ -242,4 +244,129 @@ test("Pesquisa: artigos e web desligados dizem por quê, e a cota aparece", asyn
   await expect(panel.getByText("A busca na web não está ligada neste servidor.")).toBeVisible();
   await expect(panel.getByText(/^Não pesquise com material sigiloso/)).toBeVisible();
   await page.screenshot({ path: "test-results/cadernos-pesquisa.png", fullPage: true });
+});
+
+/**
+ * D-98: the Studio's phase-4 tools — slides, infographic and audio. Still the
+ * mock provider, still no internet: the deck's PPTX and the infographic's SVG
+ * come from the API, the PNG is rasterised in this browser, and the audio is
+ * read by a scripted `speechSynthesis` (headless Chromium has one with no
+ * voices at all). The notebook gets two pasted sources, one passage each, so
+ * the mock's deck has two slides and its audio two lines per source.
+ */
+
+const SECOND_SOURCE =
+  "A liga de alumínio 6061 tem densidade de 2700 kg/m³ e módulo de elasticidade de 69 GPa. " +
+  "É usada em quadros de bicicleta e em estruturas leves.";
+
+async function pasteSource(page: Page, title: string, text: string) {
+  await page.getByRole("button", { name: "Adicionar fontes" }).click();
+  const dialog = page.getByRole("dialog", { name: "Adicionar fontes" });
+  await dialog.getByRole("tab", { name: "Colar texto" }).click();
+  await dialog.getByLabel("Título").fill(title);
+  await dialog.getByRole("textbox", { name: "Texto" }).fill(text);
+  await dialog.getByRole("button", { name: "Adicionar texto" }).click();
+  await expect(page.getByRole("button", { name: `Ler a fonte “${title}”` })).toBeVisible({
+    timeout: 20_000,
+  });
+}
+
+/** A notebook with the two sources, the tool generated with its defaults and
+ * opened once the background job is done. */
+async function generateAndOpen(page: Page, tile: RegExp, dialogName: string) {
+  await newNotebook(page);
+  await pasteSource(page, "Aula de aços", SOURCE);
+  await pasteSource(page, "Aula de alumínio", SECOND_SOURCE);
+  await page.getByRole("button", { name: tile }).click();
+  const dialog = page.getByRole("dialog", { name: dialogName });
+  await dialog.getByRole("button", { name: "Gerar" }).click();
+  await expect(dialog).toBeHidden();
+  // "Pronto": the list's entry turns into the button that opens it.
+  const open = page.getByRole("button", { name: /^Abrir “/ });
+  await expect(open).toHaveCount(1, { timeout: 30_000 });
+  await open.click();
+  await expect(page.getByRole("button", { name: "Voltar ao Estúdio" })).toBeVisible();
+}
+
+/** Picks one item of "Exportar ▾" and returns the file the browser saved. */
+async function exportAs(page: Page, item: string): Promise<{ download: Download; bytes: Buffer }> {
+  await page.getByRole("button", { name: "Exportar" }).click();
+  const [download] = await Promise.all([
+    page.waitForEvent("download", { timeout: 20_000 }),
+    page.getByRole("menuitem", { name: item }).click(),
+  ]);
+  const path = await download.path();
+  return { download, bytes: await readFile(path) };
+}
+
+test("Estúdio: apresentação de slides — avançar o slide e baixar o PPTX", async ({ page }) => {
+  await generateAndOpen(page, /^Apresentação de slides/, "Criar apresentação de slides");
+
+  const position = page.getByText(/^Slide \d+ de \d+$/);
+  await expect(position).toHaveText(/^Slide 1 de ([2-9]|\d{2,})$/);
+  const total = (await position.textContent())?.match(/de (\d+)$/)?.[1];
+  await page.getByRole("button", { name: "Próximo slide" }).click();
+  await expect(position).toHaveText(`Slide 2 de ${total}`);
+  await expect(page.getByRole("button", { name: "Slide anterior" })).toBeEnabled();
+  await page.screenshot({ path: "test-results/estudio-slides.png", fullPage: true });
+
+  const { download, bytes } = await exportAs(page, "PPTX (apresentação)");
+  expect(download.suggestedFilename()).toMatch(/\.pptx$/);
+  expect(bytes.length).toBeGreaterThan(0);
+  // A PPTX is a ZIP package: "PK\x03\x04".
+  expect([...bytes.subarray(0, 4)]).toEqual([0x50, 0x4b, 0x03, 0x04]);
+});
+
+test("Estúdio: infográfico — baixar o SVG da API e o PNG feito no navegador", async ({ page }) => {
+  await generateAndOpen(page, /^Infográfico/, "Criar infográfico");
+  await expect(page.getByRole("img", { name: /^Infográfico “.+”$/ })).toBeVisible();
+  await page.screenshot({ path: "test-results/estudio-infografico.png", fullPage: true });
+
+  const svg = await exportAs(page, "SVG (imagem)");
+  expect(svg.download.suggestedFilename()).toMatch(/\.svg$/);
+  expect(svg.bytes.toString("utf-8")).toContain("<svg");
+
+  const png = await exportAs(page, "PNG (imagem)");
+  expect(png.download.suggestedFilename()).toMatch(/\.png$/);
+  // The PNG signature: 89 50 4E 47 0D 0A 1A 0A.
+  expect([...png.bytes.subarray(0, 8)]).toEqual([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  // No failure sentence (the page's only other alert is Next's route announcer).
+  await expect(page.getByText("Não foi possível gerar a imagem neste navegador")).toHaveCount(0);
+});
+
+test("Estúdio: resumo em áudio — a voz lê e a fala destacada avança", async ({ page }) => {
+  // One pt-BR voice whose every utterance ends by itself shortly after it
+  // starts: the player walks the whole script without a real engine.
+  await page.addInitScript(installFakeSpeech, {
+    voices: [{ name: "Voz de teste", lang: "pt-BR" }],
+    autoEndMs: 150,
+  });
+  await generateAndOpen(page, /^Resumo em Áudio/, "Criar resumo em áudio");
+
+  const transcript = page.getByRole("region", { name: "Transcrição" });
+  const lines = transcript.getByRole("listitem");
+  const count = await lines.count();
+  expect(count).toBeGreaterThanOrEqual(2);
+  const current = transcript.locator('li[aria-current="true"]');
+  await expect(current).toHaveCount(1);
+  await expect(current).toHaveAttribute("data-line", "0");
+  await expect(page.getByText(`Fala 1 de ${count}`)).toBeVisible();
+
+  const play = page.getByRole("button", { name: "Reproduzir", exact: true });
+  await expect(play).toBeEnabled({ timeout: 10_000 });
+  await play.click();
+
+  // The highlight walks to the last line as each utterance ends, and the
+  // player stops there, ready to play again.
+  await expect(current).toHaveAttribute("data-line", String(count - 1), { timeout: 20_000 });
+  await expect(page.getByText(`Fala ${count} de ${count}`)).toBeVisible();
+  await expect(play).toBeVisible();
+  const spoken = await page.evaluate(
+    () =>
+      (window as unknown as { __fakeSpeech: { spoken: { lang: string }[] } }).__fakeSpeech.spoken
+        .map((u) => u.lang),
+  );
+  expect(spoken.length).toBeGreaterThanOrEqual(count);
+  expect(new Set(spoken)).toEqual(new Set(["pt-BR"]));
+  await page.screenshot({ path: "test-results/estudio-audio.png", fullPage: true });
 });
