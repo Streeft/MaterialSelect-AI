@@ -135,6 +135,36 @@ class TestDiscovery:
         assert [p.name for p in service.discover()] == ["a.pdf", "b.pdf", "c.pdf"]
 
 
+class TestRemovalList:
+    """D-100: o que está em removidos.txt não volta ao RAG pela ingestão."""
+
+    def test_listed_files_are_skipped_and_said_so(self, db_session, corpus: Path) -> None:
+        _write(corpus, "01-Bibliografia/livro.pdf", ["O módulo de Young mede a rigidez."])
+        _write(corpus, "02-Curso/Topicos/aula.pdf", ["Slide do professor."])
+        _write(corpus, "Tópico 1.pdf", ["Cópia avulsa."])
+        (corpus / "removidos.txt").write_text(
+            "# material de curso\n02-Curso/\nTópico 1.pdf\n", encoding="utf-8"
+        )
+
+        report = KnowledgeService(db_session).ingest()
+
+        assert (report.created, report.skipped) == (1, 2)
+        skipped = sorted(o.path for o in report.outcomes if o.action == "ignorado")
+        assert skipped == ["02-Curso/Topicos/aula.pdf", "Tópico 1.pdf"]
+        assert all(
+            "removidos.txt" in (o.detail or "") for o in report.outcomes if o.action == "ignorado"
+        )
+        repo = KnowledgeRepository(db_session)
+        assert repo.get_by_path("02-Curso/Topicos/aula.pdf") is None
+        assert repo.get_by_path("Tópico 1.pdf") is None
+        assert repo.get_by_path("01-Bibliografia/livro.pdf") is not None
+
+    def test_without_a_list_nothing_is_skipped(self, db_session, corpus: Path) -> None:
+        _write(corpus, "02-Curso/aula.pdf", ["texto"])
+        report = KnowledgeService(db_session).ingest()
+        assert (report.created, report.skipped) == (1, 0)
+
+
 class TestIngest:
     def test_catalogues_and_extracts(self, db_session, corpus: Path) -> None:
         _write(corpus, "aula.pdf", ["O módulo de Young mede a rigidez do material."])

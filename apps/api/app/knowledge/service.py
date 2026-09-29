@@ -28,6 +28,7 @@ from app.knowledge.embeddings import EmbeddingClient, EmbeddingUnavailableError
 from app.knowledge.lexical import fold
 from app.knowledge.manifest import DeclaredProvenance, load_manifest
 from app.knowledge.readers import SUPPORTED_EXTENSIONS, extract_text
+from app.knowledge.removal import REMOVAL_LIST_FILENAME, load_from_root
 from app.models.enums import IngestStatus
 from app.models.knowledge import KnowledgeChunk, KnowledgeDocument
 from app.repositories.knowledge_repository import KnowledgeRepository
@@ -166,11 +167,24 @@ class KnowledgeService:
         """
         root = self.root()
         declared = load_manifest(root)
+        # What left the base stays out even if a forgotten local copy puts the
+        # file back on disk: ingestion only adds, so without this check one
+        # run from a stale folder would undo a removal (D-100).
+        removed = load_from_root(root)
         report = IngestReport(root=str(root))
         embed_client = self._embedding_client() if self._embeddings_configured() else None
 
         for path in self.discover():
             relative = path.relative_to(root).as_posix()
+            if removed.matches(relative):
+                report.record(
+                    DocumentOutcome(
+                        path=relative,
+                        action="ignorado",
+                        detail=f"Na lista de remoção ({REMOVAL_LIST_FILENAME}); não é indexado.",
+                    )
+                )
+                continue
             try:
                 outcome = self._ingest_one(path, relative, declared.get(relative), force)
             except ValidationError as exc:
