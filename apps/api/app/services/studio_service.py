@@ -38,9 +38,8 @@ from sqlalchemy.orm import Session
 
 from app.ai.factory import get_provider
 from app.ai.guardrails import numbers_in
-from app.ai.notebook import retry_note
 from app.ai.provider import AIProvider, AIUnavailableError
-from app.ai.studio import CATALOG, CUSTOM, StudioRequest, ToolSpec, amount_for
+from app.ai.studio import CATALOG, CUSTOM, SPEAKER_LABEL, StudioRequest, ToolSpec, amount_for
 from app.config import Settings
 from app.config import settings as default_settings
 from app.domain.errors import ConflictError, NotFoundError, QuotaExceededError, ValidationError
@@ -49,7 +48,7 @@ from app.models.notebook import Notebook, NotebookNote, StudioArtifact
 from app.models.user import User
 from app.notebooks import infographic, mindmap
 from app.notebooks.retrieval import search, spread
-from app.notebooks.studio_content import cell_text, check, finalise, item_count
+from app.notebooks.studio_content import cell_text, check, finalise, item_count, retry_note
 from app.repositories.notebook_repository import NotebookRepository
 from app.schemas.notebook import (
     ArtifactOut,
@@ -74,6 +73,9 @@ logger = logging.getLogger(__name__)
 
 MAX_COLUMNS = 8
 MAX_COLUMN_CHARS = 60
+
+#: "Desconhecido" agrees with the noun: "Quantidade desconhecida".
+_UNKNOWN = {"quantidade": "desconhecida", "dificuldade": "desconhecida"}
 
 INTERRUPTED = "A geração foi interrompida antes de terminar (o servidor reiniciou). Gere de novo."
 UNEXPECTED = "Erro inesperado ao gerar. Tente de novo; se persistir, avise o professor."
@@ -196,8 +198,9 @@ class StudioService:
             slugs = [c.slug for c in choices]
             chosen = value or default or slugs[0]
             if chosen not in slugs:
+                unknown = _UNKNOWN.get(kind, "desconhecido")
                 raise ValidationError(
-                    f"{kind.capitalize()} desconhecido para {spec.label}: {chosen}. "
+                    f"{kind.capitalize()} {unknown} para {spec.label}: {chosen}. "
                     f"Aceitos: {', '.join(slugs)}."
                 )
             return next(c for c in choices if c.slug == chosen)
@@ -322,7 +325,7 @@ class StudioService:
 
         checked = check(request, self._call(provider, request), extra, artifact.title)
         if checked.withheld:
-            retry = dataclasses.replace(request, retry_note=retry_note(checked.figures))
+            retry = dataclasses.replace(request, retry_note=retry_note(checked))
             try:
                 checked = check(request, self._call(provider, retry), extra, artifact.title)
             except AIUnavailableError:
@@ -472,9 +475,11 @@ class StudioService:
         body = content.get("body")
         drawn = mindmap.layout(body.get("root")) if body and artifact.tool == "mindmap" else None
         # The infographic's geometry is computed here too (ADR 0004): the screen
-        # and the SVG draw the same blocks; the orientation is the format.
+        # and the SVG draw the same blocks; the orientation is the format. The
+        # headline is the artifact's title — the student's, after a rename —,
+        # the one the page header, the file name and the SVG's name show.
         sheet = (
-            infographic.layout(body, artifact.format)
+            infographic.layout({**body, "title": artifact.title}, artifact.format)
             if body and artifact.tool == "infographic"
             else None
         )
@@ -581,7 +586,7 @@ def plain_text(tool: str, body: dict) -> str:
             walk(body["root"], 0)
     elif tool == "audio":
         lines.extend(
-            f"Apresentador {line['speaker']}: {line['text']}{_marks(line['citations'])}"
+            f"{SPEAKER_LABEL} {line['speaker']}: {line['text']}{_marks(line['citations'])}"
             for line in body.get("lines", [])
         )
     elif tool in ("slides", "video"):

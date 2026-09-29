@@ -41,10 +41,19 @@ whose statistics all fail keeps its points and steps — the band of statistics
 is simply not drawn.
 
 Structural text — the artifact's title, a report's section headings, a table's
-column headers, the mind map's central theme, an infographic's subtitle — cites
-nothing. Its figures are checked against every passage handed over and the
-student's words; one that fails there is replaced by a neutral label, never
-kept.
+column headers, the mind map's central theme — cites nothing. Its figures are
+checked against every passage handed over and the student's words; one that
+fails there is replaced by a neutral label, never kept.
+
+A **headline** is held to the strict rule instead: the infographic's title and
+subtitle, and the title of a deck or a video, which opens it alone on the cover
+slide. Printed big above everything else, "45% das falhas são por fadiga" is a
+finding like any statistic, so no small integer is exempt and the student's
+words do not count. It cites nothing of its own, so its pool is the text of the
+passages the artifact's kept items cite — the references the reader can
+check. A headline that fails is not dropped: the title becomes the neutral one
+(the tool's or template's name), a subtitle is left out, and a written sentence
+says so (D-24).
 """
 
 from __future__ import annotations
@@ -89,6 +98,15 @@ _NOUNS = {
 
 #: Withheld kinds whose reason is a unit, not a figure — (kind of item it counts).
 _UNIT_KINDS = {"stat_unit": "stat"}
+
+#: The headlines of each tool that has them, checked by the strict rule.
+_HEADLINES = {"infographic": ("title", "subtitle"), "slides": ("title",), "video": ("title",)}
+
+#: What became of a headline that failed, and its name in the retry note.
+_HEADLINE_FATE = {
+    "title": ("O título gerado foi trocado por um título neutro", "o título"),
+    "subtitle": ("O subtítulo gerado foi omitido", "o subtítulo"),
+}
 
 
 @dataclass
@@ -136,7 +154,35 @@ def check(request: StudioRequest, read: dict, extra: set[float], fallback_title:
     checked = Checked(title=structural(read.get("title") or "", fallback_title), body={}, items=0)
     handler = _HANDLERS[request.tool]
     handler(checked, read, passages, extra, structural)
+    if request.tool in _HEADLINES:
+        _headlines(checked, request.tool, read, passages, fallback_title)
     return checked
+
+
+def _headlines(checked: Checked, tool: str, read: dict, passages, fallback_title: str) -> None:
+    """The strict rule on a tool's headlines, after its items are checked.
+
+    The pool is the text of every passage a kept item cites: a headline cites
+    nothing, and the passages of items that were left out are not in the
+    artifact's references — a figure only they state is one the reader cannot
+    check anywhere.
+    """
+    pool = sorted({n for item in _items(tool, checked.body) for n in item["citations"]})
+
+    def strict(key: str, fallback: str) -> str:
+        text, _ = take_citations(read.get(key) or "", [], 0)
+        if not text:
+            return fallback
+        invented = strict_ungrounded([text], pool, passages)
+        if invented:
+            checked.refuse(key, invented)
+            return fallback
+        return text
+
+    checked.title = strict("title", fallback_title)
+    checked.body["title"] = checked.title
+    if "subtitle" in _HEADLINES[tool]:
+        checked.body["subtitle"] = strict("subtitle", "")
 
 
 def _report(checked: Checked, read: dict, passages, extra, structural) -> None:
@@ -355,7 +401,9 @@ def _infographic(checked: Checked, read: dict, passages, extra, structural) -> N
         steps.append({"text": text, "citations": cited})
     checked.body = {
         "title": checked.title,
-        "subtitle": structural(read.get("subtitle") or "", ""),
+        # Title and subtitle are headlines, set by ``_headlines`` once the
+        # items — and so the passages they cite — are known.
+        "subtitle": "",
         "stats": stats,
         "points": points,
         "steps": steps,
@@ -436,9 +484,15 @@ def finalise(
 def withheld_sentences(checked: Checked) -> list[str]:
     sentences = []
     for kind, (count, figures) in checked.withheld.items():
+        listed = ", ".join(dict.fromkeys(figures))
+        if kind in _HEADLINE_FATE:
+            fate, _ = _HEADLINE_FATE[kind]
+            sentences.append(
+                f"{fate} porque trazia números que não aparecem nos trechos citados: {listed}."
+            )
+            continue
         one, many, verb_one, verb_many = _NOUNS[_UNIT_KINDS.get(kind, kind)]
         subject, verb = (one, verb_one) if count == 1 else (f"{count} {many}", verb_many)
-        listed = ", ".join(dict.fromkeys(figures))
         if kind in _UNIT_KINDS:
             reason = (
                 "sua unidade não aparece no trecho citado"
@@ -453,6 +507,47 @@ def withheld_sentences(checked: Checked) -> list[str]:
             f"citados: {listed}."
         )
     return sentences
+
+
+def retry_note(checked: Checked) -> str:
+    """What the retry is told, by what went wrong — naming the figures, since
+    "do better" teaches a model nothing. A unit refused is not a figure missing
+    ("210 MPa" beside "210 GPa" has the figure), and a headline cites nothing,
+    so each gets its own sentence."""
+    figures: list[str] = []
+    units: list[str] = []
+    headlines: list[str] = []
+    headline_figures: list[str] = []
+    for kind, (_, named) in checked.withheld.items():
+        if kind in _UNIT_KINDS:
+            units += named
+        elif kind in _HEADLINE_FATE:
+            headlines.append(_HEADLINE_FATE[kind][1])
+            headline_figures += named
+        else:
+            figures += named
+    parts = []
+    if figures:
+        parts.append(
+            "Na tentativa anterior você escreveu números que não aparecem nos trechos "
+            f"citados: {', '.join(dict.fromkeys(figures))}. Reescreva copiando números "
+            "somente dos trechos que cada item cita, ou deixe o número de fora."
+        )
+    if units:
+        parts.append(
+            "Os dados em destaque a seguir usaram uma unidade que o trecho não escreve; "
+            f"copie valor e unidade exatamente como no trecho: {', '.join(dict.fromkeys(units))}."
+        )
+    if headlines:
+        named = " e ".join(headlines)
+        cite = "citam" if len(headlines) > 1 else "cita"
+        parts.append(
+            f"{named[0].upper()}{named[1:]} não {cite} trechos: só pode trazer um número "
+            "escrito nos trechos que os itens citam, e "
+            f"{', '.join(dict.fromkeys(headline_figures))} não está em nenhum deles. "
+            "Reescreva sem esse número."
+        )
+    return " ".join(parts)
 
 
 def item_count(tool: str, body: dict | None) -> int | None:

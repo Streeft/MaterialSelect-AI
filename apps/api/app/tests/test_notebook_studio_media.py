@@ -242,7 +242,7 @@ def test_the_infographic_layout_is_the_one_the_backend_computes(client, fmt, wid
         ),
         (
             {"tool": "audio", "count": "mais"},
-            "Quantidade desconhecido para Resumo em áudio: mais. Aceitos: curto, padrao, longo.",
+            "Quantidade desconhecida para Resumo em áudio: mais. Aceitos: curto, padrao, longo.",
         ),
         (
             {"tool": "audio", "difficulty": "facil"},
@@ -267,7 +267,7 @@ def test_the_infographic_layout_is_the_one_the_backend_computes(client, fmt, wid
         ),
         (
             {"tool": "slides", "count": "curto"},
-            "Quantidade desconhecido para Apresentação de slides: curto. "
+            "Quantidade desconhecida para Apresentação de slides: curto. "
             "Aceitos: menos, padrao, mais.",
         ),
         (
@@ -282,7 +282,7 @@ def test_the_infographic_layout_is_the_one_the_backend_computes(client, fmt, wid
         ),
         (
             {"tool": "infographic", "count": "mais"},
-            "Quantidade desconhecido para Infográfico: mais. "
+            "Quantidade desconhecida para Infográfico: mais. "
             "Aceitos: conciso, padrao, detalhado.",
         ),
         (
@@ -397,7 +397,7 @@ def test_the_infographic_orientation_is_layout_only(client, monkeypatch):
 @pytest.mark.parametrize(
     ("tool", "marker"),
     [
-        ("audio", "Apresentador 1: "),
+        ("audio", "Apresentador(a) 1: "),
         ("slides", "Notas: "),
         ("video", "Narração: "),
         ("infographic", "DADOS EM DESTAQUE"),
@@ -615,6 +615,47 @@ def test_a_clean_retry_withholds_nothing(client, monkeypatch):
     assert artifact["status"] == "pronto"
     assert artifact["withheld"] == []
     assert [s["value"] for s in artifact["content"]["stats"]] == ["7850 kg/m³"]
+
+
+def test_an_invented_headline_is_replaced_retried_and_said_so(client, monkeypatch):
+    # The review's reproduction: "45%" above the stats band, at 30 px.
+    board = {
+        **_board(_GOOD_STAT),
+        "title": "45% das falhas são por fadiga",
+        "subtitle": "Em 12 anos, 80% dos casos",
+    }
+    provider = _use(monkeypatch, _Scripted([board]))
+    notebook_id = _one_passage(client)
+    artifact = _generate(client, notebook_id, tool="infographic", topic="45% das falhas")
+    assert provider.calls == 2
+    assert "O título e o subtítulo não citam trechos" in provider.notes[1]
+    assert artifact["status"] == "pronto"
+    assert artifact["title"] == CATALOG["infographic"].label
+    assert artifact["content"]["subtitle"] == ""
+    assert artifact["withheld"] == [
+        "O título gerado foi trocado por um título neutro porque trazia números que não "
+        "aparecem nos trechos citados: 45.",
+        "O subtítulo gerado foi omitido porque trazia números que não aparecem nos "
+        "trechos citados: 12, 80.",
+    ]
+    kinds = [b["kind"] for b in artifact["infographic"]["blocks"]]
+    assert "subtitle" not in kinds
+    title = next(b for b in artifact["infographic"]["blocks"] if b["kind"] == "title")
+    assert title["heading_lines"] == [CATALOG["infographic"].label]
+    svg = _svg_text(client.get(f"{_base(notebook_id, artifact)}/export.svg").content)
+    assert "45%" not in svg and "80%" not in svg
+
+
+def test_a_renamed_infographic_draws_the_new_title(client):
+    notebook_id = _notebook(client)
+    artifact = _generate(client, notebook_id, tool="infographic")
+    base = _base(notebook_id, artifact)
+    renamed = client.patch(base, json={"title": "Pôster da aula"}).json()
+    title = next(b for b in renamed["infographic"]["blocks"] if b["kind"] == "title")
+    assert title["heading_lines"] == ["Pôster da aula"]
+    root = ElementTree.fromstring(client.get(f"{base}/export.svg").content.decode("utf-8"))
+    strings = [t.text for t in root.iter(f"{SVG}text")]
+    assert strings[0] == "Pôster da aula"
 
 
 def test_every_statistic_withheld_keeps_the_points_and_drops_the_band(client, monkeypatch):

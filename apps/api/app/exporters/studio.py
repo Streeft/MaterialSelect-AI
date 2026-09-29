@@ -37,6 +37,10 @@ from html import escape
 from docx import Document
 from docx.shared import Pt, RGBColor
 
+# How a line of the audio script names who says it. The hosts are unnamed
+# (D-98): the screen says "Apresentador(a) 1/2", and so does every file and a
+# note saved from the artifact — one constant, in the reader's module.
+from app.ai.studio import SPEAKER_LABEL
 from app.exporters.report import LIMITATION_NOTICE, Report, Sheet
 from app.exporters.spreadsheet import to_csv, to_xlsx
 from app.exporters.studio_pptx import deck_to_pptx
@@ -62,10 +66,6 @@ _MEDIA = {
     "txt": "text/plain; charset=utf-8",
 }
 
-#: How a line of the audio script names who says it. The hosts are unnamed
-#: (D-98): the screen says "Apresentador(a) 1/2", and so does every file.
-SPEAKER_LABEL = "Apresentador(a)"
-
 #: Printed where an artifact cites nothing (D-24: absence is a sentence).
 NO_CITATIONS = "Nenhum trecho citado."
 
@@ -79,10 +79,13 @@ WITHHELD_TITLE = "Parte do que foi gerado foi omitida"
 NO_URL_LABEL = "sem endereço externo"
 NO_ATTRIBUTION_LABEL = "sem atribuição registrada"
 
-#: Characters XML cannot carry. python-docx and openpyxl raise on them and an
-#: SVG holding one does not parse, so an address or attribution read from
-#: outside becomes a space instead of breaking the export.
-_NOT_XML = re.compile("[\x00-\x08\x0b\x0c\x0e-\x1f\ufffe\uffff]")
+#: Characters XML cannot carry. python-docx and openpyxl raise on them, an SVG
+#: holding one does not parse, and a lone surrogate cannot even be encoded as
+#: UTF-8 — so text read from outside becomes a space instead of breaking the
+#: export. The reader (``app.ai.studio``) already strips them from what a model
+#: writes; this is the second wall, for an address, an attribution, a title the
+#: student typed and anything stored before the reader did.
+_NOT_XML = re.compile("[\x00-\x08\x0b\x0c\x0e-\x1f\ud800-\udfff\ufffe\uffff]")
 
 _INK = RGBColor(15, 23, 42)
 _SUBTLE = RGBColor(100, 116, 139)
@@ -143,9 +146,14 @@ def _script(body: dict) -> list[str]:
     ]
 
 
+def _xml(text: object) -> str:
+    """Any text, XML-legal."""
+    return _NOT_XML.sub(" ", str(text))
+
+
 def _plain(text: str | None) -> str | None:
     """An external address or attribution, XML-legal; ``None`` stays ``None``."""
-    return _NOT_XML.sub(" ", text) if text else None
+    return _xml(text) if text else None
 
 
 def _credit(citation: CitationOut) -> tuple[str | None, str | None]:
@@ -247,26 +255,28 @@ def _report(artifact: ArtifactOut, subtitle: str) -> Report:
 
 
 def _docx(artifact: ArtifactOut, subtitle: str) -> bytes:
+    """Every string goes through :func:`_xml`: python-docx raises on a control
+    character, and one in a title would turn the whole download into a 500."""
     doc = Document()
     title = doc.add_paragraph()
-    run = title.add_run(artifact.title)
+    run = title.add_run(_xml(artifact.title))
     run.font.size, run.font.bold, run.font.color.rgb = Pt(20), True, _INK
     sub = doc.add_paragraph()
-    run = sub.add_run(subtitle)
+    run = sub.add_run(_xml(subtitle))
     run.font.size, run.font.color.rgb = Pt(11), _SUBTLE
     for notice in [*NOTICES, *artifact.withheld]:
         paragraph = doc.add_paragraph()
-        run = paragraph.add_run(notice)
+        run = paragraph.add_run(_xml(notice))
         run.font.size, run.font.italic, run.font.color.rgb = Pt(9.5), True, _SUBTLE
 
     body = artifact.content or {}
     if artifact.tool == "report":
         bullets = artifact.format == "topicos"
         for section in body.get("sections", []):
-            doc.add_heading(section["heading"], level=2)
+            doc.add_heading(_xml(section["heading"]), level=2)
             for paragraph in section["paragraphs"]:
                 doc.add_paragraph(
-                    f"{paragraph['text']} {_marks(paragraph['citations'])}".strip(),
+                    _xml(f"{paragraph['text']} {_marks(paragraph['citations'])}".strip()),
                     style="List Bullet" if bullets else None,
                 )
     elif artifact.tool == "flashcards":
@@ -275,26 +285,27 @@ def _docx(artifact: ArtifactOut, subtitle: str) -> bytes:
         table.rows[0].cells[0].text, table.rows[0].cells[1].text = "Frente", "Verso"
         for card in body.get("cards", []):
             cells = table.add_row().cells
-            cells[0].text = card["front"]
-            cells[1].text = f"{card['back']} {_marks(card['citations'])}".strip()
+            cells[0].text = _xml(card["front"])
+            cells[1].text = _xml(f"{card['back']} {_marks(card['citations'])}".strip())
     elif artifact.tool == "quiz":
         questions = body.get("questions", [])
         doc.add_heading("Questões", level=2)
         for number, question in enumerate(questions, start=1):
-            doc.add_paragraph(f"{number}. {question['prompt']}")
+            doc.add_paragraph(_xml(f"{number}. {question['prompt']}"))
             for i, option in enumerate(question["options"]):
-                doc.add_paragraph(f"{chr(97 + i)}) {option}").paragraph_format.left_indent = Pt(18)
+                option_line = doc.add_paragraph(_xml(f"{chr(97 + i)}) {option}"))
+                option_line.paragraph_format.left_indent = Pt(18)
         doc.add_heading("Gabarito", level=2)
         for number, question in enumerate(questions, start=1):
             answer = question["answer_index"]
             text = f"{number}. {chr(97 + answer)}) {question['options'][answer]}"
             if question["explanation"]:
                 text += f" — {question['explanation']}"
-            doc.add_paragraph(f"{text} {_marks(question['citations'])}".strip())
+            doc.add_paragraph(_xml(f"{text} {_marks(question['citations'])}".strip()))
     elif artifact.tool == "audio":
         doc.add_heading("Roteiro", level=2)
         for line in _script(body):
-            doc.add_paragraph(_NOT_XML.sub(" ", line))
+            doc.add_paragraph(_xml(line))
     else:  # pragma: no cover - the service offers only the tool's formats
         raise ValueError(f"{artifact.tool} não tem DOCX")
 
@@ -303,14 +314,14 @@ def _docx(artifact: ArtifactOut, subtitle: str) -> bytes:
         doc.add_paragraph(NO_CITATIONS)
     for citation in artifact.citations:
         paragraph = doc.add_paragraph()
-        paragraph.add_run(f"[{citation.number}] {_reference(citation)}").bold = True
+        paragraph.add_run(_xml(f"[{citation.number}] {_reference(citation)}")).bold = True
         # Address and credit on their own lines, before the excerpt: they say
         # whose the text below is. python-docx writes them as text runs.
         for line in _credit(citation):
             if line:
                 credit = paragraph.add_run(f"\n{line}")
                 credit.font.size = Pt(9)
-        excerpt = paragraph.add_run(f"\n{citation.excerpt}")
+        excerpt = paragraph.add_run(f"\n{_xml(citation.excerpt)}")
         excerpt.font.size, excerpt.font.color.rgb = Pt(9), _SUBTLE
 
     buffer = io.BytesIO()
@@ -358,7 +369,9 @@ _HEADER_LINE = 16.0
 
 
 def _t(text: object) -> str:
-    return escape(str(text), quote=True)
+    """SVG text: XML-legal first (a control character makes the file one no
+    browser opens), then escaped."""
+    return escape(_xml(text), quote=True)
 
 
 def _svg_reference(citation: CitationOut, chars: int) -> list[str]:
@@ -518,7 +531,11 @@ def infographic_svg(artifact: ArtifactOut, subtitle: str) -> str:
     otherwise be transparent. No ``foreignObject`` and no external reference,
     so a canvas can rasterise it without tainting.
     """
-    layout = infographic.layout(artifact.content, artifact.format)
+    # The title the student gave it wins over the one generated (a rename
+    # changes ``artifact.title``, not the body) — as on the screen (``_out``).
+    layout = infographic.layout(
+        {**(artifact.content or {}), "title": artifact.title}, artifact.format
+    )
     if layout is None:  # pragma: no cover - a ready infographic always has content
         raise ValueError("Infográfico sem conteúdo")
     width = layout.width
@@ -576,8 +593,10 @@ def infographic_svg(artifact: ArtifactOut, subtitle: str) -> str:
         marks = _marks(block.citations)
         if carded and marks:
             parts.append(
-                f'<text x="{block.x + block.width - 8}" y="{block.y + block.height - 6}" '
-                f'font-size="10" text-anchor="end" fill="{accent}">{_t(marks)}</text>'
+                f'<text x="{block.x + block.width - style.marks_right}" '
+                f'y="{block.y + block.height - style.marks_bottom}" '
+                f'font-size="{style.marks_size}" text-anchor="end" fill="{accent}">'
+                f"{_t(marks)}</text>"
             )
     parts.append(
         f'<line x1="{margin}" y1="{layout.height}" x2="{width - margin}" '

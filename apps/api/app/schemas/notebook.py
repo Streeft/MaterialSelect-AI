@@ -460,6 +460,11 @@ class InfographicStyleOut(BaseModel):
     body_char: float
     body_max_lines: int
     gap: int
+    #: The citation marks of a card: font size, and the end of their baseline
+    #: this far from the card's right and bottom edges (0 for title/subtitle).
+    marks_size: int
+    marks_right: int
+    marks_bottom: int
 
 
 class InfographicLayoutOut(BaseModel):

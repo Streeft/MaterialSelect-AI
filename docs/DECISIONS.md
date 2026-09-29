@@ -6526,7 +6526,7 @@ depois o item sai com a frase escrita):
 - **vídeo:** a cena inteira, pela mesma razão, e com mais força: a narração é o
   que o aluno ouve;
 - **infográfico:** cada dado em destaque, cada ponto e cada etapa. Título e
-  subtítulo são estruturais, como no D-94.
+  subtítulo **não** são estruturais como no D-94: são manchete (abaixo).
 
 A narração, as falas e as notas passam por `strip_markup` antes do limite de
 tamanho: um `<speak>` ou `<break/>` vindo do modelo (ou de uma fonte que o
@@ -6560,6 +6560,29 @@ valor com mais de 24 caracteres **é descartado, não cortado**: cortar
 os dados caem, a faixa some e os pontos e as etapas ficam; se nada passa, o
 artefato é `falhou`, com o motivo.
 
+**A manchete também não tem isenção.** A revisão final do PR #83 achou o furo
+que a regra acima deixava: o título do infográfico é o maior texto do pôster
+(30 px, acima da faixa de dados) e o subtítulo vem logo abaixo, e os dois
+passavam pela regra estrutural do D-94 — com a isenção e com as palavras do
+aluno. "45% das falhas são por fadiga" chegava à tela, ao SVG e ao PNG sem uma
+frase de omissão. Agora título e subtítulo do infográfico, e o **título de um
+deck ou de um vídeo** — que abre o slide de capa, sozinho —, seguem
+`strict_ungrounded`: sem isenção, sem as palavras do aluno, só o texto do
+trecho. Como não citam nada, o universo é o **texto dos trechos que os itens
+mantidos citam** — as referências que o leitor tem para conferir; um número
+que só um item omitido citava não está em lugar nenhum do artefato. A manchete
+reprovada **não some**: o título vira o neutro (o nome da ferramenta ou do
+modelo, como a regra estrutural já fazia), o subtítulo sai, e o `withheld`
+ganha a frase ("O título gerado foi trocado por um título neutro porque trazia
+números que não aparecem nos trechos citados: 45."). O título de um slide
+continua sob a regra do item (ele cita, junto com tópicos e notas), e o do
+áudio e o das ferramentas do D-94 continuam estruturais: não há capa. O prompt
+das três ferramentas diz a regra, e a nova tentativa passou a ser escrita **por
+tipo de falha** (`studio_content.retry_note`): número fora do trecho, unidade
+que o trecho não escreve ("copie valor e unidade exatamente") e manchete — a
+nota antiga dizia "números que não aparecem" também para "210 MPa" ao lado de
+"210 GPa", onde o número está e a unidade é que falta.
+
 **O desenho do infográfico sai do backend, com a tipografia junto.**
 `app/notebooks/infographic.py` faz o que o `mindmap.py` faz pelo mapa (D-94, a
 regra do D-53): **um layout só**, desenhado pela tela e pelo SVG exportado.
@@ -6567,12 +6590,33 @@ Largura fixa por orientação (1200/800/1000), faixas de cabeçalho → dados em
 destaque (4, 2 ou 3 por linha) → pontos (2 ou 1 coluna) → etapas numeradas com
 conectores, texto quebrado por contagem de caracteres e cada bloco com a sua
 caixa em coordenadas inteiras. O layout vai em `ArtifactOut.infographic`,
-separado do `layout` do mapa, e traz **`styles`** — margem, corpo, entrelinha e
-espaçamento de cada tipo de bloco. Sem eles, a tela teria de repetir no cliente
-as constantes com que o backend quebrou o texto, e a primeira mudança num lado
-só faria a linha quebrada no servidor transbordar a caixa na tela. O `tone` de
-cada bloco é um índice: a tela o traduz em tokens (D-28), o exportador em hex
-fixo.
+separado do `layout` do mapa, e traz **`styles`** — margem, corpo, entrelinha,
+espaçamento e onde ficam as marcas `[n]` (`marks_size`, `marks_right`,
+`marks_bottom`) de cada tipo de bloco. Sem eles, a tela teria de repetir no
+cliente as constantes com que o backend quebrou o texto, e a primeira mudança
+num lado só faria a linha quebrada no servidor transbordar a caixa na tela. O
+`tone` de cada bloco é um índice: a tela o traduz em tokens (D-28), o
+exportador em hex fixo. A manchete desenhada é `artifact.title` — o do aluno,
+depois de renomear —, o mesmo do cabeçalho da página, do nome do arquivo e do
+`<title>` do SVG.
+
+**Nenhuma linha quebra dentro de um número, e nenhum texto é cortado.** A
+primeira versão quebrava por caractere: hifenizava "12.345.678.901 kWh" em
+"12.345.678.9-" / "01 kWh" e cortava a última linha de uma etapa em
+"… foi 1 20…" — números que nenhuma fonte afirma, depois de o item ter sido
+conferido inteiro. Agora `mindmap.wrap` (compartilhado pelo mapa, pelo pôster e
+pelo rodapé do SVG) quebra entre **átomos** (`mindmap.atoms`): uma palavra, ou
+um número inteiro como o conferidor o lê — "1 200", "1.200", "12.345.678.901",
+"3,5" — junto com a unidade curta que o segue. Número nunca é hifenizado; o que
+não cabe numa linha vai inteiro para a seguinte e transborda. Quando há corte
+(o mapa ainda tem três linhas por nó), ele cai entre átomos e um átomo com
+algarismo não fica antes do "…". No infográfico **não há corte**: o
+`*_max_lines` de um estilo virou orçamento. Uma faixa cujo item passaria do
+orçamento, ou teria um número mais largo que a linha, é desenhada mais larga —
+menos dados ou pontos por linha, as etapas empilhadas em vez de lado a lado —,
+e um bloco que ainda passe dele na forma mais larga cresce. Um nó do mapa
+também cresce para caber um número longo. Tudo determinístico, calculado uma
+vez para a tela e o SVG.
 
 **O PNG é rasterizado no navegador**, a partir do mesmo SVG que o backend
 exporta. `cairosvg` exigiria a libcairo, que a imagem `python:3.12-slim` do Fly
@@ -6607,7 +6651,16 @@ decisão à parte.
 infográfico: `LIMITATION_NOTICE`, o aviso de IA, as frases do que foi omitido e
 as referências com o endereço e a atribuição da fonte. O escape é por formato:
 `html.escape` em todo texto do SVG, servido com `default-src 'none'`; filtro de
-controle no PPTX e no DOCX.
+controle no PPTX e no DOCX. **Os caracteres de controle saem na leitura**
+(`app/ai/studio.py`, `_clean`): C0 (fora espaço em branco, que toda leitura já
+colapsa), DEL, C1, surrogates soltos e os dois não caracteres, em todo campo de
+texto de toda ferramenta. Texto extraído de PDF traz alguns (o `\x02` de uma
+ligadura), o modelo os copia, e cada um quebrava um arquivo: o python-docx
+recusava o título do áudio (500 no download) e o SVG com um deles não era XML
+bem formado. Como segunda barreira, para o que foi guardado antes e para o que
+o aluno digita, o DOCX filtra **toda** string (não só as falas) e o SVG filtra
+antes do `html.escape`. A nota salva do áudio usa o mesmo "Apresentador(a) N"
+dos arquivos, de uma constante só (`SPEAKER_LABEL`, em `app/ai/studio.py`).
 
 **Nenhuma migração.** `StudioArtifact.tool` é `String(32)` e conteúdo, opções,
 citações e `withheld` são JSON: as quatro ferramentas cabem no que a fase 1
@@ -6616,7 +6669,10 @@ criou.
 **O simulado copia.** `MockAIProvider.studio` monta as quatro com texto copiado
 dos trechos — o dado em destaque é o primeiro "número + palavra seguinte" de um
 trecho, escrito como o conferidor o lê —, então passa até na regra estrita por
-construção e continua determinístico.
+construção e continua determinístico. Pela mesma razão, a manchete do simulado
+não traz número: o subtítulo do infográfico lista só as fontes cujo nome não
+tem algarismo, e o título de deck, vídeo e infográfico deixa de fora o nome de
+um caderno que tenha.
 
 **O que ficou de fora.**
 

@@ -9,13 +9,16 @@ saw.
 
 Text is measured by character count, not by a font: the backend has no font to
 measure with, and the SVG export must not depend on one. A label is wrapped
-into at most three lines at word boundaries, and the lines themselves are part
-of the layout, so the screen breaks them where the export does.
+into at most three lines at word boundaries — never inside a figure —, and the
+lines themselves are part of the layout, so the screen breaks them where the
+export does.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+
+from app.ai.guardrails import _NUMBER_TOKEN
 
 #: Pixels per character at the 13 px label size — a generous average for a
 #: proportional sans-serif, so a label is never clipped by its own box.
@@ -66,31 +69,88 @@ class Layout:
     edges: list[Edge]
 
 
-def wrap(label: str, width: int = _CHARS_PER_LINE, max_lines: int = MAX_LINES) -> list[str]:
-    """Break a label at spaces into at most ``max_lines`` lines of ``width``.
+def _has_digit(text: str) -> bool:
+    # Decimal digits only: the "³" of "kg/m³" is a digit to ``str.isdigit``.
+    return any(char.isdecimal() for char in text)
 
-    A word longer than a line is cut; text past the last line ends in "…".
+
+def _unit_like(word: str) -> bool:
+    """A word short enough to be the unit written after a figure ("MPa",
+    "kg/m³", "%", "°C", "anos") — kept on the figure's line."""
+    return len(word.rstrip(".,;:!?)»”")) <= 6 and not _has_digit(word)
+
+
+def atoms(text: str, units: bool = True) -> list[str]:
+    """``text`` as the pieces a line may never be broken inside.
+
+    A plain word is one piece. A figure is one piece however it is written —
+    "1 200" and "12 345 678" (pt-BR thousands separated by spaces) are read as
+    one number by the grounding check (``app.ai.guardrails``), and a line break
+    inside them would print two numbers no source states. With ``units``, the
+    short word right after a figure goes with it too: "1 200 MPa" is one claim.
+    """
+    words = text.split()
+    joined = " ".join(words)
+    starts: list[int] = []
+    position = 0
+    for word in words:
+        starts.append(position)
+        position += len(word) + 1
+    glued = [False] * len(words)
+    for match in _NUMBER_TOKEN.finditer(joined):
+        for index, start in enumerate(starts):
+            if match.start() < start < match.end():
+                glued[index] = True
+        last = max(i for i, start in enumerate(starts) if start < match.end())
+        ends_word = starts[last] + len(words[last]) == match.end()
+        if units and ends_word and last + 1 < len(words) and _unit_like(words[last + 1]):
+            glued[last + 1] = True
+    pieces: list[str] = []
+    for word, glue in zip(words, glued, strict=True):
+        if glue and pieces:
+            pieces[-1] += f" {word}"
+        else:
+            pieces.append(word)
+    return pieces
+
+
+def wrap(label: str, width: int = _CHARS_PER_LINE, max_lines: int = MAX_LINES) -> list[str]:
+    """Break a label into at most ``max_lines`` lines of ``width`` characters.
+
+    Lines break between the pieces of :func:`atoms`, so **a figure is never
+    split** — neither across two lines nor by a hyphen. A figure (with its unit)
+    longer than a line is moved whole to a line of its own and may run past
+    ``width``: the caller widens the box (``layout`` here, the infographic's
+    grid) rather than print part of a number. A plain word longer than a line
+    is hyphenated. Text past the last line ends in "…", cut between pieces, and
+    a trailing piece holding a digit is dropped before the "…" — "1 200…"
+    would read as a number that goes on.
     """
     lines: list[str] = []
     current = ""
-    for word in label.split():
-        while len(word) > width:
-            if current:
+    for atom in atoms(label):
+        # A figure glued to its unit that does not fit may leave the unit to the
+        # next line; the figure itself stays whole.
+        for piece in [atom] if len(atom) <= width else atoms(atom, units=False):
+            while len(piece) > width and not _has_digit(piece):
+                if current:
+                    lines.append(current)
+                    current = ""
+                lines.append(piece[: width - 1] + "-")
+                piece = piece[width - 1 :]
+            candidate = f"{current} {piece}".strip()
+            if len(candidate) <= width or not current:
+                current = candidate
+            else:
                 lines.append(current)
-                current = ""
-            lines.append(word[: width - 1] + "-")
-            word = word[width - 1 :]
-        candidate = f"{current} {word}".strip()
-        if len(candidate) <= width:
-            current = candidate
-        else:
-            lines.append(current)
-            current = word
+                current = piece
     if current:
         lines.append(current)
     if len(lines) > max_lines:
-        last = lines[max_lines - 1]
-        lines = lines[: max_lines - 1] + [last[: width - 1].rstrip() + "…"]
+        kept = atoms(lines[max_lines - 1], units=False)
+        while kept and (len(" ".join(kept)) + 1 > width or _has_digit(kept[-1])):
+            kept.pop()
+        lines = lines[: max_lines - 1] + [" ".join(kept) + "…"]
     return lines or [""]
 
 
@@ -110,7 +170,9 @@ def layout(root: dict | None) -> Layout | None:
             lines=lines,
             depth=depth,
             citations=list(item.get("citations") or []),
-            width=min(MAX_WIDTH, max(MIN_WIDTH, longest * CHAR_WIDTH + 2 * PAD_X)),
+            # Never narrower than its longest line: a figure longer than a
+            # line is kept whole (``wrap``), and the box grows to hold it.
+            width=max(MIN_WIDTH, longest * CHAR_WIDTH + 2 * PAD_X),
             height=len(lines) * LINE_HEIGHT + 2 * PAD_Y,
         )
         nodes.append(node)
