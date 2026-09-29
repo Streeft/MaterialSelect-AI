@@ -98,7 +98,17 @@ def test_the_catalogue_is_the_one_truth_the_modal_reads(client):
     response = client.get("/api/notebooks/studio-catalog")
     assert response.status_code == 200
     tools = {tool["slug"]: tool for tool in response.json()["tools"]}
-    assert list(tools) == ["report", "flashcards", "quiz", "table", "mindmap"]
+    assert list(tools) == [
+        "report",
+        "flashcards",
+        "quiz",
+        "table",
+        "mindmap",
+        "audio",
+        "video",
+        "slides",
+        "infographic",
+    ]
     guide = next(t for t in tools["report"]["templates"] if t["slug"] == "guia_estudo")
     # What the pencil shows is what the model receives.
     assert guide["instructions"] == CATALOG["report"].template("guia_estudo").instructions
@@ -347,7 +357,7 @@ def test_a_choice_the_tool_does_not_have_is_refused(client, payload, fragment):
 
 
 def test_an_unknown_tool_is_refused(client):
-    response = client.post(f"/api/notebooks/{_notebook(client)}/studio", json={"tool": "audio"})
+    response = client.post(f"/api/notebooks/{_notebook(client)}/studio", json={"tool": "podcast"})
     assert response.status_code == 422
 
 
@@ -436,6 +446,32 @@ def test_rename_save_as_note_and_delete(client):
 
     assert client.delete(base).status_code == 204
     assert client.get(base).status_code == 404
+
+
+def test_a_control_character_in_a_renamed_title_does_not_break_the_xlsx(client):
+    """N-1: the rename stored the title unfiltered, and openpyxl raised on the
+    ``\\x07`` in it — the XLSX download became a 500."""
+    notebook_id = _notebook(client)
+    artifact = _generate(client, notebook_id, tool="table", template="propriedades")
+    base = f"/api/notebooks/{notebook_id}/studio/{artifact['id']}"
+
+    renamed = client.patch(base, json={"title": "Revisão\x07 de sexta"})
+    assert renamed.status_code == 200
+    assert renamed.json()["title"] == "Revisão de sexta"
+
+    response = _export(client, notebook_id, artifact, "xlsx")
+    assert response.status_code == 200
+    workbook = load_workbook(io.BytesIO(response.content))
+    cover = [row[0] for row in workbook["Aviso"].iter_rows(values_only=True)]
+    assert "Revisão de sexta" in cover
+
+
+def test_a_title_of_control_characters_only_is_refused(client):
+    notebook_id = _notebook(client)
+    artifact = _generate(client, notebook_id, tool="flashcards")
+    base = f"/api/notebooks/{notebook_id}/studio/{artifact['id']}"
+    assert client.patch(base, json={"title": "\x07\x01"}).status_code == 400
+    assert client.get(base).json()["title"] == artifact["title"]
 
 
 def test_deleting_a_notebook_deletes_its_artifacts(client, db_session):

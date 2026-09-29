@@ -43,7 +43,9 @@ sugerir e explicar.
 **Fases 1 a 9 concluídas.** Fase 7 fechou nesta sessão com a auditoria (M2);
 o único item que resta sob o guarda-chuva da Fase 7 é a exportação em PPTX
 (B2, baixa prioridade) — que a proposta previa como *arquitetura para*, não
-como entrega, então não bloqueia a fase.
+como entrega, então não bloqueia a fase. (O PPTX que o Estúdio dos Cadernos
+entrega desde o [D-98](DECISIONS.md) é outro renderizador; o do `Report`
+continua sem rota.)
 
 | # | Fase | Estado | Documento |
 |---|---|---|---|
@@ -485,8 +487,25 @@ conta o que sai do servidor, falha e consulta ao DNS inclusive, e a origem e a
 licença de cada fonte viajam até a citação e as exportações do Estúdio. Custo
 zero: OpenAlex e web vêm desligadas até haver uma chave gratuita.
 
-**Saúde do código:** 2651 testes de backend (Python 3.11 e 3.12, nenhum skip)
-e 608 de frontend, todos verdes. Desde o P0-1 a suíte também roda as migrações de
+**Cadernos, fase 4 — o Estúdio visual e sonoro** ([D-98](DECISIONS.md)). Os
+últimos quatro ladrilhos do Estúdio acenderam: **resumo em áudio** (dois
+apresentadores, quatro formatos), **resumo em vídeo** (slides e narração numa
+chamada só), **apresentação de slides** e **infográfico** (paisagem, retrato ou
+quadrado). A voz é a do navegador (`speechSynthesis`), uma frase por vez — custo
+zero, e por isso sem MP3 nem MP4: baixa-se o roteiro em DOCX/TXT e o deck em
+PPTX, com a narração ou as notas nas notas do apresentador. O item conferido é a
+fala, o slide inteiro e a cena inteira; o dado em destaque do infográfico segue
+uma regra mais estrita que a do chat (sem a isenção de inteiros até 100, sem as
+palavras do aluno, e com a unidade escrita no trecho, comparada com maiúsculas),
+e a manchete — título e subtítulo do pôster, capa do deck e do vídeo — também.
+Nenhum texto é partido dentro de um número, nem na quebra de linha nem no teto
+de tamanho da leitura. O layout do infográfico é calculado no backend e
+desenhado igual na tela e no SVG, marcas `[n]` e título renomeado incluídos; o PNG é rasterizado no navegador e o PDF dos slides é a impressão. Nenhuma
+migração. A oferta de vozes pt-BR depende do aparelho do aluno, e a tela diz
+quando não há.
+
+**Saúde do código:** 2979 testes de backend (Python 3.11 e 3.12, nenhum skip)
+e 735 de frontend, todos verdes. Desde o P0-1 a suíte também roda as migrações de
 verdade, nos dois sentidos, contra um banco temporário que já contém dados —
 `test_migration_selection_stage.py`, `test_migration_process_universe.py`,
 `test_migration_selection_universe.py`, `test_migration_process_attributes.py`,
@@ -832,6 +851,7 @@ que mais afetam quem for mexer no código:
 | Portão de assinatura: o desenho binário do plano de 18/08, não o Free/Pro do de 21/08 | [D-46](DECISIONS.md) |
 | Trecho recuperado do Cérebro é vocabulário, nunca número; citação verificada por índice | [D-47](DECISIONS.md) |
 | Fonte externa dos Cadernos: URL do aluno só pelo `safe_fetch`; a cota conta o que sai, DNS inclusive; a origem viaja com o texto | [D-97](DECISIONS.md) |
+| Estúdio visual e sonoro: a voz é a do navegador (sem MP3/MP4); o dado em destaque não tem isenção e a unidade é comparada com maiúsculas; o layout do infográfico e a tipografia vêm do backend | [D-98](DECISIONS.md) |
 
 ## 9. Limitações atuais
 

@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [33](#sessão-33--280926-a-290926--cadernos-fase-4-o-estúdio-visual-e-sonoro) | 28 e 29/09/2026 | Cadernos, fase 4: resumo em áudio e em vídeo pela voz do navegador, apresentação de slides com PPTX e infográfico com layout do backend; o dado em destaque sem isenção e a unidade com maiúsculas (D-98) | 2651 → 2979 | 608 → 735 |
 | [32](#sessão-32--250926-a-280926--cadernos-fase-3-fontes-externas) | 25 a 28/09/2026 | Cadernos, fase 3: site, YouTube com transcrição colada, OpenAlex, Wikipédia e busca na web pelo Gemini. Tudo por um portão anti-SSRF, com a origem e a licença coladas à citação e custo zero (D-97) | 1966 → 2651 | 563 → 608 |
 | [31](#sessão-31--250926--auditoria-do-pr-78-curva-custo--lote-do-antigravity) | 25/09/2026 | Auditoria do PR #78 (curva custo × lote, execução agêntica externa): comportamento correto, cobertura de teste devolvida e o registro que faltava, escrito (D-96) | 1963 → 1966 | 563 (inalterado) |
 | [30](#sessão-30--250926--o-estúdio-de-texto-dos-cadernos) | 25/09/2026 | Cadernos, fase 2: o Estúdio de texto — relatório, cartões, teste, tabela e mapa mental, gerados em segundo plano e conferidos item a item (D-94) | 1917 → 1966 | 536 → 554 |
@@ -48,6 +49,118 @@ As sessões entre a 11 e a 12 — o patch de design "Prisma" (D-49, D-50), o
 upgrade de segurança S1 e a rodada de desempenho — **não têm seção própria
 aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
+
+---
+
+## Sessão 33 — 28/09/26 a 29/09/26 — Cadernos, fase 4: o Estúdio visual e sonoro
+
+**O pedido.** A última fase dos Cadernos: os quatro ladrilhos do Estúdio que
+ainda diziam "em breve" — **Resumo em áudio, Resumo em vídeo, Apresentação de
+slides e Infográfico** —, no estilo do NotebookLM e sem custo (D-93). No mesmo
+trabalho, o autor pediu que a documentação andasse junto do código e que outras
+ferramentas de IA (Antigravity inclusive) chegassem às regras do projeto.
+
+**Como foi feito.** Por subagentes, em ondas: três pesquisas (arquivos de
+instrução das ferramentas de IA, `python-pptx`, as APIs do navegador para voz e
+rasterização), oito tarefas de backend, oito de frontend, testes de API, E2E e
+documentação, com uma decisão do coordenador registrada a cada ponto aberto. O
+trabalho foi interrompido uma vez pelo limite de uso e retomado de onde parou.
+
+**O que entrou (D-98).**
+
+- **Backend.**
+  - `app/ai/studio.py`: as quatro ferramentas no catálogo, os esquemas planos
+    (seguros para o modo estrito do Gemini), os leitores com tetos e
+    `strip_markup`, e `amount_for` (o vídeo tira a duração do formato).
+  - `app/notebooks/grounding.py`: `strict_ungrounded` e `foreign_unit`, a regra
+    do dado em destaque; `studio_content.py` com os itens e as frases de cada
+    ferramenta.
+  - `app/notebooks/infographic.py`: o layout do infográfico, com `styles`.
+  - `app/exporters/studio_pptx.py` (deck com notas), `studio.py` (TXT e DOCX do
+    roteiro, SVG do infográfico) e `pptx.py` com as constantes de 16:9 e o slide
+    de avisos públicos.
+  - `studio_service`: a regra "instrução só onde o modelo tem instrução", o
+    layout do infográfico na resposta e o texto de cada ferramenta para "Salvar
+    como nota". A rota de exportação aceita `pptx` e `txt`.
+  - O `mock` monta as quatro copiando trechos.
+- **Frontend.**
+  - `lib/speech/` (`voices.ts`, `useSpeech.ts`) e o motor falso
+    `lib/testing/fakeSpeech.ts`.
+  - `lib/rasterize.ts`: SVG → PNG no navegador.
+  - `AudioView`, `VideoView`, `DeckView` (slides, tela cheia, impressão) e
+    `InfographicView`, ligados no `ArtifactViewer`; "PNG (imagem)" também para o
+    mapa mental; "PDF (imprimir)" nos slides.
+  - O diálogo "Criar …" com legenda por ferramenta ("Formato" no áudio,
+    "Orientação" no infográfico) e instrução para todo modelo que tem instrução.
+  - `studioSoon` e o selo "Em breve" do painel saíram.
+- **Documentação e agentes.** O `README.md` reescrito para o produto de hoje, o
+  `AGENTS.md` com a ordem de leitura e os ponteiros por ferramenta (inclusive
+  `.agent/rules/` e `.agents/rules/` do Antigravity), o modelo de PR e a regra
+  §1.12 de `docs/CLAUDE.md`: documentação no mesmo PR que o código.
+
+**Decisões tomadas no caminho.**
+
+- **A unidade do dado em destaque é comparada com maiúsculas.** A primeira
+  versão ignorava a caixa, e "210 mPa" passaria contra um trecho com
+  "210 MPa". A caixa é o prefixo do SI.
+- **O layout leva a tipografia** (`styles`), para a tela nunca repetir as
+  constantes com que o backend quebrou o texto.
+- **O slide e a cena saem inteiros** quando um número falha, e o vídeo sem voz
+  não avança sozinho.
+- **`playLine`** entrou em `useSpeech` quando a primeira versão do "ouvir a
+  partir desta fala" tocava fora do gesto, o que o iOS recusa.
+- **O SVG do infográfico desenha um fundo**, ou o PNG sairia transparente.
+- **A tabela passou a recusar `instructions`** (400): o "Crie a sua" dela
+  escolhe colunas, e a tela nunca as mandou.
+
+**A rodada de correção da revisão final do PR #83.** A revisão do branch
+inteiro achou três furos importantes e onze menores; todos fechados antes do
+merge.
+
+- **I-1, a manchete sem isenção.** O título e o subtítulo do infográfico — e o
+  título de capa do deck e do vídeo — passavam pela regra estrutural do D-94,
+  com a isenção de inteiros pequenos e as palavras do aluno: "45% das falhas
+  são por fadiga" chegava ao pôster sem frase de omissão. Agora seguem
+  `strict_ungrounded` contra o texto dos trechos que os itens mantidos citam;
+  reprovado, o título vira o neutro, o subtítulo sai, e o `withheld` diz por
+  quê. A nova tentativa passou a nomear o tipo da falha (número, unidade ou
+  manchete).
+- **I-2, número inteiro.** `mindmap.wrap` quebrava por caractere e hifenizava
+  "12.345.678.901 kWh"; agora quebra entre átomos (`mindmap.atoms`), nunca
+  dentro de um número, e o infográfico não corta nada: a faixa fica mais larga
+  ou o bloco cresce. Na mesma linha, o **teto de tamanho do leitor**
+  (`app/ai/studio.py`) cortava por caractere e transformava "1 200 MPa" em
+  "1 2" antes da conferência; `_cap` corta entre os mesmos átomos, e um átomo
+  maior que o teto sai inteiro em vez de ser partido.
+- **I-3, caracteres de controle.** Saem na leitura, em todo campo de toda
+  ferramenta; o DOCX e o SVG filtram de novo. Antes, um `\x02` de PDF derrubava
+  o DOCX do áudio com 500.
+- **Menores.** M-1 ("Quantidade desconhecida", com a concordância certa); M-2
+  (a nota salva do áudio usa o "Apresentador(a) N" dos arquivos, de uma
+  constante só, `SPEAKER_LABEL`); M-3 (os três cenários E2E citados aqui);
+  M-4 (título do alerta de omissão do infográfico); M-5 (nota de nova tentativa
+  por tipo de falha); M-6 (fala e cena atuais saem do poço para o painel, sem
+  cartão dentro de cartão, e os tons do infográfico ficam em passos da paleta
+  como exceção de figura, agora escrita no D-98); M-7 (o pôster desenha o
+  título renomeado, e a alternativa textual mostra o mesmo); M-8 (as marcas
+  `[n]` postas pelos `marks_*` do layout, na tela e no SVG); M-9 ("Toque em
+  Continuar", o rótulo que o botão tem depois do erro); M-10 (a impressão do
+  deck diz "Nenhum trecho citado."); M-11 (o `/estilo` mostra o áudio ativo e
+  o estado indisponível num ladrilho neutro).
+- **N-1 e N-2, da re-revisão.** Renomear um artefato guarda o título pela
+  limpeza do leitor (`_clean`), e a planilha passa todo texto por `_xml`: um
+  `\x07` no título, ou um `\x02` de PDF no trecho citado, derrubava o XLSX
+  com 500. No teste, uma alternativa vazia saía mas o `answer_index` ficava, e
+  o gabarito marcava a alternativa seguinte; agora o índice acompanha as
+  alternativas que sobram, e a questão sai se a correta veio vazia ou se
+  restam menos de duas.
+
+**Números.** Backend 2651 → 2979, frontend 608 → 735 (2883 e 732 antes da
+rodada de correção), mais os três cenários E2E da fase em
+`apps/web/e2e/cadernos.spec.ts` (slides ao PPTX, infográfico ao SVG com a
+assinatura do PNG, e áudio com a voz falsa).
+
+**Depois do merge:** o **Deploy da API**. Não há migração nem seed.
 
 ---
 

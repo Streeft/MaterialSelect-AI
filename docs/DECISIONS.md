@@ -6440,3 +6440,273 @@ rede nenhuma.
 `4dbd71e64b6b`. Não há seed. As chaves opcionais (`OPENALEX_API_KEY`,
 `WEB_SEARCH_*`, `EXTERNAL_CONTACT`) estão em
 [13-deploy.md §5-sexies](13-deploy.md).
+
+## D-98 — O Estúdio visual e sonoro: a voz é a do navegador, o desenho sai do backend e o dado em destaque não tem isenção
+
+**O pedido.** A fase 4 dos Cadernos (D-92), a última das quatro: os ladrilhos
+que ainda diziam "em breve" no Estúdio — **Resumo em áudio, Resumo em vídeo,
+Apresentação de slides e Infográfico** — passam a gerar, no mesmo modal
+"Criar …" do D-94 e com o mesmo comportamento das capturas do NotebookLM. Custo
+zero, como no D-93: o mesmo provedor (`openai-compat` → Gemini gratuito),
+nenhum TTS pago, e o `mock` continua o padrão determinístico. O texto do D-94
+chama esta fase de "o D-96"; o número foi para a auditoria do PR #78, e o D-94
+não é reescrito.
+
+**O catálogo cresce, e a verdade continua uma só.** As quatro ferramentas
+entram em `CATALOG` (`app/ai/studio.py`), e isso basta para acender os
+ladrilhos: a tela lê o catálogo, não uma lista própria.
+
+| Ferramenta | Escolhas | Quantidade | Exporta |
+|---|---|---|---|
+| `audio` | modelos Conversa aprofundada, Resumo, Crítica e Debate (sob a legenda "Formato"), cada um com lápis | curto/padrão/longo = 12/24/40 falas | DOCX, TXT |
+| `video` | formatos Explicativo (8 cenas) e Resumo (5 cenas) | — (o formato é a duração) | PPTX |
+| `slides` | modelos Apresentação detalhada e Resumo para o apresentador, com lápis | menos/padrão/mais = 6/10/15 slides | PPTX (e PDF pela impressão) |
+| `infographic` | orientação paisagem, retrato ou quadrado | conciso/padrão/detalhado = 3/5/7 pontos | SVG (e PNG no navegador) |
+
+Nenhuma delas tem "Crie o seu": o modelo livre só faz sentido onde a
+instrução é o produto (o relatório). A regra "instrução só no relatório" virou
+**"instrução só onde o modelo escolhido tem instrução"**, no serviço
+(`studio_service`) e no diálogo, pela mesma leitura do catálogo. Uma
+consequência foi aceita e fica escrita: a tabela, cujo "Crie a sua" é uma
+escolha de **colunas** e não uma instrução, passa a recusar `instructions` com
+400 — a tela nunca as mandou. **A orientação do infográfico nunca vai ao
+modelo**: é só desenho, e um teste confere que as palavras paisagem, retrato,
+quadrado e orientação não aparecem no prompt.
+
+**A voz é a do navegador, e por isso não existe arquivo de áudio.** O roteiro
+(falas, narração) é gerado e conferido no backend; quem fala é o
+`speechSynthesis` do navegador do aluno, com as vozes que o sistema dele tem.
+É o único caminho que custa zero de verdade: um TTS no servidor ou é pago, ou é
+um modelo pesado numa máquina do Fly que não o comporta. O preço, declarado:
+
+- **Não há MP3 nem MP4**, por decisão. A Web Speech API não entrega o fluxo de
+  áudio que produz, então gravar o que o navegador falou não é possível sem
+  capturar a tela. O que se baixa é o **roteiro**: DOCX e TXT do áudio; PPTX
+  com a narração nas notas do vídeo.
+- **A voz varia.** A disponibilidade de uma voz pt-BR muda com o sistema e o
+  navegador (o Windows tem vozes naturais; macOS, Android e iOS variam; o
+  Chromium *headless* não tem nenhuma). `pickVoices` (`lib/speech/voices.ts`)
+  procura duas vozes pt-BR distintas, preferindo as locais; com uma só, o
+  segundo apresentador usa a mesma voz com tom 0,8 e ritmo × 0,95; sem pt-BR,
+  usa outra variante `pt-*` e **diz isso na tela**; sem nenhuma, a tela diz que
+  não há voz em português e a transcrição continua lá (D-24). O apresentador
+  não tem nome: "Apresentador(a) 1" e "2".
+- **Uma frase por enunciado.** O Chrome corta em silêncio uma fala longa
+  (~15 s), e o `pause()`/`resume()` nativos falham no Android e em aba oculta.
+  Então `toSegments` quebra cada fala em frases de até 180 caracteres — sem
+  partir "3,5", "1.200" ou "Fig." —, `useSpeech` fala **uma de cada vez** e
+  encadeia no `onend`, e pausar é `cancel()` guardando o índice: continuar fala
+  a frase de novo, do começo. Um *token* de geração descarta o `onend`/`onerror`
+  atrasado de uma frase que já foi cancelada, e a aba oculta pausa sozinha
+  (`visibilitychange`), porque ali o Chrome pode parar sem avisar.
+- **`playLine` existe por causa do iOS.** O Safari do iPhone só fala se o
+  primeiro `speak()` acontecer **dentro** do toque. "Ouvir a partir desta fala"
+  movia o índice e pedia para tocar num efeito seguinte — fora do gesto, e a
+  primeira fala saía muda com `not-allowed`. `playLine(i)` move e fala na mesma
+  chamada.
+
+**O vídeo é o deck mais a narração, numa chamada só.** Slides e vídeo
+compartilham o esquema (`{title, slides:[{title, bullets, notes, citations}]}`);
+no vídeo, `notes` **é** a narração falada, de duas a quatro frases. Uma geração
+produz os dois juntos, então o slide mostrado e a frase dita não podem
+discordar, e o vídeo custa uma unidade da cota como qualquer artefato. Na tela,
+a cena exibida é a da frase que está sendo falada, com a legenda da frase
+embaixo. **Sem voz, o vídeo não avança sozinho**: navegação manual com a
+narração inteira da cena como legenda — um cronômetro adivinharia o tempo de
+leitura de cada aluno.
+
+**O que é "item" em cada ferramenta** (a regra do D-94: todo número de todo item
+vem do trecho que aquele item cita, uma nova tentativa nomeando os números, e
+depois o item sai com a frase escrita):
+
+- **áudio:** cada fala ("Uma fala foi omitida…");
+- **slides:** o slide inteiro — título, tópicos e notas juntos. Tirar só o
+  tópico reprovado deixaria o slide dizendo metade do que o modelo quis e as
+  notas falando de um tópico que sumiu;
+- **vídeo:** a cena inteira, pela mesma razão, e com mais força: a narração é o
+  que o aluno ouve;
+- **infográfico:** cada dado em destaque, cada ponto e cada etapa. Título e
+  subtítulo **não** são estruturais como no D-94: são manchete (abaixo).
+
+A narração, as falas e as notas passam por `strip_markup` antes do limite de
+tamanho: um `<speak>` ou `<break/>` vindo do modelo (ou de uma fonte que o
+modelo copiou) nunca chega à voz.
+
+**O dado em destaque não tem isenção.** A regra do chat isenta inteiros até 100
+(`guardrails`): num parágrafo, "3 ligas" ou "2 passos" são contagem, não
+medida. Num infográfico o número **é** a manchete, em fonte de 30 pt, sozinho —
+"45 %" ou "12 ciclos" ali é resultado, por menor que seja. Então
+`strict_ungrounded` (`app/notebooks/grounding.py`) confere o valor e o rótulo de
+cada dado com três regras a mais que o `ungrounded`:
+
+- **sem a isenção dos pequenos inteiros**;
+- **sem as palavras do aluno**: o tema e a instrução dizem o que procurar, não
+  podem ser a fonte de um número mostrado como achado. "45" no tema ancora um
+  ponto, nunca um dado em destaque;
+- **só o texto do trecho**, não os rótulos dele: "Tabela 45" ou "3.2 Ligas" é
+  onde um número está, não um número.
+
+E a **unidade** tem de estar escrita num trecho citado. `foreign_unit` compara a
+forma do valor sem os algarismos ("210 GPa" → "#GPa"), com espaço opcional,
+NBSP e as variantes do grau normalizados, e sem deixar a unidade emendar numa
+letra ("210 Pa" não se acha em "210 GPa"; "5 m" não se acha em "5 mm"). **A
+comparação diferencia maiúsculas**, porque a caixa é o prefixo do SI:
+**mPa ≠ MPa**, mW ≠ MW. A primeira versão ignorava a caixa e foi corrigida na
+revisão. O dado reprovado pela unidade tem frase própria — "Um dado em destaque
+foi omitido porque sua unidade não aparece no trecho citado: 210 MPa." — na
+tela e no rodapé do SVG. Um valor sem algarismo é descartado na leitura, e um
+valor com mais de 24 caracteres **é descartado, não cortado**: cortar
+"1.200 MPa a 1.500 MPa" imprimiria um número que nenhuma fonte afirma. Se todos
+os dados caem, a faixa some e os pontos e as etapas ficam; se nada passa, o
+artefato é `falhou`, com o motivo.
+
+**A manchete também não tem isenção.** A revisão final do PR #83 achou o furo
+que a regra acima deixava: o título do infográfico é o maior texto do pôster
+(30 px, acima da faixa de dados) e o subtítulo vem logo abaixo, e os dois
+passavam pela regra estrutural do D-94 — com a isenção e com as palavras do
+aluno. "45% das falhas são por fadiga" chegava à tela, ao SVG e ao PNG sem uma
+frase de omissão. Agora título e subtítulo do infográfico, e o **título de um
+deck ou de um vídeo** — que abre o slide de capa, sozinho —, seguem
+`strict_ungrounded`: sem isenção, sem as palavras do aluno, só o texto do
+trecho. Como não citam nada, o universo é o **texto dos trechos que os itens
+mantidos citam** — as referências que o leitor tem para conferir; um número
+que só um item omitido citava não está em lugar nenhum do artefato. A manchete
+reprovada **não some**: o título vira o neutro (o nome da ferramenta ou do
+modelo, como a regra estrutural já fazia), o subtítulo sai, e o `withheld`
+ganha a frase ("O título gerado foi trocado por um título neutro porque trazia
+números que não aparecem nos trechos citados: 45."). O título de um slide
+continua sob a regra do item (ele cita, junto com tópicos e notas), e o do
+áudio e o das ferramentas do D-94 continuam estruturais: não há capa. O prompt
+das três ferramentas diz a regra, e a nova tentativa passou a ser escrita **por
+tipo de falha** (`studio_content.retry_note`): número fora do trecho, unidade
+que o trecho não escreve ("copie valor e unidade exatamente") e manchete — a
+nota antiga dizia "números que não aparecem" também para "210 MPa" ao lado de
+"210 GPa", onde o número está e a unidade é que falta.
+
+**O desenho do infográfico sai do backend, com a tipografia junto.**
+`app/notebooks/infographic.py` faz o que o `mindmap.py` faz pelo mapa (D-94, a
+regra do D-53): **um layout só**, desenhado pela tela e pelo SVG exportado.
+Largura fixa por orientação (1200/800/1000), faixas de cabeçalho → dados em
+destaque (4, 2 ou 3 por linha) → pontos (2 ou 1 coluna) → etapas numeradas com
+conectores, texto quebrado por contagem de caracteres e cada bloco com a sua
+caixa em coordenadas inteiras. O layout vai em `ArtifactOut.infographic`,
+separado do `layout` do mapa, e traz **`styles`** — margem, corpo, entrelinha,
+espaçamento e onde ficam as marcas `[n]` (`marks_size`, `marks_right`,
+`marks_bottom`) de cada tipo de bloco. Sem eles, a tela teria de repetir no
+cliente as constantes com que o backend quebrou o texto, e a primeira mudança
+num lado só faria a linha quebrada no servidor transbordar a caixa na tela. O
+`tone` de cada bloco é um índice: a tela o traduz em tokens (D-28), o
+exportador em hex fixo. **Os seis tons ficam em passos da paleta** (`brand-50`,
+`brand-700`, `info-soft`…), e não nos tokens semânticos que o D-91 pede a
+código novo: um tom é amostra de uma figura, não papel da interface, e nenhum
+token semântico (`panel`, `well`, `action`) nomeia seis preenchimentos que se
+alternam. É a exceção de figura ao D-91, a mesma leitura da paleta categórica
+dos mapas, e está comentada em `INFOGRAPHIC_TONES`. Cada par é um já medido em
+`globals.css`, e a escala inverte no tema escuro. A manchete desenhada é
+`artifact.title` — o do aluno, depois de renomear —, o mesmo do cabeçalho da
+página, do nome do arquivo e do `<title>` do SVG; e a alternativa textual
+(D-31) mostra o mesmo título, não o `title` do corpo, que é o original do
+modelo e discordaria do desenho depois de um renomear. As marcas `[n]` da tela
+também são postas pelos `marks_*` do estilo, e não por constantes do cliente.
+
+**Nenhuma linha quebra dentro de um número, e nenhum texto é cortado.** A
+primeira versão quebrava por caractere: hifenizava "12.345.678.901 kWh" em
+"12.345.678.9-" / "01 kWh" e cortava a última linha de uma etapa em
+"… foi 1 20…" — números que nenhuma fonte afirma, depois de o item ter sido
+conferido inteiro. Agora `mindmap.wrap` (compartilhado pelo mapa, pelo pôster e
+pelo rodapé do SVG) quebra entre **átomos** (`mindmap.atoms`): uma palavra, ou
+um número inteiro como o conferidor o lê — "1 200", "1.200", "12.345.678.901",
+"3,5" — junto com a unidade curta que o segue. Número nunca é hifenizado; o que
+não cabe numa linha vai inteiro para a seguinte e transborda. Quando há corte
+(o mapa ainda tem três linhas por nó), ele cai entre átomos e um átomo com
+algarismo não fica antes do "…". No infográfico **não há corte**: o
+`*_max_lines` de um estilo virou orçamento. Uma faixa cujo item passaria do
+orçamento, ou teria um número mais largo que a linha, é desenhada mais larga —
+menos dados ou pontos por linha, as etapas empilhadas em vez de lado a lado —,
+e um bloco que ainda passe dele na forma mais larga cresce. Um nó do mapa
+também cresce para caber um número longo. Tudo determinístico, calculado uma
+vez para a tela e o SVG.
+
+**O leitor também não corta dentro de um número.** Antes do layout, cada campo
+de texto do modelo passa por um teto de tamanho (`MAX_TITLE`, `MAX_LINE`…), e o
+teto cortava por caractere: um título de 125 caracteres terminado em
+"1 200 MPa" virava "… 1 20" já na leitura — e o que se confere é o texto
+cortado, então um "2" solto passaria pela regra do item, que isenta inteiros
+pequenos. `_cap` (`app/ai/studio.py`) corta entre os mesmos átomos de
+`mindmap.atoms`: o que sobra é um prefixo de palavras inteiras, e um número com
+a unidade que o segue entra inteiro ou não entra. Um átomo sozinho mais longo
+que o teto **sai, não é partido** — o campo fica vazio, e o item vazio cai
+pela regra de sempre. O valor de um dado em destaque continua lido inteiro e
+descartado se passar de 24 caracteres: encurtá-lo, mesmo entre átomos, seria
+uma afirmação que o modelo não fez.
+
+**O PNG é rasterizado no navegador**, a partir do mesmo SVG que o backend
+exporta. `cairosvg` exigiria a libcairo, que a imagem `python:3.12-slim` do Fly
+não tem — seria pacote de sistema e imagem maior para um arquivo que o
+navegador do aluno já sabe desenhar. `lib/rasterize.ts` busca o SVG com a
+sessão, desenha num `canvas` a 2× (com teto de área para o iOS) e baixa. Duas
+exigências vêm daí e estão no SVG: nenhum `foreignObject` e nenhuma referência
+externa (fonte, imagem, `url(#…)`), que "sujariam" o `canvas` e fariam o
+`toBlob` recusar; e um retângulo de fundo, sem o qual o PNG sairia
+transparente. Se ainda assim o navegador recusar, a tela diz para baixar o SVG.
+O mapa mental ganhou o mesmo "PNG (imagem)".
+
+**O PDF dos slides é a impressão do navegador.** "Imprimir / PDF" monta um
+portal com todos os slides, as citações e os avisos, em tema claro, e usa uma
+página nomeada em paisagem (`@page deck`) — imprimir qualquer outra tela do app
+continua em retrato. Um PDF gerado no servidor traria outra biblioteca de
+sistema pela mesma razão do PNG.
+
+**O PPTX leva as notas.** `app/exporters/studio_pptx.py`, 16:9: slide de
+título; um slide por slide do deck, com os tópicos e as marcas `[n]`; as
+**notas do apresentador** com as notas (ou "Narração: …", no vídeo) e as
+fontes citadas por extenso; as referências, 8 por slide, com endereço e
+atribuição (D-97) nunca encurtados; os avisos; e o que foi omitido. Todo texto
+passa por um filtro de caracteres de controle, que o XML recusa. As constantes
+de 16:9 e o slide de avisos foram promovidos a nome público em
+`app/exporters/pptx.py` e reaproveitados. **O PPTX do `Report` (B2) continua
+sem rota**: o deck do Estúdio não é aquele renderizador, e ligá-lo segue sendo
+decisão à parte.
+
+**Toda exportação com os dois avisos e as referências.** DOCX e TXT do áudio
+(o roteiro, "Apresentador(a) 1: … [n]"), PPTX de slides e vídeo, SVG do
+infográfico: `LIMITATION_NOTICE`, o aviso de IA, as frases do que foi omitido e
+as referências com o endereço e a atribuição da fonte. O escape é por formato:
+`html.escape` em todo texto do SVG, servido com `default-src 'none'`; filtro de
+controle no PPTX e no DOCX. **Os caracteres de controle saem na leitura**
+(`app/ai/studio.py`, `_clean`): C0 (fora espaço em branco, que toda leitura já
+colapsa), DEL, C1, surrogates soltos e os dois não caracteres, em todo campo de
+texto de toda ferramenta. Texto extraído de PDF traz alguns (o `\x02` de uma
+ligadura), o modelo os copia, e cada um quebrava um arquivo: o python-docx
+recusava o título do áudio (500 no download) e o SVG com um deles não era XML
+bem formado. Como segunda barreira, para o que foi guardado antes e para o que
+o aluno digita, o DOCX filtra **toda** string (não só as falas) e o SVG filtra
+antes do `html.escape`. A nota salva do áudio usa o mesmo "Apresentador(a) N"
+dos arquivos, de uma constante só (`SPEAKER_LABEL`, em `app/ai/studio.py`).
+
+**Nenhuma migração.** `StudioArtifact.tool` é `String(32)` e conteúdo, opções,
+citações e `withheld` são JSON: as quatro ferramentas cabem no que a fase 1
+criou.
+
+**O simulado copia.** `MockAIProvider.studio` monta as quatro com texto copiado
+dos trechos — o dado em destaque é o primeiro "número + palavra seguinte" de um
+trecho, escrito como o conferidor o lê —, então passa até na regra estrita por
+construção e continua determinístico. Pela mesma razão, a manchete do simulado
+não traz número: o subtítulo do infográfico lista só as fontes cujo nome não
+tem algarismo, e o título de deck, vídeo e infográfico deixa de fora o nome de
+um caderno que tenha.
+
+**O que ficou de fora.**
+
+- **MP3 e MP4**, pela razão acima. Se um dia houver TTS gratuito no servidor, é
+  outra decisão.
+- **Velocidade no vídeo.** O áudio tem 0,75×–1,5×; o hook já suporta, a tela do
+  vídeo não pede.
+- **"Crie o seu" nas quatro ferramentas novas.**
+- **Um rasterizador só.** `lib/figureExport.ts` tem o seu, privado, para as
+  figuras da página; poderia usar `svgToPngBlob`.
+- **A voz não é testada num navegador real na CI**: o Chromium *headless* não
+  tem vozes, e os testes usam um motor falso (`lib/testing/fakeSpeech.ts`).
+  Conferir num celular com voz pt-BR é tarefa manual.
+
+**Depois do merge**, o **Deploy da API** (não há migração nem seed).

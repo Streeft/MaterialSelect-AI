@@ -1,4 +1,5 @@
-"""The Studio of a notebook (D-94): reports, flashcards, quizzes, tables, mind maps.
+"""The Studio of a notebook (D-94, D-98): reports, flashcards, quizzes, tables,
+mind maps, audio overviews, video overviews, slide decks and infographics.
 
 A generation is **created now and made later**. ``create`` validates the
 choices against the catalogue, checks the quota and writes the artifact as
@@ -37,24 +38,32 @@ from sqlalchemy.orm import Session
 
 from app.ai.factory import get_provider
 from app.ai.guardrails import numbers_in
-from app.ai.notebook import retry_note
 from app.ai.provider import AIProvider, AIUnavailableError
-from app.ai.studio import CATALOG, CUSTOM, StudioRequest, ToolSpec
+from app.ai.studio import (
+    CATALOG,
+    CUSTOM,
+    SPEAKER_LABEL,
+    StudioRequest,
+    ToolSpec,
+    _clean,
+    amount_for,
+)
 from app.config import Settings
 from app.config import settings as default_settings
 from app.domain.errors import ConflictError, NotFoundError, QuotaExceededError, ValidationError
 from app.exporters import studio as studio_exporter
 from app.models.notebook import Notebook, NotebookNote, StudioArtifact
 from app.models.user import User
-from app.notebooks import mindmap
+from app.notebooks import infographic, mindmap
 from app.notebooks.retrieval import search, spread
-from app.notebooks.studio_content import cell_text, check, finalise, item_count
+from app.notebooks.studio_content import cell_text, check, finalise, item_count, retry_note
 from app.repositories.notebook_repository import NotebookRepository
 from app.schemas.notebook import (
     ArtifactOut,
     ArtifactSummaryOut,
     ArtifactUpdate,
     CitationOut,
+    InfographicLayoutOut,
     MindMapEdgeOut,
     MindMapLayoutOut,
     MindMapNodeOut,
@@ -72,6 +81,9 @@ logger = logging.getLogger(__name__)
 
 MAX_COLUMNS = 8
 MAX_COLUMN_CHARS = 60
+
+#: "Desconhecido" agrees with the noun: "Quantidade desconhecida".
+_UNKNOWN = {"quantidade": "desconhecida", "dificuldade": "desconhecida"}
 
 INTERRUPTED = "A geração foi interrompida antes de terminar (o servidor reiniciou). Gere de novo."
 UNEXPECTED = "Erro inesperado ao gerar. Tente de novo; se persistir, avise o professor."
@@ -194,8 +206,9 @@ class StudioService:
             slugs = [c.slug for c in choices]
             chosen = value or default or slugs[0]
             if chosen not in slugs:
+                unknown = _UNKNOWN.get(kind, "desconhecido")
                 raise ValidationError(
-                    f"{kind.capitalize()} desconhecido para {spec.label}: {chosen}. "
+                    f"{kind.capitalize()} {unknown} para {spec.label}: {chosen}. "
                     f"Aceitos: {', '.join(slugs)}."
                 )
             return next(c for c in choices if c.slug == chosen)
@@ -205,20 +218,27 @@ class StudioService:
         count = pick("quantidade", payload.count, spec.counts, "padrao")
         difficulty = pick("dificuldade", payload.difficulty, spec.difficulties, "medio")
 
+        # A template carries instructions when the model is told how to write
+        # it (a report's study guide, an audio's debate); the pencil edits them.
+        # "Crie o seu" of such a tool is those instructions, written by the
+        # student. A table's own template is its columns, not instructions.
+        takes_instructions = any(c.instructions for c in spec.templates)
         instructions = None
         if payload.instructions is not None:
-            if not template or not any(c.instructions or c.slug == CUSTOM for c in spec.templates):
+            if template is None or not (
+                template.instructions or (template.slug == CUSTOM and takes_instructions)
+            ):
                 raise ValidationError(
                     f"{spec.label} não aceita instruções de modelo; use o campo de foco."
                 )
             instructions = payload.instructions.strip() or None
         elif template is not None:
             instructions = template.instructions or None
-        if template is not None and template.slug == CUSTOM and spec.slug == "report":
+        if template is not None and template.slug == CUSTOM and takes_instructions:
             if not instructions:
                 raise ValidationError(
-                    "O modelo “Crie o seu” precisa de instruções: descreva a estrutura, o "
-                    "estilo e o público do relatório."
+                    f"O modelo “{template.label}” precisa de instruções: descreva a estrutura, "
+                    "o estilo e o público."
                 )
 
         columns: list[str] = []
@@ -246,7 +266,10 @@ class StudioService:
             "instructions": instructions,
             "topic": (payload.topic or "").strip() or None,
             "count": count.slug if count else None,
-            "amount": count.amount if count else None,
+            # The video's length is its format (D-98): eight scenes or five.
+            "amount": amount_for(
+                spec.slug, fmt.slug if fmt else None, count.amount if count else None
+            ),
             "difficulty": difficulty.slug if difficulty else None,
             "columns": columns,
             "depth": fmt.amount if fmt and fmt.amount else 2,
@@ -310,7 +333,7 @@ class StudioService:
 
         checked = check(request, self._call(provider, request), extra, artifact.title)
         if checked.withheld:
-            retry = dataclasses.replace(request, retry_note=retry_note(checked.figures))
+            retry = dataclasses.replace(request, retry_note=retry_note(checked))
             try:
                 checked = check(request, self._call(provider, retry), extra, artifact.title)
             except AIUnavailableError:
@@ -354,7 +377,12 @@ class StudioService:
 
     def rename(self, notebook_id: int, artifact_id: int, payload: ArtifactUpdate) -> ArtifactOut:
         artifact = self._artifact(notebook_id, artifact_id)
-        artifact.title = payload.title.strip()
+        # The reader's own cleaning: a control character typed into a title
+        # would otherwise break every export that writes it (N-1).
+        title = _clean(payload.title)
+        if not title:
+            raise ValidationError("O título não pode ficar vazio.")
+        artifact.title = title
         self.db.commit()
         return self._out(artifact)
 
@@ -459,6 +487,15 @@ class StudioService:
         content = (artifact.content or {}) if summary.status == "pronto" else {}
         body = content.get("body")
         drawn = mindmap.layout(body.get("root")) if body and artifact.tool == "mindmap" else None
+        # The infographic's geometry is computed here too (ADR 0004): the screen
+        # and the SVG draw the same blocks; the orientation is the format. The
+        # headline is the artifact's title — the student's, after a rename —,
+        # the one the page header, the file name and the SVG's name show.
+        sheet = (
+            infographic.layout({**body, "title": artifact.title}, artifact.format)
+            if body and artifact.tool == "infographic"
+            else None
+        )
         return ArtifactOut(
             **summary.model_dump(),
             content=body,
@@ -466,6 +503,7 @@ class StudioService:
             withheld=list(content.get("withheld") or []),
             exports=list(CATALOG[artifact.tool].exports),
             layout=_layout_out(drawn) if drawn else None,
+            infographic=InfographicLayoutOut.model_validate(sheet.to_dict()) if sheet else None,
         )
 
 
@@ -559,6 +597,42 @@ def plain_text(tool: str, body: dict) -> str:
 
         if body.get("root"):
             walk(body["root"], 0)
+    elif tool == "audio":
+        lines.extend(
+            f"{SPEAKER_LABEL} {line['speaker']}: {line['text']}{_marks(line['citations'])}"
+            for line in body.get("lines", [])
+        )
+    elif tool in ("slides", "video"):
+        label = "Narração" if tool == "video" else "Notas"
+        for number, slide in enumerate(body.get("slides", []), start=1):
+            lines.append(f"{number}. {slide['title']}{_marks(slide['citations'])}")
+            lines.extend(f"- {bullet}" for bullet in slide["bullets"])
+            if slide["notes"]:
+                lines.append(f"{label}: {slide['notes']}")
+            lines.append("")
+    elif tool == "infographic":
+        if body.get("subtitle"):
+            lines += [body["subtitle"], ""]
+        if body.get("stats"):
+            lines.append("DADOS EM DESTAQUE")
+            lines.extend(
+                f"{stat['value']} — {stat['label']}{_marks(stat['citations'])}"
+                for stat in body["stats"]
+            )
+            lines.append("")
+        if body.get("points"):
+            lines.append("PONTOS")
+            for point in body["points"]:
+                if point["heading"]:
+                    lines.append(point["heading"])
+                lines.append(point["text"] + _marks(point["citations"]))
+            lines.append("")
+        if body.get("steps"):
+            lines.append("ETAPAS")
+            lines.extend(
+                f"{number}. {step['text']}{_marks(step['citations'])}"
+                for number, step in enumerate(body["steps"], start=1)
+            )
     return "\n".join(lines).strip()
 
 

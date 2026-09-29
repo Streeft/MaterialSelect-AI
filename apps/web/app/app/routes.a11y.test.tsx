@@ -1512,7 +1512,8 @@ describe("acessibilidade das telas principais", () => {
   });
 
   // D-92: a lista e o caderno com os três painéis cheios — guia com citação,
-  // uma resposta, uma nota e as ferramentas do Estúdio "em breve".
+  // uma resposta, uma nota e as nove ferramentas do Estúdio (todas ativas
+  // desde a D-98).
   it("cadernos", async () => {
     await auditRoute(<NotebooksPage />, ptBR.notebooks.title);
   });
@@ -1524,6 +1525,8 @@ describe("acessibilidade das telas principais", () => {
   // D-94: each viewer the Studio opens in its panel — the table (headers and
   // written absence), the quiz (answered, so the verdict and the explanation
   // are on screen), the mind map in both views — and the "Criar …" modal.
+  // D-98 adds the audio (jsdom has no voice, so the transcript with the
+  // written reason), the video, the deck and the infographic.
   it.each([
     ["tabela", "Densidades", null],
     ["teste respondido", "Teste — aços", "2700 kg/m³"],
@@ -1531,6 +1534,10 @@ describe("acessibilidade das telas principais", () => {
     ["mapa mental como lista", "Mapa — aços", ptBR.notebooks.studio.viewList],
     ["cartões", "Cartões — aços", ptBR.notebooks.studio.flip],
     ["relatório", "Guia de estudo — aços", null],
+    ["resumo em áudio", "Conversa — aços", null],
+    ["resumo em vídeo", "Vídeo — aços", null],
+    ["apresentação de slides", "Slides — aços", null],
+    ["infográfico", "Infográfico — aços", null],
   ])("caderno, com %s do Estúdio aberto", async (_what, title, click) => {
     const client = makeClient();
     const user = userEvent.setup();

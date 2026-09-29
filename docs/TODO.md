@@ -13,17 +13,6 @@ os vizinhos — outros documentos citam esses códigos.
 
 ## Alta prioridade
 
-**Cadernos — fase 4 (D-98).** ▃ A fase 1 (D-92) entregou cadernos privados,
-fontes, conversa citada, guia, notas e cota. A fase 2 (D-94) entregou o Estúdio
-de texto: relatório, cartões, teste, tabela e mapa mental, gerados em segundo
-plano e conferidos item a item. A fase 3 (D-97) entregou as fontes externas —
-site, YouTube, OpenAlex, Wikipédia e web (ver "Débitos já quitados"). Falta a
-fase 4, também sem custo (D-93): **visual e sonoro**, com Slides + PPTX,
-Infográfico, e Resumo em Áudio e em Vídeo, com roteiro do backend e a voz do
-navegador (`speechSynthesis`), sem TTS pago. O texto do D-94 chama essa fase de
-"D-96", mas o número foi usado para a auditoria do PR #78; a fase 4 é o
-**D-98**.
-
 **S3 — as cadeias de CVE que nenhum upgrade fecha.** ▃ O S2 (ver "Débitos já
 quitados") derrubou o `npm audit` de 27 para **14** achados e fechou as duas
 cadeias que tinham caminho de upgrade. As três que sobraram **não têm versão
@@ -78,6 +67,38 @@ Nenhum item aberto no momento — M6 foi entregue nesta sessão (ver
 ---
 
 ## Baixa prioridade
+
+**Cadernos — pendências deixadas pela fase 4 (D-98).** Nenhuma bloqueia o uso.
+
+- **A voz pt-BR depende do aparelho do aluno.** ▁ O áudio e o vídeo falam pelo
+  `speechSynthesis` do navegador, e a oferta de vozes pt-BR muda com o sistema:
+  o Windows tem vozes naturais, macOS, Android e iOS variam, e o Chromium
+  *headless* não tem nenhuma — por isso a CI só exercita o motor falso
+  (`lib/testing/fakeSpeech.ts`). A tela já diz quando usou outra variante de
+  português ou quando não há voz. Falta conferir ao vivo num Android e num
+  iPhone (o `playLine` existe para o gesto do iOS) e registrar o que se ouviu.
+- **Sem MP3 nem MP4, por decisão.** A Web Speech API não entrega o áudio que
+  produz, e um TTS no servidor ou é pago ou não cabe na máquina do Fly. O que
+  se baixa é o roteiro (DOCX/TXT) e o deck com a narração nas notas (PPTX).
+  Reavalie só se aparecer um TTS gratuito que rode no servidor sem conta com
+  forma de pagamento.
+- **Dois rasterizadores.** ▁ `lib/figureExport.ts` tem um `rasterise` privado
+  para as figuras da página, e `lib/rasterize.ts` (`svgToPngBlob`) nasceu no
+  D-98 para o infográfico e o mapa mental, com teto de `canvas` para o iOS e o
+  erro tipado de `canvas` "sujo". O primeiro pode passar a usar o segundo.
+- **Velocidade no vídeo.** ▁ O áudio tem 0,75×–1,5×; `useSpeech.setRate` já
+  serve ao vídeo, a tela só não oferece.
+- **"Salvar como nota" corta o corpo em 20 000 caracteres.** ▁ Em
+  `app/services/studio_service.py` (`save_as_note`), o texto do artefato vai
+  para a nota com `[:20_000]`, e o corte pode cair no meio de um número. Não é
+  furo na conferência de números: uma nota nunca é fonte nem volta ao modelo, e
+  20 000 é o teto do próprio editor de notas. Quando for feito, cortar numa
+  quebra de linha e acrescentar uma frase dizendo que a nota foi encurtada. Não
+  reaproveite o `_cap` de `app/ai/studio.py`: ele achata as quebras de linha.
+- **As marcas de citação do infográfico têm a mesma posição e o mesmo tamanho
+  na tela e no SVG, mas não a mesma cor.** ▁ A tela usa um token de tinta
+  esmaecida, e o SVG usa a cor de destaque do cartão. Falta escolher uma e
+  usá-la nos dois.
 
 **Cadernos — pendências deixadas pela fase 3 (D-97).** Nenhuma bloqueia o uso;
 cada uma tem o motivo de ter ficado de fora.
@@ -188,6 +209,24 @@ continua lá, e a métrica para de medir no 3.
 
 Registrados para não voltarem por engano:
 
+- ~~**Cadernos, fase 4 — Estúdio visual e sonoro (D-98)**~~ — Resumo em
+  áudio (quatro modelos, dois apresentadores), Resumo em vídeo (deck + narração
+  numa chamada), Apresentação de slides e Infográfico (três orientações), no
+  mesmo modal do D-94. Nenhum ladrilho do Estúdio diz mais "em breve".
+  - **A voz é a do navegador** (`speechSynthesis`), uma frase por vez, com
+    `playLine` para o gesto do iOS: custo zero, e por isso sem MP3/MP4.
+  - **O item conferido é a fala, o slide inteiro, a cena inteira** e cada dado,
+    ponto e etapa do infográfico.
+  - **O dado em destaque segue a regra estrita**: sem a isenção de inteiros até
+    100, sem as palavras do aluno, e com a unidade escrita no trecho —
+    comparada com maiúsculas (mPa ≠ MPa).
+  - **O layout do infográfico sai do backend**, com a tipografia (`styles`),
+    para a tela e o SVG; o PNG é rasterizado no navegador, e o PDF dos slides é
+    a impressão.
+  - **PPTX com notas** para slides e vídeo; DOCX e TXT do roteiro de áudio;
+    todo arquivo com os avisos e as referências. Nenhuma migração.
+
+  O que ficou pendente está em "Baixa prioridade".
 - ~~**Cadernos, fase 3 — fontes externas (D-97)**~~ — A aba **Link** acrescenta
   um site ou um vídeo do YouTube, e a caixa de pesquisa das Fontes busca
   **Artigos** (OpenAlex), **Wikipédia** e **Web** (*grounding* do Gemini) e
@@ -798,7 +837,10 @@ Registrados para não voltarem por engano:
   mesclar. **B4** detecção de encoding além de UTF-8/Latin-1, via
   `charset-normalizer`. **B2** arquitetura de exportação PPTX
   (`to_pptx(report) -> bytes`), deliberadamente sem rota exposta, como o
-  próprio item pedia. **B10** `httpx2` instalado para calar o aviso de
+  próprio item pedia. *Nota posterior (D-98):* o renderizador do `Report`
+  continua sem rota; o PPTX que o Estúdio entrega (slides e vídeo) é outro,
+  `app/exporters/studio_pptx.py`, que só reaproveita as constantes de 16:9 e o
+  slide de avisos de `pptx.py`, promovidos a nome público. **B10** `httpx2` instalado para calar o aviso de
   depreciação do TestClient do Starlette. 831 testes de backend (0 skip,
   antes 795) e 165 de frontend (antes 162) ao final; a revisão final de
   branch rodou `alembic upgrade head` + seed num banco limpo para confirmar
