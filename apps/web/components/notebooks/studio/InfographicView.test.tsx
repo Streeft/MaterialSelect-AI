@@ -53,6 +53,9 @@ const style = (over: Partial<InfographicStyle>): InfographicStyle => ({
   body_char: 0.55,
   body_max_lines: 12,
   gap: 8,
+  marks_size: 10,
+  marks_right: 8,
+  marks_bottom: 6,
   ...over,
 });
 
@@ -61,14 +64,14 @@ const layout: InfographicLayout = {
   height: 600,
   orientation: "paisagem",
   styles: {
-    title: style({ pad_x: 0, pad_y: 0, heading_size: 30, heading_line: 36, gap: 0 }),
-    subtitle: style({ pad_x: 0, pad_y: 0, body_size: 17, body_line: 24, gap: 0 }),
+    title: style({ pad_x: 0, pad_y: 0, heading_size: 30, heading_line: 36, gap: 0, marks_size: 0, marks_right: 0, marks_bottom: 0 }),
+    subtitle: style({ pad_x: 0, pad_y: 0, body_size: 17, body_line: 24, gap: 0, marks_size: 0, marks_right: 0, marks_bottom: 0 }),
     stat: style({ heading_size: 30, heading_line: 36, gap: 6 }),
     point: style({}),
     step: style({}),
   },
   blocks: [
-    { kind: "title", x: 40, y: 40, width: 1120, height: 36, heading_lines: ["Aços estruturais"], body_lines: [], citations: [], tone: 0, index: 0 },
+    { kind: "title", x: 40, y: 40, width: 1120, height: 36, heading_lines: ["Infográfico — aços"], body_lines: [], citations: [], tone: 0, index: 0 },
     { kind: "subtitle", x: 40, y: 88, width: 1120, height: 24, heading_lines: [], body_lines: ["O que as fontes dizem"], citations: [], tone: 0, index: 0 },
     { kind: "stat", x: 40, y: 144, width: 262, height: 94, heading_lines: ["7850 kg/m³"], body_lines: ["densidade do aço carbono"], citations: [1], tone: 0, index: 0 },
     { kind: "stat", x: 326, y: 144, width: 262, height: 94, heading_lines: ["210 GPa"], body_lines: ["módulo de Young"], citations: [1], tone: 1, index: 1 },
@@ -115,7 +118,7 @@ describe("InfographicView", () => {
     expect(container.querySelectorAll('rect[data-part="card"]')).toHaveLength(5);
     expect(container.querySelectorAll('line[data-part="connector"]')).toHaveLength(1);
     const texts = [...svg.querySelectorAll("text")].map((node) => node.textContent);
-    for (const line of ["Aços estruturais", "7850 kg/m³", "densidade do aço carbono", "Soldabilidade", "1", "2"]) {
+    for (const line of ["Infográfico — aços", "7850 kg/m³", "densidade do aço carbono", "Soldabilidade", "1", "2"]) {
       expect(texts).toContain(line);
     }
     // The citation marks and a legend of chips below the drawing.
@@ -134,6 +137,28 @@ describe("InfographicView", () => {
     // Body after one heading line plus the gap.
     expect(label?.getAttribute("y")).toBe(String(144 + 16 + 36 + 6 + 0.75 * 18));
     expect(label?.getAttribute("font-size")).toBe("13");
+  });
+
+  it("places the citation marks with the API's marks_* numbers, as the SVG export does (M-8)", () => {
+    const shifted: InfographicLayout = {
+      ...layout,
+      styles: { ...layout.styles, stat: { ...layout.styles.stat, marks_size: 11, marks_right: 9, marks_bottom: 7 } },
+    };
+    const { container } = render(
+      <InfographicView artifact={artifact({ infographic: shifted })} cites={cites} />,
+    );
+    const stat = container.querySelectorAll('g[data-kind="stat"]')[0] as SVGGElement;
+    const marks = stat.querySelector('text[data-part="marks"]');
+    // x = block.x + width − marks_right; baseline = block.y + height − marks_bottom.
+    expect(marks?.textContent).toBe("[1]");
+    expect(marks?.getAttribute("x")).toBe(String(40 + 262 - 9));
+    expect(marks?.getAttribute("y")).toBe(String(144 + 94 - 7));
+    expect(marks?.getAttribute("font-size")).toBe("11");
+    expect(marks?.getAttribute("text-anchor")).toBe("end");
+    // A card without citations, and the title, draw no marks.
+    const firstStep = container.querySelectorAll('g[data-kind="step"]')[0] as SVGGElement;
+    expect(firstStep.querySelector('text[data-part="marks"]')).toBeNull();
+    expect(container.querySelector('g[data-kind="title"] text[data-part="marks"]')).toBeNull();
   });
 
   it("colours cards by tone through token classes, never raw colours", () => {
@@ -172,6 +197,17 @@ describe("InfographicView", () => {
     expect(screen.getByRole("img")).toBeInTheDocument();
   });
 
+  it("gives the text alternative the headline the drawing shows — the renamed title (M-7, D-31)", () => {
+    // The body keeps the model's original title; the API draws artifact.title.
+    const { container } = render(<InfographicView artifact={artifact()} cites={cites} />);
+    const drawn = container.querySelector('g[data-kind="title"] text')?.textContent;
+    expect(drawn).toBe("Infográfico — aços");
+    fireEvent.click(screen.getByRole("button", { name: t.viewAsText }));
+    expect(screen.getByText("Infográfico — aços")).toBeInTheDocument();
+    expect(screen.queryByText("Aços estruturais")).not.toBeInTheDocument();
+    expect(screen.getByText("O que as fontes dizem")).toBeInTheDocument();
+  });
+
   it("says what was withheld, in the API's sentences", () => {
     render(
       <InfographicView
@@ -188,6 +224,7 @@ describe("InfographicView", () => {
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
     expect(screen.getByText(/não tem desenho/)).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: t.stats })).toBeInTheDocument();
+    expect(screen.getByText("Infográfico — aços")).toBeInTheDocument();
   });
 
   it("has no automatically detectable accessibility violations, in both views", async () => {

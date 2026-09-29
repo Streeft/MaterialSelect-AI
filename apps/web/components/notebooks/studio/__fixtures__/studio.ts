@@ -434,6 +434,9 @@ const style = (over: Partial<InfographicStyle>): InfographicStyle => ({
   body_char: 0.55,
   body_max_lines: 12,
   gap: 8,
+  marks_size: 10,
+  marks_right: 8,
+  marks_bottom: 6,
   ...over,
 });
 
@@ -442,14 +445,14 @@ const infographicLayout: InfographicLayout = {
   height: 400,
   orientation: "paisagem",
   styles: {
-    title: style({ pad_x: 0, pad_y: 0, heading_size: 30, heading_line: 36, gap: 0 }),
-    subtitle: style({ pad_x: 0, pad_y: 0, body_size: 17, body_line: 24, gap: 0 }),
+    title: style({ pad_x: 0, pad_y: 0, heading_size: 30, heading_line: 36, gap: 0, marks_size: 0, marks_right: 0, marks_bottom: 0 }),
+    subtitle: style({ pad_x: 0, pad_y: 0, body_size: 17, body_line: 24, gap: 0, marks_size: 0, marks_right: 0, marks_bottom: 0 }),
     stat: style({ heading_size: 30, heading_line: 36, gap: 6 }),
     point: style({}),
     step: style({}),
   },
   blocks: [
-    { kind: "title", x: 40, y: 40, width: 1120, height: 36, heading_lines: ["Aços estruturais"], body_lines: [], citations: [], tone: 0, index: 0 },
+    { kind: "title", x: 40, y: 40, width: 1120, height: 36, heading_lines: ["Infográfico — aços"], body_lines: [], citations: [], tone: 0, index: 0 },
     { kind: "subtitle", x: 40, y: 88, width: 1120, height: 24, heading_lines: [], body_lines: ["O que as fontes dizem"], citations: [], tone: 0, index: 0 },
     { kind: "stat", x: 40, y: 144, width: 262, height: 94, heading_lines: ["7850 kg/m³"], body_lines: ["densidade do aço carbono"], citations: [1], tone: 0, index: 0 },
     { kind: "point", x: 40, y: 270, width: 548, height: 80, heading_lines: ["Soldabilidade"], body_lines: ["Cai com o teor de carbono."], citations: [1], tone: 1, index: 0 },

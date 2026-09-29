@@ -2478,6 +2478,12 @@ export interface InfographicStyle {
   body_char: number;
   body_max_lines: number;
   gap: number;
+  /** A card's citation marks ("[1] [2]"): font size, and the end of their
+   * baseline sits `marks_right` from the card's right edge and `marks_bottom`
+   * from its bottom edge (text-anchor end). Zero for title and subtitle. */
+  marks_size: number;
+  marks_right: number;
+  marks_bottom: number;
 }
 
 /** The infographic's geometry, computed by the API for the screen and the SVG
