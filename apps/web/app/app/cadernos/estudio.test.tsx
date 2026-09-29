@@ -1,23 +1,29 @@
 import type { ReactNode } from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, waitFor } from "@testing-library/react";
 import { screen, within } from "shadow-dom-testing-library";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { Notebook } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
+import { RasterizeError } from "@/lib/rasterize";
+import { describeViolations, findA11yViolations } from "@/lib/testing/axe";
 import { NotebookWorkspace } from "@/components/notebooks/NotebookWorkspace";
 import {
   artifactById,
+  audioArtifact,
   failedArtifact,
   flashcardsArtifact,
+  infographicArtifact,
   mindmapArtifact,
   quizArtifact,
   reportArtifact,
   runningArtifact,
+  slidesArtifact,
   studioCatalog,
   studioList,
   tableArtifact,
+  videoArtifact,
 } from "@/components/notebooks/studio/__fixtures__/studio";
 
 const t = ptBR.notebooks;
@@ -73,6 +79,13 @@ const api = vi.hoisted(() => ({
   askNotebook: vi.fn(),
 }));
 
+// D-98: the PNG is made in the browser; here only the call and its failure matter.
+const raster = vi.hoisted(() => ({ svgToPngDownload: vi.fn() }));
+vi.mock("@/lib/rasterize", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/rasterize")>()),
+  svgToPngDownload: raster.svgToPngDownload,
+}));
+
 vi.mock("@/lib/api", () => ({
   ...api,
   getNotebook: vi.fn(() => Promise.resolve(notebook)),
@@ -124,6 +137,7 @@ beforeEach(() => {
     Promise.resolve(artifactById(artifactId)),
   );
   api.createStudioArtifact.mockResolvedValue({ ...reportArtifact, status: "gerando" });
+  raster.svgToPngDownload.mockResolvedValue(undefined);
 });
 
 async function openTool(user: ReturnType<typeof userEvent.setup>, name: string) {
@@ -218,6 +232,88 @@ describe("Estúdio: criar", () => {
         template: "propriedades",
         columns: ["Material", "Valor", "Unidade"],
       }),
+    );
+  });
+
+  it("every tool's tile is live, none says it is coming (D-98)", async () => {
+    render(wrap(<NotebookWorkspace id={4} />));
+    for (const label of Object.values(t.studioTools)) {
+      const tile = await screen.findByRole("button", { name: new RegExp(label) });
+      await waitFor(() => expect(tile).not.toHaveAttribute("aria-disabled"));
+    }
+  });
+
+  it("the audio's templates read as Formato, and the pencil's edit, template and length are sent", async () => {
+    const user = userEvent.setup();
+    render(wrap(<NotebookWorkspace id={4} />));
+    await openTool(user, t.studioTools.audio);
+    const dialog = await screen.findByRole("dialog", { name: s.createTitle.audio });
+    expect(within(dialog).getByRole("group", { name: s.templateLegend.audio })).toBeInTheDocument();
+    expect(within(dialog).queryByRole("group", { name: s.template })).not.toBeInTheDocument();
+    expect(within(dialog).getByRole("radio", { name: "Conversa aprofundada" })).toBeChecked();
+    expect(within(dialog).getByText("Cerca de 24 falas")).toBeInTheDocument();
+
+    await user.click(within(dialog).getByRole("button", { name: s.editTemplate("Debate") }));
+    expect(within(dialog).getByRole("radio", { name: "Debate" })).toBeChecked();
+    const box = within(dialog).getByRole("textbox", { name: s.templateInstructions });
+    expect(box).toHaveValue("Escreva um debate entre dois pontos de vista.");
+    await user.clear(box);
+    await user.type(box, "Um lado defende o alumínio.");
+    await user.click(within(dialog).getByRole("button", { name: "Longo" }));
+    await user.click(within(dialog).getByRole("button", { name: s.generate }));
+
+    await waitFor(() =>
+      expect(api.createStudioArtifact).toHaveBeenCalledWith(4, {
+        tool: "audio",
+        template: "debate",
+        instructions: "Um lado defende o alumínio.",
+        count: "longo",
+      }),
+    );
+  });
+
+  it("an unedited template sends no instructions: the API reads its own text", async () => {
+    const user = userEvent.setup();
+    render(wrap(<NotebookWorkspace id={4} />));
+    await openTool(user, t.studioTools.slides);
+    const dialog = await screen.findByRole("dialog", { name: s.createTitle.slides });
+    expect(within(dialog).getByRole("group", { name: s.template })).toBeInTheDocument();
+    await user.click(within(dialog).getByRole("radio", { name: "Resumo para o apresentador" }));
+    await user.click(within(dialog).getByRole("button", { name: "Mais" }));
+    await user.click(within(dialog).getByRole("button", { name: s.generate }));
+    await waitFor(() =>
+      expect(api.createStudioArtifact).toHaveBeenCalledWith(4, {
+        tool: "slides",
+        template: "apresentador",
+        count: "mais",
+      }),
+    );
+  });
+
+  it("the infographic's formats read as Orientação; the video's length is its format", async () => {
+    const user = userEvent.setup();
+    render(wrap(<NotebookWorkspace id={4} />));
+    await openTool(user, t.studioTools.infographic);
+    let dialog = await screen.findByRole("dialog", { name: s.createTitle.infographic });
+    expect(within(dialog).getByRole("group", { name: s.formatLegend.infographic })).toBeInTheDocument();
+    await user.click(within(dialog).getByRole("radio", { name: "Retrato" }));
+    await user.click(within(dialog).getByRole("button", { name: "Conciso" }));
+    await user.click(within(dialog).getByRole("button", { name: s.generate }));
+    await waitFor(() =>
+      expect(api.createStudioArtifact).toHaveBeenCalledWith(4, {
+        tool: "infographic",
+        format: "retrato",
+        count: "conciso",
+      }),
+    );
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+
+    await openTool(user, t.studioTools.video);
+    dialog = await screen.findByRole("dialog", { name: s.createTitle.video });
+    await user.click(within(dialog).getByRole("radio", { name: "Resumo" }));
+    await user.click(within(dialog).getByRole("button", { name: s.generate }));
+    await waitFor(() =>
+      expect(api.createStudioArtifact).toHaveBeenLastCalledWith(4, { tool: "video", format: "resumo" }),
     );
   });
 
@@ -320,5 +416,127 @@ describe("Estúdio: ver", () => {
     await user.click(screen.getByRole("button", { name: s.askAbout("Densidade") }));
     expect(screen.getByRole("textbox", { name: t.askLabel })).toHaveValue(s.askPrompt("Densidade"));
     expect(api.askNotebook).not.toHaveBeenCalled();
+  });
+});
+
+describe("Estúdio: áudio, vídeo, slides e infográfico (D-98)", () => {
+  const originalPrint = window.print;
+  afterEach(() => {
+    window.print = originalPrint;
+  });
+
+  async function expectAccessible(container: Element) {
+    const violations = await findA11yViolations(container);
+    expect(violations, describeViolations(violations)).toHaveLength(0);
+  }
+
+  it("the audio opens as a transcript, says what was withheld once, and exports the script", async () => {
+    const user = userEvent.setup();
+    await openArtifact(user, audioArtifact.title);
+    const transcript = screen.getByRole("region", { name: s.transcript });
+    expect(within(transcript).getAllByRole("listitem")).toHaveLength(2);
+    expect(within(transcript).getByText(s.speaker(2))).toBeInTheDocument();
+    // The generic Alert is the audio's only one.
+    expect(screen.getAllByText(audioArtifact.withheld[0]!)).toHaveLength(1);
+    expect(screen.getByText(s.withheldTitle)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: s.export }));
+    expect(await screen.findByRole("menuitem", { name: s.exportLabelsByTool.audio!.docx! })).toHaveAttribute(
+      "href",
+      "/api/notebooks/4/studio/28/export.docx",
+    );
+    expect(screen.getByRole("menuitem", { name: s.exportLabels.txt })).toHaveAttribute(
+      "href",
+      "/api/notebooks/4/studio/28/export.txt",
+    );
+    expect(screen.queryByRole("menuitem", { name: s.exportPng })).not.toBeInTheDocument();
+  });
+
+  it("the video opens on its first scene, with the slide and the caption", async () => {
+    const user = userEvent.setup();
+    await openArtifact(user, videoArtifact.title);
+    expect(screen.getByText(s.scenePosition(1, 2))).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Aço carbono" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: s.export }));
+    expect(await screen.findByRole("menuitem", { name: s.exportLabels.pptx })).toBeInTheDocument();
+    expect(screen.queryByRole("menuitem", { name: s.exportPdf })).not.toBeInTheDocument();
+  });
+
+  it("the slides say what was withheld once, and PDF (imprimir) prints the deck", async () => {
+    window.print = vi.fn();
+    const user = userEvent.setup();
+    await openArtifact(user, slidesArtifact.title);
+    expect(screen.getByRole("region", { name: s.deckLabel(slidesArtifact.title) })).toBeInTheDocument();
+    expect(screen.getByText(s.slidePosition(1, 2))).toBeInTheDocument();
+    expect(screen.getAllByText(slidesArtifact.withheld[0]!)).toHaveLength(1);
+    expect(window.print).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: s.export }));
+    expect(await screen.findByRole("menuitem", { name: s.exportLabels.pptx })).toHaveAttribute(
+      "href",
+      "/api/notebooks/4/studio/30/export.pptx",
+    );
+    await user.click(screen.getByRole("menuitem", { name: s.exportPdf }));
+    await waitFor(() => expect(window.print).toHaveBeenCalledTimes(1));
+    expect(document.body.querySelector(".deck-print")).not.toBeNull();
+    window.dispatchEvent(new Event("afterprint"));
+    await waitFor(() => expect(document.body.querySelector(".deck-print")).toBeNull());
+
+    // A second request prints again.
+    await user.click(screen.getByRole("button", { name: s.export }));
+    await user.click(await screen.findByRole("menuitem", { name: s.exportPdf }));
+    await waitFor(() => expect(window.print).toHaveBeenCalledTimes(2));
+  });
+
+  it("the infographic is drawn, says what was withheld once, and saves a PNG from its SVG", async () => {
+    const user = userEvent.setup();
+    await openArtifact(user, infographicArtifact.title);
+    expect(
+      screen.getByRole("img", { name: s.infographicLabel(infographicArtifact.title) }),
+    ).toBeInTheDocument();
+    expect(screen.getAllByText(infographicArtifact.withheld[0]!)).toHaveLength(1);
+    expect(screen.getByText(s.infographicWithheldTitle)).toBeInTheDocument();
+    expect(screen.queryByText(s.withheldTitle)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: s.export }));
+    expect(await screen.findByRole("menuitem", { name: s.exportLabels.svg })).toHaveAttribute(
+      "href",
+      "/api/notebooks/4/studio/31/export.svg",
+    );
+    await user.click(screen.getByRole("menuitem", { name: s.exportPng }));
+    await waitFor(() =>
+      expect(raster.svgToPngDownload).toHaveBeenCalledWith(
+        "/api/notebooks/4/studio/31/export.svg",
+        "infografico-acos.png",
+      ),
+    );
+    expect(screen.queryByText(s.pngFailed)).not.toBeInTheDocument();
+  });
+
+  it("a PNG the browser cannot make says to download the SVG", async () => {
+    raster.svgToPngDownload.mockRejectedValue(new RasterizeError("tainted", "SecurityError"));
+    const user = userEvent.setup();
+    await openArtifact(user, mindmapArtifact.title);
+    await user.click(screen.getByRole("button", { name: s.export }));
+    await user.click(await screen.findByRole("menuitem", { name: s.exportPng }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(s.pngFailed);
+    expect(raster.svgToPngDownload).toHaveBeenCalledWith(
+      "/api/notebooks/4/studio/25/export.svg",
+      "mapa-acos.png",
+    );
+  });
+
+  it.each([
+    ["áudio", audioArtifact.title],
+    ["vídeo", videoArtifact.title],
+    ["slides", slidesArtifact.title],
+    ["infográfico", infographicArtifact.title],
+  ])("the %s viewer passes axe", async (_what, title) => {
+    const user = userEvent.setup();
+    api.listStudio.mockResolvedValue(studioList);
+    const { container } = render(wrap(<NotebookWorkspace id={4} />));
+    await user.click(await screen.findByRole("button", { name: s.open(title) }));
+    await screen.findByRole("heading", { name: title });
+    await expectAccessible(container);
   });
 });

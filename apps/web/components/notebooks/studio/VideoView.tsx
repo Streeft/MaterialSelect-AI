@@ -9,7 +9,6 @@ import { useSpeech } from "@/lib/speech/useSpeech";
 import { Alert, Button, IconButton, RichText } from "@/components/ui";
 import { IconArrowLeft, IconArrowRight } from "@/components/ui/icons";
 import { CitationChips } from "../AnswerView";
-import { SPEECH_ERROR } from "./AudioView";
 import { SlideFrame, type DeckSlide } from "./DeckView";
 import type { Cites } from "./views";
 
@@ -140,7 +139,7 @@ export function VideoView({ content, cites }: { content: StudioDeckContent; cite
 
       {player.error ? (
         <Alert tone="warning" role="alert">
-          {SPEECH_ERROR}
+          {t.speechError}
         </Alert>
       ) : null}
 
