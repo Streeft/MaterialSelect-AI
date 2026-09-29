@@ -244,10 +244,23 @@ def _report(artifact: ArtifactOut, subtitle: str) -> Report:
     else:  # pragma: no cover - the service offers only the tool's formats
         raise ValueError(f"{artifact.tool} não tem planilha")
     return Report(
-        title=artifact.title,
-        subtitle=subtitle,
+        title=_xml(artifact.title),
+        subtitle=_xml(subtitle),
         notices=list(NOTICES),
-        sheets=[main, _references_sheet(artifact)],
+        sheets=[_xml_sheet(main), _xml_sheet(_references_sheet(artifact))],
+    )
+
+
+def _xml_sheet(sheet: Sheet) -> Sheet:
+    """``sheet`` with every string through :func:`_xml`: openpyxl raises on a
+    control character, so one in a renamed title, a withheld line or a PDF
+    excerpt would turn the XLSX download into a 500. Numbers pass untouched,
+    and the formula escape stays ``cells.safe_text``'s — a different defence."""
+    return Sheet(
+        name=sheet.name,
+        header=[_xml(h) for h in sheet.header],
+        rows=[[_xml(c) if isinstance(c, str) else c for c in row] for row in sheet.rows],
+        notes=[_xml(n) for n in sheet.notes],
     )
 
 

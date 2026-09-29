@@ -23,6 +23,7 @@ from xml.etree import ElementTree
 
 import pytest
 from docx import Document
+from openpyxl import load_workbook
 
 from app.ai.guardrails import _NUMBER_TOKEN, numeric_tokens
 from app.ai.notebook import Passage
@@ -331,6 +332,31 @@ def test_a_control_character_stored_before_the_reader_does_not_break_the_docx():
     assert "T x" in text and "Um ponto  foi omitido." in text and "a b" in text
 
 
+def test_a_control_character_stored_before_the_reader_does_not_break_the_xlsx():
+    """N-1: title, subtitle, withheld line, source title and excerpt all carry
+    one; openpyxl raised on each of them before the second wall covered the
+    spreadsheet."""
+    cells = [
+        {"status": "ok", "text": "f\x05", "citations": [1]},
+        {"status": "ok", "text": "b", "citations": []},
+    ]
+    content = {"title": "T", "columns": ["C\x06", "D"], "rows": [{"cells": cells}]}
+    artifact = _artifact("table", content)
+    data, _ = render(artifact, "xlsx", "N\x04")
+    workbook = load_workbook(io.BytesIO(data))
+    cover = [row[0] for row in workbook["Aviso"].iter_rows(values_only=True)]
+    assert "T x" in cover
+    values = [
+        cell
+        for sheet in workbook.worksheets
+        for row in sheet.iter_rows(values_only=True)
+        for cell in row
+        if isinstance(cell, str)
+    ]
+    assert "Um ponto  foi omitido." in values and "f " in values and "e " in values
+    assert "C " in values
+
+
 def test_a_control_character_does_not_break_the_infographic_svg():
     board = {
         "title": "T",
@@ -444,3 +470,40 @@ def test_the_cap_never_prints_a_figure_the_text_does_not_write(limit):
     printed = [m.group() for m in _NUMBER_TOKEN.finditer(cut)]
     # Every figure printed is one the text writes, whole and in order.
     assert printed == written[: len(printed)], (limit, cut)
+
+
+# --- the quiz's answer key follows the options that survive (N-2) ---------------------
+
+
+def _quiz(options: list, answer: int) -> list[dict]:
+    return read_studio(
+        StudioRequest(tool="quiz", notebook_title="N", source_titles=(), passages=()),
+        {
+            "title": "Q",
+            "questions": [
+                {"prompt": "Qual?", "options": options, "answer_index": answer, "citations": [1]}
+            ],
+        },
+    )["questions"]
+
+
+def test_an_empty_option_before_the_answer_moves_the_answer_index():
+    (question,) = _quiz(["A", "", "C", "D"], 2)
+    assert question["options"] == ["A", "C", "D"]
+    assert question["options"][question["answer_index"]] == "C"
+
+
+def test_an_option_that_is_not_text_moves_the_answer_index_too():
+    (question,) = _quiz([7, "B", "C"], 2)
+    assert question["options"] == ["B", "C"]
+    assert question["options"][question["answer_index"]] == "C"
+
+
+def test_a_question_whose_correct_option_came_back_empty_is_dropped():
+    # Before N-2 this was read as ["A", "C", "D"] with answer 1: "C" marked correct.
+    assert _quiz(["A", "", "C", "D"], 1) == []
+    assert _quiz(["A", "\x07", "C"], 1) == []
+
+
+def test_a_question_left_with_one_option_is_dropped():
+    assert _quiz(["", "B", ""], 1) == []

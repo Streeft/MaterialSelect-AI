@@ -504,7 +504,7 @@ desenhado igual na tela e no SVG, marcas `[n]` e título renomeado incluídos; o
 migração. A oferta de vozes pt-BR depende do aparelho do aluno, e a tela diz
 quando não há.
 
-**Saúde do código:** 2972 testes de backend (Python 3.11 e 3.12, nenhum skip)
+**Saúde do código:** 2979 testes de backend (Python 3.11 e 3.12, nenhum skip)
 e 735 de frontend, todos verdes. Desde o P0-1 a suíte também roda as migrações de
 verdade, nos dois sentidos, contra um banco temporário que já contém dados —
 `test_migration_selection_stage.py`, `test_migration_process_universe.py`,

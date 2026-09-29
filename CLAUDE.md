@@ -875,7 +875,7 @@ e no mesmo modal do D-94. Regras que não se afrouxam:
   nem referência externa. O PDF dos slides é a impressão do navegador.
 - **Nenhuma migração**: as quatro cabem nos campos JSON da fase 1.
 
-2972 testes de backend (nenhum skip) e 735 de frontend, todos verdes. CI no
+2979 testes de backend (nenhum skip) e 735 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
 PROJECT_CONTEXT.md).

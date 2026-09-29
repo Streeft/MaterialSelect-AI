@@ -11,7 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
-| [33](#sessão-33--280926-a-290926--cadernos-fase-4-o-estúdio-visual-e-sonoro) | 28 e 29/09/2026 | Cadernos, fase 4: resumo em áudio e em vídeo pela voz do navegador, apresentação de slides com PPTX e infográfico com layout do backend; o dado em destaque sem isenção e a unidade com maiúsculas (D-98) | 2651 → 2972 | 608 → 735 |
+| [33](#sessão-33--280926-a-290926--cadernos-fase-4-o-estúdio-visual-e-sonoro) | 28 e 29/09/2026 | Cadernos, fase 4: resumo em áudio e em vídeo pela voz do navegador, apresentação de slides com PPTX e infográfico com layout do backend; o dado em destaque sem isenção e a unidade com maiúsculas (D-98) | 2651 → 2979 | 608 → 735 |
 | [32](#sessão-32--250926-a-280926--cadernos-fase-3-fontes-externas) | 25 a 28/09/2026 | Cadernos, fase 3: site, YouTube com transcrição colada, OpenAlex, Wikipédia e busca na web pelo Gemini. Tudo por um portão anti-SSRF, com a origem e a licença coladas à citação e custo zero (D-97) | 1966 → 2651 | 563 → 608 |
 | [31](#sessão-31--250926--auditoria-do-pr-78-curva-custo--lote-do-antigravity) | 25/09/2026 | Auditoria do PR #78 (curva custo × lote, execução agêntica externa): comportamento correto, cobertura de teste devolvida e o registro que faltava, escrito (D-96) | 1963 → 1966 | 563 (inalterado) |
 | [30](#sessão-30--250926--o-estúdio-de-texto-dos-cadernos) | 25/09/2026 | Cadernos, fase 2: o Estúdio de texto — relatório, cartões, teste, tabela e mapa mental, gerados em segundo plano e conferidos item a item (D-94) | 1917 → 1966 | 536 → 554 |
@@ -147,8 +147,15 @@ merge.
   Continuar", o rótulo que o botão tem depois do erro); M-10 (a impressão do
   deck diz "Nenhum trecho citado."); M-11 (o `/estilo` mostra o áudio ativo e
   o estado indisponível num ladrilho neutro).
+- **N-1 e N-2, da re-revisão.** Renomear um artefato guarda o título pela
+  limpeza do leitor (`_clean`), e a planilha passa todo texto por `_xml`: um
+  `\x07` no título, ou um `\x02` de PDF no trecho citado, derrubava o XLSX
+  com 500. No teste, uma alternativa vazia saía mas o `answer_index` ficava, e
+  o gabarito marcava a alternativa seguinte; agora o índice acompanha as
+  alternativas que sobram, e a questão sai se a correta veio vazia ou se
+  restam menos de duas.
 
-**Números.** Backend 2651 → 2972, frontend 608 → 735 (2883 e 732 antes da
+**Números.** Backend 2651 → 2979, frontend 608 → 735 (2883 e 732 antes da
 rodada de correção), mais os três cenários E2E da fase em
 `apps/web/e2e/cadernos.spec.ts` (slides ao PPTX, infográfico ao SVG com a
 assinatura do PNG, e áudio com a voz falsa).
