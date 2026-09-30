@@ -524,6 +524,58 @@ class TestHealthNamesTheProviderAndNothingElse:
         assert "AIza-segredo" not in response.text
 
 
+class TestHealthNamesTheEmbeddingIdentity:
+    """D-101: the workflow compares these with the identity it writes vectors under."""
+
+    @pytest.fixture(autouse=True)
+    def _unconfigured(self, monkeypatch) -> None:
+        from app.config import settings
+
+        monkeypatch.setattr(settings, "ai_base_url", "")
+        monkeypatch.setattr(settings, "knowledge_embedding_base_url", "")
+        monkeypatch.setattr(settings, "knowledge_embedding_model", "")
+        monkeypatch.setattr(settings, "knowledge_embedding_dimensions", 0)
+
+    def test_unconfigured_is_none_and_none(self, anon_client) -> None:
+        body = anon_client.get("/api/health").json()
+        assert body["knowledge_embedding_model"] is None
+        assert body["knowledge_embedding_dimensions"] is None
+
+    def test_configured_names_the_model_and_its_dimensions_only(
+        self, anon_client, monkeypatch
+    ) -> None:
+        from app.config import settings
+
+        monkeypatch.setattr(settings, "ai_base_url", "https://gw.example/secret-path/v1")
+        monkeypatch.setattr(settings, "knowledge_embedding_model", " gemini-embedding-001 ")
+        monkeypatch.setattr(settings, "knowledge_embedding_dimensions", 768)
+        monkeypatch.setattr(settings, "knowledge_embedding_api_key", "AIza-segredo")
+        response = anon_client.get("/api/health")
+        body = response.json()
+        assert body["knowledge_embedding_model"] == "gemini-embedding-001"
+        assert body["knowledge_embedding_dimensions"] == 768
+        assert "secret-path" not in response.text
+        assert "AIza-segredo" not in response.text
+
+    def test_a_model_without_an_endpoint_is_not_in_use(self, anon_client, monkeypatch) -> None:
+        from app.config import settings
+
+        monkeypatch.setattr(settings, "knowledge_embedding_model", "gemini-embedding-001")
+        monkeypatch.setattr(settings, "knowledge_embedding_dimensions", 768)
+        body = anon_client.get("/api/health").json()
+        assert body["knowledge_embedding_model"] is None
+        assert body["knowledge_embedding_dimensions"] is None
+
+    def test_native_size_has_no_dimensions(self, anon_client, monkeypatch) -> None:
+        from app.config import settings
+
+        monkeypatch.setattr(settings, "knowledge_embedding_base_url", "https://emb.example/v1")
+        monkeypatch.setattr(settings, "knowledge_embedding_model", "nomic-embed-text")
+        body = anon_client.get("/api/health").json()
+        assert body["knowledge_embedding_model"] == "nomic-embed-text"
+        assert body["knowledge_embedding_dimensions"] is None
+
+
 class TestNotebookAnswersOverTheWire:
     """D-92: a real provider answers a notebook question through the same
     transport, with the notebook's own schema, and the reply is coerced."""
