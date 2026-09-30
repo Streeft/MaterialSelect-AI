@@ -132,15 +132,6 @@ paginado exigiria levar o tipo do documento até o trecho recuperado.
 **Cadernos — pendências deixadas pela fase 3 (D-97).** Nenhuma bloqueia o uso;
 cada uma tem o motivo de ter ficado de fora.
 
-- **Linha de tabela lida como título pelo fatiador.** ▁
-  `looks_like_heading`, em `app/knowledge/chunking.py`, trata como título uma
-  linha curta que começa por número ou está em caixa alta. Uma linha de tabela
-  como `1 | Aço | 200`, vinda do DOCX (`readers._read_docx`) ou de uma página,
-  sai do texto do trecho e vai para o lugar do título. O conserto é uma linha:
-  uma linha que contém `" | "` nunca é título. Ficou de fora porque o fatiador
-  é compartilhado com o Cérebro, e mexer nele muda a fatia de todo documento já
-  ingerido. Enquanto isso, o extrator de HTML põe um `;` no fim da linha
-  ameaçada; com a guarda no lugar, esse `;` pode sair.
 - **Transcrição automática do YouTube.** ▆ Hoje é impossível sem custo: desde
   2025–26 o endpoint de legendas exige um token *Proof-of-Origin* que só o
   BotGuard de um navegador gera, e responde 200 vazio sem ele; IP de datacenter
@@ -234,6 +225,12 @@ continua lá, e a métrica para de medir no 3.
 
 Registrados para não voltarem por engano:
 
+- ~~**Linha de tabela lida como título pelo fatiador (D-97)**~~ —
+  `looks_like_heading` em `app/knowledge/chunking.py` ganhou guarda explícita:
+  linha contendo `" | "` nunca é tratada como heading, impedindo que linhas
+  de tabela (DOCX, Markdown) sejam consumidas como títulos de seção e rotulem
+  erroneamente os chunks seguintes. 5 novos testes de regressão em
+  `test_knowledge_chunking.py` (3338 → 3343 testes de backend).
 - ~~**Cadernos — lote de pendências das fases 3 e 4 (D-97/D-98)**~~ — nove
   itens da "Baixa prioridade" fechados num PR, com uma revisão final que achou
   quatro problemas importantes e uma segunda revisão que achou um crítico e
