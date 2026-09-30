@@ -334,7 +334,7 @@ do autor** — é a base de conhecimento da camada de IA, e ele optou por
 mantê-la hospedada sabendo da exposição, ao contrário de
 `fase-9-ia-e-laudo`, purgada antes do merge. Risco aceito, não pendência
 ([D-45](docs/DECISIONS.md)) — **exceto o material de curso**, que saiu
-(D-100, abaixo) e vai sair também do histórico.
+(D-100, abaixo), também do histórico.
 
 **O material de curso da ENG02016 saiu do Cérebro** ([D-100](docs/DECISIONS.md)):
 a pedido do professor, que não quer o material de sua autoria no RAG, e por
@@ -354,10 +354,13 @@ declara `ignorado`) e a limpeza do histórico, que só lê as linhas de caminho
 ([`docs/17-limpeza-historico-cerebro.md`](docs/17-limpeza-historico-cerebro.md):
 `push --force --atomic` de branches e tags, nunca `--mirror`, com a *ruleset*
 suspensa). **A ingestão só acrescenta**: tirar um arquivo do repositório não
-tira o texto dele do RAG — quem tira é o `prune`. Rodar a remoção em produção e
-nas bases locais e reescrever o histórico são passos do autor, depois do merge
-(TODO A7); reescrever o histórico não apaga os objetos Git LFS já guardados no
-GitHub. **`Links.md` fica e é indexado**, por decisão do autor, com o link do
+tira o texto dele do RAG — quem tira é o `prune`. **Feito em 30/09/2026:** o
+autor rodou a remoção em produção (não há bases locais) e o histórico foi
+reescrito (`main` `873dd53` → `b7dd105`, árvore idêntica, 76 commits duplicados
+colapsados, assinaturas GPG perdidas; os 71 caminhos a 0). Reescrever não apaga
+as refs de PR nem os objetos Git LFS guardados no GitHub: o pedido ao suporte,
+refazer os clones antigos e indexar o `Links.md` em produção seguem pendentes
+(TODO A7). **`Links.md` fica e é indexado**, por decisão do autor, com o link do
 OneDrive que ele contém: a ingestão lê PDF e **só o Markdown que o
 `manifesto.json` declara**; `README.md`, `manifesto.json` e `removidos.txt`
 nunca entram.

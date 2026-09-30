@@ -1,5 +1,13 @@
 # Limpeza do histórico do Cérebro: tirar o material de curso de todos os commits
 
+> **Executado em 30/09/2026.** O autor seguiu este guia depois do merge do
+> PR #85: `main` passou de `873dd53` para `b7dd105`, com a árvore idêntica; os
+> 71 caminhos e os nomes dos alunos aparecem 0 vezes no histórico; a *ruleset*
+> foi religada. Faltam o pedido ao suporte (passo 10) e refazer todo clone
+> anterior a 30/09/2026 (passo 9). Registro completo no
+> [D-100](DECISIONS.md), "Execução"; pendências em [TODO.md](TODO.md) A7. O
+> guia fica como referência para uma próxima remoção.
+
 Guia passo a passo para o autor apagar do **histórico inteiro** do git os
 arquivos que saíram do Cérebro no [D-100](DECISIONS.md) — o material de curso da
 ENG02016 e os trabalhos entregues. O PR do D-100 tirou esses arquivos da árvore
@@ -23,8 +31,14 @@ passo 4 descarta essas linhas.
 ## 0. O que isto faz, e o que não faz
 
 **Faz:** remove dos commits, em todas as branches e tags, cada caminho da lista
-de remoção. Os commits continuam existindo, com SHAs novos e sem esses arquivos.
-O resto do Cérebro — livros, extratos, fichas Granta, diagramas, artigos —
+de remoção. Os commits continuam existindo, com SHAs novos e sem esses arquivos
+— **quase todos**: commits que, sem os arquivos removidos, ficam idênticos a
+outro são colapsados num só. Em 30/09/2026 isso levou 76 duplicatas que uma
+reescrita anterior tinha deixado em `main`, que foi de 659 para 583 commits;
+nenhum conteúdo fora da lista se perde, só a cópia. **As assinaturas GPG se
+perdem**: o "Verified" do GitHub some de todo commit reescrito, porque a
+assinatura era sobre o SHA antigo, e não há como refazê-la sem a chave de quem
+assinou. O resto do Cérebro — livros, extratos, fichas Granta, diagramas, artigos —
 **fica no histórico como estava** ([D-45](DECISIONS.md), emendado pelo D-100).
 
 **Não faz, e é bom saber antes:**
