@@ -37,10 +37,14 @@ SUPPORTED_EXTENSIONS = {".pdf", ".md"}
 MARKDOWN_EXTENSIONS = {".md"}
 
 # ``[label](url)`` → ``label (url)``: the label is what a reader searches for,
-# the address is what a citation has to hand back — both stay.
-_MD_LINK = re.compile(r"\[([^\]]*)\]\(([^)\s]+)\)")
+# the address is what a citation has to hand back — both stay. The address may
+# hold one level of balanced parentheses, as a Wikipedia article title does
+# (``…/Aço_(liga)``); without that the link would be cut at the first ``)``.
+_MD_LINK = re.compile(r"\[([^\]]*)\]\(((?:[^()\s]|\([^()\s]*\))+)\)")
 # Leading ``#``s of a heading, ``>`` of a quote, ``-``/``*``/``+`` of a list item.
-_MD_LINE_MARK = re.compile(r"^\s{0,3}(?:#{1,6}\s+|>\s?|[-*+]\s+)")
+# A quote mark is ``>`` followed by a space or the end of the line, so a line
+# that *starts* with a comparison (``>= 5 MPa``) keeps its operator.
+_MD_LINE_MARK = re.compile(r"^\s{0,3}(?:#{1,6}\s+|>+(?:\s|$)|[-*+]\s+)")
 
 
 @dataclass

@@ -132,6 +132,11 @@ class KnowledgeService:
         dropped into the folder does not become a citable source by accident.
         Operational files (:data:`OPERATIONAL_FILES`) are never ingested.
 
+        A symbolic link is never followed, and neither is anything that
+        resolves outside the root: the corpus is what sits in the folder, and a
+        committed link to ``/etc`` or to another checkout would otherwise turn
+        a file nobody declared into a citable source.
+
         Sorted so two runs on the same corpus assign the same ordinals — a
         directory walk's native order is not guaranteed across platforms, and an
         unstable one would make every run look like a change.
@@ -140,10 +145,13 @@ class KnowledgeService:
         if declared is None:
             declared = load_manifest(root)
         declared_paths = {normalise(path) for path in declared}
+        resolved_root = root.resolve()
         found = []
         for path in root.rglob("*"):
             suffix = path.suffix.lower()
             if not path.is_file() or suffix not in SUPPORTED_EXTENSIONS:
+                continue
+            if path.is_symlink() or not path.resolve().is_relative_to(resolved_root):
                 continue
             if path.name.lower() in OPERATIONAL_FILES:
                 continue

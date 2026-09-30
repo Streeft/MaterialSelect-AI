@@ -4,6 +4,7 @@ Run with::
 
     python -m app.knowledge.prune --list ../../Cérebro/removidos.txt           # simulação
     python -m app.knowledge.prune --list ../../Cérebro/removidos.txt --apply   # apaga
+    python -m app.knowledge.prune --list ../../Cérebro/removidos.txt --redact  # log público
 
 ⚠️  With ``--apply`` this is irreversible, against whatever database
 ``DATABASE_URL`` points at — production, when it runs from the admin workflow.
@@ -39,6 +40,19 @@ turn on — trusting the schema would leave this correct in production and
 unverifiable in a test (the reasoning of D-72's ``clear_demo.py``). So vectors,
 then passages, then documents, in one transaction.
 
+**``--redact`` is for a log other people can read.** The repository is
+public, and so are its Actions logs; a stored path can carry exactly what the
+removal exists to erase — a group assignment is named after its students. With
+``--redact`` each document, matched or remaining, prints as its top-level folder
+plus the first hex digits of its checksum (``02-Material-de-Curso-ENG02016/…
+sha256:1a2b3c4d``), and root-level files are counted under ``(raiz)`` in the
+histogram. Everything else stays — counts per document, why it matched, the
+per-folder histogram and the totals —, because that is what proves the run did
+the right thing (D-71). List entries (unmatched lines, a folder written without
+its ``/``) are printed as written either way: they are lines of
+``removidos.txt``, which is already public. Both admin-workflow actions pass
+the flag; a local run without it prints the full paths.
+
 It needs neither ``pypdf`` nor the corpus: it reads the list and talks to the
 database, nothing else. The admin workflow installs neither.
 """
@@ -71,6 +85,8 @@ class MatchedDocument:
     #: ``"caminho"`` or ``"conteúdo (sha256)"`` — a content-only match is the
     #: copy the path entries would have missed, and the log should say so.
     reason: str = "caminho"
+    #: SHA-256 of the file's bytes, as stored; only a redacted log prints it.
+    checksum: str = ""
 
 
 @dataclass
@@ -94,6 +110,8 @@ class PruneReport:
     #: printed: a list written against another layout than the one the base
     #: was ingested from shows up here as a folder nobody expected.
     top_level: dict[str, int] = field(default_factory=dict)
+    #: Stored checksum of every remaining path, for the redacted log.
+    remaining_checksums: dict[str, str] = field(default_factory=dict)
 
     @property
     def documents(self) -> int:
@@ -119,20 +137,21 @@ def find_matches(db: Session, removal: RemovalList) -> PruneReport:
     rows = db.execute(
         select(KnowledgeDocument.id, KnowledgeDocument.path, KnowledgeDocument.checksum)
     ).all()
-    hits: list[tuple[int, str, str]] = []
-    remaining: list[str] = []
+    hits: list[tuple[int, str, str, str]] = []
+    remaining: dict[str, str] = {}
     for doc_id, path, checksum in rows:
         reason = removal.match_reason(path, checksum)
         if reason is None:
-            remaining.append(path)
+            remaining[path] = checksum or ""
         else:
-            hits.append((doc_id, path, reason))
+            hits.append((doc_id, path, reason, checksum or ""))
 
     report = PruneReport(
         applied=False,
         documents_in_base=len(rows),
         remaining=sorted(remaining),
         top_level=dict(Counter(path.split("/")[0] for path in remaining)),
+        remaining_checksums=remaining,
         checksum_entries=len(removal.checksums),
         checksums_matched=len(
             {c.strip().lower() for _, _, c in rows if removal.matches_checksum(c)}
@@ -147,7 +166,7 @@ def find_matches(db: Session, removal: RemovalList) -> PruneReport:
     if not hits:
         return report
 
-    ids = [doc_id for doc_id, _, _ in hits]
+    ids = [doc_id for doc_id, _, _, _ in hits]
     chunk_counts = dict(
         db.execute(
             select(KnowledgeChunk.document_id, func.count(KnowledgeChunk.id))
@@ -171,8 +190,9 @@ def find_matches(db: Session, removal: RemovalList) -> PruneReport:
                 chunks=chunk_counts.get(doc_id, 0),
                 embeddings=embedding_counts.get(doc_id, 0),
                 reason=reason,
+                checksum=checksum,
             )
-            for doc_id, path, reason in hits
+            for doc_id, path, reason, checksum in hits
         ),
         key=lambda m: m.path,
     )
@@ -199,13 +219,42 @@ def prune(db: Session, removal: RemovalList, *, apply: bool) -> PruneReport:
     return report
 
 
-def format_report(report: PruneReport) -> list[str]:
-    """The lines the CLI prints — the workflow log is the audit trail."""
+#: Folder shown for a document stored at the root, where the top-level
+#: segment *is* the file name.
+ROOT_FOLDER = "(raiz)"
+#: How many hex digits of a checksum a redacted line keeps: enough to tell a
+#: few hundred documents apart, and to find a row again in the database.
+REDACTED_DIGITS = 8
+
+
+def _folder(path: str) -> str:
+    head, sep, _ = path.partition("/")
+    return head if sep else ROOT_FOLDER
+
+
+def redact(path: str, checksum: str | None) -> str:
+    """``path`` without its file name: top-level folder plus a short checksum.
+
+    A row without a checksum (a file that failed to read) prints as such rather
+    than as a digest nobody could look up.
+    """
+    digest = (checksum or "").strip().lower()[:REDACTED_DIGITS]
+    tag = f"sha256:{digest}" if digest else "sem checksum"
+    return f"{_folder(path)}/… {tag}"
+
+
+def format_report(report: PruneReport, *, redact_paths: bool = False) -> list[str]:
+    """The lines the CLI prints — the workflow log is the audit trail.
+
+    With ``redact_paths`` no document's file name is printed (see the module
+    docstring); the counts and the histogram are the same.
+    """
     lines: list[str] = []
     verb = "removido" if report.applied else "seria removido"
     for m in report.matched:
+        shown = redact(m.path, m.checksum) if redact_paths else m.path
         lines.append(
-            f"[prune] {verb}: {m.path} ({m.chunks} trechos, {m.embeddings} embeddings; "
+            f"[prune] {verb}: {shown} ({m.chunks} trechos, {m.embeddings} embeddings; "
             f"casou por {m.reason})"
         )
     for entry in report.unmatched_entries:
@@ -239,11 +288,17 @@ def format_report(report: PruneReport) -> list[str]:
     )
     stays = "fica" if report.applied else "ficaria"
     for path in report.remaining:
-        lines.append(f"[prune] {stays}: {path}")
-    if report.top_level:
+        shown = redact(path, report.remaining_checksums.get(path)) if redact_paths else path
+        lines.append(f"[prune] {stays}: {shown}")
+    top_level = (
+        dict(Counter(_folder(path) for path in report.remaining))
+        if redact_paths
+        else report.top_level
+    )
+    if top_level:
         lines.append(
             f"[prune] o que {stays} na base, por pasta de primeiro nível: "
-            + ", ".join(f"{name} ({n})" for name, n in sorted(report.top_level.items()))
+            + ", ".join(f"{name} ({n})" for name, n in sorted(top_level.items()))
             + ". Confira que nenhuma pasta aqui guarda material que devia sair."
         )
     return lines
@@ -272,6 +327,14 @@ def main(argv: list[str] | None = None) -> None:
         "--apply",
         action="store_true",
         help="apaga de verdade (documentos, trechos e embeddings, numa transação)",
+    )
+    parser.add_argument(
+        "--redact",
+        action="store_true",
+        help=(
+            "no lugar do nome de cada arquivo, imprime a pasta de primeiro nível e o "
+            "início do sha256 — para um log público, como o do GitHub Actions"
+        ),
     )
     args = parser.parse_args(argv)
 
@@ -306,7 +369,7 @@ def main(argv: list[str] | None = None) -> None:
         else:
             db.rollback()
 
-    for line in format_report(report):
+    for line in format_report(report, redact_paths=args.redact):
         print(line)
 
 
