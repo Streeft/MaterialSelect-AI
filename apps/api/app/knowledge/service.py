@@ -26,8 +26,9 @@ from app.domain.errors import ValidationError
 from app.knowledge.chunking import chunk_text
 from app.knowledge.embeddings import EmbeddingClient, EmbeddingUnavailableError
 from app.knowledge.lexical import fold
-from app.knowledge.manifest import DeclaredProvenance, load_manifest
-from app.knowledge.readers import SUPPORTED_EXTENSIONS, extract_text
+from app.knowledge.manifest import MANIFEST_FILENAME, DeclaredProvenance, load_manifest
+from app.knowledge.readers import MARKDOWN_EXTENSIONS, SUPPORTED_EXTENSIONS, extract_text
+from app.knowledge.removal import REMOVAL_LIST_FILENAME, load_from_root, normalise
 from app.models.enums import IngestStatus
 from app.models.knowledge import KnowledgeChunk, KnowledgeDocument
 from app.repositories.knowledge_repository import KnowledgeRepository
@@ -35,6 +36,14 @@ from app.repositories.knowledge_repository import KnowledgeRepository
 #: Read in blocks so a 150 MB textbook never lands in memory whole just to be
 #: fingerprinted.
 _HASH_BLOCK = 1024 * 1024
+
+#: Files that run the corpus rather than belong to it, compared by name
+#: (case-insensitive) at any depth. Never ingested — not even when a manifest
+#: entry names one by mistake: a README describes the folder, and indexing it
+#: would let the RAG cite the repository's housekeeping as a reference.
+OPERATIONAL_FILES = frozenset(
+    name.lower() for name in ("README.md", MANIFEST_FILENAME, REMOVAL_LIST_FILENAME)
+)
 
 
 @dataclass
@@ -61,6 +70,9 @@ class IngestReport:
     embedded_chunks: int = 0
     embeddings_skipped_reason: str | None = None
     outcomes: list[DocumentOutcome] = field(default_factory=list)
+    #: Removal-list entries that look wrong against this corpus (a folder
+    #: written without its trailing ``/``) — said, never silently ignored.
+    removal_list_warnings: list[str] = field(default_factory=list)
 
     def record(self, outcome: DocumentOutcome) -> None:
         self.outcomes.append(outcome)
@@ -111,19 +123,42 @@ class KnowledgeService:
             raise ValidationError(f"KNOWLEDGE_DIR não é um diretório: {root}")
         return root
 
-    def discover(self) -> list[Path]:
-        """Every supported file under the root, in a stable order.
+    def discover(self, declared: dict[str, DeclaredProvenance] | None = None) -> list[Path]:
+        """Every file to ingest under the root, in a stable order.
+
+        A PDF is ingested wherever it sits. A Markdown file only when the
+        manifest declares it (D-100): the corpus folder also holds Markdown
+        that runs the repository — its README — and a whitelist means a note
+        dropped into the folder does not become a citable source by accident.
+        Operational files (:data:`OPERATIONAL_FILES`) are never ingested.
+
+        A symbolic link is never followed, and neither is anything that
+        resolves outside the root: the corpus is what sits in the folder, and a
+        committed link to ``/etc`` or to another checkout would otherwise turn
+        a file nobody declared into a citable source.
 
         Sorted so two runs on the same corpus assign the same ordinals — a
         directory walk's native order is not guaranteed across platforms, and an
         unstable one would make every run look like a change.
         """
         root = self.root()
-        found = [
-            path
-            for path in root.rglob("*")
-            if path.is_file() and path.suffix.lower() in SUPPORTED_EXTENSIONS
-        ]
+        if declared is None:
+            declared = load_manifest(root)
+        declared_paths = {normalise(path) for path in declared}
+        resolved_root = root.resolve()
+        found = []
+        for path in root.rglob("*"):
+            suffix = path.suffix.lower()
+            if not path.is_file() or suffix not in SUPPORTED_EXTENSIONS:
+                continue
+            if path.is_symlink() or not path.resolve().is_relative_to(resolved_root):
+                continue
+            if path.name.lower() in OPERATIONAL_FILES:
+                continue
+            relative = path.relative_to(root).as_posix()
+            if suffix in MARKDOWN_EXTENSIONS and normalise(relative) not in declared_paths:
+                continue
+            found.append(path)
         return sorted(found, key=lambda p: p.relative_to(root).as_posix())
 
     def _embeddings_configured(self) -> bool:
@@ -166,13 +201,33 @@ class KnowledgeService:
         """
         root = self.root()
         declared = load_manifest(root)
+        # What left the base stays out even if a forgotten local copy puts the
+        # file back on disk: ingestion only adds, so without this check one
+        # run from a stale folder would undo a removal (D-100). The list names
+        # paths *and* the SHA-256 of every removed file, so a copy under
+        # another name or folder is caught by its bytes.
+        removed = load_from_root(root)
         report = IngestReport(root=str(root))
+        report.removal_list_warnings = [
+            f'"{entry}" é uma pasta ({below} arquivos dentro), mas a linha de '
+            f'{REMOVAL_LIST_FILENAME} não termina em "/" e não casa nada.'
+            for entry, below in removed.folder_like_exact_entries(
+                p.relative_to(root).as_posix() for p in root.rglob("*") if p.is_file()
+            ).items()
+        ]
         embed_client = self._embedding_client() if self._embeddings_configured() else None
 
-        for path in self.discover():
+        for path in self.discover(declared):
             relative = path.relative_to(root).as_posix()
+            # Hashed once here, and handed on, only when the list has content
+            # entries: hashing is a full read of the file.
+            digest = checksum_of(path) if removed.checksums else None
+            reason = removed.match_reason(relative, digest)
+            if reason is not None:
+                report.record(self._skip(relative, reason))
+                continue
             try:
-                outcome = self._ingest_one(path, relative, declared.get(relative), force)
+                outcome = self._ingest_one(path, relative, declared.get(relative), force, digest)
             except ValidationError as exc:
                 # One unreadable document costs that document, not the run.
                 outcome = self._record_failure(relative, str(exc))
@@ -194,12 +249,28 @@ class KnowledgeService:
                         report.embeddings_skipped_reason = str(exc)
         return report
 
+    def _skip(self, relative: str, reason: str) -> DocumentOutcome:
+        """The outcome of a file on the removal list, with what to do about it.
+
+        A skipped file may still have a row from before the removal — in the
+        author's local base, say. Skipping it leaves that row where it is
+        (ingestion only adds), so the outcome says to run the prune.
+        """
+        detail = f"Na lista de remoção ({REMOVAL_LIST_FILENAME}), por {reason}; não é indexado."
+        if self.repo.get_by_path(relative) is not None:
+            detail += (
+                " Ainda está na base desta execução: rode "
+                "`python -m app.knowledge.prune --list <Cérebro/removidos.txt>` para tirá-lo."
+            )
+        return DocumentOutcome(path=relative, action="ignorado", detail=detail)
+
     def _ingest_one(
         self,
         path: Path,
         relative: str,
         provenance: DeclaredProvenance | None,
         force: bool,
+        digest: str | None = None,
     ) -> DocumentOutcome:
         size = path.stat().st_size
         if size > self.settings.knowledge_max_document_bytes:
@@ -208,7 +279,8 @@ class KnowledgeService:
                 f"({size} > {self.settings.knowledge_max_document_bytes} bytes)."
             )
 
-        digest = checksum_of(path)
+        if digest is None:
+            digest = checksum_of(path)
         document = self.repo.get_by_path(relative)
 
         if document is None:

@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [35](#sessão-35--290926--o-material-de-curso-sai-do-cérebro) | 29/09/2026 | O material de curso da ENG02016 sai do Cérebro: 71 arquivos fora do repositório, a lista de remoção como fonte única, a ferramenta que apaga do banco com simulação primeiro — por caminho ou por conteúdo —, o `Links.md` indexado e o guia de limpeza do histórico (D-100) | 3270 → 3338 | 751 (inalterado) |
 | [34](#sessão-34--290926--cadernos-o-lote-de-pendências-das-fases-3-e-4) | 29/09/2026 | Cadernos: nove pendências das fases 3 e 4 (velocidade no vídeo, um rasterizador só, corte da nota, cor das marcas, duplicata da OpenAlex, troca de provedor, atribuição na conversa, nós ocultos por CSS inline, cota atômica) e as três rodadas de correção da revisão final (D-99) | 2979 → 3270 | 735 → 751 |
 | [33](#sessão-33--280926-a-290926--cadernos-fase-4-o-estúdio-visual-e-sonoro) | 28 e 29/09/2026 | Cadernos, fase 4: resumo em áudio e em vídeo pela voz do navegador, apresentação de slides com PPTX e infográfico com layout do backend; o dado em destaque sem isenção e a unidade com maiúsculas (D-98) | 2651 → 2979 | 608 → 735 |
 | [32](#sessão-32--250926-a-280926--cadernos-fase-3-fontes-externas) | 25 a 28/09/2026 | Cadernos, fase 3: site, YouTube com transcrição colada, OpenAlex, Wikipédia e busca na web pelo Gemini. Tudo por um portão anti-SSRF, com a origem e a licença coladas à citação e custo zero (D-97) | 1966 → 2651 | 563 → 608 |
@@ -50,6 +51,108 @@ As sessões entre a 11 e a 12 — o patch de design "Prisma" (D-49, D-50), o
 upgrade de segurança S1 e a rodada de desempenho — **não têm seção própria
 aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
+
+---
+
+## Sessão 35 — 29/09/26 — O material de curso sai do Cérebro
+
+**O pedido.** O professor da ENG02016 pediu que o material de sua autoria não
+estivesse no RAG. O autor decidiu retirar todo o material de curso — inclusive
+os trabalhos entregues, que nomeiam colegas — do repositório, do banco de
+produção e, depois, do histórico do git. Livros, extratos, fichas Granta,
+diagramas de Ashby e artigos ficam.
+
+**O que saiu.** 71 arquivos: a pasta `02-Material-de-Curso-ENG02016/` (35), a
+pasta `⚙Seleção de Materiais/` (24, cópia dos trabalhos) e 12 cópias avulsas na
+raiz do Cérebro, que o mapeamento inicial dos arquivos não tinha visto. O
+manifesto perdeu 21 entradas (não havia entrada para as cópias da raiz); o
+README do Cérebro deixou de descrever o material; o `.gitignore` trocou as seis
+exceções que apontavam para a pasta removida por uma guarda contra a volta dos
+arquivos.
+
+**O que entrou.** `Cérebro/removidos.txt`, a lista do que saiu, como fonte única
+(prefixos de pasta e caminhos exatos, sem nome de aluno). `app/knowledge/removal.py`
+lê a lista e casa caminhos com normalização NFC; `app/knowledge/prune.py` é o
+comando que apaga do banco — simulação por padrão, `--apply` numa transação com
+a cascata escrita em Python, totais no log —, e o workflow de administração
+ganhou `conhecimento_simular_remocao` e `conhecimento_remover`. A ingestão e o
+gerador do manifesto passaram a pular o que está na lista, para uma cópia local
+esquecida não desfazer a remoção. O guia
+[`17-limpeza-historico-cerebro.md`](17-limpeza-historico-cerebro.md) descreve a
+reescrita do histórico, que é do autor e acontece depois do merge.
+
+**O que não foi feito, de propósito.** Nenhuma reescrita de histórico nem
+*force-push* nesta sessão, e nenhuma ação contra o banco de produção: as duas
+são do autor, na ordem do guia (TODO A7).
+
+**Números da primeira rodada.** Backend 3270 → 3297: 29 testes novos (25 da
+lista e da remoção, 2 da ingestão que pula, 2 do gerador do manifesto) e 2
+retirados — os do gerador que afirmavam as regras da pasta `02-`.
+
+**A revisão e a rodada de correção.** A revisão de branch achou três problemas
+importantes e sete menores; todos corrigidos no mesmo PR.
+
+- **Remoção por conteúdo (I1).** O caminho gravado no banco é o do disco que
+  fez a ingestão, não o do git, e o disco do autor tem uma pasta de triagem só
+  local. `removidos.txt` ganhou 34 linhas `sha256:` — o `oid` LFS dos 23
+  PDF/PPTX e o SHA-256 do blob dos 11 PNG, tirados do histórico completo —, e a
+  remoção casa por caminho **ou** conteúdo, dizendo qual. A ingestão e o gerador
+  do manifesto pulam um conteúdo listado em qualquer caminho. A simulação passou
+  a listar **sempre** cada documento que fica e a contagem por pasta, não só
+  quando nada casa. Os 12 títulos da raiz ficam na lista, de propósito: a
+  limpeza do histórico só remove por caminho (M7).
+- **O envio do histórico (I2).** O guia mandava desligar um "bloqueio de
+  *force-push*" que o repositório não tem; a proteção é a *ruleset*
+  `CI obrigatoria em main`, de *required status checks*, e é ela que se
+  suspende. O `--mirror` virou `push --force --atomic` de `refs/heads/*` e
+  `refs/tags/*`: sem as refs de PR, que o GitHub sempre recusa, o atomic vale,
+  e um `main` recusado não deixa o resto reescrito. O guia diz o estado do
+  GitHub numa recusa (inalterado) e que ninguém envia nada no meio.
+- **`Links.md` (I3).** O autor o revisou e decidiu mantê-lo como está e
+  indexá-lo. O README do Cérebro voltou a dizer "Links indicados na
+  disciplina", e o D-100 registra a decisão — com o link do OneDrive e seu
+  token, que o RAG agora pode citar, como escolha aceita.
+- **Markdown na ingestão.** Um `.md` entra só se o `manifesto.json` o declara
+  (lista branca), e `README.md`, `manifesto.json` e `removidos.txt` nunca entram.
+  `Links.md` ganhou entrada no manifesto (tipo `LINK`, autoridade `SECUNDARIA`).
+- **Os menores.** A regra do `--replace-text` termina em `\.pdf"` para não
+  reescrever a si mesma no histórico (M1); o guia fala em "todo commit anterior
+  à reescrita" — o `5933328` que a revisão chamou de raiz era a borda de um
+  clone raso, e a lista de commits de entrada ganhou o `7e34b24` (M2); o log
+  "contém" `[prune] REMOVIDOS` (M3); a lista é lida com BOM e uma pasta sem a
+  `/` final é avisada (M4); o CLI de ingestão nomeia cada arquivo pulado e diz
+  para rodar o `prune` quando ele ainda tem linha na base (M5); banco sem as
+  tabelas do Cérebro para com "rode `migrar`" (M6).
+
+**A segunda revisão e a segunda rodada de correção.** A rerrevisão ensaiou o
+guia inteiro num espelho completo do GitHub e achou um problema importante e
+dois menores, todos corrigidos no mesmo PR.
+
+- **O log público (N1).** O repositório é público, e o log do Actions também;
+  o `prune` imprimia o caminho de cada documento, e o de um trabalho entregue
+  traz os nomes do grupo. `--redact` troca o nome de cada arquivo, removido ou
+  que fica, pela pasta de primeiro nível e os 8 primeiros dígitos do sha256
+  (`02-Material-de-Curso-ENG02016/… sha256:1a2b3c4d`; na raiz, `(raiz)/…`),
+  mantendo contagens, motivo, histograma e totais. As duas ações de
+  `admin-banco.yml` passam a opção; sem ela, local, os caminhos saem inteiros. O
+  guia e o A7 mandam, além disso, apagar os logs das duas execuções depois de
+  copiar os totais.
+- **A lista de commits (N2).** Saiu do guia e do D-100, que estava imprecisa;
+  fica a formulação que vale, "todo commit e todo PR anteriores à reescrita". O
+  pedido ao suporte cita o PR #56, cuja ref guarda 65 dos arquivos fora de
+  qualquer branch.
+- **Cópia local de bytes diferentes (N3).** Entra na lista como `sha256:`,
+  nunca pelo caminho: o caminho não serve ao histórico e publicá-lo poderia
+  publicar os nomes que se quer apagar.
+- **Os detalhes.** Um endereço com parênteses sai inteiro do Markdown e
+  `>= 5 MPa` guarda o operador; a descoberta da ingestão não segue link
+  simbólico nem nada fora da raiz; o passo 4 do guia apara as pontas de cada
+  linha como a leitura da lista; a frase sobre o ensaio foi atualizada. O
+  localizador `p. 1-1` de uma citação de Markdown ficou em `TODO.md`.
+
+**Números.** Backend 3270 → 3338 (3297 na primeira rodada, 3326 na primeira
+correção, +12 na segunda: 7 do `--redact`, 3 de link simbólico, 2 do Markdown).
+Nenhum skip. Frontend inalterado.
 
 ---
 

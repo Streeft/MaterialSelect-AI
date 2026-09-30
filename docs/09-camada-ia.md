@@ -141,6 +141,55 @@ nenhum sozinha; o princípio 2 do `CLAUDE.md` continua valendo tanto quanto
 antes de ela existir. Ver [D-45](DECISIONS.md) sobre por que o material
 licenciado que ela indexa está hospedado em `main`.
 
+### O que saiu do Cérebro, e como sai do banco ([D-100](DECISIONS.md))
+
+O Cérebro guarda bibliografia publicada, extratos de capítulo, fichas do Granta
+EduPack, diagramas de Ashby e artigos. **Material de curso não entra**: o
+material da ENG02016 (tópicos de aula, plano de aulas, ferramentas avaliativas,
+trabalhos entregues) saiu a pedido do professor e por decisão do autor.
+`Cérebro/removidos.txt` é a lista do que saiu — um caminho por linha, relativo
+a `KNOWLEDGE_DIR`, com `/` no fim valendo como prefixo de pasta e `#` como
+comentário, e uma linha `sha256:<hex>` por conteúdo removido, que casa o mesmo
+arquivo em qualquer caminho (o caminho no banco é o do disco que ingeriu, não o
+do git) —, e três coisas a leem:
+
+- **`python -m app.knowledge.prune --list <lista> [--apply]`** tira do banco o
+  que a lista nomeia, por caminho **ou** conteúdo. A ingestão só acrescenta,
+  então apagar o arquivo não apaga o texto do RAG; isto apaga. Sem `--apply` só
+  simula: lista cada documento que casa (e por quê), com trechos e embeddings,
+  as entradas que não casaram, os totais e **cada documento que fica**, com a
+  contagem por pasta de primeiro nível. Com
+  `--apply`, apaga documento, trechos e embeddings numa transação, com a cascata
+  escrita em Python. A comparação normaliza Unicode (NFC contra NFD) e não
+  precisa de `pypdf` nem do corpus. Em produção, pelas ações
+  `conhecimento_simular_remocao` e `conhecimento_remover` do workflow
+  **Administração do banco** ([13-deploy.md](13-deploy.md) §5-bis), que passam
+  `--redact`: o log do Actions é público, e com a opção cada documento sai como
+  pasta de primeiro nível mais o começo do sha256, sem o nome do arquivo, com
+  as mesmas contagens e totais.
+- **A ingestão** pula todo arquivo que casa com `removidos.txt` na raiz do
+  corpus, pelo caminho ou pelo conteúdo, e o declara `ignorado`, com o motivo —
+  uma cópia local esquecida não desfaz a remoção. O CLI imprime cada arquivo
+  pulado e, se ele ainda tiver linha naquela base, diz para rodar o `prune`.
+  A descoberta não segue link simbólico nem nada que resolva fora da raiz.
+- **A limpeza do histórico do git**, passo manual e posterior, pelo guia
+  [`17-limpeza-historico-cerebro.md`](17-limpeza-historico-cerebro.md).
+
+### O que a ingestão lê: PDF e o Markdown declarado ([D-100](DECISIONS.md))
+
+A ingestão do Cérebro lê **todo PDF** sob `KNOWLEDGE_DIR` e, de Markdown,
+**só o `.md` que o `manifesto.json` declara** — hoje, `Links.md`, a lista de
+links indicados na disciplina (tipo `LINK`, autoridade `SECUNDARIA`), que o
+autor revisou e decidiu indexar. A lista branca é o manifesto porque decidir o
+que é fonte já é o papel dele: um `.md` de anotação largado na pasta não vira
+fonte citável sem ninguém decidir. Os arquivos de operação — `README.md` (em
+qualquer pasta), `manifesto.json`, `removidos.txt` — **nunca** são indexados,
+nem declarados. A extração do Markdown tira só a marcação (`#`, marcadores de
+lista, e `[rótulo](url)` vira `rótulo (url)`) e guarda cada linha como
+parágrafo; o chunker é o mesmo do PDF. O `Links.md` tem um link de
+compartilhamento do OneDrive com o token de acesso na URL, que o RAG pode
+citar: escolha aceita pelo autor.
+
 ### Citação verificada, só em `explain()`
 
 `explain()` pode citar os trechos que efetivamente usou: o esquema pede só o

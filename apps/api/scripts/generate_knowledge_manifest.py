@@ -9,6 +9,15 @@ Rodar de novo não sobrescreve entrada já presente no manifesto: se um humano
 editou `titulo`/`autor`/`autoridade` à mão, a edição fica. Só caminhos ainda
 não declarados são adicionados.
 
+O que está em `Cérebro/removidos.txt` (D-100) nunca é declarado — pelo caminho
+ou pelo conteúdo (as linhas `sha256:`) —, e uma entrada que já estivesse no
+manifesto sai: o manifesto descreve a base, e o que saiu dela não é mais parte
+dela.
+
+Só PDFs são descobertos aqui. Um Markdown entra na base apenas quando alguém o
+declara à mão (D-100, `Links.md`), e uma entrada declarada à mão nunca é
+tocada.
+
 Uso::
 
     python scripts/generate_knowledge_manifest.py
@@ -16,19 +25,24 @@ Uso::
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import sys
 from pathlib import Path
 
+# Rodado como `python scripts/generate_knowledge_manifest.py`, o diretório do
+# script vem primeiro no sys.path, e não `apps/api` — mesmo remendo de
+# backfill_material_keywords.py.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from app.knowledge.removal import load_from_root  # noqa: E402
+
 _FOLDER_RULES: list[tuple[str, str, str]] = [
     # (prefixo do caminho relativo, tipo, autoridade) — primeira regra que
     # casar vence, então a ordem importa: prefixos mais específicos primeiro.
+    # Não há regra para `02-`: era o material de curso, retirado no D-100.
     ("01-Bibliografia/", "LIVRO", "CIENTIFICA"),
-    ("02-Material-de-Curso-ENG02016/Topicos-de-Aula/", "SLIDE", "TECNICA"),
-    ("02-Material-de-Curso-ENG02016/Trabalhos-Entregues/", "EXERCICIO", "TECNICA"),
-    ("02-Material-de-Curso-ENG02016/Ferramentas-Avaliativas/", "OUTRO", "TECNICA"),
-    ("02-Material-de-Curso-ENG02016/", "OUTRO", "TECNICA"),
     ("03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/", "FICHA", "TECNICA"),
     ("04-Ferramentas-e-Diagramas/", "OUTRO", "TECNICA"),
     ("05-Artigos-Cientificos/", "ARTIGO", "CIENTIFICA"),
@@ -68,22 +82,27 @@ def infer_provenance(relative_path: str) -> dict:
     return entry
 
 
-def main() -> None:
-    root = Path(__file__).resolve().parents[3] / "Cérebro"
-    if not root.is_dir():
-        print(f"[manifesto] {root} não existe; nada a fazer.")
-        sys.exit(1)
-
+def update_manifest(root: Path) -> tuple[int, int, int]:
+    """Atualiza ``<root>/manifesto.json``; devolve (declarados, novos, retirados)."""
+    removed = load_from_root(root)
     manifest_path = root / "manifesto.json"
     existing: dict[str, dict] = {}
     if manifest_path.is_file():
         payload = json.loads(manifest_path.read_text(encoding="utf-8"))
         existing = {entry["path"]: entry for entry in payload.get("documentos", [])}
 
+    dropped = [path for path in existing if removed.matches(path)]
+    for path in dropped:
+        del existing[path]
+
     added = 0
     for path in sorted(root.rglob("*.pdf")):
         relative = path.relative_to(root).as_posix()
-        if relative in existing:
+        if relative in existing or removed.matches(relative):
+            continue
+        if removed.checksums and removed.matches_checksum(
+            hashlib.sha256(path.read_bytes()).hexdigest()
+        ):
             continue
         existing[relative] = infer_provenance(relative)
         added += 1
@@ -92,8 +111,19 @@ def main() -> None:
         json.dumps({"documentos": list(existing.values())}, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
+    return len(existing), added, len(dropped)
+
+
+def main() -> None:
+    root = Path(__file__).resolve().parents[3] / "Cérebro"
+    if not root.is_dir():
+        print(f"[manifesto] {root} não existe; nada a fazer.")
+        sys.exit(1)
+
+    declared, added, dropped = update_manifest(root)
     print(
-        f"[manifesto] {len(existing)} documentos declarados ({added} novos). Gravado em {manifest_path}."
+        f"[manifesto] {declared} documentos declarados ({added} novos, {dropped} retirados "
+        f"pela lista de remoção). Gravado em {root / 'manifesto.json'}."
     )
 
 
