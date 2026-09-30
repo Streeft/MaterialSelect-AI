@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from sqlalchemy import delete, func, select
+from sqlalchemy import ColumnElement, and_, delete, func, not_, or_, select
 from sqlalchemy.orm import Session
 
 from app.models.knowledge import KnowledgeChunk, KnowledgeDocument, KnowledgeEmbedding
@@ -118,6 +118,76 @@ class KnowledgeRepository:
                 )
             )
         self.db.flush()
+
+    @staticmethod
+    def _embedding_is_current(model: str, dims: int) -> ColumnElement[bool]:
+        """SQL twin of :func:`app.knowledge.embeddings.embedding_matches`.
+
+        The same rule, evaluated by the database so a count or a to-do list
+        never has to load a single vector: same model and, unless ``dims`` is
+        0 ("the model's own size"), the same dimension.
+        """
+        condition = KnowledgeEmbedding.model == model
+        if dims:
+            condition = and_(condition, KnowledgeEmbedding.dimensions == dims)
+        return condition
+
+    def embedding_totals(self, model: str, dims: int) -> tuple[int, int, int]:
+        """``(total, current, pending)`` chunks for the embedding ``model``/``dims``.
+
+        *Current* is a chunk whose vector matches that identity; *pending* is
+        every other chunk — never embedded, or embedded by another model or at
+        another size. Two count queries, no vector read.
+
+        Counted through the chunk join: a vector left behind by a chunk deleted
+        where ``ondelete`` is not enforced (SQLite without the pragma) is not a
+        passage anyone can retrieve, and must not inflate the covered share.
+        """
+        total = self.count_chunks()
+        current = int(
+            self.db.execute(
+                select(func.count(KnowledgeEmbedding.id))
+                .join(KnowledgeChunk, KnowledgeEmbedding.chunk_id == KnowledgeChunk.id)
+                .where(self._embedding_is_current(model, dims))
+            ).scalar_one()
+        )
+        return total, current, total - current
+
+    def pending_chunk_ids(self, model: str, dims: int) -> list[int]:
+        """Ids of the chunks lacking a current vector, smallest documents first.
+
+        Ordered by the document's chunk count, then document, then position:
+        a night's quota then completes many short documents (a datasheet, an
+        article) instead of a slice of one long book, so what becomes
+        searchable first is whole documents.
+        """
+        return list(
+            self.db.execute(
+                select(KnowledgeChunk.id)
+                .join(KnowledgeDocument, KnowledgeChunk.document_id == KnowledgeDocument.id)
+                .outerjoin(KnowledgeEmbedding, KnowledgeEmbedding.chunk_id == KnowledgeChunk.id)
+                .where(
+                    or_(
+                        KnowledgeEmbedding.id.is_(None),
+                        not_(self._embedding_is_current(model, dims)),
+                    )
+                )
+                .order_by(
+                    KnowledgeDocument.chunk_count, KnowledgeDocument.id, KnowledgeChunk.ordinal
+                )
+            )
+            .scalars()
+            .all()
+        )
+
+    def chunk_texts(self, chunk_ids: list[int]) -> dict[int, str]:
+        """The text of each chunk in ``chunk_ids`` that still exists, by id."""
+        if not chunk_ids:
+            return {}
+        rows = self.db.execute(
+            select(KnowledgeChunk.id, KnowledgeChunk.text).where(KnowledgeChunk.id.in_(chunk_ids))
+        ).all()
+        return {int(chunk_id): text for chunk_id, text in rows}
 
     def list_all_embeddings(self) -> list[KnowledgeChunk]:
         """Every chunk that has an embedding, joined to it and to its document."""
