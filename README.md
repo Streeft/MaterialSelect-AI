@@ -185,7 +185,7 @@ npm run test:e2e                            # Playwright, API e banco próprios
 
 Os testes do backend rodam em SQLite em memória e **não têm rede** — o
 `conftest.py` reprova quem tentar sair. Pelo último registro em
-[`CLAUDE.md`](CLAUDE.md), são 3338 testes de backend e 751 de frontend.
+[`CLAUDE.md`](CLAUDE.md), são 3552 testes de backend e 751 de frontend.
 
 [`.github/workflows/ci.yml`](.github/workflows/ci.yml) roda em todo PR e em
 todo push para `main`: **Backend** (Python 3.11 e 3.12: ruff, black, pytest,
@@ -215,6 +215,7 @@ workflows de disparo manual na aba *Actions*:
 | **Administração do banco** (`admin-banco.yml`) | `semear` quando o PR mexeu em seed (na dúvida, dispare); também `migrar`, `conceder`, `revogar`, `excluir_demo`. |
 | **Provedor de IA** (`provedor-ia.yml`) | Trocar a IA (`gemini`, `groq`, `mock`); confere em `/api/health`. |
 | **Modo de acesso** (`modo-acesso.yml`) | `abrir` para uma turma, `restaurar_assinatura` depois. |
+| **Base de conhecimento (Cérebro)** (`conhecimento.yml`) | `ingerir` depois de um PR que mexa em `Cérebro/` ou no manifesto; `embeddings` para gerar vetores já; `status` para o retrato. Uma execução **noturna agendada** gera os vetores sozinha, com a sobra da cota gratuita. |
 
 Roteiro completo, com o porquê de cada passo, em
 [`docs/13-deploy.md`](docs/13-deploy.md).
@@ -235,6 +236,12 @@ Roteiro completo, com o porquê de cada passo, em
 - A **busca na web** e a **OpenAlex** dos Cadernos vêm **desligadas** até haver
   uma chave gratuita de conta sem forma de pagamento. Esgotada a franquia, a
   função para com o motivo escrito na tela.
+- O **RAG sobre o Cérebro** (livros, fichas Granta, artigos e o `Links.md`)
+  junta busca por palavras (BM25) e por vetores do `gemini-embedding-001` com
+  768 dimensões, gerados à noite com a sobra da cota gratuita. Esgotada a
+  cota, a busca cai para as palavras, sem erro na tela. No plano gratuito o
+  Google pode usar o texto enviado — o autor aceitou isso para os livros do
+  Cérebro ([D-101](docs/DECISIONS.md)).
 - Outros provedores (`claude-api`, `claude-cli`, Groq, Ollama local) são troca
   de variável; serviço, guardrails e interface não mudam.
 

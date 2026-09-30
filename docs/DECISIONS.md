@@ -1839,6 +1839,15 @@ próprio ambiente, não só pelos testes automatizados.
 
 ## D-47 — Busca híbrida (RRF) sobre o Cérebro, Jina AI como receita gratuita, citação verificada em vez de citação livre
 
+> **Atualização ([D-101](#d-101--o-cérebro-entra-em-produção-pelo-github-actions-ingestão-com-lfs-em-cache-vetores-de-768-dimensões-com-a-sobra-noturna-da-cota-gratuita-e-busca-com-índice-em-memória)).**
+> A fusão, o portão `provider.simulated` e a citação por índice continuam como
+> abaixo. Mudou o que está por baixo: a busca do Cérebro deixou de carregar
+> todos os trechos e vetores a cada chamada e passou a ranquear sobre um índice
+> residente no processo (`app/knowledge/index.py`), com o BM25 igual bit a bit;
+> os vetores são filtrados por modelo **e** dimensão; e a receita de embeddings
+> em produção é o `gemini-embedding-001` com 768 dimensões, pela chave gratuita
+> do D-93 — a Jina AI continua como receita documentada, não em uso.
+
 **26/08/2026.** O Cérebro (`Cérebro/`) estava em `main` desde D-45 — hospedado,
 íntegro, mas inerte: nada em `app/ai/` o lia. Este spec
 (`docs/superpowers/specs/2026-08-25-cerebro-rag-design.md`) fechou quatro
@@ -5960,6 +5969,18 @@ de tocar no Fly** e, se ele não responder, falha com o motivo e a lista do que 
 chave enxerga; e um modelo de embedding que não responde vira aviso, não falha —
 os embeddings são opcionais (D-47).
 
+**Atualização (30/09, [D-101](#d-101--o-cérebro-entra-em-produção-pelo-github-actions-ingestão-com-lfs-em-cache-vetores-de-768-dimensões-com-a-sobra-noturna-da-cota-gratuita-e-busca-com-índice-em-memória)).**
+Os embeddings passam a sair com **768 dimensões**
+(`KNOWLEDGE_EMBEDDING_DIMENSIONS`), a identidade com que o workflow "Base de
+conhecimento (Cérebro)" grava os vetores. O `provedor-ia.yml` sonda o modelo
+pedindo 768 e conferindo o tamanho do vetor, grava modelo e dimensão num
+`secrets set` só, e `groq`, `mock` e uma sondagem que falhe apagam os dois
+(antes o `mock` não tocava no modelo de embedding). `/api/health` passou a nomear `knowledge_embedding_model` e
+`knowledge_embedding_dimensions`, e o workflow só fica verde depois de lê-los:
+numa API anterior ao D-101 ele falha pedindo o **Deploy da API** primeiro. A
+chave, o custo zero e o aviso de privacidade não mudam — e o texto dos livros
+do Cérebro passa a ir ao Google no plano gratuito, o que o autor aceitou.
+
 ## D-94 — O Estúdio de texto: gerado em segundo plano, conferido item a item, e a ausência escrita célula por célula
 
 **O pedido.** A fase 2 dos Cadernos (D-92): o painel da direita deixa de dizer
@@ -7076,3 +7097,202 @@ pontos.
   vazio e o autor não tem base local, então a ingestão offline que este registro
   supunha não tem onde rodar; o caminho é pergunta aberta
   ([TODO.md](TODO.md) A7).
+
+**Atualização ([D-101](#d-101--o-cérebro-entra-em-produção-pelo-github-actions-ingestão-com-lfs-em-cache-vetores-de-768-dimensões-com-a-sobra-noturna-da-cota-gratuita-e-busca-com-índice-em-memória)).**
+A pergunta do terceiro item foi respondida: a ingestão roda no GitHub Actions,
+pela ação `ingerir` do workflow **Base de conhecimento (Cérebro)**
+(`conhecimento.yml`), que baixa os PDFs do LFS e indexa o `Links.md` com eles.
+Falta só o autor dispará-la. A remoção não mudou: continua pelo `prune`, a
+ingestão continua só acrescentando, e ela segue pulando o que casa com
+`removidos.txt`.
+
+## D-101 — O Cérebro entra em produção pelo GitHub Actions: ingestão com LFS em cache, vetores de 768 dimensões com a sobra noturna da cota gratuita, e busca com índice em memória
+
+**30/09/2026. O pedido.** "Resolva a ingestão do Links.md e ative o RAG" — o
+passo 3 do A7, que o [D-100](#d-100--o-material-de-curso-da-eng02016-sai-do-cérebro-do-repositório-do-banco-e-depois-do-histórico)
+deixou como pergunta aberta: o `KNOWLEDGE_DIR` de produção está vazio, e o autor
+trabalha só na nuvem, disparando workflows à mão, então a "ingestão offline" que
+o D-100 supunha não tinha onde rodar. Entre só palavras (BM25) e palavras mais
+vetores, o autor escolheu **as duas**, sabendo o que isso implica: o texto
+inteiro dos livros do Cérebro vai para a API de embeddings do Gemini no plano
+gratuito, cujos termos deixam o Google usar o conteúdo enviado no gratuito para
+melhorar os produtos dele. Custo zero continua restrição dura, como no
+[D-93](#d-93--o-gemini-no-plano-gratuito-é-a-ia-oficial-do-projeto-por-configuração-do-openai-compat).
+
+**Os números que decidiram o desenho.**
+
+- **Corpus.** 241 PDFs versionados, mas só 120 objetos Git LFS distintos
+  (631 MB, ou 601 MiB). Os outros **121 são cópias byte a byte**: 18 PDFs da
+  raiz que repetem `01-`, `04-` e `05-`, e a pasta
+  `Fichas descritivas de materiais - Granta Edupack - Nível 2/` inteira, cópia
+  de `03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/`. O `manifesto.json` declara
+  exatamente os 120 canônicos mais o `Links.md`. A descoberta pega todo PDF:
+  sem deduplicar, cada trecho dessas obras entraria duas vezes na busca e
+  custaria dois embeddings.
+- **Trechos.** ≈18 mil (faixa de 10 a 25 mil; ≈53 mil no pior caso estimado).
+- **Neon gratuito** (suposto: 0,5 GB de armazenamento e 5 GB de transferência
+  por mês — o autor confirma no painel). Texto mais vetores do Cérebro, a 18 mil
+  trechos: ≈96 MB com 768 dimensões (≈285 MB a 53 mil), ≈152 MB com 1536,
+  ≈262 MB com 3072 — que no pior caso chegaria a ≈770 MB e não cabe.
+- **A consulta, como era.** Toda chamada de IA carregava o corpus inteiro duas
+  vezes — todo trecho para o BM25 e todo trecho de novo, com o vetor, para a
+  semântica: ≈135–300 MB de transferência e 300–500 MB de pico por chamada
+  numa VM de 512 MB (`shared-cpu-1x`, um processo uvicorn). Morte por falta de
+  memória, e a transferência mensal do Neon acabaria em 17 a 37 chamadas.
+  Inviável mesmo só com a léxica.
+- **A cota do Gemini gratuito para embeddings:** 100 pedidos por minuto, 30 mil
+  tokens por minuto, 1 000 pedidos por dia, com a virada à meia-noite do
+  Pacífico. O próprio produto gasta dessa cota (a pergunta embedada em
+  `interpret`/`explain`, as perguntas e os envios dos Cadernos). Com um trecho
+  por pedido, a sobra de uma noite (~900 pedidos) cobre 18 mil trechos em ~20
+  noites; com lote, em 1 ou 2. Se o endpoint compatível com OpenAI aceita lista
+  não estava verificado: a linha `N vetores gravados agora com M pedidos` da
+  primeira execução responde.
+
+**A decisão.**
+
+1. **Um workflow próprio**, `.github/workflows/conhecimento.yml` — "Base de
+   conhecimento (Cérebro)" —, com as ações `status`, `ingerir` e `embeddings`,
+   mais uma execução noturna agendada. Não é ação do `admin-banco.yml` porque
+   aquele arquivo promete "só `workflow_dispatch`" como propriedade de
+   segurança, e a noturna precisa de `schedule` (que só roda no repositório,
+   com o código do ramo padrão, nunca num *fork* nem num PR). Divide com ele o
+   grupo de concorrência `admin-banco`: uma ingestão nunca corre junto de um
+   `conhecimento_remover`.
+2. **A ingestão não usa IA, e o LFS vai para cache.** `ingerir` lista os ids dos
+   objetos LFS, restaura `.git/lfs/objects` do `actions/cache` chaveado por eles,
+   roda `git lfs pull`, confere **antes do Python** que nenhum arquivo do
+   Cérebro ficou como ponteiro, e roda
+   `python -m app.knowledge.ingest --no-embed` sem chave de IA nenhuma no
+   ambiente. A busca léxica já funciona depois disso.
+3. **A ingestão ficou segura contra o que o Actions pode entregar.**
+   - Um **ponteiro LFS** no lugar do PDF é `falhou` e não toca o banco. Antes,
+     ele seria lido como documento ilegível: o checksum era sobrescrito e os
+     trechos do documento, apagados.
+   - Uma **cópia byte a byte** é indexada uma vez. Fica a cópia que o manifesto
+     declara; sem declaração, a que já está indexada; sem nenhuma das duas, a
+     primeira em ordem alfabética. As outras saem `ignorado`, com
+     "Cópia byte a byte de …", e contam em `skipped` também na resposta de
+     `POST /api/knowledge/ingest`, cujo contrato não mudou.
+   - Uma **versão nova ilegível** de um documento já extraído mantém os trechos,
+     os vetores e o checksum da versão anterior, com o motivo em `error`; a
+     próxima ingestão tenta de novo.
+   - Um PDF **sem texto** (digitalizado) sai como `SEM TEXTO`, aviso, não
+     falha do job. O código de saída é 1 só para as outras falhas.
+   - Commit por documento, e o log imprime caminho inteiro só do que o manifesto
+     declara; o resto sai como pasta mais o começo do sha256
+     (`app.knowledge.prune.redact`), porque o log do Actions é público.
+4. **Vetores de 768 dimensões, com a sobra da noite.**
+   `KNOWLEDGE_EMBEDDING_DIMENSIONS=768` vai no pedido como `dimensions`, e todo
+   vetor devolvido é conferido contra ele. `python -m app.knowledge.embed`
+   preenche o que falta — trecho sem vetor, ou com vetor de outra identidade
+   (modelo e dimensão) —, dos documentos menores para os maiores, com commit
+   por lote e ritmo de 90 pedidos e 27 mil tokens por minuto. Termina **com
+   sucesso** quando a cota do dia acaba (um 429 diário, ou quatro 429 por
+   minuto seguidos), quando o limite de pedidos da execução ou o prazo acaba.
+   Um 400 num lote reenvia os trechos um a um; três trechos recusados com 400
+   seguidos, sem nenhum gravado entre eles, disparam um **trecho-canário** do
+   fim da fila (em geral de outro documento): gravado, as recusas eram dos
+   trechos, a contagem recomeça e a execução segue; recusado também, é
+   configuração (o Gemini responde a uma chave errada com 400
+   `API_KEY_INVALID`, não com 401) e o job falha com a explicação do servidor —
+   uma chave ruim custa no máximo cinco pedidos. Sem trecho para o canário, a
+   execução termina verde, com os avisos. A chave configurada, se o servidor a
+   devolver no erro, é trocada por `[chave omitida]` antes de a mensagem ser
+   cortada, e o log nunca a mostra. A noturna dispara às 05:07 UTC e só
+   trabalha entre 21h e 23h50 do Pacífico, antes da virada da cota — quando o
+   que sobrou do dia já não serve a ninguém.
+5. **Uma identidade de vetor só, conferida de ponta a ponta.** `/api/health`
+   passa a informar `knowledge_embedding_model` e
+   `knowledge_embedding_dimensions`, lidos das configurações, sem consulta ao
+   banco. O `provedor-ia.yml` grava modelo e dimensão juntos, num `secrets set`
+   só; `groq`, `mock` e uma sondagem que falhe apagam os dois. A ação `status`
+   compara a identidade da API com a do workflow (linha "API vs vetores").
+6. **A consulta roda sobre um índice em memória** (`app/knowledge/index.py`):
+   um índice invertido cujo BM25 é **igual bit a bit** ao de
+   `lexical.bm25_scores` (teste de ouro com `==`), e os vetores de uma
+   identidade em `array('f')`. Duas consultas mínimas de impressão digital por
+   busca decidem se algo mudou: o índice léxico é reconstruído quando o corpus
+   muda, e os vetores novos da noite são acrescentados sem recarregar o resto.
+   Só as `top_k` linhas devolvidas são lidas do banco por inteiro.
+7. **Vetor de outro tamanho nunca mais derruba a semântica.** A busca filtrava
+   os vetores só pelo modelo, e um vetor de outra dimensão fazia a similaridade
+   lançar exceção — a semântica caía em silêncio para **toda** consulta. Agora
+   o filtro é modelo **e** dimensão, no Cérebro e nos Cadernos, e uma consulta
+   ao Cérebro não gasta pedido de embedding quando não há vetor guardado no
+   tamanho configurado.
+
+**Alternativas descartadas.**
+
+- **pgvector ou a busca textual do PostgreSQL.** Exigiriam migração com
+  extensão e ranqueamento dentro do banco, que o SQLite da suíte não tem — a
+  busca de produção passaria a ser um caminho que nenhum teste exercita —, e o
+  BM25 dos Cadernos continuaria em Python: duas verdades sobre a mesma nota. Um
+  índice vetorial no banco também ocupa espaço num plano de 0,5 GB.
+- **3072 dimensões (o tamanho nativo) ou 1536.** 3072 não cabe no Neon
+  gratuito no pior caso; 1536 dobra o espaço e a memória sem que haja medida
+  de qualidade que o justifique aqui.
+- **Continuar carregando tudo por consulta.** Os números acima.
+- **Ingerir dentro do contêiner do Fly.** A imagem não tem os PDFs, a VM tem
+  512 MB e serve o tráfego, e baixar 631 MB de LFS lá dentro não teria cache.
+- **Só apagar as duplicatas do git.** É decisão do autor (histórico, cota de
+  LFS) e não protegeria de uma cópia futura; a ingestão deduplica de qualquer
+  jeito, e as cópias na árvore ficam como pendência dele.
+- **Desligar o agendamento quando a cobertura chegar a 100%.** Sem nada
+  pendente, a noturna faz uma contagem e sai sem pedido nenhum ao Gemini
+  (`[embed] nada a fazer`); ligada, ela cobre a próxima ingestão sem que
+  ninguém precise lembrar.
+- **Uma VM maior.** Custa dinheiro.
+- **Servir o índice léxico antigo durante uma ingestão** (*debounce*). Evitaria
+  a reconstrução a cada documento gravado, mas serviria resultado velho por
+  desenho; em vez disso, `ingerir` roda fora do horário de aula.
+
+**Consequências.**
+
+- **Cobertura semântica:** de 1 ou 2 noites, se o endpoint aceitar lote, a 2 a
+  4 semanas no pior caso (um trecho por pedido, com o produto gastando parte
+  da cota). Até lá a semântica usa os vetores que existem; o resto é achado
+  pela léxica, e a fusão não precisa saber qual lista está incompleta.
+- **Primeira consulta de cada máquina** depois de um deploy ou de uma ingestão
+  paga a construção do índice: ≈5–8 s a mais e ≈75 MB de transferência do
+  Neon. Medido: ≈100 MB residentes por processo a 18 mil trechos × 768
+  (≈44 MB de índice léxico e ≈58 MB de vetores).
+- **Cota de embeddings esgotada durante o dia** não é erro para ninguém: a
+  pergunta embedada recebe 429, a busca cai para a léxica sem aviso ao
+  usuário, e a noturna daquela noite simplesmente não grava.
+- **Os vetores antigos dos Cadernos** (3072 dimensões) ficam fora da busca
+  semântica — aquelas fontes são buscadas só por palavras — até serem
+  reembedados (TODO).
+- **O agendamento do GitHub tem regras próprias:** só roda a versão do ramo
+  padrão, pode atrasar (daí a janela conferida pela hora de verdade), é
+  **desligado depois de 60 dias sem atividade no repositório** (religa-se na
+  aba Actions), e um grupo de concorrência guarda uma só execução pendente —
+  uma noturna na fila pode ser trocada por uma execução de `admin-banco`
+  disparada depois dela. A noite seguinte repete.
+- **Um trecho que o servidor sempre recusa** fica pendente para sempre e
+  aparece como aviso em toda execução, com o motivo do servidor; ele não trava
+  os outros, nem quando são três vizinhos (o canário os distingue de uma chave
+  errada). Tirá-lo de vez é tirar o documento pela lista de remoção.
+- **Banda de LFS:** a primeira `ingerir` baixa ≈631 MB; as seguintes vêm do
+  cache. Uma entrada do `actions/cache` sem uso por 7 dias é apagada pelo
+  GitHub, e então o download se repete.
+- **O D-100 não muda:** a ingestão continua só acrescentando, e o que sai do
+  Cérebro sai do banco pelo `prune`. O `status` lista os documentos da base
+  sem arquivo no repositório ("fora do repositório").
+
+**Decisões que continuam com o autor**, nenhuma bloqueante: tirar do git as 121
+cópias idênticas; se
+`01-Bibliografia/Michael Ashby (Auth.)-Seleção De Materiais No Projeto Mecânico (2012).pdf`
+e `01-Bibliografia/Selecao_de_Materiais_no_Projeto_Mecanico.pdf` são a mesma
+edição (hoje entram as duas, com conteúdos diferentes); confirmar os limites do
+Neon gratuito no painel; e olhar a memória da máquina no painel do Fly depois da
+primeira consulta.
+
+**Como se sabe que passa.** Testes novos para cada regra acima — ponteiro,
+cópia, versão anterior mantida, `SEM TEXTO`, `--no-embed`, 429 diário e por
+minuto, 400 em lote, sozinho e com o trecho-canário, chave cortada no meio
+da mensagem, orçamento, prazo, ritmo, igualdade do BM25, acréscimo incremental,
+recarga por contagem e por soma de ids, vetor de outro tamanho ignorado,
+`status` e `/api/health` —, e o canário de isolamento intacto: 3338 → 3552
+testes de backend, nenhum pulado. `ruff` e `black` limpos; os dois workflows passam no `actionlint` com
+`shellcheck`. Operação em [13-deploy.md §5-septies](13-deploy.md).

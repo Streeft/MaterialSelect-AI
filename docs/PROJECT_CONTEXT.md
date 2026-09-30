@@ -137,9 +137,29 @@ remoção em produção e a reescrita do histórico foram feitas pelo autor em
 30/09/2026 (`main`: `873dd53` → `b7dd105`, árvore idêntica; 76 commits
 duplicados colapsados; os 71 caminhos e os nomes dos alunos a 0 no histórico).
 Não há bases locais. Faltam o pedido ao suporte do GitHub, refazer os clones
-antigos e indexar o `Links.md` em produção (TODO A7). O `Links.md` **fica e passa a ser indexado**,
-por decisão do autor: a ingestão lê PDF e o Markdown que o `manifesto.json`
-declara, nunca o `README.md`.
+antigos e disparar a ingestão em produção, que o D-101 pôs num workflow (TODO
+A7). O `Links.md` **fica e passa a ser indexado**, por decisão do autor: a
+ingestão lê PDF e o Markdown que o `manifesto.json` declara, nunca o
+`README.md`.
+
+**O Cérebro entra em produção pelo GitHub Actions** ([D-101](DECISIONS.md)).
+O autor pediu para resolver a ingestão do `Links.md` e ativar o RAG, e escolheu
+busca por palavras **e** por vetores, aceitando que o texto dos livros vá à API
+de embeddings do Gemini no plano gratuito (onde o Google pode usá-lo). O
+workflow **Base de conhecimento (Cérebro)** (`conhecimento.yml`) ingere num
+runner — `ingerir` baixa os 120 PDFs distintos do LFS com cache (≈631 MB) e
+grava os trechos, sem chave de IA —, gera os vetores (`embeddings`, e uma
+execução noturna com a sobra da cota do dia, 768 dimensões) e mostra o retrato
+(`status`, com a comparação "API vs vetores"). A ingestão ficou segura contra o
+que o Actions pode entregar (ponteiro LFS não toca o banco; as 121 cópias byte
+a byte da árvore entram uma vez; versão nova ilegível mantém a anterior), e a
+busca passou a um índice em memória no processo da API — antes, cada chamada de
+IA lia o corpus inteiro duas vezes, o que derrubaria a VM de 512 MB e gastaria a
+transferência mensal do Neon em poucas dezenas de chamadas. `/api/health` nomeia
+o modelo e a dimensão dos embeddings. **O código está pronto; a execução é do
+autor**: Deploy da API → Provedor de IA (`gemini`) → `status` → `ingerir` → os
+vetores chegam em 1 a 2 noites, se o Gemini aceitar lote, ou em 2 a 4 semanas no
+pior caso ([13-deploy.md §5-septies](13-deploy.md)).
 
 **A falta que resta no trabalho como um todo não é de código** e não pode ser
 fechada por quem programa sozinho: a sessão de teste com usuários do §3.5 da
@@ -555,7 +575,7 @@ e tetos que recusavam páginas com tokens de design inline no `<html>`: a vazia
 passou a valer, e propriedade personalizada deixou de contar nas 64
 declarações do atributo, com o escopo indo a 4096.
 
-**Saúde do código:** 3338 testes de backend (Python 3.11 e 3.12, nenhum skip)
+**Saúde do código:** 3552 testes de backend (Python 3.11 e 3.12, nenhum skip)
 e 751 de frontend, todos verdes. Desde o P0-1 a suíte também roda as migrações de
 verdade, nos dois sentidos, contra um banco temporário que já contém dados —
 `test_migration_selection_stage.py`, `test_migration_process_universe.py`,
@@ -593,6 +613,8 @@ O roteiro completo está em [13-deploy.md](13-deploy.md) e o desenho em
   projeto não tem shell disponível. Eles cobrem `fly deploy`, migrações, seed e
   a concessão de acesso — e um terceiro, `modo-acesso.yml`, abre a ferramenta
   a qualquer conta Google para uma turma e a fecha de novo ([D-83](DECISIONS.md)).
+  O Cérebro tem o seu, **Base de conhecimento (Cérebro)** (`conhecimento.yml`),
+  o único com execução agendada ([D-101](DECISIONS.md)).
 - **Publicar exigiu corrigir cinco defeitos que nenhum teste pegava**, todos
   invisíveis fora de produção: a migração que não subia em Postgres, o
   `psycopg` não declarado, o `requirements.txt` que tinha derivado, o
@@ -765,8 +787,8 @@ Ficaram ~1.600 linhas da `fase-9-ia-e-laudo` que não chegaram a `main` junto do
 resto da fase — trazidas depois, íntegras, verificadas caminho a caminho:
 
 - **Ingestão do Cérebro** (`app/knowledge/`) — leitura de PDF (`readers.py`,
-  extrai texto via `pypdf`; o extra `knowledge` precisa estar instalado, e a CI
-  passou a instalar `.[dev,knowledge]` por causa disso), *chunking*,
+  extrai texto via `pypdf`, dependência principal desde o D-92; na época era o
+  extra `knowledge`, e a CI ainda instala `.[dev,knowledge]`), *chunking*,
   *embeddings*, busca léxica e um `manifest` de proveniência por documento,
   mais 40 testes. Ficou pronta antes de ter consumidor — a busca abaixo é
   quem passou a usá-la.
@@ -905,6 +927,7 @@ que mais afetam quem for mexer no código:
 | Estúdio visual e sonoro: a voz é a do navegador (sem MP3/MP4); o dado em destaque não tem isenção e a unidade é comparada com maiúsculas; o layout do infográfico e a tipografia vêm do backend | [D-98](DECISIONS.md) |
 | Cotas dos Cadernos reservadas por um `UPDATE` condicional e devolvidas uma vez, por quem tira a geração de `gerando`; CSS inline oculta por qualquer declaração, e fonte e cor são estado herdado | [D-99](DECISIONS.md) |
 | Material de curso fora do Cérebro; `Cérebro/removidos.txt` é a fonte única do que saiu, por caminho e por conteúdo (`sha256:`), lida pela remoção do banco (simulação primeiro, que lista o que fica), pela ingestão e pela limpeza do histórico; a ingestão lê PDF e o Markdown declarado no manifesto (`Links.md`) | [D-100](DECISIONS.md) |
+| O Cérebro é ingerido por um workflow do Actions (LFS em cache, sem IA); vetores de 768 dimensões com a sobra noturna da cota gratuita; uma identidade de vetor (modelo e dimensão) conferida em `/api/health`; a busca ranqueia num índice em memória, com BM25 igual bit a bit | [D-101](DECISIONS.md) |
 
 ## 9. Limitações atuais
 
@@ -916,8 +939,9 @@ que mais afetam quem for mexer no código:
   código e o que a suíte de testes exercita. Duas consequências: o que for
   digitado no painel de IA é enviado à Groq, e planos gratuitos costumam reservar
   o direito de treinar em cima — a interface avisa isso ao lado de cada sugestão;
-  e o RAG sobre o Cérebro liga junto ([D-47](DECISIONS.md)), mas encontra base
-  vazia (`KNOWLEDGE_DIR` não é populado na instância), então as explicações vêm
+  e o RAG sobre o Cérebro liga junto ([D-47](DECISIONS.md)). Até a ação
+  `ingerir` do workflow **Base de conhecimento (Cérebro)** rodar em produção
+  ([D-101](DECISIONS.md)), ele encontra a base vazia e as explicações vêm
   **sem citações** — ausência que o backend declara em vez de esconder.
 - **`/billing/checkout` responde 503 na instância publicada**, porque
   `STRIPE_API_KEY` está vazio ([D-36](DECISIONS.md)). O portão de assinatura
@@ -956,6 +980,17 @@ que mais afetam quem for mexer no código:
   intacta no banco e avalia corretamente ao **reexecutar** o estudo), mas
   "Abrir" mostra tudo num único grupo AND, sem aviso na tela. Ver TODO.md
   ("M6" em "Débitos já quitados").
+- **A busca semântica do Cérebro chega aos poucos.** Os vetores são gerados com
+  a sobra da cota diária gratuita do Gemini (~1 000 pedidos por dia, divididos
+  com o próprio produto): de 1 a 2 noites se o endpoint aceitar lote, até 2 a 4
+  semanas se não aceitar. Até lá, e sempre que a cota do dia acaba, a busca usa
+  os vetores que existem e cai para as palavras no resto, sem erro na tela
+  ([D-101](DECISIONS.md)). As fontes dos Cadernos embedadas antes do D-101
+  (3072 dimensões) ficam só na busca por palavras até serem refeitas (TODO).
+- **A primeira consulta de IA de cada máquina** depois de um deploy ou de uma
+  ingestão constrói o índice do Cérebro: alguns segundos a mais e ≈75 MB lidos
+  do Neon. Uma ingestão feita durante a aula reconstrói o índice a cada
+  consulta — por isso `ingerir` roda fora do horário de aula.
 - **Propriedades dependentes de condição** (curvas completas) fora do escopo.
 - **Busca por palavra-chave usa LIKE sobre JSON** — não escala.
 - **Com provedor de IA real, a leitura do enunciado não é reproduzível.** Só o
@@ -995,8 +1030,11 @@ que mais afetam quem for mexer no código:
 | Dependência de provedor de IA | Arquitetura desacoplada com provedor simulado; funciona sem chave. |
 | Incorporação inadvertida de dado protegido | Triagem de licenciamento (M1, item 4.2 da proposta) — `Source` registra licença/procedência, e uma fonte nova sem licença ou marcada como possivelmente protegida sem confirmação humana é recusada antes de qualquer linha ser escrita ([D-44](DECISIONS.md)). |
 | Resultado não reproduzível por interferência de IA | Cálculo determinístico + guardrails executáveis + confirmação do usuário. |
-| Regressão silenciosa | CI com 3338 testes de backend e 751 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
+| Regressão silenciosa | CI com 3552 testes de backend e 751 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
 | Material licenciado do Cérebro exposto em `main` (repositório público) | Risco aceito por decisão explícita do autor, não mitigado — o Cérebro é a base de conhecimento da camada de IA ([D-45](DECISIONS.md)). |
+| Texto dos livros do Cérebro enviado ao Gemini no plano gratuito, onde o Google pode usá-lo para melhorar os produtos | Risco aceito pelo autor ao escolher busca por vetores ([D-101](DECISIONS.md)); a alternativa sem envio é a busca só por palavras, que continua funcionando sozinha. |
+| Limites do Neon gratuito (suposto 0,5 GB e 5 GB/mês de transferência) e memória da VM de 512 MB | Vetores de 768 dimensões (≈96 MB de base a 18 mil trechos), índice em memória medido em ≈100 MB por processo, e o `status` avisa acima de 80% de 0,5 GB. **O autor ainda confirma** os limites no painel do Neon e a memória no painel do Fly depois da primeira consulta. |
+| Execução noturna parada sem ninguém notar | O GitHub desliga um agendamento depois de 60 dias sem atividade no repositório, e uma noturna na fila pode ser trocada por uma execução de `admin-banco`; o `status` mostra quanto falta ([13-deploy.md §5-septies](13-deploy.md)). |
 | Uso sem cobrança | Portão binário ligado ([D-46](DECISIONS.md)), checkout testado ao vivo em modo de teste — falta só configurar `STRIPE_API_KEY`/`STRIPE_WEBHOOK_SECRET`/`STRIPE_PRICE_ID` em **modo de produção** para vender de verdade. |
 
 ## 11. Próximos passos sugeridos

@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [37](#sessão-37--300926--o-cérebro-entra-em-produção) | 30/09/2026 | O Cérebro entra em produção pelo GitHub Actions: workflow `conhecimento.yml` (ingestão com LFS em cache, vetores de 768 dimensões com a sobra noturna da cota gratuita, retrato), ingestão segura contra ponteiro LFS, cópias e versão ilegível, busca sobre índice em memória e a identidade de vetor em `/api/health` (D-101) | 3338 → 3552 | 751 (inalterado) |
 | [36](#sessão-36--300926--o-material-de-curso-sai-do-histórico) | 30/09/2026 | O material de curso sai do banco de produção e do histórico do git (D-100): `main` `873dd53` → `b7dd105`, árvore idêntica, verificação a 0; pendências do autor registradas | 3338 (inalterado) | 751 (inalterado) |
 | [35](#sessão-35--290926--o-material-de-curso-sai-do-cérebro) | 29/09/2026 | O material de curso da ENG02016 sai do Cérebro: 71 arquivos fora do repositório, a lista de remoção como fonte única, a ferramenta que apaga do banco com simulação primeiro — por caminho ou por conteúdo —, o `Links.md` indexado e o guia de limpeza do histórico (D-100) | 3270 → 3338 | 751 (inalterado) |
 | [34](#sessão-34--290926--cadernos-o-lote-de-pendências-das-fases-3-e-4) | 29/09/2026 | Cadernos: nove pendências das fases 3 e 4 (velocidade no vídeo, um rasterizador só, corte da nota, cor das marcas, duplicata da OpenAlex, troca de provedor, atribuição na conversa, nós ocultos por CSS inline, cota atômica) e as três rodadas de correção da revisão final (D-99) | 2979 → 3270 | 735 → 751 |
@@ -52,6 +53,68 @@ As sessões entre a 11 e a 12 — o patch de design "Prisma" (D-49, D-50), o
 upgrade de segurança S1 e a rodada de desempenho — **não têm seção própria
 aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
+
+---
+
+## Sessão 37 — 30/09/26 — O Cérebro entra em produção
+
+**O pedido.** "Resolva a ingestão do Links.md e ative o RAG" — o passo 3 do A7,
+que a sessão 36 deixou como pergunta. O autor trabalha só na nuvem, e o
+`KNOWLEDGE_DIR` de produção está vazio. Entre só palavras e palavras mais
+vetores, escolheu as duas, aceitando que o texto dos livros vá à API de
+embeddings do Gemini no plano gratuito. Custo zero continua restrição dura.
+
+**O que a medição mudou no plano.** O Cérebro tem 241 PDFs, mas 120 objetos LFS
+distintos (631 MB): 121 são cópias byte a byte, que a ingestão teria indexado
+duas vezes. E a busca, como era, lia o corpus inteiro duas vezes por chamada de
+IA — a ≈18 mil trechos, 135–300 MB de transferência e 300–500 MB de pico numa
+VM de 512 MB. Ingerir sem mudar a consulta teria derrubado a API na primeira
+pergunta. Daí o [D-101](DECISIONS.md), em cinco tarefas de código dirigidas por
+subagentes, mais revisão, duas rodadas de correção e esta documentação:
+
+- **Cliente de embeddings** (`app/knowledge/embeddings.py`):
+  `KNOWLEDGE_EMBEDDING_DIMENSIONS`, enviado como `dimensions` e conferido em
+  todo vetor; erro HTTP tipado com `retry_after` e `daily`; a regra
+  `embedding_matches` (modelo e dimensão).
+- **Ingestão segura** (`app/knowledge/service.py`, `ingest.py`): ponteiro LFS
+  não toca o banco, cópia byte a byte entra uma vez, versão nova ilegível mantém
+  a anterior, `SEM TEXTO` é aviso, commit por documento, `--no-embed`, log
+  redigido fora do manifesto.
+- **`python -m app.knowledge.embed`**: preenchimento retomável dentro da cota,
+  com ritmo, 429 por minuto e diário, 400 em lote e sozinho com trecho-canário,
+  e backoff para 5xx.
+- **Índice em memória** (`app/knowledge/index.py`): BM25 igual bit a bit ao de
+  referência, vetores de uma identidade em `array('f')`, impressões digitais,
+  acréscimo incremental; e o filtro por dimensão também nos Cadernos, onde um
+  vetor de outro tamanho derrubava a semântica de toda consulta.
+- **`python -m app.knowledge.status`**, os campos `knowledge_embedding_model` e
+  `knowledge_embedding_dimensions` em `/api/health`, o workflow
+  `conhecimento.yml` e o `provedor-ia.yml` gravando modelo e 768 juntos.
+
+**A revisão** achou dois problemas importantes e onze menores, todos corrigidos
+com teste que falha sem a correção: um 400 persistente — o Gemini responde a
+uma chave errada com 400, não 401 — virava job verde mandando um pedido por
+trecho, e o `replace_chunks` deixava vetor órfão no SQLite, herdado por trecho
+novo de id reusado. A rerrevisão achou mais dois menores: três trechos
+vizinhos sempre recusados paravam toda execução no mesmo ponto (resolvido com
+o trecho-canário) e a chave podia vazar em parte quando atravessava o corte de
+300 caracteres da mensagem (agora trocada antes do corte).
+
+**Documentação.** D-101, com notas de atualização no D-47, no D-93 e no D-100;
+A7.3 entregue em código e cinco pendências novas de baixa prioridade no TODO;
+13-deploy.md §5-septies com o passo a passo e as linhas de sucesso; 09, README,
+`CLAUDE.md` (os dois), `PROJECT_CONTEXT.md`, os `.env.example`, o README do
+Cérebro e o comentário do `Dockerfile.api` (o `pypdf` é dependência principal
+desde o D-92).
+
+**Números.** Backend 3338 → 3552, nenhum skip. Frontend inalterado (751).
+
+**Pendente, e só o autor faz.** Depois do merge: **Deploy da API** →
+**Provedor de IA** (`gemini`) → **Base de conhecimento (Cérebro)** `status` →
+`ingerir` (fora do horário de aula) → os vetores à noite, ou já com
+`embeddings` → `status` semanal até `faltam 0`. E as decisões dele: tirar do git
+as 121 cópias, os dois Ashby em português, os limites do Neon e a memória do Fly
+depois da primeira consulta (TODO).
 
 ---
 

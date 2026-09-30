@@ -259,7 +259,10 @@ manuais na aba Actions: **Deploy da API** (`deploy-api.yml`) sempre, e
 mexer em `app/db/seed.py` ou `app/db/seed_extended.py` — na dúvida, dispare
 os dois; `semear` roda ambos os módulos, e os dois são idempotentes. Se o PR
 mudou `Cérebro/removidos.txt`, a mesma aba tem `conhecimento_simular_remocao`
-e, conferido o log, `conhecimento_remover` (D-100). Passo a
+e, conferido o log, `conhecimento_remover` (D-100). Se tocou `Cérebro/` ou
+`Cérebro/manifesto.json`, dispare **Base de conhecimento (Cérebro)**
+(`conhecimento.yml`), ação `ingerir`, fora do horário de aula — os vetores dos
+trechos novos chegam na execução noturna (D-101). Passo a
 passo completo e por quê em [`docs/13-deploy.md` §5-ter](docs/13-deploy.md).
 Pular este passo é a causa mais provável de "o PR está em `main` mas não
 aparece no ar". A outra causa, menos visível: um dado de seed que vive num
@@ -358,10 +361,10 @@ tira o texto dele do RAG — quem tira é o `prune`. **Feito em 30/09/2026:** o
 autor rodou a remoção em produção (não há bases locais) e o histórico foi
 reescrito (`main` `873dd53` → `b7dd105`, árvore idêntica, 76 commits duplicados
 colapsados, assinaturas GPG perdidas; os 71 caminhos a 0). Reescrever não apaga
-as refs de PR nem os objetos Git LFS guardados no GitHub: o pedido ao suporte,
-refazer os clones antigos e indexar o `Links.md` em produção seguem pendentes
-(TODO A7). **`Links.md` fica e é indexado**, por decisão do autor, com o link do
-OneDrive que ele contém: a ingestão lê PDF e **só o Markdown que o
+as refs de PR nem os objetos Git LFS guardados no GitHub: o pedido ao suporte
+e refazer os clones antigos seguem pendentes (TODO A7). **`Links.md` fica e é
+indexado** — em produção, pela ação `ingerir` do workflow do Cérebro (D-101,
+abaixo) —, por decisão do autor, com o link do OneDrive que ele contém: a ingestão lê PDF e **só o Markdown que o
 `manifesto.json` declara**; `README.md`, `manifesto.json` e `removidos.txt`
 nunca entram.
 
@@ -926,7 +929,38 @@ e no mesmo modal do D-94. Regras que não se afrouxam:
   o átomo da conferência), e diz que encurtou (`studio_service.note_body`).
 - **Nenhuma migração**: as quatro cabem nos campos JSON da fase 1.
 
-3338 testes de backend (nenhum skip) e 751 de frontend, todos verdes. CI no
+**O Cérebro entra em produção pelo GitHub Actions** ([D-101](docs/DECISIONS.md)),
+a pedido do autor ("resolva a ingestão do Links.md e ative o RAG"), com busca
+por palavras **e** vetores — ele aceitou que o texto dos livros vá ao Gemini no
+plano gratuito. O workflow **Base de conhecimento (Cérebro)**
+(`conhecimento.yml`) tem `status`, `ingerir` e `embeddings`, e uma execução
+noturna agendada. Regras que não se afrouxam:
+
+- **A ingestão roda no runner, não na API, e sem chave de IA**: `ingerir` baixa
+  o LFS com `actions/cache` e roda `python -m app.knowledge.ingest --no-embed`.
+  Um **ponteiro LFS nunca toca o banco**; uma **cópia byte a byte** entra uma
+  vez só (a declarada no manifesto, depois a já indexada, depois a primeira em
+  ordem) e conta em `skipped`; uma **versão nova ilegível mantém a anterior**.
+  O log público só mostra caminho declarado no manifesto.
+- **Uma identidade de vetor: `gemini-embedding-001` com 768 dimensões**
+  (`KNOWLEDGE_EMBEDDING_DIMENSIONS`), no `env:` de `conhecimento.yml` e repetida
+  no `provedor-ia.yml` — mude os dois juntos. A busca compara só vetores do
+  mesmo modelo **e** dimensão, no Cérebro e nos Cadernos, e `/api/health` diz
+  qual identidade a API usa.
+- **`python -m app.knowledge.embed` para verde** na cota diária, no limite de
+  pedidos e no prazo; três 400 seguidos disparam um trecho-canário, e só um
+  canário recusado falha (chave ruim: cinco pedidos no máximo). A chave sai do
+  log como `[chave omitida]`, trocada antes do corte da mensagem.
+- **A busca ranqueia num índice residente** (`app/knowledge/index.py`), com BM25
+  igual bit a bit ao de `lexical.bm25_scores` e duas impressões digitais por
+  consulta; nunca volte a carregar o corpus por chamada (≈100 MB por processo a
+  18 mil trechos, contra 300–500 MB de pico por chamada antes). Rode `ingerir`
+  **fora do horário de aula**: cada documento gravado muda a impressão digital.
+
+O código está pronto; a execução em produção é do autor (TODO A7, 13-deploy.md
+§5-septies).
+
+3552 testes de backend (nenhum skip) e 751 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
 PROJECT_CONTEXT.md).

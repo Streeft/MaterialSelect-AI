@@ -71,12 +71,14 @@ dar cada um:
 2. **Clones antigos.** Todo clone feito antes de 30/09/2026 está do lado errado
    da reescrita: apagar e clonar de novo, nunca `pull`, e não enviar nenhuma
    branch criada antes dela (guia §9).
-3. **`Links.md` no RAG de produção.** O autor decidiu indexá-lo (D-100), mas o
-   `KNOWLEDGE_DIR` de produção está vazio e o autor não tem base local — só
-   trabalha na nuvem —, então a ingestão offline
-   (`python -m app.knowledge.ingest`) que o D-100 supunha não tem onde rodar.
-   **Pergunta aberta para o autor:** por qual caminho essa ingestão deve
-   acontecer. Nada foi desenhado.
+3. **`Links.md` no RAG de produção — entregue em código ([D-101](DECISIONS.md));
+   falta a execução, que é do autor.** A ingestão roda no GitHub Actions, pelo
+   workflow **Base de conhecimento (Cérebro)** (`conhecimento.yml`), e o
+   `Links.md` entra junto com os PDFs. Depois do merge, na ordem de
+   [13-deploy.md §5-septies](13-deploy.md): **Deploy da API** → **Provedor de
+   IA** (`gemini`) → `status` → `ingerir` (fora do horário de aula) → os vetores
+   vêm sozinhos à noite, ou já com `embeddings` → `status` toda semana até
+   `faltam 0`.
 
 Não registrado aqui: se os logs das execuções de `conhecimento_simular_remocao`
 e `conhecimento_remover` já foram apagados (guia §1.3 e §11) — conferir.
@@ -91,6 +93,38 @@ Nenhum item aberto no momento — M6 foi entregue nesta sessão (ver
 ---
 
 ## Baixa prioridade
+
+**Cérebro em produção — pendências deixadas pelo D-101.** Nenhuma bloqueia o
+uso; as três primeiras são decisão ou conferência do autor.
+
+- **As 121 cópias idênticas na árvore.** ▁ 18 PDFs da raiz de `Cérebro/` repetem
+  `01-`, `04-` e `05-`, e a pasta
+  `Fichas descritivas de materiais - Granta Edupack - Nível 2/` inteira repete
+  `03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/`. A ingestão já as indexa uma vez
+  só (fica a cópia declarada no manifesto), então tirá-las do git não muda o
+  RAG: muda o tamanho do clone, a banda de LFS de uma `ingerir` sem cache e o
+  que o leitor da pasta vê. Decisão do autor — e um `git rm` não as tira do
+  histórico nem do armazenamento LFS.
+- **Os dois Ashby em português.** ▁
+  `01-Bibliografia/Michael Ashby (Auth.)-Seleção De Materiais No Projeto Mecânico (2012).pdf`
+  (152 MB) e `01-Bibliografia/Selecao_de_Materiais_no_Projeto_Mecanico.pdf`
+  (103,5 MB) não são byte a byte iguais, e por isso os dois entram. Se forem a
+  mesma edição em dois scans, o texto aparece em dobro na busca e custa o dobro
+  de vetores. Abrir os dois e decidir se um sai (pela lista de remoção, D-100).
+- **Confirmar os limites do Neon e a memória do Fly.** ▁ O D-101 supôs 0,5 GB de
+  armazenamento e 5 GB de transferência por mês no Neon gratuito; confira no
+  painel do Neon. Depois da primeira consulta com a IA real, olhe a memória da
+  máquina no painel do Fly — o medido foi ≈100 MB por processo a 18 mil trechos,
+  numa VM de 512 MB.
+- **Reembedar as fontes antigas dos Cadernos.** ▁ Os vetores gravados antes do
+  D-101 têm 3072 dimensões (o tamanho nativo do `gemini-embedding-001`) e a
+  pergunta agora é embedada com 768: a busca semântica os ignora, e aquelas
+  fontes são achadas só por palavras. O `status` do workflow do Cérebro mostra
+  quantos são ("cadernos: … ficam fora da busca semântica"). Um comando que os
+  reembede, dentro da cota, na forma do `app.knowledge.embed`.
+- **Quantização int8 dos vetores.** ▁ Alavanca guardada, não pendência: os
+  vetores em `array('f')` ocupam ≈58 MB residentes a 18 mil × 768; em int8,
+  um quarto disso. Só vale se a memória do Fly apertar.
 
 **Cérebro — localizador de citação do Markdown (D-100).** ▁ Cosmético. Um
 `.md` declarado vira uma "página" só, e o bloco de referências do prompt

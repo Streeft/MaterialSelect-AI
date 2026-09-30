@@ -216,6 +216,7 @@ disparo manual em `.github/workflows/`, na aba **Actions** do repositório.
 | **Deploy da API (Fly.io)** | `flyctl deploy --remote-only` | o `fly deploy` do §2 |
 | **Administração do banco** | `migrar`, `semear`, `excluir_demo`, `conhecimento_simular_remocao`, `conhecimento_remover`, `conceder`, `revogar` | o `fly ssh console` do §2 e do §5 |
 | **Modo de acesso** | `abrir`, `restaurar_assinatura` — grava `ACCESS_MODE` no Fly e confere em `/api/health` | o `fly secrets set` do §5-quater |
+| **Base de conhecimento (Cérebro)** | `status`, `ingerir`, `embeddings`, e uma execução noturna agendada — põe o Cérebro no banco (§5-septies) | a ingestão offline, que não tinha onde rodar |
 
 Dois segredos, em *Settings → Secrets and variables → Actions*:
 
@@ -281,14 +282,16 @@ Três detalhes que não são arbitrários:
 
 ## 5-ter. Depois de cada PR mesclado: o que disparar
 
-Nenhum dos dois workflows do §5-bis dispara sozinho — mesclar um PR **não**
-implanta nada por si. É regra fixa, para qualquer agente ou pessoa que mesclar
-um PR nesta base:
+Nenhum workflow do §5-bis dispara sozinho com um merge — mesclar um PR **não**
+implanta nada por si. (A execução noturna do **Base de conhecimento
+(Cérebro)** só gera vetores do que já foi ingerido; ela não ingere.) É regra
+fixa, para qualquer agente ou pessoa que mesclar um PR nesta base:
 
 | O PR tocou em… | Disparar | Por quê |
 |---|---|---|
 | `apps/api/**` (rotas, serviços, modelos, migração) | **Deploy da API** (`deploy-api.yml`, sem entrada nenhuma) | `flyctl deploy` constrói a imagem nova; o `release_command` aplica `alembic upgrade head` antes do primeiro tráfego. |
 | `apps/api/app/db/seed.py` **ou** `apps/api/app/db/seed_extended.py` (material novo, química de bateria, modo de transporte, qualquer dado de demonstração) | **Administração do banco** (`admin-banco.yml`, ação `semear`) | O deploy da API **não** roda seed nenhum — só a migração. Sem este passo o código do dado novo está no ar e a linha correspondente não existe no banco. |
+| `Cérebro/**` ou `Cérebro/manifesto.json` (PDF novo ou trocado, entrada nova no manifesto; `removidos.txt` é a linha abaixo) | **Base de conhecimento (Cérebro)**, `ingerir` — fora do horário de aula | Nada no deploy lê o Cérebro: sem este passo o arquivo está no repositório e não no RAG. Os vetores dos trechos novos chegam na execução noturna ([D-101](DECISIONS.md), §5-septies). |
 | `Cérebro/removidos.txt` (algo saiu da base de conhecimento) | **Administração do banco**, `conhecimento_simular_remocao`, conferir o log, depois `conhecimento_remover` | A ingestão só acrescenta: sem este passo o documento sai do repositório e continua sendo citado pelo RAG ([D-100](DECISIONS.md)). |
 | Só `apps/web/**` | Nada | A Vercel publica sozinha a cada push em `main` — não há workflow manual para o frontend. |
 
@@ -392,8 +395,13 @@ desligado**.
 4. O job grava os segredos no Fly (as máquinas reiniciam, sem deploy) e **só
    fica verde depois de ler o provedor e o modelo novos** em
    `https://materialselect-ai.fly.dev/api/health`. A mesma chave serve a busca
-   semântica do Cérebro (`gemini-embedding-001`); se esse modelo não responder,
-   o job avisa e a busca segue só léxica, sem falhar a troca.
+   semântica do Cérebro (`gemini-embedding-001`, com 768 dimensões — a
+   identidade com que o §5-septies grava os vetores); o job grava
+   `KNOWLEDGE_EMBEDDING_MODEL` e `KNOWLEDGE_EMBEDDING_DIMENSIONS` juntos e só
+   fica verde depois de ler os dois em `/api/health`. Se esse modelo não
+   responder, ou devolver outro tamanho, o job avisa, apaga os dois e a busca
+   segue só léxica, sem falhar a troca. `groq` e `mock` também apagam os dois.
+   Numa API anterior ao D-101, o job falha pedindo o **Deploy da API** antes.
 
 **Voltar** — o mesmo workflow com `groq` (precisa do segredo `GROQ_API_KEY`)
 ou `mock` (simulado, sem rede nem chave).
@@ -478,6 +486,115 @@ desligado.
 Wikipédia e Web. Um provedor desligado continua visível e diz o motivo, que é
 exatamente o texto de `GET /api/notebooks/source-capabilities`.
 
+## 5-septies. O Cérebro em produção: ingerir e gerar os vetores
+
+O RAG da camada de IA lê o Cérebro do banco ([D-47](DECISIONS.md)), e quem o
+põe lá é o workflow **Base de conhecimento (Cérebro)**
+(`.github/workflows/conhecimento.yml`, [D-101](DECISIONS.md)). A API não precisa
+de `KNOWLEDGE_DIR`: ela só lê o banco.
+
+| Ação | Faz o quê | Recebe a chave do Gemini? |
+|---|---|---|
+| `status` | Só lê: documentos, trechos, vetores por modelo e dimensão, quanto falta, tamanho do banco, cópias órfãs, documentos sem arquivo no repositório — e compara a identidade de vetor da API com a do workflow ("API vs vetores"). | Não |
+| `ingerir` | Baixa os PDFs do Git LFS (com cache) e roda `python -m app.knowledge.ingest --no-embed`: extrai o texto e grava os trechos. A busca léxica funciona a partir daqui. | **Não** |
+| `embeddings` | Gera vetores agora, até `limite_pedidos` pedidos (padrão 300) com `lote` trechos por pedido (padrão 20), por no máximo 120 min. | Sim |
+| noturna (sozinha) | O mesmo, toda noite às 05:07 UTC (02:07 em Brasília), só entre 21h e 23h50 do Pacífico, com a sobra da cota do dia, até a cota acabar. | Sim |
+
+Toda ação termina com o **Retrato** (o `status`), mesmo quando a ingestão ou
+a geração de vetores falhou (só não quando o job parou antes do Python, como na
+conferência dos ponteiros LFS): é ele, e não o ✅, que prova o que ficou no banco (a lição do
+[D-71](DECISIONS.md#d-71)). O log é público, então os comandos imprimem caminho
+inteiro só do que `Cérebro/manifesto.json` declara, o resto como pasta mais o
+começo do sha256, e nunca texto de trecho nem chave.
+
+**A primeira vez, depois do merge do PR do D-101** — pela aba **Actions**:
+
+0. **Segredos.** `DATABASE_URL` (§5-bis) e `GEMINI_API_KEY` (§5-quinquies) já
+   existem em *Settings → Secrets and variables → Actions*. Nada novo, nada a
+   pagar.
+1. **Deploy da API**, sem entrada nenhuma (não há migração nova). Tem de vir
+   **antes** do passo 2: o Provedor de IA confere os campos novos de
+   `/api/health` e, numa API anterior ao D-101, falha com
+   `A API publicada não informa o modelo de embedding: ela é anterior ao D-101. Dispare 'Deploy da API' e rode este workflow de novo.`
+2. **Provedor de IA** → `gemini`. No log, `O gemini-embedding-001 respondeu com 768 dimensões.`
+   e, no fim, `A API publicada usa openai-compat (…); embeddings: gemini-embedding-001 (768 dimensões).`
+   `https://materialselect-ai.fly.dev/api/health` passa a mostrar
+   `"knowledge_embedding_model": "gemini-embedding-001"` e
+   `"knowledge_embedding_dimensions": 768`.
+3. **Base de conhecimento (Cérebro)** → `status`. É o retrato de antes. Procure
+   a linha `[status] cobertura de gemini-embedding-001 (768 dimensões): …` e
+   `[status] API vs vetores: ✔ a API consulta com gemini-embedding-001 (768 dimensões), a mesma identidade dos vetores gravados por este workflow.`
+   Um ✘ ali quer dizer que o passo 2 não pegou: repita-o.
+4. **Base de conhecimento (Cérebro)** → `ingerir`, **fora do horário de
+   aula** — a ingestão grava documento a documento, e cada consulta de IA feita
+   no meio dela reconstrói o índice da API. A primeira vez leva de 20 a 40 min
+   e baixa ≈631 MB do LFS
+   (`LFS: 120 objetos (601 MB); 120 a baixar (601 MB), o resto veio do cache.`);
+   as seguintes vêm do cache (`0 a baixar`). Depois do download,
+   `Nenhum ponteiro LFS em Cérebro/: os PDFs estão inteiros.`, e o resumo da
+   ingestão, numa base vazia:
+   ```
+   [ingest] N criados, 0 atualizados, 0 inalterados, F falharam (S sem texto), 0 ignorados pela lista de remoção, 121 cópias idênticas ignoradas, T trechos, 0 embedados.
+   [ingest] vetores não gerados nesta execução (--no-embed): rode `python -m app.knowledge.embed`.
+   [ingest] CÓPIAS em (raiz): 18 idênticas a arquivos indexados em outro caminho.
+   [ingest] CÓPIAS em Fichas descritivas de materiais - Granta Edupack - Nível 2/: 103 idênticas a arquivos indexados em outro caminho.
+   ```
+   `N` fica perto de 121 (os 120 PDFs e o `Links.md` que o manifesto declara),
+   menos o que falhar. As contagens de cópias são as da árvore de hoje.
+   - `[ingest] SEM TEXTO … (provavelmente digitalizado)` é **aviso**: o PDF não
+     tem texto extraível e o job continua verde.
+   - **Vermelho com "ponteiro do Git LFS"** (no passo *Conferir que nenhum
+     ponteiro LFS ficou*, ou `FALHOU …: É um ponteiro do Git LFS, não o arquivo`):
+     o `git lfs pull` não trouxe tudo — banda ou cota de LFS. **Nada foi
+     escrito no banco.** Repita a ação; o que já baixou foi guardado em cache.
+   - Qualquer outro `[ingest] FALHOU` deixa o job vermelho com o motivo; os
+     outros documentos foram gravados.
+   A **busca léxica já está ativa** a partir daqui, para toda pergunta à IA.
+5. **Vetores.** Chegam sozinhos toda noite. Para começar já:
+   **Base de conhecimento (Cérebro)** → `embeddings`, com `limite_pedidos` 300
+   (deixa o resto da cota diária para a turma). O log mostra
+   `[embed] N vetores gravados agora com M pedidos; faltam R de T trechos (P%).`
+   — a razão entre `N` e `M` diz se o Gemini aceita lote: perto de 20 vetores
+   por pedido, a cobertura sai em uma ou duas noites; perto de 1, em duas a
+   quatro semanas. `[embed] cota diária do Gemini esgotada — continua na próxima execução.`
+   é sucesso, não erro.
+6. **`status` uma vez por semana** até `faltam 0`. Enquanto isso, a semântica
+   usa os vetores que já existem, e o resto é achado pela léxica.
+
+**Depois, só quando o Cérebro mudar:** um PR que mexa em `Cérebro/` ou em
+`Cérebro/manifesto.json` pede `ingerir` (os vetores dos trechos novos vêm na
+noite seguinte); um que mexa em `Cérebro/removidos.txt` pede as ações de
+remoção do §5-bis (D-100), porque a ingestão só acrescenta.
+
+**O que o `embed` faz com cada resposta do Gemini** está em
+[09-camada-ia.md](09-camada-ia.md). O que interessa aqui: cota diária, limite
+de pedidos e prazo terminam **verdes**; um job vermelho em `embeddings` é
+configuração (401/403/404, ou recusas 400 que nem o trecho-canário passa —
+chave, modelo ou `dimensions`, com a explicação do servidor no `::error::`;
+o Gemini responde a uma chave errada com 400, não 401) ou o servidor fora do ar
+depois de três novas tentativas. Um trecho que o servidor sempre recusa
+aparece como `::warning::` em toda execução e fica pendente, sem travar os
+outros; tirá-lo de vez é tirar o documento pela lista de remoção.
+
+**O agendamento tem regras do GitHub que o código não controla:**
+
+- roda só a versão do workflow que está no ramo padrão (`main`);
+- pode atrasar, e por isso o passo *Janela noturna* confere a hora do
+  Pacífico e sai verde, sem fazer nada, fora de 21h–23h50;
+- é **desligado depois de 60 dias sem atividade no repositório** — religue em
+  *Actions → Base de conhecimento (Cérebro) → Enable workflow*;
+- divide o grupo de concorrência com o **Administração do banco**, e um grupo
+  guarda **uma** execução pendente só: uma noturna na fila pode ser trocada por
+  uma execução de `admin-banco` disparada depois. A noite seguinte repete.
+
+**Custos que ficam em zero, e por quê.** A chave do Gemini é a do projeto sem
+faturamento (§5-quinquies): cota esgotada devolve 429, nunca cobra. O LFS vai
+para o `actions/cache`, chaveado pelos ids dos objetos, e repetir `ingerir` com
+o mesmo Cérebro não gasta banda — mas uma entrada de cache sem uso por 7 dias é
+apagada pelo GitHub, e o download de ≈631 MB se repete; veja a cota de banda
+LFS no [README do Cérebro](../Cérebro/README.md). O `status` avisa acima de 80%
+de 0,5 GB de banco, a referência do Neon gratuito.
+
 ## 6. Conferir que está de pé
 
 Nesta ordem, porque cada uma isola uma camada:
@@ -520,6 +637,8 @@ Depois, no navegador:
 | Primeira requisição demorando segundos | Hibernação — confira `min_machines_running` no `fly.toml`. |
 | Painel de IA em `403` acusando a credencial, com `error code: 1010` no fim da mensagem | **Não é a chave.** `1010` é da Cloudflare, que fica na frente da Groq: ela barrou a assinatura do cliente antes de a API ver a requisição. Ver [09-camada-ia.md](09-camada-ia.md). |
 | No caderno, a busca de Artigos ou da Web diz que a cota gratuita acabou, ou que está desligada | Nenhum defeito. É a franquia gratuita do dia que acabou, ou a chave que não está configurada (§5-sexies). Espere a franquia voltar, ou configure a chave. **Não** ligue faturamento. |
+| No `status` do Cérebro, `API vs vetores: ✘` | A API embeda a pergunta com outra identidade (modelo ou dimensão) que a dos vetores gravados, e a busca semântica os ignora: rode **Provedor de IA** → `gemini` (§5-septies, passo 2). Se o aviso diz que a API é anterior ao D-101, o **Deploy da API** vem antes. |
+| Explicações da IA sem citação do Cérebro, com o provedor real ligado | O Cérebro não foi ingerido em produção: **Base de conhecimento (Cérebro)** → `ingerir` (§5-septies). O `status` diz quantos documentos e trechos a base tem. |
 | Painel de IA com erro genérico ("Falha na requisição …") em vez do texto do provedor | Versão da API anterior ao tratador de `AIUnavailableError`. Reimplante — um *secrets deploy* não basta, porque reusa a imagem. |
 | PR mesclado em `main`, `deploy-api.yml` verde, mas o dado novo (material, química de bateria, modo de transporte) não aparece na tela | Duas causas possíveis, nessa ordem de verificação. (1) `admin-banco.yml` (`semear`) não foi disparado depois do merge — o deploy da API só roda a migração, nunca o seed. Ver §5-ter. (2) O `semear` rodou mas o log da execução (aba Actions → a execução → job `semear`) mostra a contagem certa em `Concluído: {...}` — se o campo relevante (`materials_created`, `battery_chemistries`, `transport_modes`, …) ficou em `0` quando deveria ter subido, o dado novo não está chegando a nenhum dos dois módulos de seed que `semear` executa (`app.db.seed` e `app.db.seed_extended`, §5-ter): confira se o PR de fato adicionou o dado a um dos dois, e não a um terceiro arquivo nunca importado por nenhum — foi exatamente isso que aconteceu com os 70 materiais do PR #59, que viveram meses em `seed_extended.py` sem que `semear` soubesse que esse módulo existia. |
 
@@ -553,10 +672,13 @@ administração (§5-bis).
   cobrança de verdade exige configurar chave, preço e webhook.
 - **Backup do banco.** O Neon tem *point-in-time restore* no plano pago; no
   gratuito, exporte com `pg_dump` antes de qualquer coisa importante.
-- **O Cérebro.** `KNOWLEDGE_DIR` fica vazio: a ingestão é operação offline e o
-  RAG só liga com provedor de IA real. Ela lê os PDFs e o Markdown que o
-  `manifesto.json` declara — hoje o `Links.md` ([D-100](DECISIONS.md)). A
-  **remoção**, ao contrário, tem ação no workflow de administração (§5-bis),
-  porque ela é o que a ingestão não faz; e uma base local ou de
-  desenvolvimento que já recebeu ingestão precisa do mesmo `prune`, rodado à
-  mão contra ela.
+- **O Cérebro, dentro do contêiner.** A imagem da API não leva os PDFs e o
+  `KNOWLEDGE_DIR` do Fly fica vazio: a API só **lê** o Cérebro do banco, e o
+  RAG só liga com provedor de IA real. Quem ingere é o workflow **Base de
+  conhecimento (Cérebro)**, num runner do Actions (§5-septies,
+  [D-101](DECISIONS.md)) — os PDFs e o Markdown que o `manifesto.json` declara,
+  hoje o `Links.md` ([D-100](DECISIONS.md)). O deploy também não gera vetor
+  nenhum: eles chegam pela ação `embeddings` e pela execução noturna. A
+  **remoção** tem ação no workflow de administração (§5-bis), porque ela é o
+  que a ingestão não faz; e uma base local ou de desenvolvimento que já
+  recebeu ingestão precisa do mesmo `prune`, rodado à mão contra ela.
