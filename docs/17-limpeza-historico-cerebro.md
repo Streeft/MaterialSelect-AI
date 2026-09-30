@@ -4,13 +4,10 @@ Guia passo a passo para o autor apagar do **histórico inteiro** do git os
 arquivos que saíram do Cérebro no [D-100](DECISIONS.md) — o material de curso da
 ENG02016 e os trabalhos entregues. O PR do D-100 tirou esses arquivos da árvore
 atual, mas `git rm` não reescreve o passado: até esta limpeza, quem abrir um
-commit antigo ainda lê os 71 arquivos. Eles entraram por mais de um caminho:
-as cópias da raiz e a pasta `⚙Seleção de Materiais/` no `764b0af` (20/08/2026,
-primeira versão do Cérebro) e de novo no `7e34b24`, do mesmo dia, noutra linha
-do histórico; a pasta `02-Material-de-Curso-ENG02016/` no `565a6d2` (PR #17). A
-partir daí eles estão em **todo commit anterior à reescrita** que descende de um
-desses — é essa a formulação que vale para o suporte do GitHub (passo 10), e
-não uma lista de SHAs.
+commit antigo ainda lê os 71 arquivos. Eles entraram por mais de um commit e
+por mais de um PR, e a formulação que vale — aqui e no pedido ao suporte do
+GitHub (passo 10) — é **todo commit e todo PR anteriores à reescrita**, não uma
+lista de SHAs.
 
 A lista do que sai é a mesma que a remoção do banco usa:
 [`Cérebro/removidos.txt`](../Cérebro/removidos.txt). Não mantenha outra. Ela
@@ -43,6 +40,10 @@ O resto do Cérebro — livros, extratos, fichas Granta, diagramas, artigos —
   antigos, as refs de PR (`refs/pull/*`, que só o GitHub escreve) e os *forks*
   continuam servindo o conteúdo antigo até o suporte do GitHub removê-los. Um
   *fork* de outra pessoa é dela: o suporte não o reescreve.
+- **Não apaga os logs do GitHub Actions.** Os logs das execuções de
+  `conhecimento_simular_remocao` e `conhecimento_remover` são públicos e ficam
+  guardados pelo prazo de retenção; o `--redact` já os tira de nomes de
+  arquivo, e o passo 1.3 manda apagá-los mesmo assim.
 - **Não apaga o texto que outros arquivos guardam sobre eles.** Versões antigas
   de `Cérebro/manifesto.json` citam os caminhos e títulos dos trabalhos — e um
   deles tem nomes de colegas no nome do arquivo. Remover o caminho não altera o
@@ -62,9 +63,16 @@ O resto do Cérebro — livros, extratos, fichas Granta, diagramas, artigos —
    remoção, abra essas pastas, apague as cópias de material de curso que
    encontrar, e leia a simulação do item 3 inteira, não só o total. Se ela
    mostrar, entre o que fica, um documento de material de curso que nenhuma
-   linha casou (uma cópia com bytes diferentes, por exemplo), acrescente o
-   caminho dele, **como aparece na base**, a `removidos.txt` num PR, antes do
-   `conhecimento_remover`.
+   linha casou (uma cópia com bytes diferentes, por exemplo), acrescente a
+   `removidos.txt`, num PR e antes do `conhecimento_remover`, uma linha
+   **`sha256:`** com o conteúdo dele — o `sha256sum` do arquivo no seu disco
+   (confira que os 8 primeiros dígitos são os que o log mostra) ou o
+   `knowledge_document.checksum` da base. **Não acrescente o caminho.** O
+   caminho de uma cópia local nunca esteve no git, então não serve à limpeza do
+   histórico; e `removidos.txt` é público, e o nome de uma cópia pode trazer
+   justamente os nomes de alunos ou os títulos de aula que se quer apagar. A
+   linha `sha256:` faz o mesmo trabalho no banco e na ingestão sem publicar
+   nome nenhum.
 3. **A remoção em produção já rodou.** Na aba **Actions** →
    **Administração do banco** → **Run workflow**: primeiro
    `conhecimento_simular_remocao`, conferir no log os documentos e os totais, e
@@ -76,6 +84,19 @@ O resto do Cérebro — livros, extratos, fichas Granta, diagramas, artigos —
    totais da simulação ([13-deploy.md](13-deploy.md) §5-bis). Faça isso
    **antes** do *force-push*: depois dele, o workflow roda sobre o histórico
    novo, e é melhor não misturar as duas operações.
+
+   **O log do Actions é público, como o repositório.** Por isso as duas ações
+   rodam o `prune` com `--redact`: no lugar do nome de cada arquivo, removido
+   ou que fica, sai a pasta de primeiro nível e o começo do conteúdo —
+   `02-Material-de-Curso-ENG02016/… sha256:1a2b3c4d` —, e um arquivo da raiz
+   aparece como `(raiz)/…`. Trechos, embeddings, o motivo do casamento, a
+   contagem por pasta e os totais continuam lá: é isso que prova o que foi
+   apagado. Os caminhos completos só saem numa execução local, sem a opção
+   (item 4). E, como segunda camada, **apague os logs das duas execuções**
+   depois de copiar os totais para o `CHANGELOG_SESSION.md`: Actions → a
+   execução → ⋯ → **Delete all logs**. Um log fica guardado pelo prazo de
+   retenção do repositório (90 dias, por padrão), e nem a reescrita do
+   histórico nem o suporte o tocam.
 4. **E nas bases locais e de desenvolvimento.** Toda base em que você já rodou
    `python -m app.knowledge.ingest` (a do seu computador, uma de teste, um
    Postgres de desenvolvimento) guarda os mesmos trechos. Rode, apontando
@@ -149,6 +170,7 @@ comentários e linhas em branco e pôr `Cérebro/` na frente:
 git -C repo.git show 'HEAD:Cérebro/removidos.txt' \
   | sed '1s/^\xEF\xBB\xBF//' \
   | tr -d '\r' \
+  | sed 's/^[[:space:]]*//; s/[[:space:]]*$//' \
   | grep -v -e '^#' -e '^[[:space:]]*$' -e '^sha256:' \
   | sed 's|^|Cérebro/|' > caminhos-para-remover.txt
 cat caminhos-para-remover.txt
@@ -159,7 +181,11 @@ caminho, e uma linha `sha256:…` viraria um caminho que não existe. É por iss
 que os 12 arquivos avulsos da raiz continuam listados pelo nome na lista, mesmo
 tendo o conteúdo coberto pelas linhas `sha256:` — sem o nome, este passo não os
 tiraria do histórico. O primeiro `sed` tira uma eventual marca de ordem de
-bytes (BOM), que o PowerShell 5.1 grava e que colaria na primeira linha.
+bytes (BOM), que o PowerShell 5.1 grava e que colaria na primeira linha; o
+segundo tira espaços nas pontas de cada linha, como faz a leitura da lista no
+banco e na ingestão — sem isso, um espaço esquecido no fim de uma linha faria o
+git-filter-repo procurar um caminho que não existe, enquanto o `prune` casava
+normalmente.
 
 O resultado são 14 linhas: as duas pastas
 (`Cérebro/02-Material-de-Curso-ENG02016/` e `Cérebro/⚙Seleção de Materiais/`) e
@@ -176,9 +202,8 @@ done < caminhos-para-remover.txt
 ```
 
 Toda linha deve casar pelo menos um caminho. As duas pastas somam 59 arquivos, e
-cada arquivo avulso casa 1. A exceção é uma linha acrescentada por causa de uma
-cópia que só existia no seu disco (passo 1.2): ela casa 0 aqui, e está certo —
-aquele caminho nunca esteve no git.
+cada arquivo avulso casa 1. Uma cópia que só existia no seu disco entra na lista
+como `sha256:` (passo 1.2), e por isso não chega a este arquivo.
 
 ## 5. Os nomes que ficam no texto de outros arquivos
 
@@ -237,12 +262,13 @@ cd ..
   espelho as branches moram em `refs/heads/`, e são exatamente elas que o
   passo 8 envia; apagá-las apagaria `main` no GitHub.
 - Os comandos deste guia foram ensaiados num espelho descartável do
-  repositório em 29/09/2026 (git-filter-repo 2.47.0): as 14 linhas casaram, o
-  resultado da verificação do passo 7 foi o descrito, e nada foi enviado. Duas
-  coisas mudaram depois do ensaio, na revisão: a primeira regra do passo 5
-  ganhou o `\.pdf"` final (conferido contra o histórico: casa as mesmas linhas
-  do manifesto antigo que a versão ensaiada, e nenhuma deste guia), e o envio
-  do passo 8 deixou de ser `--mirror`, que o ensaio não chegou a executar.
+  repositório (git-filter-repo 2.47.0), primeiro em 29/09/2026 e de novo na
+  revisão, em 30/09/2026, com a regra do passo 5 na forma atual e o envio do
+  passo 8: as 14 linhas casaram, a diferença de `main` antes e depois foi
+  exatamente os 71 arquivos da lista mais o `manifesto.json`, a regra ancorada
+  em `\.pdf"` não reescreveu este guia, e o envio foi para uma cópia local —
+  com um *hook* que recusava `main`, as duas refs voltaram recusadas e nada
+  mudou; sem o *hook*, as duas foram atualizadas. Nada foi enviado ao GitHub.
 
 ## 7. Verifique antes de enviar
 
@@ -355,9 +381,10 @@ dono do repositório, peça:
    arquivos antigos. Informe o nome do repositório, que o histórico foi
    reescrito com git-filter-repo para retirar material de terceiros, e que são
    afetados **todos os commits e todos os PRs anteriores à reescrita** — não
-   uma lista de SHAs: os arquivos entraram por mais de um commit (`764b0af` e
-   `7e34b24`, de 20/08/2026, e `565a6d2`, do PR #17) e ficaram em todos os que
-   descendem deles.
+   uma lista de SHAs. Cite nominalmente o **PR #56**: a ref de cabeça dele
+   (`refs/pull/56/head`) guarda 65 dos arquivos removidos num commit que não
+   está em branch nenhuma, e por isso a reescrita não o alcança — só o suporte
+   pode apagá-la.
 
 Os PNG dos gráficos dos trabalhos não eram LFS, eram objetos comuns do git; a
 reescrita já os tira do histórico, e o suporte cuida da cópia que o GitHub ainda
@@ -367,6 +394,10 @@ guarda.
 
 - Registre em `docs/TODO.md` (A7) e em `docs/CHANGELOG_SESSION.md` que a
   limpeza foi feita, com a data e o resultado da verificação do passo 7.
+- Confira que os logs das execuções de `conhecimento_simular_remocao` e
+  `conhecimento_remover` foram apagados (passo 1.3): a página de cada execução
+  em Actions não deve mais mostrar a saída dos passos. Se ainda mostrar,
+  Actions → a execução → ⋯ → **Delete all logs**.
 - Apague `repo-backup.git` só depois de confirmar, com um clone novo, que tudo
   está como deveria.
 - Nada a mudar em `Cérebro/removidos.txt`: ela continua valendo para a ingestão

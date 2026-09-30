@@ -11,7 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
-| [35](#sessão-35--290926--o-material-de-curso-sai-do-cérebro) | 29/09/2026 | O material de curso da ENG02016 sai do Cérebro: 71 arquivos fora do repositório, a lista de remoção como fonte única, a ferramenta que apaga do banco com simulação primeiro — por caminho ou por conteúdo —, o `Links.md` indexado e o guia de limpeza do histórico (D-100) | 3270 → 3326 | 751 (inalterado) |
+| [35](#sessão-35--290926--o-material-de-curso-sai-do-cérebro) | 29/09/2026 | O material de curso da ENG02016 sai do Cérebro: 71 arquivos fora do repositório, a lista de remoção como fonte única, a ferramenta que apaga do banco com simulação primeiro — por caminho ou por conteúdo —, o `Links.md` indexado e o guia de limpeza do histórico (D-100) | 3270 → 3338 | 751 (inalterado) |
 | [34](#sessão-34--290926--cadernos-o-lote-de-pendências-das-fases-3-e-4) | 29/09/2026 | Cadernos: nove pendências das fases 3 e 4 (velocidade no vídeo, um rasterizador só, corte da nota, cor das marcas, duplicata da OpenAlex, troca de provedor, atribuição na conversa, nós ocultos por CSS inline, cota atômica) e as três rodadas de correção da revisão final (D-99) | 2979 → 3270 | 735 → 751 |
 | [33](#sessão-33--280926-a-290926--cadernos-fase-4-o-estúdio-visual-e-sonoro) | 28 e 29/09/2026 | Cadernos, fase 4: resumo em áudio e em vídeo pela voz do navegador, apresentação de slides com PPTX e infográfico com layout do backend; o dado em destaque sem isenção e a unidade com maiúsculas (D-98) | 2651 → 2979 | 608 → 735 |
 | [32](#sessão-32--250926-a-280926--cadernos-fase-3-fontes-externas) | 25 a 28/09/2026 | Cadernos, fase 3: site, YouTube com transcrição colada, OpenAlex, Wikipédia e busca na web pelo Gemini. Tudo por um portão anti-SSRF, com a origem e a licença coladas à citação e custo zero (D-97) | 1966 → 2651 | 563 → 608 |
@@ -124,7 +124,34 @@ importantes e sete menores; todos corrigidos no mesmo PR.
   para rodar o `prune` quando ele ainda tem linha na base (M5); banco sem as
   tabelas do Cérebro para com "rode `migrar`" (M6).
 
-**Números.** Backend 3270 → 3326 (3297 na primeira rodada, +29 na correção).
+**A segunda revisão e a segunda rodada de correção.** A rerrevisão ensaiou o
+guia inteiro num espelho completo do GitHub e achou um problema importante e
+dois menores, todos corrigidos no mesmo PR.
+
+- **O log público (N1).** O repositório é público, e o log do Actions também;
+  o `prune` imprimia o caminho de cada documento, e o de um trabalho entregue
+  traz os nomes do grupo. `--redact` troca o nome de cada arquivo, removido ou
+  que fica, pela pasta de primeiro nível e os 8 primeiros dígitos do sha256
+  (`02-Material-de-Curso-ENG02016/… sha256:1a2b3c4d`; na raiz, `(raiz)/…`),
+  mantendo contagens, motivo, histograma e totais. As duas ações de
+  `admin-banco.yml` passam a opção; sem ela, local, os caminhos saem inteiros. O
+  guia e o A7 mandam, além disso, apagar os logs das duas execuções depois de
+  copiar os totais.
+- **A lista de commits (N2).** Saiu do guia e do D-100, que estava imprecisa;
+  fica a formulação que vale, "todo commit e todo PR anteriores à reescrita". O
+  pedido ao suporte cita o PR #56, cuja ref guarda 65 dos arquivos fora de
+  qualquer branch.
+- **Cópia local de bytes diferentes (N3).** Entra na lista como `sha256:`,
+  nunca pelo caminho: o caminho não serve ao histórico e publicá-lo poderia
+  publicar os nomes que se quer apagar.
+- **Os detalhes.** Um endereço com parênteses sai inteiro do Markdown e
+  `>= 5 MPa` guarda o operador; a descoberta da ingestão não segue link
+  simbólico nem nada fora da raiz; o passo 4 do guia apara as pontas de cada
+  linha como a leitura da lista; a frase sobre o ensaio foi atualizada. O
+  localizador `p. 1-1` de uma citação de Markdown ficou em `TODO.md`.
+
+**Números.** Backend 3270 → 3338 (3297 na primeira rodada, 3326 na primeira
+correção, +12 na segunda: 7 do `--redact`, 3 de link simbólico, 2 do Markdown).
 Nenhum skip. Frontend inalterado.
 
 ---

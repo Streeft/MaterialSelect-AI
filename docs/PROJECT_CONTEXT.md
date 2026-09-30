@@ -129,7 +129,8 @@ disco que fez a ingestão —, e três coisas a leem: `python -m app.knowledge.p
 (simulação por padrão, que lista também tudo o que fica; `--apply` apaga
 documento, trechos e embeddings numa transação; ações
 `conhecimento_simular_remocao` e `conhecimento_remover` do workflow de
-administração), a ingestão (que pula o que está na lista, em qualquer caminho) e
+administração, com `--redact`, porque o log do Actions é público e um caminho
+pode trazer nome de aluno), a ingestão (que pula o que está na lista, em qualquer caminho) e
 o guia de limpeza do histórico,
 [`17-limpeza-historico-cerebro.md`](17-limpeza-historico-cerebro.md). Rodar a
 remoção em produção e nas bases locais e reescrever o histórico são passos do
@@ -551,7 +552,7 @@ e tetos que recusavam páginas com tokens de design inline no `<html>`: a vazia
 passou a valer, e propriedade personalizada deixou de contar nas 64
 declarações do atributo, com o escopo indo a 4096.
 
-**Saúde do código:** 3326 testes de backend (Python 3.11 e 3.12, nenhum skip)
+**Saúde do código:** 3338 testes de backend (Python 3.11 e 3.12, nenhum skip)
 e 751 de frontend, todos verdes. Desde o P0-1 a suíte também roda as migrações de
 verdade, nos dois sentidos, contra um banco temporário que já contém dados —
 `test_migration_selection_stage.py`, `test_migration_process_universe.py`,
@@ -978,7 +979,8 @@ que mais afetam quem for mexer no código:
   feito em `fase-9-ia-e-laudo` antes daquela branch chegar a `main`. Ver
   [D-45](DECISIONS.md). **O material de curso da ENG02016 também ainda está no
   histórico**: saiu da árvore atual no D-100, e a reescrita do histórico é passo
-  do autor depois do merge (TODO A7). Até lá, todo commit anterior à reescrita (desde o `764b0af`) ainda o serve.
+  do autor depois do merge (TODO A7). Até lá, todo commit e todo PR anteriores
+  à reescrita ainda o servem.
 
 ## 10. Riscos conhecidos
 
@@ -989,7 +991,7 @@ que mais afetam quem for mexer no código:
 | Dependência de provedor de IA | Arquitetura desacoplada com provedor simulado; funciona sem chave. |
 | Incorporação inadvertida de dado protegido | Triagem de licenciamento (M1, item 4.2 da proposta) — `Source` registra licença/procedência, e uma fonte nova sem licença ou marcada como possivelmente protegida sem confirmação humana é recusada antes de qualquer linha ser escrita ([D-44](DECISIONS.md)). |
 | Resultado não reproduzível por interferência de IA | Cálculo determinístico + guardrails executáveis + confirmação do usuário. |
-| Regressão silenciosa | CI com 3326 testes de backend e 751 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
+| Regressão silenciosa | CI com 3338 testes de backend e 751 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
 | Material licenciado do Cérebro exposto em `main` (repositório público) | Risco aceito por decisão explícita do autor, não mitigado — o Cérebro é a base de conhecimento da camada de IA ([D-45](DECISIONS.md)). |
 | Uso sem cobrança | Portão binário ligado ([D-46](DECISIONS.md)), checkout testado ao vivo em modo de teste — falta só configurar `STRIPE_API_KEY`/`STRIPE_WEBHOOK_SECRET`/`STRIPE_PRICE_ID` em **modo de produção** para vender de verdade. |
 

@@ -163,11 +163,15 @@ do git) —, e três coisas a leem:
   escrita em Python. A comparação normaliza Unicode (NFC contra NFD) e não
   precisa de `pypdf` nem do corpus. Em produção, pelas ações
   `conhecimento_simular_remocao` e `conhecimento_remover` do workflow
-  **Administração do banco** ([13-deploy.md](13-deploy.md) §5-bis).
+  **Administração do banco** ([13-deploy.md](13-deploy.md) §5-bis), que passam
+  `--redact`: o log do Actions é público, e com a opção cada documento sai como
+  pasta de primeiro nível mais o começo do sha256, sem o nome do arquivo, com
+  as mesmas contagens e totais.
 - **A ingestão** pula todo arquivo que casa com `removidos.txt` na raiz do
   corpus, pelo caminho ou pelo conteúdo, e o declara `ignorado`, com o motivo —
   uma cópia local esquecida não desfaz a remoção. O CLI imprime cada arquivo
   pulado e, se ele ainda tiver linha naquela base, diz para rodar o `prune`.
+  A descoberta não segue link simbólico nem nada que resolva fora da raiz.
 - **A limpeza do histórico do git**, passo manual e posterior, pelo guia
   [`17-limpeza-historico-cerebro.md`](17-limpeza-historico-cerebro.md).
 
