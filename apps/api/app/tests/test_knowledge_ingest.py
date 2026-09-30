@@ -135,6 +135,50 @@ class TestDiscovery:
         assert [p.name for p in service.discover()] == ["a.pdf", "b.pdf", "c.pdf"]
 
 
+class TestSymlinks:
+    """N4: a descoberta não segue link simbólico para fora da raiz."""
+
+    @staticmethod
+    def _link(link: Path, target: Path) -> None:
+        try:
+            link.symlink_to(target)
+        except (OSError, NotImplementedError):  # Windows sem privilégio
+            pytest.skip("o sistema não cria link simbólico")
+
+    def test_a_linked_file_outside_the_root_is_not_ingested(
+        self, db_session, corpus: Path, tmp_path: Path
+    ) -> None:
+        outside = tmp_path / "fora"
+        outside.mkdir()
+        _write(outside, "segredo.pdf", ["fora do Cérebro"])
+        (outside / "segredo.md").write_text("fora do Cérebro", encoding="utf-8")
+        _write(corpus, "livro.pdf", ["conteúdo"])
+        self._link(corpus / "atalho.pdf", outside / "segredo.pdf")
+        self._link(corpus / "atalho.md", outside / "segredo.md")
+        _declare(corpus, {"path": "atalho.md", "titulo": "Atalho", "tipo": "LINK"})
+
+        found = [p.name for p in KnowledgeService(db_session).discover()]
+
+        assert found == ["livro.pdf"]
+
+    def test_a_link_inside_the_root_is_not_followed_either(self, db_session, corpus: Path) -> None:
+        # Um link para outro arquivo do próprio corpus só duplicaria o
+        # documento com outro caminho.
+        _write(corpus, "livro.pdf", ["conteúdo"])
+        self._link(corpus / "copia.pdf", corpus / "livro.pdf")
+
+        assert [p.name for p in KnowledgeService(db_session).discover()] == ["livro.pdf"]
+
+    def test_a_linked_folder_outside_the_root_is_not_walked(
+        self, db_session, corpus: Path, tmp_path: Path
+    ) -> None:
+        outside = tmp_path / "fora"
+        _write(outside, "segredo.pdf", ["fora do Cérebro"])
+        self._link(corpus / "pasta", outside)
+
+        assert KnowledgeService(db_session).discover() == []
+
+
 class TestRemovalList:
     """D-100: o que está em removidos.txt não volta ao RAG pela ingestão."""
 
@@ -268,6 +312,22 @@ class TestMarkdown:
         # A marcação sai, o rótulo e o endereço do link ficam.
         assert "MatWeb (https://matweb.com/)" in text
         assert "##" not in text
+
+    def test_a_url_with_parentheses_is_kept_whole(self) -> None:
+        from app.knowledge.readers import read_markdown
+
+        text = read_markdown(
+            b"- [A\xc3\xa7o](https://pt.wikipedia.org/wiki/A%C3%A7o_(liga)) e mais\n"
+        ).pages[0]
+
+        assert text == "Aço (https://pt.wikipedia.org/wiki/A%C3%A7o_(liga)) e mais"
+
+    def test_a_line_starting_with_a_comparison_keeps_it(self) -> None:
+        from app.knowledge.readers import read_markdown
+
+        text = read_markdown(b">= 5 MPa\n> citado\n>\n").pages[0]
+
+        assert text.split("\n\n") == [">= 5 MPa", "citado"]
 
     def test_undeclared_markdown_is_not_ingested(self, db_session, corpus: Path) -> None:
         (corpus / "notas.md").write_text("rascunho do autor", encoding="utf-8")

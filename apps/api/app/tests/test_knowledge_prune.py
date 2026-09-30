@@ -267,6 +267,100 @@ class TestChecksum:
         assert removal.entries == ()
 
 
+STUDENT_FILE = "F.A.2B-ALUNA-ALUNO.pdf"
+REDACT_LIST = f"""
+{COURSE}
+{TOPIC_NFC}
+"""
+
+
+@pytest.fixture
+def named_base(db_session: Session) -> Session:
+    """Uma base cujos nomes de arquivo o log público não pode repetir."""
+    work = _document(db_session, COURSE + "Trabalhos-Entregues/Trabalho 2/" + STUDENT_FILE)
+    work.checksum = "1a2b3c4d" + "e" * 56
+    _document(db_session, COURSE + "Topicos-de-Aula/Tópico 1.pdf", chunks=3, embedded=3)
+    root_copy = _document(db_session, TOPIC_NFC, chunks=2, embedded=0)
+    root_copy.checksum = ""  # uma linha de falha de leitura não tem checksum
+    _document(db_session, "01-Bibliografia/Ashby.pdf", chunks=4, embedded=4)
+    _document(db_session, "Links.md", chunks=1, embedded=0)
+    db_session.flush()
+    return db_session
+
+
+class TestRedact:
+    """N1: o log do Actions é público; `--redact` não imprime nome de arquivo."""
+
+    FILE_NAMES = (STUDENT_FILE, "Trabalho 2", "Tópico 1.pdf", TOPIC_NFC, "Ashby.pdf", "Links.md")
+
+    def _lines(self, db: Session, *, apply: bool) -> list[str]:
+        report = prune(db, parse_removal_list(REDACT_LIST), apply=apply)
+        return format_report(report, redact_paths=True)
+
+    @pytest.mark.parametrize("apply", [False, True])
+    def test_no_file_name_is_printed(self, named_base: Session, apply: bool) -> None:
+        out = "\n".join(self._lines(named_base, apply=apply))
+        for name in self.FILE_NAMES:
+            assert name not in out
+        assert "ALUNA" not in out
+
+    def test_counts_and_totals_are_kept(self, named_base: Session) -> None:
+        lines = self._lines(named_base, apply=True)
+        assert (
+            f"[prune] removido: {COURSE}… sha256:1a2b3c4d "
+            "(2 trechos, 1 embeddings; casou por caminho)"
+        ) in lines
+        assert (
+            "[prune] removido: (raiz)/… sem checksum (2 trechos, 0 embeddings; casou por caminho)"
+            in lines
+        )
+        assert "[prune] REMOVIDOS: 3 documentos, 7 trechos, 4 embeddings." in lines
+        assert "[prune] a base tinha 5 documentos; ficam 2." in lines
+        assert f"[prune] fica: 01-Bibliografia/… sha256:{'0' * 8}" in lines
+        assert f"[prune] fica: (raiz)/… sha256:{'0' * 8}" in lines
+
+    def test_histogram_counts_root_files_under_a_placeholder(self, named_base: Session) -> None:
+        lines = self._lines(named_base, apply=False)
+        hint = next(line for line in lines if "por pasta de primeiro nível" in line)
+        assert "01-Bibliografia (1)" in hint
+        assert "(raiz) (1)" in hint
+
+    def test_without_the_flag_paths_are_full(self, named_base: Session) -> None:
+        report = find_matches(named_base, parse_removal_list(REDACT_LIST))
+        out = "\n".join(format_report(report))
+        assert STUDENT_FILE in out
+        assert "[prune] ficaria: Links.md" in out.splitlines()
+
+    def test_cli_flag(
+        self,
+        named_base: Session,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str],
+    ) -> None:
+        listing = tmp_path / "removidos.txt"
+        listing.write_text(REDACT_LIST, encoding="utf-8")
+
+        out = TestCLI()._run(
+            named_base, monkeypatch, capsys, ["--list", str(listing), "--apply", "--redact"]
+        )
+
+        assert "REMOVIDOS: 3 documentos, 7 trechos, 4 embeddings." in out
+        for name in self.FILE_NAMES:
+            assert name not in out
+        assert _paths(named_base) == ["01-Bibliografia/Ashby.pdf", "Links.md"]
+
+    def test_both_workflow_actions_redact(self) -> None:
+        workflow = Path(__file__).resolve().parents[4] / ".github" / "workflows" / "admin-banco.yml"
+        calls = [
+            line.strip()
+            for line in workflow.read_text(encoding="utf-8").splitlines()
+            if "python -m app.knowledge.prune" in line
+        ]
+        assert len(calls) == 2
+        assert all(call.endswith("--redact") for call in calls)
+
+
 class TestEncoding:
     def test_bom_does_not_glue_to_the_first_entry(self, tmp_path: Path) -> None:
         listing = tmp_path / "removidos.txt"
