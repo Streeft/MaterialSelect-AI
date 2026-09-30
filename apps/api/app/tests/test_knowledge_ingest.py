@@ -269,8 +269,12 @@ class TestRemovalList:
         ingest_module.main()
 
         out = capsys.readouterr().out
-        assert "1 ignorados" in out
-        assert "[ingest] IGNORADO 02-Curso/aula.pdf: Na lista de remoção" in out
+        assert "1 ignorados pela lista de remoção" in out
+        # O log do Actions é público: o que a lista tirou do RAG é nomeado pela
+        # pasta e pelo começo do sha256, nunca pelo nome do arquivo.
+        assert "[ingest] IGNORADO 02-Curso/… sha256:" in out
+        assert ": Na lista de remoção" in out
+        assert "aula.pdf" not in out
 
 
 def _declare(root: Path, *entries: dict) -> None:
@@ -622,13 +626,22 @@ class TestManifest:
 class _FakeEmbeddingClient:
     """Determinístico, sem rede: cada texto vira um vetor de tamanho fixo."""
 
-    def __init__(self, model: str = "fake-embed", calls: list[list[str]] | None = None) -> None:
+    def __init__(
+        self,
+        model: str = "fake-embed",
+        calls: list[list[str]] | None = None,
+        dimensions: int = 0,
+    ) -> None:
         self.model = model
         self.calls = calls if calls is not None else []
+        # 0 = "não envia dimensions", como o EmbeddingClient real; o vetor
+        # devolvido tem 3 posições nesse caso, e ``dimensions`` quando > 0.
+        self.dimensions = dimensions
 
     def embed(self, texts: list[str]) -> list[list[float]]:
         self.calls.append(list(texts))
-        return [[1.0, 0.0, 0.0] for _ in texts]
+        size = self.dimensions or 3
+        return [[1.0] + [0.0] * (size - 1) for _ in texts]
 
 
 class TestEmbeddingSync:
@@ -713,3 +726,370 @@ class TestEmbeddingSync:
 
         assert report.embeddings_skipped_reason == "servidor fora do ar"
         assert report.failed == 0  # a extração léxica continua tendo sucesso
+
+    def test_other_dimension_of_the_same_model_is_re_embedded(
+        self, db_session, corpus: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # Trocar KNOWLEDGE_EMBEDDING_DIMENSIONS com o mesmo modelo deixa vetores
+        # de outro tamanho que a busca não compara; sem isto eles nunca seriam
+        # refeitos, porque o modelo "confere".
+        _write(corpus, "aula.pdf", ["conteúdo estável"])
+        service = KnowledgeService(db_session)
+        monkeypatch.setattr(service, "_embeddings_configured", lambda: True)
+        monkeypatch.setattr(service, "_embedding_client", lambda: _FakeEmbeddingClient())
+        service.ingest()  # 3 dimensões, sem pedir nenhuma
+        repo = KnowledgeRepository(db_session)
+        document = repo.get_by_path("aula.pdf")
+        assert repo.list_chunks(document.id)[0].embedding.dimensions == 3
+
+        calls: list[list[str]] = []
+        smaller = _FakeEmbeddingClient(calls=calls, dimensions=2)
+        monkeypatch.setattr(service, "_embedding_client", lambda: smaller)
+        report = service.ingest()
+
+        assert report.unchanged == 1
+        assert report.embedded_chunks == document.chunk_count
+        assert len(calls) == 1
+        chunk = repo.list_chunks(document.id)[0]
+        db_session.refresh(chunk.embedding)
+        assert (chunk.embedding.model, chunk.embedding.dimensions) == ("fake-embed", 2)
+
+        calls.clear()
+        assert service.ingest().embedded_chunks == 0  # agora confere: nada a refazer
+        assert calls == []
+
+    def test_dimension_zero_accepts_any_stored_size(
+        self, db_session, corpus: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        _write(corpus, "aula.pdf", ["conteúdo estável"])
+        service = KnowledgeService(db_session)
+        monkeypatch.setattr(service, "_embeddings_configured", lambda: True)
+        monkeypatch.setattr(
+            service, "_embedding_client", lambda: _FakeEmbeddingClient(dimensions=2)
+        )
+        service.ingest()
+
+        calls: list[list[str]] = []
+        monkeypatch.setattr(service, "_embedding_client", lambda: _FakeEmbeddingClient(calls=calls))
+        assert service.ingest().embedded_chunks == 0
+        assert calls == []
+
+    def test_no_embed_never_builds_a_configured_client(
+        self, db_session, corpus: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        _write(corpus, "aula.pdf", ["conteúdo técnico"])
+        service = KnowledgeService(db_session)
+        built: list[object] = []
+        monkeypatch.setattr(service, "_embeddings_configured", lambda: True)
+        monkeypatch.setattr(
+            service, "_embedding_client", lambda: built.append(1) or _FakeEmbeddingClient()
+        )
+
+        report = service.ingest(embed=False)
+
+        assert (report.created, report.embedded_chunks, built) == (1, 0, [])
+        document = KnowledgeRepository(db_session).get_by_path("aula.pdf")
+        assert KnowledgeRepository(db_session).list_chunks(document.id)[0].embedding is None
+
+
+# --- segurança da ingestão (D-101) ------------------------------------------
+
+#: Um ponteiro do Git LFS como o checkout sem `git lfs pull` o deixa no disco.
+LFS_POINTER = (
+    b"version https://git-lfs.github.com/spec/v1\n"
+    b"oid sha256:" + b"a" * 64 + b"\n"
+    b"size 104857600\n"
+)
+
+
+def _snapshot(db_session, path: str) -> dict:
+    """Tudo o que uma falha não pode mexer num documento já indexado."""
+    from app.models.knowledge import KnowledgeEmbedding
+
+    repo = KnowledgeRepository(db_session)
+    document = repo.get_by_path(path)
+    assert document is not None
+    db_session.refresh(document)
+    return {
+        "checksum": document.checksum,
+        "status": document.status,
+        "byte_size": document.byte_size,
+        "page_count": document.page_count,
+        "chunk_count": document.chunk_count,
+        "texts": [c.text for c in repo.list_chunks(document.id)],
+        "embeddings": db_session.query(KnowledgeEmbedding).count(),
+    }
+
+
+def _embedding_service(db_session, monkeypatch: pytest.MonkeyPatch) -> KnowledgeService:
+    service = KnowledgeService(db_session)
+    monkeypatch.setattr(service, "_embeddings_configured", lambda: True)
+    monkeypatch.setattr(service, "_embedding_client", lambda: _FakeEmbeddingClient())
+    return service
+
+
+class TestLfsPointer:
+    def test_detects_a_pointer_and_nothing_else(self, corpus: Path) -> None:
+        from app.knowledge.service import is_lfs_pointer
+
+        pointer = corpus / "livro.pdf"
+        pointer.write_bytes(LFS_POINTER)
+        real = _write(corpus, "real.pdf", ["conteúdo"])
+        # O prefixo sozinho num arquivo grande não é ponteiro: o spec cabe em
+        # poucas linhas.
+        big = corpus / "grande.pdf"
+        big.write_bytes(LFS_POINTER + b" " * 2048)
+
+        assert is_lfs_pointer(pointer)
+        assert not is_lfs_pointer(real)
+        assert not is_lfs_pointer(big)
+
+    def test_a_new_pointer_creates_no_row(self, db_session, corpus: Path) -> None:
+        (corpus / "livro.pdf").write_bytes(LFS_POINTER)
+
+        report = KnowledgeService(db_session).ingest()
+
+        (outcome,) = report.outcomes
+        assert (outcome.action, report.failed) == ("falhou", 1)
+        assert "`git lfs pull`" in (outcome.detail or "")
+        assert "ponteiro do Git LFS" in (outcome.detail or "")
+        assert KnowledgeRepository(db_session).count_documents() == 0
+
+    def test_a_pointer_over_an_indexed_document_changes_nothing(
+        self, db_session, corpus: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # O defeito que isto fecha: a falha era gravada por cima da linha boa
+        # (FALHOU, checksum do ponteiro), e um checkout sem LFS esvaziava a base.
+        path = _write(corpus, "livro.pdf", ["O módulo de Young mede a rigidez."])
+        service = _embedding_service(db_session, monkeypatch)
+        service.ingest()
+        before = _snapshot(db_session, "livro.pdf")
+        assert before["embeddings"] >= 1
+
+        path.write_bytes(LFS_POINTER)
+        report = service.ingest()
+
+        assert [o.action for o in report.outcomes] == ["falhou"]
+        assert _snapshot(db_session, "livro.pdf") == before
+        document = KnowledgeRepository(db_session).get_by_path("livro.pdf")
+        assert document.error is None
+
+    def test_identical_pointers_are_each_a_failure_not_a_copy(
+        self, db_session, corpus: Path
+    ) -> None:
+        # Dois ponteiros do mesmo objeto têm os mesmos bytes sem serem o arquivo.
+        (corpus / "a.pdf").write_bytes(LFS_POINTER)
+        (corpus / "b.pdf").write_bytes(LFS_POINTER)
+
+        report = KnowledgeService(db_session).ingest()
+
+        assert (report.failed, report.duplicates) == (2, 0)
+
+
+class TestKeepsThePreviousVersion:
+    """Uma versão nova ilegível não custa a versão anterior, que era legível."""
+
+    def test_unreadable_new_version_keeps_the_old_passages(
+        self, db_session, corpus: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        path = _write(corpus, "livro.pdf", ["Versão boa, com texto extraível."])
+        service = _embedding_service(db_session, monkeypatch)
+        service.ingest()
+        before = _snapshot(db_session, "livro.pdf")
+
+        path.write_bytes(b"%PDF-1.4\nnao e um pdf de verdade")
+        new_digest = checksum_of(path)
+        report = service.ingest()
+
+        (outcome,) = report.outcomes
+        assert outcome.action == "falhou"
+        assert outcome.kept_previous and not outcome.empty_text
+        assert _snapshot(db_session, "livro.pdf") == before
+        document = KnowledgeRepository(db_session).get_by_path("livro.pdf")
+        assert document.status == IngestStatus.EXTRAIDO
+        assert document.error.startswith(
+            f"A versão nova (sha256 {new_digest[:12]}) não pôde ser lida: "
+        )
+        assert document.error.endswith("Os trechos da versão anterior continuam na base.")
+        assert len(document.error) <= 500
+
+    def test_scanned_new_version_keeps_the_old_passages(
+        self, db_session, corpus: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        path = _write(corpus, "livro.pdf", ["Versão boa, com texto extraível."])
+        service = _embedding_service(db_session, monkeypatch)
+        service.ingest()
+        before = _snapshot(db_session, "livro.pdf")
+
+        path.write_bytes(_pdf_bytes(["", ""]))
+        (outcome,) = service.ingest().outcomes
+
+        assert (outcome.action, outcome.empty_text, outcome.kept_previous) == (
+            "falhou",
+            True,
+            True,
+        )
+        assert _snapshot(db_session, "livro.pdf") == before
+        document = KnowledgeRepository(db_session).get_by_path("livro.pdf")
+        assert "digitalizado" in document.error
+        assert "versão anterior continuam na base" in document.error
+
+    def test_the_next_readable_version_replaces_normally(self, db_session, corpus: Path) -> None:
+        path = _write(corpus, "livro.pdf", ["Versão original do capítulo."])
+        # Sem vetores aqui: o SQLite dos testes não aplica o ``ondelete`` que
+        # apaga o vetor de um trecho substituído, e um id de trecho reusado
+        # herdaria o vetor antigo — artefato do banco de teste, não da ingestão.
+        service = KnowledgeService(db_session)
+        service.ingest()
+        path.write_bytes(b"%PDF-1.4\nquebrado")
+        service.ingest()
+
+        # O checksum antigo ficou: a próxima execução tenta o arquivo de novo.
+        path.write_bytes(_pdf_bytes(["Versão revisada, com outro texto."]))
+        report = service.ingest()
+
+        assert report.updated == 1
+        repo = KnowledgeRepository(db_session)
+        document = repo.get_by_path("livro.pdf")
+        assert document.status == IngestStatus.EXTRAIDO
+        assert document.error is None
+        assert document.checksum == checksum_of(path)
+        text = " ".join(c.text for c in repo.list_chunks(document.id))
+        assert "revisada" in text and "original" not in text
+
+    def test_a_previously_failed_document_is_recorded_as_before(
+        self, db_session, corpus: Path
+    ) -> None:
+        path = corpus / "quebrado.pdf"
+        path.write_bytes(b"%PDF-1.4\nprimeira versao quebrada")
+        service = KnowledgeService(db_session)
+        service.ingest()
+
+        path.write_bytes(_pdf_bytes(["", ""]))
+        (outcome,) = service.ingest().outcomes
+
+        document = KnowledgeRepository(db_session).get_by_path("quebrado.pdf")
+        assert (outcome.action, outcome.empty_text, outcome.kept_previous) == (
+            "falhou",
+            True,
+            False,
+        )
+        assert document.status == IngestStatus.FALHOU
+        assert document.chunk_count == 0
+        assert document.checksum == checksum_of(path)
+
+    def test_new_scanned_document_is_flagged(self, db_session, corpus: Path) -> None:
+        _write(corpus, "digitalizado.pdf", ["", ""])
+        (outcome,) = KnowledgeService(db_session).ingest().outcomes
+
+        document = KnowledgeRepository(db_session).get_by_path("digitalizado.pdf")
+        assert (outcome.action, outcome.empty_text, outcome.kept_previous) == (
+            "falhou",
+            True,
+            False,
+        )
+        assert (document.status, document.chunk_count) == (IngestStatus.FALHOU, 0)
+
+    def test_a_broken_new_document_is_not_flagged_as_scanned(
+        self, db_session, corpus: Path
+    ) -> None:
+        (corpus / "quebrado.pdf").write_bytes(b"%PDF-1.4\nnao e um pdf")
+        (outcome,) = KnowledgeService(db_session).ingest().outcomes
+        assert (outcome.action, outcome.empty_text) == ("falhou", False)
+
+
+class TestDuplicates:
+    """O corpus tem pastas inteiras em duplicata: cada conteúdo entra uma vez."""
+
+    SAME = ["O módulo de Young mede a rigidez."]
+
+    def test_the_declared_path_wins_even_when_it_sorts_later(
+        self, db_session, corpus: Path
+    ) -> None:
+        _write(corpus, "Aaa copia/livro.pdf", self.SAME)
+        _write(corpus, "01-Bibliografia/livro.pdf", self.SAME)
+        _write(corpus, "zz/livro.pdf", self.SAME)
+        _declare(corpus, {"path": "zz/livro.pdf", "titulo": "Livro"})
+
+        report = KnowledgeService(db_session).ingest()
+
+        assert (report.created, report.skipped, report.duplicates) == (1, 2, 2)
+        repo = KnowledgeRepository(db_session)
+        assert [d.path for d in repo.list_documents()] == ["zz/livro.pdf"]
+        copies = [o for o in report.outcomes if o.action == "ignorado"]
+        assert {o.path for o in copies} == {"Aaa copia/livro.pdf", "01-Bibliografia/livro.pdf"}
+        for outcome in copies:
+            assert outcome.duplicate_of == "zz/livro.pdf"
+            assert outcome.detail == ("Cópia byte a byte de zz/livro.pdf; indexada uma vez só.")
+
+    def test_without_a_declaration_the_first_in_order_wins(self, db_session, corpus: Path) -> None:
+        _write(corpus, "b/livro.pdf", self.SAME)
+        _write(corpus, "a/livro.pdf", self.SAME)
+        _write(corpus, "c/outro.pdf", ["Outro conteúdo."])
+
+        report = KnowledgeService(db_session).ingest()
+
+        assert (report.created, report.duplicates) == (2, 1)
+        repo = KnowledgeRepository(db_session)
+        assert [d.path for d in repo.list_documents()] == ["a/livro.pdf", "c/outro.pdf"]
+        (copy,) = [o for o in report.outcomes if o.action == "ignorado"]
+        assert (copy.path, copy.duplicate_of) == ("b/livro.pdf", "a/livro.pdf")
+
+    def test_the_copy_is_embedded_once(
+        self, db_session, corpus: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        _write(corpus, "a/livro.pdf", self.SAME)
+        _write(corpus, "b/livro.pdf", self.SAME)
+        service = KnowledgeService(db_session)
+        calls: list[list[str]] = []
+        monkeypatch.setattr(service, "_embeddings_configured", lambda: True)
+        monkeypatch.setattr(service, "_embedding_client", lambda: _FakeEmbeddingClient(calls=calls))
+
+        report = service.ingest()
+
+        assert len(calls) == 1
+        assert report.embedded_chunks == report.total_chunks
+
+    def test_the_removal_list_is_checked_first(self, db_session, corpus: Path) -> None:
+        # Um arquivo na lista de remoção não é "a cópia indexada" de ninguém:
+        # a cópia fora da lista entra, e o da lista sai pela lista.
+        _write(corpus, "02-Curso/aula.pdf", self.SAME)
+        _write(corpus, "livro.pdf", self.SAME)
+        (corpus / "removidos.txt").write_text("02-Curso/\n", encoding="utf-8")
+
+        report = KnowledgeService(db_session).ingest()
+
+        assert (report.created, report.skipped, report.duplicates) == (1, 1, 0)
+        removed = next(o for o in report.outcomes if o.path == "02-Curso/aula.pdf")
+        assert "removidos.txt" in (removed.detail or "")
+        assert removed.duplicate_of is None
+        assert KnowledgeRepository(db_session).get_by_path("livro.pdf") is not None
+
+    def test_a_copy_already_in_the_base_says_so(self, db_session, corpus: Path) -> None:
+        _write(corpus, "b/livro.pdf", self.SAME)
+        service = KnowledgeService(db_session)
+        service.ingest()
+        _write(corpus, "a/livro.pdf", self.SAME)  # passa a ser a primeira
+
+        report = service.ingest()
+
+        copy = next(o for o in report.outcomes if o.path == "b/livro.pdf")
+        assert copy.action == "ignorado" and copy.still_in_base
+        assert "ainda está na base; `status` lista esses órfãos" in (copy.detail or "")
+        # Ingestão só acrescenta: a linha antiga fica, e é dita.
+        assert KnowledgeRepository(db_session).get_by_path("b/livro.pdf") is not None
+
+
+class TestPerDocumentCallback:
+    def test_called_once_per_file_whatever_happened_to_it(self, db_session, corpus: Path) -> None:
+        _write(corpus, "a.pdf", ["primeiro"])
+        _write(corpus, "b.pdf", ["primeiro"])  # cópia
+        _write(corpus, "02-Curso/c.pdf", ["removido"])
+        (corpus / "d.pdf").write_bytes(LFS_POINTER)
+        (corpus / "removidos.txt").write_text("02-Curso/\n", encoding="utf-8")
+        seen: list[int] = []
+        service = KnowledgeService(db_session)
+
+        report = service.ingest(on_document=lambda: seen.append(len(seen)))
+
+        assert len(seen) == len(report.outcomes) == 4
