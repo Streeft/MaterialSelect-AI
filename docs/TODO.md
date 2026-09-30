@@ -66,7 +66,10 @@ nenhum acontece sozinho com o merge:
    abra `Cérebro/_Duplicados-Para-Revisao/` e qualquer outra pasta local (uma
    cópia renomeada, um layout antigo) e apague as cópias de material de curso.
    As linhas `sha256:` da lista pegam no banco uma cópia de bytes idênticos em
-   qualquer caminho; uma cópia de bytes diferentes, não.
+   qualquer caminho; uma cópia de bytes diferentes, não — se a simulação
+   mostrar uma, acrescente a `removidos.txt` uma linha `sha256:` com o
+   `sha256sum` dela, **nunca o caminho**: a lista é pública, e o nome de uma
+   cópia pode trazer os nomes de alunos que se quer apagar.
 2. **Banco de produção.** Workflow **Administração do banco** →
    `conhecimento_simular_remocao`, conferir no log os documentos, os totais e
    **a lista do que fica** (`[prune] ficaria: …` e a contagem por pasta), e
@@ -74,7 +77,11 @@ nenhum acontece sozinho com o merge:
    `[prune] REMOVIDOS: …` com os mesmos totais da simulação
    ([13-deploy.md](13-deploy.md) §5-bis). Se a base de produção estiver vazia
    (o `KNOWLEDGE_DIR` da instância nunca foi populado), a simulação diz
-   `0 documentos` e o passo termina aí.
+   `0 documentos` e o passo termina aí. As duas ações rodam com `--redact`
+   (o log do Actions é público: sai a pasta e o começo do sha256, não o nome
+   do arquivo); mesmo assim, **depois de copiar os totais para o
+   `CHANGELOG_SESSION.md`, apague os logs das duas execuções** (Actions → a
+   execução → ⋯ → *Delete all logs*).
 3. **Bases locais e de desenvolvimento.** Toda base em que já rodou uma
    ingestão (a do seu computador, um Postgres de desenvolvimento) guarda os
    mesmos trechos: `python -m app.knowledge.prune --list ../../Cérebro/removidos.txt`
@@ -89,8 +96,10 @@ nenhum acontece sozinho com o merge:
    nada entre o clone e o *push*. Reescreve todos os SHAs; todo clone precisa
    ser refeito.
 5. **GitHub.** Pedir ao suporte do GitHub a remoção dos objetos Git LFS órfãos,
-   das visões em cache e das refs de PR que ainda servem os arquivos —
-   reescrever o histórico não apaga nada disso.
+   das visões em cache e das refs de PR que ainda servem os arquivos — todo
+   commit e todo PR anteriores à reescrita, citando o PR #56, cuja ref guarda
+   65 dos arquivos fora de qualquer branch. Reescrever o histórico não apaga
+   nada disso.
 
 A próxima ingestão (`python -m app.knowledge.ingest`, operação offline) também
 indexa o `Cérebro/Links.md`, que o autor decidiu manter e pôr no RAG (D-100).
@@ -105,6 +114,12 @@ Nenhum item aberto no momento — M6 foi entregue nesta sessão (ver
 ---
 
 ## Baixa prioridade
+
+**Cérebro — localizador de citação do Markdown (D-100).** ▁ Cosmético. Um
+`.md` declarado vira uma "página" só, e o bloco de referências do prompt
+(`_reference_block`, em `app/ai/prompts.py`) escreve `p. 1-1` para ele — e para
+qualquer trecho de uma página só. Omitir o localizador quando o documento não é
+paginado exigiria levar o tipo do documento até o trecho recuperado.
 
 **Cadernos — pendências deixadas pela fase 4 (D-98).** Nenhuma bloqueia o uso.
 

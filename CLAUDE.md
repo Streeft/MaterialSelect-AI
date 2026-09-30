@@ -347,8 +347,9 @@ o do disco que fez a ingestão, não o do git — e três coisas a leem, nenhuma
 cópia própria: `python -m app.knowledge.prune` (**simulação por padrão**, que
 lista também **tudo o que fica**; casa por caminho **ou** conteúdo; `--apply`
 apaga documento, trechos e embeddings numa transação, com a cascata em Python;
-ações `conhecimento_simular_remocao` e `conhecimento_remover` de
-`admin-banco.yml`), a ingestão (que pula o que casa, em qualquer caminho, e o
+`--redact` troca o nome de cada arquivo pela pasta e o começo do sha256, porque
+o log do Actions é público; ações `conhecimento_simular_remocao` e
+`conhecimento_remover` de `admin-banco.yml`, as duas com `--redact`), a ingestão (que pula o que casa, em qualquer caminho, e o
 declara `ignorado`) e a limpeza do histórico, que só lê as linhas de caminho
 ([`docs/17-limpeza-historico-cerebro.md`](docs/17-limpeza-historico-cerebro.md):
 `push --force --atomic` de branches e tags, nunca `--mirror`, com a *ruleset*
@@ -922,7 +923,7 @@ e no mesmo modal do D-94. Regras que não se afrouxam:
   o átomo da conferência), e diz que encurtou (`studio_service.note_body`).
 - **Nenhuma migração**: as quatro cabem nos campos JSON da fase 1.
 
-3326 testes de backend (nenhum skip) e 751 de frontend, todos verdes. CI no
+3338 testes de backend (nenhum skip) e 751 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
 PROJECT_CONTEXT.md).

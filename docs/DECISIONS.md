@@ -6901,6 +6901,11 @@ o papel do manifesto. A entrada é tipo `LINK`, autoridade `SECUNDARIA`
 (vídeos, blog técnico, bases de divulgação). A extração tira só a marcação
 (`#`, marcadores de lista, `[rótulo](url)` vira `rótulo (url)`) e guarda cada
 linha como parágrafo, para que uma descrição não se cole ao endereço seguinte.
+Um endereço com parênteses (um artigo da Wikipédia) sai inteiro, e um `>` só é
+marca de citação quando vem seguido de espaço — `>= 5 MPa` guarda o operador. A
+descoberta **não segue link simbólico**, nem nada que resolva fora da raiz: um
+link versionado para outra pasta faria de um arquivo que ninguém declarou uma
+fonte citável — valia antes para PDF, e passou a valer com o Markdown.
 
 **A lista de remoção é a fonte única.** `Cérebro/removidos.txt` diz o que saiu,
 um caminho por linha, relativo a `KNOWLEDGE_DIR` — a mesma forma que
@@ -6967,6 +6972,23 @@ no workflow **Administração do banco**: `conhecimento_simular_remocao` e
   ingestão dizem quando uma entrada exata tem documentos abaixo dela.
 - **Banco sem as tabelas do Cérebro** para com a mensagem para rodar `migrar`,
   e saída diferente de zero, em vez do `ProgrammingError` cru.
+- **`--redact` para o log público.** O repositório é público, e o log de uma
+  execução do Actions também; um caminho gravado na base pode trazer
+  exatamente o que a remoção existe para apagar — o nome de um trabalho
+  entregue traz os nomes do grupo. Com `--redact`, cada documento, removido ou
+  que fica, sai como a pasta de primeiro nível mais os 8 primeiros dígitos do
+  sha256 (`02-Material-de-Curso-ENG02016/… sha256:1a2b3c4d`), e um arquivo da
+  raiz como `(raiz)/…`. Trechos, embeddings, o motivo do casamento, o
+  histograma por pasta e os totais ficam — são a prova do D-71. As linhas da
+  própria lista (entrada sem correspondência, pasta sem `/`) saem como
+  escritas, porque `removidos.txt` já é público. As duas ações do workflow
+  passam a opção; uma execução local sem ela mostra os caminhos inteiros. E,
+  como segunda camada, o guia manda apagar os logs das duas execuções depois
+  de copiar os totais: nem a reescrita do histórico nem o suporte os tocam.
+- **Uma cópia local de bytes diferentes entra como `sha256:`, nunca pelo
+  caminho.** O caminho dela nunca esteve no git, então não serve à limpeza do
+  histórico, e publicá-lo na lista poderia publicar os nomes que se quer
+  apagar.
 
 **E a ingestão pula a lista.** Um arquivo que case com `removidos.txt` na raiz
 do corpus — pelo caminho ou pelo conteúdo — sai do relatório como `ignorado`,
@@ -6979,10 +7001,11 @@ O gerador do manifesto (`scripts/generate_knowledge_manifest.py`) segue a mesma
 regra, e perdeu as regras de tipo da pasta `02-`.
 
 **O histórico ainda guarda os arquivos.** `git rm` tira da árvore atual, não dos
-commits antigos: até a limpeza, qualquer um que abra um commit anterior à
-reescrita — eles entraram no `764b0af` e no `7e34b24` (20/08/2026, a primeira
-versão do Cérebro) e no `565a6d2` (PR #17), e ficaram em todos os que descendem
-deles — lê os arquivos. O autor decidiu purgá-los (emenda do
+commits antigos: até a limpeza, qualquer um que abra um commit ou um PR
+anterior à reescrita lê os arquivos — eles entraram por mais de um commit e
+mais de um PR, e a formulação que vale, no guia e no pedido ao suporte do
+GitHub, é "todo commit e todo PR anteriores à reescrita", não uma lista de
+SHAs. O autor decidiu purgá-los (emenda do
 [D-45](#d-45--o-cérebro-livros-comerciais-fichas-granta-edupack-fica-versionado-em-main-por-decisão-explícita-do-autor)),
 e a reescrita é passo **separado, manual e posterior ao merge**, pelo guia
 [`17-limpeza-historico-cerebro.md`](17-limpeza-historico-cerebro.md): primeiro

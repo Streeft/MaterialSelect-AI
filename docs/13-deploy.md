@@ -264,7 +264,14 @@ Três detalhes que não são arbitrários:
   do D-71). Existe porque a ingestão só acrescenta: tirar um arquivo do
   repositório deixa o texto dele no RAG. Um banco sem as tabelas do Cérebro
   para com a mensagem para rodar `migrar`, e uma linha da lista que é pasta sem
-  a `/` final sai como `ATENÇÃO`.
+  a `/` final sai como `ATENÇÃO`. **As duas rodam com `--redact`**, porque o
+  log do Actions é público como o repositório: cada documento sai como a pasta
+  de primeiro nível e o começo do sha256 (`02-Material-de-Curso-ENG02016/…
+  sha256:1a2b3c4d`), nunca pelo nome do arquivo — o de um trabalho entregue
+  traz os nomes do grupo. Contagens, histograma e totais ficam. Copiados os
+  totais, apague os logs das duas execuções (a execução → ⋯ → *Delete all
+  logs*); o passo a passo está em
+  [`17-limpeza-historico-cerebro.md`](17-limpeza-historico-cerebro.md) §1.
 - **O passo "Garantir endereço público" conta antes de alocar.** `flyctl ips
   allocate-v6` **não é idempotente**: ele aloca outro endereço a cada chamada,
   em silêncio e com sucesso. Escrito como `allocate-v6 || true`, acumulava um
