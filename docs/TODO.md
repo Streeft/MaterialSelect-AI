@@ -151,13 +151,6 @@ cada uma tem o motivo de ter ficado de fora.
   termos do *grounding* exigem que ele seja mostrado. Se as fichas precisarem de
   script, a saída é `allow-scripts` **sem** `allow-same-origin`, nunca as duas
   juntas. Passo a passo em [13-deploy.md §5-sexies](13-deploy.md).
-- **A concorrência das cotas não é exercitada contra PostgreSQL.** ▁ O teste de
-  forma (`test_notebook_quota_atomic.py`) prova que a reserva é **um** `UPDATE …
-  WHERE contador < limite` sem `SELECT` antes — o que a torna atômica no
-  PostgreSQL em READ COMMITTED —, e ele falha se o código voltar a
-  ler-e-escrever. A prova real seria uma corrida de threads contra o Postgres de
-  serviço da CI, cujo job hoje só roda migração e seed. Vale se a CI ganhar um
-  job de testes em Postgres por outro motivo.
 - **Ocultação por CSS inline que o extrator ainda não lê.** ▁ Três casos,
   todos de baixo risco e deixados de fora para não descartar texto visível: um
   `visibility:hidden` num ancestral cujo filho diz `visibility:visible` (o
@@ -225,6 +218,14 @@ continua lá, e a métrica para de medir no 3.
 
 Registrados para não voltarem por engano:
 
+- ~~**Concorrência das cotas exercitada contra PostgreSQL na CI (D-97/D-99)**~~ —
+  quatro testes multithread contra PostgreSQL 16 (`apps/api/app/tests/test_notebook_quota_postgres.py`)
+  estressando concorrência real sob nível de isolamento READ COMMITTED: 20 threads disputando
+  a criação do zero (comportamento de `ON CONFLICT DO NOTHING` + `reserve`), 20 threads em corrida
+  na última vaga (`already=4, limit=5`), 15 reservers e 5 releasers intercalados, e 10 threads
+  com reserva com folga (`slack=2`), garantindo ausência de overspending ou race conditions.
+  Integrado na CI via contêiner de serviço `postgres:16` no job `backend` (Python 3.11 e 3.12)
+  e step dedicado no job `migrations-postgres` (3343 → 3347 testes de backend).
 - ~~**Linha de tabela lida como título pelo fatiador (D-97)**~~ —
   `looks_like_heading` em `app/knowledge/chunking.py` ganhou guarda explícita:
   linha contendo `" | "` nunca é tratada como heading, impedindo que linhas
