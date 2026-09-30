@@ -20,6 +20,7 @@ from app.domain.errors import ValidationError
 from app.knowledge.embeddings import (
     EmbeddingClient,
     EmbeddingUnavailableError,
+    embedding_matches,
     similarity,
     unpack_vector,
 )
@@ -134,9 +135,14 @@ def _semantic_rank(
         return []
     try:
         query_vector = client.embed([query])[0]
+        # Model *and* the query's actual length (never 0, which would mean
+        # "any"): a vector of another size is ignored, not compared — before,
+        # one such vector made similarity() raise and dropped the whole
+        # semantic ranking.
         scored = [
             (chunk.id, similarity(query_vector, unpack_vector(chunk.embedding.vector)))  # type: ignore[union-attr]
             for chunk in embedded
+            if embedding_matches(chunk.embedding, client.model, len(query_vector))
         ]
     except (EmbeddingUnavailableError, ValidationError) as exc:
         # Same degradation as the Cérebro: half the retrieval beats none.
