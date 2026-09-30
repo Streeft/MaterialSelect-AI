@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import model_validator
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -114,6 +114,12 @@ class Settings(BaseSettings):
     # teto prático (centenas a milhares); 96 é conservador o bastante para
     # servir a qualquer um sem medir por provedor.
     knowledge_embedding_batch: int = 96
+    # Dimensions asked of the embedding model (OpenAI's ``dimensions`` field,
+    # which Gemini's OpenAI-compatible endpoint also honours). 0 = do not send
+    # it, and the model answers at its native size. Set it and every returned
+    # vector must have exactly this length: a server that ignored the request
+    # would otherwise fill the table with vectors of another size.
+    knowledge_embedding_dimensions: int = Field(default=0, ge=0)
     # Chave dedicada ao provedor de embeddings, opcional por cima de
     # AI_API_KEY. Vazio por padrão e cai para AI_API_KEY — na maioria dos
     # casos o mesmo provedor serve chat e embeddings, e uma segunda chave
