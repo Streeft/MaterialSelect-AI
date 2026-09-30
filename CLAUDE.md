@@ -926,7 +926,7 @@ e no mesmo modal do D-94. Regras que não se afrouxam:
   o átomo da conferência), e diz que encurtou (`studio_service.note_body`).
 - **Nenhuma migração**: as quatro cabem nos campos JSON da fase 1.
 
-3338 testes de backend (nenhum skip) e 751 de frontend, todos verdes. CI no
+3347 testes de backend (nenhum skip) e 751 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
 PROJECT_CONTEXT.md).
