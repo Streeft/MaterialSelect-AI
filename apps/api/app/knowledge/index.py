@@ -17,13 +17,16 @@ queries plus the few rows it actually returns.
   additions), which a golden test holds it to: the index changes how the
   numbers are reached, never which numbers come out. Rebuilt whole when the
   corpus fingerprint changes, because an ingestion rewrites passages and
-  document frequencies are corpus-wide.
+  document frequencies are corpus-wide. The old index is let go before the
+  new one is built, so a rebuild never holds two. An ingestion commits per
+  document, so a first ingestion changes the fingerprint on every commit and
+  a query during it rebuilds each time: run ``ingerir`` outside class hours.
 * :class:`VectorStore` — the stored vectors of **one** ``(model, dimensions)``,
   unpacked into ``array('f')`` (4 bytes a component, as stored). Vectors arrive
   a batch a night, so a store grows **incrementally**: rows above the cached
-  highest id are appended, and anything else — a count that does not add up
-  (a deletion, a vector rewritten in place from another model) — forces a full
-  reload. Only one store is kept: a model change replaces it rather than
+  highest id are appended, and anything else — a count or an id sum that does
+  not add up (a deletion, a vector rewritten in place from another model) —
+  forces a full reload. Only one store is kept: a model change replaces it rather than
   leaving the old one resident.
 
 **What this does not change.** Vectors of another model or dimension are
@@ -50,7 +53,7 @@ import sys
 import threading
 import time
 from array import array
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass, field
 
 from app.knowledge.lexical import BM25_B, BM25_K1, idf, tokenize
@@ -282,6 +285,10 @@ class KnowledgeIndexCache:
             if current is not None and current.fingerprint == fingerprint:
                 return current
             started = time.perf_counter()
+            # Released first, as the vectors are: a rebuild never holds two
+            # indexes at once. A reader already holding the old one keeps it
+            # alive until it is done; a new reader waits on the lock.
+            self._lexical = None
             if fingerprint.chunk_max_id is None:
                 rows: Iterable[tuple[int, str]] = ()
             else:
@@ -353,24 +360,37 @@ class KnowledgeIndexCache:
     ) -> bool:
         """Load the rows above the cached max; False when the counts disagree.
 
-        Disagreeing counts mean something below the cached max changed — a
-        deletion, or a vector rewritten in place from another model — and only
-        a full reload sees that. The new rows are read into a scratch store and
+        Disagreeing counts or id sums mean something below the cached max
+        changed — a deletion, or a vector rewritten in place from another model
+        — and only a full reload sees that. The new rows are read into a scratch store and
         only then appended, vectors before ids, so a failure half-way leaves
         ``store`` exactly as it was and a reader never sees an id without its
         vector.
         """
         previous = store.fingerprint
         fresh = VectorStore(model=store.model, dimensions=store.dimensions)
+        id_sum = 0
+
+        def tallied(rows: Iterable[tuple[int, int, bytes]]) -> Iterator[tuple[int, int, bytes]]:
+            nonlocal id_sum
+            for row in rows:
+                id_sum += row[0]
+                yield row
+
         read = fresh.load(
-            repo.iter_vectors(
-                store.model,
-                store.dimensions,
-                after_id=previous.max_id,
-                max_id=fingerprint.max_id,
+            tallied(
+                repo.iter_vectors(
+                    store.model,
+                    store.dimensions,
+                    after_id=previous.max_id,
+                    max_id=fingerprint.max_id,
+                )
             )
         )
-        if previous.count + read != fingerprint.count:
+        if (
+            previous.count + read != fingerprint.count
+            or previous.id_sum + id_sum != fingerprint.id_sum
+        ):
             return False
         store.vectors.extend(fresh.vectors)
         store.chunk_ids.extend(fresh.chunk_ids)

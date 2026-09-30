@@ -18,6 +18,7 @@ import time
 from datetime import UTC, datetime, timedelta
 
 import pytest
+from sqlalchemy import select
 
 from app.config import Settings
 from app.knowledge import index as index_module
@@ -28,7 +29,6 @@ from app.knowledge.index import (
     build_lexical_index,
     dot,
     get_cache,
-    process_memory,
     reset_cache,
 )
 from app.knowledge.lexical import bm25_scores, fold, tokenize
@@ -91,6 +91,9 @@ class _FakeClient:
         self.model = MODEL
         self.configured = True
         self.dims = dims
+        # 0 = "não envia dimensions", como o EmbeddingClient real: só a
+        # resposta diz o tamanho da consulta.
+        self.dimensions = 0
         self.calls = 0
 
     def embed(self, texts: list[str]) -> list[list[float]]:
@@ -188,9 +191,14 @@ class TestBm25Equivalence:
         _document(db_session, "gemeos.pdf", ["módulo de rigidez do aço"] * 3)
 
         index = get_cache().lexical(KnowledgeIndexRepository(db_session))
-        chunks = sorted(
-            KnowledgeRepository(db_session).list_all_chunks_for_lexical_search(),
-            key=lambda c: c.id,
+        # The oracle: the whole corpus as ORM rows, as retrieval loaded it per
+        # query before the index existed — here, and only here, on purpose.
+        chunks = list(
+            db_session.execute(
+                select(KnowledgeChunk)
+                .where(KnowledgeChunk.search_text != "")
+                .order_by(KnowledgeChunk.id)
+            ).scalars()
         )
         rows = [(c.id, c.search_text) for c in chunks]
         for query in self.QUERIES:
@@ -317,6 +325,25 @@ class TestVectors:
         assert len(get_cache()._vectors) == 2
         assert found[0].text == "quente um"
 
+    def test_a_deletion_and_a_rewrite_below_the_max_are_seen(self, db_session, fake_client) -> None:
+        """Same count, same max, a different set: only the id sum tells."""
+        gone, rewritten, kept = _document(
+            db_session, "t.pdf", ["quente apagado", "quente reescrito", "frio fica"]
+        )
+        _embed(db_session, gone, [1.0, 0.0])
+        _embed(db_session, rewritten, [1.0, 0.0], model="outro-modelo")
+        _embed(db_session, kept, [0.0, 1.0])
+        search(db_session, "calor", top_k=3, settings=SETTINGS)
+        assert sorted(get_cache()._vectors.chunk_ids) == sorted([gone.id, kept.id])
+
+        db_session.delete(db_session.query(KnowledgeEmbedding).filter_by(chunk_id=gone.id).one())
+        db_session.flush()
+        KnowledgeRepository(db_session).set_embedding(rewritten.id, model=MODEL, vector=[1.0, 0.0])
+        found = search(db_session, "calor", top_k=1, settings=SETTINGS)
+
+        assert sorted(get_cache()._vectors.chunk_ids) == sorted([rewritten.id, kept.id])
+        assert found[0].text == "quente reescrito"
+
     def test_other_model_or_dimensions_are_ignored(self, db_session, fake_client, spy) -> None:
         mine, other_model, other_dims = _document(
             db_session, "t.pdf", ["quente meu", "quente de outro modelo", "quente de 3 dims"]
@@ -396,7 +423,9 @@ class TestVectors:
         caplog.set_level(logging.INFO, logger="app.knowledge.index")
         search(db_session, "modulo", top_k=1, settings=Settings())
         assert "Índice léxico do Cérebro construído" in caplog.text
-        assert process_memory() in caplog.text or "MB" in caplog.text
+        assert (
+            "memória residente" in caplog.text or "memória do processo indisponível" in caplog.text
+        )
 
 
 # --- scoring --------------------------------------------------------------------
@@ -457,6 +486,31 @@ class _SlowRepo:
             self.builds += 1
         time.sleep(0.05)
         yield 1, 1, pack_vector([1.0, 0.0])
+
+
+def test_a_lexical_rebuild_lets_the_old_index_go_first() -> None:
+    cache = KnowledgeIndexCache()
+    seen_during_build: list[object] = []
+
+    class _ChangingRepo:
+        def __init__(self) -> None:
+            self.fingerprint = CorpusFingerprint(1, 1, 1, None)
+
+        def corpus_fingerprint(self) -> CorpusFingerprint:
+            return self.fingerprint
+
+        def iter_search_texts(self, max_id: int):
+            seen_during_build.append(cache._lexical)
+            yield 1, "modulo rigidez"
+
+    repo = _ChangingRepo()
+    first = cache.lexical(repo)  # type: ignore[arg-type]
+    repo.fingerprint = CorpusFingerprint(2, 2, 1, None)
+    second = cache.lexical(repo)  # type: ignore[arg-type]
+
+    assert second is not first
+    # The first build had nothing to let go; the second let the first go.
+    assert seen_during_build == [None, None]
 
 
 def test_concurrent_searches_build_once() -> None:

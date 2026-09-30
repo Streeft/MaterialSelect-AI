@@ -26,6 +26,7 @@ another must not depend on that.
 
 from __future__ import annotations
 
+import http.client
 import json
 import math
 import re
@@ -315,6 +316,14 @@ class EmbeddingClient:
             ) from exc
         except OSError as exc:
             raise EmbeddingUnavailableError(f"Falha de rede ao pedir embeddings: {exc}") from exc
+        except http.client.HTTPException as exc:
+            # Not an OSError: a body cut short (IncompleteRead) or a malformed
+            # status line would otherwise escape as a raw traceback instead of
+            # the one error type every caller knows how to handle.
+            raise EmbeddingUnavailableError(
+                f"A resposta de {self.host()} chegou incompleta ou malformada "
+                f"({type(exc).__name__})."
+            ) from exc
 
         try:
             payload = json.loads(raw)
@@ -333,6 +342,9 @@ class EmbeddingClient:
         a stream, and a second read would find it empty.
         """
         detail, message, error = _error_body(exc)
+        # A server may echo the credential back in its explanation, and this
+        # detail is printed to a public log: the key never leaves as text.
+        detail = self._without_key(detail)
         return EmbeddingHttpError(
             self._http_message(exc.code, detail),
             status=exc.code,
@@ -340,6 +352,16 @@ class EmbeddingClient:
             daily=_is_daily_quota(message, error),
             detail=detail,
         )
+
+    def _without_key(self, text: str) -> str:
+        """``text`` with every configured key replaced by a placeholder."""
+        for key in (
+            self.settings.knowledge_embedding_api_key.strip(),
+            self.settings.ai_api_key.strip(),
+        ):
+            if key:
+                text = text.replace(key, "[chave omitida]")
+        return text
 
     def _http_message(self, code: int, detail: str) -> str:
         if code in (401, 403):

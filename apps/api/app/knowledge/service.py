@@ -257,15 +257,12 @@ class KnowledgeService:
         ``KNOWLEDGE_EMBEDDING_DIMENSIONS`` never needs ``force=True`` to
         backfill.
         """
-        # Test doubles built before the dimension setting existed carry only a
-        # model; 0 means "any dimension", which was their behaviour.
-        dimensions = getattr(embed_client, "dimensions", 0)
         chunks = self.repo.list_chunks(document.id)
         stale = [
             c
             for c in chunks
             if c.embedding is None
-            or not embedding_matches(c.embedding, embed_client.model, dimensions)
+            or not embedding_matches(c.embedding, embed_client.model, embed_client.dimensions)
         ]
         if not stale:
             return 0
@@ -379,25 +376,44 @@ class KnowledgeService:
                 on_document()
         return report
 
-    @staticmethod
-    def _canonical_copies(candidates: list[_Candidate]) -> dict[str, str]:
+    def _canonical_copies(self, candidates: list[_Candidate]) -> dict[str, str]:
         """For each digest, the one path indexed among byte-identical copies.
 
         The manifest-declared path wins, because it is the one whose
-        provenance was written down; with none (or several) declared, the
-        first in sorted order does, so two runs pick the same one. A file on
-        the removal list, or an LFS pointer, is not a candidate: the removal
-        list must not be able to hide the surviving copy, and two pointers to
-        the same object are identical without being the file.
+        provenance was written down. With none (or several) declared, the copy
+        already indexed with these bytes does: a new copy that happens to sort
+        first must not be extracted and embedded again while the indexed one
+        becomes an orphan row, both retrievable and the text counted twice.
+        Only then the first in sorted order, so two runs pick the same one. A
+        file on the removal list, or an LFS pointer, is not a candidate: the
+        removal list must not be able to hide the surviving copy, and two
+        pointers to the same object are identical without being the file.
         """
-        kept: dict[str, _Candidate] = {}
+        groups: dict[str, list[_Candidate]] = {}
         for candidate in candidates:  # already in sorted order
             if candidate.removal_reason is not None or candidate.is_pointer:
                 continue
-            current = kept.get(candidate.digest)
-            if current is None or (candidate.declared and not current.declared):
-                kept[candidate.digest] = candidate
-        return {digest: candidate.relative for digest, candidate in kept.items()}
+            groups.setdefault(candidate.digest, []).append(candidate)
+        kept: dict[str, str] = {}
+        for digest, members in groups.items():
+            if len(members) == 1:  # the common case costs no query
+                kept[digest] = members[0].relative
+                continue
+            # min() keeps the first of equal keys, so sorted order breaks ties.
+            best = min(
+                members,
+                key=lambda c: (not c.declared, not self._already_indexed(c.relative, digest)),
+            )
+            kept[digest] = best.relative
+        return kept
+
+    def _already_indexed(self, relative: str, digest: str) -> bool:
+        document = self.repo.get_by_path(relative)
+        return (
+            document is not None
+            and document.checksum == digest
+            and document.status == IngestStatus.EXTRAIDO
+        )
 
     def _skip(self, relative: str, reason: str) -> DocumentOutcome:
         """The outcome of a file on the removal list, with what to do about it.

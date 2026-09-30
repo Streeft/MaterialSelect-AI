@@ -33,9 +33,17 @@ day and failing:
   being over — a minute-quota that never recovers is not one.
 * 429 per day: stop with exit 0. Nothing is wrong; tomorrow continues.
 * 400 on a batch of several: the endpoint may not accept lists — or one passage
-  is refused. The batch is resent one passage at a time and the rest of the run
-  stays at one. 400 on a single passage skips it for this run (it stays pending
-  and is tried again next time), with a warning naming its id.
+  is refused. The batch is resent one passage at a time, and how those singles
+  end decides the rest of the run: some stored and some refused means the 400
+  was a passage, so the run goes back to the batch size it had; all stored
+  means the endpoint refuses lists, so the run stays at one. 400 on a single
+  passage skips it for this run (it stays pending and is tried again next
+  time), with a warning naming its id and the server's explanation.
+* 400 on three single passages in a row, with nothing stored in between:
+  configuration, exit 1. Gemini answers a wrong or revoked key with 400
+  ``INVALID_ARGUMENT`` (``API_KEY_INVALID``), not 401, and a field it rejects
+  (an unsupported ``dimensions``) the same way — read one passage at a time,
+  that would otherwise be a green job sending one request per pending chunk.
 * 5xx, timeout, network: back off 5, 15 and 45 s; still failing, exit 1.
 * 401/403/404, any other status, or an answer of the wrong shape (vectors of a
   size other than the configured one included): configuration, exit 1.
@@ -50,6 +58,7 @@ model's name — never a passage's text, a path or a key.
 from __future__ import annotations
 
 import argparse
+import http.client
 import math
 import sys
 import time
@@ -79,6 +88,9 @@ DEFAULT_RATE_LIMIT_WAIT = 60.0
 MAX_RATE_LIMIT_WAIT = 120.0
 #: Consecutive per-minute 429s after which the day is taken to be over.
 MAX_CONSECUTIVE_RATE_LIMITS = 4
+#: Single passages refused (400) in a row, with nothing stored in between,
+#: after which the refusal is read as configuration and the run fails.
+MAX_CONSECUTIVE_REFUSALS = 3
 #: Characters per token when estimating a request against the TPM limit.
 #: Portuguese prose runs at about four; three over-counts, so the estimate errs
 #: toward waiting.
@@ -179,13 +191,14 @@ def _is_transient(exc: EmbeddingUnavailableError) -> bool:
 
     A plain :class:`EmbeddingUnavailableError` is either the transport failing
     (raised *from* a :class:`TimeoutError` or :class:`OSError`, which covers
-    ``URLError``) or the answer being wrong — a vector of another size, a body
-    that is not JSON. The second kind is configuration, and waiting does not
-    change it.
+    ``URLError``, or from an :class:`http.client.HTTPException` such as a body
+    cut short by ``IncompleteRead``) or the answer being wrong — a vector of
+    another size, a body that is not JSON. The second kind is configuration,
+    and waiting does not change it.
     """
     if isinstance(exc, EmbeddingHttpError):
         return exc.status >= 500
-    return isinstance(exc.__cause__, OSError)
+    return isinstance(exc.__cause__, (OSError, http.client.HTTPException))
 
 
 def _percent(part: int, whole: int) -> str:
@@ -222,6 +235,18 @@ class _Run:
         self.out = out
         self.report = EmbedReport()
         self.stop_message = ""
+        #: The 400 that ended the last attempt, for its warning and, when it
+        #: turns out to be systematic, for the error that ends the run.
+        self.refusal: EmbeddingHttpError | None = None
+        #: Single passages refused in a row since the last stored batch.
+        self.consecutive_refusals = 0
+        #: After a batch 400: the ids being resent one at a time, how many of
+        #: them were stored and refused, and the batch size to go back to.
+        self.probing = False
+        self.probe: set[int] = set()
+        self.probe_stored = 0
+        self.probe_refused = 0
+        self.probe_batch = 0
 
     # --- the loop --------------------------------------------------------
 
@@ -242,35 +267,99 @@ class _Run:
         queue = deque(self.repo.pending_chunk_ids(model, dims))
         exit_code = 0
         while queue:
-            ids = [queue.popleft() for _ in range(min(self.batch, len(queue)))]
-            texts_by_id = self.repo.chunk_texts(ids)
+            popped = [queue.popleft() for _ in range(min(self.batch, len(queue)))]
+            texts_by_id = self.repo.chunk_texts(popped)
             # A chunk deleted since the list was read is simply gone.
-            ids = [chunk_id for chunk_id in ids if chunk_id in texts_by_id]
+            ids = [chunk_id for chunk_id in popped if chunk_id in texts_by_id]
+            self._settle_probe([i for i in popped if i not in texts_by_id], None)
             if not ids:
                 continue
             outcome = self._send(ids, [texts_by_id[chunk_id] for chunk_id in ids])
             if outcome is _Attempt.STORED:
+                self.consecutive_refusals = 0
+                self._settle_probe(ids, outcome)
                 continue
             if outcome is _Attempt.BAD_REQUEST:
                 if len(ids) > 1:
                     self.out(
                         f"::notice::[embed] O servidor recusou um lote de {len(ids)} trechos "
-                        "(400); reenviando um a um, e o resto desta execução segue com lote 1."
+                        f"(400: {self._refusal_detail()}); reenviando um a um."
                     )
+                    self.probing = True
+                    self.probe = set(ids)
+                    self.probe_stored = self.probe_refused = 0
+                    self.probe_batch = self.batch
                     self.batch = 1
                     queue.extendleft(reversed(ids))
-                else:
-                    self.report.refused += 1
+                    continue
+                self.report.refused += 1
+                self.consecutive_refusals += 1
+                self.out(
+                    f"::warning::[embed] O servidor recusou o trecho {ids[0]} "
+                    f"(400: {self._refusal_detail()}); ele continua pendente e volta na "
+                    "próxima execução."
+                )
+                if self.refusal is not None and (
+                    self.consecutive_refusals >= MAX_CONSECUTIVE_REFUSALS
+                ):
                     self.out(
-                        f"::warning::[embed] O servidor recusou o trecho {ids[0]} (400); "
-                        "ele continua pendente e volta na próxima execução."
+                        f"[embed] {self.consecutive_refusals} trechos recusados (400) seguidos, "
+                        "sem nenhum gravado entre eles: tratado como configuração (chave, "
+                        "modelo ou dimensions), não como trechos ruins."
                     )
+                    self._fatal(self.refusal)
+                    exit_code = 1
+                    break
+                self._settle_probe(ids, outcome)
                 continue
             exit_code = 1 if outcome is _Attempt.FATAL else 0
             break
         if self.stop_message:
             self.out(self.stop_message)
         return self._finish(exit_code)
+
+    def _refusal_detail(self) -> str:
+        """The server's explanation of the last 400 — never a passage or a key.
+
+        ``detail`` is the server's own message, already cut at 300 characters by
+        the client and scrubbed of the configured key there.
+        """
+        detail = self.refusal.detail.strip() if self.refusal is not None else ""
+        return detail or "sem explicação do servidor"
+
+    def _settle_probe(self, ids: list[int], outcome: _Attempt | None) -> None:
+        """Count how the resent singles of a refused batch ended; decide at the last.
+
+        ``outcome`` is ``STORED`` or ``BAD_REQUEST``; ``None`` (a chunk deleted
+        meanwhile) only takes the id out of the count.
+
+        Some stored and some refused: the 400 was a passage, not the list, so
+        the run returns to the batch size it had — a passage the server always
+        refuses stays pending and heads the queue every night, and staying at
+        one would cost every such night twenty times the requests. All stored:
+        the endpoint refuses lists, and the run stays at one.
+        """
+        if not self.probing:
+            return
+        for chunk_id in ids:
+            if chunk_id not in self.probe:
+                continue
+            self.probe.discard(chunk_id)
+            if outcome is _Attempt.STORED:
+                self.probe_stored += 1
+            elif outcome is _Attempt.BAD_REQUEST:
+                self.probe_refused += 1
+        if self.probe:
+            return
+        self.probing = False
+        if self.probe_refused and self.probe_stored:
+            self.batch = self.probe_batch
+            self.out(
+                f"[embed] a recusa era de {self.probe_refused} trecho(s), não do lote: "
+                f"a execução volta ao lote de {self.batch}."
+            )
+        elif self.probe_stored:
+            self.out("[embed] o servidor aceita um trecho por pedido: o resto segue com lote 1.")
 
     def _finish(self, exit_code: int) -> EmbedReport:
         model, dims = self.client.model, self.client.dimensions
@@ -310,8 +399,8 @@ class _Run:
             self.report.requests += 1
             try:
                 vectors = self.client.embed(texts)
-            except EmbeddingHttpError as exc:
-                if exc.status == 429:
+            except EmbeddingUnavailableError as exc:
+                if isinstance(exc, EmbeddingHttpError) and exc.status == 429:
                     if exc.daily:
                         self.stop_message = DAILY_QUOTA_MESSAGE
                         return _Attempt.DAILY_QUOTA
@@ -335,17 +424,9 @@ class _Run:
                     if stop is not None:
                         return stop
                     continue
-                if exc.status == 400:
+                if isinstance(exc, EmbeddingHttpError) and exc.status == 400:
+                    self.refusal = exc
                     return _Attempt.BAD_REQUEST
-                if not _is_transient(exc):
-                    return self._fatal(exc)
-                outcome = self._back_off(exc, transient)
-                if outcome is not None:
-                    return outcome
-                transient += 1
-                rate_limited = 0
-                continue
-            except EmbeddingUnavailableError as exc:
                 if not _is_transient(exc):
                     return self._fatal(exc)
                 outcome = self._back_off(exc, transient)

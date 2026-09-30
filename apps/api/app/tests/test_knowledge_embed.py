@@ -12,6 +12,8 @@ e o sono são falsos.
 
 from __future__ import annotations
 
+import http.client
+
 import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -59,9 +61,9 @@ class FakeClient:
             if item is not None:
                 raise item
         if self.refuse_lists and len(texts) > 1:
-            raise _http(400)
+            raise _http(400, detail="Lists are not supported.")
         if any(text in self.refuse_texts for text in texts):
-            raise _http(400)
+            raise _http(400, detail="Invalid input text.")
         size = self.dimensions or 3
         return [[1.0] + [0.0] * (size - 1) for _ in texts]
 
@@ -82,14 +84,30 @@ class Clock:
 
 
 def _http(
-    status: int, *, retry_after: float | None = None, daily: bool = False
+    status: int, *, retry_after: float | None = None, daily: bool = False, detail: str = ""
 ) -> EmbeddingHttpError:
-    return EmbeddingHttpError(f"erro {status}", status=status, retry_after=retry_after, daily=daily)
+    return EmbeddingHttpError(
+        f"erro {status}. {detail}".strip(),
+        status=status,
+        retry_after=retry_after,
+        daily=daily,
+        detail=detail,
+    )
+
+
+#: How Gemini answers a wrong or revoked key: 400, not 401.
+INVALID_KEY = "API key not valid. Please pass a valid API key."
 
 
 def _network_error() -> EmbeddingUnavailableError:
     error = EmbeddingUnavailableError("O servidor de embeddings não respondeu em 30s.")
     error.__cause__ = TimeoutError()
+    return error
+
+
+def _truncated_body() -> EmbeddingUnavailableError:
+    error = EmbeddingUnavailableError("A resposta chegou incompleta ou malformada.")
+    error.__cause__ = http.client.IncompleteRead(b'{"data": [')
     return error
 
 
@@ -190,6 +208,27 @@ class TestRepository:
         pending = KnowledgeRepository(db_session).pending_chunk_ids(MODEL, DIMS)
 
         assert pending == [c.id for c in small + medium + big]
+
+    def test_replace_chunks_deletes_the_old_vectors(self, db_session: Session) -> None:
+        # SQLite does not apply ``ondelete`` here and reuses freed ids: a vector
+        # left behind would be inherited by a new passage and read as current.
+        document, chunks = _document(db_session, "a.pdf", _texts(2))
+        _, other = _document(db_session, "b.pdf", _texts(1))
+        for chunk in chunks + other:
+            _embed(db_session, chunk, model=MODEL, dims=DIMS)
+        repo = KnowledgeRepository(db_session)
+
+        repo.replace_chunks(
+            document.id,
+            [
+                KnowledgeChunk(ordinal=i, text=t, char_count=len(t), search_text=t)
+                for i, t in enumerate(["novo 0", "novo 1"])
+            ],
+        )
+
+        assert [e.chunk_id for e in _stored(db_session)] == [other[0].id]
+        new_ids = [c.id for c in repo.list_chunks(document.id)]
+        assert repo.pending_chunk_ids(MODEL, DIMS) == new_ids
 
     def test_chunk_texts_returns_only_existing_ids(self, db_session: Session) -> None:
         _, chunks = _document(db_session, "a.pdf", ["um", "dois"])
@@ -345,6 +384,7 @@ class TestBadRequest:
         assert report.written == 5
         assert report.exit_code == 0
         assert any(line.startswith("::notice::") for line in lines)
+        assert "[embed] o servidor aceita um trecho por pedido: o resto segue com lote 1." in lines
 
     def test_400_on_a_single_passage_skips_it_for_this_run(self, db_session: Session) -> None:
         _, chunks = _document(db_session, "a.pdf", ["bom", "recusado", "outro bom"])
@@ -361,6 +401,88 @@ class TestBadRequest:
         assert str(chunks[1].id) in warnings[0]
         assert "recusado" not in warnings[0].replace("recusou", "")  # no passage text
         assert KnowledgeRepository(db_session).pending_chunk_ids(MODEL, DIMS) == [chunks[1].id]
+
+    def test_a_refused_passage_does_not_keep_the_rest_of_the_run_at_one(
+        self, db_session: Session
+    ) -> None:
+        # The 400 of the first batch was one passage, not the list format: once
+        # the singles show that, the run goes back to its batch size.
+        _document(db_session, "a.pdf", ["bom 0", "recusado", "bom 1", "bom 2", "bom 3", "bom 4"])
+        client = FakeClient(refuse_texts=frozenset({"recusado"}))
+
+        report, lines = _run(db_session, client, batch=3)
+
+        assert [len(call) for call in client.calls] == [3, 1, 1, 1, 3]
+        assert (report.written, report.refused, report.exit_code) == (5, 1, 0)
+        assert (
+            "[embed] a recusa era de 1 trecho(s), não do lote: a execução volta ao lote de 3."
+            in lines
+        )
+
+    def test_warning_carries_the_servers_explanation(self, db_session: Session) -> None:
+        _document(db_session, "a.pdf", ["recusado", "bom"])
+        client = FakeClient(refuse_texts=frozenset({"recusado"}))
+
+        _, lines = _run(db_session, client, batch=1)
+
+        (warning,) = [line for line in lines if line.startswith("::warning::")]
+        assert "(400: Invalid input text.)" in warning
+
+    def test_a_refused_passage_at_the_head_of_the_queue_is_still_skipped(
+        self, db_session: Session
+    ) -> None:
+        # Smallest documents first: a passage the server always refuses heads
+        # the queue every night, and must not fail the run by itself.
+        _document(db_session, "a.pdf", ["recusado", "bom 0", "bom 1"])
+        client = FakeClient(refuse_texts=frozenset({"recusado"}))
+
+        report, _ = _run(db_session, client, batch=1)
+
+        assert (report.exit_code, report.written, report.refused) == (0, 2, 1)
+
+    def test_refusals_separated_by_a_stored_passage_are_not_consecutive(
+        self, db_session: Session
+    ) -> None:
+        texts = ["r0", "r1", "bom 0", "r2", "r3", "bom 1"]
+        _document(db_session, "a.pdf", texts)
+        client = FakeClient(refuse_texts=frozenset({"r0", "r1", "r2", "r3"}))
+
+        report, _ = _run(db_session, client, batch=1)
+
+        assert (report.exit_code, report.written, report.refused) == (0, 2, 4)
+
+
+class TestSystematicBadRequest:
+    """Um 400 em todo pedido é configuração (chave, modelo, dimensions), não trecho."""
+
+    def test_every_request_refused_exits_1_after_a_few_requests(self, db_session: Session) -> None:
+        # The measured failure: 50 chunks, every request answered 400 — before
+        # the fix, 51 requests, 50 warnings and exit 0.
+        _document(db_session, "a.pdf", _texts(50))
+        client = FakeClient([_http(400, detail=INVALID_KEY)] * 60)
+
+        report, lines = _run(db_session, client, batch=20)
+
+        assert report.exit_code == 1
+        # One batch, then three singles.
+        assert [len(call) for call in client.calls] == [20, 1, 1, 1]
+        assert report.written == 0
+        errors = [line for line in lines if line.startswith("::error::")]
+        assert len(errors) == 1
+        assert INVALID_KEY in errors[0]
+        warnings = [line for line in lines if line.startswith("::warning::")]
+        assert len(warnings) == 3
+        assert all(INVALID_KEY in line for line in warnings)
+        assert lines[-1].startswith("[embed] 0 vetores gravados agora com 4 pedidos;")
+
+    def test_at_batch_one_three_refusals_are_enough(self, db_session: Session) -> None:
+        _document(db_session, "a.pdf", _texts(10))
+        client = FakeClient([_http(400, detail=INVALID_KEY)] * 10)
+
+        report, _ = _run(db_session, client, batch=1)
+
+        assert report.exit_code == 1
+        assert len(client.calls) == 3
 
 
 class TestFailures:
@@ -393,7 +515,7 @@ class TestFailures:
         assert clock.sleeps == []
         assert any("ignorou dimensions=4" in line for line in lines)
 
-    @pytest.mark.parametrize("error", [lambda: _http(503), _network_error])
+    @pytest.mark.parametrize("error", [lambda: _http(503), _network_error, _truncated_body])
     def test_transient_failure_backs_off_5_15_45_then_exits_1(
         self, db_session: Session, error
     ) -> None:

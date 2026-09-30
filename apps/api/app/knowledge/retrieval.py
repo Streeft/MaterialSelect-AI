@@ -112,6 +112,16 @@ def _semantic_rank(
     stored = repo.vector_fingerprints(client.model)
     if not stored:
         return []
+    # The same for a configured size nothing is stored at — mid-migration, say,
+    # with every vector still at the old size. 0 ("the model's own size") can
+    # only be checked against the answer, below.
+    if client.dimensions > 0 and client.dimensions not in stored:
+        logger.warning(
+            "Busca semântica sem vetores de %s com %d dimensões; usando só léxica.",
+            client.model,
+            client.dimensions,
+        )
+        return []
     try:
         query_vector = client.embed([query])[0]
         # Only vectors of this model *and* the query's own length are compared

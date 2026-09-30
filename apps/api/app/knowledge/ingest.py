@@ -30,6 +30,7 @@ from __future__ import annotations
 import argparse
 import sys
 from collections import Counter
+from pathlib import Path, PurePosixPath
 
 from app.db.base import SessionLocal
 from app.knowledge.prune import ROOT_FOLDER, redact
@@ -39,6 +40,25 @@ from app.knowledge.service import DocumentOutcome, IngestReport, KnowledgeServic
 def _shown(outcome: DocumentOutcome) -> str:
     """A path as a public log may print it: whole only when declared."""
     return outcome.path if outcome.declared else redact(outcome.path, outcome.checksum)
+
+
+def _shown_detail(outcome: DocumentOutcome, root: str) -> str:
+    """A failure's detail as a public log may print it.
+
+    An OS error names the file it could not open — absolute, as in
+    ``[Errno 2] No such file or directory: '/home/runner/…/Cérebro/x.pdf'`` —
+    so an undeclared path would leak through the detail even though the path
+    column is redacted. Every form of the path (absolute, relative, bare file
+    name) is replaced by the redacted name.
+    """
+    detail = outcome.detail or ""
+    if outcome.declared:
+        return detail
+    shown = _shown(outcome)
+    forms = {str(Path(root) / outcome.path), outcome.path, PurePosixPath(outcome.path).name}
+    for form in sorted((f for f in forms if f), key=len, reverse=True):
+        detail = detail.replace(form, shown)
+    return detail
 
 
 def _folder(path: str) -> str:
@@ -100,7 +120,9 @@ def format_report(report: IngestReport, *, embed: bool = True) -> list[str]:
         lines.append(line)
     for outcome in failures:
         if not outcome.empty_text:
-            lines.append(f"[ingest] FALHOU {_shown(outcome)}: {outcome.detail}")
+            lines.append(
+                f"[ingest] FALHOU {_shown(outcome)}: {_shown_detail(outcome, report.root)}"
+            )
     return lines
 
 

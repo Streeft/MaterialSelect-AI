@@ -146,6 +146,29 @@ class TestPublicLog:
         assert "[ingest] FALHOU 01-Bibliografia/… sha256:" in out
         assert "segredo" not in out
 
+    def test_an_undeclared_path_does_not_leak_through_the_failure_detail(self) -> None:
+        from app.knowledge.ingest import format_report
+        from app.knowledge.service import DocumentOutcome, IngestReport
+
+        root = "/home/runner/work/Cérebro"
+        report = IngestReport(root=root, failed=1)
+        report.outcomes.append(
+            DocumentOutcome(
+                path="01-Bibliografia/segredo.pdf",
+                action="falhou",
+                checksum="ab" * 32,
+                detail=(
+                    "Não foi possível ler o PDF: [Errno 2] No such file or directory: "
+                    f"'{root}/01-Bibliografia/segredo.pdf'"
+                ),
+            )
+        )
+
+        (line,) = [line for line in format_report(report) if "FALHOU" in line]
+
+        assert "segredo" not in line
+        assert "[Errno 2] No such file or directory: '01-Bibliografia/… sha256:" in line
+
     def test_copies_are_counted_per_top_level_folder(
         self, cli_root: Path, capsys: pytest.CaptureFixture[str]
     ) -> None:

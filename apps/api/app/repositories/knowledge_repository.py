@@ -48,7 +48,19 @@ class KnowledgeRepository:
         ordinal, so matching old rows to new ones would be guesswork. The
         uniqueness constraint on (document_id, ordinal) makes a half-finished
         run fail loudly instead of leaving two passages in the same position.
+
+        The vectors are deleted here, explicitly, before their passages — the
+        cascade is written in Python and not only declared in the schema, as in
+        ``prune`` and D-72. SQLite (the development and test database) does not
+        enforce ``ondelete`` without a pragma this project does not turn on, and
+        it reuses a freed id: a new passage would inherit the old one's vector,
+        which then counts as current, is never re-embedded and is ranked by the
+        semantic search against text it was never computed from.
         """
+        chunk_ids = select(KnowledgeChunk.id).where(KnowledgeChunk.document_id == document_id)
+        self.db.execute(
+            delete(KnowledgeEmbedding).where(KnowledgeEmbedding.chunk_id.in_(chunk_ids))
+        )
         self.db.execute(delete(KnowledgeChunk).where(KnowledgeChunk.document_id == document_id))
         self.db.flush()
         for chunk in chunks:
@@ -72,26 +84,6 @@ class KnowledgeRepository:
 
     def count_documents(self) -> int:
         return int(self.db.execute(select(func.count(KnowledgeDocument.id))).scalar_one())
-
-    def list_all_chunks_for_lexical_search(self) -> list[KnowledgeChunk]:
-        """Every chunk with a non-empty ``search_text``, joined to its document.
-
-        Loaded eagerly and in full: BM25 needs corpus-wide document frequency,
-        which means every passage's tokens regardless of how few will end up
-        in the answer. At the corpus's current size (~150 documents) this is a
-        single query, not a scaling concern yet — see the spec's ``§10``.
-        """
-        from sqlalchemy.orm import joinedload
-
-        return list(
-            self.db.execute(
-                select(KnowledgeChunk)
-                .options(joinedload(KnowledgeChunk.document))
-                .where(KnowledgeChunk.search_text != "")
-            )
-            .scalars()
-            .all()
-        )
 
     # --- embeddings ----------------------------------------------------
 
@@ -188,17 +180,3 @@ class KnowledgeRepository:
             select(KnowledgeChunk.id, KnowledgeChunk.text).where(KnowledgeChunk.id.in_(chunk_ids))
         ).all()
         return {int(chunk_id): text for chunk_id, text in rows}
-
-    def list_all_embeddings(self) -> list[KnowledgeChunk]:
-        """Every chunk that has an embedding, joined to it and to its document."""
-        from sqlalchemy.orm import joinedload
-
-        return list(
-            self.db.execute(
-                select(KnowledgeChunk)
-                .join(KnowledgeEmbedding, KnowledgeChunk.embedding)
-                .options(joinedload(KnowledgeChunk.document), joinedload(KnowledgeChunk.embedding))
-            )
-            .scalars()
-            .all()
-        )

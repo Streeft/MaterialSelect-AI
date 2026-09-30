@@ -46,10 +46,18 @@ class CorpusFingerprint(NamedTuple):
 
 
 class VectorFingerprint(NamedTuple):
-    """The stored vectors of one ``(model, dimensions)``: how many, and up to where."""
+    """The stored vectors of one ``(model, dimensions)``: how many, up to where,
+    and the sum of their ids.
+
+    Count and max alone collide when, between two searches, a vector below the
+    max is deleted and another row is rewritten in place into this identity
+    (``set_embedding`` keeps the row's id): same count, same max, a different
+    set. The id sum tells those two sets apart at no extra cost in the scan.
+    """
 
     count: int
     max_id: int
+    id_sum: int = 0
 
 
 class KnowledgeIndexRepository:
@@ -90,13 +98,16 @@ class KnowledgeIndexRepository:
                 KnowledgeEmbedding.dimensions,
                 func.count(KnowledgeEmbedding.id),
                 func.max(KnowledgeEmbedding.id),
+                func.sum(KnowledgeEmbedding.id),
             )
             .where(KnowledgeEmbedding.model == model)
             .group_by(KnowledgeEmbedding.dimensions)
         ).all()
         return {
-            int(dimensions): VectorFingerprint(count=int(count), max_id=int(max_id))
-            for dimensions, count, max_id in rows
+            int(dimensions): VectorFingerprint(
+                count=int(count), max_id=int(max_id), id_sum=int(id_sum)
+            )
+            for dimensions, count, max_id, id_sum in rows
         }
 
     # --- loaders (only when a fingerprint changed) --------------------------
@@ -104,9 +115,8 @@ class KnowledgeIndexRepository:
     def iter_search_texts(self, max_id: int) -> Iterator[tuple[int, str]]:
         """``(chunk id, search_text)`` of every searchable chunk, in id order.
 
-        The same corpus ``KnowledgeRepository.list_all_chunks_for_lexical_search``
-        returns — chunks with a non-empty ``search_text`` — without the text a
-        reader is shown or the document join.
+        Every chunk with a non-empty ``search_text`` — the corpus BM25 ranks —
+        without the text a reader is shown or the document join.
         """
         result = self.db.execute(
             select(KnowledgeChunk.id, KnowledgeChunk.search_text)

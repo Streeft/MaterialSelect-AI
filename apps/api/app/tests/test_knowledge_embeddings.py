@@ -4,6 +4,7 @@ de verdade — mesmo padrão de test_ai_openai_compat.py (fake opener injetável
 
 from __future__ import annotations
 
+import http.client
 import io
 import json
 import math
@@ -353,6 +354,18 @@ class TestHttpError:
         assert str(error).endswith("motivo")
         assert error.detail == "motivo"
 
+    def test_a_key_echoed_by_the_server_is_not_in_the_error(self) -> None:
+        # O detalhe vai para o log público do embed: a chave nunca sai em texto.
+        key = "AIzaSy-chave-secreta-de-teste"
+        settings = _settings(knowledge_embedding_api_key=key)
+        body = {"error": {"message": f"API key not valid: {key}. Please pass a valid API key."}}
+        client = EmbeddingClient(settings, opener=_Failing(_http_error(400, body)))
+        with pytest.raises(EmbeddingHttpError) as info:
+            client.embed(["a"])
+        assert key not in str(info.value)
+        assert key not in info.value.detail
+        assert "API key not valid: [chave omitida]." in info.value.detail
+
     def test_list_wrapped_gemini_body_gives_its_detail(self) -> None:
         error = _raised(_http_error(404, [{"error": {"message": "models/x is not found"}}]))
         assert str(error).endswith("models/x is not found")
@@ -429,6 +442,21 @@ class TestHttpError:
         error = _raised(_http_error(429, payload))
         assert error.retry_after is None
         assert error.daily is False
+
+
+class _TruncatedResponse(_Response):
+    def read(self) -> bytes:
+        raise http.client.IncompleteRead(b'{"data": [')
+
+
+class TestTruncatedBody:
+    def test_an_incomplete_read_is_the_unavailable_error(self) -> None:
+        # IncompleteRead não é OSError: sem o tratamento, escapava cru e o
+        # embed morria com traceback, sem espera nem linha de resumo.
+        client = EmbeddingClient(_settings(), opener=lambda *_a, **_k: _TruncatedResponse(""))
+        with pytest.raises(EmbeddingUnavailableError, match="incompleta") as info:
+            client.embed(["a"])
+        assert isinstance(info.value.__cause__, http.client.HTTPException)
 
 
 # --- embedding_matches ---------------------------------------------------------

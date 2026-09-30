@@ -934,18 +934,23 @@ class TestKeepsThePreviousVersion:
         assert "digitalizado" in document.error
         assert "versão anterior continuam na base" in document.error
 
-    def test_the_next_readable_version_replaces_normally(self, db_session, corpus: Path) -> None:
+    def test_the_next_readable_version_replaces_normally(
+        self, db_session, corpus: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from app.models.knowledge import KnowledgeEmbedding
+
         path = _write(corpus, "livro.pdf", ["Versão original do capítulo."])
-        # Sem vetores aqui: o SQLite dos testes não aplica o ``ondelete`` que
-        # apaga o vetor de um trecho substituído, e um id de trecho reusado
-        # herdaria o vetor antigo — artefato do banco de teste, não da ingestão.
+        calls: list[list[str]] = []
         service = KnowledgeService(db_session)
+        monkeypatch.setattr(service, "_embeddings_configured", lambda: True)
+        monkeypatch.setattr(service, "_embedding_client", lambda: _FakeEmbeddingClient(calls=calls))
         service.ingest()
         path.write_bytes(b"%PDF-1.4\nquebrado")
         service.ingest()
 
         # O checksum antigo ficou: a próxima execução tenta o arquivo de novo.
         path.write_bytes(_pdf_bytes(["Versão revisada, com outro texto."]))
+        calls.clear()
         report = service.ingest()
 
         assert report.updated == 1
@@ -954,8 +959,15 @@ class TestKeepsThePreviousVersion:
         assert document.status == IngestStatus.EXTRAIDO
         assert document.error is None
         assert document.checksum == checksum_of(path)
-        text = " ".join(c.text for c in repo.list_chunks(document.id))
+        chunks = repo.list_chunks(document.id)
+        text = " ".join(c.text for c in chunks)
         assert "revisada" in text and "original" not in text
+        # Cada trecho novo ganhou vetor novo — nenhum herdou o do trecho antigo
+        # pelo id que o SQLite reusa — e não sobra vetor órfão.
+        assert calls == [[c.text for c in chunks]]
+        assert report.embedded_chunks == len(chunks)
+        assert repo.pending_chunk_ids("fake-embed", 0) == []
+        assert db_session.query(KnowledgeEmbedding).count() == len(chunks)
 
     def test_a_previously_failed_document_is_recorded_as_before(
         self, db_session, corpus: Path
@@ -1065,11 +1077,40 @@ class TestDuplicates:
         assert removed.duplicate_of is None
         assert KnowledgeRepository(db_session).get_by_path("livro.pdf") is not None
 
+    def test_the_indexed_copy_keeps_its_place_over_a_new_one(
+        self, db_session, corpus: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        _write(corpus, "b/livro.pdf", self.SAME)
+        service = KnowledgeService(db_session)
+        calls: list[list[str]] = []
+        monkeypatch.setattr(service, "_embeddings_configured", lambda: True)
+        monkeypatch.setattr(service, "_embedding_client", lambda: _FakeEmbeddingClient(calls=calls))
+        service.ingest()
+        _write(corpus, "a/livro.pdf", self.SAME)  # passa a ser a primeira na ordem
+        calls.clear()
+
+        report = service.ingest()
+
+        # Sem declaração, a cópia já indexada fica: nada é extraído nem
+        # vetorizado de novo, e nenhuma linha vira órfã.
+        assert (report.created, report.duplicates) == (0, 1)
+        assert calls == []
+        copy = next(o for o in report.outcomes if o.path == "a/livro.pdf")
+        assert (copy.action, copy.duplicate_of, copy.still_in_base) == (
+            "ignorado",
+            "b/livro.pdf",
+            False,
+        )
+        kept = next(o for o in report.outcomes if o.path == "b/livro.pdf")
+        assert kept.action == "inalterado"
+        assert [d.path for d in KnowledgeRepository(db_session).list_documents()] == ["b/livro.pdf"]
+
     def test_a_copy_already_in_the_base_says_so(self, db_session, corpus: Path) -> None:
         _write(corpus, "b/livro.pdf", self.SAME)
         service = KnowledgeService(db_session)
         service.ingest()
-        _write(corpus, "a/livro.pdf", self.SAME)  # passa a ser a primeira
+        _write(corpus, "a/livro.pdf", self.SAME)
+        _declare(corpus, {"path": "a/livro.pdf", "titulo": "Livro"})  # a declarada vence
 
         report = service.ingest()
 
