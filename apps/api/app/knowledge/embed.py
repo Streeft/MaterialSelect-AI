@@ -40,10 +40,19 @@ day and failing:
   passage skips it for this run (it stays pending and is tried again next
   time), with a warning naming its id and the server's explanation.
 * 400 on three single passages in a row, with nothing stored in between:
-  configuration, exit 1. Gemini answers a wrong or revoked key with 400
-  ``INVALID_ARGUMENT`` (``API_KEY_INVALID``), not 401, and a field it rejects
-  (an unsupported ``dimensions``) the same way — read one passage at a time,
-  that would otherwise be a green job sending one request per pending chunk.
+  either configuration or a run of passages the server always refuses. One
+  *canary* passage from the far end of the queue (normally another, larger
+  document) tells them apart. Stored: the refusals were the passages, the
+  count starts over and the run carries on — three adjacent bad passages of one
+  document would otherwise stop every night at the same place, and nothing
+  behind them would ever be reached. Refused too: configuration, exit 1.
+  Gemini answers a wrong or revoked key with 400 ``INVALID_ARGUMENT``
+  (``API_KEY_INVALID``), not 401, and a field it rejects (an unsupported
+  ``dimensions``) the same way — read one passage at a time, that would
+  otherwise be a green job sending one request per pending chunk. A bad key
+  costs five requests at most (the batch, three singles, the canary). With no
+  passage left to try, nothing is blocked: the run ends with exit 0 and the
+  warnings, which carry the server's explanation.
 * 5xx, timeout, network: back off 5, 15 and 45 s; still failing, exit 1.
 * 401/403/404, any other status, or an answer of the wrong shape (vectors of a
   size other than the configured one included): configuration, exit 1.
@@ -89,7 +98,8 @@ MAX_RATE_LIMIT_WAIT = 120.0
 #: Consecutive per-minute 429s after which the day is taken to be over.
 MAX_CONSECUTIVE_RATE_LIMITS = 4
 #: Single passages refused (400) in a row, with nothing stored in between,
-#: after which the refusal is read as configuration and the run fails.
+#: after which a canary passage from the far end of the queue is sent: refused
+#: too, the refusal is read as configuration and the run fails.
 MAX_CONSECUTIVE_REFUSALS = 3
 #: Characters per token when estimating a request against the TPM limit.
 #: Portuguese prose runs at about four; three over-counts, so the estimate errs
@@ -292,31 +302,79 @@ class _Run:
                     self.batch = 1
                     queue.extendleft(reversed(ids))
                     continue
-                self.report.refused += 1
-                self.consecutive_refusals += 1
-                self.out(
-                    f"::warning::[embed] O servidor recusou o trecho {ids[0]} "
-                    f"(400: {self._refusal_detail()}); ele continua pendente e volta na "
-                    "próxima execução."
-                )
+                self._refused(ids[0])
+                self._settle_probe(ids, outcome)
                 if self.refusal is not None and (
                     self.consecutive_refusals >= MAX_CONSECUTIVE_REFUSALS
                 ):
-                    self.out(
-                        f"[embed] {self.consecutive_refusals} trechos recusados (400) seguidos, "
-                        "sem nenhum gravado entre eles: tratado como configuração (chave, "
-                        "modelo ou dimensions), não como trechos ruins."
-                    )
-                    self._fatal(self.refusal)
-                    exit_code = 1
-                    break
-                self._settle_probe(ids, outcome)
+                    verdict = self._canary(queue)
+                    if verdict is _Attempt.BAD_REQUEST and self.refusal is not None:
+                        self.out(
+                            f"[embed] {self.consecutive_refusals} trechos recusados (400) "
+                            "seguidos, sem nenhum gravado entre eles, e também o do fim da "
+                            "fila: tratado como configuração (chave, modelo ou dimensions), "
+                            "não como trechos ruins."
+                        )
+                        self._fatal(self.refusal)
+                        exit_code = 1
+                        break
+                    if verdict not in (None, _Attempt.STORED):
+                        exit_code = 1 if verdict is _Attempt.FATAL else 0
+                        break
                 continue
             exit_code = 1 if outcome is _Attempt.FATAL else 0
             break
         if self.stop_message:
             self.out(self.stop_message)
         return self._finish(exit_code)
+
+    def _refused(self, chunk_id: int) -> None:
+        """Count a single passage refused (400) and warn — by id, never by text."""
+        self.report.refused += 1
+        self.consecutive_refusals += 1
+        self.out(
+            f"::warning::[embed] O servidor recusou o trecho {chunk_id} "
+            f"(400: {self._refusal_detail()}); ele continua pendente e volta na "
+            "próxima execução."
+        )
+
+    def _canary(self, queue: deque[int]) -> _Attempt | None:
+        """Send one passage from the far end of the queue, alone; ``None`` if none is left.
+
+        After :data:`MAX_CONSECUTIVE_REFUSALS` single refusals in a row, the
+        question is whether the configuration or the passages are at fault. The
+        queue runs smallest document first, so its far end is normally another
+        document — one the refusals say nothing about. Stored: the passages
+        were at fault, the count starts over and the run goes on. Refused: the
+        caller fails the run. Any other outcome (quota, budget, deadline, a
+        fatal error) is the caller's to end the run with.
+
+        No passage left means nothing is blocked behind the refused ones, so
+        there is nothing to protect by failing: the run simply ends.
+        """
+        while queue:
+            chunk_id = queue.pop()
+            texts = self.repo.chunk_texts([chunk_id])
+            if chunk_id not in texts:  # deleted since the list was read
+                self._settle_probe([chunk_id], None)
+                continue
+            self.out(
+                f"[embed] {self.consecutive_refusals} trechos recusados (400) seguidos: "
+                f"testando o trecho {chunk_id}, do fim da fila, antes de concluir que é "
+                "configuração."
+            )
+            outcome = self._send([chunk_id], [texts[chunk_id]])
+            if outcome is _Attempt.STORED:
+                self.consecutive_refusals = 0
+                self.out(
+                    "[embed] o trecho do fim da fila foi aceito: as recusas são daqueles "
+                    "trechos, não da configuração; a execução continua."
+                )
+            elif outcome is _Attempt.BAD_REQUEST:
+                self._refused(chunk_id)
+            self._settle_probe([chunk_id], outcome)
+            return outcome
+        return None
 
     def _refusal_detail(self) -> str:
         """The server's explanation of the last 400 — never a passage or a key.

@@ -464,25 +464,115 @@ class TestSystematicBadRequest:
         report, lines = _run(db_session, client, batch=20)
 
         assert report.exit_code == 1
-        # One batch, then three singles.
-        assert [len(call) for call in client.calls] == [20, 1, 1, 1]
+        # One batch, three singles, then the canary from the far end.
+        assert [len(call) for call in client.calls] == [20, 1, 1, 1, 1]
+        assert client.calls[-1] == ["trecho 49"]
         assert report.written == 0
         errors = [line for line in lines if line.startswith("::error::")]
         assert len(errors) == 1
         assert INVALID_KEY in errors[0]
         warnings = [line for line in lines if line.startswith("::warning::")]
-        assert len(warnings) == 3
+        assert len(warnings) == 4
         assert all(INVALID_KEY in line for line in warnings)
-        assert lines[-1].startswith("[embed] 0 vetores gravados agora com 4 pedidos;")
+        assert lines[-1].startswith("[embed] 0 vetores gravados agora com 5 pedidos;")
 
-    def test_at_batch_one_three_refusals_are_enough(self, db_session: Session) -> None:
+    def test_at_batch_one_three_refusals_and_the_canary_are_enough(
+        self, db_session: Session
+    ) -> None:
         _document(db_session, "a.pdf", _texts(10))
         client = FakeClient([_http(400, detail=INVALID_KEY)] * 10)
 
         report, _ = _run(db_session, client, batch=1)
 
         assert report.exit_code == 1
+        assert len(client.calls) == 4
+
+
+class TestAdjacentRefusedPassages:
+    """Três trechos ruins seguidos de um documento não param toda noite no mesmo lugar."""
+
+    def test_three_adjacent_refused_passages_do_not_fail_night_after_night(
+        self, db_session: Session
+    ) -> None:
+        # The re-review's N1: before the canary, calls [5, 1, 1, 1], exit 1 and
+        # nothing written — on night 1 and again on night 2, forever.
+        _document(db_session, "a.pdf", ["p0", "p1", "p2", "bom 0", "bom 1"])
+        poison = frozenset({"p0", "p1", "p2"})
+
+        for night in (1, 2):
+            client = FakeClient(refuse_texts=poison)
+            report, lines = _run(db_session, client, batch=5)
+
+            assert report.exit_code == 0, night
+            assert not any(line.startswith("::error::") for line in lines)
+            assert report.refused == 3
+            assert report.remaining == 3
+
+        texts = KnowledgeRepository(db_session).chunk_texts(
+            [embedding.chunk_id for embedding in _stored(db_session)]
+        )
+        assert sorted(texts.values()) == ["bom 0", "bom 1"]
+
+    def test_the_canary_comes_from_another_document_and_counts_as_written(
+        self, db_session: Session
+    ) -> None:
+        _document(db_session, "a.pdf", ["p0", "p1", "p2", "p3"])
+        _document(db_session, "b.pdf", _texts(6, "bom"))
+        client = FakeClient(refuse_texts=frozenset({"p0", "p1", "p2", "p3"}))
+
+        report, lines = _run(db_session, client, batch=1)
+
+        # Three refusals, the canary from the far end (b.pdf's last passage),
+        # then p3 — one refusal, counting from zero again — and b.pdf in order.
+        assert client.calls[:5] == [["p0"], ["p1"], ["p2"], ["bom 5"], ["p3"]]
+        assert (report.exit_code, report.written, report.refused) == (0, 6, 4)
+        assert (
+            "[embed] o trecho do fim da fila foi aceito: as recusas são daqueles "
+            "trechos, não da configuração; a execução continua." in lines
+        )
+
+    def test_refused_passages_with_nothing_behind_them_end_with_exit_0(
+        self, db_session: Session
+    ) -> None:
+        # Once everything else is stored, the refused passages are the whole
+        # queue: no canary is left, nothing is blocked, and failing would turn
+        # every later night red.
+        _document(db_session, "a.pdf", ["bom"])
+        _document(db_session, "b.pdf", ["p0", "p1", "p2"])
+        poison = frozenset({"p0", "p1", "p2"})
+
+        first, _ = _run(db_session, FakeClient(refuse_texts=poison), batch=1)
+        client = FakeClient(refuse_texts=poison)
+        second, _ = _run(db_session, client, batch=1)
+
+        assert (first.exit_code, first.written, first.refused) == (0, 1, 3)
+        assert (second.exit_code, second.written, second.refused) == (0, 0, 3)
         assert len(client.calls) == 3
+
+    def test_a_refused_canary_fails_the_run(self, db_session: Session) -> None:
+        _document(db_session, "a.pdf", ["p0", "p1", "p2"])
+        _document(db_session, "b.pdf", _texts(5, "também recusado"))
+        client = FakeClient([_http(400, detail=INVALID_KEY)] * 10)
+
+        report, lines = _run(db_session, client, batch=1)
+
+        assert report.exit_code == 1
+        assert client.calls == [["p0"], ["p1"], ["p2"], ["também recusado 4"]]
+        (error,) = [line for line in lines if line.startswith("::error::")]
+        assert INVALID_KEY in error
+
+    def test_a_canary_hitting_the_daily_quota_stops_with_exit_0(self, db_session: Session) -> None:
+        _document(db_session, "a.pdf", ["p0", "p1", "p2", "bom"])
+        client = FakeClient(
+            [None, None, None, _http(429, daily=True)],
+            refuse_texts=frozenset({"p0", "p1", "p2"}),
+        )
+
+        report, lines = _run(db_session, client, batch=1)
+
+        assert report.exit_code == 0
+        assert DAILY_QUOTA_MESSAGE in lines
+        assert report.remaining == 4
 
 
 class TestFailures:

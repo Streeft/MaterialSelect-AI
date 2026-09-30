@@ -366,6 +366,58 @@ class TestHttpError:
         assert key not in info.value.detail
         assert "API key not valid: [chave omitida]." in info.value.detail
 
+    # A key of 39 characters, like a Google one, and a filler that shares no
+    # character with it, so any prefix found in the text can only be the key's.
+    ECHOED_KEY = "AIzaSyQX7-chave-secreta-de-teste-012345"
+
+    def _assert_no_prefix_of_the_key(self, text: str) -> None:
+        leaked = [
+            size for size in range(4, len(self.ECHOED_KEY) + 1) if self.ECHOED_KEY[:size] in text
+        ]
+        assert leaked == [], f"prefixo da chave no texto: {self.ECHOED_KEY[: max(leaked)]!r}"
+
+    @pytest.mark.parametrize("offset", [0, 262, 270, 280, 290, 299, 300, 320])
+    @pytest.mark.parametrize("setting", ["knowledge_embedding_api_key", "ai_api_key"])
+    @pytest.mark.parametrize("json_body", [True, False])
+    def test_a_key_straddling_the_300_character_cut_leaves_no_prefix(
+        self, offset: int, setting: str, json_body: bool
+    ) -> None:
+        # Re-review N2: scrubbing after the cut left "…AIzaSyABCDEFGHIJKLMN" —
+        # 20 of 39 characters — when the key started at character 280.
+        message = "#" * offset + self.ECHOED_KEY + " #"
+        failure = (
+            _http_error(400, {"error": {"message": message}})
+            if json_body
+            else _http_error(400, raw=message)
+        )
+        client = EmbeddingClient(_settings(**{setting: self.ECHOED_KEY}), opener=_Failing(failure))
+        with pytest.raises(EmbeddingHttpError) as info:
+            client.embed(["a"])
+        self._assert_no_prefix_of_the_key(info.value.detail)
+        self._assert_no_prefix_of_the_key(str(info.value))
+        assert len(info.value.detail) <= 300
+
+    def test_a_key_echoed_in_a_success_body_that_is_not_json_is_scrubbed(self) -> None:
+        body = "#" * 180 + self.ECHOED_KEY
+        client = EmbeddingClient(
+            _settings(knowledge_embedding_api_key=self.ECHOED_KEY),
+            opener=lambda request, timeout=None: _Response(body),
+        )
+        with pytest.raises(EmbeddingUnavailableError, match="não devolveu JSON") as info:
+            client.embed(["a"])
+        self._assert_no_prefix_of_the_key(str(info.value))
+
+    def test_a_key_echoed_in_a_success_body_without_vectors_is_scrubbed(self) -> None:
+        body = json.dumps({"error": {"message": f"API key not valid: {self.ECHOED_KEY}."}})
+        client = EmbeddingClient(
+            _settings(ai_api_key=self.ECHOED_KEY),
+            opener=lambda request, timeout=None: _Response(body),
+        )
+        with pytest.raises(EmbeddingUnavailableError, match="não devolveu vetores") as info:
+            client.embed(["a"])
+        self._assert_no_prefix_of_the_key(str(info.value))
+        assert "API key not valid: [chave omitida]." in str(info.value)
+
     def test_list_wrapped_gemini_body_gives_its_detail(self) -> None:
         error = _raised(_http_error(404, [{"error": {"message": "models/x is not found"}}]))
         assert str(error).endswith("models/x is not found")

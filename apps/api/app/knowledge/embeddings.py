@@ -33,6 +33,7 @@ import re
 import struct
 import urllib.error
 import urllib.request
+from collections.abc import Callable
 from typing import Any, Protocol
 
 from app.config import Settings
@@ -242,7 +243,7 @@ class EmbeddingClient:
             if dimensions > 0:
                 body["dimensions"] = dimensions
             payload = self._post(body)
-            batch_vectors = _vectors_of(payload, expected=len(batch))
+            batch_vectors = _vectors_of(payload, expected=len(batch), scrub=self._without_key)
             if dimensions > 0:
                 _check_dimensions(batch_vectors, dimensions)
             vectors.extend(normalise(vector) for vector in batch_vectors)
@@ -328,8 +329,9 @@ class EmbeddingClient:
         try:
             payload = json.loads(raw)
         except ValueError as exc:
+            # Scrubbed before the cut: a key straddling it would leave a prefix.
             raise EmbeddingUnavailableError(
-                f"O servidor de embeddings não devolveu JSON: {raw[:200]}"
+                f"O servidor de embeddings não devolveu JSON: {self._without_key(raw)[:200]}"
             ) from exc
         if not isinstance(payload, dict):
             raise EmbeddingUnavailableError("O servidor de embeddings devolveu JSON inesperado.")
@@ -343,8 +345,10 @@ class EmbeddingClient:
         """
         detail, message, error = _error_body(exc)
         # A server may echo the credential back in its explanation, and this
-        # detail is printed to a public log: the key never leaves as text.
-        detail = self._without_key(detail)
+        # detail is printed to a public log: the key never leaves as text. It
+        # is scrubbed *before* the cut — cutting first could keep only the
+        # start of a key that straddles it, which no replace would then match.
+        detail = self._without_key(detail)[:_DETAIL_LIMIT]
         return EmbeddingHttpError(
             self._http_message(exc.code, detail),
             status=exc.code,
@@ -386,19 +390,24 @@ class EmbeddingClient:
 # --- reading the answer ----------------------------------------------------
 
 
-def _vectors_of(payload: dict, expected: int) -> list[list[float]]:
+def _vectors_of(
+    payload: dict, expected: int, scrub: Callable[[str], str] = lambda text: text
+) -> list[list[float]]:
     """The vectors, in the order the inputs were sent.
 
     The ``index`` field is honoured rather than trusted to be sorted: the
     protocol permits any order, and silently mismatching a vector to the wrong
     passage would poison every later search in a way nothing would ever flag.
+
+    ``scrub`` removes the configured key from a server's own error text, which
+    this message would otherwise carry to a public log.
     """
     data = payload.get("data")
     if not isinstance(data, list) or not data:
         error = payload.get("error")
         detail = error.get("message") if isinstance(error, dict) else error
         raise EmbeddingUnavailableError(
-            f"O servidor de embeddings não devolveu vetores: {detail}"
+            f"O servidor de embeddings não devolveu vetores: {scrub(str(detail))}"
             if detail
             else "O servidor de embeddings devolveu uma resposta sem vetores."
         )
@@ -445,15 +454,21 @@ def _check_dimensions(vectors: list[list[float]], dimensions: int) -> None:
             )
 
 
+#: Characters of a server's explanation shown to a user (and the public log).
+_DETAIL_LIMIT = 300
+
+
 def _detail_of(exc: urllib.error.HTTPError) -> str:
-    """The server's own explanation, when it sent one."""
-    return _error_body(exc)[0]
+    """The server's own explanation, when it sent one, cut for display."""
+    return _error_body(exc)[0][:_DETAIL_LIMIT]
 
 
 def _error_body(exc: urllib.error.HTTPError) -> tuple[str, str, object]:
     """Read an error body once: ``(detail, full message, error object)``.
 
-    ``detail`` is the explanation shown to a user, cut at 300 characters; the
+    ``detail`` is the explanation shown to a user, **not yet cut**: the caller
+    scrubs the key from it first and then cuts it at :data:`_DETAIL_LIMIT`,
+    because a cut made first can split a key and leave its prefix behind. The
     full message is kept apart because the "retry in 37.5s" that pacing needs
     can sit past that cut. The error object is Gemini's structured error, when
     there is one, for its ``details`` list.
@@ -465,16 +480,16 @@ def _error_body(exc: urllib.error.HTTPError) -> tuple[str, str, object]:
     try:
         payload = json.loads(body)
     except ValueError:
-        return body.strip()[:300], body, None
+        return body.strip(), body, None
     # Gemini wraps the error object in a list; see openai_compat.error_object.
     if isinstance(payload, list) and payload:
         payload = payload[0]
     error = payload.get("error") if isinstance(payload, dict) else None
     if isinstance(error, dict):
         message = str(error.get("message", ""))
-        return message[:300], message, error
+        return message, message, error
     message = str(error or "")
-    return message[:300], message, error
+    return message, message, error
 
 
 #: "Please retry in 37.5s." — how Gemini words the wait in a 429 message.
