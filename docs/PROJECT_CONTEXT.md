@@ -220,8 +220,7 @@ dirigidos por subagentes.** M5 estava registrado no backlog com a nota "só
 faça se o orientador pedir" — dito sem meias palavras: nesta sessão o usuário
 confirmou explicitamente que o orientador pediu, e só por isso o item saiu de
 fora de escopo (ver TODO.md). Dez tarefas ao todo (M5: Tarefas 1–5; M6:
-Tarefas 6–10), um implementador e um revisor por tarefa. `app/domain/
-ranking.py` ganhou `rank_topsis` (proximidade a um ponto ideal/anti-ideal) e
+Tarefas 6–10), um implementador e um revisor por tarefa. `app/domain/\nranking.py` ganhou `rank_topsis` (proximidade a um ponto ideal/anti-ideal) e
 `rank_promethee` (fluxo de saída líquido de comparações pareadas, função de
 preferência "usual"), os dois reaproveitando a exclusão de dado ausente e a
 renormalização de peso já existentes da soma ponderada; `app/domain/ahp.py`
@@ -521,7 +520,7 @@ quadrado). A voz é a do navegador (`speechSynthesis`), uma frase por vez — cu
 zero, e por isso sem MP3 nem MP4: baixa-se o roteiro em DOCX/TXT e o deck em
 PPTX, com a narração ou as notas nas notas do apresentador. O item conferido é a
 fala, o slide inteiro e a cena inteira; o dado em destaque do infográfico segue
-uma regra mais estrita que a do chat (sem a isenção de inteiros até 100, sem as
+numa regra mais estrita que a do chat (sem a isenção de inteiros até 100, sem as
 palavras do aluno, e com a unidade escrita no trecho, comparada com maiúsculas),
 e a manchete — título e subtítulo do pôster, capa do deck e do vídeo — também.
 Nenhum texto é partido dentro de um número, nem na quebra de linha nem no teto
@@ -555,7 +554,7 @@ e tetos que recusavam páginas com tokens de design inline no `<html>`: a vazia
 passou a valer, e propriedade personalizada deixou de contar nas 64
 declarações do atributo, com o escopo indo a 4096.
 
-**Saúde do código:** 3338 testes de backend (Python 3.11 e 3.12, nenhum skip)
+**Saúde do código:** 3343 testes de backend (Python 3.11 e 3.12, nenhum skip)
 e 751 de frontend, todos verdes. Desde o P0-1 a suíte também roda as migrações de
 verdade, nos dois sentidos, contra um banco temporário que já contém dados —
 `test_migration_selection_stage.py`, `test_migration_process_universe.py`,
@@ -995,7 +994,7 @@ que mais afetam quem for mexer no código:
 | Dependência de provedor de IA | Arquitetura desacoplada com provedor simulado; funciona sem chave. |
 | Incorporação inadvertida de dado protegido | Triagem de licenciamento (M1, item 4.2 da proposta) — `Source` registra licença/procedência, e uma fonte nova sem licença ou marcada como possivelmente protegida sem confirmação humana é recusada antes de qualquer linha ser escrita ([D-44](DECISIONS.md)). |
 | Resultado não reproduzível por interferência de IA | Cálculo determinístico + guardrails executáveis + confirmação do usuário. |
-| Regressão silenciosa | CI com 3338 testes de backend e 751 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
+| Regressão silenciosa | CI com 3343 testes de backend e 751 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
 | Material licenciado do Cérebro exposto em `main` (repositório público) | Risco aceito por decisão explícita do autor, não mitigado — o Cérebro é a base de conhecimento da camada de IA ([D-45](DECISIONS.md)). |
 | Uso sem cobrança | Portão binário ligado ([D-46](DECISIONS.md)), checkout testado ao vivo em modo de teste — falta só configurar `STRIPE_API_KEY`/`STRIPE_WEBHOOK_SECRET`/`STRIPE_PRICE_ID` em **modo de produção** para vender de verdade. |
 
