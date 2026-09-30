@@ -1741,6 +1741,13 @@ mesma lista de remoção (`Cérebro/removidos.txt`). O resto do Cérebro — liv
 extratos, fichas Granta, diagramas e artigos — **continua no histórico como
 antes**; a decisão acima vale para ele sem mudança.
 
+**Executado (30/09/2026).** O material de curso **saiu também do histórico**:
+`main` foi reescrita de `873dd53` para `b7dd105`, com a árvore idêntica, e os
+71 caminhos removidos não aparecem mais em commit nenhum (detalhe na execução do
+D-100). Com a reescrita, o `565a6d2` citado no contexto acima é SHA do histórico
+anterior e não corresponde mais a um commit de `main`. O que o GitHub ainda
+guarda à parte — refs de PR, objetos LFS, cache — depende do pedido ao suporte.
+
 ## D-46 — M9 resolvido: o portão global de assinatura (plano de 18/08) é o que fica ligado
 
 **Contexto.** O PR #18 trouxe duas arquiteturas de cobrança nunca reconciliadas:
@@ -7037,3 +7044,35 @@ de PR recusadas, e uma `main` recusada deixaria o resto reescrito ao lado da
   mudaria a semântica de uma ingestão rodada de uma pasta incompleta — um disco
   sem os livros grandes apagaria os livros do banco. A remoção precisa de uma
   lista explícita, não de uma ausência.
+
+**Execução (30/09/2026).** Com o PR #85 mesclado, o autor rodou
+`conhecimento_remover` em produção. Não há bases locais: o autor trabalha só na
+nuvem, então o passo das bases locais e de desenvolvimento não tinha objeto. Em
+seguida desligou a *ruleset* `CI obrigatoria em main`, e o histórico foi
+reescrito com o git-filter-repo 2.47.0 pelo guia
+[`17-limpeza-historico-cerebro.md`](17-limpeza-historico-cerebro.md): as 14
+linhas de caminho de `removidos.txt`, as duas regras de `--replace-text` e
+`git push --force --atomic` das branches e tags. `main` passou de `873dd53`
+para `b7dd105`, com a **árvore idêntica** — só o histórico mudou. Conferido
+depois do envio: os 71 caminhos removidos aparecem **0** vezes no histórico, e
+os nomes dos alunos também **0**. O autor religou a *ruleset*.
+
+A reescrita fez uma coisa que o guia não previa: **não preservou todo commit**.
+`main` guardava 76 commits duplicados, sobra de uma reescrita anterior — cada um,
+tirados os arquivos removidos, idêntico a um gêmeo —, e o git-filter-repo os
+colapsou: `main` foi de 659 para 583 commits. Nenhum conteúdo fora da lista se
+perdeu (a diferença entre gêmeos era só nos arquivos removidos); perdeu-se a
+cópia. E as
+assinaturas GPG ("Verified" no GitHub) sumiram de todos os commits reescritos,
+porque uma assinatura é sobre o SHA antigo. O guia foi corrigido nos dois
+pontos.
+
+**O que continua pendente, e só o autor faz:**
+- o pedido ao suporte do GitHub (§10 do guia): as refs `refs/pull/*` — a do
+  PR #56 guarda 65 dos arquivos fora de qualquer branch —, os objetos Git LFS
+  órfãos, as visões em cache e os *forks*;
+- refazer do zero todo clone feito antes de 30/09/2026;
+- indexar o `Links.md` no RAG de produção. O `KNOWLEDGE_DIR` de produção está
+  vazio e o autor não tem base local, então a ingestão offline que este registro
+  supunha não tem onde rodar; o caminho é pergunta aberta
+  ([TODO.md](TODO.md) A7).

@@ -115,8 +115,8 @@ ressalvas registradas no backlog:
   base de conhecimento da camada de IA, e ele optou por mantê-lo hospedado
   mesmo sabendo da exposição. Não é pendência — ver [D-45](DECISIONS.md).
   O **material de curso** da ENG02016 é a exceção posterior: saiu do
-  repositório a pedido do professor e vai sair do banco e do histórico
-  ([D-100](DECISIONS.md)).
+  repositório a pedido do professor e, em 30/09/2026, do banco de produção e
+  do histórico ([D-100](DECISIONS.md)).
 
 **O material de curso saiu do Cérebro** ([D-100](DECISIONS.md)). O professor
 da ENG02016 pediu que o material de sua autoria não estivesse no RAG, e o autor
@@ -132,9 +132,12 @@ documento, trechos e embeddings numa transação; ações
 administração, com `--redact`, porque o log do Actions é público e um caminho
 pode trazer nome de aluno), a ingestão (que pula o que está na lista, em qualquer caminho) e
 o guia de limpeza do histórico,
-[`17-limpeza-historico-cerebro.md`](17-limpeza-historico-cerebro.md). Rodar a
-remoção em produção e nas bases locais e reescrever o histórico são passos do
-autor, depois do merge (TODO A7). O `Links.md` **fica e passa a ser indexado**,
+[`17-limpeza-historico-cerebro.md`](17-limpeza-historico-cerebro.md). A
+remoção em produção e a reescrita do histórico foram feitas pelo autor em
+30/09/2026 (`main`: `873dd53` → `b7dd105`, árvore idêntica; 76 commits
+duplicados colapsados; os 71 caminhos e os nomes dos alunos a 0 no histórico).
+Não há bases locais. Faltam o pedido ao suporte do GitHub, refazer os clones
+antigos e indexar o `Links.md` em produção (TODO A7). O `Links.md` **fica e passa a ser indexado**,
 por decisão do autor: a ingestão lê PDF e o Markdown que o `manifesto.json`
 declara, nunca o `README.md`.
 
@@ -977,10 +980,11 @@ que mais afetam quem for mexer no código:
   do autor.** É a base de conhecimento da camada de IA; ele optou por manter
   o material hospedado sabendo da exposição, em vez de purgá-lo como foi
   feito em `fase-9-ia-e-laudo` antes daquela branch chegar a `main`. Ver
-  [D-45](DECISIONS.md). **O material de curso da ENG02016 também ainda está no
-  histórico**: saiu da árvore atual no D-100, e a reescrita do histórico é passo
-  do autor depois do merge (TODO A7). Até lá, todo commit e todo PR anteriores
-  à reescrita ainda o servem.
+  [D-45](DECISIONS.md). **O material de curso da ENG02016 saiu do histórico**
+  em 30/09/2026 (D-100), mas o GitHub ainda o serve pelas refs de PR (a do
+  PR #56 guarda 65 dos arquivos), pelos objetos LFS órfãos e pelo cache, até o
+  suporte do GitHub limpá-los — pedido pendente do autor (TODO A7). Um clone
+  anterior à reescrita também ainda o guarda.
 
 ## 10. Riscos conhecidos
 

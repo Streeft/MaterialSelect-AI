@@ -58,51 +58,28 @@ A6 (Cérebro em `main`) foi decidido, não executado: ver "Débitos já
 quitados".
 
 **A7 — Tirar o material de curso da ENG02016 do banco de produção e do
-histórico (D-100).** ▁ O PR do D-100 tirou os 71 arquivos do repositório e
-entregou as ferramentas; os passos que faltam são do autor, nesta ordem, e
-nenhum acontece sozinho com o merge:
+histórico (D-100): o que resta.** ▁ A remoção do banco de produção e a
+reescrita do histórico foram feitas em 30/09/2026 (ver "Débitos já quitados" e
+a execução do [D-100](DECISIONS.md)). Faltam três passos, e só o autor pode
+dar cada um:
 
-1. **Pastas locais.** O banco foi povoado do seu disco, não da árvore do git:
-   abra `Cérebro/_Duplicados-Para-Revisao/` e qualquer outra pasta local (uma
-   cópia renomeada, um layout antigo) e apague as cópias de material de curso.
-   As linhas `sha256:` da lista pegam no banco uma cópia de bytes idênticos em
-   qualquer caminho; uma cópia de bytes diferentes, não — se a simulação
-   mostrar uma, acrescente a `removidos.txt` uma linha `sha256:` com o
-   `sha256sum` dela, **nunca o caminho**: a lista é pública, e o nome de uma
-   cópia pode trazer os nomes de alunos que se quer apagar.
-2. **Banco de produção.** Workflow **Administração do banco** →
-   `conhecimento_simular_remocao`, conferir no log os documentos, os totais e
-   **a lista do que fica** (`[prune] ficaria: …` e a contagem por pasta), e
-   então `conhecimento_remover`. O log tem de conter
-   `[prune] REMOVIDOS: …` com os mesmos totais da simulação
-   ([13-deploy.md](13-deploy.md) §5-bis). Se a base de produção estiver vazia
-   (o `KNOWLEDGE_DIR` da instância nunca foi populado), a simulação diz
-   `0 documentos` e o passo termina aí. As duas ações rodam com `--redact`
-   (o log do Actions é público: sai a pasta e o começo do sha256, não o nome
-   do arquivo); mesmo assim, **depois de copiar os totais para o
-   `CHANGELOG_SESSION.md`, apague os logs das duas execuções** (Actions → a
-   execução → ⋯ → *Delete all logs*).
-3. **Bases locais e de desenvolvimento.** Toda base em que já rodou uma
-   ingestão (a do seu computador, um Postgres de desenvolvimento) guarda os
-   mesmos trechos: `python -m app.knowledge.prune --list ../../Cérebro/removidos.txt`
-   e, conferida a simulação, `--apply`, com `DATABASE_URL` apontando para cada
-   uma. Uma ingestão local também avisa (`[ingest] IGNORADO …`, e "rode o
-   prune" quando o arquivo ainda tem linha ali).
-4. **Histórico do git.** Seguir
-   [`17-limpeza-historico-cerebro.md`](17-limpeza-historico-cerebro.md):
-   `git filter-repo` num clone espelho, alimentado pelos caminhos de
-   `Cérebro/removidos.txt`, e `git push --force --atomic` das branches e
-   tags, com a *ruleset* `CI obrigatoria em main` suspensa e ninguém enviando
-   nada entre o clone e o *push*. Reescreve todos os SHAs; todo clone precisa
-   ser refeito.
-5. **GitHub.** Pedir ao suporte do GitHub a remoção dos objetos Git LFS órfãos,
-   das visões em cache e das refs de PR que ainda servem os arquivos — todo
-   commit e todo PR anteriores à reescrita, citando o PR #56, cuja ref guarda
-   65 dos arquivos fora de qualquer branch. Reescrever o histórico não apaga
-   nada disso.
+1. **Suporte do GitHub** ([`17-limpeza-historico-cerebro.md`](17-limpeza-historico-cerebro.md)
+   §10). Pedir a remoção das refs de PR (`refs/pull/*` — a do PR #56 guarda 65
+   dos arquivos fora de qualquer branch), dos objetos Git LFS órfãos, das
+   visões em cache e, onde couber, dos *forks*: todo commit e todo PR
+   anteriores à reescrita. Reescrever o histórico não apagou nada disso.
+2. **Clones antigos.** Todo clone feito antes de 30/09/2026 está do lado errado
+   da reescrita: apagar e clonar de novo, nunca `pull`, e não enviar nenhuma
+   branch criada antes dela (guia §9).
+3. **`Links.md` no RAG de produção.** O autor decidiu indexá-lo (D-100), mas o
+   `KNOWLEDGE_DIR` de produção está vazio e o autor não tem base local — só
+   trabalha na nuvem —, então a ingestão offline
+   (`python -m app.knowledge.ingest`) que o D-100 supunha não tem onde rodar.
+   **Pergunta aberta para o autor:** por qual caminho essa ingestão deve
+   acontecer. Nada foi desenhado.
 
-A próxima ingestão (`python -m app.knowledge.ingest`, operação offline) também
-indexa o `Cérebro/Links.md`, que o autor decidiu manter e pôr no RAG (D-100).
+Não registrado aqui: se os logs das execuções de `conhecimento_simular_remocao`
+e `conhecimento_remover` já foram apagados (guia §1.3 e §11) — conferir.
 
 ---
 
@@ -994,8 +971,20 @@ Registrados para não voltarem por engano:
   entregues) como base de conhecimento da camada de IA, com informação
   completa sobre a exposição. Risco aceito, não descuido. Ver
   [D-45](DECISIONS.md). **Emendado pelo D-100:** o material de curso e os
-  trabalhos entregues saíram do repositório e vão sair do histórico (A7); os
-  livros e as fichas continuam como a decisão os deixou.
+  trabalhos entregues saíram do repositório e, em 30/09/2026, também do
+  histórico (A7); os livros e as fichas continuam como a decisão os deixou.
+- ~~**A7 (parte executada)** — Material de curso fora do banco de produção e
+  do histórico~~ — **feito em 30/09/2026.** Depois do merge do PR #85, o autor
+  rodou `conhecimento_remover` em produção (não há bases locais: o autor
+  trabalha só na nuvem). Com a *ruleset* `CI obrigatoria em main` desligada, o
+  histórico foi reescrito com o git-filter-repo 2.47.0 pelo guia
+  [`17-limpeza-historico-cerebro.md`](17-limpeza-historico-cerebro.md) — as 14
+  linhas de caminho de `removidos.txt`, as regras de `--replace-text` e
+  `push --force --atomic` —, e a *ruleset* foi religada. `main`: `873dd53` →
+  `b7dd105`, árvore idêntica, 659 → 583 commits (76 duplicatas de uma
+  reescrita anterior colapsadas), assinaturas GPG perdidas. Verificação: os 71
+  caminhos e os nomes dos alunos aparecem 0 vezes no histórico. O que resta
+  continua aberto em A7. Ver [D-100](DECISIONS.md).
 - ~~**M8** — Desempenho medido (Lighthouse)~~ — job `Lighthouse` em `ci.yml`:
   build de produção, API e frontend em portas isoladas (8811), sessão fixa via
   `E2E_SESSION_TOKEN` para que as 11 rotas auditadas sejam as telas reais

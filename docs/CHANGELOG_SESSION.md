@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [36](#sessão-36--300926--o-material-de-curso-sai-do-histórico) | 30/09/2026 | O material de curso sai do banco de produção e do histórico do git (D-100): `main` `873dd53` → `b7dd105`, árvore idêntica, verificação a 0; pendências do autor registradas | 3338 (inalterado) | 751 (inalterado) |
 | [35](#sessão-35--290926--o-material-de-curso-sai-do-cérebro) | 29/09/2026 | O material de curso da ENG02016 sai do Cérebro: 71 arquivos fora do repositório, a lista de remoção como fonte única, a ferramenta que apaga do banco com simulação primeiro — por caminho ou por conteúdo —, o `Links.md` indexado e o guia de limpeza do histórico (D-100) | 3270 → 3338 | 751 (inalterado) |
 | [34](#sessão-34--290926--cadernos-o-lote-de-pendências-das-fases-3-e-4) | 29/09/2026 | Cadernos: nove pendências das fases 3 e 4 (velocidade no vídeo, um rasterizador só, corte da nota, cor das marcas, duplicata da OpenAlex, troca de provedor, atribuição na conversa, nós ocultos por CSS inline, cota atômica) e as três rodadas de correção da revisão final (D-99) | 2979 → 3270 | 735 → 751 |
 | [33](#sessão-33--280926-a-290926--cadernos-fase-4-o-estúdio-visual-e-sonoro) | 28 e 29/09/2026 | Cadernos, fase 4: resumo em áudio e em vídeo pela voz do navegador, apresentação de slides com PPTX e infográfico com layout do backend; o dado em destaque sem isenção e a unidade com maiúsculas (D-98) | 2651 → 2979 | 608 → 735 |
@@ -51,6 +52,43 @@ As sessões entre a 11 e a 12 — o patch de design "Prisma" (D-49, D-50), o
 upgrade de segurança S1 e a rodada de desempenho — **não têm seção própria
 aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
+
+---
+
+## Sessão 36 — 30/09/26 — O material de curso sai do histórico
+
+**O que o autor fez.** Com o PR #85 mesclado, rodou `conhecimento_remover` em
+produção. Não há bases locais — o autor trabalha só na nuvem —, então o passo
+das bases locais não tinha objeto. Os totais do log não foram copiados para
+este registro.
+
+**A reescrita do histórico.** Com a *ruleset* `CI obrigatoria em main`
+desligada pelo autor, o histórico foi reescrito com o git-filter-repo 2.47.0
+num clone espelho, pelo guia
+[`17-limpeza-historico-cerebro.md`](17-limpeza-historico-cerebro.md): as 14
+linhas de caminho de `Cérebro/removidos.txt`, as duas regras de
+`--replace-text` sobre o manifesto antigo e `git push --force --atomic` de
+branches e tags. `main` passou de `873dd53` para `b7dd105`, com a árvore
+idêntica. Verificado depois do envio: os 71 caminhos removidos e os nomes dos
+alunos aparecem 0 vezes no histórico. O autor religou a *ruleset*.
+
+**O que o guia não previa.** A reescrita colapsou 76 commits duplicados que uma
+reescrita anterior tinha deixado em `main` — gêmeos que, sem os arquivos
+removidos, eram idênticos —, e `main` foi de 659 para 583 commits. As
+assinaturas GPG ("Verified") sumiram dos commits reescritos. O guia e o D-100
+foram corrigidos: "todo commit sobrevive com SHA novo" não era verdade.
+
+**Documentação.** Execução registrada no D-100 e no D-45; nota "Executado em
+30/09/2026" no topo do guia; A7 dividido entre o feito ("Débitos já quitados")
+e o que resta; `PROJECT_CONTEXT.md` e o `CLAUDE.md` da raiz deixam de dizer que
+o material "vai sair" do histórico. Nenhuma mudança de código; contagens de
+teste inalteradas.
+
+**Pendente, e só o autor faz (TODO A7).** O pedido ao suporte do GitHub (refs
+`refs/pull/*` — o PR #56 guarda 65 dos arquivos —, objetos LFS órfãos, cache e
+*forks*); refazer todo clone anterior a 30/09/2026; e indexar o `Links.md` no
+RAG de produção — com o `KNOWLEDGE_DIR` de produção vazio e sem base local, a
+ingestão precisa de outro caminho, e qual é fica como pergunta ao autor.
 
 ---
 
