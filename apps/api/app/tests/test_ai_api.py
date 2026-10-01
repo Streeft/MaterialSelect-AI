@@ -126,7 +126,7 @@ class TestInterpretation:
         assert density["unit"] == "g/cm**3"
 
     def test_every_constraint_quotes_its_evidence(self, client: TestClient) -> None:
-        for suggestion in _interpret(client)["constraints"]:
+        for suggestion in _interpret(client)["constraints"]:\
             assert suggestion["evidence"]
             assert suggestion["evidence"] in STATEMENT
 
@@ -284,7 +284,7 @@ class TestExplanation:
             },
         )
         assert created.status_code == 201, created.text
-        return created.json()["id"]
+        return created.json()[\"id\"]
 
     def test_describes_a_computed_study(self, client: TestClient) -> None:
         study_id = self._study_id(client)
@@ -458,6 +458,60 @@ class TestExplanation:
         response = client.post("/api/ai/explain", json={"study_id": study_id})
         assert response.status_code == 200, response.text
         assert response.json()["sources"] == []
+
+    def test_explain_allows_numbers_from_retrieved_reference_passages(
+        self, client: TestClient, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Numbers mentioned in retrieved passages (like page ranges p. 80-200)
+
+        must not trigger the ungrounded numbers guardrail rejection.
+        """
+        from app.knowledge.retrieval import RetrievedChunk
+        from app.models.enums import DocumentKind, SourceAuthority
+
+        chunk = RetrievedChunk(
+            document_title="Livro de Materiais",
+            document_kind=DocumentKind.LIVRO,
+            document_authority=SourceAuthority.CIENTIFICA,
+            page_start=80,
+            page_end=200,
+            text="Na página 80 o módulo de elasticidade de referência atinge 200 GPa.",
+            score=1.0,
+        )
+
+        class _CitingReferenceProvider(AIProvider):
+            name = "citador-referencia"
+            simulated = False
+
+            def interpret(self, context) -> dict:
+                raise NotImplementedError
+
+            def explain(self, context) -> dict:
+                return {
+                    "summary": "Conforme o Livro de Materiais (p. 80-200), o módulo é 200.",
+                    "paragraphs": ["A citação de p. 80 a 200 e módulo 200 foi fundamentada."],
+                    "sources": [1],
+                    "caveats": [],
+                }
+
+        monkeypatch.setattr(
+            ai_service, "get_provider", lambda *_a, **_k: _CitingReferenceProvider()
+        )
+        monkeypatch.setattr("app.services.ai_service.knowledge_search", lambda *a, **k: [chunk])
+
+        study_id = self._study_id(client)
+        response = client.post("/api/ai/explain", json={"study_id": study_id})
+        assert response.status_code == 200, response.text
+        body = response.json()
+        assert "80" in body["summary"]
+        assert "200" in body["summary"]
+        assert body["sources"] == [
+            {
+                "document_title": "Livro de Materiais",
+                "page_start": 80,
+                "page_end": 200,
+            }
+        ]
 
 
 class _RecordingProvider(AIProvider):
