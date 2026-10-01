@@ -33,6 +33,7 @@ on:
           - excluir_demo
           - conhecimento_simular_remocao
           - conhecimento_remover
+          - conhecimento_indexar_links
           - conceder
           - revogar
       email:
@@ -68,6 +69,10 @@ jobs:
       - name: Executar
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          KNOWLEDGE_EMBEDDING_BASE_URL: ${{ secrets.KNOWLEDGE_EMBEDDING_BASE_URL }}
+          KNOWLEDGE_EMBEDDING_API_KEY: ${{ secrets.KNOWLEDGE_EMBEDDING_API_KEY }}
+          AI_BASE_URL: ${{ secrets.AI_BASE_URL }}
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}
           # `seed_e2e_session` só grava a sessão fixa do Playwright quando
           # ENVIRONMENT=development; declarar `production` fecha essa porta aqui
           # de forma explícita, em vez de depender do padrão do config.
@@ -141,6 +146,12 @@ jobs:
               # RAG — isto tira. O log imprime os totais apagados (D-71, D-100).
               # `--redact` pela mesma razão da simulação.
               python -m app.knowledge.prune --list "$GITHUB_WORKSPACE/Cérebro/removidos.txt" --apply --redact
+              ;;
+            conhecimento_indexar_links)
+              # Ingesta Links.md de Cérebro/Links.md no RAG de produção (Neon).
+              # Como o repositório é clonado pelo Actions e Links.md é versionado,
+              # não depende de LFS nem dos arquivos grandes de KNOWLEDGE_DIR.
+              KNOWLEDGE_DIR="$GITHUB_WORKSPACE/Cérebro" python -m app.knowledge.ingest --file Links.md
               ;;
             conceder)
               exigir_email
