@@ -237,9 +237,7 @@ class KnowledgeService:
 
     # --- ingestion ---------------------------------------------------------
 
-    def ingest(
-        self, force: bool = False, paths: list[str | Path] | None = None
-    ) -> IngestReport:
+    def ingest(self, force: bool = False, paths: list[str | Path] | None = None) -> IngestReport:
         """Catalogue and index every discovered or targeted document.
 
         Args:
@@ -268,9 +266,7 @@ class KnowledgeService:
         embed_client = self._embedding_client() if self._embeddings_configured() else None
 
         target_paths = (
-            self.discover(declared)
-            if paths is None
-            else self.resolve_targets(paths, declared)
+            self.discover(declared) if paths is None else self.resolve_targets(paths, declared)
         )
 
         for path in target_paths:
