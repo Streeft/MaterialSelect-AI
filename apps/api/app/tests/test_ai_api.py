@@ -126,7 +126,7 @@ class TestInterpretation:
         assert density["unit"] == "g/cm**3"
 
     def test_every_constraint_quotes_its_evidence(self, client: TestClient) -> None:
-        for suggestion in _interpret(client)["constraints"]:\
+        for suggestion in _interpret(client)["constraints"]:
             assert suggestion["evidence"]
             assert suggestion["evidence"] in STATEMENT
 
@@ -284,7 +284,7 @@ class TestExplanation:
             },
         )
         assert created.status_code == 201, created.text
-        return created.json()[\"id\"]
+        return created.json()["id"]
 
     def test_describes_a_computed_study(self, client: TestClient) -> None:
         study_id = self._study_id(client)
