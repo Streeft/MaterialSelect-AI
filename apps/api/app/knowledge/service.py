@@ -161,6 +161,51 @@ class KnowledgeService:
             found.append(path)
         return sorted(found, key=lambda p: p.relative_to(root).as_posix())
 
+    def resolve_targets(
+        self,
+        targets: list[str | Path],
+        declared: dict[str, DeclaredProvenance] | None = None,
+    ) -> list[Path]:
+        """Resolve and validate an explicit list of target paths under root.
+
+        Used when indexing specific files (e.g. ``Links.md``) without walking
+        the entire corpus or touching files that lack local content.
+        """
+        root = self.root()
+        if declared is None:
+            declared = load_manifest(root)
+        declared_paths = {normalise(path) for path in declared}
+        resolved_root = root.resolve()
+
+        resolved: list[Path] = []
+        seen: set[Path] = set()
+        for target in targets:
+            target_path = Path(target)
+            p = (
+                (root / target_path).resolve()
+                if not target_path.is_absolute()
+                else target_path.resolve()
+            )
+            if not p.is_relative_to(resolved_root):
+                raise ValidationError(f"Caminho fora de KNOWLEDGE_DIR: {target}")
+            if p.is_symlink():
+                raise ValidationError(f"Link simbólico não é suportado: {target}")
+            if not p.is_file():
+                raise ValidationError(f"Arquivo não encontrado em KNOWLEDGE_DIR: {target}")
+            suffix = p.suffix.lower()
+            if suffix not in SUPPORTED_EXTENSIONS:
+                raise ValidationError(f"Extensão não suportada para extração: {suffix or target}")
+            if p.name.lower() in OPERATIONAL_FILES:
+                raise ValidationError(f"Arquivo operacional não pode ser ingerido: {target}")
+            relative = p.relative_to(root).as_posix()
+            if suffix in MARKDOWN_EXTENSIONS and normalise(relative) not in declared_paths:
+                raise ValidationError(f"Markdown não declarado no manifesto: {relative}")
+            if p not in seen:
+                seen.add(p)
+                resolved.append(p)
+
+        return sorted(resolved, key=lambda p: p.relative_to(root).as_posix())
+
     def _embeddings_configured(self) -> bool:
         # Delegates to EmbeddingClient.configured — the one place that
         # decides this — rather than re-checking the raw settings here,
@@ -192,12 +237,17 @@ class KnowledgeService:
 
     # --- ingestion ---------------------------------------------------------
 
-    def ingest(self, force: bool = False) -> IngestReport:
-        """Catalogue and index every discovered document.
+    def ingest(
+        self, force: bool = False, paths: list[str | Path] | None = None
+    ) -> IngestReport:
+        """Catalogue and index every discovered or targeted document.
 
         Args:
             force: re-extract even when the checksum matches. For when the
                 chunker changed, not the corpus.
+            paths: when provided, restrict ingestion to only these specific paths
+                relative to ``root``. Avoids directory walks and parsing files
+                that may lack physical content in cloud environments.
         """
         root = self.root()
         declared = load_manifest(root)
@@ -217,7 +267,13 @@ class KnowledgeService:
         ]
         embed_client = self._embedding_client() if self._embeddings_configured() else None
 
-        for path in self.discover(declared):
+        target_paths = (
+            self.discover(declared)
+            if paths is None
+            else self.resolve_targets(paths, declared)
+        )
+
+        for path in target_paths:
             relative = path.relative_to(root).as_posix()
             # Hashed once here, and handed on, only when the list has content
             # entries: hashing is a full read of the file.
