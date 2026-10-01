@@ -720,9 +720,7 @@ class TestTargetedIngest:
 
     LINKS = {"path": "Links.md", "titulo": "Links indicados", "tipo": "LINK"}
 
-    def test_targeted_ingest_only_processes_specified_file(
-        self, db_session, corpus: Path
-    ) -> None:
+    def test_targeted_ingest_only_processes_specified_file(self, db_session, corpus: Path) -> None:
         (corpus / "Links.md").write_text(LINKS_MD, encoding="utf-8")
         _declare(corpus, self.LINKS)
         _write(corpus, "livro.pdf", ["conteúdo não solicitado"])
@@ -760,9 +758,7 @@ class TestTargetedIngest:
         with pytest.raises(ValidationError, match="Arquivo não encontrado"):
             service.ingest(paths=["fantasma.pdf"])
 
-    def test_targeted_ingest_rejects_unsupported_extension(
-        self, db_session, corpus: Path
-    ) -> None:
+    def test_targeted_ingest_rejects_unsupported_extension(self, db_session, corpus: Path) -> None:
         (corpus / "codigo.py").write_text("print(1)", encoding="utf-8")
         service = KnowledgeService(db_session)
 
@@ -776,9 +772,7 @@ class TestTargetedIngest:
         with pytest.raises(ValidationError, match="Arquivo operacional"):
             service.ingest(paths=["README.md"])
 
-    def test_targeted_ingest_rejects_undeclared_markdown(
-        self, db_session, corpus: Path
-    ) -> None:
+    def test_targeted_ingest_rejects_undeclared_markdown(self, db_session, corpus: Path) -> None:
         (corpus / "notas.md").write_text("notas", encoding="utf-8")
         service = KnowledgeService(db_session)
 
