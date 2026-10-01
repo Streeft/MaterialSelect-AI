@@ -91,12 +91,7 @@ class TestPptxRendering:
 
     def test_to_pptx_renders_tables_and_headers(self) -> None:
         prs = Presentation(io.BytesIO(to_pptx(_sample_report())))
-        table_shapes = [
-            shape
-            for slide in prs.slides
-            for shape in slide.shapes
-            if shape.has_table
-        ]
+        table_shapes = [shape for slide in prs.slides for shape in slide.shapes if shape.has_table]
         assert len(table_shapes) >= 1
 
         table = table_shapes[0].table
@@ -128,10 +123,7 @@ class TestPptxRendering:
         assert "Nota sobre modelo." in text
 
     def test_to_pptx_chunks_large_tables_across_slides(self) -> None:
-        large_rows = [
-            [f"Material {i}", float(i * 100), float(i * 10)]
-            for i in range(25)
-        ]
+        large_rows = [[f"Material {i}", float(i * 100), float(i * 10)] for i in range(25)]
         report = Report(
             title="Relatório Extenso",
             subtitle="Teste de paginação de slides",
@@ -203,9 +195,7 @@ class TestPptxEndpoints:
         assert response_post.status_code == 201, response_post.text
         study_id = response_post.json()["id"]
 
-        response = client.get(
-            f"/api/exports/estudos/{study_id}/laudo.pptx?responsavel=Eng.+Carlos"
-        )
+        response = client.get(f"/api/exports/estudos/{study_id}/laudo.pptx?responsavel=Eng.+Carlos")
         assert response.status_code == 200, response.text
         assert response.headers["content-type"].startswith(PPTX_MEDIA_TYPE)
         assert "attachment" in response.headers["content-disposition"]
