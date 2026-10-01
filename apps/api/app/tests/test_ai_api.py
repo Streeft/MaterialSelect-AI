@@ -91,7 +91,6 @@ class TestInterpretation:
         the alphabet breaking the tie for a strength index the reader never
         asked for.
         """
-        indices = {i["slug"]: i["rationale"] for i in _interpret(client)[["indices"]][0] if False}  # dummy
         indices = {i["slug"]: i["rationale"] for i in _interpret(client)["indices"]}
         assert "propriedade" in indices["viga-leve-rigidez"]
         assert indices["viga-leve-rigidez"] != indices.get("viga-leve-resistencia")
