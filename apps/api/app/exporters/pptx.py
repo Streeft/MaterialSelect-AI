@@ -108,9 +108,7 @@ def _add_sheet_slides(
         chunk_start = chunk_idx * _MAX_TABLE_ROWS_PER_SLIDE
         chunk_rows = rows[chunk_start : chunk_start + _MAX_TABLE_ROWS_PER_SLIDE]
         slide_title = (
-            title_text
-            if total_chunks == 1
-            else f"{title_text} ({chunk_idx + 1}/{total_chunks})"
+            title_text if total_chunks == 1 else f"{title_text} ({chunk_idx + 1}/{total_chunks})"
         )
         _add_table_slide(presentation, slide_title, header, chunk_rows)
 
