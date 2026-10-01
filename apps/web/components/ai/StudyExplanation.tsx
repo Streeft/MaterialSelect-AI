@@ -56,7 +56,8 @@ export function StudyExplanation({ studyId }: { studyId: number }) {
             </p>
           ))}
 
-          {explanation.caveats.length > 0 && (\n            <Alert tone="warning" title={t.caveats}>
+          {explanation.caveats.length > 0 && (
+            <Alert tone="warning" title={t.caveats}>
               <ul className="list-disc space-y-1 pl-4 text-xs">
                 {explanation.caveats.map((caveat, i) => (
                   <li key={i}>{caveat}</li>
