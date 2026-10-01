@@ -214,7 +214,7 @@ disparo manual em `.github/workflows/`, na aba **Actions** do repositório.
 | Workflow | Faz o quê | Substitui |
 |---|---|---|
 | **Deploy da API (Fly.io)** | `flyctl deploy --remote-only` | o `fly deploy` do §2 |
-| **Administração do banco** | `migrar`, `semear`, `excluir_demo`, `conhecimento_simular_remocao`, `conhecimento_remover`, `conceder`, `revogar` | o `fly ssh console` do §2 e do §5 |
+| **Administração do banco** | `migrar`, `semear`, `excluir_demo`, `conhecimento_simular_remocao`, `conhecimento_remover`, `conhecimento_indexar_links`, `conceder`, `revogar` | o `fly ssh console` do §2 e do §5 |
 | **Modo de acesso** | `abrir`, `restaurar_assinatura` — grava `ACCESS_MODE` no Fly e confere em `/api/health` | o `fly secrets set` do §5-quater |
 
 Dois segredos, em *Settings → Secrets and variables → Actions*:
@@ -272,6 +272,13 @@ Três detalhes que não são arbitrários:
   totais, apague os logs das duas execuções (a execução → ⋯ → *Delete all
   logs*); o passo a passo está em
   [`17-limpeza-historico-cerebro.md`](17-limpeza-historico-cerebro.md) §1.
+- **`conhecimento_indexar_links` indexa o `Links.md` da base de conhecimento (D-100)**:
+  roda `python -m app.knowledge.ingest --file Links.md` apontado para a pasta
+  `Cérebro` do repositório no runner do GitHub Actions contra a base de produção
+  (Neon). Como a ingestão de todo o Cérebro exigiria PDFs locais pesados que não
+  ficam no Fly nem são baixados pelo Git LFS no checkout raso, a ingestão
+  direcionada de arquivos declarados indexa links úteis e fontes textuais no
+  RAG sem precisar de terminal local nem de arquivos binários.
 - **O passo "Garantir endereço público" conta antes de alocar.** `flyctl ips
   allocate-v6` **não é idempotente**: ele aloca outro endereço a cada chamada,
   em silêncio e com sucesso. Escrito como `allocate-v6 || true`, acumulava um
@@ -290,6 +297,7 @@ um PR nesta base:
 | `apps/api/**` (rotas, serviços, modelos, migração) | **Deploy da API** (`deploy-api.yml`, sem entrada nenhuma) | `flyctl deploy` constrói a imagem nova; o `release_command` aplica `alembic upgrade head` antes do primeiro tráfego. |
 | `apps/api/app/db/seed.py` **ou** `apps/api/app/db/seed_extended.py` (material novo, química de bateria, modo de transporte, qualquer dado de demonstração) | **Administração do banco** (`admin-banco.yml`, ação `semear`) | O deploy da API **não** roda seed nenhum — só a migração. Sem este passo o código do dado novo está no ar e a linha correspondente não existe no banco. |
 | `Cérebro/removidos.txt` (algo saiu da base de conhecimento) | **Administração do banco**, `conhecimento_simular_remocao`, conferir o log, depois `conhecimento_remover` | A ingestão só acrescenta: sem este passo o documento sai do repositório e continua sendo citado pelo RAG ([D-100](DECISIONS.md)). |
+| `Cérebro/Links.md` **ou** `Cérebro/manifesto.json` | **Administração do banco**, `conhecimento_indexar_links` | Reindexa os links úteis declarados na base de conhecimento (RAG) em produção. |
 | Só `apps/web/**` | Nada | A Vercel publica sozinha a cada push em `main` — não há workflow manual para o frontend. |
 
 **Por que dois módulos de seed, e não um.** `app.db.seed` é a base que
@@ -553,10 +561,11 @@ administração (§5-bis).
   cobrança de verdade exige configurar chave, preço e webhook.
 - **Backup do banco.** O Neon tem *point-in-time restore* no plano pago; no
   gratuito, exporte com `pg_dump` antes de qualquer coisa importante.
-- **O Cérebro.** `KNOWLEDGE_DIR` fica vazio: a ingestão é operação offline e o
-  RAG só liga com provedor de IA real. Ela lê os PDFs e o Markdown que o
-  `manifesto.json` declara — hoje o `Links.md` ([D-100](DECISIONS.md)). A
-  **remoção**, ao contrário, tem ação no workflow de administração (§5-bis),
-  porque ela é o que a ingestão não faz; e uma base local ou de
-  desenvolvimento que já recebeu ingestão precisa do mesmo `prune`, rodado à
-  mão contra ela.
+- **O Cérebro.** No Fly.io o `KNOWLEDGE_DIR` fica vazio por padrão: a
+  ingestão completa do acervo em PDF é operação offline local (livros e artigos
+  com direitos não sobem para nuvem pública). No entanto, o `Links.md` (links
+  úteis e bancos de dados externos declarados em `manifesto.json`, D-100) pode
+  ser indexado diretamente no banco de produção pelo GitHub Actions usando a
+  ação `conhecimento_indexar_links` do workflow de administração (§5-bis e
+  §5-ter). A **remoção** de materiais descartados continua coberta por
+  `conhecimento_simular_remocao` e `conhecimento_remover`.
