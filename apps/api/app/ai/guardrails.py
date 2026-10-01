@@ -86,10 +86,14 @@ def _interpretations(token: str) -> set[float]:
             candidates.add(cleaned.replace(",", ""))
     elif has_comma:
         candidates.add(cleaned.replace(",", "."))  # decimal comma
-        candidates.add(cleaned.replace(",", ""))  # thousands comma
+        parts = cleaned.split(",")
+        if len(parts) > 1 and all(len(p) == 3 for p in parts[1:]):
+            candidates.add(cleaned.replace(",", ""))  # thousands comma
     elif has_dot:
         candidates.add(cleaned)  # decimal point
-        candidates.add(cleaned.replace(".", ""))  # thousands point
+        parts = cleaned.split(".")
+        if len(parts) > 1 and all(len(p) == 3 for p in parts[1:]):
+            candidates.add(cleaned.replace(".", ""))  # thousands point
     else:
         candidates.add(cleaned)
 
@@ -143,7 +147,7 @@ def ungrounded_numbers(text: str, allowed: set[float]) -> list[float]:
     for readings in numeric_tokens(text):
         if any(is_grounded(reading, allowed) for reading in readings):
             continue
-        if all(reading.is_integer() and abs(reading) <= 100 for reading in readings):
+        if any(reading.is_integer() and abs(reading) <= 100 for reading in readings):
             continue
         # Report the most conservative reading; this is a diagnostic message.
         invented.add(min(readings, key=abs))
