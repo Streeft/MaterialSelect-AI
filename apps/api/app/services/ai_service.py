@@ -61,9 +61,7 @@ from app.services.selection_service import SelectionService
 class AIService:
     """Builds the context, runs the provider, and enforces the limits."""
 
-    def __init__(
-        self, db, settings: Settings = default_settings, user: User | None = None
-    ) -> None:
+    def __init__(self, db, settings: Settings = default_settings, user: User | None = None) -> None:
         self.db = db
         self.settings = settings
         self.user = user
@@ -99,9 +97,7 @@ class AIService:
     def _context(self, statement: str, provider: AIProvider) -> ProblemContext:
         properties = self.repo.list_properties()
         indices = self.selection_repo.list_indices()
-        classes = {
-            m.material_class.slug: m.material_class.name for m in self.repo.list_materials()
-        }
+        classes = {m.material_class.slug: m.material_class.name for m in self.repo.list_materials()}
         retrieved = self._retrieve(statement, provider)
         return ProblemContext(
             statement=statement,
