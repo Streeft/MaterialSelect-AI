@@ -1,4 +1,4 @@
-"""Orchestration of the optional AI layer.
+\"\"\"Orchestration of the optional AI layer.
 
 The shape of this service is the methodological argument made executable:
 
@@ -11,7 +11,7 @@ interpretation was refused — that visibility is the point.
 
 Explanations are written about a study the service re-runs itself through the
 deterministic pipeline, so the numbers in the prose are the pipeline's numbers.
-"""
+\"\"\"
 
 from __future__ import annotations
 
@@ -26,6 +26,7 @@ from app.ai.guardrails import (
     numbers_in,
     ungrounded_numbers,
 )
+from app.ai.prompts import UNPAGINATED_KINDS
 from app.ai.provider import (
     AIProvider,
     AIUnavailableError,
@@ -58,7 +59,7 @@ from app.services.selection_service import SelectionService
 
 
 class AIService:
-    """Builds the context, runs the provider, and enforces the limits."""
+    \"\"\"Builds the context, runs the provider, and enforces the limits.\"\"\"
 
     def __init__(self, db, settings: Settings = default_settings, user: User | None = None) -> None:
         self.db = db
@@ -71,11 +72,11 @@ class AIService:
     # --- status -----------------------------------------------------------
 
     def status(self) -> AIStatusOut:
-        """Report availability without raising — the UI asks this on every load."""
+        \"\"\"Report availability without raising — the UI asks this on every load.\"\"\"
         try:
             provider = get_provider(self.settings)
         except AIUnavailableError as exc:
-            return AIStatusOut(enabled=False, provider="", simulated=True, disclaimer=str(exc))
+            return AIStatusOut(enabled=False, provider=\"\", simulated=True, disclaimer=str(exc))
         return AIStatusOut(
             enabled=True,
             provider=provider.name,
@@ -128,12 +129,12 @@ class AIService:
         )
 
     def _retrieve(self, query: str, provider: AIProvider) -> list:
-        """Trechos do Cérebro para dar contexto ao provedor — nunca ao mock.
+        \"\"\"Trechos do Cérebro para dar contexto ao provedor — nunca ao mock.
 
         O mock é descrito como determinístico e sem rede; ligar retrieval nele
         quebraria essa garantia, e todo teste que usa AI_PROVIDER=mock (a
         maioria da suíte) ficaria mais lento sem nenhum ganho.
-        """
+        \"\"\"
         if provider.simulated:
             return []
         return knowledge_search(
@@ -144,7 +145,7 @@ class AIService:
         provider = self._provider()
         statement = request.statement.strip()
         if not statement:
-            raise ValidationError("Informe o enunciado do problema.")
+            raise ValidationError(\"Informe o enunciado do problema.\")
 
         context = self._context(statement, provider)
         catalogue = context.catalogue()
@@ -153,14 +154,14 @@ class AIService:
 
         return InterpretationOut(
             statement=statement,
-            function_text=_text_or_none(raw.get("function_text")),
-            objective_text=_text_or_none(raw.get("objective_text")),
-            free_variables=[str(v) for v in raw.get("free_variables", [])][:10],
+            function_text=_text_or_none(raw.get(\"function_text\")),
+            objective_text=_text_or_none(raw.get(\"objective_text\")),
+            free_variables=[str(v) for v in raw.get(\"free_variables\", [])][:10],
             constraints=self._accept_constraints(raw, statement, catalogue, rejected),
             properties=self._accept_properties(raw, catalogue, rejected),
             indices=self._accept_indices(raw, catalogue, rejected),
             chart=self._accept_chart(raw, catalogue, rejected),
-            open_questions=[str(q) for q in raw.get("open_questions", [])],
+            open_questions=[str(q) for q in raw.get(\"open_questions\", [])],
             rejected=rejected,
             provider=provider.name,
             simulated=provider.simulated,
@@ -172,15 +173,15 @@ class AIService:
         raw: dict, statement: str, catalogue: Catalogue, rejected: list[str]
     ) -> list[SuggestedConstraint]:
         accepted: list[SuggestedConstraint] = []
-        for item in raw.get("constraints", []):
+        for item in raw.get(\"constraints\", []):
             try:
                 suggestion = SuggestedConstraint(
-                    constraint=ConstraintIn(**item["constraint"]),
-                    evidence=item.get("evidence", ""),
-                    rationale=item.get("rationale", ""),
+                    constraint=ConstraintIn(**item[\"constraint\"]),
+                    evidence=item.get(\"evidence\", \"\"),
+                    rationale=item.get(\"rationale\", \"\"),
                 )
             except Exception as exc:  # malformed provider output
-                rejected.append(f"Restrição descartada por formato inválido: {exc}")
+                rejected.append(f\"Restrição descartada por formato inválido: {exc}\")
                 continue
             reason = check_constraint(suggestion.constraint, statement, catalogue)
             if reason:
@@ -194,8 +195,8 @@ class AIService:
         raw: dict, catalogue: Catalogue, rejected: list[str]
     ) -> list[SuggestedProperty]:
         accepted: list[SuggestedProperty] = []
-        for item in raw.get("properties", []):
-            slug = str(item.get("slug", ""))
+        for item in raw.get(\"properties\", []):
+            slug = str(item.get(\"slug\", \"\"))
             reason = check_property(slug, catalogue)
             if reason:
                 rejected.append(reason)
@@ -203,8 +204,8 @@ class AIService:
             accepted.append(
                 SuggestedProperty(
                     slug=slug,
-                    name=str(item.get("name", slug)),
-                    rationale=str(item.get("rationale", "")),
+                    name=str(item.get(\"name\", slug)),
+                    rationale=str(item.get(\"rationale\", \"\")),
                 )
             )
         return accepted
@@ -214,8 +215,8 @@ class AIService:
         raw: dict, catalogue: Catalogue, rejected: list[str]
     ) -> list[SuggestedIndex]:
         accepted: list[SuggestedIndex] = []
-        for item in raw.get("indices", []):
-            slug = str(item.get("slug", ""))
+        for item in raw.get(\"indices\", []):
+            slug = str(item.get(\"slug\", \"\"))
             reason = check_index(slug, catalogue)
             if reason:
                 rejected.append(reason)
@@ -223,24 +224,24 @@ class AIService:
             try:
                 accepted.append(SuggestedIndex(**item))
             except Exception as exc:
-                rejected.append(f"Índice descartado por formato inválido: {exc}")
+                rejected.append(f\"Índice descartado por formato inválido: {exc}\")
         return accepted
 
     @staticmethod
     def _accept_chart(
         raw: dict, catalogue: Catalogue, rejected: list[str]
     ) -> SuggestedChart | None:
-        item = raw.get("chart")
+        item = raw.get(\"chart\")
         if not item:
             return None
-        reason = check_chart(str(item.get("x", "")), str(item.get("y", "")), catalogue)
+        reason = check_chart(str(item.get(\"x\", \"\")), str(item.get(\"y\", \"\")), catalogue)
         if reason:
             rejected.append(reason)
             return None
         try:
             return SuggestedChart(**item)
         except Exception as exc:
-            rejected.append(f"Gráfico descartado por formato inválido: {exc}")
+            rejected.append(f\"Gráfico descartado por formato inválido: {exc}\")
             return None
 
     # --- explanation ------------------------------------------------------
@@ -249,7 +250,7 @@ class AIService:
         provider = self._provider()
         study = self.selection_repo.get_study(study_id, project_id)
         if study is None:
-            raise NotFoundError(f"Estudo não encontrado: {study_id}")
+            raise NotFoundError(f\"Estudo não encontrado: {study_id}\")
 
         # The prose is written about numbers this call just produced, not about
         # numbers the caller supplied.
@@ -258,9 +259,8 @@ class AIService:
         context = _result_context(study, result, retrieved)
 
         raw = provider.explain(context)
-        summary = str(raw.get("summary", ""))
-        paragraphs = [str(p) for p in raw.get("paragraphs", [])]
-        caveats = [str(c) for c in raw.get("caveats", [])]
+        summary = str(raw.get(\"summary\", \"\"))
+        paragraphs = [str(p) for p in raw.get(\"paragraphs\", [])]\n        caveats = [str(c) for c in raw.get(\"caveats\", [])]
 
         # Last line of defence: prose may not introduce figures the pipeline
         # never computed.
@@ -268,10 +268,10 @@ class AIService:
         for text in [summary, *paragraphs]:
             invented.extend(ungrounded_numbers(text, context.numbers))
         if invented:
-            values = ", ".join(f"{value:g}" for value in sorted(set(invented)))
+            values = \", \".join(f\"{value:g}\" for value in sorted(set(invented)))
             raise ValidationError(
-                "A explicação gerada citou números que o cálculo não produziu "
-                f"({values}); a resposta foi descartada."
+                \"A explicação gerada citou números que o cálculo não produziu \"
+                f\"({values}); a resposta foi descartada.\"
             )
 
         # Citations follow the same discipline: an index the provider made up
@@ -279,17 +279,20 @@ class AIService:
         # the guardrail, this only translates what survives into something a
         # reader can act on.
         raw_sources = [
-            i for i in raw.get("sources", []) if isinstance(i, int) and not isinstance(i, bool)
+            i for i in raw.get(\"sources\", []) if isinstance(i, int) and not isinstance(i, bool)
         ]
         valid_indices = check_citations(raw_sources, context.retrieved)
-        sources = [
-            CitedSourceOut(
-                document_title=context.retrieved[i - 1].document_title,
-                page_start=context.retrieved[i - 1].page_start,
-                page_end=context.retrieved[i - 1].page_end,
+        sources = []
+        for i in valid_indices:
+            chunk = context.retrieved[i - 1]
+            unpaginated = getattr(chunk, \"document_kind\", None) in UNPAGINATED_KINDS
+            sources.append(
+                CitedSourceOut(
+                    document_title=chunk.document_title,
+                    page_start=None if unpaginated else chunk.page_start,
+                    page_end=None if unpaginated else chunk.page_end,
+                )
             )
-            for i in valid_indices
-        ]
 
         return ExplanationOut(
             study_id=study_id,
@@ -305,8 +308,7 @@ class AIService:
 
 
 def _result_context(study, result, retrieved: list) -> ResultContext:
-    """Flatten a computed run into the read-only view a provider may see."""
-    ranked = [(r.name, r.rank, r.score) for r in (result.ranking.ranked if result.ranking else [])]
+    \"\"\"Flatten a computed run into the read-only view a provider may see.\"\"\"\n    ranked = [(r.name, r.rank, r.score) for r in (result.ranking.ranked if result.ranking else [])]
     excluded = [
         # Labels, not keys: whatever a provider quotes from here ends up in
         # prose a person reads.
@@ -317,8 +319,8 @@ def _result_context(study, result, retrieved: list) -> ResultContext:
 
     # Every figure the prose is allowed to mention: the counts and scores this
     # run produced, plus the numbers already embedded in the backend's own
-    # strings — an index dimension of "[length] ** 2.5" or a constraint label
-    # reading "≥ 300 degC" is pipeline output, so quoting it is not an
+    # strings — an index dimension of \"[length] ** 2.5\" or a constraint label
+    # reading \"≥ 300 degC\" is pipeline output, so quoting it is not an
     # invention.
     numbers: set[float] = {float(result.initial_count), float(result.final_count)}
     numbers.update(float(remaining) for _, remaining in funnel)
@@ -329,13 +331,13 @@ def _result_context(study, result, retrieved: list) -> ResultContext:
             numbers.add(float(candidate.index_value))
     for text in [
         study.name,
-        study.function_text or "",
-        study.objective_text or "",
-        study.index_expression or "",
-        result.index.dimension if result.index else "",
-        *[c.label or "" for c in study.constraints],
+        study.function_text or \"\",
+        study.objective_text or \"\",
+        study.index_expression or \"\",
+        result.index.dimension if result.index else \"\",
+        *[c.label or \"\" for c in study.constraints],
         # Material names are pipeline output as much as any label is: writing
-        # "Aço AISI 1020 lidera" quotes the catalogue, it does not invent 1020.
+        # \"Aço AISI 1020 lidera\" quotes the catalogue, it does not invent 1020.
         # Without this, naming the winner would be enough to have a whole
         # explanation discarded the moment the catalogue holds a real alloy
         # designation.
@@ -368,5 +370,5 @@ def _result_context(study, result, retrieved: list) -> ResultContext:
 
 
 def _text_or_none(value) -> str | None:
-    text = str(value).strip() if value is not None else ""
+    text = str(value).strip() if value is not None else \"\"
     return text or None
