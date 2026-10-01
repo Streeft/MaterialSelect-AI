@@ -269,7 +269,8 @@ class AIService:
         for text in [summary, *paragraphs]:
             invented.extend(ungrounded_numbers(text, context.numbers))
         if invented:
-            values = ", ".join(f"{value:g}" for value in sorted(set(invented)))\n            raise ValidationError(
+            values = ", ".join(f"{value:g}" for value in sorted(set(invented)))
+            raise ValidationError(
                 "A explicação gerada citou números que o cálculo não produziu "
                 f"({values}); a resposta foi descartada."
             )
