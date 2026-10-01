@@ -499,7 +499,8 @@ chegassem.
 tipos de estágio do método existem. Um estágio `chart` carrega o **plano**, a
 **caixa** (um limite por eixo, em coordenadas de dados, nunca pixel) e a **linha
 iso-índice** no nível guardado — número e não "a linha que passa pelo material 7",
-porque um estudo salvo reexecuta para a mesma resposta. **Nada disso é geometria,\ne a linha é o caso que parece ser:** o lado favorável de um contorno é
+porque um estudo salvo reexecuta para a mesma resposta. **Nada disso é geometria,
+e a linha é o caso que parece ser:** o lado favorável de um contorno é
 `índice ≥ nível` (ou `≤`), a mesma comparação que `ChartService._draw_levels` já
 faz para desenhar a linha, o que faz figura e funil concordarem por construção.
 **O que o estágio acrescenta ao de limites é um só e é real:** um eixo pode ser
@@ -802,7 +803,8 @@ nem noutro. O cliente nunca aplica fator.
 **Preparação para a turma de 29/09 (D-84 a D-89).** Um estudo de processos voltou
 a ter o passo Objetivo (D-84). A Seleção virou assistente guiado — um passo de
 cada vez, Voltar em todo passo e no navegador, **o recolhido nunca esconde o que
-está em uso**, exemplo em um clique, resultado que começa pelo vencedor (D-85) —,\ne o resto do produto ficou enxuto: capa com um botão, menu por papel, Mapas com
+está em uso**, exemplo em um clique, resultado que começa pelo vencedor (D-85) —,
+e o resto do produto ficou enxuto: capa com um botão, menu por papel, Mapas com
 "Personalizar", Comparar por busca, ferramentas com premissas recolhidas **e os
 valores no resumo** (D-86). Os pesos do ranking somam 1, com orçamento, sugestão e
 top 5 calculados em `POST /api/selection/weights-preview`; **o `/run` continua
@@ -918,7 +920,7 @@ e no mesmo modal do D-94. Regras que não se afrouxam:
   o átomo da conferência), e diz que encurtou (`studio_service.note_body`).
 - **Nenhuma migração**: as quatro cabem nos campos JSON da fase 1.
 
-3356 testes de backend (nenhum skip) e 751 de frontend, todos verdes. CI no
+3362 testes de backend (nenhum skip) e 752 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
 PROJECT_CONTEXT.md).
@@ -1002,9 +1004,9 @@ registrado — medido no pacote, com controle positivo), mas a frase "nenhuma CV
 em código de produção" era subcontagem, não fato. O que resta é **S3**, e
 nenhuma das cadeias tem versão corrigida publicada.
 
-**Patch de design "Prisma" entregue** (sete tarefas dirigidas por
+**Patch de design \"Prisma\" entregue** (sete tarefas dirigidas por
 subagentes mais uma verificação final; detalhe completo em
-`docs/TODO.md` — "Débitos já quitados"). Fase 1: paleta por rota substitui
+`docs/TODO.md` — \"Débitos já quitados\"). Fase 1: paleta por rota substitui
 a paleta única de D-38, um matiz de `--accent`/`--brand-*` por seção
 trocado via `[data-section]` no `<html>`, sem revogar o método de medição
 de D-38 ([D-49](docs/DECISIONS.md)). Fase 2: `/` virou vitrine pública sem
@@ -1019,8 +1021,7 @@ alternar `MaterialCards`/`MaterialTable` por breakpoint em vez do toggle
 manual que existia antes ([D-50](docs/DECISIONS.md)). A verificação final
 achou e corrigiu dois defeitos que nenhum teste automatizado pegava: um
 locator do E2E que virou ambíguo pela duplicação de DOM cartão/tabela do
-catálogo, e um bug de CSS — os seis blocos `[data-theme="dark"]
-[data-section="…"]` usavam combinador descendente em vez de seletor
+catálogo, e um bug de CSS — os seis blocos `[data-theme=\"dark\"]\n[data-section=\"…\"]` usavam combinador descendente em vez de seletor
 composto (as duas variáveis vivem no mesmo elemento `<html>`, nunca em
 elementos aninhados), o que zerava a paleta por rota inteira no tema
 escuro sem erro nenhum. Corrigidos e confirmados ao vivo em Chromium, não
@@ -1032,7 +1033,7 @@ só relidos no código.
 todo o JS), as chaves estrangeiras ganharam índice, e o `upload` — único endpoint
 `async` da aplicação — passou a rodar o serviço em *threadpool*, porque inline
 ele congelava o event loop inteiro e não só a própria requisição. Duas
-"otimizações" foram medidas e **recusadas** (índices de cobertura e `ANALYZE`,
+\"otimizações\" foram medidas e **recusadas** (índices de cobertura e `ANALYZE`,
 este último 85% mais lento no `overview`).
 
 **A ferramenta está no ar** ([D-52](docs/DECISIONS.md),
