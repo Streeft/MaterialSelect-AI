@@ -713,3 +713,68 @@ class TestEmbeddingSync:
 
         assert report.embeddings_skipped_reason == "servidor fora do ar"
         assert report.failed == 0  # a extração léxica continua tendo sucesso
+
+
+class TestTargetedIngest:
+    """Ingestão direcionada de arquivos específicos (--file/--path)."""
+
+    LINKS = {"path": "Links.md", "titulo": "Links indicados", "tipo": "LINK"}
+
+    def test_targeted_ingest_only_processes_specified_file(self, db_session, corpus: Path) -> None:
+        (corpus / "Links.md").write_text(LINKS_MD, encoding="utf-8")
+        _declare(corpus, self.LINKS)
+        _write(corpus, "livro.pdf", ["conteúdo não solicitado"])
+
+        service = KnowledgeService(db_session)
+        report = service.ingest(paths=["Links.md"])
+
+        assert report.created == 1
+        repo = KnowledgeRepository(db_session)
+        assert repo.get_by_path("Links.md") is not None
+        assert repo.get_by_path("livro.pdf") is None
+
+    def test_targeted_ingest_is_idempotent(self, db_session, corpus: Path) -> None:
+        (corpus / "Links.md").write_text(LINKS_MD, encoding="utf-8")
+        _declare(corpus, self.LINKS)
+        service = KnowledgeService(db_session)
+
+        first = service.ingest(paths=["Links.md"])
+        second = service.ingest(paths=["Links.md"])
+
+        assert (first.created, second.created, second.unchanged) == (1, 0, 1)
+
+    def test_targeted_ingest_rejects_path_outside_root(
+        self, db_session, corpus: Path, tmp_path: Path
+    ) -> None:
+        outside = tmp_path / "fora.pdf"
+        outside.write_bytes(_pdf_bytes(["fora"]))
+        service = KnowledgeService(db_session)
+
+        with pytest.raises(ValidationError, match="fora de KNOWLEDGE_DIR"):
+            service.ingest(paths=[str(outside)])
+
+    def test_targeted_ingest_rejects_missing_file(self, db_session, corpus: Path) -> None:
+        service = KnowledgeService(db_session)
+        with pytest.raises(ValidationError, match="Arquivo não encontrado"):
+            service.ingest(paths=["fantasma.pdf"])
+
+    def test_targeted_ingest_rejects_unsupported_extension(self, db_session, corpus: Path) -> None:
+        (corpus / "codigo.py").write_text("print(1)", encoding="utf-8")
+        service = KnowledgeService(db_session)
+
+        with pytest.raises(ValidationError, match="Extensão não suportada"):
+            service.ingest(paths=["codigo.py"])
+
+    def test_targeted_ingest_rejects_operational_file(self, db_session, corpus: Path) -> None:
+        (corpus / "README.md").write_text("# Readme", encoding="utf-8")
+        service = KnowledgeService(db_session)
+
+        with pytest.raises(ValidationError, match="Arquivo operacional"):
+            service.ingest(paths=["README.md"])
+
+    def test_targeted_ingest_rejects_undeclared_markdown(self, db_session, corpus: Path) -> None:
+        (corpus / "notas.md").write_text("notas", encoding="utf-8")
+        service = KnowledgeService(db_session)
+
+        with pytest.raises(ValidationError, match="não declarado"):
+            service.ingest(paths=["notas.md"])

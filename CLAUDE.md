@@ -357,13 +357,7 @@ suspensa). **A ingestão só acrescenta**: tirar um arquivo do repositório não
 tira o texto dele do RAG — quem tira é o `prune`. **Feito em 30/09/2026:** o
 autor rodou a remoção em produção (não há bases locais) e o histórico foi
 reescrito (`main` `873dd53` → `b7dd105`, árvore idêntica, 76 commits duplicados
-colapsados, assinaturas GPG perdidas; os 71 caminhos a 0). Reescrever não apaga
-as refs de PR nem os objetos Git LFS guardados no GitHub: o pedido ao suporte,
-refazer os clones antigos e indexar o `Links.md` em produção seguem pendentes
-(TODO A7). **`Links.md` fica e é indexado**, por decisão do autor, com o link do
-OneDrive que ele contém: a ingestão lê PDF e **só o Markdown que o
-`manifesto.json` declara**; `README.md`, `manifesto.json` e `removidos.txt`
-nunca entram.
+colapsados, assinaturas GPG perdidas; os 71 caminhos a 0). Reescrever não apaga as refs de PR nem os objetos Git LFS guardados no GitHub: o pedido ao suporte e refazer os clones antigos seguem como ações exclusivas do proprietário (TODO A7 e `docs/17-limpeza-historico-cerebro.md`). A indexação do `Links.md` em produção (Neon) foi viabilizada via ação `conhecimento_indexar_links` no workflow `admin-banco.yml` com suporte a `--file`/`--path` na CLI de ingestão (3347 → 3356 testes). **`Links.md` fica e é indexado**, por decisão do autor, com o link do OneDrive que ele contém: a ingestão lê PDF e **só o Markdown que o `manifesto.json` declara**; `README.md`, `manifesto.json` e `removidos.txt` nunca entram.
 
 **O portão global de assinatura está ligado** ([D-46](docs/DECISIONS.md)):
 entre os dois desenhos que o PR #18 deixou coexistindo em código, o autor
@@ -505,8 +499,7 @@ chegassem.
 tipos de estágio do método existem. Um estágio `chart` carrega o **plano**, a
 **caixa** (um limite por eixo, em coordenadas de dados, nunca pixel) e a **linha
 iso-índice** no nível guardado — número e não "a linha que passa pelo material 7",
-porque um estudo salvo reexecuta para a mesma resposta. **Nada disso é geometria,
-e a linha é o caso que parece ser:** o lado favorável de um contorno é
+porque um estudo salvo reexecuta para a mesma resposta. **Nada disso é geometria,\ne a linha é o caso que parece ser:** o lado favorável de um contorno é
 `índice ≥ nível` (ou `≤`), a mesma comparação que `ChartService._draw_levels` já
 faz para desenhar a linha, o que faz figura e funil concordarem por construção.
 **O que o estágio acrescenta ao de limites é um só e é real:** um eixo pode ser
@@ -809,8 +802,7 @@ nem noutro. O cliente nunca aplica fator.
 **Preparação para a turma de 29/09 (D-84 a D-89).** Um estudo de processos voltou
 a ter o passo Objetivo (D-84). A Seleção virou assistente guiado — um passo de
 cada vez, Voltar em todo passo e no navegador, **o recolhido nunca esconde o que
-está em uso**, exemplo em um clique, resultado que começa pelo vencedor (D-85) —,
-e o resto do produto ficou enxuto: capa com um botão, menu por papel, Mapas com
+está em uso**, exemplo em um clique, resultado que começa pelo vencedor (D-85) —,\ne o resto do produto ficou enxuto: capa com um botão, menu por papel, Mapas com
 "Personalizar", Comparar por busca, ferramentas com premissas recolhidas **e os
 valores no resumo** (D-86). Os pesos do ranking somam 1, com orçamento, sugestão e
 top 5 calculados em `POST /api/selection/weights-preview`; **o `/run` continua
@@ -926,7 +918,7 @@ e no mesmo modal do D-94. Regras que não se afrouxam:
   o átomo da conferência), e diz que encurtou (`studio_service.note_body`).
 - **Nenhuma migração**: as quatro cabem nos campos JSON da fase 1.
 
-3347 testes de backend (nenhum skip) e 751 de frontend, todos verdes. CI no
+3356 testes de backend (nenhum skip) e 751 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
 PROJECT_CONTEXT.md).
@@ -1088,8 +1080,3 @@ comandos de barra. Os úteis aqui, por papel:
 - **Documentação:** `/document-release`, `/document-generate`
 - **Retrospectiva:** `/retro`
 - **Proteções:** `/careful`, `/freeze`, `/guard`, `/unfreeze`
-
-Os comandos são sugestões de fluxo, não autoridade: **as regras deste arquivo e
-as decisões em `docs/DECISIONS.md` prevalecem** sobre o que qualquer skill
-externa recomendar. Em particular, nenhum deles autoriza violar os princípios
-inegociáveis da metodologia nem as proibições do sistema de design.

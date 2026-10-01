@@ -3,6 +3,8 @@
 Run with::
 
     python -m app.knowledge.ingest
+    python -m app.knowledge.ingest --file Links.md
+    python -m app.knowledge.ingest --file Links.md --force
 
 Idempotent by checksum (``KnowledgeService.ingest``) — safe to run again after
 adding or editing files under ``KNOWLEDGE_DIR``. Never runs during a client
@@ -11,17 +13,41 @@ request; this is the operator's own tooling.
 
 from __future__ import annotations
 
+import argparse
 import sys
 
 from app.db.base import SessionLocal
+from app.domain.errors import ValidationError
 from app.knowledge.service import KnowledgeService
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> None:
     """Ingest the configured knowledge root and print a summary."""
-    with SessionLocal() as db:
-        report = KnowledgeService(db).ingest()
-        db.commit()
+    parser = argparse.ArgumentParser(
+        prog="python -m app.knowledge.ingest",
+        description="Ingestão da base de conhecimento do Cérebro.",
+    )
+    parser.add_argument(
+        "--file",
+        "--path",
+        dest="files",
+        action="append",
+        help="Caminho relativo a KNOWLEDGE_DIR de arquivo(s) específico(s) para indexar (ex: Links.md).",
+    )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Reextrai mesmo quando o checksum for idêntico.",
+    )
+    args = parser.parse_args([] if argv is None else argv)
+
+    try:
+        with SessionLocal() as db:
+            report = KnowledgeService(db).ingest(force=args.force, paths=args.files)
+            db.commit()
+    except ValidationError as exc:
+        print(f"[ingest] ERRO: {exc}")
+        sys.exit(1)
 
     print(f"[ingest] raiz: {report.root}")
     print(
@@ -51,4 +77,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:])
