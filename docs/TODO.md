@@ -68,12 +68,6 @@ Nenhum item aberto no momento — M6 foi entregue nesta sessão (ver
 
 ## Baixa prioridade
 
-**Cérebro — localizador de citação do Markdown (D-100).** ▁ Cosmético. Um
-`.md` declarado vira uma "página" só, e o bloco de referências do prompt
-(`_reference_block`, em `app/ai/prompts.py`) escreve `p. 1-1` para ele — e para
-qualquer trecho de uma página só. Omitir o localizador quando o documento não é
-paginado exigiria levar o tipo do documento até o trecho recuperado.
-
 **Cadernos — pendências deixadas pela fase 4 (D-98).** Nenhuma bloqueia o uso.
 
 - **A voz pt-BR depende do aparelho do aluno.** ▁ O áudio e o vídeo falam pelo
@@ -194,6 +188,14 @@ continua lá, e a métrica para de medir no 3.
 
 Registrados para não voltarem por engano:
 
+- ~~**Cérebro — localizador de citação do Markdown / Links sem `p. 1-1` (D-100)**~~ —
+  documentos não paginados (`LINK`, `VIDEO`) agora omitem o indicador de páginas
+  no bloco de referências do prompt (`app/ai/prompts.py`) e têm `page_start`/`page_end`
+  nulos no schema de resposta da API (`CitedSourceOut` em `ai_service.py`). Para
+  documentos paginados, páginas únicas são formatadas como `p. X` (em vez de `p. X-X`)
+  e intervalos como `p. X-Y`, tanto no prompt do RAG quanto na renderização do
+  frontend (`StudyExplanation.tsx`), com cobertura completa em testes de backend
+  (3356 → 3362) e frontend (751 → 752).
 - ~~**Tirar o material de curso da ENG02016 do banco e do histórico / Ingestão do `Links.md` (D-100/A7)**~~ —
   remoção completa do material didático da disciplina e trabalhos de alunos do repositório,
   do banco e do histórico git (30/09/2026). Para o `Links.md` restante no RAG de produção,
@@ -258,8 +260,7 @@ Registrados para não voltarem por engano:
     a profundidade que contava referências lado a lado (N-4) e a matemática
     não avaliada que deixava passar (N-5). Orçamentos por atributo, escopo,
     expansão e página; o que passa deles, ou faz o leitor tropeçar, oculta o
-    nó. Os testes de regressão estão em `test_html_css_budgets.py`.
-  - **Cota não atômica** (D-92/D-94/D-97): as três cotas são **reservadas** por
+    nó. Os testes de regressão estão em `test_html_css_budgets.py`.\n  - **Cota não atômica** (D-92/D-94/D-97): as três cotas são **reservadas** por
     um `UPDATE … WHERE contador < limite` e devolvidas quando a operação não
     cobra; um teste da forma do SQL falha se o código voltar a
     ler-e-escrever. A devolução de uma geração é idempotente — só quem tira a
@@ -521,8 +522,7 @@ Registrados para não voltarem por engano:
 
   **O que ficou de fora:** a figura de barras por fase, comparar dois materiais
   na mesma auditoria, e energia catalogada para aterro e incineração.
-- ~~**P3 (terceiro item)** — o Synthesizer~~ — `POST /api/synthesis/previa`,
-  `POST /api/synthesis` e `/app/sintetizar` criam **materiais hipotéticos** a
+- ~~**P3 (terceiro item)** — o Synthesizer~~ — `POST /api/synthesis/previa`,\n  `POST /api/synthesis` e `/app/sintetizar` criam **materiais hipotéticos** a
   partir de materiais catalogados mais uma receita: compósito de dois
   constituintes com fração volumétrica, ou espuma de um sólido com densidade
   relativa ([D-67](DECISIONS.md)). É o item que mais perto passa de violar o
