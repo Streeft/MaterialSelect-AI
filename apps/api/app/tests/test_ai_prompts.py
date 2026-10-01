@@ -1,6 +1,6 @@
-"""O bloco de contexto do Cérebro no prompt: presente só quando há trechos
+\"\"\"O bloco de contexto do Cérebro no prompt: presente só quando há trechos
 recuperados, e nunca oferecido como fonte de número (essa regra vive no
-guardrail, não aqui — este teste cobre só a construção do texto)."""
+guardrail, não aqui — este teste cobre só a construção do texto).\"\"\"
 
 from __future__ import annotations
 
@@ -10,48 +10,136 @@ from app.knowledge.retrieval import RetrievedChunk
 from app.models.enums import DocumentKind, SourceAuthority
 
 _CHUNK = RetrievedChunk(
-    document_title="Materials Selection in Mechanical Design",
+    document_title=\"Materials Selection in Mechanical Design\",
     document_kind=DocumentKind.LIVRO,
     document_authority=SourceAuthority.CIENTIFICA,
     page_start=42,
     page_end=43,
-    text="O índice de rigidez específica é E/ρ para uma viga em flexão.",
+    text=\"O índice de rigidez específica é E/ρ para uma viga em flexão.\",
     score=0.9,
 )
 
 
 class TestInterpretPrompt:
     def test_no_reference_block_when_nothing_retrieved(self) -> None:
-        context = ProblemContext(statement="x", properties=[], indices=[], classes=[])
-        assert "Trechos de referência" not in interpret_user(context)
+        context = ProblemContext(statement=\"x\", properties=[], indices=[], classes=[])
+        assert \"Trechos de referência\" not in interpret_user(context)
 
     def test_reference_block_when_retrieved(self) -> None:
         context = ProblemContext(
-            statement="x", properties=[], indices=[], classes=[], retrieved=(_CHUNK,)
+            statement=\"x\", properties=[], indices=[], classes=[], retrieved=(_CHUNK,)
         )
         text = interpret_user(context)
-        assert "Trechos de referência" in text
-        assert "Materials Selection in Mechanical Design" in text
-        assert "42" in text and "43" in text
+        assert \"Trechos de referência\" in text
+        assert \"Materials Selection in Mechanical Design\" in text
+        assert \"42\" in text and \"43\" in text
         assert _CHUNK.text in text
 
     def test_statement_still_appears_after_the_reference_block(self) -> None:
         context = ProblemContext(
-            statement="enunciado do usuario aqui",
+            statement=\"enunciado do usuario aqui\",
             properties=[],
             indices=[],
             classes=[],
             retrieved=(_CHUNK,),
         )
         text = interpret_user(context)
-        assert text.index("Trechos de referência") < text.index("enunciado do usuario aqui")
+        assert text.index(\"Trechos de referência\") < text.index(\"enunciado do usuario aqui\")
+
+
+class TestReferenceBlockPageFormatting:
+    \"\"\"D-100: formatação do localizador de páginas no prompt de referência.\"\"\"
+
+    def test_single_page_formats_as_p_x(self) -> None:
+        chunk = RetrievedChunk(
+            document_title=\"Artigo Técnico\",
+            document_kind=DocumentKind.ARTIGO,
+            document_authority=SourceAuthority.CIENTIFICA,
+            page_start=42,
+            page_end=42,
+            text=\"Texto\",
+            score=0.9,
+        )
+        context = ProblemContext(
+            statement=\"x\", properties=[], indices=[], classes=[], retrieved=(chunk,)
+        )
+        text = interpret_user(context)
+        assert \"Artigo Técnico — p. 42\" in text
+        assert \"p. 42-42\" not in text
+
+    def test_page_range_formats_as_p_x_y(self) -> None:
+        chunk = RetrievedChunk(
+            document_title=\"Livro de Referência\",
+            document_kind=DocumentKind.LIVRO,
+            document_authority=SourceAuthority.CIENTIFICA,
+            page_start=10,
+            page_end=15,
+            text=\"Texto\",
+            score=0.9,
+        )
+        context = ProblemContext(
+            statement=\"x\", properties=[], indices=[], classes=[], retrieved=(chunk,)
+        )
+        text = interpret_user(context)
+        assert \"Livro de Referência — p. 10-15\" in text
+
+    def test_unpaginated_link_omits_pages(self) -> None:
+        chunk = RetrievedChunk(
+            document_title=\"Links indicados\",
+            document_kind=DocumentKind.LINK,
+            document_authority=SourceAuthority.TECNICA,
+            page_start=1,
+            page_end=1,
+            text=\"Texto\",
+            score=0.9,
+        )
+        context = ProblemContext(
+            statement=\"x\", properties=[], indices=[], classes=[], retrieved=(chunk,)
+        )
+        text = interpret_user(context)
+        assert \"[1] Links indicados\\n\" in text
+        assert \"p. 1\" not in text
+
+    def test_unpaginated_video_omits_pages(self) -> None:
+        chunk = RetrievedChunk(
+            document_title=\"Vídeo Aula\",
+            document_kind=DocumentKind.VIDEO,
+            document_authority=SourceAuthority.SECUNDARIA,
+            page_start=1,
+            page_end=1,
+            text=\"Texto\",
+            score=0.9,
+        )
+        context = ProblemContext(
+            statement=\"x\", properties=[], indices=[], classes=[], retrieved=(chunk,)
+        )
+        text = interpret_user(context)
+        assert \"[1] Vídeo Aula\\n\" in text
+        assert \"p. 1\" not in text
+
+    def test_missing_pages_omits_pages(self) -> None:
+        chunk = RetrievedChunk(
+            document_title=\"Documento sem páginas\",
+            document_kind=DocumentKind.OUTRO,
+            document_authority=SourceAuthority.NAO_VERIFICADA,
+            page_start=None,
+            page_end=None,
+            text=\"Texto\",
+            score=0.9,
+        )
+        context = ProblemContext(
+            statement=\"x\", properties=[], indices=[], classes=[], retrieved=(chunk,)
+        )
+        text = interpret_user(context)
+        assert \"[1] Documento sem páginas\\n\" in text
+        assert \"— p.\" not in text
 
 
 class TestExplainPrompt:
     def test_no_reference_block_when_nothing_retrieved(self) -> None:
         context = ResultContext(
-            study_name="Estudo",
-            universe="material",
+            study_name=\"Estudo\",
+            universe=\"material\",
             function_text=None,
             objective_text=None,
             constraint_labels=[],
@@ -65,12 +153,12 @@ class TestExplainPrompt:
             excluded_for_missing=[],
             sensitivity_changed=False,
         )
-        assert "Trechos de referência" not in explain_user(context)
+        assert \"Trechos de referência\" not in explain_user(context)
 
     def test_reference_block_when_retrieved(self) -> None:
         context = ResultContext(
-            study_name="Estudo",
-            universe="material",
+            study_name=\"Estudo\",
+            universe=\"material\",
             function_text=None,
             objective_text=None,
             constraint_labels=[],
@@ -85,13 +173,13 @@ class TestExplainPrompt:
             sensitivity_changed=False,
             retrieved=(_CHUNK,),
         )
-        assert "Trechos de referência" in explain_user(context)
+        assert \"Trechos de referência\" in explain_user(context)
 
 
 def _result_context(**overrides) -> ResultContext:
     options = dict(
-        study_name="Estudo",
-        universe="material",
+        study_name=\"Estudo\",
+        universe=\"material\",
         function_text=None,
         objective_text=None,
         constraint_labels=[],
@@ -110,29 +198,29 @@ def _result_context(**overrides) -> ResultContext:
 
 
 class TestExplainSchema:
-    """D-89: ``sources`` is asked for only when there is something to cite.
+    \"\"\"D-89: ``sources`` is asked for only when there is something to cite.
 
     A strict-schema server rejects a whole answer for a missing required field,
     and with no reference passage a model leaving the citations out is the
     natural answer — that is what took the laudo's section 7 down in production.
-    """
+    \"\"\"
 
     def test_without_passages_there_is_no_sources_field(self) -> None:
         schema = explain_schema(_result_context())
-        assert "sources" not in schema["properties"]
-        assert schema["required"] == ["summary", "paragraphs"]
-        assert "sources" not in explain_system(_result_context())
+        assert \"sources\" not in schema[\"properties\"]
+        assert schema[\"required\"] == [\"summary\", \"paragraphs\"]
+        assert \"sources\" not in explain_system(_result_context())
 
     def test_with_passages_sources_is_asked_for_and_required(self) -> None:
         context = _result_context(retrieved=(_CHUNK,))
         schema = explain_schema(context)
-        assert schema["properties"]["sources"]["type"] == "array"
-        assert "sources" in schema["required"]
-        assert "sources" in explain_system(context)
+        assert schema[\"properties\"][\"sources\"][\"type\"] == \"array\"
+        assert \"sources\" in schema[\"required\"]
+        assert \"sources\" in explain_system(context)
 
     def test_strict_mode_invariant_every_property_is_required(self) -> None:
         # OpenAI-style strict schemas require every property to be listed.
         for context in (_result_context(), _result_context(retrieved=(_CHUNK,))):
             schema = explain_schema(context)
-            assert set(schema["required"]) == set(schema["properties"])
-            assert schema["additionalProperties"] is False
+            assert set(schema[\"required\"]) == set(schema[\"properties\"])
+            assert schema[\"additionalProperties\"] is False
