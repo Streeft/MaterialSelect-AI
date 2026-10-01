@@ -1,4 +1,4 @@
-"""Export endpoints: catalogue and selection studies as CSV, XLSX, DOCX or HTML.
+"""Export endpoints: catalogue and selection studies as CSV, XLSX, DOCX, PPTX or HTML.
 
 These return files rather than JSON, so they set their own headers. Three
 details matter and are easy to get wrong:
@@ -28,8 +28,10 @@ from sqlalchemy.orm import Session
 
 from app.db.base import get_db
 from app.dependencies import get_current_project, get_current_user, get_unit_choices
+from app.domain.errors import ValidationError
 from app.exporters.docx import to_docx
 from app.exporters.html import to_html
+from app.exporters.pptx import to_pptx
 from app.exporters.report import Report
 from app.exporters.spreadsheet import to_csv, to_xlsx
 from app.models.project import Project
@@ -41,9 +43,11 @@ router = APIRouter(prefix="/exports", tags=["exports"])
 CSV_MEDIA_TYPE = "text/csv; charset=utf-8"
 XLSX_MEDIA_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 DOCX_MEDIA_TYPE = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+PPTX_MEDIA_TYPE = "application/vnd.openxmlformats-officedocument.presentationml.presentation"
 HTML_MEDIA_TYPE = "text/html; charset=utf-8"
 
-SUPPORTED_FORMATS = ("csv", "xlsx", "html", "docx")
+SUPPORTED_FORMATS = ("csv", "xlsx", "html", "docx", "pptx")
+LAUDO_SUPPORTED_FORMATS = ("html", "docx", "pptx")
 
 # The report needs its own inline stylesheet and nothing else whatsoever.
 HTML_CSP = "default-src 'none'; style-src 'unsafe-inline'"
@@ -68,6 +72,9 @@ def _file_response(report: Report, fmt: str) -> Response:
     elif fmt == "docx":
         body = to_docx(report)
         media_type = DOCX_MEDIA_TYPE
+    elif fmt == "pptx":
+        body = to_pptx(report)
+        media_type = PPTX_MEDIA_TYPE
     elif fmt == "html":
         body = to_html(report)
         media_type = HTML_MEDIA_TYPE
@@ -118,9 +125,10 @@ def export_study(
     )
 
 
-@router.get("/estudos/{study_id}/laudo.html")
+@router.get("/estudos/{study_id}/laudo.{fmt}")
 def export_study_laudo(
     study_id: int,
+    fmt: str,
     responsavel: str | None = Query(default=None, max_length=160),
     db: Session = Depends(get_db),
     project: Project = Depends(get_current_project),
@@ -129,19 +137,19 @@ def export_study_laudo(
 ) -> Response:
     """The engineering report: a document distinct from the selection report,
     combining a ranking figure, the same audit tables, and — when the AI
-    layer is on — an interpretive narrative. HTML-only, like the printable
-    report it is built alongside: there is no spreadsheet shape for a figure
-    or a paragraph.
+    layer is on — an interpretive narrative. Available in HTML, DOCX and PPTX.
     """
+    if fmt not in LAUDO_SUPPORTED_FORMATS:
+        raise ValidationError(
+            f"Formato de laudo não suportado: '{fmt}'. Use {', '.join(LAUDO_SUPPORTED_FORMATS)}."
+        )
     report = ExportService(db, user, unit_choices).study_laudo(
         study_id, project.id, responsible=responsavel
     )
-    return _file_response(report, "html")
+    return _file_response(report, fmt)
 
 
 def _require_supported(fmt: str) -> None:
-    from app.domain.errors import ValidationError
-
     if fmt not in SUPPORTED_FORMATS:
         raise ValidationError(
             f"Formato de exportação não suportado: '{fmt}'. " f"Use {', '.join(SUPPORTED_FORMATS)}."
