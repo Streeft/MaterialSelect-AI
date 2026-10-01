@@ -23,9 +23,11 @@ from app.repositories.notebook_repository import NotebookRepository
 
 POSTGRES_TEST_URL = os.getenv(
     "POSTGRES_TEST_URL",
-    os.getenv("DATABASE_URL")
-    if (os.getenv("DATABASE_URL") or "").startswith("postgresql")
-    else None,
+    (
+        os.getenv("DATABASE_URL")
+        if (os.getenv("DATABASE_URL") or "").startswith("postgresql")
+        else None
+    ),
 )
 
 
