@@ -26,6 +26,7 @@ from app.ai.guardrails import (
     numbers_in,
     ungrounded_numbers,
 )
+from app.ai.prompts import UNPAGINATED_KINDS
 from app.ai.provider import (
     AIProvider,
     AIUnavailableError,
@@ -282,14 +283,17 @@ class AIService:
             i for i in raw.get("sources", []) if isinstance(i, int) and not isinstance(i, bool)
         ]
         valid_indices = check_citations(raw_sources, context.retrieved)
-        sources = [
-            CitedSourceOut(
-                document_title=context.retrieved[i - 1].document_title,
-                page_start=context.retrieved[i - 1].page_start,
-                page_end=context.retrieved[i - 1].page_end,
+        sources = []
+        for i in valid_indices:
+            chunk = context.retrieved[i - 1]
+            unpaginated = getattr(chunk, "document_kind", None) in UNPAGINATED_KINDS
+            sources.append(
+                CitedSourceOut(
+                    document_title=chunk.document_title,
+                    page_start=None if unpaginated else chunk.page_start,
+                    page_end=None if unpaginated else chunk.page_end,
+                )
             )
-            for i in valid_indices
-        ]
 
         return ExplanationOut(
             study_id=study_id,

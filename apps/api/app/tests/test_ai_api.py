@@ -356,6 +356,46 @@ class TestExplanation:
             }
         ]
 
+    def test_citation_of_unpaginated_document_has_null_pages(
+        self, client: TestClient, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from app.knowledge.retrieval import RetrievedChunk
+        from app.models.enums import DocumentKind, SourceAuthority
+
+        chunk = RetrievedChunk(
+            document_title="Links indicados",
+            document_kind=DocumentKind.LINK,
+            document_authority=SourceAuthority.TECNICA,
+            page_start=1,
+            page_end=1,
+            text="x",
+            score=1.0,
+        )
+
+        class _CitingProvider(AIProvider):
+            name = "citador"
+            simulated = False
+
+            def interpret(self, context) -> dict:
+                raise NotImplementedError
+
+            def explain(self, context) -> dict:
+                return {"summary": "ok", "paragraphs": ["texto"], "sources": [1], "caveats": []}
+
+        monkeypatch.setattr(ai_service, "get_provider", lambda *_a, **_k: _CitingProvider())
+        monkeypatch.setattr("app.services.ai_service.knowledge_search", lambda *a, **k: [chunk])
+
+        study_id = self._study_id(client)
+        body = client.post("/api/ai/explain", json={"study_id": study_id}).json()
+
+        assert body["sources"] == [
+            {
+                "document_title": "Links indicados",
+                "page_start": None,
+                "page_end": None,
+            }
+        ]
+
     def test_invalid_citation_index_is_silently_dropped(
         self, client: TestClient, monkeypatch: pytest.MonkeyPatch
     ) -> None:

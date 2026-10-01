@@ -20,6 +20,11 @@ fewer fields to police.
 from __future__ import annotations
 
 from app.ai.provider import ProblemContext, ResultContext
+from app.models.enums import DocumentKind
+
+#: Document kinds that are not page-oriented. When retrieved chunks come from
+#: these kinds, citation locators must not emit "— p. 1-1".
+UNPAGINATED_KINDS = frozenset({DocumentKind.LINK, DocumentKind.VIDEO})
 
 # Operators a proposal may use. Existence and free-text operators are left out:
 # they carry no threshold, so a model has nothing to add over the user simply
@@ -344,17 +349,31 @@ def _classes_block(context: ProblemContext) -> str:
     return "\n".join(f"- {facts.slug}: {facts.name}" for facts in context.classes)
 
 
+def _format_pages(chunk: object) -> str:
+    """Format the page locator for a reference chunk.
+
+    Unpaginated kinds (LINK, VIDEO) have no page number and emit empty string.
+    Paginated chunks on a single page format as ' — p. X'.
+    Paginated chunks spanning multiple pages format as ' — p. X-Y'.
+    """
+    if getattr(chunk, "document_kind", None) in UNPAGINATED_KINDS:
+        return ""
+    start = getattr(chunk, "page_start", None)
+    end = getattr(chunk, "page_end", None)
+    if not (start and end):
+        return ""
+    if start == end:
+        return f" — p. {start}"
+    return f" — p. {start}-{end}"
+
+
 def _reference_block(retrieved: tuple) -> str:
     """Numbered reference passages, or empty when nothing was retrieved."""
     if not retrieved:
         return ""
     lines = ["# Trechos de referência (vocabulário e contexto — nunca extraia número daqui)"]
     for i, chunk in enumerate(retrieved, start=1):
-        pages = (
-            f" — p. {chunk.page_start}-{chunk.page_end}"
-            if chunk.page_start and chunk.page_end
-            else ""
-        )
+        pages = _format_pages(chunk)
         lines.append(f"[{i}] {chunk.document_title}{pages}")
         lines.append(f'    "{chunk.text}"')
     return "\n".join(lines)
