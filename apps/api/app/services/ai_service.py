@@ -61,7 +61,9 @@ from app.services.selection_service import SelectionService
 class AIService:
     """Builds the context, runs the provider, and enforces the limits."""
 
-    def __init__(self, db, settings: Settings = default_settings, user: User | None = None) -> None:
+    def __init__(
+        self, db, settings: Settings = default_settings, user: User | None = None
+    ) -> None:
         self.db = db
         self.settings = settings
         self.user = user
@@ -97,7 +99,9 @@ class AIService:
     def _context(self, statement: str, provider: AIProvider) -> ProblemContext:
         properties = self.repo.list_properties()
         indices = self.selection_repo.list_indices()
-        classes = {m.material_class.slug: m.material_class.name for m in self.repo.list_materials()}
+        classes = {
+            m.material_class.slug: m.material_class.name for m in self.repo.list_materials()
+        }
         retrieved = self._retrieve(statement, provider)
         return ProblemContext(
             statement=statement,
@@ -279,7 +283,8 @@ class AIService:
         # about its own answer is dropped, not trusted — check_citations is
         # the guardrail, this only translates what survives into something a
         # reader can act on.
-        raw_sources = [\n            i for i in raw.get("sources", []) if isinstance(i, int) and not isinstance(i, bool)
+        raw_sources = [
+            i for i in raw.get("sources", []) if isinstance(i, int) and not isinstance(i, bool)
         ]
         valid_indices = check_citations(raw_sources, context.retrieved)
         sources = []
