@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [39](#sessão-39--011026--indexação-direcionada-do-linksmd-e-expurgo-do-material-de-curso-a7) | 01/10/2026 | Indexação direcionada de arquivos no RAG (`Links.md`), ação `conhecimento_indexar_links` no Actions e fechamento do item A7 (D-100) | 3347 → 3356 | 751 (inalterado) |
 | [38](#sessão-38--300926--concorrência-das-cotas-em-postgresql-na-ci-opção-b) | 30/09/2026 | Concorrência multithread das cotas dos Cadernos exercitada contra PostgreSQL 16 na CI (D-97/D-99, Opção B) | 3343 → 3347 | 751 (inalterado) |
 | [37](#sessão-37--300926--linha-de-tabela-com-pipes-não-é-mais-heading-d-97) | 30/09/2026 | Linha de tabela com pipes não é mais tratada como heading pelo fatiador (chunking.py, D-97) | 3338 → 3343 | 751 (inalterado) |
 | [36](#sessão-36--300926--o-material-de-curso-sai-do-histórico) | 30/09/2026 | O material de curso sai do banco de produção e do histórico do git (D-100): `main` `873dd53` → `b7dd105`, árvore idêntica, verificação a 0; pendências do autor registradas | 3338 (inalterado) | 751 (inalterado) |
@@ -54,6 +55,39 @@ As sessões entre a 11 e a 12 — o patch de design "Prisma" (D-49, D-50), o
 upgrade de segurança S1 e a rodada de desempenho — **não têm seção própria
 aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
+
+---
+
+## Sessão 39 — 01/10/26 — Indexação direcionada do Links.md e expurgo do material de curso (A7)
+
+**O pedido.** O usuário solicitou a execução do item **A7** de `docs/TODO.md` e [D-100](DECISIONS.md): *"Tirar o material de curso da ENG02016 do banco de produção e do histórico (D-100): o que resta"* ("faça o A7", "faça tudo, não quero mexer um músculo, apenas farei o merge...").
+
+**O problema.**
+1. Na Sessão 36 (30/09/2026), o material didático da ENG02016 foi removido do banco e o histórico foi reescrito, mas três pendências operacionais permaneceram abertas:
+   - O `KNOWLEDGE_DIR` no Fly está vazio e o autor trabalha exclusivamente na nuvem (sem base local com os PDFs originais). O script de ingestão genérico (`ingest.py`) varre todo o corpus e falharia em CI/Actions por tentar processar ponteiros Git LFS não baixados. Faltava uma forma de indexar especificamente o `Links.md` restante no RAG de produção diretamente na nuvem.
+   - O GitHub mantém cópias em cache de commits reescritos, objetos LFS órfãos e refs de PRs (`refs/pull/*`, especialmente o PR #56 com 65 arquivos de curso fora de qualquer branch), exigindo ticket formal de suporte do repositório para expurgo definitivo.
+   - Clones locais antigos feitos antes de 30/09/2026 e logs públicos de workflows de simulação/remoção precisavam de instruções claras de saneamento.
+
+**A solução.**
+1. **Ingestão direcionada no serviço de conhecimento (`apps/api/app/knowledge/service.py`):**
+   - Adicionado método `resolve_targets(paths: list[str | Path]) -> list[Path]`:
+     - Resolução estrita de caminhos relativos ou absolutos dentro de `KNOWLEDGE_DIR`.
+     - Rejeição dura contra path traversal (`..`), links simbólicos apontando para fora da raiz e arquivos operacionais (`README.md`, `manifesto.json`, `removidos.txt`).
+     - Respeito ao manifesto (`manifesto.json`): arquivos Markdown (`.md`) só são admitidos se explicitamente declarados no manifesto (como `Links.md`). Arquivos não declarados são rejeitados com `ValidationError`.
+     - Respeito à lista de exclusão (`Cérebro/removidos.txt`): qualquer alvo na lista de remoção é sumariamente ignorado.
+   - Atualizado `KnowledgeService.ingest(paths=...)`: quando alvos específicos são passados, apenas eles são processados (leitura, chunking, geração de embeddings e inserção no banco), mantendo total idempotência.
+2. **Suporte a `--file` / `--path` na CLI (`apps/api/app/knowledge/ingest.py`):**
+   - Acrescentadas flags `--file` / `--path` (repetíveis, via `action="append"`).
+   - Tratamento com captura de `ValidationError` emitindo mensagem clara e código de saída 1.
+3. **Ação `conhecimento_indexar_links` no GitHub Actions (`.github/workflows/admin-banco.yml`):**
+   - Nova opção no workflow dispatch de administração do banco de dados de produção (Neon).
+   - Executa `python -m app.knowledge.ingest --file Links.md` com checkout raso (sem LFS), configurando `DATABASE_URL` e segredos de IA (`AI_BASE_URL`, `AI_API_KEY`, `AI_MODEL`, etc.) para indexar `Links.md` diretamente no Neon.
+4. **Documentação e guias de operação:**
+   - Atualizado `docs/13-deploy.md` (§5-bis e §5-ter) documentando a ação `conhecimento_indexar_links` e seu uso seguro.
+   - Redigido texto completo em inglês e português para envio ao Suporte do GitHub (`support.github.com/contact`), referenciando o PR #56 e solicitando o purge de LFS, refs e commit cache.
+   - Atualizados `docs/TODO.md`, `CLAUDE.md`, `docs/PROJECT_CONTEXT.md` e este changelog.
+
+**Números.** Backend 3347 → 3356 (+9 testes: 7 unitários em `TestTargetedIngest` de `test_knowledge_ingest.py` e 2 de CLI em `test_knowledge_ingest_cli.py`, nenhum skip, todos verdes). Frontend 751 (inalterado).
 
 ---
 
@@ -2932,8 +2966,7 @@ Testes de frontend: 13 → 44.
 ## 3. Correções
 
 | # | Defeito | Como apareceu |
-|---|---|---|
-| 1 | **Isolamento de testes quebrado.** pysqlite emite BEGIN sozinho e nunca antes de SAVEPOINT; um teste que começasse por escrita escapava do rollback e vazava para todos os seguintes. A suíte ficava verde perdendo isolamento em silêncio. | Ao adicionar um teste cuja primeira instrução era um POST. |
+|---|---|---|\n| 1 | **Isolamento de testes quebrado.** pysqlite emite BEGIN sozinho e nunca antes de SAVEPOINT; um teste que começasse por escrita escapava do rollback e vazava para todos os seguintes. A suíte ficava verde perdendo isolamento em silêncio. | Ao adicionar um teste cuja primeira instrução era um POST. |
 | 2 | **Dados do usuário sem escape no hover do Plotly.** Nomes de material vêm de planilhas importadas e eram interpolados crus em texto que o Plotly renderiza como rich text. | Revisão do próprio código. |
 | 3 | **Unidade nula virando canônica na IA.** "no mínimo 300 graus C" saía com `unit: null` e virava ≥ 300 K, isto é −173 °C: nenhuma restrição. Os quatro guardrails existentes não pegavam. | Demonstração ao vivo dos endpoints. |
 | 4 | **`prettyUnit` renderizava `** 2.5` como `·· 2.5`** nas dimensões derivadas. | Conferência da tela no navegador. |
