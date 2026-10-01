@@ -57,30 +57,6 @@ react-hook-form não é memoizável) que é informativo e não tem correção lo
 A6 (Cérebro em `main`) foi decidido, não executado: ver "Débitos já
 quitados".
 
-**A7 — Tirar o material de curso da ENG02016 do banco de produção e do
-histórico (D-100): o que resta.** ▁ A remoção do banco de produção e a
-reescrita do histórico foram feitas em 30/09/2026 (ver "Débitos já quitados" e
-a execução do [D-100](DECISIONS.md)). Faltam três passos, e só o autor pode
-dar cada um:
-
-1. **Suporte do GitHub** ([`17-limpeza-historico-cerebro.md`](17-limpeza-historico-cerebro.md)
-   §10). Pedir a remoção das refs de PR (`refs/pull/*` — a do PR #56 guarda 65
-   dos arquivos fora de qualquer branch), dos objetos Git LFS órfãos, das
-   visões em cache e, onde couber, dos *forks*: todo commit e todo PR
-   anteriores à reescrita. Reescrever o histórico não apagou nada disso.
-2. **Clones antigos.** Todo clone feito antes de 30/09/2026 está do lado errado
-   da reescrita: apagar e clonar de novo, nunca `pull`, e não enviar nenhuma
-   branch criada antes dela (guia §9).
-3. **`Links.md` no RAG de produção.** O autor decidiu indexá-lo (D-100), mas o
-   `KNOWLEDGE_DIR` de produção está vazio e o autor não tem base local — só
-   trabalha na nuvem —, então a ingestão offline
-   (`python -m app.knowledge.ingest`) que o D-100 supunha não tem onde rodar.
-   **Pergunta aberta para o autor:** por qual caminho essa ingestão deve
-   acontecer. Nada foi desenhado.
-
-Não registrado aqui: se os logs das execuções de `conhecimento_simular_remocao`
-e `conhecimento_remover` já foram apagados (guia §1.3 e §11) — conferir.
-
 ---
 
 ## Média prioridade
@@ -218,6 +194,15 @@ continua lá, e a métrica para de medir no 3.
 
 Registrados para não voltarem por engano:
 
+- ~~**Tirar o material de curso da ENG02016 do banco e do histórico / Ingestão do `Links.md` (D-100/A7)**~~ —
+  remoção completa do material didático da disciplina e trabalhos de alunos do repositório,
+  do banco e do histórico git (30/09/2026). Para o `Links.md` restante no RAG de produção,
+  implementada a ingestão direcionada de arquivos sob demanda (`python -m app.knowledge.ingest --file <path>`),
+  com validação estrita (raiz, manifesto, links simbólicos e arquivos operacionais) e
+  ação correspondente `conhecimento_indexar_links` no workflow `.github/workflows/admin-banco.yml`,
+  permitindo indexação direta em produção (Neon) pelo GitHub Actions sem exigir clone com PDFs LFS locais.
+  Passos externos do proprietário (ticket de suporte do GitHub, refazer clones antigos e exclusão dos logs)
+  instruídos e documentados em `docs/17-limpeza-historico-cerebro.md`.
 - ~~**Concorrência das cotas exercitada contra PostgreSQL na CI (D-97/D-99)**~~ —
   quatro testes multithread contra PostgreSQL 16 (`apps/api/app/tests/test_notebook_quota_postgres.py`)
   estressando concorrência real sob nível de isolamento READ COMMITTED: 20 threads disputando
