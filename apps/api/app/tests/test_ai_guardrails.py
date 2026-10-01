@@ -50,6 +50,16 @@ class TestNumberExtraction:
         assert 1500.0 in found
         assert 1.5 in found
 
+    def test_grouped_thousands_requires_three_digit_groups(self) -> None:
+        # "80,0" is 80.0, NOT 800.0 (the fraction has 1 digit, not 3).
+        found = numbers_in("obteve 80,0% de aderência")
+        assert 80.0 in found
+        assert 800.0 not in found
+
+        found_grouped = numbers_in("1.500")
+        assert 1500.0 in found_grouped
+        assert 1.5 in found_grouped
+
     def test_negative_numbers(self) -> None:
         assert -40.0 in numbers_in("temperatura de -40 °C")
 
@@ -78,6 +88,11 @@ class TestUngroundedNumbers:
     def test_small_integers_are_exempt_as_counts(self) -> None:
         # "3 de 5 candidatos", "1º colocado" describe the result's shape.
         assert ungrounded_numbers("3 de 5 candidatos; o 1º é o melhor.", set()) == []
+
+    def test_small_integers_exempt_as_percentages_and_counts(self) -> None:
+        # 80.0 and 80 are small integers (<= 100) representing percentages or counts.
+        assert ungrounded_numbers("obteve 80,0% de aderência", set()) == []
+        assert ungrounded_numbers("atingiu 80% do esperado", set()) == []
 
     def test_large_round_number_is_not_exempt(self) -> None:
         assert 1500.0 in ungrounded_numbers("cerca de 1500 MPa", set())
