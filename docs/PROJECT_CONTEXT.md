@@ -136,10 +136,7 @@ o guia de limpeza do histórico,
 remoção em produção e a reescrita do histórico foram feitas pelo autor em
 30/09/2026 (`main`: `873dd53` → `b7dd105`, árvore idêntica; 76 commits
 duplicados colapsados; os 71 caminhos e os nomes dos alunos a 0 no histórico).
-Não há bases locais. Faltam o pedido ao suporte do GitHub, refazer os clones
-antigos e indexar o `Links.md` em produção (TODO A7). O `Links.md` **fica e passa a ser indexado**,
-por decisão do autor: a ingestão lê PDF e o Markdown que o `manifesto.json`
-declara, nunca o `README.md`.
+Não há bases locais. O pedido ao suporte do GitHub e refazer os clones antigos seguem como ações exclusivas do proprietário (TODO A7 e `docs/17-limpeza-historico-cerebro.md`). A indexação do `Links.md` em produção (Neon) foi viabilizada via ação `conhecimento_indexar_links` no workflow `admin-banco.yml`, utilizando a CLI com `--file`/`--path` e validação estrita (3347 → 3356 testes). O `Links.md` **fica e passa a ser indexado**, por decisão do autor: a ingestão lê PDF e o Markdown que o `manifesto.json` declara, nunca o `README.md`.
 
 **A falta que resta no trabalho como um todo não é de código** e não pode ser
 fechada por quem programa sozinho: a sessão de teste com usuários do §3.5 da
@@ -220,7 +217,8 @@ dirigidos por subagentes.** M5 estava registrado no backlog com a nota "só
 faça se o orientador pedir" — dito sem meias palavras: nesta sessão o usuário
 confirmou explicitamente que o orientador pediu, e só por isso o item saiu de
 fora de escopo (ver TODO.md). Dez tarefas ao todo (M5: Tarefas 1–5; M6:
-Tarefas 6–10), um implementador e um revisor por tarefa. `app/domain/\nranking.py` ganhou `rank_topsis` (proximidade a um ponto ideal/anti-ideal) e
+Tarefas 6–10), um implementador e um revisor por tarefa. `app/domain/ranking.py`
+ganhou `rank_topsis` (proximidade a um ponto ideal/anti-ideal) e
 `rank_promethee` (fluxo de saída líquido de comparações pareadas, função de
 preferência "usual"), os dois reaproveitando a exclusão de dado ausente e a
 renormalização de peso já existentes da soma ponderada; `app/domain/ahp.py`
@@ -556,7 +554,7 @@ declarações do atributo, com o escopo indo a 4096.
 
 **Concorrência das cotas em PostgreSQL exercitada na CI** (D-97/D-99): quatro testes multithread contra PostgreSQL 16 (`test_notebook_quota_postgres.py`) validando o `UPDATE ... WHERE counter < limit` sob concorrência real (20 threads simultâneas em disputa na criação a partir do zero e na fronteira do limite, reserva e liberação concorrentes, e reserva com folga), sem estourar limites nem cair em race condition, executados na CI via contêiner de serviço PostgreSQL.
 
-**Saúde do código:** 3347 testes de backend (Python 3.11 e 3.12, nenhum skip)
+**Saúde do código:** 3356 testes de backend (Python 3.11 e 3.12, nenhum skip)
 e 751 de frontend, todos verdes. Desde o P0-1 a suíte também roda as migrações de
 verdade, nos dois sentidos, contra um banco temporário que já contém dados —
 `test_migration_selection_stage.py`, `test_migration_process_universe.py`,
@@ -787,8 +785,8 @@ resto da fase — trazidas depois, íntegras, verificadas caminho a caminho:
   `.env.example`; sem nada configurado, a busca cai para léxico puro. Mais
   55 testes.
 - **Cobrança com Stripe** — `Subscription`, `SubscriptionRepository`,
-  `routers/billing.py`, `services/billing_service.py`, `require_active_
-  subscription`. O código entrou inteiro, mas o portão ficou desligado até
+  `routers/billing.py`, `services/billing_service.py`, `require_active_subscription`.
+  O código entrou inteiro, mas o portão ficou desligado até
   a arquitetura ser decidida entre dois desenhos concorrentes — resolvido
   em [D-46](DECISIONS.md): o portão binário do plano de 18/08 é o que está
   ligado hoje, aplicado a todo router exceto `health`/`auth`/`billing`. O
@@ -996,7 +994,7 @@ que mais afetam quem for mexer no código:
 | Dependência de provedor de IA | Arquitetura desacoplada com provedor simulado; funciona sem chave. |
 | Incorporação inadvertida de dado protegido | Triagem de licenciamento (M1, item 4.2 da proposta) — `Source` registra licença/procedência, e uma fonte nova sem licença ou marcada como possivelmente protegida sem confirmação humana é recusada antes de qualquer linha ser escrita ([D-44](DECISIONS.md)). |
 | Resultado não reproduzível por interferência de IA | Cálculo determinístico + guardrails executáveis + confirmação do usuário. |
-| Regressão silenciosa | CI com 3347 testes de backend e 751 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
+| Regressão silenciosa | CI com 3356 testes de backend e 751 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
 | Material licenciado do Cérebro exposto em `main` (repositório público) | Risco aceito por decisão explícita do autor, não mitigado — o Cérebro é a base de conhecimento da camada de IA ([D-45](DECISIONS.md)). |
 | Uso sem cobrança | Portão binário ligado ([D-46](DECISIONS.md)), checkout testado ao vivo em modo de teste — falta só configurar `STRIPE_API_KEY`/`STRIPE_WEBHOOK_SECRET`/`STRIPE_PRICE_ID` em **modo de produção** para vender de verdade. |
 
