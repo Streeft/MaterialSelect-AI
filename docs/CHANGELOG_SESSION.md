@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [38](#sessão-38--300926--concorrência-das-cotas-em-postgresql-na-ci-opção-b) | 30/09/2026 | Concorrência multithread das cotas dos Cadernos exercitada contra PostgreSQL 16 na CI (D-97/D-99, Opção B) | 3343 → 3347 | 751 (inalterado) |
 | [37](#sessão-37--300926--linha-de-tabela-com-pipes-não-é-mais-heading-d-97) | 30/09/2026 | Linha de tabela com pipes não é mais tratada como heading pelo fatiador (chunking.py, D-97) | 3338 → 3343 | 751 (inalterado) |
 | [36](#sessão-36--300926--o-material-de-curso-sai-do-histórico) | 30/09/2026 | O material de curso sai do banco de produção e do histórico do git (D-100): `main` `873dd53` → `b7dd105`, árvore idêntica, verificação a 0; pendências do autor registradas | 3338 (inalterado) | 751 (inalterado) |
 | [35](#sessão-35--290926--o-material-de-curso-sai-do-cérebro) | 29/09/2026 | O material de curso da ENG02016 sai do Cérebro: 71 arquivos fora do repositório, a lista de remoção como fonte única, a ferramenta que apaga do banco com simulação primeiro — por caminho ou por conteúdo —, o `Links.md` indexado e o guia de limpeza do histórico (D-100) | 3270 → 3338 | 751 (inalterado) |
@@ -56,6 +57,32 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 38 — 30/09/26 — Concorrência das cotas em PostgreSQL na CI (Opção B)
+
+**O pedido.** O usuário escolheu a **Opção B** do backlog de baixa prioridade em `docs/TODO.md`: "A concorrência das cotas exercitada contra PostgreSQL na CI" ("faça tudo, não quero mexer um músculo, apenas farei o merge...").
+
+**O problema.** A suíte de testes de cotas dos Cadernos (`test_notebook_quota_atomic.py`) provava apenas a forma do SQL (`UPDATE ... WHERE contador < limite`) contra SQLite em memória. A atomicidade sob concorrência real e row-locking multithread em nível de isolamento READ COMMITTED contra um banco PostgreSQL de verdade (alvo de produção) nunca era exercitada na integração contínua.
+
+**A solução.**
+1. **Nova suíte de testes de concorrência multithread (`apps/api/app/tests/test_notebook_quota_postgres.py`):**
+   - 4 testes estressando concorrência multithread contra PostgreSQL:
+     - `test_concurrent_reservations_from_scratch_postgres`: 20 threads disputando simultaneamente uma cota vazia (comportamento de `ON CONFLICT DO NOTHING` + `reserve` atômico). Exatamente 5 threads obtêm a vaga (limite 5), 15 são recusadas (`taken=False`) e o banco encerra com contador = 5.
+     - `test_concurrent_reservations_at_limit_minus_one_postgres`: 20 threads em corrida estrita disputando a última vaga (`already=4, limit=5`). Sob `READ COMMITTED` do Postgres (EvalPlanQual), exatamente 1 thread vence, 19 falham e o contador encerra em 5.
+     - `test_concurrent_reserve_and_release_postgres`: 15 threads de reserva e 5 threads de liberação intercaladas. O contador nunca cai abaixo de 0, nunca excede o limite, e no máximo 5 reservas têm sucesso.
+     - `test_concurrent_reservations_with_slack_postgres`: 10 threads disputando reservas com folga (`slack=2`) no limite. Exatamente 2 threads vencem, 8 falham e o contador encerra em 7.
+   - Respeito à integridade referencial: `AIUsage` referencia `User(id)`, portanto a fixture cria um usuário e projeto padrão antes das threads iniciarem.
+   - Pool de conexões dimensionado (`pool_size=30, max_overflow=20`) para prevenir contenção local do pool do SQLAlchemy sob disparos de 20 conexões simultâneas.
+   - Fallback gracioso com `pytest.mark.skipif(not _is_postgres_available(), ...)` para execuções locais sem PostgreSQL.
+2. **Integração na CI (`.github/workflows/ci.yml`):**
+   - Adicionado serviço de container `postgres:16` com healthcheck ao job `backend`.
+   - Instalado extra `.[dev,knowledge,postgres]` no job `backend`.
+   - Exportado `POSTGRES_TEST_URL` na matriz Python 3.11 e 3.12, garantindo execução completa dos 3347 testes de backend sem nenhum skip.
+   - Adicionado step dedicado no job `migrations-postgres` para execução explícita de `pytest -v --tb=short app/tests/test_notebook_quota_postgres.py`.
+
+**Números.** Backend 3343 → 3347 (+4 testes multithread, nenhum skip, todos verdes). Frontend 751 (inalterado).
+
+---
+
 ## Sessão 37 — 30/09/26 — Linha de tabela com pipes não é mais heading (D-97)
 
 **O problema.** `looks_like_heading()` em `app/knowledge/chunking.py` tratava
@@ -69,7 +96,7 @@ rotulava erroneamente os chunks subsequentes.
 e de caixa alta. Linhas com delimitador de coluna de tabela nunca são títulos. O
 workaround do `;` em `app/notebooks/html_text.py` (`_not_a_heading`) se
 desativa automaticamente para linhas com pipes porque `looks_like_heading` passa
-a retornar `False`.
+a retornar `False` .
 
 **Testes.** 5 novos testes de regressão em `test_knowledge_chunking.py`
 (4 unitários em `TestHeadingDetection` cobrindo número no início, caixa alta,
@@ -181,13 +208,13 @@ importantes e sete menores; todos corrigidos no mesmo PR.
   (lista branca), e `README.md`, `manifesto.json` e `removidos.txt` nunca entram.
   `Links.md` ganhou entrada no manifesto (tipo `LINK`, autoridade `SECUNDARIA`).
 - **Os menores.** A regra do `--replace-text` termina em `\\.pdf\"` para não
-  reescrever a si mesma no histórico (M1); o guia fala em \"todo commit anterior
-  à reescrita\" — o `5933328` que a revisão chamou de raiz era a borda de um
+  reescrever a si mesma no histórico (M1); o guia fala em "todo commit anterior
+  à reescrita" — o `5933328` que a revisão chamou de raiz era a borda de um
   clone raso, e a lista de commits de entrada ganhou o `7e34b24` (M2); o log
-  \"contém\" `[prune] REMOVIDOS` (M3); a lista é lida com BOM e uma pasta sem a
+  "contém" `[prune] REMOVIDOS` (M3); a lista é lida com BOM e uma pasta sem a
   `/` final é avisada (M4); o CLI de ingestão nomeia cada arquivo pulado e diz
   para rodar o `prune` quando ele ainda tem linha na base (M5); banco sem as
-  tabelas do Cérebro para com \"rode `migrar`\" (M6).
+  tabelas do Cérebro para com "rode `migrar`" (M6).
 
 **A segunda revisão e a segunda rodada de correção.** A rerrevisão ensaiou o
 guia inteiro num espelho completo do GitHub e achou um problema importante e
@@ -197,15 +224,17 @@ dois menores, todos corrigidos no mesmo PR.
   o `prune` imprimia o caminho de cada documento, e o de um trabalho entregue
   traz os nomes do grupo. `--redact` troca o nome de cada arquivo, removido ou
   que fica, pela pasta de primeiro nível e os 8 primeiros dígitos do sha256
-  (`02-Material-de-Curso-ENG02016/… sha256:1a2b3c4d`; na raiz, `(raiz)/…`),\n  mantendo contagens, motivo, histograma e totais. As duas ações de
+  (`02-Material-de-Curso-ENG02016/… sha256:1a2b3c4d`; na raiz, `(raiz)/…`),
+  mantendo contagens, motivo, histograma e totais. As duas ações de
   `admin-banco.yml` passam a opção; sem ela, local, os caminhos saem inteiros. O
   guia e o A7 mandam, além disso, apagar os logs das duas execuções depois de
   copiar os totais.
 - **A lista de commits (N2).** Saiu do guia e do D-100, que estava imprecisa;
-  fica a formulação que vale, \"todo commit e todo PR anteriores à reescrita\". O
+  fica a formulação que vale, "todo commit e todo PR anteriores à reescrita". O
   pedido ao suporte cita o PR #56, cuja ref guarda 65 dos arquivos fora de
   qualquer branch.
-- **Cópia local de bytes diferentes (N3).** Entra na lista como `sha256:`,\n  nunca pelo caminho: o caminho não serve ao histórico e publicá-lo poderia
+- **Cópia local de bytes diferentes (N3).** Entra na lista como `sha256:`,
+  nunca pelo caminho: o caminho não serve ao histórico e publicá-lo poderia
   publicar os nomes que se quer apagar.
 - **Os detalhes.** Um endereço com parênteses sai inteiro do Markdown e
   `>= 5 MPa` guarda o operador; a descoberta da ingestão não segue link
@@ -500,7 +529,7 @@ conta sem forma de pagamento, e nenhum texto sugerindo faturamento.
 - **Frontend.**
   - A aba **Link** no diálogo de fontes.
   - A pesquisa de fontes no painel: Artigos | Wikipédia | Web, marcação por
-    item, \"Adicionar N\" um por vez com estado por item e \"N de 30 buscas hoje\".
+    item, "Adicionar N" um por vez com estado por item e "N de 30 buscas hoje".
   - O leitor de fonte com o bloco **Origem** (link só http/https, licença,
     atribuição, de onde veio a transcrição).
   - Três ícones novos em `/estilo`.
@@ -524,16 +553,16 @@ branch.
   apagava: sondar a rede sairia de graça. Agora é gravada com commit antes de o
   erro seguir.
 - **Resultado web.** A chave de um resultado web foi restrita ao
-  redirecionamento do Google, para `found_via = \"busca_web\"` ser sempre
+  redirecionamento do Google, para `found_via = "busca_web"` ser sempre
   verdade.
 - **DNS de graça** (revisão final). A consulta ao DNS não gastava cota e
   dividia um pool de 4 threads com o processo inteiro: um nome cujo servidor
-  nunca responde travava as leituras de todos os alunos, e \"não resolve\" versus
-  \"resolve para dentro\" era sondagem gratuita. Agora toda consulta de um nome
+  nunca responde travava as leituras de todos os alunos, e "não resolve" versus
+  "resolve para dentro" era sondagem gratuita. Agora toda consulta de um nome
   conta uma unidade, recebe só o que resta do prazo da leitura, e o pool tem 16
   threads. Na mesma rodada: a tag `<trecho>`/`<consulta>` passou a ser
   neutralizada em qualquer caixa e espaçamento — no texto e nos atributos
-  `fonte`/`secao`, que numa página vêm do título —, a linha \"N de 30 buscas hoje\"
+  `fonte`/`secao`, que numa página vêm do título —, a linha "N de 30 buscas hoje"
   atualiza depois de um vídeo sem transcrição, e o `.env.example` e a tabela de
   ambiente do `docs/CLAUDE.md` descrevem as variáveis novas como o código as lê.
 
@@ -581,17 +610,17 @@ inalterado, 563.
 
 ## Sessão 30 — 25/09/26 — O Estúdio de texto dos Cadernos
 
-**O pedido.** \"Funcionou, agora vamos fazer o Estúdio\": a fase 2 dos Cadernos,
-com o modal \"Criar …\" das capturas do NotebookLM.
+**O pedido.** "Funcionou, agora vamos fazer o Estúdio": a fase 2 dos Cadernos,
+com o modal "Criar …" das capturas do NotebookLM.
 
 **O que entrou (D-94).** Cinco ferramentas — relatório (seis modelos, texto
 corrido ou tópicos), cartões didáticos, teste (múltipla escolha ou V/F), tabela
 de dados (colunas escolhidas pelo aluno) e mapa mental — no modal de Formato e
 Modelo, com o lápis abrindo a instrução do modelo, que vem do catálogo do
 backend. A geração responde 202 e roda em segundo plano; a lista do Estúdio
-mostra \"Gerando…\", \"Falhou\" com o motivo e \"Tentar de novo\", e o item pronto
+mostra "Gerando…", "Falhou" com o motivo e "Tentar de novo", e o item pronto
 abre dentro do painel: cartões que viram e embaralham, teste com dica,
-correção em palavras e \"Explicar\", tabela com a ausência escrita, mapa
+correção em palavras e "Explicar", tabela com a ausência escrita, mapa
 desenhado das coordenadas do backend com a lista como alternativa e um clique
 que leva a pergunta à conversa sem enviá-la. Exportações DOCX, CSV, XLSX e SVG
 com os dois avisos.
@@ -615,8 +644,8 @@ aberto e voltam quando ele fecha.
 
 ## Sessão 29 — 25/09/26 — Cadernos: o NotebookLM dentro do app, e o Gemini gratuito
 
-**O pedido.** \"Quero que a IA faça as mesmas funcionalidades do Google
-NotebookLM\", com o layout dele (\"parecido ou até igual\", com capturas), e o
+**O pedido.** "Quero que a IA faça as mesmas funcionalidades do Google
+NotebookLM", com o layout dele ("parecido ou até igual", com capturas), e o
 Gemini como IA oficial do projeto no lugar da Groq. As respostas às perguntas
 fecharam o escopo: cadernos **privados por aluno**; Estúdio completo (relatórios,
 cartões, teste, mapa mental, tabela, slides, infográfico, áudio e vídeo); fontes
@@ -648,7 +677,7 @@ salvar resposta como nota, cota diária. O canário de isolamento varre as rotas
 novas com um caderno alheio.
 
 Um defeito real apareceu no teste do provedor de verdade: os atributos do
-`<trecho>` saíam com os acentos escapados (`A\\u00e7os`), porque `json.dumps` usa
+`<trecho>` saíam com os acentos escapados (`A\u00e7os`), porque `json.dumps` usa
 ASCII por padrão. Corrigido com `ensure_ascii=False`.
 
 **F1c — a tela.** `/app/cadernos` e `/app/cadernos/[id]` no desenho das capturas,
@@ -927,7 +956,7 @@ construtor.
 **Três armadilhas menores viraram teste.** Uma incerteza é **diferença** (±5 K
 lidos em °C são ±5 °C, não ±268,15), daí `from_canonical_delta`; `pretty_unit`
 aprendeu °C/°F, porque a unidade chega à tela de verdade agora e ninguém viu
-\"degC\" numa tabela de materiais — mas `conversion_method` continua guardando
+"degC" numa tabela de materiais — mas `conversion_method` continua guardando
 `degC`, que é o que o Pint sabe reler; e as 38 fixturas de teste do frontend
 tiveram de declarar os campos novos, que é a tipagem estrita fazendo o trabalho
 que a tela de baterias mostrou ser necessário.
@@ -946,7 +975,7 @@ frontend. Cobertura EduPack ~97% → **100%** (32 de 32), nível médio 3,56 →
 **3,59**.
 
 **E 100% não quer dizer pronto.** A métrica para de medir no 3, e toda linha da
-matriz continua com a sua lista de \"faltam\" — catálogo de processos editável, o
+matriz continua com a sua lista de "faltam" — catálogo de processos editável, o
 *porquê* por registro reprovado, *Science Notes*, desempenho para centenas de
 milhares de registros. O número diz que nenhuma capacidade do modelo funcional
 está ausente ou pela metade, não que cada uma esteja no seu teto. E a pendência
@@ -957,12 +986,12 @@ realizada.
 
 ## Sessão 24 — 16/09/26 — P4: o Battery Designer, e a reconciliação do PR #56
 
-**O pedido.** Duas coisas, nesta ordem. Primeiro: \"criei a branch
+**O pedido.** Duas coisas, nesta ordem. Primeiro: "criei a branch
 `feature/battery-designer-module-s` no Antigravity CLI para trabalhar junto com
 esta sessão — verifique por que o PR #56 não mescla e se o Antigravity codou
-certinho a demanda\". Depois, com o diagnóstico na mão: \"confio em você Claude,
+certinho a demanda". Depois, com o diagnóstico na mão: "confio em você Claude,
 execute tudo o possível para não perder nada e reverter os problemas que ele
-causou\".
+causou".
 
 **Por que o PR #56 não mesclava, e o que havia de errado nele.** O conflito era
 de base: a branch saiu de um `main` anterior ao merge do PR #55, e trazia uma
@@ -1002,7 +1031,7 @@ candidatas ao lado do aço. A forma é a que o D-66 já aceitou para
 
 **A tela estava escrita contra um contrato imaginado.** `cell_nominal_voltage_v`
 em vez de `nominal_voltage`, `temp_range_min_c` em vez de
-`operating_temp_min_c`, rótulos térmicos em inglês (`\"excellent\"`, `\"moderate\"`)
+`operating_temp_min_c`, rótulos térmicos em inglês (`"excellent"`, `"moderate"`)
 onde o catálogo guarda ordinais em português, campos de arquétipo que não
 existem, e uma API de `CardHeader` que o sistema de design não tem. **E os testes
 passavam**, porque afirmavam o mesmo engano que o código. A correção foi
@@ -1015,8 +1044,8 @@ leitura.** Dois dos três fatores de empacotamento existiam só no estado do
 componente: o volumétrico e o de custo dividiam o volume e o investimento do pack
 sem que ninguém os visse — a regra de premissa visível do D-65, quebrada. O custo
 nivelado saía por `toFixed(4)`, que sempre escreve ponto, e a tabela teria
-\"3.900\" de milhar ao lado de \"0.0383\" de decimal (D-30). O pódio usava `?? 0`
-seis vezes, que imprimiria \"0 kg\" no dia em que um vencedor não fosse encontrado
+"3.900" de milhar ao lado de "0.0383" de decimal (D-30). O pódio usava `?? 0`
+seis vezes, que imprimiria "0 kg" no dia em que um vencedor não fosse encontrado
 (D-24). E a ficha da química não mostrava citação nem fonte — o catálogo tinha a
 proveniência e a tela não a dizia, que é meio princípio 1.
 
@@ -1045,7 +1074,7 @@ leitura, embora o documento exportado já imprima `kg/m³` em vez de `kg/m**3`).
 
 ## Sessão 23 — 16/09/26 — P3: os Sandwich Panels fecham a faixa
 
-**O pedido.** \"Continua os Sandwich Panels na mesma branch\", com a documentação
+**O pedido.** "Continua os Sandwich Panels na mesma branch", com a documentação
 do Synthesizer já pushada e a PR #55 aberta e verde. O item era o último em
 **zero** da faixa P3.
 
@@ -1064,7 +1093,7 @@ frações volumétricas, e `E*` passa dele. Com uma face de 70 GPa, um núcleo d
 0,1 GPa e `t/c = 1/18`, Voigt dá 7,09 GPa e `E*` dá **19,04 GPa** — 2,7× acima.
 Uma mistura não pode fazer isso; um arranjo pode, e é literalmente por isso que
 se constrói painel sanduíche em vez de moer os dois materiais juntos. O teste que
-compara os dois é o que cai no dia em que alguém \"simplificar\" a regra.
+compara os dois é o que cai no dia em que alguém "simplificar" a regra.
 
 **Duas degenerescências que conferem a fórmula inteira.** Sem núcleo, `E*`
 devolve `Ef`; sem faces, devolve `Ec`. As duas juntas fixam os três termos. A
@@ -1073,7 +1102,7 @@ face é 700× mais rígida —, e a primeira versão do teste falhou por isso. A
 correção foi **apertar o limite**, não afrouxar a tolerância: uma tolerância
 maior esconderia um erro de fórmula do tamanho do próprio termo.
 
-**O fato que torna o painel um \"material\".** Só a razão `t/c` decide: escala
+**O fato que torna o painel um "material".** Só a razão `t/c` decide: escala
 self-similar não move nem `ρ*` nem `E*`. Um índice de desempenho assume poder
 reescalar a seção, e sob essa liberdade o par `(E*, ρ*)` fica parado — que é
 exatamente o que um par de propriedades de material faz. Sem isso, plotar o
@@ -1109,7 +1138,7 @@ que é escolha de leitura e não módulo).
 
 ## Sessão 22 — 15/09/26 a 16/09/26 — P3: o Synthesizer
 
-**O pedido.** \"Continua o Synthesizer na mesma branch\", com a PR do Eco Audit
+**O pedido.** "Continua o Synthesizer na mesma branch", com a PR do Eco Audit
 (#54) ainda aberta. O Synthesizer entrou empilhado nela; a PR foi mesclada pelo
 autor com as duas metades dentro, e a documentação virou trabalho novo numa
 branch reiniciada a partir do `main` novo — uma PR mesclada está terminada.
@@ -1120,7 +1149,7 @@ um número plausível no catálogo? A resposta é a frase que governa o resto:
 **um valor sintetizado não é inventado; é calculado, e a diferença é que ele
 carrega a derivação.** Um limite de Voigt tirado de dois módulos catalogados e de
 uma fração declarada veio de algum lugar, e o lugar é auditável — a mesma
-distinção que o D-64 fez entre \"2,4 kg\" como afirmação e como número digitado ao
+distinção que o D-64 fez entre "2,4 kg" como afirmação e como número digitado ao
 lado de um rótulo. Daí os três suportes: registro **declarado** sintetizado com a
 receita gravada; cada valor nomeando a lei e a **base** dela; e qualidade do dado
 igual à **pior dos pais que a regra leu**.
@@ -1163,8 +1192,8 @@ que é o que a produção roda — a recusa. E a coluna NOT NULL numa tabela pop
 entrou com `server_default` que foi depois **retirado**, porque um padrão que o
 modelo não declara é deriva de schema.
 
-**Um defeito achado na verificação final, não por teste.** O link \"abrir o
-registro criado\" apontava para `/app/catalogo/{id}` — mas essa rota é a da
+**Um defeito achado na verificação final, não por teste.** O link "abrir o
+registro criado" apontava para `/app/catalogo/{id}` — mas essa rota é a da
 **família**, e a ficha de um material é `/app/materiais/{id}`. O teste passava
 porque afirmava o href errado junto com o código. Corrigido nos dois, com a
 distinção escrita no componente.
@@ -1177,13 +1206,14 @@ dela.
 
 **Resta da faixa P3** os *Sandwich Panels* — o mesmo mecanismo aplicado a uma
 geometria, com a diferença de que um painel sanduíche tem **arranjo**, e uma
-regra de mistura que ignore onde o material está não descreve uma viga em flexão.\nSaíram na sessão seguinte.
+regra de mistura que ignore onde o material está não descreve uma viga em flexão.
+Saíram na sessão seguinte.
 
 ---
 
 ## Sessão 21 — 15/09/26 — P3: o Eco Audit
 
-**O pedido.** \"Continua o Eco Audit na mesma branch\", com a PR do Part Cost
+**O pedido.** "Continua o Eco Audit na mesma branch", com a PR do Part Cost
 Estimator mesclada. Como a branch tinha acabado de ser mesclada, ela foi
 **reiniciada a partir do `main` novo** — uma PR mesclada está terminada e não
 recebe trabalho novo.
@@ -1221,7 +1251,7 @@ ambiental existe para desfazer.
 Dinheiro não está em sistema nenhum (D-65). Uma pegada de CO₂ *está*, mas é
 quilograma de uma substância por quilograma de outra, e o Pint não tem noção de
 substância — ele reduz a razão a adimensional. Mesmo tratamento, motivo
-diferente: adimensional no catálogo, \"kg de CO₂\" em palavras onde o número
+diferente: adimensional no catálogo, "kg de CO₂" em palavras onde o número
 aparece. A energia, essa sim, é derivada em MJ como o D-64 deriva uma massa.
 
 **O terceiro universo, e por que ele não é um processo.** `TransportMode` é
@@ -1235,7 +1265,7 @@ quatro linhas semeadas, sem importação nem digitação em v1.
 **Verificação.** Seis mutações sobre a camada de cálculo, todas apanhadas pelo
 teste que deveria apanhá-las. Sobre o catálogo semeado, as lacunas plantadas de
 propósito chegam à resposta como motivo escrito: cerâmica e compósito sem figura
-de reciclagem (os casos clássicos de \"não se recicla de rotina\") e o modal
+de reciclagem (os casos clássicos de "não se recicla de rotina") e o modal
 ferroviário sem intensidade de carbono.
 
 **Um ajuste de teste que valia a pena fazer direito.** Quatro propriedades novas
@@ -1256,7 +1286,7 @@ pré-requisito do outro.
 
 ## Sessão 20 — 15/09/26 — P3: o custo da peça, e o custo como objetivo
 
-**O pedido.** \"Continue de onde parou\", com a PR do P2 restante mesclada. O
+**O pedido.** "Continue de onde parou", com a PR do P2 restante mesclada. O
 roteiro apontava para o **P3**, cujo primeiro item — o *Part Cost Estimator* —
 era exatamente o que a sessão anterior tinha nomeado como pré-requisito do
 objetivo *custo*. Os dois saíram juntos, porque são a mesma pergunta em duas
@@ -1283,14 +1313,14 @@ a consequência é que a análise dimensional devolve a **mesma dimensão** nas 
 execuções do solver: massa e custo saem ambos em `[mass]`. Isso não é defeito —
 a prova continua derrubando um expoente errado num gêmeo de custo exatamente como
 derrubaria num de massa. O que ela deixou de fazer é **nomear a resposta**. Daí
-`objective`, `objective_unit` em palavras (\"unidade monetária não especificada\")
+`objective`, `objective_unit` em palavras ("unidade monetária não especificada")
 e `objective_note`, que carrega a explicação em vez de deixar o leitor deduzi-la
-de um \"[mass]\" embaixo de uma coluna de dinheiro.
+de um "[mass]" embaixo de uma coluna de dinheiro.
 
 **Três decisões de tela que não são acabamento.** O gêmeo de custo aparece **ao
 lado** do de massa no cartão do caso, antes da escolha — quem não vê os dois ao
 mesmo tempo não tem como notar que o fator estrutural não mudou. A faceta
-\"Objetivo\" nomeia as duas leituras, porque o objetivo deixou de ser propriedade
+"Objetivo" nomeia as duas leituras, porque o objetivo deixou de ser propriedade
 do caso e virou escolha de quem lê. E o **link para `/app/custo` some numa
 execução de custo**: ele leva `massa=` na URL, e entregar ali um custo daria ao
 estimador um número de outra grandeza sem que ele tivesse como perceber.
@@ -1316,15 +1346,15 @@ pré-requisito do outro.
 
 ## Sessão 19 — 15/09/26 — P2 restante: o Solver e o Index Finder
 
-**O pedido.** \"Para de checar e continua a P2 na mesma branch\", com a PR #52
+**O pedido.** "Para de checar e continua a P2 na mesma branch", com a PR #52
 ainda aberta e verde. O roteiro apontava para o resto do P2 — **Engineering
 Solver** e **Performance Index Finder** —, as duas últimas capacidades da tabela
 ainda em **zero**.
 
 **O achado que decidiu o desenho.** Ao escrever a especificação dos dois itens
-ficou claro que **não são dois**. O Finder pergunta \"qual índice esta combinação
-de função, restrição e objetivo produz?\"; o Solver pergunta \"com estes números,
-quantos quilos dá?\". As duas perguntas caem sobre a **mesma derivação**.
+ficou claro que **não são dois**. O Finder pergunta "qual índice esta combinação
+de função, restrição e objetivo produz?"; o Solver pergunta "com estes números,
+quantos quilos dá?". As duas perguntas caem sobre a **mesma derivação**.
 Construí-los separados criaria as duas verdades que o D-60 (figura × funil) e o
 D-63 (`allows_log_scale`) recusaram cada um na sua camada.
 
@@ -1356,9 +1386,9 @@ positivo e abrir o predicado derruba a prova de vazamento.
   (`[mass] / [length] ** 2.22e-16`) quando um índice de expoente fracionário se
   combinava com o caso que o produz — `2 / 3` não é fração binária. A string ia
   para a tela.
-- A tabela de sinônimos da camada de IA conhecia \"rigidez\" e \"rigido\" mas não o
-  adjetivo flexionado, e o casamento é por substring: *\"uma viga leve e
-  **rígida**\"* não nomeava propriedade nenhuma. Ficou invisível enquanto havia um
+- A tabela de sinônimos da camada de IA conhecia "rigidez" e "rigido" mas não o
+  adjetivo flexionado, e o casamento é por substring: *"uma viga leve e
+  **rígida**"* não nomeava propriedade nenhuma. Ficou invisível enquanto havia um
   único índice de viga no catálogo; quando entrou o segundo, os dois empataram em
   função e objetivo e o desempate **alfabético** entregou ao leitor um índice de
   resistência que ele não pediu. A expectativa do teste estava certa — quem
@@ -1380,7 +1410,7 @@ razão pela qual o custo ficou nomeado como omissão no D-64 em vez de improvisa
 
 ## Sessão 18 — 14/09/26 — P2: o fim do fluxo do manual
 
-**O pedido.** \"Continue de onde parou\", com a PR do P1-4 mesclada. O roteiro
+**O pedido.** "Continue de onde parou", com a PR do P1-4 mesclada. O roteiro
 apontava para o P2, e as três capacidades dele — `Find Similar`, registro de
 referência e a tabela de comparação — são **um fluxo só** no manual, então
 saíram juntas.
@@ -1396,7 +1426,7 @@ propriedade vive. E a escala é promediada, não somada, senão a base mais larg
 pareceria mais distante por ter respondido mais.
 
 *Quando um percentual significa alguma coisa.* Só em escala de razão. 600 K é
-mesmo o dobro de 200 K; 20 °C não é o dobro de 10 °C, e \"+100%\" ali seria falso
+mesmo o dobro de 200 K; 20 °C não é o dobro de 10 °C, e "+100%" ali seria falso
 com toda a autoridade de um número calculado. `is_ratio_scale` decide por
 **comportamento** — dobrar a magnitude dobra a grandeza em unidade base *é* a
 definição — e não por introspecção de tabela privada do Pint. Nenhuma unidade
@@ -1429,7 +1459,7 @@ e o **Performance Index Finder**.
 
 ## Sessão 17 — 14/09/26 — P1-4: o catálogo ganha dono, e o usuário ganha espaço
 
-**O pedido.** \"Continue de onde parou\", depois que a PR do P1-3 foi mesclada.
+**O pedido.** "Continue de onde parou", depois que a PR do P1-3 foi mesclada.
 Restava um item na faixa P1 e ele era o que mexia na fronteira do D-42, então a
 escolha não teve concorrente: **`My Records`**.
 
@@ -1481,7 +1511,7 @@ de comparação com diferença percentual), que o `My Records` destravou.
 
 ## Sessão 16 — 13/09/26 a 14/09/26 — P1-3: a taxonomia vira registro, e o segundo universo se navega
 
-**O pedido.** \"Continue\", depois que a PR do P1-2 foi mesclada. Entre as duas
+**O pedido.** "Continue", depois que a PR do P1-2 foi mesclada. Entre as duas
 frentes de P1 restantes — `My Records` e o browse — a escolha foi o **browse**,
 dita e justificada na hora: `My Records` mexe na fronteira que o D-42
 estabeleceu (catálogo compartilhado entre todo usuário autenticado) e interage
@@ -1501,7 +1531,7 @@ já existem e move três capacidades da matriz.
 
 **O achado que vale a sessão.** Escrevendo o teste do registro de família, uma
 asserção quebrou e mostrou que `process_count` contava processos **inativos**
-enquanto toda lista os excluía — uma pasta diria \"2 processos\" e entregaria um.
+enquanto toda lista os excluía — uma pasta diria "2 processos" e entregaria um.
 Comecei a tratar como defeito e o teste antigo tinha **razão escrita**: era
 decisão, não descuido. A reversão foi feita mesmo assim, com os três motivos no
 D-61, e o teste antigo foi **reescrito com o raciocínio inteiro** em vez de
@@ -1526,7 +1556,7 @@ desde o P0-2.
 
 ## Sessão 15 — 11/09/26 a 13/09/26 — P1-2: o gráfico passa a reprovar
 
-**O pedido.** \"Iniciar o P1\" — com a ressalva explícita de que as sessões de teste
+**O pedido.** "Iniciar o P1" — com a ressalva explícita de que as sessões de teste
 com usuários ficam para mais adiante e o projeto pode seguir sem essa validação
 por enquanto. O P1-1 (busca com operadores) já estava entregue, então a próxima
 frente era o **Chart Stage que filtra**: o único nível **1** da matriz de
@@ -1560,8 +1590,8 @@ coincidência, e é a leitura do ADR 0004 aplicada a um estágio inteiro.
 **Registro que não pode ser posto no plano nunca passa**, mesmo onde a caixa não
 limita aquele eixo e mesmo sem caixa nenhuma. Não é a regra que um limiar daria, e
 a diferença é deliberada: quem o leitor não vê na figura não pode estar no
-resultado. Isso dá sentido a um estágio de gráfico sem nada desenhado — \"tem de ser
-plotável aqui\".
+resultado. Isso dá sentido a um estágio de gráfico sem nada desenhado — "tem de ser
+plotável aqui".
 
 **O mesmo envelope lê de dois jeitos, de propósito.** Um estágio de limites compara
 por alcance (P0-4); um estágio de gráfico compara o ponto representativo, porque é o
@@ -1577,7 +1607,7 @@ A asserção sobre `<polyline>` fechou isso. E a guarda `kind <> 'chart'` da
 própria migração não roda, porque os estágios já gravados violam a checagem no
 instante em que o `batch_alter_table` recria a tabela.
 
-**Numeração corrigida de passagem.** O §3 do roteiro chamava de \"P1-2\" o item
+**Numeração corrigida de passagem.** O §3 do roteiro chamava de "P1-2" o item
 `My Records`, que a tabela do §5 sempre listou *depois* do Chart Stage. A numeração
 passou a seguir a ordem do §5: o Chart Stage é o P1-2 e `My Records` é o P1-3.
 
@@ -1618,15 +1648,15 @@ characteristics*, *Economic batch size* — e nenhum existia.
 
 **Três defeitos, dois deles achados sem asserção que falhasse.** Um estágio de
 limites num estudo de processos resolvia slugs contra o catálogo de materiais e
-então não admitia ninguém, sem explicação. A interpretação da IA dizia \"Partindo
-de 13 **materiais**\" numa seleção de processos — achado lendo o laudo renderizado,
+então não admitia ninguém, sem explicação. A interpretação da IA dizia "Partindo
+de 13 **materiais**" numa seleção de processos — achado lendo o laudo renderizado,
 e a mesma palavra chegava ao prompt de um provedor real. E habilitar o
 ranqueamento abriu a possibilidade de o mapa do laudo destacar materiais com ids
 de processo; o guard tem teste que constrói a colisão de slug de propósito e falha
 sem ele.
 
 **Um erro de contagem meu, corrigido:** a matriz de maturidade sempre teve 32
-linhas, e o parágrafo de cobertura dizia \"30 avaliadas\", publicando ~57%. O número
+linhas, e o parágrafo de cobertura dizia "30 avaliadas", publicando ~57%. O número
 certo é 17 de 32 (~53%). E pelo terceiro marco seguido o percentual não se move,
 porque o P0-4 levantou duas capacidades que já estavam acima do corte — daí o
 **nível médio** passar a ser publicado junto (2,16).
@@ -1662,7 +1692,7 @@ Três coisas que a sessão registrou como decisão, não como detalhe: a **famí
 do processo é a raiz da taxonomia** e não uma coluna enum; a **associação não
 carrega número nenhum**, porque um valor sobre o par precisaria da proveniência
 de `MaterialPropertyValue` e inventá-lo violaria o princípio 1; e a semântica é
-**\"algum\"**, porque a conjunção já é expressa por dois estágios.
+**"algum"**, porque a conjunção já é expressa por dois estágios.
 
 **Três defeitos achados fora de teste**, e é o que o método valeu:
 
@@ -1692,7 +1722,7 @@ renderizado**, não a asserção:
    estudo de processos imprimiria a proveniência do material que por acaso
    carrega aquele id, sob o nome de um processo — a pior falha disponível num
    documento auditável.
-2. A coluna \"Tipo\" da tabela de estágios imprimia o slug cru `material`.
+2. A coluna "Tipo" da tabela de estágios imprimia o slug cru `material`.
 3. O estágio de árvore validava `class_slugs` contra a taxonomia de materiais
    mesmo num estudo de processos: 404 em slug legítimo.
 4. O `switch` que reabre um estudo salvo ficou não-exaustivo — pego pelo `tsc`.
@@ -1707,7 +1737,7 @@ exercício inteiro é o que segura o banco de processos em 3. Próximo gargalo:
 
 # Sessão 12 — 08/09/26 — A ferramenta no ar, e a camada de IA ligada em produção
 
-Ponto de partida: fim da sessão 11 mais o patch \"Prisma\", o S1 e a rodada de
+Ponto de partida: fim da sessão 11 mais o patch "Prisma", o S1 e a rodada de
 desempenho (ver a nota do cabeçalho). Pedido: **publicar a ferramenta**, passo a
 passo e em conjunto — e, feito isso, fazer a camada de IA funcionar de verdade
 na instância publicada. Testes de backend: 872 → 884 (0 skip); frontend: 197,
@@ -1743,7 +1773,7 @@ Nesta ordem, cada um bloqueando o seguinte:
 4. **`NEXT_PUBLIC_API_URL` tratado como variável de runtime** — ela é embutida
    no *build*, e **vazia é um valor com significado** (daí `??` e não `||`);
    ausente, o frontend chama `localhost:8000`.
-5. **O cookie de sessão fixo em `samesite=\"lax\"`**.
+5. **O cookie de sessão fixo em `samesite="lax"`**.
 
 O quinto é o que explica a topologia: a API é servida **pela origem do
 frontend**, por `rewrites()` da Vercel (#33). Sem isso o cookie `SameSite=Lax`
@@ -1758,9 +1788,9 @@ Assinatura comum: **o job termina verde e a aplicação não funciona**.
 - **O app sem endereço público** (#36). O `flyctl deploy` só aloca um IP
   sozinho quando o app **ainda não tem máquinas**. Um app criado pelo painel
   chega ao primeiro deploy com máquinas de pé e nenhum endereço: o deploy passa,
-  os health checks passam, as migrações rodam, o flyctl imprime *\"Visit your
-  newly deployed app at…\"* — e o navegador devolve `NXDOMAIN`. O passo
-  \"Garantir endereço público\" agora **falha o job** se ao final não houver
+  os health checks passam, as migrações rodam, o flyctl imprime *"Visit your
+  newly deployed app at…"* — e o navegador devolve `NXDOMAIN`. O passo
+  "Garantir endereço público" agora **falha o job** se ao final não houver
   nenhum IP público; um `private_v6` sozinho não conta.
 - **`flyctl ips allocate-v6` não é idempotente** (#37). A primeira versão do
   passo usava `|| true`, presumindo que repetir daria erro. Não dá: aloca outro
@@ -1769,14 +1799,14 @@ Assinatura comum: **o job termina verde e a aplicação não funciona**.
   conta antes de alocar.
 
 Vale registrar um terceiro tropeço, que não é do Fly e sim da interface do
-GitHub: **\"Re-run jobs\" reexecuta o commit congelado daquela execução**, nunca a
-`main` mais nova. Um deploy \"re-rodado\" depois de uma correção reimplanta a
+GitHub: **"Re-run jobs" reexecuta o commit congelado daquela execução**, nunca a
+`main` mais nova. Um deploy "re-rodado" depois de uma correção reimplanta a
 versão sem a correção.
 
 ## 4. A camada de IA: dois defeitos que só existem com provedor real
 
-Com a ferramenta no ar, o painel de IA devolvia *\"Falha na requisição
-/api/ai/interpret\"* — a mensagem genérica do frontend, que não diz nada.
+Com a ferramenta no ar, o painel de IA devolvia *"Falha na requisição
+/api/ai/interpret"* — a mensagem genérica do frontend, que não diz nada.
 
 **#39 — o `AIUnavailableError` sem tratador.** A exceção era capturada só na
 *construção* do provedor (camada desligada é configuração → 400), nunca na
@@ -1794,8 +1824,8 @@ error code: 1010
 ```
 
 **#40 — a requisição não se identificava.** `error code: 1010` não é da Groq: é
-da **Cloudflare**, que fica na frente dela, e significa \"assinatura de cliente
-banida\". O provedor mandava exatamente dois cabeçalhos, e sem `User-Agent` o
+da **Cloudflare**, que fica na frente dela, e significa "assinatura de cliente
+banida". O provedor mandava exatamente dois cabeçalhos, e sem `User-Agent` o
 `urllib` se anuncia como `Python-urllib/3.x` — assinatura que WAFs barram por
 padrão. O 403 vinha do porteiro, antes de a API ver a requisição, e a mensagem
 mandava trocar uma chave que estava correta o tempo todo. O teste escrito antes
@@ -1807,8 +1837,8 @@ cliente HTTP independentemente de qualquer WAF. O `claude-api` não tinha a
 lacuna porque usa o SDK da Anthropic; verificado, não presumido.
 
 Depois do deploy, o painel foi exercitado ao vivo com um enunciado em português
-(\"viga leve e rígida, temperatura de serviço no mínimo 300 °C, densidade no
-máximo 3 g/cm³\") e devolveu função, as duas restrições com o trecho de origem e
+("viga leve e rígida, temperatura de serviço no mínimo 300 °C, densidade no
+máximo 3 g/cm³") e devolveu função, as duas restrições com o trecho de origem e
 o índice `viga-leve-rigidez` do catálogo. **Ancoragem numérica e unidade
 explícita intactas contra um provedor real** — os guardrails da Fase 6 foram
 exercitados fora do `mock` pela primeira vez, e é essa a prova de que a camada é
@@ -1830,8 +1860,8 @@ mesmo substituível.
 
 Ponto de partida: fim da sessão 10 (B1–B10 mesclados, commit `a97248d`).
 Pedido: M5 e M6, os dois itens de `docs/TODO.md` que restavam além de baixa
-prioridade — M6 já estava em \"Média prioridade\", pronto para ser feito; M5
-carregava a nota \"só faça se o orientador pedir\", e o usuário confirmou
+prioridade — M6 já estava em "Média prioridade", pronto para ser feito; M5
+carregava a nota "só faça se o orientador pedir", e o usuário confirmou
 explicitamente, nesta sessão, que o orientador pediu — revertendo a nota e
 tirando o item de fora de escopo, registrado assim sem meias palavras no
 próprio TODO.md. Testes de backend: 831 → 872 (0 skip); frontend: 165 → 179.
@@ -1885,7 +1915,7 @@ contador `nextId()` e `ConstraintEditor.tsx` um `internalId()` separado,
 ambos zerados em 0 e no mesmo formato `row-N`/`group-N` — as duas fontes
 podiam produzir o mesmo id, quebrando a premissa de id único que
 `updateConstraintById`/`removeConstraintById` fazem sobre a árvore inteira
-(reabrir um estudo e clicar \"Adicionar restrição\" podia reaproveitar um id
+(reabrir um estudo e clicar "Adicionar restrição" podia reaproveitar um id
 já existente, fazendo editar ou remover uma linha afetar silenciosamente
 outra). Corrigido unificando os dois num gerador só, `nextEditorId`,
 exportado por `ConstraintEditor.tsx` (commit `db1caa5`), com teste de
@@ -1903,8 +1933,8 @@ isolada alcança: código novo (M5/M6) encontrando código antigo intocado.
 1. O campo `method` (TOPSIS/PROMETHEE/soma ponderada) não chegava a nenhuma
    tela, e duas superfícies pré-existentes afirmavam algo **falso**
    especificamente para TOPSIS: o painel de proveniência dos resultados
-   caía no `else` e mostrava \"Normalização: Min-máx\", e a nota de
-   \"Contribuições\" do relatório/laudo exportado (`export_service.py`)
+   caía no `else` e mostrava "Normalização: Min-máx", e a nota de
+   "Contribuições" do relatório/laudo exportado (`export_service.py`)
    afirmava que a pontuação é a soma das contribuições — o próprio
    docstring de `rank_topsis` nega isso.
 2. `AhpWeightsIn.matrix` aceitava `NaN`/`Infinity` — faltava o
@@ -1938,8 +1968,8 @@ corrigidos e os testes novos passando, sem achado novo.
 
 872 testes de backend (nenhum skip, antes 831) e 179 de frontend (antes
 165), `ruff`/`black --check`/`typecheck`/`lint`/`build` limpos, `alembic
-heads` num só head. `docs/TODO.md`: M5 e M6 saem de \"Média prioridade\" para
-\"Débitos já quitados\", com a autorização do orientador e a limitação
+heads` num só head. `docs/TODO.md`: M5 e M6 saem de "Média prioridade" para
+"Débitos já quitados", com a autorização do orientador e a limitação
 conhecida de `StudyOut` (M6) registradas ali mesmo. Detalhe completo da
 rodada de correção final em
 `.superpowers/sdd/2026-09-01-m5-m6-multicriterio-e-restricoes-aninhadas/final-fix-wave-report.md`.
@@ -1949,8 +1979,8 @@ rodada de correção final em
 # Sessão 10 — 27/08/26 a 31/08/26 — Backlog B1–B10 entregue por inteiro, via SDD
 
 Ponto de partida: fim da sessão 9 (PR #27 mesclada, D-48 registrado). Pedido:
-\"fazer as demandas de baixa prioridade B1-B10\" — as dez pendências de
-`docs/TODO.md` §\"Baixa prioridade\", cada uma pequena isoladamente (▁/▃ de
+"fazer as demandas de baixa prioridade B1-B10" — as dez pendências de
+`docs/TODO.md` §"Baixa prioridade", cada uma pequena isoladamente (▁/▃ de
 dificuldade) mas as dez juntas cobrindo praticamente todo o sistema:
 importação, mapa de Ashby, catálogo de materiais, exportação. Testes de
 backend: 795 → 831 (0 skip); frontend: 162 → 165.
@@ -1982,7 +2012,7 @@ valem registro:
   um teste de regressão usa exatamente o payload malicioso da PoC do
   revisor.
 - **Limites de taxa, não bugs.** Duas vezes um implementador foi interrompido
-  por \"session limit\"/\"weekly limit\" da API, não por um erro de código —
+  por "session limit"/"weekly limit" da API, não por um erro de código —
   verificado a cada vez via `git status`/`git diff` antes de redespachar (uma
   vez havia um diff correto sem commit, recuperado; a outra, nada a
   recuperar, redespachado do zero). O modelo usado nos despachos caiu de
@@ -1991,14 +2021,14 @@ valem registro:
 - **Revisão final pegou dois bugs reais que dez revisões de tarefa (mais
   leves, em haiku) tinham deixado passar** — exatamente o motivo de uma
   revisão de branch inteira existir:
-  - **B7:** o seletor \"carregar gráfico salvo\" era um no-op silencioso — a
+  - **B7:** o seletor "carregar gráfico salvo" era um no-op silencioso — a
     página aplicava os dados da *lista* de gráficos salvos
     (`SavedChartListItem`, que omite `configuration` de propósito, para não
     enviar o blob de filtro inteiro de cada gráfico só para popular um
     seletor) através de um duplo cast `as unknown as Partial<MapUrlState>`,
     em vez de buscar o registro completo com `getSavedChart(id)` — que já
     existia em `lib/api.ts` mas nunca era chamado.
-  - **B8:** o objetivo de \"trocar de escala sem recarregar\" não era
+  - **B8:** o objetivo de "trocar de escala sem recarregar" não era
     cumprido — faltava `placeholderData` no `useQuery` do mapa; sem ele, o
     React Query zera os dados a cada troca de `scale` (que faz parte da
     chave da consulta), desmontando o gráfico e mostrando o carregamento
@@ -2022,9 +2052,9 @@ valem registro:
 831 testes de backend, 165 de frontend, `ruff`/`black`/`typecheck`/`lint`
 limpos, `alembic upgrade head` + seed confirmados contra um banco limpo (a
 cadeia de duas migrations novas — `SavedChart` de B7, `MaterialKeyword` de
-B5 — é linear). `docs/TODO.md` atualizado: B1–B10 saem de \"Baixa
-prioridade\" (agora vazia) para \"Débitos já quitados\"; `SavedChart` sai de
-\"Entidades ainda não modeladas\".
+B5 — é linear). `docs/TODO.md` atualizado: B1–B10 saem de "Baixa
+prioridade" (agora vazia) para "Débitos já quitados"; `SavedChart` sai de
+"Entidades ainda não modeladas".
 
 ---
 
@@ -2082,7 +2112,7 @@ select e chips desde a Fase 9 (`components/ui/material/elements.ts`, em
 
 **Achado não resolvido nesta sessão:** nenhum documento registrava o uso de
 `@material/web`, e o padrão conflita textualmente com [D-23](DECISIONS.md)
-(\"sistema de design próprio, sem biblioteca de componentes\") e com a
+("sistema de design próprio, sem biblioteca de componentes") e com a
 proibição do §13 de [REDESIGN.md](REDESIGN.md). `@material/web` é a
 biblioteca de Web Components do Material Design 3, com sua própria camada
 de tema (100 variáveis `--md-sys-*` em `globals.css`, paralela aos tokens
@@ -2176,12 +2206,12 @@ escolheu o binário — já pronto contra uma reimplementação do zero.
   nenhuma → 403 em `/api/materials`, 200 em `/api/billing/status` (a rota
   continua alcançável para o `AuthGate` decidir o redirecionamento).
 
-Decisão completa em [D-46](DECISIONS.md); M9 passou para \"Débitos já
-quitados\" no `TODO.md`. PR #20.
+Decisão completa em [D-46](DECISIONS.md); M9 passou para "Débitos já
+quitados" no `TODO.md`. PR #20.
 
 ## 3. Configurar o Stripe de verdade e testar o checkout — ao vivo, na máquina do autor
 
-Pedido seguinte: \"configura o Stripe de verdade e testa o checkout\". Este
+Pedido seguinte: "configura o Stripe de verdade e testa o checkout". Este
 ambiente remoto bloqueia por política de rede **todo** domínio `*.stripe.com`
 e `packages.stripe.dev` (confirmado via o proxy de saída, `403` em toda
 tentativa de `CONNECT`) — sem contorno possível nem tentado, como a política
@@ -2189,7 +2219,7 @@ de negação exige. O trabalho de configuração e teste aconteceu inteiramente
 na máquina Windows do autor, guiado turno a turno por este agente sem
 nenhum acesso a ela: Stripe CLI, conta de teste, produto e preço; cliente
 OAuth real no Google Cloud Console; Python nunca instalado (instalação do
-zero, com o checkbox \"Add python.exe to PATH\"); `.venv` inexistente;
+zero, com o checkbox "Add python.exe to PATH"); `.venv` inexistente;
 checkout local desatualizado sem o extra `billing` do `pyproject.toml`;
 banco sem migrations aplicadas (`no such table: user`); porta 3000 ocupada
 por processo zumbi, derrubando o CORS do `AuthGate`. Cada obstáculo foi
@@ -2199,7 +2229,7 @@ por restrição da máquina do autor.
 
 Resultado da primeira tentativa: **pagamento completo** na Stripe (modo de
 teste, cartão `4242 4242 4242 4242`), redirecionamento de volta com
-`?status=sucesso` — mas `/assinatura` continuava mostrando \"não assinado\", e
+`?status=sucesso` — mas `/assinatura` continuava mostrando "não assinado", e
 `stripe listen` mostrava **todo** evento de webhook voltando `500`.
 
 ## 4. O bug do webhook: `.get()` num objeto que não é um dict
@@ -2229,12 +2259,12 @@ ativa — M9 testado de ponta a ponta, não só pelos 713 testes automatizados.
 
 ## 5. Documentação do teste ao vivo
 
-`D-46` (com uma nova seção \"Checkout real testado ao vivo\"), a entrada de M9
+`D-46` (com uma nova seção "Checkout real testado ao vivo"), a entrada de M9
 em `TODO.md` e as seções 4/9 de `PROJECT_CONTEXT.md` foram atualizadas para
 registrar a verificação de ponta a ponta e o bug encontrado/corrigido. A
-limitação que resta deixou de ser \"ninguém testou o fluxo\" e passou a ser só
-\"nenhuma credencial de **produção** (`sk_live_...`) está configurada em
-lugar nenhum\" — D-36 já estabelece que nenhuma credencial tem valor padrão,
+limitação que resta deixou de ser "ninguém testou o fluxo" e passou a ser só
+"nenhuma credencial de **produção** (`sk_live_...`) está configurada em
+lugar nenhum" — D-36 já estabelece que nenhuma credencial tem valor padrão,
 de propósito. PR #22.
 
 ## 6. Verificação
@@ -2244,8 +2274,8 @@ de propósito. PR #22.
 tudo verde nos quatro PRs (#20, #21, #22) e nas quatro reconciliações (#15,
 #14, #7, #18) mais o PR #19 de docs. Além dos testes: o checkout completo
 foi executado de verdade contra a Stripe em modo de teste, não só simulado
-contra um cliente falso — a mesma prática de \"verificação ao vivo além dos
-testes\" que já tinha achado a unidade nula na camada de IA em sessão
+contra um cliente falso — a mesma prática de "verificação ao vivo além dos
+testes" que já tinha achado a unidade nula na camada de IA em sessão
 anterior.
 
 ## 7. O que fica em aberto
@@ -2263,7 +2293,7 @@ anterior.
 
 Ponto de partida: o merge da PR #10 (sessões 5+6, M2+A2) em `main`
 (`5f8b7f0`). Testes de backend: 632 → 639. O usuário mesclou a PR direto
-(\"tire do rascunho e faça o merge, eu já revisei\"), então este trabalho
+("tire do rascunho e faça o merge, eu já revisei"), então este trabalho
 reinicia o branch designado a partir de `main`, como as instruções de tarefa
 preveem para uma PR já mesclada — não empilha em cima de histórico já
 integrado.
@@ -2282,15 +2312,15 @@ correto independente de a origem acabar sendo benigna ou não.
 
 ## 2. O pedido e a escolha do que atacar
 
-Passado o merge, o usuário perguntou \"qual o próximo passo?\" sem apontar um
+Passado o merge, o usuário perguntou "qual o próximo passo?" sem apontar um
 item. Restavam dois: M1 (triagem de licenciamento) e a sessão de teste de
 usabilidade do §3.5 — esta última exige participantes reais, não é código que
 uma sessão feche sozinha. M1 foi a escolha natural e confirmada pelo usuário.
 
-(Um pedido paralelo — \"estruture a pasta Cérebro\" — apareceu antes disso.
-\"Cérebro\" não é um conceito que existe em nenhum lugar do repositório; a
-pergunta de esclarecimento foi interrompida pelo usuário com \"esqueça por
-enquanto\", então fica registrada como não resolvida, não como decidida.)
+(Um pedido paralelo — "estruture a pasta Cérebro" — apareceu antes disso.
+"Cérebro" não é um conceito que existe em nenhum lugar do repositório; a
+pergunta de esclarecimento foi interrompida pelo usuário com "esqueça por
+enquanto", então fica registrada como não resolvida, não como decidida.)
 
 ## 3. O que foi implementado
 
@@ -2304,13 +2334,13 @@ registrou a fonte e quando (`reviewed_by_user_id`/`reviewed_at`).
   pode mudar entre as duas chamadas). Uma fonte **nova** sem
   `source_license_label` é recusada antes de qualquer linha ser escrita; uma
   fonte marcada `source_contains_third_party_data=True` exige também
-  `source_review_confirmed=True` explícito — a \"decisão humana obrigatória
-  antes da incorporação\" que o item do backlog pede.
+  `source_review_confirmed=True` explícito — a "decisão humana obrigatória
+  antes da incorporação" que o item do backlog pede.
 - **Reusar um `source_label` já registrado não reabre a decisão.** A licença
   é fixada uma vez, na primeira importação que registra aquela fonte; a
   segunda, a terceira, todas as seguintes reaproveitam a linha como está.
 - **O portão não cobre o cadastro manual de material**, de propósito — o
-  item do backlog fala em \"base... importada\", e um material só já passa por
+  item do backlog fala em "base... importada", e um material só já passa por
   uma pessoa logada decidindo linha a linha, o mesmo nível de decisão que o
   portão está formalizando para um lote inteiro de uma vez. Estender ao
   cadastro manual mudaria o contrato de `PropertyValueIn` (e os dois arquivos
@@ -2321,7 +2351,7 @@ registrou a fonte e quando (`reviewed_by_user_id`/`reviewed_at`).
 - **Backfill da fonte de demonstração do seed**, tanto na migration
   (`fc5a731dd162`, para um banco de desenvolvimento já semeado antes desta
   sessão) quanto em `app/db/seed.py` (para um banco novo) — a única fonte que
-  já existia antes de M1 nunca aparece como \"sem licença\".
+  já existia antes de M1 nunca aparece como "sem licença".
 
 Decisão completa (com alternativas descartadas) em [D-44](DECISIONS.md).
 
@@ -2353,14 +2383,14 @@ sozinho.
 
 Ponto de partida: fim da sessão 5 (PR #10 aberta, M2 verde). Testes de
 backend: 630 → 632. Continuação da mesma sessão de trabalho após uma pausa —
-o usuário voltou (\"bom dia\") e escolheu A2 entre as pendências restantes do
+o usuário voltou ("bom dia") e escolheu A2 entre as pendências restantes do
 `TODO.md`, a mesma pergunta feita no início da sessão 5.
 
 ## 1. O caso escolhido
 
-O tirante leve e rígido (\"light, stiff tie\") de Ashby: elemento sob tração
+O tirante leve e rígido ("light, stiff tie") de Ashby: elemento sob tração
 pura, minimizar massa para rigidez axial especificada, índice a maximizar
-`M = E/ρ`. Três razões concretas, não só \"é um exemplo clássico\":
+`M = E/ρ`. Três razões concretas, não só "é um exemplo clássico":
 
 - O índice `rigidez-especifica` (`modulo_young / densidade`) **já estava
   semeado** no catálogo (`app/db/seed.py`), com a referência a Ashby nas
@@ -2369,8 +2399,8 @@ pura, minimizar massa para rigidez axial especificada, índice a maximizar
 - O resultado é genuinamente consolidado na literatura, com uma conclusão
   contraintuitiva bem documentada (cerâmicas vencem no índice bruto, e é
   exatamente por isso que o caso precisa de uma segunda restrição para
-  chegar à resposta de engenharia real) — o tipo de caso onde \"os candidatos
-  batem com o esperado\" é uma afirmação verificável, não uma opinião.
+  chegar à resposta de engenharia real) — o tipo de caso onde "os candidatos
+  batem com o esperado" é uma afirmação verificável, não uma opinião.
 - A restrição de fragilidade usa `not_in_class`, que já existe na
   aplicação — nenhuma propriedade nova (tenacidade à fratura) precisou ser
   adicionada ao catálogo.
@@ -2466,7 +2496,7 @@ si. Antes do trabalho de código, os três marketplaces e os dois plugins de
 clonado e instalado. A receita documentada (clonar em `~/.agents/skills/gstack`)
 não registra as skills onde este ambiente as espera: qualquer diretório
 literalmente chamado `skills/` faz o instalador do gstack tratar a instalação
-como \"já dentro de um diretório de skills\" e symlinkar os comandos *ao lado*
+como "já dentro de um diretório de skills" e symlinkar os comandos *ao lado*
 do clone em vez de para dentro de `~/.claude/skills/`, então em
 `~/.agents/skills/gstack` os comandos foram parar em `~/.agents/skills/*` —
 onde o Claude Code deste ambiente não os enxerga. Clonar direto em
@@ -2483,8 +2513,8 @@ assistente, fora do repositório.
 
 ## 1. O pedido e a escolha do que atacar
 
-O pedido desta sessão foi genérico — \"leia a documentação, baixe as skills do
-projeto, continue de onde parou\" — sem apontar qual pendência. `TODO.md`
+O pedido desta sessão foi genérico — "leia a documentação, baixe as skills do
+projeto, continue de onde parou" — sem apontar qual pendência. `TODO.md`
 listava quatro itens de peso comparável e natureza bem diferente: A2 (estudo
 de caso, exige curar dado real citável — julgamento de domínio), a sessão de
 teste de usabilidade do §3.5 (exige pessoas reais, não pode ser feita por um
@@ -2504,13 +2534,13 @@ propriedade, índice de desempenho e estudo de seleção.
   capturados no momento do evento, não lidos de uma junção em tempo de
   leitura — sobrevivem à conta, à entidade ou ao estudo desaparecerem depois.
   É a mesma lógica de proveniência que já vale para `material_property_value`
-  (princípio 4 do `CLAUDE.md`), aplicada a \"quem fez isto\".
+  (princípio 4 do `CLAUDE.md`), aplicada a "quem fez isto".
 - **`changes` é um diff, não um dump.** Só os campos que de fato mudaram
   (`app/services/audit_service.diff_fields`) — um `PATCH` de um campo não
   imprime os outros dez inalterados, e um `PATCH` que não muda nada não grava
   evento nenhum.
 - **A troca de valores de propriedade vira um diff por slug**, não um evento
-  por linha — `PUT .../values` já é \"substitua o conjunto inteiro\", e a
+  por linha — `PUT .../values` já é "substitua o conjunto inteiro", e a
   proveniência de cada valor já é rastreada à parte por linha.
 - **A importação em lote fica de fora, de propósito.** `ImportService` monta
   `Material` diretamente (`app/importers/service.py`), sem os métodos
@@ -2572,8 +2602,8 @@ fechamento. Testes de backend: 436 → 591. Testes de frontend: 123 → 141.
 O pedido da Fase 9 tinha **seis frentes** — IA gratuita, barra lateral,
 repaginação mais colorida e arredondada, painéis interativos, mapas
 personalizáveis e laudo de engenharia completo. As seis saíram. Depois veio um
-segundo pedido, de natureza diferente: *\"verifique todas as fases, quero tudo
-redondo, sem travar e consumindo menos máquina\"* — uma varredura, não uma
+segundo pedido, de natureza diferente: *"verifique todas as fases, quero tudo
+redondo, sem travar e consumindo menos máquina"* — uma varredura, não uma
 funcionalidade.
 
 ## 1. A Fase 9
@@ -2632,8 +2662,8 @@ Ponto de partida: `9bd935e` (Fase 8 concluída). Ponto final: `7c1d59f`.
 **23 arquivos alterados, +2.227 / −79.** Testes de backend: 391 → 436.
 Testes de frontend: 123 (inalterado).
 
-O pedido foi: *\"desenvolva toda a camada de IA opcional; quero que a IA seja do
-meu próprio Claude\"*. \"Meu próprio Claude\" é ambíguo entre a API da Anthropic
+O pedido foi: *"desenvolva toda a camada de IA opcional; quero que a IA seja do
+meu próprio Claude"*. "Meu próprio Claude" é ambíguo entre a API da Anthropic
 com chave própria e o Claude Code já instalado e autenticado na máquina.
 **Foram implementados os dois**, atrás da mesma interface e sem perguntar —
 qualquer uma das leituras fica atendida, e a diferença entre elas virou uma
@@ -2693,13 +2723,13 @@ foi recusado.
 
 ### Interface
 
-`AIAssistPanel` passa a distinguir \"Provedor simulado\" de \"Modelo externo:
-`<provedor>`\", e o aviso ganha a frase que faltava — a leitura pode variar entre
+`AIAssistPanel` passa a distinguir "Provedor simulado" de "Modelo externo:
+`<provedor>`", e o aviso ganha a frase que faltava — a leitura pode variar entre
 execuções com o mesmo enunciado; o cálculo não, porque não passa por ali.
 
 ### Dependência
 
-`anthropic` entra como **extra opcional** (`pip install -e \".[ai]\"`). A CI
+`anthropic` entra como **extra opcional** (`pip install -e ".[ai]"`). A CI
 instala só `.[dev]` e não importa o SDK em nenhum caminho — verificado com
 `'anthropic' in sys.modules` depois de `import app.main`.
 
@@ -2707,7 +2737,7 @@ instala só `.[dev]` e não importa o SDK em nenhum caminho — verificado com
 
 | # | Defeito | Como apareceu |
 |---|---|---|
-| 1 | **Nome de material não entrava na ancoragem numérica.** `_result_context` nunca incluía os nomes no conjunto de termos permitidos. Com o catálogo de demonstração nada quebrava — nenhum nome tem dígito. Com um catálogo real, escrever \"Aço AISI 1020 lidera\" descartaria a explicação inteira com HTTP 400. | Revisão do próprio código, ao escrever o provedor real. |
+| 1 | **Nome de material não entrava na ancoragem numérica.** `_result_context` nunca incluía os nomes no conjunto de termos permitidos. Com o catálogo de demonstração nada quebrava — nenhum nome tem dígito. Com um catálogo real, escrever "Aço AISI 1020 lidera" descartaria a explicação inteira com HTTP 400. | Revisão do próprio código, ao escrever o provedor real. |
 | 2 | **O cliente injetado do `claude-api` dependia do SDK que ele existe para dispensar.** `_complete` importava `anthropic` na primeira linha, antes de olhar para o cliente. O comentário do `__init__` prometia por escrito que a injeção funcionava sem o pacote; não funcionava. | **Só na CI.** Aqui o pacote está instalado e os quatro testes passavam; na CI, que instala só `.[dev]`, falharam os quatro. |
 | 3 | **Contagem de testes errada na documentação.** Os documentos diziam 389 backend / 44 frontend quando o repositório tinha 391 / 123 — a Fase 8 acrescentara 79 testes de frontend sem que o número fosse atualizado. | Conferência antes de reescrever o contexto. |
 
@@ -2724,10 +2754,10 @@ que é o que o CPython trata como módulo ausente.
 
 Além dos portões, **verificação ao vivo no navegador** com `claude-cli`:
 
-- Enunciado com \"no mínimo 300 °C\" e \"no máximo 3 g/cm3\" → os dois números
+- Enunciado com "no mínimo 300 °C" e "no máximo 3 g/cm3" → os dois números
   **copiados sem conversão**, com o trecho do enunciado citado como evidência;
   índices com as expressões do catálogo; `rejected` vazio.
-- O mesmo enunciado **sem unidade** (\"no mínimo 300\") → **nenhuma restrição** e
+- O mesmo enunciado **sem unidade** ("no mínimo 300") → **nenhuma restrição** e
   uma pergunta em aberto pedindo a unidade. A regra 4 do guardrail obedecida por
   um modelo que nunca viu o código.
 
@@ -2905,7 +2935,7 @@ Testes de frontend: 13 → 44.
 |---|---|---|
 | 1 | **Isolamento de testes quebrado.** pysqlite emite BEGIN sozinho e nunca antes de SAVEPOINT; um teste que começasse por escrita escapava do rollback e vazava para todos os seguintes. A suíte ficava verde perdendo isolamento em silêncio. | Ao adicionar um teste cuja primeira instrução era um POST. |
 | 2 | **Dados do usuário sem escape no hover do Plotly.** Nomes de material vêm de planilhas importadas e eram interpolados crus em texto que o Plotly renderiza como rich text. | Revisão do próprio código. |
-| 3 | **Unidade nula virando canônica na IA.** \"no mínimo 300 graus C\" saía com `unit: null` e virava ≥ 300 K, isto é −173 °C: nenhuma restrição. Os quatro guardrails existentes não pegavam. | Demonstração ao vivo dos endpoints. |
+| 3 | **Unidade nula virando canônica na IA.** "no mínimo 300 graus C" saía com `unit: null` e virava ≥ 300 K, isto é −173 °C: nenhuma restrição. Os quatro guardrails existentes não pegavam. | Demonstração ao vivo dos endpoints. |
 | 4 | **`prettyUnit` renderizava `** 2.5` como `·· 2.5`** nas dimensões derivadas. | Conferência da tela no navegador. |
 | 5 | **Rótulos de eixo colidindo no comparador.** Duas propriedades com o mesmo símbolo viravam a mesma categoria no Plotly e as séries se fundiam em silêncio. | Revisão do próprio código. |
 | 6 | **Reta de índice vertical exigia intervalo positivo em X** que ela não usa. | Revisão do próprio código. |

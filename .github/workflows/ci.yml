@@ -131,6 +131,20 @@ jobs:
   backend:
     name: Backend (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: materialselect
+          POSTGRES_PASSWORD: materialselect
+          POSTGRES_DB: materialselect
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     strategy:
       # Sem fail-fast: se a 3.11 quebrar e a 3.12 não, queremos ver as duas.
       fail-fast: false
@@ -152,7 +166,7 @@ jobs:
           cache-dependency-path: apps/api/pyproject.toml
 
       - name: Instalar dependências
-        run: pip install -e ".[dev,knowledge]"
+        run: pip install -e ".[dev,knowledge,postgres]"
 
       - name: Lint (ruff)
         env:
@@ -183,6 +197,7 @@ jobs:
       - name: Testes
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          POSTGRES_TEST_URL: postgresql+psycopg://materialselect:materialselect@localhost:5432/materialselect
         run: |
           pytest -v --tb=short || {
             pytest -v --tb=short > /tmp/pytest_out.txt 2>&1 || true
@@ -270,6 +285,12 @@ jobs:
           grep -q "uq_selection_study_project_name" schema.txt
           grep -q "fk_selection_study_project_id_project" schema.txt
           ! grep -q "selection_study_name_key" schema.txt
+
+      - name: Testes de concorrência das cotas em PostgreSQL
+        env:
+          POSTGRES_TEST_URL: postgresql+psycopg://materialselect:materialselect@localhost:5432/materialselect
+        run: |
+          pytest -v --tb=short app/tests/test_notebook_quota_postgres.py
 
   frontend:
     name: Frontend

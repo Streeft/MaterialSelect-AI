@@ -185,13 +185,15 @@ npm run test:e2e                            # Playwright, API e banco próprios
 
 Os testes do backend rodam em SQLite em memória e **não têm rede** — o
 `conftest.py` reprova quem tentar sair. Pelo último registro em
-[`CLAUDE.md`](CLAUDE.md), são 3343 testes de backend e 751 de frontend.
+[`CLAUDE.md`](CLAUDE.md), são 3347 testes de backend e 751 de frontend.
 
 [`.github/workflows/ci.yml`](.github/workflows/ci.yml) roda em todo PR e em
-todo push para `main`: **Backend** (Python 3.11 e 3.12: ruff, black, pytest,
-migrações e seed num banco limpo), **Migrações (PostgreSQL)**, **Frontend**
-(typecheck, lint, test, build), **E2E (Playwright)** e **Lighthouse**. Nenhum
-passo é informativo; os checks obrigatórios impedem o merge.
+todo push para `main`: **Backend** (Python 3.11 e 3.12: ruff, black, pytest com
+serviço PostgreSQL e SQLite em memória, migrações e seed num banco limpo),
+**Migrações (PostgreSQL)** (com testes de concorrência multithread de cotas),
+**Frontend** (typecheck, lint, test, build), **E2E (Playwright)** e
+**Lighthouse**. Nenhum passo é informativo; os checks obrigatórios impedem o
+merge.
 
 ## Deploy
 
