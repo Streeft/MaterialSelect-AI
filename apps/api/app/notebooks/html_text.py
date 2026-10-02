@@ -700,8 +700,7 @@ def _mark_style(root: _Node) -> None:
     and what could not be judged is not handed to the model (D-99).
     """
     budget = _Budget()
-    stack: list[tuple[_Node, _Inherited]] = [(root, _Inherited())]
-    while stack:
+    stack: list[tuple[_Node, _Inherited]] = [(root, _Inherited())]\n    while stack:
         node, outer = stack.pop()
         style = node.attrs.get("style")
         inner = outer
@@ -812,7 +811,7 @@ def _unescape(match: re.Match[str]) -> str:
     if hexadecimal is None:
         return char
     code = int(hexadecimal, 16)
-    return "\uFFFD" if code == 0 or code > 0x10FFFF or 0xD800 <= code <= 0xDFFF else chr(code)
+    return "\ufffd" if code == 0 or code > 0x10FFFF or 0xD800 <= code <= 0xDFFF else chr(code)
 
 
 _VAR_CALL = re.compile(r"(?<![a-z0-9_-])var\(")
@@ -1194,7 +1193,7 @@ def _fraction(value: str | None) -> float | None:
 
 
 _MATH_TOKEN = re.compile(
-    r"\s*(?:((?:\d+(?:\\.\d*)?|\\.\d+)(?:e[+-]?\d+)?)([a-z%]*)|([a-z-]+)\(|([-+*/(),]))"
+    r"\s*(?:((?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?)([a-z%]*)|([a-z-]+)\(|([-+*/(),]))"
 )
 _MATH_MAX_TOKENS = 200
 _MATH_MAX_NESTING = 64
@@ -1554,8 +1553,7 @@ def _visible(root: _Node, tag: str, outermost: bool) -> Iterator[_Node]:
     """Visible elements named ``tag``, in document order.
 
     With ``outermost``, one found is not searched inside: a nested one can
-    never hold more text than the one around it.
-    """
+    never hold more text than the one around it."""
     stack: list[tuple[_Node, bool]] = [(root, False)]
     while stack:
         node, sectioning = stack.pop()
@@ -1812,8 +1810,7 @@ def _table(table: _Node, writer: _Writer, sectioning: bool) -> None:
     """One output line per row, cells joined by " | " — the DOCX reader's form.
 
     A value kept on the same line as its row label is a value that can still be
-    cited next to what it measures.
-    """
+    cited next to what it measures."""
     writer.end_block()
     stack: list[_Node] = [table]
     while stack:
