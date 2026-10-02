@@ -167,6 +167,12 @@ _MATH_CALL = re.compile(r"([a-z-]+)\(")
 _NEGATIVE_LITERAL = re.compile(
     r"(?:^|(?<=[(,\s*/]))(-(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?[a-z%]*)"
 )
+#: A positive length written as such in unevaluable math.
+_POSITIVE_LITERAL = re.compile(
+    r"(?:^|(?<=[(,+/*]))\s*((?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?[a-z%]*)"
+)
+#: A length subtracted with whitespace around the minus operator in unevaluable math.
+_SUBTRACTED_LITERAL = re.compile(r"-\s+((?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?[a-z%]*)")
 #: Absolute lengths in CSS pixels; a font-relative one at the 16 px default.
 _PX_PER = {"px": 1.0, "pt": 4 / 3, "pc": 16.0, "in": 96.0, "cm": 96 / 2.54, "mm": 96 / 25.4}
 _PX_PER |= {"q": 96 / 101.6, "em": 16.0, "rem": 16.0, "ex": 8.0, "ch": 8.0}
@@ -177,6 +183,13 @@ _PX_PER |= dict.fromkeys(_VIEWPORT, 10.0)
 #: plausible layout nudge (-10px, a hanging -1em indent), well short of the
 #: -9999px of the image-replacement and "off-screen" idioms.
 _FAR_PX = 500.0
+#: How far off the page a positive offset has to throw a node: past any
+#: plausible wide-screen layout or canvas, at the 9999px of the off-screen
+#: idiom (TODO.md).
+_FAR_POSITIVE_PX = 9999.0
+#: Upper bound of a wide display or container in CSS pixels, used to prove
+#: that a calc() term dominates across all realistic viewports.
+_VIEWPORT_MAX_PX = 10000.0
 #: Text this small is not text a reader can read.
 _TINY_FONT_PX = 2.0
 #: A box this narrow, with its overflow clipped, shows nothing (the
@@ -908,17 +921,40 @@ def _conceals(css: dict[str, list[str]]) -> bool:
     # sticky one is thrown off the page as surely as an absolute one.
     offsets = values("left", "top", "inset-inline-start", "inset-block-start")
     offsets += _starts(values("inset"))
-    if positions & {"absolute", "fixed", "relative", "sticky"} and any(
-        _far_negative(v) for v in offsets
+    pos_all = values(
+        "left",
+        "right",
+        "top",
+        "bottom",
+        "inset-inline-start",
+        "inset-inline-end",
+        "inset-block-start",
+        "inset-block-end",
+    )
+    pos_all += _all_sides(values("inset"))
+    pos_reverse = values("right", "bottom", "inset-inline-end", "inset-block-end")
+    if positions & {"absolute", "fixed", "relative", "sticky"} and (
+        any(_far_negative(v) for v in offsets)
+        or any(_far_positive(v) for v in pos_all)
+        or any(_far_extreme_negative(v) for v in pos_reverse)
     ):
         return True
-    if any(_far_negative(_first(v)) for v in values("text-indent")):
+    if any(_far_negative(_first(v)) or _far_positive(_first(v)) for v in values("text-indent")):
         return True
     # A margin percentage is of the container's width: ``margin-left:-100%``
     # is how the holy-grail layout places a visible sidebar. Only a length.
-    margins = values("margin-left", "margin-top", "margin-inline-start", "margin-block-start")
-    margins += _starts(values("margin"))
-    if any(_far_negative(v, percent=False) for v in margins):
+    margins = values(
+        "margin-left",
+        "margin-top",
+        "margin-right",
+        "margin-bottom",
+        "margin-inline-start",
+        "margin-inline-end",
+        "margin-block-start",
+        "margin-block-end",
+    )
+    margins += _all_sides(values("margin"))
+    if any(_far_negative(v, percent=False) or _far_positive(v) for v in margins):
         return True
     clip = ("hidden", "clip")
     overflow = values("overflow")
@@ -936,7 +972,8 @@ def _conceals(css: dict[str, list[str]]) -> bool:
         return True
     # A translation percentage is of the element's own size:
     # ``translateY(-100%)`` puts a tooltip just above its anchor. Only a length.
-    return any(_far_negative(v, percent=False) for v in _translations(css))
+    translations = _translations(css)
+    return any(_far_negative(v, percent=False) or _far_positive(v) for v in translations)
 
 
 def _first(value: str) -> str:
@@ -958,6 +995,52 @@ def _starts(shorthands: list[str]) -> list[str]:
         if len(sides) == 4:
             starts += [sides[0], sides[3]]
     return starts
+
+
+def _all_sides(shorthands: list[str]) -> list[str]:
+    """The four sides of box shorthands (``inset``, ``margin``)."""
+    sides: list[str] = []
+    for value in shorthands:
+        parts = _box_sides(_split_top(value, " "))
+        if len(parts) == 4:
+            sides += parts
+    return sides
+
+
+def _far_positive(value: str | None) -> bool:
+    """An offset that moves a node far off the page in the positive direction:
+    at least _FAR_POSITIVE_PX (9999px) away, past any wide layout or canvas."""
+    parsed = _number(value)
+    if parsed is not None:
+        number, unit = parsed
+        if unit == "%" or unit in _VIEWPORT:
+            return number >= 1000.0
+    px = _px(value)
+    if px is not None:
+        return px >= _FAR_POSITIVE_PX
+    px_0 = _px(value, percent_of=0.0)
+    px_max = _px(value, percent_of=_VIEWPORT_MAX_PX)
+    if px_0 is not None and px_max is not None:
+        return px_0 >= _FAR_POSITIVE_PX and px_max >= _FAR_POSITIVE_PX
+    if _unevaluable_math(value):
+        for lit in _POSITIVE_LITERAL.findall(value or ""):
+            lit_px = _px(lit)
+            if lit_px is not None and lit_px >= _FAR_POSITIVE_PX:
+                return True
+    return False
+
+
+def _far_extreme_negative(value: str | None) -> bool:
+    """An offset on a right or bottom boundary that is extremely negative,
+    throwing the element far off-screen to the right or bottom."""
+    px = _px(value)
+    if px is not None:
+        return px <= -_FAR_POSITIVE_PX
+    px_0 = _px(value, percent_of=0.0)
+    px_max = _px(value, percent_of=_VIEWPORT_MAX_PX)
+    if px_0 is not None and px_max is not None:
+        return px_0 <= -_FAR_POSITIVE_PX and px_max <= -_FAR_POSITIVE_PX
+    return False
 
 
 def _inherit(tag: str, css: dict[str, list[str]], scope: _Scope, outer: _Inherited) -> _Inherited:
@@ -1372,16 +1455,25 @@ def _far_negative(value: str | None, *, percent: bool = True) -> bool:
     px = _px(value)
     if px is not None:
         return px <= -_FAR_PX
+    px_0 = _px(value, percent_of=0.0)
+    px_max = _px(value, percent_of=_VIEWPORT_MAX_PX)
+    if px_0 is not None and px_max is not None:
+        return px_0 <= -_FAR_PX and px_max <= -_FAR_PX
     # Math this reader cannot evaluate — an unknown function (``sign()``,
     # ``round()``), or one nested past :data:`_MATH_MAX_NESTING` — does not
     # keep a node it throws off the page: a far-negative length written
-    # inside it hides (N-5). Only with such a literal, because the common
-    # unevaluable offset is a percentage with no base here — the
-    # ``calc(50% - 10px)`` that centres a box — and it is visible.
-    return _unevaluable_math(value) and any(
-        _far_negative(literal, percent=percent)
-        for literal in _NEGATIVE_LITERAL.findall(value or "")
-    )
+    # inside it hides (N-5).
+    if _unevaluable_math(value):
+        if any(
+            _far_negative(literal, percent=percent)
+            for literal in _NEGATIVE_LITERAL.findall(value or "")
+        ):
+            return True
+        for lit in _SUBTRACTED_LITERAL.findall(value or ""):
+            sub_px = _px(lit)
+            if sub_px is not None and sub_px >= _FAR_POSITIVE_PX:
+                return True
+    return False
 
 
 def _unevaluable_math(value: str | None) -> bool:
@@ -1849,8 +1941,7 @@ def _heading_line(text: str) -> str:
     as mega, not milli — and neither can a Greek symbol (σ is not Σ) or a
     chemical symbol (Al, Fe). A heading left as written is still its own
     paragraph; the chunker then reads it as text, which costs a section label
-    and nothing else.
-    """
+    and nothing else."""
     if looks_like_heading(text):
         return text
     upper = text.upper()
@@ -1865,8 +1956,7 @@ def _case_carries_no_meaning(text: str) -> bool:
     A word qualifies when it is already in capitals, is a short function word,
     or has three letters or more with at most its first one capitalised. Units,
     element symbols and formulae are one or two letters, mixed case, or carry
-    digits and symbols — all of which fail.
-    """
+    digits and symbols — all of which fail."""
     for raw in _WORD_SPLIT.split(text):
         word = raw.strip(_WORD_EDGE)
         if not word:
@@ -1886,8 +1976,7 @@ def _not_a_heading(line: str) -> str:
     """A table row or list item, guarded against being read as a heading.
 
     The chunker takes a short numbered or all-capitals line for a section title
-    and moves it out of the passage text — and "1 | Aço 1020 | 7,85" or
-    "- ABNT NBR 6118" has exactly that shape. A row moved into the heading slot
+    and moves it out of the passage text — and "- ABNT NBR 6118" has exactly that shape. A row moved into the heading slot
     is a row no answer can quote, so where (and only where) that misreading
     would happen the line ends with ";", the smallest mark the chunker reads as
     prose.
