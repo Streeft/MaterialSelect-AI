@@ -127,7 +127,7 @@ class TestPptxRendering:
         report = Report(
             title="Relatório Extenso",
             subtitle="Teste de paginação de slides",
-            notices=standard_notices(),
+            notices=standard_notices(includes_demo_data=True, includes_own_records=False),
             sheets=[
                 Sheet(
                     name="Muitos Candidatos",
@@ -200,7 +200,7 @@ class TestPptxEndpoints:
         assert response.headers["content-type"].startswith(PPTX_MEDIA_TYPE)
         assert "attachment" in response.headers["content-disposition"]
         assert ".pptx" in response.headers["content-disposition"]
-        assert "laudo_estudo-laudo-pptx" in response.headers["content-disposition"]
+        assert "estudo-laudo-pptx.pptx" in response.headers["content-disposition"]
 
         prs = Presentation(io.BytesIO(response.content))
         text = _extract_all_text(prs)
@@ -210,4 +210,4 @@ class TestPptxEndpoints:
     def test_study_laudo_unsupported_format_rejected(self, client: TestClient) -> None:
         response = client.get("/api/exports/estudos/1/laudo.pdf")
         assert response.status_code == 400
-        assert "Formato não suportado" in response.json()["detail"]
+        assert "Formato de laudo não suportado" in response.json()["detail"]
