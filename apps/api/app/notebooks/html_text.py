@@ -939,10 +939,7 @@ def _conceals(css: dict[str, list[str]]) -> bool:
         or any(_far_extreme_negative(v) for v in pos_reverse)
     ):
         return True
-    if any(
-        _far_negative(_first(v)) or _far_positive(_first(v))
-        for v in values("text-indent")
-    ):
+    if any(_far_negative(_first(v)) or _far_positive(_first(v)) for v in values("text-indent")):
         return True
     # A margin percentage is of the container's width: ``margin-left:-100%``
     # is how the holy-grail layout places a visible sidebar. Only a length.
@@ -1944,8 +1941,7 @@ def _heading_line(text: str) -> str:
     as mega, not milli — and neither can a Greek symbol (σ is not Σ) or a
     chemical symbol (Al, Fe). A heading left as written is still its own
     paragraph; the chunker then reads it as text, which costs a section label
-    and nothing else.
-    """
+    and nothing else."""
     if looks_like_heading(text):
         return text
     upper = text.upper()
@@ -1960,8 +1956,7 @@ def _case_carries_no_meaning(text: str) -> bool:
     A word qualifies when it is already in capitals, is a short function word,
     or has three letters or more with at most its first one capitalised. Units,
     element symbols and formulae are one or two letters, mixed case, or carry
-    digits and symbols — all of which fail.
-    """
+    digits and symbols — all of which fail."""
     for raw in _WORD_SPLIT.split(text):
         word = raw.strip(_WORD_EDGE)
         if not word:
@@ -1981,8 +1976,7 @@ def _not_a_heading(line: str) -> str:
     """A table row or list item, guarded against being read as a heading.
 
     The chunker takes a short numbered or all-capitals line for a section title
-    and moves it out of the passage text — and "1 | Aço 1020 | 7,85" or
-    "- ABNT NBR 6118" has exactly that shape. A row moved into the heading slot
+    and moves it out of the passage text — and "- ABNT NBR 6118" has exactly that shape. A row moved into the heading slot
     is a row no answer can quote, so where (and only where) that misreading
     would happen the line ends with ";", the smallest mark the chunker reads as
     prose.
