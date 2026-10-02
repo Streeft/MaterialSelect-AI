@@ -249,8 +249,9 @@ export function duplicateStage(stage: StageState): StageState {
     };
   }
 
+  const fallback = stage as StageState;
   return {
-    ...stage,
+    ...fallback,
     id: newId,
     label: newLabel,
   };
@@ -491,8 +492,7 @@ export function StageList({
 
   return (
     <div className="flex flex-col gap-4">
-      {stages.map((stage, index) => (
-        <Card key={stage.id}>
+      {stages.map((stage, index) => (\n        <Card key={stage.id}>
           <CardHeader
             headingLevel={3}
             title={stage.label.trim() || t.stageNumber(index + 1, stage.kind)}
@@ -691,8 +691,7 @@ function MultiSelect({
       value={selected}
       onChange={(e) => onChange(Array.from(e.target.selectedOptions, (o) => o.value))}
     >
-      {options.map((o) => (
-        <option key={o.slug} value={o.slug}>
+      {options.map((o) => (\n        <option key={o.slug} value={o.slug}>
           {o.name}
         </option>
       ))}
