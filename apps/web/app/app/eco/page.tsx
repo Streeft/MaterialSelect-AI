@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import type {
   EcoAuditResult,
+  EcoComparisonResult,
   EcoDominance,
   EcoPhase,
   UseModel,
@@ -14,12 +15,14 @@ import {
   listMaterials,
   listTransportModes,
   runEcoAudit,
+  compareEcoAudits,
   getMaterial,
 } from "@/lib/api";
 import { ptBR } from "@/lib/i18n";
 import { formatNumber } from "@/lib/format";
 import {
   Alert,
+  Badge,
   Button,
   Combobox,
   Disclosure,
@@ -43,15 +46,6 @@ import {
 
 const t = ptBR.eco;
 
-/**
- * Visible defaults, all overridable.
- *
- * Nothing here is a fact about a material or a process: a duty cycle, a service
- * life and a grid's carbon intensity are assumptions of the brief, the same
- * treatment D-64 gave the support condition and D-65 the write-off horizon. The
- * mass is deliberately **not** defaulted — it is the number that decides the
- * answer, and inventing it would be the tool writing the brief.
- */
 const DEFAULTS = {
   recycled: "0",
   distance: "1500",
@@ -63,13 +57,11 @@ const DEFAULTS = {
   carbonPerEnergy: "0.07",
 };
 
-/** A premise as the reader typed it, in the pt-BR form — never recomputed. */
 function printable(raw: string): string {
   const value = Number(raw);
   return raw.trim() !== "" && Number.isFinite(value) ? formatNumber(value) : raw || "…";
 }
 
-/** An absent quantity is never a blank cell: it is a written reason (D-24). */
 function Quantity({
   value,
   reason,
@@ -159,9 +151,108 @@ function PhaseTable({ result }: { result: EcoAuditResult }) {
   );
 }
 
+function ComparisonTable({ result }: { result: EcoComparisonResult }) {
+  const resA = result.material_a;
+  const resB = result.material_b;
+  const energyUnit = resA.energy_unit;
+  const carbonUnit = resA.carbon_unit;
+
+  const phases = resA.phases.map((pA) => {
+    const pB = resB.phases.find((p) => p.phase === pA.phase);
+    return {
+      phase: pA.phase,
+      label: pA.label,
+      energyA: pA.energy,
+      energyB: pB?.energy ?? null,
+      carbonA: pA.carbon,
+      carbonB: pB?.carbon ?? null,
+    };
+  });
+
+  return (
+    <TableScroll label={t.compareResultStep}>
+      <Table>
+        <TableCaption>{resA.carbon_unit_note}</TableCaption>
+        <THead>
+          <Tr>
+            <Th scope="col">{t.columnPhase}</Th>
+            <Th scope="col">{`${t.columnMaterialA} (${resA.material_name})`}</Th>
+            <Th scope="col">{`${t.columnMaterialB} (${resB.material_name})`}</Th>
+            <Th scope="col">{t.columnVariation}</Th>
+          </Tr>
+        </THead>
+        <TBody>
+          {phases.map((p) => {
+            const deltaE = p.energyA !== null && p.energyB !== null ? p.energyB - p.energyA : null;
+            const deltaC = p.carbonA !== null && p.carbonB !== null ? p.carbonB - p.carbonA : null;
+            return (
+              <Tr key={p.phase}>
+                <Td className="font-medium">{p.label}</Td>
+                <Td className="tabular-nums text-xs">
+                  <div>
+                    {p.energyA !== null ? `${formatNumber(p.energyA)} ${energyUnit}` : "—"}
+                  </div>
+                  <div className="text-ink-muted">
+                    {p.carbonA !== null ? `${formatNumber(p.carbonA)} ${carbonUnit}` : "—"}
+                  </div>
+                </Td>
+                <Td className="tabular-nums text-xs">
+                  <div>
+                    {p.energyB !== null ? `${formatNumber(p.energyB)} ${energyUnit}` : "—"}
+                  </div>
+                  <div className="text-ink-muted">
+                    {p.carbonB !== null ? `${formatNumber(p.carbonB)} ${carbonUnit}` : "—"}
+                  </div>
+                </Td>
+                <Td className="tabular-nums text-xs">
+                  <div className={deltaE !== null ? (deltaE < 0 ? "text-success-fg font-medium" : deltaE > 0 ? "text-danger-fg" : "text-ink-muted") : "text-ink-muted"}>
+                    {deltaE !== null ? `${deltaE > 0 ? "+" : ""}${formatNumber(deltaE)} ${energyUnit}` : "—"}
+                  </div>
+                  <div className={deltaC !== null ? (deltaC < 0 ? "text-success-fg font-medium" : deltaC > 0 ? "text-danger-fg" : "text-ink-muted") : "text-ink-muted"}>
+                    {deltaC !== null ? `${deltaC > 0 ? "+" : ""}${formatNumber(deltaC)} ${carbonUnit}` : "—"}
+                  </div>
+                </Td>
+              </Tr>
+            );
+          })}
+          <Tr>
+            <Td className="font-medium">{t.totalLabel}</Td>
+            <Td className="tabular-nums font-semibold text-xs">
+              <div>
+                {resA.total_energy !== null ? `${formatNumber(resA.total_energy)} ${energyUnit}` : "—"}
+              </div>
+              <div className="text-ink-muted">
+                {resA.total_carbon !== null ? `${formatNumber(resA.total_carbon)} ${carbonUnit}` : "—"}
+              </div>
+            </Td>
+            <Td className="tabular-nums font-semibold text-xs">
+              <div>
+                {resB.total_energy !== null ? `${formatNumber(resB.total_energy)} ${energyUnit}` : "—"}
+              </div>
+              <div className="text-ink-muted">
+                {resB.total_carbon !== null ? `${formatNumber(resB.total_carbon)} ${carbonUnit}` : "—"}
+              </div>
+            </Td>
+            <Td className="tabular-nums font-semibold text-xs">
+              <div className={result.delta_energy !== null ? (result.delta_energy < 0 ? "text-success-fg" : result.delta_energy > 0 ? "text-danger-fg" : "text-ink-muted") : "text-ink-muted"}>
+                {result.delta_energy !== null
+                  ? `${result.delta_energy > 0 ? "+" : ""}${formatNumber(result.delta_energy)} ${energyUnit} (${result.delta_energy_percent !== null ? (result.delta_energy_percent > 0 ? "+" : "") + formatNumber(result.delta_energy_percent) + "%" : ""})`
+                  : "—"}
+              </div>
+              <div className={result.delta_carbon !== null ? (result.delta_carbon < 0 ? "text-success-fg" : result.delta_carbon > 0 ? "text-danger-fg" : "text-ink-muted") : "text-ink-muted"}>
+                {result.delta_carbon !== null
+                  ? `${result.delta_carbon > 0 ? "+" : ""}${formatNumber(result.delta_carbon)} ${carbonUnit} (${result.delta_carbon_percent !== null ? (result.delta_carbon_percent > 0 ? "+" : "") + formatNumber(result.delta_carbon_percent) + "%" : ""})`
+                  : "—"}
+              </div>
+            </Td>
+          </Tr>
+        </TBody>
+      </Table>
+    </TableScroll>
+  );
+}
+
 export default function EcoPage() {
-  // The brief travels in the URL (B1), so the solver's result rows can link
-  // here carrying the material and the mass they just computed.
   const params = useSearchParams();
   const materials = useQuery({
     queryKey: ["materials"],
@@ -172,10 +263,31 @@ export default function EcoPage() {
     queryFn: listTransportModes,
   });
 
+  const [modeChoice, setModeChoice] = useState<"individual" | "compare">("individual");
+
+  // Individual mode state
   const [materialId, setMaterialId] = useState(params.get("material") ?? "");
   const [mass, setMass] = useState(params.get("massa") ?? "");
   const [recycled, setRecycled] = useState(DEFAULTS.recycled);
   const [processId, setProcessId] = useState("");
+  const [endOfLife, setEndOfLife] = useState("reciclagem");
+  const [result, setResult] = useState<EcoAuditResult | null>(null);
+
+  // Compare mode state
+  const [materialAId, setMaterialAId] = useState("");
+  const [massA, setMassA] = useState(params.get("massa") ?? "1");
+  const [recycledA, setRecycledA] = useState(DEFAULTS.recycled);
+  const [processAId, setProcessAId] = useState("");
+  const [endOfLifeA, setEndOfLifeA] = useState("reciclagem");
+
+  const [materialBId, setMaterialBId] = useState("");
+  const [massB, setMassB] = useState("1");
+  const [recycledB, setRecycledB] = useState(DEFAULTS.recycled);
+  const [processBId, setProcessBId] = useState("");
+  const [endOfLifeB, setEndOfLifeB] = useState("reciclagem");
+  const [compareResult, setCompareResult] = useState<EcoComparisonResult | null>(null);
+
+  // Shared premises state
   const [mode, setMode] = useState("");
   const [distance, setDistance] = useState(DEFAULTS.distance);
   const [useModel, setUseModel] = useState<UseModel>("movel");
@@ -184,21 +296,12 @@ export default function EcoPage() {
   const [life, setLife] = useState(DEFAULTS.life);
   const [travel, setTravel] = useState(DEFAULTS.travel);
   const [intensity, setIntensity] = useState(DEFAULTS.intensity);
-  const [carbonPerEnergy, setCarbonPerEnergy] = useState(
-    DEFAULTS.carbonPerEnergy,
-  );
-  const [endOfLife, setEndOfLife] = useState("reciclagem");
-  const [result, setResult] = useState<EcoAuditResult | null>(null);
+  const [carbonPerEnergy, setCarbonPerEnergy] = useState(DEFAULTS.carbonPerEnergy);
+  const [premisesOpen, setPremisesOpen] = useState(false);
 
-  // Derived, not stored by an effect: an empty selection simply *means*
-  // "whatever the catalogue lists first". Writing it into state on mount would
-  // be a setState inside useEffect, which this repo's lint rule flags — rightly,
-  // since it renders twice and invents a change nobody made.
   const selectedMaterial = materialId || String(materials.data?.[0]?.id ?? "");
   const selectedMode = mode || modes.data?.[0]?.slug || "";
 
-  // The candidate processes are the ones that make *this* material — the P0-2
-  // join, not the whole process table.
   const detail = useQuery({
     queryKey: ["material", selectedMaterial],
     queryFn: () => getMaterial(Number(selectedMaterial)),
@@ -206,6 +309,25 @@ export default function EcoPage() {
   });
   const processes = useMemo(() => detail.data?.processes ?? [], [detail.data]);
   const selectedProcess = processId || String(processes[0]?.id ?? "");
+
+  // Compare mode materials & processes
+  const selectedMatA = materialAId || String(materials.data?.[0]?.id ?? "");
+  const detailA = useQuery({
+    queryKey: ["material", selectedMatA],
+    queryFn: () => getMaterial(Number(selectedMatA)),
+    enabled: modeChoice === "compare" && selectedMatA !== "",
+  });
+  const processesA = useMemo(() => detailA.data?.processes ?? [], [detailA.data]);
+  const selectedProcA = processAId || String(processesA[0]?.id ?? "");
+
+  const selectedMatB = materialBId || String(materials.data?.[1]?.id ?? materials.data?.[0]?.id ?? "");
+  const detailB = useQuery({
+    queryKey: ["material", selectedMatB],
+    queryFn: () => getMaterial(Number(selectedMatB)),
+    enabled: modeChoice === "compare" && selectedMatB !== "",
+  });
+  const processesB = useMemo(() => detailB.data?.processes ?? [], [detailB.data]);
+  const selectedProcB = processBId || String(processesB[0]?.id ?? "");
 
   const audit = useMutation({
     mutationFn: () =>
@@ -217,9 +339,6 @@ export default function EcoPage() {
         transport_mode: selectedMode,
         transport_distance_km: Number(distance),
         end_of_life: endOfLife as "reciclagem" | "aterro" | "incineracao",
-        // Only the chosen model's fields are sent. The API refuses the other
-        // model's fields rather than ignoring them, so sending both would be a
-        // 400 — and sending them silently would be worse.
         use:
           useModel === "estatico"
             ? {
@@ -240,20 +359,50 @@ export default function EcoPage() {
     onSuccess: setResult,
   });
 
-  // The first unmet requirement, in words (D-86), and whether it lives in the
-  // folded premises — which then never stay folded. Input validation only: the
-  // audit is the backend's.
+  const comparisonMutation = useMutation({
+    mutationFn: () =>
+      compareEcoAudits({
+        material_a: {
+          material_id: Number(selectedMatA),
+          process_id: Number(selectedProcA),
+          part_mass: Number(massA),
+          recycled_fraction: Number(recycledA),
+          end_of_life: endOfLifeA as "reciclagem" | "aterro" | "incineracao",
+        },
+        material_b: {
+          material_id: Number(selectedMatB),
+          process_id: Number(selectedProcB),
+          part_mass: Number(massB),
+          recycled_fraction: Number(recycledB),
+          end_of_life: endOfLifeB as "reciclagem" | "aterro" | "incineracao",
+        },
+        transport_mode: selectedMode,
+        transport_distance_km: Number(distance),
+        use:
+          useModel === "estatico"
+            ? {
+                model: "estatico",
+                power_watts: Number(power),
+                duty_cycle: Number(duty),
+                life_years: Number(life),
+                carbon_per_energy: Number(carbonPerEnergy),
+              }
+            : {
+                model: "movel",
+                distance_km: Number(travel),
+                mobile_intensity: Number(intensity),
+                life_years: Number(life),
+                carbon_per_energy: Number(carbonPerEnergy),
+              },
+      }),
+    onSuccess: setCompareResult,
+  });
+
   const blocked = useMemo((): { reason: string; inPremises: boolean } | null => {
     const positive = (raw: string) => {
       const value = Number(raw);
       return raw.trim() !== "" && Number.isFinite(value) && value > 0;
     };
-    if (selectedMaterial === "" || selectedProcess === "")
-      return { reason: t.blocked.process, inPremises: false };
-    if (!positive(mass)) return { reason: t.blocked.mass, inPremises: false };
-    const recycledValue = Number(recycled);
-    if (recycled.trim() === "" || !(recycledValue >= 0 && recycledValue <= 1))
-      return { reason: t.blocked.recycled, inPremises: false };
     if (selectedMode === "") return { reason: t.blocked.mode, inPremises: false };
     if (!positive(distance))
       return { reason: t.blocked.positive(t.transportDistanceLabel), inPremises: false };
@@ -275,13 +424,47 @@ export default function EcoPage() {
       return { reason: t.blocked.duty, inPremises: true };
     if (!positive(carbonPerEnergy))
       return { reason: t.blocked.positive(t.carbonPerEnergyLabel), inPremises: true };
+
+    if (modeChoice === "individual") {
+      if (selectedMaterial === "" || selectedProcess === "")
+        return { reason: t.blocked.process, inPremises: false };
+      if (!positive(mass)) return { reason: t.blocked.mass, inPremises: false };
+      const recycledValue = Number(recycled);
+      if (recycled.trim() === "" || !(recycledValue >= 0 && recycledValue <= 1))
+        return { reason: t.blocked.recycled, inPremises: false };
+    } else {
+      if (selectedMatA === "" || selectedProcA === "")
+        return { reason: `${t.materialA}: ${t.blocked.process}`, inPremises: false };
+      if (!positive(massA))
+        return { reason: `${t.materialA}: ${t.blocked.mass}`, inPremises: false };
+      const recA = Number(recycledA);
+      if (recycledA.trim() === "" || !(recA >= 0 && recA <= 1))
+        return { reason: `${t.materialA}: ${t.blocked.recycled}`, inPremises: false };
+
+      if (selectedMatB === "" || selectedProcB === "")
+        return { reason: `${t.materialB}: ${t.blocked.process}`, inPremises: false };
+      if (!positive(massB))
+        return { reason: `${t.materialB}: ${t.blocked.mass}`, inPremises: false };
+      const recB = Number(recycledB);
+      if (recycledB.trim() === "" || !(recB >= 0 && recB <= 1))
+        return { reason: `${t.materialB}: ${t.blocked.recycled}`, inPremises: false };
+    }
     return null;
   }, [
+    modeChoice,
     selectedMaterial,
     selectedProcess,
+    selectedMatA,
+    selectedProcA,
+    selectedMatB,
+    selectedProcB,
     selectedMode,
     mass,
+    massA,
+    massB,
     recycled,
+    recycledA,
+    recycledB,
     distance,
     life,
     carbonPerEnergy,
@@ -291,8 +474,8 @@ export default function EcoPage() {
     travel,
     intensity,
   ]);
+
   const ready = blocked === null;
-  const [premisesOpen, setPremisesOpen] = useState(false);
 
   const materialOptions = useMemo(
     () =>
@@ -315,105 +498,264 @@ export default function EcoPage() {
     <div className="flex flex-col gap-6">
       <PageHeader title={t.title} description={t.subtitle} />
 
-      <div className="grid items-start gap-6 lg:grid-cols-2">
-        <StepCard title={t.briefStep} bodyClassName="grid gap-4 sm:grid-cols-2">
-          <Combobox
-            label={t.materialLabel}
-            hint={t.materialHint}
-            options={materialOptions}
-            value={selectedMaterial}
-            onChange={(value) => {
-              setMaterialId(value);
-              // The process list belongs to the material; keeping a stale id
-              // would send a process that does not make it, and earn a 404.
-              setProcessId("");
-            }}
-          />
-          {detail.isSuccess && processes.length === 0 ? (
-            // D-24: an empty <select> read as a control that failed to load.
-            // A material with no process can't be audited, and the screen
-            // says so where the process would have been chosen.
-            <div className="flex flex-col gap-1">
-              <span className="msds-field-label">{t.processLabel}</span>
-              <Alert tone="warning">{t.noProcess}</Alert>
-            </div>
-          ) : (
+      <div className="flex items-center gap-2">
+        <Button
+          size="sm"
+          variant={modeChoice === "individual" ? "primary" : "secondary"}
+          onClick={() => setModeChoice("individual")}
+        >
+          {t.modeIndividual}
+        </Button>
+        <Button
+          size="sm"
+          variant={modeChoice === "compare" ? "primary" : "secondary"}
+          onClick={() => setModeChoice("compare")}
+        >
+          {t.modeCompare}
+        </Button>
+      </div>
+
+      {modeChoice === "individual" ? (
+        <div className="grid items-start gap-6 lg:grid-cols-2">
+          <StepCard title={t.briefStep} bodyClassName="grid gap-4 sm:grid-cols-2">
+            <Combobox
+              label={t.materialLabel}
+              hint={t.materialHint}
+              options={materialOptions}
+              value={selectedMaterial}
+              onChange={(value) => {
+                setMaterialId(value);
+                setProcessId("");
+              }}
+            />
+            {detail.isSuccess && processes.length === 0 ? (
+              <div className="flex flex-col gap-1">
+                <span className="msds-field-label">{t.processLabel}</span>
+                <Alert tone="warning">{t.noProcess}</Alert>
+              </div>
+            ) : (
+              <Select
+                label={t.processLabel}
+                hint={t.processHint}
+                value={selectedProcess}
+                disabled={processes.length === 0}
+                onChange={(event) =>
+                  setProcessId((event.target as HTMLSelectElement).value)
+                }
+              >
+                {processes.map((process) => (
+                  <SelectOption key={process.id} value={String(process.id)}>
+                    {process.name}
+                  </SelectOption>
+                ))}
+              </Select>
+            )}
+            <NumberInput
+              label={t.massLabel}
+              hint={t.massHint}
+              value={mass}
+              min={0}
+              step="any"
+              onChange={(event) => setMass(event.target.value)}
+            />
+            <NumberInput
+              label={t.recycledLabel}
+              hint={t.recycledHint}
+              value={recycled}
+              min={0}
+              max={1}
+              step="any"
+              onChange={(event) => setRecycled(event.target.value)}
+            />
+          </StepCard>
+
+          <StepCard
+            title={t.transportStep}
+            description={t.transportHint}
+            bodyClassName="grid gap-4 sm:grid-cols-2"
+          >
             <Select
-              label={t.processLabel}
-              hint={t.processHint}
-              value={selectedProcess}
-              disabled={processes.length === 0}
+              label={t.transportModeLabel}
+              value={selectedMode}
               onChange={(event) =>
-                setProcessId((event.target as HTMLSelectElement).value)
+                setMode((event.target as HTMLSelectElement).value)
               }
             >
-              {processes.map((process) => (
-                <SelectOption key={process.id} value={String(process.id)}>
-                  {process.name}
+              {(modes.data ?? []).map((item) => (
+                <SelectOption key={item.slug} value={item.slug}>
+                  {item.name}
                 </SelectOption>
               ))}
             </Select>
-          )}
-          <NumberInput
-            label={t.massLabel}
-            hint={t.massHint}
-            value={mass}
-            min={0}
-            step="any"
-            onChange={(event) => setMass(event.target.value)}
-          />
-          <NumberInput
-            label={t.recycledLabel}
-            hint={t.recycledHint}
-            value={recycled}
-            min={0}
-            max={1}
-            step="any"
-            onChange={(event) => setRecycled(event.target.value)}
-          />
-        </StepCard>
+            <NumberInput
+              label={t.transportDistanceLabel}
+              value={distance}
+              min={0}
+              step="any"
+              onChange={(event) => setDistance(event.target.value)}
+            />
+          </StepCard>
+        </div>
+      ) : (
+        <div className="grid items-start gap-6 lg:grid-cols-2">
+          <StepCard title={t.materialA} bodyClassName="grid gap-4 sm:grid-cols-2">
+            <Combobox
+              label={t.materialLabel}
+              hint={t.materialHint}
+              options={materialOptions}
+              value={selectedMatA}
+              onChange={(value) => {
+                setMaterialAId(value);
+                setProcessAId("");
+              }}
+            />
+            {detailA.isSuccess && processesA.length === 0 ? (
+              <div className="flex flex-col gap-1">
+                <span className="msds-field-label">{t.processLabel}</span>
+                <Alert tone="warning">{t.noProcess}</Alert>
+              </div>
+            ) : (
+              <Select
+                label={t.processLabel}
+                hint={t.processHint}
+                value={selectedProcA}
+                disabled={processesA.length === 0}
+                onChange={(event) =>
+                  setProcessAId((event.target as HTMLSelectElement).value)
+                }
+              >
+                {processesA.map((process) => (
+                  <SelectOption key={process.id} value={String(process.id)}>
+                    {process.name}
+                  </SelectOption>
+                ))}
+              </Select>
+            )}
+            <NumberInput
+              label={t.massLabel}
+              hint={t.massHint}
+              value={massA}
+              min={0}
+              step="any"
+              onChange={(event) => setMassA(event.target.value)}
+            />
+            <NumberInput
+              label={t.recycledLabel}
+              hint={t.recycledHint}
+              value={recycledA}
+              min={0}
+              max={1}
+              step="any"
+              onChange={(event) => setRecycledA(event.target.value)}
+            />
+            <div className="sm:col-span-2">
+              <Select
+                label={t.eolLabel}
+                hint={t.eolHint}
+                value={endOfLifeA}
+                onChange={(event) =>
+                  setEndOfLifeA((event.target as HTMLSelectElement).value)
+                }
+              >
+                <SelectOption value="reciclagem">{t.eolRecycle}</SelectOption>
+                <SelectOption value="aterro">{t.eolLandfill}</SelectOption>
+                <SelectOption value="incineracao">{t.eolIncineration}</SelectOption>
+              </Select>
+            </div>
+          </StepCard>
 
-        <StepCard
-          title={t.transportStep}
-          description={t.transportHint}
-          bodyClassName="grid gap-4 sm:grid-cols-2"
-        >
-          <Select
-            label={t.transportModeLabel}
-            value={selectedMode}
-            onChange={(event) =>
-              setMode((event.target as HTMLSelectElement).value)
-            }
-          >
-            {(modes.data ?? []).map((item) => (
-              <SelectOption key={item.slug} value={item.slug}>
-                {item.name}
-              </SelectOption>
-            ))}
-          </Select>
-          <NumberInput
-            label={t.transportDistanceLabel}
-            value={distance}
-            min={0}
-            step="any"
-            onChange={(event) => setDistance(event.target.value)}
-          />
-        </StepCard>
-      </div>
+          <StepCard title={t.materialB} bodyClassName="grid gap-4 sm:grid-cols-2">
+            <Combobox
+              label={t.materialLabel}
+              hint={t.materialHint}
+              options={materialOptions}
+              value={selectedMatB}
+              onChange={(value) => {
+                setMaterialBId(value);
+                setProcessBId("");
+              }}
+            />
+            {detailB.isSuccess && processesB.length === 0 ? (
+              <div className="flex flex-col gap-1">
+                <span className="msds-field-label">{t.processLabel}</span>
+                <Alert tone="warning">{t.noProcess}</Alert>
+              </div>
+            ) : (
+              <Select
+                label={t.processLabel}
+                hint={t.processHint}
+                value={selectedProcB}
+                disabled={processesB.length === 0}
+                onChange={(event) =>
+                  setProcessBId((event.target as HTMLSelectElement).value)
+                }
+              >
+                {processesB.map((process) => (
+                  <SelectOption key={process.id} value={String(process.id)}>
+                    {process.name}
+                  </SelectOption>
+                ))}
+              </Select>
+            )}
+            <NumberInput
+              label={t.massLabel}
+              hint={t.massHint}
+              value={massB}
+              min={0}
+              step="any"
+              onChange={(event) => setMassB(event.target.value)}
+            />
+            <NumberInput
+              label={t.recycledLabel}
+              hint={t.recycledHint}
+              value={recycledB}
+              min={0}
+              max={1}
+              step="any"
+              onChange={(event) => setRecycledB(event.target.value)}
+            />
+            <div className="sm:col-span-2">
+              <Select
+                label={t.eolLabel}
+                hint={t.eolHint}
+                value={endOfLifeB}
+                onChange={(event) =>
+                  setEndOfLifeB((event.target as HTMLSelectElement).value)
+                }
+              >
+                <SelectOption value="reciclagem">{t.eolRecycle}</SelectOption>
+                <SelectOption value="aterro">{t.eolLandfill}</SelectOption>
+                <SelectOption value="incineracao">{t.eolIncineration}</SelectOption>
+              </Select>
+            </div>
+          </StepCard>
+        </div>
+      )}
 
       <StepCard
-        title={t.useStep}
+        title={modeChoice === "individual" ? t.useStep : t.sharedPremises}
         description={t.useHint}
         footer={
           <div className="flex flex-wrap items-center gap-3">
-            <Button
-              variant="primary"
-              onClick={() => audit.mutate()}
-              disabled={!ready || audit.isPending}
-              aria-describedby={blocked ? "eco-motivo" : undefined}
-            >
-              {audit.isPending ? t.running : t.run}
-            </Button>
+            {modeChoice === "individual" ? (
+              <Button
+                variant="primary"
+                onClick={() => audit.mutate()}
+                disabled={!ready || audit.isPending}
+                aria-describedby={blocked ? "eco-motivo" : undefined}
+              >
+                {audit.isPending ? t.running : t.run}
+              </Button>
+            ) : (
+              <Button
+                variant="primary"
+                onClick={() => comparisonMutation.mutate()}
+                disabled={!ready || comparisonMutation.isPending}
+                aria-describedby={blocked ? "eco-motivo" : undefined}
+              >
+                {comparisonMutation.isPending ? t.compareRunning : t.compareRun}
+              </Button>
+            )}
             {blocked ? (
               <p id="eco-motivo" className="text-support text-ink-muted">
                 {blocked.reason}
@@ -422,10 +764,31 @@ export default function EcoPage() {
           </div>
         }
       >
-        {/* The two choices stay in view; the numbers behind the use phase are
-            premises with visible defaults, folded with every value printed in
-            the summary (D-86). */}
         <div className="grid gap-4 sm:grid-cols-2">
+          {modeChoice === "compare" && (
+            <>
+              <Select
+                label={t.transportModeLabel}
+                value={selectedMode}
+                onChange={(event) =>
+                  setMode((event.target as HTMLSelectElement).value)
+                }
+              >
+                {(modes.data ?? []).map((item) => (
+                  <SelectOption key={item.slug} value={item.slug}>
+                    {item.name}
+                  </SelectOption>
+                ))}
+              </Select>
+              <NumberInput
+                label={t.transportDistanceLabel}
+                value={distance}
+                min={0}
+                step="any"
+                onChange={(event) => setDistance(event.target.value)}
+              />
+            </>
+          )}
           <Select
             label={t.useModelLabel}
             value={useModel}
@@ -436,18 +799,20 @@ export default function EcoPage() {
             <SelectOption value="estatico">{t.useStatic}</SelectOption>
             <SelectOption value="movel">{t.useMobile}</SelectOption>
           </Select>
-          <Select
-            label={t.eolLabel}
-            hint={t.eolHint}
-            value={endOfLife}
-            onChange={(event) =>
-              setEndOfLife((event.target as HTMLSelectElement).value)
-            }
-          >
-            <SelectOption value="reciclagem">{t.eolRecycle}</SelectOption>
-            <SelectOption value="aterro">{t.eolLandfill}</SelectOption>
-            <SelectOption value="incineracao">{t.eolIncineration}</SelectOption>
-          </Select>
+          {modeChoice === "individual" && (
+            <Select
+              label={t.eolLabel}
+              hint={t.eolHint}
+              value={endOfLife}
+              onChange={(event) =>
+                setEndOfLife((event.target as HTMLSelectElement).value)
+              }
+            >
+              <SelectOption value="reciclagem">{t.eolRecycle}</SelectOption>
+              <SelectOption value="aterro">{t.eolLandfill}</SelectOption>
+              <SelectOption value="incineracao">{t.eolIncineration}</SelectOption>
+            </Select>
+          )}
         </div>
         <Disclosure
           summary={
@@ -524,53 +889,103 @@ export default function EcoPage() {
           </div>
         </Disclosure>
         {audit.isError ? <Alert tone="danger">{String(audit.error)}</Alert> : null}
+        {comparisonMutation.isError ? (
+          <Alert tone="danger">{String(comparisonMutation.error)}</Alert>
+        ) : null}
       </StepCard>
 
-      <StepCard title={t.resultStep}>
-        {result ? (
-          <>
-            {/* The answer is not the total — it is which phase dominates, and
-                the two quantities get their own podium because they can
-                disagree. */}
-            <div className="flex flex-col gap-3">
-              <span className="text-sm font-medium text-ink">
-                {t.dominanceTitle}
-              </span>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <Podium
-                  label={t.dominanceEnergy}
-                  dominance={result.energy_dominance}
-                />
-                <Podium
-                  label={t.dominanceCarbon}
-                  dominance={result.carbon_dominance}
-                />
+      {modeChoice === "individual" ? (
+        <StepCard title={t.resultStep}>
+          {result ? (
+            <>
+              <div className="flex flex-col gap-3">
+                <span className="text-sm font-medium text-ink">
+                  {t.dominanceTitle}
+                </span>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Podium
+                    label={t.dominanceEnergy}
+                    dominance={result.energy_dominance}
+                  />
+                  <Podium
+                    label={t.dominanceCarbon}
+                    dominance={result.carbon_dominance}
+                  />
+                </div>
               </div>
-            </div>
 
-            <PhaseTable result={result} />
+              <PhaseTable result={result} />
 
-            <div className="well flex flex-col gap-2 text-xs text-ink-muted">
-              <span>
-                <strong className="text-ink">{t.massBought}:</strong>{" "}
-                {formatNumber(result.mass_bought)} kg — {t.massBoughtHint}
-              </span>
-              <span>{result.recycling_credit_note}</span>
-              <span>
-                <Link
-                  className="text-accent underline underline-offset-2"
-                  href={`/app/materiais/${result.material_id}`}
-                >
-                  {result.material_name}
-                </Link>{" "}
-                · {result.process_name} · {result.transport_mode.name}
-              </span>
+              <div className="well flex flex-col gap-2 text-xs text-ink-muted">
+                <span>
+                  <strong className="text-ink">{t.massBought}:</strong>{" "}
+                  {formatNumber(result.mass_bought)} kg — {t.massBoughtHint}
+                </span>
+                <span>{result.recycling_credit_note}</span>
+                <span>
+                  <Link
+                    className="text-accent underline underline-offset-2"
+                    href={`/app/materiais/${result.material_id}`}
+                  >
+                    {result.material_name}
+                  </Link>{" "}
+                  · {result.process_name} · {result.transport_mode.name}
+                </span>
+              </div>
+            </>
+          ) : (
+            <EmptyState title={t.resultIdleTitle} description={t.resultIdleHint} />
+          )}
+        </StepCard>
+      ) : (
+        <StepCard title={t.compareResultStep}>
+          {compareResult ? (
+            <div className="flex flex-col gap-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="well flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-ink">{t.winnerEnergy}</span>
+                    <Badge tone="success">
+                      {compareResult.winner_energy === "material_a"
+                        ? compareResult.material_a.material_name
+                        : compareResult.winner_energy === "material_b"
+                          ? compareResult.material_b.material_name
+                          : t.tieEnergy}
+                    </Badge>
+                  </div>
+                  {compareResult.delta_energy_percent !== null && Math.abs(compareResult.delta_energy_percent) > 0.01 && (
+                    <span className="text-xs text-ink-muted">
+                      {t.savingsEnergy(Math.abs(compareResult.delta_energy_percent))}
+                    </span>
+                  )}
+                </div>
+
+                <div className="well flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-ink">{t.winnerCarbon}</span>
+                    <Badge tone="brand">
+                      {compareResult.winner_carbon === "material_a"
+                        ? compareResult.material_a.material_name
+                        : compareResult.winner_carbon === "material_b"
+                          ? compareResult.material_b.material_name
+                          : t.tieCarbon}
+                    </Badge>
+                  </div>
+                  {compareResult.delta_carbon_percent !== null && Math.abs(compareResult.delta_carbon_percent) > 0.01 && (
+                    <span className="text-xs text-ink-muted">
+                      {t.savingsCarbon(Math.abs(compareResult.delta_carbon_percent))}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <ComparisonTable result={compareResult} />
             </div>
-          </>
-        ) : (
-          <EmptyState title={t.resultIdleTitle} description={t.resultIdleHint} />
-        )}
-      </StepCard>
+          ) : (
+            <EmptyState title={t.resultIdleTitle} description={t.resultIdleHint} />
+          )}
+        </StepCard>
+      )}
     </div>
   );
 }

@@ -30,7 +30,7 @@ _PROPERTY_UNITS = {prop["slug"]: prop["canonical_unit"] for prop in PROPERTIES}
 
 def test_the_catalogue_is_not_empty() -> None:
     """A sweep over an empty catalogue passes while proving nothing."""
-    assert len(LOAD_CASES) >= 7
+    assert len(LOAD_CASES) >= 10
 
 
 @pytest.mark.parametrize("case", LOAD_CASES, ids=lambda case: case.key)
@@ -98,6 +98,7 @@ def test_support_conditions_fill_a_variable_of_their_own_case(case) -> None:
 
 def test_by_key_finds_and_misses() -> None:
     assert by_key("viga-rigidez") is not None
+    assert by_key("viga-circular-rigidez") is not None
     assert by_key("nao-existe") is None
 
 
@@ -177,6 +178,42 @@ def test_column_buckling_matches_the_closed_form() -> None:
     expected = area * length * _RHO
     got = _factorised(
         "coluna-flambagem",
+        {"carga": load, "comprimento": length, "constante_flambagem": fixity},
+        {"modulo_young": _E, "densidade": _RHO},
+    )
+    assert got == pytest.approx(expected, rel=1e-9)
+
+
+def test_circular_beam_stiffness_matches_the_closed_form() -> None:
+    stiffness, length, constant = 1.8e5, 0.75, 48.0
+    area = math.sqrt(4 * math.pi * stiffness * length**3 / (constant * _E))
+    expected = area * length * _RHO
+    got = _factorised(
+        "viga-circular-rigidez",
+        {"rigidez": stiffness, "comprimento": length, "constante_apoio": constant},
+        {"modulo_young": _E, "densidade": _RHO},
+    )
+    assert got == pytest.approx(expected, rel=1e-9)
+
+
+def test_circular_beam_strength_matches_the_closed_form() -> None:
+    moment, length = 850.0, 1.4
+    area = (4 * math.sqrt(math.pi) * moment / _SIGMA) ** (2 / 3)
+    expected = area * length * _RHO
+    got = _factorised(
+        "viga-circular-resistencia",
+        {"momento": moment, "comprimento": length},
+        {"limite_escoamento": _SIGMA, "densidade": _RHO},
+    )
+    assert got == pytest.approx(expected, rel=1e-9)
+
+
+def test_circular_column_buckling_matches_the_closed_form() -> None:
+    load, length, fixity = 2.5e4, 2.2, 1.0
+    area = math.sqrt(4 * load * length**2 / (fixity * math.pi * _E))
+    expected = area * length * _RHO
+    got = _factorised(
+        "coluna-circular-flambagem",
         {"carga": load, "comprimento": length, "constante_flambagem": fixity},
         {"modulo_young": _E, "densidade": _RHO},
     )

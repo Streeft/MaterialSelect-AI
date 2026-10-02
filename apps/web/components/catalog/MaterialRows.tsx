@@ -17,6 +17,7 @@ import {
   Tr,
   type QualityState,
 } from "@/components/ui";
+import { HighlightText } from "./HighlightText";
 
 const t = ptBR.catalog;
 
@@ -61,14 +62,16 @@ export function QualityBar({ quality }: { quality: DataQualitySummary }) {
 function MaterialName({
   material,
   demoBadge,
+  searchQuery,
 }: {
   material: MaterialListItem;
   demoBadge: boolean;
+  searchQuery?: string;
 }) {
   return (
     <span className="flex flex-wrap items-center gap-2">
       <Link href={`/app/materiais/${material.id}`} className="font-medium text-brand hover:underline">
-        {material.name}
+        <HighlightText text={material.name} query={searchQuery} />
       </Link>
       {demoBadge && material.is_demo && <Badge tone="warning">{ptBR.demoBadge}</Badge>}
     </span>
@@ -78,10 +81,12 @@ function MaterialName({
 export function MaterialTable({
   materials,
   demoBadge = true,
+  searchQuery,
 }: {
   materials: MaterialListItem[];
   /** False when the list already says, once, that every row is fictitious. */
   demoBadge?: boolean;
+  searchQuery?: string;
 }) {
   return (
     <TableScroll label={t.title}>
@@ -99,8 +104,12 @@ export function MaterialTable({
           {materials.map((m) => (
             <Tr key={m.id}>
               <RowHeader>
-                <MaterialName material={m} demoBadge={demoBadge} />
-                {m.subclass && <span className="block text-xs text-ink-subtle">{m.subclass}</span>}
+                <MaterialName material={m} demoBadge={demoBadge} searchQuery={searchQuery} />
+                {m.subclass && (
+                  <span className="block text-xs text-ink-subtle">
+                    <HighlightText text={m.subclass} query={searchQuery} />
+                  </span>
+                )}
               </RowHeader>
               <Td>
                 <ClassBadge name={m.class_name} color={classVisual(m.class_slug).color} />
@@ -111,7 +120,9 @@ export function MaterialTable({
               <Td>
                 <span className="flex flex-wrap gap-1">
                   {m.keywords.map((kw) => (
-                    <Badge key={kw}>{kw}</Badge>
+                    <Badge key={kw}>
+                      <HighlightText text={kw} query={searchQuery} />
+                    </Badge>
                   ))}
                 </span>
               </Td>

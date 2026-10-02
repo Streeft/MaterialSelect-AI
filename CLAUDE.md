@@ -223,7 +223,7 @@ noutro bundler, com outro fatiamento de chunks ([D-51](docs/DECISIONS.md)).
 
 ```powershell
 # Backend
-cd apps\api; .\.venv\Scripts\Activate.ps1
+cd apps\api; .\\.venv\\Scripts\\Activate.ps1
 python -m alembic upgrade head; python -m app.db.seed
 uvicorn app.main:app --reload
 pytest
@@ -274,7 +274,7 @@ Fases 1 a 9 concluídas. **Fase 7 (relatórios e qualidade) concluída** — as
 exportações CSV/XLSX, o relatório HTML imprimível, os testes end-to-end de
 interface (A4, Playwright em `apps/web/e2e/`), a autenticação (A5) e a
 auditoria (M2 — `AuditEvent`, quem mudou o quê e quando, retrato em vez de
-junção viva, [D-43](docs/DECISIONS.md)) já saíram; a exportação nativa em PPTX (B2), cobrindo catálogo, estudo e laudo, foi entregue (3362 → 3376 testes de backend e 752 → 753 de frontend). **A5** deu login exclusivamente por terceiros
+junção viva, [D-43](docs/DECISIONS.md)) já saíram; a exportação nativa em PPTX (B2) foi entregue e, na sequência, o lote quádruplo de melhorias funcionais (duplicação de estágio em seleção, relevância e highlight na busca, seções circulares no solver e comparação lado a lado no Eco Audit — Opções 1, 2, 3 e 4) foi entregue (3395 → 3407 testes de backend e 753 → 762 de frontend). **A5** deu login exclusivamente por terceiros
 (Google, OAuth 2.0 — sem senha em lugar nenhum do sistema), sessão em cookie
 `httpOnly` que é linha de banco e não JWT, catálogo compartilhado entre todo
 usuário autenticado e um `Project` por usuário isolando `SelectionStudy`
@@ -919,7 +919,7 @@ e no mesmo modal do D-94. Regras que não se afrouxam:
   o átomo da conferência), e diz que encurtou (`studio_service.note_body`).
 - **Nenhuma migração**: as quatro cabem nos campos JSON da fase 1.
 
-3395 testes de backend (nenhum skip) e 753 de frontend, todos verdes. CI no
+3407 testes de backend (nenhum skip) e 762 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
 PROJECT_CONTEXT.md).
@@ -974,7 +974,7 @@ para a função MSDS crua (`as` polimórfico, `headingLevel`/`actions`/
 `@material/web` do arquivo); `Skeleton`/`LoadingState` ficaram com marcação
 própria; `EmptyState` foi delegado, testado ao vivo e **revertido** — a
 arte decorativa do MSDS usa `var(--brand-100)` puro como `fill`, inválido
-contra os tokens `"R G B"` deste app, e caía em preto sólido nos dois
+contra os tokens `\"R G B\"` deste app, e caía em preto sólido nos dois
 temas. `Popover.tsx`, `Bar.tsx`, `Alert.tsx`, `Table.tsx` e o resto de
 `Button.tsx` continuam como D-77 os deixou — ver D-78 para o motivo
 reexaminado de cada um.

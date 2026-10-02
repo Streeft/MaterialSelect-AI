@@ -185,6 +185,79 @@ export function emptyChartStage(): StageState {
 }
 
 /**
+ * Duplicates a stage, generating a fresh ID for the stage and all its nested
+ * groups and constraints, and tagging its label with a copy indicator.
+ */
+export function duplicateStage(stage: StageState): StageState {
+  const newId = nextEditorId("stage");
+  const newLabel = stage.label.trim() ? `${stage.label} (cópia)` : "";
+
+  if (stage.kind === "limit") {
+    const cloneGroup = (g: ConstraintGroupState): ConstraintGroupState => ({
+      ...g,
+      id: nextEditorId("group"),
+      constraints: g.constraints.map((c) => ({
+        ...c,
+        id: nextEditorId("constraint"),
+      })),
+      groups: g.groups.map(cloneGroup),
+    });
+
+    return {
+      ...stage,
+      id: newId,
+      label: newLabel,
+      group: cloneGroup(stage.group),
+    };
+  }
+
+  if (stage.kind === "chart") {
+    return {
+      ...stage,
+      id: newId,
+      label: newLabel,
+      x: { ...stage.x },
+      y: { ...stage.y },
+    };
+  }
+
+  if (stage.kind === "tree") {
+    return {
+      ...stage,
+      id: newId,
+      label: newLabel,
+      classSlugs: [...stage.classSlugs],
+    };
+  }
+
+  if (stage.kind === "process") {
+    return {
+      ...stage,
+      id: newId,
+      label: newLabel,
+      processSlugs: [...stage.processSlugs],
+      processClassSlugs: [...stage.processClassSlugs],
+    };
+  }
+
+  if (stage.kind === "material") {
+    return {
+      ...stage,
+      id: newId,
+      label: newLabel,
+      materialClassSlugs: [...stage.materialClassSlugs],
+    };
+  }
+
+  const fallback = stage as StageState;
+  return {
+    ...fallback,
+    id: newId,
+    label: newLabel,
+  };
+}
+
+/**
  * A typed bound as the API takes it: a number, or `null` for "no bound".
  *
  * Blank is null and never 0 — that is the whole reason the state holds strings.
@@ -373,6 +446,15 @@ export function StageList({
   const replace = (index: number, next: StageState) =>
     onChange(stages.map((s, i) => (i === index ? next : s)));
 
+  const duplicate = (index: number) => {
+    const target = stages[index];
+    if (!target) return;
+    const copy = duplicateStage(target);
+    const next = [...stages];
+    next.splice(index + 1, 0, copy);
+    onChange(next);
+  };
+
   const move = (index: number, delta: number) => {
     const target = index + delta;
     const moved = stages[index];
@@ -410,8 +492,7 @@ export function StageList({
 
   return (
     <div className="flex flex-col gap-4">
-      {stages.map((stage, index) => (
-        <Card key={stage.id}>
+      {stages.map((stage, index) => (\n        <Card key={stage.id}>
           <CardHeader
             headingLevel={3}
             title={stage.label.trim() || t.stageNumber(index + 1, stage.kind)}
@@ -422,6 +503,12 @@ export function StageList({
                     glyph is not a name, and this is the primitive the design
                     system gives an icon-only control so the accessible name
                     cannot be forgotten. */}
+                <IconButton
+                  size="sm"
+                  label={t.stageDuplicate(index + 1)}
+                  icon={<span aria-hidden>⧉</span>}
+                  onClick={() => duplicate(index)}
+                />
                 <IconButton
                   size="sm"
                   label={t.stageMoveUp(index + 1)}
@@ -604,8 +691,7 @@ function MultiSelect({
       value={selected}
       onChange={(e) => onChange(Array.from(e.target.selectedOptions, (o) => o.value))}
     >
-      {options.map((o) => (
-        <option key={o.slug} value={o.slug}>
+      {options.map((o) => (\n        <option key={o.slug} value={o.slug}>
           {o.name}
         </option>
       ))}

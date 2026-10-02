@@ -79,3 +79,59 @@ describe("export URLs", () => {
     );
   });
 });
+
+describe("compareEcoAudits", () => {
+  it("posts comparison payload to /api/eco/comparar", async () => {
+    const { compareEcoAudits } = await import("./api");
+    const fetchMock = vi.fn(async () =>
+      new Response(
+        JSON.stringify({
+          material_a: { total_energy_mj: 100, total_carbon_kg: 10 },
+          material_b: { total_energy_mj: 80, total_carbon_kg: 8 },
+          delta_energy: -20,
+          delta_energy_percent: -20,
+          delta_carbon: -2,
+          delta_carbon_percent: -20,
+          winner_energy: "material_b",
+          winner_carbon: "material_b",
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    try {
+      const out = await compareEcoAudits({
+        material_a: {
+          material_id: 1,
+          process_id: 1,
+          part_mass: 2.5,
+          recycled_fraction: 0,
+          end_of_life: "aterro",
+        },
+        material_b: {
+          material_id: 2,
+          process_id: 2,
+          part_mass: 2.0,
+          recycled_fraction: 0.2,
+          end_of_life: "reciclagem",
+        },
+        transport_mode: "truck_freight",
+        transport_distance_km: 500,
+        use: {
+          model: "estatico",
+          power_watts: 0,
+          duty_cycle: 0,
+          life_years: 1,
+          carbon_per_energy: 0.07,
+        },
+      });
+      expect(out.winner_energy).toBe("material_b");
+      expect(out.delta_energy).toBe(-20);
+      const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+      expect(url).toContain("/api/eco/comparar");
+      expect(init.method).toBe("POST");
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+});
