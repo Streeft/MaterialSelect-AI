@@ -86,14 +86,10 @@ def _interpretations(token: str) -> set[float]:
             candidates.add(cleaned.replace(",", ""))
     elif has_comma:
         candidates.add(cleaned.replace(",", "."))  # decimal comma
-        parts = cleaned.split(",")
-        if len(parts) > 1 and all(len(p) == 3 for p in parts[1:]):
-            candidates.add(cleaned.replace(",", ""))  # thousands comma
+        candidates.add(cleaned.replace(",", ""))  # thousands comma
     elif has_dot:
         candidates.add(cleaned)  # decimal point
-        parts = cleaned.split(".")
-        if len(parts) > 1 and all(len(p) == 3 for p in parts[1:]):
-            candidates.add(cleaned.replace(".", ""))  # thousands point
+        candidates.add(cleaned.replace(".", ""))  # thousands point
     else:
         candidates.add(cleaned)
 
