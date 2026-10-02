@@ -292,7 +292,7 @@ export const ptBR = {
     freeVariablesHint: "O que o projeto deixa variar, separado por vírgula. Ex.: espessura.",
     myStudies: (n: number) =>
       n === 0 ? "Meus estudos (nenhum salvo)" : n === 1 ? "Meus estudos (1)" : `Meus estudos (${n})`,
-    nextStep: (label: string) => `Próximo: ${label}`,
+    nextStep: (label: string) => `Próximo: ${label}` supply,
     // D-91: what a phone shows; the full label stays the accessible name.
     nextShort: "Próximo",
     summaryObjective: (index: string | null, criteria: number) =>
@@ -373,6 +373,7 @@ export const ptBR = {
     stageAddMaterial: "Estágio de materiais",
     stageAddChart: "Estágio de gráfico",
     stageRemove: "Remover estágio",
+    stageDuplicate: (n: number) => `Duplicar o estágio ${n}`,
     stageMoveUp: (n: number) => `Mover o estágio ${n} para cima`,
     stageMoveDown: (n: number) => `Mover o estágio ${n} para baixo`,
     stageClasses: "Classes selecionadas",
@@ -799,7 +800,7 @@ export const ptBR = {
     empty: "Nenhum material pôde ser comparado nesta base.",
     // A distância só é comparável dentro de uma resposta: a escala vem da
     // dispersão daquele conjunto. Dizê-lo evita que o número seja lido como
-    // uma medida absoluta.
+    // uma medida absoluta.",
     distanceHint:
       "A distância é adimensional e só se compara dentro desta resposta: a escala vem da dispersão deste conjunto.",
     distance: "Distância",
@@ -994,6 +995,26 @@ export const ptBR = {
       duty: "O ciclo de trabalho vai de 0 a 1, sem incluir o zero (premissas).",
       positive: (label: string) => `${label}: informe um valor maior que zero.`,
     },
+    modeIndividual: "Individual",
+    modeCompare: "Comparar dois materiais",
+    compareTitle: "Comparação lado a lado",
+    materialA: "Material A",
+    materialB: "Material B",
+    sharedPremises: "Premissas compartilhadas (transporte e uso)",
+    deltaEnergy: "Diferença em energia",
+    deltaCarbon: "Diferença em carbono",
+    winnerEnergy: "Mais eficiente em energia",
+    winnerCarbon: "Menor pegada de carbono",
+    savingsEnergy: (pct: number) => `Economia de ${pct}% de energia`,
+    savingsCarbon: (pct: number) => `Redução de ${pct}% de CO₂`,
+    tieEnergy: "Empate em energia",
+    tieCarbon: "Empate em carbono",
+    compareRun: "Comparar alternativas",
+    compareRunning: "Comparando…",
+    compareResultStep: "4. Comparativo das fases",
+    columnMaterialA: "Material A",
+    columnMaterialB: "Material B",
+    columnVariation: "Variação (B − A)",
     run: "Auditar",
     running: "Auditando…",
     resultStep: "4. As cinco fases",
