@@ -23,7 +23,7 @@ Instruções para agentes/contribuidores trabalhando neste repositório. Esta é
    valor normalizado + unidade canônica + método de conversão. Conversão só via
    `app/calculations/units.py` (Pint).
 5. **Sem segredos versionados.** Configuração por variáveis de ambiente
-   (`.env`, ignorado). Há `.env.example`.
+   (`.env`, ignorado). Há `.env.example` .
 6. **Dados de demonstração** são fictícios e marcados (`is_demo`), com aviso na
    interface e nos arquivos. Criar dado de demonstração novo, ou apagar o que
    já existe, segue a regra fixa em
@@ -800,7 +800,8 @@ nem noutro. O cliente nunca aplica fator.
 **Preparação para a turma de 29/09 (D-84 a D-89).** Um estudo de processos voltou
 a ter o passo Objetivo (D-84). A Seleção virou assistente guiado — um passo de
 cada vez, Voltar em todo passo e no navegador, **o recolhido nunca esconde o que
-está em uso**, exemplo em um clique, resultado que começa pelo vencedor (D-85) —,\ne o resto do produto ficou enxuto: capa com um botão, menu por papel, Mapas com
+está em uso**, exemplo em um clique, resultado que começa pelo vencedor (D-85) —,
+e o resto do produto ficou enxuto: capa com um botão, menu por papel, Mapas com
 "Personalizar", Comparar por busca, ferramentas com premissas recolhidas **e os
 valores no resumo** (D-86). Os pesos do ranking somam 1, com orçamento, sugestão e
 top 5 calculados em `POST /api/selection/weights-preview`; **o `/run` continua
@@ -916,7 +917,7 @@ e no mesmo modal do D-94. Regras que não se afrouxam:
   o átomo da conferência), e diz que encurtou (`studio_service.note_body`).
 - **Nenhuma migração**: as quatro cabem nos campos JSON da fase 1.
 
-3376 testes de backend (nenhum skip) e 753 de frontend, todos verdes. CI no
+3382 testes de backend (nenhum skip) e 753 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
 PROJECT_CONTEXT.md).
