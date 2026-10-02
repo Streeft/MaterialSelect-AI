@@ -56,8 +56,8 @@ standard results; the method that assembles them into indices is Ashby's
 database, text or dataset is reproduced.
 
 What is **not** here, and is a deliberate v1 omission: sections other than solid
-square and solid rectangular, and any case the user would author themselves — a
-derivation is verified by review, like ``units.py``, not by data entry.
+square, solid rectangular and solid circular, and any case the user would author
+themselves — a derivation is verified by review, like ``units.py``, not by data entry.
 """
 
 from __future__ import annotations
@@ -66,9 +66,12 @@ from dataclasses import dataclass
 
 from app.calculations.expressions import ExpressionError, variables_in
 
-# π² written out: the safe expression grammar admits numeric literals only, and
-# a named constant would have to enter the evaluator's whitelist for one case.
+# π and π² written out: the safe expression grammar admits numeric literals only,
+# and a named constant would have to enter the evaluator's whitelist for one case.
+_PI = "3.141592653589793"
 _PI_SQUARED = "9.869604401089358"
+_FOUR_PI = "12.566370614359172"
+_FOUR_SQRT_PI = "7.0898154036220635"
 
 #: The two objectives one derivation serves (D-65). They are not two derivations
 #: and never become two: the structural factor is the same number in both runs,
@@ -269,6 +272,7 @@ _EXTREMIDADES_COLUNA = (
 
 _ASHBY = "Ashby, Material Selection in Mechanical Design"
 _SECAO_QUADRADA = "Seção quadrada maciça de lado √A, de modo que I = A²/12."
+_SECAO_CIRCULAR = "Seção circular maciça de raio r = √(A/π), com I = A²/(4π) e Z = A^(3/2)/(4√π)."
 
 
 # --- the catalogue ---------------------------------------------------------
@@ -487,6 +491,108 @@ LOAD_CASES: tuple[LoadCase, ...] = (
         objective_unit="kg",
         free_structural=(
             "sqrt(12 * carga * comprimento ** 2 / (constante_flambagem * " + _PI_SQUARED + "))"
+        ),
+        free_material="1 / sqrt(modulo_young)",
+        free_unit="m**2",
+        variables=(_COMPRIMENTO, _CARGA, _CONSTANTE_FLAMBAGEM),
+        supports=_EXTREMIDADES_COLUNA,
+        reference=_ASHBY,
+    ),
+    LoadCase(
+        key="viga-circular-rigidez",
+        label="Viga circular em flexão, rigidez especificada",
+        summary=(
+            "Viga de seção circular maciça que não pode fletir mais do que o "
+            "projeto admite; o diâmetro é livre, o vão é fixo."
+        ),
+        index_slug="viga-leve-rigidez",
+        cost_index_slug="viga-leve-rigidez-custo",
+        objective_label="Minimizar massa",
+        constraint_label="Rigidez à flexão S especificada",
+        free_variable_label="Área da seção A",
+        fixed_labels=("Comprimento L", "Rigidez S", "Constante de apoio C"),
+        derivation=(
+            "Objetivo: m = A · L · ρ.",
+            "Restrição: S = C · E · I / L³, com C dado pelo apoio e pelo carregamento.",
+            _SECAO_CIRCULAR,
+            "Logo S = C · E · A² / (4π · L³), e a variável livre sai: "
+            "A = √(4π · S · L³ / (C · E)).",
+            "Substituindo: m = √(4π · S · L⁵ / C) · (ρ / √E).",
+            "Minimizar a massa é maximizar √E/ρ.",
+        ),
+        objective_structural=(
+            f"sqrt({_FOUR_PI} * rigidez * comprimento ** 5 / constante_apoio)"
+        ),
+        objective_unit="kg",
+        free_structural=(
+            f"sqrt({_FOUR_PI} * rigidez * comprimento ** 3 / constante_apoio)"
+        ),
+        free_material="1 / sqrt(modulo_young)",
+        free_unit="m**2",
+        variables=(_COMPRIMENTO, _RIGIDEZ, _CONSTANTE_APOIO),
+        supports=_APOIOS_VIGA,
+        reference=_ASHBY,
+    ),
+    LoadCase(
+        key="viga-circular-resistencia",
+        label="Viga circular em flexão, momento especificado",
+        summary=(
+            "Viga de seção circular maciça que não pode escoar na fibra mais solicitada; "
+            "o diâmetro é livre, o vão é fixo."
+        ),
+        index_slug="viga-leve-resistencia",
+        cost_index_slug="viga-leve-resistencia-custo",
+        objective_label="Minimizar massa",
+        constraint_label="Momento fletor M suportado sem escoar",
+        free_variable_label="Área da seção A",
+        fixed_labels=("Comprimento L", "Momento M"),
+        derivation=(
+            "Objetivo: m = A · L · ρ.",
+            "Restrição: σ_max = M · r / I ≤ σy na fibra periférica.",
+            _SECAO_CIRCULAR + " Com r = √(A/π), isso dá σ_max = 4√π · M / A^(3/2).",
+            "Isolando a variável livre: A = (4√π · M / σy)^(2/3).",
+            "Substituindo: m = L · (4√π · M)^(2/3) · (ρ / σy^(2/3)).",
+            "Minimizar a massa é maximizar σy^(2/3)/ρ.",
+        ),
+        objective_structural=(
+            f"comprimento * ({_FOUR_SQRT_PI} * momento) ** (2 / 3)"
+        ),
+        objective_unit="kg",
+        free_structural=f"({_FOUR_SQRT_PI} * momento) ** (2 / 3)",
+        free_material="1 / limite_escoamento ** (2 / 3)",
+        free_unit="m**2",
+        variables=(_COMPRIMENTO, _MOMENTO),
+        supports=(),
+        reference=_ASHBY,
+    ),
+    LoadCase(
+        key="coluna-circular-flambagem",
+        label="Coluna circular em compressão, flambagem elástica",
+        summary=(
+            "Coluna de seção circular maciça que não pode flambar sob a carga de projeto; "
+            "o diâmetro é livre, o comprimento é fixo."
+        ),
+        index_slug="viga-leve-rigidez",
+        cost_index_slug="viga-leve-rigidez-custo",
+        objective_label="Minimizar massa",
+        constraint_label="Carga F suportada sem flambar",
+        free_variable_label="Área da seção A",
+        fixed_labels=("Comprimento L", "Carga F", "Fator de extremidade n²"),
+        derivation=(
+            "Objetivo: m = A · L · ρ.",
+            "Restrição: F ≤ n² · π² · E · I / L², a carga crítica de Euler.",
+            _SECAO_CIRCULAR,
+            "Com I = A²/(4π), F ≤ n² · π · E · A² / (4 · L²).",
+            "Logo A = √(4 · F · L² / (n² · π · E)).",
+            "Substituindo: m = √(4 · F · L⁴ / (n² · π)) · (ρ / √E).",
+            "Minimizar a massa é maximizar √E/ρ.",
+        ),
+        objective_structural=(
+            f"sqrt(4 * carga * comprimento ** 4 / (constante_flambagem * {_PI}))"
+        ),
+        objective_unit="kg",
+        free_structural=(
+            f"sqrt(4 * carga * comprimento ** 2 / (constante_flambagem * {_PI}))"
         ),
         free_material="1 / sqrt(modulo_young)",
         free_unit="m**2",
