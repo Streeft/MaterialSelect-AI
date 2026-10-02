@@ -904,7 +904,8 @@ function ChartStageFields({
       });
       return;
     }
-    convertMapBox({ ...boxAxes, box: toMapBox(box), to: "canonical" })\n      .then(({ box: stored }) => {
+    convertMapBox({ ...boxAxes, box: toMapBox(box), to: "canonical" })
+      .then(({ box: stored }) => {
         const current = latestStage.current;
         onChange({
           ...current,
