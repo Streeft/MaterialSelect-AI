@@ -292,7 +292,7 @@ export const ptBR = {
     freeVariablesHint: "O que o projeto deixa variar, separado por vírgula. Ex.: espessura.",
     myStudies: (n: number) =>
       n === 0 ? "Meus estudos (nenhum salvo)" : n === 1 ? "Meus estudos (1)" : `Meus estudos (${n})`,
-    nextStep: (label: string) => `Próximo: ${label}` supply,
+    nextStep: (label: string) => `Próximo: ${label}`,
     // D-91: what a phone shows; the full label stays the accessible name.
     nextShort: "Próximo",
     summaryObjective: (index: string | null, criteria: number) =>
@@ -374,7 +374,7 @@ export const ptBR = {
     stageAddChart: "Estágio de gráfico",
     stageRemove: "Remover estágio",
     stageDuplicate: (n: number) => `Duplicar o estágio ${n}`,
-    stageMoveUp: (n: number) => `Mover o estágio ${n} para cima`,
+    stageMoveUp: (n: number) => `Mover o estágio ${n} para cima` ,
     stageMoveDown: (n: number) => `Mover o estágio ${n} para baixo`,
     stageClasses: "Classes selecionadas",
     stageClassesHint: "Segure Ctrl (ou Cmd) para escolher mais de uma.",
@@ -1196,7 +1196,7 @@ export const ptBR = {
     coreThicknessLabel: "Espessura do núcleo",
     // A unidade não é pedida de propósito: toda regra do painel lê só a razão
     // entre as duas espessuras, e inventar uma unidade sugeriria que o valor
-    // absoluto muda alguma coisa.
+    // absoluto muda alguma coisa.",
     thicknessHint:
       "As duas na mesma unidade — qual unidade é não importa, porque só a razão entre elas decide. Dobrar as duas não muda nem a densidade nem o módulo do painel.",
     identityStep: "3. A identidade do registro",
@@ -1577,8 +1577,7 @@ export const ptBR = {
         txt: "TXT (roteiro)",
       } as Record<string, string>,
       // D-98: the audio script also goes out as DOCX, under a label that says
-      // what the file holds; a tool not listed here reads `exportLabels`.
-      exportLabelsByTool: {
+      // what the file holds; a tool not listed here reads `exportLabels`.\n      exportLabelsByTool: {
         audio: { docx: "DOCX (roteiro)" },
       } as Record<string, Record<string, string>>,
       // Made in the browser, not by the API: PNG from the backend's SVG, PDF by
@@ -1894,7 +1893,7 @@ export const ptBR = {
     maximize: "Maximizar",
     minimize: "Minimizar",
     slope: "Inclinação (log-log)",
-    vertical: "Reta vertical",
+    slopeVertical: "Reta vertical",
     dimension: "Dimensão",
     levelThrough: "Linha passando por",
     levelNone: "Nenhum material",
