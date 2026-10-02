@@ -100,6 +100,7 @@ import {
   countStageConstraints,
   boundToField,
   chartAxisFromPayload,
+  duplicateStage,
   emptyChartStage,
   emptyLimitStage,
   emptyMaterialStage,
@@ -251,6 +252,33 @@ describe("toStagePayload", () => {
   });
 });
 
+describe("duplicateStage", () => {
+  it("duplicates a limit stage with fresh IDs and copied label", () => {
+    const original = { ...emptyLimitStage(), label: "Estágio 1" };
+    const copy = duplicateStage(original);
+
+    expect(copy.id).not.toBe(original.id);
+    expect(copy.label).toBe("Estágio 1 (cópia)");
+    expect(copy.kind).toBe("limit");
+    if (copy.kind === "limit" && original.kind === "limit") {
+      expect(copy.group.id).not.toBe(original.group.id);
+    }
+  });
+
+  it("duplicates a chart stage preserving axes and boundaries", () => {
+    const original = chartStage({ label: "Plano Ashby" });
+    const copy = duplicateStage(original);
+
+    expect(copy.id).not.toBe(original.id);
+    expect(copy.label).toBe("Plano Ashby (cópia)");
+    expect(copy.kind).toBe("chart");
+    if (copy.kind === "chart" && original.kind === "chart") {
+      expect(copy.x).toEqual(original.x);
+      expect(copy.y).toEqual(original.y);
+    }
+  });
+});
+
 describe("countStageConstraints", () => {
   it("counts across stages and ignores tree stages", () => {
     const limit = emptyLimitStage();
@@ -282,6 +310,23 @@ describe("StageList", () => {
 
     await user.click(screen.getByShadowText(new RegExp(t.stageAddLimit)));
     expect(last.map((s) => s.kind)).toEqual(["limit", "tree", "limit"]);
+  });
+
+  it("duplica um estágio pelo botão de ação inserindo cópia logo abaixo", async () => {
+    const user = userEvent.setup();
+    let last: StageState[] = [];
+    const limit = { ...emptyLimitStage(), label: "Original" };
+    render(<Harness initial={[limit]} onStages={(s) => (last = s)} />);
+
+    const dupBtn = screen.getByTitle(t.stageDuplicate(1));
+    await user.click(dupBtn);
+
+    expect(last).toHaveLength(2);
+    expect(last[0]?.id).toBe(limit.id);
+    expect(last[0]?.label).toBe("Original");
+    expect(last[1]?.id).not.toBe(limit.id);
+    expect(last[1]?.label).toBe("Original (cópia)");
+    expect(last[1]?.kind).toBe("limit");
   });
 
   it("moves a stage and keeps the other one intact", async () => {
@@ -453,7 +498,7 @@ describe("StageList in a process study", () => {
   it("offers the material stage and not the process one", () => {
     render(<Harness initial={[emptyLimitStage()]} universe="process" />);
 
-    // Offering the other universe's stage would be a button whose only
+    // Offering the other universe's stage would be a button wholesale only
     // outcome is the backend's refusal.
     expect(screen.getByShadowText(new RegExp(t.stageAddMaterial))).toBeInTheDocument();
     expect(screen.queryByShadowText(new RegExp(t.stageAddProcess))).not.toBeInTheDocument();
