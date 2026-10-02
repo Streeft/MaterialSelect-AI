@@ -121,18 +121,6 @@ cada uma tem o motivo de ter ficado de fora.
   termos do *grounding* exigem que ele seja mostrado. Se as fichas precisarem de
   script, a saída é `allow-scripts` **sem** `allow-same-origin`, nunca as duas
   juntas. Passo a passo em [13-deploy.md §5-sexies](13-deploy.md).
-- **Ocultação por CSS inline que o extrator ainda não lê.** ▁ Dois casos,
-  de baixo risco e deixados de fora para não descartar texto visível: um
-  deslocamento **positivo** grande (`right:9999px`, `left:9999px`), que numa
-  caixa larga pode ser legítimo; e matemática que o leitor não avalia num
-  deslocamento **sem** literal muito negativo — `calc(50% - 20000px)`, uma
-  porcentagem sem base menos um número grande, passa, porque é a forma do
-  `calc(50% - 10px)` que centraliza caixas visíveis (D-99, N-5). (O caso de
-  `visibility:hidden` em ancestral com filho `visibility:visible` foi quitado
-  na Sessão 42). Uma função desconhecida ou um `calc()` fundo demais com
-  `-9999px` dentro já oculta, e numa opacidade ou escala qualquer matemática
-  não avaliada oculta. Ocultação por folha de estilo continua fora de alcance
-  por decisão (D-97): a defesa ali é a fonte ser dado, nunca instrução.
 - **CSS inline que o extrator lê a mais** (D-99, N-6). ▁ O outro lado de ler só
   o inline: uma coluna sob um `font-size:0` de layout que volta ao tamanho
   legível por **classe** de folha de estilo, ou por um `var()` que só a folha
@@ -187,6 +175,17 @@ continua lá, e a métrica para de medir no 3.
 
 Registrados para não voltarem por engano:
 
+- ~~**Deslocamentos astronômicos positivos e subtração dominante em `calc()` no extrator de HTML (D-97/D-99, Opção 1)**~~ —
+  o extrator de conteúdo HTML dos Cadernos (`app/notebooks/html_text.py`) agora detecta
+  e descarta caixas deliberadamente empurradas para fora da viewport através de grandes
+  deslocamentos positivos (`_FAR_POSITIVE_PX = 9999px`), cobrindo `left`, `right`, `top`, `bottom`,
+  `inset`, `margin-left`, `margin-top`, `text-indent` e transformações/traduções (`translate`),
+  comum em técnicas evasivas de injeção de prompt. Além disso, termos matemáticos em `calc()`
+  agora passam por teste afim bounded (`percent_of=0px` e `percent_of=10000px`), identificando
+  expressões em que um operando negativo supera qualquer dimensão plausível de tela (ex.:
+  `calc(50% - 20000px)` e `calc(100% - 99999px)`), ao mesmo tempo em que preserva centralizações
+  e ajustes legítimos de layout (como `calc(50% - 10px)` e `calc(50% - 600px)`). Cobertura
+  completa com 13 novos testes em `test_html_hidden_css.py` (3382 → 3395 testes de backend).
 - ~~**Herança de CSS `visibility:hidden` e resgate por `visibility:visible` no extrator de HTML (D-97/D-99, Opção 1)**~~ —
   o extrator de conteúdo web (`app/notebooks/html_text.py`) agora implementa a semântica
   estrita da especificação CSS para a propriedade `visibility`: `visibility:hidden` (e `collapse`)
