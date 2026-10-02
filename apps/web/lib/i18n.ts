@@ -1214,7 +1214,7 @@ export const ptBR = {
     previewEmpty:
       "Esta receita não produziu valor nenhum com os dados que os pais têm.",
     // Nome provisório da prévia: a API exige nome no corpo, a prévia não
-    // grava nada, e o leitor ainda não chegou ao passo em que dá nome.
+    // grava nada, e o leitor ainda não chegou ao passo em que dá nome.",
     previewName: "Prévia sem nome",
     previewIdleTitle: "Nada calculado ainda",
     previewIdleHint:
@@ -1577,7 +1577,8 @@ export const ptBR = {
         txt: "TXT (roteiro)",
       } as Record<string, string>,
       // D-98: the audio script also goes out as DOCX, under a label that says
-      // what the file holds; a tool not listed here reads `exportLabels`.\n      exportLabelsByTool: {
+      // what the file holds; a tool not listed here reads `exportLabels`.
+      exportLabelsByTool: {
         audio: { docx: "DOCX (roteiro)" },
       } as Record<string, Record<string, string>>,
       // Made in the browser, not by the API: PNG from the backend's SVG, PDF by
