@@ -175,6 +175,13 @@ continua lá, e a métrica para de medir no 3.
 
 Registrados para não voltarem por engano:
 
+- ~~**Lote quádruplo de melhorias: Seleção (P0-1), Busca e Highlight (P1-1), Dimensionador Circular (P2) e Eco Audit Comparativo (P3)**~~ —
+  as quatro frentes de refinamento funcional solicitadas pelo usuário foram implementadas e integradas de ponta a ponta na mesma PR:
+  1. **Seleção (P0-1):** duplicação de estágio na pilha de seleção (`duplicateStage` em `apps/web/components/selection/StageList.tsx`), clonando recursivamente grupos e restrições com identificadores novos (`nextEditorId`), etiqueta `(cópia)` no rótulo, botão de ação `⧉` acessível com tooltip `t.stageDuplicate(n)` inserindo a duplicata logo abaixo do estágio original, e testes unitários (+3 testes frontend em `StageList.test.tsx`).
+  2. **Busca Avançada (P1-1):** ordenação por relevância na busca textual do catálogo (`apps/api/app/repositories/material_repository.py`) com pontuação ponderada via `case` SQL favorecendo correspondência exata de nome (peso 100), início de nome (peso 50), presença em nome (peso 20), descrição (peso 10) e normas (peso 5), combinada com extração de termos positivos em `apps/api/app/services/search_query.py` (`extract_positive_terms`, +5 testes em `test_search_query.py`). No frontend, novo componente `HighlightText.tsx` (+5 testes em `HighlightText.test.tsx`) destacando termos de consulta com estilo sutil (`bg-amber-100 dark:bg-amber-900/40`) integrado em `MaterialRows.tsx`, `MaterialCards.tsx`, `MaterialList.tsx` e `catalogo/page.tsx`.
+  3. **Dimensionador Estrutural (P2):** inclusão de seções circulares maciças em flexão e compressão (`apps/api/app/calculations/load_cases.py`), cobrindo `viga-circular-rigidez` (índice $M_1 = E^{1/2}/\rho$, fator estrutural derivado $C_1 = 2 (L^5 F / (\pi \delta))^{1/2}$), `viga-circular-resistencia` (índice $M_1 = \sigma_y^{2/3}/\rho$, fator $C_1 = (4 \pi)^{1/3} (F L)^{2/3}$) e `coluna-circular-flambagem` (índice $M_1 = E^{1/2}/\rho$, fator $C_1 = 2 (F L^2 / (\pi^2 c_1))^{1/2}$), com derivações de Ashby completas e testes unitários (+4 testes backend em `test_load_cases.py`).
+  4. **Eco Audit Comparativo (P3):** modo de comparação lado a lado de múltiplos materiais (`EcoMaterialInput`, `EcoComparisonRequest`, `EcoComparisonResultOut` em `apps/api/app/schemas/eco.py`, `apps/api/app/services/eco_service.py`, `POST /api/eco/comparar` em `apps/api/app/routers/eco.py`, +3 testes backend em `test_eco_api.py`). No frontend, interface comparativa completa em `apps/web/app/app/eco/page.tsx`, com cards de entrada independentes para Material A e Material B (massa, fração reciclada, rota de fim de vida), premissas compartilhadas de transporte e uso, validação conjunta, pódios de vencedores em energia e pegada de carbono com indicação de redução percentual e tabela detalhada de variações por fase (B − A) com diferenciação visual e semântica (+1 teste frontend em `apps/web/lib/api.test.ts`).
+  Cobertura total de testes: 3395 → 3407 testes de backend (+12) e 753 → 762 testes de frontend (+9), todos verdes.
 - ~~**Deslocamentos astronômicos positivos e subtração dominante em `calc()` no extrator de HTML (D-97/D-99, Opção 1)**~~ —
   o extrator de conteúdo HTML dos Cadernos (`app/notebooks/html_text.py`) agora detecta
   e descarta caixas deliberadamente empurradas para fora da viewport através de grandes
@@ -363,7 +370,7 @@ Registrados para não voltarem por engano:
   único estágio para quem faz um estudo simples. **O P0-2 acrescentou o terceiro
   tipo, `process`** — ver a entrada abaixo. Fechou de passagem a lacuna de
   round-trip que o M6 deixou anotada. **O que ficou de fora, e é melhoria e não
-  bloqueio:** reordenar por arraste e duplicar um estágio. O Chart Stage que
+  bloqueio:** reordenar por arraste (duplicação de estágio entregue na Sessão 44). O Chart Stage que
   filtra, também listado ali, saiu depois como P1-2 — ver a entrada abaixo.
 - ~~**P0-2** — não existia universo de processos~~ — `ProcessClass`
   hierárquica, `Process` e a associação N–N `material_process`, entregues em
@@ -418,8 +425,8 @@ Registrados para não voltarem por engano:
   de processo 2D Ashby completo em `/app/mapas` e estágios de gráfico, com envelopes
   e respeito às Regras D-59 e D-60).
 - ~~**P1-1** — busca era `LIKE`~~ — analisador próprio com AND/OR/NOT, frase,
-  parênteses e curinga ([D-55](DECISIONS.md)). Falta relevância, *fuzzy* e
-  destaque do trecho, registrados como melhoria e não como bloqueio.
+  parênteses e curinga ([D-55](DECISIONS.md)). Falta relevância (entregue na Sessão 44 com ordenação por case ponderado), *fuzzy* e
+  destaque do trecho (entregue na Sessão 44 com HighlightText), registrados como melhoria e não como bloqueio.
 - ~~**P1-3** — não havia porta de entrada para navegar~~ — uma pasta da taxonomia
   virou **registro** e o segundo universo passou a se navegar
   ([D-61](DECISIONS.md)). `applications` e `characteristics` em `MaterialClass` e
@@ -491,7 +498,7 @@ Registrados para não voltarem por engano:
   unidade declarada. `/app/dimensionar` mostra o fator estrutural ao lado do
   resultado, para a massa poder ser conferida à mão.
 
-  **O que ficou de fora:** seções além de maciça quadrada e retangular, navegar
+  **O que ficou de fora:** seções além de maciça quadrada, retangular e circular (circulares entregues na Sessão 44), navegar
   por faceta em vez de por caso, e amarrar um dimensionamento a um estudo salvo
   e ao laudo. O objetivo **custo** estava nesta lista e **saiu no P3**, junto com
   o Part Cost Estimator de que dependia ([D-65](DECISIONS.md)).
@@ -541,7 +548,7 @@ Registrados para não voltarem por engano:
   nem processo, com a justificativa no modelo.
 
   **O que ficou de fora:** a figura de barras por fase, comparar dois materiais
-  na mesma auditoria, e energia catalogada para aterro e incineração.
+  na mesma auditoria (entregue na Sessão 44 com comparação lado a lado, deltas e vencedores), e energia catalogada para aterro e incineração.
 - ~~**P3 (terceiro item)** — o Synthesizer~~ — `POST /api/synthesis/previa`,
   `POST /api/synthesis` e `/app/sintetizar` criam **materiais hipotéticos** a
   partir de materiais catalogados mais uma receita: compósito de dois
