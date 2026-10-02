@@ -22,11 +22,11 @@ Three rules shape what is kept:
 
 * **What the student cannot see, the model does not read.** Text in a
   ``hidden`` or ``aria-hidden="true"`` subtree, or one an inline style hides
-  (``display:none``, ``visibility:hidden``, ``opacity:0``, an empty
-  ``clip``/``clip-path``, an off-page offset, a zero-size clipped box, a
-  ``scale(0)`` — see ``_style_hides``), and text too small or too clear to read
-  (``font-size:0``, ``color:transparent``, inherited until a child sets them
-  back — see ``_mark_style``), is the classic place to hide an instruction
+  (``display:none``, an empty ``clip``/``clip-path``, an off-page offset, a
+  zero-size clipped box, a ``scale(0)`` — see ``_style_hides``), and text too
+  small, too clear or hidden by visibility to read (``font-size:0``,
+  ``color:transparent``, ``visibility:hidden``, inherited until a child sets
+  them back — see ``_mark_style``), is the classic place to hide an instruction
   aimed at a model, so it is dropped. Any declaration that hides counts, not
   only the last one, and a style the reader cannot follow — past one of its
   budgets (``_MAX_STYLE_CHARS`` and the rest), or math it cannot evaluate in
@@ -165,7 +165,7 @@ _MATH_CALL = re.compile(r"([a-z-]+)\(")
 #: A negative length written as such — ``-9999px``, not the ``- 9999px`` of a
 #: subtraction, which CSS spells with spaces around the operator.
 _NEGATIVE_LITERAL = re.compile(
-    r"(?:^|(?<=[(,\s*/]))(-(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?[a-z%]*)"
+    r"(?:^|(?<=[(,\s*/]))(-(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:e[+-]?\\d+)?[a-z%]*)"
 )
 #: Absolute lengths in CSS pixels; a font-relative one at the 16 px default.
 _PX_PER = {"px": 1.0, "pt": 4 / 3, "pc": 16.0, "in": 96.0, "cm": 96 / 2.54, "mm": 96 / 25.4}
@@ -233,7 +233,7 @@ _BLANK_RUN = re.compile(r"\n{3,}")
 
 _SUPERSCRIPT = str.maketrans("0123456789+-\u2212=()", "⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻⁻⁼⁽⁾")
 _SUBSCRIPT = str.maketrans("0123456789+-\u2212=()", "₀₁₂₃₄₅₆₇₈₉₊₋₋₌₍₎")
-_SCRIPTABLE = re.compile("[0-9+\\-\u2212=()]+")
+_SCRIPTABLE = re.compile("[0-9+\\-\\u2212=()]+")
 _SCRIPT_START = frozenset("0123456789+-\u2212")
 
 _META_CHARSET = re.compile(rb"""<meta[^>]*?charset\s*=\s*["']?\s*([A-Za-z0-9._:\-]+)""", re.I)
@@ -680,6 +680,7 @@ class _Inherited:
     #: An ancestor paints its background through the glyphs
     #: (``background-clip: text``, the gradient-heading idiom).
     backdrop: bool = False
+    visible: bool = True
 
 
 def _mark_style(root: _Node) -> None:
@@ -739,7 +740,9 @@ def _style_hides(style: str) -> bool:
     """
     try:
         css, _, ambiguous = _declarations(style, _NO_SCOPE, _Budget())
-        return ambiguous or _conceals(css)
+        if ambiguous or _conceals(css):
+            return True
+        return any(v in ("hidden", "collapse") for v in css.get("visibility", ()))
     except Exception:  # the same fail-safe as :func:`_mark_style`
         return True
 
@@ -809,7 +812,7 @@ def _unescape(match: re.Match[str]) -> str:
     if hexadecimal is None:
         return char
     code = int(hexadecimal, 16)
-    return "�" if code == 0 or code > 0x10FFFF or 0xD800 <= code <= 0xDFFF else chr(code)
+    return "" if code == 0 or code > 0x10FFFF or 0xD800 <= code <= 0xDFFF else chr(code)
 
 
 _VAR_CALL = re.compile(r"(?<![a-z0-9_-])var\(")
@@ -891,8 +894,6 @@ def _conceals(css: dict[str, list[str]]) -> bool:
         return [value for name in names for value in css.get(name, ())]
 
     if "none" in values("display"):
-        return True
-    if any(value in ("hidden", "collapse") for value in values("visibility")):
         return True
     if "hidden" in values("content-visibility"):
         return True
@@ -999,6 +1000,13 @@ def _inherit(tag: str, css: dict[str, list[str]], scope: _Scope, outer: _Inherit
     clips = css.get("background-clip", []) + css.get("-webkit-background-clip", [])
     backdrop = outer.backdrop or (bool(clips) and all("text" in value for value in clips))
 
+    visible = outer.visible
+    visibilities = css.get("visibility", ())
+    if any(v in ("hidden", "collapse") for v in visibilities):
+        visible = False
+    elif any(v in ("visible", "initial") for v in visibilities):
+        visible = True
+
     return _Inherited(
         scope=scope,
         font_px=font,
@@ -1011,11 +1019,14 @@ def _inherit(tag: str, css: dict[str, list[str]], scope: _Scope, outer: _Inherit
         stroke_width=stroke_width,
         stroke_color=stroke_color,
         backdrop=backdrop,
+        visible=visible,
     )
 
 
 def _unreadable(state: _Inherited) -> bool:
-    """Text too small to read, or drawn in ink with nothing to paint it."""
+    """Text too small to read, drawn in ink with nothing to paint it, or not visible."""
+    if not state.visible:
+        return True
     if state.font_px * state.scale < _TINY_FONT_PX:
         return True
     clear = state.ink_clear if state.fill is None else state.fill
