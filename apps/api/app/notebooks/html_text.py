@@ -700,7 +700,8 @@ def _mark_style(root: _Node) -> None:
     and what could not be judged is not handed to the model (D-99).
     """
     budget = _Budget()
-    stack: list[tuple[_Node, _Inherited]] = [(root, _Inherited())]\n    while stack:
+    stack: list[tuple[_Node, _Inherited]] = [(root, _Inherited())]
+    while stack:
         node, outer = stack.pop()
         style = node.attrs.get("style")
         inner = outer
@@ -1635,8 +1636,7 @@ class _Writer:
     """Accumulates inline text into blocks; a block is a paragraph of output.
 
     ``flat`` writes one line for a heading or a table cell: no list markers, no
-    headings of its own — the caller joins the blocks with spaces.
-    """
+    headings of its own — the caller joins the blocks with spaces."""
 
     def __init__(self, flat: bool) -> None:
         self.flat = flat
