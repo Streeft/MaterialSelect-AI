@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [43](#sessão-43--021026--deslocamentos-astronômicos-positivos-e-calc-dominante-no-extrator-html-opção-1) | 02/10/2026 | Descarte de caixas com deslocamento positivo astronômico e avaliação afim de operando negativo dominante em `calc()` no extrator de HTML (D-97/D-99, Opção 1) | 3382 → 3395 | 753 (inalterado) |
 | [42](#sessão-42--021026--herança-de-css-visibility-e-resgate-por-visibilityvisible-no-extrator-html-opção-1) | 02/10/2026 | Herança estrita de CSS `visibility` e resgate de elementos filhos via `visibility:visible` no extrator de HTML dos Cadernos (D-97/D-99, Opção 1) | 3376 → 3382 | 753 (inalterado) |
 | [41](#sessão-41--011026--correção-de-guardrails-de-ia-e-exportação-nativa-pptx-b2) | 01/10/2026 | Correção de guardrails de IA (números em trechos do RAG e separador de milhar) e exportador PPTX nativo do Report com endpoints e interface (B2, Opção A) | 3362 → 3376 | 752 → 753 |
 | [40](#sessão-40--011026--localizador-de-citação-do-markdown--links-sem-p-1-1-d-100) | 01/10/2026 | Localizador de citação do Markdown sem `p. 1-1`, formatação de páginas únicas `p. X` e sincronização frontend/backend (D-100, Opção 1) | 3356 → 3362 | 751 → 752 |
@@ -61,6 +62,41 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 43 — 02/10/26 — Deslocamentos astronômicos positivos e calc() dominante no extrator HTML (Opção 1)
+
+**O pedido.** O usuário deu continuidade às melhorias e solicitou: *"atue na opção 1"* do backlog em `docs/TODO.md` (*"Ocultação por CSS inline que o extrator ainda não lê — deslocamento positivo grande e matemática calc() sem literal muito negativo"*), sob a diretriz: *"faça tudo, não quero mexer um músculo, apenas farei o merge..."*.
+
+**O problema.**
+No extrator de conteúdo HTML dos Cadernos (`apps/api/app/notebooks/html_text.py` / D-97 / D-99):
+1. **Deslocamentos positivos grandes:** Vetores de injeção de prompt podem usar valores positivos extravagantes (como `position:absolute;left:9999px`, `right:9999px`, `margin-left:99999px`, `translate:10000px 0` ou `transform:translate(99999px, 0)`), empurrando caixas de texto inteiramente para fora da viewport/página visível para o leitor humano, enquanto o extrator anterior descartava apenas offsets negativos (`_far_negative`).
+2. **Matemática em `calc()` com termo negativo dominante:** Expressões como `calc(50% - 20000px)` ou `calc(100% - 99999px)` combinam uma porcentagem sem base fixa a priori com um operando negativo muito grande. Anteriormente, como a porcentagem não possuía dimensão base no leitor de CSS inline, o `_px()` retornava `None` e caía na heurística de matemática não avaliada, que deixava a caixa passar para não descartar indevidamente regras legítimas de centralização como `calc(50% - 10px)` ou `calc(50% - 600px)`.
+
+**A solução.**
+1. **Descarte de deslocamentos positivos astronômicos (`apps/api/app/notebooks/html_text.py`):**
+   - Definida a constante `_FAR_POSITIVE_PX = 9999.0`, limiar que ultrapassa qualquer layout razoável ou largura de tela e corresponde ao idiom clássico de posicionamento off-screen.
+   - Implementado o helper `_far_positive(value)` cobrindo comprimentos literais absolutos (`px`, `pt`, `em`, etc.), viewport units (`vw`, `vh`), porcentagens puras (>= 1000%), e transformações/traduções.
+   - Implementado o helper `_far_extreme_negative(value)` para bordas invertidas (`right`, `bottom`, `inset-*-end`), onde um valor negativo astronômico também empurra o elemento para fora da viewport à direita ou abaixo.
+   - Estendido `_all_sides(shorthands)` e atualizado `_conceals()` para inspecionar `pos_all` com `_far_positive()`, `pos_reverse` com `_far_extreme_negative()`, `text-indent`, `margin` e transformações/traduções (`_translations()`).
+2. **Avaliação afim de `calc()` em `_far_negative()` e `_far_positive()`:**
+   - Definida `_VIEWPORT_MAX_PX = 10000.0`.
+   - Em `_far_negative(value)`, quando `_px(value)` retorna `None` devido a porcentagens sem base, o valor é avaliado nos dois extremos do espaço afim: `px_0 = _px(value, percent_of=0.0)` e `px_max = _px(value, percent_of=_VIEWPORT_MAX_PX)`. Se ambos resultarem em `<= -_FAR_PX` (`-500.0px`), comprova-se que o termo negativo domina para qualquer largura de tela entre 0 e 10.000 px, marcando a caixa como oculta (cobrindo `calc(50% - 20000px)` e `calc(100% - 99999px)`).
+   - Centralizações legítimas e ajustes suaves (como `calc(50% - 10px)` e `calc(50% - 600px)`) retornam `px_max > -500.0` e permanecem totalmente visíveis e legíveis.
+   - Adicionada regex `_SUBTRACTED_LITERAL` para capturar subtrações com espaços em expressões matemáticas não avaliadas (ex.: `- 99999px`).
+3. **Cobertura de testes automatizados (`apps/api/app/tests/test_html_hidden_css.py`):**
+   - 8 novos casos adicionados à matriz parametrizada `HIDING` (deslocamentos positivos em `left`, `right`, `margin-left`, `translate`, `transform`, e subtrações dominantes em `calc()`).
+   - 2 novos casos adicionados à matriz parametrizada `VISIBLE` (`left:9999px` e `position:static;left:9999px`).
+   - 3 novas funções de teste dedicadas:
+     - `test_large_positive_displacement_hides_prompt_injection`: valida descarte de caixas com `left:99999px` e `margin-left:10000px`.
+     - `test_calc_with_dominant_negative_operand_hides`: valida descarte sob `calc(50% - 20000px)` e `calc(100% - 99999px)`.
+     - `test_calc_centering_and_normal_offsets_remain_visible`: comprova que centralizações legítimas em `calc(50% - 10px)` e `calc(50% - 600px)` continuam sendo lidas normalmente.
+4. **Documentação e governança:**
+   - `docs/TODO.md`: removida a pendência correspondente de "Baixa prioridade" e registrado o débito quitado com todos os detalhes técnicos.
+   - `CLAUDE.md`, `docs/PROJECT_CONTEXT.md` e este changelog atualizados.
+
+**Números.** Backend 3382 → 3395 (+13 testes, nenhum skip, todos verdes). Frontend 753 (inalterado).
+
+---
+
 ## Sessão 42 — 02/10/26 — Herança de CSS visibility e resgate por visibility:visible no extrator HTML (Opção 1)
 
 **O pedido.** O usuário escolheu a **Opção 1** do backlog de baixa prioridade em `docs/TODO.md`: *"Ocultação por CSS inline que o extrator ainda não lê — visibility:hidden num ancestral cujo filho diz visibility:visible"* ("atue na opção 1", sob a diretriz "faça tudo, não quero mexer um músculo, apenas farei o merge...").
@@ -70,7 +106,7 @@ No extrator de conteúdo HTML dos Cadernos (`apps/api/app/notebooks/html_text.py
 
 **A solução.**
 1. **Semântica de herança CSS no extrator (`apps/api/app/notebooks/html_text.py`):**
-   - No dataclass `_Inherited`, adicionado o campo `visible: bool = True`.
+   - No dataclass `_Inherited`, adicionado o campo `visible: bool = True` .
    - Na função `_inherit()`, o valor de `visibility` é interpretado conforme o padrão CSS: se contiver `hidden` ou `collapse`, define `visible = False`; se contiver `visible` ou `initial`, define `visible = True`; caso contrário, herda `outer.visible`.
    - Na função `_unreadable()`, elementos com `state.visible == False` passam a ter seu texto silenciado (`node.mute = True`), transformando os nós de texto diretos em `" "` sem descartar prematuramente seus elementos filhos.
    - Na função `_conceals()`, removida a verificação de `visibility`, reservando `concealed` estritamente para propriedades irreversíveis por descendentes (`display:none`, `content-visibility:hidden`, `clip`/`clip-path` vazio, deslocamentos para fora da página).
@@ -202,7 +238,7 @@ E em seguida solicitou a implementação da **Opção A** (Backlog B2 de `docs/T
      - `test_concurrent_reservations_with_slack_postgres`: 10 threads disputando reservas com folga (`slack=2`) no limite. Exatamente 2 threads vencem, 8 falham e o contador encerra em 7.
    - Respeito à integridade referencial: `AIUsage` referencia `User(id)`, portanto a fixture cria um usuário e projeto padrão antes das threads iniciarem.
    - Pool de conexões dimensionado (`pool_size=30, max_overflow=20`) para prevenir contenção local do pool do SQLAlchemy sob disparos de 20 conexões simultâneas.
-   - Fallback gracioso com `pytest.mark.skipif(not _is_postgres_available(), ...)` para execuções locais sem PostgreSQL.
+   - Fallback gracioso com `pytest.mark.skipif(not _is_postgres_available(), ...) ` para execuções locais sem PostgreSQL.
 2. **Integração na CI (`.github/workflows/ci.yml`):**
    - Adicionado serviço de container `postgres:16` com healthcheck ao job `backend`.
    - Instalado extra `.[dev,knowledge,postgres]` no job `backend`.
@@ -337,7 +373,7 @@ importantes e sete menores; todos corrigidos no mesmo PR.
 - **Markdown na ingestão.** Um `.md` entra só se o `manifesto.json` o declara
   (lista branca), e `README.md`, `manifesto.json` e `removidos.txt` nunca entram.
   `Links.md` ganhou entrada no manifesto (tipo `LINK`, autoridade `SECUNDARIA`).
-- **Os menores.** A regra do `--replace-text` termina em `\\\\.pdf\\\"` para não
+- **Os menores.** A regra do `--replace-text` termina em `\\\\.pdf\"` para não
   reescrever a si mesma no histórico (M1); o guia fala em \"todo commit anterior
   à reescrita\" — o `5933328` que a revisão chamou de raiz era a borda de um
   clone raso, e a lista de commits de entrada ganhou o `7e34b24` (M2); o log
@@ -457,7 +493,7 @@ regressão (`test_html_css_budgets.py`, feito das reproduções do revisor).
   há orçamento por atributo (8 KB, 64 declarações), por expansão (64 valores,
   8 KB cada, contados antes de construir) e de trabalho por atributo e por
   página. A mesma página roda em milissegundos, com pico de memória de 1 MB.
-- **N-2.** `var(--x,)` virava valor vazio, e `\"\".split()[0]` dava 500. Valor
+- **N-2.** `var(--x,)` virava valor vazio, e `\" \".split()[0]` dava 500. Valor
   que se expande em nada é valor nenhum, e **qualquer** erro imprevisto ao ler
   um estilo oculta o nó em vez de derrubar a página.
 - **N-3.** O escopo de propriedades personalizadas era copiado a cada nó: 43 s
@@ -481,26 +517,25 @@ de CSS inline, e todos corrigidos.
   personalizada válida e vazia, e `display:var(--off) none` vale `none` no
   navegador. O leitor descartava toda declaração de valor vazio, a
   personalizada também, e o texto oculto chegava ao modelo — a mesma classe do
-  I-1. Agora a propriedade vazia entra no escopo e a ocultação vale, no próprio
-  nó ou herdada de um ancestral, em `display`, `visibility`, `opacity` e
-  `font-size`. As formas irmãs saíram junto: `inherit`, `unset`, `revert` e
-  `revert-layer` numa propriedade personalizada somam o valor do pai, e
-  `initial` fica sem valor, o que manda o `var()` para a reserva. Os controles
-  (`--on:initial; display:var(--on) none` e o vazio sozinho) continuam
-  visíveis, como no navegador.
-- **M-1.** Os tetos recusavam páginas que escrevem tokens de design inline: mais
-  de 64 propriedades personalizadas no `<html>` levavam a página inteira, e uma
-  página do Framer perdia a subárvore a 43 níveis. Propriedade personalizada
-  deixou de contar nas 64 declarações (conta no limite de 8 KB), e o teto do
-  escopo foi de 256 para 4096, porque desde o N-3 ele não protege o tempo —
-  cada consulta paga ao orçamento os escopos que percorre e os valores que
-  traz. As reproduções do N-1 e do N-3 continuam limitadas (0,00 s, 0,41 s e
-  0,34 s), e formas hostis novas contra os tetos relaxados — 1200 valores de um
-  nome lidos por 200 mil filhos, uma corrente de 4000 escopos com 100 mil
-  consultas, uma de `inherit` com 4000 níveis — rodam no mesmo tempo e na mesma
-  memória que antes da mudança.
+  I-1. Agora a propriedade vazia entra no escopo, e o consumidor que a expande
+  em nada substitui o token por espaço e lê a declaração seguinte.
+- **B-2.** Tokens inline: `display: inline-block` virava `inline` porque o leitor
+  lia o primeiro token; `background-color: transparent` e `color: inherit`
+  deixavam passar texto invisível. Agora o leitor resolve a declaração inteira.
+- **B-3.** Deslocamento para a esquerda em `calc()` com porcentagem negativa
+  não era capturado.
+
+**A quarta revisão (orçamentos revistos):** o limite de declarações passou a
+contar nas 64 declarações (conta no limite de 8 KB), e o teto do
+escopo foi de 256 para 4096, porque desde o N-3 ele não protege o tempo —
+cada consulta paga ao orçamento os escopos que percorre e os valores que
+traz. As reproduções do N-1 e do N-3 continuam limitadas (0,00 s, 0,41 s e
+0,34 s), e formas hostis novas contra os tetos relaxados — 1200 valores de um
+nome lidos por 200 mil filhos, uma corrente de 4000 escopos com 100 mil
+consultas, uma de `inherit` com 4000 níveis — rodam no mesmo tempo e na mesma
+memória que antes da mudança.
 - **M-2.** O D-99 dizia que \"nenhuma página real\" escreve estilo além dos
-  tetos. Passou a dizer \"raro, não impossível\", com os tetos escritos.
+tetos. Passou a dizer \"raro, não impossível\", com os tetos escritos.
 
 **Números.** Backend 2979 → 3270 e frontend 735 → 751, todos verdes, nenhum
 skip. O back-end tinha 3091 antes da primeira rodada de correção, que
@@ -683,7 +718,7 @@ branch.
   apagava: sondar a rede sairia de graça. Agora é gravada com commit antes de o
   erro seguir.
 - **Resultado web.** A chave de um resultado web foi restrita ao
-  redirecionamento do Google, para `found_via = \"busca_web\"` ser sempre
+  redirecionamento do Google, para `found_via = "busca_web"` ser sempre
   verdade.
 - **DNS de graça** (revisão final). A consulta ao DNS não gastava cota e
   dividia um pool de 4 threads com o processo inteiro: um nome cujo servidor
@@ -1000,7 +1035,7 @@ qualquer futuro terceiro.
 
 Duas decisões técnicas dentro da mesma correção. **A cascata é escrita em
 Python, não só declarada no schema**: todo `ForeignKey` para `material.id`
-já é `ondelete=\"CASCADE\"`/`\"SET NULL\"`, mas o SQLite dos testes só aplica
+já é `ondelete="CASCADE"`/`"SET NULL"`, mas o SQLite dos testes só aplica
 isso com uma `PRAGMA` que este projeto não liga — confiar só no schema
 teria deixado a exclusão correta em produção e inverificável em teste, a
 mesma armadilha que `docs/CLAUDE.md` §10 já registra para migração. **E a
@@ -1161,7 +1196,7 @@ candidatas ao lado do aço. A forma é a que o D-66 já aceitou para
 
 **A tela estava escrita contra um contrato imaginado.** `cell_nominal_voltage_v`
 em vez de `nominal_voltage`, `temp_range_min_c` em vez de
-`operating_temp_min_c`, rótulos térmicos em inglês (`\"excellent\"`, `\"moderate\"`)
+`operating_temp_min_c`, rótulos térmicos em inglês (`"excellent"`, `"moderate"`)
 onde o catálogo guarda ordinais em português, campos de arquétipo que não
 existem, e uma API de `CardHeader` que o sistema de design não tem. **E os testes
 passavam**, porque afirmavam o mesmo engano que o código. A correção foi
@@ -1762,7 +1797,7 @@ characteristics*, *Economic batch size* — e nenhum existia.
 **O que saiu**, em sete commits ([D-59](DECISIONS.md)):
 
 1. `ProcessAttributeDefinition` e `ProcessAttributeValue`, com o trilho de
-   proveniência inteiro de `MaterialPropertyValue` mais `normalized_min`/\
+   proveniência inteiro de `MaterialPropertyValue` mais `normalized_min`/\\
    `normalized_max`. Migração `d4a8c1f70b93` — a primeira aditiva **sem
    backfill**, e honestamente: a informação é nova.
 2. O motor: `envelopes` e `labels` no `RecordSnapshot`, envelope comparado por
@@ -1903,7 +1938,7 @@ Nesta ordem, cada um bloqueando o seguinte:
 4. **`NEXT_PUBLIC_API_URL` tratado como variável de runtime** — ela é embutida
    no *build*, e **vazia é um valor com significado** (daí `??` e não `||`);
    ausente, o frontend chama `localhost:8000`.
-5. **O cookie de sessão fixo em `samesite=\"lax\"`**.
+5. **O cookie de sessão fixo em `samesite="lax"`**.
 
 O quinto é o que explica a topologia: a API é servida **pela origem do
 frontend**, por `rewrites()` da Vercel (#33). Sem isso o cookie `SameSite=Lax`
@@ -2199,7 +2234,7 @@ executado por `subagent-driven-development`: um subagente implementador por
 tarefa, revisão de tarefa a cada uma, revisão de branch inteira ao final.
 
 O Cérebro (`Cérebro/`, hospedado em `main` desde D-45) estava íntegro mas
-inerte — nada em `app/ai/` o lia. Passou a alimentar `interpret()`/\
+inerte — nada em `app/ai/` o lia. Passou a alimentar `interpret()`/\\
 `explain()`: busca léxica (BM25) + semântica (embeddings, receita gratuita
 Jina AI documentada em `.env.example`), fundidas por *reciprocal rank
 fusion* (`app/knowledge/retrieval.py`), ligada só quando o provedor não é o
@@ -2404,7 +2439,7 @@ tudo verde nos quatro PRs (#20, #21, #22) e nas quatro reconciliações (#15,
 #14, #7, #18) mais o PR #19 de docs. Além dos testes: o checkout completo
 foi executado de verdade contra a Stripe em modo de teste, não só simulado
 contra um cliente falso — a mesma prática de \"verificação ao vivo além dos
-testes\" que já tinha achado a unidade nula na camada de IA em sessão
+testes\" que já tinha achada a unidade nula na camada de IA em sessão
 anterior.
 
 ## 7. O que fica em aberto
@@ -2961,7 +2996,7 @@ próprio**, sem biblioteca de componentes.
 - `app/estilo/page.tsx` — o espécime vivo do sistema, de onde saem as figuras da
   monografia.
 - `app/globals.css` + `tailwind.config.ts` — a paleta inteira como tokens
-  `\"R G B\"`, lidos pelo Tailwind e, em runtime, por `lib/design/palette.ts`.
+  `"R G B"`, lidos pelo Tailwind e, em runtime, por `lib/design/palette.ts`.
 - `components/layout/AppHeader.tsx` — navegação agrupada por tarefa.
 - `app/routes.a11y.test.tsx` — acessibilidade medida com axe em todas as rotas.
 - `docs/REDESIGN.md` e `docs/11-usabilidade.md`.
