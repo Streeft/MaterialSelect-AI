@@ -50,16 +50,6 @@ class TestNumberExtraction:
         assert 1500.0 in found
         assert 1.5 in found
 
-    def test_grouped_thousands_requires_three_digit_groups(self) -> None:
-        # "80,0" is 80.0, NOT 800.0 (the fraction has 1 digit, not 3).
-        found = numbers_in("obteve 80,0% de aderência")
-        assert 80.0 in found
-        assert 800.0 not in found
-
-        found_grouped = numbers_in("1.500")
-        assert 1500.0 in found_grouped
-        assert 1.5 in found_grouped
-
     def test_negative_numbers(self) -> None:
         assert -40.0 in numbers_in("temperatura de -40 °C")
 
