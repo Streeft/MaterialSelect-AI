@@ -61,8 +61,8 @@ def _brief(db: Session, **overrides):
     return payload
 
 
-def _audit(client: TestClient, db: Session, **overrides):
-    return client.post("/api/eco/auditar", json=_brief(db, **overrides))
+def _audit(client: TestClient, db_session: Session, **overrides):
+    return client.post("/api/eco/auditar", json=_brief(db_session, **overrides))
 
 
 def _phase(body, name):
@@ -383,9 +383,7 @@ def test_compare_two_materials_returns_deltas_and_winners(
     assert body["winner_carbon"] == "material_b"
 
 
-def test_compare_identical_materials_returns_tie(
-    client: TestClient, db_session: Session
-) -> None:
+def test_compare_identical_materials_returns_tie(client: TestClient, db_session: Session) -> None:
     alum_id = _material_id(db_session, "%Alumínio%")
     proc_id = _process_id(db_session, "fundicao-areia")
 
