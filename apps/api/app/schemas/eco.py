@@ -147,7 +147,9 @@ class EcoMaterialInput(BaseModel):
     material_id: int = Field(gt=0, description="Identificador do material")
     process_id: int = Field(gt=0, description="Processo de fabricação da peça")
     part_mass: float = Field(gt=0, le=1.0e6, description="Massa da peça em kg")
-    recycled_fraction: float = Field(default=0.0, ge=0.0, le=1.0, description="Fração reciclada (0 a 1)")
+    recycled_fraction: float = Field(
+        default=0.0, ge=0.0, le=1.0, description="Fração reciclada (0 a 1)"
+    )
     end_of_life: Literal[EOL_RECYCLE, EOL_LANDFILL, EOL_INCINERATION] = Field(
         default=EOL_RECYCLE, description="Destino de fim de vida"
     )
