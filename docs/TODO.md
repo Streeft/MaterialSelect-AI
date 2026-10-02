@@ -188,6 +188,17 @@ continua lá, e a métrica para de medir no 3.
 
 Registrados para não voltarem por engano:
 
+- ~~**Exportador PPTX nativo do Report e rotas de exportação (B2) + Liberação de números do RAG nas guardrails**~~ —
+  o renderizador `Report` em PowerPoint (`app/exporters/pptx.py`) foi completado e ganhou endpoints
+  oficiais na API (`/api/exports/catalogo.pptx`, `/api/exports/estudos/{id}.pptx` e `/api/exports/estudos/{id}/laudo.pptx`),
+  além de integração completa no frontend (`ExportButtons.tsx`, `api.ts`, `i18n.ts`). Inclui slide de título,
+  seções tabulares divididas em blocos de até 10 linhas com numeração de continuação `(1/N)`, tratamento
+  de dados ausentes (`"ausente"`), slide dedicado de interpretação técnica da IA com narrativa fluida no laudo,
+  e slide mandatório com os três avisos de limitação de uso, reprodutibilidade e dados fictícios.
+  Em conjunto, foi corrigido o falso positivo das guardrails de IA (`ungrounded_numbers`), que antes
+  rejeitava citações legítimas a números presentes nos trechos recuperados do RAG (como `p. 80-200`)
+  e falhava no agrupamento de milhares com vírgula para números decimais. Cobertura completa com 14 novos
+  testes de backend (3362 → 3376) e 1 de frontend (752 → 753).
 - ~~**Cérebro — localizador de citação do Markdown / Links sem `p. 1-1` (D-100)**~~ —
   documentos não paginados (`LINK`, `VIDEO`) agora omitem o indicador de páginas
   no bloco de referências do prompt (`app/ai/prompts.py`) e têm `page_start`/`page_end`
@@ -260,7 +271,8 @@ Registrados para não voltarem por engano:
     a profundidade que contava referências lado a lado (N-4) e a matemática
     não avaliada que deixava passar (N-5). Orçamentos por atributo, escopo,
     expansão e página; o que passa deles, ou faz o leitor tropeçar, oculta o
-    nó. Os testes de regressão estão em `test_html_css_budgets.py`.\n  - **Cota não atômica** (D-92/D-94/D-97): as três cotas são **reservadas** por
+    nó. Os testes de regressão estão em `test_html_css_budgets.py`.
+  - **Cota não atômica** (D-92/D-94/D-97): as três cotas são **reservadas** por
     um `UPDATE … WHERE contador < limite` e devolvidas quando a operação não
     cobra; um teste da forma do SQL falha se o código voltar a
     ler-e-escrever. A devolução de uma geração é idempotente — só quem tira a
@@ -522,7 +534,8 @@ Registrados para não voltarem por engano:
 
   **O que ficou de fora:** a figura de barras por fase, comparar dois materiais
   na mesma auditoria, e energia catalogada para aterro e incineração.
-- ~~**P3 (terceiro item)** — o Synthesizer~~ — `POST /api/synthesis/previa`,\n  `POST /api/synthesis` e `/app/sintetizar` criam **materiais hipotéticos** a
+- ~~**P3 (terceiro item)** — o Synthesizer~~ — `POST /api/synthesis/previa`,
+  `POST /api/synthesis` e `/app/sintetizar` criam **materiais hipotéticos** a
   partir de materiais catalogados mais uma receita: compósito de dois
   constituintes com fração volumétrica, ou espuma de um sólido com densidade
   relativa ([D-67](DECISIONS.md)). É o item que mais perto passa de violar o

@@ -79,6 +79,11 @@ class TestUngroundedNumbers:
         # "3 de 5 candidatos", "1º colocado" describe the result's shape.
         assert ungrounded_numbers("3 de 5 candidatos; o 1º é o melhor.", set()) == []
 
+    def test_small_integers_exempt_as_percentages_and_counts(self) -> None:
+        # 80.0 and 80 are small integers (<= 100) representing percentages or counts.
+        assert ungrounded_numbers("obteve 80,0% de aderência", set()) == []
+        assert ungrounded_numbers("atingiu 80% do esperado", set()) == []
+
     def test_large_round_number_is_not_exempt(self) -> None:
         assert 1500.0 in ungrounded_numbers("cerca de 1500 MPa", set())
 

@@ -244,8 +244,7 @@ na CI:
   `pytest`, e `alembic upgrade head` + `app.db.seed` num banco limpo. Este
   último existe porque os testes usam SQLite em memória com `create_all` e
   nunca exercitam as migrações — que são a fonte de verdade do schema.
-- **Frontend**: `npm ci`, `typecheck`, `lint`, `test`, `build`.
-
+- **Frontend**: `npm ci`, `typecheck`, `lint`, `test`, `build`.\n
 Antes de abrir um PR, rode os dois conjuntos localmente; nenhum passo da CI é
 meramente informativo.
 
@@ -260,8 +259,7 @@ mexer em `app/db/seed.py` ou `app/db/seed_extended.py` — na dúvida, dispare
 os dois; `semear` roda ambos os módulos, e os dois são idempotentes. Se o PR
 mudou `Cérebro/removidos.txt`, a mesma aba tem `conhecimento_simular_remocao`
 e, conferido o log, `conhecimento_remover` (D-100). Passo a
-passo completo e por quê em [`docs/13-deploy.md` §5-ter](docs/13-deploy.md).
-Pular este passo é a causa mais provável de "o PR está em `main` mas não
+passo completo e por quê em [`docs/13-deploy.md` §5-ter](docs/13-deploy.md).\nPular este passo é a causa mais provável de "o PR está em `main` mas não
 aparece no ar". A outra causa, menos visível: um dado de seed que vive num
 módulo que `semear` não executa — job verde não prova que o dado certo foi
 escrito, só que o script executado não lançou exceção; a contagem por
@@ -274,8 +272,7 @@ Fases 1 a 9 concluídas. **Fase 7 (relatórios e qualidade) concluída** — as
 exportações CSV/XLSX, o relatório HTML imprimível, os testes end-to-end de
 interface (A4, Playwright em `apps/web/e2e/`), a autenticação (A5) e a
 auditoria (M2 — `AuditEvent`, quem mudou o quê e quando, retrato em vez de
-junção viva, [D-43](docs/DECISIONS.md)) já saíram; falta só a arquitetura para
-PPTX (B2, baixa prioridade). **A5** deu login exclusivamente por terceiros
+junção viva, [D-43](docs/DECISIONS.md)) já saíram; a exportação nativa em PPTX (B2), cobrindo catálogo, estudo e laudo, foi entregue (3362 → 3376 testes de backend e 752 → 753 de frontend). **A5** deu login exclusivamente por terceiros
 (Google, OAuth 2.0 — sem senha em lugar nenhum do sistema), sessão em cookie
 `httpOnly` que é linha de banco e não JWT, catálogo compartilhado entre todo
 usuário autenticado e um `Project` por usuário isolando `SelectionStudy`
@@ -803,8 +800,7 @@ nem noutro. O cliente nunca aplica fator.
 **Preparação para a turma de 29/09 (D-84 a D-89).** Um estudo de processos voltou
 a ter o passo Objetivo (D-84). A Seleção virou assistente guiado — um passo de
 cada vez, Voltar em todo passo e no navegador, **o recolhido nunca esconde o que
-está em uso**, exemplo em um clique, resultado que começa pelo vencedor (D-85) —,
-e o resto do produto ficou enxuto: capa com um botão, menu por papel, Mapas com
+está em uso**, exemplo em um clique, resultado que começa pelo vencedor (D-85) —,\ne o resto do produto ficou enxuto: capa com um botão, menu por papel, Mapas com
 "Personalizar", Comparar por busca, ferramentas com premissas recolhidas **e os
 valores no resumo** (D-86). Os pesos do ranking somam 1, com orçamento, sugestão e
 top 5 calculados em `POST /api/selection/weights-preview`; **o `/run` continua
@@ -920,7 +916,7 @@ e no mesmo modal do D-94. Regras que não se afrouxam:
   o átomo da conferência), e diz que encurtou (`studio_service.note_body`).
 - **Nenhuma migração**: as quatro cabem nos campos JSON da fase 1.
 
-3362 testes de backend (nenhum skip) e 752 de frontend, todos verdes. CI no
+3376 testes de backend (nenhum skip) e 753 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
 PROJECT_CONTEXT.md).

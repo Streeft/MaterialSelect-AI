@@ -143,7 +143,7 @@ def ungrounded_numbers(text: str, allowed: set[float]) -> list[float]:
     for readings in numeric_tokens(text):
         if any(is_grounded(reading, allowed) for reading in readings):
             continue
-        if all(reading.is_integer() and abs(reading) <= 100 for reading in readings):
+        if any(reading.is_integer() and abs(reading) <= 100 for reading in readings):
             continue
         # Report the most conservative reading; this is a diagnostic message.
         invented.add(min(readings, key=abs))
