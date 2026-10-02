@@ -174,6 +174,8 @@ VISIBLE = [
     "zoom:0.8",
     "display:block",
     "dis/**/play:none",  # two tokens, no property: a browser shows it
+    "visibility:visible",
+    "visibility:initial",
     "--h:none;display:var(--other)",  # an unset reference is no value
     "--h:none",  # declared, never used
     "color:#333; font-weight:bold",
@@ -351,3 +353,72 @@ def test_the_classic_visually_hidden_class_written_inline_is_dropped() -> None:
         "border: 0 !important"
     )
     assert _style_hides(style)
+
+
+def test_a_child_with_visibility_visible_inside_visibility_hidden_is_read() -> None:
+    """A child declaring visibility: visible is read even inside visibility: hidden."""
+    child_text = "O titânio Ti-6Al-4V é amplamente utilizado no setor aeroespacial."
+    text = _extract(
+        '<div style="visibility:hidden">'
+        f"<p>{INJECTION}</p>"
+        f'<p style="visibility:visible">{child_text}</p>'
+        "</div>"
+    )
+    assert child_text in text
+    assert "Ignore" not in text and "999" not in text
+    assert PROSE in text
+
+
+def test_deeply_nested_visibility_override() -> None:
+    """Visibility overrides work through deeply nested ancestor chains."""
+    read_1 = "Primeiro nível visível recuperado com sucesso."
+    read_2 = "Segundo nível visível aninhado profundamente."
+    text = _extract(
+        '<div style="visibility:hidden">'
+        f"<p>{INJECTION}</p>"
+        '<div style="visibility:visible">'
+        f"<p>{read_1}</p>"
+        '<div style="visibility:hidden">'
+        "<p>Instrução intermediária escondida</p>"
+        f'<p style="visibility:visible">{read_2}</p>'
+        "</div>"
+        "</div>"
+        "</div>"
+    )
+    assert read_1 in text and read_2 in text
+    assert "Ignore" not in text and "999" not in text
+    assert "Instrução intermediária" not in text
+    assert PROSE in text
+
+
+def test_visibility_hidden_without_override_drops_all_descendants() -> None:
+    """Without an explicit visibility: visible, all children and tables are dropped."""
+    text = _extract(
+        '<div style="visibility:hidden">'
+        "<h2>Título invisível da seção</h2>"
+        f"<p>{INJECTION}</p>"
+        "<table><tr><td>Propriedade</td><td>Valor</td></tr></table>"
+        "</div>"
+    )
+    assert "Título invisível" not in text
+    assert "Ignore" not in text and "999" not in text
+    assert "Propriedade" not in text
+    assert PROSE in text
+
+
+def test_table_and_heading_with_visibility_visible_inside_hidden_parent() -> None:
+    """Headings and data tables with visibility: visible inside a hidden parent are kept."""
+    heading = "LIGAS DE COBRE E SUAS APLICAÇÕES"
+    text = _extract(
+        '<div style="visibility:hidden">'
+        f'<h2 style="visibility:visible">{heading}</h2>'
+        '<table style="visibility:visible">'
+        "<tr><td>Liga C11000</td><td>Condutividade 101% IACS</td></tr>"
+        "</table>"
+        f"<p>{INJECTION}</p>"
+        "</div>"
+    )
+    assert heading in text
+    assert "Liga C11000 | Condutividade 101% IACS" in text
+    assert "Ignore" not in text and "999" not in text
+    assert PROSE in text

@@ -121,19 +121,18 @@ cada uma tem o motivo de ter ficado de fora.
   termos do *grounding* exigem que ele seja mostrado. Se as fichas precisarem de
   script, a saída é `allow-scripts` **sem** `allow-same-origin`, nunca as duas
   juntas. Passo a passo em [13-deploy.md §5-sexies](13-deploy.md).
-- **Ocultação por CSS inline que o extrator ainda não lê.** ▁ Três casos,
-  todos de baixo risco e deixados de fora para não descartar texto visível: um
-  `visibility:hidden` num ancestral cujo filho diz `visibility:visible` (o
-  extrator descarta o filho também — excesso, anterior ao lote); um
+- **Ocultação por CSS inline que o extrator ainda não lê.** ▁ Dois casos,
+  de baixo risco e deixados de fora para não descartar texto visível: um
   deslocamento **positivo** grande (`right:9999px`, `left:9999px`), que numa
   caixa larga pode ser legítimo; e matemática que o leitor não avalia num
   deslocamento **sem** literal muito negativo — `calc(50% - 20000px)`, uma
   porcentagem sem base menos um número grande, passa, porque é a forma do
-  `calc(50% - 10px)` que centraliza caixas visíveis (D-99, N-5). Uma função
-  desconhecida ou um `calc()` fundo demais com `-9999px` dentro já oculta, e
-  numa opacidade ou escala qualquer matemática não avaliada oculta. Ocultação
-  por folha de estilo continua fora de alcance por decisão (D-97): a defesa ali
-  é a fonte ser dado, nunca instrução.
+  `calc(50% - 10px)` que centraliza caixas visíveis (D-99, N-5). (O caso de
+  `visibility:hidden` em ancestral com filho `visibility:visible` foi quitado
+  na Sessão 42). Uma função desconhecida ou um `calc()` fundo demais com
+  `-9999px` dentro já oculta, e numa opacidade ou escala qualquer matemática
+  não avaliada oculta. Ocultação por folha de estilo continua fora de alcance
+  por decisão (D-97): a defesa ali é a fonte ser dado, nunca instrução.
 - **CSS inline que o extrator lê a mais** (D-99, N-6). ▁ O outro lado de ler só
   o inline: uma coluna sob um `font-size:0` de layout que volta ao tamanho
   legível por **classe** de folha de estilo, ou por um `var()` que só a folha
@@ -188,6 +187,16 @@ continua lá, e a métrica para de medir no 3.
 
 Registrados para não voltarem por engano:
 
+- ~~**Herança de CSS `visibility:hidden` e resgate por `visibility:visible` no extrator de HTML (D-97/D-99, Opção 1)**~~ —
+  o extrator de conteúdo web (`app/notebooks/html_text.py`) agora implementa a semântica
+  estrita da especificação CSS para a propriedade `visibility`: `visibility:hidden` (e `collapse`)
+  é herdado pelos descendentes através do estado de estilo `_Inherited(visible=...)`, silenciando
+  o texto do elemento e de seus filhos (`node.mute = True`), mas permitindo que qualquer elemento
+  descendente restaure sua visibilidade declarando explicitamente `visibility:visible`. Textos,
+  títulos (`<h1>`–`<h6>`) e tabelas de dados (`<table>`) contidos em elementos visíveis resgatados
+  são lidos e renderizados normalmente, enquanto conteúdos puramente ocultos continuam sendo
+  descartados contra injeção de prompt. Cobertura completa com 6 novos testes em `test_html_hidden_css.py`
+  (3376 → 3382 testes de backend).
 - ~~**Exportador PPTX nativo do Report e rotas de exportação (B2) + Liberação de números do RAG nas guardrails**~~ —
   o renderizador `Report` em PowerPoint (`app/exporters/pptx.py`) foi completado e ganhou endpoints
   oficiais na API (`/api/exports/catalogo.pptx`, `/api/exports/estudos/{id}.pptx` e `/api/exports/estudos/{id}/laudo.pptx`),
@@ -305,7 +314,7 @@ Registrados para não voltarem por engano:
   - **A rede do servidor só se abre por um portão:** `safe_fetch`, com lista de
     bloqueio explícita, IP fixado com `Host` + SNI, cada redirecionamento
     conferido de novo, tetos de tamanho e de prazo (DNS incluído), sem cookies
-    e com `Connection: close`.
+    e com `Connection: close` .
   - **A duplicata é barrada antes da rede**, pela origem canônica. A cota
     diária (`NOTEBOOK_DAILY_FETCHES`) conta quando a requisição sai do
     servidor — a consulta ao DNS de um nome inclusive —, e é gravada antes do
