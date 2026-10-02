@@ -154,7 +154,7 @@ export default function CatalogPage() {
           would cost whichever question lost. */}
       <Section id="familias" title={ptBR.family.subclasses} description={t.browseHint}>
         <div className="flex flex-wrap gap-2">
-          {roots(classes.data ?? []).map((family) => (
+          {roots(classes.data ?? []).map((family) => (\
             <Link
               key={family.slug}
               href={`/app/catalogo/${family.slug}`}
@@ -195,7 +195,7 @@ export default function CatalogPage() {
         )}
 
         {materials.data &&
-          (shown.length === 0 ? (
+          (shown.length === 0 ? (\
             <EmptyState
               title={filtered ? t.emptyFiltered : t.empty}
               description={filtered ? undefined : t.emptyHint}
@@ -218,7 +218,7 @@ export default function CatalogPage() {
               }
             />
           ) : (
-            <MaterialList materials={shown} />
+            <MaterialList materials={shown} searchQuery={debouncedSearch} />
           ))}
 
         {/* The legend belongs on the screen that shows many values at once —

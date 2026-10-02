@@ -213,3 +213,26 @@ def to_like_pattern(term: Term) -> str:
             escaped = escaped.replace(user, sql)
         return escaped
     return f"%{escaped}%"
+
+
+def extract_positive_terms(node: Node) -> list[str]:
+    """Extract terms that affirmatively contribute to matching (ignoring NOT).
+
+    Strips wildcards (* and ?) and returns non-empty lower-cased unique terms
+    preserving first-seen order.
+    """
+    terms: list[str] = []
+
+    def _collect(n: Node) -> None:
+        if isinstance(n, Term):
+            clean = n.text.replace("*", "").replace("?", "").strip()
+            if clean and clean not in terms:
+                terms.append(clean)
+        elif isinstance(n, Not):
+            return
+        elif isinstance(n, (And, Or)):
+            for op in n.operands:
+                _collect(op)
+
+    _collect(node)
+    return terms
