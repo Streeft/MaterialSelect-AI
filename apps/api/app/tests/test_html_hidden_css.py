@@ -93,6 +93,14 @@ HIDING = [
     "transform:translate(-10000px, 0)",
     "transform:matrix(1, 0, 0, 1, -9999, 0)",
     "translate:-10000px 0",
+    "position:absolute;left:9999px",
+    "position:absolute;right:9999px",
+    "position:absolute;left:99999px",
+    "position:absolute;left:calc(50% - 20000px)",
+    "position:absolute;left:calc(100% - 99999px)",
+    "margin-left:99999px",
+    "translate:10000px 0",
+    "transform:translate(99999px, 0)",
     # a zero-size box that clips its overflow
     "width:0;overflow:hidden",
     "height:0; overflow: hidden",
@@ -145,6 +153,8 @@ VISIBLE = [
     "position:sticky;top:-20px",
     "left:-9999px",  # not positioned: ``left`` does nothing
     "position:static;left:-9999px",
+    "left:9999px",  # not positioned: ``left`` does nothing
+    "position:static;left:9999px",
     "position:absolute;left:-20px;top:4px",
     "position:absolute;left:-50%",
     "text-indent:-1em",
@@ -421,4 +431,47 @@ def test_table_and_heading_with_visibility_visible_inside_hidden_parent() -> Non
     assert heading in text
     assert "Liga C11000 | Condutividade 101% IACS" in text
     assert "Ignore" not in text and "999" not in text
+    assert PROSE in text
+
+
+def test_large_positive_displacement_hides_prompt_injection() -> None:
+    """A box displaced far to the right or bottom via large positive offset is dropped."""
+    text = _extract(
+        '<div style="position:absolute;left:99999px">'
+        f"<p>{INJECTION}</p>"
+        "</div>"
+        '<div style="margin-left:10000px">'
+        f"<p>{INJECTION}</p>"
+        "</div>"
+    )
+    assert "Ignore" not in text and "999" not in text
+    assert PROSE in text
+
+
+def test_calc_with_dominant_negative_operand_hides() -> None:
+    """calc() expressions with dominant negative offset push boxes off-screen and hide."""
+    text = _extract(
+        '<div style="position:absolute;left:calc(50% - 20000px)">'
+        f"<p>{INJECTION}</p>"
+        "</div>"
+        '<div style="position:absolute;left:calc(100% - 99999px)">'
+        f"<p>{INJECTION}</p>"
+        "</div>"
+    )
+    assert "Ignore" not in text and "999" not in text
+    assert PROSE in text
+
+
+def test_calc_centering_and_normal_offsets_remain_visible() -> None:
+    """Legitimate calc centering and reasonable layout nudges remain visible and read."""
+    normal_text = "O módulo de elasticidade do alumínio 6061 é de aproximadamente 68,9 GPa."
+    text = _extract(
+        '<div style="position:absolute;left:calc(50% - 10px)">'
+        f"<p>{normal_text}</p>"
+        "</div>"
+        '<div style="position:absolute;left:calc(50% - 600px)">'
+        f"<p>{normal_text}</p>"
+        "</div>"
+    )
+    assert normal_text in text
     assert PROSE in text
