@@ -101,7 +101,9 @@ class MaterialRepository:
             if positive_terms:
                 score_terms = []
                 for term in positive_terms:
-                    term_escaped = term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+                    term_escaped = (
+                        term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+                    )
                     prefix_pat = f"{term_escaped}%"
                     sub_pat = f"%{term_escaped}%"
                     kw_exact = exists(
@@ -118,10 +120,14 @@ class MaterialRepository:
                     )
                     score_term = (
                         case((func.lower(Material.name) == term, 100), else_=0)
-                        + case((func.lower(Material.name).like(prefix_pat, escape="\\"), 50), else_=0)
+                        + case(
+                            (func.lower(Material.name).like(prefix_pat, escape="\\"), 50), else_=0
+                        )
                         + case((func.lower(Material.name).like(sub_pat, escape="\\"), 25), else_=0)
                         + case((func.lower(MaterialClass.name) == term, 20), else_=0)
-                        + case((func.lower(MaterialClass.name).like(sub_pat, escape="\\"), 10), else_=0)
+                        + case(
+                            (func.lower(MaterialClass.name).like(sub_pat, escape="\\"), 10), else_=0
+                        )
                         + case((kw_exact, 15), else_=0)
                         + case((kw_sub, 5), else_=0)
                     )
@@ -246,8 +252,7 @@ class MaterialRepository:
         existing label never overwrites its already-recorded license or
         reviewer. The decision is made once, at registration; see
         ``app.importers.service`` for where it is enforced before this is
-        ever called with an unregistered license.
-        """
+        ever called with an unregistered license."""
         existing = (
             self.db.execute(select(Source).where(Source.label == label)).scalars().one_or_none()
         )
