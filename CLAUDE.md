@@ -244,7 +244,8 @@ na CI:
   `pytest`, e `alembic upgrade head` + `app.db.seed` num banco limpo. Este
   último existe porque os testes usam SQLite em memória com `create_all` e
   nunca exercitam as migrações — que são a fonte de verdade do schema.
-- **Frontend**: `npm ci`, `typecheck`, `lint`, `test`, `build`.\n
+- **Frontend**: `npm ci`, `typecheck`, `lint`, `test`, `build`.
+
 Antes de abrir um PR, rode os dois conjuntos localmente; nenhum passo da CI é
 meramente informativo.
 
@@ -259,7 +260,8 @@ mexer em `app/db/seed.py` ou `app/db/seed_extended.py` — na dúvida, dispare
 os dois; `semear` roda ambos os módulos, e os dois são idempotentes. Se o PR
 mudou `Cérebro/removidos.txt`, a mesma aba tem `conhecimento_simular_remocao`
 e, conferido o log, `conhecimento_remover` (D-100). Passo a
-passo completo e por quê em [`docs/13-deploy.md` §5-ter](docs/13-deploy.md).\nPular este passo é a causa mais provável de "o PR está em `main` mas não
+passo completo e por quê em [`docs/13-deploy.md` §5-ter](docs/13-deploy.md).
+Pular este passo é a causa mais provável de "o PR está em `main` mas não
 aparece no ar". A outra causa, menos visível: um dado de seed que vive num
 módulo que `semear` não executa — job verde não prova que o dado certo foi
 escrito, só que o script executado não lançou exceção; a contagem por
@@ -912,12 +914,12 @@ e no mesmo modal do D-94. Regras que não se afrouxam:
   libcairo) por **um** rasterizador só, `lib/rasterize.ts`, que serve também às
   figuras dos gráficos; então o SVG não pode ter `foreignObject` nem referência
   externa. O PDF dos slides é a impressão do navegador.
-- **"Salvar como nota" encurta, não corta**: numa quebra de linha que guarde ao
+- **\"Salvar como nota\" encurta, não corta**: numa quebra de linha que guarde ao
   menos metade do espaço, nunca dentro de um número (`guardrails.NUMBER_TOKEN`,
   o átomo da conferência), e diz que encurtou (`studio_service.note_body`).
 - **Nenhuma migração**: as quatro cabem nos campos JSON da fase 1.
 
-3382 testes de backend (nenhum skip) e 753 de frontend, todos verdes. CI no
+3395 testes de backend (nenhum skip) e 753 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
 PROJECT_CONTEXT.md).
@@ -997,8 +999,8 @@ lockfile antigo tinha `resolved`/`integrity` em **59 de 1095** entradas, então 
 `npm audit` não enxergava a maior parte da árvore — os dois críticos de
 `plotly.js`/`maplibre-gl` já estavam lá e não eram reportados. Eles **não**
 chegam ao navegador (o Plotly é montado à la carte e nenhum traço de mapa é
-registrado — medido no pacote, com controle positivo), mas a frase "nenhuma CVE
-em código de produção" era subcontagem, não fato. O que resta é **S3**, e
+registrado — medido no pacote, com controle positivo), mas a frase \"nenhuma CVE
+em código de produção\" era subcontagem, não fato. O que resta é **S3**, e
 nenhuma das cadeias tem versão corrigida publicada.
 
 **Patch de design \"Prisma\" entregue** (sete tarefas dirigidas por
@@ -1018,7 +1020,7 @@ alternar `MaterialCards`/`MaterialTable` por breakpoint em vez do toggle
 manual que existia antes ([D-50](docs/DECISIONS.md)). A verificação final
 achou e corrigiu dois defeitos que nenhum teste automatizado pegava: um
 locator do E2E que virou ambíguo pela duplicação de DOM cartão/tabela do
-catálogo, e um bug de CSS — os seis blocos `[data-theme=\"dark\"]\n[data-section=\"…\"]` usavam combinador descendente em vez de seletor
+catálogo, e um bug de CSS — os seis blocos `[data-theme="dark"]\n[data-section="…"]` usavam combinador descendente em vez de seletor
 composto (as duas variáveis vivem no mesmo elemento `<html>`, nunca em
 elementos aninhados), o que zerava a paleta por rota inteira no tema
 escuro sem erro nenhum. Corrigidos e confirmados ao vivo em Chromium, não
