@@ -18,7 +18,13 @@ from sqlalchemy.orm import Session
 from app.db.base import get_db
 from app.dependencies import get_current_user
 from app.models.user import User
-from app.schemas.eco import EcoAuditRequest, EcoAuditResultOut, TransportModeOut
+from app.schemas.eco import (
+    EcoAuditRequest,
+    EcoAuditResultOut,
+    EcoComparisonRequest,
+    EcoComparisonResultOut,
+    TransportModeOut,
+)
 from app.services.eco_service import EcoService
 
 router = APIRouter(prefix="/eco", tags=["eco"])
@@ -41,3 +47,13 @@ def run_eco_audit(
 ) -> EcoAuditResultOut:
     """Audit one part over material, manufatura, transporte, uso e fim de vida."""
     return EcoService(db, user.id).run(payload)
+
+
+@router.post("/comparar", response_model=EcoComparisonResultOut)
+def compare_eco_audits(
+    payload: EcoComparisonRequest,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> EcoComparisonResultOut:
+    """Compare two eco-audit alternatives side-by-side."""
+    return EcoService(db, user.id).compare(payload)

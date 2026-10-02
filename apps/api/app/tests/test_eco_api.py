@@ -339,3 +339,111 @@ def test_someone_elses_record_cannot_be_audited(
 
     assert response.status_code == 404
     assert material.name not in response.text
+
+
+# --- side-by-side comparison (Opção 4) -------------------------------------
+
+
+def test_compare_two_materials_returns_deltas_and_winners(
+    client: TestClient, db_session: Session
+) -> None:
+    alum_id = _material_id(db_session, "%Alumínio%")
+    proc_id = _process_id(db_session, "fundicao-areia")
+
+    payload = {
+        "material_a": {
+            "material_id": alum_id,
+            "process_id": proc_id,
+            "part_mass": 2.0,
+            "recycled_fraction": 0.0,
+            "end_of_life": "reciclagem",
+        },
+        "material_b": {
+            "material_id": alum_id,
+            "process_id": proc_id,
+            "part_mass": 1.0,
+            "recycled_fraction": 0.2,
+            "end_of_life": "reciclagem",
+        },
+        "transport_mode": "rodoviario",
+        "transport_distance_km": 1500.0,
+        "use": MOBILE_USE,
+    }
+
+    response = client.post("/api/eco/comparar", json=payload)
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["material_a"]["material_id"] == alum_id
+    assert body["material_b"]["material_id"] == alum_id
+    assert body["delta_energy"] is not None
+    assert body["delta_energy"] < 0
+    assert body["delta_carbon"] is not None
+    assert body["delta_carbon"] < 0
+    assert body["winner_energy"] == "material_b"
+    assert body["winner_carbon"] == "material_b"
+
+
+def test_compare_identical_materials_returns_tie(
+    client: TestClient, db_session: Session
+) -> None:
+    alum_id = _material_id(db_session, "%Alumínio%")
+    proc_id = _process_id(db_session, "fundicao-areia")
+
+    payload = {
+        "material_a": {
+            "material_id": alum_id,
+            "process_id": proc_id,
+            "part_mass": 2.0,
+            "recycled_fraction": 0.0,
+            "end_of_life": "reciclagem",
+        },
+        "material_b": {
+            "material_id": alum_id,
+            "process_id": proc_id,
+            "part_mass": 2.0,
+            "recycled_fraction": 0.0,
+            "end_of_life": "reciclagem",
+        },
+        "transport_mode": "rodoviario",
+        "transport_distance_km": 500.0,
+        "use": STATIC_USE,
+    }
+
+    response = client.post("/api/eco/comparar", json=payload)
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["winner_energy"] == "tie"
+    assert body["winner_carbon"] == "tie"
+    assert body["delta_energy"] == 0.0
+    assert body["delta_carbon"] == 0.0
+
+
+def test_compare_with_unrelated_process_returns_404(
+    client: TestClient, db_session: Session
+) -> None:
+    polymer = _material_id(db_session, "%Polímero%")
+    sand_casting = _process_id(db_session, "fundicao-areia")
+    alum_id = _material_id(db_session, "%Alumínio%")
+
+    payload = {
+        "material_a": {
+            "material_id": alum_id,
+            "process_id": sand_casting,
+            "part_mass": 2.0,
+            "recycled_fraction": 0.0,
+            "end_of_life": "reciclagem",
+        },
+        "material_b": {
+            "material_id": polymer,
+            "process_id": sand_casting,
+            "part_mass": 1.0,
+            "recycled_fraction": 0.0,
+            "end_of_life": "reciclagem",
+        },
+        "transport_mode": "rodoviario",
+        "transport_distance_km": 500.0,
+        "use": STATIC_USE,
+    }
+
+    response = client.post("/api/eco/comparar", json=payload)
+    assert response.status_code == 404
