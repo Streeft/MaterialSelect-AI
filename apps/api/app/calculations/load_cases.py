@@ -520,13 +520,9 @@ LOAD_CASES: tuple[LoadCase, ...] = (
             "Substituindo: m = √(4π · S · L⁵ / C) · (ρ / √E).",
             "Minimizar a massa é maximizar √E/ρ.",
         ),
-        objective_structural=(
-            f"sqrt({_FOUR_PI} * rigidez * comprimento ** 5 / constante_apoio)"
-        ),
+        objective_structural=(f"sqrt({_FOUR_PI} * rigidez * comprimento ** 5 / constante_apoio)"),
         objective_unit="kg",
-        free_structural=(
-            f"sqrt({_FOUR_PI} * rigidez * comprimento ** 3 / constante_apoio)"
-        ),
+        free_structural=(f"sqrt({_FOUR_PI} * rigidez * comprimento ** 3 / constante_apoio)"),
         free_material="1 / sqrt(modulo_young)",
         free_unit="m**2",
         variables=(_COMPRIMENTO, _RIGIDEZ, _CONSTANTE_APOIO),
@@ -554,9 +550,7 @@ LOAD_CASES: tuple[LoadCase, ...] = (
             "Substituindo: m = L · (4√π · M)^(2/3) · (ρ / σy^(2/3)).",
             "Minimizar a massa é maximizar σy^(2/3)/ρ.",
         ),
-        objective_structural=(
-            f"comprimento * ({_FOUR_SQRT_PI} * momento) ** (2 / 3)"
-        ),
+        objective_structural=(f"comprimento * ({_FOUR_SQRT_PI} * momento) ** (2 / 3)"),
         objective_unit="kg",
         free_structural=f"({_FOUR_SQRT_PI} * momento) ** (2 / 3)",
         free_material="1 / limite_escoamento ** (2 / 3)",
@@ -591,9 +585,7 @@ LOAD_CASES: tuple[LoadCase, ...] = (
             f"sqrt(4 * carga * comprimento ** 4 / (constante_flambagem * {_PI}))"
         ),
         objective_unit="kg",
-        free_structural=(
-            f"sqrt(4 * carga * comprimento ** 2 / (constante_flambagem * {_PI}))"
-        ),
+        free_structural=(f"sqrt(4 * carga * comprimento ** 2 / (constante_flambagem * {_PI}))"),
         free_material="1 / sqrt(modulo_young)",
         free_unit="m**2",
         variables=(_COMPRIMENTO, _CARGA, _CONSTANTE_FLAMBAGEM),
