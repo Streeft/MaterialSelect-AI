@@ -147,8 +147,9 @@ O autor pediu para resolver a ingestão do `Links.md` e ativar o RAG, e escolheu
 busca por palavras **e** por vetores, aceitando que o texto dos livros vá à API
 de embeddings do Gemini no plano gratuito (onde o Google pode usá-lo). O
 workflow **Base de conhecimento (Cérebro)** (`conhecimento.yml`) ingere num
-runner — `ingerir` baixa os 120 PDFs distintos do LFS com cache (≈631 MB) e
-grava os trechos, sem chave de IA —, gera os vetores (`embeddings`, e uma
+runner — `ingerir` baixa do LFS só os PDFs que o banco ainda não tem com
+aqueles bytes (os 120 distintos, ≈631 MB, na primeira vez; o `oid` do ponteiro
+é o checksum da base) e grava os trechos, sem chave de IA —, gera os vetores (`embeddings`, e uma
 execução noturna com a sobra da cota do dia, 768 dimensões) e mostra o retrato
 (`status`, com a comparação "API vs vetores"). A ingestão ficou segura contra o
 que o Actions pode entregar (ponteiro LFS não toca o banco; as 121 cópias byte
@@ -158,8 +159,10 @@ IA lia o corpus inteiro duas vezes, o que derrubaria a VM de 512 MB e gastaria a
 transferência mensal do Neon em poucas dezenas de chamadas. `/api/health` nomeia
 o modelo e a dimensão dos embeddings. A ingestão direcionada vale sob as mesmas
 garantias: lista de remoção primeiro, ponteiro LFS recusado sem tocar a linha,
-`--force` sem liberar nenhum dos dois; um arquivo nomeado entra mesmo com cópia
-idêntica num caminho não nomeado. **O código está pronto; a execução é do
+`--force` sem liberar nenhum dos dois; um arquivo nomeado cujos bytes já estão
+indexados noutro caminho do Cérebro sai como cópia dele (salvo o declarado no
+manifesto). O `embed` nunca envia ao Gemini trecho de documento que esteja em
+`removidos.txt`, e a noturna para em 1000 pedidos. **O código está pronto; a execução é do
 autor**: Deploy da API → Provedor de IA (`gemini`) → `status` → `ingerir` → os
 vetores chegam em 1 a 2 noites, se o Gemini aceitar lote, ou em 2 a 4 semanas no
 pior caso ([13-deploy.md §5-septies](13-deploy.md)).
@@ -580,7 +583,7 @@ declarações do atributo, com o escopo indo a 4096.
 
 **Concorrência das cotas em PostgreSQL exercitada na CI** (D-97/D-99): quatro testes multithread contra PostgreSQL 16 (`test_notebook_quota_postgres.py`) validando o `UPDATE ... WHERE counter < limit` sob concorrência real (20 threads simultâneas em disputa na criação a partir do zero e na fronteira do limite, reserva e liberação concorrentes, e reserva com folga), sem estourar limites nem cair em race condition, executados na CI via contêiner de serviço PostgreSQL.
 
-**Saúde do código:** 3624 testes de backend (Python 3.11 e 3.12, nenhum skip)
+**Saúde do código:** 3660 testes de backend (Python 3.11 e 3.12, nenhum skip)
 e 753 de frontend, todos verdes. Desde o P0-1 a suíte também roda as migrações de
 verdade, nos dois sentidos, contra um banco temporário que já contém dados —
 `test_migration_selection_stage.py`, `test_migration_process_universe.py`,
@@ -932,7 +935,7 @@ que mais afetam quem for mexer no código:
 | Estúdio visual e sonoro: a voz é a do navegador (sem MP3/MP4); o dado em destaque não tem isenção e a unidade é comparada com maiúsculas; o layout do infográfico e a tipografia vêm do backend | [D-98](DECISIONS.md) |
 | Cotas dos Cadernos reservadas por um `UPDATE` condicional e devolvidas uma vez, por quem tira a geração de `gerando`; CSS inline oculta por qualquer declaração, e fonte e cor são estado herdado | [D-99](DECISIONS.md) |
 | Material de curso fora do Cérebro; `Cérebro/removidos.txt` é a fonte única do que saiu, por caminho e por conteúdo (`sha256:`), lida pela remoção do banco (simulação primeiro, que lista o que fica), pela ingestão e pela limpeza do histórico; a ingestão lê PDF e o Markdown declarado no manifesto (`Links.md`) | [D-100](DECISIONS.md) |
-| O Cérebro é ingerido por um workflow do Actions (LFS em cache, sem IA); vetores de 768 dimensões com a sobra noturna da cota gratuita; uma identidade de vetor (modelo e dimensão) conferida em `/api/health`; a busca ranqueia num índice em memória, com BM25 igual bit a bit | [D-101](DECISIONS.md) |
+| O Cérebro é ingerido por um workflow do Actions (do LFS, só o que o banco não tem; sem IA); vetores de 768 dimensões com a sobra noturna da cota gratuita; uma identidade de vetor (modelo e dimensão) conferida em `/api/health`; a busca ranqueia num índice em memória, com BM25 igual bit a bit | [D-101](DECISIONS.md) |
 
 ## 9. Limitações atuais
 
@@ -1035,9 +1038,10 @@ que mais afetam quem for mexer no código:
 | Dependência de provedor de IA | Arquitetura desacoplada com provedor simulado; funciona sem chave. |
 | Incorporação inadvertida de dado protegido | Triagem de licenciamento (M1, item 4.2 da proposta) — `Source` registra licença/procedência, e uma fonte nova sem licença ou marcada como possivelmente protegida sem confirmação humana é recusada antes de qualquer linha ser escrita ([D-44](DECISIONS.md)). |
 | Resultado não reproduzível por interferência de IA | Cálculo determinístico + guardrails executáveis + confirmação do usuário. |
-| Regressão silenciosa | CI com 3624 testes de backend e 753 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
+| Regressão silenciosa | CI com 3660 testes de backend e 753 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
 | Material licenciado do Cérebro exposto em `main` (repositório público) | Risco aceito por decisão explícita do autor, não mitigado — o Cérebro é a base de conhecimento da camada de IA ([D-45](DECISIONS.md)). |
-| Texto dos livros do Cérebro enviado ao Gemini no plano gratuito, onde o Google pode usá-lo para melhorar os produtos | Risco aceito pelo autor ao escolher busca por vetores ([D-101](DECISIONS.md)); a alternativa sem envio é a busca só por palavras, que continua funcionando sozinha. |
+| Texto dos livros do Cérebro enviado ao Gemini no plano gratuito, onde o Google pode usá-lo para melhorar os produtos | Risco aceito pelo autor ao escolher busca por vetores ([D-101](DECISIONS.md)); a alternativa sem envio é a busca só por palavras, que continua funcionando sozinha. Material na lista de remoção **nunca** é enviado: o `embed` lê `removidos.txt` e, sem conseguir lê-lo, não envia nada. |
+| Banda de Git LFS do plano gratuito (1 GB/mês; passar dela bloqueia o LFS da conta inteira até o mês virar) | `ingerir` baixa só o que o banco não tem (`lfs_plan`); a primeira ingestão completa gasta ≈631 MB e não deve ser repetida no mesmo mês sem necessidade ([D-101](DECISIONS.md), [13-deploy.md §5-septies](13-deploy.md)). |
 | Limites do Neon gratuito (suposto 0,5 GB e 5 GB/mês de transferência) e memória da VM de 512 MB | Vetores de 768 dimensões (≈96 MB de base a 18 mil trechos), índice em memória medido em ≈100 MB por processo, e o `status` avisa acima de 80% de 0,5 GB. **O autor ainda confirma** os limites no painel do Neon e a memória no painel do Fly depois da primeira consulta. |
 | Execução noturna parada sem ninguém notar | O GitHub desliga um agendamento depois de 60 dias sem atividade no repositório, e uma noturna na fila pode ser trocada por uma execução de `admin-banco`; o `status` mostra quanto falta ([13-deploy.md §5-septies](13-deploy.md)). |
 | Uso sem cobrança | Portão binário ligado ([D-46](DECISIONS.md)), checkout testado ao vivo em modo de teste — falta só configurar `STRIPE_API_KEY`/`STRIPE_WEBHOOK_SECRET`/`STRIPE_PRICE_ID` em **modo de produção** para vender de verdade. |

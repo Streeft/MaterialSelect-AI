@@ -365,7 +365,35 @@ class TestTargetedArguments:
             main(["--file", "dentro.pdf", "--file", "../fora.pdf"])
 
         assert exc.value.code == 1
-        assert "[ingest] ERRO: Caminho fora de KNOWLEDGE_DIR: ../fora.pdf" in (
-            capsys.readouterr().out
-        )
+        out = capsys.readouterr().out
+        assert "[ingest] ERRO: --file nº 2: Caminho fora de KNOWLEDGE_DIR." in out
+        assert "fora.pdf" not in out
         assert KnowledgeRepository(db_session).count_documents() == 0
+
+    @pytest.mark.parametrize(
+        ("name", "reason"),
+        [
+            ("Trabalho do Fulano.pdf", "Arquivo não encontrado em KNOWLEDGE_DIR"),
+            ("notas do grupo.md", "Markdown não declarado no manifesto"),
+            ("pasta/README.md", "Arquivo operacional não pode ser ingerido"),
+            ("planilha do aluno.xlsx", "Extensão não suportada para extração"),
+        ],
+    )
+    def test_a_bad_name_is_reported_by_position_never_printed(
+        self, cli_root: Path, capsys: pytest.CaptureFixture[str], name: str, reason: str
+    ) -> None:
+        # O log é público: um nome digitado de memória pode ser justamente o
+        # que a lista de remoção existe para não publicar.
+        (cli_root / "pasta").mkdir()
+        for existing in ("notas do grupo.md", "pasta/README.md", "planilha do aluno.xlsx"):
+            (cli_root / existing).write_text("x", encoding="utf-8")
+        _pdf(cli_root / "dentro.pdf", "dentro")
+
+        with pytest.raises(SystemExit) as exc:
+            main(["--file", "dentro.pdf", "--file", name, "--no-embed"])
+
+        assert exc.value.code == 1
+        out = capsys.readouterr().out
+        assert out.strip() == f"[ingest] ERRO: --file nº 2: {reason}."
+        stem = name.rsplit("/", 1)[-1].rsplit(".", 1)[0]
+        assert stem not in out

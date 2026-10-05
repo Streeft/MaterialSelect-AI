@@ -30,7 +30,8 @@ Exit code: 1 when a document failed for a reason the operator must fix (a
 broken file, an LFS pointer checked out in place of the file), or when the run
 could not start (``KNOWLEDGE_DIR`` missing, a bad manifest, a ``--file`` that
 is not an ingestible file under the root — printed as ``[ingest] ERRO: …``,
-with nothing written); a document
+with nothing written; a bad ``--file`` is named by its position, never by the
+path typed, which may be a name the log must not publish); a document
 without extractable text — a scanned book — is a warning (``SEM TEXTO``) and
 does not fail the run on its own.
 """
@@ -45,7 +46,7 @@ from pathlib import Path, PurePosixPath
 from app.db.base import SessionLocal
 from app.domain.errors import ValidationError
 from app.knowledge.prune import ROOT_FOLDER, redact
-from app.knowledge.service import DocumentOutcome, IngestReport, KnowledgeService
+from app.knowledge.service import DocumentOutcome, IngestReport, KnowledgeService, TargetError
 
 
 def _shown(outcome: DocumentOutcome) -> str:
@@ -182,10 +183,16 @@ def main(argv: list[str] | None = None) -> None:
                 force=args.force, paths=args.files, embed=embed, on_document=db.commit
             )
             db.commit()
+    except TargetError as exc:
+        # The log is public: the position says which --file, and the operator
+        # knows what they typed there. The path is not printed — it may be a
+        # name the removal list exists to keep out of the log.
+        print(f"[ingest] ERRO: --file nº {exc.position}: {exc.reason}.")
+        sys.exit(1)
     except ValidationError as exc:
         # Raised before the first document is touched (configuration, the
-        # manifest, a --file that is not an ingestible file under the root):
-        # one line saying why reads better in a log than a traceback.
+        # manifest): one line saying why reads better in a log than a
+        # traceback.
         print(f"[ingest] ERRO: {exc}")
         sys.exit(1)
 

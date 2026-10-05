@@ -393,14 +393,20 @@ Três coisas que não são detalhe de configuração:
   merge para sempre.
 - **O Cérebro entra no banco por um workflow próprio** ([D-101](DECISIONS.md)):
   **Base de conhecimento (Cérebro)** (`conhecimento.yml`), com `status`,
-  `ingerir` (baixa os PDFs do LFS, com cache, e roda
-  `python -m app.knowledge.ingest --no-embed`, sem chave de IA; com a entrada
-  `arquivos`, só os nomeados por `--file=`, e o LFS só é baixado se um deles
-  estiver nele) e `embeddings`
+  `ingerir` (baixa do LFS só os PDFs que o banco ainda não tem com aqueles
+  bytes — `python -m app.knowledge.lfs_plan`, a mesma decisão da ingestão — e
+  roda `python -m app.knowledge.ingest --no-embed`, sem chave de IA; com a
+  entrada `arquivos`, só os nomeados por `--file=`) e `embeddings`
   (`python -m app.knowledge.embed`, com a `GEMINI_API_KEY`), mais uma execução
-  **agendada** toda noite que gera vetores com a sobra da cota gratuita. É o
+  **agendada** toda noite que gera vetores com a sobra da cota gratuita, até
+  1000 pedidos. **O `embed` nunca envia trecho de documento que esteja em
+  `Cérebro/removidos.txt`**, e com a lista ilegível falha antes de pedir: não
+  afrouxe isso. A banda de LFS do plano gratuito é 1 GB/mês e o Cérebro tem
+  ≈631 MB — uma ingestão que baixe tudo duas vezes no mês bloqueia o LFS da
+  conta. É o
   único workflow com `schedule`, e por isso não é ação do `admin-banco.yml`, que
-  promete só `workflow_dispatch`; divide com ele o grupo de concorrência. O
+  promete só `workflow_dispatch`; divide com ele o grupo de concorrência (e a
+  noturna pode cancelar uma ação de `admin-banco` que esteja na fila). O
   agendamento só roda do ramo padrão e o GitHub o desliga depois de 60 dias sem
   atividade no repositório. Passo a passo em 13-deploy.md §5-septies. **PR que
   toque `Cérebro/` ou `manifesto.json` pede `ingerir`**; a identidade dos

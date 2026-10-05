@@ -151,12 +151,15 @@ GIT_LFS_SKIP_SMUDGE=1 git clone https://github.com/Streeft/MaterialSelect-AI.git
 
 Pelo mesmo motivo, nenhum job de CI deve baixar objetos LFS: o `actions/checkout`
 não os baixa por padrão, e `lfs: true` não deve ser ligado sem necessidade real.
-A exceção é uma só e tem cache: a ação `ingerir` do workflow **Base de
-conhecimento (Cérebro)** baixa os PDFs (≈631 MB na primeira vez) e guarda
-`.git/lfs/objects` no `actions/cache`, chaveado pelos ids dos objetos — repetir a
-ingestão com o mesmo Cérebro não gasta banda. Uma entrada de cache sem uso por
-7 dias é apagada pelo GitHub, e aí o download se repete e conta de novo na
-banda do mês. As outras ações do workflow não baixam nada.
+A exceção é uma só: a ação `ingerir` do workflow **Base de conhecimento
+(Cérebro)**, que baixa **só os PDFs que o banco ainda não tem** com aqueles
+bytes — o `oid` do ponteiro LFS é o sha256 do arquivo, o mesmo checksum que a
+base guarda (`python -m app.knowledge.lfs_plan`). A primeira ingestão completa
+baixa os 120 PDFs distintos (≈631 MB, mais da metade da banda do mês); as
+seguintes, só os novos ou mudados e os que falharam antes, e o plano imprime os
+MB antes de baixar. O que foi baixado fica no `actions/cache` por 7 dias sem
+uso, o que poupa só uma repetição próxima. As outras ações do workflow não
+baixam nada.
 
 **O licenciamento continua em aberto.** Este repositório é público, e livro
 comercial íntegro e extrato de banco licenciado ANSYS/Granta agora estão

@@ -4,18 +4,24 @@
 #                        dimensão, quanto falta, tamanho do banco, órfãos — e
 #                        confere se a API consulta com a mesma identidade de
 #                        vetor que este workflow grava ("API vs vetores").
-#   ingerir              baixa os PDFs do Git LFS (com cache) e roda
+#   ingerir              baixa do Git LFS só os PDFs que o banco ainda não
+#                        tem (`python -m app.knowledge.lfs_plan`) e roda
 #                        `python -m app.knowledge.ingest --no-embed`: extrai o
 #                        texto e grava os trechos. A busca léxica já funciona
 #                        depois disto. NÃO recebe chave de IA nenhuma.
 #                        Com `arquivos` preenchido (ex.: `Links.md`), só esses
-#                        arquivos, por `--file`; o LFS só é baixado se um deles
-#                        for um PDF guardado no LFS.
+#                        arquivos, por `--file` — e o mesmo plano decide se
+#                        algum deles precisa ser baixado.
 #   embeddings           gera vetores agora, até `limite_pedidos` pedidos
 #                        (`python -m app.knowledge.embed`).
 #   (noturno, sozinho)   o mesmo, toda noite, com a sobra da cota diária
-#                        gratuita do Gemini — até o fim da janela antes da
-#                        virada da cota (meia-noite do Pacífico).
+#                        gratuita do Gemini — até 1000 pedidos ou o fim da
+#                        janela antes da virada da cota (meia-noite do
+#                        Pacífico), o que vier antes.
+#
+# Os vetores nunca levam ao Google um trecho de documento que está em
+# `Cérebro/removidos.txt` (D-100): o `embed` lê a lista e deixa esses trechos
+# de fora até a ação `conhecimento_remover` tirá-los da base.
 #
 # **Não é uma ação do `admin-banco.yml` de propósito.** Aquele arquivo promete
 # "só `workflow_dispatch`" como propriedade de segurança, e a execução noturna
@@ -34,11 +40,18 @@
 # dois divergirem, os vetores gravados aqui ficam fora da busca semântica — e o
 # passo "Retrato" desta execução mostra isso na linha "API vs vetores".
 #
-# **Custo zero.** O Git LFS vai para cache (`actions/cache`), chaveado pelos ids
-# dos objetos: repetir `ingerir` com o mesmo Cérebro não gasta banda de LFS. Os
-# vetores usam a mesma chave gratuita do Gemini (`GEMINI_API_KEY`, sem
-# faturamento) do `provedor-ia.yml`; a cota diária esgotada encerra com sucesso
-# e a noite seguinte continua.
+# **Custo zero.** O plano gratuito do GitHub dá 1 GB de banda de Git LFS por
+# mês, e o Cérebro inteiro tem ≈600 MB. Por isso `ingerir` baixa só o que o
+# banco não tem: o `oid` de um ponteiro LFS é o sha256 do arquivo, o mesmo
+# `checksum` que a base guarda, e um PDF já indexado com esses bytes é dado como
+# inalterado sem ser baixado. A primeira ingestão completa baixa o Cérebro
+# inteiro (mais da metade da cota do mês); as seguintes, só os PDFs novos ou
+# mudados — e os que falharam antes, que são lidos de novo. O que foi baixado
+# fica em cache (`actions/cache`) por 7 dias sem uso. Os vetores usam a mesma
+# chave gratuita do Gemini (`GEMINI_API_KEY`, sem faturamento) do
+# `provedor-ia.yml`; a cota diária esgotada encerra com sucesso e a noite
+# seguinte continua — e a execução noturna para em 1000 pedidos, o volume
+# gratuito do dia, mesmo que a chave um dia passe a ter faturamento.
 #
 # Não entra em `scripts/protect-main.ps1` — ver a mesma nota em `deploy-api.yml`.
 #
@@ -155,14 +168,27 @@ jobs:
               ;;
           esac
 
+      # `arquivos` só vale para `ingerir`: preenchido com outra ação, é um
+      # engano do operador, e ignorá-lo em silêncio o deixaria achar que valeu.
+      - name: Conferir as entradas
+        if: env.ACAO != 'embeddings_noturno'
+        env:
+          ARQUIVOS: ${{ inputs.arquivos }}
+        run: |
+          set -euo pipefail
+          lista="${ARQUIVOS:-}"
+          if [ "$ACAO" != "ingerir" ] && [ -n "${lista//[[:space:]]/}" ]; then
+            echo "::error::arquivos só vale para a ação ingerir (esta é $ACAO). Deixe vazio ou escolha ingerir."
+            exit 1
+          fi
+
       # --- Arquivos pedidos, só para `ingerir` ---------------------------------
-      # Vazio: a pasta inteira, e o LFS é baixado. Preenchido: cada caminho é
-      # conferido aqui (relativo a Cérebro/, sem `..`, arquivo regular, sem
-      # link simbólico) e o LFS só é baixado se algum deles for um ponteiro no
-      # checkout — `Links.md` sozinho não custa os ≈600 MB dos PDFs. A
-      # ingestão confere tudo de novo (`resolve_targets`), inclusive o que só
+      # Vazio: a pasta inteira. Preenchido: cada caminho é conferido aqui
+      # (relativo a Cérebro/, sem `..`, arquivo regular, sem link simbólico).
+      # A ingestão confere tudo de novo (`resolve_targets`), inclusive o que só
       # ela sabe: extensão, manifesto, lista de remoção. Os caminhos não são
-      # impressos aqui — o erro diz a posição na lista.
+      # impressos aqui — o erro diz a posição na lista. O que baixar do LFS é
+      # decidido depois, pelo plano, com estes mesmos caminhos.
       - name: Conferir os arquivos pedidos
         if: env.ACAO == 'ingerir'
         env:
@@ -174,7 +200,6 @@ jobs:
           lista="${ARQUIVOS:-}"
           if [ -z "${lista//[[:space:]]/}" ]; then
             echo "Sem arquivos pedidos: a pasta Cérebro/ inteira."
-            echo "LFS_NECESSARIO=1" >> "$GITHUB_ENV"
             exit 0
           fi
           case "$lista" in
@@ -185,7 +210,7 @@ jobs:
           esac
           raiz="$(realpath -e -- "$GITHUB_WORKSPACE")"
           IFS=';' read -r -a itens <<< "$lista"
-          n=0; posicao=0; lfs=0
+          n=0; posicao=0
           for item in "${itens[@]}"; do
             posicao=$((posicao + 1))
             item="${item#"${item%%[![:space:]]*}"}"
@@ -215,9 +240,6 @@ jobs:
               echo "::error::O caminho nº $posicao de arquivos não é um arquivo de Cérebro/ (não existe, é pasta ou passa por link simbólico)."
               exit 1
             fi
-            if [ "$(head -c 40 -- "$caminho" | tr -d '\0')" = "version https://git-lfs.github.com/spec/" ]; then
-              lfs=1
-            fi
             printf '%s\0' "$item" >> "$lista_nul"
             n=$((n + 1))
           done
@@ -225,29 +247,59 @@ jobs:
             echo "::error::arquivos não tem caminho nenhum (só ';' e espaços). Deixe vazio para a pasta inteira."
             exit 1
           fi
-          echo "LFS_NECESSARIO=$lfs" >> "$GITHUB_ENV"
           echo "ARQUIVOS_PEDIDOS=$lista_nul" >> "$GITHUB_ENV"
-          if [ "$lfs" = 1 ]; then
-            echo "$n arquivo(s) pedido(s); ao menos um está no Git LFS, então o LFS é baixado (com cache)."
-          else
-            echo "$n arquivo(s) pedido(s), nenhum no Git LFS: nada é baixado do LFS."
-          fi
+          echo "$n arquivo(s) pedido(s)."
+
+      # --- Python ----------------------------------------------------------------
+      # Antes do LFS: é o Python, lendo o banco, que diz o que baixar.
+      - name: Preparar Python
+        if: env.PULAR != '1'
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      # Os mesmos extras do `admin-banco.yml` (e do Dockerfile.api). O pypdf,
+      # que a ingestão usa, é dependência principal desde o D-92.
+      - name: Instalar dependências
+        id: instalar
+        if: env.PULAR != '1'
+        working-directory: apps/api
+        run: pip install -e ".[postgres,billing]"
 
       # --- Git LFS, só para `ingerir` ------------------------------------------
-      # A chave do cache é o conjunto de ids dos objetos: o mesmo Cérebro dá a
-      # mesma chave e nada é baixado; um PDF novo dá outra chave, e o cache
-      # anterior (restore-keys) ainda traz todos os outros.
-      - name: Listar os objetos LFS do Cérebro
-        if: env.ACAO == 'ingerir' && env.LFS_NECESSARIO == '1'
+      # O plano lê o banco e os ponteiros do checkout e lista só os arquivos que
+      # a ingestão vai ler e o banco ainda não tem: o oid de um ponteiro é o
+      # sha256 do arquivo, o mesmo checksum da base. Já indexado com esses
+      # bytes, cópia de outro caminho ou na lista de remoção: não é baixado. É
+      # a mesma decisão que a ingestão toma (KnowledgeService.lfs_plan), com os
+      # mesmos `--file` — baixado o que ele lista, nenhum arquivo que a
+      # ingestão lê é ponteiro. Só lê o banco, e sem chave de IA nenhuma.
+      - name: Planejar o download do LFS
+        if: env.ACAO == 'ingerir'
+        working-directory: apps/api
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          ENVIRONMENT: production
         run: |
           set -euo pipefail
-          git lfs ls-files --long | cut -d' ' -f1 | sort -u > .lfs-cerebro-ids
-          if [ ! -s .lfs-cerebro-ids ]; then
-            echo "::error::git lfs ls-files não listou objeto nenhum."
-            exit 1
+          export KNOWLEDGE_DIR="$GITHUB_WORKSPACE/Cérebro"
+          baixar="$RUNNER_TEMP/cerebro-lfs-baixar"
+          alvos=()
+          if [ -n "${ARQUIVOS_PEDIDOS:-}" ]; then
+            while IFS= read -r -d '' arquivo; do
+              alvos+=("--file=$arquivo")
+            done < "$ARQUIVOS_PEDIDOS"
           fi
-          echo "$(wc -l < .lfs-cerebro-ids) objetos LFS distintos no Cérebro."
+          python -m app.knowledge.lfs_plan --output "$baixar" --ids "$GITHUB_WORKSPACE/.lfs-cerebro-ids" "${alvos[@]}"
+          echo "LFS_BAIXAR=$baixar" >> "$GITHUB_ENV"
+          if [ -s "$baixar" ]; then
+            echo "LFS_NECESSARIO=1" >> "$GITHUB_ENV"
+          fi
 
+      # A chave do cache é o conjunto de oids a baixar: a mesma lista dá a
+      # mesma chave e nada é baixado de novo (uma ingestão repetida depois de
+      # falhar, dentro de 7 dias). Um cache anterior (restore-keys) traz o que
+      # tiver em comum.
       - name: Restaurar o cache do LFS
         id: cache-lfs
         if: env.ACAO == 'ingerir' && env.LFS_NECESSARIO == '1'
@@ -258,32 +310,41 @@ jobs:
           restore-keys: |
             lfs-cerebro-v1-
 
-      - name: Baixar os PDFs (git lfs pull)
+      # Arquivo a arquivo, pelo `git lfs smudge`: lê o ponteiro, devolve o
+      # arquivo (do cache, se estiver lá; senão, baixa) e o guarda em
+      # .git/lfs/objects. Não `git lfs pull --include`: a lista de padrões dele
+      # é separada por vírgula, e 40 caminhos do Cérebro têm vírgula. O nome
+      # passado ao smudge é neutro, porque ele o imprime ("Downloading …") e o
+      # log é público.
+      - name: Baixar do LFS o que o plano listou
         id: lfs-pull
         if: env.ACAO == 'ingerir' && env.LFS_NECESSARIO == '1'
         run: |
           set -euo pipefail
-          # Quanto falta baixar, lido dos próprios ponteiros: o que o cache não
-          # trouxe é o que gasta banda de LFS nesta execução.
-          declare -A vistos=()
-          objetos=0; total=0; faltam=0; baixar=0
-          while IFS= read -r -d '' arquivo; do
-            [ "$(head -c 40 -- "$arquivo" | tr -d '\0')" = "version https://git-lfs.github.com/spec/" ] || continue
-            oid=$(sed -n 's/^oid sha256:\([0-9a-f]\{64\}\)$/\1/p' -- "$arquivo")
-            tamanho=$(sed -n 's/^size \([0-9][0-9]*\)$/\1/p' -- "$arquivo")
-            if [ -z "$oid" ] || [ -z "$tamanho" ] || [ -n "${vistos[$oid]:-}" ]; then
-              continue
+          export GIT_LFS_SKIP_SMUDGE=0
+          no_cache=0; faltam=0
+          while IFS= read -r oid; do
+            if [ -f ".git/lfs/objects/${oid:0:2}/${oid:2:2}/$oid" ]; then
+              no_cache=$((no_cache + 1))
+            else
+              faltam=$((faltam + 1))
             fi
-            vistos[$oid]=1
-            objetos=$((objetos + 1)); total=$((total + tamanho))
-            if [ ! -f ".git/lfs/objects/${oid:0:2}/${oid:2:2}/$oid" ]; then
-              faltam=$((faltam + 1)); baixar=$((baixar + tamanho))
+          done < .lfs-cerebro-ids
+          echo "LFS: $no_cache objeto(s) já no cache, $faltam a baixar."
+          temporario="$RUNNER_TEMP/cerebro-lfs-objeto"
+          n=0
+          while IFS= read -r -d '' relativo; do
+            n=$((n + 1))
+            arquivo="Cérebro/$relativo"
+            if ! git lfs smudge -- "cerebro-$n.bin" < "$arquivo" > "$temporario"; then
+              echo "::error::O download do arquivo nº $n do plano falhou (banda ou cota de LFS?). Nada foi escrito no banco; repita a ação."
+              exit 1
             fi
-          done < <(find "Cérebro" -type f -size -1024c -print0)
-          echo "LFS: $objetos objetos ($((total / 1048576)) MB); $faltam a baixar ($((baixar / 1048576)) MB), o resto veio do cache."
-          git lfs pull
-          # Tira do diretório o que o Cérebro não usa mais, para o cache
-          # salvo não crescer a cada PDF trocado.
+            mv -f -- "$temporario" "$arquivo"
+          done < "$LFS_BAIXAR"
+          echo "LFS: $n arquivo(s) no lugar dos ponteiros."
+          # Tira do diretório o que este plano não usou, para o cache salvo
+          # não crescer a cada execução.
           if [ -d .git/lfs/objects ]; then
             find .git/lfs/objects -type f | while IFS= read -r objeto; do
               grep -qxF "$(basename "$objeto")" .lfs-cerebro-ids || rm -f -- "$objeto"
@@ -291,7 +352,7 @@ jobs:
           fi
 
       # Uma chave de cache não se sobrescreve: só o conjunto completo leva a
-      # chave dos ids. Um download interrompido (banda de LFS, rede) ainda é
+      # chave dos oids. Um download interrompido (banda de LFS, rede) ainda é
       # guardado, com chave própria, para a próxima execução retomar dele pelo
       # restore-keys em vez de recomeçar.
       - name: Salvar o cache do LFS
@@ -308,50 +369,28 @@ jobs:
           path: .git/lfs/objects
           key: lfs-cerebro-v1-parcial-${{ github.run_id }}-${{ github.run_attempt }}
 
-      # Um ponteiro no lugar do PDF seria lido como documento ilegível. A
-      # ingestão já não apaga nada por isso (T1), mas a execução tem de falhar
-      # aqui, antes do Python, com a causa escrita.
-      - name: Conferir que nenhum ponteiro LFS ficou
+      # Os ponteiros que ficam no disco são os que a ingestão não lê (já
+      # indexados, cópias, lista de remoção). Os que o plano mandou baixar
+      # não podem ter ficado: lido como PDF, um ponteiro seria um documento
+      # ilegível. A ingestão já o recusa sem escrever nada (T1), mas a execução
+      # tem de falhar aqui, antes do Python, com a causa escrita.
+      - name: Conferir que nenhum arquivo baixado ficou ponteiro
         if: env.ACAO == 'ingerir' && env.LFS_NECESSARIO == '1'
         run: |
           set -euo pipefail
-          restantes=0
-          declare -A pastas=()
-          while IFS= read -r -d '' arquivo; do
-            if [ "$(head -c 40 -- "$arquivo" | tr -d '\0')" = "version https://git-lfs.github.com/spec/" ]; then
+          restantes=0; n=0
+          while IFS= read -r -d '' relativo; do
+            n=$((n + 1))
+            if [ "$(head -c 40 -- "Cérebro/$relativo" | tr -d '\0')" = "version https://git-lfs.github.com/spec/" ]; then
               restantes=$((restantes + 1))
-              relativo="${arquivo#Cérebro/}"
-              case "$relativo" in
-                */*) pasta="${relativo%%/*}" ;;
-                *) pasta="(raiz)" ;;
-              esac
-              pastas[$pasta]=$(( ${pastas[$pasta]:-0} + 1 ))
             fi
-          done < <(find "Cérebro" -type f -size -1024c -print0)
+          done < "$LFS_BAIXAR"
           if [ "$restantes" -gt 0 ]; then
-            # Só a pasta e a contagem: o log é público.
-            for pasta in "${!pastas[@]}"; do
-              echo "  $pasta: ${pastas[$pasta]} ponteiro(s)"
-            done | sort
-            echo "::error::$restantes arquivo(s) do Cérebro ainda são ponteiros do Git LFS, não PDFs. O git lfs pull não trouxe tudo (banda ou cota de LFS?). Nada foi escrito no banco; repita a ação."
+            # Só a contagem: o log é público.
+            echo "::error::$restantes de $n arquivo(s) do plano ainda são ponteiros do Git LFS, não PDFs. O download não trouxe tudo (banda ou cota de LFS?). Nada foi escrito no banco; repita a ação."
             exit 1
           fi
-          echo "Nenhum ponteiro LFS em Cérebro/: os PDFs estão inteiros."
-
-      # --- Python ----------------------------------------------------------------
-      - name: Preparar Python
-        if: env.PULAR != '1'
-        uses: actions/setup-python@v7
-        with:
-          python-version: "3.12"
-
-      # Os mesmos extras do `admin-banco.yml` (e do Dockerfile.api). O pypdf,
-      # que a ingestão usa, é dependência principal desde o D-92.
-      - name: Instalar dependências
-        id: instalar
-        if: env.PULAR != '1'
-        working-directory: apps/api
-        run: pip install -e ".[postgres,billing]"
+          echo "Nenhum dos $n arquivo(s) baixado(s) ficou ponteiro: os PDFs estão inteiros."
 
       # Sem chave de IA nenhuma no ambiente: `--no-embed` nem constrói o
       # cliente de embeddings, e os vetores são das ações abaixo.
@@ -390,26 +429,33 @@ jobs:
             echo "::error::Crie o secret GEMINI_API_KEY (Google AI Studio → Get API key, sem faturamento) — o mesmo do workflow Provedor de IA."
             exit 1
           fi
-          if ! printf '%s' "$LIMITE" | grep -Eq '^[0-9]{1,6}$'; then
+          # A string inteira, não linha a linha: "300\nabc" não passa.
+          if ! [[ $LIMITE =~ ^[0-9]{1,6}$ ]]; then
             echo "::error::limite_pedidos precisa ser um inteiro ≥ 0 (0 = até a cota do dia acabar)."
             exit 1
           fi
-          if ! printf '%s' "$LOTE" | grep -Eq '^[1-9][0-9]{0,2}$'; then
+          if ! [[ $LOTE =~ ^[1-9][0-9]{0,2}$ ]]; then
             echo "::error::lote precisa ser um inteiro entre 1 e 999."
             exit 1
           fi
           export KNOWLEDGE_EMBEDDING_BASE_URL="$EMBEDDING_BASE_URL"
           export KNOWLEDGE_EMBEDDING_MODEL="$EMBEDDING_MODEL"
           export KNOWLEDGE_EMBEDDING_DIMENSIONS="$EMBEDDING_DIMENSIONS"
+          # A lista de remoção do checkout: os trechos dos documentos dela não
+          # são enviados. Ilegível, o embed sai com 1 antes de qualquer pedido.
+          export KNOWLEDGE_DIR="$GITHUB_WORKSPACE/Cérebro"
           if [ "$ACAO" = "embeddings_noturno" ]; then
-            # Até a cota do dia acabar ou até 23h50 no Pacífico.
-            limite=0
+            # Até a cota do dia acabar, 23h50 no Pacífico ou 1000 pedidos — o
+            # volume gratuito do dia. O teto é o que segura uma chave que um
+            # dia ganhe faturamento: sem 429 diário, ela iria até o prazo.
+            limite=1000
             prazo="$PRAZO_MINUTOS"
           else
             limite="$LIMITE"
             prazo=120
           fi
           python -m app.knowledge.embed \
+            --list "$KNOWLEDGE_DIR/removidos.txt" \
             --max-requests "$limite" \
             --batch "$LOTE" \
             --rpm 90 \

@@ -60,6 +60,19 @@ day and failing:
 Exit 0 also when the request budget or the deadline ends the run: that is the
 schedule working, not a failure.
 
+**What is on the removal list is never sent.** ``Cérebro/removidos.txt`` (D-100)
+is read through :mod:`app.knowledge.removal` — the reader the ingestion and the
+prune use — and the passages of every document it matches, by path or by
+SHA-256, are left out of the queue. Taking a document out of the base is a
+separate, manual action (``conhecimento_remover``); between adding a line to
+the list and running it, the unattended nightly run must not hand that text to
+an embedding provider whose free tier may use what it receives. The run counts
+what it held back and says to run the prune; it never names a document. The
+list comes from ``--list`` (as in the prune) or, without it, from
+``KNOWLEDGE_DIR`` (as in the ingestion). Asked for and unreadable — missing,
+not UTF-8, a malformed line — the run fails before any request (exit 1): an
+embedding run that cannot tell what was removed does not guess.
+
 **The log is public** (GitHub Actions). It carries counts, chunk ids and the
 model's name — never a passage's text, a path or a key.
 """
@@ -75,6 +88,7 @@ from collections import deque
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from enum import Enum
+from pathlib import Path
 from typing import Protocol
 
 from sqlalchemy.orm import Session
@@ -82,11 +96,13 @@ from sqlalchemy.orm import Session
 from app.config import Settings
 from app.config import settings as default_settings
 from app.db.base import SessionLocal
+from app.domain.errors import ValidationError
 from app.knowledge.embeddings import (
     EmbeddingClient,
     EmbeddingHttpError,
     EmbeddingUnavailableError,
 )
+from app.knowledge.removal import REMOVAL_LIST_FILENAME, RemovalList, load_removal_list
 from app.repositories.knowledge_repository import KnowledgeRepository
 
 #: Waits between attempts after a 5xx, a timeout or a network error.
@@ -145,6 +161,8 @@ class EmbedReport:
     requests: int = 0
     refused: int = 0
     remaining: int = 0
+    #: Pending passages left out because their document is on the removal list.
+    held_back: int = 0
     exit_code: int = 0
 
 
@@ -232,8 +250,10 @@ class _Run:
         sleep: Callable[[float], None],
         clock: Callable[[], float],
         out: Callable[[str], None],
+        removal: RemovalList | None = None,
     ) -> None:
         self.db = db
+        self.removal = removal
         self.repo = KnowledgeRepository(db)
         self.client = client
         self.batch = batch
@@ -274,7 +294,10 @@ class _Run:
             f"[embed] modelo {model} ({size}), lote de {self.batch}; "
             f"{pending} de {total} trechos sem vetor atual."
         )
-        queue = deque(self.repo.pending_chunk_ids(model, dims))
+        queue = deque(self._queue(model, dims))
+        if not queue:
+            self.out("[embed] nenhum trecho pendente fora da lista de remoção: nada a enviar.")
+            return self._finish(0)
         exit_code = 0
         while queue:
             popped = [queue.popleft() for _ in range(min(self.batch, len(queue)))]
@@ -327,6 +350,34 @@ class _Run:
         if self.stop_message:
             self.out(self.stop_message)
         return self._finish(exit_code)
+
+    def _queue(self, model: str, dims: int) -> list[int]:
+        """The pending chunk ids, minus those of documents on the removal list.
+
+        Matched in Python, as the prune does (NFC paths have no portable SQL
+        spelling); the base is a few hundred documents. The count of what was
+        held back is printed — never a path: the list exists because those
+        names are not to be published.
+        """
+        pending = self.repo.pending_chunks(model, dims)
+        if self.removal is None or self.removal.is_empty:
+            return [chunk_id for chunk_id, _ in pending]
+        removed = {
+            doc_id
+            for doc_id, path, checksum in self.repo.document_fingerprints()
+            if self.removal.match_reason(path, checksum) is not None
+        }
+        queue = [chunk_id for chunk_id, doc_id in pending if doc_id not in removed]
+        held = len(pending) - len(queue)
+        self.report.held_back = held
+        if held:
+            documents = len({doc_id for _, doc_id in pending if doc_id in removed})
+            self.out(
+                f"::warning::[embed] {held} trechos de {documents} documento(s) na lista de "
+                f"remoção ({REMOVAL_LIST_FILENAME}) não foram enviados: continuam na base até "
+                "a ação `conhecimento_remover` (workflow Administração do banco) tirá-los."
+            )
+        return queue
 
     def _refused(self, chunk_id: int) -> None:
         """Count a single passage refused (400) and warn — by id, never by text."""
@@ -551,10 +602,14 @@ def run(
     sleep: Callable[[float], None] = time.sleep,
     clock: Callable[[], float] = time.monotonic,
     out: Callable[[str], None] = print,
+    removal: RemovalList | None = None,
 ) -> EmbedReport:
     """Embed pending chunks until done, out of budget, out of time or out of quota.
 
     Args:
+        removal: the parsed removal list; the passages of every document it
+            matches (by path or SHA-256) are never sent. ``None``: nothing is
+            left out — the CLI passes one whenever a list is configured.
         client: the embedding client; by default one built from ``settings``
             with ``knowledge_embedding_batch`` equal to ``batch``, so that one
             ``embed()`` call is one request.
@@ -590,6 +645,7 @@ def run(
         sleep=sleep,
         clock=clock,
         out=out,
+        removal=removal,
     ).execute()
 
 
@@ -646,20 +702,74 @@ def _parser() -> argparse.ArgumentParser:
         default=0,
         help="tokens estimados por minuto (0 = sem limite)",
     )
+    parser.add_argument(
+        "--list",
+        type=Path,
+        default=None,
+        help=(
+            "lista de remoção (Cérebro/removidos.txt): os trechos dos documentos dela não "
+            "são enviados. Sem a opção, a de KNOWLEDGE_DIR, se definido"
+        ),
+    )
     return parser
 
 
-def main(argv: list[str] | None = None) -> None:
+def load_removal(list_path: Path | None, settings: Settings) -> RemovalList | None:
+    """The removal list this run must honour, or ``None`` when none is configured.
+
+    ``--list`` names the file, as in the prune: it must exist and parse.
+    Without it, ``KNOWLEDGE_DIR`` names the folder, as in the ingestion: the
+    folder must exist, and a folder without ``removidos.txt`` is an empty list
+    (a corpus nothing was ever removed from). Neither: ``None``.
+
+    Raises:
+        ValidationError: the list was asked for and cannot be read — the CLI
+            exits 1 before any request rather than embed what may be removed.
+    """
+    if list_path is None:
+        root_setting = settings.knowledge_dir.strip()
+        if not root_setting:
+            return None
+        root = Path(root_setting).expanduser()
+        if not root.is_dir():
+            raise ValidationError(f"KNOWLEDGE_DIR não é um diretório: {root}")
+        list_path = root / REMOVAL_LIST_FILENAME
+        if not list_path.exists():
+            return RemovalList(exact=frozenset(), prefixes=())
+    try:
+        return load_removal_list(list_path)
+    except (OSError, UnicodeDecodeError) as exc:
+        raise ValidationError(f"não consegui ler a lista de remoção {list_path}: {exc}") from exc
+
+
+def main(argv: list[str] | None = None, *, settings: Settings = default_settings) -> None:
     """Parse the flags, run against ``DATABASE_URL`` and exit with the run's code."""
     args = _parser().parse_args(argv if argv is not None else [])
+    try:
+        removal = load_removal(args.list, settings)
+    except ValidationError as exc:
+        print(f"::error::[embed] {exc} Nenhum pedido foi feito.")
+        sys.exit(1)
+    if removal is None:
+        print(
+            "[embed] sem lista de remoção (nem --list nem KNOWLEDGE_DIR): nenhum trecho "
+            "fica de fora por ela."
+        )
+    else:
+        print(
+            f"[embed] lista de remoção: {len(removal.entries)} caminhos, "
+            f"{len(removal.checksums)} sha256."
+        )
     with SessionLocal() as db:
         report = run(
             db,
+            settings=settings,
             batch=args.batch,
             max_requests=args.max_requests,
             deadline_minutes=args.deadline_minutes,
             rpm=args.rpm,
             tpm=args.tpm,
+            removal=removal,
         )
     sys.exit(report.exit_code)
 

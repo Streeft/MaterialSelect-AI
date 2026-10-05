@@ -185,7 +185,7 @@ npm run test:e2e                            # Playwright, API e banco próprios
 
 Os testes do backend rodam em SQLite em memória e **não têm rede** — o
 `conftest.py` reprova quem tentar sair. Pelo último registro em
-[`CLAUDE.md`](CLAUDE.md), são 3624 testes de backend e 753 de frontend.
+[`CLAUDE.md`](CLAUDE.md), são 3660 testes de backend e 753 de frontend.
 
 [`.github/workflows/ci.yml`](.github/workflows/ci.yml) roda em todo PR e em
 todo push para `main`: **Backend** (Python 3.11 e 3.12: ruff, black, pytest com
@@ -217,7 +217,7 @@ workflows de disparo manual na aba *Actions*:
 | **Administração do banco** (`admin-banco.yml`) | `semear` quando o PR mexeu em seed (na dúvida, dispare); também `migrar`, `conceder`, `revogar`, `excluir_demo`. |
 | **Provedor de IA** (`provedor-ia.yml`) | Trocar a IA (`gemini`, `groq`, `mock`); confere em `/api/health`. |
 | **Modo de acesso** (`modo-acesso.yml`) | `abrir` para uma turma, `restaurar_assinatura` depois. |
-| **Base de conhecimento (Cérebro)** (`conhecimento.yml`) | `ingerir` depois de um PR que mexa em `Cérebro/` ou no manifesto (com `arquivos: Links.md`, só ele, sem baixar o LFS); `embeddings` para gerar vetores já; `status` para o retrato. Uma execução **noturna agendada** gera os vetores sozinha, com a sobra da cota gratuita. |
+| **Base de conhecimento (Cérebro)** (`conhecimento.yml`) | `ingerir` depois de um PR que mexa em `Cérebro/` ou no manifesto — baixa do LFS só o que o banco ainda não tem (com `arquivos: Links.md`, só ele, sem baixar nada); `embeddings` para gerar vetores já; `status` para o retrato. Uma execução **noturna agendada** gera os vetores sozinha, com a sobra da cota gratuita (até 1000 pedidos), e nunca envia trecho de documento da lista de remoção. |
 
 Roteiro completo, com o porquê de cada passo, em
 [`docs/13-deploy.md`](docs/13-deploy.md).

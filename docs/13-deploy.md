@@ -509,9 +509,9 @@ de `KNOWLEDGE_DIR`: ela só lê o banco.
 | Ação | Faz o quê | Recebe a chave do Gemini? |
 |---|---|---|
 | `status` | Só lê: documentos, trechos, vetores por modelo e dimensão, quanto falta, tamanho do banco, cópias órfãs, documentos sem arquivo no repositório — e compara a identidade de vetor da API com a do workflow ("API vs vetores"). | Não |
-| `ingerir` | Baixa os PDFs do Git LFS (com cache) e roda `python -m app.knowledge.ingest --no-embed`: extrai o texto e grava os trechos. A busca léxica funciona a partir daqui. Com `arquivos` (caminhos dentro de `Cérebro/`, separados por `;`), só esses arquivos, e o LFS só é baixado se um deles for PDF do LFS. | **Não** |
-| `embeddings` | Gera vetores agora, até `limite_pedidos` pedidos (padrão 300) com `lote` trechos por pedido (padrão 20), por no máximo 120 min. | Sim |
-| noturna (sozinha) | O mesmo, toda noite às 05:07 UTC (02:07 em Brasília), só entre 21h e 23h50 do Pacífico, com a sobra da cota do dia, até a cota acabar. | Sim |
+| `ingerir` | Planeja o download (`python -m app.knowledge.lfs_plan`: só os PDFs que o banco ainda não tem com aqueles bytes), baixa só esses do Git LFS (com cache) e roda `python -m app.knowledge.ingest --no-embed`: extrai o texto e grava os trechos. A busca léxica funciona a partir daqui. Com `arquivos` (caminhos dentro de `Cérebro/`, separados por `;`), só esses arquivos, e o mesmo plano decide se algum precisa ser baixado. `arquivos` com outra ação é erro. | **Não** |
+| `embeddings` | Gera vetores agora, até `limite_pedidos` pedidos (padrão 300) com `lote` trechos por pedido (padrão 20), por no máximo 120 min. Os trechos de documentos em `Cérebro/removidos.txt` nunca são enviados. | Sim |
+| noturna (sozinha) | O mesmo, toda noite às 05:07 UTC (02:07 em Brasília), só entre 21h e 23h50 do Pacífico, com a sobra da cota do dia: até a cota acabar ou 1000 pedidos, o que vier antes. | Sim |
 
 Toda ação termina com o **Retrato** (o `status`), mesmo quando a ingestão ou
 a geração de vetores falhou (só não quando o job parou antes do Python, como na
@@ -522,9 +522,8 @@ começo do sha256, e nunca texto de trecho nem chave.
 
 **Só o `Links.md`, agora** — o atalho, sem os ≈600 MB do LFS e sem depender
 dos passos abaixo: **Base de conhecimento (Cérebro)** → `ingerir`, com
-`arquivos` = `Links.md`. O log diz
-`1 arquivo(s) pedido(s), nenhum no Git LFS: nada é baixado do LFS.`, pula os
-passos do LFS e termina com
+`arquivos` = `Links.md`. O log diz `1 arquivo(s) pedido(s).` e, no plano,
+`[lfs] nada a baixar do Git LFS.`; pula os passos do LFS e termina com
 ```
 [ingest] 1 criados, 0 atualizados, 0 inalterados, 0 falharam (0 sem texto), 0 ignorados pela lista de remoção, 0 cópias idênticas ignoradas, T trechos, 0 embedados.
 ```
@@ -533,10 +532,13 @@ passos do LFS e termina com
 léxica já o acha; o vetor vem na noite seguinte, como o de qualquer trecho.
 Mais de um arquivo: `Links.md; Pasta/livro.pdf` — um caminho dentro de
 `Cérebro/` (o prefixo `Cérebro/` é aceito), sem `..`, nunca link simbólico; o
-erro diz a posição do caminho recusado, não o nome. Um PDF nomeado faz o LFS
-ser baixado inteiro (com cache), e a conferência de ponteiros roda igual.
-Um arquivo nomeado é indexado mesmo que exista cópia idêntica dele em outro
-caminho não nomeado; dois nomeados idênticos entram uma vez só.
+erro diz a posição do caminho recusado, não o nome (no shell e no
+`[ingest] ERRO: --file nº N: …`). Um PDF nomeado só é baixado se o banco ainda
+não o tem com aqueles bytes, e a conferência de ponteiros olha os baixados. Um
+arquivo nomeado cujos bytes já estão indexados em outro caminho do Cérebro sai
+como cópia dele (`ignorado`), a não ser que o nomeado seja o que o manifesto
+declara; uma cópia só no disco, nunca indexada, não conta, e dois nomeados
+idênticos entram uma vez só.
 
 **A primeira vez, depois do merge do PR do D-101** — pela aba **Actions**:
 
@@ -559,11 +561,16 @@ caminho não nomeado; dois nomeados idênticos entram uma vez só.
 4. **Base de conhecimento (Cérebro)** → `ingerir`, **fora do horário de
    aula** — a ingestão grava documento a documento, e cada consulta de IA feita
    no meio dela reconstrói o índice da API. A primeira vez leva de 20 a 40 min
-   e baixa ≈631 MB do LFS
-   (`LFS: 120 objetos (601 MB); 120 a baixar (601 MB), o resto veio do cache.`);
-   as seguintes vêm do cache (`0 a baixar`). Depois do download,
-   `Nenhum ponteiro LFS em Cérebro/: os PDFs estão inteiros.`, e o resumo da
-   ingestão, numa base vazia:
+   e baixa ≈631 MB do LFS — **mais da metade da banda de LFS do mês** (1 GB no
+   plano gratuito); não a repita no mesmo mês sem necessidade. O plano diz
+   ```
+   [lfs] 241 ponteiro(s) LFS entre os arquivos desta execução: 0 já indexado(s) com os mesmos bytes, 121 cópia(s) de outro caminho, 0 na lista de remoção — nenhum desses é baixado.
+   [lfs] baixar 120 arquivo(s), 601,8 MB: 120 novo(s) na base, 0 com versão nova ou que falhou antes (tentado de novo).
+   ```
+   o download, `LFS: 0 objeto(s) já no cache, 120 a baixar.`, e a conferência,
+   `Nenhum dos 120 arquivo(s) baixado(s) ficou ponteiro: os PDFs estão inteiros.`
+   As 121 cópias continuam ponteiros no disco de propósito: a ingestão as conta
+   como cópias sem lê-las. O resumo da ingestão, numa base vazia:
    ```
    [ingest] N criados, 0 atualizados, 0 inalterados, F falharam (S sem texto), 0 ignorados pela lista de remoção, 121 cópias idênticas ignoradas, T trechos, 0 embedados.
    [ingest] vetores não gerados nesta execução (--no-embed): rode `python -m app.knowledge.embed`.
@@ -571,13 +578,19 @@ caminho não nomeado; dois nomeados idênticos entram uma vez só.
    [ingest] CÓPIAS em Fichas descritivas de materiais - Granta Edupack - Nível 2/: 103 idênticas a arquivos indexados em outro caminho.
    ```
    `N` fica perto de 121 (os 120 PDFs e o `Links.md` que o manifesto declara),
-   menos o que falhar. As contagens de cópias são as da árvore de hoje.
+   menos o que falhar — ou perto de 120 com `1 inalterados`, se o `Links.md`
+   já entrou pela ação direcionada (`arquivos: Links.md` ou
+   `conhecimento_indexar_links`). As contagens de cópias são as da árvore de
+   hoje. Uma `ingerir` seguinte, com o Cérebro igual, diz
+   `[lfs] nada a baixar do Git LFS.` e dá tudo como `inalterados` — menos os
+   documentos que falharam, que são baixados e lidos de novo.
    - `[ingest] SEM TEXTO … (provavelmente digitalizado)` é **aviso**: o PDF não
      tem texto extraível e o job continua verde.
-   - **Vermelho com "ponteiro do Git LFS"** (no passo *Conferir que nenhum
-     ponteiro LFS ficou*, ou `FALHOU …: É um ponteiro do Git LFS, não o arquivo`):
-     o `git lfs pull` não trouxe tudo — banda ou cota de LFS. **Nada foi
-     escrito no banco.** Repita a ação; o que já baixou foi guardado em cache.
+   - **Vermelho no download** (`O download do arquivo nº N do plano falhou`),
+     na conferência (`… ainda são ponteiros do Git LFS`) ou com
+     `FALHOU …: É um ponteiro do Git LFS, não o arquivo`: o LFS não trouxe tudo
+     — banda ou cota de LFS. **Nada foi escrito no banco.** Repita a ação; o
+     que já baixou foi guardado em cache (por 7 dias).
    - Qualquer outro `[ingest] FALHOU` deixa o job vermelho com o motivo; os
      outros documentos foram gravados.
    A **busca léxica já está ativa** a partir daqui, para toda pergunta à IA.
@@ -615,16 +628,33 @@ outros; tirá-lo de vez é tirar o documento pela lista de remoção.
 - é **desligado depois de 60 dias sem atividade no repositório** — religue em
   *Actions → Base de conhecimento (Cérebro) → Enable workflow*;
 - divide o grupo de concorrência com o **Administração do banco**, e um grupo
-  guarda **uma** execução pendente só: uma noturna na fila pode ser trocada por
-  uma execução de `admin-banco` disparada depois. A noite seguinte repete.
+  guarda **uma** execução pendente só — nos dois sentidos. Uma noturna na fila
+  pode ser trocada por uma execução de `admin-banco` disparada depois (a noite
+  seguinte repete). E a noturna das 05:07 UTC (02:07 em Brasília) **cancela**
+  uma ação de `admin-banco` (`conhecimento_remover`, `semear`, `conceder`…)
+  que esteja na fila atrás de uma execução longa — um `embeddings` manual de
+  até 120 min, uma primeira `ingerir`. **Enfileirou uma ação à noite? Confira
+  de manhã que ela rodou.**
+
+**O que está em `removidos.txt` nunca vai ao Gemini.** O `embed` lê
+`Cérebro/removidos.txt` (o workflow passa `--list` e exporta `KNOWLEDGE_DIR`)
+e deixa de fora os trechos dos documentos que a lista casa, por caminho ou
+sha256, até a ação `conhecimento_remover` tirá-los da base — o log diz
+`::warning::[embed] N trechos de D documento(s) na lista de remoção (removidos.txt) não foram enviados…`.
+Lista ilegível ou com linha malformada: o job falha antes de qualquer pedido.
 
 **Custos que ficam em zero, e por quê.** A chave do Gemini é a do projeto sem
-faturamento (§5-quinquies): cota esgotada devolve 429, nunca cobra. O LFS vai
-para o `actions/cache`, chaveado pelos ids dos objetos, e repetir `ingerir` com
-o mesmo Cérebro não gasta banda — mas uma entrada de cache sem uso por 7 dias é
-apagada pelo GitHub, e o download de ≈631 MB se repete; veja a cota de banda
-LFS no [README do Cérebro](../Cérebro/README.md). O `status` avisa acima de 80%
-de 0,5 GB de banco, a referência do Neon gratuito.
+faturamento (§5-quinquies): cota esgotada devolve 429, nunca cobra — e a
+noturna para em 1000 pedidos, o volume gratuito do dia: é esse teto que segura
+uma chave que um dia passe a ter faturamento (sem 429 diário, ela iria até o
+prazo). A banda de LFS do plano gratuito é **1 GB por mês**, e passar dela
+bloqueia o LFS da conta inteira até o mês virar, envio inclusive (ver o
+[README do Cérebro](../Cérebro/README.md)). Por isso `ingerir` baixa só o que o
+banco não tem: o `oid` de um ponteiro é o sha256 do arquivo, o mesmo checksum
+da base. A primeira ingestão completa gasta ≈631 MB; as seguintes, só os PDFs
+novos ou mudados e os que falharam antes (o plano imprime os MB antes de
+baixar). O `actions/cache` só poupa a repetição dentro de 7 dias. O `status`
+avisa acima de 80% de 0,5 GB de banco, a referência do Neon gratuito.
 
 ## 6. Conferir que está de pé
 

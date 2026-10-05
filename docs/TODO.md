@@ -72,12 +72,15 @@ Ficam três passos fora do código:
    branch criada antes dela (guia §9).
 3. **O Cérebro no RAG de produção — entregue em código ([D-101](DECISIONS.md));
    falta a execução.** Só o `Links.md`, já: **Base de conhecimento (Cérebro)**
-   → `ingerir` com `arquivos: Links.md` (não baixa o LFS), ou a ação
+   → `ingerir` com `arquivos: Links.md` (não baixa nada do LFS), ou a ação
    `conhecimento_indexar_links` do `admin-banco.yml`. O Cérebro inteiro, na
    ordem de [13-deploy.md §5-septies](13-deploy.md): **Deploy da API** →
    **Provedor de IA** (`gemini`) → `status` → `ingerir` (fora do horário de
-   aula) → os vetores vêm sozinhos à noite, ou já com `embeddings` → `status`
-   toda semana até `faltam 0`.
+   aula; baixa ≈631 MB do LFS, mais da metade da banda gratuita do mês — não
+   repita no mesmo mês sem necessidade) → os vetores vêm sozinhos à noite, ou
+   já com `embeddings` → `status` toda semana até `faltam 0`. O download
+   arquivo a arquivo (`git lfs smudge`) ainda não rodou no GitHub: a primeira
+   `ingerir` é o teste dele.
 
 Não registrado aqui: se os logs das execuções de `conhecimento_simular_remocao`
 e `conhecimento_remover` já foram apagados (guia §1.3 e §11) — conferir.
@@ -100,10 +103,18 @@ uso; as três primeiras são decisão ou conferência do autor.
   `01-`, `04-` e `05-`, e a pasta
   `Fichas descritivas de materiais - Granta Edupack - Nível 2/` inteira repete
   `03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/`. A ingestão já as indexa uma vez
-  só (fica a cópia declarada no manifesto), então tirá-las do git não muda o
-  RAG: muda o tamanho do clone, a banda de LFS de uma `ingerir` sem cache e o
-  que o leitor da pasta vê. Decisão do autor — e um `git rm` não as tira do
+  só (fica a cópia declarada no manifesto), e desde a revisão final do D-101
+  uma `ingerir` nem as baixa do LFS; tirá-las do git não muda o RAG: muda o
+  tamanho do clone e o que o leitor da pasta vê. Decisão do autor — e um `git rm` não as tira do
   histórico nem do armazenamento LFS.
+- **Documento que falhou é baixado de novo a cada `ingerir`.** ▁ O plano do
+  LFS só poupa o que está `EXTRAIDO` com os mesmos bytes; um `FALHOU` (um PDF
+  digitalizado, `SEM TEXTO`, inclusive) é baixado e lido de novo, como sempre
+  foi lido de novo. Se o Cérebro tiver digitalizados grandes, isso pesa na
+  banda de LFS do mês (o `[lfs] baixar …` diz quantos MB). Saída possível:
+  tratar um `FALHOU` com os mesmos bytes como falha conhecida, sem baixar,
+  com `--force` para tentar de novo — decisão do autor, porque é declarar a
+  falha permanente.
 - **Os dois Ashby em português.** ▁
   `01-Bibliografia/Michael Ashby (Auth.)-Seleção De Materiais No Projeto Mecânico (2012).pdf`
   (152 MB) e `01-Bibliografia/Selecao_de_Materiais_no_Projeto_Mecanico.pdf`

@@ -11,7 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
-| [44](#sessão-44--300926-a-051026--o-cérebro-entra-em-produção) | 30/09 a 05/10/2026 | O Cérebro entra em produção pelo GitHub Actions: workflow `conhecimento.yml` (ingestão com LFS em cache, vetores de 768 dimensões com a sobra noturna da cota gratuita, retrato), ingestão segura contra ponteiro LFS, cópias e versão ilegível, busca sobre índice em memória e a identidade de vetor em `/api/health` (D-101); no merge com `main`, a ingestão direcionada da sessão 39 (`--file`, `--force`) sob as mesmas garantias e a entrada `arquivos` de `ingerir` | 3338 → 3552 no ramo; 3395 → 3624 com o merge | 753 (inalterado) |
+| [44](#sessão-44--300926-a-051026--o-cérebro-entra-em-produção) | 30/09 a 05/10/2026 | O Cérebro entra em produção pelo GitHub Actions: workflow `conhecimento.yml` (ingestão que baixa do LFS só o que o banco não tem, vetores de 768 dimensões com a sobra noturna da cota gratuita, retrato), ingestão segura contra ponteiro LFS, cópias e versão ilegível, busca sobre índice em memória e a identidade de vetor em `/api/health` (D-101); no merge com `main`, a ingestão direcionada da sessão 39 (`--file`, `--force`) sob as mesmas garantias e a entrada `arquivos` de `ingerir`; na revisão final, o `embed` respeita a lista de remoção | 3338 → 3552 no ramo; 3395 → 3624 com o merge; 3660 com a revisão final | 753 (inalterado) |
 | [43](#sessão-43--021026--deslocamentos-astronômicos-positivos-e-calc-dominante-no-extrator-html-opção-1) | 02/10/2026 | Descarte de caixas com deslocamento positivo astronômico e avaliação afim de operando negativo dominante em `calc()` no extrator de HTML (D-97/D-99, Opção 1) | 3382 → 3395 | 753 (inalterado) |
 | [42](#sessão-42--021026--herança-de-css-visibility-e-resgate-por-visibilityvisible-no-extrator-html-opção-1) | 02/10/2026 | Herança estrita de CSS `visibility` e resgate de elementos filhos via `visibility:visible` no extrator de HTML dos Cadernos (D-97/D-99, Opção 1) | 3376 → 3382 | 753 (inalterado) |
 | [41](#sessão-41--011026--correção-de-guardrails-de-ia-e-exportação-nativa-pptx-b2) | 01/10/2026 | Correção de guardrails de IA (números em trechos do RAG e separador de milhar) e exportador PPTX nativo do Report com endpoints e interface (B2, Opção A) | 3362 → 3376 | 752 → 753 |
@@ -134,9 +134,36 @@ ambiente do `admin-banco.yml`, pela regra de uma identidade de vetor só. No
 barra, um `\n` literal) e devolveu o parágrafo final do gstack, apagado sem
 menção no commit.
 
+**A revisão final** da branch inteira achou duas falhas Importantes e seis
+Menores, e as oito foram corrigidas. (1) A noturna podia mandar ao Gemini
+gratuito o texto de um documento já posto em `removidos.txt` e ainda não
+tirado da base — o prune é manual; o `embed` agora lê a lista pelo leitor
+único (`app/knowledge/removal.py`, caminho e sha256), deixa esses trechos de
+fora contando-os num aviso sem nome, e com a lista ilegível sai com 1 antes de
+qualquer pedido. (2) O cache do LFS expira em 7 dias sem uso, então quase toda
+`ingerir` real baixaria de novo os ≈631 MB, e duas num mês passariam da banda
+gratuita de 1 GB — que bloqueia o LFS da conta inteira. O `oid` de um ponteiro
+é o sha256 do arquivo, o mesmo checksum da base: a pré-passagem da ingestão
+passou a usá-lo como *digest* do ponteiro (um ponteiro para os bytes já
+indexados no mesmo caminho sai `inalterado` sem ser lido; dois ponteiros do
+mesmo objeto são cópias), `KnowledgeService.lfs_plan()` lê as mesmas decisões
+para dizer o que baixar, e `python -m app.knowledge.lfs_plan` é o passo novo do
+workflow, que agora instala o Python antes do LFS e baixa arquivo a arquivo com
+`git lfs smudge` (o `--include` do `git lfs pull` separa padrões por vírgula, e
+40 caminhos do Cérebro têm vírgula). E as Menores: uma execução direcionada não
+cria mais a segunda cópia de um arquivo já indexado noutro caminho presente
+(lido do banco; a escolha de cópias do merge, acima, foi substituída);
+`[ingest] ERRO:` diz a posição do `--file`, nunca o caminho; `limite_pedidos` e
+`lote` conferidos pela string inteira, e `arquivos` com outra ação é erro; a
+noturna para em 1000 pedidos; e a documentação ganhou o aviso de concorrência
+nos dois sentidos (a noturna cancela uma ação de `admin-banco` na fila), a
+banda de LFS real e o `1 inalterados` do `Links.md`.
+
 **Números.** Backend 3338 → 3552 no ramo, nenhum skip; com o merge,
 3624 (os 3395 de `main` mais os do ramo e os testes novos da ingestão
-direcionada). Frontend: os 753 de `main`, inalterados.
+direcionada); com a revisão final, 3660. Os 4 testes de
+`test_notebook_quota_postgres.py` pulam sem `POSTGRES_TEST_URL` e rodam na CI.
+Frontend: os 753 de `main`, inalterados.
 
 **Pendente, e só o autor faz.** Depois do merge: **Deploy da API** →
 **Provedor de IA** (`gemini`) → **Base de conhecimento (Cérebro)** `status` →

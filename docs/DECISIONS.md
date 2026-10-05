@@ -7159,10 +7159,13 @@ melhorar os produtos dele. Custo zero continua restrição dura, como no
    com o código do ramo padrão, nunca num *fork* nem num PR). Divide com ele o
    grupo de concorrência `admin-banco`: uma ingestão nunca corre junto de um
    `conhecimento_remover`.
-2. **A ingestão não usa IA, e o LFS vai para cache.** `ingerir` lista os ids dos
-   objetos LFS, restaura `.git/lfs/objects` do `actions/cache` chaveado por eles,
-   roda `git lfs pull`, confere **antes do Python** que nenhum arquivo do
-   Cérebro ficou como ponteiro, e roda
+2. **A ingestão não usa IA, e do LFS só baixa o que o banco não tem**
+   (desenho da revisão final, na atualização abaixo; a primeira versão baixava
+   tudo com `git lfs pull` e contava com o cache). `ingerir` roda
+   `python -m app.knowledge.lfs_plan`, que lista os PDFs que a ingestão vai ler e
+   que o banco ainda não tem com aqueles bytes; restaura `.git/lfs/objects` do
+   `actions/cache`; baixa só esses, arquivo a arquivo; confere **antes do
+   Python** que nenhum deles ficou como ponteiro; e roda
    `python -m app.knowledge.ingest --no-embed` sem chave de IA nenhuma no
    ambiente. A busca léxica já funciona depois disso.
 3. **A ingestão ficou segura contra o que o Actions pode entregar.**
@@ -7266,16 +7269,26 @@ melhorar os produtos dele. Custo zero continua restrição dura, como no
 - **O agendamento do GitHub tem regras próprias:** só roda a versão do ramo
   padrão, pode atrasar (daí a janela conferida pela hora de verdade), é
   **desligado depois de 60 dias sem atividade no repositório** (religa-se na
-  aba Actions), e um grupo de concorrência guarda uma só execução pendente —
-  uma noturna na fila pode ser trocada por uma execução de `admin-banco`
-  disparada depois dela. A noite seguinte repete.
+  aba Actions), e um grupo de concorrência guarda uma só execução pendente,
+  **nos dois sentidos**: uma noturna na fila pode ser trocada por uma execução
+  de `admin-banco` disparada depois dela (a noite seguinte repete), e — o
+  sentido que importa mais — a noturna das 05:07 UTC (02:07 em Brasília)
+  **cancela** uma ação manual de `admin-banco` (`conhecimento_remover`,
+  `semear`, `conceder`…) que esteja na fila atrás de uma execução longa (um
+  `embeddings` manual de até 120 min, uma primeira `ingerir`). Quem enfileira
+  uma ação à noite confere, depois, que ela rodou.
 - **Um trecho que o servidor sempre recusa** fica pendente para sempre e
   aparece como aviso em toda execução, com o motivo do servidor; ele não trava
   os outros, nem quando são três vizinhos (o canário os distingue de uma chave
   errada). Tirá-lo de vez é tirar o documento pela lista de remoção.
-- **Banda de LFS:** a primeira `ingerir` baixa ≈631 MB; as seguintes vêm do
-  cache. Uma entrada do `actions/cache` sem uso por 7 dias é apagada pelo
-  GitHub, e então o download se repete.
+- **Banda de LFS:** o plano gratuito do GitHub dá **1 GB de banda de LFS por
+  mês**, e passar dele bloqueia o LFS da conta inteira até o mês virar, envio
+  inclusive. A primeira `ingerir` completa baixa os 120 PDFs distintos,
+  ≈631 MB — mais da metade da cota do mês. As seguintes baixam só o que o banco
+  não tem com aqueles bytes (PDF novo ou mudado) **e os documentos que falharam
+  antes**, que são lidos de novo a cada execução; o `lfs_plan` imprime quantos
+  e quantos MB antes de baixar. O cache (`actions/cache`) cobre só a repetição
+  dentro de 7 dias — sem uso por 7 dias, a entrada é apagada pelo GitHub.
 - **O D-100 não muda:** a ingestão continua só acrescentando, e o que sai do
   Cérebro sai do banco pelo `prune`. O `status` lista os documentos da base
   sem arquivo no repositório ("fora do repositório").
@@ -7323,3 +7336,80 @@ testes de backend, nenhum pulado. `ruff` e `black` limpos; os dois workflows pas
 > LFS. A ação `conhecimento_indexar_links` ficou, agora com `--no-embed` e sem as
 > chaves de IA no ambiente do `admin-banco.yml`: os vetores têm uma identidade
 > só, e quem a grava é o `conhecimento.yml`.
+
+> **Atualização (revisão final da branch, 05/10/2026).** A revisão final achou
+> duas falhas Importantes e seis Menores; as oito foram corrigidas.
+>
+> - **O `embed` lê a lista de remoção** (Importante). Ele pegava todo trecho sem
+>   vetor direto do banco, e tirar um documento da base é uma ação manual
+>   separada (`conhecimento_remover`). Entre acrescentar uma linha a
+>   `removidos.txt` e rodar o prune, a noturna — que roda sozinha — mandaria ao
+>   Gemini gratuito o texto de quem pediu para sair, um uso que o autor nunca
+>   aceitou (ele aceitou o dos livros). Agora `python -m app.knowledge.embed` lê
+>   a lista pelo mesmo leitor da ingestão e do prune (`app/knowledge/removal.py`,
+>   caminho **e** sha256) e deixa de fora os trechos dos documentos que ela
+>   casa, contando-os numa linha `::warning::` que manda rodar
+>   `conhecimento_remover` — sem nome nenhum. A lista vem de `--list` (como no
+>   prune; o workflow passa `Cérebro/removidos.txt` e exporta `KNOWLEDGE_DIR`)
+>   ou, sem a opção, de `KNOWLEDGE_DIR` (como na ingestão). **Pedida e
+>   ilegível, a execução sai com 1 antes de qualquer pedido**: um `embed` que
+>   não sabe o que foi removido não adivinha.
+> - **Do LFS, só o que o banco não tem** (Importante; substitui, na escolha (4)
+>   acima, "o LFS só é baixado se um dos nomeados for ponteiro"). O cache do `actions/cache`
+>   some depois de 7 dias sem uso, e `ingerir` roda só quando um PR mexe no
+>   Cérebro — raro: na prática quase toda execução baixaria os ≈631 MB de novo,
+>   e duas num mês passam da cota de 1 GB, o que bloqueia o LFS da conta
+>   inteira até o mês virar. O `oid sha256:` de um ponteiro **é** o sha256 do
+>   arquivo, o mesmo `checksum` da base. Daí três mudanças, nenhuma com uma
+>   segunda cópia das regras:
+>   - na pré-passagem da ingestão, o *digest* de um ponteiro é o oid. A lista
+>     de remoção, as cópias e o "já indexado" passam a ver o arquivo de verdade;
+>     um ponteiro para os bytes já indexados **no mesmo caminho** sai
+>     `inalterado` sem ser lido; dois ponteiros para o mesmo objeto são duas
+>     cópias de um arquivo (só a mantida precisaria ser baixada). Um ponteiro
+>     cujo conteúdo a execução teria de ler continua `falhou` sem escrever nada,
+>     e `--force` continua precisando do arquivo;
+>   - `KnowledgeService.lfs_plan()` lê essas mesmas decisões e devolve só os
+>     ponteiros que a execução leria. `python -m app.knowledge.lfs_plan` grava a
+>     lista (separada por NUL) e os oids (chave do cache) e imprime só
+>     contagens e MB;
+>   - o workflow instala o Python **antes** do LFS, roda o plano (só com
+>     `DATABASE_URL`, sem chave de IA) e baixa arquivo a arquivo com
+>     `git lfs smudge`, não com `git lfs pull --include`, cuja lista de padrões
+>     é separada por vírgula — e 40 caminhos do Cérebro têm vírgula. O nome
+>     passado ao smudge é neutro, porque ele o imprime. A conferência "nenhum
+>     ponteiro ficou" passou a olhar só os arquivos do plano: os outros
+>     ponteiros ficam no disco de propósito, e a ingestão os trata sem erro.
+>
+>   O documento que falhou antes (`FALHOU`, um digitalizado inclusive) é
+>   baixado de novo a cada `ingerir`, como era lido de novo a cada execução;
+>   evitar isso seria decidir que uma falha é permanente, e não foi decidido.
+> - **Uma execução direcionada não cria a segunda cópia de um arquivo já
+>   indexado** (substitui a escolha (2) da atualização acima). Ela não anda o
+>   corpus, então "a cópia em outro caminho" é lida do banco: um arquivo nomeado
+>   cujos bytes já estão indexados (`EXTRAIDO`) noutro caminho **que ainda é um
+>   arquivo do Cérebro** e não está na lista de remoção sai `ignorado` como
+>   cópia dele — também com `--force`. Não quando o nome pedido é o que o
+>   manifesto declara, nem quando ele mesmo já está indexado com esses bytes.
+>   Uma linha cujo arquivo sumiu é um arquivo que mudou de lugar: o nome pedido
+>   entra, como numa execução completa. Uma cópia só no disco, nunca indexada,
+>   continua não contando.
+> - **`[ingest] ERRO:` não imprime caminho.** Um `--file` inválido sai como
+>   `[ingest] ERRO: --file nº N: <motivo>.` (`TargetError`, que guarda a
+>   posição); a mensagem inteira continua sendo a da API e de `str()`.
+> - **Entradas do workflow:** `limite_pedidos` e `lote` são conferidos pela
+>   string inteira (`[[ =~ ]]`, não `grep` linha a linha), e `arquivos`
+>   preenchido com outra ação que não `ingerir` é erro, não silêncio.
+> - **A noturna para em 1000 pedidos**, o volume gratuito do dia. No plano
+>   gratuito o 429 diário chega antes e nada muda; o teto é o que segura uma
+>   chave que um dia ganhe faturamento, que sem 429 iria até o prazo.
+> - **Documentação:** o aviso de concorrência nos dois sentidos, a banda de LFS
+>   real, e o `1 inalterados` do `Links.md` no roteiro da primeira vez.
+>
+> Testes que falham sem a correção para cada item (`TestRemovalList`,
+> `TestRemovalListCli`, `TestPointersOfIndexedFiles`, `TestLfsPlan`,
+> `TestTargetedCopiesInTheBase`, `test_knowledge_lfs_plan.py`, a posição no
+> `ERRO`); 3624 → 3660 testes de backend. Os três workflows passam no
+> `actionlint` com `shellcheck`, e os scripts do download e da conferência
+> rodaram contra um repositório LFS local (caminho com vírgula, acento e
+> colchetes; cache reaproveitado; objeto ausente no remoto).

@@ -940,17 +940,24 @@ plano gratuito. O workflow **Base de conhecimento (Cérebro)**
 noturna agendada. Regras que não se afrouxam:
 
 - **A ingestão roda no runner, não na API, e sem chave de IA**: `ingerir` baixa
-  o LFS com `actions/cache` e roda `python -m app.knowledge.ingest --no-embed`.
-  Um **ponteiro LFS nunca toca o banco**; uma **cópia byte a byte** entra uma
-  vez só (a declarada no manifesto, depois a já indexada, depois a primeira em
-  ordem) e conta em `skipped`; uma **versão nova ilegível mantém a anterior**.
-  O log público só mostra caminho declarado no manifesto.
+  do LFS **só o que o banco não tem** (`python -m app.knowledge.lfs_plan`: o
+  `oid` do ponteiro é o sha256 do arquivo, o mesmo checksum da base — a banda
+  de LFS gratuita é 1 GB/mês e o Cérebro tem ≈631 MB) e roda
+  `python -m app.knowledge.ingest --no-embed`. Um **ponteiro LFS nunca toca o
+  banco** — o que aponta para os bytes já indexados no mesmo caminho sai
+  `inalterado` sem ser lido, e o plano é a mesma decisão da ingestão, nunca
+  uma cópia das regras; uma **cópia byte a byte** entra uma vez só (a declarada
+  no manifesto, depois a já indexada, depois a primeira em ordem) e conta em
+  `skipped`; uma **versão nova ilegível mantém a anterior**. O log público só
+  mostra caminho declarado no manifesto.
 - **A ingestão direcionada não fura nenhuma dessas garantias**: `--file`/`--path`
   (entrada `arquivos` de `ingerir`) só lê os arquivos nomeados — `Links.md`
   sozinho não precisa dos PDFs —, e a lista de remoção, a recusa do ponteiro LFS
   e a versão anterior mantida valem igual; `--force` reextrai, mas não libera
-  ponteiro nem arquivo removido. Um arquivo nomeado entra mesmo que haja cópia
-  idêntica em outro caminho não nomeado; entre nomeados, a cópia entra uma vez.
+  ponteiro, arquivo removido nem cópia. Um nomeado cujos bytes já estão
+  indexados noutro caminho ainda presente sai como cópia dele (salvo se for o
+  declarado); uma cópia só no disco não conta; entre nomeados, a cópia entra
+  uma vez. Um `--file` inválido sai como `ERRO: --file nº N`, sem o caminho.
 - **Uma identidade de vetor: `gemini-embedding-001` com 768 dimensões**
   (`KNOWLEDGE_EMBEDDING_DIMENSIONS`), no `env:` de `conhecimento.yml` e repetida
   no `provedor-ia.yml` — mude os dois juntos. A busca compara só vetores do
@@ -959,7 +966,12 @@ noturna agendada. Regras que não se afrouxam:
 - **`python -m app.knowledge.embed` para verde** na cota diária, no limite de
   pedidos e no prazo; três 400 seguidos disparam um trecho-canário, e só um
   canário recusado falha (chave ruim: cinco pedidos no máximo). A chave sai do
-  log como `[chave omitida]`, trocada antes do corte da mensagem.
+  log como `[chave omitida]`, trocada antes do corte da mensagem. **Ele nunca
+  envia trecho de documento que esteja em `removidos.txt`** (pelo leitor único
+  `app/knowledge/removal.py`, caminho e sha256), e com a lista ilegível sai com
+  1 antes de pedir; a noturna para em 1000 pedidos, para uma chave que um dia
+  ganhe faturamento não passar do volume gratuito. A noturna das 05:07 UTC
+  pode cancelar uma ação de `admin-banco` na fila: confira que ela rodou.
 - **A busca ranqueia num índice residente** (`app/knowledge/index.py`), com BM25
   igual bit a bit ao de `lexical.bm25_scores` e duas impressões digitais por
   consulta; nunca volte a carregar o corpus por chamada (≈100 MB por processo a
@@ -969,7 +981,7 @@ noturna agendada. Regras que não se afrouxam:
 O código está pronto; a execução em produção é do autor (TODO A7, 13-deploy.md
 §5-septies).
 
-3624 testes de backend (nenhum skip) e 753 de frontend, todos verdes. CI no
+3660 testes de backend (nenhum skip) e 753 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
 PROJECT_CONTEXT.md).

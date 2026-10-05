@@ -190,15 +190,24 @@ lidos das configurações, nunca a URL nem a chave.
 `python -m app.knowledge.embed`:
 
 ```
-python -m app.knowledge.embed [--max-requests N] [--deadline-minutes M] [--batch B] [--rpm R] [--tpm T]
+python -m app.knowledge.embed [--list Cérebro/removidos.txt] [--max-requests N] [--deadline-minutes M] [--batch B] [--rpm R] [--tpm T]
 ```
 
 Ele pega os trechos sem vetor atual — sem vetor, ou com vetor de outro modelo ou
 outra dimensão —, dos documentos menores para os maiores, e grava com commit
 por lote. `--max-requests 0` é "até a cota acabar"; `--rpm`/`--tpm` espaçam os
 pedidos (o workflow usa 90 e 27 000, abaixo dos 100 e 30 000 do Gemini
-gratuito). O log é só contagem — nenhum texto de trecho, nenhuma chave — e
-termina sempre com
+gratuito; a execução noturna para em 1 000 pedidos, o volume gratuito do dia).
+**Os trechos dos documentos da lista de remoção nunca são enviados**: o comando
+lê `removidos.txt` pelo mesmo leitor da ingestão e do prune
+(`app/knowledge/removal.py`, caminho **e** sha256) — de `--list`, como no prune,
+ou, sem a opção, da pasta `KNOWLEDGE_DIR`, como na ingestão — e os deixa de
+fora, contados num `::warning::` que manda rodar `conhecimento_remover`, sem
+nome nenhum. Tirar da base é ação manual, e a noturna roda sozinha: sem isso,
+entre a linha nova na lista e o prune, o texto de quem pediu para sair iria ao
+Gemini gratuito. Lista pedida e ilegível (ausente, fora de UTF-8, linha
+malformada): saída 1 antes de qualquer pedido. O log é só contagem — nenhum
+texto de trecho, nenhuma chave — e termina sempre com
 `[embed] N vetores gravados agora com M pedidos; faltam R de T trechos (P%).`
 O que cada resposta do servidor provoca:
 
@@ -256,6 +265,8 @@ do git) —, e três coisas a leem:
   uma cópia local esquecida não desfaz a remoção. O CLI imprime cada arquivo
   pulado e, se ele ainda tiver linha naquela base, diz para rodar o `prune`.
   A descoberta não segue link simbólico nem nada que resolva fora da raiz.
+  O **`embed`** lê a mesma lista e não envia ao servidor de embeddings os
+  trechos que ainda estão na base de um documento que ela casa ([D-101](DECISIONS.md)).
 - **A limpeza do histórico do git**, passo manual e posterior, pelo guia
   [`17-limpeza-historico-cerebro.md`](17-limpeza-historico-cerebro.md).
 
@@ -280,16 +291,23 @@ citar: escolha aceita pelo autor. Em produção, ele é indexado pela ação
 runner do Actions que pode entregar o arquivo errado:
 
 - **Ponteiro do Git LFS** (arquivo com menos de 1 024 bytes que começa com
-  `version https://git-lfs.github.com/spec/`): `falhou`, "É um ponteiro do Git
-  LFS, não o arquivo", e **nada é escrito** — nem linha nova, nem mudança numa
-  linha existente. Antes, o ponteiro era lido como PDF ilegível e apagava os
-  trechos do documento.
+  `version https://git-lfs.github.com/spec/`). O `oid sha256:` dele **é** o
+  sha256 do arquivo, o mesmo `checksum` que a base guarda, e é ele que a
+  pré-passagem usa como *digest* do ponteiro — para a lista de remoção, as
+  cópias e o "já indexado". Um ponteiro para os bytes já indexados (`EXTRAIDO`)
+  **no mesmo caminho** sai `inalterado` sem ser lido (com `--force`, não: ele
+  quer reextrair). Qualquer outro ponteiro cujo conteúdo a execução teria de
+  ler é `falhou`, "É um ponteiro do Git LFS, não o arquivo", e **nada é
+  escrito** — nem linha nova, nem mudança numa linha existente. Antes, o
+  ponteiro era lido como PDF ilegível e apagava os trechos do documento. Um
+  ponteiro sem `oid` legível não diz de que arquivo é, e só falha.
 - **Cópia byte a byte** de outro arquivo da mesma execução: indexada uma vez.
   Fica a cópia que o manifesto declara; sem declaração, a que já está indexada;
   sem nenhuma das duas, a primeira em ordem alfabética. As outras saem
   `ignorado` ("Cópia byte a byte de …; indexada uma vez só.") e contam em
   `skipped` também na resposta de `POST /api/knowledge/ingest`. A lista de
-  remoção é consultada antes.
+  remoção é consultada antes. Dois ponteiros para o mesmo objeto LFS são duas
+  cópias de um arquivo.
 - **Versão nova ilegível** de um documento já extraído: mantém trechos, vetores,
   checksum e contagem de páginas da versão anterior, com o motivo em `error`
   ("A versão nova (sha256 …) não pôde ser lida: …"). A próxima ingestão tenta de
@@ -305,16 +323,33 @@ constrói o cliente de embeddings: os vetores ficam para o `embed`. Um documento
 já indexado e sem mudança não passa pelo teto de tamanho, então baixar
 `KNOWLEDGE_MAX_DOCUMENT_BYTES` não o derruba.
 
+**O que baixar do LFS sai das mesmas decisões.** `KnowledgeService.lfs_plan()`
+lê a pré-passagem da ingestão (com o mesmo `--file` e `--force`) e devolve só os
+ponteiros que ela teria de ler; `python -m app.knowledge.lfs_plan --output
+<arquivo> [--ids <arquivo>] [--file …] [--force]` grava esses caminhos
+(separados por NUL) e os oids distintos, e imprime só contagens e MB. Baixado
+exatamente o que ele lista, nenhum arquivo que a ingestão lê é ponteiro. É o
+que o workflow roda antes do download, para não gastar a banda de LFS do mês
+com o que o banco já tem ([D-101](DECISIONS.md),
+[13-deploy.md §5-septies](13-deploy.md)).
+
 `--file <caminho>` (alias `--path`, repetível) ingere só os arquivos nomeados,
 relativos a `KNOWLEDGE_DIR`, sem andar o resto da pasta — `Links.md` sozinho não
 precisa dos PDFs no disco. Cada nome tem de ser um arquivo que a descoberta
 acharia: dentro da raiz, sem link simbólico em passo nenhum, de tipo suportado,
 não operacional e, se Markdown, declarado no manifesto; um nome inválido recusa
-a execução inteira antes de escrever (`[ingest] ERRO: …`, saída 1). As regras
-acima valem igual para os nomeados, com uma diferença deliberada: a cópia
-idêntica num caminho **não** nomeado não impede o nomeado de entrar. `--force`
-reextrai mesmo com checksum igual, mas não libera ponteiro LFS nem arquivo da
-lista de remoção ([D-101](DECISIONS.md), atualização do merge).
+a execução inteira antes de escrever (`[ingest] ERRO: --file nº N: <motivo>.`,
+saída 1 — a posição, nunca o caminho digitado, porque o log é público). As
+regras acima valem igual para os nomeados; como a execução não anda o resto da
+pasta, "a cópia em outro caminho" é lida do banco: um nomeado cujos bytes já
+estão indexados (`EXTRAIDO`) noutro caminho que ainda é um arquivo do Cérebro,
+fora da lista de remoção, sai `ignorado` como cópia dele — a não ser que o
+nomeado seja o que o manifesto declara, ou já esteja ele mesmo indexado com
+esses bytes. Uma cópia só no disco, nunca indexada, não impede o nomeado de
+entrar, e uma linha cujo arquivo sumiu é um arquivo que mudou de lugar.
+`--force` reextrai mesmo com checksum igual, mas não libera ponteiro LFS,
+arquivo da lista de remoção nem cópia de um já indexado ([D-101](DECISIONS.md),
+atualizações do merge e da revisão final).
 
 ### Citação verificada, só em `explain()`
 
@@ -853,7 +888,9 @@ sugestões perdidas, não para servir de garantia.
   (igualdade exata), e cobre reconstrução, acréscimo incremental, recarga por
   contagem e por soma de ids, vetor corrompido e concorrência.
   `test_knowledge_embed.py` cobre o preenchimento de vetores contra cada
-  resposta da tabela acima, e `test_knowledge_status.py` o retrato do workflow. `test_ai_api.py` (`TestRetrievalGating`) prova o portão
+  resposta da tabela acima e a lista de remoção (`TestRemovalList`,
+  `TestRemovalListCli`), `test_knowledge_lfs_plan.py` o plano do download do
+  LFS, e `test_knowledge_status.py` o retrato do workflow. `test_ai_api.py` (`TestRetrievalGating`) prova o portão
   do retrieval:
   `interpret`/`explain` só chamam `knowledge_search` quando
   `provider.simulated is False`, e o `mock` nunca aciona rede nenhuma. Um teste

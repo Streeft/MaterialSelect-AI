@@ -769,12 +769,15 @@ class TestClientAndCli:
             )
 
         assert exc.value.code == 0
+        assert received.pop("settings") is settings
         assert received == {
             "batch": 20,
             "max_requests": 300,
             "deadline_minutes": 120.0,
             "rpm": 90,
             "tpm": 27000,
+            # Sem --list e sem KNOWLEDGE_DIR (o padrão dos testes): sem lista.
+            "removal": None,
         }
 
     def test_main_without_configuration_exits_1(
@@ -799,3 +802,142 @@ class TestClientAndCli:
         with pytest.raises(SystemExit) as exc:
             main(argv)
         assert exc.value.code == 2
+
+
+class TestRemovalList:
+    """O que está em removidos.txt nunca vai ao servidor de embeddings (D-100)."""
+
+    def test_a_removed_documents_passages_are_never_sent(self, db_session: Session) -> None:
+        from app.knowledge.removal import parse_removal_list
+
+        _document(db_session, "02-Curso/Trabalho do Fulano.pdf", _texts(3, "curso"))
+        _document(db_session, "livro.pdf", _texts(2, "livro"))
+        client = FakeClient()
+
+        report, lines = _run(
+            db_session, client, batch=10, removal=parse_removal_list("02-Curso/\n")
+        )
+
+        assert client.calls == [["livro 0", "livro 1"]]
+        assert (report.written, report.held_back, report.exit_code) == (2, 3, 0)
+        warning = next(line for line in lines if line.startswith("::warning::"))
+        assert "3 trechos de 1 documento(s) na lista de remoção (removidos.txt)" in warning
+        assert "conhecimento_remover" in warning
+        assert not any("Fulano" in line or "02-Curso" in line for line in lines)
+        # Continuam pendentes: quem os tira da base é o prune.
+        assert report.remaining == 3
+
+    def test_a_copy_under_another_path_is_matched_by_its_checksum(
+        self, db_session: Session
+    ) -> None:
+        from app.knowledge.removal import parse_removal_list
+
+        digest = "ab" * 32
+        document, _ = _document(db_session, "triagem/copia local.pdf", _texts(2, "curso"))
+        document.checksum = digest
+        _document(db_session, "livro.pdf", _texts(1, "livro"))
+        db_session.flush()
+        client = FakeClient()
+
+        report, _ = _run(db_session, client, removal=parse_removal_list(f"sha256:{digest}\n"))
+
+        assert [text for call in client.calls for text in call] == ["livro 0"]
+        assert report.held_back == 2
+
+    def test_only_removed_passages_pending_means_no_request(self, db_session: Session) -> None:
+        from app.knowledge.removal import parse_removal_list
+
+        _document(db_session, "02-Curso/aula.pdf", _texts(2))
+        client = FakeClient()
+
+        report, lines = _run(db_session, client, removal=parse_removal_list("02-Curso/aula.pdf\n"))
+
+        assert (client.calls, report.requests, report.exit_code) == ([], 0, 0)
+        assert any("nada a enviar" in line for line in lines)
+
+    def test_without_a_list_nothing_is_held_back(self, db_session: Session) -> None:
+        _document(db_session, "02-Curso/aula.pdf", _texts(2))
+        client = FakeClient()
+
+        report, _ = _run(db_session, client)
+
+        assert (report.written, report.held_back) == (2, 0)
+
+
+class TestRemovalListCli:
+    """Pedida e ilegível, a lista falha a execução antes de qualquer pedido."""
+
+    @pytest.fixture
+    def no_client(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        def refuse(*_args, **_kwargs):
+            raise AssertionError("nenhum cliente pode ser construído")
+
+        monkeypatch.setattr(embed_module, "EmbeddingClient", refuse)
+        monkeypatch.setattr(embed_module, "SessionLocal", refuse)
+
+    @pytest.mark.parametrize(
+        "content",
+        [None, "../fora.pdf\n", "sha256:curto\n", b"\xff\xfe nao e utf-8"],
+        ids=["ausente", "caminho-invalido", "sha256-invalido", "nao-utf8"],
+    )
+    def test_an_unreadable_list_exits_1_before_any_request(
+        self,
+        tmp_path,
+        no_client,
+        capsys: pytest.CaptureFixture[str],
+        content: str | bytes | None,
+    ) -> None:
+        listed = tmp_path / "removidos.txt"
+        if isinstance(content, bytes):
+            listed.write_bytes(content)
+        elif content is not None:
+            listed.write_text(content, encoding="utf-8")
+
+        with pytest.raises(SystemExit) as exc:
+            main(["--list", str(listed)])
+
+        assert exc.value.code == 1
+        out = capsys.readouterr().out
+        assert out.startswith("::error::[embed] ") and "Nenhum pedido foi feito." in out
+
+    def test_knowledge_dir_that_is_not_a_folder_exits_1(
+        self, tmp_path, no_client, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setattr(settings, "knowledge_dir", str(tmp_path / "nao-existe"))
+
+        with pytest.raises(SystemExit) as exc:
+            main([])
+
+        assert exc.value.code == 1
+
+    @pytest.mark.parametrize("with_file", [True, False])
+    def test_knowledge_dir_supplies_the_list(
+        self,
+        db_session: Session,
+        tmp_path,
+        monkeypatch: pytest.MonkeyPatch,
+        with_file: bool,
+    ) -> None:
+        if with_file:
+            (tmp_path / "removidos.txt").write_text(
+                "02-Curso/\nsha256:" + "c" * 64 + "\n", encoding="utf-8"
+            )
+        monkeypatch.setattr(settings, "knowledge_dir", str(tmp_path))
+        received: dict = {}
+
+        def fake_run(db, **kwargs):
+            received.update(kwargs)
+            return EmbedReport(exit_code=0)
+
+        monkeypatch.setattr(embed_module, "SessionLocal", lambda: db_session)
+        monkeypatch.setattr(embed_module, "run", fake_run)
+
+        with pytest.raises(SystemExit):
+            main([])
+
+        removal = received["removal"]
+        assert removal is not None
+        if with_file:
+            assert (removal.prefixes, removal.checksums) == (("02-Curso/",), frozenset({"c" * 64}))
+        else:
+            assert removal.is_empty

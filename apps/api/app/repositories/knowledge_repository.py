@@ -5,6 +5,7 @@ from __future__ import annotations
 from sqlalchemy import ColumnElement, and_, delete, func, not_, or_, select
 from sqlalchemy.orm import Session
 
+from app.models.enums import IngestStatus
 from app.models.knowledge import KnowledgeChunk, KnowledgeDocument, KnowledgeEmbedding
 
 
@@ -26,6 +27,28 @@ class KnowledgeRepository:
 
     def get(self, document_id: int) -> KnowledgeDocument | None:
         return self.db.get(KnowledgeDocument, document_id)
+
+    def indexed_paths_with_checksum(self, checksum: str) -> list[str]:
+        """Paths of the documents indexed (``EXTRAIDO``) with these bytes, sorted."""
+        return list(
+            self.db.execute(
+                select(KnowledgeDocument.path)
+                .where(
+                    KnowledgeDocument.checksum == checksum,
+                    KnowledgeDocument.status == IngestStatus.EXTRAIDO,
+                )
+                .order_by(KnowledgeDocument.path)
+            )
+            .scalars()
+            .all()
+        )
+
+    def document_fingerprints(self) -> list[tuple[int, str, str]]:
+        """``(id, path, checksum)`` of every document — what a removal list matches."""
+        rows = self.db.execute(
+            select(KnowledgeDocument.id, KnowledgeDocument.path, KnowledgeDocument.checksum)
+        ).all()
+        return [(int(doc_id), path, checksum or "") for doc_id, path, checksum in rows]
 
     def list_documents(self) -> list[KnowledgeDocument]:
         return list(
@@ -153,24 +176,28 @@ class KnowledgeRepository:
         article) instead of a slice of one long book, so what becomes
         searchable first is whole documents.
         """
-        return list(
-            self.db.execute(
-                select(KnowledgeChunk.id)
-                .join(KnowledgeDocument, KnowledgeChunk.document_id == KnowledgeDocument.id)
-                .outerjoin(KnowledgeEmbedding, KnowledgeEmbedding.chunk_id == KnowledgeChunk.id)
-                .where(
-                    or_(
-                        KnowledgeEmbedding.id.is_(None),
-                        not_(self._embedding_is_current(model, dims)),
-                    )
-                )
-                .order_by(
-                    KnowledgeDocument.chunk_count, KnowledgeDocument.id, KnowledgeChunk.ordinal
+        return [chunk_id for chunk_id, _ in self.pending_chunks(model, dims)]
+
+    def pending_chunks(self, model: str, dims: int) -> list[tuple[int, int]]:
+        """``(chunk id, document id)`` of :meth:`pending_chunk_ids`, in its order.
+
+        The document id lets the backfill leave out the passages of a document
+        on the removal list, which is matched in Python (Unicode
+        normalisation has no portable SQL spelling — the reason of ``prune``).
+        """
+        rows = self.db.execute(
+            select(KnowledgeChunk.id, KnowledgeChunk.document_id)
+            .join(KnowledgeDocument, KnowledgeChunk.document_id == KnowledgeDocument.id)
+            .outerjoin(KnowledgeEmbedding, KnowledgeEmbedding.chunk_id == KnowledgeChunk.id)
+            .where(
+                or_(
+                    KnowledgeEmbedding.id.is_(None),
+                    not_(self._embedding_is_current(model, dims)),
                 )
             )
-            .scalars()
-            .all()
-        )
+            .order_by(KnowledgeDocument.chunk_count, KnowledgeDocument.id, KnowledgeChunk.ordinal)
+        ).all()
+        return [(int(chunk_id), int(document_id)) for chunk_id, document_id in rows]
 
     def chunk_texts(self, chunk_ids: list[int]) -> dict[int, str]:
         """The text of each chunk in ``chunk_ids`` that still exists, by id."""
