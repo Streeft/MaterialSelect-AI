@@ -82,3 +82,33 @@ def test_spread_reads_each_source_in_order():
 
 def test_spread_of_nothing_is_nothing():
     assert spread([], 5) == []
+
+
+# --- semantic: only vectors of the query's model and length are compared ------
+
+
+def test_semantic_ignores_vectors_of_another_dimension(monkeypatch):
+    """A vector of another size used to make similarity() raise and drop the
+    whole semantic ranking; now it is skipped and the matching one still wins."""
+    from app.knowledge.embeddings import pack_vector
+
+    class _Client:
+        model = "fake-embed"
+        configured = True
+
+        def embed(self, texts):
+            return [[1.0, 0.0] if "calor" in t.lower() else [0.0, 1.0] for t in texts]
+
+    def _embedding(vector, model="fake-embed"):
+        return SimpleNamespace(model=model, dimensions=len(vector), vector=pack_vector(vector))
+
+    monkeypatch.setattr("app.notebooks.retrieval.EmbeddingClient", lambda _settings: _Client())
+    hot = _chunk(1, 10, 0, "Ambiente quente e seco.")
+    hot.embedding = _embedding([1.0, 0.0])
+    old = _chunk(2, 10, 1, "Outro trecho quente.")
+    old.embedding = _embedding([1.0, 0.0, 0.0])  # 3 dimensions: an older model setting
+    cold = _chunk(3, 20, 0, "Usinagem convencional.")
+    cold.embedding = _embedding([0.0, 1.0])
+
+    found = search([hot, old, cold], "calor", top_k=1, settings=Settings(), semantic=True)
+    assert [c.id for c in found.chunks] == [1] and found.fallback is False

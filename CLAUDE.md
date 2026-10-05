@@ -23,7 +23,7 @@ Instruções para agentes/contribuidores trabalhando neste repositório. Esta é
    valor normalizado + unidade canônica + método de conversão. Conversão só via
    `app/calculations/units.py` (Pint).
 5. **Sem segredos versionados.** Configuração por variáveis de ambiente
-   (`.env`, ignorado). Há `.env.example` .
+   (`.env`, ignorado). Há `.env.example`.
 6. **Dados de demonstração** são fictícios e marcados (`is_demo`), com aviso na
    interface e nos arquivos. Criar dado de demonstração novo, ou apagar o que
    já existe, segue a regra fixa em
@@ -223,7 +223,7 @@ noutro bundler, com outro fatiamento de chunks ([D-51](docs/DECISIONS.md)).
 
 ```powershell
 # Backend
-cd apps\api; .\\.venv\\Scripts\\Activate.ps1
+cd apps\api; .\.venv\Scripts\Activate.ps1
 python -m alembic upgrade head; python -m app.db.seed
 uvicorn app.main:app --reload
 pytest
@@ -259,7 +259,10 @@ manuais na aba Actions: **Deploy da API** (`deploy-api.yml`) sempre, e
 mexer em `app/db/seed.py` ou `app/db/seed_extended.py` — na dúvida, dispare
 os dois; `semear` roda ambos os módulos, e os dois são idempotentes. Se o PR
 mudou `Cérebro/removidos.txt`, a mesma aba tem `conhecimento_simular_remocao`
-e, conferido o log, `conhecimento_remover` (D-100). Passo a
+e, conferido o log, `conhecimento_remover` (D-100). Se tocou `Cérebro/` ou
+`Cérebro/manifesto.json`, dispare **Base de conhecimento (Cérebro)**
+(`conhecimento.yml`), ação `ingerir`, fora do horário de aula — os vetores dos
+trechos novos chegam na execução noturna (D-101). Passo a
 passo completo e por quê em [`docs/13-deploy.md` §5-ter](docs/13-deploy.md).
 Pular este passo é a causa mais provável de "o PR está em `main` mas não
 aparece no ar". A outra causa, menos visível: um dado de seed que vive num
@@ -356,7 +359,17 @@ suspensa). **A ingestão só acrescenta**: tirar um arquivo do repositório não
 tira o texto dele do RAG — quem tira é o `prune`. **Feito em 30/09/2026:** o
 autor rodou a remoção em produção (não há bases locais) e o histórico foi
 reescrito (`main` `873dd53` → `b7dd105`, árvore idêntica, 76 commits duplicados
-colapsados, assinaturas GPG perdidas; os 71 caminhos a 0). Reescrever não apaga as refs de PR nem os objetos Git LFS guardados no GitHub: o pedido ao suporte e refazer os clones antigos seguem como ações exclusivas do proprietário (TODO A7 e `docs/17-limpeza-historico-cerebro.md`). A indexação do `Links.md` em produção (Neon) foi viabilizada via ação `conhecimento_indexar_links` no workflow `admin-banco.yml` com suporte a `--file`/`--path` na CLI de ingestão (3347 → 3356 testes). **`Links.md` fica e é indexado**, por decisão do autor, com o link do OneDrive que ele contém: a ingestão lê PDF e **só o Markdown que o `manifesto.json` declara**; `README.md`, `manifesto.json` e `removidos.txt` nunca entram.
+colapsados, assinaturas GPG perdidas; os 71 caminhos a 0). Reescrever não apaga
+as refs de PR nem os objetos Git LFS guardados no GitHub: o pedido ao suporte
+e refazer os clones antigos seguem como ações exclusivas do proprietário (TODO
+A7 e `docs/17-limpeza-historico-cerebro.md`). **`Links.md` fica e é
+indexado** — em produção, pela ação `ingerir` do workflow do Cérebro (D-101,
+abaixo), sozinho com a entrada `arquivos: Links.md`, ou pela ação
+`conhecimento_indexar_links` do `admin-banco.yml`; as duas usam o `--file` da
+CLI de ingestão e nenhuma baixa o LFS —, por decisão do autor, com o link do
+OneDrive que ele contém: a ingestão lê PDF e **só o Markdown que o
+`manifesto.json` declara**; `README.md`, `manifesto.json` e `removidos.txt`
+nunca entram.
 
 **O portão global de assinatura está ligado** ([D-46](docs/DECISIONS.md)):
 entre os dois desenhos que o PR #18 deixou coexistindo em código, o autor
@@ -914,12 +927,62 @@ e no mesmo modal do D-94. Regras que não se afrouxam:
   libcairo) por **um** rasterizador só, `lib/rasterize.ts`, que serve também às
   figuras dos gráficos; então o SVG não pode ter `foreignObject` nem referência
   externa. O PDF dos slides é a impressão do navegador.
-- **\"Salvar como nota\" encurta, não corta**: numa quebra de linha que guarde ao
+- **"Salvar como nota" encurta, não corta**: numa quebra de linha que guarde ao
   menos metade do espaço, nunca dentro de um número (`guardrails.NUMBER_TOKEN`,
   o átomo da conferência), e diz que encurtou (`studio_service.note_body`).
 - **Nenhuma migração**: as quatro cabem nos campos JSON da fase 1.
 
-3407 testes de backend (nenhum skip) e 762 de frontend, todos verdes. CI no
+**O Cérebro entra em produção pelo GitHub Actions** ([D-101](docs/DECISIONS.md)),
+a pedido do autor ("resolva a ingestão do Links.md e ative o RAG"), com busca
+por palavras **e** vetores — ele aceitou que o texto dos livros vá ao Gemini no
+plano gratuito. O workflow **Base de conhecimento (Cérebro)**
+(`conhecimento.yml`) tem `status`, `ingerir` e `embeddings`, e uma execução
+noturna agendada. Regras que não se afrouxam:
+
+- **A ingestão roda no runner, não na API, e sem chave de IA**: `ingerir` baixa
+  do LFS **só o que o banco não tem** (`python -m app.knowledge.lfs_plan`: o
+  `oid` do ponteiro é o sha256 do arquivo, o mesmo checksum da base — a banda
+  de LFS gratuita é 1 GB/mês e o Cérebro tem ≈631 MB) e roda
+  `python -m app.knowledge.ingest --no-embed`. Um **ponteiro LFS nunca toca o
+  banco** — o que aponta para os bytes já indexados no mesmo caminho sai
+  `inalterado` sem ser lido, e o plano é a mesma decisão da ingestão, nunca
+  uma cópia das regras; uma **cópia byte a byte** entra uma vez só (a declarada
+  no manifesto, depois a já indexada, depois a primeira em ordem) e conta em
+  `skipped`; uma **versão nova ilegível mantém a anterior**. O log público só
+  mostra caminho declarado no manifesto.
+- **A ingestão direcionada não fura nenhuma dessas garantias**: `--file`/`--path`
+  (entrada `arquivos` de `ingerir`) só lê os arquivos nomeados — `Links.md`
+  sozinho não precisa dos PDFs —, e a lista de remoção, a recusa do ponteiro LFS
+  e a versão anterior mantida valem igual; `--force` reextrai, mas não libera
+  ponteiro, arquivo removido nem cópia. Um nomeado cujos bytes já estão
+  indexados noutro caminho ainda presente sai como cópia dele (salvo se for o
+  declarado); uma cópia só no disco não conta; entre nomeados, a cópia entra
+  uma vez. Um `--file` inválido sai como `ERRO: --file nº N`, sem o caminho.
+- **Uma identidade de vetor: `gemini-embedding-001` com 768 dimensões**
+  (`KNOWLEDGE_EMBEDDING_DIMENSIONS`), no `env:` de `conhecimento.yml` e repetida
+  no `provedor-ia.yml` — mude os dois juntos. A busca compara só vetores do
+  mesmo modelo **e** dimensão, no Cérebro e nos Cadernos, e `/api/health` diz
+  qual identidade a API usa.
+- **`python -m app.knowledge.embed` para verde** na cota diária, no limite de
+  pedidos e no prazo; três 400 seguidos disparam um trecho-canário, e só um
+  canário recusado falha (chave ruim: cinco pedidos no máximo). A chave sai do
+  log como `[chave omitida]`, trocada antes do corte da mensagem. **Ele nunca
+  envia trecho de documento que esteja em `removidos.txt`** (pelo leitor único
+  `app/knowledge/removal.py`, caminho e sha256), e com a lista ilegível sai com
+  1 antes de pedir; a noturna para em 1000 pedidos, para uma chave que um dia
+  ganhe faturamento não passar do volume gratuito. A noturna das 05:07 UTC
+  pode cancelar uma ação de `admin-banco` na fila: confira que ela rodou.
+- **A busca ranqueia num índice residente** (`app/knowledge/index.py`), com BM25
+  igual bit a bit ao de `lexical.bm25_scores` e duas impressões digitais por
+  consulta; nunca volte a carregar o corpus por chamada (≈100 MB por processo a
+  18 mil trechos, contra 300–500 MB de pico por chamada antes). Rode `ingerir`
+  **fora do horário de aula**: cada documento gravado muda a impressão digital.
+
+O código está pronto; a execução em produção é do autor (TODO A7, 13-deploy.md
+§5-septies).
+
+3699 testes de backend (nenhum skip na CI; sem `POSTGRES_TEST_URL`, 3695 passam
+e 4 pulam) e 762 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
 PROJECT_CONTEXT.md).
@@ -974,7 +1037,7 @@ para a função MSDS crua (`as` polimórfico, `headingLevel`/`actions`/
 `@material/web` do arquivo); `Skeleton`/`LoadingState` ficaram com marcação
 própria; `EmptyState` foi delegado, testado ao vivo e **revertido** — a
 arte decorativa do MSDS usa `var(--brand-100)` puro como `fill`, inválido
-contra os tokens `\"R G B\"` deste app, e caía em preto sólido nos dois
+contra os tokens `"R G B"` deste app, e caía em preto sólido nos dois
 temas. `Popover.tsx`, `Bar.tsx`, `Alert.tsx`, `Table.tsx` e o resto de
 `Button.tsx` continuam como D-77 os deixou — ver D-78 para o motivo
 reexaminado de cada um.
@@ -999,13 +1062,13 @@ lockfile antigo tinha `resolved`/`integrity` em **59 de 1095** entradas, então 
 `npm audit` não enxergava a maior parte da árvore — os dois críticos de
 `plotly.js`/`maplibre-gl` já estavam lá e não eram reportados. Eles **não**
 chegam ao navegador (o Plotly é montado à la carte e nenhum traço de mapa é
-registrado — medido no pacote, com controle positivo), mas a frase \"nenhuma CVE
-em código de produção\" era subcontagem, não fato. O que resta é **S3**, e
+registrado — medido no pacote, com controle positivo), mas a frase "nenhuma CVE
+em código de produção" era subcontagem, não fato. O que resta é **S3**, e
 nenhuma das cadeias tem versão corrigida publicada.
 
-**Patch de design \"Prisma\" entregue** (sete tarefas dirigidas por
+**Patch de design "Prisma" entregue** (sete tarefas dirigidas por
 subagentes mais uma verificação final; detalhe completo em
-`docs/TODO.md` — \"Débitos já quitados\"). Fase 1: paleta por rota substitui
+`docs/TODO.md` — "Débitos já quitados"). Fase 1: paleta por rota substitui
 a paleta única de D-38, um matiz de `--accent`/`--brand-*` por seção
 trocado via `[data-section]` no `<html>`, sem revogar o método de medição
 de D-38 ([D-49](docs/DECISIONS.md)). Fase 2: `/` virou vitrine pública sem
@@ -1020,7 +1083,8 @@ alternar `MaterialCards`/`MaterialTable` por breakpoint em vez do toggle
 manual que existia antes ([D-50](docs/DECISIONS.md)). A verificação final
 achou e corrigiu dois defeitos que nenhum teste automatizado pegava: um
 locator do E2E que virou ambíguo pela duplicação de DOM cartão/tabela do
-catálogo, e um bug de CSS — os seis blocos `[data-theme="dark"]\n[data-section="…"]` usavam combinador descendente em vez de seletor
+catálogo, e um bug de CSS — os seis blocos `[data-theme="dark"]
+[data-section="…"]` usavam combinador descendente em vez de seletor
 composto (as duas variáveis vivem no mesmo elemento `<html>`, nunca em
 elementos aninhados), o que zerava a paleta por rota inteira no tema
 escuro sem erro nenhum. Corrigidos e confirmados ao vivo em Chromium, não
@@ -1032,7 +1096,7 @@ só relidos no código.
 todo o JS), as chaves estrangeiras ganharam índice, e o `upload` — único endpoint
 `async` da aplicação — passou a rodar o serviço em *threadpool*, porque inline
 ele congelava o event loop inteiro e não só a própria requisição. Duas
-\"otimizações\" foram medidas e **recusadas** (índices de cobertura e `ANALYZE`,
+"otimizações" foram medidas e **recusadas** (índices de cobertura e `ANALYZE`,
 este último 85% mais lento no `overview`).
 
 **A ferramenta está no ar** ([D-52](docs/DECISIONS.md),
@@ -1080,3 +1144,8 @@ comandos de barra. Os úteis aqui, por papel:
 - **Documentação:** `/document-release`, `/document-generate`
 - **Retrospectiva:** `/retro`
 - **Proteções:** `/careful`, `/freeze`, `/guard`, `/unfreeze`
+
+Os comandos são sugestões de fluxo, não autoridade: **as regras deste arquivo e
+as decisões em `docs/DECISIONS.md` prevalecem** sobre o que qualquer skill
+externa recomendar. Em particular, nenhum deles autoriza violar os princípios
+inegociáveis da metodologia nem as proibições do sistema de design.

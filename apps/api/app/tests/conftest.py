@@ -22,6 +22,7 @@ from app.db.base import Base, get_db, get_session_factory, json_serializer
 from app.db.seed import seed
 from app.dependencies import get_current_user, require_active_subscription
 from app.integrations.http import get_http_transport, get_resolver
+from app.knowledge.index import reset_cache as reset_knowledge_index
 from app.main import app
 from app.models.project import Project
 from app.models.user import User
@@ -98,6 +99,20 @@ def _network_stays_banned() -> Generator[None, None, None]:
     _banned_attempts.clear()
     if attempts:
         pytest.fail(f"um teste tentou sair para a rede: {attempts}")
+
+
+@pytest.fixture(autouse=True)
+def _knowledge_index_starts_empty() -> Generator[None, None, None]:
+    """Every test builds the Cérebro's in-process index from its own data.
+
+    The index is process-wide and trusts a fingerprint of the corpus (counts
+    and highest ids). After the per-test rollback SQLite hands the same ids out
+    again, so a fingerprint from one test can equal another test's while the
+    passages behind it differ — reset before and after, never carried over.
+    """
+    reset_knowledge_index()
+    yield
+    reset_knowledge_index()
 
 
 @pytest.fixture(scope="session", autouse=True)

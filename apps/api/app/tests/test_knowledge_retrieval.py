@@ -98,15 +98,19 @@ class TestLexicalOnly:
 class _FakeEmbeddingClient:
     """Vetores determinísticos: 'quente' aponta pra um eixo, 'frio' pro outro."""
 
-    def __init__(self, model: str = "fake-embed", fail: bool = False) -> None:
+    def __init__(self, model: str = "fake-embed", fail: bool = False, dimensions: int = 0) -> None:
         self.model = model
         self.fail = fail
+        # 0 = "não envia dimensions", como o EmbeddingClient real.
+        self.dimensions = dimensions
+        self.calls = 0
         # Every test that builds this fake already sets
         # knowledge_embedding_base_url/model, so gating should pass — mirrors
         # EmbeddingClient.configured without depending on it.
         self.configured = True
 
     def embed(self, texts: list[str]) -> list[list[float]]:
+        self.calls += 1
         if self.fail:
             from app.knowledge.embeddings import EmbeddingUnavailableError
 
@@ -162,15 +166,16 @@ class TestHybridSearch:
         )
         assert results
 
-    def test_corrupted_stored_embedding_degrades_to_lexical_instead_of_raising(
+    def test_stored_vector_of_another_size_degrades_to_lexical_instead_of_raising(
         self, db_session, corpus, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """A dimension-mismatched (or otherwise corrupted) stored vector must
-        not turn a real user request into an HTTP 400: ``similarity()`` raises
-        a plain ``ValidationError`` (not ``EmbeddingUnavailableError``, which
-        only covers the network call), and the module's own docstring
-        promises silent degradation to lexical-only for any embedding
-        failure, not just an unreachable server.
+        """A stored vector whose size differs from the query's is never compared.
+
+        With the dimension unconfigured (0), only the answer tells the query's
+        size; no stored vector has it, so the semantic half is skipped and the
+        request is served by the lexical half, never an error. (A *corrupted*
+        blob is a different path — the index skips it at load; see
+        ``test_knowledge_index.py``.)
         """
         import struct
 
@@ -191,10 +196,8 @@ class TestHybridSearch:
         monkeypatch.setattr(service, "_embedding_client", lambda: fake)
         service.ingest()
 
-        # Corrupt the stored vector: 3 dimensions where the query embedding
-        # (from _FakeEmbeddingClient) has 2. unpack_vector() itself succeeds
-        # (the byte length is a multiple of 4); it is similarity() that then
-        # raises ValidationError on the dimension mismatch.
+        # Store a vector of 3 dimensions where the query embedding (from
+        # _FakeEmbeddingClient) has 2.
         embedding = db_session.query(KnowledgeEmbedding).one()
         embedding.vector = struct.pack("<3f", 1.0, 0.0, 0.0)
         embedding.dimensions = 3
@@ -202,6 +205,32 @@ class TestHybridSearch:
 
         # Must not raise. Lexical still finds the passage by its own words.
         results = search(db_session, "temperatura", top_k=5, settings=settings)
+        assert any("temperatura" in r.text for r in results)
+
+    def test_no_query_embedding_when_nothing_is_stored_at_the_configured_size(
+        self, db_session, corpus, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # Mid-migration: every stored vector is at the old size. Embedding the
+        # query would spend a request of the daily quota for a vector that
+        # nothing stored can be compared with.
+        _write(corpus, "termico.pdf", ["Materiais para ambientes de alta temperatura, quente."])
+        settings = Settings(
+            knowledge_dir=str(corpus),
+            knowledge_embedding_base_url="https://fake/v1",
+            knowledge_embedding_model="fake-embed",
+        )
+        service = KnowledgeService(db_session, settings)
+        monkeypatch.setattr(service, "_embeddings_configured", lambda: True)
+        monkeypatch.setattr(service, "_embedding_client", lambda: _FakeEmbeddingClient())
+        service.ingest()  # vectors of 2 dimensions
+        query_client = _FakeEmbeddingClient(dimensions=768)
+        monkeypatch.setattr(
+            "app.knowledge.retrieval.EmbeddingClient", lambda _settings: query_client
+        )
+
+        results = search(db_session, "temperatura", top_k=5, settings=settings)
+
+        assert query_client.calls == 0
         assert any("temperatura" in r.text for r in results)
 
     def test_no_embedding_config_is_lexical_only(self, db_session, corpus) -> None:

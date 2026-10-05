@@ -278,6 +278,8 @@ A lista completa, com as receitas prontas de cada provedor, está em
 | `AI_TIMEOUT_SECONDS` | `90` | O provedor de CLI precisa da ponta alta: ele sobe um processo antes de perguntar. |
 | `AI_MAX_OUTPUT_TOKENS` | `16000` | Teto de uma resposta, pensamento e texto juntos. |
 | `AI_CLI_COMMAND` | `claude` | Executável do `claude-cli`, resolvido no PATH. |
+| `KNOWLEDGE_EMBEDDING_MODEL` | vazio | Liga a busca semântica do Cérebro e dos Cadernos (com `KNOWLEDGE_EMBEDDING_BASE_URL` ou `AI_BASE_URL`). Vazio: só léxica ([D-47](DECISIONS.md)). Em produção, `gemini-embedding-001`, gravado pelo workflow `provedor-ia.yml`. |
+| `KNOWLEDGE_EMBEDDING_DIMENSIONS` | `0` | Tamanho pedido ao servidor (`dimensions`) e conferido em todo vetor devolvido; `0` não envia nada e aceita o tamanho nativo. Na receita do Gemini, **`768`** ([D-101](DECISIONS.md)), gravado junto com o modelo pelo `provedor-ia.yml` — a mesma identidade com que `conhecimento.yml` grava os vetores. Vetor de outro modelo ou dimensão fica fora da busca semântica. |
 | `NEXT_PUBLIC_API_URL` | `http://localhost:8000` | URL da API no frontend. |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | vazio | Login desligado (503) sem os dois. Sem padrão de propósito — não existe cliente OAuth que sirva para todo mundo ([D-42](DECISIONS.md)). |
 | `ACCESS_MODE` | `subscription` | `open` libera a ferramenta a qualquer login Google, com o catálogo compartilhado ainda restrito a quem assina ([D-83](DECISIONS.md)). Em produção, trocado pelo workflow `modo-acesso.yml`. |
@@ -316,9 +318,9 @@ As fontes externas estão descritas por inteiro em
 - Backend, matriz Python 3.11 e 3.12: `ruff`, `black --check`, `pytest`, e
   `alembic upgrade head` + seed num banco limpo. Este último existe porque os
   testes usam `create_all` em memória e **nunca exercitam as migrações**.
-  Instala `pip install -e ".[dev,knowledge]"` — sem o extra `knowledge` os
-  testes de ingestão do Cérebro (`test_knowledge_ingest.py`) não têm `pypdf` e
-  falham.
+  Instala `pip install -e ".[dev,knowledge]"`. O extra `knowledge` era o que
+  trazia o `pypdf` para os testes de ingestão do Cérebro; desde o D-92 o `pypdf`
+  é dependência principal, e o extra ficou redundante, mas inofensivo.
 - Frontend: `npm ci`, `typecheck`, `lint`, `test`, `build`.
 - **Migrações (PostgreSQL)**: aplica `alembic upgrade head` + seed contra um
   Postgres 16 de serviço e confere o schema resultante. O passo equivalente do
@@ -389,6 +391,27 @@ Três coisas que não são detalhe de configuração:
   `scripts/protect-main.ps1`: a regra do §7 vale para os jobs do `ci.yml`, que
   reportam em todo PR; exigir um job que só roda sob demanda travaria todo
   merge para sempre.
+- **O Cérebro entra no banco por um workflow próprio** ([D-101](DECISIONS.md)):
+  **Base de conhecimento (Cérebro)** (`conhecimento.yml`), com `status`,
+  `ingerir` (baixa do LFS só os PDFs que o banco ainda não tem com aqueles
+  bytes — `python -m app.knowledge.lfs_plan`, a mesma decisão da ingestão — e
+  roda `python -m app.knowledge.ingest --no-embed`, sem chave de IA; com a
+  entrada `arquivos`, só os nomeados por `--file=`) e `embeddings`
+  (`python -m app.knowledge.embed`, com a `GEMINI_API_KEY`), mais uma execução
+  **agendada** toda noite que gera vetores com a sobra da cota gratuita, até
+  1000 pedidos. **O `embed` nunca envia trecho de documento que esteja em
+  `Cérebro/removidos.txt`**, e com a lista ilegível falha antes de pedir: não
+  afrouxe isso. A banda de LFS do plano gratuito é 1 GB/mês e o Cérebro tem
+  ≈631 MB — uma ingestão que baixe tudo duas vezes no mês bloqueia o LFS da
+  conta. É o
+  único workflow com `schedule`, e por isso não é ação do `admin-banco.yml`, que
+  promete só `workflow_dispatch`; divide com ele o grupo de concorrência (e a
+  noturna pode cancelar uma ação de `admin-banco` que esteja na fila). O
+  agendamento só roda do ramo padrão e o GitHub o desliga depois de 60 dias sem
+  atividade no repositório. Passo a passo em 13-deploy.md §5-septies. **PR que
+  toque `Cérebro/` ou `manifesto.json` pede `ingerir`**; a identidade dos
+  vetores (`gemini-embedding-001`, 768) está no `env:` desse workflow e é
+  repetida no `provedor-ia.yml`: mude os dois juntos.
 - **E ninguém dispara esse caminho sozinho.** Mesclar um PR não implanta nada
   na API nem semeia o banco — só a Vercel publica o frontend automaticamente.
   13-deploy.md §5-ter é a regra fixa de quando disparar cada workflow depois

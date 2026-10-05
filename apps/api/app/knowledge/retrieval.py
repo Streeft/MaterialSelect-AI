@@ -13,6 +13,11 @@ useful with half its retrieval working than with none of it, and the
 alternative (raising) would make one flaky embedding provider take down every
 AI call in the product.
 
+**Ranked in memory, read from the database only when it changed.** The
+Cérebro's search ranks over a process-resident index (``app/knowledge/index.py``)
+instead of loading every passage and vector per call; the notebooks keep
+:func:`lexical_rank` over the handful of passages they are handed.
+
 **Vocabulary and context, never a number's source.** Whatever this returns
 feeds a prompt as reference text — it is never read by
 ``app.ai.guardrails.check_constraint``, which only ever sees
@@ -28,16 +33,12 @@ from sqlalchemy.orm import Session
 
 from app.config import Settings
 from app.domain.errors import ValidationError
-from app.knowledge.embeddings import (
-    EmbeddingClient,
-    EmbeddingUnavailableError,
-    similarity,
-    unpack_vector,
-)
+from app.knowledge.embeddings import EmbeddingClient, EmbeddingUnavailableError
+from app.knowledge.index import get_cache
 from app.knowledge.lexical import bm25_scores, tokenize
 from app.models.enums import DocumentKind, SourceAuthority
 from app.models.knowledge import KnowledgeChunk
-from app.repositories.knowledge_repository import KnowledgeRepository
+from app.repositories.knowledge_index_repository import KnowledgeIndexRepository
 
 logger = logging.getLogger(__name__)
 
@@ -63,36 +64,25 @@ class RetrievedChunk:
 
 
 def search(db: Session, query: str, *, top_k: int, settings: Settings) -> list[RetrievedChunk]:
-    """The ``top_k`` passages most relevant to ``query``, lexical + semantic."""
-    repo = KnowledgeRepository(db)
+    """The ``top_k`` passages most relevant to ``query``, lexical + semantic.
+
+    Ranked over the process-resident index (``app/knowledge/index.py``), which
+    two small fingerprint queries keep in step with the database; only the
+    passages returned are read in full, with their document.
+    """
     query_tokens = tokenize(query)
     if not query_tokens:
         return []
 
-    # Loaded once and shared: lexical scoring, the semantic-fallback fetch
-    # below, and _to_retrieved_chunk() all need the same rows, and the corpus
-    # is loaded whole (see list_all_chunks_for_lexical_search's docstring).
-    all_chunks = repo.list_all_chunks_for_lexical_search()
-
-    lexical_ranked = lexical_rank(all_chunks, query_tokens)
+    repo = KnowledgeIndexRepository(db)
+    cache = get_cache()
+    lexical_ranked = cache.lexical(repo).rank(query_tokens, _CANDIDATES)
     semantic_ranked = _semantic_rank(repo, query, settings)
 
     fused = reciprocal_rank_fusion([lexical_ranked, semantic_ranked])
     if not fused:
         return []
-
-    chunks_by_id = {chunk.id: chunk for chunk in all_chunks}
-    # Semantic-only matches may not be in the lexical fetch (search_text could
-    # theoretically differ in coverage); fall back to the embeddings fetch.
-    if any(chunk_id not in chunks_by_id for chunk_id, _ in fused):
-        chunks_by_id.update({chunk.id: chunk for chunk in repo.list_all_embeddings()})
-
-    results = [
-        _to_retrieved_chunk(chunks_by_id[chunk_id], score)
-        for chunk_id, score in fused
-        if chunk_id in chunks_by_id
-    ]
-    return results[:top_k]
+    return _materialise(repo, fused, top_k)
 
 
 def lexical_rank(chunks: list[KnowledgeChunk], query_tokens: list[str]) -> list[tuple[int, float]]:
@@ -112,38 +102,54 @@ def lexical_rank(chunks: list[KnowledgeChunk], query_tokens: list[str]) -> list[
 
 
 def _semantic_rank(
-    repo: KnowledgeRepository, query: str, settings: Settings
+    repo: KnowledgeIndexRepository, query: str, settings: Settings
 ) -> list[tuple[int, float]]:
     client = EmbeddingClient(settings)
     if not client.configured:
         return []
-    chunks = repo.list_all_embeddings()
-    if not chunks:
+    # Asked before embedding the query: with no vector of this model stored,
+    # the embedding call would spend a request of the daily quota for nothing.
+    stored = repo.vector_fingerprints(client.model)
+    if not stored:
+        return []
+    # The same for a configured size nothing is stored at — mid-migration, say,
+    # with every vector still at the old size. 0 ("the model's own size") can
+    # only be checked against the answer, below.
+    if client.dimensions > 0 and client.dimensions not in stored:
+        logger.warning(
+            "Busca semântica sem vetores de %s com %d dimensões; usando só léxica.",
+            client.model,
+            client.dimensions,
+        )
         return []
     try:
         query_vector = client.embed([query])[0]
-        scored = [
-            (chunk.id, similarity(query_vector, unpack_vector(chunk.embedding.vector)))
-            for chunk in chunks
-            if chunk.embedding is not None and chunk.embedding.model == client.model
-        ]
+        # Only vectors of this model *and* the query's own length are compared
+        # (embedding_matches' rule, applied in SQL by the fingerprint and the
+        # loader). The actual length, never the configured one: 0 there means
+        # "any", and a query must not meet vectors of another size.
+        fingerprint = stored.get(len(query_vector))
+        if fingerprint is None:
+            logger.warning(
+                "Busca semântica sem vetores de %s com %d dimensões; usando só léxica.",
+                client.model,
+                len(query_vector),
+            )
+            return []
+        vectors = get_cache().vectors(repo, client.model, len(query_vector), fingerprint)
+        return vectors.rank(query_vector, _CANDIDATES)
     except EmbeddingUnavailableError as exc:
         logger.warning("Busca semântica indisponível, usando só léxica: %s", exc)
         return []
     except ValidationError as exc:
-        # Not EmbeddingUnavailableError: the call succeeded, but a stored
-        # vector is corrupted or from an incompatible dimensionality.
         # EmbeddingUnavailableError is itself a ValidationError subclass, so
-        # it's already caught above; this clause is for the plain
-        # ValidationError that similarity()/unpack_vector() raise instead.
-        # Same degradation, different cause: half the retrieval working
-        # beats a flaky/corrupted row taking down the call.
-        logger.warning(
-            "Pontuação semântica falhou com um vetor corrompido, usando só léxica: %s", exc
-        )
+        # it's already caught above; this clause is for any other plain
+        # ValidationError on the way. A corrupted stored vector no longer
+        # lands here — the index skips it at load, with a warning — but the
+        # promise stands: half the retrieval working beats a flaky row taking
+        # down the call.
+        logger.warning("Pontuação semântica falhou, usando só léxica: %s", exc)
         return []
-    scored.sort(key=lambda item: -item[1])
-    return scored[:_CANDIDATES]
 
 
 def reciprocal_rank_fusion(rankings: list[list[tuple[int, float]]]) -> list[tuple[int, float]]:
@@ -153,6 +159,29 @@ def reciprocal_rank_fusion(rankings: list[list[tuple[int, float]]]) -> list[tupl
         for position, (chunk_id, _score) in enumerate(ranking):
             fused[chunk_id] = fused.get(chunk_id, 0.0) + 1.0 / (_RRF_K + position + 1)
     return sorted(fused.items(), key=lambda item: -item[1])
+
+
+def _materialise(
+    repo: KnowledgeIndexRepository, fused: list[tuple[int, float]], top_k: int
+) -> list[RetrievedChunk]:
+    """Read the first ``top_k`` fused passages in full, in fused order.
+
+    Only those rows are fetched. An id the index still knows but the database
+    no longer has (deleted since the fingerprint was read) is skipped, and the
+    next candidate takes its place — the answer the old full load gave.
+    """
+    results: list[RetrievedChunk] = []
+    position = 0
+    while len(results) < top_k and position < len(fused):
+        batch = fused[position : position + top_k - len(results)]
+        position += len(batch)
+        rows = repo.chunks_with_documents([chunk_id for chunk_id, _ in batch])
+        results.extend(
+            _to_retrieved_chunk(rows[chunk_id], score)
+            for chunk_id, score in batch
+            if chunk_id in rows
+        )
+    return results
 
 
 def _to_retrieved_chunk(chunk: KnowledgeChunk, score: float) -> RetrievedChunk:

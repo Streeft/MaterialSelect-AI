@@ -26,12 +26,15 @@ another must not depend on that.
 
 from __future__ import annotations
 
+import http.client
 import json
 import math
+import re
 import struct
 import urllib.error
 import urllib.request
-from typing import Any
+from collections.abc import Callable
+from typing import Any, Protocol
 
 from app.config import Settings
 from app.config import settings as default_settings
@@ -63,6 +66,70 @@ class EmbeddingUnavailableError(ValidationError):
     this and fall back to the lexical path — declaring the fallback rather than
     hiding it.
     """
+
+
+class EmbeddingHttpError(EmbeddingUnavailableError):
+    """The embedding server answered with an HTTP error status.
+
+    Still an :class:`EmbeddingUnavailableError` — with the same message as
+    before — so every caller that falls back to the lexical path keeps doing
+    so. The extra fields are for the one caller that has to *pace* itself
+    against a quota (the nightly embedding run): whether to wait and retry, or
+    stop until the quota resets.
+
+    Attributes:
+        status: the HTTP status code.
+        retry_after: seconds the server asked to wait, when it said so — the
+            ``Retry-After`` header, else Google's ``RetryInfo.retryDelay``,
+            else a "retry in 37.5s" in the message. ``None`` when it did not.
+        daily: the refusal names a per-day quota (Gemini's free tier). Waiting
+            a minute does not help; only the next day does.
+        detail: the server's own explanation, as shown in the message.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        status: int,
+        retry_after: float | None = None,
+        daily: bool = False,
+        detail: str = "",
+    ) -> None:
+        super().__init__(message)
+        self.status = status
+        self.retry_after = retry_after
+        self.daily = daily
+        self.detail = detail
+
+
+class _StoredEmbedding(Protocol):
+    """What :func:`embedding_matches` reads: the identity a vector is stored with.
+
+    Both ``KnowledgeEmbedding`` and the notebook embedding row have it.
+    """
+
+    model: str
+    dimensions: int
+
+
+def embedding_matches(embedding: _StoredEmbedding | None, model: str, dims: int) -> bool:
+    """Whether a stored vector was produced by ``model`` at ``dims`` dimensions.
+
+    The single definition of "this vector is current": used to decide which
+    vectors are stale and must be re-embedded, and which stored vectors may be
+    compared with a query vector at all. ``dims`` 0 means the dimension was not
+    requested, so any dimension from that model matches — the configuration in
+    which the model's native size is what gets stored.
+
+    ``None`` (a chunk never embedded) never matches, so callers can pass
+    ``chunk.embedding`` directly.
+    """
+    if embedding is None:
+        return False
+    if embedding.model != model:
+        return False
+    return dims == 0 or embedding.dimensions == dims
 
 
 def pack_vector(values: list[float]) -> bytes:
@@ -120,6 +187,11 @@ class EmbeddingClient:
         return self.settings.knowledge_embedding_model.strip()
 
     @property
+    def dimensions(self) -> int:
+        """Dimensions requested of the model; 0 = not requested (native size)."""
+        return max(0, self.settings.knowledge_embedding_dimensions)
+
+    @property
     def base_url(self) -> str:
         """The embedding endpoint's root, falling back to the chat provider's."""
         configured = self.settings.knowledge_embedding_base_url.strip()
@@ -151,19 +223,29 @@ class EmbeddingClient:
         """Vectors for ``texts``, in the same order.
 
         Raises:
+            EmbeddingHttpError: the server answered with an HTTP error status
+                (a subclass of the next one, so catching that still works).
             EmbeddingUnavailableError: the layer is unconfigured, the server
-                refused, or the answer did not have the promised shape.
+                refused, or the answer did not have the promised shape —
+                including vectors of a size other than the one requested.
         """
         if not texts:
             return []
 
         batch_size = max(1, self.settings.knowledge_embedding_batch)
+        dimensions = self.dimensions
         vectors: list[list[float]] = []
         for start in range(0, len(texts), batch_size):
             batch = texts[start : start + batch_size]
-            body = {"model": self._model_or_fail(), "input": batch}
+            body: dict[str, Any] = {"model": self._model_or_fail(), "input": batch}
+            # Sent only when asked for: a server that does not know the field
+            # may reject it, and 0 means "the model's own size".
+            if dimensions > 0:
+                body["dimensions"] = dimensions
             payload = self._post(body)
-            batch_vectors = _vectors_of(payload, expected=len(batch))
+            batch_vectors = _vectors_of(payload, expected=len(batch), scrub=self._without_key)
+            if dimensions > 0:
+                _check_dimensions(batch_vectors, dimensions)
             vectors.extend(normalise(vector) for vector in batch_vectors)
         return vectors
 
@@ -220,7 +302,7 @@ class EmbeddingClient:
             with opener(request, timeout=self.settings.ai_timeout_seconds) as response:
                 raw = response.read().decode("utf-8", errors="replace")
         except urllib.error.HTTPError as exc:
-            raise EmbeddingUnavailableError(self._http_message(exc)) from exc
+            raise self._http_error(exc) from exc
         except TimeoutError as exc:
             raise EmbeddingUnavailableError(
                 f"O servidor de embeddings não respondeu em "
@@ -235,54 +317,97 @@ class EmbeddingClient:
             ) from exc
         except OSError as exc:
             raise EmbeddingUnavailableError(f"Falha de rede ao pedir embeddings: {exc}") from exc
+        except http.client.HTTPException as exc:
+            # Not an OSError: a body cut short (IncompleteRead) or a malformed
+            # status line would otherwise escape as a raw traceback instead of
+            # the one error type every caller knows how to handle.
+            raise EmbeddingUnavailableError(
+                f"A resposta de {self.host()} chegou incompleta ou malformada "
+                f"({type(exc).__name__})."
+            ) from exc
 
         try:
             payload = json.loads(raw)
         except ValueError as exc:
+            # Scrubbed before the cut: a key straddling it would leave a prefix.
             raise EmbeddingUnavailableError(
-                f"O servidor de embeddings não devolveu JSON: {raw[:200]}"
+                f"O servidor de embeddings não devolveu JSON: {self._without_key(raw)[:200]}"
             ) from exc
         if not isinstance(payload, dict):
             raise EmbeddingUnavailableError("O servidor de embeddings devolveu JSON inesperado.")
         return payload
 
-    def _http_message(self, exc: urllib.error.HTTPError) -> str:
-        detail = _detail_of(exc)
-        if exc.code in (401, 403):
+    def _http_error(self, exc: urllib.error.HTTPError) -> EmbeddingHttpError:
+        """The error to raise for an HTTP status, with what pacing needs to know.
+
+        The body is read once here: an :class:`~urllib.error.HTTPError` body is
+        a stream, and a second read would find it empty.
+        """
+        detail, message, error = _error_body(exc)
+        # A server may echo the credential back in its explanation, and this
+        # detail is printed to a public log: the key never leaves as text. It
+        # is scrubbed *before* the cut — cutting first could keep only the
+        # start of a key that straddles it, which no replace would then match.
+        detail = self._without_key(detail)[:_DETAIL_LIMIT]
+        return EmbeddingHttpError(
+            self._http_message(exc.code, detail),
+            status=exc.code,
+            retry_after=_retry_after_of(exc, message, error),
+            daily=_is_daily_quota(message, error),
+            detail=detail,
+        )
+
+    def _without_key(self, text: str) -> str:
+        """``text`` with every configured key replaced by a placeholder."""
+        for key in (
+            self.settings.knowledge_embedding_api_key.strip(),
+            self.settings.ai_api_key.strip(),
+        ):
+            if key:
+                text = text.replace(key, "[chave omitida]")
+        return text
+
+    def _http_message(self, code: int, detail: str) -> str:
+        if code in (401, 403):
             return (
-                f"O servidor de embeddings recusou a credencial ({exc.code}). Defina "
+                f"O servidor de embeddings recusou a credencial ({code}). Defina "
                 f"AI_API_KEY com uma chave válida para {self.host()}. {detail}"
             ).strip()
-        if exc.code == 404:
+        if code == 404:
             return (
                 f"Endpoint ou modelo de embeddings não encontrado (404). Confira se a "
                 f"URL termina na raiz da API (…/v1) e se '{self.model}' existe nesse "
                 f"servidor — a Groq, por exemplo, não serve /embeddings. {detail}"
             ).strip()
-        if exc.code == 429:
+        if code == 429:
             return (
                 "Limite de requisições atingido ao gerar embeddings (429). Reduza "
                 f"KNOWLEDGE_EMBEDDING_BATCH e tente de novo. {detail}"
             ).strip()
-        return f"O servidor de embeddings respondeu com erro {exc.code}. {detail}".strip()
+        return f"O servidor de embeddings respondeu com erro {code}. {detail}".strip()
 
 
 # --- reading the answer ----------------------------------------------------
 
 
-def _vectors_of(payload: dict, expected: int) -> list[list[float]]:
+def _vectors_of(
+    payload: dict, expected: int, scrub: Callable[[str], str] = lambda text: text
+) -> list[list[float]]:
     """The vectors, in the order the inputs were sent.
 
     The ``index`` field is honoured rather than trusted to be sorted: the
     protocol permits any order, and silently mismatching a vector to the wrong
     passage would poison every later search in a way nothing would ever flag.
+
+    ``scrub`` removes the configured key from a server's own error text, which
+    this message would otherwise carry to a public log.
     """
     data = payload.get("data")
     if not isinstance(data, list) or not data:
         error = payload.get("error")
         detail = error.get("message") if isinstance(error, dict) else error
         raise EmbeddingUnavailableError(
-            f"O servidor de embeddings não devolveu vetores: {detail}"
+            f"O servidor de embeddings não devolveu vetores: {scrub(str(detail))}"
             if detail
             else "O servidor de embeddings devolveu uma resposta sem vetores."
         )
@@ -311,20 +436,128 @@ def _vectors_of(payload: dict, expected: int) -> list[list[float]]:
     return [vector for vector in ordered if vector is not None]
 
 
+def _check_dimensions(vectors: list[list[float]], dimensions: int) -> None:
+    """Refuse vectors of a size other than the one requested.
+
+    A server that does not honour ``dimensions`` answers at the model's native
+    size without saying so. Storing those under a configuration that promised
+    another size would mix two sizes in one table — and a mixed table is one
+    the similarity comparison cannot use.
+    """
+    for vector in vectors:
+        if len(vector) != dimensions:
+            raise EmbeddingUnavailableError(
+                f"O servidor de embeddings ignorou dimensions={dimensions}: devolveu "
+                f"vetores de {len(vector)} dimensões. Use um modelo que aceite "
+                "reduzir a dimensão ou defina KNOWLEDGE_EMBEDDING_DIMENSIONS=0 "
+                "(não enviar)."
+            )
+
+
+#: Characters of a server's explanation shown to a user (and the public log).
+_DETAIL_LIMIT = 300
+
+
 def _detail_of(exc: urllib.error.HTTPError) -> str:
-    """The server's own explanation, when it sent one."""
+    """The server's own explanation, when it sent one, cut for display."""
+    return _error_body(exc)[0][:_DETAIL_LIMIT]
+
+
+def _error_body(exc: urllib.error.HTTPError) -> tuple[str, str, object]:
+    """Read an error body once: ``(detail, full message, error object)``.
+
+    ``detail`` is the explanation shown to a user, **not yet cut**: the caller
+    scrubs the key from it first and then cuts it at :data:`_DETAIL_LIMIT`,
+    because a cut made first can split a key and leave its prefix behind. The
+    full message is kept apart because the "retry in 37.5s" that pacing needs
+    can sit past that cut. The error object is Gemini's structured error, when
+    there is one, for its ``details`` list.
+    """
     try:
         body = exc.read().decode("utf-8", errors="replace")
     except Exception:  # the body was already consumed, or never arrived
-        return ""
+        return "", "", None
     try:
         payload = json.loads(body)
     except ValueError:
-        return body.strip()[:300]
+        return body.strip(), body, None
     # Gemini wraps the error object in a list; see openai_compat.error_object.
     if isinstance(payload, list) and payload:
         payload = payload[0]
     error = payload.get("error") if isinstance(payload, dict) else None
     if isinstance(error, dict):
-        return str(error.get("message", ""))[:300]
-    return str(error or "")[:300]
+        message = str(error.get("message", ""))
+        return message, message, error
+    message = str(error or "")
+    return message, message, error
+
+
+#: "Please retry in 37.5s." — how Gemini words the wait in a 429 message.
+_RETRY_IN = re.compile(r"retry in ([\d.]+)s", re.IGNORECASE)
+#: A protobuf Duration as JSON: ``"37s"``, ``"1.5s"``.
+_DURATION = re.compile(r"^\s*([\d.]+)s\s*$")
+#: A quota counted per day, named in a quota id (``…PerDay…``) or in prose.
+_PER_DAY = re.compile(r"PerDay|per day", re.IGNORECASE)
+
+
+def _seconds(value: object) -> float | None:
+    try:
+        seconds = float(value)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return None
+    return max(seconds, 0.0) if math.isfinite(seconds) else None
+
+
+def _details_of(error: object) -> list[dict]:
+    """The ``details`` list of a Google RPC error, dictionaries only."""
+    if not isinstance(error, dict):
+        return []
+    details = error.get("details")
+    if not isinstance(details, list):
+        return []
+    return [item for item in details if isinstance(item, dict)]
+
+
+def _retry_after_of(exc: urllib.error.HTTPError, message: str, error: object) -> float | None:
+    """Seconds the server asked to wait, from the first place that says so.
+
+    ``Retry-After`` (numeric form only), then ``google.rpc.RetryInfo``'s
+    ``retryDelay``, then the prose of the message. ``None`` when none does —
+    a caller then chooses its own wait instead of reading 0 as "right now".
+    """
+    headers = getattr(exc, "headers", None)
+    header = headers.get("Retry-After") if headers is not None else None
+    if header is not None:
+        seconds = _seconds(str(header).strip())
+        if seconds is not None:
+            return seconds
+    for item in _details_of(error):
+        if not str(item.get("@type", "")).endswith("RetryInfo"):
+            continue
+        delay = item.get("retryDelay")
+        match = _DURATION.match(delay) if isinstance(delay, str) else None
+        if match:
+            seconds = _seconds(match.group(1))
+            if seconds is not None:
+                return seconds
+    match = _RETRY_IN.search(message)
+    if match:
+        return _seconds(match.group(1))
+    return None
+
+
+def _is_daily_quota(message: str, error: object) -> bool:
+    """Whether the refusal names a per-day quota — in a quota id or in prose."""
+    if _PER_DAY.search(message):
+        return True
+    for item in _details_of(error):
+        violations = item.get("violations")
+        if not isinstance(violations, list):
+            continue
+        for violation in violations:
+            if not isinstance(violation, dict):
+                continue
+            for key in ("quotaId", "quotaMetric"):
+                if _PER_DAY.search(str(violation.get(key, ""))):
+                    return True
+    return False

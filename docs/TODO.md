@@ -57,6 +57,34 @@ react-hook-form não é memoizável) que é informativo e não tem correção lo
 A6 (Cérebro em `main`) foi decidido, não executado: ver "Débitos já
 quitados".
 
+**A7 — o que resta, e só o autor faz.** ▁ A remoção do banco de produção e a
+reescrita do histórico foram feitas em 30/09/2026, e a ingestão direcionada do
+`Links.md` saiu em código (ver "Débitos já quitados" e o [D-100](DECISIONS.md)).
+Ficam três passos fora do código:
+
+1. **Suporte do GitHub** ([`17-limpeza-historico-cerebro.md`](17-limpeza-historico-cerebro.md)
+   §10). Pedir a remoção das refs de PR (`refs/pull/*` — a do PR #56 guarda 65
+   dos arquivos fora de qualquer branch), dos objetos Git LFS órfãos, das
+   visões em cache e, onde couber, dos *forks*: todo commit e todo PR
+   anteriores à reescrita. Reescrever o histórico não apagou nada disso.
+2. **Clones antigos.** Todo clone feito antes de 30/09/2026 está do lado errado
+   da reescrita: apagar e clonar de novo, nunca `pull`, e não enviar nenhuma
+   branch criada antes dela (guia §9).
+3. **O Cérebro no RAG de produção — entregue em código ([D-101](DECISIONS.md));
+   falta a execução.** Só o `Links.md`, já: **Base de conhecimento (Cérebro)**
+   → `ingerir` com `arquivos: Links.md` (não baixa nada do LFS), ou a ação
+   `conhecimento_indexar_links` do `admin-banco.yml`. O Cérebro inteiro, na
+   ordem de [13-deploy.md §5-septies](13-deploy.md): **Deploy da API** →
+   **Provedor de IA** (`gemini`) → `status` → `ingerir` (fora do horário de
+   aula; baixa ≈631 MB do LFS, mais da metade da banda gratuita do mês — não
+   repita no mesmo mês sem necessidade) → os vetores vêm sozinhos à noite, ou
+   já com `embeddings` → `status` toda semana até `faltam 0`. O download
+   arquivo a arquivo (`git lfs smudge`) ainda não rodou no GitHub: a primeira
+   `ingerir` é o teste dele.
+
+Não registrado aqui: se os logs das execuções de `conhecimento_simular_remocao`
+e `conhecimento_remover` já foram apagados (guia §1.3 e §11) — conferir.
+
 ---
 
 ## Média prioridade
@@ -67,6 +95,46 @@ Nenhum item aberto no momento — M6 foi entregue nesta sessão (ver
 ---
 
 ## Baixa prioridade
+
+**Cérebro em produção — pendências deixadas pelo D-101.** Nenhuma bloqueia o
+uso; as três primeiras são decisão ou conferência do autor.
+
+- **As 121 cópias idênticas na árvore.** ▁ 18 PDFs da raiz de `Cérebro/` repetem
+  `01-`, `04-` e `05-`, e a pasta
+  `Fichas descritivas de materiais - Granta Edupack - Nível 2/` inteira repete
+  `03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/`. A ingestão já as indexa uma vez
+  só (fica a cópia declarada no manifesto), e desde a revisão final do D-101
+  uma `ingerir` nem as baixa do LFS; tirá-las do git não muda o RAG: muda o
+  tamanho do clone e o que o leitor da pasta vê. Decisão do autor — e um `git rm` não as tira do
+  histórico nem do armazenamento LFS.
+- **Documento que falhou é baixado de novo a cada `ingerir`.** ▁ O plano do
+  LFS só poupa o que está `EXTRAIDO` com os mesmos bytes; um `FALHOU` (um PDF
+  digitalizado, `SEM TEXTO`, inclusive) é baixado e lido de novo, como sempre
+  foi lido de novo. Se o Cérebro tiver digitalizados grandes, isso pesa na
+  banda de LFS do mês (o `[lfs] baixar …` diz quantos MB). Saída possível:
+  tratar um `FALHOU` com os mesmos bytes como falha conhecida, sem baixar,
+  com `--force` para tentar de novo — decisão do autor, porque é declarar a
+  falha permanente.
+- **Os dois Ashby em português.** ▁
+  `01-Bibliografia/Michael Ashby (Auth.)-Seleção De Materiais No Projeto Mecânico (2012).pdf`
+  (152 MB) e `01-Bibliografia/Selecao_de_Materiais_no_Projeto_Mecanico.pdf`
+  (103,5 MB) não são byte a byte iguais, e por isso os dois entram. Se forem a
+  mesma edição em dois scans, o texto aparece em dobro na busca e custa o dobro
+  de vetores. Abrir os dois e decidir se um sai (pela lista de remoção, D-100).
+- **Confirmar os limites do Neon e a memória do Fly.** ▁ O D-101 supôs 0,5 GB de
+  armazenamento e 5 GB de transferência por mês no Neon gratuito; confira no
+  painel do Neon. Depois da primeira consulta com a IA real, olhe a memória da
+  máquina no painel do Fly — o medido foi ≈100 MB por processo a 18 mil trechos,
+  numa VM de 512 MB.
+- **Reembedar as fontes antigas dos Cadernos.** ▁ Os vetores gravados antes do
+  D-101 têm 3072 dimensões (o tamanho nativo do `gemini-embedding-001`) e a
+  pergunta agora é embedada com 768: a busca semântica os ignora, e aquelas
+  fontes são achadas só por palavras. O `status` do workflow do Cérebro mostra
+  quantos são ("cadernos: … ficam fora da busca semântica"). Um comando que os
+  reembede, dentro da cota, na forma do `app.knowledge.embed`.
+- **Quantização int8 dos vetores.** ▁ Alavanca guardada, não pendência: os
+  vetores em `array('f')` ocupam ≈58 MB residentes a 18 mil × 768; em int8,
+  um quarto disso. Só vale se a memória do Fly apertar.
 
 **Cadernos — pendências deixadas pela fase 4 (D-98).** Nenhuma bloqueia o uso.
 

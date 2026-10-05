@@ -125,11 +125,15 @@ em outro lugar sem entender a regra.
 
 - **Léxica** — BM25 sobre `search_text` (texto normalizado na ingestão), sem
   rede.
-- **Semântica** — opcional, roda só quando `KNOWLEDGE_EMBEDDING_BASE_URL` e
-  `KNOWLEDGE_EMBEDDING_MODEL` estão configurados; degrada para léxico puro,
-  silenciosamente para quem chama, se a chamada de embedding falhar. Um trecho
-  achado por metade do mecanismo vale mais que nenhum, e um provedor de
-  embeddings instável não pode derrubar toda chamada de IA por isso.
+- **Semântica** — opcional, roda só quando `KNOWLEDGE_EMBEDDING_BASE_URL` (ou
+  `AI_BASE_URL`) e `KNOWLEDGE_EMBEDDING_MODEL` estão configurados; degrada para
+  léxico puro, silenciosamente para quem chama, se a chamada de embedding
+  falhar. Um trecho achado por metade do mecanismo vale mais que nenhum, e um
+  provedor de embeddings instável não pode derrubar toda chamada de IA por
+  isso. Só entram na comparação os vetores do **mesmo modelo e da mesma
+  dimensão** da pergunta ([D-101](DECISIONS.md)): um vetor de outro tamanho é
+  ignorado, nunca comparado — antes ele fazia a similaridade lançar exceção e
+  derrubava a semântica de toda consulta. Vale igual para os Cadernos.
 - **Fusão** — *reciprocal rank fusion*: `score = Σ 1/(60 + posição)` por lista
   em que o trecho aparece, `k = 60` fixo — o valor a que a literatura de RRF já
   convergiu, sem parâmetro para calibrar contra nada ainda. O resultado corta
@@ -140,6 +144,95 @@ por checksum, um documento do `Cérebro/` por linha — e não produz número
 nenhum sozinha; o princípio 2 do `CLAUDE.md` continua valendo tanto quanto
 antes de ela existir. Ver [D-45](DECISIONS.md) sobre por que o material
 licenciado que ela indexa está hospedado em `main`.
+
+### Em produção: índice em memória, vetores de 768 e a cota gratuita ([D-101](DECISIONS.md))
+
+**O índice mora no processo** (`app/knowledge/index.py`). A busca do Cérebro
+não lê mais o corpus a cada chamada — a 18 mil trechos isso eram 135–300 MB de
+transferência e um pico que derrubava a VM de 512 MB. Cada processo da API
+mantém um índice invertido (BM25 **igual bit a bit** ao de
+`lexical.bm25_scores`, preso por um teste de ouro com `==`) e os vetores de uma
+identidade (modelo e dimensão) em `array('f')`. Uma busca custa:
+
+- **Duas impressões digitais**, consultas mínimas ao banco: a do corpus
+  (contagem e maior id dos trechos, contagem de documentos e a última
+  `indexed_at`) e, com embeddings configurados, a dos vetores do modelo por
+  dimensão (contagem, maior id e soma dos ids). Igual à guardada, nada é
+  relido.
+- **Uma chamada de embedding** para a pergunta — e nenhuma quando não há vetor
+  guardado daquele modelo no tamanho configurado, para não gastar cota à toa.
+- **A leitura das `top_k` linhas** devolvidas, com o documento de cada uma.
+
+Quando o corpus muda (uma ingestão), o índice léxico é reconstruído inteiro, e
+o antigo é solto antes, para nunca haver dois na memória. Quando só chegam
+vetores novos (a execução noturna), eles são **acrescentados**; uma contagem ou
+soma de ids que não fecha (um vetor apagado, outro reescrito) força a recarga
+completa. Medido a 18 mil trechos × 768: ≈44 MB de índice léxico e ≈58 MB de
+vetores, **≈100 MB por processo**. A primeira consulta de cada máquina depois de
+um deploy ou de uma ingestão paga a construção (alguns segundos e ≈75 MB lidos
+do Neon), e o log registra o tempo e a memória. Como a ingestão grava documento
+a documento, uma consulta **durante** uma `ingerir` reconstrói o índice a cada
+vez: rode a ingestão fora do horário de aula. Um vetor corrompido (tamanho do
+blob que não bate com a dimensão) é pulado na carga, com aviso.
+
+**Dimensões: 768.** `KNOWLEDGE_EMBEDDING_DIMENSIONS` (padrão `0`, que não envia
+nada e aceita o tamanho nativo do modelo) vai no corpo do pedido como
+`dimensions`, e todo vetor devolvido é conferido: um servidor que ignore o
+pedido e devolva outro tamanho é erro, com a mensagem dizendo o que fazer. O
+`gemini-embedding-001` responde em 3072 nativamente; com 768, texto e vetores
+do Cérebro ocupam ≈96 MB a 18 mil trechos, com folga no Neon gratuito, onde
+3072 não caberia no pior caso. Em produção quem grava `KNOWLEDGE_EMBEDDING_MODEL` e
+`KNOWLEDGE_EMBEDDING_DIMENSIONS` no Fly é o **Provedor de IA**, e `/api/health`
+mostra os dois (`knowledge_embedding_model`, `knowledge_embedding_dimensions`),
+lidos das configurações, nunca a URL nem a chave.
+
+**Os vetores do Cérebro são gerados fora da API**, por
+`python -m app.knowledge.embed`:
+
+```
+python -m app.knowledge.embed [--list Cérebro/removidos.txt] [--max-requests N] [--deadline-minutes M] [--batch B] [--rpm R] [--tpm T]
+```
+
+Ele pega os trechos sem vetor atual — sem vetor, ou com vetor de outro modelo ou
+outra dimensão —, dos documentos menores para os maiores, e grava com commit
+por lote. `--max-requests 0` é "até a cota acabar"; `--rpm`/`--tpm` espaçam os
+pedidos (o workflow usa 90 e 27 000, abaixo dos 100 e 30 000 do Gemini
+gratuito; a execução noturna para em 1 000 pedidos, o volume gratuito do dia).
+**Os trechos dos documentos da lista de remoção nunca são enviados**: o comando
+lê `removidos.txt` pelo mesmo leitor da ingestão e do prune
+(`app/knowledge/removal.py`, caminho **e** sha256) — de `--list`, como no prune,
+ou, sem a opção, da pasta `KNOWLEDGE_DIR`, como na ingestão — e os deixa de
+fora, contados num `::warning::` que manda rodar `conhecimento_remover`, sem
+nome nenhum. Tirar da base é ação manual, e a noturna roda sozinha: sem isso,
+entre a linha nova na lista e o prune, o texto de quem pediu para sair iria ao
+Gemini gratuito. Lista pedida e ilegível (ausente, fora de UTF-8, linha
+malformada): saída 1 antes de qualquer pedido. O log é só contagem — nenhum
+texto de trecho, nenhuma chave — e termina sempre com
+`[embed] N vetores gravados agora com M pedidos; faltam R de T trechos (P%).`
+O que cada resposta do servidor provoca:
+
+| Resposta | O comando |
+|---|---|
+| 429 por minuto | espera o que o servidor pedir (`Retry-After`, `retryDelay` ou "retry in Ns"; 60 s sem indicação, 120 s no máximo) e repete o mesmo lote |
+| 429 diário, ou quatro 429 por minuto seguidos | para com sucesso: `[embed] cota diária do Gemini esgotada — continua na próxima execução.` |
+| 400 num lote | reenvia os trechos um a um; se a recusa era de um trecho só, volta ao tamanho de lote; se todos passaram sozinhos, segue com lote 1 |
+| 400 num trecho sozinho | pula o trecho nesta execução, com aviso e a explicação do servidor; ele volta na próxima |
+| três 400 seguidos, sem nada gravado entre eles | manda um **trecho-canário** do fim da fila (em geral de outro documento). Gravado: as recusas eram dos trechos, a contagem recomeça e a execução segue. Recusado também: é configuração — o Gemini responde a uma chave errada com 400 `API_KEY_INVALID`, não com 401 — e o comando falha com a explicação do servidor; uma chave ruim custa no máximo cinco pedidos. Sem trecho para o canário, termina com sucesso e os avisos |
+| 5xx, tempo esgotado, resposta truncada | tenta de novo depois de 5, 15 e 45 s; depois falha |
+| 401, 403, 404 | falha na hora |
+
+Limite de pedidos e prazo terminam com sucesso. Toda explicação do servidor
+que vai ao log passa antes pela troca da chave configurada por
+`[chave omitida]` — antes do corte em 300 caracteres, para nenhum pedaço dela
+sobrar na ponta —, inclusive nas respostas 200 sem JSON ou sem vetores.
+
+**Quando a cota diária de embeddings acaba**, a busca não mostra erro nenhum:
+a pergunta embedada recebe 429, a busca cai para a léxica (no Cérebro e nos
+Cadernos), e a resposta vem com os trechos que o BM25 achou. O mesmo vale enquanto os vetores ainda estão chegando — a
+semântica ranqueia os trechos que já têm vetor, e o resto é achado por palavras.
+A cota do Gemini gratuito é uma só para o produto e para o preenchimento; por
+isso o preenchimento automático roda à noite, com a sobra do dia
+([13-deploy.md §5-septies](13-deploy.md)).
 
 ### O que saiu do Cérebro, e como sai do banco ([D-100](DECISIONS.md))
 
@@ -172,6 +265,8 @@ do git) —, e três coisas a leem:
   uma cópia local esquecida não desfaz a remoção. O CLI imprime cada arquivo
   pulado e, se ele ainda tiver linha naquela base, diz para rodar o `prune`.
   A descoberta não segue link simbólico nem nada que resolva fora da raiz.
+  O **`embed`** lê a mesma lista e não envia ao servidor de embeddings os
+  trechos que ainda estão na base de um documento que ela casa ([D-101](DECISIONS.md)).
 - **A limpeza do histórico do git**, passo manual e posterior, pelo guia
   [`17-limpeza-historico-cerebro.md`](17-limpeza-historico-cerebro.md).
 
@@ -188,7 +283,73 @@ nem declarados. A extração do Markdown tira só a marcação (`#`, marcadores 
 lista, e `[rótulo](url)` vira `rótulo (url)`) e guarda cada linha como
 parágrafo; o chunker é o mesmo do PDF. O `Links.md` tem um link de
 compartilhamento do OneDrive com o token de acesso na URL, que o RAG pode
-citar: escolha aceita pelo autor.
+citar: escolha aceita pelo autor. Em produção, ele é indexado pela ação
+`ingerir` do workflow **Base de conhecimento (Cérebro)**, junto com os PDFs
+([D-101](DECISIONS.md)).
+
+**O que a ingestão recusa ou pula** ([D-101](DECISIONS.md)), porque roda num
+runner do Actions que pode entregar o arquivo errado:
+
+- **Ponteiro do Git LFS** (arquivo com menos de 1 024 bytes que começa com
+  `version https://git-lfs.github.com/spec/`). O `oid sha256:` dele **é** o
+  sha256 do arquivo, o mesmo `checksum` que a base guarda, e é ele que a
+  pré-passagem usa como *digest* do ponteiro — para a lista de remoção, as
+  cópias e o "já indexado". Um ponteiro para os bytes já indexados (`EXTRAIDO`)
+  **no mesmo caminho** sai `inalterado` sem ser lido (com `--force`, não: ele
+  quer reextrair). Qualquer outro ponteiro cujo conteúdo a execução teria de
+  ler é `falhou`, "É um ponteiro do Git LFS, não o arquivo", e **nada é
+  escrito** — nem linha nova, nem mudança numa linha existente. Antes, o
+  ponteiro era lido como PDF ilegível e apagava os trechos do documento. Um
+  ponteiro sem `oid` legível não diz de que arquivo é, e só falha.
+- **Cópia byte a byte** de outro arquivo da mesma execução: indexada uma vez.
+  Fica a cópia que o manifesto declara; sem declaração, a que já está indexada;
+  sem nenhuma das duas, a primeira em ordem alfabética. As outras saem
+  `ignorado` ("Cópia byte a byte de …; indexada uma vez só.") e contam em
+  `skipped` também na resposta de `POST /api/knowledge/ingest`. A lista de
+  remoção é consultada antes. Dois ponteiros para o mesmo objeto LFS são duas
+  cópias de um arquivo.
+- **Versão nova ilegível** de um documento já extraído: mantém trechos, vetores,
+  checksum e contagem de páginas da versão anterior, com o motivo em `error`
+  ("A versão nova (sha256 …) não pôde ser lida: …"). A próxima ingestão tenta de
+  novo. Um documento novo que falha continua `FALHOU`, sem trechos.
+- **PDF sem texto** (digitalizado): marcado, e o CLI imprime
+  `SEM TEXTO … (provavelmente digitalizado)` sem falhar a execução.
+
+O CLI (`python -m app.knowledge.ingest [--no-embed] [--file …] [--force]`) grava documento a
+documento, imprime caminho inteiro só do que o manifesto declara — o resto sai
+como pasta mais o começo do sha256, porque o log do Actions é público — e sai
+com 1 só quando houve falha que não seja PDF sem texto. `--no-embed` não
+constrói o cliente de embeddings: os vetores ficam para o `embed`. Um documento
+já indexado e sem mudança não passa pelo teto de tamanho, então baixar
+`KNOWLEDGE_MAX_DOCUMENT_BYTES` não o derruba.
+
+**O que baixar do LFS sai das mesmas decisões.** `KnowledgeService.lfs_plan()`
+lê a pré-passagem da ingestão (com o mesmo `--file` e `--force`) e devolve só os
+ponteiros que ela teria de ler; `python -m app.knowledge.lfs_plan --output
+<arquivo> [--ids <arquivo>] [--file …] [--force]` grava esses caminhos
+(separados por NUL) e os oids distintos, e imprime só contagens e MB. Baixado
+exatamente o que ele lista, nenhum arquivo que a ingestão lê é ponteiro. É o
+que o workflow roda antes do download, para não gastar a banda de LFS do mês
+com o que o banco já tem ([D-101](DECISIONS.md),
+[13-deploy.md §5-septies](13-deploy.md)).
+
+`--file <caminho>` (alias `--path`, repetível) ingere só os arquivos nomeados,
+relativos a `KNOWLEDGE_DIR`, sem andar o resto da pasta — `Links.md` sozinho não
+precisa dos PDFs no disco. Cada nome tem de ser um arquivo que a descoberta
+acharia: dentro da raiz, sem link simbólico em passo nenhum, de tipo suportado,
+não operacional e, se Markdown, declarado no manifesto; um nome inválido recusa
+a execução inteira antes de escrever (`[ingest] ERRO: --file nº N: <motivo>.`,
+saída 1 — a posição, nunca o caminho digitado, porque o log é público). As
+regras acima valem igual para os nomeados; como a execução não anda o resto da
+pasta, "a cópia em outro caminho" é lida do banco: um nomeado cujos bytes já
+estão indexados (`EXTRAIDO`) noutro caminho que ainda é um arquivo do Cérebro,
+fora da lista de remoção, sai `ignorado` como cópia dele — a não ser que o
+nomeado seja o que o manifesto declara, ou já esteja ele mesmo indexado com
+esses bytes. Uma cópia só no disco, nunca indexada, não impede o nomeado de
+entrar, e uma linha cujo arquivo sumiu é um arquivo que mudou de lugar.
+`--force` reextrai mesmo com checksum igual, mas não libera ponteiro LFS,
+arquivo da lista de remoção nem cópia de um já indexado ([D-101](DECISIONS.md),
+atualizações do merge e da revisão final).
 
 ### Citação verificada, só em `explain()`
 
@@ -721,8 +882,15 @@ sugestões perdidas, não para servir de garantia.
   pipeline como qualquer rótulo: escrever "Aço AISI 1020 lidera" não é inventar
   1020, e sem isso bastaria nomear o vencedor para perder a explicação inteira.
 - `test_knowledge_retrieval.py` — BM25 sozinho, semântico sozinho (com fake de
-  embeddings), fusão RRF, degradação para léxico puro quando o embedding falha,
-  `top_k` respeitado. `test_ai_api.py` (`TestRetrievalGating`) prova o portão
+  embeddings), fusão RRF, degradação para léxico puro quando o embedding falha
+  ou quando só há vetor de outro tamanho, `top_k` respeitado.
+  `test_knowledge_index.py` prende o índice em memória ao BM25 de referência
+  (igualdade exata), e cobre reconstrução, acréscimo incremental, recarga por
+  contagem e por soma de ids, vetor corrompido e concorrência.
+  `test_knowledge_embed.py` cobre o preenchimento de vetores contra cada
+  resposta da tabela acima e a lista de remoção (`TestRemovalList`,
+  `TestRemovalListCli`), `test_knowledge_lfs_plan.py` o plano do download do
+  LFS, e `test_knowledge_status.py` o retrato do workflow. `test_ai_api.py` (`TestRetrievalGating`) prova o portão
   do retrieval:
   `interpret`/`explain` só chamam `knowledge_search` quando
   `provider.simulated is False`, e o `mock` nunca aciona rede nenhuma. Um teste

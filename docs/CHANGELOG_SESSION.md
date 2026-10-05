@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [45](#sessão-45--300926-a-051026--o-cérebro-entra-em-produção) | 30/09 a 05/10/2026 | O Cérebro entra em produção pelo GitHub Actions: workflow `conhecimento.yml` (ingestão que baixa do LFS só o que o banco não tem, vetores de 768 dimensões com a sobra noturna da cota gratuita, retrato), ingestão segura contra ponteiro LFS, cópias e versão ilegível, busca sobre índice em memória e a identidade de vetor em `/api/health` (D-101); no merge com `main`, a ingestão direcionada da sessão 39 (`--file`, `--force`) sob as mesmas garantias e a entrada `arquivos` de `ingerir`; na revisão final, o `embed` respeita a lista de remoção | 3338 → 3552 no ramo; 3395 → 3624 com o merge; 3660 com a revisão final; 3699 com o merge do PR #94 | 753 (inalterado no ramo); 762 com o merge do PR #94 |
 | [44](#sessão-44--021026--lote-quádruplo-de-melhorias-seleção-busca-dimensionador-e-eco-audit-opções-1-a-4) | 02/10/2026 | Lote quádruplo de melhorias: duplicação de estágio (P0-1), busca ponderada e destaque (P1-1), seções circulares no solver (P2) e comparação lado a lado no Eco Audit (P3) | 3395 → 3407 | 753 → 762 |
 | [43](#sessão-43--021026--deslocamentos-astronômicos-positivos-e-calc-dominante-no-extrator-html-opção-1) | 02/10/2026 | Descarte de caixas com deslocamento positivo astronômico e avaliação afim de operando negativo dominante em `calc()` no extrator de HTML (D-97/D-99, Opção 1) | 3382 → 3395 | 753 (inalterado) |
 | [42](#sessão-42--021026--herança-de-css-visibility-e-resgate-por-visibilityvisible-no-extrator-html-opção-1) | 02/10/2026 | Herança estrita de CSS `visibility` e resgate de elementos filhos via `visibility:visible` no extrator de HTML dos Cadernos (D-97/D-99, Opção 1) | 3376 → 3382 | 753 (inalterado) |
@@ -26,7 +27,8 @@ por isso que ela tem menos detalhe de processo que as outras.
 | [32](#sessão-32--250926-a-280926--cadernos-fase-3-fontes-externas) | 25 a 28/09/2026 | Cadernos, fase 3: site, YouTube com transcrição colada, OpenAlex, Wikipédia e busca na web pelo Gemini. Tudo por um portão anti-SSRF, com a origem e a licença coladas à citação e custo zero (D-97) | 1966 → 2651 | 563 → 608 |
 | [31](#sessão-31--250926--auditoria-do-pr-78-curva-custo--lote-do-antigravity) | 25/09/2026 | Auditoria do PR #78 (curva custo × lote, execução agêntica externa): comportamento correto, cobertura de teste devolvida e o registro que faltava, escrito (D-96) | 1963 → 1966 | 563 (inalterado) |
 | [30](#sessão-30--250926--o-estúdio-de-texto-dos-cadernos) | 25/09/2026 | Cadernos, fase 2: o Estúdio de texto — relatório, cartões, teste, tabela e mapa mental, gerados em segundo plano e conferidos item a item (D-94) | 1917 → 1966 | 536 → 554 |
-| [29](#sessão-29--250926--cadernos-o-notebooklm-dentro-do-app-e-o-gemini-gratuito) | 25/09/2026 | Cadernos, fase 1: fontes privadas, conversa citada com número conferido, guia, notas e cota, na tela de três painéis do NotebookLM (D-92); o Gemini gratuito como IA oficial, por configuração (D-93) | 1856 → 1906 | 505 → 536 (com os 6 do D-91, mesclado de main) |\n| [28](#sessão-28--240926-a-280926--turma-de-terça-processos-no-objetivo-ux-guiada-pesos-com-limite-e-a-ia) | 24 a 28/09/2026 | Preparação para a turma: processos no Objetivo, Seleção guiada, superfícies enxutas, pesos com limite 1, Objetivo antes de Restrições e a IA do laudo (D-84 a D-89) | 1785 → 1856 | 431 → 505 |
+| [29](#sessão-29--250926--cadernos-o-notebooklm-dentro-do-app-e-o-gemini-gratuito) | 25/09/2026 | Cadernos, fase 1: fontes privadas, conversa citada com número conferido, guia, notas e cota, na tela de três painéis do NotebookLM (D-92); o Gemini gratuito como IA oficial, por configuração (D-93) | 1856 → 1906 | 505 → 536 (com os 6 do D-91, mesclado de main) |
+| [28](#sessão-28--240926-a-280926--turma-de-terça-processos-no-objetivo-ux-guiada-pesos-com-limite-e-a-ia) | 24 a 28/09/2026 | Preparação para a turma: processos no Objetivo, Seleção guiada, superfícies enxutas, pesos com limite 1, Objetivo antes de Restrições e a IA do laudo (D-84 a D-89) | 1785 → 1856 | 431 → 505 |
 | [27](#sessão-27--240926--o-portão-vira-um-modo-acesso-aberto-para-uma-turma-d-83) | 24/09/2026 | Acesso aberto para estudantes com qualquer conta Google, catálogo compartilhado protegido, e o workflow que abre e fecha (D-83) | 1755 → 1785 | 422 → 427 |
 | [26](#sessão-26--21092026-a-22092026--a-auditoria-de-produção-o-seed-desconectado-d-71-e-a-exclusão-de-demo-por-um-flag-d-72) | 21 e 22/09/2026 | Auditoria ao vivo da produção; o defeito do seed desconectado (D-71) achado e corrigido; mecanismo de exclusão de dado demo por `is_demo` (D-72) e a regra escrita para qualquer agente/IDE | 1727 → 1741 | 368 (inalterado) |
 | [25](#sessão-25--210926--a-unidade-de-leitura-fecha-a-matriz) | 21/09/2026 | Unidade de leitura por propriedade (D-70) — ler não é guardar. **Matriz a 32 de 32 (100%)** | 1683 → 1727 | 356 → 368 |
@@ -59,6 +61,120 @@ As sessões entre a 11 e a 12 — o patch de design "Prisma" (D-49, D-50), o
 upgrade de segurança S1 e a rodada de desempenho — **não têm seção própria
 aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
+
+---
+
+## Sessão 45 — 30/09/26 a 05/10/26 — O Cérebro entra em produção
+
+**O pedido.** "Resolva a ingestão do Links.md e ative o RAG" — o passo 3 do A7,
+que a sessão 36 deixou como pergunta. O autor trabalha só na nuvem, e o
+`KNOWLEDGE_DIR` de produção está vazio. Entre só palavras e palavras mais
+vetores, escolheu as duas, aceitando que o texto dos livros vá à API de
+embeddings do Gemini no plano gratuito. Custo zero continua restrição dura.
+
+**O que a medição mudou no plano.** O Cérebro tem 241 PDFs, mas 120 objetos LFS
+distintos (631 MB): 121 são cópias byte a byte, que a ingestão teria indexado
+duas vezes. E a busca, como era, lia o corpus inteiro duas vezes por chamada de
+IA — a ≈18 mil trechos, 135–300 MB de transferência e 300–500 MB de pico numa
+VM de 512 MB. Ingerir sem mudar a consulta teria derrubado a API na primeira
+pergunta. Daí o [D-101](DECISIONS.md), em cinco tarefas de código dirigidas por
+subagentes, mais revisão, duas rodadas de correção e esta documentação:
+
+- **Cliente de embeddings** (`app/knowledge/embeddings.py`):
+  `KNOWLEDGE_EMBEDDING_DIMENSIONS`, enviado como `dimensions` e conferido em
+  todo vetor; erro HTTP tipado com `retry_after` e `daily`; a regra
+  `embedding_matches` (modelo e dimensão).
+- **Ingestão segura** (`app/knowledge/service.py`, `ingest.py`): ponteiro LFS
+  não toca o banco, cópia byte a byte entra uma vez, versão nova ilegível mantém
+  a anterior, `SEM TEXTO` é aviso, commit por documento, `--no-embed`, log
+  redigido fora do manifesto.
+- **`python -m app.knowledge.embed`**: preenchimento retomável dentro da cota,
+  com ritmo, 429 por minuto e diário, 400 em lote e sozinho com trecho-canário,
+  e backoff para 5xx.
+- **Índice em memória** (`app/knowledge/index.py`): BM25 igual bit a bit ao de
+  referência, vetores de uma identidade em `array('f')`, impressões digitais,
+  acréscimo incremental; e o filtro por dimensão também nos Cadernos, onde um
+  vetor de outro tamanho derrubava a semântica de toda consulta.
+- **`python -m app.knowledge.status`**, os campos `knowledge_embedding_model` e
+  `knowledge_embedding_dimensions` em `/api/health`, o workflow
+  `conhecimento.yml` e o `provedor-ia.yml` gravando modelo e 768 juntos.
+
+**A revisão** achou dois problemas importantes e onze menores, todos corrigidos
+com teste que falha sem a correção: um 400 persistente — o Gemini responde a
+uma chave errada com 400, não 401 — virava job verde mandando um pedido por
+trecho, e o `replace_chunks` deixava vetor órfão no SQLite, herdado por trecho
+novo de id reusado. A rerrevisão achou mais dois menores: três trechos
+vizinhos sempre recusados paravam toda execução no mesmo ponto (resolvido com
+o trecho-canário) e a chave podia vazar em parte quando atravessava o corte de
+300 caracteres da mensagem (agora trocada antes do corte).
+
+**Documentação.** D-101, com notas de atualização no D-47, no D-93 e no D-100;
+A7.3 entregue em código e cinco pendências novas de baixa prioridade no TODO;
+13-deploy.md §5-septies com o passo a passo e as linhas de sucesso; 09, README,
+`CLAUDE.md` (os dois), `PROJECT_CONTEXT.md`, os `.env.example`, o README do
+Cérebro e o comentário do `Dockerfile.api` (o `pypdf` é dependência principal
+desde o D-92).
+
+**O merge com `main`.** Enquanto o ramo andava, `main` ganhou a ingestão
+direcionada (sessão 39: `--file`/`--path` e `--force` na CLI,
+`KnowledgeService.ingest(paths=…)` e a ação `conhecimento_indexar_links` do
+`admin-banco.yml`). As duas metades foram juntadas sem que nenhuma perdesse
+garantia: uma execução direcionada passa pela mesma pré-passagem — lista de
+remoção primeiro, ponteiro LFS recusado sem tocar a linha, versão anterior
+mantida —, e `--force` não libera nem ponteiro nem arquivo removido. A escolha
+sobre cópias: **um arquivo nomeado entra mesmo que exista cópia idêntica em
+outro caminho não nomeado** (o operador pediu aquele caminho), e entre nomeados
+idênticos vale a regra de sempre, um só. `resolve_targets` passou a recusar link
+simbólico em qualquer passo do caminho (a versão de `main` checava o caminho já
+resolvido, que nunca é link) e a devolver os caminhos na forma de `discover()`.
+O `conhecimento.yml` ganhou a entrada `arquivos` de `ingerir`: com
+`Links.md`, o LFS não é baixado — é o atalho do pedido original. A ação
+`conhecimento_indexar_links` ficou, com `--no-embed` e sem as chaves de IA no
+ambiente do `admin-banco.yml`, pela regra de uma identidade de vetor só. No
+`CLAUDE.md`, o merge também desfez artefatos de edição de `main` (aspas com
+barra, um `\n` literal) e devolveu o parágrafo final do gstack, apagado sem
+menção no commit.
+
+**A revisão final** da branch inteira achou duas falhas Importantes e seis
+Menores, e as oito foram corrigidas. (1) A noturna podia mandar ao Gemini
+gratuito o texto de um documento já posto em `removidos.txt` e ainda não
+tirado da base — o prune é manual; o `embed` agora lê a lista pelo leitor
+único (`app/knowledge/removal.py`, caminho e sha256), deixa esses trechos de
+fora contando-os num aviso sem nome, e com a lista ilegível sai com 1 antes de
+qualquer pedido. (2) O cache do LFS expira em 7 dias sem uso, então quase toda
+`ingerir` real baixaria de novo os ≈631 MB, e duas num mês passariam da banda
+gratuita de 1 GB — que bloqueia o LFS da conta inteira. O `oid` de um ponteiro
+é o sha256 do arquivo, o mesmo checksum da base: a pré-passagem da ingestão
+passou a usá-lo como *digest* do ponteiro (um ponteiro para os bytes já
+indexados no mesmo caminho sai `inalterado` sem ser lido; dois ponteiros do
+mesmo objeto são cópias), `KnowledgeService.lfs_plan()` lê as mesmas decisões
+para dizer o que baixar, e `python -m app.knowledge.lfs_plan` é o passo novo do
+workflow, que agora instala o Python antes do LFS e baixa arquivo a arquivo com
+`git lfs smudge` (o `--include` do `git lfs pull` separa padrões por vírgula, e
+40 caminhos do Cérebro têm vírgula). E as Menores: uma execução direcionada não
+cria mais a segunda cópia de um arquivo já indexado noutro caminho presente
+(lido do banco; a escolha de cópias do merge, acima, foi substituída);
+`[ingest] ERRO:` diz a posição do `--file`, nunca o caminho; `limite_pedidos` e
+`lote` conferidos pela string inteira, e `arquivos` com outra ação é erro; a
+noturna para em 1000 pedidos; e a documentação ganhou o aviso de concorrência
+nos dois sentidos (a noturna cancela uma ação de `admin-banco` na fila), a
+banda de LFS real e o `1 inalterados` do `Links.md`.
+
+**Números.** Backend 3338 → 3552 no ramo, nenhum skip; com o merge,
+3624 (os 3395 de `main` mais os do ramo e os testes novos da ingestão
+direcionada); com a revisão final, 3660. Com o segundo merge de `main` (o PR #94, sessão
+44), 3699 coletados: 3695 passam e os 4 de `test_notebook_quota_postgres.py`
+pulam sem `POSTGRES_TEST_URL` e rodam na CI. O PR #94 trouxe 39 testes
+coletados, não os 12 que a sessão 44 declara (`main` coleta 3433, não 3407 —
+testes parametrizados contam um por caso). Frontend: 753 no ramo, inalterados;
+762 com o PR #94.
+
+**Pendente, e só o autor faz.** Depois do merge: **Deploy da API** →
+**Provedor de IA** (`gemini`) → **Base de conhecimento (Cérebro)** `status` →
+`ingerir` (fora do horário de aula) → os vetores à noite, ou já com
+`embeddings` → `status` semanal até `faltam 0`. E as decisões dele: tirar do git
+as 121 cópias, os dois Ashby em português, os limites do Neon e a memória do Fly
+depois da primeira consulta (TODO).
 
 ---
 
@@ -145,7 +261,7 @@ No extrator de conteúdo HTML dos Cadernos (`apps/api/app/notebooks/html_text.py
 3. **Cobertura de testes automatizados (`apps/api/app/tests/test_html_hidden_css.py`):**
    - 8 novos casos adicionados à matriz parametrizada `HIDING` (deslocamentos positivos em `left`, `right`, `margin-left`, `translate`, `transform`, e subtrações dominantes em `calc()`).
    - 2 novos casos adicionados à matriz parametrizada `VISIBLE` (`left:9999px` e `position:static;left:9999px`).
-   - 3 novas funções de teste dedicadas:\
+   - 3 novas funções de teste dedicadas:
      - `test_large_positive_displacement_hides_prompt_injection`: valida descarte de caixas com `left:99999px` e `margin-left:10000px`.
      - `test_calc_with_dominant_negative_operand_hides`: valida descarte sob `calc(50% - 20000px)` e `calc(100% - 99999px)`.
      - `test_calc_centering_and_normal_offsets_remain_visible`: comprova que centralizações legítimas em `calc(50% - 10px)` e `calc(50% - 600px)` continuam sendo lidas normalmente.
@@ -300,7 +416,9 @@ E em seguida solicitou a implementação da **Opção A** (Backlog B2 de `docs/T
    - Pool de conexões dimensionado (`pool_size=30, max_overflow=20`) para prevenir contenção local do pool do SQLAlchemy sob disparos de 20 conexões simultâneas.
    - Fallback gracioso com `pytest.mark.skipif(not _is_postgres_available(), ...) ` para execuções locais sem PostgreSQL.
 2. **Integração na CI (`.github/workflows/ci.yml`):**
-   - Adicionado serviço de container `postgres:16` com healthcheck ao job `backend`.\n   - Instalado extra `.[dev,knowledge,postgres]` no job `backend`.\n   - Exportado `POSTGRES_TEST_URL` na matriz Python 3.11 e 3.12, garantindo execução completa dos 3347 testes de backend sem nenhum skip.
+   - Adicionado serviço de container `postgres:16` com healthcheck ao job `backend`.
+   - Instalado extra `.[dev,knowledge,postgres]` no job `backend`.
+   - Exportado `POSTGRES_TEST_URL` na matriz Python 3.11 e 3.12, garantindo execução completa dos 3347 testes de backend sem nenhum skip.
    - Adicionado step dedicado no job `migrations-postgres` para execução explícita de `pytest -v --tb=short app/tests/test_notebook_quota_postgres.py`.
 
 **Números.** Backend 3343 → 3347 (+4 testes multithread, nenhum skip, todos verdes). Frontend 751 (inalterado).

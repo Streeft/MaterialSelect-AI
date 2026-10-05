@@ -56,7 +56,7 @@ elastômeros, Híbridos/compósitos/espumas/materiais naturais, com subpastas po
 subfamília) já veio bem organizada do EduPack e foi mantida como estava —
 não precisa de retrabalho.
 
-## Recomendação de ingestão — evitar travamentos
+## Como esta pasta chega ao RAG
 
 **O que a ingestão lê:** todo PDF desta pasta e, de Markdown, só o que o
 `manifesto.json` declara — hoje, `Links.md`. Este README, o `manifesto.json` e o
@@ -64,26 +64,42 @@ não precisa de retrabalho.
 os declare. Um `.md` novo só vira fonte citável quando ganha entrada no
 manifesto.
 
-Os arquivos aqui variam de ~20 KB (fichas técnicas) a **151 MB** (o maior
-livro). Indexar tudo com o mesmo pipeline, do mesmo jeito, é a causa mais
-provável de travamento/timeout numa consulta:
+**Em produção, pelo GitHub Actions** ([D-101](../docs/DECISIONS.md)): o
+workflow **Base de conhecimento (Cérebro)** (`.github/workflows/conhecimento.yml`),
+ação `ingerir`, baixa os PDFs do Git LFS (com cache), confere que nenhum
+ficou como ponteiro e roda `python -m app.knowledge.ingest --no-embed` contra o
+banco de produção. Os vetores da busca semântica vêm depois, pela ação
+`embeddings` e por uma execução noturna, com a sobra da cota gratuita do Gemini
+(768 dimensões). A API não lê esta pasta: ela lê o banco. Passo a passo em
+[`docs/13-deploy.md`](../docs/13-deploy.md) §5-septies. **Mudou algo aqui
+(PDF novo, trocado, entrada nova no manifesto)? Rode `ingerir` depois do
+merge** — fora do horário de aula. Tirar algo daqui é outro caminho: a lista
+de remoção e o `prune` (D-100), porque a ingestão só acrescenta.
 
-- **`03-*` (fichas Granta) e `04-*`/`05-*`**: arquivos pequenos (a maioria
-  < 1 MB, nenhum > 20 MB). Seguros para indexação direta, arquivo inteiro de
-  uma vez.
-- **`01-Bibliografia/` (livros completos)**: vários arquivos entre 40 MB e
-  151 MB. **Não indexar o PDF inteiro de uma vez.** Ou (a) fatiar por
-  capítulo/faixa de página antes de indexar — o padrão já existe nos
-  `Extratos-de-Capitulos/` —, ou (b) tratar como fonte de consulta sob
-  demanda (RAG com leitura de página específica) em vez de embutir o livro
-  inteiro no índice vetorial.
+**Cópias idênticas são indexadas uma vez.** Esta pasta guarda 121 cópias byte a
+byte (as pastas `Fichas descritivas …` e as cópias avulsas da raiz, na tabela
+abaixo). A ingestão agrupa os arquivos pelo sha256 e indexa um de cada grupo:
+o que o `manifesto.json` declara; sem declaração, o que já está na base; sem
+nenhum dos dois, o primeiro em ordem alfabética. As outras cópias saem como
+`ignorado` e o log as conta por pasta (`[ingest] CÓPIAS em …`). Tirá-las do
+git é decisão do autor, pendente em [`docs/TODO.md`](../docs/TODO.md) — não
+muda o RAG, só o tamanho do clone e da banda de LFS.
 
-Dois arquivos merecem checagem manual antes da próxima ingestão: `Michael
-Ashby (Auth.)-Seleção De Materiais No Projeto Mecânico (2012).pdf` (151 MB) e
+**Tamanho.** Os arquivos variam de ~20 KB (fichas técnicas) a **152 MB** (o
+maior livro). A ingestão lê o livro inteiro, num runner do Actions e não na API,
+com teto de 200 MiB por documento (`KNOWLEDGE_MAX_DOCUMENT_BYTES`) e de 4 000
+trechos por documento (`KNOWLEDGE_MAX_CHUNKS_PER_DOCUMENT`, para um livro enorme
+não ocupar a busca inteira). A consulta nunca abre um PDF: ela ranqueia trechos
+num índice em memória da API. Um PDF digitalizado, sem texto extraível, sai no
+log como `SEM TEXTO` e não entra na busca.
+
+Dois arquivos merecem checagem manual: `Michael Ashby (Auth.)-Seleção De
+Materiais No Projeto Mecânico (2012).pdf` (152 MB) e
 `Selecao_de_Materiais_no_Projeto_Mecanico.pdf` (103 MB), em `01-Bibliografia/`,
-parecem ser a mesma tradução PT do livro do Ashby em dois scans diferentes.
-Não foram mesclados/removidos nesta reorganização por falta de confirmação de
-conteúdo — abra os dois e decida se um deles pode sair.
+parecem ser a mesma tradução PT do livro do Ashby em dois scans diferentes. Não
+são byte a byte iguais, então **os dois são indexados**, e se forem a mesma
+edição o texto aparece em dobro na busca e custa o dobro de vetores. Abra os
+dois e decida se um deles sai (pela lista de remoção, D-100).
 
 ## O que está aqui
 
@@ -94,8 +110,8 @@ conteúdo — abra os dois e decida se um deles pode sair.
 | `01-Bibliografia/` (11 livros comerciais: Ashby, Callister, Apelian…) | bibliografia indicada | sim (LFS) |
 | `01-Bibliografia/Extratos-de-Capitulos/` | capítulos extraídos da bibliografia | sim (LFS) |
 | `03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/` (103 fichas) | banco de dados licenciado ANSYS/Granta | sim (LFS) |
-| `Fichas descritivas de materiais - Granta Edupack - Nível 2/` | cópia idêntica das 103 fichas acima | sim (LFS) |
-| Cópias avulsas na raiz (livros, extratos, diagramas, artigos) | as mesmas obras das pastas numeradas | sim (LFS) |
+| `Fichas descritivas de materiais - Granta Edupack - Nível 2/` | cópia idêntica das 103 fichas acima — **não indexada** (a ingestão fica com a de `03-`) | sim (LFS) |
+| Cópias avulsas na raiz (18: livros, extratos, diagramas, artigos) | as mesmas obras das pastas numeradas — **não indexadas** | sim (LFS) |
 
 **O que saiu** ([D-100](../docs/DECISIONS.md)): a pasta
 `02-Material-de-Curso-ENG02016/` inteira (tópicos de aula 1 a 6, plano de aulas,
@@ -135,6 +151,15 @@ GIT_LFS_SKIP_SMUDGE=1 git clone https://github.com/Streeft/MaterialSelect-AI.git
 
 Pelo mesmo motivo, nenhum job de CI deve baixar objetos LFS: o `actions/checkout`
 não os baixa por padrão, e `lfs: true` não deve ser ligado sem necessidade real.
+A exceção é uma só: a ação `ingerir` do workflow **Base de conhecimento
+(Cérebro)**, que baixa **só os PDFs que o banco ainda não tem** com aqueles
+bytes — o `oid` do ponteiro LFS é o sha256 do arquivo, o mesmo checksum que a
+base guarda (`python -m app.knowledge.lfs_plan`). A primeira ingestão completa
+baixa os 120 PDFs distintos (≈631 MB, mais da metade da banda do mês); as
+seguintes, só os novos ou mudados e os que falharam antes, e o plano imprime os
+MB antes de baixar. O que foi baixado fica no `actions/cache` por 7 dias sem
+uso, o que poupa só uma repetição próxima. As outras ações do workflow não
+baixam nada.
 
 **O licenciamento continua em aberto.** Este repositório é público, e livro
 comercial íntegro e extrato de banco licenciado ANSYS/Granta agora estão

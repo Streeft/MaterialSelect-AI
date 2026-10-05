@@ -9,9 +9,11 @@
 #
 # Extras: `postgres` traz o psycopg, que a DATABASE_URL de produção exige;
 # `billing` traz o stripe, importado preguiçosamente por billing_service mas
-# necessário assim que uma chave for configurada. `knowledge` (pypdf) fica de
-# fora de propósito — serve para ingerir o Cérebro, operação offline que não
-# acontece dentro deste contêiner.
+# necessário assim que uma chave for configurada. O extra `knowledge` não entra
+# e não faz falta: o `pypdf` é dependência principal desde o D-92, porque os
+# Cadernos leem o PDF que o aluno envia. O Cérebro não é ingerido dentro deste
+# contêiner — a imagem não leva os PDFs, e quem ingere é o workflow "Base de
+# conhecimento (Cérebro)" (D-101); a API só lê o que ele gravou no banco.
 FROM python:3.12-slim
 
 # Não escreve .pyc e não bufferiza stdout: log aparece na hora no painel do

@@ -1,0 +1,498 @@
+# Põe o Cérebro no banco de produção e o mantém lá (D-101), sem terminal.
+#
+#   status               só lê: documentos, trechos, vetores por modelo e
+#                        dimensão, quanto falta, tamanho do banco, órfãos — e
+#                        confere se a API consulta com a mesma identidade de
+#                        vetor que este workflow grava ("API vs vetores").
+#   ingerir              baixa do Git LFS só os PDFs que o banco ainda não
+#                        tem (`python -m app.knowledge.lfs_plan`) e roda
+#                        `python -m app.knowledge.ingest --no-embed`: extrai o
+#                        texto e grava os trechos. A busca léxica já funciona
+#                        depois disto. NÃO recebe chave de IA nenhuma.
+#                        Com `arquivos` preenchido (ex.: `Links.md`), só esses
+#                        arquivos, por `--file` — e o mesmo plano decide se
+#                        algum deles precisa ser baixado.
+#   embeddings           gera vetores agora, até `limite_pedidos` pedidos
+#                        (`python -m app.knowledge.embed`).
+#   (noturno, sozinho)   o mesmo, toda noite, com a sobra da cota diária
+#                        gratuita do Gemini — até 1000 pedidos ou o fim da
+#                        janela antes da virada da cota (meia-noite do
+#                        Pacífico), o que vier antes.
+#
+# Os vetores nunca levam ao Google um trecho de documento que está em
+# `Cérebro/removidos.txt` (D-100): o `embed` lê a lista e deixa esses trechos
+# de fora até a ação `conhecimento_remover` tirá-los da base.
+#
+# **Não é uma ação do `admin-banco.yml` de propósito.** Aquele arquivo promete
+# "só `workflow_dispatch`" como propriedade de segurança, e a execução noturna
+# precisa de `schedule`. `schedule` também não expõe segredo a terceiros: só
+# roda no repositório, com o código do ramo padrão — nunca num fork, nunca
+# num PR. As entradas digitadas chegam ao shell por `env:`, nunca por
+# interpolação `${{ }}` dentro do `run:`, e são validadas antes de usar.
+#
+# **O log é público.** Os comandos imprimem caminho inteiro só do que
+# `Cérebro/manifesto.json` declara; o resto sai como pasta + início do sha256.
+# Nenhum texto de trecho, nenhuma chave.
+#
+# **Uma identidade de vetor só:** as três variáveis de `env:` abaixo são a fonte
+# desta escolha. O `provedor-ia.yml` repete o modelo e as 768 dimensões ao
+# gravar os segredos do Fly (é o que a API usa para embedar a pergunta); se os
+# dois divergirem, os vetores gravados aqui ficam fora da busca semântica — e o
+# passo "Retrato" desta execução mostra isso na linha "API vs vetores".
+#
+# **Custo zero.** O plano gratuito do GitHub dá 1 GB de banda de Git LFS por
+# mês, e o Cérebro inteiro tem ≈600 MB. Por isso `ingerir` baixa só o que o
+# banco não tem: o `oid` de um ponteiro LFS é o sha256 do arquivo, o mesmo
+# `checksum` que a base guarda, e um PDF já indexado com esses bytes é dado como
+# inalterado sem ser baixado. A primeira ingestão completa baixa o Cérebro
+# inteiro (mais da metade da cota do mês); as seguintes, só os PDFs novos ou
+# mudados — e os que falharam antes, que são lidos de novo. O que foi baixado
+# fica em cache (`actions/cache`) por 7 dias sem uso. Os vetores usam a mesma
+# chave gratuita do Gemini (`GEMINI_API_KEY`, sem faturamento) do
+# `provedor-ia.yml`; a cota diária esgotada encerra com sucesso e a noite
+# seguinte continua — e a execução noturna para em 1000 pedidos, o volume
+# gratuito do dia, mesmo que a chave um dia passe a ter faturamento.
+#
+# Não entra em `scripts/protect-main.ps1` — ver a mesma nota em `deploy-api.yml`.
+#
+# Pré-requisitos (Settings → Secrets and variables → Actions), os dois já
+# existentes: `DATABASE_URL` (o mesmo do `admin-banco.yml`) e `GEMINI_API_KEY`
+# (o mesmo do `provedor-ia.yml`; só as ações de vetores o recebem).
+name: Base de conhecimento (Cérebro)
+
+on:
+  workflow_dispatch:
+    inputs:
+      acao:
+        description: "status = retrato; ingerir = extrair texto dos PDFs (sem IA); embeddings = gerar vetores agora"
+        required: true
+        type: choice
+        default: status
+        options:
+          - status
+          - ingerir
+          - embeddings
+      arquivos:
+        description: "Só para ingerir: caminhos dentro de Cérebro/, separados por ';' (ex.: Links.md). Vazio = a pasta inteira"
+        required: false
+        type: string
+        default: ""
+      limite_pedidos:
+        description: "Só para embeddings: máximo de pedidos ao Gemini nesta execução (0 = até a cota do dia acabar)"
+        required: false
+        type: string
+        default: "300"
+      lote:
+        description: "Só para embeddings: trechos por pedido"
+        required: false
+        type: string
+        default: "20"
+  # 05:07 UTC = 22:07 no horário de verão do Pacífico (21:07 fora dele): a
+  # última hora e pouco antes de a cota diária do Gemini virar, quando o que
+  # sobrou do dia já não serve a mais ninguém. O passo "Janela noturna" confere
+  # a hora de verdade, porque o GitHub pode atrasar um agendamento.
+  schedule:
+    - cron: "7 5 * * *"
+
+# O mesmo grupo do `admin-banco.yml`: as duas escrevem nas mesmas tabelas, e
+# uma ingestão não pode correr junto de um `conhecimento_remover`.
+concurrency:
+  group: admin-banco
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+# A identidade dos vetores — ver o cabeçalho. Não são as variáveis que o app
+# lê (KNOWLEDGE_EMBEDDING_*): só o passo de vetores as repassa a elas.
+env:
+  EMBEDDING_BASE_URL: https://generativelanguage.googleapis.com/v1beta/openai
+  EMBEDDING_MODEL: gemini-embedding-001
+  EMBEDDING_DIMENSIONS: "768"
+
+jobs:
+  executar:
+    name: ${{ inputs.acao || 'embeddings_noturno' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 200
+    env:
+      # Sem entrada (o agendamento), a ação é a noturna.
+      ACAO: ${{ inputs.acao || 'embeddings_noturno' }}
+    steps:
+      # Sem LFS: os PDFs chegam como ponteiros. Só `ingerir` precisa deles, e
+      # os baixa abaixo, com cache.
+      - uses: actions/checkout@v7
+        with:
+          lfs: false
+
+      # Antes de tudo, para uma noite fora da janela sair em segundos.
+      - name: Janela noturna
+        if: env.ACAO == 'embeddings_noturno'
+        run: |
+          set -euo pipefail
+          hora=$(TZ=America/Los_Angeles date +%H)
+          case "$hora" in
+            21|22|23) ;;
+            *)
+              echo "::notice::Agendamento fora da janela (são ${hora}h no Pacífico; a janela é 21h–23h50, antes da virada da cota do Gemini). Nada feito; a próxima noite tenta de novo."
+              echo "PULAR=1" >> "$GITHUB_ENV"
+              exit 0
+              ;;
+          esac
+          agora=$(date +%s)
+          fim=$(TZ=America/Los_Angeles date -d 'today 23:50' +%s)
+          minutos=$(( (fim - agora) / 60 ))
+          if [ "$minutos" -lt 5 ]; then
+            echo "::notice::Faltam ${minutos} min para 23h50 no Pacífico: não compensa começar. Nada feito."
+            echo "PULAR=1" >> "$GITHUB_ENV"
+            exit 0
+          fi
+          echo "Janela noturna: ${minutos} min até 23h50 no Pacífico."
+          echo "PRAZO_MINUTOS=$minutos" >> "$GITHUB_ENV"
+
+      - name: Conferir DATABASE_URL
+        if: env.PULAR != '1'
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          if [ -z "${DATABASE_URL:-}" ]; then
+            echo "::error::O secret DATABASE_URL não está definido."
+            exit 1
+          fi
+          case "$DATABASE_URL" in
+            postgresql+psycopg://*) ;;
+            *)
+              echo "::error::DATABASE_URL precisa começar com 'postgresql+psycopg://' — sem isso o SQLAlchemy procura o psycopg2, que não está instalado."
+              exit 1
+              ;;
+          esac
+
+      # `arquivos` só vale para `ingerir`: preenchido com outra ação, é um
+      # engano do operador, e ignorá-lo em silêncio o deixaria achar que valeu.
+      - name: Conferir as entradas
+        if: env.ACAO != 'embeddings_noturno'
+        env:
+          ARQUIVOS: ${{ inputs.arquivos }}
+        run: |
+          set -euo pipefail
+          lista="${ARQUIVOS:-}"
+          if [ "$ACAO" != "ingerir" ] && [ -n "${lista//[[:space:]]/}" ]; then
+            echo "::error::arquivos só vale para a ação ingerir (esta é $ACAO). Deixe vazio ou escolha ingerir."
+            exit 1
+          fi
+
+      # --- Arquivos pedidos, só para `ingerir` ---------------------------------
+      # Vazio: a pasta inteira. Preenchido: cada caminho é conferido aqui
+      # (relativo a Cérebro/, sem `..`, arquivo regular, sem link simbólico).
+      # A ingestão confere tudo de novo (`resolve_targets`), inclusive o que só
+      # ela sabe: extensão, manifesto, lista de remoção. Os caminhos não são
+      # impressos aqui — o erro diz a posição na lista. O que baixar do LFS é
+      # decidido depois, pelo plano, com estes mesmos caminhos.
+      - name: Conferir os arquivos pedidos
+        if: env.ACAO == 'ingerir'
+        env:
+          ARQUIVOS: ${{ inputs.arquivos }}
+        run: |
+          set -euo pipefail
+          lista_nul="$RUNNER_TEMP/cerebro-arquivos"
+          : > "$lista_nul"
+          lista="${ARQUIVOS:-}"
+          if [ -z "${lista//[[:space:]]/}" ]; then
+            echo "Sem arquivos pedidos: a pasta Cérebro/ inteira."
+            exit 0
+          fi
+          case "$lista" in
+            *$'\n'*|*$'\r'*)
+              echo "::error::arquivos tem quebra de linha: separe os caminhos por ';'."
+              exit 1
+              ;;
+          esac
+          raiz="$(realpath -e -- "$GITHUB_WORKSPACE")"
+          IFS=';' read -r -a itens <<< "$lista"
+          n=0; posicao=0
+          for item in "${itens[@]}"; do
+            posicao=$((posicao + 1))
+            item="${item#"${item%%[![:space:]]*}"}"
+            item="${item%"${item##*[![:space:]]}"}"
+            [ -n "$item" ] || continue
+            item="${item#Cérebro/}"
+            if printf '%s' "$item" | LC_ALL=C grep -q '[[:cntrl:]]'; then
+              echo "::error::O caminho nº $posicao de arquivos tem caractere de controle."
+              exit 1
+            fi
+            case "$item" in
+              /*|-*|\\*)
+                echo "::error::O caminho nº $posicao de arquivos tem de ser relativo a Cérebro/ (sem '/' ou '-' no começo)."
+                exit 1
+                ;;
+            esac
+            case "/$item/" in
+              */../*|*/./*|*//*)
+                echo "::error::O caminho nº $posicao de arquivos tem '..', '.' ou '//': escreva o caminho direto, dentro de Cérebro/."
+                exit 1
+                ;;
+            esac
+            caminho="Cérebro/$item"
+            # Nenhum componente pode ser link: o caminho real tem de ser o escrito.
+            real="$(realpath -e -- "$caminho" 2>/dev/null || true)"
+            if [ -z "$real" ] || [ ! -f "$real" ] || [ "$real" != "$raiz/$caminho" ]; then
+              echo "::error::O caminho nº $posicao de arquivos não é um arquivo de Cérebro/ (não existe, é pasta ou passa por link simbólico)."
+              exit 1
+            fi
+            printf '%s\0' "$item" >> "$lista_nul"
+            n=$((n + 1))
+          done
+          if [ "$n" -eq 0 ]; then
+            echo "::error::arquivos não tem caminho nenhum (só ';' e espaços). Deixe vazio para a pasta inteira."
+            exit 1
+          fi
+          echo "ARQUIVOS_PEDIDOS=$lista_nul" >> "$GITHUB_ENV"
+          echo "$n arquivo(s) pedido(s)."
+
+      # --- Python ----------------------------------------------------------------
+      # Antes do LFS: é o Python, lendo o banco, que diz o que baixar.
+      - name: Preparar Python
+        if: env.PULAR != '1'
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      # Os mesmos extras do `admin-banco.yml` (e do Dockerfile.api). O pypdf,
+      # que a ingestão usa, é dependência principal desde o D-92.
+      - name: Instalar dependências
+        id: instalar
+        if: env.PULAR != '1'
+        working-directory: apps/api
+        run: pip install -e ".[postgres,billing]"
+
+      # --- Git LFS, só para `ingerir` ------------------------------------------
+      # O plano lê o banco e os ponteiros do checkout e lista só os arquivos que
+      # a ingestão vai ler e o banco ainda não tem: o oid de um ponteiro é o
+      # sha256 do arquivo, o mesmo checksum da base. Já indexado com esses
+      # bytes, cópia de outro caminho ou na lista de remoção: não é baixado. É
+      # a mesma decisão que a ingestão toma (KnowledgeService.lfs_plan), com os
+      # mesmos `--file` — baixado o que ele lista, nenhum arquivo que a
+      # ingestão lê é ponteiro. Só lê o banco, e sem chave de IA nenhuma.
+      - name: Planejar o download do LFS
+        if: env.ACAO == 'ingerir'
+        working-directory: apps/api
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          ENVIRONMENT: production
+        run: |
+          set -euo pipefail
+          export KNOWLEDGE_DIR="$GITHUB_WORKSPACE/Cérebro"
+          baixar="$RUNNER_TEMP/cerebro-lfs-baixar"
+          alvos=()
+          if [ -n "${ARQUIVOS_PEDIDOS:-}" ]; then
+            while IFS= read -r -d '' arquivo; do
+              alvos+=("--file=$arquivo")
+            done < "$ARQUIVOS_PEDIDOS"
+          fi
+          python -m app.knowledge.lfs_plan --output "$baixar" --ids "$GITHUB_WORKSPACE/.lfs-cerebro-ids" "${alvos[@]}"
+          echo "LFS_BAIXAR=$baixar" >> "$GITHUB_ENV"
+          if [ -s "$baixar" ]; then
+            echo "LFS_NECESSARIO=1" >> "$GITHUB_ENV"
+          fi
+
+      # A chave do cache é o conjunto de oids a baixar: a mesma lista dá a
+      # mesma chave e nada é baixado de novo (uma ingestão repetida depois de
+      # falhar, dentro de 7 dias). Um cache anterior (restore-keys) traz o que
+      # tiver em comum.
+      - name: Restaurar o cache do LFS
+        id: cache-lfs
+        if: env.ACAO == 'ingerir' && env.LFS_NECESSARIO == '1'
+        uses: actions/cache/restore@v6
+        with:
+          path: .git/lfs/objects
+          key: lfs-cerebro-v1-${{ hashFiles('.lfs-cerebro-ids') }}
+          restore-keys: |
+            lfs-cerebro-v1-
+
+      # Arquivo a arquivo, pelo `git lfs smudge`: lê o ponteiro, devolve o
+      # arquivo (do cache, se estiver lá; senão, baixa) e o guarda em
+      # .git/lfs/objects. Não `git lfs pull --include`: a lista de padrões dele
+      # é separada por vírgula, e 40 caminhos do Cérebro têm vírgula. O nome
+      # passado ao smudge é neutro, porque ele o imprime ("Downloading …") e o
+      # log é público.
+      - name: Baixar do LFS o que o plano listou
+        id: lfs-pull
+        if: env.ACAO == 'ingerir' && env.LFS_NECESSARIO == '1'
+        run: |
+          set -euo pipefail
+          export GIT_LFS_SKIP_SMUDGE=0
+          no_cache=0; faltam=0
+          while IFS= read -r oid; do
+            if [ -f ".git/lfs/objects/${oid:0:2}/${oid:2:2}/$oid" ]; then
+              no_cache=$((no_cache + 1))
+            else
+              faltam=$((faltam + 1))
+            fi
+          done < .lfs-cerebro-ids
+          echo "LFS: $no_cache objeto(s) já no cache, $faltam a baixar."
+          temporario="$RUNNER_TEMP/cerebro-lfs-objeto"
+          n=0
+          while IFS= read -r -d '' relativo; do
+            n=$((n + 1))
+            arquivo="Cérebro/$relativo"
+            if ! git lfs smudge -- "cerebro-$n.bin" < "$arquivo" > "$temporario"; then
+              echo "::error::O download do arquivo nº $n do plano falhou (banda ou cota de LFS?). Nada foi escrito no banco; repita a ação."
+              exit 1
+            fi
+            mv -f -- "$temporario" "$arquivo"
+          done < "$LFS_BAIXAR"
+          echo "LFS: $n arquivo(s) no lugar dos ponteiros."
+          # Tira do diretório o que este plano não usou, para o cache salvo
+          # não crescer a cada execução.
+          if [ -d .git/lfs/objects ]; then
+            find .git/lfs/objects -type f | while IFS= read -r objeto; do
+              grep -qxF "$(basename "$objeto")" .lfs-cerebro-ids || rm -f -- "$objeto"
+            done
+          fi
+
+      # Uma chave de cache não se sobrescreve: só o conjunto completo leva a
+      # chave dos oids. Um download interrompido (banda de LFS, rede) ainda é
+      # guardado, com chave própria, para a próxima execução retomar dele pelo
+      # restore-keys em vez de recomeçar.
+      - name: Salvar o cache do LFS
+        if: env.ACAO == 'ingerir' && steps.lfs-pull.outcome == 'success' && steps.cache-lfs.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: .git/lfs/objects
+          key: lfs-cerebro-v1-${{ hashFiles('.lfs-cerebro-ids') }}
+
+      - name: Salvar o download parcial do LFS
+        if: failure() && env.ACAO == 'ingerir' && steps.lfs-pull.outcome == 'failure'
+        uses: actions/cache/save@v6
+        with:
+          path: .git/lfs/objects
+          key: lfs-cerebro-v1-parcial-${{ github.run_id }}-${{ github.run_attempt }}
+
+      # Os ponteiros que ficam no disco são os que a ingestão não lê (já
+      # indexados, cópias, lista de remoção). Os que o plano mandou baixar
+      # não podem ter ficado: lido como PDF, um ponteiro seria um documento
+      # ilegível. A ingestão já o recusa sem escrever nada (T1), mas a execução
+      # tem de falhar aqui, antes do Python, com a causa escrita.
+      - name: Conferir que nenhum arquivo baixado ficou ponteiro
+        if: env.ACAO == 'ingerir' && env.LFS_NECESSARIO == '1'
+        run: |
+          set -euo pipefail
+          restantes=0; n=0
+          while IFS= read -r -d '' relativo; do
+            n=$((n + 1))
+            if [ "$(head -c 40 -- "Cérebro/$relativo" | tr -d '\0')" = "version https://git-lfs.github.com/spec/" ]; then
+              restantes=$((restantes + 1))
+            fi
+          done < "$LFS_BAIXAR"
+          if [ "$restantes" -gt 0 ]; then
+            # Só a contagem: o log é público.
+            echo "::error::$restantes de $n arquivo(s) do plano ainda são ponteiros do Git LFS, não PDFs. O download não trouxe tudo (banda ou cota de LFS?). Nada foi escrito no banco; repita a ação."
+            exit 1
+          fi
+          echo "Nenhum dos $n arquivo(s) baixado(s) ficou ponteiro: os PDFs estão inteiros."
+
+      # Sem chave de IA nenhuma no ambiente: `--no-embed` nem constrói o
+      # cliente de embeddings, e os vetores são das ações abaixo.
+      - name: Ingerir
+        if: env.ACAO == 'ingerir'
+        working-directory: apps/api
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          # `seed_e2e_session` só grava a sessão fixa do Playwright em
+          # development; declarar `production` fecha essa porta aqui também.
+          ENVIRONMENT: production
+        run: |
+          set -euo pipefail
+          export KNOWLEDGE_DIR="$GITHUB_WORKSPACE/Cérebro"
+          # `--file=<caminho>` numa palavra só: um caminho nunca é lido como opção.
+          alvos=()
+          if [ -n "${ARQUIVOS_PEDIDOS:-}" ]; then
+            while IFS= read -r -d '' arquivo; do
+              alvos+=("--file=$arquivo")
+            done < "$ARQUIVOS_PEDIDOS"
+          fi
+          python -m app.knowledge.ingest --no-embed "${alvos[@]}"
+
+      - name: Gerar vetores
+        if: env.PULAR != '1' && (env.ACAO == 'embeddings' || env.ACAO == 'embeddings_noturno')
+        working-directory: apps/api
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          ENVIRONMENT: production
+          KNOWLEDGE_EMBEDDING_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          LIMITE: ${{ inputs.limite_pedidos || '300' }}
+          LOTE: ${{ inputs.lote || '20' }}
+        run: |
+          set -euo pipefail
+          if [ -z "${KNOWLEDGE_EMBEDDING_API_KEY:-}" ]; then
+            echo "::error::Crie o secret GEMINI_API_KEY (Google AI Studio → Get API key, sem faturamento) — o mesmo do workflow Provedor de IA."
+            exit 1
+          fi
+          # A string inteira, não linha a linha: "300\nabc" não passa.
+          if ! [[ $LIMITE =~ ^[0-9]{1,6}$ ]]; then
+            echo "::error::limite_pedidos precisa ser um inteiro ≥ 0 (0 = até a cota do dia acabar)."
+            exit 1
+          fi
+          if ! [[ $LOTE =~ ^[1-9][0-9]{0,2}$ ]]; then
+            echo "::error::lote precisa ser um inteiro entre 1 e 999."
+            exit 1
+          fi
+          export KNOWLEDGE_EMBEDDING_BASE_URL="$EMBEDDING_BASE_URL"
+          export KNOWLEDGE_EMBEDDING_MODEL="$EMBEDDING_MODEL"
+          export KNOWLEDGE_EMBEDDING_DIMENSIONS="$EMBEDDING_DIMENSIONS"
+          # A lista de remoção do checkout: os trechos dos documentos dela não
+          # são enviados. Ilegível, o embed sai com 1 antes de qualquer pedido.
+          export KNOWLEDGE_DIR="$GITHUB_WORKSPACE/Cérebro"
+          if [ "$ACAO" = "embeddings_noturno" ]; then
+            # Até a cota do dia acabar, 23h50 no Pacífico ou 1000 pedidos — o
+            # volume gratuito do dia. O teto é o que segura uma chave que um
+            # dia ganhe faturamento: sem 429 diário, ela iria até o prazo.
+            limite=1000
+            prazo="$PRAZO_MINUTOS"
+          else
+            limite="$LIMITE"
+            prazo=120
+          fi
+          python -m app.knowledge.embed \
+            --list "$KNOWLEDGE_DIR/removidos.txt" \
+            --max-requests "$limite" \
+            --batch "$LOTE" \
+            --rpm 90 \
+            --tpm 27000 \
+            --deadline-minutes "$prazo"
+
+      # Depois de toda ação, inclusive de uma que falhou: é o retrato que prova
+      # o que ficou no banco (D-71).
+      - name: Retrato
+        if: ${{ !cancelled() && env.PULAR != '1' && steps.instalar.outcome == 'success' }}
+        working-directory: apps/api
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          ENVIRONMENT: production
+        run: |
+          set -euo pipefail
+          export KNOWLEDGE_DIR="$GITHUB_WORKSPACE/Cérebro"
+          python -m app.knowledge.status --model "$EMBEDDING_MODEL" --dimensions "$EMBEDDING_DIMENSIONS"
+
+          # API vs vetores: a API embeda a pergunta com a identidade dos
+          # segredos do Fly (gravados pelo provedor-ia.yml). Diferente da
+          # identidade acima, todo vetor gravado aqui fica fora da busca.
+          app="$(grep -E '^app *= *"' "$GITHUB_WORKSPACE/fly.toml" | sed -E 's/^app *= *"([^"]+)".*/\1/')"
+          corpo="$(curl -fsS --max-time 15 "https://${app}.fly.dev/api/health" || echo 'null')"
+          if [ "$(printf '%s' "$corpo" | jq -r 'type')" != "object" ]; then
+            echo "::warning::[status] API vs vetores: /api/health não respondeu; comparação não feita."
+            exit 0
+          fi
+          if [ "$(printf '%s' "$corpo" | jq -r 'has("knowledge_embedding_model")')" != "true" ]; then
+            echo "::warning::[status] API vs vetores: a API publicada é anterior ao D-101 e não informa o modelo de embedding. Dispare 'Deploy da API'."
+            exit 0
+          fi
+          modelo="$(printf '%s' "$corpo" | jq -r '.knowledge_embedding_model // "nenhum"')"
+          dimensoes="$(printf '%s' "$corpo" | jq -r '.knowledge_embedding_dimensions // "nativas"')"
+          if [ "$modelo" = "$EMBEDDING_MODEL" ] && [ "$dimensoes" = "$EMBEDDING_DIMENSIONS" ]; then
+            echo "[status] API vs vetores: ✔ a API consulta com $modelo ($dimensoes dimensões), a mesma identidade dos vetores gravados por este workflow."
+          else
+            echo "[status] API vs vetores: ✘ a API consulta com $modelo ($dimensoes dimensões), e este workflow grava $EMBEDDING_MODEL ($EMBEDDING_DIMENSIONS dimensões)."
+            echo "::warning::[status] API vs vetores: identidades diferentes — a busca semântica ignora os vetores gravados aqui. Dispare 'Provedor de IA' com gemini."
+          fi

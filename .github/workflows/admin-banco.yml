@@ -69,10 +69,6 @@ jobs:
       - name: Executar
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          KNOWLEDGE_EMBEDDING_BASE_URL: ${{ secrets.KNOWLEDGE_EMBEDDING_BASE_URL }}
-          KNOWLEDGE_EMBEDDING_API_KEY: ${{ secrets.KNOWLEDGE_EMBEDDING_API_KEY }}
-          AI_BASE_URL: ${{ secrets.AI_BASE_URL }}
-          AI_API_KEY: ${{ secrets.AI_API_KEY }}
           # `seed_e2e_session` só grava a sessão fixa do Playwright quando
           # ENVIRONMENT=development; declarar `production` fecha essa porta aqui
           # de forma explícita, em vez de depender do padrão do config.
@@ -151,7 +147,11 @@ jobs:
               # Ingesta Links.md de Cérebro/Links.md no RAG de produção (Neon).
               # Como o repositório é clonado pelo Actions e Links.md é versionado,
               # não depende de LFS nem dos arquivos grandes de KNOWLEDGE_DIR.
-              KNOWLEDGE_DIR="$GITHUB_WORKSPACE/Cérebro" python -m app.knowledge.ingest --file Links.md
+              # Só o texto (`--no-embed`), sem chave de IA no ambiente: os vetores
+              # têm uma identidade só, gravada pelo `conhecimento.yml` (D-101),
+              # que é também onde `ingerir` com `arquivos` faz o mesmo para
+              # qualquer arquivo do Cérebro.
+              KNOWLEDGE_DIR="$GITHUB_WORKSPACE/Cérebro" python -m app.knowledge.ingest --no-embed --file=Links.md
               ;;
             conceder)
               exigir_email
