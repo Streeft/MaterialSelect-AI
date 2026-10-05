@@ -297,13 +297,24 @@ runner do Actions que pode entregar o arquivo errado:
 - **PDF sem texto** (digitalizado): marcado, e o CLI imprime
   `SEM TEXTO … (provavelmente digitalizado)` sem falhar a execução.
 
-O CLI (`python -m app.knowledge.ingest [--no-embed]`) grava documento a
+O CLI (`python -m app.knowledge.ingest [--no-embed] [--file …] [--force]`) grava documento a
 documento, imprime caminho inteiro só do que o manifesto declara — o resto sai
 como pasta mais o começo do sha256, porque o log do Actions é público — e sai
 com 1 só quando houve falha que não seja PDF sem texto. `--no-embed` não
 constrói o cliente de embeddings: os vetores ficam para o `embed`. Um documento
 já indexado e sem mudança não passa pelo teto de tamanho, então baixar
 `KNOWLEDGE_MAX_DOCUMENT_BYTES` não o derruba.
+
+`--file <caminho>` (alias `--path`, repetível) ingere só os arquivos nomeados,
+relativos a `KNOWLEDGE_DIR`, sem andar o resto da pasta — `Links.md` sozinho não
+precisa dos PDFs no disco. Cada nome tem de ser um arquivo que a descoberta
+acharia: dentro da raiz, sem link simbólico em passo nenhum, de tipo suportado,
+não operacional e, se Markdown, declarado no manifesto; um nome inválido recusa
+a execução inteira antes de escrever (`[ingest] ERRO: …`, saída 1). As regras
+acima valem igual para os nomeados, com uma diferença deliberada: a cópia
+idêntica num caminho **não** nomeado não impede o nomeado de entrar. `--force`
+reextrai mesmo com checksum igual, mas não libera ponteiro LFS nem arquivo da
+lista de remoção ([D-101](DECISIONS.md), atualização do merge).
 
 ### Citação verificada, só em `explain()`
 

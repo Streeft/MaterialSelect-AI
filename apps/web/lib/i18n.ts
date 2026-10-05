@@ -775,6 +775,7 @@ export const ptBR = {
     csv: "CSV",
     xlsx: "XLSX",
     docx: "DOCX",
+    pptx: "PPTX",
     html: "HTML para impressão",
     htmlTitle: "Abre em nova aba, pronto para imprimir ou salvar como PDF",
     htmlHint: "Abre em nova aba, para imprimir ou salvar em PDF",
@@ -979,7 +980,7 @@ export const ptBR = {
     eolIncineration: "Incineração",
     eolHint:
       "Aterro e incineração não têm energia catalogada nesta versão, e não viram zero: enterrar uma peça pareceria a coisa mais barata a fazer com ela.",
-    // D-86: os números do uso ficam recolhidos, com cada valor no resumo.
+    // D-86: os números do uso ficam recolhidos, com cada valor no resumo.",
     materialHint: "Digite parte do nome do material.",
     useSummaryStatic: (life: string, power: string, duty: string, carbon: string) =>
       `Premissas: ${life} anos · ${power} W · ciclo ${duty} · ${carbon} kg CO₂/MJ`,
@@ -1792,7 +1793,7 @@ export const ptBR = {
     // D-95: the chart-type switch in a figure's corner.
     viewColumns: "Colunas",
     viewBars: "Barras horizontais",
-    // D-91: the two formats sit in one "Exportar" menu.
+    // D-91: the two formats sit in one \"Exportar\" menu.
     exportMenu: "Exportar",
     exportPng: "PNG",
     exportPngHint: "Imagem, para slides e documentos",
@@ -1811,7 +1812,7 @@ export const ptBR = {
     dataTableHint: "Os mesmos números que a figura desenha, em texto.",
     // D-80: o cartão MSDS troca a figura pela tabela no mesmo lugar, em vez de
     // abrir a tabela embaixo dela. D-91: a troca é uma alternância de duas
-    // posições, "Gráfico | Tabela", e não mais um link solto.
+    // posições, \"Gráfico | Tabela\", e não mais um link solto.
     view: "Visualização",
     showTable: "Tabela",
     showFigure: "Gráfico",
@@ -1958,7 +1959,7 @@ export const ptBR = {
     coverageOf: (filled: number, slots: number) =>
       `${filled} de ${slots} pares preenchidos`,
     // A classe sem nenhum par material×propriedade não tem percentual: escrito,
-    // nunca "0%" (D-24).
+    // nunca \"0%\" (D-24).
     noSlots: "sem pares",
     ofSlots: (slots: number) => `de ${slots} ${slots === 1 ? "par" : "pares"}`,
     coverageEmpty: "Sem pares material×propriedade para cobrir.",
@@ -2265,7 +2266,7 @@ export const ptBR = {
     methodHint:
       "É o percurso de Ashby: descreva a função, diga o que se quer otimizar, elimine com restrições e leia o resultado com a proveniência de cada número. O cálculo filtra e só então ordena — a ordem da tela é a de quem pensa o problema.",
     // D-88: chaves por nome, não por posição — a ordem da tela mudou uma vez e
-    // "step2" passaria a querer dizer outra coisa.
+    // \"step2\" passaria a querer dizer outra coisa.
     stepFunction: "Função",
     stepFunctionHint: "O que o componente faz e o que se quer otimizar.",
     stepObjective: "Objetivo",

@@ -277,8 +277,7 @@ Fases 1 a 9 concluídas. **Fase 7 (relatórios e qualidade) concluída** — as
 exportações CSV/XLSX, o relatório HTML imprimível, os testes end-to-end de
 interface (A4, Playwright em `apps/web/e2e/`), a autenticação (A5) e a
 auditoria (M2 — `AuditEvent`, quem mudou o quê e quando, retrato em vez de
-junção viva, [D-43](docs/DECISIONS.md)) já saíram; falta só a arquitetura para
-PPTX (B2, baixa prioridade). **A5** deu login exclusivamente por terceiros
+junção viva, [D-43](docs/DECISIONS.md)) já saíram; a exportação nativa em PPTX (B2), cobrindo catálogo, estudo e laudo, foi entregue (3362 → 3376 testes de backend e 752 → 753 de frontend). **A5** deu login exclusivamente por terceiros
 (Google, OAuth 2.0 — sem senha em lugar nenhum do sistema), sessão em cookie
 `httpOnly` que é linha de banco e não JWT, catálogo compartilhado entre todo
 usuário autenticado e um `Project` por usuário isolando `SelectionStudy`
@@ -362,9 +361,13 @@ autor rodou a remoção em produção (não há bases locais) e o histórico foi
 reescrito (`main` `873dd53` → `b7dd105`, árvore idêntica, 76 commits duplicados
 colapsados, assinaturas GPG perdidas; os 71 caminhos a 0). Reescrever não apaga
 as refs de PR nem os objetos Git LFS guardados no GitHub: o pedido ao suporte
-e refazer os clones antigos seguem pendentes (TODO A7). **`Links.md` fica e é
+e refazer os clones antigos seguem como ações exclusivas do proprietário (TODO
+A7 e `docs/17-limpeza-historico-cerebro.md`). **`Links.md` fica e é
 indexado** — em produção, pela ação `ingerir` do workflow do Cérebro (D-101,
-abaixo) —, por decisão do autor, com o link do OneDrive que ele contém: a ingestão lê PDF e **só o Markdown que o
+abaixo), sozinho com a entrada `arquivos: Links.md`, ou pela ação
+`conhecimento_indexar_links` do `admin-banco.yml`; as duas usam o `--file` da
+CLI de ingestão e nenhuma baixa o LFS —, por decisão do autor, com o link do
+OneDrive que ele contém: a ingestão lê PDF e **só o Markdown que o
 `manifesto.json` declara**; `README.md`, `manifesto.json` e `removidos.txt`
 nunca entram.
 
@@ -942,6 +945,12 @@ noturna agendada. Regras que não se afrouxam:
   vez só (a declarada no manifesto, depois a já indexada, depois a primeira em
   ordem) e conta em `skipped`; uma **versão nova ilegível mantém a anterior**.
   O log público só mostra caminho declarado no manifesto.
+- **A ingestão direcionada não fura nenhuma dessas garantias**: `--file`/`--path`
+  (entrada `arquivos` de `ingerir`) só lê os arquivos nomeados — `Links.md`
+  sozinho não precisa dos PDFs —, e a lista de remoção, a recusa do ponteiro LFS
+  e a versão anterior mantida valem igual; `--force` reextrai, mas não libera
+  ponteiro nem arquivo removido. Um arquivo nomeado entra mesmo que haja cópia
+  idêntica em outro caminho não nomeado; entre nomeados, a cópia entra uma vez.
 - **Uma identidade de vetor: `gemini-embedding-001` com 768 dimensões**
   (`KNOWLEDGE_EMBEDDING_DIMENSIONS`), no `env:` de `conhecimento.yml` e repetida
   no `provedor-ia.yml` — mude os dois juntos. A busca compara só vetores do
@@ -960,7 +969,7 @@ noturna agendada. Regras que não se afrouxam:
 O código está pronto; a execução em produção é do autor (TODO A7, 13-deploy.md
 §5-septies).
 
-3552 testes de backend (nenhum skip) e 751 de frontend, todos verdes. CI no
+3624 testes de backend (nenhum skip) e 753 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
 PROJECT_CONTEXT.md).

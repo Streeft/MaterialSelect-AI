@@ -64,6 +64,29 @@ describe("StudyExplanation", () => {
     expect(screen.getByText("ASM Handbook")).toBeInTheDocument();
   });
 
+  it("formats single-page source as (p. X) without a range", async () => {
+    getAIStatus.mockResolvedValue({
+      enabled: true,
+      provider: "openai-compat",
+      simulated: false,
+      disclaimer: "x",
+    });
+    explainStudy.mockResolvedValue(
+      makeExplanation({
+        sources: [
+          { document_title: "Ficha Técnica", page_start: 15, page_end: 15 },
+        ],
+      }),
+    );
+
+    render(<StudyExplanation studyId={1} />, { wrapper });
+    await userEvent.click(await screen.findByShadowRole("button", { name: ptBR.ai.explain }));
+
+    await waitFor(() => expect(explainStudy).toHaveBeenCalledWith(1));
+    expect(await screen.findByText(ptBR.ai.sourcesConsulted + ":")).toBeInTheDocument();
+    expect(screen.getByText("Ficha Técnica (p. 15)")).toBeInTheDocument();
+  });
+
   it("does not render a sources section when none were cited", async () => {
     getAIStatus.mockResolvedValue({
       enabled: true,

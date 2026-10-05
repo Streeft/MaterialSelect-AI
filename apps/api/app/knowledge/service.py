@@ -24,6 +24,7 @@ double its passages, its embedding cost and its weight in every ranking.
 from __future__ import annotations
 
 import hashlib
+import os
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -237,6 +238,60 @@ class KnowledgeService:
             found.append(path)
         return sorted(found, key=lambda p: p.relative_to(root).as_posix())
 
+    def resolve_targets(
+        self,
+        targets: list[str | Path],
+        declared: dict[str, DeclaredProvenance] | None = None,
+    ) -> list[Path]:
+        """Resolve and validate an explicit list of target paths under root.
+
+        Used when indexing specific files (e.g. ``Links.md``) without walking
+        the entire corpus or touching files that lack local content. A target
+        is relative to the root (or absolute inside it), and must be a file
+        :meth:`discover` would have found: inside the root, reached without a
+        symbolic link at any step, of a supported type, not operational, and —
+        for Markdown — declared in the manifest. Any other target refuses the
+        whole run before anything is written, naming the target: a typo must
+        not turn into a run that quietly did less than was asked.
+
+        Returns the paths as ``root / relative``, the same shape
+        :meth:`discover` returns, so the rest of the run cannot tell them apart.
+        """
+        root = self.root()
+        if declared is None:
+            declared = load_manifest(root)
+        declared_paths = {normalise(path) for path in declared}
+        lexical_root = Path(os.path.normpath(root.absolute()))
+        resolved_root = root.resolve()
+
+        relatives: set[str] = set()
+        for target in targets:
+            target_path = Path(target)
+            joined = target_path if target_path.is_absolute() else root / target_path
+            lexical = Path(os.path.normpath(joined.absolute()))
+            resolved = joined.resolve()
+            if not resolved.is_relative_to(resolved_root) or not lexical.is_relative_to(
+                lexical_root
+            ):
+                raise ValidationError(f"Caminho fora de KNOWLEDGE_DIR: {target}")
+            relative = resolved.relative_to(resolved_root).as_posix()
+            # A link anywhere on the way makes the path written and the path
+            # reached differ; discover() never follows one, and neither does this.
+            if lexical.relative_to(lexical_root).as_posix() != relative:
+                raise ValidationError(f"Link simbólico não é suportado: {target}")
+            if not resolved.is_file():
+                raise ValidationError(f"Arquivo não encontrado em KNOWLEDGE_DIR: {target}")
+            suffix = resolved.suffix.lower()
+            if suffix not in SUPPORTED_EXTENSIONS:
+                raise ValidationError(f"Extensão não suportada para extração: {suffix or target}")
+            if resolved.name.lower() in OPERATIONAL_FILES:
+                raise ValidationError(f"Arquivo operacional não pode ser ingerido: {target}")
+            if suffix in MARKDOWN_EXTENSIONS and normalise(relative) not in declared_paths:
+                raise ValidationError(f"Markdown não declarado no manifesto: {relative}")
+            relatives.add(relative)
+
+        return [root / relative for relative in sorted(relatives)]
+
     def _embeddings_configured(self) -> bool:
         # Delegates to EmbeddingClient.configured — the one place that
         # decides this — rather than re-checking the raw settings here,
@@ -276,15 +331,26 @@ class KnowledgeService:
     def ingest(
         self,
         force: bool = False,
+        paths: list[str | Path] | None = None,
         *,
         embed: bool = True,
         on_document: Callable[[], None] | None = None,
     ) -> IngestReport:
-        """Catalogue and index every discovered document.
+        """Catalogue and index every discovered or targeted document.
 
         Args:
             force: re-extract even when the checksum matches. For when the
-                chunker changed, not the corpus.
+                chunker changed, not the corpus. It never lets an LFS pointer
+                or a file on the removal list through: those checks run before
+                the checksum is even compared.
+            paths: when provided, restrict ingestion to these files, relative
+                to ``root`` (:meth:`resolve_targets`). The corpus is not
+                walked, so a run that only needs ``Links.md`` does not need the
+                PDFs on disk. Every guarantee of a full run still holds for the
+                named files — removal list first, LFS pointer refused without a
+                write, byte-identical copies *among the named files* indexed
+                once. A named file is ingested even when an identical copy sits
+                elsewhere unnamed: the operator asked for that path.
             embed: embed new passages in the same run when embeddings are
                 configured. ``False`` never builds a client: the vectors are
                 then the separate backfill's job (``python -m
@@ -313,12 +379,16 @@ class KnowledgeService:
         ]
         embed_client = self._embedding_client() if embed and self._embeddings_configured() else None
 
+        targets = (
+            self.discover(declared) if paths is None else self.resolve_targets(paths, declared)
+        )
+
         # Pre-pass: every file is fingerprinted before any row is touched,
-        # because two decisions need the whole corpus — which copy of a
+        # because two decisions need the whole set — which copy of a
         # byte-identical group is indexed, and whether a file is an LFS
         # pointer — and neither may be taken halfway through writing.
         candidates = []
-        for path in self.discover(declared):
+        for path in targets:
             relative = path.relative_to(root).as_posix()
             size = path.stat().st_size
             digest = checksum_of(path)

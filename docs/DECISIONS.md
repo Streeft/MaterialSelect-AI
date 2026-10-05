@@ -7296,3 +7296,30 @@ recarga por contagem e por soma de ids, vetor de outro tamanho ignorado,
 `status` e `/api/health` —, e o canário de isolamento intacto: 3338 → 3552
 testes de backend, nenhum pulado. `ruff` e `black` limpos; os dois workflows passam no `actionlint` com
 `shellcheck`. Operação em [13-deploy.md §5-septies](13-deploy.md).
+
+> **Atualização (merge com `main`, 05/10/2026).** `main` ganhou, em paralelo, a
+> ingestão direcionada (sessão 39 do registro): `--file`/`--path` e `--force`
+> na CLI, `KnowledgeService.ingest(paths=…)` e a ação
+> `conhecimento_indexar_links` do `admin-banco.yml`. Juntada a este registro
+> com quatro escolhas. (1) **Uma execução direcionada passa pela mesma
+> pré-passagem** de uma execução inteira: lista de remoção primeiro, ponteiro LFS
+> recusado sem tocar a linha, versão anterior mantida, commit por documento,
+> log redigido; `--force` só pula a comparação de checksum, que vem depois das
+> duas recusas, e por isso não libera ponteiro nem arquivo removido. (2)
+> **Cópias:** um arquivo nomeado é indexado mesmo que haja cópia idêntica num
+> caminho **não** nomeado — o operador pediu aquele caminho, e a execução não
+> anda o resto do corpus para saber —, e entre arquivos nomeados idênticos vale
+> a regra de sempre (o declarado, depois o já indexado, depois o primeiro em
+> ordem). A execução inteira seguinte escolhe de novo pela regra, e a sobra
+> aparece como órfã no `status`. (3) `resolve_targets` recusa **link simbólico
+> em qualquer passo do caminho** (compara o caminho escrito, normalizado, com o
+> resolvido; a versão anterior olhava o já resolvido, que nunca é link) e
+> devolve `raiz / relativo`, a forma de `discover()`. Um nome inválido recusa a
+> execução inteira antes de qualquer escrita, e a CLI imprime
+> `[ingest] ERRO: …` com saída 1. (4) No Actions, `ingerir` ganhou a entrada
+> `arquivos` (caminhos dentro de `Cérebro/` separados por `;`, conferidos no
+> shell e passados como `--file=<caminho>`): o LFS só é baixado se um dos
+> nomeados for ponteiro no checkout, então `Links.md` sozinho não custa banda de
+> LFS. A ação `conhecimento_indexar_links` ficou, agora com `--no-embed` e sem as
+> chaves de IA no ambiente do `admin-banco.yml`: os vetores têm uma identidade
+> só, e quem a grava é o `conhecimento.yml`.

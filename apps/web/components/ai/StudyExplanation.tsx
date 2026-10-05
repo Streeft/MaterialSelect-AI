@@ -74,7 +74,9 @@ export function StudyExplanation({ studyId }: { studyId: number }) {
                   <li key={i}>
                     {source.document_title}
                     {source.page_start && source.page_end
-                      ? ` (p. ${source.page_start}-${source.page_end})`
+                      ? source.page_start === source.page_end
+                        ? ` (p. ${source.page_start})`
+                        : ` (p. ${source.page_start}-${source.page_end})`
                       : ""}
                   </li>
                 ))}

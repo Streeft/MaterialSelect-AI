@@ -93,6 +93,14 @@ HIDING = [
     "transform:translate(-10000px, 0)",
     "transform:matrix(1, 0, 0, 1, -9999, 0)",
     "translate:-10000px 0",
+    "position:absolute;left:9999px",
+    "position:absolute;right:9999px",
+    "position:absolute;left:99999px",
+    "position:absolute;left:calc(50% - 20000px)",
+    "position:absolute;left:calc(100% - 99999px)",
+    "margin-left:99999px",
+    "translate:10000px 0",
+    "transform:translate(99999px, 0)",
     # a zero-size box that clips its overflow
     "width:0;overflow:hidden",
     "height:0; overflow: hidden",
@@ -145,6 +153,8 @@ VISIBLE = [
     "position:sticky;top:-20px",
     "left:-9999px",  # not positioned: ``left`` does nothing
     "position:static;left:-9999px",
+    "left:9999px",  # not positioned: ``left`` does nothing
+    "position:static;left:9999px",
     "position:absolute;left:-20px;top:4px",
     "position:absolute;left:-50%",
     "text-indent:-1em",
@@ -174,6 +184,8 @@ VISIBLE = [
     "zoom:0.8",
     "display:block",
     "dis/**/play:none",  # two tokens, no property: a browser shows it
+    "visibility:visible",
+    "visibility:initial",
     "--h:none;display:var(--other)",  # an unset reference is no value
     "--h:none",  # declared, never used
     "color:#333; font-weight:bold",
@@ -351,3 +363,115 @@ def test_the_classic_visually_hidden_class_written_inline_is_dropped() -> None:
         "border: 0 !important"
     )
     assert _style_hides(style)
+
+
+def test_a_child_with_visibility_visible_inside_visibility_hidden_is_read() -> None:
+    """A child declaring visibility: visible is read even inside visibility: hidden."""
+    child_text = "O titânio Ti-6Al-4V é amplamente utilizado no setor aeroespacial."
+    text = _extract(
+        '<div style="visibility:hidden">'
+        f"<p>{INJECTION}</p>"
+        f'<p style="visibility:visible">{child_text}</p>'
+        "</div>"
+    )
+    assert child_text in text
+    assert "Ignore" not in text and "999" not in text
+    assert PROSE in text
+
+
+def test_deeply_nested_visibility_override() -> None:
+    """Visibility overrides work through deeply nested ancestor chains."""
+    read_1 = "Primeiro nível visível recuperado com sucesso."
+    read_2 = "Segundo nível visível aninhado profundamente."
+    text = _extract(
+        '<div style="visibility:hidden">'
+        f"<p>{INJECTION}</p>"
+        '<div style="visibility:visible">'
+        f"<p>{read_1}</p>"
+        '<div style="visibility:hidden">'
+        "<p>Instrução intermediária escondida</p>"
+        f'<p style="visibility:visible">{read_2}</p>'
+        "</div>"
+        "</div>"
+        "</div>"
+    )
+    assert read_1 in text and read_2 in text
+    assert "Ignore" not in text and "999" not in text
+    assert "Instrução intermediária" not in text
+    assert PROSE in text
+
+
+def test_visibility_hidden_without_override_drops_all_descendants() -> None:
+    """Without an explicit visibility: visible, all children and tables are dropped."""
+    text = _extract(
+        '<div style="visibility:hidden">'
+        "<h2>Título invisível da seção</h2>"
+        f"<p>{INJECTION}</p>"
+        "<table><tr><td>Propriedade</td><td>Valor</td></tr></table>"
+        "</div>"
+    )
+    assert "Título invisível" not in text
+    assert "Ignore" not in text and "999" not in text
+    assert "Propriedade" not in text
+    assert PROSE in text
+
+
+def test_table_and_heading_with_visibility_visible_inside_hidden_parent() -> None:
+    """Headings and data tables with visibility: visible inside a hidden parent are kept."""
+    heading = "LIGAS DE COBRE E SUAS APLICAÇÕES"
+    text = _extract(
+        '<div style="visibility:hidden">'
+        f'<h2 style="visibility:visible">{heading}</h2>'
+        '<table style="visibility:visible">'
+        "<tr><td>Liga C11000</td><td>Condutividade 101% IACS</td></tr>"
+        "</table>"
+        f"<p>{INJECTION}</p>"
+        "</div>"
+    )
+    assert heading in text
+    assert "Liga C11000 | Condutividade 101% IACS" in text
+    assert "Ignore" not in text and "999" not in text
+    assert PROSE in text
+
+
+def test_large_positive_displacement_hides_prompt_injection() -> None:
+    """A box displaced far to the right or bottom via large positive offset is dropped."""
+    text = _extract(
+        '<div style="position:absolute;left:99999px">'
+        f"<p>{INJECTION}</p>"
+        "</div>"
+        '<div style="margin-left:10000px">'
+        f"<p>{INJECTION}</p>"
+        "</div>"
+    )
+    assert "Ignore" not in text and "999" not in text
+    assert PROSE in text
+
+
+def test_calc_with_dominant_negative_operand_hides() -> None:
+    """calc() expressions with dominant negative offset push boxes off-screen and hide."""
+    text = _extract(
+        '<div style="position:absolute;left:calc(50% - 20000px)">'
+        f"<p>{INJECTION}</p>"
+        "</div>"
+        '<div style="position:absolute;left:calc(100% - 99999px)">'
+        f"<p>{INJECTION}</p>"
+        "</div>"
+    )
+    assert "Ignore" not in text and "999" not in text
+    assert PROSE in text
+
+
+def test_calc_centering_and_normal_offsets_remain_visible() -> None:
+    """Legitimate calc centering and reasonable layout nudges remain visible and read."""
+    normal_text = "O módulo de elasticidade do alumínio 6061 é de aproximadamente 68,9 GPa."
+    text = _extract(
+        '<div style="position:absolute;left:calc(50% - 10px)">'
+        f"<p>{normal_text}</p>"
+        "</div>"
+        '<div style="position:absolute;left:calc(50% - 600px)">'
+        f"<p>{normal_text}</p>"
+        "</div>"
+    )
+    assert normal_text in text
+    assert PROSE in text

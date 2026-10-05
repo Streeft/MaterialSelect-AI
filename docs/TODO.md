@@ -57,11 +57,10 @@ react-hook-form não é memoizável) que é informativo e não tem correção lo
 A6 (Cérebro em `main`) foi decidido, não executado: ver "Débitos já
 quitados".
 
-**A7 — Tirar o material de curso da ENG02016 do banco de produção e do
-histórico (D-100): o que resta.** ▁ A remoção do banco de produção e a
-reescrita do histórico foram feitas em 30/09/2026 (ver "Débitos já quitados" e
-a execução do [D-100](DECISIONS.md)). Faltam três passos, e só o autor pode
-dar cada um:
+**A7 — o que resta, e só o autor faz.** ▁ A remoção do banco de produção e a
+reescrita do histórico foram feitas em 30/09/2026, e a ingestão direcionada do
+`Links.md` saiu em código (ver "Débitos já quitados" e o [D-100](DECISIONS.md)).
+Ficam três passos fora do código:
 
 1. **Suporte do GitHub** ([`17-limpeza-historico-cerebro.md`](17-limpeza-historico-cerebro.md)
    §10). Pedir a remoção das refs de PR (`refs/pull/*` — a do PR #56 guarda 65
@@ -71,14 +70,14 @@ dar cada um:
 2. **Clones antigos.** Todo clone feito antes de 30/09/2026 está do lado errado
    da reescrita: apagar e clonar de novo, nunca `pull`, e não enviar nenhuma
    branch criada antes dela (guia §9).
-3. **`Links.md` no RAG de produção — entregue em código ([D-101](DECISIONS.md));
-   falta a execução, que é do autor.** A ingestão roda no GitHub Actions, pelo
-   workflow **Base de conhecimento (Cérebro)** (`conhecimento.yml`), e o
-   `Links.md` entra junto com os PDFs. Depois do merge, na ordem de
-   [13-deploy.md §5-septies](13-deploy.md): **Deploy da API** → **Provedor de
-   IA** (`gemini`) → `status` → `ingerir` (fora do horário de aula) → os vetores
-   vêm sozinhos à noite, ou já com `embeddings` → `status` toda semana até
-   `faltam 0`.
+3. **O Cérebro no RAG de produção — entregue em código ([D-101](DECISIONS.md));
+   falta a execução.** Só o `Links.md`, já: **Base de conhecimento (Cérebro)**
+   → `ingerir` com `arquivos: Links.md` (não baixa o LFS), ou a ação
+   `conhecimento_indexar_links` do `admin-banco.yml`. O Cérebro inteiro, na
+   ordem de [13-deploy.md §5-septies](13-deploy.md): **Deploy da API** →
+   **Provedor de IA** (`gemini`) → `status` → `ingerir` (fora do horário de
+   aula) → os vetores vêm sozinhos à noite, ou já com `embeddings` → `status`
+   toda semana até `faltam 0`.
 
 Não registrado aqui: se os logs das execuções de `conhecimento_simular_remocao`
 e `conhecimento_remover` já foram apagados (guia §1.3 e §11) — conferir.
@@ -126,12 +125,6 @@ uso; as três primeiras são decisão ou conferência do autor.
   vetores em `array('f')` ocupam ≈58 MB residentes a 18 mil × 768; em int8,
   um quarto disso. Só vale se a memória do Fly apertar.
 
-**Cérebro — localizador de citação do Markdown (D-100).** ▁ Cosmético. Um
-`.md` declarado vira uma "página" só, e o bloco de referências do prompt
-(`_reference_block`, em `app/ai/prompts.py`) escreve `p. 1-1` para ele — e para
-qualquer trecho de uma página só. Omitir o localizador quando o documento não é
-paginado exigiria levar o tipo do documento até o trecho recuperado.
-
 **Cadernos — pendências deixadas pela fase 4 (D-98).** Nenhuma bloqueia o uso.
 
 - **A voz pt-BR depende do aparelho do aluno.** ▁ O áudio e o vídeo falam pelo
@@ -166,15 +159,6 @@ paginado exigiria levar o tipo do documento até o trecho recuperado.
 **Cadernos — pendências deixadas pela fase 3 (D-97).** Nenhuma bloqueia o uso;
 cada uma tem o motivo de ter ficado de fora.
 
-- **Linha de tabela lida como título pelo fatiador.** ▁
-  `looks_like_heading`, em `app/knowledge/chunking.py`, trata como título uma
-  linha curta que começa por número ou está em caixa alta. Uma linha de tabela
-  como `1 | Aço | 200`, vinda do DOCX (`readers._read_docx`) ou de uma página,
-  sai do texto do trecho e vai para o lugar do título. O conserto é uma linha:
-  uma linha que contém `" | "` nunca é título. Ficou de fora porque o fatiador
-  é compartilhado com o Cérebro, e mexer nele muda a fatia de todo documento já
-  ingerido. Enquanto isso, o extrator de HTML põe um `;` no fim da linha
-  ameaçada; com a guarda no lugar, esse `;` pode sair.
 - **Transcrição automática do YouTube.** ▆ Hoje é impossível sem custo: desde
   2025–26 o endpoint de legendas exige um token *Proof-of-Origin* que só o
   BotGuard de um navegador gera, e responde 200 vazio sem ele; IP de datacenter
@@ -194,26 +178,6 @@ cada uma tem o motivo de ter ficado de fora.
   termos do *grounding* exigem que ele seja mostrado. Se as fichas precisarem de
   script, a saída é `allow-scripts` **sem** `allow-same-origin`, nunca as duas
   juntas. Passo a passo em [13-deploy.md §5-sexies](13-deploy.md).
-- **A concorrência das cotas não é exercitada contra PostgreSQL.** ▁ O teste de
-  forma (`test_notebook_quota_atomic.py`) prova que a reserva é **um** `UPDATE …
-  WHERE contador < limite` sem `SELECT` antes — o que a torna atômica no
-  PostgreSQL em READ COMMITTED —, e ele falha se o código voltar a
-  ler-e-escrever. A prova real seria uma corrida de threads contra o Postgres de
-  serviço da CI, cujo job hoje só roda migração e seed. Vale se a CI ganhar um
-  job de testes em Postgres por outro motivo.
-- **Ocultação por CSS inline que o extrator ainda não lê.** ▁ Três casos,
-  todos de baixo risco e deixados de fora para não descartar texto visível: um
-  `visibility:hidden` num ancestral cujo filho diz `visibility:visible` (o
-  extrator descarta o filho também — excesso, anterior ao lote); um
-  deslocamento **positivo** grande (`right:9999px`, `left:9999px`), que numa
-  caixa larga pode ser legítimo; e matemática que o leitor não avalia num
-  deslocamento **sem** literal muito negativo — `calc(50% - 20000px)`, uma
-  porcentagem sem base menos um número grande, passa, porque é a forma do
-  `calc(50% - 10px)` que centraliza caixas visíveis (D-99, N-5). Uma função
-  desconhecida ou um `calc()` fundo demais com `-9999px` dentro já oculta, e
-  numa opacidade ou escala qualquer matemática não avaliada oculta. Ocultação
-  por folha de estilo continua fora de alcance por decisão (D-97): a defesa ali
-  é a fonte ser dado, nunca instrução.
 - **CSS inline que o extrator lê a mais** (D-99, N-6). ▁ O outro lado de ler só
   o inline: uma coluna sob um `font-size:0` de layout que volta ao tamanho
   legível por **classe** de folha de estilo, ou por um `var()` que só a folha
@@ -268,6 +232,69 @@ continua lá, e a métrica para de medir no 3.
 
 Registrados para não voltarem por engano:
 
+- ~~**Deslocamentos astronômicos positivos e subtração dominante em `calc()` no extrator de HTML (D-97/D-99, Opção 1)**~~ —
+  o extrator de conteúdo HTML dos Cadernos (`app/notebooks/html_text.py`) agora detecta
+  e descarta caixas deliberadamente empurradas para fora da viewport através de grandes
+  deslocamentos positivos (`_FAR_POSITIVE_PX = 9999px`), cobrindo `left`, `right`, `top`, `bottom`,
+  `inset`, `margin-left`, `margin-top`, `text-indent` e transformações/traduções (`translate`),
+  comum em técnicas evasivas de injeção de prompt. Além disso, termos matemáticos em `calc()`
+  agora passam por teste afim bounded (`percent_of=0px` e `percent_of=10000px`), identificando
+  expressões em que um operando negativo supera qualquer dimensão plausível de tela (ex.:
+  `calc(50% - 20000px)` e `calc(100% - 99999px)`), ao mesmo tempo em que preserva centralizações
+  e ajustes legítimos de layout (como `calc(50% - 10px)` e `calc(50% - 600px)`). Cobertura
+  completa com 13 novos testes em `test_html_hidden_css.py` (3382 → 3395 testes de backend).
+- ~~**Herança de CSS `visibility:hidden` e resgate por `visibility:visible` no extrator de HTML (D-97/D-99, Opção 1)**~~ —
+  o extrator de conteúdo web (`app/notebooks/html_text.py`) agora implementa a semântica
+  estrita da especificação CSS para a propriedade `visibility`: `visibility:hidden` (e `collapse`)
+  é herdado pelos descendentes através do estado de estilo `_Inherited(visible=...)`, silenciando
+  o texto do elemento e de seus filhos (`node.mute = True`), mas permitindo que qualquer elemento
+  descendente restaure sua visibilidade declarando explicitamente `visibility:visible`. Textos,
+  títulos (`<h1>`–`<h6>`) e tabelas de dados (`<table>`) contidos em elementos visíveis resgatados
+  são lidos e renderizados normalmente, enquanto conteúdos puramente ocultos continuam sendo
+  descartados contra injeção de prompt. Cobertura completa com 6 novos testes em `test_html_hidden_css.py`
+  (3376 → 3382 testes de backend).
+- ~~**Exportador PPTX nativo do Report e rotas de exportação (B2) + Liberação de números do RAG nas guardrails**~~ —
+  o renderizador `Report` em PowerPoint (`app/exporters/pptx.py`) foi completado e ganhou endpoints
+  oficiais na API (`/api/exports/catalogo.pptx`, `/api/exports/estudos/{id}.pptx` e `/api/exports/estudos/{id}/laudo.pptx`),
+  além de integração completa no frontend (`ExportButtons.tsx`, `api.ts`, `i18n.ts`). Inclui slide de título,
+  seções tabulares divididas em blocos de até 10 linhas com numeração de continuação `(1/N)`, tratamento
+  de dados ausentes (`"ausente"`), slide dedicado de interpretação técnica da IA com narrativa fluida no laudo,
+  e slide mandatório com os três avisos de limitação de uso, reprodutibilidade e dados fictícios.
+  Em conjunto, foi corrigido o falso positivo das guardrails de IA (`ungrounded_numbers`), que antes
+  rejeitava citações legítimas a números presentes nos trechos recuperados do RAG (como `p. 80-200`)
+  e falhava no agrupamento de milhares com vírgula para números decimais. Cobertura completa com 14 novos
+  testes de backend (3362 → 3376) e 1 de frontend (752 → 753).
+- ~~**Cérebro — localizador de citação do Markdown / Links sem `p. 1-1` (D-100)**~~ —
+  documentos não paginados (`LINK`, `VIDEO`) agora omitem o indicador de páginas
+  no bloco de referências do prompt (`app/ai/prompts.py`) e têm `page_start`/`page_end`
+  nulos no schema de resposta da API (`CitedSourceOut` em `ai_service.py`). Para
+  documentos paginados, páginas únicas são formatadas como `p. X` (em vez de `p. X-X`)
+  e intervalos como `p. X-Y`, tanto no prompt do RAG quanto na renderização do
+  frontend (`StudyExplanation.tsx`), com cobertura completa em testes de backend
+  (3356 → 3362) e frontend (751 → 752).
+- ~~**Tirar o material de curso da ENG02016 do banco e do histórico / Ingestão do `Links.md` (D-100/A7)**~~ —
+  remoção completa do material didático da disciplina e trabalhos de alunos do repositório,
+  do banco e do histórico git (30/09/2026). Para o `Links.md` restante no RAG de produção,
+  implementada a ingestão direcionada de arquivos sob demanda (`python -m app.knowledge.ingest --file <path>`),
+  com validação estrita (raiz, manifesto, links simbólicos e arquivos operacionais) e
+  ação correspondente `conhecimento_indexar_links` no workflow `.github/workflows/admin-banco.yml`,
+  permitindo indexação direta em produção (Neon) pelo GitHub Actions sem exigir clone com PDFs LFS locais.
+  Passos externos do proprietário (ticket de suporte do GitHub, refazer clones antigos e exclusão dos logs)
+  instruídos e documentados em `docs/17-limpeza-historico-cerebro.md`.
+- ~~**Concorrência das cotas exercitada contra PostgreSQL na CI (D-97/D-99)**~~ —
+  quatro testes multithread contra PostgreSQL 16 (`apps/api/app/tests/test_notebook_quota_postgres.py`)
+  estressando concorrência real sob nível de isolamento READ COMMITTED: 20 threads disputando
+  a criação do zero (comportamento de `ON CONFLICT DO NOTHING` + `reserve`), 20 threads em corrida
+  na última vaga (`already=4, limit=5`), 15 reservers e 5 releasers intercalados, e 10 threads
+  com reserva com folga (`slack=2`), garantindo ausência de overspending ou race conditions.
+  Integrado na CI via contêiner de serviço `postgres:16` no job `backend` (Python 3.11 e 3.12)
+  e step dedicado no job `migrations-postgres` (3343 → 3347 testes de backend).
+- ~~**Linha de tabela lida como título pelo fatiador (D-97)**~~ —
+  `looks_like_heading` em `app/knowledge/chunking.py` ganhou guarda explícita:
+  linha contendo `" | "` nunca é tratada como heading, impedindo que linhas
+  de tabela (DOCX, Markdown) sejam consumidas como títulos de seção e rotulem
+  erroneamente os chunks seguintes. 5 novos testes de regressão em
+  `test_knowledge_chunking.py` (3338 → 3343 testes de backend).
 - ~~**Cadernos — lote de pendências das fases 3 e 4 (D-97/D-98)**~~ — nove
   itens da "Baixa prioridade" fechados num PR, com uma revisão final que achou
   quatro problemas importantes e uma segunda revisão que achou um crítico e
@@ -343,7 +370,7 @@ Registrados para não voltarem por engano:
   - **A rede do servidor só se abre por um portão:** `safe_fetch`, com lista de
     bloqueio explícita, IP fixado com `Host` + SNI, cada redirecionamento
     conferido de novo, tetos de tamanho e de prazo (DNS incluído), sem cookies
-    e com `Connection: close`.
+    e com `Connection: close` .
   - **A duplicata é barrada antes da rede**, pela origem canônica. A cota
     diária (`NOTEBOOK_DAILY_FETCHES`) conta quando a requisição sai do
     servidor — a consulta ao DNS de um nome inclusive —, e é gravada antes do

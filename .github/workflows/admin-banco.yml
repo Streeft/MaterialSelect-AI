@@ -33,6 +33,7 @@ on:
           - excluir_demo
           - conhecimento_simular_remocao
           - conhecimento_remover
+          - conhecimento_indexar_links
           - conceder
           - revogar
       email:
@@ -141,6 +142,16 @@ jobs:
               # RAG — isto tira. O log imprime os totais apagados (D-71, D-100).
               # `--redact` pela mesma razão da simulação.
               python -m app.knowledge.prune --list "$GITHUB_WORKSPACE/Cérebro/removidos.txt" --apply --redact
+              ;;
+            conhecimento_indexar_links)
+              # Ingesta Links.md de Cérebro/Links.md no RAG de produção (Neon).
+              # Como o repositório é clonado pelo Actions e Links.md é versionado,
+              # não depende de LFS nem dos arquivos grandes de KNOWLEDGE_DIR.
+              # Só o texto (`--no-embed`), sem chave de IA no ambiente: os vetores
+              # têm uma identidade só, gravada pelo `conhecimento.yml` (D-101),
+              # que é também onde `ingerir` com `arquivos` faz o mesmo para
+              # qualquer arquivo do Cérebro.
+              KNOWLEDGE_DIR="$GITHUB_WORKSPACE/Cérebro" python -m app.knowledge.ingest --no-embed --file=Links.md
               ;;
             conceder)
               exigir_email

@@ -40,12 +40,7 @@ sugerir e explicar.
 
 ## 3. Estado atual
 
-**Fases 1 a 9 concluídas.** Fase 7 fechou nesta sessão com a auditoria (M2);
-o único item que resta sob o guarda-chuva da Fase 7 é a exportação em PPTX
-(B2, baixa prioridade) — que a proposta previa como *arquitetura para*, não
-como entrega, então não bloqueia a fase. (O PPTX que o Estúdio dos Cadernos
-entrega desde o [D-98](DECISIONS.md) é outro renderizador; o do `Report`
-continua sem rota.)
+**Fases 1 a 9 concluídas.** Fase 7 fechou por completo — todas as exportações (CSV, XLSX, HTML, DOCX e PPTX) entregues para catálogo, relatório de estudo e laudo de engenharia (B2, D-91, 3362 → 3376 testes de backend e 752 → 753 de frontend).
 
 | # | Fase | Estado | Documento |
 |---|---|---|---|
@@ -112,7 +107,7 @@ ressalvas registradas no backlog:
   `fase-9-ia-e-laudo` antes do merge (`git filter-repo`, 89 commits
   reescritos) — mas o mesmo material chegou a `main` por outro caminho, o
   PR #17, e continua lá por **decisão explícita do autor**: o Cérebro é a
-  base de conhecimento da camada de IA, e ele optou por mantê-lo hospedado
+  base de conhecimento da camada de IA, e ele optou por mant-lo hospedado
   mesmo sabendo da exposição. Não é pendência — ver [D-45](DECISIONS.md).
   O **material de curso** da ENG02016 é a exceção posterior: saiu do
   repositório a pedido do professor e, em 30/09/2026, do banco de produção e
@@ -136,11 +131,16 @@ o guia de limpeza do histórico,
 remoção em produção e a reescrita do histórico foram feitas pelo autor em
 30/09/2026 (`main`: `873dd53` → `b7dd105`, árvore idêntica; 76 commits
 duplicados colapsados; os 71 caminhos e os nomes dos alunos a 0 no histórico).
-Não há bases locais. Faltam o pedido ao suporte do GitHub, refazer os clones
-antigos e disparar a ingestão em produção, que o D-101 pôs num workflow (TODO
-A7). O `Links.md` **fica e passa a ser indexado**, por decisão do autor: a
-ingestão lê PDF e o Markdown que o `manifesto.json` declara, nunca o
-`README.md`.
+Não há bases locais. O pedido ao suporte do GitHub e refazer os clones
+antigos seguem como ações exclusivas do proprietário (TODO A7 e
+[`17-limpeza-historico-cerebro.md`](17-limpeza-historico-cerebro.md)), e
+disparar a ingestão em produção, que o D-101 pôs num workflow, também. O
+`Links.md` **fica e passa a ser indexado**, por decisão do autor: a ingestão lê
+PDF e o Markdown que o `manifesto.json` declara, nunca o `README.md`. Ele pode
+entrar sozinho, sem os PDFs do LFS, pela ingestão direcionada (`--file`/`--path`
+e `--force` na CLI, `KnowledgeService.ingest(paths=…)`): a ação
+`conhecimento_indexar_links` do `admin-banco.yml` ou `ingerir` com
+`arquivos: Links.md` no workflow do Cérebro.
 
 **O Cérebro entra em produção pelo GitHub Actions** ([D-101](DECISIONS.md)).
 O autor pediu para resolver a ingestão do `Links.md` e ativar o RAG, e escolheu
@@ -156,7 +156,10 @@ a byte da árvore entram uma vez; versão nova ilegível mantém a anterior), e 
 busca passou a um índice em memória no processo da API — antes, cada chamada de
 IA lia o corpus inteiro duas vezes, o que derrubaria a VM de 512 MB e gastaria a
 transferência mensal do Neon em poucas dezenas de chamadas. `/api/health` nomeia
-o modelo e a dimensão dos embeddings. **O código está pronto; a execução é do
+o modelo e a dimensão dos embeddings. A ingestão direcionada vale sob as mesmas
+garantias: lista de remoção primeiro, ponteiro LFS recusado sem tocar a linha,
+`--force` sem liberar nenhum dos dois; um arquivo nomeado entra mesmo com cópia
+idêntica num caminho não nomeado. **O código está pronto; a execução é do
 autor**: Deploy da API → Provedor de IA (`gemini`) → `status` → `ingerir` → os
 vetores chegam em 1 a 2 noites, se o Gemini aceitar lote, ou em 2 a 4 semanas no
 pior caso ([13-deploy.md §5-septies](13-deploy.md)).
@@ -240,8 +243,8 @@ dirigidos por subagentes.** M5 estava registrado no backlog com a nota "só
 faça se o orientador pedir" — dito sem meias palavras: nesta sessão o usuário
 confirmou explicitamente que o orientador pediu, e só por isso o item saiu de
 fora de escopo (ver TODO.md). Dez tarefas ao todo (M5: Tarefas 1–5; M6:
-Tarefas 6–10), um implementador e um revisor por tarefa. `app/domain/
-ranking.py` ganhou `rank_topsis` (proximidade a um ponto ideal/anti-ideal) e
+Tarefas 6–10), um implementador e um revisor por tarefa. `app/domain/ranking.py`
+ganhou `rank_topsis` (proximidade a um ponto ideal/anti-ideal) e
 `rank_promethee` (fluxo de saída líquido de comparações pareadas, função de
 preferência "usual"), os dois reaproveitando a exclusão de dado ausente e a
 renormalização de peso já existentes da soma ponderada; `app/domain/ahp.py`
@@ -541,7 +544,7 @@ quadrado). A voz é a do navegador (`speechSynthesis`), uma frase por vez — cu
 zero, e por isso sem MP3 nem MP4: baixa-se o roteiro em DOCX/TXT e o deck em
 PPTX, com a narração ou as notas nas notas do apresentador. O item conferido é a
 fala, o slide inteiro e a cena inteira; o dado em destaque do infográfico segue
-uma regra mais estrita que a do chat (sem a isenção de inteiros até 100, sem as
+numa regra mais estrita que a do chat (sem a isenção de inteiros até 100, sem as
 palavras do aluno, e com a unidade escrita no trecho, comparada com maiúsculas),
 e a manchete — título e subtítulo do pôster, capa do deck e do vídeo — também.
 Nenhum texto é partido dentro de um número, nem na quebra de linha nem no teto
@@ -575,8 +578,10 @@ e tetos que recusavam páginas com tokens de design inline no `<html>`: a vazia
 passou a valer, e propriedade personalizada deixou de contar nas 64
 declarações do atributo, com o escopo indo a 4096.
 
-**Saúde do código:** 3552 testes de backend (Python 3.11 e 3.12, nenhum skip)
-e 751 de frontend, todos verdes. Desde o P0-1 a suíte também roda as migrações de
+**Concorrência das cotas em PostgreSQL exercitada na CI** (D-97/D-99): quatro testes multithread contra PostgreSQL 16 (`test_notebook_quota_postgres.py`) validando o `UPDATE ... WHERE counter < limit` sob concorrência real (20 threads simultâneas em disputa na criação a partir do zero e na fronteira do limite, reserva e liberação concorrentes, e reserva com folga), sem estourar limites nem cair em race condition, executados na CI via contêiner de serviço PostgreSQL.
+
+**Saúde do código:** 3624 testes de backend (Python 3.11 e 3.12, nenhum skip)
+e 753 de frontend, todos verdes. Desde o P0-1 a suíte também roda as migrações de
 verdade, nos dois sentidos, contra um banco temporário que já contém dados —
 `test_migration_selection_stage.py`, `test_migration_process_universe.py`,
 `test_migration_selection_universe.py`, `test_migration_process_attributes.py`,
@@ -808,8 +813,8 @@ resto da fase — trazidas depois, íntegras, verificadas caminho a caminho:
   `.env.example`; sem nada configurado, a busca cai para léxico puro. Mais
   55 testes.
 - **Cobrança com Stripe** — `Subscription`, `SubscriptionRepository`,
-  `routers/billing.py`, `services/billing_service.py`, `require_active_
-  subscription`. O código entrou inteiro, mas o portão ficou desligado até
+  `routers/billing.py`, `services/billing_service.py`, `require_active_subscription`.
+  O código entrou inteiro, mas o portão ficou desligado até
   a arquitetura ser decidida entre dois desenhos concorrentes — resolvido
   em [D-46](DECISIONS.md): o portão binário do plano de 18/08 é o que está
   ligado hoje, aplicado a todo router exceto `health`/`auth`/`billing`. O
@@ -1030,7 +1035,7 @@ que mais afetam quem for mexer no código:
 | Dependência de provedor de IA | Arquitetura desacoplada com provedor simulado; funciona sem chave. |
 | Incorporação inadvertida de dado protegido | Triagem de licenciamento (M1, item 4.2 da proposta) — `Source` registra licença/procedência, e uma fonte nova sem licença ou marcada como possivelmente protegida sem confirmação humana é recusada antes de qualquer linha ser escrita ([D-44](DECISIONS.md)). |
 | Resultado não reproduzível por interferência de IA | Cálculo determinístico + guardrails executáveis + confirmação do usuário. |
-| Regressão silenciosa | CI com 3552 testes de backend e 751 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
+| Regressão silenciosa | CI com 3624 testes de backend e 753 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
 | Material licenciado do Cérebro exposto em `main` (repositório público) | Risco aceito por decisão explícita do autor, não mitigado — o Cérebro é a base de conhecimento da camada de IA ([D-45](DECISIONS.md)). |
 | Texto dos livros do Cérebro enviado ao Gemini no plano gratuito, onde o Google pode usá-lo para melhorar os produtos | Risco aceito pelo autor ao escolher busca por vetores ([D-101](DECISIONS.md)); a alternativa sem envio é a busca só por palavras, que continua funcionando sozinha. |
 | Limites do Neon gratuito (suposto 0,5 GB e 5 GB/mês de transferência) e memória da VM de 512 MB | Vetores de 768 dimensões (≈96 MB de base a 18 mil trechos), índice em memória medido em ≈100 MB por processo, e o `status` avisa acima de 80% de 0,5 GB. **O autor ainda confirma** os limites no painel do Neon e a memória no painel do Fly depois da primeira consulta. |

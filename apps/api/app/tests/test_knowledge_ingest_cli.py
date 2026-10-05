@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -51,6 +52,50 @@ class TestCLI:
         with pytest.raises(SystemExit) as exc:
             main()
         assert exc.value.code != 0
+
+    def test_runs_targeted_ingestion_with_file_argument(
+        self,
+        db_session,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str],
+    ) -> None:
+        root = tmp_path / "cerebro"
+        root.mkdir()
+        (root / "Links.md").write_text("https://matweb.com/\n", encoding="utf-8")
+        (root / "manifesto.json").write_text(
+            json.dumps({"documentos": [{"path": "Links.md", "titulo": "Links"}]}),
+            encoding="utf-8",
+        )
+        _write_pdf(root / "outro.pdf")
+        monkeypatch.setattr(settings, "knowledge_dir", str(root))
+        monkeypatch.setattr("app.knowledge.ingest.SessionLocal", lambda: db_session)
+
+        main(["--file", "Links.md"])
+
+        out = capsys.readouterr().out
+        assert "[ingest]" in out
+        assert "1 criados" in out
+
+    def test_exits_with_error_on_validation_failure(
+        self,
+        db_session,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str],
+    ) -> None:
+        root = tmp_path / "cerebro"
+        root.mkdir()
+        monkeypatch.setattr(settings, "knowledge_dir", str(root))
+        monkeypatch.setattr("app.knowledge.ingest.SessionLocal", lambda: db_session)
+
+        with pytest.raises(SystemExit) as exc:
+            main(["--file", "arquivo_inexistente.pdf"])
+        assert exc.value.code == 1
+
+        out = capsys.readouterr().out
+        assert "[ingest] ERRO:" in out
+        assert "não encontrado" in out
 
 
 # --- segurança da ingestão e log público (D-101) -----------------------------
@@ -248,3 +293,79 @@ class TestArguments:
 
         # Um por documento, mais o do fim da execução.
         assert len(commits) == 4
+
+
+class TestTargetedArguments:
+    """``--file``/``--path`` e ``--force`` ao lado das garantias do D-101."""
+
+    LINKS = "## Links\n\n- MatWeb: https://matweb.com/\n"
+
+    def test_only_the_named_file_is_read_and_the_summary_says_so(
+        self, cli_root: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        from app.tests.test_knowledge_ingest import LFS_POINTER
+
+        (cli_root / "Links.md").write_text(self.LINKS, encoding="utf-8")
+        # Os PDFs de um checkout sem LFS: uma execução direcionada nem os abre.
+        (cli_root / "livro.pdf").write_bytes(LFS_POINTER)
+        _declare(cli_root, "Links.md")
+
+        main(["--file", "Links.md", "--no-embed"])  # não levanta SystemExit
+
+        out = capsys.readouterr().out
+        assert (
+            "[ingest] 1 criados, 0 atualizados, 0 inalterados, 0 falharam (0 sem texto), "
+            "0 ignorados pela lista de remoção, 0 cópias idênticas ignoradas, "
+        ) in out
+        assert "livro" not in out and "FALHOU" not in out
+
+    def test_path_is_an_alias_and_the_option_repeats(
+        self, db_session, cli_root: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        from app.repositories.knowledge_repository import KnowledgeRepository
+
+        _pdf(cli_root / "a.pdf", "Documento a.")
+        _pdf(cli_root / "b.pdf", "Documento b.")
+        _pdf(cli_root / "c.pdf", "Documento c.")
+
+        main(["--path", "a.pdf", "--file", "c.pdf", "--no-embed"])
+
+        assert "2 criados" in capsys.readouterr().out
+        paths = [d.path for d in KnowledgeRepository(db_session).list_documents()]
+        assert paths == ["a.pdf", "c.pdf"]
+
+    def test_force_reextracts_and_a_targeted_pointer_still_fails(
+        self, cli_root: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        from app.tests.test_knowledge_ingest import LFS_POINTER
+
+        (cli_root / "Links.md").write_text(self.LINKS, encoding="utf-8")
+        (cli_root / "livro.pdf").write_bytes(LFS_POINTER)
+        _declare(cli_root, "Links.md", "livro.pdf")
+        main(["--file", "Links.md", "--no-embed"])
+        capsys.readouterr()
+
+        main(["--file", "Links.md", "--force", "--no-embed"])
+        assert "0 criados, 1 atualizados, 0 inalterados" in capsys.readouterr().out
+
+        with pytest.raises(SystemExit) as exc:
+            main(["--file", "livro.pdf", "--force", "--no-embed"])
+        assert exc.value.code == 1
+        assert "[ingest] FALHOU livro.pdf: É um ponteiro do Git LFS" in capsys.readouterr().out
+
+    def test_a_name_outside_the_root_is_an_error_before_anything_is_written(
+        self, db_session, cli_root: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        from app.repositories.knowledge_repository import KnowledgeRepository
+
+        _pdf(tmp_path / "fora.pdf", "fora do Cérebro")
+        _pdf(cli_root / "dentro.pdf", "dentro")
+
+        with pytest.raises(SystemExit) as exc:
+            main(["--file", "dentro.pdf", "--file", "../fora.pdf"])
+
+        assert exc.value.code == 1
+        assert "[ingest] ERRO: Caminho fora de KNOWLEDGE_DIR: ../fora.pdf" in (
+            capsys.readouterr().out
+        )
+        assert KnowledgeRepository(db_session).count_documents() == 0

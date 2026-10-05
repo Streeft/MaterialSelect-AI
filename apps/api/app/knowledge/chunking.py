@@ -49,7 +49,7 @@ _SENTENCE_SPLIT = re.compile(r"(?<=[.!?])\s+(?=[A-ZÀ-Þ])")
 _HYPHEN_BREAK = re.compile(r"(\w)-\n(\w)")
 _SOFT_WRAP = re.compile(r"(?<![\n.:;!?])\n(?!\n)")
 _BLANK_LINES = re.compile(r"\n{2,}")
-_SPACES = re.compile(r"[ \t ]+")
+_SPACES = re.compile(r"[ \t ]+")
 
 
 @dataclass(frozen=True)
@@ -88,6 +88,12 @@ def looks_like_heading(line: str) -> bool:
     """True when a line reads as a section title rather than prose."""
     stripped = line.strip()
     if not stripped or len(stripped) > 120 or _SENTENCE_END.search(stripped):
+        return False
+    # A table row (DOCX or flattened) uses " | " between cells — never a
+    # heading.  This guard closes the false-positive reported in D-97:
+    # "1 | Aço | 200" was matching _NUMBERED_HEADING and being consumed as a
+    # section title, mislabelling every chunk beneath it.
+    if " | " in stripped:
         return False
     if _NUMBERED_HEADING.match(stripped):
         return True

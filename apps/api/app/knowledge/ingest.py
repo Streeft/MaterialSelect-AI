@@ -5,6 +5,13 @@ Run with::
     python -m app.knowledge.ingest              # extrai e, se configurado, embeda
     python -m app.knowledge.ingest --no-embed   # só extrai; vetores ficam para
                                                 # python -m app.knowledge.embed
+    python -m app.knowledge.ingest --file Links.md            # só este arquivo
+    python -m app.knowledge.ingest --file Links.md --force    # reextrai mesmo igual
+
+``--file`` (alias ``--path``, repetível) names files relative to
+``KNOWLEDGE_DIR``; the rest of the corpus is not walked, so the PDFs need not
+be on disk. ``--force`` re-extracts even when the checksum matches; neither
+flag lets an LFS pointer or a file on the removal list through.
 
 Idempotent by checksum (``KnowledgeService.ingest``) — safe to run again after
 adding or editing files under ``KNOWLEDGE_DIR``. Never runs during a client
@@ -20,7 +27,10 @@ files kept out by the removal list always are, and byte-identical copies are
 counted per top-level folder instead of listed.
 
 Exit code: 1 when a document failed for a reason the operator must fix (a
-broken file, an LFS pointer checked out in place of the file); a document
+broken file, an LFS pointer checked out in place of the file), or when the run
+could not start (``KNOWLEDGE_DIR`` missing, a bad manifest, a ``--file`` that
+is not an ingestible file under the root — printed as ``[ingest] ERRO: …``,
+with nothing written); a document
 without extractable text — a scanned book — is a warning (``SEM TEXTO``) and
 does not fail the run on its own.
 """
@@ -33,6 +43,7 @@ from collections import Counter
 from pathlib import Path, PurePosixPath
 
 from app.db.base import SessionLocal
+from app.domain.errors import ValidationError
 from app.knowledge.prune import ROOT_FOLDER, redact
 from app.knowledge.service import DocumentOutcome, IngestReport, KnowledgeService
 
@@ -139,6 +150,25 @@ def _parse(argv: list[str]) -> argparse.Namespace:
             "(ficam para python -m app.knowledge.embed)"
         ),
     )
+    parser.add_argument(
+        "--file",
+        "--path",
+        dest="files",
+        action="append",
+        metavar="CAMINHO",
+        help=(
+            "indexa só este arquivo, relativo a KNOWLEDGE_DIR (ex.: Links.md); "
+            "repita a opção para mais de um. Sem ela, a pasta inteira."
+        ),
+    )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help=(
+            "reextrai mesmo quando o checksum for idêntico (o chunker mudou, não o "
+            "corpus); não libera ponteiro LFS nem arquivo da lista de remoção"
+        ),
+    )
     return parser.parse_args(argv)
 
 
@@ -146,9 +176,18 @@ def main(argv: list[str] | None = None) -> None:
     """Ingest the configured knowledge root and print a summary."""
     args = _parse(argv if argv is not None else [])
     embed = not args.no_embed
-    with SessionLocal() as db:
-        report = KnowledgeService(db).ingest(embed=embed, on_document=db.commit)
-        db.commit()
+    try:
+        with SessionLocal() as db:
+            report = KnowledgeService(db).ingest(
+                force=args.force, paths=args.files, embed=embed, on_document=db.commit
+            )
+            db.commit()
+    except ValidationError as exc:
+        # Raised before the first document is touched (configuration, the
+        # manifest, a --file that is not an ingestible file under the root):
+        # one line saying why reads better in a log than a traceback.
+        print(f"[ingest] ERRO: {exc}")
+        sys.exit(1)
 
     for line in format_report(report, embed=embed):
         print(line)

@@ -15,7 +15,7 @@ import pytest
 
 from app.config import settings
 from app.domain.errors import ValidationError
-from app.knowledge.service import KnowledgeService, checksum_of
+from app.knowledge.service import LFS_POINTER_DETAIL, KnowledgeService, checksum_of
 from app.models.enums import DocumentKind, IngestStatus, SourceAuthority
 from app.repositories.knowledge_repository import KnowledgeRepository
 
@@ -1134,3 +1134,209 @@ class TestPerDocumentCallback:
         report = service.ingest(on_document=lambda: seen.append(len(seen)))
 
         assert len(seen) == len(report.outcomes) == 4
+
+
+class TestTargetedIngest:
+    """Ingestão direcionada de arquivos específicos (--file/--path)."""
+
+    LINKS = {"path": "Links.md", "titulo": "Links indicados", "tipo": "LINK"}
+
+    def test_targeted_ingest_only_processes_specified_file(self, db_session, corpus: Path) -> None:
+        (corpus / "Links.md").write_text(LINKS_MD, encoding="utf-8")
+        _declare(corpus, self.LINKS)
+        _write(corpus, "livro.pdf", ["conteúdo não solicitado"])
+
+        service = KnowledgeService(db_session)
+        report = service.ingest(paths=["Links.md"])
+
+        assert report.created == 1
+        repo = KnowledgeRepository(db_session)
+        assert repo.get_by_path("Links.md") is not None
+        assert repo.get_by_path("livro.pdf") is None
+
+    def test_targeted_ingest_is_idempotent(self, db_session, corpus: Path) -> None:
+        (corpus / "Links.md").write_text(LINKS_MD, encoding="utf-8")
+        _declare(corpus, self.LINKS)
+        service = KnowledgeService(db_session)
+
+        first = service.ingest(paths=["Links.md"])
+        second = service.ingest(paths=["Links.md"])
+
+        assert (first.created, second.created, second.unchanged) == (1, 0, 1)
+
+    def test_targeted_ingest_rejects_path_outside_root(
+        self, db_session, corpus: Path, tmp_path: Path
+    ) -> None:
+        outside = tmp_path / "fora.pdf"
+        outside.write_bytes(_pdf_bytes(["fora"]))
+        service = KnowledgeService(db_session)
+
+        with pytest.raises(ValidationError, match="fora de KNOWLEDGE_DIR"):
+            service.ingest(paths=[str(outside)])
+
+    def test_targeted_ingest_rejects_missing_file(self, db_session, corpus: Path) -> None:
+        service = KnowledgeService(db_session)
+        with pytest.raises(ValidationError, match="Arquivo não encontrado"):
+            service.ingest(paths=["fantasma.pdf"])
+
+    def test_targeted_ingest_rejects_unsupported_extension(self, db_session, corpus: Path) -> None:
+        (corpus / "codigo.py").write_text("print(1)", encoding="utf-8")
+        service = KnowledgeService(db_session)
+
+        with pytest.raises(ValidationError, match="Extensão não suportada"):
+            service.ingest(paths=["codigo.py"])
+
+    def test_targeted_ingest_rejects_operational_file(self, db_session, corpus: Path) -> None:
+        (corpus / "README.md").write_text("# Readme", encoding="utf-8")
+        service = KnowledgeService(db_session)
+
+        with pytest.raises(ValidationError, match="Arquivo operacional"):
+            service.ingest(paths=["README.md"])
+
+    def test_targeted_ingest_rejects_undeclared_markdown(self, db_session, corpus: Path) -> None:
+        (corpus / "notas.md").write_text("notas", encoding="utf-8")
+        service = KnowledgeService(db_session)
+
+        with pytest.raises(ValidationError, match="não declarado"):
+            service.ingest(paths=["notas.md"])
+
+    # --- a ingestão direcionada com as garantias do D-101 -----------------
+
+    def test_a_targeted_pointer_is_refused_without_touching_the_row(
+        self, db_session, corpus: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        path = _write(corpus, "livro.pdf", ["O módulo de Young mede a rigidez."])
+        service = _embedding_service(db_session, monkeypatch)
+        service.ingest()
+        before = _snapshot(db_session, "livro.pdf")
+
+        path.write_bytes(LFS_POINTER)
+        report = service.ingest(paths=["livro.pdf"])
+
+        (outcome,) = report.outcomes
+        assert (outcome.action, outcome.detail) == ("falhou", LFS_POINTER_DETAIL)
+        assert _snapshot(db_session, "livro.pdf") == before
+
+    def test_force_does_not_let_a_pointer_through(
+        self, db_session, corpus: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        path = _write(corpus, "livro.pdf", ["O módulo de Young mede a rigidez."])
+        service = _embedding_service(db_session, monkeypatch)
+        service.ingest()
+        before = _snapshot(db_session, "livro.pdf")
+
+        path.write_bytes(LFS_POINTER)
+        for report in (service.ingest(force=True), service.ingest(True, paths=["livro.pdf"])):
+            assert [o.action for o in report.outcomes] == ["falhou"]
+        assert _snapshot(db_session, "livro.pdf") == before
+
+    def test_force_and_a_name_do_not_bring_back_a_removed_file(
+        self, db_session, corpus: Path
+    ) -> None:
+        _write(corpus, "02-Curso/aula.pdf", ["material de curso"])
+        (corpus / "removidos.txt").write_text("02-Curso/\n", encoding="utf-8")
+
+        report = KnowledgeService(db_session).ingest(force=True, paths=["02-Curso/aula.pdf"])
+
+        (outcome,) = report.outcomes
+        assert outcome.action == "ignorado"
+        assert "lista de remoção" in (outcome.detail or "")
+        assert KnowledgeRepository(db_session).count_documents() == 0
+
+    def test_a_named_file_is_ingested_even_with_an_unnamed_copy_elsewhere(
+        self, db_session, corpus: Path
+    ) -> None:
+        # Pedido pelo nome, o arquivo entra: a cópia em outro caminho não foi
+        # nomeada, então não está na execução para disputar quem é indexado.
+        _write(corpus, "a/livro.pdf", ["O módulo de Young mede a rigidez."])
+        _write(corpus, "b/livro.pdf", ["O módulo de Young mede a rigidez."])
+
+        report = KnowledgeService(db_session).ingest(paths=["b/livro.pdf"])
+
+        assert (report.created, report.duplicates) == (1, 0)
+        paths = [d.path for d in KnowledgeRepository(db_session).list_documents()]
+        assert paths == ["b/livro.pdf"]
+
+    def test_two_named_identical_files_are_indexed_once(self, db_session, corpus: Path) -> None:
+        _write(corpus, "a/livro.pdf", ["O módulo de Young mede a rigidez."])
+        _write(corpus, "b/livro.pdf", ["O módulo de Young mede a rigidez."])
+
+        report = KnowledgeService(db_session).ingest(paths=["b/livro.pdf", "a/livro.pdf"])
+
+        assert (report.created, report.duplicates) == (1, 1)
+        (copy,) = [o for o in report.outcomes if o.duplicate_of]
+        assert (copy.path, copy.duplicate_of) == ("b/livro.pdf", "a/livro.pdf")
+
+    def test_force_reextracts_a_named_unchanged_file(self, db_session, corpus: Path) -> None:
+        (corpus / "Links.md").write_text(LINKS_MD, encoding="utf-8")
+        _declare(corpus, self.LINKS)
+        service = KnowledgeService(db_session)
+        service.ingest(paths=["Links.md"])
+
+        report = service.ingest(force=True, paths=["Links.md"])
+
+        assert [o.action for o in report.outcomes] == ["atualizado"]
+
+    def test_a_targeted_run_reports_each_file_and_honours_no_embed(
+        self, db_session, corpus: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        (corpus / "Links.md").write_text(LINKS_MD, encoding="utf-8")
+        _declare(corpus, self.LINKS)
+        service = KnowledgeService(db_session)
+
+        def no_client() -> None:
+            raise AssertionError("embed=False não constrói cliente")
+
+        monkeypatch.setattr(service, "_embedding_client", no_client)
+        seen: list[int] = []
+
+        report = service.ingest(paths=["Links.md"], embed=False, on_document=lambda: seen.append(1))
+
+        assert (report.created, len(seen)) == (1, 1)
+        assert report.outcomes[0].declared is True
+
+    def test_dot_dot_that_stays_inside_the_root_is_the_same_file(
+        self, db_session, corpus: Path
+    ) -> None:
+        _write(corpus, "pasta/livro.pdf", ["conteúdo"])
+        service = KnowledgeService(db_session)
+
+        assert service.resolve_targets(["outra/../pasta/livro.pdf"]) == [corpus / "pasta/livro.pdf"]
+
+    def test_dot_dot_out_of_the_root_is_refused(
+        self, db_session, corpus: Path, tmp_path: Path
+    ) -> None:
+        _write(tmp_path, "fora.pdf", ["fora"])
+
+        with pytest.raises(ValidationError, match="fora de KNOWLEDGE_DIR"):
+            KnowledgeService(db_session).ingest(paths=["../fora.pdf"])
+
+    def test_a_linked_file_is_refused_even_inside_the_root(self, db_session, corpus: Path) -> None:
+        _write(corpus, "livro.pdf", ["conteúdo"])
+        TestSymlinks._link(corpus / "atalho.pdf", corpus / "livro.pdf")
+
+        with pytest.raises(ValidationError, match="Link simbólico"):
+            KnowledgeService(db_session).ingest(paths=["atalho.pdf"])
+
+    def test_a_file_under_a_linked_folder_is_refused(
+        self, db_session, corpus: Path, tmp_path: Path
+    ) -> None:
+        _write(corpus, "real/livro.pdf", ["conteúdo"])
+        TestSymlinks._link(corpus / "pasta", corpus / "real")
+        outside = tmp_path / "fora"
+        _write(outside, "segredo.pdf", ["fora do Cérebro"])
+        TestSymlinks._link(corpus / "externa", outside)
+        service = KnowledgeService(db_session)
+
+        with pytest.raises(ValidationError, match="Link simbólico"):
+            service.ingest(paths=["pasta/livro.pdf"])
+        with pytest.raises(ValidationError, match="fora de KNOWLEDGE_DIR"):
+            service.ingest(paths=["externa/segredo.pdf"])
+        assert KnowledgeRepository(db_session).count_documents() == 0
+
+    def test_one_bad_name_refuses_the_whole_run(self, db_session, corpus: Path) -> None:
+        _write(corpus, "livro.pdf", ["conteúdo"])
+
+        with pytest.raises(ValidationError, match="não encontrado"):
+            KnowledgeService(db_session).ingest(paths=["livro.pdf", "fantasma.pdf"])
+        assert KnowledgeRepository(db_session).count_documents() == 0

@@ -26,6 +26,7 @@ from app.ai.guardrails import (
     numbers_in,
     ungrounded_numbers,
 )
+from app.ai.prompts import UNPAGINATED_KINDS
 from app.ai.provider import (
     AIProvider,
     AIUnavailableError,
@@ -282,14 +283,17 @@ class AIService:
             i for i in raw.get("sources", []) if isinstance(i, int) and not isinstance(i, bool)
         ]
         valid_indices = check_citations(raw_sources, context.retrieved)
-        sources = [
-            CitedSourceOut(
-                document_title=context.retrieved[i - 1].document_title,
-                page_start=context.retrieved[i - 1].page_start,
-                page_end=context.retrieved[i - 1].page_end,
+        sources = []
+        for i in valid_indices:
+            chunk = context.retrieved[i - 1]
+            unpaginated = getattr(chunk, "document_kind", None) in UNPAGINATED_KINDS
+            sources.append(
+                CitedSourceOut(
+                    document_title=chunk.document_title,
+                    page_start=None if unpaginated else chunk.page_start,
+                    page_end=None if unpaginated else chunk.page_end,
+                )
             )
-            for i in valid_indices
-        ]
 
         return ExplanationOut(
             study_id=study_id,
@@ -327,11 +331,60 @@ def _result_context(study, result, retrieved: list) -> ResultContext:
     for candidate in result.candidates:
         if candidate.index_value is not None:
             numbers.add(float(candidate.index_value))
+
+    # Constraint values and bounds
+    for c in study.constraints:
+        if c.value is not None:
+            numbers.add(float(c.value))
+        if c.value_min is not None:
+            numbers.add(float(c.value_min))
+        if c.value_max is not None:
+            numbers.add(float(c.value_max))
+
+    # Stage chart bounds and index levels
+    for stage in getattr(study, "stages", []) or []:
+        for attr in (
+            "chart_x_min",
+            "chart_x_max",
+            "chart_y_min",
+            "chart_y_max",
+            "chart_index_level",
+        ):
+            val = getattr(stage, attr, None)
+            if val is not None:
+                try:
+                    numbers.add(float(val))
+                except (ValueError, TypeError):
+                    pass
+
+    # Ranking contribution raw values and weights
+    if result.ranking:
+        for r in result.ranking.ranked:
+            for contrib in getattr(r, "contributions", []) or []:
+                if getattr(contrib, "raw", None) is not None:
+                    try:
+                        numbers.add(float(contrib.raw))
+                    except (ValueError, TypeError):
+                        pass
+                if getattr(contrib, "weight", None) is not None:
+                    try:
+                        numbers.add(float(contrib.weight))
+                    except (ValueError, TypeError):
+                        pass
+
+    # Numbers from retrieved reference passages (citations, page numbers, text)
+    if retrieved:
+        from app.ai.prompts import _reference_block
+
+        numbers.update(numbers_in(_reference_block(tuple(retrieved))))
+
     for text in [
         study.name,
+        getattr(study, "description", "") or "",
         study.function_text or "",
         study.objective_text or "",
         study.index_expression or "",
+        ", ".join(getattr(study, "free_variables", []) or []),
         result.index.dimension if result.index else "",
         *[c.label or "" for c in study.constraints],
         # Material names are pipeline output as much as any label is: writing

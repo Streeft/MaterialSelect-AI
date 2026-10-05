@@ -214,7 +214,7 @@ disparo manual em `.github/workflows/`, na aba **Actions** do repositório.
 | Workflow | Faz o quê | Substitui |
 |---|---|---|
 | **Deploy da API (Fly.io)** | `flyctl deploy --remote-only` | o `fly deploy` do §2 |
-| **Administração do banco** | `migrar`, `semear`, `excluir_demo`, `conhecimento_simular_remocao`, `conhecimento_remover`, `conceder`, `revogar` | o `fly ssh console` do §2 e do §5 |
+| **Administração do banco** | `migrar`, `semear`, `excluir_demo`, `conhecimento_simular_remocao`, `conhecimento_remover`, `conhecimento_indexar_links`, `conceder`, `revogar` | o `fly ssh console` do §2 e do §5 |
 | **Modo de acesso** | `abrir`, `restaurar_assinatura` — grava `ACCESS_MODE` no Fly e confere em `/api/health` | o `fly secrets set` do §5-quater |
 | **Base de conhecimento (Cérebro)** | `status`, `ingerir`, `embeddings`, e uma execução noturna agendada — põe o Cérebro no banco (§5-septies) | a ingestão offline, que não tinha onde rodar |
 
@@ -273,6 +273,18 @@ Três detalhes que não são arbitrários:
   totais, apague os logs das duas execuções (a execução → ⋯ → *Delete all
   logs*); o passo a passo está em
   [`17-limpeza-historico-cerebro.md`](17-limpeza-historico-cerebro.md) §1.
+- **`conhecimento_indexar_links` indexa o `Links.md` da base de conhecimento (D-100)**:
+  roda `python -m app.knowledge.ingest --no-embed --file=Links.md` apontado
+  para a pasta `Cérebro` do repositório no runner do GitHub Actions contra a
+  base de produção (Neon). Como a ingestão de todo o Cérebro exige os PDFs do
+  Git LFS, que este workflow não baixa, a ingestão direcionada indexa o
+  arquivo declarado sem terminal local nem arquivo binário. Só o texto, e sem
+  chave de IA no ambiente: o vetor do `Links.md` vem da execução noturna do
+  **Base de conhecimento (Cérebro)**, que é quem grava a identidade de vetor
+  única do [D-101](DECISIONS.md). É o mesmo comando de `ingerir` com
+  `arquivos: Links.md` naquele workflow (§5-septies), que serve a qualquer
+  arquivo do Cérebro; as garantias da ingestão (lista de remoção, ponteiro LFS
+  recusado, versão anterior mantida) valem igual nas duas.
 - **O passo "Garantir endereço público" conta antes de alocar.** `flyctl ips
   allocate-v6` **não é idempotente**: ele aloca outro endereço a cada chamada,
   em silêncio e com sucesso. Escrito como `allocate-v6 || true`, acumulava um
@@ -293,6 +305,7 @@ fixa, para qualquer agente ou pessoa que mesclar um PR nesta base:
 | `apps/api/app/db/seed.py` **ou** `apps/api/app/db/seed_extended.py` (material novo, química de bateria, modo de transporte, qualquer dado de demonstração) | **Administração do banco** (`admin-banco.yml`, ação `semear`) | O deploy da API **não** roda seed nenhum — só a migração. Sem este passo o código do dado novo está no ar e a linha correspondente não existe no banco. |
 | `Cérebro/**` ou `Cérebro/manifesto.json` (PDF novo ou trocado, entrada nova no manifesto; `removidos.txt` é a linha abaixo) | **Base de conhecimento (Cérebro)**, `ingerir` — fora do horário de aula | Nada no deploy lê o Cérebro: sem este passo o arquivo está no repositório e não no RAG. Os vetores dos trechos novos chegam na execução noturna ([D-101](DECISIONS.md), §5-septies). |
 | `Cérebro/removidos.txt` (algo saiu da base de conhecimento) | **Administração do banco**, `conhecimento_simular_remocao`, conferir o log, depois `conhecimento_remover` | A ingestão só acrescenta: sem este passo o documento sai do repositório e continua sendo citado pelo RAG ([D-100](DECISIONS.md)). |
+| Só `Cérebro/Links.md` (nenhum PDF mudou) | **Base de conhecimento (Cérebro)**, `ingerir` com `arquivos: Links.md` — ou **Administração do banco**, `conhecimento_indexar_links`, o mesmo comando | Reindexa os links úteis declarados na base de conhecimento (RAG) em produção sem baixar os PDFs do LFS. Um PR que mudou também um PDF ou o manifesto pede o `ingerir` inteiro da linha acima. |
 | Só `apps/web/**` | Nada | A Vercel publica sozinha a cada push em `main` — não há workflow manual para o frontend. |
 
 **Por que dois módulos de seed, e não um.** `app.db.seed` é a base que
@@ -496,7 +509,7 @@ de `KNOWLEDGE_DIR`: ela só lê o banco.
 | Ação | Faz o quê | Recebe a chave do Gemini? |
 |---|---|---|
 | `status` | Só lê: documentos, trechos, vetores por modelo e dimensão, quanto falta, tamanho do banco, cópias órfãs, documentos sem arquivo no repositório — e compara a identidade de vetor da API com a do workflow ("API vs vetores"). | Não |
-| `ingerir` | Baixa os PDFs do Git LFS (com cache) e roda `python -m app.knowledge.ingest --no-embed`: extrai o texto e grava os trechos. A busca léxica funciona a partir daqui. | **Não** |
+| `ingerir` | Baixa os PDFs do Git LFS (com cache) e roda `python -m app.knowledge.ingest --no-embed`: extrai o texto e grava os trechos. A busca léxica funciona a partir daqui. Com `arquivos` (caminhos dentro de `Cérebro/`, separados por `;`), só esses arquivos, e o LFS só é baixado se um deles for PDF do LFS. | **Não** |
 | `embeddings` | Gera vetores agora, até `limite_pedidos` pedidos (padrão 300) com `lote` trechos por pedido (padrão 20), por no máximo 120 min. | Sim |
 | noturna (sozinha) | O mesmo, toda noite às 05:07 UTC (02:07 em Brasília), só entre 21h e 23h50 do Pacífico, com a sobra da cota do dia, até a cota acabar. | Sim |
 
@@ -506,6 +519,24 @@ conferência dos ponteiros LFS): é ele, e não o ✅, que prova o que ficou no 
 [D-71](DECISIONS.md#d-71)). O log é público, então os comandos imprimem caminho
 inteiro só do que `Cérebro/manifesto.json` declara, o resto como pasta mais o
 começo do sha256, e nunca texto de trecho nem chave.
+
+**Só o `Links.md`, agora** — o atalho, sem os ≈600 MB do LFS e sem depender
+dos passos abaixo: **Base de conhecimento (Cérebro)** → `ingerir`, com
+`arquivos` = `Links.md`. O log diz
+`1 arquivo(s) pedido(s), nenhum no Git LFS: nada é baixado do LFS.`, pula os
+passos do LFS e termina com
+```
+[ingest] 1 criados, 0 atualizados, 0 inalterados, 0 falharam (0 sem texto), 0 ignorados pela lista de remoção, 0 cópias idênticas ignoradas, T trechos, 0 embedados.
+```
+(`1 inalterados` se ele já estava na base, por exemplo pela ação
+`conhecimento_indexar_links`; `1 atualizados` se o arquivo mudou). A busca
+léxica já o acha; o vetor vem na noite seguinte, como o de qualquer trecho.
+Mais de um arquivo: `Links.md; Pasta/livro.pdf` — um caminho dentro de
+`Cérebro/` (o prefixo `Cérebro/` é aceito), sem `..`, nunca link simbólico; o
+erro diz a posição do caminho recusado, não o nome. Um PDF nomeado faz o LFS
+ser baixado inteiro (com cache), e a conferência de ponteiros roda igual.
+Um arquivo nomeado é indexado mesmo que exista cópia idêntica dele em outro
+caminho não nomeado; dois nomeados idênticos entram uma vez só.
 
 **A primeira vez, depois do merge do PR do D-101** — pela aba **Actions**:
 
@@ -677,8 +708,11 @@ administração (§5-bis).
   RAG só liga com provedor de IA real. Quem ingere é o workflow **Base de
   conhecimento (Cérebro)**, num runner do Actions (§5-septies,
   [D-101](DECISIONS.md)) — os PDFs e o Markdown que o `manifesto.json` declara,
-  hoje o `Links.md` ([D-100](DECISIONS.md)). O deploy também não gera vetor
-  nenhum: eles chegam pela ação `embeddings` e pela execução noturna. A
-  **remoção** tem ação no workflow de administração (§5-bis), porque ela é o
-  que a ingestão não faz; e uma base local ou de desenvolvimento que já
+  hoje o `Links.md` ([D-100](DECISIONS.md)). O `Links.md` sozinho, sem baixar
+  os PDFs, entra pela mesma ação `ingerir` com `arquivos: Links.md`, ou pela
+  ação `conhecimento_indexar_links` do workflow de administração (§5-bis). O
+  deploy também não gera vetor nenhum: eles chegam pela ação `embeddings` e
+  pela execução noturna. A **remoção** tem ação no workflow de administração
+  (`conhecimento_simular_remocao` e `conhecimento_remover`, §5-bis), porque ela
+  é o que a ingestão não faz; e uma base local ou de desenvolvimento que já
   recebeu ingestão precisa do mesmo `prune`, rodado à mão contra ela.

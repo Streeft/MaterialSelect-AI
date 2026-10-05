@@ -394,7 +394,9 @@ Três coisas que não são detalhe de configuração:
 - **O Cérebro entra no banco por um workflow próprio** ([D-101](DECISIONS.md)):
   **Base de conhecimento (Cérebro)** (`conhecimento.yml`), com `status`,
   `ingerir` (baixa os PDFs do LFS, com cache, e roda
-  `python -m app.knowledge.ingest --no-embed`, sem chave de IA) e `embeddings`
+  `python -m app.knowledge.ingest --no-embed`, sem chave de IA; com a entrada
+  `arquivos`, só os nomeados por `--file=`, e o LFS só é baixado se um deles
+  estiver nele) e `embeddings`
   (`python -m app.knowledge.embed`, com a `GEMINI_API_KEY`), mais uma execução
   **agendada** toda noite que gera vetores com a sobra da cota gratuita. É o
   único workflow com `schedule`, e por isso não é ação do `admin-banco.yml`, que

@@ -620,7 +620,7 @@ export function createPortalSession(): Promise<PortalSession> {
 // and the user prints it to PDF. That is deliberately how the project gets a
 // PDF without taking on a PDF-generation dependency.
 
-export type ExportFormat = "csv" | "xlsx" | "html" | "docx";
+export type ExportFormat = "csv" | "xlsx" | "html" | "docx" | "pptx";
 
 /** True when the format opens in the browser instead of downloading. */
 export function opensInBrowser(format: ExportFormat): boolean {
@@ -638,15 +638,19 @@ export function studyExportUrl(studyId: number, format: ExportFormat): string {
 /**
  * The engineering report (laudo): a document distinct from the selection
  * report, combining a ranking figure, the same audit tables, and — when the
- * AI layer is on — an interpretive narrative. HTML-only, and always opens
- * inline, like the printable report it is built alongside.
+ * AI layer is on — an interpretive narrative. HTML opens inline; DOCX and
+ * PPTX download as native files.
  */
-export function studyLaudoUrl(studyId: number, responsible?: string): string {
+export function studyLaudoUrl(
+  studyId: number,
+  responsible?: string,
+  format: "html" | "docx" | "pptx" = "html",
+): string {
   const trimmed = responsible?.trim();
   const query = trimmed
     ? `?${new URLSearchParams({ responsavel: trimmed })}`
     : "";
-  return `${API_URL}/api/exports/estudos/${studyId}/laudo.html${query}`;
+  return `${API_URL}/api/exports/estudos/${studyId}/laudo.${format}${query}`;
 }
 
 // --- My Records (P1-4) ------------------------------------------------------

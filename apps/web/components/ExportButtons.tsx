@@ -9,6 +9,7 @@ const LABELS: Record<ExportFormat, string> = {
   csv: t.csv,
   xlsx: t.xlsx,
   docx: t.docx,
+  pptx: t.pptx,
   html: t.html,
 };
 
@@ -20,7 +21,7 @@ interface ExportButtonsProps {
 }
 
 /**
- * CSV / XLSX / DOCX / HTML exports, behind one "Exportar ▾" button (D-91).
+ * CSV / XLSX / DOCX / PPTX / HTML exports, behind one "Exportar ▾" button (D-91, B2).
  *
  * Four outlined buttons in a row competed with the one action each screen is
  * for ("+ Novo material", "Executar"); a menu costs one button's width and
@@ -37,7 +38,7 @@ interface ExportButtonsProps {
  * taking on a PDF-generation dependency.
  */
 export function ExportButtons({ urlFor, label = t.title, hint }: ExportButtonsProps) {
-  const formats: ExportFormat[] = ["csv", "xlsx", "docx", "html"];
+  const formats: ExportFormat[] = ["csv", "xlsx", "docx", "pptx", "html"];
   return (
     <div className="flex flex-wrap items-center gap-2">
       <MenuButton label={label} icon={<IconDownload className="h-4 w-4" />}>

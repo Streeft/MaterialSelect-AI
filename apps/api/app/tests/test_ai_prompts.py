@@ -47,6 +47,94 @@ class TestInterpretPrompt:
         assert text.index("Trechos de referência") < text.index("enunciado do usuario aqui")
 
 
+class TestReferenceBlockPageFormatting:
+    """D-100: formatação do localizador de páginas no prompt de referência."""
+
+    def test_single_page_formats_as_p_x(self) -> None:
+        chunk = RetrievedChunk(
+            document_title="Artigo Técnico",
+            document_kind=DocumentKind.ARTIGO,
+            document_authority=SourceAuthority.CIENTIFICA,
+            page_start=42,
+            page_end=42,
+            text="Texto",
+            score=0.9,
+        )
+        context = ProblemContext(
+            statement="x", properties=[], indices=[], classes=[], retrieved=(chunk,)
+        )
+        text = interpret_user(context)
+        assert "Artigo Técnico — p. 42" in text
+        assert "p. 42-42" not in text
+
+    def test_page_range_formats_as_p_x_y(self) -> None:
+        chunk = RetrievedChunk(
+            document_title="Livro de Referência",
+            document_kind=DocumentKind.LIVRO,
+            document_authority=SourceAuthority.CIENTIFICA,
+            page_start=10,
+            page_end=15,
+            text="Texto",
+            score=0.9,
+        )
+        context = ProblemContext(
+            statement="x", properties=[], indices=[], classes=[], retrieved=(chunk,)
+        )
+        text = interpret_user(context)
+        assert "Livro de Referência — p. 10-15" in text
+
+    def test_unpaginated_link_omits_pages(self) -> None:
+        chunk = RetrievedChunk(
+            document_title="Links indicados",
+            document_kind=DocumentKind.LINK,
+            document_authority=SourceAuthority.TECNICA,
+            page_start=1,
+            page_end=1,
+            text="Texto",
+            score=0.9,
+        )
+        context = ProblemContext(
+            statement="x", properties=[], indices=[], classes=[], retrieved=(chunk,)
+        )
+        text = interpret_user(context)
+        assert "[1] Links indicados\n" in text
+        assert "p. 1" not in text
+
+    def test_unpaginated_video_omits_pages(self) -> None:
+        chunk = RetrievedChunk(
+            document_title="Vídeo Aula",
+            document_kind=DocumentKind.VIDEO,
+            document_authority=SourceAuthority.SECUNDARIA,
+            page_start=1,
+            page_end=1,
+            text="Texto",
+            score=0.9,
+        )
+        context = ProblemContext(
+            statement="x", properties=[], indices=[], classes=[], retrieved=(chunk,)
+        )
+        text = interpret_user(context)
+        assert "[1] Vídeo Aula\n" in text
+        assert "p. 1" not in text
+
+    def test_missing_pages_omits_pages(self) -> None:
+        chunk = RetrievedChunk(
+            document_title="Documento sem páginas",
+            document_kind=DocumentKind.OUTRO,
+            document_authority=SourceAuthority.NAO_VERIFICADA,
+            page_start=None,
+            page_end=None,
+            text="Texto",
+            score=0.9,
+        )
+        context = ProblemContext(
+            statement="x", properties=[], indices=[], classes=[], retrieved=(chunk,)
+        )
+        text = interpret_user(context)
+        assert "[1] Documento sem páginas\n" in text
+        assert "— p." not in text
+
+
 class TestExplainPrompt:
     def test_no_reference_block_when_nothing_retrieved(self) -> None:
         context = ResultContext(

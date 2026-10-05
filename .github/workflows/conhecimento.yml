@@ -8,6 +8,9 @@
 #                        `python -m app.knowledge.ingest --no-embed`: extrai o
 #                        texto e grava os trechos. A busca léxica já funciona
 #                        depois disto. NÃO recebe chave de IA nenhuma.
+#                        Com `arquivos` preenchido (ex.: `Links.md`), só esses
+#                        arquivos, por `--file`; o LFS só é baixado se um deles
+#                        for um PDF guardado no LFS.
 #   embeddings           gera vetores agora, até `limite_pedidos` pedidos
 #                        (`python -m app.knowledge.embed`).
 #   (noturno, sozinho)   o mesmo, toda noite, com a sobra da cota diária
@@ -56,6 +59,11 @@ on:
           - status
           - ingerir
           - embeddings
+      arquivos:
+        description: "Só para ingerir: caminhos dentro de Cérebro/, separados por ';' (ex.: Links.md). Vazio = a pasta inteira"
+        required: false
+        type: string
+        default: ""
       limite_pedidos:
         description: "Só para embeddings: máximo de pedidos ao Gemini nesta execução (0 = até a cota do dia acabar)"
         required: false
@@ -147,12 +155,90 @@ jobs:
               ;;
           esac
 
+      # --- Arquivos pedidos, só para `ingerir` ---------------------------------
+      # Vazio: a pasta inteira, e o LFS é baixado. Preenchido: cada caminho é
+      # conferido aqui (relativo a Cérebro/, sem `..`, arquivo regular, sem
+      # link simbólico) e o LFS só é baixado se algum deles for um ponteiro no
+      # checkout — `Links.md` sozinho não custa os ≈600 MB dos PDFs. A
+      # ingestão confere tudo de novo (`resolve_targets`), inclusive o que só
+      # ela sabe: extensão, manifesto, lista de remoção. Os caminhos não são
+      # impressos aqui — o erro diz a posição na lista.
+      - name: Conferir os arquivos pedidos
+        if: env.ACAO == 'ingerir'
+        env:
+          ARQUIVOS: ${{ inputs.arquivos }}
+        run: |
+          set -euo pipefail
+          lista_nul="$RUNNER_TEMP/cerebro-arquivos"
+          : > "$lista_nul"
+          lista="${ARQUIVOS:-}"
+          if [ -z "${lista//[[:space:]]/}" ]; then
+            echo "Sem arquivos pedidos: a pasta Cérebro/ inteira."
+            echo "LFS_NECESSARIO=1" >> "$GITHUB_ENV"
+            exit 0
+          fi
+          case "$lista" in
+            *$'\n'*|*$'\r'*)
+              echo "::error::arquivos tem quebra de linha: separe os caminhos por ';'."
+              exit 1
+              ;;
+          esac
+          raiz="$(realpath -e -- "$GITHUB_WORKSPACE")"
+          IFS=';' read -r -a itens <<< "$lista"
+          n=0; posicao=0; lfs=0
+          for item in "${itens[@]}"; do
+            posicao=$((posicao + 1))
+            item="${item#"${item%%[![:space:]]*}"}"
+            item="${item%"${item##*[![:space:]]}"}"
+            [ -n "$item" ] || continue
+            item="${item#Cérebro/}"
+            if printf '%s' "$item" | LC_ALL=C grep -q '[[:cntrl:]]'; then
+              echo "::error::O caminho nº $posicao de arquivos tem caractere de controle."
+              exit 1
+            fi
+            case "$item" in
+              /*|-*|\\*)
+                echo "::error::O caminho nº $posicao de arquivos tem de ser relativo a Cérebro/ (sem '/' ou '-' no começo)."
+                exit 1
+                ;;
+            esac
+            case "/$item/" in
+              */../*|*/./*|*//*)
+                echo "::error::O caminho nº $posicao de arquivos tem '..', '.' ou '//': escreva o caminho direto, dentro de Cérebro/."
+                exit 1
+                ;;
+            esac
+            caminho="Cérebro/$item"
+            # Nenhum componente pode ser link: o caminho real tem de ser o escrito.
+            real="$(realpath -e -- "$caminho" 2>/dev/null || true)"
+            if [ -z "$real" ] || [ ! -f "$real" ] || [ "$real" != "$raiz/$caminho" ]; then
+              echo "::error::O caminho nº $posicao de arquivos não é um arquivo de Cérebro/ (não existe, é pasta ou passa por link simbólico)."
+              exit 1
+            fi
+            if [ "$(head -c 40 -- "$caminho" | tr -d '\0')" = "version https://git-lfs.github.com/spec/" ]; then
+              lfs=1
+            fi
+            printf '%s\0' "$item" >> "$lista_nul"
+            n=$((n + 1))
+          done
+          if [ "$n" -eq 0 ]; then
+            echo "::error::arquivos não tem caminho nenhum (só ';' e espaços). Deixe vazio para a pasta inteira."
+            exit 1
+          fi
+          echo "LFS_NECESSARIO=$lfs" >> "$GITHUB_ENV"
+          echo "ARQUIVOS_PEDIDOS=$lista_nul" >> "$GITHUB_ENV"
+          if [ "$lfs" = 1 ]; then
+            echo "$n arquivo(s) pedido(s); ao menos um está no Git LFS, então o LFS é baixado (com cache)."
+          else
+            echo "$n arquivo(s) pedido(s), nenhum no Git LFS: nada é baixado do LFS."
+          fi
+
       # --- Git LFS, só para `ingerir` ------------------------------------------
       # A chave do cache é o conjunto de ids dos objetos: o mesmo Cérebro dá a
       # mesma chave e nada é baixado; um PDF novo dá outra chave, e o cache
       # anterior (restore-keys) ainda traz todos os outros.
       - name: Listar os objetos LFS do Cérebro
-        if: env.ACAO == 'ingerir'
+        if: env.ACAO == 'ingerir' && env.LFS_NECESSARIO == '1'
         run: |
           set -euo pipefail
           git lfs ls-files --long | cut -d' ' -f1 | sort -u > .lfs-cerebro-ids
@@ -164,7 +250,7 @@ jobs:
 
       - name: Restaurar o cache do LFS
         id: cache-lfs
-        if: env.ACAO == 'ingerir'
+        if: env.ACAO == 'ingerir' && env.LFS_NECESSARIO == '1'
         uses: actions/cache/restore@v6
         with:
           path: .git/lfs/objects
@@ -174,7 +260,7 @@ jobs:
 
       - name: Baixar os PDFs (git lfs pull)
         id: lfs-pull
-        if: env.ACAO == 'ingerir'
+        if: env.ACAO == 'ingerir' && env.LFS_NECESSARIO == '1'
         run: |
           set -euo pipefail
           # Quanto falta baixar, lido dos próprios ponteiros: o que o cache não
@@ -226,7 +312,7 @@ jobs:
       # ingestão já não apaga nada por isso (T1), mas a execução tem de falhar
       # aqui, antes do Python, com a causa escrita.
       - name: Conferir que nenhum ponteiro LFS ficou
-        if: env.ACAO == 'ingerir'
+        if: env.ACAO == 'ingerir' && env.LFS_NECESSARIO == '1'
         run: |
           set -euo pipefail
           restantes=0
@@ -280,7 +366,14 @@ jobs:
         run: |
           set -euo pipefail
           export KNOWLEDGE_DIR="$GITHUB_WORKSPACE/Cérebro"
-          python -m app.knowledge.ingest --no-embed
+          # `--file=<caminho>` numa palavra só: um caminho nunca é lido como opção.
+          alvos=()
+          if [ -n "${ARQUIVOS_PEDIDOS:-}" ]; then
+            while IFS= read -r -d '' arquivo; do
+              alvos+=("--file=$arquivo")
+            done < "$ARQUIVOS_PEDIDOS"
+          fi
+          python -m app.knowledge.ingest --no-embed "${alvos[@]}"
 
       - name: Gerar vetores
         if: env.PULAR != '1' && (env.ACAO == 'embeddings' || env.ACAO == 'embeddings_noturno')

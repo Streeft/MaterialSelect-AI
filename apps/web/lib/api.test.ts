@@ -1,5 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
-import { readErrorDetail } from "./api";
+import {
+  catalogueExportUrl,
+  opensInBrowser,
+  readErrorDetail,
+  studyExportUrl,
+  studyLaudoUrl,
+} from "./api";
 
 describe("readErrorDetail", () => {
   it("keeps a string detail as the API wrote it", () => {
@@ -54,5 +60,22 @@ describe("convertMapBox", () => {
     } finally {
       vi.unstubAllGlobals();
     }
+  });
+});
+
+describe("export URLs", () => {
+  it("builds export URLs for downloads and inline formats", () => {
+    expect(opensInBrowser("html")).toBe(true);
+    expect(opensInBrowser("csv")).toBe(false);
+    expect(opensInBrowser("xlsx")).toBe(false);
+    expect(opensInBrowser("docx")).toBe(false);
+    expect(opensInBrowser("pptx")).toBe(false);
+
+    expect(catalogueExportUrl("pptx")).toContain("/api/exports/catalogo.pptx");
+    expect(studyExportUrl(42, "pptx")).toContain("/api/exports/estudos/42.pptx");
+    expect(studyLaudoUrl(42, undefined, "pptx")).toContain("/api/exports/estudos/42/laudo.pptx");
+    expect(studyLaudoUrl(42, "Eng. Carlos", "pptx")).toContain(
+      "/api/exports/estudos/42/laudo.pptx?responsavel=Eng.+Carlos",
+    );
   });
 });
