@@ -20,6 +20,8 @@ import {
 } from "@/lib/api";
 import { ptBR } from "@/lib/i18n";
 import { formatNumber } from "@/lib/format";
+import { ecoPhaseI18n } from "@/lib/i18n-extras";
+import { PhaseBars, type PhaseBarRow } from "@/components/eco/PhaseBars";
 import {
   Alert,
   Badge,
@@ -488,6 +490,96 @@ export default function EcoPage() {
     [materials.data],
   );
 
+  // Phase bar rows (Individual mode)
+  const energyRows: PhaseBarRow[] = useMemo(
+    () =>
+      (result?.phases ?? []).map((p) => ({
+        phase: p.phase,
+        label: p.label,
+        items: [
+          {
+            seriesName: result?.material_name ?? ecoPhaseI18n.impactLabel,
+            value: p.energy,
+            reason: p.energy_reason,
+            tone: "primary",
+          },
+        ],
+      })),
+    [result],
+  );
+
+  const carbonRows: PhaseBarRow[] = useMemo(
+    () =>
+      (result?.phases ?? []).map((p) => ({
+        phase: p.phase,
+        label: p.label,
+        items: [
+          {
+            seriesName: result?.material_name ?? ecoPhaseI18n.impactLabel,
+            value: p.carbon,
+            reason: p.carbon_reason,
+            tone: "primary",
+          },
+        ],
+      })),
+    [result],
+  );
+
+  // Phase bar rows (Compare mode)
+  const compareEnergyRows: PhaseBarRow[] = useMemo(() => {
+    if (!compareResult) return [];
+    const resA = compareResult.material_a;
+    const resB = compareResult.material_b;
+    return resA.phases.map((pA) => {
+      const pB = resB.phases.find((p) => p.phase === pA.phase);
+      return {
+        phase: pA.phase,
+        label: pA.label,
+        items: [
+          {
+            seriesName: resA.material_name,
+            value: pA.energy,
+            reason: pA.energy_reason,
+            tone: "primary",
+          },
+          {
+            seriesName: resB.material_name,
+            value: pB?.energy ?? null,
+            reason: pB?.energy_reason,
+            tone: "secondary",
+          },
+        ],
+      };
+    });
+  }, [compareResult]);
+
+  const compareCarbonRows: PhaseBarRow[] = useMemo(() => {
+    if (!compareResult) return [];
+    const resA = compareResult.material_a;
+    const resB = compareResult.material_b;
+    return resA.phases.map((pA) => {
+      const pB = resB.phases.find((p) => p.phase === pA.phase);
+      return {
+        phase: pA.phase,
+        label: pA.label,
+        items: [
+          {
+            seriesName: resA.material_name,
+            value: pA.carbon,
+            reason: pA.carbon_reason,
+            tone: "primary",
+          },
+          {
+            seriesName: resB.material_name,
+            value: pB?.carbon ?? null,
+            reason: pB?.carbon_reason,
+            tone: "secondary",
+          },
+        ],
+      };
+    });
+  }, [compareResult]);
+
   if (materials.isLoading || modes.isLoading)
     return <LoadingState label={t.title} />;
   if (materials.isError)
@@ -916,6 +1008,19 @@ export default function EcoPage() {
 
               <PhaseTable result={result} />
 
+              <div className="flex flex-col gap-4">
+                <PhaseBars
+                  title={ecoPhaseI18n.energyChartTitle}
+                  unit={result.energy_unit}
+                  rows={energyRows}
+                />
+                <PhaseBars
+                  title={ecoPhaseI18n.carbonChartTitle}
+                  unit={result.carbon_unit}
+                  rows={carbonRows}
+                />
+              </div>
+
               <div className="well flex flex-col gap-2 text-xs text-ink-muted">
                 <span>
                   <strong className="text-ink">{t.massBought}:</strong>{" "}
@@ -980,6 +1085,19 @@ export default function EcoPage() {
               </div>
 
               <ComparisonTable result={compareResult} />
+
+              <div className="flex flex-col gap-4">
+                <PhaseBars
+                  title={ecoPhaseI18n.energyChartCompareTitle}
+                  unit={compareResult.material_a.energy_unit}
+                  rows={compareEnergyRows}
+                />
+                <PhaseBars
+                  title={ecoPhaseI18n.carbonChartCompareTitle}
+                  unit={compareResult.material_a.carbon_unit}
+                  rows={compareCarbonRows}
+                />
+              </div>
             </div>
           ) : (
             <EmptyState title={t.resultIdleTitle} description={t.resultIdleHint} />
