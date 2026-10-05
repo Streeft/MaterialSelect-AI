@@ -15,14 +15,20 @@ import { MaterialTable } from "./MaterialRows";
  * because then it is the only thing telling them apart. The obligation of
  * principle 6 is the same either way: fictitious data is marked on screen.
  */
-export function MaterialList({ materials }: { materials: MaterialListItem[] }) {
+export function MaterialList({
+  materials,
+  searchQuery,
+}: {
+  materials: MaterialListItem[];
+  searchQuery?: string;
+}) {
   const allDemo = materials.length > 0 && materials.every((m) => m.is_demo);
   return (
     <>
       {allDemo ? <Alert tone="warning">{ptBR.catalog.allDemo}</Alert> : null}
-      <MaterialCards materials={materials} demoBadge={!allDemo} />
+      <MaterialCards materials={materials} demoBadge={!allDemo} searchQuery={searchQuery} />
       <div className="hidden sm:block">
-        <MaterialTable materials={materials} demoBadge={!allDemo} />
+        <MaterialTable materials={materials} demoBadge={!allDemo} searchQuery={searchQuery} />
       </div>
     </>
   );

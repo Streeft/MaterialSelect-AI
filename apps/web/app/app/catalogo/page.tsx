@@ -218,7 +218,7 @@ export default function CatalogPage() {
               }
             />
           ) : (
-            <MaterialList materials={shown} />
+            <MaterialList materials={shown} searchQuery={debouncedSearch} />
           ))}
 
         {/* The legend belongs on the screen that shows many values at once —

@@ -18,6 +18,8 @@ the calculation module; this file finds numbers and names them.
 
 from __future__ import annotations
 
+from typing import Literal
+
 from sqlalchemy.orm import Session
 
 from app.calculations.eco_audit import (
@@ -41,6 +43,8 @@ from app.schemas.eco import (
     DominanceOut,
     EcoAuditRequest,
     EcoAuditResultOut,
+    EcoComparisonRequest,
+    EcoComparisonResultOut,
     PhaseOut,
     TransportModeOut,
 )
@@ -166,6 +170,79 @@ class EcoService:
                 share=result.carbon_dominance.share,
                 refusal=result.carbon_dominance.refusal,
             ),
+        )
+
+    # --- comparison -------------------------------------------------------
+
+    def compare(self, request: EcoComparisonRequest) -> EcoComparisonResultOut:
+        req_a = EcoAuditRequest(
+            material_id=request.material_a.material_id,
+            process_id=request.material_a.process_id,
+            part_mass=request.material_a.part_mass,
+            recycled_fraction=request.material_a.recycled_fraction,
+            transport_mode=request.transport_mode,
+            transport_distance_km=request.transport_distance_km,
+            use=request.use,
+            end_of_life=request.material_a.end_of_life,
+        )
+        req_b = EcoAuditRequest(
+            material_id=request.material_b.material_id,
+            process_id=request.material_b.process_id,
+            part_mass=request.material_b.part_mass,
+            recycled_fraction=request.material_b.recycled_fraction,
+            transport_mode=request.transport_mode,
+            transport_distance_km=request.transport_distance_km,
+            use=request.use,
+            end_of_life=request.material_b.end_of_life,
+        )
+        res_a = self.run(req_a)
+        res_b = self.run(req_b)
+
+        delta_energy: float | None = None
+        delta_energy_pct: float | None = None
+        winner_energy: Literal["material_a", "material_b", "tie"] | None = None
+        if res_a.total_energy is not None and res_b.total_energy is not None:
+            delta_energy = round(res_b.total_energy - res_a.total_energy, 4)
+            if res_a.total_energy > 0:
+                delta_energy_pct = round(
+                    ((res_b.total_energy - res_a.total_energy) / res_a.total_energy) * 100.0, 2
+                )
+            else:
+                delta_energy_pct = 0.0
+            if abs(delta_energy) < 1e-4:
+                winner_energy = "tie"
+            elif res_a.total_energy < res_b.total_energy:
+                winner_energy = "material_a"
+            else:
+                winner_energy = "material_b"
+
+        delta_carbon: float | None = None
+        delta_carbon_pct: float | None = None
+        winner_carbon: Literal["material_a", "material_b", "tie"] | None = None
+        if res_a.total_carbon is not None and res_b.total_carbon is not None:
+            delta_carbon = round(res_b.total_carbon - res_a.total_carbon, 4)
+            if res_a.total_carbon > 0:
+                delta_carbon_pct = round(
+                    ((res_b.total_carbon - res_a.total_carbon) / res_a.total_carbon) * 100.0, 2
+                )
+            else:
+                delta_carbon_pct = 0.0
+            if abs(delta_carbon) < 1e-4:
+                winner_carbon = "tie"
+            elif res_a.total_carbon < res_b.total_carbon:
+                winner_carbon = "material_a"
+            else:
+                winner_carbon = "material_b"
+
+        return EcoComparisonResultOut(
+            material_a=res_a,
+            material_b=res_b,
+            delta_energy=delta_energy,
+            delta_energy_percent=delta_energy_pct,
+            delta_carbon=delta_carbon,
+            delta_carbon_percent=delta_carbon_pct,
+            winner_energy=winner_energy,
+            winner_carbon=winner_carbon,
         )
 
     # --- shaping ----------------------------------------------------------

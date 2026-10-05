@@ -17,6 +17,7 @@ from app.domain.search_query import (
     Or,
     SearchQueryError,
     Term,
+    extract_positive_terms,
     parse_query,
     to_like_pattern,
 )
@@ -101,3 +102,17 @@ class TestWhatTheParserRefuses:
         # wildcard cannot use an index and scans the whole table.
         with pytest.raises(SearchQueryError):
             parse_query("*inox")
+
+
+class TestExtractPositiveTerms:
+    def test_extracts_terms_from_simple_and_or_queries(self) -> None:
+        query = parse_query("aco AND inox OR aluminio")
+        assert extract_positive_terms(query) == ["aco", "inox", "aluminio"]
+
+    def test_ignores_negated_terms(self) -> None:
+        query = parse_query("aco NOT inox")
+        assert extract_positive_terms(query) == ["aco"]
+
+    def test_strips_wildcards_and_deduplicates(self) -> None:
+        query = parse_query('alum* OR "aco inox" AND alum?')
+        assert extract_positive_terms(query) == ["alum", "aco inox"]

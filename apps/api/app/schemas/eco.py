@@ -139,3 +139,40 @@ class EcoAuditResultOut(BaseModel):
     carbon_unit: str = CARBON_UNIT
     carbon_unit_note: str = CARBON_UNIT_NOTE
     recycling_credit_note: str = RECYCLING_CREDIT_NOTE
+
+
+class EcoMaterialInput(BaseModel):
+    """Configuration of one material alternative for side-by-side comparison."""
+
+    material_id: int = Field(gt=0, description="Identificador do material")
+    process_id: int = Field(gt=0, description="Processo de fabricação da peça")
+    part_mass: float = Field(gt=0, le=1.0e6, description="Massa da peça em kg")
+    recycled_fraction: float = Field(
+        default=0.0, ge=0.0, le=1.0, description="Fração reciclada (0 a 1)"
+    )
+    end_of_life: Literal[EOL_RECYCLE, EOL_LANDFILL, EOL_INCINERATION] = Field(
+        default=EOL_RECYCLE, description="Destino de fim de vida"
+    )
+
+
+class EcoComparisonRequest(BaseModel):
+    """Side-by-side comparison brief for two material candidates."""
+
+    material_a: EcoMaterialInput
+    material_b: EcoMaterialInput
+    transport_mode: str = Field(min_length=1, max_length=80)
+    transport_distance_km: float = Field(default=0.0, ge=0.0, le=1.0e6)
+    use: UseIn
+
+
+class EcoComparisonResultOut(BaseModel):
+    """Side-by-side comparison result with phase audits and calculated deltas."""
+
+    material_a: EcoAuditResultOut
+    material_b: EcoAuditResultOut
+    delta_energy: float | None = None
+    delta_energy_percent: float | None = None
+    delta_carbon: float | None = None
+    delta_carbon_percent: float | None = None
+    winner_energy: Literal["material_a", "material_b", "tie"] | None = None
+    winner_carbon: Literal["material_a", "material_b", "tie"] | None = None
