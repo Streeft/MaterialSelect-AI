@@ -373,7 +373,8 @@ export const ptBR = {
     stageAddMaterial: "Estágio de materiais",
     stageAddChart: "Estágio de gráfico",
     stageRemove: "Remover estágio",
-    stageMoveUp: (n: number) => `Mover o estágio ${n} para cima`,
+    stageDuplicate: (n: number) => `Duplicar o estágio ${n}`,
+    stageMoveUp: (n: number) => `Mover o estágio ${n} para cima` ,
     stageMoveDown: (n: number) => `Mover o estágio ${n} para baixo`,
     stageClasses: "Classes selecionadas",
     stageClassesHint: "Segure Ctrl (ou Cmd) para escolher mais de uma.",
@@ -799,7 +800,7 @@ export const ptBR = {
     empty: "Nenhum material pôde ser comparado nesta base.",
     // A distância só é comparável dentro de uma resposta: a escala vem da
     // dispersão daquele conjunto. Dizê-lo evita que o número seja lido como
-    // uma medida absoluta.
+    // uma medida absoluta.",
     distanceHint:
       "A distância é adimensional e só se compara dentro desta resposta: a escala vem da dispersão deste conjunto.",
     distance: "Distância",
@@ -994,6 +995,26 @@ export const ptBR = {
       duty: "O ciclo de trabalho vai de 0 a 1, sem incluir o zero (premissas).",
       positive: (label: string) => `${label}: informe um valor maior que zero.`,
     },
+    modeIndividual: "Individual",
+    modeCompare: "Comparar dois materiais",
+    compareTitle: "Comparação lado a lado",
+    materialA: "Material A",
+    materialB: "Material B",
+    sharedPremises: "Premissas compartilhadas (transporte e uso)",
+    deltaEnergy: "Diferença em energia",
+    deltaCarbon: "Diferença em carbono",
+    winnerEnergy: "Mais eficiente em energia",
+    winnerCarbon: "Menor pegada de carbono",
+    savingsEnergy: (pct: number) => `Economia de ${pct}% de energia`,
+    savingsCarbon: (pct: number) => `Redução de ${pct}% de CO₂`,
+    tieEnergy: "Empate em energia",
+    tieCarbon: "Empate em carbono",
+    compareRun: "Comparar alternativas",
+    compareRunning: "Comparando…",
+    compareResultStep: "4. Comparativo das fases",
+    columnMaterialA: "Material A",
+    columnMaterialB: "Material B",
+    columnVariation: "Variação (B − A)",
     run: "Auditar",
     running: "Auditando…",
     resultStep: "4. As cinco fases",
@@ -1175,7 +1196,7 @@ export const ptBR = {
     coreThicknessLabel: "Espessura do núcleo",
     // A unidade não é pedida de propósito: toda regra do painel lê só a razão
     // entre as duas espessuras, e inventar uma unidade sugeriria que o valor
-    // absoluto muda alguma coisa.
+    // absoluto muda alguma coisa.",
     thicknessHint:
       "As duas na mesma unidade — qual unidade é não importa, porque só a razão entre elas decide. Dobrar as duas não muda nem a densidade nem o módulo do painel.",
     identityStep: "3. A identidade do registro",
@@ -1193,7 +1214,7 @@ export const ptBR = {
     previewEmpty:
       "Esta receita não produziu valor nenhum com os dados que os pais têm.",
     // Nome provisório da prévia: a API exige nome no corpo, a prévia não
-    // grava nada, e o leitor ainda não chegou ao passo em que dá nome.
+    // grava nada, e o leitor ainda não chegou ao passo em que dá nome.",
     previewName: "Prévia sem nome",
     previewIdleTitle: "Nada calculado ainda",
     previewIdleHint:
@@ -1873,7 +1894,7 @@ export const ptBR = {
     maximize: "Maximizar",
     minimize: "Minimizar",
     slope: "Inclinação (log-log)",
-    vertical: "Reta vertical",
+    slopeVertical: "Reta vertical",
     dimension: "Dimensão",
     levelThrough: "Linha passando por",
     levelNone: "Nenhum material",

@@ -4,10 +4,18 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from sqlalchemy import and_, delete, exists, func, not_, or_, select
+from sqlalchemy import and_, case, delete, exists, func, not_, or_, select
 from sqlalchemy.orm import Session, joinedload, selectinload
 
-from app.domain.search_query import And, Node, Not, Term, parse_query, to_like_pattern
+from app.domain.search_query import (
+    And,
+    Node,
+    Not,
+    Term,
+    extract_positive_terms,
+    parse_query,
+    to_like_pattern,
+)
 from app.models.material import Material
 from app.models.material_class import MaterialClass
 from app.models.material_keyword import MaterialKeyword
@@ -68,8 +76,9 @@ class MaterialRepository:
         """Return active materials, optionally filtered by a search term.
 
         The search is case-insensitive and matches the material name, its class
-        name, or any keyword. Uses parameterised ``ILIKE``/``LIKE`` — no string
-        interpolation into SQL.
+        name, or any keyword. When a search query is present, results are ranked
+        by relevance (exact match > prefix > substring > class/keyword match).
+        Uses parameterised LIKE queries.
         """
         stmt = (
             select(Material)
@@ -83,11 +92,53 @@ class MaterialRepository:
             )
             .where(Material.is_active.is_(True))
             .where(visible_materials(self.viewer_id))
-            .order_by(Material.name)
         )
 
         if search and search.strip():
-            stmt = stmt.where(_compile(parse_query(search)))
+            parsed = parse_query(search)
+            stmt = stmt.where(_compile(parsed))
+            positive_terms = extract_positive_terms(parsed)
+            if positive_terms:
+                score_terms = []
+                for term in positive_terms:
+                    term_escaped = (
+                        term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+                    )
+                    prefix_pat = f"{term_escaped}%"
+                    sub_pat = f"%{term_escaped}%"
+                    kw_exact = exists(
+                        select(MaterialKeyword.id).where(
+                            MaterialKeyword.material_id == Material.id,
+                            func.lower(MaterialKeyword.keyword) == term,
+                        )
+                    )
+                    kw_sub = exists(
+                        select(MaterialKeyword.id).where(
+                            MaterialKeyword.material_id == Material.id,
+                            func.lower(MaterialKeyword.keyword).like(sub_pat, escape="\\"),
+                        )
+                    )
+                    score_term = (
+                        case((func.lower(Material.name) == term, 100), else_=0)
+                        + case(
+                            (func.lower(Material.name).like(prefix_pat, escape="\\"), 50), else_=0
+                        )
+                        + case((func.lower(Material.name).like(sub_pat, escape="\\"), 25), else_=0)
+                        + case((func.lower(MaterialClass.name) == term, 20), else_=0)
+                        + case(
+                            (func.lower(MaterialClass.name).like(sub_pat, escape="\\"), 10), else_=0
+                        )
+                        + case((kw_exact, 15), else_=0)
+                        + case((kw_sub, 5), else_=0)
+                    )
+                    score_terms.append(score_term)
+
+                total_score = sum(score_terms)
+                stmt = stmt.order_by(total_score.desc(), Material.name)
+            else:
+                stmt = stmt.order_by(Material.name)
+        else:
+            stmt = stmt.order_by(Material.name)
 
         return list(self.db.execute(stmt).scalars().unique().all())
 
@@ -201,8 +252,7 @@ class MaterialRepository:
         existing label never overwrites its already-recorded license or
         reviewer. The decision is made once, at registration; see
         ``app.importers.service`` for where it is enforced before this is
-        ever called with an unregistered license.
-        """
+        ever called with an unregistered license."""
         existing = (
             self.db.execute(select(Source).where(Source.label == label)).scalars().one_or_none()
         )

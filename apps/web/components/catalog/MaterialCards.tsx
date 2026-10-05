@@ -4,6 +4,7 @@ import { ptBR } from "@/lib/i18n";
 import { classVisual } from "@/lib/design/palette";
 import { Badge, Bar, Card, CardBody } from "@/components/ui";
 import { QualityBar } from "@/components/catalog/MaterialRows";
+import { HighlightText } from "./HighlightText";
 
 const t = ptBR.catalog;
 
@@ -23,10 +24,12 @@ function MaterialCard({
   material,
   index,
   demoBadge,
+  searchQuery,
 }: {
   material: MaterialListItem;
   index: number;
   demoBadge: boolean;
+  searchQuery?: string;
 }) {
   const { quality } = material;
   const filled = quality.medido + quality.importado + quality.estimado;
@@ -42,12 +45,14 @@ function MaterialCard({
                 href={`/app/materiais/${material.id}`}
                 className="text-[0.9375rem] font-semibold text-brand-700"
               >
-                {material.name}
+                <HighlightText text={material.name} query={searchQuery} />
               </Link>
               {demoBadge && material.is_demo && <Badge tone="warning">{ptBR.demoBadge}</Badge>}
             </span>
             {material.subclass ? (
-              <span className="text-xs text-ink-subtle">{material.subclass}</span>
+              <span className="text-xs text-ink-subtle">
+                <HighlightText text={material.subclass} query={searchQuery} />
+              </span>
             ) : null}
           </div>
           <span
@@ -85,7 +90,9 @@ function MaterialCard({
         {material.keywords.length > 0 && (
           <span className="flex flex-wrap gap-1">
             {material.keywords.map((kw) => (
-              <Badge key={kw}>{kw}</Badge>
+              <Badge key={kw}>
+                <HighlightText text={kw} query={searchQuery} />
+              </Badge>
             ))}
           </span>
         )}
@@ -109,16 +116,23 @@ function MaterialCard({
 export function MaterialCards({
   materials,
   demoBadge = true,
+  searchQuery,
 }: {
   materials: MaterialListItem[];
   /** False when the list already says, once, that every row is fictitious. */
   demoBadge?: boolean;
+  searchQuery?: string;
 }) {
   return (
     <ul className="flex flex-col gap-3 sm:hidden">
       {materials.map((material, index) => (
         <li key={material.id}>
-          <MaterialCard material={material} index={index} demoBadge={demoBadge} />
+          <MaterialCard
+            material={material}
+            index={index}
+            demoBadge={demoBadge}
+            searchQuery={searchQuery}
+          />
         </li>
       ))}
     </ul>

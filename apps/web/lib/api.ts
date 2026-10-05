@@ -21,6 +21,8 @@ import type {
   DashboardOverview,
   EcoAuditRequest,
   EcoAuditResult,
+  EcoComparisonRequest,
+  EcoComparisonResult,
   Explanation,
   Interpretation,
   ImportJobOut,
@@ -785,6 +787,15 @@ export function listTransportModes(): Promise<TransportMode[]> {
  */
 export function runEcoAudit(body: EcoAuditRequest): Promise<EcoAuditResult> {
   return request<EcoAuditResult>("/api/eco/auditar", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export function compareEcoAudits(
+  body: EcoComparisonRequest,
+): Promise<EcoComparisonResult> {
+  return request<EcoComparisonResult>("/api/eco/comparar", {
     method: "POST",
     body: JSON.stringify(body),
   });

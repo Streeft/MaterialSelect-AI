@@ -11,7 +11,8 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
-| [44](#sessão-44--300926-a-051026--o-cérebro-entra-em-produção) | 30/09 a 05/10/2026 | O Cérebro entra em produção pelo GitHub Actions: workflow `conhecimento.yml` (ingestão que baixa do LFS só o que o banco não tem, vetores de 768 dimensões com a sobra noturna da cota gratuita, retrato), ingestão segura contra ponteiro LFS, cópias e versão ilegível, busca sobre índice em memória e a identidade de vetor em `/api/health` (D-101); no merge com `main`, a ingestão direcionada da sessão 39 (`--file`, `--force`) sob as mesmas garantias e a entrada `arquivos` de `ingerir`; na revisão final, o `embed` respeita a lista de remoção | 3338 → 3552 no ramo; 3395 → 3624 com o merge; 3660 com a revisão final | 753 (inalterado) |
+| [45](#sessão-45--300926-a-051026--o-cérebro-entra-em-produção) | 30/09 a 05/10/2026 | O Cérebro entra em produção pelo GitHub Actions: workflow `conhecimento.yml` (ingestão que baixa do LFS só o que o banco não tem, vetores de 768 dimensões com a sobra noturna da cota gratuita, retrato), ingestão segura contra ponteiro LFS, cópias e versão ilegível, busca sobre índice em memória e a identidade de vetor em `/api/health` (D-101); no merge com `main`, a ingestão direcionada da sessão 39 (`--file`, `--force`) sob as mesmas garantias e a entrada `arquivos` de `ingerir`; na revisão final, o `embed` respeita a lista de remoção | 3338 → 3552 no ramo; 3395 → 3624 com o merge; 3660 com a revisão final; 3699 com o merge do PR #94 | 753 (inalterado no ramo); 762 com o merge do PR #94 |
+| [44](#sessão-44--021026--lote-quádruplo-de-melhorias-seleção-busca-dimensionador-e-eco-audit-opções-1-a-4) | 02/10/2026 | Lote quádruplo de melhorias: duplicação de estágio (P0-1), busca ponderada e destaque (P1-1), seções circulares no solver (P2) e comparação lado a lado no Eco Audit (P3) | 3395 → 3407 | 753 → 762 |
 | [43](#sessão-43--021026--deslocamentos-astronômicos-positivos-e-calc-dominante-no-extrator-html-opção-1) | 02/10/2026 | Descarte de caixas com deslocamento positivo astronômico e avaliação afim de operando negativo dominante em `calc()` no extrator de HTML (D-97/D-99, Opção 1) | 3382 → 3395 | 753 (inalterado) |
 | [42](#sessão-42--021026--herança-de-css-visibility-e-resgate-por-visibilityvisible-no-extrator-html-opção-1) | 02/10/2026 | Herança estrita de CSS `visibility` e resgate de elementos filhos via `visibility:visible` no extrator de HTML dos Cadernos (D-97/D-99, Opção 1) | 3376 → 3382 | 753 (inalterado) |
 | [41](#sessão-41--011026--correção-de-guardrails-de-ia-e-exportação-nativa-pptx-b2) | 01/10/2026 | Correção de guardrails de IA (números em trechos do RAG e separador de milhar) e exportador PPTX nativo do Report com endpoints e interface (B2, Opção A) | 3362 → 3376 | 752 → 753 |
@@ -63,7 +64,7 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
-## Sessão 44 — 30/09/26 a 05/10/26 — O Cérebro entra em produção
+## Sessão 45 — 30/09/26 a 05/10/26 — O Cérebro entra em produção
 
 **O pedido.** "Resolva a ingestão do Links.md e ative o RAG" — o passo 3 do A7,
 que a sessão 36 deixou como pergunta. O autor trabalha só na nuvem, e o
@@ -161,9 +162,12 @@ banda de LFS real e o `1 inalterados` do `Links.md`.
 
 **Números.** Backend 3338 → 3552 no ramo, nenhum skip; com o merge,
 3624 (os 3395 de `main` mais os do ramo e os testes novos da ingestão
-direcionada); com a revisão final, 3660. Os 4 testes de
-`test_notebook_quota_postgres.py` pulam sem `POSTGRES_TEST_URL` e rodam na CI.
-Frontend: os 753 de `main`, inalterados.
+direcionada); com a revisão final, 3660. Com o segundo merge de `main` (o PR #94, sessão
+44), 3699 coletados: 3695 passam e os 4 de `test_notebook_quota_postgres.py`
+pulam sem `POSTGRES_TEST_URL` e rodam na CI. O PR #94 trouxe 39 testes
+coletados, não os 12 que a sessão 44 declara (`main` coleta 3433, não 3407 —
+testes parametrizados contam um por caso). Frontend: 753 no ramo, inalterados;
+762 com o PR #94.
 
 **Pendente, e só o autor faz.** Depois do merge: **Deploy da API** →
 **Provedor de IA** (`gemini`) → **Base de conhecimento (Cérebro)** `status` →
@@ -171,6 +175,69 @@ Frontend: os 753 de `main`, inalterados.
 `embeddings` → `status` semanal até `faltam 0`. E as decisões dele: tirar do git
 as 121 cópias, os dois Ashby em português, os limites do Neon e a memória do Fly
 depois da primeira consulta (TODO).
+
+---
+
+## Sessão 44 — 02/10/26 — Lote quádruplo de melhorias: Seleção, Busca, Dimensionador e Eco Audit (Opções 1 a 4)
+
+**O pedido.** O usuário solicitou a implementação simultânea de todas as quatro frentes de melhoria restantes do backlog funcional na mesma Pull Request: *"fazer opção 1, 2, 3 e 4 juntas na mesma PR"* e *"não se esqueça de sempre atualizar os arquivos .md com todas as atualizações feitas ao longo do tempo, inclusive de PRs antigas que você realizou"*, mantendo a diretriz de total autonomia: *"faça tudo, não quero mexer um músculo, apenas farei o merge..."*.
+
+**As frentes atendidas:**
+
+1. **Opção 1 (P0-1 / Seleção) — Duplicação de estágio na pilha:**
+   - **O problema:** Na plataforma de seleção de materiais, o usuário podia criar novos estágios (`limit`, `tree`, `process`, `material`, `chart`), reordená-los para cima e para baixo ou excluí-los, mas não havia mecanismo para duplicar um estágio existente. Para testar variações de limites ou isolar hipóteses sem perder a parametrização original, o projetista precisava recriar manualmente todos os critérios e grupos de restrições.
+   - **A solução:**
+     - Criada a função pura `duplicateStage(stage: StageState): StageState` em `apps/web/components/selection/StageList.tsx`.
+     - Implementado deep clone recursivo para estágios do tipo `limit` (`ConstraintGroupState` e `ConstraintState`), atribuindo novos identificadores gerados via `nextEditorId("stage")`, `nextEditorId("group")` e `nextEditorId("constraint")` para prevenir colisões de estado no React.
+     - Suporte a clonagem de eixos de gráficos (`chart`), listas de slugs de classes (`tree`, `material`) e processos (`process`).
+     - Adição automática da etiqueta `(cópia)` no rótulo quando o estágio possui nome definido (`stage.label.trim() ? `${stage.label} (cópia)` : ""`).
+     - Inclusão do botão de ação `⧉` (`IconButton`) no cabeçalho de cada card de estágio, posicionado antes dos botões de movimentação (↑/↓), devidamente internacionalizado via `t.stageDuplicate(index + 1)` em `apps/web/lib/i18n.ts`, inserindo a cópia logo abaixo do estágio original (`stages.splice(index + 1, 0, copy)`).
+     - Cobertura de testes unitários em `apps/web/components/selection/StageList.test.tsx` (+3 testes frontend validando duplicação de limit stage, chart stage e clique no botão via Harness).
+
+2. **Opção 2 (P1-1 / Busca Avançada e Destaque de Trecho) — Ordenação por relevância e Highlight:**
+   - **O problema:** A busca textual no catálogo (`/catalogo`) realizava apenas ordenação alfabética por nome (`material.name ASC`), sem priorizar correspondências exatas ou inícios de termo sobre ocorrências secundárias em descrições. Além disso, os trechos correspondentes aos termos pesquisados não eram destacados visualmente na lista, dificultando a localização rápida de termos específicos em grades densas de propriedades.
+   - **A solução:**
+     - **Backend (`apps/api/app/repositories/material_repository.py`):** Ao receber uma consulta textual `q` sem critério explícito de ordenação, a ordenação padrão (`name`) passa a calcular uma pontuação de relevância ponderada via expressão SQL `case`:
+       - Correspondência exata no nome do material: peso 100
+       - Prefixo do nome (`name ILIKE query%`): peso 50
+       - Ocorrência exata como palavra completa ou substring no nome (`name ILIKE %query%`): peso 20
+       - Prefixo de categoria/família (`category ILIKE query%`): peso 15
+       - Ocorrência na descrição (`description ILIKE %query%`): peso 10
+       - Ocorrência nas normas e designações comerciais (`standards ILIKE %query%`): peso 5
+       - Desempate alfabético secundário por `material.name ASC`.
+     - **Extração de termos positivos (`apps/api/app/services/search_query.py`):** Criada a função `extract_positive_terms(query: str) -> list[str]`, que extrai palavras livres de busca, descartando filtros de campo (ex.: `densidade:>2.5`) e termos negativos (`-ferro`), normalizando e ordenando por comprimento decrescente para permitir casamento seguro de expressões regulares no cliente (+5 testes em `apps/api/app/tests/test_search_query.py`).
+     - **Componente de destaque (`apps/web/components/ui/HighlightText.tsx`):** Novo componente acessível que fatiará strings de texto renderizando trechos correspondentes envoltos na tag `<mark>` com estilo harmonizado ao tema (`bg-amber-100 dark:bg-amber-900/40 text-inherit rounded-sm px-0.5`), tratando caracteres especiais de regex e preservando nós puros para termos não casados (+5 testes em `apps/web/components/ui/HighlightText.test.tsx`).
+     - **Integração nas telas de catálogo:** `MaterialRows.tsx`, `MaterialCards.tsx`, `MaterialList.tsx` e `apps/web/app/app/catalogo/page.tsx` agora recebem e propagam a query de busca ativa, destacando termos nos títulos e dados textuais dos materiais.
+
+3. **Opção 3 (P2 restante / Dimensionador Estrutural) — Geometrias circulares maciças no solver:**
+   - **O problema:** O dimensionador de componentes de engenharia (`apps/api/app/calculations/load_cases.py`) contemplava apenas vigas de seção maciça retangular/quadrada, amarrando casos clássicos de hastes, eixos de transmissão cilíndricos e colunas circulares sujeitas à flambagem elástica de Euler.
+   - **A solução:**
+     - Implementados três novos casos de carga analíticos baseados rigorosamente na metodologia de índices de mérito de Michael F. Ashby:
+       - `viga-circular-rigidez`: flexão elástica em viga cilíndrica de seção transversal circular de raio livre $r$. Momento de inércia $I = \frac{\pi r^4}{4}$ e área $A = \pi r^2$. Eliminação da variável livre de dimensão resulta no índice de mérito de rigidez $M_1 = \frac{E^{1/2}}{\rho}$ e constante de acoplamento estrutural $C_1 = 2 \left(\frac{L^5 F}{\pi \delta}\right)^{1/2}$.
+       - `viga-circular-resistencia`: resistência mecânica em flexão até o escoamento. Módulo de resistência à flexão $W = \frac{\pi r^3}{4}$. Eliminação da dimensão resulta no índice de mérito de resistência $M_1 = \frac{\sigma_y^{2/3}}{\rho}$ e constante de acoplamento $C_1 = (4\pi)^{1/3} (F L)^{2/3}$.
+       - `coluna-circular-flambagem`: compressão axial com flambagem elástica de Euler para coluna circular maciça sob carga crítica $P_{crit} = \frac{\pi^2 E I}{c_1 L^2}$. Índice de mérito $M_1 = \frac{E^{1/2}}{\rho}$ e constante de acoplamento $C_1 = 2 \left(\frac{F L^2}{\pi^2 c_1}\right)^{1/2}$.
+     - Cobertura de testes unitários em `apps/api/app/tests/test_load_cases.py` (+4 testes backend validando derivações analíticas, estabilidade numérica e consistência com os outros casos de carga).
+
+4. **Opção 4 (P3 restante / Eco Audit) — Comparação lado a lado de múltiplos materiais:**
+   - **O problema:** O módulo Eco Audit permitia apenas a auditoria de um único material por vez, exigindo que o engenheiro realizasse duas auditorias manuais separadas e anotasse valores para calcular variações de pegada de carbono e demanda de energia entre materiais alternativos (ex.: Aço vs. Alumínio vs. Compósito).
+   - **A solução:**
+     - **Backend (`apps/api/app/schemas/eco.py`, `services/eco_service.py`, `routers/eco.py`):**
+       - Definidos os schemas `EcoMaterialInput` (material ID, massa, fração reciclada e rota de fim de vida), `EcoComparisonRequest` (lista de materiais com premissas compartilhadas de transporte e uso) e `EcoComparisonResultOut`.
+       - Implementado o serviço de comparação no `eco_service.py` calculando auditorias completas individuais, deltas absolutos e percentuais em energia embodied e pegada de carbono ($\Delta E = E_B - E_A$, $\Delta CO_2 = CO_{2,B} - CO_{2,A}$), identificação de vencedores (`winner_energy`, `winner_carbon`) com margem percentual de economia, e breakdown detalhado de variações por fase do ciclo de vida.
+       - Rota `POST /api/eco/comparar`.
+       - Testes de integração em `apps/api/app/tests/test_eco_api.py` (+3 testes backend validando rota, cálculo de deltas e validação de requisições).
+     - **Frontend (`apps/web`):**
+       - Tipos tipados em `types.ts` (`EcoMaterialInput`, `EcoComparisonRequest`, `EcoComparisonResult`).
+       - Cliente HTTP em `apps/web/lib/api.ts` (`compareEcoAudits`) com teste unitário em `apps/web/lib/api.test.ts` (+1 teste).
+       - Chaves de internacionalização completas em `apps/web/lib/i18n.ts` (`ptBR.eco`).
+       - Interface gráfica em `apps/web/app/app/eco/page.tsx` com alternador de abas ("Individual" vs. "Comparar dois materiais"), formulários lado a lado para Material A e Material B, painel unificado de premissas logísticas e operacionais, pódios visuais destacando os materiais com menor impacto ambiental e tabela analítica de variação por fase com cores semânticas e deltas explícitos.
+
+**Números consolidados:**
+- Backend: 3395 → **3407** testes (+12 testes: +4 em `test_load_cases.py`, +5 em `test_search_query.py`, +3 em `test_eco_api.py`, nenhum skip, todos verdes).
+- Frontend: 753 → **762** testes (+9 testes: +5 em `HighlightText.test.tsx`, +3 em `StageList.test.tsx`, +1 em `api.test.ts`, todos verdes).
+
+---
+
 ## Sessão 43 — 02/10/26 — Deslocamentos astronômicos positivos e calc() dominante no extrator HTML (Opção 1)
 
 **O pedido.** O usuário deu continuidade às melhorias e solicitou: *"atue na opção 1"* do backlog em `docs/TODO.md` (*"Ocultação por CSS inline que o extrator ainda não lê — deslocamento positivo grande e matemática calc() sem literal muito negativo"*), sob a diretriz: *"faça tudo, não quero mexer um músculo, apenas farei o merge..."*.
