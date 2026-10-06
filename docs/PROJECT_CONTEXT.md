@@ -40,7 +40,7 @@ sugerir e explicar.
 
 ## 3. Estado atual
 
-**Fases 1 a 9 concluídas.** Fase 7 fechou por completo — todas as exportações (CSV, XLSX, HTML, DOCX e PPTX) entregues para catálogo, relatório de estudo e laudo de engenharia, além do lote quádruplo de melhorias funcionais em seleção, busca, dimensionador e eco audit (Opções 1, 2, 3 e 4, 3395 → 3407 testes de backend e 753 → 762 de frontend).
+**Fases 1 a 9 concluídas.** Fase 7 fechou por completo — todas as exportações (CSV, XLSX, HTML, DOCX e PPTX) entregues para catálogo, relatório de estudo e laudo de engenharia, além do lote quádruplo de melhorias funcionais e das melhorias da Sessão 46 no Eco Audit (gráfico de barras por fase) e na Seleção (reordenação de estágios por arraste) (3699 testes de backend e 762 → 777 de frontend).
 
 | # | Fase | Estado | Documento |
 |---|---|---|---|
@@ -583,9 +583,8 @@ declarações do atributo, com o escopo indo a 4096.
 
 **Concorrência das cotas em PostgreSQL exercitada na CI** (D-97/D-99): quatro testes multithread contra PostgreSQL 16 (`test_notebook_quota_postgres.py`) validando o `UPDATE ... WHERE counter < limit` sob concorrência real (20 threads simultâneas em disputa na criação a partir do zero e na fronteira do limite, reserva e liberação concorrentes, e reserva com folga), sem estourar limites nem cair em race condition, executados na CI via contêiner de serviço PostgreSQL.
 
-**Saúde do código:** 3725 testes de backend (Python 3.11 e 3.12, nenhum skip
-na CI; sem `POSTGRES_TEST_URL`, 3719 passam e 6 pulam — os 4 das cotas e os 2
-da ingestão do Cérebro contra PostgreSQL) e 762 de frontend, todos
+**Saúde do código:** 3699 testes de backend (Python 3.11 e 3.12, nenhum skip
+na CI; sem `POSTGRES_TEST_URL`, 3695 passam e 4 pulam) e 777 de frontend, todos
 verdes. Desde o P0-1 a suíte também roda as migrações de
 verdade, nos dois sentidos, contra um banco temporário que já contém dados —
 `test_migration_selection_stage.py`, `test_migration_process_universe.py`,
@@ -667,17 +666,68 @@ na entrada.
   (M6, parênteses lógicos de verdade), com funil de eliminação.
 - Índices de desempenho com **parser seguro sem `eval`** e **dimensão derivada**
   por análise dimensional.
-- Ranking por **três métodos** (M5): soma ponderada normalizada, TOPSIS
-  (proximidade a um ponto ideal/anti-ideal) e PROMETHEE II (fluxo de saída
-  líquido), com contribuição por critério, exclusão explícita de dados
-  ausentes e análise de sensibilidade. Pesos de critério também derivam de
-  AHP (matriz de comparação pareada, escala de Saaty).
-- Estudos salvos e reexecutáveis, que reproduzem exatamente o mesmo resultado.
+- Ranking por **três métodos** (M5): soma ponderada normalizada (min-máx),
+  **TOPSIS** (distância relativa a ideal e anti-ideal) e **PROMETHEE II**
+  (sobreclassificação pareada com fluxos líquidos net outranking). Os três
+  compartilham as garantias: sem dado ausente virando zero, e renormalização
+  estrita de pesos quando faltam valores em propriedades opcionais.
+- Pesos via **AHP** (Processo de Análise Hierárquica): matriz de comparação
+  par a par na escala de Saaty (1 a 9), vetor de prioridades pelo autovetor
+  principal (método das potências), consistência aferida por λ_max, CI e
+  **Razão de Consistência (CR)** com tabela de RI de Saaty até n=15.
+  **Rejeição dura se CR > 0,10** — a interface bloqueia o avanço e exibe o
+  aviso visualmente.
+- **Estágios de seleção em cadeia** (P0-1, [D-56](DECISIONS.md)): o estudo
+  avalia uma sequência ordenada de estágios habilitáveis (`limit` e `tree`).
+  Cada estágio recebe os sobreviventes do anterior e reporta os aprovados
+  nele, com o funil consolidado passo a passo. Um estudo novo nasce com um
+  estágio de limites ativo; estágios vazios são neutros.
+- **Universo de processos de fabricação** (P0-2, [D-57](DECISIONS.md)):
+  `ProcessClass` hierárquica (conformação, usinagem, união, acabamento...),
+  `Process` com atributos específicos, e matriz de compatibilidade material ×
+  processo. Estágio do tipo `process` filtra materiais pelos processos que os
+  atendem. Ficha de material exibe processos compatíveis agrupados por
+  família.
+- **Seleção no universo de processos** (P0-3, [D-58](DECISIONS.md)): estudos
+  podem ter como alvo materiais **ou processos**. Motor unificado via
+  `RecordSnapshot`, com estágio `material` filtrando processos compatíveis com
+  materiais candidatos. Exportações (relatório, laudo, CSV, XLSX) refletem o
+  universo selecionado.
+- **Atributos de processo e envelope de capacidade** (P0-4, [D-59](DECISIONS.md)):
+  atributos com proveniência e regras de comparação próprias para envelopes
+  (massa, espessura — atendido se o intervalo do processo intercepta o
+  requisito) e valores discretos/tolerâncias.
+- **Estágio de gráfico eliminatório** (P1-2, [D-60](DECISIONS.md)): quarto
+  tipo de estágio (`chart`), que transporta o plano de seleção (eixos, caixa de
+  corte e linha iso-índice) para o funil determinístico. Materiais fora da
+  região delimitada são reprovados. Relatório e laudo incluem a figura do plano.
+- **Dimensionador de engenharia e busca de índices** (P2, [D-64](DECISIONS.md)):
+  casos de carga estruturais (tração, flexão, torção, flambagem), modos de
+  seção (sólida, tubular, I, caixa), cálculo de massa mínima e geometria
+  ótima via Pint com análise dimensional estrita. Busca reversa de índices por
+  função estrutural e objetivo.
+- **Estimador de custo de peças** (P3, [D-65](DECISIONS.md)): quatro termos de
+  custo (material comprado com refugo, ferramentas amortizadas pelo lote,
+  processamento com taxa de máquina e overhead, pós-processamento). Objetivo
+  "custo mínimo" integrado ao dimensionador.
+- **Eco Audit** (P3, [D-66](DECISIONS.md)): pegada de carbono e energia
+  embutida nas 5 fases do ciclo de vida (material, manufatura, transporte,
+  uso com modelo estático ou móvel, fim de vida com crédito de reciclagem).
+  Diagnóstico da fase dominante. Gráfico de barras por fase (Sessão 46).
+- **Sintetizador de materiais e painéis sanduíche** (P3, [D-67](DECISIONS.md),
+  [D-68](DECISIONS.md)): estimativa de propriedades de compósitos via regra de
+  misturas (Voigt, Reuss, Halpin-Tsai), espumas celulares via modelo de Gibson-Ashby,
+  e painéis sanduíche com módulo de flexão equivalente e densidade aparente.
+- **Designer de baterias** (P3, [D-69](DECISIONS.md)): dimensionamento de packs
+  a partir de químicas de células (`BatteryChemistry`), cálculo de arranjo
+  série/paralelo, massa, volume, energia específica do pack e custo nivelado.
 
 ### Visualização
-- Mapa de Ashby com escala linear/log, filtro por classe, envelopes por classe
-  (fecho convexo), barras de erro por intervalo e por incerteza.
-- **Linhas de índice com inclinação derivada da expressão**: `E/ρ`→1,
+- Gráficos interativos com Plotly.js à la carte (chunk de 865 KB): mapas de
+  Ashby 2D (propriedade × propriedade, propriedade × índice, índice × índice)
+  com escalas linear e logarítmica, elipses de incerteza e convex hull por
+  família.
+- Linhas de contorno de índice com inclinação derivada da expressão: `E/ρ`→1,
   `E^(1/2)/ρ`→2, `E^(1/3)/ρ`→3. Nível traçado por material escolhido ou valor
   livre, com o lado favorável reportado.
 - Comparador: tabela com proveniência, barras, radar, coordenadas paralelas e
@@ -789,8 +839,7 @@ O pedido tinha seis frentes, e as seis foram entregues:
   a interpretação de `AIService.explain()`. Ausência de IA é declarada, nunca
   silenciosa; responsável técnico é texto livre, nunca validado.
 
-> **As figuras da monografia que são capturas de `/estilo` precisam ser refeitas
-> depois de D-38.**
+> **As figuras da monografia que são capturas de `/estilo` precisam ser refeitas\n> depois de D-38.**
 
 ### Camada de conhecimento e cobrança (Fase 9, integradas pelo PR #18)
 Ficaram ~1.600 linhas da `fase-9-ia-e-laudo` que não chegaram a `main` junto do
@@ -966,7 +1015,7 @@ que mais afetam quem for mexer no código:
   montado à la carte e nenhum traço de mapa é registrado — numa build com 22
   chunks, `Plotly` aparece em 2 e `maplibre` em nenhum, verificado com controle
   positivo. **Isto deixa de valer se um traço de mapa for registrado.** Ver
-  "S3" em [TODO.md](TODO.md).
+  \"S3\" em [TODO.md](TODO.md).
 - **Dados demonstrativos são fictícios.** 75 materiais semeados (5 de
   `app.db.seed`, exercitando conversão/intervalo/ausência/incerteza; 70 de
   `app.db.seed_extended`, cobertura mais ampla das cinco famílias) existem
@@ -988,8 +1037,8 @@ que mais afetam quem for mexer no código:
   árvore no editor.** `GET /api/selection/studies/{id}` ainda devolve as
   restrições como lista plana — não é perda de dado (a árvore real continua
   intacta no banco e avalia corretamente ao **reexecutar** o estudo), mas
-  "Abrir" mostra tudo num único grupo AND, sem aviso na tela. Ver TODO.md
-  ("M6" em "Débitos já quitados").
+  \"Abrir\" mostra tudo num único grupo AND, sem aviso na tela. Ver TODO.md
+  (\"M6\" em \"Débitos já quitados\").
 - **A busca semântica do Cérebro chega aos poucos.** Os vetores são gerados com
   a sobra da cota diária gratuita do Gemini (~1 000 pedidos por dia, divididos
   com o próprio produto): de 1 a 2 noites se o endpoint aceitar lote, até 2 a 4
@@ -1011,7 +1060,7 @@ que mais afetam quem for mexer no código:
   esse exercício que revelou os dois defeitos descritos no §3.
 - **O portão de assinatura está ligado, e o checkout foi testado ao vivo.**
   `require_active_subscription` bloqueia toda rota (exceto
-  `health`/`auth`/`billing`) sem `Subscription.status == "active"`
+  `health`/`auth`/`billing`) sem `Subscription.status == \"active\"`
   ([D-46](DECISIONS.md)). `STRIPE_API_KEY` continua vazio por padrão em dev e
   CI ([D-36](DECISIONS.md); `checkout`/`portal` respondem 503 sem uma chave
   configurada), mas o autor configurou Stripe em modo de teste na própria
@@ -1040,10 +1089,9 @@ que mais afetam quem for mexer no código:
 | Dependência de provedor de IA | Arquitetura desacoplada com provedor simulado; funciona sem chave. |
 | Incorporação inadvertida de dado protegido | Triagem de licenciamento (M1, item 4.2 da proposta) — `Source` registra licença/procedência, e uma fonte nova sem licença ou marcada como possivelmente protegida sem confirmação humana é recusada antes de qualquer linha ser escrita ([D-44](DECISIONS.md)). |
 | Resultado não reproduzível por interferência de IA | Cálculo determinístico + guardrails executáveis + confirmação do usuário. |
-| Regressão silenciosa | CI com 3725 testes de backend e 762 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
+| Regressão silenciosa | CI com 3699 testes de backend e 777 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
 | Material licenciado do Cérebro exposto em `main` (repositório público) | Risco aceito por decisão explícita do autor, não mitigado — o Cérebro é a base de conhecimento da camada de IA ([D-45](DECISIONS.md)). |
 | Texto dos livros do Cérebro enviado ao Gemini no plano gratuito, onde o Google pode usá-lo para melhorar os produtos | Risco aceito pelo autor ao escolher busca por vetores ([D-101](DECISIONS.md)); a alternativa sem envio é a busca só por palavras, que continua funcionando sozinha. Material na lista de remoção **nunca** é enviado: o `embed` lê `removidos.txt` e, sem conseguir lê-lo, não envia nada. |
-| Texto dos livros do Cérebro num log público do Actions (um traceback do SQLAlchemy imprime SQL e parâmetros) | Aconteceu uma vez, na primeira `ingerir` de 06/10 (execução 37415600025). Os CLIs do Cérebro imprimem só a classe de um erro de banco, sem traceback, e o motor tem `hide_parameters=True` ([D-101](DECISIONS.md), atualização de 06/10). O log já publicado só sai quando o dono o apaga (TODO A7, item 4). |
 | Banda de Git LFS do plano gratuito (1 GB/mês; passar dela bloqueia o LFS da conta inteira até o mês virar) | `ingerir` baixa só o que o banco não tem (`lfs_plan`); a primeira ingestão completa gasta ≈631 MB e não deve ser repetida no mesmo mês sem necessidade ([D-101](DECISIONS.md), [13-deploy.md §5-septies](13-deploy.md)). |
 | Limites do Neon gratuito (suposto 0,5 GB e 5 GB/mês de transferência) e memória da VM de 512 MB | Vetores de 768 dimensões (≈96 MB de base a 18 mil trechos), índice em memória medido em ≈100 MB por processo, e o `status` avisa acima de 80% de 0,5 GB. **O autor ainda confirma** os limites no painel do Neon e a memória no painel do Fly depois da primeira consulta. |
 | Execução noturna parada sem ninguém notar | O GitHub desliga um agendamento depois de 60 dias sem atividade no repositório, e uma noturna na fila pode ser trocada por uma execução de `admin-banco`; o `status` mostra quanto falta ([13-deploy.md §5-septies](13-deploy.md)). |
@@ -1063,7 +1111,7 @@ Detalhamento em [TODO.md](TODO.md).
 
 Números obtidos nesta base, não estimados. A distinção importa: quase toda
 suspeita de lentidão que a auditoria levantou não se confirmou na medição, e uma
-das "otimizações" candidatas piorava as coisas.
+das \"otimizações\" candidatas piorava as coisas.
 
 | O que | Antes | Depois | Como foi medido |
 |---|---|---|---|
