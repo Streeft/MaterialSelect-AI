@@ -86,7 +86,7 @@ const result: EcoAuditResult = {
   use_model: "movel",
   end_of_life: "reciclagem",
   phases: [
-    {\
+    {
       phase: "material",
       label: "Material",
       energy: 525,
@@ -144,13 +144,13 @@ const result: EcoAuditResult = {
   ],
   total_energy: 1603.2,
   total_carbon: 106.779,
-  energy_dominance: {\
+  energy_dominance: {
     phase: "uso",
     label: "Uso",
     share: 0.6237,
     refusal: null,
   },
-  carbon_dominance: {\
+  carbon_dominance: {
     phase: "uso",
     label: "Uso",
     share: 0.6555,
@@ -168,21 +168,21 @@ const nav = vi.hoisted(() => ({ query: "", noProcess: false }));
 
 // `PageHeader` reads the pathname for the route palette (D-49); without this it
 // gets null and the header throws before anything renders.
-vi.mock("next/navigation", () => ({\
+vi.mock("next/navigation", () => ({
   usePathname: () => "/app/eco",
   useRouter: () => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn() }),
   useSearchParams: () => new URLSearchParams(nav.query),
 }));
 
-vi.mock("@/lib/api", () => ({\
+vi.mock("@/lib/api", () => ({
   listMaterials: () => Promise.resolve(materials),
   getMaterial: () => Promise.resolve(nav.noProcess ? { ...detail, processes: [] } : detail),
   listTransportModes: () => Promise.resolve(modes),
   runEcoAudit: (payload: EcoAuditRequest) => runEcoAudit(payload),
 }));
 
-function wrap(node: ReactNode) {\
-  const client = new QueryClient({\
+function wrap(node: ReactNode) {
+  const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
   return <QueryClientProvider client={client}>{node}</QueryClientProvider>;
@@ -190,20 +190,20 @@ function wrap(node: ReactNode) {\
 
 const { default: EcoPage } = await import("./page");
 
-async function open() {\
+async function open() {
   render(wrap(<EcoPage />));
   await screen.findByRole("heading", { name: t.briefStep });
 }
 
-beforeEach(() => {\
+beforeEach(() => {
   nav.noProcess = false;
   nav.query = "material=7&massa=2";
   runEcoAudit.mockReset();
   runEcoAudit.mockResolvedValue(result);
 });
 
-describe("Auditoria ambiental", () => {\
-  it("não audita enquanto faltar a massa da peça", async () => {\
+describe("Auditoria ambiental", () => {
+  it("não audita enquanto faltar a massa da peça", async () => {
     // A massa é o número que decide a resposta; inventá-la seria a ferramenta
     // escrevendo o briefing.
     nav.query = "";
@@ -216,27 +216,27 @@ describe("Auditoria ambiental", () => {\
     expect(await screen.findByText(t.blocked.mass)).toBeInTheDocument();
   });
 
-  it("recolhe as premissas do uso, com cada valor no resumo", async () => {\
+  it("recolhe as premissas do uso, com cada valor no resumo", async () => {
     await open();
 
     const summary = await screen.findByText(t.useSummaryMobile("10", "200.000", "0,0025", "0,07"));
     expect((summary.closest("details") as HTMLDetailsElement).open).toBe(false);
   });
 
-  it("aceita material e massa pela URL, que é como o dimensionamento liga aqui", async () => {\
+  it("aceita material e massa pela URL, que é como o dimensionamento liga aqui", async () => {
     const user = userEvent.setup();
     await open();
 
     await user.click(await screen.findByShadowRole("button", { name: t.run }));
 
     await waitFor(() => expect(runEcoAudit).toHaveBeenCalledTimes(1));
-    expect(runEcoAudit.mock.calls[0]![0]).toMatchObject({\
+    expect(runEcoAudit.mock.calls[0]![0]).toMatchObject({
       material_id: 7,
       part_mass: 2,
     });
   });
 
-  it("diz que não há processo, em vez de um seletor vazio", async () => {\
+  it("diz que não há processo, em vez de um seletor vazio", async () => {
     // D-24: um <select> vazio parecia controle que falhou ao carregar.
     nav.noProcess = true;
     await open();
@@ -246,7 +246,7 @@ describe("Auditoria ambiental", () => {\
     expect(screen.getByText(t.blocked.process)).toBeInTheDocument();
   });
 
-  it("só oferece processos que fazem este material", async () => {\
+  it("só oferece processos que fazem este material", async () => {
     // O conjunto de candidatos é a junção do P0-2, não a tabela inteira. A
     // consulta conta em vez de exigir um nó só: o rótulo de uma opção do
     // `md-select` aparece no host e de novo dentro do shadow root.
@@ -260,7 +260,7 @@ describe("Auditoria ambiental", () => {\
     expect(screen.getAllByShadowText("Forjamento").length).toBeGreaterThan(0);
   });
 
-  it("manda só os campos do modelo de uso escolhido", async () => {\
+  it("manda só os campos do modelo de uso escolhido", async () => {
     // O outro modelo é recusado pela API, nunca ignorado — e mandar os dois
     // calaria um número que o leitor digitou e a soma não conteria.
     const user = userEvent.setup();
@@ -276,7 +276,7 @@ describe("Auditoria ambiental", () => {\
     expect(sent.duty_cycle).toBeUndefined();
   });
 
-  it("troca os campos ao escolher o modelo estático", async () => {\
+  it("troca os campos ao escolher o modelo estático", async () => {
     const user = userEvent.setup();
     await open();
 
@@ -295,7 +295,7 @@ describe("Auditoria ambiental", () => {\
     expect(sent.distance_km).toBeUndefined();
   });
 
-  it("mostra as cinco fases na ordem em que a peça as vive", async () => {\
+  it("mostra as cinco fases na ordem em que a peça as vive", async () => {
     const user = userEvent.setup();
     await open();
 
@@ -322,7 +322,7 @@ describe("Auditoria ambiental", () => {\
     ]);
   });
 
-  it("nomeia a fase dominante nas duas grandezas", async () => {\
+  it("nomeia a fase dominante nas duas grandezas", async () => {
     // A resposta não é o total: é qual fase domina.
     const user = userEvent.setup();
     await open();
@@ -341,15 +341,15 @@ describe("Auditoria ambiental", () => {\
     ).toBe(2);
   });
 
-  it("escreve o motivo no lugar de uma célula vazia", async () => {\
+  it("escreve o motivo no lugar de uma célula vazia", async () => {
     // D-24: ausência é o quarto estado, com rótulo escrito — e cada grandeza
     // tem o seu, porque leem dados catalogados diferentes.
     const user = userEvent.setup();
-    runEcoAudit.mockResolvedValue({\
+    runEcoAudit.mockResolvedValue({
       ...result,
       phases: result.phases.map((phase) =>
         phase.phase === "transporte"
-          ? {\
+          ? {
               ...phase,
               carbon: null,
               carbon_missing: ["intensidade-carbono-do-modal"],
@@ -358,7 +358,7 @@ describe("Auditoria ambiental", () => {\
           : phase,
       ),
       total_carbon: null,
-      carbon_dominance: {\
+      carbon_dominance: {
         phase: null,
         label: null,
         share: null,
@@ -381,9 +381,9 @@ describe("Auditoria ambiental", () => {\
     ).toBeInTheDocument();
   });
 
-  it("recusa somar quatro das cinco fases", async () => {\
+  it("recusa somar quatro das cinco fases", async () => {
     const user = userEvent.setup();
-    runEcoAudit.mockResolvedValue({\
+    runEcoAudit.mockResolvedValue({
       ...result,
       total_energy: null,
       total_carbon: null,
@@ -399,7 +399,7 @@ describe("Auditoria ambiental", () => {\
     ).toBeGreaterThan(0);
   });
 
-  it("mostra a massa comprada ao lado da massa da peça", async () => {\
+  it("mostra a massa comprada ao lado da massa da peça", async () => {
     // A diferença entre as duas é o refugo, e é por isso que a fase de material
     // é maior do que o leitor esperava.
     const user = userEvent.setup();
@@ -411,7 +411,7 @@ describe("Auditoria ambiental", () => {\
     expect(screen.getByText(/2,5 kg/)).toBeInTheDocument();
   });
 
-  it("leva o nome do material à ficha do registro, não a uma família", async () => {\
+  it("leva o nome do material à ficha do registro, não a uma família", async () => {
     // /app/catalogo/[slug] é a família; um id ali cairia numa família inexistente.
     const user = userEvent.setup();
     await open();
@@ -423,7 +423,7 @@ describe("Auditoria ambiental", () => {\
     ).toHaveAttribute("href", "/app/materiais/7");
   });
 
-  it("diz em que unidade o carbono está e por quê", async () => {\
+  it("diz em que unidade o carbono está e por quê", async () => {
     const user = userEvent.setup();
     await open();
 
@@ -434,7 +434,7 @@ describe("Auditoria ambiental", () => {\
     expect(screen.getByText(/adimensional no catálogo/)).toBeInTheDocument();
   });
 
-  it("carrega a nota de que a reciclagem não é abatida do total", async () => {\
+  it("carrega a nota de que a reciclagem não é abatida do total", async () => {
     const user = userEvent.setup();
     await open();
 
