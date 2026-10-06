@@ -794,7 +794,14 @@ def _finalise(checked: AnswerOut) -> AnswerOut:
 
 def _storable_meta(value: Any) -> Any:
     """``meta`` with every string in it storable — a page title quoted in the
-    attribution included. PostgreSQL's ``json`` refuses ``\\u0000`` too."""
+    attribution included.
+
+    The column is ``sa.JSON`` (PostgreSQL ``json``, not ``jsonb``), which
+    takes an escaped ``\\u0000``; NUL is removed here so the attribution reads
+    as the rest of the source does. The case that would actually fail is a
+    lone surrogate: :func:`app.db.base.json_serializer` writes with
+    ``ensure_ascii=False``, so it reaches the driver raw and cannot be encoded.
+    Keys are the backend's own and are left as they are."""
     if isinstance(value, str):
         return storable_text(value)
     if isinstance(value, dict):

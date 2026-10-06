@@ -583,8 +583,8 @@ declarações do atributo, com o escopo indo a 4096.
 
 **Concorrência das cotas em PostgreSQL exercitada na CI** (D-97/D-99): quatro testes multithread contra PostgreSQL 16 (`test_notebook_quota_postgres.py`) validando o `UPDATE ... WHERE counter < limit` sob concorrência real (20 threads simultâneas em disputa na criação a partir do zero e na fronteira do limite, reserva e liberação concorrentes, e reserva com folga), sem estourar limites nem cair em race condition, executados na CI via contêiner de serviço PostgreSQL.
 
-**Saúde do código:** 3716 testes de backend (Python 3.11 e 3.12, nenhum skip
-na CI; sem `POSTGRES_TEST_URL`, 3710 passam e 6 pulam — os 4 das cotas e os 2
+**Saúde do código:** 3725 testes de backend (Python 3.11 e 3.12, nenhum skip
+na CI; sem `POSTGRES_TEST_URL`, 3719 passam e 6 pulam — os 4 das cotas e os 2
 da ingestão do Cérebro contra PostgreSQL) e 762 de frontend, todos
 verdes. Desde o P0-1 a suíte também roda as migrações de
 verdade, nos dois sentidos, contra um banco temporário que já contém dados —
@@ -1040,9 +1040,10 @@ que mais afetam quem for mexer no código:
 | Dependência de provedor de IA | Arquitetura desacoplada com provedor simulado; funciona sem chave. |
 | Incorporação inadvertida de dado protegido | Triagem de licenciamento (M1, item 4.2 da proposta) — `Source` registra licença/procedência, e uma fonte nova sem licença ou marcada como possivelmente protegida sem confirmação humana é recusada antes de qualquer linha ser escrita ([D-44](DECISIONS.md)). |
 | Resultado não reproduzível por interferência de IA | Cálculo determinístico + guardrails executáveis + confirmação do usuário. |
-| Regressão silenciosa | CI com 3716 testes de backend e 762 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
+| Regressão silenciosa | CI com 3725 testes de backend e 762 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
 | Material licenciado do Cérebro exposto em `main` (repositório público) | Risco aceito por decisão explícita do autor, não mitigado — o Cérebro é a base de conhecimento da camada de IA ([D-45](DECISIONS.md)). |
 | Texto dos livros do Cérebro enviado ao Gemini no plano gratuito, onde o Google pode usá-lo para melhorar os produtos | Risco aceito pelo autor ao escolher busca por vetores ([D-101](DECISIONS.md)); a alternativa sem envio é a busca só por palavras, que continua funcionando sozinha. Material na lista de remoção **nunca** é enviado: o `embed` lê `removidos.txt` e, sem conseguir lê-lo, não envia nada. |
+| Texto dos livros do Cérebro num log público do Actions (um traceback do SQLAlchemy imprime SQL e parâmetros) | Aconteceu uma vez, na primeira `ingerir` de 06/10 (execução 37415600025). Os CLIs do Cérebro imprimem só a classe de um erro de banco, sem traceback, e o motor tem `hide_parameters=True` ([D-101](DECISIONS.md), atualização de 06/10). O log já publicado só sai quando o dono o apaga (TODO A7, item 4). |
 | Banda de Git LFS do plano gratuito (1 GB/mês; passar dela bloqueia o LFS da conta inteira até o mês virar) | `ingerir` baixa só o que o banco não tem (`lfs_plan`); a primeira ingestão completa gasta ≈631 MB e não deve ser repetida no mesmo mês sem necessidade ([D-101](DECISIONS.md), [13-deploy.md §5-septies](13-deploy.md)). |
 | Limites do Neon gratuito (suposto 0,5 GB e 5 GB/mês de transferência) e memória da VM de 512 MB | Vetores de 768 dimensões (≈96 MB de base a 18 mil trechos), índice em memória medido em ≈100 MB por processo, e o `status` avisa acima de 80% de 0,5 GB. **O autor ainda confirma** os limites no painel do Neon e a memória no painel do Fly depois da primeira consulta. |
 | Execução noturna parada sem ninguém notar | O GitHub desliga um agendamento depois de 60 dias sem atividade no repositório, e uma noturna na fila pode ser trocada por uma execução de `admin-banco`; o `status` mostra quanto falta ([13-deploy.md §5-septies](13-deploy.md)). |

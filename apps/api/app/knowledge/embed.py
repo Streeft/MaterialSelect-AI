@@ -91,6 +91,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Protocol
 
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.config import Settings
@@ -760,17 +761,28 @@ def main(argv: list[str] | None = None, *, settings: Settings = default_settings
             f"[embed] lista de remoção: {len(removal.entries)} caminhos, "
             f"{len(removal.checksums)} sha256."
         )
-    with SessionLocal() as db:
-        report = run(
-            db,
-            settings=settings,
-            batch=args.batch,
-            max_requests=args.max_requests,
-            deadline_minutes=args.deadline_minutes,
-            rpm=args.rpm,
-            tpm=args.tpm,
-            removal=removal,
+    try:
+        with SessionLocal() as db:
+            report = run(
+                db,
+                settings=settings,
+                batch=args.batch,
+                max_requests=args.max_requests,
+                deadline_minutes=args.deadline_minutes,
+                rpm=args.rpm,
+                tpm=args.tpm,
+                removal=removal,
+            )
+    except SQLAlchemyError as exc:
+        # The class name only: SQLAlchemy's message quotes the statement and
+        # its bound parameters, and the log is public. Batches already
+        # committed stay; the next run continues from what is missing.
+        print(
+            f"::error::[embed] o banco de dados recusou ou perdeu a conexão "
+            f"({type(exc).__name__}); os lotes já gravados ficam. Confira o secret "
+            f"DATABASE_URL e se o banco está no ar."
         )
+        sys.exit(1)
     sys.exit(report.exit_code)
 
 

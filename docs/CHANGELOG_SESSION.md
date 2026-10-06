@@ -11,7 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
-| [46](#sessão-46--061026--o-nul-do-pypdf-e-a-ingestão-que-não-para-num-documento) | 06/10/2026 | A primeira `ingerir` em produção morreu com `PostgreSQL text fields cannot contain NUL (0x00) bytes`: o NUL sai na fonte (`storable_text()` nos leitores, no fatiador e nas fontes dos Cadernos), e um documento que o banco recusa volta ao *savepoint* e sai `falhou` sem parar a execução (D-101, atualização de 06/10) | 3699 → 3716 | 762 (inalterado) |
+| [46](#sessão-46--061026--o-nul-do-pypdf-e-a-ingestão-que-não-para-num-documento) | 06/10/2026 | A primeira `ingerir` em produção morreu com `PostgreSQL text fields cannot contain NUL (0x00) bytes`: o NUL sai na fonte (`storable_text()` nos leitores, no fatiador e nas fontes dos Cadernos), e um documento que o banco recusa volta ao *savepoint* e sai `falhou` sem parar a execução; erro de banco num CLI imprime só a classe, e o log daquela execução, com texto do livro, espera o dono apagá-lo (D-101, atualização de 06/10) | 3699 → 3725 | 762 (inalterado) |
 | [45](#sessão-45--300926-a-051026--o-cérebro-entra-em-produção) | 30/09 a 05/10/2026 | O Cérebro entra em produção pelo GitHub Actions: workflow `conhecimento.yml` (ingestão que baixa do LFS só o que o banco não tem, vetores de 768 dimensões com a sobra noturna da cota gratuita, retrato), ingestão segura contra ponteiro LFS, cópias e versão ilegível, busca sobre índice em memória e a identidade de vetor em `/api/health` (D-101); no merge com `main`, a ingestão direcionada da sessão 39 (`--file`, `--force`) sob as mesmas garantias e a entrada `arquivos` de `ingerir`; na revisão final, o `embed` respeita a lista de remoção | 3338 → 3552 no ramo; 3395 → 3624 com o merge; 3660 com a revisão final; 3699 com o merge do PR #94 | 753 (inalterado no ramo); 762 com o merge do PR #94 |
 | [44](#sessão-44--021026--lote-quádruplo-de-melhorias-seleção-busca-dimensionador-e-eco-audit-opções-1-a-4) | 02/10/2026 | Lote quádruplo de melhorias: duplicação de estágio (P0-1), busca ponderada e destaque (P1-1), seções circulares no solver (P2) e comparação lado a lado no Eco Audit (P3) | 3395 → 3407 | 753 → 762 |
 | [43](#sessão-43--021026--deslocamentos-astronômicos-positivos-e-calc-dominante-no-extrator-html-opção-1) | 02/10/2026 | Descarte de caixas com deslocamento positivo astronômico e avaliação afim de operando negativo dominante em `calc()` no extrator de HTML (D-97/D-99, Opção 1) | 3382 → 3395 | 753 (inalterado) |
@@ -67,8 +67,9 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ## Sessão 46 — 06/10/26 — O NUL do pypdf e a ingestão que não para num documento
 
-**O pedido.** A segunda execução de **Base de conhecimento (Cérebro)** →
-`ingerir` no Neon falhou depois de gravar um documento:
+**O pedido.** A primeira `ingerir` de **Base de conhecimento (Cérebro)** no
+Neon (segunda execução do workflow; a primeira só rodou `status`) falhou
+depois de gravar um documento:
 `sqlalchemy.exc.DataError: (psycopg.DataError) PostgreSQL text fields cannot
 contain NUL (0x00) bytes`, no `replace_chunks` de `_ingest_one`. Corrigir pela
 causa, e fazer a ingestão sobreviver a um documento que o banco recuse.
@@ -128,10 +129,49 @@ UTF-8 (só possível no Linux) quebra a pré-passagem com `UnicodeEncodeError`
 antes de qualquer escrita — fora do *savepoint*, que só cobre a gravação. Os
 nomes do Cérebro vêm do git em UTF-8.
 
-**Pendente, e só o autor faz.** Depois do merge: **Deploy da API** (os uploads
-dos Cadernos rodam na API) e **Base de conhecimento (Cérebro)** → `ingerir` de
-novo — ela roda no runner, do código de `main`, e não depende do deploy; os
-documentos já gravados saem `inalterados`.
+**A revisão achou o que a correção não cobria: o log público.** O traceback
+daquela execução (37415600025, job 112113411666, passo "Ingerir") trazia
+`[SQL: INSERT INTO knowledge_chunk …]` e `[parameters: {…}]` com ~1000 trechos
+de um livro licenciado. O *savepoint* registra o que o banco recusa dentro
+dele; a conexão perdida, o commit por documento e as escritas fora dele ainda
+subiam ao `main` como exceção crua — e a frase "sem SQL nem texto no log" só
+valia para as falhas registradas. Na mesma sessão:
+
+- `ingest`, `embed` e `prune` capturam `SQLAlchemyError` no `main` e imprimem
+  só o nome da classe, saída 1, sem traceback (`status` e `lfs_plan` já o
+  faziam). O motor de `app/db/base.py` ganhou `hide_parameters=True`, para toda
+  outra porta (log da API, outros workflows).
+- O *savepoint* também captura o `UnicodeEncodeError` que o driver levanta cru
+  para um *surrogate* (o comentário dizia que ele viria embrulhado num
+  `StatementError`; não vem). Erro de decodificação fica de fora de propósito.
+- Documentado: no SQLite de desenvolvimento, sem a receita de BEGIN do
+  conftest, cada `RELEASE` do *savepoint* grava de verdade — uma ingestão pela
+  API ali é por documento, não atômica; o PostgreSQL não muda. A docstring de
+  `_storable_meta` dava o motivo errado (é `json`, que aceita `\u0000`; o que
+  falha é o *surrogate* cru do `ensure_ascii=False`).
+- 9 testes novos: o sentinela nos parâmetros de um `OperationalError` (conexão
+  perdida) e de um `IntegrityError` (no commit por documento) não aparece na
+  saída da CLI, nem SQL, nem traceback; o mesmo para `embed` e `prune`; o motor
+  da aplicação esconde o parâmetro num erro real do SQLite; um `IntegrityError`
+  real no *flush* (ordinal repetido) e o `UnicodeEncodeError` real do driver
+  custam só o documento; o ramo "Nem a falha pôde ser registrada"; e `meta`/
+  `origin` de uma fonte de caderno sem NUL nem *surrogate*. Os 5 da CLI e o do
+  *surrogate* falham sem a correção.
+
+**Números (com a revisão).** Backend 3716 → 3725 (sem `POSTGRES_TEST_URL`,
+3719 passam e 6 pulam). Frontend 762, inalterado.
+
+**Pendente, e só o autor faz.**
+
+- **Apagar o log da execução 37415600025** (Actions → a execução → ⋯ →
+  **Delete all logs**, ou `DELETE /repos/Streeft/MaterialSelect-AI/actions/runs/37415600025/logs`).
+  Ele tem texto de livro licenciado num log público; não depende do merge, e o
+  código não alcança um log já publicado. Conferir também os logs das execuções
+  `conhecimento_*` (TODO A7).
+- Depois do merge: **Deploy da API** (os uploads dos Cadernos rodam na API) e
+  **Base de conhecimento (Cérebro)** → `ingerir` de novo — ela roda no runner,
+  do código de `main`, e não depende do deploy; os documentos já gravados saem
+  `inalterados`.
 
 ## Sessão 45 — 30/09/26 a 05/10/26 — O Cérebro entra em produção
 

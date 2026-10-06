@@ -7414,8 +7414,9 @@ testes de backend, nenhum pulado. `ruff` e `black` limpos; os dois workflows pas
 > rodaram contra um repositório LFS local (caminho com vírgula, acento e
 > colchetes; cache reaproveitado; objeto ausente no remoto).
 
-> **Atualização (06/10/2026, a primeira `ingerir` em produção).** A segunda
-> execução de `ingerir` no Neon morreu com
+> **Atualização (06/10/2026, a primeira `ingerir` em produção).** A primeira
+> `ingerir` no Neon (segunda execução do workflow — a primeira só rodou
+> `status`) morreu com
 > `psycopg.DataError: PostgreSQL text fields cannot contain NUL (0x00) bytes`
 > no `replace_chunks`: o pypdf devolve U+0000 para um glifo que não sabe mapear,
 > o SQLite dos testes guarda o caractere sem reclamar, e o PostgreSQL recusa o
@@ -7456,3 +7457,40 @@ testes de backend, nenhum pulado. `ruff` e `black` limpos; os dois workflows pas
 > arquivo que não decodifica como UTF-8 (só possível no Linux) quebra a
 > pré-passagem com `UnicodeEncodeError` antes de qualquer escrita; os nomes do
 > Cérebro vêm do git em UTF-8.
+>
+> **A mesma execução publicou texto do livro no log, e isso tem uma terceira
+> correção e uma ação do dono.** O traceback do driver trazia
+> `[SQL: INSERT INTO knowledge_chunk …]` e `[parameters: {…}]` com ~1000
+> trechos de um livro licenciado — no log **público** do Actions (execução
+> 37415600025, job 112113411666, passo "Ingerir"). O *savepoint* só cobre o que
+> ele registra; a conexão perdida, o commit por documento e toda escrita fora
+> dele ainda chegavam ao `main` como exceção crua. Agora:
+>
+> - **Todo CLI do Cérebro que fala com o banco** (`ingest`, `embed`, `prune`,
+>   além de `status` e `lfs_plan`, que já faziam) captura `SQLAlchemyError` e
+>   imprime só o nome da classe — sem SQL, sem parâmetros, sem traceback —, com
+>   saída 1. Testes com `capsys` provam que um parâmetro-sentinela não aparece.
+> - **O motor da aplicação** (`app/db/base.py`) passa `hide_parameters=True`:
+>   defesa em profundidade para toda outra porta (log da API, outros
+>   workflows). O SQL continua aparecendo; os valores não.
+> - **O log que já foi publicado não se apaga sozinho, e o código não alcança
+>   ele.** Pendência do dono (TODO A7): Actions → a execução 37415600025 → ⋯ →
+>   **Delete all logs** (ou `DELETE /repos/Streeft/MaterialSelect-AI/actions/runs/37415600025/logs`),
+>   independente do merge. Execução de `ingerir` que falhar antes do deploy
+>   desta correção: mesma coisa.
+>
+> Três notas de desenho, sem pendência. **(1)** O driver levanta o
+> `UnicodeEncodeError` de um *surrogate* cru — o SQLAlchemy não o embrulha —, e
+> o *savepoint* agora o captura também (`_WRITE_ERRORS`); um erro de
+> *decodificação* fica de fora de propósito, porque é arquivo ilegível, não
+> gravação recusada. `storable_text()` já troca o *surrogate*, então isto é a
+> segunda linha. **(2)** No SQLite de desenvolvimento (motor de `app/db/base.py`,
+> sem a receita de BEGIN do conftest) o primeiro `SAVEPOINT` sai fora de
+> transação e cada `RELEASE` grava de verdade: lá uma ingestão pela API é por
+> documento, não atômica. O PostgreSQL de produção não muda, e o conftest não
+> se mexe (§1.7 de `docs/CLAUDE.md`). **(3)** Remover o NUL em vez de trocá-lo
+> por U+FFFD pode **juntar as letras** em volta de um glifo que o pypdf não
+> mapeou (o "fi" de "definir", saído como U+0000, deixa "denir"): escolha
+> consciente — o NUL não é um caractere que o leitor vê, e a regra não edita
+> palavra nenhuma além de tirá-lo. Se a perda pesar na busca, a troca por
+> U+FFFD é uma linha em `storable_text()`, como já é para o *surrogate*.

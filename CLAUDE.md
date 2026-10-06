@@ -979,15 +979,21 @@ noturna agendada. Regras que não se afrouxam:
   **fora do horário de aula**: cada documento gravado muda a impressão digital.
 
 O código está pronto; a execução em produção é do autor (TODO A7, 13-deploy.md
-§5-septies). **A primeira `ingerir` no Neon (06/10) achou dois defeitos**,
-corrigidos na atualização de 06/10 do D-101: o pypdf devolve U+0000, que o
+§5-septies). **A primeira `ingerir` no Neon (06/10; segunda execução do
+workflow, a primeira só rodou `status`) achou três defeitos**, corrigidos na
+atualização de 06/10 do D-101: o pypdf devolve U+0000, que o
 SQLite guarda e o PostgreSQL recusa — `storable_text()` em
 `app/knowledge/readers.py` é a regra única, aplicada nos leitores, no
-`normalise()` do fatiador e na fonte de caderno —, e a recusa de **um**
-documento encerrava a execução inteira: agora cada documento grava num
-*savepoint* e o recusado sai `falhou` sem SQL nem texto no log.
+`normalise()` do fatiador e na fonte de caderno —; a recusa de **um**
+documento encerrava a execução inteira — agora cada documento grava num
+*savepoint* e o recusado sai `falhou` só com a classe do erro —; e o
+traceback publicou SQL e parâmetros, **texto de livro licenciado**, no log
+público. **Todo CLI do Cérebro que fala com o banco captura `SQLAlchemyError`
+e imprime só o nome da classe, sem traceback; um CLI novo também**, e o motor
+de `app/db/base.py` tem `hide_parameters=True` por baixo. O log da execução
+37415600025 continua publicado até o dono apagá-lo (TODO A7, item 4).
 
-3716 testes de backend (nenhum skip na CI; sem `POSTGRES_TEST_URL`, 3710 passam
+3725 testes de backend (nenhum skip na CI; sem `POSTGRES_TEST_URL`, 3719 passam
 e 6 pulam) e 762 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do

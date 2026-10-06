@@ -241,6 +241,38 @@ def test_a_pasted_text_spelling_nul_is_stored_without_it(client, db_session):
     assert any("O aço carbono tem densidade de 7850 kg/m³" in value for value in stored)
 
 
+def test_meta_and_origin_are_stored_without_nul_or_a_lone_surrogate(client, db_session, test_user):
+    # An external source's attribution comes from a fetched page, not from a
+    # reader: NUL is removed and a lone surrogate — which the ``ensure_ascii=
+    # False`` JSON serializer would hand the driver raw — becomes U+FFFD, at
+    # every depth of ``meta`` and in ``origin``.
+    from app.knowledge.readers import ExtractedText
+    from app.models.notebook import Notebook, NotebookSource
+
+    notebook = db_session.get(Notebook, _notebook(client)["id"])
+    out = notebook_service.NotebookService(db_session, test_user).ingest(
+        notebook,
+        "url",
+        "Página",
+        "https://exemplo.org/a\x00b",
+        ExtractedText(pages=[TEXT]),
+        paged=False,
+        meta={
+            "title": "Vidro\x00 sodo-cálcico\ud800",
+            "authors": ["A\x00na", {"name": "B\ud800"}],
+            "year": 2024,
+        },
+    )
+    db_session.flush()
+    source = db_session.get(NotebookSource, out.id)
+    assert source.origin == "https://exemplo.org/ab"
+    assert source.meta == {
+        "title": "Vidro sodo-cálcico\ufffd",
+        "authors": ["Ana", {"name": "B\ufffd"}],
+        "year": 2024,
+    }
+
+
 def test_an_empty_pdf_says_why(client):
     notebook = _notebook(client)
     response = client.post(

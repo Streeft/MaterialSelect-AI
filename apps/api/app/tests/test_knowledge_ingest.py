@@ -1897,3 +1897,137 @@ class TestDatabaseFailureIsPerDocument:
         _write(corpus, "a.pdf", ["qualquer texto legível"])
         with pytest.raises(OperationalError):
             KnowledgeService(db_session).ingest()
+
+
+def _rewrite_chunks_of(monkeypatch: pytest.MonkeyPatch, marker: str, rewrite) -> None:  # type: ignore[no-untyped-def]
+    """Hand the service other passages for the document whose text carries
+    ``marker`` — what the chunker would never produce, to make the database
+    itself refuse the write."""
+    from app.knowledge import service as service_module
+
+    original = service_module.chunk_text
+
+    def chunk_text(extracted):  # type: ignore[no-untyped-def]
+        chunks = original(extracted)
+        if chunks and marker in chunks[0].text:
+            return rewrite(chunks)
+        return chunks
+
+    monkeypatch.setattr(service_module, "chunk_text", chunk_text)
+
+
+class TestRealRefusedWrites:
+    """The database refuses during the flush itself — SQLAlchemy has rolled
+    its own flush back before the savepoint sees the error — not an exception
+    raised from Python after a good flush."""
+
+    def _three(self, corpus: Path, middle: str) -> None:
+        _write(corpus, "a.pdf", ["O alumínio 6061 tem densidade de 2700 kg/m3."])
+        _write(corpus, "b.pdf", [middle])
+        _write(corpus, "c.pdf", ["O titânio tem módulo de 110 GPa."])
+
+    def _assert_neighbours_stored(self, db_session) -> None:  # type: ignore[no-untyped-def]
+        repo = KnowledgeRepository(db_session)
+        for stored in ("a.pdf", "c.pdf"):
+            document = repo.get_by_path(stored)
+            assert document is not None and document.status == IngestStatus.EXTRAIDO
+            assert repo.list_chunks(document.id)
+
+    def test_a_duplicate_ordinal_is_a_real_integrity_error_for_that_document_only(
+        self, db_session, corpus: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from app.knowledge.chunking import Chunk
+
+        self._three(corpus, "Documento que repete o ordinal do trecho.")
+        _rewrite_chunks_of(
+            monkeypatch,
+            "repete o ordinal",
+            lambda chunks: [
+                chunks[0],
+                Chunk(
+                    ordinal=chunks[0].ordinal,
+                    text=chunks[0].text + " bis",
+                    page_start=1,
+                    page_end=1,
+                    heading=None,
+                ),
+            ],
+        )
+
+        report = KnowledgeService(db_session).ingest(on_document=db_session.commit)
+
+        assert report.created == 2 and report.failed == 1
+        self._assert_neighbours_stored(db_session)
+        repo = KnowledgeRepository(db_session)
+        refused = repo.get_by_path("b.pdf")
+        assert refused is not None and refused.status == IngestStatus.FALHOU
+        assert refused.chunk_count == 0 and repo.list_chunks(refused.id) == []
+        assert "IntegrityError" in (refused.error or "")
+        assert "repete o ordinal" not in (refused.error or "")
+
+    def test_a_surrogate_the_driver_cannot_encode_costs_that_document_only(
+        self, db_session, corpus: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # The driver raises the encoding error itself, and SQLAlchemy does not
+        # wrap it: without catching it the savepoint would not cover it.
+        # ``storable_text`` replaces surrogates first; this is the second line.
+        from app.knowledge.chunking import Chunk
+
+        self._three(corpus, "Documento com um substituto solto.")
+        _rewrite_chunks_of(
+            monkeypatch,
+            "substituto solto",
+            lambda chunks: [
+                Chunk(
+                    ordinal=c.ordinal,
+                    text=c.text + "\ud800",
+                    page_start=c.page_start,
+                    page_end=c.page_end,
+                    heading=c.heading,
+                )
+                for c in chunks
+            ],
+        )
+
+        report = KnowledgeService(db_session).ingest(on_document=db_session.commit)
+
+        assert report.created == 2 and report.failed == 1
+        self._assert_neighbours_stored(db_session)
+        refused = KnowledgeRepository(db_session).get_by_path("b.pdf")
+        assert refused is not None and refused.status == IngestStatus.FALHOU
+        assert "UnicodeEncodeError" in (refused.error or "")
+
+    def test_when_even_the_failure_cannot_be_recorded_the_outcome_says_so(
+        self, db_session, corpus: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # On PostgreSQL a manifest value too long for its column is refused in
+        # the write and again in the failure record (it shares the value);
+        # SQLite does not check lengths, so the second refusal is forced.
+        self._three(corpus, "Documento novo que o banco recusa duas vezes.")
+        TestDatabaseFailureIsPerDocument()._refuse_writes_of(monkeypatch, "b.pdf")
+        original = KnowledgeService._extraction_failed
+
+        def record(self, *args, **kwargs):  # type: ignore[no-untyped-def]
+            if kwargs.get("stage") == "gravada":
+                raise _data_error()
+            return original(self, *args, **kwargs)
+
+        monkeypatch.setattr(KnowledgeService, "_extraction_failed", record)
+        commits: list[int] = []
+
+        def commit() -> None:
+            db_session.commit()
+            commits.append(1)
+
+        report = KnowledgeService(db_session).ingest(on_document=commit)
+
+        assert len(commits) == 3  # the session stayed usable after both refusals
+        assert report.created == 2 and report.failed == 1
+        self._assert_neighbours_stored(db_session)
+        assert KnowledgeRepository(db_session).get_by_path("b.pdf") is None
+        outcome = next(o for o in report.outcomes if o.path == "b.pdf")
+        assert outcome.action == "falhou"
+        assert "DataError" in (outcome.detail or "")
+        assert "Nem a falha pôde ser registrada" in (outcome.detail or "")
+        for leak in ("INSERT", "TEXTO-SECRETO", "%(p"):
+            assert leak not in (outcome.detail or "")

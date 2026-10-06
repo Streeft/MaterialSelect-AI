@@ -60,7 +60,7 @@ quitados".
 **A7 — o que resta, e só o autor faz.** ▁ A remoção do banco de produção e a
 reescrita do histórico foram feitas em 30/09/2026, e a ingestão direcionada do
 `Links.md` saiu em código (ver "Débitos já quitados" e o [D-100](DECISIONS.md)).
-Ficam três passos fora do código:
+Ficam quatro passos fora do código:
 
 1. **Suporte do GitHub** ([`17-limpeza-historico-cerebro.md`](17-limpeza-historico-cerebro.md)
    §10). Pedir a remoção das refs de PR (`refs/pull/*` — a do PR #56 guarda 65
@@ -81,16 +81,28 @@ Ficam três passos fora do código:
    já com `embeddings` → `status` toda semana até `faltam 0`. O download
    arquivo a arquivo (`git lfs smudge`) ainda não rodou no GitHub: a primeira
    `ingerir` é o teste dele.
-   **06/10/2026:** a segunda `ingerir` morreu com `PostgreSQL text fields cannot
+   **06/10/2026:** a primeira `ingerir` (segunda execução do workflow; a
+   primeira só rodou `status`) morreu com `PostgreSQL text fields cannot
    contain NUL (0x00) bytes` (o pypdf devolve U+0000; o SQLite dos testes
    aceita). Corrigido no código (D-101, atualização de 06/10): o NUL sai na
-   fonte, e um documento que o banco recusa não para mais a execução. Depois do
-   merge: **Deploy da API** (os uploads dos Cadernos passam pela mesma regra e
-   rodam na API) e **`ingerir` de novo** — ela roda no runner, do código de
-   `main`, sem deploy; os documentos já gravados saem `inalterados`.
+   fonte, um documento que o banco recusa não para mais a execução, e um erro
+   de banco que escapa de um CLI do Cérebro imprime só o nome da classe (o
+   motor também esconde parâmetros). Depois do merge: **Deploy da API** (os
+   uploads dos Cadernos passam pela mesma regra e rodam na API) e **`ingerir`
+   de novo** — ela roda no runner, do código de `main`, sem deploy; os
+   documentos já gravados saem `inalterados`.
+4. **Apagar o log público que tem texto de livro — já, sem esperar o merge.**
+   O traceback daquela `ingerir` (execução **37415600025**, job 112113411666,
+   passo "Ingerir") imprimiu o SQL e os parâmetros do `INSERT`: ~1000 trechos
+   de um livro licenciado, num log público. Actions → a execução → ⋯ →
+   **Delete all logs** (ou `DELETE
+   /repos/Streeft/MaterialSelect-AI/actions/runs/37415600025/logs`). O código
+   não apaga log publicado; a correção só impede o próximo. Qualquer execução
+   de `ingerir` que falhe antes do deploy desta correção: a mesma coisa.
 
 Não registrado aqui: se os logs das execuções de `conhecimento_simular_remocao`
-e `conhecimento_remover` já foram apagados (guia §1.3 e §11) — conferir.
+e `conhecimento_remover` já foram apagados (guia §1.3 e §11) — conferir junto
+com o item 4, pelo mesmo menu.
 
 ---
 

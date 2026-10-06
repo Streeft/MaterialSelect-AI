@@ -32,8 +32,15 @@ def json_serializer(obj: Any) -> str:
 
 
 def engine_kwargs(url: str) -> dict:
-    """Return engine keyword arguments (backend-specific + JSON serializer)."""
-    kwargs: dict = {"json_serializer": json_serializer}
+    """Return engine keyword arguments (backend-specific + JSON serializer).
+
+    ``hide_parameters`` keeps bound values out of every error SQLAlchemy
+    raises: without it, a refused ``INSERT`` prints its parameters — passages
+    of the licensed books in the knowledge base, a student's notes, an OAuth
+    e-mail — into the API's log or a public Actions log (D-101). The SQL
+    itself still shows, which is enough to diagnose; the values are not.
+    """
+    kwargs: dict = {"json_serializer": json_serializer, "hide_parameters": True}
     if url.startswith("sqlite"):
         kwargs["connect_args"] = {"check_same_thread": False}
     return kwargs

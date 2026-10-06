@@ -95,6 +95,12 @@ WRITE_FAILED_REASON = (
     "O banco de dados recusou a gravação deste documento ({error}); nada desta "
     "versão foi gravado, e a execução seguiu com os outros."
 )
+#: What a refused write raises inside a document's savepoint. The encoding
+#: error is the driver's own (``str.encode`` while binding a lone surrogate),
+#: which SQLAlchemy does not wrap; ``storable_text`` already replaces
+#: surrogates, so it is a second line, not the first. A *decode* error is not
+#: here on purpose: that is a file that cannot be read, not a write refused.
+_WRITE_ERRORS = (SQLAlchemyError, UnicodeEncodeError)
 #: How much of a failure reason fits in ``error`` (String(500)) next to the
 #: sentence saying the previous version was kept.
 _REASON_BUDGET = 300
@@ -509,7 +515,11 @@ class KnowledgeService:
             on_document: called after each file is dealt with — the CLI passes
                 ``db.commit`` so a long run keeps what it finished if it dies
                 halfway. ``None`` (the API) leaves the transaction to the
-                caller, as before.
+                caller, as before — on PostgreSQL. On the plain dev SQLite
+                engine (``app.db.base``, without the conftest's BEGIN recipe)
+                pysqlite has not begun a transaction when the first document's
+                ``SAVEPOINT`` is issued, so each ``RELEASE`` commits for real:
+                there an API-driven ingestion is per document, not atomic.
         """
         prepared = self._prepare(force, paths)
         root, declared, removed = prepared.root, prepared.declared, prepared.removed
@@ -845,7 +855,7 @@ class KnowledgeService:
         try:
             with self.db.begin_nested():
                 return self._index_one(path, relative, provenance, force, digest, size)
-        except SQLAlchemyError as exc:
+        except _WRITE_ERRORS as exc:
             if isinstance(exc, DBAPIError) and exc.connection_invalidated:
                 raise
             return self._write_failed(relative, provenance, digest, size, exc)
@@ -856,7 +866,7 @@ class KnowledgeService:
         provenance: DeclaredProvenance | None,
         digest: str,
         size: int,
-        exc: SQLAlchemyError,
+        exc: SQLAlchemyError | UnicodeEncodeError,
     ) -> DocumentOutcome:
         """Record a document whose write was rolled back, in a savepoint of its own.
 
@@ -866,8 +876,10 @@ class KnowledgeService:
         written and the outcome alone says so.
         """
         # SQLAlchemy's own class (``DataError``, ``IntegrityError``) is the
-        # same on every driver; a ``StatementError`` wrapping something else
-        # (an encoding error raised while binding) is named by what it wraps.
+        # same on every driver; a ``StatementError`` wrapping something else is
+        # named by what it wraps. An encoding error raised by the driver while
+        # binding (a lone surrogate, on psycopg and sqlite3 alike) is *not*
+        # wrapped — SQLAlchemy reraises it as is — so it arrives here raw.
         cause = exc if isinstance(exc, DBAPIError) else (getattr(exc, "orig", None) or exc)
         reason = WRITE_FAILED_REASON.format(error=type(cause).__name__)
         try:
@@ -882,7 +894,7 @@ class KnowledgeService:
                     page_count=None,
                     stage="gravada",
                 )
-        except SQLAlchemyError as again:
+        except _WRITE_ERRORS as again:
             if isinstance(again, DBAPIError) and again.connection_invalidated:
                 raise
             return DocumentOutcome(
