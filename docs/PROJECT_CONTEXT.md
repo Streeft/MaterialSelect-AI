@@ -40,7 +40,7 @@ sugerir e explicar.
 
 ## 3. Estado atual
 
-**Fases 1 a 9 concluídas.** Fase 7 fechou por completo — todas as exportações (CSV, XLSX, HTML, DOCX e PPTX) entregues para catálogo, relatório de estudo e laudo de engenharia, além do lote quádruplo de melhorias funcionais (3395 → 3407 backend, 753 → 762 frontend), e na Sessão 48 a figura de barras por fase no Eco Audit e reordenação por arraste em seleção (Opções 1 e 2, 3743 backend e 762 → 778 frontend).
+**Fases 1 a 9 concluídas.** Fase 7 fechou por completo — todas as exportações (CSV, XLSX, HTML, DOCX e PPTX) entregues para catálogo, relatório de estudo e laudo de engenharia, além do lote quádruplo de melhorias funcionais (3395 → 3407 backend, 753 → 762 frontend), na Sessão 48 a figura de barras por fase no Eco Audit e reordenação por arraste em seleção (Opções 1 e 2, 3743 backend e 762 → 778 frontend), e na Sessão 53 a vinculação automática de processos demo aos materiais de teste por classe (3854 → 3857 backend e 778 frontend).
 
 | # | Fase | Estado | Documento |
 |---|---|---|---|
@@ -607,8 +607,8 @@ declarações do atributo, com o escopo indo a 4096.
 
 **Concorrência das cotas em PostgreSQL exercitada na CI** (D-97/D-99): quatro testes multithread contra PostgreSQL 16 (`test_notebook_quota_postgres.py`) validando o `UPDATE ... WHERE counter < limit` sob concorrência real (20 threads simultâneas em disputa na criação a partir do zero e na fronteira do limite, reserva e liberação concorrentes, e reserva com folga), sem estourar limites nem cair em race condition, executados na CI via contêiner de serviço PostgreSQL.
 
-**Saúde do código:** 3854 testes de backend (Python 3.11 e 3.12, nenhum skip
-na CI; sem `POSTGRES_TEST_URL`, 3848 passam e 6 pulam — os 4 das cotas e os 2
+**Saúde do código:** 3857 testes de backend (Python 3.11 e 3.12, nenhum skip
+na CI; sem `POSTGRES_TEST_URL`, 3851 passam e 6 pulam — os 4 das cotas e os 2
 da ingestão do Cérebro contra PostgreSQL) e 778 de frontend, todos
 verdes. Desde o P0-1 a suíte também roda as migrações de
 verdade, nos dois sentidos, contra um banco temporário que já contém dados —
