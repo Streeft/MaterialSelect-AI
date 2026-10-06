@@ -35,7 +35,10 @@ path typed, which may be a name the log must not publish); a document
 without extractable text — a scanned book — is a warning (``SEM TEXTO``) and
 does not fail the run on its own, and neither does a PDF indexed with some
 pages left out because their bytes could not be decoded (``PÁGINAS
-IGNORADAS``, a count only; D-101). A database error the per-document savepoint
+IGNORADAS``, a ``::warning::`` annotation with counts and exception class
+names only; D-101). More than a fifth of a PDF's pages left out (and at least
+three) is a failure like any other: ``FALHOU``, exit 1, nothing new stored
+(``readers.MAX_SKIPPED_PAGE_SHARE``). A database error the per-document savepoint
 does not absorb (a lost connection, the per-document commit) also exits 1,
 printed by its class name only — never the SQL nor its parameters.
 """
@@ -52,6 +55,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.db.base import SessionLocal
 from app.domain.errors import ValidationError
 from app.knowledge.prune import ROOT_FOLDER, redact
+from app.knowledge.readers import skip_reasons_text
 from app.knowledge.service import DocumentOutcome, IngestReport, KnowledgeService, TargetError
 
 
@@ -77,6 +81,16 @@ def _shown_detail(outcome: DocumentOutcome, root: str) -> str:
     for form in sorted((f for f in forms if f), key=len, reverse=True):
         detail = detail.replace(form, shown)
     return detail
+
+
+def _annotation(message: str) -> str:
+    """``message`` as the data of a GitHub workflow command (``::warning::…``).
+
+    The runner reads ``%``, CR and LF in it as escapes and line ends; a path
+    with a ``%`` would otherwise be printed wrong, and a newline would end
+    the annotation early.
+    """
+    return message.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
 
 
 def _folder(path: str) -> str:
@@ -133,9 +147,18 @@ def format_report(report: IngestReport, *, embed: bool = True) -> list[str]:
         )
     for outcome in report.outcomes:
         if outcome.action != "falhou" and outcome.skipped_pages:
+            # A GitHub annotation, so the run's summary shows it and not only
+            # its log: the job stays green, and a green job is not read.
+            why = skip_reasons_text(outcome.skip_reasons)
             lines.append(
-                f"[ingest] PÁGINAS IGNORADAS {_shown(outcome)}: {outcome.skipped_pages} de "
-                f"{outcome.page_count} não puderam ser lidas; o resto do documento foi indexado."
+                "::warning::"
+                + _annotation(
+                    f"[ingest] PÁGINAS IGNORADAS {_shown(outcome)}: {outcome.skipped_pages} de "
+                    f"{outcome.page_count} não puderam ser lidas"
+                    + (f" ({why})" if why else "")
+                    + "; o resto do documento foi indexado. Para reextrair depois de uma "
+                    "correção: ingerir com arquivos e forcar (docs/13-deploy.md §5-septies)."
+                )
             )
     for outcome in scanned:
         line = f"[ingest] SEM TEXTO {_shown(outcome)} (provavelmente digitalizado)"

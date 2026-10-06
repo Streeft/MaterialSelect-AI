@@ -7514,7 +7514,10 @@ testes de backend, nenhum pulado. `ruff` e `black` limpos; os dois workflows pas
 >   comprimidos ainda por decodificar depois dos 75 MB) a menos que o resto
 >   comprima mais que ~36:1, e continua sendo teto: medido no pypdf 6.19, um
 >   fluxo de 450 MB custou 0,9 GB de RSS e um acima do teto, 1,0 GB — um
->   documento por vez, num runner de vários GB.
+>   documento por vez, num runner de vários GB. **Corrigido na atualização
+>   seguinte:** o teto é por *fluxo*, não por documento — a memória somava as
+>   páginas, e um fluxo de operadores custa ~37× o tamanho, não ~2× —, e ele
+>   caiu para 200 MB.
 > - **O upload continua com o padrão do pypdf**, aplicado explicitamente
 >   (`read_upload` → `read_pdf` sem teto), para não depender de estado ambiente.
 > - **O escopo é o `ContextVar` do próprio pypdf** (`pypdf.apply_configuration`,
@@ -7528,7 +7531,8 @@ testes de backend, nenhum pulado. `ruff` e `black` limpos; os dois workflows pas
 > - **Página ilegível custa a página, no Cérebro.** Uma página que não
 >   decodifica (o teto, erro de zlib, fluxo malformado) fica de fora como
 >   página vazia — o número das outras não muda, então `page_start`/`page_end`
->   continuam certos — e é contada em `ExtractedText.skipped_pages`; o
+>   continuam certos (a numeração; um trecho ainda pode atravessar a lacuna,
+>   como diz a atualização seguinte) — e é contada em `ExtractedText.skipped_pages`; o
 >   documento é indexado, `error` diz "K de N páginas não puderam ser lidas…",
 >   e a CLI imprime `[ingest] PÁGINAS IGNORADAS <caminho>: K de N não puderam
 >   ser lidas; …` (só contagens; caminho redigido se não declarado) **sem**
@@ -7543,3 +7547,95 @@ testes de backend, nenhum pulado. `ruff` e `black` limpos; os dois workflows pas
 > mesmo se ele passar de 500 MB, o resto do livro entra. Os dois são
 > provavelmente o mesmo livro em dois scans (TODO, baixa prioridade): decisão
 > do autor, e uma `ingerir` nova é necessária depois do merge.
+
+> **Atualização (06/10/2026, a revisão do PR #98: o teto era por fluxo, não
+> por documento).** A revisão depois do merge achou que "500 MB é um teto" não
+> limitava o que dizia limitar, e que um livro lido pela metade passava em
+> silêncio. As correções, pela causa:
+>
+> - **A memória somava as páginas.** O pypdf guarda cada fluxo decodificado no
+>   próprio objeto (`EncodedStreamObject.decoded_self`) e cada objeto resolvido
+>   em `PdfReader.resolved_objects` enquanto o leitor vive: o conteúdo de toda
+>   página ficava na memória até a última. Medido no pypdf 6.19 com 8 páginas
+>   de 150 MB: o RSS subia ~143 MB por página até 1,2 GB (pico 1,34 GB). Agora
+>   `readers._release_decoded`, depois de cada página, conta o que foi
+>   decodificado e, quando as cópias guardadas passam de 16 MB, as solta
+>   (`decoded_self = None`; o fluxo codificado fica, e é do próprio arquivo):
+>   o mesmo livro fica plano em ~194 MB (pico 337 MB). Abaixo dos 16 MB as
+>   cópias ficam — uma fonte ou um `/ToUnicode` que toda página usa não é
+>   decodificado de novo por página. Vale para o Cérebro **e** para o upload.
+> - **O teto por fluxo caiu de 500 para 200 MB** (`CORPUS_MAX_STREAM_BYTES`).
+>   O custo de um fluxo depende do que ele carrega: uma imagem embutida é lida
+>   como uma fatia de bytes (~2× o tamanho, segundos: 450 MB custaram 0,9 GB e
+>   5,6 s); um fluxo de operadores de texto ou de traço vira um objeto Python
+>   por operando (~35–37× o tamanho, e tempo superlinear: 4 MB, +140 MB e
+>   8 s; 10 MB, 0,4 GB e 34 s; 40 MB, 1,5 GB e 374 s). Com 500 MB o pior caso
+>   era ~18 GB numa página só; com 200 MB é ~7 GB — dentro dos 16 GB do runner
+>   de repositório público, e nenhuma página de livro tem essa forma. 200 MB
+>   ainda cobre os dois déficits de produção se o resto comprimir até ~10:1. O
+>   que **não** está limitado aqui, e fica dito: o pypdf lê uma página numa
+>   chamada só, então nada entre páginas interrompe uma página patológica;
+>   só um subprocesso com `RLIMIT_AS` e prazo o faria (descartado por ora:
+>   custo de processo por documento, e o desenvolvimento local é Windows).
+> - **O documento tem orçamento.** `CORPUS_MAX_DECODED_BYTES = 16 GB` de
+>   conteúdo decodificado (uma página que bateu no teto conta como o teto, e o
+>   que é decodificado de novo conta de novo) e `CORPUS_MAX_SECONDS = 15 min`,
+>   conferidos entre páginas. Gasto um, as páginas que faltam saem como
+>   `DocumentBudgetExceeded` — e a regra de proporção abaixo decide. 16 GB:
+>   o maior arquivo do Cérebro, 152 MB, a 10:1 dá 1,5 GB; o orçamento só para
+>   bomba, ou fluxo acima do teto que toda página usa (o pypdf não guarda
+>   falha, e cada página o tentaria de novo). 15 min: a `ingerir` inteira de
+>   06/10, 121 documentos, levou 12.
+> - **Mais de uma página em cinco é falha.** `MAX_SKIPPED_PAGE_SHARE = 0,2` e
+>   `MIN_SKIPPED_PAGES_TO_FAIL = 3`: um livro com mais de 20% das páginas de
+>   fora (e ao menos 3) sai `falhou` — nada novo gravado; já indexado, mantém
+>   os trechos anteriores; saída 1; e, como toda falha, a próxima `ingerir`
+>   tenta de novo. Uma ou duas páginas (uma prancha, uma figura quebrada)
+>   custam essas páginas; com um quinto de fora, a base responderia sobre o
+>   livro como se o tivesse inteiro. O piso de 3 evita que um documento curto
+>   caia pela aritmética de uma página (1 de 4 é 25%). A leitura **para assim
+>   que a conta fecha**, e é isso que limita o fluxo-bomba compartilhado: num
+>   livro de 20 páginas, cinco tentativas, não vinte.
+> - **O porquê de cada página pulada é dito, pelo nome da classe.**
+>   `ExtractedText.skip_reasons` (`LimitReachedError ×2, error ×1`) vai para a
+>   nota em `error`, para a linha da CLI e para a mensagem de falha — nunca a
+>   mensagem do erro, que pode citar a página. Um parêntese só com
+>   `LimitReachedError` aponta para o teto; outro nome, para um defeito que um
+>   pypdf novo pode resolver.
+> - **O aviso aparece onde é lido.** A linha `PÁGINAS IGNORADAS` da ingestão é
+>   uma anotação `::warning::` do GitHub (só contagens, caminho redigido), e
+>   diz como reextrair. No `status`, um livro assim tem rótulo próprio,
+>   `PÁGINAS IGNORADAS <caminho> (K de N páginas de fora, T trechos)`, e uma
+>   linha soma todos; `VERSÃO ANTERIOR` voltou a ser só a versão nova que não
+>   pôde ser lida, e uma nota de truncamento sai como `AVISO`. A contagem não
+>   tem coluna: vive na frase gravada em `error`, escrita por
+>   `skipped_pages_note` e lida por `skipped_pages_in` (`service.py`), e uma
+>   versão nova que falha **carrega** a frase da anterior. Uma coluna pediria
+>   migração; a frase é a única fonte.
+> - **Reextrair tem caminho sem terminal.** O livro lido em parte está
+>   `inalterado` para a ingestão (os bytes não mudaram) e o plano do LFS nem o
+>   baixa. A entrada `forcar` de `ingerir` (`conhecimento.yml`) passa
+>   `--force` ao plano e à ingestão, **só junto de `arquivos`** — sozinha, ou
+>   em outra ação, é recusada: forçar o Cérebro inteiro baixaria os ≈600 MB do
+>   LFS de novo. Entradas por `env:`, nunca `${{ }}` no `run:`.
+> - **O upload (Cadernos e PDF da web) também somava, e mais perto do
+>   limite** — endurecimento de segurança. Com o teto padrão de 75 MB e as
+>   cópias guardadas, 10 páginas de 70 MB num arquivo de 684 KB custaram 783 MB
+>   de pico; um arquivo de 15 MB cabe ~200 delas, e a API roda numa VM de
+>   512 MB (~130 MB do processo depois do import, ~100 MB do índice do
+>   Cérebro). E uma página só de 75 MB de operadores pediria ~2,6 GB. Agora o
+>   upload lê com `UPLOAD_MAX_STREAM_BYTES = 4 MB` por fluxo (uma página de
+>   operadores no teto: +140 MB e 8 s), `UPLOAD_MAX_DECODED_BYTES = 32 MB` por
+>   arquivo (um PDF de 400 páginas de texto decodifica ~10 MB) e o limite de
+>   páginas (`NOTEBOOK_MAX_PAGES`) conferido **antes** de decodificar qualquer
+>   página. Passar de um deles recusa o arquivo com a frase em português —
+>   "O PDF é pesado demais para ler: até a página P de N, …" ou "a página P
+>   descomprime para mais de 4 MB…" —, e não mais com a mensagem em inglês do
+>   pypdf. O mesmo arquivo de 684 KB agora é recusado na página 1 com 42 MB de
+>   pico. O que sobra é CPU: o orçamento de 32 MB de operadores custa até
+>   ~1 min de leitura (~2 s por MB), que segura o GIL do processo.
+> - **A numeração das páginas continua certa; a lacuna, não necessariamente.**
+>   O fatiador junta parágrafos entre páginas (como já fazia com uma página
+>   digitalizada em branco), então um trecho pode atravessar a página pulada e
+>   ser citado como `1–3`. Nenhum trecho começa ou termina nela, e o teste diz
+>   exatamente isso.

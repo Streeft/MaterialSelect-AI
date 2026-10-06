@@ -24,8 +24,11 @@ What it prints:
   what a free database plan limits — or "indisponível no SQLite";
 * rows the manifest does not declare, rows that are byte-identical copies of
   another row (the orphans the ingestion's ``CÓPIAS`` line points here for),
-  rows whose file is no longer under ``KNOWLEDGE_DIR``, failed documents, and
-  documents whose newer version could not be read (the previous passages stay).
+  rows whose file is no longer under ``KNOWLEDGE_DIR``, failed documents,
+  documents whose newer version could not be read (``VERSÃO ANTERIOR``: the
+  previous passages stay), PDFs indexed with pages left out (``PÁGINAS
+  IGNORADAS``, with the count — D-101) and any other note on an indexed
+  document (``AVISO``, e.g. truncation).
 
 **The log is public.** A path is printed whole only when
 ``Cérebro/manifesto.json`` declares it; any other row is its top-level folder
@@ -56,6 +59,7 @@ from app.db.base import SessionLocal
 from app.domain.errors import ValidationError
 from app.knowledge.manifest import load_manifest
 from app.knowledge.prune import ROOT_FOLDER, knowledge_tables_present, redact
+from app.knowledge.service import KEPT_PREVIOUS_PREFIX, skipped_pages_in
 from app.models.enums import IngestStatus
 from app.repositories.knowledge_repository import KnowledgeRepository
 from app.repositories.knowledge_status_repository import (
@@ -397,12 +401,35 @@ def format_status(status: KnowledgeStatus) -> list[str]:
     for row in docs:
         if row.status == IngestStatus.FALHOU.value:
             lines.append(f"{PREFIX} FALHOU {status.shown(row)}: {_error(status, row)}")
-    for row in docs:
-        if row.status == IngestStatus.EXTRAIDO.value and row.error:
-            lines.append(
-                f"{PREFIX} VERSÃO ANTERIOR {status.shown(row)} ({row.chunk_count} trechos "
-                f"mantidos): {_error(status, row)}"
-            )
+    # An indexed document with a note is one of three things, and each has its
+    # own label: a new version that could not be read (the old one answers), a
+    # PDF indexed with pages left out (D-101), or anything else said about an
+    # indexed document (truncation). Calling the second "versão anterior" told
+    # the operator a new version had failed when the only version had gaps.
+    noted = [r for r in docs if r.status == IngestStatus.EXTRAIDO.value and r.error]
+    partial = [(r, skipped_pages_in(r.error)) for r in noted]
+    partial = [(r, counts) for r, counts in partial if counts is not None]
+    lines.append(
+        f"{PREFIX} páginas ignoradas: {len(partial)} documentos indexados com páginas "
+        f"de fora ({sum(counts[0] for _, counts in partial)} páginas no total)."
+        + (
+            " Reextraia com `ingerir` + `arquivos` + `forcar` depois de corrigir a causa."
+            if partial
+            else ""
+        )
+    )
+    for row in noted:
+        counts = skipped_pages_in(row.error)
+        if (row.error or "").startswith(KEPT_PREVIOUS_PREFIX):
+            label = "VERSÃO ANTERIOR"
+            kept = f"{row.chunk_count} trechos mantidos"
+        elif counts is not None:
+            label = "PÁGINAS IGNORADAS"
+            kept = f"{counts[0]} de {counts[1]} páginas de fora, {row.chunk_count} trechos"
+        else:
+            label = "AVISO"
+            kept = f"{row.chunk_count} trechos"
+        lines.append(f"{PREFIX} {label} {status.shown(row)} ({kept}): {_error(status, row)}")
     return lines
 
 

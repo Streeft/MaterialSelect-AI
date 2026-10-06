@@ -509,7 +509,7 @@ de `KNOWLEDGE_DIR`: ela só lê o banco.
 | Ação | Faz o quê | Recebe a chave do Gemini? |
 |---|---|---|
 | `status` | Só lê: documentos, trechos, vetores por modelo e dimensão, quanto falta, tamanho do banco, cópias órfãs, documentos sem arquivo no repositório — e compara a identidade de vetor da API com a do workflow ("API vs vetores"). | Não |
-| `ingerir` | Planeja o download (`python -m app.knowledge.lfs_plan`: só os PDFs que o banco ainda não tem com aqueles bytes), baixa só esses do Git LFS (com cache) e roda `python -m app.knowledge.ingest --no-embed`: extrai o texto e grava os trechos. A busca léxica funciona a partir daqui. Com `arquivos` (caminhos dentro de `Cérebro/`, separados por `;`), só esses arquivos, e o mesmo plano decide se algum precisa ser baixado. `arquivos` com outra ação é erro. | **Não** |
+| `ingerir` | Planeja o download (`python -m app.knowledge.lfs_plan`: só os PDFs que o banco ainda não tem com aqueles bytes), baixa só esses do Git LFS (com cache) e roda `python -m app.knowledge.ingest --no-embed`: extrai o texto e grava os trechos. A busca léxica funciona a partir daqui. Com `arquivos` (caminhos dentro de `Cérebro/`, separados por `;`), só esses arquivos, e o mesmo plano decide se algum precisa ser baixado. Com `forcar` marcado **e** `arquivos`, esses arquivos são baixados e reextraídos mesmo inalterados (`--force` no plano e na ingestão). `arquivos` ou `forcar` com outra ação, e `forcar` sem `arquivos`, são erro. | **Não** |
 | `embeddings` | Gera vetores agora, até `limite_pedidos` pedidos (padrão 300) com `lote` trechos por pedido (padrão 20), por no máximo 120 min. Os trechos de documentos em `Cérebro/removidos.txt` nunca são enviados. | Sim |
 | noturna (sozinha) | O mesmo, toda noite às 05:07 UTC (02:07 em Brasília), só entre 21h e 23h50 do Pacífico, com a sobra da cota do dia: até a cota acabar ou 1000 pedidos, o que vier antes. | Sim |
 
@@ -586,17 +586,44 @@ idênticos entram uma vez só.
    documentos que falharam, que são baixados e lidos de novo.
    - `[ingest] SEM TEXTO … (provavelmente digitalizado)` é **aviso**: o PDF não
      tem texto extraível e o job continua verde.
-   - `[ingest] PÁGINAS IGNORADAS …: K de N não puderam ser lidas; o resto do
-     documento foi indexado.` também é **aviso**, e o job continua verde:
-     K páginas do PDF não decodificaram (fluxo acima de 500 MB, erro de zlib,
-     fluxo malformado) e ficaram de fora; as outras foram indexadas com o
-     número de página certo. A linha só traz contagens. Se *nenhuma* página
-     decodificar, o documento sai `FALHOU`. Um
-     `FALHOU …: Não foi possível ler o PDF: Limit reached while decompressing`
-     não deveria mais aparecer no Cérebro — era o teto de 75 MB do pypdf, que
-     derrubou os dois Ashby em português na `ingerir` de 06/10 ([D-101](DECISIONS.md),
-     atualização do teto de descompressão); o upload dos Cadernos continua com
-     ele, de propósito.
+   - `::warning::[ingest] PÁGINAS IGNORADAS …: K de N não puderam ser lidas (LimitReachedError ×2, error ×1); o resto do documento foi indexado. Para reextrair depois de uma correção: …`
+     também é **aviso** — uma anotação, que o GitHub mostra como "Warning" no resumo
+     da execução, não só no log —, e o job continua verde: K páginas do PDF
+     não decodificaram e ficaram de fora; as outras foram indexadas com o
+     número de página certo (um trecho ainda pode atravessar a página que
+     faltou, e é citado como `1–3`). O parêntese diz **por quê**, pelo nome da
+     classe do erro e quantas páginas — nunca a mensagem, que pode citar a
+     página: `LimitReachedError` é o teto de 200 MB por fluxo (um parêntese só
+     com ele aponta para o teto, e uma versão nova do pypdf não ajudaria);
+     `error` é o `zlib.error` de um fluxo corrompido; `DocumentBudgetExceeded`
+     são as páginas que sobraram quando o documento gastou o orçamento dele
+     (16 GB decodificados ou 15 min de leitura); outros nomes são defeitos do
+     pypdf, que uma versão nova pode resolver.
+   - `[ingest] FALHOU …: Não foi possível ler o PDF: K de N páginas não puderam ser lidas (até a página P; LimitReachedError ×K) — mais que 20% do documento.`
+     deixa o job **vermelho**: mais de uma página em cinco (e ao menos três)
+     ficaram de fora, e um índice com esse buraco responderia sobre o livro
+     como se o tivesse inteiro. A leitura para assim que a conta fecha (o
+     resto não é decodificado). Um livro novo não grava nada; um já indexado
+     mantém os trechos da versão anterior. Como toda falha, a próxima
+     `ingerir` tenta de novo. Um `FALHOU …: Limit reached while decompressing`
+     sozinho não deveria mais aparecer no Cérebro — era o teto de 75 MB do
+     pypdf, que derrubou os dois Ashby em português na `ingerir` de 06/10
+     ([D-101](DECISIONS.md), atualização do teto de descompressão); o upload
+     dos Cadernos tem um teto ainda menor, de propósito (4 MB por fluxo, 32 MB
+     por arquivo, sob medida para a VM de 512 MB).
+   - **Reextrair um livro indexado com páginas de fora**, depois de uma
+     correção (pypdf novo, teto novo): o livro está `inalterado` para a
+     ingestão — os bytes não mudaram —, e o plano nem o baixa. **Base de
+     conhecimento (Cérebro)** → `ingerir`, `arquivos` = o caminho do livro
+     dentro de `Cérebro/` (o que o `status` mostra se ele é declarado no
+     manifesto) e **`forcar` marcado**. O plano baixa só esse arquivo, e a
+     ingestão o relê com `--force`. `forcar` sem `arquivos` é recusado de
+     propósito: reextrair o Cérebro inteiro baixaria os ≈600 MB do LFS de
+     novo, mais da metade da cota do mês. No `status`, um livro assim aparece
+     como `[status] PÁGINAS IGNORADAS <caminho> (K de N páginas de fora, T
+     trechos): …`, e a linha `[status] páginas ignoradas: D documentos …` soma
+     todos — nunca mais como `VERSÃO ANTERIOR`, que é só a versão nova que não
+     pôde ser lida (uma nota de truncamento sai como `AVISO`).
    - **Vermelho no download** (`O download do arquivo nº N do plano falhou`),
      na conferência (`… ainda são ponteiros do Git LFS`) ou com
      `FALHOU …: É um ponteiro do Git LFS, não o arquivo`: o LFS não trouxe tudo

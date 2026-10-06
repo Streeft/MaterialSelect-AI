@@ -6,18 +6,27 @@ stream by default). The guard is right for a student's upload and wrong for
 the curated corpus, so the rule is split by who sent the bytes:
 
 * ``extract_text`` (the Cérebro) reads with :data:`CORPUS_MAX_STREAM_BYTES` and
-  skips a page it still cannot decode, counting it;
-* ``read_upload`` (the Cadernos) keeps pypdf's default and fails on the first
-  bad page, as before.
+  skips a page it still cannot decode, counting it by exception class — up to
+  a fifth of the book, past which the book fails;
+* ``read_upload`` (the Cadernos) reads with a ceiling *below* pypdf's default,
+  sized for the API's VM, and fails on the first bad page, as before.
 
-The raised ceiling lives in pypdf's ``ContextVar`` configuration, so these
-tests also prove that it is gone after the read — on an exception too — and
-that another thread never sees it. No network, no file outside ``tmp_path``.
+Both are bounded as a whole and not only per stream (the review of PR #98):
+pypdf's decoded copies are released between pages, so memory follows the
+largest page and not the sum; the document has a decoded-bytes budget (and
+the Cérebro's a time budget); an upload's page count is refused before any
+page is decoded.
+
+The ceiling lives in pypdf's ``ContextVar`` configuration, so these tests also
+prove that it is gone after the read — on an exception too — and that another
+thread never sees it. No network, no file outside ``tmp_path``.
 """
 
 from __future__ import annotations
 
+import io
 import threading
+import tracemalloc
 import zlib
 from pathlib import Path
 
@@ -28,19 +37,24 @@ from app.domain.errors import ValidationError
 from app.knowledge import readers
 from app.knowledge.ingest import format_report, main
 from app.knowledge.readers import (
+    BUDGET_REASON,
     CORPUS_MAX_STREAM_BYTES,
+    UPLOAD_MAX_STREAM_BYTES,
     extract_text,
     read_pdf,
     read_upload,
 )
-from app.knowledge.service import KnowledgeService
+from app.knowledge.service import KnowledgeService, skipped_pages_in
 from app.models.enums import IngestStatus
 from app.repositories.knowledge_repository import KnowledgeRepository
 from app.tests.test_knowledge_ingest import _pdf_bytes
 
 #: pypdf's own ceiling — read from pypdf, not copied, so the tests follow it.
 DEFAULT_CEILING = pypdf.Configuration().zlib_maximum_output_length
-LIMIT_MESSAGE = "Limit reached while decompressing"
+#: What a read that stops at a stream ceiling says (fail-fast), in Portuguese:
+#: pypdf's own message ("Limit reached while decompressing") is no longer
+#: shown to anyone.
+LIMIT_MESSAGE = "descomprime para mais de"
 
 
 def _heavy_pdf(decoded_bytes: int) -> bytes:
@@ -98,6 +112,68 @@ def _heavy_pdf(decoded_bytes: int) -> bytes:
     return bytes(out)
 
 
+def _inline_zeros(decoded_bytes: int, label: str) -> bytes:
+    """A content stream: ``label`` as text, then an inline image of zeros."""
+    width = 1_000
+    height = max(1, decoded_bytes // width)
+    return (
+        b"BT /F1 12 Tf 72 720 Td (%s) Tj ET\nq BI /W %d /H %d /CS /G /BPC 8 ID "
+        % (
+            label.encode(),
+            width,
+            height,
+        )
+        + b"\x00" * (width * height)
+        + b"\nEI Q\n"
+    )
+
+
+def _pages_pdf(sizes: list[int], *, shared: bool = False) -> bytes:
+    """A PDF with one Flate content stream per page, each decoding to ~``sizes[i]``.
+
+    Page *i* says ``Pagina i+1``. With ``shared``, every page draws the *same*
+    stream object (the first size), as a book does with a background or a
+    shared form — the case of a stream decoded again on every page.
+    """
+    count = len(sizes)
+    streams = [sizes[0]] if shared else sizes
+    first_stream = 4 + count
+    objects = [
+        b"<< /Type /Catalog /Pages 2 0 R >>",
+        b"<< /Type /Pages /Kids [%s] /Count %d >>"
+        % (b" ".join(b"%d 0 R" % (4 + i) for i in range(count)), count),
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+    ]
+    for index in range(count):
+        content = first_stream if shared else first_stream + index
+        objects.append(
+            b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] "
+            b"/Resources << /Font << /F1 3 0 R >> >> /Contents %d 0 R >>" % content
+        )
+    for index, size in enumerate(streams):
+        data = zlib.compress(_inline_zeros(size, f"Pagina {index + 1}"), 9)
+        objects.append(
+            b"<< /Length %d /Filter /FlateDecode >>\nstream\n" % len(data) + data + b"\nendstream"
+        )
+    out = bytearray(b"%PDF-1.4\n")
+    offsets = []
+    for number, body in enumerate(objects, start=1):
+        offsets.append(len(out))
+        out += b"%d 0 obj\n" % number + body + b"\nendobj\n"
+    xref_at = len(out)
+    out += b"xref\n0 %d\n0000000000 65535 f \n" % (len(objects) + 1)
+    for offset in offsets:
+        out += b"%010d 00000 n \n" % offset
+    out += b"trailer\n<< /Size %d /Root 1 0 R >>\nstartxref\n%d\n%%%%EOF\n" % (
+        len(objects) + 1,
+        xref_at,
+    )
+    return bytes(out)
+
+
+MB = 1_000_000
+
+
 @pytest.fixture(scope="module")
 def past_default() -> bytes:
     """A real stream past pypdf's real default ceiling (built once: ~0.5 s)."""
@@ -109,13 +185,25 @@ def _ceiling() -> int:
 
 
 class TestCeiling:
-    def test_the_corpus_ceiling_is_a_raise_and_a_bound(self) -> None:
-        assert DEFAULT_CEILING < CORPUS_MAX_STREAM_BYTES <= 1_000_000_000
+    def test_the_ceilings_are_where_the_decision_put_them(self) -> None:
+        # The corpus raises pypdf's default, to 200 MB and no further: an
+        # operator stream costs ~35× its size to parse (D-101). An upload
+        # lowers it, for the API's 512 MB VM.
+        assert DEFAULT_CEILING < CORPUS_MAX_STREAM_BYTES <= 200_000_000
+        assert UPLOAD_MAX_STREAM_BYTES < DEFAULT_CEILING
 
-    def test_an_upload_still_fails_past_pypdfs_default(self, past_default: bytes) -> None:
+    def test_an_upload_fails_past_its_own_ceiling(self, past_default: bytes) -> None:
         with pytest.raises(ValidationError, match=LIMIT_MESSAGE) as exc:
             read_upload("livro.pdf", past_default)
-        assert str(exc.value).startswith("Não foi possível ler o PDF: ")
+        message = str(exc.value)
+        assert message.startswith("Não foi possível ler o PDF: a página 1 descomprime para mais")
+        assert f"{UPLOAD_MAX_STREAM_BYTES // MB} MB" in message
+        assert "Limit reached" not in message
+
+    def test_an_upload_under_pypdfs_default_but_over_its_ceiling_fails(self) -> None:
+        with pytest.raises(ValidationError, match=LIMIT_MESSAGE):
+            read_upload("livro.pdf", _pages_pdf([UPLOAD_MAX_STREAM_BYTES + MB]))
+        assert "Pagina 1" in read_upload("livro.pdf", _pages_pdf([MB])).pages[0]
 
     def test_the_default_read_fails_as_before(self, past_default: bytes, tmp_path: Path) -> None:
         path = tmp_path / "livro.pdf"
@@ -152,7 +240,7 @@ class TestCeiling:
         path = tmp_path / "livro.pdf"
         path.write_bytes(_heavy_pdf(3_000_000))
 
-        with pytest.raises(ValidationError, match=LIMIT_MESSAGE):
+        with pytest.raises(ValidationError, match=f"{LIMIT_MESSAGE} 2 MB"):
             read_pdf(path, max_stream_bytes=2_000_000)
         assert "Pagina pesada" in read_pdf(path, max_stream_bytes=4_000_000).pages[0]
 
@@ -299,16 +387,27 @@ class TestIngestion:
         assert document.status == IngestStatus.EXTRAIDO
         assert document.page_count == 3
         assert "1 de 3 páginas" in (document.error or "")
+        assert "(error ×1)" in (document.error or "")  # zlib.error, by class name
+        assert skipped_pages_in(document.error) == (1, 3)
+        # What the numbering guarantees (M3 of the review): page 3 is still
+        # cited as page 3, and no passage begins or ends on the skipped page —
+        # it has no text. A passage may still *span* it (the chunker joins
+        # paragraphs across pages, as it does across a blank scanned page), and
+        # is then cited as 1–3, never as 1–2 or 2–3.
         chunks = KnowledgeRepository(db_session).list_chunks(document.id)
         assert not any(c.page_start == 2 or c.page_end == 2 for c in chunks)
+        for chunk in chunks:
+            if chunk.page_start < 2 < chunk.page_end:
+                assert (chunk.page_start, chunk.page_end) == (1, 3)
         last = next(c for c in chunks if "OMEGA" in c.text)
         assert last.page_end == 3
 
         lines = format_report(report)
-        assert any(
-            line.startswith("[ingest] PÁGINAS IGNORADAS ") and "1 de 3 não puderam" in line
-            for line in lines
-        )
+        (line,) = [x for x in lines if "PÁGINAS IGNORADAS" in x]
+        # A GitHub annotation, so the run's summary shows it.
+        assert line.startswith("::warning::[ingest] PÁGINAS IGNORADAS ")
+        assert ": 1 de 3 não puderam ser lidas" in line
+        assert "(error ×1)" in line and "forcar" in line
         # Counts only: nothing a page held reaches the log.
         assert not any("ALFA" in line or "OMEGA" in line for line in lines)
 
@@ -337,3 +436,336 @@ class TestIngestion:
 
         (line,) = [x for x in format_report(report) if "PÁGINAS IGNORADAS" in x]
         assert "segredo" not in line
+
+
+def _held(reader: pypdf.PdfReader) -> int:
+    """Decoded bytes pypdf still holds on ``reader``'s cached streams."""
+    from pypdf.generic import EncodedStreamObject
+
+    return sum(
+        len(obj.decoded_self.get_data())
+        for obj in reader.resolved_objects.values()
+        if isinstance(obj, EncodedStreamObject) and obj.decoded_self is not None
+    )
+
+
+@pytest.fixture
+def held_after_each_page(monkeypatch: pytest.MonkeyPatch) -> list[int]:
+    """What pypdf holds decoded after every release — one entry per call."""
+    seen: list[int] = []
+    original = readers._release_decoded
+
+    def spy(reader, counted):
+        fresh = original(reader, counted)
+        seen.append(_held(reader))
+        return fresh
+
+    monkeypatch.setattr(readers, "_release_decoded", spy)
+    return seen
+
+
+@pytest.fixture
+def decodes(monkeypatch: pytest.MonkeyPatch) -> list[int]:
+    """Every stream pypdf decodes, by decoded size, in order."""
+    import pypdf.filters
+
+    seen: list[int] = []
+    original = pypdf.filters.decode_stream_data
+
+    def spy(stream):
+        data = original(stream)
+        seen.append(len(data))
+        return data
+
+    monkeypatch.setattr(pypdf.filters, "decode_stream_data", spy)
+    return seen
+
+
+class TestMemoryAcrossPages:
+    """I1/I3 of the review: decoded streams used to pile up until the last page."""
+
+    def test_decoded_copies_are_dropped_between_pages(
+        self, held_after_each_page: list[int], monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setattr(readers, "_MAX_RETAINED_DECODED_BYTES", MB)
+        data = _pages_pdf([2 * MB] * 6)
+
+        extracted = read_pdf(io.BytesIO(data), max_stream_bytes=4 * MB)
+
+        assert [f"Pagina {i}" in extracted.pages[i - 1] for i in range(1, 7)] == [True] * 6
+        # One call after opening, one after each page — and pypdf never holds
+        # more than the cap once a page is done. Before the fix it held every
+        # page: 12 MB at the end.
+        assert len(held_after_each_page) == 7
+        assert max(held_after_each_page) <= MB
+
+    def test_peak_memory_follows_the_largest_page_not_the_sum(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setattr(readers, "_MAX_RETAINED_DECODED_BYTES", MB)
+        data = _pages_pdf([3 * MB] * 8)  # 24 MB decoded in all
+
+        tracemalloc.start()
+        try:
+            read_pdf(io.BytesIO(data), max_stream_bytes=4 * MB)
+            _, peak = tracemalloc.get_traced_memory()
+        finally:
+            tracemalloc.stop()
+
+        # A page costs its stream plus pypdf's copies while it parses (~3×);
+        # holding every page would put the peak past the 24 MB sum.
+        assert peak < 16 * MB
+
+    def test_a_small_shared_stream_is_decoded_once(self, decodes: list[int]) -> None:
+        # M2: what the cache is for — a stream every page draws (a font, a
+        # background) stays decoded while the copies held are under the cap.
+        extracted = read_pdf(io.BytesIO(_pages_pdf([100_000] * 5, shared=True)))
+
+        assert extracted.page_count == 5 and extracted.skipped_pages == 0
+        assert len([size for size in decodes if size >= 100_000]) == 1
+
+    def test_a_large_shared_stream_is_decoded_again_and_counted_again(
+        self, decodes: list[int], monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # Over the cap it is dropped after every page, so every page decodes
+        # it again — and the budget sees every one of those decodes.
+        monkeypatch.setattr(readers, "_MAX_RETAINED_DECODED_BYTES", MB)
+        data = _pages_pdf([2 * MB] * 5, shared=True)
+
+        assert read_pdf(io.BytesIO(data), max_stream_bytes=4 * MB).page_count == 5
+        assert len([size for size in decodes if size >= 2 * MB]) == 5
+        with pytest.raises(ValidationError, match="até a página 3 de 5"):
+            read_pdf(io.BytesIO(data), max_stream_bytes=4 * MB, max_decoded_bytes=5 * MB)
+
+
+class TestDocumentBudget:
+    def test_a_spent_decoded_budget_skips_the_rest_and_fails_a_long_tail(self) -> None:
+        # 10 pages of 1 MB, 2.5 MB of budget: spent after page 3, the other 7
+        # pages are left out — more than a fifth of the book, so it fails, and
+        # says why by class name.
+        data = _pages_pdf([MB] * 10)
+        with pytest.raises(ValidationError) as exc:
+            read_pdf(io.BytesIO(data), skip_unreadable_pages=True, max_decoded_bytes=2_500_000)
+        assert f"7 de 10 páginas não puderam ser lidas ({BUDGET_REASON} ×7)" in str(exc.value)
+
+    def test_a_budget_spent_on_the_last_pages_still_indexes_the_book(self) -> None:
+        data = _pages_pdf([MB] * 10)
+
+        extracted = read_pdf(
+            io.BytesIO(data), skip_unreadable_pages=True, max_decoded_bytes=8_500_000
+        )
+
+        assert extracted.skipped_pages == 1
+        assert extracted.skip_reasons == {BUDGET_REASON: 1}
+        assert "Pagina 9" in extracted.pages[8] and extracted.pages[9] == ""
+
+    def test_the_time_budget(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        # A clock that moves 10 s per reading: 25 s of budget is spent after
+        # the third page.
+        ticks = iter(range(0, 10_000, 10))
+        monkeypatch.setattr(readers, "_clock", lambda: next(ticks))
+        data = _pages_pdf([1_000] * 20)
+
+        with pytest.raises(ValidationError, match=f"{BUDGET_REASON} ×17"):
+            read_pdf(io.BytesIO(data), skip_unreadable_pages=True, max_seconds=25)
+
+    def test_the_cerebro_reads_with_its_budgets(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setattr(readers, "CORPUS_MAX_DECODED_BYTES", 2_500_000)
+        path = tmp_path / "livro.pdf"
+        path.write_bytes(_pages_pdf([MB] * 10))
+        with pytest.raises(ValidationError, match=BUDGET_REASON):
+            extract_text(path)
+
+        monkeypatch.setattr(readers, "CORPUS_MAX_DECODED_BYTES", 10**12)
+        ticks = iter(range(0, 10**6, 1_000))
+        monkeypatch.setattr(readers, "_clock", lambda: next(ticks))
+        monkeypatch.setattr(readers, "CORPUS_MAX_SECONDS", 2_500)
+        with pytest.raises(ValidationError, match=BUDGET_REASON):
+            extract_text(path)
+
+    def test_a_shared_stream_past_the_ceiling_stops_the_book_early(
+        self, decodes: list[int]
+    ) -> None:
+        # M2: pypdf caches no failure, so a stream every page draws that cannot
+        # be decoded is tried again on every page. The share rule stops the
+        # book as soon as the failure is certain — here at the fifth page of
+        # twenty — instead of decompressing it twenty times.
+        data = _pages_pdf([3 * MB] * 20, shared=True)
+
+        with pytest.raises(ValidationError) as exc:
+            read_pdf(io.BytesIO(data), max_stream_bytes=2 * MB, skip_unreadable_pages=True)
+
+        assert (
+            "5 de 20 páginas não puderam ser lidas (até a página 5; LimitReachedError ×5)"
+        ) in str(exc.value)
+
+    def test_a_page_past_the_ceiling_costs_the_ceiling(self) -> None:
+        # pypdf caches nothing for a stream it gave up on, so the budget
+        # charges that page the ceiling it decoded before giving up: with a
+        # budget just under the ceiling the rest of the book is left out, just
+        # over it the rest is read.
+        data = _pages_pdf([3 * MB] + [1_000] * 9)
+
+        def read(budget: int):
+            return read_pdf(
+                io.BytesIO(data),
+                max_stream_bytes=2 * MB,
+                skip_unreadable_pages=True,
+                max_decoded_bytes=budget,
+            )
+
+        with pytest.raises(ValidationError, match=f"{BUDGET_REASON} ×9, LimitReachedError ×1"):
+            read(2 * MB - 1)
+        extracted = read(2 * MB + 100_000)
+        assert extracted.skip_reasons == {"LimitReachedError": 1}
+        assert "Pagina 10" in extracted.pages[9]
+
+
+class TestSkippedShare:
+    """I2: more than a fifth of the pages left out (and at least 3) fails the book."""
+
+    @pytest.mark.parametrize(
+        ("pages", "bad", "fails"),
+        [
+            (10, 2, False),  # two pages are never enough, whatever the share
+            (10, 3, True),  # 3 ≥ 3 and 30% > 20%
+            (20, 4, False),  # exactly 20% is still indexed
+            (20, 5, True),
+            (2, 2, True),  # every page: "nenhuma das 2"
+        ],
+    )
+    def test_the_threshold(
+        self, one_bad_page: None, tmp_path: Path, pages: int, bad: int, fails: bool
+    ) -> None:
+        texts = ["QUEBRADA" if i < bad else f"Página {i} legível." for i in range(pages)]
+        path = tmp_path / "livro.pdf"
+        path.write_bytes(_pdf_bytes(texts))
+
+        if fails:
+            with pytest.raises(ValidationError, match="Não foi possível ler o PDF: "):
+                extract_text(path)
+        else:
+            assert extract_text(path).skipped_pages == bad
+
+    def test_an_upload_has_no_threshold_one_bad_page_fails_it(self, one_bad_page: None) -> None:
+        with pytest.raises(ValidationError):
+            read_upload("x.pdf", _pdf_bytes(["ok"] * 9 + ["QUEBRADA"]))
+
+
+class TestUploadBounds:
+    """I3: a student's upload, bounded as a whole on the API's 512 MB VM."""
+
+    def test_the_page_cap_is_checked_before_any_page_is_decoded(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        def never(self, *args, **kwargs):
+            raise AssertionError("a page was extracted before the page count was checked")
+
+        monkeypatch.setattr(pypdf.PageObject, "extract_text", never)
+
+        with pytest.raises(ValidationError, match="tem 3 páginas; o limite por fonte é 2"):
+            read_upload("x.pdf", _pdf_bytes(["a", "b", "c"]), max_pages=2)
+
+    def test_the_decoded_budget_fails_the_upload(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        # Five pages of 1 MB, each under the per-stream ceiling, but 2.5 MB in
+        # all: before the fix every page was read and held.
+        monkeypatch.setattr(readers, "UPLOAD_MAX_DECODED_BYTES", 2_500_000)
+
+        with pytest.raises(ValidationError) as exc:
+            read_upload("x.pdf", _pages_pdf([MB] * 5))
+
+        assert str(exc.value) == (
+            "O PDF é pesado demais para ler: até a página 3 de 5, o conteúdo das páginas já "
+            "descomprime para mais de 2 MB, o limite de leitura de um PDF. Divida o documento "
+            "em partes ou cole o texto."
+        )
+
+    def test_an_ordinary_upload_is_untouched(self) -> None:
+        extracted = read_upload("x.pdf", _pdf_bytes([f"Página {i}." for i in range(50)]))
+        assert extracted.page_count == 50 and extracted.skipped_pages == 0
+
+
+class TestThresholdInIngestion:
+    @pytest.fixture
+    def corpus(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+        from app.config import settings
+
+        root = tmp_path / "cerebro"
+        root.mkdir()
+        monkeypatch.setattr(settings, "knowledge_dir", str(root))
+        return root
+
+    BAD_BOOK = ["Legível."] * 6 + ["QUEBRADA"] * 4
+
+    def test_a_new_book_past_the_threshold_fails_and_stores_nothing(
+        self,
+        db_session,
+        corpus: Path,
+        one_bad_page: None,
+        monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str],
+    ) -> None:
+        (corpus / "livro.pdf").write_bytes(_pdf_bytes(self.BAD_BOOK))
+        monkeypatch.setattr("app.knowledge.ingest.SessionLocal", lambda: db_session)
+
+        with pytest.raises(SystemExit) as exc:
+            main()
+
+        assert exc.value.code == 1
+        document = KnowledgeRepository(db_session).get_by_path("livro.pdf")
+        assert document is not None and document.status == IngestStatus.FALHOU
+        assert document.chunk_count == 0
+        assert KnowledgeRepository(db_session).list_chunks(document.id) == []
+        out = capsys.readouterr().out
+        # Certain at the third bad page (3 ≥ 3, and 3 > 20% of 10): page 10
+        # is never decoded.
+        assert "[ingest] FALHOU " in out
+        assert "3 de 10 páginas não puderam ser lidas (até a página 9; error ×3)" in out
+        assert "Legível" not in out
+
+    def test_an_indexed_book_keeps_its_passages(
+        self, db_session, corpus: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        path = corpus / "livro.pdf"
+        path.write_bytes(_pdf_bytes(["Primeira versão inteira, ALFA."] * 10))
+        KnowledgeService(db_session).ingest()
+        before = KnowledgeRepository(db_session).get_by_path("livro.pdf")
+        assert before is not None
+        kept = before.chunk_count
+
+        original = pypdf.PageObject.extract_text
+
+        def extract(self, *args, **kwargs):
+            text = original(self, *args, **kwargs)
+            if "QUEBRADA" in text:
+                raise zlib.error("invalid stored block lengths")
+            return text
+
+        monkeypatch.setattr(pypdf.PageObject, "extract_text", extract)
+        path.write_bytes(_pdf_bytes(self.BAD_BOOK))
+        report = KnowledgeService(db_session).ingest()
+
+        (outcome,) = report.outcomes
+        assert outcome.action == "falhou" and outcome.kept_previous
+        document = KnowledgeRepository(db_session).get_by_path("livro.pdf")
+        assert document is not None and document.status == IngestStatus.EXTRAIDO
+        assert document.chunk_count == kept
+        assert (document.error or "").startswith("A versão nova (sha256 ")
+
+    def test_a_partial_book_keeps_saying_so_when_a_new_version_fails(
+        self, db_session, corpus: Path, one_bad_page: None
+    ) -> None:
+        path = corpus / "livro.pdf"
+        path.write_bytes(_pdf_bytes(["Legível."] * 9 + ["QUEBRADA"]))
+        KnowledgeService(db_session).ingest()
+
+        path.write_bytes(b"%PDF-1.4\nquebrado")
+        KnowledgeService(db_session).ingest()
+
+        document = KnowledgeRepository(db_session).get_by_path("livro.pdf")
+        assert document is not None
+        assert (document.error or "").startswith("A versão nova (sha256 ")
+        assert skipped_pages_in(document.error) == (1, 10)
+        assert len(document.error or "") <= 500

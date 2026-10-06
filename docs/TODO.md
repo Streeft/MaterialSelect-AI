@@ -94,14 +94,23 @@ Ficam quatro passos fora do código:
    **06/10/2026, segunda `ingerir`** (execução 37473592736): 118 documentos
    gravados e saída 1 por dois `FALHOU … Limit reached while decompressing` —
    os dois Ashby em português, barrados pelo teto de 75 MB por fluxo do pypdf.
-   Corrigido no código (D-101, atualização do teto de descompressão): o
-   Cérebro lê com teto de 500 MB e pula a página que ainda não decodificar,
-   dizendo quantas (`PÁGINAS IGNORADAS`); o upload dos Cadernos mantém o
-   padrão do pypdf. Depois do merge: **`ingerir` de novo** (sem deploy; só os
+   Corrigido no código (D-101, atualização do teto de descompressão, e a
+   revisão do PR #98 logo depois): o Cérebro lê com teto de **200 MB** por
+   fluxo, solta as cópias decodificadas do pypdf entre páginas, tem orçamento
+   por documento (16 GB decodificados, 15 min) e pula a página que ainda não
+   decodificar, dizendo quantas e por quê (`::warning:: … PÁGINAS IGNORADAS
+   … (LimitReachedError ×K)`) — até um quinto do livro; mais que isso (e ao
+   menos 3 páginas) é `FALHOU` e saída 1. Depois do merge: **Deploy da API**
+   (o piso do pypdf subiu para 6.18, e o upload dos Cadernos ganhou os limites
+   novos — é a parte de segurança) e **`ingerir` de novo** (sem deploy; só os
    dois Ashby são baixados e lidos — dentro dos 7 dias do cache do LFS não
-   gastam banda) e **Deploy da API** (o piso do pypdf subiu para 6.18). Antes
-   dela, decida o item "Os dois Ashby em português" (baixa prioridade): se um
-   sai pela lista de remoção, a `ingerir` nem o baixa.
+   gastam banda). Confira no log: `PÁGINAS IGNORADAS` com só
+   `LimitReachedError` quer dizer fluxo acima de 200 MB; `FALHOU … mais que
+   20% do documento` quer dizer que o livro não entra assim. Antes dela,
+   decida o item "Os dois Ashby em português" (baixa prioridade): se um sai
+   pela lista de remoção, a `ingerir` nem o baixa. Para reler depois um livro
+   indexado com páginas de fora: `ingerir` com `arquivos` = o livro e
+   **`forcar`** (13-deploy.md §5-septies).
 4. **Apagar o log público que tem texto de livro — já, sem esperar o merge.**
    O traceback daquela `ingerir` (execução **37415600025**, job 112113411666,
    passo "Ingerir") imprimiu o SQL e os parâmetros do `INSERT`: ~1000 trechos
@@ -277,6 +286,8 @@ continua lá, e a métrica para de medir no 3.
 
 Registrados para não voltarem por engano:
 
+- ~~**Leitura de PDF limitada por documento, não só por fluxo (revisão do PR #98; inclui endurecimento de segurança do upload dos Cadernos)**~~ —
+  o teto do pypdf é por fluxo e a memória somava as páginas (as cópias decodificadas ficavam no leitor até a última página): 8 páginas de 150 MB subiam a 1,2 GB, e um upload de 684 KB com 10 páginas de 70 MB custava 783 MB de pico na API de 512 MB. `readers._release_decoded` solta as cópias entre páginas (o mesmo livro fica em ~194 MB); o Cérebro lê com teto de 200 MB (era 500), orçamento por documento (16 GB decodificados, 15 min) e falha um livro com mais de 20% das páginas de fora (e ao menos 3), parando assim que a conta fecha; o motivo de cada página pulada sai pelo nome da classe; a linha `PÁGINAS IGNORADAS` virou anotação `::warning::`; o `status` deixou de chamar esses livros de `VERSÃO ANTERIOR`; e `conhecimento.yml` ganhou `forcar` (só com `arquivos`) para reextrair. **Segurança:** o upload lê com 4 MB por fluxo, 32 MB por arquivo e o limite de páginas conferido antes de decodificar — um aluno autenticado não derruba mais a API com um PDF de 15 MB (D-101, atualização da revisão do PR #98). Resta, documentado: uma página patológica de operadores não é interrompida no meio (só um subprocesso com `RLIMIT_AS` o faria), e o orçamento do upload ainda custa até ~1 min de CPU.
 - ~~**Lote quádruplo de melhorias: Seleção (P0-1), Busca e Highlight (P1-1), Dimensionador Circular (P2) e Eco Audit Comparativo (P3)**~~ —
   as quatro frentes de refinamento funcional solicitadas pelo usuário foram implementadas e integradas de ponta a ponta na mesma PR:
   1. **Seleção (P0-1):** duplicação de estágio na pilha de seleção (`duplicateStage` em `apps/web/components/selection/StageList.tsx`), clonando recursivamente grupos e restrições com identificadores novos (`nextEditorId`), etiqueta `(cópia)` no rótulo, botão de ação `⧉` acessível com tooltip `t.stageDuplicate(n)` inserindo a duplicata logo abaixo do estágio original, e testes unitários (+3 testes frontend em `StageList.test.tsx`).

@@ -993,14 +993,21 @@ e imprime só o nome da classe, sem traceback; um CLI novo também**, e o motor
 de `app/db/base.py` tem `hide_parameters=True` por baixo. O log da execução
 37415600025 continua publicado até o dono apagá-lo (TODO A7, item 4). **A
 segunda `ingerir` achou o teto de 75 MB por fluxo do pypdf** nos dois Ashby em
-português: o Cérebro (`extract_text`) lê com `CORPUS_MAX_STREAM_BYTES` (500 MB),
-aplicado no `ContextVar` do pypdf (`apply_configuration`, piso 6.18) e nunca
-num global, e pula a página que ainda não decodifica, contada em `PÁGINAS
-IGNORADAS`; **o upload dos Cadernos (`read_upload`) mantém o teto padrão e
-falha na primeira página ilegível — não passe o teto do Cérebro a bytes de
-usuário.**
+português: o Cérebro (`extract_text`) lê com `CORPUS_MAX_STREAM_BYTES` (200 MB
+— eram 500, até a revisão do PR #98 medir que um fluxo de operadores custa
+~37× o tamanho), aplicado no `ContextVar` do pypdf (`apply_configuration`, piso
+6.18) e nunca num global, com orçamento por documento (16 GB decodificados,
+15 min) e pula a página que ainda não decodifica, contada por classe de erro
+numa anotação `::warning:: … PÁGINAS IGNORADAS`; mais de um quinto das páginas
+de fora (e ao menos 3) é `FALHOU`, e `forcar` + `arquivos` em `ingerir`
+reextrai um livro. **O teto é por fluxo; o que limita o documento é soltar as
+cópias decodificadas do pypdf entre páginas (`readers._release_decoded`) —
+sem isso a memória soma as páginas. O upload dos Cadernos (`read_upload`) lê
+*abaixo* do padrão do pypdf (4 MB por fluxo, 32 MB por arquivo, páginas
+contadas antes de decodificar), sob medida para a VM de 512 MB, e falha na
+primeira página ilegível — não passe o teto do Cérebro a bytes de usuário.**
 
-3743 testes de backend (nenhum skip na CI; sem `POSTGRES_TEST_URL`, 3737 passam
+3770 testes de backend (nenhum skip na CI; sem `POSTGRES_TEST_URL`, 3764 passam
 e 6 pulam) e 762 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
