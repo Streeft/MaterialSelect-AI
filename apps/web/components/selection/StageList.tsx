@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type DragEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { convertMapBox, getPropertyMap } from "@/lib/api";
 import { fromMapBox, toMapBox } from "@/lib/mapBox";
@@ -338,7 +338,7 @@ export function boundToField(value: number | null | undefined): string {
 }
 
 /**
- * One stored axis back into editor state — the inverse of `toAxisPayload`.
+ * One stored axis back into editor state — the inverse of `toAxisPayload``.
  *
  * Lives here rather than in the page for the reason `fromConstraintPayload`
  * lives beside `toConstraintPayload`: the two directions have to agree, and
@@ -520,7 +520,7 @@ export function StageList({
 
   return (
     <div className="flex flex-col gap-4">
-      {stages.map((stage, index) => (
+      {stages.map((stage, index) => (\
         <Card
           key={stage.id}
           data-stage-index={index}
@@ -532,7 +532,7 @@ export function StageList({
               "ring-2 ring-brand-500 shadow-lift",
             draggedIndex === index && "opacity-60",
           )}
-          onDragOver={(e) => {
+          onDragOver={(e: DragEvent<HTMLElement>) => {
             if (draggedIndex !== null && draggedIndex !== index) {
               e.preventDefault();
               setDragOverIndex(index);
@@ -543,7 +543,7 @@ export function StageList({
               setDragOverIndex(null);
             }
           }}
-          onDrop={(e) => {
+          onDrop={(e: DragEvent<HTMLElement>) => {
             e.preventDefault();
             if (draggedIndex !== null && draggedIndex !== index) {
               onChange(reorderStages(stages, draggedIndex, index));
@@ -559,7 +559,7 @@ export function StageList({
               <div className="flex flex-wrap items-center gap-2">
                 <span
                   draggable
-                  onDragStart={(e) => {
+                  onDragStart={(e: DragEvent<HTMLSpanElement>) => {
                     e.dataTransfer.effectAllowed = "move";
                     e.dataTransfer.setData("text/plain", String(index));
                     setDraggedIndex(index);
@@ -632,7 +632,7 @@ export function StageList({
               />
             </div>
 
-            {stage.kind === "limit" && (
+            {stage.kind === "limit" && (\
               <ConstraintEditor
                 root={stage.group}
                 // A limit stage names attributes of the study's **own** universe
@@ -647,7 +647,7 @@ export function StageList({
                 showAddGroup={constraintAdvanced}
               />
             )}
-            {stage.kind === "tree" && (
+            {stage.kind === "tree" && (\
               <TreeStageFields
                 stage={stage}
                 classes={ownFolders}
@@ -655,14 +655,14 @@ export function StageList({
                 onChange={(next) => replace(index, next)}
               />
             )}
-            {stage.kind === "material" && (
+            {stage.kind === "material" && (\
               <MaterialStageFields
                 stage={stage}
                 classes={classes}
                 onChange={(next) => replace(index, next)}
               />
             )}
-            {stage.kind === "process" && (
+            {stage.kind === "process" && (\
               <ProcessStageFields
                 stage={stage}
                 processes={processes}
@@ -670,7 +670,7 @@ export function StageList({
                 onChange={(next) => replace(index, next)}
               />
             )}
-            {stage.kind === "chart" && (
+            {stage.kind === "chart" && (\
               <ChartStageFields
                 stage={stage}
                 // The plane plots attributes of the study's **own** universe,
@@ -686,11 +686,11 @@ export function StageList({
         </Card>
       ))}
 
-      {showAddButtons && (
+      {showAddButtons && (\
         <StageAddButtons stages={stages} universe={universe} onChange={onChange} />
       )}
     </div>
-  );
+  );\
 }
 
 /**
