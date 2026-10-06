@@ -60,9 +60,7 @@ def test_link_demo_processes_for_new_user_material(db_session: Session) -> None:
     linked_proc_ids = [
         row[0]
         for row in db_session.execute(
-            select(MaterialProcess.process_id).where(
-                MaterialProcess.material_id == custom_mat.id
-            )
+            select(MaterialProcess.process_id).where(MaterialProcess.material_id == custom_mat.id)
         ).all()
     ]
     assert len(linked_proc_ids) > 0
