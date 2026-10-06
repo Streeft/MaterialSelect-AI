@@ -664,8 +664,10 @@ idênticos entram uma vez só.
      só imprimem a classe do erro e o motor da API esconde os parâmetros — mas
      o código não apaga um log já publicado. **Quem apaga é o dono:** Actions
      → a execução → ⋯ → **Delete all logs** (ou `DELETE
-     /repos/Streeft/MaterialSelect-AI/actions/runs/<id>/logs`). A de 06/10
-     está no TODO A7; faça o mesmo com qualquer execução que falhe com
+     /repos/Streeft/MaterialSelect-AI/actions/runs/<id>/logs`). O log da de
+     06/10 foi apagado pelo dono no mesmo dia (TODO, "Débitos já quitados") —
+     o que não desfaz uma cópia feita enquanto esteve público; faça o mesmo
+     com qualquer execução que falhe com
      traceback, e confira o log de uma execução vermelha antes de compartilhar
      o link.
    A **busca léxica já está ativa** a partir daqui, para toda pergunta à IA.

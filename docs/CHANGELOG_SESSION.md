@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [53](#sessão-53--061026--o-log-público-da-execução-37415600025-foi-apagado) | 06/10/2026 | Só documentação: o dono apagou, pela interface do Actions, o log público da execução 37415600025 (texto de livro licenciado no traceback); o TODO A7, item 4, foi para "Débitos já quitados", e os textos que o davam como publicado foram corrigidos (D-101) | 3854 (inalterado) | 778 (inalterado) |
 | [52](#sessão-52--061026--segunda-rodada-do-pr-100-um-pdf-por-vez-e-um-relógio-para-o-upload) | 06/10/2026 | A segunda revisão do PR #100 achou que os limites de memória do upload eram por leitura (três uploads de 8 KB simultâneos: +624 MB) e que a CPU não tinha limite (uma forma redesenhada não decodifica nada): um PDF por vez no processo (três simultâneos: 247 MB), relógio a cada parse e 30 s por upload, pypdf fixado em `<6.20` com autoverificação que recusa todo PDF se os medidores não forem alcançados, a lista de remoção recusa os erros sem dois-pontos e o `Cérebro/` na frente, e nenhuma recusa cita a linha (D-101, segunda rodada) | 3825 → 3854 | 762 (inalterado) |
 | [51](#sessão-51--061026--a-revisão-do-pr-100-o-orçamento-é-cobrado-a-cada-decodificação) | 06/10/2026 | A revisão do PR #100 achou que o orçamento do upload não segurava uma página só (160 formas de 3,9 MB num PDF de 0,66 MB: 639 MB de pico) e que um prefixo mal escrito em `removidos.txt` passava em silêncio: o orçamento passou a ser cobrado a cada decodificação (76 MB de pico no mesmo arquivo), o upload limita o que o pypdf lê de uma vez (formas aninhadas), a lista de remoção falha fechada em todos os leitores, a regra das páginas de fora ficou proporcional, as recusas ficaram em português, a releitura forçada ganhou nota e rótulo próprios e os ≈600 MB viraram ≈528 MB (D-101, atualização da revisão do PR #100) | 3781 → 3825 | 762 (inalterado) |
 | [50](#sessão-50--061026--os-dois-ashby-em-português-fica-o-de-2012) | 06/10/2026 | Dos dois scans do Ashby em português fica o de 2012 (4ª ed., provavelmente o mais novo, não confirmado): o sem data e a cópia byte a byte dele na raiz saem do git, do manifesto e do RAG pela lista de remoção, pelos caminhos e pelo conteúdo, em linhas `mantido-no-historico:` que a limpeza do histórico não lê (D-101, atualização dos dois Ashby) | 3770 → 3781 | 762 (inalterado) |
@@ -70,6 +71,32 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
 
 ---
+
+## Sessão 53 — 06/10/26 — O log público da execução 37415600025 foi apagado
+
+**O pedido.** Registrar que o dono apagou o log público da primeira `ingerir`
+em produção (execução 37415600025, job 112113411666), cujo traceback trazia
+SQL e parâmetros com ~1000 trechos de um livro licenciado — o vazamento que o
+PR #97 impediu de se repetir. Só documentação.
+
+**O que mudou.**
+
+- **TODO A7, item 4 → "Débitos já quitados":** apagado pelo dono em
+  06/10/2026, pela interface do Actions. Os itens 1 a 3 da A7 (pedido ao
+  suporte do GitHub para `refs/pull/*` e objetos LFS, clones antigos, a
+  execução do Cérebro em produção) continuam abertos, sem mudança.
+- Os logs redigidos (`--redact`) de `conhecimento_simular_remocao` e
+  `conhecimento_remover`: o dono foi avisado de que apagá-los é opcional; não
+  há registro de que tenham sido apagados, e o TODO diz isso.
+- Corrigido onde o log ainda aparecia como publicado ou pendente: `CLAUDE.md`
+  (raiz), D-101, `PROJECT_CONTEXT.md` (tabela de riscos) e `13-deploy.md`
+  §5-septies. As menções das sessões 46 e 51 ficam como história.
+
+**O que apagar não faz.** Não desfaz uma cópia que alguém tenha feito
+enquanto o log esteve público — da execução, em 06/10/2026 por volta das
+04:50 UTC, até a exclusão, no mesmo dia.
+
+**Números.** Backend 3854 e frontend 778, inalterados (nenhum código mudou).
 
 ## Sessão 52 — 06/10/26 — Segunda rodada do PR #100: um PDF por vez e um relógio para o upload
 

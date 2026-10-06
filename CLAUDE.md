@@ -995,7 +995,8 @@ traceback publicou SQL e parâmetros, **texto de livro licenciado**, no log
 público. **Todo CLI do Cérebro que fala com o banco captura `SQLAlchemyError`
 e imprime só o nome da classe, sem traceback; um CLI novo também**, e o motor
 de `app/db/base.py` tem `hide_parameters=True` por baixo. O log da execução
-37415600025 continua publicado até o dono apagá-lo (TODO A7, item 4). **A
+37415600025 foi apagado pelo dono em 06/10/2026 (TODO, "Débitos já quitados");
+apagar não desfaz uma cópia feita enquanto esteve público. **A
 segunda `ingerir` achou o teto de 75 MB por fluxo do pypdf** nos dois Ashby em
 português: o Cérebro (`extract_text`) lê com `CORPUS_MAX_STREAM_BYTES` (200 MB
 — eram 500, até a revisão do PR #98 medir que um fluxo de operadores custa

@@ -60,7 +60,8 @@ quitados".
 **A7 — o que resta, e só o autor faz.** ▁ A remoção do banco de produção e a
 reescrita do histórico foram feitas em 30/09/2026, e a ingestão direcionada do
 `Links.md` saiu em código (ver "Débitos já quitados" e o [D-100](DECISIONS.md)).
-Ficam quatro passos fora do código:
+O log público da execução 37415600025 foi apagado pelo autor em 06/10/2026
+(era o item 4; ver "Débitos já quitados"). Ficam três passos fora do código:
 
 1. **Suporte do GitHub** ([`17-limpeza-historico-cerebro.md`](17-limpeza-historico-cerebro.md)
    §10). Pedir a remoção das refs de PR (`refs/pull/*` — a do PR #56 guarda 65
@@ -119,18 +120,11 @@ Ficam quatro passos fora do código:
    não a apaga, só acrescenta. Para reler depois um livro
    indexado com páginas de fora: `ingerir` com `arquivos` = o livro e
    **`forcar`** (13-deploy.md §5-septies).
-4. **Apagar o log público que tem texto de livro — já, sem esperar o merge.**
-   O traceback daquela `ingerir` (execução **37415600025**, job 112113411666,
-   passo "Ingerir") imprimiu o SQL e os parâmetros do `INSERT`: ~1000 trechos
-   de um livro licenciado, num log público. Actions → a execução → ⋯ →
-   **Delete all logs** (ou `DELETE
-   /repos/Streeft/MaterialSelect-AI/actions/runs/37415600025/logs`). O código
-   não apaga log publicado; a correção só impede o próximo. Qualquer execução
-   de `ingerir` que falhe antes do deploy desta correção: a mesma coisa.
 
-Não registrado aqui: se os logs das execuções de `conhecimento_simular_remocao`
-e `conhecimento_remover` já foram apagados (guia §1.3 e §11) — conferir junto
-com o item 4, pelo mesmo menu.
+Os logs das execuções de `conhecimento_simular_remocao` e
+`conhecimento_remover` saem com `--redact` (pasta de primeiro nível e começo do
+sha256, nunca o nome do arquivo); apagá-los é segunda camada e opcional (guia
+§1.3 e §11). Não está registrado que tenham sido apagados.
 
 ---
 
@@ -286,6 +280,8 @@ continua lá, e a métrica para de medir no 3.
 
 Registrados para não voltarem por engano:
 
+- ~~**A7, item 4 — Apagar o log público com texto de livro licenciado (D-101)**~~ —
+  **feito em 06/10/2026, pelo autor, na interface do Actions** (a execução → ⋯ → **Delete all logs**). Era o log da primeira `ingerir` em produção (execução 37415600025, job 112113411666, passo "Ingerir"), cujo traceback imprimiu o SQL e os parâmetros do `INSERT` — ~1000 trechos de um livro licenciado — num log público. A correção do código (PR #97: os CLIs do Cérebro imprimem só a classe do erro de banco, e o motor tem `hide_parameters=True`) impede o próximo; apagar o log tira o que já estava publicado. **Apagar não desfaz uma cópia** que alguém tenha feito enquanto o log esteve público — da execução, em 06/10/2026 por volta das 04:50 UTC, até a exclusão, no mesmo dia. Os logs redigidos (`--redact`) de `conhecimento_simular_remocao`/`conhecimento_remover` não entram aqui: o autor foi avisado de que apagá-los é opcional, e não há registro de que tenham sido apagados. Para conferir: a página da execução não deve mais mostrar a saída dos passos. O resto da A7 (itens 1 a 3) continua aberto.
 - ~~**Revisão do PR #100, segunda rodada: um PDF por vez e relógio no upload (D-101)**~~ —
   os limites de memória do upload eram por leitura: três uploads de 8 KB simultâneos somavam +624 MB na VM de 512 MB. Agora o processo lê um PDF por vez (`_UPLOAD_PDF_SLOT`; o segundo espera 15 s e recebe "tente de novo") — três simultâneos: 247 MB de pico. E a CPU não tinha limite: uma forma já decodificada é lida de novo a cada desenho, sem decodificação que algum orçamento visse (40 desenhos de 0,4 MB, 23 s, num arquivo de 2 KB); o relógio passou a ser conferido a cada parse, e o upload tem 30 s. O pypdf ficou fixado em `<6.20`, e o primeiro upload confere que os medidores são alcançados — se não, todo PDF é recusado, com linha de log. A lista de remoção também recusa os erros sem dois-pontos (espaço, tab, dois-pontos de largura cheia, `sha256 <hex>`) e o caminho escrito com `Cérebro/`, e nenhuma recusa cita mais a linha. Resta, documentado: ~225 MB por um fluxo de operadores no teto, e nenhum fluxo interrompido no meio. Falta ao autor só o **Deploy da API** depois do merge.
 - ~~**Revisão do PR #100: orçamento por decodificação e lista de remoção que falha fechada (D-101)**~~ —
