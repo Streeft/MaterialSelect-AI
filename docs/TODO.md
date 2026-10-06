@@ -280,6 +280,8 @@ continua lá, e a métrica para de medir no 3.
 
 Registrados para não voltarem por engano:
 
+- ~~**Padronização do seletor de modo do Eco Audit com ButtonGroup/ButtonGroupItem (Sessão 55)**~~ —
+  auditoria de conformidade com o Design System (MSDS 2.0, [D-80](DECISIONS.md) e [D-91](DECISIONS.md)) identificou que os botões soltos de alternância de modo ("Individual" e "Comparativo") no topo de `apps/web/app/app/eco/page.tsx` usavam variantes de botão soltas (`variant="primary"` e `variant="secondary"`), violando a regra de hierarquia visual (máximo de um botão primário por tela, reservado para a ação principal "Executar auditoria" / "Comparar auditorias"). Substituídos pelo componente padronizado `ButtonGroup` e `ButtonGroupItem` (Segmented Control semântico com `role="group"`, `aria-label` e `aria-pressed`), preservando acessibilidade, semântica e 100% dos testes (3857 backend e 778 frontend).
 - ~~**A7, item 4 — Apagar o log público com texto de livro licenciado (D-101)**~~ —
   **feito em 06/10/2026, pelo autor, na interface do Actions** (a execução → ⋯ → **Delete all logs**). Era o log da primeira `ingerir` em produção (execução 37415600025, job 112113411666, passo "Ingerir"), cujo traceback imprimiu o SQL e os parâmetros do `INSERT` — ~1000 trechos de um livro licenciado — num log público. A correção do código (PR #97: os CLIs do Cérebro imprimem só a classe do erro de banco, e o motor tem `hide_parameters=True`) impede o próximo; apagar o log tira o que já estava publicado. **Apagar não desfaz uma cópia** que alguém tenha feito enquanto o log esteve público — da execução, em 06/10/2026 por volta das 04:50 UTC, até a exclusão, no mesmo dia. Os logs redigidos (`--redact`) de `conhecimento_simular_remocao`/`conhecimento_remover` não entram aqui: o autor foi avisado de que apagá-los é opcional, e não há registro de que tenham sido apagados. Para conferir: a página da execução não deve mais mostrar a saída dos passos. O resto da A7 (itens 1 a 3) continua aberto.
 - ~~**Revisão do PR #100, segunda rodada: um PDF por vez e relógio no upload (D-101)**~~ —
@@ -968,7 +970,7 @@ Registrados para não voltarem por engano:
   candidatos completos após o filtro derrubava a resposta inteira em vez de
   degradar como `weighted_sum`/TOPSIS já faziam; e `method` passou a
   aparecer de fato no painel de proveniência dos resultados e na nota de
-  "Contribuições" do relatório/laudo, que antes afirmavam algo falso para
+  \"Contribuições\" do relatório/laudo, que antes afirmavam algo falso para
   TOPSIS especificamente. Detalhe completo em
   `.superpowers/sdd/2026-09-01-m5-m6-multicriterio-e-restricoes-aninhadas/final-fix-wave-report.md`.
 - ~~**M6** — Restrições com parênteses lógicos~~ — `ConstraintGroup`
@@ -992,7 +994,7 @@ Registrados para não voltarem por engano:
   árvore de verdade, raiz primeiro e filhos em profundidade. No frontend,
   `apps/web/components/selection/ConstraintEditor.tsx` virou um editor de
   árvore recursivo — cada grupo com seu próprio alternador AND/OR e
-  "Adicionar grupo"/"Adicionar restrição" em qualquer profundidade — e
+  \"Adicionar grupo\"/\"Adicionar restrição\" em qualquer profundidade — e
   `/selecao` passa a enviar `root_group` ao rodar ou salvar. ~~**Limitação
   conhecida, registrada e não corrigida nesta entrega:**~~ `GET
   /api/selection/studies/{id}` devolvia as restrições como lista plana, então
@@ -1007,7 +1009,7 @@ Registrados para não voltarem por engano:
   laudo de engenharia (D-41) descrevia a lógica de um estudo aninhado como
   um único combinador achatado, com linhas de subgrupo opacas — corrigido
   com `SelectionService.describe_root_group` (hoje `describe_pipeline`, D-56), que renderiza a árvore
-  AND/OR real na aba "Problema" do relatório/laudo. Total final: 872 testes
+  AND/OR real na aba \"Problema\" do relatório/laudo. Total final: 872 testes
   de backend, 179 de frontend.
 - ~~**B1–B10**~~ — as dez pendências de baixa prioridade, entregues numa
   sessão dirigida por subagentes (o plano de implementação existiu em
@@ -1017,7 +1019,7 @@ Registrados para não voltarem por engano:
   base64url, com o link antigo `?x=&y=` continuando a funcionar). **B7**
   `SavedChart` — configuração de mapa salva e reaberta, isolada por projeto
   no mesmo padrão de `SelectionStudy` (D-42); a revisão final de branch
-  pegou um bug real (o botão "carregar" aplicava os dados da *lista*, que
+  pegou um bug real (o botão \"carregar\" aplicava os dados da *lista*, que
   omite `configuration` de propósito, em vez de buscar o registro completo —
   corrigido). **B6** envelope elíptico ajustado como alternativa ao fecho
   convexo (`app/domain/geometry.py::fitted_ellipse`, autovalores em forma

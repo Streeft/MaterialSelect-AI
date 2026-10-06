@@ -26,6 +26,8 @@ import {
   Alert,
   Badge,
   Button,
+  ButtonGroup,
+  ButtonGroupItem,
   Combobox,
   Disclosure,
   EmptyState,
@@ -590,21 +592,19 @@ export default function EcoPage() {
     <div className="flex flex-col gap-6">
       <PageHeader title={t.title} description={t.subtitle} />
 
-      <div className="flex items-center gap-2">
-        <Button
-          size="sm"
-          variant={modeChoice === "individual" ? "primary" : "secondary"}
-          onClick={() => setModeChoice("individual")}
-        >
-          {t.modeIndividual}
-        </Button>
-        <Button
-          size="sm"
-          variant={modeChoice === "compare" ? "primary" : "secondary"}
-          onClick={() => setModeChoice("compare")}
-        >
-          {t.modeCompare}
-        </Button>
+      <div className="flex items-center">
+        <ButtonGroup label={t.title}>
+          <ButtonGroupItem
+            selected={modeChoice === "individual"}
+            onClick={() => setModeChoice("individual")}
+            label={t.modeIndividual}
+          />
+          <ButtonGroupItem
+            selected={modeChoice === "compare"}
+            onClick={() => setModeChoice("compare")}
+            label={t.modeCompare}
+          />
+        </ButtonGroup>
       </div>
 
       {modeChoice === "individual" ? (

@@ -40,7 +40,7 @@ sugerir e explicar.
 
 ## 3. Estado atual
 
-**Fases 1 a 9 concluídas.** Fase 7 fechou por completo — todas as exportações (CSV, XLSX, HTML, DOCX e PPTX) entregues para catálogo, relatório de estudo e laudo de engenharia, além do lote quádruplo de melhorias funcionais (3395 → 3407 backend, 753 → 762 frontend), na Sessão 48 a figura de barras por fase no Eco Audit e reordenação por arraste em seleção (Opções 1 e 2, 3743 backend e 762 → 778 frontend), e na Sessão 53 a vinculação automática de processos demo aos materiais de teste por classe (3854 → 3857 backend e 778 frontend).
+**Fases 1 a 9 concluídas.** Fase 7 fechou por completo — todas as exportações (CSV, XLSX, HTML, DOCX e PPTX) entregues para catálogo, relatório de estudo e laudo de engenharia, além do lote quádruplo de melhorias funcionais (3395 → 3407 backend, 753 → 762 frontend), na Sessão 48 a figura de barras por fase no Eco Audit e reordenação por arraste em seleção (Opções 1 e 2, 3743 backend e 762 → 778 frontend), na Sessão 54 a vinculação automática de processos demo aos materiais de teste por classe (3854 → 3857 backend e 778 frontend), e na Sessão 55 a padronização do seletor de modo do Eco Audit para ButtonGroup/ButtonGroupItem (Segmented Control MSDS 2.0, 3857 backend e 778 frontend).
 
 | # | Fase | Estado | Documento |
 |---|---|---|---|
