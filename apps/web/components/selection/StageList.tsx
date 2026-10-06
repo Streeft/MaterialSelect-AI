@@ -18,6 +18,7 @@ import type {
   StageIn,
 } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
+import { selectionExtras } from "@/lib/i18n-extras";
 import {
   Alert,
   Badge,
@@ -258,6 +259,32 @@ export function duplicateStage(stage: StageState): StageState {
 }
 
 /**
+ * Reorders stages in a selection pipeline, returning a new array without mutating the original.
+ * Out-of-bounds indices or identical from/to indices return the original array untouched.
+ */
+export function reorderStages(
+  stages: StageState[],
+  fromIndex: number,
+  toIndex: number,
+): StageState[] {
+  if (
+    fromIndex === toIndex ||
+    fromIndex < 0 ||
+    fromIndex >= stages.length ||
+    toIndex < 0 ||
+    toIndex >= stages.length
+  ) {
+    return stages;
+  }
+  const next = [...stages];
+  const [removed] = next.splice(fromIndex, 1);
+  if (removed) {
+    next.splice(toIndex, 0, removed);
+  }
+  return next;
+}
+
+/**
  * A typed bound as the API takes it: a number, or `null` for "no bound".
  *
  * Blank is null and never 0 — that is the whole reason the state holds strings.
@@ -443,6 +470,8 @@ export function StageList({
   const isProcessStudy = universe === "process";
   // A tree stage selects folders of the study's own universe.
   const ownFolders = isProcessStudy ? processClasses : classes;
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dropOverIndex, setDropOverIndex] = useState<number | null>(null);
   const replace = (index: number, next: StageState) =>
     onChange(stages.map((s, i) => (i === index ? next : s)));
 
@@ -493,13 +522,66 @@ export function StageList({
   return (
     <div className="flex flex-col gap-4">
       {stages.map((stage, index) => (
-        <Card key={stage.id}>
-          <CardHeader
-            headingLevel={3}
-            title={stage.label.trim() || t.stageNumber(index + 1, stage.kind)}
-            actions={
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge tone={STAGE_TONES[stage.kind]}>{STAGE_BADGES[stage.kind]}</Badge>
+        <div
+          key={stage.id}
+          data-stage-index={index}
+          onDragOver={(e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "move";
+            if (dropOverIndex !== index) {
+              setDropOverIndex(index);
+            }
+          }}
+          onDragLeave={(e) => {
+            if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+            if (dropOverIndex === index) {
+              setDropOverIndex(null);
+            }
+          }}
+          onDrop={(e) => {
+            e.preventDefault();
+            const from =
+              draggedIndex ?? Number(e.dataTransfer.getData("text/plain"));
+            if (Number.isInteger(from) && from !== index) {
+              onChange(reorderStages(stages, from, index));
+            }
+            setDraggedIndex(null);
+            setDropOverIndex(null);
+          }}
+          className={cn(
+            "transition-all duration-150 rounded-card",
+            draggedIndex === index && "opacity-50",
+            dropOverIndex === index &&
+              draggedIndex !== null &&
+              draggedIndex !== index &&
+              "ring-2 ring-brand-500 shadow-lift",
+          )}
+        >
+          <Card>
+            <CardHeader
+              headingLevel={3}
+              title={stage.label.trim() || t.stageNumber(index + 1, stage.kind)}
+              actions={
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    draggable
+                    title={selectionExtras.stageDragHandle(index + 1)}
+                    aria-label={selectionExtras.stageDragHandle(index + 1)}
+                    className="cursor-grab active:cursor-grabbing text-ink-muted hover:text-ink select-none px-1.5 py-0.5 rounded text-sm hover:bg-surface-sunken transition-colors"
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData("text/plain", String(index));
+                      e.dataTransfer.effectAllowed = "move";
+                      setDraggedIndex(index);
+                    }}
+                    onDragEnd={() => {
+                      setDraggedIndex(null);
+                      setDropOverIndex(null);
+                    }}
+                  >
+                    <span aria-hidden className="font-mono text-base tracking-tighter">⠿</span>
+                  </button>
+                  <Badge tone={STAGE_TONES[stage.kind]}>{STAGE_BADGES[stage.kind]}</Badge>
                 {/* IconButton, not a Button with an aria-label: an arrow
                     glyph is not a name, and this is the primitive the design
                     system gives an icon-only control so the accessible name
@@ -531,8 +613,7 @@ export function StageList({
                   // a state the screen should be able to reach, and the backend
                   // rejects an empty `stages` list for the same reason.
                   disabled={stages.length === 1}
-                  onClick={() => onChange(stages.filter((_, i) => i !== index))}
-                >
+                  onClick={() => onChange(stages.filter((_, i) => i !== index))}\n                >
                   {t.stageRemove}
                 </Button>
               </div>
@@ -607,6 +688,7 @@ export function StageList({
             )}
           </CardBody>
         </Card>
+      </div>
       ))}
 
       {showAddButtons && (
@@ -692,7 +774,7 @@ function MultiSelect({
       value={selected}
       onChange={(e) => onChange(Array.from(e.target.selectedOptions, (o) => o.value))}
     >
-      {options.map((o) => (
+      {options.map((o) => (\
         <option key={o.slug} value={o.slug}>
           {o.name}
         </option>
@@ -1033,7 +1115,7 @@ function ChartStageFields({
         <p className="text-sm text-ink-muted">{t.stageChartNoAxes}</p>
       ) : !hasBox && !hasLine ? (
         <p className="text-sm text-ink-muted">{t.stageChartPlottableOnly}</p>
-      ) : (
+      ) : (\
         <p className="text-sm text-ink-muted">{t.stageChartWarning}</p>
       )}
 
