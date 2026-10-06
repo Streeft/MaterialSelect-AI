@@ -47,7 +47,7 @@
 # passo "Retrato" desta execução mostra isso na linha "API vs vetores".
 #
 # **Custo zero.** O plano gratuito do GitHub dá 1 GB de banda de Git LFS por
-# mês, e o Cérebro inteiro tem ≈600 MB. Por isso `ingerir` baixa só o que o
+# mês, e o Cérebro inteiro tem ≈528 MB. Por isso `ingerir` baixa só o que o
 # banco não tem: o `oid` de um ponteiro LFS é o sha256 do arquivo, o mesmo
 # `checksum` que a base guarda, e um PDF já indexado com esses bytes é dado como
 # inalterado sem ser baixado. A primeira ingestão completa baixa o Cérebro
@@ -182,7 +182,7 @@ jobs:
       # `arquivos` só vale para `ingerir`: preenchido com outra ação, é um
       # engano do operador, e ignorá-lo em silêncio o deixaria achar que valeu.
       # `forcar` só vale para `ingerir` com `arquivos`: sem eles, reextrairia
-      # o Cérebro inteiro e baixaria do LFS os ≈600 MB de novo (a cota é 1 GB
+      # o Cérebro inteiro e baixaria do LFS os ≈528 MB de novo (a cota é 1 GB
       # por mês).
       - name: Conferir as entradas
         if: env.ACAO != 'embeddings_noturno'

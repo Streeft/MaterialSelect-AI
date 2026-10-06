@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [50](#sessão-50--061026--a-revisão-do-pr-100-o-orçamento-é-cobrado-a-cada-decodificação) | 06/10/2026 | A revisão do PR #100 achou que o orçamento do upload não segurava uma página só (160 formas de 3,9 MB num PDF de 0,66 MB: 639 MB de pico) e que um prefixo mal escrito em `removidos.txt` passava em silêncio: o orçamento passou a ser cobrado a cada decodificação (76 MB de pico no mesmo arquivo), o upload limita o que o pypdf lê de uma vez (formas aninhadas), a lista de remoção falha fechada em todos os leitores, a regra das páginas de fora ficou proporcional, as recusas ficaram em português, a releitura forçada ganhou nota e rótulo próprios e os ≈600 MB viraram ≈528 MB (D-101, atualização da revisão do PR #100) | 3781 → 3825 | 762 (inalterado) |
 | [49](#sessão-49--061026--os-dois-ashby-em-português-fica-o-de-2012) | 06/10/2026 | Dos dois scans do Ashby em português fica o de 2012 (4ª ed., provavelmente o mais novo, não confirmado): o sem data e a cópia byte a byte dele na raiz saem do git, do manifesto e do RAG pela lista de remoção, pelos caminhos e pelo conteúdo, em linhas `mantido-no-historico:` que a limpeza do histórico não lê (D-101, atualização dos dois Ashby) | 3770 → 3781 | 762 (inalterado) |
 | [48](#sessão-48--061026--a-revisão-do-pr-98-o-teto-era-por-fluxo-não-por-documento) | 06/10/2026 | A revisão do PR #98 achou que o teto de 500 MB era por fluxo e a memória somava as páginas, que um livro lido pela metade passava em silêncio e nunca era relido, e que o upload dos Cadernos tinha a mesma soma: o pypdf solta as cópias entre páginas, o Cérebro lê com 200 MB por fluxo, orçamento por documento e falha acima de 20% das páginas de fora, a linha virou `::warning::` com a classe do erro, o `status` ganhou rótulo próprio e `ingerir` ganhou `forcar`; o upload lê com 4 MB por fluxo, 32 MB por arquivo e páginas contadas antes (endurecimento de segurança; D-101, atualização da revisão do PR #98) | 3743 → 3770 | 762 (inalterado) |
 | [47](#sessão-47--061026--o-teto-de-descompressão-do-pypdf-e-os-dois-ashby) | 06/10/2026 | A segunda `ingerir` saiu com 1 por dois Ashby barrados pelo teto de 75 MB por fluxo do pypdf: o Cérebro lê com teto de 500 MB, no `ContextVar` do pypdf (piso 6.18), e pula a página que não decodifica dizendo quantas; o upload dos Cadernos mantém o padrão e falha na primeira página ilegível (D-101, atualização do teto de descompressão) | 3725 → 3743 | 762 (inalterado) |
@@ -67,6 +68,76 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
 
 ---
+
+## Sessão 50 — 06/10/26 — A revisão do PR #100: o orçamento é cobrado a cada decodificação
+
+**O pedido.** Corrigir tudo o que a revisão do PR #100 achou: dois problemas
+Importantes (I1, I2) e cinco menores (M1–M5). Feito por cima de `1212cee`, na
+mesma branch; o PR #100 ainda não estava mesclado.
+
+**O que mudou** ([D-101](DECISIONS.md), atualização da revisão do PR #100):
+
+- **I1 — o orçamento do upload não segurava uma página só.** Ele era conferido
+  entre páginas (nunca depois da última), e o pypdf decodifica e guarda cada
+  forma XObject de uma página dentro de um `extract_text` só: a sonda da
+  revisão, uma página de 160 formas distintas de 3,9 MB num PDF de 0,66 MB,
+  era lida com 639 MB de pico. `readers._metered_decoding` põe um medidor na
+  frente de `pypdf.filters.decode_stream_data` (o caminho de toda
+  decodificação, conferido nos fontes do 6.18.0 e do 6.19.0), ativo só dentro
+  de `read_pdf` por um `ContextVar`, restaurado também por exceção e invisível
+  a outra thread; instalado uma vez, sob trava, e nunca removido. A
+  decodificação que passa do orçamento termina e a próxima é recusada por uma
+  `BaseException` (`_DecodeBudgetSpent`), porque o pypdf engole `Exception` em
+  cada forma. A mesma sonda agora é recusada na página 1 em 0,2 s com 76 MB
+  de pico; 10 formas (39 MB), antes lidas, também. A soltura por página
+  (`_release_decoded`) fica, agora só soltando.
+- **O parse de formas aninhadas, achado ao medir I1.** Uma forma de 3,9 MB de
+  operadores custa +225 MB enquanto o pypdf a lê, e duas, uma dentro da outra,
+  +420 MB — com 8 MB decodificados, dentro do orçamento. `UPLOAD_MAX_PARSED_BYTES`
+  (4 MB, o teto por fluxo) limita o que se lê de uma vez: o medidor envolve
+  `ContentStream.__init__`, soma cada fluxo de conteúdo vivo e o solta por
+  `weakref.finalize`. Aninhadas no teto: recusado com 244 MB de pico (o custo
+  de um fluxo no teto); oito lado a lado: lido, 269 MB e 48 s.
+- **M5.** O prazo de 15 min do Cérebro é conferido a cada decodificação e
+  entre páginas; o texto diz que nunca no meio do parse de um fluxo.
+- **I2 — a lista de remoção falha fechada.** Uma linha cujo primeiro trecho tem
+  dois-pontos e não é `sha256:` nem `mantido-no-historico:`, escritos
+  exatamente assim, é recusada com o número da linha e os prefixos que
+  existem, sem citar a linha. Saem diferente de 0 antes de tocar qualquer
+  coisa: ingestão, plano do LFS, `embed`, `prune`, gerador do manifesto,
+  `status` (que imprime o retrato e então dá `::error::`) e o bloco do passo 4
+  do docs/17 (que apaga o arquivo de saída). Dois-pontos num trecho seguinte
+  continua caminho. A lista real lê igual: 16 caminhos (14 para a limpeza), 35
+  `sha256:`, 2 mantidos.
+- **M1.** Falha quem tem mais de 20% das páginas de fora **e** ao menos duas
+  delas ou metade do documento: 2 de 3, 2 de 4, 2 de 9 e 1 de 2 falham; uma
+  página nunca derruba documento de 3 páginas ou mais.
+- **M2.** Abrir um PDF que o pypdf recusa não mostra mais o texto em inglês
+  dele, nem a página ilegível de um upload; a recusa do teto de 4 MB por fluxo
+  (que fica) diz a causa provável e a saída: exportar o PDF "achatado".
+- **M3.** A releitura forçada dos mesmos bytes que falha grava "A releitura
+  forçada (sha256 …)", e o `status` a mostra como `RELEITURA FALHOU`.
+- **M4.** Os cinco "≈600 MB" viraram ≈528 MB.
+
+**Como se sabe que passa.** 44 testes novos: a sonda da revisão em escala
+(20 formas de 1 MB com orçamento de 5 MB: recusada na página 1, cinco
+decodificações em vez de vinte, pico rastreado abaixo de 12 MB), a última
+página e o documento de uma página presos ao orçamento, a página do Cérebro
+parada no meio contada como de fora, o medidor só dentro da leitura (e não
+noutra thread), formas aninhadas recusadas e lado a lado lidas, o prazo
+conferido a cada decodificação, as mensagens de abertura, as linhas da regra
+proporcional, a releitura forçada no banco e no `status`, e os onze prefixos
+mal escritos recusados em cada leitor e no shell do docs/17. Mutantes: sem a
+recusa do prefixo, 17 testes caem; sem o medidor na decodificação, 4; sem o
+limite do parse, 1.
+
+**Números.** Backend 3781 → 3825 (sem `POSTGRES_TEST_URL`, 3819 passam e 6
+pulam). Frontend 762, inalterado. `ruff` e `black` limpos; `actionlint` limpo
+em `conhecimento.yml`.
+
+**Pendente, e só o autor faz**, depois do merge: **Deploy da API** — o
+medidor do upload só existe em produção depois dele —, e os passos que a
+sessão 49 já deixou ([TODO.md](TODO.md) A7, item 3).
 
 ## Sessão 49 — 06/10/26 — Os dois Ashby em português: fica o de 2012
 

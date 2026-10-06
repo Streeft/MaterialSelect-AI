@@ -103,7 +103,11 @@ data no arquivo), junto com a cópia byte a byte dele que estava na raiz desta
 pasta, com o mesmo nome. Que o de 2012 é a edição mais nova é **provável, não
 confirmado**. Os dois caminhos e o conteúdo estão em `removidos.txt`, marcados
 `mantido-no-historico:`: saem do banco e da ingestão, mas não são material a
-apagar do histórico do git. Os extratos de capítulo em
+apagar do histórico do git. O prefixo vale **escrito exatamente assim** —
+minúsculas, sem acento, sem espaço antes dos dois-pontos —, como o `sha256:`:
+uma linha com outro prefixo antes de dois-pontos (`mantido-no-histórico:`,
+`SHA256:`) é recusada com o número dela, e a ingestão, o LFS, os vetores e a
+remoção param até ela ser corrigida. Os extratos de capítulo em
 `01-Bibliografia/Extratos-de-Capitulos/` não mudam.
 
 ## O que está aqui

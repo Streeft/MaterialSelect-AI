@@ -32,9 +32,23 @@ shell script too:
 * blank lines and lines starting with ``#`` are ignored. There are no inline
   comments, because ``#`` is a legal character in a file name.
 
-A path that literally starts with ``sha256:`` or ``mantido-no-historico:``
-cannot be listed; a colon is not a legal file-name character on Windows, where
-the corpus is curated, so nothing real is lost.
+**A line whose first path segment holds a colon and is not one of those two
+prefixes is refused** (:class:`ValidationError`, the line's number and the
+prefixes that exist), and every consumer stops on it before it touches
+anything. A misspelled prefix — ``mantido-no-histórico:`` with the accent the
+comment above the Ashby block uses, ``Mantido-no-historico:``, a space before
+the colon, ``SHA256:``, ``sha-256:`` — would otherwise be read as an exact path
+that matches nothing, and the file it meant to remove would be ingested,
+downloaded and embedded with nothing said: the list must fail closed. The
+prefixes are compared byte for byte, never case- or accent-folded, so there is
+one spelling of each and the shell conversion in docs/17 — which matches them
+literally — agrees with this reader.
+
+What this costs: a path whose *first* segment holds a colon cannot be listed.
+A colon is not a legal file-name character on Windows, where the corpus is
+curated, and the repository has no such path; a colon in a later segment (a
+file named on Linux or macOS inside a folder) is still a path, and listed as
+written.
 
 Matching normalises both sides to Unicode NFC. A path ingested on macOS may
 have been stored decomposed (NFD), and "Tópico" in NFD and in NFC are different
@@ -66,6 +80,8 @@ CHECKSUM_PREFIX = "sha256:"
 #: the history purge (docs/17, step 4) leaves it out.
 HISTORY_KEPT_PREFIX = "mantido-no-historico:"
 _HEX_DIGEST = re.compile(r"[0-9a-f]{64}")
+#: The line prefixes the list knows, as the refusal of an unknown one names them.
+KNOWN_PREFIXES = (CHECKSUM_PREFIX, HISTORY_KEPT_PREFIX)
 
 
 def normalise(path: str) -> str:
@@ -159,10 +175,10 @@ def parse_removal_list(text: str) -> RemovalList:
     """Parse the list's text.
 
     Raises:
-        ValidationError: an entry is absolute or climbs out of the root. Both
-            would mean the list was written against a different base than the
-            one ``knowledge_document.path`` uses, and matching it anyway would
-            silently match nothing.
+        ValidationError: an entry is absolute or climbs out of the root, or
+            starts with a prefix the list does not know (a colon in its first
+            segment). Each would mean the list says something other than what
+            it matches, and matching it anyway would silently match nothing.
     """
     exact: set[str] = set()
     prefixes: list[str] = []
@@ -188,6 +204,16 @@ def parse_removal_list(text: str) -> RemovalList:
         kept_in_history = line.startswith(HISTORY_KEPT_PREFIX)
         if kept_in_history:
             line = line[len(HISTORY_KEPT_PREFIX) :].strip()
+        if ":" in line.split("/", 1)[0]:
+            # The line itself is not quoted: it may be a name the list exists
+            # to keep out of a public log.
+            raise ValidationError(
+                f"Linha {number} da lista de remoção começa com um prefixo desconhecido "
+                "(dois-pontos no primeiro trecho do caminho). Os prefixos aceitos são "
+                f"{' e '.join(repr(p) for p in KNOWN_PREFIXES)}, escritos exatamente assim — "
+                "minúsculas, sem acento, sem espaço antes dos dois-pontos. Corrija a linha: "
+                "nada foi lido, ingerido nem enviado."
+            )
         segments = line.rstrip("/").split("/")
         if line.startswith("/") or "\\" in line or any(s in {"", ".", ".."} for s in segments):
             raise ValidationError(

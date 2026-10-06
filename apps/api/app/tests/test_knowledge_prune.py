@@ -630,3 +630,175 @@ class TestHistoryPurgeConversion:
         assert len(produced) == len(expected) == 14
         assert not any("Selecao_de_Materiais_no_Projeto_Mecanico" in p for p in produced)
         assert not any(":" in p for p in produced)
+
+
+#: Prefixes written in ways the reader must refuse, not read as a path (I2 of
+#: the review of PR #100). The first three were confirmed failing open.
+_BAD_PREFIXES = [
+    pytest.param("mantido-no-histórico:", id="acento-nfc"),
+    pytest.param(unicodedata.normalize("NFD", "mantido-no-histórico:"), id="acento-nfd"),
+    pytest.param("Mantido-no-historico:", id="maiuscula-inicial"),
+    pytest.param("MANTIDO-NO-HISTORICO:", id="maiusculas"),
+    pytest.param("mantido-no-historico :", id="espaco-antes-dos-dois-pontos"),
+    pytest.param("mantido_no_historico:", id="sublinhado"),
+    pytest.param("SHA256:", id="sha256-maiusculas"),
+    pytest.param("sha-256:", id="sha-256"),
+    pytest.param("sha256 :", id="sha256-espaco"),
+    pytest.param("mantido-no-historico:sha256:", id="prefixo-duplo"),
+    pytest.param("C:", id="unidade-do-windows"),
+]
+_SECRET = "segredo/Trabalho do Fulano.pdf"
+
+
+def _bad_list(prefix: str) -> str:
+    digest = "a" * 64
+    body = digest if "sha" in prefix.lower() else _SECRET
+    return f"# comentário\n{COURSE}\n{prefix}{body}\n"
+
+
+class TestUnknownPrefixFailsClosed:
+    """Um prefixo mal escrito é recusado com o número da linha, nunca lido como caminho."""
+
+    @pytest.mark.parametrize("prefix", _BAD_PREFIXES)
+    def test_is_refused_with_the_line_number_and_the_known_prefixes(self, prefix: str) -> None:
+        with pytest.raises(ValidationError) as exc:
+            parse_removal_list(_bad_list(prefix))
+        message = str(exc.value)
+        assert message.startswith("Linha 3 da lista de remoção começa com um prefixo desconhecido")
+        assert "'sha256:' e 'mantido-no-historico:'" in message
+        # The line itself is never quoted: it may be a name kept out of the log.
+        assert "Fulano" not in message and "segredo" not in message and "aaaa" not in message
+
+    def test_a_colon_in_a_later_segment_is_a_path(self) -> None:
+        # Legal on Linux and macOS; the repository has none, but a folder on a
+        # contributor's disk could. Only the first segment decides.
+        removal = parse_removal_list("Pasta/arquivo: parte 2.pdf\nPasta/sub: 2/\n")
+        assert removal.matches("Pasta/arquivo: parte 2.pdf")
+        assert removal.matches("Pasta/sub: 2/a.pdf")
+        with pytest.raises(ValidationError, match="prefixo desconhecido"):
+            parse_removal_list("Pasta: nao/arquivo.pdf\n")
+
+    def test_the_real_list_still_parses(self) -> None:
+        removal = load_from_root(TestRepositoryList.LIST_PATH.parent)
+        assert len(removal.entries) == 16 and len(removal.history_purge_entries) == 14
+        assert len(removal.checksums) == 35 and len(removal.history_kept) == 2
+
+    @pytest.fixture
+    def bad_root(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+        from app.config import settings
+
+        root = tmp_path / "cerebro"
+        root.mkdir()
+        (root / "removidos.txt").write_text(_bad_list("mantido-no-histórico:"), encoding="utf-8")
+        (root / "segredo").mkdir()
+        (root / _SECRET).write_bytes(b"%PDF-1.4\n")
+        monkeypatch.setattr(settings, "knowledge_dir", str(root))
+        return root
+
+    def test_prune_exits_non_zero(self, bad_root: Path, capsys: pytest.CaptureFixture[str]) -> None:
+        with pytest.raises(SystemExit) as exc:
+            main(["--list", str(bad_root / "removidos.txt")])
+        assert exc.value.code != 0
+        assert "Fulano" not in capsys.readouterr().err
+
+    def test_ingest_exits_1_and_ingests_nothing(
+        self,
+        db_session: Session,
+        bad_root: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str],
+    ) -> None:
+        from app.knowledge import ingest
+
+        monkeypatch.setattr(ingest, "SessionLocal", lambda: db_session)
+        with pytest.raises(SystemExit) as exc:
+            ingest.main(["--no-embed"])
+        assert exc.value.code == 1
+        out = capsys.readouterr().out
+        assert "[ingest] ERRO: Linha 3 da lista de remoção" in out and "Fulano" not in out
+        assert db_session.scalar(select(func.count()).select_from(KnowledgeDocument)) == 0
+
+    def test_the_lfs_plan_exits_1(
+        self,
+        db_session: Session,
+        bad_root: Path,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        from app.knowledge import lfs_plan
+
+        monkeypatch.setattr(lfs_plan, "SessionLocal", lambda: db_session)
+        output = tmp_path / "baixar.nul"
+        with pytest.raises(SystemExit) as exc:
+            lfs_plan.main(["--output", str(output), "--ids", str(tmp_path / "ids")])
+        assert exc.value.code == 1
+        assert not output.exists() or output.read_bytes() == b""
+
+    def test_embed_exits_1_before_any_request(
+        self, bad_root: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        from app.knowledge import embed
+
+        def refuse(*_args, **_kwargs):
+            raise AssertionError("nada pode ser pedido nem lido do banco")
+
+        monkeypatch.setattr(embed, "EmbeddingClient", refuse)
+        monkeypatch.setattr(embed, "SessionLocal", refuse)
+        with pytest.raises(SystemExit) as exc:
+            embed.main(["--list", str(bad_root / "removidos.txt")])
+        assert exc.value.code == 1
+        assert "prefixo desconhecido" in capsys.readouterr().out
+
+    def test_status_prints_the_snapshot_then_exits_1(
+        self,
+        db_session: Session,
+        bad_root: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str],
+    ) -> None:
+        from app.knowledge import status
+
+        monkeypatch.setattr(status, "SessionLocal", lambda: db_session)
+        with pytest.raises(SystemExit) as exc:
+            status.main(["--model", "", "--dimensions", "0"])
+        assert exc.value.code == 1
+        out = capsys.readouterr().out
+        assert "[status] documentos:" in out  # the snapshot is printed first
+        assert "::error::[status] lista de remoção (Cérebro/removidos.txt) inválida: Linha 3" in out
+        assert "Fulano" not in out
+
+    def test_the_manifest_generator_writes_nothing(self, bad_root: Path) -> None:
+        import importlib.util
+
+        script = Path(__file__).resolve().parents[2] / "scripts" / "generate_knowledge_manifest.py"
+        spec = importlib.util.spec_from_file_location("generate_knowledge_manifest", script)
+        assert spec is not None and spec.loader is not None
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        with pytest.raises(ValidationError, match="prefixo desconhecido"):
+            module.update_manifest(bad_root)
+        assert not (bad_root / "manifesto.json").exists()
+
+    @pytest.mark.skipif(
+        any(shutil.which(tool) is None for tool in ("bash", "sed", "grep", "tr")),
+        reason="o passo 4 do docs/17 é um pipeline de shell",
+    )
+    def test_the_history_purge_pipeline_refuses_it_too(
+        self, bad_root: Path, tmp_path: Path
+    ) -> None:
+        work = tmp_path / "purga"
+        work.mkdir()
+        script = 'git() { cat "$LISTA"; }\n' + _history_purge_script()
+        result = subprocess.run(
+            ["bash", "-c", script],
+            cwd=work,
+            env={
+                "LISTA": str(bad_root / "removidos.txt"),
+                "PATH": os.environ["PATH"],
+                "LC_ALL": "C.UTF-8",
+            },
+            capture_output=True,
+        )
+        assert result.returncode != 0
+        assert not (work / "caminhos-para-remover.txt").exists()
+        assert "prefixo desconhecido" in result.stderr.decode("utf-8")

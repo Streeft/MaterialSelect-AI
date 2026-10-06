@@ -1003,15 +1003,25 @@ português: o Cérebro (`extract_text`) lê com `CORPUS_MAX_STREAM_BYTES` (200 M
 6.18) e nunca num global, com orçamento por documento (16 GB decodificados,
 15 min) e pula a página que ainda não decodifica, contada por classe de erro
 numa anotação `::warning:: … PÁGINAS IGNORADAS`; mais de um quinto das páginas
-de fora (e ao menos 3) é `FALHOU`, e `forcar` + `arquivos` em `ingerir`
+de fora (e ao menos 2, ou metade de um documento curto — revisão do PR #100)
+é `FALHOU`, e `forcar` + `arquivos` em `ingerir`
 reextrai um livro. **O teto é por fluxo; o que limita o documento é soltar as
 cópias decodificadas do pypdf entre páginas (`readers._release_decoded`) —
 sem isso a memória soma as páginas. O upload dos Cadernos (`read_upload`) lê
 *abaixo* do padrão do pypdf (4 MB por fluxo, 32 MB por arquivo, páginas
 contadas antes de decodificar), sob medida para a VM de 512 MB, e falha na
 primeira página ilegível — não passe o teto do Cérebro a bytes de usuário.**
+**O orçamento é cobrado a cada decodificação** (`readers._metered_decoding`,
+um medidor em `ContextVar` na frente de `pypdf.filters.decode_stream_data`),
+não entre páginas: conferido só entre páginas, uma página de 160 formas chegou
+a 639 MB; a parada é uma `BaseException` porque o pypdf engole `Exception` em
+cada forma, e no upload o que se lê de uma vez (formas aninhadas) não passa de
+4 MB. **`Cérebro/removidos.txt` falha fechada**: só `sha256:` e
+`mantido-no-historico:`, escritos exatamente assim, valem como prefixo, e
+qualquer outro antes de dois-pontos no primeiro trecho para todos os leitores
+com o número da linha (D-101, revisão do PR #100).
 
-3781 testes de backend (nenhum skip na CI; sem `POSTGRES_TEST_URL`, 3775 passam
+3825 testes de backend (nenhum skip na CI; sem `POSTGRES_TEST_URL`, 3819 passam
 e 6 pulam) e 762 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do

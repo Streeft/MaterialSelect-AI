@@ -359,6 +359,25 @@ class TestPublicLog:
             "A versão nova (sha256 0123456789ab) não pôde ser lida: vazio."
         ) in lines
 
+    def test_a_failed_forced_reread_has_its_own_label(
+        self, db_session: Session, tmp_path: Path
+    ) -> None:
+        # M3 of the review of PR #100: the same bytes read again and failed —
+        # there is no newer version, so the label does not say there is one.
+        root = _root(tmp_path, declared=["01-Bibliografia/Livro.pdf"], files=[])
+        note = (
+            "A releitura forçada (sha256 0123456789ab) não pôde ser lida: vazio. Os trechos "
+            "já indexados destes mesmos bytes continuam na base."
+        )
+        _document(db_session, "01-Bibliografia/Livro.pdf", ["a", "b"], error=note)
+
+        lines = _lines(db_session, model="", dimensions=0, root=root)
+
+        assert (
+            f"[status] RELEITURA FALHOU 01-Bibliografia/Livro.pdf (2 trechos mantidos): {note}"
+        ) in lines
+        assert not any("VERSÃO ANTERIOR" in x for x in lines)
+
     def test_skipped_pages_have_their_own_label_and_count(
         self, db_session: Session, tmp_path: Path
     ) -> None:

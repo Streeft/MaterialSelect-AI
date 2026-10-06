@@ -520,7 +520,7 @@ conferência dos ponteiros LFS): é ele, e não o ✅, que prova o que ficou no 
 inteiro só do que `Cérebro/manifesto.json` declara, o resto como pasta mais o
 começo do sha256, e nunca texto de trecho nem chave.
 
-**Só o `Links.md`, agora** — o atalho, sem os ≈600 MB do LFS e sem depender
+**Só o `Links.md`, agora** — o atalho, sem os ≈528 MB do LFS e sem depender
 dos passos abaixo: **Base de conhecimento (Cérebro)** → `ingerir`, com
 `arquivos` = `Links.md`. O log diz `1 arquivo(s) pedido(s).` e, no plano,
 `[lfs] nada a baixar do Git LFS.`; pula os passos do LFS e termina com
@@ -600,8 +600,9 @@ idênticos entram uma vez só.
      (16 GB decodificados ou 15 min de leitura); outros nomes são defeitos do
      pypdf, que uma versão nova pode resolver.
    - `[ingest] FALHOU …: Não foi possível ler o PDF: K de N páginas não puderam ser lidas (até a página P; LimitReachedError ×K) — mais que 20% do documento.`
-     deixa o job **vermelho**: mais de uma página em cinco (e ao menos três)
-     ficaram de fora, e um índice com esse buraco responderia sobre o livro
+     deixa o job **vermelho**: mais de uma página em cinco ficaram de fora — e
+     ao menos duas, ou metade de um documento curto; uma página só nunca
+     derruba um documento de três páginas ou mais —, e um índice com esse buraco responderia sobre o livro
      como se o tivesse inteiro. A leitura para assim que a conta fecha (o
      resto não é decodificado). Um livro novo não grava nada; um já indexado
      mantém os trechos da versão anterior. Como toda falha, a próxima
@@ -610,7 +611,9 @@ idênticos entram uma vez só.
      pypdf, que derrubou os dois Ashby em português na `ingerir` de 06/10
      ([D-101](DECISIONS.md), atualização do teto de descompressão); o upload
      dos Cadernos tem um teto ainda menor, de propósito (4 MB por fluxo, 32 MB
-     por arquivo, sob medida para a VM de 512 MB).
+     por arquivo cobrados a cada decodificação, 4 MB lidos de uma vez, sob
+     medida para a VM de 512 MB). O orçamento de 15 min é conferido a cada
+     decodificação e entre páginas, nunca no meio da leitura de um fluxo.
    - **Reextrair um livro indexado com páginas de fora**, depois de uma
      correção (pypdf novo, teto novo): o livro está `inalterado` para a
      ingestão — os bytes não mudaram —, e o plano nem o baixa. **Base de
@@ -618,12 +621,21 @@ idênticos entram uma vez só.
      dentro de `Cérebro/` (o que o `status` mostra se ele é declarado no
      manifesto) e **`forcar` marcado**. O plano baixa só esse arquivo, e a
      ingestão o relê com `--force`. `forcar` sem `arquivos` é recusado de
-     propósito: reextrair o Cérebro inteiro baixaria os ≈600 MB do LFS de
+     propósito: reextrair o Cérebro inteiro baixaria os ≈528 MB do LFS de
      novo, mais da metade da cota do mês. No `status`, um livro assim aparece
      como `[status] PÁGINAS IGNORADAS <caminho> (K de N páginas de fora, T
      trechos): …`, e a linha `[status] páginas ignoradas: D documentos …` soma
      todos — nunca mais como `VERSÃO ANTERIOR`, que é só a versão nova que não
-     pôde ser lida (uma nota de truncamento sai como `AVISO`).
+     pôde ser lida (uma nota de truncamento sai como `AVISO`). Se a releitura
+     forçada dos mesmos bytes falhar, o livro aparece como `[status] RELEITURA
+     FALHOU <caminho> (T trechos mantidos): A releitura forçada (sha256 …) …` —
+     os trechos que já estavam continuam respondendo.
+   - **`::error::[status] lista de remoção (Cérebro/removidos.txt) inválida:
+     Linha N …`** (e `[ingest] ERRO: Linha N …`, `[lfs]`, `[embed]`, `[prune]`):
+     uma linha da lista começa com um prefixo desconhecido — `sha256:` e
+     `mantido-no-historico:` só valem escritos exatamente assim (minúsculas,
+     sem acento, sem espaço antes dos dois-pontos). Nada foi ingerido, baixado
+     nem enviado; corrija a linha N e repita.
    - **Vermelho no download** (`O download do arquivo nº N do plano falhou`),
      na conferência (`… ainda são ponteiros do Git LFS`) ou com
      `FALHOU …: É um ponteiro do Git LFS, não o arquivo`: o LFS não trouxe tudo

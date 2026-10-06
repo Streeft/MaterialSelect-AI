@@ -7603,7 +7603,9 @@ testes de backend, nenhum pulado. `ruff` e `black` limpos; os dois workflows pas
 >   tenta de novo. Uma ou duas páginas (uma prancha, uma figura quebrada)
 >   custam essas páginas; com um quinto de fora, a base responderia sobre o
 >   livro como se o tivesse inteiro. O piso de 3 evita que um documento curto
->   caia pela aritmética de uma página (1 de 4 é 25%). A leitura **para assim
+>   caia pela aritmética de uma página (1 de 4 é 25%). *(O piso de 3 deixava
+>   passar 2 de 3 e 1 de 2; trocado por "duas páginas, ou metade do documento"
+>   na atualização da revisão do PR #100, abaixo.)* A leitura **para assim
 >   que a conta fecha**, e é isso que limita o fluxo-bomba compartilhado: num
 >   livro de 20 páginas, cinco tentativas, não vinte.
 > - **O porquê de cada página pulada é dito, pelo nome da classe.**
@@ -7626,7 +7628,7 @@ testes de backend, nenhum pulado. `ruff` e `black` limpos; os dois workflows pas
 >   `inalterado` para a ingestão (os bytes não mudaram) e o plano do LFS nem o
 >   baixa. A entrada `forcar` de `ingerir` (`conhecimento.yml`) passa
 >   `--force` ao plano e à ingestão, **só junto de `arquivos`** — sozinha, ou
->   em outra ação, é recusada: forçar o Cérebro inteiro baixaria os ≈600 MB do
+>   em outra ação, é recusada: forçar o Cérebro inteiro baixaria os ≈528 MB do
 >   LFS de novo. Entradas por `env:`, nunca `${{ }}` no `run:`.
 > - **O upload (Cadernos e PDF da web) também somava, e mais perto do
 >   limite** — endurecimento de segurança. Com o teto padrão de 75 MB e as
@@ -7644,6 +7646,10 @@ testes de backend, nenhum pulado. `ruff` e `black` limpos; os dois workflows pas
 >   pypdf. O mesmo arquivo de 684 KB agora é recusado na página 1 com 42 MB de
 >   pico. O que sobra é CPU: o orçamento de 32 MB de operadores custa até
 >   ~1 min de leitura (~2 s por MB), que segura o GIL do processo.
+>   *(O orçamento só era conferido entre páginas, e nunca depois da última:
+>   uma página só, com 160 formas de 3,9 MB, chegava a 639 MB. Corrigido na
+>   atualização da revisão do PR #100, abaixo — o orçamento passou a ser
+>   cobrado a cada decodificação.)*
 > - **A numeração das páginas continua certa; a lacuna, não necessariamente.**
 >   O fatiador junta parágrafos entre páginas (como já fazia com uma página
 >   digitalizada em branco), então um trecho pode atravessar a página pulada e
@@ -7714,3 +7720,107 @@ testes de backend, nenhum pulado. `ruff` e `black` limpos; os dois workflows pas
 >   conferindo o manifesto à mão se ele tiver mudado depois); a próxima
 >   `ingerir` o baixa e indexa (a cópia da raiz volta a ser só cópia). O
 >   histórico tem os arquivos, porque esta remoção nunca passou pela limpeza.
+
+> **Atualização (06/10/2026, revisão do PR #100: o orçamento é cobrado a cada
+> decodificação, a lista de remoção falha fechada).** A revisão achou dois
+> problemas Importantes e cinco menores; todos corrigidos aqui.
+>
+> - **O orçamento do upload não segurava uma página só (I1).** Ele era
+>   conferido entre páginas — e, com `remaining == 0`, nem depois da última —,
+>   enquanto o pypdf decodifica e guarda cada forma XObject de uma página
+>   dentro de uma única chamada de `extract_text`. Um PDF de 0,66 MB, uma
+>   página com 160 formas distintas de 3,9 MB cada (logo abaixo do teto de
+>   4 MB por fluxo), era lido com **639 MB** de pico — a VM da API tem 512 MB.
+>   Agora `readers._metered_decoding` põe um medidor na frente de
+>   `pypdf.filters.decode_stream_data`, que `EncodedStreamObject.get_data`
+>   importa a cada chamada (conferido nos fontes do 6.18.0 e do 6.19.0): toda
+>   decodificação — conteúdo de página, forma, fonte, mapa `/ToUnicode`,
+>   fluxo de objetos — é cobrada do orçamento do documento **na hora**, e a
+>   decodificação que passa dele termina (os bytes já existem) e a seguinte é
+>   recusada com uma `BaseException` própria, `_DecodeBudgetSpent`. Não é
+>   `Exception` de propósito: o pypdf envolve cada forma num `except
+>   Exception` ("Impossible to decode XFormObject") e seguiria para a próxima
+>   — foi assim que uma página decodificou 160. O medidor vive num
+>   `ContextVar`, como o teto do D-101: só existe dentro de `read_pdf`, é
+>   restaurado na saída, por exceção também, e outra thread não o vê. O
+>   invólucro é instalado uma vez por processo, sob trava, e nunca removido —
+>   removê-lo ao fim de uma leitura desmediria outra em curso noutra thread;
+>   fora de uma leitura ele só consulta um `ContextVar` vazio. Um teste prova
+>   que a decodificação dentro de uma página é cobrada, então um pypdf que
+>   deixasse de chamar essa função quebraria a suíte, não a produção.
+>   **Medido** com a sonda da revisão: 160 formas → recusado na página 1 em
+>   0,2 s com **76 MB** de pico (antes 639 MB); 10 formas (39 MB), antes lido,
+>   agora recusado; o arquivo de um upload que caiba nos 32 MB continua lido.
+>   O pico fica no orçamento mais um fluxo mais o parse desse fluxo.
+> - **O orçamento de bytes não segura o parse de formas aninhadas** — achado
+>   ao medir a correção. O pypdf transforma um fluxo de operadores num objeto
+>   Python por operando (+225 MB de RSS para 3,9 MB de operadores de caminho,
+>   medido no 6.19) e, quando uma forma desenha outra, mantém o parse da de
+>   fora vivo enquanto lê a de dentro: duas formas assim, uma dentro da outra,
+>   +420 MB, num arquivo de 20 KB que decodifica 8 MB. Daí
+>   `UPLOAD_MAX_PARSED_BYTES`, igual ao teto por fluxo (4 MB): o mesmo
+>   medidor envolve `ContentStream.__init__` (idêntico no 6.18 e no 6.19),
+>   soma o tamanho de cada fluxo de conteúdo enquanto ele está vivo — o da
+>   página e o de cada forma em leitura dentro dela — e o libera por
+>   `weakref.finalize` quando o pypdf o solta; o fluxo que passaria do limite é
+>   recusado **antes** de ser lido. Formas lado a lado não somam (cada uma é
+>   solta antes da próxima); uma figura comum aninhada (dezenas de KB) passa.
+>   Medido: 2 e 8 formas de 3,9 MB aninhadas → recusado com 244 MB de pico (o
+>   parse da primeira, que é o custo de um fluxo no teto); 8 de 0,4 MB
+>   aninhadas → lido. Só o upload tem esse limite: o Cérebro roda num runner
+>   de 16 GB e mantém o risco residual já descrito acima.
+> - **O que ainda não é limitado, dito sem rodeio.** Um fluxo de operadores
+>   no teto de 4 MB custa ~225 MB enquanto o pypdf o lê — com os ~230 MB do
+>   processo e do índice, ~455 MB de 512 MB; oito deles lado a lado na mesma
+>   página, ~270 MB de pico e ~50 s de CPU. Nenhuma parte de *um* fluxo é
+>   interrompida no meio: só um subprocesso com `RLIMIT_AS` faria isso.
+> - **O prazo de 15 min do Cérebro é conferido a cada decodificação e entre
+>   páginas** (M5), não mais só entre páginas — mas nunca no meio do parse de
+>   um fluxo.
+> - **A lista de remoção falha fechada num prefixo mal escrito (I2).**
+>   `mantido-no-histórico:` (com o acento que o próprio comentário do bloco do
+>   Ashby usa), `Mantido-no-historico:`, um espaço antes dos dois-pontos,
+>   `SHA256:`, `sha-256:` — tudo isso virava um caminho exato que não casava
+>   nada, e o arquivo que a linha queria tirar seria ingerido, baixado do LFS e
+>   enviado ao Gemini sem aviso. Agora uma linha cujo **primeiro trecho** tem
+>   dois-pontos e não é um dos dois prefixos conhecidos, escritos exatamente
+>   assim, é `ValidationError` com o número da linha e os prefixos que existem
+>   — sem citar a linha, que pode ser um nome que a lista existe para tirar do
+>   log. Sem dobra de maiúsculas ou acento, de propósito: uma grafia só, a
+>   mesma que o shell do docs/17 compara. Recusam a lista, e saem diferente de
+>   0 antes de tocar qualquer coisa: a ingestão, o plano do LFS, o `embed`, o
+>   `prune`, o gerador do manifesto, o `status` (que imprime o retrato e então
+>   sai com 1, numa linha `::error::`) e o bloco do passo 4 do docs/17 (que
+>   apaga o arquivo de saída). **Dois-pontos num trecho seguinte é caminho**
+>   (legal no Linux e no macOS; o repositório não tem nenhum); o que se perde é
+>   só listar um caminho cuja *primeira* pasta tenha dois-pontos, impossível
+>   no Windows, onde o Cérebro é curado. A lista real continua lendo igual: 16
+>   linhas de caminho (14 para a limpeza, 2 mantidas), 35 `sha256:`.
+> - **Documento curto (M1).** O piso de 3 páginas deixava passar 2 de 3, 2 de
+>   4, 2 de 9 e 1 de 2. A regra agora: falha quem tem **mais de 20% das
+>   páginas de fora e, além disso, ao menos 2 delas ou metade do documento**.
+>   Uma página ruim nunca derruba um documento de 3 páginas ou mais (1 de 3,
+>   1 de 4); 2 de 9 falha, 2 de 10 (20% exatos) passa, e de 10 páginas em
+>   diante só a fração decide, como antes. Um documento de uma página ilegível
+>   diz "a única página não pôde ser lida".
+> - **Mensagens (M2).** Um erro ao **abrir** o arquivo mostrava o texto em
+>   inglês do pypdf ("Maximum page tree entry limit reached: 100001 >
+>   100000"). Agora são duas frases em português, sem nada do pypdf: o
+>   arquivo corrompido ou não reconhecido, e a estrutura que passa dos limites
+>   — e o mesmo para a página ilegível de um upload, que dá o número da página
+>   e só o nome da classe. O teto de 4 MB por fluxo **fica**: um PDF com uma
+>   página de desenho vetorial denso (CAD, mapa, nuvem de pontos) é recusado
+>   inteiro, e a recusa agora diz a causa provável e a saída — exportar o PDF
+>   de novo "achatado" ou como imagem (Imprimir → Salvar como PDF), mandar sem
+>   a página ou mandar o texto. Pular a página, em vez de recusar, devolveria à
+>   VM o parse de todas as outras páginas do mesmo tamanho, e uma página assim
+>   quase não tem texto; não houve arquivo real para medir.
+> - **Releitura forçada (M3).** `forcar` relendo os mesmos bytes e falhando
+>   gravava "A versão nova (sha256 …)", e a nota ficava enquanto o arquivo não
+>   mudasse — o `status` diria `VERSÃO ANTERIOR` de um livro sem versão nova.
+>   Agora: "A releitura forçada (sha256 …) não pôde ser lida: …; os trechos já
+>   indexados destes mesmos bytes continuam na base", e o `status` dá o rótulo
+>   `RELEITURA FALHOU`.
+> - **Os ≈600 MB que sobraram (M4)** em `conhecimento.yml`, 13-deploy.md e
+>   neste D-101 viraram ≈528 MB, o número dos ponteiros depois da saída do
+>   Ashby.

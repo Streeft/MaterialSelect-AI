@@ -104,6 +104,12 @@ WRITE_FAILED_REASON = (
 _SKIPPED_NOTE = re.compile(r"(\d+) de (\d+) páginas não puderam ser lidas e ficaram de fora")
 #: What a kept-previous note starts with (:meth:`KnowledgeService._extraction_failed`).
 KEPT_PREVIOUS_PREFIX = "A versão nova (sha256 "
+#: ...and what it starts with when the bytes that failed are the ones already
+#: indexed — a forced re-read (``--force``, ``forcar``) of an unchanged file.
+#: There is no newer version then, and the note must not say there is: it
+#: stays on the row while the file is unchanged (``_unchanged`` never touches
+#: ``error``), so a wrong word there would be printed by every ``status``.
+FORCED_REREAD_PREFIX = "A releitura forçada (sha256 "
 
 
 def skipped_pages_note(skipped: int, count: int, reasons: dict[str, int]) -> str:
@@ -1088,10 +1094,18 @@ class KnowledgeService:
             carried = _skipped_sentence(document.error)
             budget = max(_REASON_BUDGET - (len(carried) + 1 if carried else 0), 80)
             motive = reason.strip().rstrip(".")[:budget]
-            document.error = (
-                f"{KEPT_PREVIOUS_PREFIX}{digest[:12]}) não pôde ser {stage}: {motive}. "
-                "Os trechos da versão anterior continuam na base."
-            ) + (f" {carried}" if carried else "")
+            if digest == document.checksum:
+                # The same bytes, read again on purpose: not a newer version.
+                note = (
+                    f"{FORCED_REREAD_PREFIX}{digest[:12]}) não pôde ser {stage}: {motive}. "
+                    "Os trechos já indexados destes mesmos bytes continuam na base."
+                )
+            else:
+                note = (
+                    f"{KEPT_PREVIOUS_PREFIX}{digest[:12]}) não pôde ser {stage}: {motive}. "
+                    "Os trechos da versão anterior continuam na base."
+                )
+            document.error = note + (f" {carried}" if carried else "")
             return DocumentOutcome(
                 path=relative,
                 action="falhou",

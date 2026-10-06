@@ -1793,7 +1793,10 @@ class TestNulFromTheExtractor:
         assert report.failed == 1
         assert document is not None and document.error
         assert "\x00" not in document.error
-        assert "objeto inválido" in document.error
+        # The parser's own text is not stored at all (M2 of the review of PR
+        # #100): a Portuguese sentence that quotes nothing of the file.
+        assert "objeto inválido" not in document.error
+        assert document.error.startswith("Não foi possível abrir o PDF: ")
 
     def test_a_manifest_title_spelling_nul_is_stored_without_it(
         self, db_session, corpus: Path
