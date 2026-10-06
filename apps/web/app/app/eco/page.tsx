@@ -93,7 +93,8 @@ function Podium({
       <span className="text-caption font-semibold text-ink-muted">
         {label}
       </span>
-      {dominance.phase ? (\n        <span className=\"text-sm text-ink\">
+      {dominance.phase ? (
+        <span className="text-sm text-ink">
           <strong>{dominance.label}</strong>
           {dominance.share !== null ? (
             <>
@@ -856,7 +857,8 @@ export default function EcoPage() {
         }
       >
         <div className="grid gap-4 sm:grid-cols-2">
-          {modeChoice === "compare" && (\n            <>
+          {modeChoice === "compare" && (
+            <>
               <Select
                 label={t.transportModeLabel}
                 value={selectedMode}
