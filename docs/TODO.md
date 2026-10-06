@@ -91,6 +91,17 @@ Ficam quatro passos fora do código:
    uploads dos Cadernos passam pela mesma regra e rodam na API) e **`ingerir`
    de novo** — ela roda no runner, do código de `main`, sem deploy; os
    documentos já gravados saem `inalterados`.
+   **06/10/2026, segunda `ingerir`** (execução 37473592736): 118 documentos
+   gravados e saída 1 por dois `FALHOU … Limit reached while decompressing` —
+   os dois Ashby em português, barrados pelo teto de 75 MB por fluxo do pypdf.
+   Corrigido no código (D-101, atualização do teto de descompressão): o
+   Cérebro lê com teto de 500 MB e pula a página que ainda não decodificar,
+   dizendo quantas (`PÁGINAS IGNORADAS`); o upload dos Cadernos mantém o
+   padrão do pypdf. Depois do merge: **`ingerir` de novo** (sem deploy; só os
+   dois Ashby são baixados e lidos — dentro dos 7 dias do cache do LFS não
+   gastam banda) e **Deploy da API** (o piso do pypdf subiu para 6.18). Antes
+   dela, decida o item "Os dois Ashby em português" (baixa prioridade): se um
+   sai pela lista de remoção, a `ingerir` nem o baixa.
 4. **Apagar o log público que tem texto de livro — já, sem esperar o merge.**
    O traceback daquela `ingerir` (execução **37415600025**, job 112113411666,
    passo "Ingerir") imprimiu o SQL e os parâmetros do `INSERT`: ~1000 trechos
@@ -137,9 +148,13 @@ uso; as três primeiras são decisão ou conferência do autor.
 - **Os dois Ashby em português.** ▁
   `01-Bibliografia/Michael Ashby (Auth.)-Seleção De Materiais No Projeto Mecânico (2012).pdf`
   (152 MB) e `01-Bibliografia/Selecao_de_Materiais_no_Projeto_Mecanico.pdf`
-  (103,5 MB) não são byte a byte iguais, e por isso os dois entram. Se forem a
-  mesma edição em dois scans, o texto aparece em dobro na busca e custa o dobro
-  de vetores. Abrir os dois e decidir se um sai (pela lista de remoção, D-100).
+  (103,5 MB) não são byte a byte iguais, e por isso os dois entram. Pelo título
+  e pelo tamanho são quase certamente o mesmo livro em dois scans — e foram os
+  dois que estouraram o teto de descompressão do pypdf na segunda `ingerir`
+  (D-101, 06/10). Se forem a mesma edição, o texto aparece em dobro na busca e
+  custa o dobro de vetores. **Decisão aberta do autor:** abrir os dois e
+  decidir se um sai (pela lista de remoção, D-100) — de preferência antes da
+  próxima `ingerir`, que é quando eles seriam baixados e indexados.
 - **Confirmar os limites do Neon e a memória do Fly.** ▁ O D-101 supôs 0,5 GB de
   armazenamento e 5 GB de transferência por mês no Neon gratuito; confira no
   painel do Neon. Depois da primeira consulta com a IA real, olhe a memória da

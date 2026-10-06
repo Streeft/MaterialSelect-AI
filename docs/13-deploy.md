@@ -586,6 +586,17 @@ idênticos entram uma vez só.
    documentos que falharam, que são baixados e lidos de novo.
    - `[ingest] SEM TEXTO … (provavelmente digitalizado)` é **aviso**: o PDF não
      tem texto extraível e o job continua verde.
+   - `[ingest] PÁGINAS IGNORADAS …: K de N não puderam ser lidas; o resto do
+     documento foi indexado.` também é **aviso**, e o job continua verde:
+     K páginas do PDF não decodificaram (fluxo acima de 500 MB, erro de zlib,
+     fluxo malformado) e ficaram de fora; as outras foram indexadas com o
+     número de página certo. A linha só traz contagens. Se *nenhuma* página
+     decodificar, o documento sai `FALHOU`. Um
+     `FALHOU …: Não foi possível ler o PDF: Limit reached while decompressing`
+     não deveria mais aparecer no Cérebro — era o teto de 75 MB do pypdf, que
+     derrubou os dois Ashby em português na `ingerir` de 06/10 ([D-101](DECISIONS.md),
+     atualização do teto de descompressão); o upload dos Cadernos continua com
+     ele, de propósito.
    - **Vermelho no download** (`O download do arquivo nº N do plano falhou`),
      na conferência (`… ainda são ponteiros do Git LFS`) ou com
      `FALHOU …: É um ponteiro do Git LFS, não o arquivo`: o LFS não trouxe tudo

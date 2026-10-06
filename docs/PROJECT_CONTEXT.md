@@ -165,7 +165,13 @@ manifesto). O `embed` nunca envia ao Gemini trecho de documento que esteja em
 `removidos.txt`, e a noturna para em 1000 pedidos. **O código está pronto; a execução é do
 autor**: Deploy da API → Provedor de IA (`gemini`) → `status` → `ingerir` → os
 vetores chegam em 1 a 2 noites, se o Gemini aceitar lote, ou em 2 a 4 semanas no
-pior caso ([13-deploy.md §5-septies](13-deploy.md)).
+pior caso ([13-deploy.md §5-septies](13-deploy.md)). A segunda `ingerir` (06/10)
+gravou 118 documentos e barrou dois — os Ashby em português, no teto de 75 MB
+por fluxo do pypdf, a guarda contra bomba de descompressão. O Cérebro passou a
+ler com teto de 500 MB e a pular, contando, a página que não decodifica; o
+upload dos Cadernos manteve a guarda. Falta rodar `ingerir` de novo, e decidir
+se um dos dois Ashby — quase certamente o mesmo livro em dois scans — sai
+([TODO](TODO.md)).
 
 **A falta que resta no trabalho como um todo não é de código** e não pode ser
 fechada por quem programa sozinho: a sessão de teste com usuários do §3.5 da
@@ -583,8 +589,8 @@ declarações do atributo, com o escopo indo a 4096.
 
 **Concorrência das cotas em PostgreSQL exercitada na CI** (D-97/D-99): quatro testes multithread contra PostgreSQL 16 (`test_notebook_quota_postgres.py`) validando o `UPDATE ... WHERE counter < limit` sob concorrência real (20 threads simultâneas em disputa na criação a partir do zero e na fronteira do limite, reserva e liberação concorrentes, e reserva com folga), sem estourar limites nem cair em race condition, executados na CI via contêiner de serviço PostgreSQL.
 
-**Saúde do código:** 3725 testes de backend (Python 3.11 e 3.12, nenhum skip
-na CI; sem `POSTGRES_TEST_URL`, 3719 passam e 6 pulam — os 4 das cotas e os 2
+**Saúde do código:** 3743 testes de backend (Python 3.11 e 3.12, nenhum skip
+na CI; sem `POSTGRES_TEST_URL`, 3737 passam e 6 pulam — os 4 das cotas e os 2
 da ingestão do Cérebro contra PostgreSQL) e 762 de frontend, todos
 verdes. Desde o P0-1 a suíte também roda as migrações de
 verdade, nos dois sentidos, contra um banco temporário que já contém dados —
@@ -1040,7 +1046,7 @@ que mais afetam quem for mexer no código:
 | Dependência de provedor de IA | Arquitetura desacoplada com provedor simulado; funciona sem chave. |
 | Incorporação inadvertida de dado protegido | Triagem de licenciamento (M1, item 4.2 da proposta) — `Source` registra licença/procedência, e uma fonte nova sem licença ou marcada como possivelmente protegida sem confirmação humana é recusada antes de qualquer linha ser escrita ([D-44](DECISIONS.md)). |
 | Resultado não reproduzível por interferência de IA | Cálculo determinístico + guardrails executáveis + confirmação do usuário. |
-| Regressão silenciosa | CI com 3725 testes de backend e 762 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
+| Regressão silenciosa | CI com 3743 testes de backend e 762 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
 | Material licenciado do Cérebro exposto em `main` (repositório público) | Risco aceito por decisão explícita do autor, não mitigado — o Cérebro é a base de conhecimento da camada de IA ([D-45](DECISIONS.md)). |
 | Texto dos livros do Cérebro enviado ao Gemini no plano gratuito, onde o Google pode usá-lo para melhorar os produtos | Risco aceito pelo autor ao escolher busca por vetores ([D-101](DECISIONS.md)); a alternativa sem envio é a busca só por palavras, que continua funcionando sozinha. Material na lista de remoção **nunca** é enviado: o `embed` lê `removidos.txt` e, sem conseguir lê-lo, não envia nada. |
 | Texto dos livros do Cérebro num log público do Actions (um traceback do SQLAlchemy imprime SQL e parâmetros) | Aconteceu uma vez, na primeira `ingerir` de 06/10 (execução 37415600025). Os CLIs do Cérebro imprimem só a classe de um erro de banco, sem traceback, e o motor tem `hide_parameters=True` ([D-101](DECISIONS.md), atualização de 06/10). O log já publicado só sai quando o dono o apaga (TODO A7, item 4). |

@@ -33,7 +33,9 @@ is not an ingestible file under the root — printed as ``[ingest] ERRO: …``,
 with nothing written; a bad ``--file`` is named by its position, never by the
 path typed, which may be a name the log must not publish); a document
 without extractable text — a scanned book — is a warning (``SEM TEXTO``) and
-does not fail the run on its own. A database error the per-document savepoint
+does not fail the run on its own, and neither does a PDF indexed with some
+pages left out because their bytes could not be decoded (``PÁGINAS
+IGNORADAS``, a count only; D-101). A database error the per-document savepoint
 does not absorb (a lost connection, the per-document commit) also exits 1,
 printed by its class name only — never the SQL nor its parameters.
 """
@@ -129,6 +131,12 @@ def format_report(report: IngestReport, *, embed: bool = True) -> list[str]:
             f"[ingest] busca semântica indisponível nesta execução: "
             f"{report.embeddings_skipped_reason}"
         )
+    for outcome in report.outcomes:
+        if outcome.action != "falhou" and outcome.skipped_pages:
+            lines.append(
+                f"[ingest] PÁGINAS IGNORADAS {_shown(outcome)}: {outcome.skipped_pages} de "
+                f"{outcome.page_count} não puderam ser lidas; o resto do documento foi indexado."
+            )
     for outcome in scanned:
         line = f"[ingest] SEM TEXTO {_shown(outcome)} (provavelmente digitalizado)"
         if outcome.kept_previous:

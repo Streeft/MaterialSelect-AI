@@ -29,8 +29,10 @@ dependencies = [
     "google-auth>=2.29",
     "charset-normalizer>=3,<4",
     # Cadernos (D-92): a student uploads a PDF in production, so the reader can
-    # no longer be an extra only the Cérebro's operator installs.
-    "pypdf>=4.2",
+    # no longer be an extra only the Cérebro's operator installs. 6.18 is the
+    # first with ``pypdf.apply_configuration``, the context-scoped limits the
+    # Cérebro reader raises for its own books and nobody else's (D-101).
+    "pypdf>=6.18",
 ]
 
 [project.optional-dependencies]
@@ -62,7 +64,7 @@ ai = [
 # Desde o D-92 o pypdf é dependência principal (os Cadernos leem PDF em
 # produção); o extra continua existindo para os comandos que já o citam.
 knowledge = [
-    "pypdf>=4.2",
+    "pypdf>=6.18",
 ]
 # A cobrança é opcional como a camada de IA: sem STRIPE_API_KEY configurada
 # nada importa o SDK de verdade (ver app/services/billing_service.py), e os
