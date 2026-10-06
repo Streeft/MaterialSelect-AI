@@ -57,6 +57,34 @@ react-hook-form não é memoizável) que é informativo e não tem correção lo
 A6 (Cérebro em `main`) foi decidido, não executado: ver "Débitos já
 quitados".
 
+**A7 — o que resta, e só o autor faz.** ▁ A remoção do banco de produção e a
+reescrita do histórico foram feitas em 30/09/2026, e a ingestão direcionada do
+`Links.md` saiu em código (ver "Débitos já quitados" e o [D-100](DECISIONS.md)).
+Ficam três passos fora do código:
+
+1. **Suporte do GitHub** ([`17-limpeza-historico-cerebro.md`](17-limpeza-historico-cerebro.md)
+   §10). Pedir a remoção das refs de PR (`refs/pull/*` — a do PR #56 guarda 65
+   dos arquivos fora de qualquer branch), dos objetos Git LFS órfãos, das
+   visões em cache e, onde couber, dos *forks*: todo commit e todo PR
+   anteriores à reescrita. Reescrever o histórico não apagou nada disso.
+2. **Clones antigos.** Todo clone feito antes de 30/09/2026 está do lado errado
+   da reescrita: apagar e clonar de novo, nunca `pull`, e não enviar nenhuma
+   branch criada antes dela (guia §9).
+3. **O Cérebro no RAG de produção — entregue em código ([D-101](DECISIONS.md));
+   falta a execução.** Só o `Links.md`, já: **Base de conhecimento (Cérebro)**
+   → `ingerir` com `arquivos: Links.md` (não baixa nada do LFS), ou a ação
+   `conhecimento_indexar_links` do `admin-banco.yml`. O Cérebro inteiro, na
+   ordem de [13-deploy.md §5-septies](13-deploy.md): **Deploy da API** →
+   **Provedor de IA** (`gemini`) → `status` → `ingerir` (fora do horário de
+   aula; baixa ≈631 MB do LFS, mais da metade da banda gratuita do mês — não
+   repita no mesmo mês sem necessidade) → os vetores vêm sozinhos à noite, ou
+   já com `embeddings` → `status` toda semana até `faltam 0`. O download
+   arquivo a arquivo (`git lfs smudge`) ainda não rodou no GitHub: a primeira
+   `ingerir` é o teste dele.
+
+Não registrado aqui: se os logs das execuções de `conhecimento_simular_remocao`
+e `conhecimento_remover` já foram apagados (guia §1.3 e §11) — conferir.
+
 ---
 
 ## Média prioridade
@@ -67,6 +95,46 @@ Nenhum item aberto no momento — M6 foi entregue nesta sessão (ver
 ---
 
 ## Baixa prioridade
+
+**Cérebro em produção — pendências deixadas pelo D-101.** Nenhuma bloqueia o
+uso; as três primeiras são decisão ou conferência do autor.
+
+- **As 121 cópias idênticas na árvore.** ▁ 18 PDFs da raiz de `Cérebro/` repetem
+  `01-`, `04-` e `05-`, e a pasta
+  `Fichas descritivas de materiais - Granta Edupack - Nível 2/` inteira repete
+  `03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/`. A ingestão já as indexa uma vez
+  só (fica a cópia declarada no manifesto), e desde a revisão final do D-101
+  uma `ingerir` nem as baixa do LFS; tirá-las do git não muda o RAG: muda o
+  tamanho do clone e o que o leitor da pasta vê. Decisão do autor — e um `git rm` não as tira do
+  histórico nem do armazenamento LFS.
+- **Documento que falhou é baixado de novo a cada `ingerir`.** ▁ O plano do
+  LFS só poupa o que está `EXTRAIDO` com os mesmos bytes; um `FALHOU` (um PDF
+  digitalizado, `SEM TEXTO`, inclusive) é baixado e lido de novo, como sempre
+  foi lido de novo. Se o Cérebro tiver digitalizados grandes, isso pesa na
+  banda de LFS do mês (o `[lfs] baixar …` diz quantos MB). Saída possível:
+  tratar um `FALHOU` com os mesmos bytes como falha conhecida, sem baixar,
+  com `--force` para tentar de novo — decisão do autor, porque é declarar a
+  falha permanente.
+- **Os dois Ashby em português.** ▁
+  `01-Bibliografia/Michael Ashby (Auth.)-Seleção De Materiais No Projeto Mecânico (2012).pdf`
+  (152 MB) e `01-Bibliografia/Selecao_de_Materiais_no_Projeto_Mecanico.pdf`
+  (103,5 MB) não são byte a byte iguais, e por isso os dois entram. Se forem a
+  mesma edição em dois scans, o texto aparece em dobro na busca e custa o dobro
+  de vetores. Abrir os dois e decidir se um sai (pela lista de remoção, D-100).
+- **Confirmar os limites do Neon e a memória do Fly.** ▁ O D-101 supôs 0,5 GB de
+  armazenamento e 5 GB de transferência por mês no Neon gratuito; confira no
+  painel do Neon. Depois da primeira consulta com a IA real, olhe a memória da
+  máquina no painel do Fly — o medido foi ≈100 MB por processo a 18 mil trechos,
+  numa VM de 512 MB.
+- **Reembedar as fontes antigas dos Cadernos.** ▁ Os vetores gravados antes do
+  D-101 têm 3072 dimensões (o tamanho nativo do `gemini-embedding-001`) e a
+  pergunta agora é embedada com 768: a busca semântica os ignora, e aquelas
+  fontes são achadas só por palavras. O `status` do workflow do Cérebro mostra
+  quantos são ("cadernos: … ficam fora da busca semântica"). Um comando que os
+  reembede, dentro da cota, na forma do `app.knowledge.embed`.
+- **Quantização int8 dos vetores.** ▁ Alavanca guardada, não pendência: os
+  vetores em `array('f')` ocupam ≈58 MB residentes a 18 mil × 768; em int8,
+  um quarto disso. Só vale se a memória do Fly apertar.
 
 **Cadernos — pendências deixadas pela fase 4 (D-98).** Nenhuma bloqueia o uso.
 
@@ -175,11 +243,6 @@ continua lá, e a métrica para de medir no 3.
 
 Registrados para não voltarem por engano:
 
-- ~~**Eco Audit: figura de barras por fase (Opção 1) e Seleção: reordenar por arraste (Opção 2)**~~ —
-  as duas melhorias funcionais restantes foram entregues em conjunto na Sessão 45:
-  1. **Eco Audit (P3 restante):** componente `PhaseBars.tsx` exibindo barras horizontais semânticas (`role="figure"`, `role="meter"`) para as cinco fases do ciclo de vida (energia e carbono), com suporte a modo individual e modo comparativo (Material A vs B), escalonamento dinâmico via `calculateBarWidth`, tratamento explícito de dados não calculados com motivo, e destaque verde com badge `(crédito)` para créditos de reciclagem (+9 testes unitários em `PhaseBars.test.tsx`).
-  2. **Seleção (P0-1 restante):** função pura e imutável `reorderStages` e integração completa de drag-and-drop em `StageList.tsx`, com handle de arraste `⠿` acessível (`title` e `aria-label`), feedback visual `ring-2 ring-brand-500 shadow-lift` no container de destino, preservando os botões ↑/↓ existentes como alternativa de acessibilidade por teclado (+6 testes unitários em `StageList.test.tsx`).
-  Cobertura total de testes: 3407 backend (inalterado) e 762 → 777 frontend (+15 testes, todos verdes).
 - ~~**Lote quádruplo de melhorias: Seleção (P0-1), Busca e Highlight (P1-1), Dimensionador Circular (P2) e Eco Audit Comparativo (P3)**~~ —
   as quatro frentes de refinamento funcional solicitadas pelo usuário foram implementadas e integradas de ponta a ponta na mesma PR:
   1. **Seleção (P0-1):** duplicação de estágio na pilha de seleção (`duplicateStage` em `apps/web/components/selection/StageList.tsx`), clonando recursivamente grupos e restrições com identificadores novos (`nextEditorId`), etiqueta `(cópia)` no rótulo, botão de ação `⧉` acessível com tooltip `t.stageDuplicate(n)` inserindo a duplicata logo abaixo do estágio original, e testes unitários (+3 testes frontend em `StageList.test.tsx`).
@@ -370,12 +433,12 @@ Registrados para não voltarem por engano:
   dois tipos: `limit` (a árvore do M6) e `tree` (seleção de pastas da taxonomia,
   **com descendentes** — o que `in_class` não sabe fazer, porque compara o slug
   da própria classe e todo material mora numa folha). Migração aditiva
-  `a1c4f2e8b7d3` com backfill; funil por estágio e seção "Estágios" nos dois
+  `a1c4f2e8b7d3` com backfill; funil por estágio e seção \"Estágios\" nos dois
   documentos; a pilha editável em `/app/selecao`, que continua abrindo com um
   único estágio para quem faz um estudo simples. **O P0-2 acrescentou o terceiro
   tipo, `process`** — ver a entrada abaixo. Fechou de passagem a lacuna de
   round-trip que o M6 deixou anotada. **O que ficou de fora, e é melhoria e não
-  bloqueio:** reordenar por arraste (entregue na Sessão 45; duplicação entregue na Sessão 44). O Chart Stage que
+  bloqueio:** reordenar por arraste (duplicação de estágio entregue na Sessão 44). O Chart Stage que
   filtra, também listado ali, saiu depois como P1-2 — ver a entrada abaixo.
 - ~~**P0-2** — não existia universo de processos~~ — `ProcessClass`
   hierárquica, `Process` e a associação N–N `material_process`, entregues em
@@ -416,7 +479,7 @@ Registrados para não voltarem por engano:
   Três defeitos no caminho, **dois deles não por asserção que falhou**: um
   estágio de limites num estudo de processos resolvia slugs contra o catálogo de
   materiais e então não admitia ninguém, sem explicação; a interpretação da IA
-  dizia "Partindo de 13 **materiais**" numa seleção de processos (achado lendo o
+  dizia \"Partindo de 13 **materiais**\" numa seleção de processos (achado lendo o
   laudo renderizado, e a mesma palavra chegava ao prompt de um provedor real); e
   habilitar o ranqueamento abriu a possibilidade de o mapa do laudo destacar
   materiais com ids de processo, fechada por guard de universo com teste que
@@ -436,7 +499,7 @@ Registrados para não voltarem por engano:
   virou **registro** e o segundo universo passou a se navegar
   ([D-61](DECISIONS.md)). `applications` e `characteristics` em `MaterialClass` e
   `ProcessClass` (texto editorial, **fora do princípio 1 por construção**, preso
-  pela regra oposta: NULL é "ninguém escreveu" e a tela escreve isso — D-24);
+  pela regra oposta: NULL é \"ninguém escreveu\" e a tela escreve isso — D-24);
   `GET /api/classes/{slug}` e `GET /api/processes/classes/{slug}` devolvendo
   prosa, trilha e subpastas, com o breadcrumb saindo de
   `app.domain.taxonomy.lineages` — a mesma travessia do Tree Stage, então trilha
@@ -446,9 +509,9 @@ Registrados para não voltarem por engano:
 
   **Uma decisão anterior foi revertida:** `process_count` passou a contar só
   processos ativos. Raciocínio inteiro no D-61 — o resumo é que o docstring do
-  repositório sempre disse que a contagem responde "esta pasta está vazia", que o
+  repositório sempre disse que a contagem responde \"esta pasta está vazia\", que o
   operador servido pela razão antiga não tem tela, e que o registro de família põe
-  a contagem ao lado da lista, onde "2 processos" seguido de um lê como página que
+  a contagem ao lado da lista, onde \"2 processos\" seguido de um lê como página que
   perdeu uma linha.
 
   **O que ficou de fora, e é melhoria e não bloqueio:** *Science Notes* e imagem
@@ -493,8 +556,7 @@ Registrados para não voltarem por engano:
   e a razão de a capacidade ficar em 3), e destacá-la nas figuras.
 - ~~**P2 restante** — o método parava antes de dimensionar~~ — Engineering Solver
   e Performance Index Finder, entregues em três passos
-  ([D-64](DECISIONS.md)). São **uma derivação só**: `app/calculations/
-  load_cases.py` guarda sete casos padrão com a derivação escrita por extenso, e
+  ([D-64](DECISIONS.md)). São **uma derivação só**: `app/calculations/\n  load_cases.py` guarda sete casos padrão com a derivação escrita por extenso, e
   a fatoração de Ashby vira literal — `massa = fator estrutural / índice`, com o
   índice **lido do catálogo pelo slug** e nunca reescrito no caso. Os dois
   espaços de nomes (variável de projeto × slug de propriedade) são separados e a
@@ -508,8 +570,7 @@ Registrados para não voltarem por engano:
   e ao laudo. O objetivo **custo** estava nesta lista e **saiu no P3**, junto com
   o Part Cost Estimator de que dependia ([D-65](DECISIONS.md)).
 - ~~**P3 (primeiro item)** — o Part Cost Estimator, e com ele o objetivo custo~~
-  — `POST /api/custo/estimar` estima `C = m·Cm/(1−f) + C_t/n + Ċ_oh/ṅ +
-  C_c/(ṅ·t_wo·L)` sobre os processos compatíveis com o material e devolve os
+  — `POST /api/custo/estimar` estima `C = m·Cm/(1−f) + C_t/n + Ċ_oh/ṅ +\n  C_c/(ṅ·t_wo·L)` sobre os processos compatíveis com o material e devolve os
   **quatro termos**, porque é o comportamento de cada um com o lote — material
   como piso, ferramental caindo com 1/n, os dois de tempo imóveis — que decide
   alguma coisa; `/app/custo` imprime coluna por coluna e o dimensionamento liga
@@ -552,7 +613,7 @@ Registrados para não voltarem por engano:
   existia sem uso), dois atributos de processo e `TransportMode` — nem material
   nem processo, com a justificativa no modelo.
 
-  **O que ficou de fora:** a figura de barras por fase (entregue na Sessão 45 com PhaseBars individual e comparativo), comparar dois materiais
+  **O que ficou de fora:** a figura de barras por fase, comparar dois materiais
   na mesma auditoria (entregue na Sessão 44 com comparação lado a lado, deltas e vencedores), e energia catalogada para aterro e incineração.
 - ~~**P3 (terceiro item)** — o Synthesizer~~ — `POST /api/synthesis/previa`,
   `POST /api/synthesis` e `/app/sintetizar` criam **materiais hipotéticos** a
@@ -614,8 +675,8 @@ Registrados para não voltarem por engano:
   `chart`, entregue em seis passos ([D-60](DECISIONS.md),
   [07-selecao-deterministica.md](07-selecao-deterministica.md)). Carrega o plano,
   a caixa (um limite por eixo, em coordenadas de dados, nunca pixel) e a linha
-  iso-índice no nível **guardado** — número e não "a linha que passa pelo
-  material 7", porque um estudo salvo tem de reexecutar para a mesma resposta.
+  iso-índice no nível **guardado** — número e não \"a linha que passa pelo
+  material 7\", porque um estudo salvo tem de reexecutar para a mesma resposta.
   Três coisas que valem mais do que parecem: **um eixo pode ser quantidade
   derivada** (é o que um estágio de limites, que nomeia slug de propriedade, não
   alcança); **registro não plotável não passa**, mesmo onde a caixa não limita
@@ -630,8 +691,8 @@ Registrados para não voltarem por engano:
   **arrastando** no gráfico da tela~~ (entregue no Opção A / D-60: seleção
   interativa por cursor com modo `select2d`, conversão de escala linear/log,
   sincronização bidirecional de shapes no Plotly, preview dinâmico no estágio e
-  atalho direto "Criar estágio na Seleção" via deep link) — ~~resta o mapa
-  do universo de processos~~ (entregue: suporte a `universe="process"` em
+  atalho direto \"Criar estágio na Seleção\" via deep link) — ~~resta o mapa
+  do universo de processos~~ (entregue: suporte a `universe=\"process\"` em
   `property_map`, nuvens e envelopes convexos por família de processos, rejeição
   estrita de atributos discretos conforme Regra D-59, rejeição de índices
   analíticos, e preview interativo completo tanto em `/app/mapas` quanto no
@@ -659,7 +720,7 @@ Registrados para não voltarem por engano:
      inteira de uma vez.
   2. **A migração do Vite 6 mudou de lugar as condições de resolução do SSR, e
      isso derrubou nove testes de shadow DOM.** O `vitest.config.ts` já trazia
-     `resolve.conditions: ["browser"]` com um comentário explicando por quê: sem
+     `resolve.conditions: [\"browser\"]` com um comentário explicando por quê: sem
      ele o `lit-html` resolve pelo build `node/`, que tem `isServer` fixo em
      `true` e desliga em silêncio o mixin de delegação de ARIA do
      `@material/web`. Desde o Vite 6 o pipeline de SSR lê as **suas próprias**
@@ -676,7 +737,7 @@ Registrados para não voltarem por engano:
   **E um achado que não estava no enunciado do S2:** o lockfile antigo tinha
   `resolved`/`integrity` em apenas **59 de 1095** entradas, então o `npm audit`
   não conseguia identificar a maior parte da árvore para conferir contra a base
-  de avisos. Os "27 achados, nenhum deles em código de produção" eram
+  de avisos. Os \"27 achados, nenhum deles em código de produção\" eram
   subcontagem: os dois críticos de `plotly.js`/`maplibre-gl` já estavam lá, nas
   mesmas versões, e simplesmente não eram reportados. O lockfile regenerado é
   completo, e por isso o número de agora é comparável ao que qualquer outra
@@ -714,10 +775,10 @@ Registrados para não voltarem por engano:
      (`/_next/*`)**, e trata `127.0.0.1` como origem diferente de `localhost`.
      Como a suíte E2E serve e navega em `127.0.0.1:3011`, o runtime do cliente
      era recusado, **a página não hidratava** e os dois specs morriam olhando
-     para o "Verificando sessão…" renderizado no servidor. O diagnóstico foi
+     para o \"Verificando sessão…\" renderizado no servidor. O diagnóstico foi
      difícil justamente porque não havia requisição falhando para apontar: o
      recurso bloqueado era o que dispararia as requisições. Corrigido com
-     `allowedDevOrigins: ["127.0.0.1"]` no `next.config.mjs` handicaps.
+     `allowedDevOrigins: [\"127.0.0.1\"]` no `next.config.mjs`.
 
   **E um quarto achado, que não é do Next mas veio à tona por ele:**
   `selectMwcOption` (`e2e/mwc.ts`) devolvia o controle enquanto o menu do
@@ -735,8 +796,8 @@ Registrados para não voltarem por engano:
   pública, migração para `/app`)~~ — sete tarefas dirigidas por subagentes
   mais uma rodada final de verificação (plano em
   `.superpowers/sdd/2026-09-03-design-system-prisma/`). **Fase 1** (tokens e
-  primitivas): `app/globals.css` ganhou blocos `[data-section="…"]` por
-  rota — cada área do produto com seu próprio matiz de `--brand-*`/
+  primitivas): `app/globals.css` ganhou blocos `[data-section=\"…\"]` por
+  rota — cada área do produto com seu próprio matiz de `--brand-*`/\
   `--accent`, trocado via `data-section` no `<html>`
   (`components/layout/SectionTheme.tsx`) — substituindo a paleta única de
   D-38 sem revogar o método de medição dela: par mais apertado 5,59:1 (era
@@ -746,9 +807,8 @@ Registrados para não voltarem por engano:
   variam por rota. **Fase 2** (camada comercial): `/` virou a vitrine
   pública (`components/marketing/Landing.tsx`, sem sidebar nem portão de
   login), nove árvores de rota migraram para `/app/*` — as seis rotas do
-  produto (`selecao`, `mapas`, `comparar`, `catalogo`, `painel`,
-  `importar`) mais `estilo`, `admin` e `materiais`, as últimas três fora
-  da lista de rotas da própria spec e descobertas só durante a Tarefa 5 —
+  produto (`selecao`, `mapas`, `comparar`, `catalogo`, `painel`,\n  `importar`) mais `estilo`, `admin` e `materiais`, as
+  últimas três fora da lista de rotas da própria spec e descobertas só durante a Tarefa 5 —
   levando `AuthGate` junto — achado nesta sessão e não no README do
   patch, que só falava em mover `AppSidebar`/`LimitationNotice`: é
   `AuthGate` que hoje condiciona toda rota a sessão + assinatura ativa, e
@@ -757,17 +817,17 @@ Registrados para não voltarem por engano:
   renderizar ao lado de `MaterialTable` no catálogo (`sm:hidden`/`hidden
   sm:block`), DOM duplicado de propósito — custo aceito porque o catálogo
   é paginado. `PageHeader` substitui o `<h1>` manual em dez arquivos de
-  rota (`group="estudar"`: seleção/mapas/comparar; `group="dados"`:
+  rota (`group=\"estudar\"`: seleção/mapas/comparar; `group=\"dados\"`:
   catálogo/painel/importar; mais admin/classes, admin/propriedades,
   materiais/novo e materiais/[id]/editar);
   `/entrar` e `/assinatura` ficam de fora por decisão do próprio spec, que
   não lhes dá seção. **Descartado por decisão do spec, não por omissão:** a
-  "coluna de cobertura" do catálogo que o README do patch pedia para ganhar
+  \"coluna de cobertura\" do catálogo que o README do patch pedia para ganhar
   `Bar` — não existe tal coluna nesta base, e o item foi abandonado já na
   Fase 1 em vez de forçado. Preços na vitrine ficam com `R$ —` (três
   planos, eixo definido — número de materiais, quem pode importar — nenhum
-  valor inventado, item 1 da metodologia). Os cinco "refinamentos ainda
-  opcionais" do README do patch continuam fora de escopo, registrados aqui
+  valor inventado, item 1 da metodologia). Os cinco \"refinamentos ainda
+  opcionais\" do README do patch continuam fora de escopo, registrados aqui
   em vez de silenciosamente descartados: `tabular-nums` generalizado,
   `PanelShell` em todo shell de rota, estudos-modelo por query string em
   `/selecao`, aviso de demonstração como convite de ativação, e qualquer
@@ -777,19 +837,17 @@ Registrados para não voltarem por engano:
   antes desta entrega chegar aqui:** a Task 6 devolveu um badge
   `is_demo`/`keywords` que faltava em `MaterialCards` (presente na tabela,
   ausente no cartão) e documentou a remoção do toggle manual
-  "Tabela/Cartões" do catálogo como [D-50](DECISIONS.md) — a troca por
+  \"Tabela/Cartões\" do catálogo como [D-50](DECISIONS.md) — a troca por
   breakpoint automático era a leitura técnica certa (a spec pede
   exatamente isso), mas tinha saído sem registro.
 
   **Esta tarefa (verificação final) achou e corrigiu mais dois, nenhum
-  coberto por teste automatizado até agora:** (1) `apps/web/e2e/golden-
-  path.spec.ts` quebrava em modo estrito do Playwright —
+  coberto por teste automatizado até agora:** (1) `apps/web/e2e/golden-\n  path.spec.ts` quebrava em modo estrito do Playwright —
   `getByText(MATERIAL_RIGIDO)` resolvia a dois elementos (o cartão novo da
   Task 6 e a linha da tabela, ambos no DOM ao mesmo tempo por desenho, só
   um visível por CSS de breakpoint) — corrigido escopando a leitura para
-  `page.getByRole("table").getByText(…)`. (2) um bug de CSS real, achado só
-  em navegador de verdade: os seis blocos `[data-theme="dark"]
-  [data-section="…"]` em `globals.css` usavam combinador descendente
+  `page.getByRole(\"table\").getByText(…)`. (2) um bug de CSS real, achado só
+  em navegador de verdade: os seis blocos `[data-theme=\"dark\"]\n  [data-section=\"…\"]` em `globals.css` usavam combinador descendente
   (espaço) em vez de seletor composto, mas `data-theme` e `data-section`
   são escritos no mesmo elemento (`<html>`, não em dois aninhados) — a
   regra nunca casava, e as seis rotas caíam silenciosamente na cor de
@@ -803,7 +861,7 @@ Registrados para não voltarem por engano:
   na hora, já que os cinco materiais de seed não tinham nenhum candidato
   sem escore: um material importado sem `modulo_young` recebe `score: null`
   no ranking e `Bar` não renderiza nenhum preenchimento — nem 0%, nem
-  100% — só o rótulo "Dados ausentes: modulo_young"; o material com escore
+  100% — só o rótulo \"Dados ausentes: modulo_young\"; o material com escore
   completo (único candidato pontuável) recebe 100%. 872 testes de backend
   (intocado por esta tarefa), 193 de frontend, 2 E2E e Lighthouse (11
   rotas, 33 execuções) verdes ao final.
@@ -816,20 +874,19 @@ Registrados para não voltarem por engano:
   comparativa e alternador interativo das sete paletas por rota introduzidas
   por D-49.
 - ~~**M5** — Métodos multicritério adicionais (TOPSIS, AHP, PROMETHEE)~~ —
-  implementado **por pedido explícito do orientador**, revertendo a nota "só
-  faça se o orientador pedir" que este item carregava antes: o usuário
+  implementado **por pedido explícito do orientador**, revertendo a nota \"só
+  faça se o orientador pedir\" que este item carregava antes: o usuário
   confirmou explicitamente que o orientador pediu, então o item deixou de
   estar fora de escopo. `app/domain/ranking.py` ganhou `rank_topsis` e
   `rank_promethee`, ambos reaproveitando a mesma entrada genérica (critérios
   com direção/peso/normalização) da soma ponderada já existente via o
   auxiliar compartilhado `_split_complete_and_excluded` — exclusão de dado
   ausente e renormalização de pesos idênticas nos três métodos, nunca
-  reimplementadas. **TOPSIS** decide por proximidade a um ponto ideal/anti-
-  ideal; decisão de escopo registrada no próprio docstring: ao contrário da
+  reimplementadas. **TOPSIS** decide por proximidade a um ponto ideal/anti-\n  ideal; decisão de escopo registrada no próprio docstring: ao contrário da
   soma ponderada, a contribuição por critério não soma o escore (a razão de
   distâncias não é uma agregação linear). **PROMETHEE II** decide por fluxo
   de saída líquido de comparações pareadas; decisão de escopo: só a função de
-  preferência "usual" (tipo I), sem limiares de indiferença/preferência, e
+  preferência \"usual\" (tipo I), sem limiares de indiferença/preferência, e
   exige ao menos dois materiais completos para comparar. `app/domain/ahp.py`
   ganhou `derive_weights` para obter pesos de critério a partir de uma matriz
   de comparação pareada (escala 1–9 de Saaty): pesos por **média normalizada
@@ -853,7 +910,7 @@ Registrados para não voltarem por engano:
   candidatos completos após o filtro derrubava a resposta inteira em vez de
   degradar como `weighted_sum`/TOPSIS já faziam; e `method` passou a
   aparecer de fato no painel de proveniência dos resultados e na nota de
-  "Contribuições" do relatório/laudo, que antes afirmavam algo falso para
+  \"Contribuições\" do relatório/laudo, que antes afirmavam algo falso para
   TOPSIS especificamente. Detalhe completo em
   `.superpowers/sdd/2026-09-01-m5-m6-multicriterio-e-restricoes-aninhadas/final-fix-wave-report.md`.
 - ~~**M6** — Restrições com parênteses lógicos~~ — `ConstraintGroup`
@@ -866,8 +923,7 @@ Registrados para não voltarem por engano:
   importa contra um banco com estudos salvos). `app/domain/filters.py` ganhou
   `ConstraintGroupNode` (dataclass simples, sem SQLAlchemy — `domain` não
   importa isso) e `apply_constraint_tree`, que percorre a árvore
-  recursivamente por material; `test_single_root_group_matches_flat_apply_
-  constraints` prova que um grupo raiz sem filhos avalia **identicamente** ao
+  recursivamente por material; `test_single_root_group_matches_flat_apply_\n  constraints` prova que um grupo raiz sem filhos avalia **identicamente** ao
   `apply_constraints` plano de antes — a garantia de compatibilidade
   retroativa do backfill, não só descrita, testada. Na API,
   `ConstraintGroupIn` (`app/schemas/selection.py`) é opcional em
@@ -877,7 +933,7 @@ Registrados para não voltarem por engano:
   árvore de verdade, raiz primeiro e filhos em profundidade. No frontend,
   `apps/web/components/selection/ConstraintEditor.tsx` virou um editor de
   árvore recursivo — cada grupo com seu próprio alternador AND/OR e
-  "Adicionar grupo"/"Adicionar restrição" em qualquer profundidade — e
+  \"Adicionar grupo\"/\"Adicionar restrição\" em qualquer profundidade — e
   `/selecao` passa a enviar `root_group` ao rodar ou salvar. ~~**Limitação
   conhecida, registrada e não corrigida nesta entrega:**~~ `GET
   /api/selection/studies/{id}` devolvia as restrições como lista plana, então
@@ -892,7 +948,7 @@ Registrados para não voltarem por engano:
   laudo de engenharia (D-41) descrevia a lógica de um estudo aninhado como
   um único combinador achatado, com linhas de subgrupo opacas — corrigido
   com `SelectionService.describe_root_group` (hoje `describe_pipeline`, D-56), que renderiza a árvore
-  AND/OR real na aba "Problema" do relatório/laudo. Total final: 872 testes
+  AND/OR real na aba \"Problema\" do relatório/laudo. Total final: 872 testes
   de backend, 179 de frontend.
 - ~~**B1–B10**~~ — as dez pendências de baixa prioridade, entregues numa
   sessão dirigida por subagentes (o plano de implementação existiu em
@@ -902,7 +958,7 @@ Registrados para não voltarem por engano:
   base64url, com o link antigo `?x=&y=` continuando a funcionar). **B7**
   `SavedChart` — configuração de mapa salva e reaberta, isolada por projeto
   no mesmo padrão de `SelectionStudy` (D-42); a revisão final de branch
-  pegou um bug real (o botão "carregar" aplicava os dados da *lista*, que
+  pegou um bug real (o botão \"carregar\" aplicava os dados da *lista*, que
   omite `configuration` de propósito, em vez de buscar o registro completo —
   corrigido). **B6** envelope elíptico ajustado como alternativa ao fecho
   convexo (`app/domain/geometry.py::fitted_ellipse`, autovalores em forma
@@ -957,18 +1013,15 @@ Registrados para não voltarem por engano:
   skip) depois da rodada de correção da revisão final e da PR #26. Ver
   [D-47](DECISIONS.md) e [09-camada-ia.md](09-camada-ia.md).
 - ~~**M4** — Unificar o contrato de tipos~~ — npm workspaces (`package.json`
-  na raiz, `workspaces: ["apps/web", "packages/shared-types"]`) +
-  `transpilePackages` em `next.config.mjs`. `packages/shared-types/index.ts`
+  na raiz, `workspaces: [\"apps/web\", \"packages/shared-types\"]`) +\n  `transpilePackages` em `next.config.mjs`. `packages/shared-types/index.ts`
   passa a ser importado de verdade por `apps/web` (como
   `@materialselect/shared-types`), não só copiado à mão; `apps/web/lib/types.ts`
   virou um barril de reexportação, preservando os 39 pontos de importação que já
-  usavam `@/lib/types`. A divergência que a duplicação escondia (`x_quality`/
-  `y_quality` não-nulos em `shared-types`, corretamente nulos em
+  usavam `@/lib/types`. A divergência que a duplicação escondia (`x_quality`/\n  `y_quality` não-nulos em `shared-types`, corretamente nulos em
   `apps/web/lib/types.ts`) foi resolvida ao consolidar num arquivo só — a
   versão de `apps/web`, que era a exercitada pelo typechecker. Ver [D-16](DECISIONS.md).
 - ~~**M9** — Reconciliar as duas arquiteturas de cobrança~~ — **decidido: o
-  portão binário do plano de 18/08 é o que fica ligado.** `require_active_
-  subscription` passou a valer em todo router exceto `health`/`auth`/`billing`;
+  portão binário do plano de 18/08 é o que fica ligado.** `require_active_\n  subscription` passou a valer em todo router exceto `health`/`auth`/`billing`;
   o plano Free/Pro de 21/08 fica registrado como desenho alternativo, não
   implementado. `AuthGate.tsx` voltou a dois estágios (`/auth/me` →
   `/billing/status`); a sessão fixa de E2E/Lighthouse já escrevia uma
@@ -1023,7 +1076,7 @@ Registrados para não voltarem por engano:
   `GET /api/sources` lista toda fonte com sua licença e revisor. Ver
   [D-44](DECISIONS.md).
 - ~~**A2** — Estudo de caso didático completo~~ — o tirante leve e rígido
-  ("light, stiff tie") de Ashby, reproduzido do enunciado ao relatório
+  (\"light, stiff tie\") de Ashby, reproduzido do enunciado ao relatório
   exportado contra a aplicação real (não simulado): nove materiais reais de
   literatura (não o `sample-data/` fictício) importados pelo assistente de
   importação, o índice `rigidez-especifica` já semeado, uma restrição de
@@ -1059,21 +1112,19 @@ Registrados para não voltarem por engano:
 - ~~**A4** — testes end-to-end dos fluxos~~ — Playwright cobre importar →
   selecionar → visualizar → exportar como uma sessão contínua no navegador,
   contra API e banco (SQLite, descartável) próprios, em portas isoladas das de
-  desenvolvimento (`apps/web/e2e/`, `apps/web/playwright.config.ts`,
-  `apps/api/scripts/e2e_server.py`; `npm run test:e2e`). Achou um bug real de
+  desenvolvimento (`apps/web/e2e/`, `apps/web/playwright.config.ts`,\n  `apps/api/scripts/e2e_server.py`; `npm run test:e2e`). Achou um bug real de
   produção antes de ir ao ar: a sugestão automática de coluna na importação
   (`_suggest`, `app/importers/service.py`) comparava um slug hifenizado
   (`slugify()` sempre usa `-`) contra o slug armazenado, que usa `_` — então
-  **toda propriedade de nome composto** ("Módulo de Young", "Limite de
-  escoamento" etc.) nunca era sugerida automaticamente, e só "Densidade"
+  **toda propriedade de nome composto** (\"Módulo de Young\", \"Limite de
+  escoamento\" etc.) nunca era sugerida automaticamente, e só \"Densidade\"
   (palavra única) por coincidência funcionava. Corrigido comparando os dois
   lados já normalizados; regressão coberta em `test_imports_api.py`.
 - ~~**B11** — Playwright (A4) como check obrigatório de CI~~ — job
   `E2E (Playwright)` em `ci.yml`: Python + Node no mesmo runner, Chromium via
   `--with-deps`, `npm run test:e2e`, relatório HTML publicado como artefato
   quando falha. `playwright.config.ts` resolvia o Python fixo em
-  `.venv/Scripts/python.exe` (layout Windows) — não existe no runner Ubuntu;
-  agora `E2E_API_PYTHON` sobrepõe o caminho, e o workflow passa
+  `.venv/Scripts/python.exe` (layout Windows) — não existe no runner Ubuntu;\n  agora `E2E_API_PYTHON` sobrepõe o caminho, e o workflow passa
   `E2E_API_PYTHON=python`, o que o `setup-python` já deixa no PATH.
   `scripts/protect-main.ps1` ganhou o nome do check e foi rodado contra o
   repositório.
@@ -1109,6 +1160,6 @@ Registrados para não voltarem por engano:
   o repositório passou a ser **público**: no GitHub Free a proteção de branch
   não existe em repositório privado, e tanto `PUT /branches/main/protection`
   quanto `POST /rulesets` respondiam
-  `403 — "Upgrade to GitHub Pro or make this repository public"`
+  `403 — \"Upgrade to GitHub Pro or make this repository public\"`
   (ver [DECISIONS.md](DECISIONS.md) D-22). Reaplicável e auditável por
   `scripts/protect-main.ps1`, que é idempotente.
