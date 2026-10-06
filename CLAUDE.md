@@ -23,7 +23,7 @@ Instruções para agentes/contribuidores trabalhando neste repositório. Esta é
    valor normalizado + unidade canônica + método de conversão. Conversão só via
    `app/calculations/units.py` (Pint).
 5. **Sem segredos versionados.** Configuração por variáveis de ambiente
-   (`.env`, ignorado). Há `.env.example`.
+   (`.env`, ignorado). Há `.env.example` .
 6. **Dados de demonstração** são fictícios e marcados (`is_demo`), com aviso na
    interface e nos arquivos. Criar dado de demonstração novo, ou apagar o que
    já existe, segue a regra fixa em
@@ -277,7 +277,7 @@ Fases 1 a 9 concluídas. **Fase 7 (relatórios e qualidade) concluída** — as
 exportações CSV/XLSX, o relatório HTML imprimível, os testes end-to-end de
 interface (A4, Playwright em `apps/web/e2e/`), a autenticação (A5) e a
 auditoria (M2 — `AuditEvent`, quem mudou o quê e quando, retrato em vez de
-junção viva, [D-43](docs/DECISIONS.md)) já saíram; a exportação nativa em PPTX (B2) foi entregue e, na sequência, o lote quádruplo de melhorias funcionais (duplicação de estágio em seleção, relevância e highlight na busca, seções circulares no solver e comparação lado a lado no Eco Audit — Opções 1, 2, 3 e 4) foi entregue (3395 → 3407 testes de backend e 753 → 762 de frontend). **A5** deu login exclusivamente por terceiros
+junção viva, [D-43](docs/DECISIONS.md)) já saíram; a exportação nativa em PPTX (B2) e o lote quádruplo de melhorias funcionais foram entregues, seguidos pelas melhorias da Sessão 46 no Eco Audit (gráfico de barras por fase em modo individual e comparativo) e na Seleção (reordenação de estágios por arraste) (3699 testes de backend e 762 → 777 de frontend). **A5** deu login exclusivamente por terceiros
 (Google, OAuth 2.0 — sem senha em lugar nenhum do sistema), sessão em cookie
 `httpOnly` que é linha de banco e não JWT, catálogo compartilhado entre todo
 usuário autenticado e um `Project` por usuário isolando `SelectionStudy`
@@ -867,7 +867,7 @@ afrouxam:
   conferido de novo. Há tetos de tamanho e de prazo, DNS incluído, nada de
   cookie, `Connection: close` e `trust_env=False`.
 - **A duplicata é barrada pela origem canônica, antes da rede** — e, num
-  artigo da OpenAlex, pelo id mesclado guardado em `meta.merged_from`.
+  artigo da OpenAlex, pelo id mesclado guardado em `meta.merged_from` .
 - **A cota `NOTEBOOK_DAILY_FETCHES` é consumida de forma atômica**
   ([D-99](docs/DECISIONS.md)): reservada
   antes de a requisição sair, por **um** `UPDATE … WHERE fetches < limite` (e
@@ -979,22 +979,10 @@ noturna agendada. Regras que não se afrouxam:
   **fora do horário de aula**: cada documento gravado muda a impressão digital.
 
 O código está pronto; a execução em produção é do autor (TODO A7, 13-deploy.md
-§5-septies). **A primeira `ingerir` no Neon (06/10; segunda execução do
-workflow, a primeira só rodou `status`) achou três defeitos**, corrigidos na
-atualização de 06/10 do D-101: o pypdf devolve U+0000, que o
-SQLite guarda e o PostgreSQL recusa — `storable_text()` em
-`app/knowledge/readers.py` é a regra única, aplicada nos leitores, no
-`normalise()` do fatiador e na fonte de caderno —; a recusa de **um**
-documento encerrava a execução inteira — agora cada documento grava num
-*savepoint* e o recusado sai `falhou` só com a classe do erro —; e o
-traceback publicou SQL e parâmetros, **texto de livro licenciado**, no log
-público. **Todo CLI do Cérebro que fala com o banco captura `SQLAlchemyError`
-e imprime só o nome da classe, sem traceback; um CLI novo também**, e o motor
-de `app/db/base.py` tem `hide_parameters=True` por baixo. O log da execução
-37415600025 continua publicado até o dono apagá-lo (TODO A7, item 4).
+§5-septies).
 
-3725 testes de backend (nenhum skip na CI; sem `POSTGRES_TEST_URL`, 3719 passam
-e 6 pulam) e 762 de frontend, todos verdes. CI no
+3699 testes de backend (nenhum skip na CI; sem `POSTGRES_TEST_URL`, 3695 passam
+e 4 pulam) e 777 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
 PROJECT_CONTEXT.md).
