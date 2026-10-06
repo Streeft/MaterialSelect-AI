@@ -297,3 +297,13 @@ class TestTitle:
     def test_no_title_is_none(self) -> None:
         title, _ = extract_html(_page(f"<p>{PROSE}</p>", head=""))
         assert title is None
+
+
+def test_a_raw_nul_in_the_markup_reaches_neither_text_nor_title():
+    # The extractor drops a raw U+0000 today; this keeps it a contract, since
+    # PostgreSQL would refuse the source (SQLite would not notice).
+    body = "O aço\x00 carbono tem módulo de 210 GPa e densidade de 7850 kg/m³. " * 6
+    title, extracted = extract_html(f"<title>Aço\x00 carbono</title><p>{body}</p>")
+    assert title == "Aço carbono"
+    assert "\x00" not in extracted.pages[0]
+    assert "O aço carbono tem módulo de 210 GPa" in extracted.pages[0]

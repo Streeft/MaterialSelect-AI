@@ -33,7 +33,9 @@ is not an ingestible file under the root — printed as ``[ingest] ERRO: …``,
 with nothing written; a bad ``--file`` is named by its position, never by the
 path typed, which may be a name the log must not publish); a document
 without extractable text — a scanned book — is a warning (``SEM TEXTO``) and
-does not fail the run on its own.
+does not fail the run on its own. A database error the per-document savepoint
+does not absorb (a lost connection, the per-document commit) also exits 1,
+printed by its class name only — never the SQL nor its parameters.
 """
 
 from __future__ import annotations
@@ -42,6 +44,8 @@ import argparse
 import sys
 from collections import Counter
 from pathlib import Path, PurePosixPath
+
+from sqlalchemy.exc import SQLAlchemyError
 
 from app.db.base import SessionLocal
 from app.domain.errors import ValidationError
@@ -194,6 +198,19 @@ def main(argv: list[str] | None = None) -> None:
         # manifest): one line saying why reads better in a log than a
         # traceback.
         print(f"[ingest] ERRO: {exc}")
+        sys.exit(1)
+    except SQLAlchemyError as exc:
+        # What the per-document savepoint does not record — a lost connection,
+        # the per-document commit, anything written outside it — ends the run
+        # here. The class name only: SQLAlchemy's message quotes the statement
+        # and its bound parameters, which are passages of the books and paths
+        # the manifest does not declare, and this log is public. No traceback
+        # either: ``sys.exit`` inside ``except`` chains nothing to stderr.
+        print(
+            f"::error::[ingest] ERRO: o banco de dados recusou ou perdeu a conexão "
+            f"({type(exc).__name__}); o que já foi gravado por documento fica. Confira o "
+            f"secret DATABASE_URL e se o banco está no ar, e repita: a ingestão é idempotente."
+        )
         sys.exit(1)
 
     for line in format_report(report, embed=embed):

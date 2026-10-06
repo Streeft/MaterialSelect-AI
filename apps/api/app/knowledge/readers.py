@@ -16,6 +16,11 @@ the only thing that has to change.
 Nothing here raises on a page it cannot read. A PDF of scanned images yields
 empty pages, and empty is the honest answer: no OCR runs, so no text is
 invented to fill the gap.
+
+Every reader returns text a database can store (:func:`storable_text`): pypdf
+hands back U+0000 for a glyph it cannot map, SQLite stores it and PostgreSQL
+refuses the whole insert — which is how a production ingestion died on one
+PDF that every test had accepted.
 """
 
 from __future__ import annotations
@@ -45,6 +50,29 @@ _MD_LINK = re.compile(r"\[([^\]]*)\]\(((?:[^()\s]|\([^()\s]*\))+)\)")
 # A quote mark is ``>`` followed by a space or the end of the line, so a line
 # that *starts* with a comparison (``>= 5 MPa``) keeps its operator.
 _MD_LINE_MARK = re.compile(r"^\s{0,3}(?:#{1,6}\s+|>+(?:\s|$)|[-*+]\s+)")
+
+# What no text column of PostgreSQL can hold: U+0000, refused outright ("text
+# fields cannot contain NUL (0x00) bytes"), and a surrogate code point, which
+# has no UTF-8 encoding and fails in the driver before the server sees it.
+_UNSTORABLE = re.compile("[\x00\ud800-\udfff]")
+
+
+def storable_text(text: str) -> str:
+    """``text`` as a text column can store it, on any database this project uses.
+
+    U+0000 is *removed* — it is not a character a reader sees, only the trace
+    of a glyph the extractor could not map — and a lone surrogate becomes
+    U+FFFD, the replacement character, so the gap stays visible. Nothing else
+    changes: every other control character is legal in PostgreSQL ``text``, and
+    rewriting it would edit the document's words.
+
+    SQLite accepts U+0000, so the test suite never saw the failure; this is the
+    one rule, reused by every reader, the chunker and the services that write
+    a document, a passage or a notebook source.
+    """
+    if not _UNSTORABLE.search(text):
+        return text
+    return _UNSTORABLE.sub(lambda match: "" if match.group() == "\x00" else "\ufffd", text)
 
 
 @dataclass
@@ -79,9 +107,11 @@ def read_pdf(path: Path | io.BytesIO) -> ExtractedText:
 
     try:
         reader = PdfReader(path if isinstance(path, io.BytesIO) else str(path))
-        pages = [(page.extract_text() or "") for page in reader.pages]
+        pages = [storable_text(page.extract_text() or "") for page in reader.pages]
     except Exception as exc:  # pypdf raises many types for malformed files
-        raise ValidationError(f"Não foi possível ler o PDF: {exc}") from exc
+        # pypdf's message may quote the file's own bytes, NUL included, and it
+        # ends up in ``knowledge_document.error``.
+        raise ValidationError(f"Não foi possível ler o PDF: {storable_text(str(exc))}") from exc
 
     return ExtractedText(pages=pages)
 
@@ -164,12 +194,14 @@ def decode_text(data: bytes) -> str:
     """Bytes of a plain-text file as text, whatever its encoding.
 
     A file with a NUL byte is binary under a text extension, and decoding it
-    anyway would index garbage that no answer could ever cite honestly.
+    anyway would index garbage that no answer could ever cite honestly. Only
+    the first 4 KiB are sniffed, so a stray NUL further down is removed rather
+    than refused (:func:`storable_text`).
     """
     if b"\x00" in data[:4096]:
         raise ValidationError("O arquivo não parece ser texto: contém bytes binários.")
     try:
-        return data.decode("utf-8-sig")
+        return storable_text(data.decode("utf-8-sig"))
     except UnicodeDecodeError:
         pass
     from charset_normalizer import from_bytes
@@ -177,7 +209,7 @@ def decode_text(data: bytes) -> str:
     best = from_bytes(data).best()
     if best is None:
         raise ValidationError("Não foi possível identificar a codificação do texto.")
-    return str(best)
+    return storable_text(str(best))
 
 
 def _read_docx(data: bytes) -> ExtractedText:
@@ -192,11 +224,12 @@ def _read_docx(data: bytes) -> ExtractedText:
     try:
         document = Document(io.BytesIO(data))
     except Exception as exc:  # python-docx raises several types for a bad zip
-        raise ValidationError(f"Não foi possível ler o DOCX: {exc}") from exc
+        raise ValidationError(f"Não foi possível ler o DOCX: {storable_text(str(exc))}") from exc
 
     lines = [paragraph.text for paragraph in document.paragraphs]
     for table in document.tables:
         lines.append("")
         for row in table.rows:
             lines.append(" | ".join(cell.text.strip() for cell in row.cells))
-    return ExtractedText(pages=["\n\n".join(line for line in lines if line.strip())])
+    text = "\n\n".join(line for line in lines if line.strip())
+    return ExtractedText(pages=[storable_text(text)])

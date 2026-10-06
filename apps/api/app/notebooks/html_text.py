@@ -59,7 +59,7 @@ from typing import TypeVar
 
 from app.domain.errors import ValidationError
 from app.knowledge.chunking import looks_like_heading
-from app.knowledge.readers import ExtractedText
+from app.knowledge.readers import ExtractedText, storable_text
 
 EMPTY_PAGE_MESSAGE = (
     "A página não trouxe texto legível (talvez dependa de JavaScript). "
@@ -282,10 +282,14 @@ def extract_html(data: bytes | str, charset: str | None = None) -> tuple[str | N
     """
     markup = data if isinstance(data, str) else decode_html(data, charset)
     root = _parse(markup)
-    text = _content(root)
+    # The extractor's own cleanup already drops a raw NUL from the markup;
+    # ``storable_text`` makes that a contract instead of a side effect, since
+    # PostgreSQL would refuse the passage, the source and the title.
+    text = storable_text(_content(root))
     if _legible(text) < MIN_LEGIBLE_CHARS:
         raise ValidationError(EMPTY_PAGE_MESSAGE)
-    return _title(root), ExtractedText(pages=[text])
+    title = _title(root)
+    return (storable_text(title) if title is not None else None), ExtractedText(pages=[text])
 
 
 def decode_html(data: bytes, charset: str | None = None) -> str:

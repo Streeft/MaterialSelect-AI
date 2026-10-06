@@ -21,7 +21,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-from app.knowledge.readers import ExtractedText
+from app.knowledge.readers import ExtractedText, storable_text
 
 #: Aim for chunks around this size — big enough to carry an argument, small
 #: enough that several fit in a prompt alongside the catalogue.
@@ -76,8 +76,14 @@ class _Block:
 
 
 def normalise(text: str) -> str:
-    """Undo the artefacts PDF extraction leaves in otherwise clean prose."""
-    text = text.replace("\r\n", "\n").replace("\r", "\n")
+    """Undo the artefacts PDF extraction leaves in otherwise clean prose.
+
+    The first is the one a database refuses: whatever reader produced the
+    pages — or none, for a pasted text — a passage and its heading leave here
+    storable (:func:`~app.knowledge.readers.storable_text`), and so does the
+    ``search_text`` folded from them.
+    """
+    text = storable_text(text).replace("\r\n", "\n").replace("\r", "\n")
     text = _HYPHEN_BREAK.sub(r"\1\2", text)
     text = _SOFT_WRAP.sub(" ", text)
     text = _SPACES.sub(" ", text)

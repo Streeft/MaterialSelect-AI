@@ -47,7 +47,7 @@ from app.domain.errors import ConflictError, NotFoundError, QuotaExceededError, 
 from app.knowledge.chunking import chunk_text
 from app.knowledge.embeddings import EmbeddingClient, EmbeddingUnavailableError, pack_vector
 from app.knowledge.lexical import fold
-from app.knowledge.readers import ExtractedText, read_upload
+from app.knowledge.readers import ExtractedText, read_upload, storable_text
 from app.models.notebook import (
     Notebook,
     NotebookChunk,
@@ -276,7 +276,16 @@ class NotebookService:
         (D-97), built by the backend from what the fetch returned — stored as
         given, shown through ``_source_out`` and copied into every citation of
         its passages. ``None`` for the kinds that have nothing to attribute.
+
+        Every string stored here passes :func:`storable_text` first — the
+        readers already clean what they extract, but a pasted text, a file
+        name or a fetched title reaches this method from elsewhere, and one
+        U+0000 would make PostgreSQL refuse the source (SQLite stores it).
         """
+        extracted = ExtractedText(pages=[storable_text(page) for page in extracted.pages])
+        title = storable_text(title)
+        origin = storable_text(origin) if origin is not None else None
+        meta = _storable_meta(meta) if meta else meta
         if extracted.is_empty:
             raise ValidationError(
                 "Nenhum texto foi extraído deste arquivo. Se é um PDF digitalizado (imagem), "
@@ -781,6 +790,25 @@ def _finalise(checked: AnswerOut) -> AnswerOut:
         not_found=checked.not_found,
         withheld=withheld,
     )
+
+
+def _storable_meta(value: Any) -> Any:
+    """``meta`` with every string in it storable — a page title quoted in the
+    attribution included.
+
+    The column is ``sa.JSON`` (PostgreSQL ``json``, not ``jsonb``), which
+    takes an escaped ``\\u0000``; NUL is removed here so the attribution reads
+    as the rest of the source does. The case that would actually fail is a
+    lone surrogate: :func:`app.db.base.json_serializer` writes with
+    ``ensure_ascii=False``, so it reaches the driver raw and cannot be encoded.
+    Keys are the backend's own and are left as they are."""
+    if isinstance(value, str):
+        return storable_text(value)
+    if isinstance(value, dict):
+        return {key: _storable_meta(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_storable_meta(item) for item in value]
+    return value
 
 
 def _truncate(pages: list[str], limit: int) -> tuple[list[str], bool]:

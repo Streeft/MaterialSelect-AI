@@ -87,6 +87,15 @@ def test_reads_a_pdf_from_bytes():
     assert extracted.page_count == 1
 
 
+def test_a_nul_past_the_sniffed_head_of_a_text_is_removed_not_stored():
+    # Only the first 4 KiB decide "binary"; a stray NUL further down would
+    # otherwise reach PostgreSQL, which refuses it.
+    data = ("Aço carbono. " * 400).encode("utf-8") + b"fim\x00 do texto"
+    page = read_upload("aula.txt", data).pages[0]
+    assert "\x00" not in page
+    assert page.endswith("fim do texto")
+
+
 def test_reads_a_docx_with_its_table():
     extracted = read_upload("aula.docx", _docx(["Polietileno é um termoplástico."]))
     text = extracted.pages[0]
@@ -185,6 +194,83 @@ def test_uploads_pdf_and_docx(client):
         files={"file": ("polimeros.docx", _docx(["PEAD é tenaz."]), "application/octet-stream")},
     )
     assert docx.status_code == 201, docx.text
+
+
+def _stored_strings(db_session, source_id: int) -> list[str]:
+    """Every string a source wrote: its row and each passage's."""
+    from sqlalchemy import select
+
+    from app.models.notebook import NotebookChunk, NotebookSource
+
+    source = db_session.get(NotebookSource, source_id)
+    chunks = db_session.execute(
+        select(NotebookChunk).where(NotebookChunk.source_id == source_id)
+    ).scalars()
+    values = [source.title, source.origin or "", source.content]
+    for chunk in chunks:
+        values += [chunk.text, chunk.search_text, chunk.heading or ""]
+    return values
+
+
+def test_a_pdf_whose_extraction_carries_nul_is_stored_without_it(client, db_session):
+    # pypdf hands back U+0000 for an unmapped glyph; PostgreSQL refuses it in
+    # any text column and SQLite stores it, so the character itself is checked.
+    pdf = _pdf(r"Vidro\000 sodo-calcico 2500 kg/m3")
+    from pypdf import PdfReader
+
+    assert "\x00" in PdfReader(io.BytesIO(pdf)).pages[0].extract_text()  # the fixture is real
+    notebook = _notebook(client)
+    response = client.post(
+        f"/api/notebooks/{notebook['id']}/sources/upload",
+        files={"file": ("vidros.pdf", pdf, "application/pdf")},
+    )
+    assert response.status_code == 201, response.text
+    stored = _stored_strings(db_session, response.json()["id"])
+    assert all("\x00" not in value for value in stored)
+    assert any("sodo-calcico 2500 kg/m3" in value for value in stored)
+
+
+def test_a_pasted_text_spelling_nul_is_stored_without_it(client, db_session):
+    notebook = _notebook(client)
+    source = _text_source(
+        client, notebook["id"], text=TEXT.replace("aço", "aço\x00"), title="A\x00ula"
+    )
+    stored = _stored_strings(db_session, source["id"])
+    assert all("\x00" not in value for value in stored)
+    assert source["title"] == "Aula"
+    assert any("O aço carbono tem densidade de 7850 kg/m³" in value for value in stored)
+
+
+def test_meta_and_origin_are_stored_without_nul_or_a_lone_surrogate(client, db_session, test_user):
+    # An external source's attribution comes from a fetched page, not from a
+    # reader: NUL is removed and a lone surrogate — which the ``ensure_ascii=
+    # False`` JSON serializer would hand the driver raw — becomes U+FFFD, at
+    # every depth of ``meta`` and in ``origin``.
+    from app.knowledge.readers import ExtractedText
+    from app.models.notebook import Notebook, NotebookSource
+
+    notebook = db_session.get(Notebook, _notebook(client)["id"])
+    out = notebook_service.NotebookService(db_session, test_user).ingest(
+        notebook,
+        "url",
+        "Página",
+        "https://exemplo.org/a\x00b",
+        ExtractedText(pages=[TEXT]),
+        paged=False,
+        meta={
+            "title": "Vidro\x00 sodo-cálcico\ud800",
+            "authors": ["A\x00na", {"name": "B\ud800"}],
+            "year": 2024,
+        },
+    )
+    db_session.flush()
+    source = db_session.get(NotebookSource, out.id)
+    assert source.origin == "https://exemplo.org/ab"
+    assert source.meta == {
+        "title": "Vidro sodo-cálcico\ufffd",
+        "authors": ["Ana", {"name": "B\ufffd"}],
+        "year": 2024,
+    }
 
 
 def test_an_empty_pdf_says_why(client):

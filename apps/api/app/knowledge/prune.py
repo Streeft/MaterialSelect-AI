@@ -66,6 +66,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from sqlalchemy import delete, func, inspect, select
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.db.base import SessionLocal
@@ -353,21 +354,32 @@ def main(argv: list[str] | None = None) -> None:
         f"[prune] lista: {args.list} ({len(removal.entries)} caminhos, "
         f"{len(removal.checksums)} sha256)"
     )
-    with SessionLocal() as db:
-        if not knowledge_tables_present(db):
-            # A database never migrated past the knowledge revision would fail
-            # with a bare ProgrammingError; the fix is one workflow action.
-            print(
-                "[prune] ERRO: as tabelas da base de conhecimento não existem neste banco. "
-                "Rode as migrações primeiro (ação `migrar` do workflow Administração do "
-                "banco, ou `python -m alembic upgrade head`) e depois repita."
-            )
-            sys.exit(1)
-        report = prune(db, removal, apply=args.apply)
-        if report.applied:
-            db.commit()
-        else:
-            db.rollback()
+    try:
+        with SessionLocal() as db:
+            if not knowledge_tables_present(db):
+                # A database never migrated past the knowledge revision would
+                # fail with a bare ProgrammingError; the fix is one workflow action.
+                print(
+                    "[prune] ERRO: as tabelas da base de conhecimento não existem neste banco. "
+                    "Rode as migrações primeiro (ação `migrar` do workflow Administração do "
+                    "banco, ou `python -m alembic upgrade head`) e depois repita."
+                )
+                sys.exit(1)
+            report = prune(db, removal, apply=args.apply)
+            if report.applied:
+                db.commit()
+            else:
+                db.rollback()
+    except SQLAlchemyError as exc:
+        # The class name only: the statement's bound parameters are the paths
+        # the list exists to keep out of a log, and ``--redact`` cannot reach
+        # a driver's message. The removal is one transaction: nothing applied.
+        print(
+            f"::error::[prune] o banco de dados recusou ou perdeu a conexão "
+            f"({type(exc).__name__}); nada foi removido. Confira o secret DATABASE_URL e "
+            f"se o banco está no ar."
+        )
+        sys.exit(1)
 
     for line in format_report(report, redact_paths=args.redact):
         print(line)

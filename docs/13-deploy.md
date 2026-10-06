@@ -591,8 +591,33 @@ idênticos entram uma vez só.
      `FALHOU …: É um ponteiro do Git LFS, não o arquivo`: o LFS não trouxe tudo
      — banda ou cota de LFS. **Nada foi escrito no banco.** Repita a ação; o
      que já baixou foi guardado em cache (por 7 dias).
+   - `[ingest] FALHOU …: O banco de dados recusou a gravação deste documento (DataError); …`
+     (ou `IntegrityError`, ou outra classe): o Neon recusou aquele documento.
+     Ele voltou ao que era — novo, fica `FALHOU` sem trechos; já indexado,
+     mantém os trechos e vetores anteriores — e **a execução seguiu com os
+     outros**, que foram gravados. O job fica vermelho porque isso é defeito
+     de código, não do arquivo: abra uma issue com a linha do log (ela só
+     nomeia a classe do erro, sem SQL nem texto). Em 06/10/2026 o NUL do pypdf
+     foi uma recusa dessas, e ainda derrubava a execução inteira com um
+     traceback; já não derruba ([D-101](DECISIONS.md), atualização de 06/10).
+   - `::error::[ingest] ERRO: o banco de dados recusou ou perdeu a conexão (OperationalError); …`
+     (ou outra classe): o erro veio de fora do ponto de salvamento por
+     documento — conexão do Neon cortada no meio de um livro grande, ou o
+     commit por documento recusado. Os documentos já gravados ficam; repita a
+     ação, que a ingestão é idempotente. A linha também só nomeia a classe.
    - Qualquer outro `[ingest] FALHOU` deixa o job vermelho com o motivo; os
      outros documentos foram gravados.
+   - **Um traceback do SQLAlchemy no log** (`[SQL: …]`, `[parameters: …]`) é
+     texto de livro licenciado num log público, e a execução de 06/10
+     (**37415600025**) imprimiu exatamente isso: ~1000 trechos, antes desta
+     correção. Desde ela, `ingest`, `embed`, `prune`, `status` e `lfs_plan`
+     só imprimem a classe do erro e o motor da API esconde os parâmetros — mas
+     o código não apaga um log já publicado. **Quem apaga é o dono:** Actions
+     → a execução → ⋯ → **Delete all logs** (ou `DELETE
+     /repos/Streeft/MaterialSelect-AI/actions/runs/<id>/logs`). A de 06/10
+     está no TODO A7; faça o mesmo com qualquer execução que falhe com
+     traceback, e confira o log de uma execução vermelha antes de compartilhar
+     o link.
    A **busca léxica já está ativa** a partir daqui, para toda pergunta à IA.
 5. **Vetores.** Chegam sozinhos toda noite. Para começar já:
    **Base de conhecimento (Cérebro)** → `embeddings`, com `limite_pedidos` 300

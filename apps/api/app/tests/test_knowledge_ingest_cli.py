@@ -397,3 +397,145 @@ class TestTargetedArguments:
         assert out.strip() == f"[ingest] ERRO: --file nº 2: {reason}."
         stem = name.rsplit("/", 1)[-1].rsplit(".", 1)[0]
         assert stem not in out
+
+
+# --- erro de banco que escapa do ponto de salvamento: nem SQL nem parâmetros --
+#
+# A primeira `ingerir` em produção (06/10) morreu com o traceback do driver, e
+# o log público do Actions guardou ~1000 trechos de um livro licenciado nos
+# `[parameters: …]`. O ponto de salvamento por documento registra o que o
+# banco recusa; o que passa dele — a conexão perdida, o commit por documento,
+# a escrita fora do ponto de salvamento — chega ao `main` de cada CLI, que só
+# pode imprimir o nome da classe.
+
+SENTINEL = "TEXTO-SECRETO-DO-LIVRO-licenciado"
+_LEAKS = (SENTINEL, "INSERT", "[parameters", "[SQL", "Traceback")
+
+
+def _escaped_error(kind: str = "operational"):
+    from sqlalchemy.exc import IntegrityError, OperationalError
+
+    statement = "INSERT INTO knowledge_chunk (text) VALUES (%(text)s)"
+    params = {"text": SENTINEL, "search_text": SENTINEL}
+    if kind == "operational":
+        return OperationalError(
+            statement,
+            params,
+            Exception("server closed the connection"),
+            connection_invalidated=True,
+        )
+    return IntegrityError(statement, params, Exception(f"duplicate key ({SENTINEL})"))
+
+
+def _assert_no_leak(captured: pytest.CaptureResult[str]) -> None:
+    for leak in _LEAKS:
+        assert leak not in captured.out
+        assert leak not in captured.err
+
+
+class TestDatabaseErrorsNeverReachTheLog:
+    def test_a_lost_connection_prints_the_class_name_only(
+        self,
+        cli_root: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str],
+    ) -> None:
+        from app.repositories.knowledge_repository import KnowledgeRepository as Repo
+
+        def lost(self, document_id, chunks):  # type: ignore[no-untyped-def]
+            raise _escaped_error("operational")
+
+        monkeypatch.setattr(Repo, "replace_chunks", lost)
+        _pdf(cli_root / "livro.pdf", "texto do livro")
+
+        with pytest.raises(SystemExit) as exc:
+            main(["--no-embed"])
+
+        assert exc.value.code == 1
+        captured = capsys.readouterr()
+        _assert_no_leak(captured)
+        assert "[ingest] ERRO" in captured.out and "(OperationalError)" in captured.out
+
+    def test_a_refused_commit_outside_the_savepoint_prints_the_class_name_only(
+        self,
+        db_session,
+        cli_root: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str],
+    ) -> None:
+        # O commit por documento roda fora do ponto de salvamento: o que ele
+        # recusa não é registrado por documento e sobe até o `main`.
+        def refused() -> None:
+            raise _escaped_error("integrity")
+
+        monkeypatch.setattr(db_session, "commit", refused)
+        _pdf(cli_root / "livro.pdf", "texto do livro")
+
+        with pytest.raises(SystemExit) as exc:
+            main(["--no-embed"])
+
+        assert exc.value.code == 1
+        captured = capsys.readouterr()
+        _assert_no_leak(captured)
+        assert "(IntegrityError)" in captured.out
+
+    def test_the_embed_cli_prints_the_class_name_only(
+        self, db_session, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        from app.knowledge import embed as embed_module
+
+        def run(*_args, **_kwargs):  # type: ignore[no-untyped-def]
+            raise _escaped_error("operational")
+
+        monkeypatch.setattr(embed_module, "SessionLocal", lambda: db_session)
+        monkeypatch.setattr(embed_module, "run", run)
+
+        with pytest.raises(SystemExit) as exc:
+            embed_module.main([])
+
+        assert exc.value.code == 1
+        captured = capsys.readouterr()
+        _assert_no_leak(captured)
+        assert "[embed]" in captured.out and "(OperationalError)" in captured.out
+
+    def test_the_prune_cli_prints_the_class_name_only(
+        self,
+        db_session,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str],
+    ) -> None:
+        from app.knowledge import prune as prune_module
+
+        def prune(*_args, **_kwargs):  # type: ignore[no-untyped-def]
+            raise _escaped_error("integrity")
+
+        listing = tmp_path / "removidos.txt"
+        listing.write_text("pasta/\n", encoding="utf-8")
+        monkeypatch.setattr(prune_module, "SessionLocal", lambda: db_session)
+        monkeypatch.setattr(prune_module, "prune", prune)
+
+        with pytest.raises(SystemExit) as exc:
+            prune_module.main(["--list", str(listing), "--apply", "--redact"])
+
+        assert exc.value.code == 1
+        captured = capsys.readouterr()
+        _assert_no_leak(captured)
+        assert "[prune]" in captured.out and "nada foi removido" in captured.out
+
+    def test_the_app_engine_hides_bound_parameters(self) -> None:
+        # Defesa em profundidade para toda outra porta (log da API, outros
+        # workflows): o motor da aplicação não põe valores na mensagem de erro.
+        from sqlalchemy import create_engine, text
+        from sqlalchemy.exc import OperationalError
+
+        from app.db.base import engine_kwargs
+
+        engine = create_engine("sqlite://", **engine_kwargs("sqlite://"))
+        try:
+            with engine.connect() as conn, pytest.raises(OperationalError) as caught:
+                conn.execute(text("SELECT * FROM nao_existe WHERE x = :p"), {"p": SENTINEL})
+        finally:
+            engine.dispose()
+        assert SENTINEL not in str(caught.value)
+        assert "hide_parameters" in str(caught.value)
