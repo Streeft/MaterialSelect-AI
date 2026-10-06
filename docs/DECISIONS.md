@@ -7484,10 +7484,13 @@ testes de backend, nenhum pulado. `ruff` e `black` limpos; os dois workflows pas
 >   defesa em profundidade para toda outra porta (log da API, outros
 >   workflows). O SQL continua aparecendo; os valores não.
 > - **O log que já foi publicado não se apaga sozinho, e o código não alcança
->   ele.** Pendência do dono (TODO A7): Actions → a execução 37415600025 → ⋯ →
->   **Delete all logs** (ou `DELETE /repos/Streeft/MaterialSelect-AI/actions/runs/37415600025/logs`),
->   independente do merge. Execução de `ingerir` que falhar antes do deploy
->   desta correção: mesma coisa.
+>   ele.** Quem apaga é o dono: Actions → a execução → ⋯ → **Delete all logs**
+>   (ou `DELETE /repos/Streeft/MaterialSelect-AI/actions/runs/<id>/logs`).
+>   **Feito em 06/10/2026:** o dono apagou pela interface do Actions o log da
+>   execução 37415600025 (TODO A7, item 4, agora em "Débitos já quitados").
+>   Apagar não desfaz uma cópia que alguém tenha feito enquanto o log esteve
+>   público, da execução (por volta das 04:50 UTC) até a exclusão, no mesmo
+>   dia.
 >
 > Três notas de desenho, sem pendência. **(1)** O driver levanta o
 > `UnicodeEncodeError` de um *surrogate* cru — o SQLAlchemy não o embrulha —, e
