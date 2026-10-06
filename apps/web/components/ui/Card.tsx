@@ -1,4 +1,4 @@
-import type { ElementType, ReactNode } from "react";
+import type { ElementType, HTMLAttributes, ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
 /**
@@ -32,27 +32,35 @@ const STAGGER_STEP = 40;
  * is this app's own animation (`rise` + inline `animationDelay`, in
  * `globals.css`), independent of MSDS and kept as-is.
  */
-export function Card({
-  as: Tag = "div",
-  className,
-  children,
-  riseIndex,
-}: {
+export interface CardProps extends HTMLAttributes<HTMLElement> {
   as?: ElementType;
   className?: string;
-  children: ReactNode;
+  children?: ReactNode;
   /**
    * The card's position in a grid, when the grid should enter staggered.
    * Omit for a lone card: a single element rising alone explains nothing,
    * just arrives late.
    */
   riseIndex?: number;
-}) {
+}
+
+export function Card({
+  as: Tag = "div",
+  className,
+  children,
+  riseIndex,
+  style,
+  ...rest
+}: CardProps) {
   const staggered = riseIndex != null && riseIndex < STAGGER_LIMIT;
+  const mergedStyle = staggered
+    ? { animationDelay: `${riseIndex * STAGGER_STEP}ms`, ...style }
+    : style;
   return (
     <Tag
       className={cn("msds-card", riseIndex != null && "rise", className)}
-      style={staggered ? { animationDelay: `${riseIndex * STAGGER_STEP}ms` } : undefined}
+      style={mergedStyle}
+      {...rest}
     >
       {children}
     </Tag>

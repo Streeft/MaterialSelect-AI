@@ -372,9 +372,10 @@ describe("Auditoria ambiental", () => {
 
     // The result card is always on screen; the podium is what the run adds.
     await screen.findByText(t.dominanceTitle);
+    // O motivo aparece tanto na célula da tabela quanto na barra proporcional do PhaseBars
     expect(
-      screen.getByText(/Dados ausentes: intensidade-carbono-do-modal/),
-    ).toBeInTheDocument();
+      screen.getAllByText(/Dados ausentes: intensidade-carbono-do-modal/).length,
+    ).toBeGreaterThanOrEqual(1);
     expect(
       screen.getByText(/Sem fase dominante em carbono/),
     ).toBeInTheDocument();
