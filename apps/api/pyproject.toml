@@ -32,7 +32,14 @@ dependencies = [
     # no longer be an extra only the Cérebro's operator installs. 6.18 is the
     # first with ``pypdf.apply_configuration``, the context-scoped limits the
     # Cérebro reader raises for its own books and nobody else's (D-101).
-    "pypdf>=6.18",
+    # Below 6.20: the upload bounds wrap two pypdf internals
+    # (``readers._install_meters``), checked in the 6.18 and 6.19 sources, and
+    # the deploy builds the image without running the tests. Raise the cap only
+    # after re-reading those two call paths in the new source and re-running
+    # ``app/tests/test_knowledge_pdf_limits.py``; a pypdf that stopped reaching
+    # them would make every PDF upload refused (``readers._meters_work``), not
+    # unbounded.
+    "pypdf>=6.18,<6.20",
 ]
 
 [project.optional-dependencies]
@@ -64,7 +71,7 @@ ai = [
 # Desde o D-92 o pypdf é dependência principal (os Cadernos leem PDF em
 # produção); o extra continua existindo para os comandos que já o citam.
 knowledge = [
-    "pypdf>=6.18",
+    "pypdf>=6.18,<6.20",  # the same cap as above, and for the same reason
 ]
 # A cobrança é opcional como a camada de IA: sem STRIPE_API_KEY configurada
 # nada importa o SDK de verdade (ver app/services/billing_service.py), e os

@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [51](#sessão-51--061026--segunda-rodada-do-pr-100-um-pdf-por-vez-e-um-relógio-para-o-upload) | 06/10/2026 | A segunda revisão do PR #100 achou que os limites de memória do upload eram por leitura (três uploads de 8 KB simultâneos: +624 MB) e que a CPU não tinha limite (uma forma redesenhada não decodifica nada): um PDF por vez no processo (três simultâneos: 247 MB), relógio a cada parse e 30 s por upload, pypdf fixado em `<6.20` com autoverificação que recusa todo PDF se os medidores não forem alcançados, a lista de remoção recusa os erros sem dois-pontos e o `Cérebro/` na frente, e nenhuma recusa cita a linha (D-101, segunda rodada) | 3825 → 3854 | 762 (inalterado) |
 | [50](#sessão-50--061026--a-revisão-do-pr-100-o-orçamento-é-cobrado-a-cada-decodificação) | 06/10/2026 | A revisão do PR #100 achou que o orçamento do upload não segurava uma página só (160 formas de 3,9 MB num PDF de 0,66 MB: 639 MB de pico) e que um prefixo mal escrito em `removidos.txt` passava em silêncio: o orçamento passou a ser cobrado a cada decodificação (76 MB de pico no mesmo arquivo), o upload limita o que o pypdf lê de uma vez (formas aninhadas), a lista de remoção falha fechada em todos os leitores, a regra das páginas de fora ficou proporcional, as recusas ficaram em português, a releitura forçada ganhou nota e rótulo próprios e os ≈600 MB viraram ≈528 MB (D-101, atualização da revisão do PR #100) | 3781 → 3825 | 762 (inalterado) |
 | [49](#sessão-49--061026--os-dois-ashby-em-português-fica-o-de-2012) | 06/10/2026 | Dos dois scans do Ashby em português fica o de 2012 (4ª ed., provavelmente o mais novo, não confirmado): o sem data e a cópia byte a byte dele na raiz saem do git, do manifesto e do RAG pela lista de remoção, pelos caminhos e pelo conteúdo, em linhas `mantido-no-historico:` que a limpeza do histórico não lê (D-101, atualização dos dois Ashby) | 3770 → 3781 | 762 (inalterado) |
 | [48](#sessão-48--061026--a-revisão-do-pr-98-o-teto-era-por-fluxo-não-por-documento) | 06/10/2026 | A revisão do PR #98 achou que o teto de 500 MB era por fluxo e a memória somava as páginas, que um livro lido pela metade passava em silêncio e nunca era relido, e que o upload dos Cadernos tinha a mesma soma: o pypdf solta as cópias entre páginas, o Cérebro lê com 200 MB por fluxo, orçamento por documento e falha acima de 20% das páginas de fora, a linha virou `::warning::` com a classe do erro, o `status` ganhou rótulo próprio e `ingerir` ganhou `forcar`; o upload lê com 4 MB por fluxo, 32 MB por arquivo e páginas contadas antes (endurecimento de segurança; D-101, atualização da revisão do PR #98) | 3743 → 3770 | 762 (inalterado) |
@@ -68,6 +69,58 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
 
 ---
+
+## Sessão 51 — 06/10/26 — Segunda rodada do PR #100: um PDF por vez e um relógio para o upload
+
+**O pedido.** Corrigir tudo o que a segunda revisão do PR #100 achou: dois
+problemas Importantes (N1, N2) e três menores (m1–m3), e o texto que ela
+apontou como impreciso. Feito por cima de `6ab8980`; o PR ainda não estava
+mesclado.
+
+**O que mudou** ([D-101](DECISIONS.md), atualização "segunda rodada"):
+
+- **N1 — um PDF por vez no processo.** Os limites de memória eram por
+  leitura: duas leituras no teto somavam +428 MB, três +624 MB. `read_upload`
+  toma `_UPLOAD_PDF_SLOT` (`BoundedSemaphore(1)`), espera até 15 s e então
+  recusa com "Outro PDF está sendo lido agora no servidor; tente enviar de novo
+  em instantes."; a vaga é solta em `finally`. O Cérebro não a toma. Medido:
+  três simultâneos, 247 MB de pico (eram 643), servidos em fila em 18 s.
+- **N2 — relógio no upload.** O medidor confere o relógio também no começo de
+  cada parse (uma forma desenhada de novo é lida de novo sem decodificar), e o
+  upload tem `UPLOAD_MAX_SECONDS = 30` (400 páginas de texto denso leem em 3 a
+  6 s aqui). A recusa diz o tempo em segundos (antes, "0 min"). Medido: 400
+  desenhos de 0,4 MB param em 30,3 s, 40 de 3,9 MB em 35,3 s (o que passa é o
+  parse de um fluxo). Corrigida a frase falsa "cerca de um minuto de CPU" em
+  `readers.py` e no D-101.
+- **m1 — pypdf fixado e autoverificado.** `pypdf>=6.18,<6.20` nos dois lugares
+  do `pyproject.toml` (o `Dockerfile.api` e a CI instalam dele). O primeiro
+  upload de cada processo lê um PDF mínimo sob um medidor e confere uma
+  decodificação e dois parses; se não chegarem, log `ERROR` e todo upload de
+  PDF recusado — nunca no import, nunca uma exceção.
+- **m2 — lista de remoção.** Recusados também: espaço ou tab no lugar dos
+  dois-pontos, os dois-pontos de largura cheia, `mantido-no-historico/…`,
+  `sha256 <hex>` e um caminho com `Cérebro/` na frente (mensagem: os caminhos
+  são relativos ao KNOWLEDGE_DIR). O shell do passo 4 do docs/17 recusa as
+  mesmas formas. A lista real lê igual (16, 14, 35, 2).
+- **m3.** As duas mensagens antigas da lista não citam mais a linha.
+- Uma consequência dita no D-101: a decodificação que passa do orçamento de
+  bytes termina, mas o fluxo que ela produziu não é mais lido; dois testes de
+  orçamento ganharam uma página de fora.
+
+**Como se sabe que passa.** 29 testes novos: a vaga (o segundo upload espera
+e é recusado sem entrar; esperando o bastante, lê depois do primeiro; a vaga
+é solta em sucesso, PDF quebrado e excesso de páginas; o Cérebro não a toma),
+o relógio (uma forma em cache desenhada 200 vezes parada em poucos parses, com
+uma decodificação só; o Cérebro conferindo a cada parse; a unidade do tempo),
+a autoverificação (passa no pypdf real; um decodificador não alcançado recusa
+todo PDF, uma verificação só, linha de log, TXT continua; um erro dentro dela
+é um "não"), e as novas formas da lista no leitor e no shell, e as mensagens
+sem a linha.
+
+**Números.** Backend 3825 → 3854 (sem `POSTGRES_TEST_URL`, 3848 passam e 6
+pulam). Frontend 762, inalterado. `ruff` e `black` limpos.
+
+**Pendente, e só o autor faz**, depois do merge: **Deploy da API**.
 
 ## Sessão 50 — 06/10/26 — A revisão do PR #100: o orçamento é cobrado a cada decodificação
 

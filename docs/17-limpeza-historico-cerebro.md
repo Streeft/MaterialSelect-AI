@@ -195,18 +195,21 @@ git -C repo.git show 'HEAD:Cérebro/removidos.txt' \
   | sed 's/^[[:space:]]*//; s/[[:space:]]*$//' \
   | grep -v -e '^#' -e '^[[:space:]]*$' -e '^sha256:' -e '^mantido-no-historico:' \
   | sed 's|^|Cérebro/|' > caminhos-para-remover.txt
-if grep -q '^Cérebro/[^/]*:' caminhos-para-remover.txt; then
-  echo "ERRO: uma linha da lista começa com um prefixo desconhecido; corrija-a antes de seguir." >&2
+if grep -qiE '^Cérebro/([^/]*[:：]|c[ée]rebro(/|$)|sha[^a-z0-9/]*256|mantido[^a-z0-9/]*no[^a-z0-9/]*hist)' caminhos-para-remover.txt; then
+  echo "ERRO: uma linha da lista começa com um prefixo desconhecido ou com Cérebro/; corrija-a antes de seguir." >&2
   rm -f caminhos-para-remover.txt
 fi
 cat caminhos-para-remover.txt
 ```
 
 O `if` é a mesma recusa do leitor em Python (`app/knowledge/removal.py`): uma
-linha cujo primeiro trecho tem dois-pontos e não é `sha256:` nem
-`mantido-no-historico:` — escritos exatamente assim, minúsculas, sem acento,
-sem espaço antes dos dois-pontos — é um prefixo mal escrito
-(`mantido-no-histórico:`, `SHA256:`), e não um caminho. O arquivo de saída é
+linha cujo primeiro trecho tem dois-pontos (também o de largura cheia, `：`) ou
+começa como um dos prefixos — `sha256` ou `mantido-no-historico` com outra
+coisa no lugar dos dois-pontos, um espaço, uma barra — e não é `sha256:` nem
+`mantido-no-historico:` escritos exatamente assim (minúsculas, sem acento, sem
+espaço antes dos dois-pontos) é um prefixo mal escrito, e não um caminho; e uma
+linha que começa com `Cérebro/` escreveu o caminho do repositório, quando a
+lista é relativa à pasta do Cérebro. O arquivo de saída é
 apagado, então o `cat` falha e o passo 6 não tem o que ler: corrija a linha e
 rode o bloco de novo. A ingestão, o plano do LFS, os vetores, o `prune` e o
 `status` recusam a mesma lista, com o número da linha.

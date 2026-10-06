@@ -1016,12 +1016,19 @@ um medidor em `ContextVar` na frente de `pypdf.filters.decode_stream_data`),
 não entre páginas: conferido só entre páginas, uma página de 160 formas chegou
 a 639 MB; a parada é uma `BaseException` porque o pypdf engole `Exception` em
 cada forma, e no upload o que se lê de uma vez (formas aninhadas) não passa de
-4 MB. **`Cérebro/removidos.txt` falha fechada**: só `sha256:` e
-`mantido-no-historico:`, escritos exatamente assim, valem como prefixo, e
-qualquer outro antes de dois-pontos no primeiro trecho para todos os leitores
-com o número da linha (D-101, revisão do PR #100).
+4 MB. Esses limites são **por leitura**: o upload lê **um PDF por vez no
+processo** (`_UPLOAD_PDF_SLOT`) e tem **30 s** de relógio, conferido a cada
+decodificação e a cada parse (uma forma redesenhada não decodifica nada); o
+primeiro upload confere que os medidores são alcançados e, se não, recusa todo
+PDF — o pypdf está fixado em `<6.20`; não suba sem reler `_install_meters`.
+**`Cérebro/removidos.txt` falha fechada**: só `sha256:` e
+`mantido-no-historico:`, escritos exatamente assim, valem como prefixo; outro
+prefixo no primeiro trecho (dois-pontos, de largura cheia, espaço no lugar
+deles, `sha256 <hex>`) ou um caminho com `Cérebro/` na frente para todos os
+leitores, e nenhuma recusa cita a linha, só o número (D-101, revisão do PR
+#100).
 
-3825 testes de backend (nenhum skip na CI; sem `POSTGRES_TEST_URL`, 3819 passam
+3854 testes de backend (nenhum skip na CI; sem `POSTGRES_TEST_URL`, 3848 passam
 e 6 pulam) e 762 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do

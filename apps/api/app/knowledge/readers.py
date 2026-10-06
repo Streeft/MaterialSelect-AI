@@ -34,6 +34,7 @@ from __future__ import annotations
 
 import functools
 import io
+import logging
 import re
 import threading
 import time
@@ -46,6 +47,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from app.domain.errors import ValidationError
+
+_log = logging.getLogger(__name__)
 
 #: Extensions the Cérebro ingests. A PDF is ingested wherever it sits; a
 #: Markdown file only when the manifest declares it (see
@@ -207,11 +210,16 @@ UPLOAD_MAX_STREAM_BYTES = 4_000_000
 #: (the decode that crosses it finishes; the next one is refused), plus the
 #: parse of what is being read (:data:`UPLOAD_MAX_PARSED_BYTES`) — ~35–58× a
 #: stream of operators, ~225 MB at the per-stream ceiling (pypdf 6.19,
-#: measured), which with the ~230 MB above is the VM's thin margin. Measured
-#: with the review's probe for PR #100 (one page, 160 forms of 3.9 MB each,
-#: 0.66 MB of file): 639 MB of RSS before; after, nine forms decoded, the
-#: tenth refused, 76 MB, 0.2 s (D-101). It also bounds the CPU a file can cost
-#: (~2 s per MB of operators, measured) to about a minute.
+#: measured). That is *one read*: with the ~230 MB the application and the
+#: index hold, ~455 MB of 512 — which is why only one upload PDF is read at a
+#: time in the process (:data:`UPLOAD_PDF_SLOT_WAIT_SECONDS`); two at once
+#: measured +428 MB, three +624 MB. Measured with the review's probe for PR
+#: #100 (one page, 160 forms of 3.9 MB each, 0.66 MB of file): 639 MB of RSS
+#: before; after, nine forms decoded and the ninth not parsed, 75 MB, 0.1 s
+#: (D-101).
+#: It does *not* bound CPU: a form decoded once and drawn again is parsed
+#: again with no new decode (0.4 MB drawn 40 times: 23 s, from a 2 KB file) —
+#: :data:`UPLOAD_MAX_SECONDS` does.
 UPLOAD_MAX_DECODED_BYTES = 32_000_000
 
 #: What an upload may have pypdf parse *at one time*: a page's content stream
@@ -225,6 +233,36 @@ UPLOAD_MAX_DECODED_BYTES = 32_000_000
 #: figure placed in a slide) are tens of KB. Past it the upload is refused
 #: before the stream that would cross it is parsed.
 UPLOAD_MAX_PARSED_BYTES = UPLOAD_MAX_STREAM_BYTES
+
+#: Wall-clock budget for one upload, checked before every stream decode and
+#: every time pypdf starts parsing a content stream — a page's, or a form's,
+#: each time it is drawn — and between pages. The bytes budgets do not bound
+#: CPU: a cached form is parsed again on every draw without a new decode
+#: (pypdf 6.19 allows 5000 draws per page; 0.4 MB drawn 40 times took 23 s,
+#: a 3.9 MB form drawn 4 times 26 s, from files of 2 to 8 KB), holding the
+#: single worker's GIL and the upload slot. Measured after: 400 draws of
+#: 0.4 MB refused at 30.3 s, 40 draws of 3.9 MB at 35.3 s. 30 s: a dense 400-page text PDF
+#: (the page cap, 1.4 million characters) reads in 3 to 6 s on a development
+#: machine, so the budget leaves ~5× for the VM's shared CPU; a file that
+#: needs more is refused with the time said in seconds. The overshoot is at
+#: most one stream's parse — ~6.5 s at the per-stream ceiling — because a
+#: parse already started is not interrupted. The Cérebro keeps its 15
+#: minutes (:data:`CORPUS_MAX_SECONDS`).
+UPLOAD_MAX_SECONDS = 30.0
+
+#: How long an upload waits for the process's only PDF slot before it is
+#: refused with "try again" (:func:`read_upload`). The memory bounds above are
+#: per read, and the API is one process on a 512 MB VM: two reads at the
+#: per-stream ceiling at once measured +428 MB on top of the ~230 MB the
+#: process holds, three +624 MB. One slot makes the per-read peak the
+#: process's peak (three at once, measured after: 247 MB, served one after
+#: the other in 18 s). 15 s
+#: covers an ordinary upload ahead in the queue (seconds); one that holds the
+#: slot longer is a heavy file, and the student behind it retries. Only uploads
+#: take the slot — the Cérebro's ingestion runs on the Actions runner, in its
+#: own process.
+UPLOAD_PDF_SLOT_WAIT_SECONDS = 15.0
+_UPLOAD_PDF_SLOT = threading.BoundedSemaphore(1)
 
 #: Decoded copies pypdf may keep across pages (:func:`_release_decoded`): above
 #: this, every one is dropped after the page. A font or a ``/ToUnicode`` map
@@ -310,6 +348,8 @@ class _DecodeMeter:
     spent: str | None = None
     #: A decode is being charged (:func:`_metered`): no layer under it charges.
     decoding: bool = False
+    #: Content streams this read has started to parse (the self-check reads it).
+    parsed: int = 0
 
     def check_time(self) -> None:
         if (
@@ -317,7 +357,7 @@ class _DecodeMeter:
             and self.max_seconds is not None
             and _clock() - self.started > self.max_seconds
         ):
-            self.spent = f"a leitura passou de {self.max_seconds / 60:.0f} min, o limite de um PDF"
+            self.spent = f"a leitura passou de {_duration(self.max_seconds)}, o limite de um PDF"
 
     def before_decode(self) -> None:
         """Refuse a decode once a budget is spent (sticky: every later one too)."""
@@ -327,7 +367,13 @@ class _DecodeMeter:
 
     def start_parse(self, size: int) -> None:
         """A content stream of ``size`` bytes is about to be parsed: refuse it if
-        the ones already being parsed and it would pass ``max_parsing``."""
+        a budget is spent — the clock included, because a form drawn again is
+        parsed again with no decode — or if the ones already being parsed and
+        it would pass ``max_parsing``."""
+        self.parsed += 1
+        self.check_time()
+        if self.spent is not None:
+            raise _DecodeBudgetSpent
         if self.max_parsing is not None and self.parsing + size > self.max_parsing:
             if self.spent is None:
                 self.spent = (
@@ -390,7 +436,7 @@ def _metered_parse(original: Callable[..., None]) -> Callable[..., None]:
     def __init__(self: object, *args: object, **kwargs: object) -> None:
         original(self, *args, **kwargs)
         meter = _meter.get()
-        if meter is None or meter.max_parsing is None:
+        if meter is None:
             return
         size = len(self.get_data())  # type: ignore[attr-defined]
         meter.start_parse(size)
@@ -415,12 +461,16 @@ def _install_meters() -> None:
     read it only looks up an unset ``ContextVar`` and calls pypdf's function.
     Checked again at every read, so whatever replaced it (a test's spy) is
     wrapped in turn; a test proves that a decode inside a page is charged, so
-    a pypdf that stopped calling it would fail the suite, not production.
+    a pypdf that stopped calling it would fail the suite — and, in production,
+    where the image is built without the tests, the first upload's self-check
+    (:func:`_meters_work`) refuses every PDF upload instead of reading it
+    unbounded; ``pyproject.toml`` also caps pypdf below 6.20.
 
     The same goes for ``ContentStream.__init__``, which every content stream
     text extraction parses goes through — a page's, and each form XObject's,
-    while the page that draws it is still being parsed — so an upload can
-    bound what is parsed at one time (:data:`UPLOAD_MAX_PARSED_BYTES`).
+    every time it is drawn — so a read can check its clock at every parse (a
+    form drawn again is parsed again with no decode) and an upload can bound
+    what is parsed at one time (:data:`UPLOAD_MAX_PARSED_BYTES`).
     """
     import pypdf.filters
     from pypdf.generic import ContentStream
@@ -442,8 +492,9 @@ def _metered_decoding(meter: _DecodeMeter) -> Iterator[_DecodeMeter]:
     """Charge every stream pypdf decodes inside the block to ``meter``.
 
     The decode that crosses a budget finishes — its bytes are already
-    produced — and the next one raises :class:`_DecodeBudgetSpent`, inside
-    the page if that is where pypdf is: the budget holds per decode, not per
+    produced — but nothing is parsed after it: the next decode, or the parse
+    of the stream it produced, raises :class:`_DecodeBudgetSpent`, inside the
+    page if that is where pypdf is: the budget holds per decode, not per
     page, so a page cannot hold more than the document may (one page with 160
     forms of 3.9 MB each held 639 MB before; see :data:`UPLOAD_MAX_DECODED_BYTES`).
     The meter is reset when the block exits, on an exception too.
@@ -539,6 +590,13 @@ def _too_many_skipped(skipped: int, count: int) -> bool:
     if skipped <= MAX_SKIPPED_PAGE_SHARE * count:
         return False
     return skipped >= MIN_SKIPPED_PAGES_TO_FAIL or 2 * skipped >= count
+
+
+def _duration(seconds: float) -> str:
+    """``30 s``, ``15 min`` — a budget as a reader says it, never ``0 min``."""
+    if seconds < 60:
+        return f"{seconds:.0f} s"
+    return f"{seconds / 60:.0f} min"
 
 
 def _mb(value: int) -> str:
@@ -749,6 +807,94 @@ _PDF_MAGIC = b"%PDF-"
 _ZIP_MAGIC = b"PK\x03\x04"  # a DOCX is a zip container
 
 
+#: Why every PDF upload is refused when :func:`_meters_work` says no.
+_METERS_OFF = (
+    "A leitura de PDF está suspensa neste servidor: uma verificação interna de segurança "
+    "falhou. Envie o texto em DOCX, TXT ou Markdown e avise quem mantém a ferramenta."
+)
+_meters_verified: bool | None = None
+_self_check_lock = threading.Lock()
+
+
+def _self_check_pdf() -> bytes:
+    """A one-page PDF whose Flate content stream draws one Flate form."""
+    import zlib
+
+    page = zlib.compress(b"BT /F1 12 Tf 72 720 Td (ok) Tj ET /X0 Do")
+    form = zlib.compress(b"BT /F1 12 Tf 72 700 Td (forma) Tj ET")
+    objects = [
+        b"<< /Type /Catalog /Pages 2 0 R >>",
+        b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font "
+        b"<< /F1 6 0 R >> /XObject << /X0 5 0 R >> >> /Contents 4 0 R >>",
+        b"<< /Length %d /Filter /FlateDecode >>\nstream\n" % len(page) + page + b"\nendstream",
+        b"<< /Type /XObject /Subtype /Form /BBox [0 0 612 792] /Resources << /Font "
+        b"<< /F1 6 0 R >> >> /Length %d /Filter /FlateDecode >>\nstream\n" % len(form)
+        + form
+        + b"\nendstream",
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+    ]
+    out = bytearray(b"%PDF-1.4\n")
+    offsets = []
+    for number, body in enumerate(objects, start=1):
+        offsets.append(len(out))
+        out += b"%d 0 obj\n" % number + body + b"\nendobj\n"
+    xref = len(out)
+    out += b"xref\n0 %d\n0000000000 65535 f \n" % (len(objects) + 1)
+    for offset in offsets:
+        out += b"%010d 00000 n \n" % offset
+    out += b"trailer\n<< /Size %d /Root 1 0 R >>\nstartxref\n%d\n%%%%EOF\n" % (
+        len(objects) + 1,
+        xref,
+    )
+    return bytes(out)
+
+
+def _check_meters() -> bool:
+    """Read :func:`_self_check_pdf` under a meter and see the meter move.
+
+    The meters wrap two pypdf internals (:func:`_install_meters`), checked in
+    the sources of 6.18 and 6.19 and pinned below 6.20 in ``pyproject.toml``.
+    If a pypdf ever stopped going through them, every upload bound would
+    silently stop holding — the deploy builds the image without running the
+    tests — so the first upload of a process checks that both a decode and a
+    parse reach the meter. Never raises: a failure is a ``False`` and a log line.
+    """
+    try:
+        from pypdf import PdfReader, __version__
+
+        meter = _DecodeMeter(
+            max_bytes=None,
+            max_seconds=None,
+            ceiling=UPLOAD_MAX_STREAM_BYTES,
+            max_parsing=UPLOAD_MAX_PARSED_BYTES,
+        )
+        with _pdf_limits(UPLOAD_MAX_STREAM_BYTES), _metered_decoding(meter):
+            text = PdfReader(io.BytesIO(_self_check_pdf())).pages[0].extract_text() or ""
+        # The page's stream and the form's: two decodes, two parses.
+        ok = meter.decoded > 0 and meter.parsed >= 2 and "forma" in text
+        version = __version__
+    except Exception as exc:  # whatever pypdf does, the answer is "not verified"
+        ok, version = False, f"? ({type(exc).__name__})"
+    if not ok:
+        _log.error(
+            "readers: os medidores de leitura de PDF não foram alcançados (pypdf %s); "
+            "todo upload de PDF será recusado até isso ser corrigido (D-101).",
+            version,
+        )
+    return ok
+
+
+def _meters_work() -> bool:
+    """Whether the upload bounds are really enforced — checked once per process."""
+    global _meters_verified
+    if _meters_verified is None:
+        with _self_check_lock:
+            if _meters_verified is None:
+                _meters_verified = _check_meters()
+    return _meters_verified
+
+
 def read_upload(filename: str, data: bytes, *, max_pages: int | None = None) -> ExtractedText:
     """Extract text from an uploaded file's bytes.
 
@@ -758,10 +904,14 @@ def read_upload(filename: str, data: bytes, *, max_pages: int | None = None) -> 
 
     A PDF is read with :data:`UPLOAD_MAX_STREAM_BYTES` per stream,
     :data:`UPLOAD_MAX_DECODED_BYTES` for the whole file — charged at every
-    stream decode, so a single page is held to it too — and
-    :data:`UPLOAD_MAX_PARSED_BYTES` parsed at one time, and its page count is
-    checked before any page is decoded (D-101): the API's VM has 512 MB, and a
-    file of less than 1 MB can otherwise ask for gigabytes.
+    stream decode, so a single page is held to it too —,
+    :data:`UPLOAD_MAX_PARSED_BYTES` parsed at one time and
+    :data:`UPLOAD_MAX_SECONDS` of clock, and its page count is checked before
+    any page is decoded (D-101): the API's VM has 512 MB, and a file of less
+    than 1 MB can otherwise ask for gigabytes or hours. Those bounds hold per
+    read, so only one PDF is read at a time in the process (the slot waits
+    :data:`UPLOAD_PDF_SLOT_WAIT_SECONDS`, then refuses); and nothing is read
+    if the meters that enforce them are not reached (:func:`_meters_work`).
 
     Raises:
         ValidationError: unsupported type, content that contradicts the
@@ -776,17 +926,29 @@ def read_upload(filename: str, data: bytes, *, max_pages: int | None = None) -> 
     if suffix == ".pdf":
         if not data.startswith(_PDF_MAGIC):
             raise ValidationError("O arquivo tem extensão .pdf, mas o conteúdo não é um PDF.")
-        # These bytes are a student's, not the curated corpus (D-101): a small
-        # per-stream ceiling and a budget for the whole file charged at every
-        # decode, sized for the API's VM, the page count refused before any
-        # page is decoded, and fail-fast on a bad page.
-        return read_pdf(
-            io.BytesIO(data),
-            max_stream_bytes=UPLOAD_MAX_STREAM_BYTES,
-            max_decoded_bytes=UPLOAD_MAX_DECODED_BYTES,
-            max_parsed_bytes=UPLOAD_MAX_PARSED_BYTES,
-            max_pages=max_pages,
-        )
+        if not _meters_work():
+            raise ValidationError(_METERS_OFF)
+        # One PDF at a time in the process: the bounds below are per read.
+        if not _UPLOAD_PDF_SLOT.acquire(timeout=UPLOAD_PDF_SLOT_WAIT_SECONDS):
+            raise ValidationError(
+                "Outro PDF está sendo lido agora no servidor; tente enviar de novo em " "instantes."
+            )
+        try:
+            # These bytes are a student's, not the curated corpus (D-101): a
+            # small per-stream ceiling, budgets for the whole file charged at
+            # every decode and every parse, sized for the API's VM, the page
+            # count refused before any page is decoded, and fail-fast on a bad
+            # page.
+            return read_pdf(
+                io.BytesIO(data),
+                max_stream_bytes=UPLOAD_MAX_STREAM_BYTES,
+                max_decoded_bytes=UPLOAD_MAX_DECODED_BYTES,
+                max_parsed_bytes=UPLOAD_MAX_PARSED_BYTES,
+                max_seconds=UPLOAD_MAX_SECONDS,
+                max_pages=max_pages,
+            )
+        finally:
+            _UPLOAD_PDF_SLOT.release()
     if suffix == ".docx":
         if not data.startswith(_ZIP_MAGIC):
             raise ValidationError("O arquivo tem extensão .docx, mas o conteúdo não é um DOCX.")

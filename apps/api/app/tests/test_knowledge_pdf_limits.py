@@ -620,21 +620,23 @@ class TestMemoryAcrossPages:
 
 class TestDocumentBudget:
     def test_a_spent_decoded_budget_skips_the_rest_and_fails_a_long_tail(self) -> None:
-        # 10 pages of 1 MB, 2.5 MB of budget: spent after page 3, the other 7
-        # pages are left out — more than a fifth of the book, so it fails, and
-        # says why by class name.
+        # 10 pages of 1 MB, 2.5 MB of budget: spent by page 3's decode, and
+        # nothing is parsed after the decode that crossed it — page 3 and the
+        # other 7 are left out (8): more than a fifth of the book, so it fails,
+        # and says why by class name.
         data = _pages_pdf([MB] * 10)
         with pytest.raises(ValidationError) as exc:
             read_pdf(io.BytesIO(data), skip_unreadable_pages=True, max_decoded_bytes=2_500_000)
-        assert f"7 de 10 páginas não puderam ser lidas ({BUDGET_REASON} ×7)" in str(exc.value)
+        assert f"8 de 10 páginas não puderam ser lidas ({BUDGET_REASON} ×8)" in str(exc.value)
 
     def test_a_budget_spent_on_the_last_pages_still_indexes_the_book(self) -> None:
         data = _pages_pdf([MB] * 10)
 
         extracted = read_pdf(
-            io.BytesIO(data), skip_unreadable_pages=True, max_decoded_bytes=8_500_000
+            io.BytesIO(data), skip_unreadable_pages=True, max_decoded_bytes=9_500_000
         )
 
+        # Spent by page 10's decode: that page is not parsed, the other 9 are.
         assert extracted.skipped_pages == 1
         assert extracted.skip_reasons == {BUDGET_REASON: 1}
         assert "Pagina 9" in extracted.pages[8] and extracted.pages[9] == ""
@@ -979,6 +981,249 @@ class TestOpeningMessages:
         message = str(exc.value)
         assert "desenho vetorial denso" in message
         assert '"achatado"' in message and "Imprimir → Salvar como PDF" in message
+
+
+def _repeated_form_pdf(draws: int, form_bytes: int) -> bytes:
+    """One page drawing the *same* form ``draws`` times (the second review's N2).
+
+    The form is decoded once and cached; pypdf parses it again on every draw,
+    so no decode — and no decoded budget — sees the repeats.
+    """
+    step = b"0 0 m 1 1 l S\n"
+    form = zlib.compress(b"BT /F1 12 Tf 72 720 Td (Repetida) Tj ET\n" + step * (form_bytes // 14))
+    content = b" ".join([b"/X0 Do"] * draws)
+    objects = [
+        b"<< /Type /Catalog /Pages 2 0 R >>",
+        b"<< /Type /Pages /Kids [4 0 R] /Count 1 >>",
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+        b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] "
+        b"/Resources << /Font << /F1 3 0 R >> /XObject << /X0 6 0 R >> >> /Contents 5 0 R >>",
+        b"<< /Length %d >>\nstream\n" % len(content) + content + b"\nendstream",
+        b"<< /Type /XObject /Subtype /Form /BBox [0 0 612 792] /Resources << /Font "
+        b"<< /F1 3 0 R >> >> /Length %d /Filter /FlateDecode >>\nstream\n" % len(form)
+        + form
+        + b"\nendstream",
+    ]
+    out = bytearray(b"%PDF-1.4\n")
+    offsets = []
+    for number, body in enumerate(objects, start=1):
+        offsets.append(len(out))
+        out += b"%d 0 obj\n" % number + body + b"\nendobj\n"
+    xref_at = len(out)
+    out += b"xref\n0 %d\n0000000000 65535 f \n" % (len(objects) + 1)
+    for offset in offsets:
+        out += b"%010d 00000 n \n" % offset
+    out += b"trailer\n<< /Size %d /Root 1 0 R >>\nstartxref\n%d\n%%%%EOF\n" % (
+        len(objects) + 1,
+        xref_at,
+    )
+    return bytes(out)
+
+
+class TestUploadTime:
+    """N2 of the second review of PR #100: the CPU of an upload is bounded by a clock."""
+
+    def test_the_budget_is_where_the_decision_put_it(self) -> None:
+        assert 20 <= readers.UPLOAD_MAX_SECONDS <= 30
+        assert readers.CORPUS_MAX_SECONDS == 15 * 60
+
+    def test_a_cached_form_drawn_again_and_again_is_stopped_by_the_clock(
+        self, decodes: list[int], monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # The clock moves 1 s per parse of the form; 5 s of budget. Every draw
+        # after the first is a parse with no decode, which the bytes budgets
+        # never see.
+        now = [0.0]
+        monkeypatch.setattr(readers, "_clock", lambda: now[0])
+        monkeypatch.setattr(readers, "UPLOAD_MAX_SECONDS", 5)
+        parses: list[int] = []
+        original = readers._DecodeMeter.start_parse
+
+        def tick(self, size):
+            parses.append(size)
+            now[0] += 1
+            return original(self, size)
+
+        monkeypatch.setattr(readers._DecodeMeter, "start_parse", tick)
+
+        with pytest.raises(ValidationError) as exc:
+            read_upload("x.pdf", _repeated_form_pdf(draws=200, form_bytes=10_000))
+
+        message = str(exc.value)
+        assert message.startswith("O PDF é pesado demais para ler: até a página 1 de 1, a leitura")
+        assert "passou de 5 s, o limite de um PDF" in message  # seconds, never "0 min"
+        # One decode of the form (the page's stream is not filtered), and the
+        # parses stop a few draws in, not at 200.
+        assert len([size for size in decodes if size >= 10_000]) == 1
+        assert len(parses) < 10
+
+    def test_without_the_clock_the_same_file_reads(self) -> None:
+        extracted = read_upload("x.pdf", _repeated_form_pdf(draws=20, form_bytes=10_000))
+        assert "Repetida" in extracted.pages[0]
+
+    def test_the_cerebro_checks_its_clock_at_each_parse_too(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        now = [0.0]
+        monkeypatch.setattr(readers, "_clock", lambda: now[0])
+        original = readers._DecodeMeter.start_parse
+
+        def tick(self, size):
+            now[0] += 60
+            return original(self, size)
+
+        monkeypatch.setattr(readers._DecodeMeter, "start_parse", tick)
+        with pytest.raises(ValidationError, match=f"{BUDGET_REASON} ×1"):
+            read_pdf(
+                io.BytesIO(_repeated_form_pdf(draws=50, form_bytes=1_000)),
+                skip_unreadable_pages=True,
+                max_seconds=15 * 60,
+            )
+
+    @pytest.mark.parametrize(("seconds", "said"), [(5, "5 s"), (30, "30 s"), (15 * 60, "15 min")])
+    def test_the_duration_is_said_in_the_right_unit(self, seconds: float, said: str) -> None:
+        assert readers._duration(seconds) == said
+
+
+class TestUploadSlot:
+    """N1 of the second review: the memory bounds are per read, so one read at a time."""
+
+    @pytest.fixture
+    def held(self, monkeypatch: pytest.MonkeyPatch):
+        """A first upload that stays inside ``read_pdf`` until released."""
+        entered, release = threading.Event(), threading.Event()
+        inside: list[str] = []
+        original = readers.read_pdf
+
+        def slow(*args, **kwargs):
+            inside.append("in")
+            entered.set()
+            assert release.wait(timeout=10)
+            try:
+                return original(*args, **kwargs)
+            finally:
+                inside.append("out")
+
+        monkeypatch.setattr(readers, "read_pdf", slow)
+        outcome: dict[str, object] = {}
+
+        def first() -> None:
+            try:
+                outcome["first"] = read_upload("a.pdf", _pdf_bytes(["primeiro"]))
+            except BaseException as exc:  # noqa: BLE001 — reported to the test
+                outcome["first"] = exc
+
+        worker = threading.Thread(target=first)
+        worker.start()
+        assert entered.wait(timeout=10)
+        yield inside, release, outcome
+        release.set()
+        worker.join(timeout=10)
+
+    def test_a_second_upload_waits_then_is_refused(
+        self, held, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        inside, release, outcome = held
+        monkeypatch.setattr(readers, "UPLOAD_PDF_SLOT_WAIT_SECONDS", 0.2)
+
+        with pytest.raises(ValidationError) as exc:
+            read_upload("b.pdf", _pdf_bytes(["segundo"]))
+
+        assert str(exc.value) == (
+            "Outro PDF está sendo lido agora no servidor; tente enviar de novo em instantes."
+        )
+        assert inside == ["in"]  # the second never entered while the first was in
+
+    def test_a_second_upload_that_waits_long_enough_reads_after_the_first(
+        self, held, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        inside, release, outcome = held
+        monkeypatch.setattr(readers, "UPLOAD_PDF_SLOT_WAIT_SECONDS", 10)
+        threading.Timer(0.2, release.set).start()
+
+        extracted = read_upload("b.pdf", _pdf_bytes(["segundo"]))
+
+        assert "segundo" in extracted.pages[0]
+        # Serialised: the first went in and out before the second went in.
+        assert inside == ["in", "out", "in", "out"]
+
+    def test_the_slot_is_released_on_every_exit(self) -> None:
+        def free() -> bool:
+            if readers._UPLOAD_PDF_SLOT.acquire(blocking=False):
+                readers._UPLOAD_PDF_SLOT.release()
+                return True
+            return False
+
+        read_upload("x.pdf", _pdf_bytes(["ok"]))
+        assert free()
+        with pytest.raises(ValidationError):
+            read_upload("x.pdf", b"%PDF-1.4\nquebrado")
+        assert free()
+        with pytest.raises(ValidationError):
+            read_upload("x.pdf", _pdf_bytes(["a", "b", "c"]), max_pages=2)
+        assert free()
+
+    def test_the_cerebro_does_not_take_the_slot(self, tmp_path: Path) -> None:
+        path = tmp_path / "livro.pdf"
+        path.write_bytes(_pdf_bytes(["Livro do Cerebro."]))
+        assert readers._UPLOAD_PDF_SLOT.acquire(blocking=False)
+        try:
+            assert "Livro do Cerebro" in extract_text(path).pages[0]
+        finally:
+            readers._UPLOAD_PDF_SLOT.release()
+
+
+class TestMetersSelfCheck:
+    """m1 of the second review: if pypdf stops reaching the meters, uploads are refused."""
+
+    def test_the_real_pypdf_passes(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setattr(readers, "_meters_verified", None)
+        assert readers._meters_work() is True
+
+    def test_an_unreached_decoder_refuses_every_pdf_upload(
+        self, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        import functools
+
+        import pypdf.filters
+
+        readers._install_meters()
+        raw = pypdf.filters.decode_stream_data.__wrapped__
+
+        # What a pypdf that no longer calls the wrapper looks like: the marker
+        # says "installed", and nothing is metered.
+        @functools.wraps(raw)
+        def unmetered(stream):
+            return raw(stream)
+
+        unmetered._materialselect_metered = True  # type: ignore[attr-defined]
+        monkeypatch.setattr(pypdf.filters, "decode_stream_data", unmetered)
+        monkeypatch.setattr(readers, "_meters_verified", None)
+        calls: list[int] = []
+        original = readers._check_meters
+        monkeypatch.setattr(readers, "_check_meters", lambda: calls.append(1) or original())
+
+        with caplog.at_level("ERROR", logger="app.knowledge.readers"):
+            for _ in range(2):
+                with pytest.raises(ValidationError) as exc:
+                    read_upload("x.pdf", _pdf_bytes(["texto"]))
+                assert str(exc.value).startswith("A leitura de PDF está suspensa neste servidor")
+
+        assert calls == [1]  # checked once, the answer kept
+        assert any(
+            "medidores de leitura de PDF não foram alcançados" in r.message for r in caplog.records
+        )
+        # Other formats still go through.
+        assert read_upload("x.txt", b"texto simples").pages == ["texto simples"]
+
+    def test_a_crash_in_the_check_is_a_no_not_an_exception(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        def boom() -> bytes:
+            raise RuntimeError("pypdf mudou")
+
+        monkeypatch.setattr(readers, "_self_check_pdf", boom)
+        assert readers._check_meters() is False
 
 
 class TestThresholdInIngestion:

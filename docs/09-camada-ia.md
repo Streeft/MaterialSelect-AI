@@ -398,10 +398,18 @@ As regras que pesam:
   (`UPLOAD_MAX_PARSED_BYTES`); as cópias decodificadas são soltas entre páginas,
   e a primeira página ilegível recusa o arquivo. Toda recusa é em português e
   diz a saída — uma página de desenho vetorial denso (CAD, mapa) passa do teto
-  por fluxo: exporte o PDF de novo "achatado" ou como imagem. O que resta: um
-  fluxo de operadores no teto custa ~225 MB enquanto é lido, e nenhum fluxo é
-  interrompido no meio ([D-101](DECISIONS.md), revisão do PR #100). Vale
-  também para um PDF que a busca na web traz.
+  por fluxo: exporte o PDF de novo "achatado" ou como imagem. Esses limites
+  são **por leitura**, então o processo lê **um PDF por vez** (o segundo
+  espera até 15 s e então recebe "tente de novo em instantes"), e cada upload
+  tem **30 s** de relógio (`UPLOAD_MAX_SECONDS`), conferido a cada
+  decodificação e a cada parse — uma forma desenhada de novo é lida de novo
+  sem decodificar nada. O primeiro upload do processo confere que os
+  medidores do pypdf estão sendo alcançados; se não estiverem, todo PDF é
+  recusado (o pypdf está fixado abaixo de 6.20). O que resta: um fluxo de
+  operadores no teto custa ~225 MB enquanto é lido (~455 de 512 MB com o
+  processo e o índice), e nenhum fluxo é interrompido no meio
+  ([D-101](DECISIONS.md), revisão do PR #100, duas rodadas). Vale também para
+  um PDF que a busca na web traz.
 - **O simulado responde citando**: copia o começo dos trechos mais relevantes,
   então passa na checagem de número por construção, como o `interpret`.
 - **Cota diária por aluno** (`NOTEBOOK_DAILY_REQUESTS`), **reservada** antes da

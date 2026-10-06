@@ -195,7 +195,7 @@ class TestEmptyAndUnmatched:
         assert report.unmatched_entries == ["nao-existe.pdf"]
 
     def test_nothing_matched_shows_where_the_stored_paths_start(self, base: Session) -> None:
-        lines = format_report(find_matches(base, parse_removal_list("Cérebro/")))
+        lines = format_report(find_matches(base, parse_removal_list("Outra-Pasta/")))
         hint = next(line for line in lines if "por pasta de primeiro nível" in line)
         assert "01-Bibliografia (1)" in hint
         assert "02-Material-de-Curso-ENG02016 (2)" in hint
@@ -646,6 +646,12 @@ _BAD_PREFIXES = [
     pytest.param("sha256 :", id="sha256-espaco"),
     pytest.param("mantido-no-historico:sha256:", id="prefixo-duplo"),
     pytest.param("C:", id="unidade-do-windows"),
+    # The second review of PR #100 (m2): no ASCII colon, still a prefix.
+    pytest.param("mantido-no-historico ", id="espaco-no-lugar-dos-dois-pontos"),
+    pytest.param("mantido-no-historico\t", id="tab-no-lugar-dos-dois-pontos"),
+    pytest.param("mantido-no-historico：", id="dois-pontos-de-largura-cheia"),
+    pytest.param("mantido-no-historico/", id="barra-no-lugar-dos-dois-pontos"),
+    pytest.param("sha256 ", id="sha256-sem-dois-pontos"),
 ]
 _SECRET = "segredo/Trabalho do Fulano.pdf"
 
@@ -668,6 +674,32 @@ class TestUnknownPrefixFailsClosed:
         assert "'sha256:' e 'mantido-no-historico:'" in message
         # The line itself is never quoted: it may be a name kept out of the log.
         assert "Fulano" not in message and "segredo" not in message and "aaaa" not in message
+
+    @pytest.mark.parametrize("root", ["Cérebro/", unicodedata.normalize("NFD", "Cérebro/")])
+    def test_a_path_written_from_the_repository_root_is_refused(self, root: str) -> None:
+        with pytest.raises(ValidationError) as exc:
+            parse_removal_list(f"{COURSE}\n{root}{_SECRET}\n")
+        message = str(exc.value)
+        assert message.startswith("Linha 2 da lista de remoção começa com 'Cérebro/'")
+        assert "relativos à pasta do Cérebro (KNOWLEDGE_DIR)" in message
+        assert "Fulano" not in message
+
+    @pytest.mark.parametrize(
+        "line",
+        [
+            "ENG02016\\Aula 3 – Fulano.pdf",  # written on Windows
+            "/home/runner/Cérebro/Fulano.pdf",
+            "../Fulano.pdf",
+            "sha256:Fulano",
+        ],
+    )
+    def test_no_refusal_quotes_the_line(self, line: str) -> None:
+        # m3 of the second review: the older messages quoted the whole line,
+        # and the Actions log is public.
+        with pytest.raises(ValidationError) as exc:
+            parse_removal_list(f"{COURSE}\n{line}\n")
+        assert str(exc.value).startswith("Linha 2 da lista de remoção")
+        assert "Fulano" not in str(exc.value)
 
     def test_a_colon_in_a_later_segment_is_a_path(self) -> None:
         # Legal on Linux and macOS; the repository has none, but a folder on a
@@ -783,9 +815,19 @@ class TestUnknownPrefixFailsClosed:
         any(shutil.which(tool) is None for tool in ("bash", "sed", "grep", "tr")),
         reason="o passo 4 do docs/17 é um pipeline de shell",
     )
-    def test_the_history_purge_pipeline_refuses_it_too(
-        self, bad_root: Path, tmp_path: Path
-    ) -> None:
+    @pytest.mark.parametrize(
+        "prefix",
+        [
+            "mantido-no-histórico:",
+            "mantido-no-historico ",
+            "mantido-no-historico：",
+            "SHA256 ",
+            "Cérebro/",
+        ],
+    )
+    def test_the_history_purge_pipeline_refuses_it_too(self, tmp_path: Path, prefix: str) -> None:
+        listing = tmp_path / "lista.txt"
+        listing.write_text(_bad_list(prefix), encoding="utf-8")
         work = tmp_path / "purga"
         work.mkdir()
         script = 'git() { cat "$LISTA"; }\n' + _history_purge_script()
@@ -793,7 +835,7 @@ class TestUnknownPrefixFailsClosed:
             ["bash", "-c", script],
             cwd=work,
             env={
-                "LISTA": str(bad_root / "removidos.txt"),
+                "LISTA": str(listing),
                 "PATH": os.environ["PATH"],
                 "LC_ALL": "C.UTF-8",
             },
@@ -801,4 +843,4 @@ class TestUnknownPrefixFailsClosed:
         )
         assert result.returncode != 0
         assert not (work / "caminhos-para-remover.txt").exists()
-        assert "prefixo desconhecido" in result.stderr.decode("utf-8")
+        assert "corrija-a antes de seguir" in result.stderr.decode("utf-8")

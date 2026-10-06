@@ -7649,7 +7649,11 @@ testes de backend, nenhum pulado. `ruff` e `black` limpos; os dois workflows pas
 >   *(O orçamento só era conferido entre páginas, e nunca depois da última:
 >   uma página só, com 160 formas de 3,9 MB, chegava a 639 MB. Corrigido na
 >   atualização da revisão do PR #100, abaixo — o orçamento passou a ser
->   cobrado a cada decodificação.)*
+>   cobrado a cada decodificação.)* *(E a frase sobre a CPU estava errada: o
+>   orçamento de bytes não limita CPU, porque uma forma já decodificada é lida
+>   de novo a cada vez que é desenhada sem decodificar nada — 40 desenhos de
+>   0,4 MB, 23 s, num arquivo de 2 KB. Corrigido na segunda rodada da revisão
+>   do PR #100, abaixo, com um orçamento de 30 s por upload.)*
 > - **A numeração das páginas continua certa; a lacuna, não necessariamente.**
 >   O fatiador junta parágrafos entre páginas (como já fazia com uma página
 >   digitalizada em branco), então um trecho pode atravessar a página pulada e
@@ -7774,9 +7778,14 @@ testes de backend, nenhum pulado. `ruff` e `black` limpos; os dois workflows pas
 >   processo e do índice, ~455 MB de 512 MB; oito deles lado a lado na mesma
 >   página, ~270 MB de pico e ~50 s de CPU. Nenhuma parte de *um* fluxo é
 >   interrompida no meio: só um subprocesso com `RLIMIT_AS` faria isso.
+>   *(Esses números são **por leitura**, não da VM: duas leituras ao mesmo
+>   tempo somavam +428 MB, três +624 MB. A segunda rodada, abaixo, pôs uma
+>   leitura de PDF por vez no processo e um prazo de 30 s por upload.)*
 > - **O prazo de 15 min do Cérebro é conferido a cada decodificação e entre
 >   páginas** (M5), não mais só entre páginas — mas nunca no meio do parse de
->   um fluxo.
+>   um fluxo. *(Uma forma desenhada de novo não decodifica nada e escapava
+>   dessa conferência; a segunda rodada a pôs também no começo de cada
+>   parse.)*
 > - **A lista de remoção falha fechada num prefixo mal escrito (I2).**
 >   `mantido-no-histórico:` (com o acento que o próprio comentário do bloco do
 >   Ashby usa), `Mantido-no-historico:`, um espaço antes dos dois-pontos,
@@ -7824,3 +7833,70 @@ testes de backend, nenhum pulado. `ruff` e `black` limpos; os dois workflows pas
 > - **Os ≈600 MB que sobraram (M4)** em `conhecimento.yml`, 13-deploy.md e
 >   neste D-101 viraram ≈528 MB, o número dos ponteiros depois da saída do
 >   Ashby.
+
+> **Atualização (06/10/2026, segunda rodada da revisão do PR #100: uma
+> leitura de PDF por vez, e um relógio para o upload).** A segunda revisão
+> confirmou as correções da primeira e achou dois problemas Importantes e
+> três menores; todos corrigidos aqui.
+>
+> - **Os limites de memória eram por leitura, não por processo (N1).** A API é
+>   um processo só, numa VM de 512 MB, e nada impedia duas leituras de PDF ao
+>   mesmo tempo: dois uploads de 8 KB, cada um com uma forma de 3,9 MB de
+>   operadores — dentro de todos os limites —, somaram +428 MB; três, +624 MB.
+>   Agora `read_upload` lê **um PDF por vez no processo**
+>   (`_UPLOAD_PDF_SLOT`, um `BoundedSemaphore(1)`), liberado em `finally`. O
+>   segundo espera até 15 s (`UPLOAD_PDF_SLOT_WAIT_SECONDS`, o bastante para um
+>   upload comum à frente) e então é recusado com "Outro PDF está sendo lido
+>   agora no servidor; tente enviar de novo em instantes.". Só o upload toma a
+>   vaga: o Cérebro é lido no runner do Actions, noutro processo. Medido com a
+>   sonda da revisão: três uploads simultâneos, 247 MB de pico (eram 643),
+>   servidos um depois do outro em 18 s. Assim o pico de uma leitura — ~225 MB
+>   para um fluxo de operadores no teto, ~455 MB de 512 com o processo e o
+>   índice — passa a ser o pico do processo.
+> - **A CPU de um upload não tinha limite (N2).** O pypdf decodifica uma forma
+>   uma vez e a guarda, mas a lê de novo a cada `Do`: sem decodificação nova,
+>   nenhum orçamento de bytes vê as repetições, e o pypdf aceita 5000 por
+>   página. 40 desenhos de uma forma de 0,4 MB custaram 23 s num arquivo de
+>   2 KB; 4 de uma de 3,9 MB, 26 s — e, com a vaga única, isso bloquearia todo
+>   outro upload. Agora o medidor confere o relógio **também no começo de cada
+>   parse** (o invólucro de `ContentStream.__init__`, por onde passa cada
+>   desenho), e o upload tem `UPLOAD_MAX_SECONDS = 30`: um PDF de 400 páginas
+>   de texto denso (o teto de páginas, 1,4 milhão de caracteres) lê em 3 a 6 s
+>   na máquina de desenvolvimento, o que deixa ~5× para a CPU compartilhada da
+>   VM. A recusa diz o tempo em segundos ("passou de 30 s"; antes, um prazo
+>   abaixo de 30 s saía como "0 min"). O que passa do prazo é no máximo o
+>   parse de um fluxo, ~6,5 s no teto: medido, 400 desenhos de 0,4 MB param em
+>   30,3 s e 40 de 3,9 MB em 35,3 s. O Cérebro mantém os 15 min, agora também
+>   conferidos a cada parse. Uma consequência pequena: a decodificação que
+>   passa do orçamento de bytes termina, mas o fluxo que ela produziu não é
+>   mais lido — a página dele fica de fora junto com as seguintes.
+> - **Um pypdf novo poderia desarmar os medidores em produção (m1).** O deploy
+>   constrói a imagem sem rodar os testes e instalava o pypdf mais novo. Agora
+>   `pyproject.toml` fixa `pypdf>=6.18,<6.20` (nos dois lugares), com a
+>   instrução de só subir o teto depois de reler os dois caminhos no fonte novo
+>   e rodar `test_knowledge_pdf_limits.py`. E o primeiro upload de cada
+>   processo lê um PDF mínimo (uma página com uma forma) sob um medidor e
+>   confere que uma decodificação e dois parses chegaram a ele
+>   (`readers._meters_work`, uma vez, sob trava, nunca no import); se não
+>   chegaram, uma linha `ERROR` no log e **todo upload de PDF é recusado** —
+>   "A leitura de PDF está suspensa neste servidor…" —, falha fechada em vez
+>   de leitura sem limite. DOCX, TXT e Markdown continuam.
+> - **Erros de digitação sem dois-pontos (m2).** `mantido-no-historico a/b.pdf`
+>   (espaço, ou tab, no lugar dos dois-pontos), `mantido-no-historico：` (os
+>   dois-pontos de largura cheia), `mantido-no-historico/a.pdf`,
+>   `sha256 <hex>` e — o caso realista — um caminho escrito com `Cérebro/` na
+>   frente, como o `git ls-files`, o GitHub e a saída do passo 4 do docs/17 o
+>   mostram, viravam um caminho que não casa nada. O primeiro trecho de cada
+>   linha agora é comparado depois de NFKC (pega os dois-pontos de largura
+>   cheia) e dobrado (minúsculas, sem acento, só letras e dígitos): começar
+>   como `sha256` ou `mantidonohistorico` sem ser o prefixo exato é recusado,
+>   e ser `cerebro` é recusado com "os caminhos são relativos à pasta do
+>   Cérebro (KNOWLEDGE_DIR), sem 'Cérebro/' na frente". O custo: um nome de
+>   pasta ou arquivo que comece como "sha256" ou "mantido no histórico" não
+>   pode ser listado; o Cérebro não tem nenhum. O bloco do passo 4 do docs/17
+>   recusa as mesmas formas. A lista real lê igual (16, 14, 35, 2).
+> - **Nenhuma recusa da lista cita a linha (m3).** As duas mensagens antigas
+>   — `sha256:` sem 64 dígitos e caminho que não é relativo — imprimiam a linha
+>   inteira, e o `status` e as CLIs as levam ao log público: um caminho de
+>   curso escrito no Windows (`ENG02016\Aula 3 – …`) apareceria nele. Agora
+>   as três dizem só o número da linha.

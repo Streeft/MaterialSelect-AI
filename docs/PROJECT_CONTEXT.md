@@ -177,7 +177,10 @@ por fluxo, 32 MB por arquivo, páginas contadas antes) — endurecimento de
 segurança da VM de 512 MB —, e desde a revisão do PR #100 o orçamento é
 cobrado **a cada decodificação**, não entre páginas (uma página de 160 formas
 chegava a 639 MB; agora é recusada com 76 MB de pico), e o que o pypdf lê de
-uma vez, com formas aninhadas, não passa de 4 MB. Na mesma revisão, a lista de
+uma vez, com formas aninhadas, não passa de 4 MB; na segunda rodada, um PDF
+por vez no processo (os limites são por leitura), 30 s de relógio por upload
+e o pypdf fixado em `<6.20`, com uma autoverificação que recusa todo PDF se os
+medidores não forem alcançados. Na mesma revisão, a lista de
 remoção passou a **falhar fechada**: um prefixo mal escrito
 (`mantido-no-histórico:`, `SHA256:`) para ingestão, LFS, vetores, `prune` e
 `status` com o número da linha, em vez de virar um caminho que não casa nada. Dos dois Ashby em português fica só o de 2012
@@ -604,8 +607,8 @@ declarações do atributo, com o escopo indo a 4096.
 
 **Concorrência das cotas em PostgreSQL exercitada na CI** (D-97/D-99): quatro testes multithread contra PostgreSQL 16 (`test_notebook_quota_postgres.py`) validando o `UPDATE ... WHERE counter < limit` sob concorrência real (20 threads simultâneas em disputa na criação a partir do zero e na fronteira do limite, reserva e liberação concorrentes, e reserva com folga), sem estourar limites nem cair em race condition, executados na CI via contêiner de serviço PostgreSQL.
 
-**Saúde do código:** 3825 testes de backend (Python 3.11 e 3.12, nenhum skip
-na CI; sem `POSTGRES_TEST_URL`, 3819 passam e 6 pulam — os 4 das cotas e os 2
+**Saúde do código:** 3854 testes de backend (Python 3.11 e 3.12, nenhum skip
+na CI; sem `POSTGRES_TEST_URL`, 3848 passam e 6 pulam — os 4 das cotas e os 2
 da ingestão do Cérebro contra PostgreSQL) e 762 de frontend, todos
 verdes. Desde o P0-1 a suíte também roda as migrações de
 verdade, nos dois sentidos, contra um banco temporário que já contém dados —
@@ -1061,7 +1064,7 @@ que mais afetam quem for mexer no código:
 | Dependência de provedor de IA | Arquitetura desacoplada com provedor simulado; funciona sem chave. |
 | Incorporação inadvertida de dado protegido | Triagem de licenciamento (M1, item 4.2 da proposta) — `Source` registra licença/procedência, e uma fonte nova sem licença ou marcada como possivelmente protegida sem confirmação humana é recusada antes de qualquer linha ser escrita ([D-44](DECISIONS.md)). |
 | Resultado não reproduzível por interferência de IA | Cálculo determinístico + guardrails executáveis + confirmação do usuário. |
-| Regressão silenciosa | CI com 3825 testes de backend e 762 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
+| Regressão silenciosa | CI com 3854 testes de backend e 762 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
 | Material licenciado do Cérebro exposto em `main` (repositório público) | Risco aceito por decisão explícita do autor, não mitigado — o Cérebro é a base de conhecimento da camada de IA ([D-45](DECISIONS.md)). |
 | Texto dos livros do Cérebro enviado ao Gemini no plano gratuito, onde o Google pode usá-lo para melhorar os produtos | Risco aceito pelo autor ao escolher busca por vetores ([D-101](DECISIONS.md)); a alternativa sem envio é a busca só por palavras, que continua funcionando sozinha. Material na lista de remoção **nunca** é enviado: o `embed` lê `removidos.txt` e, sem conseguir lê-lo, não envia nada. |
 | Texto dos livros do Cérebro num log público do Actions (um traceback do SQLAlchemy imprime SQL e parâmetros) | Aconteceu uma vez, na primeira `ingerir` de 06/10 (execução 37415600025). Os CLIs do Cérebro imprimem só a classe de um erro de banco, sem traceback, e o motor tem `hide_parameters=True` ([D-101](DECISIONS.md), atualização de 06/10). O log já publicado só sai quando o dono o apaga (TODO A7, item 4). |
