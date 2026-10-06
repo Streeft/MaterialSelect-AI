@@ -7106,6 +7106,16 @@ Falta só o autor dispará-la. A remoção não mudou: continua pelo `prune`, a
 ingestão continua só acrescentando, e ela segue pulando o que casa com
 `removidos.txt`.
 
+**Atualização (06/10/2026, uma remoção que não é do D-100).** A lista ganhou um
+terceiro tipo de linha, `mantido-no-historico:<caminho>`: casa como caminho no
+banco e na ingestão, mas fica **fora** da limpeza do histórico. Serve ao que sai
+do RAG por outro motivo que não o deste registro — a primeira é a edição
+duplicada do Ashby em português ([D-101](#d-101--o-cérebro-entra-em-produção-pelo-github-actions-ingestão-com-lfs-em-cache-vetores-de-768-dimensões-com-a-sobra-noturna-da-cota-gratuita-e-busca-com-índice-em-memória),
+atualização "os dois Ashby em português"), que o autor quer no histórico. Os 71
+arquivos deste registro continuam em linhas comuns, e a conversão do
+[guia](17-limpeza-historico-cerebro.md) (passo 4) continua dando as mesmas 14
+linhas.
+
 ## D-101 — O Cérebro entra em produção pelo GitHub Actions: ingestão com LFS em cache, vetores de 768 dimensões com a sobra noturna da cota gratuita, e busca com índice em memória
 
 **30/09/2026. O pedido.** "Resolva a ingestão do Links.md e ative o RAG" — o
@@ -7639,3 +7649,62 @@ testes de backend, nenhum pulado. `ruff` e `black` limpos; os dois workflows pas
 >   digitalizada em branco), então um trecho pode atravessar a página pulada e
 >   ser citado como `1–3`. Nenhum trecho começa ou termina nela, e o teste diz
 >   exatamente isso.
+
+> **Atualização (06/10/2026, os dois Ashby em português: fica o de 2012).**
+> `01-Bibliografia/` tinha dois scans de *Seleção de Materiais no Projeto
+> Mecânico*, a tradução do Ashby: `Michael Ashby (Auth.)-Seleção De Materiais No
+> Projeto Mecânico (2012).pdf` (152 MB) e `Selecao_de_Materiais_no_Projeto_Mecanico.pdf`
+> (103,5 MB). Não eram byte a byte iguais, então a ingestão indexava os dois — o
+> texto saía em dobro na busca e custava o dobro de vetores —, e foram os dois
+> `FALHOU` da segunda `ingerir`. **O autor decidiu ficar só com a edição mais
+> nova:** fica o de 2012, a 4ª edição; sai o sem data. Que o de 2012 é o mais
+> novo é **provável, não confirmado**: o nome do arquivo traz o ano e o outro
+> não traz data nenhuma, e ninguém abriu os dois para comparar a folha de rosto
+> (são objetos LFS, e baixá-los gastaria banda). Se o sem data for uma edição
+> mais nova, a decisão se inverte pelo caminho de reversão abaixo.
+>
+> - **O que saiu, e por onde.** O ponteiro saiu do git (`git rm`) e a entrada
+>   saiu do `manifesto.json` (120 entradas: 119 PDFs e o `Links.md`). Em
+>   `Cérebro/removidos.txt` entraram duas linhas: o caminho e
+>   `sha256:27882628…` — o oid do ponteiro, que é o checksum que a base
+>   grava. O caminho casa a linha `FALHOU` da segunda `ingerir` (o
+>   `conhecimento_remover` a apaga) e qualquer versão futura com outros bytes
+>   naquele caminho; o conteúdo casa a **cópia byte a byte que continua na raiz
+>   do Cérebro** com o mesmo nome — uma das cópias que já eram ignoradas como
+>   cópia, e que agora o plano do LFS conta como "na lista de remoção" e nunca
+>   baixa. Tirá-la do git é a decisão das cópias idênticas (TODO), não esta.
+> - **O caminho não vai para a limpeza do histórico.** A lista de remoção
+>   nasceu para o D-100, e o passo 4 de
+>   [17-limpeza-historico-cerebro.md](17-limpeza-historico-cerebro.md) converte
+>   cada linha de caminho dela para o `git filter-repo`. Este livro não é
+>   material a apagar do histórico — é uma edição duplicada, e o autor **não**
+>   quer o histórico reescrito por ela. Daí um terceiro tipo de linha, lido pelo
+>   mesmo leitor único (`app/knowledge/removal.py`):
+>   `mantido-no-historico:<caminho>` casa como qualquer caminho no banco, na
+>   ingestão, no `embed` e no gerador do manifesto, e fica fora de
+>   `RemovalList.history_purge_entries`, que é o que o shell do passo 4 tem de
+>   produzir (`grep -v -e '^mantido-no-historico:'`, ao lado do
+>   `-e '^sha256:'`). Um caminho escrito dos dois jeitos é limpo — a linha comum
+>   é a afirmação mais forte. Por que não só a linha `sha256:`: ela não casaria
+>   uma versão nova com outros bytes no mesmo caminho, nem uma linha da base
+>   gravada sem checksum. Por que um prefixo e não uma seção marcada por
+>   comentário: o comentário é invisível ao leitor do Python, e uma entrada
+>   acrescentada no fim do arquivo cairia na seção errada sem ninguém notar.
+>   `TestHistoryPurgeConversion` roda o bloco do passo 4 sobre a lista real e
+>   confere que ele sai igual a `history_purge_entries` — as mesmas 14 linhas
+>   de antes.
+> - **Os números do Cérebro.** 240 ponteiros na árvore; a primeira ingestão
+>   completa baixa 119 PDFs, ≈528 MB (503,1 MiB, como o `lfs_plan` imprime), e
+>   não mais 120 e ≈631 MB; 120 cópias byte a byte, e 1 na lista de remoção.
+>   Os extratos de capítulo em `01-Bibliografia/Extratos-de-Capitulos/` não
+>   mudam.
+> - **O que falta é do autor**, depois do merge: **Administração do banco** →
+>   `conhecimento_simular_remocao` (um documento só, o `FALHOU`), depois
+>   `conhecimento_remover`, depois **Base de conhecimento (Cérebro)** →
+>   `ingerir` ([TODO.md](TODO.md) A7, item 3).
+> - **Para desfazer:** apague as duas linhas do bloco do Ashby em
+>   `removidos.txt` e restaure o arquivo e a entrada do manifesto do histórico
+>   (`git checkout <commit anterior a esta remoção> -- "Cérebro/01-Bibliografia/Selecao_de_Materiais_no_Projeto_Mecanico.pdf" Cérebro/manifesto.json`,
+>   conferindo o manifesto à mão se ele tiver mudado depois); a próxima
+>   `ingerir` o baixa e indexa. O histórico tem o arquivo, porque esta remoção
+>   nunca passou pela limpeza.

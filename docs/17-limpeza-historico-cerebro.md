@@ -19,9 +19,15 @@ lista de SHAs.
 
 A lista do que sai é a mesma que a remoção do banco usa:
 [`Cérebro/removidos.txt`](../Cérebro/removidos.txt). Não mantenha outra. Ela
-tem dois tipos de linha: caminhos, que este guia usa, e `sha256:<conteúdo>`,
+tem três tipos de linha: caminhos, que este guia usa; `sha256:<conteúdo>`,
 que só o banco e a ingestão usam — o git-filter-repo remove por caminho, e o
-passo 4 descarta essas linhas.
+passo 4 descarta essas linhas —; e `mantido-no-historico:<caminho>`, um caminho
+que sai do banco e da ingestão mas **fica** no histórico, e que o passo 4 também
+descarta. Este último existe para o que sai do RAG por outro motivo que não o
+do D-100: a edição duplicada do Ashby em português
+(`01-Bibliografia/Selecao_de_Materiais_no_Projeto_Mecanico.pdf`, D-101,
+atualização de 06/10/2026) saiu da base para o texto não aparecer em dobro, e o
+autor **não** quer o histórico reescrito por ela.
 
 > **Nada aqui é feito por agente nem por CI.** É uma operação manual, feita uma
 > vez, pelo dono do repositório, depois do merge do PR do D-100. Ela reescreve
@@ -31,7 +37,7 @@ passo 4 descarta essas linhas.
 ## 0. O que isto faz, e o que não faz
 
 **Faz:** remove dos commits, em todas as branches e tags, cada caminho da lista
-de remoção. Os commits continuam existindo, com SHAs novos e sem esses arquivos
+de remoção — menos os marcados `mantido-no-historico:`, que ficam. Os commits continuam existindo, com SHAs novos e sem esses arquivos
 — **quase todos**: commits que, sem os arquivos removidos, ficam idênticos a
 outro são colapsados num só. Em 30/09/2026 isso levou 76 duplicatas que uma
 reescrita anterior tinha deixado em `main`, que foi de 659 para 583 commits;
@@ -178,14 +184,15 @@ grep -c '^Cérebro/' todos-os-caminhos.txt
 para comentário e `/` no fim para pasta. O `--paths-from-file` do
 git-filter-repo quer caminhos **relativos à raiz do repositório**, um por linha;
 uma linha que termina em `/` também vale como pasta inteira ali. Basta tirar
-comentários e linhas em branco e pôr `Cérebro/` na frente:
+comentários, linhas em branco e as linhas `sha256:` e `mantido-no-historico:`,
+e pôr `Cérebro/` na frente:
 
 ```bash
 git -C repo.git show 'HEAD:Cérebro/removidos.txt' \
   | sed '1s/^\xEF\xBB\xBF//' \
   | tr -d '\r' \
   | sed 's/^[[:space:]]*//; s/[[:space:]]*$//' \
-  | grep -v -e '^#' -e '^[[:space:]]*$' -e '^sha256:' \
+  | grep -v -e '^#' -e '^[[:space:]]*$' -e '^sha256:' -e '^mantido-no-historico:' \
   | sed 's|^|Cérebro/|' > caminhos-para-remover.txt
 cat caminhos-para-remover.txt
 ```
@@ -194,14 +201,22 @@ As linhas `sha256:` saem aqui de propósito: o `--paths-from-file` só entende
 caminho, e uma linha `sha256:…` viraria um caminho que não existe. É por isso
 que os 12 arquivos avulsos da raiz continuam listados pelo nome na lista, mesmo
 tendo o conteúdo coberto pelas linhas `sha256:` — sem o nome, este passo não os
-tiraria do histórico. O primeiro `sed` tira uma eventual marca de ordem de
+tiraria do histórico. As linhas `mantido-no-historico:` saem pelo motivo
+oposto: o caminho é real, e é justamente o que **não** se quer reescrever — sem
+esse `-e`, o Ashby duplicado do D-101 iria para o `--paths-from-file` e sairia
+do histórico junto com o material de curso. Se um dia uma versão deste bloco
+sem esse filtro for usada, tire a linha à mão do `caminhos-para-remover.txt`
+antes do passo 6; o teste `TestHistoryPurgeConversion`
+(`apps/api/app/tests/test_knowledge_prune.py`) roda este bloco sobre a lista
+real e confere que ele produz exatamente o que `RemovalList.history_purge_entries`
+diz. O primeiro `sed` tira uma eventual marca de ordem de
 bytes (BOM), que o PowerShell 5.1 grava e que colaria na primeira linha; o
 segundo tira espaços nas pontas de cada linha, como faz a leitura da lista no
 banco e na ingestão — sem isso, um espaço esquecido no fim de uma linha faria o
 git-filter-repo procurar um caminho que não existe, enquanto o `prune` casava
 normalmente.
 
-O resultado são 14 linhas: as duas pastas
+O resultado são 14 linhas — as mesmas antes e depois do D-101: as duas pastas
 (`Cérebro/02-Material-de-Curso-ENG02016/` e `Cérebro/⚙Seleção de Materiais/`) e
 12 arquivos avulsos na raiz. Os nomes têm acento e um deles tem **dois espaços
 seguidos** (`trios definidos para a FA1B -  Mapeamento…`) — não edite o arquivo

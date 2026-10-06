@@ -401,8 +401,8 @@ Três coisas que não são detalhe de configuração:
   **agendada** toda noite que gera vetores com a sobra da cota gratuita, até
   1000 pedidos. **O `embed` nunca envia trecho de documento que esteja em
   `Cérebro/removidos.txt`**, e com a lista ilegível falha antes de pedir: não
-  afrouxe isso. A banda de LFS do plano gratuito é 1 GB/mês e o Cérebro tem
-  ≈631 MB — uma ingestão que baixe tudo duas vezes no mês bloqueia o LFS da
+  afrouxe isso. A banda de LFS do plano gratuito é 1 GB/mês e a ingestão
+  completa do Cérebro baixa ≈528 MB — uma que baixe tudo duas vezes no mês bloqueia o LFS da
   conta. É o
   único workflow com `schedule`, e por isso não é ação do `admin-banco.yml`, que
   promete só `workflow_dispatch`; divide com ele o grupo de concorrência (e a

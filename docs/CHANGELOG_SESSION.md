@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [49](#sessão-49--061026--os-dois-ashby-em-português-fica-o-de-2012) | 06/10/2026 | Dos dois scans do Ashby em português fica o de 2012 (4ª ed., provavelmente o mais novo, não confirmado): o sem data sai do git, do manifesto e do RAG pela lista de remoção, pelo caminho e pelo conteúdo, numa linha `mantido-no-historico:` que a limpeza do histórico não lê (D-101, atualização dos dois Ashby) | 3770 → 3781 | 762 (inalterado) |
 | [48](#sessão-48--061026--a-revisão-do-pr-98-o-teto-era-por-fluxo-não-por-documento) | 06/10/2026 | A revisão do PR #98 achou que o teto de 500 MB era por fluxo e a memória somava as páginas, que um livro lido pela metade passava em silêncio e nunca era relido, e que o upload dos Cadernos tinha a mesma soma: o pypdf solta as cópias entre páginas, o Cérebro lê com 200 MB por fluxo, orçamento por documento e falha acima de 20% das páginas de fora, a linha virou `::warning::` com a classe do erro, o `status` ganhou rótulo próprio e `ingerir` ganhou `forcar`; o upload lê com 4 MB por fluxo, 32 MB por arquivo e páginas contadas antes (endurecimento de segurança; D-101, atualização da revisão do PR #98) | 3743 → 3770 | 762 (inalterado) |
 | [47](#sessão-47--061026--o-teto-de-descompressão-do-pypdf-e-os-dois-ashby) | 06/10/2026 | A segunda `ingerir` saiu com 1 por dois Ashby barrados pelo teto de 75 MB por fluxo do pypdf: o Cérebro lê com teto de 500 MB, no `ContextVar` do pypdf (piso 6.18), e pula a página que não decodifica dizendo quantas; o upload dos Cadernos mantém o padrão e falha na primeira página ilegível (D-101, atualização do teto de descompressão) | 3725 → 3743 | 762 (inalterado) |
 | [46](#sessão-46--061026--o-nul-do-pypdf-e-a-ingestão-que-não-para-num-documento) | 06/10/2026 | A primeira `ingerir` em produção morreu com `PostgreSQL text fields cannot contain NUL (0x00) bytes`: o NUL sai na fonte (`storable_text()` nos leitores, no fatiador e nas fontes dos Cadernos), e um documento que o banco recusa volta ao *savepoint* e sai `falhou` sem parar a execução; erro de banco num CLI imprime só a classe, e o log daquela execução, com texto do livro, espera o dono apagá-lo (D-101, atualização de 06/10) | 3699 → 3725 | 762 (inalterado) |
@@ -66,6 +67,59 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
 
 ---
+
+## Sessão 49 — 06/10/26 — Os dois Ashby em português: fica o de 2012
+
+**O pedido.** O autor decidiu o item "Os dois Ashby em português" do TODO:
+ficar só com a edição mais nova. Fica
+`01-Bibliografia/Michael Ashby (Auth.)-Seleção De Materiais No Projeto Mecânico (2012).pdf`
+(4ª edição, 152 MB); sai `01-Bibliografia/Selecao_de_Materiais_no_Projeto_Mecanico.pdf`
+(sem data, 103,5 MB). Que o de 2012 é o mais novo é **provável, não
+confirmado** — ninguém comparou as folhas de rosto, e baixar os dois do LFS
+gastaria banda. O histórico do git **não** é reescrito por isso.
+
+**O que mudou** ([D-101](DECISIONS.md), atualização "os dois Ashby"; nota no
+[D-100](DECISIONS.md)):
+
+- O ponteiro saiu do git e a entrada saiu do `manifesto.json` (121 → 120
+  entradas, o mesmo formato). Os extratos de capítulo não mudaram.
+- `Cérebro/removidos.txt` ganhou o caminho e o `sha256:` do oid do ponteiro.
+  O caminho casa a linha `FALHOU` da segunda `ingerir`; o conteúdo casa a
+  cópia byte a byte que continua na raiz do Cérebro, que o plano do LFS
+  passa a contar como "na lista de remoção" e nunca baixa.
+- **A limpeza do histórico não leva este caminho.** A conversão do passo 4 do
+  guia de limpeza (`docs/17`) mandaria toda linha de caminho para o
+  `git filter-repo`. Um terceiro tipo de linha, `mantido-no-historico:<caminho>`,
+  lido pelo mesmo `app/knowledge/removal.py`: casa como caminho no banco, na
+  ingestão, no `embed` e no gerador do manifesto, e fica fora de
+  `RemovalList.history_purge_entries`; o `grep -v` do passo 4 ganhou
+  `-e '^mantido-no-historico:'`. Um caminho escrito dos dois jeitos é limpo.
+- Os números do Cérebro: a primeira ingestão completa baixa 119 PDFs, ≈528 MB
+  (503,1 MiB), em vez de 120 e ≈631 MB; 120 cópias byte a byte, mais 1 na
+  lista de remoção. Atualizados no README do Cérebro, `13-deploy.md`,
+  `PROJECT_CONTEXT.md`, `docs/CLAUDE.md`, `CLAUDE.md` e TODO; os registros de
+  sessões anteriores ficam com os números da época.
+
+**Como se sabe que passa.** 11 testes novos: o leitor (o prefixo casa como
+caminho e prefixo de pasta, sai de `history_purge_entries`, é validado como
+qualquer caminho, perde para a linha comum); a lista real (o Ashby sai pelo
+caminho e pelo conteúdo, o de 2012 e os extratos não, a limpeza continua com
+as mesmas 14 linhas); a ingestão pula o caminho e uma cópia com os mesmos bytes
+em outro caminho e indexa a edição que fica; o plano do LFS, com a lista real,
+não baixa o ponteiro que saiu nem a cópia da raiz; o `prune` lista e apaga a
+linha `FALHOU` pelo caminho e a cópia pelo conteúdo; e o bloco de shell do
+passo 4 do `docs/17`, rodado sobre a lista real, sai igual a
+`history_purge_entries` (sem o `-e` novo, ele falha). `manifesto.json` validado
+como JSON.
+
+**Números.** Backend 3770 → 3781 (sem `POSTGRES_TEST_URL`, 3775 passam e 6
+pulam). Frontend 762, inalterado. `ruff` e `black` limpos.
+
+**Pendente, e só o autor faz**, depois do merge: **Administração do banco** →
+`conhecimento_simular_remocao` (um documento só: `01-Bibliografia/…
+sha256:27882628`) → `conhecimento_remover` → **Base de conhecimento (Cérebro)**
+→ `ingerir` ([TODO.md](TODO.md) A7, item 3). Sem deploy da API: o `prune` e a
+ingestão rodam no runner, do código de `main`.
 
 ## Sessão 48 — 06/10/26 — A revisão do PR #98: o teto era por fluxo, não por documento
 

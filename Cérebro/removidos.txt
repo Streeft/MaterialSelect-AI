@@ -23,6 +23,12 @@
 # documento cujos bytes tenham esse SHA-256, em qualquer caminho. O banco e a
 # ingestão leem essas linhas; a limpeza do histórico, que só entende caminho,
 # as descarta (docs/17, passo 4).
+#
+# Uma linha "mantido-no-historico:<caminho>" casa como qualquer caminho no banco
+# e na ingestão, mas FICA no histórico do git: a limpeza do histórico (docs/17,
+# passo 4) a descarta. É para o que sai do RAG por outro motivo que não o do
+# D-100 — uma edição duplicada de um livro, por exemplo (D-101) — e que o autor
+# quer manter no histórico. Na dúvida, use a linha de caminho comum.
 
 # Material de curso da disciplina ENG02016 — Seleção de Materiais A (2026/1):
 # tópicos de aula, plano de aulas, instruções e grupos das ferramentas
@@ -98,3 +104,16 @@ sha256:e4f5334dd77c94fc26a523684de62a1f88a77be6430ff0e6190c6e55efcaeb0c
 sha256:f388cf9bbb4c5a2d12ea78221f36fa820f0f3f72307167feb924e5015394dc3d
 sha256:f48a05dd93be3697ea27c00a28513797c5cb244f23782ed5f59db290a8188742
 sha256:ff42ed5022746578ea08fd3c70a6ca17d460feb34b21f724e59a428472cc1b75
+
+# Edição duplicada do Ashby em português (D-101, atualização de 06/10/2026).
+# Os dois scans de "Seleção de Materiais no Projeto Mecânico" estavam em
+# 01-Bibliografia/; fica o de 2012 (4ª edição), sai este, sem data no arquivo.
+# Que o de 2012 é a edição mais nova é PROVÁVEL, não confirmado. Não é retirada
+# de material protegido: sai do RAG para o texto não aparecer em dobro na busca,
+# e continua no histórico do git por decisão do autor — daí o
+# "mantido-no-historico:". A linha sha256: é o oid do ponteiro LFS; ela casa
+# também a cópia byte a byte que continua na raiz do Cérebro, com o mesmo nome
+# de arquivo. Para desfazer: apague as duas linhas e restaure o arquivo do
+# histórico (D-101).
+mantido-no-historico:01-Bibliografia/Selecao_de_Materiais_no_Projeto_Mecanico.pdf
+sha256:27882628ad20ab3e90dbf61f86d47990f6f94190229fad925fb7935acbea5b69

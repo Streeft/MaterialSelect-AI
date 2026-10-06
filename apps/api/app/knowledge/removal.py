@@ -4,7 +4,8 @@
 taken out of the knowledge base. Three consumers read it and none keeps a copy
 of its own: the prune CLI (:mod:`app.knowledge.prune`) deletes the matching rows
 from a database, the ingestion skips matching files even if they reappear on
-disk, and the git history purge converts it for ``git filter-repo``.
+disk, and the git history purge converts its path lines — minus the ones marked
+``mantido-no-historico:`` — for ``git filter-repo``.
 
 The format is deliberately small, because it is edited by hand and read by a
 shell script too:
@@ -20,12 +21,20 @@ shell script too:
   tree — a copy in a local triage folder has another path and the same bytes.
   ``knowledge_document.checksum`` is the SHA-256 of the file's bytes, which for
   a file kept in Git LFS is exactly the pointer's ``oid sha256:``;
+* a line ``mantido-no-historico:<path>`` is a path entry like any other for
+  the database and the ingestion — exact or folder prefix, NFC — and is left
+  out of the git history purge. Not everything that leaves the knowledge base
+  left it for the reason the purge exists (D-100: material that must not stay
+  published); a duplicate edition of a book (D-101) leaves the RAG and stays
+  in the history, where the owner wants it. The purge reads only
+  :attr:`RemovalList.history_purge_entries`, and docs/17's shell conversion
+  drops these lines as it drops the ``sha256:`` ones;
 * blank lines and lines starting with ``#`` are ignored. There are no inline
   comments, because ``#`` is a legal character in a file name.
 
-A path that literally starts with ``sha256:`` cannot be listed; a colon is not
-a legal file-name character on Windows, where the corpus is curated, so nothing
-real is lost.
+A path that literally starts with ``sha256:`` or ``mantido-no-historico:``
+cannot be listed; a colon is not a legal file-name character on Windows, where
+the corpus is curated, so nothing real is lost.
 
 Matching normalises both sides to Unicode NFC. A path ingested on macOS may
 have been stored decomposed (NFD), and "Tópico" in NFD and in NFC are different
@@ -52,6 +61,10 @@ REMOVAL_LIST_FILENAME = "removidos.txt"
 
 #: Prefix of a content entry: ``sha256:`` followed by the lowercase hex digest.
 CHECKSUM_PREFIX = "sha256:"
+#: Prefix of a path entry that leaves the knowledge base but not the git
+#: history: the database and the ingestion match it like any path line, and
+#: the history purge (docs/17, step 4) leaves it out.
+HISTORY_KEPT_PREFIX = "mantido-no-historico:"
 _HEX_DIGEST = re.compile(r"[0-9a-f]{64}")
 
 
@@ -68,6 +81,9 @@ class RemovalList:
     prefixes: tuple[str, ...]
     #: SHA-256 hex digests (lowercase) of removed files' bytes.
     checksums: frozenset[str] = field(default_factory=frozenset)
+    #: Path entries (also in ``exact`` or ``prefixes``) written with
+    #: ``mantido-no-historico:``: matched here, never purged from git history.
+    history_kept: frozenset[str] = field(default_factory=frozenset)
 
     @property
     def entries(self) -> tuple[str, ...]:
@@ -78,6 +94,18 @@ class RemovalList:
         an operator actually reads.
         """
         return self.prefixes + tuple(sorted(self.exact))
+
+    @property
+    def history_purge_entries(self) -> tuple[str, ...]:
+        """The path entries the git history purge removes, in report order.
+
+        Every path entry but the ``mantido-no-historico:`` ones; content
+        entries never reach it, since ``git filter-repo`` removes by path.
+        docs/17 converts the file with a shell pipeline that must produce
+        exactly these (with ``Cérebro/`` in front), and a test holds it to
+        that.
+        """
+        return tuple(e for e in self.entries if e not in self.history_kept)
 
     @property
     def is_empty(self) -> bool:
@@ -139,6 +167,8 @@ def parse_removal_list(text: str) -> RemovalList:
     exact: set[str] = set()
     prefixes: list[str] = []
     checksums: set[str] = set()
+    history_kept: set[str] = set()
+    purged: set[str] = set()
     # A byte-order mark (PowerShell 5.1's ``Set-Content -Encoding UTF8`` writes
     # one) would glue itself to the first entry and make it match nothing.
     text = text.removeprefix("\ufeff")
@@ -155,6 +185,9 @@ def parse_removal_list(text: str) -> RemovalList:
                 )
             checksums.add(digest)
             continue
+        kept_in_history = line.startswith(HISTORY_KEPT_PREFIX)
+        if kept_in_history:
+            line = line[len(HISTORY_KEPT_PREFIX) :].strip()
         segments = line.rstrip("/").split("/")
         if line.startswith("/") or "\\" in line or any(s in {"", ".", ".."} for s in segments):
             raise ValidationError(
@@ -167,8 +200,14 @@ def parse_removal_list(text: str) -> RemovalList:
                 prefixes.append(entry)
         else:
             exact.add(entry)
+        (history_kept if kept_in_history else purged).add(entry)
+    # A path written both ways is purged: the plain line is the stronger
+    # statement, and keeping it in history would quietly undo it.
     return RemovalList(
-        exact=frozenset(exact), prefixes=tuple(prefixes), checksums=frozenset(checksums)
+        exact=frozenset(exact),
+        prefixes=tuple(prefixes),
+        checksums=frozenset(checksums),
+        history_kept=frozenset(history_kept - purged),
     )
 
 

@@ -9,6 +9,10 @@ embeddings junto e não encosta em documento que a lista não nomeia.
 
 from __future__ import annotations
 
+import os
+import re
+import shutil
+import subprocess
 import unicodedata
 from pathlib import Path
 
@@ -482,7 +486,8 @@ class TestRepositoryList:
     def test_versioned_list_carries_the_content_of_every_removed_file(self) -> None:
         removal = parse_removal_list(self.LIST_PATH.read_text(encoding="utf-8"))
         # 71 arquivos, 34 conteúdos distintos: as cópias idênticas coincidem.
-        assert len(removal.checksums) == 34
+        # Mais 1: a edição duplicada do Ashby em português (D-101).
+        assert len(removal.checksums) == 35
         # O Tópico 1 sem "atualizado" só existia na raiz; o conteúdo dele
         # também está na lista, e não só o nome.
         assert removal.matches_checksum(
@@ -493,3 +498,127 @@ class TestRepositoryList:
         # D-100: o autor revisou o Links.md e decidiu mantê-lo e indexá-lo.
         removal = parse_removal_list(self.LIST_PATH.read_text(encoding="utf-8"))
         assert not removal.matches("Links.md")
+
+    def test_the_duplicate_ashby_leaves_the_base_and_stays_in_history(self) -> None:
+        # D-101: fica o scan de 2012; o sem data sai do RAG, pelo caminho e pelo
+        # conteúdo (o oid do ponteiro LFS), mas não é material a apagar do
+        # histórico — o autor quer o arquivo lá.
+        removal = parse_removal_list(self.LIST_PATH.read_text(encoding="utf-8"))
+        assert removal.matches(ASHBY_REMOVED)
+        assert removal.matches_checksum(ASHBY_REMOVED_OID)
+        assert ASHBY_REMOVED in removal.history_kept
+        assert ASHBY_REMOVED not in removal.history_purge_entries
+        assert not removal.matches(ASHBY_KEPT)
+        assert not removal.matches(
+            "01-Bibliografia/Extratos-de-Capitulos/Selecao_de_Materiais_no_Projeto_Mecanico"
+            " - Capítulo 3 Materiais de Engenharia e suas propriedades.pdf"
+        )
+        # A limpeza do histórico continua levando exatamente o que o D-100 tirou.
+        assert len(removal.history_purge_entries) == 14
+        assert set(removal.history_purge_entries) == set(removal.entries) - {ASHBY_REMOVED}
+
+
+ASHBY_REMOVED = "01-Bibliografia/Selecao_de_Materiais_no_Projeto_Mecanico.pdf"
+ASHBY_REMOVED_OID = "27882628ad20ab3e90dbf61f86d47990f6f94190229fad925fb7935acbea5b69"
+ASHBY_KEPT = unicodedata.normalize(
+    "NFC",
+    "01-Bibliografia/Michael Ashby (Auth.)-Seleção De Materiais No Projeto Mecânico (2012).pdf",
+)
+
+
+class TestKeptInHistory:
+    """`mantido-no-historico:` sai do banco e da ingestão, mas não do histórico."""
+
+    def test_is_a_path_entry_for_matching(self) -> None:
+        removal = parse_removal_list(
+            f"mantido-no-historico:{ASHBY_REMOVED}\nmantido-no-historico: Duplicados/\n"
+        )
+        assert removal.matches(ASHBY_REMOVED)
+        assert removal.matches("Duplicados/a.pdf")
+        assert not removal.matches("01-Bibliografia/outro.pdf")
+        assert removal.history_kept == frozenset({ASHBY_REMOVED, "Duplicados/"})
+        assert removal.history_purge_entries == ()
+        # Os relatórios do prune continuam vendo a entrada.
+        assert set(removal.entries) == {ASHBY_REMOVED, "Duplicados/"}
+
+    def test_plain_lines_are_still_purged(self) -> None:
+        removal = parse_removal_list(f"{COURSE}\nmantido-no-historico:{TOPIC_NFD}\n")
+        assert removal.history_purge_entries == (COURSE,)
+        assert removal.matches(TOPIC_NFC)  # NFC dos dois lados, como toda linha
+
+    def test_a_path_written_both_ways_is_purged(self) -> None:
+        removal = parse_removal_list(f"mantido-no-historico:{TOPIC_NFC}\n{TOPIC_NFC}\n")
+        assert removal.history_kept == frozenset()
+        assert removal.history_purge_entries == (TOPIC_NFC,)
+
+    @pytest.mark.parametrize(
+        "line",
+        ["mantido-no-historico:", "mantido-no-historico:/a.pdf", "mantido-no-historico:../a"],
+    )
+    def test_the_path_is_validated_like_any_other(self, line: str) -> None:
+        with pytest.raises(ValidationError, match="relativo"):
+            parse_removal_list(line)
+
+    def test_prune_lists_and_deletes_it_by_path_and_by_content(self, db_session: Session) -> None:
+        # A primeira `ingerir` deixou uma linha FALHOU para o livro; a cópia na
+        # raiz casa pelo conteúdo, e uma linha sem checksum, pelo caminho.
+        failed = _document(db_session, ASHBY_REMOVED, chunks=0, embedded=0)
+        failed.checksum = ""
+        copy = _document(db_session, "Selecao_de_Materiais_no_Projeto_Mecanico.pdf")
+        copy.checksum = ASHBY_REMOVED_OID
+        _document(db_session, ASHBY_KEPT, chunks=3, embedded=3)
+        db_session.flush()
+        removal = parse_removal_list(
+            f"mantido-no-historico:{ASHBY_REMOVED}\nsha256:{ASHBY_REMOVED_OID}\n"
+        )
+
+        report = prune(db_session, removal, apply=False)
+        assert {(m.path, m.reason) for m in report.matched} == {
+            (ASHBY_REMOVED, "caminho"),
+            ("Selecao_de_Materiais_no_Projeto_Mecanico.pdf", "conteúdo (sha256)"),
+        }
+        lines = format_report(report)
+        assert any(ASHBY_REMOVED in line and "seria removido" in line for line in lines)
+        assert report.unmatched_entries == []
+
+        prune(db_session, removal, apply=True)
+        db_session.flush()
+        assert _paths(db_session) == [ASHBY_KEPT]
+
+
+def _history_purge_script() -> str:
+    """O bloco do passo 4 do docs/17, que converte a lista para o filter-repo."""
+    guide = Path(__file__).resolve().parents[4] / "docs" / "17-limpeza-historico-cerebro.md"
+    blocks = re.findall(r"```bash\n(.*?)```", guide.read_text(encoding="utf-8"), re.S)
+    (script,) = [b for b in blocks if "> caminhos-para-remover.txt" in b]
+    return script
+
+
+@pytest.mark.skipif(
+    any(shutil.which(tool) is None for tool in ("bash", "sed", "grep", "tr")),
+    reason="o passo 4 do docs/17 é um pipeline de shell",
+)
+class TestHistoryPurgeConversion:
+    """O shell do docs/17 produz exatamente `history_purge_entries` da lista real."""
+
+    def test_guide_pipeline_matches_the_reader(self, tmp_path: Path) -> None:
+        listing = TestRepositoryList.LIST_PATH
+        # `git show HEAD:…` lê a lista do clone espelho; aqui, a da árvore.
+        script = 'git() { cat "$LISTA"; }\n' + _history_purge_script()
+        subprocess.run(
+            ["bash", "-c", script],
+            cwd=tmp_path,
+            env={"LISTA": str(listing), "PATH": os.environ["PATH"], "LC_ALL": "C.UTF-8"},
+            check=True,
+            capture_output=True,
+        )
+        produced = (tmp_path / "caminhos-para-remover.txt").read_text(encoding="utf-8").splitlines()
+
+        removal = parse_removal_list(listing.read_text(encoding="utf-8"))
+        expected = {"Cérebro/" + entry for entry in removal.history_purge_entries}
+        assert {unicodedata.normalize("NFC", p) for p in produced} == {
+            unicodedata.normalize("NFC", p) for p in expected
+        }
+        assert len(produced) == len(expected) == 14
+        assert not any("Selecao_de_Materiais_no_Projeto_Mecanico" in p for p in produced)
+        assert not any(":" in p for p in produced)

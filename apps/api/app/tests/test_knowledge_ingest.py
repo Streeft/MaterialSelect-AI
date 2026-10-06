@@ -226,6 +226,29 @@ class TestRemovalList:
         repo = KnowledgeRepository(db_session)
         assert repo.get_by_path("_Duplicados-Para-Revisao/renomeado.pdf") is None
 
+    def test_a_history_kept_entry_is_skipped_with_its_byte_copy(
+        self, db_session, corpus: Path
+    ) -> None:
+        # D-101: a edição duplicada do Ashby sai do RAG pelo caminho, e a cópia
+        # byte a byte em outro caminho sai pelo conteúdo; a edição que fica entra.
+        removed = _write(corpus, "01-Bibliografia/Selecao.pdf", ["Mesmo livro, outro scan."])
+        (corpus / "Selecao.pdf").write_bytes(removed.read_bytes())
+        _write(corpus, "01-Bibliografia/Ashby 2012.pdf", ["A edição que fica."])
+        (corpus / "removidos.txt").write_text(
+            "mantido-no-historico:01-Bibliografia/Selecao.pdf\n" f"sha256:{checksum_of(removed)}\n",
+            encoding="utf-8",
+        )
+
+        report = KnowledgeService(db_session).ingest()
+
+        assert (report.created, report.skipped, report.duplicates) == (1, 2, 0)
+        details = {o.path: o.detail or "" for o in report.outcomes if o.action == "ignorado"}
+        assert "por caminho" in details["01-Bibliografia/Selecao.pdf"]
+        assert "conteúdo (sha256)" in details["Selecao.pdf"]
+        repo = KnowledgeRepository(db_session)
+        assert repo.get_by_path("01-Bibliografia/Ashby 2012.pdf") is not None
+        assert repo.get_by_path("Selecao.pdf") is None
+
     def test_a_skipped_file_already_in_the_base_says_to_prune(
         self, db_session, corpus: Path
     ) -> None:
@@ -1542,6 +1565,31 @@ class TestLfsPlan:
         assert sorted(read) == ["falhou.pdf", "mudou.pdf", "novo.pdf"]
         assert (report.created, report.updated, report.unchanged) == (1, 1, 2)
         assert report.duplicates == 2  # as duas da "z copia", nenhuma baixada
+
+    def test_the_versioned_list_keeps_the_duplicate_ashby_from_being_fetched(
+        self, db_session, corpus: Path
+    ) -> None:
+        # D-101: com a lista real, os ponteiros do Ashby que saiu — no caminho
+        # dele e a cópia na raiz — não gastam banda de LFS; o de 2012 é baixado.
+        cerebro = Path(__file__).resolve().parents[4] / "Cérebro"
+        (corpus / "removidos.txt").write_bytes((cerebro / "removidos.txt").read_bytes())
+        removed = (
+            b"version https://git-lfs.github.com/spec/v1\n"
+            b"oid sha256:27882628ad20ab3e90dbf61f86d47990f6f94190229fad925fb7935acbea5b69\n"
+            b"size 103546178\n"
+        )
+        (corpus / "01-Bibliografia").mkdir()
+        (corpus / "01-Bibliografia/Selecao_de_Materiais_no_Projeto_Mecanico.pdf").write_bytes(
+            removed
+        )
+        (corpus / "Selecao_de_Materiais_no_Projeto_Mecanico.pdf").write_bytes(removed)
+        kept = "01-Bibliografia/Michael Ashby (Auth.)-Seleção De Materiais No Projeto Mecânico (2012).pdf"
+        (corpus / kept).write_bytes(_pointer_for(_pdf_bytes(["A edição de 2012."])))
+
+        plan = KnowledgeService(db_session).lfs_plan()
+
+        assert (plan.pointers, plan.removed) == (3, 2)
+        assert [f.relative for f in plan.fetch] == [kept]
 
     def test_planning_writes_nothing(self, db_session, corpus: Path) -> None:
         self._corpus(db_session, corpus)

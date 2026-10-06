@@ -353,6 +353,10 @@ apaga documento, trechos e embeddings numa transação, com a cascata em Python;
 o log do Actions é público; ações `conhecimento_simular_remocao` e
 `conhecimento_remover` de `admin-banco.yml`, as duas com `--redact`), a ingestão (que pula o que casa, em qualquer caminho, e o
 declara `ignorado`) e a limpeza do histórico, que só lê as linhas de caminho
+— **menos** as `mantido-no-historico:<caminho>`, que casam no banco e na
+ingestão e ficam no histórico: é para o que sai do RAG por outro motivo, como a
+edição duplicada do Ashby em português (D-101, 06/10), e não se mistura com o
+que o D-100 apaga
 ([`docs/17-limpeza-historico-cerebro.md`](docs/17-limpeza-historico-cerebro.md):
 `push --force --atomic` de branches e tags, nunca `--mirror`, com a *ruleset*
 suspensa). **A ingestão só acrescenta**: tirar um arquivo do repositório não
@@ -942,7 +946,7 @@ noturna agendada. Regras que não se afrouxam:
 - **A ingestão roda no runner, não na API, e sem chave de IA**: `ingerir` baixa
   do LFS **só o que o banco não tem** (`python -m app.knowledge.lfs_plan`: o
   `oid` do ponteiro é o sha256 do arquivo, o mesmo checksum da base — a banda
-  de LFS gratuita é 1 GB/mês e o Cérebro tem ≈631 MB) e roda
+  de LFS gratuita é 1 GB/mês e a primeira ingestão completa baixa ≈528 MB) e roda
   `python -m app.knowledge.ingest --no-embed`. Um **ponteiro LFS nunca toca o
   banco** — o que aponta para os bytes já indexados no mesmo caminho sai
   `inalterado` sem ser lido, e o plano é a mesma decisão da ingestão, nunca
@@ -1007,7 +1011,7 @@ sem isso a memória soma as páginas. O upload dos Cadernos (`read_upload`) lê
 contadas antes de decodificar), sob medida para a VM de 512 MB, e falha na
 primeira página ilegível — não passe o teto do Cérebro a bytes de usuário.**
 
-3770 testes de backend (nenhum skip na CI; sem `POSTGRES_TEST_URL`, 3764 passam
+3781 testes de backend (nenhum skip na CI; sem `POSTGRES_TEST_URL`, 3775 passam
 e 6 pulam) e 762 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do

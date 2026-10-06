@@ -76,7 +76,7 @@ Ficam quatro passos fora do código:
    `conhecimento_indexar_links` do `admin-banco.yml`. O Cérebro inteiro, na
    ordem de [13-deploy.md §5-septies](13-deploy.md): **Deploy da API** →
    **Provedor de IA** (`gemini`) → `status` → `ingerir` (fora do horário de
-   aula; baixa ≈631 MB do LFS, mais da metade da banda gratuita do mês — não
+   aula; baixa ≈528 MB do LFS, mais da metade da banda gratuita do mês — não
    repita no mesmo mês sem necessidade) → os vetores vêm sozinhos à noite, ou
    já com `embeddings` → `status` toda semana até `faltam 0`. O download
    arquivo a arquivo (`git lfs smudge`) ainda não rodou no GitHub: a primeira
@@ -102,13 +102,21 @@ Ficam quatro passos fora do código:
    … (LimitReachedError ×K)`) — até um quinto do livro; mais que isso (e ao
    menos 3 páginas) é `FALHOU` e saída 1. Depois do merge: **Deploy da API**
    (o piso do pypdf subiu para 6.18, e o upload dos Cadernos ganhou os limites
-   novos — é a parte de segurança) e **`ingerir` de novo** (sem deploy; só os
-   dois Ashby são baixados e lidos — dentro dos 7 dias do cache do LFS não
-   gastam banda). Confira no log: `PÁGINAS IGNORADAS` com só
+   novos — é a parte de segurança) e **`ingerir` de novo** (sem deploy; só o
+   Ashby de 2012 é baixado e lido — o outro saiu, abaixo —, e dentro dos 7
+   dias do cache do LFS não gasta banda). Confira no log: `PÁGINAS IGNORADAS` com só
    `LimitReachedError` quer dizer fluxo acima de 200 MB; `FALHOU … mais que
-   20% do documento` quer dizer que o livro não entra assim. Antes dela,
-   decida o item "Os dois Ashby em português" (baixa prioridade): se um sai
-   pela lista de remoção, a `ingerir` nem o baixa. Para reler depois um livro
+   20% do documento` quer dizer que o livro não entra assim. O item "Os dois
+   Ashby em português" foi decidido (D-101, atualização de 06/10/2026: fica o
+   de 2012, o sem data saiu pela lista de remoção). **Depois do merge do PR
+   dessa decisão, nesta ordem:**
+   **Administração do banco** → `conhecimento_simular_remocao` (o log tem de
+   listar um documento só, `01-Bibliografia/… sha256:27882628`: a linha
+   `FALHOU` que a segunda `ingerir` deixou) →
+   `conhecimento_remover` (os mesmos totais) → **Base de conhecimento
+   (Cérebro)** → `ingerir`. Sem o `conhecimento_remover`, a linha `FALHOU`
+   fica na base e o `status` a mostra como "fora do repositório"; a ingestão
+   não a apaga, só acrescenta. Para reler depois um livro
    indexado com páginas de fora: `ingerir` com `arquivos` = o livro e
    **`forcar`** (13-deploy.md §5-septies).
 4. **Apagar o log público que tem texto de livro — já, sem esperar o merge.**
@@ -138,14 +146,18 @@ Nenhum item aberto no momento — M6 foi entregue nesta sessão (ver
 **Cérebro em produção — pendências deixadas pelo D-101.** Nenhuma bloqueia o
 uso; as três primeiras são decisão ou conferência do autor.
 
-- **As 121 cópias idênticas na árvore.** ▁ 18 PDFs da raiz de `Cérebro/` repetem
+- **As 120 cópias idênticas na árvore.** ▁ 17 PDFs da raiz de `Cérebro/` repetem
   `01-`, `04-` e `05-`, e a pasta
   `Fichas descritivas de materiais - Granta Edupack - Nível 2/` inteira repete
   `03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/`. A ingestão já as indexa uma vez
   só (fica a cópia declarada no manifesto), e desde a revisão final do D-101
   uma `ingerir` nem as baixa do LFS; tirá-las do git não muda o RAG: muda o
   tamanho do clone e o que o leitor da pasta vê. Decisão do autor — e um `git rm` não as tira do
-  histórico nem do armazenamento LFS.
+  histórico nem do armazenamento LFS. A 18ª cópia da raiz,
+  `Selecao_de_Materiais_no_Projeto_Mecanico.pdf`, é do Ashby que saiu
+  (D-101, atualização de 06/10/2026): não conta mais como cópia, a lista de
+  remoção a casa pelo conteúdo e a `ingerir` nem a baixa — pode sair do git
+  junto com as outras.
 - **Documento que falhou é baixado de novo a cada `ingerir`.** ▁ O plano do
   LFS só poupa o que está `EXTRAIDO` com os mesmos bytes; um `FALHOU` (um PDF
   digitalizado, `SEM TEXTO`, inclusive) é baixado e lido de novo, como sempre
@@ -154,16 +166,6 @@ uso; as três primeiras são decisão ou conferência do autor.
   tratar um `FALHOU` com os mesmos bytes como falha conhecida, sem baixar,
   com `--force` para tentar de novo — decisão do autor, porque é declarar a
   falha permanente.
-- **Os dois Ashby em português.** ▁
-  `01-Bibliografia/Michael Ashby (Auth.)-Seleção De Materiais No Projeto Mecânico (2012).pdf`
-  (152 MB) e `01-Bibliografia/Selecao_de_Materiais_no_Projeto_Mecanico.pdf`
-  (103,5 MB) não são byte a byte iguais, e por isso os dois entram. Pelo título
-  e pelo tamanho são quase certamente o mesmo livro em dois scans — e foram os
-  dois que estouraram o teto de descompressão do pypdf na segunda `ingerir`
-  (D-101, 06/10). Se forem a mesma edição, o texto aparece em dobro na busca e
-  custa o dobro de vetores. **Decisão aberta do autor:** abrir os dois e
-  decidir se um sai (pela lista de remoção, D-100) — de preferência antes da
-  próxima `ingerir`, que é quando eles seriam baixados e indexados.
 - **Confirmar os limites do Neon e a memória do Fly.** ▁ O D-101 supôs 0,5 GB de
   armazenamento e 5 GB de transferência por mês no Neon gratuito; confira no
   painel do Neon. Depois da primeira consulta com a IA real, olhe a memória da
@@ -286,6 +288,8 @@ continua lá, e a métrica para de medir no 3.
 
 Registrados para não voltarem por engano:
 
+- ~~**Os dois Ashby em português (D-101)**~~ —
+  `01-Bibliografia/` tinha dois scans de *Seleção de Materiais no Projeto Mecânico*, não byte a byte iguais, e os dois eram indexados (texto em dobro na busca, o dobro de vetores; foram os dois `FALHOU` da segunda `ingerir`). O autor decidiu ficar só com a edição mais nova: fica `Michael Ashby (Auth.)-Seleção De Materiais No Projeto Mecânico (2012).pdf` (4ª ed., 152 MB); saiu `Selecao_de_Materiais_no_Projeto_Mecanico.pdf` (sem data, 103,5 MB) do git e do `manifesto.json`, e entrou em `Cérebro/removidos.txt` pelo caminho (`mantido-no-historico:`, porque não é material a apagar do histórico) e pelo conteúdo (`sha256:` do oid do ponteiro, que casa também a cópia da raiz). Que o de 2012 é a mais nova é **provável, não confirmado**. Reverter: apagar as duas linhas da lista e restaurar o arquivo e a entrada do manifesto do histórico (D-101, atualização de 06/10/2026). Falta só a execução do autor, no item 3 da A7: `conhecimento_simular_remocao` → `conhecimento_remover` → `ingerir`.
 - ~~**Leitura de PDF limitada por documento, não só por fluxo (revisão do PR #98; inclui endurecimento de segurança do upload dos Cadernos)**~~ —
   o teto do pypdf é por fluxo e a memória somava as páginas (as cópias decodificadas ficavam no leitor até a última página): 8 páginas de 150 MB subiam a 1,2 GB, e um upload de 684 KB com 10 páginas de 70 MB custava 783 MB de pico na API de 512 MB. `readers._release_decoded` solta as cópias entre páginas (o mesmo livro fica em ~194 MB); o Cérebro lê com teto de 200 MB (era 500), orçamento por documento (16 GB decodificados, 15 min) e falha um livro com mais de 20% das páginas de fora (e ao menos 3), parando assim que a conta fecha; o motivo de cada página pulada sai pelo nome da classe; a linha `PÁGINAS IGNORADAS` virou anotação `::warning::`; o `status` deixou de chamar esses livros de `VERSÃO ANTERIOR`; e `conhecimento.yml` ganhou `forcar` (só com `arquivos`) para reextrair. **Segurança:** o upload lê com 4 MB por fluxo, 32 MB por arquivo e o limite de páginas conferido antes de decodificar — um aluno autenticado não derruba mais a API com um PDF de 15 MB (D-101, atualização da revisão do PR #98). Resta, documentado: uma página patológica de operadores não é interrompida no meio (só um subprocesso com `RLIMIT_AS` o faria), e o orçamento do upload ainda custa até ~1 min de CPU.
 - ~~**Lote quádruplo de melhorias: Seleção (P0-1), Busca e Highlight (P1-1), Dimensionador Circular (P2) e Eco Audit Comparativo (P3)**~~ —

@@ -561,24 +561,27 @@ idênticos entram uma vez só.
 4. **Base de conhecimento (Cérebro)** → `ingerir`, **fora do horário de
    aula** — a ingestão grava documento a documento, e cada consulta de IA feita
    no meio dela reconstrói o índice da API. A primeira vez leva de 20 a 40 min
-   e baixa ≈631 MB do LFS — **mais da metade da banda de LFS do mês** (1 GB no
+   e baixa ≈528 MB do LFS — **mais da metade da banda de LFS do mês** (1 GB no
    plano gratuito); não a repita no mesmo mês sem necessidade. O plano diz
    ```
-   [lfs] 241 ponteiro(s) LFS entre os arquivos desta execução: 0 já indexado(s) com os mesmos bytes, 121 cópia(s) de outro caminho, 0 na lista de remoção — nenhum desses é baixado.
-   [lfs] baixar 120 arquivo(s), 601,8 MB: 120 novo(s) na base, 0 com versão nova ou que falhou antes (tentado de novo).
+   [lfs] 240 ponteiro(s) LFS entre os arquivos desta execução: 0 já indexado(s) com os mesmos bytes, 120 cópia(s) de outro caminho, 1 na lista de remoção — nenhum desses é baixado.
+   [lfs] baixar 119 arquivo(s), 503,1 MB: 119 novo(s) na base, 0 com versão nova ou que falhou antes (tentado de novo).
    ```
-   o download, `LFS: 0 objeto(s) já no cache, 120 a baixar.`, e a conferência,
-   `Nenhum dos 120 arquivo(s) baixado(s) ficou ponteiro: os PDFs estão inteiros.`
-   As 121 cópias continuam ponteiros no disco de propósito: a ingestão as conta
-   como cópias sem lê-las. O resumo da ingestão, numa base vazia:
+   o download, `LFS: 0 objeto(s) já no cache, 119 a baixar.`, e a conferência,
+   `Nenhum dos 119 arquivo(s) baixado(s) ficou ponteiro: os PDFs estão inteiros.`
+   As 120 cópias continuam ponteiros no disco de propósito: a ingestão as conta
+   como cópias sem lê-las. O `1 na lista de remoção` é a cópia, na raiz, do
+   Ashby em português que saiu (D-101, atualização de 06/10/2026): a lista a
+   casa pelo conteúdo, e ela nunca é baixada. O resumo da ingestão, numa base
+   vazia:
    ```
-   [ingest] N criados, 0 atualizados, 0 inalterados, F falharam (S sem texto), 0 ignorados pela lista de remoção, 121 cópias idênticas ignoradas, T trechos, 0 embedados.
+   [ingest] N criados, 0 atualizados, 0 inalterados, F falharam (S sem texto), 1 ignorados pela lista de remoção, 120 cópias idênticas ignoradas, T trechos, 0 embedados.
    [ingest] vetores não gerados nesta execução (--no-embed): rode `python -m app.knowledge.embed`.
-   [ingest] CÓPIAS em (raiz): 18 idênticas a arquivos indexados em outro caminho.
+   [ingest] CÓPIAS em (raiz): 17 idênticas a arquivos indexados em outro caminho.
    [ingest] CÓPIAS em Fichas descritivas de materiais - Granta Edupack - Nível 2/: 103 idênticas a arquivos indexados em outro caminho.
    ```
-   `N` fica perto de 121 (os 120 PDFs e o `Links.md` que o manifesto declara),
-   menos o que falhar — ou perto de 120 com `1 inalterados`, se o `Links.md`
+   `N` fica perto de 120 (os 119 PDFs e o `Links.md` que o manifesto declara),
+   menos o que falhar — ou perto de 119 com `1 inalterados`, se o `Links.md`
    já entrou pela ação direcionada (`arquivos: Links.md` ou
    `conhecimento_indexar_links`). As contagens de cópias são as da árvore de
    hoje. Uma `ingerir` seguinte, com o Cérebro igual, diz
@@ -714,7 +717,7 @@ prazo). A banda de LFS do plano gratuito é **1 GB por mês**, e passar dela
 bloqueia o LFS da conta inteira até o mês virar, envio inclusive (ver o
 [README do Cérebro](../Cérebro/README.md)). Por isso `ingerir` baixa só o que o
 banco não tem: o `oid` de um ponteiro é o sha256 do arquivo, o mesmo checksum
-da base. A primeira ingestão completa gasta ≈631 MB; as seguintes, só os PDFs
+da base. A primeira ingestão completa gasta ≈528 MB; as seguintes, só os PDFs
 novos ou mudados e os que falharam antes (o plano imprime os MB antes de
 baixar). O `actions/cache` só poupa a repetição dentro de 7 dias. O `status`
 avisa acima de 80% de 0,5 GB de banco, a referência do Neon gratuito.

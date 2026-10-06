@@ -76,9 +76,10 @@ banco de produção. Os vetores da busca semântica vêm depois, pela ação
 merge** — fora do horário de aula. Tirar algo daqui é outro caminho: a lista
 de remoção e o `prune` (D-100), porque a ingestão só acrescenta.
 
-**Cópias idênticas são indexadas uma vez.** Esta pasta guarda 121 cópias byte a
+**Cópias idênticas são indexadas uma vez.** Esta pasta guarda 120 cópias byte a
 byte (as pastas `Fichas descritivas …` e as cópias avulsas da raiz, na tabela
-abaixo). A ingestão agrupa os arquivos pelo sha256 e indexa um de cada grupo:
+abaixo), mais a cópia da raiz do Ashby que saiu (abaixo), que a lista de
+remoção casa pelo conteúdo. A ingestão agrupa os arquivos pelo sha256 e indexa um de cada grupo:
 o que o `manifesto.json` declara; sem declaração, o que já está na base; sem
 nenhum dos dois, o primeiro em ordem alfabética. As outras cópias saem como
 `ignorado` e o log as conta por pasta (`[ingest] CÓPIAS em …`). Tirá-las do
@@ -93,13 +94,19 @@ não ocupar a busca inteira). A consulta nunca abre um PDF: ela ranqueia trechos
 num índice em memória da API. Um PDF digitalizado, sem texto extraível, sai no
 log como `SEM TEXTO` e não entra na busca.
 
-Dois arquivos merecem checagem manual: `Michael Ashby (Auth.)-Seleção De
-Materiais No Projeto Mecânico (2012).pdf` (152 MB) e
-`Selecao_de_Materiais_no_Projeto_Mecanico.pdf` (103 MB), em `01-Bibliografia/`,
-parecem ser a mesma tradução PT do livro do Ashby em dois scans diferentes. Não
-são byte a byte iguais, então **os dois são indexados**, e se forem a mesma
-edição o texto aparece em dobro na busca e custa o dobro de vetores. Abra os
-dois e decida se um deles sai (pela lista de remoção, D-100).
+**O Ashby em português fica numa edição só** (D-101, atualização de
+06/10/2026). `01-Bibliografia/` tinha dois scans de *Seleção de Materiais no
+Projeto Mecânico*, não byte a byte iguais, e os dois eram indexados — o texto
+saía em dobro na busca e custava o dobro de vetores. Fica `Michael Ashby
+(Auth.)-Seleção De Materiais No Projeto Mecânico (2012).pdf` (152 MB, a 4ª
+edição); saiu `Selecao_de_Materiais_no_Projeto_Mecanico.pdf` (103,5 MB, sem
+data no arquivo). Que o de 2012 é a edição mais nova é **provável, não
+confirmado**. O que saiu está em `removidos.txt` pelo caminho e pelo conteúdo,
+marcado `mantido-no-historico:`: sai do banco e da ingestão, mas não é material
+a apagar do histórico do git. A cópia byte a byte que está na raiz desta
+pasta, com o mesmo nome, continua no git (é uma das cópias da tabela abaixo) e é
+ignorada pelo conteúdo. Os extratos de capítulo em
+`01-Bibliografia/Extratos-de-Capitulos/` não mudam.
 
 ## O que está aqui
 
@@ -155,7 +162,7 @@ A exceção é uma só: a ação `ingerir` do workflow **Base de conhecimento
 (Cérebro)**, que baixa **só os PDFs que o banco ainda não tem** com aqueles
 bytes — o `oid` do ponteiro LFS é o sha256 do arquivo, o mesmo checksum que a
 base guarda (`python -m app.knowledge.lfs_plan`). A primeira ingestão completa
-baixa os 120 PDFs distintos (≈631 MB, mais da metade da banda do mês); as
+baixa os 119 PDFs distintos (≈528 MB, mais da metade da banda do mês); as
 seguintes, só os novos ou mudados e os que falharam antes, e o plano imprime os
 MB antes de baixar. O que foi baixado fica no `actions/cache` por 7 dias sem
 uso, o que poupa só uma repetição próxima. As outras ações do workflow não

@@ -148,11 +148,11 @@ busca por palavras **e** por vetores, aceitando que o texto dos livros vá à AP
 de embeddings do Gemini no plano gratuito (onde o Google pode usá-lo). O
 workflow **Base de conhecimento (Cérebro)** (`conhecimento.yml`) ingere num
 runner — `ingerir` baixa do LFS só os PDFs que o banco ainda não tem com
-aqueles bytes (os 120 distintos, ≈631 MB, na primeira vez; o `oid` do ponteiro
+aqueles bytes (os 119 distintos, ≈528 MB, na primeira vez; o `oid` do ponteiro
 é o checksum da base) e grava os trechos, sem chave de IA —, gera os vetores (`embeddings`, e uma
 execução noturna com a sobra da cota do dia, 768 dimensões) e mostra o retrato
 (`status`, com a comparação "API vs vetores"). A ingestão ficou segura contra o
-que o Actions pode entregar (ponteiro LFS não toca o banco; as 121 cópias byte
+que o Actions pode entregar (ponteiro LFS não toca o banco; as 120 cópias byte
 a byte da árvore entram uma vez; versão nova ilegível mantém a anterior), e a
 busca passou a um índice em memória no processo da API — antes, cada chamada de
 IA lia o corpus inteiro duas vezes, o que derrubaria a VM de 512 MB e gastaria a
@@ -174,9 +174,13 @@ erro, a página que não decodifica — até um quinto do livro, além do que el
 falha; as cópias decodificadas do pypdf são soltas entre páginas, porque a
 memória somava as páginas. O upload dos Cadernos lê **abaixo** da guarda (4 MB
 por fluxo, 32 MB por arquivo, páginas contadas antes) — endurecimento de
-segurança da VM de 512 MB. Falta rodar `ingerir` de novo, e decidir
-se um dos dois Ashby — quase certamente o mesmo livro em dois scans — sai
-([TODO](TODO.md)).
+segurança da VM de 512 MB. Dos dois Ashby em português fica só o de 2012
+(provavelmente a edição mais nova, não confirmado): o sem data saiu do git, do
+manifesto e, pela lista de remoção, do RAG — numa linha
+`mantido-no-historico:`, que a limpeza do histórico não lê, porque é uma edição
+duplicada e não material a apagar ([D-101](DECISIONS.md), atualização de
+06/10). Falta o autor rodar `conhecimento_simular_remocao` →
+`conhecimento_remover` → `ingerir` ([TODO](TODO.md) A7).
 
 **A falta que resta no trabalho como um todo não é de código** e não pode ser
 fechada por quem programa sozinho: a sessão de teste com usuários do §3.5 da
@@ -594,8 +598,8 @@ declarações do atributo, com o escopo indo a 4096.
 
 **Concorrência das cotas em PostgreSQL exercitada na CI** (D-97/D-99): quatro testes multithread contra PostgreSQL 16 (`test_notebook_quota_postgres.py`) validando o `UPDATE ... WHERE counter < limit` sob concorrência real (20 threads simultâneas em disputa na criação a partir do zero e na fronteira do limite, reserva e liberação concorrentes, e reserva com folga), sem estourar limites nem cair em race condition, executados na CI via contêiner de serviço PostgreSQL.
 
-**Saúde do código:** 3770 testes de backend (Python 3.11 e 3.12, nenhum skip
-na CI; sem `POSTGRES_TEST_URL`, 3764 passam e 6 pulam — os 4 das cotas e os 2
+**Saúde do código:** 3781 testes de backend (Python 3.11 e 3.12, nenhum skip
+na CI; sem `POSTGRES_TEST_URL`, 3775 passam e 6 pulam — os 4 das cotas e os 2
 da ingestão do Cérebro contra PostgreSQL) e 762 de frontend, todos
 verdes. Desde o P0-1 a suíte também roda as migrações de
 verdade, nos dois sentidos, contra um banco temporário que já contém dados —
@@ -1051,11 +1055,11 @@ que mais afetam quem for mexer no código:
 | Dependência de provedor de IA | Arquitetura desacoplada com provedor simulado; funciona sem chave. |
 | Incorporação inadvertida de dado protegido | Triagem de licenciamento (M1, item 4.2 da proposta) — `Source` registra licença/procedência, e uma fonte nova sem licença ou marcada como possivelmente protegida sem confirmação humana é recusada antes de qualquer linha ser escrita ([D-44](DECISIONS.md)). |
 | Resultado não reproduzível por interferência de IA | Cálculo determinístico + guardrails executáveis + confirmação do usuário. |
-| Regressão silenciosa | CI com 3770 testes de backend e 762 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
+| Regressão silenciosa | CI com 3781 testes de backend e 762 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
 | Material licenciado do Cérebro exposto em `main` (repositório público) | Risco aceito por decisão explícita do autor, não mitigado — o Cérebro é a base de conhecimento da camada de IA ([D-45](DECISIONS.md)). |
 | Texto dos livros do Cérebro enviado ao Gemini no plano gratuito, onde o Google pode usá-lo para melhorar os produtos | Risco aceito pelo autor ao escolher busca por vetores ([D-101](DECISIONS.md)); a alternativa sem envio é a busca só por palavras, que continua funcionando sozinha. Material na lista de remoção **nunca** é enviado: o `embed` lê `removidos.txt` e, sem conseguir lê-lo, não envia nada. |
 | Texto dos livros do Cérebro num log público do Actions (um traceback do SQLAlchemy imprime SQL e parâmetros) | Aconteceu uma vez, na primeira `ingerir` de 06/10 (execução 37415600025). Os CLIs do Cérebro imprimem só a classe de um erro de banco, sem traceback, e o motor tem `hide_parameters=True` ([D-101](DECISIONS.md), atualização de 06/10). O log já publicado só sai quando o dono o apaga (TODO A7, item 4). |
-| Banda de Git LFS do plano gratuito (1 GB/mês; passar dela bloqueia o LFS da conta inteira até o mês virar) | `ingerir` baixa só o que o banco não tem (`lfs_plan`); a primeira ingestão completa gasta ≈631 MB e não deve ser repetida no mesmo mês sem necessidade ([D-101](DECISIONS.md), [13-deploy.md §5-septies](13-deploy.md)). |
+| Banda de Git LFS do plano gratuito (1 GB/mês; passar dela bloqueia o LFS da conta inteira até o mês virar) | `ingerir` baixa só o que o banco não tem (`lfs_plan`); a primeira ingestão completa gasta ≈528 MB e não deve ser repetida no mesmo mês sem necessidade ([D-101](DECISIONS.md), [13-deploy.md §5-septies](13-deploy.md)). |
 | Limites do Neon gratuito (suposto 0,5 GB e 5 GB/mês de transferência) e memória da VM de 512 MB | Vetores de 768 dimensões (≈96 MB de base a 18 mil trechos), índice em memória medido em ≈100 MB por processo, e o `status` avisa acima de 80% de 0,5 GB. **O autor ainda confirma** os limites no painel do Neon e a memória no painel do Fly depois da primeira consulta. |
 | Execução noturna parada sem ninguém notar | O GitHub desliga um agendamento depois de 60 dias sem atividade no repositório, e uma noturna na fila pode ser trocada por uma execução de `admin-banco`; o `status` mostra quanto falta ([13-deploy.md §5-septies](13-deploy.md)). |
 | Uso sem cobrança | Portão binário ligado ([D-46](DECISIONS.md)), checkout testado ao vivo em modo de teste — falta só configurar `STRIPE_API_KEY`/`STRIPE_WEBHOOK_SECRET`/`STRIPE_PRICE_ID` em **modo de produção** para vender de verdade. |
