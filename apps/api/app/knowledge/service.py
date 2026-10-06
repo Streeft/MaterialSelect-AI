@@ -56,6 +56,7 @@ from app.knowledge.readers import (
     MARKDOWN_EXTENSIONS,
     SUPPORTED_EXTENSIONS,
     extract_text,
+    skip_reasons_text,
     storable_text,
 )
 from app.knowledge.removal import (
@@ -95,6 +96,47 @@ WRITE_FAILED_REASON = (
     "O banco de dados recusou a gravação deste documento ({error}); nada desta "
     "versão foi gravado, e a execução seguiu com os outros."
 )
+#: The note an indexed PDF with pages left out carries in ``error`` (D-101). It
+#: is also the only place the count is stored — ``error`` is the one free-text
+#: column of ``knowledge_document``, and a column of its own would need a
+#: migration — so the sentence is written by :func:`skipped_pages_note` and read
+#: back by :func:`skipped_pages_in`, here and nowhere else (``status``).
+_SKIPPED_NOTE = re.compile(r"(\d+) de (\d+) páginas não puderam ser lidas e ficaram de fora")
+#: What a kept-previous note starts with (:meth:`KnowledgeService._extraction_failed`).
+KEPT_PREVIOUS_PREFIX = "A versão nova (sha256 "
+#: ...and what it starts with when the bytes that failed are the ones already
+#: indexed — a forced re-read (``--force``, ``forcar``) of an unchanged file.
+#: There is no newer version then, and the note must not say there is: it
+#: stays on the row while the file is unchanged (``_unchanged`` never touches
+#: ``error``), so a wrong word there would be printed by every ``status``.
+FORCED_REREAD_PREFIX = "A releitura forçada (sha256 "
+
+
+def skipped_pages_note(skipped: int, count: int, reasons: dict[str, int]) -> str:
+    """The sentence stored for an indexed PDF with ``skipped`` pages left out.
+
+    Counts and exception class names only (``readers.skip_reasons_text``): it
+    is printed by ``status`` in a public log.
+    """
+    why = f" ({skip_reasons_text(reasons)})" if reasons else ""
+    return (
+        f"{skipped} de {count} páginas não puderam ser lidas e ficaram de fora{why}; "
+        "o resto foi indexado."
+    )
+
+
+def skipped_pages_in(error: str | None) -> tuple[int, int] | None:
+    """``(skipped, page_count)`` from a stored note, or None if it has none."""
+    match = _SKIPPED_NOTE.search(error or "")
+    return (int(match.group(1)), int(match.group(2))) if match else None
+
+
+def _skipped_sentence(error: str | None) -> str | None:
+    """The whole skipped-pages sentence of a stored note, to carry it over."""
+    match = re.search(_SKIPPED_NOTE.pattern + r"[^;]*; o resto foi indexado\.", error or "")
+    return match.group(0) if match else None
+
+
 #: What a refused write raises inside a document's savepoint. The encoding
 #: error is the driver's own (``str.encode`` while binding a lone surrogate),
 #: which SQLAlchemy does not wrap; ``storable_text`` already replaces
@@ -138,6 +180,8 @@ class DocumentOutcome:
     #: Counts only — a log line never says what the page held.
     skipped_pages: int = 0
     page_count: int | None = None
+    #: Why, by exception class name → pages (``ExtractedText.skip_reasons``).
+    skip_reasons: dict[str, int] = field(default_factory=dict)
     #: For a skipped byte-identical copy: the path that was indexed instead.
     duplicate_of: str | None = None
     #: A skipped path whose row from an earlier run is still in the base.
@@ -997,12 +1041,13 @@ class KnowledgeService:
         notes = []
         if extracted.skipped_pages:
             notes.append(
-                f"{extracted.skipped_pages} de {extracted.page_count} páginas não puderam "
-                "ser lidas e ficaram de fora; o resto foi indexado."
+                skipped_pages_note(
+                    extracted.skipped_pages, extracted.page_count, extracted.skip_reasons
+                )
             )
         if truncated:
             notes.append(f"Truncado em {limit} trechos; o documento rende mais.")
-        document.error = " ".join(notes) or None
+        document.error = " ".join(notes)[:500] or None
         document.indexed_at = datetime.now(UTC)
 
         return DocumentOutcome(
@@ -1012,6 +1057,7 @@ class KnowledgeService:
             detail=document.error,
             skipped_pages=extracted.skipped_pages,
             page_count=extracted.page_count,
+            skip_reasons=extracted.skip_reasons,
         )
 
     def _extraction_failed(
@@ -1043,11 +1089,23 @@ class KnowledgeService:
         reason = storable_text(reason)
         if document is not None and document.status == IngestStatus.EXTRAIDO:
             self._apply_provenance(document, relative, provenance)
-            motive = reason.strip().rstrip(".")[:_REASON_BUDGET]
-            document.error = (
-                f"A versão nova (sha256 {digest[:12]}) não pôde ser {stage}: {motive}. "
-                "Os trechos da versão anterior continuam na base."
-            )
+            # The version still answering may itself have pages left out; that
+            # stays said, or ``status`` would stop counting them.
+            carried = _skipped_sentence(document.error)
+            budget = max(_REASON_BUDGET - (len(carried) + 1 if carried else 0), 80)
+            motive = reason.strip().rstrip(".")[:budget]
+            if digest == document.checksum:
+                # The same bytes, read again on purpose: not a newer version.
+                note = (
+                    f"{FORCED_REREAD_PREFIX}{digest[:12]}) não pôde ser {stage}: {motive}. "
+                    "Os trechos já indexados destes mesmos bytes continuam na base."
+                )
+            else:
+                note = (
+                    f"{KEPT_PREVIOUS_PREFIX}{digest[:12]}) não pôde ser {stage}: {motive}. "
+                    "Os trechos da versão anterior continuam na base."
+                )
+            document.error = note + (f" {carried}" if carried else "")
             return DocumentOutcome(
                 path=relative,
                 action="falhou",

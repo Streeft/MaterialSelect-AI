@@ -23,7 +23,7 @@ Instruções para agentes/contribuidores trabalhando neste repositório. Esta é
    valor normalizado + unidade canônica + método de conversão. Conversão só via
    `app/calculations/units.py` (Pint).
 5. **Sem segredos versionados.** Configuração por variáveis de ambiente
-   (`.env`, ignorado). Há `.env.example` .
+   (`.env`, ignorado). Há `.env.example`.
 6. **Dados de demonstração** são fictícios e marcados (`is_demo`), com aviso na
    interface e nos arquivos. Criar dado de demonstração novo, ou apagar o que
    já existe, segue a regra fixa em
@@ -229,7 +229,7 @@ uvicorn app.main:app --reload
 pytest
 
 # Frontend
-cd apps\\web
+cd apps\web
 npm run dev
 npm run typecheck; npm run test; npm run build
 ```
@@ -277,7 +277,7 @@ Fases 1 a 9 concluídas. **Fase 7 (relatórios e qualidade) concluída** — as
 exportações CSV/XLSX, o relatório HTML imprimível, os testes end-to-end de
 interface (A4, Playwright em `apps/web/e2e/`), a autenticação (A5) e a
 auditoria (M2 — `AuditEvent`, quem mudou o quê e quando, retrato em vez de
-junção viva, [D-43](docs/DECISIONS.md)) já saíram; a exportação nativa em PPTX (B2) foi entregue e, na sequência, o lote quádruplo de melhorias funcionais (duplicação de estágio em seleção, relevância e highlight na busca, seções circulares no solver e comparação lado a lado no Eco Audit — Opções 1, 2, 3 e 4) foi entregue (3395 → 3407 testes de backend e 753 → 762 de frontend); e na Sessão 48, a figura de barras por fase no Eco Audit (individual e comparativo) e a reordenação de estágios por arraste na Seleção (Opções 1 e 2) foram integradas (3743 testes de backend e 762 → 777 de frontend). **A5** deu login exclusivamente por terceiros
+junção viva, [D-43](docs/DECISIONS.md)) já saíram; a exportação nativa em PPTX (B2) foi entregue e, na sequência, o lote quádruplo de melhorias funcionais (duplicação de estágio em seleção, relevância e highlight na busca, seções circulares no solver e comparação lado a lado no Eco Audit — Opções 1, 2, 3 e 4) foi entregue (3395 → 3407 testes de backend e 753 → 762 de frontend); e na Sessão 48, a figura de barras por fase no Eco Audit (individual e comparativo) e a reordenação de estágios por arraste na Seleção (Opções 1 e 2) foram integradas (3743 testes de backend e 762 → 778 de frontend). **A5** deu login exclusivamente por terceiros
 (Google, OAuth 2.0 — sem senha em lugar nenhum do sistema), sessão em cookie
 `httpOnly` que é linha de banco e não JWT, catálogo compartilhado entre todo
 usuário autenticado e um `Project` por usuário isolando `SelectionStudy`
@@ -353,6 +353,10 @@ apaga documento, trechos e embeddings numa transação, com a cascata em Python;
 o log do Actions é público; ações `conhecimento_simular_remocao` e
 `conhecimento_remover` de `admin-banco.yml`, as duas com `--redact`), a ingestão (que pula o que casa, em qualquer caminho, e o
 declara `ignorado`) e a limpeza do histórico, que só lê as linhas de caminho
+— **menos** as `mantido-no-historico:<caminho>`, que casam no banco e na
+ingestão e ficam no histórico: é para o que sai do RAG por outro motivo, como a
+edição duplicada do Ashby em português (D-101, 06/10), e não se mistura com o
+que o D-100 apaga
 ([`docs/17-limpeza-historico-cerebro.md`](docs/17-limpeza-historico-cerebro.md):
 `push --force --atomic` de branches e tags, nunca `--mirror`, com a *ruleset*
 suspensa). **A ingestão só acrescenta**: tirar um arquivo do repositório não
@@ -942,7 +946,7 @@ noturna agendada. Regras que não se afrouxam:
 - **A ingestão roda no runner, não na API, e sem chave de IA**: `ingerir` baixa
   do LFS **só o que o banco não tem** (`python -m app.knowledge.lfs_plan`: o
   `oid` do ponteiro é o sha256 do arquivo, o mesmo checksum da base — a banda
-  de LFS gratuita é 1 GB/mês e o Cérebro tem ≈631 MB) e roda
+  de LFS gratuita é 1 GB/mês e a primeira ingestão completa baixa ≈528 MB) e roda
   `python -m app.knowledge.ingest --no-embed`. Um **ponteiro LFS nunca toca o
   banco** — o que aponta para os bytes já indexados no mesmo caminho sai
   `inalterado` sem ser lido, e o plano é a mesma decisão da ingestão, nunca
@@ -993,15 +997,39 @@ e imprime só o nome da classe, sem traceback; um CLI novo também**, e o motor
 de `app/db/base.py` tem `hide_parameters=True` por baixo. O log da execução
 37415600025 continua publicado até o dono apagá-lo (TODO A7, item 4). **A
 segunda `ingerir` achou o teto de 75 MB por fluxo do pypdf** nos dois Ashby em
-português: o Cérebro (`extract_text`) lê com `CORPUS_MAX_STREAM_BYTES` (500 MB),
-aplicado no `ContextVar` do pypdf (`apply_configuration`, piso 6.18) e nunca
-num global, e pula a página que ainda não decodifica, contada em `PÁGINAS
-IGNORADAS`; **o upload dos Cadernos (`read_upload`) mantém o teto padrão e
-falha na primeira página ilegível — não passe o teto do Cérebro a bytes de
-usuário.**
+português: o Cérebro (`extract_text`) lê com `CORPUS_MAX_STREAM_BYTES` (200 MB
+— eram 500, até a revisão do PR #98 medir que um fluxo de operadores custa
+~37× o tamanho), aplicado no `ContextVar` do pypdf (`apply_configuration`, piso
+6.18) e nunca num global, com orçamento por documento (16 GB decodificados,
+15 min) e pula a página que ainda não decodifica, contada por classe de erro
+numa anotação `::warning:: … PÁGINAS IGNORADAS`; mais de um quinto das páginas
+de fora (e ao menos 2, ou metade de um documento curto — revisão do PR #100)
+é `FALHOU`, e `forcar` + `arquivos` em `ingerir`
+reextrai um livro. **O teto é por fluxo; o que limita o documento é soltar as
+cópias decodificadas do pypdf entre páginas (`readers._release_decoded`) —
+sem isso a memória soma as páginas. O upload dos Cadernos (`read_upload`) lê
+*abaixo* do padrão do pypdf (4 MB por fluxo, 32 MB por arquivo, páginas
+contadas antes de decodificar), sob medida para a VM de 512 MB, e falha na
+primeira página ilegível — não passe o teto do Cérebro a bytes de usuário.**
+**O orçamento é cobrado a cada decodificação** (`readers._metered_decoding`,
+um medidor em `ContextVar` na frente de `pypdf.filters.decode_stream_data`),
+não entre páginas: conferido só entre páginas, uma página de 160 formas chegou
+a 639 MB; a parada é uma `BaseException` porque o pypdf engole `Exception` em
+cada forma, e no upload o que se lê de uma vez (formas aninhadas) não passa de
+4 MB. Esses limites são **por leitura**: o upload lê **um PDF por vez no
+processo** (`_UPLOAD_PDF_SLOT`) e tem **30 s** de relógio, conferido a cada
+decodificação e a cada parse (uma forma redesenhada não decodifica nada); o
+primeiro upload confere que os medidores são alcançados e, se não, recusa todo
+PDF — o pypdf está fixado em `<6.20`; não suba sem reler `_install_meters`.
+**`Cérebro/removidos.txt` falha fechada**: só `sha256:` e
+`mantido-no-historico:`, escritos exatamente assim, valem como prefixo; outro
+prefixo no primeiro trecho (dois-pontos, de largura cheia, espaço no lugar
+deles, `sha256 <hex>`) ou um caminho com `Cérebro/` na frente para todos os
+leitores, e nenhuma recusa cita a linha, só o número (D-101, revisão do PR
+#100).
 
-3743 testes de backend (nenhum skip na CI; sem `POSTGRES_TEST_URL`, 3737 passam
-e 6 pulam) e 777 de frontend, todos verdes. CI no
+3854 testes de backend (nenhum skip na CI; sem `POSTGRES_TEST_URL`, 3848 passam
+e 6 pulam) e 778 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
 PROJECT_CONTEXT.md).

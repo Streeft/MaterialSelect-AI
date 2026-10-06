@@ -76,7 +76,7 @@ banco de produção. Os vetores da busca semântica vêm depois, pela ação
 merge** — fora do horário de aula. Tirar algo daqui é outro caminho: a lista
 de remoção e o `prune` (D-100), porque a ingestão só acrescenta.
 
-**Cópias idênticas são indexadas uma vez.** Esta pasta guarda 121 cópias byte a
+**Cópias idênticas são indexadas uma vez.** Esta pasta guarda 120 cópias byte a
 byte (as pastas `Fichas descritivas …` e as cópias avulsas da raiz, na tabela
 abaixo). A ingestão agrupa os arquivos pelo sha256 e indexa um de cada grupo:
 o que o `manifesto.json` declara; sem declaração, o que já está na base; sem
@@ -93,13 +93,22 @@ não ocupar a busca inteira). A consulta nunca abre um PDF: ela ranqueia trechos
 num índice em memória da API. Um PDF digitalizado, sem texto extraível, sai no
 log como `SEM TEXTO` e não entra na busca.
 
-Dois arquivos merecem checagem manual: `Michael Ashby (Auth.)-Seleção De
-Materiais No Projeto Mecânico (2012).pdf` (152 MB) e
-`Selecao_de_Materiais_no_Projeto_Mecanico.pdf` (103 MB), em `01-Bibliografia/`,
-parecem ser a mesma tradução PT do livro do Ashby em dois scans diferentes. Não
-são byte a byte iguais, então **os dois são indexados**, e se forem a mesma
-edição o texto aparece em dobro na busca e custa o dobro de vetores. Abra os
-dois e decida se um deles sai (pela lista de remoção, D-100).
+**O Ashby em português fica numa edição só** (D-101, atualização de
+06/10/2026). `01-Bibliografia/` tinha dois scans de *Seleção de Materiais no
+Projeto Mecânico*, não byte a byte iguais, e os dois eram indexados — o texto
+saía em dobro na busca e custava o dobro de vetores. Fica `Michael Ashby
+(Auth.)-Seleção De Materiais No Projeto Mecânico (2012).pdf` (152 MB, a 4ª
+edição); saiu `Selecao_de_Materiais_no_Projeto_Mecanico.pdf` (103,5 MB, sem
+data no arquivo), junto com a cópia byte a byte dele que estava na raiz desta
+pasta, com o mesmo nome. Que o de 2012 é a edição mais nova é **provável, não
+confirmado**. Os dois caminhos e o conteúdo estão em `removidos.txt`, marcados
+`mantido-no-historico:`: saem do banco e da ingestão, mas não são material a
+apagar do histórico do git. O prefixo vale **escrito exatamente assim** —
+minúsculas, sem acento, sem espaço antes dos dois-pontos —, como o `sha256:`:
+uma linha com outro prefixo antes de dois-pontos (`mantido-no-histórico:`,
+`SHA256:`) é recusada com o número dela, e a ingestão, o LFS, os vetores e a
+remoção param até ela ser corrigida. Os extratos de capítulo em
+`01-Bibliografia/Extratos-de-Capitulos/` não mudam.
 
 ## O que está aqui
 
@@ -111,7 +120,7 @@ dois e decida se um deles sai (pela lista de remoção, D-100).
 | `01-Bibliografia/Extratos-de-Capitulos/` | capítulos extraídos da bibliografia | sim (LFS) |
 | `03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/` (103 fichas) | banco de dados licenciado ANSYS/Granta | sim (LFS) |
 | `Fichas descritivas de materiais - Granta Edupack - Nível 2/` | cópia idêntica das 103 fichas acima — **não indexada** (a ingestão fica com a de `03-`) | sim (LFS) |
-| Cópias avulsas na raiz (18: livros, extratos, diagramas, artigos) | as mesmas obras das pastas numeradas — **não indexadas** | sim (LFS) |
+| Cópias avulsas na raiz (17: livros, extratos, diagramas, artigos) | as mesmas obras das pastas numeradas — **não indexadas** | sim (LFS) |
 
 **O que saiu** ([D-100](../docs/DECISIONS.md)): a pasta
 `02-Material-de-Curso-ENG02016/` inteira (tópicos de aula 1 a 6, plano de aulas,
@@ -155,7 +164,7 @@ A exceção é uma só: a ação `ingerir` do workflow **Base de conhecimento
 (Cérebro)**, que baixa **só os PDFs que o banco ainda não tem** com aqueles
 bytes — o `oid` do ponteiro LFS é o sha256 do arquivo, o mesmo checksum que a
 base guarda (`python -m app.knowledge.lfs_plan`). A primeira ingestão completa
-baixa os 120 PDFs distintos (≈631 MB, mais da metade da banda do mês); as
+baixa os 119 PDFs distintos (≈528 MB, mais da metade da banda do mês); as
 seguintes, só os novos ou mudados e os que falharam antes, e o plano imprime os
 MB antes de baixar. O que foi baixado fica no `actions/cache` por 7 dias sem
 uso, o que poupa só uma repetição próxima. As outras ações do workflow não

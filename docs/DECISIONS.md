@@ -7106,6 +7106,16 @@ Falta só o autor dispará-la. A remoção não mudou: continua pelo `prune`, a
 ingestão continua só acrescentando, e ela segue pulando o que casa com
 `removidos.txt`.
 
+**Atualização (06/10/2026, uma remoção que não é do D-100).** A lista ganhou um
+terceiro tipo de linha, `mantido-no-historico:<caminho>`: casa como caminho no
+banco e na ingestão, mas fica **fora** da limpeza do histórico. Serve ao que sai
+do RAG por outro motivo que não o deste registro — a primeira é a edição
+duplicada do Ashby em português ([D-101](#d-101--o-cérebro-entra-em-produção-pelo-github-actions-ingestão-com-lfs-em-cache-vetores-de-768-dimensões-com-a-sobra-noturna-da-cota-gratuita-e-busca-com-índice-em-memória),
+atualização "os dois Ashby em português"), que o autor quer no histórico. Os 71
+arquivos deste registro continuam em linhas comuns, e a conversão do
+[guia](17-limpeza-historico-cerebro.md) (passo 4) continua dando as mesmas 14
+linhas.
+
 ## D-101 — O Cérebro entra em produção pelo GitHub Actions: ingestão com LFS em cache, vetores de 768 dimensões com a sobra noturna da cota gratuita, e busca com índice em memória
 
 **30/09/2026. O pedido.** "Resolva a ingestão do Links.md e ative o RAG" — o
@@ -7514,7 +7524,10 @@ testes de backend, nenhum pulado. `ruff` e `black` limpos; os dois workflows pas
 >   comprimidos ainda por decodificar depois dos 75 MB) a menos que o resto
 >   comprima mais que ~36:1, e continua sendo teto: medido no pypdf 6.19, um
 >   fluxo de 450 MB custou 0,9 GB de RSS e um acima do teto, 1,0 GB — um
->   documento por vez, num runner de vários GB.
+>   documento por vez, num runner de vários GB. **Corrigido na atualização
+>   seguinte:** o teto é por *fluxo*, não por documento — a memória somava as
+>   páginas, e um fluxo de operadores custa ~37× o tamanho, não ~2× —, e ele
+>   caiu para 200 MB.
 > - **O upload continua com o padrão do pypdf**, aplicado explicitamente
 >   (`read_upload` → `read_pdf` sem teto), para não depender de estado ambiente.
 > - **O escopo é o `ContextVar` do próprio pypdf** (`pypdf.apply_configuration`,
@@ -7528,7 +7541,8 @@ testes de backend, nenhum pulado. `ruff` e `black` limpos; os dois workflows pas
 > - **Página ilegível custa a página, no Cérebro.** Uma página que não
 >   decodifica (o teto, erro de zlib, fluxo malformado) fica de fora como
 >   página vazia — o número das outras não muda, então `page_start`/`page_end`
->   continuam certos — e é contada em `ExtractedText.skipped_pages`; o
+>   continuam certos (a numeração; um trecho ainda pode atravessar a lacuna,
+>   como diz a atualização seguinte) — e é contada em `ExtractedText.skipped_pages`; o
 >   documento é indexado, `error` diz "K de N páginas não puderam ser lidas…",
 >   e a CLI imprime `[ingest] PÁGINAS IGNORADAS <caminho>: K de N não puderam
 >   ser lidas; …` (só contagens; caminho redigido se não declarado) **sem**
@@ -7543,3 +7557,346 @@ testes de backend, nenhum pulado. `ruff` e `black` limpos; os dois workflows pas
 > mesmo se ele passar de 500 MB, o resto do livro entra. Os dois são
 > provavelmente o mesmo livro em dois scans (TODO, baixa prioridade): decisão
 > do autor, e uma `ingerir` nova é necessária depois do merge.
+
+> **Atualização (06/10/2026, a revisão do PR #98: o teto era por fluxo, não
+> por documento).** A revisão depois do merge achou que "500 MB é um teto" não
+> limitava o que dizia limitar, e que um livro lido pela metade passava em
+> silêncio. As correções, pela causa:
+>
+> - **A memória somava as páginas.** O pypdf guarda cada fluxo decodificado no
+>   próprio objeto (`EncodedStreamObject.decoded_self`) e cada objeto resolvido
+>   em `PdfReader.resolved_objects` enquanto o leitor vive: o conteúdo de toda
+>   página ficava na memória até a última. Medido no pypdf 6.19 com 8 páginas
+>   de 150 MB: o RSS subia ~143 MB por página até 1,2 GB (pico 1,34 GB). Agora
+>   `readers._release_decoded`, depois de cada página, conta o que foi
+>   decodificado e, quando as cópias guardadas passam de 16 MB, as solta
+>   (`decoded_self = None`; o fluxo codificado fica, e é do próprio arquivo):
+>   o mesmo livro fica plano em ~194 MB (pico 337 MB). Abaixo dos 16 MB as
+>   cópias ficam — uma fonte ou um `/ToUnicode` que toda página usa não é
+>   decodificado de novo por página. Vale para o Cérebro **e** para o upload.
+> - **O teto por fluxo caiu de 500 para 200 MB** (`CORPUS_MAX_STREAM_BYTES`).
+>   O custo de um fluxo depende do que ele carrega: uma imagem embutida é lida
+>   como uma fatia de bytes (~2× o tamanho, segundos: 450 MB custaram 0,9 GB e
+>   5,6 s); um fluxo de operadores de texto ou de traço vira um objeto Python
+>   por operando (~35–37× o tamanho, e tempo superlinear: 4 MB, +140 MB e
+>   8 s; 10 MB, 0,4 GB e 34 s; 40 MB, 1,5 GB e 374 s). Com 500 MB o pior caso
+>   era ~18 GB numa página só; com 200 MB é ~7 GB — dentro dos 16 GB do runner
+>   de repositório público, e nenhuma página de livro tem essa forma. 200 MB
+>   ainda cobre os dois déficits de produção se o resto comprimir até ~10:1. O
+>   que **não** está limitado aqui, e fica dito: o pypdf lê uma página numa
+>   chamada só, então nada entre páginas interrompe uma página patológica;
+>   só um subprocesso com `RLIMIT_AS` e prazo o faria (descartado por ora:
+>   custo de processo por documento, e o desenvolvimento local é Windows).
+> - **O documento tem orçamento.** `CORPUS_MAX_DECODED_BYTES = 16 GB` de
+>   conteúdo decodificado (uma página que bateu no teto conta como o teto, e o
+>   que é decodificado de novo conta de novo) e `CORPUS_MAX_SECONDS = 15 min`,
+>   conferidos entre páginas. Gasto um, as páginas que faltam saem como
+>   `DocumentBudgetExceeded` — e a regra de proporção abaixo decide. 16 GB:
+>   o maior arquivo do Cérebro, 152 MB, a 10:1 dá 1,5 GB; o orçamento só para
+>   bomba, ou fluxo acima do teto que toda página usa (o pypdf não guarda
+>   falha, e cada página o tentaria de novo). 15 min: a `ingerir` inteira de
+>   06/10, 121 documentos, levou 12.
+> - **Mais de uma página em cinco é falha.** `MAX_SKIPPED_PAGE_SHARE = 0,2` e
+>   `MIN_SKIPPED_PAGES_TO_FAIL = 3`: um livro com mais de 20% das páginas de
+>   fora (e ao menos 3) sai `falhou` — nada novo gravado; já indexado, mantém
+>   os trechos anteriores; saída 1; e, como toda falha, a próxima `ingerir`
+>   tenta de novo. Uma ou duas páginas (uma prancha, uma figura quebrada)
+>   custam essas páginas; com um quinto de fora, a base responderia sobre o
+>   livro como se o tivesse inteiro. O piso de 3 evita que um documento curto
+>   caia pela aritmética de uma página (1 de 4 é 25%). *(O piso de 3 deixava
+>   passar 2 de 3 e 1 de 2; trocado por "duas páginas, ou metade do documento"
+>   na atualização da revisão do PR #100, abaixo.)* A leitura **para assim
+>   que a conta fecha**, e é isso que limita o fluxo-bomba compartilhado: num
+>   livro de 20 páginas, cinco tentativas, não vinte.
+> - **O porquê de cada página pulada é dito, pelo nome da classe.**
+>   `ExtractedText.skip_reasons` (`LimitReachedError ×2, error ×1`) vai para a
+>   nota em `error`, para a linha da CLI e para a mensagem de falha — nunca a
+>   mensagem do erro, que pode citar a página. Um parêntese só com
+>   `LimitReachedError` aponta para o teto; outro nome, para um defeito que um
+>   pypdf novo pode resolver.
+> - **O aviso aparece onde é lido.** A linha `PÁGINAS IGNORADAS` da ingestão é
+>   uma anotação `::warning::` do GitHub (só contagens, caminho redigido), e
+>   diz como reextrair. No `status`, um livro assim tem rótulo próprio,
+>   `PÁGINAS IGNORADAS <caminho> (K de N páginas de fora, T trechos)`, e uma
+>   linha soma todos; `VERSÃO ANTERIOR` voltou a ser só a versão nova que não
+>   pôde ser lida, e uma nota de truncamento sai como `AVISO`. A contagem não
+>   tem coluna: vive na frase gravada em `error`, escrita por
+>   `skipped_pages_note` e lida por `skipped_pages_in` (`service.py`), e uma
+>   versão nova que falha **carrega** a frase da anterior. Uma coluna pediria
+>   migração; a frase é a única fonte.
+> - **Reextrair tem caminho sem terminal.** O livro lido em parte está
+>   `inalterado` para a ingestão (os bytes não mudaram) e o plano do LFS nem o
+>   baixa. A entrada `forcar` de `ingerir` (`conhecimento.yml`) passa
+>   `--force` ao plano e à ingestão, **só junto de `arquivos`** — sozinha, ou
+>   em outra ação, é recusada: forçar o Cérebro inteiro baixaria os ≈528 MB do
+>   LFS de novo. Entradas por `env:`, nunca `${{ }}` no `run:`.
+> - **O upload (Cadernos e PDF da web) também somava, e mais perto do
+>   limite** — endurecimento de segurança. Com o teto padrão de 75 MB e as
+>   cópias guardadas, 10 páginas de 70 MB num arquivo de 684 KB custaram 783 MB
+>   de pico; um arquivo de 15 MB cabe ~200 delas, e a API roda numa VM de
+>   512 MB (~130 MB do processo depois do import, ~100 MB do índice do
+>   Cérebro). E uma página só de 75 MB de operadores pediria ~2,6 GB. Agora o
+>   upload lê com `UPLOAD_MAX_STREAM_BYTES = 4 MB` por fluxo (uma página de
+>   operadores no teto: +140 MB e 8 s), `UPLOAD_MAX_DECODED_BYTES = 32 MB` por
+>   arquivo (um PDF de 400 páginas de texto decodifica ~10 MB) e o limite de
+>   páginas (`NOTEBOOK_MAX_PAGES`) conferido **antes** de decodificar qualquer
+>   página. Passar de um deles recusa o arquivo com a frase em português —
+>   "O PDF é pesado demais para ler: até a página P de N, …" ou "a página P
+>   descomprime para mais de 4 MB…" —, e não mais com a mensagem em inglês do
+>   pypdf. O mesmo arquivo de 684 KB agora é recusado na página 1 com 42 MB de
+>   pico. O que sobra é CPU: o orçamento de 32 MB de operadores custa até
+>   ~1 min de leitura (~2 s por MB), que segura o GIL do processo.
+>   *(O orçamento só era conferido entre páginas, e nunca depois da última:
+>   uma página só, com 160 formas de 3,9 MB, chegava a 639 MB. Corrigido na
+>   atualização da revisão do PR #100, abaixo — o orçamento passou a ser
+>   cobrado a cada decodificação.)* *(E a frase sobre a CPU estava errada: o
+>   orçamento de bytes não limita CPU, porque uma forma já decodificada é lida
+>   de novo a cada vez que é desenhada sem decodificar nada — 40 desenhos de
+>   0,4 MB, 23 s, num arquivo de 2 KB. Corrigido na segunda rodada da revisão
+>   do PR #100, abaixo, com um orçamento de 30 s por upload.)*
+> - **A numeração das páginas continua certa; a lacuna, não necessariamente.**
+>   O fatiador junta parágrafos entre páginas (como já fazia com uma página
+>   digitalizada em branco), então um trecho pode atravessar a página pulada e
+>   ser citado como `1–3`. Nenhum trecho começa ou termina nela, e o teste diz
+>   exatamente isso.
+
+> **Atualização (06/10/2026, os dois Ashby em português: fica o de 2012).**
+> `01-Bibliografia/` tinha dois scans de *Seleção de Materiais no Projeto
+> Mecânico*, a tradução do Ashby: `Michael Ashby (Auth.)-Seleção De Materiais No
+> Projeto Mecânico (2012).pdf` (152 MB) e `Selecao_de_Materiais_no_Projeto_Mecanico.pdf`
+> (103,5 MB). Não eram byte a byte iguais, então a ingestão indexava os dois — o
+> texto saía em dobro na busca e custava o dobro de vetores —, e foram os dois
+> `FALHOU` da segunda `ingerir`. **O autor decidiu ficar só com a edição mais
+> nova:** fica o de 2012, a 4ª edição; sai o sem data. Que o de 2012 é o mais
+> novo é **provável, não confirmado**: o nome do arquivo traz o ano e o outro
+> não traz data nenhuma, e ninguém abriu os dois para comparar a folha de rosto
+> (são objetos LFS, e baixá-los gastaria banda). Se o sem data for uma edição
+> mais nova, a decisão se inverte pelo caminho de reversão abaixo.
+>
+> - **O que saiu, e por onde.** O ponteiro saiu do git (`git rm`) e a entrada
+>   saiu do `manifesto.json` (120 entradas: 119 PDFs e o `Links.md`). Saiu
+>   junto a **cópia byte a byte dele na raiz do Cérebro**,
+>   `Selecao_de_Materiais_no_Projeto_Mecanico.pdf` (o mesmo oid, conferido no
+>   ponteiro; o manifesto não a declarava): o autor quer só a edição nova
+>   também na árvore. As outras 17 cópias avulsas da raiz ficam — são a
+>   decisão das cópias idênticas (TODO), não esta. Em `Cérebro/removidos.txt`
+>   entraram três linhas: os dois caminhos e `sha256:27882628…` — o oid do
+>   ponteiro, que é o checksum que a base grava. O caminho de `01-Bibliografia/`
+>   casa a linha `FALHOU` da segunda `ingerir` (o `conhecimento_remover` a
+>   apaga); os dois caminhos casam uma versão futura com outros bytes ali; o
+>   conteúdo casa qualquer outra cópia com os mesmos bytes, em qualquer
+>   caminho.
+> - **O caminho não vai para a limpeza do histórico.** A lista de remoção
+>   nasceu para o D-100, e o passo 4 de
+>   [17-limpeza-historico-cerebro.md](17-limpeza-historico-cerebro.md) converte
+>   cada linha de caminho dela para o `git filter-repo`. Este livro não é
+>   material a apagar do histórico — é uma edição duplicada, e o autor **não**
+>   quer o histórico reescrito por ela. Daí um terceiro tipo de linha, lido pelo
+>   mesmo leitor único (`app/knowledge/removal.py`):
+>   `mantido-no-historico:<caminho>` casa como qualquer caminho no banco, na
+>   ingestão, no `embed` e no gerador do manifesto, e fica fora de
+>   `RemovalList.history_purge_entries`, que é o que o shell do passo 4 tem de
+>   produzir (`grep -v -e '^mantido-no-historico:'`, ao lado do
+>   `-e '^sha256:'`). Um caminho escrito dos dois jeitos é limpo — a linha comum
+>   é a afirmação mais forte. Por que não só a linha `sha256:`: ela não casaria
+>   uma versão nova com outros bytes no mesmo caminho, nem uma linha da base
+>   gravada sem checksum. Por que um prefixo e não uma seção marcada por
+>   comentário: o comentário é invisível ao leitor do Python, e uma entrada
+>   acrescentada no fim do arquivo cairia na seção errada sem ninguém notar.
+>   `TestHistoryPurgeConversion` roda o bloco do passo 4 sobre a lista real e
+>   confere que ele sai igual a `history_purge_entries` — as mesmas 14 linhas
+>   de antes.
+> - **Os números do Cérebro**, lidos dos ponteiros: 239 ponteiros na árvore
+>   (eram 241), 119 objetos LFS distintos (eram 120); a primeira ingestão
+>   completa baixa 119 PDFs, ≈528 MB (503,1 MiB, como o `lfs_plan` imprime), e
+>   não mais 120 e ≈631 MB; continuam 120 cópias byte a byte (17 na raiz, 103
+>   fichas), porque a cópia que saiu era cópia de um arquivo que também saiu, e
+>   0 na lista de remoção.
+>   Os extratos de capítulo em `01-Bibliografia/Extratos-de-Capitulos/` não
+>   mudam.
+> - **O que falta é do autor**, depois do merge: **Administração do banco** →
+>   `conhecimento_simular_remocao` (um documento só, o `FALHOU`), depois
+>   `conhecimento_remover`, depois **Base de conhecimento (Cérebro)** →
+>   `ingerir` ([TODO.md](TODO.md) A7, item 3).
+> - **Para desfazer:** apague as três linhas do bloco do Ashby em
+>   `removidos.txt` e restaure os arquivos e a entrada do manifesto do
+>   histórico (`git checkout <commit anterior a esta remoção> -- "Cérebro/01-Bibliografia/Selecao_de_Materiais_no_Projeto_Mecanico.pdf" "Cérebro/Selecao_de_Materiais_no_Projeto_Mecanico.pdf" Cérebro/manifesto.json`,
+>   conferindo o manifesto à mão se ele tiver mudado depois); a próxima
+>   `ingerir` o baixa e indexa (a cópia da raiz volta a ser só cópia). O
+>   histórico tem os arquivos, porque esta remoção nunca passou pela limpeza.
+
+> **Atualização (06/10/2026, revisão do PR #100: o orçamento é cobrado a cada
+> decodificação, a lista de remoção falha fechada).** A revisão achou dois
+> problemas Importantes e cinco menores; todos corrigidos aqui.
+>
+> - **O orçamento do upload não segurava uma página só (I1).** Ele era
+>   conferido entre páginas — e, com `remaining == 0`, nem depois da última —,
+>   enquanto o pypdf decodifica e guarda cada forma XObject de uma página
+>   dentro de uma única chamada de `extract_text`. Um PDF de 0,66 MB, uma
+>   página com 160 formas distintas de 3,9 MB cada (logo abaixo do teto de
+>   4 MB por fluxo), era lido com **639 MB** de pico — a VM da API tem 512 MB.
+>   Agora `readers._metered_decoding` põe um medidor na frente de
+>   `pypdf.filters.decode_stream_data`, que `EncodedStreamObject.get_data`
+>   importa a cada chamada (conferido nos fontes do 6.18.0 e do 6.19.0): toda
+>   decodificação — conteúdo de página, forma, fonte, mapa `/ToUnicode`,
+>   fluxo de objetos — é cobrada do orçamento do documento **na hora**, e a
+>   decodificação que passa dele termina (os bytes já existem) e a seguinte é
+>   recusada com uma `BaseException` própria, `_DecodeBudgetSpent`. Não é
+>   `Exception` de propósito: o pypdf envolve cada forma num `except
+>   Exception` ("Impossible to decode XFormObject") e seguiria para a próxima
+>   — foi assim que uma página decodificou 160. O medidor vive num
+>   `ContextVar`, como o teto do D-101: só existe dentro de `read_pdf`, é
+>   restaurado na saída, por exceção também, e outra thread não o vê. O
+>   invólucro é instalado uma vez por processo, sob trava, e nunca removido —
+>   removê-lo ao fim de uma leitura desmediria outra em curso noutra thread;
+>   fora de uma leitura ele só consulta um `ContextVar` vazio. Um teste prova
+>   que a decodificação dentro de uma página é cobrada, então um pypdf que
+>   deixasse de chamar essa função quebraria a suíte, não a produção.
+>   **Medido** com a sonda da revisão: 160 formas → recusado na página 1 em
+>   0,2 s com **76 MB** de pico (antes 639 MB); 10 formas (39 MB), antes lido,
+>   agora recusado; o arquivo de um upload que caiba nos 32 MB continua lido.
+>   O pico fica no orçamento mais um fluxo mais o parse desse fluxo.
+> - **O orçamento de bytes não segura o parse de formas aninhadas** — achado
+>   ao medir a correção. O pypdf transforma um fluxo de operadores num objeto
+>   Python por operando (+225 MB de RSS para 3,9 MB de operadores de caminho,
+>   medido no 6.19) e, quando uma forma desenha outra, mantém o parse da de
+>   fora vivo enquanto lê a de dentro: duas formas assim, uma dentro da outra,
+>   +420 MB, num arquivo de 20 KB que decodifica 8 MB. Daí
+>   `UPLOAD_MAX_PARSED_BYTES`, igual ao teto por fluxo (4 MB): o mesmo
+>   medidor envolve `ContentStream.__init__` (idêntico no 6.18 e no 6.19),
+>   soma o tamanho de cada fluxo de conteúdo enquanto ele está vivo — o da
+>   página e o de cada forma em leitura dentro dela — e o libera por
+>   `weakref.finalize` quando o pypdf o solta; o fluxo que passaria do limite é
+>   recusado **antes** de ser lido. Formas lado a lado não somam (cada uma é
+>   solta antes da próxima); uma figura comum aninhada (dezenas de KB) passa.
+>   Medido: 2 e 8 formas de 3,9 MB aninhadas → recusado com 244 MB de pico (o
+>   parse da primeira, que é o custo de um fluxo no teto); 8 de 0,4 MB
+>   aninhadas → lido. Só o upload tem esse limite: o Cérebro roda num runner
+>   de 16 GB e mantém o risco residual já descrito acima.
+> - **O que ainda não é limitado, dito sem rodeio.** Um fluxo de operadores
+>   no teto de 4 MB custa ~225 MB enquanto o pypdf o lê — com os ~230 MB do
+>   processo e do índice, ~455 MB de 512 MB; oito deles lado a lado na mesma
+>   página, ~270 MB de pico e ~50 s de CPU. Nenhuma parte de *um* fluxo é
+>   interrompida no meio: só um subprocesso com `RLIMIT_AS` faria isso.
+>   *(Esses números são **por leitura**, não da VM: duas leituras ao mesmo
+>   tempo somavam +428 MB, três +624 MB. A segunda rodada, abaixo, pôs uma
+>   leitura de PDF por vez no processo e um prazo de 30 s por upload.)*
+> - **O prazo de 15 min do Cérebro é conferido a cada decodificação e entre
+>   páginas** (M5), não mais só entre páginas — mas nunca no meio do parse de
+>   um fluxo. *(Uma forma desenhada de novo não decodifica nada e escapava
+>   dessa conferência; a segunda rodada a pôs também no começo de cada
+>   parse.)*
+> - **A lista de remoção falha fechada num prefixo mal escrito (I2).**
+>   `mantido-no-histórico:` (com o acento que o próprio comentário do bloco do
+>   Ashby usa), `Mantido-no-historico:`, um espaço antes dos dois-pontos,
+>   `SHA256:`, `sha-256:` — tudo isso virava um caminho exato que não casava
+>   nada, e o arquivo que a linha queria tirar seria ingerido, baixado do LFS e
+>   enviado ao Gemini sem aviso. Agora uma linha cujo **primeiro trecho** tem
+>   dois-pontos e não é um dos dois prefixos conhecidos, escritos exatamente
+>   assim, é `ValidationError` com o número da linha e os prefixos que existem
+>   — sem citar a linha, que pode ser um nome que a lista existe para tirar do
+>   log. Sem dobra de maiúsculas ou acento, de propósito: uma grafia só, a
+>   mesma que o shell do docs/17 compara. Recusam a lista, e saem diferente de
+>   0 antes de tocar qualquer coisa: a ingestão, o plano do LFS, o `embed`, o
+>   `prune`, o gerador do manifesto, o `status` (que imprime o retrato e então
+>   sai com 1, numa linha `::error::`) e o bloco do passo 4 do docs/17 (que
+>   apaga o arquivo de saída). **Dois-pontos num trecho seguinte é caminho**
+>   (legal no Linux e no macOS; o repositório não tem nenhum); o que se perde é
+>   só listar um caminho cuja *primeira* pasta tenha dois-pontos, impossível
+>   no Windows, onde o Cérebro é curado. A lista real continua lendo igual: 16
+>   linhas de caminho (14 para a limpeza, 2 mantidas), 35 `sha256:`.
+> - **Documento curto (M1).** O piso de 3 páginas deixava passar 2 de 3, 2 de
+>   4, 2 de 9 e 1 de 2. A regra agora: falha quem tem **mais de 20% das
+>   páginas de fora e, além disso, ao menos 2 delas ou metade do documento**.
+>   Uma página ruim nunca derruba um documento de 3 páginas ou mais (1 de 3,
+>   1 de 4); 2 de 9 falha, 2 de 10 (20% exatos) passa, e de 10 páginas em
+>   diante só a fração decide, como antes. Um documento de uma página ilegível
+>   diz "a única página não pôde ser lida".
+> - **Mensagens (M2).** Um erro ao **abrir** o arquivo mostrava o texto em
+>   inglês do pypdf ("Maximum page tree entry limit reached: 100001 >
+>   100000"). Agora são duas frases em português, sem nada do pypdf: o
+>   arquivo corrompido ou não reconhecido, e a estrutura que passa dos limites
+>   — e o mesmo para a página ilegível de um upload, que dá o número da página
+>   e só o nome da classe. O teto de 4 MB por fluxo **fica**: um PDF com uma
+>   página de desenho vetorial denso (CAD, mapa, nuvem de pontos) é recusado
+>   inteiro, e a recusa agora diz a causa provável e a saída — exportar o PDF
+>   de novo "achatado" ou como imagem (Imprimir → Salvar como PDF), mandar sem
+>   a página ou mandar o texto. Pular a página, em vez de recusar, devolveria à
+>   VM o parse de todas as outras páginas do mesmo tamanho, e uma página assim
+>   quase não tem texto; não houve arquivo real para medir.
+> - **Releitura forçada (M3).** `forcar` relendo os mesmos bytes e falhando
+>   gravava "A versão nova (sha256 …)", e a nota ficava enquanto o arquivo não
+>   mudasse — o `status` diria `VERSÃO ANTERIOR` de um livro sem versão nova.
+>   Agora: "A releitura forçada (sha256 …) não pôde ser lida: …; os trechos já
+>   indexados destes mesmos bytes continuam na base", e o `status` dá o rótulo
+>   `RELEITURA FALHOU`.
+> - **Os ≈600 MB que sobraram (M4)** em `conhecimento.yml`, 13-deploy.md e
+>   neste D-101 viraram ≈528 MB, o número dos ponteiros depois da saída do
+>   Ashby.
+
+> **Atualização (06/10/2026, segunda rodada da revisão do PR #100: uma
+> leitura de PDF por vez, e um relógio para o upload).** A segunda revisão
+> confirmou as correções da primeira e achou dois problemas Importantes e
+> três menores; todos corrigidos aqui.
+>
+> - **Os limites de memória eram por leitura, não por processo (N1).** A API é
+>   um processo só, numa VM de 512 MB, e nada impedia duas leituras de PDF ao
+>   mesmo tempo: dois uploads de 8 KB, cada um com uma forma de 3,9 MB de
+>   operadores — dentro de todos os limites —, somaram +428 MB; três, +624 MB.
+>   Agora `read_upload` lê **um PDF por vez no processo**
+>   (`_UPLOAD_PDF_SLOT`, um `BoundedSemaphore(1)`), liberado em `finally`. O
+>   segundo espera até 15 s (`UPLOAD_PDF_SLOT_WAIT_SECONDS`, o bastante para um
+>   upload comum à frente) e então é recusado com "Outro PDF está sendo lido
+>   agora no servidor; tente enviar de novo em instantes.". Só o upload toma a
+>   vaga: o Cérebro é lido no runner do Actions, noutro processo. Medido com a
+>   sonda da revisão: três uploads simultâneos, 247 MB de pico (eram 643),
+>   servidos um depois do outro em 18 s. Assim o pico de uma leitura — ~225 MB
+>   para um fluxo de operadores no teto, ~455 MB de 512 com o processo e o
+>   índice — passa a ser o pico do processo.
+> - **A CPU de um upload não tinha limite (N2).** O pypdf decodifica uma forma
+>   uma vez e a guarda, mas a lê de novo a cada `Do`: sem decodificação nova,
+>   nenhum orçamento de bytes vê as repetições, e o pypdf aceita 5000 por
+>   página. 40 desenhos de uma forma de 0,4 MB custaram 23 s num arquivo de
+>   2 KB; 4 de uma de 3,9 MB, 26 s — e, com a vaga única, isso bloquearia todo
+>   outro upload. Agora o medidor confere o relógio **também no começo de cada
+>   parse** (o invólucro de `ContentStream.__init__`, por onde passa cada
+>   desenho), e o upload tem `UPLOAD_MAX_SECONDS = 30`: um PDF de 400 páginas
+>   de texto denso (o teto de páginas, 1,4 milhão de caracteres) lê em 3 a 6 s
+>   na máquina de desenvolvimento, o que deixa ~5× para a CPU compartilhada da
+>   VM. A recusa diz o tempo em segundos ("passou de 30 s"; antes, um prazo
+>   abaixo de 30 s saía como "0 min"). O que passa do prazo é no máximo o
+>   parse de um fluxo, ~6,5 s no teto: medido, 400 desenhos de 0,4 MB param em
+>   30,3 s e 40 de 3,9 MB em 35,3 s. O Cérebro mantém os 15 min, agora também
+>   conferidos a cada parse. Uma consequência pequena: a decodificação que
+>   passa do orçamento de bytes termina, mas o fluxo que ela produziu não é
+>   mais lido — a página dele fica de fora junto com as seguintes.
+> - **Um pypdf novo poderia desarmar os medidores em produção (m1).** O deploy
+>   constrói a imagem sem rodar os testes e instalava o pypdf mais novo. Agora
+>   `pyproject.toml` fixa `pypdf>=6.18,<6.20` (nos dois lugares), com a
+>   instrução de só subir o teto depois de reler os dois caminhos no fonte novo
+>   e rodar `test_knowledge_pdf_limits.py`. E o primeiro upload de cada
+>   processo lê um PDF mínimo (uma página com uma forma) sob um medidor e
+>   confere que uma decodificação e dois parses chegaram a ele
+>   (`readers._meters_work`, uma vez, sob trava, nunca no import); se não
+>   chegaram, uma linha `ERROR` no log e **todo upload de PDF é recusado** —
+>   "A leitura de PDF está suspensa neste servidor…" —, falha fechada em vez
+>   de leitura sem limite. DOCX, TXT e Markdown continuam.
+> - **Erros de digitação sem dois-pontos (m2).** `mantido-no-historico a/b.pdf`
+>   (espaço, ou tab, no lugar dos dois-pontos), `mantido-no-historico：` (os
+>   dois-pontos de largura cheia), `mantido-no-historico/a.pdf`,
+>   `sha256 <hex>` e — o caso realista — um caminho escrito com `Cérebro/` na
+>   frente, como o `git ls-files`, o GitHub e a saída do passo 4 do docs/17 o
+>   mostram, viravam um caminho que não casa nada. O primeiro trecho de cada
+>   linha agora é comparado depois de NFKC (pega os dois-pontos de largura
+>   cheia) e dobrado (minúsculas, sem acento, só letras e dígitos): começar
+>   como `sha256` ou `mantidonohistorico` sem ser o prefixo exato é recusado,
+>   e ser `cerebro` é recusado com "os caminhos são relativos à pasta do
+>   Cérebro (KNOWLEDGE_DIR), sem 'Cérebro/' na frente". O custo: um nome de
+>   pasta ou arquivo que comece como "sha256" ou "mantido no histórico" não
+>   pode ser listado; o Cérebro não tem nenhum. O bloco do passo 4 do docs/17
+>   recusa as mesmas formas. A lista real lê igual (16, 14, 35, 2).
+> - **Nenhuma recusa da lista cita a linha (m3).** As duas mensagens antigas
+>   — `sha256:` sem 64 dígitos e caminho que não é relativo — imprimiam a linha
+>   inteira, e o `status` e as CLIs as levam ao log público: um caminho de
+>   curso escrito no Windows (`ENG02016\Aula 3 – …`) apareceria nele. Agora
+>   as três dizem só o número da linha.

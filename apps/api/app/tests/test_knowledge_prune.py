@@ -9,6 +9,10 @@ embeddings junto e não encosta em documento que a lista não nomeia.
 
 from __future__ import annotations
 
+import os
+import re
+import shutil
+import subprocess
 import unicodedata
 from pathlib import Path
 
@@ -191,7 +195,7 @@ class TestEmptyAndUnmatched:
         assert report.unmatched_entries == ["nao-existe.pdf"]
 
     def test_nothing_matched_shows_where_the_stored_paths_start(self, base: Session) -> None:
-        lines = format_report(find_matches(base, parse_removal_list("Cérebro/")))
+        lines = format_report(find_matches(base, parse_removal_list("Outra-Pasta/")))
         hint = next(line for line in lines if "por pasta de primeiro nível" in line)
         assert "01-Bibliografia (1)" in hint
         assert "02-Material-de-Curso-ENG02016 (2)" in hint
@@ -482,7 +486,8 @@ class TestRepositoryList:
     def test_versioned_list_carries_the_content_of_every_removed_file(self) -> None:
         removal = parse_removal_list(self.LIST_PATH.read_text(encoding="utf-8"))
         # 71 arquivos, 34 conteúdos distintos: as cópias idênticas coincidem.
-        assert len(removal.checksums) == 34
+        # Mais 1: a edição duplicada do Ashby em português (D-101).
+        assert len(removal.checksums) == 35
         # O Tópico 1 sem "atualizado" só existia na raiz; o conteúdo dele
         # também está na lista, e não só o nome.
         assert removal.matches_checksum(
@@ -493,3 +498,349 @@ class TestRepositoryList:
         # D-100: o autor revisou o Links.md e decidiu mantê-lo e indexá-lo.
         removal = parse_removal_list(self.LIST_PATH.read_text(encoding="utf-8"))
         assert not removal.matches("Links.md")
+
+    def test_the_duplicate_ashby_leaves_the_base_and_stays_in_history(self) -> None:
+        # D-101: fica o scan de 2012; o sem data sai do RAG, pelo caminho e pelo
+        # conteúdo (o oid do ponteiro LFS), mas não é material a apagar do
+        # histórico — o autor quer o arquivo lá.
+        removal = parse_removal_list(self.LIST_PATH.read_text(encoding="utf-8"))
+        assert removal.matches(ASHBY_REMOVED)
+        assert removal.matches_checksum(ASHBY_REMOVED_OID)
+        assert ASHBY_REMOVED in removal.history_kept
+        assert ASHBY_REMOVED not in removal.history_purge_entries
+        # A cópia byte a byte da raiz saiu junto, pelo mesmo tipo de linha.
+        assert removal.matches(ASHBY_ROOT_COPY)
+        assert ASHBY_ROOT_COPY in removal.history_kept
+        assert ASHBY_ROOT_COPY not in removal.history_purge_entries
+        assert not removal.matches(ASHBY_KEPT)
+        assert not removal.matches(
+            "01-Bibliografia/Extratos-de-Capitulos/Selecao_de_Materiais_no_Projeto_Mecanico"
+            " - Capítulo 3 Materiais de Engenharia e suas propriedades.pdf"
+        )
+        # A limpeza do histórico continua levando exatamente o que o D-100 tirou.
+        assert len(removal.history_purge_entries) == 14
+        assert set(removal.history_purge_entries) == set(removal.entries) - {
+            ASHBY_REMOVED,
+            ASHBY_ROOT_COPY,
+        }
+
+
+ASHBY_REMOVED = "01-Bibliografia/Selecao_de_Materiais_no_Projeto_Mecanico.pdf"
+ASHBY_ROOT_COPY = "Selecao_de_Materiais_no_Projeto_Mecanico.pdf"
+ASHBY_REMOVED_OID = "27882628ad20ab3e90dbf61f86d47990f6f94190229fad925fb7935acbea5b69"
+ASHBY_KEPT = unicodedata.normalize(
+    "NFC",
+    "01-Bibliografia/Michael Ashby (Auth.)-Seleção De Materiais No Projeto Mecânico (2012).pdf",
+)
+
+
+class TestKeptInHistory:
+    """`mantido-no-historico:` sai do banco e da ingestão, mas não do histórico."""
+
+    def test_is_a_path_entry_for_matching(self) -> None:
+        removal = parse_removal_list(
+            f"mantido-no-historico:{ASHBY_REMOVED}\nmantido-no-historico: Duplicados/\n"
+        )
+        assert removal.matches(ASHBY_REMOVED)
+        assert removal.matches("Duplicados/a.pdf")
+        assert not removal.matches("01-Bibliografia/outro.pdf")
+        assert removal.history_kept == frozenset({ASHBY_REMOVED, "Duplicados/"})
+        assert removal.history_purge_entries == ()
+        # Os relatórios do prune continuam vendo a entrada.
+        assert set(removal.entries) == {ASHBY_REMOVED, "Duplicados/"}
+
+    def test_plain_lines_are_still_purged(self) -> None:
+        removal = parse_removal_list(f"{COURSE}\nmantido-no-historico:{TOPIC_NFD}\n")
+        assert removal.history_purge_entries == (COURSE,)
+        assert removal.matches(TOPIC_NFC)  # NFC dos dois lados, como toda linha
+
+    def test_a_path_written_both_ways_is_purged(self) -> None:
+        removal = parse_removal_list(f"mantido-no-historico:{TOPIC_NFC}\n{TOPIC_NFC}\n")
+        assert removal.history_kept == frozenset()
+        assert removal.history_purge_entries == (TOPIC_NFC,)
+
+    @pytest.mark.parametrize(
+        "line",
+        ["mantido-no-historico:", "mantido-no-historico:/a.pdf", "mantido-no-historico:../a"],
+    )
+    def test_the_path_is_validated_like_any_other(self, line: str) -> None:
+        with pytest.raises(ValidationError, match="relativo"):
+            parse_removal_list(line)
+
+    def test_prune_lists_and_deletes_it_by_path_and_by_content(self, db_session: Session) -> None:
+        # A primeira `ingerir` deixou uma linha FALHOU para o livro; a cópia na
+        # raiz casa pelo conteúdo, e uma linha sem checksum, pelo caminho.
+        failed = _document(db_session, ASHBY_REMOVED, chunks=0, embedded=0)
+        failed.checksum = ""
+        copy = _document(db_session, "Selecao_de_Materiais_no_Projeto_Mecanico.pdf")
+        copy.checksum = ASHBY_REMOVED_OID
+        _document(db_session, ASHBY_KEPT, chunks=3, embedded=3)
+        db_session.flush()
+        removal = parse_removal_list(
+            f"mantido-no-historico:{ASHBY_REMOVED}\nsha256:{ASHBY_REMOVED_OID}\n"
+        )
+
+        report = prune(db_session, removal, apply=False)
+        assert {(m.path, m.reason) for m in report.matched} == {
+            (ASHBY_REMOVED, "caminho"),
+            ("Selecao_de_Materiais_no_Projeto_Mecanico.pdf", "conteúdo (sha256)"),
+        }
+        lines = format_report(report)
+        assert any(ASHBY_REMOVED in line and "seria removido" in line for line in lines)
+        assert report.unmatched_entries == []
+
+        prune(db_session, removal, apply=True)
+        db_session.flush()
+        assert _paths(db_session) == [ASHBY_KEPT]
+
+
+def _history_purge_script() -> str:
+    """O bloco do passo 4 do docs/17, que converte a lista para o filter-repo."""
+    guide = Path(__file__).resolve().parents[4] / "docs" / "17-limpeza-historico-cerebro.md"
+    blocks = re.findall(r"```bash\n(.*?)```", guide.read_text(encoding="utf-8"), re.S)
+    (script,) = [b for b in blocks if "> caminhos-para-remover.txt" in b]
+    return script
+
+
+@pytest.mark.skipif(
+    any(shutil.which(tool) is None for tool in ("bash", "sed", "grep", "tr")),
+    reason="o passo 4 do docs/17 é um pipeline de shell",
+)
+class TestHistoryPurgeConversion:
+    """O shell do docs/17 produz exatamente `history_purge_entries` da lista real."""
+
+    def test_guide_pipeline_matches_the_reader(self, tmp_path: Path) -> None:
+        listing = TestRepositoryList.LIST_PATH
+        # `git show HEAD:…` lê a lista do clone espelho; aqui, a da árvore.
+        script = 'git() { cat "$LISTA"; }\n' + _history_purge_script()
+        subprocess.run(
+            ["bash", "-c", script],
+            cwd=tmp_path,
+            env={"LISTA": str(listing), "PATH": os.environ["PATH"], "LC_ALL": "C.UTF-8"},
+            check=True,
+            capture_output=True,
+        )
+        produced = (tmp_path / "caminhos-para-remover.txt").read_text(encoding="utf-8").splitlines()
+
+        removal = parse_removal_list(listing.read_text(encoding="utf-8"))
+        expected = {"Cérebro/" + entry for entry in removal.history_purge_entries}
+        assert {unicodedata.normalize("NFC", p) for p in produced} == {
+            unicodedata.normalize("NFC", p) for p in expected
+        }
+        assert len(produced) == len(expected) == 14
+        assert not any("Selecao_de_Materiais_no_Projeto_Mecanico" in p for p in produced)
+        assert not any(":" in p for p in produced)
+
+
+#: Prefixes written in ways the reader must refuse, not read as a path (I2 of
+#: the review of PR #100). The first three were confirmed failing open.
+_BAD_PREFIXES = [
+    pytest.param("mantido-no-histórico:", id="acento-nfc"),
+    pytest.param(unicodedata.normalize("NFD", "mantido-no-histórico:"), id="acento-nfd"),
+    pytest.param("Mantido-no-historico:", id="maiuscula-inicial"),
+    pytest.param("MANTIDO-NO-HISTORICO:", id="maiusculas"),
+    pytest.param("mantido-no-historico :", id="espaco-antes-dos-dois-pontos"),
+    pytest.param("mantido_no_historico:", id="sublinhado"),
+    pytest.param("SHA256:", id="sha256-maiusculas"),
+    pytest.param("sha-256:", id="sha-256"),
+    pytest.param("sha256 :", id="sha256-espaco"),
+    pytest.param("mantido-no-historico:sha256:", id="prefixo-duplo"),
+    pytest.param("C:", id="unidade-do-windows"),
+    # The second review of PR #100 (m2): no ASCII colon, still a prefix.
+    pytest.param("mantido-no-historico ", id="espaco-no-lugar-dos-dois-pontos"),
+    pytest.param("mantido-no-historico\t", id="tab-no-lugar-dos-dois-pontos"),
+    pytest.param("mantido-no-historico：", id="dois-pontos-de-largura-cheia"),
+    pytest.param("mantido-no-historico/", id="barra-no-lugar-dos-dois-pontos"),
+    pytest.param("sha256 ", id="sha256-sem-dois-pontos"),
+]
+_SECRET = "segredo/Trabalho do Fulano.pdf"
+
+
+def _bad_list(prefix: str) -> str:
+    digest = "a" * 64
+    body = digest if "sha" in prefix.lower() else _SECRET
+    return f"# comentário\n{COURSE}\n{prefix}{body}\n"
+
+
+class TestUnknownPrefixFailsClosed:
+    """Um prefixo mal escrito é recusado com o número da linha, nunca lido como caminho."""
+
+    @pytest.mark.parametrize("prefix", _BAD_PREFIXES)
+    def test_is_refused_with_the_line_number_and_the_known_prefixes(self, prefix: str) -> None:
+        with pytest.raises(ValidationError) as exc:
+            parse_removal_list(_bad_list(prefix))
+        message = str(exc.value)
+        assert message.startswith("Linha 3 da lista de remoção começa com um prefixo desconhecido")
+        assert "'sha256:' e 'mantido-no-historico:'" in message
+        # The line itself is never quoted: it may be a name kept out of the log.
+        assert "Fulano" not in message and "segredo" not in message and "aaaa" not in message
+
+    @pytest.mark.parametrize("root", ["Cérebro/", unicodedata.normalize("NFD", "Cérebro/")])
+    def test_a_path_written_from_the_repository_root_is_refused(self, root: str) -> None:
+        with pytest.raises(ValidationError) as exc:
+            parse_removal_list(f"{COURSE}\n{root}{_SECRET}\n")
+        message = str(exc.value)
+        assert message.startswith("Linha 2 da lista de remoção começa com 'Cérebro/'")
+        assert "relativos à pasta do Cérebro (KNOWLEDGE_DIR)" in message
+        assert "Fulano" not in message
+
+    @pytest.mark.parametrize(
+        "line",
+        [
+            "ENG02016\\Aula 3 – Fulano.pdf",  # written on Windows
+            "/home/runner/Cérebro/Fulano.pdf",
+            "../Fulano.pdf",
+            "sha256:Fulano",
+        ],
+    )
+    def test_no_refusal_quotes_the_line(self, line: str) -> None:
+        # m3 of the second review: the older messages quoted the whole line,
+        # and the Actions log is public.
+        with pytest.raises(ValidationError) as exc:
+            parse_removal_list(f"{COURSE}\n{line}\n")
+        assert str(exc.value).startswith("Linha 2 da lista de remoção")
+        assert "Fulano" not in str(exc.value)
+
+    def test_a_colon_in_a_later_segment_is_a_path(self) -> None:
+        # Legal on Linux and macOS; the repository has none, but a folder on a
+        # contributor's disk could. Only the first segment decides.
+        removal = parse_removal_list("Pasta/arquivo: parte 2.pdf\nPasta/sub: 2/\n")
+        assert removal.matches("Pasta/arquivo: parte 2.pdf")
+        assert removal.matches("Pasta/sub: 2/a.pdf")
+        with pytest.raises(ValidationError, match="prefixo desconhecido"):
+            parse_removal_list("Pasta: nao/arquivo.pdf\n")
+
+    def test_the_real_list_still_parses(self) -> None:
+        removal = load_from_root(TestRepositoryList.LIST_PATH.parent)
+        assert len(removal.entries) == 16 and len(removal.history_purge_entries) == 14
+        assert len(removal.checksums) == 35 and len(removal.history_kept) == 2
+
+    @pytest.fixture
+    def bad_root(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+        from app.config import settings
+
+        root = tmp_path / "cerebro"
+        root.mkdir()
+        (root / "removidos.txt").write_text(_bad_list("mantido-no-histórico:"), encoding="utf-8")
+        (root / "segredo").mkdir()
+        (root / _SECRET).write_bytes(b"%PDF-1.4\n")
+        monkeypatch.setattr(settings, "knowledge_dir", str(root))
+        return root
+
+    def test_prune_exits_non_zero(self, bad_root: Path, capsys: pytest.CaptureFixture[str]) -> None:
+        with pytest.raises(SystemExit) as exc:
+            main(["--list", str(bad_root / "removidos.txt")])
+        assert exc.value.code != 0
+        assert "Fulano" not in capsys.readouterr().err
+
+    def test_ingest_exits_1_and_ingests_nothing(
+        self,
+        db_session: Session,
+        bad_root: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str],
+    ) -> None:
+        from app.knowledge import ingest
+
+        monkeypatch.setattr(ingest, "SessionLocal", lambda: db_session)
+        with pytest.raises(SystemExit) as exc:
+            ingest.main(["--no-embed"])
+        assert exc.value.code == 1
+        out = capsys.readouterr().out
+        assert "[ingest] ERRO: Linha 3 da lista de remoção" in out and "Fulano" not in out
+        assert db_session.scalar(select(func.count()).select_from(KnowledgeDocument)) == 0
+
+    def test_the_lfs_plan_exits_1(
+        self,
+        db_session: Session,
+        bad_root: Path,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        from app.knowledge import lfs_plan
+
+        monkeypatch.setattr(lfs_plan, "SessionLocal", lambda: db_session)
+        output = tmp_path / "baixar.nul"
+        with pytest.raises(SystemExit) as exc:
+            lfs_plan.main(["--output", str(output), "--ids", str(tmp_path / "ids")])
+        assert exc.value.code == 1
+        assert not output.exists() or output.read_bytes() == b""
+
+    def test_embed_exits_1_before_any_request(
+        self, bad_root: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        from app.knowledge import embed
+
+        def refuse(*_args, **_kwargs):
+            raise AssertionError("nada pode ser pedido nem lido do banco")
+
+        monkeypatch.setattr(embed, "EmbeddingClient", refuse)
+        monkeypatch.setattr(embed, "SessionLocal", refuse)
+        with pytest.raises(SystemExit) as exc:
+            embed.main(["--list", str(bad_root / "removidos.txt")])
+        assert exc.value.code == 1
+        assert "prefixo desconhecido" in capsys.readouterr().out
+
+    def test_status_prints_the_snapshot_then_exits_1(
+        self,
+        db_session: Session,
+        bad_root: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str],
+    ) -> None:
+        from app.knowledge import status
+
+        monkeypatch.setattr(status, "SessionLocal", lambda: db_session)
+        with pytest.raises(SystemExit) as exc:
+            status.main(["--model", "", "--dimensions", "0"])
+        assert exc.value.code == 1
+        out = capsys.readouterr().out
+        assert "[status] documentos:" in out  # the snapshot is printed first
+        assert "::error::[status] lista de remoção (Cérebro/removidos.txt) inválida: Linha 3" in out
+        assert "Fulano" not in out
+
+    def test_the_manifest_generator_writes_nothing(self, bad_root: Path) -> None:
+        import importlib.util
+
+        script = Path(__file__).resolve().parents[2] / "scripts" / "generate_knowledge_manifest.py"
+        spec = importlib.util.spec_from_file_location("generate_knowledge_manifest", script)
+        assert spec is not None and spec.loader is not None
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        with pytest.raises(ValidationError, match="prefixo desconhecido"):
+            module.update_manifest(bad_root)
+        assert not (bad_root / "manifesto.json").exists()
+
+    @pytest.mark.skipif(
+        any(shutil.which(tool) is None for tool in ("bash", "sed", "grep", "tr")),
+        reason="o passo 4 do docs/17 é um pipeline de shell",
+    )
+    @pytest.mark.parametrize(
+        "prefix",
+        [
+            "mantido-no-histórico:",
+            "mantido-no-historico ",
+            "mantido-no-historico：",
+            "SHA256 ",
+            "Cérebro/",
+        ],
+    )
+    def test_the_history_purge_pipeline_refuses_it_too(self, tmp_path: Path, prefix: str) -> None:
+        listing = tmp_path / "lista.txt"
+        listing.write_text(_bad_list(prefix), encoding="utf-8")
+        work = tmp_path / "purga"
+        work.mkdir()
+        script = 'git() { cat "$LISTA"; }\n' + _history_purge_script()
+        result = subprocess.run(
+            ["bash", "-c", script],
+            cwd=work,
+            env={
+                "LISTA": str(listing),
+                "PATH": os.environ["PATH"],
+                "LC_ALL": "C.UTF-8",
+            },
+            capture_output=True,
+        )
+        assert result.returncode != 0
+        assert not (work / "caminhos-para-remover.txt").exists()
+        assert "corrija-a antes de seguir" in result.stderr.decode("utf-8")

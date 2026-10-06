@@ -24,8 +24,12 @@ What it prints:
   what a free database plan limits — or "indisponível no SQLite";
 * rows the manifest does not declare, rows that are byte-identical copies of
   another row (the orphans the ingestion's ``CÓPIAS`` line points here for),
-  rows whose file is no longer under ``KNOWLEDGE_DIR``, failed documents, and
-  documents whose newer version could not be read (the previous passages stay).
+  rows whose file is no longer under ``KNOWLEDGE_DIR``, failed documents,
+  documents whose newer version could not be read (``VERSÃO ANTERIOR``: the
+  previous passages stay), documents whose forced re-read of the same bytes
+  failed (``RELEITURA FALHOU``: the passages already indexed stay), PDFs indexed with pages left out (``PÁGINAS
+  IGNORADAS``, with the count — D-101) and any other note on an indexed
+  document (``AVISO``, e.g. truncation).
 
 **The log is public.** A path is printed whole only when
 ``Cérebro/manifesto.json`` declares it; any other row is its top-level folder
@@ -33,9 +37,13 @@ plus a short checksum (:func:`app.knowledge.prune.redact`). The stored error of
 an undeclared document is not printed either: an ``OSError`` carries the path.
 No passage text, no vector, no key is ever read into the output.
 
-Exit code 1 only when the database cannot be read or has no knowledge tables;
-everything else — pending vectors, failed documents — is a fact to report, not
-a failure of this command.
+Exit code 1 only when the database cannot be read or has no knowledge tables,
+or when ``KNOWLEDGE_DIR`` has a removal list that does not parse
+(:func:`app.knowledge.removal.parse_removal_list` — a misspelled prefix, say):
+the snapshot is still printed, and then the run fails, because every other
+command of the Cérebro refuses that list too and nothing will be ingested or
+embedded until it is fixed. Everything else — pending vectors, failed
+documents — is a fact to report, not a failure of this command.
 """
 
 from __future__ import annotations
@@ -56,6 +64,8 @@ from app.db.base import SessionLocal
 from app.domain.errors import ValidationError
 from app.knowledge.manifest import load_manifest
 from app.knowledge.prune import ROOT_FOLDER, knowledge_tables_present, redact
+from app.knowledge.removal import REMOVAL_LIST_FILENAME, load_removal_list
+from app.knowledge.service import FORCED_REREAD_PREFIX, KEPT_PREVIOUS_PREFIX, skipped_pages_in
 from app.models.enums import IngestStatus
 from app.repositories.knowledge_repository import KnowledgeRepository
 from app.repositories.knowledge_status_repository import (
@@ -397,12 +407,40 @@ def format_status(status: KnowledgeStatus) -> list[str]:
     for row in docs:
         if row.status == IngestStatus.FALHOU.value:
             lines.append(f"{PREFIX} FALHOU {status.shown(row)}: {_error(status, row)}")
-    for row in docs:
-        if row.status == IngestStatus.EXTRAIDO.value and row.error:
-            lines.append(
-                f"{PREFIX} VERSÃO ANTERIOR {status.shown(row)} ({row.chunk_count} trechos "
-                f"mantidos): {_error(status, row)}"
-            )
+    # An indexed document with a note is one of three things, and each has its
+    # own label: a new version that could not be read (the old one answers), a
+    # PDF indexed with pages left out (D-101), or anything else said about an
+    # indexed document (truncation). Calling the second "versão anterior" told
+    # the operator a new version had failed when the only version had gaps.
+    noted = [r for r in docs if r.status == IngestStatus.EXTRAIDO.value and r.error]
+    partial = [(r, skipped_pages_in(r.error)) for r in noted]
+    partial = [(r, counts) for r, counts in partial if counts is not None]
+    lines.append(
+        f"{PREFIX} páginas ignoradas: {len(partial)} documentos indexados com páginas "
+        f"de fora ({sum(counts[0] for _, counts in partial)} páginas no total)."
+        + (
+            " Reextraia com `ingerir` + `arquivos` + `forcar` depois de corrigir a causa."
+            if partial
+            else ""
+        )
+    )
+    for row in noted:
+        counts = skipped_pages_in(row.error)
+        if (row.error or "").startswith(KEPT_PREVIOUS_PREFIX):
+            label = "VERSÃO ANTERIOR"
+            kept = f"{row.chunk_count} trechos mantidos"
+        elif (row.error or "").startswith(FORCED_REREAD_PREFIX):
+            # The same bytes failed when read again: what answers is still
+            # this version, so there is no "previous" one to name.
+            label = "RELEITURA FALHOU"
+            kept = f"{row.chunk_count} trechos mantidos"
+        elif counts is not None:
+            label = "PÁGINAS IGNORADAS"
+            kept = f"{counts[0]} de {counts[1]} páginas de fora, {row.chunk_count} trechos"
+        else:
+            label = "AVISO"
+            kept = f"{row.chunk_count} trechos"
+        lines.append(f"{PREFIX} {label} {status.shown(row)} ({kept}): {_error(status, row)}")
     return lines
 
 
@@ -472,6 +510,32 @@ def main(argv: list[str] | None = None, *, settings: Settings = default_settings
 
     for line in format_status(status):
         print(line)
+
+    problem = removal_list_problem(root)
+    if problem is not None:
+        print(f"::error::{PREFIX} {problem}")
+        sys.exit(1)
+
+
+def removal_list_problem(root: Path | None) -> str | None:
+    """Why ``KNOWLEDGE_DIR``'s removal list cannot be used — or None.
+
+    The parser's message names the line by number and never quotes it.
+    """
+    if root is None or not (root / REMOVAL_LIST_FILENAME).is_file():
+        return None
+    try:
+        load_removal_list(root / REMOVAL_LIST_FILENAME)
+    except ValidationError as exc:
+        reason = str(exc)
+    except (OSError, UnicodeDecodeError) as exc:
+        reason = f"não consegui ler o arquivo ({type(exc).__name__})."
+    else:
+        return None
+    return (
+        f"lista de remoção (Cérebro/{REMOVAL_LIST_FILENAME}) inválida: {reason} Enquanto "
+        "isso, ingestão, plano do LFS, vetores e remoção recusam a lista e saem com 1."
+    )
 
 
 if __name__ == "__main__":

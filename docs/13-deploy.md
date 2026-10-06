@@ -509,7 +509,7 @@ de `KNOWLEDGE_DIR`: ela só lê o banco.
 | Ação | Faz o quê | Recebe a chave do Gemini? |
 |---|---|---|
 | `status` | Só lê: documentos, trechos, vetores por modelo e dimensão, quanto falta, tamanho do banco, cópias órfãs, documentos sem arquivo no repositório — e compara a identidade de vetor da API com a do workflow ("API vs vetores"). | Não |
-| `ingerir` | Planeja o download (`python -m app.knowledge.lfs_plan`: só os PDFs que o banco ainda não tem com aqueles bytes), baixa só esses do Git LFS (com cache) e roda `python -m app.knowledge.ingest --no-embed`: extrai o texto e grava os trechos. A busca léxica funciona a partir daqui. Com `arquivos` (caminhos dentro de `Cérebro/`, separados por `;`), só esses arquivos, e o mesmo plano decide se algum precisa ser baixado. `arquivos` com outra ação é erro. | **Não** |
+| `ingerir` | Planeja o download (`python -m app.knowledge.lfs_plan`: só os PDFs que o banco ainda não tem com aqueles bytes), baixa só esses do Git LFS (com cache) e roda `python -m app.knowledge.ingest --no-embed`: extrai o texto e grava os trechos. A busca léxica funciona a partir daqui. Com `arquivos` (caminhos dentro de `Cérebro/`, separados por `;`), só esses arquivos, e o mesmo plano decide se algum precisa ser baixado. Com `forcar` marcado **e** `arquivos`, esses arquivos são baixados e reextraídos mesmo inalterados (`--force` no plano e na ingestão). `arquivos` ou `forcar` com outra ação, e `forcar` sem `arquivos`, são erro. | **Não** |
 | `embeddings` | Gera vetores agora, até `limite_pedidos` pedidos (padrão 300) com `lote` trechos por pedido (padrão 20), por no máximo 120 min. Os trechos de documentos em `Cérebro/removidos.txt` nunca são enviados. | Sim |
 | noturna (sozinha) | O mesmo, toda noite às 05:07 UTC (02:07 em Brasília), só entre 21h e 23h50 do Pacífico, com a sobra da cota do dia: até a cota acabar ou 1000 pedidos, o que vier antes. | Sim |
 
@@ -520,7 +520,7 @@ conferência dos ponteiros LFS): é ele, e não o ✅, que prova o que ficou no 
 inteiro só do que `Cérebro/manifesto.json` declara, o resto como pasta mais o
 começo do sha256, e nunca texto de trecho nem chave.
 
-**Só o `Links.md`, agora** — o atalho, sem os ≈600 MB do LFS e sem depender
+**Só o `Links.md`, agora** — o atalho, sem os ≈528 MB do LFS e sem depender
 dos passos abaixo: **Base de conhecimento (Cérebro)** → `ingerir`, com
 `arquivos` = `Links.md`. O log diz `1 arquivo(s) pedido(s).` e, no plano,
 `[lfs] nada a baixar do Git LFS.`; pula os passos do LFS e termina com
@@ -561,24 +561,24 @@ idênticos entram uma vez só.
 4. **Base de conhecimento (Cérebro)** → `ingerir`, **fora do horário de
    aula** — a ingestão grava documento a documento, e cada consulta de IA feita
    no meio dela reconstrói o índice da API. A primeira vez leva de 20 a 40 min
-   e baixa ≈631 MB do LFS — **mais da metade da banda de LFS do mês** (1 GB no
+   e baixa ≈528 MB do LFS — **mais da metade da banda de LFS do mês** (1 GB no
    plano gratuito); não a repita no mesmo mês sem necessidade. O plano diz
    ```
-   [lfs] 241 ponteiro(s) LFS entre os arquivos desta execução: 0 já indexado(s) com os mesmos bytes, 121 cópia(s) de outro caminho, 0 na lista de remoção — nenhum desses é baixado.
-   [lfs] baixar 120 arquivo(s), 601,8 MB: 120 novo(s) na base, 0 com versão nova ou que falhou antes (tentado de novo).
+   [lfs] 239 ponteiro(s) LFS entre os arquivos desta execução: 0 já indexado(s) com os mesmos bytes, 120 cópia(s) de outro caminho, 0 na lista de remoção — nenhum desses é baixado.
+   [lfs] baixar 119 arquivo(s), 503,1 MB: 119 novo(s) na base, 0 com versão nova ou que falhou antes (tentado de novo).
    ```
-   o download, `LFS: 0 objeto(s) já no cache, 120 a baixar.`, e a conferência,
-   `Nenhum dos 120 arquivo(s) baixado(s) ficou ponteiro: os PDFs estão inteiros.`
-   As 121 cópias continuam ponteiros no disco de propósito: a ingestão as conta
+   o download, `LFS: 0 objeto(s) já no cache, 119 a baixar.`, e a conferência,
+   `Nenhum dos 119 arquivo(s) baixado(s) ficou ponteiro: os PDFs estão inteiros.`
+   As 120 cópias continuam ponteiros no disco de propósito: a ingestão as conta
    como cópias sem lê-las. O resumo da ingestão, numa base vazia:
    ```
-   [ingest] N criados, 0 atualizados, 0 inalterados, F falharam (S sem texto), 0 ignorados pela lista de remoção, 121 cópias idênticas ignoradas, T trechos, 0 embedados.
+   [ingest] N criados, 0 atualizados, 0 inalterados, F falharam (S sem texto), 0 ignorados pela lista de remoção, 120 cópias idênticas ignoradas, T trechos, 0 embedados.
    [ingest] vetores não gerados nesta execução (--no-embed): rode `python -m app.knowledge.embed`.
-   [ingest] CÓPIAS em (raiz): 18 idênticas a arquivos indexados em outro caminho.
+   [ingest] CÓPIAS em (raiz): 17 idênticas a arquivos indexados em outro caminho.
    [ingest] CÓPIAS em Fichas descritivas de materiais - Granta Edupack - Nível 2/: 103 idênticas a arquivos indexados em outro caminho.
    ```
-   `N` fica perto de 121 (os 120 PDFs e o `Links.md` que o manifesto declara),
-   menos o que falhar — ou perto de 120 com `1 inalterados`, se o `Links.md`
+   `N` fica perto de 120 (os 119 PDFs e o `Links.md` que o manifesto declara),
+   menos o que falhar — ou perto de 119 com `1 inalterados`, se o `Links.md`
    já entrou pela ação direcionada (`arquivos: Links.md` ou
    `conhecimento_indexar_links`). As contagens de cópias são as da árvore de
    hoje. Uma `ingerir` seguinte, com o Cérebro igual, diz
@@ -586,17 +586,56 @@ idênticos entram uma vez só.
    documentos que falharam, que são baixados e lidos de novo.
    - `[ingest] SEM TEXTO … (provavelmente digitalizado)` é **aviso**: o PDF não
      tem texto extraível e o job continua verde.
-   - `[ingest] PÁGINAS IGNORADAS …: K de N não puderam ser lidas; o resto do
-     documento foi indexado.` também é **aviso**, e o job continua verde:
-     K páginas do PDF não decodificaram (fluxo acima de 500 MB, erro de zlib,
-     fluxo malformado) e ficaram de fora; as outras foram indexadas com o
-     número de página certo. A linha só traz contagens. Se *nenhuma* página
-     decodificar, o documento sai `FALHOU`. Um
-     `FALHOU …: Não foi possível ler o PDF: Limit reached while decompressing`
-     não deveria mais aparecer no Cérebro — era o teto de 75 MB do pypdf, que
-     derrubou os dois Ashby em português na `ingerir` de 06/10 ([D-101](DECISIONS.md),
-     atualização do teto de descompressão); o upload dos Cadernos continua com
-     ele, de propósito.
+   - `::warning::[ingest] PÁGINAS IGNORADAS …: K de N não puderam ser lidas (LimitReachedError ×2, error ×1); o resto do documento foi indexado. Para reextrair depois de uma correção: …`
+     também é **aviso** — uma anotação, que o GitHub mostra como "Warning" no resumo
+     da execução, não só no log —, e o job continua verde: K páginas do PDF
+     não decodificaram e ficaram de fora; as outras foram indexadas com o
+     número de página certo (um trecho ainda pode atravessar a página que
+     faltou, e é citado como `1–3`). O parêntese diz **por quê**, pelo nome da
+     classe do erro e quantas páginas — nunca a mensagem, que pode citar a
+     página: `LimitReachedError` é o teto de 200 MB por fluxo (um parêntese só
+     com ele aponta para o teto, e uma versão nova do pypdf não ajudaria);
+     `error` é o `zlib.error` de um fluxo corrompido; `DocumentBudgetExceeded`
+     são as páginas que sobraram quando o documento gastou o orçamento dele
+     (16 GB decodificados ou 15 min de leitura); outros nomes são defeitos do
+     pypdf, que uma versão nova pode resolver.
+   - `[ingest] FALHOU …: Não foi possível ler o PDF: K de N páginas não puderam ser lidas (até a página P; LimitReachedError ×K) — mais que 20% do documento.`
+     deixa o job **vermelho**: mais de uma página em cinco ficaram de fora — e
+     ao menos duas, ou metade de um documento curto; uma página só nunca
+     derruba um documento de três páginas ou mais —, e um índice com esse buraco responderia sobre o livro
+     como se o tivesse inteiro. A leitura para assim que a conta fecha (o
+     resto não é decodificado). Um livro novo não grava nada; um já indexado
+     mantém os trechos da versão anterior. Como toda falha, a próxima
+     `ingerir` tenta de novo. Um `FALHOU …: Limit reached while decompressing`
+     sozinho não deveria mais aparecer no Cérebro — era o teto de 75 MB do
+     pypdf, que derrubou os dois Ashby em português na `ingerir` de 06/10
+     ([D-101](DECISIONS.md), atualização do teto de descompressão); o upload
+     dos Cadernos tem um teto ainda menor, de propósito (4 MB por fluxo, 32 MB
+     por arquivo cobrados a cada decodificação, 4 MB lidos de uma vez, sob
+     medida para a VM de 512 MB). O orçamento de 15 min é conferido a cada
+     decodificação e entre páginas, nunca no meio da leitura de um fluxo.
+   - **Reextrair um livro indexado com páginas de fora**, depois de uma
+     correção (pypdf novo, teto novo): o livro está `inalterado` para a
+     ingestão — os bytes não mudaram —, e o plano nem o baixa. **Base de
+     conhecimento (Cérebro)** → `ingerir`, `arquivos` = o caminho do livro
+     dentro de `Cérebro/` (o que o `status` mostra se ele é declarado no
+     manifesto) e **`forcar` marcado**. O plano baixa só esse arquivo, e a
+     ingestão o relê com `--force`. `forcar` sem `arquivos` é recusado de
+     propósito: reextrair o Cérebro inteiro baixaria os ≈528 MB do LFS de
+     novo, mais da metade da cota do mês. No `status`, um livro assim aparece
+     como `[status] PÁGINAS IGNORADAS <caminho> (K de N páginas de fora, T
+     trechos): …`, e a linha `[status] páginas ignoradas: D documentos …` soma
+     todos — nunca mais como `VERSÃO ANTERIOR`, que é só a versão nova que não
+     pôde ser lida (uma nota de truncamento sai como `AVISO`). Se a releitura
+     forçada dos mesmos bytes falhar, o livro aparece como `[status] RELEITURA
+     FALHOU <caminho> (T trechos mantidos): A releitura forçada (sha256 …) …` —
+     os trechos que já estavam continuam respondendo.
+   - **`::error::[status] lista de remoção (Cérebro/removidos.txt) inválida:
+     Linha N …`** (e `[ingest] ERRO: Linha N …`, `[lfs]`, `[embed]`, `[prune]`):
+     uma linha da lista começa com um prefixo desconhecido — `sha256:` e
+     `mantido-no-historico:` só valem escritos exatamente assim (minúsculas,
+     sem acento, sem espaço antes dos dois-pontos). Nada foi ingerido, baixado
+     nem enviado; corrija a linha N e repita.
    - **Vermelho no download** (`O download do arquivo nº N do plano falhou`),
      na conferência (`… ainda são ponteiros do Git LFS`) ou com
      `FALHOU …: É um ponteiro do Git LFS, não o arquivo`: o LFS não trouxe tudo
@@ -687,7 +726,7 @@ prazo). A banda de LFS do plano gratuito é **1 GB por mês**, e passar dela
 bloqueia o LFS da conta inteira até o mês virar, envio inclusive (ver o
 [README do Cérebro](../Cérebro/README.md)). Por isso `ingerir` baixa só o que o
 banco não tem: o `oid` de um ponteiro é o sha256 do arquivo, o mesmo checksum
-da base. A primeira ingestão completa gasta ≈631 MB; as seguintes, só os PDFs
+da base. A primeira ingestão completa gasta ≈528 MB; as seguintes, só os PDFs
 novos ou mudados e os que falharam antes (o plano imprime os MB antes de
 baixar). O `actions/cache` só poupa a repetição dentro de 7 dias. O `status`
 avisa acima de 80% de 0,5 GB de banco, a referência do Neon gratuito.

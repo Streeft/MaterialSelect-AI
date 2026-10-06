@@ -283,6 +283,22 @@ def test_an_empty_pdf_says_why(client):
     assert "digitalizado" in response.json()["detail"]
 
 
+def test_a_pdf_too_heavy_to_read_is_refused_in_portuguese(client, monkeypatch):
+    # D-101, the review of PR #98: an upload has a decoded budget for the
+    # whole file, sized for the API's VM, and the student reads why.
+    from app.knowledge import readers
+    from app.tests.test_knowledge_pdf_limits import MB, _pages_pdf
+
+    monkeypatch.setattr(readers, "UPLOAD_MAX_DECODED_BYTES", 2_500_000)
+    notebook = _notebook(client)
+    response = client.post(
+        f"/api/notebooks/{notebook['id']}/sources/upload",
+        files={"file": ("apostila.pdf", _pages_pdf([MB] * 5), "application/pdf")},
+    )
+    assert response.status_code == 400
+    assert response.json()["detail"].startswith("O PDF é pesado demais para ler: até a página 3")
+
+
 def test_the_source_limit(client, monkeypatch):
     monkeypatch.setattr(settings, "notebook_max_sources", 1)
     notebook = _notebook(client)

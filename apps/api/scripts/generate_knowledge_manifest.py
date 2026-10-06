@@ -36,6 +36,7 @@ from pathlib import Path
 # backfill_material_keywords.py.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from app.domain.errors import ValidationError  # noqa: E402
 from app.knowledge.removal import load_from_root  # noqa: E402
 
 _FOLDER_RULES: list[tuple[str, str, str]] = [
@@ -120,7 +121,14 @@ def main() -> None:
         print(f"[manifesto] {root} não existe; nada a fazer.")
         sys.exit(1)
 
-    declared, added, dropped = update_manifest(root)
+    try:
+        declared, added, dropped = update_manifest(root)
+    except ValidationError as exc:
+        # A removal list that does not parse (a misspelled prefix) stops the
+        # script before the manifest is written: declaring what the list meant
+        # to remove is exactly what it exists to prevent.
+        print(f"[manifesto] ERRO: {exc}")
+        sys.exit(1)
     print(
         f"[manifesto] {declared} documentos declarados ({added} novos, {dropped} retirados "
         f"pela lista de remoção). Gravado em {root / 'manifesto.json'}."

@@ -4,7 +4,8 @@
 taken out of the knowledge base. Three consumers read it and none keeps a copy
 of its own: the prune CLI (:mod:`app.knowledge.prune`) deletes the matching rows
 from a database, the ingestion skips matching files even if they reappear on
-disk, and the git history purge converts it for ``git filter-repo``.
+disk, and the git history purge converts its path lines — minus the ones marked
+``mantido-no-historico:`` — for ``git filter-repo``.
 
 The format is deliberately small, because it is edited by hand and read by a
 shell script too:
@@ -20,12 +21,41 @@ shell script too:
   tree — a copy in a local triage folder has another path and the same bytes.
   ``knowledge_document.checksum`` is the SHA-256 of the file's bytes, which for
   a file kept in Git LFS is exactly the pointer's ``oid sha256:``;
+* a line ``mantido-no-historico:<path>`` is a path entry like any other for
+  the database and the ingestion — exact or folder prefix, NFC — and is left
+  out of the git history purge. Not everything that leaves the knowledge base
+  left it for the reason the purge exists (D-100: material that must not stay
+  published); a duplicate edition of a book (D-101) leaves the RAG and stays
+  in the history, where the owner wants it. The purge reads only
+  :attr:`RemovalList.history_purge_entries`, and docs/17's shell conversion
+  drops these lines as it drops the ``sha256:`` ones;
 * blank lines and lines starting with ``#`` are ignored. There are no inline
   comments, because ``#`` is a legal character in a file name.
 
-A path that literally starts with ``sha256:`` cannot be listed; a colon is not
-a legal file-name character on Windows, where the corpus is curated, so nothing
-real is lost.
+**A line whose first path segment holds a colon — or a look-alike: a
+full-width colon, a space or a tab where the colon should be, a slash right
+after a prefix's name — and is not one of those two prefixes is refused** (:class:`ValidationError`, the line's number and the
+prefixes that exist), and every consumer stops on it before it touches
+anything. A misspelled prefix — ``mantido-no-histórico:`` with the accent the
+comment above the Ashby block uses, ``Mantido-no-historico:``, a space before
+the colon, ``SHA256:``, ``sha-256:`` — would otherwise be read as an exact path
+that matches nothing, and the file it meant to remove would be ingested,
+downloaded and embedded with nothing said: the list must fail closed. The
+prefixes are compared byte for byte, never case- or accent-folded, so there is
+one spelling of each and the shell conversion in docs/17 — which matches them
+literally — agrees with this reader.
+
+A line that starts with ``Cérebro/`` is refused the same way: the list is
+relative to ``KNOWLEDGE_DIR``, and every other place shows paths with that
+folder in front (``git ls-files``, GitHub, docs/17's output). No refusal quotes
+the line, only its number: it may name what the list keeps out of a public log.
+
+What this costs: a path whose *first* segment holds a colon, or whose name
+starts like "sha256" or "mantido no histórico", cannot be listed.
+A colon is not a legal file-name character on Windows, where the corpus is
+curated, and the repository has no such path; a colon in a later segment (a
+file named on Linux or macOS inside a folder) is still a path, and listed as
+written.
 
 Matching normalises both sides to Unicode NFC. A path ingested on macOS may
 have been stored decomposed (NFD), and "Tópico" in NFD and in NFC are different
@@ -52,7 +82,17 @@ REMOVAL_LIST_FILENAME = "removidos.txt"
 
 #: Prefix of a content entry: ``sha256:`` followed by the lowercase hex digest.
 CHECKSUM_PREFIX = "sha256:"
+#: Prefix of a path entry that leaves the knowledge base but not the git
+#: history: the database and the ingestion match it like any path line, and
+#: the history purge (docs/17, step 4) leaves it out.
+HISTORY_KEPT_PREFIX = "mantido-no-historico:"
 _HEX_DIGEST = re.compile(r"[0-9a-f]{64}")
+#: The line prefixes the list knows, as the refusal of an unknown one names them.
+KNOWN_PREFIXES = (CHECKSUM_PREFIX, HISTORY_KEPT_PREFIX)
+# The two prefixes and the corpus folder, folded as :func:`_first_segment_problem`
+# folds a line's first segment.
+_FOLDED_PREFIXES = ("sha256", "mantidonohistorico")
+_FOLDED_ROOT = "cerebro"
 
 
 def normalise(path: str) -> str:
@@ -68,6 +108,9 @@ class RemovalList:
     prefixes: tuple[str, ...]
     #: SHA-256 hex digests (lowercase) of removed files' bytes.
     checksums: frozenset[str] = field(default_factory=frozenset)
+    #: Path entries (also in ``exact`` or ``prefixes``) written with
+    #: ``mantido-no-historico:``: matched here, never purged from git history.
+    history_kept: frozenset[str] = field(default_factory=frozenset)
 
     @property
     def entries(self) -> tuple[str, ...]:
@@ -78,6 +121,18 @@ class RemovalList:
         an operator actually reads.
         """
         return self.prefixes + tuple(sorted(self.exact))
+
+    @property
+    def history_purge_entries(self) -> tuple[str, ...]:
+        """The path entries the git history purge removes, in report order.
+
+        Every path entry but the ``mantido-no-historico:`` ones; content
+        entries never reach it, since ``git filter-repo`` removes by path.
+        docs/17 converts the file with a shell pipeline that must produce
+        exactly these (with ``Cérebro/`` in front), and a test holds it to
+        that.
+        """
+        return tuple(e for e in self.entries if e not in self.history_kept)
 
     @property
     def is_empty(self) -> bool:
@@ -127,18 +182,48 @@ class RemovalList:
         return found
 
 
+def _first_segment_problem(line: str) -> str | None:
+    """``"prefix"``, ``"root"`` or None for a path line's first segment.
+
+    ``"prefix"``: a colon in it — compared after NFKC, so a full-width ``：``
+    counts — or a segment that, folded (case, accents and everything but
+    letters and digits dropped), starts like one of the two prefixes:
+    ``mantido-no-historico a/b.pdf``, ``mantido-no-historico/a.pdf``,
+    ``sha256 <hex>``. A real folder or file whose name starts with
+    "sha256" or "mantido no histórico" cannot be listed; the corpus has none.
+    ``"root"``: the segment is the corpus folder itself, ``Cérebro`` — the
+    shape every path has in ``git ls-files``, on GitHub and in docs/17's
+    output, while the list is relative to ``KNOWLEDGE_DIR``.
+    """
+    head = unicodedata.normalize("NFKC", line.split("/", 1)[0])
+    if ":" in head:
+        return "prefix"
+    folded = "".join(
+        char for char in unicodedata.normalize("NFKD", head.casefold()) if char.isalnum()
+    )
+    if folded.startswith(_FOLDED_PREFIXES):
+        return "prefix"
+    if folded == _FOLDED_ROOT:
+        return "root"
+    return None
+
+
 def parse_removal_list(text: str) -> RemovalList:
     """Parse the list's text.
 
     Raises:
-        ValidationError: an entry is absolute or climbs out of the root. Both
-            would mean the list was written against a different base than the
-            one ``knowledge_document.path`` uses, and matching it anyway would
-            silently match nothing.
+        ValidationError: an entry is absolute or climbs out of the root,
+            starts with ``Cérebro/``, or starts with a prefix the list does not
+            know (:func:`_first_segment_problem`). Each would mean the list
+            says something other than what it matches, and matching it anyway
+            would silently match nothing. The message names the line by number
+            and never quotes it.
     """
     exact: set[str] = set()
     prefixes: list[str] = []
     checksums: set[str] = set()
+    history_kept: set[str] = set()
+    purged: set[str] = set()
     # A byte-order mark (PowerShell 5.1's ``Set-Content -Encoding UTF8`` writes
     # one) would glue itself to the first entry and make it match nothing.
     text = text.removeprefix("\ufeff")
@@ -151,15 +236,36 @@ def parse_removal_list(text: str) -> RemovalList:
             if not _HEX_DIGEST.fullmatch(digest):
                 raise ValidationError(
                     f"Linha {number} da lista de remoção: {CHECKSUM_PREFIX} precisa de "
-                    f"64 dígitos hexadecimais (o SHA-256 do arquivo): {line!r}"
+                    "64 dígitos hexadecimais (o SHA-256 do arquivo)."
                 )
             checksums.add(digest)
             continue
+        kept_in_history = line.startswith(HISTORY_KEPT_PREFIX)
+        if kept_in_history:
+            line = line[len(HISTORY_KEPT_PREFIX) :].strip()
+        # No message below quotes the line: it may be a name the list exists
+        # to keep out of a public log (the Actions log prints these).
+        problem = _first_segment_problem(line)
+        if problem == "prefix":
+            raise ValidationError(
+                f"Linha {number} da lista de remoção começa com um prefixo desconhecido ou "
+                "mal escrito (dois-pontos, ou algo no lugar deles, no primeiro trecho do "
+                "caminho). Os prefixos aceitos são "
+                f"{' e '.join(repr(p) for p in KNOWN_PREFIXES)}, escritos exatamente assim — "
+                "minúsculas, sem acento, sem espaço antes dos dois-pontos. Corrija a linha: "
+                "nada foi lido, ingerido nem enviado."
+            )
+        if problem == "root":
+            raise ValidationError(
+                f"Linha {number} da lista de remoção começa com 'Cérebro/': os caminhos são "
+                "relativos à pasta do Cérebro (KNOWLEDGE_DIR), sem 'Cérebro/' na frente. "
+                "Corrija a linha: nada foi lido, ingerido nem enviado."
+            )
         segments = line.rstrip("/").split("/")
         if line.startswith("/") or "\\" in line or any(s in {"", ".", ".."} for s in segments):
             raise ValidationError(
                 f"Linha {number} da lista de remoção não é um caminho relativo à raiz "
-                f"do Cérebro, com barra normal: {line!r}"
+                "do Cérebro, com barra normal."
             )
         entry = normalise(line)
         if entry.endswith("/"):
@@ -167,8 +273,14 @@ def parse_removal_list(text: str) -> RemovalList:
                 prefixes.append(entry)
         else:
             exact.add(entry)
+        (history_kept if kept_in_history else purged).add(entry)
+    # A path written both ways is purged: the plain line is the stronger
+    # statement, and keeping it in history would quietly undo it.
     return RemovalList(
-        exact=frozenset(exact), prefixes=tuple(prefixes), checksums=frozenset(checksums)
+        exact=frozenset(exact),
+        prefixes=tuple(prefixes),
+        checksums=frozenset(checksums),
+        history_kept=frozenset(history_kept - purged),
     )
 
 

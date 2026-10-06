@@ -23,6 +23,7 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.knowledge import status as status_module
 from app.knowledge.embeddings import pack_vector
+from app.knowledge.service import skipped_pages_note
 from app.knowledge.status import (
     Coverage,
     KnowledgeStatus,
@@ -357,6 +358,99 @@ class TestPublicLog:
             "[status] VERSÃO ANTERIOR 01-Bibliografia/Livro.pdf (2 trechos mantidos): "
             "A versão nova (sha256 0123456789ab) não pôde ser lida: vazio."
         ) in lines
+
+    def test_a_failed_forced_reread_has_its_own_label(
+        self, db_session: Session, tmp_path: Path
+    ) -> None:
+        # M3 of the review of PR #100: the same bytes read again and failed —
+        # there is no newer version, so the label does not say there is one.
+        root = _root(tmp_path, declared=["01-Bibliografia/Livro.pdf"], files=[])
+        note = (
+            "A releitura forçada (sha256 0123456789ab) não pôde ser lida: vazio. Os trechos "
+            "já indexados destes mesmos bytes continuam na base."
+        )
+        _document(db_session, "01-Bibliografia/Livro.pdf", ["a", "b"], error=note)
+
+        lines = _lines(db_session, model="", dimensions=0, root=root)
+
+        assert (
+            f"[status] RELEITURA FALHOU 01-Bibliografia/Livro.pdf (2 trechos mantidos): {note}"
+        ) in lines
+        assert not any("VERSÃO ANTERIOR" in x for x in lines)
+
+    def test_skipped_pages_have_their_own_label_and_count(
+        self, db_session: Session, tmp_path: Path
+    ) -> None:
+        # D-101: a book indexed with pages left out is not a "previous
+        # version" — there is no other version. Its label says what it is.
+        root = _root(tmp_path, declared=["01-Bibliografia/Livro.pdf"], files=[])
+        note = skipped_pages_note(7, 400, {"LimitReachedError": 5, "error": 2})
+        _document(db_session, "01-Bibliografia/Livro.pdf", ["a", "b"], error=note)
+        _document(
+            db_session,
+            "02-Outros/segredo.pdf",
+            ["c"],
+            error=skipped_pages_note(2, 10, {"error": 2}),
+        )
+
+        lines = _lines(db_session, model="", dimensions=0, root=root)
+
+        assert (
+            f"[status] PÁGINAS IGNORADAS 01-Bibliografia/Livro.pdf (7 de 400 páginas de fora, "
+            f"2 trechos): {note}"
+        ) in lines
+        # An undeclared document still has its counts printed — they quote
+        # nothing — and its stored reason withheld.
+        line = _find(lines, "[status] PÁGINAS IGNORADAS 02-Outros/")
+        assert "(2 de 10 páginas de fora, 1 trechos)" in line and "segredo" not in line
+        assert (
+            "[status] páginas ignoradas: 2 documentos indexados com páginas de fora "
+            "(9 páginas no total). Reextraia com `ingerir` + `arquivos` + `forcar` depois "
+            "de corrigir a causa."
+        ) in lines
+        assert not any("VERSÃO ANTERIOR" in x for x in lines)
+
+    def test_a_truncation_is_a_notice_not_a_previous_version(
+        self, db_session: Session, tmp_path: Path
+    ) -> None:
+        root = _root(tmp_path, declared=["a.pdf"], files=[])
+        _document(
+            db_session, "a.pdf", ["a"], error="Truncado em 2000 trechos; o documento rende mais."
+        )
+
+        lines = _lines(db_session, model="", dimensions=0, root=root)
+
+        assert (
+            "[status] AVISO a.pdf (1 trechos): Truncado em 2000 trechos; o documento rende mais."
+            in lines
+        )
+        assert (
+            "[status] páginas ignoradas: 0 documentos indexados com páginas de fora (0 páginas no total)."
+            in lines
+        )
+
+    def test_a_kept_previous_version_with_skipped_pages_is_still_a_previous_version(
+        self, db_session: Session, tmp_path: Path
+    ) -> None:
+        # The kept note carries the old version's skipped-pages sentence, and
+        # the count still reaches the summary.
+        root = _root(tmp_path, declared=["a.pdf"], files=[])
+        _document(
+            db_session,
+            "a.pdf",
+            ["a"],
+            error=(
+                "A versão nova (sha256 0123456789ab) não pôde ser lida: x. Os trechos da "
+                "versão anterior continuam na base. " + skipped_pages_note(3, 300, {"error": 3})
+            ),
+        )
+
+        lines = _lines(db_session, model="", dimensions=0, root=root)
+
+        assert _find(lines, "[status] VERSÃO ANTERIOR a.pdf (1 trechos mantidos)")
+        assert _find(lines, "[status] páginas ignoradas: 1 documentos").startswith(
+            "[status] páginas ignoradas: 1 documentos indexados com páginas de fora (3 páginas"
+        )
 
     def test_a_long_error_is_cut(self, db_session: Session, tmp_path: Path) -> None:
         root = _root(tmp_path, declared=["a.pdf"], files=[])

@@ -11,7 +11,13 @@
 #                        depois disto. NÃO recebe chave de IA nenhuma.
 #                        Com `arquivos` preenchido (ex.: `Links.md`), só esses
 #                        arquivos, por `--file` — e o mesmo plano decide se
-#                        algum deles precisa ser baixado.
+#                        algum deles precisa ser baixado. Com `forcar` também
+#                        marcado, esses arquivos são baixados e reextraídos
+#                        mesmo inalterados (`--force` no plano e na ingestão):
+#                        é como se relê um livro indexado com páginas de fora
+#                        depois de uma correção (D-101). `forcar` sem
+#                        `arquivos`, ou fora de `ingerir`, é recusado — reler
+#                        o Cérebro inteiro gastaria a banda de LFS do mês.
 #   embeddings           gera vetores agora, até `limite_pedidos` pedidos
 #                        (`python -m app.knowledge.embed`).
 #   (noturno, sozinho)   o mesmo, toda noite, com a sobra da cota diária
@@ -41,7 +47,7 @@
 # passo "Retrato" desta execução mostra isso na linha "API vs vetores".
 #
 # **Custo zero.** O plano gratuito do GitHub dá 1 GB de banda de Git LFS por
-# mês, e o Cérebro inteiro tem ≈600 MB. Por isso `ingerir` baixa só o que o
+# mês, e o Cérebro inteiro tem ≈528 MB. Por isso `ingerir` baixa só o que o
 # banco não tem: o `oid` de um ponteiro LFS é o sha256 do arquivo, o mesmo
 # `checksum` que a base guarda, e um PDF já indexado com esses bytes é dado como
 # inalterado sem ser baixado. A primeira ingestão completa baixa o Cérebro
@@ -77,6 +83,11 @@ on:
         required: false
         type: string
         default: ""
+      forcar:
+        description: "Só para ingerir COM arquivos: reextrai esses arquivos mesmo inalterados (ex.: um livro com páginas ignoradas, depois de uma correção)"
+        required: false
+        type: boolean
+        default: false
       limite_pedidos:
         description: "Só para embeddings: máximo de pedidos ao Gemini nesta execução (0 = até a cota do dia acabar)"
         required: false
@@ -170,16 +181,30 @@ jobs:
 
       # `arquivos` só vale para `ingerir`: preenchido com outra ação, é um
       # engano do operador, e ignorá-lo em silêncio o deixaria achar que valeu.
+      # `forcar` só vale para `ingerir` com `arquivos`: sem eles, reextrairia
+      # o Cérebro inteiro e baixaria do LFS os ≈528 MB de novo (a cota é 1 GB
+      # por mês).
       - name: Conferir as entradas
         if: env.ACAO != 'embeddings_noturno'
         env:
           ARQUIVOS: ${{ inputs.arquivos }}
+          FORCAR: ${{ inputs.forcar }}
         run: |
           set -euo pipefail
           lista="${ARQUIVOS:-}"
           if [ "$ACAO" != "ingerir" ] && [ -n "${lista//[[:space:]]/}" ]; then
             echo "::error::arquivos só vale para a ação ingerir (esta é $ACAO). Deixe vazio ou escolha ingerir."
             exit 1
+          fi
+          if [ "${FORCAR:-false}" = "true" ]; then
+            if [ "$ACAO" != "ingerir" ]; then
+              echo "::error::forcar só vale para a ação ingerir (esta é $ACAO). Desmarque forcar ou escolha ingerir."
+              exit 1
+            fi
+            if [ -z "${lista//[[:space:]]/}" ]; then
+              echo "::error::forcar exige arquivos: diga quais arquivos reextrair (ex.: 01-Bibliografia/Livro.pdf). Forçar a pasta inteira baixaria o Cérebro todo do LFS de novo."
+              exit 1
+            fi
           fi
 
       # --- Arquivos pedidos, só para `ingerir` ---------------------------------
@@ -280,6 +305,7 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           ENVIRONMENT: production
+          FORCAR: ${{ inputs.forcar }}
         run: |
           set -euo pipefail
           export KNOWLEDGE_DIR="$GITHUB_WORKSPACE/Cérebro"
@@ -289,6 +315,11 @@ jobs:
             while IFS= read -r -d '' arquivo; do
               alvos+=("--file=$arquivo")
             done < "$ARQUIVOS_PEDIDOS"
+            # O mesmo --force da ingestão: sem ele o plano daria o arquivo por
+            # inalterado e não o baixaria, e a ingestão forçada leria o ponteiro.
+            if [ "${FORCAR:-false}" = "true" ]; then
+              alvos+=("--force")
+            fi
           fi
           python -m app.knowledge.lfs_plan --output "$baixar" --ids "$GITHUB_WORKSPACE/.lfs-cerebro-ids" "${alvos[@]}"
           echo "LFS_BAIXAR=$baixar" >> "$GITHUB_ENV"
@@ -402,6 +433,7 @@ jobs:
           # `seed_e2e_session` só grava a sessão fixa do Playwright em
           # development; declarar `production` fecha essa porta aqui também.
           ENVIRONMENT: production
+          FORCAR: ${{ inputs.forcar }}
         run: |
           set -euo pipefail
           export KNOWLEDGE_DIR="$GITHUB_WORKSPACE/Cérebro"
@@ -411,6 +443,11 @@ jobs:
             while IFS= read -r -d '' arquivo; do
               alvos+=("--file=$arquivo")
             done < "$ARQUIVOS_PEDIDOS"
+            # Só com arquivos pedidos (conferido em "Conferir as entradas").
+            if [ "${FORCAR:-false}" = "true" ]; then
+              alvos+=("--force")
+              echo "forcar: os arquivos pedidos são reextraídos mesmo inalterados."
+            fi
           fi
           python -m app.knowledge.ingest --no-embed "${alvos[@]}"
 
