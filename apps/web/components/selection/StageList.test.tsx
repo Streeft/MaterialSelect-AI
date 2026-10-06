@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
-import { render, within } from "@testing-library/react";
+import { render, within, fireEvent } from "@testing-library/react";
 // MWC controls (Button, Checkbox) live inside a shadow root, invisible to
 // plain @testing-library/react queries — same note as ConstraintEditor.test.tsx.
 import { screen } from "shadow-dom-testing-library";
@@ -107,12 +107,14 @@ import {
   emptyProcessStage,
   emptyTreeStage,
   isSingleLimitStage,
+  reorderStages,
   toBound,
   toChartPayload,
   toStagePayload,
 } from "./StageList";
 import { emptyConstraint, nextEditorId } from "./ConstraintEditor";
 import { ptBR } from "@/lib/i18n";
+import { selectionExtras } from "@/lib/i18n-extras";
 import type { MaterialClass, Process, ProcessClass, PropertyDefinition } from "@/lib/types";
 
 const t = ptBR.selection;
@@ -279,6 +281,34 @@ describe("duplicateStage", () => {
   });
 });
 
+describe("reorderStages", () => {
+  it("returns the exact same array when fromIndex equals toIndex or indices are out of range", () => {
+    const stages = [emptyLimitStage(), emptyTreeStage()];
+    expect(reorderStages(stages, 0, 0)).toBe(stages);
+    expect(reorderStages(stages, -1, 1)).toBe(stages);
+    expect(reorderStages(stages, 0, 5)).toBe(stages);
+    expect(reorderStages(stages, 5, 0)).toBe(stages);
+  });
+
+  it("moves a stage forward and backward correctly", () => {
+    const s1 = { ...emptyLimitStage(), label: "1" };
+    const s2 = { ...emptyTreeStage(), label: "2" };
+    const s3 = { ...emptyLimitStage(), label: "3" };
+    const forward = reorderStages([s1, s2, s3], 0, 2);
+    expect(forward.map((s) => s.label)).toEqual(["2", "3", "1"]);
+    const backward = reorderStages(forward, 2, 0);
+    expect(backward.map((s) => s.label)).toEqual(["1", "2", "3"]);
+  });
+
+  it("moves an intermediate stage to the start or end", () => {
+    const s1 = { ...emptyLimitStage(), label: "1" };
+    const s2 = { ...emptyTreeStage(), label: "2" };
+    const s3 = { ...emptyLimitStage(), label: "3" };
+    const toStart = reorderStages([s1, s2, s3], 1, 0);
+    expect(toStart.map((s) => s.label)).toEqual(["2", "1", "3"]);
+  });
+});
+
 describe("countStageConstraints", () => {
   it("counts across stages and ignores tree stages", () => {
     const limit = emptyLimitStage();
@@ -329,6 +359,53 @@ describe("StageList", () => {
     expect(last[1]?.kind).toBe("limit");
   });
 
+  it("renderiza o controle de arraste acessível em cada estágio", () => {
+    render(<Harness initial={[emptyLimitStage(), emptyTreeStage()]} />);
+    expect(screen.getByTitle(selectionExtras.stageDragHandle(1))).toBeInTheDocument();
+    expect(screen.getByTitle(selectionExtras.stageDragHandle(2))).toBeInTheDocument();
+  });
+
+  it("reordena estágios ao arrastar e soltar sobre outro estágio", () => {
+    let last: StageState[] = [];
+    const s1 = { ...emptyLimitStage(), label: "Estágio 1" };
+    const s2 = { ...emptyTreeStage(), label: "Estágio 2" };
+    const { container } = render(<Harness initial={[s1, s2]} onStages={(s) => (last = s)} />);
+
+    const dragHandle1 = screen.getByTitle(selectionExtras.stageDragHandle(1));
+    const card2 = container.querySelector('[data-stage-index="1"]') as HTMLElement;
+    expect(card2).toBeInTheDocument();
+
+    fireEvent.dragStart(dragHandle1, {
+      dataTransfer: { setData: vi.fn(), effectAllowed: "move" },
+    });
+    fireEvent.dragOver(card2, { dataTransfer: { dropEffect: "move" } });
+    fireEvent.drop(card2, {
+      dataTransfer: { getData: () => "0" },
+    });
+
+    expect(last.map((s) => s.label)).toEqual(["Estágio 2", "Estágio 1"]);
+  });
+
+  it("aplica e remove classe de destaque visual durante o arraste sobre o card", () => {
+    const s1 = { ...emptyLimitStage(), label: "Estágio 1" };
+    const s2 = { ...emptyTreeStage(), label: "Estágio 2" };
+    const { container } = render(<Harness initial={[s1, s2]} />);
+
+    const dragHandle1 = screen.getByTitle(selectionExtras.stageDragHandle(1));
+    const card2 = container.querySelector('[data-stage-index="1"]') as HTMLElement;
+
+    fireEvent.dragStart(dragHandle1, {
+      dataTransfer: { setData: vi.fn(), effectAllowed: "move" },
+    });
+    expect(card2.className).not.toContain("ring-brand-500");
+
+    fireEvent.dragOver(card2, { dataTransfer: { dropEffect: "move" } });
+    expect(card2.className).toContain("ring-brand-500");
+
+    fireEvent.dragLeave(card2);
+    expect(card2.className).not.toContain("ring-brand-500");
+  });
+
   it("moves a stage and keeps the other one intact", async () => {
     const user = userEvent.setup();
     let last: StageState[] = [];
@@ -352,7 +429,7 @@ describe("StageList", () => {
   it("refuses to remove the last remaining stage", () => {
     render(<Harness initial={[emptyLimitStage()]} />);
     // D-76: `Button` now renders MSDS's `Button` — a plain `<button>` whose
-    // visible text sits in an inner `<span class="msds-btn-label">`, not the
+    // visible text sits in an inner `<span class=\"msds-btn-label\">`, not the
     // `@material/web` shadow-DOM text node `getByShadowText` used to resolve
     // directly. `toBeDisabled()` only recognizes the element it's called on,
     // and a `<span>` never carries `disabled` — so this now asks for the
