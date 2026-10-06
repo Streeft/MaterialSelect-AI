@@ -7413,3 +7413,46 @@ testes de backend, nenhum pulado. `ruff` e `black` limpos; os dois workflows pas
 > `actionlint` com `shellcheck`, e os scripts do download e da conferência
 > rodaram contra um repositório LFS local (caminho com vírgula, acento e
 > colchetes; cache reaproveitado; objeto ausente no remoto).
+
+> **Atualização (06/10/2026, a primeira `ingerir` em produção).** A segunda
+> execução de `ingerir` no Neon morreu com
+> `psycopg.DataError: PostgreSQL text fields cannot contain NUL (0x00) bytes`
+> no `replace_chunks`: o pypdf devolve U+0000 para um glifo que não sabe mapear,
+> o SQLite dos testes guarda o caractere sem reclamar, e o PostgreSQL recusa o
+> `INSERT` inteiro. A exceção escapava de `ingest()` e encerrava a execução —
+> os documentos anteriores ficavam (commit por documento), o resto não era
+> nem tentado. Duas correções, cada uma com teste que falha sem ela.
+>
+> - **O NUL sai na fonte.** Uma regra só, `storable_text()` em
+>   `app/knowledge/readers.py`: remove U+0000 e troca um *surrogate* (que não
+>   tem codificação UTF-8 e falha no driver) por U+FFFD; nenhum outro caractere
+>   de controle é tocado, porque o PostgreSQL aceita todos e reescrevê-los
+>   editaria o texto. Ela roda em todo leitor (PDF, DOCX, TXT/Markdown — o
+>   `decode_text` só recusava NUL nos primeiros 4 KiB —, HTML e o título da
+>   página), na mensagem de erro do parser que vai para `error`, no título e na
+>   procedência lidos do manifesto, e — defesa em profundidade — no
+>   `normalise()` do fatiador, por onde passa todo trecho e o seu `heading` (o
+>   `search_text` é dobrado deles), venha a página de leitor ou de texto colado.
+>   Nos Cadernos, `NotebookService.ingest` passa título, origem, conteúdo e
+>   `meta` pela mesma regra, porque um texto colado em JSON pode trazer
+>   `\u0000` sem passar por leitor nenhum.
+> - **Um documento que o banco recusa custa aquele documento, não a execução.**
+>   `_ingest_one` grava dentro de um *savepoint* (`begin_nested`): a recusa volta
+>   ao ponto de salvamento — o documento novo some, o já indexado recupera os
+>   trechos e vetores que tinha — e ele é registrado `falhou` como uma versão
+>   ilegível (`_extraction_failed`, agora com "não pôde ser **gravada**"), num
+>   segundo *savepoint*. O motivo nomeia só a classe do erro
+>   (`O banco de dados recusou a gravação deste documento (DataError); …`):
+>   a mensagem do driver cita o SQL e os parâmetros — o texto do livro — e o
+>   log é público. A sessão continua utilizável para o commit por documento da
+>   CLI, e a saída continua 1. Conexão perdida (`connection_invalidated`) ainda
+>   encerra a execução: nenhum documento seguinte seria gravado.
+>
+> Dois testes novos rodam contra PostgreSQL de verdade
+> (`test_knowledge_ingest_postgres.py`, com a guarda de `POSTGRES_TEST_URL` do
+> `test_notebook_quota_postgres.py`, que o job de backend da CI já define): um
+> reproduz a falha de produção sem a correção, o outro prova o *savepoint* com
+> o `DataError` real. Fica de fora, e é anterior a esta correção: um nome de
+> arquivo que não decodifica como UTF-8 (só possível no Linux) quebra a
+> pré-passagem com `UnicodeEncodeError` antes de qualquer escrita; os nomes do
+> Cérebro vêm do git em UTF-8.

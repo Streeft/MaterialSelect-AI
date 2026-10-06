@@ -81,6 +81,13 @@ Ficam três passos fora do código:
    já com `embeddings` → `status` toda semana até `faltam 0`. O download
    arquivo a arquivo (`git lfs smudge`) ainda não rodou no GitHub: a primeira
    `ingerir` é o teste dele.
+   **06/10/2026:** a segunda `ingerir` morreu com `PostgreSQL text fields cannot
+   contain NUL (0x00) bytes` (o pypdf devolve U+0000; o SQLite dos testes
+   aceita). Corrigido no código (D-101, atualização de 06/10): o NUL sai na
+   fonte, e um documento que o banco recusa não para mais a execução. Depois do
+   merge: **Deploy da API** (os uploads dos Cadernos passam pela mesma regra e
+   rodam na API) e **`ingerir` de novo** — ela roda no runner, do código de
+   `main`, sem deploy; os documentos já gravados saem `inalterados`.
 
 Não registrado aqui: se os logs das execuções de `conhecimento_simular_remocao`
 e `conhecimento_remover` já foram apagados (guia §1.3 e §11) — conferir.

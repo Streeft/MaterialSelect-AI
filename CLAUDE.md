@@ -979,10 +979,16 @@ noturna agendada. Regras que não se afrouxam:
   **fora do horário de aula**: cada documento gravado muda a impressão digital.
 
 O código está pronto; a execução em produção é do autor (TODO A7, 13-deploy.md
-§5-septies).
+§5-septies). **A primeira `ingerir` no Neon (06/10) achou dois defeitos**,
+corrigidos na atualização de 06/10 do D-101: o pypdf devolve U+0000, que o
+SQLite guarda e o PostgreSQL recusa — `storable_text()` em
+`app/knowledge/readers.py` é a regra única, aplicada nos leitores, no
+`normalise()` do fatiador e na fonte de caderno —, e a recusa de **um**
+documento encerrava a execução inteira: agora cada documento grava num
+*savepoint* e o recusado sai `falhou` sem SQL nem texto no log.
 
-3699 testes de backend (nenhum skip na CI; sem `POSTGRES_TEST_URL`, 3695 passam
-e 4 pulam) e 762 de frontend, todos verdes. CI no
+3716 testes de backend (nenhum skip na CI; sem `POSTGRES_TEST_URL`, 3710 passam
+e 6 pulam) e 762 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
 PROJECT_CONTEXT.md).

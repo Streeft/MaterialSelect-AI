@@ -172,3 +172,39 @@ class TestChunking:
         for chunk in chunks:
             if chunk.heading:
                 assert " | " not in chunk.heading
+
+
+class TestStorableText:
+    """A passage leaves the chunker storable whatever produced its pages.
+
+    PostgreSQL refuses U+0000 in a text column and a surrogate has no UTF-8
+    encoding; SQLite takes the first, so only these assertions catch it.
+    """
+
+    def test_nul_and_surrogates_never_reach_a_passage_or_its_heading(self) -> None:
+        extracted = ExtractedText(
+            pages=[
+                "3.2 SELE\x00ÇÃO DE MATERIAIS\n\n"
+                "O aço\x00 carbono tem módulo de 210 GPa e densidade de 7850 kg/m³, "
+                "o que o\ud800 torna rígido e pesado ao mesmo tempo."
+            ]
+        )
+        chunks = chunk_text(extracted)
+        assert chunks
+        for chunk in chunks:
+            for value in (chunk.text, chunk.heading or ""):
+                assert "\x00" not in value
+                value.encode("utf-8")  # no surrogate left: raises if one is
+        assert chunks[0].heading == "3.2 SELEÇÃO DE MATERIAIS"
+        assert "O aço carbono tem módulo de 210 GPa" in chunks[0].text
+        assert "o que o� torna" in chunks[0].text
+
+    def test_storable_text_only_touches_what_a_database_refuses(self) -> None:
+        from app.knowledge.readers import storable_text
+
+        assert storable_text("a\x00b") == "ab"
+        assert storable_text("a\ud800b\udfffc") == "a�b�c"
+        # Every other control character is legal text in PostgreSQL: kept.
+        assert storable_text("tab\tbell\x07\x01") == "tab\tbell\x07\x01"
+        clean = "O módulo de Young é 210 GPa."
+        assert storable_text(clean) is clean

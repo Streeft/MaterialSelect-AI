@@ -1669,3 +1669,231 @@ class TestTargetedCopiesInTheBase:
         (outcome,) = service.ingest(paths=["b/X.pdf"]).outcomes
 
         assert outcome.action == "inalterado"
+
+
+# --- what PostgreSQL refuses (NUL) and a write it refuses ----------------------
+#
+# The production ingestion died on Neon with "PostgreSQL text fields cannot
+# contain NUL (0x00) bytes": pypdf returned U+0000 for a glyph it could not map,
+# SQLite (these tests) stored it, PostgreSQL refused the insert — and the
+# exception escaped ``ingest()`` and ended the run. SQLite never refuses a NUL,
+# so the assertions below look for the character itself.
+
+
+def _nul_pdf(text: str) -> bytes:
+    """A PDF whose string operand carries ``\\000`` where ``text`` has ``@@@@``.
+
+    The placeholder and the octal escape are both four bytes, so every offset
+    of the hand-written xref stays right.
+    """
+    assert "@@@@" in text
+    return _pdf_bytes([text]).replace(b"@@@@", b"\\000")
+
+
+class TestNulFromTheExtractor:
+    def test_the_fixture_reproduces_what_pypdf_does(self) -> None:
+        # Without this, a fixture that never produced a NUL would make every
+        # test below pass for the wrong reason.
+        import io
+
+        from pypdf import PdfReader
+
+        raw = PdfReader(io.BytesIO(_nul_pdf("Aço@@@@ carbono"))).pages[0].extract_text()
+        assert "\x00" in raw
+
+    def test_read_pdf_removes_nul_and_keeps_the_words(self, corpus: Path) -> None:
+        from app.knowledge.readers import read_pdf
+
+        path = corpus / "nul.pdf"
+        path.write_bytes(_nul_pdf("O aço@@@@ carbono tem módulo de 210 GPa."))
+        page = read_pdf(path).pages[0]
+        assert "\x00" not in page
+        assert "carbono tem módulo de 210 GPa" in page
+
+    def test_no_passage_heading_or_search_text_carries_nul(self, db_session, corpus: Path) -> None:
+        (corpus / "nul.pdf").write_bytes(
+            _nul_pdf("O módulo@@@@ de Young mede a rigidez do material: 210 GPa no aço.")
+        )
+        report = KnowledgeService(db_session).ingest()
+
+        assert report.created == 1 and report.failed == 0
+        repo = KnowledgeRepository(db_session)
+        document = repo.get_by_path("nul.pdf")
+        assert document is not None
+        chunks = repo.list_chunks(document.id)
+        assert chunks
+        for chunk in chunks:
+            for value in (chunk.text, chunk.search_text, chunk.heading or ""):
+                assert "\x00" not in value
+        assert "de Young mede a rigidez do material: 210 GPa" in chunks[0].text
+
+    def test_a_parser_message_quoting_nul_is_stored_without_it(
+        self, db_session, corpus: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        import pypdf
+
+        class _Broken:
+            def __init__(self, *_args, **_kwargs) -> None:
+                raise ValueError("objeto inválido b'\x00' no fluxo")
+
+        monkeypatch.setattr(pypdf, "PdfReader", _Broken)
+        _write(corpus, "quebrado.pdf", ["qualquer"])
+        report = KnowledgeService(db_session).ingest()
+
+        document = KnowledgeRepository(db_session).get_by_path("quebrado.pdf")
+        assert report.failed == 1
+        assert document is not None and document.error
+        assert "\x00" not in document.error
+        assert "objeto inválido" in document.error
+
+    def test_a_manifest_title_spelling_nul_is_stored_without_it(
+        self, db_session, corpus: Path
+    ) -> None:
+        _write(corpus, "ashby.pdf", ["Índices de desempenho."])
+        (corpus / "manifesto.json").write_text(
+            json.dumps(
+                {
+                    "documentos": [
+                        {"path": "ashby.pdf", "titulo": "Sele\u0000ção", "autor": "A\u0000"}
+                    ]
+                }
+            ),
+            encoding="utf-8",
+        )
+        KnowledgeService(db_session).ingest()
+        document = KnowledgeRepository(db_session).get_by_path("ashby.pdf")
+        assert document is not None
+        assert document.title == "Seleção"
+        assert document.author == "A"
+
+
+def _data_error() -> Exception:
+    """What psycopg raised in production, as SQLAlchemy wraps it — SQL and
+    parameters included, which is exactly what must not reach the log."""
+    from sqlalchemy.exc import DataError
+
+    return DataError(
+        "INSERT INTO knowledge_chunk (document_id, ordinal, text) VALUES (%(p0)s, %(p1)s, %(p2)s)",
+        {"p0": 2, "p1": 0, "p2": "TEXTO-SECRETO-DO-LIVRO"},
+        Exception("PostgreSQL text fields cannot contain NUL (0x00) bytes"),
+    )
+
+
+class TestDatabaseFailureIsPerDocument:
+    """One document the database refuses costs that document, not the run."""
+
+    def _refuse_writes_of(self, monkeypatch: pytest.MonkeyPatch, path: str) -> None:
+        """Make ``replace_chunks`` fail for ``path`` *after* it has deleted the
+        old passages and flushed the new ones — the worst place to fail: only a
+        rollback to the savepoint brings the old passages back."""
+        original = KnowledgeRepository.replace_chunks
+
+        def replace_chunks(self, document_id, chunks):  # type: ignore[no-untyped-def]
+            original(self, document_id, chunks)
+            document = self.get(document_id)
+            if document is not None and document.path == path and chunks:
+                raise _data_error()
+
+        monkeypatch.setattr(KnowledgeRepository, "replace_chunks", replace_chunks)
+
+    def test_the_other_documents_are_stored_and_the_indexed_one_keeps_its_passages(
+        self, db_session, corpus: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        service = KnowledgeService(db_session)
+        repo = KnowledgeRepository(db_session)
+        _write(corpus, "b.pdf", ["Versão antiga: o vidro de borossilicato resiste ao choque."])
+        service.ingest(on_document=db_session.commit)
+        old = repo.get_by_path("b.pdf")
+        assert old is not None
+        old_checksum, old_count = old.checksum, old.chunk_count
+
+        _write(corpus, "a.pdf", ["O alumínio 6061 tem densidade de 2700 kg/m3."])
+        _write(corpus, "b.pdf", ["Versão nova, que o banco vai recusar por inteiro."])
+        _write(corpus, "c.pdf", ["O titânio tem módulo de 110 GPa."])
+        self._refuse_writes_of(monkeypatch, "b.pdf")
+        commits: list[int] = []
+
+        def commit() -> None:
+            db_session.commit()  # the CLI's per-document commit still works
+            commits.append(1)
+
+        report = service.ingest(on_document=commit)
+
+        assert len(commits) == 3
+        assert report.created == 2 and report.failed == 1
+        for stored in ("a.pdf", "c.pdf"):
+            document = repo.get_by_path(stored)
+            assert document is not None and document.status == IngestStatus.EXTRAIDO
+            assert repo.list_chunks(document.id)
+
+        refused = repo.get_by_path("b.pdf")
+        assert refused is not None
+        assert refused.status == IngestStatus.EXTRAIDO
+        assert refused.checksum == old_checksum  # the next run tries the file again
+        assert refused.chunk_count == old_count
+        texts = " ".join(c.text for c in repo.list_chunks(refused.id))
+        assert "antiga" in texts and "recusar" not in texts
+        assert "gravada" in (refused.error or "")
+
+        outcome = next(o for o in report.outcomes if o.path == "b.pdf")
+        assert outcome.action == "falhou" and outcome.kept_previous
+        assert "DataError" in (outcome.detail or "")
+        for leak in ("INSERT", "TEXTO-SECRETO", "%(p"):
+            assert leak not in (outcome.detail or "")
+            assert leak not in (refused.error or "")
+
+    def test_a_new_document_refused_is_recorded_failed_without_passages(
+        self, db_session, corpus: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        _write(corpus, "a.pdf", ["O alumínio 6061 tem densidade de 2700 kg/m3."])
+        _write(corpus, "b.pdf", ["Documento novo que o banco recusa."])
+        _write(corpus, "c.pdf", ["O titânio tem módulo de 110 GPa."])
+        self._refuse_writes_of(monkeypatch, "b.pdf")
+
+        report = KnowledgeService(db_session).ingest(on_document=db_session.commit)
+
+        assert report.created == 2 and report.failed == 1
+        repo = KnowledgeRepository(db_session)
+        refused = repo.get_by_path("b.pdf")
+        assert refused is not None
+        assert refused.status == IngestStatus.FALHOU
+        assert refused.chunk_count == 0
+        assert repo.list_chunks(refused.id) == []
+        assert "DataError" in (refused.error or "")
+
+    def test_the_log_line_names_the_failure_and_the_run_exits_1(
+        self, db_session, corpus: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from app.knowledge import ingest as cli
+
+        _write(corpus, "a.pdf", ["O alumínio 6061 tem densidade de 2700 kg/m3."])
+        _write(corpus, "b.pdf", ["Documento novo que o banco recusa."])
+        self._refuse_writes_of(monkeypatch, "b.pdf")
+
+        class _Session:
+            def __enter__(self):  # type: ignore[no-untyped-def]
+                return db_session
+
+            def __exit__(self, *_args) -> None:
+                return None
+
+        monkeypatch.setattr(cli, "SessionLocal", _Session)
+        with pytest.raises(SystemExit) as exited:
+            cli.main(["--no-embed"])
+        assert exited.value.code == 1
+        assert KnowledgeRepository(db_session).get_by_path("a.pdf") is not None
+
+    def test_a_lost_connection_still_ends_the_run(
+        self, db_session, corpus: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from sqlalchemy.exc import OperationalError
+
+        def lost(self, document_id, chunks):  # type: ignore[no-untyped-def]
+            raise OperationalError(
+                "SELECT 1", {}, Exception("server closed"), connection_invalidated=True
+            )
+
+        monkeypatch.setattr(KnowledgeRepository, "replace_chunks", lost)
+        _write(corpus, "a.pdf", ["qualquer texto legível"])
+        with pytest.raises(OperationalError):
+            KnowledgeService(db_session).ingest()

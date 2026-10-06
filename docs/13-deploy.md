@@ -591,6 +591,15 @@ idênticos entram uma vez só.
      `FALHOU …: É um ponteiro do Git LFS, não o arquivo`: o LFS não trouxe tudo
      — banda ou cota de LFS. **Nada foi escrito no banco.** Repita a ação; o
      que já baixou foi guardado em cache (por 7 dias).
+   - `[ingest] FALHOU …: O banco de dados recusou a gravação deste documento (DataError); …`
+     (ou `IntegrityError`, ou outra classe): o Neon recusou aquele documento.
+     Ele voltou ao que era — novo, fica `FALHOU` sem trechos; já indexado,
+     mantém os trechos e vetores anteriores — e **a execução seguiu com os
+     outros**, que foram gravados. O job fica vermelho porque isso é defeito
+     de código, não do arquivo: abra uma issue com a linha do log (ela não
+     traz SQL nem texto). Em 06/10/2026 o NUL do pypdf foi uma recusa dessas,
+     e ainda derrubava a execução inteira com um traceback; já não derruba
+     ([D-101](DECISIONS.md), atualização de 06/10).
    - Qualquer outro `[ingest] FALHOU` deixa o job vermelho com o motivo; os
      outros documentos foram gravados.
    A **busca léxica já está ativa** a partir daqui, para toda pergunta à IA.

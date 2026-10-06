@@ -583,8 +583,9 @@ declarações do atributo, com o escopo indo a 4096.
 
 **Concorrência das cotas em PostgreSQL exercitada na CI** (D-97/D-99): quatro testes multithread contra PostgreSQL 16 (`test_notebook_quota_postgres.py`) validando o `UPDATE ... WHERE counter < limit` sob concorrência real (20 threads simultâneas em disputa na criação a partir do zero e na fronteira do limite, reserva e liberação concorrentes, e reserva com folga), sem estourar limites nem cair em race condition, executados na CI via contêiner de serviço PostgreSQL.
 
-**Saúde do código:** 3699 testes de backend (Python 3.11 e 3.12, nenhum skip
-na CI; sem `POSTGRES_TEST_URL`, 3695 passam e 4 pulam) e 762 de frontend, todos
+**Saúde do código:** 3716 testes de backend (Python 3.11 e 3.12, nenhum skip
+na CI; sem `POSTGRES_TEST_URL`, 3710 passam e 6 pulam — os 4 das cotas e os 2
+da ingestão do Cérebro contra PostgreSQL) e 762 de frontend, todos
 verdes. Desde o P0-1 a suíte também roda as migrações de
 verdade, nos dois sentidos, contra um banco temporário que já contém dados —
 `test_migration_selection_stage.py`, `test_migration_process_universe.py`,
@@ -1039,7 +1040,7 @@ que mais afetam quem for mexer no código:
 | Dependência de provedor de IA | Arquitetura desacoplada com provedor simulado; funciona sem chave. |
 | Incorporação inadvertida de dado protegido | Triagem de licenciamento (M1, item 4.2 da proposta) — `Source` registra licença/procedência, e uma fonte nova sem licença ou marcada como possivelmente protegida sem confirmação humana é recusada antes de qualquer linha ser escrita ([D-44](DECISIONS.md)). |
 | Resultado não reproduzível por interferência de IA | Cálculo determinístico + guardrails executáveis + confirmação do usuário. |
-| Regressão silenciosa | CI com 3699 testes de backend e 762 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
+| Regressão silenciosa | CI com 3716 testes de backend e 762 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
 | Material licenciado do Cérebro exposto em `main` (repositório público) | Risco aceito por decisão explícita do autor, não mitigado — o Cérebro é a base de conhecimento da camada de IA ([D-45](DECISIONS.md)). |
 | Texto dos livros do Cérebro enviado ao Gemini no plano gratuito, onde o Google pode usá-lo para melhorar os produtos | Risco aceito pelo autor ao escolher busca por vetores ([D-101](DECISIONS.md)); a alternativa sem envio é a busca só por palavras, que continua funcionando sozinha. Material na lista de remoção **nunca** é enviado: o `embed` lê `removidos.txt` e, sem conseguir lê-lo, não envia nada. |
 | Banda de Git LFS do plano gratuito (1 GB/mês; passar dela bloqueia o LFS da conta inteira até o mês virar) | `ingerir` baixa só o que o banco não tem (`lfs_plan`); a primeira ingestão completa gasta ≈631 MB e não deve ser repetida no mesmo mês sem necessidade ([D-101](DECISIONS.md), [13-deploy.md §5-septies](13-deploy.md)). |
