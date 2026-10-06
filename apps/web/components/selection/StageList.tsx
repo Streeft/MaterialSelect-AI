@@ -18,6 +18,7 @@ import type {
   StageIn,
 } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
+import { selectionExtras } from "@/lib/i18n-extras";
 import {
   Alert,
   Badge,
@@ -182,6 +183,30 @@ export function emptyChartStage(): StageState {
     indexGoal: "maximize",
     indexLevel: "",
   };
+}
+
+/**
+ * Reorders a stages array by moving an item from fromIndex to toIndex immutably.
+ */
+export function reorderStages(
+  stages: StageState[],
+  fromIndex: number,
+  toIndex: number,
+): StageState[] {
+  if (
+    fromIndex === toIndex ||
+    fromIndex < 0 ||
+    fromIndex >= stages.length ||
+    toIndex < 0 ||
+    toIndex >= stages.length
+  ) {
+    return stages;
+  }
+  const result = [...stages];
+  const [removed] = result.splice(fromIndex, 1);
+  if (removed === undefined) return stages;
+  result.splice(toIndex, 0, removed);
+  return result;
 }
 
 /**
@@ -440,6 +465,9 @@ export function StageList({
   compactSingleStage = false,
   constraintAdvanced = true,
 }: Props) {
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
   const isProcessStudy = universe === "process";
   // A tree stage selects folders of the study's own universe.
   const ownFolders = isProcessStudy ? processClasses : classes;
@@ -493,12 +521,61 @@ export function StageList({
   return (
     <div className="flex flex-col gap-4">
       {stages.map((stage, index) => (
-        <Card key={stage.id}>
+        <Card
+          key={stage.id}
+          data-stage-index={index}
+          className={cn(
+            "transition-all duration-150",
+            dragOverIndex === index &&
+              draggedIndex !== null &&
+              draggedIndex !== index &&
+              "ring-2 ring-brand-500 shadow-lift",
+            draggedIndex === index && "opacity-60",
+          )}
+          onDragOver={(e) => {
+            if (draggedIndex !== null && draggedIndex !== index) {
+              e.preventDefault();
+              setDragOverIndex(index);
+            }
+          }}
+          onDragLeave={() => {
+            if (dragOverIndex === index) {
+              setDragOverIndex(null);
+            }
+          }}
+          onDrop={(e) => {
+            e.preventDefault();
+            if (draggedIndex !== null && draggedIndex !== index) {
+              onChange(reorderStages(stages, draggedIndex, index));
+            }
+            setDraggedIndex(null);
+            setDragOverIndex(null);
+          }}
+        >
           <CardHeader
             headingLevel={3}
             title={stage.label.trim() || t.stageNumber(index + 1, stage.kind)}
             actions={
               <div className="flex flex-wrap items-center gap-2">
+                <span
+                  draggable
+                  onDragStart={(e) => {
+                    e.dataTransfer.effectAllowed = "move";
+                    e.dataTransfer.setData("text/plain", String(index));
+                    setDraggedIndex(index);
+                  }}
+                  onDragEnd={() => {
+                    setDraggedIndex(null);
+                    setDragOverIndex(null);
+                  }}
+                  className="cursor-grab active:cursor-grabbing select-none text-ink-muted hover:text-ink px-1 text-base"
+                  title={selectionExtras.stageDragHandle(index + 1)}
+                  aria-label={selectionExtras.stageDragHandle(index + 1)}
+                  role="button"
+                  tabIndex={0}
+                >
+                  ⠿
+                </span>
                 <Badge tone={STAGE_TONES[stage.kind]}>{STAGE_BADGES[stage.kind]}</Badge>
                 {/* IconButton, not a Button with an aria-label: an arrow
                     glyph is not a name, and this is the primitive the design
