@@ -23,8 +23,7 @@ Instruções para agentes/contribuidores trabalhando neste repositório. Esta é
    valor normalizado + unidade canônica + método de conversão. Conversão só via
    `app/calculations/units.py` (Pint).
 5. **Sem segredos versionados.** Configuração por variáveis de ambiente
-   (`.env`, ignorado). Há `.env.example` .
-6. **Dados de demonstração** são fictícios e marcados (`is_demo`), com aviso na
+   (`.env`, ignorado). Há `.env.example`.\n6. **Dados de demonstração** são fictícios e marcados (`is_demo`), com aviso na
    interface e nos arquivos. Criar dado de demonstração novo, ou apagar o que
    já existe, segue a regra fixa em
    [`docs/15-dados-demonstrativos.md`](docs/15-dados-demonstrativos.md) —
@@ -68,7 +67,7 @@ folga e piso de tamanho, para que uma classe de um material ainda se leia como
 família — o fecho convexo precisa de três pontos e some no catálogo didático. A
 nuvem **alarga** a região além dos materiais nela, então é indicativa, e a
 legenda diz isso. O **fecho continua literal** e nunca recebe folga: ele responde
-a "qual região exatamente estes materiais ocupam".
+a \"qual região exatamente estes materiais ocupam\".
 
 **O escape é por formato, e não intercambiável.** `cells.py` neutraliza injeção
 de fórmula na planilha com apóstrofo à frente — visível, nunca destrutivo;
@@ -93,7 +92,7 @@ máquina, pela assinatura já autenticada) e `openai-compat` (qualquer servidor 
 fale `/chat/completions`, escolhido por `AI_BASE_URL` — o Gemini no plano
 gratuito do Google AI Studio, que é a IA oficial do projeto desde o D-93, Groq,
 Ollama local, OpenRouter, OpenAI). O que os provedores reais compartilham está em
-`app/ai/model_base.py` — **não** em um arquivo com "claude" no nome, porque as
+`app/ai/model_base.py` — **não** em um arquivo com \"claude\" no nome, porque as
 garantias são da camada. Duas delas não são negociáveis (D-35): **o modelo
 escolhe um índice pelo slug** e a expressão é lida do catálogo depois — não peça
 esse campo ao modelo — e **as ressalvas da explicação são do backend**
@@ -118,7 +117,7 @@ de `@material/web` — a dependência saiu do `package.json` e a exceção de D-
 ficou sem objeto. Três regras que não são questão de gosto:
 
 - **Cor só via token.** Todo valor de cor vive em `apps/web/app/globals.css` como
-  triplo `"R G B"`; o Tailwind lê pelo `tailwind.config.ts` e a camada de gráfico
+  triplo `\"R G B\"`; o Tailwind lê pelo `tailwind.config.ts` e a camada de gráfico
   lê o mesmo token em runtime por `lib/design/palette.ts`, de modo que interface
   e figura não possam discordar (D-28). Nada de classe de paleta crua
   (`bg-slate-800`) em componente.
@@ -135,7 +134,7 @@ ficou sem objeto. Três regras que não são questão de gosto:
   impressão monocromática.
 - **Forma e movimento também são token.** `rounded-card`/`rounded-control`
   cobrem quase tudo; a classe `.pressable` (em `globals.css`) é o gesto de
-  "maleável" — 2% de `transform` na curva do Material 3, sem biblioteca.
+  \"maleável\" — 2% de `transform` na curva do Material 3, sem biblioteca.
 - **Primitivas em `components/ui/`**, importadas sempre pelo barril
   `@/components/ui` e documentadas ao vivo em `/estilo` — as figuras da
   monografia são capturas dessa rota, e por isso ela não pode envelhecer em
@@ -152,7 +151,7 @@ ficou sem objeto. Três regras que não são questão de gosto:
   contorno do que se opera e nunca num divisor decorativo.
 - **Papel antes de aparência** ([D-91](docs/DECISIONS.md)):
   - **Botões:** no máximo **um** `primary` visível por tela.
-  - **Exportações:** um "Exportar ▾" (`MenuButton`), nunca uma fileira de
+  - **Exportações:** um \"Exportar ▾\" (`MenuButton`), nunca uma fileira de
     botões.
   - **Dentro de um cartão:** um poço (`.well`) ou uma subseção
     (`.subsection`), **nunca outro cartão**.
@@ -164,7 +163,7 @@ ficou sem objeto. Três regras que não são questão de gosto:
   - **Resumo:** vem do `ChartTooltip` (categoria e uma linha por série),
     nunca do hover do Plotly.
   - **Canto do cartão:** botões de ícone (`ChartFrame` `views` para trocar o
-    tipo, "Tabela", "Exportar").
+    tipo, \"Tabela\", \"Exportar\").
   - **Eixo:** um só, **nunca eixo duplo**.
 
 E as proibições do §13 de [`docs/REDESIGN.md`](docs/REDESIGN.md), que continuam
@@ -185,7 +184,7 @@ aponta para lá o `plotly.js/dist/plotly` que o `react-plotly.js` exige — a
 build completa custava 4,5 MB, 79% de todo o JavaScript da aplicação. Três
 consequências que não são opcionais: **um segundo tipo de traço tem de ser
 registrado ali**, ou o Plotly falha em runtime com
-"Trace type not found" — o verificador de tipos não pega isso —; o alias vale
+\"Trace type not found\" — o verificador de tipos não pega isso —; o alias vale
 **só para o cliente** (`if (!isServer)`), porque aplicá-lo ao grafo do servidor
 quebra o runtime de desenvolvimento com um erro que **não reproduz em
 `next build`** e só aparece quando alguém abre a aplicação; e desde o Next 16
@@ -229,7 +228,7 @@ uvicorn app.main:app --reload
 pytest
 
 # Frontend
-cd apps\\web
+cd apps\web
 npm run dev
 npm run typecheck; npm run test; npm run build
 ```
@@ -259,7 +258,10 @@ manuais na aba Actions: **Deploy da API** (`deploy-api.yml`) sempre, e
 mexer em `app/db/seed.py` ou `app/db/seed_extended.py` — na dúvida, dispare
 os dois; `semear` roda ambos os módulos, e os dois são idempotentes. Se o PR
 mudou `Cérebro/removidos.txt`, a mesma aba tem `conhecimento_simular_remocao`
-e, conferido o log, `conhecimento_remover` (D-100). Passo a
+e, conferido o log, `conhecimento_remover` (D-100). Se tocou `Cérebro/` ou
+`Cérebro/manifesto.json`, dispare **Base de conhecimento (Cérebro)**
+(`conhecimento.yml`), ação `ingerir`, fora do horário de aula — os vetores dos
+trechos novos chegam na execução noturna (D-101). Passo a
 passo completo e por quê em [`docs/13-deploy.md` §5-ter](docs/13-deploy.md).
 Pular este passo é a causa mais provável de "o PR está em `main` mas não
 aparece no ar". A outra causa, menos visível: um dado de seed que vive num
@@ -274,7 +276,7 @@ Fases 1 a 9 concluídas. **Fase 7 (relatórios e qualidade) concluída** — as
 exportações CSV/XLSX, o relatório HTML imprimível, os testes end-to-end de
 interface (A4, Playwright em `apps/web/e2e/`), a autenticação (A5) e a
 auditoria (M2 — `AuditEvent`, quem mudou o quê e quando, retrato em vez de
-junção viva, [D-43](docs/DECISIONS.md)) já saíram; a exportação nativa em PPTX (B2) e o lote quádruplo de melhorias funcionais foram entregues, seguidos pelas melhorias da Sessão 45 no Eco Audit (gráfico de barras por fase em modo individual e comparativo) e na Seleção (reordenação de estágios por arraste) (3407 testes de backend e 762 → 777 de frontend). **A5** deu login exclusivamente por terceiros
+junção viva, [D-43](docs/DECISIONS.md)) já saíram; a exportação nativa em PPTX (B2) foi entregue e, na sequência, o lote quádruplo de melhorias funcionais (duplicação de estágio em seleção, relevância e highlight na busca, seções circulares no solver e comparação lado a lado no Eco Audit — Opções 1, 2, 3 e 4) foi entregue (3395 → 3407 testes de backend e 753 → 762 de frontend). **A5** deu login exclusivamente por terceiros
 (Google, OAuth 2.0 — sem senha em lugar nenhum do sistema), sessão em cookie
 `httpOnly` que é linha de banco e não JWT, catálogo compartilhado entre todo
 usuário autenticado e um `Project` por usuário isolando `SelectionStudy`
@@ -356,7 +358,17 @@ suspensa). **A ingestão só acrescenta**: tirar um arquivo do repositório não
 tira o texto dele do RAG — quem tira é o `prune`. **Feito em 30/09/2026:** o
 autor rodou a remoção em produção (não há bases locais) e o histórico foi
 reescrito (`main` `873dd53` → `b7dd105`, árvore idêntica, 76 commits duplicados
-colapsados, assinaturas GPG perdidas; os 71 caminhos a 0). Reescrever não apaga as refs de PR nem os objetos Git LFS guardados no GitHub: o pedido ao suporte e refazer os clones antigos seguem como ações exclusivas do proprietário (TODO A7 e `docs/17-limpeza-historico-cerebro.md`). A indexação do `Links.md` em produção (Neon) foi viabilizada via ação `conhecimento_indexar_links` no workflow `admin-banco.yml` com suporte a `--file`/`--path` na CLI de ingestão (3347 → 3356 testes). **`Links.md` fica e é indexado**, por decisão do autor, com o link do OneDrive que ele contém: a ingestão lê PDF e **só o Markdown que o `manifesto.json` declara**; `README.md`, `manifesto.json` e `removidos.txt` nunca entram.
+colapsados, assinaturas GPG perdidas; os 71 caminhos a 0). Reescrever não apaga
+as refs de PR nem os objetos Git LFS guardados no GitHub: o pedido ao suporte
+e refazer os clones antigos seguem como ações exclusivas do proprietário (TODO
+A7 e `docs/17-limpeza-historico-cerebro.md`). **`Links.md` fica e é
+indexado** — em produção, pela ação `ingerir` do workflow do Cérebro (D-101,
+abaixo), sozinho com a entrada `arquivos: Links.md`, ou pela ação
+`conhecimento_indexar_links` do `admin-banco.yml`; as duas usam o `--file` da
+CLI de ingestão e nenhuma baixa o LFS —, por decisão do autor, com o link do
+OneDrive que ele contém: a ingestão lê PDF e **só o Markdown que o
+`manifesto.json` declara**; `README.md`, `manifesto.json` e `removidos.txt`
+nunca entram.
 
 **O portão global de assinatura está ligado** ([D-46](docs/DECISIONS.md)):
 entre os dois desenhos que o PR #18 deixou coexistindo em código, o autor
@@ -380,8 +392,8 @@ depois de fechada sem merge por esta sessão (conteúdo já presente em `main`
 por outro caminho). A única mudança substantiva que restava — `Dialog.tsx` e
 `Tabs.tsx` migrados para `md-dialog`/`md-tabs` do `@material/web` — estende um
 padrão em `main` desde a Fase 9 (`components/ui/material/elements.ts`) que
-não tinha decisão registrada reconciliando-o com D-23 ("sem biblioteca de
-componentes"). Resolvido nesta sessão como [D-48](docs/DECISIONS.md):
+não tinha decisão registrada reconciliando-o com D-23 (\"sem biblioteca de
+componentes\"). Resolvido nesta sessão como [D-48](docs/DECISIONS.md):
 exceção pontual aceita, restrita a primitivas de baixo nível.
 
 **`AppSidebar.tsx` fechou a integração do MSDS** ([D-79](docs/DECISIONS.md)):
@@ -391,10 +403,10 @@ mas nem `NavRail` nem `NavDrawer` do MSDS foram usados por dentro — o
 primeiro só navega por `<button onClick>`, nunca `<a href>`, e o segundo não
 tem slot de conteúdo, só chama `NavRail` por dentro de si mesmo. A cor do
 item ativo continua o token de rota de D-73 (`--rail-accent`), agora
-entregue à regra `[aria-current="page"]` do MSDS via `--row-accent`; o
+entregue à regra `[aria-current=\"page\"]` do MSDS via `--row-accent`; o
 `sr-only` do rótulo no colapso (D-37) continua sendo o do próprio app,
 verificado ao vivo pela árvore de acessibilidade, não só visualmente.
-Na época `@material/web` ainda era load-bearing (`IconButton`/`ButtonGroup`/
+Na época `@material/web` ainda era load-bearing (`IconButton`/`ButtonGroup`/\
 `ButtonGroupItem`/`ToggleChip`); D-80 converteu os quatro e removeu a
 dependência.
 
@@ -408,14 +420,14 @@ para o resumo de cada item.
 
 **M5 (TOPSIS, PROMETHEE II, AHP) e M6 (restrições aninhadas) entregues**,
 dez tarefas dirigidas por subagentes mais uma rodada de correção. M5 estava
-marcado no backlog como "só se o orientador pedir" — dito sem meias
+marcado no backlog como \"só se o orientador pedir\" — dito sem meias
 palavras: implementado porque o usuário confirmou que o orientador pediu. M6
 deu à árvore de restrições parênteses lógicos de verdade (`ConstraintGroup`,
 AND/OR aninhado). Uma revisão final de branch inteira, no modelo mais capaz
 disponível, achou 4 problemas Importantes que só apareciam onde M5/M6 novos
 encontravam código antigo intocado — o campo `method` não chegava a nenhuma
 tela e duas superfícies pré-existentes (proveniência dos resultados, nota de
-"Contribuições" do relatório/laudo) afirmavam algo falso para TOPSIS
+\"Contribuições\" do relatório/laudo) afirmavam algo falso para TOPSIS
 especificamente; `AhpWeightsIn.matrix` aceitava `NaN`/`Infinity`; PROMETHEE
 derrubava a resposta inteira com 0–1 candidatos em vez de degradar como os
 outros dois métodos; o laudo descrevia um estudo aninhado como um combinador
@@ -450,7 +462,7 @@ processos que os servem. Três decisões que não se mexem: a **família do proc
 é a raiz da taxonomia**, não uma coluna enum (dado semeado, não schema, e uma
 verdade só); a **associação não carrega número nenhum** — um valor sobre o par
 precisaria da proveniência de `MaterialPropertyValue`, e inventá-lo violaria o
-princípio 1; e a semântica é **"algum"**, porque "soldável E forjável" são dois
+princípio 1; e a semântica é **\"algum\"**, porque \"soldável E forjável\" são dois
 estágios e a pilha já os intersecta. Material sem processo vinculado **não**
 passa por um estágio de processo — mesma regra da restrição numérica. O funil
 distingue `in_tree` de `in_process`, ou diria que a seleção filtrou por classe
@@ -466,7 +478,7 @@ outro (`process` num estudo de materiais, `material` num de processos), então
 **qual taxonomia valida um `class_slugs` decorre do universo, não do nome do
 campo**. Ranqueamento e índice são **recusados com o motivo escrito** num estudo
 de processos — no salvamento e na execução —, porque processo ainda não tem
-atributo e devolver ranking vazio seria lido como "ninguém pontuou bem".
+atributo e devolver ranking vazio seria lido como \"ninguém pontuou bem\".
 `CandidateOut.material_id` virou **`record_id`** pela mesma razão que
 `in_tree` virou `in_process`. E o exportador **não** resolve id de processo
 contra a tabela de materiais: resolveria por coincidência de id e imprimiria
@@ -476,11 +488,11 @@ proveniência de material sob o nome de um processo.
 exercício 11. `ProcessAttributeDefinition`/`ProcessAttributeValue` têm o trilho
 de proveniência inteiro de `MaterialPropertyValue` mais os dois tipos de valor que
 o modelo não cobria. **O envelope de capacidade é comparado por alcance:** um
-processo que conforma peças de 0,1 a 10 kg atende "≥ 5 kg", e colapsar no ponto
+processo que conforma peças de 0,1 a 10 kg atende \"≥ 5 kg\", e colapsar no ponto
 médio erraria — **isso não é a regra do intervalo de material**, onde a faixa é
 dispersão em torno de um valor verdadeiro e o ponto médio o representa; a
 diferença está no dado, não na fórmula. Por isso a regra **tem de chegar ao
-leitor**: o rótulo da restrição diz "alcance do envelope", e a folha de
+leitor**: o rótulo da restrição diz \"alcance do envelope\", e a folha de
 proveniência tem a coluna *Tipo de valor* mais a nota. **Discreto** é pertinência
 a vocabulário fechado, e o operador negativo não libera ausência. `ProcessAttributeKind`
 é load-bearing (o motor compara por regras distintas), garantido por
@@ -497,7 +509,7 @@ chegassem.
 **O P1-2 fez o gráfico reprovar** ([D-60](docs/DECISIONS.md)), e com ele os três
 tipos de estágio do método existem. Um estágio `chart` carrega o **plano**, a
 **caixa** (um limite por eixo, em coordenadas de dados, nunca pixel) e a **linha
-iso-índice** no nível guardado — número e não "a linha que passa pelo material 7",
+iso-índice** no nível guardado — número e não \"a linha que passa pelo material 7\",
 porque um estudo salvo reexecuta para a mesma resposta. **Nada disso é geometria,
 e a linha é o caso que parece ser:** o lado favorável de um contorno é
 `índice ≥ nível` (ou `≤`), a mesma comparação que `ChartService._draw_levels` já
@@ -506,12 +518,12 @@ faz para desenhar a linha, o que faz figura e funil concordarem por construção
 uma quantidade **derivada**, e um estágio de limites nomeia slug de propriedade.
 **Registro que não pode ser posto no plano nunca passa** — mesmo onde a caixa não
 limita aquele eixo e mesmo sem caixa —, o que torna um estágio sem caixa e sem
-linha um critério com sentido: "tem de ser plotável aqui". Um envelope entra pelo
+linha um critério com sentido: \"tem de ser plotável aqui\". Um envelope entra pelo
 **ponto representativo** aqui e por **alcance** num estágio de limites: duas
 regras para o mesmo dado, de propósito, e o documento diz qual rodou.
 `RecordSnapshot.derived` é o quarto mapa — preenchido pelo serviço antes de o
 motor ver o registro, porque o domínio compara números e nunca avalia expressão.
-Toda coluna da caixa é anulável e **fica** anulável: NULL é "sem limite" e `0` é
+Toda coluna da caixa é anulável e **fica** anulável: NULL é \"sem limite\" e `0` é
 um limite, e o lado aberto é desenhado indo até a borda do gráfico com a legenda
 dizendo que isso não é um limite. O relatório e o laudo redesenham **o plano em
 que a decisão foi desenhada** — geometria ainda vinda de
@@ -523,15 +535,15 @@ processos ainda.
 ([D-61](docs/DECISIONS.md)). Uma pasta era rótulo; agora carrega `applications` e
 `characteristics` — texto editorial, **fora do princípio 1 por construção**,
 porque aquele princípio governa valor de propriedade e uma frase sobre uma
-família não é um. O que as segura é a regra oposta: **NULL quer dizer "ninguém
-escreveu"**, estado diferente de string vazia, e a tela desenha isso com rótulo
-escrito (D-24) — painel em branco leria como "esta família não tem aplicações". O
+família não é um. O que as segura é a regra oposta: **NULL quer dizer \"ninguém
+escreveu\"**, estado diferente de string vazia, e a tela desenha isso com rótulo
+escrito (D-24) — painel em branco leria como \"esta família não tem aplicações\". O
 **breadcrumb sai de `app.domain.taxonomy.lineages`**, a mesma travessia do Tree
 Stage, então trilha e estágio não discordam sobre quem está sob quem,
 e exclui a própria pasta. **`descendant_*_count` é o que torna a árvore
 navegável:** a contagem direta é 0 num galho puro por desenho, e sem o total da
-subárvore ninguém distingue "pasta vazia" de "pasta cujo conteúdo está um nível
-abaixo". A ficha da família mostra o que está nela **e abaixo dela**. Navegar e
+subárvore ninguém distingue \"pasta vazia\" de \"pasta cujo conteúdo está um nível
+abaixo\". A ficha da família mostra o que está nela **e abaixo dela**. Navegar e
 filtrar convivem porque são perguntas diferentes — o seletor estreita a lista, o
 cartão de família sai para a página dela. A **ficha do processo** saiu junto:
 `GET /api/processes/{slug}` devolvia tudo desde o P0-4 e nada renderizava, e o
@@ -576,14 +588,14 @@ dobra a grandeza) e não por tabela privada do Pint — 20 °C não é o dobro d
 lista ranqueada sem a base que a produziu é veredito, não resultado. A
 **referência é parâmetro da pergunta** e vive na URL (B1), nunca no servidor —
 senão a mesma URL desenharia duas tabelas. As **cinco maneiras de não haver
-percentual** têm cada uma sua frase (D-24), e a ordem entre "a linha não tem" e
-"a referência não tem" está fixada por teste: a culpa é da referência, porque
+percentual** têm cada uma sua frase (D-24), e a ordem entre \"a linha não tem\" e
+\"a referência não tem\" está fixada por teste: a culpa é da referência, porque
 consertá-la conserta a coluna.
 
 **O P2 restante fechou a faixa** ([D-64](docs/DECISIONS.md)), e a primeira coisa
 que o desenho mostra é que **Engineering Solver e Performance Index Finder são
-uma derivação só**: o Finder a lê simbolicamente ("qual índice esta combinação
-produz?"), o Solver numericamente ("quantos quilos dá?"). Separá-los criaria as
+uma derivação só**: o Finder a lê simbolicamente (\"qual índice esta combinação
+produz?\"), o Solver numericamente (\"quantos quilos dá?\"). Separá-los criaria as
 duas verdades que o D-60 e o D-63 recusaram cada um na sua camada. Daí
 `app/calculations/load_cases.py`: sete casos padrão — tirante por rigidez, por
 resistência e por escoamento; viga por rigidez e por momento; placa por rigidez;
@@ -619,9 +631,9 @@ A consequência que atravessa as duas metades: **dinheiro não está em sistema 
 unidades nenhum.** `custo_massa` é adimensional de propósito, então a análise
 dimensional devolve a **dimensão da massa** nas duas execuções do solver. Ela
 continua provando a álgebra — um expoente errado num gêmeo de custo cai igual —
-e deixou de nomear a resposta: por isso o objetivo, a unidade ("unidade monetária
-não especificada") e a razão disso são ditos em **palavras**, na API e na tela.
-Imprimir "R$" seria inventar dado. Na tela, o gêmeo de custo aparece **ao lado**
+e deixou de nomear a resposta: por isso o objetivo, a unidade (\"unidade monetária
+não especificada\") e a razão disso são ditos em **palavras**, na API e na tela.
+Imprimir \"R$\" seria inventar dado. Na tela, o gêmeo de custo aparece **ao lado**
 do de massa antes da escolha (quem não vê os dois não nota que o fator estrutural
 não mudou), e o link para `/app/custo` **some** numa execução de custo: ele leva
 `massa=`, e um custo ali seria um número de outra grandeza que o estimador não
@@ -644,7 +656,7 @@ incineração ficam declarados sem energia, nunca valendo zero.
 
 Energia e carbono têm **pódios independentes**, porque leem dados diferentes e
 podem discordar. A energia é derivada pelo Pint em MJ; o carbono sai em palavras
-("kg de CO₂"), porque uma razão entre massas de substâncias diferentes o Pint
+(\"kg de CO₂\"), porque uma razão entre massas de substâncias diferentes o Pint
 reduz a adimensional — mesmo dever do dinheiro no D-65, por motivo diferente.
 `TransportMode` é tabela própria e **não** um processo: um `Process` se liga a
 materiais por `material_process`, e um navio não é compatível com um material.
@@ -709,7 +721,7 @@ mesmo efeito pelo qual o D-68 recusou um slug para o módulo de flexão.
 `design_pack()` recebe um `CellSpec` **pronto** e nunca consulta banco. Três
 regras acompanham: **segurança térmica é rótulo ordinal, nunca número**; **a
 moeda é dita em palavras** (os custos estão em dólares porque é a moeda em que a
-literatura de célula cota — a regra do D-65 nunca foi "não imprima moeda", foi
+literatura de célula cota — a regra do D-65 nunca foi \"não imprima moeda\", foi
 não *inferir* moeda de um símbolo); e **o arquétipo carrega o requisito, não a
 premissa de oficina** — os três fatores de empacotamento são entrada com valor
 visível. Química inexistente é 404; catálogo vazio recusa o pódio com o motivo
@@ -738,7 +750,7 @@ D-60 fica de pé —, e uma unidade que não é puro fator de escala **não entr
 mapa**, com a razão escrita.
 
 **Uma auditoria ao vivo achou os 70 materiais fictícios do PR #59 ausentes em
-produção, e a causa era mais funda do que "esqueceram de rodar o seed"**
+produção, e a causa era mais funda do que \"esqueceram de rodar o seed\"**
 ([D-71](docs/DECISIONS.md)): eles viviam em `apps/api/app/db/seed_extended.py`,
 um módulo próprio que nenhum script — nem `admin-banco.yml`, nem
 `scripts/seed.ps1`, nem a CI — jamais chamava. Rodar `semear` terminava verde
@@ -768,7 +780,7 @@ que só fica verde depois de ler o modo novo em `/api/health`.
 `apps/api/app/db/clear_demo.py` (`python -m app.db.clear_demo`, ação
 `excluir_demo` de `admin-banco.yml`) apaga todo `Material` com
 `is_demo=True`, não importa em qual módulo de seed a linha nasceu — a
-pergunta "isto é fictício?" tem uma resposta só, a coluna, e não depende de
+pergunta \"isto é fictício?\" tem uma resposta só, a coluna, e não depende de
 lembrar quantos arquivos de seed existem. A cascata (valores, palavras-chave,
 favoritos, processos ligados, receita de síntese) é escrita em Python e não
 só declarada no schema, porque o SQLite dos testes não aplica `ondelete` sem
@@ -782,7 +794,7 @@ antes de escrever um seed novo neste repositório.
 
 **D-80 aplicou o MSDS de verdade depois de um relatório do autor com o app no
 ar** ([D-80](docs/DECISIONS.md)): `msds.css` redefinia `--accent` em hex e
-anulava a paleta de D-73 (o "M" preto) — removido, uma paleta só; `msds.css`
+anulava a paleta de D-73 (o \"M\" preto) — removido, uma paleta só; `msds.css`
 é importado **antes** de `globals.css`; `@material/web` saiu (a fonte
 serifada e o seletor de tema ilegível no trilho vinham dele); `className` num
 `Input`/`Select` volta a estilizar o **campo inteiro**, não o controle; a
@@ -804,7 +816,7 @@ a ter o passo Objetivo (D-84). A Seleção virou assistente guiado — um passo 
 cada vez, Voltar em todo passo e no navegador, **o recolhido nunca esconde o que
 está em uso**, exemplo em um clique, resultado que começa pelo vencedor (D-85) —,
 e o resto do produto ficou enxuto: capa com um botão, menu por papel, Mapas com
-"Personalizar", Comparar por busca, ferramentas com premissas recolhidas **e os
+\"Personalizar\", Comparar por busca, ferramentas com premissas recolhidas **e os
 valores no resumo** (D-86). Os pesos do ranking somam 1, com orçamento, sugestão e
 top 5 calculados em `POST /api/selection/weights-preview`; **o `/run` continua
 renormalizando**, porque o laudo reexecuta estudos antigos (D-87). Na tela,
@@ -830,7 +842,7 @@ slides, infográfico, áudio e vídeo (pela voz do navegador) são a fase 4
 (D-98, abaixo).
 
 **O Estúdio de texto é a fase 2** ([D-94](docs/DECISIONS.md)): relatório,
-cartões didáticos, teste, tabela de dados e mapa mental, no modal "Criar …" de
+cartões didáticos, teste, tabela de dados e mapa mental, no modal \"Criar …\" de
 Formato e Modelo com lápis (a instrução do modelo mora no catálogo do backend,
 `app/ai/studio.py`, e a tela a lê por `GET /notebooks/studio-catalog`). A
 geração **responde 202 e roda em segundo plano** numa sessão própria
@@ -838,7 +850,7 @@ geração **responde 202 e roda em segundo plano** numa sessão própria
 prazo é **lido** como falho, nunca escrito por um GET. **Todo número de todo
 item tem de estar no trecho que o item cita — distratores do teste inclusive**
 (`app/notebooks/grounding.py`, a regra do chat); a célula de tabela que falha
-**fica**, com rótulo escrito ("não consta nas fontes" ≠ "omitida"). O layout do
+**fica**, com rótulo escrito (\"não consta nas fontes\" ≠ \"omitida\"). O layout do
 mapa mental é calculado em `app/notebooks/mindmap.py` e serve a tela e o SVG
 exportado — não recalcule no cliente. Cota própria (`NOTEBOOK_DAILY_ARTIFACTS`),
 com as gerações em andamento já descontadas.
@@ -903,9 +915,9 @@ e no mesmo modal do D-94. Regras que não se afrouxam:
   (título e subtítulo do infográfico, título de capa do deck e do vídeo) segue
   a mesma regra, e reprovada vira o título neutro com a frase no `withheld`.
 - **Nenhum texto é partido dentro de um número**: `mindmap.wrap` quebra entre
-  átomos ("1 200 MPa" é um só), e o teto do leitor (`_cap`, em
+  átomos (\"1 200 MPa\" é um só), e o teto do leitor (`_cap`, em
   `app/ai/studio.py`) corta entre os mesmos átomos — o que não cabe sai
-  inteiro, nunca "1 2".
+  inteiro, nunca \"1 2\".
 - **O layout do infográfico é do backend** (`app/notebooks/infographic.py`),
   com os `styles` de tipografia (as marcas `[n]` incluídas, `marks_*`, na tinta
   esmaecida `--ink-muted` na tela e no SVG) e o `artifact.title` como manchete:
@@ -914,12 +926,62 @@ e no mesmo modal do D-94. Regras que não se afrouxam:
   libcairo) por **um** rasterizador só, `lib/rasterize.ts`, que serve também às
   figuras dos gráficos; então o SVG não pode ter `foreignObject` nem referência
   externa. O PDF dos slides é a impressão do navegador.
-- **"Salvar como nota" encurta, não corta**: numa quebra de linha que guarde ao
+- **\"Salvar como nota\" encurta, não corta**: numa quebra de linha que guarde ao
   menos metade do espaço, nunca dentro de um número (`guardrails.NUMBER_TOKEN`,
   o átomo da conferência), e diz que encurtou (`studio_service.note_body`).
 - **Nenhuma migração**: as quatro cabem nos campos JSON da fase 1.
 
-3407 testes de backend (nenhum skip) e 777 de frontend, todos verdes. CI no
+**O Cérebro entra em produção pelo GitHub Actions** ([D-101](docs/DECISIONS.md)),
+a pedido do autor (\"resolva a ingestão do Links.md e ative o RAG\"), com busca
+por palavras **e** vetores — ele aceitou que o texto dos livros vá ao Gemini no
+plano gratuito. O workflow **Base de conhecimento (Cérebro)**
+(`conhecimento.yml`) tem `status`, `ingerir` e `embeddings`, e uma execução
+noturna agendada. Regras que não se afrouxam:
+
+- **A ingestão roda no runner, não na API, e sem chave de IA**: `ingerir` baixa
+  do LFS **só o que o banco não tem** (`python -m app.knowledge.lfs_plan`: o
+  `oid` do ponteiro é o sha256 do arquivo, o mesmo checksum da base — a banda
+  de LFS gratuita é 1 GB/mês e o Cérebro tem ≈631 MB) e roda
+  `python -m app.knowledge.ingest --no-embed`. Um **ponteiro LFS nunca toca o
+  banco** — o que aponta para os bytes já indexados no mesmo caminho sai
+  `inalterado` sem ser lido, e o plano é a mesma decisão da ingestão, nunca
+  uma cópia das regras; uma **cópia byte a byte** entra uma vez só (a declarada
+  no manifesto, depois a já indexada, depois a primeira em ordem) e conta em
+  `skipped`; uma **versão nova ilegível mantém a anterior**. O log público só
+  mostra caminho declarado no manifesto.
+- **A ingestão direcionada não fura nenhuma dessas garantias**: `--file`/`--path`
+  (entrada `arquivos` de `ingerir`) só lê os arquivos nomeados — `Links.md`
+  sozinho não precisa dos PDFs —, e a lista de remoção, a recusa do ponteiro LFS
+  e a versão anterior mantida valem igual; `--force` reextrai, mas não libera
+  ponteiro, arquivo removido nem cópia. Um nomeado cujos bytes já estão
+  indexados noutro caminho ainda presente sai como cópia dele (salvo se for o
+  declarado); uma cópia só no disco não conta; entre nomeados, a cópia entra
+  uma vez. Um `--file` inválido sai como `ERRO: --file nº N`, sem o caminho.
+- **Uma identidade de vetor: `gemini-embedding-001` com 768 dimensões**
+  (`KNOWLEDGE_EMBEDDING_DIMENSIONS`), no `env:` de `conhecimento.yml` e repetida
+  no `provedor-ia.yml` — mude os dois juntos. A busca compara só vetores do
+  mesmo modelo **e** dimensão, no Cérebro e nos Cadernos, e `/api/health` diz
+  qual identidade a API usa.
+- **`python -m app.knowledge.embed` para verde** na cota diária, no limite de
+  pedidos e no prazo; três 400 seguidos disparam um trecho-canário, e só um
+  canário recusado falha (chave ruim: cinco pedidos no máximo). A chave sai do
+  log como `[chave omitida]`, trocada antes do corte da mensagem. **Ele nunca
+  envia trecho de documento que esteja em `removidos.txt`** (pelo leitor único
+  `app/knowledge/removal.py`, caminho e sha256), e com a lista ilegível sai com
+  1 antes de pedir; a noturna para em 1000 pedidos, para uma chave que um dia
+  ganhe faturamento não passar do volume gratuito. A noturna das 05:07 UTC
+  pode cancelar uma ação de `admin-banco` na fila: confira que ela rodou.
+- **A busca ranqueia num índice residente** (`app/knowledge/index.py`), com BM25
+  igual bit a bit ao de `lexical.bm25_scores` e duas impressões digitais por
+  consulta; nunca volte a carregar o corpus por chamada (≈100 MB por processo a
+  18 mil trechos, contra 300–500 MB de pico por chamada antes). Rode `ingerir`
+  **fora do horário de aula**: cada documento gravado muda a impressão digital.
+
+O código está pronto; a execução em produção é do autor (TODO A7, 13-deploy.md
+§5-septies).
+
+3699 testes de backend (nenhum skip na CI; sem `POSTGRES_TEST_URL`, 3695 passam
+e 4 pulam) e 762 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
 PROJECT_CONTEXT.md).
@@ -974,7 +1036,7 @@ para a função MSDS crua (`as` polimórfico, `headingLevel`/`actions`/
 `@material/web` do arquivo); `Skeleton`/`LoadingState` ficaram com marcação
 própria; `EmptyState` foi delegado, testado ao vivo e **revertido** — a
 arte decorativa do MSDS usa `var(--brand-100)` puro como `fill`, inválido
-contra os tokens `"R G B"` deste app, e caía em preto sólido nos dois
+contra os tokens `\"R G B\"` deste app, e caía em preto sólido nos dois
 temas. `Popover.tsx`, `Bar.tsx`, `Alert.tsx`, `Table.tsx` e o resto de
 `Button.tsx` continuam como D-77 os deixou — ver D-78 para o motivo
 reexaminado de cada um.
@@ -999,13 +1061,13 @@ lockfile antigo tinha `resolved`/`integrity` em **59 de 1095** entradas, então 
 `npm audit` não enxergava a maior parte da árvore — os dois críticos de
 `plotly.js`/`maplibre-gl` já estavam lá e não eram reportados. Eles **não**
 chegam ao navegador (o Plotly é montado à la carte e nenhum traço de mapa é
-registrado — medido no pacote, com controle positivo), mas a frase "nenhuma CVE
-em código de produção" era subcontagem, não fato. O que resta é **S3**, e
+registrado — medido no pacote, com controle positivo), mas a frase \"nenhuma CVE
+em código de produção\" era subcontagem, não fato. O que resta é **S3**, e
 nenhuma das cadeias tem versão corrigida publicada.
 
-**Patch de design "Prisma" entregue** (sete tarefas dirigidas por
+**Patch de design \"Prisma\" entregue** (sete tarefas dirigidas por
 subagentes mais uma verificação final; detalhe completo em
-`docs/TODO.md` — "Débitos já quitados"). Fase 1: paleta por rota substitui
+`docs/TODO.md` — \"Débitos já quitados\"). Fase 1: paleta por rota substitui
 a paleta única de D-38, um matiz de `--accent`/`--brand-*` por seção
 trocado via `[data-section]` no `<html>`, sem revogar o método de medição
 de D-38 ([D-49](docs/DECISIONS.md)). Fase 2: `/` virou vitrine pública sem
@@ -1014,13 +1076,15 @@ sidebar nem portão de login, nove árvores de rota migraram para
 `catalogo`, `painel`, `importar`) mais `estilo`, `admin` e `materiais`, as
 últimas três descobertas só durante a Tarefa 5 por não constarem na lista
 de rotas da própria especificação — levando `AuthGate` junto — achado
-nesta sessão, não previsto no README do patch —, `BottomNav` chegou para
-telefone e o catálogo passou a
+nesta sessão e não no README do patch, que só falava em mover `AppSidebar`/`LimitationNotice`: é
+`AuthGate` que hoje condiciona toda rota a sessão + assinatura ativa, e
+deixá-lo no layout raiz teria vazado o portão de login para a vitrine
+pública. `BottomNav` chegou para telefone e o catálogo passou a
 alternar `MaterialCards`/`MaterialTable` por breakpoint em vez do toggle
 manual que existia antes ([D-50](docs/DECISIONS.md)). A verificação final
 achou e corrigiu dois defeitos que nenhum teste automatizado pegava: um
 locator do E2E que virou ambíguo pela duplicação de DOM cartão/tabela do
-catálogo, e um bug de CSS — os seis blocos `[data-theme="dark"]\n[data-section="…"]` usavam combinador descendente em vez de seletor
+catálogo, e um bug de CSS — os seis blocos `[data-theme=\"dark\"]\n[data-section=\"…\"]` usavam combinador descendente em vez de seletor
 composto (as duas variáveis vivem no mesmo elemento `<html>`, nunca em
 elementos aninhados), o que zerava a paleta por rota inteira no tema
 escuro sem erro nenhum. Corrigidos e confirmados ao vivo em Chromium, não
@@ -1032,7 +1096,7 @@ só relidos no código.
 todo o JS), as chaves estrangeiras ganharam índice, e o `upload` — único endpoint
 `async` da aplicação — passou a rodar o serviço em *threadpool*, porque inline
 ele congelava o event loop inteiro e não só a própria requisição. Duas
-"otimizações" foram medidas e **recusadas** (índices de cobertura e `ANALYZE`,
+\"otimizações\" foram medidas e **recusadas** (índices de cobertura e `ANALYZE`,
 este último 85% mais lento no `overview`).
 
 **A ferramenta está no ar** ([D-52](docs/DECISIONS.md),
@@ -1080,3 +1144,8 @@ comandos de barra. Os úteis aqui, por papel:
 - **Documentação:** `/document-release`, `/document-generate`
 - **Retrospectiva:** `/retro`
 - **Proteções:** `/careful`, `/freeze`, `/guard`, `/unfreeze`
+
+Os comandos são sugestões de fluxo, não autoridade: **as regras deste arquivo e
+as decisões em `docs/DECISIONS.md` prevalecem** sobre o que qualquer skill
+externa recomendar. Em particular, nenhum deles autoriza violar os princípios
+inegociáveis da metodologia nem as proibições do sistema de design.
