@@ -175,6 +175,11 @@ continua lá, e a métrica para de medir no 3.
 
 Registrados para não voltarem por engano:
 
+- ~~**Eco Audit: figura de barras por fase (Opção 1) e Seleção: reordenar por arraste (Opção 2)**~~ —
+  as duas melhorias funcionais restantes foram entregues em conjunto na Sessão 45:
+  1. **Eco Audit (P3 restante):** componente `PhaseBars.tsx` exibindo barras horizontais semânticas (`role="figure"`, `role="meter"`) para as cinco fases do ciclo de vida (energia e carbono), com suporte a modo individual e modo comparativo (Material A vs B), escalonamento dinâmico via `calculateBarWidth`, tratamento explícito de dados não calculados com motivo, e destaque verde com badge `(crédito)` para créditos de reciclagem (+9 testes unitários em `PhaseBars.test.tsx`).
+  2. **Seleção (P0-1 restante):** função pura e imutável `reorderStages` e integração completa de drag-and-drop em `StageList.tsx`, com handle de arraste `⠿` acessível (`title` e `aria-label`), feedback visual `ring-2 ring-brand-500 shadow-lift` no container de destino, preservando os botões ↑/↓ existentes como alternativa de acessibilidade por teclado (+6 testes unitários em `StageList.test.tsx`).
+  Cobertura total de testes: 3407 backend (inalterado) e 762 → 777 frontend (+15 testes, todos verdes).
 - ~~**Lote quádruplo de melhorias: Seleção (P0-1), Busca e Highlight (P1-1), Dimensionador Circular (P2) e Eco Audit Comparativo (P3)**~~ —
   as quatro frentes de refinamento funcional solicitadas pelo usuário foram implementadas e integradas de ponta a ponta na mesma PR:
   1. **Seleção (P0-1):** duplicação de estágio na pilha de seleção (`duplicateStage` em `apps/web/components/selection/StageList.tsx`), clonando recursivamente grupos e restrições com identificadores novos (`nextEditorId`), etiqueta `(cópia)` no rótulo, botão de ação `⧉` acessível com tooltip `t.stageDuplicate(n)` inserindo a duplicata logo abaixo do estágio original, e testes unitários (+3 testes frontend em `StageList.test.tsx`).
@@ -370,7 +375,7 @@ Registrados para não voltarem por engano:
   único estágio para quem faz um estudo simples. **O P0-2 acrescentou o terceiro
   tipo, `process`** — ver a entrada abaixo. Fechou de passagem a lacuna de
   round-trip que o M6 deixou anotada. **O que ficou de fora, e é melhoria e não
-  bloqueio:** reordenar por arraste (duplicação de estágio entregue na Sessão 44). O Chart Stage que
+  bloqueio:** reordenar por arraste (entregue na Sessão 45; duplicação entregue na Sessão 44). O Chart Stage que
   filtra, também listado ali, saiu depois como P1-2 — ver a entrada abaixo.
 - ~~**P0-2** — não existia universo de processos~~ — `ProcessClass`
   hierárquica, `Process` e a associação N–N `material_process`, entregues em
@@ -547,7 +552,7 @@ Registrados para não voltarem por engano:
   existia sem uso), dois atributos de processo e `TransportMode` — nem material
   nem processo, com a justificativa no modelo.
 
-  **O que ficou de fora:** a figura de barras por fase, comparar dois materiais
+  **O que ficou de fora:** a figura de barras por fase (entregue na Sessão 45 com PhaseBars individual e comparativo), comparar dois materiais
   na mesma auditoria (entregue na Sessão 44 com comparação lado a lado, deltas e vencedores), e energia catalogada para aterro e incineração.
 - ~~**P3 (terceiro item)** — o Synthesizer~~ — `POST /api/synthesis/previa`,
   `POST /api/synthesis` e `/app/sintetizar` criam **materiais hipotéticos** a
@@ -712,7 +717,7 @@ Registrados para não voltarem por engano:
      para o "Verificando sessão…" renderizado no servidor. O diagnóstico foi
      difícil justamente porque não havia requisição falhando para apontar: o
      recurso bloqueado era o que dispararia as requisições. Corrigido com
-     `allowedDevOrigins: ["127.0.0.1"]` no `next.config.mjs`.
+     `allowedDevOrigins: ["127.0.0.1"]` no `next.config.mjs` handicaps.
 
   **E um quarto achado, que não é do Next mas veio à tona por ele:**
   `selectMwcOption` (`e2e/mwc.ts`) devolvia o controle enquanto o menu do
