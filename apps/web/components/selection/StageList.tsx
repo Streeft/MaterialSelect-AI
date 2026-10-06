@@ -520,7 +520,7 @@ export function StageList({
 
   return (
     <div className="flex flex-col gap-4">
-      {stages.map((stage, index) => (\
+      {stages.map((stage, index) => (
         <Card
           key={stage.id}
           data-stage-index={index}
@@ -632,7 +632,7 @@ export function StageList({
               />
             </div>
 
-            {stage.kind === "limit" && (\
+            {stage.kind === "limit" && (
               <ConstraintEditor
                 root={stage.group}
                 // A limit stage names attributes of the study's **own** universe
@@ -647,7 +647,7 @@ export function StageList({
                 showAddGroup={constraintAdvanced}
               />
             )}
-            {stage.kind === "tree" && (\
+            {stage.kind === "tree" && (
               <TreeStageFields
                 stage={stage}
                 classes={ownFolders}
@@ -655,14 +655,14 @@ export function StageList({
                 onChange={(next) => replace(index, next)}
               />
             )}
-            {stage.kind === "material" && (\
+            {stage.kind === "material" && (
               <MaterialStageFields
                 stage={stage}
                 classes={classes}
                 onChange={(next) => replace(index, next)}
               />
             )}
-            {stage.kind === "process" && (\
+            {stage.kind === "process" && (
               <ProcessStageFields
                 stage={stage}
                 processes={processes}
@@ -670,7 +670,7 @@ export function StageList({
                 onChange={(next) => replace(index, next)}
               />
             )}
-            {stage.kind === "chart" && (\
+            {stage.kind === "chart" && (
               <ChartStageFields
                 stage={stage}
                 // The plane plots attributes of the study's **own** universe,
@@ -686,11 +686,11 @@ export function StageList({
         </Card>
       ))}
 
-      {showAddButtons && (\
+      {showAddButtons && (
         <StageAddButtons stages={stages} universe={universe} onChange={onChange} />
       )}
     </div>
-  );\
+  );
 }
 
 /**
