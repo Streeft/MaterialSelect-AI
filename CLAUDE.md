@@ -229,7 +229,7 @@ uvicorn app.main:app --reload
 pytest
 
 # Frontend
-cd apps\web
+cd apps\\web
 npm run dev
 npm run typecheck; npm run test; npm run build
 ```
@@ -274,7 +274,7 @@ Fases 1 a 9 concluídas. **Fase 7 (relatórios e qualidade) concluída** — as
 exportações CSV/XLSX, o relatório HTML imprimível, os testes end-to-end de
 interface (A4, Playwright em `apps/web/e2e/`), a autenticação (A5) e a
 auditoria (M2 — `AuditEvent`, quem mudou o quê e quando, retrato em vez de
-junção viva, [D-43](docs/DECISIONS.md)) já saíram; a exportação nativa em PPTX (B2) foi entregue e, na sequência, o lote quádruplo de melhorias funcionais (duplicação de estágio em seleção, relevância e highlight na busca, seções circulares no solver e comparação lado a lado no Eco Audit — Opções 1, 2, 3 e 4) foi entregue (3395 → 3407 testes de backend e 753 → 762 de frontend). **A5** deu login exclusivamente por terceiros
+junção viva, [D-43](docs/DECISIONS.md)) já saíram; a exportação nativa em PPTX (B2) e o lote quádruplo de melhorias funcionais foram entregues, seguidos pelas melhorias da Sessão 45 no Eco Audit (gráfico de barras por fase em modo individual e comparativo) e na Seleção (reordenação de estágios por arraste) (3407 testes de backend e 762 → 777 de frontend). **A5** deu login exclusivamente por terceiros
 (Google, OAuth 2.0 — sem senha em lugar nenhum do sistema), sessão em cookie
 `httpOnly` que é linha de banco e não JWT, catálogo compartilhado entre todo
 usuário autenticado e um `Project` por usuário isolando `SelectionStudy`
@@ -914,12 +914,12 @@ e no mesmo modal do D-94. Regras que não se afrouxam:
   libcairo) por **um** rasterizador só, `lib/rasterize.ts`, que serve também às
   figuras dos gráficos; então o SVG não pode ter `foreignObject` nem referência
   externa. O PDF dos slides é a impressão do navegador.
-- **\"Salvar como nota\" encurta, não corta**: numa quebra de linha que guarde ao
+- **"Salvar como nota" encurta, não corta**: numa quebra de linha que guarde ao
   menos metade do espaço, nunca dentro de um número (`guardrails.NUMBER_TOKEN`,
   o átomo da conferência), e diz que encurtou (`studio_service.note_body`).
 - **Nenhuma migração**: as quatro cabem nos campos JSON da fase 1.
 
-3407 testes de backend (nenhum skip) e 762 de frontend, todos verdes. CI no
+3407 testes de backend (nenhum skip) e 777 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
 PROJECT_CONTEXT.md).
@@ -974,7 +974,7 @@ para a função MSDS crua (`as` polimórfico, `headingLevel`/`actions`/
 `@material/web` do arquivo); `Skeleton`/`LoadingState` ficaram com marcação
 própria; `EmptyState` foi delegado, testado ao vivo e **revertido** — a
 arte decorativa do MSDS usa `var(--brand-100)` puro como `fill`, inválido
-contra os tokens `\"R G B\"` deste app, e caía em preto sólido nos dois
+contra os tokens `"R G B"` deste app, e caía em preto sólido nos dois
 temas. `Popover.tsx`, `Bar.tsx`, `Alert.tsx`, `Table.tsx` e o resto de
 `Button.tsx` continuam como D-77 os deixou — ver D-78 para o motivo
 reexaminado de cada um.
@@ -999,13 +999,13 @@ lockfile antigo tinha `resolved`/`integrity` em **59 de 1095** entradas, então 
 `npm audit` não enxergava a maior parte da árvore — os dois críticos de
 `plotly.js`/`maplibre-gl` já estavam lá e não eram reportados. Eles **não**
 chegam ao navegador (o Plotly é montado à la carte e nenhum traço de mapa é
-registrado — medido no pacote, com controle positivo), mas a frase \"nenhuma CVE
-em código de produção\" era subcontagem, não fato. O que resta é **S3**, e
+registrado — medido no pacote, com controle positivo), mas a frase "nenhuma CVE
+em código de produção" era subcontagem, não fato. O que resta é **S3**, e
 nenhuma das cadeias tem versão corrigida publicada.
 
-**Patch de design \"Prisma\" entregue** (sete tarefas dirigidas por
+**Patch de design "Prisma" entregue** (sete tarefas dirigidas por
 subagentes mais uma verificação final; detalhe completo em
-`docs/TODO.md` — \"Débitos já quitados\"). Fase 1: paleta por rota substitui
+`docs/TODO.md` — "Débitos já quitados"). Fase 1: paleta por rota substitui
 a paleta única de D-38, um matiz de `--accent`/`--brand-*` por seção
 trocado via `[data-section]` no `<html>`, sem revogar o método de medição
 de D-38 ([D-49](docs/DECISIONS.md)). Fase 2: `/` virou vitrine pública sem
@@ -1032,7 +1032,7 @@ só relidos no código.
 todo o JS), as chaves estrangeiras ganharam índice, e o `upload` — único endpoint
 `async` da aplicação — passou a rodar o serviço em *threadpool*, porque inline
 ele congelava o event loop inteiro e não só a própria requisição. Duas
-\"otimizações\" foram medidas e **recusadas** (índices de cobertura e `ANALYZE`,
+"otimizações" foram medidas e **recusadas** (índices de cobertura e `ANALYZE`,
 este último 85% mais lento no `overview`).
 
 **A ferramenta está no ar** ([D-52](docs/DECISIONS.md),
