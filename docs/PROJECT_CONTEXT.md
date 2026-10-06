@@ -40,7 +40,7 @@ sugerir e explicar.
 
 ## 3. Estado atual
 
-**Fases 1 a 9 concluídas.** Fase 7 fechou por completo — todas as exportações (CSV, XLSX, HTML, DOCX e PPTX) entregues para catálogo, relatório de estudo e laudo de engenharia, além do lote quádruplo de melhorias funcionais e das melhorias da Sessão 45 no Eco Audit (gráfico de barras por fase) e na Seleção (reordenação de estágios por arraste) (3407 testes de backend e 762 → 777 de frontend).
+**Fases 1 a 9 concluídas.** Fase 7 fechou por completo — todas as exportações (CSV, XLSX, HTML, DOCX e PPTX) entregues para catálogo, relatório de estudo e laudo de engenharia, além do lote quádruplo de melhorias funcionais em seleção, busca, dimensionador e eco audit (Opções 1, 2, 3 e 4, 3395 → 3407 testes de backend e 753 → 762 de frontend).
 
 | # | Fase | Estado | Documento |
 |---|---|---|---|
@@ -131,7 +131,41 @@ o guia de limpeza do histórico,
 remoção em produção e a reescrita do histórico foram feitas pelo autor em
 30/09/2026 (`main`: `873dd53` → `b7dd105`, árvore idêntica; 76 commits
 duplicados colapsados; os 71 caminhos e os nomes dos alunos a 0 no histórico).
-Não há bases locais. O pedido ao suporte do GitHub e refazer os clones antigos seguem como ações exclusivas do proprietário (TODO A7 e `docs/17-limpeza-historico-cerebro.md`). A indexação do `Links.md` em produção (Neon) foi viabilizada via ação `conhecimento_indexar_links` no workflow `admin-banco.yml`, utilizando a CLI com `--file`/`--path` e validação estrita (3347 → 3356 testes). O `Links.md` **fica e passa a ser indexado**, por decisão do autor: a ingestão lê PDF e o Markdown que o `manifesto.json` declara, nunca o `README.md`.
+Não há bases locais. O pedido ao suporte do GitHub e refazer os clones
+antigos seguem como ações exclusivas do proprietário (TODO A7 e
+[`17-limpeza-historico-cerebro.md`](17-limpeza-historico-cerebro.md)), e
+disparar a ingestão em produção, que o D-101 pôs num workflow, também. O
+`Links.md` **fica e passa a ser indexado**, por decisão do autor: a ingestão lê
+PDF e o Markdown que o `manifesto.json` declara, nunca o `README.md`. Ele pode
+entrar sozinho, sem os PDFs do LFS, pela ingestão direcionada (`--file`/`--path`
+e `--force` na CLI, `KnowledgeService.ingest(paths=…)`): a ação
+`conhecimento_indexar_links` do `admin-banco.yml` ou `ingerir` com
+`arquivos: Links.md` no workflow do Cérebro.
+
+**O Cérebro entra em produção pelo GitHub Actions** ([D-101](DECISIONS.md)).
+O autor pediu para resolver a ingestão do `Links.md` e ativar o RAG, e escolheu
+busca por palavras **e** por vetores, aceitando que o texto dos livros vá à API
+de embeddings do Gemini no plano gratuito (onde o Google pode usá-lo). O
+workflow **Base de conhecimento (Cérebro)** (`conhecimento.yml`) ingere num
+runner — `ingerir` baixa do LFS só os PDFs que o banco ainda não tem com
+aqueles bytes (os 120 distintos, ≈631 MB, na primeira vez; o `oid` do ponteiro
+é o checksum da base) e grava os trechos, sem chave de IA —, gera os vetores (`embeddings`, e uma
+execução noturna com a sobra da cota do dia, 768 dimensões) e mostra o retrato
+(`status`, com a comparação \"API vs vetores\"). A ingestão ficou segura contra o
+que o Actions pode entregar (ponteiro LFS não toca o banco; as 121 cópias byte
+a byte da árvore entram uma vez; versão nova ilegível mantém a anterior), e a
+busca passou a um índice em memória no processo da API — antes, cada chamada de
+IA lia o corpus inteiro duas vezes, o que derrubaria a VM de 512 MB e gastaria a
+transferência mensal do Neon em poucas dezenas de chamadas. `/api/health` nomeia
+o modelo e a dimensão dos embeddings. A ingestão direcionada vale sob as mesmas
+garantias: lista de remoção primeiro, ponteiro LFS recusado sem tocar a linha,
+`--force` sem liberar nenhum dos dois; um arquivo nomeado cujos bytes já estão
+indexados noutro caminho do Cérebro sai como cópia dele (salvo o declarado no
+manifesto). O `embed` nunca envia ao Gemini trecho de documento que esteja em
+`removidos.txt`, e a noturna para em 1000 pedidos. **O código está pronto; a execução é do
+autor**: Deploy da API → Provedor de IA (`gemini`) → `status` → `ingerir` → os
+vetores chegam em 1 a 2 noites, se o Gemini aceitar lote, ou em 2 a 4 semanas no
+pior caso ([13-deploy.md §5-septies](13-deploy.md)).
 
 **A falta que resta no trabalho como um todo não é de código** e não pode ser
 fechada por quem programa sozinho: a sessão de teste com usuários do §3.5 da
@@ -148,8 +182,7 @@ modo de falha silenciosa que a decisão original ([D-16](DECISIONS.md)) já
 previa. Ver M4 em [TODO.md](TODO.md).
 
 **RAG sobre o Cérebro entregue.** O Cérebro, hospedado em `main` desde D-45
-mas inerte até aqui — íntegro, mas sem nada em `app/ai/` que o lesse —,
-passou a alimentar `interpret()`/`explain()` de verdade: busca híbrida
+mas inerte até aqui — íntegro, mas sem nada em `app/ai/` que o lesse —,\npassou a alimentar `interpret()`/`explain()` de verdade: busca híbrida
 (léxica BM25 + semântica, fundidas por *reciprocal rank fusion*) em
 `app/knowledge/retrieval.py`, ligada só quando o provedor não é o `mock`
 (`provider.simulated`, não o nome do provedor — a mesma disciplina de
@@ -177,9 +210,9 @@ pacote `@material/web` (commit `8b74799`), estendendo um padrão que já
 cobria botões, checkbox, radio, select e chips desde a Fase 9
 (`components/ui/material/elements.ts`, em `main` desde o PR #8, 18/08).
 **Isso nunca tinha sido registrado em nenhum documento até esta sessão**,
-tensionando textualmente [D-23](DECISIONS.md) ("sistema de design próprio,
-sem biblioteca de componentes") e a proibição do §13 de
-[REDESIGN.md](REDESIGN.md) ("nenhuma biblioteca de componentes"):
+tensionando textualmente [D-23](DECISIONS.md) (\"sistema de design próprio,
+sem biblioteca de componentes\") e a proibição do §13 de
+[REDESIGN.md](REDESIGN.md) (\"nenhuma biblioteca de componentes\"):
 `@material/web` é a biblioteca de Web Components do Material Design 3 do
 Google, com camada de tema própria (100 variáveis `--md-sys-*` em
 `globals.css`, paralela aos tokens `--brand-*`/`--accent` de D-28).
@@ -193,8 +226,8 @@ como bloqueio.
 subagentes (um implementador por tarefa, revisão de tarefa a tarefa, revisão
 final de branch inteira). As dez tarefas eram deliberadamente pequenas e
 independentes; a revisão final ainda assim pegou dois bugs reais que as
-revisões por tarefa (mais leves) tinham deixado passar: o botão "carregar
-gráfico salvo" (B7) aplicava os dados da *lista* de gráficos salvos — que
+revisões por tarefa (mais leves) tinham deixado passar: o botão \"carregar
+gráfico salvo\" (B7) aplicava os dados da *lista* de gráficos salvos — que
 omite `configuration` de propósito, por desenho — em vez de buscar o
 registro completo, tornando o carregamento um no-op silencioso; e a troca
 linear/log (B8) não eliminava o recarregamento como pretendia, por faltar
@@ -208,14 +241,14 @@ geometria de gráfico (B6, B8) é calculada no frontend. Ver `docs/TODO.md`
 para o resumo de cada item.
 
 **M5 (TOPSIS, PROMETHEE II, AHP) e M6 (restrições aninhadas) entregues,
-dirigidos por subagentes.** M5 estava registrado no backlog com a nota "só
-faça se o orientador pedir" — dito sem meias palavras: nesta sessão o usuário
+dirigidos por subagentes.** M5 estava registrado no backlog com a nota \"só
+faça se o orientador pedir\" — dito sem meias palavras: nesta sessão o usuário
 confirmou explicitamente que o orientador pediu, e só por isso o item saiu de
 fora de escopo (ver TODO.md). Dez tarefas ao todo (M5: Tarefas 1–5; M6:
 Tarefas 6–10), um implementador e um revisor por tarefa. `app/domain/ranking.py`
 ganhou `rank_topsis` (proximidade a um ponto ideal/anti-ideal) e
 `rank_promethee` (fluxo de saída líquido de comparações pareadas, função de
-preferência "usual"), os dois reaproveitando a exclusão de dado ausente e a
+preferência \"usual\"), os dois reaproveitando a exclusão de dado ausente e a
 renormalização de peso já existentes da soma ponderada; `app/domain/ahp.py`
 ganhou `derive_weights` (matriz de comparação pareada, escala de Saaty,
 rejeição dura acima de razão de consistência 0,1). `ConstraintGroup`
@@ -232,12 +265,12 @@ que reproduz o cenário exato do relato.
 
 Depois das dez tarefas revisadas uma a uma, uma **revisão final de branch
 inteira**, no modelo mais capaz disponível, achou 4 problemas Importantes que
-nenhuma revisão de tarefa isolada poderia ter pego — todos do tipo "código
-novo encontra código antigo intocado": o campo `method` (TOPSIS/PROMETHEE/
+nenhuma revisão de tarefa isolada poderia ter pego — todos do tipo \"código
+novo encontra código antigo intocado\": o campo `method` (TOPSIS/PROMETHEE/
 soma ponderada) não chegava a nenhuma superfície de saída, e duas telas
 pré-existentes (o painel de proveniência dos resultados e a nota
-"Contribuições" do relatório/laudo exportado) afirmavam algo **falso**
-especificamente para TOPSIS — "Normalização: Min-máx" e a identidade
+\"Contribuições\" do relatório/laudo exportado) afirmavam algo **falso**
+especificamente para TOPSIS — \"Normalização: Min-máx\" e a identidade
 soma-das-contribuições-igual-à-pontuação que o próprio docstring de
 `rank_topsis` nega; `AhpWeightsIn.matrix` aceitava `NaN`/`Infinity` (faltava o
 `allow_inf_nan=False` que todo outro campo numérico do arquivo já tem),
@@ -248,7 +281,7 @@ como `weighted_sum`/TOPSIS já faziam — interação genuína M5×M6, porque o
 aninhamento de M6 torna esse funil bem mais alcançável; e o laudo de
 engenharia (D-41) descrevia a lógica de um estudo aninhado como um único
 combinador achatado, com linhas de subgrupo opacas. Os quatro foram
-corrigidos numa única rodada — a nota de "Contribuições" ficou sensível ao
+corrigidos numa única rodada — a nota de \"Contribuições\" ficou sensível ao
 método (mantendo a identidade de soma só para PROMETHEE, onde ela é
 verdadeira, verificado contra `_score_promethee` e o teste já existente que a
 prova), e o laudo passou a renderizar a árvore real via
@@ -288,10 +321,10 @@ documentos declarando o universo.
 exercício 11 do manual. `ProcessAttributeDefinition` e `ProcessAttributeValue`
 carregam o trilho de proveniência inteiro de `MaterialPropertyValue` mais os dois
 tipos de valor que o modelo não cobria: **envelope de capacidade**, comparado por
-**alcance** — um processo que conforma peças de 0,1 a 10 kg atende "≥ 5 kg", e o
+**alcance** — um processo que conforma peças de 0,1 a 10 kg atende \"≥ 5 kg\", e o
 ponto médio erraria isso —, e **discreto**, por pertinência a um vocabulário
-fechado. A regra de comparação chega ao leitor: o rótulo da restrição diz "alcance
-do envelope" e a folha de proveniência tem a coluna *Tipo de valor*. Com isso a
+fechado. A regra de comparação chega ao leitor: o rótulo da restrição diz \"alcance
+do envelope\" e a folha de proveniência tem a coluna *Tipo de valor*. Com isso a
 recusa de ranqueamento do D-58 foi **retirada**, não reescrita: o que se recusa
 agora é atributo inexistente e atributo discreto onde se exige magnitude.
 
@@ -304,8 +337,8 @@ linha, de modo que a figura e o funil concordam por construção. O que o estág
 acrescenta ao de limites é um só e é real — **um eixo pode ser uma quantidade
 derivada**, e um estágio de limites nomeia slug de propriedade. **Registro que não
 pode ser posto no plano não passa**, mesmo onde a caixa não limita aquele eixo, o
-que torna um estágio sem caixa e sem linha um critério com sentido: "tem de ser
-plotável aqui". O relatório e o laudo redesenham **o plano em que a decisão foi
+que torna um estágio sem caixa e sem linha um critério com sentido: \"tem de ser
+plotável aqui\". O relatório e o laudo redesenham **o plano em que a decisão foi
 desenhada**, com a região como figura — e um estudo de processos pode ter um
 estágio de gráfico, mas o plano dele não é desenhado, porque não existe mapa do
 universo de processos ainda.
@@ -315,7 +348,7 @@ universo de processos ainda.
 carrega `applications` e `characteristics`, texto editorial que fica **fora do
 princípio 1 por construção** (aquele princípio governa valor de propriedade, e
 uma frase sobre uma família não é um), preso pela regra oposta: NULL quer dizer
-"ninguém escreveu" e a tela escreve isso (D-24). `GET /api/classes/{slug}` e
+\"ninguém escreveu\" e a tela escreve isso (D-24). `GET /api/classes/{slug}` e
 `GET /api/processes/classes/{slug}` devolvem a pasta como registro — prosa,
 trilha e subpastas —, com o breadcrumb saindo de `app.domain.taxonomy.lineages`,
 a mesma travessia do Tree Stage. Cinco rotas novas: `/app/processos`, a **ficha
@@ -326,7 +359,7 @@ só ativos — reversão de uma decisão anterior, com o raciocínio no D-61.
 
 A cobertura de capacidades inspiradas no EduPack subiu de ~31% para **~81%**
 (26 de 32 em nível ≥ 3), e o **denominador estava errado até o P0-4**: o parágrafo
-anterior dizia "30 avaliadas" e publicava ~57%, mas a tabela sempre teve 32
+anterior dizia \"30 avaliadas\" e publicava ~57%, mas a tabela sempre teve 32
 linhas. Por **três marcos seguidos** o percentual não se moveu, e isso disse mais
 sobre a métrica do que sobre a ferramenta: o P0-4 levantou duas capacidades
 (banco de processos 3→4, Limit Stage 3→4) que já estavam acima do corte. O
@@ -375,9 +408,9 @@ de carregar duas derivações.
 A consequência que atravessa tudo: **dinheiro não está em sistema de unidades
 nenhum.** `custo_massa` é adimensional de propósito, então a análise dimensional
 devolve a dimensão da massa nas duas execuções do solver. Ela continua provando a
-álgebra e deixou de nomear a resposta — daí o objetivo, a unidade ("unidade
-monetária não especificada") e a razão disso serem ditos em palavras, na API e na
-tela. Imprimir "R$" seria inventar dado, que é o princípio 1 de outro chapéu.
+álgebra e deixou de nomear a resposta — daí o objetivo, a unidade (\"unidade
+monetária não especificada\") e a razão disso serem ditos em palavras, na API e na
+tela. Imprimir \"R$\" seria inventar dado, que é o princípio 1 de outro chapéu.
 
 **O Eco Audit fechou a segunda linha em zero da faixa** ([D-66](DECISIONS.md)):
 cinco fases (material, manufatura, transporte, uso, fim de vida) em energia e
@@ -448,10 +481,10 @@ do catálogo algo que não é buraco — o mesmo argumento pelo qual o D-68 recu
 slug para o módulo de flexão.
 
 Três regras acompanham. **Segurança térmica é rótulo ordinal, nunca número** (uma
-escala numérica de "segurança" seria magnitude que as fontes não afirmaram). **A
+escala numérica de \"segurança\" seria magnitude que as fontes não afirmaram). **A
 moeda é dita em palavras**: os custos estão em dólares, que é a moeda em que a
 literatura de custo de célula cota, e toda superfície diz isso — a regra do D-65
-nunca foi "não imprima moeda", foi não *inferir* moeda de um símbolo. E **o
+nunca foi \"não imprima moeda\", foi não *inferir* moeda de um símbolo. E **o
 arquétipo carrega o requisito, não a premissa de oficina**: os três fatores de
 empacotamento são entrada com valor visível, como a condição de apoio do D-64.
 
@@ -471,7 +504,7 @@ leitura num campo que promete descrever origem.
 Duas coisas o dado impôs, as duas contra a hipótese inicial. **A unidade de
 leitura é propriedade da propriedade, não da dimensão**: módulo, escoamento e
 tração compartilham `[mass]/[length]/[time]**2` e se leem em GPa, MPa e MPa, e
-mapear por dimensão daria "210000 MPa" ao lado de "250 MPa". E **a leitura é
+mapear por dimensão daria \"210000 MPa\" ao lado de \"250 MPa\". E **a leitura é
 acrescentada, nunca substitui**: `value_scalar` guarda o que a fonte disse, na
 unidade dela, então os campos `display_*` saem ao lado e quem audita continua
 vendo os dois. Um documento exportado carrega as **três** unidades de propósito
@@ -481,7 +514,7 @@ método de conversão.
 A escolha do leitor vive na **URL** (D-63: senão a mesma URL desenharia duas
 tabelas), e três coisas ela não toca: o avaliador de índices, a diferença
 percentual (computada sobre o canônico, porque `is_ratio_scale` pergunta à
-canônica — `temp_max_servico` lida em °C tornaria "o dobro da temperatura" uma
+canônica — `temp_max_servico` lida em °C tornaria \"o dobro da temperatura\" uma
 afirmação falsa) e a aritmética de uma incerteza, que é **diferença**: ±5 K
 lidos em °C são ±5 °C, não ±268,15. No mapa converte-se **no fim**, porque toda
 saída geométrica é um par de coordenadas — assim o fecho, a elipse, a linha de
@@ -491,7 +524,7 @@ escrita: `log(x − 273,15)` não é `log x` deslocado.
 
 A matriz vai a **32 de 32 (100%)**, com nível médio **3,59**. **Nenhuma linha
 fica abaixo de 3** — mas a métrica para de medir no 3, e toda linha continua
-carregando a sua lista de "faltam". O número diz que nenhuma capacidade do
+carregando a sua lista de \"faltam\". O número diz que nenhuma capacidade do
 modelo funcional está ausente ou pela metade, não que cada uma esteja no seu
 teto.
 
@@ -525,7 +558,7 @@ quando não há.
 **Cadernos — o lote de pendências das fases 3 e 4** (D-97/D-98). Nove itens da
 baixa prioridade fechados num PR. No Estúdio: velocidade no resumo em vídeo, um
 rasterizador só (`lib/rasterize.ts`, agora também para as figuras dos
-gráficos), "Salvar como nota" que encurta numa quebra de linha sem partir
+gráficos), \"Salvar como nota\" que encurta numa quebra de linha sem partir
 número e diz que encurtou, e as marcas `[n]` do infográfico na mesma tinta na
 tela e no SVG. Nas fontes externas: o id mesclado de um artigo da OpenAlex
 recusado antes da cota e da rede, a troca de provedor que limpa o resultado
@@ -549,8 +582,9 @@ declarações do atributo, com o escopo indo a 4096.
 
 **Concorrência das cotas em PostgreSQL exercitada na CI** (D-97/D-99): quatro testes multithread contra PostgreSQL 16 (`test_notebook_quota_postgres.py`) validando o `UPDATE ... WHERE counter < limit` sob concorrência real (20 threads simultâneas em disputa na criação a partir do zero e na fronteira do limite, reserva e liberação concorrentes, e reserva com folga), sem estourar limites nem cair em race condition, executados na CI via contêiner de serviço PostgreSQL.
 
-**Saúde do código:** 3407 testes de backend (Python 3.11 e 3.12, nenhum skip)
-e 777 de frontend, todos verdes. Desde o P0-1 a suíte também roda as migrações de
+**Saúde do código:** 3699 testes de backend (Python 3.11 e 3.12, nenhum skip
+na CI; sem `POSTGRES_TEST_URL`, 3695 passam e 4 pulam) e 762 de frontend, todos
+verdes. Desde o P0-1 a suíte também roda as migrações de
 verdade, nos dois sentidos, contra um banco temporário que já contém dados —
 `test_migration_selection_stage.py`, `test_migration_process_universe.py`,
 `test_migration_selection_universe.py`, `test_migration_process_attributes.py`,
@@ -587,11 +621,13 @@ O roteiro completo está em [13-deploy.md](13-deploy.md) e o desenho em
   projeto não tem shell disponível. Eles cobrem `fly deploy`, migrações, seed e
   a concessão de acesso — e um terceiro, `modo-acesso.yml`, abre a ferramenta
   a qualquer conta Google para uma turma e a fecha de novo ([D-83](DECISIONS.md)).
+  O Cérebro tem o seu, **Base de conhecimento (Cérebro)** (`conhecimento.yml`),
+  o único com execução agendada ([D-101](DECISIONS.md)).
 - **Publicar exigiu corrigir cinco defeitos que nenhum teste pegava**, todos
   invisíveis fora de produção: a migração que não subia em Postgres, o
   `psycopg` não declarado, o `requirements.txt` que tinha derivado, o
   `NEXT_PUBLIC_API_URL` tratado como variável de runtime, e o cookie fixo em
-  `samesite="lax"`. Mais duas do próprio Fly, descritas em D-52, cuja
+  `samesite=\"lax\"`. Mais duas do próprio Fly, descritas em D-52, cuja
   assinatura comum é a pior possível: **o job fica verde e a aplicação não
   funciona**.
 
@@ -759,8 +795,8 @@ Ficaram ~1.600 linhas da `fase-9-ia-e-laudo` que não chegaram a `main` junto do
 resto da fase — trazidas depois, íntegras, verificadas caminho a caminho:
 
 - **Ingestão do Cérebro** (`app/knowledge/`) — leitura de PDF (`readers.py`,
-  extrai texto via `pypdf`; o extra `knowledge` precisa estar instalado, e a CI
-  passou a instalar `.[dev,knowledge]` por causa disso), *chunking*,
+  extrai texto via `pypdf`, dependência principal desde o D-92; na época era o
+  extra `knowledge`, e a CI ainda instala `.[dev,knowledge]`), *chunking*,
   *embeddings*, busca léxica e um `manifest` de proveniência por documento,
   mais 40 testes. Ficou pronta antes de ter consumidor — a busca abaixo é
   quem passou a usá-la.
@@ -802,7 +838,7 @@ resto da fase — trazidas depois, íntegras, verificadas caminho a caminho:
   `/api/health` antes de ficar verde — [13-deploy.md §5-quater](13-deploy.md).
 
 ### Estudo de caso didático (A2)
-O tirante leve e rígido ("light, stiff tie") de Ashby — o exemplo introdutório
+O tirante leve e rígido (\"light, stiff tie\") de Ashby — o exemplo introdutório
 mais citado da metodologia — reproduzido do enunciado ao relatório exportado,
 executado contra a aplicação real: nove materiais reais de literatura
 (rotulados como tal, `docs/estudo-de-caso/`, não o `sample-data/` fictício),
@@ -899,6 +935,7 @@ que mais afetam quem for mexer no código:
 | Estúdio visual e sonoro: a voz é a do navegador (sem MP3/MP4); o dado em destaque não tem isenção e a unidade é comparada com maiúsculas; o layout do infográfico e a tipografia vêm do backend | [D-98](DECISIONS.md) |
 | Cotas dos Cadernos reservadas por um `UPDATE` condicional e devolvidas uma vez, por quem tira a geração de `gerando`; CSS inline oculta por qualquer declaração, e fonte e cor são estado herdado | [D-99](DECISIONS.md) |
 | Material de curso fora do Cérebro; `Cérebro/removidos.txt` é a fonte única do que saiu, por caminho e por conteúdo (`sha256:`), lida pela remoção do banco (simulação primeiro, que lista o que fica), pela ingestão e pela limpeza do histórico; a ingestão lê PDF e o Markdown declarado no manifesto (`Links.md`) | [D-100](DECISIONS.md) |
+| O Cérebro é ingerido por um workflow do Actions (do LFS, só o que o banco não tem; sem IA); vetores de 768 dimensões com a sobra noturna da cota gratuita; uma identidade de vetor (modelo e dimensão) conferida em `/api/health`; a busca ranqueia num índice em memória, com BM25 igual bit a bit | [D-101](DECISIONS.md) |
 
 ## 9. Limitações atuais
 
@@ -910,8 +947,9 @@ que mais afetam quem for mexer no código:
   código e o que a suíte de testes exercita. Duas consequências: o que for
   digitado no painel de IA é enviado à Groq, e planos gratuitos costumam reservar
   o direito de treinar em cima — a interface avisa isso ao lado de cada sugestão;
-  e o RAG sobre o Cérebro liga junto ([D-47](DECISIONS.md)), mas encontra base
-  vazia (`KNOWLEDGE_DIR` não é populado na instância), então as explicações vêm
+  e o RAG sobre o Cérebro liga junto ([D-47](DECISIONS.md)). Até a ação
+  `ingerir` do workflow **Base de conhecimento (Cérebro)** rodar em produção
+  ([D-101](DECISIONS.md)), ele encontra a base vazia e as explicações vêm
   **sem citações** — ausência que o backend declara em vez de esconder.
 - **`/billing/checkout` responde 503 na instância publicada**, porque
   `STRIPE_API_KEY` está vazio ([D-36](DECISIONS.md)). O portão de assinatura
@@ -926,7 +964,7 @@ que mais afetam quem for mexer no código:
   montado à la carte e nenhum traço de mapa é registrado — numa build com 22
   chunks, `Plotly` aparece em 2 e `maplibre` em nenhum, verificado com controle
   positivo. **Isto deixa de valer se um traço de mapa for registrado.** Ver
-  "S3" em [TODO.md](TODO.md).
+  \"S3\" em [TODO.md](TODO.md).
 - **Dados demonstrativos são fictícios.** 75 materiais semeados (5 de
   `app.db.seed`, exercitando conversão/intervalo/ausência/incerteza; 70 de
   `app.db.seed_extended`, cobertura mais ampla das cinco famílias) existem
@@ -948,8 +986,19 @@ que mais afetam quem for mexer no código:
   árvore no editor.** `GET /api/selection/studies/{id}` ainda devolve as
   restrições como lista plana — não é perda de dado (a árvore real continua
   intacta no banco e avalia corretamente ao **reexecutar** o estudo), mas
-  "Abrir" mostra tudo num único grupo AND, sem aviso na tela. Ver TODO.md
-  ("M6" em "Débitos já quitados").
+  \"Abrir\" mostra tudo num único grupo AND, sem aviso na tela. Ver TODO.md
+  (\"M6\" em \"Débitos já quitados\").
+- **A busca semântica do Cérebro chega aos poucos.** Os vetores são gerados com
+  a sobra da cota diária gratuita do Gemini (~1 000 pedidos por dia, divididos
+  com o próprio produto): de 1 a 2 noites se o endpoint aceitar lote, até 2 a 4
+  semanas se não aceitar. Até lá, e sempre que a cota do dia acaba, a busca usa
+  os vetores que existem e cai para as palavras no resto, sem erro na tela
+  ([D-101](DECISIONS.md)). As fontes dos Cadernos embedadas antes do D-101
+  (3072 dimensões) ficam só na busca por palavras até serem refeitas (TODO).
+- **A primeira consulta de IA de cada máquina** depois de um deploy ou de uma
+  ingestão constrói o índice do Cérebro: alguns segundos a mais e ≈75 MB lidos
+  do Neon. Uma ingestão feita durante a aula reconstrói o índice a cada
+  consulta — por isso `ingerir` roda fora do horário de aula.
 - **Propriedades dependentes de condição** (curvas completas) fora do escopo.
 - **Busca por palavra-chave usa LIKE sobre JSON** — não escala.
 - **Com provedor de IA real, a leitura do enunciado não é reproduzível.** Só o
@@ -960,7 +1009,7 @@ que mais afetam quem for mexer no código:
   esse exercício que revelou os dois defeitos descritos no §3.
 - **O portão de assinatura está ligado, e o checkout foi testado ao vivo.**
   `require_active_subscription` bloqueia toda rota (exceto
-  `health`/`auth`/`billing`) sem `Subscription.status == "active"`
+  `health`/`auth`/`billing`) sem `Subscription.status == \"active\"`
   ([D-46](DECISIONS.md)). `STRIPE_API_KEY` continua vazio por padrão em dev e
   CI ([D-36](DECISIONS.md); `checkout`/`portal` respondem 503 sem uma chave
   configurada), mas o autor configurou Stripe em modo de teste na própria
@@ -989,8 +1038,12 @@ que mais afetam quem for mexer no código:
 | Dependência de provedor de IA | Arquitetura desacoplada com provedor simulado; funciona sem chave. |
 | Incorporação inadvertida de dado protegido | Triagem de licenciamento (M1, item 4.2 da proposta) — `Source` registra licença/procedência, e uma fonte nova sem licença ou marcada como possivelmente protegida sem confirmação humana é recusada antes de qualquer linha ser escrita ([D-44](DECISIONS.md)). |
 | Resultado não reproduzível por interferência de IA | Cálculo determinístico + guardrails executáveis + confirmação do usuário. |
-| Regressão silenciosa | CI com 3407 testes de backend e 777 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
+| Regressão silenciosa | CI com 3699 testes de backend e 762 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
 | Material licenciado do Cérebro exposto em `main` (repositório público) | Risco aceito por decisão explícita do autor, não mitigado — o Cérebro é a base de conhecimento da camada de IA ([D-45](DECISIONS.md)). |
+| Texto dos livros do Cérebro enviado ao Gemini no plano gratuito, onde o Google pode usá-lo para melhorar os produtos | Risco aceito pelo autor ao escolher busca por vetores ([D-101](DECISIONS.md)); a alternativa sem envio é a busca só por palavras, que continua funcionando sozinha. Material na lista de remoção **nunca** é enviado: o `embed` lê `removidos.txt` e, sem conseguir lê-lo, não envia nada. |
+| Banda de Git LFS do plano gratuito (1 GB/mês; passar dela bloqueia o LFS da conta inteira até o mês virar) | `ingerir` baixa só o que o banco não tem (`lfs_plan`); a primeira ingestão completa gasta ≈631 MB e não deve ser repetida no mesmo mês sem necessidade ([D-101](DECISIONS.md), [13-deploy.md §5-septies](13-deploy.md)). |
+| Limites do Neon gratuito (suposto 0,5 GB e 5 GB/mês de transferência) e memória da VM de 512 MB | Vetores de 768 dimensões (≈96 MB de base a 18 mil trechos), índice em memória medido em ≈100 MB por processo, e o `status` avisa acima de 80% de 0,5 GB. **O autor ainda confirma** os limites no painel do Neon e a memória no painel do Fly depois da primeira consulta. |
+| Execução noturna parada sem ninguém notar | O GitHub desliga um agendamento depois de 60 dias sem atividade no repositório, e uma noturna na fila pode ser trocada por uma execução de `admin-banco`; o `status` mostra quanto falta ([13-deploy.md §5-septies](13-deploy.md)). |
 | Uso sem cobrança | Portão binário ligado ([D-46](DECISIONS.md)), checkout testado ao vivo em modo de teste — falta só configurar `STRIPE_API_KEY`/`STRIPE_WEBHOOK_SECRET`/`STRIPE_PRICE_ID` em **modo de produção** para vender de verdade. |
 
 ## 11. Próximos passos sugeridos
@@ -1007,7 +1060,7 @@ Detalhamento em [TODO.md](TODO.md).
 
 Números obtidos nesta base, não estimados. A distinção importa: quase toda
 suspeita de lentidão que a auditoria levantou não se confirmou na medição, e uma
-das "otimizações" candidatas piorava as coisas.
+das \"otimizações\" candidatas piorava as coisas.
 
 | O que | Antes | Depois | Como foi medido |
 |---|---|---|---|
