@@ -78,8 +78,7 @@ de remoção e o `prune` (D-100), porque a ingestão só acrescenta.
 
 **Cópias idênticas são indexadas uma vez.** Esta pasta guarda 120 cópias byte a
 byte (as pastas `Fichas descritivas …` e as cópias avulsas da raiz, na tabela
-abaixo), mais a cópia da raiz do Ashby que saiu (abaixo), que a lista de
-remoção casa pelo conteúdo. A ingestão agrupa os arquivos pelo sha256 e indexa um de cada grupo:
+abaixo). A ingestão agrupa os arquivos pelo sha256 e indexa um de cada grupo:
 o que o `manifesto.json` declara; sem declaração, o que já está na base; sem
 nenhum dos dois, o primeiro em ordem alfabética. As outras cópias saem como
 `ignorado` e o log as conta por pasta (`[ingest] CÓPIAS em …`). Tirá-las do
@@ -100,12 +99,11 @@ Projeto Mecânico*, não byte a byte iguais, e os dois eram indexados — o text
 saía em dobro na busca e custava o dobro de vetores. Fica `Michael Ashby
 (Auth.)-Seleção De Materiais No Projeto Mecânico (2012).pdf` (152 MB, a 4ª
 edição); saiu `Selecao_de_Materiais_no_Projeto_Mecanico.pdf` (103,5 MB, sem
-data no arquivo). Que o de 2012 é a edição mais nova é **provável, não
-confirmado**. O que saiu está em `removidos.txt` pelo caminho e pelo conteúdo,
-marcado `mantido-no-historico:`: sai do banco e da ingestão, mas não é material
-a apagar do histórico do git. A cópia byte a byte que está na raiz desta
-pasta, com o mesmo nome, continua no git (é uma das cópias da tabela abaixo) e é
-ignorada pelo conteúdo. Os extratos de capítulo em
+data no arquivo), junto com a cópia byte a byte dele que estava na raiz desta
+pasta, com o mesmo nome. Que o de 2012 é a edição mais nova é **provável, não
+confirmado**. Os dois caminhos e o conteúdo estão em `removidos.txt`, marcados
+`mantido-no-historico:`: saem do banco e da ingestão, mas não são material a
+apagar do histórico do git. Os extratos de capítulo em
 `01-Bibliografia/Extratos-de-Capitulos/` não mudam.
 
 ## O que está aqui
@@ -118,7 +116,7 @@ ignorada pelo conteúdo. Os extratos de capítulo em
 | `01-Bibliografia/Extratos-de-Capitulos/` | capítulos extraídos da bibliografia | sim (LFS) |
 | `03-Fichas-Tecnicas-Granta-EduPack-Nivel-2/` (103 fichas) | banco de dados licenciado ANSYS/Granta | sim (LFS) |
 | `Fichas descritivas de materiais - Granta Edupack - Nível 2/` | cópia idêntica das 103 fichas acima — **não indexada** (a ingestão fica com a de `03-`) | sim (LFS) |
-| Cópias avulsas na raiz (18: livros, extratos, diagramas, artigos) | as mesmas obras das pastas numeradas — **não indexadas** | sim (LFS) |
+| Cópias avulsas na raiz (17: livros, extratos, diagramas, artigos) | as mesmas obras das pastas numeradas — **não indexadas** | sim (LFS) |
 
 **O que saiu** ([D-100](../docs/DECISIONS.md)): a pasta
 `02-Material-de-Curso-ENG02016/` inteira (tópicos de aula 1 a 6, plano de aulas,

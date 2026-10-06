@@ -25,8 +25,9 @@ passo 4 descarta essas linhas —; e `mantido-no-historico:<caminho>`, um caminh
 que sai do banco e da ingestão mas **fica** no histórico, e que o passo 4 também
 descarta. Este último existe para o que sai do RAG por outro motivo que não o
 do D-100: a edição duplicada do Ashby em português
-(`01-Bibliografia/Selecao_de_Materiais_no_Projeto_Mecanico.pdf`, D-101,
-atualização de 06/10/2026) saiu da base para o texto não aparecer em dobro, e o
+(`01-Bibliografia/Selecao_de_Materiais_no_Projeto_Mecanico.pdf` e a cópia
+byte a byte dele na raiz, `Selecao_de_Materiais_no_Projeto_Mecanico.pdf`;
+D-101, atualização de 06/10/2026) saiu da base para o texto não aparecer em dobro, e o
 autor **não** quer o histórico reescrito por ela.
 
 > **Nada aqui é feito por agente nem por CI.** É uma operação manual, feita uma

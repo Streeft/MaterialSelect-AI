@@ -175,9 +175,9 @@ falha; as cópias decodificadas do pypdf são soltas entre páginas, porque a
 memória somava as páginas. O upload dos Cadernos lê **abaixo** da guarda (4 MB
 por fluxo, 32 MB por arquivo, páginas contadas antes) — endurecimento de
 segurança da VM de 512 MB. Dos dois Ashby em português fica só o de 2012
-(provavelmente a edição mais nova, não confirmado): o sem data saiu do git, do
-manifesto e, pela lista de remoção, do RAG — numa linha
-`mantido-no-historico:`, que a limpeza do histórico não lê, porque é uma edição
+(provavelmente a edição mais nova, não confirmado): o sem data e a cópia byte
+a byte dele na raiz do Cérebro saíram do git, do manifesto e, pela lista de
+remoção, do RAG — em linhas `mantido-no-historico:`, que a limpeza do histórico não lê, porque é uma edição
 duplicada e não material a apagar ([D-101](DECISIONS.md), atualização de
 06/10). Falta o autor rodar `conhecimento_simular_remocao` →
 `conhecimento_remover` → `ingerir` ([TODO](TODO.md) A7).

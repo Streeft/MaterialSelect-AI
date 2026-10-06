@@ -153,11 +153,9 @@ uso; as três primeiras são decisão ou conferência do autor.
   só (fica a cópia declarada no manifesto), e desde a revisão final do D-101
   uma `ingerir` nem as baixa do LFS; tirá-las do git não muda o RAG: muda o
   tamanho do clone e o que o leitor da pasta vê. Decisão do autor — e um `git rm` não as tira do
-  histórico nem do armazenamento LFS. A 18ª cópia da raiz,
-  `Selecao_de_Materiais_no_Projeto_Mecanico.pdf`, é do Ashby que saiu
-  (D-101, atualização de 06/10/2026): não conta mais como cópia, a lista de
-  remoção a casa pelo conteúdo e a `ingerir` nem a baixa — pode sair do git
-  junto com as outras.
+  histórico nem do armazenamento LFS. Eram 18 na raiz até 06/10/2026: a
+  cópia do Ashby em português que saiu foi junto com ele (D-101), e só ela —
+  as outras continuam esperando esta decisão.
 - **Documento que falhou é baixado de novo a cada `ingerir`.** ▁ O plano do
   LFS só poupa o que está `EXTRAIDO` com os mesmos bytes; um `FALHOU` (um PDF
   digitalizado, `SEM TEXTO`, inclusive) é baixado e lido de novo, como sempre
@@ -289,7 +287,7 @@ continua lá, e a métrica para de medir no 3.
 Registrados para não voltarem por engano:
 
 - ~~**Os dois Ashby em português (D-101)**~~ —
-  `01-Bibliografia/` tinha dois scans de *Seleção de Materiais no Projeto Mecânico*, não byte a byte iguais, e os dois eram indexados (texto em dobro na busca, o dobro de vetores; foram os dois `FALHOU` da segunda `ingerir`). O autor decidiu ficar só com a edição mais nova: fica `Michael Ashby (Auth.)-Seleção De Materiais No Projeto Mecânico (2012).pdf` (4ª ed., 152 MB); saiu `Selecao_de_Materiais_no_Projeto_Mecanico.pdf` (sem data, 103,5 MB) do git e do `manifesto.json`, e entrou em `Cérebro/removidos.txt` pelo caminho (`mantido-no-historico:`, porque não é material a apagar do histórico) e pelo conteúdo (`sha256:` do oid do ponteiro, que casa também a cópia da raiz). Que o de 2012 é a mais nova é **provável, não confirmado**. Reverter: apagar as duas linhas da lista e restaurar o arquivo e a entrada do manifesto do histórico (D-101, atualização de 06/10/2026). Falta só a execução do autor, no item 3 da A7: `conhecimento_simular_remocao` → `conhecimento_remover` → `ingerir`.
+  `01-Bibliografia/` tinha dois scans de *Seleção de Materiais no Projeto Mecânico*, não byte a byte iguais, e os dois eram indexados (texto em dobro na busca, o dobro de vetores; foram os dois `FALHOU` da segunda `ingerir`). O autor decidiu ficar só com a edição mais nova: fica `Michael Ashby (Auth.)-Seleção De Materiais No Projeto Mecânico (2012).pdf` (4ª ed., 152 MB); saiu `Selecao_de_Materiais_no_Projeto_Mecanico.pdf` (sem data, 103,5 MB) do git e do `manifesto.json`, junto com a cópia byte a byte dele na raiz do Cérebro (que o manifesto não declarava), e os dois entraram em `Cérebro/removidos.txt` pelo caminho (`mantido-no-historico:`, porque não é material a apagar do histórico) e pelo conteúdo (`sha256:` do oid do ponteiro, o mesmo nos dois). Que o de 2012 é a mais nova é **provável, não confirmado**. Reverter: apagar as três linhas da lista e restaurar os dois arquivos e a entrada do manifesto do histórico (D-101, atualização de 06/10/2026). Falta só a execução do autor, no item 3 da A7: `conhecimento_simular_remocao` → `conhecimento_remover` → `ingerir`.
 - ~~**Leitura de PDF limitada por documento, não só por fluxo (revisão do PR #98; inclui endurecimento de segurança do upload dos Cadernos)**~~ —
   o teto do pypdf é por fluxo e a memória somava as páginas (as cópias decodificadas ficavam no leitor até a última página): 8 páginas de 150 MB subiam a 1,2 GB, e um upload de 684 KB com 10 páginas de 70 MB custava 783 MB de pico na API de 512 MB. `readers._release_decoded` solta as cópias entre páginas (o mesmo livro fica em ~194 MB); o Cérebro lê com teto de 200 MB (era 500), orçamento por documento (16 GB decodificados, 15 min) e falha um livro com mais de 20% das páginas de fora (e ao menos 3), parando assim que a conta fecha; o motivo de cada página pulada sai pelo nome da classe; a linha `PÁGINAS IGNORADAS` virou anotação `::warning::`; o `status` deixou de chamar esses livros de `VERSÃO ANTERIOR`; e `conhecimento.yml` ganhou `forcar` (só com `arquivos`) para reextrair. **Segurança:** o upload lê com 4 MB por fluxo, 32 MB por arquivo e o limite de páginas conferido antes de decodificar — um aluno autenticado não derruba mais a API com um PDF de 15 MB (D-101, atualização da revisão do PR #98). Resta, documentado: uma página patológica de operadores não é interrompida no meio (só um subprocesso com `RLIMIT_AS` o faria), e o orçamento do upload ainda custa até ~1 min de CPU.
 - ~~**Lote quádruplo de melhorias: Seleção (P0-1), Busca e Highlight (P1-1), Dimensionador Circular (P2) e Eco Audit Comparativo (P3)**~~ —

@@ -107,13 +107,15 @@ sha256:ff42ed5022746578ea08fd3c70a6ca17d460feb34b21f724e59a428472cc1b75
 
 # Edição duplicada do Ashby em português (D-101, atualização de 06/10/2026).
 # Os dois scans de "Seleção de Materiais no Projeto Mecânico" estavam em
-# 01-Bibliografia/; fica o de 2012 (4ª edição), sai este, sem data no arquivo.
+# 01-Bibliografia/; fica o de 2012 (4ª edição), sai o sem data no arquivo —
+# ele e a cópia byte a byte dele que estava na raiz do Cérebro, com o mesmo
+# nome.
 # Que o de 2012 é a edição mais nova é PROVÁVEL, não confirmado. Não é retirada
 # de material protegido: sai do RAG para o texto não aparecer em dobro na busca,
 # e continua no histórico do git por decisão do autor — daí o
-# "mantido-no-historico:". A linha sha256: é o oid do ponteiro LFS; ela casa
-# também a cópia byte a byte que continua na raiz do Cérebro, com o mesmo nome
-# de arquivo. Para desfazer: apague as duas linhas e restaure o arquivo do
-# histórico (D-101).
+# "mantido-no-historico:". A linha sha256: é o oid do ponteiro LFS dos dois, e
+# casa qualquer outra cópia com os mesmos bytes. Para desfazer: apague as três
+# linhas e restaure os arquivos do histórico (D-101).
 mantido-no-historico:01-Bibliografia/Selecao_de_Materiais_no_Projeto_Mecanico.pdf
+mantido-no-historico:Selecao_de_Materiais_no_Projeto_Mecanico.pdf
 sha256:27882628ad20ab3e90dbf61f86d47990f6f94190229fad925fb7935acbea5b69

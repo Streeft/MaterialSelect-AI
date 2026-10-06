@@ -1569,8 +1569,9 @@ class TestLfsPlan:
     def test_the_versioned_list_keeps_the_duplicate_ashby_from_being_fetched(
         self, db_session, corpus: Path
     ) -> None:
-        # D-101: com a lista real, os ponteiros do Ashby que saiu — no caminho
-        # dele e a cópia na raiz — não gastam banda de LFS; o de 2012 é baixado.
+        # D-101: com a lista real, se os ponteiros do Ashby que saiu voltarem —
+        # no caminho dele e no da cópia da raiz, que saiu junto —, não gastam
+        # banda de LFS; o de 2012 é baixado.
         cerebro = Path(__file__).resolve().parents[4] / "Cérebro"
         (corpus / "removidos.txt").write_bytes((cerebro / "removidos.txt").read_bytes())
         removed = (

@@ -508,6 +508,10 @@ class TestRepositoryList:
         assert removal.matches_checksum(ASHBY_REMOVED_OID)
         assert ASHBY_REMOVED in removal.history_kept
         assert ASHBY_REMOVED not in removal.history_purge_entries
+        # A cópia byte a byte da raiz saiu junto, pelo mesmo tipo de linha.
+        assert removal.matches(ASHBY_ROOT_COPY)
+        assert ASHBY_ROOT_COPY in removal.history_kept
+        assert ASHBY_ROOT_COPY not in removal.history_purge_entries
         assert not removal.matches(ASHBY_KEPT)
         assert not removal.matches(
             "01-Bibliografia/Extratos-de-Capitulos/Selecao_de_Materiais_no_Projeto_Mecanico"
@@ -515,10 +519,14 @@ class TestRepositoryList:
         )
         # A limpeza do histórico continua levando exatamente o que o D-100 tirou.
         assert len(removal.history_purge_entries) == 14
-        assert set(removal.history_purge_entries) == set(removal.entries) - {ASHBY_REMOVED}
+        assert set(removal.history_purge_entries) == set(removal.entries) - {
+            ASHBY_REMOVED,
+            ASHBY_ROOT_COPY,
+        }
 
 
 ASHBY_REMOVED = "01-Bibliografia/Selecao_de_Materiais_no_Projeto_Mecanico.pdf"
+ASHBY_ROOT_COPY = "Selecao_de_Materiais_no_Projeto_Mecanico.pdf"
 ASHBY_REMOVED_OID = "27882628ad20ab3e90dbf61f86d47990f6f94190229fad925fb7935acbea5b69"
 ASHBY_KEPT = unicodedata.normalize(
     "NFC",

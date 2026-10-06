@@ -564,18 +564,15 @@ idênticos entram uma vez só.
    e baixa ≈528 MB do LFS — **mais da metade da banda de LFS do mês** (1 GB no
    plano gratuito); não a repita no mesmo mês sem necessidade. O plano diz
    ```
-   [lfs] 240 ponteiro(s) LFS entre os arquivos desta execução: 0 já indexado(s) com os mesmos bytes, 120 cópia(s) de outro caminho, 1 na lista de remoção — nenhum desses é baixado.
+   [lfs] 239 ponteiro(s) LFS entre os arquivos desta execução: 0 já indexado(s) com os mesmos bytes, 120 cópia(s) de outro caminho, 0 na lista de remoção — nenhum desses é baixado.
    [lfs] baixar 119 arquivo(s), 503,1 MB: 119 novo(s) na base, 0 com versão nova ou que falhou antes (tentado de novo).
    ```
    o download, `LFS: 0 objeto(s) já no cache, 119 a baixar.`, e a conferência,
    `Nenhum dos 119 arquivo(s) baixado(s) ficou ponteiro: os PDFs estão inteiros.`
    As 120 cópias continuam ponteiros no disco de propósito: a ingestão as conta
-   como cópias sem lê-las. O `1 na lista de remoção` é a cópia, na raiz, do
-   Ashby em português que saiu (D-101, atualização de 06/10/2026): a lista a
-   casa pelo conteúdo, e ela nunca é baixada. O resumo da ingestão, numa base
-   vazia:
+   como cópias sem lê-las. O resumo da ingestão, numa base vazia:
    ```
-   [ingest] N criados, 0 atualizados, 0 inalterados, F falharam (S sem texto), 1 ignorados pela lista de remoção, 120 cópias idênticas ignoradas, T trechos, 0 embedados.
+   [ingest] N criados, 0 atualizados, 0 inalterados, F falharam (S sem texto), 0 ignorados pela lista de remoção, 120 cópias idênticas ignoradas, T trechos, 0 embedados.
    [ingest] vetores não gerados nesta execução (--no-embed): rode `python -m app.knowledge.embed`.
    [ingest] CÓPIAS em (raiz): 17 idênticas a arquivos indexados em outro caminho.
    [ingest] CÓPIAS em Fichas descritivas de materiais - Granta Edupack - Nível 2/: 103 idênticas a arquivos indexados em outro caminho.

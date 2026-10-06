@@ -7664,15 +7664,18 @@ testes de backend, nenhum pulado. `ruff` e `black` limpos; os dois workflows pas
 > mais nova, a decisão se inverte pelo caminho de reversão abaixo.
 >
 > - **O que saiu, e por onde.** O ponteiro saiu do git (`git rm`) e a entrada
->   saiu do `manifesto.json` (120 entradas: 119 PDFs e o `Links.md`). Em
->   `Cérebro/removidos.txt` entraram duas linhas: o caminho e
->   `sha256:27882628…` — o oid do ponteiro, que é o checksum que a base
->   grava. O caminho casa a linha `FALHOU` da segunda `ingerir` (o
->   `conhecimento_remover` a apaga) e qualquer versão futura com outros bytes
->   naquele caminho; o conteúdo casa a **cópia byte a byte que continua na raiz
->   do Cérebro** com o mesmo nome — uma das cópias que já eram ignoradas como
->   cópia, e que agora o plano do LFS conta como "na lista de remoção" e nunca
->   baixa. Tirá-la do git é a decisão das cópias idênticas (TODO), não esta.
+>   saiu do `manifesto.json` (120 entradas: 119 PDFs e o `Links.md`). Saiu
+>   junto a **cópia byte a byte dele na raiz do Cérebro**,
+>   `Selecao_de_Materiais_no_Projeto_Mecanico.pdf` (o mesmo oid, conferido no
+>   ponteiro; o manifesto não a declarava): o autor quer só a edição nova
+>   também na árvore. As outras 17 cópias avulsas da raiz ficam — são a
+>   decisão das cópias idênticas (TODO), não esta. Em `Cérebro/removidos.txt`
+>   entraram três linhas: os dois caminhos e `sha256:27882628…` — o oid do
+>   ponteiro, que é o checksum que a base grava. O caminho de `01-Bibliografia/`
+>   casa a linha `FALHOU` da segunda `ingerir` (o `conhecimento_remover` a
+>   apaga); os dois caminhos casam uma versão futura com outros bytes ali; o
+>   conteúdo casa qualquer outra cópia com os mesmos bytes, em qualquer
+>   caminho.
 > - **O caminho não vai para a limpeza do histórico.** A lista de remoção
 >   nasceu para o D-100, e o passo 4 de
 >   [17-limpeza-historico-cerebro.md](17-limpeza-historico-cerebro.md) converte
@@ -7693,18 +7696,21 @@ testes de backend, nenhum pulado. `ruff` e `black` limpos; os dois workflows pas
 >   `TestHistoryPurgeConversion` roda o bloco do passo 4 sobre a lista real e
 >   confere que ele sai igual a `history_purge_entries` — as mesmas 14 linhas
 >   de antes.
-> - **Os números do Cérebro.** 240 ponteiros na árvore; a primeira ingestão
+> - **Os números do Cérebro**, lidos dos ponteiros: 239 ponteiros na árvore
+>   (eram 241), 119 objetos LFS distintos (eram 120); a primeira ingestão
 >   completa baixa 119 PDFs, ≈528 MB (503,1 MiB, como o `lfs_plan` imprime), e
->   não mais 120 e ≈631 MB; 120 cópias byte a byte, e 1 na lista de remoção.
+>   não mais 120 e ≈631 MB; continuam 120 cópias byte a byte (17 na raiz, 103
+>   fichas), porque a cópia que saiu era cópia de um arquivo que também saiu, e
+>   0 na lista de remoção.
 >   Os extratos de capítulo em `01-Bibliografia/Extratos-de-Capitulos/` não
 >   mudam.
 > - **O que falta é do autor**, depois do merge: **Administração do banco** →
 >   `conhecimento_simular_remocao` (um documento só, o `FALHOU`), depois
 >   `conhecimento_remover`, depois **Base de conhecimento (Cérebro)** →
 >   `ingerir` ([TODO.md](TODO.md) A7, item 3).
-> - **Para desfazer:** apague as duas linhas do bloco do Ashby em
->   `removidos.txt` e restaure o arquivo e a entrada do manifesto do histórico
->   (`git checkout <commit anterior a esta remoção> -- "Cérebro/01-Bibliografia/Selecao_de_Materiais_no_Projeto_Mecanico.pdf" Cérebro/manifesto.json`,
+> - **Para desfazer:** apague as três linhas do bloco do Ashby em
+>   `removidos.txt` e restaure os arquivos e a entrada do manifesto do
+>   histórico (`git checkout <commit anterior a esta remoção> -- "Cérebro/01-Bibliografia/Selecao_de_Materiais_no_Projeto_Mecanico.pdf" "Cérebro/Selecao_de_Materiais_no_Projeto_Mecanico.pdf" Cérebro/manifesto.json`,
 >   conferindo o manifesto à mão se ele tiver mudado depois); a próxima
->   `ingerir` o baixa e indexa. O histórico tem o arquivo, porque esta remoção
->   nunca passou pela limpeza.
+>   `ingerir` o baixa e indexa (a cópia da raiz volta a ser só cópia). O
+>   histórico tem os arquivos, porque esta remoção nunca passou pela limpeza.

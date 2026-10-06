@@ -11,7 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
-| [49](#sessão-49--061026--os-dois-ashby-em-português-fica-o-de-2012) | 06/10/2026 | Dos dois scans do Ashby em português fica o de 2012 (4ª ed., provavelmente o mais novo, não confirmado): o sem data sai do git, do manifesto e do RAG pela lista de remoção, pelo caminho e pelo conteúdo, numa linha `mantido-no-historico:` que a limpeza do histórico não lê (D-101, atualização dos dois Ashby) | 3770 → 3781 | 762 (inalterado) |
+| [49](#sessão-49--061026--os-dois-ashby-em-português-fica-o-de-2012) | 06/10/2026 | Dos dois scans do Ashby em português fica o de 2012 (4ª ed., provavelmente o mais novo, não confirmado): o sem data e a cópia byte a byte dele na raiz saem do git, do manifesto e do RAG pela lista de remoção, pelos caminhos e pelo conteúdo, em linhas `mantido-no-historico:` que a limpeza do histórico não lê (D-101, atualização dos dois Ashby) | 3770 → 3781 | 762 (inalterado) |
 | [48](#sessão-48--061026--a-revisão-do-pr-98-o-teto-era-por-fluxo-não-por-documento) | 06/10/2026 | A revisão do PR #98 achou que o teto de 500 MB era por fluxo e a memória somava as páginas, que um livro lido pela metade passava em silêncio e nunca era relido, e que o upload dos Cadernos tinha a mesma soma: o pypdf solta as cópias entre páginas, o Cérebro lê com 200 MB por fluxo, orçamento por documento e falha acima de 20% das páginas de fora, a linha virou `::warning::` com a classe do erro, o `status` ganhou rótulo próprio e `ingerir` ganhou `forcar`; o upload lê com 4 MB por fluxo, 32 MB por arquivo e páginas contadas antes (endurecimento de segurança; D-101, atualização da revisão do PR #98) | 3743 → 3770 | 762 (inalterado) |
 | [47](#sessão-47--061026--o-teto-de-descompressão-do-pypdf-e-os-dois-ashby) | 06/10/2026 | A segunda `ingerir` saiu com 1 por dois Ashby barrados pelo teto de 75 MB por fluxo do pypdf: o Cérebro lê com teto de 500 MB, no `ContextVar` do pypdf (piso 6.18), e pula a página que não decodifica dizendo quantas; o upload dos Cadernos mantém o padrão e falha na primeira página ilegível (D-101, atualização do teto de descompressão) | 3725 → 3743 | 762 (inalterado) |
 | [46](#sessão-46--061026--o-nul-do-pypdf-e-a-ingestão-que-não-para-num-documento) | 06/10/2026 | A primeira `ingerir` em produção morreu com `PostgreSQL text fields cannot contain NUL (0x00) bytes`: o NUL sai na fonte (`storable_text()` nos leitores, no fatiador e nas fontes dos Cadernos), e um documento que o banco recusa volta ao *savepoint* e sai `falhou` sem parar a execução; erro de banco num CLI imprime só a classe, e o log daquela execução, com texto do livro, espera o dono apagá-lo (D-101, atualização de 06/10) | 3699 → 3725 | 762 (inalterado) |
@@ -82,11 +82,14 @@ gastaria banda. O histórico do git **não** é reescrito por isso.
 [D-100](DECISIONS.md)):
 
 - O ponteiro saiu do git e a entrada saiu do `manifesto.json` (121 → 120
-  entradas, o mesmo formato). Os extratos de capítulo não mudaram.
-- `Cérebro/removidos.txt` ganhou o caminho e o `sha256:` do oid do ponteiro.
-  O caminho casa a linha `FALHOU` da segunda `ingerir`; o conteúdo casa a
-  cópia byte a byte que continua na raiz do Cérebro, que o plano do LFS
-  passa a contar como "na lista de remoção" e nunca baixa.
+  entradas, o mesmo formato). Saiu junto a cópia byte a byte dele na raiz do
+  Cérebro, `Selecao_de_Materiais_no_Projeto_Mecanico.pdf` (o mesmo oid,
+  conferido no ponteiro; o manifesto não a declarava) — num segundo commit, a
+  pedido do autor, que quer só a edição nova também na árvore. As outras 17
+  cópias avulsas da raiz ficam. Os extratos de capítulo não mudaram.
+- `Cérebro/removidos.txt` ganhou os dois caminhos e o `sha256:` do oid do
+  ponteiro. O caminho de `01-Bibliografia/` casa a linha `FALHOU` da segunda
+  `ingerir`; o conteúdo casa qualquer outra cópia com os mesmos bytes.
 - **A limpeza do histórico não leva este caminho.** A conversão do passo 4 do
   guia de limpeza (`docs/17`) mandaria toda linha de caminho para o
   `git filter-repo`. Um terceiro tipo de linha, `mantido-no-historico:<caminho>`,
@@ -94,19 +97,21 @@ gastaria banda. O histórico do git **não** é reescrito por isso.
   ingestão, no `embed` e no gerador do manifesto, e fica fora de
   `RemovalList.history_purge_entries`; o `grep -v` do passo 4 ganhou
   `-e '^mantido-no-historico:'`. Um caminho escrito dos dois jeitos é limpo.
-- Os números do Cérebro: a primeira ingestão completa baixa 119 PDFs, ≈528 MB
-  (503,1 MiB), em vez de 120 e ≈631 MB; 120 cópias byte a byte, mais 1 na
-  lista de remoção. Atualizados no README do Cérebro, `13-deploy.md`,
+- Os números do Cérebro, lidos dos ponteiros: 239 ponteiros (eram 241), 119
+  objetos LFS distintos (eram 120); a primeira ingestão completa baixa 119
+  PDFs, ≈528 MB (503,1 MiB), em vez de 120 e ≈631 MB; continuam 120 cópias
+  byte a byte (17 na raiz, 103 fichas) — a cópia que saiu era de um arquivo
+  que também saiu. Atualizados no README do Cérebro, `13-deploy.md`,
   `PROJECT_CONTEXT.md`, `docs/CLAUDE.md`, `CLAUDE.md` e TODO; os registros de
   sessões anteriores ficam com os números da época.
 
 **Como se sabe que passa.** 11 testes novos: o leitor (o prefixo casa como
 caminho e prefixo de pasta, sai de `history_purge_entries`, é validado como
-qualquer caminho, perde para a linha comum); a lista real (o Ashby sai pelo
-caminho e pelo conteúdo, o de 2012 e os extratos não, a limpeza continua com
+qualquer caminho, perde para a linha comum); a lista real (o Ashby e a cópia da raiz saem
+pelo caminho e pelo conteúdo, o de 2012 e os extratos não, a limpeza continua com
 as mesmas 14 linhas); a ingestão pula o caminho e uma cópia com os mesmos bytes
 em outro caminho e indexa a edição que fica; o plano do LFS, com a lista real,
-não baixa o ponteiro que saiu nem a cópia da raiz; o `prune` lista e apaga a
+não baixa nenhum dos dois ponteiros que saíram, se voltarem; o `prune` lista e apaga a
 linha `FALHOU` pelo caminho e a cópia pelo conteúdo; e o bloco de shell do
 passo 4 do `docs/17`, rodado sobre a lista real, sai igual a
 `history_purge_entries` (sem o `-e` novo, ele falha). `manifesto.json` validado
