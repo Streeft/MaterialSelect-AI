@@ -116,8 +116,10 @@ describe("PhaseBars (Modo Comparativo A vs B)", () => {
       />,
     );
 
-    expect(screen.getByText("Aço 1020")).toBeInTheDocument();
-    expect(screen.getByText("Alumínio 6061")).toBeInTheDocument();
+    // Cada série aparece uma vez na legenda e uma vez como rótulo de barra em
+    // cada fase (2 fases): 1 + 2 = 3 ocorrências por material.
+    expect(screen.getAllByText("Aço 1020")).toHaveLength(3);
+    expect(screen.getAllByText("Alumínio 6061")).toHaveLength(3);
   });
 
   it("escala as barras pela maior magnitude geral entre as duas séries", () => {
