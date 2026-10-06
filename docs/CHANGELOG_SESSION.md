@@ -11,10 +11,11 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
-| [51](#sessão-51--061026--segunda-rodada-do-pr-100-um-pdf-por-vez-e-um-relógio-para-o-upload) | 06/10/2026 | A segunda revisão do PR #100 achou que os limites de memória do upload eram por leitura (três uploads de 8 KB simultâneos: +624 MB) e que a CPU não tinha limite (uma forma redesenhada não decodifica nada): um PDF por vez no processo (três simultâneos: 247 MB), relógio a cada parse e 30 s por upload, pypdf fixado em `<6.20` com autoverificação que recusa todo PDF se os medidores não forem alcançados, a lista de remoção recusa os erros sem dois-pontos e o `Cérebro/` na frente, e nenhuma recusa cita a linha (D-101, segunda rodada) | 3825 → 3854 | 762 (inalterado) |
-| [50](#sessão-50--061026--a-revisão-do-pr-100-o-orçamento-é-cobrado-a-cada-decodificação) | 06/10/2026 | A revisão do PR #100 achou que o orçamento do upload não segurava uma página só (160 formas de 3,9 MB num PDF de 0,66 MB: 639 MB de pico) e que um prefixo mal escrito em `removidos.txt` passava em silêncio: o orçamento passou a ser cobrado a cada decodificação (76 MB de pico no mesmo arquivo), o upload limita o que o pypdf lê de uma vez (formas aninhadas), a lista de remoção falha fechada em todos os leitores, a regra das páginas de fora ficou proporcional, as recusas ficaram em português, a releitura forçada ganhou nota e rótulo próprios e os ≈600 MB viraram ≈528 MB (D-101, atualização da revisão do PR #100) | 3781 → 3825 | 762 (inalterado) |
-| [49](#sessão-49--061026--os-dois-ashby-em-português-fica-o-de-2012) | 06/10/2026 | Dos dois scans do Ashby em português fica o de 2012 (4ª ed., provavelmente o mais novo, não confirmado): o sem data e a cópia byte a byte dele na raiz saem do git, do manifesto e do RAG pela lista de remoção, pelos caminhos e pelo conteúdo, em linhas `mantido-no-historico:` que a limpeza do histórico não lê (D-101, atualização dos dois Ashby) | 3770 → 3781 | 762 (inalterado) |
-| [48](#sessão-48--061026--a-revisão-do-pr-98-o-teto-era-por-fluxo-não-por-documento) | 06/10/2026 | A revisão do PR #98 achou que o teto de 500 MB era por fluxo e a memória somava as páginas, que um livro lido pela metade passava em silêncio e nunca era relido, e que o upload dos Cadernos tinha a mesma soma: o pypdf solta as cópias entre páginas, o Cérebro lê com 200 MB por fluxo, orçamento por documento e falha acima de 20% das páginas de fora, a linha virou `::warning::` com a classe do erro, o `status` ganhou rótulo próprio e `ingerir` ganhou `forcar`; o upload lê com 4 MB por fluxo, 32 MB por arquivo e páginas contadas antes (endurecimento de segurança; D-101, atualização da revisão do PR #98) | 3743 → 3770 | 762 (inalterado) |
+| [52](#sessão-52--061026--segunda-rodada-do-pr-100-um-pdf-por-vez-e-um-relógio-para-o-upload) | 06/10/2026 | A segunda revisão do PR #100 achou que os limites de memória do upload eram por leitura (três uploads de 8 KB simultâneos: +624 MB) e que a CPU não tinha limite (uma forma redesenhada não decodifica nada): um PDF por vez no processo (três simultâneos: 247 MB), relógio a cada parse e 30 s por upload, pypdf fixado em `<6.20` com autoverificação que recusa todo PDF se os medidores não forem alcançados, a lista de remoção recusa os erros sem dois-pontos e o `Cérebro/` na frente, e nenhuma recusa cita a linha (D-101, segunda rodada) | 3825 → 3854 | 762 (inalterado) |
+| [51](#sessão-51--061026--a-revisão-do-pr-100-o-orçamento-é-cobrado-a-cada-decodificação) | 06/10/2026 | A revisão do PR #100 achou que o orçamento do upload não segurava uma página só (160 formas de 3,9 MB num PDF de 0,66 MB: 639 MB de pico) e que um prefixo mal escrito em `removidos.txt` passava em silêncio: o orçamento passou a ser cobrado a cada decodificação (76 MB de pico no mesmo arquivo), o upload limita o que o pypdf lê de uma vez (formas aninhadas), a lista de remoção falha fechada em todos os leitores, a regra das páginas de fora ficou proporcional, as recusas ficaram em português, a releitura forçada ganhou nota e rótulo próprios e os ≈600 MB viraram ≈528 MB (D-101, atualização da revisão do PR #100) | 3781 → 3825 | 762 (inalterado) |
+| [50](#sessão-50--061026--os-dois-ashby-em-português-fica-o-de-2012) | 06/10/2026 | Dos dois scans do Ashby em português fica o de 2012 (4ª ed., provavelmente o mais novo, não confirmado): o sem data e a cópia byte a byte dele na raiz saem do git, do manifesto e do RAG pela lista de remoção, pelos caminhos e pelo conteúdo, em linhas `mantido-no-historico:` que a limpeza do histórico não lê (D-101, atualização dos dois Ashby) | 3770 → 3781 | 762 (inalterado) |
+| [49](#sessão-49--061026--a-revisão-do-pr-98-o-teto-era-por-fluxo-não-por-documento) | 06/10/2026 | A revisão do PR #98 achou que o teto de 500 MB era por fluxo e a memória somava as páginas, que um livro lido pela metade passava em silêncio e nunca era relido, e que o upload dos Cadernos tinha a mesma soma: o pypdf solta as cópias entre páginas, o Cérebro lê com 200 MB por fluxo, orçamento por documento e falha acima de 20% das páginas de fora, a linha virou `::warning::` com a classe do erro, o `status` ganhou rótulo próprio e `ingerir` ganhou `forcar`; o upload lê com 4 MB por fluxo, 32 MB por arquivo e páginas contadas antes (endurecimento de segurança; D-101, atualização da revisão do PR #98) | 3743 → 3770 | 762 (inalterado) |
+| [48](#sessão-48--061026--phasebars-no-eco-audit-e-reordenação-de-estágios-por-arraste-opções-1-e-2) | 06/10/2026 | Barras de energia e carbono por fase no Eco Audit, individual e comparativo (`PhaseBars`, Opção 1), e reordenação dos estágios da Seleção por arraste, com os botões ↑/↓ mantidos para teclado (`reorderStages`, Opção 2); veio pelo PR #101 em `main`, registrada aqui no merge com o ramo do PR #100 | 3743 (inalterado) | 762 → 778 |
 | [47](#sessão-47--061026--o-teto-de-descompressão-do-pypdf-e-os-dois-ashby) | 06/10/2026 | A segunda `ingerir` saiu com 1 por dois Ashby barrados pelo teto de 75 MB por fluxo do pypdf: o Cérebro lê com teto de 500 MB, no `ContextVar` do pypdf (piso 6.18), e pula a página que não decodifica dizendo quantas; o upload dos Cadernos mantém o padrão e falha na primeira página ilegível (D-101, atualização do teto de descompressão) | 3725 → 3743 | 762 (inalterado) |
 | [46](#sessão-46--061026--o-nul-do-pypdf-e-a-ingestão-que-não-para-num-documento) | 06/10/2026 | A primeira `ingerir` em produção morreu com `PostgreSQL text fields cannot contain NUL (0x00) bytes`: o NUL sai na fonte (`storable_text()` nos leitores, no fatiador e nas fontes dos Cadernos), e um documento que o banco recusa volta ao *savepoint* e sai `falhou` sem parar a execução; erro de banco num CLI imprime só a classe, e o log daquela execução, com texto do livro, espera o dono apagá-lo (D-101, atualização de 06/10) | 3699 → 3725 | 762 (inalterado) |
 | [45](#sessão-45--300926-a-051026--o-cérebro-entra-em-produção) | 30/09 a 05/10/2026 | O Cérebro entra em produção pelo GitHub Actions: workflow `conhecimento.yml` (ingestão que baixa do LFS só o que o banco não tem, vetores de 768 dimensões com a sobra noturna da cota gratuita, retrato), ingestão segura contra ponteiro LFS, cópias e versão ilegível, busca sobre índice em memória e a identidade de vetor em `/api/health` (D-101); no merge com `main`, a ingestão direcionada da sessão 39 (`--file`, `--force`) sob as mesmas garantias e a entrada `arquivos` de `ingerir`; na revisão final, o `embed` respeita a lista de remoção | 3338 → 3552 no ramo; 3395 → 3624 com o merge; 3660 com a revisão final; 3699 com o merge do PR #94 | 753 (inalterado no ramo); 762 com o merge do PR #94 |
@@ -70,7 +71,7 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
-## Sessão 51 — 06/10/26 — Segunda rodada do PR #100: um PDF por vez e um relógio para o upload
+## Sessão 52 — 06/10/26 — Segunda rodada do PR #100: um PDF por vez e um relógio para o upload
 
 **O pedido.** Corrigir tudo o que a segunda revisão do PR #100 achou: dois
 problemas Importantes (N1, N2) e três menores (m1–m3), e o texto que ela
@@ -122,7 +123,7 @@ pulam). Frontend 762, inalterado. `ruff` e `black` limpos.
 
 **Pendente, e só o autor faz**, depois do merge: **Deploy da API**.
 
-## Sessão 50 — 06/10/26 — A revisão do PR #100: o orçamento é cobrado a cada decodificação
+## Sessão 51 — 06/10/26 — A revisão do PR #100: o orçamento é cobrado a cada decodificação
 
 **O pedido.** Corrigir tudo o que a revisão do PR #100 achou: dois problemas
 Importantes (I1, I2) e cinco menores (M1–M5). Feito por cima de `1212cee`, na
@@ -190,9 +191,9 @@ em `conhecimento.yml`.
 
 **Pendente, e só o autor faz**, depois do merge: **Deploy da API** — o
 medidor do upload só existe em produção depois dele —, e os passos que a
-sessão 49 já deixou ([TODO.md](TODO.md) A7, item 3).
+sessão 50 já deixou ([TODO.md](TODO.md) A7, item 3).
 
-## Sessão 49 — 06/10/26 — Os dois Ashby em português: fica o de 2012
+## Sessão 50 — 06/10/26 — Os dois Ashby em português: fica o de 2012
 
 **O pedido.** O autor decidiu o item "Os dois Ashby em português" do TODO:
 ficar só com a edição mais nova. Fica
@@ -250,7 +251,7 @@ sha256:27882628`) → `conhecimento_remover` → **Base de conhecimento (Cérebr
 → `ingerir` ([TODO.md](TODO.md) A7, item 3). Sem deploy da API: o `prune` e a
 ingestão rodam no runner, do código de `main`.
 
-## Sessão 48 — 06/10/26 — A revisão do PR #98: o teto era por fluxo, não por documento
+## Sessão 49 — 06/10/26 — A revisão do PR #98: o teto era por fluxo, não por documento
 
 **O pedido.** Corrigir, pela causa, a revisão feita depois do merge do PR #98:
 três achados importantes (I1–I3) e três menores (M1–M3).
@@ -337,6 +338,37 @@ pulam). Frontend 762, inalterado. `ruff` e `black` limpos.
   as páginas dele passam de 200 MB; com `FALHOU … mais que 20%`, o livro não
   entra assim, e a decisão é do autor (tirá-lo, ou subir o teto sabendo do
   custo).
+
+## Sessão 48 — 06/10/26 — PhaseBars no Eco Audit e reordenação de estágios por arraste (Opções 1 e 2)
+
+**Registro escrito depois.** O trabalho chegou a `main` pelo PR #101 sem seção
+própria aqui; os outros documentos já o chamavam de "Sessão 48". Esta seção foi
+escrita no merge de `main` com o ramo do PR #100, a partir do PR e do item
+correspondente em [TODO.md](TODO.md) ("Débitos já quitados"). As sessões do
+ramo do PR #100, que tinham sido numeradas 48 a 51 em paralelo, passaram a 49
+a 52.
+
+**O que mudou.**
+
+- **Eco Audit — barras por fase (Opção 1).** `PhaseBars`
+  (`apps/web/components/eco/PhaseBars.tsx`) desenha as cinco fases do ciclo de
+  vida em energia (MJ) e carbono (kg de CO₂), no modo individual e no
+  comparativo lado a lado, com `role="figure"`/`role="meter"`, ausência com
+  rótulo escrito e o crédito (valor negativo) marcado. As larguras saem de um
+  helper puro, `calculateBarWidth`, sobre os números que o backend já devolve.
+- **Seleção — reordenação por arraste (Opção 2).** `StageList` ganhou
+  arrastar e soltar sobre uma função pura e imutável,
+  `reorderStages(stages, from, to)`, com uma alça `⠿` rotulada
+  (`selectionExtras.stageDragHandle(n)`); os botões ↑/↓ continuam, porque são o
+  caminho de teclado.
+- `CardProps` passou a estender `HTMLAttributes` e a repassar o resto das
+  props (o arraste precisa dos eventos no cartão), e o tipo saiu no barril de
+  `@/components/ui`.
+
+**Números.** Backend 3743, inalterado. Frontend 762 → 778 (+10 em
+`PhaseBars.test.tsx`, +6 em `StageList.test.tsx`). O PR registrou 777 e
+"+9"; o Vitest conta 778, porque `PhaseBars.test.tsx` tem 10 casos — corrigido
+nos documentos no merge.
 
 ## Sessão 47 — 06/10/26 — O teto de descompressão do pypdf e os dois Ashby
 
