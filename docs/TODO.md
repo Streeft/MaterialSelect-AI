@@ -60,7 +60,7 @@ quitados".
 **A7 — o que resta, e só o autor faz.** ▁ A remoção do banco de produção e a
 reescrita do histórico foram feitas em 30/09/2026, e a ingestão direcionada do
 `Links.md` saiu em código (ver "Débitos já quitados" e o [D-100](DECISIONS.md)).
-Ficam quatro passos fora do código:
+Ficam três passos fora do código:
 
 1. **Suporte do GitHub** ([`17-limpeza-historico-cerebro.md`](17-limpeza-historico-cerebro.md)
    §10). Pedir a remoção das refs de PR (`refs/pull/*` — a do PR #56 guarda 65
@@ -81,28 +81,9 @@ Ficam quatro passos fora do código:
    já com `embeddings` → `status` toda semana até `faltam 0`. O download
    arquivo a arquivo (`git lfs smudge`) ainda não rodou no GitHub: a primeira
    `ingerir` é o teste dele.
-   **06/10/2026:** a primeira `ingerir` (segunda execução do workflow; a
-   primeira só rodou `status`) morreu com `PostgreSQL text fields cannot
-   contain NUL (0x00) bytes` (o pypdf devolve U+0000; o SQLite dos testes
-   aceita). Corrigido no código (D-101, atualização de 06/10): o NUL sai na
-   fonte, um documento que o banco recusa não para mais a execução, e um erro
-   de banco que escapa de um CLI do Cérebro imprime só o nome da classe (o
-   motor também esconde parâmetros). Depois do merge: **Deploy da API** (os
-   uploads dos Cadernos passam pela mesma regra e rodam na API) e **`ingerir`
-   de novo** — ela roda no runner, do código de `main`, sem deploy; os
-   documentos já gravados saem `inalterados`.
-4. **Apagar o log público que tem texto de livro — já, sem esperar o merge.**
-   O traceback daquela `ingerir` (execução **37415600025**, job 112113411666,
-   passo "Ingerir") imprimiu o SQL e os parâmetros do `INSERT`: ~1000 trechos
-   de um livro licenciado, num log público. Actions → a execução → ⋯ →
-   **Delete all logs** (ou `DELETE
-   /repos/Streeft/MaterialSelect-AI/actions/runs/37415600025/logs`). O código
-   não apaga log publicado; a correção só impede o próximo. Qualquer execução
-   de `ingerir` que falhe antes do deploy desta correção: a mesma coisa.
 
 Não registrado aqui: se os logs das execuções de `conhecimento_simular_remocao`
-e `conhecimento_remover` já foram apagados (guia §1.3 e §11) — conferir junto
-com o item 4, pelo mesmo menu.
+e `conhecimento_remover` já foram apagados (guia §1.3 e §11) — conferir.
 
 ---
 
@@ -262,6 +243,11 @@ continua lá, e a métrica para de medir no 3.
 
 Registrados para não voltarem por engano:
 
+- ~~**Eco Audit: figura de barras por fase (Opção 1) e Seleção: reordenar por arraste (Opção 2)**~~ —
+  as duas melhorias funcionais restantes foram entregues em conjunto na Sessão 46:
+  1. **Eco Audit (P3 restante):** componente `PhaseBars.tsx` exibindo barras horizontais semânticas (`role="figure"`, `role="meter"`) para as cinco fases do ciclo de vida (energia e carbono), com suporte a modo individual e modo comparativo (Material A vs B), escalonamento dinâmico via `calculateBarWidth`, tratamento explícito de dados não calculados com motivo, e destaque verde com badge `(crédito)` para créditos de reciclagem (+9 testes unitários em `PhaseBars.test.tsx`).
+  2. **Seleção (P0-1 restante):** função pura e imutável `reorderStages` e integração completa de drag-and-drop em `StageList.tsx`, com handle de arraste `⠿` acessível (`title` e `aria-label`), feedback visual `ring-2 ring-brand-500 shadow-lift` no container de destino, preservando os botões ↑/↓ existentes como alternativa de acessibilidade por teclado (+6 testes unitários em `StageList.test.tsx`).
+  Cobertura total de testes: 3699 testes de backend (nenhum skip na CI) e 762 → 777 frontend (+15 testes, todos verdes).
 - ~~**Lote quádruplo de melhorias: Seleção (P0-1), Busca e Highlight (P1-1), Dimensionador Circular (P2) e Eco Audit Comparativo (P3)**~~ —
   as quatro frentes de refinamento funcional solicitadas pelo usuário foram implementadas e integradas de ponta a ponta na mesma PR:
   1. **Seleção (P0-1):** duplicação de estágio na pilha de seleção (`duplicateStage` em `apps/web/components/selection/StageList.tsx`), clonando recursivamente grupos e restrições com identificadores novos (`nextEditorId`), etiqueta `(cópia)` no rótulo, botão de ação `⧉` acessível com tooltip `t.stageDuplicate(n)` inserindo a duplicata logo abaixo do estágio original, e testes unitários (+3 testes frontend em `StageList.test.tsx`).
@@ -373,8 +359,7 @@ Registrados para não voltarem por engano:
     a profundidade que contava referências lado a lado (N-4) e a matemática
     não avaliada que deixava passar (N-5). Orçamentos por atributo, escopo,
     expansão e página; o que passa deles, ou faz o leitor tropeçar, oculta o
-    nó. Os testes de regressão estão em `test_html_css_budgets.py`.
-  - **Cota não atômica** (D-92/D-94/D-97): as três cotas são **reservadas** por
+    nó. Os testes de regressão estão em `test_html_css_budgets.py`.\n  - **Cota não atômica** (D-92/D-94/D-97): as três cotas são **reservadas** por
     um `UPDATE … WHERE contador < limite` e devolvidas quando a operação não
     cobra; um teste da forma do SQL falha se o código voltar a
     ler-e-escrever. A devolução de uma geração é idempotente — só quem tira a
@@ -456,8 +441,7 @@ Registrados para não voltarem por engano:
   documentos; a pilha editável em `/app/selecao`, que continua abrindo com um
   único estágio para quem faz um estudo simples. **O P0-2 acrescentou o terceiro
   tipo, `process`** — ver a entrada abaixo. Fechou de passagem a lacuna de
-  round-trip que o M6 deixou anotada. **O que ficou de fora, e é melhoria e não
-  bloqueio:** reordenar por arraste (duplicação de estágio entregue na Sessão 44). O Chart Stage que
+  round-trip que o M6 deixou anotada. **O que ficou de fora, e é melhoria e não bloqueio:** reordenar por arraste (entregue na Sessão 46; duplicação entregue na Sessão 44). O Chart Stage que
   filtra, também listado ali, saiu depois como P1-2 — ver a entrada abaixo.
 - ~~**P0-2** — não existia universo de processos~~ — `ProcessClass`
   hierárquica, `Process` e a associação N–N `material_process`, entregues em
@@ -613,13 +597,13 @@ Registrados para não voltarem por engano:
   não uma segunda derivação.
 
   **O que ficou de fora:** o custo por família de processo, e custo como
-  objetivo em estudo de **processos** — um processo não tem `custo_massa`, e
-  ali a pergunta é a do estimador.
-- ~~**P3 (segundo item)** — o Eco Audit~~ — `POST /api/eco/auditar` e
-  `/app/eco` somam energia e carbono da peça em cinco fases
-  ([D-66](DECISIONS.md)). A resposta não é o total: é **qual fase domina**, uma
-  vez em energia e outra em carbono, porque as duas podem discordar. Faltando o
-  dado de qualquer fase, o pódio e o total são **recusados com o motivo
+  objetivo em estudos salvos e no laudo.
+- ~~**P3 (segundo item)** — o Eco Audit~~ — `POST /api/eco/auditar` calcula
+  energia incorporada e pegada de carbono sobre as cinco fases da vida de um
+  produto ([D-66](DECISIONS.md)); `/app/eco` mostra o funil de energia e de
+  carbono com barras de contribuição e tabela com a unidade escrita. **O
+  transporte é explícito**: modo, distância e carga, porque sem isso a fase não
+  faz sentido. A vida útil e a potência entram no uso com **o motivo
   escrito** — a fase que ninguém calculou pode ser a que domina.
 
   Quatro decisões que não se mexem: a fase de uso tem **dois modelos que não são
@@ -634,8 +618,7 @@ Registrados para não voltarem por engano:
   existia sem uso), dois atributos de processo e `TransportMode` — nem material
   nem processo, com a justificativa no modelo.
 
-  **O que ficou de fora:** a figura de barras por fase, comparar dois materiais
-  na mesma auditoria (entregue na Sessão 44 com comparação lado a lado, deltas e vencedores), e energia catalogada para aterro e incineração.
+  **O que ficou de fora:** a figura de barras por fase (entregue na Sessão 46 com PhaseBars individual e comparativo), comparar dois materiais na mesma auditoria (entregue na Sessão 44 com comparação lado a lado, deltas e vencedores), e energia catalogada para aterro e incineração.
 - ~~**P3 (terceiro item)** — o Synthesizer~~ — `POST /api/synthesis/previa`,
   `POST /api/synthesis` e `/app/sintetizar` criam **materiais hipotéticos** a
   partir de materiais catalogados mais uma receita: compósito de dois
@@ -718,6 +701,7 @@ Registrados para não voltarem por engano:
   estrita de atributos discretos conforme Regra D-59, rejeição de índices
   analíticos, e preview interativo completo tanto em `/app/mapas` quanto no
   ChartStage de `/app/selecao`).
+
 - ~~**S2** — CVEs do toolchain de desenvolvimento~~ — `npm audit` em
   `apps/web` de **27 para 14** achados, com as duas cadeias que tinham caminho
   de upgrade fechadas por inteiro. `vitest` 2 → **5** (com `vite` 7,
