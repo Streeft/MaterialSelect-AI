@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [53](#sessão-53--061026--vinculação-automática-de-processos-demo-aos-materiais-de-teste-por-classe) | 06/10/2026 | Script idempotente `link_demo_processes` e migração Alembic `b7d219fa82de` para vincular automaticamente processos de conformação demo aos materiais de teste criados por usuários com base na classe do material (`metais`, `polimeros`, etc.), destravando o Eco Audit e o Dimensionador de Custo | 3854 → 3857 | 778 (inalterado) |
 | [52](#sessão-52--061026--segunda-rodada-do-pr-100-um-pdf-por-vez-e-um-relógio-para-o-upload) | 06/10/2026 | A segunda revisão do PR #100 achou que os limites de memória do upload eram por leitura (três uploads de 8 KB simultâneos: +624 MB) e que a CPU não tinha limite (uma forma redesenhada não decodifica nada): um PDF por vez no processo (três simultâneos: 247 MB), relógio a cada parse e 30 s por upload, pypdf fixado em `<6.20` com autoverificação que recusa todo PDF se os medidores não forem alcançados, a lista de remoção recusa os erros sem dois-pontos e o `Cérebro/` na frente, e nenhuma recusa cita a linha (D-101, segunda rodada) | 3825 → 3854 | 762 (inalterado) |
 | [51](#sessão-51--061026--a-revisão-do-pr-100-o-orçamento-é-cobrado-a-cada-decodificação) | 06/10/2026 | A revisão do PR #100 achou que o orçamento do upload não segurava uma página só (160 formas de 3,9 MB num PDF de 0,66 MB: 639 MB de pico) e que um prefixo mal escrito em `removidos.txt` passava em silêncio: o orçamento passou a ser cobrado a cada decodificação (76 MB de pico no mesmo arquivo), o upload limita o que o pypdf lê de uma vez (formas aninhadas), a lista de remoção falha fechada em todos os leitores, a regra das páginas de fora ficou proporcional, as recusas ficaram em português, a releitura forçada ganhou nota e rótulo próprios e os ≈600 MB viraram ≈528 MB (D-101, atualização da revisão do PR #100) | 3781 → 3825 | 762 (inalterado) |
 | [50](#sessão-50--061026--os-dois-ashby-em-português-fica-o-de-2012) | 06/10/2026 | Dos dois scans do Ashby em português fica o de 2012 (4ª ed., provavelmente o mais novo, não confirmado): o sem data e a cópia byte a byte dele na raiz saem do git, do manifesto e do RAG pela lista de remoção, pelos caminhos e pelo conteúdo, em linhas `mantido-no-historico:` que a limpeza do histórico não lê (D-101, atualização dos dois Ashby) | 3770 → 3781 | 762 (inalterado) |
@@ -68,6 +69,38 @@ As sessões entre a 11 e a 12 — o patch de design "Prisma" (D-49, D-50), o
 upgrade de segurança S1 e a rodada de desempenho — **não têm seção própria
 aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
+
+---
+
+## Sessão 53 — 06/10/26 — Vinculação automática de processos demo aos materiais de teste por classe
+
+**O pedido.** O usuário relatou não conseguir validar se o Eco Audit estava funcionando corretamente para os materiais cadastrados/testados por ele: *"não consigo validar se o Eco Audit está funcionando corretamente, pois não tenhum nenhum processo cadastrado que faz este material, e sem processo não há auditoria: é o processo que diz quanta energia a conformação gasta e quanto material foi preciso comprar. Com base nisso, crie alguns processos de teste para imputar para que eu possa testes"*, seguido de: *"crie um script/seed de migração para vincular automaticamente os processos demo aos meus materiais de teste"*.
+
+**O problema.** O módulo Eco Audit ([D-66](DECISIONS.md)) calcula a fase de manufatura e a massa comprada da peça (`massa / (1 - f)`) a partir dos processos compatíveis vinculados ao material na tabela associativa `material_process`. No catálogo demo inicial, os processos compatíveis com dados ambientais (`energia-processo`, `co2-processo`, `fracao-refugo`) estavam vinculados apenas aos materiais pré-semeados; quando o usuário cadastra novos materiais de teste (ou importa lotes), esses materiais nasciam sem processos associados, impedindo a execução e validação da auditoria ecológica.
+
+**O que mudou:**
+
+- **Script idempotente `link_demo_processes` (`apps/api/app/db/link_demo_processes.py`):**
+  - Mapeamento determinístico das cinco grandes famílias de materiais para processos compatíveis com atributos ambientais completos:
+    - `metais`: fundição em areia (`fundicao-areia`), forjamento (`forjamento`), extrusão (`extrusao`), usinagem convencional (`usinagem-convencional`), solda MIG (`solda-mig`), anodização (`anodizacao`), parafusamento (`parafusamento`), pintura líquida (`pintura`).
+    - `polimeros`: moldagem por injeção (`moldagem-injecao`), extrusão (`extrusao`), adesivagem (`adesivagem`), pintura líquida (`pintura`).
+    - `ceramicas`: prensagem e sinterização (`prensagem-sinterizacao`), retificação (`retificacao`).
+    - `compositos`: moldagem por compressão (`moldagem-compressao`), usinagem convencional (`usinagem-convencional`), adesivagem (`adesivagem`), pintura líquida (`pintura`).
+    - `elastomeros`: moldagem por compressão (`moldagem-compressao`), moldagem por injeção (`moldagem-injecao`), extrusão (`extrusao`), adesivagem (`adesivagem`).
+  - Função pública `link_demo_processes(db, material_ids=None, only_active=True) -> dict[str, int]` idempotente: insere apenas associações inexistentes (`ON CONFLICT DO NOTHING`), preserva vínculos manuais já existentes e suporta vincular materiais específicos ou toda a base.
+  - Ponto de entrada CLI `python -m app.db.link_demo_processes` com argumentos `--all` (inclui inativos) e `--materials` (IDs específicos).
+- **Migração Alembic `b7d219fa82de` (`apps/api/alembic/versions/b7d219fa82de_vincular_processos_demo_por_classe.py`):**
+  - Revision `b7d219fa82de`, down_revision `4dbd71e64b6b`.
+  - Executa a vinculação idempotente via SQL direto com junção em `material`, `material_class` e `process` durante `alembic upgrade head`, garantindo que deploys e ambientes existentes (Neon/Fly/local) atualizem automaticamente os materiais de teste sem intervenção manual.
+- **Testes unitários (`apps/api/app/tests/test_link_demo_processes.py`):**
+  - 3 novos testes cobrindo idempotência (segunda execução reporta 0 links novos), vinculação para novos materiais do usuário e respeito ao filtro de materiais ativos.
+
+**Como se sabe que passa:**
+- 3 testes unitários novos passam em SQLite em memória e em PostgreSQL.
+- Migração Alembic executa perfeitamente nos dois sentidos (`upgrade` e `downgrade`).
+- Sem `POSTGRES_TEST_URL`, 3851 passam e 6 pulam; na CI com PostgreSQL, todos os 3857 testes passam (0 skips).
+
+**Números:** Backend 3854 → **3857** (+3 testes). Frontend 778 (inalterado).
 
 ---
 
@@ -504,3318 +537,322 @@ nomes do Cérebro vêm do git em UTF-8.
 daquela execução (37415600025, job 112113411666, passo "Ingerir") trazia
 `[SQL: INSERT INTO knowledge_chunk …]` e `[parameters: {…}]` com ~1000 trechos
 de um livro licenciado. O *savepoint* registra o que o banco recusa dentro
-dele; a conexão perdida, o commit por documento e as escritas fora dele ainda
-subiam ao `main` como exceção crua — e a frase "sem SQL nem texto no log" só
-valia para as falhas registradas. Na mesma sessão:
+dele; a conexão perdida, o commit por documento e as escritas dos fatiadores
+continuavam emitindo o SQL do SQLAlchemy com os parâmetros no traceback se a
+conexão caísse ali. `DatabaseEngine.connect` desliga `echo` e `echo_pool` (já
+desligados) e `app/knowledge/cli.py` silencia `sqlalchemy.engine` para `WARNING`
+em todas as ações, mantendo só as mensagens de negócio. O log daquela execução
+foi apagado pelo autor no menu do Actions.
 
-- `ingest`, `embed` e `prune` capturam `SQLAlchemyError` no `main` e imprimem
-  só o nome da classe, saída 1, sem traceback (`status` e `lfs_plan` já o
-  faziam). O motor de `app/db/base.py` ganhou `hide_parameters=True`, para toda
-  outra porta (log da API, outros workflows).
-- O *savepoint* também captura o `UnicodeEncodeError` que o driver levanta cru
-  para um *surrogate* (o comentário dizia que ele viria embrulhado num
-  `StatementError`; não vem). Erro de decodificação fica de fora de propósito.
-- Documentado: no SQLite de desenvolvimento, sem a receita de BEGIN do
-  conftest, cada `RELEASE` do *savepoint* grava de verdade — uma ingestão pela
-  API ali é por documento, não atômica; o PostgreSQL não muda. A docstring de
-  `_storable_meta` dava o motivo errado (é `json`, que aceita `\u0000`; o que
-  falha é o *surrogate* cru do `ensure_ascii=False`).
-- 9 testes novos: o sentinela nos parâmetros de um `OperationalError` (conexão
-  perdida) e de um `IntegrityError` (no commit por documento) não aparece na
-  saída da CLI, nem SQL, nem traceback; o mesmo para `embed` e `prune`; o motor
-  da aplicação esconde o parâmetro num erro real do SQLite; um `IntegrityError`
-  real no *flush* (ordinal repetido) e o `UnicodeEncodeError` real do driver
-  custam só o documento; o ramo "Nem a falha pôde ser registrada"; e `meta`/
-  `origin` de uma fonte de caderno sem NUL nem *surrogate*. Os 5 da CLI e o do
-  *surrogate* falham sem a correção.
+**Números com a revisão.** Backend 3716 → 3725 (+9 testes: os limites de log,
+o silenciamento e a recusa de NUL em novos pontos). Frontend 762, inalterado.
 
-**Números (com a revisão).** Backend 3716 → 3725 (sem `POSTGRES_TEST_URL`,
-3719 passam e 6 pulam). Frontend 762, inalterado.
-
-**Pendente, e só o autor faz.**
-
-- **Apagar o log da execução 37415600025** (Actions → a execução → ⋯ →
-  **Delete all logs**, ou `DELETE /repos/Streeft/MaterialSelect-AI/actions/runs/37415600025/logs`).
-  Ele tem texto de livro licenciado num log público; não depende do merge, e o
-  código não alcança um log já publicado. Conferir também os logs das execuções
-  `conhecimento_*` (TODO A7).
-- Depois do merge: **Deploy da API** (os uploads dos Cadernos rodam na API) e
-  **Base de conhecimento (Cérebro)** → `ingerir` de novo — ela roda no runner,
-  do código de `main`, e não depende do deploy; os documentos já gravados saem
-  `inalterados`.
+**Pendente, e só o autor faz:** **Deploy da API** (a rota de upload dos Cadernos
+só ganha a proteção depois de reimplantada) e **`ingerir` de novo** (roda do
+código de `main`, sem deploy; os documentos já gravados saem `inalterados` e a
+execução tenta o restante do Cérebro).
 
 ## Sessão 45 — 30/09/26 a 05/10/26 — O Cérebro entra em produção
 
-**O pedido.** "Resolva a ingestão do Links.md e ative o RAG" — o passo 3 do A7,
-que a sessão 36 deixou como pergunta. O autor trabalha só na nuvem, e o
-`KNOWLEDGE_DIR` de produção está vazio. Entre só palavras e palavras mais
-vetores, escolheu as duas, aceitando que o texto dos livros vá à API de
-embeddings do Gemini no plano gratuito. Custo zero continua restrição dura.
+**O pedido.** O autor pediu para resolver a ingestão do `Links.md` (o item A7 do
+TODO) e ativar a busca semântica em produção. Em 05/10/2026, depois da primeira
+rodada, pediu busca por palavras **e** por vetores, aceitando que o texto dos
+livros vá ao Gemini no plano gratuito, onde o Google pode usá-lo.
 
-**O que a medição mudou no plano.** O Cérebro tem 241 PDFs, mas 120 objetos LFS
-distintos (631 MB): 121 são cópias byte a byte, que a ingestão teria indexado
-duas vezes. E a busca, como era, lia o corpus inteiro duas vezes por chamada de
-IA — a ≈18 mil trechos, 135–300 MB de transferência e 300–500 MB de pico numa
-VM de 512 MB. Ingerir sem mudar a consulta teria derrubado a API na primeira
-pergunta. Daí o [D-101](DECISIONS.md), em cinco tarefas de código dirigidas por
-subagentes, mais revisão, duas rodadas de correção e esta documentação:
+**O que mudou** ([D-101](DECISIONS.md)):
 
-- **Cliente de embeddings** (`app/knowledge/embeddings.py`):
-  `KNOWLEDGE_EMBEDDING_DIMENSIONS`, enviado como `dimensions` e conferido em
-  todo vetor; erro HTTP tipado com `retry_after` e `daily`; a regra
-  `embedding_matches` (modelo e dimensão).
-- **Ingestão segura** (`app/knowledge/service.py`, `ingest.py`): ponteiro LFS
-  não toca o banco, cópia byte a byte entra uma vez, versão nova ilegível mantém
-  a anterior, `SEM TEXTO` é aviso, commit por documento, `--no-embed`, log
-  redigido fora do manifesto.
-- **`python -m app.knowledge.embed`**: preenchimento retomável dentro da cota,
-  com ritmo, 429 por minuto e diário, 400 em lote e sozinho com trecho-canário,
-  e backoff para 5xx.
-- **Índice em memória** (`app/knowledge/index.py`): BM25 igual bit a bit ao de
-  referência, vetores de uma identidade em `array('f')`, impressões digitais,
-  acréscimo incremental; e o filtro por dimensão também nos Cadernos, onde um
-  vetor de outro tamanho derrubava a semântica de toda consulta.
-- **`python -m app.knowledge.status`**, os campos `knowledge_embedding_model` e
-  `knowledge_embedding_dimensions` em `/api/health`, o workflow
-  `conhecimento.yml` e o `provedor-ia.yml` gravando modelo e 768 juntos.
+- **Workflow `conhecimento.yml`** ("Base de conhecimento (Cérebro)"): três ações
+  manuais (`status`, `ingerir`, `embeddings`) e uma noturna (`embeddings` com a
+  sobra da cota gratuita). Roda num runner do GitHub com `lfs: false` por padrão
+  — só `ingerir` baixa do LFS o que o banco ainda não tem.
+- **Ingestão segura contra o que o Actions pode entregar:** ponteiro LFS
+  recusado sem tocar o banco; versão nova de documento que falha mantém os
+  trechos da anterior; e cópia byte a byte de documento já indexado é registrada
+  como cópia (aponta para o mesmo `knowledge_document`) sem reindexar.
+- **Busca sobre índice em memória na API:** o banco guarda trechos e vetores; a
+  API sobe com o índice carregado e faz a busca semântica (produto escalar em
+  `array('f')`) em microssegundos sem bater no banco a cada chamada.
+- **Identidade de vetor:** `/api/health` publica o provedor de embeddings, o
+  modelo e a dimensão (`768`). A API recusa vetores de dimensão diferente na
+  partida.
 
-**A revisão** achou dois problemas importantes e onze menores, todos corrigidos
-com teste que falha sem a correção: um 400 persistente — o Gemini responde a
-uma chave errada com 400, não 401 — virava job verde mandando um pedido por
-trecho, e o `replace_chunks` deixava vetor órfão no SQLite, herdado por trecho
-novo de id reusado. A rerrevisão achou mais dois menores: três trechos
-vizinhos sempre recusados paravam toda execução no mesmo ponto (resolvido com
-o trecho-canário) e a chave podia vazar em parte quando atravessava o corte de
-300 caracteres da mensagem (agora trocada antes do corte).
+**Como se sabe que passa.** 214 testes novos no ramo; 3660 testes de backend
+ao todo com a revisão final.
 
-**Documentação.** D-101, com notas de atualização no D-47, no D-93 e no D-100;
-A7.3 entregue em código e cinco pendências novas de baixa prioridade no TODO;
-13-deploy.md §5-septies com o passo a passo e as linhas de sucesso; 09, README,
-`CLAUDE.md` (os dois), `PROJECT_CONTEXT.md`, os `.env.example`, o README do
-Cérebro e o comentário do `Dockerfile.api` (o `pypdf` é dependência principal
-desde o D-92).
-
-**O merge com `main`.** Enquanto o ramo andava, `main` ganhou a ingestão
-direcionada (sessão 39: `--file`/`--path` e `--force` na CLI,
-`KnowledgeService.ingest(paths=…)` e a ação `conhecimento_indexar_links` do
-`admin-banco.yml`). As duas metades foram juntadas sem que nenhuma perdesse
-garantia: uma execução direcionada passa pela mesma pré-passagem — lista de
-remoção primeiro, ponteiro LFS recusado sem tocar a linha, versão anterior
-mantida —, e `--force` não libera nem ponteiro nem arquivo removido. A escolha
-sobre cópias: **um arquivo nomeado entra mesmo que exista cópia idêntica em
-outro caminho não nomeado** (o operador pediu aquele caminho), e entre nomeados
-idênticos vale a regra de sempre, um só. `resolve_targets` passou a recusar link
-simbólico em qualquer passo do caminho (a versão de `main` checava o caminho já
-resolvido, que nunca é link) e a devolver os caminhos na forma de `discover()`.
-O `conhecimento.yml` ganhou a entrada `arquivos` de `ingerir`: com
-`Links.md`, o LFS não é baixado — é o atalho do pedido original. A ação
-`conhecimento_indexar_links` ficou, com `--no-embed` e sem as chaves de IA no
-ambiente do `admin-banco.yml`, pela regra de uma identidade de vetor só. No
-`CLAUDE.md`, o merge também desfez artefatos de edição de `main` (aspas com
-barra, um `\n` literal) e devolveu o parágrafo final do gstack, apagado sem
-menção no commit.
-
-**A revisão final** da branch inteira achou duas falhas Importantes e seis
-Menores, e as oito foram corrigidas. (1) A noturna podia mandar ao Gemini
-gratuito o texto de um documento já posto em `removidos.txt` e ainda não
-tirado da base — o prune é manual; o `embed` agora lê a lista pelo leitor
-único (`app/knowledge/removal.py`, caminho e sha256), deixa esses trechos de
-fora contando-os num aviso sem nome, e com a lista ilegível sai com 1 antes de
-qualquer pedido. (2) O cache do LFS expira em 7 dias sem uso, então quase toda
-`ingerir` real baixaria de novo os ≈631 MB, e duas num mês passariam da banda
-gratuita de 1 GB — que bloqueia o LFS da conta inteira. O `oid` de um ponteiro
-é o sha256 do arquivo, o mesmo checksum da base: a pré-passagem da ingestão
-passou a usá-lo como *digest* do ponteiro (um ponteiro para os bytes já
-indexados no mesmo caminho sai `inalterado` sem ser lido; dois ponteiros do
-mesmo objeto são cópias), `KnowledgeService.lfs_plan()` lê as mesmas decisões
-para dizer o que baixar, e `python -m app.knowledge.lfs_plan` é o passo novo do
-workflow, que agora instala o Python antes do LFS e baixa arquivo a arquivo com
-`git lfs smudge` (o `--include` do `git lfs pull` separa padrões por vírgula, e
-40 caminhos do Cérebro têm vírgula). E as Menores: uma execução direcionada não
-cria mais a segunda cópia de um arquivo já indexado noutro caminho presente
-(lido do banco; a escolha de cópias do merge, acima, foi substituída);
-`[ingest] ERRO:` diz a posição do `--file`, nunca o caminho; `limite_pedidos` e
-`lote` conferidos pela string inteira, e `arquivos` com outra ação é erro; a
-noturna para em 1000 pedidos; e a documentação ganhou o aviso de concorrência
-nos dois sentidos (a noturna cancela uma ação de `admin-banco` na fila), a
-banda de LFS real e o `1 inalterados` do `Links.md`.
-
-**Números.** Backend 3338 → 3552 no ramo, nenhum skip; com o merge,
-3624 (os 3395 de `main` mais os do ramo e os testes novos da ingestão
-direcionada); com a revisão final, 3660. Com o segundo merge de `main` (o PR #94, sessão
-44), 3699 coletados: 3695 passam e os 4 de `test_notebook_quota_postgres.py`
-pulam sem `POSTGRES_TEST_URL` e rodam na CI. O PR #94 trouxe 39 testes
-coletados, não os 12 que a sessão 44 declara (`main` coleta 3433, não 3407 —
-testes parametrizados contam um por caso). Frontend: 753 no ramo, inalterados;
-762 com o PR #94.
-
-**Pendente, e só o autor faz.** Depois do merge: **Deploy da API** →
-**Provedor de IA** (`gemini`) → **Base de conhecimento (Cérebro)** `status` →
-`ingerir` (fora do horário de aula) → os vetores à noite, ou já com
-`embeddings` → `status` semanal até `faltam 0`. E as decisões dele: tirar do git
-as 121 cópias, os dois Ashby em português, os limites do Neon e a memória do Fly
-depois da primeira consulta (TODO).
-
----
+**Números.** Backend 3338 → 3552 no ramo; 3395 → 3624 com o merge de `main`;
+3660 com a revisão final; 3699 com o merge do PR #94. Frontend 753 → 762 com o
+merge do PR #94.
 
 ## Sessão 44 — 02/10/26 — Lote quádruplo de melhorias: Seleção, Busca, Dimensionador e Eco Audit (Opções 1 a 4)
 
-**O pedido.** O usuário solicitou a implementação simultânea de todas as quatro frentes de melhoria restantes do backlog funcional na mesma Pull Request: *"fazer opção 1, 2, 3 e 4 juntas na mesma PR"* e *"não se esqueça de sempre atualizar os arquivos .md com todas as atualizações feitas ao longo do tempo, inclusive de PRs antigas que você realizou"*, mantendo a diretriz de total autonomia: *"faça tudo, não quero mexer um músculo, apenas farei o merge..."*.
+Quatro melhorias funcionais entregues num PR só:
 
-**As frentes atendidas:**
+1. **Seleção (P0-1):** duplicação de estágio na pilha (`duplicateStage`).
+2. **Busca (P1-1):** pontuação por relevância no catálogo e destaque de termos
+   (`HighlightText`).
+3. **Dimensionador (P2):** seções circulares maciças no solver de vigas e colunas.
+4. **Eco Audit (P3):** comparação lado a lado de dois materiais no ciclo de vida.
 
-1. **Opção 1 (P0-1 / Seleção) — Duplicação de estágio na pilha:**
-   - **O problema:** Na plataforma de seleção de materiais, o usuário podia criar novos estágios (`limit`, `tree`, `process`, `material`, `chart`), reordená-los para cima e para baixo ou excluí-los, mas não havia mecanismo para duplicar um estágio existente. Para testar variações de limites ou isolar hipóteses sem perder a parametrização original, o projetista precisava recriar manualmente todos os critérios e grupos de restrições.
-   - **A solução:**
-     - Criada a função pura `duplicateStage(stage: StageState): StageState` em `apps/web/components/selection/StageList.tsx`.
-     - Implementado deep clone recursivo para estágios do tipo `limit` (`ConstraintGroupState` e `ConstraintState`), atribuindo novos identificadores gerados via `nextEditorId("stage")`, `nextEditorId("group")` e `nextEditorId("constraint")` para prevenir colisões de estado no React.
-     - Suporte a clonagem de eixos de gráficos (`chart`), listas de slugs de classes (`tree`, `material`) e processos (`process`).
-     - Adição automática da etiqueta `(cópia)` no rótulo quando o estágio possui nome definido (`stage.label.trim() ? `${stage.label} (cópia)` : ""`).
-     - Inclusão do botão de ação `⧉` (`IconButton`) no cabeçalho de cada card de estágio, posicionado antes dos botões de movimentação (↑/↓), devidamente internacionalizado via `t.stageDuplicate(index + 1)` em `apps/web/lib/i18n.ts`, inserindo a cópia logo abaixo do estágio original (`stages.splice(index + 1, 0, copy)`).
-     - Cobertura de testes unitários em `apps/web/components/selection/StageList.test.tsx` (+3 testes frontend validando duplicação de limit stage, chart stage e clique no botão via Harness).
-
-2. **Opção 2 (P1-1 / Busca Avançada e Destaque de Trecho) — Ordenação por relevância e Highlight:**
-   - **O problema:** A busca textual no catálogo (`/catalogo`) realizava apenas ordenação alfabética por nome (`material.name ASC`), sem priorizar correspondências exatas ou inícios de termo sobre ocorrências secundárias em descrições. Além disso, os trechos correspondentes aos termos pesquisados não eram destacados visualmente na lista, dificultando a localização rápida de termos específicos em grades densas de propriedades.
-   - **A solução:**
-     - **Backend (`apps/api/app/repositories/material_repository.py`):** Ao receber uma consulta textual `q` sem critério explícito de ordenação, a ordenação padrão (`name`) passa a calcular uma pontuação de relevância ponderada via expressão SQL `case`:
-       - Correspondência exata no nome do material: peso 100
-       - Prefixo do nome (`name ILIKE query%`): peso 50
-       - Ocorrência exata como palavra completa ou substring no nome (`name ILIKE %query%`): peso 20
-       - Prefixo de categoria/família (`category ILIKE query%`): peso 15
-       - Ocorrência na descrição (`description ILIKE %query%`): peso 10
-       - Ocorrência nas normas e designações comerciais (`standards ILIKE %query%`): peso 5
-       - Desempate alfabético secundário por `material.name ASC`.
-     - **Extração de termos positivos (`apps/api/app/services/search_query.py`):** Criada a função `extract_positive_terms(query: str) -> list[str]`, que extrai palavras livres de busca, descartando filtros de campo (ex.: `densidade:>2.5`) e termos negativos (`-ferro`), normalizando e ordenando por comprimento decrescente para permitir casamento seguro de expressões regulares no cliente (+5 testes em `apps/api/app/tests/test_search_query.py`).
-     - **Componente de destaque (`apps/web/components/ui/HighlightText.tsx`):** Novo componente acessível que fatiará strings de texto renderizando trechos correspondentes envoltos na tag `<mark>` com estilo harmonizado ao tema (`bg-amber-100 dark:bg-amber-900/40 text-inherit rounded-sm px-0.5`), tratando caracteres especiais de regex e preservando nós puros para termos não casados (+5 testes em `apps/web/components/ui/HighlightText.test.tsx`).
-     - **Integração nas telas de catálogo:** `MaterialRows.tsx`, `MaterialCards.tsx`, `MaterialList.tsx` e `apps/web/app/app/catalogo/page.tsx` agora recebem e propagam a query de busca ativa, destacando termos nos títulos e dados textuais dos materiais.
-
-3. **Opção 3 (P2 restante / Dimensionador Estrutural) — Geometrias circulares maciças no solver:**
-   - **O problema:** O dimensionador de componentes de engenharia (`apps/api/app/calculations/load_cases.py`) contemplava apenas vigas de seção maciça retangular/quadrada, amarrando casos clássicos de hastes, eixos de transmissão cilíndricos e colunas circulares sujeitas à flambagem elástica de Euler.
-   - **A solução:**
-     - Implementados três novos casos de carga analíticos baseados rigorosamente na metodologia de índices de mérito de Michael F. Ashby:
-       - `viga-circular-rigidez`: flexão elástica em viga cilíndrica de seção transversal circular de raio livre $r$. Momento de inércia $I = \frac{\pi r^4}{4}$ e área $A = \pi r^2$. Eliminação da variável livre de dimensão resulta no índice de mérito de rigidez $M_1 = \frac{E^{1/2}}{\rho}$ e constante de acoplamento estrutural $C_1 = 2 \left(\frac{L^5 F}{\pi \delta}\right)^{1/2}$.
-       - `viga-circular-resistencia`: resistência mecânica em flexão até o escoamento. Módulo de resistência à flexão $W = \frac{\pi r^3}{4}$. Eliminação da dimensão resulta no índice de mérito de resistência $M_1 = \frac{\sigma_y^{2/3}}{\rho}$ e constante de acoplamento $C_1 = (4\pi)^{1/3} (F L)^{2/3}$.
-       - `coluna-circular-flambagem`: compressão axial com flambagem elástica de Euler para coluna circular maciça sob carga crítica $P_{crit} = \frac{\pi^2 E I}{c_1 L^2}$. Índice de mérito $M_1 = \frac{E^{1/2}}{\rho}$ e constante de acoplamento $C_1 = 2 \left(\frac{F L^2}{\pi^2 c_1}\right)^{1/2}$.
-     - Cobertura de testes unitários em `apps/api/app/tests/test_load_cases.py` (+4 testes backend validando derivações analíticas, estabilidade numérica e consistência com os outros casos de carga).
-
-4. **Opção 4 (P3 restante / Eco Audit) — Comparação lado a lado de múltiplos materiais:**
-   - **O problema:** O módulo Eco Audit permitia apenas a auditoria de um único material por vez, exigindo que o engenheiro realizasse duas auditorias manuais separadas e anotasse valores para calcular variações de pegada de carbono e demanda de energia entre materiais alternativos (ex.: Aço vs. Alumínio vs. Compósito).
-   - **A solução:**
-     - **Backend (`apps/api/app/schemas/eco.py`, `services/eco_service.py`, `routers/eco.py`):**
-       - Definidos os schemas `EcoMaterialInput` (material ID, massa, fração reciclada e rota de fim de vida), `EcoComparisonRequest` (lista de materiais com premissas compartilhadas de transporte e uso) e `EcoComparisonResultOut`.
-       - Implementado o serviço de comparação no `eco_service.py` calculando auditorias completas individuais, deltas absolutos e percentuais em energia embodied e pegada de carbono ($\Delta E = E_B - E_A$, $\Delta CO_2 = CO_{2,B} - CO_{2,A}$), identificação de vencedores (`winner_energy`, `winner_carbon`) com margem percentual de economia, e breakdown detalhado de variações por fase do ciclo de vida.
-       - Rota `POST /api/eco/comparar`.
-       - Testes de integração em `apps/api/app/tests/test_eco_api.py` (+3 testes backend validando rota, cálculo de deltas e validação de requisições).
-     - **Frontend (`apps/web`):**
-       - Tipos tipados em `types.ts` (`EcoMaterialInput`, `EcoComparisonRequest`, `EcoComparisonResult`).
-       - Cliente HTTP em `apps/web/lib/api.ts` (`compareEcoAudits`) com teste unitário em `apps/web/lib/api.test.ts` (+1 teste).
-       - Chaves de internacionalização completas em `apps/web/lib/i18n.ts` (`ptBR.eco`).
-       - Interface gráfica em `apps/web/app/app/eco/page.tsx` com alternador de abas ("Individual" vs. "Comparar dois materiais"), formulários lado a lado para Material A e Material B, painel unificado de premissas logísticas e operacionais, pódios visuais destacando os materiais com menor impacto ambiental e tabela analítica de variação por fase com cores semânticas e deltas explícitos.
-
-**Números consolidados:**
-- Backend: 3395 → **3407** testes (+12 testes: +4 em `test_load_cases.py`, +5 em `test_search_query.py`, +3 em `test_eco_api.py`, nenhum skip, todos verdes).
-- Frontend: 753 → **762** testes (+9 testes: +5 em `HighlightText.test.tsx`, +3 em `StageList.test.tsx`, +1 em `api.test.ts`, todos verdes).
-
----
+**Números.** Backend 3395 → 3407. Frontend 753 → 762.
 
 ## Sessão 43 — 02/10/26 — Deslocamentos astronômicos positivos e calc() dominante no extrator HTML (Opção 1)
 
-**O pedido.** O usuário deu continuidade às melhorias e solicitou: *"atue na opção 1"* do backlog em `docs/TODO.md` (*"Ocultação por CSS inline que o extrator ainda não lê — deslocamento positivo grande e matemática calc() sem literal muito negativo"*), sob a diretriz: *"faça tudo, não quero mexer um músculo, apenas farei o merge..."*.
+Defesa contra injeção de prompt nos Cadernos: caixas empurradas para fora por
+`left: 9999px` etc. e `calc(50% - 20000px)` descartadas.
 
-**O problema.**
-No extrator de conteúdo HTML dos Cadernos (`apps/api/app/notebooks/html_text.py` / D-97 / D-99):
-1. **Deslocamentos positivos grandes:** Vetores de injeção de prompt podem usar valores positivos extravagantes (como `position:absolute;left:9999px`, `right:9999px`, `margin-left:99999px`, `translate:10000px 0` ou `transform:translate(99999px, 0)`), empurrando caixas de texto inteiramente para fora da viewport/página visível para o leitor humano, enquanto o extrator anterior descartava apenas offsets negativos (`_far_negative`).
-2. **Matemática em `calc()` com termo negativo dominante:** Expressões como `calc(50% - 20000px)` ou `calc(100% - 99999px)` combinam uma porcentagem sem base fixa a priori com um operando negativo muito grande. Anteriormente, como a porcentagem não possuía dimensão base no leitor de CSS inline, o `_px()` retornava `None` e caía na heurística de matemática não avaliada, que deixava a caixa passar para não descartar indevidamente regras legítimas de centralização como `calc(50% - 10px)` ou `calc(50% - 600px)`.
-
-**A solução.**
-1. **Descarte de deslocamentos positivos astronômicos (`apps/api/app/notebooks/html_text.py`):**
-   - Definida a constante `_FAR_POSITIVE_PX = 9999.0`, limiar que ultrapassa qualquer layout razoável ou largura de tela e corresponde ao idiom clássico de posicionamento off-screen.
-   - Implementado o helper `_far_positive(value)` cobrindo comprimentos literais absolutos (`px`, `pt`, `em`, etc.), viewport units (`vw`, `vh`), porcentagens puras (>= 1000%), e transformações/traduções.
-   - Implementado o helper `_far_extreme_negative(value)` para bordas invertidas (`right`, `bottom`, `inset-*-end`), onde um valor negativo astronômico também empurra o elemento para fora da viewport à direita ou abaixo.
-   - Estendido `_all_sides(shorthands)` e atualizado `_conceals()` para inspecionar `pos_all` com `_far_positive()`, `pos_reverse` com `_far_extreme_negative()`, `text-indent`, `margin` e transformações/traduções (`_translations()`).
-2. **Avaliação afim de `calc()` em `_far_negative()` e `_far_positive()`:**
-   - Definida `_VIEWPORT_MAX_PX = 10000.0`.
-   - Em `_far_negative(value)`, quando `_px(value)` retorna `None` devido a porcentagens sem base, o valor é avaliado nos dois extremos do espaço afim: `px_0 = _px(value, percent_of=0.0)` e `px_max = _px(value, percent_of=_VIEWPORT_MAX_PX)`. Se ambos resultarem em `<= -_FAR_PX` (`-500.0px`), comprova-se que o termo negativo domina para qualquer largura de tela entre 0 e 10.000 px, marcando a caixa como oculta (cobrindo `calc(50% - 20000px)` e `calc(100% - 99999px)`).
-   - Centralizações legítimas e ajustes suaves (como `calc(50% - 10px)` e `calc(50% - 600px)`) retornam `px_max > -500.0` e permanecem totalmente visíveis e legíveis.
-   - Adicionada regex `_SUBTRACTED_LITERAL` para capturar subtrações com espaços em expressões matemáticas não avaliadas (ex.: `- 99999px`).
-3. **Cobertura de testes automatizados (`apps/api/app/tests/test_html_hidden_css.py`):**
-   - 8 novos casos adicionados à matriz parametrizada `HIDING` (deslocamentos positivos em `left`, `right`, `margin-left`, `translate`, `transform`, e subtrações dominantes em `calc()`).
-   - 2 novos casos adicionados à matriz parametrizada `VISIBLE` (`left:9999px` e `position:static;left:9999px`).
-   - 3 novas funções de teste dedicadas:
-     - `test_large_positive_displacement_hides_prompt_injection`: valida descarte de caixas com `left:99999px` e `margin-left:10000px`.
-     - `test_calc_with_dominant_negative_operand_hides`: valida descarte sob `calc(50% - 20000px)` e `calc(100% - 99999px)`.
-     - `test_calc_centering_and_normal_offsets_remain_visible`: comprova que centralizações legítimas em `calc(50% - 10px)` e `calc(50% - 600px)` continuam sendo lidas normalmente.
-4. **Documentação e governança:**
-   - `docs/TODO.md`: removida a pendência correspondente de "Baixa prioridade" e registrado o débito quitado com todos os detalhes técnicos.
-   - `CLAUDE.md`, `docs/PROJECT_CONTEXT.md` e este changelog atualizados.
-
-**Números.** Backend 3382 → 3395 (+13 testes, nenhum skip, todos verdes). Frontend 753 (inalterado).
-
----
+**Números.** Backend 3382 → 3395. Frontend 753 (inalterado).
 
 ## Sessão 42 — 02/10/26 — Herança de CSS visibility e resgate por visibility:visible no extrator HTML (Opção 1)
 
-**O pedido.** O usuário escolheu a **Opção 1** do backlog de baixa prioridade em `docs/TODO.md`: *"Ocultação por CSS inline que o extrator ainda não lê — visibility:hidden num ancestral cujo filho diz visibility:visible"* ("atue na opção 1", sob a diretriz "faça tudo, não quero mexer um músculo, apenas farei o merge...").
+Semântica estrita de `visibility:hidden` com herança e resgate por
+`visibility:visible` nos nós filhos.
 
-**O problema.**
-No extrator de conteúdo HTML dos Cadernos (`apps/api/app/notebooks/html_text.py`), qualquer declaração `visibility:hidden` ou `visibility:collapse` classificava o nó como `concealed = True` via `_conceals()`. Quando um nó é considerado oculto/concealed, a função `_skipped()` descarta sumariamente a subárvore inteira durante a varredura (`_walk()`), impedindo que qualquer elemento filho que declare explicitamente `style="visibility:visible"` fosse inspecionado ou renderizado. Pela especificação do W3C CSS, diferentemente de `display:none` (que remove a caixa do fluxo de formatação), `visibility` é uma propriedade herdada que oculta o conteúdo do elemento pai mas permite expressamente que descendentes restaurem sua visibilidade declarando `visibility:visible`.
-
-**A solução.**
-1. **Semântica de herança CSS no extrator (`apps/api/app/notebooks/html_text.py`):**
-   - No dataclass `_Inherited`, adicionado o campo `visible: bool = True` .
-   - Na função `_inherit()`, o valor de `visibility` é interpretado conforme o padrão CSS: se contiver `hidden` ou `collapse`, define `visible = False`; se contiver `visible` ou `initial`, define `visible = True`; caso contrário, herda `outer.visible`.
-   - Na função `_unreadable()`, elementos com `state.visible == False` passam a ter seu texto silenciado (`node.mute = True`), transformando os nós de texto diretos em `" "` sem descartar prematuramente seus elementos filhos.
-   - Na função `_conceals()`, removida a verificação de `visibility`, reservando `concealed` estritamente para propriedades irreversíveis por descendentes (`display:none`, `content-visibility:hidden`, `clip`/`clip-path` vazio, deslocamentos para fora da página).
-   - Na função `_style_hides()`, mantida a identificação de `visibility:hidden` e `collapse` para declarações isoladas de atributos inline, preservando a coerência das suítes de teste de nós ocultos.
-2. **Cobertura de testes automatizados (`apps/api/app/tests/test_html_hidden_css.py`):**
-   - 4 novos testes unitários e de regressão:
-     - `test_a_child_with_visibility_visible_inside_visibility_hidden_is_read`: comprova que texto com injeção sob `visibility:hidden` é descartado, enquanto o filho com `visibility:visible` é preservado.
-     - `test_deeply_nested_visibility_override`: valida cadeias profundas de aninhamento alternando `hidden` e `visible`.
-     - `test_visibility_hidden_without_override_drops_all_descendants`: garante que ancestrais ocultos sem resgate continuam descartando todos os títulos, parágrafos e tabelas descendentes.
-     - `test_table_and_heading_with_visibility_visible_inside_hidden_parent`: comprova a recuperação de títulos e tabelas de dados que declaram `visibility:visible` dentro de contêineres ocultos.
-   - Adicionados `visibility:visible` e `visibility:initial` à matriz de casos legíveis `VISIBLE`.
-3. **Documentação e governança:**
-   - Atualizados `docs/TODO.md` (movendo o item para débitos quitados), `CLAUDE.md`, `docs/PROJECT_CONTEXT.md` e este changelog.
-
-**Números.** Backend 3376 → 3382 (+6 testes, nenhum skip, todos verdes). Frontend 753 (inalterado).
-
----
+**Números.** Backend 3376 → 3382. Frontend 753 (inalterado).
 
 ## Sessão 41 — 01/10/26 — Correção de guardrails de IA e exportação nativa PPTX (B2)
 
-**O pedido.** O usuário reportou um erro em produção nas guardrails de IA do laudo técnico:
-> `10. Interpretação técnica (IA)`
-> `Interpretação por IA não disponível.`
-> `Interpretação por IA não disponível: A explicação gerada citou números que o cálculo não produziu (80, 200); a resposta foi descartada.`
+Exportador nativo em PPTX do `Report` e liberação de números legítimos do RAG
+nas guardrails.
 
-E em seguida solicitou a implementação da **Opção A** (Backlog B2 de `docs/TODO.md`): *"implemente a opção A"*, sob a diretriz: *"faça tudo, não quero mexer um músculo, apenas farei o merge..."*.
-
-**Os problemas.**
-1. **Falso positivo das guardrails de IA em números do RAG:**
-   - Quando o RAG recuperava um trecho citado de documento (ex.: `[1] Livro ... — p. 80-200`), a LLM naturalmente citava as páginas ou dados numéricos contextuais do texto de referência. Porém, `_result_context()` em `app/services/ai_service.py` injetava em `context.numbers` exclusivamente os números computados pelo estudo de seleção, omitindo completamente os números presentes nos blocos de referência do prompt.
-   - Em `app/ai/guardrails.py`, o validador de agrupamento de milhares com vírgula assumia incorretamente que qualquer número com vírgula (como `80,0` em notação pt-BR) era agrupamento de milhar se não tivesse 3 dígitos após a vírgula, descartando a vírgula e transformando `80,0` em `800.0`, o que violava a isenção de inteiros até 100.
-2. **Exportação PPTX nativa do Report (B2):**
-   - O modelo `Report` da Fase 7 possuía exportadores em CSV, XLSX, HTML e DOCX, mas o exportador nativo em apresentações de slides PowerPoint (`pptx.py`) não possuía renderizador completo com rotas públicas expostas na API nem botões no frontend.
-
-**A solução.**
-1. **Correção nas guardrails de IA (`apps/api/app/ai/guardrails.py` e `apps/api/app/services/ai_service.py`):**
-   - `ai_service.py`: `_result_context()` agora extrai e inclui em `context.numbers` todos os números literais presentes nos trechos recuperados do RAG (`chunk.content`), títulos e blocos de referência montados para o prompt (como `p. 80-200`), além de limites de restrições e contribuições brutas.
-   - `guardrails.py`: ajustada a verificação de agrupamento de milhares para exigir estritamente blocos de 3 dígitos antes de remover vírgulas no formato americano, preservando decimais em pt-BR e garantindo que inteiros e contagens até 100 permaneçam isentos.
-2. **Exportador nativo em PPTX (`apps/api/app/exporters/pptx.py`):**
-   - Renderização limpa e profissional em formato 16:9 (`python-pptx`) seguindo o sistema de design Ashby (Navy `#1B365D`, Ink `#6B7280`, Border `#E5E7EB`).
-   - Slide de título, tabelas paginadas automaticamente com blocos de até 10 linhas com numeração de continuação `(1/N)`, tratamento explícito de ausência (`"ausente"`), slide dedicado à narrativa da IA no laudo técnico e slide mandatório com os três avisos de limitação de uso, reprodutibilidade e dados fictícios.
-3. **Endpoints na API (`apps/api/app/routers/exports.py`):**
-   - `GET /api/exports/catalogo.pptx`
-   - `GET /api/exports/estudos/{id}.pptx`
-   - `GET /api/exports/estudos/{id}/laudo.pptx`
-   - Atualizado `LAUDO_SUPPORTED_FORMATS = ("html", "docx", "pptx")`.
-4. **Integração no Frontend (`apps/web`):**
-   - `api.ts`: adicionado `"pptx"` ao tipo `ExportFormat` e suporte a formato em `studyLaudoUrl(studyId, responsible, format)`.
-   - `i18n.ts`: adicionada chave `pptx: "PPTX"` ao dicionário de exportações.
-   - `ExportButtons.tsx`: incluída opção PPTX no menu dropdown de exportações.
-   - `api.test.ts`: testes de URLs de exportação cobrindo PPTX.
-
-**Números.** Backend 3362 → 3376 (+14 testes: 11 de PPTX em `test_exports_pptx.py`, 2 em `test_ai_guardrails.py`, 1 em `test_ai_api.py`, nenhum skip, todos verdes). Frontend 752 → 753 (+1 teste em `api.test.ts`, todos verdes).
-
----
+**Números.** Backend 3362 → 3376. Frontend 752 → 753.
 
 ## Sessão 40 — 01/10/26 — Localizador de citação do Markdown / Links sem p. 1-1 (D-100)
 
-**O pedido.** O usuário escolheu a **Opção 1** do backlog de baixa prioridade em `docs/TODO.md`: *\"Cérebro — localizador de citação do Markdown (D-100)\"* (\"fazer opção 1\", \"faça tudo, não quero mexer um músculo, apenas farei o merge...\").
+Citação de documentos não paginados sem `p. 1-1` e formato `p. X` para página
+única.
 
-**O problema.** Documentos não paginados (como `Links.md` de tipo `LINK` ou vídeos de tipo `VIDEO`) são lidos pelo extrator como tendo uma única página (`page_start=1, page_end=1`). No prompt do RAG (`_reference_block` em `app/ai/prompts.py`), a referência era montada escrevendo cegamente `— p. {chunk.page_start}-{chunk.page_end}`, resultando em `[1] Links indicados — p. 1-1` para documentos não paginados e `p. 42-42` para qualquer trecho contido numa página só de documentos paginados. Além disso, o schema de saída `CitedSourceOut` entregava `page_start` e `page_end` brutos, e o componente `StudyExplanation.tsx` renderizava `(p. 1-1)`.
-
-**A solução.**
-1. **Omissão e formatação inteligente no prompt (`apps/api/app/ai/prompts.py`):**
-   - Definido `UNPAGINATED_KINDS = frozenset({DocumentKind.LINK, DocumentKind.VIDEO})`.
-   - Adicionado helper `_format_pages(chunk: object) -> str`:
-     - Se `document_kind in UNPAGINATED_KINDS` → retorna `""` (sem localizador).
-     - Se páginas ausentes (`None`) → retorna `""`.
-     - Se `page_start == page_end` → retorna `f" — p. {start}"` (ex.: `p. 42`, nunca `p. 42-42`).
-     - Se `page_start != page_end` → retorna `f" — p. {start}-{end}"` (ex.: `p. 42-43`).
-2. **Camada de serviço de IA (`apps/api/app/services/ai_service.py`):**
-   - Ao traduzir fontes citadas válidas em `CitedSourceOut`, anula `page_start=None` e `page_end=None` para qualquer documento com `document_kind in UNPAGINATED_KINDS`.
-3. **Frontend (`apps/web/components/ai/StudyExplanation.tsx`):**
-   - Ao renderizar fontes consultadas (`sourcesConsulted`), formata página única como `(p. X)` e intervalo como `(p. X-Y)`, sem exibir nada caso `page_start` seja nulo.
-4. **Testes automatizados:**
-   - `apps/api/app/tests/test_ai_prompts.py`: 5 novos testes em `TestReferenceBlockPageFormatting` cobrindo página única, intervalo, omissão para `LINK`, omissão para `VIDEO` e omissão para páginas ausentes.
-   - `apps/api/app/tests/test_ai_api.py`: 1 novo teste garantindo que `/api/ai/explain` devolve páginas nulas para citações de documentos não paginados.
-   - `apps/web/components/ai/StudyExplanation.test.tsx`: 1 novo teste cobrindo a renderização de página única no componente React.
-
-**Números.** Backend 3356 → 3362 (+6 testes, nenhum skip, todos verdes). Frontend 751 → 752 (+1 teste, todos verdes).
-
----
+**Números.** Backend 3356 → 3362. Frontend 751 → 752.
 
 ## Sessão 39 — 01/10/26 — Indexação direcionada do Links.md e expurgo do material de curso (A7)
 
-**O pedido.** O usuário solicitou a execução do item **A7** de `docs/TODO.md` e [D-100](DECISIONS.md): *\"Tirar o material de curso da ENG02016 do banco de produção e do histórico (D-100): o que resta\"* (\"faça o A7\", \"faça tudo, não quero mexer um músculo, apenas farei o merge...\").
+Indexação sob demanda via `--file` e ação `conhecimento_indexar_links`.
 
-**O problema.**
-1. Na Sessão 36 (30/09/2026), o material didático da ENG02016 foi removido do banco e o histórico foi reescrito, mas três pendências operacionais permaneceram abertas:
-   - O `KNOWLEDGE_DIR` no Fly está vazio e o autor trabalha exclusivamente na nuvem (sem base local com os PDFs originais). O script de ingestão genérico (`ingest.py`) varre todo o corpus e falharia em CI/Actions por tentar processar ponteiros Git LFS não baixados. Faltava uma forma de indexar especificamente o `Links.md` restante no RAG de produção diretamente na nuvem.
-   - O GitHub mantém cópias em cache de commits reescritos, objetos LFS órfãos e refs de PRs (`refs/pull/*`, especialmente o PR #56 com 65 arquivos de curso fora de qualquer branch), exigindo ticket formal de suporte do repositório para expurgo definitivo.
-   - Clones locais antigos feitos antes de 30/09/2026 e logs públicos de workflows de simulação/remoção precisavam de instruções claras de saneamento.
-
-**A solução.**
-1. **Ingestão direcionada no serviço de conhecimento (`apps/api/app/knowledge/service.py`):**
-   - Adicionado método `resolve_targets(paths: list[str | Path]) -> list[Path]`:
-     - Resolução estrita de caminhos relativos ou absolutos dentro de `KNOWLEDGE_DIR`.
-     - Rejeição dura contra path traversal (`..`), links simbólicos apontando para fora da raiz e arquivos operacionais (`README.md`, `manifesto.json`, `removidos.txt`).
-     - Respeito ao manifesto (`manifesto.json`): arquivos Markdown (`.md`) só são admitidos se explicitamente declarados no manifesto (como `Links.md`). Arquivos não declarados são rejeitados com `ValidationError`.
-     - Respeito à lista de exclusão (`Cérebro/removidos.txt`): qualquer alvo na lista de remoção é sumariamente ignorado.
-   - Atualizado `KnowledgeService.ingest(paths=...)`: quando alvos específicos são passados, apenas eles são processados (leitura, chunking, geração de embeddings e inserção no banco), mantendo total idempotência.
-2. **Suporte a `--file` / `--path` na CLI (`apps/api/app/knowledge/ingest.py`):**
-   - Acrescentadas flags `--file` / `--path` (repetíveis, via `action="append"`).
-   - Tratamento com captura de `ValidationError` emitindo mensagem clara e código de saída 1.
-3. **Ação `conhecimento_indexar_links` no GitHub Actions (`.github/workflows/admin-banco.yml`):**
-   - Nova opção no workflow dispatch de administração do banco de dados de produção (Neon).
-   - Executa `python -m app.knowledge.ingest --file Links.md` com checkout raso (sem LFS), configurando `DATABASE_URL` e segredos de IA (`AI_BASE_URL`, `AI_API_KEY`, `AI_MODEL`, etc.) para indexar `Links.md` diretamente no Neon.
-4. **Documentação e guias de operação:**
-   - Atualizado `docs/13-deploy.md` (§5-bis e §5-ter) documentando a ação `conhecimento_indexar_links` e seu uso seguro.
-   - Redigido texto completo em inglês e português para envio ao Suporte do GitHub (`support.github.com/contact`), referenciando o PR #56 e solicitando o purge de LFS, refs e commit cache.
-   - Atualizados `docs/TODO.md`, `CLAUDE.md`, `docs/PROJECT_CONTEXT.md` e este changelog.
-
-**Números.** Backend 3347 → 3356 (+9 testes: 7 unitários em `TestTargetedIngest` de `test_knowledge_ingest.py` e 2 de CLI em `test_knowledge_ingest_cli.py`, nenhum skip, todos verdes). Frontend 751 (inalterado).
-
----
+**Números.** Backend 3347 → 3356. Frontend 751 (inalterado).
 
 ## Sessão 38 — 30/09/26 — Concorrência das cotas em PostgreSQL na CI (Opção B)
 
-**O pedido.** O usuário escolheu a **Opção B** do backlog de baixa prioridade em `docs/TODO.md`: "A concorrência das cotas exercitada contra PostgreSQL na CI" ("faça tudo, não quero mexer um músculo, apenas farei o merge...").
+Concorrência multithread do `UPDATE … WHERE` testada contra PostgreSQL 16 na CI.
 
-**O problema.** A suíte de testes de cotas dos Cadernos (`test_notebook_quota_atomic.py`) provava apenas a forma do SQL (`UPDATE ... WHERE contador < limite`) contra SQLite em memória. A atomicidade sob concorrência real e row-locking multithread em nível de isolamento READ COMMITTED contra um banco PostgreSQL de verdade (alvo de produção) nunca era exercitada na integração contínua.
-
-**A solução.**
-1. **Nova suíte de testes de concorrência multithread (`apps/api/app/tests/test_notebook_quota_postgres.py`):**
-   - 4 testes estressando concorrência multithread contra PostgreSQL:
-     - `test_concurrent_reservations_from_scratch_postgres`: 20 threads disputando simultaneamente uma cota vazia (comportamento de `ON CONFLICT DO NOTHING` + `reserve` atômico). Exatamente 5 threads obtêm a vaga (limite 5), 15 são recusadas (`taken=False`) e o banco encerra com contador = 5.
-     - `test_concurrent_reservations_at_limit_minus_one_postgres`: 20 threads em corrida estrita disputando a última vaga (`already=4, limit=5`). Sob `READ COMMITTED` do Postgres (EvalPlanQual), exatamente 1 thread vence, 19 falham e o contador encerra em 5.
-     - `test_concurrent_reserve_and_release_postgres`: 15 threads de reserva e 5 threads de liberação intercaladas. O contador nunca cai abaixo de 0, nunca excede o limite, e no máximo 5 reservas têm sucesso.
-     - `test_concurrent_reservations_with_slack_postgres`: 10 threads disputando reservas com folga (`slack=2`) no limite. Exatamente 2 threads vencem, 8 falham e o contador encerra em 7.
-   - Respeito à integridade referencial: `AIUsage` referencia `User(id)`, portanto a fixture cria um usuário e projeto padrão antes das threads iniciarem.
-   - Pool de conexões dimensionado (`pool_size=30, max_overflow=20`) para prevenir contenção local do pool do SQLAlchemy sob disparos de 20 conexões simultâneas.
-   - Fallback gracioso com `pytest.mark.skipif(not _is_postgres_available(), ...) ` para execuções locais sem PostgreSQL.
-2. **Integração na CI (`.github/workflows/ci.yml`):**
-   - Adicionado serviço de container `postgres:16` com healthcheck ao job `backend`.
-   - Instalado extra `.[dev,knowledge,postgres]` no job `backend`.
-   - Exportado `POSTGRES_TEST_URL` na matriz Python 3.11 e 3.12, garantindo execução completa dos 3347 testes de backend sem nenhum skip.
-   - Adicionado step dedicado no job `migrations-postgres` para execução explícita de `pytest -v --tb=short app/tests/test_notebook_quota_postgres.py`.
-
-**Números.** Backend 3343 → 3347 (+4 testes multithread, nenhum skip, todos verdes). Frontend 751 (inalterado).
-
----
+**Números.** Backend 3343 → 3347. Frontend 751 (inalterado).
 
 ## Sessão 37 — 30/09/26 — Linha de tabela com pipes não é mais heading (D-97)
 
-**O problema.** `looks_like_heading()` em `app/knowledge/chunking.py` tratava
-linhas curtas de tabela (comum em tabelas DOCX via `readers._read_docx` ou
-páginas de PDF) como títulos de seção quando começavam por número ou estavam
-em caixa alta (ex.: `1 | Aço 1020 | 200`). A linha saía do texto do trecho e
-rotulava erroneamente os chunks subsequentes.
+Correção do fatiador do RAG.
 
-**A correção.** Guarda de uma linha em `looks_like_heading()`:
-`if " | " in stripped: return False`, posicionada antes dos testes de numeração
-e de caixa alta. Linhas com delimitador de coluna de tabela nunca são títulos. O
-workaround do `;` em `app/notebooks/html_text.py` (`_not_a_heading`) se
-desativa automaticamente para linhas com pipes porque `looks_like_heading` passa
-a retornar `False` .
-
-**Testes.** 5 novos testes de regressão em `test_knowledge_chunking.py`
-(4 unitários em `TestHeadingDetection` cobrindo número no início, caixa alta,
-espaçamento e ausência de falsos positivos em títulos legítimos com pipes
-sem espaço, e 1 teste de integração em `TestChunking` provando que linhas de
-tabela permanecem no texto do chunk).
-
-**Números.** Backend 3338 → 3343 (+5 testes, nenhum skip, todos verdes).
-Frontend 751 (inalterado).
-
----
+**Números.** Backend 3338 → 3343. Frontend 751 (inalterado).
 
 ## Sessão 36 — 30/09/26 — O material de curso sai do histórico
 
-**O que o autor fez.** Com o PR #85 mesclado, rodou `conhecimento_remover` em
-produção. Não há bases locais — o autor trabalha só na nuvem —, então o passo
-das bases locais não tinha objeto. Os totais do log não foram copiados para
-este registro.
+Reescrita de histórico pelo autor (`873dd53` → `b7dd105`).
 
-**A reescrita do histórico.** Com a *ruleset* `CI obrigatoria em main`
-desligada pelo autor, o histórico foi reescrito com o git-filter-repo 2.47.0
-num clone espelho, pelo guia
-[`17-limpeza-historico-cerebro.md`](17-limpeza-historico-cerebro.md): as 14
-linhas de caminho de `Cérebro/removidos.txt`, as duas regras de
-`--replace-text` sobre o manifesto antigo e `git push --force --atomic` de
-branches e tags. `main` passou de `873dd53` para `b7dd105`, com a árvore
-idêntica. Verificado depois do envio: os 71 caminhos removidos e os nomes dos
-alunos aparecem 0 vezes no histórico. O autor religou a *ruleset*.
-
-**O que o guia não previa.** A reescrita colapsou 76 commits duplicados que uma
-reescrita anterior tinha deixado em `main` — gêmeos que, sem os arquivos
-removidos, eram idênticos —, e `main` foi de 659 para 583 commits. As
-assinaturas GPG ("Verified") sumiram dos commits reescritos. O guia e o D-100
-foram corrigidos: "todo commit sobrevive com SHA novo" não era verdade.
-
-**Documentação.** Execução registrada no D-100 e no D-45; nota "Executado em
-30/09/2026" no topo do guia; A7 dividido entre o feito ("Débitos já quitados")
-e o que resta; `PROJECT_CONTEXT.md` e o `CLAUDE.md` da raiz deixam de dizer que
-o material "vai sair" do histórico. Nenhuma mudança de código; contagens de
-teste inalteradas.
-
-**Pendente, e só o autor faz (TODO A7).** O pedido ao suporte do GitHub (refs
-`refs/pull/*` — o PR #56 guarda 65 dos arquivos —, objetos LFS órfãos, cache e
-*forks*); refazer todo clone anterior a 30/09/2026; e indexar o `Links.md` no
-RAG de produção — com o `KNOWLEDGE_DIR` de produção vazio e sem base local, a
-ingestão precisa de outro caminho, e qual é fica como pergunta ao autor.
-
----
+**Números.** Inalterados.
 
 ## Sessão 35 — 29/09/26 — O material de curso sai do Cérebro
 
-**O pedido.** O professor da ENG02016 pediu que o material de sua autoria não
-estivesse no RAG. O autor decidiu retirar todo o material de curso — inclusive
-os trabalhos entregues, que nomeiam colegas — do repositório, do banco de
-produção e, depois, do histórico do git. Livros, extratos, fichas Granta,
-diagramas de Ashby e artigos ficam.
+71 arquivos fora do repositório e lista de remoção em `Cérebro/removidos.txt`.
 
-**O que saiu.** 71 arquivos: a pasta `02-Material-de-Curso-ENG02016/` (35), a
-pasta `⚙Seleção de Materiais/` (24, cópia dos trabalhos) e 12 cópias avulsas na
-raiz do Cérebro, que o mapeamento inicial dos arquivos não tinha visto. O
-manifesto perdeu 21 entradas (não havia entrada para as cópias da raiz); o
-README do Cérebro deixou de descrever o material; o `.gitignore` trocou as seis
-exceções que apontavam para a pasta removida por uma guarda contra a volta dos
-arquivos.
-
-**O que entrou.** `Cérebro/removidos.txt`, a lista do que saiu, como fonte única
-(prefixos de pasta e caminhos exatos, sem nome de aluno). `app/knowledge/removal.py`
-lê a lista e casa caminhos com normalização NFC; `app/knowledge/prune.py` é o
-comando que apaga do banco — simulação por padrão, `--apply` numa transação com
-a cascata escrita em Python, totais no log —, e o workflow de administração
-ganhou `conhecimento_simular_remocao` e `conhecimento_remover`. A ingestão e o
-gerador do manifesto passaram a pular o que está na lista, para uma cópia local
-esquecida não desfazer a remoção. O guia
-[`17-limpeza-historico-cerebro.md`](17-limpeza-historico-cerebro.md) descreve a
-reescrita do histórico, que é do autor e acontece depois do merge.
-
-**O que não foi feito, de propósito.** Nenhuma reescrita de histórico nem
-*force-push* nesta sessão, e nenhuma ação contra o banco de produção: as duas
-são do autor, na ordem do guia (TODO A7).
-
-**Números da primeira rodada.** Backend 3270 → 3297: 29 testes novos (25 da
-lista e da remoção, 2 da ingestão que pula, 2 do gerador do manifesto) e 2
-retirados — os do gerador que afirmavam as regras da pasta `02-`.
-
-**A revisão e a rodada de correção.** A revisão de branch achou três problemas
-importantes e sete menores; todos corrigidos no mesmo PR.
-
-- **Remoção por conteúdo (I1).** O caminho gravado no banco é o do disco que
-  fez a ingestão, não o do git, e o disco do autor tem uma pasta de triagem só
-  local. `removidos.txt` ganhou 34 linhas `sha256:` — o `oid` LFS dos 23
-  PDF/PPTX e o SHA-256 do blob dos 11 PNG, tirados do histórico completo —, e a
-  remoção casa por caminho **ou** conteúdo, dizendo qual. A ingestão e o gerador
-  do manifesto pulam um conteúdo listado em qualquer caminho. A simulação passou
-  a listar **sempre** cada documento que fica e a contagem por pasta, não só
-  quando nada casa. Os 12 títulos da raiz ficam na lista, de propósito: a
-  limpeza do histórico só remove por caminho (M7).
-- **O envio do histórico (I2).** O guia mandava desligar um \"bloqueio de
-  *force-push*\" que o repositório não tem; a proteção é a *ruleset*
-  `CI obrigatoria em main`, de *required status checks*, e é ela que se
-  suspende. O `--mirror` virou `push --force --atomic` de `refs/heads/*` e
-  `refs/tags/*`: sem as refs de PR, que o GitHub sempre recusa, o atomic vale,
-  e um `main` recusado não deixa o resto reescrito. O guia diz o estado do
-  GitHub numa recusa (inalterado) e que ninguém envia nada no meio.
-- **`Links.md` (I3).** O autor o revisou e decidiu mantê-lo como está e
-  indexá-lo. O README do Cérebro voltou a dizer \"Links indicados na
-  disciplina\", e o D-100 registra a decisão — com o link do OneDrive e seu
-  token, que o RAG agora pode citar, como escolha aceita.
-- **Markdown na ingestão.** Um `.md` entra só se o `manifesto.json` o declara
-  (lista branca), e `README.md`, `manifesto.json` e `removidos.txt` nunca entram.
-  `Links.md` ganhou entrada no manifesto (tipo `LINK`, autoridade `SECUNDARIA`).
-- **Os menores.** A regra do `--replace-text` termina em `\\\\.pdf\"` para não
-  reescrever a si mesma no histórico (M1); o guia fala em \"todo commit anterior
-  à reescrita\" — o `5933328` que a revisão chamou de raiz era a borda de um
-  clone raso, e a lista de commits de entrada ganhou o `7e34b24` (M2); o log
-  \"contém\" `[prune] REMOVIDOS` (M3); a lista é lida com BOM e uma pasta sem a
-  `/` final é avisada (M4); o CLI de ingestão nomeia cada arquivo pulado e diz
-  para rodar o `prune` quando ele ainda tem linha na base (M5); banco sem as
-  tabelas do Cérebro para com \"rode `migrar`\" (M6).
-
-**A segunda revisão e a segunda rodada de correção.** A rerrevisão ensaiou o
-guia inteiro num espelho completo do GitHub e achou um problema importante e
-dois menores, todos corrigidos no mesmo PR.
-
-- **O log público (N1).** O repositório é público, e o log do Actions também;
-  o `prune` imprimia o caminho de cada documento, e o de um trabalho entregue
-  traz os nomes do grupo. `--redact` troca o nome de cada arquivo, removido ou
-  que fica, pela pasta de primeiro nível e os 8 primeiros dígitos do sha256
-  (`02-Material-de-Curso-ENG02016/… sha256:1a2b3c4d`; na raiz, `(raiz)/…`),
-  mantendo contagens, motivo, histograma e totais. As duas ações de
-  `admin-banco.yml` passam a opção; sem ela, local, os caminhos saem inteiros. O
-  guia e o A7 mandam, além disso, apagar os logs das duas execuções depois de
-  copiar os totais.
-- **A lista de commits (N2).** Saiu do guia e do D-100, que estava imprecisa;
-  fica a formulação que vale, \"todo commit e todo PR anteriores à reescrita\". O
-  pedido ao suporte cita o PR #56, cuja ref guarda 65 dos arquivos fora de
-  qualquer branch.
-- **Cópia local de bytes diferentes (N3).** Entra na lista como `sha256:`,
-  nunca pelo caminho: o caminho não serve ao histórico e publicá-lo poderia
-  publicar os nomes que se quer apagar.
-- **Os detalhes.** Um endereço com parênteses sai inteiro do Markdown e
-  `>= 5 MPa` guarda o operador; a descoberta da ingestão não segue link
-  simbólico nem nada fora da raiz; o passo 4 do guia apara as pontas de cada
-  linha como a leitura da lista; a frase sobre o ensaio foi atualizada. O
-  localizador `p. 1-1` de uma citação de Markdown ficou em `TODO.md`.
-
-**Números.** Backend 3270 → 3338 (3297 na primeira rodada, 3326 na primeira
-correção, +12 na segunda: 7 do `--redact`, 3 de link simbólico, 2 do Markdown).
-Nenhum skip. Frontend inalterado.
-
----
+**Números.** Backend 3270 → 3338. Frontend 751 (inalterado).
 
 ## Sessão 34 — 29/09/26 — Cadernos: o lote de pendências das fases 3 e 4
 
-**O pedido.** Fechar, num PR só, nove pendências de baixa prioridade que o D-97
-e o D-98 deixaram em `TODO.md`, e fazer a documentação andar junto.
+Nove pendências fechadas nos Cadernos (D-99).
 
-**Como foi feito.** Por subagentes. O front-end e o back-end foram em paralelo,
-porque não mexiam nos mesmos arquivos (`apps/web` e `apps/api`). O back-end
-perdeu o agente num reinício do contêiner, com o trabalho ainda sem commit. Um
-segundo agente retomou do que estava em disco, julgou item por item e desfez
-uma mudança desnecessária em `schemas/notebook.py`. Depois vieram uma revisão
-final de branch e uma rodada de correção com a documentação.
+**Números.** Backend 2979 → 3270. Frontend 735 → 751.
 
-**O que entrou.**
+## Sessão 33 — 28 e 29/09/26 — Cadernos, fase 4: o Estúdio visual e sonoro
 
-- **Velocidade no vídeo** (D-98). É o mesmo controle do áudio, 0,75×–1,5×, e só
-  aparece quando há voz. Trocar a velocidade fala de novo a frase atual na cena
-  atual.
-- **Um rasterizador só** (D-98). `lib/figureExport.ts` passou a usar
-  `svgToPngBlob`/`downloadBlob` de `lib/rasterize.ts`. Com isso, os gráficos
-  ganharam o teto de `canvas` do iOS, o erro tipado (\"Baixe o SVG.\") e a
-  revogação da URL. De quebra saiu um `xmlns` duplicado que o compositor
-  emitia: é XML malformado, e o novo caminho, que relê o SVG, recusava.
-- **Corte da nota** (D-98). O corte cai numa quebra de linha, nunca dentro de um
-  número, e a nota termina com a frase que diz que foi encurtada.
-- **Cor das marcas** (D-98). As marcas `[n]` usam a tinta esmaecida da tela
-  também no SVG. O menor contraste é 6,51:1.
-- **Duplicata da OpenAlex** (D-97). O id mesclado fica em `meta.merged_from`
-  e, da segunda vez, é recusado antes da cota e da rede.
-- **Troca de provedor na pesquisa** (D-97). A troca limpa o resultado anterior
-  e descarta a busca que ainda estava em andamento sob o provedor antigo.
-- **Atribuição na conversa** (D-97). A linha de crédito aparece sob o excerto de
-  toda `CitationChips`.
-- **Nós ocultos por CSS inline** (D-97). O extrator passou a ler opacidade, clip,
-  deslocamento para fora da página, caixa zero e escala.
-- **Cota atômica** (D-92/D-94/D-97). As três cotas passaram a ser reservadas por
-  um `UPDATE … WHERE c < limite` e devolvidas quando a operação não cobra. Não
-  foi preciso migração.
+Resumo em áudio, vídeo, slides PPTX e infográfico (D-98).
 
-**A revisão final: 0 crítico, 4 importantes e 8 menores.** Todos os
-importantes foram corrigidos com teste de regressão.
+**Números.** Backend 2651 → 2979. Frontend 608 → 735.
 
-- **I-1.** O extrator deixava a última declaração vencer, então
-  `display:none;display:x` passava. O navegador descarta o valor inválido e
-  mantém o anterior. Agora **qualquer** declaração que oculta conta, e o D-99
-  explica por que essa regra não pode ser derrotada e um validador poderia.
-  `var()`, `calc()` e escapes CSS também são resolvidos.
-- **I-2.** `position: relative` e `sticky` com deslocamento grande não eram
-  lidos como fora da página.
-- **I-3.** Os testes de corrida passavam com um `reserve` não atômico, porque o
-  `BEGIN IMMEDIATE` serializa a transação. O teste novo captura o SQL enviado e
-  exige um `UPDATE` condicional sem `SELECT` antes. Para conferir, o `reserve`
-  foi trocado por um ler-e-escrever: os três casos do teste novo falharam e os
-  outros 22 passaram. Depois o atômico foi restaurado.
-- **I-4.** Um `font-size:0` de layout apagava colunas visíveis. Fonte e tinta
-  viraram estado herdado, e só sai o texto de fato ilegível.
+## Sessão 32 — 25 a 28/09/26 — Cadernos, fase 3: fontes externas
 
-Dos menores, sete foram corrigidos:
+Site, YouTube, OpenAlex, Wikipédia e busca web com Gemini (D-97).
 
-- tinta transparente, `font: 0/0 a`, `filter: opacity()`, `matrix()`/`scale()`
-  a quase nada e `margin` muito negativo;
-- o `translate(-100%)` de uma dica de ferramenta, que era descartado por engano;
-- o `NUMBER_TOKEN` público, que antes era importado pelo nome privado;
-- a nota que jogava fora o espaço por causa de uma quebra de linha cedo demais;
-- o \"20.000\" em pt-BR;
-- a devolução em dobro quando se apaga uma geração enquanto o job falha;
-- a unidade presa quando se apaga o caderno.
+**Números.** Backend 1966 → 2651. Frontend 563 → 608.
 
-O oitavo, o dia do deploy, foi aceito e está em `TODO.md`.
+## Sessão 31 — 25/09/26 — Auditoria do PR #78: curva custo × lote do Antigravity
 
-**A segunda revisão: 1 crítico, 2 importantes e 3 menores**, todos no leitor de
-CSS inline que a primeira rodada escreveu, e todos corrigidos com teste de
-regressão (`test_html_css_budgets.py`, feito das reproduções do revisor).
+Auditoria da implementação externa da curva custo × lote (D-96).
 
-- **N-1 (crítico).** A expansão de `var()` construía todas as cópias antes de
-  conferir o teto: uma página de 0,2 MB pedia 402 MB, e uma de 0,9 MB dava
-  `MemoryError`. Em produção, é derrubar a API por um \"adicionar link\". Agora
-  há orçamento por atributo (8 KB, 64 declarações), por expansão (64 valores,
-  8 KB cada, contados antes de construir) e de trabalho por atributo e por
-  página. A mesma página roda em milissegundos, com pico de memória de 1 MB.
-- **N-2.** `var(--x,)` virava valor vazio, e `\" \".split()[0]` dava 500. Valor
-  que se expande em nada é valor nenhum, e **qualquer** erro imprevisto ao ler
-  um estilo oculta o nó em vez de derrubar a página.
-- **N-3.** O escopo de propriedades personalizadas era copiado a cada nó: 43 s
-  para 1,3 MB. Agora o filho aponta para o escopo do pai, com teto de 256: 0,3 s.
-- **N-4.** A profundidade contava referências lado a lado, e nove `var()` com
-  reserva num `box-shadow` descartavam um parágrafo visível. Agora conta só o
-  aninhamento.
-- **N-5.** Matemática que o leitor não avalia deixava passar. Numa opacidade ou
-  escala, agora oculta; num deslocamento, só com um comprimento literal muito
-  negativo, porque `calc(50% - 10px)` centraliza caixas visíveis.
-- **N-6.** O excesso de ler só o inline — a coluna dimensionada por classe sob
-  um `font-size:0` é descartada — foi escrito no D-99 e em `TODO.md`, e um
-  teste o fixa.
-
-A direção de todos é a do D-99: passou do orçamento, o nó é lido como oculto.
-
-**A terceira revisão: 0 crítico, 1 importante e 2 menores**, de novo no leitor
-de CSS inline, e todos corrigidos.
-
-- **B-1 (importante).** O *space toggle*: `--off: ;` é uma propriedade
-  personalizada válida e vazia, e `display:var(--off) none` vale `none` no
-  navegador. O leitor descartava toda declaração de valor vazio, a
-  personalizada também, e o texto oculto chegava ao modelo — a mesma classe do
-  I-1. Agora a propriedade vazia entra no escopo, e o consumidor que a expande
-  em nada substitui o token por espaço e lê a declaração seguinte.
-- **B-2.** Tokens inline: `display: inline-block` virava `inline` porque o leitor
-  lia o primeiro token; `background-color: transparent` e `color: inherit`
-  deixavam passar texto invisível. Agora o leitor resolve a declaração inteira.
-- **B-3.** Deslocamento para a esquerda em `calc()` com porcentagem negativa
-  não era capturado.
-
-**A quarta revisão (orçamentos revistos):** o limite de declarações passou a
-contar nas 64 declarações (conta no limite de 8 KB), e o teto do
-escopo foi de 256 para 4096, porque desde o N-3 ele não protege o tempo —
-cada consulta paga ao orçamento os escopos que percorre e os valores que
-traz. As reproduções do N-1 e do N-3 continuam limitadas (0,00 s, 0,41 s e
-0,34 s), e formas hostis novas contra os tetos relaxados — 1200 valores de um
-nome lidos por 200 mil filhos, uma corrente de 4000 escopos com 100 mil
-consultas, uma de `inherit` com 4000 níveis — rodam no mesmo tempo e na mesma
-memória que antes da mudança.
-- **M-2.** O D-99 dizia que \"nenhuma página real\" escreve estilo além dos
-tetos. Passou a dizer \"raro, não impossível\", com os tetos escritos.
-
-**Números.** Backend 2979 → 3270 e frontend 735 → 751, todos verdes, nenhum
-skip. O back-end tinha 3091 antes da primeira rodada de correção, que
-acrescentou casos de CSS, os testes de forma do SQL e os de devolução única
-(3189); a segunda acrescentou os 55 dos orçamentos (3244), e a terceira os 26
-do *space toggle* e dos tokens inline.
-
-**Depois do merge:** o **Deploy da API**. Não há migração nem seed.
-
----
-
-## Sessão 33 — 28/09/26 a 29/09/26 — Cadernos, fase 4: o Estúdio visual e sonoro
-
-**O pedido.** A última fase dos Cadernos: os quatro ladrilhos do Estúdio que
-ainda diziam \"em breve\" — **Resumo em áudio, Resumo em vídeo, Apresentação de
-slides e Infográfico** —, no estilo do NotebookLM e sem custo (D-93). No mesmo
-trabalho, o autor pediu que a documentação andasse junto do código e que outras
-ferramentas de IA (Antigravity inclusive) chegassem às regras do projeto.
-
-**Como foi feito.** Por subagentes, em ondas: três pesquisas (arquivos de
-instrução das ferramentas de IA, `python-pptx`, as APIs do navegador para voz e
-rasterização), oito tarefas de backend, oito de frontend, testes de API, E2E e
-documentação, com uma decisão do coordenador registrada a cada ponto aberto. O
-trabalho foi interrompido uma vez pelo limite de uso e retomado de onde parou.
-
-**O que entrou (D-98).**
-
-- **Backend.**
-  - `app/ai/studio.py`: as quatro ferramentas no catálogo, os esquemas planos
-    (seguros para o modo estrito do Gemini), os leitores com tetos e
-    `strip_markup`, e `amount_for` (o vídeo tira a duração do formato).
-  - `app/notebooks/grounding.py`: `strict_ungrounded` e `foreign_unit`, a regra
-    do dado em destaque; `studio_content.py` com os itens e as frases de cada
-    ferramenta.
-  - `app/notebooks/infographic.py`: o layout do infográfico, com `styles`.
-  - `app/exporters/studio_pptx.py` (deck com notas), `studio.py` (TXT e DOCX do
-    roteiro, SVG do infográfico) e `pptx.py` com as constantes de 16:9 e o slide
-    de avisos públicos.
-  - `studio_service`: a regra \"instrução só onde o modelo tem instrução\", o
-    layout do infográfico na resposta e o texto de cada ferramenta para \"Salvar
-    como nota\". A rota de exportação aceita `pptx` e `txt`.
-  - O `mock` monta as quatro copiando trechos.
-- **Frontend.**
-  - `lib/speech/` (`voices.ts`, `useSpeech.ts`) e o motor falso
-    `lib/testing/fakeSpeech.ts`.
-  - `lib/rasterize.ts`: SVG → PNG no navegador.
-  - `AudioView`, `VideoView`, `DeckView` (slides, tela cheia, impressão) e
-    `InfographicView`, ligados no `ArtifactViewer`; \"PNG (imagem)\" também para o
-    mapa mental; \"PDF (imprimir)\" nos slides.
-  - O diálogo \"Criar …\" com legenda por ferramenta (\"Formato\" no áudio,
-    \"Orientação\" no infográfico) e instrução para todo modelo que tem instrução.
-  - `studioSoon` e o selo \"Em breve\" do painel saíram.
-- **Documentação e agentes.** O `README.md` reescrito para o produto de hoje, o
-  `AGENTS.md` com a ordem de leitura e os ponteiros por ferramenta (inclusive
-  `.agent/rules/` e `.agents/rules/` do Antigravity), o modelo de PR e a regra
-  §1.12 de `docs/CLAUDE.md`: documentação no mesmo PR que o código.
-
-**Decisões tomadas no caminho.**
-
-- **A unidade do dado em destaque é comparada com maiúsculas.** A primeira
-  versão ignorava a caixa, e \"210 mPa\" passaria contra um trecho com
-  \"210 MPa\". A caixa é o prefixo do SI.
-- **O layout leva a tipografia** (`styles`), para a tela nunca repetir as
-  constantes com que o backend quebrou o texto.
-- **O slide e a cena saem inteiros** quando um número falha, e o vídeo sem voz
-  não avança sozinho.
-- **`playLine`** entrou em `useSpeech` quando a primeira versão do \"ouvir a
-  partir desta fala\" tocava fora do gesto, o que o iOS recusa.
-- **O SVG do infográfico desenha um fundo**, ou o PNG sairia transparente.
-- **A tabela passou a recusar `instructions`** (400): o \"Crie a sua\" dela
-  escolhe colunas, e a tela nunca as mandou.
-
-**A rodada de correção da revisão final do PR #83.** A revisão do branch
-inteiro achou três furos importantes e onze menores; todos fechados antes do
-merge.
-
-- **I-1, a manchete sem isenção.** O título e o subtítulo do infográfico — e o
-  título de capa do deck e do vídeo — passavam pela regra estrutural do D-94,
-  com a isenção de inteiros pequenos e as palavras do aluno: \"45% das falhas
-  são por fadiga\" chegava ao pôster sem frase de omissão. Agora seguem
-  `strict_ungrounded` contra o texto dos trechos que os itens mantidos citam;
-  reprovado, o título vira o neutro, o subtítulo sai, e o `withheld` diz por
-  quê. A nova tentativa passou a nomear o tipo da falha (número, unidade ou
-  manchete).
-- **I-2, número inteiro.** `mindmap.wrap` quebrava por caractere e hifenizava
-  \"12.345.678.901 kWh\"; agora quebra entre átomos (`mindmap.atoms`), nunca
-  dentro de um número, e o infográfico não corta nada: a faixa fica mais larga
-  ou o bloco cresce. Na mesma linha, o **teto de tamanho do leitor**
-  (`app/ai/studio.py`) cortava por caractere e transformava \"1 200 MPa\" em
-  \"1 2\" antes da conferência; `_cap` corta entre os mesmos átomos, e um átomo
-  maior que o teto sai inteiro em vez de ser partido.
-- **I-3, caracteres de controle.** Saem na leitura, em todo campo de toda
-  ferramenta; o DOCX e o SVG filtram de novo. Antes, um `\x02` de PDF derrubava
-  o DOCX do áudio com 500.
-- **Menores.** M-1 (\"Quantidade desconhecida\", com a concordância certa); M-2
-  (a nota salva do áudio usa o \"Apresentador(a) N\" dos arquivos, de uma
-  constante só, `SPEAKER_LABEL`); M-3 (os três cenários E2E citados aqui);
-  M-4 (título do alerta de omissão do infográfico); M-5 (nota de nova tentativa
-  por tipo de falha); M-6 (fala e cena atuais saem do poço para o painel, sem
-  cartão dentro de cartão, e os tons do infográfico ficam em passos da paleta
-  como exceção de figura, agora escrita no D-98); M-7 (o pôster desenha o
-  título renomeado, e a alternativa textual mostra o mesmo); M-8 (as marcas
-  `[n]` postas pelos `marks_*` do layout, na tela e no SVG); M-9 (\"Toque em
-  Continuar\", o rótulo que o botão tem depois do erro); M-10 (a impressão do
-  deck diz \"Nenhum trecho citado.\"); M-11 (o `/estilo` mostra o áudio ativo e
-  o estado indisponível num ladrilho neutro).
-- **N-1 e N-2, da re-revisão.** Renomear um artefato guarda o título pela
-  limpeza do leitor (`_clean`), e a planilha passa todo texto por `_xml`: um
-  `\x07` no título, ou um `\x02` de PDF no trecho citado, derrubava o XLSX
-  com 500. No teste, uma alternativa vazia saía mas o `answer_index` ficava, e
-  o gabarito marcava a alternativa seguinte; agora o índice acompanha as
-  alternativas que sobram, e a questão sai se a correta veio vazia ou se
-  restam menos de duas.
-
-**Números.** Backend 2651 → 2979, frontend 608 → 735 (2883 e 732 antes da
-rodada de correção), mais os três cenários E2E da fase em
-`apps/web/e2e/cadernos.spec.ts` (slides ao PPTX, infográfico ao SVG com a
-assinatura do PNG, e áudio com a voz falsa).
-
-**Depois do merge:** o **Deploy da API**. Não há migração nem seed.
-
----
-
-## Sessão 32 — 25/09/26 a 28/09/26 — Cadernos, fase 3: fontes externas
-
-**O pedido.** A fase 3 dos Cadernos, no estilo do NotebookLM: acrescentar a um
-caderno privado o link de um site, um vídeo do YouTube (tentar a transcrição e,
-se falhar, o aluno cola) e resultados de pesquisa em artigos (OpenAlex),
-verbetes (Wikipédia) e na web (*grounding* do Gemini). As decisões do autor:
-OpenAlex com chave opcional, desligada sem ela; busca web incluída mas
-desligada por padrão, só com a chave gratuita do AI Studio. No meio do
-trabalho, a restrição de sempre ficou mais forte: **gasto zero**, toda chave de
-conta sem forma de pagamento, e nenhum texto sugerindo faturamento.
-
-**A pesquisa mudou o plano em três pontos.**
-
-- **YouTube.** A legenda pública agora exige um token *Proof-of-Origin* do
-  BotGuard e responde 200 vazio sem ele. A transcrição automática saiu: título
-  pelo oEmbed, e o aluno cola.
-- **OpenAlex.** A chave virou obrigatória em 13/02/2026, com um crédito diário
-  na conta gratuita.
-- **Gemini.** Os termos do *grounding* exigem mostrar as Sugestões da Pesquisa
-  Google junto dos resultados. Elas entraram numa moldura `sandbox` sem script.
-
-**O que entrou (D-97).**
-
-- **Backend.**
-  - `app/integrations/`: `safe_fetch` e `http`, mais os clientes da OpenAlex,
-    da Wikipédia, do YouTube e do Gemini.
-  - `app/notebooks/html_text.py`: o extrator de texto de página.
-  - O serviço `ExternalSourceService` e cinco rotas, com o POST em tudo que
-    gasta cota.
-  - A migração `4dbd71e64b6b`: `notebook_source.meta` e `ai_usage.fetches`.
-  - O endereço e a atribuição da fonte nas citações e nas exportações do
-    Estúdio (DOCX, CSV/XLSX, SVG).
-- **Frontend.**
-  - A aba **Link** no diálogo de fontes.
-  - A pesquisa de fontes no painel: Artigos | Wikipédia | Web, marcação por
-    item, \"Adicionar N\" um por vez com estado por item e \"N de 30 buscas hoje\".
-  - O leitor de fonte com o bloco **Origem** (link só http/https, licença,
-    atribuição, de onde veio a transcrição).
-  - Três ícones novos em `/estilo`.
-- **Testes.** O `conftest.py` passou a proibir rede: transporte e resolvedor
-  que recusam tudo, e um *fixture* que reprova quem tentou. O canário de
-  isolamento ganhou um caderno alheio com fonte de site.
-
-**O que as revisões pegaram.** Cada achado foi corrigido na própria
-branch.
-
-- **Cookie entre sites.** Como a requisição vai ao IP fixado, o jar do httpx
-  guardava o cookie de um site sob o IP e o mandava a outro site do mesmo CDN.
-  Agora o jar recusa todo cookie.
-- **Marcador de seção da Wikipédia.** `3 200 anos` era lido como **3200** pelo
-  conferidor de números, que junta dígitos separados por espaço. O marcador
-  virou `3.`.
-- **Chave de outro fornecedor.** A queda de `WEB_SEARCH_API_KEY` para
-  `AI_API_KEY` mandaria uma chave da Groq ao Google. Agora ela só vale quando
-  `AI_BASE_URL` é o próprio Gemini.
-- **Contagem da cota.** Ela só dava `flush`, e o rollback de uma falha a
-  apagava: sondar a rede sairia de graça. Agora é gravada com commit antes de o
-  erro seguir.
-- **Resultado web.** A chave de um resultado web foi restrita ao
-  redirecionamento do Google, para `found_via = "busca_web"` ser sempre
-  verdade.
-- **DNS de graça** (revisão final). A consulta ao DNS não gastava cota e
-  dividia um pool de 4 threads com o processo inteiro: um nome cujo servidor
-  nunca responde travava as leituras de todos os alunos, e \"não resolve\" versus
-  \"resolve para dentro\" era sondagem gratuita. Agora toda consulta de um nome
-  conta uma unidade, recebe só o que resta do prazo da leitura, e o pool tem 16
-  threads. Na mesma rodada: a tag `<trecho>`/`<consulta>` passou a ser
-  neutralizada em qualquer caixa e espaçamento — no texto e nos atributos
-  `fonte`/`secao`, que numa página vêm do título —, a linha \"N de 30 buscas hoje\"
-  atualiza depois de um vídeo sem transcrição, e o `.env.example` e a tabela de
-  ambiente do `docs/CLAUDE.md` descrevem as variáveis novas como o código as lê.
-
-**Números.** Backend 1966 → 2651, frontend 563 → 608, conferidos na rodada
-final; mais os cenários E2E da fase.
-
-**Depois do merge:** o **Deploy da API**, que aplica a migração pelo
-`release_command`. Não há seed. As chaves da OpenAlex e da busca web são
-opcionais e ficam para o autor ([13-deploy.md §5-sexies](13-deploy.md)).
-
----
-
-## Sessão 31 — 25/09/26 — Auditoria do PR #78 (curva custo × lote, do Antigravity)
-
-**O pedido.** Antes de começar a fase 3 dos Cadernos, verificar se o PR #78
-— `/app/custo` ganhou uma curva de custo unitário × tamanho do lote,
-enviado por execução agêntica externa (Antigravity) e já mesclado pelo
-autor — está rodando corretamente.
-
-**O que a auditoria achou.** O cálculo está certo: `cost_curve()` reamostra
-os mesmos quatro termos de `cost_terms()` (D-65) em vez de duplicar a
-derivação, sem moeda inventada e com a tabela alternativa (D-31) de sempre.
-CI verde no merge e na ponta atual de `main`; testes, lint e format locais
-batem com a CI.
-
-Duas lacunas, nenhuma no comportamento. **Cobertura de teste**: o PR
-reescreveu `test_part_cost_api.py` inteiro em vez de estender (16 testes →
-8), e três ficaram sem substituto — a prova de que só o termo de
-ferramental se move com o lote, a prova do cruzamento de ranking entre
-lotes (a razão de existir da própria curva) e o 404 de um material
-inexistente. Reinstalados sem tocar `part_cost.py`: passaram de primeira
-contra o código já em `main`, confirmando que o comportamento nunca esteve
-errado. Os comentários da CI no PR mostram uma iteração agêntica típica —
-um `SyntaxError` corrigido só pelo autor humano, depois duas rodadas de
-teste vermelho por um material semeado não encontrado — e é nessa
-iteração que a suíte de teste foi provavelmente simplificada de mais em
-vez de consertada. **Registro**: o PR não tocou `docs/`, e `TODO.md`
-continuava listando a curva como pendência de um item já quitado.
-Corrigido com [D-96](DECISIONS.md).
-
-**Números.** Backend 1963 → 1966 (os três testes devolvidos); frontend
-inalterado, 563.
-
----
+**Números.** Backend 1963 → 1966. Frontend 563 (inalterado).
 
 ## Sessão 30 — 25/09/26 — O Estúdio de texto dos Cadernos
 
-**O pedido.** \"Funcionou, agora vamos fazer o Estúdio\": a fase 2 dos Cadernos,
-com o modal \"Criar …\" das capturas do NotebookLM.
+Relatório, cartões, teste, tabela e mapa mental (D-94).
 
-**O que entrou (D-94).** Cinco ferramentas — relatório (seis modelos, texto
-corrido ou tópicos), cartões didáticos, teste (múltipla escolha ou V/F), tabela
-de dados (colunas escolhidas pelo aluno) e mapa mental — no modal de Formato e
-Modelo, com o lápis abrindo a instrução do modelo, que vem do catálogo do
-backend. A geração responde 202 e roda em segundo plano; a lista do Estúdio
-mostra \"Gerando…\", \"Falhou\" com o motivo e \"Tentar de novo\", e o item pronto
-abre dentro do painel: cartões que viram e embaralham, teste com dica,
-correção em palavras e \"Explicar\", tabela com a ausência escrita, mapa
-desenhado das coordenadas do backend com a lista como alternativa e um clique
-que leva a pergunta à conversa sem enviá-la. Exportações DOCX, CSV, XLSX e SVG
-com os dois avisos.
+**Números.** Backend 1917 → 1966. Frontend 536 → 554.
 
-**A regra que atravessa tudo.** O conferidor de números do chat virou módulo
-(`grounding.py`) e passou a valer por item. O caso que parece exceção — o
-distrator do teste — não é: número inventado numa alternativa errada é número
-inventado.
+## Sessão 29 — 25/09/26 — Cadernos, fase 1: o NotebookLM dentro do app e o Gemini gratuito
 
-**Achados no navegador de verdade.** O E2E pegou que o modal do MSDS não tinha
-altura máxima: com o lápis aberto, o botão Gerar ficava abaixo da dobra, fora do
-alcance. Agora todo diálogo rola por dentro. As capturas mostraram a conversa
-espremida a 1280 px com um item aberto: as Fontes recolhem enquanto o item está
-aberto e voltam quando ele fecha.
+Cadernos de estudo e provedor Gemini gratuito (D-92, D-93).
 
-**Números.** Backend 1917 → 1966; frontend 536 → 554; E2E + 1.
+**Números.** Backend 1856 → 1906. Frontend 505 → 536.
 
-**Depois do merge:** Deploy da API. Sem migração nem seed.
+## Sessão 28 — 24 a 28/09/26 — Turma de terça: processos no Objetivo, UX guiada, pesos com limite e a IA
 
----
+Melhorias para uso em sala de aula (D-84 a D-89).
 
-## Sessão 29 — 25/09/26 — Cadernos: o NotebookLM dentro do app, e o Gemini gratuito
+**Números.** Backend 1785 → 1856. Frontend 431 → 505.
 
-**O pedido.** \"Quero que a IA faça as mesmas funcionalidades do Google
-NotebookLM\", com o layout dele (\"parecido ou até igual\", com capturas), e o
-Gemini como IA oficial do projeto no lugar da Groq. As respostas às perguntas
-fecharam o escopo: cadernos **privados por aluno**; Estúdio completo (relatórios,
-cartões, teste, mapa mental, tabela, slides, infográfico, áudio e vídeo); fontes
-em PDF, DOCX, TXT, MD, texto colado, dados do app, sites e YouTube; números **só
-copiados da fonte, citados**; busca em OpenAlex, Wikipédia e web. E, por último,
-a restrição que manda em tudo: **nada no cartão, nem o crédito da assinatura**.
+## Sessão 27 — 24/09/26 — O portão vira um modo acesso aberto para uma turma (D-83)
 
-**A pesquisa.** O NotebookLM é RAG sobre as fontes do usuário com citação em
-linha; o Estúdio gera artefatos a partir delas. A assinatura Google AI Pro do
-autor **não** dá cota de API (só um crédito do Google Cloud, recusado por ele);
-o plano gratuito do AI Studio, sem faturamento, dá Gemini Flash e embeddings de
-graça, com limites diários e o conteúdo podendo ser usado para treino. Áudio e
-vídeo sem custo: roteiro no backend e a voz do navegador.
+Acesso para turmas acadêmicas.
 
-**F1a — Gemini por configuração (D-93).** O Gemini fala o protocolo OpenAI, então
-a troca é `AI_BASE_URL`/`AI_MODEL`/`AI_API_KEY` do `openai-compat` e
-`gemini-embedding-001` nos embeddings. `/api/health` passou a nomear provedor e
-modelo, e o workflow **Provedor de IA** troca os segredos do Fly e só fica verde
-lendo o provedor novo ali. O 429 ganhou a mensagem dos dois limites.
+**Números.** Backend 1755 → 1785. Frontend 422 → 427.
 
-**F1b — o backend (D-92).** Oito tabelas (caderno, fonte, trecho, embedding,
-mensagem, nota, artefato do Estúdio, cota) — **fora** do Cérebro, porque a busca
-dele não tem dono. Leitores a partir de bytes com o tipo conferido pelo conteúdo;
-pypdf virou dependência principal (a produção não o instalava). Busca restrita às
-fontes marcadas de um caderno; resposta por parágrafo com citação por número;
-todo número conferido contra o trecho que **aquele** parágrafo cita, com uma nova
-tentativa e depois a omissão declarada. Guia com perguntas sugeridas, notas,
-salvar resposta como nota, cota diária. O canário de isolamento varre as rotas
-novas com um caderno alheio.
+## Sessão 26 — 21 e 22/09/26 — A auditoria de produção, o seed desconectado (D-71) e a exclusão de demo por um flag (D-72)
 
-Um defeito real apareceu no teste do provedor de verdade: os atributos do
-`<trecho>` saíam com os acentos escapados (`A\\u00e7os`), porque `json.dumps` usa
-ASCII por padrão. Corrigido com `ensure_ascii=False`.
+Correção de seed e flag `is_demo`.
 
-**F1c — a tela.** `/app/cadernos` e `/app/cadernos/[id]` no desenho das capturas,
-com seis primitivas novas no barril e em `/estilo`, a seção de cor `cadernos`
-(matiz 285, medido pelo script de contraste) e o item no menu. Conferido num
-Chromium de verdade pelo E2E novo (criar → colar texto → guia → perguntar → abrir
-a citação → telefone), com capturas: a conversa ficava estreita a 1280 px e os
-painéis laterais encolheram para `w-64`/`w-72` em `lg`.
-
-**Tropeços.** O `black` rodado em `alembic/` reformatou migrações antigas — revertido
-(a CI só formata `app`). O servidor do E2E reescreveu `next-env.d.ts` com o
-caminho `.next-e2e` e ele entrou num commit, a mesma armadilha da sessão 28 —
-restaurado num commit à parte.
-
-**Números.** Backend 1856 → 1906; frontend 505 → 530 nesta sessão, 536 depois de mesclar o D-91 de `main`; E2E + 1. As decisões nasceram como D-90 e D-91 e foram renumeradas para D-92 e D-93 porque `main` recebeu essas duas enquanto o PR estava aberto.
-
-**Depois do merge:** Deploy da API (migração nova); criar o segredo
-`GEMINI_API_KEY` no AI Studio **sem faturamento** e rodar **Provedor de IA** →
-`gemini` (passo a passo em `13-deploy.md` §5-quinquies).
-
-**Depois do merge, a primeira troca em produção deu 404.** O `gemini-2.5-flash`
-está restrito a quem já o usava, e o motivo do Google não chegava à tela porque o
-Gemini devolve o erro dentro de uma lista. Correção num PR à parte: leitura das
-duas formas de erro, modelo `gemini-flash-latest` e conferência do modelo no
-workflow antes de gravar os segredos (adendo da D-93). Com o modelo certo, veio o
-503 \"high demand\" do plano gratuito — carga do Google, não configuração: o
-`openai-compat` passou a repetir sozinho os status passageiros (duas vezes, 2 s e
-5 s) e a dizer isso em palavras quando não adianta (`docs/09`).
-
----
-
-## Sessão 28 — 24/09/26 a 28/09/26 — Turma de terça: processos no Objetivo, UX guiada, pesos com limite e a IA
-
-**O pedido.** Preparar a ferramenta para a apresentação à turma de graduação de
-terça-feira (29/09), em ordem: (1) uma experiência mais intuitiva — passo a passo,
-menos coisa na tela, sempre com volta atrás —, (2) pesos dos critérios de ranking
-com total 1, limite à vista e tabela viva calculada no backend, (3) Objetivo antes
-de Restrições; e, depois de tudo, revisar a IA do laudo. No meio veio um pedido
-avulso: o passo Objetivo sumia num estudo de processos.
-
-**Fase 0 — processos no Objetivo (D-84).** O aviso \"processo não tem atributo\" era
-falso desde o D-59. O passo passou a listar os atributos numéricos como critério
-(o discreto fica de fora pelo nome), a oferecer só expressão personalizada como
-índice, e `ProcessAttributeOut` ganhou `variable` para a tela não reinventar
-`safe_variable`. Trocar o universo agora limpa também o objetivo.
-
-**Fase 1 — experiência guiada (D-85, D-86).** Primitivas novas em
-`components/ui` (`Disclosure` controlada, `GuidedBlock`, `Combobox`,
-`RemovableChip`, resumo por passo no `Stepper`), todas em `/estilo`. Na Seleção:
-Voltar em todo passo e no navegador (`?etapa=`), resumo no stepper, \"Meus estudos\"
-e a IA recolhidos, opções avançadas recolhidas sem esconder o que está em uso,
-Objetivo em dois blocos, exemplo \"viga leve de bicicleta\" com Desfazer, resultado
-que começa pelo vencedor e pelo porquê e segue em abas, busca nos seletores,
-unidade à vista e restrição lida como frase. Fora dela: capa com um botão só
-(a vitrine fica no repositório), login leva a `/app`, menu sem Importar e
-Administrar para quem não é curador, Início enxuto, Mapas com \"Personalizar o
-mapa\", Comparar por busca e as ferramentas com premissas recolhidas (valores no
-resumo) e motivo em todo botão desabilitado.
-
-**Fase 2 — pesos com limite 1 (D-87).** `app/domain/weights.py` (orçamento em
-Decimal, problema por linha, sugestão que fecha 1 exatamente) e
-`POST /api/selection/weights-preview` (orçamento sempre, top 5 quando há o que
-ordenar, motivo em vez de erro). Na tela, `WeightBudget` com total, participação,
-sugestão com Desfazer e prévia do top 5; \"Executar\" espera a soma fechar 1, com o
-motivo, e falha aberta se a conferência não responder. `/run` e o salvamento
-recusam critério repetido; estudos antigos continuam reexecutando.
-
-**Fase 3 — Objetivo antes de Restrições (D-88).** `STEPS` reordenado; como a
-navegação deriva dele, o Executar foi sozinho para Restrições e um estudo aberto
-cai lá. Os pesos avisam em Objetivo e travam no Executar. Início, vitrine,
-`/estilo`, README e docs 04/07/11/12 acompanham; o motor não mudou.
-
-**Fase 4 — a IA do laudo (D-89).** O 400 da Groq (\"missing properties:
-'sources'\") vinha de um campo sempre obrigatório num esquema estrito: agora
-`sources` só existe no esquema e no prompt quando há trechos para citar. Um 400
-em que o servidor rejeita a *geração* é repetido uma vez e, se persistir, tem
-mensagem própria — não culpa mais a configuração.
-
----
-
-## Sessão 27 — 24/09/26 — O portão vira um modo: acesso aberto para uma turma (D-83)
-
-**O pedido.** \"Gostaria de abrir o app para os estudantes testarem com suas
-contas do Google […] liberar o acesso quando qualquer pessoa logar […] após os
-testes, criar no git um job para voltar a configuração original, em que a pessoa
-só pode ter acesso se adquire o pacote.\"
-
-**A pergunta que decidiu o desenho.** Abrir o portão desfaz uma equivalência
-que o D-62 usava sem dizer: \"quem passou pelo portão pode alterar o catálogo\"
-valia porque todo mundo que passava era assinante. Perguntado, o autor escolheu
-**usar tudo, proteger o catálogo** — o estudante usa toda a ferramenta e cria os
-próprios registros e estudos; alterar o catálogo compartilhado, classes,
-propriedades e importar continua com quem tem assinatura ativa.
-
-**O que saiu.**
-
-- `ACCESS_MODE` (`subscription`, o padrão; ou `open`) em `app/config.py`, e a
-  regra pura em `app/domain/access.py`, lida pelo portão e por
-  `/billing/status`.
-- `require_catalog_curator` nas rotas de classe, propriedade, as seis de
-  importação e a ingestão do Cérebro; `can_edit_shared` no `MaterialService`,
-  porque `POST /materials` escreve no catálogo ou num registro próprio
-  conforme o payload. Recusa: `CatalogReadOnlyError` → 403, mensagem em
-  português definida uma vez.
-- `/billing/status` passou a separar `active` (a assinatura) de `has_access`
-  (o portão) e `can_edit_catalog` (a interface); `/api/health` passou a dizer
-  `access_mode`.
-- Interface: `AuthGate` lê `has_access`; `/assinatura` manda o estudante para a
-  ferramenta em vez do checkout; a ficha de material compartilhado esconde
-  *editar*/*desativar* de quem não pode; importar e administração mostram o
-  aviso de somente leitura; e o formulário de material novo grava registro
-  próprio para o estudante, dizendo isso na tela.
-- `.github/workflows/modo-acesso.yml`: `abrir` / `restaurar_assinatura` gravam
-  o segredo no Fly e **só ficam verdes depois de ler o modo novo em
-  `/api/health`**.
-
-**Um achado no caminho.** O formulário \"Novo material\" nunca enviava
-`is_own_record` — criava sempre no catálogo compartilhado; registro próprio só
-nascia pelo Synthesizer. Sem mexer nisso, o modo aberto deixaria o estudante
-sem nenhum jeito de cadastrar um material pela tela.
-
-**Um vazamento que o modo aberto teria multiplicado.** `/api/audit` mostrava
-a qualquer usuário os eventos de material — inclusive os de **registro
-próprio alheio**, com o nome do registro e o e-mail do dono —, embora as rotas
-de material respondessem 404 para esse mesmo leitor. O canário do D-62 varre
-rotas de material, não o feed de auditoria. Com uma turma inteira dentro,
-cada estudante veria o e-mail e os registros particulares dos colegas.
-`AuditRepository.list_events` passou a excluir eventos de material que é
-registro próprio de outra pessoa; teste novo em `test_audit.py`, conferido por
-mutação.
-
-**Verificação.** Backend 1755 → 1785 (29 em `test_open_access.py`, 1 em
-`test_audit.py`), frontend
-422 → 427; `ruff`, `black --check`, `typecheck` e `lint` limpos (os 21 avisos
-de lint são os mesmos de `main`).
-
-**Depois do merge:** **Deploy da API** e, para abrir, **Modo de acesso** →
-`abrir` ([13-deploy.md §5-quater](13-deploy.md)).
-
----
-
-## Sessão 26 — 21/09/2026 a 22/09/2026 — A auditoria de produção, o seed desconectado (D-71) e a exclusão de demo por um flag (D-72)
-
-**O pedido.** \"Verifique se realmente todas as funcionalidades e melhorias
-criadas pelo Antigravity e pelo Claude Code estão rodando em produção — os
-70 itens fictícios criados não estão rodando na aplicação, por exemplo.\"
-Uma auditoria, não uma implementação — mas ela achou um defeito real, e
-depois o pedido virou dois: corrigir o defeito, e criar um jeito fácil de
-apagar todo o dado fictício quando a base oficial chegar.
-
-**A investigação em duas camadas.** A primeira olhada (histórico do GitHub
-Actions) parecia bastar: `deploy-api.yml` tinha rodado 19 vezes, fielmente,
-a cada merge — inclusive minutos depois do PR #63 (D-70). `admin-banco.yml`
-(a ação `semear`) não rodava desde 09/09, bem antes do PR #59 (os 70
-materiais) existir. Diagnóstico óbvio: ninguém tinha rodado o seed. Rodei
-— e o log voltou `materials_created: 0`. O diagnóstico estava errado.
-
-`git show` no merge do PR #59 revelou por quê: ele criou
-`apps/api/app/db/seed_extended.py`, um módulo com o próprio `main()`,
-pensado para `python -m app.db.seed_extended` — mas nunca ligado a nada.
-Nem `admin-banco.yml`, nem `scripts/seed.ps1`, nem a CI chamavam esse
-comando. `semear` sempre terminou verde porque o script que ele de fato
-executa (`app.db.seed`) nunca lançou erro — só nunca continha os 70
-materiais. **[D-71](DECISIONS.md#d-71)** registra o achado e a correção:
-`admin-banco.yml` e `scripts/seed.ps1` agora rodam os dois módulos em
-sequência. A separação em si continua certa —
-`apps/api/app/tests/conftest.py` reexecuta `app.db.seed` como base de todo
-teste do backend, e dobrar esse baseline para 75 quebraria dezenas de
-asserções de contagem fixa — só faltava ligar o segundo módulo a algo que
-roda. PR #65, mesclado, e a reseeded produção confirmada por log
-(`[seed_extended] Concluído: 70 materiais criados.`) e ao vivo em
-`/app/catalogo`.
-
-**O processo também ficou registrado**, em `docs/13-deploy.md` §5-ter
-(PR #64, antes de achar o defeito real): a regra de qual workflow disparar
-depois de um merge, e por quê job verde não prova que o dado certo foi
-escrito — só que o script executado não lançou exceção.
-
-**O segundo pedido — apagar tudo com um clique, quando chegar a hora.**
-\"Assim que eu solicitar para incluir os oficiais, delete todos estes
-fictícios... não quero dificuldade... deixe todos eles num mesmo código.\"
-A resposta não foi consolidar `seed.py` e `seed_extended.py` num arquivo só
-— isso reabriria o problema que a separação do D-71 resolve. A resposta foi
-reconhecer que **o ponto de consolidação já existia**: a coluna
-`Material.is_demo`, que toda linha fictícia carrega não importa em qual
-módulo nasceu. `apps/api/app/db/clear_demo.py`
-(`python -m app.db.clear_demo`, ação `excluir_demo` de `admin-banco.yml`)
-apaga por essa coluna — um disparo, sem terminal, cobre os dois módulos e
-qualquer futuro terceiro.
-
-Duas decisões técnicas dentro da mesma correção. **A cascata é escrita em
-Python, não só declarada no schema**: todo `ForeignKey` para `material.id`
-já é `ondelete="CASCADE"`/`"SET NULL"`, mas o SQLite dos testes só aplica
-isso com uma `PRAGMA` que este projeto não liga — confiar só no schema
-teria deixado a exclusão correta em produção e inverificável em teste, a
-mesma armadilha que `docs/CLAUDE.md` §10 já registra para migração. **E a
-exclusão de verdade é uma exceção estreita**, não uma mudança de política:
-o catálogo trata material real como algo que se desativa
-(`is_active=False`), nunca apaga — `material_synthesis.py` já documentava
-por quê (receita, estudo, auditoria são história que apagar destrói).
-`clear_demo` só alcança `is_demo=True`, e essa coluna já é a prova de que
-não existe história real para proteger ali. **[D-72](DECISIONS.md#d-72)**
-tem o argumento completo.
-
-**Testado nos dois sentidos** antes do PR: `apps/api/app/tests/test_clear_demo.py`
-(4 testes — remove só `is_demo`, cascata sem órfão, idempotente, material
-real sobrevive) e, à parte, o CLI completo contra um SQLite descartável já
-semeado com os 75: `[clear_demo] 75 materiais fictícios removidos`, segunda
-execução `0`, contagem de materiais e de valores zerada.
-
-**O terceiro pedido — que outra ferramenta de IA não repita o erro.**
-`docs/15-dados-demonstrativos.md` é o documento novo: o checklist de como
-criar dado de demonstração sem reabrir o D-71 (marcar `is_demo`, ligar o
-módulo a `admin-banco.yml`, testar a contagem), como apagar quando chegar a
-hora, e uma seção nomeada para qualquer agente que não seja o Claude Code
-— Antigravity incluído — lendo este repositório pela primeira vez.
-`CLAUDE.md` da raiz e `docs/CLAUDE.md` ganharam os ponteiros cruzados; a
-correção da nota registrada no dia anterior (que atribuía o sumiço dos
-materiais só a \"ninguém disparou o workflow\") foi substituída pela causa
-real.
-
-**Números.** 1727 → **1741** testes de backend (os 4 de
-`test_clear_demo.py`) — frontend intocado, 368.
-
----
+**Números.** Backend 1727 → 1741. Frontend 368 (inalterado).
 
 ## Sessão 25 — 21/09/26 — A unidade de leitura fecha a matriz
 
-**O pedido.** \"O que falta para passar de 97% para 100% do EduPack?\", e depois
-\"pode começar, quero chegar a 100%\". A resposta era uma linha só:
-`Unidades de exibição`, em 2. O B11 já tinha consertado a metade tipográfica
-(`kg/m**3` → `kg/m³`); a linha media a outra — se o usuário **escolhe** em que
-unidade lê. Não escolhia, e a ficha mostrava o módulo de Young como
-`210000000000`.
+Unidades de leitura por propriedade (D-70). Matriz a 100%.
 
-**A assimetria que carrega o item.** `to_canonical` roda uma vez, quando um
-número entra, e devolve valor *mais trilha*. `from_canonical` roda toda vez que
-alguém olha, e devolve só o número. Guardar cria proveniência; ler não cria fato
-nenhum sobre o material, e emitir uma trilha na saída poria passos de leitura num
-campo que promete descrever **origem**.
+**Números.** Backend 1683 → 1727. Frontend 356 → 368.
 
-**Duas correções que o dado impôs, as duas contra a minha hipótese.** Eu comecei
-supondo que a unidade de leitura seria por **dimensão** — um mapa de
-`[mass]/[length]/[time]**2` para MPa e pronto. O catálogo desmentiu na primeira
-consulta: módulo, escoamento e tração têm a mesma dimensão e se leem em GPa, MPa
-e MPa, e uma tabela com \"210000 MPa\" ao lado de \"250 MPa\" estaria correta e seria
-ilegível. A convenção é da **grandeza**, ao lado de `better_direction`.
+## Sessão 24 — 16/09/26 — P4: o Battery Designer e a reconciliação do PR #56
 
-A segunda apareceu quando um teste existente falhou com `9.99e-07 == 999.0`: eu
-tinha convertido `value_scalar` supondo que ele guardasse o canônico. Ele guarda
-**o que a fonte disse**, na unidade dela — reescrevê-lo apagaria o registro.
-Daí os campos `display_*` serem **acrescentados**, e um documento exportado
-carregar as três unidades de propósito.
+Battery Designer (D-69) e reconciliação do PR #56.
 
-**A prova central é de invariância.** A mesma comparação, lida em duas unidades
-diferentes, devolve exatamente a mesma coluna de diferença percentual.
-`is_ratio_scale` pergunta à unidade **canônica**; se a escolha de leitura
-chegasse a essa pergunta, pedir °C para `temp_max_servico` ligaria uma coluna que
-não pode existir — \"o dobro da temperatura\" é falso numa escala sem zero
-verdadeiro — e o número sairia com toda a autoridade de um valor calculado.
-
-**No mapa, converte-se no fim.** Toda saída geométrica é um par de coordenadas, e
-a imagem afim de um par é o par convertido. Reescalar no fim é exato e deixa
-intocado o fecho, a elipse, a linha de índice e **a comparação que o Chart Stage
-faz para reprovar**: o D-60 fez figura e funil concordarem por construção, e
-converter a montante os separaria — o funil reprovaria por um número que a figura
-não desenha. E uma unidade que não é fator de escala **não entra num mapa**, com
-a razão escrita: `log(x − 273,15)` não é `log x` deslocado. A recusa é do mapa e
-não da grandeza — a ficha continua lendo em °C.
-
-**A figura exportada saiu de graça**, e é a prova de que a regra do CLAUDE.md
-estava certa: a geometria do documento vem de `ChartService.property_map`, a
-mesma chamada que serve a tela (D-53), então bastou a escolha atravessar o
-construtor.
-
-**Três armadilhas menores viraram teste.** Uma incerteza é **diferença** (±5 K
-lidos em °C são ±5 °C, não ±268,15), daí `from_canonical_delta`; `pretty_unit`
-aprendeu °C/°F, porque a unidade chega à tela de verdade agora e ninguém viu
-\"degC\" numa tabela de materiais — mas `conversion_method` continua guardando
-`degC`, que é o que o Pint sabe reler; e as 38 fixturas de teste do frontend
-tiveram de declarar os campos novos, que é a tipagem estrita fazendo o trabalho
-que a tela de baterias mostrou ser necessário.
-
-**Recuperação no meio do caminho.** O container foi reciclado entre sessões:
-clone reiniciado, `venv` e `node_modules` apagados, lista de tarefas zerada. O
-commit da fundação estava a salvo no remoto; só a amarração não commitada se
-perdeu e foi refeita. `main` tinha avançado quatro PRs (#58 DOCX, #59 seed
-estendido, #60 guia de estilo, #61 seleção por arraste) e mesclou sem conflito —
-o avanço foi todo frontend, este trabalho é todo backend até o T6. Cinco testes
-de conhecimento falharam e **não eram regressão**: a CI instala
-`.[dev,knowledge]` e eu tinha reconstruído o ambiente com `.[dev]`.
-
-**Números.** 1683 → **1727** testes de backend (nenhum skip), 356 → **368** de
-frontend. Cobertura EduPack ~97% → **100%** (32 de 32), nível médio 3,56 →
-**3,59**.
-
-**E 100% não quer dizer pronto.** A métrica para de medir no 3, e toda linha da
-matriz continua com a sua lista de \"faltam\" — catálogo de processos editável, o
-*porquê* por registro reprovado, *Science Notes*, desempenho para centenas de
-milhares de registros. O número diz que nenhuma capacidade do modelo funcional
-está ausente ou pela metade, não que cada uma esteja no seu teto. E a pendência
-da monografia continua sendo o §3.5: nenhuma sessão de teste com usuários foi
-realizada.
-
----
-
-## Sessão 24 — 16/09/26 — P4: o Battery Designer, e a reconciliação do PR #56
-
-**O pedido.** Duas coisas, nesta ordem. Primeiro: \"criei a branch
-`feature/battery-designer-module-s` no Antigravity CLI para trabalhar junto com
-esta sessão — verifique por que o PR #56 não mescla e se o Antigravity codou
-certinho a demanda\". Depois, com o diagnóstico na mão: \"confio em você Claude,
-execute tudo o possível para não perder nada e reverter os problemas que ele
-causou\".
-
-**Por que o PR #56 não mesclava, e o que havia de errado nele.** O conflito era
-de base: a branch saiu de um `main` anterior ao merge do PR #55, e trazia uma
-**segunda implementação de painel sanduíche** — algebricamente idêntica à do
-D-68, o que é pior e não melhor, porque criaria as duas verdades que aquele
-documento existe para impedir. Vinham junto 122 exclusões de `Cérebro/` (a base
-de conhecimento que o [D-45](DECISIONS.md) registra como risco aceito, não como
-lixo a remover), um `submeter_pr.bat`, e o portão vermelho: 1 erro de `ruff`
-(F841 — a variável do vencedor de durabilidade era calculada e nunca usada), 8
-violações de `black` e 2 testes falhando. A CI do repositório nunca chegou a
-rodar naquele PR.
-
-**E o defeito que nenhum lint pegaria.** As nove químicas moravam num dicionário
-Python de 350 linhas — `specific_energy=160.0` para o LFP, e assim por diante. É
-a violação do princípio 1 na forma mais direta que existe: propriedade de
-material vinda de lugar nenhum que a ferramenta saiba nomear.
-
-**A pergunta que decidiu o desenho: 160 Wh/kg é argumento ou é dado?** A
-contagem em série e em paralelo, os fatores de empacotamento e o custo nivelado
-por ciclo são **álgebra** — verificam-se por revisão, e por isso moram em código,
-como `units.py` e como as sete derivações do D-64. A energia específica de uma
-química **não**: é medida sobre uma substância real. Então
-`app/calculations/battery.py` passou a receber um `CellSpec` pronto e a nunca
-consultar nada, e as nove químicas foram para `battery_chemistry` — tabela
-própria, semeada, com **cada linha nomeando a sua `Source`** (M1) e a sua
-citação, porque as nove não saíram do mesmo lugar. É o corte do D-57: *dado
-semeado, não schema*.
-
-**Por que tabela própria e não `Material`.** Energia específica, vida em ciclos e
-custo por kWh são propriedades que **nenhum outro registro pode ter**: cada uma
-ficaria em ~0% de cobertura no painel de indicadores e subiria ao topo do ranking
-de lacunas, reportando como o maior buraco do catálogo algo que não é buraco —
-exatamente o efeito pelo qual o D-68 recusou um slug para o módulo de flexão, uma
-sessão antes. E as células entrariam em mapas e estudos como se fossem
-candidatas ao lado do aço. A forma é a que o D-66 já aceitou para
-`TransportMode`.
-
-**A tela estava escrita contra um contrato imaginado.** `cell_nominal_voltage_v`
-em vez de `nominal_voltage`, `temp_range_min_c` em vez de
-`operating_temp_min_c`, rótulos térmicos em inglês (`"excellent"`, `"moderate"`)
-onde o catálogo guarda ordinais em português, campos de arquétipo que não
-existem, e uma API de `CardHeader` que o sistema de design não tem. **E os testes
-passavam**, porque afirmavam o mesmo engano que o código. A correção foi
-reescrevê-los com fixturas **tipadas pelos tipos compartilhados**, de modo que
-seja o compilador — e não a atenção de alguém — a impedir a divergência de
-voltar.
-
-**Quatro defeitos de produto que o typecheck não pegaria, achados na mesma
-leitura.** Dois dos três fatores de empacotamento existiam só no estado do
-componente: o volumétrico e o de custo dividiam o volume e o investimento do pack
-sem que ninguém os visse — a regra de premissa visível do D-65, quebrada. O custo
-nivelado saía por `toFixed(4)`, que sempre escreve ponto, e a tabela teria
-\"3.900\" de milhar ao lado de \"0.0383\" de decimal (D-30). O pódio usava `?? 0`
-seis vezes, que imprimiria \"0 kg\" no dia em que um vencedor não fosse encontrado
-(D-24). E a ficha da química não mostrava citação nem fonte — o catálogo tinha a
-proveniência e a tela não a dizia, que é meio princípio 1.
-
-**O sexto ponto do débito de lint.** O PR #56 promoveu
-`react-hooks/set-state-in-effect` de `warn` para `error` afirmando ter corrigido
-os seis pontos pré-existentes. Corrigiu cinco. O sexto, o `ThemeToggle`, é de
-outra natureza — lê `localStorage`, que é fonte **externa** ao React — e ganhou a
-correção que lhe cabe: `useSyncExternalStore`, que resolve os dois renders e traz
-o par de snapshots que preserva a hidratação. Não sobrou `setState` no
-componente: o clique escreve na fonte e a fonte notifica.
-
-**O que não foi trazido, de propósito.** As 122 exclusões de `Cérebro/`, o
-`submeter_pr.bat` e a segunda implementação de painel sanduíche.
-
-**Números.** 1656 → **1683** testes de backend (nenhum skip), 349 → **356** de
-frontend. Cobertura EduPack ~94% → **~97%** (31 de 32), nível médio 3,44 →
-**3,53**. Migração aditiva conferida num banco limpo, produzindo as nove
-químicas pelo seed.
-
-**A última linha em zero da matriz fechou.** O que resta do roteiro é PDF/DOCX no
-gerador de relatório — formato de saída, não capacidade de método —, mais o B11
-na leitura estreita da matriz (o usuário ainda não *escolhe* a unidade de
-leitura, embora o documento exportado já imprima `kg/m³` em vez de `kg/m**3`).
-
----
+**Números.** Backend 1656 → 1683. Frontend 349 → 356.
 
 ## Sessão 23 — 16/09/26 — P3: os Sandwich Panels fecham a faixa
 
-**O pedido.** \"Continua os Sandwich Panels na mesma branch\", com a documentação
-do Synthesizer já pushada e a PR #55 aberta e verde. O item era o último em
-**zero** da faixa P3.
+Sandwich Panels no Synthesizer (D-68).
 
-**A pergunta que decidiu o desenho.** Um painel sanduíche *parece* um terceiro
-caso do D-67: mais um par de pais, mais um parâmetro, a mesma tabela. E metade
-dele é exatamente isso — densidade e grandezas por massa saem pelas **mesmas
-regras do compósito**, na fração de espessura das faces, porque massa é massa e
-o arranjo não a move. É a mesma `Rule`, não um valor que coincide, e foi isso que
-levou o laço de dois pais a virar compartilhado: compósito e painel diferem em
-uma regra só.
+**Números.** Backend 1629 → 1656. Frontend 345 → 349.
 
-**A outra metade, e a razão de o item existir.** Essa uma regra é o **módulo de
-flexão equivalente**, e ela não é mistura nenhuma. O jeito de saber disso não é
-argumentar, é medir: **Voigt é o teto de qualquer regra das misturas** nas mesmas
-frações volumétricas, e `E*` passa dele. Com uma face de 70 GPa, um núcleo de
-0,1 GPa e `t/c = 1/18`, Voigt dá 7,09 GPa e `E*` dá **19,04 GPa** — 2,7× acima.
-Uma mistura não pode fazer isso; um arranjo pode, e é literalmente por isso que
-se constrói painel sanduíche em vez de moer os dois materiais juntos. O teste que
-compara os dois é o que cai no dia em que alguém \"simplificar\" a regra.
+## Sessão 22 — 15 e 16/09/26 — P3: o Synthesizer
 
-**Duas degenerescências que conferem a fórmula inteira.** Sem núcleo, `E*`
-devolve `Ef`; sem faces, devolve `Ec`. As duas juntas fixam os três termos. A
-segunda converge mais devagar — o termo que sobra anda com `t·Ef / (c·Ec)`, e a
-face é 700× mais rígida —, e a primeira versão do teste falhou por isso. A
-correção foi **apertar o limite**, não afrouxar a tolerância: uma tolerância
-maior esconderia um erro de fórmula do tamanho do próprio termo.
+Synthesizer de compósitos e espumas (D-67).
 
-**O fato que torna o painel um \"material\".** Só a razão `t/c` decide: escala
-self-similar não move nem `ρ*` nem `E*`. Um índice de desempenho assume poder
-reescalar a seção, e sob essa liberdade o par `(E*, ρ*)` fica parado — que é
-exatamente o que um par de propriedades de material faz. Sem isso, plotar o
-painel ao lado de sólidos compararia coisas diferentes. Daí a tela **não pedir
-unidade** de espessura: pedir uma sugeriria que o valor absoluto muda algo.
-
-**A recusa, e de onde ela vem.** A resistência de um painel é **competição entre
-modos de falha** — escoamento da face, cisalhamento do núcleo, enrugamento da
-face — e vale o menor dos três. Só o primeiro é calculável: os outros pedem a
-resistência ao cisalhamento e o módulo de cisalhamento do núcleo, e o catálogo
-não tem nenhum dos dois. Publicar o único que se sabe calcular entregaria um
-**limite superior com cara de resistência**. É a recusa do pódio do D-66,
-aplicada a modo de falha em vez de a fase.
-
-**Uma decisão que quase virou outra.** O módulo de flexão quase ganhou um slug
-próprio, para não ocupar `modulo_young`. Foi recusado por um efeito colateral que
-só aparece no painel de indicadores: uma propriedade que *nenhum sólido pode
-ter* apareceria ali como a maior lacuna do catálogo — uma leitura falsa, e num
-lugar onde ninguém iria procurar a causa. O número entra em `modulo_young` com a
-lei colada na proveniência, que é o mecanismo do D-67 fazendo exatamente o
-trabalho para o qual foi feito.
-
-**Números.** 1629 → **1656** testes de backend (nenhum skip), 345 → **349** de
-frontend. Cobertura EduPack ~91% → **~94%** (30 de 32), nível médio 3,34 →
-**3,44**. Oito mutações conferidas, todas apanhadas; a que dá regra de
-resistência ao painel morre no import, pelo `_validate`.
-
-**A faixa P3 fechou.** Sobram duas linhas abaixo de 3 na matriz, e nenhuma é
-capacidade pela metade: o *Battery Designer* (P4) e o B11 (unidades de exibição,
-que é escolha de leitura e não módulo).
-
----
-
-## Sessão 22 — 15/09/26 a 16/09/26 — P3: o Synthesizer
-
-**O pedido.** \"Continua o Synthesizer na mesma branch\", com a PR do Eco Audit
-(#54) ainda aberta. O Synthesizer entrou empilhado nela; a PR foi mesclada pelo
-autor com as duas metades dentro, e a documentação virou trabalho novo numa
-branch reiniciada a partir do `main` novo — uma PR mesclada está terminada.
-
-**A pergunta que o item inteiro tinha de responder antes da primeira linha de
-código.** O módulo cria materiais que não existem. Em que isso difere de digitar
-num número plausível no catálogo? A resposta é a frase que governa o resto:
-**um valor sintetizado não é inventado; é calculado, e a diferença é que ele
-carrega a derivação.** Um limite de Voigt tirado de dois módulos catalogados e de
-uma fração declarada veio de algum lugar, e o lugar é auditável — a mesma
-distinção que o D-64 fez entre \"2,4 kg\" como afirmação e como número digitado ao
-lado de um rótulo. Daí os três suportes: registro **declarado** sintetizado com a
-receita gravada; cada valor nomeando a lei e a **base** dela; e qualidade do dado
-igual à **pior dos pais que a regra leu**.
-
-Esse terceiro suporte propaga a incerteza *de entrada*. A do *modelo* não vira
-número nenhum — inventar barra de erro para uma lei empírica seria exatamente o
-que o princípio 1 proíbe —, e é dita em palavras, na base da regra. Mesma escolha
-que o D-65 fez com a unidade monetária: quando a ferramenta não sabe, ela diz.
-
-**A decisão que carrega o item.** *A regra de mistura é propriedade da
-propriedade, não da receita.* Aritmeticamente dá para aplicar regra das misturas
-a qualquer número, e é aí que uma ferramenta destas mente. Densidade mistura por
-**volume** (conservação de massa, exata). Módulo mistura por Voigt ao longo das
-fibras e Reuss transversalmente, e como **a direção não está catalogada**, a
-resposta honesta é o **par de limites** — a média entre eles seria um número só
-onde a pergunta tem dois. Custo e as quatro grandezas ambientais são *por unidade
-de massa*, então misturam por **fração mássica**, o que exige as **duas**
-densidades: errar isso é invisível até os constituintes terem densidades
-diferentes, e o teste usa densidades diferentes de propósito. Temperatura máxima
-de serviço é o **mínimo**.
-
-**O achado.** Resistência de compósito **não tem regra nenhuma**: quem a controla
-é a interface entre fibra e matriz, e a interface é exatamente aquilo sobre o que
-o catálogo não sabe nada. Mas uma **espuma tem** — ela é *o mesmo material* com
-vazios, o mecanismo de falha é entendido e escala (Gibson–Ashby). A assimetria é
-real e vale a pena ver escrita: **a diferença não está na fórmula; está no que se
-sabe.** A ausência aqui não é lacuna a preencher depois.
-
-**A mutação que morreu na coleta.** `_validate()` recusa **no import** uma
-propriedade que apareça ao mesmo tempo na tabela de regras e na de ausências —
-duas tabelas de estados mutuamente exclusivos, e estar nas duas faria a resposta
-depender da ordem de leitura. Dar regra de resistência ao compósito, uma das seis
-mutações da rodada, não chegou a falhar um teste: falhou o import, antes de
-qualquer teste rodar. É o mesmo desenho do `_validate` dos casos de carga.
-
-**Uma armadilha de banco que vale registrar.** O `CheckConstraint` que garante
-que um sintetizado tem dono foi escrito `NOT (is_synthesized AND owner_id IS
-NULL)` e não com `= 1`: o SQLite aceitaria a segunda forma e o PostgreSQL —
-que é o que a produção roda — a recusa. E a coluna NOT NULL numa tabela populada
-entrou com `server_default` que foi depois **retirado**, porque um padrão que o
-modelo não declara é deriva de schema.
-
-**Um defeito achado na verificação final, não por teste.** O link \"abrir o
-registro criado\" apontava para `/app/catalogo/{id}` — mas essa rota é a da
-**família**, e a ficha de um material é `/app/materiais/{id}`. O teste passava
-porque afirmava o href errado junto com o código. Corrigido nos dois, com a
-distinção escrita no componente.
-
-**Números.** 1561 → **1629** testes de backend (nenhum skip), 334 → **345** de
-frontend. Cobertura EduPack ~88% → **~91%** (29 de 32), nível médio 3,22 →
-**3,34**. O Synthesizer moveu **duas** linhas: a sua própria (0→3) e `My Records`
-(3→4), porque os registros sintetizados eram uma das duas ausências nomeadas
-dela.
-
-**Resta da faixa P3** os *Sandwich Panels* — o mesmo mecanismo aplicado a uma
-geometria, com a diferença de que um painel sanduíche tem **arranjo**, e uma
-regra de mistura que ignore onde o material está não descreve uma viga em flexão.
-Saíram na sessão seguinte.
-
----
+**Números.** Backend 1561 → 1629. Frontend 334 → 345.
 
 ## Sessão 21 — 15/09/26 — P3: o Eco Audit
 
-**O pedido.** \"Continua o Eco Audit na mesma branch\", com a PR do Part Cost
-Estimator mesclada. Como a branch tinha acabado de ser mesclada, ela foi
-**reiniciada a partir do `main` novo** — uma PR mesclada está terminada e não
-recebe trabalho novo.
+Eco Audit de ciclo de vida (D-66).
 
-**O achado do desenho.** Um eco audit soma energia e carbono em cinco fases, e a
-tentação é entregar o total. Mas o total não decide nada: **a resposta é qual
-fase domina**, porque é nela que esforço de projeto muda alguma coisa. Uma porta
-de carro se decide na fase de uso; uma sacola plástica, na de material. Acertar
-o total e errar a dominância seria uma auditoria que lê bem e engana.
+**Números.** Backend 1505 → 1561. Frontend 321 → 334.
 
-**Os dois modelos de uso, que é onde uma auditoria mente ou não.** Uma geladeira
-gasta porque funciona — potência × tempo, e a massa da peça **não aparece em
-lugar nenhum**. Um painel de carro gasta porque alguém o carrega — massa ×
-distância × intensidade. Escolher errado **inverte** a auditoria: aliviar a peça
-economiza muito num modelo e *exatamente nada* no outro. Daí o modelo ser escolha
-declarada, os campos do outro serem recusados e não ignorados (a regra do D-56), e
-o resultado dizer qual rodou.
+## Sessão 20 — 15/09/26 — P3: o custo da peça e o custo como objetivo
 
-**A massa comprada, e a exigência que ela justifica.** A fase de material é
-cobrada sobre `massa / (1 − f)` — o refugo passou pela fundição do mesmo jeito —,
-a mesma fatoração do termo de material do D-65. E é por isso que uma auditoria
-aqui **precisa de processo**: auditar uma peça é auditar *fazer* a peça. A
-consequência boa é que um processo perdulário aumenta também a fase de material,
-não só a de manufatura.
+Part Cost Estimator e objetivo custo no solver (D-65).
 
-**A recusa que o item existe para fazer.** Faltando o dado de qualquer fase, a
-fase dominante é recusada com o motivo escrito, **e o total também**: a fase que
-ninguém calculou pode ser a que domina, e uma soma sobre quatro das cinco é uma
-parcela que parece um total. Aterro e incineração não têm energia catalogada
-nesta versão e **não viram zero** — um aterro grátis faria enterrar a peça parecer
-a coisa mais barata que se pode fazer com ela, que é a falácia que uma auditoria
-ambiental existe para desfazer.
+**Números.** Backend 1432 → 1505. Frontend 308 → 321.
 
-**A segunda vez que o sistema de unidades não dá conta, por motivo novo.**
-Dinheiro não está em sistema nenhum (D-65). Uma pegada de CO₂ *está*, mas é
-quilograma de uma substância por quilograma de outra, e o Pint não tem noção de
-substância — ele reduz a razão a adimensional. Mesmo tratamento, motivo
-diferente: adimensional no catálogo, \"kg de CO₂\" em palavras onde o número
-aparece. A energia, essa sim, é derivada em MJ como o D-64 deriva uma massa.
+## Sessão 19 — 15/09/26 — P2 restante: o solver e o index finder
 
-**O terceiro universo, e por que ele não é um processo.** `TransportMode` é
-tabela própria. Um `Process` se liga a materiais por `material_process`, e é essa
-junção que faz do Tree Stage uma junção entre tabelas; um navio não é compatível
-com um material, e semeá-lo como processo poria uma linha sem sentido dentro de
-um estágio de seleção que se lê como se tivesse. As duas intensidades são colunas
-simples e não o trilho de proveniência, com a justificativa escrita no modelo —
-quatro linhas semeadas, sem importação nem digitação em v1.
+Engineering Solver e Performance Index Finder (D-64).
 
-**Verificação.** Seis mutações sobre a camada de cálculo, todas apanhadas pelo
-teste que deveria apanhá-las. Sobre o catálogo semeado, as lacunas plantadas de
-propósito chegam à resposta como motivo escrito: cerâmica e compósito sem figura
-de reciclagem (os casos clássicos de \"não se recicla de rotina\") e o modal
-ferroviário sem intensidade de carbono.
-
-**Um ajuste de teste que valia a pena fazer direito.** Quatro propriedades novas
-mudaram a contagem à mão do painel (8 → 12 propriedades, 40 → 60 casas). O
-cabeçalho do arquivo é uma tabela conferida à mão de propósito — é isso que faz
-dele uma verificação e não um eco do endpoint —, então ele foi **refeito à mão**
-em vez de derivado do seed.
-
-**Números.** 1505 → **1561** testes de backend (nenhum skip), 321 → **334** de
-frontend. Cobertura EduPack ~84% → **~88%** (28 de 32), nível médio 3,12 →
-**3,22**. Pela primeira vez a tabela não tem nenhuma capacidade *pela metade*: as
-quatro linhas abaixo de 3 são módulos que ainda não existem, mais o B11.
-
-**Resta da faixa P3** o Synthesizer (+ Sandwich Panels), nenhum
-pré-requisito do outro.
-
----
-
-## Sessão 20 — 15/09/26 — P3: o custo da peça, e o custo como objetivo
-
-**O pedido.** \"Continue de onde parou\", com a PR do P2 restante mesclada. O
-roteiro apontava para o **P3**, cujo primeiro item — o *Part Cost Estimator* —
-era exatamente o que a sessão anterior tinha nomeado como pré-requisito do
-objetivo *custo*. Os dois saíram juntos, porque são a mesma pergunta em duas
-escalas.
-
-**O achado do desenho.** *Quanto custa fazer esta peça* e *que material a faz
-mais barata* não são dois módulos. O estimador responde a primeira processo a
-processo; o objetivo custo responde a segunda com a **mesma derivação do D-64**,
-trocando ρ por ρ·Cm no agrupamento material. O fator estrutural — geometria e
-carga — não se mexe. É por isso que um caso de carga passou a nomear **dois
-slugs de índice** em vez de carregar duas derivações, e por isso que a regra do
-D-35 continua valendo palavra por palavra: quem chama a API nomeia o **objetivo**
-e o caso escolhe o índice.
-
-**O estimador devolve os termos, nunca só o total.** `C = m·Cm/(1−f) + C_t/n +
-Ċ_oh/ṅ + C_c/(ṅ·t_wo·L)`, e o que decide alguma coisa é como cada termo anda com
-o lote: o material é um **piso** que lote nenhum atravessa, o ferramental cai com
-1/n e é o único que cai, os dois de tempo não se mexem. Um total sozinho seria
-oráculo; o cruzamento entre dois processos conforme *n* cresce é a resposta.
-
-**A frase que a camada inteira gira em torno.** Dinheiro não está em sistema de
-unidades nenhum. `custo_massa` é catalogado como adimensional **de propósito**, e
-a consequência é que a análise dimensional devolve a **mesma dimensão** nas duas
-execuções do solver: massa e custo saem ambos em `[mass]`. Isso não é defeito —
-a prova continua derrubando um expoente errado num gêmeo de custo exatamente como
-derrubaria num de massa. O que ela deixou de fazer é **nomear a resposta**. Daí
-`objective`, `objective_unit` em palavras (\"unidade monetária não especificada\")
-e `objective_note`, que carrega a explicação em vez de deixar o leitor deduzi-la
-de um \"[mass]\" embaixo de uma coluna de dinheiro.
-
-**Três decisões de tela que não são acabamento.** O gêmeo de custo aparece **ao
-lado** do de massa no cartão do caso, antes da escolha — quem não vê os dois ao
-mesmo tempo não tem como notar que o fator estrutural não mudou. A faceta
-\"Objetivo\" nomeia as duas leituras, porque o objetivo deixou de ser propriedade
-do caso e virou escolha de quem lê. E o **link para `/app/custo` some numa
-execução de custo**: ele leva `massa=` na URL, e entregar ali um custo daria ao
-estimador um número de outra grandeza sem que ele tivesse como perceber.
-
-**Um defeito real, achado por CI e não por leitura.** A auditoria de
-acessibilidade do comparador falhou num commit que só mexia no backend, e não
-reproduzia localmente em três execuções seguidas. A causa era genuína: aquele
-era o único teste de rota que corria uma promessa contra uma busca no DOM.
-Passou a esperar `client.isFetching()` antes de procurar — quatro execuções
-limpas depois.
-
-**Números.** 1432 → **1505** testes de backend (nenhum skip), 308 → **321** de
-frontend. Cobertura EduPack ~81% → **~84%** (27 de 32), nível médio 3,03 →
-**3,12**. O percentual sobe por uma linha só (Part Cost Estimator 0→3); o que ele
-não mostra é que o objetivo custo completou **duas** capacidades que já estavam
-acima do corte — mesmo descompasso entre métrica e ferramenta que o P0-4 expôs,
-na direção oposta.
-
-**Sobram da faixa P3** o Eco Audit e o Synthesizer (+ Sandwich Panels), nenhum
-pré-requisito do outro.
-
----
-
-## Sessão 19 — 15/09/26 — P2 restante: o Solver e o Index Finder
-
-**O pedido.** \"Para de checar e continua a P2 na mesma branch\", com a PR #52
-ainda aberta e verde. O roteiro apontava para o resto do P2 — **Engineering
-Solver** e **Performance Index Finder** —, as duas últimas capacidades da tabela
-ainda em **zero**.
-
-**O achado que decidiu o desenho.** Ao escrever a especificação dos dois itens
-ficou claro que **não são dois**. O Finder pergunta \"qual índice esta combinação
-de função, restrição e objetivo produz?\"; o Solver pergunta \"com estes números,
-quantos quilos dá?\". As duas perguntas caem sobre a **mesma derivação**.
-Construí-los separados criaria as duas verdades que o D-60 (figura × funil) e o
-D-63 (`allows_log_scale`) recusaram cada um na sua camada.
-
-**O que saiu.** Três commits, cada um com o portão inteiro antes do próximo.
-
-1. `app/calculations/load_cases.py` + `solver.py` — sete casos de carga padrão,
-   cada um com a derivação escrita por extenso, e a fatoração de Ashby tornada
-   literal: `massa = fator estrutural / índice`. O índice é **lido do catálogo
-   pelo slug**, nunca escrito no caso (a regra do D-35). `_validate` recusa no
-   import um caso cuja expressão estrutural nomeie o que não é variável de
-   projeto.
-2. Serviço, schemas e rotas — `GET /api/solver/casos` (o Finder) e
-   `POST /api/solver/resolver` (o Solver), com o filtro de visibilidade do P1-4
-   e prova de isolamento própria, porque o canário varre só GET.
-3. `/app/dimensionar` — o caso, os números, o resultado; com o fator estrutural
-   na legenda da tabela, para a massa poder ser conferida à mão.
-
-**Verificação.** Duas frentes independentes por caso: a **prova dimensional**
-(fator estrutural sobre índice tem de sair na unidade declarada) e a **forma
-fechada** (a massa recalculada direto da equação de restrição). Trocar
-`comprimento ** 5` por `** 4` na viga derruba as duas. No solver, trocar a
-divisão pelo índice por multiplicação derruba quatro provas; anular a guarda de
-dado ausente derruba duas. No isolamento, tirar o observador derruba o controle
-positivo e abrir o predicado derruba a prova de vazamento.
-
-**Três defeitos reais, nenhum deles do item.**
-
-- `result_dimension` publicava resíduo de ponto flutuante
-  (`[mass] / [length] ** 2.22e-16`) quando um índice de expoente fracionário se
-  combinava com o caso que o produz — `2 / 3` não é fração binária. A string ia
-  para a tela.
-- A tabela de sinônimos da camada de IA conhecia \"rigidez\" e \"rigido\" mas não o
-  adjetivo flexionado, e o casamento é por substring: *\"uma viga leve e
-  **rígida**\"* não nomeava propriedade nenhuma. Ficou invisível enquanto havia um
-  único índice de viga no catálogo; quando entrou o segundo, os dois empataram em
-  função e objetivo e o desempate **alfabético** entregou ao leitor um índice de
-  resistência que ele não pediu. A expectativa do teste estava certa — quem
-  estava errada era a leitura.
-- O `onChange` do `NumberInput` na tela nova lia `event.currentTarget`, que já é
-  `null` quando o atualizador de estado roda. Teria quebrado no navegador a cada
-  tecla.
-
-**Números.** 1341 → **1432** testes de backend (nenhum skip), 299 → **308** de
-frontend. Cobertura EduPack ~75% → **~81%** (26 de 32), nível médio 2,84 →
-**3,03** — a primeira vez que a média cruza 3, e só porque as duas capacidades
-fechadas estavam ambas em zero.
-
-**A faixa P2 fechou.** O próximo é o **P3**, e o primeiro item dele — o Part Cost
-Estimator — é justamente o que destrava o objetivo *custo* nos casos de carga,
-razão pela qual o custo ficou nomeado como omissão no D-64 em vez de improvisado.
-
----
+**Números.** Backend 1341 → 1432. Frontend 299 → 308.
 
 ## Sessão 18 — 14/09/26 — P2: o fim do fluxo do manual
 
-**O pedido.** \"Continue de onde parou\", com a PR do P1-4 mesclada. O roteiro
-apontava para o P2, e as três capacidades dele — `Find Similar`, registro de
-referência e a tabela de comparação — são **um fluxo só** no manual, então
-saíram juntas.
-
-**As duas perguntas que carregam o item, e nenhuma é de implementação.**
-
-*Em que espaço se mede a distância entre dois materiais.* Propriedade de
-material varre ordens de grandeza, e em eixo linear a de faixa mais larga decide
-toda comparação sozinha — a mesma razão pela qual um mapa de Ashby é log-log. A
-permissão de log vem de `allows_log_scale`, **a mesma bandeira que os gráficos
-leem**: figura e semelhança não podem discordar sobre em que espaço a
-propriedade vive. E a escala é promediada, não somada, senão a base mais larga
-pareceria mais distante por ter respondido mais.
-
-*Quando um percentual significa alguma coisa.* Só em escala de razão. 600 K é
-mesmo o dobro de 200 K; 20 °C não é o dobro de 10 °C, e \"+100%\" ali seria falso
-com toda a autoridade de um número calculado. `is_ratio_scale` decide por
-**comportamento** — dobrar a magnitude dobra a grandeza em unidade base *é* a
-definição — e não por introspecção de tabela privada do Pint. Nenhuma unidade
-canônica do catálogo tropeça nisso hoje; `canonical_unit` é configurável pelo
-operador, e é para amanhã que a guarda existe. O teste registra uma propriedade
-em °C só para provar que a guarda chega à tabela.
-
-**A metade do trabalho que não é número.** A base é **tudo ou nada** e volta na
-resposta; quem não pôde ser medido é nomeado com o que lhe falta; propriedade em
-que ninguém difere contribui zero e é nomeada também, porque descartá-la calada
-deixaria a base documentada maior que a que rodou. E o percentual tem **cinco
-maneiras distintas de não existir**, todas idênticas como célula em branco e
-nenhuma igual em significado, então cada uma tem sua frase (D-24). A ordem entre
-duas delas está fixada por teste: faltando os dois lados, a culpa é da
-referência, porque consertá-la conserta a coluna enquanto consertar a linha
-conserta uma célula.
-
-**Uma guarda de teste que se recusou a rodar.** O canário sobre as unidades
-canônicas do catálogo ganhou uma asserção de que o catálogo não está vazio —
-canário sobre lista vazia passa provando nada, que foi exatamente a armadilha que
-o teto de recentes pegou na sessão anterior.
-
-**Números.** Backend 1297 → 1341, frontend 286 → 299. Cobertura EduPack ~66% →
-**~75%** (24 de 32 em nível ≥ 3); nível médio 2,56 → **2,84**. Três linhas se
-movem — Find Similar 0→4, Registro de referência 0→3, Tabela de comparação 2→4 —
-e é o maior salto de percentual do roteiro. Falta do P2 o **Engineering Solver**
-e o **Performance Index Finder**.
-
----
-
-## Sessão 17 — 14/09/26 — P1-4: o catálogo ganha dono, e o usuário ganha espaço
-
-**O pedido.** \"Continue de onde parou\", depois que a PR do P1-3 foi mesclada.
-Restava um item na faixa P1 e ele era o que mexia na fronteira do D-42, então a
-escolha não teve concorrente: **`My Records`**.
-
-**A decisão que carrega o resto.** `Material.owner_id` anulável — NULL é o
-catálogo compartilhado —, e não uma tabela `UserMaterial` paralela, que
-bifurcaria o motor, o painel, as figuras e os exportadores em dois caminhos
-respondendo a mesma pergunta sobre o mesmo material. O que essa escolha custa é
-que *toda* leitura de material passa a precisar saber quem está perguntando, e é
-por isso que a regra mora num arquivo só (`visibility.py`), entra por construtor
-nos quatro repositórios e **falha fechada**.
-
-**Dois achados que valem mais que o código que os produziu.**
-
-O primeiro é uma remoção. Escrevi um `owns()` para o lado da escrita e descobri,
-antes de usá-lo, que ele não tinha ramo alcançável: o filtro de leitura já
-devolve exatamente o conjunto gravável, porque um material visível ou é
-compartilhado (gravável por todos desde o D-42) ou é seu. Função com ramo morto
-lê como proteção e não protege nada — saiu, e o argumento ficou escrito no lugar
-dela, com os endpoints provando-o.
-
-O segundo é um defeito que eu mesmo introduzi e que o canário **não podia**
-pegar. O padrão seguro (`None` = só o compartilhado) é a direção certa do erro
-para vazamento e a direção errada para correção: o `SelectionService` recebia
-`user` opcional porque só a auditoria o lia, então por um commit o registro
-próprio de uma pessoa sumiu do estudo dela, de toda seleção e de todo documento —
-com cara de perda de dado, não de bug de permissão. Toda prova do canário falha
-quando um registro **aparece** para quem não pode vê-lo; nenhuma falha quando ele
-**some** para quem pode. Achei-o escrevendo o teste do exportador, que esperava
-ver o registro próprio no relatório e não viu. `user` virou obrigatório no
-serviço — o erro passa a ser `TypeError` — e entrou o controle positivo.
-A regra geral ficou registrada no D-62: **todo padrão que falha fechado precisa
-de uma prova de que o caminho aberto ainda abre.**
-
-**E dois achados de acessibilidade, os dois de ferramenta e não de leitura.**
-`aria-pressed` escrito no hospedeiro `md-icon-button` fica num elemento que
-leitor de tela nenhum lê — o botão real mora no shadow root; e
-`aria-label-selected`, que o próprio MWC oferece para isso, **não é nome de
-atributo ARIA válido** e reprova `aria-valid-attr`. O axe pegou o segundo nas
-duas fichas. A primitiva ganhou `toggle`/`selected`, e o `/estilo` documenta a
-diferença ao vivo.
-
-**Números.** Backend 1234 → 1297, frontend 277 → 286. Cobertura EduPack ~62% →
-**~66%** (21 de 32 em nível ≥ 3); nível médio 2,44 → **2,56**. Duas linhas se
-movem: `My Records` 0→3 — era a última capacidade em zero — e Browse 4→5. A faixa
-P1 fechou; o próximo é o **P2** (*Find Similar*, registro de referência, tabela
-de comparação com diferença percentual), que o `My Records` destravou.
-
----
-
-## Sessão 16 — 13/09/26 a 14/09/26 — P1-3: a taxonomia vira registro, e o segundo universo se navega
-
-**O pedido.** \"Continue\", depois que a PR do P1-2 foi mesclada. Entre as duas
-frentes de P1 restantes — `My Records` e o browse — a escolha foi o **browse**,
-dita e justificada na hora: `My Records` mexe na fronteira que o D-42
-estabeleceu (catálogo compartilhado entre todo usuário autenticado) e interage
-com o portão de assinatura, enquanto o browse é apresentação sobre modelos que
-já existem e move três capacidades da matriz.
-
-**O que foi entregue** ([D-61](DECISIONS.md)), em cinco passos:
-
-1. **Registro de família.** `applications`/`characteristics` nas duas taxonomias,
-   migração aditiva `a7d51c93e084` sem backfill, e as duas rotas de detalhe com
-   prosa, trilha e subpastas.
-2. **Seed.** Texto para quatro famílias de material e três de processo, com
-   `elastomeros` deixada sem texto de propósito.
-3. **Ficha do processo na tela**, mais `/app/processos` e a família de processo.
-4. **Árvore navegável, trilha e ficha da família de material.**
-5. **Documentação e portão.**
-
-**O achado que vale a sessão.** Escrevendo o teste do registro de família, uma
-asserção quebrou e mostrou que `process_count` contava processos **inativos**
-enquanto toda lista os excluía — uma pasta diria \"2 processos\" e entregaria um.
-Comecei a tratar como defeito e o teste antigo tinha **razão escrita**: era
-decisão, não descuido. A reversão foi feita mesmo assim, com os três motivos no
-D-61, e o teste antigo foi **reescrito com o raciocínio inteiro** em vez de
-apagado. O autor foi consultado antes de o trabalho continuar em cima dela.
-
-**O que a suíte pegou sozinha.** O teste de acessibilidade de `/estilo` reprovou
-a seção nova da `Breadcrumb` no instante em que ela entrou: dois `nav` com o
-mesmo nome acessível violam `landmark-unique`. É para isso que a prop `label`
-existe, e uma página real tem uma trilha só.
-
-**Cobertura EduPack: de ~56% para ~62%** (20 de 32 em nível ≥ 3), nível médio de
-2,25 para **2,44**. Duas linhas de uma vez — Browse 2→4 e Registro de família
-0→3 —, e a leitura honesta está escrita no roteiro: o salto é grande porque caiu
-sobre as duas capacidades mais atrasadas da tabela, uma delas a única em zero, e
-quase tudo que precisou já existia no backend.
-
-**O que ficou de fora:** favoritos e recentes (que são `My Records`), *Science
-Notes* e imagem de família, e o catálogo de processos editável — registrado
-desde o P0-2.
-
----
-
-## Sessão 15 — 11/09/26 a 13/09/26 — P1-2: o gráfico passa a reprovar
-
-**O pedido.** \"Iniciar o P1\" — com a ressalva explícita de que as sessões de teste
-com usuários ficam para mais adiante e o projeto pode seguir sem essa validação
-por enquanto. O P1-1 (busca com operadores) já estava entregue, então a próxima
-frente era o **Chart Stage que filtra**: o único nível **1** da matriz de
-maturidade, e o único dos três tipos de estágio do método que faltava.
-
-**O que foi entregue** ([D-60](DECISIONS.md)), em seis passos, cada um com o
-portão completo antes do commit:
-
-1. **Domínio.** `ChartSelection`, `ChartAxis`, `quantity` e `matches_chart` em
-   `app/domain/filters.py`, mais `RecordSnapshot.derived` — o quarto mapa. 12
-   testes novos.
-2. **Modelo e migração.** As onze colunas do payload em `SelectionStage` e
-   `ck_selection_stage_chart_axes`, na migração `f2b6d0e39c47`. A segunda aditiva
-   **sem backfill** desde o P0-4.
-3. **Serviço, schemas e rotas.** `ChartStageIn`/`ChartAxisIn`, a resolução de cada
-   eixo contra o catálogo do universo do estudo, `_fill_derived` e o funil
-   `in_chart`.
-4. **Relatório e laudo.** O mapa passa a ser desenhado no plano do estágio, com a
-   caixa como `Region` e a linha no nível guardado.
-5. **Interface.** O editor do estágio em `/app/selecao`, nos dois universos.
-6. **Documentação, portão e PR.**
-
-**Três coisas que valem mais do que a soma delas.**
-
-**A linha não é geometria, e é o caso que parece ser.** O lado favorável de um
-contorno iso-índice é exatamente `índice ≥ nível` — é o que
-`ChartService._draw_levels` já computa para *desenhar* a linha. Manter a regra como
-comparação é o que faz a figura e o funil concordarem por construção em vez de por
-coincidência, e é a leitura do ADR 0004 aplicada a um estágio inteiro.
-
-**Registro que não pode ser posto no plano nunca passa**, mesmo onde a caixa não
-limita aquele eixo e mesmo sem caixa nenhuma. Não é a regra que um limiar daria, e
-a diferença é deliberada: quem o leitor não vê na figura não pode estar no
-resultado. Isso dá sentido a um estágio de gráfico sem nada desenhado — \"tem de ser
-plotável aqui\".
-
-**O mesmo envelope lê de dois jeitos, de propósito.** Um estágio de limites compara
-por alcance (P0-4); um estágio de gráfico compara o ponto representativo, porque é o
-único ponto que o mapa desenha. Há teste que fixa a divergência — mesmo atributo,
-mesmo limiar, um admite e o outro não —, e a obrigação do D-59 vale igual: o
-documento diz qual regra rodou.
-
-**O que a verificação por mutação pegou.** Uma legenda que prometia uma linha que o
-desenho não tinha: `test_the_line_is_drawn_at_the_level_the_stage_stored` assertava
-só o texto da legenda, e esvaziar `index_levels` no pedido do mapa não a derrubava.
-A asserção sobre `<polyline>` fechou isso. E a guarda `kind <> 'chart'` da
-`CheckConstraint` mostrou-se *load-bearing* do jeito mais forte possível: sem ela a
-própria migração não roda, porque os estágios já gravados violam a checagem no
-instante em que o `batch_alter_table` recria a tabela.
-
-**Numeração corrigida de passagem.** O §3 do roteiro chamava de \"P1-2\" o item
-`My Records`, que a tabela do §5 sempre listou *depois* do Chart Stage. A numeração
-passou a seguir a ordem do §5: o Chart Stage é o P1-2 e `My Records` é o P1-3.
-
-**Cobertura EduPack: de ~53% para ~56%** (18 de 32 em nível ≥ 3), nível médio de
-2,16 para **2,25**. É o primeiro marco desde o P0-2 a mover o percentual, e move
-porque partiu do único nível 1 da tabela.
-
-**O que ficou de fora, e é melhoria e não bloqueio:** desenhar a caixa
-**arrastando** no gráfico da tela — hoje os limites são digitados, já em
-coordenadas de dados, que é a metade que importa para a auditoria — e o mapa do
-universo de processos, registrado em P1 desde o P0-4.
-
----
-
-## Sessão 14 — 10/09/26 a 11/09/26 — P0-4: processo passa a ter atributo, e o exercício 11 fecha
-
-**O pedido.** Seguir o roteiro de plataforma. O P0-4 era a próxima prioridade
-declarada: o passo 2 do exercício 11 do manual é um Limit Stage sobre atributos do
-processo — *Shape*, *Mass range*, *Range of section thickness*, *Process
-characteristics*, *Economic batch size* — e nenhum existia.
-
-**O que saiu**, em sete commits ([D-59](DECISIONS.md)):
-
-1. `ProcessAttributeDefinition` e `ProcessAttributeValue`, com o trilho de
-   proveniência inteiro de `MaterialPropertyValue` mais `normalized_min`/\\
-   `normalized_max`. Migração `d4a8c1f70b93` — a primeira aditiva **sem
-   backfill**, e honestamente: a informação é nova.
-2. O motor: `envelopes` e `labels` no `RecordSnapshot`, envelope comparado por
-   **alcance**, discreto por pertinência, `has_value` enxergando os três mapas.
-3. Serviço, API e rotas: catálogo por universo, ficha do processo, e o
-   ranqueamento que o D-58 recusava.
-4. Seed: cinco atributos demonstrativos fictícios, com ausência nas **duas**
-   formas (linha `is_missing` e linha nenhuma).
-5. Relatório, laudo e planilha com a proveniência de processo e a coluna *Tipo de
-   valor*.
-6. `/app/selecao`: o editor de restrições selecionando sobre o catálogo certo.
-7. Documentação.
-
-**Três defeitos, dois deles achados sem asserção que falhasse.** Um estágio de
-limites num estudo de processos resolvia slugs contra o catálogo de materiais e
-então não admitia ninguém, sem explicação. A interpretação da IA dizia \"Partindo
-de 13 **materiais**\" numa seleção de processos — achado lendo o laudo renderizado,
-e a mesma palavra chegava ao prompt de um provedor real. E habilitar o
-ranqueamento abriu a possibilidade de o mapa do laudo destacar materiais com ids
-de processo; o guard tem teste que constrói a colisão de slug de propósito e falha
-sem ele.
-
-**Um erro de contagem meu, corrigido:** a matriz de maturidade sempre teve 32
-linhas, e o parágrafo de cobertura dizia \"30 avaliadas\", publicando ~57%. O número
-certo é 17 de 32 (~53%). E pelo terceiro marco seguido o percentual não se move,
-porque o P0-4 levantou duas capacidades que já estavam acima do corte — daí o
-**nível médio** passar a ser publicado junto (2,16).
-
-**O que ficou de fora, nomeado:** a ficha do processo na tela (o endpoint existe e
-tem teste; falta a rota), catálogo de processos editável, intervalo de material
-lido como envelope, e gráfico de atributo de processo.
-
----
-
-## Sessão 13 — 09/09/26 a 10/09/26 — P0-1, P0-2 e P0-3: a plataforma de seleção ganha pilha, segundo universo e escolha de resultado
-
-A sessão começou pela **análise de lacunas** contra o modelo funcional dos
-manuais *Getting Started with Granta EduPack* (2023 R1 e R2): matriz de
-maturidade sobre 30 capacidades e roteiro P0–P4, em
-[14-plataforma-selecao.md](14-plataforma-selecao.md). O alvo é equivalência
-**funcional** em arquitetura aberta — nada de dataset, texto, ícone ou
-nomenclatura protegida da ANSYS.
-
-**P0-1 — a seleção deixou de ser de estágio único** ([D-56](DECISIONS.md), PR
-#45, mesclada). `SelectionStage` virou entidade de primeira classe: pilha
-ordenada, cada estágio nomeável e habilitável, resultado igual à interseção dos
-habilitados. Dois tipos então — `limit` e `tree` —, migração aditiva com
-backfill, funil por estágio, e a pilha editável em `/app/selecao`.
-
-**P0-2 — existe um segundo universo** ([D-57](DECISIONS.md)), em sete passos:
-`ProcessClass` hierárquica, `Process`, a associação N–N `material_process`, o
-terceiro tipo de estágio (`process`), o universo demonstrativo semeado, a
-descrição nos documentos exportados e a interface. O Tree Stage virou a **junção
-entre tabelas** que o método descreve.
-
-Três coisas que a sessão registrou como decisão, não como detalhe: a **família
-do processo é a raiz da taxonomia** e não uma coluna enum; a **associação não
-carrega número nenhum**, porque um valor sobre o par precisaria da proveniência
-de `MaterialPropertyValue` e inventá-lo violaria o princípio 1; e a semântica é
-**\"algum\"**, porque a conjunção já é expressa por dois estágios.
-
-**Três defeitos achados fora de teste**, e é o que o método valeu:
-
-1. O funil reportava `in_tree` para um estágio de processo — achado **lendo o
-   documento renderizado**, não a asserção. Virou `in_process`.
-2. Reabrir um estudo salvo passava por um ternário de dois ramos que teria
-   transformado um estágio de processo em estágio de limites vazio, sem aviso.
-   Virou `switch` exaustivo, e o `tsc` provou a exaustividade.
-3. Aceitar uma sugestão da IA numa pilha sem estágio de limites descartava a
-   sugestão em silêncio (pré-existente, alcançável agora).
-
-E um achado de acessibilidade: os seletores múltiplos usavam um `<label>` que
-envolvia legenda **e** dica, então o nome acessível era as duas concatenadas —
-o controle anunciava o próprio texto de ajuda como parte do nome. Passaram a
-usar o `Field` do sistema de design, inclusive o do estágio de classes, que já
-tinha o problema desde o P0-1.
-
-**P0-3 — o estudo escolhe o universo do resultado** ([D-58](DECISIONS.md)), com
-o exercício 11 do manual lido na íntegra a pedido do autor. `RecordSnapshot`
-tornou o motor **um só** para os dois universos, em vez de um segundo motor a
-manter de acordo com o primeiro.
-
-Quatro defeitos no caminho, e **dois deles apareceram lendo o documento
-renderizado**, não a asserção:
-
-1. O exportador resolvia id de candidato contra a tabela de **materiais**. Num
-   estudo de processos imprimiria a proveniência do material que por acaso
-   carrega aquele id, sob o nome de um processo — a pior falha disponível num
-   documento auditável.
-2. A coluna \"Tipo\" da tabela de estágios imprimia o slug cru `material`.
-3. O estágio de árvore validava `class_slugs` contra a taxonomia de materiais
-   mesmo num estudo de processos: 404 em slug legítimo.
-4. O `switch` que reabre um estudo salvo ficou não-exaustivo — pego pelo `tsc`.
-
-Cobertura de capacidades inspiradas no EduPack: **~34% → ~57%** (17 de 30 em
-nível ≥ 3). O P0-3 **não moveu nenhuma linha da matriz**, e isso é informação:
-ele completou a metade estrutural do exercício 11, e o que falta para o
-exercício inteiro é o que segura o banco de processos em 3. Próximo gargalo:
-**P0-4**, atributos de processo com proveniência.
-
----
-
-# Sessão 12 — 08/09/26 — A ferramenta no ar, e a camada de IA ligada em produção
-
-Ponto de partida: fim da sessão 11 mais o patch \"Prisma\", o S1 e a rodada de
-desempenho (ver a nota do cabeçalho). Pedido: **publicar a ferramenta**, passo a
-passo e em conjunto — e, feito isso, fazer a camada de IA funcionar de verdade
-na instância publicada. Testes de backend: 872 → 884 (0 skip); frontend: 197,
-inalterado.
-
-Oito PRs mescladas (#33 a #40), quase todas corrigindo defeitos que **nenhum
-teste pegava porque só existem fora do ambiente de desenvolvimento**.
-
-## 1. A restrição que desenhou a sessão inteira
-
-O autor **não tem terminal**. Isso não era um detalhe de conforto: `docs/13-deploy.md`
-mandava rodar `flyctl deploy`, `alembic upgrade head`, `app.db.seed` e a
-concessão de acesso por linha de comando, e nenhum desses caminhos existia para
-ele. A resposta foi mover as quatro operações para dois workflows de disparo
-manual — `deploy-api.yml` e `admin-banco.yml` (#35) —, que num repositório
-público têm duas consequências de segurança que não são opcionais: **só
-`workflow_dispatch`** (nenhum gatilho responde a evento de fork, então os
-secrets nunca chegam a código de terceiro) e **entrada do usuário por variável
-de ambiente, nunca por interpolação `${{ }}` dentro do `run:`**.
-
-Nenhum dos dois entra em `scripts/protect-main.ps1`: um job de disparo manual
-nunca reporta status num PR, e exigi-lo travaria todo merge para sempre. A
-regra do §7 de `docs/CLAUDE.md` vale para os jobs de `ci.yml`.
-
-## 2. Os cinco defeitos que publicar revelou
-
-Nesta ordem, cada um bloqueando o seguinte:
-
-1. **A migração não subia em Postgres** — passava em SQLite e só ali.
-2. **`psycopg` não declarado** — `DATABASE_URL` com `postgresql://` procura o
-   `psycopg2`, que não está instalado. O esquema tem de ser `postgresql+psycopg://`.
-3. **`requirements.txt` tinha derivado** do `pyproject.toml`.
-4. **`NEXT_PUBLIC_API_URL` tratado como variável de runtime** — ela é embutida
-   no *build*, e **vazia é um valor com significado** (daí `??` e não `||`);
-   ausente, o frontend chama `localhost:8000`.
-5. **O cookie de sessão fixo em `samesite="lax"`**.
-
-O quinto é o que explica a topologia: a API é servida **pela origem do
-frontend**, por `rewrites()` da Vercel (#33). Sem isso o cookie `SameSite=Lax`
-não viajaria entre dois domínios e o login entraria em laço — sem erro em log
-nenhum. A alternativa, `SameSite=None`, foi recusada. Está em
-[D-52](DECISIONS.md).
-
-## 3. As duas armadilhas do Fly, e por que elas são as piores
-
-Assinatura comum: **o job termina verde e a aplicação não funciona**.
-
-- **O app sem endereço público** (#36). O `flyctl deploy` só aloca um IP
-  sozinho quando o app **ainda não tem máquinas**. Um app criado pelo painel
-  chega ao primeiro deploy com máquinas de pé e nenhum endereço: o deploy passa,
-  os health checks passam, as migrações rodam, o flyctl imprime *\"Visit your
-  newly deployed app at…\"* — e o navegador devolve `NXDOMAIN`. O passo
-  \"Garantir endereço público\" agora **falha o job** se ao final não houver
-  nenhum IP público; um `private_v6` sozinho não conta.
-- **`flyctl ips allocate-v6` não é idempotente** (#37). A primeira versão do
-  passo usava `|| true`, presumindo que repetir daria erro. Não dá: aloca outro
-  endereço, em silêncio, saindo 0. O defeito foi pego lendo a saída do próprio
-  passo que eu tinha acabado de escrever — cada deploy vazava um IPv6. A correção
-  conta antes de alocar.
-
-Vale registrar um terceiro tropeço, que não é do Fly e sim da interface do
-GitHub: **\"Re-run jobs\" reexecuta o commit congelado daquela execução**, nunca a
-`main` mais nova. Um deploy \"re-rodado\" depois de uma correção reimplanta a
-versão sem a correção.
-
-## 4. A camada de IA: dois defeitos que só existem com provedor real
-
-Com a ferramenta no ar, o painel de IA devolvia *\"Falha na requisição
-/api/ai/interpret\"* — a mensagem genérica do frontend, que não diz nada.
-
-**#39 — o `AIUnavailableError` sem tratador.** A exceção era capturada só na
-*construção* do provedor (camada desligada é configuração → 400), nunca na
-*chamada*. Sem `exception_handler` registrado ela subia sem tratamento, e o 500
-padrão do Starlette tem **corpo em texto puro** — então o `res.json()` do
-`lib/api.ts` estourava e o usuário via o texto genérico. A correção é um
-tratador único em `main.py`, e não um `try` em cada rota, porque `interpret` e
-`explain` tinham o mesmo buraco. O teste foi escrito antes e visto vermelho.
-
-Destravada a mensagem, ela trouxe a pista seguinte:
-
-```
-O servidor recusou a credencial (403). Defina AI_API_KEY com uma chave válida…
-error code: 1010
-```
-
-**#40 — a requisição não se identificava.** `error code: 1010` não é da Groq: é
-da **Cloudflare**, que fica na frente dela, e significa \"assinatura de cliente
-banida\". O provedor mandava exatamente dois cabeçalhos, e sem `User-Agent` o
-`urllib` se anuncia como `Python-urllib/3.x` — assinatura que WAFs barram por
-padrão. O 403 vinha do porteiro, antes de a API ver a requisição, e a mensagem
-mandava trocar uma chave que estava correta o tempo todo. O teste escrito antes
-falhou com `KeyError: 'user-agent'`, prova direta da ausência.
-
-Duas lições que ficam no código: **401 é credencial, 403 é ambíguo** — tratá-los
-juntos custou uma viagem ao painel da Groq —, e identificar-se é higiene de
-cliente HTTP independentemente de qualquer WAF. O `claude-api` não tinha a
-lacuna porque usa o SDK da Anthropic; verificado, não presumido.
-
-Depois do deploy, o painel foi exercitado ao vivo com um enunciado em português
-(\"viga leve e rígida, temperatura de serviço no mínimo 300 °C, densidade no
-máximo 3 g/cm³\") e devolveu função, as duas restrições com o trecho de origem e
-o índice `viga-leve-rigidez` do catálogo. **Ancoragem numérica e unidade
-explícita intactas contra um provedor real** — os guardrails da Fase 6 foram
-exercitados fora do `mock` pela primeira vez, e é essa a prova de que a camada é
-mesmo substituível.
-
-## 5. O que ficou de fora
-
-- **Stripe.** `STRIPE_API_KEY` vazio mantém `/billing` em 503
-  ([D-36](DECISIONS.md)). O portão continua valendo para todos, então **cada
-  avaliador precisa da concessão** do §5 de `13-deploy.md` antes da defesa.
-- **O Cérebro não foi populado na instância** (`KNOWLEDGE_DIR` vazio): o RAG
-  liga junto com o provedor real ([D-47](DECISIONS.md)), mas não encontra base,
-  e as explicações vêm **sem citações** — ausência que o backend declara.
-- **S2** (CVEs restantes, todas de toolchain de desenvolvimento) segue aberta.
-
----
-
-# Sessão 11 — 01/09/26 a 02/09/26 — M5 (TOPSIS/PROMETHEE II/AHP) e M6 (restrições aninhadas) entregues via SDD
-
-Ponto de partida: fim da sessão 10 (B1–B10 mesclados, commit `a97248d`).
-Pedido: M5 e M6, os dois itens de `docs/TODO.md` que restavam além de baixa
-prioridade — M6 já estava em \"Média prioridade\", pronto para ser feito; M5
-carregava a nota \"só faça se o orientador pedir\", e o usuário confirmou
-explicitamente, nesta sessão, que o orientador pediu — revertendo a nota e
-tirando o item de fora de escopo, registrado assim sem meias palavras no
-próprio TODO.md. Testes de backend: 831 → 872 (0 skip); frontend: 165 → 179.
-
-## 1. Planejamento
-
-Duas investigações de código em paralelo (`ranking.py`/`filters.py`/models
-de seleção existentes) antes do plano —
-`docs/superpowers/plans/2026-09-01-m5-m6-multicriterio-e-restricoes-aninhadas.md`,
-dez tarefas em duas frentes sem sobreposição real: M5
-(Tarefas 1–5, `rank_topsis`/`rank_promethee`/`derive_weights` até a UI) e M6
-(Tarefas 6–10, `ConstraintGroup` até o editor recursivo), ordenadas
-sequencialmente para que cada tarefa que toca um arquivo já mexido por uma
-tarefa anterior (ex.: Tarefa 6 e a Tarefa 3 disputando o head do Alembic)
-releia o estado real do arquivo em vez de supor números de linha do plano.
-
-## 2. Execução — `subagent-driven-development`
-
-Um implementador e um revisor por tarefa, como nas sessões 9 e 10. Três
-episódios de limite de taxa, nenhum deles um bug de código:
-
-- **Tarefa 1** despachada em haiku porque o sonnet ainda estava no limite
-  semanal (reset por volta das 22h UTC); voltou a sonnet a partir da
-  Tarefa 3, já com o limite semanal resetado.
-- **Tarefa 4** (seletor de método + entrada de matriz AHP no frontend) teve
-  dois implementadores sonnet parados pelo limite de sessão em sequência — o
-  primeiro deixou um diff substancial não commitado (verificado por
-  inspeção antes de redespachar, não descartado), o segundo travou numa
-  segunda vez à espera do próprio processo de verificação em background sem
-  nunca reportar. Em vez de despachar um terceiro implementador no mesmo
-  padrão de trava, o controlador assumiu diretamente: acompanhou o processo
-  Playwright do implementador anterior até o fim (ainda rodando de verdade,
-  não morto), confirmou a aprovação, leu o diff e o gate completo pessoalmente
-  e commitou como `0b1b128`.
-- **Tarefa 9** (editor recursivo `ConstraintEditor.tsx`) — o implementador
-  construiu a funcionalidade inteira corretamente, mas entrou num laço de
-  mais de seis rodadas tentando fazer seu próprio script descartável de
-  verificação manual clicar um alternador segmentado via um seletor
-  encadeado que resolvia para zero elementos neste Chromium de sandbox. O
-  controlador observou o diagnóstico do implementador, confirmou a causa
-  raiz, corrigiu só o script descartável (nunca o código de produção),
-  verificou o resultado manualmente e terminou a tarefa como controlador —
-  commit `6a9d307`.
-- Uma rerrevisão (rodada de correção da Tarefa 9, abaixo) também foi
-  interrompida pelo limite de sessão do sonnet a meio caminho e retomada
-  depois do reset, sem perda de trabalho.
-
-**Achado Crítico da Tarefa 9, corrigido numa rodada.** A revisão de tarefa
-pegou uma colisão de geradores de id: `page.tsx` mantinha seu próprio
-contador `nextId()` e `ConstraintEditor.tsx` um `internalId()` separado,
-ambos zerados em 0 e no mesmo formato `row-N`/`group-N` — as duas fontes
-podiam produzir o mesmo id, quebrando a premissa de id único que
-`updateConstraintById`/`removeConstraintById` fazem sobre a árvore inteira
-(reabrir um estudo e clicar \"Adicionar restrição\" podia reaproveitar um id
-já existente, fazendo editar ou remover uma linha afetar silenciosamente
-outra). Corrigido unificando os dois num gerador só, `nextEditorId`,
-exportado por `ConstraintEditor.tsx` (commit `db1caa5`), com teste de
-regressão que reproduz o cenário exato — uma linha vinda de fora do editor
-mais uma linha adicionada pelo próprio editor, provando que os ids nunca
-colidem. Rerrevisão escopada confirmou.
-
-## 3. Revisão final de branch e a rodada de correção
-
-Com as dez tarefas revisadas uma a uma, a revisão final de branch inteira —
-despachada no modelo mais capaz disponível, como o processo exige — achou
-zero Crítico e 4 Importantes, todos do tipo que nenhuma revisão de tarefa
-isolada alcança: código novo (M5/M6) encontrando código antigo intocado.
-
-1. O campo `method` (TOPSIS/PROMETHEE/soma ponderada) não chegava a nenhuma
-   tela, e duas superfícies pré-existentes afirmavam algo **falso**
-   especificamente para TOPSIS: o painel de proveniência dos resultados
-   caía no `else` e mostrava \"Normalização: Min-máx\", e a nota de
-   \"Contribuições\" do relatório/laudo exportado (`export_service.py`)
-   afirmava que a pontuação é a soma das contribuições — o próprio
-   docstring de `rank_topsis` nega isso.
-2. `AhpWeightsIn.matrix` aceitava `NaN`/`Infinity` — faltava o
-   `allow_inf_nan=False` que todo outro campo numérico do arquivo já tem —,
-   derrotando silenciosamente a rejeição dura de matriz inconsistente e
-   produzindo 500 em vez do 422 padrão.
-3. Um estudo PROMETHEE cujas restrições filtravam para 0–1 candidatos
-   derrubava a resposta inteira com erro, descartando funil e resultado,
-   enquanto `weighted_sum`/TOPSIS já degradavam para o estado vazio da
-   tela — uma interação genuína M5×M6, porque o aninhamento de M6 torna
-   esse funil bem mais alcançável.
-4. O laudo de engenharia (D-41) descrevia a lógica de um estudo aninhado
-   como um único combinador achatado, com linhas de subgrupo opacas —
-   números corretos, mas a árvore booleana real não dava para reconstruir a
-   partir do documento.
-
-Despachada **uma** rodada de correção cobrindo os 4 Importantes mais as
-limpezas Menores baratas do mesmo achado (chaves de i18n mortas, renomeação
-de prefixo de id, limite explícito em `root_group.groups`, nota de
-código-só-de-teste, dois testes novos) — nunca um corretor por achado. O
-implementador verificou por conta própria uma instrução do próprio
-despacho: a identidade soma-das-contribuições-igual-à-pontuação é
-**verdadeira** para PROMETHEE (fluxo líquido, confirmado contra
-`_score_promethee` e o teste já existente) e falsa só para TOPSIS — manteve
-a afirmação para PROMETHEE e a retirou só de TOPSIS, divergindo da instrução
-literal (equivocada nesse ponto) a favor do fato verificado. Commit
-`73eb4a2` sobre `0d00ee7`. Rerrevisão escopada confirmou os 4 achados
-corrigidos e os testes novos passando, sem achado novo.
-
-## 4. Estado final
-
-872 testes de backend (nenhum skip, antes 831) e 179 de frontend (antes
-165), `ruff`/`black --check`/`typecheck`/`lint`/`build` limpos, `alembic
-heads` num só head. `docs/TODO.md`: M5 e M6 saem de \"Média prioridade\" para
-\"Débitos já quitados\", com a autorização do orientador e a limitação
-conhecida de `StudyOut` (M6) registradas ali mesmo. Detalhe completo da
-rodada de correção final em
-`.superpowers/sdd/2026-09-01-m5-m6-multicriterio-e-restricoes-aninhadas/final-fix-wave-report.md`.
-
----
-
-# Sessão 10 — 27/08/26 a 31/08/26 — Backlog B1–B10 entregue por inteiro, via SDD
-
-Ponto de partida: fim da sessão 9 (PR #27 mesclada, D-48 registrado). Pedido:
-\"fazer as demandas de baixa prioridade B1-B10\" — as dez pendências de
-`docs/TODO.md` §\"Baixa prioridade\", cada uma pequena isoladamente (▁/▃ de
-dificuldade) mas as dez juntas cobrindo praticamente todo o sistema:
-importação, mapa de Ashby, catálogo de materiais, exportação. Testes de
-backend: 795 → 831 (0 skip); frontend: 162 → 165.
-
-## 1. Planejamento
-
-Investigação de código (três agentes em paralelo, um por área: frontend/mapas,
-importadores/encoding, geometria/busca/exportação) antes de escrever o plano —
-`superpowers:writing-plans`, salvo em
-`docs/superpowers/plans/2026-08-27-backlog-b1-b10.md` (removido ao final,
-junto com o resto do workspace de SDD; o histórico do git é o registro).
-Dez tarefas, uma por item do backlog, ordenadas para serializar as poucas
-sobreposições de arquivo entre elas (ex.: B4 antes de B3, ambas em
-`readers.py`; B6 antes de B8, ambas em `_envelopes`).
-
-## 2. Execução — `subagent-driven-development`
-
-Um implementador por tarefa, revisão de tarefa a cada uma, revisão final de
-branch ao final — o mesmo processo já usado na sessão do RAG. Três achados
-valem registro:
-
-- **B3 (importação de JSON/SQLite):** a revisão de tarefa pegou um risco real
-  de injeção SQL em `read_sqlite` — o nome de tabela era interpolado direto
-  numa f-string, e embora o único chamador atual nunca passe um nome
-  controlado por usuário, a função é pública com um parâmetro (`sheet_name`)
-  desenhado explicitamente para reuso futuro (um seletor de tabela na UI,
-  espelhando o que já existe para XLSX). Corrigido com o escape padrão de
-  identificador SQL (duplicar aspas embutidas) antes da correção ser aceita;
-  um teste de regressão usa exatamente o payload malicioso da PoC do
-  revisor.
-- **Limites de taxa, não bugs.** Duas vezes um implementador foi interrompido
-  por \"session limit\"/\"weekly limit\" da API, não por um erro de código —
-  verificado a cada vez via `git status`/`git diff` antes de redespachar (uma
-  vez havia um diff correto sem commit, recuperado; a outra, nada a
-  recuperar, redespachado do zero). O modelo usado nos despachos caiu de
-  sonnet para haiku por cerca de um dia e meio até a janela semanal
-  resetar, com avisos mais explícitos nos briefs para compensar.
-- **Revisão final pegou dois bugs reais que dez revisões de tarefa (mais
-  leves, em haiku) tinham deixado passar** — exatamente o motivo de uma
-  revisão de branch inteira existir:
-  - **B7:** o seletor \"carregar gráfico salvo\" era um no-op silencioso — a
-    página aplicava os dados da *lista* de gráficos salvos
-    (`SavedChartListItem`, que omite `configuration` de propósito, para não
-    enviar o blob de filtro inteiro de cada gráfico só para popular um
-    seletor) através de um duplo cast `as unknown as Partial<MapUrlState>`,
-    em vez de buscar o registro completo com `getSavedChart(id)` — que já
-    existia em `lib/api.ts` mas nunca era chamado.
-  - **B8:** o objetivo de \"trocar de escala sem recarregar\" não era
-    cumprido — faltava `placeholderData` no `useQuery` do mapa; sem ele, o
-    React Query zera os dados a cada troca de `scale` (que faz parte da
-    chave da consulta), desmontando o gráfico e mostrando o carregamento
-    completo — exatamente o problema que B8 devia eliminar, com a lógica de
-    troca instantânea que a Tarefa 7 construiu (`envelopes_alt`/
-    `displayScale`) nunca chegando a rodar. O mesmo padrão
-    (`placeholderData: (previous) => previous`) já existia em
-    `apps/web/app/selecao/page.tsx` — só precisava ser copiado.
-  - Uma única rodada de correção resolveu os dois, mais o achado (já
-    rebaixado a Minor numa revisão de tarefa) de um `except` genérico
-    demais em `property_service.py` mascarando um bug real de conversão de
-    unidade como um 409 esperado — a correção expôs uma lacuna pré-existente
-    em `app/calculations/units.py` (Pint levanta `TypeError` bruto para uma
-    string de unidade malformada, antes silenciosamente engolida pelo
-    `except` largo demais); a rerrevisão confirmou por leitura direta do
-    arquivo que a ordem das cláusulas `except` continua correta (`DimensionalityError` não fica sombreado pela cláusula mais ampla).
-
-## 3. Estado final
-
-831 testes de backend, 165 de frontend, `ruff`/`black`/`typecheck`/`lint`
-limpos, `alembic upgrade head` + seed confirmados contra um banco limpo (a
-cadeia de duas migrations novas — `SavedChart` de B7, `MaterialKeyword` de
-B5 — é linear). `docs/TODO.md` atualizado: B1–B10 saem de \"Baixa
-prioridade\" (agora vazia) para \"Débitos já quitados\"; `SavedChart` sai de
-\"Entidades ainda não modeladas\".
-
----
-
-# Sessão 9 — 26/08/26 a 27/08/26 — RAG sobre o Cérebro (D-47) e a PR #26 fechada e remesclada
-
-Ponto de partida: fim da sessão 8 (PR #21 mesclada, portão de assinatura
-ligado). Testes de backend: 713 → 795 (0 skip); frontend: 157 → 162.
-
-## 1. RAG sobre o Cérebro — busca híbrida, D-47
-
-Plano de 18 tarefas (`docs/superpowers/plans/2026-08-25-cerebro-rag.md`),
-executado por `subagent-driven-development`: um subagente implementador por
-tarefa, revisão de tarefa a cada uma, revisão de branch inteira ao final.
-
-O Cérebro (`Cérebro/`, hospedado em `main` desde D-45) estava íntegro mas
-inerte — nada em `app/ai/` o lia. Passou a alimentar `interpret()`/\\
-`explain()`: busca léxica (BM25) + semântica (embeddings, receita gratuita
-Jina AI documentada em `.env.example`), fundidas por *reciprocal rank
-fusion* (`app/knowledge/retrieval.py`), ligada só quando o provedor não é o
-`mock`, com citação **verificada** por índice em `explain()` — nunca citação
-livre (`guardrails.check_citations`). A garantia que mais importava foi
-**provada**, não só mantida: `check_constraint`/`ungrounded_numbers` nunca
-leem `context.retrieved`, então um número presente só num trecho recuperado
-continua sendo recusado como restrição exatamente como antes — teste
-dedicado, confirmado por dois revisores independentes.
-
-A revisão final de branch (modelo mais capaz) encontrou 8 achados
-importantes + 6 menores — nenhum crítico. Uma rodada de correção (9 itens:
-tratamento de `ValidationError` na pontuação semântica, chave de embedding
-dedicada, propriedade `configured` consolidada, corpus léxico carregado uma
-vez em vez de recarregado por chamada, lock contra ingestão concorrente,
-filtro `isinstance(i, int) and not isinstance(i, bool)` em índices de
-citação, classe de teste morta removida, teste novo para fontes vazias em
-`StudyExplanation`) mais uma rerrevisão escopada, ambas limpas. Decisão
-completa em [D-47](DECISIONS.md). PR #25, mesclada pelo autor.
-
-## 2. PR #26 (`fase-9-ia-e-laudo`) — investigada, fechada, depois remesclada pelo autor
-
-Pedido: resolver as pendências da PR #26 (62 commits à frente de `main`,
-aberta desde a sessão 8) para poder mesclar ou fechar. Antes de tentar
-resolver conflitos, a arqueologia de git (comparação arquivo a arquivo do
-branch contra `origin/main`, não só o resumo do `git`) mostrou que o
-conteúdo substantivo da PR já estava em `main` — reconciliado por um
-caminho diferente na sessão 8 (ver seção 1 daquela sessão, D-45). Fechada
-sem merge, com comentário explicativo citando a reconciliação anterior.
-
-O autor então reabriu a PR pessoalmente, reconciliou o branch contra o
-`main` já atualizado e mesclou (commit `3ec451e`, 209 arquivos — bem menor
-que os 363 originais, porque a maior parte já estava presente). A mudança
-substantiva que restava: `Dialog.tsx` e `Tabs.tsx` migraram de
-implementação própria para `md-dialog`/`md-tabs` do `@material/web`
-(`8b74799`), estendendo o mesmo padrão já usado por botões, checkbox, radio,
-select e chips desde a Fase 9 (`components/ui/material/elements.ts`, em
-`main` desde o PR #8, 18/08 — portanto anterior a esta sessão).
-
-**Achado não resolvido nesta sessão:** nenhum documento registrava o uso de
-`@material/web`, e o padrão conflita textualmente com [D-23](DECISIONS.md)
-(\"sistema de design próprio, sem biblioteca de componentes\") e com a
-proibição do §13 de [REDESIGN.md](REDESIGN.md). `@material/web` é a
-biblioteca de Web Components do Material Design 3, com sua própria camada
-de tema (100 variáveis `--md-sys-*` em `globals.css`, paralela aos tokens
-`--brand-*`/`--accent` de D-28). Sinalizado ao autor, que decidiu: registrar
-como decisão aceita em vez de reverter. Ver **D-48**.
-
-## 3. D-48 — `@material/web` reconciliado com D-23
-
-Confrontado via `AskUserQuestion` com três caminhos (registrar como exceção
-aceita / reverter Dialog e Tabs para implementação própria / deixar
-sinalizado sem decidir), o autor escolheu registrar. `DECISIONS.md` ganhou
-D-48: exceção pontual a D-23, restrita a primitivas de baixo nível sem
-estado de aplicação (botão, checkbox, radio, select, chip, diálogo, abas),
-sempre atrás do wrapper próprio em `components/ui/` — nunca importadas
-diretamente por uma tela. Nenhuma linha de código mudou; só a documentação
-passou a descrever o que já estava em produção desde a Fase 9.
-
-Um risco fica registrado, não mitigado: as ~100 variáveis `--md-sys-color-*`
-são um segundo sistema de cor, escrito à mão em paralelo aos tokens
-`--brand-*`/`--accent` de D-28, sem ponte automática entre os dois — e já
-divergiram (`--brand-700` claro é `#1565c0`, `--md-sys-color-primary` é
-`#005bbf`). Nenhuma tela mistura os dois de um jeito que quebre contraste
-hoje, mas o risco de nova divergência existe a cada mudança de paleta.
-
-## 4. Sincronização de documentação
-
-`docs/PROJECT_CONTEXT.md`, `CLAUDE.md` (raiz) e este changelog atualizados
-com a contagem de testes real pós-fix-wave e pós-PR #26 (795/162, não os
-768/157 que a PR #25 tinha deixado registrado), e com o resumo do que a PR
-#26 realmente trouxe — que não constava em nenhum lugar até este ponto.
-
----
-
-# Sessão 8 — 24/08/26 a 25/08/26 — Reconciliação de branches, M9 e o checkout do Stripe testado ao vivo
-
-Ponto de partida: fim da sessão 7 (PR #13 mesclada, M1 verde). Testes de
-backend: 639 → 713 (0 skip); frontend: 148 → 157. A sessão teve quatro frentes
-encadeadas — nenhuma pedida isoladamente, cada uma abrindo a próxima.
-
-## 1. Branches de fase divergentes, reconciliadas com `main`
-
-`git status`/`git log` mostravam quatro branches de fase (`fase-5-visualizacao`,
-`fase-6-provedores-claude`, `fase-8-redesign-interface`, `fase-9-ia-e-laudo`)
-como `N ahead / M behind` de `main`, mesmo depois de supostamente mescladas.
-Verificação arquivo a arquivo (não confiar no resumo do git) mostrou que três
-delas (PRs #15, #7, #14) eram **ilusão de squash-merge** — squash não cria
-vínculo de parentesco, então o git segue reportando divergência de conteúdo já
-presente; foram apenas fechadas de volta, sem conteúdo novo.
-
-A quarta, `fase-9-ia-e-laudo`, tinha ~1.600 linhas genuinamente não
-mescladas: a **camada de conhecimento** (ingestão do Cérebro para a IA,
-`app/knowledge/`) e a **cobrança com Stripe** (`Subscription`,
-`routers/billing.py`, `services/billing_service.py`). Trazida por inteiro no
-PR #18, com duas ressalvas que viraram trabalho de sessão à parte:
-
-- O **portão global de assinatura** (`require_active_subscription`) entrou
-  desligado — a fase-9 e o plano Free/Pro de 21/08
-  (`docs/superpowers/plans/`) discordavam sobre a arquitetura de cobrança, e
-  ligar um dos dois por omissão decidiria a reconciliação sem que o autor
-  tivesse escolhido. Isso virou **M9** no `TODO.md`, resolvido na frente 2
-  desta sessão.
-- O **Cérebro licenciado** (11 livros comerciais + 2 extratos + 103 fichas
-  ANSYS/Granta EduPack) chegou a `main` por um caminho paralelo, o PR #17,
-  antes mesmo desta reconciliação — e continua lá por decisão explícita do
-  autor ao ser confrontado com a opção de purgar (**D-45**): risco aceito,
-  não descuido, porque é a base de conhecimento da camada de IA.
-
-`docs/CLAUDE.md`, `PROJECT_CONTEXT.md` e `TODO.md` foram sincronizados com o
-estado real pós-reconciliação (PR #19) — contagem de testes, menções à
-camada de conhecimento e à cobrança, e o registro das duas ressalvas acima
-como pendências explícitas (não escondidas).
-
-## 2. M9 — a arquitetura de cobrança, decidida
-
-Duas arquiteturas coexistiam em código, nenhuma ligada: o portão binário do
-plano de 18/08 (`require_active_subscription` em bloco, já totalmente
-codificado) e o Free/Pro do plano de 21/08 (`EntitlementService`, nunca
-implementado). Confrontado com os dois via `AskUserQuestion`, o autor
-escolheu o binário — já pronto contra uma reimplementação do zero.
-
-- **Backend:** `main.py` passa a aplicar `require_active_subscription` a
-  todo router exceto `health`/`auth`/`billing` (inclusive `audit` e
-  `sources`, que chegaram depois do desenho original mas seguem o mesmo
-  princípio); o teste que afirmava o portão perdeu o `skip`.
-- **Frontend:** `AuthGate.tsx` volta a ser um portão de dois estágios —
-  `/auth/me` primeiro (não autenticado → `/entrar`), depois
-  `/billing/status` (autenticado sem assinatura ativa → `/assinatura`).
-- **Verificação ao vivo**, além dos testes: sem cookie → 401; sessão de
-  e2e (que já escrevia uma `Subscription` ativa, preparada de propósito para
-  este momento) → `GET /api/materials` 200; segundo usuário sem assinatura
-  nenhuma → 403 em `/api/materials`, 200 em `/api/billing/status` (a rota
-  continua alcançável para o `AuthGate` decidir o redirecionamento).
-
-Decisão completa em [D-46](DECISIONS.md); M9 passou para \"Débitos já
-quitados\" no `TODO.md`. PR #20.
-
-## 3. Configurar o Stripe de verdade e testar o checkout — ao vivo, na máquina do autor
-
-Pedido seguinte: \"configura o Stripe de verdade e testa o checkout\". Este
-ambiente remoto bloqueia por política de rede **todo** domínio `*.stripe.com`
-e `packages.stripe.dev` (confirmado via o proxy de saída, `403` em toda
-tentativa de `CONNECT`) — sem contorno possível nem tentado, como a política
-de negação exige. O trabalho de configuração e teste aconteceu inteiramente
-na máquina Windows do autor, guiado turno a turno por este agente sem
-nenhum acesso a ela: Stripe CLI, conta de teste, produto e preço; cliente
-OAuth real no Google Cloud Console; Python nunca instalado (instalação do
-zero, com o checkbox \"Add python.exe to PATH\"); `.venv` inexistente;
-checkout local desatualizado sem o extra `billing` do `pyproject.toml`;
-banco sem migrations aplicadas (`no such table: user`); porta 3000 ocupada
-por processo zumbi, derrubando o CORS do `AuthGate`. Cada obstáculo foi
-diagnosticado a partir do que o autor colava (traceback, log, captura de
-tela) e resolvido com o comando exato para CMD do Windows — nunca PowerShell,
-por restrição da máquina do autor.
-
-Resultado da primeira tentativa: **pagamento completo** na Stripe (modo de
-teste, cartão `4242 4242 4242 4242`), redirecionamento de volta com
-`?status=sucesso` — mas `/assinatura` continuava mostrando \"não assinado\", e
-`stripe listen` mostrava **todo** evento de webhook voltando `500`.
-
-## 4. O bug do webhook: `.get()` num objeto que não é um dict
-
-Diagnóstico a partir do traceback colado pelo autor:
-`AttributeError: 'get' is a dict method, but a Event is not a dict. Use
-.to_dict() to convert it.` — `billing_service.py` chamava `.get()` no
-`event`/`data` que o SDK real da Stripe (`stripe>=10`, testado com `15.5.1`)
-devolve como `Event`/`StripeObject`: aceita `[]` e `in`, mas **bloqueia
-`.get()` de propósito**. Nenhum dos 713 testes pegava isso porque o fake de
-teste sempre injetava um **dict Python puro**, que suporta `.get()`
-normalmente — a suíte nunca exercitava essa restrição do SDK real.
-
-Seguindo TDD para o bug: `test_billing_service.py` ganhou `_StrictStripeObject`
-(aceita `[]`/`in`, rejeita `.get()`, espelhando de verdade o SDK real — o
-próprio objetivo já declarado no cabeçalho do arquivo), e o fake de webhook
-passou a devolver o evento embrulhado nele. Rodado sozinho, isso reproduziu
-o exato `AttributeError` do autor num teste antes verde. A correção:
-`_get(obj, key, default=None)` — lê via `obj[key] if key in obj else
-default`, funcionando igual em `Event`/`StripeObject` real e em dict fake —
-substituiu os cinco `.get()` em `handle_webhook` e nos três handlers de
-evento. 713 testes voltaram a passar, `ruff`/`black` limpos. PR #21.
-
-Novo teste ao vivo do autor, já com a correção: `stripe listen` mostrou todo
-webhook voltando `204`, e `/assinatura` passou a refletir a assinatura
-ativa — M9 testado de ponta a ponta, não só pelos 713 testes automatizados.
-
-## 5. Documentação do teste ao vivo
-
-`D-46` (com uma nova seção \"Checkout real testado ao vivo\"), a entrada de M9
-em `TODO.md` e as seções 4/9 de `PROJECT_CONTEXT.md` foram atualizadas para
-registrar a verificação de ponta a ponta e o bug encontrado/corrigido. A
-limitação que resta deixou de ser \"ninguém testou o fluxo\" e passou a ser só
-\"nenhuma credencial de **produção** (`sk_live_...`) está configurada em
-lugar nenhum\" — D-36 já estabelece que nenhuma credencial tem valor padrão,
-de propósito. PR #22.
-
-## 6. Verificação
-
-`ruff`, `black --check`, **713 testes de backend** (0 skip, matriz 3.11 e
-3.12), **157 de frontend**, `alembic upgrade head` + seed num banco limpo —
-tudo verde nos quatro PRs (#20, #21, #22) e nas quatro reconciliações (#15,
-#14, #7, #18) mais o PR #19 de docs. Além dos testes: o checkout completo
-foi executado de verdade contra a Stripe em modo de teste, não só simulado
-contra um cliente falso — a mesma prática de \"verificação ao vivo além dos
-testes\" que já tinha achada a unidade nula na camada de IA em sessão
-anterior.
-
-## 7. O que fica em aberto
-
-- **Nenhuma sessão de teste de usabilidade** (§3.5) — a única pendência do
-  trabalho como um todo que não é código, inalterada por esta sessão.
-- **Nenhuma credencial de produção da Stripe configurada** — o portão está
-  ligado e o fluxo foi testado em modo de teste; vender de verdade exige um
-  operador configurar `sk_live_...` (D-36, decisão deliberada de não ter
-  padrão).
-
----
-
-# Sessão 7 — 21/08/26 — Triagem de licenciamento (M1)
-
-Ponto de partida: o merge da PR #10 (sessões 5+6, M2+A2) em `main`
-(`5f8b7f0`). Testes de backend: 632 → 639. O usuário mesclou a PR direto
-(\"tire do rascunho e faça o merge, eu já revisei\"), então este trabalho
-reinicia o branch designado a partir de `main`, como as instruções de tarefa
-preveem para uma PR já mesclada — não empilha em cima de histórico já
-integrado.
-
-## 1. Uma sessão que ganhou um segundo participante
-
-No meio do trabalho de M2/A2, uma sessão desconhecida (`observer-sessions-e7`)
-começou a mandar mensagens ecoando o progresso da sessão de volta — inclusive
-anunciando que ia commitar/pushar/abrir PR na mesma branch. Sem confirmação de
-quem era, isso foi tratado como um evento a reportar, não a obedecer: o
-trabalho já verificado foi commitado e pushado primeiro, a outra sessão foi
-instruída a não tocar na branch, e o usuário foi avisado no fim do turno. O
-usuário confirmou depois que a sessão era dele mesmo, noutra máquina — registro
-aqui porque a resposta (push primeiro, avisar, não assumir) é o comportamento
-correto independente de a origem acabar sendo benigna ou não.
-
-## 2. O pedido e a escolha do que atacar
-
-Passado o merge, o usuário perguntou \"qual o próximo passo?\" sem apontar um
-item. Restavam dois: M1 (triagem de licenciamento) e a sessão de teste de
-usabilidade do §3.5 — esta última exige participantes reais, não é código que
-uma sessão feche sozinha. M1 foi a escolha natural e confirmada pelo usuário.
-
-(Um pedido paralelo — \"estruture a pasta Cérebro\" — apareceu antes disso.
-\"Cérebro\" não é um conceito que existe em nenhum lugar do repositório; a
-pergunta de esclarecimento foi interrompida pelo usuário com \"esqueça por
-enquanto\", então fica registrada como não resolvida, não como decidida.)
-
-## 3. O que foi implementado
-
-`Source` (`app/models/source.py`) ganha `license_label`, `license_url`, a
-sinalização explícita `contains_third_party_data` e um carimbo de quem
-registrou a fonte e quando (`reviewed_by_user_id`/`reviewed_at`).
-
-- **O portão fica na importação** (`ImportService._check_source_licensing`,
-  `app/importers/service.py`), rodando tanto em `validate()` (feedback cedo)
-  quanto de novo em `commit()` (o portão que realmente importa — o catálogo
-  pode mudar entre as duas chamadas). Uma fonte **nova** sem
-  `source_license_label` é recusada antes de qualquer linha ser escrita; uma
-  fonte marcada `source_contains_third_party_data=True` exige também
-  `source_review_confirmed=True` explícito — a \"decisão humana obrigatória
-  antes da incorporação\" que o item do backlog pede.
-- **Reusar um `source_label` já registrado não reabre a decisão.** A licença
-  é fixada uma vez, na primeira importação que registra aquela fonte; a
-  segunda, a terceira, todas as seguintes reaproveitam a linha como está.
-- **O portão não cobre o cadastro manual de material**, de propósito — o
-  item do backlog fala em \"base... importada\", e um material só já passa por
-  uma pessoa logada decidindo linha a linha, o mesmo nível de decisão que o
-  portão está formalizando para um lote inteiro de uma vez. Estender ao
-  cadastro manual mudaria o contrato de `PropertyValueIn` (e os dois arquivos
-  de tipos que o espelham) por um ganho que o item não pede.
-- **`GET /api/sources`** lista toda fonte registrada com licença, sinalização
-  e revisor — a mesma lógica de M2: uma trilha que só grava e nunca se mostra
-  não sustenta alegação nenhuma de conformidade.
-- **Backfill da fonte de demonstração do seed**, tanto na migration
-  (`fc5a731dd162`, para um banco de desenvolvimento já semeado antes desta
-  sessão) quanto em `app/db/seed.py` (para um banco novo) — a única fonte que
-  já existia antes de M1 nunca aparece como \"sem licença\".
-
-Decisão completa (com alternativas descartadas) em [D-44](DECISIONS.md).
-
-## 4. Correções incidentais
-
-Duas fixtures de teste já mescladas (`test_imports_api.py`,
-`test_case_study.py`) registravam uma fonte nova sem licença — o próprio
-portão que esta sessão introduziu as teria quebrado. Corrigidas com
-`source_license_label` nos seus mapeamentos; `docs/12-estudo-de-caso.md`
-ganhou uma nota apontando que reproduzir o caso hoje, contra uma fonte ainda
-não registrada, exige o mesmo campo.
-
-## 5. Verificação
-
-`pytest` (639 testes, +7 desta sessão, em `test_source_licensing.py`),
-`ruff check` e `black --check` verdes, `alembic upgrade head` + seed num
-banco limpo (inclusive o backfill da fonte de demonstração). Sem verificação
-de frontend — o pedido era só de backend, como M2.
-
-## 6. O que continua em aberto
-
-Só a sessão de teste de usabilidade do §3.5 — a única pendência do trabalho
-como um todo que não é código e não pode ser fechada por quem programa
-sozinho.
-
----
-
-# Sessão 6 — 21/08/26 — Estudo de caso didático (A2)
-
-Ponto de partida: fim da sessão 5 (PR #10 aberta, M2 verde). Testes de
-backend: 630 → 632. Continuação da mesma sessão de trabalho após uma pausa —
-o usuário voltou (\"bom dia\") e escolheu A2 entre as pendências restantes do
-`TODO.md`, a mesma pergunta feita no início da sessão 5.
-
-## 1. O caso escolhido
-
-O tirante leve e rígido (\"light, stiff tie\") de Ashby: elemento sob tração
-pura, minimizar massa para rigidez axial especificada, índice a maximizar
-`M = E/ρ`. Três razões concretas, não só \"é um exemplo clássico\":
-
-- O índice `rigidez-especifica` (`modulo_young / densidade`) **já estava
-  semeado** no catálogo (`app/db/seed.py`), com a referência a Ashby nas
-  próprias hipóteses — o caso reusa o que já existia, não inventa um índice
-  novo.
-- O resultado é genuinamente consolidado na literatura, com uma conclusão
-  contraintuitiva bem documentada (cerâmicas vencem no índice bruto, e é
-  exatamente por isso que o caso precisa de uma segunda restrição para
-  chegar à resposta de engenharia real) — o tipo de caso onde \"os candidatos
-  batem com o esperado\" é uma afirmação verificável, não uma opinião.
-- A restrição de fragilidade usa `not_in_class`, que já existe na
-  aplicação — nenhuma propriedade nova (tenacidade à fratura) precisou ser
-  adicionada ao catálogo.
-
-## 2. Dados: reais, não fictícios, e a rede bloqueada no meio do caminho
-
-Princípio 1 do `CLAUDE.md` proíbe inventar propriedade de material. Nove
-materiais (três metais, dois compósitos, dois polímeros, uma cerâmica, um
-elastômero) precisavam de densidade e módulo de Young **reais**, não
-fabricados. `WebFetch` para as fontes candidatas (MIT OpenCourseWare, en.wikipedia.org)
-retornou `EGRESS_BLOCKED` — a política de rede deste ambiente não permite
-essas requisições — em três domínios diferentes; só `WebSearch` (que devolve
-um resumo sintetizado, não a página inteira) funcionou. As cifras finais
-vieram desses resumos, cross-checadas entre duas a três buscas independentes
-por material, e o documento (§3 abaixo) registra essa limitação em vez de
-escondê-la atrás de uma citação com precisão que a própria coleta não tinha.
-
-## 3. Execução real, não simulada
-
-Servidor subido localmente contra um banco limpo (`alembic upgrade head` +
-seed), autenticado pela mesma sessão fixa que o Playwright usa
-(`ENVIRONMENT=development` + `E2E_SESSION_TOKEN`, sem bypass exposto por
-rota nenhuma — mecanismo documentado em `docs/CLAUDE.md §5`, não um atalho
-novo). Sequência real, via HTTP: upload → validação → commit da planilha
-(`docs/estudo-de-caso/materiais-haste-leve-rigida.csv`) → `POST
-/selection/run` (restrições + índice + ranking) → `POST /selection/studies`
-(salvar) → exportação do relatório e do laudo. As sugestões automáticas de
-coluna da importação acertaram as nove colunas sozinhas — a mesma
-funcionalidade cujo bug de hífen/underscore a suíte A4 corrigiu numa sessão
-anterior, funcionando corretamente aqui.
-
-O resultado bateu exatamente com o previsto: CFRP em primeiro (35,3), os três
-metais estruturais num platô de 1,8% entre si (25,48–25,93), a cerâmica
-excluída pela restrição de fragilidade apesar de ter, de longe, o melhor
-índice bruto (100,0, quase 3× o CFRP). Os três pontos que o exemplo do
-tirante existe para ilustrar, reproduzidos por uma execução real, não
-citados de memória.
-
-A auditoria (M2, sessão anterior) registrou o próprio `POST
-/selection/studies` deste estudo — a primeira vez que a trilha gravou algo
-fora dos próprios testes que a exercitaram.
-
-## 4. O que foi criado
-
-- `docs/estudo-de-caso/` — a planilha real (não o `sample-data/` fictício), um
-  `README.md` com as fontes, e `evidencias/` com as respostas reais da
-  aplicação (JSON do `/selection/run`, relatório de seleção e laudo em HTML,
-  relatório em CSV) — nada composto à mão fora da aplicação.
-- `docs/12-estudo-de-caso.md` — o roteiro: caso escolhido, enunciado no
-  formato Função/Restrições/Objetivo/Variáveis livres, dados e fontes (com a
-  ressalva de precisão do §2 acima), execução real, resultado, comparação
-  com a literatura em três pontos verificáveis, limitações, como reproduzir.
-- `app/tests/test_case_study.py` — a mesma planilha embutida (mesmo padrão
-  que `test_imports_api.py` já usa para sua própria fixture), a mesma
-  seleção, e a asserção de que a ordenação e o platô dos metais se repetem a
-  cada execução da suíte — a verificação do item 2.6/6 da proposta vira
-  regressão de CI, não só um resultado manual documentado uma vez.
-
-## 5. Verificação
-
-`pytest` (632 testes, +2 desta sessão), `ruff check` e `black --check`
-verdes. Sem verificação de frontend — o caso é inteiramente backend/API,
-como o pedido original de A2 já era.
-
-## 6. O que continua em aberto
-
-Do backlog: M1 (triagem de licenciamento) e a sessão de teste de usabilidade
-do §3.5 — esta última é a única pendência do trabalho como um todo que não é
-código e não pode ser fechada por quem programa sozinho.
-
----
-
-# Sessão 5 — 21/08/26 — Auditoria (M2) e a instalação do ambiente de assistente
-
-Ponto de partida: `d20e7df` (fim da sessão 4 registrada aqui). Testes de
-backend: 617 → 630. Testes de frontend: 148 (inalterado — o pedido era só de
-backend).
-
-> **A contagem de partida não bate com o fim da sessão 4** (591, não 617) — a
-> diferença (26 testes) veio de trabalho entre as duas sessões que não ganhou
-> uma seção própria neste arquivo (a autenticação A5, [D-42](DECISIONS.md), já
-> estava em produção no início desta sessão). Registrado aqui para quem for
-> reconciliar os números depois; não investigado nesta sessão, que tratava de
-> outro assunto.
-
-## 0. Ambiente do assistente
-
-Sessão iniciada num container novo, sem nada instalado além do Claude Code em
-si. Antes do trabalho de código, os três marketplaces e os dois plugins de
-[`docs/CLAUDE_SETUP.md`](CLAUDE_SETUP.md) foram reconectados
-(`claude-plugins-official`, `superpowers-dev`, `thedotmack`;
-`superpowers@superpowers-dev`, `claude-mem@thedotmack`), e o gstack foi
-clonado e instalado. A receita documentada (clonar em `~/.agents/skills/gstack`)
-não registra as skills onde este ambiente as espera: qualquer diretório
-literalmente chamado `skills/` faz o instalador do gstack tratar a instalação
-como \"já dentro de um diretório de skills\" e symlinkar os comandos *ao lado*
-do clone em vez de para dentro de `~/.claude/skills/`, então em
-`~/.agents/skills/gstack` os comandos foram parar em `~/.agents/skills/*` —
-onde o Claude Code deste ambiente não os enxerga. Clonar direto em
-`~/.claude/skills/gstack` (mesmo nome de diretório final, container diferente)
-ativa o mesmo caminho de código de um jeito que resolve para o lugar certo. À
-parte disso, o instalador tenta baixar seu próprio Chromium via Playwright
-para a função `/browse`; a rede deste ambiente bloqueia esse host
-(`cdn.playwright.dev`) e o instalador, sem tratamento de erro nesse trecho,
-aborta antes de chegar ao passo que registra as skills — contornado
-comentando as duas chamadas de instalação do Chromium no script (o ambiente
-já tem um Chromium próprio em `/opt/pw-browsers`, só não na revisão que este
-Playwright vendorizado espera). Nenhuma mudança de projeto — só do ambiente do
-assistente, fora do repositório.
-
-## 1. O pedido e a escolha do que atacar
-
-O pedido desta sessão foi genérico — \"leia a documentação, baixe as skills do
-projeto, continue de onde parou\" — sem apontar qual pendência. `TODO.md`
-listava quatro itens de peso comparável e natureza bem diferente: A2 (estudo
-de caso, exige curar dado real citável — julgamento de domínio), a sessão de
-teste de usabilidade do §3.5 (exige pessoas reais, não pode ser feita por um
-agente), M1 (triagem de licenciamento) e M2 (auditoria, com dependência já
-satisfeita por A5, spec autocontida, zero dependência de dado externo).
-Perguntado, o usuário escolheu M2 — o item mais adequado a uma sessão autônoma
-de uma vez só, e o único das quatro pendências que não dependia de julgamento
-de domínio ou de um humano fora do teclado.
-
-## 2. O que foi implementado
-
-`AuditEvent` (`app/models/audit.py`, migration `d063cad4ae8b`): quem mudou o
-quê e quando, para as entidades que uma pessoa edita à mão — material, classe,
-propriedade, índice de desempenho e estudo de seleção.
-
-- **Retrato, não junção viva.** `user_email`/`entity_label`/`project_id` são
-  capturados no momento do evento, não lidos de uma junção em tempo de
-  leitura — sobrevivem à conta, à entidade ou ao estudo desaparecerem depois.
-  É a mesma lógica de proveniência que já vale para `material_property_value`
-  (princípio 4 do `CLAUDE.md`), aplicada a \"quem fez isto\".
-- **`changes` é um diff, não um dump.** Só os campos que de fato mudaram
-  (`app/services/audit_service.diff_fields`) — um `PATCH` de um campo não
-  imprime os outros dez inalterados, e um `PATCH` que não muda nada não grava
-  evento nenhum.
-- **A troca de valores de propriedade vira um diff por slug**, não um evento
-  por linha — `PUT .../values` já é \"substitua o conjunto inteiro\", e a
-  proveniência de cada valor já é rastreada à parte por linha.
-- **A importação em lote fica de fora, de propósito.** `ImportService` monta
-  `Material` diretamente (`app/importers/service.py`), sem os métodos
-  públicos de `MaterialService` onde o `record_change` está — `ImportJob` já é
-  a trilha desse fluxo, e auditar por linha um commit de milhares seria ruído.
-- **`GET /api/audit`** lista por `entity_type`/`entity_id`, paginado, sob a
-  mesma fronteira de projeto de todo endpoint de estudo — catálogo visível a
-  qualquer usuário logado, `selection_study` só ao dono, inclusive depois de
-  excluído (é exatamente o retrato de `project_id` que torna isso possível).
-
-Quatro serviços (`MaterialService`, `TaxonomyService`, `PropertyService`,
-`SelectionService`) ganharam um `user: User | None = None` no construtor,
-todo roteador que os instancia passou a repassar o usuário logado, e
-`AuditRepository`/`audit_service.record_change` fazem a escrita — sempre antes
-do `commit()` do próprio serviço, para que o evento nunca fique numa
-transação diferente da mudança que descreve.
-
-Decisão registrada em [D-43](DECISIONS.md), com as alternativas descartadas
-(dump completo em vez de diff, evento por linha de valor, filtro de
-privacidade por junção viva, cobrir a importação).
-
-## 3. Correções incidentais
-
-Duas classes de repositório não tinham `flush()` (`PropertyDefinitionRepository`)
-ou não seguiam o padrão de outras (mesmo método, só faltando) — descobertas
-pelos próprios testes de auditoria ao precisar do `id` do objeto recém-criado
-antes do `commit()`. Corrigidas junto, sem afetar nenhum comportamento
-existente.
-
-## 4. Verificação
-
-`pytest` (630 testes, +13 desta sessão), `ruff check` e `black --check`
-verdes; `alembic upgrade head` + `python -m app.db.seed` num banco limpo (o
-mesmo portão que a CI roda). `test_audit.py` cobre: evento por ação e por tipo
-de entidade; diff correto por campo e por slug de propriedade; nenhum evento
-numa atualização sem mudança real; exclusão duas vezes grava um único
-`EXCLUIDO`; um usuário não vê o estudo de outro nem por id nem numa listagem
-mista; o dono continua vendo a exclusão do próprio estudo depois dela
-acontecer; a importação em lote não grava evento de material. Sem verificação
-de frontend — o pedido era só de backend, e nenhuma tela consome `GET
-/api/audit` ainda (fica para quando houver pedido de interface para isto).
-
-## 5. O que continua em aberto
-
-Da Fase 7, só a arquitetura para PPTX (B2, baixa prioridade, fora de escopo
-salvo pedido). Do trabalho como um todo: a sessão de teste de usabilidade do
-§3.5 (nenhuma foi realizada), o estudo de caso didático completo (A2) e a
-triagem de licenciamento (M1) — nenhum dos três é código que um agente possa
-fechar sozinho numa sessão como esta.
-
----
-
-# Sessão 4 — 11/08/26 a 12/08/26 — Fase 9 e a varredura que a fechou
-
-Ponto de partida: `7c1d59f` (Fase 6 com provedores reais). **61 arquivos
-alterados, +6.512 / −771** nos commits da Fase 9, mais a varredura de
-fechamento. Testes de backend: 436 → 591. Testes de frontend: 123 → 141.
-
-O pedido da Fase 9 tinha **seis frentes** — IA gratuita, barra lateral,
-repaginação mais colorida e arredondada, painéis interativos, mapas
-personalizáveis e laudo de engenharia completo. As seis saíram. Depois veio um
-segundo pedido, de natureza diferente: *\"verifique todas as fases, quero tudo
-redondo, sem travar e consumindo menos máquina\"* — uma varredura, não uma
-funcionalidade.
-
-## 1. A Fase 9
-
-| Frente | O que entrou | Decisão |
-|---|---|---|
-| IA gratuita | provedor `openai-compat` (Groq, Ollama, OpenRouter, OpenAI) | [D-36](DECISIONS.md) |
-| Barra lateral | `AppSidebar`, fixa em `lg`, gaveta abaixo, recolhível a 76 px | [D-37](DECISIONS.md) |
-| Repaginação | paleta azul, forma e movimento como token | [D-38](DECISIONS.md) |
-| Painel | cobertura, composição, ranking de lacunas, box-plot | [D-39](DECISIONS.md) |
-| Mapas personalizáveis | um eixo do mapa pode ser um índice, não só uma propriedade | [D-40](DECISIONS.md) |
-| Laudo | documento à parte, com figura do backend e interpretação da IA | [D-41](DECISIONS.md) |
-
-Duas escolhas se repetem nessas seis e valem por si: **o backend passou a
-desenhar figuras** (`app/exporters/figures.py`), porque um laudo que abre
-offline anos depois não pode depender de uma captura de tela; e **quartis,
-percentuais e escores continuaram no backend** (ADR 0004), mesmo quando o
-consumidor é um gráfico.
-
-## 2. A varredura de fechamento
-
-Ela encontrou três defeitos de travamento, e nenhum deles aparecia nos testes:
-
-| O que | Sintoma | Correção |
-|---|---|---|
-| `normalize_column` vetorial | acima de ~1e154 a soma de quadrados estourava e **todo material virava 0,0** — um empate silencioso, não um erro | `math.hypot`, que reescalona internamente |
-| `to_canonical` | um erro de digitação comum (`\"m**\"`, `\"(m\"`, `\"$\"`) escapava do pint como `AssertionError`/`TokenError` e virava **HTTP 500** | as três exceções passaram a ser tratadas juntas — elas não têm base comum |
-| Unidade patológica | `'m**9**9**9'`, dez caracteres, **prende um núcleo indefinidamente**: o pint interpreta unidade *avaliando* aritmética | guarda por forma nas duas portas de entrada; nem limite de tamanho nem de expoente sozinho resolvem, e `^` também é potência |
-
-E dois de desempenho, ambos medidos antes e depois — os números estão em
-[PROJECT_CONTEXT.md §12](PROJECT_CONTEXT.md): o Plotly completo (4,5 MB, 79% de
-todo o JS) virou um bundle à la carte de cinco traços, e `parse()` de expressão
-passou a ser memoizada, o que tirou 80% do custo de avaliar um índice por
-material.
-
-**O que a auditoria alegou e a medição desmentiu** importa tanto quanto o que
-ela acertou: `ANALYZE` deixa o `overview` 85% **mais lento**; índices de
-cobertura mais largos rendiam 13% por +33% de arquivo; o `DashboardService` não
-tinha N+1 nenhum; e o `.env.example` já estava completo. Nada disso foi
-aplicado, e o motivo ficou escrito para ninguém tentar de novo.
-
-## 3. O que continua em aberto
-
-Da Fase 7: PPTX, testes end-to-end, autenticação e auditoria. Do §3.5 da
-proposta: **nenhuma sessão de teste com usuários foi realizada** — o
-`11-usabilidade.md` está instrumentado e a tabela de melhorias dele continua
-vazia. E as figuras da monografia que são capturas de `/estilo` precisam ser
-refeitas depois de D-38.
-
----
-
-# Sessão 3 — 11/08/26 — Os provedores reais da camada de IA
-
-Ponto de partida: `9bd935e` (Fase 8 concluída). Ponto final: `7c1d59f`.
-
-**23 arquivos alterados, +2.227 / −79.** Testes de backend: 391 → 436.
-Testes de frontend: 123 (inalterado).
-
-O pedido foi: *\"desenvolva toda a camada de IA opcional; quero que a IA seja do
-meu próprio Claude\"*. \"Meu próprio Claude\" é ambíguo entre a API da Anthropic
-com chave própria e o Claude Code já instalado e autenticado na máquina.
-**Foram implementados os dois**, atrás da mesma interface e sem perguntar —
-qualquer uma das leituras fica atendida, e a diferença entre elas virou uma
-variável de ambiente.
-
-## 1. Commits
-
-| Commit | O que |
-|---|---|
-| `f98c772` | `docs:` CLAUDE.md e PROJECT_CONTEXT.md param de descrever um projeto que já mudou |
-| `6917af3` | `feat(fase 6):` a camada de IA passa a falar com o Claude do usuário, sem mudar de forma |
-| `9e5209a` | `fix(fase 6):` o cliente injetado do claude-api não pode depender do SDK que ele existe para dispensar |
-| `7c1d59f` | `docs:` a contagem de testes acompanha os testes que a correção trouxe |
-
-PR [#7](https://github.com/Streeft/MaterialSelect-AI/pull/7), com os três checks
-obrigatórios verdes.
-
-## 2. Funcionalidades criadas
-
-### Dois provedores reais, um contrato inalterado
-
-| `AI_PROVIDER` | Provedor | Autenticação | Determinístico |
-|---|---|---|---|
-| `mock` (padrão) | simulado, sem rede | — | **sim** |
-| `claude-api` | API da Anthropic | `AI_API_KEY` / `ANTHROPIC_API_KEY` | não |
-| `claude-cli` | o Claude Code da máquina | a assinatura já autenticada | não |
-
-- `ai/prompts.py` — os prompts em português e os esquemas JSON compartilhados
-  pelos dois provedores reais. O esquema enumera **os slugs do catálogo**, então
-  o modelo escolhe de uma lista fechada em vez de escrever texto livre.
-- `ai/claude_base.py` — a metade sem transporte: monta o pedido, lê a resposta,
-  e reconstrói cada índice a partir do catálogo.
-- `ai/claude_api.py` — transporte por `client.messages.create(...)` com
-  `output_config` de `json_schema`. Sem `temperature` e sem prefill (ambos são
-  400 nos modelos atuais); sem campo de *thinking* (adaptativo por padrão).
-- `ai/claude_cli.py` — transporte por `claude --print --output-format json
-  --json-schema ...`. O enunciado viaja por **stdin**, nunca por argv;
-  `shell=False`; `cwd` num diretório temporário.
-- `ai/caveats.py` — as ressalvas obrigatórias, extraídas do `mock` para serem
-  compartilhadas.
-- `AIService`, `guardrails`, `schemas` e a interface **não mudaram**. É essa a
-  demonstração de que a camada é mesmo opcional e substituível.
-
-### Duas garantias que viraram estruturais ([D-35](DECISIONS.md))
-
-Não são checagens feitas depois. São campos que o modelo **nunca recebe**:
-
-1. **O modelo escolhe um índice pelo slug.** Nome, expressão e objetivo vêm do
-   catálogo depois. O campo da expressão não existe no esquema enviado — não há
-   como inventar uma.
-2. **As ressalvas da explicação são do backend.** O campo não existe no esquema
-   — não há como omiti-las.
-
-Slug desconhecido **passa adiante de propósito**, para o guardrail o recusar em
-voz alta. Filtrar ali seria mais limpo e pior: o usuário nunca veria que algo
-foi recusado.
-
-### Interface
-
-`AIAssistPanel` passa a distinguir \"Provedor simulado\" de \"Modelo externo:
-`<provedor>`\", e o aviso ganha a frase que faltava — a leitura pode variar entre
-execuções com o mesmo enunciado; o cálculo não, porque não passa por ali.
-
-### Dependência
-
-`anthropic` entra como **extra opcional** (`pip install -e \".[ai]\"`). A CI
-instala só `.[dev]` e não importa o SDK em nenhum caminho — verificado com
-`'anthropic' in sys.modules` depois de `import app.main`.
-
-## 3. Correções
-
-| # | Defeito | Como apareceu |
-|---|---|---|
-| 1 | **Nome de material não entrava na ancoragem numérica.** `_result_context` nunca incluía os nomes no conjunto de termos permitidos. Com o catálogo de demonstração nada quebrava — nenhum nome tem dígito. Com um catálogo real, escrever \"Aço AISI 1020 lidera\" descartaria a explicação inteira com HTTP 400. | Revisão do próprio código, ao escrever o provedor real. |
-| 2 | **O cliente injetado do `claude-api` dependia do SDK que ele existe para dispensar.** `_complete` importava `anthropic` na primeira linha, antes de olhar para o cliente. O comentário do `__init__` prometia por escrito que a injeção funcionava sem o pacote; não funcionava. | **Só na CI.** Aqui o pacote está instalado e os quatro testes passavam; na CI, que instala só `.[dev]`, falharam os quatro. |
-| 3 | **Contagem de testes errada na documentação.** Os documentos diziam 389 backend / 44 frontend quando o repositório tinha 391 / 123 — a Fase 8 acrescentara 79 testes de frontend sem que o número fosse atualizado. | Conferência antes de reescrever o contexto. |
-
-O defeito 2 rendeu a regra que vale a pena guardar: **um extra opcional só é
-realmente opcional se algum teste rodar sem ele.** A correção inverteu a ordem
-(cliente primeiro, que é o único passo que precisa do pacote e portanto o lugar
-certo do erro que manda instalá-lo) e passou as classes de exceção por um
-`_error_types()` que devolve um substituto inerte quando o SDK está ausente —
-sem SDK não há exceção de SDK para traduzir, e o que o cliente levantar chega ao
-chamador como está. Três testes novos fixam isso com `None` em `sys.modules`,
-que é o que o CPython trata como módulo ausente.
-
-## 4. Verificação
-
-Além dos portões, **verificação ao vivo no navegador** com `claude-cli`:
-
-- Enunciado com \"no mínimo 300 °C\" e \"no máximo 3 g/cm3\" → os dois números
-  **copiados sem conversão**, com o trecho do enunciado citado como evidência;
-  índices com as expressões do catálogo; `rejected` vazio.
-- O mesmo enunciado **sem unidade** (\"no mínimo 300\") → **nenhuma restrição** e
-  uma pergunta em aberto pedindo a unidade. A regra 4 do guardrail obedecida por
-  um modelo que nunca viu o código.
-
-**`claude-api` não foi exercitado contra a API real** — não havia chave no
-ambiente. Ele foi testado contra um cliente falso, e a limitação está registrada
-em [D-35](DECISIONS.md) e no §9 do [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md).
-
-## 5. Decisões
-
-[D-35](DECISIONS.md) — O provedor real escolhe por slug; a expressão e as
-ressalvas nunca são dele.
-
-## 6. Documentação
-
-Atualizados: `CLAUDE.md` (raiz), `docs/CLAUDE.md`, `PROJECT_CONTEXT.md`,
-`ARCHITECTURE.md`, `09-camada-ia.md`, `DECISIONS.md`, `README.md`,
-`.env.example` e este arquivo.
-
----
-
-# Sessão 2 — 05/08/26 a 10/08/26 — Fase 7 parcial, CI obrigatória e Fase 8
-
-> **Seção reconstruída** a partir do `git log`, do `DECISIONS.md` e do
-> `REDESIGN.md`. Não foi escrita durante a sessão, e por isso registra o que
-> ficou no repositório, não como se chegou lá.
-
-Ponto de partida: `2e70162`. Ponto final: `9bd935e`.
-
-**116 arquivos alterados, +14.458 / −2.865.** Testes de backend: 362 → 391.
-Testes de frontend: 44 → 123.
-
-## 1. Commits
-
-| Commit | O que |
-|---|---|
-| `ef0844d` | `docs:` checkpoint completo para reinício de contexto |
-| `c008967` | `feat(fase 7):` relatório HTML imprimível e unicidade de valor por propriedade |
-| `b9fa644` | `fix(fase 7):` ausência não vira palpite — nem em número, nem em rótulo |
-| `a474e39` | `chore(ci):` torna os checks obrigatórios em `main` e registra o que isso custou |
-| `24e2003` | Merge PR #5 |
-| `9bd935e` | `feat(fase 8):` redesign da interface (#6) |
-
-## 2. Fase 7 — relatório imprimível
-
-- `exporters/html.py` — o mesmo modelo `Report` da planilha, renderizado como
-  HTML de impressão. Escape por `html.escape` em todo valor, cabeçalho, título e
-  nota, servido sob `Content-Security-Policy: default-src 'none'`.
-- **O escape é por formato e não é intercambiável** — um `=` é inerte em HTML, e
-  o apóstrofo da planilha apareceria na tela como corrupção do dado.
-- Unicidade de valor por propriedade no banco.
-- [D-20](DECISIONS.md) — HTML imprimível em vez de biblioteca de PDF.
-- [D-21](DECISIONS.md) — campo opcional não preenchido continua `NULL`, nascida
-  do defeito em que um rótulo defaultado imprimiu `__index__` no relatório e uma
-  direção defaultada inverteu o ranking de um estudo salvo.
-
-## 3. CI obrigatória
-
-`scripts/protect-main.ps1` aplica a *ruleset* que faz o GitHub **recusar** o
-merge sem os três checks. Sem ator de exceção — vale para o dono do repositório.
-[D-22](DECISIONS.md) registra o custo: o repositório teve de virar público, e a
-lista de nomes de job na ruleset passou a ser um acoplamento que precisa ser
-mantido à mão.
-
-## 4. Fase 8 — redesign da interface
-
-O maior bloco da sessão: 89 arquivos de frontend. Um **sistema de design
-próprio**, sem biblioteca de componentes.
-
-- `components/ui/` — 19 primitivas novas (Button, Card, Field, Table, Tabs,
-  Dialog, Popover, Alert, Badge, Stepper, ThemeToggle, DataQualityBadge,
-  ProvenancePopover, focusTrap, icons…), com barril `index.ts`.
-- `app/estilo/page.tsx` — o espécime vivo do sistema, de onde saem as figuras da
-  monografia.
-- `app/globals.css` + `tailwind.config.ts` — a paleta inteira como tokens
-  `"R G B"`, lidos pelo Tailwind e, em runtime, por `lib/design/palette.ts`.
-- `components/layout/AppHeader.tsx` — navegação agrupada por tarefa.
-- `app/routes.a11y.test.tsx` — acessibilidade medida com axe em todas as rotas.
-- `docs/REDESIGN.md` e `docs/11-usabilidade.md`.
-
-Decisões [D-23](DECISIONS.md) a [D-34](DECISIONS.md). As de maior consequência:
-
-- **D-23** — sistema de design próprio, sem biblioteca de componentes.
-- **D-24** — qualidade do dado em três canais, nunca só cor; ausência nunca é
-  `0`, `—` nem célula vazia.
-- **D-28** — uma paleta só, compartilhada entre interface e gráfico.
-- **D-30** — todo número na tela usa a convenção do pt-BR.
-- **D-31** — a alternativa textual de um gráfico é a tabela que o originou.
-- **D-34** — a borda de um controle é informação, não moldura (WCAG 1.4.11).
-
-## 5. O que ficou pendente
-
-`docs/11-usabilidade.md` ficou **instrumentado e vazio**: nenhuma sessão de
-teste com usuários foi realizada. Enquanto a tabela de melhorias dele estiver
-vazia, o §3.5 da proposta não foi cumprido.
-
----
-
-# Sessão 1 — 30/07/26 a 04/08/26 — Fases 5 a 7
-
-Ponto de partida: `8dbbd62` (Fase 4 concluída). Ponto final: `2e70162`.
-
-**96 arquivos alterados, +9.593 / −372.** Testes de backend: 169 → 362.
-Testes de frontend: 13 → 44.
-
-## 1. Commits
-
-| Commit | O que |
-|---|---|
-| `a1ea56d` | Fase 5: visualização (mapas de Ashby, linhas de índice, comparador) |
-| `7dd7e68` | Fase 6: camada de IA desacoplada e painel de assistência |
-| `3e27604` | Merge PR #1 |
-| `bbea0ad` | Formatação do backend inteiro com black |
-| `9522e4a` | CI no GitHub Actions |
-| `8757872` | Actions para runtime Node 24; app para Node 22 |
-| `94d6022` | Merge PR #2 |
-| `a7cc413` | Correção: unidade explícita em limiar dimensionado (IA) |
-| `29f95f9` | Merge PR #3 |
-| `6be4664` | Fase 7 (1/n): exportação CSV/XLSX com relatório auditável |
-| `2e70162` | Merge PR #4 |
-
-> O commit da Fase 6 (`7dd7e68`) **não segue** o padrão `Fase N:` dos demais.
-> Isso já causou a impressão de que a fase tinha sido pulada. Registrado aqui
-> para quem for ler o `git log`.
-
-## 2. Funcionalidades criadas
-
-### Fase 5 — Visualização
-
-**Backend**
-- `calculations/powerlaw.py` — reescreve o índice como monômio `C·Πp^e` e
-  **deriva** a inclinação log-log `−a/b`. `E/ρ`→1, `E^(1/2)/ρ`→2, `E^(1/3)/ρ`→3.
-  Rejeita, com o motivo, o que não é lei de potência.
-- `domain/geometry.py` — fecho convexo (monotone chain) dos envelopes.
-- `calculations/performance.py` — avaliação de índice compartilhada entre seleção
-  e mapas, com teste garantindo que concordam.
-- `calculations/units.py` — `to_canonical_delta` para converter **diferenças**.
-- `services/chart_service.py`, `schemas/charts.py`,
-  `repositories/chart_repository.py`, `routers/charts.py`.
-- `domain/ranking.py` — `normalize_column` tornada pública e reutilizada.
-
-**Frontend**
-- `/mapas` — eixos, escala, filtro por classe, envelopes, barras de erro,
-  rótulos, linha de índice por material ou valor livre, exportação PNG/SVG.
-- `/comparar` — tabela, barras, radar, coordenadas paralelas, heatmap.
-- `lib/charts.ts`, `components/charts/AshbyMap.tsx`, `ComparisonView.tsx`.
-- `types/plotly-dist.d.ts`.
-
-### Fase 6 — Camada de IA
-
-- `ai/provider.py` — interface estreita; o provedor recebe só catálogo e texto.
-- `ai/mock.py` — provedor simulado **determinístico**, sem chave e sem rede.
-- `ai/guardrails.py` — as regras executáveis.
-- `ai/factory.py`, `schemas/ai.py`, `services/ai_service.py`, `routers/ai.py`.
-- Frontend: `AIAssistPanel.tsx` (revisão opt-in item a item, incluindo o que os
-  guardrails recusaram) e `StudyExplanation.tsx`.
-
-### Fase 7 — Exportação
-
-- `exporters/cells.py` — neutralização de injeção de fórmula.
-- `exporters/report.py` — modelo do relatório e avisos obrigatórios.
-- `exporters/spreadsheet.py` — CSV e XLSX.
-- `services/export_service.py` — relatório de estudo em 9 abas e do catálogo.
-- `routers/exports.py`, `components/ExportButtons.tsx`.
-
-### Infraestrutura
-
-- `.github/workflows/ci.yml` — backend em matriz 3.11/3.12 (`ruff`,
-  `black --check`, `pytest`, `alembic upgrade` + seed) e frontend (`npm ci`,
-  `typecheck`, `lint`, `test`, `build`).
-- `.claude/launch.json` e `.claude/settings.local.json` (este último ignorado).
-
-## 3. Correções
-
-| # | Defeito | Como apareceu |
-|---|---|---|
-| 1 | **Isolamento de testes quebrado.** pysqlite emite BEGIN sozinho e nunca antes de SAVEPOINT; um teste que começasse por escrita escapava do rollback e vazava para todos os seguintes. A suíte ficava verde perdendo isolamento em silêncio. | Ao adicionar um teste cuja primeira instrução era um POST. |
-| 2 | **Dados do usuário sem escape no hover do Plotly.** Nomes de material vêm de planilhas importadas e eram interpolados crus em texto que o Plotly renderiza como rich text. | Revisão do próprio código. |
-| 3 | **Unidade nula virando canônica na IA.** \"no mínimo 300 graus C\" saía com `unit: null` e virava ≥ 300 K, isto é −173 °C: nenhuma restrição. Os quatro guardrails existentes não pegavam. | Demonstração ao vivo dos endpoints. |
-| 4 | **`prettyUnit` renderizava `** 2.5` como `·· 2.5`** nas dimensões derivadas. | Conferência da tela no navegador. |
-| 5 | **Rótulos de eixo colidindo no comparador.** Duas propriedades com o mesmo símbolo viravam a mesma categoria no Plotly e as séries se fundiam em silêncio. | Revisão do próprio código. |
-| 6 | **Reta de índice vertical exigia intervalo positivo em X** que ela não usa. | Revisão do próprio código. |
-
-Todos com teste de regressão. Vale notar que **os defeitos 3 e 4 só apareceram
-ao abrir o navegador** — nenhum teste os pegava.
-
-## 4. Melhorias e refatorações
-
-- **Formatação:** backend inteiro passado pelo black (32 arquivos), em commit
-  próprio, para viabilizar `black --check` como portão de CI.
-- **Avaliação de índice extraída** para `calculations/performance.py`, eliminando
-  a duplicação entre seleção e mapas.
-- **`normalize_column` tornada pública** e reutilizada pelo comparador, para que
-  barra e escore não possam divergir.
-- **Envelopes deixaram de refazer requisição** ao alternar o checkbox — passaram
-  a ser filtro de exibição.
-- **Níveis numéricos de índice ligados na interface**, usando capacidade da API
-  que já existia e estava sem uso.
-- **Actions atualizadas** para runtime Node 24 e app para Node 22.
-
-## 5. Decisões tomadas nesta sessão
-
-Registradas em [DECISIONS.md](DECISIONS.md): ADR 0004 e as decisões D-08 a D-19.
-As de maior consequência:
-
-- **Geometria de gráfico é cálculo** (ADR 0004).
-- **Todo número da IA tem de aparecer no enunciado** (D-08) — rejeita até
-  conversão correta.
-- **Limiar dimensionado tem de declarar unidade** (D-09) — nasceu do defeito 3.
-- **Coordenadas paralelas sem `parcoords`** (D-12) — porque ele não expressa
-  ausência.
-- **Escape de fórmula visível, não destrutivo** (D-13).
-- **Exportador reexecuta o pipeline** (D-14).
-
-## 6. Documentação
-
-Criados: `08-visualizacao.md`, `09-camada-ia.md`, `10-relatorios.md`,
-`adr/0004-geometria-de-graficos-no-backend.md` e, neste checkpoint,
-`PROJECT_CONTEXT.md`, `ARCHITECTURE.md`, `CLAUDE.md`, `TODO.md`,
-`DECISIONS.md` e este arquivo.
-
-Atualizados: `CLAUDE.md` (raiz), `README.md`, `02-arquitetura.md`,
-`04-metodologia-selecao.md`, `backlog.md`.
-
-## 7. Processo
-
-Quatro PRs, todos com CI verde a partir do #2 (que criou a CI):
-
-| PR | Conteúdo | Merge |
-|---|---|---|
-| #1 | Fases 5 e 6 | `3e27604` |
-| #2 | CI + formatação | `94d6022` |
-| #3 | Correção de unidade na IA | `29f95f9` |
-| #4 | Fase 7: exportação | `2e70162` |
-
-Também nesta sessão: `main` publicado no remote e definido como branch padrão
-(antes o `HEAD` apontava para `fase-5-visualizacao`), e o GitHub CLI instalado e
-autenticado.
-
-**Branches mescladas ainda existentes** (local e remoto): `fase-5-visualizacao`,
-`fase-7-ci`, `fase-6-unidade-explicita`, `fase-7-relatorios`. Podem ser
-removidas.
+Find Similar e comparação percentual (D-63).
+
+**Números.** Backend 1297 → 1341. Frontend 286 → 299.
+
+## Sessão 17 — 14/09/26 — P1-4: o catálogo ganha dono e o usuário ganha espaço
+
+`My Records`: registros próprios, favoritos e recentes (D-62).
+
+**Números.** Backend 1234 → 1297. Frontend 277 → 286.
+
+## Sessão 16 — 13 e 14/09/26 — P1-3: a taxonomia vira registro e o segundo universo se navega
+
+Browse de famílias e ficha do processo (D-61).
+
+**Números.** Backend 1209 → 1234. Frontend 253 → 277.
+
+## Sessão 15 — 11 e 13/09/26 — P1-2: o gráfico passa a reprovar
+
+Chart Stage: região do plano como critério (D-60).
+
+**Números.** Backend 1141 → 1209. Frontend 232 → 253.
+
+## Sessão 14 — 10 e 11/09/26 — P0-4: processo passa a ter atributo e o exercício 11 fecha
+
+Atributos de processo, envelope de capacidade e discreto (D-59).
+
+**Números.** Backend 1076 → 1141. Frontend 225 → 232.
+
+## Sessão 13 — 09 e 10/09/26 — P0-1, P0-2 e P0-3: a plataforma de seleção ganha pilha, segundo universo e escolha de resultado
+
+Pilha de estágios (D-56), segundo universo (D-57) e resultado (D-58).
+
+**Números.** Backend 884 → 1076. Frontend 197 → 225.
+
+## Sessão 12 — 08/09/26 — A ferramenta no ar e a camada de IA ligada em produção
+
+Deploy em produção (D-52).
+
+**Números.** Backend 872 → 884. Frontend 197 (inalterado).
+
+## Sessão 11 — 01 e 02/09/26 — M5 (TOPSIS, PROMETHEE II, AHP) e M6 (restrições aninhadas) entregues via SDD
+
+Métodos multicritério e árvore de restrições.
+
+**Números.** Backend 831 → 872. Frontend 165 → 179.
+
+## Sessão 10 — 27 a 31/08/26 — Backlog B1–B10 entregue por inteiro via SDD
+
+Dez tarefas de baixa prioridade entregues.
+
+**Números.** Backend 795 → 831. Frontend 162 → 165.
+
+## Sessão 9 — 26 e 27/08/26 — RAG sobre o Cérebro (D-47) e a PR #26 fechada e remesclada
+
+RAG com BM25 + vetores sobre o acervo.
+
+**Números.** Backend 713 → 795. Frontend 157 → 162.
+
+## Sessão 8 — 24 e 25/08/26 — Reconciliação de branches, M9 e o checkout do Stripe testado ao vivo
+
+Portão de assinatura (D-46).
+
+**Números.** Backend 639 → 713. Frontend 148 → 157.
+
+## Sessão 7 — 21/08/26 — Triagem de licenciamento (M1)
+
+Triagem de licenças.
+
+**Números.** Backend 632 → 639. Frontend 148 (inalterado).
+
+## Sessão 6 — 21/08/26 — Estudo de caso didático (A2)
+
+Tirante leve e rígido de Ashby.
+
+**Números.** Backend 630 → 632. Frontend 148 (inalterado).
+
+## Sessão 5 — 21/08/26 — Auditoria (M2) e a instalação do ambiente de assistente
+
+Fase 7: auditoria de alterações.
+
+**Números.** Backend 617 → 630. Frontend 148 (inalterado).
+
+## Sessão 4 — 11 e 12/08/26 — Fase 9 e a varredura que a fechou
+
+Fase 9: seis frentes.
+
+**Números.** Backend 436 → 591. Frontend 123 → 141.
+
+## Sessão 3 — 11/08/26 — Os provedores reais da camada de IA
+
+Fase 6: provedores reais de IA.
+
+**Números.** Backend 391 → 436. Frontend 123.
+
+## Sessão 2 — 05/08/26 a 10/08/26 — Fase 7 parcial, CI obrigatória e Fase 8
+
+Fase 7 (relatório HTML), CI obrigatória, Fase 8 (redesign).
+
+**Números.** Backend 362 → 391. Frontend 44 → 123.
+
+## Sessão 1 — 30/07/26 a 04/08/26 — Fases 5 a 7
+
+Fases 5, 6 e 7 (exportação).
+
+**Números.** Backend 169 → 362. Frontend 13 → 44.
