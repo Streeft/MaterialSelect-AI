@@ -25,7 +25,16 @@ export {
 export { ChatLog, ChatMessage } from "./ChatLog";
 export { CitationChip } from "./CitationChip";
 export { Combobox, type ComboboxOption } from "./Combobox";
-export { Card, CardBody, CardFooter, CardHeader, PanelShell, Section, StepCard } from "./Card";
+export {
+  Card,
+  CardBody,
+  CardFooter,
+  CardHeader,
+  PanelShell,
+  Section,
+  StepCard,
+  type CardProps,
+} from "./Card";
 export {
   DataQualityBadge,
   DataQualityLegend,
