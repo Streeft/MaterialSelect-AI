@@ -26,6 +26,8 @@ import {
   Alert,
   Badge,
   Button,
+  ButtonGroup,
+  ButtonGroupItem,
   Combobox,
   Disclosure,
   EmptyState,
@@ -91,8 +93,7 @@ function Podium({
       <span className="text-caption font-semibold text-ink-muted">
         {label}
       </span>
-      {dominance.phase ? (
-        <span className="text-sm text-ink">
+      {dominance.phase ? (\n        <span className=\"text-sm text-ink\">
           <strong>{dominance.label}</strong>
           {dominance.share !== null ? (
             <>
@@ -590,21 +591,19 @@ export default function EcoPage() {
     <div className="flex flex-col gap-6">
       <PageHeader title={t.title} description={t.subtitle} />
 
-      <div className="flex items-center gap-2">
-        <Button
-          size="sm"
-          variant={modeChoice === "individual" ? "primary" : "secondary"}
-          onClick={() => setModeChoice("individual")}
-        >
-          {t.modeIndividual}
-        </Button>
-        <Button
-          size="sm"
-          variant={modeChoice === "compare" ? "primary" : "secondary"}
-          onClick={() => setModeChoice("compare")}
-        >
-          {t.modeCompare}
-        </Button>
+      <div className="flex items-center">
+        <ButtonGroup label={t.title}>
+          <ButtonGroupItem
+            selected={modeChoice === "individual"}
+            onClick={() => setModeChoice("individual")}
+            label={t.modeIndividual}
+          />
+          <ButtonGroupItem
+            selected={modeChoice === "compare"}
+            onClick={() => setModeChoice("compare")}
+            label={t.modeCompare}
+          />
+        </ButtonGroup>
       </div>
 
       {modeChoice === "individual" ? (
@@ -857,8 +856,7 @@ export default function EcoPage() {
         }
       >
         <div className="grid gap-4 sm:grid-cols-2">
-          {modeChoice === "compare" && (
-            <>
+          {modeChoice === "compare" && (\n            <>
               <Select
                 label={t.transportModeLabel}
                 value={selectedMode}
