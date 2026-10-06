@@ -58,9 +58,10 @@ CLASS_PROCESS_MAP = {
 def upgrade() -> None:
     conn = op.get_bind()
 
-    # 1. Buscar processos por slug
+    # 1. Buscar processos por slug (portável entre PostgreSQL e SQLite via bindparam)
     processes = conn.execute(
-        sa.text("SELECT id, slug FROM process WHERE is_active = true OR is_active = 1")
+        sa.text("SELECT id, slug FROM process WHERE is_active = :active"),
+        {"active": True},
     ).fetchall()
     proc_by_slug = {row[1]: row[0] for row in processes}
 
@@ -71,9 +72,10 @@ def upgrade() -> None:
             SELECT m.id, c.slug
             FROM material m
             JOIN material_class c ON m.class_id = c.id
-            WHERE m.is_active = true OR m.is_active = 1
+            WHERE m.is_active = :active
             """
-        )
+        ),
+        {"active": True},
     ).fetchall()
 
     # 3. Vínculos já existentes
