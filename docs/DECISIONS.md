@@ -7494,3 +7494,52 @@ testes de backend, nenhum pulado. `ruff` e `black` limpos; os dois workflows pas
 > consciente — o NUL não é um caractere que o leitor vê, e a regra não edita
 > palavra nenhuma além de tirá-lo. Se a perda pesar na busca, a troca por
 > U+FFFD é uma linha em `storable_text()`, como já é para o *surrogate*.
+
+> **Atualização (06/10/2026, a segunda `ingerir`: o teto de descompressão do
+> pypdf).** Com o NUL resolvido, a `ingerir` seguinte (execução 37473592736)
+> gravou 118 documentos e saiu com 1 por dois `FALHOU` com
+> `Não foi possível ler o PDF: Limit reached while decompressing. N bytes remaining.`
+> — os dois Ashby em português (152 e 103,5 MB). É a guarda do pypdf contra
+> bomba de descompressão: `pypdf.Configuration.zlib_maximum_output_length`,
+> **75 MB por fluxo decodificado** no pypdf 6.19 (o instalado pelo
+> `pip install` do runner), levantada em `filters._decompress_with_limit`. A
+> guarda é certa para o PDF que um aluno envia e errada para o livro que o
+> próprio Cérebro cura, e a regra passou a depender de quem mandou os bytes:
+>
+> - **O Cérebro lê com teto maior e limitado.** `extract_text` (só a ingestão
+>   do Cérebro a chama) lê o PDF com `CORPUS_MAX_STREAM_BYTES = 500_000_000`
+>   nos limites de saída por fluxo (zlib, LZW, run-length e a concatenação do
+>   conteúdo da página); os de imagem ficam no padrão, porque extrair texto não
+>   decodifica imagem. 500 MB cobre o maior déficit registrado (11,7 MB
+>   comprimidos ainda por decodificar depois dos 75 MB) a menos que o resto
+>   comprima mais que ~36:1, e continua sendo teto: medido no pypdf 6.19, um
+>   fluxo de 450 MB custou 0,9 GB de RSS e um acima do teto, 1,0 GB — um
+>   documento por vez, num runner de vários GB.
+> - **O upload continua com o padrão do pypdf**, aplicado explicitamente
+>   (`read_upload` → `read_pdf` sem teto), para não depender de estado ambiente.
+> - **O escopo é o `ContextVar` do próprio pypdf** (`pypdf.apply_configuration`,
+>   pypdf ≥ 6.18 — o piso do `pyproject.toml` subiu de 4.2 para 6.18): o teto
+>   maior vale só no contexto da leitura, é desfeito na saída — com exceção
+>   também — e outra thread nunca o vê. Nenhum global de módulo é tocado, então
+>   não há trava. Descartado: mexer em `pypdf.filters.ZLIB_MAX_OUTPUT_LENGTH`,
+>   que é global, está deprecado e, no 6.19, é relido a cada `PdfReader` e
+>   copiado para a configuração do contexto — ficaria levantado para a API
+>   inteira, uploads incluídos.
+> - **Página ilegível custa a página, no Cérebro.** Uma página que não
+>   decodifica (o teto, erro de zlib, fluxo malformado) fica de fora como
+>   página vazia — o número das outras não muda, então `page_start`/`page_end`
+>   continuam certos — e é contada em `ExtractedText.skipped_pages`; o
+>   documento é indexado, `error` diz "K de N páginas não puderam ser lidas…",
+>   e a CLI imprime `[ingest] PÁGINAS IGNORADAS <caminho>: K de N não puderam
+>   ser lidas; …` (só contagens; caminho redigido se não declarado) **sem**
+>   sair com 1. Se nenhuma página pôde ser lida é falha comum; se as legíveis
+>   não têm texto, continua `SEM TEXTO`. **No upload, não:** a primeira página
+>   ilegível ainda derruba a leitura, porque um arquivo de 15 MB com 400
+>   páginas apontando para o mesmo fluxo-bomba custaria 400 descompressões em
+>   vez de uma.
+>
+> Não se sabe qual fluxo dos dois livros estoura (são objetos LFS, e baixá-los
+> aqui gastaria a banda do dono); a tolerância por página é o que garante que,
+> mesmo se ele passar de 500 MB, o resto do livro entra. Os dois são
+> provavelmente o mesmo livro em dois scans (TODO, baixa prioridade): decisão
+> do autor, e uma `ingerir` nova é necessária depois do merge.

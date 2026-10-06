@@ -991,9 +991,16 @@ traceback publicou SQL e parâmetros, **texto de livro licenciado**, no log
 público. **Todo CLI do Cérebro que fala com o banco captura `SQLAlchemyError`
 e imprime só o nome da classe, sem traceback; um CLI novo também**, e o motor
 de `app/db/base.py` tem `hide_parameters=True` por baixo. O log da execução
-37415600025 continua publicado até o dono apagá-lo (TODO A7, item 4).
+37415600025 continua publicado até o dono apagá-lo (TODO A7, item 4). **A
+segunda `ingerir` achou o teto de 75 MB por fluxo do pypdf** nos dois Ashby em
+português: o Cérebro (`extract_text`) lê com `CORPUS_MAX_STREAM_BYTES` (500 MB),
+aplicado no `ContextVar` do pypdf (`apply_configuration`, piso 6.18) e nunca
+num global, e pula a página que ainda não decodifica, contada em `PÁGINAS
+IGNORADAS`; **o upload dos Cadernos (`read_upload`) mantém o teto padrão e
+falha na primeira página ilegível — não passe o teto do Cérebro a bytes de
+usuário.**
 
-3725 testes de backend (nenhum skip na CI; sem `POSTGRES_TEST_URL`, 3719 passam
+3743 testes de backend (nenhum skip na CI; sem `POSTGRES_TEST_URL`, 3737 passam
 e 6 pulam) e 762 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do

@@ -133,6 +133,11 @@ class DocumentOutcome:
     empty_text: bool = False
     #: A new version could not be read and the previous one stayed indexed.
     kept_previous: bool = False
+    #: Pages of an indexed PDF that could not be decoded and were left out
+    #: (``readers.read_pdf``, D-101); the rest of the document was indexed.
+    #: Counts only — a log line never says what the page held.
+    skipped_pages: int = 0
+    page_count: int | None = None
     #: For a skipped byte-identical copy: the path that was indexed instead.
     duplicate_of: str | None = None
     #: A skipped path whose row from an earlier run is still in the base.
@@ -986,11 +991,18 @@ class KnowledgeService:
         )
         document.chunk_count = len(chunks)
         document.status = IngestStatus.EXTRAIDO
-        # Truncation is reported, never silent: a corpus that quietly indexed
-        # half a book would answer confidently about the half it has.
-        document.error = (
-            f"Truncado em {limit} trechos; o documento rende mais." if truncated else None
-        )
+        # Truncation and skipped pages are reported, never silent: a corpus that
+        # quietly indexed half a book would answer confidently about the half
+        # it has.
+        notes = []
+        if extracted.skipped_pages:
+            notes.append(
+                f"{extracted.skipped_pages} de {extracted.page_count} páginas não puderam "
+                "ser lidas e ficaram de fora; o resto foi indexado."
+            )
+        if truncated:
+            notes.append(f"Truncado em {limit} trechos; o documento rende mais.")
+        document.error = " ".join(notes) or None
         document.indexed_at = datetime.now(UTC)
 
         return DocumentOutcome(
@@ -998,6 +1010,8 @@ class KnowledgeService:
             action=action,
             chunk_count=len(chunks),
             detail=document.error,
+            skipped_pages=extracted.skipped_pages,
+            page_count=extracted.page_count,
         )
 
     def _extraction_failed(

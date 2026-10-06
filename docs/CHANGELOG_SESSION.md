@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [47](#sessão-47--061026--o-teto-de-descompressão-do-pypdf-e-os-dois-ashby) | 06/10/2026 | A segunda `ingerir` saiu com 1 por dois Ashby barrados pelo teto de 75 MB por fluxo do pypdf: o Cérebro lê com teto de 500 MB, no `ContextVar` do pypdf (piso 6.18), e pula a página que não decodifica dizendo quantas; o upload dos Cadernos mantém o padrão e falha na primeira página ilegível (D-101, atualização do teto de descompressão) | 3725 → 3743 | 762 (inalterado) |
 | [46](#sessão-46--061026--o-nul-do-pypdf-e-a-ingestão-que-não-para-num-documento) | 06/10/2026 | A primeira `ingerir` em produção morreu com `PostgreSQL text fields cannot contain NUL (0x00) bytes`: o NUL sai na fonte (`storable_text()` nos leitores, no fatiador e nas fontes dos Cadernos), e um documento que o banco recusa volta ao *savepoint* e sai `falhou` sem parar a execução; erro de banco num CLI imprime só a classe, e o log daquela execução, com texto do livro, espera o dono apagá-lo (D-101, atualização de 06/10) | 3699 → 3725 | 762 (inalterado) |
 | [45](#sessão-45--300926-a-051026--o-cérebro-entra-em-produção) | 30/09 a 05/10/2026 | O Cérebro entra em produção pelo GitHub Actions: workflow `conhecimento.yml` (ingestão que baixa do LFS só o que o banco não tem, vetores de 768 dimensões com a sobra noturna da cota gratuita, retrato), ingestão segura contra ponteiro LFS, cópias e versão ilegível, busca sobre índice em memória e a identidade de vetor em `/api/health` (D-101); no merge com `main`, a ingestão direcionada da sessão 39 (`--file`, `--force`) sob as mesmas garantias e a entrada `arquivos` de `ingerir`; na revisão final, o `embed` respeita a lista de remoção | 3338 → 3552 no ramo; 3395 → 3624 com o merge; 3660 com a revisão final; 3699 com o merge do PR #94 | 753 (inalterado no ramo); 762 com o merge do PR #94 |
 | [44](#sessão-44--021026--lote-quádruplo-de-melhorias-seleção-busca-dimensionador-e-eco-audit-opções-1-a-4) | 02/10/2026 | Lote quádruplo de melhorias: duplicação de estágio (P0-1), busca ponderada e destaque (P1-1), seções circulares no solver (P2) e comparação lado a lado no Eco Audit (P3) | 3395 → 3407 | 753 → 762 |
@@ -64,6 +65,72 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
 
 ---
+
+## Sessão 47 — 06/10/26 — O teto de descompressão do pypdf e os dois Ashby
+
+**O pedido.** A segunda `ingerir` em produção (execução 37473592736, depois do
+PR #97) gravou 118 documentos e saiu com 1 por dois `FALHOU`:
+`Não foi possível ler o PDF: Limit reached while decompressing. N bytes
+remaining.` — os dois Ashby em português de `01-Bibliografia/` (152 e
+103,5 MB). Corrigir pela causa sem afrouxar a guarda onde ela protege.
+
+**A causa.** É a guarda do pypdf contra bomba de descompressão:
+`pypdf.Configuration.zlib_maximum_output_length`, 75 MB por fluxo
+decodificado no pypdf 6.19.0 (a versão que o `pip install` do runner instala
+hoje), levantada como `LimitReachedError` em `filters._decompress_with_limit`.
+Reproduzida com o pypdf real: um PDF sintético de 118 KB cuja primeira página
+decodifica para 120 MB falha com a mesma mensagem; nele o erro sai no
+`extract_text()` daquela página, não na abertura do arquivo, e a segunda página
+lê normalmente. Qual fluxo dos dois livros estoura não foi inspecionado: são
+objetos LFS, e baixá-los aqui gastaria a banda do dono.
+
+**O que mudou** ([D-101](DECISIONS.md), atualização do teto de descompressão):
+
+- `read_pdf` (`app/knowledge/readers.py`) ganhou `max_stream_bytes` e
+  `skip_unreadable_pages`, os dois desligados por padrão. `extract_text` — só a
+  ingestão do Cérebro a chama — liga os dois, com
+  `CORPUS_MAX_STREAM_BYTES = 500_000_000`; `read_upload` (Cadernos) não liga
+  nenhum e aplica explicitamente o padrão do pypdf.
+- O teto vive no `ContextVar` do pypdf (`apply_configuration`), desfeito na
+  saída, com exceção também, e invisível a outra thread. O piso do `pypdf` no
+  `pyproject.toml` subiu de 4.2 para **6.18**, a primeira versão com essa API.
+- Página que não decodifica, no Cérebro, vira página vazia contada em
+  `ExtractedText.skipped_pages` (a numeração das outras não muda). O documento
+  é indexado; `error` diz "K de N páginas não puderam ser lidas…";
+  `DocumentOutcome` leva `skipped_pages`/`page_count`; a CLI imprime
+  `[ingest] PÁGINAS IGNORADAS …` (só contagens, caminho redigido se não
+  declarado) e não sai com 1. Nenhuma página legível é falha comum; legíveis
+  sem texto continuam `SEM TEXTO`. No upload, a primeira página ilegível ainda
+  derruba a leitura.
+
+**Como se sabe que passa.** 18 testes novos em
+`test_knowledge_pdf_limits.py`, nenhum com rede; sem a correção o arquivo nem
+importa (`CORPUS_MAX_STREAM_BYTES` não existe), e o código antigo, conferido
+com o `stash`, recusa em `extract_text` o mesmo PDF sintético com a mensagem de
+produção. Um PDF sintético cujo
+fluxo decodifica 5 MB além do teto **real** do pypdf: `read_pdf` padrão e
+`read_upload` falham com a mensagem de produção, `extract_text` o lê; com o
+teto do Cérebro rebaixado, a página pesada é pulada e a outra lida; o teto
+volta ao padrão depois da leitura, depois de uma exceção, e uma thread que
+lê um upload enquanto outra segura o teto maior ainda é recusada; página
+ilegível (um `zlib.error` injetado) pulada com a numeração certa nos trechos,
+falha quando são todas, `SEM TEXTO` quando as legíveis são vazias, saída 0 da
+CLI, linha redigida para documento não declarado; `max_stream_bytes=0` (que o
+pypdf leria como "sem limite") recusado. Medido à mão com o pypdf 6.19: fluxo
+de 120 MB lido em 1,0 s (pico de RSS 263 MB); de 450 MB, 5,6 s e 893 MB; de
+600 MB, página pulada em 3,4 s com 988 MB; o upload recusa os três em
+≤ 0,5 s, com 177 MB.
+
+**Números.** Backend 3725 → 3743 (sem `POSTGRES_TEST_URL`, 3737 passam e 6
+pulam). Frontend 762, inalterado. `ruff` e `black` limpos.
+
+**Pendente, e só o autor faz.**
+
+- Decidir se um dos dois Ashby sai (TODO, baixa prioridade: quase certamente
+  o mesmo livro em dois scans) — de preferência antes da próxima `ingerir`.
+- Depois do merge: **Base de conhecimento (Cérebro)** → `ingerir` de novo (roda
+  do código de `main`, sem deploy; só os dois Ashby são baixados e lidos, do
+  cache do LFS se dentro de 7 dias) e **Deploy da API** (o piso do pypdf subiu).
 
 ## Sessão 46 — 06/10/26 — O NUL do pypdf e a ingestão que não para num documento
 
