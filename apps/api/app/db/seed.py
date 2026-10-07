@@ -2069,6 +2069,9 @@ def _get_or_create_index(
         .one_or_none()
     )
     if existing:
+        if existing.is_demo and not is_demo:
+            existing.is_demo = False
+            db.flush()
         return existing
     obj = PerformanceIndex(
         name=spec["name"],
