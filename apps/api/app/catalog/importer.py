@@ -16,6 +16,7 @@ from app.domain.composition import (
     build_composition_entry,
     validate_composition,
 )
+from app.domain.curves import CurveError, NormalizedCurve, PointInput, SeriesInput, build_curve
 from app.domain.data_quality import build_interval_value, build_scalar_value, missing_value
 from app.domain.designation import DesignationError, designation_key
 from app.models.battery_chemistry import BatteryChemistry
@@ -28,6 +29,7 @@ from app.models.catalog import (
 )
 from app.models.enums import (
     BetterDirection,
+    CurveKind,
     DataQuality,
     DesignationSystem,
     ProcessAttributeKind,
@@ -36,6 +38,7 @@ from app.models.enums import (
 from app.models.material import Material
 from app.models.material_class import MaterialClass
 from app.models.material_composition import MaterialCompositionEntry
+from app.models.material_curve import MaterialCurve
 from app.models.material_designation import MaterialDesignation
 from app.models.material_property_value import MaterialPropertyValue
 from app.models.performance_index import PerformanceIndex
@@ -45,6 +48,7 @@ from app.models.property_definition import PropertyDefinition
 from app.models.source import Source
 from app.models.transport_mode import TransportMode
 from app.models.user import User
+from app.repositories.curve_repository import curve_rows
 from app.repositories.material_repository import MaterialRepository
 
 KNOWN_FILES = {
@@ -63,6 +67,8 @@ KNOWN_FILES = {
     # D-105 (TM2): designations and chemical composition of materials.
     "material_designations.ndjson",
     "material_compositions.ndjson",
+    # D-106 (TM4): material curves (stress–strain, temperature, rate, fatigue, creep).
+    "material_curves.ndjson",
 }
 
 
@@ -115,6 +121,77 @@ def _composition_from_record(record: dict) -> NormalizedComposition:
         raise OfficialCatalogImportError(
             f"Composição de {record['material_external_id']}: {exc}"
         ) from exc
+
+
+def _curve_point(raw: object, where: str) -> PointInput:
+    """``[x, y]``, ``[x, y, y_min, y_max]`` or ``{"x", "y", "y_min"?, "y_max"?}``.
+
+    The numbers are passed through as written; the domain builder refuses what
+    is not finite, so the bundle and the seed share one rule.
+    """
+    if isinstance(raw, dict):
+        return PointInput(raw.get("x"), raw.get("y"), raw.get("y_min"), raw.get("y_max"))  # type: ignore[arg-type]
+    if isinstance(raw, list) and len(raw) in (2, 4):
+        return PointInput(*raw)
+    raise OfficialCatalogImportError(
+        f"{where}: ponto deve ser [x, y], [x, y, y_min, y_max] ou objeto com x e y."
+    )
+
+
+def _curve_from_record(record: dict) -> NormalizedCurve:
+    """One ``material_curves.ndjson`` row through the domain builder (D-106).
+
+    Never reduced to a scalar and never resampled: the builder keeps every point
+    as written, refuses a non-finite number, an unknown or incompatible unit, a
+    series whose x does not increase, and a band that does not contain its line.
+    """
+    _need(record, "external_id", "material_external_id", "kind", "title", "x", "y", "series")
+    _raw_hash(record)
+    where = f"Curva {record['external_id']}"
+    try:
+        kind = CurveKind(str(record["kind"]))
+    except ValueError as exc:
+        raise OfficialCatalogImportError(f"{where}: tipo de curva inválido.") from exc
+    axes = {}
+    for axis in ("x", "y"):
+        spec = record[axis]
+        if not isinstance(spec, dict) or not spec.get("quantity") or not spec.get("unit"):
+            raise OfficialCatalogImportError(f"{where}: eixo {axis} exige quantity e unit.")
+        axes[axis] = spec
+    parameter = record.get("parameter")
+    if parameter is not None and (not isinstance(parameter, dict) or not parameter.get("quantity")):
+        raise OfficialCatalogImportError(f"{where}: parameter exige quantity.")
+    series_raw = record["series"]
+    if not isinstance(series_raw, list):
+        raise OfficialCatalogImportError(f"{where}: series deve ser uma lista.")
+    series: list[SeriesInput] = []
+    for index, item in enumerate(series_raw):
+        if not isinstance(item, dict) or not isinstance(item.get("points"), list):
+            raise OfficialCatalogImportError(f"{where}, série {index + 1}: sem lista de pontos.")
+        series.append(
+            SeriesInput(
+                points=[
+                    _curve_point(point, f"{where}, série {index + 1}") for point in item["points"]
+                ],
+                label=item.get("label"),
+                conditions=item.get("conditions"),
+                parameter=item.get("parameter"),
+                parameter_unit=item.get("parameter_unit")
+                or (parameter.get("unit") if parameter else None),
+            )
+        )
+    try:
+        return build_curve(
+            kind,
+            x_quantity=str(axes["x"]["quantity"]),
+            x_unit=str(axes["x"]["unit"]),
+            y_quantity=str(axes["y"]["quantity"]),
+            y_unit=str(axes["y"]["unit"]),
+            parameter_quantity=str(parameter["quantity"]) if parameter else None,
+            series=series,
+        )
+    except CurveError as exc:
+        raise OfficialCatalogImportError(f"{where}: {exc}") from exc
 
 
 def _optional_float(value: object) -> float | None:
@@ -242,6 +319,16 @@ def validate_semantics(bundle: VerifiedBundle) -> dict[str, int]:
         except CompositionError as exc:
             raise OfficialCatalogImportError(f"Composição de {material_id}: {exc}") from exc
 
+    curve_ids: set[str] = set()
+    for record in bundle.iter_records("material_curves.ndjson"):
+        _curve_from_record(record)
+        if str(record["material_external_id"]) not in material_ids:
+            raise OfficialCatalogImportError("Curva referencia material inexistente.")
+        curve_id = str(record["external_id"])
+        if curve_id in curve_ids:
+            raise OfficialCatalogImportError(f"external_id de curva duplicado: {curve_id}")
+        curve_ids.add(curve_id)
+
     for record in bundle.iter_records("process_classes.ndjson"):
         parent = record.get("parent_external_id")
         if parent is not None and str(parent) not in process_class_ids:
@@ -360,6 +447,10 @@ class OfficialCatalogImporter:
                 select(func.count(MaterialCompositionEntry.id)).where(
                     MaterialCompositionEntry.is_demo.is_(True)
                 )
+            )
+            or 0,
+            "material_curves": self.db.scalar(
+                select(func.count(MaterialCurve.id)).where(MaterialCurve.is_demo.is_(True))
             )
             or 0,
         }
@@ -756,6 +847,52 @@ class OfficialCatalogImporter:
             )
             self._bump("composition_entries_created")
 
+    def _import_curves(self) -> None:
+        """D-106. Identity is (dataset, external_id); the same id with other bytes is refused.
+
+        A release is immutable (D-102): re-running the same bundle leaves every
+        curve as it is, and a curve whose bytes changed under the same identity
+        is a different release, not an update.
+        """
+        assert self.source is not None and self.dataset is not None
+        for row in self.bundle.iter_records("material_curves.ndjson"):
+            external_id = str(row["external_id"])
+            existing = self.db.execute(
+                select(MaterialCurve).where(
+                    MaterialCurve.dataset_id == self.dataset.id,
+                    MaterialCurve.external_id == external_id,
+                )
+            ).scalar_one_or_none()
+            if existing is not None:
+                if existing.raw_sha256 != _raw_hash(row):
+                    raise OfficialCatalogImportError(
+                        f"Curva mudou dentro do mesmo dataset: {external_id}"
+                    )
+                self._bump("curves_unchanged")
+                continue
+            material = self.materials[str(row["material_external_id"])]
+            normalized = _curve_from_record(row)
+            x_spec, y_spec = row["x"], row["y"]
+            self.db.add(
+                curve_rows(
+                    normalized,
+                    material_id=material.id,
+                    title=str(row["title"]),
+                    description=row.get("description"),
+                    x_label=x_spec.get("label"),
+                    y_label=y_spec.get("label"),
+                    source_id=self.source.id,
+                    citation=row.get("citation"),
+                    data_quality=DataQuality.IMPORTADO,
+                    is_demo=False,
+                    dataset_id=self.dataset.id,
+                    external_id=external_id,
+                    raw_sha256=_raw_hash(row),
+                )
+            )
+            self._bump("curves_created")
+            self._bump("curve_points_created", sum(len(s.points) for s in normalized.series))
+
     def _import_process_attributes(self) -> None:
         for row in self.bundle.iter_records("process_attribute_definitions.ndjson"):
             slug = str(row["slug"])
@@ -1117,6 +1254,7 @@ class OfficialCatalogImporter:
         self._import_material_values()
         self._import_designations()
         self._import_compositions()
+        self._import_curves()
         self._import_hierarchy("process_classes.ndjson", ProcessClass, self.process_classes)
         self._import_process_attributes()
         self._import_processes()

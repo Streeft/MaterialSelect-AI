@@ -4,8 +4,8 @@
 
 A regra de corte é a própria coluna `is_demo`: material, processo, modal de
 transporte, química de bateria, índice de desempenho, fonte, designação e linha de
-composição (D-105) fictícios são removidos independentemente do módulo que os
-criou. Taxonomias e definições de
+composição (D-105) e curva (D-106, com séries e pontos) fictícios são removidos
+independentemente do módulo que os criou. Taxonomias e definições de
 propriedades/atributos permanecem porque são metadados reutilizáveis pelo
 catálogo oficial.
 
@@ -34,6 +34,7 @@ from app.db.base import SessionLocal
 from app.models.battery_chemistry import BatteryChemistry
 from app.models.material import Material
 from app.models.material_composition import MaterialCompositionEntry
+from app.models.material_curve import MaterialCurve, MaterialCurvePoint, MaterialCurveSeries
 from app.models.material_designation import MaterialDesignation
 from app.models.material_keyword import MaterialKeyword
 from app.models.material_property_value import MaterialPropertyValue
@@ -66,6 +67,35 @@ def clear_demo_identity(db: Session) -> dict[str, int]:
     return removed
 
 
+def clear_demo_curves(db: Session) -> int:
+    """Delete demo curves with their series and points (D-106).
+
+    Fictitious either way the identity rows are: the curve declares ``is_demo``
+    itself, or it belongs to a demo material. Points first, then series, then
+    the curve — the cascade written out, because the test database does not
+    apply ``ON DELETE`` (see the module docstring).
+    """
+    demo_materials = select(Material.id).where(Material.is_demo.is_(True))
+    curve_ids = list(
+        db.execute(
+            select(MaterialCurve.id).where(
+                MaterialCurve.is_demo.is_(True) | MaterialCurve.material_id.in_(demo_materials)
+            )
+        ).scalars()
+    )
+    if not curve_ids:
+        return 0
+    _delete_curves(db, curve_ids)
+    return len(curve_ids)
+
+
+def _delete_curves(db: Session, curve_ids: list[int]) -> None:
+    series_ids = select(MaterialCurveSeries.id).where(MaterialCurveSeries.curve_id.in_(curve_ids))
+    db.execute(delete(MaterialCurvePoint).where(MaterialCurvePoint.series_id.in_(series_ids)))
+    db.execute(delete(MaterialCurveSeries).where(MaterialCurveSeries.curve_id.in_(curve_ids)))
+    db.execute(delete(MaterialCurve).where(MaterialCurve.id.in_(curve_ids)))
+
+
 def clear_demo_materials(db: Session) -> int:
     """Delete every `Material` with `is_demo=True`; return the count removed."""
     demo_ids = list(db.execute(select(Material.id).where(Material.is_demo.is_(True))).scalars())
@@ -95,6 +125,13 @@ def clear_demo_materials(db: Session) -> int:
     db.execute(
         delete(MaterialCompositionEntry).where(MaterialCompositionEntry.material_id.in_(demo_ids))
     )
+    leftover_curves = list(
+        db.execute(
+            select(MaterialCurve.id).where(MaterialCurve.material_id.in_(demo_ids))
+        ).scalars()
+    )
+    if leftover_curves:
+        _delete_curves(db, leftover_curves)
     db.execute(delete(Material).where(Material.id.in_(demo_ids)))
     return len(demo_ids)
 
@@ -186,6 +223,11 @@ def clear_demo_sources(db: Session) -> int:
             )
         )
         or 0,
+        # D-106: a real curve citing a demo source.
+        "material_curves": db.scalar(
+            select(func.count(MaterialCurve.id)).where(MaterialCurve.source_id.in_(demo_ids))
+        )
+        or 0,
     }
     if any(remaining_refs.values()):
         raise RuntimeError(
@@ -204,6 +246,7 @@ def clear_demo_data(db: Session) -> dict[str, int]:
     processes disappear. Running the function again is idempotent.
     """
     identity = clear_demo_identity(db)
+    curves = clear_demo_curves(db)
     materials = clear_demo_materials(db)
     processes = clear_demo_processes(db)
     transport_modes = clear_demo_transport_modes(db)
@@ -218,6 +261,7 @@ def clear_demo_data(db: Session) -> dict[str, int]:
         "performance_indices": performance_indices,
         "sources": sources,
         **identity,
+        "curves": curves,
     }
 
 

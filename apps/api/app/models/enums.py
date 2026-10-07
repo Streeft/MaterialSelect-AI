@@ -95,6 +95,22 @@ class DesignationSystem(str, enum.Enum):
     COMERCIAL = "COMERCIAL"
 
 
+class CurveKind(str, enum.Enum):
+    """What question a material curve answers (D-106, TM4).
+
+    Closed for the reason ``DesignationSystem`` is: each kind pins which axis
+    quantities it may carry and which scale it opens in
+    (``app.domain.curves.KINDS``), and a free-text kind would let a fatigue
+    curve be drawn with a temperature axis without anything objecting.
+    """
+
+    TENSAO_DEFORMACAO = "TENSAO_DEFORMACAO"
+    TEMPERATURA = "TEMPERATURA"
+    TAXA = "TAXA"
+    FADIGA = "FADIGA"
+    FLUENCIA = "FLUENCIA"
+
+
 class AuditAction(str, enum.Enum):
     """What happened to an entity, in an ``AuditEvent`` row (M2)."""
 

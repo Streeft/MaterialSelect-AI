@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 from app.db.base import get_db
 from app.dependencies import can_edit_shared_catalog, get_current_user, get_unit_choices
 from app.models.user import User
+from app.schemas.curve import CurveOut, MaterialCurvesOut
 from app.schemas.material import (
     ChartData,
     MaterialCreate,
@@ -26,6 +27,7 @@ from app.schemas.material import (
     PropertyValueIn,
 )
 from app.schemas.similarity import SimilarOut, SimilarRequest
+from app.services.curve_service import CurveService
 from app.services.material_service import MaterialService
 from app.services.similarity_service import SimilarityService
 
@@ -108,6 +110,48 @@ def get_material(
 ) -> MaterialDetail:
     """Return a material's full sheet, with properties grouped by category."""
     return MaterialService(db, user, unit_choices).get_material_detail(material_id)
+
+
+@router.get("/{material_id}/curvas", response_model=MaterialCurvesOut)
+def list_material_curves(
+    material_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> MaterialCurvesOut:
+    """The material's curves (D-106), with a count for every kind — zero included.
+
+    A material with no curve answers 200 with ``total = 0``: "no curve
+    registered" is a fact about the record, written on the sheet (D-24). A
+    material this viewer may not see is 404, like its sheet (D-62).
+    """
+    return CurveService(db, user.id).list_curves(material_id)
+
+
+@router.get("/{material_id}/curvas/{curve_id}", response_model=CurveOut)
+def get_material_curve(
+    material_id: int,
+    curve_id: int,
+    unidade_x: str | None = Query(
+        default=None, description="Unidade de leitura do eixo x (D-70); omitida, a convenção."
+    ),
+    unidade_y: str | None = Query(
+        default=None, description="Unidade de leitura do eixo y (D-70); omitida, a convenção."
+    ),
+    escala: str | None = Query(
+        default=None,
+        description="linear, log-x, log-y ou log-log; omitida, a convenção do tipo de curva.",
+    ),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> CurveOut:
+    """One curve, ready to draw: points, band and domain in the reading units.
+
+    A unit outside the axis's list, or a log scale on an axis that cannot be
+    logarithmic, is a 400 that names what is admitted — never ignored.
+    """
+    return CurveService(db, user.id).get_curve(
+        material_id, curve_id, x_unit=unidade_x, y_unit=unidade_y, scale=escala
+    )
 
 
 @router.post("/{material_id}/similares", response_model=SimilarOut)

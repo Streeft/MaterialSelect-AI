@@ -133,3 +133,11 @@ class Material(Base):
         cascade="all, delete-orphan",
         order_by="(MaterialCompositionEntry.position, MaterialCompositionEntry.id)",
     )
+    # D-106 (TM4): curves measured on this material. Cascade for the same
+    # reason as above; never loaded with the sheet — the curves have their own
+    # route, and a sheet with thousands of points would be a different payload.
+    curves: Mapped[list[MaterialCurve]] = relationship(  # noqa: F821
+        back_populates="material",
+        cascade="all, delete-orphan",
+        order_by="MaterialCurve.id",
+    )

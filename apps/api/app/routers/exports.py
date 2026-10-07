@@ -1,5 +1,5 @@
 """Export endpoints: catalogue and selection studies as CSV, XLSX, DOCX, PPTX or HTML,
-and one material as a CAE card (D-104).
+one material as a CAE card (D-104), and a material curve's points (D-106).
 
 These return files rather than JSON, so they set their own headers. Three
 details matter and are easy to get wrong:
@@ -38,6 +38,7 @@ from app.exporters.spreadsheet import to_csv, to_xlsx
 from app.models.project import Project
 from app.models.user import User
 from app.services.cae_export_service import CaeExportService
+from app.services.curve_service import CurveService
 from app.services.export_service import ExportService
 
 router = APIRouter(prefix="/exports", tags=["exports"])
@@ -179,6 +180,36 @@ def export_material_cae(
         ),
     }
     return Response(content=card.body, media_type=card.media_type, headers=headers)
+
+
+CURVE_SUPPORTED_FORMATS = ("csv", "xlsx")
+
+
+@router.get("/materiais/{material_id}/curvas/{curve_id}.{fmt}")
+def export_material_curve(
+    material_id: int,
+    curve_id: int,
+    fmt: str,
+    unidade_x: str | None = Query(default=None, description="Unidade de leitura do eixo x."),
+    unidade_y: str | None = Query(default=None, description="Unidade de leitura do eixo y."),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> Response:
+    """A material curve's points as CSV or XLSX (D-106).
+
+    The limitation notice, the provenance and the three units of each axis
+    (reading, original, canonical) travel in the file; every cell goes through
+    ``cells.py``, so a curve title written as a formula leaves as text.
+    """
+    if fmt not in CURVE_SUPPORTED_FORMATS:
+        raise ValidationError(
+            f"Formato de exportação de curva não suportado: '{fmt}'. "
+            f"Use {', '.join(CURVE_SUPPORTED_FORMATS)}."
+        )
+    report = CurveService(db, user.id).curve_report(
+        material_id, curve_id, x_unit=unidade_x, y_unit=unidade_y
+    )
+    return _file_response(report, fmt)
 
 
 def _require_supported(fmt: str) -> None:
