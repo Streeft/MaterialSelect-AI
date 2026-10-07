@@ -18,7 +18,7 @@ Um bug corrigido traz o teste que falhava antes da correção. -->
 - [ ] Atualizei o `README.md` e os docs afetados **no mesmo PR** — decisão nova
       em `DECISIONS.md` se escolhi um desenho, `TODO.md`,
       `CHANGELOG_SESSION.md`, `PROJECT_CONTEXT.md`, o documento da área,
-      `CLAUDE.md` (Estado atual e contagem de testes) e `.env.example` se a
+      `docs/ESTADO_ATUAL.md` (opcional; contagem de testes em `PROJECT_CONTEXT.md`) e `.env.example` se a
       configuração mudou (`docs/CLAUDE.md` §1.12).
 - [ ] CI verde (backend, migrações em PostgreSQL, frontend, E2E, Lighthouse).
 - [ ] Nenhum princípio inegociável afrouxado: nenhum valor inventado, nenhum
