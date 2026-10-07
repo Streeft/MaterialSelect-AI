@@ -8,7 +8,7 @@ from typing import Any
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.catalog.bundle import BundleValidationError, VerifiedBundle, verify_bundle
+from app.catalog.bundle import VerifiedBundle, verify_bundle
 from app.domain.data_quality import build_interval_value, build_scalar_value, missing_value
 from app.models.catalog import (
     CatalogDataset,
