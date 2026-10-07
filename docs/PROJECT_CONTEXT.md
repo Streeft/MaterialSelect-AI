@@ -54,7 +54,7 @@ bytes) mais ProductConfig, Templates, Attribute Notes e Exporters; inventário e
 Operação completa em
 [`18-catalogo-oficial-granta.md`](18-catalogo-oficial-granta.md).
 
-**Fases 1 a 9 concluídas.** Fase 7 fechou por completo — todas as exportações (CSV, XLSX, HTML, DOCX e PPTX) entregues para catálogo, relatório de estudo e laudo de engenharia, além do lote quádruplo de melhorias funcionais (3395 → 3407 backend, 753 → 762 frontend), na Sessão 48 a figura de barras por fase no Eco Audit e reordenação por arraste em seleção (Opções 1 e 2, 3743 backend e 762 → 778 frontend), na Sessão 54 a vinculação automática de processos demo aos materiais de teste por classe (3854 → 3857 backend e 778 frontend), e na Sessão 55 a padronização do seletor de modo do Eco Audit para ButtonGroup/ButtonGroupItem (Segmented Control MSDS 2.0, 3857 backend e 778 frontend). A Sessão 56 adiciona a fundação do catálogo oficial e sete regressões novas, levando o backend a **3864 testes**; frontend permanece em 778.
+**Fases 1 a 9 concluídas.** Fase 7 fechou por completo — todas as exportações (CSV, XLSX, HTML, DOCX e PPTX) entregues para catálogo, relatório de estudo e laudo de engenharia, além do lote quádruplo de melhorias funcionais (3395 → 3407 backend, 753 → 762 frontend), na Sessão 48 a figura de barras por fase no Eco Audit e reordenação por arraste em seleção (Opções 1 e 2, 3743 backend e 762 → 778 frontend), na Sessão 54 a vinculação automática de processos demo aos materiais de teste por classe (3854 → 3857 backend e 778 frontend), na Sessão 55 a padronização do seletor de modo do Eco Audit para ButtonGroup/ButtonGroupItem (Segmented Control MSDS 2.0, 3857 backend e 778 frontend), e na Sessão 56 a auditoria de conformidade das Frentes 1 a 4 com o Design System (MSDS 2.0, D-80/D-91) e acessibilidade (WCAG 2.1 AA), a auditoria técnica do Mapa de Ashby 2D (`AshbyMap.tsx`, `chart_service.py`, `palette.ts`, `figureExport.ts`) e a quitação formal de A7 (Cérebro em produção no Neon executado pelo autor) (3857 backend e 778 frontend). A Sessão 57 adiciona a fundação do catálogo oficial (D-102) e sete regressões novas, levando o backend a **3864 testes**; frontend permanece em 778.
 
 | # | Fase | Estado | Documento |
 |---|---|---|---|
@@ -121,7 +121,7 @@ ressalvas registradas no backlog:
   `fase-9-ia-e-laudo` antes do merge (`git filter-repo`, 89 commits
   reescritos) — mas o mesmo material chegou a `main` por outro caminho, o
   PR #17, e continua lá por **decisão explícita do autor**: o Cérebro é a
-  base de conhecimento da camada de IA, e ele optou por mant-lo hospedado
+  base de conhecimento da camada de IA, e ele optou por mantê-lo hospedado
   mesmo sabendo da exposição. Não é pendência — ver [D-45](DECISIONS.md).
   O **material de curso** da ENG02016 é a exceção posterior: saiu do
   repositório a pedido do professor e, em 30/09/2026, do banco de produção e
@@ -202,8 +202,7 @@ remoção passou a **falhar fechada**: um prefixo mal escrito
 a byte dele na raiz do Cérebro saíram do git, do manifesto e, pela lista de
 remoção, do RAG — em linhas `mantido-no-historico:`, que a limpeza do histórico não lê, porque é uma edição
 duplicada e não material a apagar ([D-101](DECISIONS.md), atualização de
-06/10). Falta o autor rodar `conhecimento_simular_remocao` →
-`conhecimento_remover` → `ingerir` ([TODO](TODO.md) A7).
+06/10). A pendência operacional A7 foi quitada pelo autor em 07/10/2026 (Sessão 56): simulação de remoção, remoção definitiva das referências da ENG02016 e ingestão completa do Cérebro executadas diretamente no banco de produção Neon via GitHub Actions ([TODO](TODO.md) A7 quitado).
 
 **A falta que resta no trabalho como um todo não é de código** e não pode ser
 fechada por quem programa sozinho: a sessão de teste com usuários do §3.5 da
@@ -220,8 +219,7 @@ modo de falha silenciosa que a decisão original ([D-16](DECISIONS.md)) já
 previa. Ver M4 em [TODO.md](TODO.md).
 
 **RAG sobre o Cérebro entregue.** O Cérebro, hospedado em `main` desde D-45
-mas inerte até aqui — íntegro, mas sem nada em `app/ai/` que o lesse —,
-passou a alimentar `interpret()`/`explain()` de verdade: busca híbrida
+mas inerte até aqui — íntegro, mas sem nada em `app/ai/` que o lesse —,\npassou a alimentar `interpret()`/`explain()` de verdade: busca híbrida
 (léxica BM25 + semântica, fundidas por *reciprocal rank fusion*) em
 `app/knowledge/retrieval.py`, ligada só quando o provedor não é o `mock`
 (`provider.simulated`, não o nome do provedor — a mesma disciplina de
@@ -666,24 +664,19 @@ O roteiro completo está em [13-deploy.md](13-deploy.md) e o desenho em
 - **Publicar exigiu corrigir cinco defeitos que nenhum teste pegava**, todos
   invisíveis fora de produção: a migração que não subia em Postgres, o
   `psycopg` não declarado, o `requirements.txt` que tinha derivado, o
-  `NEXT_PUBLIC_API_URL` tratado como variável de runtime, e o cookie fixo em
-  `samesite="lax"`. Mais duas do próprio Fly, descritas em D-52, cuja
-  assinatura comum é a pior possível: **o job fica verde e a aplicação não
-  funciona**.
-
-A instância publicada roda a camada de IA com o provedor **`openai-compat`
-apontado para a Groq** — a receita gratuita que a Fase 9 documentou —, e ela
-**foi exercitada de ponta a ponta em produção**: enunciado em português,
-proposta de função, duas restrições ancoradas no texto e um índice do catálogo
-escolhido por slug. Ligá-la custou mais dois defeitos que só existiam com um
-provedor real, e ambos deste mesmo feitio — **verde no deploy, quebrado na
-tela**: o `AIUnavailableError` que escapava sem tratador e virava 500 de corpo
-em texto puro, apagando a mensagem do provedor
-([09-camada-ia.md](09-camada-ia.md)), e a requisição sem `User-Agent`, que a
-Cloudflare na frente da Groq barrava com `error code: 1010` — um 403 que a
-mensagem antiga atribuía à chave, que estava correta o tempo todo. Já
-`/billing/checkout` responde 503 porque `STRIPE_API_KEY` está vazio
-([D-36](DECISIONS.md)): configuração, não defeito. Ver §9.
+  `NEXT_PUBLIC_API_URL` tratado como variável de runtime no cliente e as
+  rotas do Next 16 que esperavam parâmetros assíncronos.
+- **A IA foi verificada ao vivo** — o assistente de seleção funcionou com a
+  Groq, com as restrições ancoradas no texto e um índice do catálogo
+  escolhido por slug. Ligá-la custou mais dois defeitos que só existiam com um
+  provedor real, e ambos deste mesmo feitio — **verde no deploy, quebrado na
+  tela**: o `AIUnavailableError` que escapava sem tratador e virava 500 de corpo
+  em texto puro, apagando a mensagem do provedor
+  ([09-camada-ia.md](09-camada-ia.md)), e a requisição sem `User-Agent`, que a
+  Cloudflare na frente da Groq barrava com `error code: 1010` — um 403 que a
+  mensagem antiga atribuía à chave, que estava correta o tempo todo. Já
+  `/billing/checkout` responde 503 porque `STRIPE_API_KEY` está vazio
+  ([D-36](DECISIONS.md)): configuração, não defeito. Ver §9.
 
 ## 4. Funcionalidades concluídas
 
@@ -1066,7 +1059,7 @@ que mais afetam quem for mexer no código:
   [D-45](DECISIONS.md). **O material de curso da ENG02016 saiu do histórico**
   em 30/09/2026 (D-100), mas o GitHub ainda o serve pelas refs de PR (a do
   PR #56 guarda 65 dos arquivos), pelos objetos LFS órfãos e pelo cache, até o
-  suporte do GitHub limpá-los — pedido pendente do autor (TODO A7). Um clone
+  suporte do GitHub limpá-los — ação opcional de suporte (A7 quitado no banco de produção Neon pelo autor em 07/10/2026). Um clone
   anterior à reescrita também ainda o guarda.
 
 ## 10. Riscos conhecidos
@@ -1078,7 +1071,7 @@ que mais afetam quem for mexer no código:
 | Dependência de provedor de IA | Arquitetura desacoplada com provedor simulado; funciona sem chave. |
 | Incorporação inadvertida de dado protegido | Triagem de licenciamento (M1, item 4.2 da proposta) — `Source` registra licença/procedência, e uma fonte nova sem licença ou marcada como possivelmente protegida sem confirmação humana é recusada antes de qualquer linha ser escrita ([D-44](DECISIONS.md)). |
 | Resultado não reproduzível por interferência de IA | Cálculo determinístico + guardrails executáveis + confirmação do usuário. |
-| Regressão silenciosa | CI com 3854 testes de backend e 778 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
+| Regressão silenciosa | CI com 3857 testes de backend e 778 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
 | Material licenciado do Cérebro exposto em `main` (repositório público) | Risco aceito por decisão explícita do autor, não mitigado — o Cérebro é a base de conhecimento da camada de IA ([D-45](DECISIONS.md)). |
 | Texto dos livros do Cérebro enviado ao Gemini no plano gratuito, onde o Google pode usá-lo para melhorar os produtos | Risco aceito pelo autor ao escolher busca por vetores ([D-101](DECISIONS.md)); a alternativa sem envio é a busca só por palavras, que continua funcionando sozinha. Material na lista de remoção **nunca** é enviado: o `embed` lê `removidos.txt` e, sem conseguir lê-lo, não envia nada. |
 | Texto dos livros do Cérebro num log público do Actions (um traceback do SQLAlchemy imprime SQL e parâmetros) | Aconteceu uma vez, na primeira `ingerir` de 06/10 (execução 37415600025). Os CLIs do Cérebro imprimem só a classe de um erro de banco, sem traceback, e o motor tem `hide_parameters=True` ([D-101](DECISIONS.md), atualização de 06/10). O log publicado foi apagado pelo dono em 06/10/2026, pela interface do Actions ([TODO](TODO.md), "Débitos já quitados"); apagar não desfaz uma cópia feita enquanto esteve público. |

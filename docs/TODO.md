@@ -68,75 +68,6 @@ react-hook-form não é memoizável) que é informativo e não tem correção lo
 A6 (Cérebro em `main`) foi decidido, não executado: ver "Débitos já
 quitados".
 
-**A7 — o que resta, e só o autor faz.** ▁ A remoção do banco de produção e a
-reescrita do histórico foram feitas em 30/09/2026, e a ingestão direcionada do
-`Links.md` saiu em código (ver "Débitos já quitados" e o [D-100](DECISIONS.md)).
-O log público da execução 37415600025 foi apagado pelo autor em 06/10/2026
-(era o item 4; ver "Débitos já quitados"). Ficam três passos fora do código:
-
-1. **Suporte do GitHub** ([`17-limpeza-historico-cerebro.md`](17-limpeza-historico-cerebro.md)
-   §10). Pedir a remoção das refs de PR (`refs/pull/*` — a do PR #56 guarda 65
-   dos arquivos fora de qualquer branch), dos objetos Git LFS órfãos, das
-   visões em cache e, onde couber, dos *forks*: todo commit e todo PR
-   anteriores à reescrita. Reescrever o histórico não apagou nada disso.
-2. **Clones antigos.** Todo clone feito antes de 30/09/2026 está do lado errado
-   da reescrita: apagar e clonar de novo, nunca `pull`, e não enviar nenhuma
-   branch criada antes dela (guia §9).
-3. **O Cérebro no RAG de produção — entregue em código ([D-101](DECISIONS.md));
-   falta a execução.** Só o `Links.md`, já: **Base de conhecimento (Cérebro)**
-   → `ingerir` com `arquivos: Links.md` (não baixa nada do LFS), ou a ação
-   `conhecimento_indexar_links` do `admin-banco.yml`. O Cérebro inteiro, na
-   ordem de [13-deploy.md §5-septies](13-deploy.md): **Deploy da API** →
-   **Provedor de IA** (`gemini`) → `status` → `ingerir` (fora do horário de
-   aula; baixa ≈528 MB do LFS, mais da metade da banda gratuita do mês — não
-   repita no mesmo mês sem necessidade) → os vetores vêm sozinhos à noite, ou
-   já com `embeddings` → `status` toda semana até `faltam 0`. O download
-   arquivo a arquivo (`git lfs smudge`) ainda não rodou no GitHub: a primeira
-   `ingerir` é o teste dele.
-   **06/10/2026:** a primeira `ingerir` (segunda execução do workflow; a
-   primeira só rodou `status`) morreu com `PostgreSQL text fields cannot
-   contain NUL (0x00) bytes` (o pypdf devolve U+0000; o SQLite dos testes
-   aceita). Corrigido no código (D-101, atualização de 06/10): o NUL sai na
-   fonte, um documento que o banco recusa não para mais a execução, e um erro
-   de banco que escapa de um CLI do Cérebro imprime só o nome da classe (o
-   motor também esconde parâmetros). Depois do merge: **Deploy da API** (os
-   uploads dos Cadernos passam pela mesma regra e rodam na API) e **`ingerir`
-   de novo** — ela roda no runner, do código de `main`, sem deploy; os
-   documentos já gravados saem `inalterados`.
-   **06/10/2026, segunda `ingerir`** (execução 37473592736): 118 documentos
-   gravados e saída 1 por dois `FALHOU … Limit reached while decompressing` —
-   os dois Ashby em português, barrados pelo teto de 75 MB por fluxo do pypdf.
-   Corrigido no código (D-101, atualização do teto de descompressão, e a
-   revisão do PR #98 logo depois): o Cérebro lê com teto de **200 MB** por
-   fluxo, solta as cópias decodificadas do pypdf entre páginas, tem orçamento
-   por documento (16 GB decodificados, 15 min) e pula a página que ainda não
-   decodificar, dizendo quantas e por quê (`::warning:: … PÁGINAS IGNORADAS
-   … (LimitReachedError ×K)`) — até um quinto do livro; mais que isso (e ao
-   menos 3 páginas) é `FALHOU` e saída 1. Depois do merge: **Deploy da API**
-   (o piso do pypdf subiu para 6.18, e o upload dos Cadernos ganhou os limites
-   novos — é a parte de segurança) e **`ingerir` de novo** (sem deploy; só o
-   Ashby de 2012 é baixado e lido — o outro saiu, abaixo —, e dentro dos 7
-   dias do cache do LFS não gasta banda). Confira no log: `PÁGINAS IGNORADAS` com só
-   `LimitReachedError` quer dizer fluxo acima de 200 MB; `FALHOU … mais que
-   20% do documento` quer dizer que o livro não entra assim. O item "Os dois
-   Ashby em português" foi decidido (D-101, atualização de 06/10/2026: fica o
-   de 2012, o sem data saiu pela lista de remoção). **Depois do merge do PR
-   dessa decisão, nesta ordem:**
-   **Administração do banco** → `conhecimento_simular_remocao` (o log tem de
-   listar um documento só, `01-Bibliografia/… sha256:27882628`: a linha
-   `FALHOU` que a segunda `ingerir` deixou) →
-   `conhecimento_remover` (os mesmos totais) → **Base de conhecimento
-   (Cérebro)** → `ingerir`. Sem o `conhecimento_remover`, a linha `FALHOU`
-   fica na base e o `status` a mostra como "fora do repositório"; a ingestão
-   não a apaga, só acrescenta. Para reler depois um livro
-   indexado com páginas de fora: `ingerir` com `arquivos` = o livro e
-   **`forcar`** (13-deploy.md §5-septies).
-
-Os logs das execuções de `conhecimento_simular_remocao` e
-`conhecimento_remover` saem com `--redact` (pasta de primeiro nível e começo do
-sha256, nunca o nome do arquivo); apagá-los é segunda camada e opcional (guia
-§1.3 e §11). Não está registrado que tenham sido apagados.
-
 ---
 
 ## Média prioridade
@@ -291,6 +222,26 @@ continua lá, e a métrica para de medir no 3.
 
 Registrados para não voltarem por engano:
 
+- ~~**A7 — Execução do Cérebro no RAG de produção concluída (D-101)**~~ —
+  executada com sucesso pelo autor em produção (Neon) via GitHub Actions (workflow
+  Base de conhecimento, ação `ingerir` e indexação de `Links.md`, com as remoções
+  já aplicadas via `admin-banco.yml`). A pendência operacional A7 do roteiro imediato
+  está encerrada. Os procedimentos externos de governança fora do código (ticket de
+  suporte do GitHub para `refs/pull/*` e objetos órfãos LFS, e atualização de eventuais
+  clones anteriores a 30/09/2026) permanecem documentados como guia em
+  `docs/17-limpeza-historico-cerebro.md`.
+- ~~**Auditoria de Conformidade e Acessibilidade — Frentes 1 a 4 e Mapa de Ashby 2D (Sessão 56)**~~ —
+  auditoria técnica rigorosa de alinhamento ao Design System MSDS 2.0 ([D-80](DECISIONS.md) e [D-91](DECISIONS.md)), WCAG 2.1 AA e princípios determinísticos:
+  1. **Frente 1 (Eco Audit & Custo):** componentes `PhaseBars.tsx`, cartões de premissa e tabelas comparativas auditados. Padronização formal do seletor de modo ("Individual" vs "Comparativo") em `apps/web/app/app/eco/page.tsx` com `ButtonGroup` e `ButtonGroupItem` (Segmented Control semântico com `role="group"`, `aria-label` e `aria-pressed`), restabelecendo a regra de hierarquia visual de no máximo um botão primário visível por tela (ação principal "Executar auditoria" / "Comparar auditorias").
+  2. **Frente 2 (Seleção):** suporte a reordenação por arraste (`StageList.tsx`, `reorderStages`) com alça dedicada `⠿` (`aria-label` via `i18n-extras.ts`), estados visuais dinâmicos de dragover (`ring-2 ring-brand-500 shadow-lift`) e preservação estrita dos botões de incremento/decremento (↑ e ↓) para navegabilidade completa por teclado.
+  3. **Frente 3 (Busca Ponderada & Destaque):** busca textual com ranqueamento SQL (`material_repository.py`) e marcação contextual via `HighlightText.tsx` auditados. Destaque sutil com cores semânticas de leitura, preservação de acessibilidade de contrastes e integração nas listas, cartões e catálogo.
+  4. **Frente 4 (Solver com Seções Circulares Maciças):** formulação teórica de Ashby para seções circulares em flexão e compressão validada dimensionalmente e numericamente (`load_cases.py`), cobrindo índices de mérito $M_1$ e fatores estruturais exatos com total determinismo e sem inferência de IA.
+  5. **Auditoria Técnica do Mapa de Ashby 2D (`AshbyMap.tsx`, `chart_service.py`, `palette.ts`, `figureExport.ts`):** conformidade integral com MSDS 2.0 confirmada:
+     - Paleta Okabe-Ito de 8 cores para famílias de materiais (acessível para daltonismo).
+     - Exportação SVG e PNG com fontes inline embutidas (`@font-face` Inter / JetBrains Mono) para portabilidade e fidelidade gráfica.
+     - Tabela de acessibilidade para tecnologias assistivas (`role="table"`, alternativa acessível ao gráfico interativo).
+     - Hierarquia estrita de botões (máximo de 1 primário por contexto, tooltips com atalhos e variantes consistentes).
+  Cobertura total de testes preservada: 3857 backend (0 skips na CI) e 778 frontend (100% verdes).
 - ~~**Padronização do seletor de modo do Eco Audit com ButtonGroup/ButtonGroupItem (Sessão 55)**~~ —
   auditoria de conformidade com o Design System (MSDS 2.0, [D-80](DECISIONS.md) e [D-91](DECISIONS.md)) identificou que os botões soltos de alternância de modo ("Individual" e "Comparativo") no topo de `apps/web/app/app/eco/page.tsx` usavam variantes de botão soltas (`variant="primary"` e `variant="secondary"`), violando a regra de hierarquia visual (máximo de um botão primário por tela, reservado para a ação principal "Executar auditoria" / "Comparar auditorias"). Substituídos pelo componente padronizado `ButtonGroup` e `ButtonGroupItem` (Segmented Control semântico com `role="group"`, `aria-label` e `aria-pressed`), preservando acessibilidade, semântica e 100% dos testes (3857 backend e 778 frontend).
 - ~~**A7, item 4 — Apagar o log público com texto de livro licenciado (D-101)**~~ —
@@ -510,13 +461,10 @@ Registrados para não voltarem por engano:
   sete passos ([D-57](DECISIONS.md)). O Tree Stage virou a **junção entre
   tabelas** do método: um terceiro tipo de estágio, `process`, mantém os
   materiais que *algum* processo selecionado serve, por pasta ou por folha, com
-  descendentes. Migração aditiva `b7e2d9c4a105` com backfill, conferida por
-  mutação. A ficha do material lista os processos compatíveis, agrupados por
-  família — parte da lacuna do Datasheet. Universo demonstrativo semeado,
-  fictício e marcado, sendo a **compatibilidade** o que é inventado ali.
-  Pegou dois defeitos pré-existentes de passagem (o funil que reportava
-  `in_tree` para um estágio de processo; a sugestão da IA descartada em silêncio
-  numa pilha sem estágio de limites). **O que ficou de fora, e é o próximo
+  descendentes; a ficha do material passou a listar os processos compatíveis.
+  Migração aditiva `f24e93bb85f4`, com backfill; funil por estágio distinguindo
+  `in_tree` de `in_process`; e a taxonomia de processos semeada por
+  `app/db/seed_extended.py`. **O que ficou de fora, e é o próximo
   gargalo e não uma lacuna deste item:** selecionar **processos** como resultado
   (exercício 11 do manual) — o P0-3.
 - ~~**P0-3** — a seleção só devolvia materiais~~ — `SelectionStudy.universe`,
@@ -981,7 +929,7 @@ Registrados para não voltarem por engano:
   candidatos completos após o filtro derrubava a resposta inteira em vez de
   degradar como `weighted_sum`/TOPSIS já faziam; e `method` passou a
   aparecer de fato no painel de proveniência dos resultados e na nota de
-  \"Contribuições\" do relatório/laudo, que antes afirmavam algo falso para
+  "Contribuições" do relatório/laudo, que antes afirmavam algo falso para
   TOPSIS especificamente. Detalhe completo em
   `.superpowers/sdd/2026-09-01-m5-m6-multicriterio-e-restricoes-aninhadas/final-fix-wave-report.md`.
 - ~~**M6** — Restrições com parênteses lógicos~~ — `ConstraintGroup`
@@ -1005,7 +953,7 @@ Registrados para não voltarem por engano:
   árvore de verdade, raiz primeiro e filhos em profundidade. No frontend,
   `apps/web/components/selection/ConstraintEditor.tsx` virou um editor de
   árvore recursivo — cada grupo com seu próprio alternador AND/OR e
-  \"Adicionar grupo\"/\"Adicionar restrição\" em qualquer profundidade — e
+  "Adicionar grupo"/"Adicionar restrição" em qualquer profundidade — e
   `/selecao` passa a enviar `root_group` ao rodar ou salvar. ~~**Limitação
   conhecida, registrada e não corrigida nesta entrega:**~~ `GET
   /api/selection/studies/{id}` devolvia as restrições como lista plana, então
@@ -1020,7 +968,7 @@ Registrados para não voltarem por engano:
   laudo de engenharia (D-41) descrevia a lógica de um estudo aninhado como
   um único combinador achatado, com linhas de subgrupo opacas — corrigido
   com `SelectionService.describe_root_group` (hoje `describe_pipeline`, D-56), que renderiza a árvore
-  AND/OR real na aba \"Problema\" do relatório/laudo. Total final: 872 testes
+  AND/OR real na aba "Problema" do relatório/laudo. Total final: 872 testes
   de backend, 179 de frontend.
 - ~~**B1–B10**~~ — as dez pendências de baixa prioridade, entregues numa
   sessão dirigida por subagentes (o plano de implementação existiu em
@@ -1030,7 +978,7 @@ Registrados para não voltarem por engano:
   base64url, com o link antigo `?x=&y=` continuando a funcionar). **B7**
   `SavedChart` — configuração de mapa salva e reaberta, isolada por projeto
   no mesmo padrão de `SelectionStudy` (D-42); a revisão final de branch
-  pegou um bug real (o botão \"carregar\" aplicava os dados da *lista*, que
+  pegou um bug real (o botão "carregar" aplicava os dados da *lista*, que
   omite `configuration` de propósito, em vez de buscar o registro completo —
   corrigido). **B6** envelope elíptico ajustado como alternativa ao fecho
   convexo (`app/domain/geometry.py::fitted_ellipse`, autovalores em forma

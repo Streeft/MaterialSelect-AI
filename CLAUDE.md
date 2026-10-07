@@ -286,7 +286,7 @@ Fases 1 a 9 concluídas. **Fase 7 (relatórios e qualidade) concluída** — as
 exportações CSV/XLSX, o relatório HTML imprimível, os testes end-to-end de
 interface (A4, Playwright em `apps/web/e2e/`), a autenticação (A5) e a
 auditoria (M2 — `AuditEvent`, quem mudou o quê e quando, retrato em vez de
-junção viva, [D-43](docs/DECISIONS.md)) já saíram; a exportação nativa em PPTX (B2) foi entregue e, na sequência, o lote quádruplo de melhorias funcionais (duplicação de estágio em seleção, relevância e highlight na busca, seções circulares no solver e comparação lado a lado no Eco Audit — Opções 1, 2, 3 e 4) foi entregue (3395 → 3407 testes de backend e 753 → 762 de frontend); e na Sessão 48, a figura de barras por fase no Eco Audit (individual e comparativo) e a reordenação de estágios por arraste na Seleção (Opções 1 e 2) foram integradas (3743 testes de backend e 762 → 778 de frontend); na Sessão 54, a vinculação automática de processos demo aos materiais de teste por classe (script CLI e migração Alembic b7d219fa82de) foi implementada, destravando o Eco Audit e o Dimensionador de Custo (3854 → 3857 testes de backend e 778 de frontend); e na Sessão 55, a padronização do seletor de modo do Eco Audit para ButtonGroup/ButtonGroupItem (Segmented Control MSDS 2.0, D-80 e D-91) foi implementada, eliminando múltiplos botões primários na tela (3857 testes de backend e 778 de frontend); na Sessão 56, a fundação D-102 do catálogo oficial licenciado adicionou zero-demo fail-closed, identidade externa/release, bundle verificado, import transacional e tooling Granta (3864 testes de backend; 778 de frontend). **A5** deu login exclusivamente por terceiros
+junção viva, [D-43](docs/DECISIONS.md)) já saíram; a exportação nativa em PPTX (B2) foi entregue e, na sequência, o lote quádruplo de melhorias funcionais (duplicação de estágio em seleção, relevância e highlight na busca, seções circulares no solver e comparação lado a lado no Eco Audit — Opções 1, 2, 3 e 4) foi entregue (3395 → 3407 testes de backend e 753 → 762 de frontend); e na Sessão 48, a figura de barras por fase no Eco Audit (individual e comparativo) e a reordenação de estágios por arraste na Seleção (Opções 1 e 2) foram integradas (3743 testes de backend e 762 → 778 de frontend); na Sessão 54, a vinculação automática de processos demo aos materiais de teste por classe (script CLI e migração Alembic b7d219fa82de) foi implementada, destravando o Eco Audit e o Dimensionador de Custo (3854 → 3857 testes de backend e 778 de frontend); na Sessão 55, a padronização do seletor de modo do Eco Audit para ButtonGroup/ButtonGroupItem (Segmented Control MSDS 2.0, D-80 e D-91) foi implementada, eliminando múltiplos botões primários na tela (3857 testes de backend e 778 de frontend); e na Sessão 56, a auditoria de conformidade das Frentes 1 a 4 com o Design System (MSDS 2.0, D-80/D-91) e acessibilidade (WCAG 2.1 AA) foi concluída junto à auditoria técnica do Mapa de Ashby 2D (Okabe-Ito, tipografia embutida em exportações SVG/PNG e tabela semântica acessível), e a pendência operacional A7 (execução do Cérebro em produção no Neon) foi quitada formalmente pelo autor (3857 testes de backend e 778 de frontend mantidos). **A5** deu login exclusivamente por terceiros Na Sessão 57, a fundação D-102 do catálogo oficial licenciado adicionou zero-demo fail-closed, identidade externa/release, bundle verificado, import transacional e tooling Granta (3864 testes de backend; 778 de frontend).
 (Google, OAuth 2.0 — sem senha em lugar nenhum do sistema), sessão em cookie
 `httpOnly` que é linha de banco e não JWT, catálogo compartilhado entre todo
 usuário autenticado e um `Project` por usuário isolando `SelectionStudy`
@@ -476,7 +476,7 @@ processos que os servem. Três decisões que não se mexem: a **família do proc
 é a raiz da taxonomia**, não uma coluna enum (dado semeado, não schema, e uma
 verdade só); a **associação não carrega número nenhum** — um valor sobre o par
 precisaria da proveniência de `MaterialPropertyValue`, e inventá-lo violaria o
-princípio 1; e a semântica é **"algum"**, porque "soldável E forjável" são dois
+princípio 1; e a semântica é **\"algum\"**, porque "soldável E forjável" são dois
 estágios e a pilha já os intersecta. Material sem processo vinculado **não**
 passa por um estágio de processo — mesma regra da restrição numérica. O funil
 distingue `in_tree` de `in_process`, ou diria que a seleção filtrou por classe
@@ -942,7 +942,7 @@ e no mesmo modal do D-94. Regras que não se afrouxam:
   libcairo) por **um** rasterizador só, `lib/rasterize.ts`, que serve também às
   figuras dos gráficos; então o SVG não pode ter `foreignObject` nem referência
   externa. O PDF dos slides é a impressão do navegador.
-- **"Salvar como nota" encurta, não corta**: numa quebra de linha que guarde ao
+- **\"Salvar como nota\" encurta, não corta**: numa quebra de linha que guarde ao
   menos metade do espaço, nunca dentro de um número (`guardrails.NUMBER_TOKEN`,
   o átomo da conferência), e diz que encurtou (`studio_service.note_body`).
 - **Nenhuma migração**: as quatro cabem nos campos JSON da fase 1.
@@ -1121,13 +1121,13 @@ lockfile antigo tinha `resolved`/`integrity` em **59 de 1095** entradas, então 
 `npm audit` não enxergava a maior parte da árvore — os dois críticos de
 `plotly.js`/`maplibre-gl` já estavam lá e não eram reportados. Eles **não**
 chegam ao navegador (o Plotly é montado à la carte e nenhum traço de mapa é
-registrado — medido no pacote, com controle positivo), mas a frase "nenhuma CVE
-em código de produção" era subcontagem, não fato. O que resta é **S3**, e
+registrado — medido no pacote, com controle positivo), mas a frase \"nenhuma CVE
+em código de produção\" era subcontagem, não fato. O que resta é **S3**, e
 nenhuma das cadeias tem versão corrigida publicada.
 
-**Patch de design "Prisma" entregue** (sete tarefas dirigidas por
+**Patch de design \"Prisma\" entregue** (sete tarefas dirigidas por
 subagentes mais uma verificação final; detalhe completo em
-`docs/TODO.md` — "Débitos já quitados"). Fase 1: paleta por rota substitui
+`docs/TODO.md` — \"Débitos já quitados\"). Fase 1: paleta por rota substitui
 a paleta única de D-38, um matiz de `--accent`/`--brand-*` por seção
 trocado via `[data-section]` no `<html>`, sem revogar o método de medição
 de D-38 ([D-49](docs/DECISIONS.md)). Fase 2: `/` virou vitrine pública sem
@@ -1142,8 +1142,8 @@ alternar `MaterialCards`/`MaterialTable` por breakpoint em vez do toggle
 manual que existia antes ([D-50](docs/DECISIONS.md)). A verificação final
 achou e corrigiu dois defeitos que nenhum teste automatizado pegava: um
 locator do E2E que virou ambíguo pela duplicação de DOM cartão/tabela do
-catálogo, e um bug de CSS — os seis blocos `[data-theme="dark"]
-[data-section="…"]` usavam combinador descendente em vez de seletor
+catálogo, e um bug de CSS — os seis blocos `[data-theme=\"dark\"]
+[data-section=\"…\"]` usavam combinador descendente em vez de seletor
 composto (as duas variáveis vivem no mesmo elemento `<html>`, nunca em
 elementos aninhados), o que zerava a paleta por rota inteira no tema
 escuro sem erro nenhum. Corrigidos e confirmados ao vivo em Chromium, não
@@ -1155,7 +1155,7 @@ só relidos no código.
 todo o JS), as chaves estrangeiras ganharam índice, e o `upload` — único endpoint
 `async` da aplicação — passou a rodar o serviço em *threadpool*, porque inline
 ele congelava o event loop inteiro e não só a própria requisição. Duas
-"otimizações" foram medidas e **recusadas** (índices de cobertura e `ANALYZE`,
+\"otimizações\" foram medidas e **recusadas** (índices de cobertura e `ANALYZE`,
 este último 85% mais lento no `overview`).
 
 **A ferramenta está no ar** ([D-52](docs/DECISIONS.md),

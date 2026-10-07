@@ -2584,7 +2584,7 @@ exercício inteiro é o que segura o banco de processos em 3. Próximo gargalo:
 
 ---
 
-## Sessão 56 — 07/10/26 — Fundação do catálogo oficial licenciado (D-102)
+## Sessão 57 — 07/10/26 — Fundação do catálogo oficial licenciado (D-102)
 
 PR #106 abre a transição da base fictícia para um catálogo oficial licenciado sem
 colocar o corpus no Git. `clear_demo` passou a cobrir materiais, processos e
