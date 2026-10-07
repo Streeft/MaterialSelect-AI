@@ -125,6 +125,7 @@ def upgrade() -> None:
         sa.Column("dataset_id", sa.Integer(), nullable=False),
         sa.Column("material_id", sa.Integer(), nullable=True),
         sa.Column("process_id", sa.Integer(), nullable=True),
+        sa.Column("transport_mode_id", sa.Integer(), nullable=True),
         sa.Column("external_table", sa.String(length=160), nullable=False),
         sa.Column("external_record_id", sa.String(length=240), nullable=False),
         sa.Column("external_attribute_id", sa.String(length=240), nullable=False),
@@ -136,14 +137,18 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.CheckConstraint(
             "("
-            "(material_id IS NOT NULL AND process_id IS NULL) OR "
-            "(material_id IS NULL AND process_id IS NOT NULL)"
+            "(material_id IS NOT NULL AND process_id IS NULL AND transport_mode_id IS NULL) OR "
+            "(material_id IS NULL AND process_id IS NOT NULL AND transport_mode_id IS NULL) OR "
+            "(material_id IS NULL AND process_id IS NULL AND transport_mode_id IS NOT NULL)"
             ")",
             name="ck_catalog_supplemental_value_one_target",
         ),
         sa.ForeignKeyConstraint(["dataset_id"], ["catalog_dataset.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["material_id"], ["material.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["process_id"], ["process.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(
+            ["transport_mode_id"], ["transport_mode.id"], ondelete="CASCADE"
+        ),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint(
             "dataset_id",
@@ -171,9 +176,19 @@ def upgrade() -> None:
         ["process_id"],
         unique=False,
     )
+    op.create_index(
+        op.f("ix_catalog_supplemental_value_transport_mode_id"),
+        "catalog_supplemental_value",
+        ["transport_mode_id"],
+        unique=False,
+    )
 
 
 def downgrade() -> None:
+    op.drop_index(
+        op.f("ix_catalog_supplemental_value_transport_mode_id"),
+        table_name="catalog_supplemental_value",
+    )
     op.drop_index(
         op.f("ix_catalog_supplemental_value_process_id"),
         table_name="catalog_supplemental_value",
