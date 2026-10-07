@@ -20,18 +20,8 @@ def test_reference_seed_does_not_restore_demo_catalogue(db_session: Session) -> 
 
     assert summary["classes"] > 0
     assert summary["properties"] > 0
-    assert (
-        db_session.scalar(
-            select(func.count(Material.id)).where(Material.is_demo.is_(True))
-        )
-        == 0
-    )
-    assert (
-        db_session.scalar(
-            select(func.count(Process.id)).where(Process.is_demo.is_(True))
-        )
-        == 0
-    )
+    assert db_session.scalar(select(func.count(Material.id)).where(Material.is_demo.is_(True))) == 0
+    assert db_session.scalar(select(func.count(Process.id)).where(Process.is_demo.is_(True))) == 0
     assert (
         db_session.scalar(
             select(func.count(TransportMode.id)).where(TransportMode.is_demo.is_(True))
