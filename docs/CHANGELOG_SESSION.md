@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [56](#sessão-56--071026--fundação-do-catálogo-oficial-licenciado-d-102) | 07/10/2026 | Fundação do catálogo oficial licenciado: limpeza completa do demo, seed de referência separado, identidade externa/release, bundle com hashes, import transacional, preservação suplementar, ProductConfig e extrator Access somente leitura (D-102, PR #106) | 3857 → 3860* | 778 (inalterado) |
 | [53](#sessão-53--061026--o-log-público-da-execução-37415600025-foi-apagado) | 06/10/2026 | Só documentação: o dono apagou, pela interface do Actions, o log público da execução 37415600025 (texto de livro licenciado no traceback); o TODO A7, item 4, foi para "Débitos já quitados", e os textos que o davam como publicado foram corrigidos (D-101) | 3854 (inalterado) | 778 (inalterado) |
 | [52](#sessão-52--061026--segunda-rodada-do-pr-100-um-pdf-por-vez-e-um-relógio-para-o-upload) | 06/10/2026 | A segunda revisão do PR #100 achou que os limites de memória do upload eram por leitura (três uploads de 8 KB simultâneos: +624 MB) e que a CPU não tinha limite (uma forma redesenhada não decodifica nada): um PDF por vez no processo (três simultâneos: 247 MB), relógio a cada parse e 30 s por upload, pypdf fixado em `<6.20` com autoverificação que recusa todo PDF se os medidores não forem alcançados, a lista de remoção recusa os erros sem dois-pontos e o `Cérebro/` na frente, e nenhuma recusa cita a linha (D-101, segunda rodada) | 3825 → 3854 | 762 (inalterado) |
 | [51](#sessão-51--061026--a-revisão-do-pr-100-o-orçamento-é-cobrado-a-cada-decodificação) | 06/10/2026 | A revisão do PR #100 achou que o orçamento do upload não segurava uma página só (160 formas de 3,9 MB num PDF de 0,66 MB: 639 MB de pico) e que um prefixo mal escrito em `removidos.txt` passava em silêncio: o orçamento passou a ser cobrado a cada decodificação (76 MB de pico no mesmo arquivo), o upload limita o que o pypdf lê de uma vez (formas aninhadas), a lista de remoção falha fechada em todos os leitores, a regra das páginas de fora ficou proporcional, as recusas ficaram em português, a releitura forçada ganhou nota e rótulo próprios e os ≈600 MB viraram ≈528 MB (D-101, atualização da revisão do PR #100) | 3781 → 3825 | 762 (inalterado) |
@@ -2582,6 +2583,23 @@ exercício inteiro é o que segura o banco de processos em 3. Próximo gargalo:
 **P0-4**, atributos de processo com proveniência.
 
 ---
+
+## Sessão 56 — 07/10/26 — Fundação do catálogo oficial licenciado (D-102)
+
+PR #106 abre a transição da base fictícia para um catálogo oficial licenciado sem
+colocar o corpus no Git. `clear_demo` passou a cobrir materiais, processos e
+modais; `semear_referencia` ficou separado de `semear_demo`; o novo
+`app/catalog/` valida manifests/hashes/contagens, exige revisão humana da
+licença e grava a carga oficial de forma transacional. `CatalogDataset`,
+`CatalogImportRun`, `CatalogRecordRef`, `CatalogSupplementalValue` e
+`CatalogDatasetValue` preservam release, identidade externa e formatos que não
+cabem ainda em `MaterialPropertyValue`. Ferramentas em `scripts/granta/`
+extraem Access sem escrita, normalizam ProductConfig e constroem o bundle
+canônico. A operação está documentada em `18-catalogo-oficial-granta.md`.
+
+\* Contagem esperada pelos três testes novos desta PR; substituir pelo total
+observado na CI final se divergir.
+
 
 # Sessão 12 — 08/09/26 — A ferramenta no ar, e a camada de IA ligada em produção
 
