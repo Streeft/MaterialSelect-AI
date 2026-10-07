@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import zipfile
 from collections.abc import Iterator
 from dataclasses import dataclass
@@ -52,6 +53,10 @@ class VerifiedBundle:
                 yield value
 
 
+def _is_sha256(value: object) -> bool:
+    return isinstance(value, str) and re.fullmatch(r"[0-9a-f]{64}", value) is not None
+
+
 def _sha256_file(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as stream:
@@ -91,6 +96,8 @@ def verify_bundle(path: str | Path) -> VerifiedBundle:
 
     with archive:
         names = archive.namelist()
+        if len(names) != len(set(names)):
+            raise BundleValidationError("O ZIP contém nomes de membros duplicados.")
         if "manifest.json" not in names:
             raise BundleValidationError("manifest.json ausente.")
         for name in names:
@@ -123,6 +130,8 @@ def verify_bundle(path: str | Path) -> VerifiedBundle:
         if not isinstance(dataset, dict) or not required_dataset.issubset(dataset):
             missing = sorted(required_dataset - set(dataset or {}))
             raise BundleValidationError(f"Metadados obrigatórios do dataset ausentes: {missing}")
+        if not _is_sha256(dataset.get("source_sha256")):
+            raise BundleValidationError("dataset.source_sha256 precisa ser SHA-256 hexadecimal minúsculo.")
 
         declared = manifest.get("files")
         if not isinstance(declared, dict):
@@ -138,7 +147,7 @@ def verify_bundle(path: str | Path) -> VerifiedBundle:
                 raise BundleValidationError(f"Arquivo declarado ausente: {name}")
             expected_sha = spec.get("sha256")
             expected_count = spec.get("count")
-            if not isinstance(expected_sha, str) or len(expected_sha) != 64:
+            if not _is_sha256(expected_sha):
                 raise BundleValidationError(f"sha256 inválido em {name}.")
             if not isinstance(expected_count, int) or expected_count < 0:
                 raise BundleValidationError(f"count inválido em {name}.")
