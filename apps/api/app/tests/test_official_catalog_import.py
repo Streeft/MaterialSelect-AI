@@ -361,6 +361,4 @@ def test_same_release_rejects_changed_canonical_manifest(
     changed = verify_bundle(changed_path)
     validate_semantics(changed)
     with pytest.raises(OfficialCatalogImportError, match="manifest_sha256"):
-        OfficialCatalogImporter(
-            db_session, changed, reviewer_email=reviewer.email
-        ).run()
+        OfficialCatalogImporter(db_session, changed, reviewer_email=reviewer.email).run()
