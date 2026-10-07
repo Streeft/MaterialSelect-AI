@@ -319,9 +319,7 @@ class OfficialCatalogImporter:
             )
         self.source = source
 
-    def _existing_ref(
-        self, external_table: str, external_id: str
-    ) -> CatalogRecordRef | None:
+    def _existing_ref(self, external_table: str, external_id: str) -> CatalogRecordRef | None:
         assert self.dataset is not None
         return (
             self.db.execute(
@@ -378,7 +376,9 @@ class OfficialCatalogImporter:
                     .scalars()
                     .one_or_none()
                 )
-                parent = destination.get(str(parent_external)) if parent_external is not None else None
+                parent = (
+                    destination.get(str(parent_external)) if parent_external is not None else None
+                )
                 if existing is None:
                     existing = model(
                         name=row["name"],
@@ -410,9 +410,7 @@ class OfficialCatalogImporter:
         for row in self.bundle.iter_records("property_definitions.ndjson"):
             slug = str(row["slug"])
             existing = (
-                self.db.execute(
-                    select(PropertyDefinition).where(PropertyDefinition.slug == slug)
-                )
+                self.db.execute(select(PropertyDefinition).where(PropertyDefinition.slug == slug))
                 .scalars()
                 .one_or_none()
             )
@@ -443,9 +441,7 @@ class OfficialCatalogImporter:
                         f"{existing.canonical_unit!r} != {row['canonical_unit']!r}"
                     )
                 if existing.physical_dimension != row["physical_dimension"]:
-                    raise OfficialCatalogImportError(
-                        f"Dimensão física divergente para {slug}."
-                    )
+                    raise OfficialCatalogImportError(f"Dimensão física divergente para {slug}.")
             self.properties[slug] = existing
 
     def _import_materials(self) -> None:
@@ -706,9 +702,7 @@ class OfficialCatalogImporter:
     def _import_transports(self) -> None:
         assert self.source is not None
         for row in self.bundle.iter_records("transport_modes.ndjson"):
-            external_table, external_id = _external_key(
-                row, "ProductConfig/Transportation"
-            )
+            external_table, external_id = _external_key(row, "ProductConfig/Transportation")
             existing_ref = self._existing_ref(external_table, external_id)
             if existing_ref is not None:
                 if existing_ref.transport_mode_id is None:
@@ -717,9 +711,7 @@ class OfficialCatalogImporter:
                 if mode is None:
                     raise OfficialCatalogImportError("Referência externa órfã de modal.")
                 if existing_ref.raw_record_sha256 != _raw_hash(row):
-                    raise OfficialCatalogImportError(
-                        f"Modal mudou no mesmo dataset: {external_id}"
-                    )
+                    raise OfficialCatalogImportError(f"Modal mudou no mesmo dataset: {external_id}")
                 self.transports[external_id] = mode
                 self._bump("transport_modes_unchanged")
                 continue
@@ -849,15 +841,11 @@ class OfficialCatalogImporter:
         self.db.add(run)
         self.db.flush()
 
-        self._import_hierarchy(
-            "material_classes.ndjson", MaterialClass, self.material_classes
-        )
+        self._import_hierarchy("material_classes.ndjson", MaterialClass, self.material_classes)
         self._import_properties()
         self._import_materials()
         self._import_material_values()
-        self._import_hierarchy(
-            "process_classes.ndjson", ProcessClass, self.process_classes
-        )
+        self._import_hierarchy("process_classes.ndjson", ProcessClass, self.process_classes)
         self._import_process_attributes()
         self._import_processes()
         self._import_process_values()
