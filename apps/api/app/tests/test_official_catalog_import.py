@@ -294,16 +294,11 @@ def test_bundle_rejects_malformed_dataset_source_hash(tmp_path: Path) -> None:
     target = tmp_path / "bad-hash.zip"
 
     with zipfile.ZipFile(source, "r") as original:
-        members = {
-            info.filename: original.read(info.filename)
-            for info in original.infolist()
-        }
+        members = {info.filename: original.read(info.filename) for info in original.infolist()}
 
     manifest = json.loads(members["manifest.json"])
     manifest["dataset"]["source_sha256"] = "X" * 64
-    members["manifest.json"] = json.dumps(
-        manifest, ensure_ascii=False, sort_keys=True
-    ).encode()
+    members["manifest.json"] = json.dumps(manifest, ensure_ascii=False, sort_keys=True).encode()
 
     with zipfile.ZipFile(target, "w", zipfile.ZIP_DEFLATED) as archive:
         for name, content in members.items():
