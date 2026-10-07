@@ -13,8 +13,8 @@ from sqlalchemy.orm import Session
 
 from app.catalog.bundle import BundleValidationError, verify_bundle
 from app.catalog.importer import (
-    OfficialCatalogImportError,
     OfficialCatalogImporter,
+    OfficialCatalogImportError,
     validate_semantics,
 )
 from app.db.clear_demo import clear_demo_data
