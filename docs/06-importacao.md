@@ -4,6 +4,15 @@ A importação foi projetada para **não depender do formato da planilha do
 orientador**: um assistente de mapeamento converte qualquer CSV/XLSX/JSON/SQLite
 tabular no modelo interno, com validação completa antes de qualquer escrita.
 
+
+> **Escopo:** este documento cobre importação interativa de arquivos do usuário.
+> O catálogo oficial licenciado é deliberadamente outro fluxo: múltiplos
+> universos relacionados, identidade externa/GRUID, releases imutáveis,
+> curvas/equações e artefatos de vários gigabytes. Ele passa por
+> `app/catalog/` e pelo runbook
+> [18-catalogo-oficial-granta.md](18-catalogo-oficial-granta.md), não pelos
+> limites de 5 MB/5.000 linhas deste importador (D-102).
+
 ## Fluxo
 
 ```mermaid

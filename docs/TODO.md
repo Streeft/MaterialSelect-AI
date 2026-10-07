@@ -13,6 +13,17 @@ os vizinhos — outros documentos citam esses códigos.
 
 ## Alta prioridade
 
+**C1 — popular o catálogo oficial licenciado.** ▆ A fundação de código saiu em
+D-102: extrator Access, parser do ProductConfig, bundle verificado, identidade
+externa, dry-run/import e cutover seguro. Falta a etapa de dados, que não pode
+ser feita dentro do runner Linux da CI: rodar o extrator numa máquina Windows
+com ACE/Jet sobre os `data.gdb`, reconciliar L1/L2/L3 e verticais por
+identidade/GRUID, revisar o mapeamento para o contrato canônico, hospedar o ZIP
+em URL privada e executar o runbook de
+[`18-catalogo-oficial-granta.md`](18-catalogo-oficial-granta.md). **Não é
+pendência de arquitetura nem autorização; é execução da extração/reconciliação
+dos bytes licenciados.**
+
 **S3 — as cadeias de CVE que nenhum upgrade fecha.** ▃ O S2 (ver "Débitos já
 quitados") derrubou o `npm audit` de 27 para **14** achados e fechou as duas
 cadeias que tinham caminho de upgrade. As três que sobraram **não têm versão

@@ -1,93 +1,56 @@
-"""Delete every fictional/demo material, in one action.
+"""Delete every fictional/demo catalogue record in one action.
 
 ⚠️  Irreversível. Roda contra o banco que `DATABASE_URL` apontar.
 
-Remove todo `Material` com `is_demo=True` — os 5 de `app.db.seed`, os 70 de
-`app.db.seed_extended`, e qualquer outro que um seed futuro venha a marcar
-assim, **não importa em qual arquivo ele foi definido**. Um material
-fictício se reconhece por essa coluna, não pelo módulo que o criou (D-72):
-dois arquivos de seed existem por uma razão de teste (ver D-71), mas
-"apagar todo dado de demonstração" é uma pergunta só, e a resposta mora
-inteira aqui.
+A regra de corte é a própria coluna `is_demo`: material, processo, modal de
+transporte, química de bateria, índice de desempenho e fonte fictícios são removidos
+independentemente do módulo que os criou. Taxonomias e definições de
+propriedades/atributos permanecem porque são metadados reutilizáveis pelo
+catálogo oficial.
 
-**A cascata é explícita em Python, não só declarada no schema.** Todo
-`ForeignKey` para `material.id` já é `ondelete="CASCADE"` ou
-`ondelete="SET NULL"` — o Postgres de produção cumpriria isso sozinho — mas
-o SQLite dos testes só aplica `ondelete` com `PRAGMA foreign_keys=ON`, que
-`apps/api/app/tests/conftest.py` não liga (mudar isso teria alcance sobre
-toda a suíte, não só este módulo — fora do escopo de uma limpeza de dado
-demo). Confiar no schema teria deixado este módulo correto em produção e
-inverificável em teste — exatamente a armadilha que `docs/CLAUDE.md` §10 já
-registra para migração ("só foi exercitada em SQLite"). Por isso cada tabela
-filha é apagada aqui, na ordem que suas próprias chaves estrangeiras exigem:
-`material_property_value`, `material_keyword`, `material_process`,
-`favorite`, `recent_record`, `material_synthesis` (pelo `material_id` —
-a receita de um sintetizado, que nunca é `is_demo`, ver abaixo) e por fim
-`material_synthesis.parent_a_id`/`parent_b_id` postos em `NULL` quando um
-material fictício foi insumo de uma mistura real — o mesmo `SET NULL` que o
-schema declara, só que executado por este módulo e não pelo banco.
+A cascata é explícita em Python. Produção usa PostgreSQL com FKs, mas a suíte
+também roda em SQLite sem depender de `PRAGMA foreign_keys=ON`; por isso este
+módulo remove filhos na ordem correta em vez de confiar somente em `ON DELETE`.
 
-**Isto é uma exceção deliberada e estreita à regra geral do catálogo — não
-uma mudança dela.** `material_synthesis.py` documenta por que um material
-normalmente é **desativado, nunca excluído**
-(`DELETE /api/materiais/{id}` faz `is_active=False`, nunca um `DELETE` de
-verdade): um material real carrega história — receita de síntese, estudo
-salvo, evento de auditoria — que apagar destruiria. Este módulo não
-contradiz essa regra; ele responde a uma pergunta diferente, que só existe
-porque a linha nunca foi real: `is_demo=True` já é a declaração de que o
-valor é fictício (Princípio 6), então **para esta linha especificamente**
-"excluir de verdade" não destrói história nenhuma — não existe história
-real para proteger. Nenhum caminho deste módulo toca `Material.is_demo=False`.
-
-`AuditEvent` nunca bloqueia: `entity_id` é retrato (`Integer`, não
-`ForeignKey` — D-43), então um evento de auditoria sobre um material
-apagado continua legível depois, com o nome que o material tinha no
-momento — exatamente o ponto do retrato.
-
-O que este módulo **não** apaga, de propósito: `MaterialClass` (taxonomia,
-reutilizável por material oficial futuro sob a mesma família), `Source`
-"Dataset Demo MaterialSelect" (fica órfã sem custo — um seed futuro a
-recria via `get_or_create`, se precisar), `BatteryChemistry` e
-`TransportMode` (dado real de literatura pública, `is_demo=False`, não
-fictício — D-66/D-69). Só material fictício é apagado, porque só material
-fictício foi pedido.
+Registros reais nunca são apagados por este comando. O hard delete continua
+sendo uma exceção estreita para linhas que já se declaram fictícias. Uma fonte
+demo só é removida quando não restar nenhuma linha real apontando para ela; se
+restar, a limpeza falha fechada em vez de destruir proveniência.
 
 Run with::
 
     python -m app.db.clear_demo
 
-Ver `docs/15-dados-demonstrativos.md` para quando rodar isto.
+Ver `docs/15-dados-demonstrativos.md` para o procedimento operacional.
 """
 
 from __future__ import annotations
 
-from sqlalchemy import delete, select, update
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.orm import Session
 
 from app.db.base import SessionLocal
+from app.models.battery_chemistry import BatteryChemistry
 from app.models.material import Material
 from app.models.material_keyword import MaterialKeyword
 from app.models.material_property_value import MaterialPropertyValue
 from app.models.material_synthesis import MaterialSynthesis
 from app.models.my_records import Favorite, RecentRecord
-from app.models.process import MaterialProcess
+from app.models.performance_index import PerformanceIndex
+from app.models.process import MaterialProcess, Process
+from app.models.process_attribute import ProcessAttributeValue
+from app.models.source import Source
+from app.models.transport_mode import TransportMode
 
 
 def clear_demo_materials(db: Session) -> int:
-    """Delete every ``Material`` with ``is_demo=True``. Returns the count removed.
-
-    Idempotent in effect: running it again with no demo material left
-    returns 0 and touches nothing.
-    """
+    """Delete every `Material` with `is_demo=True`; return the count removed."""
     demo_ids = list(db.execute(select(Material.id).where(Material.is_demo.is_(True))).scalars())
     if not demo_ids:
         return 0
 
-    # A demo material is never itself synthesized (a synthesized record
-    # always has an owner, D-59's constraint; every demo row is shared,
-    # owner_id NULL), but it can have been used as an input to someone
-    # else's real mixture — set that reference NULL, same as the schema
-    # would, before the parent disappears.
+    # A real synthesized record may have used a demo material as a parent.
+    # Preserve the real record and mirror the schema's SET NULL semantics.
     db.execute(
         update(MaterialSynthesis)
         .where(MaterialSynthesis.parent_a_id.in_(demo_ids))
@@ -106,19 +69,125 @@ def clear_demo_materials(db: Session) -> int:
     db.execute(delete(MaterialPropertyValue).where(MaterialPropertyValue.material_id.in_(demo_ids)))
     db.execute(delete(MaterialKeyword).where(MaterialKeyword.material_id.in_(demo_ids)))
     db.execute(delete(Material).where(Material.id.in_(demo_ids)))
-
     return len(demo_ids)
 
 
+def clear_demo_processes(db: Session) -> int:
+    """Delete every demo process and children without touching real processes."""
+    demo_ids = list(db.execute(select(Process.id).where(Process.is_demo.is_(True))).scalars())
+    if not demo_ids:
+        return 0
+
+    db.execute(delete(Favorite).where(Favorite.process_id.in_(demo_ids)))
+    db.execute(delete(RecentRecord).where(RecentRecord.process_id.in_(demo_ids)))
+    db.execute(delete(MaterialProcess).where(MaterialProcess.process_id.in_(demo_ids)))
+    db.execute(delete(ProcessAttributeValue).where(ProcessAttributeValue.process_id.in_(demo_ids)))
+    db.execute(delete(Process).where(Process.id.in_(demo_ids)))
+    return len(demo_ids)
+
+
+def clear_demo_transport_modes(db: Session) -> int:
+    """Delete seeded fictitious transport modes; preserve every real mode."""
+    demo_ids = list(
+        db.execute(select(TransportMode.id).where(TransportMode.is_demo.is_(True))).scalars()
+    )
+    if not demo_ids:
+        return 0
+    db.execute(delete(TransportMode).where(TransportMode.id.in_(demo_ids)))
+    return len(demo_ids)
+
+
+def clear_demo_battery_chemistries(db: Session) -> int:
+    """Delete only battery chemistry rows explicitly marked as demo."""
+    demo_ids = list(
+        db.execute(select(BatteryChemistry.id).where(BatteryChemistry.is_demo.is_(True))).scalars()
+    )
+    if not demo_ids:
+        return 0
+    db.execute(delete(BatteryChemistry).where(BatteryChemistry.id.in_(demo_ids)))
+    return len(demo_ids)
+
+
+def clear_demo_performance_indices(db: Session) -> int:
+    """Delete demo merit indices; reference indices are re-seeded as real data."""
+    demo_ids = list(
+        db.execute(select(PerformanceIndex.id).where(PerformanceIndex.is_demo.is_(True))).scalars()
+    )
+    if not demo_ids:
+        return 0
+    db.execute(delete(PerformanceIndex).where(PerformanceIndex.id.in_(demo_ids)))
+    return len(demo_ids)
+
+
+def clear_demo_sources(db: Session) -> int:
+    """Delete demo sources only after proving no real record still cites them."""
+    demo_ids = list(db.execute(select(Source.id).where(Source.is_demo.is_(True))).scalars())
+    if not demo_ids:
+        return 0
+
+    remaining_refs = {
+        "material_property_values": db.scalar(
+            select(func.count(MaterialPropertyValue.id)).where(
+                MaterialPropertyValue.source_id.in_(demo_ids)
+            )
+        )
+        or 0,
+        "process_attribute_values": db.scalar(
+            select(func.count(ProcessAttributeValue.id)).where(
+                ProcessAttributeValue.source_id.in_(demo_ids)
+            )
+        )
+        or 0,
+        "transport_modes": db.scalar(
+            select(func.count(TransportMode.id)).where(TransportMode.source_id.in_(demo_ids))
+        )
+        or 0,
+        "battery_chemistries": db.scalar(
+            select(func.count(BatteryChemistry.id)).where(BatteryChemistry.source_id.in_(demo_ids))
+        )
+        or 0,
+    }
+    if any(remaining_refs.values()):
+        raise RuntimeError(
+            "Fonte demo ainda é citada por registro remanescente; "
+            f"limpeza recusada para preservar proveniência: {remaining_refs}"
+        )
+
+    db.execute(delete(Source).where(Source.id.in_(demo_ids)))
+    return len(demo_ids)
+
+
+def clear_demo_data(db: Session) -> dict[str, int]:
+    """Remove all demo catalogue records and return per-universe counts.
+
+    Order matters: material↔process links are removed from either side before
+    processes disappear. Running the function again is idempotent.
+    """
+    materials = clear_demo_materials(db)
+    processes = clear_demo_processes(db)
+    transport_modes = clear_demo_transport_modes(db)
+    battery_chemistries = clear_demo_battery_chemistries(db)
+    performance_indices = clear_demo_performance_indices(db)
+    sources = clear_demo_sources(db)
+    return {
+        "materials": materials,
+        "processes": processes,
+        "transport_modes": transport_modes,
+        "battery_chemistries": battery_chemistries,
+        "performance_indices": performance_indices,
+        "sources": sources,
+    }
+
+
 def main() -> None:
-    """CLI entry point: delete every demo material and report the count."""
+    """CLI entry point used by the Administração do banco workflow."""
     with SessionLocal() as db:
-        removed = clear_demo_materials(db)
+        removed = clear_demo_data(db)
         db.commit()
 
-    print(f"[clear_demo] {removed} materiais fictícios removidos.")
-    if removed == 0:
-        print("[clear_demo] Nada a fazer — nenhum material com is_demo=True.")
+    print(f"[clear_demo] removidos: {removed}")
+    if not any(removed.values()):
+        print("[clear_demo] Nada a fazer — nenhum registro com is_demo=True.")
 
 
 if __name__ == "__main__":

@@ -1,8 +1,9 @@
 # Operações administrativas contra o banco de produção, disparadas à mão.
 #
-# São as três coisas que `docs/13-deploy.md` manda fazer por terminal e que, sem
-# um terminal, ficariam impossíveis: aplicar as migrações, semear o catálogo de
-# demonstração e conceder acesso a uma conta. Todas dependem só de alcançar o
+# Operações que `docs/13-deploy.md` manda fazer contra o banco sem depender de
+# terminal local: migrações, seeds explícitos, cutover/import do catálogo
+# oficial, manutenção do Cérebro e concessão/revogação de acesso. Todas
+# dependem só de alcançar o
 # Postgres — não passam pelo Fly —, e o runner do GitHub alcança.
 #
 # **Só `workflow_dispatch`.** Num repositório público isso importa: o disparo
@@ -29,15 +30,18 @@ on:
         type: choice
         options:
           - migrar
-          - semear
+          - semear_referencia
+          - semear_demo
           - excluir_demo
+          - catalogo_oficial_validar
+          - catalogo_oficial_importar
           - conhecimento_simular_remocao
           - conhecimento_remover
           - conhecimento_indexar_links
           - conceder
           - revogar
       email:
-        description: "E-mail(s) da conta Google, separados por vírgula ou espaço (obrigatório em conceder/revogar)"
+        description: "E-mail da conta revisora no import oficial; lista também aceita em conceder/revogar"
         required: false
         type: string
 
@@ -75,6 +79,7 @@ jobs:
           ENVIRONMENT: production
           ACAO: ${{ inputs.acao }}
           EMAIL: ${{ inputs.email }}
+          OFFICIAL_CATALOG_BUNDLE_URL: ${{ secrets.OFFICIAL_CATALOG_BUNDLE_URL }}
         run: |
           set -euo pipefail
 
@@ -97,34 +102,53 @@ jobs:
             fi
           }
 
+          baixar_catalogo_oficial() {
+            if [ -z "${OFFICIAL_CATALOG_BUNDLE_URL:-}" ]; then
+              echo "::error::O secret OFFICIAL_CATALOG_BUNDLE_URL não está definido."
+              exit 1
+            fi
+            BUNDLE="$RUNNER_TEMP/materialselect-official-catalog.zip"
+            curl --fail --silent --show-error --location \
+              --output "$BUNDLE" "$OFFICIAL_CATALOG_BUNDLE_URL"
+          }
+
           case "$ACAO" in
             migrar)
               python -m alembic upgrade head
               ;;
-            semear)
-              # As migrações primeiro, sempre: `app.db.seed` chama
-              # `create_all` por conveniência, e num banco vazio isso criaria as
-              # tabelas sem carimbo do Alembic — a migração seguinte falharia.
+            semear_referencia)
+              # Caminho seguro de produção depois do catálogo oficial: garante
+              # apenas taxonomias, definições e catálogos reais reutilizáveis.
+              # Nunca recria material/processo/modal fictício.
+              python -m alembic upgrade head
+              python -m app.db.seed_reference
+              ;;
+            semear_demo)
+              # Exclusivo para desenvolvimento/demonstração. Esta ação recria
+              # deliberadamente o catálogo fictício e NÃO deve ser usada depois
+              # do cutover da base oficial.
               python -m alembic upgrade head
               python -m app.db.seed
-              # `seed_extended` é um segundo módulo de propósito — os 70
-              # materiais adicionais ficam fora de `app.db.seed` de propósito
-              # (o próprio docstring do arquivo explica: manter o seed
-              # principal em 5 materiais é o que preserva as dezenas de
-              # asserções de contagem fixa em `apps/api/app/tests/`, que
-              # sempre partem de `seed()` via `conftest.py`). Ele depende da
-              # classe/propriedade/fonte que o passo acima acabou de criar,
-              # por isso vem depois, nunca antes.
               python -m app.db.seed_extended
               ;;
             excluir_demo)
-              # Irreversível: apaga todo Material com is_demo=True, não
-              # importa em qual módulo de seed ele foi definido — a marca é
-              # a coluna, não o arquivo (D-72). O momento certo de disparar
-              # isto é quando o catálogo oficial estiver pronto para
-              # substituir o de demonstração; ver
-              # docs/15-dados-demonstrativos.md.
+              # Irreversível: apaga somente linhas is_demo=True em todos os
+              # modelos marcáveis (material, processo, modal, química, índice
+              # e fonte), recusando apagar uma fonte demo ainda citada por
+              # registro real. Rode só no cutover; ver docs/15 e docs/18.
               python -m app.db.clear_demo
+              ;;
+            catalogo_oficial_validar)
+              baixar_catalogo_oficial
+              python -m app.catalog.official_import --bundle "$BUNDLE"
+              ;;
+            catalogo_oficial_importar)
+              exigir_email
+              baixar_catalogo_oficial
+              python -m app.catalog.official_import \
+                --bundle "$BUNDLE" \
+                --reviewer-email "$EMAIL" \
+                --commit
               ;;
             conhecimento_simular_remocao)
               # Só lê: lista cada documento do Cérebro que casa com

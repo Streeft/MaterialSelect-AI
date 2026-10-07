@@ -6,6 +6,13 @@ Importing this package registers every model on the shared declarative
 
 from app.models.audit import AuditEvent
 from app.models.battery_chemistry import BatteryChemistry
+from app.models.catalog import (
+    CatalogDataset,
+    CatalogDatasetValue,
+    CatalogImportRun,
+    CatalogRecordRef,
+    CatalogSupplementalValue,
+)
 from app.models.enums import (
     AuditAction,
     AuditEntityType,
@@ -70,6 +77,11 @@ __all__ = [
     "AuditEntityType",
     "AuditEvent",
     "BetterDirection",
+    "CatalogDataset",
+    "CatalogDatasetValue",
+    "CatalogImportRun",
+    "CatalogRecordRef",
+    "CatalogSupplementalValue",
     "ConstraintGroup",
     "DataQuality",
     "DocumentKind",

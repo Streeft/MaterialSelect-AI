@@ -193,6 +193,13 @@ quebra o runtime de desenvolvimento com um erro que **não reproduz em
 no `webServer` do `playwright.config.ts` é load-bearing** — sem ele a build roda
 noutro bundler, com outro fatiamento de chunks ([D-51](docs/DECISIONS.md)).
 
+**Catálogo oficial licenciado (D-102).** O corpus externo nunca entra no Git nem em
+`seed.py`. `app/catalog/` verifica bundle/manifest/hashes, preserva identidade
+externa e só grava depois de `excluir_demo`. Valores não representáveis pelo
+modelo numérico atual são preservados em estruturas suplementares e não usados
+em cálculo até existir regra determinística. Operação e cutover:
+[`docs/18-catalogo-oficial-granta.md`](docs/18-catalogo-oficial-granta.md).
+
 ## Convenções
 
 - Python: SQLAlchemy 2.0 style (`Mapped[...]`/`mapped_column`), Pydantic v2,
@@ -255,9 +262,11 @@ Mesclar um PR **não implanta nada sozinho** na API nem no banco — só o
 frontend (Vercel) publica automaticamente a cada push em `main`. Depois de
 mesclar qualquer PR que toque `apps/api/**`, dispare os dois workflows
 manuais na aba Actions: **Deploy da API** (`deploy-api.yml`) sempre, e
-**Administração do banco** (`admin-banco.yml`, ação `semear`) sempre que
-mexer em `app/db/seed.py` ou `app/db/seed_extended.py` — na dúvida, dispare
-os dois; `semear` roda ambos os módulos, e os dois são idempotentes. Se o PR
+**Administração do banco** (`admin-banco.yml`): `semear_referencia` mantém só
+referência real reutilizável; `semear_demo` recria propositalmente os seeds
+fictícios e só deve ser usado em desenvolvimento/demo. Depois do cutover
+oficial, nunca use `semear_demo` no banco de produção. A carga oficial segue
+`docs/18-catalogo-oficial-granta.md`. Se o PR
 mudou `Cérebro/removidos.txt`, a mesma aba tem `conhecimento_simular_remocao`
 e, conferido o log, `conhecimento_remover` (D-100). Se tocou `Cérebro/` ou
 `Cérebro/manifesto.json`, dispare **Base de conhecimento (Cérebro)**
@@ -277,7 +286,7 @@ Fases 1 a 9 concluídas. **Fase 7 (relatórios e qualidade) concluída** — as
 exportações CSV/XLSX, o relatório HTML imprimível, os testes end-to-end de
 interface (A4, Playwright em `apps/web/e2e/`), a autenticação (A5) e a
 auditoria (M2 — `AuditEvent`, quem mudou o quê e quando, retrato em vez de
-junção viva, [D-43](docs/DECISIONS.md)) já saíram; a exportação nativa em PPTX (B2) foi entregue e, na sequência, o lote quádruplo de melhorias funcionais (duplicação de estágio em seleção, relevância e highlight na busca, seções circulares no solver e comparação lado a lado no Eco Audit — Opções 1, 2, 3 e 4) foi entregue (3395 → 3407 testes de backend e 753 → 762 de frontend); e na Sessão 48, a figura de barras por fase no Eco Audit (individual e comparativo) e a reordenação de estágios por arraste na Seleção (Opções 1 e 2) foram integradas (3743 testes de backend e 762 → 778 de frontend); na Sessão 54, a vinculação automática de processos demo aos materiais de teste por classe (script CLI e migração Alembic b7d219fa82de) foi implementada, destravando o Eco Audit e o Dimensionador de Custo (3854 → 3857 testes de backend e 778 de frontend); na Sessão 55, a padronização do seletor de modo do Eco Audit para ButtonGroup/ButtonGroupItem (Segmented Control MSDS 2.0, D-80 e D-91) foi implementada, eliminando múltiplos botões primários na tela (3857 testes de backend e 778 de frontend); e na Sessão 56, a auditoria de conformidade das Frentes 1 a 4 com o Design System (MSDS 2.0, D-80/D-91) e acessibilidade (WCAG 2.1 AA) foi concluída junto à auditoria técnica do Mapa de Ashby 2D (Okabe-Ito, tipografia embutida em exportações SVG/PNG e tabela semântica acessível), e a pendência operacional A7 (execução do Cérebro em produção no Neon) foi quitada formalmente pelo autor (3857 testes de backend e 778 de frontend mantidos). **A5** deu login exclusivamente por terceiros
+junção viva, [D-43](docs/DECISIONS.md)) já saíram; a exportação nativa em PPTX (B2) foi entregue e, na sequência, o lote quádruplo de melhorias funcionais (duplicação de estágio em seleção, relevância e highlight na busca, seções circulares no solver e comparação lado a lado no Eco Audit — Opções 1, 2, 3 e 4) foi entregue (3395 → 3407 testes de backend e 753 → 762 de frontend); e na Sessão 48, a figura de barras por fase no Eco Audit (individual e comparativo) e a reordenação de estágios por arraste na Seleção (Opções 1 e 2) foram integradas (3743 testes de backend e 762 → 778 de frontend); na Sessão 54, a vinculação automática de processos demo aos materiais de teste por classe (script CLI e migração Alembic b7d219fa82de) foi implementada, destravando o Eco Audit e o Dimensionador de Custo (3854 → 3857 testes de backend e 778 de frontend); na Sessão 55, a padronização do seletor de modo do Eco Audit para ButtonGroup/ButtonGroupItem (Segmented Control MSDS 2.0, D-80 e D-91) foi implementada, eliminando múltiplos botões primários na tela (3857 testes de backend e 778 de frontend); e na Sessão 56, a auditoria de conformidade das Frentes 1 a 4 com o Design System (MSDS 2.0, D-80/D-91) e acessibilidade (WCAG 2.1 AA) foi concluída junto à auditoria técnica do Mapa de Ashby 2D (Okabe-Ito, tipografia embutida em exportações SVG/PNG e tabela semântica acessível), e a pendência operacional A7 (execução do Cérebro em produção no Neon) foi quitada formalmente pelo autor (3857 testes de backend e 778 de frontend mantidos). **A5** deu login exclusivamente por terceiros Na Sessão 57, a fundação D-102 do catálogo oficial licenciado adicionou zero-demo fail-closed, identidade externa/release, bundle verificado, import transacional e tooling Granta (3864 testes de backend; 778 de frontend).
 (Google, OAuth 2.0 — sem senha em lugar nenhum do sistema), sessão em cookie
 `httpOnly` que é linha de banco e não JWT, catálogo compartilhado entre todo
 usuário autenticado e um `Project` por usuário isolando `SelectionStudy`
@@ -764,7 +773,7 @@ nenhum; só não continha os 70 materiais. A separação em dois módulos
 continua certa — `conftest.py` reexecuta `app.db.seed` como base de todo
 teste do backend, e dobrar esse baseline para 75 materiais quebraria dezenas
 de asserções por contagem fixa —, o que faltava era ligar o segundo módulo a
-algo que roda. `admin-banco.yml` (`semear`) e `scripts/seed.ps1` agora
+algo que roda. `admin-banco.yml` (`semear_demo`) e `scripts/seed.ps1` agora
 executam os dois, em sequência; o stub vestigial `seed_patch.py`, do mesmo
 PR e nunca importado por nada, foi removido.
 
@@ -781,10 +790,12 @@ compartilhado precisa de `require_catalog_curator`.** A troca em produção é o
 workflow **Modo de acesso** (`modo-acesso.yml`, `abrir`/`restaurar_assinatura`),
 que só fica verde depois de ler o modo novo em `/api/health`.
 
-**Apagar dado de demonstração ganhou um único caminho** ([D-72](docs/DECISIONS.md)):
-`apps/api/app/db/clear_demo.py` (`python -m app.db.clear_demo`, ação
-`excluir_demo` de `admin-banco.yml`) apaga todo `Material` com
-`is_demo=True`, não importa em qual módulo de seed a linha nasceu — a
+**Apagar dado de demonstração ganhou um único caminho** ([D-72](docs/DECISIONS.md),
+[D-102](docs/DECISIONS.md)): `apps/api/app/db/clear_demo.py`
+(`python -m app.db.clear_demo`, ação `excluir_demo` de `admin-banco.yml`)
+apaga toda linha fictícia dos modelos que possuem `is_demo`: `Material`,
+`Process`, `TransportMode`, `BatteryChemistry`, `PerformanceIndex` e
+`Source`. Fonte demo ainda citada por registro real faz o comando abortar. A
 pergunta "isto é fictício?" tem uma resposta só, a coluna, e não depende de
 lembrar quantos arquivos de seed existem. A cascata (valores, palavras-chave,
 favoritos, processos ligados, receita de síntese) é escrita em Python e não
@@ -1029,7 +1040,7 @@ deles, `sha256 <hex>`) ou um caminho com `Cérebro/` na frente para todos os
 leitores, e nenhuma recusa cita a linha, só o número (D-101, revisão do PR
 #100).
 
-3857 testes de backend (nenhum skip na CI; sem `POSTGRES_TEST_URL`, 3851 passam
+3864 testes de backend (nenhum skip na CI; sem `POSTGRES_TEST_URL`, 3858 passam
 e 6 pulam) e 778 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
