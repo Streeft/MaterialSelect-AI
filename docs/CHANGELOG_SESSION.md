@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [59](#sessão-59--071026--o-cartão-de-material-para-cae-tm5-d-104) | 07/10/2026 | O cartão de material para CAE (TM5): MAPDL, MatML 3.1, Abaqus, Nastran `MAT1` e LS-DYNA `*MAT_ELASTIC`, a partir da documentação pública; três sistemas de unidades consistentes pelo Pint; ausente omitido, nunca 0; recusa 422 quando falta o mínimo do formato; "Exportar ▾" na ficha (D-104) | 3864 → 3938 | 778 → 783 |
 | [56](#sessão-56--071026--fundação-do-catálogo-oficial-licenciado-d-102) | 07/10/2026 | Fundação do catálogo oficial licenciado: zero-demo fail-closed, seed de referência separado, identidade externa/release, bundle com hashes, import transacional, preservação suplementar, inventário/Exporters/ProductConfig e extração Access em lote (D-102, PR #106) | 3857 → 3864 | 778 (inalterado) |
 | [53](#sessão-53--061026--o-log-público-da-execução-37415600025-foi-apagado) | 06/10/2026 | Só documentação: o dono apagou, pela interface do Actions, o log público da execução 37415600025 (texto de livro licenciado no traceback); o TODO A7, item 4, foi para "Débitos já quitados", e os textos que o davam como publicado foram corrigidos (D-101) | 3854 (inalterado) | 778 (inalterado) |
 | [52](#sessão-52--061026--segunda-rodada-do-pr-100-um-pdf-por-vez-e-um-relógio-para-o-upload) | 06/10/2026 | A segunda revisão do PR #100 achou que os limites de memória do upload eram por leitura (três uploads de 8 KB simultâneos: +624 MB) e que a CPU não tinha limite (uma forma redesenhada não decodifica nada): um PDF por vez no processo (três simultâneos: 247 MB), relógio a cada parse e 30 s por upload, pypdf fixado em `<6.20` com autoverificação que recusa todo PDF se os medidores não forem alcançados, a lista de remoção recusa os erros sem dois-pontos e o `Cérebro/` na frente, e nenhuma recusa cita a linha (D-101, segunda rodada) | 3825 → 3854 | 762 (inalterado) |
@@ -70,6 +71,57 @@ As sessões entre a 11 e a 12 — o patch de design "Prisma" (D-49, D-50), o
 upgrade de segurança S1 e a rodada de desempenho — **não têm seção própria
 aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
+
+---
+
+## Sessão 59 — 07/10/26 — O cartão de material para CAE (TM5, D-104)
+
+**O pedido.** Implementar o TM5 do backlog: exportar o cartão de um material
+para solvers de CAE e para um formato aberto, a partir das especificações
+públicas, com sistema de unidades explícito, ausência omitida e o aviso de
+limitação de uso. Numerada 59 porque a 58 (D-103, portão de licença das fontes
+abertas) está num ramo ainda não mesclado; o TM5 nasceu no backlog daquele
+ramo, e por isso o item entra aqui direto em "Débitos já quitados".
+
+**O que mudou.**
+
+- **`app/exporters/cae/`** — `quantities.py` (as seis grandezas e os slugs que
+  as carregam; os três sistemas como produto de unidades nomeadas), `card.py`
+  (conversão pelo `units.from_canonical`, razões de omissão, avisos),
+  `deck.py` (o cabeçalho comum dos decks), `text.py` (rótulo, comentário e
+  número por formato) e um renderizador por formato: `mapdl.py`, `matml.py`,
+  `abaqus.py`, `nastran.py`, `lsdyna.py`. O registro em `__init__.py` diz o que
+  cada formato carrega e o que exige.
+- **Rota** `GET /api/exports/materiais/{id}/cae?formato=&unidades=`, no router
+  de exportações (portão de assinatura), com `CaeExportService` aplicando a
+  visibilidade do D-62. Formato ou sistema desconhecido: 400 com as opções;
+  falta do mínimo: **422** (`ExportRefusedError`, novo) com o que falta.
+- **Ficha do material:** "Exportar ▾" com "Cartão de material para CAE…", que
+  abre o diálogo de formato e sistema; a recusa aparece no diálogo, que fica
+  aberto para tentar outro formato. O cartão é buscado por `fetch` (e não por
+  link) justamente para a recusa poder ser lida.
+- **Testes:** golden files fictícios por formato em `app/tests/fixtures/cae/`,
+  conversão por sistema e consistência física (√(E/ρ) e k/(ρ·cₚ) iguais nos
+  três), ausência nunca 0, recusa, escape (`<`, aspas, quebra de linha, `=`,
+  `$`, NUL), aviso em todo arquivo, rota (anexo, 404 de registro alheio, 403
+  sem assinatura) e a varredura do canário de isolamento, que agora pede o
+  MatML do registro privado. Frontend: menu e diálogo no Vitest; o mock da
+  auditoria de acessibilidade ganhou `downloadCaeCard`.
+
+**O que ficou dito sem rodeio.** Coeficiente de Poisson, expansão térmica e
+calor específico não têm slug no catálogo; o cartão os lê de `coef_poisson`,
+`coef_expansao_termica` e `calor_especifico`, e até alguém criá-los os quatro
+decks recusam todo material (só o MatML sai). Não foram semeados vazios pela
+objeção do D-69 (TM5-a).
+
+**Limite da verificação.** A rede da sessão bloqueou a leitura direta de toda
+documentação (Ansys, Abaqus, OASIS, ORNL, NIST); valeram os resultados de
+busca, e o D-104 lista o que foi confirmado e o que foi escrito de memória.
+Nenhum arquivo foi aberto num solver nem validado contra o XSD do MatML
+(TM5-e).
+
+**Números.** Backend 3864 → 3938 (3932 passam e 6 pulam sem
+`POSTGRES_TEST_URL`); frontend 778 → 783.
 
 ---
 

@@ -7953,3 +7953,115 @@ sugerir revisão, nunca escrever.
 
 Implementação e runbook:
 [`18-catalogo-oficial-granta.md`](18-catalogo-oficial-granta.md).
+
+---
+
+## D-104 — Exportadores CAE: cartão de material a partir da especificação pública, sistema de unidades explícito, ausência omitida e recusa quando falta o mínimo
+
+**Data:** 07/10/2026
+**Status:** aceita — aberta como rascunho no início da Sessão 59 e fechada ao
+fim dela, junto com o código e os testes. (O número D-103 está reservado para o
+rascunho do portão de licença das fontes abertas, num ramo ainda não mesclado.)
+
+**O pedido (TM5).** Levar um material do catálogo para um solver de elementos
+finitos — Ansys MAPDL, Abaqus, Nastran, LS-DYNA — e para um formato aberto
+(MatML), sem que o arquivo invente nada que o catálogo não tem.
+
+**O desenho.** `app/exporters/cae/`: um renderizador por formato, todos lendo um
+`CaeCard` já convertido. Quem converte e decide o que falta é um lugar só
+(`card.py`); quem decide se o arquivo pode sair é o registro de formatos
+(`__init__.py`, `refusal_reason`); o serviço (`cae_export_service.py`) aplica a
+visibilidade do D-62 e o router é fino. Rota:
+`GET /api/exports/materiais/{id}/cae?formato=mapdl|matml|abaqus|nastran|lsdyna&unidades=m-kg-s|mm-t-s|in-lbf-s`,
+sempre `attachment`, sob o portão de assinatura do router de exportações.
+
+Seis regras, cada uma com a alternativa que ela recusa:
+
+1. **Fonte: só a documentação pública de cada formato.** Nenhum arquivo,
+   modelo ou `.exp` do Granta/EduPack foi lido ou copiado. O texto dos
+   renderizadores cita o que a documentação pública diz de cada campo.
+2. **Sistema de unidades explícito, sem padrão.** Três sistemas consistentes —
+   SI m-kg-s (Pa, K), SI mm-t-s (t/mm³, MPa, mW/(mm·K), mJ/(t·K)) e EUA
+   in-lbf-s (lbf·s²/in⁴, psi, °F de diferença). Um solver multiplica os números
+   que recebe: densidade em kg/m³ ao lado de módulo em MPa dá resposta errada
+   sem erro nenhum, e só quem monta o modelo sabe o sistema dele. Por isso não
+   há "automático", e o parâmetro **não** é a unidade de leitura do D-70 (que é
+   por grandeza). Cada unidade-alvo é escrita como produto de unidades nomeadas
+   com potência inteira; os mesmos termos dão a string do Pint e o `Units` do
+   MatML, para que unidade declarada e número convertido não possam discordar.
+   A conversão sai do valor canônico por `units.from_canonical` — nenhum fator
+   em literal (princípio 4). Um teste prova a consistência de cada sistema pela
+   física: √(E/ρ) e k/(ρ·cₚ) dão a mesma velocidade e a mesma difusividade nos
+   três.
+3. **Ausente é omitido, nunca 0 (princípio 3, D-24).** Sem linha no catálogo:
+   "não cadastrado"; linha declarada ausente: "não cadastrado (declarado
+   ausente no catálogo)"; unidade canônica que não chega ao sistema: "não
+   exportado", com a unidade. O campo some e o comentário diz por quê.
+4. **Recusa (422) quando falta o mínimo do formato.** A alternativa — escrever
+   o cartão com o campo em branco — entrega o número ao padrão do solver: o
+   MAPDL usa ν = 0,3, o `*ELASTIC` do Abaqus lê o branco como 0, o `MAT1` do
+   Nastran põe 0,0 quando dois de E/G/NU faltam, o `*MAT_ELASTIC` do LS-DYNA
+   tem PR = 0 por padrão e sem RO não há massa. Mínimos: E e ν nos quatro
+   decks, e também ρ no LS-DYNA; MatML aceita qualquer propriedade (e recusa o
+   material sem nenhuma, porque um `BulkDetails` vazio leria como "sem
+   dados"). A mensagem nomeia o que falta. Onde o branco do solver é parâmetro
+   do **modelo** e não do material (TREF, GE, DA, DB, G calculado de E e ν), o
+   campo fica em branco e o comentário diz que o solver assume o padrão dele;
+   RHO e A em branco no Nastran ganham o aviso do que isso significa.
+5. **Faixa sai pelo ponto representativo**, declarado no arquivo com os
+   limites convertidos. A alternativa — deixar o usuário escolher mínimo,
+   típico ou máximo, como sugeria o roteiro do agente — fica para quando houver
+   pedido: escolher o limite conservador depende do modo de falha, que o
+   catálogo não sabe.
+6. **Todo arquivo carrega o aviso de limitação e a proveniência.** Fonte,
+   qualidade do dado e licença de cada valor; aviso de fictício quando o
+   material **ou a fonte de qualquer valor** é de demonstração (um material
+   real com um valor de fonte fictícia ainda é um cartão com número
+   inventado); registro próprio (D-62) declarado. O aviso de reprodutibilidade
+   dos relatórios **não** entra: ele fala de reexecutar um estudo, e o cartão
+   não reexecuta nada.
+
+**Escape por formato, não intercambiável.** MatML: `ElementTree` escapa a
+marcação, e os caracteres que o XML 1.0 não representa são removidos antes.
+Decks: o nome nunca quebra linha (uma quebra transformaria o resto do nome em
+comando); no Abaqus vira rótulo `[A-Za-z0-9_-]`, iniciado por letra, de até 80
+caracteres; no LS-DYNA o título perde `$`/`*` iniciais (seria lido como
+comentário ou palavra-chave e deslocaria os cartões) e fica em 80 colunas;
+no MAPDL os comentários perdem `$`, que separa comandos. Comentários dos decks
+saem em ASCII: Nastran e LS-DYNA leem por coluna, e um caractere multibyte
+desloca o que o leitor de campo fixo vê. Nastran usa o campo largo (`MAT1*`,
+16 colunas) porque o campo de 8 cortaria o número a quatro ou cinco dígitos; o
+LS-DYNA tem 10 colunas e o valor completo está sempre no comentário acima.
+
+**Três slugs são contrato, não seed.** Módulo de Young, densidade e
+condutividade têm slug no catálogo (`modulo_young`, `densidade`,
+`condutividade_termica`). Coeficiente de Poisson, expansão térmica e calor
+específico **não**: o cartão os lê de `coef_poisson`, `coef_expansao_termica` e
+`calor_especifico`. Semear essas três definições sem valor nenhum foi
+descartado pela razão do D-69: ficariam em ~0 % no painel e subiriam ao topo do
+ranking de lacunas. Consequência dita sem rodeio: **hoje os quatro decks recusam
+todo material do catálogo de demonstração**, e só o MatML sai; o cartão passa a
+servir no dia em que quem cura o catálogo criar as três propriedades (ou o
+bundle do D-102 as trouxer) — TM5-a no `TODO.md`.
+
+**O que foi e o que não foi verificado.** A saída de rede da sessão bloqueou a
+leitura direta de toda página de documentação (ansyshelp, abaqus-docs, OASIS,
+ORNL, NIST, coverpages); só resultados de busca foram lidos. Por eles foram
+confirmados: os campos de `MAT1` (E, G, NU, RHO, A, TREF, GE) e a regra de
+cálculo/zero quando campos de E/G/NU faltam; os rótulos `EX`, `PRXY`, `NUXY`,
+`DENS`, `ALPX`, `KXX` e `C` do `MP`, o papel do `MPTEMP` e o padrão ν = 0,3 do
+MAPDL; o `**` de comentário, o limite de 80 caracteres e a linha `E, ν` do
+`*ELASTIC` no Abaqus; os campos MID, RO, E, PR, DA, DB, K do `*MAT_ELASTIC`, o
+PR = 0 por padrão e a linha de título de 80 colunas do `_TITLE`; e a estrutura
+`MatML_Doc`/`Material`/`BulkDetails`/`PropertyData`/`Metadata`/
+`PropertyDetails` do MatML. **Não verificados**, escritos de memória da
+documentação pública e a conferir (TM5-e): os rótulos do `/UNITS` (`SI`, `MPA`,
+`BIN`); a continuação automática do campo largo do Nastran com o campo 10 em
+branco; a ordem exata dos filhos e os valores admitidos de `Data/@format` no
+XSD do MatML 3.1, e se `DataSourceDetails/@type` é obrigatório (foi omitido);
+`*EXPANSION, TYPE=ISO`, `*CONDUCTIVITY, TYPE=ISO` e `*SPECIFIC HEAT` com um
+valor por linha. Nenhum arquivo foi aberto num solver.
+
+**Fora desta decisão:** curva tensão-deformação plástica e dados dependentes de
+temperatura (TM5-b, depende do TM4), XML do Engineering Data do Workbench
+(TM5-c) e cartões térmicos `MAT4`/material térmico do LS-DYNA (TM5-d).
