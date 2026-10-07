@@ -11,7 +11,7 @@ chamava.
 
 **Todo dado fictício se declara pela coluna `is_demo=True` do seu próprio
 modelo, e todo módulo que o cria tem de estar ligado a algo que
-`admin-banco.yml` (ação `semear`) de fato executa.** Um arquivo Python com
+`admin-banco.yml` (ação `semear_demo`) de fato executa.** Um arquivo Python com
 materiais, químicas, modos de transporte ou qualquer outro dado de exercício
 que ninguém importa é exatamente o defeito do D-71 — só que a próxima vez.
 
@@ -34,13 +34,13 @@ que ninguém importa é exatamente o defeito do D-71 — só que a próxima vez.
    (não material), replique o padrão: uma função `seed_algo_extended(db,
    source) -> int` que o próprio arquivo expõe, chamada pelo `main()` dele.
 3. **Ligue o módulo a `admin-banco.yml`.** Depois de escrever o código,
-   confira que a ação `semear` (`.github/workflows/admin-banco.yml`) chama o
+   confira que a ação `semear_demo` (`.github/workflows/admin-banco.yml`) chama o
    comando novo — `python -m app.db.<seu_modulo>` — na sequência certa (depois
    de `app.db.seed`, se depender de classe/propriedade/fonte que ele cria).
    Sem este passo, o módulo existe e nunca roda — é exatamente isto que o
    D-71 registrou. Repita a mesma checagem em `scripts/seed.ps1`, para quem
    semeia localmente.
-4. **Rode `admin-banco.yml` → `semear` depois de mesclar**, e leia o log: a
+4. **Rode `admin-banco.yml` → `semear_demo` apenas quando quiser dados fictícios**, e leia o log: a
    contagem por categoria (`materials_created`, ou o nome que seu módulo
    imprimir) tem de subir. Job verde não prova nada sozinho — ver
    `docs/13-deploy.md` §5-ter.
@@ -60,11 +60,12 @@ Um comando só, sem preparar nada antes: na aba **Actions** do repositório,
 Isso executa `python -m app.db.clear_demo`
 (`apps/api/app/db/clear_demo.py`), que:
 
-- **Apaga todo `Material` com `is_demo=True`** — os 5 de `app.db.seed`, os 70
-  de `app.db.seed_extended`, e qualquer outro que um seed futuro venha a
-  marcar assim, não importa em qual arquivo foi definido. A pergunta "isto é
-  fictício?" tem uma resposta só, a coluna, e a exclusão em massa lê
-  exatamente essa coluna.
+- **Apaga todo registro de catálogo marcado `is_demo=True`** nos três
+  universos que hoje carregam essa marca: `Material`, `Process` e
+  `TransportMode`. Isso inclui os 5 materiais de `app.db.seed`, os 70 de
+  `app.db.seed_extended`, os processos fictícios, seus atributos/links e os
+  modais fictícios. A pergunta "isto é fictício?" continua tendo uma resposta
+  só: a coluna do próprio registro.
 - **Não deixa órfão.** `MaterialPropertyValue`, `MaterialKeyword`,
   `MaterialProcess`, `Favorite`, `RecentRecord` e a receita de
   `MaterialSynthesis` de cada material fictício somem junto — explicitamente,
@@ -72,15 +73,14 @@ Isso executa `python -m app.db.clear_demo`
   `ondelete` sem uma `PRAGMA` que este projeto não liga; depender só do
   schema teria deixado a exclusão correta em produção e inverificável em
   teste — ver o docstring do próprio `clear_demo.py`).
-- **Não apaga taxonomia nem dado real.** `MaterialClass`, `Process`,
-  `ProcessClass`, `PropertyDefinition`, `PerformanceIndex`,
-  `BatteryChemistry` e `TransportMode` continuam de pé — os dois últimos são
-  dado real de literatura pública (`is_demo=False`, D-66/D-69), não
-  fictício, e a taxonomia é reutilizável pelos materiais oficiais que forem
-  chegar sob a mesma família.
+- **Não apaga taxonomia nem dado real.** `MaterialClass`, `ProcessClass`,
+  `PropertyDefinition`, definições de atributos, fontes e qualquer registro
+  com `is_demo=False` continuam de pé. `BatteryChemistry` continua intacta;
+  processos e modais reais também. As taxonomias/definições são reutilizáveis
+  pelo catálogo oficial.
 - **É irreversível e idempotente**: uma segunda execução, sem material
   fictício sobrando, não faz nada e diz isso no log
-  (`Nada a fazer — nenhum material com is_demo=True.`). Não é "rode duas
+  (`Nada a fazer — nenhum registro com is_demo=True.`). Não é "rode duas
   vezes por garantia" no mesmo sentido de `semear` — é seguro rodar de novo
   se houver dúvida, mas a primeira execução já é definitiva para o que ela
   apagou.
@@ -116,4 +116,8 @@ esta regra é uma extensão dele.
 - [`docs/13-deploy.md` §5-ter](13-deploy.md) — quando disparar cada workflow
   depois de um merge.
 - `apps/api/app/db/seed.py`, `apps/api/app/db/seed_extended.py`,
-  `apps/api/app/db/clear_demo.py` — o código que esta regra descreve.
+  `apps/api/app/db/seed_reference.py`, `apps/api/app/db/clear_demo.py` — o código
+  que esta regra descreve. Depois do cutover oficial, produção usa
+  `semear_referencia`; `semear_demo` fica reservado a desenvolvimento/demo.
+- [`18-catalogo-oficial-granta.md`](18-catalogo-oficial-granta.md) — pipeline e
+  ordem do cutover oficial.
