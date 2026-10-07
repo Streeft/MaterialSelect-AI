@@ -193,6 +193,13 @@ quebra o runtime de desenvolvimento com um erro que **não reproduz em
 no `webServer` do `playwright.config.ts` é load-bearing** — sem ele a build roda
 noutro bundler, com outro fatiamento de chunks ([D-51](docs/DECISIONS.md)).
 
+**Catálogo oficial licenciado (D-102).** O corpus externo nunca entra no Git nem em
+`seed.py`. `app/catalog/` verifica bundle/manifest/hashes, preserva identidade
+externa e só grava depois de `excluir_demo`. Valores não representáveis pelo
+modelo numérico atual são preservados em estruturas suplementares e não usados
+em cálculo até existir regra determinística. Operação e cutover:
+[`docs/18-catalogo-oficial-granta.md`](docs/18-catalogo-oficial-granta.md).
+
 ## Convenções
 
 - Python: SQLAlchemy 2.0 style (`Mapped[...]`/`mapped_column`), Pydantic v2,
@@ -255,9 +262,11 @@ Mesclar um PR **não implanta nada sozinho** na API nem no banco — só o
 frontend (Vercel) publica automaticamente a cada push em `main`. Depois de
 mesclar qualquer PR que toque `apps/api/**`, dispare os dois workflows
 manuais na aba Actions: **Deploy da API** (`deploy-api.yml`) sempre, e
-**Administração do banco** (`admin-banco.yml`, ação `semear`) sempre que
-mexer em `app/db/seed.py` ou `app/db/seed_extended.py` — na dúvida, dispare
-os dois; `semear` roda ambos os módulos, e os dois são idempotentes. Se o PR
+**Administração do banco** (`admin-banco.yml`): `semear_referencia` mantém só
+referência real reutilizável; `semear_demo` recria propositalmente os seeds
+fictícios e só deve ser usado em desenvolvimento/demo. Depois do cutover
+oficial, nunca use `semear_demo` no banco de produção. A carga oficial segue
+`docs/18-catalogo-oficial-granta.md`. Se o PR
 mudou `Cérebro/removidos.txt`, a mesma aba tem `conhecimento_simular_remocao`
 e, conferido o log, `conhecimento_remover` (D-100). Se tocou `Cérebro/` ou
 `Cérebro/manifesto.json`, dispare **Base de conhecimento (Cérebro)**
@@ -764,7 +773,7 @@ nenhum; só não continha os 70 materiais. A separação em dois módulos
 continua certa — `conftest.py` reexecuta `app.db.seed` como base de todo
 teste do backend, e dobrar esse baseline para 75 materiais quebraria dezenas
 de asserções por contagem fixa —, o que faltava era ligar o segundo módulo a
-algo que roda. `admin-banco.yml` (`semear`) e `scripts/seed.ps1` agora
+algo que roda. `admin-banco.yml` (`semear_demo`) e `scripts/seed.ps1` agora
 executam os dois, em sequência; o stub vestigial `seed_patch.py`, do mesmo
 PR e nunca importado por nada, foi removido.
 
@@ -783,8 +792,8 @@ que só fica verde depois de ler o modo novo em `/api/health`.
 
 **Apagar dado de demonstração ganhou um único caminho** ([D-72](docs/DECISIONS.md)):
 `apps/api/app/db/clear_demo.py` (`python -m app.db.clear_demo`, ação
-`excluir_demo` de `admin-banco.yml`) apaga todo `Material` com
-`is_demo=True`, não importa em qual módulo de seed a linha nasceu — a
+`excluir_demo` de `admin-banco.yml`) apaga todo registro fictício dos universos
+`Material`, `Process` e `TransportMode` pela própria coluna `is_demo=True` — a
 pergunta "isto é fictício?" tem uma resposta só, a coluna, e não depende de
 lembrar quantos arquivos de seed existem. A cascata (valores, palavras-chave,
 favoritos, processos ligados, receita de síntese) é escrita em Python e não
