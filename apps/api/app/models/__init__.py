@@ -8,6 +8,7 @@ from app.models.audit import AuditEvent
 from app.models.battery_chemistry import BatteryChemistry
 from app.models.catalog import (
     CatalogDataset,
+    CatalogDatasetValue,
     CatalogImportRun,
     CatalogRecordRef,
     CatalogSupplementalValue,
@@ -77,6 +78,7 @@ __all__ = [
     "AuditEvent",
     "BetterDirection",
     "CatalogDataset",
+    "CatalogDatasetValue",
     "CatalogImportRun",
     "CatalogRecordRef",
     "CatalogSupplementalValue",
