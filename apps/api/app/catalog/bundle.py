@@ -42,19 +42,13 @@ class VerifiedBundle:
                 if not raw.strip():
                     continue
                 if len(raw) > MAX_RECORD_BYTES:
-                    raise BundleValidationError(
-                        f"{name}:{number} excede {MAX_RECORD_BYTES} bytes."
-                    )
+                    raise BundleValidationError(f"{name}:{number} excede {MAX_RECORD_BYTES} bytes.")
                 try:
                     value = json.loads(raw)
                 except json.JSONDecodeError as exc:
-                    raise BundleValidationError(
-                        f"{name}:{number} não é JSON válido."
-                    ) from exc
+                    raise BundleValidationError(f"{name}:{number} não é JSON válido.") from exc
                 if not isinstance(value, dict):
-                    raise BundleValidationError(
-                        f"{name}:{number} precisa ser um objeto JSON."
-                    )
+                    raise BundleValidationError(f"{name}:{number} precisa ser um objeto JSON.")
                 yield value
 
 
@@ -128,9 +122,7 @@ def verify_bundle(path: str | Path) -> VerifiedBundle:
         }
         if not isinstance(dataset, dict) or not required_dataset.issubset(dataset):
             missing = sorted(required_dataset - set(dataset or {}))
-            raise BundleValidationError(
-                f"Metadados obrigatórios do dataset ausentes: {missing}"
-            )
+            raise BundleValidationError(f"Metadados obrigatórios do dataset ausentes: {missing}")
 
         declared = manifest.get("files")
         if not isinstance(declared, dict):
