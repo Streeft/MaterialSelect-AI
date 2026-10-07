@@ -303,9 +303,7 @@ class OfficialCatalogImporter:
                     )
                 ).scalars()
             )
-            if committed_manifests and committed_manifests != {
-                self.bundle.manifest_sha256
-            }:
+            if committed_manifests and committed_manifests != {self.bundle.manifest_sha256}:
                 raise OfficialCatalogImportError(
                     "A release já foi importada com outro manifest_sha256; "
                     "um bundle canônico diferente exige novo slug/release."
@@ -480,9 +478,7 @@ class OfficialCatalogImporter:
                     raise OfficialCatalogImportError(
                         f"Forma escalar/intervalar divergente para {slug}."
                     )
-                official_units = list(
-                    row.get("accepted_units", [row["canonical_unit"]])
-                )
+                official_units = list(row.get("accepted_units", [row["canonical_unit"]]))
                 existing.accepted_units = list(
                     dict.fromkeys([*existing.accepted_units, *official_units])
                 )
@@ -632,14 +628,10 @@ class OfficialCatalogImporter:
                         f"Unidade canônica divergente para atributo de processo {slug}."
                     )
                 existing.accepted_units = list(
-                    dict.fromkeys(
-                        [*existing.accepted_units, *list(row.get("accepted_units", []))]
-                    )
+                    dict.fromkeys([*existing.accepted_units, *list(row.get("accepted_units", []))])
                 )
                 existing.allowed_labels = list(
-                    dict.fromkeys(
-                        [*existing.allowed_labels, *list(row.get("allowed_labels", []))]
-                    )
+                    dict.fromkeys([*existing.allowed_labels, *list(row.get("allowed_labels", []))])
                 )
                 if existing.symbol is None and row.get("symbol") is not None:
                     existing.symbol = row["symbol"]
