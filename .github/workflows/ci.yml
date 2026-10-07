@@ -287,9 +287,10 @@ jobs:
           ! grep -q "selection_study_name_key" schema.txt
 
       - name: A migração mais recente desce e sobe de volta em Postgres
-        # D-105: a última revisão tem de ser reversível no alvo de produção,
-        # e os CHECKs da composição (resto e ausência sem número, elemento da
-        # lista fixa, um resto por material) têm de chegar ao banco.
+        # D-105/D-106: a última revisão tem de ser reversível no alvo de
+        # produção, e os CHECKs da composição (resto e ausência sem número,
+        # elemento da lista fixa, um resto por material) e das curvas (pontos
+        # finitos, faixa que contém a linha) têm de chegar ao banco.
         env:
           DATABASE_URL: postgresql+psycopg://materialselect:materialselect@localhost:5432/materialselect
           PGPASSWORD: materialselect
@@ -301,6 +302,19 @@ jobs:
           grep -q "ck_material_composition_stateless_numbers" composition.txt
           grep -q "ck_material_composition_element" composition.txt
           grep -q "uq_material_composition_one_balance" composition.txt
+          # D-106: os CHECKs das curvas chegam ao banco, e "finito" vale no
+          # Postgres também — Infinity e NaN são recusados pelo mesmo texto que
+          # o SQLite lê.
+          psql -h localhost -U materialselect -d materialselect -c "\d material_curve_point" > curves.txt
+          grep -q "ck_material_curve_point_finite" curves.txt
+          grep -q "ck_material_curve_point_band_contains" curves.txt
+          test "$(psql -h localhost -U materialselect -d materialselect -tAc "SELECT count(*) FROM material_curve")" -gt 0
+          for bad in "'Infinity'" "'NaN'" "'-Infinity'"; do
+            if psql -h localhost -U materialselect -d materialselect -v ON_ERROR_STOP=1 -c \
+              "INSERT INTO material_curve_point (series_id, position, x_value, y_value, x_normalized, y_normalized) SELECT id, 999, 1, 1, 1, ${bad}::float8 FROM material_curve_series LIMIT 1"; then
+              echo "o CHECK de finitude aceitou ${bad}" && exit 1
+            fi
+          done
 
       - name: Testes de concorrência das cotas em PostgreSQL
         env:
