@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.catalog.bundle import VerifiedBundle, verify_bundle
 from app.domain.data_quality import build_interval_value, build_scalar_value, missing_value
+from app.models.battery_chemistry import BatteryChemistry
 from app.models.catalog import (
     CatalogDataset,
     CatalogDatasetValue,
@@ -21,6 +22,7 @@ from app.models.enums import BetterDirection, DataQuality, ProcessAttributeKind,
 from app.models.material import Material
 from app.models.material_class import MaterialClass
 from app.models.material_property_value import MaterialPropertyValue
+from app.models.performance_index import PerformanceIndex
 from app.models.process import MaterialProcess, Process, ProcessClass
 from app.models.process_attribute import ProcessAttributeDefinition, ProcessAttributeValue
 from app.models.property_definition import PropertyDefinition
@@ -239,6 +241,22 @@ class OfficialCatalogImporter:
             or 0,
             "transport_modes": self.db.scalar(
                 select(func.count(TransportMode.id)).where(TransportMode.is_demo.is_(True))
+            )
+            or 0,
+            "battery_chemistries": self.db.scalar(
+                select(func.count(BatteryChemistry.id)).where(
+                    BatteryChemistry.is_demo.is_(True)
+                )
+            )
+            or 0,
+            "performance_indices": self.db.scalar(
+                select(func.count(PerformanceIndex.id)).where(
+                    PerformanceIndex.is_demo.is_(True)
+                )
+            )
+            or 0,
+            "sources": self.db.scalar(
+                select(func.count(Source.id)).where(Source.is_demo.is_(True))
             )
             or 0,
         }
