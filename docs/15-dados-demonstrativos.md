@@ -19,7 +19,8 @@ que ninguém importa é exatamente o defeito do D-71 — só que a próxima vez.
 
 1. **Marque `is_demo=True`** no registro (ou o campo equivalente do modelo —
    `Material.is_demo`, `Source.is_demo`, `Process.is_demo`,
-   `TransportMode.is_demo`). É o único jeito de o
+   `TransportMode.is_demo`, `BatteryChemistry.is_demo` e
+   `PerformanceIndex.is_demo`). É o único jeito de o
    sistema saber depois que a linha é fictícia — nenhuma outra convenção
    (nome do arquivo, comentário, prefixo no nome do registro) é lida por
    código nenhum.
@@ -60,12 +61,13 @@ Um comando só, sem preparar nada antes: na aba **Actions** do repositório,
 Isso executa `python -m app.db.clear_demo`
 (`apps/api/app/db/clear_demo.py`), que:
 
-- **Apaga todo registro de catálogo marcado `is_demo=True`** nos três
-  universos que hoje carregam essa marca: `Material`, `Process` e
-  `TransportMode`. Isso inclui os 5 materiais de `app.db.seed`, os 70 de
-  `app.db.seed_extended`, os processos fictícios, seus atributos/links e os
-  modais fictícios. A pergunta "isto é fictício?" continua tendo uma resposta
-  só: a coluna do próprio registro.
+- **Apaga todo registro marcado `is_demo=True`** em `Material`, `Process`,
+  `TransportMode`, `BatteryChemistry`, `PerformanceIndex` e `Source`.
+  Isso inclui os materiais de `app.db.seed`/`seed_extended`, processos,
+  atributos/links e modais fictícios. Os índices clássicos de Ashby passam a
+  ser semeados por `semear_referencia` como referência real
+  (`is_demo=False`), porque são fórmulas de engenharia e não medições
+  inventadas.
 - **Não deixa órfão.** `MaterialPropertyValue`, `MaterialKeyword`,
   `MaterialProcess`, `Favorite`, `RecentRecord` e a receita de
   `MaterialSynthesis` de cada material fictício somem junto — explicitamente,
@@ -74,10 +76,11 @@ Isso executa `python -m app.db.clear_demo`
   schema teria deixado a exclusão correta em produção e inverificável em
   teste — ver o docstring do próprio `clear_demo.py`).
 - **Não apaga taxonomia nem dado real.** `MaterialClass`, `ProcessClass`,
-  `PropertyDefinition`, definições de atributos, fontes e qualquer registro
-  com `is_demo=False` continuam de pé. `BatteryChemistry` continua intacta;
-  processos e modais reais também. As taxonomias/definições são reutilizáveis
-  pelo catálogo oficial.
+  `PropertyDefinition`, definições de atributos e qualquer registro com
+  `is_demo=False` continuam de pé. Químicas, índices, processos, modais e
+  fontes reais são preservados. Uma `Source.is_demo=True` só é apagada depois
+  de provar que nenhuma linha real ainda a cita; caso contrário o comando
+  aborta, preservando a proveniência.
 - **É irreversível e idempotente**: uma segunda execução, sem material
   fictício sobrando, não faz nada e diz isso no log
   (`Nada a fazer — nenhum registro com is_demo=True.`). Não é "rode duas
