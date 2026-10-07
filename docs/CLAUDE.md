@@ -115,11 +115,12 @@ IDE. Resumo do que não muda:
   isto, com os 70 materiais de `apps/api/app/db/seed_extended.py`, que
   ficou fora do ar por dias ([D-71](DECISIONS.md)).
 - **Apagar dado fictício usa `apps/api/app/db/clear_demo.py`**
-  (`python -m app.db.clear_demo`, ação `excluir_demo`), que apaga todo
-  `Material` com `is_demo=True` não importa em qual módulo nasceu — uma
-  exceção estreita e deliberada à regra geral do catálogo (material real se
-  **desativa**, nunca se apaga) válida só porque `is_demo=True` já prova que
-  não há história real para proteger ([D-72](DECISIONS.md)).
+  (`python -m app.db.clear_demo`, ação `excluir_demo`), que remove toda linha
+  `is_demo=True` nos modelos marcáveis (material, processo, modal, química,
+  índice e fonte), não importa em qual módulo nasceu. Fonte demo ainda citada
+  por linha real faz a limpeza abortar. É uma exceção estreita à regra geral do
+  catálogo (dado real se preserva/desativa) válida só porque `is_demo=True`
+  declara que aquela linha é fictícia ([D-72](DECISIONS.md), D-102).
 
 ### 1.12 Documentação anda junto do código, no mesmo PR
 Toda mudança de código ou funcionalidade nova atualiza, **no mesmo PR**, o
