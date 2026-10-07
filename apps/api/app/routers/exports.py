@@ -1,4 +1,5 @@
-"""Export endpoints: catalogue and selection studies as CSV, XLSX, DOCX, PPTX or HTML.
+"""Export endpoints: catalogue and selection studies as CSV, XLSX, DOCX, PPTX or HTML,
+and one material as a CAE card (D-104).
 
 These return files rather than JSON, so they set their own headers. Three
 details matter and are easy to get wrong:
@@ -36,6 +37,7 @@ from app.exporters.report import Report
 from app.exporters.spreadsheet import to_csv, to_xlsx
 from app.models.project import Project
 from app.models.user import User
+from app.services.cae_export_service import CaeExportService
 from app.services.export_service import ExportService
 
 router = APIRouter(prefix="/exports", tags=["exports"])
@@ -147,6 +149,36 @@ def export_study_laudo(
         study_id, project.id, responsible=responsavel
     )
     return _file_response(report, fmt)
+
+
+@router.get("/materiais/{material_id}/cae")
+def export_material_cae(
+    material_id: int,
+    formato: str = Query(description="mapdl, matml, abaqus, nastran ou lsdyna."),
+    unidades: str = Query(
+        description=(
+            "Sistema de unidades CAE consistente: m-kg-s, mm-t-s ou in-lbf-s. Não é a "
+            "unidade de leitura por propriedade do D-70: um solver precisa de um "
+            "sistema inteiro, e não de uma escolha por grandeza."
+        )
+    ),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> Response:
+    """A material card for a CAE solver or MatML (D-104).
+
+    Always an attachment: a deck is a file to be read by a solver, and the
+    MatML is XML that must not render on the API's origin.
+    """
+    card = CaeExportService(db, user.id).material_card(material_id, formato, unidades)
+    filename = f"{_ascii_filename(card.material_name)}{card.suffix}"
+    headers = {
+        "X-Content-Type-Options": "nosniff",
+        "Content-Disposition": (
+            f'attachment; filename="{filename}"; ' f"filename*=UTF-8''{quote(filename, safe='')}"
+        ),
+    }
+    return Response(content=card.body, media_type=card.media_type, headers=headers)
 
 
 def _require_supported(fmt: str) -> None:

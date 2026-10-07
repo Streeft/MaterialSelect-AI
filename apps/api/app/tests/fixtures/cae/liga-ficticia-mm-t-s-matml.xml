@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- MaterialSelect AI - cartão MatML. MATERIAL FICTÍCIO. Leia as Notes de BulkDetails: aviso de limitação de uso e proveniência. -->
+<MatML_Doc>
+  <Material>
+    <BulkDetails>
+      <Name>Liga Fictícia CAE-1 (demonstração)</Name>
+      <Class>
+        <Name>Metais</Name>
+      </Class>
+      <PropertyData property="pr-density" source="ds1">
+        <Data format="float">7.85E-09</Data>
+        <Notes>Qualidade do dado: ESTIMADO. Fonte: Fonte fictícia de teste CAE (FICTÍCIA, demonstração). Licença: Dado fictício de demonstração.</Notes>
+      </PropertyData>
+      <PropertyData property="pr-young" source="ds1">
+        <Data format="float">210000.</Data>
+        <Notes>Qualidade do dado: ESTIMADO. Fonte: Fonte fictícia de teste CAE (FICTÍCIA, demonstração). Licença: Dado fictício de demonstração. Faixa cadastrada 200000. a 220000. MPa; exportado o ponto representativo da faixa.</Notes>
+      </PropertyData>
+      <PropertyData property="pr-poisson" source="ds1">
+        <Data format="float">0.3</Data>
+        <Notes>Qualidade do dado: ESTIMADO. Fonte: Fonte fictícia de teste CAE (FICTÍCIA, demonstração). Licença: Dado fictício de demonstração.</Notes>
+      </PropertyData>
+      <PropertyData property="pr-cte" source="ds1">
+        <Data format="float">1.2E-05</Data>
+        <Notes>Qualidade do dado: ESTIMADO. Fonte: Fonte fictícia de teste CAE (FICTÍCIA, demonstração). Licença: Dado fictício de demonstração.</Notes>
+      </PropertyData>
+      <PropertyData property="pr-conductivity" source="ds1">
+        <Data format="float">50.</Data>
+        <Notes>Qualidade do dado: ESTIMADO. Fonte: Fonte fictícia de teste CAE (FICTÍCIA, demonstração). Licença: Dado fictício de demonstração.</Notes>
+      </PropertyData>
+      <PropertyData property="pr-specific_heat" source="ds1">
+        <Data format="float">460000000.</Data>
+        <Notes>Qualidade do dado: ESTIMADO. Fonte: Fonte fictícia de teste CAE (FICTÍCIA, demonstração). Licença: Dado fictício de demonstração.</Notes>
+      </PropertyData>
+      <Notes>MATERIAL FICTÍCIO: dado de demonstração, valores inventados para ensino. ATENÇÃO: este cartão contém valores marcados como demonstrativos, que são fictícios. Não utilizar em projetos reais. Esta ferramenta destina-se a apoio didático e à triagem preliminar de candidatos. Não substitui validação experimental, análise estrutural detalhada nem julgamento de engenharia. Cartão de material para pré-processamento CAE. Os valores são pontos representativos de catálogo, independentes de temperatura, sem curvas de plasticidade, fadiga ou fluência. Propriedade não cadastrada foi omitida, nunca preenchida com zero nem com valor padrão. Confira cada valor e o sistema de unidades antes de usar o cartão num modelo. Sistema de unidades: SI mm-t-s (mm, t, s, N, MPa, K). Material 901 exportado pelo MaterialSelect AI.</Notes>
+    </BulkDetails>
+  </Material>
+  <Metadata>
+    <DataSourceDetails id="ds1">
+      <Name>Fonte fictícia de teste CAE</Name>
+    </DataSourceDetails>
+    <PropertyDetails id="pr-density">
+      <Name>Density</Name>
+      <Units name="t*mm^-3">
+        <Unit>
+          <Name>t</Name>
+        </Unit>
+        <Unit power="-3">
+          <Name>mm</Name>
+        </Unit>
+      </Units>
+    </PropertyDetails>
+    <PropertyDetails id="pr-young">
+      <Name>Young's Modulus</Name>
+      <Units name="MPa">
+        <Unit>
+          <Name>MPa</Name>
+        </Unit>
+      </Units>
+    </PropertyDetails>
+    <PropertyDetails id="pr-poisson">
+      <Name>Poisson's Ratio</Name>
+      <Unitless />
+    </PropertyDetails>
+    <PropertyDetails id="pr-cte">
+      <Name>Coefficient of Thermal Expansion</Name>
+      <Units name="K^-1">
+        <Unit power="-1">
+          <Name>K</Name>
+        </Unit>
+      </Units>
+    </PropertyDetails>
+    <PropertyDetails id="pr-conductivity">
+      <Name>Thermal Conductivity</Name>
+      <Units name="mW*mm^-1*K^-1">
+        <Unit>
+          <Name>mW</Name>
+        </Unit>
+        <Unit power="-1">
+          <Name>mm</Name>
+        </Unit>
+        <Unit power="-1">
+          <Name>K</Name>
+        </Unit>
+      </Units>
+    </PropertyDetails>
+    <PropertyDetails id="pr-specific_heat">
+      <Name>Specific Heat</Name>
+      <Units name="mJ*t^-1*K^-1">
+        <Unit>
+          <Name>mJ</Name>
+        </Unit>
+        <Unit power="-1">
+          <Name>t</Name>
+        </Unit>
+        <Unit power="-1">
+          <Name>K</Name>
+        </Unit>
+      </Units>
+    </PropertyDetails>
+  </Metadata>
+</MatML_Doc>

@@ -25,6 +25,7 @@ from app.domain.errors import (
     AuthenticationError,
     CatalogReadOnlyError,
     ConflictError,
+    ExportRefusedError,
     NotFoundError,
     QuotaExceededError,
     ServiceUnavailableError,
@@ -98,6 +99,12 @@ async def _handle_display_unit(_: Request, exc: DisplayUnitError) -> JSONRespons
     ainda, porque ela nomeia as unidades que servem.
     """
     return _error_response(400, str(exc))
+
+
+@app.exception_handler(ExportRefusedError)
+async def _handle_export_refused(_: Request, exc: ExportRefusedError) -> JSONResponse:
+    """D-104: a file that would be incomplete is refused, with what is missing."""
+    return _error_response(422, str(exc))
 
 
 @app.exception_handler(ConflictError)
