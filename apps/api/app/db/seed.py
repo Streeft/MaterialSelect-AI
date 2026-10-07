@@ -2209,10 +2209,12 @@ def _seed_battery_chemistries(db: Session, source: Source | None) -> int:
     return created
 
 
-def seed(db: Session) -> dict[str, int]:
-    """Populate taxonomy, properties, sources, indices and demo materials.
+def seed_reference(db: Session) -> dict[str, int]:
+    """Populate reusable non-demo reference data only.
 
-    Idempotent. Returns a small summary dict for logging/tests.
+    This is the production-safe seed used after the official catalogue cutover.
+    It intentionally does not create demo materials, demo processes, demo
+    transport modes or the extended exercise catalogue.
     """
     for spec in CLASSES:
         _get_or_create_class(
@@ -2225,18 +2227,41 @@ def seed(db: Session) -> dict[str, int]:
     for spec in PROPERTIES:
         _get_or_create_property(db, spec)
     for spec in SOURCES:
-        _get_or_create_source(db, spec)
+        if not spec.get("is_demo", False):
+            _get_or_create_source(db, spec)
+    db.flush()
+
+    battery_source = (
+        db.execute(select(Source).where(Source.label == BATTERY_SOURCE_LABEL))
+        .scalars()
+        .one_or_none()
+    )
+    battery_created = _seed_battery_chemistries(db, battery_source)
+    db.flush()
+    return {
+        "classes": len(CLASSES),
+        "properties": len(PROPERTIES),
+        "battery_chemistries": battery_created,
+    }
+
+
+def seed(db: Session) -> dict[str, int]:
+    """Populate reference data plus the synthetic demonstration catalogue.
+
+    Kept as the development/test baseline. Production after official cutover
+    must use app.db.seed_reference instead.
+    """
+    reference_summary = seed_reference(db)
+
+    demo_source_spec = next(spec for spec in SOURCES if spec.get("is_demo", False))
+    _get_or_create_source(db, demo_source_spec)
     for spec in PERFORMANCE_INDICES:
         _get_or_create_index(db, spec)
     db.flush()
 
-    # Looked up explicitly rather than kept from the loop above: `SOURCES` has
-    # grown past one entry (D-69 added the battery-literature source), and the
-    # last iteration's row is not necessarily the demo source.
     demo_source = (
         db.execute(select(Source).where(Source.label == DEMO_SOURCE_LABEL)).scalars().one_or_none()
     )
-
     prop_by_slug = {p.slug: p for p in db.execute(select(PropertyDefinition)).scalars().all()}
 
     created_materials = 0
@@ -2270,27 +2295,17 @@ def seed(db: Session) -> dict[str, int]:
         material_repo.sync_keywords(material.id, mat_spec.get("keywords", []))
         created_materials += 1
 
-    # After the materials: the links need them to exist (P0-2).
     process_summary = _seed_process_universe(db)
     transport_created = _seed_transport_modes(db, demo_source)
-    battery_source = (
-        db.execute(select(Source).where(Source.label == BATTERY_SOURCE_LABEL))
-        .scalars()
-        .one_or_none()
-    )
-    battery_created = _seed_battery_chemistries(db, battery_source)
 
     db.commit()
     return {
-        "classes": len(CLASSES),
-        "properties": len(PROPERTIES),
+        **reference_summary,
         "indices": len(PERFORMANCE_INDICES),
         "materials_created": created_materials,
         "transport_modes": transport_created,
-        "battery_chemistries": battery_created,
         **process_summary,
     }
-
 
 def seed_e2e_session(db: Session) -> None:
     """Write a fixed logged-in, subscribed session for the Playwright suite.
