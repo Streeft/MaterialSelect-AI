@@ -21,6 +21,7 @@ KNOWN_FILES = [
     "material_process_links.ndjson",
     "transport_modes.ndjson",
     "supplemental_values.ndjson",
+    "dataset_values.ndjson",
 ]
 
 
