@@ -119,3 +119,17 @@ class Material(Base):
     recent_views: Mapped[list[RecentRecord]] = relationship(  # noqa: F821
         cascade="all, delete-orphan",
     )
+    # D-105 (TM2): the names this material carries in naming systems, and its
+    # chemical composition. Both cascade for the reason the bookmarks do —
+    # SQLite runs without `PRAGMA foreign_keys=ON` — and both are ordered so
+    # the sheet reads in a stable order.
+    designations: Mapped[list[MaterialDesignation]] = relationship(  # noqa: F821
+        back_populates="material",
+        cascade="all, delete-orphan",
+        order_by="(MaterialDesignation.system, MaterialDesignation.code_key)",
+    )
+    composition: Mapped[list[MaterialCompositionEntry]] = relationship(  # noqa: F821
+        back_populates="material",
+        cascade="all, delete-orphan",
+        order_by="(MaterialCompositionEntry.position, MaterialCompositionEntry.id)",
+    )

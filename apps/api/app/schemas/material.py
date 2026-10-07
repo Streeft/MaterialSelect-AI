@@ -6,7 +6,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from app.models.enums import DataQuality
+from app.models.enums import DataQuality, DesignationSystem
 from app.schemas.process import ProcessOut
 from app.schemas.property import PropertyGroup
 
@@ -92,6 +92,62 @@ class DataQualitySummary(BaseModel):
     missing: int = 0
 
 
+class DesignationBrief(BaseModel):
+    """A designation as the catalogue list shows it: system and code (D-105)."""
+
+    system: DesignationSystem
+    #: How the system is written ("AISI/SAE", "Nome comercial").
+    system_label: str
+    #: As the source wrote it.
+    code: str
+
+
+class DesignationOut(DesignationBrief):
+    """A designation on the sheet, with the source that states it (D-105).
+
+    No ``equivalent_to``: a designation belongs to one record, and two records
+    sharing a code are not thereby declared the same material (TM1).
+    """
+
+    region: str | None = None
+    source_label: str
+    citation: str | None = None
+    is_demo: bool = False
+
+
+#: What a composition row says: a number (range, bound or nominal), "the rest",
+#: or "the source gave no value". The last two never carry a number.
+CompositionState = Literal["faixa", "resto", "ausente"]
+
+
+class CompositionEntryOut(BaseModel):
+    """One element of the composition, with the whole trail (D-105).
+
+    ``value_*`` are what the source wrote, in ``original_unit``; ``normalized_*``
+    are mass percent (``canonical_unit`` = ``percent``). A bound the source did
+    not state is ``None`` — "C ≤ 0,08" has no minimum, and it is not 0.
+    """
+
+    element: str
+    element_name: str
+    atomic_number: int
+    state: CompositionState
+    value_min: float | None = None
+    value_max: float | None = None
+    value_nominal: float | None = None
+    original_unit: str | None = None
+    normalized_min: float | None = None
+    normalized_max: float | None = None
+    normalized_nominal: float | None = None
+    canonical_unit: str | None = None
+    conversion_method: str | None = None
+    notes: str | None = None
+    data_quality: DataQuality
+    source_label: str
+    citation: str | None = None
+    is_demo: bool = False
+
+
 class MaterialListItem(BaseModel):
     """Compact material representation for the catalogue list."""
 
@@ -111,6 +167,9 @@ class MaterialListItem(BaseModel):
     is_own_record: bool = False
     keywords: list[str] = []
     quality: DataQualitySummary = Field(default_factory=DataQualitySummary)
+    # D-105: the codes, so a card can show (and highlight) the one a reader
+    # searched for. Empty means none registered, not "has no designation".
+    designations: list[DesignationBrief] = []
 
 
 class MaterialDetail(BaseModel):
@@ -137,6 +196,59 @@ class MaterialDetail(BaseModel):
     # second endpoint, because it is part of reading the sheet, not an optional
     # extra the interface has to remember to ask for.
     processes: list[ProcessOut] = []
+    # D-105 (TM2). Both always present; an empty list is the state "none
+    # registered", which the sheet writes out — never a 0 % composition.
+    designations: list[DesignationOut] = []
+    composition: list[CompositionEntryOut] = []
+
+
+class UndeterminedBreakdown(BaseModel):
+    """Why a composition condition could not be decided, material by material."""
+
+    sem_composicao: int = 0
+    elemento_nao_declarado: int = 0
+    declarado_ausente: int = 0
+    resto_sem_numero: int = 0
+
+
+class CompositionConditionOut(BaseModel):
+    """How one ``comp:`` condition came out over the whole visible catalogue.
+
+    Counted independently of the rest of the query, so the reader can see what
+    each condition did on its own.
+    """
+
+    label: str
+    element: str
+    element_name: str
+    satisfied: int
+    not_satisfied: int
+    undetermined: int
+    undetermined_by_reason: UndeterminedBreakdown
+
+
+class CompositionSearchOut(BaseModel):
+    """What a search with ``comp:`` states besides its rows (D-105).
+
+    ``rule`` says which rule ran (reach), in words — the D-59 obligation that a
+    comparison rule reach the reader. ``undetermined`` is how many materials
+    were left out because the answer depended on absent data: they did not
+    fail the condition, the catalogue cannot say.
+    """
+
+    rule: str
+    conditions: list[CompositionConditionOut]
+    undetermined: int
+    without_composition: int
+
+
+class MaterialSearchOut(BaseModel):
+    """The catalogue search, with what it knows besides the rows (D-105)."""
+
+    items: list[MaterialListItem]
+    total: int
+    #: Present only when the query asked about composition.
+    composition: CompositionSearchOut | None = None
 
 
 class ChartPoint(BaseModel):

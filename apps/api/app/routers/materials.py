@@ -21,6 +21,7 @@ from app.schemas.material import (
     MaterialCreate,
     MaterialDetail,
     MaterialListItem,
+    MaterialSearchOut,
     MaterialUpdate,
     PropertyValueIn,
 )
@@ -34,7 +35,11 @@ router = APIRouter(prefix="/materials", tags=["materials"])
 @router.get("", response_model=list[MaterialListItem])
 def list_materials(
     search: str | None = Query(
-        default=None, description="Termo de busca por nome, classe ou palavra-chave"
+        default=None,
+        description=(
+            "Consulta (D-55): nome, classe, palavra-chave ou código de designação; "
+            "aceita comp:, norma: e designacao: (D-105)"
+        ),
     ),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
@@ -42,6 +47,28 @@ def list_materials(
 ) -> list[MaterialListItem]:
     """List active materials, optionally filtered by a search term."""
     return MaterialService(db, user, unit_choices).list_materials(search)
+
+
+@router.get("/busca", response_model=MaterialSearchOut)
+def search_materials(
+    q: str | None = Query(
+        default=None,
+        description=(
+            "Consulta (D-55, D-105): termos com AND/OR/NOT, aspas, parênteses e curingas; "
+            "comp:Cr>=12, comp:Ni:8-10, comp:Fe; norma:UNS; designacao:S30400"
+        ),
+    ),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+    unit_choices: dict[str, str] = Depends(get_unit_choices),
+) -> MaterialSearchOut:
+    """The catalogue search with what it knows besides the rows.
+
+    Same matching as ``GET /materials?search=``; this one also says, when the
+    query asks about composition, which rule ran and how many materials were
+    left out for lack of data. Declared before ``/{material_id}``.
+    """
+    return MaterialService(db, user, unit_choices).search(q)
 
 
 @router.post("", response_model=MaterialDetail, status_code=status.HTTP_201_CREATED)

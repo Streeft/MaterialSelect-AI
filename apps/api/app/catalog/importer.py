@@ -10,7 +10,14 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.catalog.bundle import VerifiedBundle, verify_bundle
+from app.domain.composition import (
+    CompositionError,
+    NormalizedComposition,
+    build_composition_entry,
+    validate_composition,
+)
 from app.domain.data_quality import build_interval_value, build_scalar_value, missing_value
+from app.domain.designation import DesignationError, designation_key
 from app.models.battery_chemistry import BatteryChemistry
 from app.models.catalog import (
     CatalogDataset,
@@ -19,9 +26,17 @@ from app.models.catalog import (
     CatalogRecordRef,
     CatalogSupplementalValue,
 )
-from app.models.enums import BetterDirection, DataQuality, ProcessAttributeKind, PropertyCategory
+from app.models.enums import (
+    BetterDirection,
+    DataQuality,
+    DesignationSystem,
+    ProcessAttributeKind,
+    PropertyCategory,
+)
 from app.models.material import Material
 from app.models.material_class import MaterialClass
+from app.models.material_composition import MaterialCompositionEntry
+from app.models.material_designation import MaterialDesignation
 from app.models.material_property_value import MaterialPropertyValue
 from app.models.performance_index import PerformanceIndex
 from app.models.process import MaterialProcess, Process, ProcessClass
@@ -45,6 +60,9 @@ KNOWN_FILES = {
     "transport_modes.ndjson",
     "supplemental_values.ndjson",
     "dataset_values.ndjson",
+    # D-105 (TM2): designations and chemical composition of materials.
+    "material_designations.ndjson",
+    "material_compositions.ndjson",
 }
 
 
@@ -70,6 +88,55 @@ def _raw_hash(record: dict) -> str:
             "raw_sha256 obrigatório e deve ser SHA-256 hexadecimal minúsculo."
         )
     return value
+
+
+def _composition_from_record(record: dict) -> NormalizedComposition:
+    """One ``material_compositions.ndjson`` row through the domain builder (D-105).
+
+    ``state`` is ``range`` (any of ``min``/``max``/``nominal`` plus ``unit``),
+    ``balance`` or ``missing``. The same builder the seed uses, so the bundle
+    cannot write a balance with a number or an absent content as 0.
+    """
+    _need(record, "material_external_id", "element", "state")
+    state = record["state"]
+    if state not in {"range", "balance", "missing"}:
+        raise OfficialCatalogImportError(f"state de composição inválido: {state!r}")
+    try:
+        return build_composition_entry(
+            str(record["element"]),
+            value_min=_optional_float(record.get("min")),
+            value_max=_optional_float(record.get("max")),
+            value_nominal=_optional_float(record.get("nominal")),
+            unit=record.get("unit"),
+            is_balance=state == "balance",
+            is_missing=state == "missing",
+        )
+    except CompositionError as exc:
+        raise OfficialCatalogImportError(
+            f"Composição de {record['material_external_id']}: {exc}"
+        ) from exc
+
+
+def _optional_float(value: object) -> float | None:
+    if value is None:
+        return None
+    if isinstance(value, bool) or not isinstance(value, int | float):
+        raise OfficialCatalogImportError(f"Teor de composição não numérico: {value!r}")
+    return float(value)
+
+
+def _designation_from_record(record: dict) -> tuple[DesignationSystem, str]:
+    _need(record, "material_external_id", "system", "code")
+    try:
+        system = DesignationSystem(str(record["system"]))
+    except ValueError as exc:
+        raise OfficialCatalogImportError(
+            f"Sistema de designação inválido: {record['system']!r}"
+        ) from exc
+    try:
+        return system, designation_key(str(record["code"]))
+    except DesignationError as exc:
+        raise OfficialCatalogImportError(str(exc)) from exc
 
 
 def _collect_ids(bundle: VerifiedBundle, file_name: str) -> set[str]:
@@ -149,6 +216,31 @@ def validate_semantics(bundle: VerifiedBundle) -> dict[str, int]:
             raise OfficialCatalogImportError(
                 f"value_kind de material inválido: {record['value_kind']!r}"
             )
+
+    designation_keys: set[tuple[str, DesignationSystem, str]] = set()
+    for record in bundle.iter_records("material_designations.ndjson"):
+        system, key = _designation_from_record(record)
+        material_id = str(record["material_external_id"])
+        if material_id not in material_ids:
+            raise OfficialCatalogImportError("Designação referencia material inexistente.")
+        if (material_id, system, key) in designation_keys:
+            raise OfficialCatalogImportError(
+                f"Designação duplicada para {material_id}: {system.value} {record['code']}"
+            )
+        designation_keys.add((material_id, system, key))
+
+    compositions: dict[str, list[NormalizedComposition]] = {}
+    for record in bundle.iter_records("material_compositions.ndjson"):
+        entry = _composition_from_record(record)
+        material_id = str(record["material_external_id"])
+        if material_id not in material_ids:
+            raise OfficialCatalogImportError("Composição referencia material inexistente.")
+        compositions.setdefault(material_id, []).append(entry)
+    for material_id, entries in compositions.items():
+        try:
+            validate_composition(entries)
+        except CompositionError as exc:
+            raise OfficialCatalogImportError(f"Composição de {material_id}: {exc}") from exc
 
     for record in bundle.iter_records("process_classes.ndjson"):
         parent = record.get("parent_external_id")
@@ -257,6 +349,18 @@ class OfficialCatalogImporter:
             )
             or 0,
             "sources": self.db.scalar(select(func.count(Source.id)).where(Source.is_demo.is_(True)))
+            or 0,
+            "material_designations": self.db.scalar(
+                select(func.count(MaterialDesignation.id)).where(
+                    MaterialDesignation.is_demo.is_(True)
+                )
+            )
+            or 0,
+            "material_composition": self.db.scalar(
+                select(func.count(MaterialCompositionEntry.id)).where(
+                    MaterialCompositionEntry.is_demo.is_(True)
+                )
+            )
             or 0,
         }
         if any(remaining.values()):
@@ -582,6 +686,75 @@ class OfficialCatalogImporter:
                 )
             )
             self._bump("material_values_created")
+
+    def _import_designations(self) -> None:
+        """D-105. Idempotent by (material, system, code); the dataset's source."""
+        assert self.source is not None
+        for row in self.bundle.iter_records("material_designations.ndjson"):
+            material = self.materials[str(row["material_external_id"])]
+            system, key = _designation_from_record(row)
+            exists = self.db.execute(
+                select(MaterialDesignation.id).where(
+                    MaterialDesignation.material_id == material.id,
+                    MaterialDesignation.system == system,
+                    MaterialDesignation.code_key == key,
+                )
+            ).scalar_one_or_none()
+            if exists is not None:
+                self._bump("designations_unchanged")
+                continue
+            self.db.add(
+                MaterialDesignation(
+                    material_id=material.id,
+                    system=system,
+                    code=str(row["code"]),
+                    region=row.get("region"),
+                    source_id=self.source.id,
+                    citation=row.get("citation"),
+                    is_demo=False,
+                )
+            )
+            self._bump("designations_created")
+
+    def _import_compositions(self) -> None:
+        """D-105. One row per (material, element); a row already there is kept."""
+        assert self.source is not None
+        for position, row in enumerate(self.bundle.iter_records("material_compositions.ndjson")):
+            material = self.materials[str(row["material_external_id"])]
+            entry = _composition_from_record(row)
+            exists = self.db.execute(
+                select(MaterialCompositionEntry.id).where(
+                    MaterialCompositionEntry.material_id == material.id,
+                    MaterialCompositionEntry.element == entry.element,
+                )
+            ).scalar_one_or_none()
+            if exists is not None:
+                self._bump("composition_entries_unchanged")
+                continue
+            self.db.add(
+                MaterialCompositionEntry(
+                    material_id=material.id,
+                    element=entry.element,
+                    position=int(row.get("position", position)),
+                    is_balance=entry.is_balance,
+                    is_missing=entry.is_missing,
+                    value_min=entry.value_min,
+                    value_max=entry.value_max,
+                    value_nominal=entry.value_nominal,
+                    original_unit=entry.original_unit,
+                    normalized_min=entry.normalized_min,
+                    normalized_max=entry.normalized_max,
+                    normalized_nominal=entry.normalized_nominal,
+                    canonical_unit=entry.canonical_unit,
+                    conversion_method=entry.conversion_method,
+                    notes=row.get("notes"),
+                    source_id=self.source.id,
+                    citation=row.get("citation"),
+                    data_quality=DataQuality.IMPORTADO,
+                    is_demo=False,
+                )
+            )
+            self._bump("composition_entries_created")
 
     def _import_process_attributes(self) -> None:
         for row in self.bundle.iter_records("process_attribute_definitions.ndjson"):
@@ -942,6 +1115,8 @@ class OfficialCatalogImporter:
         self._import_properties()
         self._import_materials()
         self._import_material_values()
+        self._import_designations()
+        self._import_compositions()
         self._import_hierarchy("process_classes.ndjson", ProcessClass, self.process_classes)
         self._import_process_attributes()
         self._import_processes()

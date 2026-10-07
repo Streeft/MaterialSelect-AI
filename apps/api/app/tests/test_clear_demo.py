@@ -17,6 +17,8 @@ from app.db.clear_demo import clear_demo_data, clear_demo_materials
 from app.models.battery_chemistry import BatteryChemistry
 from app.models.material import Material
 from app.models.material_class import MaterialClass
+from app.models.material_composition import MaterialCompositionEntry
+from app.models.material_designation import MaterialDesignation
 from app.models.material_keyword import MaterialKeyword
 from app.models.material_property_value import MaterialPropertyValue
 from app.models.performance_index import PerformanceIndex
@@ -129,6 +131,10 @@ def test_clear_demo_data_covers_all_demo_universes(db_session: Session) -> None:
         select(func.count(PerformanceIndex.id)).where(PerformanceIndex.is_demo.is_(True))
     )
     demo_sources = db_session.scalar(select(func.count(Source.id)).where(Source.is_demo.is_(True)))
+    # D-105: o seed principal também liga designações e composição fictícias.
+    demo_designations = db_session.scalar(select(func.count(MaterialDesignation.id)))
+    demo_entries = db_session.scalar(select(func.count(MaterialCompositionEntry.id)))
+    assert demo_designations and demo_entries
     assert demo_materials and demo_materials > 0
     assert demo_processes and demo_processes > 0
     assert demo_transports and demo_transports > 0
@@ -146,6 +152,8 @@ def test_clear_demo_data_covers_all_demo_universes(db_session: Session) -> None:
         "battery_chemistries": demo_batteries,
         "performance_indices": demo_indices,
         "sources": demo_sources,
+        "designations": demo_designations,
+        "composition_entries": demo_entries,
     }
     assert db_session.scalar(select(func.count(Material.id)).where(Material.is_demo.is_(True))) == 0
     assert db_session.scalar(select(func.count(Process.id)).where(Process.is_demo.is_(True))) == 0

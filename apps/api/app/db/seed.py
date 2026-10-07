@@ -22,6 +22,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.db.base import Base, SessionLocal, engine
+from app.domain.composition import build_composition_entry, validate_composition
 from app.domain.data_quality import (
     build_interval_value,
     build_scalar_value,
@@ -31,11 +32,14 @@ from app.models.battery_chemistry import BatteryChemistry
 from app.models.enums import (
     BetterDirection,
     DataQuality,
+    DesignationSystem,
     ProcessAttributeKind,
     PropertyCategory,
 )
 from app.models.material import Material
 from app.models.material_class import MaterialClass
+from app.models.material_composition import MaterialCompositionEntry
+from app.models.material_designation import MaterialDesignation
 from app.models.material_property_value import MaterialPropertyValue
 from app.models.performance_index import PerformanceIndex
 from app.models.process import MaterialProcess, Process, ProcessClass
@@ -2212,6 +2216,160 @@ def _seed_battery_chemistries(db: Session, source: Source | None) -> int:
     return created
 
 
+# --- Composition and designations (D-105, TM2) -------------------------------
+#
+# ⚠️  FICTÍCIOS, como os materiais a que se ligam. As faixas de composição foram
+# escritas com a *forma* de uma especificação de liga — elemento controlado por
+# faixa, por máximo, por valor nominal, um elemento declarado como resto e um
+# declarado ausente — para exercitar a busca e a ficha; os números se inspiram
+# de longe na ordem de grandeza de ligas padronizadas por norma pública e foram
+# alterados de propósito. Não vêm de ASM, MatWeb, Total Materia nem do Granta.
+#
+# Os códigos de designação começam todos com "DEMO-": um código de formato real
+# (S30400, 6061) colado num material fictício afirmaria que este registro *é*
+# aquela liga, com propriedades inventadas. O prefixo deixa a busca demonstrável
+# (`norma:UNS`, `designacao:DEMO-304`, `designacao:DEMO-*`) sem essa afirmação.
+#
+# Polímero, cerâmica e compósito ficam sem composição **de propósito**: é o
+# estado "sem composição cadastrada", que a ficha escreve com rótulo e que a
+# busca por composição conta como excluído por falta de dado (D-24).
+DEMO_DESIGNATION_CITATION = "Tabela fictícia de demonstração — não é designação real."
+DEMO_COMPOSITION_CITATION = "Tabela fictícia de demonstração — não é composição real."
+
+DEMO_DESIGNATIONS: dict[str, list[dict]] = {
+    "Liga Alumínio Demo A": [
+        {"system": DesignationSystem.UNS, "code": "DEMO-A001"},
+        {"system": DesignationSystem.ABNT, "code": "DEMO-AL-61"},
+        {"system": DesignationSystem.COMERCIAL, "code": "Demoluma A"},
+    ],
+    "Aço Demo B": [
+        {"system": DesignationSystem.UNS, "code": "DEMO-S001"},
+        {"system": DesignationSystem.AISI_SAE, "code": "DEMO-304"},
+        {"system": DesignationSystem.EN, "code": "DEMO-1.4001", "region": "Europa"},
+        {"system": DesignationSystem.COMERCIAL, "code": "Demoinox B"},
+    ],
+    "Polímero Demo C": [
+        {"system": DesignationSystem.COMERCIAL, "code": "Demolene C"},
+    ],
+}
+
+#: Mass percent unless stated. ``max`` alone is "≤ máx."; ``balance`` is "resto"
+#: and ``missing`` is "a fonte não deu valor" — neither carries a number.
+DEMO_COMPOSITIONS: dict[str, list[dict]] = {
+    "Liga Alumínio Demo A": [
+        {"element": "Si", "min": 0.4, "max": 0.8, "unit": "%"},
+        {"element": "Fe", "max": 0.7, "unit": "%"},
+        {"element": "Cu", "min": 0.15, "max": 0.40, "unit": "%"},
+        {"element": "Mn", "max": 0.15, "unit": "%"},
+        {"element": "Mg", "min": 0.8, "max": 1.2, "nominal": 1.0, "unit": "%"},
+        {"element": "Cr", "min": 0.04, "max": 0.35, "unit": "%"},
+        {"element": "Zn", "max": 0.25, "unit": "%"},
+        # Escrito em ppm de propósito: a trilha de unidade (original → canônica)
+        # tem de aparecer na ficha também para composição.
+        {"element": "Ti", "max": 1500, "unit": "ppm"},
+        {"element": "Al", "balance": True},
+    ],
+    "Aço Demo B": [
+        {"element": "C", "max": 0.07, "unit": "%"},
+        {"element": "Mn", "max": 2.0, "unit": "%"},
+        {"element": "Si", "max": 0.75, "unit": "%"},
+        {"element": "P", "max": 0.045, "unit": "%"},
+        {"element": "S", "max": 0.03, "unit": "%"},
+        {"element": "Cr", "min": 17.5, "max": 19.5, "unit": "%"},
+        {"element": "Ni", "min": 8.0, "max": 10.5, "unit": "%"},
+        {"element": "N", "max": 0.10, "unit": "%"},
+        {"element": "Mo", "missing": True},
+        {"element": "Fe", "balance": True},
+    ],
+}
+
+
+def _seed_demo_identity(db: Session, source: Source) -> dict[str, int]:
+    """Attach the fictitious designations and compositions to the demo materials.
+
+    Runs on every ``seed()`` and is idempotent by row, not by material: a
+    database that already holds the five demo materials (production before the
+    official cutover) gains the rows on the next ``semear_demo`` instead of
+    being skipped because the material exists. Only ``is_demo`` materials are
+    touched — a real material with one of these names is left alone.
+    """
+    designations = 0
+    entries = 0
+    names = set(DEMO_DESIGNATIONS) | set(DEMO_COMPOSITIONS)
+    materials = {
+        m.name: m
+        for m in db.execute(
+            select(Material).where(Material.name.in_(names), Material.is_demo.is_(True))
+        ).scalars()
+    }
+    for name, specs in DEMO_DESIGNATIONS.items():
+        material = materials.get(name)
+        if material is None:
+            continue
+        existing = {(d.system, d.code_key) for d in material.designations}
+        for spec in specs:
+            row = MaterialDesignation(
+                material_id=material.id,
+                system=spec["system"],
+                code=spec["code"],
+                region=spec.get("region"),
+                source_id=source.id,
+                citation=DEMO_DESIGNATION_CITATION,
+                is_demo=True,
+            )
+            if (row.system, row.code_key) in existing:
+                continue
+            db.add(row)
+            designations += 1
+
+    for name, specs in DEMO_COMPOSITIONS.items():
+        material = materials.get(name)
+        if material is None:
+            continue
+        built = [
+            build_composition_entry(
+                spec["element"],
+                value_min=spec.get("min"),
+                value_max=spec.get("max"),
+                value_nominal=spec.get("nominal"),
+                unit=spec.get("unit"),
+                is_balance=spec.get("balance", False),
+                is_missing=spec.get("missing", False),
+            )
+            for spec in specs
+        ]
+        validate_composition(built)
+        existing_elements = {e.element for e in material.composition}
+        for position, entry in enumerate(built):
+            if entry.element in existing_elements:
+                continue
+            db.add(
+                MaterialCompositionEntry(
+                    material_id=material.id,
+                    element=entry.element,
+                    position=position,
+                    is_balance=entry.is_balance,
+                    is_missing=entry.is_missing,
+                    value_min=entry.value_min,
+                    value_max=entry.value_max,
+                    value_nominal=entry.value_nominal,
+                    original_unit=entry.original_unit,
+                    normalized_min=entry.normalized_min,
+                    normalized_max=entry.normalized_max,
+                    normalized_nominal=entry.normalized_nominal,
+                    canonical_unit=entry.canonical_unit,
+                    conversion_method=entry.conversion_method,
+                    source_id=source.id,
+                    citation=DEMO_COMPOSITION_CITATION,
+                    data_quality=DataQuality.ESTIMADO,
+                    is_demo=True,
+                )
+            )
+            entries += 1
+    db.flush()
+    return {"designations_created": designations, "composition_entries_created": entries}
+
+
 def seed_reference(db: Session) -> dict[str, int]:
     """Populate reusable non-demo reference data only.
 
@@ -2299,6 +2457,10 @@ def seed(db: Session) -> dict[str, int]:
         material_repo.sync_keywords(material.id, mat_spec.get("keywords", []))
         created_materials += 1
 
+    db.flush()
+    assert demo_source is not None
+    identity_summary = _seed_demo_identity(db, demo_source)
+
     process_summary = _seed_process_universe(db)
     transport_created = _seed_transport_modes(db, demo_source)
 
@@ -2306,6 +2468,7 @@ def seed(db: Session) -> dict[str, int]:
     return {
         **reference_summary,
         "materials_created": created_materials,
+        **identity_summary,
         "transport_modes": transport_created,
         **process_summary,
     }

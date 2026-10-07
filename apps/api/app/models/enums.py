@@ -73,6 +73,28 @@ class DataQuality(str, enum.Enum):
     ESTIMADO = "ESTIMADO"
 
 
+class DesignationSystem(str, enum.Enum):
+    """Which naming system a material designation belongs to (D-105, TM2).
+
+    A closed vocabulary, for the reason D-59 gave the discrete process
+    attributes one: ``norma:UNS`` has to be answerable with "no such system"
+    rather than with zero results that would read as "no material has a UNS
+    number". ``COMERCIAL`` is the trade name a producer gives, which belongs to
+    no standards body and says so.
+    """
+
+    UNS = "UNS"
+    AISI_SAE = "AISI_SAE"
+    ASTM = "ASTM"
+    EN = "EN"
+    ISO = "ISO"
+    DIN = "DIN"
+    JIS = "JIS"
+    GB = "GB"
+    ABNT = "ABNT"
+    COMERCIAL = "COMERCIAL"
+
+
 class AuditAction(str, enum.Enum):
     """What happened to an entity, in an ``AuditEvent`` row (M2)."""
 
