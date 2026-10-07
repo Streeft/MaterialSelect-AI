@@ -23,6 +23,7 @@ from app.domain.curves import (
     available_scales,
     draw_curve,
     log_refusal,
+    lower_first,
 )
 from app.domain.errors import NotFoundError, ValidationError
 from app.exporters.report import Report, Sheet, standard_notices
@@ -304,7 +305,7 @@ class CurveService:
                 ["Eixo y: método de conversão", curve.y_conversion_method],
                 [
                     "Família de curvas",
-                    f"por {parameter.name.lower()} ({parameter_unit})" if parameter else "não",
+                    f"por {lower_first(parameter.name)} ({parameter_unit})" if parameter else "não",
                 ],
                 ["Fonte", curve.source.label],
                 ["Citação", curve.citation or "não informada"],

@@ -106,6 +106,11 @@ KINDS: dict[CurveKind, KindSpec] = {
 }
 
 
+def lower_first(text: str) -> str:
+    """Lower only the first letter: "Razão de tensões R" → "razão de tensões R"."""
+    return text[:1].lower() + text[1:]
+
+
 def kind_label(kind: CurveKind) -> str:
     return KINDS[kind].label
 
@@ -267,14 +272,14 @@ def build_curve(
         else:
             if item.parameter is None or not item.parameter_unit:
                 raise CurveError(
-                    f"{where}: a curva é uma família por {pq.name.lower()}, e esta série "
+                    f"{where}: a curva é uma família por {lower_first(pq.name)}, e esta série "
                     "não declara o valor e a unidade do parâmetro."
                 )
             raw = _number(item.parameter, f"{where}, parâmetro")
             normalized, method = _convert(raw, item.parameter_unit, pq, f"{where}, parâmetro")
             if normalized in seen_parameters:
                 raise CurveError(
-                    f"{where}: o mesmo valor de {pq.name.lower()} já está em outra série; "
+                    f"{where}: o mesmo valor de {lower_first(pq.name)} já está em outra série; "
                     "a legenda não teria como distingui-las."
                 )
             seen_parameters.add(normalized)
@@ -312,7 +317,7 @@ def build_curve(
 
             if spec.x_strictly_increasing and previous_x is not None and x_norm <= previous_x:
                 raise CurveError(
-                    f"{at}: x tem de crescer ao longo da série (curva de {spec.label.lower()}); "
+                    f"{at}: x tem de crescer ao longo da série (curva de {lower_first(spec.label)}); "
                     "pontos fora de ordem ou repetidos não são reordenados."
                 )
             previous_x = x_norm

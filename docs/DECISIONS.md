@@ -8286,3 +8286,300 @@ e na comparação (TM3); TM1, equivalência declarada.
 (sem `CHECK`, sem índice, sem trilha por valor); calcular o resto; ponto médio
 ou contenção como regra única; deduzir equivalência por código igual; avaliar a
 regra em SQL (segunda cópia dela).
+
+## D-106 — Curvas de material: modelo tipado (figura → série → ponto), geometria e unidade de leitura no backend, nunca reduzidas a escalar
+
+**Data:** 07/10/2026
+**Status:** aceita (Sessão 61, TM4 — parte de arquitetura; tela, i18n e
+documentação de área ficam para a rodada seguinte, ver "Contrato" abaixo)
+
+**O pedido (TM4).** Exibir curvas de um material — tensão–deformação,
+dependência de temperatura ou de taxa, fadiga, fluência — sem achatá-las em
+escalar, com a geometria no backend (ADR 0004).
+
+### O estado encontrado (investigação)
+
+- **`CatalogSupplementalValue` guarda hoje `payload` JSON opaco** (`dict | list
+  | str | float | int | bool | None`), com `value_kind` texto livre de 32
+  caracteres e **uma** `original_unit` por linha. O contrato do bundle (docs/18
+  §4) não define forma nenhuma para curva: nem eixos, nem unidade por eixo, nem
+  ordem de pontos, nem faixa. É preservação sem interpretação, como o D-102
+  quis.
+- **Não há dado.** Nenhum bundle oficial foi importado (o corpus fica fora do
+  Git); `product_config_to_canonical.py` só escreve `value_kind` `scalar` e
+  `object`; nenhum teste nem seed grava curva. O único rastro de curva no
+  repositório é a marca `EntireGraph=true` que `exporter_configs_to_dictionary.py`
+  lê dos `.exp` — metadado, não pontos.
+- **Por isso não se reaproveita a tabela.** O critério era: motor, painel e
+  exportação precisam de pontos **com unidade e proveniência consultáveis**. Um
+  JSON opaco não deixa converter unidade por eixo (uma `original_unit` só para
+  dois eixos), não deixa o banco recusar ±Infinity/NaN nem ponto fora de ordem,
+  não tem fonte por curva nem `is_demo`, e cada leitor teria de reinterpretar o
+  payload — duas verdades sobre a mesma curva. **Não há migração de dados**:
+  não existe linha a promover. `CatalogSupplementalValue` continua sendo o
+  destino do que não cabe no tipo novo (histerese, curva sem eixo da lista,
+  equação).
+
+### O modelo
+
+Três tabelas (migração `0925e0787863`, revisada: a deriva antiga de
+`battery_chemistry`/`subscription` que o autogenerate propôs foi retirada, como
+no D-105):
+
+- **`material_curve`** — a figura: `material_id` (CASCADE), `kind`
+  (`CurveKind`: `TENSAO_DEFORMACAO`, `TEMPERATURA`, `TAXA`, `FADIGA`,
+  `FLUENCIA`), `title`, `description?`; por eixo `{x,y}_quantity` (lista fixa),
+  `{x,y}_label?` (o título como a fonte o escreve), `{x,y}_original_unit`,
+  `{x,y}_canonical_unit`, `{x,y}_conversion_method`; `parameter_quantity?` (a
+  grandeza ao longo da qual a família varia — temperatura, taxa, razão R…);
+  `source_id` **obrigatório**, `citation?`, `data_quality`, `is_demo`; e a
+  identidade externa `dataset_id?`/`external_id?`/`raw_sha256?` (D-102).
+- **`material_curve_series`** — uma entrada da legenda: `position`, `label?`,
+  `conditions?` (texto declarado pela fonte: "R = −1; 30 Hz"), e o parâmetro
+  com a trilha inteira (`parameter_value`, `parameter_original_unit`,
+  `parameter_normalized`, `parameter_canonical_unit`,
+  `parameter_conversion_method`).
+- **`material_curve_point`** — `position`, `x_value`/`y_value` (como a fonte
+  escreveu, na unidade original da curva), `x_normalized`/`y_normalized`
+  (canônicos) e a faixa opcional `y_min_*`/`y_max_*` (original e canônica).
+
+**CHECKs (portáveis, sem `boolean = 1`):** grandeza de eixo e de parâmetro na
+lista fixa; `title <> ''`; identidade externa inteira ou nenhuma, única por
+dataset; trilha do parâmetro inteira ou nenhuma; posição ≥ 0 e única por
+série/curva; **finito** escrito como `col > -1e308 AND col < 1e308` — recusa
+±Infinity e NaN no PostgreSQL (NaN ordena acima de todo número) e no SQLite
+(guarda NaN como NULL, que o `NOT NULL` recusa), sem o literal `'Infinity'`
+que só um dos dois lê; faixa com os dois lados ou nenhum e contendo a linha
+(`y_min ≤ y ≤ y_max`). Conferido em PostgreSQL 16 local e no job
+`Migrações (PostgreSQL)` da CI, que agora também tenta gravar `Infinity`, `NaN`
+e `-Infinity`.
+
+**O que o CHECK não vê e o construtor vê** (`app/domain/curves.build_curve`,
+puro): x **estritamente crescente** ao longo da série (todo tipo atual é
+carregamento monotônico ou varredura; pontos fora de ordem não são
+reordenados), ao menos 2 pontos (um ponto é escalar, e escalar mora em
+`MaterialPropertyValue`), no máximo 24 séries × 2000 pontos, tipo × grandeza de
+eixo admitida, parâmetro presente em toda série de uma família e ausente fora
+de família, parâmetro repetido entre séries (comparado no canônico: 20 °C =
+293,15 K), unidade desconhecida ou de dimensão errada (Pint, `to_canonical`). O
+seed e o importador gravam **só** por ele, e por um único escritor de linhas
+(`curve_repository.curve_rows`).
+
+**Vocabulário em código** (`app/domain/curve_quantities.py`, separado para o
+modelo ler a lista do CHECK sem ciclo de import): `deformacao` (canônica
+`dimensionless`, lida em `%`), `tensao` (Pa, lida em MPa), `modulo` (Pa, GPa),
+`temperatura` (K, °C, **sem log**), `tempo` (s, h), `ciclos` (adimensional),
+`taxa_deformacao` (1/s), `razao_tensao` (adimensional, **sem log** — R é
+negativo). Por tipo (`KINDS`): eixos admitidos, grandezas de família e escala
+de abertura (`FADIGA` e `TAXA` abrem em log-x; os demais, linear). É argumento,
+não dado (a regra dos casos de carga do D-64): uma grandeza nova é revisão de
+código mais migração do CHECK.
+
+**Visibilidade (D-62).** A curva não tem dono próprio: pende do material, e
+toda leitura (`CurveRepository`) junta `Material` e aplica `visible_materials`.
+Registro alheio é 404 na lista, na curva e no arquivo, pela mesma regra da
+ficha; o canário de isolamento põe uma curva no registro privado e varre as
+três rotas novas (dono vê, estranho não).
+
+### A geometria e a leitura
+
+`app/domain/curves.draw_curve` devolve tudo que a figura e a tabela precisam:
+
+- **Unidade de leitura (D-70) por eixo**, pedida na URL, restrita às unidades
+  admitidas da grandeza; fora da lista é **400 que nomeia as admitidas**, nunca
+  ignorada. A conversão é ponto a ponto no fim (afim é exata para pares), como
+  nos mapas; a faixa, como duas bordas. O valor e a unidade como a fonte
+  escreveu saem ao lado, intocados.
+- **Escala** `linear | log-x | log-y | log-log`, pela regra dos mapas: a
+  grandeza tem de admitir log **e** a unidade de leitura tem de ser fator de
+  escala puro (`is_ratio_scale`; °C não é). Pedida e impossível é 400 com o
+  motivo; a escala **padrão** do tipo nunca recusa — cai para linear no eixo
+  que não pode. Ponto ≤ 0 num eixo log **sai só da figura**: fica na tabela com
+  `drawn: false`, e uma nota diz quantos.
+- **Faixa** como polígono fechado (borda inferior na ida, superior na volta),
+  só quando a fonte deu faixa em ≥ 2 pontos e todos cabem na escala; senão nota.
+- **Domínio** de cada eixo com folga (4 % do vão em linear, sem cruzar o zero
+  que os dados não cruzam; 0,04 década em log). Os ticks ficam no cliente
+  (`figureKit`), que os trata como apresentação.
+- **Nada é interpolado, extrapolado, reamostrado nem escolhido** — a regra do
+  docs/18 §6. Ler "o valor a 20 °C" de uma curva é feature futura e terá de
+  declarar a regra (resíduo TM4-b).
+
+### Importador (D-102)
+
+O bundle aceita `material_curves.ndjson` (também em `KNOWN_FILES` do
+`build_canonical_bundle.py`; a contagem entra no manifest como todo arquivo).
+O dry-run (`validate_semantics`) passa cada linha pelo mesmo construtor e
+confere material existente e `external_id` único; o commit grava com a fonte
+do dataset e conta `curves_created`, `curves_unchanged` e
+`curve_points_created`. **Imutabilidade:** identidade (dataset, `external_id`);
+o mesmo bundle de novo não muda nada; a mesma identidade com outro
+`raw_sha256` é recusada ("Curva mudou dentro do mesmo dataset") — por baixo da
+guarda de manifest que já existia. O import oficial também recusa commit com
+curva `is_demo` restante. Nenhum arquivo do Granta foi lido para isto.
+
+### Contrato para o frontend e o demo
+
+Já implementado e testado neste commit, além do que o pedido de arquitetura
+listava: o seed demo, o `clear_demo` e o CSV/XLSX (estavam prontos quando o
+escopo mudou; ficaram por serem coerentes e cobertos por teste). A rodada
+seguinte faz a seção na ficha, o gráfico, o i18n e a documentação de área.
+
+**(a) Rotas** (todas exigem login e o portão de assinatura do router de
+materiais; registro alheio → 404; erro → `{"detail": "<mensagem em pt-BR>"}`):
+
+- `GET /api/materials/{material_id}/curvas` → `MaterialCurvesOut`. Material sem
+  curva → **200** com `total: 0`, `curves: []` e os cinco tipos com `count: 0`
+  (a tela escreve "nenhuma curva cadastrada"; nunca gráfico vazio). Curvas na
+  ordem do enum (tensão–deformação primeiro), depois por id.
+
+  ```json
+  {"material_id": 1, "material_name": "Liga Alumínio Demo A", "total": 2,
+   "counts_by_kind": [{"kind": "TENSAO_DEFORMACAO", "label": "Tensão–deformação", "count": 1},
+                      {"kind": "TEMPERATURA", "label": "Dependência da temperatura", "count": 0},
+                      {"kind": "TAXA", "label": "Dependência da taxa de deformação", "count": 0},
+                      {"kind": "FADIGA", "label": "Fadiga (S–N)", "count": 1},
+                      {"kind": "FLUENCIA", "label": "Fluência", "count": 0}],
+   "curves": [{"id": 3, "kind": "FADIGA", "kind_label": "Fadiga (S–N)",
+               "title": "Curva S–N com faixa de dispersão (fictícia)",
+               "x_quantity": "ciclos", "x_quantity_label": "Número de ciclos até a falha, N",
+               "y_quantity": "tensao", "y_quantity_label": "Amplitude de tensão",
+               "parameter_quantity_label": "Razão de tensões R",
+               "series_count": 1, "point_count": 6,
+               "source_label": "Dataset Demo MaterialSelect", "is_demo": true}]}
+  ```
+
+- `GET /api/materials/{material_id}/curvas/{curve_id}?unidade_x=&unidade_y=&escala=`
+  → `CurveOut`. Todos os parâmetros opcionais; omitidos, valem a unidade
+  convencional da grandeza e a escala do tipo. 400: unidade fora de
+  `accepted_units` ("… não é admitida no eixo y (Tensão). Admitidas: …"),
+  escala desconhecida, log num eixo que não admite ("Escala logarítmica
+  recusada no eixo x: Temperatura não admite escala logarítmica."). 404: curva
+  de outro material ou material invisível. Coordenadas **já na unidade de
+  leitura**; `path`/`band` são listas de pares `[x, y]`; `domain` é
+  `[min, max]` ou `null` (nada desenhável — escreva `notes[0]`). Exemplo
+  (truncado):
+
+  ```json
+  {"id": 3, "material_id": 1, "material_name": "Liga Alumínio Demo A",
+   "kind": "FADIGA", "kind_label": "Fadiga (S–N)",
+   "title": "Curva S–N com faixa de dispersão (fictícia)", "description": "…",
+   "scale": "log-x", "available_scales": ["linear", "log-x", "log-y", "log-log"],
+   "x_axis": {"quantity": "ciclos", "quantity_label": "Número de ciclos",
+              "title": "Número de ciclos até a falha, N", "unit": "dimensionless",
+              "unit_label": "", "canonical_unit": "dimensionless",
+              "original_unit": "dimensionless", "conversion_method": "identity:dimensionless",
+              "accepted_units": [{"unit": "dimensionless", "label": "adimensional"}],
+              "log": true, "log_refusal": null, "domain": [630.96, 158489319.25]},
+   "y_axis": {"quantity": "tensao", "quantity_label": "Tensão", "title": "Amplitude de tensão",
+              "unit": "MPa", "unit_label": "MPa", "canonical_unit": "Pa",
+              "original_unit": "MPa", "conversion_method": "pint:MPa->Pa",
+              "accepted_units": [{"unit": "MPa", "label": "MPa"}, {"unit": "Pa", "label": "Pa"}, "…"],
+              "log": false, "log_refusal": null, "domain": [67.84, 288.16]},
+   "parameter": {"quantity": "razao_tensao", "quantity_label": "Razão de tensões R",
+                 "unit": "dimensionless", "unit_label": ""},
+   "series": [{"id": 7, "position": 0, "label": null,
+               "conditions": "Flexão rotativa, R = −1; corpos de prova polidos (fictício).",
+               "parameter_value": -1.0, "parameter_original": -1.0,
+               "parameter_original_unit": "dimensionless",
+               "path": [[1000.0, 260.0], [10000.0, 205.0], "…"],
+               "band": [[1000.0, 240.0], [10000.0, 185.0], "…", [1000.0, 280.0]],
+               "points": [{"position": 0, "x": 1000.0, "y": 260.0, "y_min": 240.0, "y_max": 280.0,
+                           "x_original": 1000.0, "y_original": 260.0,
+                           "y_min_original": 240.0, "y_max_original": 280.0, "drawn": true}, "…"],
+               "excluded": 0}],
+   "notes": [], "source_label": "Dataset Demo MaterialSelect",
+   "citation": "Curva fictícia de demonstração — não é dado de ensaio.",
+   "data_quality": "ESTIMADO", "is_demo": true, "is_own_record": false}
+  ```
+
+  Para a tela: legenda = `label` da série, senão o parâmetro
+  (`"<valor> <unit_label>"`, ou `"<quantity_label> = <valor>"` quando
+  `unit_label` é vazio, como R); título do eixo = `title ?? quantity_label`
+  mais `(unit_label)` quando não vazio; `is_demo` cobre curva, material **ou**
+  fonte fictícios (a regra do D-104); `points` é a tabela alternativa (D-31),
+  com `drawn: false` para o ponto fora da escala; faixa ausente
+  (`y_min`/`y_max` nulos) é estado declarado ("sem faixa declarada"), nunca
+  vazio nem 0.
+- `GET /api/exports/materiais/{material_id}/curvas/{curve_id}.{csv|xlsx}?unidade_x=&unidade_y=`
+  → arquivo (`attachment`, `nosniff`; outro formato → 400). Mesmas regras de
+  unidade e visibilidade; escala não entra (é desenho, não dado).
+
+**(b) Tabelas e como o seed insere.** Sempre pelo construtor e pelo escritor
+único — nunca `MaterialCurve(...)` à mão:
+
+```python
+normalized = build_curve(CurveKind.TENSAO_DEFORMACAO,
+    x_quantity="deformacao", x_unit="%", y_quantity="tensao", y_unit="MPa",
+    parameter_quantity="temperatura",
+    series=[SeriesInput(points=[PointInput(0, 0), PointInput(0.1, 205, 195, 215)],
+                        parameter=20, parameter_unit="degC", conditions="…")])
+db.add(curve_rows(normalized, material_id=m.id, title="…", source_id=demo_source.id,
+                  x_label="…", y_label="…", citation="…",
+                  data_quality=DataQuality.ESTIMADO, is_demo=True))
+```
+
+Obrigatórios: material, tipo, título não vazio, as duas grandezas e unidades,
+≥ 2 pontos por série com x crescente, **fonte**; `is_demo=True` em toda curva
+fictícia (a marca é da curva, para valer também num material real).
+`dataset_id`/`external_id`/`raw_sha256` só no import oficial. O demo atual
+(`app.db.seed._seed_demo_curves`, chamado por `seed()` — que `semear_demo`, a
+CI e o `conftest` executam) põe três curvas fictícias: tensão–deformação do
+"Aço Demo B" (20/300/500 °C) e da "Liga Alumínio Demo A" (20/150/250 °C) e uma
+S–N com faixa na liga; idempotente por (material, tipo, título), só em material
+`is_demo`; o log conta `curves_created`.
+
+**(c) O que `clear_demo` cascateia** (`clear_demo_curves`, antes dos
+materiais): curva com `is_demo` **ou** de material demo → seus pontos, suas
+séries, a curva, nessa ordem, em Python (o SQLite dos testes não aplica
+`ON DELETE`); `clear_demo_materials` repete a cascata por defesa;
+`clear_demo_sources` aborta se uma curva **real** citar fonte demo. A chave
+`"curves"` entra no retorno.
+
+**(d) O CSV.** Um arquivo só (`to_csv` do `Report`, BOM UTF-8, toda célula por
+`cells.py` — título em forma de fórmula sai com apóstrofo): título
+`Curva — <título> — <material>`, subtítulo com tipo, contagem e unidades; os
+avisos padrão (fictício primeiro quando houver, registro próprio, limitação,
+reprodutibilidade); seção **Curva** (`Campo,Valor`: material, tipo, título,
+descrição, por eixo a leitura, a unidade original, a canônica e o método,
+família, fonte, citação, qualidade, "Dado fictício"); seção **Pontos** com
+`Série, Parâmetro (<unid.>), Ponto, <eixo x> (<unid.>), <eixo y> (<unid.>),
+<eixo y> mín. (<unid.>), <eixo y> máx. (<unid.>), x original (<unid. original>),
+y original (<unid. original>), Condições declaradas` — todo ponto, desenhado ou
+não; faixa ausente sai como "sem faixa declarada", condição ausente como "não
+informadas", série sem família como "sem família".
+
+### Fora desta decisão (resíduos)
+
+- **TM4-a — tela.** Seção "Curvas" na ficha (seletor, gráfico SVG próprio com
+  família em cor + traço + marcador, `ChartTooltip`, tabela D-31, "Exportar ▾"
+  com PNG/SVG e os pontos), i18n e o teste de acessibilidade; documentação de
+  área (03, 08, 18, README, TODO, CHANGELOG, PROJECT_CONTEXT, CLAUDE.md).
+- **TM4-b — ler um valor de uma curva.** Interpolação ou "valor a T" como
+  regra determinística declarada, com referência ao dado original (docs/18 §6).
+- **TM4-c — histerese, curvas não monotônicas e eixos fora da lista.** Ficam
+  em `CatalogSupplementalValue` até haver tipo.
+- **TM4-d — edição pela API/interface**, com auditoria e
+  `require_catalog_curator` no compartilhado (D-83) — hoje só seed e bundle
+  escrevem.
+- **TM4-e — escolher a unidade do parâmetro da família** (hoje sai na
+  convenção da grandeza: °C para temperatura).
+- **TM5-b depende deste modelo:** a curva plástica para `*PLASTIC`/`TB,MISO`/
+  `MATS1`/`*MAT_PIECEWISE_LINEAR_PLASTICITY` lê `material_curve` (tensão
+  verdadeira × deformação plástica), o que pede regra declarada de conversão
+  engenharia → verdadeira e de origem da deformação plástica — não feita aqui.
+
+**Alternativas descartadas.** Reaproveitar `CatalogSupplementalValue` (opaco:
+sem unidade por eixo, sem CHECK, sem fonte por curva); JSON de pontos numa
+coluna de `material_curve` (mesmo problema, e sem ordem nem finitude no
+banco); uma `PropertyDefinition` por ponto ou por temperatura (achata a curva,
+a objeção do D-69 e do docs/18 §6); reordenar pontos fora de ordem (mudaria o
+dado); calcular a faixa ou o domínio no cliente (ADR 0004); aceitar °C num eixo
+log (a regra do D-70 nos mapas).
+
+**Revisão humana sugerida.** (1) A regra "x estritamente crescente" vale para
+todo tipo — uma fonte com dois pontos no mesmo x (patamar de escoamento
+registrado assim) é recusada, não deduplicada. (2) O vocabulário de grandezas é
+fechado e pequeno; `modulo` e `tensao` são grandezas distintas só pela unidade
+de leitura. (3) Seed, `clear_demo` e CSV ficaram neste commit, embora o escopo
+final da sessão os entregasse a outro agente.
