@@ -7,6 +7,7 @@ import { ptBR } from "@/lib/i18n";
 import { Landing } from "@/components/marketing/Landing";
 import { StartScreen } from "@/components/marketing/StartScreen";
 import { describeViolations, findA11yViolations } from "@/lib/testing/axe";
+import { curveList, stressStrain } from "@/components/charts/curveFixtures";
 // The load-case picker is an `md-outlined-select`: the real combobox lives in
 // its shadow root, where the plain `screen` above cannot reach.
 import { screen as shadowScreen } from "shadow-dom-testing-library";
@@ -1240,6 +1241,10 @@ vi.mock("@/lib/api", async (importOriginal) => ({
   getPropertyMap: () => Promise.resolve(propertyMap),
   getComparison: () => Promise.resolve(comparison),
   getMaterial: () => Promise.resolve(materialDetail),
+  // D-106: the sheet's "Curvas" section, audited with a figure drawn.
+  listMaterialCurves: () => Promise.resolve(curveList),
+  getMaterialCurve: () => Promise.resolve(stressStrain),
+  curveExportUrl: (id: number, curveId: number, format: string) => `#${id}-${curveId}-${format}`,
   getChart: () => Promise.resolve(chart),
   listStudies: () => Promise.resolve(studies),
   getDashboardOverview: () => Promise.resolve(overview),

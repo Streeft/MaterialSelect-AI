@@ -50,6 +50,7 @@ export function ChartFrame({
   controls,
   exportName,
   exportDisabled = false,
+  exportItems,
   table,
   notice,
   empty,
@@ -79,6 +80,8 @@ export function ChartFrame({
   /** Base name of the exported file, from `chartFileName`. */
   exportName: string;
   exportDisabled?: boolean;
+  /** Further "Exportar" entries after PNG and SVG — the data as a file (D-106). */
+  exportItems?: ReactNode;
   /** The figure's data table (a `FigureData`). */
   table?: ReactNode;
   /** Above the figure: a picker, a warning. Shown in both views. */
@@ -188,6 +191,7 @@ export function ChartFrame({
             target={figure}
             fileName={exportName}
             disabled={exportDisabled || !hasFigure}
+            extraItems={exportItems}
           />
         </div>
       </div>

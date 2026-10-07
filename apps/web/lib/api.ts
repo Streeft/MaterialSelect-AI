@@ -18,6 +18,8 @@ import type {
   CostRequest,
   CostResult,
   CurrentUser,
+  Curve,
+  CurveScale,
   DashboardOverview,
   EcoAuditRequest,
   EcoAuditResult,
@@ -32,6 +34,7 @@ import type {
   LoadCase,
   MaterialClass,
   MaterialClassIn,
+  MaterialCurves,
   MaterialCreate,
   MaterialDetail,
   MaterialListItem,
@@ -243,6 +246,54 @@ export function getMaterial(
   return request<MaterialDetail>(
     withUnits(`/api/materials/${id}`, unitChoices),
   );
+}
+
+// --- Material curves (D-106) -----------------------------------------------
+
+/** The material's curves, with a count for every kind — zero included. */
+export function listMaterialCurves(materialId: number): Promise<MaterialCurves> {
+  return request<MaterialCurves>(`/api/materials/${materialId}/curvas`);
+}
+
+/** The reader's choices for one curve: units per axis and scale, all optional. */
+export interface CurveReading {
+  x?: string;
+  y?: string;
+  scale?: CurveScale;
+}
+
+function curveQuery(reading: CurveReading): string {
+  const params = new URLSearchParams();
+  if (reading.x) params.set("unidade_x", reading.x);
+  if (reading.y) params.set("unidade_y", reading.y);
+  if (reading.scale) params.set("escala", reading.scale);
+  const query = params.toString();
+  return query ? `?${query}` : "";
+}
+
+/**
+ * One curve, ready to draw (ADR 0004): points, band and domain already in the
+ * reading units. A unit or scale the axis refuses comes back as a 400 whose
+ * `detail` names what is admitted.
+ */
+export function getMaterialCurve(
+  materialId: number,
+  curveId: number,
+  reading: CurveReading = {},
+): Promise<Curve> {
+  return request<Curve>(
+    `/api/materials/${materialId}/curvas/${curveId}${curveQuery(reading)}`,
+  );
+}
+
+/** The curve's points as a file, in the same reading units as the figure. */
+export function curveExportUrl(
+  materialId: number,
+  curveId: number,
+  format: "csv" | "xlsx",
+  reading: Pick<CurveReading, "x" | "y"> = {},
+): string {
+  return `${API_URL}/api/exports/materiais/${materialId}/curvas/${curveId}.${format}${curveQuery(reading)}`;
 }
 
 export function getChart(x: string, y: string): Promise<ChartData> {
