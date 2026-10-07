@@ -18,6 +18,7 @@ from app.models.enums import (
     AuditEntityType,
     BetterDirection,
     DataQuality,
+    DesignationSystem,
     DocumentKind,
     ImportStatus,
     IngestStatus,
@@ -29,6 +30,8 @@ from app.models.import_job import ImportJob, ImportMappingTemplate
 from app.models.knowledge import KnowledgeChunk, KnowledgeDocument, KnowledgeEmbedding
 from app.models.material import Material
 from app.models.material_class import MaterialClass
+from app.models.material_composition import MaterialCompositionEntry
+from app.models.material_designation import MaterialDesignation
 from app.models.material_keyword import MaterialKeyword
 from app.models.material_property_value import MaterialPropertyValue
 from app.models.material_synthesis import MaterialSynthesis
@@ -84,6 +87,7 @@ __all__ = [
     "CatalogSupplementalValue",
     "ConstraintGroup",
     "DataQuality",
+    "DesignationSystem",
     "DocumentKind",
     "Favorite",
     "ImportJob",
@@ -95,6 +99,8 @@ __all__ = [
     "KnowledgeEmbedding",
     "Material",
     "MaterialClass",
+    "MaterialCompositionEntry",
+    "MaterialDesignation",
     "MaterialKeyword",
     "MaterialProcess",
     "MaterialPropertyValue",

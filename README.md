@@ -75,6 +75,11 @@ Google). Estado detalhado em [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md
 - **Meus registros** — registros próprios de cada pessoa, ao lado do catálogo
   compartilhado; favoritos e recentes.
 - **Painel** — cobertura do catálogo, lacunas e distribuição por propriedade.
+- **Buscar por composição e designação** — no catálogo, `comp:Cr>=12`,
+  `comp:Ni:8-10`, `norma:UNS` e `designacao:S30400` se combinam com AND/OR/NOT;
+  a faixa de composição é lida por alcance, material sem o dado não passa e a
+  busca diz quantos ficaram de fora. A ficha mostra composição (% em massa, com
+  fonte) e designações (D-105).
 - **Importar** — CSV/XLSX com mapeamento de colunas, validação linha a linha,
   licença da fonte e reversão por lote.
 - **Catálogo oficial licenciado** — pipeline administrativo separado, com identidade externa/GRUID, SHA-256 por artefato, dry-run, proveniência de release e preservação lossless de valores que ainda não cabem no motor numérico. Os bytes licenciados ficam fora do Git; ver [`docs/18-catalogo-oficial-granta.md`](docs/18-catalogo-oficial-granta.md). Fontes abertas (Materials Project, Wikidata, JARVIS…) entram pelo mesmo pipeline, só com veredito APROVADA no portão de licença — [`docs/20-catalogo-fontes-abertas.md`](docs/20-catalogo-fontes-abertas.md) e [`docs/catalogo/fontes.md`](docs/catalogo/fontes.md); nenhuma está aprovada ainda.

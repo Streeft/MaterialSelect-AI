@@ -19,8 +19,11 @@ que ninguém importa é exatamente o defeito do D-71 — só que a próxima vez.
 
 1. **Marque `is_demo=True`** no registro (ou o campo equivalente do modelo —
    `Material.is_demo`, `Source.is_demo`, `Process.is_demo`,
-   `TransportMode.is_demo`, `BatteryChemistry.is_demo` e
-   `PerformanceIndex.is_demo`). É o único jeito de o
+   `TransportMode.is_demo`, `BatteryChemistry.is_demo`,
+   `PerformanceIndex.is_demo`, `MaterialDesignation.is_demo` e
+   `MaterialCompositionEntry.is_demo` — as duas últimas desde o D-105, marcadas
+   na própria linha para que uma designação fictícia num material real também
+   seja encontrada). É o único jeito de o
    sistema saber depois que a linha é fictícia — nenhuma outra convenção
    (nome do arquivo, comentário, prefixo no nome do registro) é lida por
    código nenhum.
@@ -69,7 +72,8 @@ Isso executa `python -m app.db.clear_demo`
   (`is_demo=False`), porque são fórmulas de engenharia e não medições
   inventadas.
 - **Não deixa órfão.** `MaterialPropertyValue`, `MaterialKeyword`,
-  `MaterialProcess`, `Favorite`, `RecentRecord` e a receita de
+  `MaterialProcess`, `Favorite`, `RecentRecord`, `MaterialDesignation`,
+  `MaterialCompositionEntry` e a receita de
   `MaterialSynthesis` de cada material fictício somem junto — explicitamente,
   em Python, não só por `ondelete` do schema (o SQLite dos testes não aplica
   `ondelete` sem uma `PRAGMA` que este projeto não liga; depender só do
@@ -80,7 +84,9 @@ Isso executa `python -m app.db.clear_demo`
   `is_demo=False` continuam de pé. Químicas, índices, processos, modais e
   fontes reais são preservados. Uma `Source.is_demo=True` só é apagada depois
   de provar que nenhuma linha real ainda a cita; caso contrário o comando
-  aborta, preservando a proveniência.
+  aborta, preservando a proveniência — inclusive quando quem a cita é uma
+  designação ou linha de composição real (D-105). Designações e linhas de
+  composição marcadas `is_demo=True` saem mesmo num material real.
 - **É irreversível e idempotente**: uma segunda execução, sem material
   fictício sobrando, não faz nada e diz isso no log
   (`Nada a fazer — nenhum registro com is_demo=True.`). Não é "rode duas

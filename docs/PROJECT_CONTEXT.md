@@ -66,7 +66,7 @@ extração em massa; o Total Materia ficou como inspiração de funcionalidade
 autorização dele está pendente de arquivo em `catalogo/autorizacoes/`. Regra
 em [`20-catalogo-fontes-abertas.md`](20-catalogo-fontes-abertas.md).
 
-**Fases 1 a 9 concluídas.** Fase 7 fechou por completo — todas as exportações (CSV, XLSX, HTML, DOCX e PPTX) entregues para catálogo, relatório de estudo e laudo de engenharia, além do lote quádruplo de melhorias funcionais (3395 → 3407 backend, 753 → 762 frontend), na Sessão 48 a figura de barras por fase no Eco Audit e reordenação por arraste em seleção (Opções 1 e 2, 3743 backend e 762 → 778 frontend), na Sessão 54 a vinculação automática de processos demo aos materiais de teste por classe (3854 → 3857 backend e 778 frontend), na Sessão 55 a padronização do seletor de modo do Eco Audit para ButtonGroup/ButtonGroupItem (Segmented Control MSDS 2.0, 3857 backend e 778 frontend), e na Sessão 56 a auditoria de conformidade das Frentes 1 a 4 com o Design System (MSDS 2.0, D-80/D-91) e acessibilidade (WCAG 2.1 AA), a auditoria técnica do Mapa de Ashby 2D (`AshbyMap.tsx`, `chart_service.py`, `palette.ts`, `figureExport.ts`) e a quitação formal de A7 (Cérebro em produção no Neon executado pelo autor) (3857 backend e 778 frontend). A Sessão 57 adiciona a fundação do catálogo oficial (D-102) e sete regressões novas, levando o backend a 3864 testes; frontend em 778. A Sessão 59 entrega o **cartão de material para CAE** (TM5, D-104 — MAPDL, MatML 3.1, Abaqus, Nastran `MAT1`, LS-DYNA `*MAT_ELASTIC`), levando o backend a **3938 testes** (3932 passam e 6 pulam sem `POSTGRES_TEST_URL`) e o frontend a **783**.
+**Fases 1 a 9 concluídas.** Fase 7 fechou por completo — todas as exportações (CSV, XLSX, HTML, DOCX e PPTX) entregues para catálogo, relatório de estudo e laudo de engenharia, além do lote quádruplo de melhorias funcionais (3395 → 3407 backend, 753 → 762 frontend), na Sessão 48 a figura de barras por fase no Eco Audit e reordenação por arraste em seleção (Opções 1 e 2, 3743 backend e 762 → 778 frontend), na Sessão 54 a vinculação automática de processos demo aos materiais de teste por classe (3854 → 3857 backend e 778 frontend), na Sessão 55 a padronização do seletor de modo do Eco Audit para ButtonGroup/ButtonGroupItem (Segmented Control MSDS 2.0, 3857 backend e 778 frontend), e na Sessão 56 a auditoria de conformidade das Frentes 1 a 4 com o Design System (MSDS 2.0, D-80/D-91) e acessibilidade (WCAG 2.1 AA), a auditoria técnica do Mapa de Ashby 2D (`AshbyMap.tsx`, `chart_service.py`, `palette.ts`, `figureExport.ts`) e a quitação formal de A7 (Cérebro em produção no Neon executado pelo autor) (3857 backend e 778 frontend). A Sessão 57 adiciona a fundação do catálogo oficial (D-102) e sete regressões novas, levando o backend a 3864 testes; frontend em 778. A Sessão 59 entrega o **cartão de material para CAE** (TM5, D-104 — MAPDL, MatML 3.1, Abaqus, Nastran `MAT1`, LS-DYNA `*MAT_ELASTIC`), levando o backend a 3938 testes e o frontend a 783. A Sessão 60 entrega a **busca por composição química e por designação** (TM2, D-105), levando o backend a **4079 testes** (4073 passam e 6 pulam sem `POSTGRES_TEST_URL`) e o frontend a **797**.
 
 | # | Fase | Estado | Documento |
 |---|---|---|---|
@@ -349,7 +349,12 @@ habilitável, com dois tipos — `limit` (a árvore do M6) e `tree` (seleção d
 pastas da taxonomia, com descendentes). Migração aditiva com backfill: todo
 estudo anterior vira um estágio e avalia exatamente como antes, funil incluído.
 **A busca deixou de ser `LIKE`** ([D-55](DECISIONS.md)): analisador próprio com
-AND/OR/NOT, frase, parênteses e curinga.
+AND/OR/NOT, frase, parênteses e curinga. Desde o [D-105](DECISIONS.md) (TM2)
+ela pergunta também por composição química (`comp:Cr>=12`, lida por alcance em
+lógica de três valores: sem o dado o material não passa, nem sob `NOT`, e a
+resposta conta quantos ficaram de fora) e por designação (`norma:UNS`,
+`designacao:S30400`), com `MaterialDesignation` e `MaterialCompositionEntry`
+na ficha.
 
 **E existe um segundo universo** ([D-57](DECISIONS.md), P0-2): `ProcessClass`
 hierárquica, `Process` e a associação N–N `material_process` deram ao Tree Stage
@@ -991,6 +996,11 @@ que mais afetam quem for mexer no código:
 | O Cérebro é ingerido por um workflow do Actions (do LFS, só o que o banco não tem; sem IA); vetores de 768 dimensões com a sobra noturna da cota gratuita; uma identidade de vetor (modelo e dimensão) conferida em `/api/health`; a busca ranqueia num índice em memória, com BM25 igual bit a bit | [D-101](DECISIONS.md) |
 
 ## 9. Limitações atuais
+
+- **Composição e designação só existem no demo.** Nenhum registro real as tem:
+  dependem do bundle do D-102 ou de fonte aberta APROVADA. Também não há tela de
+  edição, estágio de seleção por composição nem composição nas exportações
+  ([D-105](DECISIONS.md); TM2-a a TM2-e no `TODO.md`).
 
 - **O cartão CAE dos solvers ainda recusa todo material.** Coeficiente de
   Poisson, expansão térmica e calor específico não têm slug no catálogo; o

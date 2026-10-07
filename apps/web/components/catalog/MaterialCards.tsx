@@ -4,6 +4,7 @@ import { ptBR } from "@/lib/i18n";
 import { classVisual } from "@/lib/design/palette";
 import { Badge, Bar, Card, CardBody } from "@/components/ui";
 import { QualityBar } from "@/components/catalog/MaterialRows";
+import { DesignationCodes } from "./DesignationCodes";
 import { HighlightText } from "./HighlightText";
 
 const t = ptBR.catalog;
@@ -54,6 +55,7 @@ function MaterialCard({
                 <HighlightText text={material.subclass} query={searchQuery} />
               </span>
             ) : null}
+            <DesignationCodes designations={material.designations} searchQuery={searchQuery} />
           </div>
           <span
             className="inline-flex shrink-0 items-center gap-1.5 rounded-seat bg-surface-sunken px-2 py-1 text-2xs text-ink-muted"

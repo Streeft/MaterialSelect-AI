@@ -35,6 +35,7 @@ import type {
   MaterialCreate,
   MaterialDetail,
   MaterialListItem,
+  MaterialSearch,
   MaterialUpdate,
   MyRecords,
   Notebook,
@@ -201,6 +202,18 @@ export function listMaterials(search?: string): Promise<MaterialListItem[]> {
       ? `?search=${encodeURIComponent(search.trim())}`
       : "";
   return request<MaterialListItem[]>(`/api/materials${query}`);
+}
+
+/**
+ * The catalogue search with what it knows besides the rows (D-55, D-105).
+ *
+ * Same matching as `listMaterials`; this one also carries, when the query asks
+ * about composition (`comp:`), the rule that ran and how many materials were
+ * left out for lack of data — the catalogue screen states both.
+ */
+export function searchMaterials(query?: string): Promise<MaterialSearch> {
+  const q = query && query.trim() ? `?q=${encodeURIComponent(query.trim())}` : "";
+  return request<MaterialSearch>(`/api/materials/busca${q}`);
 }
 
 /**

@@ -286,6 +286,22 @@ jobs:
           grep -q "fk_selection_study_project_id_project" schema.txt
           ! grep -q "selection_study_name_key" schema.txt
 
+      - name: A migração mais recente desce e sobe de volta em Postgres
+        # D-105: a última revisão tem de ser reversível no alvo de produção,
+        # e os CHECKs da composição (resto e ausência sem número, elemento da
+        # lista fixa, um resto por material) têm de chegar ao banco.
+        env:
+          DATABASE_URL: postgresql+psycopg://materialselect:materialselect@localhost:5432/materialselect
+          PGPASSWORD: materialselect
+        run: |
+          python -m alembic downgrade -1
+          python -m alembic upgrade head
+          python -m app.db.seed
+          psql -h localhost -U materialselect -d materialselect -c "\d material_composition" > composition.txt
+          grep -q "ck_material_composition_stateless_numbers" composition.txt
+          grep -q "ck_material_composition_element" composition.txt
+          grep -q "uq_material_composition_one_balance" composition.txt
+
       - name: Testes de concorrência das cotas em PostgreSQL
         env:
           POSTGRES_TEST_URL: postgresql+psycopg://materialselect:materialselect@localhost:5432/materialselect

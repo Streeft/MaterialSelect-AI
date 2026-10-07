@@ -57,6 +57,9 @@ PATH_VALUES = {
 QUERY_STRINGS = {
     "/api/materials/chart": "?x=densidade&y=modulo_young",
     "/api/materials": "?search=Superliga",
+    # D-105: the search with its report; a composition condition rides along so
+    # the counts are computed too, and the name must still only reach its owner.
+    "/api/materials/busca": "?q=Superliga%20OR%20comp:Cr%3E%3D1",
     # D-104: MatML, the one CAE format the private record (density and Young's
     # modulus, no Poisson's ratio) can be written in.
     "/api/exports/materiais/{material_id}/cae": "?formato=matml&unidades=m-kg-s",
@@ -219,6 +222,7 @@ def test_the_owner_finds_their_record_across_the_api(
     assert "/api/notebooks/{notebook_id}/studio/{artifact_id}" in carrying
     assert "/api/notebooks/{notebook_id}/studio/{artifact_id}/export.{fmt}" in carrying
     assert "/api/materials" in carrying
+    assert "/api/materials/busca" in carrying
     assert "/api/materials/{material_id}" in carrying
     assert "/api/exports/catalogo.{fmt}" in carrying
     assert "/api/exports/materiais/{material_id}/cae" in carrying

@@ -8125,3 +8125,164 @@ valor por linha. Nenhum arquivo foi aberto num solver.
 **Fora desta decisão:** curva tensão-deformação plástica e dados dependentes de
 temperatura (TM5-b, depende do TM4), XML do Engineering Data do Workbench
 (TM5-c) e cartões térmicos `MAT4`/material térmico do LS-DYNA (TM5-d).
+
+---
+
+## D-105 — Composição química e designações: por material, com fonte, e a composição lida por alcance em lógica de três valores
+
+**Data:** 07/10/2026
+**Status:** aceita (Sessão 60, TM2)
+
+**O pedido (TM2).** Buscar por composição química ("Cr ≥ 12 %") e por
+designação/norma, na linguagem de consulta do [D-55](#d-55--a-busca-do-catálogo-ganha-linguagem-de-consulta-com-analisador-próprio),
+com a composição ausente tratada como ausência (D-24) e não como 0 %.
+
+**O que havia.** Nada: o catálogo não tinha nem composição nem designação. O
+mais próximo eram o nome livre (os 70 materiais do `seed_extended` chamam-se
+"Aço Inoxidável 316L", "Liga de Alumínio 6061-T6") e as palavras-chave. Nenhum
+número de composição existia em lugar algum, nem em `CatalogSupplementalValue`.
+
+### O modelo
+
+- **`MaterialDesignation`** (`material_designation`): N por material — sistema
+  (`DesignationSystem`, vocabulário fechado: UNS, AISI/SAE, ASTM, EN, ISO, DIN,
+  JIS, GB, ABNT, nome comercial), código **como a fonte escreveu**,
+  `code_key` (NFKC, maiúsculas, sem espaços — e nada mais), região opcional,
+  **fonte obrigatória** e citação (onde, na fonte). Única por
+  (material, sistema, `code_key`). Vocabulário fechado pela razão do D-59:
+  `norma:XYZ` é erro com a lista, nunca zero resultado que leria "ninguém tem".
+- **`MaterialCompositionEntry`** (`material_composition`): uma linha por
+  elemento, em **% em massa** (canônica `percent`), com a trilha do princípio 4
+  — `value_min/max/nominal` na `original_unit` (`%`, `wt%`, `ppm`, fração
+  mássica), `normalized_*` em %, `conversion_method` do `units.py` —, fonte,
+  citação, `data_quality` e `position` (a ordem da fonte). Seis formas: faixa,
+  só máximo ("C ≤ 0,08"), só mínimo ("Cu ≥ 99,9"), nominal, **resto** e
+  **declarado ausente**. As duas últimas não carregam número **por `CHECK`**,
+  além do construtor `app/domain/composition.py`: o seed, o importador oficial e
+  uma migração futura escrevem a tabela sem passar pelo serviço. Também por
+  `CHECK`: elemento da lista fixa dos 118 (`app/domain/elements.py`, dado de
+  referência público, em código pela razão dos casos de carga do D-64), mín. ≤
+  máx., 0–100 %, nominal dentro da faixa, uma linha por elemento e **um resto
+  por material** (índice único parcial).
+- **O resto é declarado, nunca calculado.** `100 − Σ` seria um número que a
+  fonte não escreveu, herdando todo arredondamento e todo elemento que ela não
+  listou. Uma composição cujos mínimos somam mais de 100 % é recusada
+  (`validate_composition`) — conferência do que foi escrito, nada é gravado dela.
+- **Ausência é ausência (D-24).** Material sem linha de composição está "sem
+  composição cadastrada", não com 0 % de tudo; elemento que a composição não
+  lista é desconhecido, não 0 % (normas listam o que controlam).
+- **Nenhuma equivalência.** Uma designação pertence a **um** registro; dois
+  materiais com o mesmo código não são declarados o mesmo material, e o
+  `code_key` não apaga pontuação (`1.4301` ≠ `14301`) — apagá-la seria decidir
+  identidade pela aparência. Equivalência declarada por fonte é o TM1; "parecido"
+  é o Find Similar (D-63).
+- **Visibilidade (D-62).** As duas tabelas pendem do material, então herdam a
+  regra dele; toda leitura da busca (linhas **e contagens**) passa por
+  `visible_materials`, e o canário de isolamento varre a rota nova.
+- **Sem API de escrita nesta rodada.** Entram pelo seed demo e pelo bundle
+  oficial; editar pela interface (com auditoria e `require_catalog_curator` no
+  compartilhado, D-83) é resíduo TM2-a.
+
+### A busca
+
+`comp:`, `norma:` e `designacao:` são átomos da linguagem do D-55 e combinam com
+`AND`/`OR`/`NOT`, parênteses e curingas: `comp:Cr>=12`, `comp:C<=0,08`,
+`comp:Ni:8-10`, `comp:Fe`, `norma:UNS`, `designacao:S30400`,
+`designacao:"304 L"`, `designacao:304*`. Vírgula decimal aceita (D-30); `%`
+opcional. Nomes de campo sem acento e sem caixa. Prefixo de letras desconhecido
+(`compo:`) é erro — antes buscava como texto e acharia nada em silêncio; é a
+única mudança de comportamento para consultas antigas, e só atinge palavras com
+dois-pontos. Condição separada por espaços (`comp:Cr >= 12`) é erro que diz
+como escrever. Toda recusa é 400 em português.
+
+**Regra de faixa: alcance.** Uma faixa satisfaz `≥ x` quando o **máximo**
+declarado chega a `x`; `≤ x` quando o mínimo chega; `a-b` quando as faixas se
+cruzam; `=` quando o valor está dentro; `comp:Fe` é "> 0" por alcance, e um
+resto contém o elemento por definição. "≤ máx." admite `[0, máx.]` — é o que um
+máximo de norma **significa** (qualquer teor até ele conforma, inclusive
+nenhum), e nada é gravado: o 0 só existe na leitura da declaração. "≥ mín."
+admite `[mín., 100]`. Com faixa e nominal, a faixa decide (o nominal é o ponto
+representativo, a divisão envelope/ponto do D-59).
+
+*Por que alcance e não contenção nem ponto médio.* Uma faixa de norma é o
+conjunto de corridas que conformam — todo ponto dela é admissível, como o
+envelope do D-59, e diferente da dispersão em torno de um valor verdadeiro de
+uma propriedade. Na busca, que é funil de candidatos, esconder 10,5–12,5 % Cr de
+quem pede "≥ 12" esconderia material que pode ser comprado assim (o teste
+`test_the_midpoint_rule_would_have_rejected_a_reachable_range` mostra o caso que
+o ponto médio erraria). E a garantia continua expressável: em lógica de três
+valores **o lado falso do alcance é a garantia do complemento** —
+`NOT comp:Cr<12` é "nenhuma corrida abaixo de 12 %", isto é, mín. ≥ 12. A ajuda
+da tela dá esse exemplo. *Revisão humana sugerida:* se o autor preferir a
+garantia como padrão, a troca é a função `evaluate` — um lugar só.
+
+**Lógica de três valores.** Cada átomo de composição dá verdadeiro, falso ou
+**indeterminado** (sem composição cadastrada; elemento não declarado; teor
+declarado ausente; resto comparado com número). `NOT` troca verdadeiro e falso e
+deixa o indeterminado onde está — o operador negativo não libera ausência, a
+regra do D-59 —; `AND`/`OR` seguem Kleene. O material passa só se verdadeiro.
+Designação e texto são sempre decididos (um rótulo registrado, buscado como
+nome: "não se chama DEMO-304" vale para quem não tem designação).
+
+**Onde mora.** A regra (`evaluate`, `admitted_interval`) está em
+`app/domain/composition.py`, pura; o repositório pede o veredito material a
+material sobre o conjunto visível e compila só os conjuntos de ids
+(verdadeiro/falso) junto com o SQL do texto — uma regra, sem cópia em SQL. O
+analisador (`app/domain/search_query.py`) só produz a árvore.
+
+**O que a resposta diz.** `GET /api/materials/busca?q=` devolve os itens e,
+quando a consulta pergunta de composição, `composition`: a regra em palavras
+(`RULE_TEXT`, a mesma frase da ajuda — `i18n.test.ts` confere), quantos
+materiais visíveis ficaram de fora porque a resposta dependia de dado ausente
+(`undetermined`), quantos não têm composição, e por condição quantos atendem,
+não atendem e ficam sem dado, por motivo. `GET /api/materials?search=` fala a
+mesma língua e continua devolvendo só a lista. **Relevância:** termo solto
+também casa código de designação; código exato pesa como nome exato (100),
+subcadeia 20; `designacao:304*` põe o próprio `304` antes de `304L`. Um código
+sem curinga em `designacao:` casa **exato** (é identificador; `304` como
+subcadeia de `S30400` seria acerto falso); termo solto continua subcadeia.
+
+### O contrato canônico (D-102)
+
+O bundle oficial ganhou dois arquivos, validados no dry-run pelo mesmo
+construtor do domínio e importados com a fonte do dataset, idempotentes por
+(material, sistema, código) e (material, elemento):
+
+- `material_designations.ndjson`: `material_external_id`, `system` (valor do
+  enum), `code`, `region?`, `citation?`.
+- `material_compositions.ndjson`: `material_external_id`, `element`, `state`
+  (`range` | `balance` | `missing`), `min?`, `max?`, `nominal?`, `unit`
+  (obrigatória em `range`), `position?`, `citation?`, `notes?`.
+
+`CatalogRecordRef` não muda: designação não é identidade externa (o GRUID é), e
+nome nunca deduplica. Composição em % atômica, composição por condição (fundido
+× laminado) e equivalências não cabem aqui e continuam, se vierem, em
+`CatalogSupplementalValue` até haver regra.
+
+### Demonstração
+
+Fictícia e marcada (`is_demo` na própria linha, além do material), anexada aos
+dois metais do seed principal — que `semear_demo`, a CI e o `conftest`
+executam —, com a forma de uma especificação (faixa, máximo, nominal, ppm,
+resto, ausente) e números alterados de propósito; nada de ASM, MatWeb, Total
+Materia nem Granta. Códigos com prefixo `DEMO-`: um código real colado num
+material fictício afirmaria que ele *é* aquela liga. Polímero, cerâmica e
+compósito ficam sem composição de propósito. O seed é idempotente por linha, e
+o próximo `semear_demo` preenche os materiais demo que já existem; o log conta
+`designations_created` e `composition_entries_created`. `clear_demo` apaga as
+linhas demo (por marca ou por material demo) com cascata em Python e aborta se
+uma linha real citar fonte demo; o importador oficial recusa commit com linha
+demo restante.
+
+### Fora desta decisão (resíduos no TODO)
+
+TM2-a, edição pela interface/API; TM2-b, composição como estágio de seleção
+(estágio `limit` sobre elemento, no motor e no laudo); TM2-c, % atômica e
+composição por condição; TM2-d, composição em exportações (CSV/relatório/MatML)
+e na comparação (TM3); TM1, equivalência declarada.
+
+**Alternativas descartadas.** Composição como `PropertyDefinition` por elemento
+(118 propriedades em ~0 % no painel, a objeção do D-69); campo JSON no material
+(sem `CHECK`, sem índice, sem trilha por valor); calcular o resto; ponto médio
+ou contenção como regra única; deduzir equivalência por código igual; avaliar a
+regra em SQL (segunda cópia dela).

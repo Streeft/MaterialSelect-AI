@@ -120,7 +120,8 @@ IDE. Resumo do que não muda:
 - **Apagar dado fictício usa `apps/api/app/db/clear_demo.py`**
   (`python -m app.db.clear_demo`, ação `excluir_demo`), que remove toda linha
   `is_demo=True` nos modelos marcáveis (material, processo, modal, química,
-  índice e fonte), não importa em qual módulo nasceu. Fonte demo ainda citada
+  índice, fonte e, desde o D-105, designação e linha de composição), não
+  importa em qual módulo nasceu. Fonte demo ainda citada
   por linha real faz a limpeza abortar. É uma exceção estreita à regra geral do
   catálogo (dado real se preserva/desativa) válida só porque `is_demo=True`
   declara que aquela linha é fictícia ([D-72](DECISIONS.md), D-102).

@@ -3,8 +3,9 @@
 ⚠️  Irreversível. Roda contra o banco que `DATABASE_URL` apontar.
 
 A regra de corte é a própria coluna `is_demo`: material, processo, modal de
-transporte, química de bateria, índice de desempenho e fonte fictícios são removidos
-independentemente do módulo que os criou. Taxonomias e definições de
+transporte, química de bateria, índice de desempenho, fonte, designação e linha de
+composição (D-105) fictícios são removidos independentemente do módulo que os
+criou. Taxonomias e definições de
 propriedades/atributos permanecem porque são metadados reutilizáveis pelo
 catálogo oficial.
 
@@ -32,6 +33,8 @@ from sqlalchemy.orm import Session
 from app.db.base import SessionLocal
 from app.models.battery_chemistry import BatteryChemistry
 from app.models.material import Material
+from app.models.material_composition import MaterialCompositionEntry
+from app.models.material_designation import MaterialDesignation
 from app.models.material_keyword import MaterialKeyword
 from app.models.material_property_value import MaterialPropertyValue
 from app.models.material_synthesis import MaterialSynthesis
@@ -41,6 +44,26 @@ from app.models.process import MaterialProcess, Process
 from app.models.process_attribute import ProcessAttributeValue
 from app.models.source import Source
 from app.models.transport_mode import TransportMode
+
+
+def clear_demo_identity(db: Session) -> dict[str, int]:
+    """Delete demo designations and composition rows (D-105).
+
+    Two ways a row is fictitious, and both go: it declares ``is_demo`` itself
+    (a demo row attached to a real material), or it belongs to a demo material.
+    Run before the materials so the counts say what was removed here; the
+    material pass repeats the cascade defensively.
+    """
+    demo_materials = select(Material.id).where(Material.is_demo.is_(True))
+    removed = {}
+    for key, model in (
+        ("designations", MaterialDesignation),
+        ("composition_entries", MaterialCompositionEntry),
+    ):
+        condition = model.is_demo.is_(True) | model.material_id.in_(demo_materials)
+        removed[key] = db.scalar(select(func.count(model.id)).where(condition)) or 0
+        db.execute(delete(model).where(condition))
+    return removed
 
 
 def clear_demo_materials(db: Session) -> int:
@@ -68,6 +91,10 @@ def clear_demo_materials(db: Session) -> int:
     db.execute(delete(MaterialProcess).where(MaterialProcess.material_id.in_(demo_ids)))
     db.execute(delete(MaterialPropertyValue).where(MaterialPropertyValue.material_id.in_(demo_ids)))
     db.execute(delete(MaterialKeyword).where(MaterialKeyword.material_id.in_(demo_ids)))
+    db.execute(delete(MaterialDesignation).where(MaterialDesignation.material_id.in_(demo_ids)))
+    db.execute(
+        delete(MaterialCompositionEntry).where(MaterialCompositionEntry.material_id.in_(demo_ids))
+    )
     db.execute(delete(Material).where(Material.id.in_(demo_ids)))
     return len(demo_ids)
 
@@ -146,6 +173,19 @@ def clear_demo_sources(db: Session) -> int:
             select(func.count(BatteryChemistry.id)).where(BatteryChemistry.source_id.in_(demo_ids))
         )
         or 0,
+        # D-105: a real designation or composition row citing a demo source.
+        "material_designations": db.scalar(
+            select(func.count(MaterialDesignation.id)).where(
+                MaterialDesignation.source_id.in_(demo_ids)
+            )
+        )
+        or 0,
+        "material_composition": db.scalar(
+            select(func.count(MaterialCompositionEntry.id)).where(
+                MaterialCompositionEntry.source_id.in_(demo_ids)
+            )
+        )
+        or 0,
     }
     if any(remaining_refs.values()):
         raise RuntimeError(
@@ -163,6 +203,7 @@ def clear_demo_data(db: Session) -> dict[str, int]:
     Order matters: material↔process links are removed from either side before
     processes disappear. Running the function again is idempotent.
     """
+    identity = clear_demo_identity(db)
     materials = clear_demo_materials(db)
     processes = clear_demo_processes(db)
     transport_modes = clear_demo_transport_modes(db)
@@ -176,6 +217,7 @@ def clear_demo_data(db: Session) -> dict[str, int]:
         "battery_chemistries": battery_chemistries,
         "performance_indices": performance_indices,
         "sources": sources,
+        **identity,
     }
 
 

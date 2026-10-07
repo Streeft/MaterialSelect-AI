@@ -19,6 +19,7 @@ function material(id: number, is_demo: boolean): MaterialListItem {
     is_own_record: false,
     keywords: [],
     quality,
+    designations: [],
   };
 }
 

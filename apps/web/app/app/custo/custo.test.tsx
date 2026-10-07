@@ -24,6 +24,7 @@ const materials: MaterialListItem[] = [
     is_own_record: false,
     keywords: [],
     quality: { medido: 3, importado: 0, estimado: 1, missing: 0 },
+    designations: [],
   },
 ];
 

@@ -2,22 +2,40 @@
 
 from __future__ import annotations
 
+from collections import Counter
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 
-from sqlalchemy import and_, case, delete, exists, func, not_, or_, select
+from sqlalchemy import and_, case, delete, exists, false, func, not_, or_, select
 from sqlalchemy.orm import Session, joinedload, selectinload
+from sqlalchemy.sql.elements import ColumnElement
 
+from app.domain.composition import (
+    CompositionCondition,
+    EntryFacts,
+    UndeterminedReason,
+    evaluate,
+)
 from app.domain.search_query import (
     And,
+    CompositionAtom,
+    DesignationAtom,
     Node,
     Not,
+    Or,
+    SystemAtom,
     Term,
+    composition_conditions,
     extract_positive_terms,
     parse_query,
+    positive_designations,
+    to_designation_pattern,
     to_like_pattern,
 )
 from app.models.material import Material
 from app.models.material_class import MaterialClass
+from app.models.material_composition import MaterialCompositionEntry
+from app.models.material_designation import MaterialDesignation
 from app.models.material_keyword import MaterialKeyword
 from app.models.material_property_value import MaterialPropertyValue
 from app.models.property_definition import PropertyDefinition
@@ -25,11 +43,53 @@ from app.models.source import Source
 from app.repositories.visibility import visible_materials
 
 
-def _matches(term: Term):
+@dataclass
+class ConditionTally:
+    """How one composition condition came out over the visible catalogue (D-105).
+
+    Decided material by material by ``app.domain.composition.evaluate`` — the
+    rule lives there once; this only holds the answer the SQL is compiled from.
+    """
+
+    condition: CompositionCondition
+    satisfied: set[int] = field(default_factory=set)
+    not_satisfied: set[int] = field(default_factory=set)
+    undetermined: Counter[UndeterminedReason] = field(default_factory=Counter)
+
+
+@dataclass
+class SearchFacts:
+    """What a search knows besides the rows: only set when it asked about composition."""
+
+    tallies: list[ConditionTally] = field(default_factory=list)
+    #: Visible, active materials the whole query could not decide — the answer
+    #: depended on composition data that is absent. They are not in the result.
+    undetermined: int = 0
+    #: Visible, active materials with no composition row at all.
+    without_composition: int = 0
+
+
+def _code_exists(*conditions: ColumnElement[bool]) -> ColumnElement[bool]:
+    return exists(
+        select(MaterialDesignation.id).where(
+            MaterialDesignation.material_id == Material.id, *conditions
+        )
+    )
+
+
+def _designation_match(atom: DesignationAtom) -> ColumnElement[bool]:
+    if atom.exact:
+        return _code_exists(MaterialDesignation.code_key == atom.key)
+    return _code_exists(
+        MaterialDesignation.code_key.like(to_designation_pattern(atom), escape="\\")
+    )
+
+
+def _matches(term: Term) -> ColumnElement[bool]:
     """One term against every column a reader would expect it to hit.
 
-    Name, class and keyword — the three the catalogue already indexed. A term
-    that matches any of them matches the material; `NOT` then negates the whole
+    Name, class, keyword and — since D-105 — designation code. A term that
+    matches any of them matches the material; `NOT` then negates the whole
     disjunction, which is what "steel NOT alloy" means.
     """
     pattern = to_like_pattern(term)
@@ -43,18 +103,47 @@ def _matches(term: Term):
         func.lower(Material.name).like(pattern, escape="\\"),
         func.lower(MaterialClass.name).like(pattern, escape="\\"),
         keyword_match,
+        _code_exists(func.lower(MaterialDesignation.code_key).like(pattern, escape="\\")),
     )
 
 
-def _compile(node: Node):
-    """Turn a parsed query into a SQLAlchemy boolean expression."""
+def _ids(ids: set[int]) -> ColumnElement[bool]:
+    return Material.id.in_(sorted(ids)) if ids else false()
+
+
+def _compile(
+    node: Node, tallies: dict[CompositionCondition, ConditionTally]
+) -> tuple[ColumnElement[bool], ColumnElement[bool]]:
+    """Turn a parsed query into a pair of SQL predicates: (decided true, decided false).
+
+    Three-valued on purpose (D-105). Text and designation atoms are always
+    decided, so their false side is plain negation. A composition atom can be
+    *undetermined* — the data is absent — and then it is on neither side; ``NOT``
+    swaps the sides and so cannot turn absence into a pass, which is the rule
+    D-59 set for a negative operator over a missing value. ``AND``/``OR`` follow
+    Kleene: and-true needs every side true, and-false needs any side false.
+    """
     if isinstance(node, Term):
-        return _matches(node)
+        match = _matches(node)
+        return match, not_(match)
+    if isinstance(node, SystemAtom):
+        match = _code_exists(MaterialDesignation.system == node.system)
+        return match, not_(match)
+    if isinstance(node, DesignationAtom):
+        match = _designation_match(node)
+        return match, not_(match)
+    if isinstance(node, CompositionAtom):
+        tally = tallies[node.condition]
+        return _ids(tally.satisfied), _ids(tally.not_satisfied)
     if isinstance(node, Not):
-        return not_(_compile(node.operand))
+        true_side, false_side = _compile(node.operand, tallies)
+        return false_side, true_side
+    pairs = [_compile(o, tallies) for o in node.operands]
+    trues, falses = [p[0] for p in pairs], [p[1] for p in pairs]
     if isinstance(node, And):
-        return and_(*(_compile(o) for o in node.operands))
-    return or_(*(_compile(o) for o in node.operands))
+        return and_(*trues), or_(*falses)
+    assert isinstance(node, Or)
+    return or_(*trues), and_(*falses)
 
 
 class MaterialRepository:
@@ -72,75 +161,131 @@ class MaterialRepository:
         self.db = db
         self.viewer_id = viewer_id
 
-    def list_materials(self, search: str | None = None) -> list[Material]:
-        """Return active materials, optionally filtered by a search term.
-
-        The search is case-insensitive and matches the material name, its class
-        name, or any keyword. When a search query is present, results are ranked
-        by relevance (exact match > prefix > substring > class/keyword match).
-        Uses parameterised LIKE queries.
-        """
-        stmt = (
+    def _catalogue(self):
+        """Active materials this reader may see, joined to their class."""
+        return (
             select(Material)
             .join(MaterialClass, Material.class_id == MaterialClass.id)
-            .options(
-                joinedload(Material.material_class),
-                # One extra query for the whole page, so the catalogue can state
-                # each material's data quality. Reaching the same collection
-                # lazily would be one query per row.
-                selectinload(Material.property_values),
-            )
             .where(Material.is_active.is_(True))
             .where(visible_materials(self.viewer_id))
         )
 
-        if search and search.strip():
-            parsed = parse_query(search)
-            stmt = stmt.where(_compile(parsed))
-            positive_terms = extract_positive_terms(parsed)
-            if positive_terms:
-                score_terms = []
-                for term in positive_terms:
-                    term_escaped = (
-                        term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-                    )
-                    prefix_pat = f"{term_escaped}%"
-                    sub_pat = f"%{term_escaped}%"
-                    kw_exact = exists(
-                        select(MaterialKeyword.id).where(
-                            MaterialKeyword.material_id == Material.id,
-                            func.lower(MaterialKeyword.keyword) == term,
-                        )
-                    )
-                    kw_sub = exists(
-                        select(MaterialKeyword.id).where(
-                            MaterialKeyword.material_id == Material.id,
-                            func.lower(MaterialKeyword.keyword).like(sub_pat, escape="\\"),
-                        )
-                    )
-                    score_term = (
-                        case((func.lower(Material.name) == term, 100), else_=0)
-                        + case(
-                            (func.lower(Material.name).like(prefix_pat, escape="\\"), 50), else_=0
-                        )
-                        + case((func.lower(Material.name).like(sub_pat, escape="\\"), 25), else_=0)
-                        + case((func.lower(MaterialClass.name) == term, 20), else_=0)
-                        + case(
-                            (func.lower(MaterialClass.name).like(sub_pat, escape="\\"), 10), else_=0
-                        )
-                        + case((kw_exact, 15), else_=0)
-                        + case((kw_sub, 5), else_=0)
-                    )
-                    score_terms.append(score_term)
+    def list_materials(self, search: str | None = None) -> list[Material]:
+        """Return active materials, optionally filtered by a search query."""
+        return self.search_materials(search)[0]
 
-                total_score = sum(score_terms)
-                stmt = stmt.order_by(total_score.desc(), Material.name)
-            else:
-                stmt = stmt.order_by(Material.name)
+    def search_materials(self, search: str | None = None) -> tuple[list[Material], SearchFacts]:
+        """Active materials matching a query (D-55, D-105), with what the search knows.
+
+        The search is case-insensitive and matches the material name, its class
+        name, any keyword or designation code; field atoms (``comp:``,
+        ``norma:``, ``designacao:``) ask structured questions. When a query is
+        present, results are ranked by relevance (exact match > prefix >
+        substring > class/keyword match; an exact designation code weighs as
+        much as an exact name). Uses parameterised queries only.
+        """
+        stmt = self._catalogue().options(
+            joinedload(Material.material_class),
+            # One extra query for the whole page, so the catalogue can state
+            # each material's data quality and designations. Reaching the same
+            # collections lazily would be one query per row.
+            selectinload(Material.property_values),
+            selectinload(Material.designations),
+        )
+        facts = SearchFacts()
+
+        if not (search and search.strip()):
+            stmt = stmt.order_by(Material.name)
+            return list(self.db.execute(stmt).scalars().unique().all()), facts
+
+        parsed = parse_query(search)
+        conditions = composition_conditions(parsed)
+        tallies = self._tally_composition(conditions, facts) if conditions else {}
+        true_side, false_side = _compile(parsed, tallies)
+        stmt = stmt.where(true_side)
+        if conditions:
+            facts.undetermined = self.db.execute(
+                self._catalogue()
+                .with_only_columns(func.count(Material.id))
+                .where(not_(true_side), not_(false_side))
+            ).scalar_one()
+
+        score_terms = [_term_score(term) for term in extract_positive_terms(parsed)]
+        score_terms += [_designation_score(atom) for atom in positive_designations(parsed)]
+        if score_terms:
+            stmt = stmt.order_by(sum(score_terms).desc(), Material.name)
         else:
             stmt = stmt.order_by(Material.name)
+        return list(self.db.execute(stmt).scalars().unique().all()), facts
 
-        return list(self.db.execute(stmt).scalars().unique().all())
+    def _tally_composition(
+        self, conditions: list[CompositionCondition], facts: SearchFacts
+    ) -> dict[CompositionCondition, ConditionTally]:
+        """Decide every composition condition for every visible, active material.
+
+        The verdict comes from ``app.domain.composition.evaluate`` — the one
+        place the reach rule is written — and only the resulting id sets reach
+        SQL. Rows of materials the reader cannot see are never read, so neither
+        the result nor any count can reveal them (D-62).
+        """
+        visible = (
+            select(Material.id)
+            .where(Material.is_active.is_(True))
+            .where(visible_materials(self.viewer_id))
+        )
+        visible_ids = set(self.db.execute(visible).scalars())
+        with_composition = set(
+            self.db.execute(
+                select(MaterialCompositionEntry.material_id)
+                .where(MaterialCompositionEntry.material_id.in_(visible))
+                .distinct()
+            ).scalars()
+        )
+        facts.without_composition = len(visible_ids - with_composition)
+
+        entries: dict[str, dict[int, EntryFacts]] = {}
+        rows = self.db.execute(
+            select(
+                MaterialCompositionEntry.material_id,
+                MaterialCompositionEntry.element,
+                MaterialCompositionEntry.is_balance,
+                MaterialCompositionEntry.is_missing,
+                MaterialCompositionEntry.normalized_min,
+                MaterialCompositionEntry.normalized_max,
+                MaterialCompositionEntry.normalized_nominal,
+            )
+            .where(MaterialCompositionEntry.element.in_({c.element for c in conditions}))
+            .where(MaterialCompositionEntry.material_id.in_(visible))
+        ).all()
+        for material_id, element, is_balance, is_missing, low, high, nominal in rows:
+            entries.setdefault(element, {})[material_id] = EntryFacts(
+                is_balance=is_balance,
+                is_missing=is_missing,
+                normalized_min=low,
+                normalized_max=high,
+                normalized_nominal=nominal,
+            )
+
+        tallies: dict[CompositionCondition, ConditionTally] = {}
+        for condition in conditions:
+            tally = ConditionTally(condition)
+            by_material = entries.get(condition.element, {})
+            for material_id in visible_ids:
+                verdict = evaluate(
+                    condition,
+                    by_material.get(material_id),
+                    has_composition=material_id in with_composition,
+                )
+                if verdict.value is True:
+                    tally.satisfied.add(material_id)
+                elif verdict.value is False:
+                    tally.not_satisfied.add(material_id)
+                else:
+                    assert verdict.reason is not None
+                    tally.undetermined[verdict.reason] += 1
+            tallies[condition] = tally
+            facts.tallies.append(tally)
+        return tallies
 
     def get_material(self, material_id: int) -> Material | None:
         """Return one material with its class, property values and definitions.
@@ -159,6 +304,10 @@ class MaterialRepository:
                     MaterialPropertyValue.property_definition
                 ),
                 joinedload(Material.property_values).joinedload(MaterialPropertyValue.source),
+                # D-105: the sheet's composition and designations, each with
+                # the source that states it.
+                selectinload(Material.designations).joinedload(MaterialDesignation.source),
+                selectinload(Material.composition).joinedload(MaterialCompositionEntry.source),
             )
             .where(Material.id == material_id)
             .where(visible_materials(self.viewer_id))
@@ -294,3 +443,47 @@ class MaterialRepository:
     def commit(self) -> None:
         """Commit the current transaction."""
         self.db.commit()
+
+
+def _escape(term: str) -> str:
+    return term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
+def _term_score(term: str):
+    """Relevance of one positive bare term (exact > prefix > substring)."""
+    escaped = _escape(term)
+    prefix_pat = f"{escaped}%"
+    sub_pat = f"%{escaped}%"
+    kw_exact = exists(
+        select(MaterialKeyword.id).where(
+            MaterialKeyword.material_id == Material.id,
+            func.lower(MaterialKeyword.keyword) == term,
+        )
+    )
+    kw_sub = exists(
+        select(MaterialKeyword.id).where(
+            MaterialKeyword.material_id == Material.id,
+            func.lower(MaterialKeyword.keyword).like(sub_pat, escape="\\"),
+        )
+    )
+    code_exact = _code_exists(func.lower(MaterialDesignation.code_key) == term)
+    code_sub = _code_exists(func.lower(MaterialDesignation.code_key).like(sub_pat, escape="\\"))
+    return (
+        case((func.lower(Material.name) == term, 100), else_=0)
+        + case((func.lower(Material.name).like(prefix_pat, escape="\\"), 50), else_=0)
+        + case((func.lower(Material.name).like(sub_pat, escape="\\"), 25), else_=0)
+        + case((func.lower(MaterialClass.name) == term, 20), else_=0)
+        + case((func.lower(MaterialClass.name).like(sub_pat, escape="\\"), 10), else_=0)
+        + case((kw_exact, 15), else_=0)
+        + case((kw_sub, 5), else_=0)
+        # D-105: a code typed exactly is as strong a signal as an exact name —
+        # nobody types "S30400" meaning anything else.
+        + case((code_exact, 100), else_=0)
+        + case((code_sub, 20), else_=0)
+    )
+
+
+def _designation_score(atom: DesignationAtom):
+    """``designacao:304*`` ranks the code ``304`` itself above ``304L``."""
+    literal = atom.key.replace("*", "").replace("?", "")
+    return case((_code_exists(MaterialDesignation.code_key == literal), 100), else_=0)

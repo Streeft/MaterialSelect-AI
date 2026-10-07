@@ -11,12 +11,15 @@ from collections.abc import Mapping
 from sqlalchemy.orm import Session
 
 from app.calculations.units import UnitError
+from app.domain.composition import RULE_TEXT, UndeterminedReason
 from app.domain.data_quality import (
     build_interval_value,
     build_scalar_value,
     missing_value,
 )
+from app.domain.designation import system_label
 from app.domain.display_units import Reading, reading_for
+from app.domain.elements import element_for
 from app.domain.errors import (
     CatalogReadOnlyError,
     ConflictError,
@@ -26,20 +29,29 @@ from app.domain.errors import (
 from app.domain.search_query import SearchQueryError
 from app.models.enums import AuditAction, AuditEntityType, DataQuality, PropertyCategory
 from app.models.material import Material
+from app.models.material_composition import MaterialCompositionEntry
+from app.models.material_designation import MaterialDesignation
 from app.models.material_property_value import MaterialPropertyValue
 from app.models.property_definition import PropertyDefinition
 from app.models.user import User
 from app.repositories.audit_repository import AuditRepository
-from app.repositories.material_repository import MaterialRepository
+from app.repositories.material_repository import MaterialRepository, SearchFacts
 from app.schemas.material import (
     ChartData,
     ChartPoint,
+    CompositionConditionOut,
+    CompositionEntryOut,
+    CompositionSearchOut,
     DataQualitySummary,
+    DesignationBrief,
+    DesignationOut,
     MaterialCreate,
     MaterialDetail,
     MaterialListItem,
+    MaterialSearchOut,
     MaterialUpdate,
     PropertyValueIn,
+    UndeterminedBreakdown,
 )
 from app.schemas.property import PropertyGroup, PropertyValueOut
 from app.services.audit_service import diff_fields, record_change
@@ -76,6 +88,81 @@ def _summarise_quality(material: Material) -> DataQualitySummary:
     return summary
 
 
+def _designation_out(designation: MaterialDesignation) -> DesignationOut:
+    return DesignationOut(
+        system=designation.system,
+        system_label=system_label(designation.system),
+        code=designation.code,
+        region=designation.region,
+        source_label=designation.source.label,
+        citation=designation.citation,
+        # A demo source makes the row fictitious too (the D-104 rule): a real
+        # material with a designation from a demo source still carries an
+        # invented claim.
+        is_demo=designation.is_demo or designation.source.is_demo,
+    )
+
+
+def _composition_entry_out(entry: MaterialCompositionEntry) -> CompositionEntryOut:
+    element = element_for(entry.element)
+    assert element is not None  # guaranteed by the model validator and the CHECK
+    if entry.is_balance:
+        state = "resto"
+    elif entry.is_missing:
+        state = "ausente"
+    else:
+        state = "faixa"
+    return CompositionEntryOut(
+        element=element.symbol,
+        element_name=element.name,
+        atomic_number=element.number,
+        state=state,
+        value_min=entry.value_min,
+        value_max=entry.value_max,
+        value_nominal=entry.value_nominal,
+        original_unit=entry.original_unit,
+        normalized_min=entry.normalized_min,
+        normalized_max=entry.normalized_max,
+        normalized_nominal=entry.normalized_nominal,
+        canonical_unit=entry.canonical_unit,
+        conversion_method=entry.conversion_method,
+        notes=entry.notes,
+        data_quality=entry.data_quality,
+        source_label=entry.source.label,
+        citation=entry.citation,
+        is_demo=entry.is_demo or entry.source.is_demo,
+    )
+
+
+def _composition_report(facts: SearchFacts) -> CompositionSearchOut | None:
+    """The composition half of a search answer, or None when it asked nothing of it."""
+    if not facts.tallies:
+        return None
+    conditions = []
+    for tally in facts.tallies:
+        element = element_for(tally.condition.element)
+        assert element is not None
+        conditions.append(
+            CompositionConditionOut(
+                label=tally.condition.label(),
+                element=element.symbol,
+                element_name=element.name,
+                satisfied=len(tally.satisfied),
+                not_satisfied=len(tally.not_satisfied),
+                undetermined=sum(tally.undetermined.values()),
+                undetermined_by_reason=UndeterminedBreakdown(
+                    **{reason.value: tally.undetermined[reason] for reason in UndeterminedReason}
+                ),
+            )
+        )
+    return CompositionSearchOut(
+        rule=RULE_TEXT,
+        conditions=conditions,
+        undetermined=facts.undetermined,
+        without_composition=facts.without_composition,
+    )
+
+
 class MaterialService:
     """Coordinates catalogue reads and shapes them into API responses."""
 
@@ -106,15 +193,25 @@ class MaterialService:
         self.user = user
 
     def list_materials(self, search: str | None = None) -> list[MaterialListItem]:
-        # A query the reader mistyped is their problem to fix, not a server
-        # fault: `SearchQueryError` already carries a message in Portuguese
-        # saying which bracket or quote is unbalanced, so it becomes a 400 with
-        # that text rather than the 500 an unhandled ValueError would give.
+        return self.search(search).items
+
+    def search(self, query: str | None = None) -> MaterialSearchOut:
+        """The catalogue search (D-55), with the composition report when asked (D-105).
+
+        A query the reader mistyped is their problem to fix, not a server
+        fault: `SearchQueryError` already carries a message in Portuguese
+        saying which bracket, quote, element or system is wrong, so it becomes a
+        400 with that text rather than the 500 an unhandled ValueError would
+        give.
+        """
         try:
-            materials = self.repo.list_materials(search)
+            materials, facts = self.repo.search_materials(query)
         except SearchQueryError as exc:
             raise ValidationError(str(exc)) from exc
-        return [self.list_item(m) for m in materials]
+        items = [self.list_item(m) for m in materials]
+        return MaterialSearchOut(
+            items=items, total=len(items), composition=_composition_report(facts)
+        )
 
     @staticmethod
     def list_item(material: Material) -> MaterialListItem:
@@ -135,6 +232,10 @@ class MaterialService:
             is_own_record=material.owner_id is not None,
             keywords=list(material.keywords or []),
             quality=_summarise_quality(material),
+            designations=[
+                DesignationBrief(system=d.system, system_label=system_label(d.system), code=d.code)
+                for d in material.designations
+            ],
         )
 
     def get_material_detail(self, material_id: int) -> MaterialDetail:
@@ -155,6 +256,8 @@ class MaterialService:
             keywords=list(material.keywords or []),
             property_groups=self._group_properties(material),
             processes=self.processes.processes_for_material(material.id),
+            designations=[_designation_out(d) for d in material.designations],
+            composition=[_composition_entry_out(e) for e in material.composition],
         )
 
     # --- write operations -------------------------------------------------

@@ -133,6 +133,16 @@ Um bundle pode declarar estes arquivos:
 - `transport_modes.ndjson`
 - `supplemental_values.ndjson`
 - `dataset_values.ndjson`
+- `material_designations.ndjson` — `material_external_id`, `system` (`UNS`,
+  `AISI_SAE`, `ASTM`, `EN`, `ISO`, `DIN`, `JIS`, `GB`, `ABNT`, `COMERCIAL`),
+  `code`, `region?`, `citation?` ([D-105](DECISIONS.md));
+- `material_compositions.ndjson` — `material_external_id`, `element` (símbolo),
+  `state` (`range` | `balance` | `missing`), `min?`, `max?`, `nominal?`, `unit`
+  (`%`, `wt%`, `ppm`…; obrigatória em `range`), `position?`, `citation?`,
+  `notes?`. Resto e ausente não carregam número; base mássica (D-105).
+
+Designação não é identidade externa: o casamento continua por
+`CatalogRecordRef`, nunca por código ou nome.
 
 `manifest.json` tem `schema_version=1`, metadados do dataset e, para cada
 arquivo, `sha256` + `count`.

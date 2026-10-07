@@ -1,13 +1,30 @@
 import React from "react";
 
+/** D-105 fields that ask a structured question and match no visible text. */
+const STRUCTURED_FIELD = /^(comp|composi[cç][aã]o|norma):/i;
+/** `designacao:CODE` highlights the code itself. */
+const DESIGNATION_FIELD = /^designa[cç][aã]o:/i;
+
 /**
  * Extracts positive, non-empty terms from a search query string.
  * Strips operators (AND, OR, NOT), quotes, wildcards (*, ?), and parentheses.
+ * D-105: `comp:` and `norma:` are dropped (they match no visible text), and
+ * `designacao:CODE` contributes the code. Display only — which materials match
+ * is decided by the backend parser.
  */
 export function extractHighlightTerms(query?: string): string[] {
   if (!query) return [];
   const rawTokens = query
-    .replace(/[()[\]"]/g, " ")
+    .replace(/[()[\]]/g, " ")
+    // `designacao:"304 L"` → `designacao:304L`, so the prefix stays with its code.
+    .replace(/(designa[cç][aã]o:)"([^"]*)"/gi, (_m, field: string, code: string) =>
+      `${field}${code.replace(/\s+/g, "")}`,
+    )
+    .split(/\s+/)
+    .filter((token) => !STRUCTURED_FIELD.test(token) && !/^[<>=≥≤]/.test(token))
+    .map((token) => token.replace(DESIGNATION_FIELD, ""))
+    .join(" ")
+    .replace(/"/g, " ")
     .replace(/\*|\?/g, "")
     .split(/\s+/)
     .map((t) => t.trim())

@@ -99,9 +99,8 @@ sempre (princípios 1 a 4, D-24, ADR 0004).
   fonte afirma. Nunca inferida por semelhança de nome — o "parecido" já é o
   Find Similar (D-63), e as duas perguntas ficam separadas. Depende de fonte
   aprovada que publique equivalências.
-- **TM2 — busca por composição química e por designação.** ▃ Filtro por faixa
-  de elemento (p. ex. Cr ≥ 12 %) e por norma/designação, na linguagem de
-  consulta do D-55. Composição ausente é ausência (D-24), não 0 %.
+- **TM2 — busca por composição química e por designação.** ✔ Entregue (D-105,
+  Sessão 60); resíduos abaixo.
 - **TM3 — comparação de muitos materiais.** ▃ Ampliar o comparador para dezenas
   de registros, com composição e propriedades lado a lado, mantendo a tabela
   como alternativa textual de toda figura (D-31).
@@ -117,6 +116,24 @@ sempre (princípios 1 a 4, D-24, ADR 0004).
 - **TM7 — o que mudou entre releases.** ▃ Com `CatalogDataset` imutável por
   release (D-102), uma página que lista registros novos, alterados e
   desativados entre duas releases do catálogo.
+
+**Resíduos da composição e das designações (TM2, [D-105](DECISIONS.md)).** O
+TM2 foi entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
+
+- **TM2-a — editar composição e designações.** ▃ Hoje só o seed demo e o bundle
+  oficial escrevem as duas tabelas. Falta API e formulário, com auditoria (M2),
+  `require_catalog_curator` no compartilhado (D-83) e o registro próprio (D-62).
+- **TM2-b — composição como estágio de seleção.** ▃ Um estágio `limit` sobre
+  elemento, no motor, no funil e no laudo, pela mesma regra de alcance em três
+  valores (`app/domain/composition.evaluate`).
+- **TM2-c — % atômica e composição por condição.** ▆ Converter % atômica exige
+  a composição inteira e as massas atômicas (cálculo, não unidade); composição
+  por estado (fundido × laminado) pede chave de condição. Até lá ficam fora, ou
+  em `CatalogSupplementalValue` se vierem no bundle.
+- **TM2-d — composição nas exportações e no comparador.** ▃ CSV/XLSX/relatório
+  e MatML (`ChemicalComposition`) ainda não a levam; o comparador amplo é o TM3.
+- **TM2-e — dados reais.** ▁ Nenhum registro real tem composição ou designação:
+  dependem do bundle do D-102 (C1) ou de fonte aberta APROVADA (C2, D-103).
 
 **Resíduos do cartão para CAE (TM5, [D-104](DECISIONS.md)).** O TM5 foi
 entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
@@ -293,6 +310,16 @@ continua lá, e a métrica para de medir no 3.
 
 Registrados para não voltarem por engano:
 
+- ~~**TM2 — busca por composição química e por designação (Sessão 60, [D-105](DECISIONS.md))**~~ —
+  `MaterialDesignation` e `MaterialCompositionEntry` (% em massa, resto e
+  ausente sem número por `CHECK`, fonte obrigatória, migração `0d3c39eb2f81`);
+  `comp:`, `norma:` e `designacao:` na linguagem do D-55, com a composição lida
+  por alcance em lógica de três valores — ausência não passa, nem sob `NOT`, e é
+  contada; `GET /api/materials/busca` com o relatório; ficha com as seções
+  Composição química e Designações; ajuda da busca no catálogo; contrato do
+  bundle oficial; demo fictício com prefixo `DEMO-` e `clear_demo` cobrindo as
+  duas tabelas. Resíduos TM2-a a TM2-e em "Média prioridade". 3938 → 4079 testes
+  de backend e 783 → 797 de frontend.
 - ~~**TM5 — exportação para formatos CAE (Sessão 59, [D-104](DECISIONS.md))**~~ —
   `GET /api/exports/materiais/{id}/cae?formato=…&unidades=…` e o item "Cartão de
   material para CAE…" no "Exportar ▾" da ficha. Cinco renderizadores em
