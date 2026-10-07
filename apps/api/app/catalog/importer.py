@@ -249,20 +249,14 @@ class OfficialCatalogImporter:
             )
             or 0,
             "battery_chemistries": self.db.scalar(
-                select(func.count(BatteryChemistry.id)).where(
-                    BatteryChemistry.is_demo.is_(True)
-                )
+                select(func.count(BatteryChemistry.id)).where(BatteryChemistry.is_demo.is_(True))
             )
             or 0,
             "performance_indices": self.db.scalar(
-                select(func.count(PerformanceIndex.id)).where(
-                    PerformanceIndex.is_demo.is_(True)
-                )
+                select(func.count(PerformanceIndex.id)).where(PerformanceIndex.is_demo.is_(True))
             )
             or 0,
-            "sources": self.db.scalar(
-                select(func.count(Source.id)).where(Source.is_demo.is_(True))
-            )
+            "sources": self.db.scalar(select(func.count(Source.id)).where(Source.is_demo.is_(True)))
             or 0,
         }
         if any(remaining.values()):
