@@ -5,10 +5,9 @@ from __future__ import annotations
 import hashlib
 import json
 import zipfile
-
-import pytest
 from pathlib import Path
 
+import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
