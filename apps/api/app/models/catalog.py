@@ -52,6 +52,9 @@ class CatalogDataset(Base):
     supplemental_values: Mapped[list["CatalogSupplementalValue"]] = relationship(
         back_populates="dataset", cascade="all, delete-orphan"
     )
+    dataset_values: Mapped[list["CatalogDatasetValue"]] = relationship(
+        back_populates="dataset", cascade="all, delete-orphan"
+    )
 
 
 class CatalogImportRun(Base):
@@ -177,3 +180,30 @@ class CatalogSupplementalValue(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
 
     dataset: Mapped[CatalogDataset] = relationship(back_populates="supplemental_values")
+
+
+class CatalogDatasetValue(Base):
+    """Dataset-level licensed fact/default without a material/process target."""
+
+    __tablename__ = "catalog_dataset_value"
+    __table_args__ = (
+        UniqueConstraint(
+            "dataset_id", "namespace", "key", name="uq_catalog_dataset_value_key"
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    dataset_id: Mapped[int] = mapped_column(
+        ForeignKey("catalog_dataset.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    namespace: Mapped[str] = mapped_column(String(160), nullable=False)
+    key: Mapped[str] = mapped_column(String(240), nullable=False)
+    value_kind: Mapped[str] = mapped_column(String(32), nullable=False)
+    original_unit: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    payload: Mapped[dict | list | str | float | int | bool | None] = mapped_column(
+        JSON, nullable=True
+    )
+    raw_value_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+
+    dataset: Mapped[CatalogDataset] = relationship(back_populates="dataset_values")
