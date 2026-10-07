@@ -49,6 +49,9 @@ class CatalogDataset(Base):
     record_refs: Mapped[list["CatalogRecordRef"]] = relationship(
         back_populates="dataset", cascade="all, delete-orphan"
     )
+    supplemental_values: Mapped[list["CatalogSupplementalValue"]] = relationship(
+        back_populates="dataset", cascade="all, delete-orphan"
+    )
 
 
 class CatalogImportRun(Base):
@@ -118,3 +121,55 @@ class CatalogRecordRef(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
 
     dataset: Mapped[CatalogDataset] = relationship(back_populates="record_refs")
+
+
+class CatalogSupplementalValue(Base):
+    """Lossless provider value not representable as MaterialPropertyValue.
+
+    Text, discrete vocabularies, curves and equations stay here as structured
+    JSON. They are preserved and provenance-linked but never enter selection,
+    ranking or calculations until a deterministic domain model exists for that
+    value kind.
+    """
+
+    __tablename__ = "catalog_supplemental_value"
+    __table_args__ = (
+        CheckConstraint(
+            "("
+            "(material_id IS NOT NULL AND process_id IS NULL) OR "
+            "(material_id IS NULL AND process_id IS NOT NULL)"
+            ")",
+            name="ck_catalog_supplemental_value_one_target",
+        ),
+        UniqueConstraint(
+            "dataset_id",
+            "external_table",
+            "external_record_id",
+            "external_attribute_id",
+            name="uq_catalog_supplemental_external_value",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    dataset_id: Mapped[int] = mapped_column(
+        ForeignKey("catalog_dataset.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    material_id: Mapped[int | None] = mapped_column(
+        ForeignKey("material.id", ondelete="CASCADE"), nullable=True, index=True
+    )
+    process_id: Mapped[int | None] = mapped_column(
+        ForeignKey("process.id", ondelete="CASCADE"), nullable=True, index=True
+    )
+    external_table: Mapped[str] = mapped_column(String(160), nullable=False)
+    external_record_id: Mapped[str] = mapped_column(String(240), nullable=False)
+    external_attribute_id: Mapped[str] = mapped_column(String(240), nullable=False)
+    attribute_name: Mapped[str] = mapped_column(String(240), nullable=False)
+    value_kind: Mapped[str] = mapped_column(String(32), nullable=False)
+    original_unit: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    payload: Mapped[dict | list | str | float | int | bool | None] = mapped_column(
+        JSON, nullable=True
+    )
+    raw_value_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+
+    dataset: Mapped[CatalogDataset] = relationship(back_populates="supplemental_values")
