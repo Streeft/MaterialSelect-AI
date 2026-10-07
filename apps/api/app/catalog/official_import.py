@@ -45,9 +45,7 @@ def main() -> None:
         raise SystemExit("--reviewer-email é obrigatório com --commit.")
 
     with SessionLocal() as db:
-        result = OfficialCatalogImporter(
-            db, bundle, reviewer_email=args.reviewer_email
-        ).run()
+        result = OfficialCatalogImporter(db, bundle, reviewer_email=args.reviewer_email).run()
     summary["result"] = result
     print(json.dumps(summary, ensure_ascii=False, indent=2, sort_keys=True))
 
