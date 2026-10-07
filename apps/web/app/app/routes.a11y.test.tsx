@@ -1237,6 +1237,8 @@ vi.mock("@/lib/api", async (importOriginal) => ({
   catalogueExportUrl: (format: string) => `#${format}`,
   studyExportUrl: (id: number, format: string) => `#${id}-${format}`,
   studyLaudoUrl: (id: number) => `#${id}-laudo`,
+  // D-104: a ficha tem o "Exportar ▾" do cartão CAE; a auditoria não baixa nada.
+  downloadCaeCard: vi.fn(),
   opensInBrowser: (format: string) => format === "html",
   // The write side of the catalogue. No audit below mounts a form that calls
   // any of it, and it is here anyway: a Vitest mock fails on *property access*,

@@ -23,6 +23,7 @@ import { useRecordVisit } from "@/components/my-records/useRecordVisit";
 import { classVisual } from "@/lib/design/palette";
 import { PropertyGroupCard } from "@/components/PropertyGroup";
 import { PropertyChart } from "@/components/PropertyChart";
+import { MaterialExportMenu } from "@/components/CaeExportDialog";
 import {
   Badge,
   Button,
@@ -167,6 +168,9 @@ export default function MaterialDetailPage() {
               </div>
               <div className="flex shrink-0 flex-wrap items-center gap-2">
                 <FavoriteButton universe="material" recordId={data.id} />
+                {/* D-104: one "Exportar ▾" (D-91), never a row of buttons; the
+                    format and unit system are chosen in the dialog. */}
+                <MaterialExportMenu materialId={data.id} />
                 {/* D-83: in open access mode a shared material is read-only for
                     a student; the server refuses the write, this only avoids
                     offering a button that cannot work. */}
