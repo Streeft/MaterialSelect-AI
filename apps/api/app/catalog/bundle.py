@@ -7,7 +7,7 @@ import json
 import zipfile
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
-from typing import Iterator
+from collections.abc import Iterator
 
 MAX_MANIFEST_BYTES = 1_000_000
 MAX_RECORD_BYTES = 10_000_000
