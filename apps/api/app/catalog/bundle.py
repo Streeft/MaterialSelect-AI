@@ -5,9 +5,9 @@ from __future__ import annotations
 import hashlib
 import json
 import zipfile
+from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
-from collections.abc import Iterator
 
 MAX_MANIFEST_BYTES = 1_000_000
 MAX_RECORD_BYTES = 10_000_000
