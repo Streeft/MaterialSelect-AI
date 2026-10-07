@@ -2,18 +2,20 @@
 
 ⚠️  Irreversível. Roda contra o banco que `DATABASE_URL` apontar.
 
-A regra de corte é a própria coluna `is_demo`: material, processo e modal de
-transporte fictícios são removidos independentemente do módulo que os criou.
-Taxonomias, definições de propriedades/atributos e fontes permanecem porque são
-metadados reutilizáveis pelo catálogo oficial.
+A regra de corte é a própria coluna `is_demo`: material, processo, modal de
+transporte, índice de desempenho e fonte fictícios são removidos
+independentemente do módulo que os criou. Taxonomias e definições de
+propriedades/atributos permanecem porque são metadados reutilizáveis pelo
+catálogo oficial.
 
 A cascata é explícita em Python. Produção usa PostgreSQL com FKs, mas a suíte
 também roda em SQLite sem depender de `PRAGMA foreign_keys=ON`; por isso este
 módulo remove filhos na ordem correta em vez de confiar somente em `ON DELETE`.
 
-Materiais reais, processos reais e modais reais nunca são apagados por este
-comando. O hard delete continua sendo uma exceção estreita para registros que já
-se declaram fictícios.
+Registros reais nunca são apagados por este comando. O hard delete continua
+sendo uma exceção estreita para linhas que já se declaram fictícias. Uma fonte
+demo só é removida quando não restar nenhuma linha real apontando para ela; se
+restar, a limpeza falha fechada em vez de destruir proveniência.
 
 Run with::
 
@@ -24,7 +26,7 @@ Ver `docs/15-dados-demonstrativos.md` para o procedimento operacional.
 
 from __future__ import annotations
 
-from sqlalchemy import delete, select, update
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.orm import Session
 
 from app.db.base import SessionLocal
@@ -34,8 +36,11 @@ from app.models.material_property_value import MaterialPropertyValue
 from app.models.material_synthesis import MaterialSynthesis
 from app.models.my_records import Favorite, RecentRecord
 from app.models.process import MaterialProcess, Process
+from app.models.performance_index import PerformanceIndex
 from app.models.process_attribute import ProcessAttributeValue
+from app.models.source import Source
 from app.models.transport_mode import TransportMode
+from app.models.battery_chemistry import BatteryChemistry
 
 
 def clear_demo_materials(db: Session) -> int:
@@ -92,6 +97,61 @@ def clear_demo_transport_modes(db: Session) -> int:
     return len(demo_ids)
 
 
+def clear_demo_performance_indices(db: Session) -> int:
+    """Delete demo merit indices; reference indices are re-seeded as real data."""
+    demo_ids = list(
+        db.execute(
+            select(PerformanceIndex.id).where(PerformanceIndex.is_demo.is_(True))
+        ).scalars()
+    )
+    if not demo_ids:
+        return 0
+    db.execute(delete(PerformanceIndex).where(PerformanceIndex.id.in_(demo_ids)))
+    return len(demo_ids)
+
+
+def clear_demo_sources(db: Session) -> int:
+    """Delete demo sources only after proving no real record still cites them."""
+    demo_ids = list(db.execute(select(Source.id).where(Source.is_demo.is_(True))).scalars())
+    if not demo_ids:
+        return 0
+
+    remaining_refs = {
+        "material_property_values": db.scalar(
+            select(func.count(MaterialPropertyValue.id)).where(
+                MaterialPropertyValue.source_id.in_(demo_ids)
+            )
+        )
+        or 0,
+        "process_attribute_values": db.scalar(
+            select(func.count(ProcessAttributeValue.id)).where(
+                ProcessAttributeValue.source_id.in_(demo_ids)
+            )
+        )
+        or 0,
+        "transport_modes": db.scalar(
+            select(func.count(TransportMode.id)).where(
+                TransportMode.source_id.in_(demo_ids)
+            )
+        )
+        or 0,
+        "battery_chemistries": db.scalar(
+            select(func.count(BatteryChemistry.id)).where(
+                BatteryChemistry.source_id.in_(demo_ids)
+            )
+        )
+        or 0,
+    }
+    if any(remaining_refs.values()):
+        raise RuntimeError(
+            "Fonte demo ainda é citada por registro remanescente; "
+            f"limpeza recusada para preservar proveniência: {remaining_refs}"
+        )
+
+    db.execute(delete(Source).where(Source.id.in_(demo_ids)))
+    return len(demo_ids)
+
+
 def clear_demo_data(db: Session) -> dict[str, int]:
     """Remove all demo catalogue records and return per-universe counts.
 
@@ -101,10 +161,14 @@ def clear_demo_data(db: Session) -> dict[str, int]:
     materials = clear_demo_materials(db)
     processes = clear_demo_processes(db)
     transport_modes = clear_demo_transport_modes(db)
+    performance_indices = clear_demo_performance_indices(db)
+    sources = clear_demo_sources(db)
     return {
         "materials": materials,
         "processes": processes,
         "transport_modes": transport_modes,
+        "performance_indices": performance_indices,
+        "sources": sources,
     }
 
 
