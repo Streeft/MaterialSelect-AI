@@ -1,7 +1,8 @@
 # Catálogo oficial licenciado: ingestão Granta EduPack
 
 Este documento descreve o caminho de dados do catálogo oficial e o corte da base
-fictícia. Ele complementa [06-importacao.md](06-importacao.md): o importador
+fictícia. O inventário da instalação efetivamente auditada está em
+[19-inventario-instalacao-granta.md](19-inventario-instalacao-granta.md). Ele complementa [06-importacao.md](06-importacao.md): o importador
 interativo continua sendo a porta para planilhas de usuários; o catálogo oficial
 é uma operação administrativa, versionada por *manifest* e checksum, com
 reconciliação antes de escrever no catálogo compartilhado.
