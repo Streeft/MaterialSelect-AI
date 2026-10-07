@@ -183,8 +183,37 @@ def upgrade() -> None:
         unique=False,
     )
 
+    op.create_table(
+        "catalog_dataset_value",
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("dataset_id", sa.Integer(), nullable=False),
+        sa.Column("namespace", sa.String(length=160), nullable=False),
+        sa.Column("key", sa.String(length=240), nullable=False),
+        sa.Column("value_kind", sa.String(length=32), nullable=False),
+        sa.Column("original_unit", sa.String(length=80), nullable=True),
+        sa.Column("payload", sa.JSON(), nullable=True),
+        sa.Column("raw_value_sha256", sa.String(length=64), nullable=False),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
+        sa.ForeignKeyConstraint(["dataset_id"], ["catalog_dataset.id"], ondelete="CASCADE"),
+        sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint(
+            "dataset_id", "namespace", "key", name="uq_catalog_dataset_value_key"
+        ),
+    )
+    op.create_index(
+        op.f("ix_catalog_dataset_value_dataset_id"),
+        "catalog_dataset_value",
+        ["dataset_id"],
+        unique=False,
+    )
+
 
 def downgrade() -> None:
+    op.drop_index(
+        op.f("ix_catalog_dataset_value_dataset_id"),
+        table_name="catalog_dataset_value",
+    )
+    op.drop_table("catalog_dataset_value")
     op.drop_index(
         op.f("ix_catalog_supplemental_value_transport_mode_id"),
         table_name="catalog_supplemental_value",
