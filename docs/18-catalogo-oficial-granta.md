@@ -51,18 +51,29 @@ import oficial transacional
 reconciliação / smoke tests
 ```
 
-O importador oficial **recusa o commit** enquanto existir qualquer
-`Material.is_demo=True`, `Process.is_demo=True` ou
-`TransportMode.is_demo=True`.
+O importador oficial **recusa o commit** enquanto existir qualquer registro
+`is_demo=True` nos modelos que possuem essa marca: `Material`, `Process`,
+`TransportMode`, `BatteryChemistry`, `PerformanceIndex` ou `Source`.
+A limpeza de uma `Source` demo falha fechada se algum registro real ainda a
+citar, para nunca apagar proveniência por acidente.
 
 ## 3. Extração do Access
 
-No Windows com Microsoft Access Database Engine instalado:
+No Windows com Microsoft Access Database Engine instalado, prefira exportar
+toda a árvore de uma vez:
+
+```powershell
+pwsh scripts/granta/export_all_databases.ps1 `
+  -DatabaseRoot "C:\Program Files\ANSYS Inc\v252\edupack\database" `
+  -OutputRoot "D:\granta-raw-export"
+```
+
+Para depurar apenas um banco:
 
 ```powershell
 pwsh scripts/granta/export_access_gdb.ps1 `
   -DatabasePath "C:\...\L3_Standard\data.gdb" `
-  -OutputDirectory "D:\granta-export\L3_Standard"
+  -OutputDirectory "D:\granta-raw-export\L3_Standard"
 ```
 
 O script:
@@ -79,6 +90,31 @@ O script:
 
 O export bruto **não é o bundle de produção**. Ele existe para descoberta de
 schema e para normalização posterior.
+
+
+Depois da extração, valide cada diretório bruto antes de mapear qualquer linha:
+
+```bash
+python scripts/granta/validate_raw_export.py \
+  --export-dir /caminho/granta-raw-export/L3_Standard
+```
+
+O validador recalcula o hash de `schema.json`, de toda tabela NDJSON, reconta
+linhas e verifica tamanho + SHA-256 de cada blob sidecar.
+
+Os arquivos `.exp` do diretório `Exporters` fornecem outro insumo de
+normalização: tabelas com GUID, nomes padronizados de atributos e a marca
+`EntireGraph=true` para curvas. Gere o dicionário semântico assim:
+
+```bash
+python scripts/granta/exporter_configs_to_dictionary.py \
+  --exporters-dir "C:/Program Files/ANSYS Inc/v252/edupack/Exporters" \
+  --output "D:/granta-raw-export/exporter_dictionary.json"
+```
+
+Esse dicionário é metadado; não contém os registros de materiais. Ele deve ser
+usado para revisar o mapeamento, sobretudo para impedir que curvas sejam
+achatadas como escalares.
 
 ## 4. Contrato canônico
 
@@ -215,7 +251,8 @@ Ações disponíveis em **Administração do banco**:
 
 - `semear_referencia`: só metadados/dados reais reutilizáveis;
 - `semear_demo`: recria deliberadamente a base fictícia; uso de desenvolvimento;
-- `excluir_demo`: hard delete exclusivamente de registros `is_demo=True`;
+- `excluir_demo`: hard delete exclusivamente de registros `is_demo=True`
+  em todos os modelos marcáveis, com proteção de proveniência;
 - `catalogo_oficial_validar`: baixa o bundle e roda o dry-run, sem escrita;
 - `catalogo_oficial_importar`: baixa, revalida e faz o commit transacional.
 
