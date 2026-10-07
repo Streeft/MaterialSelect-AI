@@ -131,7 +131,9 @@ def verify_bundle(path: str | Path) -> VerifiedBundle:
             missing = sorted(required_dataset - set(dataset or {}))
             raise BundleValidationError(f"Metadados obrigatórios do dataset ausentes: {missing}")
         if not _is_sha256(dataset.get("source_sha256")):
-            raise BundleValidationError("dataset.source_sha256 precisa ser SHA-256 hexadecimal minúsculo.")
+            raise BundleValidationError(
+                "dataset.source_sha256 precisa ser SHA-256 hexadecimal minúsculo."
+            )
 
         declared = manifest.get("files")
         if not isinstance(declared, dict):
