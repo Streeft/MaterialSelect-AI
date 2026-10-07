@@ -3,7 +3,7 @@
 ⚠️  Irreversível. Roda contra o banco que `DATABASE_URL` apontar.
 
 A regra de corte é a própria coluna `is_demo`: material, processo, modal de
-transporte, índice de desempenho e fonte fictícios são removidos
+transporte, química de bateria, índice de desempenho e fonte fictícios são removidos
 independentemente do módulo que os criou. Taxonomias e definições de
 propriedades/atributos permanecem porque são metadados reutilizáveis pelo
 catálogo oficial.
@@ -30,17 +30,17 @@ from sqlalchemy import delete, func, select, update
 from sqlalchemy.orm import Session
 
 from app.db.base import SessionLocal
+from app.models.battery_chemistry import BatteryChemistry
 from app.models.material import Material
 from app.models.material_keyword import MaterialKeyword
 from app.models.material_property_value import MaterialPropertyValue
 from app.models.material_synthesis import MaterialSynthesis
 from app.models.my_records import Favorite, RecentRecord
-from app.models.process import MaterialProcess, Process
 from app.models.performance_index import PerformanceIndex
+from app.models.process import MaterialProcess, Process
 from app.models.process_attribute import ProcessAttributeValue
 from app.models.source import Source
 from app.models.transport_mode import TransportMode
-from app.models.battery_chemistry import BatteryChemistry
 
 
 def clear_demo_materials(db: Session) -> int:
@@ -94,6 +94,19 @@ def clear_demo_transport_modes(db: Session) -> int:
     if not demo_ids:
         return 0
     db.execute(delete(TransportMode).where(TransportMode.id.in_(demo_ids)))
+    return len(demo_ids)
+
+
+def clear_demo_battery_chemistries(db: Session) -> int:
+    """Delete only battery chemistry rows explicitly marked as demo."""
+    demo_ids = list(
+        db.execute(
+            select(BatteryChemistry.id).where(BatteryChemistry.is_demo.is_(True))
+        ).scalars()
+    )
+    if not demo_ids:
+        return 0
+    db.execute(delete(BatteryChemistry).where(BatteryChemistry.id.in_(demo_ids)))
     return len(demo_ids)
 
 
@@ -161,12 +174,14 @@ def clear_demo_data(db: Session) -> dict[str, int]:
     materials = clear_demo_materials(db)
     processes = clear_demo_processes(db)
     transport_modes = clear_demo_transport_modes(db)
+    battery_chemistries = clear_demo_battery_chemistries(db)
     performance_indices = clear_demo_performance_indices(db)
     sources = clear_demo_sources(db)
     return {
         "materials": materials,
         "processes": processes,
         "transport_modes": transport_modes,
+        "battery_chemistries": battery_chemistries,
         "performance_indices": performance_indices,
         "sources": sources,
     }
