@@ -29,6 +29,13 @@ Instruções para agentes/contribuidores trabalhando neste repositório. Esta é
    já existe, segue a regra fixa em
    [`docs/15-dados-demonstrativos.md`](docs/15-dados-demonstrativos.md) —
    leia antes de escrever um seed, não importa a ferramenta ou IDE.
+7. **Catálogo só de fonte aprovada.** Fonte aberta entra só com veredito
+   **APROVADA** em [`docs/catalogo/fontes.md`](docs/catalogo/fontes.md) e pelo
+   pipeline do D-102; o Granta EduPack segue a trilha própria do
+   [D-102](docs/DECISIONS.md); bases comerciais (MatWeb, Total Materia, ASM,
+   MMPDS, CAMPUS) ficam **recusadas** para *scraping*/extração em massa. Regra
+   em [`docs/20-catalogo-fontes-abertas.md`](docs/20-catalogo-fontes-abertas.md)
+   ([D-103](docs/DECISIONS.md), rascunho).
 
 ## Idiomas
 
@@ -1061,6 +1068,13 @@ MatML; nome sem quebra de linha e rótulo saneado nos decks). Poisson, expansão
 e calor específico são lidos de `coef_poisson`, `coef_expansao_termica` e
 `calor_especifico`, que o catálogo ainda não define — até lá os decks recusam
 todo material e só o MatML sai (TM5-a).
+
+**O portão de licença das fontes abertas foi reconciliado com o D-102**
+([D-103](docs/DECISIONS.md), rascunho, Sessão 58): fonte aberta entra só com
+veredito APROVADA em `docs/catalogo/fontes.md` e pelo pipeline do D-102, sem
+importador paralelo; nenhuma está APROVADA ainda (condição C0). Regra em
+[`docs/20-catalogo-fontes-abertas.md`](docs/20-catalogo-fontes-abertas.md).
+Só documentação.
 
 3938 testes de backend (nenhum skip na CI; sem `POSTGRES_TEST_URL`, 3932 passam
 e 6 pulam) e 783 de frontend, todos verdes. CI no

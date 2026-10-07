@@ -77,7 +77,7 @@ Google). Estado detalhado em [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md
 - **Painel** — cobertura do catálogo, lacunas e distribuição por propriedade.
 - **Importar** — CSV/XLSX com mapeamento de colunas, validação linha a linha,
   licença da fonte e reversão por lote.
-- **Catálogo oficial licenciado** — pipeline administrativo separado, com identidade externa/GRUID, SHA-256 por artefato, dry-run, proveniência de release e preservação lossless de valores que ainda não cabem no motor numérico. Os bytes licenciados ficam fora do Git; ver [`docs/18-catalogo-oficial-granta.md`](docs/18-catalogo-oficial-granta.md).
+- **Catálogo oficial licenciado** — pipeline administrativo separado, com identidade externa/GRUID, SHA-256 por artefato, dry-run, proveniência de release e preservação lossless de valores que ainda não cabem no motor numérico. Os bytes licenciados ficam fora do Git; ver [`docs/18-catalogo-oficial-granta.md`](docs/18-catalogo-oficial-granta.md). Fontes abertas (Materials Project, Wikidata, JARVIS…) entram pelo mesmo pipeline, só com veredito APROVADA no portão de licença — [`docs/20-catalogo-fontes-abertas.md`](docs/20-catalogo-fontes-abertas.md) e [`docs/catalogo/fontes.md`](docs/catalogo/fontes.md); nenhuma está aprovada ainda.
 
 **Documentos** — CSV, XLSX e HTML imprimível do catálogo e de cada estudo; o
 **laudo de engenharia** de um estudo, com mapa de seleção e gráfico de ranking
@@ -297,6 +297,7 @@ de leitura obrigatória. As regras vivem em [`CLAUDE.md`](CLAUDE.md) e
 | [`docs/15-dados-demonstrativos.md`](docs/15-dados-demonstrativos.md) | Como criar e apagar dado fictício. |
 | [`docs/18-catalogo-oficial-granta.md`](docs/18-catalogo-oficial-granta.md) | Pipeline, identidade, bundle e cutover do catálogo oficial licenciado. |
 | [`docs/19-inventario-instalacao-granta.md`](docs/19-inventario-instalacao-granta.md) | Inventário auditado dos bancos, ProductConfig, Templates, Attribute Notes, Exporters e módulos da instalação. |
+| [`docs/20-catalogo-fontes-abertas.md`](docs/20-catalogo-fontes-abertas.md) · [`docs/catalogo/fontes.md`](docs/catalogo/fontes.md) | Portão de licença do catálogo complementar: fontes abertas, bases comerciais recusadas e vereditos por fonte (D-103, rascunho). |
 
 ## Licença
 
