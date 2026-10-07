@@ -7903,3 +7903,53 @@ testes de backend, nenhum pulado. `ruff` e `black` limpos; os dois workflows pas
 >   inteira, e o `status` e as CLIs as levam ao log público: um caminho de
 >   curso escrito no Windows (`ENG02016\Aula 3 – …`) apareceria nele. Agora
 >   as três dizem só o número da linha.
+
+
+---
+
+## D-102 — Catálogo oficial licenciado é um pipeline administrativo imutável, não um seed
+
+**Data:** 07/10/2026  
+**Status:** aceita
+
+A base oficial licenciada do Granta EduPack não entra em `seed.py`, não vira
+um dicionário Python e não é copiada para o histórico público do repositório.
+
+O desenho adotado tem cinco invariantes:
+
+1. **Corpus fora do Git.** O repositório versiona extrator, normalizador,
+   contrato e importador. Os bytes licenciados ficam num bundle privado.
+2. **Identidade externa é primeira classe.** `CatalogDataset` identifica a
+   release; `CatalogRecordRef` liga tabela/id/GRUID/hash externo ao registro
+   interno. Nome não é chave de deduplicação.
+3. **Preservar antes de interpretar.** Escalares/intervalos que já cabem no
+   domínio usam `MaterialPropertyValue`/`ProcessAttributeValue`. Texto,
+   discreto, curva, equação e outros formatos ficam lossless em
+   `CatalogSupplementalValue`; defaults globais ficam em
+   `CatalogDatasetValue`. Nenhum dado é achatado só para caber no modelo
+   atual.
+4. **Cutover fecha o demo primeiro.** `excluir_demo` cobre Material, Process e
+   TransportMode. O importador oficial recusa commit enquanto qualquer um dos
+   três universos tiver `is_demo=True`. Depois do corte,
+   `semear_referencia` mantém apenas referência não fictícia;
+   `semear_demo` fica explícita e separada.
+5. **Carga auditável e atômica.** O bundle declara SHA-256 e contagem por
+   arquivo; o dry-run valida referências sem escrever. O commit exige um
+   usuário MaterialSelect existente como revisor humano da fonte/licença,
+   registra `CatalogImportRun` e grava numa única transação.
+
+**Por que não reutilizar o importador CSV/XLSX.** A importação interativa é uma
+entrada tabular de usuário, com limite e mapeamento por coluna. O catálogo
+oficial tem múltiplos universos relacionados, identidade externa, releases,
+curvas/equações e milhões de bytes de metadados; reduzir isso a uma planilha
+perderia estrutura e proveniência.
+
+**Por que não deduplicar por nome.** L1/L2/L3, traduções e bases especializadas
+podem conter o mesmo registro com outro rótulo ou o mesmo rótulo para identidades
+diferentes. O match automático é por identidade externa revisada. Integrações
+como `ProductConfig.xml` só enriquecem um processo do `ProcessUniverse`
+quando há mapeamento explícito (GRUID/nome → external_id); fuzzy match pode
+sugerir revisão, nunca escrever.
+
+Implementação e runbook:
+[`18-catalogo-oficial-granta.md`](18-catalogo-oficial-granta.md).
