@@ -281,6 +281,13 @@ erDiagram
   Material ||--o{ MaterialPropertyValue : possui
   PropertyDefinition ||--o{ MaterialPropertyValue : define
   Source ||--o{ MaterialPropertyValue : origina
+  CatalogDataset ||--o{ CatalogImportRun : audita
+  CatalogDataset ||--o{ CatalogRecordRef : identifica
+  CatalogDataset ||--o{ CatalogSupplementalValue : preserva
+  CatalogDataset ||--o{ CatalogDatasetValue : preserva
+  Material ||--o{ CatalogRecordRef : "identidade externa"
+  Process ||--o{ CatalogRecordRef : "identidade externa"
+  TransportMode ||--o{ CatalogRecordRef : "identidade externa"
   ImportJob ||--o{ Material : criou
   User ||--o{ Project : possui
   User ||--o{ UserSession : loga
@@ -304,8 +311,13 @@ erDiagram
 | `property_definition` | Catálogo configurável: unidade canônica, dimensão, direção desejável. |
 | `material_property_value` | O valor **com toda a proveniência**. |
 | `source` | Rótulo de origem do dado — licença/procedência, sinalização de dado de terceiro e revisor registrados no momento em que a fonte é criada (M1, [D-44](DECISIONS.md)). |
-| `import_job`, `import_mapping_template` | Ciclo da importação e rollback lógico. |
-| `performance_index` | Índices clássicos de Ashby com hipóteses. |
+| `import_job`, `import_mapping_template` | Ciclo da importação interativa de arquivos do usuário e rollback lógico. |
+| `catalog_dataset` | Uma release externa imutável do catálogo oficial: nome, slug, hash da fonte, licença e proveniência (D-102). |
+| `catalog_import_run` | Uma validação/carga oficial auditável: hashes do bundle/manifest, estado, contagens e relatório. |
+| `catalog_record_ref` | Identidade externa estável (dataset + tabela + id + GRUID + hash bruto) ligada exatamente a material, processo ou modal. |
+| `catalog_supplemental_value` | Valor licenciado lossless que ainda não cabe no motor numérico — texto, discreto, curva, equação ou payload estruturado; nunca entra em cálculo por acidente. |
+| `catalog_dataset_value` | Fato/default do dataset sem alvo material/processo, como país, combustível, EOL ou premissa econômica do ProductConfig. |
+| `performance_index` | Índices clássicos de Ashby com hipóteses; são referência de engenharia (`is_demo=False`), não medição fictícia. |
 | `user` | Identidade Google (`google_sub` único), sem senha ([D-42](DECISIONS.md)). |
 | `project` | Container de estudos de um dono; um por `user` no v1. |
 | `user_session` | Sessão de login; `id` é o próprio valor do cookie. |
