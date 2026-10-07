@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+import re
 from typing import Any
 
 from sqlalchemy import func, select
@@ -64,8 +65,10 @@ def _external_key(record: dict, default_table: str) -> tuple[str, str]:
 
 def _raw_hash(record: dict) -> str:
     value = record.get("raw_sha256")
-    if not isinstance(value, str) or len(value) != 64:
-        raise OfficialCatalogImportError("raw_sha256 obrigatório e deve ter 64 caracteres.")
+    if not isinstance(value, str) or re.fullmatch(r"[0-9a-f]{64}", value) is None:
+        raise OfficialCatalogImportError(
+            "raw_sha256 obrigatório e deve ser SHA-256 hexadecimal minúsculo."
+        )
     return value
 
 
@@ -184,6 +187,7 @@ def validate_semantics(bundle: VerifiedBundle) -> dict[str, int]:
 
     for record in bundle.iter_records("dataset_values.ndjson"):
         _need(record, "namespace", "key", "value_kind", "raw_sha256")
+        _raw_hash(record)
 
     for record in bundle.iter_records("supplemental_values.ndjson"):
         _need(
@@ -204,6 +208,7 @@ def validate_semantics(bundle: VerifiedBundle) -> dict[str, int]:
             raise OfficialCatalogImportError("Suplemento referencia modal inexistente.")
         if record["target_type"] not in {"material", "process", "transport"}:
             raise OfficialCatalogImportError("target_type suplementar inválido.")
+        _raw_hash(record)
 
     return {name: spec.count for name, spec in bundle.files.items()}
 
