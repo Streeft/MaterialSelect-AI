@@ -12,6 +12,7 @@ from app.catalog.bundle import BundleValidationError, VerifiedBundle, verify_bun
 from app.domain.data_quality import build_interval_value, build_scalar_value, missing_value
 from app.models.catalog import (
     CatalogDataset,
+    CatalogDatasetValue,
     CatalogImportRun,
     CatalogRecordRef,
     CatalogSupplementalValue,
@@ -46,6 +47,7 @@ KNOWN_FILES = {
     "material_process_links.ndjson",
     "transport_modes.ndjson",
     "supplemental_values.ndjson",
+    "dataset_values.ndjson",
 }
 
 
@@ -183,6 +185,9 @@ def validate_semantics(bundle: VerifiedBundle) -> dict[str, int]:
     for record in bundle.iter_records("transport_modes.ndjson"):
         _need(record, "slug", "name")
         _raw_hash(record)
+
+    for record in bundle.iter_records("dataset_values.ndjson"):
+        _need(record, "namespace", "key", "value_kind", "raw_sha256")
 
     for record in bundle.iter_records("supplemental_values.ndjson"):
         _need(
@@ -756,6 +761,37 @@ class OfficialCatalogImporter:
             )
             self.transports[external_id] = existing
 
+    def _import_dataset_values(self) -> None:
+        assert self.dataset is not None
+        for row in self.bundle.iter_records("dataset_values.ndjson"):
+            existing = self.db.execute(
+                select(CatalogDatasetValue).where(
+                    CatalogDatasetValue.dataset_id == self.dataset.id,
+                    CatalogDatasetValue.namespace == row["namespace"],
+                    CatalogDatasetValue.key == row["key"],
+                )
+            ).scalar_one_or_none()
+            if existing is not None:
+                if existing.raw_value_sha256 != row["raw_sha256"]:
+                    raise OfficialCatalogImportError(
+                        "Valor global mudou dentro do mesmo dataset: "
+                        f"{row['namespace']}/{row['key']}"
+                    )
+                self._bump("dataset_values_unchanged")
+                continue
+            self.db.add(
+                CatalogDatasetValue(
+                    dataset_id=self.dataset.id,
+                    namespace=row["namespace"],
+                    key=row["key"],
+                    value_kind=row["value_kind"],
+                    original_unit=row.get("original_unit"),
+                    payload=row.get("payload"),
+                    raw_value_sha256=row["raw_sha256"],
+                )
+            )
+            self._bump("dataset_values_created")
+
     def _import_supplemental(self) -> None:
         assert self.dataset is not None
         for row in self.bundle.iter_records("supplemental_values.ndjson"):
@@ -833,6 +869,7 @@ class OfficialCatalogImporter:
         self._import_process_values()
         self._import_links()
         self._import_transports()
+        self._import_dataset_values()
         self._import_supplemental()
 
         run.status = "COMMITTED"
