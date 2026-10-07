@@ -46,12 +46,15 @@ dataset/tabela/id/GRUID/hash, import run auditável, bundle canônico com SHA-25
 contagens, dry-run, import transacional e preservação lossless de valores que o
 modelo numérico ainda não representa. O corpus não entra no Git; a extração dos
 `data.gdb` roda fora do repositório com o extrator somente leitura em
-`scripts/granta/`. O cutover fecha `Material`, `Process` e
-`TransportMode` demo antes de aceitar a base oficial, e produção passa a usar
-`semear_referencia` em vez de `semear_demo`. Operação completa em
+`scripts/granta/`. O cutover exige zero `is_demo=True` em todos os modelos marcáveis antes de
+aceitar a base oficial, e produção passa a usar `semear_referencia` em vez de
+`semear_demo`. A instalação auditada tem 21 `data.gdb` (3.273.637.888
+bytes) mais ProductConfig, Templates, Attribute Notes e Exporters; inventário em
+[`19-inventario-instalacao-granta.md`](19-inventario-instalacao-granta.md).
+Operação completa em
 [`18-catalogo-oficial-granta.md`](18-catalogo-oficial-granta.md).
 
-**Fases 1 a 9 concluídas.** Fase 7 fechou por completo — todas as exportações (CSV, XLSX, HTML, DOCX e PPTX) entregues para catálogo, relatório de estudo e laudo de engenharia, além do lote quádruplo de melhorias funcionais (3395 → 3407 backend, 753 → 762 frontend), na Sessão 48 a figura de barras por fase no Eco Audit e reordenação por arraste em seleção (Opções 1 e 2, 3743 backend e 762 → 778 frontend), na Sessão 54 a vinculação automática de processos demo aos materiais de teste por classe (3854 → 3857 backend e 778 frontend), e na Sessão 55 a padronização do seletor de modo do Eco Audit para ButtonGroup/ButtonGroupItem (Segmented Control MSDS 2.0, 3857 backend e 778 frontend).
+**Fases 1 a 9 concluídas.** Fase 7 fechou por completo — todas as exportações (CSV, XLSX, HTML, DOCX e PPTX) entregues para catálogo, relatório de estudo e laudo de engenharia, além do lote quádruplo de melhorias funcionais (3395 → 3407 backend, 753 → 762 frontend), na Sessão 48 a figura de barras por fase no Eco Audit e reordenação por arraste em seleção (Opções 1 e 2, 3743 backend e 762 → 778 frontend), na Sessão 54 a vinculação automática de processos demo aos materiais de teste por classe (3854 → 3857 backend e 778 frontend), e na Sessão 55 a padronização do seletor de modo do Eco Audit para ButtonGroup/ButtonGroupItem (Segmented Control MSDS 2.0, 3857 backend e 778 frontend). A Sessão 56 adiciona a fundação do catálogo oficial e seis regressões novas, levando o backend a **3863 testes**; frontend permanece em 778.
 
 | # | Fase | Estado | Documento |
 |---|---|---|---|
