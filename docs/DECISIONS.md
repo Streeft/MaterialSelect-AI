@@ -7953,3 +7953,65 @@ sugerir revisão, nunca escrever.
 
 Implementação e runbook:
 [`18-catalogo-oficial-granta.md`](18-catalogo-oficial-granta.md).
+
+---
+
+## D-103 — Fontes abertas e portão de licença do catálogo complementar
+
+**Data:** 07/10/2026
+
+**Status:** rascunho
+
+**Contexto.** O [D-102](#d-102--catálogo-oficial-licenciado-é-um-pipeline-administrativo-imutável-não-um-seed)
+deu ao catálogo oficial um pipeline administrativo — bundle canônico,
+identidade externa, dry-run, revisor humano — e tratou o Granta EduPack como a
+fonte dessa trilha, operada pelo autor. Um rascunho anterior, escrito antes do
+PR #106 ("F0"), tinha reservado o mesmo número para um portão de licença que
+supunha não existir tooling Granta e previa um importador próprio. Esta
+decisão substitui aquele rascunho e fica **ao lado** do D-102, sem revê-lo.
+
+**Decisão.**
+
+1. **Fonte aberta só entra com veredito APROVADA** em
+   [`catalogo/fontes.md`](catalogo/fontes.md), com URL da página de licença,
+   atribuição, redistribuição, data e quem verificou. APROVADA exige leitura
+   direta da página oficial e cópia datada em `catalogo/autorizacoes/evidencias/`
+   (condição C0); um trecho de buscador basta para recusar, nunca para aprovar.
+   Em 07/10/2026 nenhuma fonte saiu APROVADA: Materials Project, Wikidata e
+   JARVIS-DFT ficaram APROVADA-CONDICIONAL; NIST não-SRD, SRD 144,
+   MIL-HDBK-5J, OPTIMADE e conjuntos CC BY, PENDENTE; NIST WebBook e SRD em
+   bloco, RECUSADA.
+2. **A porta de entrada é a do D-102.** Uma fonte aberta vira um
+   `CatalogDataset` próprio, pelo mesmo bundle canônico, dry-run
+   (`catalogo_oficial_validar`) e commit com revisor
+   (`catalogo_oficial_importar`). Não existe importador paralelo.
+3. **Bases comerciais ficam recusadas para extração em massa** — MatWeb, Total
+   Materia, ASM, MMPDS e CAMPUS —, com a cláusula dos termos citada quando foi
+   possível lê-la. O Total Materia é registrado também como **inspiração de
+   funcionalidade**, descrita só a partir de páginas públicas, sem conteúdo; as
+   ideias viraram backlog em [`TODO.md`](TODO.md).
+4. **O Granta não recebe veredito deste portão.** É a trilha do D-102.
+   `fontes.md` §6 só registra, sem juízo novo, que a autorização de uso e
+   redistribuição é responsabilidade documentada do autor (o D-102 §8 exige
+   revisor humano e diz que a aplicação não infere licença) e que o documento
+   está pendente de arquivo em `catalogo/autorizacoes/`, com a lista do que ele
+   deve cobrir.
+
+**Alternativas descartadas.**
+
+- **Importador próprio para fontes abertas** (`app.db.import_catalog`, do
+  rascunho F0): duas portas para o mesmo catálogo dariam duas regras de
+  identidade e proveniência — o que o D-102 recusou ao não reutilizar o
+  importador CSV/XLSX.
+- **Manter o veredito "RECUSADA ATÉ autorização" para o Granta** neste
+  arquivo: seria um segundo juízo sobre uma trilha que o D-102, aceito,
+  já decidiu e atribuiu ao autor.
+- **Aprovar com base em resultado de busca:** termos mudam e o trecho não tem
+  data; a condição C0 existe para isso.
+
+**Questão aberta** (fecha o rascunho): como marcar dado **calculado** (DFT do
+Materials Project e do JARVIS) — valor novo em `DataQuality`, um
+`CatalogSupplementalValue` ao lado do escalar, ou só o rótulo da `Source`.
+Precisa estar decidido antes da primeira linha DFT existir.
+
+Regra completa: [`20-catalogo-fontes-abertas.md`](20-catalogo-fontes-abertas.md).

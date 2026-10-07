@@ -7,4 +7,4 @@ tools: Read, Write, Edit, Bash, Grep, Glob
 - **Coleções setoriais**: entidade `Collection` (slug, nome, descrição, propriedades em destaque, regra de pertença por classe/tag). Não duplica material.
 - **Elementos**: universo próprio ou classe raiz "Elementos" a partir de fontes abertas aprovadas (NIST/IUPAC/Wikidata CC0), com tabela periódica navegável.
 - **Glossário**: `PropertyDefinition.notes_md` com texto ESCRITO PELO PROJETO (definição, como se mede, norma de ensaio, faixa típica), citando literatura aberta. Proibido copiar as notas `.chm` do EduPack.
-- Toda cor via token, primitivas por `@/components/ui`, documentar em `/estilo`, texto de UI em PT-BR. Registrar D-105.
+- Toda cor via token, primitivas por `@/components/ui`, documentar em `/estilo`, texto de UI em PT-BR. Registrar a próxima decisão livre (D-NN).

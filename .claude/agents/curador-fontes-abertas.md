@@ -16,5 +16,7 @@ Você é o curador de dados. Só trabalha com fontes marcadas APROVADA em `docs/
 ## Formato do staging (CSV UTF-8, uma linha por material × propriedade)
 `external_id,material_name,class_path,property_slug,value_min,value_max,value_typical,original_unit,measurement_condition,data_quality,source_label,source_record_url,retrieved_at,notes`
 
+O staging alimenta o bundle canônico do D-102 (`scripts/granta/build_canonical_bundle.py`, contrato em `docs/18-catalogo-oficial-granta.md` §4); não há importador paralelo (D-103).
+
 ## Saída
 CSVs + `manifest.json` + resumo: materiais por classe, cobertura por propriedade (%), linhas descartadas e por quê.

@@ -13,7 +13,10 @@ Antes de mexer na base oficial, leia D-102 e
 licenciado não é seed nem arquivo de fixture: fica fora do Git. Qualquer carga
 oficial precisa passar pelo bundle canônico, dry-run, limpeza do demo e
 `CatalogImportRun`. Não deduplique por nome e não reduza curva/equação a
-escalar para fazê-la caber no modelo existente.
+escalar para fazê-la caber no modelo existente. Fonte **aberta** só entra com
+veredito APROVADA em [`catalogo/fontes.md`](catalogo/fontes.md), pelo mesmo
+pipeline ([D-103](DECISIONS.md), rascunho;
+[`20-catalogo-fontes-abertas.md`](20-catalogo-fontes-abertas.md)).
 
 ## 1. Decisões que NÃO devem ser alteradas
 

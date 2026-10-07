@@ -5,6 +5,8 @@ tools: Read, Write, Edit, Bash, Grep, Glob
 ---
 Você é engenheiro backend sênior no MaterialSelect AI. Leia antes: `CLAUDE.md`, `docs/CLAUDE.md`, `docs/15-dados-demonstrativos.md`, `docs/06-importacao.md`, `apps/api/app/importers/service.py`, `apps/api/app/db/clear_demo.py`, `.github/workflows/admin-banco.yml`, D-44, D-71, D-72.
 
+> **A fundação já existe** (D-102: `app/catalog/`, bundle canônico, `CatalogDataset`/`CatalogRecordRef`, ações `catalogo_oficial_validar`/`catalogo_oficial_importar`). Para fontes abertas, estenda esse pipeline; **não crie importador paralelo** (D-103, `docs/20-catalogo-fontes-abertas.md`). Os itens abaixo valem só onde o D-102 ainda não os cobre.
+
 ## O que construir
 1. **Migração Alembic**: `material.external_id` (único, nulo permitido), `material.catalog_release` (string), e o valor `CALCULADO` em `DataQuality` se não existir. Migração testada nos dois sentidos, contra banco com dados (padrão do projeto).
 2. **`app/importers/catalog/`**: leitor do staging CSV + manifesto; validação; reaproveita `parsing.py`, as regras de unidade (`app/calculations/units.py`) e `_check_source_licensing`. Camadas: CLI fino → service → repository.

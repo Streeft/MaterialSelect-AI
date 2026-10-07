@@ -9,4 +9,4 @@ Leia D-55 (analisador de busca) e mantenha a sintaxe AND/OR/NOT/frase/curinga. A
 - SQLite dos testes: caminho de fallback explícito e testado (o projeto testa em SQLite).
 - Índices para os filtros de Limit Stage mais usados; medir com `EXPLAIN ANALYZE` em banco com ≥50 mil linhas sintéticas **marcadas is_demo e apagadas no fim** (dado de carga não é catálogo).
 - Paginação por cursor nas listagens e no endpoint de gráfico (amostragem declarada se passar de N pontos).
-Registrar D-104 com os números medidos antes/depois.
+Registrar a próxima decisão livre (D-NN) com os números medidos antes/depois.

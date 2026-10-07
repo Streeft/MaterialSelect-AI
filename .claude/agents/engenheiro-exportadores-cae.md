@@ -12,4 +12,4 @@ Você é engenheiro de simulação. Implemente `apps/api/app/exporters/cae/` com
 - Faixa (min/max) → o usuário escolhe mínimo, típico ou máximo; o cabeçalho registra a escolha, a fonte e a licença de cada valor.
 - **Todo arquivo carrega o aviso de limitação de uso** (regra de `exporters/`).
 - Testes com *golden files* por solver e um teste de que nenhum valor ausente vira 0.
-- Rota `GET /api/materiais/{id}/cae?solver=...&units=...` + botão na ficha. Registrar D-103.
+- Rota `GET /api/materiais/{id}/cae?solver=...&units=...` + botão na ficha. Registrar a próxima decisão livre (D-NN) em `docs/DECISIONS.md`.
