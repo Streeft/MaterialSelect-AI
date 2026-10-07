@@ -9,7 +9,11 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.catalog.bundle import VerifiedBundle, verify_bundle
-from app.domain.data_quality import build_interval_value, build_scalar_value, missing_value
+from app.domain.data_quality import (
+    build_interval_value,
+    build_scalar_value,
+    missing_value,
+)
 from app.models.catalog import (
     CatalogDataset,
     CatalogDatasetValue,
@@ -27,7 +31,10 @@ from app.models.material import Material
 from app.models.material_class import MaterialClass
 from app.models.material_property_value import MaterialPropertyValue
 from app.models.process import MaterialProcess, Process, ProcessClass
-from app.models.process_attribute import ProcessAttributeDefinition, ProcessAttributeValue
+from app.models.process_attribute import (
+    ProcessAttributeDefinition,
+    ProcessAttributeValue,
+)
 from app.models.property_definition import PropertyDefinition
 from app.models.source import Source
 from app.models.transport_mode import TransportMode
