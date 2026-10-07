@@ -9,7 +9,7 @@ sobrevive intacto, e a cascata do schema (valores, palavras-chave) não deixa
 
 from __future__ import annotations
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.db.clear_demo import clear_demo_data, clear_demo_materials
@@ -110,13 +110,13 @@ def test_real_material_untouched_when_no_demo_data_exists(db_session: Session) -
 
 def test_clear_demo_data_covers_all_demo_universes(db_session: Session) -> None:
     demo_materials = db_session.scalar(
-        select(__import__("sqlalchemy").func.count(Material.id)).where(Material.is_demo.is_(True))
+        select(func.count(Material.id)).where(Material.is_demo.is_(True))
     )
     demo_processes = db_session.scalar(
-        select(__import__("sqlalchemy").func.count(Process.id)).where(Process.is_demo.is_(True))
+        select(func.count(Process.id)).where(Process.is_demo.is_(True))
     )
     demo_transports = db_session.scalar(
-        select(__import__("sqlalchemy").func.count(TransportMode.id)).where(
+        select(func.count(TransportMode.id)).where(
             TransportMode.is_demo.is_(True)
         )
     )
@@ -134,7 +134,7 @@ def test_clear_demo_data_covers_all_demo_universes(db_session: Session) -> None:
     }
     assert (
         db_session.scalar(
-            select(__import__("sqlalchemy").func.count(Material.id)).where(
+            select(func.count(Material.id)).where(
                 Material.is_demo.is_(True)
             )
         )
@@ -142,7 +142,7 @@ def test_clear_demo_data_covers_all_demo_universes(db_session: Session) -> None:
     )
     assert (
         db_session.scalar(
-            select(__import__("sqlalchemy").func.count(Process.id)).where(
+            select(func.count(Process.id)).where(
                 Process.is_demo.is_(True)
             )
         )
@@ -150,7 +150,7 @@ def test_clear_demo_data_covers_all_demo_universes(db_session: Session) -> None:
     )
     assert (
         db_session.scalar(
-            select(__import__("sqlalchemy").func.count(TransportMode.id)).where(
+            select(func.count(TransportMode.id)).where(
                 TransportMode.is_demo.is_(True)
             )
         )
