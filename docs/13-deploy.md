@@ -214,16 +214,23 @@ disparo manual em `.github/workflows/`, na aba **Actions** do repositório.
 | Workflow | Faz o quê | Substitui |
 |---|---|---|
 | **Deploy da API (Fly.io)** | `flyctl deploy --remote-only` | o `fly deploy` do §2 |
-| **Administração do banco** | `migrar`, `semear`, `excluir_demo`, `conhecimento_simular_remocao`, `conhecimento_remover`, `conhecimento_indexar_links`, `conceder`, `revogar` | o `fly ssh console` do §2 e do §5 |
+| **Administração do banco** | `migrar`, `semear_referencia`, `semear_demo`, `excluir_demo`, `catalogo_oficial_validar`, `catalogo_oficial_importar`, ações do Cérebro, `conceder`, `revogar` | o `fly ssh console` do §2 e do §5 |
 | **Modo de acesso** | `abrir`, `restaurar_assinatura` — grava `ACCESS_MODE` no Fly e confere em `/api/health` | o `fly secrets set` do §5-quater |
 | **Base de conhecimento (Cérebro)** | `status`, `ingerir`, `embeddings`, e uma execução noturna agendada — põe o Cérebro no banco (§5-septies) | a ingestão offline, que não tinha onde rodar |
 
-Dois segredos, em *Settings → Secrets and variables → Actions*:
+Para as operações usuais, dois segredos em *Settings → Secrets and variables → Actions*:
 
 - **`FLY_API_TOKEN`** — criado em <https://fly.io/dashboard> → *Tokens*.
 - **`DATABASE_URL`** — a mesma string do §1, com `postgresql+psycopg://` e o
   host **sem** `-pooler`. O workflow recusa a execução se o esquema estiver
   errado, em vez de falhar lá dentro com `ModuleNotFoundError`.
+
+Para a carga do catálogo oficial, um terceiro secret:
+
+- **`OFFICIAL_CATALOG_BUNDLE_URL`** — URL privada/temporária de leitura do ZIP
+  canônico. O bundle não fica no Git. `catalogo_oficial_validar` e
+  `catalogo_oficial_importar` baixam o mesmo artefato e revalidam hashes e
+  contagens antes de qualquer escrita.
 
 Os **segredos da aplicação** (`GOOGLE_*`, `BACKEND_BASE_URL`, `FRONTEND_URL`,
 `CORS_ORIGINS`, `DATABASE_URL`) continuam sendo do app no Fly, e a aba
@@ -239,14 +246,17 @@ Três detalhes que não são arbitrários:
 - **Os dois jobs não entram em `scripts/protect-main.ps1`.** A regra do §7 de
   [CLAUDE.md](CLAUDE.md) vale para os jobs do `ci.yml`, que reportam em todo PR;
   exigir um job que só roda sob demanda travaria todo merge para sempre.
-- **A ação `semear` roda `alembic upgrade head` antes do seed.** `app.db.seed`
+- **As ações `semear_referencia` e `semear_demo` rodam `alembic upgrade head` antes do seed.** `app.db.seed`
   chama `create_all` por conveniência, e num banco vazio isso criaria as tabelas
   sem carimbo do Alembic — a migração seguinte quebraria.
 - **`excluir_demo` é irreversível**, e não é algo para disparar depois de um
-  merge comum — só quando o catálogo oficial estiver pronto para substituir o
-  de demonstração. Apaga todo `Material` com `is_demo=True`, não importa em
-  qual módulo de seed a linha nasceu ([D-72](DECISIONS.md#d-72)). Ver
-  [`docs/15-dados-demonstrativos.md`](15-dados-demonstrativos.md).
+  merge comum — só no cutover. Apaga `Material`, `Process` e
+  `TransportMode` marcados `is_demo=True`, com suas dependências explícitas,
+  e nunca toca registros reais. Depois do cutover, `semear_referencia` é o
+  seed seguro; `semear_demo` recriaria dados fictícios deliberadamente e não
+  deve ser usado naquele banco. Ver
+  [`docs/15-dados-demonstrativos.md`](15-dados-demonstrativos.md) e
+  [`18-catalogo-oficial-granta.md`](18-catalogo-oficial-granta.md).
 - **`conhecimento_simular_remocao` antes de `conhecimento_remover`, sempre.**
   As duas leem `Cérebro/removidos.txt`, a lista do que saiu do Cérebro
   ([D-100](DECISIONS.md)), e rodam `python -m app.knowledge.prune`. A primeira
@@ -302,7 +312,9 @@ fixa, para qualquer agente ou pessoa que mesclar um PR nesta base:
 | O PR tocou em… | Disparar | Por quê |
 |---|---|---|
 | `apps/api/**` (rotas, serviços, modelos, migração) | **Deploy da API** (`deploy-api.yml`, sem entrada nenhuma) | `flyctl deploy` constrói a imagem nova; o `release_command` aplica `alembic upgrade head` antes do primeiro tráfego. |
-| `apps/api/app/db/seed.py` **ou** `apps/api/app/db/seed_extended.py` (material novo, química de bateria, modo de transporte, qualquer dado de demonstração) | **Administração do banco** (`admin-banco.yml`, ação `semear`) | O deploy da API **não** roda seed nenhum — só a migração. Sem este passo o código do dado novo está no ar e a linha correspondente não existe no banco. |
+| `apps/api/app/db/seed.py` / `seed_extended.py` para desenvolvimento/demo | **Administração do banco**, `semear_demo` | Recria deliberadamente dados fictícios. **Não usar depois do cutover oficial.** |
+| `apps/api/app/db/seed_reference.py` ou referência real reutilizável | **Administração do banco**, `semear_referencia` | Mantém taxonomias/definições/dados reais sem recriar materiais, processos ou modais demo. |
+| bundle oficial novo ou nova release do catálogo | `catalogo_oficial_validar` → conferir log → snapshot do banco → `excluir_demo` (somente no primeiro cutover) → `semear_referencia` → `catalogo_oficial_importar` | O dry-run prova hashes/contagens/referências; o import recusa enquanto houver demo e grava tudo numa transação. Ver `18-catalogo-oficial-granta.md`. |
 | `Cérebro/**` ou `Cérebro/manifesto.json` (PDF novo ou trocado, entrada nova no manifesto; `removidos.txt` é a linha abaixo) | **Base de conhecimento (Cérebro)**, `ingerir` — fora do horário de aula | Nada no deploy lê o Cérebro: sem este passo o arquivo está no repositório e não no RAG. Os vetores dos trechos novos chegam na execução noturna ([D-101](DECISIONS.md), §5-septies). |
 | `Cérebro/removidos.txt` (algo saiu da base de conhecimento) | **Administração do banco**, `conhecimento_simular_remocao`, conferir o log, depois `conhecimento_remover` | A ingestão só acrescenta: sem este passo o documento sai do repositório e continua sendo citado pelo RAG ([D-100](DECISIONS.md)). |
 | Só `Cérebro/Links.md` (nenhum PDF mudou) | **Base de conhecimento (Cérebro)**, `ingerir` com `arquivos: Links.md` — ou **Administração do banco**, `conhecimento_indexar_links`, o mesmo comando | Reindexa os links úteis declarados na base de conhecimento (RAG) em produção sem baixar os PDFs do LFS. Um PR que mudou também um PDF ou o manifesto pede o `ingerir` inteiro da linha acima. |
@@ -732,6 +744,21 @@ da base. A primeira ingestão completa gasta ≈528 MB; as seguintes, só os PDF
 novos ou mudados e os que falharam antes (o plano imprime os MB antes de
 baixar). O `actions/cache` só poupa a repetição dentro de 7 dias. O `status`
 avisa acima de 80% de 0,5 GB de banco, a referência do Neon gratuito.
+
+### 5-octies. Catálogo oficial licenciado
+
+O catálogo oficial usa um pipeline separado do importador de planilhas do
+usuário. O corpus licenciado fica fora do Git; o repositório contém apenas o
+extrator, normalizador, contrato canônico e importador. O procedimento completo,
+incluindo extração Access, SHA-256, identidade externa/GRUID, dry-run, cutover e
+rollback transacional, está em
+[`18-catalogo-oficial-granta.md`](18-catalogo-oficial-granta.md).
+
+No primeiro cutover, a ordem é obrigatória: **Deploy da API →
+`catalogo_oficial_validar` → backup/snapshot → `excluir_demo` →
+`semear_referencia` → `catalogo_oficial_importar`**. O campo **E-mail** da
+última ação é a conta MaterialSelect que revisou a fonte/licença e já precisa ter
+entrado pelo Google ao menos uma vez.
 
 ## 6. Conferir que está de pé
 
