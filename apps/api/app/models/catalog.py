@@ -186,9 +186,7 @@ class CatalogDatasetValue(Base):
 
     __tablename__ = "catalog_dataset_value"
     __table_args__ = (
-        UniqueConstraint(
-            "dataset_id", "namespace", "key", name="uq_catalog_dataset_value_key"
-        ),
+        UniqueConstraint("dataset_id", "namespace", "key", name="uq_catalog_dataset_value_key"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
