@@ -5,12 +5,14 @@ from __future__ import annotations
 import hashlib
 import json
 import zipfile
+
+import pytest
 from pathlib import Path
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.catalog.bundle import verify_bundle
+from app.catalog.bundle import BundleValidationError, verify_bundle
 from app.catalog.importer import OfficialCatalogImporter, validate_semantics
 from app.db.clear_demo import clear_demo_data
 from app.models.catalog import (
@@ -276,3 +278,37 @@ def test_bundle_validation_and_full_import(tmp_path: Path, db_session: Session) 
         .one()
     )
     assert country.payload["LaborCost"] == 8.2
+
+
+def test_bundle_rejects_duplicate_member_names(tmp_path: Path) -> None:
+    path = _write_bundle(tmp_path)
+    with pytest.warns(UserWarning, match="Duplicate name"):
+        with zipfile.ZipFile(path, "a", zipfile.ZIP_DEFLATED) as archive:
+            archive.writestr("materials.ndjson", b"{}\n")
+
+    with pytest.raises(BundleValidationError, match="duplicados"):
+        verify_bundle(path)
+
+
+def test_bundle_rejects_malformed_dataset_source_hash(tmp_path: Path) -> None:
+    source = _write_bundle(tmp_path)
+    target = tmp_path / "bad-hash.zip"
+
+    with zipfile.ZipFile(source, "r") as original:
+        members = {
+            info.filename: original.read(info.filename)
+            for info in original.infolist()
+        }
+
+    manifest = json.loads(members["manifest.json"])
+    manifest["dataset"]["source_sha256"] = "X" * 64
+    members["manifest.json"] = json.dumps(
+        manifest, ensure_ascii=False, sort_keys=True
+    ).encode()
+
+    with zipfile.ZipFile(target, "w", zipfile.ZIP_DEFLATED) as archive:
+        for name, content in members.items():
+            archive.writestr(name, content)
+
+    with pytest.raises(BundleValidationError, match="source_sha256"):
+        verify_bundle(target)
