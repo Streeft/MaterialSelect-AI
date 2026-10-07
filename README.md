@@ -77,6 +77,7 @@ Google). Estado detalhado em [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md
 - **Painel** — cobertura do catálogo, lacunas e distribuição por propriedade.
 - **Importar** — CSV/XLSX com mapeamento de colunas, validação linha a linha,
   licença da fonte e reversão por lote.
+- **Catálogo oficial licenciado** — pipeline administrativo separado, com identidade externa/GRUID, SHA-256 por artefato, dry-run, proveniência de release e preservação lossless de valores que ainda não cabem no motor numérico. Os bytes licenciados ficam fora do Git; ver [`docs/18-catalogo-oficial-granta.md`](docs/18-catalogo-oficial-granta.md).
 
 **Documentos** — CSV, XLSX e HTML imprimível do catálogo e de cada estudo; o
 **laudo de engenharia** de um estudo, com mapa de seleção e gráfico de ranking
@@ -214,7 +215,7 @@ workflows de disparo manual na aba *Actions*:
 | Workflow | Quando |
 |---|---|
 | **Deploy da API** (`deploy-api.yml`) | Depois de todo merge que toque `apps/api/**`. |
-| **Administração do banco** (`admin-banco.yml`) | `semear` quando o PR mexeu em seed (na dúvida, dispare); também `migrar`, `conceder`, `revogar`, `excluir_demo`. |
+| **Administração do banco** (`admin-banco.yml`) | `semear_referencia` para referência real; `semear_demo` somente para ambiente fictício; também `migrar`, `excluir_demo`, `catalogo_oficial_validar`, `catalogo_oficial_importar`, `conceder` e `revogar`. |
 | **Provedor de IA** (`provedor-ia.yml`) | Trocar a IA (`gemini`, `groq`, `mock`); confere em `/api/health`. |
 | **Modo de acesso** (`modo-acesso.yml`) | `abrir` para uma turma, `restaurar_assinatura` depois. |
 | **Base de conhecimento (Cérebro)** (`conhecimento.yml`) | `ingerir` depois de um PR que mexa em `Cérebro/` ou no manifesto — baixa do LFS só o que o banco ainda não tem (com `arquivos: Links.md`, só ele, sem baixar nada); `embeddings` para gerar vetores já; `status` para o retrato. Uma execução **noturna agendada** gera os vetores sozinha, com a sobra da cota gratuita (até 1000 pedidos), e nunca envia trecho de documento da lista de remoção. |
@@ -291,6 +292,7 @@ de leitura obrigatória. As regras vivem em [`CLAUDE.md`](CLAUDE.md) e
 | [`docs/13-deploy.md`](docs/13-deploy.md) | Deploy e operação pelos workflows. |
 | [`docs/14-plataforma-selecao.md`](docs/14-plataforma-selecao.md) | Comparação com o modelo funcional do Granta EduPack. |
 | [`docs/15-dados-demonstrativos.md`](docs/15-dados-demonstrativos.md) | Como criar e apagar dado fictício. |
+| [`docs/18-catalogo-oficial-granta.md`](docs/18-catalogo-oficial-granta.md) | Pipeline, identidade, bundle e cutover do catálogo oficial licenciado. |
 
 ## Licença
 
