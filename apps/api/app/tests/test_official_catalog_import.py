@@ -210,31 +210,23 @@ def test_bundle_validation_and_full_import(tmp_path: Path, db_session: Session) 
     db_session.add(reviewer)
     db_session.flush()
 
-    result = OfficialCatalogImporter(
-        db_session, bundle, reviewer_email=reviewer.email
-    ).run()
+    result = OfficialCatalogImporter(db_session, bundle, reviewer_email=reviewer.email).run()
     assert result["counts"]["materials_created"] == 1
     assert result["counts"]["processes_created"] == 1
     assert result["counts"]["transport_modes_created"] == 1
 
     material = (
-        db_session.execute(
-            select(Material).where(Material.name == "Material oficial de teste")
-        )
+        db_session.execute(select(Material).where(Material.name == "Material oficial de teste"))
         .scalars()
         .one()
     )
     process = (
-        db_session.execute(
-            select(Process).where(Process.slug == "processo-oficial-teste")
-        )
+        db_session.execute(select(Process).where(Process.slug == "processo-oficial-teste"))
         .scalars()
         .one()
     )
     transport = (
-        db_session.execute(
-            select(TransportMode).where(TransportMode.slug == "trem-oficial-teste")
-        )
+        db_session.execute(select(TransportMode).where(TransportMode.slug == "trem-oficial-teste"))
         .scalars()
         .one()
     )
@@ -249,9 +241,7 @@ def test_bundle_validation_and_full_import(tmp_path: Path, db_session: Session) 
     assert link_row is not None
 
     dataset = (
-        db_session.execute(
-            select(CatalogDataset).where(CatalogDataset.slug == "official-test-r1")
-        )
+        db_session.execute(select(CatalogDataset).where(CatalogDataset.slug == "official-test-r1"))
         .scalars()
         .one()
     )
