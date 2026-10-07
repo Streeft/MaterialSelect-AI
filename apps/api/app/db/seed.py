@@ -2060,7 +2060,9 @@ def _build_value_row(
     )
 
 
-def _get_or_create_index(db: Session, spec: dict) -> PerformanceIndex:
+def _get_or_create_index(
+    db: Session, spec: dict, *, is_demo: bool = False
+) -> PerformanceIndex:
     existing = (
         db.execute(select(PerformanceIndex).where(PerformanceIndex.slug == spec["slug"]))
         .scalars()
@@ -2075,7 +2077,7 @@ def _get_or_create_index(db: Session, spec: dict) -> PerformanceIndex:
         goal=spec.get("goal", "maximize"),
         description=spec.get("description"),
         assumptions=spec.get("assumptions"),
-        is_demo=True,
+        is_demo=is_demo,
     )
     db.add(obj)
     db.flush()
@@ -2229,6 +2231,8 @@ def seed_reference(db: Session) -> dict[str, int]:
     for spec in SOURCES:
         if not spec.get("is_demo", False):
             _get_or_create_source(db, spec)
+    for spec in PERFORMANCE_INDICES:
+        _get_or_create_index(db, spec, is_demo=False)
     db.flush()
 
     battery_source = (
@@ -2241,6 +2245,7 @@ def seed_reference(db: Session) -> dict[str, int]:
     return {
         "classes": len(CLASSES),
         "properties": len(PROPERTIES),
+        "indices": len(PERFORMANCE_INDICES),
         "battery_chemistries": battery_created,
     }
 
@@ -2255,8 +2260,6 @@ def seed(db: Session) -> dict[str, int]:
 
     demo_source_spec = next(spec for spec in SOURCES if spec.get("is_demo", False))
     _get_or_create_source(db, demo_source_spec)
-    for spec in PERFORMANCE_INDICES:
-        _get_or_create_index(db, spec)
     db.flush()
 
     demo_source = (
@@ -2301,7 +2304,6 @@ def seed(db: Session) -> dict[str, int]:
     db.commit()
     return {
         **reference_summary,
-        "indices": len(PERFORMANCE_INDICES),
         "materials_created": created_materials,
         "transport_modes": transport_created,
         **process_summary,
