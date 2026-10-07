@@ -2060,9 +2060,7 @@ def _build_value_row(
     )
 
 
-def _get_or_create_index(
-    db: Session, spec: dict, *, is_demo: bool = False
-) -> PerformanceIndex:
+def _get_or_create_index(db: Session, spec: dict, *, is_demo: bool = False) -> PerformanceIndex:
     existing = (
         db.execute(select(PerformanceIndex).where(PerformanceIndex.slug == spec["slug"]))
         .scalars()
