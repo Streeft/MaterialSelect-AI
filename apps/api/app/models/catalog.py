@@ -136,8 +136,9 @@ class CatalogSupplementalValue(Base):
     __table_args__ = (
         CheckConstraint(
             "("
-            "(material_id IS NOT NULL AND process_id IS NULL) OR "
-            "(material_id IS NULL AND process_id IS NOT NULL)"
+            "(material_id IS NOT NULL AND process_id IS NULL AND transport_mode_id IS NULL) OR "
+            "(material_id IS NULL AND process_id IS NOT NULL AND transport_mode_id IS NULL) OR "
+            "(material_id IS NULL AND process_id IS NULL AND transport_mode_id IS NOT NULL)"
             ")",
             name="ck_catalog_supplemental_value_one_target",
         ),
@@ -159,6 +160,9 @@ class CatalogSupplementalValue(Base):
     )
     process_id: Mapped[int | None] = mapped_column(
         ForeignKey("process.id", ondelete="CASCADE"), nullable=True, index=True
+    )
+    transport_mode_id: Mapped[int | None] = mapped_column(
+        ForeignKey("transport_mode.id", ondelete="CASCADE"), nullable=True, index=True
     )
     external_table: Mapped[str] = mapped_column(String(160), nullable=False)
     external_record_id: Mapped[str] = mapped_column(String(240), nullable=False)
