@@ -295,6 +295,21 @@ class OfficialCatalogImporter:
                 raise OfficialCatalogImportError(
                     "A licença declarada diverge da registrada para este dataset."
                 )
+            committed_manifests = set(
+                self.db.execute(
+                    select(CatalogImportRun.manifest_sha256).where(
+                        CatalogImportRun.dataset_id == dataset.id,
+                        CatalogImportRun.status == "COMMITTED",
+                    )
+                ).scalars()
+            )
+            if committed_manifests and committed_manifests != {
+                self.bundle.manifest_sha256
+            }:
+                raise OfficialCatalogImportError(
+                    "A release já foi importada com outro manifest_sha256; "
+                    "um bundle canônico diferente exige novo slug/release."
+                )
         else:
             dataset = CatalogDataset(
                 slug=meta["slug"],
@@ -459,6 +474,24 @@ class OfficialCatalogImporter:
                     )
                 if existing.physical_dimension != row["physical_dimension"]:
                     raise OfficialCatalogImportError(f"Dimensão física divergente para {slug}.")
+                if existing.category != category:
+                    raise OfficialCatalogImportError(f"Categoria divergente para {slug}.")
+                if existing.is_interval != bool(row.get("is_interval", False)):
+                    raise OfficialCatalogImportError(
+                        f"Forma escalar/intervalar divergente para {slug}."
+                    )
+                official_units = list(
+                    row.get("accepted_units", [row["canonical_unit"]])
+                )
+                existing.accepted_units = list(
+                    dict.fromkeys([*existing.accepted_units, *official_units])
+                )
+                if existing.symbol is None and row.get("symbol") is not None:
+                    existing.symbol = row["symbol"]
+                if existing.description is None and row.get("description") is not None:
+                    existing.description = row["description"]
+                if existing.display_unit is None and row.get("display_unit") is not None:
+                    existing.display_unit = row["display_unit"]
             self.properties[slug] = existing
 
     def _import_materials(self) -> None:
@@ -585,10 +618,35 @@ class OfficialCatalogImporter:
                 self.db.add(existing)
                 self.db.flush()
                 self._bump("process_attributes_created")
-            elif existing.kind != kind:
-                raise OfficialCatalogImportError(
-                    f"Tipo divergente para atributo de processo {slug}."
+            else:
+                if existing.kind != kind:
+                    raise OfficialCatalogImportError(
+                        f"Tipo divergente para atributo de processo {slug}."
+                    )
+                if existing.physical_dimension != row["physical_dimension"]:
+                    raise OfficialCatalogImportError(
+                        f"Dimensão física divergente para atributo de processo {slug}."
+                    )
+                if existing.canonical_unit != row.get("canonical_unit"):
+                    raise OfficialCatalogImportError(
+                        f"Unidade canônica divergente para atributo de processo {slug}."
+                    )
+                existing.accepted_units = list(
+                    dict.fromkeys(
+                        [*existing.accepted_units, *list(row.get("accepted_units", []))]
+                    )
                 )
+                existing.allowed_labels = list(
+                    dict.fromkeys(
+                        [*existing.allowed_labels, *list(row.get("allowed_labels", []))]
+                    )
+                )
+                if existing.symbol is None and row.get("symbol") is not None:
+                    existing.symbol = row["symbol"]
+                if existing.description is None and row.get("description") is not None:
+                    existing.description = row["description"]
+                if existing.display_unit is None and row.get("display_unit") is not None:
+                    existing.display_unit = row["display_unit"]
             self.process_attributes[slug] = existing
 
     def _import_processes(self) -> None:
@@ -608,6 +666,17 @@ class OfficialCatalogImporter:
                 self.processes[external_id] = process
                 self._bump("processes_unchanged")
                 continue
+
+            slug_collision = (
+                self.db.execute(select(Process).where(Process.slug == row["slug"]))
+                .scalars()
+                .one_or_none()
+            )
+            if slug_collision is not None:
+                raise OfficialCatalogImportError(
+                    f"Slug de processo {row['slug']!r} já existe sem identidade "
+                    "externa deste dataset; revise o mapeamento antes do import."
+                )
 
             cls = self.process_classes[str(row["class_external_id"])]
             process = Process(
@@ -757,6 +826,25 @@ class OfficialCatalogImporter:
                 raise OfficialCatalogImportError(
                     f"Modal demo ainda existe para slug {row['slug']}; execute excluir_demo."
                 )
+            else:
+                for field in ("energy_intensity", "carbon_intensity"):
+                    official_value = row.get(field)
+                    current_value = getattr(existing, field)
+                    if (
+                        official_value is not None
+                        and current_value is not None
+                        and float(current_value) != float(official_value)
+                    ):
+                        raise OfficialCatalogImportError(
+                            f"Modal {row['slug']!r} já existe com {field} divergente; "
+                            "revise a identidade antes do import."
+                        )
+                    if current_value is None and official_value is not None:
+                        setattr(existing, field, float(official_value))
+                if existing.description is None and row.get("description") is not None:
+                    existing.description = row["description"]
+                if existing.source_id is None:
+                    existing.source_id = self.source.id
             self._add_ref(
                 row,
                 "ProductConfig/Transportation",
