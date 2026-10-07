@@ -18,8 +18,8 @@ que ninguém importa é exatamente o defeito do D-71 — só que a próxima vez.
 ## Se você (agente ou pessoa) for criar dado de demonstração novo
 
 1. **Marque `is_demo=True`** no registro (ou o campo equivalente do modelo —
-   `Material.is_demo`, `Source.is_demo`, `Process.is_demo`, `TransportMode`
-   não tem porque é dado real de literatura, D-66). É o único jeito de o
+   `Material.is_demo`, `Source.is_demo`, `Process.is_demo`,
+   `TransportMode.is_demo`). É o único jeito de o
    sistema saber depois que a linha é fictícia — nenhuma outra convenção
    (nome do arquivo, comentário, prefixo no nome do registro) é lida por
    código nenhum.
@@ -81,7 +81,7 @@ Isso executa `python -m app.db.clear_demo`
 - **É irreversível e idempotente**: uma segunda execução, sem material
   fictício sobrando, não faz nada e diz isso no log
   (`Nada a fazer — nenhum registro com is_demo=True.`). Não é "rode duas
-  vezes por garantia" no mesmo sentido de `semear` — é seguro rodar de novo
+  vezes por garantia" no mesmo sentido de `semear_demo` — é seguro rodar de novo
   se houver dúvida, mas a primeira execução já é definitiva para o que ela
   apagou.
 
