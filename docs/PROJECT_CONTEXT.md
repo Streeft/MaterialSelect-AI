@@ -66,7 +66,7 @@ extração em massa; o Total Materia ficou como inspiração de funcionalidade
 autorização dele está pendente de arquivo em `catalogo/autorizacoes/`. Regra
 em [`20-catalogo-fontes-abertas.md`](20-catalogo-fontes-abertas.md).
 
-**Fases 1 a 9 concluídas.** Fase 7 fechou por completo — todas as exportações (CSV, XLSX, HTML, DOCX e PPTX) entregues para catálogo, relatório de estudo e laudo de engenharia, além do lote quádruplo de melhorias funcionais (3395 → 3407 backend, 753 → 762 frontend), na Sessão 48 a figura de barras por fase no Eco Audit e reordenação por arraste em seleção (Opções 1 e 2, 3743 backend e 762 → 778 frontend), na Sessão 54 a vinculação automática de processos demo aos materiais de teste por classe (3854 → 3857 backend e 778 frontend), na Sessão 55 a padronização do seletor de modo do Eco Audit para ButtonGroup/ButtonGroupItem (Segmented Control MSDS 2.0, 3857 backend e 778 frontend), e na Sessão 56 a auditoria de conformidade das Frentes 1 a 4 com o Design System (MSDS 2.0, D-80/D-91) e acessibilidade (WCAG 2.1 AA), a auditoria técnica do Mapa de Ashby 2D (`AshbyMap.tsx`, `chart_service.py`, `palette.ts`, `figureExport.ts`) e a quitação formal de A7 (Cérebro em produção no Neon executado pelo autor) (3857 backend e 778 frontend). A Sessão 57 adiciona a fundação do catálogo oficial (D-102) e sete regressões novas, levando o backend a **3864 testes**; frontend permanece em 778.
+**Fases 1 a 9 concluídas.** Fase 7 fechou por completo — todas as exportações (CSV, XLSX, HTML, DOCX e PPTX) entregues para catálogo, relatório de estudo e laudo de engenharia, além do lote quádruplo de melhorias funcionais (3395 → 3407 backend, 753 → 762 frontend), na Sessão 48 a figura de barras por fase no Eco Audit e reordenação por arraste em seleção (Opções 1 e 2, 3743 backend e 762 → 778 frontend), na Sessão 54 a vinculação automática de processos demo aos materiais de teste por classe (3854 → 3857 backend e 778 frontend), na Sessão 55 a padronização do seletor de modo do Eco Audit para ButtonGroup/ButtonGroupItem (Segmented Control MSDS 2.0, 3857 backend e 778 frontend), e na Sessão 56 a auditoria de conformidade das Frentes 1 a 4 com o Design System (MSDS 2.0, D-80/D-91) e acessibilidade (WCAG 2.1 AA), a auditoria técnica do Mapa de Ashby 2D (`AshbyMap.tsx`, `chart_service.py`, `palette.ts`, `figureExport.ts`) e a quitação formal de A7 (Cérebro em produção no Neon executado pelo autor) (3857 backend e 778 frontend). A Sessão 57 adiciona a fundação do catálogo oficial (D-102) e sete regressões novas, levando o backend a 3864 testes; frontend em 778. A Sessão 59 entrega o **cartão de material para CAE** (TM5, D-104 — MAPDL, MatML 3.1, Abaqus, Nastran `MAT1`, LS-DYNA `*MAT_ELASTIC`), levando o backend a **3938 testes** (3932 passam e 6 pulam sem `POSTGRES_TEST_URL`) e o frontend a **783**.
 
 | # | Fase | Estado | Documento |
 |---|---|---|---|
@@ -751,6 +751,14 @@ dependência de geração de PDF ([D-20](DECISIONS.md)). Cada formato neutraliza
 injeção que lhe cabe: fórmula na planilha, marcação no HTML. Avisos obrigatórios
 de limitação, reprodutibilidade e dados demonstrativos.
 
+**Cartão de material para CAE** ([D-104](DECISIONS.md)):
+`GET /api/exports/materiais/{id}/cae?formato=&unidades=` e o "Exportar ▾" da
+ficha. Ansys MAPDL, MatML 3.1, Abaqus, Nastran `MAT1` e LS-DYNA
+`*MAT_ELASTIC`, num sistema de unidades consistente escolhido pelo usuário
+(m-kg-s, mm-t-s, in-lbf-s) e convertido pelo Pint a partir do canônico.
+Propriedade ausente é omitida com "não cadastrado", nunca 0; faltando o mínimo
+do formato (E e ν; ρ também no LS-DYNA), a resposta é 422 com o que falta.
+
 ### Autenticação (Fase 7 — A5)
 Login exclusivamente por terceiros — **Google, OAuth 2.0** — sem senha em
 lugar nenhum do sistema. Sessão em cookie `httpOnly` que é uma linha de banco
@@ -983,6 +991,14 @@ que mais afetam quem for mexer no código:
 | O Cérebro é ingerido por um workflow do Actions (do LFS, só o que o banco não tem; sem IA); vetores de 768 dimensões com a sobra noturna da cota gratuita; uma identidade de vetor (modelo e dimensão) conferida em `/api/health`; a busca ranqueia num índice em memória, com BM25 igual bit a bit | [D-101](DECISIONS.md) |
 
 ## 9. Limitações atuais
+
+- **O cartão CAE dos solvers ainda recusa todo material.** Coeficiente de
+  Poisson, expansão térmica e calor específico não têm slug no catálogo; o
+  exportador os lê de `coef_poisson`, `coef_expansao_termica` e
+  `calor_especifico`, e sem ν os decks de MAPDL, Abaqus, Nastran e LS-DYNA
+  respondem 422 — só o MatML sai. Os arquivos foram escritos a partir da
+  documentação pública, sem rodar nenhum solver nem validar o XSD do MatML
+  ([D-104](DECISIONS.md); TM5-a e TM5-e no `TODO.md`).
 
 - **A instância publicada usa um provedor real, e por isso não é reproduzível.**
   `AI_PROVIDER=openai-compat` apontado para a Groq (modelo `openai/gpt-oss-20b`),

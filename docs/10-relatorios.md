@@ -172,6 +172,52 @@ unidade canônica, com uma seção de proveniência completa. Dado não cadastra
 sai como `ausente` — nunca célula vazia, que um leitor poderia confundir com
 zero.
 
+## Cartão de material para CAE (D-104)
+
+`GET /api/exports/materiais/{id}/cae?formato=…&unidades=…` gera o cartão de
+**um** material para um solver ou para o formato aberto MatML
+(`app/exporters/cae/`, [D-104](DECISIONS.md)). Na tela, é o item "Cartão de
+material para CAE…" do "Exportar ▾" da ficha.
+
+| `formato` | O que sai | Exige |
+|---|---|---|
+| `mapdl` | Ansys MAPDL: `/UNITS`, `MP,DENS/EX/PRXY/ALPX/KXX/C` | E e ν |
+| `abaqus` | Abaqus `.inp`: `*MATERIAL`, `*ELASTIC`, `*DENSITY`, `*EXPANSION`, `*CONDUCTIVITY`, `*SPECIFIC HEAT` | E e ν |
+| `nastran` | Nastran `MAT1` em campo largo (E, NU, RHO, A) | E e ν |
+| `lsdyna` | LS-DYNA `*MAT_ELASTIC_TITLE` (RO, E, PR) | ρ, E e ν |
+| `matml` | MatML 3.1 (XML) | ao menos uma propriedade |
+
+`unidades` é o **sistema consistente** do modelo, sem padrão: `m-kg-s` (Pa),
+`mm-t-s` (t/mm³, MPa) ou `in-lbf-s` (lbf·s²/in⁴, psi, °F). Não é a unidade de
+leitura por propriedade do D-70 — um solver multiplica os números que recebe, e
+precisa de um sistema inteiro. A conversão sai do valor canônico pelo Pint
+(`units.from_canonical`); nenhum fator em literal.
+
+Regras que não se afrouxam:
+
+- **Ausente nunca vira 0.** Propriedade não cadastrada é omitida e o arquivo diz
+  "não cadastrado" em comentário. Quando falta o mínimo do formato a resposta é
+  **422** com a frase que nomeia o que falta — um campo em branco seria
+  preenchido pelo padrão do solver (ν = 0,3 no MAPDL; 0 no Abaqus, no Nastran e
+  no LS-DYNA), nunca pelo catálogo.
+- **Faixa sai pelo ponto representativo**, e o arquivo diz isso e traz os
+  limites convertidos.
+- **Todo arquivo carrega** o aviso de limitação de uso, a fonte, a qualidade e
+  a licença de cada valor, e o aviso de fictício quando o material **ou a fonte
+  de algum valor** é de demonstração. Registro próprio (D-62) é declarado.
+- **Escape por formato.** MatML é escapado como XML (e os caracteres que o XML
+  1.0 não carrega saem); nos decks o nome nunca quebra linha, vira rótulo
+  `[A-Za-z0-9_-]` de até 80 caracteres no `*MATERIAL, NAME=` do Abaqus, perde
+  `$`/`*` iniciais no título do LS-DYNA e `$` nos comentários do MAPDL. Os
+  comentários dos decks saem em ASCII, porque Nastran e LS-DYNA leem por
+  coluna.
+- **Três slugs são contrato, não seed:** `coef_poisson`,
+  `coef_expansao_termica` e `calor_especifico` não existem no catálogo de
+  demonstração. Até alguém que cura o catálogo criá-los (ou o bundle oficial do
+  D-102 trazê-los), os quatro decks recusam todo material e só o MatML sai.
+- Sempre `attachment`, com `nosniff`; o MatML não é renderizado na origem da
+  API.
+
 ## Quantos dígitos, e com que nome
 
 Duas escolhas de renderização que o relatório compartilha com CSV, XLSX, DOCX e PPTX, porque
@@ -218,8 +264,9 @@ faltando.
 | GET | `/api/exports/catalogo.{csv,xlsx,html,docx,pptx}` | catálogo ativo com proveniência |
 | GET | `/api/exports/estudos/{id}.{csv,xlsx,html,docx,pptx}` | relatório completo de um estudo |
 | GET | `/api/exports/estudos/{id}/laudo.{html,docx,pptx}` | laudo de engenharia (figura, responsável, IA) |
+| GET | `/api/exports/materiais/{id}/cae?formato=&unidades=` | cartão de material para CAE (D-104) |
 
-O `html` é o único servido `inline`; os outros quatro baixam. O laudo aceita
+O `html` é o único servido `inline`; os outros formatos — o cartão CAE incluído — baixam. O laudo aceita
 `?responsavel=` — texto livre, escapado, opcional.
 
 ## Ainda fora desta fatia
@@ -227,5 +274,8 @@ O `html` é o único servido `inline`; os outros quatro baixam. O laudo aceita
 Autenticação por projeto (A5), auditoria (M2), os testes end-to-end de
 interface (A4 — Playwright cobrindo importar → selecionar → visualizar →
 exportar, `apps/web/e2e/`, check obrigatório de CI em `ci.yml`), a exportação
-nativa em DOCX (P4 restante) e a exportação nativa em PPTX (B2) já foram entregues;
-ver "Débitos já quitados" no `TODO.md`.
+nativa em DOCX (P4 restante), a exportação nativa em PPTX (B2) e o cartão para
+CAE (TM5, D-104) já foram entregues; ver "Débitos já quitados" no `TODO.md`.
+Do cartão CAE ficaram de fora a curva tensão-deformação plástica, os dados
+dependentes de temperatura (`MPTEMP`/`MPDATA`), o XML do Engineering Data do
+Workbench e os cartões térmicos (`MAT4`, material térmico do LS-DYNA).

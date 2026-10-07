@@ -109,16 +109,42 @@ sempre (princípios 1 a 4, D-24, ADR 0004).
   (tensão-deformação, fadiga, fluência) que o D-102 já preserva em
   `CatalogSupplementalValue`, sem achatá-las em escalar; geometria no backend
   (ADR 0004).
-- **TM5 — exportação para formatos CAE/CAD.** ▆ Cartão de material para
-  solvers e um formato aberto (MatML), a partir das especificações públicas de
-  cada formato, com sistema de unidades explícito, ausência omitida e o aviso
-  de limitação de uso.
+- **TM5 — exportação para formatos CAE/CAD.** ✔ Entregue (D-104, Sessão 59);
+  resíduos abaixo.
 - **TM6 — referência por valor visível e filtrável.** ▁ A proveniência já
   existe; falta mostrar a contagem de referências por registro e um filtro
   "só valores com referência bibliográfica".
 - **TM7 — o que mudou entre releases.** ▃ Com `CatalogDataset` imutável por
   release (D-102), uma página que lista registros novos, alterados e
   desativados entre duas releases do catálogo.
+
+**Resíduos do cartão para CAE (TM5, [D-104](DECISIONS.md)).** O TM5 foi
+entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
+
+- **TM5-a — os três slugs que o cartão lê e o catálogo ainda não define.** ▁
+  `coef_poisson`, `coef_expansao_termica` e `calor_especifico` são o contrato
+  do `app/exporters/cae/quantities.py`; enquanto não existirem (criados por quem
+  cura o catálogo ou trazidos pelo bundle do D-102, com unidade canônica
+  compatível), os decks de MAPDL, Abaqus, Nastran e LS-DYNA recusam todo
+  material por falta de ν e só o MatML sai. Não semear definição vazia: ela
+  ficaria em ~0 % no painel (a objeção do D-69).
+- **TM5-b — curva tensão-deformação plástica e dados dependentes de
+  temperatura.** ▆ `*PLASTIC` (Abaqus), `TB,MISO`/`MPTEMP`/`MPDATA` (MAPDL),
+  `MATS1`/`TABLES1` (Nastran), `*MAT_PIECEWISE_LINEAR_PLASTICITY` (LS-DYNA).
+  Depende do TM4: as curvas que o D-102 preserva em `CatalogSupplementalValue`
+  não entram em cálculo nem em exportação até haver regra determinística.
+- **TM5-c — XML do Engineering Data do Ansys Workbench.** ▃ Não feito: o
+  formato é um dialeto do MatML com metadados próprios, e a documentação pública
+  acessível nesta sessão não bastou para escrevê-lo sem copiar um arquivo
+  exportado — o que a regra do D-104 proíbe.
+- **TM5-d — cartões térmicos.** ▃ Condutividade e calor específico no `MAT4`
+  do Nastran e num material térmico do LS-DYNA; hoje são declarados "fora deste
+  cartão" no comentário.
+- **TM5-e — validar os arquivos num solver.** ▁ Os golden files foram escritos
+  a partir da documentação pública, sem rodar MAPDL, Abaqus, Nastran nem
+  LS-DYNA, e sem validar o MatML contra o XSD 3.1 (rede bloqueada). Abrir cada
+  um num solver licenciado (ou num validador de esquema) e registrar o
+  resultado no D-104.
 
 ---
 
@@ -267,6 +293,17 @@ continua lá, e a métrica para de medir no 3.
 
 Registrados para não voltarem por engano:
 
+- ~~**TM5 — exportação para formatos CAE (Sessão 59, [D-104](DECISIONS.md))**~~ —
+  `GET /api/exports/materiais/{id}/cae?formato=…&unidades=…` e o item "Cartão de
+  material para CAE…" no "Exportar ▾" da ficha. Cinco renderizadores em
+  `app/exporters/cae/` (MAPDL, MatML 3.1, Abaqus, Nastran `MAT1`, LS-DYNA
+  `*MAT_ELASTIC`), escritos a partir da documentação pública; três sistemas de
+  unidades consistentes, convertidos só pelo Pint a partir do canônico;
+  ausente omitido com "não cadastrado", nunca 0; recusa 422 quando falta o
+  mínimo do formato; aviso de limitação, proveniência e marca de fictício em
+  todo arquivo; escape por formato; visibilidade do D-62 coberta pelo canário.
+  Resíduos em "Média prioridade" (TM5-a a TM5-e). 3864 → 3938 testes de backend
+  e 778 → 783 de frontend.
 - ~~**A7 — Execução do Cérebro no RAG de produção concluída (D-101)**~~ —
   executada com sucesso pelo autor em produção (Neon) via GitHub Actions (workflow
   Base de conhecimento, ação `ingerir` e indexação de `Links.md`, com as remoções

@@ -59,7 +59,11 @@ implementadas.
 
 Em `exporters/`, **todo arquivo exportado carrega o aviso de limitação de uso**
 (compromisso do item 5 da proposta). O modelo `Report` é agnóstico de formato e
-tem dois renderizadores: `spreadsheet.py` (CSV/XLSX) e `html.py` (imprimível).
+tem dois renderizadores: `spreadsheet.py` (CSV/XLSX) e `html.py` (imprimível). O cartão
+de material para CAE ([D-104](docs/DECISIONS.md)) **não** passa pelo `Report`:
+`exporters/cae/` lê um `CaeCard` já convertido para o sistema de unidades que o
+usuário escolheu, e cada formato declara o que exige — faltando, a exportação é
+recusada (422), nunca escrita com o branco que o solver preencheria.
 
 `Report.figures` é uma **lista** porque um documento de seleção tem mais de uma
 figura, e a ordem é a da leitura. O relatório leva o **mapa de seleção**; o
@@ -293,7 +297,7 @@ Fases 1 a 9 concluídas. **Fase 7 (relatórios e qualidade) concluída** — as
 exportações CSV/XLSX, o relatório HTML imprimível, os testes end-to-end de
 interface (A4, Playwright em `apps/web/e2e/`), a autenticação (A5) e a
 auditoria (M2 — `AuditEvent`, quem mudou o quê e quando, retrato em vez de
-junção viva, [D-43](docs/DECISIONS.md)) já saíram; a exportação nativa em PPTX (B2) foi entregue e, na sequência, o lote quádruplo de melhorias funcionais (duplicação de estágio em seleção, relevância e highlight na busca, seções circulares no solver e comparação lado a lado no Eco Audit — Opções 1, 2, 3 e 4) foi entregue (3395 → 3407 testes de backend e 753 → 762 de frontend); e na Sessão 48, a figura de barras por fase no Eco Audit (individual e comparativo) e a reordenação de estágios por arraste na Seleção (Opções 1 e 2) foram integradas (3743 testes de backend e 762 → 778 de frontend); na Sessão 54, a vinculação automática de processos demo aos materiais de teste por classe (script CLI e migração Alembic b7d219fa82de) foi implementada, destravando o Eco Audit e o Dimensionador de Custo (3854 → 3857 testes de backend e 778 de frontend); na Sessão 55, a padronização do seletor de modo do Eco Audit para ButtonGroup/ButtonGroupItem (Segmented Control MSDS 2.0, D-80 e D-91) foi implementada, eliminando múltiplos botões primários na tela (3857 testes de backend e 778 de frontend); e na Sessão 56, a auditoria de conformidade das Frentes 1 a 4 com o Design System (MSDS 2.0, D-80/D-91) e acessibilidade (WCAG 2.1 AA) foi concluída junto à auditoria técnica do Mapa de Ashby 2D (Okabe-Ito, tipografia embutida em exportações SVG/PNG e tabela semântica acessível), e a pendência operacional A7 (execução do Cérebro em produção no Neon) foi quitada formalmente pelo autor (3857 testes de backend e 778 de frontend mantidos). **A5** deu login exclusivamente por terceiros Na Sessão 57, a fundação D-102 do catálogo oficial licenciado adicionou zero-demo fail-closed, identidade externa/release, bundle verificado, import transacional e tooling Granta (3864 testes de backend; 778 de frontend).
+junção viva, [D-43](docs/DECISIONS.md)) já saíram; a exportação nativa em PPTX (B2) foi entregue e, na sequência, o lote quádruplo de melhorias funcionais (duplicação de estágio em seleção, relevância e highlight na busca, seções circulares no solver e comparação lado a lado no Eco Audit — Opções 1, 2, 3 e 4) foi entregue (3395 → 3407 testes de backend e 753 → 762 de frontend); e na Sessão 48, a figura de barras por fase no Eco Audit (individual e comparativo) e a reordenação de estágios por arraste na Seleção (Opções 1 e 2) foram integradas (3743 testes de backend e 762 → 778 de frontend); na Sessão 54, a vinculação automática de processos demo aos materiais de teste por classe (script CLI e migração Alembic b7d219fa82de) foi implementada, destravando o Eco Audit e o Dimensionador de Custo (3854 → 3857 testes de backend e 778 de frontend); na Sessão 55, a padronização do seletor de modo do Eco Audit para ButtonGroup/ButtonGroupItem (Segmented Control MSDS 2.0, D-80 e D-91) foi implementada, eliminando múltiplos botões primários na tela (3857 testes de backend e 778 de frontend); e na Sessão 56, a auditoria de conformidade das Frentes 1 a 4 com o Design System (MSDS 2.0, D-80/D-91) e acessibilidade (WCAG 2.1 AA) foi concluída junto à auditoria técnica do Mapa de Ashby 2D (Okabe-Ito, tipografia embutida em exportações SVG/PNG e tabela semântica acessível), e a pendência operacional A7 (execução do Cérebro em produção no Neon) foi quitada formalmente pelo autor (3857 testes de backend e 778 de frontend mantidos). **A5** deu login exclusivamente por terceiros Na Sessão 57, a fundação D-102 do catálogo oficial licenciado adicionou zero-demo fail-closed, identidade externa/release, bundle verificado, import transacional e tooling Granta (3864 testes de backend; 778 de frontend). Na Sessão 59, o cartão de material para CAE (TM5, D-104) foi entregue (3864 → 3938 testes de backend e 778 → 783 de frontend).
 (Google, OAuth 2.0 — sem senha em lugar nenhum do sistema), sessão em cookie
 `httpOnly` que é linha de banco e não JWT, catálogo compartilhado entre todo
 usuário autenticado e um `Project` por usuário isolando `SelectionStudy`
@@ -1047,6 +1051,24 @@ deles, `sha256 <hex>`) ou um caminho com `Cérebro/` na frente para todos os
 leitores, e nenhuma recusa cita a linha, só o número (D-101, revisão do PR
 #100).
 
+**O cartão de material para CAE saiu** ([D-104](docs/DECISIONS.md), TM5,
+Sessão 59): `app/exporters/cae/` tem um renderizador por formato — Ansys MAPDL,
+MatML 3.1, Abaqus, Nastran `MAT1`, LS-DYNA `*MAT_ELASTIC` —, escrito a partir
+da documentação **pública** (nunca de arquivo ou modelo do Granta/EduPack), e
+`GET /api/exports/materiais/{id}/cae?formato=&unidades=` o serve com a
+visibilidade do D-62. Regras que não se afrouxam: o **sistema de unidades é
+escolhido, nunca padrão** (`m-kg-s`, `mm-t-s`, `in-lbf-s`; não é a unidade de
+leitura do D-70) e a conversão sai do canônico por `units.from_canonical`;
+**ausente é omitido com "não cadastrado", nunca 0**; faltando o mínimo do
+formato (E e ν nos decks, ρ também no LS-DYNA) a resposta é **422**
+(`ExportRefusedError`) — o branco seria preenchido pelo padrão do solver; todo
+arquivo leva o aviso de limitação, a proveniência e a marca de fictício quando
+o material **ou a fonte de um valor** é demo; o escape é por formato (XML no
+MatML; nome sem quebra de linha e rótulo saneado nos decks). Poisson, expansão
+e calor específico são lidos de `coef_poisson`, `coef_expansao_termica` e
+`calor_especifico`, que o catálogo ainda não define — até lá os decks recusam
+todo material e só o MatML sai (TM5-a).
+
 **O portão de licença das fontes abertas foi reconciliado com o D-102**
 ([D-103](docs/DECISIONS.md), rascunho, Sessão 58): fonte aberta entra só com
 veredito APROVADA em `docs/catalogo/fontes.md` e pelo pipeline do D-102, sem
@@ -1054,8 +1076,8 @@ importador paralelo; nenhuma está APROVADA ainda (condição C0). Regra em
 [`docs/20-catalogo-fontes-abertas.md`](docs/20-catalogo-fontes-abertas.md).
 Só documentação.
 
-3864 testes de backend (nenhum skip na CI; sem `POSTGRES_TEST_URL`, 3858 passam
-e 6 pulam) e 778 de frontend, todos verdes. CI no
+3938 testes de backend (nenhum skip na CI; sem `POSTGRES_TEST_URL`, 3932 passam
+e 6 pulam) e 783 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
 PROJECT_CONTEXT.md).

@@ -19,6 +19,16 @@ class ValidationError(DomainError):
     """Input is structurally valid but violates a domain rule. -> HTTP 400."""
 
 
+class ExportRefusedError(DomainError):
+    """The requested export cannot be produced honestly. -> HTTP 422.
+
+    Distinct from ``ValidationError`` (a malformed request, 400): the request
+    is well formed, but the record lacks what the file format demands — a CAE
+    material card without a Poisson's ratio would let the solver fill the blank
+    with its own default (D-104). Refusing names what is missing instead.
+    """
+
+
 class ConflictError(DomainError):
     """The operation conflicts with current state (duplicate, in use). -> HTTP 409."""
 

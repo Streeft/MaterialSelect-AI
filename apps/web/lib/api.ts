@@ -655,6 +655,46 @@ export function studyLaudoUrl(
   return `${API_URL}/api/exports/estudos/${studyId}/laudo.${format}${query}`;
 }
 
+// --- CAE material card (D-104) ---------------------------------------------
+
+export type CaeFormat = "mapdl" | "abaqus" | "nastran" | "lsdyna" | "matml";
+export type CaeUnitSystem = "m-kg-s" | "mm-t-s" | "in-lbf-s";
+
+export function caeExportUrl(
+  materialId: number,
+  format: CaeFormat,
+  units: CaeUnitSystem,
+): string {
+  const query = new URLSearchParams({ formato: format, unidades: units });
+  return `${API_URL}/api/exports/materiais/${materialId}/cae?${query}`;
+}
+
+/**
+ * Fetches the card instead of linking to it, unlike the other exports: a card
+ * the record cannot honestly fill is refused with a 422 whose `detail` names
+ * what is missing, and a plain link would drop the user on a JSON page. The
+ * caller saves the blob under the server's own filename.
+ */
+export async function downloadCaeCard(
+  materialId: number,
+  format: CaeFormat,
+  units: CaeUnitSystem,
+): Promise<{ blob: Blob; filename: string }> {
+  const res = await fetch(caeExportUrl(materialId, format, units), {
+    credentials: "include",
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new ApiError(
+      await errorMessage(res, "Falha ao gerar o cartão de material."),
+      res.status,
+    );
+  }
+  const disposition = res.headers.get("content-disposition") ?? "";
+  const match = /filename="([^"]+)"/.exec(disposition);
+  return { blob: await res.blob(), filename: match?.[1] ?? `material-${materialId}.txt` };
+}
+
 // --- My Records (P1-4) ------------------------------------------------------
 
 /**

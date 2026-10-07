@@ -790,6 +790,38 @@ export const ptBR = {
     laudoResponsibleLabel: "Responsável técnico (opcional)",
     laudoResponsiblePlaceholder: "Nome de quem assina a leitura",
   },
+  // D-104: o cartão de material para CAE, no "Exportar ▾" da ficha.
+  cae: {
+    menuItem: "Cartão de material para CAE…",
+    menuHint: "Ansys MAPDL, Abaqus, Nastran, LS-DYNA ou MatML",
+    title: "Cartão de material para CAE",
+    description:
+      "O arquivo leva só as propriedades cadastradas, convertidas para o sistema de unidades escolhido. O que não está cadastrado é omitido com um comentário — nunca vira zero nem valor padrão.",
+    formatLabel: "Formato",
+    unitsLabel: "Sistema de unidades",
+    unitsHint:
+      "O solver não converte unidades: use no modelo o mesmo sistema escolhido aqui.",
+    formats: {
+      mapdl: "Ansys MAPDL (comandos MP)",
+      abaqus: "Abaqus (.inp)",
+      nastran: "Nastran (MAT1)",
+      lsdyna: "LS-DYNA (*MAT_ELASTIC)",
+      matml: "MatML 3.1 (XML aberto)",
+    },
+    units: {
+      "m-kg-s": "SI — m, kg, s, N, Pa, K",
+      "mm-t-s": "SI — mm, t, s, N, MPa, K",
+      "in-lbf-s": "EUA — in, lbf·s²/in, s, lbf, psi, °F",
+    },
+    requirements:
+      "MAPDL, Abaqus e Nastran exigem módulo de Young e coeficiente de Poisson; o LS-DYNA exige também a densidade. MatML aceita qualquer propriedade cadastrada.",
+    download: "Baixar cartão",
+    cancel: "Cancelar",
+    refusedTitle: "O cartão não foi gerado",
+    errorTitle: "Não foi possível exportar",
+    notice:
+      "Todo arquivo leva o aviso de limitação de uso, a fonte e a qualidade de cada valor, e a marca de fictício quando o dado é de demonstração.",
+  },
   similar: {
     title: "Materiais semelhantes",
     hint: "Escolha em que aspectos “semelhante” quer dizer. A distância é medida só sobre essas propriedades.",
