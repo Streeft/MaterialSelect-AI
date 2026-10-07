@@ -150,6 +150,17 @@ TM2 foi entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
   hoje só o seed demo e o bundle escrevem.
 - **TM4-e — escolher a unidade do parâmetro da família.** ▁ Hoje sai na
   convenção da grandeza (°C para temperatura); a legenda da tela a repete.
+- **TM4-f — nova grandeza de eixo exige migração.** ▁ A lista de grandezas
+  (`QUANTITIES`, 8) está escrita por extenso no `CHECK` da migração
+  `0925e0787863`; acrescentar uma grandeza sem migração nova deixa modelo e
+  banco divergentes. Achado da revisão do TM4.
+- **TM4-g — curvas duplicadas depois de um segundo cutover.** ▃ Uma release nova
+  de outro dataset acrescenta curvas sem aposentar as da release anterior do
+  mesmo material (o mesmo padrão dos valores globais), e a ficha pode listar a
+  curva duas vezes. Decidir a regra de aposentadoria junto com o cutover.
+- **TM4-h — folga do eixo em °C/°F.** ▁ `_padded` não passa de zero na unidade de
+  leitura; num eixo de temperatura, dados de 20 a 600 °C começam em 0 °C. Só
+  estético, nenhum ponto se perde.
 - **Dependência TM5-b:** a curva plástica dos decks de CAE lê `material_curve` e
   pede regra declarada de conversão engenharia → verdadeira e de origem da
   deformação plástica — ver TM5-b abaixo.
