@@ -56,11 +56,12 @@ $inventory = [ordered]@{
 
 foreach ($database in $databases) {
     $relativeParent = [IO.Path]::GetRelativePath($root, $database.DirectoryName)
-    $safeRelative = $relativeParent -replace '[<>:"/\\|?*]', '_'
-    if ([string]::IsNullOrWhiteSpace($safeRelative) -or $safeRelative -eq ".") {
-        $safeRelative = "root"
+    if ([string]::IsNullOrWhiteSpace($relativeParent) -or $relativeParent -eq ".") {
+        $relativeParent = "root"
     }
-    $databaseOutput = Join-Path $output $safeRelative
+    # Preserve the source hierarchy instead of flattening it: flattening can
+    # collide (e.g. a/b and a_b) and identity must never depend on that accident.
+    $databaseOutput = Join-Path $output $relativeParent
 
     Write-Host "[granta-export-all] $relativeParent\data.gdb"
     & $singleExporter -DatabasePath $database.FullName -OutputDirectory $databaseOutput
