@@ -178,6 +178,31 @@ de classes (Okabe–Ito), porque uma responde a confiança e a outra a identidad
 Uma classe sem nenhum valor registrado para a propriedade escolhida é
 **nomeada em texto**, não desenhada como caixa de altura zero.
 
+## Curvas do material (D-106, TM4)
+
+A seção **Curvas** da ficha (`MaterialCurves` + `CurveChart`) desenha as curvas
+cadastradas de um material — tensão–deformação, dependência de temperatura ou de
+taxa, fadiga (S–N) e fluência — como SVG próprio, sem Plotly. Regras:
+
+- **A geometria é do backend** (ADR 0004): `GET /api/materials/{id}/curvas/{curva}`
+  devolve as polilinhas e a faixa (polígono fechado) já na unidade de leitura,
+  o domínio de cada eixo e a escala. O cliente só mapeia dado para pixel
+  (`makeScale`) e põe os *ticks* (`figureKit`). Nada é interpolado; um ponto ≤ 0
+  num eixo log sai da figura, fica na tabela marcado e uma nota diz quantos.
+- **Unidade e escala** são escolha do leitor, vivem na URL
+  (`?curva=&curva_x=&curva_y=&curva_escala=`) e só oferecem o que a API lista
+  (`accepted_units`, `available_scales`); a recusa (400) aparece em português
+  com as admitidas. Trocar de curva zera a escolha.
+- **Cada série se distingue por cor, traço e marcador** (assento da paleta,
+  D-28), para ler em impressão cinza e por quem tem daltonismo; a legenda alterna
+  séries. O resumo vem do `ChartTooltip`.
+- **Tabela de pontos** (botão "Tabela", D-31) com os valores de leitura, a faixa
+  ("Sem faixa declarada" quando a fonte não deu, nunca vazio nem 0) e o que a
+  fonte escreveu. Sem curva: "Nenhuma curva cadastrada", com a contagem por tipo.
+- **Exportar ▾**: PNG e SVG da figura mais os pontos em CSV e XLSX
+  (`/api/exports/materiais/{id}/curvas/{curva}.{csv|xlsx}`), com aviso de
+  limitação e proveniência. Curva fictícia leva a marca de demonstração.
+
 ## Endpoints
 
 | Método | Rota | Função |
@@ -186,6 +211,8 @@ Uma classe sem nenhum valor registrado para a propriedade escolhida é
 | POST | `/api/charts/compare` | matriz normalizada para as cinco visualizações |
 | GET | `/api/dashboard/overview` | cobertura geral, por classe e por propriedade |
 | GET | `/api/dashboard/distribution/{property_slug}` | quartis por classe para uma propriedade |
+| GET | `/api/materials/{id}/curvas` | curvas do material e contagem por tipo (D-106) |
+| GET | `/api/materials/{id}/curvas/{curva}` | uma curva pronta para desenhar, na unidade de leitura |
 
 Os dois primeiros são POST porque a entrada é estruturada (par de eixos, filtro
 de classes, conjuntos de materiais, expressão do índice e níveis) e não caberia
