@@ -128,9 +128,7 @@ def test_clear_demo_data_covers_all_demo_universes(db_session: Session) -> None:
     demo_indices = db_session.scalar(
         select(func.count(PerformanceIndex.id)).where(PerformanceIndex.is_demo.is_(True))
     )
-    demo_sources = db_session.scalar(
-        select(func.count(Source.id)).where(Source.is_demo.is_(True))
-    )
+    demo_sources = db_session.scalar(select(func.count(Source.id)).where(Source.is_demo.is_(True)))
     assert demo_materials and demo_materials > 0
     assert demo_processes and demo_processes > 0
     assert demo_transports and demo_transports > 0
@@ -175,11 +173,7 @@ def test_clear_demo_data_covers_all_demo_universes(db_session: Session) -> None:
 def test_demo_source_cleanup_fails_closed_if_real_record_still_cites_it(
     db_session: Session,
 ) -> None:
-    demo_source = (
-        db_session.execute(select(Source).where(Source.is_demo.is_(True)))
-        .scalars()
-        .one()
-    )
+    demo_source = db_session.execute(select(Source).where(Source.is_demo.is_(True))).scalars().one()
     db_session.add(
         TransportMode(
             slug="real-mode-citing-demo-source",
