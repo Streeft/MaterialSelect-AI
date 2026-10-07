@@ -186,7 +186,7 @@ npm run test:e2e                            # Playwright, API e banco próprios
 
 Os testes do backend rodam em SQLite em memória e **não têm rede** — o
 `conftest.py` reprova quem tentar sair. Pelo último registro em
-[`CLAUDE.md`](CLAUDE.md), são **3863 testes de backend** e 778 de frontend.
+[`CLAUDE.md`](CLAUDE.md), são **3864 testes de backend** e 778 de frontend.
 
 [`.github/workflows/ci.yml`](.github/workflows/ci.yml) roda em todo PR e em
 todo push para `main`: **Backend** (Python 3.11 e 3.12: ruff, black, pytest com
