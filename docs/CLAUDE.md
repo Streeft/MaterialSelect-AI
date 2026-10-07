@@ -6,6 +6,15 @@ dois divergirem, o da raiz vence para o que ele cobre, e este expande o resto.
 
 ---
 
+### Catálogo oficial licenciado
+
+Antes de mexer na base oficial, leia D-102 e
+[`18-catalogo-oficial-granta.md`](18-catalogo-oficial-granta.md). O corpus
+licenciado não é seed nem arquivo de fixture: fica fora do Git. Qualquer carga
+oficial precisa passar pelo bundle canônico, dry-run, limpeza do demo e
+`CatalogImportRun`. Não deduplique por nome e não reduza curva/equação a
+escalar para fazê-la caber no modelo existente.
+
 ## 1. Decisões que NÃO devem ser alteradas
 
 Estas não são preferências. São o que sustenta a alegação central do trabalho —
@@ -100,9 +109,9 @@ IDE. Resumo do que não muda:
   modelo. Nenhuma outra convenção (nome de arquivo, comentário, prefixo no
   nome do registro) é lida por código nenhum.
 - **Todo módulo de seed novo tem de estar ligado a `admin-banco.yml`**
-  (ação `semear`) e a `scripts/seed.ps1`, na sequência certa. Um módulo
+  (ação `semear_demo`) e a `scripts/seed.ps1`, na sequência certa. Um módulo
   desconectado — mesmo idempotente, mesmo com o próprio `main()` — é
-  invisível: `semear` termina verde sem nunca o executar. Foi exatamente
+  invisível: `semear_demo` termina verde sem nunca o executar. Foi exatamente
   isto, com os 70 materiais de `apps/api/app/db/seed_extended.py`, que
   ficou fora do ar por dias ([D-71](DECISIONS.md)).
 - **Apagar dado fictício usa `apps/api/app/db/clear_demo.py`**
