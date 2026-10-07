@@ -17,6 +17,7 @@ import {
   Tr,
   type QualityState,
 } from "@/components/ui";
+import { DesignationCodes } from "./DesignationCodes";
 import { HighlightText } from "./HighlightText";
 
 const t = ptBR.catalog;
@@ -110,6 +111,7 @@ export function MaterialTable({
                     <HighlightText text={m.subclass} query={searchQuery} />
                   </span>
                 )}
+            <DesignationCodes designations={m.designations} searchQuery={searchQuery} />
               </RowHeader>
               <Td>
                 <ClassBadge name={m.class_name} color={classVisual(m.class_slug).color} />

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, waitFor } from "@testing-library/react";
 // See the note in components/layout/layout.test.tsx: MWC button roles live
 // inside a shadow root, invisible to plain @testing-library/react queries.
@@ -28,6 +28,7 @@ const materials: MaterialListItem[] = [
     is_own_record: false,
     keywords: ["estrutural"],
     quality: { medido: 4, importado: 0, estimado: 1, missing: 0 },
+    designations: [],
   },
   {
     id: 2,
@@ -39,6 +40,7 @@ const materials: MaterialListItem[] = [
     is_own_record: false,
     keywords: [],
     quality: { medido: 0, importado: 2, estimado: 0, missing: 3 },
+    designations: [],
   },
   {
     id: 3,
@@ -50,11 +52,22 @@ const materials: MaterialListItem[] = [
     is_own_record: false,
     keywords: [],
     quality: { medido: 0, importado: 0, estimado: 0, missing: 0 },
+    designations: [],
   },
 ];
 
+// D-105: what the search answers, steered per test.
+const search = vi.hoisted(() => ({
+  composition: null as unknown,
+  reject: null as null | { message: string; status: number },
+}));
+
 vi.mock("@/lib/api", () => ({
   listMaterials: () => Promise.resolve(materials),
+  searchMaterials: () =>
+    search.reject
+      ? Promise.reject(Object.assign(new Error(search.reject.message), { status: search.reject.status }))
+      : Promise.resolve({ items: materials, total: materials.length, composition: search.composition }),
   listClasses: () =>
     Promise.resolve([
       { id: 1, name: "Metais", slug: "metais", parent_id: null, description: null, material_count: 2 },
@@ -92,6 +105,45 @@ async function renderCatalog() {
 // exist in the DOM at once. Every lookup below is scoped to the table to
 // avoid an ambiguous match against the card carrying the same material name.
 describe("catálogo", () => {
+  beforeEach(() => {
+    search.composition = null;
+    search.reject = null;
+  });
+
+  it("states the composition rule and who was left out for lack of data (D-105)", async () => {
+    search.composition = {
+      rule: "Composição por alcance da faixa.",
+      undetermined: 2,
+      without_composition: 2,
+      conditions: [
+        {
+          label: "Cr ≥ 12 %",
+          element: "Cr",
+          element_name: "Cromo",
+          satisfied: 1,
+          not_satisfied: 0,
+          undetermined: 2,
+          undetermined_by_reason: {
+            sem_composicao: 2,
+            elemento_nao_declarado: 0,
+            declarado_ausente: 0,
+            resto_sem_numero: 0,
+          },
+        },
+      ],
+    };
+    await renderCatalog();
+    expect(screen.getByText("Composição por alcance da faixa.")).toBeInTheDocument();
+    expect(screen.getByText(t.compositionUndetermined(2))).toBeInTheDocument();
+  });
+
+  it("shows a refused query's reason instead of a generic failure (D-105)", async () => {
+    search.reject = { message: "Norma desconhecida: 'XYZ'.", status: 400 };
+    render(wrap(<CatalogPage />));
+    expect(await screen.findByText("Norma desconhecida: 'XYZ'.")).toBeInTheDocument();
+    expect(screen.getByText(t.searchError)).toBeInTheDocument();
+  });
+
   it("says what each material's data is made of, on the row itself", async () => {
     const { table } = await renderCatalog();
 

@@ -28,6 +28,7 @@ const ownMaterial: MaterialListItem = {
   is_own_record: true,
   keywords: [],
   quality,
+  designations: [],
 };
 
 const process: Process = {

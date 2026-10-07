@@ -1757,9 +1757,50 @@ export const ptBR = {
     densityComfortable: "Confortável",
     densityCompact: "Compacta",
     subtitle: "O que existe cadastrado, e com que qualidade de dado.",
-    searchPlaceholder: "Buscar por nome, classe ou palavra-chave…",
+    searchPlaceholder: "Buscar por nome, classe, palavra-chave ou designação…",
     searchHint:
-      'Aceita operadores: aço AND inox · aço OR alumínio · aço NOT inox · "aço inox" para a frase exata · parênteses para agrupar · alum* e a?o como curingas.',
+      'Aceita operadores: aço AND inox · aço OR alumínio · aço NOT inox · "aço inox" para a frase exata · parênteses para agrupar · alum* e a?o como curingas · comp:, norma: e designacao: (veja “Como buscar”).',
+    // D-105: the language, with examples. A query language nobody discovers
+    // does not exist (D-55), and the composition rule has to reach the reader
+    // before they read a result by it (D-59).
+    searchHelpTitle: "Como buscar",
+    searchHelpIntro:
+      "Termos soltos procuram no nome, na classe, nas palavras-chave e nos códigos de designação. Os campos abaixo fazem perguntas exatas e se combinam com AND, OR, NOT e parênteses.",
+    searchHelpExamples: [
+      { query: "comp:Cr>=12", meaning: "a faixa de cromo chega a 12 % em massa" },
+      { query: "comp:C<=0,08", meaning: "a faixa de carbono alcança 0,08 % ou menos" },
+      { query: "comp:Ni:8-10", meaning: "a faixa de níquel cruza 8–10 %" },
+      { query: "comp:Fe", meaning: "a composição declara ferro (com teor ou como resto)" },
+      { query: "NOT comp:Cr<12", meaning: "toda a faixa de cromo fica em 12 % ou mais" },
+      { query: "norma:UNS", meaning: "tem designação UNS (também AISI, SAE, ASTM, EN, ISO, DIN, JIS, GB, ABNT, comercial)" },
+      { query: "designacao:S30400", meaning: "tem exatamente este código, em qualquer norma" },
+      { query: "designacao:304*", meaning: "códigos que começam com 304" },
+      { query: "aço (comp:Cr>=12 OR norma:EN)", meaning: "combinações com texto e parênteses" },
+    ] as const,
+    // Copy of RULE_TEXT in app/domain/composition.py — the same sentence the
+    // search response carries; i18n.test.ts keeps the two equal.
+    searchHelpRule:
+      "Composição por alcance da faixa: uma faixa atende 'Cr ≥ 12 %' quando o máximo declarado chega a 12 %. Faixa só com máximo começa em 0 %; só com mínimo vai até 100 %. Para exigir que toda a faixa atenda, negue o complemento: NOT comp:Cr<12. Sem o dado — sem composição cadastrada, elemento não declarado, declarado ausente ou declarado como resto, que nunca é calculado — o material não passa, nem sob NOT.",
+    searchHelpExample: "Consulta",
+    searchHelpMeaning: "O que pergunta",
+    searchError: "A busca não foi entendida",
+    // D-105: what a composition search says besides its rows.
+    compositionReportTitle: "Busca por composição",
+    compositionUndetermined: (n: number) =>
+      n === 0
+        ? "Nenhum material ficou de fora por falta de dado de composição."
+        : `${n} ${n === 1 ? "material ficou" : "materiais ficaram"} de fora por falta de dado de composição — não por reprovar na condição.`,
+    compositionWithout: (n: number) =>
+      `${n} ${n === 1 ? "material visível não tem" : "materiais visíveis não têm"} composição cadastrada.`,
+    compositionCondition: (label: string, yes: number, no: number, unknown: number) =>
+      `${label}: ${yes} atende${yes === 1 ? "" : "m"}, ${no} não atende${no === 1 ? "" : "m"}, ${unknown} sem dado.`,
+    compositionReasons: {
+      sem_composicao: "sem composição cadastrada",
+      elemento_nao_declarado: "elemento não declarado",
+      declarado_ausente: "teor declarado ausente",
+      resto_sem_numero: "declarado como resto, sem número",
+    },
+    designationsLabel: "Designações",
     searchLabel: "Buscar materiais",
     columnName: "Material",
     columnClass: "Classe",
@@ -1827,6 +1868,40 @@ export const ptBR = {
     // properties the material has.
     provenanceHint:
       "Clique em um valor para ver a unidade original, a conversão aplicada e a fonte registrada.",
+    // D-105 (TM2): composição e designações na ficha.
+    composition: "Composição química",
+    compositionHint:
+      "Teor em % em massa, como a fonte declarou: faixa, só máximo, só mínimo ou valor nominal. O resto é declarado pela fonte, nunca calculado.",
+    noComposition: "Composição química não cadastrada",
+    noCompositionHint:
+      "Sem linha de composição não quer dizer 0 % de nada: este material só não tem a composição registrada.",
+    compositionCaption: "Composição química, em % em massa",
+    columnElement: "Elemento",
+    columnContent: "Teor (% em massa)",
+    columnOriginal: "Como a fonte escreveu",
+    columnSource: "Fonte",
+    columnQuality: "Qualidade",
+    contentRange: (min: string, max: string) => `${min} a ${max}`,
+    contentMax: (max: string) => `até ${max}`,
+    contentMin: (min: string) => `a partir de ${min}`,
+    contentNominal: (value: string) => `${value} (nominal)`,
+    contentNominalWithin: (range: string, value: string) => `${range} · nominal ${value}`,
+    contentBalance: "Resto — declarado pela fonte, não calculado",
+    contentAbsent: "Teor não informado pela fonte",
+    conversion: (method: string) => `Conversão: ${method}`,
+    noOriginal: "Sem número — assim declarado pela fonte",
+    demoRow: "fictício",
+    designations: "Designações",
+    designationsHint:
+      "Códigos com que este registro é conhecido, cada um com a fonte que o afirma. Uma designação não declara equivalência com outro material.",
+    noDesignations: "Nenhuma designação cadastrada",
+    noDesignationsHint: "Sem designação registrada para este material.",
+    designationsCaption: "Designações do material",
+    columnSystem: "Norma",
+    columnCode: "Código",
+    columnRegion: "Região",
+    noRegion: "Não restrita pela fonte",
+    noCitation: "Sem localização na fonte",
   },
   chart: {
     title: "Mapa de propriedades",

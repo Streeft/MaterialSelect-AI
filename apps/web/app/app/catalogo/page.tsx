@@ -3,12 +3,14 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { catalogueExportUrl, listClasses, listMaterials } from "@/lib/api";
+import { catalogueExportUrl, listClasses, searchMaterials } from "@/lib/api";
 import type { MaterialListItem } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { descendantSlugs, roots } from "@/lib/taxonomy";
 import { ExportButtons } from "@/components/ExportButtons";
 import { MaterialList } from "@/components/catalog/MaterialList";
+import { CompositionReport } from "@/components/catalog/CompositionReport";
+import { SearchHelp } from "@/components/catalog/SearchHelp";
 import {
   Button,
   ButtonLink,
@@ -54,28 +56,47 @@ function matchesQuality(material: MaterialListItem, filter: QualityFilter): bool
   }
 }
 
+/**
+ * A 400 from the search is the reader's query, refused with the reason in
+ * Portuguese (D-55, D-105) — shown as such and never retried. Read by shape
+ * rather than by `instanceof ApiError`, which every test mock of the API would
+ * otherwise have to re-export.
+ */
+function isQueryRejection(error: unknown): error is Error & { status: 400 } {
+  return error instanceof Error && (error as { status?: unknown }).status === 400;
+}
+
 export default function CatalogPage() {
   const [search, setSearch] = useState("");
   const [classSlug, setClassSlug] = useState("");
   const [quality, setQuality] = useState<QualityFilter>("any");
   const debouncedSearch = useDebounced(search, 300);
 
+  // D-105: the search endpoint, so a composition query can say which rule ran
+  // and how many materials were left out for lack of data. Same matching as
+  // `listMaterials`; the key keeps the "materials" prefix every invalidation
+  // already targets.
   const materials = useQuery({
-    queryKey: ["materials", debouncedSearch],
-    queryFn: () => listMaterials(debouncedSearch),
+    queryKey: ["materials", "busca", debouncedSearch],
+    queryFn: () => searchMaterials(debouncedSearch),
+    // Keep the last good list on screen while the next query loads.
+    placeholderData: (previous) => previous,
+    retry: (count, error) => !isQueryRejection(error) && count < 2,
   });
+  const items = materials.data?.items;
+  const queryError = isQueryRejection(materials.error) ? materials.error.message : null;
   const classes = useQuery({ queryKey: ["classes"], queryFn: listClasses });
 
   // Class and quality filter what the server already returned: both are facts
   // the payload carries, so filtering here costs no round trip and no guess.
   const shown = useMemo(() => {
-    const all = materials.data ?? [];
+    const all = items ?? [];
     return all.filter(
       (m) => (!classSlug || m.class_slug === classSlug) && matchesQuality(m, quality),
     );
-  }, [materials.data, classSlug, quality]);
+  }, [items, classSlug, quality]);
 
-  const total = materials.data?.length ?? 0;
+  const total = items?.length ?? 0;
   const filtered = Boolean(classSlug) || quality !== "any";
 
   return (
@@ -145,6 +166,9 @@ export default function CatalogPage() {
             {t.clearFilters}
           </Button>
         </CardBody>
+        <CardBody className="pt-0">
+          <SearchHelp onUse={setSearch} />
+        </CardBody>
       </Card>
 
       {/* P1-4: the way *into* the taxonomy, next to (not instead of) the filter
@@ -165,7 +189,7 @@ export default function CatalogPage() {
                   <span className="font-medium text-ink">{family.name}</span>
                   <span className="text-xs text-ink-muted">
                     {ptBR.family.countMaterials(
-                      (materials.data ?? []).filter((m) =>
+                      (items ?? []).filter((m) =>
                         descendantSlugs(family.slug, classes.data ?? []).has(m.class_slug),
                       ).length,
                     )}
@@ -190,11 +214,17 @@ export default function CatalogPage() {
         }
       >
         {materials.isLoading && <LoadingState label={t.loading} />}
-        {materials.isError && (
-          <ErrorState title={t.error} onRetry={() => void materials.refetch()} />
+        {materials.isError &&
+          (queryError ? (
+            <ErrorState title={t.searchError} description={queryError} />
+          ) : (
+            <ErrorState title={t.error} onRetry={() => void materials.refetch()} />
+          ))}
+        {!materials.isError && materials.data?.composition && (
+          <CompositionReport report={materials.data.composition} />
         )}
 
-        {materials.data &&
+        {items &&
           (shown.length === 0 ? (
             <EmptyState
               title={filtered ? t.emptyFiltered : t.empty}

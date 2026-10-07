@@ -69,6 +69,114 @@ export interface DataQualitySummary {
   missing: number;
 }
 
+/**
+ * D-105 (TM2): the naming system a designation belongs to. A closed vocabulary,
+ * so `norma:XYZ` is an error rather than zero results.
+ */
+export type DesignationSystem =
+  | "UNS"
+  | "AISI_SAE"
+  | "ASTM"
+  | "EN"
+  | "ISO"
+  | "DIN"
+  | "JIS"
+  | "GB"
+  | "ABNT"
+  | "COMERCIAL";
+
+/** A designation as the catalogue list shows it. */
+export interface DesignationBrief {
+  system: DesignationSystem;
+  /** How the system is written ("AISI/SAE", "Nome comercial"). */
+  system_label: string;
+  /** As the source wrote it. */
+  code: string;
+}
+
+/**
+ * A designation on the sheet, with its source. No equivalence field: two
+ * records sharing a code are not thereby the same material (TM1).
+ */
+export interface Designation extends DesignationBrief {
+  region: string | null;
+  source_label: string;
+  citation: string | null;
+  is_demo: boolean;
+}
+
+/**
+ * What a composition row says: a number (`faixa` — a range, a single bound or a
+ * nominal value), `resto` (balance, never computed) or `ausente` (the source
+ * gave no value). The last two never carry a number.
+ */
+export type CompositionState = "faixa" | "resto" | "ausente";
+
+/**
+ * One element of a material's chemical composition (D-105), in mass percent.
+ * `value_*` are what the source wrote in `original_unit`; `normalized_*` are
+ * mass percent. A bound the source did not state is `null` — "C ≤ 0,08" has
+ * no minimum, and it is not 0.
+ */
+export interface CompositionEntry {
+  element: string;
+  element_name: string;
+  atomic_number: number;
+  state: CompositionState;
+  value_min: number | null;
+  value_max: number | null;
+  value_nominal: number | null;
+  original_unit: string | null;
+  normalized_min: number | null;
+  normalized_max: number | null;
+  normalized_nominal: number | null;
+  canonical_unit: string | null;
+  conversion_method: string | null;
+  notes: string | null;
+  data_quality: DataQuality;
+  source_label: string;
+  citation: string | null;
+  is_demo: boolean;
+}
+
+/** Why a composition condition could not be decided, counted per material. */
+export interface UndeterminedBreakdown {
+  sem_composicao: number;
+  elemento_nao_declarado: number;
+  declarado_ausente: number;
+  resto_sem_numero: number;
+}
+
+/** How one `comp:` condition came out over the whole visible catalogue. */
+export interface CompositionCondition {
+  label: string;
+  element: string;
+  element_name: string;
+  satisfied: number;
+  not_satisfied: number;
+  undetermined: number;
+  undetermined_by_reason: UndeterminedBreakdown;
+}
+
+/**
+ * What a search with `comp:` states besides its rows: which rule ran (reach),
+ * and how many materials were left out because the data was absent.
+ */
+export interface CompositionSearchReport {
+  rule: string;
+  conditions: CompositionCondition[];
+  undetermined: number;
+  without_composition: number;
+}
+
+/** `GET /api/materials/busca` — the catalogue search with its report. */
+export interface MaterialSearch {
+  items: MaterialListItem[];
+  total: number;
+  /** Present only when the query asked about composition. */
+  composition: CompositionSearchReport | null;
+}
+
 export interface MaterialListItem {
   id: number;
   name: string;
@@ -85,6 +193,8 @@ export interface MaterialListItem {
   is_own_record: boolean;
   keywords: string[];
   quality: DataQualitySummary;
+  /** D-105: the codes, so a card can show the one a reader searched for. */
+  designations: DesignationBrief[];
 }
 
 export interface MaterialDetail {
@@ -107,6 +217,12 @@ export interface MaterialDetail {
    * is linked, which the sheet writes out rather than rendering as a dash.
    */
   processes: Process[];
+  /**
+   * D-105 (TM2). Always present; an empty array is "none registered", which
+   * the sheet writes out — never a 0 % composition.
+   */
+  designations: Designation[];
+  composition: CompositionEntry[];
 }
 
 /** A node of the process taxonomy — the process-side twin of `MaterialClass`. */

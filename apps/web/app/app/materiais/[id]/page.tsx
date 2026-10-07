@@ -24,6 +24,8 @@ import { classVisual } from "@/lib/design/palette";
 import { PropertyGroupCard } from "@/components/PropertyGroup";
 import { PropertyChart } from "@/components/PropertyChart";
 import { MaterialExportMenu } from "@/components/CaeExportDialog";
+import { CompositionTable } from "@/components/material/CompositionTable";
+import { DesignationTable } from "@/components/material/DesignationTable";
 import {
   Badge,
   Button,
@@ -302,6 +304,30 @@ export default function MaterialDetailPage() {
                 </ButtonLink>
               )}
             </div>
+          </div>
+
+          {/* D-105 (TM2): composition and designations, each a table — the
+              text is the record here, and absence is written, never blank. */}
+          <div className="grid gap-6 lg:grid-cols-2">
+            <Section
+              id="composicao"
+              title={t.composition}
+              description={t.compositionHint}
+              className="min-w-0"
+            >
+              <CompositionTable entries={data.composition} materialIsDemo={data.is_demo} />
+            </Section>
+            <Section
+              id="designacoes"
+              title={t.designations}
+              description={t.designationsHint}
+              className="min-w-0"
+            >
+              <DesignationTable
+                designations={data.designations}
+                materialIsDemo={data.is_demo}
+              />
+            </Section>
           </div>
         </>
       )}

@@ -18,6 +18,21 @@ describe("extractHighlightTerms", () => {
   });
 });
 
+describe("extractHighlightTerms — campos do D-105", () => {
+  it("ignores composition and system fields, which match no visible text", () => {
+    expect(extractHighlightTerms("aco (comp:Cr>=12 OR norma:UNS)")).toEqual(["aco"]);
+    expect(extractHighlightTerms("composição:Ni:8-10 inox")).toEqual(["inox"]);
+  });
+
+  it("highlights the code a designation field asks for", () => {
+    expect(extractHighlightTerms("designacao:S30400")).toEqual(["s30400"]);
+    expect(extractHighlightTerms('designação:"304 L" OR designacao:316*')).toEqual([
+      "304l",
+      "316",
+    ]);
+  });
+});
+
 describe("HighlightText", () => {
   it("renders text normally when no query is given", () => {
     render(<HighlightText text="Aço inoxidável austenítico 304" />);

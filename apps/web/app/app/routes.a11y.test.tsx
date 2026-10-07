@@ -16,6 +16,7 @@ import type {
   BatteryChemistry,
   ChartData,
   Comparison,
+  CompositionEntry,
   CostResult,
   EcoAuditResult,
   DashboardOverview,
@@ -102,6 +103,7 @@ const materials: MaterialListItem[] = [
     is_own_record: false,
     keywords: ["estrutural"],
     quality: { medido: 4, importado: 0, estimado: 1, missing: 0 },
+    designations: [],
   },
   {
     id: 2,
@@ -113,6 +115,7 @@ const materials: MaterialListItem[] = [
     is_own_record: false,
     keywords: [],
     quality: { medido: 0, importado: 2, estimado: 0, missing: 3 },
+    designations: [],
   },
 ];
 
@@ -367,6 +370,30 @@ const chart: ChartData = {
   excluded_material_ids: [3],
 };
 
+function compositionRow(overrides: Partial<CompositionEntry>): CompositionEntry {
+  return {
+    element: "Cr",
+    element_name: "Cromo",
+    atomic_number: 24,
+    state: "faixa",
+    value_min: null,
+    value_max: null,
+    value_nominal: null,
+    original_unit: "%",
+    normalized_min: null,
+    normalized_max: null,
+    normalized_nominal: null,
+    canonical_unit: "percent",
+    conversion_method: "identity:percent",
+    notes: null,
+    data_quality: "ESTIMADO",
+    source_label: "Dataset Demo MaterialSelect",
+    citation: null,
+    is_demo: true,
+    ...overrides,
+  };
+}
+
 const materialDetail: MaterialDetail = {
   id: 1,
   name: "Aço 1020",
@@ -381,6 +408,25 @@ const materialDetail: MaterialDetail = {
   keywords: ["estrutural"],
   // P0-2: the sheet always carries the join, empty or not.
   processes: [],
+  // D-105: one row of each composition state and a designation, so the audit
+  // reaches the two tables and the written absence.
+  designations: [
+    {
+      system: "UNS",
+      system_label: "UNS",
+      code: "DEMO-S001",
+      region: null,
+      source_label: "Dataset Demo MaterialSelect",
+      citation: "Tabela fictícia",
+      is_demo: true,
+    },
+  ],
+  composition: [
+    compositionRow({ element: "Cr", element_name: "Cromo", normalized_min: 17.5, normalized_max: 19.5, value_min: 17.5, value_max: 19.5 }),
+    compositionRow({ element: "C", element_name: "Carbono", normalized_max: 0.07, value_max: 0.07 }),
+    compositionRow({ element: "Mo", element_name: "Molibdênio", state: "ausente", original_unit: null }),
+    compositionRow({ element: "Fe", element_name: "Ferro", state: "resto", original_unit: null }),
+  ],
   property_groups: [
     {
       category: "FISICA",
@@ -1163,6 +1209,7 @@ vi.mock("@/lib/api", async (importOriginal) => ({
       can_edit_catalog: true,
     }),
   listMaterials: () => Promise.resolve(materials),
+  searchMaterials: () => Promise.resolve({ items: materials, total: materials.length, composition: null }),
   listClasses: () => Promise.resolve(classes),
   listProcesses: () => Promise.resolve(processes),
   listProcessClasses: () => Promise.resolve(processClasses),

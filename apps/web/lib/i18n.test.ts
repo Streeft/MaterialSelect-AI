@@ -32,6 +32,11 @@ describe("textos compartilhados com o backend", () => {
     expect(ptBR.limitation.full).toBe(pythonConstant(python, "LIMITATION_NOTICE"));
   });
 
+  it("repete a regra da busca por composição exatamente como o backend a declara (D-105)", () => {
+    const python = readPython("../../api/app/domain/composition.py");
+    expect(ptBR.catalog.searchHelpRule).toBe(pythonConstant(python, "RULE_TEXT"));
+  });
+
   it("repete o aviso de dados demonstrativos exatamente como o seed o escreve", () => {
     const python = readPython("../../api/app/db/seed.py");
     expect(ptBR.demoWarning).toBe(pythonConstant(python, "DEMO_WARNING"));

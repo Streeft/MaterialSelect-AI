@@ -57,6 +57,8 @@ const material = {
   is_own_record: false,
   keywords: [],
   processes: [],
+  designations: [],
+  composition: [],
   property_groups: [
     {
       category: "FISICA",
