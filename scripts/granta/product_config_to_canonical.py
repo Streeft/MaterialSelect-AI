@@ -205,13 +205,143 @@ def main() -> None:
                     )
                 )
 
+    dataset_values: list[dict[str, Any]] = []
+
+    def add_dataset_value(
+        namespace: str,
+        key: str,
+        payload: Any,
+        raw_sha256: str,
+        *,
+        value_kind: str = "object",
+        original_unit: str | None = None,
+    ) -> None:
+        dataset_values.append(
+            {
+                "namespace": namespace,
+                "key": key,
+                "value_kind": value_kind,
+                "original_unit": original_unit,
+                "payload": payload,
+                "raw_sha256": raw_sha256,
+            }
+        )
+
+    # Fuel catalogues.
+    for section_name, child_name in (
+        ("StaticFuels", "StaticFuel"),
+        ("MobileFuels", "MobileFuel"),
+    ):
+        section = root.find(section_name)
+        if section is None:
+            continue
+        for node in section.findall(child_name):
+            name = text(node, "Name")
+            if not name or set(name) <= {"-"}:
+                continue
+            payload = {
+                child.tag: (float(child.text) if child.text and re.fullmatch(
+                    r"[-+]?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?", child.text.strip()
+                ) else (child.text.strip() if child.text else None))
+                for child in node
+                if child.tag != "Name"
+            }
+            add_dataset_value(
+                f"ProductConfig/{section_name}",
+                name,
+                payload,
+                element_hash(node),
+            )
+
+    # End-of-life and global process-cost constants.
+    global_units = {
+        "ReferenceOverheadRate": "USD/hour",
+        "PrimaryProcessToolCostInUsdDefault": "USD",
+        "PrimaryProcessProductionRatePerHourDefault": "1/hour",
+        "PrimaryProcessCapitalCostInUsdDefault": "USD",
+        "SecondaryProcessLaborTimeInHrPerKgDefault": "hour/kg",
+    }
+    global_prefixes = (
+        "Eol",
+        "PrimaryProcess",
+        "CapitalWriteOff",
+        "ReferenceOverhead",
+        "SecondaryProcess",
+        "ElectricityCostShare",
+    )
+    for child in root:
+        if not child.tag.startswith(global_prefixes) or child.text is None:
+            continue
+        raw = child.text.strip()
+        try:
+            payload: Any = float(raw)
+            kind = "scalar"
+        except ValueError:
+            payload = raw
+            kind = "text"
+        add_dataset_value(
+            "ProductConfig/GlobalDefaults",
+            child.tag,
+            payload,
+            hashlib.sha256(ET.tostring(child, encoding="utf-8")).hexdigest(),
+            value_kind=kind,
+            original_unit=global_units.get(child.tag),
+        )
+
+    material_costs = root.find("MaterialCosts")
+    if material_costs is not None:
+        for node in material_costs.findall("MaterialCost"):
+            class_name = text(node, "Class")
+            if not class_name:
+                continue
+            add_dataset_value(
+                "ProductConfig/MaterialCosts",
+                class_name,
+                {
+                    "RecyclePriceFraction": number(node, "RecyclePriceFraction"),
+                    "ScrapPriceFraction": number(node, "ScrapPriceFraction"),
+                },
+                element_hash(node),
+            )
+
+    countries = root.find("Countries")
+    if countries is not None:
+        for node in countries.findall("Country"):
+            name = text(node, "Name")
+            if not name or set(name) <= {"-"}:
+                continue
+            fuels: dict[str, dict[str, float | None]] = {}
+            fuels_node = node.find("Fuels")
+            if fuels_node is not None:
+                for fuel in fuels_node.findall("Fuel"):
+                    fuel_type = text(fuel, "FuelType")
+                    if fuel_type:
+                        fuels[fuel_type] = {
+                            "DomesticCost": number(fuel, "DomesticCost"),
+                            "CommercialCost": number(fuel, "CommercialCost"),
+                        }
+            add_dataset_value(
+                "ProductConfig/Countries",
+                name,
+                {
+                    "ReferenceCountry": text(node, "ReferenceCountry") == "true",
+                    "LaborCost": number(node, "LaborCost"),
+                    "EmbodiedEnergy": number(node, "EmbodiedEnergy"),
+                    "CO2footprint": number(node, "CO2footprint"),
+                    "Fuels": fuels,
+                },
+                element_hash(node),
+            )
+
     write_ndjson(output_dir / "transport_modes.ndjson", transports)
     write_ndjson(output_dir / "product_config_supplemental.ndjson", supplements)
+    write_ndjson(output_dir / "dataset_values.ndjson", dataset_values)
     print(
         json.dumps(
             {
                 "transport_modes": len(transports),
                 "supplemental_values": len(supplements),
+                "dataset_values": len(dataset_values),
                 "note": (
                     "Mescle product_config_supplemental.ndjson ao "
                     "supplemental_values.ndjson após revisar o process-map."
