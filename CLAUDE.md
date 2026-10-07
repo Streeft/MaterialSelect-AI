@@ -790,10 +790,12 @@ compartilhado precisa de `require_catalog_curator`.** A troca em produção é o
 workflow **Modo de acesso** (`modo-acesso.yml`, `abrir`/`restaurar_assinatura`),
 que só fica verde depois de ler o modo novo em `/api/health`.
 
-**Apagar dado de demonstração ganhou um único caminho** ([D-72](docs/DECISIONS.md)):
-`apps/api/app/db/clear_demo.py` (`python -m app.db.clear_demo`, ação
-`excluir_demo` de `admin-banco.yml`) apaga todo registro fictício dos universos
-`Material`, `Process` e `TransportMode` pela própria coluna `is_demo=True` — a
+**Apagar dado de demonstração ganhou um único caminho** ([D-72](docs/DECISIONS.md),
+[D-102](docs/DECISIONS.md)): `apps/api/app/db/clear_demo.py`
+(`python -m app.db.clear_demo`, ação `excluir_demo` de `admin-banco.yml`)
+apaga toda linha fictícia dos modelos que possuem `is_demo`: `Material`,
+`Process`, `TransportMode`, `BatteryChemistry`, `PerformanceIndex` e
+`Source`. Fonte demo ainda citada por registro real faz o comando abortar. A
 pergunta "isto é fictício?" tem uma resposta só, a coluna, e não depende de
 lembrar quantos arquivos de seed existem. A cascata (valores, palavras-chave,
 favoritos, processos ligados, receita de síntese) é escrita em Python e não
