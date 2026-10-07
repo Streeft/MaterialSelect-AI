@@ -250,11 +250,12 @@ Três detalhes que não são arbitrários:
   chama `create_all` por conveniência, e num banco vazio isso criaria as tabelas
   sem carimbo do Alembic — a migração seguinte quebraria.
 - **`excluir_demo` é irreversível**, e não é algo para disparar depois de um
-  merge comum — só no cutover. Apaga `Material`, `Process` e
-  `TransportMode` marcados `is_demo=True`, com suas dependências explícitas,
-  e nunca toca registros reais. Depois do cutover, `semear_referencia` é o
-  seed seguro; `semear_demo` recriaria dados fictícios deliberadamente e não
-  deve ser usado naquele banco. Ver
+  merge comum — só no cutover. Apaga exclusivamente linhas `is_demo=True` em
+  `Material`, `Process`, `TransportMode`, `BatteryChemistry`,
+  `PerformanceIndex` e `Source`, com as dependências explícitas; uma fonte
+  demo ainda citada por registro real faz o comando abortar. Depois do cutover,
+  `semear_referencia` é o seed seguro; `semear_demo` recriaria dados
+  fictícios deliberadamente e não deve ser usado naquele banco. Ver
   [`docs/15-dados-demonstrativos.md`](15-dados-demonstrativos.md) e
   [`18-catalogo-oficial-granta.md`](18-catalogo-oficial-granta.md).
 - **`conhecimento_simular_remocao` antes de `conhecimento_remover`, sempre.**
