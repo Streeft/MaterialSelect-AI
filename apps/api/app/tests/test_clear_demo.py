@@ -10,7 +10,6 @@ sobrevive intacto, e a cascata do schema (valores, palavras-chave) não deixa
 from __future__ import annotations
 
 import pytest
-
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
