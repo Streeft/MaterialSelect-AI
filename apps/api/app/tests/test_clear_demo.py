@@ -116,9 +116,7 @@ def test_clear_demo_data_covers_all_demo_universes(db_session: Session) -> None:
         select(func.count(Process.id)).where(Process.is_demo.is_(True))
     )
     demo_transports = db_session.scalar(
-        select(func.count(TransportMode.id)).where(
-            TransportMode.is_demo.is_(True)
-        )
+        select(func.count(TransportMode.id)).where(TransportMode.is_demo.is_(True))
     )
     assert demo_materials and demo_materials > 0
     assert demo_processes and demo_processes > 0
@@ -132,27 +130,11 @@ def test_clear_demo_data_covers_all_demo_universes(db_session: Session) -> None:
         "processes": demo_processes,
         "transport_modes": demo_transports,
     }
+    assert db_session.scalar(select(func.count(Material.id)).where(Material.is_demo.is_(True))) == 0
+    assert db_session.scalar(select(func.count(Process.id)).where(Process.is_demo.is_(True))) == 0
     assert (
         db_session.scalar(
-            select(func.count(Material.id)).where(
-                Material.is_demo.is_(True)
-            )
-        )
-        == 0
-    )
-    assert (
-        db_session.scalar(
-            select(func.count(Process.id)).where(
-                Process.is_demo.is_(True)
-            )
-        )
-        == 0
-    )
-    assert (
-        db_session.scalar(
-            select(func.count(TransportMode.id)).where(
-                TransportMode.is_demo.is_(True)
-            )
+            select(func.count(TransportMode.id)).where(TransportMode.is_demo.is_(True))
         )
         == 0
     )
