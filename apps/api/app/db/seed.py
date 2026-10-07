@@ -2307,6 +2307,7 @@ def seed(db: Session) -> dict[str, int]:
         **process_summary,
     }
 
+
 def seed_e2e_session(db: Session) -> None:
     """Write a fixed logged-in, subscribed session for the Playwright suite.
 
