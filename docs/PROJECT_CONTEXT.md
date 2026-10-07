@@ -54,6 +54,18 @@ bytes) mais ProductConfig, Templates, Attribute Notes e Exporters; inventário e
 Operação completa em
 [`18-catalogo-oficial-granta.md`](18-catalogo-oficial-granta.md).
 
+**Portão de licença das fontes abertas (D-103, rascunho)** — o catálogo
+complementar (Materials Project, Wikidata, NIST, MIL-HDBK-5J, JARVIS-DFT,
+OPTIMADE, conjuntos CC BY) só aceita fonte com veredito APROVADA em
+[`catalogo/fontes.md`](catalogo/fontes.md), e entra pelo mesmo pipeline do
+D-102 — não há importador paralelo. Na verificação de 07/10/2026 nenhuma fonte
+saiu APROVADA: a leitura direta das páginas de licença foi bloqueada na sessão
+(condição C0). MatWeb, Total Materia, ASM, MMPDS e CAMPUS estão recusadas para
+extração em massa; o Total Materia ficou como inspiração de funcionalidade
+(backlog em `TODO.md`). O Granta segue a trilha do D-102; o documento de
+autorização dele está pendente de arquivo em `catalogo/autorizacoes/`. Regra
+em [`20-catalogo-fontes-abertas.md`](20-catalogo-fontes-abertas.md).
+
 **Fases 1 a 9 concluídas.** Fase 7 fechou por completo — todas as exportações (CSV, XLSX, HTML, DOCX e PPTX) entregues para catálogo, relatório de estudo e laudo de engenharia, além do lote quádruplo de melhorias funcionais (3395 → 3407 backend, 753 → 762 frontend), na Sessão 48 a figura de barras por fase no Eco Audit e reordenação por arraste em seleção (Opções 1 e 2, 3743 backend e 762 → 778 frontend), na Sessão 54 a vinculação automática de processos demo aos materiais de teste por classe (3854 → 3857 backend e 778 frontend), na Sessão 55 a padronização do seletor de modo do Eco Audit para ButtonGroup/ButtonGroupItem (Segmented Control MSDS 2.0, 3857 backend e 778 frontend), e na Sessão 56 a auditoria de conformidade das Frentes 1 a 4 com o Design System (MSDS 2.0, D-80/D-91) e acessibilidade (WCAG 2.1 AA), a auditoria técnica do Mapa de Ashby 2D (`AshbyMap.tsx`, `chart_service.py`, `palette.ts`, `figureExport.ts`) e a quitação formal de A7 (Cérebro em produção no Neon executado pelo autor) (3857 backend e 778 frontend). A Sessão 57 adiciona a fundação do catálogo oficial (D-102) e sete regressões novas, levando o backend a **3864 testes**; frontend permanece em 778.
 
 | # | Fase | Estado | Documento |

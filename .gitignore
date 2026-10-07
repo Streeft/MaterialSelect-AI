@@ -87,3 +87,7 @@ Cérebro/trios definidos para a FA1B*
 # Pasta de triagem de duplicatas — provisória, não versionar enquanto não for
 # revisada.
 Cérebro/_Duplicados-Para-Revisao/
+
+# Staging de coleta do catálogo complementar (D-103): fora do git; versiona-se
+# só o manifest. Ver docs/20-catalogo-fontes-abertas.md.
+data/staging/

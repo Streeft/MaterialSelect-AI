@@ -24,6 +24,21 @@ em URL privada e executar o runbook de
 pendência de arquitetura nem autorização; é execução da extração/reconciliação
 dos bytes licenciados.**
 
+**C2 — fechar o portão de licença das fontes abertas (D-103, rascunho).** ▁
+Nenhum dado pode ser coletado antes. Pendências do autor, detalhadas em
+[`catalogo/fontes.md` §7](catalogo/fontes.md):
+
+- **C0:** abrir diretamente as páginas de licença do Materials Project, da
+  Wikidata e de cada item JARVIS-DFT no figshare, arquivar cópia datada em
+  `catalogo/autorizacoes/evidencias/` e promover as linhas a APROVADA (a sessão
+  de 07/10/2026 teve a leitura direta bloqueada).
+- **Materials Project:** escrever ao suporte antes de um download grande.
+- **"Calculado":** decidir como o dado DFT é marcado (enum, valor suplementar
+  ou rótulo da fonte) — fecha o rascunho do D-103.
+- **SRD 144, MIL-HDBK-5J, CC BY-SA:** decisões de política (§4.3, §4.4, §4.7).
+- **Granta:** arquivar em `catalogo/autorizacoes/` o documento de autorização
+  de uso e redistribuição, cobrindo os itens de `fontes.md` §6.
+
 **S3 — as cadeias de CVE que nenhum upgrade fecha.** ▃ O S2 (ver "Débitos já
 quitados") derrubou o `npm audit` de 27 para **14** achados e fechou as duas
 cadeias que tinham caminho de upgrade. As três que sobraram **não têm versão
@@ -72,8 +87,38 @@ quitados".
 
 ## Média prioridade
 
-Nenhum item aberto no momento — M6 foi entregue nesta sessão (ver
-"Débitos já quitados").
+**Funcionalidades inspiradas no Total Materia (D-103).** Recursos observados
+só nas páginas públicas do produto ([`catalogo/fontes.md`
+§5.2](catalogo/fontes.md)); nenhum conteúdo dele é copiado e nenhum dado vem
+dele. Cada item é desenhado com dado de fonte APROVADA e passa pelas regras de
+sempre (princípios 1 a 4, D-24, ADR 0004).
+
+- **TM1 — equivalência de designações entre normas.** ▆ Um material pode ter
+  várias designações (norma, grau, região); a tela mostra os registros
+  **declarados** equivalentes por uma fonte, com o grau de equivalência que a
+  fonte afirma. Nunca inferida por semelhança de nome — o "parecido" já é o
+  Find Similar (D-63), e as duas perguntas ficam separadas. Depende de fonte
+  aprovada que publique equivalências.
+- **TM2 — busca por composição química e por designação.** ▃ Filtro por faixa
+  de elemento (p. ex. Cr ≥ 12 %) e por norma/designação, na linguagem de
+  consulta do D-55. Composição ausente é ausência (D-24), não 0 %.
+- **TM3 — comparação de muitos materiais.** ▃ Ampliar o comparador para dezenas
+  de registros, com composição e propriedades lado a lado, mantendo a tabela
+  como alternativa textual de toda figura (D-31).
+- **TM4 — curvas dependentes de temperatura e taxa.** ▆ Exibir as curvas
+  (tensão-deformação, fadiga, fluência) que o D-102 já preserva em
+  `CatalogSupplementalValue`, sem achatá-las em escalar; geometria no backend
+  (ADR 0004).
+- **TM5 — exportação para formatos CAE/CAD.** ▆ Cartão de material para
+  solvers e um formato aberto (MatML), a partir das especificações públicas de
+  cada formato, com sistema de unidades explícito, ausência omitida e o aviso
+  de limitação de uso.
+- **TM6 — referência por valor visível e filtrável.** ▁ A proveniência já
+  existe; falta mostrar a contagem de referências por registro e um filtro
+  "só valores com referência bibliográfica".
+- **TM7 — o que mudou entre releases.** ▃ Com `CatalogDataset` imutável por
+  release (D-102), uma página que lista registros novos, alterados e
+  desativados entre duas releases do catálogo.
 
 ---
 

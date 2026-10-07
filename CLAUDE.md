@@ -29,6 +29,13 @@ Instruções para agentes/contribuidores trabalhando neste repositório. Esta é
    já existe, segue a regra fixa em
    [`docs/15-dados-demonstrativos.md`](docs/15-dados-demonstrativos.md) —
    leia antes de escrever um seed, não importa a ferramenta ou IDE.
+7. **Catálogo só de fonte aprovada.** Fonte aberta entra só com veredito
+   **APROVADA** em [`docs/catalogo/fontes.md`](docs/catalogo/fontes.md) e pelo
+   pipeline do D-102; o Granta EduPack segue a trilha própria do
+   [D-102](docs/DECISIONS.md); bases comerciais (MatWeb, Total Materia, ASM,
+   MMPDS, CAMPUS) ficam **recusadas** para *scraping*/extração em massa. Regra
+   em [`docs/20-catalogo-fontes-abertas.md`](docs/20-catalogo-fontes-abertas.md)
+   ([D-103](docs/DECISIONS.md), rascunho).
 
 ## Idiomas
 
@@ -1039,6 +1046,13 @@ prefixo no primeiro trecho (dois-pontos, de largura cheia, espaço no lugar
 deles, `sha256 <hex>`) ou um caminho com `Cérebro/` na frente para todos os
 leitores, e nenhuma recusa cita a linha, só o número (D-101, revisão do PR
 #100).
+
+**O portão de licença das fontes abertas foi reconciliado com o D-102**
+([D-103](docs/DECISIONS.md), rascunho, Sessão 58): fonte aberta entra só com
+veredito APROVADA em `docs/catalogo/fontes.md` e pelo pipeline do D-102, sem
+importador paralelo; nenhuma está APROVADA ainda (condição C0). Regra em
+[`docs/20-catalogo-fontes-abertas.md`](docs/20-catalogo-fontes-abertas.md).
+Só documentação.
 
 3864 testes de backend (nenhum skip na CI; sem `POSTGRES_TEST_URL`, 3858 passam
 e 6 pulam) e 778 de frontend, todos verdes. CI no

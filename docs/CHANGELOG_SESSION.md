@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [58](#sessão-58--071026--portão-de-licença-das-fontes-abertas-reconciliado-com-o-d-102) | 07/10/2026 | Só documentação: o rascunho F0 do portão de licença, escrito antes do PR #106, reconciliado com o D-102 — vira D-103 (rascunho) e `docs/20-catalogo-fontes-abertas.md`; `catalogo/fontes.md` reescrito para fontes abertas (nenhuma APROVADA, C0 pendente), bases comerciais recusadas para extração em massa, Total Materia como inspiração (TM1–TM7) e o Granta como trilha do D-102 com a autorização pendente de arquivo | 3864 (inalterado) | 778 (inalterado) |
 | [56](#sessão-56--071026--fundação-do-catálogo-oficial-licenciado-d-102) | 07/10/2026 | Fundação do catálogo oficial licenciado: zero-demo fail-closed, seed de referência separado, identidade externa/release, bundle com hashes, import transacional, preservação suplementar, inventário/Exporters/ProductConfig e extração Access em lote (D-102, PR #106) | 3857 → 3864 | 778 (inalterado) |
 | [53](#sessão-53--061026--o-log-público-da-execução-37415600025-foi-apagado) | 06/10/2026 | Só documentação: o dono apagou, pela interface do Actions, o log público da execução 37415600025 (texto de livro licenciado no traceback); o TODO A7, item 4, foi para "Débitos já quitados", e os textos que o davam como publicado foram corrigidos (D-101) | 3854 (inalterado) | 778 (inalterado) |
 | [52](#sessão-52--061026--segunda-rodada-do-pr-100-um-pdf-por-vez-e-um-relógio-para-o-upload) | 06/10/2026 | A segunda revisão do PR #100 achou que os limites de memória do upload eram por leitura (três uploads de 8 KB simultâneos: +624 MB) e que a CPU não tinha limite (uma forma redesenhada não decodifica nada): um PDF por vez no processo (três simultâneos: 247 MB), relógio a cada parse e 30 s por upload, pypdf fixado em `<6.20` com autoverificação que recusa todo PDF se os medidores não forem alcançados, a lista de remoção recusa os erros sem dois-pontos e o `Cérebro/` na frente, e nenhuma recusa cita a linha (D-101, segunda rodada) | 3825 → 3854 | 762 (inalterado) |
@@ -70,6 +71,52 @@ As sessões entre a 11 e a 12 — o patch de design "Prisma" (D-49, D-50), o
 upgrade de segurança S1 e a rodada de desempenho — **não têm seção própria
 aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
+
+---
+
+## Sessão 58 — 07/10/26 — Portão de licença das fontes abertas reconciliado com o D-102
+
+**O pedido.** Um rascunho "F0" do portão de licença do catálogo, escrito antes
+do PR #106, colidia com ele: usava o número D-102, o arquivo
+`docs/18-catalogo-oficial.md` (ao lado de `18-catalogo-oficial-granta.md`) e
+partia da premissa de que não havia tooling Granta — o D-102 o entregou.
+Reconciliar sem tocar no D-102, no doc 18-granta nem no doc 19. Só
+documentação.
+
+**O que mudou.**
+
+- **D-103 (rascunho)** — "Fontes abertas e portão de licença do catálogo
+  complementar". Fonte aberta só entra com veredito APROVADA e pelo pipeline do
+  D-102 (sem importador paralelo); bases comerciais recusadas para extração em
+  massa; o Granta não recebe veredito deste portão. Questão aberta: como marcar
+  dado calculado (DFT).
+- **`docs/18-catalogo-oficial.md` → `docs/20-catalogo-fontes-abertas.md`**,
+  reescrito para o escopo de fontes abertas, com o fluxo passando pelo bundle,
+  pelo dry-run e pelo commit com revisor do D-102.
+- **`docs/catalogo/fontes.md` reescrito** em três escopos: fontes abertas com
+  veredito, URL da licença e data 07/10/2026 (Materials Project, Wikidata e
+  JARVIS-DFT APROVADA-CONDICIONAL; NIST não-SRD, SRD 144, MIL-HDBK-5J, OPTIMADE
+  e conjuntos CC BY PENDENTE; NIST WebBook e SRD em bloco RECUSADA); MatWeb,
+  Total Materia, ASM, MMPDS e CAMPUS recusadas para extração em massa, com a
+  cláusula citada onde foi possível; e o Granta registrado como trilha do
+  D-102, sem juízo novo, com a lista do que o documento de autorização a
+  arquivar em `catalogo/autorizacoes/` deve cobrir.
+- **`docs/catalogo/inventario-edupack.md` removido** — redundante com o
+  `19-inventario-instalacao-granta.md`, que é medido e mais completo; o agente
+  `analista-funcionalidades-edupack` passou a apontar para o doc 19.
+- **`autorizacoes/pedido-ansys.md`** virou modelo opcional, alinhado ao D-102
+  (o corpus fica fora do Git) e sem afirmar o estado da extração.
+- **Backlog:** C2 (pendências do portão) e TM1–TM7, funcionalidades
+  inspiradas nas páginas públicas do Total Materia, em `TODO.md`.
+- `CLAUDE.md` ganhou o princípio 7; `README.md`, `PROJECT_CONTEXT.md` e
+  `docs/CLAUDE.md` apontam para o doc 20; `.gitignore` ignora `data/staging/`.
+
+**Limite da verificação.** A saída de rede da sessão bloqueou a leitura direta
+de todas as páginas de licença, exceto o `LICENSE.rst` do JARVIS-Tools no
+GitHub. O resto foi lido por resultado de busca — o que basta para recusar e
+nunca para aprovar; por isso nenhuma fonte saiu APROVADA (condição C0).
+
+**Números.** Backend 3864 e frontend 778, inalterados (nenhum código mudou).
 
 ---
 
