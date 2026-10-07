@@ -1,8 +1,9 @@
 # Operações administrativas contra o banco de produção, disparadas à mão.
 #
-# São as três coisas que `docs/13-deploy.md` manda fazer por terminal e que, sem
-# um terminal, ficariam impossíveis: aplicar as migrações, semear o catálogo de
-# demonstração e conceder acesso a uma conta. Todas dependem só de alcançar o
+# Operações que `docs/13-deploy.md` manda fazer contra o banco sem depender de
+# terminal local: migrações, seeds explícitos, cutover/import do catálogo
+# oficial, manutenção do Cérebro e concessão/revogação de acesso. Todas
+# dependem só de alcançar o
 # Postgres — não passam pelo Fly —, e o runner do GitHub alcança.
 #
 # **Só `workflow_dispatch`.** Num repositório público isso importa: o disparo
@@ -40,7 +41,7 @@ on:
           - conceder
           - revogar
       email:
-        description: "E-mail(s) da conta Google, separados por vírgula ou espaço (obrigatório em conceder/revogar)"
+        description: "E-mail da conta revisora no import oficial; lista também aceita em conceder/revogar"
         required: false
         type: string
 
@@ -131,10 +132,10 @@ jobs:
               python -m app.db.seed_extended
               ;;
             excluir_demo)
-              # Irreversível: apaga todo registro de catálogo com is_demo=True
-              # nos universos que usam essa marca (materiais, processos e
-              # modais de transporte). O momento certo é imediatamente antes
-              # do cutover da base oficial; ver docs/15-dados-demonstrativos.md.
+              # Irreversível: apaga somente linhas is_demo=True em todos os
+              # modelos marcáveis (material, processo, modal, química, índice
+              # e fonte), recusando apagar uma fonte demo ainda citada por
+              # registro real. Rode só no cutover; ver docs/15 e docs/18.
               python -m app.db.clear_demo
               ;;
             catalogo_oficial_validar)
