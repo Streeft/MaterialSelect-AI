@@ -32,6 +32,8 @@ on:
           - semear_referencia
           - semear_demo
           - excluir_demo
+          - catalogo_oficial_validar
+          - catalogo_oficial_importar
           - conhecimento_simular_remocao
           - conhecimento_remover
           - conhecimento_indexar_links
@@ -76,6 +78,7 @@ jobs:
           ENVIRONMENT: production
           ACAO: ${{ inputs.acao }}
           EMAIL: ${{ inputs.email }}
+          OFFICIAL_CATALOG_BUNDLE_URL: ${{ secrets.OFFICIAL_CATALOG_BUNDLE_URL }}
         run: |
           set -euo pipefail
 
@@ -96,6 +99,16 @@ jobs:
               echo "::error::A ação '$ACAO' exige o campo E-mail."
               exit 1
             fi
+          }
+
+          baixar_catalogo_oficial() {
+            if [ -z "${OFFICIAL_CATALOG_BUNDLE_URL:-}" ]; then
+              echo "::error::O secret OFFICIAL_CATALOG_BUNDLE_URL não está definido."
+              exit 1
+            fi
+            BUNDLE="$RUNNER_TEMP/materialselect-official-catalog.zip"
+            curl --fail --silent --show-error --location \
+              --output "$BUNDLE" "$OFFICIAL_CATALOG_BUNDLE_URL"
           }
 
           case "$ACAO" in
@@ -123,6 +136,18 @@ jobs:
               # modais de transporte). O momento certo é imediatamente antes
               # do cutover da base oficial; ver docs/15-dados-demonstrativos.md.
               python -m app.db.clear_demo
+              ;;
+            catalogo_oficial_validar)
+              baixar_catalogo_oficial
+              python -m app.catalog.official_import --bundle "$BUNDLE"
+              ;;
+            catalogo_oficial_importar)
+              exigir_email
+              baixar_catalogo_oficial
+              python -m app.catalog.official_import \
+                --bundle "$BUNDLE" \
+                --reviewer-email "$EMAIL" \
+                --commit
               ;;
             conhecimento_simular_remocao)
               # Só lê: lista cada documento do Cérebro que casa com
