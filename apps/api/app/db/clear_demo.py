@@ -100,9 +100,7 @@ def clear_demo_transport_modes(db: Session) -> int:
 def clear_demo_battery_chemistries(db: Session) -> int:
     """Delete only battery chemistry rows explicitly marked as demo."""
     demo_ids = list(
-        db.execute(
-            select(BatteryChemistry.id).where(BatteryChemistry.is_demo.is_(True))
-        ).scalars()
+        db.execute(select(BatteryChemistry.id).where(BatteryChemistry.is_demo.is_(True))).scalars()
     )
     if not demo_ids:
         return 0
@@ -113,9 +111,7 @@ def clear_demo_battery_chemistries(db: Session) -> int:
 def clear_demo_performance_indices(db: Session) -> int:
     """Delete demo merit indices; reference indices are re-seeded as real data."""
     demo_ids = list(
-        db.execute(
-            select(PerformanceIndex.id).where(PerformanceIndex.is_demo.is_(True))
-        ).scalars()
+        db.execute(select(PerformanceIndex.id).where(PerformanceIndex.is_demo.is_(True))).scalars()
     )
     if not demo_ids:
         return 0
@@ -143,15 +139,11 @@ def clear_demo_sources(db: Session) -> int:
         )
         or 0,
         "transport_modes": db.scalar(
-            select(func.count(TransportMode.id)).where(
-                TransportMode.source_id.in_(demo_ids)
-            )
+            select(func.count(TransportMode.id)).where(TransportMode.source_id.in_(demo_ids))
         )
         or 0,
         "battery_chemistries": db.scalar(
-            select(func.count(BatteryChemistry.id)).where(
-                BatteryChemistry.source_id.in_(demo_ids)
-            )
+            select(func.count(BatteryChemistry.id)).where(BatteryChemistry.source_id.in_(demo_ids))
         )
         or 0,
     }
