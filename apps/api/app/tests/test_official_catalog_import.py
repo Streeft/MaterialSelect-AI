@@ -335,10 +335,7 @@ def test_same_release_rejects_changed_canonical_manifest(
 
     changed_path = tmp_path / "official-changed.zip"
     with zipfile.ZipFile(original_path, "r") as source:
-        members = {
-            info.filename: source.read(info.filename)
-            for info in source.infolist()
-        }
+        members = {info.filename: source.read(info.filename) for info in source.infolist()}
 
     dataset_rows = [
         json.loads(line)
@@ -347,10 +344,7 @@ def test_same_release_rejects_changed_canonical_manifest(
     ]
     dataset_rows[0]["payload"]["LaborCost"] = 999.0
     changed_dataset_values = (
-        "".join(
-            json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n"
-            for row in dataset_rows
-        )
+        "".join(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n" for row in dataset_rows)
     ).encode()
     members["dataset_values.ndjson"] = changed_dataset_values
 
@@ -358,9 +352,7 @@ def test_same_release_rejects_changed_canonical_manifest(
     manifest["files"]["dataset_values.ndjson"]["sha256"] = hashlib.sha256(
         changed_dataset_values
     ).hexdigest()
-    members["manifest.json"] = json.dumps(
-        manifest, ensure_ascii=False, sort_keys=True
-    ).encode()
+    members["manifest.json"] = json.dumps(manifest, ensure_ascii=False, sort_keys=True).encode()
 
     with zipfile.ZipFile(changed_path, "w", zipfile.ZIP_DEFLATED) as target:
         for name, content in members.items():
