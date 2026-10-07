@@ -95,6 +95,32 @@ erDiagram
 - **Taxonomia hierárquica:** `MATERIAL_CLASS.parent_id` referencia a própria
   tabela, permitindo classes e subclasses configuráveis (não hardcoded na UI).
 
+## Composição química e designações (D-105, TM2)
+
+Duas tabelas que pendem de `MATERIAL` (e por isso herdam a visibilidade do
+D-62), migração `0d3c39eb2f81`:
+
+- **`MATERIAL_DESIGNATION`** — N por material: `system` (vocabulário fechado
+  `DesignationSystem`: UNS, AISI/SAE, ASTM, EN, ISO, DIN, JIS, GB, ABNT, nome
+  comercial), `code` como a fonte escreveu, `code_key` (NFKC, maiúsculas, sem
+  espaços — só isso; pontuação fica), `region`, `source_id` **obrigatório**,
+  `citation`, `is_demo`. Única por (material, sistema, `code_key`). Uma
+  designação não declara equivalência com outro material (TM1).
+- **`MATERIAL_COMPOSITION`** — uma linha por elemento (símbolo da lista fixa de
+  118, `app/domain/elements.py`), em **% em massa**: `value_min`/`value_max`/
+  `value_nominal` na `original_unit` (`%`, `wt%`, `ppm`, fração mássica) e
+  `normalized_*` em `percent`, com `conversion_method`; `is_balance` (resto,
+  **nunca calculado**) e `is_missing` (a fonte não deu valor), ambos sem número;
+  `position` (ordem da fonte), `source_id` obrigatório, `citation`,
+  `data_quality`, `is_demo`. `CHECK`s: elemento válido, resto/ausente sem
+  número, linha numérica com ao menos um número, mín. ≤ máx., 0–100 %, nominal
+  na faixa; único por (material, elemento) e um resto por material (índice
+  parcial).
+
+Sem linha de composição o material está "sem composição cadastrada" — não com
+0 % de nada. A busca (`comp:`) lê a faixa por alcance em lógica de três
+valores; ver D-105.
+
 ## Migrations
 
 O schema é versionado com Alembic (`apps/api/alembic/versions/`). A migration

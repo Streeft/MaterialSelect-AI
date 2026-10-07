@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [60](#sessão-60--071026--busca-por-composição-química-e-por-designação-tm2-d-105) | 07/10/2026 | Busca por composição química e por designação (TM2): `MaterialDesignation` e `MaterialCompositionEntry` com `CHECK`s, `comp:`/`norma:`/`designacao:` na linguagem do D-55, composição por alcance em três valores (ausência não passa e é contada), `GET /api/materials/busca`, seções na ficha, ajuda no catálogo, contrato do bundle e demo fictício (D-105) | 3938 → 4079 | 783 → 797 |
 | [59](#sessão-59--071026--o-cartão-de-material-para-cae-tm5-d-104) | 07/10/2026 | O cartão de material para CAE (TM5): MAPDL, MatML 3.1, Abaqus, Nastran `MAT1` e LS-DYNA `*MAT_ELASTIC`, a partir da documentação pública; três sistemas de unidades consistentes pelo Pint; ausente omitido, nunca 0; recusa 422 quando falta o mínimo do formato; "Exportar ▾" na ficha (D-104) | 3864 → 3938 | 778 → 783 |
 | [58](#sessão-58--071026--portão-de-licença-das-fontes-abertas-reconciliado-com-o-d-102) | 07/10/2026 | Só documentação: o rascunho F0 do portão de licença, escrito antes do PR #106, reconciliado com o D-102 — vira D-103 (rascunho) e `docs/20-catalogo-fontes-abertas.md`; `catalogo/fontes.md` reescrito para fontes abertas (nenhuma APROVADA, C0 pendente), bases comerciais recusadas para extração em massa, Total Materia como inspiração (TM1–TM7) e o Granta como trilha do D-102 com a autorização pendente de arquivo | 3864 (inalterado) | 778 (inalterado) |
 | [56](#sessão-56--071026--fundação-do-catálogo-oficial-licenciado-d-102) | 07/10/2026 | Fundação do catálogo oficial licenciado: zero-demo fail-closed, seed de referência separado, identidade externa/release, bundle com hashes, import transacional, preservação suplementar, inventário/Exporters/ProductConfig e extração Access em lote (D-102, PR #106) | 3857 → 3864 | 778 (inalterado) |
@@ -74,6 +75,45 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
 
 ---
+
+## Sessão 60 — 07/10/26 — Busca por composição química e por designação (TM2, D-105)
+
+**O pedido.** Implementar o TM2: buscar por faixa de elemento e por
+norma/designação na linguagem de consulta do D-55, com composição ausente como
+ausência. O catálogo **não tinha** nem composição nem designação — nenhuma
+tabela, nenhum valor, nem em `CatalogSupplementalValue`.
+
+**O que mudou.**
+
+- **Modelo** — `MaterialDesignation` (sistema em vocabulário fechado, código
+  como a fonte escreveu, `code_key` só sem caixa e sem espaço, região, fonte
+  obrigatória, citação) e `MaterialCompositionEntry` (% em massa com trilha de
+  unidade; faixa, só máximo, só mínimo, nominal, resto e ausente). Os `CHECK`s
+  repetem no banco o que `app/domain/composition.py` recusa: resto e ausente sem
+  número, elemento da lista fixa de 118 (`app/domain/elements.py`), mín. ≤ máx.,
+  0–100 %, nominal na faixa, um resto por material. Migração `0d3c39eb2f81`,
+  sem backfill; testada para cima e para baixo em SQLite (pytest) e em
+  PostgreSQL 16 (localmente e num passo novo do job de migrações da CI).
+- **Busca** — `comp:Cr>=12`, `comp:C<=0,08`, `comp:Ni:8-10`, `comp:Fe`,
+  `norma:UNS`, `designacao:S30400`, `designacao:304*`, combináveis com
+  AND/OR/NOT e parênteses. Regra de **alcance** em lógica de **três valores**:
+  material sem o dado não passa, nem sob `NOT`, e `NOT comp:Cr<12` pede a
+  garantia. A regra mora no domínio; o repositório compila os conjuntos de ids.
+  `GET /api/materials/busca` devolve os itens e o relatório (regra, excluídos
+  por falta de dado, por condição e por motivo); relevância cobre código.
+- **Tela** — ficha com "Composição química" e "Designações" em tabela, ausência
+  escrita; catálogo com "Como buscar" (exemplos clicáveis e a regra, mesmo
+  texto do backend), relatório da busca por composição, motivo do 400 na tela e
+  códigos de designação na lista, com destaque.
+- **Bundle oficial (D-102)** — `material_designations.ndjson` e
+  `material_compositions.ndjson`, validados no dry-run pelo construtor do domínio.
+- **Demo** — fictício e marcado (`is_demo` na linha), nos dois metais do seed
+  principal, códigos `DEMO-`; `clear_demo` cobre as duas tabelas; o seed
+  preenche os materiais demo já existentes e conta no log.
+
+**Decisões que merecem o olho do autor.** A regra padrão é alcance, não
+garantia (a garantia é `NOT` do complemento); "≤ máx." é lido como `[0, máx.]`;
+`compo:` (prefixo de letras desconhecido) passou a ser erro em vez de texto.
 
 ## Sessão 59 — 07/10/26 — O cartão de material para CAE (TM5, D-104)
 
