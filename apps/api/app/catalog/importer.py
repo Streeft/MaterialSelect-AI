@@ -29,7 +29,6 @@ from app.models.transport_mode import TransportMode
 from app.models.user import User
 from app.repositories.material_repository import MaterialRepository
 
-
 KNOWN_FILES = {
     "material_classes.ndjson",
     "property_definitions.ndjson",
