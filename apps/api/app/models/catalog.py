@@ -15,7 +15,6 @@ from sqlalchemy import (
     CheckConstraint,
     DateTime,
     ForeignKey,
-    Integer,
     String,
     UniqueConstraint,
 )
@@ -43,16 +42,16 @@ class CatalogDataset(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
 
-    import_runs: Mapped[list["CatalogImportRun"]] = relationship(
+    import_runs: Mapped[list[CatalogImportRun]] = relationship(
         back_populates="dataset", cascade="all, delete-orphan"
     )
-    record_refs: Mapped[list["CatalogRecordRef"]] = relationship(
+    record_refs: Mapped[list[CatalogRecordRef]] = relationship(
         back_populates="dataset", cascade="all, delete-orphan"
     )
-    supplemental_values: Mapped[list["CatalogSupplementalValue"]] = relationship(
+    supplemental_values: Mapped[list[CatalogSupplementalValue]] = relationship(
         back_populates="dataset", cascade="all, delete-orphan"
     )
-    dataset_values: Mapped[list["CatalogDatasetValue"]] = relationship(
+    dataset_values: Mapped[list[CatalogDatasetValue]] = relationship(
         back_populates="dataset", cascade="all, delete-orphan"
     )
 
