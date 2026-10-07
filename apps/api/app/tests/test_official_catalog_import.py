@@ -12,7 +12,11 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.catalog.bundle import BundleValidationError, verify_bundle
-from app.catalog.importer import OfficialCatalogImporter, validate_semantics
+from app.catalog.importer import (
+    OfficialCatalogImportError,
+    OfficialCatalogImporter,
+    validate_semantics,
+)
 from app.db.clear_demo import clear_demo_data
 from app.models.catalog import (
     CatalogDataset,
@@ -48,7 +52,7 @@ def _write_bundle(tmp_path: Path) -> Path:
                 "category": "FISICA",
                 "physical_dimension": "[mass] / [length] ** 3",
                 "canonical_unit": "kg/m**3",
-                "accepted_units": ["kg/m**3", "g/cm**3"],
+                "accepted_units": ["kg/m**3", "g/cm**3", "lb/ft**3"],
                 "display_unit": "g/cm**3",
                 "is_interval": False,
                 "better_direction": "LOWER",
@@ -278,6 +282,9 @@ def test_bundle_validation_and_full_import(tmp_path: Path, db_session: Session) 
     )
     assert country.payload["LaborCost"] == 8.2
 
+    density = material.property_values[0].property_definition
+    assert "lb/ft**3" in density.accepted_units
+
 
 def test_bundle_rejects_duplicate_member_names(tmp_path: Path) -> None:
     path = _write_bundle(tmp_path)
@@ -306,3 +313,62 @@ def test_bundle_rejects_malformed_dataset_source_hash(tmp_path: Path) -> None:
 
     with pytest.raises(BundleValidationError, match="source_sha256"):
         verify_bundle(target)
+
+
+def test_same_release_rejects_changed_canonical_manifest(
+    tmp_path: Path, db_session: Session
+) -> None:
+    original_path = _write_bundle(tmp_path)
+    original = verify_bundle(original_path)
+    validate_semantics(original)
+
+    clear_demo_data(db_session)
+    reviewer = User(
+        google_sub="official-catalog-reviewer-immutable",
+        email="reviewer-immutable@example.com",
+        name="Revisor imutabilidade",
+        avatar_url=None,
+    )
+    db_session.add(reviewer)
+    db_session.flush()
+    OfficialCatalogImporter(db_session, original, reviewer_email=reviewer.email).run()
+
+    changed_path = tmp_path / "official-changed.zip"
+    with zipfile.ZipFile(original_path, "r") as source:
+        members = {
+            info.filename: source.read(info.filename)
+            for info in source.infolist()
+        }
+
+    dataset_rows = [
+        json.loads(line)
+        for line in members["dataset_values.ndjson"].decode().splitlines()
+        if line.strip()
+    ]
+    dataset_rows[0]["payload"]["LaborCost"] = 999.0
+    changed_dataset_values = (
+        "".join(
+            json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n"
+            for row in dataset_rows
+        )
+    ).encode()
+    members["dataset_values.ndjson"] = changed_dataset_values
+
+    manifest = json.loads(members["manifest.json"])
+    manifest["files"]["dataset_values.ndjson"]["sha256"] = hashlib.sha256(
+        changed_dataset_values
+    ).hexdigest()
+    members["manifest.json"] = json.dumps(
+        manifest, ensure_ascii=False, sort_keys=True
+    ).encode()
+
+    with zipfile.ZipFile(changed_path, "w", zipfile.ZIP_DEFLATED) as target:
+        for name, content in members.items():
+            target.writestr(name, content)
+
+    changed = verify_bundle(changed_path)
+    validate_semantics(changed)
+    with pytest.raises(OfficialCatalogImportError, match="manifest_sha256"):
+        OfficialCatalogImporter(
+            db_session, changed, reviewer_email=reviewer.email
+        ).run()
