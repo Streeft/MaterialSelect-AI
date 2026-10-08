@@ -718,6 +718,15 @@ e calor específico são lidos de `coef_poisson`, `coef_expansao_termica` e
 `calor_especifico`, que o catálogo ainda não define — até lá os decks recusam
 todo material e só o MatML sai (TM5-a).
 
+**O demo é completo desde o D-107**: os 75 materiais demo têm designação,
+composição e (salvo a Cerâmica Demo D, sem resistência para ancorar) curva, tudo
+`is_demo`. Os 5 do baseline ficam em `app.db.seed` quase intactos; o que os
+outros 70 recebem mora em `seed_extended_identity.py`/`demo_identity_data.py` e
+roda por `python -m app.db.seed_extended`, com o **mesmo escritor** do baseline.
+As curvas são derivadas das propriedades do próprio material, e a premissa tomada
+onde elas faltam ou se contradizem fica na descrição da curva.
+`python -m app.db.demo_coverage` lista a cobertura e a razão de cada ausência.
+
 ## Composição e busca (D-105)
 
 **Composição química e designações entraram no catálogo e na busca**
@@ -732,7 +741,7 @@ faixa é lida por **alcance** (`≥ x` quando o máximo chega a x; "≤ máx." a
 `app/domain/composition.evaluate`, e o repositório compila os ids, nunca uma
 cópia em SQL; designação **não** declara equivalência (`code_key` só tira caixa
 e espaço). O bundle do D-102 aceita `material_designations.ndjson` e
-`material_compositions.ndjson`. Só o demo (códigos `DEMO-`) tem esses dados.
+`material_compositions.ndjson`. Só o demo (códigos `DEMO-`) tem esses dados — desde o D-107, os 75 materiais demo.
 
 ## Catálogo oficial e fontes abertas (D-102, D-103)
 
