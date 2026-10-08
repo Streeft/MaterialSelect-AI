@@ -9040,3 +9040,140 @@ escoamento −45 %, resistência −40 % na máxima de serviço): são premissa
 fictícia declarada na descrição. (3) O demo deixou de exemplificar "material sem
 composição" no catálogo estendido; o estado vazio continua demonstrável pela
 Cerâmica Demo D (sem curva) e por qualquer registro próprio novo.
+
+---
+
+## D-114 — Promover uma release do catálogo oficial: a anterior da mesma linha fica inativa na mesma transação, sem apagar nada, e processo e modal são reaproveitados pela identidade externa
+
+**Data:** 08/10/2026
+**Status:** aceita — **decidida pelo assistente por delegação do autor,
+revisável** (Sessão 69, TM7-a + TM4-g)
+
+**O pedido.** Depois da segunda importação de uma linha (D-108), as duas
+releases ficavam ativas lado a lado, com registros em dobro no catálogo (TM7-a);
+uma segunda release com processos falhava por colisão de slug; e uma curva podia
+aparecer duas vezes (TM4-g). A decisão delegada: importar release nova de uma
+**mesma** `lineage` roda numa transação — grava a nova e, só se tudo gravou,
+desativa (`is_active=False`, nunca `DELETE`) o que a anterior tinha e a nova não
+traz; os que reaparecem são atualizados/vinculados à nova; falha = rollback
+total; processo casado pelo slug/identidade e reaproveitado; a curva nova
+substitui a antiga da mesma identidade, que fica preservada para o diff, fora da
+ficha e dos cálculos; linha diferente não desativa nada; o dry-run mostra o que
+seria desativado.
+
+### Uma correção à decisão delegada (registrada como manda a delegação)
+
+"Os que reaparecem são **atualizados**" não vale para material. O D-108 deriva o
+diff **das linhas que cada release gravou** e diz, com todas as letras, que se o
+importador passasse a manter o mesmo `Material` entre releases "o diff derivado
+deixa de ser possível — a release anterior seria sobrescrita". Atualizar no
+lugar quebraria a exigência "o diff do D-108 continua funcionando". Então:
+
+- **Material** continua com **uma linha por release**. O que reaparece é
+  **substituído**: a release nova tem a sua linha (já tinha), e a da anterior
+  fica **inativa** — preservada, com valores, composição, designações e curvas,
+  para o diff. O "vínculo" com a nova é a identidade externa, que o diff já
+  casa. O que não reaparece é **retirado**: inativo do mesmo modo.
+- **Processo e modal** são **uma linha entre releases** (o slug é único, e
+  favoritos, ligações material↔processo e o custo apontam para ela). O que
+  reaparece pela **identidade externa na mesma linha** é **reaproveitado**:
+  ganha uma `CatalogRecordRef` da release nova, nome, slug, classe e descrição
+  da nova, volta a ativo se estava inativo — nunca uma duplicata, nunca a
+  colisão de slug. Os valores que a release nova traz **substituem** os
+  anteriores, **campo a campo e com a fonte da release nova** (um número nunca
+  fica sob a citação de uma release que não o deu; um valor do modal que a
+  release nova não traz fica ausente, não herdado). Os que não reaparecem ficam
+  inativos.
+
+### A regra
+
+1. **Ordem.** O importador grava tudo como antes; **depois**, na mesma
+   transação, `app.catalog.promotion.promote` lê o que a release nova
+   **gravou** (refs e curvas, não o bundle — a aposentadoria só pode seguir uma
+   importação completa) e desativa: as releases **ativas** da mesma linha
+   gravadas antes dela (`CatalogDataset.is_active=False`), os materiais delas
+   (substituídos e retirados), os processos e modais delas que a nova não
+   referencia. Uma linha que a release nova referencia nunca é desativada,
+   qualquer que seja a identidade que uma release antiga lhe deu.
+2. **Fail-closed.** `OfficialCatalogImporter.run` faz `rollback` em qualquer
+   exceção, inclusive depois da promoção: nem meia release nem meia promoção.
+   Testado com uma colisão de slug no meio (depois de materiais, valores e
+   curvas gravados) e com uma falha simulada **depois** de a promoção ter
+   desativado a anterior: o banco volta igual, contagem por contagem.
+3. **Linha do tempo só anda para a frente.** Reimportar uma release já
+   substituída é **recusado** ("já foi substituída e está inativa; reimportá-la
+   não a reativa"), e uma release mais antiga que a mais recente da linha também
+   — ambas desfariam a promoção em silêncio (e a reimportação da antiga
+   devolveria aos processos reaproveitados os valores dela). Reimportar a
+   release **vigente** continua idempotente. O teste do D-108 que reimportava a
+   release base passou a provar a recusa e a idempotência da vigente.
+4. **Sem linha, ou outra linha: nada se desativa.** Uma release sem `lineage`
+   não se compara com nenhuma (D-108) e não aposenta nenhuma.
+5. **Curvas (TM4-g).** Uma curva é de um material, e o material é por release:
+   a curva da release nova está no material novo; a da anterior, com a mesma
+   identidade (`external_id`), fica no material antigo, agora inativo —
+   preservada com todos os pontos, fora do catálogo ativo e da seleção. A ficha
+   do material vigente lista **uma** curva por identidade. Sem coluna nova e
+   sem migração: a atividade da curva é a do material (o plano a conta assim).
+   Com o modelo de um material por release, a duplicação do TM4-g só acontecia
+   porque o material antigo continuava ativo.
+6. **O dry-run diz o que seria desativado.** `plan_promotion(db, bundle)` usa o
+   **mesmo** planejador puro (`app/domain/release_promotion.py`) que o commit,
+   alimentado com as identidades do bundle; só lê. A CLI sem `--commit` agora
+   imprime `promotion_plan` (releases anteriores, por universo: substituídos,
+   retirados por identidade, quantos seriam desativados; conflitos de slug de
+   processo que o commit recusaria; ou `refused` com o motivo). `--sem-banco`
+   pula o plano para validar só os bytes numa máquina sem `DATABASE_URL`. O
+   commit grava o mesmo relatório em `CatalogImportRun.report["promotion"]`.
+   **Identidades, nunca nomes**: o log do Actions é público, e nome de registro
+   licenciado não vai para ele; a tela do D-108 mostra os nomes a quem entrou.
+7. **Contagem de materiais por processo** passou a contar só material ativo
+   (`ProcessRepository.material_counts_by_process`): o processo reaproveitado
+   mantém a ligação do material retirado, e contá-la mostraria o registro duas
+   vezes.
+
+### `is_active` continua fora do diff (fecha o TM7-e)
+
+O TM7-e propunha pôr `is_active` no diff "junto com o TM7-a". Com a promoção,
+**todo** registro da release base fica inativo por construção — no diff, todos
+sairiam "alterados" pela promoção e não pela fonte. Fica fora de propósito; o
+estado da release vem em `is_active` da própria release (lista e CSV) e de cada
+lado do item (`base.is_active`/`target.is_active`, já no contrato).
+
+### Alternativas descartadas
+
+- **Atualizar o material no lugar** (a leitura literal da delegação): quebra o
+  D-108; exigiria guardar versões de valor por release, que o D-108 descartou.
+- **Coluna `is_active` em `material_curve`** (migração): duplicaria o que o
+  material já diz; uma curva ativa num material inativo, ou o contrário, seria
+  um estado a mais para defender.
+- **Promoção como ação administrativa separada do import**: duas transações,
+  uma janela com duas releases ativas e um passo a mais para esquecer no
+  cutover.
+- **Plano do dry-run calculado à parte** (ou rodando o import e desfazendo):
+  duas verdades sobre o que se desativa, ou um dry-run que exige o demo já
+  excluído e um revisor; o planejador puro serve aos dois caminhos.
+- **Reativar a release antiga ao reimportá-la**: rollback de release é
+  operação de banco (snapshot do cutover, docs/18 §10), não efeito colateral de
+  um import.
+
+### O que fica de fora (resíduos em `docs/TODO.md`)
+
+- **TM7-h — favoritos, recentes e estudos presos ao material da release
+  antiga.** Ficam apontando para a linha inativa (a lista de favoritos filtra
+  inativos, então o favorito some). Redirecionar pela identidade externa é
+  decisão de produto.
+- **TM7-i — histórico de valor de processo e modal.** O processo e o modal
+  reaproveitados são atualizados no lugar; o valor anterior só sobrevive na
+  linha bruta da release antiga. O diff de processos (TM7-c) exigirá versões
+  guardadas. Um valor de processo que a release nova **não** traz fica, com a
+  fonte da release anterior (a citação continua verdadeira).
+- **TM7-j — ficha do material inativo não aponta o sucessor.** A ficha de um
+  material substituído abre (como toda ficha de material inativo) sem dizer
+  qual é o registro vigente da mesma identidade.
+
+**Revisão humana sugerida.** (1) A correção acima — material por release,
+processo e modal reaproveitados. (2) A recusa de reimportar release antiga ou
+substituída (a alternativa seria aceitar como no-op). (3) O dry-run da CLI lê o
+banco por padrão (`--sem-banco` para não ler). (4) Os valores do modal que a
+release nova não traz passam a ausentes, em vez de herdados.

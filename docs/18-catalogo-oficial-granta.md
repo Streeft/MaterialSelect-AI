@@ -296,6 +296,40 @@ fonte e precisa corresponder a uma conta que já entrou na aplicação.
 
 Se o import falha, a transação não deixa metade do catálogo oficial gravada.
 
+## 10-bis. Release nova de um catálogo já importado (promoção, D-114)
+
+Importar a release seguinte da **mesma** `lineage` é o mesmo comando, e a
+promoção vem junto, na **mesma transação**: o importador grava a release nova
+inteira e, só então, desativa (`is_active=False`, nunca `DELETE`):
+
+- a release anterior ativa da linha (`CatalogDataset.is_active`);
+- os materiais dela — os que reaparecem (por identidade externa) têm linha nova
+  na release nova, e a antiga fica preservada para "Mudanças entre releases"
+  ([D-108](DECISIONS.md)); os que não reaparecem saem do catálogo ativo;
+- os processos e modais dela que a release nova **não** traz.
+
+Processo e modal que reaparecem pela identidade externa são **reaproveitados**
+(a mesma linha ganha a ref da release nova e os valores dela, com a fonte dela)
+— sem duplicata nem colisão de slug. A curva da release anterior fica no
+material antigo, inativo, com todos os pontos; a ficha vigente lista uma curva
+por identidade.
+
+Qualquer falha — inclusive depois da promoção — desfaz tudo: a release anterior
+continua exatamente como estava. Reimportar uma release **substituída**, ou uma
+mais antiga que a vigente da linha, é recusado (desfaria a promoção); reimportar
+a vigente é idempotente. Release **sem** `lineage`, ou de outra linha, não
+desativa nada.
+
+**Antes do commit, rode o dry-run** (`catalogo_oficial_validar`): sem
+`--commit`, a CLI imprime `promotion_plan` — releases anteriores, por universo
+(materiais, processos, modais, curvas) quantos são substituídos, quais
+identidades seriam retiradas e quantas linhas seriam desativadas, além de
+conflitos de slug de processo que o commit recusaria, ou `refused` com o
+motivo. Ele lê o banco e não escreve; só traz identidades, nunca nomes, porque
+o log do Actions é público. Para validar só os bytes numa máquina sem banco,
+use `--sem-banco`. O commit grava o mesmo relatório em
+`CatalogImportRun.report["promotion"]`.
+
 ## 11. O que esta fundação ainda não faz
 
 O repositório **não contém** o corpus de materiais licenciado. A extração dos

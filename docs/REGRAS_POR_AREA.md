@@ -757,3 +757,13 @@ e 6 pulam) e 797 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
 PROJECT_CONTEXT.md).
+
+**Promoção de release** ([D-114](DECISIONS.md), Sessão 69): o import da release
+nova de uma `lineage` desativa a anterior **na mesma transação**, depois de
+gravar tudo; nunca `DELETE`. Material é **uma linha por release** (não atualize
+no lugar: o diff do D-108 lê as linhas de cada release); processo e modal são
+**uma linha entre releases**, reaproveitada pela identidade externa da mesma
+linha, com os valores e a fonte da release nova. Falha = rollback total; release
+substituída ou mais antiga é recusada. `is_active` fica fora do diff de
+propósito. O dry-run usa o mesmo planejador puro (`app/domain/release_promotion.py`)
+e só imprime identidades.

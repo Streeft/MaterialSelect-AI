@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [69](#sessão-69--081026--promover-uma-release-do-catálogo-oficial-tm7-a--tm4-g-d-114) | 08/10/2026 | Promover uma release do catálogo oficial (TM7-a + TM4-g): o import da release nova de uma linha desativa a anterior na mesma transação, sem apagar nada; processo e modal reaproveitados pela identidade externa (fim da colisão de slug); curva antiga preservada no material inativo; rollback total em qualquer falha; dry-run com `promotion_plan` (D-114) | 4252 → 4262 | 846 (inalterado) |
 | [63](#sessão-63--081026--o-que-mudou-entre-releases-do-catálogo-tm7-d-108) | 08/10/2026 | O que mudou entre releases do catálogo oficial (TM7): `lineage` e `is_demo` na release (migração `73a9b5da72b2`), diff derivado casado pela identidade externa e comparado no canônico (valor, presença, forma, só a escrita da fonte), API e CSV/XLSX, página `/app/catalogo/releases`, duas releases demo | 4196 → 4252 | 815 → 846 |
 | [62](#sessão-62--081026--demo-completo-designação-composição-e-curva-para-os-75-materiais-demo-d-107) | 08/10/2026 | Demo completo: designação, composição química e curva fictícias para os 75 materiais demo (156 / 380 / 117), curvas derivadas das propriedades de cada material, em `seed_extended` (`semear_demo`), idempotente e coberta por `clear_demo`; relatório `python -m app.db.demo_coverage` (D-107) | 4164 → 4196 | 815 (inalterado) |
 | [61](#sessão-61--071026--curvas-de-material-tm4-d-106) | 07/10/2026 | Curvas de material (TM4): `MaterialCurve`/série/ponto com `CHECK`s de finitude, construtor puro que recusa x fora de ordem, geometria e unidade de leitura no backend, CSV/XLSX, importador do D-102, demo fictício e `clear_demo`; na ficha, a seção Curvas com gráfico SVG próprio, tabela de pontos e "Exportar ▾" (D-106) | 4079 → 4164 | 797 → 815 |
@@ -78,6 +79,44 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
 
 ---
+
+## Sessão 69 — 08/10/26 — Promover uma release do catálogo oficial (TM7-a + TM4-g, D-114)
+
+**O pedido.** Depois da segunda importação de uma linha, as duas releases
+ficavam ativas lado a lado (registros em dobro), uma segunda release com
+processos falhava por colisão de slug e uma curva podia aparecer duas vezes.
+Decisão delegada pelo autor, registrada como D-114 (revisável), com uma
+correção: material **não** é atualizado no lugar, porque isso apagaria a base
+do diff do D-108.
+
+**O que mudou.**
+
+- **Promoção** — `app/catalog/promotion.py` e o planejador puro
+  `app/domain/release_promotion.py`: depois de gravar tudo, na mesma transação,
+  o importador desativa as releases ativas anteriores da mesma `lineage`, os
+  materiais delas e os processos/modais que a nova não traz. Nunca `DELETE`.
+- **Processo e modal reaproveitados** pela identidade externa na mesma linha
+  (nova `CatalogRecordRef`, valores da release nova com a fonte dela);
+  colisão de slug só com registro de fora da linha, como antes.
+- **Fail-closed** — `run()` faz rollback em qualquer exceção; release já
+  substituída ou mais antiga que a vigente é recusada antes de escrever.
+- **Curvas (TM4-g)** — a antiga fica no material inativo, com todos os pontos;
+  a ficha vigente lista uma por identidade. Sem migração.
+- **Dry-run** — a CLI sem `--commit` imprime `promotion_plan` (lê o banco;
+  `--sem-banco` para não ler), por identidade, sem nomes (log público); o
+  commit grava o mesmo relatório em `CatalogImportRun.report["promotion"]`.
+- **Contagem de materiais por processo** só conta material ativo.
+- **Testes** — 4252 → 4262 de backend (4256 passam, 6 pulam sem
+  `POSTGRES_TEST_URL`): duas releases sintéticas (processo com o mesmo slug,
+  curva repetida byte a byte, modal com valor novo) provando que nada duplica,
+  nada é apagado, o diff do D-108 funciona, a falha no meio e a falha depois
+  da promoção voltam o banco igual, e o dry-run prevê o que o commit faz. O
+  teste do D-108 que reimportava a release base passou a provar a recusa.
+- **Documentação** — D-114, TODO (TM7-a, TM7-e e TM4-g quitados; resíduos
+  TM7-h a TM7-j), `18`, REGRAS_POR_AREA e PROJECT_CONTEXT.
+
+**Pós-merge.** Sem migração e sem seed: só **Deploy da API**. A ação
+`catalogo_oficial_validar` passa a ler o banco para o plano.
 
 ## Sessão 63 — 08/10/26 — O que mudou entre releases do catálogo (TM7, D-108)
 
