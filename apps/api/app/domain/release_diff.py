@@ -1,4 +1,4 @@
-"""What changed between two releases of one official catalogue (D-107, TM7).
+"""What changed between two releases of one official catalogue (D-108, TM7).
 
 Pure: no SQLAlchemy, no FastAPI. The repository hands over two lists of
 :class:`RecordSnapshot` — what each release *stored* — and this module decides,

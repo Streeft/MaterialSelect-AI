@@ -8584,10 +8584,10 @@ fechado e pequeno; `modulo` e `tensao` são grandezas distintas só pela unidade
 de leitura. (3) Seed, `clear_demo` e CSV ficaram neste commit, embora o escopo
 final da sessão os entregasse a outro agente.
 
-## D-107 — O que mudou entre releases do catálogo oficial: diff derivado do que cada release gravou, casado por identidade externa, com a release declarando a que catálogo pertence
+## D-108 — O que mudou entre releases do catálogo oficial: diff derivado do que cada release gravou, casado por identidade externa, com a release declarando a que catálogo pertence
 
 **Data:** 08/10/2026
-**Status:** aceita (Sessão 62, TM7 — parte de arquitetura; tela, seed demo,
+**Status:** aceita (Sessão 63, TM7 — parte de arquitetura; tela, seed demo,
 documentação de área e contagens ficam para a rodada seguinte, ver "Contrato")
 
 **O pedido (TM7).** Com `CatalogDataset` imutável por release (D-102), dizer

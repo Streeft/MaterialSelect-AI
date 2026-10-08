@@ -1,4 +1,4 @@
-"""The pure diff between two catalogue releases (D-107): every rule, without a database.
+"""The pure diff between two catalogue releases (D-108): every rule, without a database.
 
 The snapshots here are fictitious and minimal on purpose: each test builds the
 two sides of exactly one situation, so a failure names the rule that broke.

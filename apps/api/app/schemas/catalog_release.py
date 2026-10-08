@@ -1,4 +1,4 @@
-"""Releases of the official catalogue and what changed between two of them (D-107, TM7).
+"""Releases of the official catalogue and what changed between two of them (D-108, TM7).
 
 Every number arrives already converted (reading unit, canonical, as written):
 the client prints, it never converts. A side with no number carries ``null``

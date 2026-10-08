@@ -453,7 +453,7 @@ class OfficialCatalogImporter:
                 select(func.count(MaterialCurve.id)).where(MaterialCurve.is_demo.is_(True))
             )
             or 0,
-            # D-107: a fictitious release would otherwise sit in the same
+            # D-108: a fictitious release would otherwise sit in the same
             # lineage listing as the official one.
             "catalog_datasets": self.db.scalar(
                 select(func.count(CatalogDataset.id)).where(CatalogDataset.is_demo.is_(True))
@@ -497,7 +497,7 @@ class OfficialCatalogImporter:
                     "A licença declarada diverge da registrada para este dataset."
                 )
             if dataset.lineage != meta.get("lineage"):
-                # D-107: the lineage decides what a release is compared with, so
+                # D-108: the lineage decides what a release is compared with, so
                 # it is part of the release's identity and never rewritten.
                 raise OfficialCatalogImportError(
                     "A linha (lineage) declarada diverge da registrada para este dataset."

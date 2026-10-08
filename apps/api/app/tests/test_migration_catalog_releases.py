@@ -1,4 +1,4 @@
-"""The D-107 migration, run up and down against a database that already has a release.
+"""The D-108 migration, run up and down against a database that already has a release.
 
 The shared test database is built by ``create_all`` and never by the
 migrations, so the migration itself is proved here: the two columns arrive,

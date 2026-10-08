@@ -59,7 +59,7 @@ PATH_VALUES = {
     "artifact_id": "1",
     # D-106: filled with the private record's own curve by `_sweep`.
     "curve_id": "1",
-    # D-107: two releases of one catalogue; the second one carries an identity
+    # D-108: two releases of one catalogue; the second one carries an identity
     # row pointing at the private record (see `private_record`).
     "base": "isolamento-r1",
     "target": "isolamento-r2",
@@ -75,7 +75,7 @@ QUERY_STRINGS = {
     # D-104: MatML, the one CAE format the private record (density and Young's
     # modulus, no Poisson's ratio) can be written in.
     "/api/exports/materiais/{material_id}/cae": "?formato=matml&unidades=m-kg-s",
-    # D-107: the diff record route, asked for the private record's own identity.
+    # D-108: the diff record route, asked for the private record's own identity.
     "/api/catalogo/releases/{base}/diff/{target}/registro": "?tabela=MaterialUniverse&id=privado",
 }
 
@@ -149,7 +149,7 @@ def private_record(db_session: Session, other_user: User) -> Material:
         )
     )
     db_session.flush()
-    # D-107: two releases of one catalogue, each with a shared record, and an
+    # D-108: two releases of one catalogue, each with a shared record, and an
     # identity row of the second pointing at the private record. Nothing the
     # importer would write — which is the point: the diff must leave it out
     # even when the provenance tables are wrong.
@@ -365,7 +365,7 @@ def test_another_persons_outside_source_neither_leaks_nor_fetches(
 def test_the_release_diff_is_swept_and_never_carries_a_private_record(
     client, login_as, other_user: User, private_record: Material
 ) -> None:
-    """D-107. The sweep reaches the diff with two real releases (200, not a 404
+    """D-108. The sweep reaches the diff with two real releases (200, not a 404
     that would prove nothing), and the private record is absent for its owner
     too: the diff describes the shared catalogue only."""
     diff = "/api/catalogo/releases/isolamento-r1/diff/isolamento-r2"

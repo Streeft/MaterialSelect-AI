@@ -33,7 +33,7 @@ class CatalogDataset(Base):
 
     One row is one **release** (the slug names the bytes, D-102). ``lineage``
     names the catalogue the release belongs to, so two releases can be
-    compared (D-107): the slug cannot say it, and the free-text ``name`` is a
+    compared (D-108): the slug cannot say it, and the free-text ``name`` is a
     label, not an identity. NULL means the bundle never declared one — such a
     release is comparable with nothing, never matched by its name.
     """
@@ -52,7 +52,7 @@ class CatalogDataset(Base):
     license_label: Mapped[str] = mapped_column(String(240), nullable=False)
     provenance: Mapped[str | None] = mapped_column(String(1000), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-    #: A fictitious release (D-107 demo): declared on the row, like every other
+    #: A fictitious release (D-108 demo): declared on the row, like every other
     #: demo marker, so ``clear_demo`` finds it and the official import refuses
     #: to commit while one exists.
     is_demo: Mapped[bool] = mapped_column(

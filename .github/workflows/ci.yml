@@ -287,7 +287,7 @@ jobs:
           ! grep -q "selection_study_name_key" schema.txt
 
       - name: A migração mais recente desce e sobe de volta em Postgres
-        # D-105/D-106/D-107: a última revisão tem de ser reversível no alvo de
+        # D-105/D-106/D-108: a última revisão tem de ser reversível no alvo de
         # produção, e os CHECKs da composição (resto e ausência sem número,
         # elemento da lista fixa, um resto por material), das curvas (pontos
         # finitos, faixa que contém a linha) e da linha das releases (nunca
@@ -316,7 +316,7 @@ jobs:
               echo "o CHECK de finitude aceitou ${bad}" && exit 1
             fi
           done
-          # D-107: a linha e a marca demo das releases chegam ao banco (a última
+          # D-108: a linha e a marca demo das releases chegam ao banco (a última
           # revisão, que o downgrade -1 acima desceu e subiu), e a linha vazia é
           # recusada pelo CHECK.
           psql -h localhost -U materialselect -d materialselect -c "\d catalog_dataset" > releases.txt

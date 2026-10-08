@@ -14,7 +14,7 @@ MAX_MANIFEST_BYTES = 1_000_000
 MAX_RECORD_BYTES = 10_000_000
 SCHEMA_VERSION = 1
 
-#: The catalogue a release belongs to (D-107): optional in the manifest, but a
+#: The catalogue a release belongs to (D-108): optional in the manifest, but a
 #: slug when present, so it can travel in a URL and never reads as a name.
 _LINEAGE = re.compile(r"[a-z0-9](?:[a-z0-9-]{0,118}[a-z0-9])?")
 

@@ -5,7 +5,7 @@
 A regra de corte é a própria coluna `is_demo`: material, processo, modal de
 transporte, química de bateria, índice de desempenho, fonte, designação e linha de
 composição (D-105), curva (D-106, com séries e pontos) e release do catálogo
-(D-107, com suas referências externas e execuções de importação) fictícios são removidos
+(D-108, com suas referências externas e execuções de importação) fictícios são removidos
 independentemente do módulo que os criou. Taxonomias e definições de
 propriedades/atributos permanecem porque são metadados reutilizáveis pelo
 catálogo oficial.
@@ -105,7 +105,7 @@ def _delete_curves(db: Session, curve_ids: list[int]) -> None:
 
 
 def clear_demo_catalog_releases(db: Session) -> int:
-    """Delete fictitious catalogue releases (D-107) with everything they own.
+    """Delete fictitious catalogue releases (D-108) with everything they own.
 
     A demo release owns its identity rows (``CatalogRecordRef``), its import
     runs and its supplemental/dataset values — all fictitious by construction,
@@ -158,7 +158,7 @@ def clear_demo_materials(db: Session) -> int:
     if not demo_ids:
         return 0
 
-    # D-107: an identity row of any release pointing at a demo material is as
+    # D-108: an identity row of any release pointing at a demo material is as
     # fictitious as the material (the FK would cascade in PostgreSQL; the test
     # database needs it written out).
     db.execute(delete(CatalogRecordRef).where(CatalogRecordRef.material_id.in_(demo_ids)))

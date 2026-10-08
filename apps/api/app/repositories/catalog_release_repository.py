@@ -1,4 +1,4 @@
-"""Reads the releases of the official catalogue and what each one stored (D-107).
+"""Reads the releases of the official catalogue and what each one stored (D-108).
 
 Read-only by construction: nothing here adds, updates or deletes a row, so a
 diff can never touch the releases it compares (D-102, release imutável).

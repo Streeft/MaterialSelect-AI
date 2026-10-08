@@ -1,4 +1,4 @@
-"""Releases of the official catalogue and what changed between them (D-107, TM7).
+"""Releases of the official catalogue and what changed between them (D-108, TM7).
 
 Thin and read-only: every route reads, none writes, so there is no curator
 guard to forget (D-83). The router sits behind the same product gate as the

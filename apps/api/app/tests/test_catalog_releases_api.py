@@ -1,4 +1,4 @@
-"""What changed between two releases of the official catalogue (D-107), end to end.
+"""What changed between two releases of the official catalogue (D-108), end to end.
 
 Two **fictitious** releases of one fictitious catalogue go through the real
 importer of the D-102 — the bundle, the dry-run, the transactional commit — so
@@ -647,7 +647,7 @@ def test_the_xlsx_keeps_negative_numbers_numeric(client, two_releases) -> None:
     assert LIMITATION_NOTICE in cover
 
 
-# -- demo releases (D-107 contract for the seed) ---------------------------------
+# -- demo releases (D-108 contract for the seed) ---------------------------------
 
 
 def _demo_release(db: Session, slug: str, density: float | None) -> CatalogDataset:

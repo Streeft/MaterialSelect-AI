@@ -1,4 +1,4 @@
-"""Releases of the official catalogue and the diff between two of them (D-107, TM7).
+"""Releases of the official catalogue and the diff between two of them (D-108, TM7).
 
 The service resolves the two releases, refuses a pair that is not comparable,
 asks the repository for what each release stored and hands both lists to the

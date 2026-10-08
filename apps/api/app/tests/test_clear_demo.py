@@ -140,7 +140,7 @@ def test_clear_demo_data_covers_all_demo_universes(db_session: Session) -> None:
     # D-106: e as curvas fictícias, com séries e pontos.
     demo_curves = db_session.scalar(select(func.count(MaterialCurve.id)))
     assert demo_curves
-    # D-107: releases fictícias do catálogo (o seed demo pode trazê-las).
+    # D-108: releases fictícias do catálogo (o seed demo pode trazê-las).
     demo_releases = db_session.scalar(
         select(func.count(CatalogDataset.id)).where(CatalogDataset.is_demo.is_(True))
     )

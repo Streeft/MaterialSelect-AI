@@ -1,6 +1,6 @@
 """Export endpoints: catalogue and selection studies as CSV, XLSX, DOCX, PPTX or HTML,
 one material as a CAE card (D-104), a material curve's points (D-106), and what
-changed between two releases of the official catalogue (D-107).
+changed between two releases of the official catalogue (D-108).
 
 These return files rather than JSON, so they set their own headers. Three
 details matter and are easy to get wrong:
@@ -228,7 +228,7 @@ def export_release_diff(
     _user: User = Depends(get_current_user),
     unit_choices: dict[str, str] = Depends(get_unit_choices),
 ) -> Response:
-    """What changed between two releases of the official catalogue (D-107).
+    """What changed between two releases of the official catalogue (D-108).
 
     The whole diff with the filters applied and no page: the releases and their
     provenance (slug, licence, hashes, the sources the values cite), the counts,

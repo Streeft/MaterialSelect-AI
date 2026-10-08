@@ -1,4 +1,4 @@
-"""Releases do catálogo: linha declarada e marca de demonstração (D-107, TM7).
+"""Releases do catálogo: linha declarada e marca de demonstração (D-108, TM7).
 
 Duas colunas em ``catalog_dataset`` e nada mais:
 
