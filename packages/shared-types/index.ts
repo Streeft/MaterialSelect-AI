@@ -2765,3 +2765,136 @@ export interface Curve {
   is_demo: boolean;
   is_own_record: boolean;
 }
+
+// --- Changes between catalogue releases (D-108, TM7) ------------------------
+
+/** What happened to one external record from the base to the target release. */
+export type ReleaseRecordStatus = "novo" | "alterado" | "desativado" | "inalterado";
+
+/** The nature of one field change, from the strongest to the weakest. */
+export type ReleaseChangeKind =
+  | "texto"
+  | "ausencia"
+  | "forma"
+  | "valor"
+  | "escrita_da_fonte"
+  | "metadado";
+
+/** The four states a property can be in for one record of one release. */
+export type ReleaseValueState = "nao_cadastrado" | "ausente" | "escalar" | "faixa";
+
+export interface CatalogRelease {
+  slug: string;
+  name: string;
+  release: string | null;
+  /** The catalogue the release belongs to; `null` = comparable with nothing. */
+  lineage: string | null;
+  license_label: string;
+  provenance: string | null;
+  source_sha256: string;
+  is_active: boolean;
+  is_demo: boolean;
+  created_at: string;
+  /** `null` for a release the importer never ran on (the demo seed). */
+  imported_at: string | null;
+  bundle_sha256: string | null;
+  manifest_sha256: string | null;
+  material_count: number;
+  /** The release written just before this one in the same lineage. */
+  previous_slug: string | null;
+}
+
+export interface ReleaseStatusCount {
+  status: ReleaseRecordStatus;
+  label: string;
+  count: number;
+}
+
+export interface ReleaseClassCount {
+  slug: string;
+  name: string;
+  count: number;
+}
+
+export interface ReleaseNumbers {
+  value: number | null;
+  min: number | null;
+  max: number | null;
+  typical: number | null;
+  uncertainty: number | null;
+  unit: string | null;
+}
+
+export interface ReleaseReadingNumbers extends ReleaseNumbers {
+  unit_label: string;
+}
+
+export interface ReleaseValueSide {
+  state: ReleaseValueState;
+  state_label: string;
+  /** As the source wrote it. */
+  original: ReleaseNumbers | null;
+  canonical: ReleaseNumbers | null;
+  /** In the reading unit (D-70) — what the screen prints. */
+  reading: ReleaseReadingNumbers | null;
+  conversion_method: string | null;
+  measurement_condition: string | null;
+}
+
+export interface ReleaseFieldChange {
+  /** `nome`, `classe`, `subclasse`, `descricao`, `gruid` or `propriedade:<slug>`. */
+  field: string;
+  label: string;
+  kind: ReleaseChangeKind;
+  kind_label: string;
+  before_text: string | null;
+  after_text: string | null;
+  property_slug: string | null;
+  before: ReleaseValueSide | null;
+  after: ReleaseValueSide | null;
+  reading_unit: string | null;
+  reading_unit_label: string | null;
+  canonical_unit: string | null;
+}
+
+export interface ReleaseRecordSide {
+  material_id: number;
+  name: string;
+  class_slug: string;
+  class_name: string;
+  subclass: string | null;
+  external_gruid: string | null;
+  raw_record_sha256: string;
+  is_active: boolean;
+}
+
+export interface ReleaseDiffItem {
+  external_table: string;
+  external_record_id: string;
+  status: ReleaseRecordStatus;
+  status_label: string;
+  /** `null` on the side where the record does not exist. */
+  base: ReleaseRecordSide | null;
+  target: ReleaseRecordSide | null;
+  raw_record_changed: boolean | null;
+  change_count: number;
+  changes: ReleaseFieldChange[];
+}
+
+export interface ReleaseDiff {
+  base: CatalogRelease;
+  target: CatalogRelease;
+  lineage: string;
+  is_demo: boolean;
+  rule: string;
+  /** Over the whole diff, every status with its count, zero included. */
+  counts: ReleaseStatusCount[];
+  total: number;
+  classes: ReleaseClassCount[];
+  filters: { tipo: ReleaseRecordStatus | null; classe: string | null };
+  filtered_total: number;
+  page: number;
+  page_size: number;
+  page_count: number;
+  items: ReleaseDiffItem[];
+}
