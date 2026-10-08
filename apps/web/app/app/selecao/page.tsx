@@ -120,7 +120,8 @@ const STEP_BY_SLUG: Record<string, Step> = {
 // D-88: Objetivo before Restrições. The order of the screen, not of the
 // method: the engine still filters and only then ranks. Navigation, the Run
 // button and the step a loaded study opens on all derive from this list.
-const STEPS: StepItem<Step>[] = [\n  { id: "function", label: t.stepFunction },
+const STEPS: StepItem<Step>[] = [
+  { id: "function", label: t.stepFunction },
   { id: "objective", label: t.stepObjective },
   { id: "constraints", label: t.stepConstraints },
   { id: "results", label: t.stepResults, blockedReason: t.blockedResults },
