@@ -12,7 +12,7 @@ from datetime import datetime
 
 from pydantic import BaseModel
 
-from app.domain.release_diff import ChangeKind, RecordStatus, ValueState
+from app.domain.release_diff import ChangeKind, RecordStatus, Universe, ValueState
 
 
 class CatalogReleaseOut(BaseModel):
@@ -51,6 +51,12 @@ class ClassCountOut(BaseModel):
     count: int
 
 
+class UniverseCountOut(BaseModel):
+    universe: Universe
+    label: str
+    count: int
+
+
 class NumbersOut(BaseModel):
     """One set of numbers of one side. ``value`` is the representative point
     (the single value, or the typical of a range)."""
@@ -77,11 +83,14 @@ class ValueSideOut(BaseModel):
     reading: ReadingNumbersOut | None
     conversion_method: str | None
     measurement_condition: str | None
+    #: Discrete process attributes: the labels of this side (empty otherwise).
+    labels: list[str] = []
 
 
 class FieldChangeOut(BaseModel):
-    #: ``nome``, ``classe``, ``subclasse``, ``descricao``, ``gruid`` or
-    #: ``propriedade:<slug>``.
+    #: ``nome``, ``classe``, ``subclasse``, ``descricao``, ``gruid``, ``ativo``,
+    #: ``propriedade:<slug>``, ``atributo:<slug>`` (process), ``modal:<campo>``,
+    #: ``composicao:<elemento>`` or ``curva:<id externo>[:<aspecto>]``.
     field: str
     label: str
     kind: ChangeKind
@@ -100,7 +109,11 @@ class FieldChangeOut(BaseModel):
 
 
 class RecordSideOut(BaseModel):
-    material_id: int
+    #: Id in the record's own table (material, process or transport mode).
+    record_id: int
+    #: Same id when the record is a material (the screen links to it); else ``null``.
+    material_id: int | None
+    universe: Universe
     name: str
     class_slug: str
     class_name: str
@@ -115,6 +128,8 @@ class DiffItemOut(BaseModel):
     external_record_id: str
     status: RecordStatus
     status_label: str
+    universe: Universe
+    universe_label: str
     #: ``null`` on the side where the record does not exist (new / removed).
     base: RecordSideOut | None
     target: RecordSideOut | None
@@ -127,6 +142,7 @@ class DiffItemOut(BaseModel):
 class DiffFiltersOut(BaseModel):
     tipo: RecordStatus | None
     classe: str | None
+    universo: Universe | None = None
 
 
 class ReleaseDiffOut(BaseModel):
@@ -140,6 +156,8 @@ class ReleaseDiffOut(BaseModel):
     total: int
     #: Records per class (either side), for the class filter.
     classes: list[ClassCountOut]
+    #: Records per universe over the whole diff, zero included.
+    universes: list[UniverseCountOut]
     filters: DiffFiltersOut
     filtered_total: int
     page: int

@@ -2780,8 +2780,22 @@ export type ReleaseChangeKind =
   | "escrita_da_fonte"
   | "metadado";
 
-/** The four states a property can be in for one record of one release. */
-export type ReleaseValueState = "nao_cadastrado" | "ausente" | "escalar" | "faixa";
+/** The states a value can be in for one record of one release. */
+export type ReleaseValueState =
+  | "nao_cadastrado"
+  | "ausente"
+  | "escalar"
+  | "faixa"
+  | "rotulos";
+
+/** Which table of the catalogue a record belongs to (TM7-c). */
+export type ReleaseUniverse = "material" | "processo" | "modal";
+
+export interface ReleaseUniverseCount {
+  universe: ReleaseUniverse;
+  label: string;
+  count: number;
+}
 
 export interface CatalogRelease {
   slug: string;
@@ -2839,10 +2853,16 @@ export interface ReleaseValueSide {
   reading: ReleaseReadingNumbers | null;
   conversion_method: string | null;
   measurement_condition: string | null;
+  /** Discrete process attributes: the labels of this side (empty otherwise). */
+  labels: string[];
 }
 
 export interface ReleaseFieldChange {
-  /** `nome`, `classe`, `subclasse`, `descricao`, `gruid` or `propriedade:<slug>`. */
+  /**
+   * `nome`, `classe`, `subclasse`, `descricao`, `gruid`, `ativo`,
+   * `propriedade:<slug>`, `atributo:<slug>`, `modal:<campo>`,
+   * `composicao:<elemento>` or `curva:<id>[:<aspecto>]`.
+   */
   field: string;
   label: string;
   kind: ReleaseChangeKind;
@@ -2858,7 +2878,11 @@ export interface ReleaseFieldChange {
 }
 
 export interface ReleaseRecordSide {
-  material_id: number;
+  /** Id in the record's own table (material, process or transport mode). */
+  record_id: number;
+  /** The same id for a material; `null` for the other universes. */
+  material_id: number | null;
+  universe: ReleaseUniverse;
   name: string;
   class_slug: string;
   class_name: string;
@@ -2873,6 +2897,8 @@ export interface ReleaseDiffItem {
   external_record_id: string;
   status: ReleaseRecordStatus;
   status_label: string;
+  universe: ReleaseUniverse;
+  universe_label: string;
   /** `null` on the side where the record does not exist. */
   base: ReleaseRecordSide | null;
   target: ReleaseRecordSide | null;
@@ -2891,7 +2917,13 @@ export interface ReleaseDiff {
   counts: ReleaseStatusCount[];
   total: number;
   classes: ReleaseClassCount[];
-  filters: { tipo: ReleaseRecordStatus | null; classe: string | null };
+  /** Over the whole diff, every universe with its count, zero included. */
+  universes: ReleaseUniverseCount[];
+  filters: {
+    tipo: ReleaseRecordStatus | null;
+    classe: string | null;
+    universo: ReleaseUniverse | null;
+  };
   filtered_total: number;
   page: number;
   page_size: number;

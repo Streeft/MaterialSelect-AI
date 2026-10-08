@@ -9040,3 +9040,66 @@ escoamento −45 %, resistência −40 % na máxima de serviço): são premissa
 fictícia declarada na descrição. (3) O demo deixou de exemplificar "material sem
 composição" no catálogo estendido; o estado vazio continua demonstrável pela
 Cerâmica Demo D (sem curva) e por qualquer registro próprio novo.
+
+## D-109 — O diff entre releases passa a cobrir processos, modais, composição e curvas; `is_active`, faixa de um lado só e grafia de unidade deixam de ser casos soltos
+
+**Data:** 08/10/2026
+**Status:** aceita (Sessão 64, resíduos TM7-c/e/f/g do [D-108](DECISIONS.md))
+
+**O que mudou no desenho.** O `RecordSnapshot` ganhou `universe` (`material`,
+`processo`, `modal`), `record_id` (o id na tabela do próprio registro; o
+`material_id` da API só vem preenchido para material) e, para material,
+`composition` e `curves`. A identidade continua `(tabela externa, id externo)`
+— `catalog_record_ref` já guarda os três universos —, e um registro que muda de
+universo entre as releases é recusado (400), não casado.
+
+**Regras (todas no `release_diff.py`, puro):**
+
+1. **Atributo de processo** é comparado como propriedade de material (mesmo
+   `compare_values`, no canônico). O conjunto de **rótulos** de um atributo
+   discreto é um estado novo (`rotulos`) e é comparado como conjunto: ordem
+   diferente não é mudança; conjunto diferente é `valor`; rótulos ↔ número é
+   `forma`; rótulos ↔ ausência é `ausencia`. Campo `atributo:<slug>`.
+2. **Composição** é comparada por elemento, em % de massa (o normalizado — a
+   unidade da fonte, `wt%`, não é unidade do Pint). Elemento que aparece ou
+   some é `ausencia`. **O resto (balanço) nunca vira número**: balanço dos dois
+   lados não é mudança; balanço ↔ faixa sai como texto (`forma`), sem inventar o
+   valor do balanço. Campo `composicao:<elemento>`.
+3. **Curva** é casada pelo id externo dentro do material. Título, descrição,
+   rótulos dos eixos, tipo e grandezas/unidades dos eixos são `texto`; a curva
+   que só existe de um lado é `ausencia`; séries e pontos (casados por posição,
+   comparados nos números **normalizados**) são `valor`, com a contagem de
+   pontos diferentes; os mesmos pontos físicos digitados em outra unidade são
+   `escrita_da_fonte`; só rótulo/condição de série diferente é `metadado`. Um
+   limite `y_min`/`y_max` de um lado só conta como ponto diferente.
+4. **Modal** entra com nome, descrição, ativo e as duas intensidades (MJ/(t·km)
+   e kg CO₂/(t·km), como gravadas). Como o importador **reaproveita a linha do
+   modal pelo slug**, entre duas releases só a presença difere hoje; os valores
+   já são lidos para o dia em que o modal for gravado por release (TM7-a).
+5. **TM7-e:** `is_active` diferente é mudança de `metadado` (campo `ativo`);
+   o registro deixa de sair "inalterado".
+6. **TM7-f:** numa faixa, um número (representativo, mínimo, máximo ou típico)
+   que existe de um lado só é mudança de `forma` — checada **antes** de comparar
+   valores, para que nunca se compare número com vazio e nunca apareça uma
+   "mudança de valor" que ninguém mediu.
+7. **TM7-g:** a grafia da unidade (`kg/m^3` × `kg/m³`) continua sendo
+   `escrita_da_fonte` — o registro muda de bytes e a rastreabilidade (princípio
+   4) quer isso dito —, mas a regra e a tela agora o explicam. Propriedade sem
+   definição é `ValidationError` (400), não `ValueError` (500).
+
+**Contrato (aditivo).** `GET …/diff/…` aceita `universo=material|processo|modal`
+(outro valor → 400) e devolve `universes` (contagem sobre o diff inteiro, zero
+incluído); cada item traz `universe` e `universe_label`; o lado do registro
+traz `record_id`/`universe` (e `material_id` só para material); o lado de um
+valor traz `labels`. O filtro `classe` aceita também classe de processo e o
+slug `modal-de-transporte`. O CSV/XLSX ganha a coluna "Universo" em
+Registros e o filtro `universo`.
+
+**Alternativas descartadas.** Uma tabela de diff por universo (o contrato do
+D-108 é uma lista só, ordenada e paginada); comparar composição na unidade
+original (`wt%` não é unidade do Pint); tratar a grafia da unidade como
+"inalterado" (esconderia uma mudança na linha gravada).
+
+**Resíduos.** Designações, valores suplementares e valores do dataset ainda não
+entram (TODO, TM7-c). O desempenho (TM7-d) piora na proporção do que foi
+adicionado: composição e curvas somam consultas por release.
