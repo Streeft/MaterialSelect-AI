@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [66](#sessão-66--081026--composição-na-seleção-e-edição-à-mão-de-composição-designações-e-curvas-tm2-b-tm2-a-tm4-d-d-111) | 08/10/2026 | Composição como critério de estágio `limit` (`composition`/`not_composition`, três valores, funil com a contagem dos indecididos, laudo com a regra) e edição à mão de composição, designações e curvas (API + formulários na ficha, construtores do seed, auditoria, permissão do material, 409 para o oficial) (D-111) | 4252 → 4318 | 846 → 858 |
 | [63](#sessão-63--081026--o-que-mudou-entre-releases-do-catálogo-tm7-d-108) | 08/10/2026 | O que mudou entre releases do catálogo oficial (TM7): `lineage` e `is_demo` na release (migração `73a9b5da72b2`), diff derivado casado pela identidade externa e comparado no canônico (valor, presença, forma, só a escrita da fonte), API e CSV/XLSX, página `/app/catalogo/releases`, duas releases demo | 4196 → 4252 | 815 → 846 |
 | [62](#sessão-62--081026--demo-completo-designação-composição-e-curva-para-os-75-materiais-demo-d-107) | 08/10/2026 | Demo completo: designação, composição química e curva fictícias para os 75 materiais demo (156 / 380 / 117), curvas derivadas das propriedades de cada material, em `seed_extended` (`semear_demo`), idempotente e coberta por `clear_demo`; relatório `python -m app.db.demo_coverage` (D-107) | 4164 → 4196 | 815 (inalterado) |
 | [61](#sessão-61--071026--curvas-de-material-tm4-d-106) | 07/10/2026 | Curvas de material (TM4): `MaterialCurve`/série/ponto com `CHECK`s de finitude, construtor puro que recusa x fora de ordem, geometria e unidade de leitura no backend, CSV/XLSX, importador do D-102, demo fictício e `clear_demo`; na ficha, a seção Curvas com gráfico SVG próprio, tabela de pontos e "Exportar ▾" (D-106) | 4079 → 4164 | 797 → 815 |
@@ -78,6 +79,38 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
 
 ---
+
+## Sessão 66 — 08/10/26 — Composição na seleção e edição à mão de composição, designações e curvas (TM2-b, TM2-a, TM4-d, D-111)
+
+**O pedido.** Três resíduos do TM2/TM4, nesta ordem: a composição como estágio de
+seleção (TM2-b), editar composição e designações por API e ficha (TM2-a) e editar
+curvas do mesmo jeito (TM4-d), sem tocar em % atômica (TM2-c) nem em dados reais
+(TM2-e).
+
+**O que mudou.**
+
+- **TM2-b** — `Operator.COMPOSITION`/`NOT_COMPOSITION` em `app/domain/filters.py`,
+  lendo o veredito de `composition.evaluate`; condição em `text` na sintaxe da
+  busca, sem migração; `FunnelStepOut.undetermined`; nota de regra e contagem na
+  planilha "Restrições e funil" e no laudo; o editor de restrições ganhou os dois
+  operadores (só em estudo de materiais) e o funil escreve "(N sem o dado de
+  composição)".
+- **TM2-a** — `PUT /api/materials/{id}/composicao` e `/designacoes`; `is_official`
+  na ficha; `components/material/IdentityEditors.tsx`.
+- **TM4-d** — `POST`/`PUT`/`DELETE /api/materials/{id}/curvas[/{curva}]`,
+  `GET /api/materials/curvas-tipos`, `is_official` no resumo da curva;
+  `components/material/CurveEditor.tsx`.
+- **Permissão e auditoria** — `app/services/record_permissions.py` (404 de outro
+  usuário, 403 para o compartilhado sem ser curador, 409 para o oficial), diff por
+  elemento/código/curva no histórico.
+- **Testes** — 4252 → 4318 testes de backend (4312 passam e 6 pulam sem `POSTGRES_TEST_URL`) e 846 → 858 de frontend.
+- **Documentação** — D-111, TODO (TM2-a, TM2-b e TM4-d quitados; resíduos TM2-f e
+  TM2-g), `REGRAS_POR_AREA`, PROJECT_CONTEXT.
+
+**Decisões que merecem o olho do autor.** `not_composition` como garantia; a
+permissão checada no serviço e não por `require_catalog_curator` na rota (para o
+dono de um registro próprio continuar editando); o oficial é só leitura.
+Sem migração e sem seed: nada a rodar depois do merge além do deploy da API.
 
 ## Sessão 63 — 08/10/26 — O que mudou entre releases do catálogo (TM7, D-108)
 

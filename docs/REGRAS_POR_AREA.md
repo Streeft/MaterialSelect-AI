@@ -743,6 +743,17 @@ cópia em SQL; designação **não** declara equivalência (`code_key` só tira 
 e espaço). O bundle do D-102 aceita `material_designations.ndjson` e
 `material_compositions.ndjson`. Só o demo (códigos `DEMO-`) tem esses dados — desde o D-107, os 75 materiais demo.
 
+**Composição na seleção e edição à mão** ([D-111](DECISIONS.md), Sessão 66): a
+composição é critério de um estágio `limit` por `composition` (passa o verdadeiro)
+e `not_composition` (passa só o **falso decidido**, a garantia); o indeterminado
+não passa em nenhum e o funil o conta (`undetermined`). Composição, designações e
+curvas se escrevem por `PUT …/composicao`, `PUT …/designacoes` e `…/curvas`
+substituindo o conjunto inteiro, pelos **mesmos construtores do seed**, com fonte
+obrigatória e auditoria; a permissão é a do material
+(`services/record_permissions.py`): dono, ou curador no compartilhado, e **409 para
+registro ou curva do catálogo oficial**. Não crie uma segunda regra de alcance nem
+um caminho de escrita que pule `build_composition_entry`/`build_curve`.
+
 ## Catálogo oficial e fontes abertas (D-102, D-103)
 
 **O portão de licença das fontes abertas foi reconciliado com o D-102**

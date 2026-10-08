@@ -154,12 +154,21 @@ entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
 **Resíduos da composição e das designações (TM2, [D-105](DECISIONS.md)).** O
 TM2 foi entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
 
-- **TM2-a — editar composição e designações.** ▃ Hoje só o seed demo e o bundle
-  oficial escrevem as duas tabelas. Falta API e formulário, com auditoria (M2),
-  `require_catalog_curator` no compartilhado (D-83) e o registro próprio (D-62).
-- **TM2-b — composição como estágio de seleção.** ▃ Um estágio `limit` sobre
-  elemento, no motor, no funil e no laudo, pela mesma regra de alcance em três
-  valores (`app/domain/composition.evaluate`).
+- ~~**TM2-a — editar composição e designações.**~~ ✔ Entregue (Sessão 66,
+  [D-111](DECISIONS.md)): `PUT /api/materials/{id}/composicao` e `/designacoes`,
+  formulário na ficha, auditoria, permissão do material (dono ou curador; 409 para
+  registro do catálogo oficial). Resíduos **TM2-f** e **TM2-g** abaixo.
+- ~~**TM2-b — composição como estágio de seleção.**~~ ✔ Entregue (Sessão 66,
+  [D-111](DECISIONS.md)): operadores `composition` e `not_composition` num estágio
+  `limit`, pela regra de alcance em três valores; o funil conta quem ficou sem
+  dado e o laudo diz a regra.
+- **TM2-f — qualidade e fonte reaproveitada nos formulários novos.** ▁ Os
+  formulários de composição, designações e curvas gravam `ESTIMADO` e não expõem a
+  qualidade do dado; também não sugerem fontes já cadastradas (digita-se o
+  rótulo). Aberto pela Sessão 66.
+- **TM2-g — edição por linha.** ▁ As escritas substituem o conjunto inteiro
+  (último a gravar vence). Um `PATCH` por elemento/curva só se houver edição
+  concorrente real. Aberto pela Sessão 66.
 - **TM2-c — % atômica e composição por condição.** ▆ Converter % atômica exige
   a composição inteira e as massas atômicas (cálculo, não unidade); composição
   por estado (fundido × laminado) pede chave de condição. Até lá ficam fora, ou
@@ -181,9 +190,10 @@ TM2 foi entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
   nada é interpolado, extrapolado nem reamostrado.
 - **TM4-c — histerese, curvas não monotônicas e eixos fora da lista.** ▃
   Continuam em `CatalogSupplementalValue` até haver tipo.
-- **TM4-d — edição pela API e pela interface.** ▃ Com auditoria (M2),
-  `require_catalog_curator` no compartilhado (D-83) e o registro próprio (D-62);
-  hoje só o seed demo e o bundle escrevem.
+- ~~**TM4-d — edição pela API e pela interface.**~~ ✔ Entregue (Sessão 66,
+  [D-111](DECISIONS.md)): `POST`/`PUT`/`DELETE …/curvas`, validados por
+  `build_curve`, mesma permissão e auditoria do TM2-a, editor na ficha. Curva do
+  catálogo oficial fica só leitura.
 - **TM4-e — escolher a unidade do parâmetro da família.** ▁ Hoje sai na
   convenção da grandeza (°C para temperatura); a legenda da tela a repete.
 - **TM4-f — nova grandeza de eixo exige migração.** ▁ A lista de grandezas
@@ -398,6 +408,13 @@ Registrados para não voltarem por engano:
   catálogo estendido (o estado vazio segue testado por unidade e na Cerâmica Demo
   D, sem curva).
 
+- ~~**TM2-a, TM2-b e TM4-d — composição na seleção e edição à mão (Sessão 66, [D-111](DECISIONS.md))**~~ —
+  `composition`/`not_composition` num estágio `limit` (alcance em três valores,
+  funil com a contagem dos indecididos, laudo com a regra); `PUT
+  …/composicao`, `PUT …/designacoes` e `POST`/`PUT`/`DELETE …/curvas` com os
+  construtores do seed, auditoria e a permissão do material
+  (`services/record_permissions.py`; 409 para o oficial); formulários na ficha.
+  Resíduos TM2-f e TM2-g em "Média prioridade". 4252 → 4318 testes de backend (4312 passam e 6 pulam sem `POSTGRES_TEST_URL`) e 846 → 858 de frontend.
 - ~~**TM4 — curvas dependentes de temperatura e taxa (Sessão 61, [D-106](DECISIONS.md))**~~ —
   `MaterialCurve`/`MaterialCurveSeries`/`MaterialCurvePoint` (figura → série →
   ponto, `CHECK`s de finitude e de faixa, fonte obrigatória, migração
