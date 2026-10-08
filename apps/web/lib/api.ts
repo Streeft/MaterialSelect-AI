@@ -28,6 +28,7 @@ import type {
   EcoComparisonResult,
   Explanation,
   Interpretation,
+  MaterialEquivalences,
   ReleaseDiff,
   ReleaseDiffItem,
   ReleaseRecordStatus,
@@ -250,6 +251,13 @@ export function getMaterial(
   return request<MaterialDetail>(
     withUnits(`/api/materials/${id}`, unitChoices),
   );
+}
+
+// --- Declared equivalences (D-115) ------------------------------------------
+
+/** What a source declares equivalent to this material's designations. */
+export function listMaterialEquivalences(materialId: number): Promise<MaterialEquivalences> {
+  return request<MaterialEquivalences>(`/api/materials/${materialId}/equivalencias`);
 }
 
 // --- Material curves (D-106) -----------------------------------------------

@@ -26,6 +26,7 @@ import { PropertyChart } from "@/components/PropertyChart";
 import { MaterialExportMenu } from "@/components/CaeExportDialog";
 import { CompositionTable } from "@/components/material/CompositionTable";
 import { DesignationTable } from "@/components/material/DesignationTable";
+import { EquivalenceSection } from "@/components/material/EquivalenceSection";
 import { MaterialCurves } from "@/components/material/MaterialCurves";
 import {
   Badge,
@@ -330,6 +331,18 @@ export default function MaterialDetailPage() {
               />
             </Section>
           </div>
+
+          {/* D-115 (TM1): what a source declares equivalent to this material's
+              designations — kind and source written, and "nothing declared"
+              said in words. Never inferred from a name or a shared code. */}
+          <Section
+            id="equivalencias"
+            title={ptBR.equivalences.title}
+            description={ptBR.equivalences.hint}
+            className="min-w-0"
+          >
+            <EquivalenceSection materialId={data.id} materialIsDemo={data.is_demo} />
+          </Section>
 
           {/* D-106 (TM4): the material's curves, each a figure with its table of
               points (D-31). Full width: a family of curves needs the room, and a

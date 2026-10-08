@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [70](#sessão-70--081026--equivalência-declarada-entre-designações-tm1-d-115) | 08/10/2026 | Equivalência declarada entre designações (TM1): grupo com tipo (equivalente, aproximada, similar) e fonte obrigatória, membros ligados a designações, escrita só do curador, seção "Equivalências" na ficha, 5 grupos demo (migração `129a7dbbd361`) | 4277 | 851 |
 | [63](#sessão-63--081026--o-que-mudou-entre-releases-do-catálogo-tm7-d-108) | 08/10/2026 | O que mudou entre releases do catálogo oficial (TM7): `lineage` e `is_demo` na release (migração `73a9b5da72b2`), diff derivado casado pela identidade externa e comparado no canônico (valor, presença, forma, só a escrita da fonte), API e CSV/XLSX, página `/app/catalogo/releases`, duas releases demo | 4196 → 4252 | 815 → 846 |
 | [62](#sessão-62--081026--demo-completo-designação-composição-e-curva-para-os-75-materiais-demo-d-107) | 08/10/2026 | Demo completo: designação, composição química e curva fictícias para os 75 materiais demo (156 / 380 / 117), curvas derivadas das propriedades de cada material, em `seed_extended` (`semear_demo`), idempotente e coberta por `clear_demo`; relatório `python -m app.db.demo_coverage` (D-107) | 4164 → 4196 | 815 (inalterado) |
 | [61](#sessão-61--071026--curvas-de-material-tm4-d-106) | 07/10/2026 | Curvas de material (TM4): `MaterialCurve`/série/ponto com `CHECK`s de finitude, construtor puro que recusa x fora de ordem, geometria e unidade de leitura no backend, CSV/XLSX, importador do D-102, demo fictício e `clear_demo`; na ficha, a seção Curvas com gráfico SVG próprio, tabela de pontos e "Exportar ▾" (D-106) | 4079 → 4164 | 797 → 815 |
@@ -78,6 +79,38 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
 
 ---
+
+## Sessão 70 — 08/10/26 — Equivalência declarada entre designações (TM1, D-115)
+
+**O pedido.** Mostrar, na ficha, quais designações uma fonte declara equivalentes
+às do material, com o grau que a fonte afirma — sem nunca inferir por nome. Sem
+fonte aprovada que publique equivalências, só o mecanismo e o demo.
+
+**O que mudou.**
+
+- **Modelo e migração** — `EquivalenceGroup` (tipo, `Source` obrigatória,
+  localização, observação, `is_demo`) e `EquivalenceMember` (aponta para
+  `MaterialDesignation`, único por grupo); migração `129a7dbbd361` (só as duas
+  tabelas; o autogenerate também apontou deriva alheia em `battery_chemistry` e
+  `subscription`, deixada de fora).
+- **Domínio puro** — `app/domain/equivalence.py`: vocabulário fechado de tipos,
+  mínimo de duas designações distintas, demo e real não se misturam. Não existe
+  função que compare códigos.
+- **API** — `GET /api/materials/{id}/equivalencias` e `GET /api/equivalencias/{id}`
+  (logados); `POST/PUT/DELETE /api/equivalencias` só com `require_catalog_curator`,
+  auditados (`equivalence_group`). Fonte com licença para dado real; só designações
+  do catálogo compartilhado.
+- **Ficha** — seção "Equivalências": tipo e o que ele significa como afirmação da
+  fonte, fonte, licença, localização e observação (ausência por extenso), membros
+  com link; vazio diz "nenhuma equivalência declarada".
+- **Demo** — `seed_demo_equivalences` (5 grupos), ligado a `seed_extended.main()`
+  (`semear_demo`); `clear_demo` apaga antes das designações.
+- **Testes** — 4252 → 4277 de backend e 846 → 851 de frontend, incluindo o de
+  "mesmo código em dois materiais não é equivalência".
+- **Documentação** — D-115, TODO (TM1; resíduos), `15`, `03`, REGRAS_POR_AREA, README.
+
+**Depois do merge.** Disparar *Deploy da API* (migração). `semear_demo` só em
+desenvolvimento/demo; em produção pós-cutover não há dado de equivalência.
 
 ## Sessão 63 — 08/10/26 — O que mudou entre releases do catálogo (TM7, D-108)
 

@@ -1904,6 +1904,32 @@ export const ptBR = {
     noRegion: "Não restrita pela fonte",
     noCitation: "Sem localização na fonte",
   },
+  // D-115 (TM1): equivalência declarada entre designações, na ficha.
+  equivalences: {
+    title: "Equivalências",
+    hint:
+      "Correspondências que uma fonte declara entre designações deste material e as de outros. Nada é deduzido por semelhança de nome ou de código.",
+    loading: "Carregando equivalências…",
+    error: "Não foi possível carregar as equivalências.",
+    none: "Nenhuma equivalência declarada",
+    noneHint:
+      "Nenhuma fonte cadastrada declara equivalência para as designações deste material. Isso não significa que não exista, e códigos iguais ou parecidos em outros materiais não são equivalência.",
+    groupCaption: (kind: string) => `Designações ligadas pela fonte, tipo ${kind}`,
+    kindLabel: "Tipo declarado",
+    sourceLabel: "Fonte",
+    licenseLabel: "Licença",
+    noLicense: "Licença não registrada",
+    citationLabel: "Localização na fonte",
+    noCitation: "Sem localização na fonte",
+    noteLabel: "Observação da fonte",
+    noNote: "Sem observação da fonte",
+    columnSystem: "Norma",
+    columnCode: "Código",
+    columnMaterial: "Material",
+    thisMaterial: "este material",
+    withdrawn: "retirado do catálogo",
+    demoRow: "fictício",
+  },
   // D-106 (TM4): curvas do material na ficha.
   curves: {
     title: "Curvas",
